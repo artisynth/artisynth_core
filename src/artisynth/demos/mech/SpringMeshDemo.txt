@@ -1,0 +1,12 @@
+Demonstrates mass-spring systems interacting with constraints.
+
+There are two mass-spring systems (one with green particles
+and one with red particles), and a pair of constraints that
+can be activated using a check box panel that appears
+alongside the main viewer.  Unconstrained, the particle
+systems simply fall under gravity.  Activating the
+attachment constraint attaches one green particle to a fixed
+point in space and connects another green particle to a red
+one.  Adding the collision constraint creates a soft-contact
+collision interaction with a plane perpendicular to the z
+axis.

@@ -1,0 +1,42 @@
+#!/bin/bash
+USAGE="Usage: $0 [-ahome <dir>]"
+ARGS="-updateLibs"
+# clear ARTISYNTH_HOME by default so that we figure this out from out location
+ARTISYNTH_HOME=
+while [ "$1" ]; do
+   if [ $1 == "-ahome" ] ; then
+      if [ "$#" -lt "2" ]; then
+          echo "option -ahome requires an additional argument"
+          exit 1
+      else 
+          ARTISYNTH_HOME=$2
+          shift
+      fi
+   else 
+      echo "$USAGE"
+      exit 1
+   fi
+   shift
+done
+if [ -z "$ARTISYNTH_HOME" ] ; then
+    # try to figure out ARTISYNTH_HOME
+    D=`dirname $0`/..
+    export ARTISYNTH_HOME="`cd \"$D\" 2>/dev/null && pwd || echo \"$D\"`"
+    echo "setting ARTISYNTH_HOME to $ARTISYNTH_HOME"
+fi
+ART=$ARTISYNTH_HOME
+# Classpath needs to include jar files plus libraryInstaller jar file
+CLASSPATH=$ART/lib/*:$ART/bin/libraryInstaller.jar
+export CLASSPATH
+OSNAME=`uname -s`
+# Refine CLASSPATH and ARTISYTH_HOME on Windows
+if echo "$OSNAME" | grep CYGWIN 1>/dev/null 2>&1 ; then
+    export ARTISYNTH_HOME=`cygpath -w $ARTISYNTH_HOME`
+    CLASSPATH="$ARTISYNTH_HOME\lib\*;$ARTISYNTH_HOME\bin\libraryInstaller.jar"
+fi
+java -version 2 > /dev/null 2>&1
+if [ $? != "0" ] ; then 
+    echo Error: Java executable not found. Please ensure that Java is in your path
+    exit 1
+fi  
+java artisynth.core.driver.LibraryInstaller $ARGS

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Mech-System demos -->
+<ModelMenu xmlns="http://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.artisynth.org modelmenu.xsd">
+	<model text="Frame-Spring" class="artisynth.demos.mech.FrameSpringDemo" />	
+	<model text="Layman" class="artsiynth.demos.mech.LaymanDemo" />
+	<model text="MechModel" class="artisynth.demos.mech.MechModelDemo" />
+	<model text="MechModel Collision" class="artisynth.demos.mech.MechModelCollide" />
+	<model text="Multi-Point Spring" class="artisynth.demos.mech.MultiSpringDemo" />
+	<model text="Point Force" class="artisynth.demos.mech.PointForceDemo" />	
+	<model text="Puppet" class="artisynth.demos.mech.PuppetDemo" />
+	<model text="Rigid Body Springs" class="artisynth.demos.mech.RigidBodyDemo" />
+	<model text="Rigid Body Collision" class="artisynth.demos.mech.RigidBodyCollision" />
+	<model text="Spring Mesh" class="artisynth.demos.mech.SpringMeshDemo" />
+	<model text="Segmented Planes" class = "artisynth.demos.mech.SegmentedPlaneDemo" />
+	
+</ModelMenu>

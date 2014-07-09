@@ -1,0 +1,57 @@
+artisynth.core.gui.ControlPanel
+[ name="Groups"
+  size=[ 434 855 ]
+  location=[ 672 22 ]
+  scrollable=true
+  options="LiveUpdate"
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/long:excitation"
+    labelText="Longitudinal"
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/radial:excitation"
+    labelText="Horizontal"
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/circ:excitation"
+    labelText="circical"
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]  
+    javax.swing.JSeparator [ ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/long_l:excitation"
+    labelText="Left" 
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+    maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/long_r:excitation"
+    labelText="Right" 
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+    maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/long_s:excitation"
+    labelText="Superior" 
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+      maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/long_i:excitation"
+    labelText="Inferior" 
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+]

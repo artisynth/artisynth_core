@@ -1,0 +1,49 @@
+%%
+%% Manages the tables.
+%%
+%% The package is provided to:
+%% - fix or workaround some bugs,
+%% - define some specific dimensions,
+%% - workaround annoying longtable things about table counter.
+
+\usepackage{longtable}
+\usepackage{lscape}
+\usepackage{colortbl}
+\usepackage{multirow}
+\usepackage{calc}
+\usepackage{hhline}
+
+% Multirow changed, used by newtbl
+\usepackage{multirow2}
+
+% Temporary latex/3797 bug fix (colortbl) by Morten Hoegholm
+\expandafter\renewcommand\expandafter\multicolumn
+  \expandafter[\expandafter3\expandafter]\expandafter{%
+  \multicolumn{#1}{#2}{#3}}
+
+% Make \@xmultirow long
+\expandafter\long\expandafter\def%
+\expandafter\@xmultirow%
+\expandafter#\expandafter1%
+\expandafter[\expandafter#\expandafter2\expandafter]%
+\expandafter#\expandafter3%
+\expandafter[\expandafter#\expandafter4\expandafter]%
+\expandafter#\expandafter5%
+\expandafter{\@xmultirow{#1}[#2]{#3}[#4]{#5}}
+
+% For the newtbl code
+\newdimen\newtblstarfactor%
+\newdimen\newtblsparewidth%
+\newdimen\newtblcolwidth%
+\newdimen\tablewidth%
+
+% Avoid table counter mess with (informal) longtable
+\def\emptyrefstepcounter#1{}
+\let\stdrefstepcounter\refstepcounter%
+\def\savetablecounter{%
+  \let\refstepcounter\emptyrefstepcounter%
+}
+\def\restoretablecounter{%
+  \let\refstepcounter\stdrefstepcounter%
+}
+

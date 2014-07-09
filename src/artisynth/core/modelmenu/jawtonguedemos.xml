@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ModelMenu xmlns="http://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.artisynth.org modelmenu.xsd">
+	
+	<model text="Badin Jaw" class="artisynth.models.jawTongue.BadinJawHyoid" />
+	<model text="Badin Jaw-Hyoid-Tongue (Line)" class="artisynth.models.jawTongue.BadinJawHyoidTongue" />
+	<model text="Badin Jaw-Hyoid-Tongue (FEM)" class="artisynth.models.jawTongue.JawHyoidFemMuscleTongue" />
+	<model text="Badin Jaw-Tongue-Face" class="artisynth.models.face.BadinJawTongueFaceDemo" />
+	<model text="Jaw" class="artisynth.models.dynjaw.JawDemo" />
+	<model text="Jaw-Larynx" class="artisynth.models.dynjaw.JawLarynxDemo" />
+	<model text="JawTongueSoftPalate" class="artisynth.models.palate.SoftPalateModel" />
+	<model text="Hemimandibulectomy" class="artisynth.models.dynjaw.JawHemi" />
+	<model text="Plane-Constrained Jaw" class="artisynth.models.mechdemos.PlaneConstrainedJaw" />
+	<model text="Teeth Contact" class="artisynth.models.dynjaw.JawTeethContact" />
+	<model text="Tongue (Line)" class="artisynth.models.tongue3d.HexTongueDemo" />
+	<model text="Tongue (FEM)" class="artisynth.models.tongue3d.FemMuscleTongueDemo" />
+	<model text="Dang Tongue" class="artisynth.models.dangTongue.FemTongueDemo" /> 
+
+</ModelMenu>

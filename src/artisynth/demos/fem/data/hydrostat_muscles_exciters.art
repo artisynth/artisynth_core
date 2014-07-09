@@ -1,0 +1,118 @@
+artisynth.core.gui.ControlPanel
+[ name="Exciters"
+  size=[ 381 436 ]
+  location=[ 1247 261 ]
+  options="LiveUpdate"
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/long_rp:excitation"
+    labelText="long_rp"
+    labelFontColor=[ 1.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/long_rm:excitation"
+    labelText="long_rm"
+    labelFontColor=[ 1.000 0.376 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/long_ra:excitation"
+    labelText="long_ra"
+    labelFontColor=[ 1.000 0.749 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/long_lp:excitation"
+    labelText="long_lp"
+    labelFontColor=[ 0.875 1.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/long_lm:excitation"
+    labelText="long_lm"
+    labelFontColor=[ 0.502 1.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/long_la:excitation"
+    labelText="long_la"
+    labelFontColor=[ 0.125 1.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/long_sp:excitation"
+    labelText="long_sp"
+    labelFontColor=[ 0.000 1.000 0.251 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/long_sm:excitation"
+    labelText="long_sm"
+    labelFontColor=[ 0.000 1.000 0.624 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/long_sa:excitation"
+    labelText="long_sa"
+    labelFontColor=[ 0.000 1.000 1.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/long_ip:excitation"
+    labelText="long_ip"
+    labelFontColor=[ 0.000 0.624 1.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/long_im:excitation"
+    labelText="long_im"
+    labelFontColor=[ 0.000 0.251 1.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/long_ia:excitation"
+    labelText="long_ia"
+    labelFontColor=[ 0.125 0.000 1.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/vert_a:excitation"
+    labelText="vert_a"
+    labelFontColor=[ 0.502 0.000 1.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/vert_p:excitation"
+    labelText="vert_p"
+    labelFontColor=[ 0.875 0.000 1.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/horz_a:excitation"
+    labelText="horz_a"
+    labelFontColor=[ 1.000 0.000 0.749 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0/exciters/horz_p:excitation"
+    labelText="horz_p"
+    labelFontColor=[ 1.000 0.000 0.376 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+]

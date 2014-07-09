@@ -1,0 +1,4281 @@
+\documentclass{article}
+\usepackage{amsmath}
+\input{artisynthDoc}
+
+\setcounter{tocdepth}{0}
+\setcounter{secnumdepth}{0}
+
+\title{ArtiSynth Update Log}
+%\author{John Lloyd}
+\iflatexml
+\date{}
+\fi
+
+%\renewcommand{\sectionname}{}
+
+\begin{document}
+
+\section*{Jun 30, 2014}
+
+Some changes have been made in preparation for the upcoming move to
+Subversion and the separation of ArtiSynth from the model packages.
+
+
+
+\subsection*{Creation of artisynth.demos package}
+
+A new super package {\tt artisynth.demos} has been created, to contain
+demo models that will be bundled with the main ArtiSynth distribution.
+Some of the principal demos from {\tt mechdemos}, {\tt femdemos}, 
+and {\tt inversedemos} have been moved there:
+
+\begin{lstlisting}
+artisynth.demos.mech    <- artisynth.models.mechdemos
+artisynth.demos.fem     <- artisynth.models.femdemos
+artisynth.demos.inverse <- artisynth.models.inversedemos
+\end{lstlisting}
+
+Note that anatomical models have {\it not} been moved.
+
+\subsection*{Reworking of the Model Menu}
+
+By default, ArtiSynth now loads a model menu from {\tt
+\$ARTISYNTH\_HOME/demoMenu.xml}, which presents as follows:
+
+\begin{tabular}{ll}
+{\sf Demos} & contents of the {\tt .demoModels} file\\
+{\sf All Demos} & every RootModel found in {\tt artisynth.demos}, arranged
+hierarchically\\
+{\sf Models} & contents of the {\tt .mainModels} file\\
+{\sf All Models} & every RootModel found in {\tt artisynth.models}, arranged
+hierarchically
+\end{tabular}
+
+As before, the model menu can be overridden by the 
+{\tt -demosMenu <xmlFile>} or
+{\tt -demosFile <txtFile>} command line arguments.
+
+Menu entries that don't contain at least one RootModel are omitted.
+This way, the default model menu will still "work" if the (soon to be
+separate) {\tt artisynth.models} package is not present.
+
+\subsection*{New utility class to create FEM control panels}
+
+The static methods in {\tt FemModel}, {\tt FemModel3d}, {\tt
+FemMuscleModel}, and {\tt HexTongueModel} that were used to create
+various control panels for model properties and exciters have been
+moved into a new utility class 
+{\tt artisynth.core.gui.FemControlPanel}.
+
+\section*{Jun 23, 2014}
+
+\subsection*{Simplification of save/restore state infrastructure}
+
+The infrastructure by which components save and restore their state
+has been simplified. Components which have state include dynamic
+components, for which the state consists of positions and velocities,
+plus any component which with additional auxiliary state that
+implements \javaclass[artisynth.core.mechmodels]{HasAuxState}.
+
+As before, {\tt HasAuxState} components use
+\javamethod[artisynth.core.mechmodels.HasAuxState]{getState()} and
+\javamethod[artisynth.core.mechmodels.HasAuxState]{setState()} to save
+and restore their state from a
+\javaclass[maspack.util]{DataBuffer}. However, the {\tt DataBuffer}
+has been modified to use {\tt put()} and {\tt get()} type operations
+to store and retrive information from its double, integer, and {\tt
+Object} data buffers. These operations keep track of buffer sizes and
+offsets, so the application no longer has to do this. Also, buffers
+are autosized automatically, so there is no need for an initial
+presizing step; this also means that the {\tt HasAuxState} method {\tt
+increaseAusStateOffsets()} has been replaced by the simpler method
+\javamethod[artisynth.core.mechmodels.HasAuxState]{skipAuxState()}.
+
+As a simple example, {\tt getState()} and {\tt setState()} methods to
+save and restore auxiliary state consisting of a vector might be
+implemented like this:
+\begin{lstlisting}
+  getState (DataBuffer data) {
+     data.zput (size);               // store vector size as an integer
+     for (int i=0; i<size; i++) {
+        data.dout (vector.get(i));   // store vector data as doubles
+     }
+  }
+
+  setState (DataBuffer data) {
+     int size = data.zget ();        // get the vector size
+     vector = new VectorNd(size);
+     for (int i=0; i<size; i++) {
+        vector.set (i, data.dget()); // restore the vector data
+     }
+  }
+\end{lstlisting}
+
+\section*{Jun 18, 2014}
+
+\subsection*{Reference and dependency handling simplified}
+
+\begin{sideblock}
+{\bf Note:} the term {\it reference} in this update denotes generally
+components that are refered to by other components, as opposed to the
+specific {\tt ReferenceComponents} and {\tt ReferenceLists} described
+in the last update.
+\end{sideblock}
+
+There has been a major simplification of the implementation
+required to support component references. Specifically, it is no
+longer necessary to maintain a {\tt getDependencies()} method for {\tt
+ModelComponent}s. Instead, the system uses the reference information
+supplied the by the {\tt ModelComponent} methods
+\javamethod[artisynth.core.modelbase.ModelComponent]{getHardReferences()}
+and
+\javamethod[artisynth.core.modelbase.ModelComponent]{getSoftReferences()}
+to build whatever dependency information it needs automatically.
+
+This also means that it is no longer necessary to use
+\javamethod[artisynth.core.modelbase.ModelComponent]{connectToHierarchy()}
+and
+\javamethod[artisynth.core.modelbase.ModelComponent]{disconnectFromHierarchy()}
+to maintain back-pointers to a component's references (although these
+methods are still available for other purposes).
+
+The \href{http://www.artisynth.org/doc/html/artisynth/artisynth.html}%
+{ArtiSynth Reference Manual} has been updated to reflect these
+changes.
+
+\subsection*{Reference updating for soft references}
+
+The old {\tt ModelComponent} method {\tt getReferences()} has been
+replaced with
+\javamethod[artisynth.core.modelbase.ModelComponent]{getHardReferences()}
+and
+\javamethod[artisynth.core.modelbase.ModelComponent]{getSoftReferences()}.
+
+{\tt Hard} references are those that the component cannot do without.
+When you request a {\sf Delete} operation from the context menu,
+components with hard references to any deleted components will also be
+deleted (after user confirmation).
+
+{\tt Soft} references are those that can be removed from a component.
+When one or more of a component's soft references are deleted, the
+system will call the component's (new)
+\javamethod[artisynth.core.modelbase.ModelComponent]{updateReferences()}
+method to remove the references and update the component's internals
+as required. {\tt updateReferences()} also contains support for undo
+operations; more details are given in the {\tt Component References}
+section of the 
+\href{http://www.artisynth.org/doc/html/artisynth/artisynth.html}%
+{ArtiSynth Reference Manual}.
+
+\subsection*{Gains now working in ExcitationComponents}
+
+\javaclass[artisynth.core.mechmodels]{ExcitationComponent}s have been
+refactored so that gain values for sources are now stored alongside
+the source components themselves.  In particular, {\tt
+ExcitationComponent} now supports the following additional methods,
+\begin{lstlisting}
+    public void addExcitationSource (ExcitationComponent ex, double gain);
+
+    public void setExcitationGain (ExcitationComponent ex, double gain);
+
+    public double getExcitationGain (ExcitationComponent ex);
+\end{lstlisting}
+and a special class, {\tt ExcitationSourceList}, has been created to
+help implement exitation source lists and keep track of the gain
+values. All current implementations of {\tt ExcitationComponent} have
+been refactored to use this. Gains are no longer stored in {\tt
+MuscleExciter}; setting a gain value there now simply updates the
+corresponding source gain value in the target component.
+
+One major advantage of this is that gains now actually {\it work}.
+Before, they were inoperative.
+
+\section*{Jun 6, 2014}
+
+\subsection*{MechModel now supports arbitrary composition}
+
+{\tt MechModels} can now accept an arbitrary arrangement of
+components. That means you can create your lists of particles,
+springs, renderables, etc. and group and place them in whatever way is
+needed. Before simulation begins (or whenever the model structure is
+changed), MechModel will recursively traverse the component hierarchy
+and create its own internal lists of the physical components it needs
+to run.
+
+\subsubsection*{Example: NetDemo}
+
+An example of this is shown in {\tt models.mechdemos.NetDemo}.  If you
+run this and open the navigation panel, you will see several component
+lists, including {\tt springs} and {\tt redParticles}. Openning {\tt
+springs} will reveal two more lists: {\tt greenSprings} and
+{\tt blueSprings}. The particle list was created with code
+similar to the following:
+\begin{lstlisting}
+   // create a list for storing points:
+   PointList<Particle> redParticles =
+      new PointList<Particle> (Particle.class, "redParticles");
+   RenderProps.setPointColor (redParticles, Color.RED);
+
+   ... add points to it ...
+  
+   mech.add (redParticles); // add to the mechmodel
+\end{lstlisting}
+The spring lists were created with code like this:
+\begin{lstlisting}
+   // create a list for storing the green springs:
+   RenderableComponentList<AxialSpring> greenSprings =
+      new RenderableComponentList<AxialSpring> (
+         AxialSpring.class, "greenSprings");
+   RenderProps.setLineColor (greenSprings, new Color(0f, 0.5f, 0f));
+
+   ... add springs to it ...
+
+   ... create another list for the blue springs the same way ...
+
+   // create a list to hold both greenSprings and blueSprings:
+   ComponentList<ModelComponent> springs =
+      new ComponentList<ModelComponent>(ModelComponent.class, "springs");
+
+   springs.add (greenSprings);
+   springs.add (blueSprings);
+  
+   mech.add (springs); // add to the mechmodel
+\end{lstlisting}
+
+\subsubsection*{Component list types}
+
+Lists of any model component type can be created using the
+generic class {\tt ComponentList}. For example,
+\begin{lstlisting}
+   ComponentList<Particle> plist = 
+      new ComponentList<Particle> (Particle.class, "parts"));
+
+   ComponentList<Frame> frames = 
+      new ComponentList<Frame> (Frame.class, "frames"));
+\end{lstlisting}
+creates a list for particles and a list for frames. The constructor
+takes two arguments: the class type associated with the list, and
+the name for this list.
+
+In addition to {\tt ComponentList}, there are several "specialty"
+lists:
+
+\begin{description}
+
+\item[RenderableComponentList] A subclass of {\tt ComponentList}, that
+has its {\it own} set of render properties which can be inherited by
+its children. This can be useful for compartmentalizing render
+behavior.  Note that it is {\it not} necessary to store renderable
+components in a {\tt RenderableComponentList}; components stored in a
+{\tt ComponentList} will be rendered too.
+
+\item[PointList] A {\tt RenderableComponentList} that is optimized for
+rendering points, and also contains it's own {\tt pointDamping}
+property that can be inherited by its children.
+
+\item[PointSpringList] A {\tt RenderableComponentList} designed for
+storing point-based springs. It contains a {\tt material} property that
+specifies a default axial material that can be used by it's children.
+
+\item[AxialSpringList] A {\tt PointSpringList} that is optimized for
+rendering two-point axial springs.
+
+\end{description}
+
+\subsubsection*{Custom lists and lists of lists}
+
+If necessary, it is relatively easy to define one's own customized
+list by subclassing one of the other list types. One of the main
+reasons for doing so, as suggested above, is to supply default
+properties to be inherited by the list's descendents.
+
+As seen in the {\tt NetDemo} example above, component lists can also
+grouped under other lists, which allows model components to be
+arranged in any way necessary.  Generally {\tt
+ComponentList<ModelComponent>} or {\tt
+RenderableComponentList<ModelComponent>} are the best classes to use
+for groupings.
+
+\subsubsection*{Reference containment}
+
+{\tt MechModel}, along with other classes derived from {\tt
+ModelBase}, enforces {\it reference containment}. That means that all
+components referenced by components within a {\tt MechModel} must
+themselves be contained within the {\tt MechModel}.  This condition is
+checked whenever a component is added directly to a {\tt MechModel} or
+one of its ancestors. This means that the components must be added to
+the {\tt MechModel} in an order that ensures any referenced components are
+already present. For example, in the {\tt NetDemo} above, adding the
+particle list {\it after} the spring list would generate an error.
+
+\subsubsection*{Legacy component lists}
+
+For backward compatibility, the existing component lists in {\tt
+MechModel} have been left in place. These include {\tt particles},
+{\tt rigidBodies}, {\tt frameMarkers}, etc. The reason these cannot be
+immediately removed is because there are software methods (such as
+{\tt addParticle()}) that assume their existence. These components are
+created at construction time and added to {\tt MechModel} using {\tt
+addFixed()} instead of {\tt add()}, which marks them as {\it fixed},
+indicating that they should not be removed.
+
+We may try to find some way to reduce the footprint of these legacy
+component lists in the future. In the meantime, to reduce their
+visibility, the navigation panel no longer shows empty composite
+components by default (although it is possible to override this; see
+below).
+
+\subsubsection*{Other Model components}
+
+Other models, in particular {\tt RootModel} and {\tt FemModel},
+inherit from {\tt ModelBase} and so also allow the introduction of
+application specific components. However, at the present time, these
+components won't do anything, other than be rendered in the viewer if
+they are {\tt Renderable}.
+
+\subsection*{New implementation class for CompositeComponents}
+
+\setjavabase{artisynth.core.modelbase}
+
+Coincident with the above changes, the internal implementation of
+composite components has been streamlined. In particular,
+\javaclass{ComponentListImpl} is available as an internal
+implementation class for constructing instances of either
+\javaclass{CompositeComponent} or
+\javaclass{MutableCompositeComponent} (the latter is a composite
+component, such as {\tt ComponentList}, that can be modified by the
+application.  {\tt ComponentListImpl} provides most of the
+implementation methods needed for a mutable component list, which can
+be exposed in the client class using delegate methods.  Components
+implementing only {\tt CompositeComponent} may choose to expose only
+some of these methods.
+
+Details on {\tt CompositeComponent} and {\tt MutableCompositeComponent}
+can be found in the 
+\href{http://www.artisynth.org/doc/html/artisynth/artisynth.html}%
+{ArtiSynth Reference Manual}.
+
+\subsection*{Enforcement of name uniqueness}
+
+The ability for applications to create arbitrary component
+arrangements, along with the default hiding of empty components in the
+navigation panel, makes it important to ensure that any name given to
+a component is unique among its siblings in the hierarchy.  Otherwise,
+ambiguities could arise in component and property paths, and models
+may not save and load correctly from persistent storage.
+
+To enforce this, component name validation has been extended to ensure
+that the component's parent does not already have another child with
+the same name.
+
+\begin{sideblock}
+This may cause the loading of some existing models to fail. The proper
+solution to this problem is to fix the name uniqueness problem within
+the model. However, for legacy purposes, name validation can be
+disabled by setting {\tt ModelComponentBase.enforceUniqueNames} to {\tt
+false}. 
+\end{sideblock}
+
+As before, components do not need to have names.  Paths for unnamed
+components can still be generated using the component's number, which
+is assigned automatically when it is attached to a parent and is
+unique.
+
+\subsection*{Write/scan has been reimplemented}
+
+Allowing an application to specify components in an arbitrary
+arrangement has impacted how models can be written to and read from
+persistent storage using {\tt write()} and {\tt scan()}. In
+particular, the scanning of component references becomes more
+difficult, because when a component's {\tt scan()} method is called,
+some or all of the components that it references may not yet exist.
+
+The solution to this problem has been to supplement the scanning
+process with a second {\it post-scan} step. Information which cannot
+be resolved on the first scan pass is stored in a special "token
+queue", which is then processed later in a {\tt postscan()}
+method. The details are beyond the scope of this update. However,
+comprehensive documentation is available in the
+\href{http://www.artisynth.org/doc/html/artisynth/artisynth.html}%
+{ArtiSynth Reference Manual}.
+
+In addition to adding {\tt postscan()}, the scan/write code was
+significantly rewritten, streamlined, and made more uniform.  Details
+are again provided in the ArtiSynth Reference Manual.
+
+\subsubsection*{Use of ScanWriteUtils}
+
+A new utility class, 
+\javaclass[artisynth.core]{modelbase.ScanWriteUtils}, has been added
+that provides a large number of methods to assist in the scanning and
+writing of files.
+
+\subsubsection*{"pokes'' attribute removed from NumericInputProbe}
+
+As part of the overhaul of write/scan, the legacy attribute name {\tt
+pokes}, which was a synonym for {\tt props}, has been removed. The
+change has been made in all {\tt .art} files that are checked in.
+However, if you have external {\tt .art} files containing input probe
+definitions, you may want to check if they contain the word {\tt
+pokes}, and if so, replace this with {\tt props}. The command {\tt
+\$ARTISYNTH\_HOME/bin/qsubst} can be used for this purpose:
+\begin{lstlisting}
+  > qsubst pokes props *.art
+\end{lstlisting}
+
+\subsubsection*{Reverting to the old scan method}
+
+If there is any problem with the new scan method, you can revert to
+the old (pre-postscan) method by setting {\tt
+modelbase.ScanWriteUtils.useNewScan} to {\tt false}.
+
+\subsection*{Reference lists implemented}
+
+A special type of component, \javaclass{ReferenceComponent}, has been
+created, which simply provides a reference to another component.  This
+is used to implement \javaclass{ReferenceList}, which provides a
+collection of references to other components.
+
+Reference lists are intended to allow an application to group together
+components in ways that are independent of the main component
+hierarchy.  One of their intended purposes is for component navigation
+and interaction, and they can be thought of as "predefined selection
+lists" that allow components to be grouped together for convenient
+inspection or editing of common properties.
+
+\subsubsection*{Interaction in the navigation panel}
+
+A {\tt ReferenceList} can be expanded in the navigation panel like any
+other composite component. However, the names that appear for its
+({\tt ReferenceComponent}) children are, by default, the path names
+for the components that they refer to, preceded by a "{\tt ->}".
+
+Selecting a reference component in the navigation panel will, by
+default, cause the selection of both the reference component and the
+component that it refers to.
+
+\subsubsection*{Interaction with the context menu}
+
+The behavior of the right-click context menu accommodates the
+selection of reference components and lists in the following way:
+
+\begin{description}
+
+\item[Reference lists] If the current selection consists entirely of
+reference lists, then the context menu will contain a special section
+entitled {\it For reference list components:}, which provides editing
+options for all the components referred to by all the lists. The
+(small number) of properties of the reference lists themselves can be
+editing through the separate menu item {\sf Edit reference list
+properties ...}.
+
+\item[Reference components] When reference components are selected,
+the editing options provided in the context menu apply to the
+components that are referenced, as opposed to the reference components
+themselves. Editing options for the reference components themselves
+appear as separate menu items, such as {\sf Edit reference properties
+...} or {\sf Delete reference(s)}.
+
+\end{description}
+
+\subsubsection*{Example: NetDemo}
+
+The {\tt NetDemo} example contains two reference lists, {\tt
+middleGreenSprings} and {\tt middleBlueSprings}, that contain
+references to the green and blue springs running down the center of
+the net. By selecting one of the reference lists and then choosing
+{\sf Editing properties ...}, a property panel will appear that allows
+editing of their common properties.  This includes changing their
+excitation levels (the springs are actually simple muscle components),
+which will cause a flexing behavior in the net as the demo is run.
+
+\subsection*{Enhancements to the navigation panel}
+
+\subsubsection*{Visibility control for empty components}
+
+By default, empty composite components are no longer displayed in the
+naviagtion panel. This behavior can be changed by selecting {\sf Show
+empty components in navpanel} under the {\sf View} menu.
+
+The visibility of components can also be individually controlled
+through their (new) {\sf navpanelVisibility} property. This can be set
+to one of three values:
+
+\begin{description}
+
+\item[Hidden] Component will not be displayed in the navigation panel.
+
+\item[Visible] Component will be displayed in the navigation panel,
+unless overridden by a policy such as not displaying empty components.
+
+\item[Always] Component will always be displayed in the navigation panel.
+
+\end{description}
+
+Note that currently only {\tt CompositeComponent} exposes {\sf
+navpanelVisibility} for property panel editing.
+
+\subsubsection*{Alphabetical ordering}
+
+It is now possible to arrange for the child nodes of a composite
+component to be ordered alphabetically by name. This is done
+individually on a per-component basis, by setting their {\sf
+navpanelDisplay} property. This currently has two values:
+
+\begin{description}
+
+\item[Normal] Named children are displayed in the order in which they appear
+in the composite component.
+
+\item[Alphabetic] Named children are displayed in alphabetical order
+by name. For unnamed reference components, the path name of the
+referenced component is used in place of the name.
+
+\end{description}
+
+Note that in both cases, unnamed components are still displayed after
+named components. {\tt ComponentList}s expose the {\sf navpanelDisplay}
+property for property panel editing.
+
+\section*{Apr 27, 2014}
+
+\subsection*{CollisionManager added to MechModel}
+
+{\tt MechModel} has been refactored to include a {\tt
+CollisionManager} (as a child component) that manages the collision
+interactions between its colliable bodies. The existing
+{\tt MechModel} methods for doing this, namely:
+\begin{lstlisting}
+   setDefaultCollisionBehavior (enabled, mu);
+   setDefaultCollisionBehavior (typeA, typeB, behavior);
+   setDefaultCollisionBehavior (typeA, typeB, enabled, mu);
+   CollisionBehavior getDefaultCollisionBehavior (typeA, typeB);
+
+   setCollisionBehavior (a, b, enabled);
+   setCollisionBehavior (a, b, enabled, mu);
+   setCollisionBehavior (a, b, behavior);
+   getCollisionBehavior (a, b);
+\end{lstlisting}
+now delegate their functionality to the collision manager.
+
+The collision manager can be obtained using the {\tt MechModel} method
+\begin{lstlisting}
+   getCollisionManager();
+\end{lstlisting}
+Collision rendering should now be controlled by controlling the render
+properties of the collision manager, instead of the (now removed)
+collision handler list that was returned by {\tt
+collisionHandlers()}. That means, for example, that
+\begin{lstlisting}
+   Renderable collisions = myJawModel.collisionHandlers();
+   RenderProps.setVisible (collisions, true);
+\end{lstlisting}
+should be changed to 
+\begin{lstlisting}
+   Renderable collisions = myJawModel.getCollisionManager();
+   RenderProps.setVisible (collisions, true);
+\end{lstlisting}
+
+Some collision related properties formerly associated with {\tt
+MechModel} have now been moved to the collision manager, and should be
+accessed there instead. These include:
+\begin{lstlisting}
+   contactNormalLen
+   collisionPointTol
+   collisionCompliance
+   collisionDamping
+\end{lstlisting}
+
+The collision manager also contains its own inherited property {\tt
+penetrationTol}, which is also found in {\tt MechModel}. Setting this
+value in {\tt MechModel} will cause it to be propagated to other
+components besides the collision manager (such as {\tt
+RigidBodyConnectors}). If not set explicitly, {\tt MechModel} will try
+to compute an appropriate default value for {\tt penetrationTol} based
+on the estimated radius of its components.  It is also possible to
+explicitly set {\tt penetrationTol} to this default value by
+specifying a value of -1.
+
+\section*{Apr 18, 2014}
+
+\subsection*{MeshBody merged with MeshComponent}
+
+The class {\tt mechmodels.MeshBody} has been removed and merged into
+{\tt mechmodels.MeshComponent}. Both classes represented objects whose
+dominant feature was a mesh (either fixed or variable), as defined by
+an instance of {\tt maspack.geometry.MeshBase}, so having two such
+classes was redundant.
+
+\subsection*{Skin meshes extended to include FEM models}
+
+The {\tt SkinMesh} class has been refactored and extended to include
+finite element models (class {\tt FemModel3d}) in addition to {\tt Frames}.
+It has also been moved to {\tt femmodels} because of its
+dependency on FEMs.
+
+{\tt SkinMesh} works by assigning a subclass of {\tt PointAttachment},
+called {\tt PointSkinAttachment}, to each mesh vertex. This attachment
+controls the vertex position as a weighted sum of influences from
+various master components, which may include {\tt Frames}, {\tt
+FemNode3d}, arbitrary {\tt Particles}, and the vertex base
+position. Implementing skinning in this way allows for the possibility
+of attaching dynamic points or markers to a skin mesh, where they may
+be used to propogate forces back onto the master components
+controlling the shape.
+
+Full details on how to work with the new {\tt SkinMesh} class are
+given in its javadoc header.
+
+\subsection*{FemMeshComponent renamed to FemMesh}
+
+{\tt FemMeshComponent} has been renamed to {\tt FemMesh} and
+redesigned to use attachments to control its vertices. Unlike {\tt
+SkinMesh}, it uses the existing {\tt PointParticleAttachment} and {\tt
+PointFem3dAttachment} classes.
+
+Both {\tt SkinMesh} and {\tt FemMesh} are now subclasses of {\tt
+SkinMeshBase}, so the overall type hierarchy looks like:
+\begin{lstlisting}
+   MeshComponent
+      SkinMeshBase
+         SkinMesh
+         FemMesh 
+\end{lstlisting}
+
+\subsection*{Generic readers and writers added for meshes}
+
+Two new classes, {\tt GenericMeshReader} and {\tt GenericMeshWriter},
+have been added to {\tt maspack.geometry.io}. These allow the reading
+and writing of meshes, using the file extension to determine the
+actual mesh format and which type of specific reader or writer is
+needed. Currently supported formats include {\tt .obj}, {\tt .off},
+{\tt .ply}, and {\tt .stl}. Unrecognized file extensions will result
+in an error being thrown. To read a mesh from an arbitrary file, one
+can use either
+\begin{lstlisting}
+   GenericReader reader = new GenericReader(fileName);
+   MeshBase mesh = reader.readMesh();
+\end{lstlisting}
+or the static convenience method
+\begin{lstlisting}
+   MeshBase mesh = GenericReader.readMesh (fileName);
+\end{lstlisting}
+The mesh that is returned is either a {\tt PolygonalMesh}, {\tt
+PointMesh}, or {\tt LineMesh} depending on the contents of the
+file. To ensure reading of a specific mesh type, one can pass
+an empty mesh of the desired type to the companion method
+{\tt readMesh (mesh)},
+\begin{lstlisting}
+   GenericReader reader = new GenericReader(fileName);
+   MeshBase mesh = reader.readMesh (new PolygonalMesh());
+\end{lstlisting}
+or use the corresponding static method:
+\begin{lstlisting}
+   MeshBase mesh = GenericReader.readMesh (fileName, new PointMesh());
+\end{lstlisting}
+If the reader cannot parse the file into an instance of the specified
+mesh, an exception will be thrown.
+
+The interface for writing a mesh is similar:
+\begin{lstlisting}
+   GenericWriter writer = new GenericWriter(fileName);
+   writer.writeMesh(mesh);
+\end{lstlisting}
+or 
+\begin{lstlisting}
+   GenericWriter.writeMesh (fileName, mesh);
+\end{lstlisting}
+
+One reason for explicitly creating a {\tt writer} is to obtain
+control over the output formating. For example, the method {\tt
+setFormat(string)} takes a {\tt printf()} style string used
+to format floating point numbers in ASCII output:
+\begin{lstlisting}
+   GenericWriter writer = new GenericWriter(fileName);
+   write.setFormat ("%8.3f");
+   writer.writeMesh(mesh);
+\end{lstlisting}
+Another method, {\tt setFormat(reader)}, takes a generic reader as an
+argument and sets the output format to match that of the file that the
+reader most recently read. This is useful for formats like {\tt
+.ply}, which can be either ASCII or several flavours of binary,
+and one would like to read in a mesh, transform it, and write
+it out to another file using the same format as the original input file:
+\begin{lstlisting}
+   GenericReader reader = new GenericReader(inFileName);
+   MeshBase mesh = reader.read ();
+   ... transform the mesh in some way ...
+   GenericWriter writer = new GenericWriter(outFileName);
+   writer.setFormat (reader);
+   writer.writeMesh(mesh);
+\end{lstlisting}
+
+\subsection*{Memory efficiency improved for meshes}
+
+A few rarely-used items have been removed from the {\tt Face} and {\tt
+HalfEdge} data structures used for polygonal meshes:
+
+\begin{description}
+
+\item [Centroids in faces:] {\tt getCentroid()} has been removed
+from {\tt Face}; instead, use {\tt computeCentroid(pos)} to compute
+the centroid.
+
+\item [Unit vector in half-edges:] {\tt getU()} has
+been removed from {\tt HalfEdge}; instead, use {\tt computeUnitVec(u)}
+or {\tt computeEdgeUnitVec(u)} (see the documentation for the
+difference).
+
+\end{description}
+
+Surprisingly, these two changes have reduced the typical memory
+footprint for a triangular mesh from about 1050 bytes/vertex to about
+650 bytes/vertex.
+
+\section*{Mar 25, 2014}
+
+\subsection*{Upgrade to JOGL 2}
+
+The version of JOGL (Java OpenGL) used by ArtiSynth has been upgraded to JOGL 2.
+Because this involves some changes in jar files and native libraries,
+the upgrade procedure is a bit more complex:
+
+\begin{enumerate}
+
+\item Do a CVS update as usual, but do {\bf not} clean or recompile.
+
+\item Do an explicit library update. You can do this from the command
+line by running {\tt \$ARTISYNTH\_HOME/bin/updateArtisynthLibs} (on
+Linux and MacOS), or {\tt
+\$ARTISYNTH\_HOME\BKS bin\BKS updateArtisynthLibs.bat} (on Windows).  You can
+also update by running an ArtiSynth program with the {\tt -updateLibs}
+command line option.
+
+\item Remove the jar files {\tt jogl.jar} and {\tt gluegen-rt.jar}
+from {\tt \$ARTISYNTH\_HOME/lib}.
+
+\item If you are using Eclipse, you will also need to explicitly change the
+JOGL jar files in the build path:
+
+\begin{enumerate}
+
+\item Navigate to {\sf Project > Properties > Java Build Path},
+and select the {\tt Libraries} tab.
+
+\item Remove {\tt jogl.jar} and {\tt gluegen-rt.jar}. (Since they were
+removed in the last step, these should be indicated as {\it missing}.)
+
+\item On the right side, choose {\sf Add JARs}, navigate to {\tt
+artisynth\_2\_0/lib}, select {\tt jogl2-all.jar} and {\tt
+jogl2-gluegen-rt.jar}, and choose {\tt OK}.
+
+\end{enumerate}
+
+\item Refresh, clean and recompile ArtiSynth as usual.
+
+\end{enumerate}
+
+If you are authoring your own rendering code, you need to note that
+JOGL 2 introduces some minor syntax changes into the API. The main
+change is that the class {\tt GL} has been replaced by {\tt GL2}.
+That means that code fragments like
+\begin{lstlisting}
+   import javax.media.opengl.GL;
+   GL gl = renderer.getGL();
+   gl.glBegin(GL.GL_TRIANGLES);
+\end{lstlisting}
+should be changed to
+\begin{lstlisting}
+   import javax.media.opengl.GL2;
+   GL2 gl = renderer.getGL2();
+   gl.glBegin(GL2.GL_TRIANGLES);
+\end{lstlisting}
+
+\subsection*{Flags argument added to render methods}
+
+The {\tt render()} method in {\tt GLRenderable} 
+has been extended to include a {\tt flags}
+argument:
+\begin{lstlisting}
+   void render (GLRenderer renderer, int flags);
+\end{lstlisting}
+This contains a number of flags that may be used to control different
+aspects of an object's rendering.  The flags are defined in {\tt
+GLRenderer}, and adherance to them is recommended but not
+mandatory. Current flag definitions include:
+
+\begin{description}
+
+\item[SELECTED] Requests that the object be rendered as though it
+is selected, whether or not it actually is selected;
+
+\item[VERTEX\_COLORING] For meshes, requests that rendering should
+be done using explicit colors set at the vertices;
+
+\item[HSV\_COLOR\_INTERPOLATION] Requests that {\tt HSV} color
+interpolation should be used when the {\tt VERTEX\_COLORING}
+flag is set;
+
+\item[SORT\_FACES] For polygonal meshes, requests that faces should
+be sorted in Z direction order. This is to enable better rendering of
+transparency;
+
+\item[CLEAR\_MESH\_DISPLAY\_LISTS] For meshes, requests that display
+lists be cleared.
+
+\end{description}
+
+A {\tt render()} method with a {\tt flags} argument was available
+previously through the interface {\tt GLRenderableExtended}, which has
+now been removed.
+
+\section*{Mar 24, 2014}
+
+\subsection*{Explicit references to Youngs modulus and Poissons ratio 
+removed from FemModel}
+
+The legacy methods: 
+\begin{lstlisting}
+   setYoungsModulus (E)
+   setPoissonsRatio (nu)
+   setElasticity (E, nu)
+   setWarping (enable)
+   getYoungsModulus ()
+   getPoissonsRatio ()
+   getWarping ()
+\end{lstlisting}
+have been removed from {\tt FemModel}. Instead, one should now use:
+\begin{lstlisting}
+   setMaterial (mat)
+   getMaterial ()
+\end{lstlisting}
+where {\tt mat} is an appropriate material.
+A convenience method, 
+\begin{lstlisting}
+   setMaterial (E, nu, corotated)
+\end{lstlisting}
+has been added; this is equivalent to
+\begin{lstlisting}
+   setMaterial (new LinearMaterial (E,nu, corotated));
+\end{lstlisting}
+
+Where necessary, existing calls to {\tt setYoungsModulus()} and {\tt
+setPoissonsRatio()} have been replaced with calls to {\tt
+setLinearMaterial()}.
+
+\section*{Feb 5, 2014}
+
+The {\tt MeshViewer} application in {\tt maspack.apps} now has all the
+grid and view controls of the main ArtiSynth viewer. It is intended to
+be used as a command line tool to allow one to quickly view
+meshes whose file names are specified on the command line.
+For example, the command
+\begin{verbatim}
+   java maspack.apps.MeshViewer mesh.obj 
+\end{verbatim}
+will display the mesh in the file {\tt
+mesh.obj}. Multiple meshes can also be specified. By default,
+multiple meshes will be displayed together, 
+unless the option {\tt -queue} is given, as in:
+\begin{verbatim}
+   java maspack.apps.MeshViewer -queue mesh1.obj mesh2.obj mesh3.obj 
+\end{verbatim}
+This will cause the viewer to display each mesh one at a time, with
+the user able to move back and forth through the "queue" using the
+{\tt <space>} and {\tt <backspace>} keys. One can also choose meshes
+from a menu obtained by choosing {\sf File > Show mesh selector}.
+
+The option {\tt -help} can be used to find out about other options:
+\begin{verbatim}
+   java maspack.apps.MeshViewer -help
+\end{verbatim}
+
+The enhancement of {\tt MeshViewer} was enabled by a refactoring which
+moved viewer control infrastructure from {\tt artisynth.core.driver} into
+{\tt maspack.widgets}. Aspects of this refactoring which may impact
+user model code include:
+
+\begin{itemize}
+
+\item {\tt ViewerController} no longer exists. Applications which
+controlled viewer properties through this object should now control
+the viewer directly.
+
+\item The {\tt AxialView} enumerated type of {\tt ViewerController},
+which consisted of {\tt Default}, {\tt Left}, {\tt Right}, etc., has
+been replaced with the enumerated type {\tt
+maspack.matrix.AxisAlignedRotation}, which specifies all of the 24
+possible axis-aligned rotations using names such as {\tt X\_Y}, {\tt
+Y\_Z}, {\tt X\_NZ}, etc. These specify which axes of the rotated frame
+lie along the x and y axes of the base frame, with {\tt X}, {\tt Y},
+{\tt Z}, {\tt NX}, {\tt NY}, and {\tt NZ} denoting the positive and
+negative x, y, and z directions.
+
+\item For brevity, {\tt maspack.widgets.GuiUtilities} has been renamed
+to {\tt maspack.widgets.GuiUtils}.
+
+\end{itemize}
+
+\section*{Jan 28, 2014}
+
+Some improvements have been made to the 3D dragger tools and to the
+viewer grid.
+
+\begin{itemize}
+
+\item By default, when a dragger is initialized for an object with a
+coordinate frame (such as a rigid body), its axes are aligned with
+that coordinate frame (see Sep 26, 2013). However, it is now possible
+to request that a dragger's axes are always initialized to world
+coordinates. To do this, choose {\sf Init draggers in world
+coordinates} in the ArtiSynth {\sf Settings} menu.
+
+\item The {\tt CTRL} modifier key (or the {\tt ALT} key on some
+systems) can be used to decouple dragger motion for the object(s) it
+is controlling. This allows its position and orientation relative to
+the selected objects to be changed. This is particularly useful for
+changing the orientation of the scaling directions in the scaling
+tool (which now contains rotatory drag components for this
+purpose).
+
+\item For the translation tool, if the viewer grid is turned on and
+the grid axes are aligned with the tool axes, then constrained motions
+(selected using the {\tt SHIFT} modifier key) will cause the dragger
+motions to align exactly with the grid cell corners. (For motions
+outside the grid plane, the grid is artifically extended into three
+dimensions.)
+
+\item The automatic resizing of grids has been improved to provide a
+more visually useful set of cell divisions. Major cells may now be
+divided into 5 or 10 subdivisions, and major cells sizes may be
+set to either $10^k$ or $5 \times 10^k$, for some integer $k$.
+
+\item Grid sizes can also be set explicity by the user by simply
+typing the desired ratio {\tt S/N} into the {\tt Grid:} display box,
+where {\tt S} is the major cell size and {\tt N} is the number of cell
+divisions. {\tt S} can be any non-negative value and {\tt N} can be
+any positive integer. Specifying an explicit value will disable
+auto-sizing, unless {\tt S} is specified as 0 or the special value
+{\tt *} is entered, both of which will reenable
+auto-sizing. Auto-sizing can also be enabled or disabled by right
+clicking on the {\tt Grid:} label and choosing {\sf Turn auto-sizing
+on} or {\sf Turn auto-sizing off}, as appropriate.
+
+\item Grid properties have been enhanced for greater control over the
+grid appearance. As before, to set properties, right click on the {\tt
+Grid:} label and choose {\sf Set properties}.
+
+\end{itemize}
+
+The user interface documentation has been updated for these changes.
+
+\section*{Jan 23, 2014}
+
+Package reorganization is now largely completed on {\tt maspack}.
+Some of the most prominent changes include:
+
+\begin{itemize}
+
+\item Moving stand-alone and GUI-dependent applications (like {\tt
+MeshViewer}) into {\tt maspack.apps};
+
+\item Moving much of the GUI support code from {\tt artisynth.gui}
+into {\tt maspack.widgets};
+
+\item Rationalizing the mesh I/O code and moving it all
+into {\tt maspack.geometry.io}.
+
+\end{itemize}
+
+A major goal of this effort has been to reduce coupling between
+packages, and to try and ensure that package dependenices flow
+one-way. This in turn means that packages can be arranged in a (not
+necessarily unique) ``dependency stack''. Except for few dependencies
+between {\tt maspack.util} and {\tt maspack.matrix}, the {\tt maspack}
+dependency stack, from least to most dependent, now looks like this
+(where packages between lines are not dependent on each other):
+
+\begin{lstlisting}
+   maspack.util
+   ------------
+   maspack.matrix
+   maspack.graph
+   maspack.fileutil
+   ------------
+   maspack.properties
+   maspack.interpolation
+   maspack.function
+   maspack.spatialmotion
+   ------------
+   maspack.solvers
+   maspack.render
+   ------------
+   maspack.geometry
+   ------------
+   maspack.collision
+   maspack.widgets
+   maspack.sph
+   maspack.fluid
+   maspack.matlab
+   ------------
+   maspack.apps
+\end{lstlisting}
+
+\section*{Dec 1, 2013}
+
+Refactoring is now mostly finished on the bounding volume hierarchy
+code in {\tt maspack.geometry}.
+
+The main change in this update is the removal of the {\tt
+getObbtree()} method in {\tt PolygonalMesh} and its replacement with
+{\tt getBVTree()}. The latter method will return a bounding
+volume hierarchy that can be used for queries and intersections, but
+it won't necessarily be an {\tt OBBTree}. At present, it will be an
+{\tt OBBTree} if the mesh is fixed, and an {\tt AABBTree} (which is
+easier to update) otherwise. Also, the various {\tt Ajl} bounding
+volume classes in {\tt maspack.geometry} have been removed
+and their functionality has been taken over by the {\tt BVTree}
+classes.
+
+Other changes include:
+
+\begin{itemize}
+
+\item The class {\tt OBBNode} has been merged into {\tt OBB}, and {\tt
+AABBNode} has been renamed to {\tt AABB}.
+
+\item {\tt BVHierarchy} has been renamed to {\tt BVTree}.
+
+\end{itemize}
+
+\section*{Nov 26, 2013}
+
+A major refactoring is in progress on the code in {\tt
+maspack.geometry} that handles bounding volume hierarchies and the
+associated spatial query and intersection code. The purpose of this is
+to unify the different bounding volume classes and ensure that spatial
+queries will work properly with oriented bounding box (OOB) and
+axis-aligned bounding box (AABB) hierarchies. 
+
+In particular, the query and intersection methods that have been
+previously available through the {\tt OBBTree} class have been moved
+into the classes {\tt BVFeatureQuery} and {\tt BVIntersector}. {\tt
+BVFeatureQuery} provides
+\begin{lstlisting}
+   nearestFaceToPoint (nearPnt, uv, mesh, pnt);
+   nearestFaceAlongRay (nearPnt, duv, mesh, origin, dir);
+   nearestFaceAlongLine (nearPnt, duv, mesh, origin, dir, min, max);
+   nearestVertexToPoint (mesh, pnt);
+   nearestEdgeToPoint (nearPnt, sval, mesh, pnt);
+
+   isInsideOrientedMesh (mesh, pnt, tol);
+   isInsideMesh (mesh, pnt, tol);
+\end{lstlisting}
+while {\tt BVIntersector} provides
+\begin{lstlisting}
+   intersectMeshMesh (intersections, mesh1, mesh2);
+   intersectMeshPlane (intersections, mesh, plane);
+\end{lstlisting}
+
+These methods obtain the bounding volume hierarchy from the mesh
+itself. Alternate forms of the methods allow the application to
+provide the bounding volume hierachy directly. Some arguments are
+optional and can be specified as {\tt null}, such as {\tt nearPnt},
+{\tt uv}, and {\tt duv} that return nearest points and their
+barycentric coordinates. Full details are given in the Javadocs for
+{\tt BVFeatureQuery} and {\tt BVIntersector}.
+
+For ``point inside mesh'' queries, {\tt isInsideOrientedMesh()} assumes
+that the mesh is oriented so that all face normals point outward, and
+works by investigating the nearest face, edge, or vertex to the point.
+An alternate method, {\tt isInsideMesh()}, does not assume that the
+faces are oriented and works by the well-known method of counting the
+intersections of a ray cast from the point. Because it uses local
+feature information, {\tt isInsideOrientedMesh()} does not require
+that the mesh is actually closed, and is also faster than {\tt
+isInsideOrientedMesh()}, but is also potentially less robust.
+
+Somes examples of using these query methods are:
+
+\begin{lstlisting}
+   double inf = Double.POSITIVE_INFINITY;
+   Point3d pnt;         // point for the query
+   Vector3d dir;        // ray or line direction
+   Point3d nearPnt;     // nearest point on the face
+   PolygonalMesh mesh;
+   ...
+
+   // find the nearest face to pnt, along with the nearest point:
+   BVFeatureQuery query = new BVFeatureQuery(); 
+   Face f = query.nearestFaceToPoint (nearPnt, null, mesh, pnt);
+
+   // find the nearest face and point along a line passing through pnt
+   // with direction dir:
+   Face f = query.nearestFaceAlongLine (
+      nearPnt, null, mesh, pnt, dir, -inf, inf);
+
+   // check if a point is inside a mesh, within a tolerance of 1e-10:
+   boolean inside = query.isInsideMesh (mesh, pnt, 1e-10);
+
+   // check if a point is inside a mesh, within a default tolerance:
+   boolean inside = query.isInsideMesh (mesh, pnt, -1);
+\end{lstlisting}
+
+Other changes include:
+
+\begin{itemize}
+
+\item The class {\tt PolygonalMeshIntersector} has been removed and
+its methods incorporated into {\tt BVIntersector};
+
+\item {\tt IndexedPointSource} and {\tt Intersector} have been renamed
+to {\tt Boundable} and {\tt TriangleIntersector}, respectively.
+
+\end{itemize}
+
+\section*{Oct 23, 2013}
+
+A new shading mode has just been added to the shading properties
+of {\tt RenderProps} objects:
+\begin{verbatim}
+   RenderProps.Shading.NONE
+\end{verbatim}
+This will cause shading and lighting to be disabled, and the
+object to be rendered completely flat using the diffuse
+color of the current material.
+
+To ensure that this shading mode is respected, application
+rendering code that used to call {\tt renderer.setMaterial()} like this:
+\begin{lstlisting}
+   renderer.setMaterial (material, selecting);
+   ... render something ...
+\end{lstlisting}
+should now call {\tt renderer.setMaterialAndShading()} and 
+{\tt renderer.restoreShading()},
+like this:
+\begin{lstlisting}
+   renderer.setMaterialAndShading (renderProps, mat, selecting);
+   ... render something ...
+   renderer.restoreShading (renderProps);
+\end{lstlisting}
+Likewise, {\tt renderer.updateMaterial()} now takes a {\tt RenderProps}
+object as its leading argument, so that calls that used to
+look like this:
+\begin{lstlisting}
+   renderer.updateMaterial (material, selecting);
+\end{lstlisting}
+now look like this:
+\begin{lstlisting}
+   renderer.updateMaterial (renderProps, material, selecting);
+\end{lstlisting}
+
+\section*{Oct 9, 2013}
+
+The viewer selection mechanism has been reimplemented. This was done
+because the original mechanism, based on the {\tt GL\_SELECT} render
+mode, has been deprecated, and has also been reported as being slow on
+some machines.
+
+The new mechanism uses both GL occlusion queries and color-based
+selection (where each object is rendered in a unique color in an
+offscreen buffer). At present, the former is used for drag selection
+and the latter is used for single selection. Internally, selection is
+now implemented by a {\tt maspack.render.GLSelector} class, with the
+subclasses {\tt GLOcclusionSelector} and {\tt GLColorSelector}
+providing occlusion query and color-based selection,
+respectively. Another subclass, {\tt GLSelectSelector}, implements the
+old {\tt GL\_SELECT} mechanism.
+
+If desired, the old {\tt GL\_SELECT} mechanism can be reenabled by
+calling the static method
+\begin{verbatim}
+   GLViewer.enableGLSelectSelection (boolean enable)
+\end{verbatim}
+
+It can also be enabled using {\sf Enable GL\_SELECT selection}
+in the {\sf Settings} menu.
+
+Within an object's {\tt render()} method, the selection interface has
+been changed, with calls to {\tt glLoadName()}, {\tt gPushName()}, and
+{\tt glPopName()} being (approximately) replaced by the {\tt
+GLRenderer} renderer methods {\tt beginSelectionQuery()}, {\tt
+endSelectionQuery()}, {\tt beginSubSelection()}, and {\tt
+endSubSelection()}. Users who work with selection code inside render
+methods should consult the updated 
+\href{http://www.artisynth.org/doc/html/maspack/maspack.html#S3.SS3}%
+{Object Selection}
+documentation in the maspack
+reference manual.
+
+\subsection*{Do not set colors or lighting when the renderer is selecting!}
+
+\begin{sideblock}
+Because part of the new selection mechanism is based on setting a
+unique color for each object, it is important that application
+rendering code does not do anything that affects pixel coloring while
+selection is in progress. In particular, it is important to not set
+colors, or enable {\tt GL\_LIGHTING}, {\tt GL\_TEXTURE}, {\tt
+GL\_FOG}, or {\tt GL\_DITHER}.
+\end{sideblock}
+
+One way to adhear to these restrictions is to conditionalize the
+relevant calls on whether or not {\tt renderer.isSelecting()} returns
+true:
+\begin{lstlisting}
+   if (!renderer.isSelecting()) {
+      gl.glColor (1f, 0.5f, 0f);
+   }
+\end{lstlisting}
+A more compact option, for colors and lighting control, is to use the
+following {\tt GLRenderer} methods:
+\begin{lstlisting}
+   setLightingEnabled (boolean enable);
+   boolean isLightingEnabled();
+   setColor (float r, float g, float b);
+   setColor (float r, float g, float b, float a);
+   setColor (float[] rgbx);
+\end{lstlisting}
+
+\section*{Sep 26, 2013}
+
+A few features have been added to the user interace:
+
+\subsection*{Centering the viewer on selected objects}
+
+When one or more renderable objects are selected, the option
+\begin{verbatim}
+Center view on selection
+\end{verbatim}
+appearing under the {\sf View} menu will center the viewer 
+on the selected object(s).
+
+\subsection*{Adding model-specific menu items}
+
+It is now possible to create menu items specify to a particular {\tt
+RootModel} subclass. This is done by overriding the {\tt RootModel}
+method
+\begin{verbatim}
+Object[] getModelMenuItems();
+\end{verbatim}
+to return a list of menu objects. These objects will then be added to
+a {\sf Model} menu appearing in the main ArtiSynth toolbar. Menu
+objects may include anything that can be added to a {\tt JMenu},
+including {\tt javax.swing.JMenuItem}, {\tt java.awt.Component}, and
+{\tt String}. Menu items, in particular, can be created using the
+{\tt RootModel} convenience method
+\begin{verbatim}
+JMenuItem makeMenuItem (String cmd, String toolTip);
+\end{verbatim}
+Menu command items should specify the current {\tt RootModel} as an
+action listener, and implementation of these commands should be
+effected by overriding the {\tt RootModel} method
+\begin{verbatim}
+void actionPerformed(ActionEvent event);
+\end{verbatim}
+
+\subsection*{Draggers now track object poses}
+
+Dragger fixtures will now adjust their orientation to fit the current
+orientation of objects that have poses (i.e., position and
+orientation). Such objects are identified by the interface {\tt HasPose}
+which implements the method
+\begin{verbatim}
+void getPose (RigidTransform3d X);
+\end{verbatim}
+to obtain the pose information. At present, objects having pose
+information include {\tt Frame}, {\tt RigidBodyConnector}, and their
+subclasses.
+
+\section*{May 31, 2013}
+
+A number of changes have been made to the class {\tt
+maspack.geometry.MeshFactory} that is used to create polygonal meshes.
+
+\subsection*{MeshFactory methods now create triangular meshes by
+default}
+
+A large problem in the past has been that many of the mesh creation
+methods did not return triangular meshes. Instead, they returned
+meshes containing quads. This led to difficulties because the
+ArtiSynth collision code relies on triangular meshes. In order to
+obtain triangular meshes, it was necessary to either call a method
+with {\tt Triangular} explicitly in the name (as in {\tt
+createTriangularBox}), or explicitly triangulate the mesh using the
+{\tt triangulate()} method.
+
+The {\tt MeshFactory} methods have now been renamed so that triangular
+meshes are created by default, and meshes which contain quads have
+{\tt Quad} in the name. For example, the methods
+\begin{lstlisting}
+   createBox (wx, wy, wz);              // create a quad-based box mesh
+   createTriangularBox (wx, wy, wz);    // create a triangle-based box mesh
+\end{lstlisting}
+have been renamed as
+\begin{lstlisting}
+   createQuadBox (wx, wy, wz);          // create a quad-based box mesh
+   createBox (wx, wy, wz);              // create a triangle-based box mesh
+\end{lstlisting}
+
+\subsection*{Methods for adding components to a mesh}
+
+{\tt MeshFactory} now contains a number of methods that can be used to
+build meshes by piecing together planar or curved components:
+\begin{lstlisting}
+   addQuadRectangle (mesh, wx, wy, nx, ny, XLM, vtxMap)
+   addQuadAnnularSector (mesh, r0, r1, ang, nr, nang, XLM, vtxMap)
+   addQuadCylindricalSection (mesh, r, h, ang, nh, nang, outward, XLM, vtxMap)
+   addQuadSphericalSection (mesh, r, maxthe, maxphim nthem nphi, XLM, vtxMap)
+\end{lstlisting}
+These take an existing mesh and add new faces to from a rectangle,
+annular sector, or portion of a cylinder or sphere. By combining these
+in different ways, more complex mesh geometries can be created. When
+creating faces, the methods first check a {\it vertex map} (argument
+{\tt vtxMap}) to see if any of the required vertices are already
+present in the mesh. Vertices that are not present are created on
+demand.  The argument {\tt XLM} provides a transform thats maps from
+the local frame in which the component is defined to the mesh
+coordinate frame.
+
+\subsection*{Methods for CSG mesh construction}
+
+Antonio has added some methods to {\tt MeshFactory} for building
+meshes using CSG (constructive solid geometry). These are adapted from
+Evan Wallace's CSG Library. The main methods are:
+\begin{lstlisting}
+   getSubtraction (mesh1, mesh2)
+   getUnion (mesh1, mesh2)
+   getIntersection (mesh1, mesh2)
+\end{lstlisting}
+
+\subsection*{New method for extruding FEM models from surfaces}
+
+A new method has been added to {\tt artisynth.core.femmodels.FemFactory}
+for extruding thin FEM models from a polygonal mesh:
+\begin{lstlisting}
+   createHexWedgeExtrusion (model, n, d, surface)
+\end{lstlisting}
+This creates an FEM model by extruding either hex or wedge elements
+from a surface mesh. The mesh contains {\tt n} layers, each of depth
+{\tt d}. Quads and triangles are extruded as hexes and wedges,
+respectively.  Also, if the surface mesh is the current surface mesh
+for an FEM model, then any triangle pairs corresponding to a quad
+element face are collectively extruded as a hex.
+
+\section*{December 12, 2012}
+
+\subsection*{Materials added to FrameSprings}
+
+The force behavior of a {\tt FrameSpring} is now defined by a special
+material which is a subclass of {\tt FrameMaterial}. This formulation
+is identical to that of using {\tt AxialMaterial} to define the force
+behavior of {\tt AxialSpring} components, and will facilitate the
+introduction of new and more complex frame spring behaviors.
+
+At present, two types of {\tt FrameMaterials} have been implemented:
+
+\begin{description}
+
+\item[RotAxisFrameMaterial] \mbox{} Implements the behavior previously
+associated with {\tt FrameSprings}: a translational force along the
+displacement between frame origins, a torque about the rotation axis
+proportional to the rotation angle, and damping forces proportional to
+the relative velocity between the frames.
+In addition, different translational stiffness and damping terms can
+be specified for each axis.
+
+\item[LinearFrameMaterial] \mbox{} Implements a behavior which is
+identical to {\tt RotAxisFrameMaterial} for velocity and translational
+displacement. Rotational displacement results in restoring torques
+along each of the x, y, and z axes that, for small displacements, are
+approximately proportional to the angular displacement about each
+axis.  Different stiffnesses can be specified for each axis.
+
+\end{description}
+
+The properties {\tt stiffness}, {\tt rotaryStiffness}, {\tt damping},
+and {\tt rotaryDamping}, along with their accessors, have been removed
+from {\tt FrameSpring}. Instead, the force behavior is now controlled
+through the {\tt material} property, which can be set interactively
+using a property panel for the spring. In code, the fragment
+\begin{lstlisting}
+   FrameSpring spring = new FrameSpring ("spring1");
+   spring.setStiffness (10.0);
+   spring.setRotaryStiffness (100.0);
+\end{lstlisting}
+is replaced by
+\begin{lstlisting}
+   FrameSpring spring = new FrameSpring ("spring1");
+   spring.setMaterial (new RotAxisFrameMaterial (10.0, 100.0, 0.0, 0.0));
+\end{lstlisting}
+
+The required substitutions have been made for all checked-in code.
+
+A custom frame material can be created by subclassing {\tt
+FrameMaterial}, and requires implementing three methods:
+
+\begin{description}
+
+\item[computeF()] \mbox{}
+Computes the forces as a function of the relative displacement and
+velocity between the two primary frames associated with the spring;
+
+\item[computeDFdq()] \mbox{}
+Computes the positional Jacobian giving the change in force
+resulting from differential changes in the displacement
+between the two primary frames;
+
+\item[computeDFdu()] \mbox{} Computes the velocity Jacobian giving the
+change in force resulting from differential changes in the
+velocities between the two primary frames.
+
+\end{description}
+
+\section*{December 2, 2012}
+
+\subsection*{Automatic downloading of library files}
+
+The latest update to ArtiSynth features automatic downloading of
+library files from the ArtiSynth webserver. This reduces
+(significantly, in some cases) the size of the core distribution.  The
+downloading features uses Antonio's new {\tt FileGrabber} utility,
+described below.
+
+After you perform the most recent update, you will notice that most of
+the files in {\tt \$ARTISYNTH\_HOME/lib} have been removed.  You will
+now need to run a standalone command, {\tt updateArtisynthLibs},
+located in {\tt \$ARTISYNTH\_HOME/bin}, which will download all the
+required {\tt .jar} files and native libraries from the webserver. On
+Windows systems, you can execute {\tt updateArtisynthLibs.bat}
+instead. For more details on this, see Section 6.2, Downloading
+Libraries, of the online 
+\href{http://www.artisynth.org/doc/html/installation/installation.html}%
+{Installation Guide}.
+
+In the future, you will not usually need to run {\tt
+updateArtisynthLibs} when you update the software; ArtiSynth itself
+will be able to check for most required libraries and download them
+automatically. Also, if you specify the command line argument {\tt
+-updateLibs} to ArtiSynth, it will not only ensure that the necessary
+libraries are present, but that they also match the most recent
+versions on the server ({\tt updateArtisynthLibs} does this by
+default).
+
+Situations where it typically {\bf will} be necessary to explicitly
+run {\tt updateArtisynthLibs} include
+
+\begin{itemize}
+
+\item whenever you do a fresh check out of the distribution
+
+\item whenever an update adds a new {\tt .jar} file.
+
+\end{itemize}
+
+ArtiSynth libraries are stored under {\tt \$ARTISYNTH\_HOME/lib}, with
+the {\tt .jar} files being placed in the {\tt lib} directory and the
+native libraries in an appropriate subdirectory (e.g., {\tt Linux64} or
+{\tt Windows}) which is created if necessary. The required libraries
+are listed in the file {\tt \$ARTISYNTH\_HOME/lib/LIBRARIES}. This
+file is checked into the repository, so the system can always
+determine what libraries are needed for a particular checkout version.
+Some library files are associated with version numbers, which can be
+indicated in a system-independent way. For details, see the
+documentation for the new class {\tt
+maspack.util.NativeLibraryManager}.
+
+\subsection*{Updates to the Pardiso solver}
+
+The {\tt PardisoSolver} class has been updated to expose various
+parameters and results relating to the solve process. Some of the more
+significant of these include:
+
+\begin{description}
+
+\item[setReorderMethod(method)] \mbox{}
+Allows the fill-in
+reduction reorder method to be set to either
+{\tt AMD}, {\tt METIS}, or {\tt METIS\_PARALLEL}.
+
+\item[setMaxRefinementSteps(n)] \mbox{}
+Sets the maximum number
+of iterative refinement steps that should be performed to improve
+the accuracy of the solution.
+
+\item[setPivotPerturbation(n)] \mbox{} Sets the size
+of the perturbation that should be used to resolve zero pivots.
+
+\item[getNumNonZerosInFactors()] \mbox{}
+Returns the number of non-zeros in the factorization.
+
+\item[getNumNegEigenvalues()] \mbox{}
+After factorization, returns the number of negative eigenvalues
+for a symmetric indefinite matrix.
+
+\item[getNumPosEigenvalues()] \mbox{}
+After factorization, returns the number of positive eigenvalues
+for a symmetric indefinite matrix.
+
+\item[getNumPerturbedPivots()] \mbox{}
+After factorization, returns the number of pivot perturbations 
+that were applied, if any.
+
+\end{description}
+
+Note also that {\tt factor(Matrix)} has been renamed to {\tt
+analyzeAndFactor(Matrix)}, and the {\tt factorAndSolve()}
+methods have been renamed to {\tt autoFactorAndSolve()}.
+
+\subsection*{FileGrabber}
+
+Antonio has implemented a new class called {\tt maspack.fileutil.FileGrabber}
+that allows an application to locate a local system
+file, and if the file is not there, try to download it from a
+specified URI. The idea is to use this to retrieve large data files
+from a server, without having to check them into the ArtiSynth version
+control system. Usage can be illustrated through a few examples:
+
+\begin{lstlisting}
+   FileGrabber grabber = new FileGrabber();
+   File file = grabber.get (
+      "bigmesh.obj", "http://www.mysever.org/meshes/bigmesh.obj");
+\end{lstlisting}
+This will try to obtain a {\tt File} handle for {\tt bigmesh.obj},
+looking first on the local system and then, if not found, trying to
+download it from the URI specified by the second argument.
+
+By default, {\tt FileGrabber} looks for local files in the current
+working directory. However, it is possible to specify the local
+directory explictly, as well as a default base URI that should be used
+to obtain remote files:
+
+\begin{lstlisting}
+   FileGrabber grabber = new FileGrabber();
+   grabber.setDownloadDir ("/home/joe/meshes");
+   grabber.setRemoteSource ("http://www.mysever.org/meshes");
+   File file1 = grabber.get ("boneMesh.obj");
+   File file2 = grabber.get ("muscleMesh.obj");
+\end{lstlisting}
+Here, the local directory is set to {\tt /home/joe/meshes}
+and the remote location is set
+to {\tt http://www.mysever.org/meshes}. The two subsequent
+calls to {\tt get()} will try to obtain {\tt boneMesh.obj}
+and {\tt muscleMesh.obj} within the local directory,
+and if not found will try to download them from the
+remote directory.
+
+Finally, it is also possible for {\tt FileGrabber} to "update" a
+file by checking to see if the local version is consistent with the
+version on the server, and downloading the server version if it is
+not. This is done by checking hashes, and is enabled with a 
+{\tt CHECK\_HASH} option:
+\begin{lstlisting}
+   File file1 = grabber.get ("boneMesh.obj", FileGrabber.CHECK_HASH);
+\end{lstlisting}
+
+Note that these examples are not complete; {\tt FileGrabber} contains a large
+variety of methods to provide considerable flexibility of use.
+
+\section*{October 16, 2012}
+
+\subsection*{Improvements to FEM incompressibility}
+
+\subsubsection*{Hard incompressibility}
+
+The signatures of the {\tt setIncompressible()} and {\tt
+getIncompressible()} methods of {\tt FemModel3d} have been changed:
+they now accept and return the enumerated type {\tt
+FemModel.IncompMethod} that specifies what type of hard
+incompressibility constraint should be applied to the model.
+
+The following {\tt IncompMethod} values can be specified via {\tt
+setIncompressible(method)}:
+
+\begin{description}
+
+\item[OFF] \mbox{}
+Turns hard incompressibility off.
+
+\item[ELEMENT] \mbox{} 
+Specifies element-based incompressibility,
+where an incompressibility constraint is applied to the volume of each
+FEM element. 
+
+\item[NODAL] \mbox{} 
+Specifies nodal incompressibility, where an
+incompressibility constraint is applied to a volume surrounding each
+node, rather than the volume of each element. This is recommended for
+meshes dominated by linear tetrahedra in order to prevent locking.
+
+\item[AUTO, ON] \mbox{}
+Specifies that incompressibility should be enabled, with the
+exact method  ({\tt ELEMENT} or {\tt NODAL}) being
+set automatically depending
+on what is appropriate for the given mesh structure.
+
+\end{description}
+
+\subsubsection*{Soft incompressibility}
+
+New methods {\tt setSoftIncompMethod()} and {\tt
+getSoftIncompMethod()} have been added to {\tt FemModel3d} to allow
+specification of the method used to implement {\it soft
+incompressibility}. Soft incompressibility is enforced for
+incompressible materials (which are subclasses of {\tt
+IncompressibleMaterial}) using the value of the material's {\it bulk
+modulus} (specified by the {\tt bulkModulus} property), in conjunction
+with a {\it bulk potential} (see below), to create pressures within
+the FEM that enforce the incompressibility.
+
+The soft incompressibility method is specified using the enumerated
+type {\tt FemModel.IncompMethod}, the following values of which can be
+specified via {\tt setSoftIncompMethod(method)}:
+
+\begin{description}
+
+\item[ELEMENT] \mbox{} 
+Specifies element-based incompressibility,
+where pressures are determined within each element, using a reduced
+integration scheme to help prevent locking. Since
+reduced integration is not possible for linear tetrahedra,
+locking effects may be observed in meshes dominated by these elements.
+
+\item[NODAL] \mbox{} 
+Specifies nodal incompressibility, where pressures are
+determined at each node. This results in a denser stiffness
+matrix and so is more computationally expensive, but is
+less prone to locking. It also ignores
+per-element material settings, and instead uses the bulk modulus
+and potential of the overall FEM model material (which
+must therefore be an instance of {\tt IncompressibleMaterial}).
+
+\item[AUTO] \mbox{}
+Automatically sets the soft incompressibility method to be either
+{\tt ELEMENT} or {\tt NODAL}, depending on which is
+more appropriate for the given mesh structure.
+
+\end{description}
+
+An {\tt IncompressibleMaterial} also exports a new property, the {\tt
+bulkPotential}, which specifies the energy function producing the
+pressure that enforces the incompressiblity. The default value for the {\tt
+bulkPotential} is {\tt LOGARITHMIC}, which defines a potential $U(J)$
+and pressure $p$ of the form
+\[
+U(J) = \frac{1}{2} \kappa (\ln J)^2, \quad p = \kappa \frac{\ln J}{J}.
+\]
+where $\kappa$ is the bulk modulus and
+$J$ is the determinant of the deformation gradient.
+Alternatively, one can specify a {\tt QUADRATIC}
+bulk potential, which has a potential and pressure given by
+\[
+\frac{1}{2} \kappa (J-1)^2, \quad p = \kappa (J - 1).
+\]
+Both potentials should behave similarly for small deviations from
+incompressibility. For large deviations, the quadratic potential is
+more forgiving but may also be more stable.
+
+\subsection*{Improvements to quadratic elements}
+
+\subsubsection*{Addtional elements}
+
+Quadratic wedge and pyramid elements ({\tt QuadraticWedge} and {\tt
+QuadraticPyramid}) have now been added to complement the quadratic hex
+and tet elements.
+
+The {\tt FemFactory} method {\tt createQuadraticModel} has been
+extended to allow the creation of a quadratic model (containing
+quadratic tets, hexes, wedges, and pyramids) from an input model
+containing linear tets, hexes, wedges, and pyramids.
+
+\subsubsection*{Fine surface rendering}
+
+Because quadratic elements use second-order shape functions, their
+faces and edges are composed of curved quadratic surfaces. This means
+that the normal method of rendering elements using linear edges and
+faces is insufficient to display their shape. 
+
+To overcome this problem, it is now possible to request that the
+surface of an FEM be rendering using a {\it fine} surface, which uses
+a mesh containing a large number of triangles to capture the detailed
+structure of the underlying elements. Fine surface rendering can be
+specifying by setting the {\tt surfaceRendering} property of {\tt
+FemModel3d} to {\tt FemModel.SurfaceRender.Fine}. This is only
+recommended for models containing quadratic elements, since no additional
+detail will be observed for linear elements.
+
+\subsection*{Meshes can be embedded within FEM models}
+
+It is now possible to embed a polygonal surface mesh within an FEM
+model. An embedded mesh will track the deformations of the model, in a
+manner analgous to skinning. For a demo, please see
+\begin{verbatim}
+   artisynth.models.femdemos.EmbeddedSurface
+\end{verbatim}
+
+To add or remove embedded surfaces, one may use the {\tt FemModel3d}
+methods
+\begin{lstlisting}
+   FemSurface addEmbeddedSurface (PolygonalMesh mesh);
+
+   boolean removeEmbeddedSurface (FemSurface surf);
+
+   void removeAllEmbeddedSurfaces ();
+\end{lstlisting}
+
+The first method, {\tt addEmbeddedSurface}, creates an embedded surface
+using the specified polygonal mesh. Each vertex of the mesh is
+associated with the FEM nodes of the nearest mesh element, and its
+position is then updated based on a weighted sum of the positions of
+these nodes.
+
+\subsection*{Initial model state now supports structural changes}
+
+The initial state of a model (which is restored after a {\tt reset}
+command) is now tolerant of structural changes to the model incurred
+by adding or removing components. Previously, any structural change
+caused the initial state to be reset to the model's state at the time
+of the change.
+
+This feature has been facilitated by adding the method
+\begin{verbatim}
+   void getInitialState (ComponentState state, ComponentState prevstate);
+\end{verbatim}
+to the interface {\tt HasState}.
+
+\section*{July 28, 2012}
+
+\subsection*{Polyline meshes added}
+
+A new {\tt PolylineMesh} class has been added to {\tt
+maspack.geometry} for storing collections of {\tt Polylines} (which
+are open-ended polygonal lines). The immediate purpose of these is to
+represent muscle fiber collections.
+
+Both {\tt PolylineMesh} and the original {\tt PolygonalMesh} class are
+now subclassed from {\tt MeshBase}, which provides an abstract
+representation of a geometric structure that is formed from a
+collection of vertices. Vertex-specific methods are provided by {\tt
+MeshBase}, while the topological connectivity is provided by the
+subclass.  A polyline can be read from and written to a {\tt
+.obj} file, in which the {\it line} designator '{\tt l}' is used in
+place of the {\tt face} designator '{\tt f}'; for example, a simple
+three-segment line is described by:
+\begin{lstlisting}
+  v 0.0 0.0 0.0
+  v 1.0 0.0 0.0
+  v 1.0 1.0 0.0
+  v 1.0 1.0 1.0
+  l 1 2 3 4
+\end{lstlisting}
+
+Polyline meshes can be added to an ArtiSynth model using the
+components {\tt FixedMesh} or {\tt SkinMesh}, both of which are
+subclasses of {\tt MeshBody} and both of which can now be formed from
+either polygonal or polyline meshes.  For a demo, see the updated
+version of
+\begin{verbatim}
+   artisynth.models.mechdemos.SkinDemo
+\end{verbatim}
+
+\subsection*{Component mesh information encapsulated in MeshInfo}
+
+Mesh information for {\tt RigidBody} or {\tt MeshBody} components is
+now encapsulated within a {\tt MeshInfo} object, which stores the mesh
+itself, along with, for meshes associated with a file, the name of the
+file plus an optional affine transform that generates the mesh from
+the defintiion found in the file.
+
+When a {\tt RigidBody} or {\tt MeshBody} is written to a {\tt
+PrintStream}, the information for meshes associated with a file is
+saved as the name of the file, plus the associated affine transform if
+appropriate:
+\begin{lstlisting}
+   mesh=maspack.geometry.PolyonalMesh [
+      "/home/users/jim/meshdata/myMesh.obj"
+      transform=RigidTransform3d [ 1 2 3 1 0 0 45 ]
+   ]
+\end{lstlisting}
+
+\section*{July 17, 2012}
+
+\subsection*{Default view orientation for models}
+
+It is now possible for a {\tt RootModel} to define it's preferred
+orientation for display in the viewer. This can be done using the
+property {\tt defaultViewOrientation}, which is accessed
+via the methods:
+\begin{verbatim}
+  void setDefaultViewOrientation (AxisAngle REW);
+
+  AxisAngle getDefaultViewOrientation ();
+\end{verbatim}
+{\tt REW} is a rotation transform from eye to world coordinates.  The
+view orientation is used to set up the viewer(s) correctly when the
+model is loaded. The default value for {\tt defaultViewOrientation} is
+described by the static variable
+\begin{verbatim}
+  AxisAngle.ROT_X_90
+\end{verbatim}
+which indicates an orientation where the world x axis points to the 
+right and ``up'' is aligned with the world z axis. Alternatively,
+setting the orientation to 
+\begin{verbatim}
+  AxisAngle.IDENTITY
+\end{verbatim}
+will specify an orientation where the world x axis points to the
+right and ``up'' is aligned with the world y axis.
+
+It is recommended that any default orientation be axis-aligned. 
+
+Given a default orientation, the view toolbar allows
+the user to jump to six predetermined orientations:
+
+\begin{description}
+
+\item[{\tt Default} ] \mbox{}
+Default orientation.
+
+\item[{\tt Top} ] \mbox{}
+Looking down along the ``up'' direction.
+
+\item[{\tt Left} ] \mbox{}
+Rotated 90 degrees about the ``up'' direction.
+
+\item[{\tt Bottom} ] \mbox{}
+Looking up along the ``up'' direction.
+
+\item[{\tt Right} ] \mbox{}
+Rotated -90 degrees about the ``up'' direction.
+
+\item[{\tt Back} ] \mbox{}
+Rotated 180 degrees about the ``up'' direction.
+
+\end{description}
+
+\section*{June 24, 2012}
+
+\subsection*{Physics solver refactoring completed}
+
+Refactoring of the physics solver has been completed, and the {\tt
+MechSystem} interface should now be largely stable.  Any system
+implementing {\tt MechSystem} can be solved using the various
+integrators offered by {\tt MechSystemSolver}.
+{\tt MechSystemBase} implements {\tt MechSystem} by maintaining
+internal lists of state-bearing dynamic components ({\tt
+DynamicMechComponent}), force effectors ({\tt ForceEffector}), and
+objects that produce constraints ({\tt Constrainer}).
+
+Particular features of the updated solver include:
+
+\begin{itemize}
+
+\item Compliance capabilites for bilateral and unilateral
+constraints (see below);
+
+\item Force computation for parametrically controlled components;
+
+\item Computation of fictitious forces induced by attachments;
+
+\item Constraint forces added to dynamic components at the end of
+the time step.
+
+\end{itemize}
+
+The following changes have been made to the overall code base:
+
+\begin{itemize}
+
+\item {\tt ParticleConstraint} has been removed, and {\tt
+ParticlePlaneConstraint} now directly implements the more general
+interface {\tt Constrainer}.
+
+\item {\tt ForceEffector} has been renamed to {\tt ForceComponent},
+and {\tt ForceEffector} now defines an interface to any component
+capable of applying a force. The list of general force components in
+{\tt MechModel} is still called {\tt forceEffectors}.
+
+\item The method {\tt getActiveNodes()} has been removed from {\tt
+FemModel}. Applications should now use {\tt getNodes()} and check node
+activity, if necessary, using each nodes's {\tt isActive()} method.
+
+\end{itemize}
+
+\subsection*{Updating forces at the end of each time step}
+
+A property {\tt updateForcesAtStepEnd} has been added to {\tt
+MechSystem} that enables the computation of forces at the end of each
+time step to reflect the updated position and velocity values.
+Otherwise, values observed at the end of each step will be those that
+were computed at some point during the step (but not necessarily the
+end) in order to compute the advance.
+
+The default value for this property is {\tt false}, since force
+updating can be expensive, and is often not needed.
+
+\subsection*{Changes to Model advance interface}
+
+The class {\tt Model} has been given an extra method,
+
+\begin{verbatim}
+  preadvance (time t0, time t1, int flags);
+\end{verbatim}
+
+which is called {\it before} the application of input probes,
+controllers, and the model's {\tt advance()} method. The astute
+observer will recognize this as a resurrection of the old {\tt
+setDefaultInputs()} method. It is mainly intended for situations where
+the model has internal state that needs to updated at the beginning of
+the time step, before probes and controllers are applied.
+
+Both the model's {\tt preadvance()} and {\tt advance()} methods now
+indicate a request for a smaller time step by returning a {\tt
+StepAdjustment} object. Previously, this was done by returning a {\tt
+double} indicating a recommended scaling for the time step.  That
+scaling information is now contained in the {\tt scaling} attribute of
+the {\tt StepAdjustment} object. The {\tt StepAdjustment} object can
+also indicate the reason for the recommendation via its {\tt message}
+field. If no step adjustment is required, {\tt preadvance()} and {\tt
+advance()} can return {\tt null}.
+
+\subsection*{State now supported for muscles}
+
+Implementations of muscles (and in fact all {\tt ForceEffectors}) can
+now contain state. Force effectors that contain state should implement
+the interface {\tt mechmodels.HasAuxState}. This supplies methods for
+saving and restoring auxiliary state into a vector of doubles and/or a
+vector of integers. Auxiliary state is defined as state that is
+supplemental to the position and velocity state of the mech system.
+
+Components with auxiliary state implement a method {\tt
+advanceAuxState()} which is called by the {\tt preadvance()} method of
+the component's {\tt MechSystem}, at the beginning of the each step,
+before the application of input probes and controllers.  This can
+be used, if necessary, to update internal state information.
+
+\subsection*{Settings menu added}
+
+A new {\sf Settings} menu has been added and some items have been
+moved there from other menus. In addition, enabling or disabling
+articulated transforms (see September 8, 2011) is now done using this
+menu, and the corresponding enable/disable button which was previously
+located on the selector panel has been removed.
+
+\subsection*{Pull manipulator}
+
+A new "pull" manipulator has been added to ArtiSynth, which allows a
+user to interactively apply a spring-like force to either a point or 
+rigid body by clicking on it and then dragging. To enable pull
+manipulations, select the {\it pull} icon on the left-hand side
+selector panel.
+
+The pull manipulator is only effective when simulation is running.  It
+works by adding a special {\tt PullController} to the current root
+model. When attached to the root model, the controller attempts to
+estimate an appropriate spring stiffness based on the overall mass and
+dimensions of the first underlying {\tt MechModel}.
+
+If necessary, the stiffness setting can also be adjusted manually by
+selecting {\sf PullController > properties} in the {\sf Settings}
+menu.  Render properties for the pull controller can be set from this
+menu also.
+
+\subsection*{Constraint compliance}
+
+Compliance and damping capabilities have been added to both bilateral
+and unilateral constraints. This allows constraints to be
+given a certain amount of ``softness''.
+
+Compliance is the inverse of stiffness, so that a compliance of zero
+(which is the default setting) implies an infinitely stiff constraint.
+To make a constraint compliant, one needs to set appropriate
+compliance and damping parameters. The compliance $c$ can
+be estimated from
+\[
+c = \frac{f}{\Delta x},
+\]
+where $f$ is the typical force likely to be applied along the
+constraint's direction(s), and $\Delta x$ is the desired displacement
+that should result from this force. It is also necessary to choose a
+damping $d$; otherwise, the constraint will oscillate. Given an
+estimate of the effective mass $m$ along the constraint direction(s),
+then $d$ can be choosen to ensure critical damping:
+\[
+d = 2 \sqrt{\frac{m}{c}}.
+\]
+
+Ways to set compliance for specific constraints are now described.
+
+\subsubsection*{Rigid body connector}
+
+Compliance for a rigid body connector can be controlled by the
+following properties:
+
+\begin{lstlisting}
+  linearCompliance
+  rotaryCompliance
+  compliance
+  damping
+\end{lstlisting}
+
+For a demonstration, run the demo 
+\begin{verbatim}
+  artisynth.models.mechdemos.CompliantConstraintDemo
+\end{verbatim}
+which allows these to be set for the joints of a two-link planar
+mechanism. Setting {\tt linearCompliance} and {\tt rotaryCompliance}
+will set compliance terms for a connector's linear and rotary
+constraint directions, respectively, while also estimating critical
+damping parameters from the inertias of the attached rigid bodies.  For
+more detailed control, the {\tt compliance} and {\tt damping}
+properties can be used; these are vector-valued properties that allow
+indivudal values to be set for each constraint direction (although
+this requires detailed knowledge of the connector's constraint
+structure). All four properties are coupled: setting {\tt
+linearCompliance} or {\tt rotaryCompliance} will automatically compute
+values for {\tt compliance} and {\tt damping}, while setting {\tt
+compliance} and {\tt damping} will set {\tt linearCompliance} and {\tt
+rotaryCompliance} to either the equivalent value, or -1 if no
+consistent equivalent value exists.
+
+\subsubsection*{Contact constraints}
+
+Compliance for contact constraints can be controlled using the
+following {\tt MechModel} properties:
+
+\begin{lstlisting}
+  collisionCompliance
+  collisionDamping
+\end{lstlisting}
+
+For a demonstration, run 
+\begin{verbatim}
+  artisynth.models.mechdemos.BlockTest
+\end{verbatim}
+
+Collision damping is not set automatically. To estimate it, one should
+use the critical damping formula above with an estimate of the typical
+mass of the colliding objects. A lower damping value will cause colliding
+objects to bounce, creating a kind of restitution effect.
+
+\subsubsection*{FEM Incompressibility}
+
+Compliance for FEM incompressibility can be controlled using the {\tt
+incompCompliance} property of {\tt FemModel3d}. Setting this value
+causes an appropriate critical damping value to be computed
+automatically.
+
+\subsection*{Added isWritable() to ModelComponent}
+
+{\tt ModelComponent} now provides a method {\tt isWritable()} (which
+by default returns {\tt true}). When saving a root model (or portion
+thereof) to a file, components for which {\tt isWritable()} returns
+{\tt false} will be omitted.
+
+\section*{May 28, 2012}
+
+\subsection*{AxialSpring Materials Completed}
+
+The addition of materials to {\tt PointSpringBase} and its subtypes
+({\tt AxialSpring}, {\tt MultiPointSpring}, {\tt Muscle}, and {\tt
+MultiPointMuscle}) is now complete.
+
+All of the spring properties associated with material-type
+parameters, including
+\begin{lstlisting}
+ stiffness
+ damping
+ maxForce
+ optLength
+ maxLength
+ tendonRatio
+ passiveFraction
+ forceScaling
+\end{lstlisting}
+have been removed, along with their accessor methods.
+
+As a convenience, three static methods have been added to {\tt
+PointSpringBase}:
+\begin{lstlisting}
+ void setDamping (PointSpringBase s, double d)
+
+ void setMaxForce (PointSpringBase s, double maxf)
+
+ double getMaxForce (PointSpringBase s)
+\end{lstlisting}
+Where possible, these set or get the indicated property from
+the spring's underlying material.
+
+\section*{May 13, 2012}
+
+\subsection*{Materials added to Muscles}
+
+Following the addition of {\tt AxialMaterial} for point-based springs,
+we have implemented materials for the various types of point-based muscles.
+
+{\tt AxialMuscleMaterial} has been added to encapsulate the properties 
+for the existing muscle types, along with sub-classes:
+\begin{itemize}
+\item {\tt ConstantAxialMuscle}
+\item {\tt LinearAxialMuscle}
+\item {\tt PeckAxialMuscle}
+\item {\tt PaiAxialMuscle}
+\end{itemize}
+
+These material classes replace the {\tt MuscleType} property in {\tt Muscle}. 
+In addition, the {\tt Muscle.createXXX()} static methods have been 
+replaced by convenience methods of the form {\tt setXXXMuscleMaterial()} in {\tt Muscle}.
+
+For the moment, the properties associated with various {\tt
+AxialMuscleMaterial} parameters have been left in place in {\tt
+Muscle}, along with their setters and getters, which access, where
+appropriate, the corresponding parameters in the underlying muscle
+material. These properties and accessors will be deleted once their
+usage has been removed from the code base.
+
+\subsection*{BlemkerAxialMuscle}
+
+A new {\tt AxialMuscleMaterial} has been added that implements an
+force-length behaviour analogous to the along-fiber strain in the {\tt
+BlemkerMuscle} FEM material.
+
+\section*{May 9, 2012}
+
+\subsection*{All documentation converted to LaTeX}
+
+All Artisynth documentation that was formerly maintained using
+\href{http://www.methods.co.nz/asciidoc}{\it AsciiDoc} has been
+converted to \href{http://www.latex-project.org}{LaTeX}, with HTML
+output produced by \href{http://dlmf.nist.gov/LaTeXML}{LaTeXML}.  If
+you update {\tt \$ARTISYNTH\_HOME/doc}, you will see that all the {\tt
+.txt} files have been replaced with {\tt .tex} files. For details
+about the changes, please see the (revised)
+\href{http://www.artisynth.org/doc/html/documentation/documentation.html}%
+{Documentation Manual}.
+
+The new HTML files have already been uploaded to
+\href{http://www.artisynth.org}{www.artisynth.org}, and the
+documentation area now provides PDF files as well.
+
+The move from {\it AsciiDoc} was done for several reasons:
+
+\begin{itemize}
+
+\item Our use of {\it AsciiDoc} required a lot of customization
+that was becoming very hard to maintain.
+
+\item {\it AsciiDoc} was difficult to install, while LaTeX and
+LaTeXML, on the other hand, are relatively easy to install and use.
+
+\item LaTeX is a fairly stable and standard environment that many
+people are already familiar with.
+
+\item The math support for {\it AsciiDoc} did not work out as well as
+expected.
+
+\end{itemize}
+
+In the end, the emergence of LaTeXML as a relatively reliable LaTeX to
+HTML converter prompted the change.
+
+\section*{May 1, 2012}
+
+\subsection*{Materials added to Axial Springs}
+
+In order to better modularize the behavior of point-based springs and
+muscles, we are replacing the various force parameters (such as
+stiffness and damping) with a material object that encapsulates these
+parameters and can be exchanged with other materials to provide
+different force/length behaviors. This material will behave
+analagously to the materials used in FEM models. All materials for
+point-based springs will be subclasses of {\tt AxialMaterial}, which is in
+turn a subclass of {\tt MaterialBase}.
+
+This first part of this transition is complete: a {\tt material} property
+has been added to the base class for point-based springs, and the
+linear parameters {\tt stiffness}, {\tt damping}, and {\tt restLength} for
+{\tt AxialSpring} and {\tt MultiPointSpring} have been replaced with a linear
+material object called {\tt LinearAxialMaterial}.
+
+For the moment, the setters and getters for {\tt stiffness}, {\tt damping},
+and {\tt restLength} have been left in place, with these methods accessing
+an underlying linear material. Also, a convenience method has been
+added which allows you to set a linear material:
+
+\begin{verbatim}
+  setLinearMaterial (stiffness, damping, restLength);
+\end{verbatim}
+
+The next step in this process will be to implement materials for the
+various muscle types.
+
+\subsection*{Material package moved}
+
+The package {\tt artisynth.core.femmodels.materials} has been moved into
+{\tt artisynth.core.materials}, which now also contains the new materials for
+point-based springs.
+
+\section*{April 26, 2012}
+
+\subsection*{Changes to the model advance framework}
+
+There have been some significant changes to the model advance
+framework:
+
+\begin{itemize}
+
+\item The maximum step size of the root model (returned by
+  {\tt RootModel.getMaxStepSize()}) is now used to control the overall
+  simulation advance rate. Models located under the root model will be
+  advanced at this rate, unless they specify a smaller step size using
+  {\tt getMaxStepSize()}.
+
+\item {\tt Scheduler.setStepTime()} has been removed. Instead, you can call
+  the root model method {\tt setMaxStepSize()}, or {\tt Main.setMaxStep()}.
+  The command line argument {\tt -singleStepTime} has also been changed to
+  {\tt -maxStep}, and now determines the default maximum step size for
+  root models.
+
+\item Models can now leave their maximum step size undefined by having
+  {\tt getMaxStepSize()} return -1. In this case, the model will be
+  advanced using the root model step size.
+
+\item The default maximum step size for the root model is 0.01. This can
+  be overriden by specifying a different step size in the root model's
+  constructor, or by using the {\tt -maxStep} command line argument.
+
+\item Output probes can now be associated with models located under the
+  root model. Previously, only input provbes could be associated with
+  a model. Output probes that are associated with a model will called
+  immediately after that model is advanced.
+
+\item If the update interval for an output probe is undefined (i.e.,
+  {\tt getUpdateInterval()} returns -1), then it's {\tt apply()} method is
+  called at the rate determined by its model's effective step size
+  (the minimum of the root model step size, or the value returned by
+  {\tt getMaxStepSize()}, if defined).
+
+\item {\tt setDefaultInputs()} has been removed. The small amount of code that
+  was declared for that method has been moved into the {\tt advance()}
+  methods of the respective models.
+  
+\item {\tt Model.initialize()} is now called whenever the system is reset to a
+  particular time (such as when going to a WayPoint
+  location). Previously, it had been called only when starting
+  simulation at time t = 0.
+
+\end{itemize}
+
+Full details about model advancement are contained in the (fledgling)
+\href{http://www.artisynth.org/doc/html/artisynth/artisynth.html}{ArtiSynth
+Reference Manual}.
+
+\subsection*{Adaptive stepping}
+
+Adaptive stepping is now supported. If a model's {\tt advance()} method
+returns a value s < 1, then this indicates that the current time step
+is too large and should be reduced. The system will then reduce the
+step size, restore the model's state, and retry the advance. 
+
+The value returned by {\tt advance()} can also recommend how much to reduce
+the step size by. If s = 0, no recommendation is made, but for 0 < s < 1,
+it is recommended to reduce the step size by scaling by s. A value of s >= 1 indicates
+that the advance has succeeded, with s > 1 recommending to increase the step
+size by scaling by s.
+
+Once an advance succeeds, the system will try to incrementally
+increase the step size back to its nominal value.
+
+Adaptive step sizing is enabled or disabled using the
+{\tt adaptiveStepping} property of {\tt RootModel}. It is enabled by default.
+
+{\tt MechModel} has been adjusted to request adaptive stepping when
+collision distances exceed a theshhold defined by the {\tt col\-lisionLimit}
+property, and {\tt FemModel3d} has been adjusted to request adaptive
+stepping when it encounters inverted elements.
+
+As an example of the latter, you can run the {\tt FemMuscleTongue} demo
+with probes enabled and {\tt FemModel3d.abortOnInvert\-edElems} set to
+{\tt false} (i.e., omit the command line argument
+{\tt -abortOnInvertedElems}). The model experiences some slight
+instability around t = 1, but completes the simulation without element
+inversion.
+
+Full details on adaptive stepping are given in the
+\href{http://www.artisynth.org/doc/html/artisynth/artisynth.html#AdaptiveStepping}%
+{reference manual}.
+
+\subsection*{State for Probes, Monitors and Controllers}
+
+Probes, monitors, and controllers can now contain state. Details are
+given in the
+\href{http://www.artisynth.org/doc/html/artisynth/artisynth.html#ModelAgentState}%
+{reference manual}.
+
+\section*{April 21, 2012}
+
+\subsection*{Mesh Bodies}
+
+Mesh bodies (type {\tt MeshBody}) have been added to {\tt MechModel}. A mesh
+body is an object consisting primarily of a polygonal mesh (type
+{\tt PolygonalMesh}). It is an abstract class for which two concrete
+subclasses are currently implemented: {\tt FixedMesh}, which defines a
+fixed mesh shape, and {\tt SkinMesh}, which defines a mesh whose shape is
+defined by the motion of a set of rigid bodies through a skinning
+algorithm. Both classes are defined in {\tt artisynth.core.mechmodels}.
+
+At present, {\tt SkinMesh} implements a simple linear skinning. More
+sophisticated algorithims may be supported later. Once created, it is
+necessary to set the weights for a {\tt SkinMesh}.  If the weights are
+known, they can be set with the {\tt setWeights()} method. Otherwise, they
+can be computed automatically with the method {\tt computeWeights()}, which
+determines the weights from the current mesh and body positions, based
+on the nearest distance of each vertex to each body.
+
+The demo {\tt artisynth.models.mechdemos.SkinDemo} shows a simple
+{\tt SkinMesh}.
+
+\begin{sideblock}
+Note that {\tt MeshObject} and its subclasses are likely
+to undergo significant changes since this is still a fairly
+experimental component.
+\end{sideblock}
+
+\section*{April 10, 2012}
+
+\subsection*{Time type changed from long (nanoseconds) to double (seconds)}
+
+The basic type used to denote time in Artisynth has been changed from
+a {\tt long} giving the time in nanoseconds, to a {\tt double} giving the time
+in seconds.
+
+In particular, the following methods now receive or return time as a
+double value in seconds:
+\begin{lstlisting}
+  Model.initialize (t0)
+  Model.setDefaultInputs (t0, t1)
+  Model.advance (t0, t1, flags)
+  Model.getMaxStepSize()
+
+  Probe.apply (t)
+  Controller.apply (t0, t1)
+  Monitor.apply (t0, t1)
+\end{lstlisting}
+
+The orginal reason for representing time using an integer nanosecond
+quantity was to make it easy to determine precisely the sequence of
+timeline events without worrying about round-off error. However, in
+practice, this approach was cumbersome, difficult to read, and
+required most methods to convert nanoseconds into a double quantity
+internally.
+
+Instead, to handle round-off issues, {\tt TimeBase} now provides the
+following methods to compare and manipulate time quantities within a
+fixed tolerance (currently set to one picosecond, or 1e-12):
+\begin{lstlisting}
+  TimeBase.equals (t0, t1)
+  TimeBase.compare (t0, t1)
+  TimeBase.modulo (t0, t1)
+  TimeBase.round (t)
+\end{lstlisting}
+These methods are used by the scheduler to sequence timing events in a
+precise way.
+
+Time quantities in probe files and probe data files are now written in
+seconds instead of nanoseconds. All {\tt .art} files that are currently
+checked in have been converted. For backward compatibility, integer
+time quantities (i.e., those not containing a decimal point) are still
+read as nanoseconds and converted to seconds.
+
+\subsection*{Extra Toolbar}
+
+A toolbar has been added to the top of the main Artisynth frame, under
+the menu bar, and is used to contain icons that were previously
+contained in the menu bar. 
+
+\section*{April 4, 2012}
+
+A large number of changes have been made as part of a general
+refactoring of the physics solver. Many of the changes are "under the
+hood", but the following are visible to developers:
+
+\subsection*{Changes to Model.advance}
+
+The signature of {\tt Model.advance()} has been modified in prepartion for
+adaptive step sizing.  It now returns a double value that will be used
+to indicate desired changes in step size. If no step size change is
+desired the method should return 1.  All declarations of {\tt advance}
+have been altered to ensure that 1 is presently returned.
+
+A {\tt flags} argument has also been added, although this is not expected
+to be used much except internally.
+
+\subsection*{Removal of effective mass and inertia}
+
+The effective mass and spatial inertia fields of particles and rigid
+bodies have been removed. These had been used to store the "effective"
+masses and inertias that resulted from attaching particles to these
+objects.  The effective mass calculation is now done within the solver
+itself.
+
+\subsection*{Rigid body velocites and forces now integrated in world coordinates}
+
+The solver now integrates rigid body velocities and forces in
+world-rotated coordinates (i.e., a coordinate frame coincident with
+the body frame but with an orientation aligned with world
+coordinates).  Before, velocities and forces were integrated strictly
+in body coordinates. This change was made for several reasons:
+
+\begin{itemize}
+
+\item The coriolis force terms are less complex when using world-rotated
+  coordinates, which allows for more accurate integration.
+
+\item It makes the velocity seen by the solver indentical to the internal
+  rigid body velocity state (which also uses world-rotated
+  coordinates).
+
+\item Velocities in body coordinates are not independent of body position,
+  which makes it difficult to save and restore velocity state exactly.
+
+\item World-rotated coordinates are easier for a user to conceptualize.
+
+\end{itemize}
+
+The only disadvantage to using world-rotated coordinates is that the
+spatial inertia matrix is no longer constant. However, this is not a
+major issue since the inertia matrix is easy to compute and invert,
+particularly since it differs from the constant body-centric inertia
+by only a rotational similarity transform.
+
+\begin{sideblock}
+{\bf Note:}\\
+The {\tt velocity} property of a rigid body is not affected
+by this change, since this was always presented in
+world-rotated coordinates.
+\end{sideblock}
+
+\subsection*{Save and restore model state now properly implemented}
+
+Save and restore state for MechModels and FemModels is now properly
+implemented, and in particular properly handles collision and
+viscoelastic state. This means that backtracking to a waypoint and
+then advancing should yield results identical to when the waypoint was
+first traversed.
+
+\subsection*{Changes to the model and probe file formats}
+
+Some of the {\tt scan} and {\tt write} methods for saving and loading models
+from a file have been refactored to simplify the code. 
+
+The file format for AxialSpring and Muscle objects has been changed:
+the old format whereby parameter values are specified as a simple
+untagged list of numeric values is no longer supported.
+
+There has also been a change in the file format for probes: the field
+{\tt element}, which identifies the model associated with the probe, has been
+renamed to {\tt model}, so that entries such as
+
+\begin{verbatim}
+  element=models/xxx
+\end{verbatim}
+
+now appear as
+
+\begin{verbatim}
+  model=models/xxx
+\end{verbatim}
+
+All the {\tt .art} files which are currently checked in have been patched
+to reflect this change.
+
+\subsection*{Removal of local position correction}
+
+The position correction code, used to stablize bilateral and
+unilateral constraints, has been refactored. All position correction
+is now done globally by the solver itself. Local position correction,
+which was done using ad-hoc model-specific methods, and was formerly
+available using the command line option
+
+\begin{verbatim}
+  -posCorrection Local
+\end{verbatim}
+
+has been removed.
+
+\subsection*{Time display}
+
+A time display box has been added to the main frame.
+
+\section*{January 4, 2012}
+
+\subsection*{New release, ArtiSynth 2.8}
+
+A new release has been put on the website. Main changes include:
+
+\begin{itemize}
+
+\item moving the inverse simulation code to {\tt artisynth.core.inverse}.
+
+\item creating a set of inverse demos in {\tt artisynth.models.inversedemos}
+  (thanks to Ian for this).
+
+\item removal of old shared libraries.
+
+\item updating the installation documentation and making the Eclipse
+  installation easier.
+
+\end{itemize}
+
+\section*{October 13, 2011}
+
+\subsection*{Automatic creation of CompositePropertyPanels}
+
+A {\tt CompositePropertyPanel} for a widget is now created automatically
+for composite properties that export the static method
+{\tt getSubClasses()} (which returns a list of the various instances of
+said composite property that can be instantiated by the panel). This
+replaces the need to create property-specific composite panels such as
+{\tt MaterialPanel}, {\tt MuscleMaterialPanel}, etc.
+
+\subsection*{Specifying expandibility for property widgets}
+
+The {\tt PropertyInfo} structure, which provides information about
+properties, has been augmented with the method
+{\tt getWidget\-ExpandState()}, which returns a code describing if the
+property's widget should be able to expand or contract in order to
+save GUI space, and if so whether it should be initially expanded or
+contracted. The settings for this can be specified using the flags
+{\tt XE} (initially expanded) {\tt CE} (intially contracted) in the property
+declaration options string.
+
+\subsection*{Creating FemModels from surface meshes}
+
+Functionality has been added to {\tt FemFactory} allowing FEM models to be
+created directly from a surface mesh, using Tetgen called via the
+{\tt TetgenTessellator} class. The relevant method is
+
+\begin{verbatim}
+  FemFactory createFromMesh (model, surface, quality)
+\end{verbatim}
+
+This functionality has also been added to the FemModel editing panel,
+allowing to you specify a surface mesh in addition to other options.
+
+\section*{October 5, 2011}
+
+\subsection*{Passive sections added to MultiPointSpring}
+
+It is now possible to specify certain sections of a {\tt MultiPointSpring}
+to be {\it passive}, meaning that they will not contribute to the total
+length used to determine the spring's force. The relevant
+methods within {\tt MultiPointSpring} are:
+
+\begin{lstlisting}
+  setSegmentPassive (idx, passive)
+  isSegmentPassive (idx)
+  clearPassiveSegments()
+\end{lstlisting}
+
+where {\tt idx} is an index identifying the segment between points
+{\tt idx} and {\tt idx+1}.
+
+\section*{September 10, 2011}
+
+\subsection*{Updates to PolygonalMesh}
+
+{\tt PolygonalMesh} has been updated to include an {\tt addMesh()} method that
+allows meshes to be combined. This is based on some code that Ian
+recently wrote. Also, the {\tt triangulate()} method has been rewritten so
+that texture and normal information (if present) will be preserved.
+
+\section*{September 8, 2011}
+
+\subsection*{Articulation constraints preserved when manipulating bodies}
+
+A feature has been added that allows articulated body constraints to
+remain enforced when rigid bodies are moved using the translation and
+rotation manipulators. To enable this feature, you can specify
+{\tt -useArticulatedTransforms} on the artisynth command line.  The
+feature can also be enabled using the articulation icon located below
+the manipulator icons on the left side of the main viewer.
+
+\subsection*{Properties now validated using a getRange method}
+
+The method for validating property values has been changed.
+Previously, if property {\tt xxx} had restricted values, the application
+could define a {\tt validateXxx()} method to validate proposed values for
+that property. Now, instead, the application should define a
+{\tt getXxxRange()} method that returns a {\tt Range} object for the
+property. The result from this method will then be returned through
+the {\tt getRange()} method of the Property handle itself.  The {\tt Range}
+object contains an {\tt isValid()} method that can be used to validate
+values.
+
+For numeric properties, a user can still define a default numeric
+interval range of the form "[lo,hi]" in the options string of the
+property's definition. If no {\tt getXxxRange()} is defined, then the
+property's {\tt getRange()} method will return this interval instead.  The
+default numeric range is also used to determine bounds on slider
+widgets attached to the property, in cases where the upper or lower
+limits returned by any {\tt getXxxRange()} method are unbounded.
+
+The main reason for reformulating property validation to use {\tt Range}
+objects is that ranges can be combined using their {\tt intersect()}
+method. Then if a widget is controlling the same property on several
+objects, it is possible to determine a range that is acceptable to all
+objects.
+
+\subsection*{NumericRange, DoubleRange and IntRange have been renamed}
+
+The classes {\tt NumericRange}, {\tt DoubleRange} and {\tt IntRange} have been
+renamed to {\tt NumericInterval}, {\tt DoubleInterval} and {\tt IntegerInterval},
+and have been moved from {\tt maspack.property} to
+{\tt maspack.util}, along with {\tt Range}.
+
+\begin{sideblock}
+{\bf Important:}\\
+This has caused a change in the file format, since {\tt .art}
+files sometimes make direct reference to these class names. The format
+has been corrected for any {\tt .art} files that were checked in.
+\end{sideblock}
+
+\subsection*{Angle coordinates added to revolute and spherical joints}
+
+Revolute and spherical joints have now been augmented with angle
+variables that represent generalized coordinates associated with the
+degrees of freedom allowed by these joints. In particular, the class
+{\tt RevoluteJoint} is associated with an angle {\tt theta}, and a new class
+of spherical joint, called {\tt SphericalRpyJoint}, has been defined that
+allows its orientation to be controlled using {\tt roll}, {\tt pitch}, and
+{\tt yaw} angles. Demos of both can be found in {\tt RevoluteJointDemo} and
+{\tt SphericalJointDemo}, both in {\tt artisynth.models.mechdemos}.
+
+The joint angles are exposed as properties, which can be used to get
+or set their values in degrees. Setting the properties will cause the
+joint to move by changing the position of one of the rigid bodies to
+which it is attached. In determining which body to move, the
+system tries to identify one which is ``free'', i.e., has no
+connections to ground, either directly or indirectly via other bodies in the
+articulation chain. Moreover, when moving such a free body, all other
+bodies connected to it are moved in unison.
+
+Joint angles are not bounded by the usual range of $\pm 180$ degrees,
+and their values will grow indefinitely as a joint continues to
+``wind''. This is acheived by placing a state variable in the
+constraint that keeps track of the most recent joint value.  Joint
+angles can also be given range limits, which themselves are controlled
+by properties such as {\tt getThetaRange}, {\tt getRollRange}, etc.  By
+default, the angles have no limits, corresponding to a range of
+[-inf,inf]. Note that limits with a range greater than 360 degrees,
+such as [-400,400], are perfectly feasible, and often occur in
+mechanical systems as an artifact of gearing.
+
+\begin{sideblock}
+The spherical joint represented by {\tt SphericalRpyJoint} models
+a gimble system in which rotation is achieved by a {\tt roll} rotation
+about the {\it z} axis, followed by a {\tt pitch} rotation about the new {\it y} axis,
+followed by a {\tt yaw} rotation about the final {\it x} axis. Such
+gimble systems experience restricted motion and instability 
+when the pitch angle is close to $\pm 90$ degrees.
+\end{sideblock}
+
+\subsection*{Connector scaling fixed}
+
+Problems associated with scaling certain kinds of connectors (such as
+{\tt SegmentedPlanarConnector}), and models containing them, have been fixed.
+
+\subsection*{Frame information added to FemElement3d}
+
+It is now possible to add frame information to a {\tt FemElement3d},
+using the methods
+
+\begin{lstlisting}
+  FemElement3d.setFrame (Matrix3dBase M)
+  Matrix3d FemElement3d.getFrame()
+\end{lstlisting}
+
+The frame information can be specified using any {\tt Matrix3d} type (such
+as {\tt RotationMatrix3d}) and is mainly intended for use in computing
+anisotropic material behaviors. At present, the frame information is
+stored repeatedly at each of the element's integration points, within
+the point's {\tt IntegrationData3d} object. The ability to store individual frame
+information at each integration point may be added in the
+future.
+
+Frame information maybe accessed by the {\tt computeStress} and
+{\tt computeTangent} methods of {\tt Material}, which now are now supplied
+with the integration point's {\tt IntegrationData3d} structure as an
+additional parameter:
+
+\begin{lstlisting}
+  public void computeTangent (
+     Matrix6d D, IntegrationPoint3d pt, IntegrationData3d dt);
+  
+  public void computeStress (
+     SymmetricMatrix3d sigma, IntegrationPoint3d pt, IntegrationData3d dt);  
+\end{lstlisting}
+
+and the frame information itself can be obtained using
+
+\begin{lstlisting}
+  dt.getFrame()
+\end{lstlisting}
+ 
+\subsection*{Slider ranges and out-of-range values}
+
+The procedures for automatically determining ranges for slider widgets
+have been reworked. In addition, in some cases (particularly involving
+the joint angle properties described above) the actually value for a slider
+widget may lie outside the slider's range. When this happens,
+the slider background is changed to a dark gray color, indicating that
+subsequent adjustments to the slider may produce a jump in the
+property's value.
+
+\section*{August 9, 2011}
+
+\subsection*{Ability to duplicate FEM models}
+
+It is now possible to duplicate a {\tt FemModel3d}. Simply select the
+model, choose {\sf Duplicate} from the context menu, and click in
+the viewer where you want to model to appear.
+
+In code, one can do
+
+\begin{verbatim}
+  FemModel3d femCopy = (FemModel3d)fem.copy (0, null);
+\end{verbatim}
+
+\subsection*{Ability to merge FEM models}
+
+A method has been added to {\tt FemFactory} which allows you to add a copy
+of a FEM model to an existing FEM model:
+
+\begin{verbatim}
+   addFem (fem0, fem1, nodeMergeDist)
+\end{verbatim}
+
+This creates copies of the nodes, elements, markers, and attachments
+of {\tt fem1} and adds them to {\tt fem0}. It will also merge nodes that are
+within a certain distance of each other: if {\tt nodeMergeDist} >= 0, then
+if a node in {\tt fem1} has a nearest node in {\tt fem0} within a distance of
+{\tt nodeMergeDist}, then the {\tt fem0} node will be used instead of copying
+the {\tt fem1} node.
+
+For a demo of this, see the new demo {\sf HexFrame}.
+
+\section*{August 3, 2011}
+
+\subsection*{Attaching FemNodes to other FEM models}
+
+Support has now been added to allow you to attach an {\tt FemNode}
+directly to an element of another FEM model (in the same way that a
+FemMarker can be attached to an element).
+
+For the demo, run {\tt AttachDemo}, select one of the FEMs, and then
+choose {\sf Attach particles} from the context menu. A dialog will then
+appear which allows you to select the nodes (and other particles) to
+attach. By default, the particles will be attached either to their
+containing element, or projected onto the nearest surface element.  If
+you select {\sf project points onto surface}, then the particles will
+always be projected onto the nearest surface element, which can be a
+useful option if the particles are inside the FEM you want to connect
+to. The FEMs must be contained within a MechModel.
+
+I've made some attempt to ensure reasonable behavior if you move
+either an attached point (or one of the nodes to which it is attached)
+using the dragger fixtures. However, the element will not (yet) change
+with these operations and so you may end up with an attachment that
+lies outside the element. This is not necessarily a bad thing, and in
+fact I noticed that you can place attachments outside an element and
+still get reasonable behavior.
+
+For the API, the main methods are:
+
+\begin{lstlisting}
+  MechModel.attachPoint (Point p1, FemModel3d fem, double reduceTol)
+  MechModel.attachPoint (Point p1, FemElement3d elem)
+\end{lstlisting}
+
+The former finds the element to attach to, while the latter assumes you
+know the element already. See the Javadocs for more info.
+
+To locate an element within an FEM, you can use
+
+\begin{lstlisting}
+  FemModel3d.findContainingElement (Point3d pnt)
+  FemModel3d.findNearestSurfaceElement (Point3d loc, Point3d pnt)
+  FemModel3d.findNearestElement (Point3d loc, Point3d pnt)
+\end{lstlisting}
+
+Again, see the Javadocs for more info.
+
+\section*{June 26, 2011}
+
+\subsection*{FEM muscles integrated with linear materials}
+
+FEM-based muscle forces (implemented in {\tt FemMuscleModel} using
+different kinds of {\tt MuscleMaterial}) now work with linear base
+materials. In addition, stress and strain plotting now also works with
+linear materials.
+
+One caveat is that all currently implemented MuscleMaterials are quite
+non-linear, so it is not clear how useful this will be.  One could
+implement a companion linear-type MuscleMaterial.  Alternatively, if
+you use {\tt GenericMuscle} with {\tt expStressCoef} and {\tt fibreModulus} set to
+0, you will get a very basic behavior that simply applies a uniform,
+activation-proportional stress along the muscle direction.
+
+\section*{June 2, 2011}
+
+\subsection*{Controllers added}
+
+{\tt Controller} objects have just been added to Artisynth. They are the
+complement of {\tt Monitors}. 
+
+Like a Monitor, a Controller contains a single function 
+
+\begin{lstlisting}
+   apply (t0, t1)
+\end{lstlisting}
+
+that is called before the {\tt advance} routine of an associated model.
+Times {\tt t0} and {\tt t1} denote the start and end times associated with the
+time step. You can add/remove controllers from the {\tt RootModel}
+using 
+
+\begin{lstlisting}
+   addController (controller)
+   addController (controller, model)
+   removeController (controller)
+\end{lstlisting}
+
+The first method adds a "free" controller that is called before all
+the advance methods.  The second method adds a controller that is
+called before the advance method of a particular model (this
+probably won't be used much). 
+
+\begin{sideblock}
+{\bf Important:}\\
+The {\tt apply} method for a Monitor now takes two time arguments as well
+(it used to take only a {\tt t0} argument). Also, Monitors are now called
+{\it after} the {\tt advance} method, so you might want to convert any
+previous Monitors that you were using to Controllers.
+\end{sideblock}
+
+\section*{April 21, 2011}
+
+\subsection*{Jython console updated}
+
+The Jython console has been fixed to properly handle loops within
+scripts. Previously, all the output from within a loop was printed
+only when the loop finished. Output is now correctly routed to the
+console as it is generated. Also, scripts can now be nested.  Typing
+'{\tt \verb|^|C}' in the console window will also about cause a script to abort,
+although only after the return of any blocking call.
+
+Jython has also been updated to 2.5.2. Since the jython jar file is
+bundled with ArtiSynth, I don't {\it think} this will require anyone to
+explicitly upgrade to Jython 2.5.2 on their system, although that
+might not be a bad idea.
+
+I still notice an occasional crash when loading models in a
+script. This seems to occur inside GUI code associated with the model
+creation, and may be related to the fact the construction and handling
+of GUI components should in theory be done only within the GUI thread.
+If this starts causes anyone trouble, I'll try to investigate further.
+
+\section*{April 14, 2011}
+
+\subsection*{Target positions and velocities}
+
+Both the {\tt Point} and {\tt Frame} components have been augmented with
+properties to describe target positions and velocities. For a Point,
+we have 
+
+\begin{description}
+
+\item[targetPosition] \mbox{}
+Target position for the point.
+
+\item[targetVelocity] \mbox{}
+Target velocity for the point.
+
+while for a Frame (which includes {\tt RigidBody}), we have
+
+\item[targetPosition] \mbox{}
+Target position for the frame's origin.
+
+\item[targetOrientation] \mbox{}
+Target orientation for the frame (specified as an {\tt AxisAngle}).
+
+\item[targetPose] \mbox{}
+Complete target pose for the frame (specified as a {\tt RigidTransform3d}).
+
+\item[targetVelocity] \mbox{}
+Target translation and angular velocity for the frame.
+
+\end{description}
+
+Another property, called {\tt targetActivity}, is supplied to control
+which of the position and velocity targets are actually active.  This
+allows the user of the target data (e.g., the solver) to know whether it should
+interpolate position data, velocity data, or both. The settings for
+{\tt targetActivity} are:
+
+\begin{description}
+
+\item[Position] \mbox{}
+The position target is active, while the velocity target is inactive
+and tracks the current velocity.
+
+\item[Velocity] \mbox{}
+The velocity target is active, while the position target is inactive
+and tracks the current position.
+
+\item[PositionVelocity] \mbox{}
+Both the position and velocity targets are active.
+
+\item[None] \mbox{}
+Both the position and velocity targets are inactive.
+
+\item[Auto] \mbox{}
+Both the position and velocity targets are initially inactive, but
+will become active when their values are set. This is the default setting.
+
+\end{description}
+
+\begin{sideblock}
+{\bf Note:}\\
+{\tt Position} and {\tt Velocity} target activity refer to {\it generalized} positions
+and velocities. In particular, for Frames, {\tt Position} activity refers to
+{\tt targetPosition}, {\tt targetOrientation}, and {\tt targetPose}. One way
+to resolve this ambiguity might be to rename the {\tt position} property
+of a Frame to something like {\tt translation}.
+\end{sideblock}
+
+Specifying a target position and/or velocity is now the preferred way
+to control the motion of one of these components parametrically: If
+the component is set to be non-dynamic, then the target position
+and/or velocity is used by the simulator to control the component's
+motion, and its actual position and/or velocity will be matched to the
+target over the coarse of the next time step.
+
+Current plans also call for targets to be used to specify the desired
+motions of dynamic and attached components (such as markers) for
+tracking by a controller (e.g., inverse actuator control).
+
+
+\subsection*{Proper interpolation for rotations}
+
+As part of implementing target orientations for Frames, it was
+necessary to construct a proper interpolation methods for
+rotations. These are now available for probes which control the
+orientation of a Frame, through either {\tt orientation} or {\tt pose}
+properties. The interpolation methods include
+
+\begin{description}
+
+\item[SphericalLinear]  \mbox{}
+Interpolates between two orientations by finding the axis-angle
+that separates them and then uniformly interpolating the
+angle about this axis (this is the {\it slerp} method that
+was described by Ken Shoemake at SIGGRAPH 1985).
+
+\item[SphericalCubic]  \mbox{}
+Smoothly interpolates between orientations by taking into account
+estimated angular velocities. The method used is described in ``A
+general construction scheme for unit quaternion curves ...'', by Kim,
+Kim and Shin at SIGGRAPH 1995.
+
+\end{description}
+
+\begin{sideblock}
+The above interpolations are actually enabled for numeric data
+probes with vector sizes of 4 and 16. For the former, the data
+is assumed to be an orientation in AxisAngle format. For the
+latter, the data is assumed to be the 4x4 matrix associated with
+a RigidTransform3d, with the rotation interpolated as
+described above and the translation interpolated using standard
+linear or cubic methods.
+\end{sideblock}
+
+\subsection*{Displacement properties added to FemNode3d}
+
+{\tt FemNode3d} now has two additional properties:
+
+\begin{description}
+
+\item[displacement] \mbox{}
+A read-only property giving the displacement of the node from the
+rest position.
+
+\item[targetDisplacement] \mbox{}
+An alternate way of specifying a target position relative to
+the rest position.
+
+\end{description}
+
+\section*{March 2, 2011}
+
+Constrained motions have been added to draggers. If you press SHIFT
+while moving a dragger, then rotations are constrained to multiples of
+5 degrees, and translations are constrained to multiples of a step
+size determined as follows (this may be improved):
+
+\begin{itemize}
+
+\item If the viewer grid is visible, then the step is the size of the
+smallest grid cell.
+
+\item Otherwise, the step is 1/10 of the size of the dragger.
+
+\end{itemize}
+
+\section*{Feb 3, 2011}
+
+\subsection*{Changes to RenderProps}
+
+A new style for rendering lines, {\tt SOLID\_ARROW}, has been added.  Also,
+the following render properties have been renamed:
+
+\begin{description}
+
+\item[cylinderRadius] \mbox{}
+Renamed to {\sf lineRadius}
+
+\item[cylinderSlices] \mbox{}
+Renamed to {\sf lineSlices}
+
+\item[sphereRadius] \mbox{}
+Renamed to {\sf pointRadius}
+
+\item[sphereSlices] \mbox{}
+Renamed to {\sf pointSlices}
+
+\end{description}
+
+Finally, two new properties, {\sf edgeWidth} and {\sf edgeColor}, have been
+added, but are currently only used for rendering contact information,
+as described below.
+
+\subsection*{Rendering contact normals and contours}
+
+Support has been added for rendering the intersection contours and
+contact normals associated with collisions. This rendering is
+controlled by the render properties associated with
+{\tt MechModel.collisionHandlers()}. 
+
+By default, contact and contour rendering is disabled. To enable it,
+one can use the following code fragment:
+
+\begin{verbatim}
+  RenderProps.setVisible (mechModel.collisionHandlers(), true);
+\end{verbatim}
+
+The following render properties are used:
+
+\begin{description}
+
+\item[lineStyle] \mbox{}
+Style of the line used for rendering the contact normals
+
+\item[lineWidth] \mbox{}
+Width (in pixels) of the contact normal if the {\tt Line} line style is used
+
+\item[lineRadius] \mbox{}
+Radius of the contact normal if a solid line style is used
+
+\item[lineSlices] \mbox{}
+Number of slices in the contact normal for a solid line style
+
+\item[lineColor] \mbox{}
+Color of the contact normal
+
+\item[edgeWidth] \mbox{}
+Width (in pixels) of the line used to render the contour
+
+\item[edgeColor] \mbox{}
+Color of the contour
+
+\end{description}
+
+\begin{sideblock}
+{\bf Note:}\\
+Contours will only be rendered in Andrew Larkin's collision
+code is enabled, i.e., {\tt -useAjlCollision}.
+\end{sideblock}
+
+These properties can be set in the same way as the visibility, e.g.,
+
+\begin{lstlisting}
+  Renderable collisions = mechModel.collisionHandlers();
+  RenderProps.setEdgeWidth (col, 2);
+  RenderProps.setEdgeColor (col, Color.Red);
+\end{lstlisting}
+
+To access them on a read-only basis, one can do
+  
+\begin{lstlisting}
+  RenderProps props = mechModel.collisionHandlers().getRenderProps();
+\end{lstlisting}
+
+Finally, to set the length of the rendered contact normals, set the
+{\tt contactNormalLen} property in {\tt MechModel}. Since contact normals have
+no preferred direction, it may be necessary to use a negative length
+value in order to visualize them properly.
+
+\begin{sideblock}
+For a demo, run the model {\sf DentalCasts}
+(artisynth.models.articulator.DentalDemo), and set the top cast
+invisible to see the contact interactions.
+\end{sideblock}
+
+\begin{sideblock}
+{\bf Note:}\\
+The artisynth command line option {\tt -renderCollisionContours} has
+been removed.
+\end{sideblock}
+
+\section*{Jan 31, 2011}
+
+\subsection*{User interface guide completed}
+
+The ArtiSynth UI Guide is now complete, and contains detailed
+descriptions of most of the interactions and editing operations
+available through the GUI. In particular, all of the editing panels
+are now documented. The user interface guide can be obtained from the
+website, or directly through
+
+\begin{verbatim}
+http://www.artisynth.org/doc/html/uiguide/uiguide.html
+\end{verbatim}
+
+\subsection*{New editing features for FemMuscleModel}
+
+A new {\tt MuscleElementAgent} allows elements to be added to {\tt MuscleBundles}
+contained within a {\tt FemMuscleModel}. Other menu-based features allow you
+to automatically set the direction vectors in the elements, or add
+elements that are a certain distance from the fibres. For details,
+see the UI Guide, under "Editing Muscle Bundles".
+
+\subsection*{Exclusive open mechanism for editing panels}
+
+A lock mechanism has been introduced to enable some editing panels to
+function on an "exclusive open" basis, whereby only one can be open at
+a time. This is useful for panels that modify the GUI state, and for
+which simultaneous panels could lead to unexpected side effects.
+Edit operations that cannot open because of the exclusivity lock will
+still appear in the context menu, but disabled. 
+
+If it turns out that the exclusivity locks are too restrictive, we can
+try to relax them on an as-needed basis.
+
+\subsection*{Revised interface for specifying collisions}
+
+The API and GUI interface for specifying collision behavior has been
+revised. In particular, the functions 
+
+\begin{lstlisting}
+  setCollisions (a,b,behavior)
+  getCollisions (a,b)
+\end{lstlisting}
+
+have been replaced by
+
+\begin{lstlisting}
+  setCollisionBehavior (a,b,behavior)
+  getCollisionBehavior (a,b)
+  setDefaultCollisionBehavior (a,b,behavior)
+  getDefaultCollisionBehavior (a,b)
+\end{lstlisting}
+
+and related convenience methods. See the Javadocs for {\tt MechModel}.
+
+In the GUI, you can either set the default behaviors for a {\tt MechModel},
+or set specific collision behaviors by selecting a set of
+bodies and choosing {\sf Set collisions ...} from the context menu.
+Self collision behavior can be set from the context menu for a single
+deformable body. See "Collision handling" in the UI Guide.
+
+\subsection*{Updated editing panels}
+
+As part of the process of finishing the UI Guide, many of the editing
+panels have been revamped to make them clearer and easier to use. To
+simplify their initial presentation, many of the default property
+panels are now expandable.
+
+Also, the label alignment mechanism for {\tt LabeledComponent} has been
+generalized to allow it to take account of component borders. This
+means that labels align propertly even for panels within panels.
+
+\section*{Jan 19, 2011}
+
+The reduced tongue model is working again, and has been renamed to
+{\tt models.reducedFem.ReducedTongue.}
+
+{\tt MuscleTissue}, {\tt MuscleFibreTissue} and their associated classes have
+been removed, and replaced with {\tt FemMuscleModel} (which is the renamed
+version of {\tt MuscleElementTissue}). In addition, {\tt MuscleElementBundle}
+has been renamed to {\tt MuscleBundle}.
+
+\section*{Jan 17, 2011}
+
+The JNI interface for Pardiso 4.1 has been compiled for MacOS (Snow
+Leopard), Windows, and both 32 and 64 bit Linux systems.
+  
+If you specify {\tt -usePardiso4} to artisynth (or if this is set in your
+{\tt .artisynthInit} file), then Pardiso 4.1 will be used. Otherwise,
+Pardiso 3 will be used.
+  
+To use Pardiso 4.1, you will need to obtain a new licence from
+{\tt http://www.pardiso-project.org} if you haven't already. The pardiso.lic
+file that you create from this will {\bf not} be compatible with Pardiso
+3, so if you switch between versions you will also need to switch the
+licence files. Be sure to save your old licence file if you do this
+because you can no longer get Pardiso 3 licences.
+
+There appears to be a bug in the Intel OpemMP library provided for the
+MacOS Pardiso version, which causes spordic crashes occur if Pardiso
+is called from more than one Java thread. I seem to have been able to
+work around this by making the Scheduler "play" thread persistent, so
+that we simply create one play thread at startup and use it for all
+subsequent play actions.
+
+\section*{Jan 2, 2011}
+
+It is now possible to load a model by specifying its {\tt RootModel} class
+directly. Select {\sf Load from class} in the {\sf File} menu.
+
+\section*{Dec 8, 2010}
+
+\subsection*{Control panels:}
+
+Control panels are now scrollable by default (previously, scrollablity
+had to be enabled via the {\tt scrollable} property).
+
+\subsection*{Tetgen and DelaunayInterpolator:}
+
+As part of the support for {\tt MuscleElementTissue}, we have added a JNI
+interface for {\tt tetgen}, called 
+
+\begin{verbatim}
+  maspack.geometry.TetgenTessellator
+\end{verbatim}
+
+The native interface has been compiled for Linux, Windows, and MacOS.
+
+Building on top of this, we have created a method called
+
+\begin{verbatim}
+  maspack.geometry.DelaunayInterpolator
+\end{verbatim}
+
+which can be used for sparse unstructured 3D interpolation. Suppose
+you have a set of 3D points which contain data values that you wish to
+interpolate. You can create a Delaunay interpolation and pass it the
+points via the {\tt setPoints} method, which will create a Delaunay
+tessellation of these points.  The method {\tt getInterpolation} can then
+identify which of these data points should be used for interpolating
+at an arbitrary point, along with the weights needed for the
+interpolation.
+
+\section*{Dec 7, 2010}
+
+A new class, {\tt MuscleElementTissue}, has been completed in which muscle
+activation is effected by means of {\tt MuscleElement\-Bundles}. A
+MuscleElementBundle may contain both point-to-point actuators (of type
+{\tt Muscle}, as in the current {\tt MuscleBundle} used by {\tt MuscleTissue}), as
+well as sets of FEM elements whose material behaviour may be augmented
+using a {\tt MuscleMaterial} that acts in a specific direction.
+
+Each element associated with a MuscleElementBundle is described by a
+{\tt FemElementDesc} that identifies the element and specifies the
+direction (relative to the element's rest position) along which the
+anisotropic behaviour should be exercised. This direction acts in
+concert with a {\tt MuscleMaterial} to produce a material behavior that is
+superimposed on top of the element's default isotropic material
+behaviour. A default MuscleMaterial is specified for the
+MuscleElementTissue. This may be overridden by specifying non-null
+MuscleMaterial materials for specific MuscleElementBundles or for
+individual FemElementDescs.
+
+By default, the point-to-point actuators (called {\it fibres}) in a
+MuscleElementBundle are inactive and are used only for visualization
+and determining the activation directions within individual elements
+(see below).  However, the actuators can be activated via the
+{\tt fibresActive} property. Likewise, the directional material behavior
+associated with the elements may be deactivated by specifying
+{\tt NullMuscle} as the muscle material.
+
+Two methods are currently provided to assist in determining the
+elements and activation directions for a MuscleElementBundle:
+
+\begin{description}
+
+\item[{\tt computeElementDirections()}]  \mbox{}
+Computes directions for each element by performing a Delaunay
+interpolation based on the center position of the element and the
+centers of the nearest point-to-point actuators (with "nearest" being
+determined using a Delaunay tessellation). All calculations are done
+with respect to rest coordinates.
+
+\item[{\tt addElementsNearFibres(dist)}] \mbox{}
+Adds all elements that are within {\tt dist} units of a fibre center, and
+sets their directions to that of the closest fibre.
+
+\end{description}
+
+A demo of MuscleElementTissue is provided by
+
+\begin{verbatim}
+  artisynth.models.femdemos.MuscleElementDemo
+\end{verbatim}
+
+which contains three muscle bundles: "top", "mid", and "bot". The
+following variables within the code can be used to control the muscle
+elements and directions associated with the middle ("mid") bundle:
+
+\begin{description}
+
+\item[{\tt defaultMidElements}]  \mbox{}
+Describes which elements should be initially added (either
+all, none, or the middle elements).
+
+\item[{\tt addMidElementsWithin}] \mbox{}
+Adds all elements within a prescribed distance of the middle bundle
+fibres.
+
+\item[{\tt autoComputeMidDirections}] \mbox{}
+Automatically compute element directions from the middle bundle fibres
+using the Delauany interpolation described above.
+
+\end{description}
+
+\section*{Nov 18, 2010}
+
+After much delay, gravity has now been made an inherited property in
+both {\tt FemModel} and {\tt MechModel}. Also, gravity is now set using a full
+3-vector. So instead of 
+
+\begin{verbatim}
+  model.setGravity (9.8);
+\end{verbatim}
+
+you should do either
+
+\begin{verbatim}
+  model.setGravity (0, 0, -9.8);
+\end{verbatim}
+
+or
+
+\begin{verbatim}
+  model.setGravity (new Vector3d (0, 0, -9.8));
+\end{verbatim}
+
+Don't forget the minus sign! Likewise, {\tt getGravity()} now returns a
+3-vector. All the current code has been updated to reflect this.
+
+\section*{Nov 17, 2010}
+
+A constraint {\tt ParticlePlaneConstraint} has been added to MechModel
+which allows particles to be constrained to a fixed plane. The
+principal methods are
+
+\begin{lstlisting}
+  ParticlePlaneConstraint c = 
+     new ParticlePlaneConstraint(particle, plane);
+
+  model.addParticleConstraint (c);
+  model.removeParticleConstraint (c)
+  model.clearParticleConstraints();
+\end{lstlisting}
+
+For a demo, see
+
+\begin{verbatim}
+  artisynth.models.femdemos.PlaneConstrainedFem
+\end{verbatim}
+
+{\tt ParticlePlaneConstraint} is an instance of a more general constraint
+class. It should now be relatively easy to add more complex
+constraints involving particles.
+
+\section*{Nov 14, 2010}
+
+Problems have been fixed in the panel for editing the mesh geometry
+and inertia of a {\tt RigidBody}. To edit these, select a rigid body, and
+choose
+
+\begin{verbatim}
+  Edit geometry and inertia
+\end{verbatim}
+
+from the context menu.
+
+The methods in {\tt RigidBody} for setting inertia have also been
+rationalized. First, there are two new methods:
+
+\begin{description}
+
+\item[{\tt setInertiaMethod (InertiaMethod m)}] \mbox{}
+  specifies the method by which inertia is determined
+
+\item[{\tt getInertiaMethod()}]  \mbox{}
+  returns the current inertia method
+
+\end{description}
+
+along with a corresponding property {\tt inertiaMethod}, which has three settings:
+
+\begin{description}
+
+\item[{\it Explicit}] \mbox{}
+  Inertia is specified explicitly
+\item[{\it Density}] \mbox{}
+  Inertia is calculated from the mesh using a specified density
+\item[{\it Mass}] \mbox{}
+  Inertia is calculated from the mesh using a specified mass.
+
+\end{description}
+
+Both the {\it Density} and {\it Mass} methods cause the inertia to be
+recomputed whenever the mesh, mass, or density is changed. Density is
+now defined simply as mass divided by mesh volume, and so setting
+either will cause the other to be updated to reflect this. There
+are also three main support methods:
+
+\begin{description}
+
+\item[{\tt setInertia (SpatialInertia M)}] \mbox{}
+  explicitly sets the inertia and sets the inertia method
+  to {\it Explicit}
+
+\item[{\tt setInertiaByDensity (double density)}] \mbox{}
+  sets the inertia from a given density and sets the inertia method to {\it Density}
+
+\item[{\tt setInertiaByMass (double mass)}] \mbox{}
+  sets the inertia from a given mass and sets the inertia method to {\it Mass}.
+
+As before, there are a bevy of methods for explicitly setting the
+inertia in special ways. Note also that {\tt set/getSpatial\-Inertia} have
+been renamed to {\tt set/getInertia}, and -1 is no longer a valid value
+for the density.
+
+\end{description}
+
+\section*{Nov 10, 2010}
+
+A {\tt FullPlanarJoint} constraint has been implemented to restrict the
+motion of a RigidBody to a plane. This constraint is similar to
+RevoluteJoint, except that it allows translation in the plane
+perpendicular to the joint axis. For a demo, see
+
+\begin{verbatim}
+  artisynth.models.mechdemos.PlaneConstrainedJaw
+\end{verbatim}
+
+Note that when this joint is attached to a rigid body, care must be
+taken that other joints attached to the body do not over-constrain it.
+In particular, you can't attach both a RevoluteJoint and
+FullPlanarJoint to a single body (although if the z axes of the
+two joints are parallel, you won't need to, since RevoluteJoint
+restricts the body to a plane as part of it's normal operation).
+While there exist techniques that allow for the resolution of
+redundant constraints, these are not currently implemented in
+ArtiSynth.
+
+The main motivation for FullPlanarJoint is to allow
+implementation of a reduced-complexity symmetric models.
+
+\section*{Nov 10, 2010}
+
+Self-collision handling for deformable bodies is now implemented using
+sub-surfaces. This should be considered a temporary measure until proper
+self-intersection detection is implemented for meshes.
+
+A deformable body will now handle self-collisions if
+
+\begin{itemize}
+
+\item Collisions are enabled between the body and itself, e.g.,
+
+\begin{verbatim}
+  mechModel.setCollisions (femModel, femModel, true);
+\end{verbatim}
+
+\item The model contains two or more sub-surfaces (described below).
+
+\end{itemize}
+
+For a demo, see 
+
+\begin{verbatim}
+  artisynth.models.femdemos.SelfCollision
+\end{verbatim}
+
+A sub-surface is a closed, manifold mesh that enclosed a portion of
+the FEM model. Each vertex of a sub-surface must correspond to a node
+of the FEM. Self-collision within the model is implemented by
+enforcing collision handling between all the sub-surface pairs.  Note
+that this is not a complete solution, since collision handling will be
+restricted to sub-surface interactions. However, this may be desirable
+in some cases.
+
+{\tt FemModel3d} contains the following methods for managing sub-surfaces:
+
+\begin{lstlisting}
+numSubSurfaces()
+getSubSurface(int)
+addSubSurface(PolygonalMesh)
+removeSubSurface(PolygonalMesh)
+clearSubSurfaces()
+\end{lstlisting}
+
+Rendering of sub-surfaces can be enabled via the
+{\tt subSurfaceRendering} property.
+
+A sub-surface can be created by reading it in from a file. {\tt FemModel3d}
+contains the following methods to support this:
+
+\begin{lstlisting}
+scanMesh(String fileName)
+scanMesh(ReaderTokenizer rtok)
+scanSurfaceMesh(ReaderTokenizer rtok)
+scanSurfaceMesh(String fileName)
+writeMesh(PrintWriter pw, PolygonalMesh mesh)
+writeSurfaceMesh(PrintWriter pw)
+writeSurfaceMesh(String fileName)
+\end{lstlisting}
+
+The file format contains a list of faces, whose vertices are described
+by a (counter-clockwise) list of their corresponding node numbers.
+
+One way to create a sub-surface is to select the elements that should
+be used to form the sub-surface, and then choose
+
+\begin{verbatim}
+  Build surface mesh for selected elements
+\end{verbatim}
+
+in the context menu. The resulting surface mesh can then be saved to a
+file using the Jython console and the {\tt write} methods listed above.
+
+\section*{Nov 9, 2010}
+
+I have added a couple of new flags to the {\tt artisynth} command:
+
+\begin{description}
+
+\item[{\tt -useAjlCollision}] \mbox{}
+ Enables Andrew Larkin's collision detection
+
+\item[{\tt -showJythonConsole}] \mbox{}
+ Create the Jython console on start-up
+
+\end{description}
+
+\section*{May 13, 2010}
+
+A trapezoidal integrator has been added. This is a second-order
+Newmark method which does a fully constrained solve in the manner of
+ConstrainedBackwardEuler and should provide greater accuracy. To
+select it in code, you can do
+
+\begin{lstlisting}
+model.setIntegrator (MechSystemSolver.Integrator.Trapezoidal);
+\end{lstlisting}
+
+Otherwise, you can set the model's integrator property through a
+widget.
+
+\section*{Mar 9, 2010}
+
+I have created a general {\tt CompositePropertyPanel} class which can be
+used for setting and selecting {\tt CompositeProperties} within a larger
+panel, in the same style as {\tt MaterialPanel}. The latter is now an
+instance of the former.
+
+In particular, CompositePropertyPanel (and hence MaterialPanel) should
+work properly when directed at multiple components.
+
+Another small change: property and render property panels now have
+names based on the set of components they are controlling.
+
+\section*{Jan 26, 2010}
+
+I have added support for different kinds of position stabilization,
+through the artisynth option {\tt -posCorrection}, which can be specified
+either on the command line or in your {\tt .artisynthInit} file. This
+option accepts one of the following string arguments:
+
+\begin{description}
+
+\item[{\tt Local}]  \mbox{}
+ applies a local (Gauss-Seidel type) stabilization which we have been using 
+ until now.
+
+\item[{\tt GlobalMass}]  \mbox{}
+ applies a global position correction using impulses computed with the
+ system mass matrix.
+
+\item[{\tt GlobalStiffness}] \mbox{}
+ applies a global position correction using impulses computed with the
+ complete system stiffness matrix.
+
+\item[{\tt Default}] \mbox{}
+ applies the default position correction.
+
+\end{description}
+
+At the moment, I have set the default behavior to use {\tt Local}
+stabilization for explicit integrators and {\tt GlobalMass} stabilization
+for implicit ones, since {\tt GlobalMass} stabilization doesn't seem to
+incur much compute penalty. {\tt GlobalStiffness} stabilization, on the
+other hand, while a bit more robust, can (at present) almost double
+the computation time.
+
+For implicit integrators, I do apply a one-time {\tt GlobalStiffness}
+correction at the start of the first time step.
+
+\section*{Jan 15, 2010}
+
+The code has been refactored to correctly implement point-based
+attachments, and some minor bugs involving deformable body contact
+have also been fixed.
+
+Also, the rendering of individual finite elements now includes an
+optional widget in the center of the element that can be used for
+selection. The widget shows the shape of the element in miniature,
+with its proportionate size controlled by the property
+{\tt elementWidgetSize}, which appears in both {\tt FemModel3d} and
+{\tt FemElement3d}. Element rendering has also been improved so that the
+edges of selected elements appear fully illuminated.
+
+\section*{Oct 22, 2009}
+
+Improvements have been made to the Jython console. These include:
+
+\begin{itemize}
+
+\item Built in functions (see below)
+\item Initialization files
+\item Scripting support
+\item Line wrapping now works correctly, and the console is embedded in a scroll
+pane
+
+\end{itemize}
+
+\subsection*{Built-in functions}
+
+A number of built-in functions have been added, allowing you to do
+certain things easily without having to locate the appropriate java
+object and in particular without having to access {\tt main}. For
+example, to add a break point and run the current model, you can now
+do
+
+\begin{verbatim}
+  >>> addBreakPoint (10)
+  >>> run()
+\end{verbatim}
+
+The current set of built-ins include:
+
+\begin{description}
+
+\item[{\tt run()}] \mbox{}
+ run the simulation
+
+\item[{\tt run(tinc)}] \mbox{}
+ run for a certain time
+
+\item[{\tt pause()}] \mbox{}
+ pause the simulation
+
+\item[{\tt waitForStop()}] \mbox{}
+ wait for the simulation to stop
+
+\item[{\tt reset()}] \mbox{}
+ reset the simulation
+
+\item[{\tt step()}] \mbox{}
+ single step the simulation
+
+\item[{\tt addWayPoint(t)}] \mbox{}
+ add a waypoint at time t
+
+\item[{\tt addBreakPoint(t)}] \mbox{}
+ add a breakpoint at time t
+
+\item[{\tt removeWayPoint(t)}] \mbox{}
+ remove a waypoint or breakpoint at time t
+
+\item[{\tt clearWayPoints()}] \mbox{}
+ clear all waypoints and breakpoints
+
+\item[{\tt root()}] \mbox{}
+ get the current root model
+
+\item[{\tt script(fileName)}] \mbox{}
+ run a script (see below)
+
+\item[{\tt loadModel(name)}] \mbox{}
+ load a model by it's demo name
+
+\item[{\tt find(name)}] \mbox{}
+ find a component by a name relative to the root model
+
+\end{description}
+
+It is expected that the set of built-ins will expand greatly and will
+be subject to modification.
+
+\subsection*{Initialization files}
+
+The built-ins are defined in the initialization file
+{\tt .artisynthJythonInit.py}, located in the ArtiSynth home directory.
+This is a Jython script that is executed once when the console starts
+up. It can be modified to add additional built-ins, by either defining
+them directly using {\tt def}, or by adding a java method directly to the
+interpreter's dictionary using a statement of the form
+
+\begin{verbatim}
+  _interpreter_.set ("waitForStop", main.waitForStop)
+\end{verbatim}
+
+where the symbol {\tt \_interpreter\_} references the interpreter itself.
+
+Users can also define their own {\tt .artisynthJythonInit.py}
+initialization files, in any directory inside the
+{\tt ARTISYNTH\_PATH}. Multiple files can be defined, with evaluation
+proceeding from last to first along the path.
+
+\subsection*{Scripting}
+
+The built-in {\tt script()} executes a script file within the console. This
+is similar to the standard built-in {\tt execfile()}, except that the script
+is run in a separate thread and echos its commands to the
+console. This allows
+GUI interaction and rendering to proceed concurrently with the script
+execution. A script can be aborted by typing {\tt \verb|^|C}.
+
+As an example, try running 
+\begin{verbatim}
+   >>> script ("testscript.py")
+\end{verbatim}
+in the ArtiSynth home directory. This loads and runs some
+demos with a variety of integrators and logs the resulting state
+vectors into a file.
+
+\section*{Oct 16, 2009}
+
+Materials have been made to properly implement {\tt scaleDistance} and
+{\tt scaleMass}. The numeric format string for a text widget has been made
+into a property, so that it can now be set by selecting the widget and
+choosing {\sf set properties} from the context menu.
+
+Some minor bugs have been fixed, and a number of internal changes have
+been made, mostly in preparation for fixing the interaction problem
+between attached particles and other constraints.
+
+\section*{Sept 22, 2009}
+
+For anyone installing documentation on the ArtiSynth web server:
+
+The {\tt Makefiles} in the documentation directories now contain the
+command
+
+\begin{verbatim}
+  > make install_html
+\end{verbatim}
+
+that will create html documentation and then copy it onto the
+server. This assumes you have an account on the server, and that you
+have set the environment variable {\tt ARTISYNTH\_WEB\_ACCOUNT} to the name
+of said account. Unfortunately you'll be asked for your account
+password twice: once to copy the files, and once again to set the
+permissions so other people can modify them.
+
+Permission setting is done by a revised script called {\tt setMagicPerms},
+located on the server.
+
+For more details, see the 
+\href{../documentation/documentation.html#Installing}{documentation} document.
+
+\section*{Sept 20, 2009}
+
+Lagrange multiplier-based incompressibility has been added for Hex
+elements. You can now select {\tt incompressible} for an FEM model
+consisting either entirely of Hex elements or Tet elements (although
+unfortunately not for mixed element models because the formulations
+aren't compatible). The results can be very good - try it with the
+HexTongue demo using the Linear material.
+
+Hex element incompressibility should work with nonlinear materials as
+well. For incompressible materials, it should simply complement the
+incompressible penalty force added by the material.
+
+However, as can be seen with the HexTongue and HexBeam3d demos,
+incompressibility with nonlinear materials also seems to go unstable
+at higher compressions. The most likely culprit is that our
+semi-implicit integrators are no longer sufficient, and we need to use
+a fully implicit integrator instead. That means adding Newton
+iterations onto the existing semi-implicit steps, which will take a
+little bit of work. To begin, I'll compute the residuals from the
+semi-implicit steps - if these start getting large right before the
+instability, that will suggest the need for fully implicit
+integration.
+
+Other changes:
+
+The Material widget has been completed to the point where you should
+now be able to replace widgets controlling a FemModel's
+{\tt YoungsModulus}, {\tt PoissonsRatio}, and {\tt warping} properties with a
+single widget controlling the model's {\tt material} property. One
+remaining issue is that the Material widget will still not work
+properly with a group of objects (such as a collection of
+elements). Obviously this needs to be fixed.
+
+If you create a widget for a property whose value is {\tt double}, the
+widget will now automatically contain a slider. The range of the
+slider will be determined automatically from the current value of the
+property. If the current value is zero, then a default range of [0,1]
+will be assigned. This is not restrictive since slider ranges now
+readjust on the fly, as described next.
+
+Sliders fields have been modified so that if you enter a number in the
+text box that exceeds the slider's range, the range will be
+automatically increased to accommodate this. This was done by giving
+these components a 'slider range' in addition to their regular
+range. Slider ranges must still lie within the regular range, but
+since the regular range is often something like {\tt [0, +inf]} or 
+{\tt [-inf, +inf]}, this is not generally a problem.
+
+Finally, slider widgets have been altered so that the system tries to
+ensure that they have a track length of 200 pixels.  This helps ensure
+reasonable value increments as long as the slider's range is itself
+cleanly divisible by 200.
+
+\section*{Sept 3, 2009}
+
+Support has been added for nonlinear FEM materials. For application
+programming, a {\tt material} property has been added to both {\tt FemModel}
+and {\tt FemElement}. This is a composite property whose sub-properties
+describe the parameters of the material in question. A FemElement's
+material can be {\tt null}, in which case the material for the FemModel is
+used instead.
+
+A new type of widget, called a {\tt MaterialPanel}, has been created in
+{\tt artisynth.core.gui} to support editing of materials and their
+properties.
+
+Some simple materials are defined in
+{\tt artisynth.core.femmodels.materials}.
+
+There are still some rough edges being sorted out in the code.
+Incompressible materials are currently implemented using a penalty
+method. This has yet to be unified with the constraint-based
+incompressibility available for tetrahedral elements.
+
+\section*{July 31, 2009}
+
+The ArtiSynth website now has an update log that you can access from
+the sidebar heading {\tt Update Log}. All messages posted to the
+{\tt artisynth-updates} mailing list will appear there in a more readable
+form.
+
+The update log is written in AsciiDoc and its source is located in
+{\tt \$ARTISYNTH\_HOME/doc/updates/updates.txt}. You can make your own
+changes to the log if your system is configured to compile ArtiSynth
+documentation (see
+\href{http://www.magic.ubc.ca/artisynth/pmwiki.php?n=Documentation.Documentation}{%
+Writing Documentation for ArtiSynth}) and you have an account on the ArtiSynth
+web server machine.
+
+Running the command
+
+\begin{verbatim}
+  > make post
+\end{verbatim}
+
+from within the {\tt updates} directory will compile {\tt updates.txt} into
+{\it html} and copy it to the website. You must have the environment
+variable {\tt \$ARTISYNTH\_WEB\_ACCOUNT} set to the name of your account on
+the web server.
+
+Other things: all Asciidoc documentation on the website is now nested
+within the main frame (thanks to Byron for this), and {\tt artdoc} (the
+interface to AsciiDoc that generates documentation) has two new
+options:
+
+\begin{description}
+
+\item[--no-contents] \mbox{}
+	do not create a table of contents
+
+\item[--section-number-depth {\it depth}] \mbox{}
+	set the section number depth (where 0 disables numbering)
+
+\end{description}
+`
+\section*{July 27, 2009}
+
+Probes has been modified so that start times, stop times, and update
+intervals are now specified in seconds instead of ticks. This removes
+the need to call {\tt TimeBase.secondsToTicks()} when accessing these 
+quantities.
+All committed code has been reformatted, so you shouldn't need to do 
+anything. All testing comes up clean, but let Dr. Lloyd know if you 
+see anything suspicious. A good number of files were touched so you 
+should do a general update.
+Some internal ArtiSynth code still uses ticks, so the convenience 
+methods {\tt getStartTimeTicks()} and {\tt getStopTimeTicks()} have been
+provided. Also, start and stop times are still written to files 
+using ticks; this is to prevent breaking existing files and will 
+be changed when all the probe data files are converted.
+
+\section*{July 26, 2009}
+
+The \javaclass[artisynth.core.gui]{LegendDisplay} code that controls the 
+plotting of lines in
+\javaclass[artisynth.core.probes]{NumericProbeBase}
+displays has been reimplemented.
+
+The main changes are:
+
+   1. The legend now contains more informative labeling which is 
+based, if possible, on the properties associated with the probe.
+   2. Labels can be set by the user: right click at the bottom of 
+the panel and select {\sf "Enable label editing"}.
+   3. Legend information is saved and restored with the probe. 
+
+In terms of implementation, the
+{\tt LegendDisplay} is now actually owned 
+by its probe, which may not be ideal but solves a lot of problems 
+and is consistent with the fact that the displays themselves are owned 
+by the probe. All Legend code that was in
+\javaclass[artisynth.core.gui.timeline]{ProbeInfo} has been removed. 
+Also, the {\tt LegendDisplay} is now a subclass 
+of \javaclass[artisynth.core.gui]{PropertyPanel}, which greatly simplifies 
+the code.
+
+\section*{July 20, 2009}
+
+The last major updates for the collision code have been checked in. 
+Here are the highlights:
+
+\subsection*{Collision API in MechModel}
+
+\begin{itemize}
+
+\item The collision behavior between all Collidable bodies is specified 
+in a MechModel using {\tt setCollisions (a, b, enabled, friction)} where
+'{\tt a}', '{\tt b}' specifies a pair of Collidables, '{\tt enable}' enables 
+or disables collisions, and '{\tt friction}' gives the coefficient of 
+friction.
+
+\item You can specify collisions between individual collidables, or use 
+{\tt Collidable.RigidBody} or {\tt Collidable.Deformable} to specify default
+collision behaviors for 
+
+\begin{itemize}
+
+\item RigidBody-RigidBody
+
+\item RigidBody-Deformable
+
+\item Deformable-Deformable
+
+\end{itemize}
+
+\item The convenience method {\tt setDefaultCollisions (enabled, friction)} 
+specifies all three of the above. 
+
+\item Default and specific collidables cannot currently be mixed; e.g., 
+you cannot do 
+\begin{lstlisting}
+RigidBody box = createBox();
+setCollisions (box, Collidable.RigidBody);
+\end{lstlisting}
+
+\item The collision behavior for any pair of Collidables can be queried
+using {\tt getCollisions (a, b)};. If the pair is contained in one or more 
+sub-models, then explicitly set behaviors in higher level models take 
+priority. For example, {\tt setCollisions(a, b, true, 1);} has a higher 
+priority than {\tt subModel.setCollisions(a, b, false, 0);}. If there is
+no explicitly set behavior for the pair, then the default behavior in 
+the lowest level sub-model containing {\tt (a,b)} is used. The returned 
+behavior will be determined by
+
+\begin{itemize}
+
+\item any explicitly set behavior for {\tt (a,b)}, or
+\item the default behavior for the given pair type. 
+
+\end{itemize}
+
+\end{itemize}
+
+\subsection*{Graphically Editing Collisions}
+
+There are several ways to graphically edit collisions.
+
+\begin{itemize}
+
+\item Select a MechModel, followed by {\sf "Edit Collisions"} from the context 
+menu. This will bring up a panel that shows you the default settings 
+for the model, plus all explicitly specified collision pairs, in the 
+current model and any sub-model. The latter are presented using a
+ two-level expandable tree. To set new behaviors, select the desired 
+defaults and/or explicit pairs, set the desired enabled and the
+friction settings in the fields below the JTree, and click {\sf "Set"}. 
+To remove explicitly set behaviors from the current model, select said 
+behaviors and click {\sf "Unset"}.
+
+\item Select a set of Collidables, followed by {\sf "Set Collisions"} in the 
+context menu. This will bring up a dialog which lets you collectively 
+set the collision behavior between all the selected collidables. This 
+is done by adding explicit behaviors in the lowest level MechModel 
+containing all the collidables (or in the MechModel associated with
+the most recently opened {\sf "Edit Collisions"} panel).
+
+\item Select a set of Collidables, followed by {\sf "Unset Collisions"} in the 
+context menu. This will delete any explicitly set collision behaviors 
+between the selected collidables in the lowest level MechModel
+containing them all (or in the MechModel associated with the most 
+recently opened {\sf "Edit Collisions"} panel). 
+
+\end{itemize}
+
+\subsection*{Creating Basic RigidBodies}
+
+Some factory methods for creating RigidBodies have also been added. 
+These automatically create the required mesh and set the inertia:
+
+\begin{lstlisting}
+   RigidBody.createBox (name, wx, wy, wz, density);
+   RigidBody.createSphere (name, r, density, nslices);
+   RigidBody.createEllipsoid (name, a, b, c, density, nslices);
+   RigidBody.createCylinder (name, r, h, density, nsides);
+   RigidBody.createFromMesh (name, mesh, density, scale);
+   RigidBody.createFromMesh (name, meshFilePath, density, scale);
+\end{lstlisting}
+
+\section*{July 3, 2009}
+
+A collection of updates has been checked into CVS. The bulk of these 
+involve reformatting code in several packages, so a lot of files were 
+touched, albeit without much change in functionality. The main changes 
+are:
+
+\begin{itemize}
+
+\item Explicit integrators now use body coordinates by default. This
+shouldn't cause any problem, but if it does, you can revert by setting 
+\begin{verbatim}
+private static boolean useBodyCoordsForExplicit = false;
+\end{verbatim}
+{\sf MechSystemSolver.java}.
+
+\item There is improved functionality for adding waypoints. Selecting 
+{\sf "Add WayPoint(s) ..."} on the timeline model track now provides you 
+with a {\sf "repeat"} field that lets you add a whole bunch of waypoints in 
+one go.
+
+\item Another option, {\sf "Delete Waypoints"}, lets you delete all waypoints 
+(except for the first one) in one go. 
+
+\end{itemize}
+
+\section*{June 29, 2009}
+
+Work on converting property paths from the old format to the new one
+has been checked in. A number of .java, .art, and .probe files were 
+touched, so updating is a good idea.
+
+\section*{June 24, 2009}
+
+Modifications to code have been checked in, including:
+
+\begin{itemize}
+
+\item New editing functionality that allows attaching points to other
+points or to rigid bodies, or to remove these attachments.
+
+\item Reformating the code in artisynth.core.gui.editorManager; this is a 
+start at reformatting all the code as we have been discussing, in
+order to make it more compatible with standard practice and hopefully 
+easier for most people to write and understand.
+
+\item An eclipse settings file for the new code format can be found in
+\begin{verbatim}
+\$ARTISYNTH\_HOME/support/eclipse/artisynthCodeFormat.xml
+\end{verbatim}
+
+\end{itemize}
+
+\section*{June 16, 2009}
+
+New property paths are now in effect. This affects both Java code and 
+the .art files containing model and probe information. Please do an 
+update on the entire distribution. The property part of the path is
+now separated from the component path by a semi-colon, as in 
+{\tt models/mechmodel/particles/0:mass}. Previously, a '{\tt /}' was used, 
+so that the above would have appeared as 
+{\tt models/mechmodel/particles/0/mass}. As many of the easily found
+old-style paths have been updated, in both the Java code and .art
+files, but some may have been missed. Qsubst may be helpful in fixing 
+any .art files you have that are not checked in. The following 
+invocations may be useful, and can be used independently:
+
+\begin{lstlisting}
+> qsubst '(property="[^\s]*)/([^/:"]*")' '\1:\2' -re -find '*.art'
+
+> qsubst '/excitation' ':excitation' -find '*.art'
+\end{lstlisting}
+
+ArtiSynth is still forgiving if it encounters an old-style path name, 
+and it will print a warning message like this: 
+\begin{sideblock}
+{\bf Warning:}\\
+Old style 
+property path models/jawmodel/frameMarkers/lowerincisor/displacement 
+should be replaced with 
+models/jawmodel/frameMarkers/lowerincisor:displacement
+\end{sideblock}
+which should 
+be taken as a strong hint to fix old-style path.
+
+\section*{June 15, 2009}
+
+Most of these involve improving the editing of RigidBody geometry and 
+inertia, which in turn required some changes and additions to the
+widget code. The {\tt artisynth} script has been reworked. The main
+changes are:
+
+\begin{itemize}
+
+\item {\tt artisynth -help} now works properly
+
+\item the log file is placed in {\tt \$ARTISYNTH\_HOME/tmp}, instead of 
+{\tt \$ARTISYNTH\_HOME}
+
+\item The {\tt -v} option has been removed. Output is sent to the console (as 
+well as the log file) by default. If you {\it don't} want console output, 
+use the {\tt -s} option. 
+
+\end{itemize}
+
+Note that the log file is a bit of a hack and may change/disappear later.
+
+\section*{May 29, 2009}
+
+\begin{itemize}
+
+\item Unstable behavior is now detected properly and you get an
+appropriate exception indicating such, rather than some side effect 
+like {\tt Bad Cholesky factorization}.
+
+\item Dragger positions are now kept current with the bounded box for 
+selected objects (or the coordinate frame if a single Frame or
+RigidBody is selected).
+
+\item Button masks for things like the context menu are now stored in 
+{\tt artisynth.core.gui.ButtonMask} (the context menu mask used to be stored 
+in {\tt artisynth.core.gui.selectionManager.SelectionManager}).
+
+\item All GUI components that create context popups now use 
+{\tt ButtonMask.getContextMenuMask()} and so should work properly on the 
+MacBook.
+
+\item To add Frame markers, you now use the {\sf add FrameMarkers} option 
+with a MechModel selected, and you can click on {\bf any} rigid body 
+owned by that MechModel.
+
+\item Some extra material and figures has been added to doc/uiguide 
+
+\end{itemize}
+
+\section*{May 26, 2009}
+
+Component names can no longer contain a colon '{\tt :}', because that 
+character is used in component/property path names. It has been
+illegal for a number of weeks, but it has just been removed from names 
+in existing model files, and replaced with an underscore '{\tt \_}'.
+This mostly affects tongue data files, where muscle groups were often
+given names like {\tt "f12:3"}. Those names now look like {\tt "f12\_3"}. If you
+have model or probe files that are not part of the checked-in code
+base, then you can convert '{\tt :}' to '{\tt \_}' yourself using the qsubst
+command: 
+%
+\begin{verbatim}
+> qsubst 'name="([^:]*):([^:]*)"' 'name="\1_\2"' -re <files> ... 
+\end{verbatim}
+%
+Also, {\tt this} is no longer used in component path
+names. Instead, the '{\tt .}' character is used, in complete analogy with
+Unix path names. For example, ``{\tt =this}'' has been replaced with ``{\tt =.}''
+in model and probe files; please do the same for files that are not part
+of the code base. 
+
+\section*{May 21, 2009}
+
+A new command called qsubst has been added to
+{\tt \$ARTISYNTH\_HOME/bin}. It's a python script that allows you to do
+interactive string replacement in a set of files. You specify a string 
+expression, its replacement, and one or more files, and it goes
+through each file, prints all the matches with some surrounding
+context lines, and you hit a key indicating whether or not to do the 
+replacement. Hitting ' ' means replace, '{\tt n}' means don't replace. For 
+example, 
+%
+\begin{verbatim}
+> qsubst double float Vector.java Matrix.java
+\end{verbatim}
+%
+will let you 
+interactively replace '{\tt double}' with '{\tt float}' in {\tt Vector.java} and
+{\tt Matrix.java}. There are additional key commands as well as some command 
+line options; 
+%
+\begin{verbatim}
+> qsubst -help
+\end{verbatim}
+%
+provides a synopsis. In particular, if
+you specify the -re option, then the expression is a Python regular 
+expression, and the replacement string can contain group names. Fairly
+powerful stuff. qsubst will probably come in handy for modifying model 
+and probe files. No guarantees are made for Windows; that depends on
+how well the {\tt curses} package is supported. 
+
+\section*{May 14, 2009}
+
+Some fairly major ArtiSynth changes have been checked in. The visible 
+changes are not that large, but there was some significant code 
+refactoring and about 200 files were modified. Users should do a
+{\tt cvs update -dP} from the artisynth root directory. These changes 
+include:
+
+\begin{itemize}
+
+\item Adding documentation in the doc directory.
+
+\item Refactoring of the widget and viewer interface code.
+
+\item Changes in the look-and-feel of the probe editors.
+
+\item The grid and the clip planes now have properties, which allow you to 
+set the grid spacing, color, line width, etc. To edit properties for 
+the grid, right click on the grid resolution widget (which appears at 
+the right of the menu bar when the grid is enabled). To edit
+properties for the clip planes, right click on the appropriate clip
+plane icon.
+
+\item The Viewer now has some properties too. To edit them, right click in 
+the viewer when nothing else is selected. More properties will be
+exposed in the future.
+
+\end{itemize}
+
+\end{document}

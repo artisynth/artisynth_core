@@ -1,0 +1,57 @@
+This is the root directory for ArtiSynth and maspack documentation,
+which takes the form of javadocs, user and reference manuals, and some
+specialized documents.
+
+MUCH OF THIS DOCUMENTATION IS STILL UNDER DEVELOPMENT.
+
+The javadocs are created automatically from the source code, by
+running 'make javadocs' in either this directory or the ArtiSynth root
+directory.
+
+Most reference and user documentation is created using asciidoc, which
+is a lightweight markup language. Sources for various documents are
+included in subdirectories as described below.
+
+Some other documents (including some legacy documents) are available
+as text and PDF files; these are placed in the directory 'misc'.
+
+Most of this documentation is available online. Go to
+www.artisynth.org and navigate to Documentation.
+
+Specific files and directories include:
+
+Makedefs
+    Definitions for the Makefile and sub-Makefiles
+
+Makefile
+    Makefile used to build the documentation
+
+asciidoc
+    ArtiSynth-specific configuration information for asciidoc
+
+developer
+    Information for ArtiSynth developers
+
+documentation
+    Information about compiling and creating documentation
+
+html
+    Documentation html files (other than javadocs) are placed here
+
+installation
+    Information about installing and running ArtiSynth
+
+javadocs
+    Javadocs are placed here
+
+maspack
+    API reference documentation for the maspack packages
+
+misc
+    Miscellaneous documents, mostly PDF and .txt files
+
+uipguide
+    Information about the ArtiSynth user interface
+
+updates
+    On-going documentation about updates to ArtiSynth

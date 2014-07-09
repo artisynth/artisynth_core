@@ -1,0 +1,358 @@
+package artisynth.demos.mech;
+
+import maspack.geometry.*;
+import maspack.spatialmotion.*;
+import maspack.matrix.*;
+import maspack.render.*;
+import maspack.util.*;
+import artisynth.core.mechmodels.AxialSpring;
+import artisynth.core.mechmodels.FrameMarker;
+import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.MechSystemSolver;
+import artisynth.core.mechmodels.PlanarConnector;
+import artisynth.core.mechmodels.RevoluteJoint;
+import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.RigidBodyConnector;
+import artisynth.core.mechmodels.SphericalJoint;
+import artisynth.core.mechmodels.MechSystemSolver.Integrator;
+import artisynth.core.modelbase.*;
+import artisynth.core.probes.WayPoint;
+import artisynth.core.driver.*;
+import artisynth.core.util.*;
+import artisynth.core.workspace.DriverInterface;
+import artisynth.core.workspace.RootModel;
+import artisynth.core.gui.*;
+import maspack.render.*;
+
+import java.awt.Color;
+import java.io.*;
+
+import javax.swing.*;
+
+public class MechModelDemo extends RootModel {
+   public static boolean debug = false;
+
+   boolean readDemoFromFile = false;
+
+   boolean writeDemoToFile = true;
+
+   boolean usePlanarJoint = true;
+
+   boolean useSphericalJoint = false;
+
+   boolean usePlanarContacts = true;
+
+   public MechModelDemo() {
+      super (null);
+   }
+
+   public MechModelDemo (String name) {
+      this();
+      setName (name);
+
+      MechModel mechMod = new MechModel ("mechMod");
+      // mechMod.setProfiling (true);
+      mechMod.setGravity (0, 0, -50);
+      // mechMod.setRigidBodyDamper (new FrameDamper (1.0, 4.0));
+      mechMod.setFrameDamping (1.0);
+      mechMod.setRotaryDamping (4.0);
+      mechMod.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler);
+
+      RigidTransform3d XMB = new RigidTransform3d();
+      RigidTransform3d XLW = new RigidTransform3d();
+      RigidTransform3d XCA = new RigidTransform3d();
+      RigidTransform3d XCB = new RigidTransform3d();
+      RigidTransform3d XAB = new RigidTransform3d();
+      PolygonalMesh mesh;
+      int nslices = 16; // number of slices for approximating a circle
+
+      // // set view so tha points upwards
+      // X.R.setAxisAngle (1, 0, 0, -Math.PI/2);
+      // viewer.setTransform (X);
+
+      double lenx0 = 15;
+      double leny0 = 15;
+      double lenz0 = 1.5;
+      RigidBody base = new RigidBody ("base");
+      base.setInertia (SpatialInertia.createBoxInertia (
+         10, lenx0, leny0, lenz0));
+      mesh = MeshFactory.createBox (lenx0, leny0, lenz0);
+      // XMB.setIdentity();
+      // XMB.R.setAxisAngle (1, 1, 1, 2*Math.PI/3);
+      // mesh.transform (XMB);
+      // mesh.setRenderMaterial (Material.createSpecial (Material.GRAY));
+      base.setMesh (mesh, /* fileName= */null);
+      XLW.setIdentity();
+      XLW.p.set (0, 0, 22);
+      base.setPose (XLW);
+      base.setDynamic (false);
+      mechMod.addRigidBody (base);
+
+      RenderProps props;
+
+      FrameMarker mk0 = new FrameMarker();
+      props = mk0.createRenderProps();
+      // props.setColor (Color.GREEN);
+      props.setPointRadius (0.5);
+      props.setPointStyle (RenderProps.PointStyle.SPHERE);
+      mk0.setRenderProps (props);
+      mechMod.addFrameMarker (mk0, base, new Point3d (lenx0 / 2, leny0 / 2, 0));
+
+      FrameMarker mk1 = new FrameMarker();
+      mk1.setRenderProps (props);
+      mechMod.addFrameMarker (
+         mk1, base, new Point3d (-lenx0 / 2, -leny0 / 2, 0));
+
+      FrameMarker mk2 = new FrameMarker();
+      mk2.setRenderProps (props);
+
+      FrameMarker mk3 = new FrameMarker();
+      mk3.setRenderProps (props);
+
+      double ks = 10;
+      double ds = 10;
+
+      AxialSpring spr0 = new AxialSpring (50, 10, 0);
+      AxialSpring spr1 = new AxialSpring (50, 10, 0);
+
+      props = spr0.createRenderProps();
+      props.setLineStyle (RenderProps.LineStyle.CYLINDER);
+      props.setLineRadius (0.2);
+      props.setLineColor (Color.RED);
+      spr0.setRenderProps (props);
+      spr1.setRenderProps (props);
+
+      // mechMod.addRigidBody (base);
+
+      // first link
+      double lenx1 = 10;
+      double leny1 = 2;
+      double lenz1 = 3;
+      RigidBody link1 = new RigidBody ("link1");
+      link1.setInertia (SpatialInertia.createBoxInertia (
+         10, lenx1, leny1, lenz1));
+      mesh =
+         MeshFactory.createRoundedBox (
+            lenx1, leny1, lenz1, nslices / 2);
+      XMB.setIdentity();
+      XMB.R.setAxisAngle (1, 1, 1, 2 * Math.PI / 3);
+      mesh.transform (XMB);
+      // mesh.setRenderMaterial (Material.createSpecial (Material.GRAY));
+      link1.setMesh (mesh, /* fileName= */null);
+      XLW.R.setAxisAngle (1, 0, 0, Math.PI / 2);
+      // XLW.R.mulAxisAngle (0, 1, 0, Math.PI/4);
+      XLW.p.set (0, 0, 1.5 * lenx1);
+      link1.setPose (XLW);
+      mechMod.addRigidBody (link1);
+
+      mechMod.addFrameMarker (mk2, link1, new Point3d (
+         -lenx1 / 2, 0, -lenz1 / 2));
+      mechMod.addFrameMarker (
+         mk3, link1, new Point3d (-lenx1 / 2, 0, lenz1 / 2));
+
+      // // joint 1
+      // if (usePlanarJoint)
+      // {
+      // XCA.setIdentity();
+      // XCA.p.set (-lenx1/2, 0, 0);
+      // XCA.R.setAxisAngle (1, 0, 0, -Math.PI/2);
+      // XCB.p.set (0, 0, lenx1);
+      // // XCB.R.setAxisAngle (1, 0, 0, -Math.PI/2);
+      // PlanarConnector planar =
+      // new PlanarConnector (link1, XCA.p, XCB);
+      // planar.setName ("plane1");
+      // planar.setPlaneSize (20);
+      // RenderProps.setColor (planar, Color.BLUE);
+      // joint1 = planar;
+      // }
+      // else
+      // {
+      // XCA.setIdentity();
+      // XCA.p.set (-lenx1/2, 0, 0);
+      // // XCA.R.mulAxisAngle (0, 1, 0, Math.PI/4);
+      // XCB.set (link1.myState.XFrameToWorld);
+      // XCB.mul (XCA);
+      // RevoluteJoint rjoint = new RevoluteJoint (link1, XCA, XCB);
+      // rjoint.setName ("joint1");
+      // rjoint.setAxisLength (4);
+      // RenderProps.setLineRadius(rjoint, 0.2);
+      // joint1 = rjoint;
+      // // SphericalJoint sjoint = new SphericalJoint (
+      // // link1, XCA, XCB);
+      // // sjoint.setName ("joint1");
+      // // sjoint.setAxisLength (5);
+      // // joint1 = sjoint;
+      // }
+
+      // second link
+      double lenx2 = 10;
+      double leny2 = 2;
+      double lenz2 = 2;
+      RigidBody link2 = new RigidBody ("link2");
+
+      if (false) // useSphericalJoint)
+      {
+         mesh =
+            MeshFactory.createRoundedCylinder (
+               leny2 / 2, lenx2, nslices, /*nsegs=*/1, /*flatBottom=*/false);
+         link2.setInertia (SpatialInertia.createBoxInertia (
+            10, leny2, leny2, lenx2));
+         XLW.R.setAxisAngle (1, 0, 0, Math.PI / 2);
+         XLW.p.set (lenx1 / 2, lenx2 / 2, lenx1);
+         link2.setPose (XLW);
+      }
+      mesh =
+         MeshFactory.createRoundedCylinder (
+            leny2 / 2, lenx2, nslices, /*nsegs=*/1, /*flatBottom=*/false);
+      mesh.transform (XMB);
+      link2.setInertia (SpatialInertia.createBoxInertia (
+         10, lenx2, leny2, lenz2));
+      XLW.R.setAxisAngle (1, 0, 0, Math.PI / 2);
+      XLW.p.set (lenx1 / 2 + lenx2 / 2, 0, 1.5 * lenx1);
+      if (useSphericalJoint) {
+         double ang = 0; // Math.PI/4;
+         XLW.R.mulAxisAngle (0, 1, 0, ang);
+         XLW.p.y += Math.sin (ang) * lenx2 / 2;
+         XLW.p.x -= (1 - Math.cos (ang)) * lenx2 / 2;
+      }
+      link2.setPose (XLW);
+      link2.setMesh (mesh, /* fileName= */null);
+      mechMod.addRigidBody (link2);
+
+      RigidBodyConnector joint2 = null;
+
+      // joint 2
+      if (useSphericalJoint) {
+         XCA.setIdentity();
+         XCA.p.set (-lenx2 / 2, 0, 0);
+         XAB.mulInverseLeft (link1.getPose(), link2.getPose());
+         XCB.mul (XAB, XCA);
+         SphericalJoint sjoint = new SphericalJoint (link2, XCA, link1, XCB);
+         // RevoluteJoint joint2 = new RevoluteJoint (link2, XCA, XCB);
+         sjoint.setName ("joint2");
+         // RenderProps.setLineRadius(sjoint, 0.2);
+         sjoint.setAxisLength (4);
+         joint2 = sjoint;
+      }
+      else {
+         XCA.setIdentity();
+         XCA.p.set (-lenx2 / 2, 0, 0);
+         // XCA.R.mulAxisAngle (1, 0, 0, -Math.toRadians(90));
+         XAB.mulInverseLeft (link1.getPose(), link2.getPose());
+         XCB.mul (XAB, XCA);
+         RevoluteJoint rjoint = new RevoluteJoint (link2, XCA, link1, XCB);
+
+         // XCB.mul (link2.getPose(), XCA);
+         // RevoluteJoint rjoint =
+         // new RevoluteJoint (link2, XCA, XCB);
+
+         // RigidTransform3d X = new RigidTransform3d();
+         // X.R.setAxisAngle (1, 0, 0, -Math.toRadians(90));
+         // X.mul (XCB, X);
+         // X.mulInverseRight (X, XCB);
+         // rjoint.transformGeometry (X);
+         // rjoint.printData();
+
+         rjoint.setName ("joint2");
+         rjoint.setAxisLength (4);
+         RenderProps.setLineRadius (rjoint, 0.2);
+         // RigidTransform3d X = new RigidTransform3d();
+         // RigidTransform3d XDW = rjoint.getXDW();
+         // System.out.println ("getXDW=\n" + XDW.toString("%8.3f"));
+         // X.R.setAxisAngle (1, 0, 0, Math.toRadians(80));
+         // X.mulInverseRight (X, XDW);
+         // X.mul (XDW, X);
+         // rjoint.transformGeometry (X, rjoint);
+         joint2 = rjoint;
+      }
+
+      // mechMod.addRigidBodyConnector (joint1);
+      if (joint2 != null) {
+         mechMod.addRigidBodyConnector (joint2);
+      }
+
+      mechMod.attachAxialSpring (mk0, mk2, spr0);
+      mechMod.attachAxialSpring (mk1, mk3, spr1);
+
+      if (usePlanarContacts) {
+         XCA.setIdentity();
+         XCA.p.set (lenx2 / 2 + leny2 / 2, 0, 0);
+         XCB.setIdentity();
+         // XCB.p.set (0, 0, -lenx2/2);
+         // XCB.p.set (0, 0, lenx2/2);
+
+         XCB.R.setIdentity();
+         XCB.R.setAxisAngle (0, 0, 1, Math.PI / 2);
+         XCB.R.mulAxisAngle (1, 0, 0, Math.toRadians (20));
+
+         PlanarConnector contact1 = new PlanarConnector (link2, XCA.p, XCB);
+         contact1.setUnilateral (true);
+         contact1.setName ("contact1");
+         contact1.setPlaneSize (20);
+         RenderProps.setFaceColor (contact1, new Color (0.5f, 0.5f, 1f));
+         RenderProps.setAlpha (contact1, 0.5);
+         mechMod.addRigidBodyConnector (contact1);
+
+         XCB.R.setIdentity();
+         XCB.R.setAxisAngle (0, 0, 1, Math.PI / 2);
+         XCB.R.mulAxisAngle (1, 0, 0, -Math.toRadians (20));
+
+         PlanarConnector contact2 = new PlanarConnector (link2, XCA.p, XCB);
+         contact2.setUnilateral (true);
+         contact2.setName ("contact2");
+         contact2.setPlaneSize (20);
+         RenderProps.setFaceColor (contact2, new Color (0.5f, 0.5f, 1f));
+         RenderProps.setAlpha (contact2, 0.5);
+
+         mechMod.addRigidBodyConnector (contact2);
+      }
+
+      mechMod.setBounds (new Point3d (0, 0, -10), new Point3d (0, 0, 10));
+
+      addModel (mechMod);
+
+
+      // RigidTransform3d X = new RigidTransform3d (link1.getPose());
+      // X.R.mulRpy (Math.toRadians(-10), 0, 0);
+      // link1.setPose (X);
+      // mechMod.projectRigidBodyPositionConstraints();
+
+      //mechMod.setProfiling (true);
+      //mechMod.setIntegrator (Integrator.ForwardEuler);
+      //addBreakPoint (0.57);
+   }
+
+   ControlPanel myControlPanel;
+
+   public void attach (DriverInterface driver) {
+      super.attach (driver);
+
+      if (getControlPanels().size() == 0) {
+         myControlPanel = new ControlPanel ("options", "");
+         myControlPanel.addWidget (this, "models/mechMod:integrator");
+         myControlPanel.addWidget (this, "models/mechMod:maxStepSize");
+         myControlPanel.pack();
+         //myControlPanel.setVisible (true);
+         java.awt.Point loc = driver.getFrame().getLocation();
+         myControlPanel.setLocation (
+            loc.x + driver.getFrame().getWidth(), loc.y);
+         addControlPanel (myControlPanel);
+      }
+      WayPoint way = new WayPoint (1.3);
+      way.setBreakPoint (true);
+      // Main.getWorkspace().addWayPoint (way);
+   }
+
+   public void detach (DriverInterface driver) {
+      super.detach (driver);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public String getAbout() {
+      return artisynth.core.util.TextFromFile.getTextOrError (
+         ArtisynthPath.getSrcRelativeFile (this, "MechModelDemo.txt"));
+   }
+
+}

@@ -1,0 +1,177 @@
+\documentclass{article}
+\usepackage{amsmath}
+\input{artisynthDoc}
+
+\setcounter{tocdepth}{5}
+\setcounter{secnumdepth}{3}
+
+\title{ArtiSynth Coding Standard}
+\author{John Lloyd}
+\iflatexml
+\date{}
+\fi
+
+\begin{document}
+
+\maketitle
+
+\iflatexml{\large\today}\fi
+
+\tableofcontents
+
+\section{Introduction}
+
+It is notoriously difficult to create a coding standard that satisfies
+all developers, let alone create one that is actually adhered to.
+Nonetheless, there is an ArtiSynth coding standard which all
+contributors are encouraged to follow.
+
+The standard is similar in appearance to the
+\href{http://java.sun.com/docs/codeconv}{coding rules provided by Sun},
+although it does differ slightly. For users of Eclipse, there is an code
+style file located in 
+\begin{lstlisting}
+ $ARTISYNTH_HOME/support/eclipse/artisynthCodeFormat.xml
+\end{lstlisting}
+that supports most of the conventions, though not all, as noted
+below.
+
+\section{Cuddle braces and indent by 3}
+
+As with the Sun coding rules, all braces are cuddled. Basic indentation
+is set to 3 to keep code from creeping too far across that page.
+For example:
+%
+\begin{lstlisting}
+   public static RootModel getRootModel() {
+      if (myWorkspace != null) {
+         return myWorkspace.getRootModel();
+      }
+      else {
+         return null;
+      }
+   }
+\end{lstlisting}
+
+\section{Always used braced blocks}
+
+As in the Sun rules, code following control constructs is always
+enclosed in a braced block, even when this is not necessary. That
+means that
+%
+\begin{lstlisting}
+   for (int i=0; i<cnt; i++) {
+      if (i % 2 == 0) {
+	 System.out.println ("Even");
+      }
+      else {
+	 System.out.println ("Odd");
+      }
+   }
+\end{lstlisting}
+should be used instead of
+\begin{lstlisting}
+   for (int i=0; i<cnt; i++)
+      if (i % 2 == 0)
+	 System.out.println ("Even");
+      else
+	 System.out.println ("Odd");
+\end{lstlisting}
+The reason for this is to provide greater uniformity and to
+make it easier to add and remove statements from the blocks.
+
+\section{Do not use tabes}
+
+Code should be indented with spaces only. Tabs should not be used
+since the spacing associated with tabs varies too much between coding
+environments and can not always be controlled.
+
+\section{Keep line widths to 80 columns}
+
+Again, as with the Sun rules, code should be kept to 80 columns.  The
+idea here is that it is easier to read code that doesn't creep too far
+across the page. However, to maintain an 80 column width, it will
+often be necessary to wrap lines.
+
+\section{Break lines at the beginning of argument lists}
+
+If breaking a line is necessary, the beginning of an argument list is
+a good place to do it. The break should be indented by the usual 3 spaces.
+The result can look at bit like Lisp:
+\begin{lstlisting}
+   public String getKeyBindings() {
+      return artisynth.core.util.TextFromFile.getTextOrError (
+         ArtisynthPath.getResource (
+            getDirectoryName()+KEY_BINDINGS_FILE));
+   }
+\end{lstlisting}
+
+If at all possible, do not break lines at the '{\tt .}' used for method or
+field references. For clarity, it is better to keep these together with 
+their objects. Therefore, please *do not* do this:
+\begin{lstlisting}
+   public String getKeyBindings() {
+      return artisynth.core.util.TextFromFile
+	 .getTextOrError (ArtisynthPath
+	    .getResource (getDirectoryName()+KEY_BINDINGS_FILE));
+   }
+\end{lstlisting}
+
+Note that Eclipse will not generally enforce these breaking
+conventions, so you need to do this yourself.
+
+\section{Break lines after assignment operators}
+
+Another good place for a line break is after an assignment
+operator, particularly if the left side is long:
+\begin{lstlisting}
+   LinkedList<ClipPlaneControl> myClipPlaneControls =
+      new LinkedList<ClipPlaneControl>();
+
+   if (hasMuscle) {
+      ComponentList<MuscleBundle> muscles =
+         ((MuscleTissue)tissue).getMuscleList();
+   }
+\end{lstlisting}
+
+Again, Eclipse will not generally enforce this, so it must be done
+manually.
+
+\section{Align conditional expressions with the opening parentheses}
+
+When line wrapping is used inside a conditional expression,
+the expression itself should be aligned with the opening
+parentheses, with operators placed at the right:
+\begin{lstlisting}
+         if (e.getSource() instanceof Rotator3d ||
+             e.getSource() instanceof Transrotator3d ||
+             e.getSource() instanceof Scaler3d) {
+            centerTransform (transform, dragger.getDraggerToWorld());
+         }
+\end{lstlisting}
+Again, note the Eclipse will not generally enforce this, and will
+instead
+tend to produce output like this:
+\begin{lstlisting}
+         if (e.getSource() instanceof Rotator3d
+         || e.getSource() instanceof Transrotator3d
+         || e.getSource() instanceof Scaler3d) {
+            centerTransform (transform, dragger.getDraggerToWorld());
+         }
+\end{lstlisting}
+
+\section{No space before empty argument lists}
+
+No spaces are placed before empty argument lists, as in
+
+\begin{lstlisting}
+        getMainFrame().getMenuBarHandler().enableShowPlay();
+
+        public ViewerManager getViewerManager() {
+           return myViewerManager;
+        }
+\end{lstlisting}
+This is largely to improve readability, particularly when
+accessors are chained together in a single statement.
+
+\end{document}

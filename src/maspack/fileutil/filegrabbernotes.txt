@@ -1,0 +1,191 @@
+*******************************************************************************
+**                              FileGrabber API:                             **
+*******************************************************************************
+
+Downloads files from URIs satisfying the generic/zip URI syntax according to
+specifications RFC 3986 and proposed jar/zip extension.
+<https://www.iana.org/assignments/uri-schemes/prov/jar>
+
+See <http://commons.apache.org/vfs/filesystems.html> for further details 
+regarding supported systems and URI syntax.
+
+===============================================================================
+public int add(URI uri, String relPath, int options);
+public int add(uri, relPath);
+public int add(uri, options);
+public int add(uri);
+
+Adds a file to an internal list of files, but does not download yet.  
+Returns a unique integer file handle.  This should be used if any
+files are added in static portion of object, so file not retrieved
+unnecessarily.  Also lends itself to optimization if multiple files
+are downloaded from same source location.
+
+uri:
+  location of file
+relPath:
+  relative output location in cache directory
+options:
+  global vs local cache vs absolute directory
+     - local is contained within current model folder
+     - global is contained within current project folder
+     - absolute allows exact location to be specified
+  download options
+     - always
+     - if hash differs
+     - if file doesn't exist
+
+===============================================================================
+public File grab(int fileId);
+public File grab(URI uri, String relPath, int options);
+public File grab(uri, relPath);
+public File grab(uri, options);
+public File grab(uri);
+
+Returns a file handle to a local version of the requested file.  Downloads
+from URI if required (according to options).  If the URI is not found in
+the FileGrabber's list of files (from a previous call to 'add') then first
+adds the file (see add(...)).
+
+fileId: unique fileId as provided by 'add(...)'
+
+===============================================================================
+public void loadAll();
+
+Goes through the list of 'add'-ed files and loads them to the respective cache
+directories according to the supplied options.  This can help optimize file
+downloads since a single connection can be made to download multiple files from
+the same source. 
+
+===============================================================================
+public void setRelativeURIBase(URI uri);
+public void setRelativeURIBase(String path);
+
+Sets a base URI for resolving any relative URI specification.  Will likely be
+relative to the local source directory.
+
+uri: base URI, e.g. file://<artisynth_project_path>/<model_path>
+path: local path to use as a base (converted to a URI)
+
+===============================================================================
+public void setLocalCacheDir(String dir);
+
+Sets the local cache directory, likely relative to current model source.
+
+dir: local cache dir, e.g. <artisynth_project_path>/<model_path>/cache
+
+===============================================================================
+public void setGlobalCacheDir(String dir);
+
+Sets the global cache directory, likely relative to current project.
+
+dir: global cache dir, e.g. <artisynth_project_path>/cache
+
+===============================================================================
+public void addUserAuthenticator(URIMatcher matcher, UserAuthenticator auth);
+
+Adds an authentication protocol for any uri that matches conditions set in 
+'matcher'.
+
+matcher: contains a boolean method URIMatcher.matches(URI uri).  If a requested
+         URI satisfies the conditions and returns true, then the supplied 
+         authenticator is used to connect to resource.
+         
+         Currently, two "URIMatcher" classes exist.
+         ExactURIMatcher: a specified subset of {scheme, host, user, path, 
+                          port, query, fragment} must match conditions exactly.
+		 RegexURIMatcher: a specified subset of {scheme, host, user, path, 
+		                  port, query, fragment} must match supplied regex
+		                  patterns.  The "port" pattern is specified by a list
+		                  of ranges as opposed to a true regex,
+		                  e.g. "22,45-52,1055". 
+                  
+auth:    UserAuthenticator object, part of apache.commons.vfs2, that supplies
+         domain, user, password information in order to access a protected
+         resource.
+         
+===============================================================================
+public void addIdentityRepository(URIMatcher matcher, IdentityRepository repo);
+
+Adds an 'IdentityRepository' object to be user for authentication for any uri
+that matches conditions set in 'matcher'.  Similar to UserAuthenticator, except
+uses public/private RSA key pairs to authenticate.
+
+repo:   A 'repository' that contains a set of OpenSSH private keys to use for
+        authentication purposes.  Any private keys encrypted with a passphrase
+        should first be decrypted before adding the repository.  The 
+        IdentityRepository class has functions for that. 
+        
+
+
+*******************************************************************************
+**                    FileGrabberFromServer API:                             **
+*******************************************************************************
+
+Extension to FileGrabber that specifically deals with downloading files from
+a specialized ArtiSynth File Server.  It is proposed to use this for system
+libraries, and potentially commonly shared data files.
+
+To retrieve a file, a query must be sent to the server including a sha-1 hash,
+file name, and/or version number.  If this information corresponds to a unique
+file in the server's database, that file is automatically sent.  Otherwise a
+text file containing error information is returned.
+
+===============================================================================
+public int add(String fileName, Hash hash, String version, String relPath,
+               int options);
+
+public int add(fileName, version, relPath, options);
+public int add(fileName, version, relPath);
+public int add(fileName, version, options);
+               
+public int add(fileName, hash, relPath, options);
+public int add(fileName, hash, relPath);
+public int add(fileName, hash, options);
+
+public int add(hash, relPath, options);
+public int add(hash, relPath);
+public int add(hash, options);
+
+Adds a file to the internal list of files according to a supplied hash, 
+fileName and/or version.  Returns an integer identifying for the file.
+
+fileName: name of library or file of interest.  This generally will NOT be
+          unique.
+
+hash: hash of file for verifying integrity.  This will PROBABLY be unique
+      barring any accidental or intentional collisions.  For given hash,
+      the probability of any two different files having the same hash is 
+      approximately p(k,N) = 1-exp( -k*(k-1) / (2N) ), where k is the number of
+      files and N is the number of unique hashes, which is 2^160 for SHA-1.  
+      As a guage, p( 1.7E23, 2^160) = 0.01.
+      
+      The hash cannot be a String, or else it will lead to ambiguous function
+      calls.  The MessageDigest routine in Java returns a byte array.
+      
+version: a string indicating a version, e.g. 1.0.15.  A fileName + version
+      will likely uniquely identify a file.
+      
+===============================================================================
+public File grab(int fileId);
+public File grab(String fileName, Hash hash, String version, String relPath,
+               int options);
+
+public File grab(fileName, version, relPath, options);
+public File grab(fileName, version, relPath);
+public File grab(fileName, version, options);
+               
+public File grab(fileName, hash, relPath, options);
+public File grab(fileName, hash, relPath);
+public File grab(fileName, hash, options);
+
+public File grab(hash, relPath, options);
+public File grab(hash, relPath);
+public File grab(hash, options);
+
+See FileGrabberFromServer.add(...) and FileGrabber.grab(...)
+
+===============================================================================
+public void setServer(URI uri);
+
+Sets the remote ArtiSynth file server for queries.

@@ -1,0 +1,218 @@
+Hi Antonio,
+
+Here are some thoughts/suggestions about FileGrabber. I've included
+some usage examples at the end.
+
+1) Regarding the API, in addition to having methods to set the local cache directory
+   and remote source, I would also allow these to be set in the constructor:
+
+      FileGrabber ();
+      FileGrabber (File cachePath, URI remoteSource);
+      FileGrabber (String cacheName, URI remoteSourceName);
+
+      void setCacheDir (File path);
+      void setCacheDir (String name);
+      File getCacheDir ();
+
+      void setRemoteSource (URI source);
+      void setRemoteSource (String sourceName);
+      URI getRemoteSource ();
+
+2) Regarding the default cache directory, I would still use '.'. I
+   agree that the possibility of people checking large files into git
+   is big problem, but it's a problem that's independent of
+   FileGrabber.  People are likely to have large local files of their
+   own making in their project hierarchy, for which there will be a
+   risk of an inadvertent git check. This potential problem has me
+   once again rethinking the use of git - at least for user projects.
+
+3) Regarding the 'get' methods, I might redefine them slightly like this:
+
+      File get (String fileName);
+      File get (File relpath);
+      File get (String fileName, int options);
+      File get (File relpath, int options);
+      File get (String fileName, String sourceName, int options);
+      File get (File path, URI source, int options);
+
+   The main change is that the local file path is now the first argument.
+
+   Also, when both path and source are specifed, we can allow path to
+   be absolute, in which case the source must also be complete (i.e.,
+   no part of the path will be added to it).
+
+4) For one-off applications, it might also be useful to have a couple
+   of static methods:
+
+      static File get (File path, URI source);
+      static File get (File path, URI source, int options);
+
+   where 'path' is assumed to be absolute and 'source' is assumed to
+   be complete.
+
+4) For options, I would define them as flags that can be or'd
+   together:
+
+      // force an update
+      public static final int FORCE_UPDATE =    0x01;
+
+      // update if hash is different
+      public static final int CHECK_HASH =      0x02;
+
+      // update if hash date is newer or file size if different.
+      // (Not sure if this is easy; might be nice to have)
+      public static final int CHECK_DATE_SIZE = 0x08;
+
+5) For errors, I would throw an exception if a local file cannot be
+   obtained, or if options == FORCE_UPDATE and it is not possible to
+   get the remote file. Otherwise, if there *is* a local file, but it
+   couldn't be updated as requested, I would simply record the
+   exception and allow the application to test for it, using a method
+   like getUpdateException():
+
+      // returns any exception that was incurred trying to update in the
+      // most recent call to 'get'. If there was no exception, null is
+      // returned.
+      Exception getUpdateException();
+
+   I would also provide a method to return only the local file,
+   if it exists, or null otherise:
+
+      File getLocal (String fileName);
+      File getLocal (File relpath);
+
+   Note that there need not be any exception associated with this
+   method (any exception associated with checking file existence can
+   be caught internally).
+
+6) For checking hashes, if we have to copy the file from the source to
+   check the hash, is there really much advantage? If the hash is
+   different, the file is replaced; if it is the same, then files are
+   the same, in which case it may as well be replaced. Just a thought.
+
+   Of course, for the ArtiSynth file server, the hash can be sent from
+   the remote site as part of the protocol.
+
+6) Do we also want to be able to copy directories? I would suggest
+   this is a good idea if we can do it.
+
+   That would mean that if the remote file is found to be a directory,
+   we recursively copy it contents. At some point, we might also want
+   to include a filenameFilter:
+
+      File get (String fileName, FilenameFilter filter, int options);
+      File get (File relpath, FilenameFilter filter, int options);
+
+7) Regarding 'add' methods:
+
+   I'm still not clear where they're really needed; none of my test
+   examples below use them. If people are trying to access files in
+   static initializers, that's simply terrible practice. One thing I
+   have seen is people setting up path names in static initializers -
+   which is somewhat better because it can't fail. Remember that a
+   File in Java is just an abstract path name - creating one does not
+   open the actual file or even imply that it exists.
+
+   However, please go ahead with the add methods if you want. I might
+   suggest a different name, like 'register'. I would also have an
+   'unregister' method, and a method to return all the registered
+   files. It might help to have 'register' return something like a
+   FileGrab object (instead of an 'int'), which can be used to query
+   options, sources, etc. associated with the registered file.  You
+   probably also want a method that returns all the registered files,
+   and perhaps clears them all too.
+
+8) Examples:
+
+   void example1() {
+      // get a single big file
+
+      FileGrabber grabber = new FileGrabber();
+      try {
+         File file = grabber.get ("/path/to/file", "http://remote/path/to/file");
+         FileReader reader = new FileReader (file);
+
+         ...;
+      }
+      catch (IOException e) {
+         e.printStackTrace();
+      }
+   }
+
+   void example2() {
+      // get a single big file, even more compact code:
+
+      try {
+         FileReader reader =
+            new FileReader (
+               FileGrabber.get ("/path/to/file", "http://remote/path/to/file"));
+
+         ...;
+      }
+      catch (IOException e) {
+         e.printStackTrace();
+      }
+   }
+
+   void example3() {
+      // get a bunch of files:
+
+      FileGrabber grabber =
+         new FileGrabber ("/path/to/bones", "http://remote/path/to/bones");
+
+      try {
+         for (int i; i<boneList.length; i++) {
+            FileReader reader =
+               new FileReader (grabber.get (boneList[i], grabber.CHECK_HASH));
+            ...;
+         }
+      }
+      catch (IOException e) {
+         e.printStackTrace();
+      }
+   }
+
+   void example4() {
+      // get a whole directory:
+
+      FileGrabber grabber = new FileGrabber();
+      try {
+         File dir = grabber.get (
+            "/path/to/dir", "http://remote/path/to/dir", grabber.CHECK_HASH);
+         if (!dir.isDirectory()) {
+            System.out.println ("Warning: not a directory");
+         }
+         else {
+            String[] files = dir.list();
+            System.out.println ("Files in the directory:");
+            for (int i=0; i<files.length; i++) {
+               System.out.println (files[i]);
+            }
+         }
+      }
+      catch (Exception e) {
+         e.printStackTrace();
+      }
+   }
+
+   void example5() {
+      // get a library file. Names of needed library files obtained from a config
+      // file; e.g., $ARTISYNTH_HOME/lib/LIB_MANIFEST
+      String libFileName = "foo.1.2.so";
+
+      FileGrabber grabber =
+         new FileGrabber("/path/to/libdir", "http://artisynth/lib/site");
+
+      int options = 0;
+      if (updateRequested) {
+         // select this if we want to try to get the latest version of the file
+         options = grabber.CHECK_HASH;
+      }
+      try {
+         File libFile = grabber.get (libFileName, options);
+      }
+      catch (Exception e) {
+         System.out.println (
+            "Error: library "+libFileName+" not present and cannot be loaded: "+e);
+      }
+   }

@@ -1,0 +1,2172 @@
+\documentclass{article}
+\input{artisynthDoc}
+
+\setcounter{tocdepth}{5}
+\setcounter{secnumdepth}{3}
+
+\title{ArtiSynth Reference Manual}
+\author{John Lloyd}
+\iflatexml
+\date{}
+\fi
+
+\begin{document}
+\maketitle
+
+\iflatexml{\large\today}\fi
+
+\tableofcontents
+
+Artisynth is a mechanical modeling system that allows users to combine
+finite element method (FEM) components with multibody systems,
+constraints, and collision handling. It is implemented in Java, and
+provides a graphical interface for interactive model editing and
+simulation control.
+
+At present, most Artisynth models are created with Java code, using the
+Artisynth API. The programmatic aspects of Artisynth are the focus of
+this manual.
+
+\setjavabase{artisynth.core.modelbase}
+
+\section{Component Hierarchy}
+\label{ComponentHierarchy}
+
+\subsection{Model Components}
+
+Artsynth models are created from a hierarchy of components. Each
+component is an instance of \javaclass{ModelComponent}, which contains 
+a number of methods used to maintain the component hierarchy.
+These include methods for naming and numbering components:
+
+\begin{lstlisting}
+  // get the name for this component
+  String getName();
+
+  // set the name for this component
+  void setName (String name);
+
+  // get the number of this component
+  int getNumber();
+
+  // set the number of this component (for internal use only)
+  void setNumber (int num);
+\end{lstlisting}
+
+Each component can be assigned a name, which can be any sequence of
+characters that does not begin with a digit, does not contain the
+characters '{\tt .}', '{\tt /}', '{\tt :}', '{\tt *}', or '{\tt ?}',
+and does not equal the string {\tt "null"}.
+For components which are not assigned a name,
+\javamethod[ModelComponent]{getName()} will return {\tt null}.
+
+Artisynth may also be configured so that components names must be
+unique for all components which are children of the same parent.
+
+Even if a component does not have a name, it has a number, which
+identifies it with respect to its parent. Numbers are assigned
+automatically when a component is added to its parent, and persist
+unchanged until the component is removed from its parent.  This
+persistence of numbers is important to ensure that components keep the
+same path name as long as they are connected to the hierarchy.
+
+Names and/or numbers can be used to form a path name for each
+component that identifies its place in the hierarchy.  If a component
+does not have a name, its number is used in the path instead. Some
+example path names look like:
+
+\begin{lstlisting}
+  models/jawmodel/axialSprings/lat
+
+  models/mech/models/tongue/bundles/2/elementDescs/12
+\end{lstlisting}
+
+{\tt ModelComponent} contains a number of other methods for navigating
+and maintaining hierarchy structure:
+
+\begin{lstlisting}
+  // get the parent of this component
+  CompositeComponent getParent();
+
+  // sets the parent of this component (internal use only)
+  void setParent(CompositeComponent parent);
+
+  // called by the system after a component is added to a parent
+  void connectToHierarchy();
+
+  // called by the system before a component is removed from a parent
+  void disconnectFromHierarchy();
+
+  // get all hard references for this component (see below)
+  void getHardReferences (List<ModelComponent> refs);
+
+  // get all soft references for this component (see below)
+  void getSoftReferences (List<ModelComponent> refs);
+
+  // called to update the component when soft references are removed 
+  void updateReferences (boolean undo, Deque<Object> undoInfo);
+
+  // notify the parent of a change in this component
+  void notifyParentOfChange (ComponentChangeEvent e);
+
+  // returns true if this component contains state information
+  boolean hasState();
+\end{lstlisting}
+
+\javamethod[ModelComponent]{getParent()} returns the component's
+parent, which is a \javaclass{CompositeComponent} (Section
+\ref{CompositeComponentSec}). Conversely, if {\tt getParent()} returns
+null, the component is not attached to any parent and is not connected
+to the hierarchy unless it is the top-level {\tt RootModel} component
+(Section \ref{RootModelSec}).
+
+When a model component is added to a parent, its method
+\javamethod[ModelComponent]{connectToHierarchy()} is called, and when
+it is removed from its parent, its method
+\javamethod[ModelComponent]{disconnectFromHierarchy()} is called.
+When either of these methods are called, the component's parent
+(as returned by \javamethod[ModelComponent]{getParent()})
+will be valid, and so hierarchy-dependent initialization
+can be performed, like setting (or removing) back pointers to references, etc.:
+\begin{lstlisting}
+  connectToHierarchy () {
+     ... perform hierarchy-dependent initialization ...
+  }
+
+  disconnectFromHierarchy (CompositeComponent parent) {
+     ... undo hierarchy-dependent initialization ...
+  }
+\end{lstlisting}
+
+The methods {\tt getHardReferences()} and {\tt getSoftReferences()}
+are described in Section \ref{ComponentReferencesSec}.
+ 
+It is also necessary to notify components in the hierarchy when there
+are changes in structure or component properties, so that the
+necessary adjustments can be made, including the clearing of cached
+data. Notification is done using the method
+\javamethod[ModelComponent]{notifyParentOfChange()}, which propagates
+an appropriate change event up the hierarchy. It will typically do
+this by calling the
+\javamethod[CompositeComponent]{componentChanged()} method of the
+parent (see Section \ref{CompositeComponentSec}).
+
+The method \javamethod[ModelComponent]{hasState()} should return {\tt
+true} if the component contains state information. This is always true
+if the component contains dynamic state information such as positions
+or velocities, but components may sometimes contain additional state
+information (such as contact state). Structural changes
+involving the addtion or removal of state-bearing components should be
+announced to the system by calling {\tt notifyParentOfChange()} with a
+\javaclass{StructureChangeEvent} for which
+\javamethod[StructureChangeEvent]{stateIsChanged()} returns {\tt true}.
+
+A {\tt ModelComponent} also maintains a number of flags:
+\begin{lstlisting}
+   // returns true if a component is selected
+   boolean isSelected();
+
+   // sets whether or not a component is selected (system use only)
+   void setSelected (boolean selected);
+
+   // returns true if a component should not be removed from its parent
+   boolean isFixed();
+
+   // sets whether or not a component should be removed from its parent
+   void setFixed (boolean fixed);
+
+   // returns true if a component is marked
+   boolean isMarked();
+
+   // sets whether or not a component is marked
+   void setMarked (boolean marked);
+\end{lstlisting}
+
+All of these flags are {\tt false} by default.
+
+\begin{description}
+
+\item [selected] indicates whether or not a component is selected.
+Components can be selected using various selection mechanisms in
+the Artisynth interface, such as the navigation panel or the viewer.
+When selected, its \javamethod[ModelComponent]{isSelected()} method
+will return {\tt true}. 
+
+\item [fixed] indicates, if {\tt true}, that a component should
+not be removed from its parent. It is used to fix required child
+components of composite components that contain otherwise removable
+children (Section \ref{CompositeComponentBaseSec}).
+
+\item [marked] is available for use by graph-processing
+algorithms involving the component hierarchy, to indicate when a
+component has been visited or otherwise processed. This flag should be
+used with care to avoid side effects.
+
+\end{description}
+
+\begin{sideblock}
+{\bf Important:}\\
+\javamethod[ModelComponent]{setSelected()} should only be used by the
+SelectionManager, and should not be called by
+applications. Programmatic component selection should be performed by
+calling the {\tt addSelected()} or {\tt removeSelected()} methods of the
+{\tt SelectionManager}.
+\end{sideblock}
+
+Finally, all {\tt ModelComponents} implement the interface
+\javaclass[maspack.util]{Scannable}, which provides methods for
+writing and scanning to and from persistent storage.  Details are
+given in Section \ref{writingAndScanningSec}.
+
+For convenience, \javaclass{ModelComponentBase} provides a base
+implementations of all the {\tt ModelComponent} methods.  Most
+ArtiSynth components inherit from {\tt ModelComponentBase}.
+
+\subsection{Component References}
+\label{ComponentReferencesSec}
+
+Model components can reference additional components outside of the
+parent-child relationships of the hierarchy. For example, a
+point-to-point spring contains two {\it references} to its end-points,
+which are themselves model components. As another example, components
+which implement the {\tt ExcitationComponent} interface can maintain
+references to other {\tt ExcitationComponent}s to use as excitation
+sources. References can be considered to be either {\it hard} or {\it
+soft}. A {\tt hard} reference is one which the component requires in
+order for its continued existence to be meaningful. The end-point
+references for a point-to-point spring are usually hard. A {\it soft}
+reference is one that the component can do without, such as the
+excitation source inputs mentioned above. The methods
+\javamethod[ModelComponent]{getHardReferences()} and
+\javamethod[ModelComponent]{getSoftReferences()} are used to report
+all hard and soft references held by a component.
+
+\begin{sideblock}
+{\bf Note:}\\
+{\tt getHardReferences()} and {\tt getSoftReferences()} should report
+only references held by the component itself, and {\it not} those held
+by any of its descendents.
+\end{sideblock}
+
+The distinction between hard and soft references is used by the system
+when components in the hierarchy are deleted. A component that holds a
+hard reference to a deleted component is generally deleted as well.
+However, when only soft references are deleted, then the
+\javamethod[ModelComponent]{updateReferences()} method of the
+referring component is called to update the component's internal
+structures. {\tt updateReferences()} should also store information
+about the update, to allow the update to be undone in case the method
+is called later with its {\tt undo} argument set to {\tt
+true}. A typical implementation pattern for {\tt updateReferences()}
+is shown by the following example, in which 
+{\tt maspack.util.ListRemove} is used to remove selected items from a list
+of soft references, and store information needed to undo this later:
+\begin{lstlisting}
+   ArrayList<ModelComponent> mySoftRefs;
+   ...
+   void updateReferences (boolean undo, Deque<Object> undoInfo) {
+      super.updateReferences (undo, undoInfo); 
+      if (undo) {
+         // undo the update
+         Object obj = undoInfo.getFirst();
+         if (obj != ModelComponentBase.NULL_OBJ) {
+            ((ListRemove<ModelComponent>)obj).undo();
+         }
+      }
+      else {
+         // remove soft references which aren't in the hierarchy any more:
+	 ListRemove<ModelComponent> remove = null;
+         for (int i=0; i<mySoftRefs.size(); i++) {
+            if (!ComponentUtils.isConnected (this, mySoftRefs.get(i)) {
+	       // reference isn't in the hierarchy; request its removal
+	       if (remove == null) {
+                  remove = new ListRemove<ModelComponent>(mySoftRefs);
+               }
+	       remove.requestRemove (i);
+            }
+         }
+         if (remove != null) {
+            remove.remove();
+	    undoInfo.addLast (remove);
+         }
+         else {
+	    undoInfo.addLast (ModelComponentBase.NULL_OBJ);
+         }               
+      }
+   }
+\end{lstlisting}
+When updating, the method uses
+\javamethod{ComponentUtils.isConnected()} to determine which soft
+references have been deleted from the hierarchy.  A {\tt ListRemove}
+object is used to assemble the remove requests and then perform the
+remove all at once and store information about what was removed for
+possible later undoing. The remove object is appended to the end of
+{\tt undoInfo}. If no undo was needed, then {\tt NULL\_OBJ} is stored
+instead because {\tt Deque} objects don't accept {\tt null} arguments.
+Undo information is stored at the end of the deque and removed from
+the front. This allows multiple updates, including that
+for the super class, to be performed in sequence.
+
+\subsection{Composite Components}
+\label{CompositeComponentSec}
+
+\javaclass{CompositeComponent} is a subinterface of \javaclass{ModelComponent}
+which can contain children. Its main methods include:
+
+\begin{lstlisting}
+  // returns the number of child components
+  int numComponents();
+ 
+  // gets a child component by name
+  ModelComponent get (String name);
+
+  // gets a child component by index
+  ModelComponent get (int idx);
+
+  // gets a child component by number
+  ModelComponent getByNumber (int num);
+
+  // returns the index of a child component
+  int indexOf (ModelComponent c);
+
+  // finds a descendent component with a specified path relative to this component
+  ModelComponent findComponent (String name);
+
+  // called when a change occurs in one of the descendants.
+  void componentChanged (ComponentChangeEvent e);
+\end{lstlisting}
+
+Most of the above methods are self-explanatory. It is important to
+note the difference between indices and numbers when identifying child
+components. An {\it index} is the location of the child within the list of
+children, starting from 0, and can change as children are added or
+removed. A {\it number}, on the other hand, as described above, is
+assigned automatically to a child when it is added to the parent and
+persists as long as it remains.
+
+The {\tt componentChanged()} method is called to indicate structure or
+property changes. Appropriate actions may include clearing cached
+data, and propogating the event further up the hierarchy (using
+{\tt notifyParentOfChange()}).
+
+\javaclass{MutableCompositeComponent} is a subinterface of
+\javaclass{CompositeComponent} which allows child components to be
+added and removed by an ArtiSynth application. It is a generic class
+parameterized by a class type {\tt C} which must be an extension of
+{\tt ModelComponent}. Its definition is:
+
+\begin{lstlisting}
+public interface MutableCompositeComponent<C extends ModelComponent>
+extends CompositeComponent {
+
+   // add a component; return false if not possible
+   public boolean add (C comp);
+
+   // add a set of components at specified index locations
+   // (mainly for internal system use)
+   public void addComponents (ModelComponent[] comps, int[] indices, int num);
+
+   // remove a component; return false if not found
+   public boolean remove (C comp);
+
+   // removes a set of components and stores their original 
+   // index locations (mainly for internal system use)
+   public void removeComponents (ModelComponent[] comps, int[] indices, int num);
+}
+\end{lstlisting}
+
+\subsection{CompositeComponentBase, ComponentList, and
+ComponentListImpl}
+\label{CompositeComponentBaseSec}
+
+A default implementation of \javaclass{CompositeComponent} is provided
+by \javaclass{CompositeComponentBase}. It is a non-generic class that
+provides a base for composite components whose composition is created
+at construction time and is not intended to change during the
+running of an ArtiSynth application.
+
+\javaclass{ComponentList} is a much more flexible class which
+implements \javaclass{MutableCompositeComponent} and provides for
+collections of components whose composition may be built and changed
+by an application. {\tt ComponentList} is used widely to store the
+many lists of components that comprise a working ArtiSynth model.
+
+In particular, \javaclass[artisynth.core.mechmodels]{MechModel} and
+\javaclass[artisynth.core.mechmodels]{FemModel3d}, the primary
+ArtiSynth classes for implementing mechanical and finite element
+models, are themselves subclasses of {\tt ComponentList} 
+which contain lists of mechanical components (such as
+particles, rigid bodies, and force effectors for {\tt MechModel},
+and nodes, elements, and geometry for {\tt FemModel3d}).
+
+In the case of {\tt MechModel}, applications can create and add their
+own component lists to the model itself:
+\begin{lstlisting}
+   MechModel mech; 
+
+   ....
+
+   ComponentList<Particle> bigParticles =
+      new ComponentList<Particle>(Particle.class, "big");
+
+   ComponentList<Particle> smallParticles =
+      new ComponentList<Particle>(Particle.class, "small");
+
+   mech.add (bigParticles);
+   mech.add (smallParticles);
+\end{lstlisting}
+
+\begin{sideblock}
+By default, child components that belong to a
+\javaclass{MutableCompositeComponent} (which includes {\tt
+ComponentList}) may be selected by the ArtiSynth application for deletion.
+This may be undesirable, particularly if internal structures
+depend on certain child components.
+Components that should not
+be removed from their parents should
+have their {\it fixed} flag set to {\tt true} in
+the composite component constructor, either by calling
+\javamethod[ModelComponent]{setFixed()},
+or by adding the component using the 
+\javamethod[ComponentList]{addFixed()} method of {\tt ComponentList}.
+\end{sideblock}
+
+The class \javaclass{ComponentListImpl} is available as an internal
+implementation class for constructing instances of either
+\javaclass{CompositeComponent} or
+\javaclass{MutableCompositeComponent}.  It provides most of the
+implementation methods needed for a mutable component list, which can
+be exposed in the client class using delegate methods.  Components
+implementing only {\tt CompositeComponent} may choose to expose only
+some of these methods. For details, one should consult the source code
+for \javaclass{CompositeComponentBase} or \javaclass{ComponentList}.
+
+\setjavabase{artisynth.core.modelbase}
+
+\section{Models}
+\label{Models}
+
+\subsection{Models and State}
+\label{ModelsAndStateSec}
+
+A \javaclass{Model} is a specific \javaclass{ModelComponent} that can
+contain state and be advanced forward in time.
+
+The methods associated with time advancement are:
+\begin{lstlisting}
+  // initialize the model for time t
+  void initialize (double t)
+
+  // prepare to advance the model from time t0 to t1
+  StepAdjustment preadvance (double t0, double t1);
+
+  // advance the model from time t0 to t1
+  StepAdjustment advance (double t0, double t1);
+
+  // gets the maximum step size for advancement (or -1 if undefined)
+  double getMaxStepSize();
+\end{lstlisting}
+
+{\tt initialize()} is called to initialize the model for a particular
+time. It is called at the beginning of a simulation (with time t = 0),
+when the model is moved to a state and time defined by a
+WayPoint, and when a step is repeated during adaptive stepping
+(Section \ref{AdaptiveSteppingSec}).
+
+{\tt preadvance()} is called to prepare the model for advancement from
+time {\tt t0} to {\tt t1}. Often this method does nothing; it is
+supplied for situtations where the model needs to perform computation
+{\it before} the application of controllers or input probes (Section
+\ref{ModelAgentsSec}), such as evolving internal state in some way.
+The method can optionally return a \javaclass{StepAdjustment} object to
+request a change in step size (Section \ref{AdaptiveSteppingSec}).
+
+{\tt advance()} is called to advance the model from time {\tt t0} to
+{\tt t1}. This is the main driver method for simulation, and typically
+involves solving an ordinary differential equation (ODE) associated
+with an underlying mechanical system, for which the model employs an
+internal physics solver. The method can optionally return a
+\javaclass{StepAdjustment} object to request a change in step size
+(Section \ref{AdaptiveSteppingSec}).
+
+A very basic simulation might proceed as follows:
+
+\begin{lstlisting}
+  t = 0;
+  model.initialize (t);
+  while (simulating) {
+    model.preadvance (t, t+h);
+    model.advance (t, t+h);
+    t = t+h;
+  }
+\end{lstlisting}
+
+The rate of advancement ({\tt h} in the above example) is limited by
+the model's {\it effective step size}, which is nominally the maximum
+step size of the root model (Section \ref{RootModelSec}). The model
+can override this by providing its own maximum step size (via {\tt
+getMaxStepSize()}) that is less than that of the root model.  Advance
+intervals can be smaller than the effective step size, if required by
+other time events imposed by WayPoints, rendering, or output
+probes. The effective step size may also be reduced when adaptive
+stepping is employed (Section \ref{AdaptiveSteppingSec}).
+
+A model can contain state, which is defined to be all information
+needed to deterministically advance it forward in time.
+
+Models can contain state, as supported by the following methods:
+
+\begin{lstlisting}
+  // creates an appropriate state object for storing model state
+  ComponentState createState ();
+
+  // gets the current state for this model
+  void getState (ComponentState state);
+
+  // sets the current state for this model
+  void setState (ComponentState state);
+\end{lstlisting}
+
+If a model actually maintains state, then its {\tt hasState()} method
+(inherited from {\tt ModelComponent}) should return {\tt true}, and
+{\tt createState()} should create an appropriate object for saving and
+restoring the state using using {\tt getState()} and {\tt setState()}.
+
+The state of a model should contain all the internal information
+required to advance it forward in time. In particular, in the code
+fragment,
+
+\begin{lstlisting}
+  model.getState (state);  // save state
+  model.preadvance (t1, t2);
+  model.advance (t1, t2);
+  model.setState (state);  // restore state and
+  model.initialize (t1);   // reinitialize to time t1
+  model.preadvance (t1, t2);
+  model.advance (t1, t2);
+\end{lstlisting}
+
+the model should have the exact same state and appearance after both
+the first and seconds calls to {\tt advance()} (the call to {\tt initialize()} is
+used to reset time-dependent quantities, such as time-dependent
+forces). For mechanical systems, the most prominent state quantities
+are the positions and velocities of the dynamic components, but there
+can be other quantities as well, such as contact state and
+viscoelastic state for FEM models.
+  
+\subsection{Model Agents}
+\label{ModelAgentsSec}
+
+As models are advanced, auxiliary agents can be employed to control
+the inputs and observe the outputs of the model. These include
+{\it probes}, {\it controllers}, and {\it monitors}.
+
+\subsubsection{Probes}
+
+A \javaclass{Probe} is an agent that sets model input data, or records
+model output data, over a specific window of time. Probes that set
+input data are {\it input probes} (\javaclass{InputProbe}), while those that
+record output data are {\it output probes} (\javaclass{OutputProbe}). Examples
+of input data include muscle excitation signals or external
+forces. Output data often includes items such as velocities, postions,
+or internal forces.
+
+Input probes can be used to perform a function analagous to
+the ``loading curves'' used in FEM analysis.
+
+A probe contains several principal methods:
+\begin{lstlisting}
+  // apply this probe at time t
+  apply (double t);
+
+  // returns the start time of this probe
+  double getStartTime();
+
+  // sets the start time
+  void setStartTime (double t);
+
+  // returns the stop time of this probe
+  double getStopTime();
+
+  // sets the stop time
+  void setStopTime (double t);
+
+  // returns the update interval of this probe (or -1 if undefined) 
+  double getUpdateInterval();
+
+  // sets the update interval
+  void setUpdateInterval (double dt);
+\end{lstlisting}
+
+The task of applying input data or recording output data is performed
+in the {\tt apply()} method, which is called periodically during the time
+window delimited by {\tt getStartTime()} and {\tt getStopTime()}. 
+
+For input probes, the {\tt apply()} method is called between the the
+{\tt preadvance()} and {\tt advance()} methods of the model it is
+associated with (Section \ref{AssociatedModelsSec}).  For output
+probes, {\tt apply()} is called after the model's {\tt advance()} method,
+whenever the time advanced to equals an update time for the
+probe. Update times for an output probe are given by the start and
+stop times, plus any time that is an integer multiple of its {\it
+effective update interval}. The effective update interval is given by
+either the value returned by {\tt getUpdateInterval()}, if it is not
+undefined (i.e., equal to -1), or the effective step size for the
+probe's associated model (Section \ref{ModelsAndStateSec}).
+
+Note that the start time, stop time, and update interval can also be
+observed and controlled via the properties {\tt startTime}, {\tt stopTime},
+and {\tt updateInterval}.
+
+The most common types of probes used in ArtiSynth are
+\javaclass{NumericInputProbe} and \javaclass{NumericOutputProbe}, which are
+used to connect model properties to streams of numeric data which can
+be edited and observed on the system's timeline. Numeric probe data
+can also be saved to (or loaded from) external files.
+
+\subsubsection{Controllers and monitors}
+
+Controllers and monitors are other agents that can be used to control
+or observe a simulation. Controllers are called immediately before a
+model's {\tt advance()} method (and after the {\tt preadvance()}
+method and the application of any input probes) and are intended to
+compute control signals, while monitors are called immediately after
+the {\tt advance()} method and are intended to record and process
+output data.
+
+The primary method for both is
+
+\begin{lstlisting}
+  void apply (double t0, double t1)
+\end{lstlisting}
+
+which performs the work of the agent. The times {\tt t0} and {\tt t1}
+are the same times passed to the model's {\tt advance()} method.
+
+\subsubsection{Models associated with agents}
+\label{AssociatedModelsSec}
+
+As indicated above, model agents are typically associated with a
+specific model within the ArtiSynth structure, and are then applied
+either before or after the {\tt advance()} method of that model.  Agents
+which are not explicitly associated with a model are implicitly
+associated with the root model Section \ref{RootModelSec}.
+
+Methods to obtain and set the associated model include:
+\begin{lstlisting}
+  // returns the model (if any) associated with this agent
+  Model getModel();
+
+  // sets the model to be associated with this agent
+  void setModel (Model model);
+
+  // searchs for the model to be associated with this agent
+  void setModelFromComponent (ModelComponent comp);
+\end{lstlisting}
+{\tt setModel()} sets the model directly, while {\tt setModelFromComponent()}
+takes a subcomponet of a model and searches up the hierarchy to find
+the model itself. For example, when connecting a component property to
+a numeric probe, the system automatically determines the probe's model
+by calling {\tt setModelFromComponent()} on the component hosting the
+property.
+
+\subsubsection{Model agent state}
+\label{ModelAgentState}
+
+Like models, agents can also have state, and therefore implement the
+same methods {\tt hasState()}, {\tt createState()}, {\tt getState()},
+and {\tt setState()} described for models in Section
+\ref{ModelsAndStateSec}.
+
+The base classes for probes, controllers, and monitors define
+stateless version of these methods (i.e., {\tt hasState()} returns
+{\tt false}, and {\tt getState()} and {\tt setState()} do nothing), so that agents
+which actually do contain state must override these methods.
+
+In the context of agents, state can be thought of as the internal
+information that is required so that the agent's actions and effect on
+its associated model are always identical for a specific time and
+state.  A common example of state in the context of a controller or
+monitor might be the time history used to filter a signal.
+
+Note that the requirement ``effect on its associated model'' means
+that state is also needed for input probes to handle situations when
+the simulation is moved to a time and state defined by a
+WayPoint. That's because probes are applied to a model only over a
+specific time window, and so when the simulation is reset to a time
+outside that window, it is usually necessary to reset the model
+attributes controlled by the probe to their original values at that
+time. As a simple example, assume that the {\tt apply()} method of an
+input probe sets a value x in a model to 10 over the time window
+[2,4], and that before that time, x has a value of 0. Now
+if time is advanced to t = 3, x will be set to 10, and if time is then
+reset to t = 1 (before the probe's window), x will need to be restored
+to 0. This must be done by restoring the probe's
+state, since the {\tt apply()} method will not be called at t = 1.
+
+At present, \javaclass{NumericInputProbe} defines {\tt getState()} and
+{\tt setState()} to save and restore any model property values that it
+controls. No state is defined for \javaclass{NumericOutputProbe}.
+
+\begin{sideblock}
+If a controller has state, then it is important to implement
+{\tt getState()} and {\tt setState()} to ensure proper behavior with
+respect to both
+adaptive stepping Section \ref{AdaptiveSteppingSec} and WayPoints.
+If a probe or monitor has state, implementation
+of {\tt getState()} and {\tt setState()} is necessary
+to ensure its proper behavior with respect to WayPoints,
+but not adaptive stepping, since probe and
+monitor state is not changed during adaptive stepping).
+\end{sideblock}
+
+\subsection{The Root Model}
+\label{RootModelSec}
+
+All the models simulated by ArtiSynth at any given time are collected
+together within a root model (\javaclass{RootModelSec}), which is the
+top-level model component in the hierarchy. Every system that is
+simulated by ArtiSynth is associated with a specific instance of a
+{\tt RootModel}, and is typically created in code by subclassing
+{\tt RootModel} and then creating and assembling the necessary components
+in the subclass's constructor. Alternately, a {\tt RootModel} can be
+loaded from a file, in which case a generic {\tt RootModel} is created and
+then populated with structures determined from the file.
+
+A {\tt RootModel} contains a list of all the system's models, probes,
+controllers, and monitors. Methods to add or remove these include:
+
+\begin{lstlisting}
+  addModel (Model model);
+  removeModel (Model model);
+  removeAllModels();
+
+  addInputProbe (InputProbe probe);
+  removeInputProbe (InputProbe probe);
+  removeAllInputProbes();
+
+  addController (Controller controller);
+  removeController (Controller controller);
+  removeAllControllers();
+
+  addMonitor (Monitor monitor);
+  removeMonitor (Monitor monitor);
+  removeAllMonitors();
+
+  addOutputProbe (OutputProbe probe);
+  removeOutputProbe (OutputProbe probe);
+  removeAllOutputProbes();
+\end{lstlisting}
+
+\subsection{Advancing Models in Time}
+
+The root model is the top-level object seen by the ArtiSynth scheduler
+when running a simulation. As a simulation proceeds, the scheduler determines
+the next time to advance to and then calls the root model's {\tt advance()}
+method:
+\begin{lstlisting}
+  double t0; // current time
+
+  while (simulating) {
+     t1 = getNextAdvanceTime (t0);
+     rootModel.advance (t0, t1);
+  }
+\end{lstlisting}
+
+In turn, the {\tt advance()} method then individually advances all the
+models contained in the root model, as described below.  The next
+advance time {\tt t1}, computed by {\tt getNextAdvanceTime()}, is
+determined mainly by the root model's maximum step size (returned by
+{\tt RootModel.getMaxStep\-Size()}), along with other events such as
+WayPoint locations and the render update rate.
+
+The root model's maximum step size is therefore the primary simulation
+step size. It can be set using the method
+{\tt RootModel.setMaxStepSize()}, and is exposed as the {\tt RootModel}
+property {\tt maxStepSize}.  It is also coupled to the "step" display in
+the ArtiSynth GUI, and can also be obtained or set using
+{\tt Main.getMaxStep()} or {\tt Main.setMaxStep()}. When a {\tt RootModel} is
+created, if its maximum step size is not set explicitly (either in the
+constructor or in a file specification), then it is set to a default
+value which is either 0.01, or the value specified by the {\tt -maxStep}
+command line argument.
+
+A {\tt RootModel} advances each of its models in sequence, using a
+procedure called {\tt advanceModel()}. Because a model may have a
+maximum step size (as returned by {\tt getMaxStepSize()}) that is less
+than that of the root model, or some of its output probes may have
+events that preceed {\tt t1}, each model is advanced using
+a series of sub-advances, with {\tt advanceModel()} taking the
+form of a loop:
+\begin{lstlisting}
+  advanceModel (model, t0, t1) {
+     ta = t0;
+     while (ta < t1) {
+        tb = getNextAdvanceTime (model, ta, t1);
+	model.preadvance (ta, tb);
+        applyInputProbes (model, tb);
+        applyControllers (model, ta, tb);
+        model.advance (ta, tb);
+        applyMonitors (model, ta, tb);
+        applyOutputProbes (model, tb);
+        ta = tb;
+     }
+  }
+\end{lstlisting}
+Each time through the loop, {\tt getNextAdvanceTime()} determines the
+next appropriate sub-advance time {\tt tb}, and then calls the model's
+{\tt advance()} method, surrounded by the application of any probes,
+controllers or monitors that are associated with it.
+The {\tt preadvance()} method is called first, followed
+by input probes and controllers.
+Then {\tt advance()} is called, monitors are applied, and
+output probes are applied if their next update time is equal to
+{\tt tb}.
+
+\begin{sideblock}
+The apply time for input probes is not the time {\tt ta}
+at the beginning of the time step, but rather the time {\tt tb}
+corresponding to its end. This might seem
+counterintuitive, but makes sense when one considers that
+input probes are generally used to provide {\it targets}
+for the advance process, and we typically want targets
+specified for the end of the time step. If the target is a force,
+then this is also consistent with implicit integration methods (used
+most commonly by ArtiSynth) which solve for the system forces
+at the end of the time step.
+\end{sideblock}
+
+The {\tt RootModel} {\tt advance()} method in turn calls {\tt advanceModel()}
+for all models, surrounded by the application of any
+probes, controllers and monitors which do not have specific models of
+their own and are therefore considered to be ``owned'' by the root
+model. Because some of these output probes may have event
+times that preceed the desired advance time of {\tt t1}, this process
+is also done in a loop:
+\begin{lstlisting}
+  advance (t0, t1) {
+     ta = t0;
+     while (ta < t1) {
+        tb = getNextAdvanceTime (root, ta, t1);
+        applyInputProbes (root, tb);
+        applyControllers (root, ta, tb);
+        for (each model m) {
+           advanceModel (m, ta, tb);
+        }
+        applyMonitors (root, ta, tb);
+        applyOutputProbes (root, tb);
+        ta = tb;
+     }
+  }
+\end{lstlisting}
+
+Note that at present, the {\tt preadvance()} method for a root model
+does nothing and is not called.
+
+\subsection{Adaptive Stepping}
+\label{AdaptiveSteppingSec}
+
+It is possible for models to request adaptive time stepping, which may
+be necessary if the model determines that a requested time step is too
+large for stable simulation. The model can indicate this by having
+either its {\tt preadvance()} or {\tt advance()} methods return a
+\javaclass{StepAdjustment} object, which contains a recommended
+scaling for the step size via its {\tt scaling} attribute.  Then, if
+adaptive stepping is enabled in the root model, it will reduce the
+effective time step for the model and redo the advance.  If {\tt
+preadvance()} or {\tt advance()} return {\tt null}, then it is assumed
+that the step size should remain unchanged (which is equivalent to
+returning a {\tt StepAdjustment} with a scaling of 1).
+
+Adaptive time stepping can be enabled or disabled using the {\tt adaptiveStepping}
+property of {\tt RootModel}, or by using the {\tt RootModel} methods
+\begin{lstlisting}
+  boolean getAdaptiveStepping();
+
+  void setAdaptiveStepping (boolean enable);
+\end{lstlisting}
+
+When adaptive stepping is enabled, the inner loop of the
+{\tt advanceModel()} procedure described above is modified to the following:
+\begin{lstlisting}
+     while (ta < t1) {
+        tb = getNextAdvanceTime (model, ta, s);
+        model.getState (state);
+        do {
+	   s = GET_SCALING (model.preadvance (ta, tb));
+	   if (s >= 1) {
+              applyInputProbes (model, tb);
+              applyControllers (model, ta, tb);
+              s = GET_SCALING (model.advance (ta, tb));
+           }
+           if (s < 1) {
+              tb = reduceAdvanceTime (model, ta, tb, s);
+              model.setState (state);
+              model.initialize (ta);
+           }
+        }
+        while (s < 1);
+        applyMonitors (model, ta, tb);
+        applyOutputProbes (model, tb);
+        ta = tb;
+     }
+\end{lstlisting}
+where {\tt GET\_SCALING()} returns 1 if {\tt preadvance()} or
+{\tt advance()} returns null, or the value of 
+{\tt StepAdjustment.getScaling()} otherwise.
+
+At the beginning of the loop, the model's state is saved in case a
+retry is necessary. Then if {\tt preadvance{}} or {\tt advance()} recommend
+scaling the step by s < 1, the advance time is
+reduced (by reducing the model's effective step size), the state is
+restored to what is was at the beginning of the step, and the step is
+retried. After a step succeeds, the root model will
+incrementally try to increase the effective step size, up to its
+nominal value.
+
+The exact interpretation of the scaling value s is
+as follows:
+
+\begin{description}
+\item[s = 0:]
+Advance unsuccessful; no recommendation as to how much to reduce the 
+next step.
+
+\item[0 < s < 1:]
+Advance unsuccessful; recommend trying to reduce the step by s*(tb-ta).
+
+\item[s = 1:]
+Advance successful, no recommendation as to how much to increase the step by.
+
+\item[s > 1:]
+Advance successful; recommend trying to increase the step by s*(tb-ta).
+\end{description}
+
+When requesting a step size reduction, models may provide a string
+message indicating the reason via the {\tt message} attribute of {\tt
+StepAdjustment}.  The system will abort if the effective step size
+falls below the minimum value specified by the {\tt RootModel}
+property {\tt getMinStepSize}. At present, recommended increases in
+step size are ignored and treating simply as s = 1.
+
+\begin{sideblock}
+Models are of course free to implement adaptive stepping internally, in a
+way that is invisible to the root model. However, the saving and
+restoring of state, along with the algorithms for step size
+adjustment, are sufficiently intricate that it is generally
+convenient to use the adaptive stepping provided by {\tt RootModel}.
+\end{sideblock}
+
+\section{Writing and Scanning Components}
+\label{writingAndScanningSec}
+
+\setjavabase{}
+
+ArtiSynth model components have the ability to save and restore
+themselves from persistent storage. They do this by implementing the
+\javamethod[maspack.util.Scannable]{write()} and 
+\javamethod[maspack.util.Scannable]{scan()} methods of
+\javaclass{maspack.util.Scannable}, and the 
+\javamethod[artisynth.core.modelbase.ModelComponent]{postscan()}
+method of \javaclass[artisynth.core.modelbase]{ModelComponent}:
+
+\begin{lstlisting}
+  // write this component to a PrintWriter:
+  void write (PrintWriter pw, NumberFormat fmt, Object ref) throws IOException
+
+  // scan the component from a ReaderTokenizer:
+  void scan (ReaderTokenizer rtok, Object ref) throws IOException
+
+  // perform the post-scan pass for this component:
+  void postscan (Deque<ScanToken> tokens, CompositeComponent ancestor);
+
+  // normally returns true but can be overridden to return false 
+  // if for some reason a component should be written to secondary storage
+  boolean isWritable();
+\end{lstlisting}
+
+The operation and implementation of these methods will now be
+described in detail. A summary of the key points is given in Section
+\ref{summarySec}.
+
+\subsection{Writing components}
+
+The \javamethod[maspack.util.Scannable]{write()} method writes
+information about the component to a {\tt PrintWriter}, using
+\javaclass[maspack.util]{NumberFormat} to format floating point
+numbers where appropriate. The {\tt ref} argument is used to provide
+additional context information for generating the output, and is
+specifically used to generate path names for other components
+that are referenced by the component being written
+(Section \ref{writingReferencesSec}).
+
+In general, each component writes out its attributes as a list
+of name/value pairs, each of the form
+\begin{lstlisting}
+  <name>=<value>
+\end{lstlisting}
+with the list itself enclosed between square brackets '{\tt [ ]}' which
+serve as {\it begin} and {\it end} delimiters. The value associated with each
+attribute name may itself be a quantity (such as a vector, matrix, or
+another component) delimited by square brackets. For example, the
+output for a \javaclass[artisynth.core.mechmodels]{Particle} component
+may look like this:
+\begin{lstlisting}
+   [ name="primary"
+     position=[ 15.0 0.0 10.0 ]
+     mass=20.0
+     dynamic=false
+   ]
+\end{lstlisting}
+The output begins with an openning square bracket, followed by four
+attribute/value pairs and a closing square bracket. The position
+attribute is a 3-vector also enclosed between square brackets.
+
+Within the {\tt write()} method, the above output could be produced
+with code like this:
+\begin{lstlisting}
+  import maspack.util.*;
+
+  void write (PrintWriter pw, NumberFormat fmt, Object ref) throws IOException {
+     pw.print ("[ ");
+     IndentingPrintWriter.addIndentation (2); 
+     pw.println ("name=" + Write.getQuotedString(myName));
+     pw.println ("position=[" + myPosition.toString (fmt) + "]");
+     pw.println ("mass=" + fmt.format(myMass));
+     pw.println ("dynamic=" + myDynamicP;
+     IndentingPrintWriter.addIndentation (-2);
+     pw.println ("]");
+  }
+\end{lstlisting}
+Output indentation can be controlled by using an
+\javaclass[maspack.util]{IndentingPrintWriter}, and
+\javamethod[maspack.util]{IndentingPrintWriter.addIndentation()} 
+will increase (or decrease) output indentation if
+{\tt pw} is an instance of {\tt IndentingPrintWriter}.
+
+In practice, components do not generally need to provide explicit code
+to write out all their attribute values. In particular, any
+information that is associated with a
+\javaclass[maspack.properties]{Property} (see the Property section of
+the Maspack Reference Manual) can be written out automatically using a
+code fragment of the form:
+\begin{lstlisting}
+   getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
+\end{lstlisting}
+In addition, any attribute information contained in a component's
+superclass will usually be written by that superclass.
+The default {\tt write()} definition for a model component
+is usually looks something like this:
+\begin{lstlisting}
+   public void write (PrintWriter pw, NumberFormat fmt, Object ref)
+   throws IOException {
+
+      dowrite (pw, fmt, ref);
+   }
+
+   protected void dowrite (PrintWriter pw, NumberFormat fmt, Object ref)
+   throws IOException {
+
+      CompositeComponent ancestor = ComponentUtils.castRefToAncestor(ref);
+      IndentingPrintWriter.printOpening (pw, "[ ");
+      IndentingPrintWriter.addIndentation (pw, 2);
+      writeItems (pw, fmt, ancestor);
+      IndentingPrintWriter.addIndentation (pw, -2);
+      pw.println ("]");
+   }
+
+   protected void writeItems (
+   PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
+   throws IOException {
+
+      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
+   }
+\end{lstlisting}
+The {\tt write()} and {\tt dowrite()} methods take care of writting
+the square brackets and setting up the initial indentation. Then a
+call to {\tt writeItems()} prints out all necessary property
+values. The {\tt ancestor} argument obtained from {\tt ref} will be
+discussed in Section \ref{writingReferencesSec}.
+
+If all a component's attribute information is associated with
+property values, then it is usually not necessary to provide
+any component-specific code for writing the component: the
+default implementations of {\tt write()} and {\tt writeItems()}
+will handle it. If a component {\it does} have attribute information
+that is not associated with a property, then it is
+usually sufficient to handle this by overriding {\tt writeItems()}.
+For example,
+if a component has a non-property ``centroid'' attribute,
+it can be written by an override of {\tt writeItems()} 
+constructed like this:
+\begin{lstlisting}
+   protected void writeItems (
+   PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
+   throws IOException {
+
+      super.writeItems (pw, fmt, ref);
+      pw.println ("centroid=[" + getCentroid().toString (fmt) + "]");      
+   }   
+\end{lstlisting}
+
+\subsubsection{Writing references}
+\label{writingReferencesSec}
+
+ArtiSynth components often contain references to other components
+that are not part of their ancestor hierarchy. For example, a
+two-point spring will contain
+references to its two end-point particles, and a
+\javaclass[artisynth.core.femmodels]{FemElement3d} will contain
+references to its nodes. The set of all references refered to
+by a component is returned by the combination of the component's
+\javamethod[artisynth.core.modelbase.ModelComponent]{getHardReferences()}
+\javamethod[artisynth.core.modelbase.ModelComponent]{getSoftReferences()}
+methods.
+
+Because they generally reside outside a component's immediate ancestor
+hierarchy, information about each reference's location 
+needs to be 
+explicitly written and scanned as part of writing and scanning a
+component. The location information is stored using the component's
+path with respect to some known {\it ancestor}. This ancestor is passed to
+the component's {\tt write()} method through the {\tt ref} argument, and is cast
+explicitly to {\tt CompositeComponent} and passed to {\tt
+writeItems()} as the {\tt ancestor} argument.  A component can
+then use
+\javamethod[artisynth.core.modelbase]{ComponentUtils.getWritePathName()}
+to obtain the path name of each reference with respect to the
+ancestor, and write this to the output.
+
+As an example, here is a possible implementation of {\tt writeItems()}
+for a two-point spring:
+\begin{lstlisting}
+   protected void writeItems (
+   PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+   throws IOException {
+
+      super.writeItems (pw, fmt, ancestor);
+      pw.println ("point0=" + ComponentUtils.getWritePathName(ancestor,myPnt0));
+      pw.println ("point1=" + ComponentUtils.getWritePathName(ancestor,myPnt1));
+   }
+\end{lstlisting}
+This will produce an output like this,
+\begin{lstlisting}
+      point0="models/points/0"
+      point1="models/points/1"
+\end{lstlisting}
+where {\tt models/points/n} gives the path name of the n-th point with
+respect to the ancestor.
+Alternatively, if a component has a variable number of references,
+they can be written out as a list between square brackets:
+\begin{lstlisting}
+   protected void writeItems (
+   PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+   throws IOException {
+
+      super.writeItems (pw, fmt, ancestor);
+      pw.println ("points=[");
+      IndentingPrintWriter.addIndentation (pw, 2);
+      for (ModelComponent pnt : myPnts) {
+         pw.println (ComponentUtils.getWritePathName(ancestor,pnt));
+      }
+      IndentingPrintWriter.addIndentation (pw, -2);
+      pw.println ("]");
+   }
+\end{lstlisting}
+The above code will produce output like this:
+\begin{lstlisting}
+      points=[
+        "models/points/0"
+        "models/points/1"
+        "models/points/2"
+      ]
+\end{lstlisting}
+
+\begin{sideblock}
+The ancestor used for reading and writing references will always be a
+common ancestor of both the references and the refering component.
+This may sometimes be the root model (i.e., the top of the hierarchy),
+but more typically it will be the first common ancestor for which
+\javamethod[artisynth.core.modelbase.CompositeComponent]
+{hierarchyContainsReferences()} returns {\tt true} (implying that all
+references are contained within the ancestors's descendants).  This allows
+paths to be written more compactly.
+Most \javaclass[artisynth.core.modelbase]{Model} components
+presently enforce the {\tt hierarchyContainsReferences()} condition.
+\end{sideblock}
+
+\subsubsection{Writing child components}
+\label{writingChildrenSec}
+
+If a component is a {\tt CompositeComponent}, then it also needs to write
+out its child components along with its attribute information. This
+can be done by recursively calling the children's {\tt write()} methods.
+
+If the child component configuration is fixed (i.e., the component
+does not implement
+\javaclass[artisynth.core.modelbase]{MutableCompositeComponent})
+and the children are created in the composite's constructor,
+then attribute names can be used to delimit each child. For example, suppose
+a component contains two children: a list of particles and a
+list of springs. This component could then be written using
+a code construction such as:
+\begin{lstlisting}
+   protected void writeItems (
+   PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
+   throws IOException {
+
+      super.writeItems (pw, fmt, ref);
+      pw.print ("particles=");
+      myParticles.write (pw, fmt, ref);
+      pw.print ("springs=");
+      mySprings.write (pw, fmt, ref);
+   }   
+\end{lstlisting}
+If the composite component has been implemented internally using
+an instance of 
+\javaclass[artisynth.core.modelbase]{ComponentListImpl}
+(Section \ref{CompositeComponentBaseSec}), then the
+above can be written using the latter's
+\javamethod[artisynth.core.modelbase.ComponentListImpl]{writeComponentsByName()}
+method, which writes each child, using its component name as an attribute name:
+\begin{lstlisting}
+   ComponentListImpl myComponents; 
+
+   protected void writeItems (
+   PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
+   throws IOException {
+
+      super.writeItems (pw, fmt, ref);
+      myComponents.writeComponentsByName (pw, fmt, ancestor);
+   }   
+\end{lstlisting}
+
+One the other hand, composite components which are instances of
+\javaclass[artisynth.core.modelbase]{MutableCompositeComponent} may
+not have predetermined component arrangements and so these components
+cannot be identified by an attribute name. Instead, the components
+must simply be printed out in sequence.  For example, the {\tt
+writeItems()} method for a list of particles could be programmed like
+this:
+\begin{lstlisting}
+   protected void writeItems (
+   PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
+   throws IOException {
+
+      super.writeItems (pw, fmt, ref);
+      for (int i=0; i<particles.size(); i++) {
+         particles.get(i).write (pw, fmt, ref);
+      }
+   }   
+\end{lstlisting}
+This would produce output such as:
+\begin{lstlisting}
+  [ position=[ 10.0 0.0 20.0 ]
+    mass=20.0
+  ]
+  [ position=[ 5.0 0.0 10.0 ]
+    mass=15.0
+  ]
+  [ position=[ 15.0 0.0 10.0 ]
+    mass=20.0
+  ]
+  [ position=[ 10.0 0.0 0.0 ]
+    mass=15.0
+  ]
+\end{lstlisting}
+However, when scanning a
+\javaclass[artisynth.core.modelbase]{MutableCompositeComponent}, the
+{\tt scan()} method (discussed below) needs to create and scan new
+child components as it encounters them in the input.  It is therefore
+necessary for {\tt scan()} to know what class of component to create.
+Typically, the composite component has a default component
+type; for example, the default type for {\tt ComponentList<Particle>}
+is \javaclass[artisynth.core.mechmodels]{Particle}. However, in some
+cases the components may be subclasses of the default type, or the
+default type may be an interface or abstract class and hence not
+instantiable. In such instances, the output needs to be augmented with
+class type information, which is placed before the openning '{\tt ['}
+of the component output.  The details of how to do
+this are beyond the scope of this document. However,
+if the composite component has been implemented internally using
+an instance of 
+\javaclass[artisynth.core.modelbase]{ComponentListImpl},
+then one can use the latter's
+\javamethod[artisynth.core.modelbase.ComponentListImpl]{writeComponents()}
+method to automatically write out all the components, along with the necessary
+class information:
+\begin{lstlisting}
+   ComponentListImpl myComponents; 
+
+   protected void writeItems (
+   PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
+   throws IOException {
+
+      super.writeItems (pw, fmt, ref);
+      myComponents.writeComponents (pw, fmt, ancestor);
+   }
+\end{lstlisting}
+The result may look something like this:
+\begin{lstlisting}
+  [ position=[ 10.0 0.0 20.0 ]
+    mass=20.0
+  ]
+  artisynth.core.mechmodels.SpecialParticle [
+    position=[ 5.0 0.0 10.0 ]
+    mass=15.0
+  ]
+  [ position=[ 15.0 0.0 10.0 ]
+    mass=20.0
+  ]
+  user.projects.CustomParticle [ 
+    position=[ 10.0 0.0 0.0 ]
+    mass=15.0
+  ]
+\end{lstlisting}
+In this example, the second and fourth particles have class types that differ
+from the default and so class information for each is prepended
+to the output.
+
+\subsection{Scanning components}
+\label{scanningComponentsSec}
+
+The \javamethod[maspack.util.Scannable]{scan()} method reads the
+component in from a token stream provided by a
+\javaclass[maspack.util]{ReaderTokenizer}. This translates the input
+into a stream of tokens, including words, numbers, and special token
+characters (such as '{\tt [}', '{\tt ]}', and '{\tt =}'), which are
+then used to parse the input. Authors implementing 
+scanning code should have some familiarity with {\tt ReaderTokenizer}.
+A description is beyond the scope of this document but good
+documentation is available in the \javaclass[maspack.util]{ReaderTokenizer} 
+class header.
+
+The main code inside the default {\tt scan()} method for a model
+component looks roughly like this:
+\begin{lstlisting}
+   public void scan (ReaderTokenizer rtok, Object ref) 
+   throws IOException {
+
+      rtok.scanToken ('[');
+      while (rtok.nextToken() != ']') {
+         rtok.pushBack();
+         if (!scanItem (rtok, tokens)) {
+            throw new IOException ("Unexpected token: " + rtok);
+         }
+      }
+   }
+\end{lstlisting}
+The method looks for and scans the initial '{\tt [}' character (and
+will throw an {\tt IOException} if this is not found). It then reads
+other tokens (using
+\javamethod[maspack.util.ReaderTokenizer]{nextToken()}) until the
+terminating '{\tt ]}' character is found. After each token is
+inspected, it is pushed back into the token stream using
+\javamethod[maspack.util.ReaderTokenizer]{pushBack()} and {\tt
+scanItem()} is called to try and read an individual attribute or
+subcomponent from the input. If {\tt scanItem()} cannot match the
+input to any attributes or child components it returns {\tt false}.
+
+\begin{sideblock}
+Note: \javaclass[maspack.util]{ReaderTokenizer} allows one
+token of look-ahead, so that any read token can be pushed
+back once. In particular, in the following sequence,
+{\tt t1} and {\tt t2} should be the same:
+\begin{verbatim}
+   t1 = rtok.nextToken();
+   rtok.pushBack();
+   t2 = rtok.nextToken();
+\end{verbatim}
+\end{sideblock}
+
+The default implementation of {\tt scanItem()} provides
+code for reading property values and looks something like this:
+\begin{lstlisting}
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+   throws IOException {
+
+      rtok.nextToken();
+      // if attribute name is a property name, scan that property:
+      if (ScanWriteUtils.scanProperty (rtok, this)) {
+         return true;
+      }
+      rtok.pushBack();
+      return false;
+   }
+\end{lstlisting}
+The method begins by getting the next token and then calling
+\javamethod[artisynth.core.modelbase]{ScanWriteUtils.scanProperty()}
+to see if the token is a word matching the name of one of the
+component's properties. If so, then {\tt scanProperty()} scans and
+sets the property value and returns {\tt true}, and {\tt scanItem()}
+itself returns {\tt true}. Otherwise, {\tt scanItem()} returns {\tt
+false} indicating that it was unable to find a match for the input.
+The {\tt tokens} argument is used to store information whose
+processing must be deferred until the post-scan step, as discussed in
+Section \ref{scanningReferencesSec}.
+
+Typically, component implementations will not need to override {\tt
+scan()} unless the scanning procedure calls for pre- or
+post-processing, as in:
+\begin{lstlisting}
+   public void scan (ReaderTokenizer rtok, Object ref) 
+   throws IOException {
+
+      ... do pre-processing here ...
+      super.scan (rtok, ref);
+      ... do post-processing here ...
+   }   
+\end{lstlisting}
+Note that if a class makes use of the post-scan step (Section
+\ref{scanningReferencesSec}), then it may be necessary to do the
+post-processing in an override of {\tt postscan()} instead.
+
+Component implementations often {\it will} need to override {\tt
+scanItem()} to scan additional attribute information. For example:
+\begin{lstlisting}
+  protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+  throws IOException {
+
+     rtok.nextToken();
+     if (rtok.ttype == ReaderTokenizer.TT_WORD) {
+        if (rtok.sval.equals ("attributeXXX") {
+	   rtok.scanToken ('=');
+	   ... scan information for attribute XXX ...
+           return true;
+        }
+     }
+     rtok.pushBack();
+     return super.scanItem (rtok, tokens);
+  }	
+\end{lstlisting}
+First, the method gets the next token. Then it checks if its type
+({\tt ttype}) corresponds to a {\tt WORD} token and if the word's string
+value ({\tt sval}) equals the attribute name {\tt attributeXXX}.  If
+so, then it scans the '{\tt =}' character following attribute name,
+scans whatever information is associated with the attribute, and
+returns {\tt true}.  Otherwise, if no expected attribute name is
+matched, the current token is pushed back, and the superclass method
+is called to see if it can match the current input.
+
+Most implementations of {\tt ModelComponent}
+provide the convenience method {\tt scanAttributeName(rtok, name)}
+which allows the code fragment 
+\begin{lstlisting}
+     if (rtok.ttype == ReaderTokenizer.TT_WORD) {        
+        if (rtok.sval.equals ("attributeXXX") {
+	   rtok.scanToken ('=');
+\end{lstlisting}
+to be replaced with
+\begin{lstlisting}
+      if (scanAttributeName (rtok, "attributeXXX")) {
+\end{lstlisting}
+Employing this in a larger example, we have
+\begin{lstlisting}
+  protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+  throws IOException {
+
+     rtok.nextToken();
+     if (scanAttributeName (rtok, "name")) 
+        myName = rtok.scanQuotedString();
+        return true;
+     }
+     else if (scanAttributeName (rtok, "position")) {
+        myPosition.scan (rtok);
+        return true;
+     }
+     else if (scanAttributeName (rtok, "mass")) {
+        myMass = rtok.scanNumber();
+        return true;
+     }
+     else if (scanAttributeName (rtok, "dynamic")) {
+        myDynamicP = rtok.scanBoolean();
+        return true;
+     }
+     rtok.pushBack();
+     return super.scanItem (rtok, tokens);
+  }	
+\end{lstlisting}
+Here, if any of the attribute names 
+{\tt name}, {\tt position}, {\tt mass}, or {\tt dynamic} are matched,
+then the 
+corresponding string, vector, numeric, or boolean attribute values are
+scanned using
+\javamethod[maspack.util.ReaderTokenizer]{scanQuotedString()}, the
+vector's own {\tt scan()} method,
+\javamethod[maspack.util.ReaderTokenizer]{scanNumber()}, or
+\javamethod[maspack.util.ReaderTokenizer]{scanBoolean()}.  Each of
+these will throw an {\tt IOException} if the input token sequence does
+not match what is expected.
+
+\subsubsection{Scanning references and post-scanning}
+\label{scanningReferencesSec}
+
+When scanning a component that contains references, the path for each
+reference is used to locate the referenced component within
+the component hierarchy.
+However, this poses a problem: because components are
+created only as the component hierarchy is recursively scanned, it is
+possible that some references may not yet exist at
+the time when the component is scanned. For example, if the points
+referenced by a two-point spring belong to part of the hierarchy
+further "to the right" of the spring components, then when the
+spring is scanned the points won't yet exist and the scanning method
+will be unable to find them.
+
+The solution to this problem is to employ a two-step scanning process
+in which the initial scan is followed by a secondary "post-scan" which
+can be used to resolve references. Each reference path found during
+the initial scan is saved for later use in the post-scan step, by
+which time all components are guaranteed to have been
+created. Reference information, along with any other information
+needed for the post-scan step, is saved in a queue of
+\javaclass[artisynth.core.util]{ScanToken}s supplied to the {\tt
+scan()} method through the {\tt ref} argument. Several different types
+of {\tt ScanTokens} allow different types of information to be stored:
+\javaclass[artisynth.core.util]{StringToken}s are use to store
+attribute names and reference paths;
+\javaclass[artisynth.core.util]{ObjectToken}s are use to store object
+pointers; and special marker tokens, {\tt ScanToken.BEGIN}
+and {\tt ScanToken.END}, can be used as delimiters.
+
+At a minimum, scanning each component causes {\tt BEGIN} and {\tt
+END} tokens to be added to the token queue, with additional
+tokens added in between as necessary.
+Revisiting the basic {\tt scan()} method code
+shown at the top of Section \ref{scanningComponentsSec},
+we show the additional code that is needed to handle this:
+\begin{lstlisting}
+   public void scan (ReaderTokenizer rtok, Object ref) 
+   throws IOException {
+
+      Deque<ScanToken> tokens = (Deque<ScanToken>)ref;
+      tokens.offer (ScanToken.BEGIN);
+      rtok.scanToken ('[');
+      while (rtok.nextToken() != ']') {
+         rtok.pushBack();
+         if (!scanItem (rtok, tokens)) {
+            throw new IOException ("Unexpected token: " + rtok);
+         }
+      }
+      tokens.offer (ScanToken.END);
+   }
+\end{lstlisting}
+The token queue itself, called {\tt tokens}, is obtained from the
+{\tt ref} argument via an explicit cast.
+{\tt BEGIN} and {\tt END} tokens are added at the
+beginning and end of the scan. In between, the token queue
+is passed to {\tt scanItem()}, which adds addtional tokens
+when necessary. 
+
+Within {\tt scanItem()}, tokens are added to provide whatever
+information is needed for the post-scan step.  This information is
+often provided in the form of two or more tokens comprising an
+attribute name/value pair, so that the post-scan step is not sensitive
+to input ordering. In this sense, the information
+stored in the token queue will reflect the same structure as the
+tokens in the original input.
+
+Consider the first example in \ref{writingReferencesSec}
+where the reference information for a two-point spring was output as:
+\begin{lstlisting}
+      point0="models/points/0"
+      point1="models/points/1"
+\end{lstlisting}
+To process this inside {\tt scanItem()}, we check for the attribute
+names {\tt point0} and {\tt point1} and if either is found, we store both
+the attribute name and the reference path in the token queue using
+{\tt StringTokens}.  For {\tt point0}, the corresponding code
+looks like
+\begin{lstlisting}
+      if (scanAttributeName (rtok, "point0")) {
+         String refpath = rtok.scanWordOrQuotedString ('"');
+	 tokens.offer (new StringToken ("point0"));
+	 tokens.offer (new StringToken (refpath));
+	 return true;
+      }
+\end{lstlisting}
+Most implementations of {\tt ModelComponent}
+provide the convenience method {\tt scanAndStoreReference (rtok, name, tokens)}
+which allows this to be compressed into
+\begin{lstlisting}
+      if (scanAndStoreReference (rtok, "point0", tokens)) {
+	 return true;
+      }
+\end{lstlisting}
+One may also use
+\javamethod[artisynth.core.modelbase]{ScanWriteUtils.scanAndStoreReference()}
+for the same purpose.
+The {\tt scanItem()} method for a two-point spring can then be written as:
+\begin{lstlisting}
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+   throws IOException {
+
+      rtok.nextToken();
+      if (scanAndStoreReference (rtok, "point0", tokens)) {
+         return true;
+      }
+      else if (scanAndStoreReference (rtok, "point1", tokens)) {
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }
+\end{lstlisting}
+
+Alternatively, if we have an attribute followed by 
+a list of references enclosed in square brackets, such as
+\begin{lstlisting}
+      points=[
+        "models/points/0"
+        "models/points/1"
+        "models/points/2"
+      ]
+\end{lstlisting}
+then we want to store a sequence of tokens consisting of the
+attribute name, a BEGIN token, the reference paths, and an END token:
+\begin{lstlisting}
+      "points"
+      BEGIN
+      "models/points/0"
+      "models/points/1"
+      "models/points/2"
+      END
+\end{lstlisting}
+That can be done by a code sequence that looks like
+\begin{lstlisting}
+      if (scanAttributeName (rotk, "points", tokens)) {
+         rtok.scanToken ('[');
+         tokens.offer (new StringToken ("points"));
+         tokens.offer (ScanToken.BEGIN);
+         while (rtok.nextToken() != ']') {
+	    if (rtok.tokenIsWordOrQuotedString ()) {
+	       tokens.offer (rtok.sval);
+            }
+            else {
+	       throw new IOException ("Error: reference path expected");
+            }
+         }
+         tokens.offer (ScanToken.END);
+         return true;
+      }
+\end{lstlisting}
+and which is available in most ModelComponent implementations
+via the convenience method {\tt scanAndStoreReferences()}:
+\begin{lstlisting}
+      if (scanAndStoreReferences (rtok, "point", tokens)) {
+	 return true;
+      }
+\end{lstlisting}
+One may also use
+\javamethod[artisynth.core.modelbase]{ScanWriteUtils.scanAndStoreReferences()}
+for the same purpose.
+
+\subsubsection{Scanning child components}
+
+In addition to their attributes, composite components need to scan in
+their child components. This can be done by recursively calling the
+children's {\tt scan()} methods.
+
+If the child component configuration is fixed
+(i.e., the component
+does not implement
+\javaclass[artisynth.core.modelbase]{MutableCompositeComponent}),
+and the children are created in the composite's constructor
+and written out using attribute names as delimiters,
+then these attributes names can be used to drive the scanning.
+The example composite from Section \ref{writingChildrenSec},
+comprising a list of particles and a list of springs, 
+could be scanned in using code such as:
+\begin{lstlisting}
+  protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+  throws IOException {
+
+     rtok.nextToken();
+     if (scanAttributeName (rtok, "particles")) 
+        tokens.offer (new ObjectToken (myParticles));
+        myParticles.scan (rtok, tokens);
+        return true;
+     }
+     else if (scanAttributeName (rtok, "springs")) {
+        tokens.offer (new ObjectToken (mySprings));
+        mySprings.scan (rtok);
+        return true;
+     }
+     rtok.pushBack();     
+     return super.scanItem (rtok, tokens);
+  }
+\end{lstlisting}
+Here, an {\tt ObjectToken()} identifying each scanned componet is
+stored on the token queue for later use in the post-scan step.  If the
+composite component has been implemented internally using an instance
+of \javaclass[artisynth.core.modelbase]{ComponentListImpl} (Section
+\ref{CompositeComponentBaseSec}), then the above can be written more
+succinctly using the latter's
+\javamethod[artisynth.core.modelbase.ComponentListImpl]{scanAndStoreComponentByName()}
+method:
+\begin{lstlisting}
+   ComponentListImpl myComponents; 
+
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+   throws IOException {
+
+      rtok.nextToken();
+      if (myComponents.scanAndStoreComponentByName (rtok, tokens)) {
+         return true;
+      }
+      rtok.pushBack();     
+      return super.scanItem (rtok, tokens);
+   }
+\end{lstlisting}
+
+On the other hand, composite components which are instances of
+\javaclass[artisynth.core.modelbase]{MutableCompositeComponent} are
+written out in sequence, without using attribute names but with
+possible prefixed information giving information about the component's
+class. When scanning in these children, {\tt scanItem()} must
+determine the class for the child, create an instance of the child,
+and then scan it in. The code required for these steps is beyond the
+scope of this document. However, if the mutable composite
+has been implemented internally using an instance of
+\javaclass[artisynth.core.modelbase]{ComponentListImpl}, then one can
+use the latter's methods 
+\javamethod[artisynth.core.modelbase.ComponentListImpl]{scanBegin()},
+\javamethod[artisynth.core.modelbase.ComponentListImpl]{scanAndStoreComponent()},
+and \javamethod[artisynth.core.modelbase.ComponentListImpl]{scanEnd()}
+to handle the scanning.
+
+First, {\tt scanBegin()} is called in an override of {\tt scan()}:
+\begin{lstlisting}
+   ComponentListImpl myComponents; 
+
+   public void scan(ReaderTokenizer rtok, Object ref) throws IOException {
+      myComponents.scanBegin();
+      super.scan (rtok, ref);
+   }
+\end{lstlisting}
+
+{\tt scanAndStoreComponent()} can then be called in {\tt scanItem()} to
+handle scanning of individual components:
+\begin{lstlisting}
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+   throws IOException {
+
+      if (super.scanItem (rtok, tokens)) {
+         return true;
+      }
+      rtok.nextToken();
+      return myComponents.scanAndStoreComponent (rtok, tokens);
+   }
+\end{lstlisting}
+The method checks to see if the input contains child component
+information, and if so, scans the information, creates an instance of
+the component if necessary, stores a copy of the component
+in the token queue for use in post-scanning, and returns 
+{\tt true}.
+Note that in this case one should call {\tt scanAndStoreComponent()} {\it after}
+the {\tt super} method to avoid confusing attribute names with class
+information.
+
+\begin{sideblock}
+\javamethod[artisynth.core.modelbase.ComponentListImpl]{scanAndStoreComponent()}
+will not create a new component if a {\it fixed} component (Section
+\ref{CompositeComponentBaseSec}) of the appropriate class already
+exists at the current list position. Instead, the existing component
+will be scanned ``in place''.
+\end{sideblock}
+
+Finally, {\tt scanEnd()} is called in an override of {\tt postscan()}
+method (discussed below):
+\begin{lstlisting}
+   public void postscan (
+   Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+
+      super.postscan (tokens, ancestor);
+      myComponents.scanEnd();
+   }
+\end{lstlisting}
+
+\subsubsection{Post-scanning implementation}
+
+Once the token queue has been built by the {\tt scan()} methods, it is
+processed in the post-scan step. This is done by each component using
+a {\tt postscan()} method that takes as arguments the token queue and
+the ancestor with respect to which reference paths should be
+evaluated. The default {\tt postscan()} method for most components
+looks something like this:
+\begin{lstlisting}
+   public void postscan (
+   Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+
+      ScanWriteUtils.postscanComponentBegin (tokens, this);
+      while (tokens.peek() != ScanToken.END) {
+         if (!postscanItem (tokens, ancestor)) {
+            throw new IOException (
+               "Unexpected token " + tokens.poll());
+         }
+      }
+      tokens.poll(); // consume the END token
+   }   
+\end{lstlisting}
+\javamethod[artisynth.core.modelbase.ScanWriteUtils]{postscanComponentBegin()}
+gets the next token on the queue, checks that it is a {\tt BEGIN}
+token, and throws an exception if this is not the case.  Then the
+method simply calls {\tt postScanItem()}, which does the actual token
+handling work, until a terminating {\tt END} token is found.
+
+As is the case with {\tt scan()}, subclasses typically do not need
+to override {\tt postscan()}. The exception to this is when
+post-processing is required after the scan process:
+\begin{lstlisting}
+   public void postscan (
+   Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+
+      super.postscan (tokens, ancestor);
+      ... do post processing ...
+   }    
+\end{lstlisting}
+
+However, any component which adds tokens in its {\tt scanItem()}
+method {\it will} need to process those tokens in an override of {\tt
+postscanItem()}. Tokens can be removed from the queue using
+the queue's {\tt poll()} method, and can be examined (without removing
+them) using the queue's {\tt peek()} method. More usefully, 
+the utility class 
+\javaclass[artisynth.core.modelbase]{ScanWriteUtils} provides
+a number of methods for token processing, including:
+\begin{lstlisting}
+   boolean postscanAttributeName (tokens, name);
+
+   C postscanReference (tokens, clazz, ancestor);
+
+   C[] postscanReferences (tokens, refs, clazz, ancestor);
+\end{lstlisting}
+{\tt ModelComponentBase} also makes convenience wrappers for these
+directly available within the class.
+\javamethod[artisynth.core.modelbase.ScanWriteUtils]{postscanAttributeName()}
+checks if the next token in the queue is a {\tt StringToken} matching
+{\tt name}, and if it is, consumes that token and returns {\tt true}.
+\javamethod[artisynth.core.modelbase.ScanWriteUtils]{postscanReference()}
+checks that the next token is a {\tt StringToken} containing a path
+reference, finds the component referenced by that path relative to
+{\tt ancestor}, checks that it is an instance of {\tt clazz}, and
+returns it.
+\javamethod[artisynth.core.modelbase.ScanWriteUtils]{postscanReferences()}
+obtains a set of component references described by a sequence of {\tt
+StringTokens} located between {\tt BEGIN} and {\tt END} tokens, and
+returns the referenced components in an array.  These methods will
+throw an {\tt IOException} if they encounter unexpected tokens or if
+referenced components cannot be found.
+
+Employing these methods to handle the 
+{\tt point0}, {\tt point1} reference example above, we obtain:
+\begin{lstlisting}
+   public boolean postscanItem (
+   Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+
+      if (postscanAttributeName (tokens, "point0")) {
+         myPnt0 = postscanReference (tokens, Point.class, ancestor);
+         return true;
+      }
+      else if (postscanAttributeName (tokens, "point1")) {
+         myPnt1 = postscanReference (tokens, Point.class, ancestor);
+         return true;
+      }
+      return super.postscanItem (tokens, ancestor);
+   }
+\end{lstlisting}
+
+Similarly, the {\tt points} reference example can be handled as:
+\begin{lstlisting}
+   public boolean postscanItem (
+   Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+
+      if (postscanAttributeName (tokens, "points")) {
+         Point[] pnts = postscanReferences (tokens, Point.class, ancestor);
+         return true;
+      }
+      return super.postscanItem (tokens, ancestor);
+   }
+\end{lstlisting}
+
+Finally, for composite components, it is necessary to call {\tt postscan()} for
+each of their children. For composites implemented using
+\javaclass[artisynth.core.modelbase]{ComponentListImpl},
+this can be done by calling the latter's
+\javamethod[artisynth.core.modelbase.ComponentListImpl]{postscanComponent()}
+method. For both 
+{\tt CompositeComponent} and {\tt MutableCompositeComponent}
+implementations, the corresponding code looks like this:
+\begin{lstlisting}
+   protected boolean postscanItem (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) 
+      throws IOException {
+      
+      if (myComponents.postscanComponent (tokens, ancestor)) {
+         return true;
+      }
+      return super.postscanItem (tokens, ancestor);
+   }
+\end{lstlisting}
+{\tt postscanComponent()} checks to see if the next token is an {\tt
+ObjectToken} containing a {\tt ModelComponent}, and if it is, it
+removes that token, calls the component's {\tt postscan()} method, and
+returns {\tt true}.
+
+\subsubsection{Post-scanning property values}
+
+As described in \ref{scanningComponentsSec}, base implementations of
+{\tt scanItem()} automatically read in and set property values for the
+component. However, since this is done during the first scan step,
+problems may arise if any properties depend on references having
+already been set. An example of this is the {\tt theta} property for
+the joint component
+\javaclass[artisynth.core.mechmodels]{RevoluteJoint}, which requires
+knowledge of the frames referenced by the joint.
+
+The solution to this is to defer setting the values for such
+properties until the post-scan step. This is done by saving the
+scanned property values in the token queue, and then actually setting
+the properties during the post-scan. Two convenience methods,
+\javamethod[artisynth.core.modelbase]{ScanWriteUtils.scanPropertyValues()}
+and 
+\javamethod[artisynth.core.modelbase]{ScanWriteUtils.postscanPropertyValues()}
+allow this to be done fairly easily:
+\begin{lstlisting}
+   // properties that must be set during post-scan:
+   String[] deferredProps = new String[] { "theta", "thetaRange" };
+
+   public boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+   throws IOException {
+
+      if (ScanWriteUtils.scanPropertyValues (rtok, this, deferredProps, tokens)) {
+         return true;
+      }
+      else {
+         ... remaining scanItem() implementation ...
+      }
+   }
+
+   public boolean postscanItem (
+   Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+
+      if (ScanWriteUtils.postscanPropertyValues (tokens, this, deferredProps)) {
+         return true;
+      }
+      else {
+         ... remaining postscanItem() implementation ...
+      }
+   }
+\end{lstlisting}
+Here, {\tt defernedProps} is an array of the names of the properties
+whose values must be set in the post-scan step ({\tt "theta"} and {\tt
+"thetaRange"} are taken from the specific {\tt RevoluteJoint} example).
+
+To ensure that this works properly, it is also important that the
+reference information be written out {\it before} the property
+information, so that in the post-scan step, it will be set before the
+property values.  That means that {\tt writeItems()} should be
+structured as follows:
+\begin{lstlisting}
+   protected void writeItems (
+   PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
+
+   throws IOException {
+
+      ... write out reference information first ...
+      super.writeItems (pw, fmt, ancestor);
+   }
+\end{lstlisting}
+
+\subsubsection{Invoking the complete scan process}
+
+The two-step scanning process means that for the top-level
+invocation of {\tt scan}, the application 
+needs to create a token queue, call {\tt scan()} with this
+queue as the {\tt ref} argument, and then call {\tt postscan()}:
+\begin{lstlisting}
+      ArrayDeque<ScanToken> tokens = new ArrayDeque<ScanToken>();
+      comp.scan (rtok, tokens);
+      comp.postscan (tokens, ancestor);
+\end{lstlisting}
+For convenience, the above code fragment is encapsulated into the
+method \javamethod[artisynth.core.modelbase]{ScanWriteUtils.scanfull()}.
+
+If we are scanning an entire hierarchy from scratch, then {\tt comp}
+will be the root component of the hierarchy and {\tt ancestor} will
+equal {\tt comp}. Otherwise, if we are scanning a new sub-hierarchy,
+then {\tt comp} will be the root of the sub-hierarchy and {\tt
+ancestor} may be some component higher in the existing hierarchy.
+
+\subsection{File and token structure}
+\label{fileStructureSec}
+
+Because Artisynth components are responsible for writing and scanning
+themselves, there is no mandatory file structure imposed per-se.
+However, there is a structure that should be adhered to whenever
+possible. Expressed loosely as a production grammar, with '*'
+expressing repetition of zero or more times, this is:
+\begin{lstlisting}
+    component
+            '[' componentItem* ']'
+    
+    componentItem
+            attributePair
+            componentSpec
+    
+    attributePair
+            NAME '=' value
+    
+    componentSpec
+            CLASSINFO component
+            component
+    
+    value
+            componentSpec
+            list
+            literal
+    
+    list
+            '[' listItem* ']'
+    
+    listItem
+            value
+            attributePair
+    
+    literal
+            BOOLEAN
+            INTEGER
+            FLOAT
+            STRING
+            WORD
+\end{lstlisting}
+Here, {\tt NAME} and {\tt WORD} are identifiers that consist of
+alphanumerics, '\$', or '\_', and do not begin with a digit. {\tt
+CLASSINFO} is the classname for a component, or an alias that can be
+mapped to a classname using
+\javamethod[artisynth.core.util]{ClassAliases.resolveClass()}.
+
+Within an ArtiSynth file, '\#' is a comment character, causing all
+remaining characters on the line to be discarded.
+
+When tokens are saved for the post-scan step, they 
+should arranged in a structure similiar to that used
+for the file itself:
+\begin{lstlisting}
+  componentTokens
+	BEGIN itemTokens* END
+
+  itemTokens
+	componentSpecTokens
+	attributePairTokens
+
+  attributePairTokens
+	NAME valueTokens
+
+  componentSpecTokens
+        COMPONENT componentTokens
+        componentTokens
+
+  valueTokens
+	componentSpecTokens
+	listTokens
+	literalTokens
+
+  listTokens
+	BEGIN <listItemTokens>* END
+
+  listItemTokens
+	valueTokens
+	attributePairTokens
+
+  literalTokens
+	STRING
+	OBJECT
+\end{lstlisting}
+Here, {\tt BEGIN} and {\tt END} are {\tt
+ScanToken.BEGIN} and {\tt ScanToken.END}, {\tt NAME} is a
+\javaclass[artisynth.core.util]{StringToken} with an attribute name as
+a value, {\tt COMPONENT} is a
+\javaclass[artisynth.core.util]{ObjectToken} with a reference to the
+object as a value, and {\tt STRING} and {\tt OBJECT} are
+\javaclass[artisynth.core.util]{StringToken} and
+\javaclass[artisynth.core.util]{ObjectToken}, respectively.
+
+\subsection{Debugging}
+
+Debugging write and scan methods is generally not too difficult
+because of the ascii nature of the data files. A good first test is to
+write components out, read them back in, and then write them out a
+second time and make sure that the second output equals the
+first. Scan methods will generally throw {\tt IOException}s when
+unexpected input is encountered, and these usually provide the
+offending line number. 
+
+Problems that occur in post-scan can be slightly harder to solve
+because the token queue is not normally written out in any place where it can
+be inspected. To help with this, once can use
+\javamethod[artisynth.core.modelbase]{ScanWriteUtils.setTokenPrinting()}
+to enable the token queue produced by
+\javamethod[artisynth.core.modelbase]{ScanWriteUtils.scanfull()} to be
+printed to the standard output. It is also possible to print a token
+queue directly using 
+\javamethod[artisynth.core.modelbase]{ScanWriteUtils.printTokens()}.
+
+\subsection{Summary}
+\label{summarySec}
+
+The main points concerning component writing and scanning are
+as follows:
+
+\begin{enumerate}
+
+\item Writing and scanning are done using the component's
+\javamethod[maspack.util.Scannable]{write()},
+\javamethod[maspack.util.Scannable]{scan()},
+\javamethod[artisynth.core.modelbase.ModelComponent]{postscan()}
+methods.  These methods usually employ {\tt writeItems()}, {\tt
+scanItem()}, and {\tt postscanItem()} to handle the writing and
+scanning of individual attributes and child components.
+
+\item Where possible, the structure described in Section
+\ref{fileStructureSec} should be adhered to. 
+
+\item Scanning is a two-step process, involving a scan step and a
+post-scan step. This is to accomodate the fact that some aspects of
+scanning (most importantly the evaluation of references) cannot be
+done until the entire component hierarchy has been constructed.
+Information needed for the post-scan step (such as reference path
+names) should be stored in the token queue passed to {\tt scan()} and
+{\tt scanItems()}.
+
+\item It is usually only necessary for a component implementation to
+override {\tt writeItems()}, {\tt scanItem()}, and {\tt
+postscanItem()}. Property values are usually written and scanned
+automatically by the base implementations of {\tt writeItems()} and
+{\tt scanItem()}. If a component does not contain references or
+non-property attributes, it may not be necessary for the
+implementation to override any methods at all.
+
+\item Composite components need to call {\tt
+write()}, {\tt scan()}, and {\tt postscan()} for their child
+components. Composites implemented using
+\javaclass[artisynth.core.modelbase]{ComponentListImpl}
+can do this using methods supplied by that class, such as
+{\tt writeComponents()}, {\tt scanAndStoreComponent()}, 
+and {\tt postscanComponent()}.
+
+\item A complete scan operation involves creating
+a token queue and then calling both {\tt scan()} and
+{\tt postscan()} for the top-level component.
+This can be done using the convenience method
+\javamethod[artisynth.core.modelbase]{ScanWriteUtils.scanfull()}.
+
+\item The utility class
+\javaclass[artisynth.core.modelbase]{ScanWriteUtils} contains a large
+number of methods that facilitate writing and scanning.
+
+\end{enumerate}
+
+\end{document}
+
+

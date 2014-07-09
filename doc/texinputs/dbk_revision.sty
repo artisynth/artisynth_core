@@ -1,0 +1,107 @@
+%%
+%% Index table definitions
+%%
+
+\usepackage{longtable}
+
+% Index table row
+\def\DBKinditem#1#2{
+  & & & & \tabularnewline
+  #1  & #2 & \DBKdate &  & \ \tabularnewline
+  & & & & \tabularnewline
+  \hline
+}
+
+\def\referencetitle{
+  \ifthenelse{\equal{\DBKreference}{}}%
+    {}{\emph{\DBKrefname} :}}
+
+% Index table environment
+\newenvironment{DBKindtable}{
+\begin{center}
+\begin{tabular}{ |>{\centering}p{3cm} |>{\centering}p{3cm} |>{\centering}p{3.5cm}
+  |>{\centering}p{3cm} >{\centering}p{3cm} | }
+  \hline
+  \multicolumn{5}{|c|}{\textbf{\DBKindtitle}} \tabularnewline
+  \hline
+  \multicolumn{5}{c}{\ } \tabularnewline
+  \hline
+  \multicolumn{1}{|l|}{} & \multicolumn{2}{l|}{\emph{\titlename} :}
+  & \multicolumn{2}{l|}{\referencetitle}\tabularnewline
+  & \multicolumn{2}{l|}{} & \multicolumn{2}{l|}{} \tabularnewline
+  \multicolumn{1}{|p{3cm}|}{} & \multicolumn{2}{p{6.5cm}|}{\DBKtitle}
+  & \multicolumn{2}{p{3cm}|}{\DBKreference}\tabularnewline
+  \hline
+  \hline
+   & & & & \tabularnewline
+  \emph{\DBKcontrib} & \emph{\DBKindname} & \emph{\DBKrevdate} & \multicolumn{2}{c|}{\emph{\DBKsignature}}
+  \tabularnewline 
+   & & & & \tabularnewline
+  \hline
+}{
+\end{tabular}
+\end{center}
+}
+
+%%
+%% Revision history table and rows
+%%
+
+\def\DBKrevitem#1#2#3#4{
+  & & & \tabularnewline
+  #1 & #2 & #3 & #4 \tabularnewline
+  & & & \tabularnewline
+  \hline
+}
+
+\newenvironment{DBKrevtable}{
+  \begin{center}
+  \savetablecounter %
+  \begin{longtable}{ |>{\centering}p{3cm} |>{\centering}p{3cm} |>
+  {\raggedright}p{6.9cm} |>{\centering}p{3cm} | }
+  \hline
+  %% Domitete
+  \multicolumn{4}{|c|}{\textbf{\DBKrevtitle}} \tabularnewline
+  \hline
+
+  %% Table Titles
+  \multicolumn{4}{c}{\ } \tabularnewline
+  \hline
+  \multicolumn{1}{|c|}{\DBKrevnumber}& \multicolumn{1}{c|}{\DBKrevdate} &
+  \multicolumn{1}{c|}{\DBKrevdesc} & \multicolumn{1}{c|}{\DBKrevname}
+  \tabularnewline
+  \hline
+  \endhead
+}{
+  \end{longtable}
+  \restoretablecounter %
+  \end{center}
+}
+
+%% *****************
+%% *** Domitete
+%% *****************
+
+% Default history table
+\def\DBKrevhistory{
+  \begin{DBKrevtable}
+  \DBKrevitem{}{}{}{}
+  \end{DBKrevtable}
+}
+
+% Default credits table
+\def\DBKindexation{
+  \begin{DBKindtable}
+  \DBKinditem{\writtenby}{\DBKauthor}
+  \end{DBKindtable}
+}
+
+% Whole bookinfo tables
+\def\DBKdomitete{
+  \begin{sffamily}
+  \DBKindexation
+  \vspace{1cm}
+  \DBKrevhistory
+  \end{sffamily}
+}
+

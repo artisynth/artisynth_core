@@ -1,0 +1,65 @@
+%
+% Basic core definitions used for DocBook
+%
+\usepackage{graphicx}
+\usepackage{ifthen}
+\usepackage{subfigure}
+\usepackage{enumitem}
+\usepackage{footmisc}
+\usepackage{appendix}
+
+% Workaround to avoid troubles with accents in \appendixname used as hyperref
+% label: force the label prefix to 'appendix' whatever the lang is
+\let\orgresetsapp=\@resets@pp
+\let\orgrestoreapp=\restoreapp
+\let\restoreapp\relax
+\def\@resets@pp{%
+  \orgresetsapp
+  \if@pphyper
+    \def\Hy@chapapp{appendix}%
+  \fi
+  \orgrestoreapp
+}
+
+%
+% These <bookinfo|articleinfo> parameters must be defined
+%
+\newcommand{\DBKreference}{}                % mapped to <pubsnumber>
+\newcommand{\DBKsite}{}                     % mapped to <bookinfo/address>
+\newcommand{\DBKdate}{\today}               % mapped to <bookinfo/date>
+\newcommand{\DBKreleaseinfo}{Working Paper} % mapped to <releaseinfo>
+\newcommand{\DBKedition}{}                  % mapped to <edition>
+\newcommand{\DBKsubtitle}{}                 % mapped to <subtitle>
+\newcommand{\DBKpubdate}{}                  % mapped to <pubdate>
+\newcommand{\DBKcopyright}{}                % mapped to <copyright>
+\newcommand{\DBKlegalblock}{}               % mapped to <legalnotice> stuff
+\newcommand{\DBKlegaltitle}{}               % idem
+
+% Main latex <othercredit> command. It will be redefined by the XSL stylesheets.
+\newcommand{\DBKindexation}{}
+
+% Watermark command
+\def\showwatermark#1{}
+
+% Front/main/back matter macros
+\@ifundefined{frontmatter}{ \let\frontmatter\relax }{}
+\@ifundefined{mainmatter}{ \let\mainmatter\relax }{}
+\@ifundefined{backmatter}{ \let\backmatter\relax }{}
+
+
+%
+% Main latex <revhistory> command. It will be redefined by the XSL stylesheets.
+%
+\newcommand{\DBKrevhistory}{}
+
+\usepackage{dbk_fonts}
+\usepackage{dbk_hyper}
+\usepackage{dbk_biblio}
+\usepackage{dbk_table}
+\usepackage{dbk_graphic}
+\usepackage{dbk_verbatim}
+\usepackage{dbk_callout}
+\usepackage{dbk_locale}
+\usepackage{dbk_annot}
+% Beware with changebar and AtEndDocument!
+\usepackage{dbk_changebar}

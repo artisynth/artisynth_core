@@ -1,0 +1,20 @@
+
+% \usepackage[outerbars,traceon,leftbars]{changebar}
+%\usepackage[traceon,leftbars]{changebar}
+%\usepackage[outerbars,traceon]{changebar}
+\usepackage[innerbars,traceon]{changebar}
+
+% La longueur modifiée marche pour le Postscript et PDF, mais pas pour le DVI !
+% position pas mal en DVI : de 41.45172pt à 45.06544pt
+\setlength{\changebarsep}{0.2in}
+% \setlength{\changebarsep}{-0.86in}
+% \setlength{\changebarsep}{-0.85in}
+% \setlength{\changebarsep}{-1.2in}
+
+% On met la meme valeur que \oddsidemargin, pour que cela marche pour
+% toutes les pages.
+%\setlength{\evensidemargin}{2cm}
+% \cb@trace@defpoint{\cb@topleft}{\hoffset}
+% \cb@trace@defpoint{\cb@topleft}{\oddsidemargin}
+% \cb@trace@defpoint{\cb@topleft}{\evensidemargin}
+% \cb@trace@defpoint{\cb@topleft}{\changebarsep}

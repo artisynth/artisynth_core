@@ -1,0 +1,179 @@
+ROOT_DIR = ../../../..
+
+LIB_TARGET_DIR = $(ROOT_DIR)/lib/Linux
+CLASS_DIR = $(ROOT_DIR)/classes/maspack/geometry
+CLASS_ROOT_DIR = $(ROOT_DIR)/classes
+
+default: libs
+
+SYSTEM = $(shell uname)
+MACHINE = $(shell uname -m) # not sure how portable this is ...
+ifeq ($(findstring 64,$(MACHINE)),64)
+   ARCH = 64
+else
+   ARCH = 32
+endif
+
+CC_COMP = g++
+CC_FLAGS = -O2 -DTETLIBRARY -I.
+
+C_COMP = gcc
+C_FLAGS = -O2 -fPIC -std=c99 -mfpmath=sse -msse -I.
+#C_FLAGS = -O2 -g -fPIC -std=c99 -mfpmath=sse -msse -I.
+#C_FLAGS = -O0 -g -fPIC -std=c99 -mfpmath=sse -msse -I.
+
+ifeq ($(SYSTEM),Linux)
+	ifeq ($(ARCH), 64) 
+	   NATIVE_DIR = Linux64
+	   X_FLAGS = -DAMD_64
+	else
+	   NATIVE_DIR = Linux
+	endif
+	TETGEN_TARGET = libTetgenJNI.so.1.0
+	ROBUST_TARGET = libRobustPreds.so.1.0
+	ROBUST_TARGET_OLD = libRobustPreds.so.0.0
+	GETCW_TARGET = libGetCW.so
+	SHEWCHUK_DEF = -DLINUX
+	LIB_FLAGS = -shared
+	X_FLAGS = -fPIC
+	CC_INCS = -I$(JAVA_HOME)/include/ -I$(JAVA_HOME)/include/linux
+else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
+	X_FLAGS = -D_JNI_IMPLEMENTATION_ -DCYGWIN
+	ifeq ($(ARCH), 64) 
+	   NATIVE_DIR = Windows64
+	   C_COMP = x86_64-w64-mingw32-gcc # gcc
+	   C_FLAGS += -static-libgcc
+	   CC_COMP = x86_64-w64-mingw32-g++ # g++
+           CC_FLAGS += -static-libstdc++
+	   X_FLAGS += -m64 -DPTR_EXCEEDS_LONG -DAMD_64
+	else
+	   NATIVE_DIR = Windows
+	   C_COMP = i686-w64-mingw32-gcc
+	   C_FLAGS += -static-libgcc
+	   CC_COMP = i686-w64-mingw32-g++
+	   CC_FLAGS += -static-libstdc++
+	endif
+	ifndef JAVA_HOME
+	   JAVA_HOME = C:/Program Files/Java/jdk1.6.0_24
+        endif
+	CC_INCS = -I"$(JAVA_HOME)/include" -I"$(JAVA_HOME)/include/win32"
+	TETGEN_TARGET = TetgenJNI.1.0.dll
+	ROBUST_TARGET = RobustPreds.1.0.dll
+	ROBUST_TARGET_OLD = RobustPreds.0.0.dll
+	SHEWCHUK_DEF = -DCPU86
+	LIB_FLAGS = -shared -Wl,--add-stdcall-alias -static-libgcc
+else ifeq ($(SYSTEM),Darwin)
+        # XXX assume that all MacOS systems are 64 bit. That's because
+        # we only have 64 bit pardiso for MacOS, and Java has a 64 bit
+        # configuration, regardless of whether we are booting the 32
+        # or 64 bit version of snow leopard
+        NATIVE_DIR = Darwin-x86_64
+        JAVA_HOME=/System/Library/Frameworks/JavaVM.framework/Home
+	CC_INCS = -I$(JAVA_HOME)/include
+	X_FLAGS = -fPIC -DDARWIN -DAMD_64
+	CC_FLAGS += -fpermissive -faltivec
+	TETGEN_TARGET = libTetgenJNI.1.0.dylib
+	ROBUST_TARGET = libRobustPreds.1.0.dylib
+	ROBUST_TARGET_OLD = libRobustPreds.0.0.dylib
+	LIB_FLAGS = -bundle -framework JavaVM
+endif
+
+LIB_TARGET_DIR = $(ROOT_DIR)/lib/$(NATIVE_DIR)
+LIB_TARGETS = \
+	$(LIB_TARGET_DIR)/$(TETGEN_TARGET) \
+	$(LIB_TARGET_DIR)/$(ROBUST_TARGET)
+
+C_FLAGS += $(X_FLAGS)
+CC_FLAGS += $(X_FLAGS)
+
+JNI_H_FILES = \
+	maspack_geometry_TetgenTessellator.h \
+	maspack_geometry_RobustPreds.h
+
+maspack_geometry_TetgenTessellator.h: $(CLASS_DIR)/TetgenTessellator.class
+	$(JAVAH) $(JAVAHFLAGS) -classpath .:$(CLASS_ROOT_DIR) maspack.geometry.TetgenTessellator
+
+maspack_geometry_RobustPreds.h: $(CLASS_DIR)/RobustPreds.class
+	$(JAVAH) $(JAVAHFLAGS) -classpath .:$(CLASS_ROOT_DIR) maspack.geometry.RobustPreds
+
+tetgen.o: tetgen.cxx
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c tetgen.cxx
+
+# these are the predicates used by Tetgen
+# use -O0 to make sure optimbgization is disabled for predicates.o
+# aho: tetgen replies that it works just fine with optimization, 
+#      consider removing the -O0
+predicates.o: predicates.cxx
+	$(CC_COMP) $(CC_FLAGS) -O0 $(CC_INCS) -c predicates.cxx
+
+tetgenJNI.o: tetgenJNI.cc $(JNI_H_FILES)
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c tetgenJNI.cc
+
+tetgenTest: tetgenTest.cc tetgenJNI.o tetgen.o predicates.o
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -static-libgcc  -o $@ $^ -lm
+
+$(LIB_TARGET_DIR)/$(TETGEN_TARGET): tetgenJNI.o tetgen.o predicates.o
+	$(CC_COMP) $(CC_FLAGS) $(LIB_FLAGS) -o $@ $^ -lm
+
+# I am not using the optimization 0 because it is twice as slow
+# I wonder why they do it for predicates.cxx?
+predicatesC.o: predicatesC.c predicatesC.h
+	$(C_COMP) $(C_FLAGS) $(CC_INCS) $(SHEWCHUK_DEF) -c predicatesC.c
+
+geoPredShewchuck.o: geoPredShewchuck.c predicatesC.h 
+	$(C_COMP) $(C_FLAGS) $(CC_INCS) -c $^
+
+exact.o: exact.c exactArithmetic.h exact.h floatStatus.h
+	$(C_COMP) $(C_FLAGS) $(CC_INCS) -c $^
+
+geoPredAJL.o: geoPredAJL.c exactArithmetic.h exact.h floatStatus.h
+	$(C_COMP) $(C_FLAGS) $(CC_INCS) -c $^
+
+RobustPredsJNI.o: RobustPredsJNI.c $(JNI_H_FILES)
+	$(C_COMP) $(C_FLAGS) $(CC_INCS) $(SHEWCHUK_DEF) -c RobustPredsJNI.c
+
+geoPred.o: geoPred.c geoPred.h ahoVectorMacro.h
+	$(C_COMP) $(C_FLAGS) $(CC_INCS) -c $^
+  
+geoPredTest: geoPred.o geoPredTest.c
+	$(C_COMP) $(C_FLAGS) $(CC_INCS) -o $@ $^ -lm
+
+ajlTimeTest: geoPred.o ahoTimeTest.c geoPredAJL.o exact.o
+	$(C_COMP) $(C_FLAGS) $(CC_INCS) -o $@ $^ -lm
+
+shewchuckTimeTest: geoPred.o ahoTimeTest.c geoPredShewchuck.o predicatesC.o
+	$(C_COMP) $(C_FLAGS) $(CC_INCS) -o $@ $^ -lm
+
+vector.o: vecmath/vector.c vecmath/vector.h 
+	$(C_COMP) $(C_FLAGS) $(CC_INCS) -c $^ 
+matrix.o: vecmath/matrix.c vecmath/matrix.h
+	$(C_COMP) $(C_FLAGS) $(CC_INCS) -c $^
+
+AJLConsistencyTest: geoPred.o ahoConsistentTest.c geoPredAJL.o exact.o vector.o matrix.o
+	$(C_COMP) $(C_FLAGS) $(CC_INCS) -o $@ $^ -lm
+
+shewchukConsistencyTest: geoPred.o ahoConsistentTest.c geoPredShewchuck.o predicatesC.o vector.o matrix.o
+	$(C_COMP) $(C_FLAGS) $(CC_INCS) -o $@ $^ -lm
+
+#getCWJNI.o: getCWJNI.c $(JNI_H_FILES)
+#	$(C_COMP) $(C_FLAGS) $(CC_INCS) -c $^
+
+$(LIB_TARGET_DIR)/$(ROBUST_TARGET_OLD): RobustPredsJNI.o geoPred.o geoPredAJL.o exact.o
+	$(C_COMP) $(C_FLAGS) $(LIB_FLAGS) -o $@ $^ -lm
+
+$(LIB_TARGET_DIR)/$(ROBUST_TARGET): RobustPredsJNI.o geoPred.o geoPredShewchuck.o predicatesC.o
+	$(C_COMP) $(C_FLAGS) $(LIB_FLAGS) -o $@ $^ -lm
+#$(LIB_TARGET_DIR)/$(GETCW_TARGET): getCWJNI.o
+#	$(C_COMP) $(C_FLAGS) $(LIB_FLAGS) -o $@ $^ -lm
+
+libs:	$(LIB_TARGETS)
+#$(LIB_TARGET_DIR)/$(GETCW_TARGET)
+
+install: $(LIB_TARGETS)
+	rsync -Crlgo $(LIB_TARGETS) $(WEB_LIB_URL)/$(NATIVE_DIR)
+	$(MAKE_HASHES_AND_FIX_PERMISSIONS)
+
+depend:	$(JNI_H_FILES)
+
+-include $(ROOT_DIR)/Makefile.base
+

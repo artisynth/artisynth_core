@@ -1,0 +1,153 @@
+#!/bin/bash
+# Just in case java is not working set the path here explicit
+#  export JAVA_HOME=/usr/local/sun/jdk1.6.0
+#  export PATH=$JAVA_HOME/bin:$PATH
+
+contains()
+{
+    #contains $PATH $directory
+    if [ -z $1 ] || [ -z $2 ] ; then
+        return 0
+    fi
+    if [ -d $directory ] ; then
+        echo $1 | grep $2 > /dev/null
+        return $?
+    else
+        return 99
+    fi
+}
+
+
+
+if [ $# -ge 2 -a "$1" = "-home" ] ; then
+    ARTISYNTH_HOME=$2
+    ARTISYNTH_PATH=".":$2
+    CLASSPATH=$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/'*'
+#    for JAR in $ARTISYNTH_HOME/lib/*.jar ; do
+#        CLASSPATH=$JAR:$CLASSPATH
+#    done
+    export CLASSPATH
+    export ARTISYNTH_HOME
+    export ARTISYNTH_PATH
+    shift 2
+elif [ "$1" = "-manual" ] ; then
+    shift 1
+
+else 
+    D=`dirname $0`/..
+    export ARTISYNTH_HOME="`cd \"$D\" 2>/dev/null && pwd || echo \"$D\"`"
+    AHOME=$ARTISYNTH_HOME
+    export ARTISYNTH_PATH=".":$HOME:$ARTISYNTH_HOME
+    CLASSPATH=$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/'*'
+#    for JAR in $ARTISYNTH_HOME/lib/*.jar ; do
+#        export CLASSPATH=$JAR:$CLASSPATH
+#    done
+    OS=`uname -s`
+    if [ "$OS" = "Linux" ] ; then
+        contains $LD_LIBRARY_PATH $ARTISYNTH_HOME/lib/$OS
+        if [ $? -ne 0 ] ; then
+            export LD_LIBRARY_PATH=$ARTISYNTH_HOME/lib/$OS:$LD_LIBRARY_PATH
+        fi
+    elif [ "$OS" = "Darwin" ] ; then
+        if [ `uname -p` = "powerpc" ] ; then
+            ARCH="ppc"
+        else
+            ARCH="i386"
+        fi
+        contains $DYLD_LIBRARY_PATH $ARTISYNTH_HOME/lib/$OS-$ARCH
+        if [ $? -ne 0 ] ; then
+            export DYLD_LIBRARY_PATH=$ARTISYNTH_HOME/lib/$OS-$ARCH:$DYLD_LIBRARY_PATH
+        fi
+    elif [ "$OS" = "CYGWIN_NT-5.1" ] || [ "$OS" = "CYGWIN_NT-5.0" ] ; then
+        echo Cygwin on Windows 2000/XP
+        export ARTISYNTH_HOME=`cygpath -w $ARTISYNTH_HOME`	
+        export PATH=$PATH:$ARTISYNTH_HOME/lib/Windows
+        export ARTISYNTH_PATH=$ARTISYNTH_HOME
+	CLASSPATH="$ARTISYNTH_HOME\classes;$ARTISYNTH_HOME\lib"'\*'
+    elif [ $OS = "SunOS" ] && [ `uname -p` = "sparc" ] ; then    
+        if [ `uname -r` = "5.9" ] || [ `uname -r` = "5.10" ] ; then
+            echo OS could work `uname -a`
+            export LD_LIBRARY_PATH=$ARTISYNTH_HOME/lib/SolSparc:$LD_LIBRARY_PATH
+        else
+            echo OS could not work `uname -a`
+            exit 1
+        fi
+    else     
+        echo no native jogl library support for $OS
+        exit 1
+    fi
+
+    if [ "$1" = "-help" ] ; then
+        echo "Usage $0 -env | -home path | -manual | -verbose"
+        echo By default is the classpath and library path set relative to this file 
+        echo artisynth is started 
+        echo alternatives
+        echo "  -env allowd sourcing the into the enviroment"
+        echo "  -home specifies the artisynth_home as a argument with manual enviroment"
+        echo "  -manual manual environment setup"
+        echo "  -fast use jvm server option"
+
+        java artisynth.models.inverse.MainQS $1
+        exit 0
+
+    fi
+
+
+fi 
+
+# All enviroment variables are required in the moment 
+#export ARTISYNTH_HOME=
+#export ARTISYNTH_PATH=
+#export LD_LIBRARY_PATH=
+
+if [ "$1" != "-env" ] ; then
+    
+    LOG=$ARTISYNTH_HOME/artisynth.log
+
+    if [ ! -e $LOG ] ; then
+        echo " " > $LOG
+    else
+        echo "------Start Artisynth----------------" >> $LOG
+    fi
+    echo Error: code $JERR >> $LOG 
+    date >> $LOG
+    uname -a >> $LOG
+    echo script: $0 >> $LOG
+    echo ARTISYNTH_HOME= $ARTISYNTH_HOME >> $LOG
+    echo PATH= $PATH >> $LOG
+    echo CLASSPATH= $CLASSPATH >> $LOG
+    java -version 2>> $LOG
+    if [ $? != "0" ] ; then 
+        echo Error: Java executable not found. Please edit line 3+4 of $0
+        exit 1
+    fi  
+
+    java artisynth.core.util.JVMInfo >> $LOG
+    JERR=$?
+    if [ $JERR != "0" ] ; then 
+
+        echo "Error: Java problem.  Please check README for problem stated in line above" 
+        echo and take a look in the file $LOG.
+        exit 2
+    fi
+    echo "-------------------------------------" >> $LOG
+    
+    JOPS="-Xms200M -Xmx500M -Xmn100M" 
+    if [ "$1" = "-fast" ] ; then
+        JOPS="$JOPS -server -Dsun.java2d.opengl=true"
+        shift 1
+    fi    
+    
+    java $JOPS artisynth.models.inverse.MainInv -largeTimeline -timelineRight -demosFile demoModels.inv $* 
+
+    #$LOPS
+
+    JERR=$?
+    if [ $JERR != "0" ] ; then 
+
+        echo "Error: Java problem.  Please check README for problem stated in line above" 
+        echo and take a look in the file $LOG.
+        exit 2
+    fi
+    exit 0
+fi 

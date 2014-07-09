@@ -1,0 +1,11 @@
+Movies with sound can now be automatically created. 
+In the movie maker dialog, there are the following audio options:
+
+-Record audio: automatically create and merge a wave file with the movie. If this option is selected no audio
+will be heard during the recording of the movie.
+-Render audio text: Outputs audio seperately as an ASCII file containing float values.
+The file will have the same name as the movie, but with a .txt extension
+-Normalize audio: normalizes the audio (whether its to a sound or ASCII file).
+
+Currently the temporary audio files are stored in the /tmp directory for debugging purposes, as well as 
+format conversion (if desired). If this is no longer deemed necessary, they can be deleted in the future.

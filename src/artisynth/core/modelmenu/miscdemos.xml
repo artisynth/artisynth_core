@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Misc. demos -->
+<ModelMenu xmlns="http://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.artisynth.org modelmenu.xsd">
+	
+	<model text="Articulator" class="artisynth.models.articulator.ArticulatorDemo" />
+	<model text="Dental Casts" class="artisynth.models.articulator.DentalDemo" />
+	<model text="Kura Face" class="artisynth.models.kuraFace.KuraFaceModelRoot" />
+	<model text="Badin Face" class="artisynth.models.face.BadinFaceDemo" />
+	<model text="Badin FEM-Muscle Face" class="artisynth.models.face.BadinFemMuscleFaceDemo" />
+	<model text="Reference Face" class="artisynth.models.face.RefFaceDemo" />
+	<model text="Reference FEM-Muscle Face" class="artisynth.models.face.RefFemMuscleFaceDemo" />
+	<model text="Rat Leg" class="artisynth.models.ratLeg.RatLeg" />
+	<model text="Soft Palate" class="artisynth.models.palate.SoftPalateDemo" />
+	<model text="Vocal-Nasal Tract" class="artisynth.models.tubesounds.VTNTDemo" />
+	<model text="VH Larynx" class="artisynth.models.larynx.VHLarynxDemo" />
+
+</ModelMenu>

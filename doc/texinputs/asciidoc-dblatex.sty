@@ -1,0 +1,79 @@
+%%
+%% This style is derived from the docbook one.
+%%
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{asciidoc-dblatex}[2008/06/05 AsciiDoc DocBook Style]
+%% Just use the original package and pass the options.
+\RequirePackageWithOptions{docbook}
+
+% Sidebar is a boxed minipage that can contain verbatim.
+% Changed shadow box to double box.
+\renewenvironment{sidebar}[1][0.95\textwidth]{
+  \hspace{0mm}\newline%
+  \noindent\begin{Sbox}\begin{minipage}{#1}%
+  \setlength\parskip{\medskipamount}%
+}{
+  \end{minipage}\end{Sbox}\doublebox{\TheSbox}%
+}
+
+% Redefine how to print the cover page and book infos
+\def\maketitle{
+  \thispagestyle{empty}
+  \DBKcover
+  \if\DBKcopyright\@empty\else
+    \DBKcopyright \\
+  \fi
+  \if\DBKlegalblock\@empty\else
+    \DBKlegalblock
+  \fi
+  \newpage
+  \pagestyle{fancyplain}
+%  \DBKdomitete
+}
+
+%\def\DBKdomitete{}
+
+\def\DBKcover{
+\ifthenelse{\equal{\DBKedition}{}}{\def\edhead{}}{\def\edhead{Ed. \DBKedition}}
+
+% interligne double
+\setlength{\oldbaselineskip}{\baselineskip}
+\setlength{\baselineskip}{2\oldbaselineskip}
+\textsf{
+%\vfill
+\vspace{2.5cm}
+\ \\ %
+%\begin{center}
+  \Huge{\textbf{\DBKtitle}}\\ %
+  \ifthenelse{\equal{\DBKsubtitle}{}}{}{
+  % \underline{\ \ \ \ \ \ \ \ \ \ \ }\\ %
+  \ \\ %
+  \huge{\textbf{\DBKsubtitle}}\\ %
+  }
+  \vspace{0.5cm}
+  \hrule
+  \vspace{0.5cm}
+  \Large{\textbf{\DBKauthor}}\\
+  \Large{\DBKpubdate}
+%\end{center}
+\vfill
+\setlength{\baselineskip}{\oldbaselineskip}
+\hspace{1cm}
+\vspace{1cm}
+\begin{center}
+\begin{tabular}{p{7cm} p{7cm}}
+\Large{\DBKreference{} \edhead} & \\
+\end{tabular}
+\end{center}
+}
+
+% Format for the other pages
+\newpage
+\setlength{\baselineskip}{\oldbaselineskip}
+\chead[]{\DBKcheadfront}
+\lfoot[]{}
+}
+
+% For DocBook literallayout elements, see `./dblatex/dblatex-readme.txt`.
+\usepackage{alltt}
+%\usepackage[htt]{hyphenat}

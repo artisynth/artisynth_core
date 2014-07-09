@@ -1,0 +1,82 @@
+
+For testing, I've checked in the script mechmodelTest.py to
+core.mechmodels. If you run artisynth in that directory (or have
+mechmodelTest.py anywhere in one of your ARTISYNTH_PATH directories),
+then you should get a "scripts" menu that contains mechmodelTest.
+
+Note that you don't need .artisynthScripts any more - the system simply
+looks for .py files containing a header of the form
+
+# ArtisynthScript: "NameOfScript"
+
+Before you run the script, make sure your artisynth command line
+options are as described in the comments at the top of the script
+file. At present, that means you want the following options set:
+
+-posCorrection GlobalMass
+-disableHybridSolves
+
+while you also want to ensure that the following are NOT set:
+
+-noIncompressDamping
+-useAjlCollision
+
+Also, set OMP_NUM_THREADS to 1. In particular, hybrid solves and
+OMP_NUM_THREADS > 1 lead to numerical indeterminacy in Pardiso.
+
+When you run the script, it should exercise a variety of demos,
+including now the JawLarynx demo, with different integrators, and save
+all the state to a file called mechmodelTest.out.
+
+* The script takes a couple of minutes to run
+
+* The output file is 30+ mbytes.
+
+* The output file should have (currently) 21226 lines. Make sure of
+  this, because on Peter Anderson's machine, it seems to skip some
+  steps for reasons that I haven't hunted down yet. It runs fine on
+  both my Linux systems and my MacOS; if you have a problem, let me
+  know.
+
+Once you have mechmodelTest.out, save it to a reference file, say
+mechmodelTest.ref.
+
+Then, when you want to do a regression test, run the script again and
+compare mechmodelTest.ref with mechmodelTest.out, using
+
+java artisynth.core.util.CompareStateFiles mechmodelTest.out mechmodelTest.ref
+
+The absolute best answer you can get is:
+
+max vel error=0 at 'null', time 0.0
+max pos error=0 at 'null', time 0.0
+
+which means the states are identical.
+
+If the numbers haven't changed, and the exact sequence of arithmetic
+instructions is the same, you should get this. If I've rearranged the
+order of operations in a computation, I'm more likely to get errors in
+the machine precision range (say, e-12 or e-13).
+
+If you get worse errors, you'll probably want more detail. If you pass
+the '-a' option to CompareStateFiles, you'll get the errors broken
+down by demo and integrator.
+
+One thing to note: there seems to be an indeterminacy in the
+InverseTongue demo - that can sometimes lead to a velocity error of
+around 0.0001 and a position error of around 10e-7. I've learned to
+ignore this :-)
+
+Finally, you can create your own (maybe shorter) tests by cloning
+mechmodelTest.py and and removing sections or adding other demos. One
+thing to note is that the first demo needs to open the data file with
+
+pw = mech.openPrintStateFile (dataFileName)
+
+while subsequent demos need to reopen the file with
+
+pw = mech.reopenPrintStateFile (dataFileName)
+
+cheers!
+
+J

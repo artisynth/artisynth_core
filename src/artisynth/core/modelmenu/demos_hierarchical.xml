@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Hierarchical display of all the demo models -->
+<ModelMenu xmlns="http://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.artisynth.org modelmenu.xsd">
+
+	<menu text="FEM">
+		<include file="src/artisynth/core/modelmenu/femdemos.xml" />
+	</menu>
+	<menu text="Jaw/Tongue">
+		<include file="src/artisynth/core/modelmenu/jawtonguedemos.xml" />
+	</menu>
+	<menu text="Inverse">
+		<include file="src/artisynth/core/modelmenu/inversedemos.xml" />
+	</menu>
+
+	<menu text="Mech">
+		<include file="src/artisynth/core/modelmenu/mechdemos.xml" />
+	</menu>
+
+	<menu text="Miscellaneous" >
+		<include file="src/artisynth/core/modelmenu/miscdemos.xml" />
+	</menu>
+</ModelMenu>

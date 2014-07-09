@@ -1,0 +1,7 @@
+#
+# startup config file for the artisynth command. Entries in this file
+# are identical to the command line options.
+#
+-abortOnInvertedElems 
+#-usePardiso4
+#-demosMenu models.xml

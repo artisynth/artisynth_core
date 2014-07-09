@@ -1,0 +1,210 @@
+# artisynth web account needed to transfer files to artisynth web server
+ifndef ARTISYNTH_WEB_ACCOUNT
+ARTISYNTH_WEB_ACCOUNT = $(USER)
+endif
+
+# variable related to accessing the artisynth web server, where we
+# keep online documentation, library files, etc.
+WEBSERVER = www.magic.ubc.ca
+WEB_HOME = /ubc/magic/home/wwwrun/docs/artisynth
+WEB_LIB_DIR = $(WEB_HOME)/files/lib
+WEB_LIB_URL = $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER):$(WEB_LIB_DIR)
+# makes sure that group file permissions are set properly on the web server
+MAKE_HASHES_AND_FIX_PERMISSIONS = ssh $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER) \
+ "(cd $(WEB_LIB_DIR); make hashes )"
+
+SYSTEM = $(shell uname)
+ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
+   # On CYGWIN, get the full path name for javac because xargs may have trouble
+   # if it expands it internally and it contains spaces
+   JAVAC = $(shell which javac)
+else
+   JAVAC = javac
+endif
+JAVACFLAGS = -J-Xms500m -J-Xmx500m -d $(ROOT_DIR)/classes -sourcepath $(ROOT_DIR)/src -source 1.6 -target 1.6
+JAVAH = javah
+JAVAHFLAGS = -jni -force
+
+LD = ld
+LD_FLAGS = 
+LD_SHARED = -shared
+LD_SO = $(LD) $(LD_FLAGS) $(LD_SHARED)
+
+JUNKFILES = *.o *~ *.class .\#* \#*
+
+RM_CMD = rm -rf
+
+%.class: %.java
+	$(JAVAC) $(JAVACFLAGS) $<
+
+#
+# Recursively call make into a set of subdirectories.
+# If an error is encountered, then force an exit if 
+# the letter 'k' does not appear in MFLAGS.
+#
+define RUN_MAKE_IN_SUBDIRS
+	@for dd in $^ _XX_STOP_XX_ ; do \
+           if [ -d $$dd ] ; then \
+              echo Running $(MAKE) $(MFLAGS) $@ in $$dd -- ; \
+              if (cd $$dd; $(MAKE) $(MFLAGS) $@) ; then true ; else \
+		 if echo $(MFLAGS) | grep -q -v k ; then exit 1; fi ; \
+              fi ; \
+           fi ; \
+        done
+endef
+
+#
+# Recursively call make into a set of subdirectories, only
+# do so silently. If an error is encountered, then force
+# an exit if the letter 'k' does not appear in MFLAGS.
+#
+define RUN_SILENT_MAKE_IN_SUBDIRS
+	@for dd in $^ _XX_STOP_XX_ ; do \
+           if [ -d $$dd ] ; then \
+              if (cd $$dd; $(MAKE) -s $(MFLAGS) $@ ); then true ; else \
+	         if echo $(MFLAGS) | grep -q -v k ; then exit 1; fi ; \
+	      fi ; \
+           fi ; \
+        done
+endef
+
+define PRINT_HELP_MESSAGE
+	@echo "Lower case commands work locally in the current directory,"
+        @echo "while upper case versions of the same command are applied"
+	@echo "recursively in subdirectories."
+	@echo ""
+	@for msg in $(HELP_MSGS) ; do\
+	   echo "  make" $$msg; \
+	done
+	@echo ""
+endef
+	
+PACKAGE_DIR =$(subst .,/,$(PACKAGE_NAME))
+VPATH = $(ROOT_DIR)/classes/$(PACKAGE_DIR)
+PACKAGE_CLASSES = $(subst .java,.class,$(PACKAGE_JAVA_FILES))
+
+.c.o:
+	$(CC) $(CFLAGS) -c $(C_INCS) $< -o $@
+
+.PHONY: help
+help:
+	$(PRINT_HELP_MESSAGE)
+
+.PHONY: klean
+klean:
+	rm -f `find -L . -name "*~"`
+	find -L . -name "*.class" -exec rm {} \;
+
+.PHONY: build
+build:
+	find -L . -name "*.java" -print | xargs -s 27000 "$(JAVAC)" $(JAVACFLAGS)
+
+.PHONY: all
+all:
+	$(JAVAC) $(JAVACFLAGS) *.java
+
+.PHONY: classes CLASSES
+
+HELP_MSGS += "classes: build class files (if any) in this directory"
+HELP_MSGS += "CLASSES: recursively call 'make classes' in subdirectories"
+
+classes CLASSES:: $(PACKAGE_CLASSES)
+
+CLASSES:: $(JAVA_SUBDIRS)
+	$(RUN_MAKE_IN_SUBDIRS)
+
+.PHONY: clean CLEAN
+
+HELP_MSGS += "clean: remove class and junkfiles"
+HELP_MSGS += "CLEAN: recursively call 'make clean' in subdirectories"
+
+clean CLEAN::
+	$(RM_CMD) $(JUNKFILES)
+	$(RM_CMD) $(ROOT_DIR)/classes/$(PACKAGE_DIR)/*.class
+
+CLEAN::	$(JAVA_SUBDIRS)
+	$(RUN_MAKE_IN_SUBDIRS)
+
+.PHONY: test TEST
+
+HELP_MSGS += "test: run tests in this directory"
+HELP_MSGS += "TEST: recursively call 'make test' in subdirectories"
+
+TEST:: $(JAVA_SUBDIRS)
+	$(RUN_SILENT_MAKE_IN_SUBDIRS)
+
+TEST test::
+ifneq ($(JAVA_TEST_PROGRAMS),)
+	@for p in $(JAVA_TEST_PROGRAMS) ; do \
+	   echo java $(PACKAGE_NAME).$$p ; \
+	   java $(PACKAGE_NAME).$$p ; \
+	done
+endif
+
+.PHONY: list_classes LIST_CLASSES
+
+list_classes LIST_CLASSES::
+ifneq ($(PACKAGE_JAVA_FILES),)
+	@for c in $(basename $(PACKAGE_JAVA_FILES)) ; do \
+	   echo $(PACKAGE_NAME).$$c ; \
+	done
+endif
+
+LIST_CLASSES::$(JAVA_SUBDIRS)
+	$(RUN_SILENT_MAKE_IN_SUBDIRS)
+
+.PHONY: list_java_files LIST_JAVA_FILES
+
+HELP_MSGS += "list_java_files: list package java files in this directory"
+HELP_MSGS += "LIST_JAVA_FILES: recursively list package java files"
+
+list_java_files LIST_JAVA_FILES::
+ifneq ($(PACKAGE_JAVA_FILES),)
+	@for c in $(PACKAGE_JAVA_FILES) ; do \
+	   echo $(subst .,/,$(PACKAGE_NAME).$$c) ; \
+	done
+endif
+
+LIST_JAVA_FILES::$(JAVA_SUBDIRS)
+	$(RUN_SILENT_MAKE_IN_SUBDIRS)
+
+.PHONY: list_extra_files LIST_EXTRA_FILES
+
+HELP_MSGS += "list_extra_files: list additional package files in this directory"
+HELP_MSGS += "LIST_JAVA_FILES: recursively list additional package files"
+
+list_extra_files LIST_EXTRA_FILES::
+ifneq ($(EXTRA_FILES),)
+	@for c in $(EXTRA_FILES) ; do \
+	   echo $(subst .,/,$(PACKAGE_NAME))/$$c ; \
+	done
+endif
+
+LIST_EXTRA_FILES::$(JAVA_SUBDIRS)
+	$(RUN_SILENT_MAKE_IN_SUBDIRS)
+
+.PHONY: list_package LIST_PACKAGES
+
+HELP_MSGS += "list_package: show the package name for this directory"
+HELP_MSGS += "LIST_PACKAGES: recursively list package names in subdirectories"
+
+list_package LIST_PACKAGES::
+ifneq ($(PACKAGE_JAVA_FILES),)
+	@echo $(PACKAGE_NAME)
+endif
+
+LIST_PACKAGES::$(JAVA_SUBDIRS)
+	$(RUN_SILENT_MAKE_IN_SUBDIRS)
+
+.PHONY: list_package_dir LIST_PACKAGE_DIRS
+list_package_dir LIST_PACKAGE_DIRS::
+ifneq ($(PACKAGE_NAME),)
+	@echo $(subst .,/,$(PACKAGE_NAME))
+endif
+
+LIST_PACKAGE_DIRS::$(JAVA_SUBDIRS)
+	$(RUN_SILENT_MAKE_IN_SUBDIRS)
+
+check-syntax:
+	cd $(ROOT_DIR)/src; javac ${CHK_SOURCES}
+

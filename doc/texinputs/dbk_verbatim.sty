@@ -1,0 +1,60 @@
+
+\usepackage{listings}
+\usepackage{color}
+
+\definecolor{hellgelb}{rgb}{1,1,0.9}
+\definecolor{colKeys}{rgb}{0,0,1}
+\definecolor{colIdentifier}{rgb}{0,0,0}
+\definecolor{colComments}{rgb}{1,0,0}
+\definecolor{colString}{rgb}{0,0.5,0}
+
+% Symbol to put when line wraps
+\newcommand{\wrapsign}{\hbox{\rm\ensuremath\hookleftarrow}}
+
+%
+% Default verbatim layout used if \lstparamset not defined
+%
+\@ifundefined{lstparamset}{
+\lstset{%
+    basicstyle=\ttfamily\small, %
+    identifierstyle=\color{colIdentifier}, %
+    keywordstyle=\color{colKeys}, %
+    stringstyle=\color{colString}, %
+    commentstyle=\color{colComments}, %
+    tabsize=2, %
+    frame=single, %
+    framerule=0pt, %
+    extendedchars=true, %
+    showspaces=false, %
+    showlines=true, %
+    showstringspaces=false, %
+    numberstyle=\tiny, %
+    breaklines=true, %
+    prebreak={\space\wrapsign}, %
+    backgroundcolor=\color[gray]{0.95}, %
+    breakautoindent=true, %
+    captionpos=b%
+}
+}{
+% Call the user macro that defines the layout
+\lstparamset
+}
+
+%
+% GAP language, derivated from Pascal, has more keywords to highlight
+%
+\lstdefinelanguage[]{GAP}[]{Pascal}{%
+    morekeywords={od,fi,alias}%
+}
+
+% Lengths to compute the listing width from the number of characters
+\newlength{\lstcharwidth}
+\newlength{\lstframesep}
+\newlength{\lstwidth}
+\setlength{\lstcharwidth}{0.51em}
+\setlength{\lstframesep}{\lst@frametextsep}
+
+% Environment to render fancyvrb like listings does
+\newenvironment{fvlisting}[1][]
+  {\lstset{fancyvrb,#1}}
+  {\lstset{fancyvrb=false}}

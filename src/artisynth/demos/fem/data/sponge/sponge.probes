@@ -1,0 +1,63 @@
+[
+  NumericInputProbe 
+  [ name="activations"
+    stopTime=5000000000
+    attachedFile="act.txt"
+    displayRange=[ -0.10500000000000001 1.155 ]
+    track=0
+#    element=models/sponge
+    props=
+    [ 
+      models/sponge:activations
+    ]
+    drivers=
+    [ 
+      "V0"
+    ]
+    inputs=
+    [ 
+      V0 9
+    ]
+  ]
+#  NumericOutputProbe 
+#  [ name="targetPos"
+#    stopTime=5000000000
+#    attachedFile="targetPos.txt"
+#    updateInterval=10000000
+#    displayRange=[ -0.1 0.1 ]
+#    track=0
+#    props=
+#    [ 
+#      models/sponge:targetPos
+#    ]
+#    variables=
+#    [ 
+#      P0
+#    ]
+#    drivers=
+#    [ 
+#      "P0"
+#    ]
+#  ]
+#  NumericOutputProbe 
+#  [ name="targetVel"
+#    startTime=10000000
+#    stopTime=5010000000
+#    attachedFile="targetVel.txt"
+#    updateInterval=10000000
+#    displayRange=[ -0.1 0.2 ]
+#    track=1
+#    props=
+#    [ 
+#      models/sponge:targetVel
+#    ]
+#    variables=
+#    [ 
+#      P0
+#    ]
+#    drivers=
+#    [ 
+#      "P0"
+#    ]
+#  ]
+]

@@ -1,0 +1,43 @@
+#!/bin/bash
+#
+# finds the directory path for an executable, given the $0 argument.
+# This is used to find the ArtiSynth home directory
+#
+if [ $# != 1 ] ; then
+   echo "Usage: execdir <arg0>"
+   exit 0
+fi
+# 
+# From Julian Smart, at http://www.wxwidgets.org/docs/technote/install.htm:
+#
+arg0=$1
+directory=
+if [ `expr $arg0 : "/.*"` != 0 ] ; then
+   #
+   # absolute path; just use the directory part
+   #
+   directory="$(dirname "$arg0")"
+elif [ `expr $arg0 : ".*/.*"` != 0 ] ; then
+   #
+   # relative directory, append to CWD
+   #
+   targetdir="$(dirname "$arg0")"
+   directory=`cd $targetdir; pwd`
+else
+   #
+   # search the path
+   #
+   for dir in `echo $PATH | sed 's/:/ /g'` ; do 
+      if [ -e $dir/$arg0 ] ; then
+         directory=$dir/$arg0
+         break 
+      fi
+   done
+fi
+if [ -z $directory ] ; then
+   # not found
+   echo ""
+   exit 1
+else
+   echo $directory
+fi

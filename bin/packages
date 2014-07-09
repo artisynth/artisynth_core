@@ -1,0 +1,16 @@
+#!/bin/bash
+#
+# Program to list all packages imported by a set of javafiles.  If no
+# arguments are specified, we search for all javafiles under the
+# current working directory
+#
+PATTERN="^import (maspack|artisynth)"
+#PATTERN="^import (artisynth\.models)"
+SUB1="s/import //"
+SUB2="s/\.[^.;]*\;//"
+if [ $# -eq 0 ]; then
+   egrep -h "$PATTERN" `find . -name '*.java'` | sed "$SUB1" | sed "$SUB2" \
+    | sort | uniq
+else
+   egrep -h "$PATTERN" $* | sed "$SUB1" | sed "$SUB2" | sort | uniq
+fi

@@ -1,0 +1,16 @@
+long_rp
+long_rm
+long_ra
+long_lp
+long_lm
+long_la
+long_sp
+long_sm
+long_sa
+long_ip
+long_im
+long_ia
+vert_a
+vert_p
+horz_a
+horz_p

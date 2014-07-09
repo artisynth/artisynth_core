@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- This is a sample menu that demonstrates the capabilities of this XML 
+	menu format. 
+	Enable this demos menu with the command-line option "-demosMenu	<filename>" 
+	-->
+
+<ModelMenu xmlns="http://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.artisynth.org modelmenu.xsd">
+
+	<menu text="Distribution" icon="src/artisynth/core/gui/icon/artisynth16.gif">
+		<!-- loads a regular .demoModes file and places models in the current submenu -->
+		<demosFile file=".demoModels" />
+	</menu>
+
+	<menu text="Mech Demos">
+		<include file="mechdemos.xml" />
+	</menu>
+
+	<menu text="OpenSim">
+		<!-- explicitly define models -->
+		<model text="OpenSim Arm Demo" class="artisynth.models.opensim.ArmDemo" />
+		<model text="OpenSim Arm Inverse" class="artisynth.models.opensim.ArmInv" />
+	</menu>
+	
+	<!-- A menu separator -->
+	<separator />
+
+	<menu text="Models in artisynth.models">
+		<!-- searches for and includes all RootModels in artisynth.models -->
+		<package source="artisynth.models" view="hierarchical" />
+	</menu>
+	<menu text="    ''    (compact)">
+		<!-- creates a more compact menu by merging submenus containing only one 
+			entry with its parent -->
+		<package source="artisynth.models" view="hierarchical"
+			compact="1" />
+	</menu>
+	<menu text="    ''    (super compact)">
+		<!-- same as before but shortens the titles -->
+		<package source="artisynth.models" view="hierarchical"
+			compact="2" />
+	</menu>
+	<menu text="'JawDemo' Models (flat)">
+		<!-- Finds all classes that inherit from 'JawDemo' and displays in a flat 
+			structure -->
+		<package source="artisynt.models" base="JawDemo" view="flat"
+			compact="0" />
+	</menu>
+	<menu text="    ''    (flat, compact)">
+		<package source="artisynth.models" base="JawDemo" view="flat"
+			compact="1" />
+	</menu>
+	<menu text="    ''    (flat, super compact)">
+		<package source="artisynth.models" base="artisynth.models.dynjaw.JawDemo"
+			view="flat" compact="2" />
+	</menu>
+
+	<separator />
+	<model text="myCF Loader" icon="src/artisynth/core/gui/icon/mycf16.gif"
+		class="artisynth.models.myCF.Loader" />
+	<model text="&quot;HyperSkin&quot; Demo" class="artisynth.models.mechdemos.HyperSkinDemo" />
+</ModelMenu>

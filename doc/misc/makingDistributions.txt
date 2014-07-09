@@ -1,0 +1,126 @@
+NOTE: April, 2010: This is now a bit out of date. In particular, we
+create distributions from fresh checkouts, obviating the need for
+EXTRA_FILES to be specified in Makefiles as decsribed below.
+
+
+		  Creating an ArtiSynth Distribution
+		  ----------------------------------
+
+			      John Lloyd
+		August 8, 2005, revised June 15, 2006
+
+
+Make command for creating a distribution
+
+    The command
+
+    % make distribution
+
+    when run from the ArtiSynth home directory, will create a
+    distribution in www/artisynth_2_0.  Any existing distribution is
+    removed, files are copied from the main directory into the
+    distribution directory, and then the java files are compiled and
+    the javadocs are built.
+
+    After this is done, you can test the distribution with the command
+   
+    % artisynth -home www/artisynth_2_0
+
+    which is described below.
+
+Other commands used for building a distribution:
+
+    The following command scripts reside in $ARTISYNTH_HOME/bin:
+
+    artisynth
+
+	runs java artisynth.core.driver.Main, along with any supplied
+        additional arguments. You can also specify the ARTISYNTH_HOME
+        directory using -home as the first option:
+
+	% artisynth -home www/artisynth_2_0
+
+        This is useful for testing the distribution without having to
+        reset your environment. The -home option will reset
+        ARTISYNTH_HOME, ARTISYNTH_PATH, and CLASSPATH to appropriate
+        values within the distribution. Binary path settings (PATH,
+        LD_LIBRARY_PATH, etc.) are not currently reset.
+        
+    copyDistribution <sourceDir> <targetDir>
+
+	Copies an Artisynth distribution from a specified source directory
+        to a specified target directory. The 'make distribution' command
+        uses this script.
+
+	For more information on *what* files are copied see below.
+
+    buildDistribution <targetDir>
+
+	Compiles the java files and builds the javadocs within the
+	specified target directory. CLASSPATH is set to the
+	appropriate entries within the distribution, so that you don't
+	inadvertently rely on classes within the original sources. The
+	'make distribution' command uses this script.
+
+    It is probably reasonable for people to add ARTISYNTH_HOME/bin to
+    their PATH; I have updated the README document accordingly.
+
+Makefiles in source directories:
+
+    copyDistribution determines which files to copy by examining the
+    Makefile in each source directory. That means your source
+    directory *must* contain a Makefile in the usual ArtiSynth
+    format. An example bare-bones Makefile looks like this:
+
+	ROOT_DIR = ../../../..
+	PACKAGE_NAME = artisynth.models.mochadata
+
+	JAVA_SUBDIRS =
+
+	PACKAGE_JAVA_FILES = \
+        	MochaModel.java
+
+	EXTRA_FILES =
+
+	default: CLASSES
+
+	-include $(ROOT_DIR)/buildconfig/Makefile.base
+
+    ROOT_DIR is a path that leads from the current directory up to the
+    ArtiSynth home directory.
+
+    PACKAGE_NAME is the full name of the java package defined in this
+    sub-directory.
+
+    JAVA_SUBDIRS is a list of sub-directories containing additional
+    packages. For example, in the Makefile for artisynth.core.gui,
+    this variable is set to
+
+	JAVA_SUBDIRS = timeline selectionManager
+
+    corresponding to the sub-package directories for 
+    artisynth.core.gui.timeline and artisynth.core.gui.selectionManager
+
+    PACKAGE_JAVA_FILES is a list of all java files which should be used
+    to build the package. It is probably most readable to list these one per
+    line, using the line continuation character '\'.
+
+    EXTRA_FILES is a list of any other non-java files which need to be
+    included in the package (for example, data files, .gif files for
+    icons, or .obj files for meshes). Again, it is probably most
+    readable to list these one per line, using the line continuation
+    character '\'.
+
+    The remaining entries specify the default build target and include
+    the ArtiSynth Makefile definitions; there are standard and do not
+    need to be changed.
+
+    For examples, check out any of the existing Makefiles scattered
+    throughout the distribution.
+
+Specifying other files:
+
+    copyDistribution copies a number of files and directories by
+    default, like Makefile, README, bin, lib, etc. If you know of
+    addtional top-level files that need copying, you can add them to
+    the OTHER_FILES variable in the copyDistribution script.

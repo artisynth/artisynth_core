@@ -1,0 +1,59 @@
+Spec for SignedDistanceCollider
+July 27, 2010
+
+* Create a new class SignedDistanceCollider in maspack.collision. This
+  will return information similar to SurfaceMeshCollider, only it will
+  use signed distance functions to do its work.
+
+* SignedDistanceCollider should implement the following public method:
+
+        ContactInfo getContacts (
+                PolygonalMesh mesh0, PolygonalMesh mesh1,
+                boolean isRigidBodyRigidBody);
+
+
+  This returns a ContactInfo structure describing contacts between
+  mesh0 and mesh1. 
+
+  For now, ignore the flag isRigidBodyRigidBody and assume that it is
+  false. The assume that mesh0 is the fixed (rigid body) mesh and 
+  that mesh1 is the deformable body mesh. ContactPenetratingPoints
+  will only be created for mesh1.
+
+  Fields within the ContactInfo structure should be filled out as follows:
+
+        intersections           <- should be left empty
+        mesh0                   <- set to mesh0
+        mesh1                   <- set to mesh1
+        points0                 <- should be left empty for now
+        points1                 <- set to a list of ContactPenetratingPoints
+                                   for mesh1, as described below
+        edgeEdgeContacts        <- should be left empty
+        regions                 <- should be left empty
+        
+* The list of ContactPenetratingPoints for a given mesh is created as follows:
+
+  Test each vertex on the mesh to see if it is interpenetrating the
+  other mesh (i.e., distance <= 0). If it is, then a
+  ContactPenetratingPoint is created for this vertex and added to the
+  list. The fields of the ContactPenetratingPoint should be filled out
+  as follows:
+
+        vertex          <- set to the interpenetrating vertex
+        face            <- left null
+        coords          <- left unset
+	point           <- nearest point to the vertex (world coords)
+        normal          <- normal from the vertex to the surface (world coords)
+        distance        <- distance from the vertex to the surface
+
+  You should be able to do this by creating a new
+  ContactPenetratingPoint using the constructor
+
+        ContactPenetratingPoint (vertex, normal, distance);
+                
+  The normal should be in world coordinates. That means that if the
+  mesh has a transform, it should be used to transform the normal from
+  mesh coordinates to world coordinates.
+
+
+

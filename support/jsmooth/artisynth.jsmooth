@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<jsmoothproject>
+<JVMSearchPath>registry</JVMSearchPath>
+<JVMSearchPath>javahome</JVMSearchPath>
+<JVMSearchPath>jrepath</JVMSearchPath>
+<JVMSearchPath>jdkpath</JVMSearchPath>
+<JVMSearchPath>exepath</JVMSearchPath>
+<JVMSearchPath>jview</JVMSearchPath>
+<arguments></arguments>
+<classPath>..\..\lib\jogl.jar</classPath>
+<classPath>..\..\classes</classPath>
+<classPath>..\..\lib\argparser.jar</classPath>
+<classPath>..\..\lib\jass.jar</classPath>
+<classPath>..\..\lib\quickhull3d.jar</classPath>
+<classPath>..\..\lib\vclipx.jar</classPath>
+<classPath>..\..\lib\jmf.jar</classPath>
+<classPath>..\..\lib\looks.jar</classPath>
+<classPath>..\..\lib\jython.jar</classPath>
+<currentDirectory>..\..</currentDirectory>
+<embeddedJar>false</embeddedJar>
+<executableName>..\..\bin\artisynth.exe</executableName>
+<iconLocation>artisynth_icon.png.png</iconLocation>
+<initialMemoryHeap>134217728</initialMemoryHeap>
+<mainClassName>artisynth.core.driver.Main</mainClassName>
+<maximumMemoryHeap>268435456</maximumMemoryHeap>
+<maximumVersion>1.6.0</maximumVersion>
+<minimumVersion>1.5.0</minimumVersion>
+<skeletonName>Windowed Wrapper</skeletonName>
+<skeletonProperties>
+<key>Message</key>
+<value>Java has not been found on your computer. Do you want to download it?</value>
+</skeletonProperties>
+<skeletonProperties>
+<key>URL</key>
+<value>www.java.com/en/download/manual.jsp</value>
+</skeletonProperties>
+<skeletonProperties>
+<key>SingleProcess</key>
+<value>1</value>
+</skeletonProperties>
+<skeletonProperties>
+<key>Debug</key>
+<value>0</value>
+</skeletonProperties>
+</jsmoothproject>

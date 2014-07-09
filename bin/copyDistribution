@@ -1,0 +1,62 @@
+#!/bin/sh
+if [ $# != 2 ] ; then
+   echo "Usage: copyDistribution <sourceDirectory> <targetDirectory>"
+   exit 1
+fi
+if [ -e $2 ] ; then
+   echo "Target directory" $2 "already exists; remove it first"
+   exit 1
+fi
+echo "copying Artisynth distribution"
+START_DIR=`pwd`
+echo "current directory is" $START_DIR
+cd $1
+SOURCE_DIR=`pwd`
+echo "source directory =" $SOURCE_DIR
+cd $START_DIR
+mkdir $2
+cd $2
+TARGET_DIR=`pwd`
+echo "target directory =" $TARGET_DIR
+cd $SOURCE_DIR
+#if [ ! -f DIST_PACKAGES ] ; then
+#   echo "Source directory does not contain file DIST_PACKAGES listing the"
+#   echo "packages to be included in the distribution"
+#   exit 1
+#fi
+if [ ! -f DIST_MANIFEST ] ; then
+   echo "Source directory does not contain file DIST_MANIFEST listing the"
+   echo "non-package files to be included in the distribution"
+   exit 1
+fi
+EXCLUDE_FILE=
+if [ -f DIST_EXCLUDE ] ; then
+   EXCLUDE_FILE="--exclude-from DIST_EXCLUDE"
+fi
+echo "copying source files ..."
+mkdir $TARGET_DIR/classes
+#mkdir $TARGET_DIR/tmp
+cd $SOURCE_DIR/src
+
+## The following section copies the package directories, excluding any
+## java directories which are not themselves package directories.
+#
+## create a list of all the package directories:
+#cat $SOURCE_DIR/DIST_PACKAGES | sed "s|\.|/|g" | sed "s|^|./|" > __packageDirs
+## create a list of directories containing java files within the package forest:
+#find `cat __packageDirs` -name '*.java' -printf '%h\n' | sort -u > __javaDirs
+## create the exclude list:
+#EXCLUDES="--exclude=CVS"
+#EXCLUDES="--exclude=.svn"
+#for d in `cat __javaDirs __packageDirs | sort | uniq -u` ; do
+#   EXCLUDES="$EXCLUDES --exclude=$d"
+#done
+#tar cf - $EXCLUDES `cat __packageDirs` | (cd $TARGET_DIR/src; tar xvf -)
+## don't really like creating temp files but this is the easiest way ..
+#rm -f __packageDirs __javaDirs
+
+cd $SOURCE_DIR
+EXCLUDES="--exclude=CVS"
+EXCLUDES="--exclude=.svn"
+tar cf - $EXCLUDES $EXCLUDE_FILE `cat DIST_MANIFEST` | (cd $TARGET_DIR; tar xvf -)
+echo "done"

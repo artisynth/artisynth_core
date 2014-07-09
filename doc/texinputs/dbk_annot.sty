@@ -1,0 +1,113 @@
+%%
+%% PDF Text Annotations to handle comments/remarks
+%%
+%% This code has been based on the following sources, where other variants can be
+%% found too:
+%%
+%% * http://www.tug.org/pipermail/pdftex/2002-December/003330.html
+%% * http://www.ce.cmu.edu/~kijoo/latex2pdf.pdf
+%% * ConTeXt
+%%
+%% See also the Adobe PDF Reference directly for the syntax of the Annotation object:
+%%
+%% * http://partners.adobe.com/public/developer/en/pdf/PDFReference16.pdf
+%%   (section 8.4 Annotations)
+%%
+%% Example of use: \comment[width=5cm,symbol=Balloon,title={Note}]{...}
+%%
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{dbk_annot}[2006/11/19 v0.1 PDF Text Annotations]
+
+\@ifundefined{define@key}{\RequirePackage{keyval}}{}%
+
+
+%% Default text annotation parameter values
+\let\defaultPDFlocation\empty%
+\let\defaultPDFopen\empty
+\let\defaultPDFtitle\empty
+\let\defaultPDFheight\baselineskip
+\def\defaultPDFwidth{10cm}
+\def\defaultPDFdepth{0cm}
+
+\def\commentdefault{%
+  \let\PDFsymbol\empty%
+  \let\PDFlocation\defaultPDFlocation%
+  \let\PDFtitle\defaultPDFtitle%
+  \let\PDFopen\defaultPDFopen%
+  \let\PDFwidth\defaultPDFwidth%
+  \let\PDFheight\defaultPDFheight%
+  \let\PDFdepth\defaultPDFdepth%
+}
+
+%% Set values from key values
+\def\commentsetsymbol#1{%
+\expandafter\ifx\csname PDFsymbol#1\endcsname\relax%
+  \else\def\PDFsymbol{/Name \csname PDFsymbol#1\endcsname}\fi}
+
+\define@key{comment}{symbol}{\commentsetsymbol{#1}}
+\define@key{comment}{width}{\def\PDFwidth{#1}}
+\define@key{comment}{height}{\def\PDFheight{#1}}
+\define@key{comment}{depth}{\def\PDFdepth{#1}}
+\define@key{comment}{title}{\def\PDFtitle{/T (#1)}}
+\define@key{comment}{location}{\def\PDFlocation{#1}}
+\define@key{comment}{open}[true]{%
+\ifthenelse{\equal{#1}{true}}%
+  {\def\PDFopen{/Open true}}%
+  {\let\PDFopen\empty}%
+}
+
+%% Actions to do for default setting
+\define@key{defcomment}{width}{\def\defaultPDFwidth{#1}}
+\define@key{defcomment}{height}{\def\defaultPDFheight{#1}}
+\define@key{defcomment}{depth}{\def\defaultPDFdepth{#1}}
+\define@key{defcomment}{title}{\def\defaultPDFtitle{/T (#1)}}
+\define@key{defcomment}{location}{\def\defaultPDFlocation{#1}}
+\define@key{defcomment}{open}[true]{%
+\ifthenelse{\equal{#1}{true}}%
+  {\def\defaultPDFopen{/Open true}}%
+  {\let\defaultPDFopen\empty}%
+}
+
+%% Text annotation symbols
+\def\PDFsymbolBalloon   {/Comment}
+\def\PDFsymbolHelp      {/Help}
+\def\PDFsymbolNew       {/Insert}
+\def\PDFsymbolKey       {/Key }
+\def\PDFsymbolAddition  {/NewParagraph}
+\def\PDFsymbolNote      {/Note}
+\def\PDFsymbolParagraph {/Paragraph}
+
+%% Global comment setup
+\def\commentsetup#1{\setkeys{defcomment}{#1}}
+
+%% Insert a remark/comment as a text annotation
+\def\comment{\@ifnextchar[\docomment{\docomment[]}}
+
+\def\docomment[#1]#2{%
+  \begingroup%
+  \commentdefault%
+  \setkeys{comment}{#1}%
+  \ifthenelse{\equal{\PDFlocation}{margin}}%
+    {\marginpar{\dodocomment{#2}}}%
+    {\dodocomment{#2}}%
+  \endgroup%
+}
+
+\def\dodocomment#1{%
+  \pdfstringdef\@tempa{#1}%
+  \pdfannot width \PDFwidth height \PDFheight depth \PDFdepth{%
+    /Subtype /Text
+    /Contents (\@tempa)
+    \PDFtitle
+    \PDFopen
+    \PDFsymbol
+  }%
+  \let\@tempa\relax%
+}
+
+%% Apply only when using pdflatex
+\RequirePackage{ifpdf}
+\ifpdf
+\else
+  \def\docomment[#1]#2{}
+\fi

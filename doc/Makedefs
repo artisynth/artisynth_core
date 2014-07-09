@@ -1,0 +1,53 @@
+ifndef ARTISYNTH_WEB_ACCOUNT
+ARTISYNTH_WEB_ACCOUNT = $(USER)
+endif
+
+WEBSERVER = www.magic.ubc.ca
+WEB_HOME = /ubc/magic/home/wwwrun/docs/artisynth
+WEB_DOC_DIR = $(WEB_HOME)/artisynth/doc
+WEB_DOC_URL = $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER):$(WEB_HOME)/artisynth/doc
+WEB_HTML_URL = $(WEB_DOC_URL)/html
+FIX_PERMISSIONS = \
+  ssh $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER) $(WEB_HOME)/bin/fixMagicPerms 
+
+PDF_DIR = $(DOC_DIR)/pdf
+
+BIN_DIR = $(DOC_DIR)/../bin
+#JAVADOC_URL = http://www.artisynth.org/doc/javadocs
+JAVADOC_URL = ../../javadocs
+LATEXMLPOST = latexmlpost --css=$(DOC_DIR)/style/artisynth.css \
+ --destination=$@
+FIX_HTML_OUTPUT = $(BIN_DIR)/setJavadocLinks --jdocDir $(DOC_DIR)/javadocs \
+ --jdocUrl $(JAVADOC_URL) $@ | $(BIN_DIR)/fixLatexmlOutput
+
+# Set TEXINPUTS so latex can find the latexml and docbook input files.
+# The reason for the second entry, ../$(DOC_DIR)/texinputs, is because
+# LaTeXML may call latex from a directory *below* that of the current
+# directory with respect to which DOC_DIR is indicated.
+# NOTE: windows requires semi-colon instead of colon (at least for texlive)
+ifeq ($(OS),Windows_NT)
+export TEXINPUTS:="$(TEXINPUTS);$(DOC_DIR)/texinputs;../$(DOC_DIR)/texinputs;"
+else
+export TEXINPUTS:=$(TEXINPUTS):$(DOC_DIR)/texinputs:../$(DOC_DIR)/texinputs:    
+endif
+
+define MAKE_HTML_DIR_IF_NECESSARY
+	@if [ ! -d $(HTML_DIR) ] ; then \
+    		mkdir $(HTML_DIR) ; \
+	fi
+endef
+
+.PHONY: clean CLEAN HTML PDF CHUNKED
+
+CLEAN clean::
+	rm -rf *~ *.pdf *.xml *.html
+	rm -rf *.log *.aux *.out *.toc	
+	rm -rf LaTeXML????* *.cb *.cb2 # files produced by LaTeXML
+
+HTML::	html
+
+XHTML::	xhtml
+
+PDF::	pdf
+
+# CHUNKED:: chunked

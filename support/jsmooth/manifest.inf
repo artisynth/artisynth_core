@@ -1,0 +1,10 @@
+Main-Class: artisynth.core.driver.Main
+Class-Path: jogl.jar argparser.jar jass.jar jmf.jar jython.jar quickhull3d.jar vclipx.jar
+Name: artisynth/
+Specification-Title: Biomechanical and Acoustical Simulator
+Specification-Version: 2.1
+Specification-Vendor: University of British Columbia
+Implementation-Title: artisynth
+Implementation-Version: build10
+Implementation-Vendor: University of British Columbia
+Implementation-URL : http://www.artisynth.org

@@ -1,0 +1,23 @@
+\usepackage{bibtopic}
+
+% btPrintAll redefined to not include a file
+
+\newenvironment{bibgroup}{%
+    \ifthenelse{\boolean{bt@inside@sect}}{%
+        \protected@edef\bt@curr@line{\the\inputlineno}%
+        \def\bt@curr@cmd{\string\btPrintAll}%
+        \bt@stepcnt\bt@internal@sect@cnt
+        \bt@print@citedfalse\bt@print@alltrue
+        \label{Sec:\bt@internal@sect@cnt}%
+        \bt@change@bibitem
+    }{%
+        \bt@sect@err{btSect}{\btPrintAll}%
+    }%
+}{
+    \ifthenelse{\boolean{bt@inside@sect}}{%
+        \bt@print@keyvals{\bt@sect@ref@list}%
+            {Sec:\bt@internal@sect@cnt}%
+    }{%
+    }%
+}
+

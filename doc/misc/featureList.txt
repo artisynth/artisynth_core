@@ -1,0 +1,305 @@
+Creating the Java docs:
+    % cd $ARTISYNTH_HOME
+    % make javadocs
+    
+    Then point brower at $ARTISYNTH_HOME/docs/javadocs/index.html
+
+Component hierarchy:
+
+    All ArtiSynth models are composed of a hierarchy of components.
+
+    Components are named either by explicit name, or by number.
+
+    Collections of components (such as lists of particles or bodies)
+    are components themselves.
+
+Navigation Panel
+
+    Allows selection of anything within the component hierarchy.
+
+    Large collections (typically > 100) of anonymous, numbered
+    components are generally hidden by default.
+
+Play Controls (on main frame and also on the timeline)
+
+    Reset: resets simulation time to 0
+
+    Play/pause: starts/stops simulation
+
+    Single step: executes a single step. Note: currently, the length of
+    this step typically defaults to 10 msec. It can be set by the
+    -singleStepTime argument, which takes an argument is seconds,
+    or by changing the number in the 'Time Step' box on the timeline.    
+
+Timeline
+
+    Facilitates graphical arrangement of input and output probes.
+
+Viewer
+
+    Enables model and components can be viewed and selected.
+
+    View controls:
+
+	Middle mouse - rotate about center point
+	SHIFT middle mouse - translate
+	CTRL middle mouse or wheel - zoom
+
+    Key controls:
+
+	'a' toggles world coordinate axes
+	'g' toggles the grid
+	'o' toggles orthographic/perspective projection
+
+    Viewer control bar:
+
+	Axis icon sets predetermined axis-aligned views.
+
+	Clip Plane icon creates clip planes:
+
+	    Each clip plane is color coded and comes with its own icon. 
+
+	    Clicking on the icon enables/disables clipping. 
+
+	    Right clicking on the icon brings up a clip plane option menu.
+
+	    Clip planes can be moved using the attached dragger.
+
+Viewer Selection
+
+    Components can be selected in the viewer by left clicking on them.
+    Not all components are "visible", and so not all can be selected this way.
+
+    Use CTRL key for multiple selection.
+
+    Use a drag box for group selection.
+
+Selection filter (lower left of the main screen)
+
+    Controls what is selected, mainly to help reduce what is selected
+    by a group selection.
+
+    To restrict selections, type the name of the class that you wish selections
+    to be restricted to. The leaf name should be sufficient, as the system will
+    try to match this with a full class name.
+
+    Previous filters are stored in a history list.
+
+    To allow anything to be selected, type or select '*'.
+    
+Selection display
+
+    Displays the full path name of the most recently selected item.
+
+    To select the parent of this item, click on the up arrow at the left
+    of the selection display.
+
+Transformers
+
+    Allows selected components can be scaled, translated, or rotated.
+
+	Select tool: resets to normal selection mode
+
+	Scale tool:
+	    click on an axis, scales in 1D along axis
+	    click in a plane, scales in 2D in that plane
+
+	Translate tool: 
+	    click on an axis, translates in 1D along axis
+	    click in a plane, translates in 2D in that plane
+			
+	TransRotate tool:
+	    combination of translation and rotation tool
+
+	Rotate tool: 
+	    click on a circle, rotates about that circle
+
+	Constrained translate tool
+	    Only for markers: translates them but constrains them to lie on 
+            their surface mesh
+
+Timeline
+
+    Facilitates graphical arrangement of input and output probes
+    and way points.
+
+    Buttons and widgets along the top of the timeline:
+
+	zoom in and zoom out buttons
+
+        place model button (not currently used)
+
+        play controls, including those described above, plus
+	fast forward and fast backward, which skip forward or ahead
+	to the next valid way point.
+
+	Set button (not currently used)
+
+        Save Probes button, which saves all probe data to their associated
+        files (for probes which are in fact associated with files).
+
+	Current Time box, which displays the current simulation time in secs.
+ 
+        Time Step box, which controls the time interval for the single 
+        step command.
+
+Timeline: Waypoints and Breakpoints
+
+    At the top of the timeline is the "model track" along which waypoints
+    may be placed. Waypoints save the model state when the simulation passes
+    through them, allowing the timeline to be later reset to that point
+    (using the fast forward/backward buttons) without having to recompute
+    the simulation from time 0.
+
+    To add a waypoint, place the mouse inside the model track, and
+    click the right mouse button. A popup menu will show a number of
+    options, including "Add Waypoint Here", which will add a waypoint
+    at the current location of the time cursor, and "Add Waypoint",
+    which will add a waypoint at a time specified by a dialog box.
+
+    Waypoints are indicated by a small rectangular blue box. A solid
+    box indicates a waypoint that contains valid state (and can
+    be advanced to using the fast forward/backward buttons).
+
+    Once created, waypoints can be moved by dragging them. They can
+    also be deleted by right clicking on them and selecting the
+    "Delete" option.
+
+    Breakpoints are waypoints that also cause the simulation to stop.
+    They are displayed in red instead of blue.
+
+    Breakpoints can be added in the same way as waypoints.
+
+    Waypoints can be converted into breakpoints (and vice versa)
+    by right clicking on them and choosing the appropriate popup option.
+
+Timeline: Tracks and Probes
+
+    Probes are arranged on tracks located beneath the model track. There
+    are separate tracks for input and output probes. 
+
+    To add a track, place the mouse over the model track, right click,
+    and select either "Add Input Track" or "Add Output Track".
+
+    Probes can be moved around on the same track, or between tracks,
+    by dragging them. Probes are not allowed to overlap.
+
+    Muting/unmuting probes: left click the red button at the left of the track.
+    Muted probes are ignored by the simulation.
+
+    To mute/unmute all probes, left click to the red button at the left of the
+    model track.
+
+    A number of probe settings can be controlled by placing the mouse over
+    the probe and right clicking.
+
+Timeline: Probe Displays
+
+    The data associated with a probe is visible within a probe's display.
+
+    To view a probe's display, EXPAND the probe by left clicking the 
+    green arrow at the right of the track. This will expand the display
+    for all probes on that track. To hide the display, left click the
+    green arrow again.
+
+    Numeric probe data:
+
+    Data associated with numeric probes is displayed as a graph within
+    the display. If the probe contains a vector with more than one
+    value, each entry in the vector is drawn using a different color
+    (up to a limit, after which colors are recycled).
+
+    Data for input probes can be changed by adding, deleting, or moving
+    knot points in the display.
+
+	To move a knot point, left click on the knot and drag it.
+
+        To add a knot point, place the mouse at the desired location
+        and double left-click.
+
+        To delete a knot point, right ckick on the knot and select 
+        "Delete Data Point".
+
+    All knot points can be made invisible/visible by right clicking in the 
+    display and selecting "(In)visible Data Points". 
+
+    Three types of interpolation are available for numeric probes:
+    Step, linear, and cubic. The interpolation can be set by right clicking
+    in the display and selecting the desired one.
+
+    The range of the display data can also be set by right clicking in
+    the display and selecting "Set Display Range". This creates a
+    dialog that lets the user either set the range explicitly, or ask
+    for it to be computed automatically.
+
+    A large display can be created for each probe by right clicking on
+    the probe icon and selecting "Large Display".
+
+Editing Component Properties
+
+    The properties of any currently selected components can be edited
+    by right clicking in the viewer or the navigation panel and 
+    selecting "Edit Properties". This will create a persitent 
+    panel that allows properties to be set for the current
+    component(s). If multiple components are selected, only those
+    properties common to all components will be presented in the panel.
+
+    By default, property values are updated whenever the simulation is
+    running. This feature can be toggled by left-clicking the "live
+    updating" icon in the property panel.
+
+Editing Render Properties
+
+    The render properties of any currently selected renderable components 
+    can be editing by right clicking in the viewer or the navigation panel and 
+    selecting "Edit Render Properties".
+
+    Render properties include:
+
+	visible: whether or not the component is visible
+	alpha: the transparency for polygonal faces (default 1)
+	shading: how polygons are shaded (FLAT, GOURARD, PHONG)
+	shininess: shininess parameter for polygons
+
+	faceStyle: which polygonal faces are drawn (FRONT, BACK,
+	    FRONT_AND_BACK, NONE)
+        faceColor: color used for drawing faces
+        backColor: color used for drawing backs of faces 
+        drawEdges: if true, face edges are drawn explicitly
+        textureProps: sets texture mapping properties for the face
+	
+	lineStyle: how lines are drawn (CYLINDER or LINE)
+        lineColor: the color for lines
+        lineSize: line size in pixels when LINE style is selected
+        lineRadius: cylinder radius used when CYLINDER style is selected 
+        lineSlices: num slices used to render CYLINDER style cylinders
+        
+	pointStyle: how points are drawn (SPHERE or POINT)
+        pointColor: the color for points
+        pointSize: point size in pixels when POINT style is selected
+        pointRadius: sphere radius used when SPHERE style is selected 
+        pointSlices: num slices used to render SPHERE style spheres
+        
+    The visibility of currently selected components can also be controlled
+    by right clicking in the viewer or the navigation panel and selecting 
+    "Set invisible" or "Set visible", as appropriate.
+
+Component Editing
+
+    Component editing in ArtiSynth is driven by the selection context.
+    A right click on the current selection causes the editor manager
+    to determine what editing commands are available for the current
+    selection, and menu items for these are placed in the context
+    popup.
+
+
+ 
+
+    
+    
+    
+
+    
+
+
+

@@ -1,0 +1,49 @@
+		 Installing the Pardiso Direct Solver
+		 ------------------------------------
+
+		             John Lloyd
+			   October 3, 2006
+
+    This document describes how to install and use the Pardiso direct
+    sparse solver on Linux, which is used by the ArtiSynth models
+    FemModel3d and MechModel. 
+
+Installing Pardiso on Linux
+
+    1. Install Intel MKL 8.1.1 for Linux. 
+
+       This is fairly easy but does take a bit of time. Got to 
+
+http://www.intel.com/cd/software/products/asmo-na/eng/perflib/mkl/index.htm
+(or try: http://www3.intel.com/cd/software/products/asmo-na/eng/perflib/mkl/219859.htm)
+
+       and click on "Non-commercial download", then select "Download
+       Intel Math Kernel Library ...". A page will appear asking you
+       to confirm that the software is for non-commercial purposes and
+       that you're OK with not getting support. Then you fill out a
+       brief registration form and get an email with download
+       instructions and a license key that will be needed to execute
+       the install script.
+
+       The default install location is /opt/intel/mkl/8.1.1. Wherever
+       you install it, you will need to put the sub-directory lib/32 
+       (or lib/64 on a 64 bit machine) in your LD_LIBRARY_PATH.
+
+    2. Obtain a license and library for Pardiso itself. Go to
+
+http://www.computational.unibas.ch/cs/scicomp/software/pardiso
+
+       and follow the download links. You will have to answer a
+       few questions, and then will be emailed a license key
+       and a link to the download page itself. 
+
+       The license key consists of a string which should be placed in
+       a file called "pardiso.lic" in your home directory. The key
+       encodes the host name of the machine, and so each machine you
+       run Pardiso one Will require a separate key, which means
+       swapping license files around. Yes, this is a pain ...
+
+       The Pardiso library to download is libpardiso_GNU_IA32.so.  You
+       can place this anywhere covered by your LD_LIBRARY_PATH; I
+       usually put it in my MKL library directory.
+

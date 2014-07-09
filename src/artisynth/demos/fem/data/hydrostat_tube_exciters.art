@@ -1,0 +1,118 @@
+artisynth.core.gui.ControlPanel
+[ name="Exciters"
+  size=[ 381 599 ]
+  location=[ 486 63 ]
+  options="LiveUpdate"
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/hydrostat/exciters/long_rp:excitation"
+    labelText="long_rp"
+    labelFontColor=[ 1.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/hydrostat/exciters/long_rm:excitation"
+    labelText="long_rm"
+    labelFontColor=[ 1.000 0.376 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/hydrostat/exciters/long_ra:excitation"
+    labelText="long_ra"
+    labelFontColor=[ 1.000 0.749 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/hydrostat/exciters/long_lp:excitation"
+    labelText="long_lp"
+    labelFontColor=[ 0.875 1.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/hydrostat/exciters/long_lm:excitation"
+    labelText="long_lm"
+    labelFontColor=[ 0.502 1.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/hydrostat/exciters/long_la:excitation"
+    labelText="long_la"
+    labelFontColor=[ 0.125 1.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/hydrostat/exciters/long_sp:excitation"
+    labelText="long_sp"
+    labelFontColor=[ 0.000 1.000 0.251 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/hydrostat/exciters/long_sm:excitation"
+    labelText="long_sm"
+    labelFontColor=[ 0.000 1.000 0.624 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/hydrostat/exciters/long_sa:excitation"
+    labelText="long_sa"
+    labelFontColor=[ 0.000 1.000 1.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/hydrostat/exciters/long_ip:excitation"
+    labelText="long_ip"
+    labelFontColor=[ 0.000 0.624 1.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/hydrostat/exciters/long_im:excitation"
+    labelText="long_im"
+    labelFontColor=[ 0.000 0.251 1.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/hydrostat/exciters/long_ia:excitation"
+    labelText="long_ia"
+    labelFontColor=[ 0.125 0.000 1.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/hydrostat/exciters/radial_a:excitation"
+    labelText="radial_a"
+    labelFontColor=[ 0.502 0.000 1.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/hydrostat/exciters/radial_p:excitation"
+    labelText="radial_p"
+    labelFontColor=[ 0.875 0.000 1.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/hydrostat/exciters/circ_a:excitation"
+    labelText="circ_a"
+    labelFontColor=[ 1.000 0.000 0.749 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/hydrostat/exciters/circ_p:excitation"
+    labelText="circ_p"
+    labelFontColor=[ 1.000 0.000 0.376 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,1.00000] ]
+  ]
+]

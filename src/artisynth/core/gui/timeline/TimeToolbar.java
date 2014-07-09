@@ -1,0 +1,315 @@
+package artisynth.core.gui.timeline;
+
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JToolBar;
+import javax.swing.SwingConstants;
+
+import maspack.util.NumberFormat;
+import maspack.widgets.ButtonCreator;
+import artisynth.core.driver.GenericKeyHandler;
+import artisynth.core.driver.Main;
+
+public class TimeToolbar extends JToolBar {
+   private static final long serialVersionUID = 1L;
+   
+   //private JPanel timestepPanel;
+   private JLabel timeLabel;
+   private TimelineController parent;
+   //private JTextField timestepTextField;
+
+   private JButton zoomInButton;
+   private JButton zoomOutButton;
+   private JButton resetButton;
+   private JButton fastBackwardButton;
+   private JButton playButton;
+   private JButton fastForwardButton;
+   private JButton singleStepButton;
+
+   private double myStepTime = 0;
+
+   // // updates the stepTime into the timestep field
+   // void updateStepTime () {
+   //    double newStep = Main.getScheduler().getStepTime();
+   //    if (newStep != myStepTime) {
+   //       getTimestepTextField().setText (Double.toString (newStep*1000));
+   //       myStepTime = newStep;
+   //    }
+   // }
+
+   double getStepTime () {
+      return myStepTime;
+   }      
+
+   private void createTimeToolbar (TimelineController parent) {
+      this.parent = parent;
+      //timestepPanel = new JPanel();
+      
+      JPanel timeDisplay = new JPanel();
+      timeDisplay.setLayout (new BoxLayout (timeDisplay, BoxLayout.X_AXIS));
+      timeDisplay.setOpaque (false);
+      timeDisplay.setFont (GuiStorage.TOOLBAR_FONT);
+      
+      timeLabel = new JLabel();
+      timeLabel.setBackground (Color.WHITE);
+      timeLabel.setOpaque (true);
+      timeLabel.setBorder (BorderFactory.createLineBorder (Color.LIGHT_GRAY));
+      timeLabel.setHorizontalAlignment (SwingConstants.RIGHT);
+      timeLabel.setFont (GuiStorage.TOOLBAR_FONT);
+      
+      JLabel textLabel = new JLabel ("Current Time: ");
+      textLabel.setFont (GuiStorage.TOOLBAR_FONT);
+      timeDisplay.add (textLabel);
+      timeDisplay.add (timeLabel);
+
+      Dimension frameDimension = new Dimension (80, 15);
+      timeLabel.setSize (frameDimension);
+      timeLabel.setMinimumSize (frameDimension);
+      timeLabel.setMaximumSize (frameDimension);
+      timeLabel.setPreferredSize (frameDimension);
+      
+      updateTimeDisplay (0);
+      
+      //timestepTextField = new JTextField();
+      
+      zoomInButton = makeButton (GuiStorage.ZOOM_IN_ICON, "Zoom In");
+      add (zoomInButton);
+
+      zoomOutButton = makeButton (GuiStorage.ZOOM_OUT_ICON, "Zoom Out");
+      add (zoomOutButton);
+      addSeparator();
+
+      resetButton = makeButton (GuiStorage.RESET_ICON, "Reset");
+      add (resetButton);
+
+      fastBackwardButton = makeButton (GuiStorage.REWIND_ICON, "Rewind");
+      add (fastBackwardButton);
+
+      playButton = makeButton (GuiStorage.PLAY_ICON, "Play");
+      add (playButton);
+
+      singleStepButton =
+         makeButton (GuiStorage.STEP_FORWARD_ICON, "Step Forward");
+      add (singleStepButton);
+
+      fastForwardButton =
+         makeButton (GuiStorage.FAST_FORWARD_ICON, "Fast Forward");
+      add (fastForwardButton);
+      addSeparator();
+
+      // add (makeButton(GuiStorage.SET_ICON, "Set"));
+      // addSeparator();
+
+      add (makeButton (GuiStorage.SAVE_ALL_PROBES_ICON, "Save All Probes"));
+
+      //timestepInitialization();
+
+      // add appropriate spaces
+      addSeparator (new Dimension (20, 0));
+
+      add (timeDisplay);
+      // addSeparator (new Dimension (20, 0));
+      // add (timestepPanel);
+   }
+
+   public TimeToolbar (TimelineController parent) {
+      super();
+      createTimeToolbar (parent);
+   }
+
+   // public JTextField getTimestepTextField() {
+   //    return timestepTextField;
+   // }
+
+   public JButton makeButton (ImageIcon icon, String toolTip) {
+      JButton button = new JButton (icon);
+      button.setToolTipText (toolTip);
+      button.setSize (ButtonCreator.SMALL_BUTTON_SIZE);
+      button.setMinimumSize (ButtonCreator.SMALL_BUTTON_SIZE);
+      button.setMaximumSize (ButtonCreator.SMALL_BUTTON_SIZE);
+      button.setPreferredSize (ButtonCreator.SMALL_BUTTON_SIZE);
+
+      button.setActionCommand (toolTip);
+      button.addActionListener (new TimelineButtonListener());
+
+      GenericKeyHandler keyHandler = new GenericKeyHandler();
+      keyHandler.attachMainFrame (Main.getMainFrame());
+      
+      button.addKeyListener (keyHandler);
+      return button;
+   }
+
+   // private void timestepInitialization() {
+   //    Dimension fieldSize = new Dimension (48, 19);
+   //    timestepTextField.setSize (fieldSize);
+   //    timestepTextField.setMinimumSize (fieldSize);
+   //    timestepTextField.setMaximumSize (fieldSize);
+   //    timestepTextField.setPreferredSize (fieldSize);
+   //    timestepTextField.setHorizontalAlignment (SwingConstants.RIGHT);
+   //    timestepTextField.setFont (GuiStorage.TOOLBAR_FONT);
+   //    timestepTextField.setBorder (
+   //       BorderFactory.createLineBorder (Color.LIGHT_GRAY));
+
+   //    timestepTextField.getDocument().addDocumentListener (
+   //       new TimestepListener());
+
+   //    timestepPanel.setLayout (new BoxLayout (timestepPanel, BoxLayout.X_AXIS));
+   //    timestepPanel.setOpaque (false);
+   //    timestepPanel.setFont (GuiStorage.TOOLBAR_FONT);
+
+   //    JLabel TimeStepLabel = new JLabel ("Time Step: ");
+   //    JLabel msecLabel = new JLabel ("msec");
+   //    TimeStepLabel.setFont (GuiStorage.TOOLBAR_FONT);
+   //    msecLabel.setFont (GuiStorage.TOOLBAR_FONT);
+
+   //    timestepPanel.add (TimeStepLabel);
+   //    timestepPanel.add (timestepTextField);
+   //    timestepPanel.add (msecLabel);
+   // }
+
+   private void refreshToolbar() {
+      boolean timeIsZero = (Main.getScheduler().getTime() == 0);
+      if (!Main.getScheduler ().isPlaying ()) {
+         //resetButton.setEnabled (!timeIsZero);
+         fastBackwardButton.setEnabled (!timeIsZero);
+         playButton.setIcon (GuiStorage.PLAY_ICON);
+         playButton.setActionCommand ("Play");
+         playButton.setToolTipText ("Play");
+         singleStepButton.setEnabled (true);
+         fastForwardButton.setEnabled (parent.isNextValidWayAvailable());
+      }
+      else {
+         //resetButton.setEnabled (true);
+         fastBackwardButton.setEnabled (false);
+         playButton.setIcon (GuiStorage.PAUSE_ICON);
+         playButton.setActionCommand ("Pause");
+         playButton.setToolTipText ("Pause");
+         singleStepButton.setEnabled (false);
+         fastForwardButton.setEnabled (false);
+      }
+   }
+
+   NumberFormat timefmt = new NumberFormat ("%9.6f");
+
+   public void updateTimeDisplay (double t) {
+      timeLabel.setText (timefmt.format(t));
+   }
+
+   public void updateToolbarState () {      
+      //updateStepTime();
+      validateZoom();      
+      refreshToolbar ();
+      validateFastForward();
+   }
+
+   public void validateFastForward() {
+      // For all buttons check to see if there is a valid
+      // waypoint existing after the current time, then
+      // enable the button.
+      boolean enabled = parent.isNextValidWayAvailable();
+      if (enabled != fastForwardButton.isEnabled()) {
+         fastForwardButton.setEnabled (enabled);
+      }
+   }
+
+   public void validateZoom() {
+      boolean enabled;
+      int zoomLevel = parent.getZoomLevel();
+      enabled = (zoomLevel != TimelineConstants.MINIMUM_ZOOM);
+      if (zoomOutButton.isEnabled() != enabled) {
+         zoomOutButton.setEnabled (enabled);
+      }
+      enabled = (zoomLevel != TimelineConstants.MAXIMUM_ZOOM);
+      if (zoomInButton.isEnabled() != enabled) {
+         zoomInButton.setEnabled (enabled);
+      }
+   }
+
+   // //====================================================
+   // // TimestepListener class
+   // //====================================================
+
+   // public class TimestepListener implements DocumentListener {
+   //    public void insertUpdate (DocumentEvent e) {
+   //       String input = getTimestepTextField().getText().trim();
+   //       double newStepTime;
+   //       try { // input in milli-sec
+   //          newStepTime = 0.001 * Double.parseDouble (input);
+   //          myStepTime = newStepTime;
+   //          parent.setStepTime (newStepTime);
+   //       }
+   //       catch (NumberFormatException exception) {}
+   //    }
+
+   //    public void removeUpdate (DocumentEvent e) {
+   //       String input = getTimestepTextField().getText().trim();
+   //       double newStepTime;
+   //       try { // input in milli-sec
+   //          newStepTime = 0.001 * Double.parseDouble (input);
+   //          myStepTime = newStepTime;
+   //          parent.setStepTime (newStepTime);
+   //       }
+   //       catch (NumberFormatException exception) {}
+   //    }
+
+   //    public void changedUpdate (DocumentEvent e) {}
+   // }
+   
+   //========================================================
+   // TimelineButtonListener class
+   //========================================================
+
+   public class TimelineButtonListener implements ActionListener {
+      public void actionPerformed (ActionEvent e) {
+         String nameOfAction = e.getActionCommand();
+
+         if (parent.rootModelExists() == false) {
+            return;
+         }
+         else if (nameOfAction == "Reset") {
+            Main.getScheduler().reset();            
+            //Main.getScheduler().rewind();
+         }
+         else if (nameOfAction == "Rewind") {       
+            Main.getScheduler().rewind();
+         }
+         else if (nameOfAction == "Play") {
+            Main.getScheduler().play();
+         }
+         else if (nameOfAction == "Pause") {
+            Main.getScheduler().pause();
+            //parent.pauseTimeline();
+         }
+         else if (nameOfAction == "Step Forward") {
+            Main.getScheduler().step();
+         }
+         else if (nameOfAction == "Fast Forward") {
+            Main.getScheduler().fastForward();
+         }
+         else if (nameOfAction == "Zoom In") {
+            parent.zoom (TimelineConstants.ZOOM_IN);
+         }
+         else if (nameOfAction == "Zoom Out") {
+            parent.zoom (TimelineConstants.ZOOM_OUT);
+         }
+         else if (nameOfAction == "Set") {
+            parent.setAllInputProbes();
+         }
+         else if (nameOfAction == "Save All Probes") {
+            parent.saveAllProbes();
+         }
+         
+         updateToolbarState();
+         parent.requestUpdateDisplay();
+      }
+   }
+}

@@ -1,0 +1,30 @@
+%
+% If hyperlink, load the hyperref package and set the \hyperlabel command needed
+% by the DocBook stylesheets
+%
+\@ifundefined{DBKhyperlink}{ \def\DBKhyperlink{no} }{}
+
+\usepackage{ifpdf}
+
+\ifthenelse{\equal{\DBKhyperlink}{yes}}{
+  \@ifundefined{hyperparam}{
+    \def\hyperparam{linktocpage,colorlinks,citecolor=blue,pdfstartview=FitH}
+  }{}
+  \@ifundefined{hyperparamadd}{
+    \def\hyperparamadd{}
+  }{}
+  \ifpdf
+    \usepackage[pdftex,plainpages=false,\hyperparam,\hyperparamadd]{hyperref}
+    \def\hyperlabel#1{\hypertarget{#1}{}}
+  \else\ifxetex
+    \usepackage[xetex,plainpages=false,\hyperparam,\hyperparamadd]{hyperref}
+    \def\hyperlabel#1{\hypertarget{#1}{}}
+  \else
+    \usepackage[dvips,plainpages=false,\hyperparam,\hyperparamadd]{hyperref}
+    \def\hyperlabel#1{\Hy@raisedlink{\hyper@anchorstart{#1}\hyper@anchorend}}
+  \fi\fi
+}{
+  \usepackage{hyperref}
+  \def\hyperlabel#1{}
+}
+

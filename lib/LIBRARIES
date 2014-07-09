@@ -1,0 +1,55 @@
+# Do not delete this file.
+#
+# This file lists all the .jar files and native libraries required by this
+# version of ArtiSynth, and is used to automatically download and update
+# these files from the ArtiSynth file server.
+#
+# Names ending in .jar are assumed to be jar files. Other names are assumed to
+# indicate native libraries.
+#
+# Native library names can contain a suffix of the form (.n)+, where n
+# is a non-negative integer, which gives version number
+# information. If version information is present, the first number is
+# the major version number, the second number (if present) is the
+# minor version number, and other numbers indicate revision
+# numbers. When checking for native libraries, it is assumed that a
+# library with the indicated base name plus major version number must
+# be present on the system. Other version numbers are allowed to
+# differ as long as the minor version number is greater than or equal
+# to the one specified in this file.
+#
+# Native library names are transformed into system-specific names
+# appropriate for the current native system. For instance,
+# TetgenJNI.1.0 gets transformed into libTetgenJNI.so.1.0 on Linux and
+# TetgenJNI.1.0.dll on Windows.
+#
+# Native libraries can also be specified using a system-specific
+# specfic format; e.g., libgomp.so.1 (Linux). If this is done, the
+# indicated library is sought only if the indicated system matches the
+# current native system. This allows different libraries to be
+# specified for different systems.
+#
+argparser.jar
+#gluegen-rt.jar
+jogl2-gluegen-rt.jar
+jass.jar
+javaosc.jar
+jipopt.jar
+jmf.jar
+#jogl.jar
+jogl2-all.jar
+jython.jar
+looks.jar
+quickhull3d.jar
+vclipx.jar
+vfs2.jar
+#gluegen-rt
+#jogl_awt
+#jogl_cg
+#jogl
+PardisoJNI.1.0
+RobustPreds.1.0
+TetgenJNI.1.0
+libiomp5.dylib
+libgomp.so.1
+libiomp5md.dll

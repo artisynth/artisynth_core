@@ -1,0 +1,33 @@
+artisynth.core.mechmodels.MuscleExciter
+[ targets=[
+    b/0/f/72
+    b/0/f/60
+    b/0/f/48
+    b/0/f/36
+    b/0/f/24
+    b/0/f/12
+    b/0/f/0
+    b/0/f/75
+    b/0/f/74
+    b/0/f/73
+    b/0/f/63
+    b/0/f/62
+    b/0/f/61
+    b/0/f/51
+    b/0/f/50
+    b/0/f/49
+    b/0/f/39
+    b/0/f/38
+    b/0/f/37
+    b/0/f/27
+    b/0/f/26
+    b/0/f/25
+    b/0/f/15
+    b/0/f/14
+    b/0/f/13
+    b/0/f/3
+    b/0/f/2
+    b/0/f/1
+  ]
+  name="long_left"
+]

@@ -1,0 +1,10 @@
+A central feature of ArtiSynth is it's MechModel package, which allows
+the creation of mechanical models composed of point masses, springs,
+dampers, rigid bodies, and bilateral and unilateral constraints
+between rigid bodies. In this example, a two rigid bodies are
+connected by a revolute joint (bilateral constraint), with the first
+link suspended from a fixed plate using two springs (green lines). As
+the assembly falls under gravity, it comes into contact with one or
+two planes (unilateral constraints), which constrain its motion until
+it eventually comes to rest.
+

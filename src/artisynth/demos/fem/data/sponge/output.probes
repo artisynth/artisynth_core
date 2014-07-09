@@ -1,0 +1,63 @@
+[
+  NumericInputProbe 
+  [ name="activations"
+    stopTime=10000000000
+    attachedFile="act.txt"
+    displayRange=[ -0.10500000000000001 1.155 ]
+    track=0
+    props=
+    [ 
+      models/sponge:act
+    ]
+    drivers=
+    [ 
+      "V0"
+    ]
+    inputs=
+    [ 
+      V0 9
+    ]
+  ]
+  NumericInputProbe 
+  [ name="target"
+    stopTime=10000000000
+    attachedFile="/ubc/ece/data/hct/grads/stavness/workspace/artisynth_2_0/pos.txt"
+    updateInterval=10000000
+    displayRange=[ -0.2 0.4 ]
+    extendData=false
+    track=1
+    element=models/sponge
+    pokes=[ ]
+    inputs=[ ]
+  ]
+  NumericOutputProbe 
+  [ name="target"
+    stopTime=10000000000
+    attachedFile="/ubc/ece/data/hct/grads/stavness/workspace/artisynth_2_0/pos.txt"
+    updateInterval=10000000
+    displayRange=[ -0.2 0.4 ]
+    track=0
+    props=
+    [ 
+      models/sponge:pos
+    ]
+    variables=
+    [ 
+      P0
+    ]
+    drivers=
+    [ 
+      "P0"
+    ]
+  ]
+  NumericOutputProbe 
+  [ name="activations"
+    stopTime=10000000000
+    attachedFile="act.txt"
+    displayRange=[ -0.10500000000000001 1.155 ]
+    track=1
+    props=[ ]
+    variables=[ ]
+    drivers=[ ]
+  ]
+]

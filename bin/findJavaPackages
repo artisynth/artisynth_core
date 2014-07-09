@@ -1,0 +1,25 @@
+#!/bin/bash
+# find all Java packages in a given directory
+DIR=.
+USAGE="Usage: $0 [-d <dir>]"
+while [ "$1" ]; do
+   if [ $1 == "-d" ] ; then
+      if [ "$#" -lt "2" ]; then
+          echo "option -d requires an additional argument"
+          exit 1
+      else 
+          DIR=$2
+          shift
+      fi
+   else 
+      echo "$USAGE"
+      exit 1
+   fi
+   shift
+done
+for d in `find $DIR -type d` ; do
+   count=`ls -1 $d/*.java 2>/dev/null | wc -l`
+   if [ $count != 0 ] ; then
+      echo $d | sed "s|^$DIR/||" | sed 's|/|.|g'
+   fi
+done

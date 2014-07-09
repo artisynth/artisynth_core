@@ -1,0 +1,376 @@
+#!/usr/bin/env python
+
+# Python script to implement qsubst. It is based on the original C-version
+# of qsubst written by Mike Parker (der Mouse). The Python port was undertaken
+# to provide greater portability and to allow regular expression replacements
+# in additon to string replacement.
+#
+# John Lloyd, May 2009
+#
+import sys, string, re, curses, os, fnmatch, tempfile
+from shutil import copyfile
+
+maxcontext = 16
+ncabove = 2
+ncbelow = 2
+regexp = None
+window = None
+cursesUsed = True
+
+# escape sequences for enabling and disabling reverse video
+reverseOn = '\033[7m'
+reverseOff = '\033[0m'
+tempName = None
+
+def cleanup():
+    if tempName != None:
+        try:
+            os.remove (tempName)
+        except:
+            None # just ignore ...
+    if cursesUsed:
+        curses.endwin()
+
+helpString = \
+"Usage: qsubst <exp> <rep> [OPTION...] <file> ...\n"\
+"Qsubst performs interactive string replacement on a set of files. It\n"\
+"prints a few lines of context above and below each matched string, and\n"\
+"waits for the user to hit a key confirming or rejecting the substitution.\n"\
+"<exp> is the expression to search for, and <rep> is its replacement.\n"\
+"\n"\
+"Example:\n"\
+" qsubst float double Prog.c # replace 'float' with 'double' in Prog.c\n"\
+"\n"\
+"Options:\n"\
+"\n"\
+" -re         <exp> is a Python regular expression, and <rep> is the\n"\
+"             corresponding replacement that may contain match groups\n"\
+" -CB<N>      show <N> lines of context below the match\n"\
+" -CA<N>      show <N> lines of context above the match\n"\
+" -C<N>       show <N> lines of context above and below the match\n"\
+" -noask      don't query the user at all, just do the replacements\n"\
+" -find <pat> recursively search for files whose name matches <pat> and\n"\
+"             apply subsitution to these also; <pat> is a standard file\n"\
+"             pattern enclosed in single quotes, and can contain '*', '?', \n"\
+"             and/or '[]'; e.g., '*.java' qsubst -find <pat> ... will print\n"\
+"             a list of these files\n"\
+"\n"\
+"Key commands:\n"\
+"\n"\
+" ' '         replace this match\n"\
+" 'n'         do not replace this match\n"\
+" ','         preview this replacement\n"\
+" '.'         replace this match, but skip the rest of the current file\n"\
+" '?'         print the name of the current file\n"\
+" '!'         replace this match and all others in the current file\n"\
+" 'N'         do not replace this match and skip the rest of the file\n"\
+" 'q'         quit the program"
+
+def printUsageAndExit(argv):
+    print "Usage: qsubst <exp> <rep> [OPTION...] <file> ..."
+    print "Use 'qsubst -help' for more details"
+    sys.exit (0)
+
+def printContext (before, match, after, lbuf, idx):
+    for i in range (max(0, idx-ncabove), idx):
+        sys.stdout.write (lbuf[i] + '\r')
+    sys.stdout.write (before)
+    sys.stdout.write (reverseOn + match + reverseOff)
+    sys.stdout.write (after + '\r')
+    for i in range (idx+1, min(len(lbuf), idx+ncbelow+1)):
+        sys.stdout.write (lbuf[i] + '\r')
+    sys.stdout.flush()
+
+CONTINUE = 1
+NEXT_FILE = 2
+STOP_CONFIRMATION = 3
+
+def match (str, pos):
+    if regexp != None:
+        match = regexp.search (str, pos)
+        if match == None:
+            return None
+        else:
+            return match.start(), match.end()
+    else:
+        k = str.find (exp, pos)
+        if k == -1:
+            return None
+        else:
+            return k, k+len(exp)
+
+def replace (str, pos):
+    if regexp != None:
+        return str[0:pos] + regexp.sub (rep, str[pos:], 1)
+    else:
+        k = str.find (exp, pos)
+        return str[0:k] + rep + str[(k+len(exp)):]
+
+def processLine (fileName, lbuf, idx, confirm):
+    thisLine = lbuf[idx]
+    pos = 0
+    while (True):
+        idxs = match (thisLine, pos)
+        if idxs == None:
+            lbuf[idx] = thisLine
+            if confirm:
+                return CONTINUE
+            else:
+                return STOP_CONFIRMATION
+
+        before = thisLine[0:idxs[0]]
+        after = thisLine[idxs[1]:]
+        oldtext = thisLine[idxs[0]:idxs[1]]
+        newLine = replace (thisLine, pos)
+        newpos = len(newLine) - len(after)
+        newtext = newLine[idxs[0]:newpos]
+
+        if confirm:
+            showingOldText = True
+            printContext (before, oldtext, after, lbuf, idx)
+            while True:
+                c = chr(window.getch())
+                if c == ' ':
+                    sys.stdout.write ('(replacing)\n\n\r')
+                    thisLine = newLine
+                    pos = newpos
+                    break
+                elif c == '.':
+                    sys.stdout.write ('(replacing, leaving all the rest)\n\n\r')
+                    lbuf[idx] = newLine
+                    return NEXT_FILE
+                elif c == 'n':
+                    sys.stdout.write ('(leaving)\n\n\r')
+                    pos = len(thisLine) - len(after)
+                    break
+                elif c == '!':
+                    sys.stdout.write ('(replacing this and all the rest)\n\n\r')
+                    thisLine = newLine
+                    pos = newpos
+                    confirm = False;
+                    break
+                elif c == '?':
+                    sys.stdout.write ('File is \'' + fileName + '\'\n\n\r')
+                    sys.stdout.flush()
+                elif c == 'q':
+                    cleanup()
+                    sys.exit (0)
+                    break
+                elif c == 'N':
+                    sys.stdout.write ('(leaving this and all the rest)\n\n\r')
+                    return NEXT_FILE
+                elif c == ',':
+                    if showingOldText:
+                        sys.stdout.write ('(using replaced string gives)\n\n\r')
+                        printContext (before, newtext, after, lbuf, idx)
+                        showingOldText = False
+                    else:
+                        sys.stdout.write ('(using old string gives)\n\n\r')
+                        printContext (before, oldtext, after, lbuf, idx)
+                        showingOldText = True
+                else:
+                    curses.beep()
+        else:
+            thisLine = newLine
+            pos = newpos
+
+def finishFileCopy (f, o, lbuf, idx):
+    for i in range(idx, len(lbuf)):
+        o.write (lbuf[i])
+    newline = f.readline()
+    while newline != "":
+        o.write (newline)
+        newline = f.readline()
+
+def processFile (fileName, confirm):
+    global tempName
+    fileChanged = False
+    try:
+        f = open(fileName, 'r')
+    except:
+        sys.stdout.write ('(Warning: Can\'t open file '+fileName+')\n\r')
+        sys.stdout.flush()
+        return
+    tempName = tempfile.mktemp()
+    try:
+        o = open(tempName, 'w')
+    except:
+        sys.stdout.write ('(Warning: Can\'t open temp file '+tempName+')\n\r')
+        sys.stdout.flush()
+        tempName = None
+        return
+    if confirm:
+        sys.stdout.write ('(file: '+fileName+')\n\r')
+        sys.stdout.flush()
+    lbuf = []
+    ncontext = ncabove + ncbelow + 1
+    while len(lbuf) < ncontext:
+        line = f.readline()
+        if line == "":
+            break
+        lbuf.append (line)
+    idx = 0
+    while idx < len(lbuf):
+        line = lbuf[idx]
+        code = processLine (fileName, lbuf, idx, confirm)
+        if lbuf[idx] != line:
+            fileChanged = True
+        o.write (lbuf[idx])
+        idx = idx + 1
+        if code == STOP_CONFIRMATION:
+            confirm = False
+        elif code == NEXT_FILE:
+            if fileChanged:
+                finishFileCopy (f, o, lbuf, idx)
+            break;
+        if idx > ncabove:
+            lbuf.pop(0)
+            idx = idx - 1
+        if len(lbuf) - idx <= ncbelow:
+            newline = f.readline()
+            if newline != "":
+                lbuf.append (newline)
+    f.close()
+    if fileChanged:
+        o.close()
+        copyfile(tempName, fileName)
+        os.remove(tempName)
+        if not confirm:
+            sys.stdout.write ('(changed file: '+fileName+')\n\r')
+            sys.stdout.flush()
+    else:
+        os.remove (tempName)
+    tempName = None
+
+def parseInt (str):
+    if str.isdigit():
+        return int(str)
+    else:
+        return -1
+
+#####################################################################
+# Input: current directory, regular expression representing filename
+# Output: list of filepaths
+# Description: finds all files in current directory and corresponding
+# subdirectories that match the given regular expression
+
+def fileFind(currdir,regexpf):
+    i = 0
+    filepaths = []
+    for root,dirs,files in os.walk(currdir):
+        for file in files:
+            matchf = regexpf.search(file)
+            if matchf != None:
+                path_abs = os.path.join(root,file)
+                path_rel = path_abs[len(os.getcwd())+1:]
+                filepaths.append(path_rel)
+    return filepaths
+#####################################################################
+
+#####################################################################
+# If the -find option is invoked without <exp> and <rep>, search for
+# all files that match the given regular expression, and print their
+# filepaths (printed paths only start from current directory)
+
+if len(sys.argv) >= 3 and sys.argv[1] == '-find':
+    idx = 2
+    while idx < len(sys.argv):
+        regexpf = re.compile('^' + fnmatch.translate(sys.argv[idx]))
+        filepaths = fileFind(os.getcwd(),regexpf)
+        for i in range(len(filepaths)):
+            print filepaths[i]
+        idx = idx + 1
+    sys.exit (0)
+#####################################################################
+
+if len(sys.argv) >= 2 and sys.argv[1] == '-help':
+    print helpString
+    sys.exit (0)
+if len(sys.argv) < 4:
+    printUsageAndExit(sys.argv)
+
+exp = sys.argv[1]
+rep = sys.argv[2]
+
+idx = 3
+isRegexp = False
+confirm = True
+filepaths = []
+
+while idx < len(sys.argv) and sys.argv[idx][0] == "-":
+    arg = sys.argv[idx]
+    if arg == '-re':
+        isRegexp = True
+    elif arg == '-noask':
+        confirm = False
+    elif arg == '-help':
+        print helpString
+        sys.exit (0)
+    elif arg == '-find':
+        idx = idx + 1
+        regexpf = re.compile('^' + fnmatch.translate(sys.argv[idx]))
+        filepaths = fileFind(os.getcwd(),regexpf)
+    elif arg[0:3] == "-CA":
+        n = parseInt (arg[3:])
+        if n < 0 or n > maxcontext:
+            print "'-CA<N>: "\
+                  "<N> must be a number in the range 0 to "+str(maxcontext)
+            sys.exit (1)
+        ncabove = n
+    elif arg[0:3] == "-CB":
+        n = parseInt (arg[3:])
+        if n < 0 or n > maxcontext:
+            print "-CB<N>: "\
+                  "<N> must be a number in the range 0 to "+str(maxcontext)
+            sys.exit (1)
+        ncbelow = n
+    elif arg[0:2] == "-C":
+        n = parseInt (arg[2:])
+        if n < 0 or n > maxcontext:
+            print "-C<N>: "\
+                  "<N> must be a number in the range 0 to "+str(maxcontext)
+            sys.exit (1)
+        ncbelow = n
+        ncabove = n
+    else:
+        printUsageAndExit (sys.argv)
+    idx = idx + 1
+
+if isRegexp:
+    regexp = re.compile (exp)
+
+# check for options in file list
+for i in range (idx, len(sys.argv)):
+    if sys.argv[i][0] == '-':
+        print "Options can not appear after first file. See 'qsubst -help'"
+        sys.exit (0)
+
+while idx < len(sys.argv):
+    filepaths.append(sys.argv[idx])
+    idx = idx + 1    
+
+if confirm:
+    try:
+        curses.filter()
+    except:
+        curses.initscr()
+        curses.filter()
+    window = curses.initscr()
+    curses.nonl()
+    curses.cbreak()
+    curses.noecho()
+    cursesUsed = True
+else:
+    cursesUsed = False
+
+try:
+    for i in range(len(filepaths)):
+        processFile (filepaths[i], confirm)
+except KeyboardInterrupt:
+    cleanup()
+except:
+    cleanup()
+    raise
+else:
+    cleanup()
+

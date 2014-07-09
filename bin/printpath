@@ -1,0 +1,8 @@
+#!/bin/sh
+if uname -s | grep CYGWIN 1>/dev/null 2>&1 ; then
+  # under cygwin, path directories are separated by ':'
+  echo "$PATH" | sed 's/:/\n/g'
+else
+  echo "$PATH" | sed 's/:/\
+/g'
+fi

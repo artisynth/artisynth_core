@@ -1,0 +1,540 @@
+/**
+ * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+package maspack.render;
+
+import java.awt.event.InputEvent;
+import java.util.LinkedList;
+
+import javax.media.opengl.GL2;
+
+import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
+import maspack.matrix.AxisAngle;
+import maspack.matrix.Line;
+import maspack.matrix.Plane;
+import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
+import maspack.util.InternalErrorException;
+
+public class Transrotator3d extends Dragger3dBase {
+   protected AffineTransform3dBase myTransform;
+   protected AffineTransform3dBase myIncrementalTransform;
+   protected int myCircleRes = 20;
+   protected int mySelectedComponent = NONE;
+   protected Point3d myPnt0 = new Point3d();
+   protected Point3d myRotPnt = new Point3d();
+   protected int myNumCircleSides = 64;
+   protected RotationMatrix3d myRot0 = new RotationMatrix3d();
+   protected RigidTransform3d myXDraggerToWorld0 = new RigidTransform3d();
+
+   //protected GLViewer myViewer; // hack to get repaint
+
+   protected static final double myPlaneBoxRelativeSize = 0.4;
+   protected static final double myRotatorRelativeSize = 0.8;
+
+   static final int NONE = 0;
+
+   static final int X_AXIS = 1;
+   static final int Y_AXIS = 2;
+   static final int Z_AXIS = 3;
+
+   static final int XY_PLANE = 4;
+   static final int YZ_PLANE = 5;
+   static final int ZX_PLANE = 6;
+
+   static final int X_ROTATE = 7;
+   static final int Y_ROTATE = 8;
+   static final int Z_ROTATE = 9;
+
+   private static Line xAxis = new Line (0, 0, 0, 1, 0, 0);
+   private static Line yAxis = new Line (0, 0, 0, 0, 1, 0);
+   private static Line zAxis = new Line (0, 0, 0, 0, 0, 1);
+
+   private static Plane xyPlane = new Plane (0, 0, 1, 0);
+   private static Plane yzPlane = new Plane (1, 0, 0, 0);
+   private static Plane zxPlane = new Plane (0, 1, 0, 0);
+
+   public Transrotator3d() {
+      super();
+      myTransform = new RigidTransform3d();
+      myIncrementalTransform = new RigidTransform3d();
+   }
+
+   public Transrotator3d (GLViewer viewer, double size) {
+      this();
+      setSize (size);
+      //myViewer = viewer;
+   }
+
+   public void render (GLRenderer renderer, int flags) {
+      if (!myVisibleP) {
+         return;
+      }
+      GL2 gl = renderer.getGL2().getGL2();
+
+      renderer.setLightingEnabled (false);
+      gl.glLineWidth (myLineWidth);
+
+      gl.glPushMatrix();
+      GLViewer.mulTransform (gl, myXDraggerToWorld);
+
+      if (myDragMode != DragMode.OFF) {
+         gl.glColor3d (1f, 1f, 0f);
+         gl.glPointSize (3);
+         gl.glBegin (GL2.GL_POINTS);
+         gl.glVertex3d (myPnt0.x, myPnt0.y, myPnt0.z);
+         gl.glEnd();
+         gl.glPointSize (1);
+      }
+
+      if (mySelectedComponent == X_AXIS) {
+         gl.glColor3d (1f, 1f, 0);
+      }
+      else {
+         gl.glColor3d (1f, 0, 0);
+      }
+      gl.glBegin (GL2.GL_LINES);
+      gl.glVertex3d (0, 0.0, 0.0);
+      gl.glVertex3d (mySize, 0.0, 0.0);
+      gl.glEnd();
+
+      if (mySelectedComponent == Y_AXIS) {
+         gl.glColor3d (1f, 1f, 0);
+      }
+      else {
+         gl.glColor3d (0, 1f, 0);
+      }
+      gl.glBegin (GL2.GL_LINES);
+      gl.glVertex3d (0, 0.0, 0.0);
+      gl.glVertex3d (0, mySize, 0.0);
+      gl.glEnd();
+
+      if (mySelectedComponent == Z_AXIS) {
+         gl.glColor3d (1f, 1f, 0);
+      }
+      else {
+         gl.glColor3d (0, 0, 1f);
+      }
+      gl.glBegin (GL2.GL_LINES);
+      gl.glVertex3d (0, 0.0, 0.0);
+      gl.glVertex3d (0, 0, mySize);
+      gl.glEnd();
+
+      double len = myPlaneBoxRelativeSize * mySize;
+
+      // gl.glDisable (GL2.GL_CULL_FACE);
+
+      // x-y plane box
+      if (mySelectedComponent == XY_PLANE) {
+         gl.glColor3d (1f, 1f, 0);
+      }
+      else {
+         gl.glColor3d (0.5, 0.5, 0.5);
+      }
+      gl.glBegin (GL2.GL_LINE_STRIP);
+      gl.glVertex3d (len, 0, 0);
+      gl.glVertex3d (len, len, 0);
+      gl.glVertex3d (0, len, 0);
+      gl.glEnd();
+
+      // y-z plane box
+      if (mySelectedComponent == YZ_PLANE) {
+         gl.glColor3d (1f, 1f, 0);
+      }
+      else {
+         gl.glColor3d (0.5, 0.5, 0.5);
+      }
+      gl.glBegin (GL2.GL_LINE_STRIP);
+      gl.glVertex3d (0, len, 0);
+      gl.glVertex3d (0, len, len);
+      gl.glVertex3d (0, 0, len);
+      gl.glEnd();
+
+      // z-x plane box
+      if (mySelectedComponent == ZX_PLANE) {
+         gl.glColor3d (1f, 1f, 0);
+      }
+      else {
+         gl.glColor3d (0.5, 0.5, 0.5);
+      }
+      gl.glBegin (GL2.GL_LINE_STRIP);
+      gl.glVertex3d (0, 0, len);
+      gl.glVertex3d (len, 0, len);
+      gl.glVertex3d (len, 0, 0);
+      gl.glEnd();
+
+      len = myRotatorRelativeSize * mySize;
+
+      // x axis rotator
+      if (mySelectedComponent == X_ROTATE) {
+         gl.glColor3d (1f, 1f, 0);
+      }
+      else {
+         gl.glColor3d (1f, 0, 0);
+      }
+      gl.glBegin (GL2.GL_LINE_STRIP);
+      for (int i = 0; i <= myNumCircleSides / 4; i++) {
+         double ang = 2 * Math.PI * i / myNumCircleSides;
+         gl.glVertex3d (0, len * Math.cos (ang), len * Math.sin (ang));
+      }
+      gl.glEnd();
+
+      // y axis rotator
+      if (mySelectedComponent == Y_ROTATE) {
+         gl.glColor3d (1f, 1f, 0);
+      }
+      else {
+         gl.glColor3d (0, 1f, 0);
+      }
+      gl.glBegin (GL2.GL_LINE_STRIP);
+      for (int i = 0; i <= myNumCircleSides / 4; i++) {
+         double ang = 2 * Math.PI * i / myNumCircleSides;
+         gl.glVertex3d (len * Math.sin (ang), 0, len * Math.cos (ang));
+      }
+      gl.glEnd();
+
+      // z axis rotator
+      if (mySelectedComponent == Z_ROTATE) {
+         gl.glColor3d (1f, 1f, 0);
+      }
+      else {
+         gl.glColor3d (0, 0, 1f);
+      }
+      gl.glBegin (GL2.GL_LINE_STRIP);
+      for (int i = 0; i <= myNumCircleSides / 4; i++) {
+         double ang = 2 * Math.PI * i / myNumCircleSides;
+         gl.glVertex3d (len * Math.cos (ang), len * Math.sin (ang), 0.0);
+      }
+      gl.glEnd();
+
+      gl.glPopMatrix();
+
+      if (myDragMode != DragMode.OFF && mySelectedComponent >= X_ROTATE) {
+         // Draw rotation lines using the orientation at the time the drag was
+         // started
+         RigidTransform3d X = new RigidTransform3d (myXDraggerToWorld0);
+         X.p.set (myXDraggerToWorld.p);
+         gl.glPushMatrix();
+         GLViewer.mulTransform (gl, X);
+
+         gl.glBegin (GL2.GL_LINES);
+         gl.glColor3f (0.5f, 0.5f, 0.5f);
+         gl.glVertex3d (0, 0, 0);
+         gl.glVertex3d (myPnt0.x, myPnt0.y, myPnt0.z);
+         gl.glColor3f (1f, 1f, 0);
+         gl.glVertex3d (0, 0, 0);
+         gl.glVertex3d (myRotPnt.x, myRotPnt.y, myRotPnt.z);
+         gl.glEnd();
+
+         gl.glPopMatrix();
+      }
+
+      gl.glLineWidth (1);
+      renderer.setLightingEnabled (true);
+
+      // gl.glEnable (GL2.GL_CULL_FACE);
+
+   }
+
+   public void getSelection (LinkedList<Object> list, int qid) {
+   }
+
+   private boolean rotationSelectCheck (
+      double d, double tempDist, double minDist, double lineDist) {
+      return d != Double.POSITIVE_INFINITY && tempDist < lineDist &&
+         tempDist < minDist;
+   };
+
+   private int checkComponentSelection (MouseRayEvent e) {
+      double distancePerPixel = e.distancePerPixel (myXDraggerToWorld.p);
+
+      Line draggerRay = new Line (e.getRay());
+      draggerRay.inverseTransform (myXDraggerToWorld);
+
+      double lineDist = 5 * distancePerPixel; // was 0.05*mySize
+      double minDist = Double.POSITIVE_INFINITY;
+      double l, d, tempDist;
+      int resultAxisOrPlane = NONE;
+      RigidTransform3d draggerToEye = new RigidTransform3d();
+      draggerToEye.mulInverseLeft (
+         e.getViewer().getEyeToWorld(), myXDraggerToWorld);
+
+      Point3d p = new Point3d();
+
+      // First find the axis the mouse is within the bounds of. When within
+      // multiple bounds, select the axis that the mouse is closest to.
+
+      l = xAxis.nearestPoint (p, draggerRay);
+      tempDist = draggerRay.distance (p);
+      if (l >= 0 && l <= mySize && tempDist < lineDist) {
+         resultAxisOrPlane = X_AXIS;
+         minDist = tempDist;
+      }
+
+      l = yAxis.nearestPoint (p, draggerRay);
+      tempDist = draggerRay.distance (p);
+      if (l >= 0 && l <= mySize && tempDist < lineDist && tempDist < minDist)
+
+      {
+         resultAxisOrPlane = Y_AXIS;
+         minDist = tempDist;
+      }
+
+      l = zAxis.nearestPoint (p, draggerRay);
+      tempDist = draggerRay.distance (p);
+      if (l >= 0 && l <= mySize && tempDist < lineDist && tempDist < minDist) {
+         resultAxisOrPlane = Z_AXIS;
+         minDist = tempDist;
+      }
+
+      // now check rotators, and if there is any that are selected and
+      // closer to the mouse than any of the axes, then select it.
+      double len = myRotatorRelativeSize * mySize;
+
+      d = draggerRay.intersectPlane (p, yzPlane);
+      tempDist = Math.abs (p.norm() - len);
+      if (rotationSelectCheck (d, tempDist, minDist, lineDist) &&
+          p.y >= 0 && p.z >= 0) {
+         resultAxisOrPlane = X_ROTATE;
+         minDist = tempDist;
+      }
+
+      d = draggerRay.intersectPlane (p, zxPlane);
+      tempDist = Math.abs (p.norm() - len);
+      if (rotationSelectCheck (d, tempDist, minDist, lineDist) &&
+          p.x >= 0 && p.z >= 0) {
+         resultAxisOrPlane = Y_ROTATE;
+         minDist = tempDist;
+      }
+
+      d = draggerRay.intersectPlane (p, xyPlane);
+      tempDist = Math.abs (p.norm() - len);
+      if (rotationSelectCheck (d, tempDist, minDist, lineDist) &&
+          p.x >= 0 && p.y >= 0) {
+         resultAxisOrPlane = Z_ROTATE;
+         minDist = tempDist;
+      }
+
+      // if any of the axes or rotators are selected, then
+      // return the axis or rotator that the mouse is closest to.
+      if (resultAxisOrPlane != NONE) {
+         return resultAxisOrPlane;
+      }
+
+      // now check if the mouse is on any of the planes. If true,
+      // then return the selected plane closest to the user.
+      len = myPlaneBoxRelativeSize * mySize;
+      minDist = Double.POSITIVE_INFINITY;
+
+      d = draggerRay.intersectPlane (p, xyPlane);
+      if (d != Double.POSITIVE_INFINITY && p.x >= 0 &&
+          p.x <= len && p.y >= 0 &&  p.y <= len) {
+         p.transform (draggerToEye);
+         resultAxisOrPlane = XY_PLANE;
+         minDist = p.z;
+      }
+
+      d = draggerRay.intersectPlane (p, yzPlane);
+      if (d != Double.POSITIVE_INFINITY && p.y >= 0 &&
+          p.y <= len && p.z >= 0 && p.z <= len) {
+         p.transform (draggerToEye);
+         if (p.z < minDist) {
+            resultAxisOrPlane = YZ_PLANE;
+            minDist = p.z;
+         }
+      }
+
+      d = draggerRay.intersectPlane (p, zxPlane);
+      if (d != Double.POSITIVE_INFINITY && p.z >= 0 &&
+          p.z <= len && p.x >= 0 && p.x <= len) {
+         p.transform (draggerToEye);
+         if (p.z < minDist) {
+            resultAxisOrPlane = ZX_PLANE;
+         }
+      }
+
+      return resultAxisOrPlane;
+   }
+
+   protected void intersectRayAndFixture (Point3d p, Line ray) {
+      Line draggerRay = new Line (ray);
+      draggerRay.inverseTransform (myXDraggerToWorld);
+
+      switch (mySelectedComponent) {
+         case X_AXIS: {
+            xAxis.nearestPoint (p, draggerRay);
+            p.y = p.z = 0;
+            break;
+         }
+         case Y_AXIS: {
+            yAxis.nearestPoint (p, draggerRay);
+            p.x = p.z = 0;
+            break;
+         }
+         case Z_AXIS: {
+            zAxis.nearestPoint (p, draggerRay);
+            p.x = p.y = 0;
+            break;
+         }
+         case XY_PLANE: {
+            draggerRay.intersectPlane (p, xyPlane);
+            p.z = 0;
+            break;
+         }
+         case YZ_PLANE: {
+            draggerRay.intersectPlane (p, yzPlane);
+            p.x = 0;
+            break;
+         }
+         case ZX_PLANE: {
+            draggerRay.intersectPlane (p, zxPlane);
+            p.y = 0;
+            break;
+         }
+         default: {
+            throw new InternalErrorException (
+               "unexpected case " + mySelectedComponent);
+         }
+      }
+   }
+
+   protected void findRotation (RotationMatrix3d R, Point3d p, Line ray) {
+      Line draggerRay = new Line (ray);
+      draggerRay.inverseTransform (myXDraggerToWorld0);
+
+      switch (mySelectedComponent) {
+         case X_ROTATE: {
+            draggerRay.intersectPlane (p, yzPlane);
+            R.setAxisAngle (xAxis.getDirection(), Math.atan2 (p.z, p.y));
+            break;
+         }
+         case Y_ROTATE: {
+            draggerRay.intersectPlane (p, zxPlane);
+            R.setAxisAngle (yAxis.getDirection(), Math.atan2 (p.x, p.z));
+            break;
+         }
+         case Z_ROTATE: {
+            draggerRay.intersectPlane (p, xyPlane);
+            R.setAxisAngle (zAxis.getDirection(), Math.atan2 (p.y, p.x));
+            break;
+         }
+         default: {
+            throw new InternalErrorException (
+               "unexpected case " + mySelectedComponent);
+         }
+      }
+      double mag = p.norm();
+      if (mag != 0) {
+         p.scale (myRotatorRelativeSize * mySize / mag);
+      }
+   }
+
+   protected void updatePosition (Point3d p0, Point3d p1, boolean constrained) {
+      RigidTransform3d Tinc = (RigidTransform3d)myIncrementalTransform;
+      RigidTransform3d T = (RigidTransform3d)myTransform;
+      Vector3d del = new Vector3d();
+      del.sub (p1, p0);
+      if (constrained) {
+         double s = getConstrainedStepSize();
+         del.x = s*Math.round(del.x/s);
+         del.y = s*Math.round(del.y/s);
+         del.z = s*Math.round(del.z/s);
+      }
+      myXDraggerToWorld.mulXyz (del.x, del.y, del.z);
+      Tinc.p.set (del.x, del.y, del.z);
+      T.mul (Tinc);
+   }
+
+   protected void updateRotation (RotationMatrix3d Rot, boolean constrained) {
+      RigidTransform3d Tinc = (RigidTransform3d)myIncrementalTransform;
+      RigidTransform3d T = (RigidTransform3d)myTransform;
+      RotationMatrix3d R = new RotationMatrix3d();
+      R.mulInverseLeft (myRot0, Rot);
+      if (constrained) {
+         AxisAngle axisAng = new AxisAngle();
+         R.getAxisAngle (axisAng);
+         double deg = Math.toDegrees (axisAng.angle);
+         axisAng.angle = Math.toRadians (5*Math.round(deg/5));
+         R.setAxisAngle (axisAng);
+         myRotPnt.transform (R, myPnt0);
+      }
+      Tinc.R.mulInverseLeft (T.R, R);
+      T.R.set (R);
+      myXDraggerToWorld.R.mul (Tinc.R);
+   }
+
+//   public void draggerSelected (MouseRayEvent e) {
+//      intersectRayAndFixture (myPnt0, e.getRay());
+//   }
+
+   public boolean mousePressed (MouseRayEvent e) {
+      DragMode mode = getDragMode (e);
+      if (mode != DragMode.OFF && mySelectedComponent != NONE) {
+         myDragMode = mode;
+         if (mySelectedComponent >= X_ROTATE) {
+            myXDraggerToWorld0.set (myXDraggerToWorld);
+            findRotation (myRot0, myPnt0, e.getRay());
+            myRotPnt.set (myPnt0);
+         }
+         else {
+            intersectRayAndFixture (myPnt0, e.getRay());
+         }
+         myTransform.setIdentity();
+         myIncrementalTransform.setIdentity();
+         fireDraggerBeginListeners (
+            myTransform, myIncrementalTransform, e.getModifiersEx());
+         return true;
+      }
+      return false;
+   }
+
+   public boolean mouseReleased (MouseRayEvent e) {
+      if (myDragMode != DragMode.OFF) {
+         if (mySelectedComponent != NONE) {
+            myIncrementalTransform.setIdentity();
+            fireDraggerEndListeners (
+               myTransform, myIncrementalTransform, e.getModifiersEx());
+         }
+         myDragMode = DragMode.OFF;
+         return true;
+      }
+      return false;
+   }
+
+   public boolean mouseDragged (MouseRayEvent e) {
+      if (mySelectedComponent != NONE) {
+         boolean constrained = dragIsConstrained (e);
+         if (mySelectedComponent >= X_ROTATE) {
+            RotationMatrix3d R = new RotationMatrix3d();
+            findRotation (R, myRotPnt, e.getRay());
+            updateRotation (R, constrained);
+         }
+         else {
+            Point3d pnt = new Point3d();
+            intersectRayAndFixture (pnt, e.getRay());
+            updatePosition (myPnt0, pnt, constrained);
+         }
+         if (!dragIsRepositioning(e)) {
+            fireDraggerMoveListeners (
+               myTransform, myIncrementalTransform, e.getModifiersEx());
+         }
+         return true;
+      }
+      return false;
+   }
+
+   public boolean mouseMoved (MouseRayEvent e) {
+      int comp = checkComponentSelection (e);
+      if (comp != mySelectedComponent) {
+         mySelectedComponent = comp;
+         e.getViewer().repaint();
+         return true;
+      }
+      return false;
+   }
+}

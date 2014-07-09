@@ -1,0 +1,230 @@
+fdirs=[ 8 ]
+#
+# single point of contact at the center of mass
+#
+pnts=[ 0 0 0 ]
+nrms=[ 0 1 0 ]
+fcoefs=[ 0.2 ]
+bpos=[ 0 0 0 ]
+wext=[ 1 -1 0 0 0 0 ]
+test
+fdirs=[ 8 ]
+#
+# single point of contact
+#
+pnts=[ 0 0 0 ]
+nrms=[ 0 1 0 ]
+fcoefs=[ 0.2 ]
+bpos=[ 0 1 0 ]
+wext=[ 0.2 -1 0 0 0 0 ]
+test
+#
+# single point of contact, force offset by 45
+#
+pnts=[ 0 0 0 ]
+nrms=[ 0 1 0 ]
+fcoefs=[ 0.2 ]
+bpos=[ 0 1 0 ]
+wext=[ 0.2 -1 0.2 0 0 0 ]
+test
+#
+# single point of contact, force offset by 26 deg
+#
+pnts=[ 0 0 0 ]
+nrms=[ 0 1 0 ]
+fcoefs=[ 0.2 ]
+bpos=[ 0 1 0 ]
+wext=[ 0.2 -1 0.1 0 0 0 ]
+test
+#
+# two points of contact
+#
+pnts=[ 1 0 0 
+      -1 0 0 ]
+nrms=[ 0 1 0
+       0 1 0 ]
+fcoefs=[ 0.2 0.2 ]
+bpos=[ 0 1 0 ]
+wext=[ 0.25 -1 0 0 0 0 ]
+test
+#
+# two points of contact, wext at 1 -1
+#
+pnts=[ 1 0 0 
+      -1 0 0 ]
+nrms=[ 0 1 0
+       0 1 0 ]
+fcoefs=[ 0.2 0.2 ]
+bpos=[ 0 1 0 ]
+wext=[ 1 -1 0 0 0 0 ]
+test
+#
+## two pointright-angled contact
+#
+pnts=[ 0 0 0 
+      -1 1 0 ]
+nrms=[ 0 1 0
+       1 0 0 ]
+fcoefs=[ 0.3 0.3 ]
+bpos=[ 0 0.5 0 ]
+wext=[ -1 0 0 0 0 0 ]
+test
+##
+## two offset points of contact
+##
+pnts=[ 1 0 0 
+      -1 0.5 0 ]
+nrms=[ 0 1 0
+       1 1 0 ]
+fcoefs=[ 0.2 0.2 ]
+bpos=[ 0 1 0 ]
+wext=[ 0.5 -1 0 0 0 0 ]
+test
+##
+## two offset points of contact with force at end
+##
+pnts=[ 1 0 0 
+      -1 0.5 0 ]
+nrms=[ 0 1 0
+       1 1 0 ]
+fcoefs=[ 0.2 0.2 ]
+bpos=[ 1 1 0 ]
+wext=[ 0.5 -1 0 0 0 0 ]
+test
+##
+## 3D version of offset
+##
+pnts=[ 1 0 -1
+       1 0  1
+      -1 0.5 -1
+      -1 0.5 1 ]
+nrms=[ 0 1 0
+       0 1 0
+       1 1 1
+       1 1 -1]
+fcoefs=[ 0.2 0.2 0.2 0.2 ]
+bpos=[ 0 1 0 ]
+wext=[ -0.1 -1 0 0 0 0 ]
+test
+##
+## same thing with force canted a bit
+##
+pnts=[ 1 0 -1
+       1 0  1
+      -1 0.5 -1
+      -1 0.5 1 ]
+nrms=[ 0 1 0
+       0 1 0
+       1 1 1
+       1 1 -1 ]
+fcoefs=[ 0.3 0.3 0.3 0.3 ]
+bpos=[ 0 1 0 ]
+wext=[ 0.5 -1 0.5 0 0 0 ]
+test
+#
+##
+## same thing with force canted a bit
+##
+pnts=[ 1 0 -1
+       1 0  1
+      -1 0.5 -1
+      -1 0.5 1 ]
+nrms=[ 0 1 0
+       0 1 0
+       1 1 1
+       1 1 -1 ]
+fcoefs=[ 0.5 0.5 0.5 0.5 ]
+bpos=[ 0 1 0 ]
+wext=[ -0.2 -1 0.15 0 0 0 ]
+test
+#
+##
+## box on a table top
+##
+pnts=[ 1 0 1
+       1 0 -1
+      -1 0 1
+      -1 0 -1 ]
+nrms=[ 0 1 0
+       0 1 0
+       0 1 0
+       0 1 0 ]
+fcoefs=[ 0.3 0.3 0.3 0.3 ]
+bpos=[ 0 1 0 ]
+wext=[ -0.2 -1 0.15 0 0 0 ]
+test
+##
+## eight cornered box on box
+##
+pnts=[ 1 0 1
+       1.4 0 0
+       1 0 -1
+       0 0 -1.4
+      -1 0 -1
+      -1.4 0 0
+      -1 0 1 
+       0 0 1.4
+     ]
+nrms=[ 0 1 0
+       0 1 0
+       0 1 0
+       0 1 0 
+       0 1 0
+       0 1 0
+       0 1 0
+       0 1 0
+     ]
+fcoefs=[ 0.3 0.3 0.3 0.3 0.2 0.2 0.2 0.2 ]
+bpos=[ 0 1 0 ]
+wext=[ -0.2 -1 0.15 0 0 0 ]
+test
+##
+## boxed prismatic joint aligned with z axis
+## 
+pnts = [  1 0  2
+         -1 0  2
+         -1 0 -2
+          1 0 -2
+
+          1 0  2
+          1 0 -2
+          1 2 -2
+          1 2  2
+
+          1 2  2
+          1 2 -2
+         -1 2 -2
+         -1 2  2
+
+         -1 2  2
+         -1 2 -2
+         -1 0 -2
+         -1 0  2
+]
+nrms = [  0 1 0
+          0 1 0
+          0 1 0
+          0 1 0
+
+	 -1 0 0	 
+         -1 0 0	 
+         -1 0 0
+         -1 0 0
+
+	  0 -1 0
+	  0 -1 0
+	  0 -1 0
+	  0 -1 0
+
+	 1 0 0	 
+         1 0 0	 
+         1 0 0
+         1 0 0 ]
+fcoefs = [0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 ]
+bpos = [ 0 1 0 ]
+# moving case
+wext=[ -1 -1 0.3 0 0 0 ]
+test
+# static case
+wext=[ 0.1 -1 0.1 0 0 0 ]
+test

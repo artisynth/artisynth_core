@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	targetNamespace="http://www.artisynth.org"
+	xmlns="http://www.artisynth.org" elementFormDefault="unqualified">
+
+	<xs:annotation>
+		<xs:documentation>
+			XML Schema for the ArtiSynth "Models" menu
+		</xs:documentation>
+	</xs:annotation>
+
+	<!-- Elements -->
+	<xs:element name="ModelMenu" type="rootType" />
+	<xs:element name="menu" type="menuType" />
+	<xs:element name="model" type="modelType" />
+	<xs:element name="package" type="packageType" />
+	<xs:element name="demosFile" type="demosFileType" />
+	<xs:element name="separator" type="separatorType" />
+	<xs:element name="label" type="labelType" />
+	<xs:element name="include" type="includeType" />
+	<xs:element name="hidden" type="hiddenType" />
+
+	<!-- Element Types -->
+	<xs:complexType name="rootType">
+		<xs:choice minOccurs="0" maxOccurs="unbounded">
+			<xs:element ref="menu" />
+			<xs:element ref="model" />
+			<xs:element ref="package" />
+			<xs:element ref="demosFile" />
+			<xs:element ref="separator" />
+			<xs:element ref="label" />
+			<xs:element ref="include"/>
+			<xs:element ref="hidden"/>
+		</xs:choice>
+	</xs:complexType>
+
+	<xs:complexType name="hiddenType">
+		<xs:complexContent>
+			<xs:extension base="rootType">
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	
+	<xs:complexType name="menuType">
+		<xs:complexContent>
+			<xs:extension base="rootType">
+				<xs:attribute name="text" type="xs:string" use="required" />
+				<xs:attribute name="icon" type="xs:anyURI" use="optional" />
+				<xs:attributeGroup ref="fontAttr" />
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="modelType">
+		<xs:attribute name="class" type="javaType" use="required" />
+		<xs:attribute name="text" type="xs:string" use="optional" />
+		<xs:attribute name="icon" type="xs:anyURI" use="optional" />
+		<xs:attributeGroup ref="fontAttr" />
+	</xs:complexType>
+
+	<xs:complexType name="packageType">
+		<xs:attribute name="source" type="javaType" use="required" />
+		<xs:attribute name="base" type="javaType"
+			default="artisynth.core.workspace.RootModel" use="optional" />
+			<xs:attribute name="regex" type="xs:string" use="optional" />
+		<xs:attribute name="view" type="viewType" default="hierarchical"
+			use="optional" />
+		<xs:attribute name="compact" type="compactType" default="0"
+			use="optional" />
+		<xs:attributeGroup ref="fontAttr" />
+	</xs:complexType>
+
+	<xs:complexType name="demosFileType">
+		<xs:attribute name="file" type="xs:anyURI" use="required" />
+		<xs:attributeGroup ref="fontAttr" />
+	</xs:complexType>
+
+	<xs:complexType name="separatorType">
+	</xs:complexType>
+
+	<xs:complexType name="labelType">
+		<xs:attribute name="text" type="xs:string" use="required" />
+		<xs:attribute name="icon" type="xs:anyURI" use="optional" />
+		<xs:attributeGroup ref="fontAttr"/>
+	</xs:complexType>
+	
+	<xs:complexType name="includeType">
+		<xs:attribute name="file" type="xs:anyURI" use="required" />
+	</xs:complexType>
+
+	<!-- Attributes Types -->
+	<xs:attributeGroup name="fontAttr">
+		<xs:attribute name="fontname" type="xs:string" use="optional" />
+		<xs:attribute name="fontstyle" type="xs:string" default="bold" use="optional" />
+		<xs:attribute name="fontsize" type="xs:integer" use="optional" />
+	</xs:attributeGroup>
+
+	<!-- Attribute Restrictions -->
+	<xs:simpleType name="javaType">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="([a-zA-Z0-9\._])*" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="viewType">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="flat|hierarchical" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="compactType">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="0" />
+			<xs:maxInclusive value="2" />
+		</xs:restriction>
+	</xs:simpleType>
+
+
+</xs:schema>

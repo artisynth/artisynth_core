@@ -1,0 +1,518 @@
+/*
+  CSS stylesheet for XHTML produced by DocBook XSL stylesheets.
+  Tested with XSL stylesheets 1.61.2, 1.67.2
+*/
+
+span.strong {
+  font-weight: bold;
+}
+
+/*
+body blockquote {
+  border: 1px solid silver;
+  background: #f4f4f4;
+  margin-top: .75em;
+  line-height: 1.2;
+  margin-bottom: .75em;
+}
+*/
+
+body blockquote {
+  border: 1px solid silver;
+  background: #ffffee;
+  margin: 0.5em 5% 0.5em 0;
+  padding: 0em 1em;
+}
+
+html body {
+  /* margin: top right bottom left */
+  margin: 1em 0% 1em 1.5%;
+  line-height: 1.2;
+}
+
+body div {
+  margin: 0;
+}
+
+/* move the main title to the left */
+h1 { text-align:left; }
+
+h1, h2, h3, h4, h5, h6,
+div.toc p b,
+div.list-of-figures p b,
+div.list-of-tables p b,
+div.abstract p.title
+{
+  color: #527bbd;
+  font-family: tahoma, verdana, sans-serif;
+}
+
+h1                      { font-size: 180%; }
+h2                      { font-size: 150%; }
+h3                      { font-size: 120%; }
+
+.author .personname
+{
+  margin-top: 0.8em;
+  margin-bottom: 0.2em;
+  color: #527bbd;
+  font-weight:bold;
+  font-size: 120%;
+  font-family:tahoma, verdana, sans-serif;
+  text-align:left;
+}
+
+div.toc p:first-child,
+div.list-of-figures p:first-child,
+div.list-of-tables p:first-child,
+div.example p.title
+{
+  margin-bottom: 0.2em;
+}
+
+body h1 {
+  margin: .0em 0 0 -4%;
+  line-height: 1.3;
+  border-bottom: 2px solid silver;
+}
+
+body h2 {
+  margin: 0.5em 0 0 -4%;
+  line-height: 1.3;
+  border-bottom: 2px solid silver;
+}
+
+body h3 {
+  margin: .8em 0 0 -3%;
+  line-height: 1.3;
+}
+
+body h4 {
+  margin: .8em 0 0 -3%;
+  line-height: 1.3;
+}
+
+body h5 {
+  margin: .8em 0 0 -2%;
+  line-height: 1.3;
+}
+
+body h6 {
+  margin: .8em 0 0 -1%;
+  line-height: 1.3;
+}
+
+body hr {
+  border: none; /* Broken on IE6 */
+}
+div.footnotes hr {
+  border: 1px solid silver;
+}
+
+div.navheader th, div.navheader td, div.navfooter td {
+  font-family: sans-serif;
+  font-size: 0.9em;
+  font-weight: bold;
+  color: #527bbd;
+}
+div.navheader img, div.navfooter img {
+  border-style: none;
+}
+div.navheader a, div.navfooter a {
+  font-weight: normal;
+}
+div.navfooter hr {
+  border: 1px solid silver;
+}
+
+body td {
+  line-height: 1.2
+}
+
+body th {
+  line-height: 1.2;
+}
+
+ol {
+  line-height: 1.2;
+}
+
+ul, body dir, body menu {
+  line-height: 1.2;
+}
+
+html {
+  margin: 0; 
+  padding: 0;
+}
+
+body h1, body h2, body h3, body h4, body h5, body h6 {
+  margin-left: 0
+} 
+
+body pre {
+  /* margin: 0 10% 0.5em 1em; */
+  margin: 0 5% 0.5em 1em;
+  line-height: 1.0;
+}
+
+.verbatim {
+  /*border: 1px solid silver;*/
+  /* margin: 0.5em 10% 0.5em 0;*/
+  margin: 0.5em 5% 0.5em 0;
+  padding: 0.5em 1em;
+}
+
+tt.literal, code.literal {
+  color: navy;
+}
+
+.programlisting, .screen, .listing {
+  border: 1px solid silver;
+  background: #f4f4f4;
+  /* margin: 0.5em 10% 0.5em 0; */
+  margin: 0.5em 5% 0.5em 0;
+  padding: 0.5em 0.5em;
+}
+
+.listing {
+  font-family: monospace;
+  color: navy;
+}
+
+table {
+  show-empty: true;
+}
+
+.listing td {
+  border-spacing: 0;
+  line-height: 1;
+  padding: 0.1em 0 0 0;
+  white-space:nowrap;
+}
+
+div.sidebar {
+  background: #ffffee;
+  /*margin: 1.0em 10% 0.5em 0;*/
+  margin: 1.0em 5% 0.5em 0;
+  padding: 0.5em 1em;
+  border: 1px solid silver;
+}
+div.sidebar * { padding: 0; }
+div.sidebar div { margin: 0; }
+div.sidebar p.title {
+  font-family: sans-serif;
+  margin-top: 0.5em;
+  margin-bottom: 0.2em;
+}
+
+div.bibliomixed {
+  margin: 0.5em 5% 0.5em 1em;
+}
+
+div.glossary dt {
+  font-weight: bold;
+}
+div.glossary dd p {
+  margin-top: 0.2em;
+}
+
+dl {
+  margin: .8em 0;
+  line-height: 1.2;
+}
+
+dt {
+  margin-top: 0.5em;
+}
+
+dt span.term  {
+  font-style: normal;
+  color: navy;
+}
+
+dl.description dt { margin-right:0.5em; float:none;
+	            font-weight:normal; font-size:100%; }
+
+dl.description dd { margin-left:2.5em; margin-top:-1em; }
+
+dt.item  {
+  font-style: normal;
+  color: navy;
+  float: none;
+  font-weight: normal;
+}
+
+span.guilabel {
+  font-style: normal;
+  color: #0000df;
+} 
+
+div.variablelist dd p {
+  margin-top: 0;
+}
+
+div.itemizedlist li, div.orderedlist li {
+  margin-left: -0.8em;
+  margin-top: 0.5em;
+}
+
+ul, ol {
+    list-style-position: outside;
+}
+
+div.sidebar ul, div.sidebar ol {
+    margin-left: 2.8em;
+}
+
+div.itemizedlist p.title,
+div.orderedlist p.title,
+div.variablelist p.title
+{
+  margin-bottom: -0.8em;
+}
+
+div.revhistory table {
+  border-collapse: collapse;
+  border: none;
+}
+div.revhistory th {
+  border: none;
+  color: #527bbd;
+  font-family: tahoma, verdana, sans-serif;
+}
+div.revhistory td {
+  border: 1px solid silver;
+}
+
+/* Keep TOC and index lines close together. */
+div.toc dl, div.toc dt,
+div.list-of-figures dl, div.list-of-figures dt,
+div.list-of-tables dl, div.list-of-tables dt,
+div.indexdiv dl, div.indexdiv dt
+{
+  line-height: normal;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/*
+  Table styling does not work because of overriding attributes in
+  generated HTML.
+*/
+div.table table,
+div.informaltable table
+{
+    margin-left: 0;
+    margin-right: 5%;
+    margin-bottom: 0.8em;
+}
+div.informaltable table
+{
+    margin-top: 0.4em
+}
+div.table thead,
+div.table tfoot,
+div.table tbody,
+div.informaltable thead,
+div.informaltable tfoot,
+div.informaltable tbody
+{
+    /* No effect in IE6. */
+    border-top: 2px solid #527bbd;
+    border-bottom: 2px solid #527bbd;
+}
+div.table thead, div.table tfoot,
+div.informaltable thead, div.informaltable tfoot
+{
+    font-weight: bold;
+}
+
+div.mediaobject img {
+    border: 1px solid silver;
+    margin-bottom: 0.8em;
+}
+
+img.graphics {
+    height: auto
+    width: auto
+}
+
+div.figure p.title,
+div.table p.title
+{
+  margin-top: 1em;
+  margin-bottom: 0.4em;
+  font-weight: normal;
+  text-align: center
+}
+
+div.figure 
+{
+  margin-top: 2em;
+  margin-bottom: 2em;
+  font-weight: normal;
+  text-align: center
+}
+
+div.caption
+{
+  margin-top: 2em;
+  margin-bottom: 2em;
+  font-weight: small;
+  text-align: left
+}
+
+.typewriter {
+  color: navy;
+}
+
+.sansserif {
+  color: navy;
+}
+
+@media print {
+  div.navheader, div.navfooter { display: none; }
+}
+
+.bibblock { margin-left:0em; }
+.bibtag { font-weight:bold; margin-left:-2em; width:3em; }
+li.bibitem  {margin-top: .5em; margin-bottom: .5em; }
+
+
+/**
+* Override some latex stuff
+**/
+
+/** Fix title appearance **/
+.ltx_title_document { 
+  text-align:left; 
+  font-size:180%;
+  font-weight:bold;
+}
+
+/** Fix section title size **/
+.ltx_title_section {
+  font-size: 150%;
+}
+
+/**
+* Remove extra padding
+**/
+.ltx_page_main {
+    margin:0px;
+    padding:0em 0em 0em 0em;
+}
+
+/**
+ * Fix author appearance
+ */
+.ltx_role_author .ltx_personname,
+ .author .personname {
+  margin-top: 0.8em;
+  margin-bottom: 0.2em;
+  color: #527bbd;
+  font-weight:bold;
+  font-size: 120%;
+  font-family:tahoma, verdana, sans-serif;
+  text-align:left;
+}
+
+
+/**
+ * Prevent extra indent 
+ */
+div > .ltx_para > .ltx_p,
+section > .ltx_para > .ltx_p { text-indent:0em; }
+
+/**
+* Remove extra space before/after title
+**/
+.ltx_title_section {
+  margin: 0.5em 0 0 0;
+}
+
+/**
+* More spacing between items
+*/
+.ltx_itemize,
+.ltx_enumerate
+ {
+    line-height: 1.2;
+}
+
+li.ltx_item {
+    margin: 0 0 0.5em 0;
+}
+
+/**
+* Description items, navy and with newline
+* before content
+*/
+dl.ltx_description dt { 
+   margin-right:0.5em; float:none;
+   font-weight:normal; font-size:100%; 
+}
+
+dl.ltx_description dd { margin-left:2.5em; margin-top:-1em; }
+
+dt.ltx_item  {
+  font-style: normal;
+  color: navy;
+  float: none;
+  font-weight: normal;
+}
+
+/**
+* Typewriter color
+*/
+.ltx_font_typewriter {
+  color: navy;
+}
+
+/**
+* Sans-serif color
+*/
+.ltx_font_sansserif {
+  color: navy;
+  font-size:90%;
+}
+
+/**
+* Verbatim environment
+**/
+
+.ltx_verbatim {
+  /*border: 1px solid silver;*/
+  /* margin: 0.5em 10% 0.5em 0;*/
+  margin: 0.5em 5% 0.5em 0;
+  padding: 0.5em 1em;
+}
+
+/**
+ * Listing environment
+ */
+.ltx_listing {
+  border: 1px solid silver;
+  background: #f4f4f4;
+  /* margin: 0.5em 10% 0.5em 0; */
+  margin: 0.5em 5% 0.5em 0;
+  padding: 0.5em 0.5em;
+  font-family: monospace;
+  color: navy;
+}
+
+/**
+ *  Figure label weight
+**/
+.ltx_tag_figure {
+  font-weight: bold;
+}
+
+/**
+ * Hide logo
+*/
+
+.ltx_page_logo {
+  visibility:hidden;
+}

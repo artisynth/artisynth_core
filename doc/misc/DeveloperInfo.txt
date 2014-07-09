@@ -1,0 +1,72 @@
+
+This document is designed as a getting started guide for new ArtiSynth developers.
+
+**** ArtiSynth CVS Access ****
+
+At the moment access to the CVS repository is only available by those with an account for the ECE Department at UBC. A snapshot of the ArtiSynth code base can be found at:
+http://www.artisynth.org/software-download.xml
+
+In the future we plan to have a publicly available CVS repository.
+
+** Obtaining an ECE-account
+
+Access to the ArtiSynth CVS repository requires an UBC ECE account: 
+
+1) Download account application form:
+http://help.ece.ubc.ca/HowToGetAnAccount.shtml
+2) Complete and sign form
+3) Fax completed form to Sidney Fels at +01-604-822-8989 OR email completed form to artisynth@ece.ubc.ca
+
+** ArtiSynth developer mailing list
+
+You will also be added to the tuna-developer mailing list once you have an ECE account. Preferences for the tuna-developer mailing list can be accessed at:
+https://lists.ece.ubc.ca/
+
+** ArtiSynth CVS access
+
+The ArtiSynth CVS repository exists on our file system @ /ubc/ece/home/hct/other/hct/cvsroot, remote hosts include ssh-linux.ece.ubc.ca and ssh.ece.ubc.ca can be accessed via SSH.
+
+The repository can be checkout with the following commands (where <user> is the username for your ECE account):
+
+Bash Shell:
+    $ export CVS_RSH=ssh
+    $ cvs -d <user>@ssh.ece.ubc.ca:/ubc/ece/home/hct/other/hct/cvsroot checkout artisynth_2_0
+
+Csh Shell:
+    $ setenv CVS_RSH ssh
+    $ cvs -d <user>@ssh.ece.ubc.ca:/ubc/ece/home/hct/other/hct/cvsroot checkout artisynth_2_0
+
+The project can also be checked out in Eclipse from the "CVS Repository" perspective.
+
+
+** Project build and run in eclipse
+
+see README in project root directory for instructions on building and running ArtiSynth.
+
+
+**** ArtiSynth Developer's Guide ****
+
+** General Guidelines
+
+1) email lloyd@cs.ubc.ca with any suggestions for core ArtiSynth changes, or feature requests
+2) add code under your own directory in artisynth_2_0/src/artisynth/models/<yourmodel>
+3) where possible subclass core classes if extensions are needed for your model
+
+
+** Code Format Convention
+
+Eclipse users can update their project code formatter at: 
+Project -> Properties -> Java Code Style -> Formatter -> Import...
+select artisynth_2_0/support/eclipse/eclipseCodeFormat.xml
+
+An example of ArtiSynth coding conventions use a straight-forward 3-space indent without brace-cuddling:class Foo{   private ArrayList myObjs;   public int indexOf (Object obj)   {      int idx = 0;      for (Object o : myObjs)      {  if (o == obj)         {  return idx;         }         idx++;      }      if (idx == myObjs.size())      {  return -1;      }   }}
+
+** Checklist before committing code to the repository
+
+1) All code should compile without errors
+2) Include descriptive change log in CVS commit comment
+3) Email tuna-developer@ece.ubc.ca with short summary of changes to core ArtiSynth components
+
+
+**** See artisynth_2_0/doc/UserGuide.pdf for a tutorial introduction to creating models and running ArtiSynth ****
+

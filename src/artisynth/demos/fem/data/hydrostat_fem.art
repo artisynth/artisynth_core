@@ -1,0 +1,92 @@
+artisynth.core.gui.ControlPanel
+[ name="FEM Options"
+  size=[ 438 506 ]
+  location=[ 658 22 ]
+  scrollable=true
+  options="LiveUpdate"
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0:YoungsModulus"
+    labelText="YoungsModulus"
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,100.000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0:PoissonsRatio"
+    labelText="PoissonsRatio"
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,0.499900] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0:density"
+    labelText="Density"
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,0.00100000] ]
+  ]
+  maspack.widgets.VectorField
+  [ property="models/0:gravity"
+    labelText="Gravity"
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+  ]
+  javax.swing.JSeparator [ ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0:particleDamping"
+    labelText="Particle Damping"
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,10.0000] ]
+  ]
+  maspack.widgets.DoubleFieldSlider
+  [ property="models/0:stiffnessDamping"
+    labelText="Stiffness Damping"
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+    sliderRange=maspack.util.DoubleInterval [ [0,0.100000] ]
+  ]
+  javax.swing.JSeparator [ ]
+  maspack.widgets.EnumSelector
+  [ property="models/0:integrator"
+    labelText="integrator"
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+  ]
+  maspack.widgets.DoubleField
+  [ property="models/0:maxStepSize"
+    labelText="maxStepSize"
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+  ]
+  maspack.widgets.EnumSelector
+  [ property="models/0:matrixSolver"
+    labelText="matrixSolver"
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+  ]
+  maspack.widgets.BooleanSelector
+  [ property="models/0:warping"
+    labelText="warping"
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+  ]
+  maspack.widgets.EnumSelector
+  [ property="models/0:incompressible"
+    labelText="incompressible"
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+  ]
+  maspack.widgets.BooleanSelector
+  [ property="models/0:profile"
+    labelText="profile"
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+  ]
+  maspack.widgets.DoubleField
+  [ property="models/0:volume"
+    labelText="volume"
+    labelFontColor=[ 0.000 0.000 0.000 ]
+    backgroundColor=[ 0.933 0.933 0.933 ]
+  ]
+]

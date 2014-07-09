@@ -1,0 +1,174 @@
+         ArtiSynth UI Requirements for Model Editing and Interaction
+	 -----------------------------------------------------------
+
+Transforming the Model Geometry
+-------------------------------
+
+    This includes changing the locations of points or (more generally)
+    morphing structures within the model. The principal need for this is to
+    register disparate models, and the morph normal models to fit data for
+    specific subjects.
+
+    * Want rough and fine control of positioning / transforming
+
+    * Allow only certain regions to be selected and modified
+      How to select regions?
+ 
+      > Drag windows (rectangular, circular)
+  
+      > Drawing on surfaces      
+
+    * Ideally, use collision and deformation to help guide registration
+
+    * Morph using landmarks: specify which landmarks correspond, and then
+      apply a transformation to align them, bringing neighbouring geometry
+      along for the ride
+
+      > can be done with manual assist or completely automatically
+
+    * Need to allow landmarks to be added/moved/deleted (see Model editing).
+
+    * Morph using line edge segments: useful when meshes have different
+      granularity and there is no obvious set of corresponding vertices
+
+    * Need various forms of "snap to grid". 
+
+      > Snap to surface, where a point is constrained to lie on a 
+        particular surface
+
+      > Snap to marker
+
+    * Need a 3D cursor widget for moving around in the viewer
+
+    * Need way to judge "goodness of fit" after transformation
+
+    * Outsource geometry modification. Allow model to export key aspects of
+      the geometry in a way that they can be edited using an external editor
+      and then reimported. 
+
+      > Problem: does not easily allow changes in topology
+
+Editing Model Topology
+----------------------
+
+    Involves specifying the interconnections required between models to allow
+    them to work together. The general interconnection mechanism is hard
+    because models can be quite disparate. 
+
+    * To keep models unencumbered, connection knowledge will lie with
+      constraints, which will know about what kind of models they can connect
+      and how.
+
+    * Some interconnections might be best made in the context of a particular
+      model type (i.e., by adding or merging components within a given
+      model). This would correspond to model editting, rather then
+      interconnecting models
+
+    * Most basic connection is point-point
+
+    * Use virtual phantom points, which model points track in some weighted
+      fashion
+
+    * Model connection information needs to be saved
+
+Editing Model Properties
+------------------------
+
+    This is mostly concerned with adding or removing components from
+    a particular model or class of models. 
+
+    * Editting most likely MODE, or TOOL driven. A given TOOL will
+      know what to do with the current selection list
+
+    * We would want to be able to add/merge/subdivide models
+
+Probing and Modifying Components Properties
+-------------------------------------------
+
+    This involves selecting component properties, and then modfying these
+    properties or attaching probes to them.
+
+    * Can select components using NavPanel or GUI.
+
+    * When a component is made invisible, can get to it from the graphic
+      display anymore. Possible solution: provide a 'make all subcomponents
+      visible' feature that can be invoked at any level.
+
+    * Property edit window
+
+      > expose only certain properties, or those only most used?
+
+      > Mode specific? i.e., setting only render properties, or
+        dynamic properties, or something else?
+
+Component Selection
+-------------------
+
+    The notation of how many things can be selected, and how the selection is
+    displayed, requires some consideration. Specifically:
+   
+    * When a parent component is selected, are the sub-components
+      shown as though they were selected individually?
+
+    * When selecting a leaf component, how do we traverse up to
+      the parent?
+    
+    * Example problem: Selecting a RigidBody mesh may select just the mesh
+      component, and not the RigidBody itself unless we climb the tree.
+
+    * Automatic tree climbing depending on selected mode or tool?
+
+Improvements to Model Viewing
+-----------------------------
+
+    * Multiple/isometric displays
+
+    * Stereo vision display
+
+    * Allow center of rotation to be changed, or fixed in the frustum center
+
+    * Improve zooming:
+
+      > allow zooming by region selection.
+  
+      > zoom to centre of view OR zoom to cursor location
+
+Other Functionality
+-------------------
+
+    * Transitions in probes
+    * Validation: evaluate fit and error, multi Subject comparison
+    * Extending new functionality: (Matlab toolbox)
+    * Help navigation: Inline example (pd), context help
+    * Image, geometry and data processing
+
+UI Modules
+----------
+
+    * Property editor
+    * Transform Interface: slider box, graphics selection frame
+    * Measuring (ImageJ, Sketchup, Blender)
+    * Color selection (OmniGraffle)
+    * Toolbar Handler
+    * Viewer Toolbar
+    * Component Browser
+    * Layers
+    * Selected entity Info
+    * Model info 
+
+Other UI Paradigms
+------------------
+
+    * Time line: video editor (Premiere), animation editor (Maya/Blender),
+      sequencer (Ableton live) 
+    * Routing signals: graphical programming (MaxMSP,Simulink,PD), 
+      Mixer console (Ableton live), Visualization, 
+    * Graphical API: (vtkGUI) 
+    * Geometry editor: (Sketchup,Blender,Maya) Dentist tooth shaping
+    * Structural navigation and configuration: sceengraph(Inventor),
+      tree structure(vtkGUI), signal Diagram, workspace 
+    * Typed Extensions: function and interface plug-ins (imageJ, VST) 
+    * Physical Based Animation Interfaces (RealFlow, WorkingModel)
+
+
+

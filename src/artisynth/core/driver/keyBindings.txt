@@ -1,0 +1,17 @@
+Keyboard bindings for Artisynth
+
+Play controls:
+q - quit
+p or space - toggle play/pause
+r - reset
+t - toggle time line visible
+
+0-9 load model in demo models 
+
+Graphics viewer controls:
+w - reset view
+o - toggle orthographic/perspective view
+a - toggle visible axes
+g - toggle visible grid
+
+Note: you need focus on the graphics viewer to get the key bindings.

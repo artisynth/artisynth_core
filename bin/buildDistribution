@@ -1,0 +1,49 @@
+#!/bin/sh
+if [ $# -lt 1 ] ; then
+   echo "Usage: buildDistribution <targetDirectory> [-nodocs]"
+   exit 1
+fi
+if [ ! -e $1 ] ; then
+   echo "Target directory" $1 "does not exist"
+   exit 1
+fi
+buildDocs=true
+if [ $# -eq 2 ] ; then
+   if [ $2 = -nodocs ] ; then
+      buildDocs=false
+   else
+      echo "Usage: buildDistribution <targetDirectory> [-nodocs]"
+      exit 1
+   fi
+fi
+# test to see if we are on Windows and set path separator accordingly
+if test -n "$COMSPEC$ComSpec"; then
+  pathsep=';'
+else
+  pathsep=':'
+fi
+START_DIR=`pwd`
+echo "current directory is" $START_DIR
+cd $1
+TARGET_DIR=`pwd`
+cd $TARGET_DIR
+echo "updating libraries ..."
+bin/updateArtisynthLibs -ahome $TARGET_DIR
+echo "building Artisynth distribution in" $TARGET_DIR
+CLASSPATH=$TARGET_DIR/classes:$TARGET_DIR/lib/'*'
+#for JAR in lib/*.jar
+#do
+#    CLASSPATH=$TARGET_DIR/$JAR$pathsep$CLASSPATH
+#done
+export CLASSPATH
+echo "building class files ..."
+make
+echo "done"
+if [ $buildDocs = true ] ; then
+   echo "building javadocs ..."
+   make -s javadocs
+   echo "building other docs ..."
+   (cd doc; make HTML)
+   echo "done"
+fi
+

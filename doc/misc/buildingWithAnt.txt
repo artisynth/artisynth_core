@@ -1,0 +1,66 @@
+        Building Artisynth with Ant
+        ---------------------------
+
+    Jakub Vondrak, November 12, 2006
+
+This document describes basic usage of Apache Ant building system with Artisynth.
+
+Requirements
+------------
+
+ For building to work, Apache Ant must be installed and properly configured.
+ Ant binaries and installation instructions can be found on following URL:
+ http://ant.apache.org/
+
+Ant basics
+----------
+
+ Apache Ant is a Java-based build tool. An alternative to make. Build process
+ is described in XML file (usually) called build.xml and build configuration can
+ be put to separate configuration file typically called build.properties.
+ Build.xml consists of several targets, which can be called by user. Targets 
+ consits of tasks. Ant can be extended by writing custom tasks (many additional
+ tasks are already available).  
+
+Usage
+-----
+
+ Switch to Artisynth root directory and type:
+  ant [target]
+  
+  When target is not specified, available targets are displayed.
+  
+Description of currently available targets
+------------------------------------------
+
+ compile 
+  Compiles source to prepare directory.
+
+ jar      
+  Compiles sources and makes jar from sources and all other data and 
+  configuration files in source directory.
+  
+ javadoc
+  Generates javadoc to doc/api directory 
+  
+ distrib  
+  Makes complete distribution. Compiles sources, makes jar, generates javadoc
+  and zips everything into distrib directory.
+  
+Usage examples:
+---------------
+
+ Custom build configuration
+  Make build-dev.properties file in Artisynth root directory and override any
+  desired variable from build.properties. Don't commit build-dev.properties to
+  version system - it's only yours and every developer can have his special
+  settings.
+
+  You can even specify additional library, which is located outside /lib 
+  directory. For example you put in build-dev.properties: 
+
+  libraries = c:\\custom-libs\\vrml\\j3d-vrml97.jar
+  
+  This will cause, that your additional library will be added to compile 
+  classpath, it will be copied into /lib directory when making distribution and
+  it will be listed in Class-Path in manifest.mf in Artisynth jar file. 

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- FEM demos -->
+<ModelMenu xmlns="http://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.artisynth.org modelmenu.xsd">
+
+	<model text="Articulated" class="artisynth.demos.fem.ArticulatedFem" />
+	<model text="Beam (Tet)" class="artisynth.demos.fem.TetBeam3d" />
+	<model text="Beam (Hex)" class="artisynth.demos.fem.HexBeam3d" />
+	<model text="Block (Tet)" class="artisynth.demos.fem.Fem3dBlock" />
+	<model text="Block (Hex)" class="artisynth.demos.fem.Hex3dBlock" />
+	<model text="Collision" class="artisynth.demos.fem.FemCollision" />
+	<model text="Simple Collision" class="artisynth.demos.fem.SimpleCollide" />
+	<model text="Self Collision" class="artisynth.demos.fem.SelfCollision" />	
+	<model text="Coupled Solve" class="artisynth.demos.fem.CoupledSolveDemo" />
+	<model text="Fish" class="artisynth.demos.fem.FishDemo" />
+	<model text="Hex Frame" class="artisynth.demos.fem.HexFrame" />
+	<model text="Hydrostat" class="artisynth.demos.fem.HydrostatDemo" />
+	<model text="Muscle" class="artisynth.demos.fem.FemMuscleDemo" />
+	<model text="Muscle Arm" class="artisynth.demos.fem.FemMuscleArm" />
+	<model text="Muscle Beam" class="artisynth.demos.fem.FemMuscleBeam" />
+	<model text="Muscle Block" class="artisynth.demos.fem.FemMuscleBlock" />
+	<model text="Simple Muscle" class="artisynth.demos.fem.SpongeDemo" />
+	<model text="Plane-Constrained" class="artisynth.demos.fem.PlaneConstrainedFem" />
+	<model text="Quadratic Tet Tube" class="artisynth.demos.fem.QuadtetTube" />
+	
+</ModelMenu>

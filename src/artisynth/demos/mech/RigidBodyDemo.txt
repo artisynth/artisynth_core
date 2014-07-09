@@ -1,0 +1,9 @@
+This demo shows two rigid bodies, along with a point mass 
+particle (in red), connected by linear damped springs.
+
+The top rigid body is fixed while the second falls under the
+influence of gravity, the spring forces, and lateral forces
+supplied by two input probes.
+
+
+

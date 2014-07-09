@@ -1,0 +1,146 @@
+#!/usr/bin/perl 
+
+# Goes through a set of html files and sets all javadoc method
+# references so that they match the named locations within the
+# corresponding javadoc file, thus ensuring that links through the
+# reference navigate to the correct file location.
+#
+# A javadoc class reference should look like
+#
+# @JDOCBEGIN/artisynth.core.models.ModelBase@JDOCEND
+#
+# while a method reference should look like
+#
+# @JDOCBEGIN/artisynth.core.models.ModelBase.method(args)@JDOCEND
+#
+# where "args" may be either empty, or an abbreviated version
+# of the list of argument types. It is used to match the method to
+# the appropriate javadoc entry.
+#
+# Class references get turned into
+#
+# $JDOC_URL/artisynth/core/models/ModelBase.html
+#
+# while method references get turned into
+#
+# $jdocUrl/artisynth/core/models/ModelBase.html#method(argtypes)
+#
+# where $jdocUrl is a base URL for the javadocs and "argtypes" is
+# the fully expanded argument type list for the method, based on
+# matching the info provided by "args".
+
+# location of the javadoc files relative to the directory in which
+# this command is being run
+$jdocDir = "../javadocs";
+
+# base URL for the javadocs to be placed in the output html files
+$jdocUrl = "../javadocs";
+
+sub printUsageAndExit {
+    print "Usage: fixJavadocLinks [--jdocDir <dir>] [--jdocUrl <url>] <file>\n";
+    exit 1;
+}
+
+while ($_ = $ARGV[0], /^-/) {
+    shift;
+    if (/^--jdocDir$/) {
+	$jdocDir = shift;
+	if (!defined $jdocDir) {
+	    printUsageAndExit();
+	}
+    }
+    elsif (/^--jdocUrl$/) {
+	$jdocUrl = shift;
+	if (!defined $jdocUrl) {
+	    printUsageAndExit();
+	}
+    }
+    else {
+	printUsageAndExit();
+    }
+}
+
+$fileName = $ARGV[0];
+if (!defined $fileName) {
+    printUsageAndExit();
+}
+
+open (INPUT, $fileName) or warn "Can't open $inFileName: $!\n";
+while (<INPUT>) { 
+	s/\@JDOCBEGIN\/([^\s()]*)\@JDOCEND/replaceDots($1)/eg;
+	s/\@JDOCBEGIN\/([^\s()]*)\.([^.(]*)\(([^)]*)\)\@JDOCEND/fixMethodRef($1,$2,$3)/eg;
+	s/\@JDOCBEGIN\//$jdocUrl\//g;
+        print $_;
+}
+close INPUT;
+
+sub replaceDots {
+    my $str = $_[0];
+    $str =~ s/\./\//g;
+    return "\@JDOCBEGIN/$str.html";
+}
+
+# Returns the substitution string for a matched method reference.
+# The inputs consist of the javadoc filename for the class,
+# the method name itself, and the current argument string
+# for the method (the latter may be null).
+sub fixMethodRef {
+    my $classFile = $_[0];
+    my $methodName = $_[1];
+    my $methodArgs = $_[2];
+
+    $classFile =~ s/\./\//g;
+    $classFile = $classFile . ".html";
+    # create an expression for matching the current argument string
+    # againts the arguments found in the javadoc file
+    my $argexp = $methodArgs;
+    # backslash any dots or braces
+
+    $argexp =~ s/([\.\[\]])/\\\1/g;
+#    $argexp = ".*" . join (".*,.*" , split (',', $argexp)) . ".*";
+    $argexp =~ s/,/.*,.*/g;
+    $argexp = ".*" . $argexp . ".*";
+
+    # get a hashTable mapping each method name to an array of
+    # possible argument lists
+    my %methodTable = getMethodTable ("$jdocDir/$classFile");
+    # find the candiate argument sets for the current method name
+    $argListsRef = $methodTable{$methodName};
+    if ($argListsRef != null) {
+	# try to match these to the current argument string
+	$matched = 0;
+	foreach ( @{$argListsRef} ) {
+	    if ($_ =~ /$argexp/) {
+		# warn "$methodName: ($methodArgs) replaced with ($_) using ($argexp)\n";
+		$methodArgs = $_;
+		$matched = 1;
+		last;
+	    }
+	}	    
+	if (!$matched) {
+	    warn "Warning: No match found for $methodName($methodArgs)\n";
+	}
+    }
+    return "\@JDOCBEGIN/$classFile\#$methodName\($methodArgs\)";
+}
+
+# Finds or creates the table of named methods contained within
+# a particular javadoc file. Once created, the table is itself stored
+# in the hashtable 'allMethodTables' for later use.
+sub getMethodTable {
+    my $file = $_[0];
+    $methodTabRef = $allMethodTables{$file};
+    if ($methodTabRef != null) {
+	return %{ $methodTabRef };
+    }
+    my %methodTable=();
+    open (JAVADOC_INPUT, $file) or warn "Can't open $file: $!\n";
+    while (<JAVADOC_INPUT>) { 
+	while ( /(NAME|name)\s*=\s*"([a-zA-Z_][\w_]*)\(([^)]*)\)"/g) {
+	    push @{ $methodTable{$2} }, $3;
+	}
+    }
+    $allMethodTables{$file} = { %methodTable };
+    return %methodTable;
+}
+

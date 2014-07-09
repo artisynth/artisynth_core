@@ -1,0 +1,1257 @@
+\documentclass{article}
+\input{artisynthDoc}
+
+\setcounter{tocdepth}{5}
+\setcounter{secnumdepth}{3}
+
+\title{ArtiSynth Installation Guide}
+\author{John Lloyd}
+\iflatexml
+\date{}
+\fi
+
+\begin{document}
+
+\maketitle
+
+\iflatexml{\large\today}\fi
+
+\tableofcontents
+
+\section{Introduction}
+
+This document describes how to install and run ArtiSynth on your
+computer system. There are typically two classes of ArtiSynth user:
+{\it end users} who mainly want to run the program with existing models,
+and {\it developers} who want to create their own models and/or modify the
+ArtiSynth code base. End users should read through
+Section \ref{RunningArtisynthSec}, while developers should read further.
+
+\section{Supported Systems}
+
+ArtiSynth is currently supported for the following systems:
+
+\begin{itemize}
+
+\item Windows (32 and 64 bit)
+\item Linux (32 and 64 bit)
+\item MacOS 10.6 (i.e., Snow Leopard), on 64 bit Intel platforms
+
+\end{itemize}
+
+\section{External Software Requirements}
+\label{externalSoftwareSec}
+
+The following external software packages are required
+to run ArtiSynth:
+
+\begin{description}
+
+\item[Java JDK 1.6]\mbox{}
+
+This goes by various other names, including Java
+SE 6 and Java SDK 1.6. If necessary, it can be obtained for Windows
+and Linux from
+\href{http://java.sun.com/javase/downloads}{java.sun.com/javase/downloads},
+and for MacOS from
+\href{http://www.apple.com/java}{www.apple.com/java}. The full Java
+development kit (JDK) is required, which comes with the Java compiler
+{\tt javac}. The run time environment (JRE) will not be
+sufficient. There is no need for extra bundles such at JavaFX,
+NetBeans, or EE.
+
+%Pardiso:: 
+%The direct sparse solver Pardiso, by Olaf Schenk and his
+%colleagues at the University of Basel, is required by many ArtiSynth
+%applications. A copy of Pardiso 4.1 is bundled with the distribution,
+%but users must obtain a licence in order to run it. The licence is
+%free for noncommerical applications, and can be obtained quickly by
+%filling out a web form. See Section \ref{PardisoLicenceSec} for details.
+
+\item[OpenGL and JOGL (should already be installed)]\mbox{}
+
+OpenGL is supplied by most operating systems, so there should be no
+need to install it. JOGL is an interface that allows OpenGL to be
+called from Java. The necessary JOGL libraries are included with the
+ArtiSynth distribution. The version of JOGL currently used by
+ArtiSynth is described in the file {\tt
+\$ARTISYNTH\_HOME/lib/JOGL\_VERSION}.
+
+%However, if you have another version
+%of JOGL installed, then care may be
+%required to avoid clashes between versions. See Section \ref{JOGLClashesSec}.
+
+\end{description}
+
+%The following other packages are recommended for users doing
+%development work with ArtiSynth:
+
+\section{Downloading and Installing}
+\label{DownloadingSec}
+
+ArtiSynth may be obtained either by downloading one of the packaged
+distributions, or by checking out the most recent development version.
+The latter is recommended for developers working
+closely with the ArtiSynth team and is described in
+Section \ref{obtainingDevelopmentVersionSec}.
+
+To obtain one of the packaged distributions:
+
+\begin{enumerate}
+
+\item Go to \href{http://www.artisynth.org}{http://www.artisynth.org}
+
+\item Select {\sf Software/Downloads}. This will bring up a page directing you 
+to the {\sf ArtiSynth Download Form}.
+
+\item Select the link to the {\sf ArtiSynth Download Form}.
+
+\item Fill in and submit this form. An email containing a link and a password 
+will automatically be sent to the e-mail address you provide in this form.
+
+\item Open the e-mail mentioned above and click on the given link to find a 
+password protected webpage.
+
+\item Enter the password provided by the email. Take care that no spaces are 
+included, as the system is sensitive to them.
+
+\item This will lead to a different webpage, with links to various ArtiSynth 
+distributions. Select any one to download, and click it.
+
+\item Download the distribution, and unzip it in an appropriate
+location on your computer.
+
+\end{enumerate}
+
+In this document, the location of the ArtiSynth installation directory
+will be referred to by the variable {\tt ARTISYNTH\_HOME}.  Expansions
+of this will be indicated by {\tt \$ARTISYNTH\_HOME}, so that if the
+installation directory is {\tt /home/robert/project/artisynth\_2\_0},
+then {\tt \$ARTISYNTH\_HOME/lib/Linux} will denote the directory
+\begin{verbatim}
+  /home/robert/project/artisynth_2_0/lib/Linux
+\end{verbatim}
+
+\begin{sideblock}
+{\bf Important:}\\
+On Windows, make sure ArtiSynth is not installed in a location
+for which any of the folder names contain spaces
+(i.e., {\tt Program Files}).
+This is very important for ArtiSynth to run correctly.
+\end{sideblock}
+
+\section{Running ArtiSynth}
+\label{RunningArtisynthSec}
+
+This section describes how to start ArtiSynth for running
+existing models and demos. 
+
+\subsection{Windows}
+
+The most direct way to start ArtiSynth is to run the batch file
+{\tt artisynth.bat}, located in {\tt \$ARTISYNTH\_HOME\BKS bin}.  This can be
+done by double-clicking on it in a file browser.
+
+You can also create a shortcut to this batch file (by right clicking
+on it and selecting {\sf Create Shortcut}), and then placing this shortcut
+in either the {\sf START} menu or on the Desktop. However, the batch file
+itself must remain in {\tt \$ARTISYNTH\_HOME\BKS bin}.
+
+Alternatively, you can open a command interpreter ({\tt CMD}), navigate
+to {\tt \$ARTISYNTH\_HOME}, and enter the command
+
+\begin{verbatim}
+ % bin\artisynth
+\end{verbatim}
+
+\begin{sideblock}
+{\bf Note:}\\
+If Java is installed in a non-conventional location, the system may
+not be able to find it and this will cause {\tt artisynth.bat} to fail.
+To fix this, locate the folder in which {\tt java.exe} resides, and let
+the location of this folder be called JAVA\_DIR. You should then add
+JAVA\_DIR to your system's {\tt PATH} environment variable (see
+Section \ref{settingWindowsPathSec}).  
+\end{sideblock}
+
+%Alternatively, you can add JAVA\_DIR to
+%the {\tt PATH} variable within {\tt artisynth.bat}:
+%
+%. Open {\tt artisynth.bat} using a text editor such as {\tt notepad} or {\tt wordpad};
+%. Update the setting for {\tt JAVA\_DIR} in line three to its correct value;
+%. Uncomment lines three and four by removing the leading "@REM".
+
+\subsection{MacOS, Linux, and Windows running Cygwin}
+
+%On MacOS, you can run ArtiSynth by double clicking on
+%{\tt \$ARTISYNTH\_HOME/bin/artisynth.command} in a file browser.
+
+On MacOS, Linux, and Windows systems running Cygwin (see
+Section \ref{CygwinInstallationSec}), you can run ArtiSynth by opening a terminal
+window, changing to the directory {\tt ARTISYNTH\_HOME}, and running the
+command
+
+\begin{verbatim}
+ > bin/artisynth
+\end{verbatim}
+
+If you set your {\tt PATH} environment variable to include {\tt
+\$ARTISYNTH\_HOME/bin} (see Section \ref{environmentVariablesSec}), you
+can then run ArtiSynth using the command
+
+\begin{verbatim}
+ > artisynth
+\end{verbatim}
+
+from any directory.
+
+On MacOS, you can also run ArtiSynth from a file browser by double
+clicking on
+\begin{verbatim}
+  $ARTISYNTH_HOME/bin/artisynth.command
+\end{verbatim}
+({\tt artisynth.command} is just a
+copy of {\tt artisynth}; the {\tt .command} suffix makes it
+recognizable to the MacOS GUI as a command).
+MacOS GUI).
+
+{\tt artisynth} can be called with a number of options; to see these, run
+
+\begin{verbatim}
+ > artisynth -help
+\end{verbatim}
+
+\begin{sideblock}
+The {\tt artisynth} command (and the {\tt artisynth.bat} command used by
+Windows) are actually just convenience scripts that parse
+options, set environment
+variables and invoke Java using the ArtiSynth driver class
+{\tt artisynth.core.driver.Launcher}. If you have independently set the
+environment variables described in Section \ref{environmentVariablesSec},
+then you can invoke ArtiSynth from Java directly using
+%
+\begin{verbatim}
+ > java artisynth.core.driver.Launcher
+\end{verbatim}
+%
+although some of the options provided by {\tt artisynth} would be unavailable.
+\end{sideblock}
+
+%\section{Obtaining a Pardiso Licence}
+%\label{PardisoLicenceSec}
+%
+%Pardiso is free for non-commercial purposes but users must obtain a
+%license key by registering on the Pardiso project website. This key is
+%then placed in a file which Pardiso checks upon activation.
+%
+%. Go to the Pardiso website: http://www.pardiso-project.org
+%. Click "Download Software and License"
+%. Select `Academic'
+%. A registration form will appear. Confirm acceptance of the license agreement 
+%and fill in all required fields.
+%. Submit the registration form and then go to your email.
+%. Take the LICENSE KEY emailed to you and paste it in to a text file  
+%(use a text editor, *not* a word processor. Word processors (like MS Word or
+%Open Office) add additional characters. Examples of text editors are Wordpad
+%(for Windows) or gedit or emacs (for Linux).
+%. Save the file in your home directory as pardiso.lic.
+%On Mac and Linux systems, your home directory is indicated by the {\tt HOME} 
+%environment variable. On Windows, it is 
+%{\tt C:/Documents and Settings/{user name}}.
+%
+%[IMPORTANT]
+%========================================================
+%  - Take particular care in filling in the fields {\tt User name} and
+%    {\tt Host name}, since these must match the information on your
+%    machine in order for the license key to work (See
+%    Section \ref{userAndHostNamesSec}).
+%
+%  - The information is case sensitive and the licensing system cannot
+%    handle foreign characters.
+%
+%  - Make sure to exclude whitespace, particularly in the Pardiso licence. 	
+%    Don't leave spaces or unused lines.
+%
+%  - On Windows systems, host name information should be entered in
+%    upper case, while the user name should be entered as it is.
+%========================================================
+
+\section{Configuring for Development Work}
+\label{SettingsForDevelopmentSec}
+
+Users intending to use ArtiSynth to develop models of their own, or to
+modify or add to the ArtiSynth code base, will need to write and
+compile Java code. This can either be done directly, using text
+editors and the Java compiler {\tt javac} to create, modify and compile
+the necessary code, or by using an integrated development
+environment (IDE), such as Eclipse.  Directions on setting up the
+Eclipse IDE are given in Section \ref{EclipseSec}.
+
+ArtiSynth uses and references a number of environment variables, as
+described in Section \ref{environmentVariablesSec}. It is recommended that
+developers set these in their general system environment.  Although
+the {\tt artisynth} command ({\tt artisynth.bat} on Windows) will try to set
+these variables automatically if they are unset, setting them in the
+general environment gives the developer access to a broader range of
+commands in {\tt \$ARTISYNTH\_HOME/bin}, and permits the use of various IDEs
+without having to set variables in each.
+
+For development work on Windows, it is recommended to install the Unix
+emulator Cygwin in order to allow use of the script-based commands in
+{\tt \$ARTISYNTH\_HOME/bin}, as well as the {\tt Makefile} commands.  Cygwin
+provides both the {\tt bash} and {\tt tcsh} shell environments, for which
+environment variables can be set as described in Section \ref{bashEnvSec} or
+Section \ref{tcshEnvSec}.  See Section \ref{CygwinInstallationSec} for instructions on
+installation.
+
+\subsection{Obtaining the latest development version}
+\label{obtainingDevelopmentVersionSec}
+
+If you are working closely with ArtiSynth or any of its associated
+projects, you are encouraged to use the latest development version,
+instead of the packaged releases. This will provide immediate access
+to updates and bug fixes. In addition, if you have repository write
+access, you will be able to check in code so that it can be kept
+consistent with modifications to the ArtiSynth API.
+
+At present, the development version is contained in a CVS repository,
+and checking out a version requires obtaining a guest computer account
+in the UBC department of Electrical and Computer Engineering
+(ECE). This also provides repository write access. For information on
+obtaining such an account, please send email to {\tt artisynth} at
+{\tt ece.ubc.ca}.
+
+When you have an ECE account, you can obtain the latest development
+version by using CVS. This will require that CVS is installed on your
+system. It should be installed by default on MacOS, and can be
+obtained for Windows as part of Cygwin (see Section \ref{CygwinInstallationSec}).  For Ubuntu
+or Debian style Linux systems, it can be acquired if needed by issuing
+the following command from a terminal window:
+
+\begin{verbatim}
+ > sudo apt-get install cvs
+\end{verbatim}
+
+The latest development version of ArtiSynth can then be obtained by
+issuing the following CVS command from a terminal window:
+
+\begin{verbatim}
+ > cvs -d :ext:userName@ssh.ece.ubc.ca:/ubc/ece/home/hct/other/hct/cvsroot checkout -P artisynth_2_0
+\end{verbatim}
+
+where {\tt userName} is the name of your ECE account. This will check
+out the latest version into a directory called {\tt artisynth\_2\_0} located
+in the directory from which the {\tt cvs} command was issued; the
+{\tt artisynth\_2\_0} directory will now become {\tt ARTISYNTH\_HOME}.
+
+Once you have checked out the latest version, you will also need to
+download the {\tt .jar} files from the ArtiSynth server so that you
+can compile the code. This can be done by executing the
+command {\tt updateArtisynthLibs} in the directory {\tt
+\$ARTISYNTH\_HOME/bin}:
+
+\begin{verbatim}
+ > cd $ARTISYNTH_HOME/bin
+ > updateArtisynthLibs
+\end{verbatim}
+
+For more information on downloading library files, including
+information on how to do this on Windows, see Section
+\ref{LibUpdateSec}.
+
+The latest development version of ArtiSynth is stored in a module that
+is called {\tt artisynth\_2\_0} for historical reasons. However, this
+name does not reflect the actual version number, which is stored
+in the file {\tt VERSION}. Once you have checked out {\tt artisynth\_2\_0},
+you can rename the top level directory to anything you like.
+
+Given a checked out version of ArtiSynth, you can update it by issuing
+the command
+
+\begin{verbatim}
+ > cvs update -dP
+\end{verbatim}
+
+within the {\tt ARTISYNTH\_HOME} directory. The options {\tt -dP} tell CVS to
+include new directories that have been added and ignore (prune)
+directories that have been removed.
+
+It is also possible to check out ArtiSynth within the Eclipse IDE; see
+Section \ref{EclipseSec}.
+
+\begin{sideblock}
+The latest development version of ArtiSynth is stored in a module that
+is called {\tt artisynth\_2\_0} for historical reasons. However, this
+name does not reflect the actual version number, which is stored
+in the file {\tt VERSION}. Once you have checked out {\tt artisynth\_2\_0},
+you can rename the top level directory to anything you like.
+\end{sideblock}
+
+\subsection{Downloading Libraries}
+\label{LibUpdateSec}
+
+Because the {\tt .jar} files and native libraries used by ArtiSynth
+are rather large, they are downloaded separately from the ArtiSynth
+webserver. Typically, this is done automatically by the ArtiSynth
+application, without requiring any action by the user.  If you run
+ArtiSynth with the {\tt -updateLibs} command line option, the program
+will ensure that not only are all the required libraries present, but
+that they also match the latest versions on the server.
+
+In cases where you obtain ArtiSynth by checking out a version from the
+source repository, or when an update adds a new {\tt .jar} file, then
+it may be necessary to run a stand-alone command to initially download
+the libraries, because it won't be possible to compile the source
+without the {\tt .jar} files.
+
+On Linux, MacOS, and Windows systems running Cygwin, the command to
+download libraries is called {\tt updateArtisynthLibs}, and is
+located in {\tt \$ARTISYNTH\_HOME/bin}. You can run it by opening a
+terminal window, changing to the {\tt ARTISYNTH\_HOME} directory, and
+running the command
+
+\begin{verbatim}
+ > bin/updateArtisynthLibs
+\end{verbatim}
+
+If your {\tt PATH} environment variable has been set to include {\tt
+\$ARTISYNTH\_HOME/bin} (see Section \ref{environmentVariablesSec}), you
+can simply run the command
+
+\begin{verbatim}
+ > updateArtisynthLibs
+\end{verbatim}
+
+from any directory.
+
+On Windows systems, the command
+is called {\tt updateArtisynthLibs.bat}, and is located
+in {\tt \$ARTISYNTH\_HOME\BKS bin}. You can execute the command
+by double-clicking on it in a file-browser.
+Alternatively, you can open a command interpreter ({\tt CMD}), navigate
+to {\tt \$ARTISYNTH\_HOME}, and enter the command
+
+\begin{verbatim}
+ % bin\updateArtisynthLibs
+\end{verbatim}
+
+ArtiSynth libraries are stored under {\tt \$ARTISYNTH\_HOME/lib}, with
+the {\tt .jar} files being placed in the {\tt lib} directory and the
+native libraries in an appropriate subdirectory (e.g., {\tt Linux64} or
+{\tt Windows}) which is created if necessary. The required libraries
+are listed in the file {\tt \$ARTISYNTH\_HOME/lib/LIBRARIES}. This
+file is checked into the repository, so the system can always
+determine what libraries are needed for a particular checkout version.
+
+\subsection{Environment variables}
+\label{environmentVariablesSec}
+
+The following environment variables are involved in ArtiSynth's execution:
+
+\begin{description}
+
+\item[ARTISYNTH\_HOME]\mbox{}
+ 
+The path name of the ArtiSynth installation directory.
+
+\item[ARTISYNTH\_PATH]\mbox{}
+
+A list of directories, separated by colons ":" (or
+semi-colons ";" on Windows), which ArtiSynth uses to search for
+configuration files such as {\tt .artisyntInit} or {\tt .demoModels}.  A
+typical setting for {\tt ARTISYNTH\_PATH} consists of the current directory
+(indicated by "{\tt .}"), the user's home directory, and the ArtiSynth
+installation directory. If {\tt ARTISYNTH\_PATH} is not defined explicitly
+in the user's environment, ArtiSynth assumes an implicit path
+consisting of the directory sequence just described.
+
+\item[CLASSPATH]\mbox{}
+
+A list of directories and/or {\tt .jar} files, separated by 
+colons ":" (or semi-colons ";" on Windows) which Java uses to
+locate its class files. This variable should be set to
+include {\tt \$ARTISYNTH\_HOME/classes} and {\tt \$ARTISYNTH\_HOME/lib/*}
+(the latter uses the wildcard {\tt *} to specify all the {\tt .jar} files
+in {\tt \$ARTISYNTH\_HOME/lib}).
+
+\item[PATH]\mbox{}
+ 
+A list of directories, separated by colons ":" (or semi-colons ";" on
+Windows), which the operating system uses to locate executable programs and
+applications. Should be set to include {\tt \$ARTISYNTH\_HOME/bin}.  On Windows
+and Cygwin, {\tt PATH} is also used to search for shared libraries,
+and so should also be set to include
+{\tt \$ARTISYNTH\_HOME/lib/Windows} (on 32 bit systems)
+or {\tt \$ARTISYNTH\_HOME/lib/Windows64} (on 64 bit systems).
+
+\item[LD\_LIBRARY\_PATH]\mbox{}
+
+On Linux, a list of directories, separated by colons
+":", which the operating system searches in order to find shared libraries.
+Should be set to include {\tt \$ARTISYNTH\_HOME/lib/Linux} 
+(for 32 bit systems) or {\tt \$ARTISYNTH\_HOME/lib/Linux64} (for 64 bit systems).
+
+\item[DYLD\_LIBRARY\_PATH]\mbox{}
+
+On MacOS, the equivalent of {\tt LD\_LIBRARY\_PATH}.
+Should be set to include {\tt \$ARTISYNTH\_HOME/lib/Darwin-x86\_64}.
+
+\item[OMP\_NUM\_THREADS]\mbox{}
+ 
+Specifies the maximum number of processor cores that are available for
+multicore execution. Setting this variable to the maximum number of
+cores on your machine can significantly increase performance.
+
+\end{description}
+
+%JYTHON\_HOME::
+%If Jython is installed on the system, should be set to the name of the
+%Jython installation directory.
+
+Note that settings for most of the above can be derived from the value
+of {\tt ARTISYNTH\_HOME}.
+
+The basic ArtiSynth execution commands described in
+Section \ref{RunningArtisynthSec} will automatically set these environment
+variables if they are not already set in the user's
+environment. Nevertheless, we encourage all developers to set these
+environment variables globally in order to provide maximum access to
+all the ArtiSynth development tools and scripts. Different procedures
+for doing this are described in the following sections.
+
+\begin{sideblock}
+{\bf Note:}\\
+If you are using the Eclipse IDE, and you have not set the
+above environment variables globally, then you will need to
+set some of them directly in your Eclipse launch environment,
+as described in Section \ref{EclipseEnvironmentVariablesSec}.
+\end{sideblock}
+
+%\label{sysdirSettingsSec}
+%[cols="8,^1,^1",options="header"]
+%|=============================================
+%|Operating System | 32 bit | 64 bit |
+%|Windows          | +Windows+ | N/A |
+%|Linux            | +Linux+ | Linux64 |
+%|MacOS            |  N/A  | Darwin-x86_64 |
+%|=============================================
+
+\subsection{Example environment setup for bash}
+\label{bashEnvSec}
+
+On Linux and MacOS, if you are using {\tt bash} as your shell, then the
+environment can be configured by placing a block of commands similar
+to the following in your {\tt .bashrc} file, located in your home
+directory:
+
+\begin{lstlisting}
+# set ARTISYNTH_HOME to the appropriate location ...
+export ARTISYNTH_HOME=$HOME/artisynth_2_X
+export ARTISYNTH_PATH=.:$HOME:$ARTISYNTH_HOME
+
+# For 32 bit Linux:
+export LD_LIBRARY_PATH=$ARTISYNTH_HOME/lib/Linux:$LD_LIBRARY_PATH
+# For 64 bit Linux:
+#export LD_LIBRARY_PATH=$ARTISYNTH_HOME/lib/Linux64:$LD_LIBRARY_PATH
+# For MacOS:
+#export DYLD_LIBRARY_PATH=$ARTISYNTH_HOME/lib/Darwin-x86_64:$DYLD_LIBRARY_PATH
+
+export CLASSPATH=$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/'*':$CLASSPATH
+export PATH=$ARTISYNTH_HOME/bin:$PATH
+# Set to the number of cores on your machine:
+export OMP_NUM_THREADS=2 
+\end{lstlisting}
+
+Be sure to set {\tt ARTISYNTH\_HOME} to the proper location of your
+ArtiSynth installation directory, and comment or uncomment the
+appropriate {\tt LD\_LIBRARY\_PATH} or {\tt DYLD\_LIBRARY\_PATH} section for your
+machine.
+
+These environment variables will be passed on to any program which you
+run from the shell (such as {\tt artisynth} or {\tt eclipse}).  However, on
+MacOS, they will not be passed on to programs (such as {\tt eclipse})
+which you launch from the dock.
+
+Alternatively, you can source the script {\tt setup.bash}, located in
+the installation directory:
+
+\begin{verbatim}
+ > source setup.bash
+\end{verbatim}
+
+This will determine the system type automatically and set the
+environment variables accordingly, with {\tt ARTISYNTH\_HOME} set to the
+current directory from which the script is called (however,
+it {\it won't} set {\tt OMP\_NUM\_THREADS}).
+
+\subsection{Example environment setup for csh/tcsh}
+\label{tcshEnvSec}
+
+On Linux and MacOS, if you are using {\tt csh} or {\tt tcsh} as your
+shell, then the environment can be configured by placing a block of
+commands similar to the following
+in your {\tt .cshrc} file, located in your home directory:
+
+\begin{lstlisting}
+# set ARTISYNTH_HOME to the appropriate location ...
+setenv ARTISYNTH_HOME $HOME/artisynth_2_X
+setenv ARTISYNTH_PATH .":"$HOME":"$ARTISYNTH_HOME
+
+# For 32 bit Linux:
+setenv LD_LIBRARY_PATH $ARTISYNTH_HOME/lib/Linux":"$LD_LIBRARY_PATH
+# For 64 bit Linux:
+#setenv LD_LIBRARY_PATH $ARTISYNTH_HOME/lib/Linux64":"$LD_LIBRARY_PATH
+# For MacOS:
+#setenv DYLD_LIBRARY_PATH $ARTISYNTH_HOME/lib/Darwin-x86_64":"$DYLD_LIBRARY_PATH
+
+setenv CLASSPATH "$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/*:$CLASSPATH"
+setenv PATH $ARTISYNTH_HOME/bin":"$PATH
+# Set to the number of cores on your machine:
+setenv OMP_NUM_THREADS 2 
+\end{lstlisting}
+
+These environment variables will be passed on to any program which you
+run from the shell (such as {\tt artisynth} or {\tt eclipse}). 
+
+Alternatively, you can source the script {\tt setup.csh}, located in
+the installation directory:
+
+\begin{verbatim}
+ > source setup.csh
+\end{verbatim}
+
+This will determine the system type automatically and set the
+environment variables accordingly, with {\tt ARTISYNTH\_HOME} set to the
+current directory from which the script is called (however,
+it {\it won't} set {\tt OMP\_NUM\_THREADS}).
+
+\subsection{Example environment setup on Windows}
+\label{WindowsEnvironmentSec}
+
+On Windows, it is recommended to set the environment variables in your
+global user settings, as described in Section \ref{settingWindowsVariablesSec}. A
+full set of variable settings would look something like this:
+
+\begin{lstlisting}
+ARTISYNTH_HOME c:\users\joe\artisynth_2_X
+ARTISYNTH_PATH .;c:\users\joe;%ARTISYNTH_HOME%
+CLASSPATH %ARTISYNTH_HOME%\classes;%ARTISYNTH_HOME%\lib\*
+PATH %ARTISYNTH_HOME%\bin;%ARTISYNTH_HOME%\lib\Windows;%PATH%
+OMP_NUM_THREADS 2
+\end{lstlisting}
+
+Of course, instead of {\tt \BKS users\BKS joe} and {\tt \BKS users\BKS joe\BKS artisynth\_2\_X} you
+should use your home directory and the ArtiSynth install directory,
+and {\tt OMP\_NUM\_THREADS} should be set to the maximum number of cores
+available on your machine.
+
+\subsection{Example environment setup on Cygwin}
+\label{CygwinEnvironmentSec}
+
+If you are using Windows Cygwin, then you can also set the environment
+variables in {\tt .bashrc} for use in the bash shell.  This is done
+similarly to Section \ref{bashEnvSec}, but with some differences: the shared
+library directory is placed in {\tt PATH}, and {\tt ARTISYNTH\_HOME},
+{\tt ARTISYNTH\_PATH}, and {\tt CLASSPATH} must be set to use the Windows path
+style:
+
+\begin{lstlisting}
+# set AH to the location of the ArtiSynth install directory
+AH=$HOME/artisynth_2_X
+
+# For 32 bit Windows:
+export PATH=$AH/bin:$AH/lib/Windows:$PATH
+# For 64 bit Windows:
+#export PATH=$AH/bin:$AH/lib/Windows64:$PATH
+
+# Use Windows path style:
+export ARTISYNTH_HOME=`cygpath -w $AH`
+export ARTISYNTH_PATH=".;`cygpath -w $HOME`;$ARTISYNTH_HOME"
+export CLASSPATH="$ARTISYNTH_HOME\classes;$ARTISYNTH_HOME\lib"'\*;'"$CLASSPATH"
+# Set to the number of cores on your machine:
+export OMP_NUM_THREADS=2
+\end{lstlisting}
+
+The scripts {\tt setup.bash} and {\tt setup.csh}, described above, are
+configured to work properly for Cygwin.
+
+\begin{sideblock}
+{\bf Note:}\\
+For Windows, it is still preferable to set environment variables
+globally, as described in Section \ref{WindowsEnvironmentSec}, because setting them
+in the Cygwin bash shell will not allow them to be seen when programs
+(such as Eclipse) are launched directly from the desktop.
+\end{sideblock}
+
+%Special Notes for MacOS
+%~~~~~~~~~~~~~~~~~~~~~~~
+%
+%You require Mac OSX 10.4 tiger and need to install j2sdk 1.5 and make
+%it the default Java version:
+%
+%-------------------------------
+%$ cd /System/Library/Frameworks/JavaVM.framework/Versions
+%$ sudo mv CurrentJDK CurrentJDK.old
+%$ sudo ln -s 1.5 CurrentJDK
+%-------------------------------
+
+\section{Using the Eclipse IDE}
+\label{EclipseSec}
+
+Many ArtiSynth users employ the Eclipse IDE for both code development
+and running ArtiSynth.  This section describes how to import ArtiSynth
+into Eclipse, and set the relevant environment variables.  It is
+assumed that the user is familiar with both Eclipse and Java
+programming; an introduction to these topics is beyond the scope of
+this document.
+
+Eclipse can be obtained from
+\href{http://www.eclipse.org/downloads}{www.eclipse.org/downloads}.
+The version that you want is (at the time of this writing) {\sf
+Eclipse IDE for Java Developers}. Also, make sure that Eclipse is
+configured to run Java 6 or newer; for details, see Section
+\ref{checkingEclipseJavaVersionSec}.
+
+If you are using a CVS check out of the development version (Section
+\ref{obtainingDevelopmentVersionSec}), then you should first read
+Section \ref{workingWithCVSSec}.
+
+If you already have a version of ArtiSynth installed (either from a
+distribution or CVS checkout), you can import this into Eclipse as a
+project; see Section \ref{importingArtisynthSec}). Otherwise, you can
+obtain a CVS checkout directly from within Eclipse; see Section
+\ref{importingFromCVSSec}.
+
+\begin{sideblock}
+
+For historical reasons, the default Eclipse settings that are bundled
+with ArtiSynth use a project name of {\tt artisynth\_2\_0}, even though this
+does not reflect the current distribution number. If you wish, it is
+possible to rename your project (to the current distribution number or
+something else) after you have completed the installation procedures
+described in either Section \ref{importingArtisynthSec} or
+Section \ref{importingFromCVSSec}. Simply select the project in the {\sf Package Explorer}
+window, and then choose {\sf Refactor > Rename} from the context menu.
+\end{sideblock}
+
+\subsection{Using Eclipse and CVS}
+\label{workingWithCVSSec}
+
+For general information on using CVS within eclipse, see
+\href{http://wiki.eclipse.org/CVS\_FAQ}{http://wiki.eclipse.org/CVS\_FAQ}.
+
+It is recommended that you ensure Eclipse works properly with external
+CVS commands (this will be particularly necessary if you used the
+{\sf cvs} command directly to obtain the checkout). To do this:
+
+\begin{enumerate}
+
+\item From within Eclipse, choose {\sf Window > Preferences} (or {\sf Eclipse > Preferences})
+
+\item Navigate to {\sf Team > CVS > Ext Connection Method}.
+
+\item Select {\sf Use another connection method type to connect}, and make
+  sure this is set to {\tt extssh}.
+
+\item Click {\sf OK}.
+
+\end{enumerate}
+
+\begin{sideblock}
+{\tt extssh} is a connection protocol that is built in to eclipse, but
+is not recognized by external CVS commands; it essentially means "use the {\tt ext}
+protocal in conjunction with {\tt ssh} (secure shell)".
+\end{sideblock}
+
+\subsection{Importing ArtiSynth into Eclipse}
+\label{importingArtisynthSec}
+
+\begin{enumerate}
+
+\item From {\bf outside} Eclipse, install the ArtiSynth Eclipse settings by
+  unzipping {\tt \$ARTISYNTH\_HOME/support/eclipse/eclipse\-Settings.zip} into
+  {\tt \$ARTISYNTH\_HOME}. This will create the files {\tt .project},
+  {\tt .classpath}, and {\tt ArtiSynth.launch}, along with the directory
+  {\tt .settings}, in {\tt \$ARTISYNTH\_HOME}.
+  
+  \begin{sideblock}
+  {\bf Attention MacOS users:}\\[0.5em]
+  The default zip utility on MacOS will create a new sub-folder called 
+  {\tt eclipseSettings} and will extract the files there.  \emph{You do not want this!!}
+  Some of the files are then labelled as ``hidden'' by MacOS, which will
+  prevent you from moving them to the correct place manually. 
+  Either extract the file directly to the {\tt\$ARTISYNTH\_HOME} directory 
+  with a more standard application like {\sf 7-Zip} ({\sf 7zX} for OSX), 
+  or use the {\tt unzip} utility from the command-line.
+  \end{sideblock}
+
+
+\item From within Eclipse, choose {\sf File > Import ...}.
+
+\item In the {\sf Import} window, select {\sf General > Existing Projects into
+  Workspace} and click {\sf Next}.
+
+\item In the field {\sf Select root directory}, enter (or browse to) 
+  {\tt \$ARTISYNTH\_HOME} and then click {\sf Finish}. 
+
+\end{enumerate}
+
+If Eclipse complains that {\sf "No projects are found to import"}, that most
+likely means that {\tt eclipseSettings.zip} was not
+properly unzipped into {\tt \$ARTISYNTH\_HOME}.
+
+\subsection{Importing ArtiSynth directly from CVS}
+\label{importingFromCVSSec}
+
+It is also possible to import the ArtiSynth development version
+directly from the CVS repository:
+
+\begin{enumerate}
+
+\item Choose {\sf File > Import} from the main menu.
+
+\item Select {\sf CVS > Projects from CVS} and click {\sf Next}.
+
+\item Click on {\sf Create a new repository location} and click {\sf Next}.
+
+\item Fill in the repository information:
+
+\begin{itemize}
+
+\item Host: ssh.ece.ubc.ca
+
+\item Repository Path: /ubc/ece/home/hct/other/hct/cvsroot
+
+\item User: {\it your UBC ECE account name}
+
+\item Password: {\it your UBC ECE account password}
+
+\item Connection Type: Select {\tt extssh} if you don't intend to
+access the project using external CVS commands. If you do wish to use
+external CVS commands, select {\tt ext} instead; however, this may not
+always work and may result in errors at the end of step 6.
+
+\end{itemize}
+
+\item Click {\sf Next}.
+
+\item In the box next to {\sf Use specified module name}, type {\tt artisynth\_2\_0}
+  and click {\sf  Next}
+
+\item Select {\sf Check out as a project in the workspace} (with the project name
+  {\tt artisynth\_2\_0}) and click {\sf Next}
+
+\item Specify the location for the check out; this will become the
+  ArtiSynth install directory {\tt \$ARTISYNTH\_HOME}. If you leave {\sf Use default
+  workspace location} selected, this will be {\tt workspace/artisynth\_2\_0}, where
+  {\tt workspace} is the Eclipse workspace directory. Otherwise, you
+  can specify an explicit checkout location (which does not have to
+  be located in the Eclipse workspace).
+
+\item Click {\sf Finish}.
+
+\item If necessary, open a Java perspective by choosing {\sf Window > Open
+  Perspective > Java}. The project {\tt artisynth\_2\_0} should appear in
+  the {\sf Package Explorer} window.
+
+\item From {\bf outside} Eclipse, install the ArtiSynth Eclipse
+settings by unzipping {\tt
+\$ARTISYNTH\_HOME/support/eclipse/eclipse\-Settings.zip} into {\tt
+\$ARTISYNTH\_HOME}. (This will create the files {\tt .classpath} and
+{\tt ArtiSynth.launch}, along with the directory {\tt .settings}, in
+{\tt \$ARTISYNTH\_HOME}, and will overwrite the existing {\tt
+.project} file).  
+
+\begin{sideblock}
+  {\bf Attention MacOS users:}\\[0.5em]
+  This is where most installs fail.
+  
+  The default zip utility on MacOS will create a new sub-folder called 
+  {\tt eclipseSettings} and will extract the files there.  \emph{You do not want this!!}
+  Some of the files are then labelled as ``hidden'' by MacOS, which will
+  prevent you from moving them to the correct place manually. 
+  Either extract the file directly to the {\tt\$ARTISYNTH\_HOME} directory 
+  with a more standard application like {\sf 7-Zip} ({\sf 7zX} for OSX), 
+  or use the {\tt unzip} utility from the command-line.  For the latter,
+  open a terminal window, change to the ArtiSynth install directory,
+  enter the command
+  \begin{verbatim}
+    unzip support/eclipse/eclipseSettings.zip
+  \end{verbatim}
+  and respond with {\tt y} when asked if it is OK to replace {\tt .project}.
+\end{sideblock}
+
+\item From {\bf outside} Eclipse, download the required
+{\tt .jar} files and native libraries using the 
+{\tt updateArtisynthLibs} command as described in Section
+\ref{LibUpdateSec}.
+
+\item Finally, load the new settings into the project by selecting the project
+{\tt artisynth\_2\_0} in the {\sf Package Explore} window and selecting
+{\sf Refresh} from the context menu.
+
+\end{enumerate}
+
+\subsection{Configuring environment variables}
+\label{EclipseEnvironmentVariablesSec}
+
+It may be necessary to set certain environment variables directly in
+your Eclipse launch configuration (as described below) so that
+ArtiSynth can locate configuration files and native library support.
+
+If you are running on Windows, and you have set the environment
+variables as described in Section \ref{WindowsEnvironmentSec}, then
+you can skip this section. If you are running on Linux or MacOS, and
+you are starting eclipse directly from a terminal window, you can also
+skip this section.  Otherwise, you will need to set certain
+environment variables directly in your Eclipse launch configuration
+(as described below) so that ArtiSynth can locate configuration files
+and native library support.  
+
+\begin{sideblock}
+{\bf Note:} At present, eclipse does not expand environment variables.
+In all the variable settings described below, references to {\tt
+\$ARTISYNTH\_HOME} should be expanded (manually) to the path of the
+ArtiSynth install directory.
+\end{sideblock}
+
+\begin{itemize}
+
+\item On all systems, you will need to set {\tt ARTISYNTH\_HOME} to the path of
+the ArtiSynth installation directory.  You may also optionally set
+{\tt ARTISYNTH\_PATH} as described in Section \ref{environmentVariablesSec}, and you
+should set {\tt OMP\_NUM\_THREADS} to the maximum number of cores on your
+machine if you want the system to take advantage of multiple cores.
+
+%If Jython is installed on your system, you should set {\tt JYTHON\_HOME} to
+%the path of the Jython install directory.
+
+
+
+\item On Windows, you will need to set {\tt PATH} to
+{\tt \$ARTISYNTH\_HOME\BKS lib\BKS Windows} (32 bit systems) or \\
+{\tt \$ARTISYNTH\_HOME\BKS lib\BKS Windows64} (64 bit systems).
+
+\item On Linux, you will need to set {\tt LD\_LIBRARY\_PATH} to
+{\tt \$ARTISYNTH\_HOME/lib/Linux} (32 bit systems) or \\
+{\tt \$ARTISYNTH\_HOME/lib/Linux64} (64 bit systems).
+
+\item On MacOS, you will need to set {\tt DYLD\_LIBRARY\_PATH} to
+{\tt \$ARTISYNTH\_HOME/lib/Darwin-x86\_64}.
+
+\end{itemize}
+
+\begin{sideblock}
+{\bf Note:} There is a bug in Eclipse 4.0+ on Windows where it will replace 
+the system's native {\tt \%PATH\%} variable rather than appending to it.  
+To correct this behaviour, define {\tt PATH} as 
+{\tt \$\{env\_var:path\};\$ARTISYNTH\_HOME\BKS lib\BKS Windows64} 
+\end{sideblock}
+
+To set environment variables within Eclipse:
+
+\begin{enumerate}
+
+\item Open a java perspective if necessary by choosing
+  {\sf Window > Open Perspective > Java}.
+
+\item Select the artisynth project in the {\sf Package Explorer} form.
+
+\item Choose {\sf Run > Run Configurations...} to open the {\sf Run
+  Configurations} window.
+
+\item In the left panel, under {\sf Java Application}, select {\sf ArtiSynth}.
+
+\item In the right panel, select the {\sf environment} tab.
+
+\item To create a new environment variable, click the {\sf New} button and
+  enter the name and value in the dialog box.
+
+\item When finished, make sure that {\sf Append environment to native
+  environment} is selected, and click {\sf Apply}.
+
+\end{enumerate}
+
+\subsection{Building and Running ArtiSynth}
+\label{BuildingAndRunningArtisynthSec}
+
+Once ArtiSynth has been installed, you should be able to build and run
+the system. If necessary, first open a Java perspective by choosing
+{\sf Window > Open Perspective > Java}. The project {\tt artisynth\_2\_0} (or
+whatever you have renamed it to) should appear in the {\sf Package
+Explorer} window.
+
+To build the system, select the project {\tt artisynth\_2\_0} in the
+{\sf Package Explorer} window, and then choose {\sf Project > Build Project}
+(it may be necessary to deselect {\sf Build Automatically} in order to
+enable {\sf Build Project}).  To run the system, choose {\sf Run > Run}.
+
+If you are using a CVS checkout of the development version,
+then you can obtain the latest updates from the repository
+by selecting the project in the {\sf Package Explorer} and selecting
+{\sf Team > Update} from the context menu.
+
+\subsection{Checking that Eclipse uses Java 6 or newer }
+\label{checkingEclipseJavaVersionSec} 
+
+If you are unsure that Eclipse is using Java 6 or newer, then:
+
+\begin{enumerate}
+
+\item Choose {\sf Window > Preferences} (or {\sf Eclipse > Preferences}).
+
+\item Select {\sf Java > Installed JREs}.
+
+\item Check the installed JREs in the table, under the {\sf Name} field.  Make
+sure that Java 6 is present (this will likely be indicated by a name
+containing {\tt jdk-1.6.0.xx}, where {\tt xx} is an update number, or, on
+Windows, {\tt jre6}).
+
+\item If Java 6 is not present, first make sure that it is installed on
+your system (see Section \ref{externalSoftwareSec}), and then add it to the list of
+installed JREs by clicking {\sf Search} in the Preferences window,
+navigating to the Java 6 install directory, and clicking {\sf OK}.
+
+\item Make sure that Java 6 is selected from the list of installed JREs
+(via the checkbox on the left).
+
+\end{enumerate}
+
+\subsection{Preventing excessive resource copying}
+
+By default, ArtiSynth classes are built in a directory tree
+({\tt \$ARTISYNTH\_HOME/classes}) that is separate from the source tree
+({\tt \$ARTISYNTH\_HOME/src}). That means that Eclipse will try to copy all
+non-Java files and directories from the source tree into the build
+tree. For ArtiSynth, this is excessive, and results in many files
+being copied that don't need to be, since ArtiSynth looks for
+resources in the source tree anyway.
+
+On MacOS and Linux, you can nhibit most of this copying:
+
+\begin{enumerate}
+
+\item Choose {\sf Window > Preferences} (or {\sf Eclipse > Preferences}).
+
+\item Select {\sf Java > Compiler > Building}.
+
+\item Open {\sf Output folder}, and in the box entitled {\sf Filter resources},
+  enter the string:
+
+\begin{lstlisting}
+    Makefile,*.l*,*.?,*.??,*.???,*.????,???,????,?????
+\end{lstlisting}
+
+\end{enumerate}
+
+That should filter out the copying of most non-java files.
+
+On Windows, Eclipse doesn't support {\tt ?} as a filter character, so
+you need to enter something like this instead:
+
+\begin{lstlisting}
+    Makefile,*.a*,*.b*,*.c,*.cc,*.cxx,*.e*,*.g*,*.h*,*.i*,*.m*,*.n*,*.o*,*.r*,*.s*,*.t*
+\end{lstlisting}
+
+Or, to prevent copying any resource, simply enter: 
+\begin{lstlisting}
+    *
+\end{lstlisting}
+
+%\subsection{Importing the Eclipse code style file}
+%
+%There is a code style file for developers using Eclipse located at  
+%{\tt \$ARTISYNTH\_HOME/support/eclipse/artisynthCodeFormat.xml}. Please be sure to read
+%
+%the %Coding Standard% file on the ArtiSynth website as some of the formatting cannot
+%be done automatically by Eclipse.
+%
+%. Select the artisynth project under the %Package Explorer% form.
+%. Navigate to %Project->Properties->Java Code Style->Formatter%.
+%. Check the box labeled %Enable Project Specific Settings%.
+%. In the %Formatter% panel, click the %Import% button. This will open a
+%%Import Profiles% panel.
+%. Navigate using the panel to the {\tt \$ARTISYNTH\_HOME/support/eclipse/} directory.\
+%. Select the {\tt artisynthCodeFormat.xml} file.
+%. Click %OK% button in the %Import Profiles% panel.
+%. Click %OK% button in the %Properties% panel.
+
+%\section{JOGL Version Clashes}
+%\label{JOGLClashesSec}
+%
+%ArtiSynth uses the version of JOGL described
+%in the file {\tt \$ARTISYNTH\_HOME/lib/JOGL\_VERSION}. If there are two versions
+%present, then one version may reference the other's files by
+%mistake. To prevent this, it is typically best to remove the local
+%version and use the version included with ArtiSynth. If this is not
+%possible, then it may be possible to suppress one version by carefully
+%controlling the path the computer searches. For Windows, the search
+%path is declared by the the {\tt PATH} variable. For Linux and Mac OS, the 
+%path is named {\tt LD\_LIBRARY\_PATH} and {\tt DYLD\_LIBRARY\_PATH} respectively.
+%
+%  - To suppress the local version with the version included with
+%    ArtiSynth, place {\tt \$ARTISYNTH\_HOME/lib/Linux} at the front of the
+%    search path.
+%
+%  - To suppress the ArtiSynth version with the local version, replace
+%    the {\tt \$ARTISYNTH\_HOME/lib/jogl.jar} within the {\tt CLASSPATH} variable
+%    with the local version's path, and place the directory of the
+%    corresponding libraries at the front of the search path. This
+%    directory is typically {\tt /usr/local/lib}.
+%
+%The JOGL dynamic libraries that become confused are {\tt jogl} and {\tt jogl\_awt}. The
+%file extensions depend upon the operating system. For Windows, the file 
+%extensions are {\tt .dll}. For Linux and Mac, the file extensions are {\tt .so}
+%and {\tt .jnilib} respectively.
+%
+%One case where a JOGL conflict can occur is if Matlab is also installed.
+%Executing the {\tt matlabroot} command within Matlab provides Matlab's root
+%directory. Within a subdirectory of this file's bin file is the JOGL files.
+%This error occurred while opening ArtiSynth. Several partially painted windows 
+%opened, then the program hanged and output the following stack trace. 
+%
+%\begin{lstlisting}
+%Exception in thread "AWT-EventQueue-0" java.lang.RuntimeException:
+%  java.lang.IllegalArgumentException: argument type mismatch
+%   at com.sun.opengl.impl.JAWT_DrawingSurfaceInfo.newPlatformInfo...
+%   at com.sun.opengl.impl.JAWT_DrawingSurfaceInfo.platformInfo...
+%   at com.sun.opengl.impl.windows.WindowsOnscreenGLDrawable.lockSurface...
+%   at com.sun.opengl.impl.windows.WindowsOnscreenGLContext.makeCurrentImpl...
+%   at com.sun.opengl.impl.GLContextImpl.makeCurrent...
+%   ... 16 more
+%Caused by: java.lang.IllegalArgumentException: argument type mismatch
+%   at sun.reflect.NativeMethodAccessorImpl.invoke0...
+%   at sun.reflect.NativeMethodAccessorImpl.invoke...
+%   at sun.reflect.DelegatingMethodAccessorImpl.invoke...
+%   at java.lang.reflect.Method.invoke...
+%   at com.sun.opengl.impl.JAWT_DrawingSurfaceInfo.newPlatformInfo...
+%   ... 20 more
+%\end{lstlisting}
+
+%\section{Installing Jython}
+%\label{JythonInstallationSec}
+%
+%Jython can be installed by going to http://www.jython.org and
+%following the download and installation instructions. On operating
+%systems with {\tt apt-get}, it is easier to install Jython with the
+%command:
+%
+%\begin{verbatim}
+%  % sudo apt-get install jython
+%\end{verbatim}
+%
+%After, create an environmental variable named {\tt JYTHON_HOME}, and set
+%it to the root of the install directory. ArtiSynth checks if this
+%variable exists to determine whether or not Jython is installed.
+
+%\label{userAndHostNamesSec}
+%Determining your user and host names
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%
+%Mac:: 
+%Open a console window use the commands {\tt id -p} and {\tt hostname} to
+%determine the user and host names, respectively
+%
+%Linux:: 
+%Open a console window use the commands {\tt whoami} and {\tt hostname} to
+%determine the user and host names, respectively
+%
+%Windows:: 
+%Your user name is the name of your directory in {\tt C:\Documents and
+%Settings\} or {\tt C:\Users\}, and the hostname is the can be found by 
+%typing {\tt hostname} in a command window.
+
+\section{Installing Cygwin}
+\label{CygwinInstallationSec}
+
+Cygwin provides Windows users with a Linux-like, shell-based command
+environment.  Its provides useful tools and enables ArtiSynth users to
+employ all the script-based commands in {\tt \$ARTISYNTH\_HOME/bin}, as well
+as various {\tt Makefile} commands.
+
+Cygwin can be downloaded from 
+\href{http://www.cygwin.com}{www.cygwin.com}. Run the
+executable that was just downloaded (setup.exe) to begin
+installation. After selecting a download source, an install directory,
+a package directory, an internet connection, and a download site, the
+installer will display a list of packages which the user can select
+for download. Normally, a default set of packages is already selected
+for installation. It is advisable to install these packages to ensure
+that Cygwin retains its basic capabilities. It is also recommended
+that you select the following additional packages:
+
+\begin{itemize}
+
+\item {\tt archive}
+\item {\tt asciidoc}, {\tt cvs}, {\tt make} (located under {\tt devel})
+\item {\tt python} (located under {\tt interpreters}).
+\item {\tt openssh} (located under {\tt net})
+
+\end{itemize}
+
+If you are planning to compile C/C++ code, you may also want to
+install the various {\tt gcc} and {\tt gdb} packages (located under {\tt devel}).
+
+\section{Setting Windows Environment Variables}
+\label{settingWindowsVariablesSec}
+
+A user can view, set, or change environment variables on Windows via
+the following steps:
+
+\begin{enumerate}
+
+\item Right-click {\sf My Computer}, and then click {\sf Properties}.
+\item Click the {\sf Advanced} tab.
+\item Click {\sf Environment variables}.
+\item Choose one of the following options:
+
+\begin{itemize}
+
+\item Click {\sf New} to add a new variable name and value.
+\item Click an existing variable, and then {\sf Edit} to change its name or value.
+\item Click an existing variable, and then {\sf Delete} to remove it.
+
+\end{itemize}
+\end{enumerate}
+
+Variable settings can reference other environment variables, by
+surrounding them with percent signs, as in {\tt \%VARIABLE\_NAME\%}.  For
+example, suppose you already have an environment variable {\tt HOME} that
+gives the location of your home directory, and your ArtiSynth
+distribution is located in {\tt packages\BKS artisynth\_2\_X} relative to your
+home directory. Then the environment variable {\tt ARTISYNTH\_HOME} can be
+specified as
+
+\begin{verbatim}
+  %HOME%\packages\artisynth_2_X
+\end{verbatim}
+
+\subsection{The Windows PATH variable}
+\label{settingWindowsPathSec}
+
+The special environment variable {\tt PATH} tells the system where to find
+applications and programs. It consists of a list of directory names
+separated by semicolons ";". If you have applications or programs that
+reside in non-standard locations, you can enable the system to find
+them by adding their containing directories to the existing {\tt PATH}
+value. For example, the programs associated with ArtiSynth reside in
+{\tt \$ARTISYNTH\_HOME\BKS bin}. If {\tt ARTISYNTH\_HOME} has the value
+{\tt "c:\BKS packages\BKS artisynth\_2\_X"}, then the ArtiSynth programs
+can be made visible to the system by setting {\tt PATH} to
+
+\begin{verbatim}
+  %PATH%;c:\packages\artisynth_2_X\bin
+\end{verbatim}
+
+Alternatively, if the ArtiSynth home location is described by
+the environment variable {\tt ARTISYNTH\_HOME}, then the
+above can be expressed as
+
+\begin{verbatim}
+  %PATH%;%ARTISYNTH_HOME%\bin
+\end{verbatim}
+
+Note that most programs and applications need to be restarted in order
+to get them to notice changes to the {\tt PATH}.
+
+\end{document}

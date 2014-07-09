@@ -1,0 +1,87 @@
+[
+  NumericInputProbe 
+  [ name="activations"
+    stopTime=5.000
+    attachedFile="act.txt"
+    interpolationOrder=Cubic
+    displayRange=[ 0.0 1.0 ]
+    track=0
+    model=models/hydrostat
+    props=
+    [ 
+      models/hydrostat:activations
+    ]
+    drivers=
+    [ 
+      "V0"
+    ]
+    inputs=
+    [ 
+      V0 4
+    ]
+  ]
+  artisynth.core.probes.WayPointProbe 
+  [ name="WayPoints"
+    stopTime=Infinity
+    track=0
+    model=.
+    wayPoints=
+    [ 
+      0
+      5000000000
+    ]
+  ]
+  artisynth.core.probes.WayPointProbe 
+  [ name="WayPoints"
+    stopTime=Infinity
+    track=0
+    model=.
+    wayPoints=
+    [ 
+      0
+      5000000000
+    ]
+  ]
+  NumericOutputProbe 
+  [ name="targetPos"
+    stopTime=5.000
+    attachedFile="pos.txt"
+    updateInterval=0.01
+    displayRange=[ -62.57683782826573 69.28111065689144 ]
+    showHeader=false
+    track=0
+    props=
+    [ 
+      models/hydrostat:targetPos
+    ]
+    variables=
+    [ 
+      P0
+    ]
+    drivers=
+    [ 
+      "P0"
+    ]
+  ]
+  NumericOutputProbe 
+  [ name="targetVel"
+    stopTime=5.000
+    attachedFile="vel.txt"
+    updateInterval=0.01
+    displayRange=[ -73.95086395760902 70.09777466968742 ]
+    showHeader=false
+    track=1
+    props=
+    [ 
+      models/hydrostat:targetVel
+    ]
+    variables=
+    [ 
+      P0
+    ]
+    drivers=
+    [ 
+      "P0"
+    ]
+  ]
+]

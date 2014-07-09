@@ -1,0 +1,107 @@
+
+\ifxetex
+% to have the \text macro
+\usepackage{amstext}
+
+\def\sf@sfdefault{sf}
+\def\sf@rmdefault{rm}
+\def\sf@ttdefault{tt}
+
+\def\savefont{%
+  %\bgroup%
+  \expandafter\edef\expandafter\sf@series\expandafter{\f@series}%
+  \expandafter\edef\expandafter\sf@shape\expandafter{\f@shape}%
+  %\sf@series
+  \ifx\f@family\sfdefault
+    \let\sf@family\sf@sfdefault
+  \else\ifx\f@family\rmdefault
+    \let\sf@family\sf@rmdefault
+  \else\ifx\f@family\ttdefault
+    \let\sf@family\sf@ttdefault
+  \else
+    \ifthenelse{\equal{\f@family}{\ttdefault}}{
+      \let\sf@family\sf@ttdefault }{ \let\sf@family\relax }
+  \fi\fi\fi%
+  %\egroup%
+}
+\def\restorefont{%
+  %\bgroup%
+  \def\f@series{\sf@series}%
+  \def\f@shape{\sf@shape}%
+  \ifx\sf@family\sf@sfdefault
+    \sffamily
+  \else\ifx\sf@family\sf@rmdefault
+    \rmfamily
+  \else\ifx\sf@family\sf@ttdefault
+    \ttfamily
+  \fi\fi\fi%
+  \selectfont%
+  %\egroup%
+}
+
+\def\savefamily{%
+  \ifx\f@family\sfdefault
+    \let\sf@family\sf@sfdefault
+  \else\ifx\f@family\rmdefault
+    \let\sf@family\sf@rmdefault
+  \else\ifx\f@family\ttdefault
+    \let\sf@family\sf@ttdefault
+  \else
+    \ifthenelse{\equal{\f@family}{\ttdefault}}{
+      \let\sf@family\sf@ttdefault}{\let\sf@family\relax}
+  \fi\fi\fi%
+}
+\def\loadfamily{%
+  \ifx\sf@family\sf@sfdefault
+    \sffamily
+  \else\ifx\sf@family\sf@rmdefault
+    \rmfamily
+  \else\ifx\sf@family\sf@ttdefault
+    \ttfamily
+  \else
+    \rmfamily
+  \fi\fi\fi%
+  \selectfont%
+}
+
+% Copy the fontspec macro, but don't switch to normal font
+\newcommand*\switchmainfont[2][]{%
+  \zf@fontspec{#1}{#2}%
+  \let\rmdefault\zf@family
+  \selectfont}
+\newcommand*\switchsansfont[2][]{%
+  \zf@fontspec{#1}{#2}%
+  \let\sfdefault\zf@family
+  \selectfont}
+\newcommand*\switchmonofont[2][]{%
+  \zf@fontspec{#1}{#2}%
+  \let\ttdefault\zf@family
+  \selectfont}
+
+\else
+
+% Math Support
+\usepackage{mathrsfs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% Use PostScript fonts
+%
+% Since mathptmx is included the following symbols are saved to prevent
+% from a clash, even if the symbols actually appear as black boxes...
+%
+\let\stdcoprod=\coprod
+\let\stdamalg=\amalg
+\let\stdjmath=\jmath
+\usepackage{mathptmx}
+\let\coprod=\stdcoprod
+\let\amalg=\stdamalg
+\let\jmath=\stdjmath
+\usepackage[scaled=.90]{helvet}
+\usepackage{courier}
+
+% More characters
+\usepackage{pifont}
+\usepackage{textcomp}
+
+\fi

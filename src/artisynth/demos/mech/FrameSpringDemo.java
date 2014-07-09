@@ -1,0 +1,224 @@
+package artisynth.demos.mech;
+
+import java.awt.Color;
+
+import artisynth.core.modelbase.*;
+import artisynth.core.mechmodels.*;
+import artisynth.core.materials.RotAxisFrameMaterial;
+import artisynth.core.util.*;
+import artisynth.core.workspace.RootModel;
+import maspack.geometry.*;
+import maspack.spatialmotion.*;
+import maspack.matrix.*;
+import maspack.render.*;
+import maspack.util.*;
+
+import java.io.*;
+import java.net.*;
+import java.util.*;
+
+public class FrameSpringDemo extends RootModel {
+   MechModel myMechMod;
+
+   private static double inf = Double.POSITIVE_INFINITY;
+
+   RigidBody myLowerArm;
+
+   RigidBody myHand;
+
+   RigidBody myHand2;
+
+   private double getHeight (RigidBody body) {
+      Point3d min = new Point3d (inf, inf, inf);
+      Point3d max = new Point3d (-inf, -inf, -inf);
+
+      body.updateBounds (min, max);
+      return max.z - min.z;
+   }
+
+   private Point3d getCenter (RigidBody body) {
+      Point3d min = new Point3d (inf, inf, inf);
+      Point3d max = new Point3d (-inf, -inf, -inf);
+
+      body.updateBounds (min, max);
+      Point3d center = new Point3d();
+      center.add (min, max);
+      center.scale (0.5);
+      return center;
+   }
+
+   public void addFrameSpring (
+      RigidBody bodyA, RigidBody bodyB, double x, double y, double z,
+      double kRot) {
+      RigidTransform3d XDW = new RigidTransform3d();
+      RigidTransform3d XCA = new RigidTransform3d();
+      RigidTransform3d XDB = new RigidTransform3d();
+      XDW.p.set (x, y, z);
+
+      XCA.mulInverseLeft (bodyA.getPose(), XDW);
+      XDB.mulInverseLeft (bodyB.getPose(), XDW);
+
+      FrameSpring spring = new FrameSpring (null);
+      spring.setMaterial (new RotAxisFrameMaterial (0, kRot, 0, 0));
+      //spring.setRotaryStiffness (kRot);
+      spring.setAttachFrameA (XCA);
+      spring.setAttachFrameB (XDB);
+      myMechMod.attachFrameSpring (bodyA, bodyB, spring);
+   }
+
+   public RigidBody addBody (String bodyName, String meshName)
+      throws IOException {
+      double density = 1000;
+
+      RigidBody body = new RigidBody (bodyName);
+      PolygonalMesh mesh =
+         new PolygonalMesh (new File (ArtisynthPath.getSrcRelativePath (
+            FrameSpringDemo.class, "geometry/" + meshName + ".obj")));
+      mesh.scale (0.1);
+      mesh.triangulate();
+      body.setMesh (mesh, null);
+      myMechMod.addRigidBody (body);
+
+      body.setInertiaFromDensity (density);
+      return body;
+   }
+
+   public RevoluteJoint addRevoluteJoint (
+      RigidBody bodyA, RigidBody bodyB, double x, double y, double z) {
+      RigidTransform3d XFA = new RigidTransform3d();
+      RigidTransform3d XDB = new RigidTransform3d();
+      RigidTransform3d XDW = new RigidTransform3d();
+
+      XDW.p.set (x, y, z);
+      XDW.R.setAxisAngle (Vector3d.Y_UNIT, Math.toRadians (90));
+      XDB.mulInverseLeft (bodyB.getPose(), XDW);
+      XFA.mulInverseLeft (bodyA.getPose(), XDW);
+      RevoluteJoint joint = new RevoluteJoint (bodyA, XFA, bodyB, XDB);
+      RenderProps.setLineStyle (joint, RenderProps.LineStyle.CYLINDER);
+      RenderProps.setLineColor (joint, Color.BLUE);
+      RenderProps.setLineRadius (joint, 0.025);
+      joint.setAxisLength (0.05);
+      myMechMod.addRigidBodyConnector (joint);
+      return joint;
+   }
+
+   public SphericalJoint addSphericalJoint (
+      RigidBody bodyA, RigidBody bodyB, double x, double y, double z) {
+      RigidTransform3d XFA = new RigidTransform3d();
+      RigidTransform3d XDB = new RigidTransform3d();
+      RigidTransform3d XDW = new RigidTransform3d();
+
+      XDW.p.set (x, y, z);
+      XDB.mulInverseLeft (bodyB.getPose(), XDW);
+      XFA.mulInverseLeft (bodyA.getPose(), XDW);
+      SphericalJoint joint = new SphericalJoint (bodyA, XFA, bodyB, XDB);
+      RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointColor (joint, Color.BLUE);
+      RenderProps.setPointRadius (joint, 0.025);
+      joint.setAxisLength (0.05);
+      myMechMod.addRigidBodyConnector (joint);
+      return joint;
+   }
+
+   public SphericalJoint addSphericalJoint (
+      RigidBody bodyA, RigidBody bodyB, RigidTransform3d XDW) {
+      RigidTransform3d XFA = new RigidTransform3d();
+      RigidTransform3d XDB = new RigidTransform3d();
+
+      XDB.mulInverseLeft (bodyB.getPose(), XDW);
+      XFA.mulInverseLeft (bodyA.getPose(), XDW);
+      SphericalJoint joint = new SphericalJoint (bodyA, XFA, bodyB, XDB);
+      RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointColor (joint, Color.BLUE);
+      RenderProps.setPointRadius (joint, 0.025);
+      joint.setAxisLength (0.05);
+      myMechMod.addRigidBodyConnector (joint);
+      return joint;
+   }
+
+   private void setBodyPose (
+      RigidBody body, double x, double y, double z, double roll, double pitch,
+      double yaw) {
+      RigidTransform3d X = new RigidTransform3d();
+      X.p.set (x, y, z);
+      X.R.setRpy (Math.toRadians (roll),
+                  Math.toRadians (pitch),
+                  Math.toRadians (yaw));
+      body.setPose (X);
+   }
+
+   public FrameSpringDemo() {
+      super (null);
+   }
+
+//    class ArmMover extends MonitorBase {
+//       RigidBody myBody;
+//       ArmMover (RigidBody body) {
+//          myBody = body;
+//       }
+//       public void apply (long t) {
+//          double s = TimeBase.ticksToSeconds(t)%1;
+//          Point3d pos = new Point3d(myBody.getPosition());
+//             if (s < 0.5) {
+//                pos.x += 0.05;
+//             }
+//             else {
+//                pos.x -= 0.05;
+//             }
+//             myBody.setPosition(pos);
+//       }
+//    }
+
+   public FrameSpringDemo (String name) throws IOException {
+      this();
+      myMechMod = new MechModel ("frameSpring");
+      myMechMod.setProfiling (false);
+      myMechMod.setGravity (0, 0, -9.8);
+      // myMechMod.setRigidBodyDamper (new FrameDamper (1.0, 4.0));
+      myMechMod.setFrameDamping (0.10);
+      myMechMod.setRotaryDamping (0.01);
+      //myMechMod.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler);
+
+      myLowerArm = addBody ("lowerArm", "lowerArm");
+      myHand = addBody ("hand", "hand");
+      myHand2 = addBody ("hand2", "hand");
+
+      double lowerArmZ = getHeight (myLowerArm) / 2 + getCenter (myLowerArm).z;
+      double handZ = -(getCenter (myHand).z + getHeight (myHand) / 2);
+
+      setBodyPose (myLowerArm, 0, 0, lowerArmZ, 0, 0, 0);
+      setBodyPose (myHand, 0, 0, handZ, -90, 0, 0);
+      setBodyPose (myHand2, 0, 0, handZ - getHeight (myHand), -90, 0, 0);
+
+      RigidTransform3d X = new RigidTransform3d();
+
+      RigidTransform3d XDW = new RigidTransform3d();
+      // XDW.R.setAxisAngle (Vector3d.Y_UNIT, Math.PI/2);
+
+      SphericalJoint joint = addSphericalJoint (myHand, myLowerArm, XDW);
+
+      joint.setMaxRotation (100);
+      XDW.p.set (0, 0, -getHeight (myHand));
+      joint = addSphericalJoint (myHand2, myHand, XDW);
+      joint.setMaxRotation (45);
+
+      // RevoluteJoint joint = addRevoluteJoint (myLowerArm, myHand, 0, 0, 0);
+      // joint.setMaximumTheta (Math.toRadians(30));
+      // joint.setMinimumTheta (-Math.toRadians(30));
+
+      addFrameSpring (myLowerArm, myHand, 0, 0, 0, 0.1);
+
+      myLowerArm.setDynamic (false);
+
+      X.R.setAxisAngle (Vector3d.X_UNIT, -Math.toRadians (140.0));
+      // X.R.setAxisAngle (Vector3d.Y_UNIT, -Math.PI/2);
+      // myMechMod.transformGeometry (X);
+
+      addModel (myMechMod);
+      //addMonitor (new ArmMover(myLowerArm));
+
+      X.setIdentity();
+      X.R.setRpy (0, Math.toRadians(-60), 0);
+      myMechMod.transformGeometry (X);
+   }
+}

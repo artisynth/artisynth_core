@@ -1,0 +1,267 @@
+%%
+%% Locale for some float labels and articleinfo/bookinfo stuff
+%%
+
+\long\def\dolangsetup#1#2{%
+  \expandafter\def\csname setup@lang@#1\endcsname{#2}%
+}
+
+\def\dosetuplang#1{%
+  \csname setup@lang@#1\endcsname%
+}
+
+%% Internal interface
+\long\def\langsetupdbk#1#2{ \dolangsetup{dbk@#1}{#2} }
+\def\setuplocale#1{ \dosetuplang{dbk@#1} }
+
+%% User Babel setup hooks
+\long\def\babelsetup#1#2{ \dolangsetup{bab@#1}{#2} }
+\def\setupbabel#1{ \dosetuplang{bab@#1} }
+
+%% Define the locale setups in docbook
+\langsetupdbk{de}{
+  \def\refname{Referenzen}%
+  \def\abstractname{Zusammenfassung}%
+  \def\bibname{Bibliographie}%
+  \def\prefacename{Vorwort}%
+  \def\chaptername{Kapitel}%
+  \def\appendixname{Anhang}%
+  \def\contentsname{Inhaltsverzeichnis}%
+  \def\listfigurename{Abbildungsverzeichnis}%
+  \def\listtablename{Tabellenverzeichnis}%
+  \def\indexname{Index}%
+  \def\figurename{{\scshape Abbildung }}%
+  \def\tablename{{\scshape Tabelle }}%
+   
+  \def\examplename{Beispiel}
+  \def\ondate{am}
+  \renewcommand{\DBKreleaseinfo}{Arbeitspapier}
+  \def\writtenby{VERFASST DURCH}
+  \def\projname{PROJEKT}
+  \def\titlename{TITEL}
+  \def\DBKrefname{REFERENZ}
+  \def\DBKindname{NAME}
+  \def\DBKindtitle{MITWIRKENDE}
+  \def\DBKrevtitle{VERSIONSGESCHICHTE}
+  \def\DBKrevdesc{BESCHREIBUNG}
+  \def\DBKrevnumber{NUMMER}
+  \def\DBKrevname{NAME}
+  \def\DBKrevdate{DATUM}
+  \def\DBKcontrib{AKTION}
+  \def\DBKsignature{UNTERSCHRIFT}
+}
+\langsetupdbk{fr}{
+  \def\refname{R\'ef\'erences}%
+  \def\abstractname{R\'esum\'e}%
+  \def\bibname{Bibliographie}%
+  \def\prefacename{Pr\'eface}%
+  \def\chaptername{Chapitre}%
+  \def\appendixname{Annexe}%
+  \def\contentsname{Table des mati\`eres}%
+  \def\listfigurename{Liste des figures}%
+  \def\listtablename{Liste des tableaux}%
+  \def\indexname{Index}%
+  \def\figurename{{\scshape Figure }}%
+  \def\tablename{{\scshape Tableau }}%
+
+  \def\examplename{Exemple}
+  \def\ondate{le}
+  \renewcommand{\DBKreleaseinfo}{Document de Travail}
+  \def\projname{PROJET}
+  \def\titlename{TITRE}
+  \def\writtenby{R\'EDIG\'E PAR}
+  \def\DBKrefname{R\'EFERENCE}
+  \def\DBKindname{NOM}
+  \def\DBKindtitle{INDEXATION DU DOCUMENT}
+  \def\DBKrevtitle{SUIVI DU DOCUMENT}
+  \def\DBKrevdesc{MODIFICATIONS}
+  \def\DBKrevnumber{INDICE}
+  \def\DBKrevname{NOM}
+  \def\DBKrevdate{DATE}
+  \def\DBKcontrib{ACTION}
+  \def\DBKsignature{SIGNATURE}
+}
+\langsetupdbk{nl}{
+  \def\refname{Referenties}%
+  \def\abstractname{Samenvatting}%
+  \def\bibname{Bibliografie}%
+  \def\prefacename{Voorwoord}%
+  \def\chaptername{Hoofdstuk}%
+  \def\appendixname{Appendix}%
+  \def\contentsname{Inhoudstafel}%
+  \def\listfigurename{Lijst van figuren}%
+  \def\listtablename{Lijst van tabellen}%
+  \def\indexname{Index}%
+  \def\figurename{{\scshape Figuur }}%
+  \def\tablename{{\scshape Tabel }}%
+
+  \def\examplename{Voorbeeld}
+  \def\ondate{}
+  \renewcommand{\DBKreleaseinfo}{Werkdocument}
+  \def\writtenby{GESCHREVEN DOOR}
+  \def\projname{PROJECT}
+  \def\titlename{TITEL}
+  \def\DBKindname{NAAM}
+  \def\DBKindtitle{MEDEWERKERS}
+  \def\DBKrevtitle{HERZIENINGEN}
+  \def\DBKrevdesc{BESCHRIJVING}
+  \def\DBKrevnumber{NUMMER}
+  \def\DBKrevname{NAAM}
+  \def\DBKrevdate{DATUM}
+  \def\DBKcontrib{ACTIE}
+  \def\DBKsignature{Handtekening}
+}
+\langsetupdbk{es}{
+  \def\refname{Referencia}%
+  \def\abstractname{Resumen}%
+  \def\bibname{Bibliograf\'ia}%
+  \def\prefacename{Prefacio}%
+  \def\chaptername{Cap\'itulo}%
+  \def\appendixname{Ap\'endice}%
+  \def\contentsname{\'Indice de contenido}%
+  \def\listfigurename{\'Indice de ilustraciones}%
+  \def\listtablename{\'Indice de tablas}%
+  \def\indexname{\'Indice de palabras clave}%
+  \def\figurename{{\scshape Ilustraci\'on }}%
+  \def\tablename{{\scshape Tabla }}%
+   
+  \def\examplename{Ejemplo}
+  \def\ondate{}
+  \renewcommand{\DBKreleaseinfo}{Documento de trabajo}
+  \def\writtenby{ESCRITO POR}
+  \def\projname{PROYECTO}
+  \def\titlename{TÍTULO}
+  \def\DBKindname{NOMBRE}
+  \def\DBKindtitle{COLABORADORES}
+  \def\DBKrevtitle{HISTORIAL DE REVISIONES}
+  \def\DBKrevdesc{MODIFICACIONES}
+  \def\DBKrevnumber{N\'UMERO}
+  \def\DBKrevname{NOMBRE}
+  \def\DBKrevdate{FECHA}
+  \def\DBKcontrib{ACCI\'ON}
+  \def\DBKsignature{FIRMA}
+}
+% Last-Translator: Giuseppe Sacco <eppesuig@debian.org>
+% Translation-Team: Italian translation project <tp@lists.linux.it>
+% Translation-Date: 2007-07-25
+\langsetupdbk{it}{
+  \def\refname{Nome}%
+  \def\abstractname{Introduzione}%
+  \def\bibname{Bibliografia}%
+  \def\prefacename{Prefazione}%
+  \def\chaptername{Capitolo}%
+  \def\appendixname{Appendice}%
+  \def\contentsname{Sommario}%
+  \def\listfigurename{Indice delle figure}%
+  \def\listtablename{Indice delle tavole}%
+  \def\indexname{Indice}%
+  \def\figurename{{\scshape Figura }}%
+  \def\tablename{{\scshape Tavola }}%
+ 
+  \def\examplename{Esempio}
+  \def\ondate{l\`i}
+  \renewcommand{\DBKreleaseinfo}{Documento di lavoro}
+  \def\writtenby{A CURA DI}
+  \def\projname{PROGETTO}
+  \def\titlename{TITOLO}
+  \def\DBKindname{NOME}
+  \def\DBKindtitle{COLLABORATORI}
+  \def\DBKrevtitle{CRONOLOGIA DELLE REVISIONI}
+  \def\DBKrevdesc{DESCRIZIONE}
+  \def\DBKrevnumber{POSIZIONE}
+  \def\DBKrevname{NOME}
+  \def\DBKrevdate{DATA}
+  \def\DBKcontrib{AZIONE}
+  \def\DBKsignature{FIRMA}
+}
+\langsetupdbk{en}{
+  \def\examplename{Example}
+  \def\ondate{on}
+  \renewcommand{\DBKreleaseinfo}{Working Paper}
+  \def\writtenby{WRITTEN BY}
+  \def\projname{PROJECT}
+  \def\titlename{TITLE}
+  \def\DBKrefname{REFERENCE}
+  \def\DBKindname{NAME}
+  \def\DBKindtitle{COLLABORATORS}
+  \def\DBKrevtitle{REVISION HISTORY}
+  \def\DBKrevdesc{DESCRIPTION}
+  \def\DBKrevnumber{NUMBER}
+  \def\DBKrevname{NAME}
+  \def\DBKrevdate{DATE}
+  \def\DBKcontrib{ACTION}
+  \def\DBKsignature{SIGNATURE}
+}
+\langsetupdbk{ko}{
+%  \usepackage{hfont}
+  \ifxetex
+  \newenvironment{CJK}[3][]{}{}
+  \else
+  \hypersetup{unicode}
+  \usepackage{CJKutf8}
+  \fi
+}
+\langsetupdbk{zh}{
+  \ifxetex
+  \newenvironment{CJK}[3][]{}{}
+  \else
+  \hypersetup{unicode}
+  \usepackage{CJKutf8}
+  \usepackage{pinyin}
+  \fi
+}
+\langsetupdbk{ja}{
+  \ifxetex
+  \newenvironment{CJK}[3][]{}{}
+  \else
+  \hypersetup{unicode}
+  \usepackage{CJKutf8}
+  \fi
+}
+
+%% Define the babel setups in docbook
+\babelsetup{cs}{%
+  % Shorthand breaks longtable stops
+  \AtBeginDocument{\shorthandoff{-}}
+}
+
+\babelsetup{fr}{%
+  \NoAutoSpaceBeforeFDP
+  % Avoid mess between enumitem and french redefinition
+  \@ifundefined{ifFrenchItemizeSpacing}{}{\FrenchItemizeSpacingfalse}
+}
+
+\babelsetup{es}{%
+  % Avoid enumitem to crash with spanish babel
+  \let\savees@listquot\es@listquot
+  \def\es@listquot{\protect\savees@listquot}
+
+  % Remove those horrible and messy "x shorthands
+  \renewcommand\shorthandsspanish{}
+}
+
+\babelsetup{de}{%
+  % Remove those messy "x shorthands
+  % \languageshorthands{none} does not work for lot/lof files
+  \AtBeginDocument{\shorthandoff{"}}
+}
+
+\babelsetup{ru}{%
+  % XeTeX works with russian babel only if xecyr is provided
+  \ifxetex\usepackage{xecyr}\fi
+  \AtBeginDocument{\shorthandoff{"}}
+}
+
+\babelsetup{sk}{%
+  % Shorthand breaks longtable stops
+  \AtBeginDocument{\shorthandoff{-}}
+}
+
+\babelsetup{uk}{%
+  % XeTeX works with ukrainian babel only if xecyr is provided
+  \ifxetex\usepackage{xecyr}\fi
+}
+
+%% Apply default locale setup
+\setuplocale{en}
+

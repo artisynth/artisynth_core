@@ -1,0 +1,2 @@
+This file is intended to keep tmp from being empty so that
+CVS will not remove it when updating with the -P option

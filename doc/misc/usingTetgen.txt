@@ -1,0 +1,21 @@
+First download tegen from here
+
+http://tetgen.berlios.de/
+
+Next compile it simply by calling, in the source directory,
+
+g++ -o tetgen *.cxx
+
+Next, to convert a triangular mesh into a tetrahedral mesh, convert the
+surface mesh file into a ".off" format file using blender. Following this
+run tetgen on the file by calling
+
+tetgen -q<quality value>a<tet volume limit> <file>
+
+I'm not sure exactly what the quality parameter represents other than it's
+some ratio concerning edge lengths and angles within a given tetrahedron.
+The volume limit is fairly self explanatory. The output from tetgen is a
+".node" and a ".elem" pair of files containing the node and element
+definitions respectively. An FemModel3d can then be created by TetgenReader
+given the paths to the ".node" and ".elem" files created by tetgen.
+

@@ -1,0 +1,50 @@
+%
+% Check if the image file (#1) exists. If so, it switches to #2, else to #3
+% It assumes that the graphics package \Gin@extensions macro is defined.
+%
+\long\def\imgexists#1#2#3{%
+  \begingroup%
+  \let\img@file\relax%
+  \filename@parse{#1}%
+  \ifx\filename@ext\relax%
+    \@for\Gin@temp:=\Gin@extensions\do{%
+    \ifx\img@file\relax%
+      \IfFileExists{#1\Gin@temp}{\def\img@file{#1}}{}%
+    \fi}%
+  \else
+    \IfFileExists{#1}{\def\img@file{#1}}{}%
+  \fi%
+  \ifx\img@file\relax#3\else#2\fi%
+  \endgroup%
+}
+
+%
+% The image keeps its natural size if lower than the max boundaries
+% Now it's fully based on internal graphics macros
+%
+% Macros defining the maximum lengths
+\def\imgmaxwidth{\textwidth}
+\def\imgmaxheight{\textheight}
+
+% Real image sizes
+\def\imgrwidth{\Gin@nat@width}
+\def\imgrheight{\Gin@nat@height}
+\def\imgevalsize#1{}%
+
+% Use the maximum possible size
+\def\imgwidth{%
+  \ifdim\Gin@nat@width>\imgmaxwidth
+    \imgmaxwidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+
+\def\imgheight{%
+  \ifdim\Gin@nat@height>\imgmaxheight
+    \imgmaxheight
+  \else
+    \Gin@nat@height
+  \fi
+}
+

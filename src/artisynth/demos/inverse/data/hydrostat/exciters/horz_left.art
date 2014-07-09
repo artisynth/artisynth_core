@@ -1,0 +1,37 @@
+artisynth.core.mechmodels.MuscleExciter
+[ targets=[
+    b/1/f/3
+    b/1/f/2
+    b/1/f/1
+    b/1/f/0
+    b/1/f/15
+    b/1/f/14
+    b/1/f/13
+    b/1/f/12
+    b/1/f/27
+    b/1/f/26
+    b/1/f/25
+    b/1/f/24
+    b/1/f/39
+    b/1/f/38
+    b/1/f/37
+    b/1/f/36
+    b/1/f/51
+    b/1/f/50
+    b/1/f/49
+    b/1/f/48
+    b/1/f/63
+    b/1/f/62
+    b/1/f/61
+    b/1/f/60
+    b/1/f/75
+    b/1/f/74
+    b/1/f/73
+    b/1/f/72
+    b/1/f/87
+    b/1/f/86
+    b/1/f/85
+    b/1/f/84
+  ]
+  name="horz_left"
+]

@@ -1,0 +1,176 @@
+Edit,Content Assist,Ctrl+Space,In Dialogs and Windows
+Edit,Context Information,Shift+Ctrl+Space,In Windows
+Edit,Copy,Ctrl+C,In Dialogs and Windows
+Edit,Copy,Ctrl+Insert,In Dialogs and Windows
+Edit,Cut,Ctrl+X,In Dialogs and Windows
+Edit,Cut,Shift+Delete,In Dialogs and Windows
+Edit,Delete,Delete,In Windows
+Edit,Find Next,Ctrl+K,Editing Text
+Edit,Find Previous,Shift+Ctrl+K,Editing Text
+Edit,Find and Replace,Ctrl+F,In Windows
+Edit,Incremental Find,Ctrl+J,Editing Text
+Edit,Incremental Find Reverse,Shift+Ctrl+J,Editing Text
+Edit,Paste,Ctrl+V,In Dialogs and Windows
+Edit,Paste,Shift+Insert,In Dialogs and Windows
+Edit,Quick Diff Toggle,Shift+Ctrl+Q,Editing Text
+Edit,Quick Fix,Ctrl+1,In Windows
+Edit,Redo,Ctrl+Y,In Windows
+Edit,Restore Last Selection,Shift+Alt+Down,Editing Java Source
+Edit,Select All,Ctrl+A,In Dialogs and Windows
+Edit,Select Enclosing Element,Shift+Alt+Up,Editing Java Source
+Edit,Select Next Element,Shift+Alt+Right,Editing Java Source
+Edit,Select Previous Element,Shift+Alt+Left,Editing Java Source
+Edit,Show Tooltip Description,F2,Editing Java Source
+Edit,Toggle Insert Mode,Shift+Ctrl+Insert,Editing Text
+Edit,Undo,Ctrl+Z,In Windows
+Edit,Word Completion,Alt+/,Editing Text
+File,Close,Ctrl+F4,In Windows
+File,Close,Ctrl+W,In Windows
+File,Close All,Shift+Ctrl+F4,In Windows
+File,Close All,Shift+Ctrl+W,In Windows
+File,New,Ctrl+N,In Windows
+File,New menu,Shift+Alt+N,In Windows
+File,Print,Ctrl+P,In Windows
+File,Properties,Alt+Enter,In Windows
+File,Refresh,F5,In Windows
+File,Rename,F2,In Windows
+File,Save,Ctrl+S,In Windows
+File,Save All,Shift+Ctrl+S,In Windows
+Navigate,Backward History,Alt+Left,In Windows
+Navigate,Forward History,Alt+Right,In Windows
+Navigate,Go to Line,Ctrl+L,Editing Text
+Navigate,Go to Matching Bracket,Shift+Ctrl+P,Editing Java Source
+Navigate,Go to Next Member,Shift+Ctrl+Down,Editing Java Source
+Navigate,Go to Previous Member,Shift+Ctrl+Up,Editing Java Source
+Navigate,Last Edit Location,Ctrl+Q,In Windows
+Navigate,Next,Ctrl+.,In Windows
+Navigate,Open Call Hierarchy,Ctrl+Alt+H,In Windows
+Navigate,Open Declaration,F3,In Windows
+Navigate,Open External Javadoc,Shift+F2,In Windows
+Navigate,Open Resource,Shift+Ctrl+R,In Windows
+Navigate,Open Structure,Ctrl+F3,Editing Java Source
+Navigate,Open Type,Shift+Ctrl+T,In Windows
+Navigate,Open Type Hierarchy,F4,In Windows
+Navigate,Open Type in Hierarchy,Shift+Ctrl+H,In Windows
+Navigate,Previous,Ctrl+,,In Windows
+Navigate,Quick Hierarchy,Ctrl+T,Editing Java Source
+Navigate,Quick Outline,Ctrl+O,Editing Java Source
+Navigate,Show In menu,Shift+Alt+W,In Windows
+Project,Build All,Ctrl+B,In Windows
+Refactor - Java,Change Method Signature,Shift+Alt+C,In Windows
+Refactor - Java,Convert Local Variable to Field,Shift+Alt+F,Editing Java Source
+Refactor - Java,Extract Local Variable,Shift+Alt+L,In Windows
+Refactor - Java,Extract Method,Shift+Alt+M,In Windows
+Refactor - Java,Inline,Shift+Alt+I,In Windows
+Refactor - Java,Move - Refactoring ,Shift+Alt+V,In Windows
+Refactor - Java,Redo - Refactoring ,Shift+Alt+Y,In Windows
+Refactor - Java,Rename - Refactoring ,Shift+Alt+R,In Windows
+Refactor - Java,Show Refactor Quick Menu,Shift+Alt+T,In Windows
+Refactor - Java,Undo - Refactoring,Shift+Alt+Z,In Windows
+Run/Debug,Debug Ant Build,Shift+Alt+D Q,In Windows
+Run/Debug,Debug Eclipse Application,Shift+Alt+D E,In Windows
+Run/Debug,Debug JUnit Plug-in Test,Shift+Alt+D P,In Windows
+Run/Debug,Debug JUnit Test,Shift+Alt+D T,In Windows
+Run/Debug,Debug Java Applet,Shift+Alt+D A,In Windows
+Run/Debug,Debug Java Application,Shift+Alt+D J,In Windows
+Run/Debug,Debug Last Launched,F11,In Windows
+Run/Debug,Debug SWT Application,Shift+Alt+D S,In Windows
+Run/Debug,Display,Shift+Ctrl+D,In Dialogs and Windows
+Run/Debug,Display,Shift+Ctrl+V,In Dialogs and Windows
+Run/Debug,EOF,Ctrl+D,In Console
+Run/Debug,Execute,Ctrl+U,In Windows
+Run/Debug,Inspect,Shift+Ctrl+I,In Dialogs and Windows
+Run/Debug,Resume,F8,Debugging
+Run/Debug,Run Ant Build,Shift+Alt+X Q,In Windows
+Run/Debug,Run Eclipse Application,Shift+Alt+X E,In Windows
+Run/Debug,Run JUnit Plug-in Test,Shift+Alt+X P,In Windows
+Run/Debug,Run JUnit Test,Shift+Alt+X T,In Windows
+Run/Debug,Run Java Applet,Shift+Alt+X A,In Windows
+Run/Debug,Run Java Application,Shift+Alt+X J,In Windows
+Run/Debug,Run Last Launched,Ctrl+F11,In Windows
+Run/Debug,Run SWT Application,Shift+Alt+X S,In Windows
+Run/Debug,Run to Line,Ctrl+R,Debugging
+Run/Debug,Step Into,F5,Debugging
+Run/Debug,Step Into Selection,Ctrl+F5,Debugging
+Run/Debug,Step Over,F6,Debugging
+Run/Debug,Step Return,F7,Debugging
+Run/Debug,Toggle Line Breakpoint,Shift+Ctrl+B,In Windows
+Run/Debug,Toggle Step Filters,Shift+F5,In Windows
+Search,Declaration in Workspace,Ctrl+G,In Windows
+Search,Open Search Dialog,Ctrl+H,In Windows
+Search,References in Workspace,Shift+Ctrl+G,In Windows
+Search,Show Occurrences in File Quick Menu,Shift+Ctrl+U,In Windows
+Source,Add Block Comment,Shift+Ctrl+/,Editing Java Source
+Source,Add Import,Shift+Ctrl+M,Editing Java Source
+Source,Add Javadoc Comment,Shift+Alt+J,In Windows
+Source,Format,Esc Ctrl+F,Editing Java Source
+Source,Format,Shift+Ctrl+F,Editing Ant Buildfiles
+Source,Indent Line,Ctrl+I,Editing Java Source
+Source,Open External Documentation,Shift+F2,Editing Ant Buildfiles
+Source,Organize Imports,Shift+Ctrl+O,In Windows
+Source,Quick Assist - Assign to field,Ctrl+2 F,Editing Java Source
+Source,Quick Assist - Assign to local variable,Ctrl+2 L,Editing Java Source
+Source,Quick Assist - Rename in file,Ctrl+2 R,Editing Java Source
+Source,Remove Block Comment,Shift+Ctrl+\,Editing Java Source
+Source,Remove Occurrence Annotations,Shift+Alt+U,Editing Java Source
+Source,Rename In File,Shift+Alt+R,Editing Ant Buildfiles
+Source,Show Source Quick Menu,Shift+Alt+S,In Windows
+Source,Show Tooltip Description,F2,Editing Ant Buildfiles
+Source,Toggle Ant Mark Occurrences,Shift+Alt+O,Editing Ant Buildfiles
+Source,Toggle Comment,Ctrl+/,Editing Java Source
+Source,Toggle Comment,Ctrl+7,Editing Java Source
+Source,Toggle Comment,Esc Ctrl+C,Editing Java Source
+Source,Toggle Mark Occurrences,Shift+Alt+O,Editing Java Source
+Text Editing,Collapse,Ctrl+Numpad_Subtract,Editing Text
+Text Editing,Copy Lines,Ctrl+Alt+Down,Editing Text
+Text Editing,Delete Line,Ctrl+D,Editing Text
+Text Editing,Delete Next Word,Ctrl+Delete,Editing Text
+Text Editing,Delete Previous Word,Ctrl+Backspace,Editing Text
+Text Editing,Delete to End of Line,Shift+Ctrl+Delete,Editing Text
+Text Editing,Duplicate Lines,Ctrl+Alt+Up,Editing Text
+Text Editing,Expand,Ctrl+Numpad_Add,Editing Text
+Text Editing,Expand All,Ctrl+Numpad_Multiply,Editing Text
+Text Editing,Insert Line Above Current Line,Shift+Ctrl+Enter,Editing Text
+Text Editing,Insert Line Below Current Line,Shift+Enter,Editing Text
+Text Editing,Move Lines Down,Alt+Down,Editing Text
+Text Editing,Move Lines Up,Alt+Up,Editing Text
+Text Editing,Next Word,Ctrl+Right,Editing Text
+Text Editing,Previous Word,Ctrl+Left,Editing Text
+Text Editing,Scroll Line Down,Ctrl+Down,Editing Text
+Text Editing,Scroll Line Up,Ctrl+Up,Editing Text
+Text Editing,Select Next Word,Shift+Ctrl+Right,Editing Text
+Text Editing,Select Previous Word,Shift+Ctrl+Left,Editing Text
+Text Editing,To Lower Case,Shift+Ctrl+Y,Editing Text
+Text Editing,To Upper Case,Shift+Ctrl+X,Editing Text
+Text Editing,Toggle Folding,Ctrl+Numpad_Divide,Editing Text
+Text Editing,Toggle Overwrite,Insert,Editing Text
+Views,Breakpoints,Shift+Alt+Q B,In Windows
+Views,Cheat Sheets,Shift+Alt+Q H,In Windows
+Views,Console,Shift+Alt+Q C,In Windows
+Views,Java Declaration,Shift+Alt+Q D,In Windows
+Views,Java Package Explorer,Shift+Alt+Q P,In Windows
+Views,Java Type Hierarchy,Shift+Alt+Q T,In Windows
+Views,Javadoc,Shift+Alt+Q J,In Windows
+Views,Search,Shift+Alt+Q S,In Windows
+Views,Show View (View: Outline),Shift+Alt+Q O,In Windows
+Views,Show View (View: Problems),Shift+Alt+Q X,In Windows
+Views,Synchronize,Shift+Alt+Q Y,In Windows
+Views,Variables,Shift+Alt+Q V,In Windows
+Window,Activate Editor,F12,In Windows
+Window,Maximize Active View or Editor,Ctrl+M,In Windows
+Window,Next Editor,Ctrl+F6,In Windows
+Window,Next Editor,Ctrl+Tab,In Windows
+Window,Next Perspective,Ctrl+F8,In Windows
+Window,Next Perspective,Ctrl+`,In Windows
+Window,Next View,Ctrl+F7,In Windows
+Window,Open Editor Drop Down,Ctrl+E,In Windows
+Window,Previous Editor,Shift+Ctrl+F6,In Windows
+Window,Previous Editor,Shift+Ctrl+Tab,In Windows
+Window,Previous Perspective,Shift+Ctrl+F8,In Windows
+Window,Previous Perspective,Shift+Ctrl+`,In Windows
+Window,Previous View,Shift+Ctrl+F7,In Windows
+Window,Show Key Assist,Shift+Ctrl+L,In Dialogs and Windows
+Window,Show Ruler Context Menu,Ctrl+F10,Editing Text
+Window,Show System Menu,Alt+-,In Windows
+Window,Show View Menu,Ctrl+F10,In Windows
+Window,Switch to Editor,Esc Ctrl+E,In Windows

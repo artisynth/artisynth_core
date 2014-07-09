@@ -195,8 +195,6 @@ public class AliasTable {
 
    /**
     * Returns a Set view of the entries for this table.
-    *
-    * @param entries for this table
     */
    public Set<Map.Entry<String,String>> entrySet() {
       return aliasesToNames.entrySet();

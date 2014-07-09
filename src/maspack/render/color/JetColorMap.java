@@ -42,7 +42,9 @@ public class JetColorMap extends InterpolatingColorMap {
    
    /**
     * Creates a ColorMap that evenly interpolates between 
-    * the supplied colors. {@see #setColorArray(Color[])}
+    * the supplied colors.
+    *
+    * @see #setColorArray(Color[])
     */
    public JetColorMap(Color[] colors) {
       setColorArray(colors);

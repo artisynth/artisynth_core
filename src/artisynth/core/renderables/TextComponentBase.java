@@ -113,7 +113,7 @@ public abstract class TextComponentBase extends RenderableComponentBase
     * Sets the font size.  This is only used to control
     * text resolution.  The actual size of the displayed
     * text should be controlled by the "text size".
-    *  @see {@link #setTextSize(double)}
+    * @see #setTextSize(double)
     */
    public void setFontSize(int size) {
       if (size != myFont.getSize()) {

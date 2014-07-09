@@ -223,14 +223,14 @@ public interface DeformableCollisionData extends CollisionData {
     * @return the number of dependent points
     */
    public int getVertexDependencies(Vertex3d vtx, ArrayList<Point> pointDeps,
-      VectorNd pntWgts, ArrayList<Frame> frameDeps, VectorNd frameWgts);
+      VectorNd pointWgts, ArrayList<Frame> frameDeps, VectorNd frameWgts);
 
    /**
     * Culls the set of constraints to a reduced set
     * @param points list of deformable penetrating points
     * @param otherData collision data from the other object
     */
-   void reduceConstraints(ArrayList<ContactPenetratingPoint> myPoints,
+   void reduceConstraints(ArrayList<ContactPenetratingPoint> points,
       ArrayList<ContactPenetratingPoint> otherPoints,
       CollisionData otherData);
    

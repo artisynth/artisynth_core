@@ -775,10 +775,6 @@ public class MFreeElement3d extends FemElement implements Boundable {
     * Returns an array of MatrixBlocks to be used as constraints to make the
     * element incompressible. Note this method does not compute values for
     * these constraints; it only returns storage for them.
-    *
-    * <p>There is one block for each node, with each of size 3 x m, where m is
-    * the number of pressure degrees-of-freedom (returned by
-    * {@link #numPressureVals()}.
     * 
     * @return incompressibility constraints
     */

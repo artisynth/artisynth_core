@@ -466,8 +466,6 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
    /**
     * Adds a point as a component for this constraint.
     * 
-    * @param vtx (optional)
-    * the vertex associated with this point (if FemMeshVertex)
     * @param pnt
     * point to add
     * @param weight

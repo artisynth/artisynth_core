@@ -119,13 +119,6 @@ public class MFreeIntegrationPoint3d extends IntegrationPoint3d implements MFree
    
    /** 
     * Create an integration point for a given element.
-    *
-    * @param elem element to create the integration point for
-    * @param s0 first coordinate value
-    * @param s1 second coordinate value
-    * @param s2 third coordinate value
-    * @param w weight 
-    * @return new integration point
     */
    public static MFreeIntegrationPoint3d create (List<MFreeNode3d> dependentNodes, VectorNd shapeN, ArrayList<Vector3d> shapeGrad, double w) {
       

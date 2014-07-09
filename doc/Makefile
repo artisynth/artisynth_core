@@ -30,7 +30,7 @@ javadocs: #make the javadocs
 	javadoc -author -d javadocs -public -sourcepath $(ROOT_DIR)/src \
 		-windowtitle "Artisynth API documentation" \
 		-J-Xms500m -J-Xmx500m \
-		`$(FIND_PACKAGES)q -d $(ROOT_DIR)/src | tr '\n' ' ' | tr '\r' ' '`
+		`$(FIND_PACKAGES) -d $(ROOT_DIR)/src | tr '\n' ' ' | tr '\r' ' '`
 
 # This command needs to be run on the webserver
 .PHONY: webinstall

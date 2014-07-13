@@ -3,31 +3,13 @@ HTML_DIR = ../html/installation
 
 .PHONY: html pdf chunked
 
-html: $(HTML_DIR)/installation.html \
-      $(HTML_DIR)/windowsInstallation.html \
+html: $(HTML_DIR)/windowsInstallation.html \
       $(HTML_DIR)/linuxInstallation.html \
       $(HTML_DIR)/macosInstallation.html
 
-pdf: $(PDF_DIR)/installation.pdf \
-     $(PDF_DIR)/windowsInstallation.pdf \
+pdf: $(PDF_DIR)/windowsInstallation.pdf \
      $(PDF_DIR)/linuxInstallation.pdf \
      $(PDF_DIR)/macosInstallation.pdf 
-
-$(PDF_DIR)/installation.pdf: installation.pdf
-	cp installation.pdf $(PDF_DIR)
-
-installation.pdf: installation.tex
-	pdflatex installation.tex
-	pdflatex installation.tex
-
-installation.xml: installation.tex
-	latexml installation.tex >installation.xml
-
-$(HTML_DIR)/installation.html: installation.xml
-	$(MAKE_HTML_DIR_IF_NECESSARY)
-	$(LATEXMLPOST) installation.xml 
-	$(FIX_HTML_OUTPUT) > _tmp_.html
-	mv _tmp_.html $(HTML_DIR)/installation.html
 
 $(PDF_DIR)/windowsInstallation.pdf: windowsInstallation.pdf
 	cp windowsInstallation.pdf $(PDF_DIR)

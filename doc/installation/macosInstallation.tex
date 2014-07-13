@@ -298,10 +298,14 @@ Some model and package collections, such as {\tt artisynth\_models}
 mentioned above, may be available either as prepackaged distributions
 or as Subversion checkouts. Prepackaged distributions should be
 downloaded and unpacked into a desired location, while Subversion
-checkouts may be obtained with the {\tt svn} command as
-described in Section \ref{SubversionCheckout}, using the
-appropriate Subversion URL in place of the ArtiSynth Subversion URL. Some
-collections maintained by ArtiSynth may contain Eclipse project
+checkouts may be obtained as described in Section
+\ref{SubversionCheckout}, using the appropriate Subversion URL in
+place of the ArtiSynth Subversion URL. Some collections require
+authorization for checkout. In those cases, it will be necessary to
+also provide Subversion with an account name and password (which you
+will have obtained from us by prior arrangement).
+
+Some collections maintained by ArtiSynth may contain Eclipse project
 settings (in an {\tt eclipseSettings.zip} file in their root
 \directory), allowing them to be imported into Eclipse, either
 directly from Subversion (Section \ref{importingFromSubversion}), or
@@ -420,7 +424,6 @@ good version to obtain (at the time of this writing) is {\sf Eclipse
 IDE for Java Developers}.
 
 \subsubsection{Installing a Subversion plugin}
-
 \label{SubversionPlugIn}
 
 In order to work with Subversion from within Eclipse, either to check
@@ -438,35 +441,31 @@ Subclipse, currently obtainable from
 \href{http://subclipse.tigris.org/servlets/ProjectProcess?pageID=p4wYuA}
 {subclipse.tigris.org}.
 
-Subversive can usually be installed from within Eclipse. The
-recommended method is through the Eclipse Marketplace, which is
-available in modern releases of Eclipse and available for previous
-versions through \href{http://www.eclipse.org/mpc/}{www.eclipse.org/mpc}.
+Instructions for installing Subversive can be obtained at
+\href{http://www.eclipse.org/subversive/installation-instructions.php}
+{www.eclipse.org/subversive/installation-instructions.php}.
 
-To access the Eclipse Marketplace, click {\sf Help > Eclispe}
-Marketplace. Once the applications available have loaded in, type {\tt
-Subversive} into the {\sf Find} box in the top-left corner of the
-Marketplace window. Navigate to the package labeled {\sf Subversive -
-SVN Team Provider 2.0} and click {\sf Install}. On the {\sf Confirm
-Selected Features} screen, ensure all boxes are checked and click the
-button labeled {\sf Confirm >}. Restart Eclipse when prompted.
+One way to install Subversive is through the Eclipse Marketplace.  If
+you have an older version of Eclipse that doesn't have Marketplace,
+you may be able to obtain it from
+\href{http://www.eclipse.org/mpc/}{www.eclipse.org/mpc}.  To access
+the Marketplace, click {\sf Help > Eclispe Marketplace}. Once the
+available applications have been displayed, type {\tt Subversive} into
+the {\sf Find} box in the top-left corner of the Marketplace
+window. Navigate to the package labeled {\sf Subversive - SVN Team
+Provider} and click {\sf Install}. On the {\sf Confirm Selected
+Features} screen, ensure all boxes are checked and click the button
+labeled {\sf Confirm >}. Restart Eclipse when prompted.
 
-If the Eclipse Marketplace is not available or desired, nagivate to
-{\sf Help > Install New Software} and enter
-{\tt http://download.eclipse.org/technology/subversive/2.0/update-site/}
-in the text field. Check {\sf Subversive Integration Plug-in's} and
-{\sf Subversion SVN Team Provider Plug-In} and click {\sf Next} and
-then follow the installation instructions.
+One more step is now necessary. Re-open Eclipse, and you should be
+prompted to choose an SVN connector in the start menu.  SVN connectors
+interface Subversive to the SVN server, and are OS and
+server-specific. A recommended SVN Connector will be pre-selected for
+downloading; this is most likely the one you need.
 
-No matter how Subversive was installed, one more step is
-necessary. Re-open Eclipse, and you should be prompted to choose an SVN
-connector in the start menu.  SVN connectors interface
-Subversive to the SVN server, and are OS and server-specific. A
-recommended SVN Connector will be pre-selected for downloading; this
-is most likely the one you need.
-
-SVN connectors can also be installed separately (thanks to bmaupin at
-Stackoverflow):
+If Eclipse did not prompt you to choose a connector when it restarted,
+you can install SVN connectors separately (thanks to bmaupin at
+Stackoverflow for this information):
 
 \begin{enumerate}
 
@@ -490,14 +489,10 @@ then follow the instructions to complete installation.
 
 \end{enumerate}
 
-You can install multiple connectors, and then choose the one you need
-by going to {\sf Windows > Preferences}, opening {\sf Team > SVN}, and
-then opening the {\sf SVN Connector} tab.
-
-For further documentation, please review the Eclipse documentation on
-installing Subversive at
-\href{http://www.eclipse.org/subversive/installation-instructions.php}
-{www.eclipse.org/subversive/installation-instructions.php}.
+If in doubt about the connector you need, you can install multiple
+ones, and then adjust the one Subversive actually uses by going to
+{\sf Windows > Preferences}, opening {\sf Team > SVN}, and then
+opening the {\sf SVN Connector} tab.
 
 \subsubsection{Importing an ArtiSynth project into Eclipse}
 \label{importingArtisynth}

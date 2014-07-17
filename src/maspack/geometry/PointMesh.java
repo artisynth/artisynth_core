@@ -459,10 +459,11 @@ public class PointMesh extends MeshBase {
          
          boolean useRenderVtxs = isRenderBuffered() && !isFixed();
          gl.glBegin (GL2.GL_POINTS);
+         int numn = getNumNormals();
          for (int i=0; i<myVertices.size(); i++) {
             Vertex3d vtx = myVertices.get(i);
             Point3d pnt = useRenderVtxs ? vtx.myRenderPnt : vtx.pnt;
-            if (myNormals != null) {
+            if (i < numn) {
                Vector3d nrm = myNormals.get(i);
                gl.glNormal3d (nrm.x, nrm.y, nrm.z);
             }

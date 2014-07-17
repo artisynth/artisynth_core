@@ -8,6 +8,7 @@ package maspack.apps;
 
 import java.io.BufferedWriter;
 import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.FileReader;
 import java.io.File;
 import java.io.FileWriter;
@@ -109,9 +110,19 @@ public class MeshTransform {
 
       File outFile = new File (outFileName.value);
       if (outFile.exists()) {
-         System.out.println ("File "+outFileName.value+" exists. Overwrite?");
-         String input = System.console().readLine();
-         if (!input.equalsIgnoreCase ("y")) {
+         System.out.print (
+            "File "+outFileName.value+" exists. Overwrite? (y/n) ");
+         System.out.flush();
+         BufferedReader reader =
+            new BufferedReader (new InputStreamReader (System.in));
+         String input = null;
+         try {
+            input = reader.readLine();
+         }
+         catch (Exception e) {
+            // ignore
+         }
+         if (input == null || !input.equalsIgnoreCase ("y")) {
             System.out.println ("aborting");
             System.exit(1); 
          }

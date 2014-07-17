@@ -446,6 +446,10 @@ public class MeshViewer extends GLViewerFrame
 
    private void addMesh (String name, MeshBase mesh) {
       myMeshes.add (mesh);
+      if (mesh instanceof PointMesh &&
+          ((PointMesh)mesh).getNumNormals() == 0) {
+         RenderProps.setShading (mesh, RenderProps.Shading.NONE);
+      }
       viewer.addRenderable (mesh);     
       myLastMeshName = name;
       setLabelText (name, mesh);

@@ -21,6 +21,7 @@ import javax.media.opengl.GL2;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.AffineTransform3dBase;
 import maspack.properties.HasProperties;
 import maspack.render.GLRenderer;
 import maspack.render.RenderProps;
@@ -133,6 +134,37 @@ public class PointMesh extends MeshBase {
          clearDisplayList();
       }
    }
+
+   /**
+    * Applies an affine transformation to the vertices of this mesh. The
+    * topology of the mesh remains unchanged.
+    * 
+    * @param X
+    * affine transformation
+    */
+   public void transform (AffineTransform3dBase X) {
+      super.transform (X);
+      for (Vector3d vn : myNormals) {
+         vn.transform (X);
+         vn.normalize();
+      }
+   }
+
+   /**
+    * Applies an inverse affine transformation to the vertices of this mesh. The
+    * topology of the mesh remains unchanged.
+    * 
+    * @param X
+    * affine transformation
+    */
+   public void inverseTransform (AffineTransform3dBase X) {
+      super.inverseTransform (X);
+      for (Vector3d vn : myNormals) {
+         vn.transform (X);
+         vn.normalize();
+      }
+   }
+
 
    public void readBinary (File file) throws IOException {
       // BinaryInputStream in = 

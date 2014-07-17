@@ -15,6 +15,7 @@ import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 
 import maspack.geometry.*;
+import maspack.geometry.io.*;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AxisAngle;
@@ -42,11 +43,11 @@ public class MeshTransform {
    static double[] axisAngle = new double[4];
    static DoubleHolder scaling = new DoubleHolder (1.0);
    static DoubleHolder closeVertexTol = new DoubleHolder (-1.0);
-   static BooleanHolder zeroIndexedIn = new BooleanHolder (false);
-   static BooleanHolder zeroIndexedOut = new BooleanHolder (false);
+   //static BooleanHolder zeroIndexedIn = new BooleanHolder (false);
+   //static BooleanHolder zeroIndexedOut = new BooleanHolder (false);
    static BooleanHolder pointMesh = new BooleanHolder (false);
-   static StringHolder className =
-      new StringHolder ("maspack.geometry.PolygonalMesh");
+   static StringHolder className = new StringHolder();
+   //new StringHolder ("maspack.geometry.PolygonalMesh");
 
    public static void main (String[] args) {
       ArgParser parser = new ArgParser ("[options] <infileName>");
@@ -70,10 +71,10 @@ public class MeshTransform {
       parser.addOption ("-scale %f #scaling value", scaling);
       parser.addOption (
          "-format %s #printf-syle format string for vertex output", formatStr);
-      parser.addOption (
-         "-zeroIndexedIn %v #input is zero indexed", zeroIndexedIn);
-      parser.addOption (
-         "-zeroIndexedOut %v #output should be zero indexed", zeroIndexedOut);
+      // parser.addOption (
+      //    "-zeroIndexedIn %v #input is zero indexed", zeroIndexedIn);
+      // parser.addOption (
+      //    "-zeroIndexedOut %v #output should be zero indexed", zeroIndexedOut);
       parser.addOption ("-class %s #use PolygonalMesh sub class", className);
       parser.addOption ("-pointMesh %v #mesh is a point cloud", pointMesh);
 
@@ -97,13 +98,13 @@ public class MeshTransform {
          }
       }      
 
-      PolygonalMesh mesh = null;
+      MeshBase mesh = null;
 
       if (inFileName.value == null) {
          parser.printErrorAndExit ("input file name missing");
       }
       if (outFileName.value == null) {
-         parser.printErrorAndExit ("output file name missing");
+         outFileName.value = inFileName.value;
       }
 
       File outFile = new File (outFileName.value);
@@ -116,40 +117,49 @@ public class MeshTransform {
          }
       }
 
+      if (!(new File (inFileName.value)).exists()) {
+         System.out.println (
+            "Error: mesh file " + inFileName.value + " not found");
+         System.exit (1);
+      }
+
+      GenericMeshReader reader = null;
+
       try {
-         File meshFile = new File (inFileName.value);
+         //File meshFile = new File (inFileName.value);
 
-         if (!meshFile.exists()) {
-            System.out.println (
-               "Error: mesh file " + meshFile.getName() + " not found");
-            meshFile = null;
-            System.exit (1);
-         }
+         reader = new GenericMeshReader(inFileName.value);
 
-         Class meshClass = Class.forName (className.value);
-         Class meshBaseClass = new PolygonalMesh().getClass();
+         if (className.value != null) {
+            Class meshClass = Class.forName (className.value);
+            Class meshBaseClass = new PolygonalMesh().getClass();
 
-         if (meshClass == null) {
-            System.out.println ("can't find class " + className.value);
-            System.exit (1);
+            if (meshClass == null) {
+               System.out.println ("can't find class " + className.value);
+               System.exit (1);
+            }
+            if (!meshBaseClass.isAssignableFrom (meshClass)) {
+               System.out.println (
+                  className.value+" is not an instance of "+
+                  meshBaseClass.getName());
+               System.exit (1);
+            }
+            Constructor constructor =
+               meshClass.getDeclaredConstructor (new Class[] {}); 
+            if (constructor == null) {
+               System.out.println (
+                  "can't find constructor " + className.value + "()");
+               System.exit (1);
+            }
+            mesh = (PolygonalMesh)constructor.newInstance (new Object[] {}); 
          }
-         if (!meshBaseClass.isAssignableFrom (meshClass)) {
-            System.out.println (
-               className.value+" is not an instance of "+
-               meshBaseClass.getName());
-            System.exit (1);
+         else {
+            mesh = null;
          }
-         Constructor constructor =
-            meshClass.getDeclaredConstructor (new Class[] {}); // meshFile.getClass()});
-         if (constructor == null) {
-            System.out.println (
-               "can't find constructor " + className.value + "()");
-            System.exit (1);
-         }
-         mesh = (PolygonalMesh)constructor.newInstance (new Object[] {}); // meshFile
-         mesh.read (
-            new BufferedReader (new FileReader (meshFile)),
-            zeroIndexedIn.value);
+         mesh = reader.readMesh (mesh);
+         // mesh.read (
+         //    new BufferedReader (new FileReader (meshFile)),
+         //    zeroIndexedIn.value);
       }
       catch (Exception e) {
          System.out.println ("Error creating mesh object");
@@ -157,46 +167,76 @@ public class MeshTransform {
          System.exit (1);
       }
 
+      PolygonalMesh polyMesh = null;
+      if (mesh instanceof PolygonalMesh) {
+         polyMesh = (PolygonalMesh)mesh;
+      }
+      
       if (removeDisconnectedVertices.value) {
-         System.out.println ("removing disconnected vertices ...");
-         int nv = mesh.removeDisconnectedVertices();
-         if (nv > 0) {
-            System.out.println (" removed "+nv);
+         if (polyMesh == null) {
+            System.out.println (
+               "Not a polygonal mesh; ignoring -removeDisconnectedVertices");
          }
-         System.out.println ("done");
+         else {
+            System.out.println ("removing disconnected vertices ...");
+            int nv = polyMesh.removeDisconnectedVertices();
+            if (nv > 0) {
+               System.out.println (" removed "+nv);
+            }
+            System.out.println ("done");
+         }
       }
 
       if (closeVertexTol.value >= 0) {
-         double rad = mesh.computeRadius();
-         double dist = rad*closeVertexTol.value;
-         System.out.println ("removing vertices within "+dist+ " ...");
-         int nv = mesh.mergeCloseVertices (dist);
-         if (nv > 0) {
-            System.out.println (" removed "+nv);
+         if (polyMesh == null) {
+            System.out.println (
+               "Not a polygonal mesh; ignoring -mergeCloseVertices");
+         }         
+         else {
+            double rad = polyMesh.computeRadius();
+            double dist = rad*closeVertexTol.value;
+            System.out.println ("removing vertices within "+dist+ " ...");
+            int nv = polyMesh.mergeCloseVertices (dist);
+            if (nv > 0) {
+               System.out.println (" removed "+nv);
+            }
+            polyMesh.checkForDegenerateFaces();
+            System.out.println ("done");
          }
-         mesh.checkForDegenerateFaces();
-         System.out.println ("done");
       }
+      
  
       if (removeDisconnectedFaces.value) {
-         System.out.println ("removing disconnected faces ...");
-         int nf = mesh.removeDisconnectedFaces();
-         if (nf > 0) {
-            System.out.println (" removed "+nf);
+         if (polyMesh == null) {
+            System.out.println (
+               "Not a polygonal mesh; ignoring -removeDisconnectedFaces");
+         }         
+         else {           
+            System.out.println ("removing disconnected faces ...");
+            int nf = polyMesh.removeDisconnectedFaces();
+            if (nf > 0) {
+               System.out.println (" removed "+nf);
+            }
+            System.out.println ("done");
          }
-         System.out.println ("done");
       }
 
       if (laplacianSmoothing[0] != 0) {
-         System.out.println ("smoothing ...");
-         int iter = (int)laplacianSmoothing[0];
-         double lam = laplacianSmoothing[1];
-         double mu = laplacianSmoothing[2];
-         LaplacianSmoother.smooth (mesh, iter, lam, mu);
-         System.out.println ("done");
+          if (polyMesh == null) {
+            System.out.println (
+               "Not a polygonal mesh; ignoring -laplacianSmooth");
+         }         
+         else {           
+            System.out.println ("smoothing ...");
+            int iter = (int)laplacianSmoothing[0];
+            double lam = laplacianSmoothing[1];
+            double mu = laplacianSmoothing[2];
+            LaplacianSmoother.smooth (polyMesh, iter, lam, mu);
+            System.out.println ("done");
+         }
       }
 
-      if (!mesh.isClosed()) {
+      if (polyMesh != null && !polyMesh.isClosed()) {
          System.out.println ("WARNING: mesh is not closed");
       }
 
@@ -235,13 +275,11 @@ public class MeshTransform {
          }
       }
 
+
       try {
-         mesh.write (
-            new PrintWriter (
-               new BufferedWriter (
-                  new FileWriter (outFile))),
-            new NumberFormat(formatStr.value),
-            zeroIndexedOut.value, facesClockwise);
+         GenericMeshWriter writer = new GenericMeshWriter (outFileName.value);
+         writer.setFormat (reader);
+         writer.writeMesh (mesh);
       }
       catch (Exception e) {
          e.printStackTrace();

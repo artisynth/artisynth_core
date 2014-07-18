@@ -25,7 +25,7 @@ public class LeastSquaresSolver
    FunctionTimer solvetimer;
    FunctionTimer qptimer;
    
-   int exSize = 0, rowSize = 0;
+   int exSize = 0, costRowSize = 0, conRowSize = 0;
    
    public LeastSquaresSolver() 
    {
@@ -44,12 +44,13 @@ public class LeastSquaresSolver
    
    MatrixNd Q = new  MatrixNd(0,0);
    double[][] Qbuf;
-   VectorNd ff = new VectorNd(0);
+   VectorNd f = new VectorNd(0);
    VectorNd x = new VectorNd(0);
    VectorNd x0 = new VectorNd(0);
    
-   MatrixNd H = new MatrixNd(0,0);
-   VectorNd b = new VectorNd(0);
+   double[][] Abuf;
+//   MatrixNd A = new MatrixNd(0,0);
+//   VectorNd b = new VectorNd(0);
    
    /**
     * Solve a bounded least squares problem as a QP
@@ -60,8 +61,23 @@ public class LeastSquaresSolver
     * @param a0
     */
    public void solve(VectorNd a, MatrixNd C, VectorNd d, VectorNd a0) {
-      if (rowSize != C.rowSize() || exSize != a.size() )
-	 resizeVariables(C.rowSize(), a.size());
+         solve (a, C, d, a0, null, null);
+   }
+   
+   /**
+    * Solve a constrained least squares problem as a QP
+    * 
+    * @param a
+    * @param C
+    * @param d
+    * @param A 
+    * @param b
+    * @param a0
+    */
+   public void solve(VectorNd a, MatrixNd C, VectorNd d, VectorNd a0, MatrixNd A, VectorNd b) {
+      
+       if (costRowSize != C.rowSize() || conRowSize != A.rowSize () || exSize != a.size() )
+         resizeVariables(C.rowSize(), A.rowSize (), a.size());
       
       // a and a0 may have a capacity greater than size which causes exception
       // in Dantzig solver
@@ -69,15 +85,24 @@ public class LeastSquaresSolver
       x0.set(a0);
 
       Q.mulTransposeLeft(C, C);
-      ff.mulTranspose(C, d);
-      ff.negate();
+      f.mulTranspose(C, d);
+      f.negate();
       Q.get(Qbuf);
 
       try {
-	 myQPSolver.solve(x.getBuffer(), Qbuf, ff.getBuffer(), null, null, lb
-	       .getBuffer(), ub.getBuffer(), x0.getBuffer());
+         if (A == null || b == null || conRowSize == 0) {
+            myQPSolver.solve (
+               x.getBuffer (), Qbuf, f.getBuffer (), null, null,
+               lb.getBuffer (), ub.getBuffer (), x0.getBuffer ());
+         }
+         else {
+            A.get (Abuf);
+            myQPSolver.solve (
+               x.getBuffer (), Qbuf, f.getBuffer (), Abuf, b.getBuffer (),
+               lb.getBuffer (), ub.getBuffer (), x0.getBuffer ());
+         }
 	 if (debug) {
-            printVars (x, C, d, Q, ff, lb, ub, x0);
+            printVars (x, C, d, Q, f, A, b, lb, ub, x0);
 	 }
       } catch (Exception e) {
 	 e.printStackTrace();
@@ -88,11 +113,15 @@ public class LeastSquaresSolver
    
    
    private void printVars(VectorNd x, MatrixNd C, VectorNd d, MatrixNd Q,
-	 VectorNd f, VectorNd lb, VectorNd ub, VectorNd x0) {
+	 VectorNd f, MatrixNd A, VectorNd b, VectorNd lb, VectorNd ub, VectorNd x0) {
       System.out.println("\nC = [\n" + C.toString(fmt) + "];");
       System.out.println("d = [" + d.toString(fmt) + "]';");
       System.out.println("Q = [\n" + Q.toString(fmt) + "];");
       System.out.println("f = [" + f.toString(fmt) + "]';");
+      if (A != null && b != null) {
+         System.out.println("A = [\n" + A.toString(fmt) + "];");
+         System.out.println("b = [" + b.toString(fmt) + "]';");
+      }
       System.out.println("lb = [" + lb.toString(fmt) + "]';");
       System.out.println("ub = [" + ub.toString(fmt) + "]';");
       System.out.println("x0 = [" + x0.toString(fmt) + "]';");
@@ -133,15 +162,16 @@ public class LeastSquaresSolver
       
    }
    
-   public void resizeVariables(int rowSize, int exSize) {
-      this.rowSize = rowSize;
+   public void resizeVariables(int costRowSize, int conRowSize, int exSize) {
+      this.costRowSize = costRowSize;
+      this.conRowSize = conRowSize;
       this.exSize = exSize;
       
       Q = new MatrixNd (exSize, exSize);
       Qbuf = new double[exSize][exSize];
 
       
-      ff= new VectorNd (exSize);
+      f= new VectorNd (exSize);
       x = new VectorNd(exSize);
       x0 = new VectorNd(exSize);
       
@@ -149,9 +179,11 @@ public class LeastSquaresSolver
       ub= new VectorNd (exSize);
       resetBounds();
       
-      H = new MatrixNd(rowSize, exSize);
-      b = new VectorNd(rowSize);
+//      A = new MatrixNd(rowSize, exSize);
+//      b = new VectorNd(rowSize);
       
+      Abuf = new double[conRowSize][exSize];
+
    }
 
 }

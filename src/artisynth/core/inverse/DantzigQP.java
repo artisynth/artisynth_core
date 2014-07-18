@@ -202,5 +202,35 @@ public class DantzigQP implements QPSolver
       myA.setSize (m, n);
       myB.setSize (m);
    }
+   
+   
+   public static void main(String[] args) {
+      double tol = 1e-6;
+      
+      DantzigQP qp = new DantzigQP ();
+      double[][] H = new double[][]{new double[]{1, -1}, new double[]{-1, 2}}; 
+      double[] f = new double[]{-2, -6};
+      double[][] A = new double[][]{new double[]{1, 1}, 
+                                    new double[]{-1, 2},
+                                    new double[]{2, 1}};
+      double[] b = new double[]{2, 2, 3};
+      double[] lb = new double[]{0,0};
+      
+      double[] x = new double[2];
+      try {
+         qp.solve (x, H, f, A, b, lb, null, null);
+         if (Math.abs (x[0]-2d/3d)>tol || Math.abs (x[1]-4d/3d)>tol) {
+            System.out.printf("expected [0.666, 1.333], got [%.3f, %.3f]\n",x[0],x[1]);
+         }
+         else {
+            System.out.println("passed");
+         }
+      }
+      catch (Exception e) {
+         e.printStackTrace();
+      }
+      
+   }
+   
 
 }

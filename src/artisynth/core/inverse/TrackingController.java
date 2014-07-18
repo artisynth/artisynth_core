@@ -88,6 +88,8 @@ import artisynth.core.util.*;
 public class TrackingController extends ControllerBase
    implements CompositeComponent, RenderableComponent {
 
+   // set to handle the motion term as a hard constraint
+   boolean handleMotionTargetAsConstraint = false;
 
    // By default, use the inverse manager to control input/output
    // probes.
@@ -107,10 +109,11 @@ public class TrackingController extends ControllerBase
 
    protected MechSystemBase myMech;
    protected LeastSquaresSolver mySolver;
-   protected ArrayList<LeastSquaresTerm> myOptimizationTerms;
+   protected ArrayList<LeastSquaresTerm> myCostTerms;
+   protected ArrayList<LeastSquaresTerm> myConstraintTerms;
    // protected ComponentList<OptimizationTerm> myOptimizationTerms;
    protected MotionTargetTerm myMotionTerm = null;  // contains target information
-
+   protected L2RegularizationTerm myRegularizationTerm = null;
    // contains child components and implements CompositeComponent methods
    protected ComponentListImpl<ModelComponent> myComponents;
    
@@ -128,7 +131,11 @@ public class TrackingController extends ControllerBase
    // StiffnessTerm kTerm = null;
 
    protected MatrixNd H = new MatrixNd();
+   protected VectorNd f = new VectorNd();
+   
+   protected MatrixNd A = new MatrixNd();
    protected VectorNd b = new VectorNd();
+
 
    protected MuscleExciter myExciters;  // list of inputs
    protected VectorNd myExcitations = new VectorNd();    // computed excitatios
@@ -138,7 +145,8 @@ public class TrackingController extends ControllerBase
    protected double maxExcitationJump = DEFAULT_MAX_EXCITATION_JUMP; // limit jump in activations
 
    protected int exSize;   // number of excitations
-   protected int rowSize;  // number of rows in H
+   protected int costRowSize;  // number of rows in H
+   protected int conRowSize;  // number of rows in A
 
    public static PropertyList myProps =
       new PropertyList(TrackingController.class, ControllerBase.class);
@@ -185,8 +193,9 @@ public class TrackingController extends ControllerBase
       setName(name);
 
       mySolver = new LeastSquaresSolver();
-      myOptimizationTerms = new ArrayList<LeastSquaresTerm>();
-
+      myCostTerms = new ArrayList<LeastSquaresTerm>();
+      myConstraintTerms = new ArrayList<LeastSquaresTerm> ();
+      
       myComponents = new ComponentListImpl (ModelComponent.class, this);
 
       // list of target points that store/show the location of motion targets for points
@@ -216,9 +225,8 @@ public class TrackingController extends ControllerBase
       sourceFrames = new ReferenceList ("sourceFrames");
       add(sourcePoints);
       add(sourceFrames);
+
       
-      myMotionTerm = new MotionTargetTerm (this);
-      myOptimizationTerms.add (myMotionTerm);
       // myOptimizationTerms = new ComponentList<OptimizationTerm>(
       // OptimizationTerm.class, "optTerms", "ot", this);
       myExciters = new MuscleExciter ("exciters");
@@ -226,6 +234,20 @@ public class TrackingController extends ControllerBase
 //         ((MechModel)myMech).addMuscleExciter (myExciters);
 //      }
       add (myExciters);
+      
+      myMotionTerm = new MotionTargetTerm (this);
+      if (handleMotionTargetAsConstraint) {
+         // add a constraint on the motion target
+         myConstraintTerms.add (myMotionTerm);
+         
+         // need a regularization term in the cost function if the motion term is constraint
+         myRegularizationTerm = new L2RegularizationTerm (this);
+         myCostTerms.add (myRegularizationTerm);
+      }
+      else {
+         // just add motion target to cost function
+         myCostTerms.add (myMotionTerm);
+      }
    }
 
    /**
@@ -236,6 +258,10 @@ public class TrackingController extends ControllerBase
       return myMotionTerm;
    }
 
+   public L2RegularizationTerm getRegularizationTerm() {
+      return myRegularizationTerm;
+   }
+   
    /**
     * Applies the controller, estimating and setting the next
     * set of muscle activations
@@ -247,7 +273,7 @@ public class TrackingController extends ControllerBase
       }
 
       checksize();
-      if (rowSize <= 0 || exSize <= 0) {
+      if (costRowSize <= 0 || exSize <= 0) {
          return;
       }
 
@@ -256,14 +282,18 @@ public class TrackingController extends ControllerBase
       }
 
       int rowoff = 0;
+      for (LeastSquaresTerm term : myCostTerms) {
+         rowoff = term.getTerm(H, f, rowoff, t0, t1);
+      }      
       
-      for (LeastSquaresTerm term : myOptimizationTerms) {
-         rowoff = term.getTerm(H, b, rowoff, t0, t1);
+      rowoff = 0;
+      for (LeastSquaresTerm term : myConstraintTerms) {
+         rowoff = term.getTerm(A, b, rowoff, t0, t1);
       }
       //System.out.println ("H=\n" + H.toString ("%10.5f"));
 
       prevExcitations.set(myExcitations);
-      mySolver.solve(myExcitations, H, b, prevExcitations);
+      mySolver.solve(myExcitations, H, f, prevExcitations, A, b);
 
       //System.out.println ("excitations="+myExcitations);
       NumberFormat f4 = new NumberFormat("%.4f");
@@ -305,7 +335,7 @@ public class TrackingController extends ControllerBase
    public void dispose() {
       System.out.println("optimization controller dispose()");
       mySolver.dispose();
-      for (LeastSquaresTerm term : myOptimizationTerms) {
+      for (LeastSquaresTerm term : myCostTerms) {
          term.dispose();
       }
       targetPoints.clear ();
@@ -321,24 +351,32 @@ public class TrackingController extends ControllerBase
    }
 
    private void checksize() {
-      int n = 0;
-      for (LeastSquaresTerm term : myOptimizationTerms) {
-         n += term.getTargetSize();
+      int nCost = 0;
+      for (LeastSquaresTerm term : myCostTerms) {
+         nCost += term.getTargetSize();
+      }
+      
+      int nCon = 0;
+      for (LeastSquaresTerm term : myConstraintTerms) {
+         nCon += term.getTargetSize();
       }
 
       int m = myExciters.numTargets ();
 
-      if (n != rowSize || m != exSize)
-         resize(n, m);
+      if (nCost != costRowSize || nCon != conRowSize || m != exSize)
+         resize(nCost, nCon, m);
    }
 
-   private void resize(int rows, int excitations) {
+   private void resize(int rows, int conRows, int excitations) {
       H.setSize(rows, excitations);
-      b.setSize(rows);
+      f.setSize(rows);
+      A.setSize(conRows, excitations);
+      b.setSize(conRows);
       myExcitations.setSize(excitations);
       prevExcitations.setSize(excitations);
       initExcitations.setSize(excitations);
-      rowSize = rows;
+      costRowSize = rows;
+      conRowSize = conRows;
       exSize = excitations;
    }
 
@@ -347,9 +385,9 @@ public class TrackingController extends ControllerBase
     * for regularization
     * @param term the term to add
     */
-   public void addTerm(LeastSquaresTerm term) {
-      myOptimizationTerms.add(term);
-      resize(rowSize + term.getTargetSize(), exSize);
+   public void addCostTerm(LeastSquaresTerm term) {
+      myCostTerms.add(term);
+      resize(costRowSize + term.getTargetSize(), conRowSize, exSize);
 
       /*
        * for debugging:
@@ -367,8 +405,16 @@ public class TrackingController extends ControllerBase
     * Retrieves a list of all terms, including the tracking error
     * and any regularization terms
     */
-   public ArrayList<LeastSquaresTerm> getTerms() {
-      return myOptimizationTerms;
+   public ArrayList<LeastSquaresTerm> getCostTerms() {
+      return myCostTerms;
+   }
+   
+   /**
+    * Retrieves a list of all terms, including the tracking error
+    * and any regularization terms
+    */
+   public ArrayList<LeastSquaresTerm> getConstraintTerms() {
+      return myConstraintTerms;
    }
 
    /**
@@ -490,7 +536,7 @@ public class TrackingController extends ControllerBase
    
    public void addExciter(ExcitationComponent ex, double gain) {
       myExciters.addTarget(ex, gain);
-      resize(rowSize, myExciters.numTargets());
+      resize(costRowSize, conRowSize, myExciters.numTargets());
       if (ex instanceof MultiPointMuscle) {
          MultiPointMuscle m = (MultiPointMuscle)ex;
          if (m.getExcitationColor() == null) {
@@ -513,7 +559,7 @@ public class TrackingController extends ControllerBase
    public void clearExciters() {
 //      myExciters.clear();
       myExciters.removeAllTargets ();
-      resize(rowSize, 0);
+      resize(costRowSize, conRowSize, 0);
    }
 
    /**
@@ -579,9 +625,11 @@ public class TrackingController extends ControllerBase
     * Adds and returns a standard L2 regularization term on excitations
     */
    public L2RegularizationTerm addL2RegularizationTerm() {
-      L2RegularizationTerm l2 = new L2RegularizationTerm(this); 
-      addTerm(l2);
-      return l2;
+      if (myRegularizationTerm == null) {
+         myRegularizationTerm = new L2RegularizationTerm(this); 
+         addCostTerm(myRegularizationTerm);
+      }
+      return myRegularizationTerm;
    }
    
    /**
@@ -589,9 +637,8 @@ public class TrackingController extends ControllerBase
     * weighted by the supplied value
     */
    public L2RegularizationTerm addL2RegularizationTerm(double w) {
-      L2RegularizationTerm l2reg = new L2RegularizationTerm(this);
-      l2reg.setWeight(w);
-      addTerm(l2reg);
+      L2RegularizationTerm l2reg = addL2RegularizationTerm ();
+      l2reg.setWeight (w);
       return l2reg;
    }
 
@@ -600,7 +647,7 @@ public class TrackingController extends ControllerBase
     */
    public DampingTerm addDampingTerm() {
       DampingTerm damp = new DampingTerm(this);
-      addTerm(damp);
+      addCostTerm(damp);
       return damp;
    }
 
@@ -611,7 +658,7 @@ public class TrackingController extends ControllerBase
    public DampingTerm addDampingTerm(double w) {
       DampingTerm dampingTerm = new DampingTerm(this);
       dampingTerm.setWeight(w);
-      addTerm(dampingTerm);
+      addCostTerm(dampingTerm);
       return dampingTerm;
    }
 
@@ -729,7 +776,7 @@ public class TrackingController extends ControllerBase
       for (PropertyInfo propinfo : getAllPropertyInfo())
          inverseControlPanel.addWidget(this, propinfo.getName());
 
-      for (LeastSquaresTerm term : getTerms()) {
+      for (LeastSquaresTerm term : getCostTerms()) {
          if (term instanceof LeastSquaresTermBase) {
             inverseControlPanel.addWidget(new JSeparator());
             inverseControlPanel.addWidget(

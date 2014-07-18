@@ -42,6 +42,7 @@ import artisynth.core.util.TimeBase;
  */
 public class MotionTargetTerm extends LeastSquaresTermBase {
 
+   boolean usePDControl = false;
    boolean debug = false;
    boolean enabled = true;
 
@@ -115,14 +116,166 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       // identical to earlier results when t0, t1 where given as nsec integers
       double h = TimeBase.round(t1 - t0);
 
-      // position error
-//      double perr = 
+      if (usePDControl) {
+         interpolateTargetVelocity(h);
+         updatePositionError ();
+         updateVelocityError ();
+         
+         if (myTargetVel == null || myTargetVel.size() != myTargetVelSize) {
+            myTargetVel = new VectorNd(myTargetVelSize);
+         }
+         myTargetVel.scale (Kp/h, postionError);
+         myTargetVel.scaledAdd (Kd, velocityError);
+         
       
+      }
+      else {
+         
+         setTargetVelocityFromPositionError(h);
+         // updateTargetPosAndVel(h);
+         updateTargetVelocityVec(); // set myTargetVel
+         myTargetVel.scale (Kd); // Peter edit
+      }
+   }
+   
+   public VectorNd postionError = new VectorNd();
+   public VectorNd velocityError = new VectorNd();
+   
+   public void updatePositionError() {
+      assert myTargets.size() == mySources.size(); // paranoid
+
+      if (postionError == null || postionError.size() != myTargetVelSize) {
+         postionError = new VectorNd(myTargetVelSize);
+      }
+
+      int idx = 0;
+      for (int i = 0; i < myTargets.size(); i++) {
+         MotionTargetComponent target = myTargets.get(i);
+         if (target instanceof Point) {
+            idx = calcPosError (postionError, idx, (Point)mySources.get(i), (Point)target);
+         } else if (target instanceof Frame) {
+            idx = calcPosError (postionError, idx, (Frame)mySources.get(i), (Frame)target);
+         }
+      }
+   }
+
+   private int calcPosError(VectorNd posError, int idx, Point source, Point target) {
+      ptmp.sub(target.getPosition(), source.getPosition());
       
-      // OLD
-      interpolateTargetVelocity(h);
-      // updateTargetPosAndVel(h);
-      updateTargetVelocity();
+      if (debug) {
+//         System.out.println("source_pos = "
+//            + source.getPosition().toString("%g"));
+//         System.out.println("target_pos = "
+//            + target.getPosition().toString("%g"));
+         System.out.println("pos_error = "
+            + ptmp.toString("%g"));
+      }
+      
+      double[] buf = posError.getBuffer ();
+      buf[idx++] = ptmp.x;
+      buf[idx++] = ptmp.y;
+      buf[idx++] = ptmp.z;
+      return idx;
+   }
+
+   private int calcPosError(VectorNd posError, int idx, Frame source, Frame target) {
+      Xtmp.mulInverseLeft(source.getPose(), target.getPose());
+      veltmp.v.set(Xtmp.p);
+      double rad = Xtmp.R.getAxisAngle(veltmp.w);
+//      veltmp.w.scale(rad / h);
+  
+      double[] buf = posError.getBuffer ();
+      buf[idx++] = veltmp.v.x;
+      buf[idx++] = veltmp.v.y;
+      buf[idx++] = veltmp.v.z;
+      buf[idx++] = veltmp.w.x;
+      buf[idx++] = veltmp.w.y;
+      buf[idx++] = veltmp.w.z;
+      return idx;
+   }
+   
+   public void updateVelocityError() {
+      assert myTargets.size() == mySources.size(); // paranoid
+
+      if (velocityError == null || velocityError.size() != myTargetVelSize) {
+         velocityError = new VectorNd(myTargetVelSize);
+      }
+
+      int idx = 0;
+      for (int i = 0; i < myTargets.size(); i++) {
+         MotionTargetComponent target = myTargets.get(i);
+         if (target instanceof Point) {
+            idx = calcVelError (velocityError, idx, (Point)mySources.get(i), (Point)target);
+         } else if (target instanceof Frame) {
+            idx = calcVelError (velocityError, idx, (Frame)mySources.get(i), (Frame)target);
+         }
+      }
+   }
+
+   private int calcVelError(VectorNd velError, int idx, Point source, Point target) {
+      vtmp.sub(target.getVelocity(), source.getVelocity());
+      
+      if (debug) {
+//         System.out.println("source_vel = "
+//            + source.getVelocity().toString("%g"));
+//         System.out.println("target_vel = "
+//            + target.getVelocity().toString("%g"));
+         System.out.println("vel_error = "
+            + vtmp.toString("%g"));
+      }
+
+      double[] buf = velError.getBuffer ();
+      buf[idx++] = vtmp.x;
+      buf[idx++] = vtmp.y;
+      buf[idx++] = vtmp.z;
+      return idx;
+   }
+
+   private int calcVelError(VectorNd velError, int idx, Frame source, Frame target) {
+      veltmp.sub (target.getVelocity (), source.getVelocity ());
+      
+      double[] buf = velError.getBuffer ();
+      buf[idx++] = veltmp.v.x;
+      buf[idx++] = veltmp.v.y;
+      buf[idx++] = veltmp.v.z;
+      buf[idx++] = veltmp.w.x;
+      buf[idx++] = veltmp.w.y;
+      buf[idx++] = veltmp.w.z;
+      return idx;
+   }
+   
+   VectorNd prevTargetPos = null;
+   VectorNd diffTargetPos = null;
+   Frame tmpFrame = new Frame ();
+   Point tmpPoint = new Point ();
+   
+   /*
+    * calculate target velocity by differencing current and last target positions
+    */
+   private void interpolateTargetVelocity(double h) {
+      assert myTargets.size() == mySources.size(); // paranoid
+      updateTargetPos (h);
+      if (prevTargetPos == null || prevTargetPos.size () != myTargetPosSize) {
+         prevTargetPos = new VectorNd(myTargetPos);
+      }
+      
+      double[] prevPosBuf = prevTargetPos.getBuffer ();
+      int idx = 0;
+
+      for (int i = 0; i < myTargets.size(); i++) {
+         MotionTargetComponent target = myTargets.get(i);
+         if (target instanceof Point) {
+            idx = tmpPoint.setPosState (prevPosBuf, idx);
+            interpolateTargetVelocityFromPositions(
+               tmpPoint, (Point)target, h);
+         } else if (target instanceof Frame) {
+            idx = tmpFrame.setPosState (prevPosBuf, idx);
+            interpolateTargetVelocityFromPositions(
+               tmpFrame, (Frame)target, h);
+         }
+      }
+      
+      prevTargetPos.set (myTargetPos);
    }
 
    public void dispose() {
@@ -395,51 +548,46 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * the reference velocity is updated based on the current model position and
     * the target reference position
     */
-   private void interpolateTargetVelocity(double h) {
+   private void setTargetVelocityFromPositionError(double h) {
       assert myTargets.size() == mySources.size(); // paranoid
 
       for (int i = 0; i < myTargets.size(); i++) {
          MotionTargetComponent target = myTargets.get(i);
          if (target instanceof Point) {
-            interpolateTargetVelocity(
+            interpolateTargetVelocityFromPositions(
                (Point)mySources.get(i), (Point)target, h);
          } else if (target instanceof Frame) {
-            interpolateTargetVelocity(
+            interpolateTargetVelocityFromPositions(
                (Frame)mySources.get(i), (Frame)target, h);
          }
       }
    }
 
+   Vector3d vtmp = new Vector3d();
    Point3d ptmp = new Point3d();
    RigidTransform3d Xtmp = new RigidTransform3d();
    Twist veltmp = new Twist();
 
    private Vector3d
-      interpolateTargetVelocity(Point current, Point target, double h) {
+      interpolateTargetVelocityFromPositions(Point current, Point target, double h) {
 
       ptmp.sub(target.getPosition(), current.getPosition());
       ptmp.scale(1d / h);
-      ptmp.scale(Kd);       // Peter's edit
       target.setVelocity(ptmp);
 
       if (debug) {
-         System.out.println("targetPos = "
-            + target.getPosition().toString("%g"));
-         System.out.println("currentPos = "
-            + current.getPosition().toString("%g"));
-         System.out.println("targetVel = "
+         System.out.println("interpolated_target_vel = "
             + target.getVelocity().toString("%g"));
       }
       return ptmp;
    }
 
    private Twist
-      interpolateTargetVelocity(Frame current, Frame target, double h) {
-      Xtmp.mulInverseLeft(current.getPose(), target.getTargetPose());
+      interpolateTargetVelocityFromPositions(Frame current, Frame target, double h) {
+      Xtmp.mulInverseLeft(current.getPose(), target.getPose()); // XXX check that mul order is correct
       veltmp.v.scale(1d / h, Xtmp.p);
       double rad = Xtmp.R.getAxisAngle(veltmp.w);
       veltmp.w.scale(rad / h);
-      veltmp.scale(Kd);        // Peter's edit; should we use a different constant to scale rotational velocities?
       target.setVelocity(veltmp);
       return veltmp;
    }
@@ -447,18 +595,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    PointState tmpPointState = new PointState();
    FrameState tmpFrameState = new FrameState();
 
-   private void syncPosAndVelState() {
-      for (int i = 0; i < mySources.size(); i++) {
-         MotionTargetComponent target = mySources.get(i);
-         // ComponentState tmpState = (target instanceof
-         // Point)?tmpPointState:tmpFrameState;
-         // target.getState(tmpState);
-         // myRefTargets.get(i).setState(tmpState);
-         myTargets.get(i).setState(target);
-      }
-   }
-
-   private void updateTargetVelocity() {
+   private void updateTargetVelocityVec() {
       if (myTargetVel == null || myTargetVel.size() != myTargetVelSize)
          myTargetVel = new VectorNd(myTargetVelSize);
       double[] buf = myTargetVel.getBuffer();
@@ -483,24 +620,29 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       }
    }
 
-   private void updateTargetPosAndVel(double h) {
-      if (myTargetVel == null || myTargetVel.size() != myTargetVelSize)
-         myTargetVel = new VectorNd(myTargetVelSize);
-
+   private void updateTargetPos(double h) {
       if (myTargetPos == null || myTargetPos.size() != myTargetPosSize)
          myTargetPos = new VectorNd(myTargetPosSize);
 
-      double[] velBuf = myTargetVel.getBuffer();
       double[] posBuf = myTargetPos.getBuffer();
-      int velIdx = 0, posIdx = 0;
+      int idx = 0;
       for (int i = 0; i < myTargets.size(); i++) {
-         velIdx = myTargets.get(i).getTargetVel(velBuf, 1, h, velIdx);
-         posIdx = myTargets.get(i).getTargetPos(posBuf, 1, h, posIdx);
+         idx = myTargets.get(i).getPosState (posBuf, idx);
+      }
+   }
+   
+   private void updateTargetVel(double h) {
+      if (myTargetVel == null || myTargetVel.size() != myTargetVelSize)
+         myTargetVel = new VectorNd(myTargetVelSize);
 
+      double[] velBuf = myTargetVel.getBuffer();
+      int idx = 0;
+      for (int i = 0; i < myTargets.size(); i++) {
+         idx = myTargets.get(i).getVelState (velBuf, idx);
       }
    }
 
-   private void updateCurrentVel() {
+   private void updateModelVelocity() {
       int n = myMech.getActiveVelStateSize();
       if (myCurrentVel == null || myCurrentVel.size() != n)
          myCurrentVel = new VectorNd(n);
@@ -570,7 +712,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    public int getTerm(
       MatrixNd H, VectorNd b, int rowoff, double t0, double t1) {
       updateTarget(t0, t1); // set myTargetVel
-      updateCurrentVel(); // set myCurrentVel
+      updateModelVelocity(); // set myCurrentVel
 //      fixTargetPositions();   // XXX not sure why this is needed
       return myMotionTerm.getTerm(H, b, rowoff, t0, t1,
          myTargetVel, myCurrentVel, myTargetWgts, getVelocityJacobian(), normalizeH);

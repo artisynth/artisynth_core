@@ -36,6 +36,7 @@ import maspack.util.IntegerInterval;
 import maspack.util.InternalErrorException;
 import maspack.util.NumericInterval;
 import maspack.util.Range;
+import maspack.util.StringRange;
 
 public class PropertyWidget {
 
@@ -245,7 +246,7 @@ public class PropertyWidget {
          return create (prop, range.getLowerBound(), range.getUpperBound());
       }
       else {
-         LabeledComponentBase widget = createWidget (prop.getInfo());
+         LabeledComponentBase widget = createWidget (prop);
          if (widget != null) {
             initializeWidget (widget, prop);
             finishWidget (widget, prop);
@@ -291,6 +292,16 @@ public class PropertyWidget {
                ((EnumSelector)widget).setSelections (
                   ((EnumRange<?>)range).getValidEnums());
             }            
+         }
+         else if (widget instanceof StringSelector) {
+            Range range = prop.getRange();
+            if (range instanceof StringRange) {
+               String[] values = ((StringRange)range).getValidStrings();
+               if (values != null) {
+                  ((StringSelector)widget).setSelections (
+                     values);
+               }
+            }
          }
       }
       
@@ -354,7 +365,7 @@ public class PropertyWidget {
       String name = prop.getName();
       PropertyInfo info = prop.getInfo();
       Class<?> type = info.getValueClass();
-
+      
       // Object value = prop.get();
 
       if (widget instanceof LabeledWidget) {
@@ -372,20 +383,33 @@ public class PropertyWidget {
 
       try {
          if (String.class.isAssignableFrom (type)) {
-            StringField stringField = (StringField)widget;
-            stringField.setColumns (20);
-            stringField.addValueChangeListener (new PropChangeListener (prop) {
-               public void valueChange (ValueChangeEvent e) {
-                  if (e.getValue() == null || e.getValue().equals ("")) {
-                     super.valueChange (new ValueChangeEvent (
-                        e.getSource(), ""));
+            // if String has a range, then use StringSelector
+        	// otherwise, use a simple StringField
+            Range stringRange = prop.getRange ();
+            if (info.isInheritable () || stringRange == null 
+               || !(stringRange instanceof StringRange)
+               || ((StringRange)stringRange).isWildcard ()) {
+               StringField stringField = (StringField)widget;
+               stringField.setColumns (20);
+               stringField.addValueChangeListener (new PropChangeListener (prop) {
+                  public void valueChange (ValueChangeEvent e) {
+                     if (e.getValue() == null || e.getValue().equals ("")) {
+                        super.valueChange (new ValueChangeEvent (
+                           e.getSource(), ""));
+                     }
+                     else {
+                        super.valueChange (e);
+                     }
                   }
-                  else {
-                     super.valueChange (e);
-                  }
-               }
-            });
-            stringField.setStretchable (true);
+               });
+               stringField.setStretchable (true);
+            } else {
+               String [] constants = ((StringRange)stringRange).getValidStrings();
+               
+               StringSelector selector = (StringSelector)widget;
+               selector.setSelections (constants, null);
+               selector.addValueChangeListener (new PropChangeListener (prop));
+            }
          }
          else if (type == double.class || type == float.class ||
                   type == Double.class || type == Float.class) {
@@ -614,11 +638,20 @@ public class PropertyWidget {
       return false;
    }
 
-   protected static LabeledComponentBase createWidget (PropertyInfo info) {
+   protected static LabeledComponentBase createWidget (Property prop) {
+      PropertyInfo info = prop.getInfo ();
       Class<?> type = info.getValueClass();
       
       if (String.class.isAssignableFrom (type)) {
-         return new StringField();
+         Range range = prop.getRange ();
+         if (info.isReadOnly () || range == null || 
+            !(range instanceof StringRange)
+            || ((StringRange)range).isWildcard ()) {
+            return new StringField();   
+         } else {
+            return new StringSelector();
+         }
+         
       }
       else if (type == double.class || type == float.class ||
                type == Double.class || type == Float.class) {

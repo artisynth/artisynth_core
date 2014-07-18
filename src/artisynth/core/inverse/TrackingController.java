@@ -902,28 +902,6 @@ public class TrackingController extends ControllerBase
    }
 
    /**
-    * Sets the velocity factor to use for trajectory tracking.  
-    * See {@link MotionTargetTerm#setTargetVelocityFactor(double)}.
-    * @param k
-    */
-   public void setTargetVelocityFactor(double k) {
-      if (myMotionTerm != null) {
-         myMotionTerm.setTargetVelocityFactor(k);
-      }
-   }
-
-   /**
-    * Gets the velocity factor to use for trajectory tracking.  
-    * See {@link MotionTargetTerm#setTargetVelocityFactor(double)}.
-    */
-   public double getTargetVelocityFactor() {
-      if (myMotionTerm != null) {
-         return myMotionTerm.getTargetVelocityFactor();
-      }
-      return -1;
-   }
-
-   /**
     * Returns the set of target weights
     */
    public VectorNd getMotionTargetWeights() {

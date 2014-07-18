@@ -61,11 +61,14 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    protected int myTargetPosSize;
 
    protected VectorNd myTargetWgts = null;   // size of myTargetVelSize, weights for system
-   public static double DEFAULT_K = 1.0;
    public static boolean DEFAULT_NORMALIZE_H = false;
-   
-   protected double myK = DEFAULT_K;
    protected boolean normalizeH = DEFAULT_NORMALIZE_H;
+   
+   public static double DEFAULT_Kd = 1.0;
+   protected double Kd = DEFAULT_Kd;
+
+   public static double DEFAULT_Kp = 1.0;
+   protected double Kp = DEFAULT_Kp;
    
    private static final int POINT_ENTRY_SIZE = 3;
    private static final int FRAME_POS_SIZE = 6;
@@ -79,7 +82,9 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    static {
       myProps.add("targetWeights", "Weights for each target", null);
       myProps.add(
-         "targetVelocityFactor", "scale target velocities by this", DEFAULT_K);
+         "Kd", "derivative gain", DEFAULT_Kd);
+      myProps.add(
+         "Kp", "proportional gain", DEFAULT_Kd);
       myProps.add(
          "normalizeH", "normalize contribution by frobenius norm",
          DEFAULT_NORMALIZE_H);
@@ -109,6 +114,12 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       // round because results are very sensitive to h and we want to keep them
       // identical to earlier results when t0, t1 where given as nsec integers
       double h = TimeBase.round(t1 - t0);
+
+      // position error
+//      double perr = 
+      
+      
+      // OLD
       interpolateTargetVelocity(h);
       // updateTargetPosAndVel(h);
       updateTargetVelocity();
@@ -406,18 +417,18 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    private Vector3d
       interpolateTargetVelocity(Point current, Point target, double h) {
 
-      ptmp.sub(target.getTargetPosition(), current.getPosition());
+      ptmp.sub(target.getPosition(), current.getPosition());
       ptmp.scale(1d / h);
-      ptmp.scale(myK);       // Peter's edit
-      target.setTargetVelocity(ptmp);
+      ptmp.scale(Kd);       // Peter's edit
+      target.setVelocity(ptmp);
 
       if (debug) {
          System.out.println("targetPos = "
-            + target.getTargetPosition().toString("%g"));
+            + target.getPosition().toString("%g"));
          System.out.println("currentPos = "
             + current.getPosition().toString("%g"));
          System.out.println("targetVel = "
-            + target.getTargetVelocity().toString("%g"));
+            + target.getVelocity().toString("%g"));
       }
       return ptmp;
    }
@@ -428,8 +439,8 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       veltmp.v.scale(1d / h, Xtmp.p);
       double rad = Xtmp.R.getAxisAngle(veltmp.w);
       veltmp.w.scale(rad / h);
-      veltmp.scale(myK);        // Peter's edit; should we use a different constant to scale rotational velocities?
-      target.setTargetVelocity(veltmp);
+      veltmp.scale(Kd);        // Peter's edit; should we use a different constant to scale rotational velocities?
+      target.setVelocity(veltmp);
       return veltmp;
    }
 
@@ -455,13 +466,13 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       for (int i = 0; i < myTargets.size(); i++) {
          MotionTargetComponent target = myTargets.get(i);
          if (target instanceof Point) {
-            Vector3d vel = ((Point)target).getTargetVelocity();
+            Vector3d vel = ((Point)target).getVelocity();
             buf[idx++] = vel.x;
             buf[idx++] = vel.y;
             buf[idx++] = vel.z;
          }
          else if (target instanceof Frame) {
-            Twist vel = ((Frame)target).getTargetVelocity();
+            Twist vel = ((Frame)target).getVelocity();
             buf[idx++] = vel.v.x;
             buf[idx++] = vel.v.y;
             buf[idx++] = vel.v.z;
@@ -489,7 +500,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       }
    }
 
-   private void updateVel() {
+   private void updateCurrentVel() {
       int n = myMech.getActiveVelStateSize();
       if (myCurrentVel == null || myCurrentVel.size() != n)
          myCurrentVel = new VectorNd(n);
@@ -559,8 +570,8 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    public int getTerm(
       MatrixNd H, VectorNd b, int rowoff, double t0, double t1) {
       updateTarget(t0, t1); // set myTargetVel
-      updateVel(); // set myCurrentVel
-      fixTargetPositions();   // XXX not sure why this is needed
+      updateCurrentVel(); // set myCurrentVel
+//      fixTargetPositions();   // XXX not sure why this is needed
       return myMotionTerm.getTerm(H, b, rowoff, t0, t1,
          myTargetVel, myCurrentVel, myTargetWgts, getVelocityJacobian(), normalizeH);
     
@@ -681,24 +692,35 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    }
    
    /**
-    * Sets a scaling factor to use when computing target velocities.  By default,
-    * this factor is 1, which means we compute the velocity required to reach the 
-    * target in a single time step.  However, in some models, this leads to 
-    * overshoots and unstable oscillations.  The velocity factor <code>k</code>
-    * can be used to scale down the velocity so we only reach a fraction of the
-    * distance by the next time step.  
+    * Derivative gain for PD controller
     * 
     */
-   public void setTargetVelocityFactor(double k) {
-      myK = k;
+   public void setKd(double k) {
+      Kd = k;
    }
    
    /**
-    * Returns the velocity factor.  See {@link #setTargetVelocityFactor(double)}.
-    * @return velocity factor
+    * Returns the Derivative gain for PD controller.  See {@link #setKd(double)}.
+    * @return derivative error gain
     */
-   public double getTargetVelocityFactor() {
-      return myK;
+   public double getKd() {
+      return Kd;
+   }
+   
+   /**
+    * Proportional gain for PD controller
+    * 
+    */
+   public void setKp(double k) {
+      Kp = k;
+   }
+   
+   /**
+    * Returns the Proportional gain for PD controller.  See {@link #setKp(double)}.
+    * @return proportional error gain
+    */
+   public double getKp() {
+      return Kp;
    }
    
    /**

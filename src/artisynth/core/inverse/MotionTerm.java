@@ -13,7 +13,7 @@ import maspack.util.NumberFormat;
 import artisynth.core.mechmodels.MechSystemSolver;
 import artisynth.core.util.TimeBase;
 
-public class MotionTerm // implements OptimizationTerm
+public class MotionTerm
 {
    public static final boolean DEFAULT_NORMALIZE = false;
 

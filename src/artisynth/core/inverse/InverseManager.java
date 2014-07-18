@@ -311,11 +311,11 @@ public class InverseManager implements HasProperties {
       ArrayList<Property> props = new ArrayList<Property>();
       for (ModelComponent target : targets) {
          if (target instanceof Point) {
-            props.add(target.getProperty("targetPosition"));
+            props.add(target.getProperty("position"));
          }
          else if (target instanceof Frame) {
-            props.add(target.getProperty("targetPosition"));
-            props.add(target.getProperty("targetOrientation"));
+            props.add(target.getProperty("position"));
+            props.add(target.getProperty("orientation"));
          }
          else {
             System.err.println("Unknown target component type: "

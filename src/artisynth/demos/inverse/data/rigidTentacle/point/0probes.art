@@ -11,7 +11,7 @@
     model=models/RigidTentacle
     props=
     [ 
-      models/RigidTentacle/particles/endpoint_ref:targetPosition
+      models/RigidTentacle/particles/endpoint_ref:position
     ]
     drivers=
     [ 
@@ -22,9 +22,9 @@
       V0 3
     ]
     plotTraceInfo=[
-      [ order=0 label="particles/endpoint_ref:targetPosition.x" visible=true color=Red ]
-      [ order=1 label="particles/endpoint_ref:targetPosition.y" visible=true color=DarkGreen ]
-      [ order=2 label="particles/endpoint_ref:targetPosition.z" visible=true color=Blue ]
+      [ order=0 label="particles/endpoint_ref:position.x" visible=true color=Red ]
+      [ order=1 label="particles/endpoint_ref:position.y" visible=true color=DarkGreen ]
+      [ order=2 label="particles/endpoint_ref:position.z" visible=true color=Blue ]
     ]
   ]
   NumericInputProbe
@@ -38,7 +38,7 @@
     model=models/RigidTentacle
     props=
     [ 
-      models/RigidTentacle/frameMarkers/endpoint:targetPosition
+      models/RigidTentacle/frameMarkers/endpoint:position
     ]
     drivers=
     [ 
@@ -49,9 +49,9 @@
       V0 3
     ]
     plotTraceInfo=[
-      [ order=0 label="frameMarkers/endpoint:targetPosition.x" visible=true color=Red ]
-      [ order=1 label="frameMarkers/endpoint:targetPosition.y" visible=true color=DarkGreen ]
-      [ order=2 label="frameMarkers/endpoint:targetPosition.z" visible=true color=Blue ]
+      [ order=0 label="frameMarkers/endpoint:position.x" visible=true color=Red ]
+      [ order=1 label="frameMarkers/endpoint:position.y" visible=true color=DarkGreen ]
+      [ order=2 label="frameMarkers/endpoint:position.z" visible=true color=Blue ]
     ]
   ]
   NumericInputProbe
@@ -135,7 +135,7 @@
     model=models/RigidTentacle
     props=
     [ 
-      models/RigidTentacle/particles/endpoint_ref:targetPosition
+      models/RigidTentacle/particles/endpoint_ref:position
     ]
     variables=
     [ 
@@ -146,9 +146,9 @@
       "P0"
     ]
     plotTraceInfo=[
-      [ order=0 label="particles/endpoint_ref:targetPosition.x" visible=true color=Red ]
-      [ order=1 label="particles/endpoint_ref:targetPosition.y" visible=true color=DarkGreen ]
-      [ order=2 label="particles/endpoint_ref:targetPosition.z" visible=true color=Blue ]
+      [ order=0 label="particles/endpoint_ref:position.x" visible=true color=Red ]
+      [ order=1 label="particles/endpoint_ref:position.y" visible=true color=DarkGreen ]
+      [ order=2 label="particles/endpoint_ref:position.z" visible=true color=Blue ]
     ]
   ]
   NumericOutputProbe
@@ -162,7 +162,7 @@
     model=models/RigidTentacle
     props=
     [ 
-      models/RigidTentacle/frameMarkers/endpoint:targetPosition
+      models/RigidTentacle/frameMarkers/endpoint:position
     ]
     variables=
     [ 
@@ -173,9 +173,9 @@
       "P0"
     ]
     plotTraceInfo=[
-      [ order=0 label="frameMarkers/endpoint:targetPosition.x" visible=true color=Red ]
-      [ order=1 label="frameMarkers/endpoint:targetPosition.y" visible=true color=DarkGreen ]
-      [ order=2 label="frameMarkers/endpoint:targetPosition.z" visible=true color=Blue ]
+      [ order=0 label="frameMarkers/endpoint:position.x" visible=true color=Red ]
+      [ order=1 label="frameMarkers/endpoint:position.y" visible=true color=DarkGreen ]
+      [ order=2 label="frameMarkers/endpoint:position.z" visible=true color=Blue ]
     ]
   ]
   NumericOutputProbe

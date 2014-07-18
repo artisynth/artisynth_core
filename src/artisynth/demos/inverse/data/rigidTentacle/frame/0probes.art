@@ -10,7 +10,7 @@
     model=models/RigidTentacle
     props=
     [ 
-      models/RigidTentacle/rigidBodies/hand3_ref:targetPosition
+      models/RigidTentacle/rigidBodies/hand3_ref:position
       models/RigidTentacle/rigidBodies/hand3_ref:targetOrientation
     ]
     drivers=
@@ -24,9 +24,9 @@
       V1 4
     ]
     plotTraceInfo=[
-      [ order=0 label="rigidBodies/hand3_ref:targetPosition.x" visible=true color=Red ]
-      [ order=1 label="rigidBodies/hand3_ref:targetPosition.y" visible=true color=DarkGreen ]
-      [ order=2 label="rigidBodies/hand3_ref:targetPosition.z" visible=true color=Blue ]
+      [ order=0 label="rigidBodies/hand3_ref:position.x" visible=true color=Red ]
+      [ order=1 label="rigidBodies/hand3_ref:position.y" visible=true color=DarkGreen ]
+      [ order=2 label="rigidBodies/hand3_ref:position.z" visible=true color=Blue ]
       [ order=3 label="rigidBodies/hand3_ref:targetOrientation.ux" visible=true color=Cyan ]
       [ order=4 label="rigidBodies/hand3_ref:targetOrientation.uy" visible=true color=Magenta ]
       [ order=5 label="rigidBodies/hand3_ref:targetOrientation.uz" visible=true color=DarkOrange ]
@@ -44,7 +44,7 @@
     model=models/RigidTentacle
     props=
     [ 
-      models/RigidTentacle/rigidBodies/hand3:targetPosition
+      models/RigidTentacle/rigidBodies/hand3:position
       models/RigidTentacle/rigidBodies/hand3:targetOrientation
     ]
     drivers=
@@ -58,9 +58,9 @@
       V1 4
     ]
     plotTraceInfo=[
-      [ order=0 label="rigidBodies/hand3:targetPosition.x" visible=true color=Red ]
-      [ order=1 label="rigidBodies/hand3:targetPosition.y" visible=true color=DarkGreen ]
-      [ order=2 label="rigidBodies/hand3:targetPosition.z" visible=true color=Blue ]
+      [ order=0 label="rigidBodies/hand3:position.x" visible=true color=Red ]
+      [ order=1 label="rigidBodies/hand3:position.y" visible=true color=DarkGreen ]
+      [ order=2 label="rigidBodies/hand3:position.z" visible=true color=Blue ]
       [ order=3 label="rigidBodies/hand3:targetOrientation.ux" visible=true color=Cyan ]
       [ order=4 label="rigidBodies/hand3:targetOrientation.uy" visible=true color=Magenta ]
       [ order=5 label="rigidBodies/hand3:targetOrientation.uz" visible=true color=DarkOrange ]
@@ -148,7 +148,7 @@
     model=models/RigidTentacle
     props=
     [ 
-      models/RigidTentacle/rigidBodies/hand3_ref:targetPosition
+      models/RigidTentacle/rigidBodies/hand3_ref:position
       models/RigidTentacle/rigidBodies/hand3_ref:targetOrientation
     ]
     variables=
@@ -162,9 +162,9 @@
       "P1"
     ]
     plotTraceInfo=[
-      [ order=0 label="rigidBodies/hand3_ref:targetPosition.x" visible=true color=Red ]
-      [ order=1 label="rigidBodies/hand3_ref:targetPosition.y" visible=true color=DarkGreen ]
-      [ order=2 label="rigidBodies/hand3_ref:targetPosition.z" visible=true color=Blue ]
+      [ order=0 label="rigidBodies/hand3_ref:position.x" visible=true color=Red ]
+      [ order=1 label="rigidBodies/hand3_ref:position.y" visible=true color=DarkGreen ]
+      [ order=2 label="rigidBodies/hand3_ref:position.z" visible=true color=Blue ]
       [ order=3 label="rigidBodies/hand3_ref:targetOrientation.ux" visible=true color=Cyan ]
       [ order=4 label="rigidBodies/hand3_ref:targetOrientation.uy" visible=true color=Magenta ]
       [ order=5 label="rigidBodies/hand3_ref:targetOrientation.uz" visible=true color=DarkOrange ]
@@ -182,7 +182,7 @@
     model=models/RigidTentacle
     props=
     [ 
-      models/RigidTentacle/rigidBodies/hand3:targetPosition
+      models/RigidTentacle/rigidBodies/hand3:position
       models/RigidTentacle/rigidBodies/hand3:targetOrientation
     ]
     variables=
@@ -196,9 +196,9 @@
       "P1"
     ]
     plotTraceInfo=[
-      [ order=0 label="rigidBodies/hand3:targetPosition.x" visible=true color=Red ]
-      [ order=1 label="rigidBodies/hand3:targetPosition.y" visible=true color=DarkGreen ]
-      [ order=2 label="rigidBodies/hand3:targetPosition.z" visible=true color=Blue ]
+      [ order=0 label="rigidBodies/hand3:position.x" visible=true color=Red ]
+      [ order=1 label="rigidBodies/hand3:position.y" visible=true color=DarkGreen ]
+      [ order=2 label="rigidBodies/hand3:position.z" visible=true color=Blue ]
       [ order=3 label="rigidBodies/hand3:targetOrientation.ux" visible=true color=Cyan ]
       [ order=4 label="rigidBodies/hand3:targetOrientation.uy" visible=true color=Magenta ]
       [ order=5 label="rigidBodies/hand3:targetOrientation.uz" visible=true color=DarkOrange ]

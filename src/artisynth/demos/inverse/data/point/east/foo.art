@@ -636,7 +636,7 @@ artisynth.models.inversedemos.PointModel2d
       model=models/point
       vsize=3
       props=[
-        models/point/particles/center_ref:targetPosition
+        models/point/particles/center_ref:position
       ]
       drivers=[
         "V0"
@@ -650,9 +650,9 @@ artisynth.models.inversedemos.PointModel2d
         1.0 0.0 0.0 0.0
       ]
       plotTraceInfo=[
-        [ order=0 label="particles/center_ref:targetPosition.x" visible=true color=Red ]
-        [ order=1 label="particles/center_ref:targetPosition.y" visible=true color=DarkGreen ]
-        [ order=2 label="particles/center_ref:targetPosition.z" visible=true color=Blue ]
+        [ order=0 label="particles/center_ref:position.x" visible=true color=Red ]
+        [ order=1 label="particles/center_ref:position.y" visible=true color=DarkGreen ]
+        [ order=2 label="particles/center_ref:position.z" visible=true color=Blue ]
       ]
     ]
     NumericInputProbe [ 
@@ -756,7 +756,7 @@ artisynth.models.inversedemos.PointModel2d
       track=0
       model=models/point
       props=[
-        models/point/particles/center_ref:targetPosition
+        models/point/particles/center_ref:position
       ]
       variables=[
         P0
@@ -765,9 +765,9 @@ artisynth.models.inversedemos.PointModel2d
         "P0"
       ]
       plotTraceInfo=[
-        [ order=0 label="particles/center_ref:targetPosition.x" visible=true color=Red ]
-        [ order=1 label="particles/center_ref:targetPosition.y" visible=true color=DarkGreen ]
-        [ order=2 label="particles/center_ref:targetPosition.z" visible=true color=Blue ]
+        [ order=0 label="particles/center_ref:position.x" visible=true color=Red ]
+        [ order=1 label="particles/center_ref:position.y" visible=true color=DarkGreen ]
+        [ order=2 label="particles/center_ref:position.z" visible=true color=Blue ]
       ]
     ]
     NumericOutputProbe [ 
@@ -780,7 +780,7 @@ artisynth.models.inversedemos.PointModel2d
       track=1
       model=models/point
       props=[
-        models/point/particles/center:targetPosition
+        models/point/particles/center:position
       ]
       variables=[
         P0
@@ -789,9 +789,9 @@ artisynth.models.inversedemos.PointModel2d
         "P0"
       ]
       plotTraceInfo=[
-        [ order=0 label="particles/center:targetPosition.x" visible=true color=Red ]
-        [ order=1 label="particles/center:targetPosition.y" visible=true color=DarkGreen ]
-        [ order=2 label="particles/center:targetPosition.z" visible=true color=Blue ]
+        [ order=0 label="particles/center:position.x" visible=true color=Red ]
+        [ order=1 label="particles/center:position.y" visible=true color=DarkGreen ]
+        [ order=2 label="particles/center:position.z" visible=true color=Blue ]
       ]
     ]
     NumericOutputProbe [ 

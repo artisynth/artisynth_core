@@ -423,12 +423,30 @@ public class MenuBarHandler implements
          }
          // climb through tree and build menus
          for (Node<MenuEntry> node : menuTree.getRootElement().getChildren()) {
-            if (numModelEntries (node) > 0) {
+            if (!isMenuEmpty (node)) {
                buildMenu(menu, node); // recursively builds menu
             }
          }
       }
       return menu;
+   }
+
+   private boolean isMenuEmpty(Node<MenuEntry> node) { 
+
+      MenuEntry entry = node.getData();
+
+      switch (entry.getType ()) {
+         case DIVIDER:
+            return false;
+         case LABEL:
+            return false;
+         default:
+            if (numModelEntries (node) > 0) {
+               return false;
+            }
+      }
+      return true;
+
    }
 
    // recursively find the number of model entries under a node
@@ -450,6 +468,8 @@ public class MenuBarHandler implements
             }
             break;
          }
+         default:
+            break;
       }
       return num;
    }
@@ -481,7 +501,9 @@ public class MenuBarHandler implements
 
             // loop through all children
             for (Node<MenuEntry> child : menuNode.getChildren()) {
-               buildMenu(newMenu, child);
+               if (!isMenuEmpty (child)) {
+                  buildMenu(newMenu, child);
+               }
             }
 
             break;
@@ -1049,12 +1071,12 @@ public class MenuBarHandler implements
    private void setRealTimeScaling() {
 
       Scheduler scheduler = Main.getScheduler(); 
-      
+
       double scaling = scheduler.getRealTimeScaling ();
       if (!scheduler.getRealTimeAdvance ()) {
          scaling = -1;
       }
-      
+
       String inputValue = JOptionPane.showInputDialog(
          myFrame, "Scale factor for real-time display",
          scaling);
@@ -1604,10 +1626,10 @@ public class MenuBarHandler implements
       }
    }
 
-//   public ViewerController getMainViewerController() {
-//      return myMain.getViewerManager().getController(0);
-//   }
-   
+   //   public ViewerController getMainViewerController() {
+   //      return myMain.getViewerManager().getController(0);
+   //   }
+
    public GLViewer getMainViewer() {
       return myMain.getViewer();
    }
@@ -2026,7 +2048,7 @@ public class MenuBarHandler implements
          enableShowPlay();
       }
    }
-   
+
    public void renderOccurred (GLViewerEvent e) {
       updateWidgets();
    }

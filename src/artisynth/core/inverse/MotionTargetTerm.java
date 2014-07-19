@@ -65,7 +65,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    public static boolean DEFAULT_NORMALIZE_H = false;
    protected boolean normalizeH = DEFAULT_NORMALIZE_H;
    
-   public static double DEFAULT_Kd = 0.1;
+   public static double DEFAULT_Kd = 1.0;
    protected double Kd = DEFAULT_Kd;
 
    public static double DEFAULT_Kp = 100;

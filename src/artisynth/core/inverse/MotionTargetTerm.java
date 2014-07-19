@@ -65,10 +65,10 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    public static boolean DEFAULT_NORMALIZE_H = false;
    protected boolean normalizeH = DEFAULT_NORMALIZE_H;
    
-   public static double DEFAULT_Kd = 1.0;
+   public static double DEFAULT_Kd = 0.1;
    protected double Kd = DEFAULT_Kd;
 
-   public static double DEFAULT_Kp = 1.0;
+   public static double DEFAULT_Kp = 100;
    protected double Kp = DEFAULT_Kp;
    
    private static final int POINT_ENTRY_SIZE = 3;
@@ -117,6 +117,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       double h = TimeBase.round(t1 - t0);
 
       if (usePDControl) {
+         
          interpolateTargetVelocity(h);
          updatePositionError ();
          updateVelocityError ();
@@ -124,9 +125,8 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
          if (myTargetVel == null || myTargetVel.size() != myTargetVelSize) {
             myTargetVel = new VectorNd(myTargetVelSize);
          }
-         myTargetVel.scale (Kp/h, postionError);
+         myTargetVel.scale (Kp, postionError);
          myTargetVel.scaledAdd (Kd, velocityError);
-         
       
       }
       else {
@@ -134,7 +134,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
          setTargetVelocityFromPositionError(h);
          // updateTargetPosAndVel(h);
          updateTargetVelocityVec(); // set myTargetVel
-         myTargetVel.scale (Kd); // Peter edit
+         myTargetVel.scale (Kd); // Peter edit, IAN -- this should use be Kp
       }
    }
    

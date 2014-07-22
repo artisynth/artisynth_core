@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
+ * Copyright (c) 2014, by the Authors: Antonio Sanchez (UBC), John E Lloyd (UBC)
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -223,14 +223,14 @@ public interface DeformableCollisionData extends CollisionData {
     * @return the number of dependent points
     */
    public int getVertexDependencies(Vertex3d vtx, ArrayList<Point> pointDeps,
-      VectorNd pointWgts, ArrayList<Frame> frameDeps, VectorNd frameWgts);
+      VectorNd pntWgts, ArrayList<Frame> frameDeps, VectorNd frameWgts);
 
    /**
     * Culls the set of constraints to a reduced set
     * @param points list of deformable penetrating points
     * @param otherData collision data from the other object
     */
-   void reduceConstraints(ArrayList<ContactPenetratingPoint> points,
+   void reduceConstraints(ArrayList<ContactPenetratingPoint> myPoints,
       ArrayList<ContactPenetratingPoint> otherPoints,
       CollisionData otherData);
    

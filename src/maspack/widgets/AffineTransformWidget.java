@@ -27,7 +27,9 @@ import maspack.util.StringHolder;
 // TODO: Need to implement this using a LabeledPanel, so that
 // label alignment works properly
 public class AffineTransformWidget extends LabeledControl implements
-ValueChangeListener {
+   ValueChangeListener {
+   
+   private static final long serialVersionUID = 7095521568107235389L;
    VectorField myTranslationField;
    AxisAngleField myRotationField;
    ScaleField myScaleField;
@@ -40,7 +42,7 @@ ValueChangeListener {
 
    ArrayList<LabeledTextField> myFields = new ArrayList<LabeledTextField>();
 
-   JPanel myPanel;
+   LabeledComponentPanel myPanel;
    // Note: we don't keep an explicit value, except an indicator as to whether
    // the value is void. Otherwise, the value is constructed from the values in
    // the sub-widgets.
@@ -157,7 +159,7 @@ ValueChangeListener {
     * Creates a default AffineTransformWidget with an empty label.
     */
    public AffineTransformWidget() {
-      this ("", "TRS");
+      this ("", "TRSX");
    }
 
    /**
@@ -168,6 +170,7 @@ ValueChangeListener {
     * <li>'T': translation field
     * <li>'S': scale field
     * <li>'R': rotation field
+    * <li>'X': shear field
     * </ul>
     */
    public AffineTransformWidget (String labelText, String compSpec) {
@@ -177,15 +180,14 @@ ValueChangeListener {
    }
 
    public AffineTransformWidget (String labelText, String compSpec,
-   AffineTransform3dBase initialValue) {
+      AffineTransform3dBase initialValue) {
       super (labelText);
       initialize (compSpec, "%.5g");
       setValue (initialValue);
    }
 
    private void initialize (String compSpec, String fmtStr) {
-      myPanel = new JPanel();
-      myPanel.setLayout (new GridLayout (0, 1));
+      myPanel = new LabeledComponentPanel();
 
       for (int i = 0; i < compSpec.length(); i++) {
          switch (compSpec.charAt (i)) {
@@ -226,12 +228,24 @@ ValueChangeListener {
             }
          }
       }
+      
+      int maxColumns = 0;
       for (LabeledTextField c : myFields) {
          c.addValueChangeListener (this);
          c.setVoidValueEnabled (true);
-         c.setStretchable (true);
+         c.setStretchable (false);
+         if (c.getColumns() > maxColumns) {
+            maxColumns = c.getColumns();
+         }
+         myPanel.addWidget(c);
       }
-      packFields();
+      
+      // adjust columns to match
+      for (LabeledTextField c : myFields) {
+         c.setColumns(maxColumns);
+      }
+      // packFields();
+      
       addMajorComponent (myPanel);
 
       // allocate places to store values for widgets that are null
@@ -275,17 +289,17 @@ ValueChangeListener {
          myPanel.add (c);
          c.setLabelSpacing (max);
       }
-//       int maxLabelWidth = 0;
-//       for (LabeledTextField c : myFields) {
-//          int w = c.getLabelWidth();
-//          if (w > maxLabelWidth) {
-//             maxLabelWidth = w;
-//          }
-//       }
-//       for (LabeledTextField c : myFields) {
-//          myPanel.add (c);
-//          c.setLabelWidth (maxLabelWidth);
-//       }
+      //       int maxLabelWidth = 0;
+      //       for (LabeledTextField c : myFields) {
+      //          int w = c.getLabelWidth();
+      //          if (w > maxLabelWidth) {
+      //             maxLabelWidth = w;
+      //          }
+      //       }
+      //       for (LabeledTextField c : myFields) {
+      //          myPanel.add (c);
+      //          c.setLabelWidth (maxLabelWidth);
+      //       }
    }
 
    private boolean allComponentsAreNonVoid() {
@@ -304,24 +318,26 @@ ValueChangeListener {
       fireValueChangeListeners (getInternalValue());
    }
 
-   public AffineTransform3dBase getTransformValue() {
+   public AffineTransform3d getTransformValue() {
       RotationMatrix3d R = new RotationMatrix3d (getRotation());
       Vector3d scale = getScale();
       Vector3d shear = getShear();
 
-      if (scale.x == 1 && scale.y == 1 && scale.z == 1 &&
-          shear.x == 0 && shear.y == 0 && shear.z == 0) {
-         RigidTransform3d RT = new RigidTransform3d();
-         RT.p.set (getTranslation());
-         RT.R.set (R);
-         return RT;
-      }
-      else {
-         AffineTransform3d XT = new AffineTransform3d();
-         XT.p.set (getTranslation());
-         XT.setA (R, scale, shear);
-         return XT;
-      }
+      // XXX Note: if you return a RigidTransform3d, results in
+      // an Illegal Argument Exception on "method.invoke(...)"
+      //      if (scale.x == 1 && scale.y == 1 && scale.z == 1 &&
+      //          shear.x == 0 && shear.y == 0 && shear.z == 0) {
+      //         RigidTransform3d RT = new RigidTransform3d();
+      //         RT.p.set (getTranslation());
+      //         RT.R.set (R);
+      //         return RT;
+      //      }
+      //      else {
+      AffineTransform3d XT = new AffineTransform3d();
+      XT.p.set (getTranslation());
+      XT.setA (R, scale, shear);
+      return XT;
+      //  }
    }
 
    /**
@@ -453,7 +469,7 @@ ValueChangeListener {
       JFrame frame = new JFrame ("AffineTransformWidget Test");
       LabeledComponentPanel panel = new LabeledComponentPanel();
       AffineTransformWidget widget =
-         new AffineTransformWidget ("affineX", "TR");
+               new AffineTransformWidget ("affineX", "TR");
 
       frame.getContentPane().add (panel);
       widget.unpackFields();

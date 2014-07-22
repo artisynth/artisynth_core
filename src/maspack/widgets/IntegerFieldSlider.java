@@ -7,10 +7,15 @@
 package maspack.widgets;
 
 import java.awt.Color;
-import javax.swing.*;
-import javax.swing.event.*;
 
-import maspack.properties.*;
+import javax.swing.JSlider;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
+import maspack.properties.Property;
+import maspack.properties.PropertyList;
+import maspack.properties.PropertyUtils;
+import maspack.util.DoubleInterval;
 import maspack.util.IntegerInterval;
 import maspack.util.NumericInterval;
 import maspack.util.NumericIntervalRange;
@@ -24,6 +29,7 @@ public class IntegerFieldSlider extends IntegerField
    boolean mySliderMasked = false;
    boolean myAutoRangingP = true;
    private static final double INF = Double.POSITIVE_INFINITY;
+   private static final int SLIDER_INTERNAL_RANGE = 10000;
    
    IntegerInterval mySliderRange = new IntegerInterval();
    private static NumericInterval myDefaultSliderRange =
@@ -116,9 +122,12 @@ public class IntegerFieldSlider extends IntegerField
       mySlider.addChangeListener (new ChangeListener() {
          public void stateChanged (ChangeEvent e) {
             if (!mySliderMasked) {
+               
+               myAutoRangingP = false;
                if (updateValue (mySlider.getValue())) {
                   IntegerFieldSlider.super.updateDisplay();
                }
+               myAutoRangingP = true;
             }
          }
       });
@@ -128,6 +137,8 @@ public class IntegerFieldSlider extends IntegerField
    private void updateSlider() {
       if (mySlider != null) {
          mySliderMasked = true;
+         mySlider.setMaximum ((int)mySliderRange.getUpperBound());
+         mySlider.setMinimum ((int)mySliderRange.getLowerBound());
          if (myValue == Property.VoidValue) {
             mySlider.setValue ((getMinimum() + getMaximum()) / 2);
          }
@@ -208,8 +219,6 @@ public class IntegerFieldSlider extends IntegerField
          min = (int)myRange.getLowerBound();
       }
       mySliderRange.set (min, max);
-      mySlider.setMaximum (max);
-      mySlider.setMinimum (min);
       clipValueToRange (mySliderRange);
       updateSlider();
    }
@@ -267,6 +276,13 @@ public class IntegerFieldSlider extends IntegerField
       }
    }
 
+   // Return the slider value that corresponds approximately to half a pixel
+   protected int halfPixelValue () {
+      // assume 1% to left
+      return (int)(0.01*(mySliderRange.getUpperBound() - mySliderRange.getLowerBound()) 
+         + mySliderRange.getLowerBound());
+   }
+   
    protected boolean updateInternalValue (Object value) {
       if (super.updateInternalValue (value)) {
          if (value instanceof Number && mySliderRange != null) {
@@ -282,8 +298,22 @@ public class IntegerFieldSlider extends IntegerField
                   newRange = new IntegerInterval (newValue, max);
                }
                if (newRange != null) {
-                  setSliderRange (SliderRange.roundBoundsTo125 (newRange));
+                  DoubleInterval dNewRange = SliderRange.roundBoundsTo125 (newRange);
+                  dNewRange.intersect (getRange()); // make sure hard range OK
+                  setSliderRange (dNewRange);
                }
+               // also, reset range if slider position is at the lowest
+               // value but we are not actually at the lowest range value,
+               // and if this widget does not have hard bounds
+               if (!myRange.isBounded() && mySlider != null) {
+                  int halfPixel = halfPixelValue();
+                  if (newValue < halfPixel && newValue >= min) {
+                     int newMax = 
+                        (int)SliderRange.roundUp125 (min+4*(newValue-min));
+                     setSliderRange (new IntegerInterval (min, newMax));
+                  }
+               }
+               
             }
             if (newValue < min || newValue > max) {
                mySlider.setBackground (Color.GRAY);

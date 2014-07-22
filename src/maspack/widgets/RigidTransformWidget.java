@@ -6,19 +6,21 @@
  */
 package maspack.widgets;
 
-import java.awt.GridLayout;
-
-import javax.swing.BoxLayout;
-import javax.swing.JPanel;
-
-import maspack.matrix.*;
-import maspack.util.*;
+import maspack.matrix.AxisAngle;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 import maspack.properties.Property;
+import maspack.util.NumberFormat;
+import maspack.util.StringHolder;
 
 public class RigidTransformWidget extends LabeledControl {
+   private static final long serialVersionUID = -1679756323747891445L;
+   
    VectorField myTranslationField;
    AxisAngleField myRotationField;
-   JPanel myPanel;
+   LabeledComponentPanel myPanel;
    Object myValue = Property.VoidValue;
 
    private Vector3d getTranslation() {
@@ -57,13 +59,13 @@ public class RigidTransformWidget extends LabeledControl {
    }
 
    private void initialize (String fmtStr) {
+      
       myTranslationField = new VectorField ("Pos:", 3);
       myTranslationField.setVoidValueEnabled (true);
       myRotationField = new AxisAngleField ("Rot:");
       myRotationField.setVoidValueEnabled (true);
 
-      myPanel = new JPanel();
-      myPanel.setLayout (new GridLayout (0, 1));
+      myPanel = new LabeledComponentPanel();
 
       myTranslationField.addValueChangeListener (new ValueChangeListener() {
          public void valueChange (ValueChangeEvent e) {
@@ -87,8 +89,15 @@ public class RigidTransformWidget extends LabeledControl {
          }
       });
 
-      myPanel.add (myTranslationField);
-      myPanel.add (myRotationField);
+      myPanel.addWidget(myTranslationField);
+      myPanel.addWidget(myRotationField);
+
+      if (myTranslationField.getColumns() > myRotationField.getColumns()) {
+         myRotationField.setColumns(myTranslationField.getColumns());
+      } else {
+         myTranslationField.setColumns(myRotationField.getColumns());
+      }
+      
       myTranslationField.setFormat (fmtStr);
 
       addMajorComponent (myPanel);

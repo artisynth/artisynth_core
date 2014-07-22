@@ -17,6 +17,7 @@ import javax.swing.border.BevelBorder;
 import javax.swing.border.EmptyBorder;
 
 import maspack.geometry.Rectangle;
+import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SymmetricMatrix3d;
@@ -104,8 +105,8 @@ public class PropertyWidget {
 
       LabeledComponentBase widget = null;
 
-      if (type == double.class || type == float.class ||
-          type == Double.class || type == Float.class) {
+      if (type == double.class || type == float.class || 
+         type == Double.class || type == Float.class) {
          DoubleFieldSlider doubleSlider = new DoubleFieldSlider (name, min, max);
          if (info.getPrintFormat() != null) {
             doubleSlider.setFormat (info.getPrintFormat());
@@ -153,7 +154,7 @@ public class PropertyWidget {
       }
       Class<?> type = info.getValueClass();
       if (type == double.class || type == float.class ||
-          type == Double.class || type == Float.class) {
+         type == Double.class || type == Float.class) {
          Object value = prop.get();
          // we can only assign a slider if there is a common numeric value;
          // i.e., if the value is not Void
@@ -186,6 +187,29 @@ public class PropertyWidget {
                }
             }
          }
+      } else if (type == int.class || type == Integer.class) {
+         Object value = prop.get();
+         // we can only assign a slider if there is a common numeric value;
+         // i.e., if the value is not Void
+         if (value instanceof Number) {
+            int x = ((Number)value).intValue();
+            if (info.hasRestrictedRange()) {
+               Range range = prop.getRange();
+               NumericInterval defaultRange = info.getDefaultNumericRange();
+               if (range instanceof NumericInterval) {
+                  nrange = new IntegerInterval((NumericInterval)range);
+                  if (!nrange.isBounded()) {
+                     if (defaultRange != null) {
+                        nrange.intersect (defaultRange);
+                     }
+                  }
+                  nrange = SliderRange.estimateBoundsIfNecessary (nrange, x);
+               }
+               else if (defaultRange != null) {
+                  nrange = SliderRange.estimateBoundsIfNecessary (defaultRange, x);
+               }
+            }
+         }
       }
       return nrange;
    }
@@ -197,8 +221,8 @@ public class PropertyWidget {
          return false;
       }
       if (type == double.class || type == float.class ||
-          type == Double.class || type == Float.class ||
-          type == int.class || type == Integer.class) {
+         type == Double.class || type == Float.class ||
+         type == int.class || type == Integer.class) {
          return true;
       }
       else {
@@ -210,27 +234,27 @@ public class PropertyWidget {
       Class<?> type = info.getValueClass();
 
       if (String.class.isAssignableFrom (type) ||
-          type == double.class ||
-          type == float.class ||
-          type == Double.class ||
-          type == Float.class ||
-          type == int.class ||
-          type == Integer.class ||
-          type == boolean.class ||
-          type == Boolean.class ||
-          (VectorBase.class.isAssignableFrom (type) &&
-           info.getDimension() != -1) ||
-          SymmetricMatrix3d.class.isAssignableFrom (type) ||
-          AxisAngle.class.isAssignableFrom (type) ||
-          RigidTransform3d.class.isAssignableFrom (type) ||
-          Rectangle.class.isAssignableFrom(type) ||
-          // Material.class.isAssignableFrom (type) ||
-          // MuscleMaterial.class.isAssignableFrom (type) ||
-          Enum.class.isAssignableFrom (type) ||
-          Color.class.isAssignableFrom (type) ||
-          NumericInterval.class.isAssignableFrom (type) ||
-          GLGridResolution.class.isAssignableFrom (type) ||
-          CompositeProperty.class.isAssignableFrom (type)) {
+         type == double.class ||
+         type == float.class ||
+         type == Double.class ||
+         type == Float.class ||
+         type == int.class ||
+         type == Integer.class ||
+         type == boolean.class ||
+         type == Boolean.class ||
+         (VectorBase.class.isAssignableFrom (type) &&
+            info.getDimension() != -1) ||
+            SymmetricMatrix3d.class.isAssignableFrom (type) ||
+            AxisAngle.class.isAssignableFrom (type) ||
+            RigidTransform3d.class.isAssignableFrom (type) ||
+            Rectangle.class.isAssignableFrom(type) ||
+            // Material.class.isAssignableFrom (type) ||
+            // MuscleMaterial.class.isAssignableFrom (type) ||
+            Enum.class.isAssignableFrom (type) ||
+            Color.class.isAssignableFrom (type) ||
+            NumericInterval.class.isAssignableFrom (type) ||
+            GLGridResolution.class.isAssignableFrom (type) ||
+            CompositeProperty.class.isAssignableFrom (type)) {
          return true;
       }
       else {
@@ -304,7 +328,7 @@ public class PropertyWidget {
             }
          }
       }
-      
+
    }
 
    public static void finishWidget (LabeledComponentBase widget, Property prop) {
@@ -355,17 +379,17 @@ public class PropertyWidget {
    private static boolean textIsEmpty (String text) {
       return text == null || text.length() == 0;
    }
-   
+
    private static boolean formatIsDefault(LabeledTextField field) {
       return (field.getFormat().equals (field.getDefaultFormat()));
    }
-   
+
    public static boolean initializeWidget (
       LabeledComponentBase widget, Property prop) {
       String name = prop.getName();
       PropertyInfo info = prop.getInfo();
       Class<?> type = info.getValueClass();
-      
+
       // Object value = prop.get();
 
       if (widget instanceof LabeledWidget) {
@@ -384,7 +408,7 @@ public class PropertyWidget {
       try {
          if (String.class.isAssignableFrom (type)) {
             // if String has a range, then use StringSelector
-        	// otherwise, use a simple StringField
+            // otherwise, use a simple StringField
             Range stringRange = prop.getRange ();
             if (info.isInheritable () || stringRange == null 
                || !(stringRange instanceof StringRange)
@@ -405,14 +429,14 @@ public class PropertyWidget {
                stringField.setStretchable (true);
             } else {
                String [] constants = ((StringRange)stringRange).getValidStrings();
-               
+
                StringSelector selector = (StringSelector)widget;
                selector.setSelections (constants, null);
                selector.addValueChangeListener (new PropChangeListener (prop));
             }
          }
          else if (type == double.class || type == float.class ||
-                  type == Double.class || type == Float.class) {
+            type == Double.class || type == Float.class) {
             DoubleField doubleField = (DoubleField)widget;
             Range range = prop.getRange();
             if (range instanceof NumericInterval) {
@@ -422,7 +446,7 @@ public class PropertyWidget {
             //    doubleField.setRange (range);
             // }
             if (info.getPrintFormat() != null && 
-                formatIsDefault(doubleField)) {
+               formatIsDefault(doubleField)) {
                doubleField.setFormat (info.getPrintFormat());
             }
             GuiUtils.setFixedWidth (doubleField.getTextField(), 100);
@@ -444,7 +468,7 @@ public class PropertyWidget {
             }
          }
          else if (VectorBase.class.isAssignableFrom (type) &&
-                  info.getDimension() != -1) {
+            info.getDimension() != -1) {
             VectorBase resultVec;
             try {
                resultVec = (VectorBase)type.newInstance();
@@ -472,7 +496,7 @@ public class PropertyWidget {
             vectorField.setResultHolder (resultVec);
             vectorField.addValueChangeListener (new PropChangeListener (prop));
             if (info.getPrintFormat() != null &&
-                formatIsDefault (vectorField)) {
+               formatIsDefault (vectorField)) {
                vectorField.setFormat (info.getPrintFormat());
             }
             vectorField.setStretchable (true);
@@ -481,7 +505,7 @@ public class PropertyWidget {
             SymmetricMatrix3dField matrixField = (SymmetricMatrix3dField)widget;
             matrixField.addValueChangeListener (new PropChangeListener (prop));
             if (info.getPrintFormat() != null &&
-                formatIsDefault (matrixField)) {
+               formatIsDefault (matrixField)) {
                matrixField.setFormat (info.getPrintFormat());
             }
             matrixField.setStretchable (true);
@@ -492,11 +516,17 @@ public class PropertyWidget {
                new PropChangeListener (prop));
             transformField.setStretchable (true);
          }
+         else if (AffineTransform3d.class.isAssignableFrom (type)) {
+            AffineTransformWidget transformField = (AffineTransformWidget)widget;
+            transformField.addValueChangeListener (
+               new PropChangeListener (prop));
+            transformField.setStretchable (true);
+         }
          else if (Rectangle.class.isAssignableFrom(type)) {
             RectangleField rectField = (RectangleField)widget;
             rectField.addValueChangeListener (new PropChangeListener (prop));
             if (info.getPrintFormat() != null &&
-                formatIsDefault (rectField)) {
+               formatIsDefault (rectField)) {
                rectField.setFormat (info.getPrintFormat());
             }
             rectField.setStretchable (true);
@@ -592,7 +622,7 @@ public class PropertyWidget {
       // finishWidget (widget, prop);
       return true;
    }
-   
+
    private static LabeledComponentBase createWidget (Class<?> clazz) {
       Method m = null;
       try {
@@ -613,7 +643,7 @@ public class PropertyWidget {
       }
       return null;
    }
-   
+
    private static boolean initializeWidget (Class<?> clazz, 
       LabeledComponentBase widget, Property prop) {
       Method m = null;
@@ -641,7 +671,7 @@ public class PropertyWidget {
    protected static LabeledComponentBase createWidget (Property prop) {
       PropertyInfo info = prop.getInfo ();
       Class<?> type = info.getValueClass();
-      
+
       if (String.class.isAssignableFrom (type)) {
          Range range = prop.getRange ();
          if (info.isReadOnly () || range == null || 
@@ -651,10 +681,10 @@ public class PropertyWidget {
          } else {
             return new StringSelector();
          }
-         
+
       }
       else if (type == double.class || type == float.class ||
-               type == Double.class || type == Float.class) {
+         type == Double.class || type == Float.class) {
          return new DoubleField();
       }
       else if (type == int.class || type == Integer.class) {
@@ -681,6 +711,9 @@ public class PropertyWidget {
       } 
       else if (RigidTransform3d.class.isAssignableFrom (type)) {
          return new RigidTransformWidget();
+      }
+      else if (AffineTransform3d.class.isAssignableFrom (type)) {
+         return new AffineTransformWidget();
       }
       // else if (Material.class.isAssignableFrom (type)) {
       //    return new MaterialPanel("material", info.getNullValueOK());
@@ -752,7 +785,7 @@ public class PropertyWidget {
       if (comp instanceof LabeledControl) {
          LabeledControl widget = (LabeledControl)comp;
          if (widget.numMajorComponents() >= 1 &&
-             (widget.getMajorComponent (0) instanceof PropertyModeButton)) {
+            (widget.getMajorComponent (0) instanceof PropertyModeButton)) {
             return (PropertyModeButton)widget.getMajorComponent (0);
          }
       }
@@ -813,15 +846,15 @@ public class PropertyWidget {
          lwidget.getLabelSpacing (spacing);
          spacing.preSpacing = PropertyModeButton.getButtonSize().width;
          lwidget.setLabelSpacing (spacing);
-//          ((LabeledWidget)widget).setPrelabelSpacing (
-//             PropertyModeButton.getButtonSize().width);
+         //          ((LabeledWidget)widget).setPrelabelSpacing (
+         //             PropertyModeButton.getButtonSize().width);
          LabeledComponentBase.alignAllLabels(widget);
       }
    }
 
    public static void addModeButtonOrSpace (
       LabeledComponentBase widget, Property prop) {
-      
+
       // ignore if is a type of panel
       if (widget instanceof CompositePropertyPanel) {
          return;
@@ -858,7 +891,7 @@ public class PropertyWidget {
          }
          default: {
             throw new InternalErrorException ("Unhandled property mode: "
-            + mode);
+               + mode);
          }
       }
    }

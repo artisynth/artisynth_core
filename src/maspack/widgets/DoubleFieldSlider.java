@@ -11,14 +11,12 @@ import java.awt.Color;
 import javax.swing.*;
 import javax.swing.event.*;
 
-import maspack.util.DoubleHolder;
 import maspack.util.DoubleInterval;
 import maspack.util.NumberFormat;
 import maspack.util.NumericInterval;
 import maspack.util.NumericIntervalRange;
 import maspack.util.Range;
 import maspack.properties.*;
-import maspack.util.StringHolder;
 
 import java.util.Hashtable;
 

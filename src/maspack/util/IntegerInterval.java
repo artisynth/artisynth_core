@@ -48,6 +48,17 @@ public class IntegerInterval extends NumericInterval {
       this();
       set (rng);
    }
+   
+   /**
+    * Creates a new IntegerRange which is a copy of an existing NumericRange one.
+    * 
+    * @param rng
+    * range to copy
+    */
+   public IntegerInterval (NumericInterval rng) {
+      this();
+      set (rng);
+   }
 
    /**
     * Creates a new IntRange from a specification string. For the string syntax,
@@ -249,8 +260,8 @@ public class IntegerInterval extends NumericInterval {
       return values;
    }
 
-   public DoubleInterval clone() {
-      return (DoubleInterval)super.clone();
+   public IntegerInterval clone() {
+      return (IntegerInterval)super.clone();
    }
 
 

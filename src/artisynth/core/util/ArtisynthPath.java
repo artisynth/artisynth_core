@@ -88,7 +88,9 @@ public class ArtisynthPath {
       if (!path.startsWith ("file:")) {
          return null;
       }
-      path = path.substring (5, path.length());
+      
+      File file = new File(uri.getSchemeSpecificPart ());
+      path = file.getAbsolutePath ();
       int nseps = 1;
       if (rootOnly) {
          nseps++;
@@ -101,7 +103,7 @@ public class ArtisynthPath {
       int cnt = 0;
       int lastIdx = -1;
       while (idx >= 0) {
-         if (path.charAt (idx) == '/') {
+         if (path.charAt (idx) == File.separatorChar) {
             if (cnt == 0) {
                lastIdx = idx;
             }
@@ -121,8 +123,10 @@ public class ArtisynthPath {
       else {
          String fullPath = path.substring (0, idx+1);
          //System.out.println ("path=" + fullPath);
-         if (fullPath.endsWith ("/classes/")) {
-            return fullPath.substring(0, fullPath.length()-9)+"/src/" +
+         final String classes = File.separator + "classes" + File.separator;
+         final String src = File.separator + "src" + File.separator;
+         if (fullPath.endsWith (classes)) {
+            return fullPath.substring(0, fullPath.length()-9)+ src +
                path.substring (idx+1, lastIdx);
          }
          else {
@@ -521,7 +525,7 @@ public class ArtisynthPath {
          (classObj instanceof Class ? (Class<?>)classObj : classObj.getClass());
       String srcPath = getSrcPath (cls, /*root=*/false);
       if (relpath != null) {
-         srcPath += '/' + relpath;
+         srcPath += File.separatorChar + relpath;
       }
       return convertToLocalSeparators (srcPath);
    }

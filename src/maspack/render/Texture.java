@@ -44,6 +44,13 @@ public class Texture {
       this.textureID = textureID;
    }
 
+   /** 
+    * Get the GL texture ID
+	*/
+   public int getTextureId() {
+      return textureID;
+   }
+
    /**
     * Bind the specified GL context to a texture
     * 
@@ -52,6 +59,15 @@ public class Texture {
     */
    public void bind (GL2 gl) {
       gl.glBindTexture (target, textureID);
+   }
+
+   /**
+    * Delete the current texture in a context
+    */
+   public void delete(GL2 gl) {
+      if (textureID > 0) {
+         gl.glDeleteTextures(1, new int[] {textureID}, 0);
+      }
    }
 
    /**

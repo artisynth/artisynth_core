@@ -16,6 +16,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Map.Entry;
 
 import javax.imageio.ImageIO;
 import javax.media.opengl.GL2;
@@ -34,7 +35,7 @@ import javax.media.opengl.GL2;
  */
 public class TextureLoader {
    /** The table of textures that have been loaded in this loader */
-   private HashMap table = new HashMap();
+   private HashMap<String,Texture> table = new HashMap<String,Texture>();
    /** The GL context used to load textures */
    private GL2 gl;
    /** The colour model including alpha for the GL image */
@@ -114,7 +115,7 @@ public class TextureLoader {
     * @param dstPixelFormat
     * The pixel format of the screen
     * @param minFilter
-    * The minimising filter
+    * The minimizing filter
     * @param magFilter
     * The magnification filter
     * @return The loaded texture
@@ -174,6 +175,99 @@ public class TextureLoader {
          target, 0, dstPixelFormat, get2Fold (bufferedImage.getWidth()),
          get2Fold (bufferedImage.getHeight()), 0, srcPixelFormat,
          GL2.GL_UNSIGNED_BYTE, textureBuffer);
+
+      return texture;
+   }
+
+   public Texture getTexture (String resourceName,
+      byte[] buffer, int width, int height, 
+      int srcPixelFormat, int dstPixelFormat) {
+      
+      Texture tex = (Texture)table.get (resourceName);
+      if (tex != null) {
+         return tex;
+      }
+
+      tex = getTexture (resourceName, buffer,
+         width, height,
+         srcPixelFormat, 
+         GL2.GL_TEXTURE_2D, // target
+         dstPixelFormat, // dst pixel format
+         GL2.GL_LINEAR,  // min filter (unused)
+         GL2.GL_LINEAR);
+
+      table.put (resourceName, tex);
+
+      return tex;
+   }
+   
+   public Texture getTexture (
+      String name, 
+      byte[] bytes, int width, int height, int srcPixelFormat,
+      int target, int dstPixelFormat, int minFilter,
+      int magFilter) {
+
+      // create the texture ID for this texture
+
+      int textureID = createTextureID();
+      Texture texture = new Texture (target, textureID);
+
+      // bind this texture
+      gl.glBindTexture (target, textureID);
+
+      
+         //    if (width != get2Fold(width) || height != get2Fold(height)) {
+         // rescale to be power of two?
+         //       
+         //         DataBufferByte buffer = new DataBufferByte(bytes, bytes.length);
+         //         BufferedImage bi = new BufferedImage(width, height, imageType);
+         //         TYPE_INT_RGB
+         //         TYPE_INT_ARGB
+         //         TYPE_INT_ARGB_PRE
+         //         TYPE_INT_BGR
+         //         TYPE_3BYTE_BGR
+         //         TYPE_4BYTE_ABGR
+         //         TYPE_4BYTE_ABGR_PRE
+         //         TYPE_BYTE_GRAY
+         //         TYPE_USHORT_GRAY
+         //         TYPE_BYTE_BINARY
+         //         TYPE_BYTE_INDEXED
+         //         TYPE_USHORT_565_RGB
+         //         TYPE_USHORT_555_RGB
+         //         switch (imageType) {
+         //            
+         //         }
+         //         bi.setData(Raster.createInterleavedRaster(buffer, width, height, bands, location));
+         //         
+         //         //return new BufferedImage(cm, Raster.createInterleavedRaster(buffer, width, height, width * 3, 3, new int[]{0, 1, 2}, null), false, null);
+         //         
+         //         Image sampled = new BufferedImage(width, height, imageType);
+         //         sampled.
+         //         Image sampled = bufferedImage.getScaledInstance(
+         //            get2Fold(bufferedImage.getWidth()), 
+         //            get2Fold(bufferedImage.getHeight()), 
+         //            Image.SCALE_SMOOTH);
+         //         bufferedImage = new BufferedImage(get2Fold(biw), get2Fold(bih), BufferedImage.TYPE_INT_ARGB);
+         //         bufferedImage.getGraphics().drawImage(sampled, 0, 0 , null);
+         //      }
+      texture.setWidth (width);
+      texture.setHeight (height);
+
+
+      if (target == GL2.GL_TEXTURE_2D) {
+         gl.glTexParameteri (target, GL2.GL_TEXTURE_MIN_FILTER, minFilter);
+         gl.glTexParameteri (target, GL2.GL_TEXTURE_MAG_FILTER, magFilter);
+      }
+      
+      ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
+      buffer.put(bytes);
+      buffer.position (0);
+      
+      // produce a texture from the byte buffer
+      gl.glTexImage2D (
+         target, 0, dstPixelFormat, width,
+         height, 0, srcPixelFormat,
+         GL2.GL_UNSIGNED_BYTE, buffer);
 
       return texture;
    }
@@ -276,17 +370,43 @@ public class TextureLoader {
     * Indicates a failure to find a resource
     */
    private BufferedImage loadImage (String ref) throws IOException {
-      /*
-       * Get rid of this URL nonsense (Kees) URL url =
-       * TextureLoader.class.getClassLoader().getResource(ref);
-       * 
-       * if (url == null) { throw new IOException("Cannot find: "+ref); }
-       * 
-       * BufferedImage bufferedImage = ImageIO.read(new
-       * BufferedInputStream(getClass().getClassLoader().getResourceAsStream(ref)));
-       */
       BufferedImage bufferedImage = ImageIO.read (new java.io.File (ref));
 
       return bufferedImage;
+   }
+   
+   public GL2 getGL2() {
+      return gl;
+   }
+   
+   public void clearTexture(String id) {
+      Texture tex = table.get (id);
+      if (tex != null) {
+         tex.delete(gl);
+         table.remove(id);
+      }
+   }
+   
+   public void clearAllTextures() {
+      for (Entry<String,Texture> entry : table.entrySet()) {
+         entry.getValue().delete(gl);
+      }
+      table.clear();
+   }
+   
+   public Texture getTextureByName (String name) {
+      Texture tex = table.get(name);
+      return tex;
+   }
+   
+   public boolean isTextureValid(String id) {
+      Texture tex = table.get(id);
+      if (tex == null) {
+         return false;
+      }
+      if (tex.getTextureId() <= 0) {
+         return false;
+      }
+      return true;
    }
 }

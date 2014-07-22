@@ -441,14 +441,41 @@ public class MenuBarHandler implements
          case LABEL:
             return false;
          default:
-            if (numModelEntries (node) > 0) {
+            if (hasModelEntries (node)) {
                return false;
             }
       }
       return true;
 
    }
+   
+   // Recursively find if there are any model entries under a node.
+   // Faster than actually counting entries.
+   private boolean hasModelEntries(Node<MenuEntry> node) {
+      MenuEntry entry = node.getData();
 
+      switch (entry.getType()) {
+         case MENU: {
+            for (Node<MenuEntry> child : node.getChildren()) {
+               boolean hasModels = hasModelEntries (child);
+               if (hasModels) {
+                  return true;
+               }
+            }
+            break;
+         }
+         case MODEL: {
+            if (entry instanceof DemoEntry) {
+               return true;
+            }
+            break;
+         }
+         default:
+            break;
+      }
+      return false;
+   }
+   
    // recursively find the number of model entries under a node
    private int numModelEntries (Node<MenuEntry> node) {
 

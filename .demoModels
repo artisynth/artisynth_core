@@ -5,6 +5,7 @@
 "MechModelCollide" artisynth.demos.mech.MechModelCollide
 TetBeam3d artisynth.demos.fem.TetBeam3d
 HexBeam3d artisynth.demos.fem.HexBeam3d
+RobustCube artisynth.demos.fem.RobustCube
 HexFrame artisynth.demos.fem.HexFrame
 AttachDemo artisynth.demos.fem.AttachDemo
 FemBlock artisynth.demos.fem.Fem3dBlock

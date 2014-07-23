@@ -24,5 +24,4 @@
 			format -->
 		<package source="artisynth.models" view="hierarchical" />
 	</menu>
-
 </ModelMenu>

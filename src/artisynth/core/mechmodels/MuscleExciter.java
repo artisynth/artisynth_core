@@ -261,6 +261,9 @@ ExcitationComponent {
          throw new ArrayIndexOutOfBoundsException ("index " + idx
          + " is out of bounds");
       }
+      if (gain == -1) {
+         (new Throwable()).printStackTrace(); 
+      }
       myTargets.get (idx).setExcitationGain (this, gain);
    }
 
@@ -269,6 +272,9 @@ ExcitationComponent {
       if (idx == -1) {
          throw new IllegalArgumentException (
             "Excitable component not contained in target list");
+      }
+      if (gain == -1) {
+         (new Throwable()).printStackTrace(); 
       }
       myTargets.get (idx).setExcitationGain (this, gain);
    }

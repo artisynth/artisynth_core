@@ -15,12 +15,38 @@
 
 \begin{document}
 
+\section*{Jul 8, 2014}
+
+\subsection*{ArtiSynth released under a BSD license}
+
+The core ArtiSynth system has been separated from the anatomical
+models and released under an open source BSD-style license.
+
+An subset of the anatomical models have been collected into a separate
+ArtiSynth Models package, which is also publicly available from the
+{\sf Models} section of the ArtiSynth website.
+
+\subsection*{Repositories switched to subversion}
+
+The ArtiSynth repositories have been switched from CVS to Subversion.
+The current development version is available for anonymous checkout
+from
+\begin{verbatim}
+> svn co https://svn.artisynth.org/svn/artisynth_core/trunk artisynth_core
+\end{verbatim}
+
+\subsection*{RootModel moved new workspace package}
+
+RootModel has been moved from its previous package, {\tt
+core.modelbase}, to a new package {\tt core.workspace}, along with a
+few classes from {\tt core.driver}. This was done because RootModel is
+highly dependent on many other core packages and so is not really part
+of the "base" at all.
+
 \section*{Jun 30, 2014}
 
 Some changes have been made in preparation for the upcoming move to
 Subversion and the separation of ArtiSynth from the model packages.
-
-
 
 \subsection*{Creation of artisynth.demos package}
 

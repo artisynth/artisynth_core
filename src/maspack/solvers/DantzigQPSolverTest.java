@@ -29,15 +29,11 @@ public class DantzigQPSolverTest extends UnitTest {
       else {
          status = mySolver.solve (x, H, f, A, b);
       }
-      if ((Aeq.rowSize() == H.rowSize() &&
-           status != Status.SOLVED_EQUALITIES_ONLY) ||
-          (Aeq.rowSize() < H.rowSize() &&
-           status != Status.SOLVED)) {
+      if (status != Status.SOLVED) {
          throw new TestException (
             "Unexpected solution status: " + status);
       }
-      if (status == Status.SOLVED ||
-          status == Status.SOLVED_EQUALITIES_ONLY) {
+      if (status == Status.SOLVED) {
          if (!x.epsilonEquals (xcheck, 1e-10)) {
             throw new TestException (
                "Solution:\n" + x + "\nExpected:\n" + xcheck);

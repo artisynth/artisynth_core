@@ -34,12 +34,6 @@ public class DantzigQPSolver {
       SOLVED,
 
       /**
-       * System was completely constrained by equality constraints;
-       * only equality constraints were solved for.
-       */
-      SOLVED_EQUALITIES_ONLY,
-
-      /**
        * No solution appears to be possible.
        */
       NO_SOLUTION,
@@ -240,6 +234,11 @@ public class DantzigQPSolver {
     * </pre>
     * using Dantzig's LCP pivoting algorithm.
     *
+    * <p> Note that the number of inequality constraints (i.e., the row size of
+    * Aeq) should not exceed the size of H. Also, if the row size of Aeq equals
+    * the size of H, then only the equalites are solved for and the rest of the
+    * problem is ignored.
+    *
     * @param x computed minimum value
     * @param H quadratic matrix term. Must be symmetric positive definite
     * @param f linear term
@@ -286,7 +285,7 @@ public class DantzigQPSolver {
             return Status.SINGULAR_SYSTEM;
          }
          else {
-            return Status.SOLVED_EQUALITIES_ONLY;              
+            return Status.SOLVED;
          }
       }
       MatrixNd HAeq = new MatrixNd (hsize+neq, hsize+neq);

@@ -218,6 +218,9 @@ public class DantzigQPSolverTest extends UnitTest {
             beq.set (i, mybeq1.get(i));
          }
          checkSolution (myH1, f, A, b, Aeq, beq, xcheck);
+         if (A.rowSize() == 0) {
+            checkSolution (myH1, f, null, null, Aeq, beq, xcheck);
+         }
       }
    }
 

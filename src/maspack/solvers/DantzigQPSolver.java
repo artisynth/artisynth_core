@@ -97,7 +97,7 @@ public class DantzigQPSolver {
          throw new IllegalArgumentException ("H must be square");
       }
       int hsize = H.rowSize();
-      if (A.colSize() != hsize) {
+      if (A != null && A.colSize() != hsize) {
          throw new IllegalArgumentException (
             "A column size "+A.colSize()+" does not equal H size "+hsize);
       }
@@ -105,7 +105,11 @@ public class DantzigQPSolver {
          throw new IllegalArgumentException (
             "f size "+f.size()+" does not equal H size "+hsize);
       }
-      if (A.rowSize() != b.size()) {
+      if (A != null && b == null) {
+         throw new IllegalArgumentException (
+            "b is null but A is not null");
+      }
+      if (A != null && A.rowSize() != b.size()) {
          throw new IllegalArgumentException (
             "A row size "+A.rowSize()+" does not equal b size "+b.size());
       }
@@ -133,26 +137,25 @@ public class DantzigQPSolver {
          myCholD = new CholeskyDecomposition();
       }
 
-      MatrixNd AT = new MatrixNd (A.colSize(), A.rowSize());
-
-      myM.setSize (A.rowSize(), A.rowSize());
-      myq.setSize (A.rowSize());
       x.setSize (H.rowSize());
-
-      AT.transpose (A);
       try {
          myCholD.factor (H);
       }
       catch (Exception e) {
          return Status.NOT_SPD;
       }
-      if (A.rowSize() == 0) {
+      if (A == null || A.rowSize() == 0) {
          if (!myCholD.solve (x, f)) {
             return Status.SINGULAR_SYSTEM;
          }
          x.negate();
          return Status.SOLVED;
       }
+      myM.setSize (A.rowSize(), A.rowSize());
+      myq.setSize (A.rowSize());
+      MatrixNd AT = new MatrixNd (A.colSize(), A.rowSize());
+      AT.transpose (A);
+
       if (!myCholD.solve (myY, AT)) {
          return Status.SINGULAR_SYSTEM;
       }
@@ -216,14 +219,14 @@ public class DantzigQPSolver {
       }
    }
 
-   protected void setCg (VectorNd cg, VectorNd c, VectorNd g) {
+   protected void setFbeq (VectorNd fbeq, VectorNd c, VectorNd g) {
 
       int qsize = c.size();
       for (int i=0; i<qsize; i++) {
-         cg.set (i, c.get(i));
+         fbeq.set (i, c.get(i));
       }
       for (int i=0; i<g.size(); i++) {
-         cg.set (qsize+i, g.get(i));
+         fbeq.set (qsize+i, g.get(i));
       }
    }
 
@@ -234,6 +237,9 @@ public class DantzigQPSolver {
     * </pre>
     * using Dantzig's LCP pivoting algorithm.
     *
+    * If there are no inequality constraints, then A should either
+    * have a row size of 0 or be specified as <code>null</code>.
+    * 
     * <p> Note that the number of inequality constraints (i.e., the row size of
     * Aeq) should not exceed the size of H. Also, if the row size of Aeq equals
     * the size of H, then only the equalites are solved for and the rest of the
@@ -242,8 +248,8 @@ public class DantzigQPSolver {
     * @param x computed minimum value
     * @param H quadratic matrix term. Must be symmetric positive definite
     * @param f linear term
-    * @param A inequality constraint matrix
-    * @param b inequality constraint offsets
+    * @param A inequality constraint matrix (can be null)
+    * @param b inequality constraint offsets (can be null if A is null)
     * @param Aeq equality constraint matrix
     * @param beq equality constraint offsets
     * @return status value.
@@ -289,18 +295,13 @@ public class DantzigQPSolver {
          }
       }
       MatrixNd HAeq = new MatrixNd (hsize+neq, hsize+neq);
-      MatrixNd AT = new MatrixNd (A.colSize()+neq, A.rowSize());
-      VectorNd cg = new VectorNd (hsize+neq);
+      VectorNd fbeq = new VectorNd (hsize+neq);
       VectorNd xlam = new VectorNd (hsize+neq);
-
-      myM.setSize (A.rowSize(), A.rowSize());
-      myq.setSize (A.rowSize());
       x.setSize (H.rowSize());
 
-      setAT (AT, A, neq);
       setHAeq (HAeq, H, Aeq);
       myLUD.factor (HAeq);
-      if (A.rowSize() == 0) {
+      if (A == null || A.rowSize() == 0) {
          myy.negate (f);
          myy.setSize (hsize+neq);
          for (int i=0; i<neq; i++) {
@@ -314,14 +315,18 @@ public class DantzigQPSolver {
             return Status.SOLVED;
          }
       }
+      MatrixNd AT = new MatrixNd (A.colSize()+neq, A.rowSize());
+      myM.setSize (A.rowSize(), A.rowSize());
+      myq.setSize (A.rowSize());
+      setAT (AT, A, neq);
 
       if (!myLUD.solve (myY, AT)) {
          return Status.SINGULAR_SYSTEM;
       }
       myM.mulTransposeLeft (AT, myY);
 
-      setCg (cg, f, beq);
-      if (!myLUD.solve (myy, cg)) {
+      setFbeq (fbeq, f, beq);
+      if (!myLUD.solve (myy, fbeq)) {
          return Status.SINGULAR_SYSTEM;
       }
       AT.mulTranspose (myq, myy);
@@ -338,7 +343,7 @@ public class DantzigQPSolver {
          for (int i=0; i<neq; i++) {
             myy.set (hsize+i, 0);
          }
-         myy.sub (cg);
+         myy.sub (fbeq);
          if (!myLUD.solve (xlam, myy)) {
             return Status.SINGULAR_SYSTEM;
          }

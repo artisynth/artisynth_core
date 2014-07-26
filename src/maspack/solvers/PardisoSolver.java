@@ -397,19 +397,20 @@ public class PardisoSolver implements DirectSolver {
     */
    private static void doLoadLibraries() {
       try {
+         NativeLibraryManager.setFlags (NativeLibraryManager.VERBOSE);
          switch (NativeLibraryManager.getSystemType()) {
             case Linux:
             case Linux64: {
-               NativeLibraryManager.verify ("gomp.1");
+               NativeLibraryManager.load ("gomp.1");
                break;
             }
             case Windows:
             case Windows64: {
-               NativeLibraryManager.verify ("libiomp5md");
+               NativeLibraryManager.load ("libiomp5md");
                break;
             }
             case MacOS: {
-               NativeLibraryManager.verify ("iomp5");
+               NativeLibraryManager.load ("iomp5");
                break;
             }
          }

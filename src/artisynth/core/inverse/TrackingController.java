@@ -163,6 +163,9 @@ public class TrackingController extends ControllerBase
       myProps.add(
          "sourcesVisible * *", "allow showing or hiding of motion markers",
          true);
+      myProps.add(
+         "usePDControl * *", "use PD controller for motion term",
+         MotionTargetTerm.DEFAULT_USE_PD_CONTROL);
       // myProps.add("debug * *", "print target stuff", false);
    }
 
@@ -765,7 +768,15 @@ public class TrackingController extends ControllerBase
    public void setManaged(boolean set) {
       useInverseManager = set;
    }
+   
+   public void setUsePDControl(boolean usePD) {
+      myMotionTerm.usePDControl = usePD;
+   }
 
+   public boolean getUsePDControl() {
+      return myMotionTerm.usePDControl;
+   }
+   
    /**
     * Creates a control panel for this inverse controller
     */

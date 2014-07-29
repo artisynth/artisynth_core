@@ -47,7 +47,7 @@ public class GtsReader extends MeshReaderBase {
          }
          Edge edge = (Edge)obj;
          return ((edge.myVtx1 == myVtx1 && edge.myVtx2 == myVtx2) ||
-                 (edge.myVtx1 == myVtx2 && edge.myVtx2 == myVtx1));
+            (edge.myVtx1 == myVtx2 && edge.myVtx2 == myVtx1));
       }
    };
 
@@ -88,7 +88,7 @@ public class GtsReader extends MeshReaderBase {
       } else {
          mesh.clear();
       }
-      
+
       ReaderTokenizer rtok =
          new ReaderTokenizer (new BufferedReader (
             new InputStreamReader(myIstream)));
@@ -160,15 +160,15 @@ public class GtsReader extends MeshReaderBase {
       }
       return mesh;
    }
-   
+
    public static PolygonalMesh read (File file) throws IOException {
       GtsReader reader = new GtsReader(file);
       return (PolygonalMesh)reader.readMesh ();
-    }
+   }
 
    public static PolygonalMesh read (String fileName) throws IOException {
       return read (new File(fileName));
-    }
+   }
 
 }
 

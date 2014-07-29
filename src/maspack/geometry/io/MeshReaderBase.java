@@ -1,6 +1,5 @@
 package maspack.geometry.io;
 
-import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -8,7 +7,6 @@ import java.io.InputStream;
 
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
-import maspack.geometry.PointMesh;
 
 public abstract class MeshReaderBase implements MeshReader {
 

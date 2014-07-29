@@ -14,6 +14,7 @@ import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
+import maspack.util.ClassFinder;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.modelbase.ModelComponent;
 

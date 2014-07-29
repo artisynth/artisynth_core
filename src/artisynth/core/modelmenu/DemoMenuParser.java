@@ -29,6 +29,7 @@ import java.lang.reflect.Modifier;
 
 import maspack.graph.Node;
 import maspack.graph.Tree;
+import maspack.util.ClassFinder;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -39,7 +40,6 @@ import org.xml.sax.SAXParseException;
 
 import artisynth.core.util.AliasTable;
 import artisynth.core.util.ArtisynthPath;
-import artisynth.core.util.ClassFinder;
 import artisynth.core.workspace.RootModel;
 
 /**

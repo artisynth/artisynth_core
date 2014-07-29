@@ -18,7 +18,7 @@ public abstract class MeshWriterBase implements MeshWriter {
       myOstream = null;
    }
 
-   protected MeshWriterBase (OutputStream os) throws IOException{
+   protected MeshWriterBase (OutputStream os) {
       myOstream = os;
    }
 
@@ -63,14 +63,27 @@ public abstract class MeshWriterBase implements MeshWriter {
       }
    }
    
+   public void flush() {
+      flushQuietly(myOstream);
+   }
+   
+   private void flushQuietly(OutputStream out) {
+      if (out != null) {
+         try {
+            out.flush();
+         } catch (IOException e) {}
+      }
+   }
+   
    public void close() {
+      flush();
       closeQuietly(myOstream);
    }
    
    @Override
    protected void finalize() throws Throwable {
       super.finalize();
-      closeQuietly(myOstream);
+      close();
       
    }
 

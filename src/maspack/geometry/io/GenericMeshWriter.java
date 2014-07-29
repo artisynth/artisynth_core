@@ -1,41 +1,87 @@
 package maspack.geometry.io;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 
-import maspack.util.*;
-import maspack.geometry.*;
-import maspack.geometry.io.MeshWriter.DataFormat;
-import maspack.geometry.io.MeshWriter.FloatType;
+import maspack.geometry.MeshBase;
 import maspack.geometry.io.PlyWriter.DataType;
+import maspack.util.ClassFinder;
+import maspack.util.NumberFormat;
 
 public class GenericMeshWriter implements MeshWriter {
 
+   private static ArrayList<MeshWriterFactory> factoryList = findFactoryList();
+   
    protected MeshWriter myWriter;
 
+   private static ArrayList<MeshWriterFactory> findFactoryList() {
+      
+      // Find all appropriate factories
+      ArrayList<MeshWriterFactory> factoryList = new ArrayList<MeshWriterFactory>();
+      try {
+         ArrayList<Class<?>> clazzes = 
+            ClassFinder.findClasses("", MeshWriterFactory.class);
+         
+         for (Class<?> clazz : clazzes) {
+            // if not abstract or an interface, add the factory to the list
+            try {
+               if (!Modifier.isAbstract(clazz.getModifiers()) && 
+                  !Modifier.isInterface(clazz.getModifiers())) {
+                  factoryList.add((MeshWriterFactory)clazz.newInstance());
+               }
+            } catch (Exception e){}
+         }
+         
+      } catch (Exception e){
+      }
+      
+      factoryList.trimToSize();
+      return factoryList;
+   }
+   
    public GenericMeshWriter (String fileName) throws IOException {
       this (new File(fileName));
    }
 
    public GenericMeshWriter (File file) throws IOException {
+      
       String fileName = file.getName();
-      if (fileName.endsWith (".ply")) {
+      String lfileName = fileName.toLowerCase();
+      myWriter = null;
+      
+      if (lfileName.endsWith (".ply")) {
          myWriter = new PlyWriter (file);
       }
-      else if (fileName.endsWith (".obj")) {
+      else if (lfileName.endsWith (".obj")) {
          myWriter = new WavefrontWriter(file);
       }
-      else if (fileName.endsWith (".off")) {
+      else if (lfileName.endsWith (".off")) {
          myWriter = new OffWriter(file);
       }
-      else if (fileName.endsWith (".stl")) {
+      else if (lfileName.endsWith (".stl")) {
          myWriter = new StlWriter(file);
       }
-      else if (fileName.endsWith (".xyzb")) {
+      else if (lfileName.endsWith (".xyzb")) {
          myWriter = new XyzbWriter(file);
       }
       else {
-         throw new UnsupportedOperationException (
-            "File "+fileName+" has unrecognized extension");
+         
+         for (MeshWriterFactory factory : factoryList) {
+            for (String ext : factory.getFileExtensions()) {
+               String lext = ext.toLowerCase();
+               if (lfileName.endsWith(lext)) {
+                  myWriter = factory.newWriter(file);
+                  break;
+               }
+            }
+         }
+         
+         if (myWriter == null) {
+            throw new UnsupportedOperationException (
+               "File "+fileName+" has unrecognized extension");
+         }
       }
    }
 

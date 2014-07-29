@@ -1,8 +1,6 @@
 package maspack.geometry.io;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 
 import maspack.geometry.MeshBase;
 
@@ -21,7 +19,7 @@ public interface MeshReader {
    
    public MeshBase readMesh (MeshBase mesh) throws IOException;
    public void close();
-   
+
    //public MeshBase read (MeshBase mesh, InputStream istream) throws IOException;
    //public MeshBase read (MeshBase mesh, File file) throws IOException;
    //public MeshBase read (MeshBase mesh, String filename) throws IOException;

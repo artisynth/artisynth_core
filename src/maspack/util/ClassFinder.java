@@ -6,7 +6,7 @@
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
 
-package artisynth.core.util;
+package maspack.util;
 
 import java.io.File;
 import java.io.IOException;
@@ -63,7 +63,7 @@ public class ClassFinder {
     * package that are a child of the supplied Class T
     * 
     * @param pkg
-    * string name of package (i.e. artisynth.models)
+    * string name of package
     * @param regex
     * only keep files matching the regex statement (i.e. ) i.e. regex =".*Demo$"
     * will keep only files ending with "Demo"

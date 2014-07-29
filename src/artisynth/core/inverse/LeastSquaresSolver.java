@@ -9,14 +9,16 @@ package artisynth.core.inverse;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.VectorNd;
+import maspack.solvers.DantzigQPSolver;
+import maspack.solvers.DantzigQPSolver.Status;
 import maspack.util.FunctionTimer;
 import maspack.util.NumberFormat;
 
 public class LeastSquaresSolver
 {
-   QPSolver myQPSolver;
-   double myLowerBound = 0d;
-   double myUpperBound = 1d;
+   DantzigQPSolver myQPSolver;
+   Double myLowerBound = 0d;
+   Double myUpperBound = 1d;
    
    boolean debug = false;
    boolean profiling = false;
@@ -29,7 +31,7 @@ public class LeastSquaresSolver
    
    public LeastSquaresSolver() 
    {
-      myQPSolver = new DantzigQP();
+      myQPSolver = new DantzigQPSolver();
    }
    
    public void dispose() {
@@ -43,14 +45,12 @@ public class LeastSquaresSolver
    VectorNd ub = new VectorNd(0);
    
    MatrixNd Q = new  MatrixNd(0,0);
-   double[][] Qbuf;
    VectorNd f = new VectorNd(0);
    VectorNd x = new VectorNd(0);
    VectorNd x0 = new VectorNd(0);
-   
-   double[][] Abuf;
-//   MatrixNd A = new MatrixNd(0,0);
-//   VectorNd b = new VectorNd(0);
+      
+   MatrixNd A = new MatrixNd(0,0);
+   VectorNd b = new VectorNd(0);
    
    /**
     * Solve a bounded least squares problem as a QP
@@ -64,53 +64,103 @@ public class LeastSquaresSolver
          solve (a, C, d, a0, null, null);
    }
    
+//   /**
+//    * Solve a constrained least squares problem as a QP
+//    * 
+//    * @param a
+//    * @param C
+//    * @param d
+//    * @param A 
+//    * @param b
+//    * @param a0
+//    */
+//   public void solve(VectorNd a, MatrixNd C, VectorNd d, VectorNd a0, MatrixNd A, VectorNd b) {
+//      
+//       if (costRowSize != C.rowSize() || conRowSize != A.rowSize () || exSize != a.size() )
+//         resizeVariables(C.rowSize(), A.rowSize (), a.size());
+//      
+//      // a and a0 may have a capacity greater than size which causes exception
+//      // in Dantzig solver
+//      x.set(a);
+//      x0.set(a0);
+//
+//      Q.mulTransposeLeft(C, C);
+//      f.mulTranspose(C, d);
+//      f.negate();
+//      Q.get(Qbuf);
+//
+//      try {
+//         if (A == null || b == null || conRowSize == 0) {
+//            myQPSolver.solve (
+//               x.getBuffer (), Qbuf, f.getBuffer (), null, null,
+//               lb.getBuffer (), ub.getBuffer (), x0.getBuffer ());
+//         }
+//         else {
+//            A.get (Abuf);
+//            myQPSolver.solve (
+//               x.getBuffer (), Qbuf, f.getBuffer (), Abuf, b.getBuffer (),
+//               lb.getBuffer (), ub.getBuffer (), x0.getBuffer ());
+//         }
+//	 if (debug) {
+//            printVars (x, C, d, Q, f, A, b, lb, ub, x0);
+//	 }
+//      } catch (Exception e) {
+//	 e.printStackTrace();
+//      }
+//
+//      a.set(x); // copy result back to a
+//   }
+   
+   
    /**
     * Solve a constrained least squares problem as a QP
     * 
     * @param a
     * @param C
     * @param d
-    * @param A 
-    * @param b
+    * @param Aeq 
+    * @param beq
     * @param a0
     */
-   public void solve(VectorNd a, MatrixNd C, VectorNd d, VectorNd a0, MatrixNd A, VectorNd b) {
+   public void solve(VectorNd a, MatrixNd C, VectorNd d, VectorNd a0, MatrixNd Aeq, VectorNd beq) {
       
-       if (costRowSize != C.rowSize() || conRowSize != A.rowSize () || exSize != a.size() )
-         resizeVariables(C.rowSize(), A.rowSize (), a.size());
+       if (costRowSize != C.rowSize() || conRowSize != Aeq.rowSize () || exSize != a.size() )
+         resizeVariables(C.rowSize(), Aeq.rowSize (), a.size());
       
       // a and a0 may have a capacity greater than size which causes exception
       // in Dantzig solver
-      x.set(a);
-      x0.set(a0);
+      x.set(a0);
+//      x0.set(a0);
 
       Q.mulTransposeLeft(C, C);
       f.mulTranspose(C, d);
       f.negate();
-      Q.get(Qbuf);
+      
+      createBoundConstraints (A, b, lb, ub);
 
       try {
-         if (A == null || b == null || conRowSize == 0) {
-            myQPSolver.solve (
-               x.getBuffer (), Qbuf, f.getBuffer (), null, null,
-               lb.getBuffer (), ub.getBuffer (), x0.getBuffer ());
+         if (Aeq == null || beq == null || conRowSize == 0) {
+            myQPSolver.solve (x, Q, f, A, b);
          }
          else {
-            A.get (Abuf);
-            myQPSolver.solve (
-               x.getBuffer (), Qbuf, f.getBuffer (), Abuf, b.getBuffer (),
-               lb.getBuffer (), ub.getBuffer (), x0.getBuffer ());
+//            myQPSolver.solve (
+//               x.getBuffer (), Qbuf, f.getBuffer (), Abuf, beq.getBuffer (),
+//               lb.getBuffer (), ub.getBuffer (), x0.getBuffer ());
+            Status qpStatus = myQPSolver.solve (x, Q, f, A, b, Aeq, beq);
+            if (qpStatus != Status.SOLVED) {
+               System.err.println("InverseSolve failed: solver status = "+qpStatus.toString ());
+            }
+
          }
-	 if (debug) {
-            printVars (x, C, d, Q, f, A, b, lb, ub, x0);
-	 }
+         if (debug) {
+            printVars (x, C, d, Q, f, Aeq, beq, lb, ub, x0);
+         }
       } catch (Exception e) {
-	 e.printStackTrace();
+         e.printStackTrace();
       }
 
       a.set(x); // copy result back to a
    }
-   
    
    private void printVars(VectorNd x, MatrixNd C, VectorNd d, MatrixNd Q,
 	 VectorNd f, MatrixNd A, VectorNd b, VectorNd lb, VectorNd ub, VectorNd x0) {
@@ -130,17 +180,35 @@ public class LeastSquaresSolver
 	 System.out.println("x = [" + x.toString(fmt) + "];");
    }
    
-   private void resetBounds() {
-      assert lb.size() == ub.size();
-      for (int i = 0; i < lb.size(); i++)
-      {
-         lb.set (i, myLowerBound);
-         ub.set (i, myUpperBound);
+   private int resetBounds() {
+      int size = 0;
+      if (myLowerBound != null) {
+         lb = new VectorNd(exSize);
+         for (int i = 0; i < exSize; i++) {
+            lb.set (i, myLowerBound);
+         }
+         size += exSize;
       }
+      else {
+         lb = null;
+      }
+
+      if (myUpperBound != null) {
+         ub = new VectorNd(exSize);
+         for (int i = 0; i < exSize; i++) {
+            ub.set (i, myUpperBound);
+         }
+         size += exSize;
+      }
+      else {
+         ub = null;
+      }
+      
+      return size;
    }
    
    
-   public void setBounds(double lower, double upper) {
+   public void setBounds(Double lower, Double upper) {
       myLowerBound = lower;
       myUpperBound = upper;
       resetBounds();
@@ -152,14 +220,10 @@ public class LeastSquaresSolver
       
       // we already check that lb.size() == ub.size() when we resize
       // so we just need to ensure the supplied upper and lower are valid
-      assert lower.size() == lb.size();		
-      assert lower.size() == upper.size();
-      
-      for (int i=0; i<lb.size(); i++) {
-	 	lb.set(lower);
-	 	ub.set(upper);
-      }
-      
+      assert lower.size() == exSize;		
+      assert upper.size() == exSize;
+      lb = new VectorNd(lower);
+      ub = new VectorNd(upper);
    }
    
    public void resizeVariables(int costRowSize, int conRowSize, int exSize) {
@@ -168,22 +232,45 @@ public class LeastSquaresSolver
       this.exSize = exSize;
       
       Q = new MatrixNd (exSize, exSize);
-      Qbuf = new double[exSize][exSize];
-
       
       f= new VectorNd (exSize);
       x = new VectorNd(exSize);
       x0 = new VectorNd(exSize);
       
-      lb= new VectorNd (exSize);
-      ub= new VectorNd (exSize);
-      resetBounds();
-      
-//      A = new MatrixNd(rowSize, exSize);
-//      b = new VectorNd(rowSize);
-      
-      Abuf = new double[conRowSize][exSize];
-
+      int boundsSize = resetBounds();
+      A = new MatrixNd(boundsSize, exSize);
+      b = new VectorNd(boundsSize);
    }
 
+   
+   /**
+    * Create inequality constraints A >= b from bounds lb and ub
+    * 
+    */
+   public void createBoundConstraints(MatrixNd A, VectorNd b, VectorNd lb, VectorNd ub)
+   {
+ 
+      A.setIdentity ();
+      int idx = 0;
+   
+      if (lb != null)
+      {
+         for (int i = 0; i < lb.size(); i++)
+         {
+            A.set (idx, i, 1.0); // x >= lb
+            b.set (idx++, lb.get (i));
+         }
+      }
+      
+      if (ub != null)
+      {
+         for (int i = 0; i < ub.size(); i++)
+         {
+            A.set (idx, i, -1.0); // -x >= -ub
+            b.set (idx++, -ub.get(i));
+         }
+      }
+      
+      
+   }
 }

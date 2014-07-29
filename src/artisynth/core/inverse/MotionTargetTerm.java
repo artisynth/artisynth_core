@@ -89,6 +89,10 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       myProps.add(
          "normalizeH", "normalize contribution by frobenius norm",
          DEFAULT_NORMALIZE_H);
+      myProps.addReadOnly (
+         "derr", "derivative error at current timestep");
+      myProps.addReadOnly (
+         "perr", "proporational error at current timestep");
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -117,6 +121,10 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       double h = TimeBase.round(t1 - t0);
 
       if (usePDControl) {
+         
+         if (t0 == 0) { // XXX need better way to reset
+            prevTargetPos = null;
+         }
          
          interpolateTargetVelocity(h);
          updatePositionError ();
@@ -863,6 +871,18 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     */
    public double getKp() {
       return Kp;
+   }
+   
+   public double getPerr() {
+      // updated in getTerm()
+//      updatePositionError ();
+      return postionError.norm ();
+   }
+   
+   public double getDerr() {
+      // updated in getTerm()
+//      updateVelocityError ();
+      return velocityError.norm ();
    }
    
    /**

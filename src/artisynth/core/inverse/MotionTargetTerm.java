@@ -42,7 +42,8 @@ import artisynth.core.util.TimeBase;
  */
 public class MotionTargetTerm extends LeastSquaresTermBase {
 
-   boolean usePDControl = false;
+   public static final boolean DEFAULT_USE_PD_CONTROL = false;
+   boolean usePDControl = DEFAULT_USE_PD_CONTROL;
    boolean debug = false;
    boolean enabled = true;
 

@@ -14,11 +14,11 @@ pdf: $(PDF_DIR)/windowsInstallation.pdf \
 $(PDF_DIR)/windowsInstallation.pdf: windowsInstallation.pdf
 	cp windowsInstallation.pdf $(PDF_DIR)
 
-windowsInstallation.pdf: windowsInstallation.tex
+windowsInstallation.pdf: windowsInstallation.tex installation.tex
 	pdflatex windowsInstallation.tex
 	pdflatex windowsInstallation.tex
 
-windowsInstallation.xml: windowsInstallation.tex
+windowsInstallation.xml: windowsInstallation.tex installation.tex
 	latexml windowsInstallation.tex >windowsInstallation.xml
 
 $(HTML_DIR)/windowsInstallation.html: windowsInstallation.xml
@@ -30,11 +30,11 @@ $(HTML_DIR)/windowsInstallation.html: windowsInstallation.xml
 $(PDF_DIR)/linuxInstallation.pdf: linuxInstallation.pdf
 	cp linuxInstallation.pdf $(PDF_DIR)
 
-linuxInstallation.pdf: linuxInstallation.tex
+linuxInstallation.pdf: linuxInstallation.tex installation.tex
 	pdflatex linuxInstallation.tex
 	pdflatex linuxInstallation.tex
 
-linuxInstallation.xml: linuxInstallation.tex
+linuxInstallation.xml: linuxInstallation.tex installation.tex
 	latexml linuxInstallation.tex >linuxInstallation.xml
 
 $(HTML_DIR)/linuxInstallation.html: linuxInstallation.xml
@@ -46,11 +46,11 @@ $(HTML_DIR)/linuxInstallation.html: linuxInstallation.xml
 $(PDF_DIR)/macosInstallation.pdf: macosInstallation.pdf
 	cp macosInstallation.pdf $(PDF_DIR)
 
-macosInstallation.pdf: macosInstallation.tex
+macosInstallation.pdf: macosInstallation.tex installation.tex
 	pdflatex macosInstallation.tex
 	pdflatex macosInstallation.tex
 
-macosInstallation.xml: macosInstallation.tex
+macosInstallation.xml: macosInstallation.tex installation.tex
 	latexml macosInstallation.tex >macosInstallation.xml
 
 $(HTML_DIR)/macosInstallation.html: macosInstallation.xml

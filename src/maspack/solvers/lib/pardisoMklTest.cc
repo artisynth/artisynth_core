@@ -13,7 +13,7 @@
 
 #define ABS(x) ((x) < 0 ? -(x) : (x))
 
-#ifdef CYGWIN
+#if defined(CYGWIN) || defined(INTEL_COMPILER)
 #define random rand
 #endif
 

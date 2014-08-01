@@ -1,5 +1,5 @@
 CC_COMP = icl
-CC_FLAGS = /O2 /Qopenmp /DINTEL_COMPILER /DCYGWIN
+CC_FLAGS = /O2 /Qopenmp /DINTEL_COMPILER
 JAVA_HOME = "C:\Program Files\Java\jdk1.6.0_37"
 CC_INCS = /I. /I$(JAVA_HOME)\include /I$(JAVA_HOME)\include\win32
 MKL_HOME = "C:\Program Files (x86)\Intel\Composer XE 2013 SP1"
@@ -32,4 +32,3 @@ hello.obj: hello.cc
 
 hello.exe: hello.obj
 	$(CC_COMP) $(CC_FLAGS) /Qmkl:parallel /o hello.exe hello.obj mkl_intel_lp64.lib mkl_core.lib mkl_intel_thread.lib
-

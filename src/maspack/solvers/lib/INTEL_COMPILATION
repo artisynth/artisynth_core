@@ -1,0 +1,63 @@
+July 31, 2014
+-------------
+
+The Intel compiler for Windows is available as Intel Composer XE 2013.
+
+In order to work properly, it requires a companion installation of
+Visual Studio. Visual Studio Express 2012 or higher is sufficient to
+allow for both 32 and 64 bit compilation from the command line.
+Visual Studio Express should be installed *before* Composer because
+the Composer install sequence will use that to determine what command
+line facilities (both 32 and 64 bit) can be put in place.
+
+To call the intel compiler from the command line, one should open a
+specially configured terminal with the appropriate environment set.
+For example:
+
+Start > All programs > Intel Parallel Studio XE 2013 > 
+    Command Prompt > Parallel Stuido XE with Intel Compiler > 
+        Intel 64 Visual Studio 2130 mode
+
+A batch file that sets the environment is found in C:\Program Files
+(x86)\Intel\Composer XE 2013 SP1\bin\compilevars
+
+An 'x86' command line environment will allow 32 bit compilation, while
+the 'Intel 64' command line environment will allow 64 bit compilation.
+The first install of Composer was done before Visual Studio Express
+2013 had been installed and so 64 bit compilation was not available.
+
+In order to check whether an obj file is compiled for 32 or 64 bit,
+one can use dumpbin, which is part of Visual Studio and is
+available from the special shell:
+
+  dumpbin /headers application.exe | findstr "magic machine"
+       14C machine (x86)
+           32 bit word machine
+ OR
+  dumpbin /headers application.exe | findstr "magic machine"
+       8664 machine (x64)
+           20B magic # (PE32+)
+
+When using the command line environment, it is useful to reset
+the prompt. This can be done by setting the environment variable
+PROMPT to something like "$p$_$g"
+
+Compilation can be set up easily using nmake, with reads a Makefile
+just like Unix make. nmake is also part of Visual Studio and is
+available on the special command line.
+
+Documentation for the Intel Compiler can be found at 
+
+https://software.intel.com/en-us/compiler_14.0_ug_c
+
+Linker-specific options must come at the end, after the /link
+option. Linker options are documented elsewhere, as part of the
+general MicroSoft documentation. One such option is /LIBPATH, which
+serves the same role as -L on unix.
+
+
+
+
+
+
+

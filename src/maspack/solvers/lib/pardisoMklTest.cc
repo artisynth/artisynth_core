@@ -3,9 +3,11 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#ifndef INTEL_COMPILER
 #include <sys/time.h>
+#endif
 #include "pardisoMkl.h"
-#ifndef CYGWIN
+#if !defined(CYGWIN) && !defined(INTEL_COMPILER)
 #include <pthread.h>
 #endif
 
@@ -77,12 +79,14 @@ int readVectorFromFile (char *filename, double* vals)
    return vi;
 }
 
+#ifndef INTEL_COMPILER
 unsigned long currentTimeUsec()
 {
    struct timeval tv;
    gettimeofday (&tv, (struct timezone*)0);
    return (tv.tv_sec*1000000 + tv.tv_usec);
 }
+#endif
 
 void mulSymmetric (double* res, double* vals, int* rows, int* cols,
 		   int size, double* b)
@@ -172,7 +176,7 @@ double checkSymmetricResult (
    return infinityNorm (check, size);   
 }
 
-void *solveSymmetricMatrix (void *ptr) {
+void solveSymmetricMatrix (void *ptr) {
    
    MatrixInfo *infop = (MatrixInfo*)ptr;
    Pardiso4* pardiso = new Pardiso4();
@@ -431,6 +435,7 @@ int main (int argc, char** argv) {
    printf ("status=%d\n", status);
    double maxResidual = 0;
 
+#ifndef INTEL_COMPILER
    if (timingCnt > 0) {
      printf ("Testing factor+solve time for matrix of size %d:\n", matSize);
      long totalTime = 0;
@@ -460,10 +465,11 @@ int main (int argc, char** argv) {
      printf ("max residual = %g\n", maxResidual);
      printf ("average time = %g usec\n", totalTime/(double)timingCnt);
    }
+#endif
 
    Pardiso4* pardiso2 = new Pardiso4();
 
-#ifndef CYGWIN
+#if !defined(CYGWIN) && !defined(INTEL_COMPILER)
    if (threadTestCnt > 0) {
      for (int i=0; i<threadTestCnt; i++) {
        MatrixInfo info;

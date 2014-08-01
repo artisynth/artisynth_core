@@ -6,13 +6,23 @@
 /* -------------------------------------------------------------------- */
 
 /* PARDISO prototype. */
+
+#if defined(INTEL_COMPILER)
+
+#include "mkl.h"
+#define DLLEXPORT 
+#define PARDISO pardiso
+
+#else 
+
 #if defined(_WIN32) || defined(_WIN64)
-#define pardiso_ PARDISO
+#define PARDISO pardiso
 #define DLLEXPORT __declspec(dllexport) 
 #else
 #define PARDISO pardiso_
 #define DLLEXPORT 
 #endif
+
 #if defined(MKL_ILP64)
 #define MKL_INT long long
 #else
@@ -28,6 +38,8 @@ extern "C" {
    extern void pardisoinit (void *, MKL_INT *, MKL_INT *);
 
 }
+
+#endif
 
 #define ERR_INCONSISTENT_INPUT      -1
 #define ERR_MEMORY                  -2

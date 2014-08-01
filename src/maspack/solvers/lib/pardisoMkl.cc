@@ -770,3 +770,19 @@ void Pardiso4::setNumVals (int num)
    myNumVals = num;
 }
 
+#if 0
+// This was added in an unsuccessful attempt to replace xerbla in
+// Windows MKL and hence resolve undefined symbol errors in xerbla.obj
+// when linking using mingw on Cygwin.
+//
+// The undefined symbols included security_check_cookie and __GSHandlerCheck.
+
+void XERBLA(char* srname, int* info, int len){
+// srname - name of the function that called xerbla
+// info - position of the invalid parameter in the parameter list
+// len - length of the name in bytes
+   printf("\nXERBLA is called :%s: %d\n",srname,*info);
+}
+
+#endif
+

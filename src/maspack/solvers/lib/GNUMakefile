@@ -31,7 +31,8 @@ ifeq ($(SYSTEM),Linux)
 	ifeq ($(ARCH), 64)
 	   NATIVE_DIR = Linux64
 	   PARDISO = pardisoX86_64
-	   MKL=$(MKL_HOME)/lib/em64t
+	   MKL=$(MKL_HOME)/lib/intel64
+	   # MKL=$(MKL_HOME)/lib/em64t
 	   # MKL=$(MKL_HOME)/lib/intel64 -- for MKL 11
 	   # At last check, intel MKL blas were about 20% faster
 	   LDS_PARDISO_MKL = -Wl,--start-group \
@@ -111,14 +112,14 @@ else ifeq ($(SYSTEM),Darwin)
 	NATIVE_DIR = Darwin-x86_64
         JAVA_INC=/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers
 	CC_INCS = -I$(JAVA_INC) -I$(UMFPACK_DIR)/include -I.
-	CC_FLAGS = -m64 -g -fno-strict-aliasing -fPIC -DDARWIN -fpermissive -faltivec
+	CC_FLAGS = -m64 -g -fno-strict-aliasing -fPIC -DDARWIN -fpermissive
 	#CC_FLAGS = -m64 -g -fno-strict-aliasing -fPIC -W -Wall -Wno-unused \
 	#	-Wno-parentheses -DDARWIN -fpermissive -faltivec
 	LDS_UMFPACK = -lm -L$(UMFPACK_DIR)/lib/Darwin -lumfpack -lamd \
 		-lcrypto -framework vecLib 
-	COMPOSER=/opt/intel/composerxe/lib
-	MKL=/opt/intel/composerxe/mkl/lib
-	LDS_PARDISO_MKL = -L$(MKL) -L$(COMPOSER) \
+	COMPOSER_LIB=/opt/intel/composer_xe_2013_sp1/lib
+	MKL=/opt/intel/mkl/lib
+	LDS_PARDISO_MKL = -L$(MKL) -L$(COMPOSER_LIB) \
 		$(MKL)/libmkl_intel_lp64.a $(MKL)/libmkl_intel_thread.a \
 		$(MKL)/libmkl_core.a -liomp5 -lpthread     
 	UMFPACK_TARGET = libSolversUmfpack.dylib
@@ -174,6 +175,12 @@ pardisoMklTest: pardisoMkl.o pardisoMklTest.o pardisoMkl.h
 $(LIB_TARGET_DIR)/$(PARDISO_MKL_TARGET): PardisoMklJNI.o pardisoMkl.o
 	$(CC_COMP)  $(LIB_FLAGS) $(CC_FLAGS) -o $@ \
 		PardisoMklJNI.o pardisoMkl.o $(LDS_PARDISO_MKL) 
+ifeq ($(SYSTEM),Darwin)
+        # add to @loader_path to libiomp5 name so that we don't need to
+        # set DYLD_LIBRARY_PATH in applications; see
+        # http://dssheep.blogspot.ca/2011/11/how-to-avoid-dyldlibrarypath-with-jni.html
+	install_name_tool -change libiomp5.dylib "@loader_path/libiomp5.dylib" $@
+endif
 
 .PHONY: pardiso
 pardiso:	$(LIB_TARGET_DIR)/$(PARDISO_MKL_TARGET)

@@ -410,7 +410,10 @@ public class PardisoSolver implements DirectSolver {
                break;
             }
             case MacOS: {
-               NativeLibraryManager.load ("iomp5");
+               // advance loading won't work on MacOS. Instead, we rely
+               // on changing the install name for libiomp5.dylib in
+               // libPardisoJNI.1.0 to @loader_path/libiomp5.dylib 
+               //NativeLibraryManager.load ("iomp5");
                break;
             }
          }

@@ -521,6 +521,7 @@ public class PolylineMesh extends MeshBase {
          if (useDisplayList) {
             displayList = props.allocMeshDisplayList (gl);
             if (displayList > 0) {
+               renderer.validateInternalDisplayLists(props);
                gl.glNewList (displayList, GL2.GL_COMPILE);
             }
          }

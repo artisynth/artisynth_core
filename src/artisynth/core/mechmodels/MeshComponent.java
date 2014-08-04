@@ -19,7 +19,6 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.properties.PropertyList;
 import maspack.render.GLRenderer;
-import maspack.render.MeshRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.util.NumberFormat;
@@ -124,12 +123,12 @@ implements TransformableGeometry, ScalableUnits {
          return props;
       }
       else {
-         return RenderProps.createMeshProps(this);
+         return RenderProps.createRenderProps(this);
       }
    }
 
    private static RenderProps createDefaultRenderProps() {
-      RenderProps mr = new MeshRenderProps();
+      RenderProps mr = new RenderProps();
       return mr;
    }
 

@@ -10,7 +10,6 @@ import java.awt.Color;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
-import java.util.Deque;
 
 import javax.media.opengl.GL2;
 
@@ -2403,6 +2402,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
             DisplayListManager.createKey ("taperedEllipsoid", myLineSlices);
          DisplayListManager.freeSharedList (key);
          taperedEllipsoidDisplayList = 0;
+         clearMeshDisplayList();  // mesh might be dependent on tapered ellipsoid
       }
    }
 
@@ -2425,6 +2425,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          Object key = DisplayListManager.createKey ("sphere", myPointSlices);
          DisplayListManager.freeSharedList (key);
          sphereDisplayList = 0;
+         clearMeshDisplayList();  // mesh might be depending on old sphere display list
       }
    }
 

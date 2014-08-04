@@ -342,4 +342,19 @@ public interface GLRenderer {
     */
    public boolean isSelectable (GLSelectable s);
    
+   /**
+    * Should be called before creating external display lists involving spheres,
+    * ellipses, etc...
+    * 
+    * Ensures all internal display lists are up-to-date.  Otherwise,
+    * there are cases where we create a display list outside the renderer,
+    * but when rendering, an internal display list creation is triggered,
+    * leading to a GL "invalid operation" error.
+    */
+   public void validateInternalDisplayLists(RenderProps props);
+   
+   public int checkGLError();
+   
+   public void checkAndPrintGLError();
+   
 }

@@ -30,6 +30,7 @@ import javax.media.opengl.glu.GLU;
 import javax.media.opengl.glu.GLUquadric;
 import javax.swing.event.MouseInputListener;
 
+import jogamp.opengl.glu.error.Error;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.AxisAngle;
@@ -51,10 +52,10 @@ import maspack.util.InternalErrorException;
  */
 public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
 
-//   public enum AxialView {
-//      POS_X_POS_Z, NEG_X_POS_Z, POS_X_POS_Y, 
-//      POS_X_NEG_Y, POS_Y_POS_Z, NEG_Y_POS_Z
-//   }
+   //   public enum AxialView {
+   //      POS_X_POS_Z, NEG_X_POS_Z, POS_X_POS_Y, 
+   //      POS_X_NEG_Y, POS_Y_POS_Z, NEG_Y_POS_Z
+   //   }
 
    protected static boolean myUseGLSelectSelection = false;
 
@@ -335,7 +336,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
    private void initLights() {
       if (drawable == null)
          return;
-      
+
       gl = drawable.getGL().getGL2();
       for (GLLight light : lightManager.getLights()) {
          light.setupLight(gl);
@@ -372,7 +373,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
    public KeyListener[] getKeyListeners() {
       return getCanvas().getKeyListeners();
    }
-   
+
    public void addKeyListener (KeyListener l) {
       getCanvas().addKeyListener(l);
    }
@@ -867,7 +868,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       if (hasRenderables()) {
          Point3d pcenter = new Point3d();
          double r = estimateRadiusAndCenter (pcenter);
-         
+
          //if radius is zero, set default to radius 1
          if ( Math.abs(r) == 0  || Double.isInfinite(r) || Double.isNaN(r)) {
             r = 1;
@@ -878,7 +879,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
          XEyeToWorld.R.getColumn (2, zdir);
          double d = r / Math.sin (Math.toRadians (verticalFieldOfView) / 2);
          XEyeToWorld.p.scaledAdd (d, zdir, myCenter);
-         
+
          double far = 40 * r;
          double near = far / 1000;
          setOrthogonal (2 * r, near, far);
@@ -1435,14 +1436,14 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       if (shareWith != null) {
          sharedContext = shareWith.getContext();
       }
-      
-      
+
+
       // canvas = new GLCanvas(cap, sharedContext); //GLCanvas (cap, null, sharedContext, null);
       canvas = new GLCanvas(cap, null, null);
       if (sharedContext != null) {
          canvas.setSharedContext(sharedContext);
       }
-      
+
       canvas.addGLEventListener (this);
       canvas.setSize (width, height);
 
@@ -1450,10 +1451,10 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       this.height = height;
       myDraggers = new LinkedList<Dragger3d>();
       myUserDraggers = new LinkedList<Dragger3d>();
-      
+
       lightManager = new GLLightManager();
       setDefaultLights();
-      
+
       XEyeToWorld = new RigidTransform3d (0, -1, 0, 1, 0, 0, Math.PI / 2);
 
       glu = new GLU();
@@ -1468,7 +1469,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
    }
 
    public void setDefaultLights() {
-      
+
       lightManager.clearLights();
       lightManager.addLight(new GLLight (
          light0_position, light0_ambient, light0_diffuse, light0_specular));
@@ -1476,7 +1477,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
          light1_position, light1_ambient, light1_diffuse, light1_specular));
       lightManager.addLight(new GLLight (
          light2_position, light2_ambient, light2_diffuse, light2_specular));
-      
+
    }
 
    public void init (GLAutoDrawable drawable) {
@@ -1501,10 +1502,10 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       gl.glLightModelfv (GL2.GL_LIGHT_MODEL_TWO_SIDE, lmodel_twoside, 0);
       gl.glLightModelfv (GL2.GL_LIGHT_MODEL_AMBIENT, lmodel_ambient, 0);
       gl.glEnable (GL2.GL_LIGHTING);
-      
+
       lightManager.init(gl);
       initLights();
-      
+
       gl.glShadeModel (GL2.GL_FLAT);
 
       // gl.glFrontFace (GL2.GL_CW);
@@ -1517,7 +1518,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       resetViewVolume();
 
       myMouseHandler = new GLMouseListener (this);
-      
+
       if (canvas != null) {
          // canvas.addMouseListener(new GLMouseListener());
          canvas.addMouseListener (myMouseHandler);
@@ -1533,7 +1534,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       }
       width = drawable.getWidth();
       height = drawable.getHeight();
-      
+
       // Sanchez Sept 25, 2013:
       // On dual-monitor setups under Linux, OpenGL *sometimes* 
       // re-initializes when switching between screens.  This 
@@ -1552,11 +1553,11 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
             HasRenderProps hrp = (HasRenderProps)glr;
             RenderProps rp = hrp.getRenderProps();
             if (rp != null) {
-            	rp.clearAllDisplayLists();
+               rp.clearAllDisplayLists();
             }
          }
       }
-      
+
       if (myExternalRenderList != null) {
          for (int i=0; i<myExternalRenderList.size(); i++) {
             GLRenderable glr = myExternalRenderList.get(i);
@@ -1564,7 +1565,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
                HasRenderProps hrp = (HasRenderProps)glr;
                RenderProps rp = hrp.getRenderProps();
                if (rp != null) {
-            	   rp.clearAllDisplayLists();
+                  rp.clearAllDisplayLists();
                }
             }
          }
@@ -1620,7 +1621,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       if (resizeEnabled) {
          resetViewVolume();
       }
-      
+
    }
 
    public double getViewPlaneHeight() {
@@ -1712,7 +1713,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       zRange.x = 2*(minz+worldDist)-zRange.y;
 
    }
-   
+
    public void setViewVolume (double near, double far) {
       double aspect = width / (double)height;
       if (orthographicP) {
@@ -1840,7 +1841,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
    }
 
    private class RenderIterator implements Iterator<GLRenderable> {
-      
+
       SortedRenderableList myList = null;
       int myListIdx = 0;
       int myIdx = -1;
@@ -1877,28 +1878,28 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
             }
             case 1: {
                return (myExternalRenderList != null ?
-                       myExternalRenderList.myOpaque : null);
+                  myExternalRenderList.myOpaque : null);
             }
             case 2: {
                return myInternalRenderList.myTransparent;
             }
             case 3: {
                return (myExternalRenderList != null ?
-                       myExternalRenderList.myTransparent : null);
+                  myExternalRenderList.myTransparent : null);
             }
             case 4: {
                return myInternalRenderList.myOpaque2d;
             }
             case 5: {
                return (myExternalRenderList != null ?
-                       myExternalRenderList.myOpaque2d : null);
+                  myExternalRenderList.myOpaque2d : null);
             }
             case 6: {
                return myInternalRenderList.myTransparent2d;
             }
             case 7: {
                return (myExternalRenderList != null ?
-                       myExternalRenderList.myTransparent2d : null);
+                  myExternalRenderList.myTransparent2d : null);
             }
             default: {
                throw new ArrayIndexOutOfBoundsException ("idx=" + idx);
@@ -2089,7 +2090,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
    }
 
    public void setTransparencyEnabled (boolean enable) {
-	   
+
       // do not enable if in selection mode
       if (!(isSelecting() && enable)) {
          if (enable != myTransparencyEnabledP) {
@@ -2136,7 +2137,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
             bgColorRequest = false;
          }
       }
-      
+
       gl.glClear (GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);
 
       RigidTransform3d X = new RigidTransform3d();
@@ -2162,12 +2163,12 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
          if (myDrawTool != null) {
             myDrawTool.render (this, 0);
          }
-         
+
          for (GLClipPlane cp : myClipPlanes) {
             cp.render (this, flags);
          }
       }
-      
+
       for (GLClipPlane cp : myClipPlanes) {
          if (cp.isClippingEnabled()) {
             cp.getPlaneValues (myClipPlaneValues);
@@ -2185,7 +2186,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
             }
          }
       }
-      
+
       gl.glPushMatrix();
 
       int qid = 0;
@@ -2195,9 +2196,9 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       }
 
       if (!isSelecting()) {
-    	  enableTransparency (gl);
+         enableTransparency (gl);
       }
-      
+
       qid = myInternalRenderList.renderTransparent (this, qid, flags);
       if (myExternalRenderList != null) {
          qid = myExternalRenderList.renderTransparent (this, qid, flags);
@@ -2370,7 +2371,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
          }
       }
    }
-   
+
    public void setColor (float[] rgb) {
       if (!selectEnabled) {
          if (rgb != null) {
@@ -2413,7 +2414,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
          }
       }
    }
-   
+
    public void setColor (float r, float g, float b) {
       if (!selectEnabled) {
          gl.glColor3f (r, g, b);
@@ -2544,19 +2545,85 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       double r = props.getPointRadius();
       drawSphere(props, coords, r);
    }
-   
+
+   @Override
+   public void validateInternalDisplayLists(RenderProps props) {
+      validateSphereDisplayList(props);
+      validateTaperedEllipsoidDisplayList(props);
+   }
+
+   public int validateSphereDisplayList(RenderProps props) {
+
+      int displayList = props.getSphereDisplayList(gl);
+      if (displayList < 1) {
+         displayList = props.allocSphereDisplayList (gl);
+         if (displayList > 0) {
+            gl.glNewList (displayList, GL2.GL_COMPILE);
+            if (mySphereQuad == null) {
+               mySphereQuad = glu.gluNewQuadric();
+            }
+            int slices = props.getPointSlices();
+            glu.gluSphere (mySphereQuad, 1.0, slices, slices / 2);
+            gl.glEndList();
+         }
+      }
+      return displayList;
+   }
+
+   public int validateTaperedEllipsoidDisplayList(RenderProps props) {
+
+      int displayList = props.getTaperedEllipsoidDisplayList(gl);
+      if (displayList < 1) {
+         displayList = props.allocTaperedEllipsoidDisplayList (gl);
+
+         if (displayList > 0) {
+            gl.glNewList (displayList, GL2.GL_COMPILE);
+            GLU glu = getGLU();
+            if (myCylinderQuad == null) {
+               myCylinderQuad = glu.gluNewQuadric();
+            }
+            double s0 = 0;
+            double c0 = 1;
+            int nslices = props.getLineSlices();
+            for (int slice = 0; slice < nslices; slice++) {
+               double ang = (slice + 1) * 2 * Math.PI / nslices;
+               double c1 = Math.cos (ang);
+               double s1 = Math.sin (ang);
+
+               gl.glBegin (GL2.GL_QUAD_STRIP);
+               for (int j = 0; j <= nslices / 2; j++) {
+                  double h = j * 1.0 / (nslices / 2);
+                  double r = 1 * Math.sin (h * Math.PI / 1.0);
+                  double drdh = Math.PI / 1.0 * 1.0 * Math.cos (h * Math.PI / 1.0);
+                  gl.glVertex3d (c0 * r, s0 * r, h);
+                  gl.glNormal3d (c0, s0, -drdh);
+                  gl.glVertex3d (c1 * r, s1 * r, h);
+                  gl.glNormal3d (c1, s1, -drdh);
+               }
+               gl.glEnd();
+
+               s0 = s1;
+               c0 = c1;
+            }
+            gl.glEndList();
+         }
+      }
+      return displayList;
+   }
+
    public void drawSphere (RenderProps props, float[] coords, double r) {
       GL2 gl = drawable.getGL().getGL2();
 
       gl.glPushMatrix();
+      checkAndPrintGLError();
       gl.glTranslatef (coords[0], coords[1], coords[2]);
       gl.glScaled (r, r, r);
+      checkAndPrintGLError();
 
       boolean normalizeEnabled = gl.glIsEnabled (GL2.GL_NORMALIZE);
       gl.glEnable (GL2.GL_NORMALIZE);
 
       int displayList = props.getSphereDisplayList (gl);
-
       if (!useDisplayLists || displayList < 1) {
          if (useDisplayLists) {
             displayList = props.allocSphereDisplayList (gl);
@@ -2572,10 +2639,14 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
 
          if (displayList > 0) {
             gl.glEndList();
+            checkAndPrintGLError();
+            gl.glCallList(displayList);
+            checkAndPrintGLError();
          }
       }
       else {
          gl.glCallList (displayList);
+         checkAndPrintGLError();
       }
 
       if (!normalizeEnabled) {
@@ -2828,6 +2899,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
          }
          if (displayList > 0) {
             gl.glEndList();
+            gl.glCallList(displayList);
          }
       }
       else {
@@ -2880,8 +2952,8 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       RenderProps props, float[] coords0, float[] coords1, boolean capped,
       double base, double top) {
 
-	   // drawing manually like this is 10x faster that gluCylinder, but has
-	   // no texture coordinates
+      // drawing manually like this is 10x faster that gluCylinder, but has
+      // no texture coordinates
       int nslices = props.getLineSlices();
       utmp.set (coords1[0] - coords0[0], coords1[1] - coords0[1], coords1[2]
          - coords0[2]);
@@ -3552,7 +3624,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       clipPlane.setGridVisible (true);
       clipPlane.setMinCellPixels (8);
       clipPlane.setDragger (DraggerType.Transrotator);
-      
+
       addClipPlane (clipPlane);
       return clipPlane;
    }
@@ -3633,7 +3705,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
          lightManager.removeLight(light);
       }
    }
-   
+
    public void removeLight(GLLight light) {
       lightManager.removeLight(light);
    }
@@ -3799,9 +3871,9 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
    public boolean is2DRendering() {
       return rendering2d;
    }
-   
+
    public boolean isMultiSampleEnabled() {
-	   return myMultiSampleEnabled;
+      return myMultiSampleEnabled;
    }
 
    public int numSelectionQueriesNeeded() {
@@ -3865,6 +3937,27 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
    public GL2 getGL2() {
       return drawable.getGL().getGL2();
    }
-   
+
+   @Override
+   public int checkGLError() {
+      return gl.glGetError();
+   }
+
+   private static void printErr(String msg) {
+      String fullClassName = Thread.currentThread().getStackTrace()[3].getClassName();            
+      String className = fullClassName.substring(fullClassName.lastIndexOf(".") + 1);
+      String methodName = Thread.currentThread().getStackTrace()[3].getMethodName();
+      int lineNumber = Thread.currentThread().getStackTrace()[3].getLineNumber();
+      System.err.println(className + "." + methodName + "():" + lineNumber + ": " + msg);
+   }
+
+   public void checkAndPrintGLError() {
+      int err = gl.glGetError();
+      if (err != GL.GL_NO_ERROR) {
+         String msg = Error.gluErrorString(err);
+         printErr(msg + " (" +err + ")");
+      }
+   }
+
 }
-   
+

@@ -6,13 +6,17 @@
  */
 package maspack.properties;
 
-import java.util.*;
-import java.io.*;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import maspack.util.*;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.NoSuchElementException;
 
-import maspack.render.TextureProps;
+import maspack.util.InternalErrorException;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 /**
  * Implements a list of exported properties.
@@ -95,7 +99,7 @@ public class PropertyList implements PropertyInfoList {
       }
    }
 
-   private void fatal (Class<?> hostClass, String msg) {
+   protected void fatal (Class<?> hostClass, String msg) {
       throw new InternalErrorException (
          "Error creating Properties for "+hostClass.getName()+": "+msg);
    }

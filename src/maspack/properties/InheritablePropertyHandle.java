@@ -7,7 +7,6 @@
 package maspack.properties;
 
 import java.lang.reflect.*;
-import maspack.util.*;
 
 public class InheritablePropertyHandle extends GenericPropertyHandle implements
 InheritableProperty {

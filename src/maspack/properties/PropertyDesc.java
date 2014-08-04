@@ -6,12 +6,18 @@
  */
 package maspack.properties;
 
-import java.lang.reflect.*;
-import java.io.*;
+import java.awt.Color;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.lang.reflect.Method;
 
-import maspack.util.*;
-
+import maspack.matrix.AxisAngle;
+import maspack.matrix.DenseMatrix;
+import maspack.matrix.Matrix;
+import maspack.matrix.Vector;
 import maspack.util.DoubleInterval;
+import maspack.util.IndentingPrintWriter;
+import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.NumericInterval;
 import maspack.util.Range;
@@ -19,12 +25,6 @@ import maspack.util.ReaderTokenizer;
 import maspack.util.Scan;
 import maspack.util.Scannable;
 import maspack.util.Write;
-import maspack.matrix.Vector;
-import maspack.matrix.Matrix;
-import maspack.matrix.DenseMatrix;
-import maspack.matrix.AxisAngle;
-import java.awt.Color;
-import maspack.render.*;
 
 /**
  * Provides information and implementation code for specific properties exported
@@ -249,7 +249,7 @@ public class PropertyDesc implements PropertyInfo {
       return -1;
    }
 
-   private int getDimensionFromDefaultValue() {
+   protected int getDimensionFromDefaultValue() {
       if (myDefaultValue instanceof Vector) {
          return ((Vector)myDefaultValue).size();
       }
@@ -914,7 +914,7 @@ public class PropertyDesc implements PropertyInfo {
       + errorMsg);
    }
 
-   private Object createDefaultValue() {
+   protected Object createDefaultValue() {
       //String errorMsg = null;
 
       if (myValueClass == Byte.TYPE || myValueClass == Byte.class) {

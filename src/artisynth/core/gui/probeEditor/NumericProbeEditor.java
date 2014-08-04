@@ -897,7 +897,8 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
     */
    protected String getFullPropPath (Property prop) {
       String compPath = prop.getName();
-      ModelComponent root = Main.getMain().getRootModel();
+      Main.getMain();
+      ModelComponent root = Main.getRootModel();
       Object host = prop.getHost();
       // System.out.println("Looking for parent path...");
       if (host instanceof CompositeProperty) {

@@ -23,7 +23,7 @@ import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.Face;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
-import maspack.geometry.TriangleIntersector;
+import maspack.geometry.io.GenericMeshWriter;
 import maspack.matrix.*;
 import maspack.util.NumberFormat;
 import maspack.widgets.GuiUtils;
@@ -165,10 +165,18 @@ public class EditorUtils {
       if (retVal == JFileChooser.APPROVE_OPTION) {
          File file = chooser.getSelectedFile();
          try {
-            PrintWriter pw =
-               new PrintWriter (new BufferedOutputStream (new FileOutputStream (
-                  file)));
-            mesh.write (pw, "%.8g");
+            
+            if (mesh instanceof PolygonalMesh) {
+               GenericMeshWriter writer = new GenericMeshWriter(file);
+               writer.writeMesh(mesh);
+               writer.close();
+            } else {
+               PrintWriter pw =
+                  new PrintWriter (new BufferedOutputStream (new FileOutputStream (
+                     file)));
+               mesh.write (pw, "%.8g");
+               pw.close();
+            }
          }
          catch (Exception ex) {
             ex.printStackTrace(); 

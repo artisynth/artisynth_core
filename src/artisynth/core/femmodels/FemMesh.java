@@ -319,6 +319,33 @@ public class FemMesh extends FemMeshBase implements Pullable, Collidable {
       }
       return createEmbedded(surf, mesh, surf.myFem);
    }
+   
+   public void setVertexAttachment(int vidx, PointAttachment attachment) {
+      // update vertex attachment size
+      if (vidx == myVertexAttachments.size()) {
+         myVertexAttachments.add(attachment);
+      } else if (vidx < myVertexAttachments.size()) {
+         myVertexAttachments.set(vidx, attachment);   
+      } else {
+         // add null attachments
+         for (int i=myVertexAttachments.size(); i<vidx; i++) {
+            myVertexAttachments.add(null);
+         }
+         myVertexAttachments.add(attachment);
+      }
+   }
+   
+   public void setVertexAttachment(int vidx, double [] weights, FemNode3d[] nodes) {
+      if (weights.length > 1) {
+         PointFem3dAttachment pattacher = new PointFem3dAttachment();
+         pattacher.setNodes (nodes, weights);
+         setVertexAttachment(vidx, pattacher);
+      } else if (weights.length == 1) {
+         PointParticleAttachment attacher = new PointParticleAttachment(nodes[0], null);
+         setVertexAttachment(vidx, attacher);
+      }
+      
+   }
 
    public static FemMesh createEmbedded (
       FemMesh surf, MeshBase mesh, FemModel3d fem) {
@@ -671,7 +698,7 @@ public class FemMesh extends FemMeshBase implements Pullable, Collidable {
    }
 
    protected void updateVertexColors() {
-
+      
       if (myColorRendering != SurfaceRender.Stress &&
          myColorRendering != SurfaceRender.Strain) {
          return;

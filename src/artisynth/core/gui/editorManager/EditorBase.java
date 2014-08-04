@@ -32,6 +32,10 @@ public abstract class EditorBase {
    public static final int DISABLED = 0x02;
 
    public EditorBase (Main main, EditorManager editManager) {
+      init(main, editManager);
+   }
+   
+   protected void init(Main main, EditorManager editManager) {
       myMain = main;
       myEditManager = editManager;
    }

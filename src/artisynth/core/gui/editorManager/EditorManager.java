@@ -59,6 +59,13 @@ public class EditorManager {
       myEditors.add (new TrackingControllerEditor (myMain, this));
       // myEditors.add(Muscle.class, new MuscleEditor(myMain));
    }
+   
+   public void addEditor(EditorBase editor) {
+      if (!myEditors.contains(editor)) {
+         editor.init(myMain, this);
+         myEditors.add(editor);   
+      }
+   }
 
    public EditActionMap getActionMap (SelectionManager selManager) {
 

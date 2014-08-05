@@ -1605,7 +1605,26 @@ public class PardisoSolver implements DirectSolver {
       else if (tolExp < 0) {
          throw new IllegalArgumentException ("tolExp should not be negative");
       }   
-      int rcode = doIterativeSolve (myHandle, vals, x, b, tolExp);
+      
+      // XXX detect zero bug early
+      boolean rhs0 = true;      // assume RHS is zero
+      for (int i=0; i<b.length; i++) {
+         if (b[i] != 0) {
+            rhs0 = false;  // not zero
+            break;
+         }
+      }
+      
+      int rcode = 0;
+      if (rhs0) {
+         // zero out solution
+         for (int i=0; i<x.length; i++) {
+            x[i] = 0;
+         }
+      } else {
+         rcode = doIterativeSolve (myHandle, vals, x, b, tolExp);
+      }
+      
       if (rcode > 0) {
          myErrMsg = null;
          return rcode;

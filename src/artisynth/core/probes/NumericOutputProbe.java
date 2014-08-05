@@ -236,7 +236,7 @@ public class NumericOutputProbe extends NumericProbeBase
          throw new ImproperStateException ("probe not initialized");
       }
       // XXX don't we want to apply scaling here too?
-      double tloc = t-getStartTime();
+      double tloc = (t-getStartTime())/myScale;
 
       NumericListKnot knot = new NumericListKnot (myVsize);
       int i = 0;

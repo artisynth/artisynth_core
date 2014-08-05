@@ -57,6 +57,7 @@ public class EditorManager {
       myEditors.add (new MuscleBundleEditor (myMain, this));
       myEditors.add (new MuscleExciterEditor (myMain, this));
       myEditors.add (new TrackingControllerEditor (myMain, this));
+      myEditors.add (new GLRenderableEditor (myMain, this));
       // myEditors.add(Muscle.class, new MuscleEditor(myMain));
    }
    

@@ -12,10 +12,9 @@ import maspack.matrix.Vector4d;
 import maspack.properties.PropertyList;
 import maspack.render.GLLight;
 import maspack.render.GLLight.LightSpace;
-import maspack.render.GLRenderer;
-import artisynth.core.modelbase.RenderableComponentBase;
+import artisynth.core.modelbase.ModelComponentBase;
 
-public class LightComponent extends RenderableComponentBase {
+public class LightComponent extends ModelComponentBase {
    GLLight myLight;
    
    private static PropertyList myProps = new PropertyList(LightComponent.class);
@@ -35,6 +34,10 @@ public class LightComponent extends RenderableComponentBase {
    
    public LightComponent(GLLight light) {
       myLight = light;
+   }
+   
+   public GLLight getLight() {
+      return myLight;
    }
    
    public void setAmbient(Color color) {
@@ -97,11 +100,6 @@ public class LightComponent extends RenderableComponentBase {
    
    public void setEnabled(boolean set) {
       myLight.setEnabled(set);
-   }
-
-   @Override
-   public void render(GLRenderer renderer, int flags) {
-      // myLight.setupLight(renderer.getGL2());
    }
    
 }

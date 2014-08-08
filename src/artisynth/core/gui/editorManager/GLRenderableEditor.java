@@ -60,6 +60,11 @@ public class GLRenderableEditor extends EditorBase {
          
          if (contained.size() > 0) {
             createPropertyDialog(contained, true, popupBounds);
+         } else {
+            JOptionPane.showMessageDialog (
+               null,
+               "No properties for selected components",
+               "No properties", JOptionPane.INFORMATION_MESSAGE);
          }
       }
    }

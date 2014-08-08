@@ -1,0 +1,5 @@
+# Lists file patterns that should be excluded from the prepackaged
+# distribution. Lines beginning with '#' are comments. Distributions
+# are created by doing an svn export, and then copying the export
+# using tar with the option --exclude-from=DISTRO_EXCLUDE_FILES, where
+# DISTRO_EXCLUDE_FILES is this file with the comment lines removed.

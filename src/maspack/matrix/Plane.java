@@ -6,7 +6,6 @@
  */
 package maspack.matrix;
 
-import maspack.matrix.*;
 import maspack.util.*;
 
 import java.io.*;
@@ -227,6 +226,11 @@ public class Plane implements java.io.Serializable {
          throw new IllegalArgumentException ("colinear points");
       }
       normal.scale (1 / mag);
+   }
+   
+   public void flip() {
+      normal.negate();
+      offset = -offset;
    }
 
    /**

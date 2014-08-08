@@ -500,6 +500,7 @@ public abstract class MeshBase implements Renderable {
             myVertices.remove(last);
             
             vtx.setMesh (null);
+            vtx.setIndex(-1);
             notifyStructureChanged();
             return true;
          } else {

@@ -623,6 +623,7 @@ public class PolygonalMesh extends MeshBase {
             
             myTriQuadCountsValid = false;
             face.disconnect();
+            face.setIndex(-1);
             notifyStructureChanged();
             return true;
          } else {

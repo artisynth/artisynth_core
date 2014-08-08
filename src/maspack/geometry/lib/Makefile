@@ -6,6 +6,11 @@ CLASS_ROOT_DIR = $(ROOT_DIR)/classes
 
 default: libs
 
+ifndef ARTISYNTH_CORE_DIR
+ARTISYNTH_CORE_DIR = $(ROOT_DIR)/../artisynth_core
+endif
+CLASS_ROOT_DIR := .:$(ROOT_DIR)/classes:$(ARTISYNTH_CORE_DIR)/classes
+
 SYSTEM = $(shell uname)
 MACHINE = $(shell uname -m) # not sure how portable this is ...
 ifeq ($(findstring 64,$(MACHINE)),64)
@@ -61,6 +66,10 @@ else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 	ROBUST_TARGET = RobustPreds.1.0.dll
 	ROBUST_TARGET_OLD = RobustPreds.0.0.dll
 	SHEWCHUK_DEF = -DCPU86
+	COLON = :
+	SEMICOLON = ;
+	CLASS_ROOT_DIR := $(subst $(COLON),$(SEMICOLON),$(CLASS_ROOT_DIR))
+	CLASS_ROOT_DIR := "$(subst /,\,$(CLASS_ROOT_DIR))"
 	LIB_FLAGS = -shared -Wl,--add-stdcall-alias -static-libgcc
 else ifeq ($(SYSTEM),Darwin)
         # XXX assume that all MacOS systems are 64 bit. That's because
@@ -91,7 +100,7 @@ JNI_H_FILES = \
 	maspack_geometry_RobustPreds.h
 
 maspack_geometry_TetgenTessellator.h: $(CLASS_DIR)/TetgenTessellator.class
-	$(JAVAH) $(JAVAHFLAGS) -classpath .:$(CLASS_ROOT_DIR) maspack.geometry.TetgenTessellator
+	$(JAVAH) $(JAVAHFLAGS) -classpath $(CLASS_ROOT_DIR) maspack.geometry.TetgenTessellator
 
 maspack_geometry_RobustPreds.h: $(CLASS_DIR)/RobustPreds.class
 	$(JAVAH) $(JAVAHFLAGS) -classpath .:$(CLASS_ROOT_DIR) maspack.geometry.RobustPreds

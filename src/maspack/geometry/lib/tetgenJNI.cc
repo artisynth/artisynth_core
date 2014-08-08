@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2014, by the Authors: John Lloyd (UBC), Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -28,9 +35,11 @@ TetgenTessellator::~TetgenTessellator() {
 void TetgenTessellator::buildFromPoints (double *coords, int numPnts) {
 
    if (in != NULL) {
-      delete in;
+      in->deinitialize();
+      in->initialize();
+   } else {
+      in = new tetgenio();
    }
-   in = new tetgenio();
 
    in->firstnumber = 0;
    in->numberofpoints = numPnts;
@@ -41,7 +50,9 @@ void TetgenTessellator::buildFromPoints (double *coords, int numPnts) {
    in->numberoffacets = 0;
 
    if (out != NULL) {
-      delete out;
+      out->deinitialize();
+      out->initialize();
+   } else {
       out = new tetgenio();
    }
    char *switches = (char*)"Q";
@@ -84,9 +95,11 @@ void TetgenTessellator::buildFromMeshAndPoints (
       double *includeCoords, int numIncludePnts) {
 
    if (in != NULL) {
-      delete in;
+      in->deinitialize();
+      in->initialize();
+   } else {
+      in = new tetgenio();
    }
-   in = new tetgenio();
 
    in->firstnumber = 0;
    in->numberofpoints = numPnts;
@@ -143,19 +156,22 @@ void TetgenTessellator::buildFromMeshAndPoints (
    }
 
    if (out != NULL) {
-      delete out;
+      out->deinitialize();
+      out->initialize();
+   } else {
+      out = new tetgenio();
    }
-   out = new tetgenio();
 
    //    tetgenbehavior *behavior = new tetgenbehavior();
    //    behavior->quiet = 0;
    //    behavior->plc = 1;
    //    behavior->nofacewritten = 1;
-   char *switches = (char*) "Qpi";  // i: include points
+   char switches[50];
+   switches[0] = 0;
    if (quality > 0) {
-      char buf[256];
-      sprintf(buf, "Qpiq%4.2f", quality);
-      switches = buf;
+      sprintf(switches, "Qpiq%4.2f", quality);
+   } else {
+      sprintf(switches, "Qpi");
    }
    tetrahedralize(switches, in, out, laddin);
 }
@@ -210,9 +226,11 @@ void TetgenTessellator::buildFromMesh (
       int numFaces, int numIndices, double quality) {
 
    if (in != NULL) {
-      delete in;
+      in->deinitialize();
+      in->initialize();
+   } else {
+      in = new tetgenio();
    }
-   in = new tetgenio();
 
    in->firstnumber = 0;
    in->numberofpoints = numPnts;
@@ -247,9 +265,12 @@ void TetgenTessellator::buildFromMesh (
          }
          p->vertexlist[i] = indices[k++];
       }
-   }     
+   }
+
    if (out != NULL) {
-      delete out;
+      out->deinitialize();
+      out->initialize();
+   } else {
       out = new tetgenio();
    }
 
@@ -257,11 +278,12 @@ void TetgenTessellator::buildFromMesh (
    //    behavior->quiet = 0;
    //    behavior->plc = 1;
    //    behavior->nofacewritten = 1;
-   char *switches = (char*)"Qp";
+   char switches[50];
+   switches[0] = 0;
    if (quality > 0) {
-      char buf[256];
-      sprintf (buf, "Qpq%4.2f", quality);
-      switches = buf;
+      sprintf(switches, "Qpq%4.2f", quality);
+   } else {
+      sprintf(switches, "Qp");
    }
    tetrahedralize (switches, in, out);
    //delete behavior;
@@ -309,9 +331,11 @@ void TetgenTessellator::refineMesh(
       double *addCoords, int numAddPnts) {
 
    if (in != NULL) {
-      delete in;
+      in->deinitialize();
+      in->initialize();
+   } else {
+      in = new tetgenio();
    }
-   in = new tetgenio();
 
    // read in nodes
    in->firstnumber = 0;
@@ -335,13 +359,17 @@ void TetgenTessellator::refineMesh(
       in->tetrahedronlist[i] = tetIndices[i];
    }
 
-   // add-in points
    tetgenio *laddin = NULL; // local pointer to add-in
    if (numAddPnts > 0) {
+
+      // add-in points
       if (addin != NULL) {
-         delete addin;
+         addin->deinitialize();
+         addin->initialize();
+      } else {
+         addin = new tetgenio();
       }
-      addin = new tetgenio();
+
       addin->numberofpoints = numAddPnts;
       addin->mesh_dim = 3;
       addin->numberofpointattributes = 0;
@@ -355,15 +383,18 @@ void TetgenTessellator::refineMesh(
    }
 
    if (out != NULL) {
-      delete out;
+      out->deinitialize();
+      out->initialize();
+   } else {
+      out = new tetgenio();
    }
-   out = new tetgenio();
 
-   char *switches = (char*) "Qri";  // i: include points
+   char switches[50];
+   switches[0] = 0;
    if (quality > 0) {
-      char buf[256];
-      sprintf(buf, "Qriq%4.2f", quality);
-      switches = buf;
+      sprintf(switches, "Qriq%4.2f", quality);
+   } else {
+      sprintf(switches, "Qri");
    }
    tetrahedralize(switches, in, out, laddin);
 

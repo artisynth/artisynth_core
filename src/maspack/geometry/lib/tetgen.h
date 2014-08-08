@@ -516,45 +516,58 @@ class tetgenio {
 
     if (pointlist != (REAL *) NULL) {
       delete [] pointlist;
+      pointlist = NULL;
     }
     if (pointattributelist != (REAL *) NULL) {
       delete [] pointattributelist;
+      pointattributelist = NULL;
     }
     if (pointmtrlist != (REAL *) NULL) {
       delete [] pointmtrlist;
+      pointmtrlist = NULL;
     }
     if (pointmarkerlist != (int *) NULL) {
       delete [] pointmarkerlist;
+      pointmarkerlist = NULL;
     }
 
     if (tetrahedronlist != (int *) NULL) {
       delete [] tetrahedronlist;
+      tetrahedronlist = NULL;
     }
     if (tetrahedronattributelist != (REAL *) NULL) {
       delete [] tetrahedronattributelist;
+      tetrahedronattributelist = NULL;
     }
     if (tetrahedronvolumelist != (REAL *) NULL) {
       delete [] tetrahedronvolumelist;
+      tetrahedronvolumelist = NULL;
     }
     if (neighborlist != (int *) NULL) {
       delete [] neighborlist;
+      neighborlist = NULL;
     }
 
     if (trifacelist != (int *) NULL) {
       delete [] trifacelist;
+      trifacelist = NULL;
     }
     if (adjtetlist != (int *) NULL) {
       delete [] adjtetlist;
+      adjtetlist = NULL;
     }
     if (trifacemarkerlist != (int *) NULL) {
       delete [] trifacemarkerlist;
+      trifacemarkerlist = NULL;
     }
 
     if (edgelist != (int *) NULL) {
       delete [] edgelist;
+      edgelist = NULL;
     }
     if (edgemarkerlist != (int *) NULL) {
       delete [] edgemarkerlist;
+      edgemarkerlist = NULL;
     }
 
     if (facetlist != (facet *) NULL) {
@@ -563,56 +576,73 @@ class tetgenio {
         for (j = 0; j < f->numberofpolygons; j++) {
           p = &f->polygonlist[j];
           delete [] p->vertexlist;
+          p->vertexlist = NULL;
         }
         delete [] f->polygonlist;
+        f->polygonlist = NULL;
         if (f->holelist != (REAL *) NULL) {
           delete [] f->holelist;
+          f->holelist = NULL;
         }
       }
       delete [] facetlist;
+      facetlist = NULL;
     }
     if (facetmarkerlist != (int *) NULL) {
       delete [] facetmarkerlist;
+      facetmarkerlist = NULL;
     }
 
     if (holelist != (REAL *) NULL) {
       delete [] holelist;
+      holelist = NULL;
     }
     if (regionlist != (REAL *) NULL) {
       delete [] regionlist;
+      regionlist = NULL;
     }
     if (facetconstraintlist != (REAL *) NULL) {
       delete [] facetconstraintlist;
+      facetconstraintlist = NULL;
     }
     if (segmentconstraintlist != (REAL *) NULL) {
       delete [] segmentconstraintlist;
+      segmentconstraintlist = NULL;
     }
     if (pbcgrouplist != (pbcgroup *) NULL) {
       for (i = 0; i < numberofpbcgroups; i++) {
         pg = &(pbcgrouplist[i]);
         if (pg->pointpairlist != (int *) NULL) {
           delete [] pg->pointpairlist;
+          pg->pointpairlist = NULL;
         }
       }
       delete [] pbcgrouplist;
+      pbcgrouplist = NULL;
     }
     if (vpointlist != (REAL *) NULL) {
       delete [] vpointlist;
+      vpointlist = NULL;
     }
     if (vedgelist != (voroedge *) NULL) {
       delete [] vedgelist;
+      vedgelist = NULL;
     }
     if (vfacetlist != (vorofacet *) NULL) {
       for (i = 0; i < numberofvfacets; i++) {
         delete [] vfacetlist[i].elist;
+        vfacetlist[i].elist = NULL;
       }
       delete [] vfacetlist;
+      vfacetlist = NULL;
     }
     if (vcelllist != (int **) NULL) {
       for (i = 0; i < numberofvcells; i++) {
         delete [] vcelllist[i];
+        vcelllist[i] = NULL;
       }
       delete [] vcelllist;
+      vcelllist = NULL;
     }
   }
 

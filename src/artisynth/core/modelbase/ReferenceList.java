@@ -41,8 +41,10 @@ public class ReferenceList extends ComponentList<ReferenceComponent> {
       return false;
    }
 
-   public void addReference (ModelComponent ref) {
-      add (new ReferenceComponent (ref));
+   public ReferenceComponent addReference (ModelComponent ref) {
+      ReferenceComponent rc = new ReferenceComponent (ref); 
+      add (rc);
+      return rc;
    }
 
    public void addReferences (Collection<ModelComponent> refs) {

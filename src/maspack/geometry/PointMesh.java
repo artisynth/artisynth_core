@@ -450,6 +450,10 @@ public class PointMesh extends MeshBase {
          displayList = props.getMeshDisplayList();
       }
          
+      if (props.getPointStyle() == PointStyle.SPHERE) {
+         useDisplayList = false;
+      }
+
       if (!useDisplayList || displayList < 1) {
          if (useDisplayList) {
             renderer.validateInternalDisplayLists(props);

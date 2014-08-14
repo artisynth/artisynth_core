@@ -46,6 +46,12 @@ Compilation can be set up easily using nmake, with reads a Makefile
 just like Unix make. nmake is also part of Visual Studio and is
 available on the special command line.
 
+To build the Pardiso library, open an 'Intel 64' command window,
+then
+
+> cd %ARTISYNTH_HOME%\src\maspack\solvers\lib
+> nmake /F NMakefile
+
 Documentation for the Intel Compiler can be found at 
 
 https://software.intel.com/en-us/compiler_14.0_ug_c

@@ -53,6 +53,28 @@ public class AnsysReader {
     * path name of the ANSYS node file
     * @param elemFileName
     * path name of the ANSYS element file
+    * @throws IOException
+    * if this is a problem reading the file
+    */
+   public static void read (
+      FemModel3d model, String nodeFileName, String elemFileName)
+      throws IOException {
+
+      read(model, nodeFileName, elemFileName, 1, null, 0);
+   }
+   
+   /**
+    * Creates an FemModel with uniform density based on ANSYS data contained in
+    * a specified file. The node coordinate data can be scaled non-uniformly
+    * using an optional parameter giving scale values about the x, y, and z
+    * axes.
+    * 
+    * @param model
+    * FEM model to be populated by ANSYS data
+    * @param nodeFileName
+    * path name of the ANSYS node file
+    * @param elemFileName
+    * path name of the ANSYS element file
     * @param density
     * density of the model
     * @param scale

@@ -72,7 +72,24 @@ public class AbaqusReader {
     * @param model
     * FEM model to be populated by Abaqus data
     * @param fileName
-    * path name of the ANSYS node file
+    * path name of the ABAQUS file
+    * @throws IOException
+    * if this is a problem reading the file
+    */
+   public static FemModel3d read (
+      FemModel3d model, String fileName)
+      throws IOException {
+      return read(model, new File(fileName), 1);
+   }
+   
+   /**
+    * Creates an FemModel with uniform density based on Abaqus data contained in
+    * a specified file. 
+    * 
+    * @param model
+    * FEM model to be populated by Abaqus data
+    * @param fileName
+    * path name of the ABAQUS file
     * @param density
     * density of the model
     * @throws IOException
@@ -91,13 +108,13 @@ public class AbaqusReader {
     * @param model
     * FEM model to be populated by Abaqus data
     * @param file
-    * the ANSYS node file
+    * the ABAQUS file
     * @param density
     * density of the model
     * @throws IOException
     * if this is a problem reading the file
     */
-   public static void read (
+   public static FemModel3d read (
       FemModel3d model, File file, double density)
       throws IOException {
 
@@ -105,7 +122,7 @@ public class AbaqusReader {
 
       try {
          fileReader = new BufferedReader(new FileReader (file));
-         read (model, fileReader, density, new File[] {file.getParentFile()});
+         model = read (model, fileReader, density, new File[] {file.getParentFile()});
       }
       catch (IOException e) {
          throw e;
@@ -115,6 +132,8 @@ public class AbaqusReader {
             fileReader.close ();
          }
       }
+      
+      return model;
    }
    
    /**
@@ -130,13 +149,16 @@ public class AbaqusReader {
     * @throws IOException
     * if this is a problem reading the file
     */
-   public static void read (
+   public static FemModel3d read (
       FemModel3d model, Reader fileReader, double density,
       File[] includeDirs) throws IOException {
 
       // boolean useOneBasedNum = (options & ONE_BASED_NUMBERING) != 0;
-
-      model.clear ();
+      if (model == null) {
+         model = new FemModel3d();
+      } else {
+         model.clear ();
+      }
       model.setDensity (density);
       
       cwHexWarningGiven=false;
@@ -193,6 +215,7 @@ public class AbaqusReader {
       // TODO implement for quadhex elements
       HexElement.setParities (hexElems);
 
+      return model;
       
    }
    

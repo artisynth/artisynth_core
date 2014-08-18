@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
+ * Copyright (c) 2014, by the Authors: John E Lloyd (UBC), 
+ * Antonio Sanchez (UBC)
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -80,28 +81,44 @@ public class TetGenReader {
    }
 
    public static FemModel3d read (
-      String name, double density, String nodeString, String elemString,
+      FemModel3d model, String nodeFileName, String elemFileName) throws IOException {
+      
+      read (model, 1, nodeFileName, elemFileName, null);
+
+      return model;
+   }
+   
+   public static FemModel3d read (
+      String name, double density, String nodeFileName, String elemFileName,
       Vector3d scale) throws IOException {
       FemModel3d model = new FemModel3d (name);
 
-      read (model, density, nodeString, elemString, scale);
+      read (model, density, nodeFileName, elemFileName, scale);
 
       return model;
    }
 
-   public static void read (
-      FemModel3d model, double density, String nodeString, String elemString,
+   public static FemModel3d read (
+      FemModel3d model, double density, String nodeFileName, String elemFileName,
       Vector3d scale) throws IOException {
-      FileReader nodeFile = new FileReader (nodeString);
-      FileReader elemFile = new FileReader (elemString);
-      read (model, density, scale, nodeFile, elemFile);
+      
+      FileReader nodeFile = new FileReader (nodeFileName);
+      FileReader elemFile = new FileReader (elemFileName);
+      model = read (model, density, scale, nodeFile, elemFile);
       nodeFile.close();
       elemFile.close();
+      
+      return model;
    }
 
-   public static void read (
+   public static FemModel3d read (
       FemModel3d model, double density, Vector3d scale, Reader nodeReader,
       Reader elemReader) throws IOException {
+
+      if (model == null) {
+         model = new FemModel3d();
+      }
+      
       ReaderTokenizer nodeFile =
          new ReaderTokenizer (new BufferedReader (nodeReader));
       model.setDensity (density);
@@ -165,6 +182,8 @@ public class TetGenReader {
             model.addElement (new TetElement (n0, n2, n1, n3)); 
          }
       }
+      
+      return model;
    }
 
    /*
@@ -173,8 +192,8 @@ public class TetGenReader {
     * way as to have the maspack-generated face normals point outwards.
     */
    public static PolygonalMesh readFaces (
-      String nodeString, String faceString, Vector3d scale) throws IOException {
-      FileReader nodeFile = new FileReader (nodeString);
+      String nodeFileName, String faceString, Vector3d scale) throws IOException {
+      FileReader nodeFile = new FileReader (nodeFileName);
       FileReader faceFile = new FileReader (faceString);
       PolygonalMesh mesh = readFaces (scale, nodeFile, faceFile);
       nodeFile.close();

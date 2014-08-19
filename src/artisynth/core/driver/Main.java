@@ -1457,14 +1457,14 @@ public class Main implements DriverInterface, ComponentChangeListener {
             }
          }
       }
-      // add librarypath
-      try {
-         JVMInfo.appendDefaultLibraryPath();
-      }
-      catch (Exception e) {
-         System.out.println ("Error loading library path");
-         e.printStackTrace();
-      }
+//      // no longer need to load librarypath
+//      try {
+//         JVMInfo.appendDefaultLibraryPath();
+//      }
+//      catch (Exception e) {
+//         System.out.println ("Error loading library path");
+//         e.printStackTrace();
+//      }
       if (System.getProperty ("file.separator").equals ("\\")) {
          // then we are running windows, so set noerasebackground to
          // try and remove flicker bug

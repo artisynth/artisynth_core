@@ -23,29 +23,29 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.workspace.PullController.Pullable;
 
-public class RigidMeshComponent extends MeshComponent implements Pullable, Collidable {
+public class RigidMesh extends MeshComponent implements Pullable, Collidable {
 
    public static boolean DEFAULT_PHYSICAL = true;
    protected boolean physical = DEFAULT_PHYSICAL;
    
    public static PropertyList myProps = new PropertyList(
-      RigidMeshComponent.class, MeshComponent.class);
+      RigidMesh.class, MeshComponent.class);
 
    static {
       myProps.add("physical isPhysical setPhysical", "", DEFAULT_PHYSICAL);
    }
    
-   public RigidMeshComponent() {
+   public RigidMesh() {
       super();
       physical = DEFAULT_PHYSICAL;
    }
    
-   public RigidMeshComponent(String name) {
+   public RigidMesh(String name) {
       this();
       setName(name);
    }
    
-   public RigidMeshComponent (
+   public RigidMesh (
       MeshBase mesh, String fileName, AffineTransform3dBase X) {
       this();
       setMesh (mesh, fileName, X);
@@ -84,10 +84,10 @@ public class RigidMeshComponent extends MeshComponent implements Pullable, Colli
    }
    
    @Override
-   public RigidMeshComponent copy(int flags,
+   public RigidMesh copy(int flags,
       Map<ModelComponent,ModelComponent> copyMap) {
 
-      RigidMeshComponent rmc = (RigidMeshComponent)super.copy(flags, copyMap);
+      RigidMesh rmc = (RigidMesh)super.copy(flags, copyMap);
       rmc.physical = physical;
       
       return rmc;

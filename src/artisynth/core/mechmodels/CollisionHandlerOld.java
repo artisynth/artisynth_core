@@ -728,8 +728,8 @@ implements Constrainer {
          FemMesh mesh = (FemMesh)myComponent0;
          myComponent0 = mesh.getFem ();
          myFemData0 = new FemData (mesh.getFem (), (PolygonalMesh)mesh.getMesh());
-      } else if (myComponent0 instanceof RigidMeshComponent) {
-         RigidMeshComponent mesh = (RigidMeshComponent)myComponent0;
+      } else if (myComponent0 instanceof RigidMesh) {
+         RigidMesh mesh = (RigidMesh)myComponent0;
          myComponent0 = mesh.getRigidBody ();
          myRBData0 = new RBData ((RigidBody)myComponent0, (PolygonalMesh)mesh.getMesh ());
       }
@@ -742,8 +742,8 @@ implements Constrainer {
          FemMesh mesh = (FemMesh)myComponent1;
          myComponent1 = mesh.getFem ();
          myFemData1 = new FemData (mesh.getFem (), (PolygonalMesh)mesh.getMesh());
-      } else if (myComponent1 instanceof RigidMeshComponent) {
-         RigidMeshComponent mesh = (RigidMeshComponent)myComponent1;
+      } else if (myComponent1 instanceof RigidMesh) {
+         RigidMesh mesh = (RigidMesh)myComponent1;
          myComponent1 = mesh.getRigidBody();
          myRBData1 = new RBData ((RigidBody)myComponent1, (PolygonalMesh)mesh.getMesh ());
       }

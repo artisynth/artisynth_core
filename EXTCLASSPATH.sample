@@ -1,0 +1,19 @@
+# This is a template EXTCLASSPATH file. If desired, copy this file to
+# EXTCLASSPATH (in the ArtiSynth root directory) and edit it to
+# provide the names of any additional class paths which ArtiSynth
+# should use when searching for models. For clarity, each path is
+# typically added on a separate line. However, multiple paths can be
+# added on the same line if they are separated by the path separator
+# character used for that OS (a semi-colon ';' for Windows and a colon
+# ':' for MacOS and Linux). The '#' character comments out all
+# remaining characters to the end of line. The '$' character can be
+# used to expand environment variables. Note that any spaces present
+# *will* be included in the path name, so be careful about this.
+#
+# On a Windows system, a set of classpath entries might look like
+# this (with the leading comment character removed):
+#
+#C:\research\artisynth_models\classes
+#C:\research\models\special.jar
+#$HOME\projects\crazy\classes
+

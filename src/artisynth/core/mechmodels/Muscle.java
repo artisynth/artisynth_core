@@ -78,6 +78,10 @@ public class Muscle extends AxialSpring implements ExcitationComponent {
       super (name);
    }
 
+   public Muscle (String name, double l0) {
+      super (name, l0);
+   }
+
    public Muscle (Point p1, Point p2) {
       this(null);
       setFirstPoint (p1);

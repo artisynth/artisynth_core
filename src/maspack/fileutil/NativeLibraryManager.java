@@ -72,17 +72,74 @@ public class NativeLibraryManager {
    private static String PSEP = File.pathSeparator;
 
    /**
-    * Indicates the system type.
+    * Indicates the operating system type.
     */
    public enum SystemType {
-      Linux,
+      Unknown,    // unknown system type
+      Linux32,     
       Linux64,
-      Windows,
+      Linux,      // any version of Linux
+      Windows32,
       Windows64,
-      MacOS,
-      Unknown
-   };
+      Windows,    // any version of Windows
+      MacOS64,
+      MacOS,      // any version of MacOS
+      Generic;    // any system type
 
+      /**
+       * Returns the system types which are immediate subtypes of a given type
+       */
+      public SystemType[] getSubTypes () {
+         switch (this) {
+            case Generic:
+               return new SystemType[] {Linux, Windows, MacOS};
+            case Linux:
+               return new SystemType[] {Linux32, Linux64};
+            case MacOS:
+               return new SystemType[] {MacOS64};
+            case Windows:
+               return new SystemType[] {Windows32, Windows64};
+            default:
+               return new SystemType[] {};
+         }
+      }
+      
+      private void recursivelyGetSubTypes (
+         HashSet<SystemType> allSubTypes, SystemType sysType) {
+         for (SystemType type : sysType.getSubTypes()) {
+            allSubTypes.add (type);
+            recursivelyGetSubTypes (allSubTypes, type);
+         }
+      }
+
+      /**
+       * Returns true if this system type is an instance of the (possibly
+       * more general) system type specified by <code>sysType</code>.
+       * 
+       * @param sysType system type to test against
+       * @return true if this type is an instance of sysType.
+       */
+      public boolean isInstanceOf (SystemType sysType) {
+         if (sysType == this) {
+            return true;
+         }
+         else {
+            HashSet<SystemType> allSubTypes = new HashSet<SystemType>();
+            recursivelyGetSubTypes (allSubTypes, sysType);
+            return allSubTypes.contains (this);
+         }
+      }
+   };
+   
+   public static SystemType getSystemType (String typeName) {
+      try {
+         return SystemType.valueOf (typeName);
+      }
+      catch (Exception e) {
+         return null;
+      }
+   }
+   
    File myLibDir;
    File[] myExistingLibs;
    SystemType mySystemType;
@@ -164,7 +221,7 @@ public class NativeLibraryManager {
     * any).
     */
    class LibDesc {
-      SystemType mySys;     // System associated with the library
+      SystemType mySys; // General system type associated with the library
       String myBasename;    // Library basename
       String myVersionStr;  // version string, or "" if none
       int myMajorNum;       // major version number, or -1 if none
@@ -194,8 +251,6 @@ public class NativeLibraryManager {
        * Sets the components of this description from a string name.
        */
       public void set (String libName) {
-
-         mySys = SystemType.Unknown;
 
          // check for explicit library names first ... 
          if (libName.endsWith (".dll")) {
@@ -243,6 +298,7 @@ public class NativeLibraryManager {
          }
          else {
             // generic library name - no system
+            mySys = SystemType.Generic;
             myBasename = setVersionInfo (libName);
          }
 
@@ -275,7 +331,7 @@ public class NativeLibraryManager {
             return -1;
          }
          switch (sysType) {
-            case MacOS: {
+            case MacOS64: {
                if (!fileName.startsWith ("lib"+myBasename)) {
                   return -1;
                }
@@ -285,7 +341,7 @@ public class NativeLibraryManager {
                return matchMajorMinorVersionStr (
                   fileName.substring(myBasename.length()+3, fileName.length()-6));
             }
-            case Linux:
+            case Linux32:
             case Linux64: {
                if (!fileName.startsWith ("lib"+myBasename+".so")) {
                   return -1;
@@ -293,7 +349,7 @@ public class NativeLibraryManager {
                return matchMajorMinorVersionStr (
                   fileName.substring (myBasename.length()+6));
             }
-            case Windows:
+            case Windows32:
             case Windows64: {
                if (!fileName.startsWith (myBasename)) {
                   return -1;
@@ -318,14 +374,14 @@ public class NativeLibraryManager {
       public String getFileName (SystemType sysType) {
          StringBuilder builder = new StringBuilder();
          switch (sysType) {
-            case MacOS: {
+            case MacOS64: {
                builder.append ("lib");
                builder.append (myBasename);
                builder.append (myVersionStr);
                builder.append (".dylib");
                break;
             }
-            case Linux:
+            case Linux32:
             case Linux64: {
                builder.append ("lib");
                builder.append (myBasename);
@@ -333,7 +389,7 @@ public class NativeLibraryManager {
                builder.append (myVersionStr);
                break;
             }
-            case Windows:
+            case Windows32:
             case Windows64: {
                builder.append (myBasename);
                builder.append (myVersionStr);
@@ -353,26 +409,7 @@ public class NativeLibraryManager {
        * the system type associated with this library.
        */
       boolean matchesSystem (SystemType sysType) {
-         if (mySys == SystemType.Unknown) {
-            return true;
-         }
-         switch (sysType) {
-            case MacOS: {
-               return mySys == SystemType.MacOS;
-            }
-            case Linux:
-            case Linux64: {
-               return mySys == SystemType.Linux;
-            }
-            case Windows:
-            case Windows64: {
-               return mySys == SystemType.Windows;
-            }
-            default: {
-               throw new NativeLibraryException (
-                  "Unimplemented system type: "+sysType);
-            }
-         }
+         return sysType.isInstanceOf (mySys);
       }
 
    }
@@ -429,7 +466,7 @@ public class NativeLibraryManager {
             return SystemType.Linux64;
          }
          else {
-            return SystemType.Linux;
+            return SystemType.Linux32;
          }
       }
       else if (osname.startsWith ("Windows")) {
@@ -437,12 +474,12 @@ public class NativeLibraryManager {
             return SystemType.Windows64;
          }
          else {
-            return SystemType.Windows;
+            return SystemType.Windows32;
          }
       }
       else if (osname.equals ("Darwin") ||
                osname.startsWith ("Mac")) {
-         return SystemType.MacOS;
+         return SystemType.MacOS64;
       }
       else {
          return SystemType.Unknown;
@@ -475,6 +512,11 @@ public class NativeLibraryManager {
       myLibDir = null;
       myFlags = 0;
       mySystemType = determineSystemType();
+      if (mySystemType == SystemType.Unknown) {
+         System.out.println (
+            "Error: NativeLibraryManager cannot determine system type; " +
+            "cannot load native libraries");
+      }
       myVersionStrPattern = Pattern.compile ("([^.]*)((\\.[0-9]+)+)$");
    }
    
@@ -713,7 +755,7 @@ public class NativeLibraryManager {
          }
          // on Windows systems, make sure the .dll is executable
          if (libPath != null &&
-             (mySystemType == SystemType.Windows ||
+             (mySystemType == SystemType.Windows32 ||
               mySystemType == SystemType.Windows64)) {
             try {
                File file = new File(libPath);
@@ -764,6 +806,18 @@ public class NativeLibraryManager {
             throw e;
          }
       }
+   }
+
+   /**
+    * Returns true if the indicated native library name matches the current
+    * system.
+    */
+   public static boolean libraryMatchesSystem (String libName) {
+      if (myManager == null) {
+         myManager = new NativeLibraryManager ();
+      }
+      LibDesc desc = myManager.createDesc (libName);
+      return desc.matchesSystem(myManager.mySystemType);
    }
 
    /**
@@ -869,20 +923,21 @@ public class NativeLibraryManager {
    private String getNativeDirectoryName () {
  
       switch (mySystemType) {
-         case Linux: {
-            return "Linux";
+         case Linux32: {
+            return "Linux32";
          }
          case Linux64: {
             return "Linux64";
          }
-         case Windows: {
-            return "Windows";
+         case Windows32: {
+            return "Windows32";
          }
          case Windows64: {
             return "Windows64";
          }
-         case MacOS: {
-            return "Darwin-x86_64";
+         case MacOS64: {
+            return "MacOS64";
+            //return "Darwin-x86_64";
          }
          default: {
             throw new NativeLibraryException (

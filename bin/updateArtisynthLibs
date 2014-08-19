@@ -12,6 +12,14 @@ while [ "$1" ]; do
           ARTISYNTH_HOME=$2
           shift
       fi
+   elif [ $1 == "-systemType" ] ; then
+      if [ "$#" -lt "2" ]; then
+          echo "option -systemType requires an additional argument"
+          exit 1
+      else 
+          ARGS="$ARGS -systemType $2"
+          shift
+      fi
    else 
       echo "$USAGE"
       exit 1

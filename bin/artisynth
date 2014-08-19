@@ -104,33 +104,31 @@ if [ "$OSNAME" = "Linux" ] ; then
        OS=$OSNAME
        MEM_LIMIT="-Xmx2G"
     fi
-    contains $LD_LIBRARY_PATH $ARTISYNTH_HOME/lib/$OS
-    if [ $? -ne 0 ] || [ -z $LD_LIBRARY_PATH ] ; then
-        export LD_LIBRARY_PATH=$ARTISYNTH_HOME/lib/$OS:$LD_LIBRARY_PATH
-    fi
+#    contains $LD_LIBRARY_PATH $ARTISYNTH_HOME/lib/$OS
+#    if [ $? -ne 0 ] || [ -z $LD_LIBRARY_PATH ] ; then
+#        export LD_LIBRARY_PATH=$ARTISYNTH_HOME/lib/$OS:$LD_LIBRARY_PATH
+#    fi
 elif [ "$OSNAME" = "Darwin" ] ; then
-    if [ `uname -p` = "powerpc" ] ; then
-        ARCH="ppc"
-    elif java -version 2>&1 | fgrep -q 'version "1.6' ; then
+    if uname -a | fgrep -q "_64" ; then
         ARCH="x86_64"
     else
         ARCH="i386"
     fi
-    contains $DYLD_LIBRARY_PATH $ART/lib/$OSNAME-$ARCH
-    if [ $? -ne 0 ] || [ -z $DYLD_LIBRARY_PATH ]; then
-        export DYLD_LIBRARY_PATH=$ART/lib/$OSNAME-$ARCH:$DYLD_LIBRARY_PATH
-    fi
+#    contains $DYLD_LIBRARY_PATH $ART/lib/$OSNAME-$ARCH
+#    if [ $? -ne 0 ] || [ -z $DYLD_LIBRARY_PATH ]; then
+#        export DYLD_LIBRARY_PATH=$ART/lib/$OSNAME-$ARCH:$DYLD_LIBRARY_PATH
+#    fi
 elif echo "$OSNAME" | grep CYGWIN 1>/dev/null 2>&1 ; then
     export ARTISYNTH_HOME=`cygpath -w $ARTISYNTH_HOME`
     export ARTISYNTH_PATH=".;`cygpath -w $HOME`;$ARTISYNTH_HOME"
-    if uname -m | grep -q 64 ; then
-       echo Cygwin on Windows64
-       export PATH=`cygpath "$ARTISYNTH_HOME\lib\Windows64"`:$PATH
-    else
-       echo Cygwin on Windows32
-       export PATH=`cygpath "$ARTISYNTH_HOME\lib\Windows"`:$PATH
-       MEM_LIMIT="-Xmx1G"
-    fi
+#    if uname -m | grep -q 64 ; then
+#       echo Cygwin on Windows64
+#       export PATH=`cygpath "$ARTISYNTH_HOME\lib\Windows64"`:$PATH
+#    else
+#       echo Cygwin on Windows32
+#       export PATH=`cygpath "$ARTISYNTH_HOME\lib\Windows"`:$PATH
+#       MEM_LIMIT="-Xmx1G"
+#    fi
     CLASSPATH="$ARTISYNTH_HOME\classes;$ARTISYNTH_HOME\lib\*"
 else     
     echo Unknown operating system: $OSNAME

@@ -20,11 +20,13 @@ documentation.pdf: documentation.tex
 documentation.xml: documentation.tex
 	latexml documentation.tex >documentation.xml
 
-$(HTML_DIR)/documentation.html: documentation.xml
+$(HTML_DIR)/documentation.html: documentation.tex
 	$(MAKE_HTML_DIR_IF_NECESSARY)
+	latexml documentation.tex >documentation.xml
 	$(LATEXMLPOST) documentation.xml 
 	$(FIX_HTML_OUTPUT) > _tmp_.html
 	mv _tmp_.html $(HTML_DIR)/documentation.html
+	rm -f documentation.xml
 
 install_html: html
 	rsync -rCt $(HTML_DIR)/ $(WEB_DOC_URL)/html/documentation

@@ -399,17 +399,17 @@ public class PardisoSolver implements DirectSolver {
       try {
          NativeLibraryManager.setFlags (NativeLibraryManager.VERBOSE);
          switch (NativeLibraryManager.getSystemType()) {
-            case Linux:
+            case Linux32:
             case Linux64: {
-               NativeLibraryManager.load ("gomp.1");
+               //NativeLibraryManager.load ("gomp.1");
                break;
             }
-            case Windows:
+            case Windows32:
             case Windows64: {
                NativeLibraryManager.load ("libiomp5md");
                break;
             }
-            case MacOS: {
+            case MacOS64: {
                // advance loading won't work on MacOS. Instead, we rely
                // on changing the install name for libiomp5.dylib in
                // libPardisoJNI.1.0 to @loader_path/libiomp5.dylib 
@@ -417,10 +417,10 @@ public class PardisoSolver implements DirectSolver {
                break;
             }
          }
-         NativeLibraryManager.load ("PardisoJNI.1.0");
+         NativeLibraryManager.load ("PardisoJNI.1.1");
          myInitStatus = INIT_LIBRARIES_LOADED;
       }
-      catch (NativeLibraryException e) {
+      catch (Exception e) {
          System.out.println (e.getMessage());
          myInitStatus = ERR_CANT_LOAD_LIBRARIES;
       }

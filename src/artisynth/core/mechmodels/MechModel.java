@@ -1439,6 +1439,14 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       myMaxBound.set (pmax);
    }
 
+   public void setBounds (
+      double xmin, double ymin, double zmin,
+      double xmax, double ymax, double zmax) {
+
+      setBounds (
+         new Point3d (xmin, ymin, zmin), new Point3d (xmax, ymax, zmax));
+   }
+
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
       doclear();
       super.scan (rtok, ref);

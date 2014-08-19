@@ -93,7 +93,7 @@ public class NativeLibraryManagerTest {
       parseTest ("libfoo.so", "foo", -1, -1, "", SystemType.Linux);
       parseTest ("libfoo.dylib", "foo", -1, -1, "", SystemType.MacOS);
       parseTest ("foo.dll", "foo", -1, -1, "", SystemType.Windows);
-      parseTest ("foo", "foo", -1, -1, "", SystemType.Unknown);
+      parseTest ("foo", "foo", -1, -1, "", SystemType.Generic);
 
       parseTest ("libfoo.so.1", "foo", 1, -1, ".1", SystemType.Linux);
       parseTest ("libfoo.so.1.3", "foo", 1, 3, ".1.3", SystemType.Linux);
@@ -104,42 +104,42 @@ public class NativeLibraryManagerTest {
       parseTest ("foo.4.dll", "foo", 4, -1, ".4", SystemType.Windows);
       parseTest ("foo.4.7.dll", "foo", 4, 7, ".4.7", SystemType.Windows);
       parseTest ("foo.4.7.66.dll", "foo", 4, 7, ".4.7.66", SystemType.Windows);
-      parseTest ("foo.5", "foo", 5, -1, ".5", SystemType.Unknown);
-      parseTest ("foo.5.6", "foo", 5, 6, ".5.6", SystemType.Unknown);
-      parseTest ("foo.5.6.088", "foo", 5, 6, ".5.6.088", SystemType.Unknown);
+      parseTest ("foo.5", "foo", 5, -1, ".5", SystemType.Generic);
+      parseTest ("foo.5.6", "foo", 5, 6, ".5.6", SystemType.Generic);
+      parseTest ("foo.5.6.088", "foo", 5, 6, ".5.6.088", SystemType.Generic);
 
-      matchMinorTest (SystemType.Linux, "foo.1.2", "libfoo.1.1", -1);
-      matchMinorTest (SystemType.Linux, "foo.1.2", "libfoo.1.1.so", -1);
-      matchMinorTest (SystemType.Linux, "foo.1.2", "libfoo.so.1.1", 1);
-      matchMinorTest (SystemType.Linux, "foo.1.2", "libfoo.so.x1.1", -1);
-      matchMinorTest (SystemType.Linux, "foo.1.2", "libfoo.so.1.1.12", 1);
-      matchMinorTest (SystemType.Linux, "foo.1.2", "libfoo.so.2.1", -1);
-      matchMinorTest (SystemType.Linux, "foo.1.2", "libfoo.so.1", -1);
-      matchMinorTest (SystemType.Linux, "foo.1.2", "foo.so.1.1", -1);
+      matchMinorTest (SystemType.Linux32, "foo.1.2", "libfoo.1.1", -1);
+      matchMinorTest (SystemType.Linux32, "foo.1.2", "libfoo.1.1.so", -1);
+      matchMinorTest (SystemType.Linux32, "foo.1.2", "libfoo.so.1.1", 1);
+      matchMinorTest (SystemType.Linux32, "foo.1.2", "libfoo.so.x1.1", -1);
+      matchMinorTest (SystemType.Linux32, "foo.1.2", "libfoo.so.1.1.12", 1);
+      matchMinorTest (SystemType.Linux32, "foo.1.2", "libfoo.so.2.1", -1);
+      matchMinorTest (SystemType.Linux32, "foo.1.2", "libfoo.so.1", -1);
+      matchMinorTest (SystemType.Linux32, "foo.1.2", "foo.so.1.1", -1);
 
-      matchMinorTest (SystemType.MacOS, "foo.1.2", "libfoo.1.1", -1);
-      matchMinorTest (SystemType.MacOS, "foo.1.2", "libfoo.1.1.so", -1);
-      matchMinorTest (SystemType.MacOS, "foo.1.2", "libfoo.so.1.1", -1);
-      matchMinorTest (SystemType.MacOS, "foo.1.2", "libfoo.dylib.1.1", -1);
-      matchMinorTest (SystemType.MacOS, "foo.1.2", "libfoo.dylib.1", -1);
-      matchMinorTest (SystemType.MacOS, "foo.1.2", "libfoo.1.7.dylib", 7);
-      matchMinorTest (SystemType.MacOS, "foo.1.2", "libfoo.1..7.dylib", -1);
-      matchMinorTest (SystemType.MacOS, "foo.1.2", "libfoo.2.7.dylib", -1);
-      matchMinorTest (SystemType.MacOS, "foo.1.2", "foo.1.7.dylib", -1);
-      matchMinorTest (SystemType.MacOS, "foo.1.2", "libfoo.1.dylib", -1);
-      matchMinorTest (SystemType.MacOS, "foo.1.2", "libfoo.dylib", -1);
+      matchMinorTest (SystemType.MacOS64, "foo.1.2", "libfoo.1.1", -1);
+      matchMinorTest (SystemType.MacOS64, "foo.1.2", "libfoo.1.1.so", -1);
+      matchMinorTest (SystemType.MacOS64, "foo.1.2", "libfoo.so.1.1", -1);
+      matchMinorTest (SystemType.MacOS64, "foo.1.2", "libfoo.dylib.1.1", -1);
+      matchMinorTest (SystemType.MacOS64, "foo.1.2", "libfoo.dylib.1", -1);
+      matchMinorTest (SystemType.MacOS64, "foo.1.2", "libfoo.1.7.dylib", 7);
+      matchMinorTest (SystemType.MacOS64, "foo.1.2", "libfoo.1..7.dylib", -1);
+      matchMinorTest (SystemType.MacOS64, "foo.1.2", "libfoo.2.7.dylib", -1);
+      matchMinorTest (SystemType.MacOS64, "foo.1.2", "foo.1.7.dylib", -1);
+      matchMinorTest (SystemType.MacOS64, "foo.1.2", "libfoo.1.dylib", -1);
+      matchMinorTest (SystemType.MacOS64, "foo.1.2", "libfoo.dylib", -1);
 
-      matchMinorTest (SystemType.Windows, "foo.1.2", "libfoo.1.1", -1);
-      matchMinorTest (SystemType.Windows, "foo.1.2", "libfoo.1.1.so", -1);
-      matchMinorTest (SystemType.Windows, "foo.1.2", "libfoo.so.1.1", -1);
-      matchMinorTest (SystemType.Windows, "foo.1.2", "libfoo.dll.1.1", -1);
-      matchMinorTest (SystemType.Windows, "foo.1.2", "libfoo.dll.1", -1);
-      matchMinorTest (SystemType.Windows, "foo.1.2", "foo.1.7.dll", 7);
-      matchMinorTest (SystemType.Windows, "foo.1.2", "foo.1.x7.dll", -1);
-      matchMinorTest (SystemType.Windows, "foo.1.2", "foo.2.7.dll", -1);
-      matchMinorTest (SystemType.Windows, "foo.1.2", "foo.1.7.8.dll", 7);
-      matchMinorTest (SystemType.Windows, "foo.1.2", "foo.1.dll", -1);
-      matchMinorTest (SystemType.Windows, "foo.1.2", "foo.dll", -1);
+      matchMinorTest (SystemType.Windows32, "foo.1.2", "libfoo.1.1", -1);
+      matchMinorTest (SystemType.Windows32, "foo.1.2", "libfoo.1.1.so", -1);
+      matchMinorTest (SystemType.Windows32, "foo.1.2", "libfoo.so.1.1", -1);
+      matchMinorTest (SystemType.Windows32, "foo.1.2", "libfoo.dll.1.1", -1);
+      matchMinorTest (SystemType.Windows32, "foo.1.2", "libfoo.dll.1", -1);
+      matchMinorTest (SystemType.Windows32, "foo.1.2", "foo.1.7.dll", 7);
+      matchMinorTest (SystemType.Windows32, "foo.1.2", "foo.1.x7.dll", -1);
+      matchMinorTest (SystemType.Windows32, "foo.1.2", "foo.2.7.dll", -1);
+      matchMinorTest (SystemType.Windows32, "foo.1.2", "foo.1.7.8.dll", 7);
+      matchMinorTest (SystemType.Windows32, "foo.1.2", "foo.1.dll", -1);
+      matchMinorTest (SystemType.Windows32, "foo.1.2", "foo.dll", -1);
    }
 
    public static void main (String[] args) {

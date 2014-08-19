@@ -204,6 +204,29 @@ public class Launcher {
    private static String SEP = File.separator;
    private static String PSEP = File.pathSeparator;
 
+
+   private String[] readAuxFilesFromLine (BufferedReader reader)
+      throws IOException {
+      
+      String line = reader.readLine();
+      if (line == null) {
+         return null;
+      }
+      // clip out comments
+      int ci = line.indexOf ('#');
+      if (ci != -1) {
+         line = line.substring (0, ci);
+      }
+      // make sure line contains more than whitespace ...
+      for (int i=0; i<line.length(); i++) {
+         if (!Character.isWhitespace (line.charAt(i))) {
+            return line.split (File.pathSeparator);
+         }
+      }
+      // otherwise, return 0 items ...
+      return new String[0];
+   }      
+
    /**
     * Returns a list of external jar files and class directories as specified
     * in the file $ARTISYNTH_HOME/EXTCLASSPATH.
@@ -212,26 +235,52 @@ public class Launcher {
       LinkedList<File> pfiles = new LinkedList<File>();
       File file = new File (homeDirPath+SEP+"EXTCLASSPATH");
       if (file.canRead()) {
-         ReaderTokenizer rtok = null;
+         BufferedReader reader = null;
          try {
-            rtok = ArtisynthIO.newReaderTokenizer (file);
-            rtok.wordChars ("\\:");
-            while (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
-               if (rtok.tokenIsWordOrQuotedString('"')) {
-                  File pfile = new File (subEnvironmentVariables(rtok.sval));
+            reader = new BufferedReader (new FileReader (file));
+            String[] auxFiles;
+            while ((auxFiles=readAuxFilesFromLine (reader)) != null) {
+               for (String auxFile : auxFiles) {
+                  System.out.println (
+                     "'"+subEnvironmentVariables(auxFile)+"'");
+                  File pfile = new File (subEnvironmentVariables(auxFile));
                   if (pfile.canRead()) {
                      pfiles.add (pfile);
-                  }
+                  }                  
                }
             }
          }
          catch (Exception ignore) {
          }
          finally {
-            if (rtok != null) {
-               rtok.close();
+            if (reader != null) {
+               try { reader.close();
+               }
+               catch (Exception e) {
+                  // ignore
+               }
             }
-         }       
+         }
+         // ReaderTokenizer rtok = null;
+         // try {
+         //    rtok = ArtisynthIO.newReaderTokenizer (file);
+         //    rtok.wordChars ("\\:");
+         //    while (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
+         //       if (rtok.tokenIsWordOrQuotedString('"')) {
+         //          File pfile = new File (subEnvironmentVariables(rtok.sval));
+         //          if (pfile.canRead()) {
+         //             pfiles.add (pfile);
+         //          }
+         //       }
+         //    }
+         // }
+         // catch (Exception ignore) {
+         // }
+         //finally {
+         //   if (rtok != null) {
+         //      rtok.close();
+         // }
+         //}       
       }
       return pfiles.toArray (new File[0]);      
    }
@@ -262,45 +311,45 @@ public class Launcher {
          // check only JOGL libraries here; larger libs will be verified
          // in Main once the GUI comes up and we can show a progress bar
 
-         if (useJOGL2) {
-            // new JOGL 2 libraries
-            SystemType sysType = NativeLibraryManager.getSystemType();
-            String suffix = null;
-            switch (sysType) {
-               case Linux64: {
-                  suffix = "linux-amd64";
-                  break;
-               }
-               case Windows64: {
-                  suffix = "windows-amd64";
-                  break;
-               }
-               case Windows: {
-                  suffix = "windows-i586";
-                  break;
-               }
-               case MacOS: {
-                  suffix = "macosx-universal";
-                  break;
-               }
-               default: {
-                  System.out.println (
-                     "Warning: system type "+sysType+" not supported for JOGL 2");
-                  sysType = null;
-               }
-            }
-            if (suffix != null) {
-               installer.addLibrary ("jogl2-gluegen-rt-natives-"+suffix+".jar");
-               installer.addLibrary ("jogl2-all-natives-"+suffix+".jar");
-            }
-         }
-         else {
-            // old JOGL libraries
-            installer.addLibrary ("gluegen-rt");
-            installer.addLibrary ("jogl");
-            installer.addLibrary ("jogl_awt");
-            installer.addLibrary ("jogl_cg");
-         }
+         // if (useJOGL2) {
+         //    // new JOGL 2 libraries
+         //    SystemType sysType = NativeLibraryManager.getSystemType();
+         //    String suffix = null;
+         //    switch (sysType) {
+         //       case Linux64: {
+         //          suffix = "linux-amd64";
+         //          break;
+         //       }
+         //       case Windows64: {
+         //          suffix = "windows-amd64";
+         //          break;
+         //       }
+         //       case Windows32: {
+         //          suffix = "windows-i586";
+         //          break;
+         //       }
+         //       case MacOS64: {
+         //          suffix = "macosx-universal";
+         //          break;
+         //       }
+         //       default: {
+         //          System.out.println (
+         //             "Warning: system type "+sysType+" not supported for JOGL 2");
+         //          sysType = null;
+         //       }
+         //    }
+         //    if (suffix != null) {
+         //       installer.addLibrary ("jogl2-gluegen-rt-natives-"+suffix+".jar");
+         //       installer.addLibrary ("jogl2-all-natives-"+suffix+".jar");
+         //    }
+         // }
+         // else {
+         //    // old JOGL libraries
+         //    installer.addLibrary ("gluegen-rt");
+         //    installer.addLibrary ("jogl");
+         //    installer.addLibrary ("jogl_awt");
+         //    installer.addLibrary ("jogl_cg");
+         // }
 
          boolean allOK = true;
          try {

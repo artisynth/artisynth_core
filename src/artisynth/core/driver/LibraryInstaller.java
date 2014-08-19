@@ -161,27 +161,17 @@ public class LibraryInstaller {
                   "Option -systemType requires an additional argument");
                System.exit(1);
             }
-            String sysType = args[i];
-            if (sysType.equals ("Linux")) {
-               NativeLibraryManager.setSystemType (SystemType.Linux);
+            SystemType sysType = NativeLibraryManager.getSystemType(args[i]);
+            if (sysType == null || sysType == SystemType.Unknown) {
+               System.out.println ("Unknown systemType: '"+args[i]+"'");
+               System.exit(1); 
             }
-            else if (sysType.equals ("Linux64")) {
-               NativeLibraryManager.setSystemType (SystemType.Linux64);
-            }
-            else if (sysType.equals ("Windows")) {
-               NativeLibraryManager.setSystemType (SystemType.Windows);
-            }
-            else if (sysType.equals ("Windows64")) {
-               NativeLibraryManager.setSystemType (SystemType.Windows64);
-            }
-            else if (sysType.equals ("MacOS")) {
-               NativeLibraryManager.setSystemType (SystemType.MacOS);
-            }
-            else {
+            if (sysType.getSubTypes().length > 0) {
                System.out.println (
-                  "Unknown systemType: " + sysType);
-               System.exit(1);
+                  "Generic systemType '"+args[i]+"' not permitted");
+               System.exit(1); 
             }
+            NativeLibraryManager.setSystemType (sysType);
          }
          else {
             System.out.println ("Unrecognized option "+ args[i]);
@@ -309,6 +299,59 @@ public class LibraryInstaller {
       return allOK;
    }
 
+   protected void maybeAddLibrary (String libName, SystemType sysType) {
+
+      if (sysType != null) {
+         if (!NativeLibraryManager.getSystemType().isInstanceOf (sysType)) {
+            return;
+         }
+      }
+      if (!libName.endsWith (".jar")) {
+         if (NativeLibraryManager.libraryMatchesSystem (libName)) {
+            addLibrary (libName);
+         }
+         else if (sysType != null) {
+            System.out.println (
+               "Warning: library "+libName+
+               " does not match system "+sysType+", ignoring");
+         }
+      }
+      else {
+         addLibrary (libName);         
+      }
+   }
+
+   protected void readLine (ReaderTokenizer rtok) throws IOException {
+      String word1 = null;
+      String word2 = null;
+
+      rtok.nextToken();
+      while (rtok.ttype != ReaderTokenizer.TT_EOF && 
+             rtok.ttype != ReaderTokenizer.TT_EOL) {
+         if (word1 == null && rtok.tokenIsWord()) {
+            word1 = rtok.sval;
+         }
+         else if (word2 == null && rtok.tokenIsWord()) {
+            word2 = rtok.sval;
+         }
+         else {
+            throw new IOException ("Unexpected token "+rtok);
+         }
+         rtok.nextToken();
+      }
+      if (word2 != null) {
+         SystemType sysType = NativeLibraryManager.getSystemType (word1);
+         if (sysType == SystemType.Unknown || sysType == null) {
+            throw new IOException (
+                "Illegal system specifier '"+word1+"', line "+rtok.lineno());
+         }
+         maybeAddLibrary (word2, /*system=*/sysType);
+      }
+      else if (word1 != null) {
+         maybeAddLibrary (word1, /*system=*/null);
+      }
+   }
+
    public void readLibs (File file) throws IOException {
       ReaderTokenizer rtok = null;
       if (file == null) {
@@ -318,23 +361,23 @@ public class LibraryInstaller {
       else {
          rtok = ArtisynthIO.newReaderTokenizer (file);
       }
+      
       try {
          rtok.wordChars ("-");
+         rtok.eolIsSignificant (true);
          while (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
-            if (rtok.tokenIsWord()) {
-               addLibrary (rtok.sval);
-            }
-            else {
-               throw new IOException ("Unexpected token "+rtok);
-            }
+            rtok.pushBack();
+            readLine (rtok);
          }
       }
       catch (Exception e) {
          if (file == null) {
-            throw new IOException ("Error reading input: " + e.getMessage());
+            throw new IOException (
+               "Error reading input: " + e.getMessage(), e);
          }
          else {
-            throw new IOException ("Error reading file"+file+": "+e.getMessage());
+            throw new IOException (
+               "Error reading file"+file+": "+e.getMessage(), e);
          }
       }
       finally {

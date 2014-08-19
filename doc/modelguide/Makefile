@@ -17,16 +17,19 @@ $(PDF_DIR)/modelguide.pdf: modelguide.pdf
 
 modelguide.pdf: modelguide.tex
 	pdflatex modelguide.tex
+	pdflatex modelguide.tex	
 	pdflatex modelguide.tex
 
 modelguide.xml: modelguide.tex
 	latexml modelguide.tex >modelguide.xml
 
-$(HTML_DIR)/modelguide.html: modelguide.xml
+$(HTML_DIR)/modelguide.html: modelguide.tex
 	$(MAKE_HTML_DIR_IF_NECESSARY)
+	latexml modelguide.tex >modelguide.xml
 	$(LATEXMLPOST) modelguide.xml 
 	$(FIX_HTML_OUTPUT) > _tmp_.html
 	mv _tmp_.html $(HTML_DIR)/modelguide.html
+	rm -f modelguide.xml
 
 install_html: html
 	rsync -rCt $(HTML_DIR)/ $(WEB_DOC_URL)/html/modelguide

@@ -17,6 +17,7 @@ import java.net.URL;
 import java.util.*;
 import java.util.regex.*;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
 
 import javax.swing.*;
@@ -1033,6 +1034,33 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return true;
    }
 
+   protected RootModel createRootModel (Class<?> demoClass, String[] args) {
+      try {
+         RootModel newRoot = null;
+         Method method = demoClass.getMethod ("build", String[].class);
+         if (method.getDeclaringClass() != RootModel.class) {
+            System.out.println (
+               "constructing model with build method ...");
+            Constructor constructor = demoClass.getConstructor();
+            newRoot = (RootModel)constructor.newInstance();
+            newRoot.setName (args[0]);
+            newRoot.build (args);
+         }
+         else {
+            System.out.println (
+               "constructing model with legacy constructor method ...");
+            Constructor constructor = demoClass.getConstructor (String.class);
+            newRoot = (RootModel)constructor.newInstance (args[0]);
+         }
+         return newRoot;
+      }
+      catch (Exception e) {
+         myErrMsg = " class " + demoClass.getName() + " cannot be instantiated";
+         e.printStackTrace();
+         return null;
+      }
+   }
+
    public boolean loadModel (String modelName, String className) {
 
       // If we are not in the AWT event thread, switch to that thread
@@ -1091,13 +1119,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // getWorkspace().getWayPoints().clear();
       int numLoads = 1; // set to a large number for testing memory leaks
       for (int i = 0; i < numLoads; i++) {
-         try {
-            Constructor<?> constructor = demoClass.getConstructor (String.class);
-            newRoot = (RootModel)constructor.newInstance (modelName);
-         }
-         catch (Exception e) {
-            myErrMsg = " class " + className + " cannot be instantiated";
-            e.printStackTrace();
+         newRoot = createRootModel (demoClass, new String[] { modelName });
+         if (newRoot == null) {
             // load empty model since some state info from existing model 
             // has been cleared, causing it to crash
             loadModel("ArtiSynth", "artisynth.core.workspace.RootModel");
@@ -2131,8 +2154,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
    /**
     * Called to update the current dragger position.
     */
-   void updateDragger() {
-      if (currentDragger != null) {
+   public void updateDragger() {
+      if (currentDragger != null && !currentDragger.isDragging()) {
          if (myDraggableComponents.size() > 0) {
             Point3d dragCenter = new Point3d();
             if (myDraggableComponents.size() == 1 &&

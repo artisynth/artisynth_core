@@ -4,6 +4,9 @@
 \date{}
 \fi
 
+\newif\ifNeedLibraryPath
+\NeedLibraryPathtrue
+
 \begin{document}
 
 \maketitle
@@ -139,7 +142,18 @@ The ArtiSynth Subversion URL is
 \begin{verbatim}
    https://svn.artisynth.org/svn/artisynth_core/trunk
 \end{verbatim}
-There are several ways to check ArtiSynth out from this URL:
+
+\begin{sideblock}
+{\bf Note:}\\
+If you omit the trailing {\tt /trunk} from the Subversion URL, then
+the checkout will contain the entire Subversion directory structure,
+including the subdirectories {\tt trunk}, {\tt branches}, and {\tt
+tags}, which is generally not needed by most users. Also, if you do
+check out the entire structure, the resulting {\tt trunk} directory
+should be specified as {\tt ARTISYNTH\_HOME}.
+\end{sideblock}
+
+There are several ways to check out ArtiSynth using its Subversion URL:
 
 \subsection{Checking out using Eclipse}
 \label{ArtiSynthEclipseCheckout}
@@ -838,7 +852,9 @@ settings are:
 \item Set {\tt ARTISYNTH\_HOME} to the path of the ArtiSynth
 installation \directory.
 
+\ifNeedLibraryPath
 \item Set {\tt \LIBRARYPATH} to {\tt \$ARTISYNTH\_HOME\SEP lib\SEP \ARCH}
+\fi
 
 \item Optionally, set {\tt OMP\_NUM\_THREADS} (see Section
 \ref{EnvironmentVariables}).
@@ -859,6 +875,7 @@ In all the variable settings described below, references to {\tt
 ArtiSynth install \directory.
 \end{sideblock}
 
+\ifNeedLibraryPath
 \ifWindows
 \begin{sideblock}
 {\bf Note:} There is a bug in Eclipse 4.0+ on Windows where it will replace 
@@ -866,6 +883,7 @@ the system's native {\tt \%PATH\%} variable rather than appending to it.
 To correct this behaviour, define {\tt PATH} as 
 {\tt \$\{env\_var:path\};\$ARTISYNTH\_HOME\SEP lib\SEP \ARCH} 
 \end{sideblock}
+\fi
 \fi
 
 \subsubsection {Setting environment variables}
@@ -1118,12 +1136,14 @@ This variable is described in detail in Section \ref{settingWindowsPath}.
 This should be set to include {\tt \$ARTISYNTH\_HOME\SEP bin}
 \fi
 
+\ifNeedLibraryPath
 \ifWindows\else
 \item[\LIBRARYPATH]\mbox{}
 
 A list of \directories, separated by colons
 ":", which the operating system searches in order to find shared libraries.
 Should be set to include {\tt \$ARTISYNTH\_HOME\SEP lib\SEP \ARCH}.
+\fi
 \fi
 
 \item[OMP\_NUM\_THREADS]\mbox{}
@@ -1388,28 +1408,25 @@ standard text editor
 \else
 (such as {\tt vim}, {\tt gedit}, or {\tt emacs}),
 \fi
-and add each path on a separate line. (Strictly speaking, paths only
-need to be separated by whitespace, but placing each on a separate
-line should make the file more readable.)
+and add each required path. For clarity, each path is typically
+added on a separate line. However, multiple paths can be
+added on the same line if they are separated by the
+path separator character used for that OS.
 
 The syntax rules for {\tt EXTCLASSPATH} are:
 
 \begin{enumerate}
 
-\item Class path entries should be separated by white space.
+\item Class path entries on the same line should be separated by a
+path separator character (a semi-colon '{\tt ;}' for Windows
+and a colon '{\tt :}' for MacOS and Linux).
 
-\item Paths containing spaces should be placed inside double quotes
-({\tt "}).
-
-\item The {\tt \#} character is a comment character.
+\item The {\tt \#} character comments out all remaining characters
+to the end of line.
 
 \item The {\tt \$} character can be used to expand environment variables.
 
-\ifWindows
-\item Paths may be written using either a Windows format (with back
-slashes ({\tt \BKS}) as separators), or a Unix format (with forward
-slashes ({\tt /}) as separators).
-\fi
+\item Any spaces present {\bf will} be included in the path name.
 
 \end{enumerate}
 
@@ -1430,7 +1447,6 @@ $HOME/projects/crazy/classes
 \fi
 
 \end{document}
-
 
 %To obtain one of the packaged distributions:
 %

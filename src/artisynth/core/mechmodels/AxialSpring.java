@@ -54,19 +54,23 @@ public class AxialSpring extends PointSpringBase
       this (name, 1, 0, 0);
    }
 
-   public AxialSpring (String name, double k, double d, double l) {
+   public AxialSpring (String name, double l0) {
+      this (name, 1, 0, l0);
+   }
+
+   public AxialSpring (String name, double k, double d, double l0) {
       super (name);
 //      myStiffness = k;
 //      myDamping = d;
-      setRestLength (l);
+      setRestLength (l0);
       setMaterial (new LinearAxialMaterial (k, d));
    }
 
-   public AxialSpring (double k, double d, double l) {
+   public AxialSpring (double k, double d, double l0) {
       this (null);
 //      myStiffness = k;
 //      myDamping = d;
-      setRestLength (l);
+      setRestLength (l0);
       setMaterial (new LinearAxialMaterial (k, d));
    }
 

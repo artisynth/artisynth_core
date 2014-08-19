@@ -55,7 +55,10 @@ ifeq ($(SYSTEM),Linux)
 
 	UMFPACK_TARGET = libSolversUmfpack.so
 	PARDISO_MKL_TARGET = libPardisoJNI.so.1.1
-	LIB_FLAGS = -shared
+        # the use of rpath ensures that library dependencies can also be loaded
+        # from lib/Linux or lib/Linux64; 
+        # see https://github.com/bimargulies/jni-origin-testbed
+	LIB_FLAGS = -shared -Wl,-rpath='$$ORIGIN'
 else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 	ifndef MKL_HOME
 	   MKL_HOME = C:/Program Files/Intel/ComposerXE-2011

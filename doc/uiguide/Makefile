@@ -23,11 +23,13 @@ uiguide.pdf: uiguide.tex
 uiguide.xml: uiguide.tex
 	latexml uiguide.tex >uiguide.xml
 
-$(HTML_DIR)/uiguide.html: uiguide.xml
+$(HTML_DIR)/uiguide.html: uiguide.tex
 	$(MAKE_HTML_DIR_IF_NECESSARY)
+	latexml uiguide.tex >uiguide.xml
 	$(LATEXMLPOST) uiguide.xml 
 	$(FIX_HTML_OUTPUT) > _tmp_.html
 	mv _tmp_.html $(HTML_DIR)/uiguide.html
+	rm -f uiguide.xml
 
 install_html: html
 	rsync -rCt $(HTML_DIR)/ $(WEB_DOC_URL)/html/uiguide

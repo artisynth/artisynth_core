@@ -27,6 +27,7 @@ public class MeshInfo {
       System.out.println ("-test: test that mesh is clean and well formed");
       System.out.println ("-numFaces: print the number of faces");
       System.out.println ("-numVertices: print the number of vertices");
+      System.out.println ("-edgeLength: print average edge length");
       System.exit(1);
    }
 
@@ -149,13 +150,14 @@ public class MeshInfo {
       PrintInfo,
       RunTest,
       PrintFaces,
-      PrintVertices 
+      PrintVertices,
+      PrintEdgeLength
    };
 
    public static void main (String[] args) {
 
       ArrayList<String> inputNames = new ArrayList<String>();
-      Command cmd = Command.PrintInfo;
+      ArrayList<Command> cmds = new ArrayList<Command>();
 
       for (int i=0; i<args.length; i++) {
          if (args[i].equals ("-help")) {
@@ -165,13 +167,16 @@ public class MeshInfo {
             inputNames.add (args[i]);
          }
          else if (args[i].equals ("-test")) {
-            cmd = Command.RunTest;
+            cmds.add (Command.RunTest);
          }
          else if (args[i].equals ("-numFaces")) {
-            cmd = Command.PrintFaces;
+            cmds.add (Command.PrintFaces);
          }
          else if (args[i].equals ("-numVertices")) {
-            cmd = Command.PrintVertices;
+            cmds.add (Command.PrintVertices);
+         }
+         else if (args[i].equals ("-edgeLength")) {
+            cmds.add (Command.PrintEdgeLength);
          }
          else {
             printUsageAndExit();
@@ -180,6 +185,9 @@ public class MeshInfo {
       if (inputNames.size() == 0) {
          System.out.println ("Error: no input files specified");
          printUsageAndExit();
+      }
+      if (cmds.size() == 0) {
+         cmds.add (Command.PrintInfo);
       }
       
       for (int i=0; i<inputNames.size(); i++) {
@@ -192,41 +200,56 @@ public class MeshInfo {
          MeshInfo info = new MeshInfo();
 
          try {
-            switch (cmd) {
-               case PrintInfo: {
-                  System.out.println (
-                     "Info for mesh "+fileName+":");
-                  info.printInfo (inputFile);
-                  break;
-               }
-               case RunTest: {
-                  System.out.println (
-                     "Testing mesh "+fileName+":");
-                  info.testMesh (inputFile);
-                  break;
-               }
-               case PrintFaces: {
-                  MeshBase mesh;
-                  if ((mesh = info.getMesh (inputFile)) != null) {
-                     if (mesh instanceof PolygonalMesh) {
-                        System.out.println (((PolygonalMesh)mesh).getNumFaces());
-                     }
-                     else {
-                        System.out.println ("Mesh is a " + mesh.getClass());
-                     }
+            for (Command cmd : cmds) {
+               switch (cmd) {
+                  case PrintInfo: {
+                     System.out.println (
+                        "Info for mesh "+fileName+":");
+                     info.printInfo (inputFile);
+                     break;
                   }
-                  break;
-               }
-               case PrintVertices: {
-                  MeshBase mesh;
-                  if ((mesh = info.getMesh (inputFile)) != null) {
-                     System.out.println (mesh.getNumVertices());
+                  case RunTest: {
+                     System.out.println (
+                        "Testing mesh "+fileName+":");
+                     info.testMesh (inputFile);
+                     break;
                   }
-                  break;
-               }
-               default: {
-                  throw new InternalErrorException (
-                     "Unimplemented command " + cmd);
+                  case PrintFaces: {
+                     MeshBase mesh;
+                     if ((mesh = info.getMesh (inputFile)) != null) {
+                        if (mesh instanceof PolygonalMesh) {
+                           System.out.println (((PolygonalMesh)mesh).getNumFaces());
+                        }
+                        else {
+                           System.out.println ("Mesh is a " + mesh.getClass());
+                        }
+                     }
+                     break;
+                  }
+                  case PrintVertices: {
+                     MeshBase mesh;
+                     if ((mesh = info.getMesh (inputFile)) != null) {
+                        System.out.println (mesh.getNumVertices());
+                     }
+                     break;
+                  }
+                  case PrintEdgeLength: {
+                     MeshBase mesh;
+                     if ((mesh = info.getMesh (inputFile)) != null) {
+                        if (mesh instanceof PolygonalMesh) {
+                           System.out.println (
+                              ((PolygonalMesh)mesh).computeAverageEdgeLength());
+                        }
+                        else {
+                           System.out.println ("Mesh is a " + mesh.getClass());
+                        }
+                     }
+                     break;
+                  }
+                  default: {
+                     throw new InternalErrorException (
+                        "Unimplemented command " + cmd);
+                  }
                }
             }
          }

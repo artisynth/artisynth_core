@@ -18,15 +18,18 @@ $(PDF_DIR)/maspack.pdf: maspack.pdf
 maspack.pdf: maspack.tex
 	pdflatex maspack.tex
 	pdflatex maspack.tex
+	pdflatex maspack.tex
 
 maspack.xml: maspack.tex
 	latexml maspack.tex >maspack.xml
 
-$(HTML_DIR)/maspack.html: maspack.xml
+$(HTML_DIR)/maspack.html: maspack.tex
 	$(MAKE_HTML_DIR_IF_NECESSARY)
+	latexml maspack.tex >maspack.xml
 	$(LATEXMLPOST) maspack.xml
 	$(FIX_HTML_OUTPUT) > _tmp_.html
 	mv _tmp_.html $(HTML_DIR)/maspack.html
+	rm -f maspack.xml
 
 install_html: html
 	rsync -rCt $(HTML_DIR)/ $(WEB_DOC_URL)/html/maspack

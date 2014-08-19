@@ -1064,7 +1064,8 @@ Clonable {
    public boolean epsilonEquals (VectorNd v1, double eps)
       throws ImproperSizeException {
       if (v1.size != size) {
-         throw new ImproperSizeException ("Incompatible dimensions");
+         throw new ImproperSizeException (
+            "Incompatible dimensions: "+v1.size()+" vs. "+size);
       }
       for (int i = 0; i < size; i++) {
          double dist = Math.abs (buf[i] - v1.buf[i]);

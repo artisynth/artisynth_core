@@ -547,11 +547,11 @@ int Pardiso4::factorMatrix (const double* vals)
 
    int i;
    // copy new values
-   if (vals != (double*)0)
-    { for (i=0; i<myNumVals; i++)
-       { myVals[i] = vals[i]; 
-       }
-    }
+   if (vals != (double*)0) {
+     for (i=0; i<myNumVals; i++) {
+       myVals[i] = vals[i]; 
+     }
+   }
 
    myIParams[3] = 0; /* no iterative solving (paranoid, setting anyway) */
    myIParams[9] = getPivotPerturbation();
@@ -674,7 +674,6 @@ int Pardiso4::solveMatrix (double* x, double* b)
     { myLastPhase = phase; 
       myNumRefinementSteps = myIParams[6];
     }
-
    return error;	
 }
 

@@ -30,7 +30,7 @@ public abstract class Dragger3dBase extends DragToolBase implements Dragger3d {
       myVisibleP = true;
       mySize = 1;
    }
-   
+
    public void addListener (Dragger3dListener l) {
       myListeners.add (l);
    }

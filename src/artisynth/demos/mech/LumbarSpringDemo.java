@@ -113,8 +113,6 @@ public class LumbarSpringDemo extends RootModel {
       myLumbar1 = addBone ("lumbar1", 1500);
       myLumbar2 = addBone ("lumbar2", 1500);
 
-
-
       myLumbar2.setDynamic (false);
 
       addModel (myMechMod);

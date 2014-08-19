@@ -17,11 +17,13 @@ updates.pdf: updates.tex
 updates.xml: updates.tex
 	latexml updates.tex >updates.xml
 
-$(HTML_DIR)/updates.html: updates.xml
+$(HTML_DIR)/updates.html: updates.tex
 	$(MAKE_HTML_DIR_IF_NECESSARY)
+	latexml updates.tex >updates.xml
 	$(LATEXMLPOST) updates.xml
 	$(FIX_HTML_OUTPUT) > _tmp_.html
 	mv _tmp_.html $(HTML_DIR)/updates.html
+	rm -f updates.xml
 
 install_html: html
 	rsync $(HTML_DIR)/updates.html $(WEB_DOC_URL)/html/updates

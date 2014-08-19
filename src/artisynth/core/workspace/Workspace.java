@@ -122,7 +122,7 @@ public class Workspace {
          }
          try {
             if (myRenderRequested) {
-               //Main.getMain().updateDragger();
+               Main.getMain().updateDragger();
                if (myViewerManager != null) {
                   myViewerManager.render();
                }

@@ -20,11 +20,13 @@ codingStandard.pdf: codingStandard.tex
 codingStandard.xml: codingStandard.tex
 	latexml codingStandard.tex >codingStandard.xml
 
-$(HTML_DIR)/codingStandard.html: codingStandard.xml
+$(HTML_DIR)/codingStandard.html: codingStandard.tex
 	$(MAKE_HTML_DIR_IF_NECESSARY)
+	latexml codingStandard.tex >codingStandard.xml
 	$(LATEXMLPOST) codingStandard.xml 
 	$(FIX_HTML_OUTPUT) > _tmp_.html
 	mv _tmp_.html $(HTML_DIR)/codingStandard.html
+	rm -f codingStandard.xml
 
 install_html: html
 	rsync -rCt $(HTML_DIR)/ $(WEB_DOC_URL)/html/developer

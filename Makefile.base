@@ -21,7 +21,7 @@ ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 else
    JAVAC = javac
 endif
-JAVACFLAGS = -J-Xms500m -J-Xmx500m -d $(ROOT_DIR)/classes -sourcepath $(ROOT_DIR)/src -source 1.6 -target 1.6
+JAVACFLAGS = -J-Xms500m -J-Xmx500m -d $(ROOT_DIR)/classes -sourcepath $(ROOT_DIR)/src -source 1.7 -target 1.7
 JAVAH = javah
 JAVAHFLAGS = -jni -force
 

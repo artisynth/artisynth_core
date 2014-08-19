@@ -22,11 +22,13 @@ artisynth.pdf: artisynth.tex
 artisynth.xml: artisynth.tex
 	latexml artisynth.tex >artisynth.xml
 
-$(HTML_DIR)/artisynth.html: artisynth.xml
+$(HTML_DIR)/artisynth.html: artisynth.tex
 	$(MAKE_HTML_DIR_IF_NECESSARY)
+	latexml artisynth.tex >artisynth.xml
 	$(LATEXMLPOST) artisynth.xml 
 	$(FIX_HTML_OUTPUT) > _tmp_.html
 	mv _tmp_.html $(HTML_DIR)/artisynth.html
+	rm -f artisynth.xml
 
 install_html: html
 	rsync -rCt $(HTML_DIR)/ $(WEB_DOC_URL)/html/artisynth

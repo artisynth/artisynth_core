@@ -464,6 +464,9 @@ public class RootModel extends RenderableModelBase
       return myFocusableP;
    }
 
+   public void build (String[] args) throws IOException {
+   }
+
    /**
     * Returns a text string giving a short description of this model.
     * 
@@ -773,14 +776,20 @@ public class RootModel extends RenderableModelBase
       return myControllers;
    }
 
+   protected void locateControlPanel (ControlPanel panel) {
+      JFrame frame = Main.getMainFrame();
+      java.awt.Point loc = frame.getLocation();
+      panel.setLocation (loc.x + frame.getWidth(), loc.y);
+   }
+
    public void addControlPanel (ControlPanel panel) {
       myControlPanels.add (panel);
-      // panel.setSynchronizeObject (Main.getScheduler());
+      locateControlPanel (panel);
    }
 
    public void addControlPanel (ControlPanel panel, int idx) {
       myControlPanels.add (panel, idx);
-      // panel.setSynchronizeObject (Main.getScheduler());
+      locateControlPanel (panel);
    }
 
    public boolean removeControlPanel (ControlPanel panel) {
@@ -811,7 +820,7 @@ public class RootModel extends RenderableModelBase
       if (panel != null && panel.numWidgets() > 0) {
          //panel.pack();
          //panel.setVisible (true);
-         addControlPanel (panel);
+         myControlPanels.add (panel);
       }
 
       return panel;

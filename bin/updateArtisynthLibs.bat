@@ -21,4 +21,3 @@ if %JAVAERROR% EQU 1 (
    pause
    exit /B 1
 )
-

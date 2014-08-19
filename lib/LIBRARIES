@@ -4,8 +4,18 @@
 # version of ArtiSynth, and is used to automatically download and update
 # these files from the ArtiSynth file server.
 #
+# Each library must be listed on a separate line. The character '#' comments
+# out all remaining characters to the end of the line. Libraries may be preceded 
+# by an optional system-specifier, which describes the type of operating system
+# forwhich the library is required. Libraries without a system specifier are
+# assumed to be required on all systems. The system specifier must match the
+# name of one of the enumerated types defined by NativeLibraryManager.SystemType,
+# located in maspack.fileutil.
+#
 # Names ending in .jar are assumed to be jar files. Other names are assumed to
-# indicate native libraries.
+# indicate native libraries. Jar files are typically required on all systems,
+# but in some cases there are system-specific jar files that contain native
+# libraries; this is the case for the JOGL2.
 #
 # Native library names can contain a suffix of the form (.n)+, where n
 # is a non-negative integer, which gives version number
@@ -30,24 +40,28 @@
 # specified for different systems.
 #
 argparser.jar
-#gluegen-rt.jar
 jogl2-gluegen-rt.jar
 jass.jar
 javaosc.jar
 jipopt.jar
 jmf.jar
-#jogl.jar
 jogl2-all.jar
 jython.jar
 looks.jar
 quickhull3d.jar
 vclipx.jar
 vfs2.jar
-#gluegen-rt
-#jogl_awt
-#jogl_cg
-#jogl
-PardisoJNI.1.0
+# JOGL native libraries are bundled into jar files that are extracted
+# into and loaded from a temporary directory:
+Linux64 jogl2-gluegen-rt-natives-linux-amd64.jar
+Linux64 jogl2-all-natives-linux-amd64.jar
+MacOS jogl2-gluegen-rt-natives-macosx-universal.jar
+MacOS jogl2-all-natives-macosx-universal.jar
+Windows32 jogl2-gluegen-rt-natives-windows-i586.jar
+Windows32 jogl2-all-natives-windows-i586.jar
+Windows64 jogl2-gluegen-rt-natives-windows-amd64.jar
+Windows64 jogl2-all-natives-windows-amd64.jar
+PardisoJNI.1.1
 RobustPreds.1.0
 TetgenJNI.1.0
 libiomp5.dylib

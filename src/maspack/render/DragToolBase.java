@@ -18,6 +18,10 @@ public class DragToolBase {
    }
 
    protected DragMode myDragMode = DragMode.OFF;
+
+   public boolean isDragging() {
+      return myDragMode != DragMode.OFF;
+   }
    
    // Indicates that the dragger motions should be constrained to a
    // convenient fixed-size interval

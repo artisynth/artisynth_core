@@ -224,9 +224,6 @@ public class MechSystemSolver {
    boolean myUseDirectSolver = true;
    PosStabilization myStabilization = PosStabilization.Default;
 
-
-
-
    public void setParametricTargets (double s, double h) {
       // assumes that updateStateSizes() has been called
       mySys.getParametricVelState (myUpar0);
@@ -442,12 +439,13 @@ public class MechSystemSolver {
    }
 
    public void setIntegrator (Integrator integrator) {
-      myIntegrator = getIntegratorForSolver (integrator, myMatrixSolver);
-      if (myIntegrator != integrator) {
-         System.out.println (
-            "Warning: cannot use "+integrator+
-            " with matrix solver "+myMatrixSolver+", substituting "+myIntegrator);
-      }
+      // myIntegrator = getIntegratorForSolver (integrator, myMatrixSolver);
+      // if (myIntegrator != integrator) {
+      //    System.out.println (
+      //       "Warning: cannot use "+integrator+
+      //       " with matrix solver "+myMatrixSolver+", substituting "+myIntegrator);
+      // }
+      myIntegrator = integrator;
       switch (integrator) {
          case ConstrainedBackwardEuler:
          case Trapezoidal:
@@ -509,13 +507,12 @@ public class MechSystemSolver {
    }
 
    public void setMatrixSolver (MatrixSolver solver) {
-      if (getIntegratorForSolver (myIntegrator, solver) != myIntegrator) {
-         System.out.println (
-            "Warning: cannot use "+myIntegrator+
-            " with matrix solver "+solver);
-         return;
-      }
-
+      // if (getIntegratorForSolver (myIntegrator, solver) != myIntegrator) {
+      //    System.out.println (
+      //       "Warning: cannot use "+myIntegrator+
+      //       " with matrix solver "+solver);
+      //    return;
+      // }
       if (solver != myMatrixSolver) {
          switch (solver) {
             case Pardiso: {
@@ -630,12 +627,14 @@ public class MechSystemSolver {
    }
 
    private void initializeSolvers() {
+      System.out.println ("Initialize solver");
       if (PardisoSolver.isAvailable()) {
          setMatrixSolver (MatrixSolver.Pardiso);
       }
-      else if (UmfpackSolver.isAvailable()) {
-         setMatrixSolver (MatrixSolver.Umfpack);
-      }
+      // Umfpack no longer supported ...
+      // else if (UmfpackSolver.isAvailable()) {
+      //    setMatrixSolver (MatrixSolver.Umfpack);
+      // }
    }
 
    /** 
@@ -988,7 +987,7 @@ public class MechSystemSolver {
 
    // end timing code for solver
 
-   private void doDirectSolve (VectorNd x, VectorNd b) {
+   private void doDirectSolve (VectorNd x, SparseBlockMatrix M, VectorNd b) {
       if (myHybridSolveP && myDirectSolver.hasAutoIterativeSolving()) {
          myDirectSolver.autoFactorAndSolve (x, b, myHybridSolveTol);
       }
@@ -1061,22 +1060,6 @@ public class MechSystemSolver {
       int posSize = myActivePosSize;
 
       updateSolveMatrixStructure();
-      if (mySolveMatrixVersion != myRegSolveMatrixVersion) {
-         myRegSolveMatrixVersion = mySolveMatrixVersion;
-         int matrixType = mySys.getSolveMatrixType();
-         if (velSize != 0) {
-            if (myUseDirectSolver) {
-               myDirectSolver.analyze (
-                  mySolveMatrix, velSize, matrixType);
-            }
-            else {
-               if (!myIterativeSolver.isCompatible (matrixType)) {
-                  throw new UnsupportedOperationException (
-                     "Matrix cannot be solved by the chosen iterative solver");
-               }
-            }
-         }
-      }
 
       myB.setSize (velSize);
       //myV.setSize (velSize);
@@ -1120,9 +1103,25 @@ public class MechSystemSolver {
 
       int n = myB.size();
 
+      if (mySolveMatrixVersion != myRegSolveMatrixVersion) {
+         myRegSolveMatrixVersion = mySolveMatrixVersion;
+         int matrixType = mySys.getSolveMatrixType();
+         if (velSize != 0) {
+            if (myUseDirectSolver) {
+               myDirectSolver.analyze (
+                  mySolveMatrix, velSize, matrixType);
+            }
+            else {
+               if (!myIterativeSolver.isCompatible (matrixType)) {
+                  throw new UnsupportedOperationException (
+                     "Matrix cannot be solved by the chosen iterative solver");
+               }
+            }
+         }
+      }
       if (velSize != 0) {
          if (myUseDirectSolver) {
-            doDirectSolve (myU, myB);
+            doDirectSolve (myU, mySolveMatrix, myB);
          }
          else {
             myIterativeSolver.solve (myU, mySolveMatrix, myB);

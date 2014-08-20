@@ -578,6 +578,28 @@ Collidable, CopyableComponent, HasAuxState {
       }
       addMarker(mkr, elem);
    }
+   
+   /**
+    * Adds a marker to this FemModel. The element to which it belongs is
+    * determined automatically. If the marker's current position does not lie
+    * within the model, it is projected onto the model's surface.
+    * 
+    * @param pnt
+    * point to place a marker in the model
+    */
+   public FemMarker addMarker(Point3d pos) {
+      FemMarker mkr = new FemMarker();
+      FemElement3d elem = findContainingElement(pos);
+      if (elem == null) {
+         Point3d newLoc = new Point3d();
+         elem = findNearestSurfaceElement(newLoc, pos);
+         mkr.setPosition(newLoc);
+      } else {
+         mkr.setPosition(pos);
+      }
+      addMarker(mkr, elem);
+      return mkr;
+   }
 
    public FemMarker addNumberedMarker(Point3d pos, int markerId) {
       FemMarker mkr = new FemMarker();

@@ -10,6 +10,8 @@ import java.util.ArrayList;
 
 import javax.media.opengl.GL2;
 
+import com.sun.org.apache.bcel.internal.generic.ISUB;
+
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.render.GLHSVShader;
@@ -518,7 +520,7 @@ public class MeshRenderer {
          }
 
          TextureProps textureProps = props.getTextureProps();
-         if (textureProps != null && textureProps.isEnabled()) {
+         if (!selecting && !useVertexColors && textureProps != null && textureProps.isEnabled()) {
             // if not automatic check that explicit texture indices are okay
             if (!textureProps.isAutomatic() &&
                 (mesh.myTextureIndices == null ||
@@ -574,7 +576,7 @@ public class MeshRenderer {
          }
          gl.glCullFace (savedCullFaceMode[0]);
 
-         if (textureProps != null) {
+         if (!selecting && !useVertexColors && textureProps != null) {
             gl.glDisable (GL2.GL_TEXTURE_2D);
             if (textureProps.isAutomatic()) {
                gl.glDisable (GL2.GL_TEXTURE_GEN_S);

@@ -473,7 +473,7 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
     * out to make more sense to update the used indices manually, then don't do
     * add(i) in this method
     * 
-    * @return
+    * @return unused index
     */
    protected int getUnusedIndex (ArrayList<Integer> array) {
       int i = 0;
@@ -876,8 +876,8 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
     * returns the full path according to a relative path and the working
     * directory
     * 
-    * @param relativePath
-    * @return
+    * @param relativePath relative path
+    * @return full path
     */
    protected String getFullPath (String relativePath) {
       return ArtisynthPath.getWorkingDirPath() + File.separator + relativePath;
@@ -891,9 +891,6 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
    /**
     * returns the full string path of a property by going up the hierachy and
     * finding all its parent properties (if any) and component path.
-    * 
-    * @param prop
-    * @return
     */
    protected String getFullPropPath (Property prop) {
       String compPath = prop.getName();

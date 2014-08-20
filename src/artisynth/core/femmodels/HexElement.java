@@ -483,9 +483,9 @@ public class HexElement extends FemElement3d {
 //    }
 
    /** 
-    * Computes the exact volume of a tetrahedron; code taken from FEBio
+    * Computes the exact volume of a hexahedron; code taken from FEBio
     *
-    * @return
+    * @return volume of the hexahedron
     */
    private static double computeVolume (
       Point3d p0, Point3d p1, Point3d p2, Point3d p3, 

@@ -347,7 +347,7 @@ public class BinaryHeap<E> implements Collection<E> {
    /**
     * Removes an element at a specified index.  Not that this
     * @param idx
-    * @return
+    * @return element at the index
     */
    protected E removeAt(int idx) {
       

@@ -60,7 +60,7 @@ public class BitInputStream extends FilterInputStream {
    /**
     * Read up to 32 bits of data 
     * @param nbits
-    * @return
+    * @return integer containg bit values
     */
    public int readBits(int nbits) throws IOException {
       if (nbits < 0 || nbits > 32) {

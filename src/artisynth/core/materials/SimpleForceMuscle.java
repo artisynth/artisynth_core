@@ -85,9 +85,6 @@ public class SimpleForceMuscle extends MuscleMaterial {
     * <pre>
     * 2*W4*I4/J*(a (x) a - 1/3 I )
     * </pre>
-    * 
-    * @param
-    * @return
     */
    private void addStress (
       Matrix3dBase sig, double J, double I4, double W4, Vector3d a) {
@@ -130,9 +127,6 @@ public class SimpleForceMuscle extends MuscleMaterial {
     * <pre>
     * 2*W4*I4/J*(a (x) a - 1/3 I )
     * </pre>
-    * 
-    * @param
-    * @return
     */
    private void setStress (
       Matrix3dBase sig, double J, double I4, double W4, Vector3d a) {

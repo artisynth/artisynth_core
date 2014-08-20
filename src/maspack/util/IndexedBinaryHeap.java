@@ -230,7 +230,7 @@ public class IndexedBinaryHeap {
    /**
     * Removes an element at a specified index.
     * @param idx
-    * @return
+    * @return index of the removed element, or -1 element not found
     */
    protected int removeAt(int idx) {
 

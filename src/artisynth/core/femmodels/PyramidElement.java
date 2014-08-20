@@ -304,9 +304,9 @@ public class PyramidElement extends FemElement3d {
    }
 
    /** 
-    * Cpmputes the exact volume of a tetrahedron; code taken from FEBio
+    * Cpmputes the exact volume of the pyramid
     *
-    * @return
+    * @return element volume
     */
    private double computeVolume (
       Point3d p0, Point3d p1, Point3d p2,

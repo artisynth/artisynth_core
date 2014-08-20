@@ -127,11 +127,13 @@ public class RollPitchCoupling extends RigidBodyCoupling {
    }
 
    /**
-    * Gets the roll-pitch angles for a  to this rotation.
+    * Gets the roll-pitch angles for this rotation.
     * 
     * @param angs
     * returns the angles (roll, pitch, and yaw, in that order) in radians.
-    * @see #setRpy(double,double,double)
+    * @param R
+    * rotation for which angles should be obtained
+    * @see #setRollPitch(RotationMatrix3d,double,double)
     */
    private void getRollPitch (double[] angs, RotationMatrix3d R) {
 

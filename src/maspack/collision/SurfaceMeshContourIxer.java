@@ -167,14 +167,18 @@ public class SurfaceMeshContourIxer {
    }
    
    /**
-    * From an non-empty list of MIPs, create a new MeshIntersectionContour and return
-    * it. It might be open or closed. MIPs are removed from mips as they are used.
+    * From an non-empty list of MIPs, create a new MeshIntersectionContour and
+    * return it. It might be open or closed. MIPs are removed from mips as they
+    * are used.
     * 
-    * @param mips List of possible MeshIntersectionPoints to check. This method deletes
-    *           MIPs in mips as it goes along.
-    * @return
+    * @param mips List of possible MeshIntersectionPoints to check. This method
+    *        deletes MIPs in mips as it goes along.
+    * @return new MeshIntersectionContour, or <code>null</code>
+    * if <code>mips</code> is empty
     */
-   protected IntersectionContour getOneContour (ArrayList<MeshIntersectionPoint> mips) 
+   protected IntersectionContour getOneContour (
+      ArrayList<MeshIntersectionPoint> mips) 
+
          throws DegenerateCaseException {
       if (mips.size() == 0) { 
           return null;

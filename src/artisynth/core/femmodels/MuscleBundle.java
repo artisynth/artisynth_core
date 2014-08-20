@@ -584,6 +584,20 @@ public class MuscleBundle extends CompositeComponentBase
       myElementDescs.add (desc);
    }
 
+   public MuscleElementDesc addElement(FemElement3d elem, Vector3d dir) {
+      MuscleElementDesc desc = new MuscleElementDesc(elem, dir);
+      addElement(desc);
+      return desc;
+   }
+   
+   public MuscleElementDesc addElement(FemElement3d elem, Vector3d[] dirs) {
+      MuscleElementDesc desc = new MuscleElementDesc();
+      desc.setElement(elem);
+      desc.setDirections(dirs);
+      addElement(desc);
+      return desc;
+   }
+   
    public boolean removeElement (MuscleElementDesc desc) {
       return myElementDescs.remove (desc);
    }

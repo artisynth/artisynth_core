@@ -114,7 +114,7 @@ public class RootModel extends RenderableModelBase
    private static final AxisAngle DEFAULT_VIEW_ORIENTATION = AxisAngle.ROT_X_90;
    private static final double DEFAULT_MIN_STEP_SIZE = 1e-7;
    private static final double DEFAULT_MAX_STEP_SIZE = 0.01;
-   private static final boolean DEFAULT_ADAPTIVE_STEPPING = true;
+   private static final boolean DEFAULT_ADAPTIVE_STEPPING = false;
 
    AxisAngle myDefaultViewOrientation = new AxisAngle (DEFAULT_VIEW_ORIENTATION);
    

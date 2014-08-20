@@ -368,7 +368,7 @@ public class MuscleElementDesc
             coords1[2] = coords0[2] + (float)dir.z;
             
             renderer.drawLine(
-               props, coords0, coords1, /* capped= */false,
+               props, coords0, coords1, /* capped= */true,
                myDirectionColor, /* selected= */false);   
          }
       }
@@ -409,7 +409,7 @@ public class MuscleElementDesc
       coords1[2] = coords0[2] + (float)dir.z;
             
       renderer.drawLine (
-         props, coords0, coords1, /*capped=*/false,
+         props, coords0, coords1, /*capped=*/true,
          myDirectionColor, isSelected());
       
    }

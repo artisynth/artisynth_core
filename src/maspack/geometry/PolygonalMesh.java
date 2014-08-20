@@ -30,9 +30,11 @@ import java.util.LinkedList;
 
 import maspack.geometry.io.WavefrontReader;
 import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.Matrix3d;
 import maspack.matrix.NumericalException;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
@@ -2888,6 +2890,60 @@ public class PolygonalMesh extends MeshBase {
       }
 
       return vol_;
+   }
+   
+   public RigidTransform3d computePrincipalAxes() {
+      return computePrincipalAxes(this);
+   }
+   
+   public static RigidTransform3d computePrincipalAxes(PolygonalMesh mesh) {
+
+      Vector3d mov1 = new Vector3d();
+      Vector3d mov2 = new Vector3d();
+      Vector3d pov = new Vector3d();
+
+      double vol = mesh.computeVolumeIntegrals(mov1, mov2, pov);
+      double mass = vol;
+
+      Point3d cov = new Point3d();
+      cov.scale(1.0 / vol, mov1); // center of volume
+
+      // [c], skew symmetric
+      Matrix3d covMatrix = new Matrix3d(
+         0, -cov.z, cov.y,
+         cov.z, 0, -cov.x,
+         -cov.y, cov.x, 0);
+      // J
+      Matrix3d J = new Matrix3d(
+         (mov2.y + mov2.z), -pov.z, -pov.y,
+         -pov.z, (mov2.x + mov2.z), -pov.x,
+         -pov.y, -pov.x, (mov2.x + mov2.y));
+      
+      // Jc = J + m[c][c]
+      Matrix3d Jc = new Matrix3d();
+      Jc.mul(covMatrix, covMatrix);
+      Jc.scale(mass);
+      Jc.add(J);
+
+      // Compute eigenvectors and eigenvlaues of Jc
+      SymmetricMatrix3d JcSymmetric = new SymmetricMatrix3d(Jc);
+      Vector3d lambda = new Vector3d();
+      Matrix3d U = new Matrix3d();
+      JcSymmetric.getEigenValues(lambda, U);
+
+      // Construct the rotation matrix
+      RotationMatrix3d R = new RotationMatrix3d();
+      R.set(U);
+
+      lambda.absolute();
+
+      if (lambda.x > lambda.y && lambda.z > lambda.y) {
+         R.rotateZDirection(new Vector3d(R.m01, R.m11, R.m21));
+      } else if (lambda.x > lambda.z && lambda.y > lambda.z) {
+         R.rotateZDirection(new Vector3d(R.m00, R.m10, R.m20));
+      }
+
+      return (new RigidTransform3d(cov, R));
    }
 
    // public AjlBvTree getBvHierarchy() {

@@ -109,6 +109,10 @@ Collidable, CopyableComponent, HasAuxState {
    // This will disable detJ step reduction:
    // public static double detJStepReductionLimit = -Double.MAX_VALUE;
 
+   
+   private boolean myAbortOnInvertedElems = abortOnInvertedElems;
+   private boolean myWarnOnInvertedElems = true;
+   
    protected FunctionTimer timer = new FunctionTimer();
 
    protected void timerStart() {
@@ -1517,10 +1521,12 @@ Collidable, CopyableComponent, HasAuxState {
       }
 
       if (myNumInverted > 0) {
-         System.out.println(
-            "Warning: " + myNumInverted + " inverted elements; min detJ=" +
-            myMinDetJ + ", element " + myMinDetJElement.getNumber());
-         if (abortOnInvertedElems) {
+         if (myWarnOnInvertedElems) {
+            System.out.println(
+               "Warning: " + myNumInverted + " inverted elements; min detJ=" +
+               myMinDetJ + ", element " + myMinDetJElement.getNumber());
+         }
+         if (myAbortOnInvertedElems) {
             throw new NumericalException("Inverted elements");
          }
       }
@@ -4395,6 +4401,22 @@ Collidable, CopyableComponent, HasAuxState {
         }
         
         return null;
+     }
+     
+     public boolean isAbortOnInvertedElements() {
+        return myAbortOnInvertedElems;
+     }
+     
+     public void setAbortOnInvertedElements(boolean set) {
+        myAbortOnInvertedElems = set;
+     }
+     
+     public void setWarnOnInvertedElements(boolean set) {
+        myWarnOnInvertedElems = set;
+     }
+     
+     public boolean isWarnOnInvertedElements() {
+        return myWarnOnInvertedElems;
      }
 
 }

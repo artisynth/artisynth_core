@@ -81,6 +81,10 @@ implements TransformableGeometry, ScalableUnits {
    public void setMesh(MeshBase mesh, String fileName, AffineTransform3dBase X) {
       myMeshInfo.set (mesh, fileName, X);
       setMeshFromInfo ();
+      RenderProps meshProps = mesh.getRenderProps();
+      if (meshProps != null) {
+         setRenderProps(meshProps);
+      }
    }
 
    public void setMesh(MeshBase mesh, String fileName) {

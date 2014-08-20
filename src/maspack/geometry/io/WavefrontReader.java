@@ -92,6 +92,7 @@ public class WavefrontReader extends MeshReaderBase {
    public WavefrontReader (File file) throws IOException {
       this (new FileReader (file));
       myFile = file;
+      currPath = myFile.getParent();
    }
 
    public WavefrontReader (String fileName) throws IOException {

@@ -35,6 +35,7 @@ public class SimpleForceMuscle extends MuscleMaterial {
    // Set this true to keep the tangent matrix continuous (and symmetric) at
    // lam = lamOpt, at the expense of slightly negative forces for lam < lamOpt
    protected static boolean myZeroForceBelowLamOptP = false;
+   protected static boolean myZeroForceBelowNegativeJ = true;
 
    public SimpleForceMuscle() {
       super();
@@ -95,6 +96,10 @@ public class SimpleForceMuscle extends MuscleMaterial {
       //
       // 2*W4*I4/J*( a (x) a - 1/3 I )
       //
+      
+      if (myZeroForceBelowNegativeJ && J <= 0) {
+         return;
+      }
 
       double T00 = a.x*a.x;
       double T01 = a.x*a.y;
@@ -137,6 +142,10 @@ public class SimpleForceMuscle extends MuscleMaterial {
       // 2*W4*I4/J*( a (x) a - 1/3 I )
       //
 
+      if (myZeroForceBelowNegativeJ && J <= 0) {
+         return;
+      }
+      
       double T00 = a.x*a.x;
       double T01 = a.x*a.y;
       double T02 = a.x*a.z;
@@ -170,11 +179,15 @@ public class SimpleForceMuscle extends MuscleMaterial {
       // Weiss, Makerc, and Govindjeed, Computer Methods in Applied Mechanical
       // Engineering, 1996.
 
+      double J = def.getDetF();
+      if (myZeroForceBelowNegativeJ && J <= 0) {
+         return;
+      }
+      
       Vector3d dir = myTmp;
       def.getF().mul (dir, dir0);
       double mag = dir.norm();
       dir.scale (1/mag);
-      double J = def.getDetF();
       double lamd = mag*Math.pow(J, -1.0/3.0);
       double I4 = lamd*lamd;
 
@@ -187,11 +200,15 @@ public class SimpleForceMuscle extends MuscleMaterial {
       Matrix6d D, SymmetricMatrix3d stress, double excitation, Vector3d dir0, 
       SolidDeformation def, FemMaterial baseMat) {
 
+      double J = def.getDetF();
+      if (myZeroForceBelowNegativeJ && J <= 0) {
+         return;
+      }
+      
       Vector3d a = myTmp;
       def.getF().mul (a, dir0);
       double lam = a.norm();
       a.scale (1/lam);
-      double J = def.getDetF();
       double lamd = lam*Math.pow(J, -1.0/3.0);
       double I4 = lamd*lamd;
 

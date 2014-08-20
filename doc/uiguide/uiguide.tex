@@ -492,7 +492,7 @@ ray with a 3D surface mesh.
 
 An ArtiSynth model is composed of a hierarchical arrangement of
 model components (each of which implements the interface 
-\javaclass{ModelComponent}), some of which may themselves
+\javaclassx{ModelComponent}), some of which may themselves
 be models. The graphical interface allows users to navigate this
 hierarchy and select individual components. Selected components
 can then be edited, or have specific properties modified or attached
@@ -502,14 +502,14 @@ to probes or control panels.
 
 An example component hierarchy is shown in Figure
 \ref{hierarchyFig}. At the top is a {\it root model} (class
-\javaclass{RootModel}), in this case named {\tt Rigid Body Spring}.  The
+\javaclass[artisynth.core.workspace]{RootModel}), in this case named {\tt Rigid Body Spring}.  The
 root model in turn contains a list of models, one of which is a
 mechanical model named {\tt msmod}, which here contains particles and
 rigid bodies.
 
 It is important to node that in the component hierarchy, any collection
 of components is itself a component (usually an instance of
-\javaclass{ComponentList}). This provides automatic ``grouping'' of
+\javaclassx{ComponentList}). This provides automatic ``grouping'' of
 components of like type, but does introduce additional levels into the
 hierarchy. Hence the particle {\tt red} is a child not of {\tt msmod},
 but rather the component list {\tt particles}.
@@ -730,8 +730,9 @@ It is possible to modify component locations, orientations, and
 geometry using the transformation tools located at the left side of
 the main ArtiSynth frame.  Tools will only transform those {\it
 transformable} components which implement the
-\javaclass{TransformableGeometry} interface. The behavior may also
-vary depending on whether or not simulation is in progress.
+\javaclass[artisynth.core.util]{TransformableGeometry} interface. The
+behavior may also vary depending on whether or not simulation is in
+progress.
 
 \subsection{Dragger Fixtures}
 \label{draggerFixturesSec}
@@ -787,7 +788,7 @@ cause the corresponding dragger fixture to appear in the viewer at the
 components' location. If a single component is selected and 
 that component is 
 associated with a coordinate frame (by implementing the
-\javaclass{HasCoordinateFrame} interface), then the dragger's initial position
+\javaclassx{HasCoordinateFrame} interface), then the dragger's initial position
 and orientation are aligned with this coordinate frame.
 Otherwise, the dragger is initially placed at the center of the
 components' bounding box and its orientation is aligned to world
@@ -1025,7 +1026,7 @@ accordingly.
 \setjavabase{maspack.render}
 
 Render properties are associated with any component that is
-renderable. They are defined in the class \javaclass{RenderProps}. 
+renderable. They are defined in the class \javaclassx{RenderProps}. 
 Because of their complexity, they are adjusted
 through a separate panel from the standard property panel.
 
@@ -2341,7 +2342,7 @@ background is used.
 
 \setjavabase{maspack.properties}
 
-A \javaclass{CompositeProperty} is a Property which contains
+A \javaclassx{CompositeProperty} is a Property which contains
 sub-properties. If a composite property is selected, the control panel
 will create a {\it composite property widget}, three of which are shown in
 Figure \ref{compositePropWidgetsFig}.
@@ -2522,7 +2523,7 @@ A set of selected components may be {\it duplicated} provided that
 
 \item none of their ancestors are selected
 
-\item they are \javaclass[artisynth.core.modelbase]{Copyable}
+\item they implement \javaclass[artisynth.core.modelbase]{CopyableComponent}
 
 \end{itemize}
 
@@ -3404,7 +3405,7 @@ Allows the FEM volumetric mesh to be saved using the ANSYS file format.
 \subsubsection{Adding FEM markers}
 \label{addingFemMarkersSec}
 
-A \javaclass[artisynth.core.mechmodels]{FemMarker} is a massless 
+A \javaclass[artisynth.core.femmmodels]{FemMarker} is a massless 
 \javaclass[artisynth.core.mechmodels]{Point} attached to a
 specfic \javaclass[artisynth.core.femmodels]{FemElement3d}. 
 It can be used for tracing motions within that element,
@@ -3756,7 +3757,7 @@ In the plaintext format, entries are listed as title-class pairs, separated by
 whitespace.  Lines beginning with a hash (\#) are ignored.  Titles containing
 spaces must be surrounded by quotation marks.  The following is an example:
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
 # Inverse Demos
 HydrostatInvDemo artisynth.models.inversedemos.HydrostatInvDemo
 "Tongue tracking" artisynth.models.inversedemos.TongueTip   
@@ -3802,7 +3803,7 @@ The first readable file found is used.
 The root element encapsulates the entire menu description.  It must make 
 reference to the schema for validation purposes.  The following code snippet
 can be used as a template for creating a new menu file.
-\begin{lstlisting}[language=XMLMenu,escapechar=\#]
+\begin{lstlisting}FIXHACK[language=XMLMenu,escapechar=\#]
 <?xml version="1.0" encoding="UTF-8"?>
 <ModelMenu xmlns="http://www.artisynth.org"
    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -3823,7 +3824,7 @@ XML file.
 
 Individual models are inserted into the menu using a {\tt model} element.
 These specify a class to load when the menu entry is selected.  The model
-must be a sub-class of \javaclass{RootModel}.  
+must be a sub-class of \javaclass[artisynth.core.workspace]{RootModel}.  
 
 \noindent \textbf{Attributes:}\\
 \begin{tabular}{ll}
@@ -3837,8 +3838,8 @@ must be a sub-class of \javaclass{RootModel}.
 \end{tabular}
 
 The following snippet creates a menu entry titled "Muscle Arm", which will
-launch the model \javaclass{FemMuscleArm}.
-\begin{lstlisting}[language=XMLMenu]
+launch the model {\tt FemMuscleArm}.
+\begin{lstlisting}FIXHACK[language=XMLMenu]
    <model class="artisynth.models.femdemos.FemMuscleArm" text="Muscle Arm" />
 \end{lstlisting}
 
@@ -3849,7 +3850,7 @@ can help distinguish groups of related menu items.  The {\tt separator} element
 has no attributes.  The following snippet adds a separator line between models
 found in the {\tt artisynth.models.femdemos} package and those in 
 {\tt artisynth.models.inversedemos}.
-\begin{lstlisting}[language=XMLMenu]
+\begin{lstlisting}FIXHACK[language=XMLMenu]
    <package source="artisynth.models.femdemos" />
    <separator/>
    <package source="artisynth.models.inversedemos" />
@@ -3874,7 +3875,7 @@ active menu item, it is recommended to set the font style to \quot{italic}.
 
 In the following code snippet, a label is added before the tongue tracking 
 models.
-\begin{lstlisting}[language=XMLMenu]
+\begin{lstlisting}FIXHACK[language=XMLMenu]
    <label text="Tongue Tracking Models" fontstyle="italic" />
    <model class="artisynth.models.tracker.JawDynamicTongue" />
    <model class="artisynth.models.tracker.JawKinematicTongue" />
@@ -3900,7 +3901,7 @@ number of valid elements apart from the root element.
 The following code snippet creates a sub-menu "FEM Models" with a specified
 icon, and lists all models found within the {\tt artisynth.models.femdemos} 
 package.
-\begin{lstlisting}[language=XMLMenu]
+\begin{lstlisting}FIXHACK[language=XMLMenu]
 <menu text="FEM Models" icon="resources/icons/FEM.gif">
    <package source="artisynth.models.femdemos" />
 </menu>
@@ -3913,7 +3914,7 @@ a particular Java package and its sub-packages.  A base class can also be
 specified so that only models that are instances of that base class are added.
 For example to include all models that are sub-classes of {\tt HexTongueDemo}, the
 following line can be used:
-\begin{lstlisting}[language=XMLMenu]
+\begin{lstlisting}FIXHACK[language=XMLMenu]
    <package source="artisynth.models" base="artisynth.models.femdemos.HexTongueDemo" />
 \end{lstlisting}
 \medskip
@@ -3982,10 +3983,10 @@ compact & flat & hierarchical \\
 \medskip
 
 If font information is provided, it is applied to all entries.  
-\begin{lstlisting}[language=XMLMenu]
+\begin{lstlisting}FIXHACK[language=XMLMenu]
    <package source="" view="flat" compact="2" fontsize="5"/>
 \end{lstlisting}
-The previous listing adds every single instance of \javaclass{RootModel} found
+The previous listing adds every single instance of \javaclass[artisynth.core.workspace]{RootModel} found
 in the source tree to the menu.  To get the menu to fit on the screen, 
 {\tt compact="2"} was used to strip away all package information from the 
 displayed text, and a tiny font was applied to all entries.
@@ -4024,7 +4025,7 @@ in the current sub-menu.
 
 The following line loads all models from the original default ArtiSynth 
 {\rm Models} menu.
-\begin{lstlisting}[language=XMLMenu,escapechar=\#]
+\begin{lstlisting}FIXHACK[language=XMLMenu,escapechar=\#]
    <demosFile file=".demoModels" />
 \end{lstlisting}
 If font information is provided, it is applied to all model entries that are
@@ -4043,7 +4044,7 @@ the root element of the included file are inserted into the current sub-menu.
 
 The following code imports the contents from two different XML menu files,
 and separates them with a separator item.
-\begin{lstlisting}[language=XMLMenu,escapechar=\#]
+\begin{lstlisting}FIXHACK[language=XMLMenu,escapechar=\#]
    <include file="demos.xml" />
    <separator/>
    <include file="mymodels.xml" />
@@ -4058,7 +4059,7 @@ processed.  The typical method for commenting in XML is to use the
 contain other comments.  For this reason, a special {\tt hidden} element was
 created. Any entries within a {\tt hidden} element are ignored by the parser.
 
-\begin{lstlisting}[language=XMLMenu,escapechar=\#]
+\begin{lstlisting}FIXHACK[language=XMLMenu,escapechar=\#]
    <!-- temporarily hide FEM demos -->
    <hidden>
      <!-- All FEM demos -->

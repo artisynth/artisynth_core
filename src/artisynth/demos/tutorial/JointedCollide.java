@@ -19,21 +19,26 @@ import java.io.*;
 
 import javax.swing.*;
 
+/**
+ * Demo of jointed rigid bodies colliding with a base plate
+ */
 public class JointedCollide extends RigidBodyJoint {
 
    public void build (String[] args) {
 
       super.build (args);
 
-      link1.setDynamic (true);
+      body1.setDynamic (true);  // allow body1 to fall freely
 
+      // create and add the base plate
       RigidBody base = RigidBody.createBox ("base", 25, 25, 2, 0.2);
       base.setPose (new RigidTransform3d (5, 0, 0, 0, 1, 0, -Math.PI/8));
       base.setDynamic (false);
-
       mech.addRigidBody (base);
+
+      // turn on collisions
       mech.setDefaultCollisionBehavior (true, 0.20);
-      mech.setCollisionBehavior (link1, link2, false);
+      mech.setCollisionBehavior (body1, body2, false);
    }
 
 }

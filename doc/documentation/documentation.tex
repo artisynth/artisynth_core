@@ -41,9 +41,9 @@ Section \ref{ExternalSoftwareSec} for instructions on installing LaTeXML.
 to create these different outputs.
 
 The format for PDF output is based on that used by the
-\href{http://www.docbook.org}{\it DocBook} project, while style for
+\href{http://www.docbook.org}{DocBook} project, while style for
 HTML files is based on that used by
-\href{http://www.methods.co.nz/asciidoc}{\it AsciiDoc}.
+\href{http://www.methods.co.nz/asciidoc}{AsciiDoc}.
 
 \subsection{Document Source Code Organization}
 
@@ -268,7 +268,7 @@ use different input depending on whether HTML or PDF output is being
 produced. Producing HTML implies the use of LaTeXML, which can be
 detected using the {\tt \BKS iflatexml} conditional, as in:
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
 \iflatexml
   do things in a conventional way that LaTeXML can deal with
 \else
@@ -329,7 +329,7 @@ Longer code examples are typeset using the {\tt lstlisting}
 environment (from the {\tt listings} package), which surrounds
 the output in a colored box:
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
 // Here is a longer code example
 interface Property
 {
@@ -348,7 +348,7 @@ A special environment called {\tt sideblock} is used to create
 admonition sections that contain special notes, warnings, or side
 information. The LaTeX source
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
 \begin{sideblock}
 Note: when producing PDF, the {\tt sideblock} environment
 is implemented using commands from the {\tt color} and
@@ -390,7 +390,7 @@ for HTML one may not want any scaling at all (in order to get
 pixel-for-pixel reproduction). This can be achieved using
 {\tt \BKS iflatexml}:
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
 \begin{figure}
 \begin{center}
 \iflatexml
@@ -429,7 +429,7 @@ method descriptions.
 The command {\tt \BKS javaclass} will create a Javadoc reference to 
 a class from the class name itself. The LaTeX source
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
 \javaclass{maspack.matrix.MatrixNd}, and \javaclass[maspack]{matrix.MatrixNd}, and
 \javaclass[maspack.matrix]{MatrixNd}.
 \end{lstlisting}
@@ -441,25 +441,28 @@ will produce the output
 
 The name in the optional argument (between square brackets {\tt []})
 is prepended to the main argument to create a fully qualified class name,
-with only the main argument being used as the anchor text. For
-additional brevity, one can set the definition {\tt \BKS javabase}
-(using the command {\tt \BKS setjavabase}) to the base name of the
-package, as in
+with only the main argument being used as the anchor text. 
 
-\begin{lstlisting}
+The names provided by the optional argument and the main argument are
+concatenated (with an intervening '{\tt .}' character) to create a
+fully qualified class name that is used to produce the appropriate
+hyperlink to the Javadoc. For additional brevity in the LaTeX source
+file, one can also use the command {\tt \BKS javaclassx}, which
+internally prepends a package name provided by the expansion of {\tt
+\BKS javabase} onto the class name. {\tt \BKS javabase} can be set
+using the command {\tt \BKS setjavabase}, thus removing the need to
+explicly specify the full class name in the arguments to {\tt \BKS
+javaclassx}. For example,
+
+\begin{lstlisting}FIXHACK
 \setjavabase{maspack.matrix}
-Two important classes are \javaclass{MatrixNd} and \javaclass{VectorNd}.
+Two important classes are \javaclassx{MatrixNd} and \javaclassx{VectorNd}.
 \end{lstlisting}
 
-which produces the output
+will produce the output
 
 \setjavabase{maspack.matrix}
-Two important classes are \javaclass{MatrixNd} and \javaclass{VectorNd}.
-
-The names provided by {\tt \BKS javabase}, the optional argument, and the
-main argument are concatenated (with intervening '{\tt .}'
-characters) to create a fully qualified class name that is used to
-produce the appropriate hyperlink.
+Two important classes are \javaclassx{MatrixNd} and \javaclassx{VectorNd}.
 
 \subsubsection{Method references}
 
@@ -468,7 +471,7 @@ Methods can be referenced in a similar way using the command {\tt
 a (possibly abbreviated) argument signature.
 LaTeX source of the form
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
 \javamethod{maspack.matrix.MatrixNd.mul()}, 
 \javamethod[maspack.matrix]{MatrixNd.mul(MatrixNd)},
 \javamethod[maspack.matrix.MatrixNd]{mul(MatrixNd,MatrixNd)}.
@@ -481,20 +484,22 @@ will produce output of the form
 \javamethod[maspack.matrix]{MatrixNd.mul(MatrixNd)},
 \javamethod[maspack.matrix.MatrixNd]{mul(MatrixNd,MatrixNd)}.
 
-Again, {\tt \BKS javabase} can
-be set to the base name of the package, so that
+As with {\tt \BKS javaclass}, an alternate method {\tt \BKS
+javamethodx} is available which internally prepends the package name
+provided by the expansion of {\tt \BKS javabase} onto the class name,
+so that
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
 \setjavabase{maspack.matrix}
-\javamethod[MatrixNd]{mul(MatrixNd)} takes one argument,
-while \javamethod[MatrixNd]{mul(MatrixNd,MatrixNd)} takes two.
+\javamethodx[MatrixNd]{mul(MatrixNd)} takes one argument,
+while \javamethodx[MatrixNd]{mul(MatrixNd,MatrixNd)} takes two.
 \end{lstlisting}
 
 will produce output of the form
 
 \setjavabase{maspack.matrix}
-\javamethod[MatrixNd]{mul(MatrixNd)} takes one argument,
-while \javamethod[MatrixNd]{mul(MatrixNd,MatrixNd)} takes two.
+\javamethodx[MatrixNd]{mul(MatrixNd)} takes one argument,
+while \javamethodx[MatrixNd]{mul(MatrixNd,MatrixNd)} takes two.
 
 The argument signature does not need to contain the fully qualified
 type names of the arguments. In fact, if the method name is unique to
@@ -505,32 +510,32 @@ partly matches the fully qualified type name of each argument.
 
 For example,
 
-\begin{lstlisting}
-\javamethod{MatrixNd.mul(maspack.matrix.MatrixNd,maspack.matrix.MatrixNd), 
-\javamethod{MatrixNd.mul(matrix.MatrixNd,matrix.MatrixNd),
-\javamethod{MatrixNd.mul(MatrixNd,MatrixNd).
+\begin{lstlisting}FIXHACK
+\javamethodx{MatrixNd.mul(maspack.matrix.MatrixNd,maspack.matrix.MatrixNd), 
+\javamethodx{MatrixNd.mul(matrix.MatrixNd,matrix.MatrixNd),
+\javamethodx{MatrixNd.mul(MatrixNd,MatrixNd).
 \end{lstlisting}
 
 will all produce references to the same method. In fact, if the method
 name and argument count is unique, then a set of commas indicating the
 number of arguments will be sufficient, as in {\tt
-\BKS javamethod{MatrixNd.mul(,)}}.
+\BKS javamethodx{MatrixNd.mul(,)}}.
 
 Finally, to omit the argument signature from
-the anchor text, one can use the command {\tt \BKS javamethod*}
-instead, so that
+the anchor text, one can use the commands {\tt \BKS javamethod*}
+or {\tt \BKS javamethodx*} instead, so that
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
 Method reference with argument signature:
-\javamethod{MatrixNd.mul(MatrixNd,MatrixNd)}, and without:
-\javamethod*{MatrixNd.mul(MatrixNd,MatrixNd)}.
+\javamethodx{MatrixNd.mul(MatrixNd,MatrixNd)}, and without:
+\javamethodx*{MatrixNd.mul(MatrixNd,MatrixNd)}.
 \end{lstlisting}
 
 will produce the output
 
 Method reference with argument signature:
-\javamethod{MatrixNd.mul(MatrixNd,MatrixNd)}, and without:
-\javamethod*{MatrixNd.mul(MatrixNd,MatrixNd)}.
+\javamethodx{MatrixNd.mul(MatrixNd,MatrixNd)}, and without:
+\javamethodx*{MatrixNd.mul(MatrixNd,MatrixNd)}.
 
 \subsubsection{How it works}
 
@@ -646,7 +651,7 @@ installed. For example, on MacOS, if you have
 you can install a prebuilt release
 using 
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
   > sudo port install LaTeXML
 \end{lstlisting}
 
@@ -655,7 +660,7 @@ including Perl, LaTeX, and ImageMagick. You can then uninstall LaTeXML
 itself, and install directly from subversion, using a command
 sequence like this:
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
   > sudo port uninstall LaTeXML
   > svn co https://svn.mathweb.org/repos/LaTeXML
   > cd LaTeXML/trunk
@@ -678,10 +683,11 @@ This is called {\tt artisynth.css} and is located in {\tt doc/style}.
 
 \item Providing a {\tt .tex} input file, {\tt artisynthDoc.tex}, that
 imports the necessary packages, sets up the page layout, and defines
-the {\tt \BKS javaclass} commands (Section \ref{ClassRefsSec}) and the {\tt
-sideblock} environment (Section \ref{SideBlocksSec}).  This file is
-located in {\tt doc/texinputs}, along with other input files that are
-not likely to be part of a standard LaTeX installation.
+the {\tt \BKS javaclass} and {\tt \BKS javamethod} commands (Section
+\ref{ClassRefsSec}) and the {\tt sideblock} environment (Section
+\ref{SideBlocksSec}).  This file is located in {\tt doc/texinputs},
+along with other input files that are not likely to be part of a
+standard LaTeX installation.
 
 \item Postprocessing the HTML produced by LaTeXML to both fill in
 Javadoc links, and fix a few things, including malformed blank lines

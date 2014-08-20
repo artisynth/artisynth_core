@@ -26,55 +26,6 @@ support physical modeling and simulation.
 \section{Properties}
 \label{properties:sec}
 
-% tests for javamethod:
-%\javaclass[maspack.matrix]{Matrix3d}
-
-%\javaclass[maspack]{matrix.Matrix3d}
-
-%\javaclass[]{maspack.matrix.Matrix3d}
-
-%\javaclass{maspack.matrix.Matrix3d}
-
-%\javamethod[maspack.matrix.Matrix3d]{mul()}
-
-%\javamethod[maspack.matrix]{Matrix3d.mul()}
-
-%\javamethod[maspack]{matrix.Matrix3d.mul()}
-
-%\javamethod[]{maspack.matrix.Matrix3d.mul()}
-
-%\javamethod{maspack.matrix.Matrix3d.mul()}
-
-%\javamethod*[maspack.matrix]{Matrix3d.mul(Matrix3d)}
-
-%\javamethod*{maspack.matrix.Matrix3d.mul(,)}
-
-%\javamethod*{maspack.matrix.Matrix3d.mul(Matrix3dBase,Matrix3dBase)}
-
-%\javamethod*{maspack.matrix.Matrix3d.mulDiagonalLeft(double,double,double)}
-
-%\javamethod*{maspack.matrix.Matrix3d.mulDiagonalLeft(Vector3d)}
-
-%\javamethod{maspack.matrix.Matrix3d.mulDiagonalLeft(,,)}
-
-%\javamethod{maspack.matrix.Matrix3d.mulDiagonalLeft(Vector3d)}
-
-%\renewcommand{\javabase}{maspack}
-
-%\javaclass[matrix]{Matrix3d}
-
-%\javaclass[]{matrix.Matrix3d}
-
-%\javaclass{matrix.Matrix3d}
-
-%\javamethod[matrix.Matrix3d]{mul()}
-
-%\javamethod[matrix]{Matrix3d.mul()}
-
-%\javamethod[]{matrix.Matrix3d.mul()}
-
-%\javamethod{matrix.Matrix3d.mul()}
-
 The maspack property package provides a uniform means by which classes
 can export specific attributes and information about them to
 application software.  The main purpose of properties is to
@@ -98,9 +49,9 @@ that used by the properties of Java Beans.
 \setjavabase{maspack.properties}
 
 Any class can export properties by implementing the
-interface \javaclass{HasProperties}:
+interface \javaclassx{HasProperties}:
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
 interface HasProperties
 {
    // get a handle for a specific named property
@@ -112,16 +63,16 @@ interface HasProperties
 \end{lstlisting}
 
 Each property is associated with a name, which must be a valid Java
-identifier. The \javamethod[HasProperties]{getProperty()} method returns
-a \javaclass{Property} handle to the named property, which can in turn be
+identifier. The \javamethodx[HasProperties]{getProperty()} method returns
+a \javaclassx{Property} handle to the named property, which can in turn be
 used to access that property's values or obtain other information
-about it. \javamethod[HasProperties]{getAllPropertyInfo()}
-returns a \javaclass{PropertyInfoList}
+about it. \javamethodx[HasProperties]{getAllPropertyInfo()}
+returns a \javaclassx{PropertyInfoList}
 providing information about all the properties associated with the
 class.
 
-A \javaclass{Property} handle supplies the following methods:
-\begin{lstlisting}
+A \javaclassx{Property} handle supplies the following methods:
+\begin{lstlisting}FIXHACK
 interface Property
 {
    Object get(); 
@@ -166,7 +117,7 @@ A simple example of property usage is given below. Assume that we have
 a class called {\tt DeformableModel} which contains a property called
 {\tt stiffness}, and we want to set the stiffness to 1000. This
 could be done as follows:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    DeformableModel defo = new DeformableModel();    
    Property stiff = defo.getProperty("stiffness");
 
@@ -191,7 +142,7 @@ independent of the nature of the property itself.
 In theory, one could embed the methods of {\tt Property}
 directly within the {\tt HasProperties} interface, using
 methods with signatures like 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    Object getPropertyValue (String name);
 
    void setPropertyValue (String name, Object value);
@@ -209,11 +160,11 @@ or {\it hosting}, the property, which can be obtained with the
 \label{rangesSec}
 \subsection{Property Ranges}
 
-A \javaclass{Range} object supplies information about what values a
+A \javaclassx{Range} object supplies information about what values a
 particular {\tt Property} can be set to. It contains the following
 methods:
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
 interface Range
 {
    boolean isValid (Object obj, StringHolder errMsg);
@@ -256,7 +207,7 @@ operation.
 
 Possible usage of a range object is shown below:
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    Property prop = hostHost.get ("radius");
    Range range = prop.getRange();
    StringHolder errMsg = new StringHolder();
@@ -272,8 +223,8 @@ Possible usage of a range object is shown below:
    }
 \end{lstlisting}
 
-Two common examples of {\tt Range} objects are \javaclass{DoubleInterval} and
-\javaclass{IntegerInterval}, which implement intervals of double and integer
+Two common examples of {\tt Range} objects are \javaclassx{DoubleInterval} and
+\javaclassx{IntegerInterval}, which implement intervals of double and integer
 values, respectively.  Ranges are also {\tt Clonable}, which means that
 they can be duplicated by calling {\tt range.clone()}.
 
@@ -283,7 +234,7 @@ they can be duplicated by calling {\tt range.clone()}.
 \subsection{Obtaining Property Information}
 
 Additional information about a property is available through the
-\javaclass{PropertyInfo} interface, which can be obtained using the
+\javaclassx{PropertyInfo} interface, which can be obtained using the
 {\tt getInfo()} method of the property handle.  Information supplied by
 {\tt PropertyInfo} is static with respect to the exporting class and
 does not change (unlike the property values themselves, which do
@@ -291,7 +242,7 @@ change). Such information includes the property's name, whether or not
 it is read-only, and a comment describing what the property does.
 
 Some of the {\tt PropertyInfo} methods include:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
 interface PropertyInfo
 {
    // gets the name of this property
@@ -362,8 +313,8 @@ interface PropertyInfo
 Property information can also be obtained directly from the exporting
 class, using {\tt getAllPropertyInfo()}, which returns
 information for all the properties exported by that class. This
-information is contained within a \javaclass{PropertyInfoList}:
-\begin{lstlisting}
+information is contained within a \javaclassx{PropertyInfoList}:
+\begin{lstlisting}FIXHACK
 interface PropertyInfoList
 {
    // number of properties in this list
@@ -382,7 +333,7 @@ interface PropertyInfoList
 For example, suppose we want to print the names of all the
 properties associated with a given class. This could
 be done as follows:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    HasProperties exportingObject;
    ...
    PropertyInfoList infoList = 
@@ -407,7 +358,7 @@ The standard approach is to create a static instance of
 {\tt PropertyList} (which implements {\tt PropertyInfoList}) can then
 be used to implement the {\tt getProperty()} and {\tt getAllPropertyInfo()} 
 methods required by {\tt HasProperties}:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    protected static PropertyList myProps;
  
    ... initialize myProps in a static code block ...
@@ -426,7 +377,7 @@ methods required by {\tt HasProperties}:
 Information about specific properties should be added to {\tt PropertyList} 
 within a static code block (second line in the above
 fragment). This can be done directly using the method
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    void add (PropertyInfo info)
 \end{lstlisting}
 but this requires creating and initializing a {\tt PropertyInfo}
@@ -437,7 +388,7 @@ arguments.  In the example below, we have a class
 called {\tt ThisHost} which exports three properties called {\tt visible}, 
 {\tt lineWidth}, and {\tt color}:
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    // default values for the properties
    protected static int defaultLineWidth = 1;
    protected static boolean defaultVisibleP = true;
@@ -482,7 +433,7 @@ constructor which takes the exporting class as an argument (in Java
 1.5, the class object for a class can be referenced as 
 {\it ClassName}{\tt .class}). Information for each property is
 then added within a static block, using the convenience method
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    void add (String nameAndMethods, String description, 
              Object defaultValue)    
 \end{lstlisting}
@@ -490,12 +441,12 @@ The first argument, {\tt nameAndMethods}, is a string which gives the
 name of the property, optionally followed by
 whitespace-separated names of the accessor methods for
 the property's value:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    "<propertyName> [<getMethodName>] [<setMethodName>] [<getRangeMethodName>]"    
 \end{lstlisting}
 These accessor methods should have the
 signatures
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    Object getMethod();
 
    void setMethod (Object value);
@@ -522,7 +473,7 @@ storage.
 
 An extended version of the {\tt add} method takes an additional
 argument {\tt options}:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    void add (String nameAndMethods, String description, 
              Object defaultValue, String options)
 \end{lstlisting}
@@ -628,13 +579,13 @@ six significant characters.
 
 A numeric range interval with a lower bound of {\tt l} and an
 upper bound of {\tt u}. If specified, this defines the value returned by
-\javamethod{PropertyInfo.getDefaultNumericRange()}; otherwise, that method
+\javamethodx{PropertyInfo.getDefaultNumericRange()}; otherwise, that method
 returns {\tt null}. If a {\tt getRangeMethod} is not defined for the property,
 and the property has a numeric type, then the default numeric range is
-returned by the property's \javamethod{Property.getRange()} method. The
+returned by the property's \javamethodx{Property.getRange()} method. The
 default numeric range is also used to determine bounds on slider
 widgets for manipulating the property's value, in case the upper or
-lower limits returned by the \javamethod{Property.getRange()} method are
+lower limits returned by the \javamethodx{Property.getRange()} method are
 unbounded.  The symbol {\tt inf} can be used in an interval range, so that
 {\tt [0,inf]} represents the set of non-negative numbers.
 
@@ -642,7 +593,7 @@ unbounded.  The symbol {\tt inf} can be used in an interval range, so that
 
 The following code fragment shows an example of using the {\tt option}
 argument:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    myProps.add (
       "radius", "radius of the sphere (mm)", defaultRadius,
       "%8.3f [0,100] NE");
@@ -661,7 +612,7 @@ handle is inoperative.
 Read-only properties can be specified using the following
 {\tt PropertyList} methods:
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    void addReadOnly (String nameAndMethod, String description);
 
    void addReadOnly (String nameAndMethod, String description, 
@@ -684,7 +635,7 @@ by it's immediate superclass.
 Alternatively, a subclass can create its own properties by creating
 it's own {\tt PropertyList}, as in the code example of 
 Section \ref{exportingSec}:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    // create a PropertyList ...
    protected static PropertyList myProps = 
       new PropertyList(ThisHost.class);
@@ -702,7 +653,7 @@ other ancestor class), then a PropertyList can be created which also
 contains property information from the desired ancestor class.  This
 involves using a different constructor, which takes a second argument
 specifying the ancestor class from which to copy properties:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    protected static PropertyList myProps = 
       new PropertyList(ThisHost.class, Ancestor.class);
 
@@ -719,7 +670,7 @@ properties we don't want. We can also replace properties with
 new ones with the same name but possibly different attributes.
 The latter may be necessary if the class type of a property's
 value changes in the sub-class:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    static
    {
        // remove the property "color"
@@ -746,11 +697,11 @@ if a class exports a property {\tt textureProps}, whose value is a
 composite property exporting a sub-property called {\tt mode}, then a
 handle to the mode property can be obtained from the top-level class
 using
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    Property mode = getProperty ("textureProps.mode");    
 \end{lstlisting}
 which has the same effect as
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    Property texture = getProperty ("textureProps");    
    Property mode = 
        ((HasProperties)texture).getProperty ("mode");
@@ -762,7 +713,7 @@ a pointer to the original property, rather than a copy.
 Secondly, they should implement the {\tt CompositeProperty}
 interface.  This is an extension of {\tt HasProperties} with the
 following methods:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
 interface CompositeProperty extends HasProperties
 {   
    // returns the host class exporting this property
@@ -780,7 +731,7 @@ interface CompositeProperty extends HasProperties
 \end{lstlisting}
 These methods can be easily implemented using local variables to store
 the relevant information, as in
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    HasProperties myHost;
 
    HasProperties getPropertyHost() {
@@ -801,7 +752,7 @@ should set it's host and property information. This can be done using
 using the {\tt setPropertyHost} and {\tt setPropertyInfo} methods, as
 in the following example for a compound property of type 
 {\tt TextureProps}:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    setRenderProps (RenderProps props) {
       if (props != myProps) {
          if (props != null) {
@@ -817,7 +768,7 @@ in the following example for a compound property of type
 \end{lstlisting}
 Alternatively, the same thing can be done using the static convenience
 method {\tt PropertyUtils.updateCompositeProperty}:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    setRenderProps (RenderProps props) {
       if (props != myProps) {
          PropertyUtils.updateCompositeProperty (
@@ -834,7 +785,7 @@ Properties contain built-in support that make it easy to write and
 read their values to and from persistent storage. 
 
 First, {\tt PropertyInfo} contains the methods
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    void writeValue (Object value, PrintWriter pw, 
                     NumberFormat fmt);
 
@@ -845,14 +796,14 @@ a {\tt PrintStream} or scanned from a {\tt ReaderTokenizer}.
 
 Second, if the host object maintains a {\tt PropertyList},
 it can use the convenience method 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    void write (
        HasProperties host, PrintWriter pw, NumberFormat fmt);
 \end{lstlisting}
 to write out values for all properties for which 
 {\tt getAutoWrite()} returns true. Properties will be written in
 the form
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    propertyName = value  
 \end{lstlisting}
 where {\it value} is the output from the {\tt writeValue}
@@ -861,7 +812,7 @@ method of the {\tt PropertyInfo} structure.
 To economize on file space, there is another method 
 which only writes out property values when those 
 values differ from the property's default value:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    boolean writeNonDefaults (
        HasProperties host, PrintWriter pw, NumberFormat fmt)
 \end{lstlisting}
@@ -870,7 +821,7 @@ Again, values are written only for the properties for which
 values are written.
 
 To read in property values, their are the methods 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    boolean scanProperty (
        HasProperties host, ReaderTokenizer rtok);
 
@@ -960,7 +911,7 @@ If a property is inheritable, then the {\tt isInherited()}
 method in its {\tt PropertyInfo} structure will return true,
 and it's property handle will be an instance of 
 {\tt InheritableProperty}:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
 interface InheritableProperty extends Property
 {
    // sets the property's mode
@@ -980,7 +931,7 @@ descendants.
 The hierarchy structure which we have been describing is implemented by
 having host classes which correspond to hierarchy nodes implement the
 {\tt HierarchyNode} interface.
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
 interface HierarchyNode 
 {
    // returns an iterator over this node's children
@@ -1008,7 +959,7 @@ Suppose we have a property called ``width'' that is to be made
 inheritable.  Then addition to it's value variable and set/get
 accessors, the host class should provide a {\tt PropertyMode} variable
 along with set/get accessors:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    int myWidth;
    PropertyMode myWidthMode = PropertyMode.Inherited;
    
@@ -1035,7 +986,7 @@ value using the {\tt set} accessor should cause it's property mode to
 be set to {\tt Explicit} and the new value to be propagated to
 hierarchy descendents.  This can be accomplished by using 
 {\tt PropertyUtils.propagateValue} within the {\tt set} accessor:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    public void setWidth (int w) {
       myWidth = w;
       myWidthMode = PropertyUtils.propagateValue (
@@ -1045,7 +996,7 @@ hierarchy descendents.  This can be accomplished by using
 
 The actual creation of an inherited property can be done using the
 {\tt PropertyList} methods
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    void addInheritable (
       String nameAndMethods, String description, 
       Object defaultValue)
@@ -1068,7 +1019,7 @@ Finally, the host objects which actually correspond to hierarchy nodes
 must implement the {\tt HierarchyNode} interface as described in the
 previous section, {\it and} any routine which adds a node to the
 hierarchy must also implement the following code fragment:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    public void addChild (HierarchyNode node) {
       ... add node to the hierarchy ...
       PropertyUtils.updateInheritedProperties (node);
@@ -1094,7 +1045,7 @@ inherited. Suppose a class {\tt ThisHost} exports properties
 composite property exporting {\tt width}, {\tt color}, and {\tt size}.
 The leafs nodes of the composite property tree exported
 by {\tt ThisHost} are the properties
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    width
    order
    renderProps.width
@@ -1143,25 +1094,25 @@ the end of Section \ref{compositeSec}.
 
 The maspack render package supports the graphical rendering of objects
 using OpenGL and JOGL. An object makes itself renderable by
-implementing the \javaclass{GLRenderable} interface.  Renderable
-objects can then be displayed by a \javaclass{GLViewer}, which provides
+implementing the \javaclassx{GLRenderable} interface.  Renderable
+objects can then be displayed by a \javaclassx{GLViewer}, which provides
 features such as viewpoint control, clipping planes, and component
 selection.
 
 \subsection{Renderables and the viewer}
 
-Any object to be rendered by \javaclass{GLViewer} should implement the
-\javaclass{GLRenderable} interface. Renderables can be added or removed from a
+Any object to be rendered by \javaclassx{GLViewer} should implement the
+\javaclassx{GLRenderable} interface. Renderables can be added or removed from a
 viewer using the commands
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    addRenderable (GLRenderable r);
    removeRenderale (GLRenderable r);
    clearRenderables();
 \end{lstlisting}
 To request the viewer to render, one calls the method
-\javamethod{GLViewer.rerender()}, which causes the viewer to redraw
+\javamethodx{GLViewer.rerender()}, which causes the viewer to redraw
 itself, using the {\tt render} methods of all its renderables:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    render (GLRenderer renderer, int flags);
 \end{lstlisting}
 This method is called within a rendering thread which usually separate
@@ -1169,7 +1120,7 @@ from other application threads (the AWT event thread is commonly
 used). The renderer interface provides access to JOGL structures,
 such as {\tt GL2} and {\tt GLU}, which can be used for OpenGL rendering.
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    // render function to draw a single line
    void render (GLRenderer renderer, int flags) {
       GL2 gl = renderer.getG2L();
@@ -1234,10 +1185,10 @@ run in parallel.
 Another option is to give renderables the opportunity to cache their
 current state for use in the rendering code. This is analagous to
 double buffering, and can be effected using the 
-\javamethod[GLRenderable]{prerender()} method of
+\javamethodx[GLRenderable]{prerender()} method of
 GLRenderable:
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    prerender (RenderList list)
 \end{lstlisting}
 
@@ -1249,11 +1200,11 @@ rendering information, and then use this later when render is called.
 
 The {\tt prerender} method can also be used to add additional renderables to
 the current renderable list. This is done using the 
-\javamethod[RenderList]{addIfVisible()} 
-method of \javaclass{RenderList}. For example, if a renderable has two
+\javamethodx[RenderList]{addIfVisible()} 
+method of \javaclassx{RenderList}. For example, if a renderable has two
 subcomponents, A and B, which it would also like to have rendered,
 then it can request them to rendered as follows:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    void prerender (RenderList list) {
       GLRenderable A, B;
 
@@ -1282,21 +1233,21 @@ thread.
 \subsubsection{Renderable Visibility}
 \label{visibilitySec}
 
-As mentioned above, the \javamethod{RenderList.addIfVisible()} method
+As mentioned above, the \javamethodx{RenderList.addIfVisible()} method
 only adds renderables to the current render list if they are
-``visible''.  Any object implementing \javaclass{GLRenderable} is
+``visible''.  Any object implementing \javaclassx{GLRenderable} is
 visible by default.  However, if the object also implements
-\javaclass{HasRenderProps}, then it is determined to be visible only
-if the \javaclass{RenderProps} returned by 
-\javamethod{HasRenderProps.getRenderProps()} is non-null and the
+\javaclassx{HasRenderProps}, then it is determined to be visible only
+if the \javaclassx{RenderProps} returned by 
+\javamethodx{HasRenderProps.getRenderProps()} is non-null and the
 associated isVisible method returns true.
 
 \subsection{Object Selection}
 
 GLViewer provides support for the mouse-based selection of renderable
-components which implement \javaclass{GLSelectable}, a subinterface of
+components which implement \javaclassx{GLSelectable}, a subinterface of
 GLRenderable that implements the following three additional methods
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    boolean isSelectable();
 
    int numSelectionQueriesNeeded();
@@ -1305,12 +1256,12 @@ GLRenderable that implements the following three additional methods
       LinkedList<Object> list, int qid);
 
 \end{lstlisting}
-The method \javamethod[GLSelectable]{isSelectable()} should return 
+The method \javamethodx[GLSelectable]{isSelectable()} should return 
 {\tt true} if the component is in fact selectable.
 Unless the component manages its own selection behavior 
 (as described in Section \ref{managingOwnSelectionSec}), 
-\javamethod[GLSelectable]{numSelectionQueriesNeeded()} should return -1
-and \javamethod[GLSelectable]{getSelection()} should do nothing.
+\javamethodx[GLSelectable]{numSelectionQueriesNeeded()} should return -1
+and \javamethodx[GLSelectable]{getSelection()} should do nothing.
 
 Selection is done by identifying all selectables that are completely
 or partially rendered within a special {\it selection frustum}, which
@@ -1341,7 +1292,7 @@ passed the depth test are desired, then a color-based selection scheme
 is used instead, where each object is rendered with a unique color to
 an off-screen buffer. Finally, selection may be performed using the
 (now deprecated) OpenGL {\tt GL\_SELECT} rendering mode; to enable
-this, use the method \javamethod{GLViewer.enableGLSelectSelection()}.
+this, use the method \javamethodx{GLViewer.enableGLSelectSelection()}.
 
 \subsubsection{Restrictions when rendering in selection mode}
 
@@ -1365,7 +1316,7 @@ or {\tt GL\_DITHER};
 One way to adhear to these restrictions is to conditionalize the
 relevant calls on whether or not {\tt renderer.isSelecting()} returns
 true:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    if (!renderer.isSelecting()) {
       gl.glColor (1f, 0.5f, 0f);
    }
@@ -1374,7 +1325,7 @@ true:
 A more compact option, for colors and lighting control, is to use the
 following {\tt GLRenderer} methods:
 
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    setLightingEnabled (boolean enable);
    boolean isLightingEnabled();
    
@@ -1412,9 +1363,9 @@ example, suppose we have a component which renders in three stages (A,
 B, and C), and we only want the component to be selected if the
 rendering for stage A or C appears in the selection frustum. Then we
 surround the rendering of stages A and C with selection queries, using
-the GLRenderer methods \javamethod[GLRenderer]{beginSelectionQuery()}
-and \javamethod[GLRenderer]{endSelectionQuery()}:
-\begin{lstlisting}
+the GLRenderer methods \javamethodx[GLRenderer]{beginSelectionQuery()}
+and \javamethodx[GLRenderer]{endSelectionQuery()}:
+\begin{lstlisting}FIXHACK
    void render (GLRenderer render, int flags) {
       ...
       int qidA = 0;  // selection query for stage A
@@ -1442,7 +1393,7 @@ in response to a particular query. This is done by creating
 appropriate declarations for 
 {\tt numSelectionQueriesNeeded()} and
 {\tt getSelection()}:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    int numSelectionQueriesNeeded() {
       return 2;
    }
@@ -1484,7 +1435,7 @@ contains a list of selectable components, each of which may be
 selected individually.  The ``easy'' way to handle this is for 
 {\tt Foo} to hand each component to the {\tt RenderList} in
 it's {\tt prerender()} method (Section \ref{PrerenderingSec}):
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    void prerender (RenderList list) {
       for (GLSelectable s : components) {
 	 list.add (s);
@@ -1499,7 +1450,7 @@ for {\tt Foo} to render the components inside its own
 {\tt render()} method, then it must also
 take care of their selection. This can be done by requesting
 and issuing selection queries for each one:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    List<GLSelectable> components; // list of selectable components
 
    int numSelectionQueriesNeeded() {
@@ -1544,11 +1495,11 @@ manage their own selection? This can be detected if a component's {\tt
 numSelectionQueriesNeeded()} method return a non-negative value.  In
 that case, {\tt Foo} can let the component manage its selection by
 calling its {\tt render()} method, surrounded with calls to
-\javamethod[GLRenderer]{beginSubSelection()} and
-\javamethod[GLRenderer]{endSubSelection()}, instead of
-\javamethod[GLRenderer]{beginSelectionQuery(int)} and 
-\javamethod[GLRenderer]{endSelectionQuery()}, as in
-\begin{lstlisting}
+\javamethodx[GLRenderer]{beginSubSelection()} and
+\javamethodx[GLRenderer]{endSubSelection()}, instead of
+\javamethodx[GLRenderer]{beginSelectionQuery(int)} and 
+\javamethodx[GLRenderer]{endSelectionQuery()}, as in
+\begin{lstlisting}FIXHACK
    void render (GLRenderer renderer, int flags) {
       int qid = 0; // id for selection query
       for (GLSelectable s : components) {
@@ -1588,7 +1539,7 @@ the render function.
 {\tt Foo} must also add the number of selection queries required by
 its components to the value returned by its own {\tt
 numSelectionQueriesNeeded()} method:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    int numSelectionQueriesNeeded() {
       // compute total number of queries required:
       int total = 0;
@@ -1607,7 +1558,7 @@ it is necessary to offset the query index passed to the component's
 component, since as indicated above, query indices seen
 {\it within} a component
 are in the range [0, numq-1]:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    void getSelection (LinkedList<Object> list, int qid) {
       // find component with the matching qid
       int qi = 0;
@@ -1648,39 +1599,39 @@ occlusion queries instead of color-based selection.)
 
 Components selected by the viewer are indicated to the application via a
 {\it selection listener} mechanism, in which the application registers
-instances of \javaclass{GLSelectionListener} with the GLViewer
+instances of \javaclassx{GLSelectionListener} with the GLViewer
 using the methods
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    void addSelectionListener (GLSelectionListener l);
    void removeSelectionListener (GLSelectionListener l);
    GLSelectionListener[] getSelectionListeners();
 \end{lstlisting}
 The listener implements one method with the signature
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    void itemsSelected (GLSelectionEvent e);
 \end{lstlisting}
 from which information about the selection can be obtained via a
-\javaclass{GLSelectionEvent}. This provides information about all the
+\javaclassx{GLSelectionEvent}. This provides information about all the
 queries for which selection occured the methods
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    int numSelectedQueries();
    int getFlags();
    int getModifiersEx();
    LinkedList<Object>[] getSelectedObjects();
 \end{lstlisting}
-\javamethod[GLSelectionEvent]{numSelectedQueries()} returns the number
+\javamethodx[GLSelectionEvent]{numSelectedQueries()} returns the number
 of queries that resulted in a selection,
-\javamethod[GLSelectionEvent]{getModifiersEx()} returns the extended
+\javamethodx[GLSelectionEvent]{getModifiersEx()} returns the extended
 keyboard modifiers that were in play when the selection was requested,
-and \javamethod[GLSelectionEvent]{getFlags()} returns information
+and \javamethodx[GLSelectionEvent]{getFlags()} returns information
 flags about the selection (such as whether it was a {\tt DRAG}
 selection or {\tt MULTIPLE} selection is desired).
 
 Information about the selected components is returned by
-\javamethod[GLSelectionEvent]{getSelectedObjects()}, which provides an
+\javamethodx[GLSelectionEvent]{getSelectedObjects()}, which provides an
 array (of length {\tt numSelectedQueries()}) of object lists for
 each selected query. Each object list is the result of the call to
-\javamethod[GLSelectable]{getSelection()} for that selection query. As
+\javamethodx[GLSelectable]{getSelection()} for that selection query. As
 indicated in Section \ref{managingOwnSelectionSec}, each object list
 typically contains a single selected component, but may contain other
 information if the selection handler is prepared for it.
@@ -1703,10 +1654,10 @@ prerender phase.
 
 To avoid this problem, an application may execute the prerender
 phase itself on a set of renderables, and then pass the
-resulting \javaclass{RenderList} to the necessary viewers.
+resulting \javaclassx{RenderList} to the necessary viewers.
 
 A code sample for this is:
-\begin{lstlisting}
+\begin{lstlisting}FIXHACK
    GLViewer viewer1;
    GLViewer viewer2;
    List<GLRenderable> renderables;
@@ -1725,7 +1676,7 @@ A code sample for this is:
 
 The render list is initialized to include all visible renderables (see
 Section \ref{visibilitySec}, above), and then passed to each viewer 
-by \javamethod[GLViewer]{setExternalRenderList()}. The contents
+by \javamethodx[GLViewer]{setExternalRenderList()}. The contents
 of this render list are then displayed the next time the viewers
 redraw themselves, along with any render lists they have generated
 internally.

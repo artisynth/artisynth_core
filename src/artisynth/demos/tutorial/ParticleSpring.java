@@ -9,13 +9,18 @@ import artisynth.core.mechmodels.*;
 import artisynth.core.materials.*;
 import artisynth.core.workspace.RootModel;
 
-public class ParticleSpring extends RootModel
-{
+/**
+ * Demo of two particles connected by a spring
+ */
+public class ParticleSpring extends RootModel {
 
    public void build (String[] args) {
 
+      // create MechModel and add to RootModel
       MechModel mech = new MechModel ("mech");
+      addModel (mech);
 
+      // create the components
       Particle p1 = new Particle ("p1", /*mass=*/2, 0, 0, 0);
       Particle p2 = new Particle ("p2", /*mass=*/2, 1, 0, 0);
       AxialSpring spring = new AxialSpring ("spr", /*restLength=*/0);
@@ -23,21 +28,22 @@ public class ParticleSpring extends RootModel
       spring.setMaterial (
          new LinearAxialMaterial (/*stiffness=*/20, /*damping=*/10));
 
+      // add components to the mech model
       mech.addParticle (p1);
       mech.addParticle (p2);
       mech.addAxialSpring (spring);
 
-      p1.setDynamic (false);
-      mech.setBounds (-1, 0, -1, 1, 0, 0);
-      setPointRenderProps (p1);
+      p1.setDynamic (false);                // first particle set to be fixed
+      mech.setBounds (-1, 0, -1, 1, 0, 0);  // increase viewer bounds
+
+      // set render properties for the components
+      setPointRenderProps (p1);            
       setPointRenderProps (p2);
       setSpringRenderProps (spring);
-
-      addModel (mech);
    }
 
-   protected void setPointRenderProps (Point p) 
-{      RenderProps.setPointColor (p, Color.RED);
+   protected void setPointRenderProps (Point p) {
+      RenderProps.setPointColor (p, Color.RED);
       RenderProps.setPointStyle (p, RenderProps.PointStyle.SPHERE);
       RenderProps.setPointRadius (p, 0.06);
    }

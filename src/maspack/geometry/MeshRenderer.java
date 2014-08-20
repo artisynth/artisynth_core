@@ -10,8 +10,6 @@ import java.util.ArrayList;
 
 import javax.media.opengl.GL2;
 
-import com.sun.org.apache.bcel.internal.generic.ISUB;
-
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.render.GLHSVShader;

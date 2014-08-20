@@ -45,8 +45,10 @@ public class CollisionManager extends RenderableCompositeBase
    implements ScalableUnits {
    
    public static boolean DEFAULT_USE_NEW_HANDLER = true;
+   public static boolean DEFAULT_REDUCE_CONSTRAINTS = false;
    
    protected boolean myUseNewHandler = DEFAULT_USE_NEW_HANDLER;
+   protected boolean myReduceConstraints = DEFAULT_REDUCE_CONSTRAINTS;
    
    CollisionHandlerList myCollisionHandlers;
    protected boolean myCollisionHandlersValid = false;
@@ -86,6 +88,9 @@ public class CollisionManager extends RenderableCompositeBase
          defaultRenderProps);
       myProps.add ("useNewHandler", "Use the new collision handler that allows" +
          " for collisions with embedded meshes", DEFAULT_USE_NEW_HANDLER);
+      myProps.add ("reduceConstraints", "reduce the number of constraints", 
+         DEFAULT_REDUCE_CONSTRAINTS);
+      
       myProps.addInheritable (
          "penetrationTol:Inherited", "collision penetration tolerance",
          DEFAULT_PENETRATION_TOL);
@@ -1092,6 +1097,17 @@ public class CollisionManager extends RenderableCompositeBase
 
    public boolean isDrawIntersectionPoints() {
       return drawIntersectionPoints;
+   }
+   
+   public void setReduceConstraints(boolean set) {
+      myReduceConstraints = set;
+      for (CollisionHandler ch : myCollisionHandlers) {
+         ch.setReduceConstraints(set);
+      }
+   }
+   
+   public boolean getReduceConstraints() {
+      return myReduceConstraints;
    }
 
 }

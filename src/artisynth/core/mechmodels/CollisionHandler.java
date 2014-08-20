@@ -21,8 +21,9 @@ public abstract class CollisionHandler extends ConstrainerBase
    public static boolean useSignedDistanceCollider = false;
    
    public static boolean doBodyFaceContact = false;
-   public static boolean reduceConstraints = false;
    public static boolean computeTimings = false;
+   
+   public boolean reduceConstraints = false;
 
    public static PropertyList myProps =
       new PropertyList (CollisionHandler.class, ConstrainerBase.class);
@@ -91,5 +92,13 @@ public abstract class CollisionHandler extends ConstrainerBase
 
    public abstract void setDrawIntersectionPoints(boolean set);
    public abstract boolean isDrawIntersectionPoints();
+   
+   public boolean isReduceConstraints() {
+      return reduceConstraints;
+   }
+   
+   public void setReduceConstraints(boolean set) {
+      reduceConstraints = set;
+   }
    
 }

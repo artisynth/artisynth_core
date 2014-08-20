@@ -191,7 +191,7 @@ public class BlemkerAxialMuscle extends AxialMuscleMaterial {
 	      double l, double ldot, double l0, double excitation) {
  
       double lenOpt = myOptLength;
-      double lenRat = 1/lenOpt;
+      double lenRat = l/lenOpt;
 
       double lenUpperLim = 1.6*lenOpt;
       double lenLowerLim = 0.4*lenOpt;

@@ -1,5 +1,6 @@
 package artisynth.demos.tutorial;
 
+import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 
@@ -13,6 +14,7 @@ import maspack.matrix.Vector3d;
 import maspack.properties.Property;
 import maspack.render.RenderProps;
 import artisynth.core.femmodels.FemElement3d;
+import artisynth.core.femmodels.FemMesh;
 import artisynth.core.femmodels.FemMuscleModel;
 import artisynth.core.femmodels.MuscleBundle;
 import artisynth.core.femmodels.TetGenReader;
@@ -26,10 +28,10 @@ import artisynth.core.probes.NumericInputProbe;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.RootModel;
 
-public class FemHeart extends RootModel {
+public class FemMuscleHeart extends RootModel {
 
    // Constructor
-   public FemHeart() {}
+   public FemMuscleHeart() {}
    
    // Model builder
    @Override
@@ -59,7 +61,8 @@ public class FemHeart extends RootModel {
       TetGenReader.read(heart, 
          ArtisynthPath.getSrcRelativePath(this,"data/HumanHeartHull.node"),
          ArtisynthPath.getSrcRelativePath(this, "data/HumanHeartHull.ele"));
-      heart.addMesh(heartMesh); // add real-looking mesh
+      FemMesh embeddedHeart = heart.addMesh(heartMesh); // add real-looking mesh
+      embeddedHeart.setName("embedded");
       
       // Allow inverted elements (poor quality mesh)
       heart.setWarnOnInvertedElements(false);
@@ -143,6 +146,13 @@ public class FemHeart extends RootModel {
       // Hide elements and nodes
       RenderProps.setVisible(heart.getElements(), false);
       RenderProps.setVisible(heart.getNodes(), false);
+      
+      RenderProps.setLineColor(radialBundle, Color.BLUE);
+      RenderProps.setLineColor(longBundle, Color.RED);
+      radialBundle.setDirectionRenderLen(0.1);
+      longBundle.setDirectionRenderLen(0.1);
+      RenderProps.setVisible(radialBundle, false);
+      RenderProps.setVisible(longBundle, false);
 
       //-------------------------------------------------------------
       // INPUT PROBES
@@ -163,15 +173,17 @@ public class FemHeart extends RootModel {
       NumericInputProbe probe = new NumericInputProbe();
       probe.setInputProperties(props);
       
+      double startTime = 10.0;
       double stopTime = 60.0;
       double cycleTime = 1.5;   // seconds per heart beat
-      probe.setStartStopTimes(0, stopTime);
+      probe.setStartStopTimes(startTime, stopTime);
       
       // beat cycle 
       double [] beat0 = {0, 0};
       double [] beat1 = {1, 0};
       double [] beat2 = {0, 0.5};
-      for (double t=0; t<stopTime; t+= cycleTime) {
+      for (double t=0; t<stopTime-startTime; t+= cycleTime) {
+         // NOTE: times are relative to "startTime"
          probe.addData(t, beat0);
          probe.addData(t+cycleTime*0.15, beat1);
          probe.addData(t+cycleTime*0.3, beat2);

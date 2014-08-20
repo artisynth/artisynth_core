@@ -26,6 +26,8 @@ import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.probes.NumericInputProbe;
 import artisynth.core.util.ArtisynthPath;
+import artisynth.core.workspace.DriverInterface;
+import artisynth.core.workspace.PullController;
 import artisynth.core.workspace.RootModel;
 
 public class FemMuscleHeart extends RootModel {
@@ -38,8 +40,11 @@ public class FemMuscleHeart extends RootModel {
    public void build(String[] args) throws IOException {
       super.build(args);
       
+      setMaxStepSize(0.005);
+      
       // Root mechanical model
       MechModel mech = new MechModel("mech");
+      mech.setGravity(0,0,-9.8);
       addModel(mech);
       
 
@@ -70,11 +75,13 @@ public class FemMuscleHeart extends RootModel {
       
       // Convert unites to metres (original was cm)
       heart.scaleDistance(0.01);
+      heart.setGravity(0, 0, -9.8);
+      heart.setStiffnessDamping(0.02);
       
       // Set material properties
       heart.setDensity(1000);
-      FemMaterial femMat = new LinearMaterial(45, 0.33, true); 
-      MuscleMaterial muscleMat = new SimpleForceMuscle(8.0);    // simple muscle
+      FemMaterial femMat = new LinearMaterial(2500, 0.33, true); 
+      MuscleMaterial muscleMat = new SimpleForceMuscle(500.0);    // simple muscle
       heart.setMaterial(femMat);
       
       // Add heart to model
@@ -173,15 +180,15 @@ public class FemMuscleHeart extends RootModel {
       NumericInputProbe probe = new NumericInputProbe();
       probe.setInputProperties(props);
       
-      double startTime = 10.0;
+      double startTime = 3.0;
       double stopTime = 60.0;
-      double cycleTime = 1.5;   // seconds per heart beat
+      double cycleTime = 0.8;   // seconds per heart beat
       probe.setStartStopTimes(startTime, stopTime);
       
       // beat cycle 
       double [] beat0 = {0, 0};
-      double [] beat1 = {1, 0};
-      double [] beat2 = {0, 0.5};
+      double [] beat1 = {0.9, 0};
+      double [] beat2 = {0, 0.3};
       for (double t=0; t<stopTime-startTime; t+= cycleTime) {
          // NOTE: times are relative to "startTime"
          probe.addData(t, beat0);
@@ -192,6 +199,11 @@ public class FemMuscleHeart extends RootModel {
       
       addInputProbe(probe);
       
+   }
+   
+   @Override
+   public void attach(DriverInterface driver) {
+      super.attach(driver);
    }
    
 }

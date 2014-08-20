@@ -6,11 +6,11 @@
  */
 package artisynth.core.femmodels;
 
-import java.io.PrintWriter;
-import java.io.IOException;
 import java.awt.Color;
-import java.util.Deque;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -24,14 +24,12 @@ import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderable;
 import maspack.render.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
-import maspack.util.ObjectHolder;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.materials.AxialMuscleMaterial;
 import artisynth.core.materials.GenericMuscle;
@@ -43,17 +41,16 @@ import artisynth.core.mechmodels.ExcitationSourceList;
 import artisynth.core.mechmodels.ExcitationUtils;
 import artisynth.core.mechmodels.Muscle;
 import artisynth.core.mechmodels.Point;
-import artisynth.core.modelbase.ComponentUtils;
-import artisynth.core.modelbase.CompositeComponentBase;
 import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.CompositeComponentBase;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentBase;
 import artisynth.core.modelbase.RenderableComponentList;
-import artisynth.core.util.TransformableGeometry;
 import artisynth.core.util.ScanToken;
+import artisynth.core.util.TransformableGeometry;
 
 public class MuscleBundle extends CompositeComponentBase 
    implements ExcitationComponent, RenderableComponent, TransformableGeometry {
@@ -530,6 +527,18 @@ public class MuscleBundle extends CompositeComponentBase
       return myFibres;
    }
 
+   public Muscle addFibre (Point p0, Point p1, AxialMuscleMaterial mat) {
+      
+      Muscle fibre = new Muscle();
+      fibre.setPoints(p0, p1);
+      fibre.setRestLength(p0.distance(p1));
+      fibre.setMaterial(mat);
+      addFibre(fibre);
+      
+      return fibre;
+      
+   }
+   
    public void addFibre (Muscle fibre) {
       // check to make sure particles are already in the FEM
       FemModel femMod = getAncestorFem(this);

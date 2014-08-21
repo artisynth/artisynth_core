@@ -398,6 +398,7 @@ public class PardisoSolver implements DirectSolver {
    private static void doLoadLibraries() {
       try {
          NativeLibraryManager.setFlags (NativeLibraryManager.VERBOSE);
+         String pardisoLibrary = "PardisoJNI.1.1";
          switch (NativeLibraryManager.getSystemType()) {
             case Linux32:
             case Linux64: {
@@ -407,6 +408,8 @@ public class PardisoSolver implements DirectSolver {
             case Windows32:
             case Windows64: {
                NativeLibraryManager.load ("libiomp5md");
+               // temporarily revert to 1.0 until we solve stability bigs
+               pardisoLibrary = "PardisoJNI.1.0";
                break;
             }
             case MacOS64: {
@@ -417,7 +420,7 @@ public class PardisoSolver implements DirectSolver {
                break;
             }
          }
-         NativeLibraryManager.load ("PardisoJNI.1.1");
+         NativeLibraryManager.load (pardisoLibrary);
          myInitStatus = INIT_LIBRARIES_LOADED;
       }
       catch (Exception e) {

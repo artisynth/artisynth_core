@@ -398,7 +398,8 @@ public class PardisoSolver implements DirectSolver {
    private static void doLoadLibraries() {
       try {
          NativeLibraryManager.setFlags (NativeLibraryManager.VERBOSE);
-         String pardisoLibrary = "PardisoJNI.1.1";
+         // Using PardisoJNI.1.0 until we get hybrid solves working in MKL 11
+         String pardisoLibrary = "PardisoJNI.1.0";
          switch (NativeLibraryManager.getSystemType()) {
             case Linux32:
             case Linux64: {
@@ -408,8 +409,6 @@ public class PardisoSolver implements DirectSolver {
             case Windows32:
             case Windows64: {
                NativeLibraryManager.load ("libiomp5md");
-               // temporarily revert to 1.0 until we solve stability bigs
-               pardisoLibrary = "PardisoJNI.1.0";
                break;
             }
             case MacOS64: {

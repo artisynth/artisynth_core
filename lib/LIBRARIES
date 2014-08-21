@@ -61,9 +61,7 @@ Windows32 jogl2-gluegen-rt-natives-windows-i586.jar
 Windows32 jogl2-all-natives-windows-i586.jar
 Windows64 jogl2-gluegen-rt-natives-windows-amd64.jar
 Windows64 jogl2-all-natives-windows-amd64.jar
-Linux64 PardisoJNI.1.1
-MacOS64 PardisoJNI.1.1
-Windows64 PardisoJNI.1.0
+PardisoJNI.1.0
 RobustPreds.1.0
 TetgenJNI.1.0
 libiomp5.dylib

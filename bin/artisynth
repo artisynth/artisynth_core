@@ -114,6 +114,7 @@ elif [ "$OSNAME" = "Darwin" ] ; then
     else
         ARCH="i386"
     fi
+    export DYLD_LIBRARY_PATH=$ART/lib/MacOS64
 #    contains $DYLD_LIBRARY_PATH $ART/lib/$OSNAME-$ARCH
 #    if [ $? -ne 0 ] || [ -z $DYLD_LIBRARY_PATH ]; then
 #        export DYLD_LIBRARY_PATH=$ART/lib/$OSNAME-$ARCH:$DYLD_LIBRARY_PATH

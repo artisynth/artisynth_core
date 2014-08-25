@@ -56,7 +56,7 @@ public class LumbarFrameSpring extends RootModel {
       mech.transformGeometry (
          new RigidTransform3d (0, 0, 0, 0, 0, Math.toRadians (90)));
 
-      // create and add the frame spring
+      //create and add the frame spring
       FrameSpring spring = new FrameSpring (null);
       spring.setMaterial (
          new LinearFrameMaterial (

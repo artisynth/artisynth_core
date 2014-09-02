@@ -9,11 +9,15 @@ import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderProps.LineStyle;
+import maspack.util.DoubleInterval;
 import maspack.widgets.LabeledComponentBase;
 import artisynth.core.femmodels.FemElement3d;
 import artisynth.core.femmodels.FemFactory;
+import artisynth.core.femmodels.FemMesh;
+import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.femmodels.FemMuscleModel;
 import artisynth.core.femmodels.FemNode3d;
 import artisynth.core.femmodels.MuscleBundle;
@@ -27,6 +31,8 @@ import artisynth.core.materials.MuscleMaterial;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MuscleExciter;
 import artisynth.core.mechmodels.Point;
+import artisynth.core.probes.FemDisplayProbe;
+import artisynth.core.renderables.ColorBar;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
 
@@ -55,11 +61,7 @@ public class FemMuscleBeams extends RootModel {
                   new BlemkerAxialMuscle(
                   1.4*length/res[0], 1.0*length/res[0], 
                   3000*length/res[0]*length/res[0], 0, 0);
-      //      
-      //      muscleFibreMat.setMaxForce(30*length/res[0]*width/res[1]*width/res[2]);
-      //      muscleFibreMat.setOptLength(1.0*length/res[0]);
-      //      muscleFibreMat.setMaxLength(1.4*length/res[0]);
-      //      
+
       muscleFibreMat.setForceScaling(1.0);
       
       double density = 1000;
@@ -158,6 +160,7 @@ public class FemMuscleBeams extends RootModel {
       MuscleBundle topBundle = new MuscleBundle("top");
       MuscleBundle middleBundle = new MuscleBundle("middle");
       MuscleBundle bottomBundle = new MuscleBundle("bottom");
+      
       for (FemElement3d elem : beamMaterial.getElements()) {
          elem.computeCentroid(centroid);
          if (centroid.z > eps) {
@@ -217,7 +220,7 @@ public class FemMuscleBeams extends RootModel {
          if (pNext == null) {
             pNext = fem.addMarker(pnt);
          }
-         
+          
          // add a fibre between pPrev and pNext
          bundle.addFibre(pPrev, pNext, fibreMat);
          pPrev = pNext;

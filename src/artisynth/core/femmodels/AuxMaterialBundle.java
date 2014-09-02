@@ -233,6 +233,18 @@ public class AuxMaterialBundle extends CompositeComponentBase
       }
       myElementDescs.add (desc);
    }
+   
+   public void addElement(FemElement3d elem, double frac) {
+      AuxMaterialElementDesc desc = new AuxMaterialElementDesc(elem);
+      desc.setFraction(frac);
+      addElement(desc);
+   }
+   
+   public void addElement(FemElement3d elem, double[] fracs) {
+      AuxMaterialElementDesc desc = new AuxMaterialElementDesc(elem);
+      desc.setFractions(fracs);
+      addElement(desc);
+   }
 
    public boolean removeElement (AuxMaterialElementDesc desc) {
       return myElementDescs.remove (desc);

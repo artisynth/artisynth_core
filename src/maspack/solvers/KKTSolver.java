@@ -669,8 +669,18 @@ public class KKTSolver {
                myFirstIterativeTimeMsec = myIterativeTimeMsec;
             }
             myLastSolveWasIterative = true;
+            // double res = myPardiso.residual (
+            //    myRowOffs, myColIdxs, myVals, ybuf, xbuf, /*symmetric=*/true);
+            // System.out.println (
+            //    "Iterative solve with niter=" + iterStatus +
+            //    ", res=" + res + ", msec=" + myIterativeTimeMsec);
             return Status.SOLVED;
          }
+         // else {
+         //    System.out.printf (
+         //       "Iterative solve failed: %d %s\n", 
+         //       iterStatus, myPardiso.getErrorMessage());
+         // }
       }
       long t0 = System.nanoTime();
       factorMG (M, sizeM, GT, Rg);

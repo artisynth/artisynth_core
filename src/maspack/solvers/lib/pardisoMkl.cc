@@ -681,7 +681,7 @@ int Pardiso4::iterativeSolve (
    const double* vals, double* x, double* b, int tolExp)
 {
    int error;
-   // phase = 23 will do a factor and a solve
+   // phase = 23 will do a direct factor/solve if iterative solve fails
    int phase = 33;
    int idummy;
    //double ddummy;
@@ -710,9 +710,8 @@ int Pardiso4::iterativeSolve (
             &myNumRightHandSides, myIParams, &myMessageLevel,
             b, x, &error);
 
-   if (error != 0)
-    { printf ("\nPardiso: ERROR during solution: %d\n", error); 
-      return error;
+   if (error != 0) {
+      return myIParams[19];
     }
    else 
     { myLastPhase = phase;

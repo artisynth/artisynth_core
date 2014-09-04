@@ -399,7 +399,7 @@ public class PardisoSolver implements DirectSolver {
       try {
          NativeLibraryManager.setFlags (NativeLibraryManager.VERBOSE);
          // Using PardisoJNI.1.0 until we get hybrid solves working in MKL 11
-         String pardisoLibrary = "PardisoJNI.1.0";
+         String pardisoLibrary = "PardisoJNI.1.1";
          switch (NativeLibraryManager.getSystemType()) {
             case Linux32:
             case Linux64: {
@@ -1483,31 +1483,38 @@ public class PardisoSolver implements DirectSolver {
     * @param vals non-zero element value (CRS format)
     * @param x supplies the solution value
     * @param b supplies the right-hand-side
+    * @param symmetric if <code>true</code>, assumes that the arguments
+    * define only the upper triangular portion of a symmetric matrix.
     * @throws IllegalArgumentException if the dimensions of <code>x</code> or
     * <code>b</code> are incompatible with the matrix size.
     */
    public double residual (
-      int[] rowOffs, int[] colIdxs, double[] vals, double[] x, double[] b) {
+      int[] rowOffs, int[] colIdxs, double[] vals,
+      double[] x, double[] b, boolean symmetric) {
 
-      if (x.length < mySize) {
+      int size = rowOffs.length-1;
+      if (x.length < size) {
          throw new IllegalArgumentException ("x is too small: x.length="
-         + x.length + ", expected size is " + mySize);
+         + x.length + ", expected size is " + size);
       }
-      else if (b.length < mySize) {
+      else if (b.length < size) {
          throw new IllegalArgumentException ("b is too small: b.length="
-         + b.length + ", expected size is " + mySize);
+         + b.length + ", expected size is " + size);
       }
-      System.out.println (""+mySize+" "+myNumVals);
-      double[] check = new double[mySize];
-      for (int i=0; i<mySize; i++) {
-         int end = (i<(mySize-1) ? rowOffs[i+1]-1 : myNumVals);
+      double[] check = new double[size];
+      for (int i=0; i<size; i++) {
+         int end = rowOffs[i+1]-1;
          for (int k=rowOffs[i]-1; k<end; k++) {
-            check[i] += vals[k]*x[colIdxs[k]-1];
+            int j = colIdxs[k]-1;
+            check[i] += vals[k]*x[j];
+            if (symmetric && i != j) {
+               check[j] += vals[k]*x[i];
+            }
          }
       }
       double sum = 0;
-      for (int i=0; i<mySize; i++) {
-         sum += check[i]*check[i];
+      for (int i=0; i<size; i++) {
+         sum += (check[i]-b[i])*(check[i]-b[i]);
       }
       return Math.sqrt(sum);
    }
@@ -1633,7 +1640,7 @@ public class PardisoSolver implements DirectSolver {
       }
       else {
          myErrMsg = getErrorMessage (rcode%10 - 20);
-         return -(rcode/10);
+         return rcode;
       }
    }
 

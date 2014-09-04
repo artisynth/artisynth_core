@@ -78,6 +78,7 @@ public class RigidBodyDemo extends RootModel {
       msmod.setFrameDamping (1.0);
       msmod.setRotaryDamping (4.0);
       msmod.setPointDamping (1.0);
+
       // msmod.setPrintState ("%10.6f");
 
       RigidTransform3d X = new RigidTransform3d();

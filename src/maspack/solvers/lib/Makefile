@@ -31,9 +31,10 @@ ifeq ($(SYSTEM),Linux)
 	ifeq ($(ARCH), 64)
 	   NATIVE_DIR = Linux64
 	   PARDISO = pardisoX86_64
+	   MKL_HOME = /scratch/intel/composer_xe_2013_sp1.0.080/mkl
 	   MKL=$(MKL_HOME)/lib/intel64
-	   # MKL=$(MKL_HOME)/lib/em64t
-	   # MKL=$(MKL_HOME)/lib/intel64 -- for MKL 11
+	   #MKL_HOME = /scratch/intel/mkl/10.2.4.032
+	   #MKL=$(MKL_HOME)/lib/em64t
 	   # At last check, intel MKL blas were about 20% faster
 	   LDS_PARDISO_MKL = -Wl,--start-group \
              $(MKL)/libmkl_intel_lp64.a $(MKL)/libmkl_gnu_thread.a \

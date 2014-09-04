@@ -1,5 +1,6 @@
 \title{ArtiSynth Installation Guide for \SYSTEM}
 \author{John Lloyd and Sebastian Kazenbroot-Guppy}
+\setpubdate{August 20, 2014}
 \iflatexml
 \date{}
 \fi
@@ -11,7 +12,7 @@
 
 \maketitle
 
-\iflatexml{\large\today}\fi
+\iflatexml{\large\pubdate}\fi
 
 \tableofcontents
 
@@ -182,7 +183,7 @@ If you have Cygwin (Section \ref{Cygwin}) installed, along
 with the {\tt svn} package, then you can check out ArtiSynth using the
 following Cygwin terminal command:
 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
 > svn co https://svn.artisynth.org/svn/artisynth_core/trunk artisynth_core
 \end{lstlisting}
 
@@ -195,7 +196,7 @@ This will check out ArtiSynth and place it in the specified \directory
 If your \SYSTEM distribution has Subversion installed, then you can
 check out ArtiSynth using the following command:
 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
 > svn co https://svn.artisynth.org/svn/artisynth_core/trunk artisynth_core
 \end{lstlisting}
 
@@ -994,11 +995,11 @@ It is possible to inhibit most of this copying:
   enter the string:
 
 \ifWindows
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
     Makefile,*.a*,*.b*,*.c,*.cc,*.cxx,*.e*,*.g*,*.h*,*.i*,*.m*,*.n*,*.o*,*.r*,*.s*,*.t*
 \end{lstlisting}
 \else
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
     Makefile,*.l*,*.?,*.??,*.???,*.????,???,????,?????
 \end{lstlisting}
 \fi
@@ -1008,7 +1009,7 @@ It is possible to inhibit most of this copying:
 That should filter out the copying of most non-java files.
 
 Or, to prevent copying any resource, simply enter: 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
     *
 \end{lstlisting}
 
@@ -1232,7 +1233,7 @@ to get them to notice changes to the {\tt PATH}.
 Typical settings for the environment variables described above might
 look like this:
 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
 ARTISYNTH_HOME c:\users\joe\artisynth_core
 ARTISYNTH_PATH .;c:\users\joe;%ARTISYNTH_HOME%
 CLASSPATH %ARTISYNTH_HOME%\classes;%ARTISYNTH_HOME%\lib\*
@@ -1250,7 +1251,7 @@ in \ref{TypicalEnvironment} can be set by inserting the following
 into one of {\tt bash}'s initialization files (typically {\tt
 \textasciitilde/.bashrc}):
 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
 # set AH to the location of the ArtiSynth install folder
 AH=$HOME/artisynth_core
 export PATH=$AH/bin:$AH/lib/Windows64:$PATH
@@ -1278,7 +1279,7 @@ one of your {\tt bash} initialization files (typically {\tt
 \textasciitilde/.bashrc}), located in your home \directory:
 
 \ifLinux
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
 # set ARTISYNTH_HOME to the appropriate location ...
 export ARTISYNTH_HOME=$HOME/artisynth_2_X
 export ARTISYNTH_PATH=.:$HOME:$ARTISYNTH_HOME
@@ -1289,7 +1290,7 @@ export PATH=$ARTISYNTH_HOME/bin:$PATH
 export OMP_NUM_THREADS=2 
 \end{lstlisting}
 \else\ifMacOS
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
 # set ARTISYNTH_HOME to the appropriate location ...
 setenv ARTISYNTH_HOME $HOME/artisynth_2_X
 setenv ARTISYNTH_PATH .":"$HOME":"$ARTISYNTH_HOME
@@ -1332,7 +1333,7 @@ to the following in your {\tt .cshrc} file, located in your home
 \directory:
 
 \ifLinux
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
 # set ARTISYNTH_HOME to the appropriate location ...
 setenv ARTISYNTH_HOME $HOME/artisynth_2_X
 setenv ARTISYNTH_PATH .":"$HOME":"$ARTISYNTH_HOME
@@ -1343,7 +1344,7 @@ setenv PATH $ARTISYNTH_HOME/bin":"$PATH
 setenv OMP_NUM_THREADS 2 
 \end{lstlisting}
 \else\ifMacOS
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
 # set ARTISYNTH_HOME to the appropriate location ...
 setenv ARTISYNTH_HOME $HOME/artisynth_2_X
 setenv ARTISYNTH_PATH .":"$HOME":"$ARTISYNTH_HOME

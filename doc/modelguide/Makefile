@@ -15,21 +15,21 @@ $(PDF_DIR)/modelguide.pdf: modelguide.pdf
 
 #chunked: $(HTML_DIR)/chunked $(COPIED_IMAGE_FILES)
 
-modelguide.pdf: modelguide.tex
+modelguide.pdf: modelguide.tex ../texinputs/artisynthDoc.tex
 	pdflatex modelguide.tex
 	pdflatex modelguide.tex	
 	pdflatex modelguide.tex
 
-modelguide.xml: modelguide.tex
+modelguide.xml: modelguide.tex 
 	latexml modelguide.tex >modelguide.xml
 
-$(HTML_DIR)/modelguide.html: modelguide.tex
+$(HTML_DIR)/modelguide.html: modelguide.tex ../texinputs/artisynthDoc.tex
 	$(MAKE_HTML_DIR_IF_NECESSARY)
 	latexml modelguide.tex >modelguide.xml
 	$(LATEXMLPOST) modelguide.xml 
 	$(FIX_HTML_OUTPUT) > _tmp_.html
 	mv _tmp_.html $(HTML_DIR)/modelguide.html
-	rm -f modelguide.xml
+#	rm -f modelguide.xml
 
 install_html: html
 	rsync -rCt $(HTML_DIR)/ $(WEB_DOC_URL)/html/modelguide

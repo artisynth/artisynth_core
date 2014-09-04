@@ -7,6 +7,7 @@
 
 \title{ArtiSynth User Interface Guide}
 \author{John Lloyd}
+\setpubdate{July 8, 2014}
 \iflatexml
 \date{}
 \fi
@@ -48,7 +49,7 @@
 
 \maketitle
 
-\iflatexml{\large\today}\fi
+\iflatexml{\large\pubdate}\fi
 
 \tableofcontents
 
@@ -124,6 +125,16 @@ ArtiSynth by specifying the classname of its {\tt RootModel}.  To do
 this, go to the {\sf File} menu and choose {\sf Load from class ...},
 which will bring up a dialog that permits you to enter the
 classname. The dialog supports expansion using the {\tt <TAB>} key.
+
+It is also possible to use the {\tt -model <classname>} command line
+argument to have a model loaded directly into ArtiSynth when it starts
+up. For example, when running ArtiSynth using the {\tt artisynth}
+command, one may specify
+\begin{lstlisting}
+  artisynth -model artisynth.models.mystuff.TestModel
+\end{lstlisting}
+Under Eclipse, the {\tt -model} argument may be specified in the {\tt
+Arguments} section of the ArtiSynth run configuration.
 
 \subsection{Loading from a file}
 
@@ -3757,7 +3768,7 @@ In the plaintext format, entries are listed as title-class pairs, separated by
 whitespace.  Lines beginning with a hash (\#) are ignored.  Titles containing
 spaces must be surrounded by quotation marks.  The following is an example:
 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
 # Inverse Demos
 HydrostatInvDemo artisynth.models.inversedemos.HydrostatInvDemo
 "Tongue tracking" artisynth.models.inversedemos.TongueTip   
@@ -3803,7 +3814,7 @@ The first readable file found is used.
 The root element encapsulates the entire menu description.  It must make 
 reference to the schema for validation purposes.  The following code snippet
 can be used as a template for creating a new menu file.
-\begin{lstlisting}FIXHACK[language=XMLMenu,escapechar=\#]
+\begin{lstlisting}[language=XMLMenu,escapechar=\#]
 <?xml version="1.0" encoding="UTF-8"?>
 <ModelMenu xmlns="http://www.artisynth.org"
    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -3839,7 +3850,7 @@ must be a sub-class of \javaclass[artisynth.core.workspace]{RootModel}.
 
 The following snippet creates a menu entry titled "Muscle Arm", which will
 launch the model {\tt FemMuscleArm}.
-\begin{lstlisting}FIXHACK[language=XMLMenu]
+\begin{lstlisting}[language=XMLMenu]
    <model class="artisynth.models.femdemos.FemMuscleArm" text="Muscle Arm" />
 \end{lstlisting}
 
@@ -3850,7 +3861,7 @@ can help distinguish groups of related menu items.  The {\tt separator} element
 has no attributes.  The following snippet adds a separator line between models
 found in the {\tt artisynth.models.femdemos} package and those in 
 {\tt artisynth.models.inversedemos}.
-\begin{lstlisting}FIXHACK[language=XMLMenu]
+\begin{lstlisting}[language=XMLMenu]
    <package source="artisynth.models.femdemos" />
    <separator/>
    <package source="artisynth.models.inversedemos" />
@@ -3875,7 +3886,7 @@ active menu item, it is recommended to set the font style to \quot{italic}.
 
 In the following code snippet, a label is added before the tongue tracking 
 models.
-\begin{lstlisting}FIXHACK[language=XMLMenu]
+\begin{lstlisting}[language=XMLMenu]
    <label text="Tongue Tracking Models" fontstyle="italic" />
    <model class="artisynth.models.tracker.JawDynamicTongue" />
    <model class="artisynth.models.tracker.JawKinematicTongue" />
@@ -3901,7 +3912,7 @@ number of valid elements apart from the root element.
 The following code snippet creates a sub-menu "FEM Models" with a specified
 icon, and lists all models found within the {\tt artisynth.models.femdemos} 
 package.
-\begin{lstlisting}FIXHACK[language=XMLMenu]
+\begin{lstlisting}[language=XMLMenu]
 <menu text="FEM Models" icon="resources/icons/FEM.gif">
    <package source="artisynth.models.femdemos" />
 </menu>
@@ -3914,7 +3925,7 @@ a particular Java package and its sub-packages.  A base class can also be
 specified so that only models that are instances of that base class are added.
 For example to include all models that are sub-classes of {\tt HexTongueDemo}, the
 following line can be used:
-\begin{lstlisting}FIXHACK[language=XMLMenu]
+\begin{lstlisting}[language=XMLMenu]
    <package source="artisynth.models" base="artisynth.models.femdemos.HexTongueDemo" />
 \end{lstlisting}
 \medskip
@@ -3983,7 +3994,7 @@ compact & flat & hierarchical \\
 \medskip
 
 If font information is provided, it is applied to all entries.  
-\begin{lstlisting}FIXHACK[language=XMLMenu]
+\begin{lstlisting}[language=XMLMenu]
    <package source="" view="flat" compact="2" fontsize="5"/>
 \end{lstlisting}
 The previous listing adds every single instance of \javaclass[artisynth.core.workspace]{RootModel} found
@@ -4025,7 +4036,7 @@ in the current sub-menu.
 
 The following line loads all models from the original default ArtiSynth 
 {\rm Models} menu.
-\begin{lstlisting}FIXHACK[language=XMLMenu,escapechar=\#]
+\begin{lstlisting}[language=XMLMenu,escapechar=\#]
    <demosFile file=".demoModels" />
 \end{lstlisting}
 If font information is provided, it is applied to all model entries that are
@@ -4044,7 +4055,7 @@ the root element of the included file are inserted into the current sub-menu.
 
 The following code imports the contents from two different XML menu files,
 and separates them with a separator item.
-\begin{lstlisting}FIXHACK[language=XMLMenu,escapechar=\#]
+\begin{lstlisting}[language=XMLMenu,escapechar=\#]
    <include file="demos.xml" />
    <separator/>
    <include file="mymodels.xml" />
@@ -4059,7 +4070,7 @@ processed.  The typical method for commenting in XML is to use the
 contain other comments.  For this reason, a special {\tt hidden} element was
 created. Any entries within a {\tt hidden} element are ignored by the parser.
 
-\begin{lstlisting}FIXHACK[language=XMLMenu,escapechar=\#]
+\begin{lstlisting}[language=XMLMenu,escapechar=\#]
    <!-- temporarily hide FEM demos -->
    <hidden>
      <!-- All FEM demos -->

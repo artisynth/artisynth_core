@@ -14,6 +14,15 @@
 %\renewcommand{\sectionname}{}
 \begin{document}
 
+\section*{Sep 2, 2014}
+
+\subsection*{Pardiso JNI libraries temporarily reverted}
+
+Some problems have been observed with hybrid solves using the MKL 11.1
+version of Pardiso that was used to build libPardisoJNI.1.1.  The
+Pardiso library has been reverted to libPardisoJNI.1.0 until this is
+resolved.
+
 \section*{Aug 18, 2014}
 
 \subsection*{Pardiso JNI libraries recompiled}
@@ -45,7 +54,7 @@ deleted.
 A new method, {\tt build()}, has been added to {\tt RootModel} as the
 recommended way to build models. RootModel subclasses should override this
 method to construct themselves:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    void build (String[] args) throws IOException {
       ... build your model here ...
    }
@@ -118,7 +127,7 @@ demo models that will be bundled with the main ArtiSynth distribution.
 Some of the principal demos from {\tt mechdemos}, {\tt femdemos}, 
 and {\tt inversedemos} have been moved there:
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
 artisynth.demos.mech    <- artisynth.models.mechdemos
 artisynth.demos.fem     <- artisynth.models.femdemos
 artisynth.demos.inverse <- artisynth.models.inversedemos
@@ -183,7 +192,7 @@ increaseAusStateOffsets()} has been replaced by the simpler method
 As a simple example, {\tt getState()} and {\tt setState()} methods to
 save and restore auxiliary state consisting of a vector might be
 implemented like this:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   getState (DataBuffer data) {
      data.zput (size);               // store vector size as an integer
      for (int i=0; i<size; i++) {
@@ -262,7 +271,7 @@ section of the
 refactored so that gain values for sources are now stored alongside
 the source components themselves.  In particular, {\tt
 ExcitationComponent} now supports the following additional methods,
-\begin{lstlisting}BLANK
+\begin{lstlisting}
     public void addExcitationSource (ExcitationComponent ex, double gain);
 
     public void setExcitationGain (ExcitationComponent ex, double gain);
@@ -299,7 +308,7 @@ lists, including {\tt springs} and {\tt redParticles}. Openning {\tt
 springs} will reveal two more lists: {\tt greenSprings} and
 {\tt blueSprings}. The particle list was created with code
 similar to the following:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    // create a list for storing points:
    PointList<Particle> redParticles =
       new PointList<Particle> (Particle.class, "redParticles");
@@ -310,7 +319,7 @@ similar to the following:
    mech.add (redParticles); // add to the mechmodel
 \end{lstlisting}
 The spring lists were created with code like this:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    // create a list for storing the green springs:
    RenderableComponentList<AxialSpring> greenSprings =
       new RenderableComponentList<AxialSpring> (
@@ -335,7 +344,7 @@ The spring lists were created with code like this:
 
 Lists of any model component type can be created using the
 generic class {\tt ComponentList}. For example,
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    ComponentList<Particle> plist = 
       new ComponentList<Particle> (Particle.class, "parts"));
 
@@ -508,7 +517,7 @@ However, if you have external {\tt .art} files containing input probe
 definitions, you may want to check if they contain the word {\tt
 pokes}, and if so, replace this with {\tt props}. The command {\tt
 \$ARTISYNTH\_HOME/bin/qsubst} can be used for this purpose:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   > qsubst pokes props *.art
 \end{lstlisting}
 
@@ -634,7 +643,7 @@ property for property panel editing.
 CollisionManager} (as a child component) that manages the collision
 interactions between its colliable bodies. The existing
 {\tt MechModel} methods for doing this, namely:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    setDefaultCollisionBehavior (enabled, mu);
    setDefaultCollisionBehavior (typeA, typeB, behavior);
    setDefaultCollisionBehavior (typeA, typeB, enabled, mu);
@@ -648,19 +657,19 @@ interactions between its colliable bodies. The existing
 now delegate their functionality to the collision manager.
 
 The collision manager can be obtained using the {\tt MechModel} method
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    getCollisionManager();
 \end{lstlisting}
 Collision rendering should now be controlled by controlling the render
 properties of the collision manager, instead of the (now removed)
 collision handler list that was returned by {\tt
 collisionHandlers()}. That means, for example, that
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    Renderable collisions = myJawModel.collisionHandlers();
    RenderProps.setVisible (collisions, true);
 \end{lstlisting}
 should be changed to 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    Renderable collisions = myJawModel.getCollisionManager();
    RenderProps.setVisible (collisions, true);
 \end{lstlisting}
@@ -668,7 +677,7 @@ should be changed to
 Some collision related properties formerly associated with {\tt
 MechModel} have now been moved to the collision manager, and should be
 accessed there instead. These include:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    contactNormalLen
    collisionPointTol
    collisionCompliance
@@ -724,7 +733,7 @@ PointFem3dAttachment} classes.
 
 Both {\tt SkinMesh} and {\tt FemMesh} are now subclasses of {\tt
 SkinMeshBase}, so the overall type hierarchy looks like:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    MeshComponent
       SkinMeshBase
          SkinMesh
@@ -741,12 +750,12 @@ needed. Currently supported formats include {\tt .obj}, {\tt .off},
 {\tt .ply}, and {\tt .stl}. Unrecognized file extensions will result
 in an error being thrown. To read a mesh from an arbitrary file, one
 can use either
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    GenericReader reader = new GenericReader(fileName);
    MeshBase mesh = reader.readMesh();
 \end{lstlisting}
 or the static convenience method
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    MeshBase mesh = GenericReader.readMesh (fileName);
 \end{lstlisting}
 The mesh that is returned is either a {\tt PolygonalMesh}, {\tt
@@ -754,24 +763,24 @@ PointMesh}, or {\tt LineMesh} depending on the contents of the
 file. To ensure reading of a specific mesh type, one can pass
 an empty mesh of the desired type to the companion method
 {\tt readMesh (mesh)},
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    GenericReader reader = new GenericReader(fileName);
    MeshBase mesh = reader.readMesh (new PolygonalMesh());
 \end{lstlisting}
 or use the corresponding static method:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    MeshBase mesh = GenericReader.readMesh (fileName, new PointMesh());
 \end{lstlisting}
 If the reader cannot parse the file into an instance of the specified
 mesh, an exception will be thrown.
 
 The interface for writing a mesh is similar:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    GenericWriter writer = new GenericWriter(fileName);
    writer.writeMesh(mesh);
 \end{lstlisting}
 or 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    GenericWriter.writeMesh (fileName, mesh);
 \end{lstlisting}
 
@@ -779,7 +788,7 @@ One reason for explicitly creating a {\tt writer} is to obtain
 control over the output formating. For example, the method {\tt
 setFormat(string)} takes a {\tt printf()} style string used
 to format floating point numbers in ASCII output:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    GenericWriter writer = new GenericWriter(fileName);
    write.setFormat ("%8.3f");
    writer.writeMesh(mesh);
@@ -790,7 +799,7 @@ reader most recently read. This is useful for formats like {\tt
 .ply}, which can be either ASCII or several flavours of binary,
 and one would like to read in a mesh, transform it, and write
 it out to another file using the same format as the original input file:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    GenericReader reader = new GenericReader(inFileName);
    MeshBase mesh = reader.read ();
    ... transform the mesh in some way ...
@@ -868,13 +877,13 @@ If you are authoring your own rendering code, you need to note that
 JOGL 2 introduces some minor syntax changes into the API. The main
 change is that the class {\tt GL} has been replaced by {\tt GL2}.
 That means that code fragments like
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    import javax.media.opengl.GL;
    GL gl = renderer.getGL();
    gl.glBegin(GL.GL_TRIANGLES);
 \end{lstlisting}
 should be changed to
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    import javax.media.opengl.GL2;
    GL2 gl = renderer.getGL2();
    gl.glBegin(GL2.GL_TRIANGLES);
@@ -885,7 +894,7 @@ should be changed to
 The {\tt render()} method in {\tt GLRenderable} 
 has been extended to include a {\tt flags}
 argument:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    void render (GLRenderer renderer, int flags);
 \end{lstlisting}
 This contains a number of flags that may be used to control different
@@ -924,7 +933,7 @@ now been removed.
 removed from FemModel}
 
 The legacy methods: 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    setYoungsModulus (E)
    setPoissonsRatio (nu)
    setElasticity (E, nu)
@@ -934,17 +943,17 @@ The legacy methods:
    getWarping ()
 \end{lstlisting}
 have been removed from {\tt FemModel}. Instead, one should now use:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    setMaterial (mat)
    getMaterial ()
 \end{lstlisting}
 where {\tt mat} is an appropriate material.
 A convenience method, 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    setMaterial (E, nu, corotated)
 \end{lstlisting}
 has been added; this is equivalent to
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    setMaterial (new LinearMaterial (E,nu, corotated));
 \end{lstlisting}
 
@@ -1084,7 +1093,7 @@ between {\tt maspack.util} and {\tt maspack.matrix}, the {\tt maspack}
 dependency stack, from least to most dependent, now looks like this
 (where packages between lines are not dependent on each other):
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    maspack.util
    ------------
    maspack.matrix
@@ -1150,7 +1159,7 @@ In particular, the query and intersection methods that have been
 previously available through the {\tt OBBTree} class have been moved
 into the classes {\tt BVFeatureQuery} and {\tt BVIntersector}. {\tt
 BVFeatureQuery} provides
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    nearestFaceToPoint (nearPnt, uv, mesh, pnt);
    nearestFaceAlongRay (nearPnt, duv, mesh, origin, dir);
    nearestFaceAlongLine (nearPnt, duv, mesh, origin, dir, min, max);
@@ -1161,7 +1170,7 @@ BVFeatureQuery} provides
    isInsideMesh (mesh, pnt, tol);
 \end{lstlisting}
 while {\tt BVIntersector} provides
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    intersectMeshMesh (intersections, mesh1, mesh2);
    intersectMeshPlane (intersections, mesh, plane);
 \end{lstlisting}
@@ -1186,7 +1195,7 @@ isInsideOrientedMesh()}, but is also potentially less robust.
 
 Somes examples of using these query methods are:
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    double inf = Double.POSITIVE_INFINITY;
    Point3d pnt;         // point for the query
    Vector3d dir;        // ray or line direction
@@ -1235,14 +1244,14 @@ color of the current material.
 
 To ensure that this shading mode is respected, application
 rendering code that used to call {\tt renderer.setMaterial()} like this:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    renderer.setMaterial (material, selecting);
    ... render something ...
 \end{lstlisting}
 should now call {\tt renderer.setMaterialAndShading()} and 
 {\tt renderer.restoreShading()},
 like this:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    renderer.setMaterialAndShading (renderProps, mat, selecting);
    ... render something ...
    renderer.restoreShading (renderProps);
@@ -1250,11 +1259,11 @@ like this:
 Likewise, {\tt renderer.updateMaterial()} now takes a {\tt RenderProps}
 object as its leading argument, so that calls that used to
 look like this:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    renderer.updateMaterial (material, selecting);
 \end{lstlisting}
 now look like this:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    renderer.updateMaterial (renderProps, material, selecting);
 \end{lstlisting}
 
@@ -1310,14 +1319,14 @@ GL\_FOG}, or {\tt GL\_DITHER}.
 One way to adhear to these restrictions is to conditionalize the
 relevant calls on whether or not {\tt renderer.isSelecting()} returns
 true:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    if (!renderer.isSelecting()) {
       gl.glColor (1f, 0.5f, 0f);
    }
 \end{lstlisting}
 A more compact option, for colors and lighting control, is to use the
 following {\tt GLRenderer} methods:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    setLightingEnabled (boolean enable);
    boolean isLightingEnabled();
    setColor (float r, float g, float b);
@@ -1395,12 +1404,12 @@ createTriangularBox}), or explicitly triangulate the mesh using the
 The {\tt MeshFactory} methods have now been renamed so that triangular
 meshes are created by default, and meshes which contain quads have
 {\tt Quad} in the name. For example, the methods
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    createBox (wx, wy, wz);              // create a quad-based box mesh
    createTriangularBox (wx, wy, wz);    // create a triangle-based box mesh
 \end{lstlisting}
 have been renamed as
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    createQuadBox (wx, wy, wz);          // create a quad-based box mesh
    createBox (wx, wy, wz);              // create a triangle-based box mesh
 \end{lstlisting}
@@ -1409,7 +1418,7 @@ have been renamed as
 
 {\tt MeshFactory} now contains a number of methods that can be used to
 build meshes by piecing together planar or curved components:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    addQuadRectangle (mesh, wx, wy, nx, ny, XLM, vtxMap)
    addQuadAnnularSector (mesh, r0, r1, ang, nr, nang, XLM, vtxMap)
    addQuadCylindricalSection (mesh, r, h, ang, nh, nang, outward, XLM, vtxMap)
@@ -1430,7 +1439,7 @@ coordinate frame.
 Antonio has added some methods to {\tt MeshFactory} for building
 meshes using CSG (constructive solid geometry). These are adapted from
 Evan Wallace's CSG Library. The main methods are:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    getSubtraction (mesh1, mesh2)
    getUnion (mesh1, mesh2)
    getIntersection (mesh1, mesh2)
@@ -1440,7 +1449,7 @@ Evan Wallace's CSG Library. The main methods are:
 
 A new method has been added to {\tt artisynth.core.femmodels.FemFactory}
 for extruding thin FEM models from a polygonal mesh:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    createHexWedgeExtrusion (model, n, d, surface)
 \end{lstlisting}
 This creates an FEM model by extruding either hex or wedge elements
@@ -1486,13 +1495,13 @@ and {\tt rotaryDamping}, along with their accessors, have been removed
 from {\tt FrameSpring}. Instead, the force behavior is now controlled
 through the {\tt material} property, which can be set interactively
 using a property panel for the spring. In code, the fragment
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    FrameSpring spring = new FrameSpring ("spring1");
    spring.setStiffness (10.0);
    spring.setRotaryStiffness (100.0);
 \end{lstlisting}
 is replaced by
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    FrameSpring spring = new FrameSpring ("spring1");
    spring.setMaterial (new RotAxisFrameMaterial (10.0, 100.0, 0.0, 0.0));
 \end{lstlisting}
@@ -1623,7 +1632,7 @@ specified URI. The idea is to use this to retrieve large data files
 from a server, without having to check them into the ArtiSynth version
 control system. Usage can be illustrated through a few examples:
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    FileGrabber grabber = new FileGrabber();
    File file = grabber.get (
       "bigmesh.obj", "http://www.mysever.org/meshes/bigmesh.obj");
@@ -1637,7 +1646,7 @@ working directory. However, it is possible to specify the local
 directory explictly, as well as a default base URI that should be used
 to obtain remote files:
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    FileGrabber grabber = new FileGrabber();
    grabber.setDownloadDir ("/home/joe/meshes");
    grabber.setRemoteSource ("http://www.mysever.org/meshes");
@@ -1657,7 +1666,7 @@ file by checking to see if the local version is consistent with the
 version on the server, and downloading the server version if it is
 not. This is done by checking hashes, and is enabled with a 
 {\tt CHECK\_HASH} option:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    File file1 = grabber.get ("boneMesh.obj", FileGrabber.CHECK_HASH);
 \end{lstlisting}
 
@@ -1803,7 +1812,7 @@ manner analgous to skinning. For a demo, please see
 
 To add or remove embedded surfaces, one may use the {\tt FemModel3d}
 methods
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    FemSurface addEmbeddedSurface (PolygonalMesh mesh);
 
    boolean removeEmbeddedSurface (FemSurface surf);
@@ -1849,7 +1858,7 @@ subclass.  A polyline can be read from and written to a {\tt
 .obj} file, in which the {\it line} designator '{\tt l}' is used in
 place of the {\tt face} designator '{\tt f}'; for example, a simple
 three-segment line is described by:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   v 0.0 0.0 0.0
   v 1.0 0.0 0.0
   v 1.0 1.0 0.0
@@ -1878,7 +1887,7 @@ When a {\tt RigidBody} or {\tt MeshBody} is written to a {\tt
 PrintStream}, the information for meshes associated with a file is
 saved as the name of the file, plus the associated affine transform if
 appropriate:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    mesh=maspack.geometry.PolyonalMesh [
       "/home/users/jim/meshdata/myMesh.obj"
       transform=RigidTransform3d [ 1 2 3 1 0 0 45 ]
@@ -2099,7 +2108,7 @@ Ways to set compliance for specific constraints are now described.
 Compliance for a rigid body connector can be controlled by the
 following properties:
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   linearCompliance
   rotaryCompliance
   compliance
@@ -2131,7 +2140,7 @@ consistent equivalent value exists.
 Compliance for contact constraints can be controlled using the
 following {\tt MechModel} properties:
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   collisionCompliance
   collisionDamping
 \end{lstlisting}
@@ -2170,7 +2179,7 @@ MultiPointMuscle}) is now complete.
 
 All of the spring properties associated with material-type
 parameters, including
-\begin{lstlisting}BLANK
+\begin{lstlisting}
  stiffness
  damping
  maxForce
@@ -2184,7 +2193,7 @@ have been removed, along with their accessor methods.
 
 As a convenience, three static methods have been added to {\tt
 PointSpringBase}:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
  void setDamping (PointSpringBase s, double d)
 
  void setMaxForce (PointSpringBase s, double maxf)
@@ -2439,7 +2448,7 @@ in seconds.
 
 In particular, the following methods now receive or return time as a
 double value in seconds:
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   Model.initialize (t0)
   Model.setDefaultInputs (t0, t1)
   Model.advance (t0, t1, flags)
@@ -2460,7 +2469,7 @@ internally.
 Instead, to handle round-off issues, {\tt TimeBase} now provides the
 following methods to compare and manipulate time quantities within a
 fixed tolerance (currently set to one picosecond, or 1e-12):
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   TimeBase.equals (t0, t1)
   TimeBase.compare (t0, t1)
   TimeBase.modulo (t0, t1)
@@ -2659,7 +2668,7 @@ to be {\it passive}, meaning that they will not contribute to the total
 length used to determine the spring's force. The relevant
 methods within {\tt MultiPointSpring} are:
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   setSegmentPassive (idx, passive)
   isSegmentPassive (idx)
   clearPassiveSegments()
@@ -2778,7 +2787,7 @@ Problems associated with scaling certain kinds of connectors (such as
 It is now possible to add frame information to a {\tt FemElement3d},
 using the methods
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   FemElement3d.setFrame (Matrix3dBase M)
   Matrix3d FemElement3d.getFrame()
 \end{lstlisting}
@@ -2796,7 +2805,7 @@ Frame information maybe accessed by the {\tt computeStress} and
 with the integration point's {\tt IntegrationData3d} structure as an
 additional parameter:
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   public void computeTangent (
      Matrix6d D, IntegrationPoint3d pt, IntegrationData3d dt);
   
@@ -2806,7 +2815,7 @@ additional parameter:
 
 and the frame information itself can be obtained using
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   dt.getFrame()
 \end{lstlisting}
  
@@ -2880,7 +2889,7 @@ still get reasonable behavior.
 
 For the API, the main methods are:
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   MechModel.attachPoint (Point p1, FemModel3d fem, double reduceTol)
   MechModel.attachPoint (Point p1, FemElement3d elem)
 \end{lstlisting}
@@ -2890,7 +2899,7 @@ know the element already. See the Javadocs for more info.
 
 To locate an element within an FEM, you can use
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   FemModel3d.findContainingElement (Point3d pnt)
   FemModel3d.findNearestSurfaceElement (Point3d loc, Point3d pnt)
   FemModel3d.findNearestElement (Point3d loc, Point3d pnt)
@@ -2923,7 +2932,7 @@ complement of {\tt Monitors}.
 
 Like a Monitor, a Controller contains a single function 
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    apply (t0, t1)
 \end{lstlisting}
 
@@ -2932,7 +2941,7 @@ Times {\tt t0} and {\tt t1} denote the start and end times associated with the
 time step. You can add/remove controllers from the {\tt RootModel}
 using 
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    addController (controller)
    addController (controller, model)
    removeController (controller)
@@ -3196,7 +3205,7 @@ code is enabled, i.e., {\tt -useAjlCollision}.
 
 These properties can be set in the same way as the visibility, e.g.,
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   Renderable collisions = mechModel.collisionHandlers();
   RenderProps.setEdgeWidth (col, 2);
   RenderProps.setEdgeColor (col, Color.Red);
@@ -3204,7 +3213,7 @@ These properties can be set in the same way as the visibility, e.g.,
 
 To access them on a read-only basis, one can do
   
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   RenderProps props = mechModel.collisionHandlers().getRenderProps();
 \end{lstlisting}
 
@@ -3264,14 +3273,14 @@ try to relax them on an as-needed basis.
 The API and GUI interface for specifying collision behavior has been
 revised. In particular, the functions 
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   setCollisions (a,b,behavior)
   getCollisions (a,b)
 \end{lstlisting}
 
 have been replaced by
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   setCollisionBehavior (a,b,behavior)
   getCollisionBehavior (a,b)
   setDefaultCollisionBehavior (a,b,behavior)
@@ -3471,7 +3480,7 @@ A constraint {\tt ParticlePlaneConstraint} has been added to MechModel
 which allows particles to be constrained to a fixed plane. The
 principal methods are
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
   ParticlePlaneConstraint c = 
      new ParticlePlaneConstraint(particle, plane);
 
@@ -3613,7 +3622,7 @@ in some cases.
 
 {\tt FemModel3d} contains the following methods for managing sub-surfaces:
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
 numSubSurfaces()
 getSubSurface(int)
 addSubSurface(PolygonalMesh)
@@ -3627,7 +3636,7 @@ Rendering of sub-surfaces can be enabled via the
 A sub-surface can be created by reading it in from a file. {\tt FemModel3d}
 contains the following methods to support this:
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
 scanMesh(String fileName)
 scanMesh(ReaderTokenizer rtok)
 scanSurfaceMesh(ReaderTokenizer rtok)
@@ -3671,7 +3680,7 @@ Newmark method which does a fully constrained solve in the manner of
 ConstrainedBackwardEuler and should provide greater accuracy. To
 select it in code, you can do
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
 model.setIntegrator (MechSystemSolver.Integrator.Trapezoidal);
 \end{lstlisting}
 
@@ -4082,7 +4091,7 @@ specifies all three of the above.
 
 \item Default and specific collidables cannot currently be mixed; e.g., 
 you cannot do 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
 RigidBody box = createBox();
 setCollisions (box, Collidable.RigidBody);
 \end{lstlisting}
@@ -4141,7 +4150,7 @@ recently opened {\sf "Edit Collisions"} panel).
 Some factory methods for creating RigidBodies have also been added. 
 These automatically create the required mesh and set the inertia:
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
    RigidBody.createBox (name, wx, wy, wz, density);
    RigidBody.createSphere (name, r, density, nslices);
    RigidBody.createEllipsoid (name, a, b, c, density, nslices);
@@ -4217,7 +4226,7 @@ files, but some may have been missed. Qsubst may be helpful in fixing
 any .art files you have that are not checked in. The following 
 invocations may be useful, and can be used independently:
 
-\begin{lstlisting}BLANK
+\begin{lstlisting}
 > qsubst '(property="[^\s]*)/([^/:"]*")' '\1:\2' -re -find '*.art'
 
 > qsubst '/excitation' ':excitation' -find '*.art'

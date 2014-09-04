@@ -1,22 +1,30 @@
+% Aug 27, 2014: has 118 sections. artisynth.tex and maspack.tex have
+%   about 28 and 23 sections, with about 375 words/sec, so we can
+%   expect this to be around 45,000 words, or about 120 pages.
+
 \documentclass{article}
+\usepackage{amsmath}
+\usepackage{framed}
 \input{artisynthDoc}
+\input{mathdefs}
 
 \setcounter{tocdepth}{5}
 \setcounter{secnumdepth}{3}
 
 \title{ArtiSynth Modeling Guide}
-\author{Ling Tsou}
+\author{John Lloyd and Antonio Sanchez}
+\setpubdate{September 15, 2014}
 \iflatexml
 \date{}
 \fi
 
 \begin{document}
+
 \maketitle
 
-\iflatexml{\large\today}\fi
+\iflatexml{\large\pubdate}\fi
 
 \tableofcontents
-
 
 \setjavabase{artisynth.core.modelbase}
 
@@ -24,124 +32,1002 @@
 
 \section{Introduction}
 
-This guide is intended to provide a tutorial on how to create
-biomechanical models in ArtiSynth using code.
+This guide describes how to create mechanical and biomechanical models
+in ArtiSynth using its Java API. 
 
-\subsection{Creating a very simple model}
+It is assumed that the reader is familiar with basic Java programming,
+including variable assignment, control flow, exceptions, functions and
+methods, object construction, inheritance, and method overloading.
+Some familiarity with the {\tt Collections} packages in {\tt
+java.util}, such as {\tt ArrayList} and {\tt LinkedList} is also
+useful.
 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
+\subsection{How to read this guide}
 
-\subsection{Basic Artisynth classes and packages}
+Section \ref{Overview:sec} offers a general overview of ArtiSynth's
+software design, and briefly describes the algorithms used for
+physical simulation (Section \ref{PhysicsSimulation:sec}). The latter
+section may be skipped on first reading. A more comprehensive
+\href{http://www.artisynth.org/doc/artisynth.pdf}{overview paper} is
+available online.
 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
+The remainder of the manual gives details instructions on how to build
+various types of mechanical and biomechanical models.  Sections
+\ref{MechModelsI:sec} and \ref{MechModelsII:sec} give detailed
+information about building general mechanical models, involving
+particles, springs, rigid bodies, joints, constraints, and
+contact. Section \ref{Agents:sec} describes how to add control panels,
+controllers, and input and output data streams to a simulation.
+Section \ref{FEMModels:sec} describes how to incorporate finite
+element models.
 
-\subsection{RootModel and MechModel}
+If time permits, the reader will profit from a top-to-bottom read.
+However, this may not always be necessary. Many of the sections
+contain detailed demonstration examples, all of which are available in
+the package {\tt artisynth.demos.tutorial} and which may be run from
+ArtiSynth using model menu {\sf Models > All demos > tutorials}.  The
+More experienced readers may wish to find an appropriate example and
+then work backwards into the text and preceeding section for any
+needed explanatory detail.
 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
+\section{ArtiSynth Overview}
+\label{Overview:sec}
 
+ArtiSynth is an open-source, Java-based system for creating and
+simulating mechanical and biomechanical models, with specific
+capabilities for the combined simulation of rigid and deformable
+bodies, together with contact and constraints. It is presently
+directed at application domains in biomechanics, medicine, physiology,
+and dentistry, but it can also be applied to other areas such as
+traditional mechanical simulation, ergonomic design, and graphical and
+visual effects.
 
-\section{Rigid Bodies}
+\subsection{System structure}
 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
+An ArtiSynth model is composed of a hierarchy of models and model
+components (Figure ref{components:fig}) which are implemented by
+various Java classes. These may include sub-models (including finite
+element models), particles, rigid bodies, springs, connectors, and
+constraints.  The component hierarchy may be in turn connected to
+various {\it agent} components, such as control panels, controllers
+and monitors, and input and output data streams (i.e., {\it probes}),
+which have the ability to control and record the simulation as it
+advances in time. Agents are presented in more detail in Section
+\ref{Agents:sec}. 
 
-\subsection{Creating rigid bodies}
+The models and agents are collected together within a top-level
+component known as a {\it root model}.  Simulation proceeds under the
+control of a {\it scheduler}, which advances the models through time
+using a physics simulator. A rich graphical user interface (GUI)
+allows users to view and edit the model hierarchy, modify component
+properties, and edit and temporally arrange the input and output
+probes using a {\it timeline} display.
 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
+\subsubsection{Model components}
 
+Every ArtiSynth component is an instance of
+\javaclass[artisynth.core.modelbase]{ModelComponent}. When connected
+to the hierarchy, it is assigned a unique number relative to its
+parent; the parent and number can be obtained using the methods
+\javamethod[artisynth.core.modelbase.ModelComponent]{getParent()} and
+\javamethod[artisynth.core.modelbase.ModelComponent]{getNumber()},
+respectively.  Components may also be assigned a name (using
+\javamethod*[artisynth.core.modelbase.ModelComponent]{setName()})
+which is then returned using
+\javamethod*[artisynth.core.modelbase.ModelComponent]{getName()}.
 
-\subsection{Frame markers}
+A sub-interface of {\tt ModelComponent} includes
+\javaclass[artisynth.core.modelbase]{CompositeComponent}, which
+contains child components.  A
+\javaclass[artisynth.core.modelbase]{ComponentList} is a {\tt
+CompositeComponent} which simply contains a list of other components
+(such as particles, rigid bodies, sub-models, etc.).
 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
+Components which contain state information (such as position and
+velocity) should extend {\tt HasState}, which provides
+the methods
+\javamethod*[artisynth.core.modelbase.HasState]{getState()}
+and
+\javamethod*[artisynth.core.modelbase.HasState]{setState()}
+for saving and restoring state.
 
+A {\tt Model} is a sub-interface of {\tt CompositeComponent} and {\tt
+HasState} that contains the notion of advancing through time and which
+implements this with the methods {\tt initialize(t0)} and {\tt
+advance(t0, t1, flags)}. The most common instance of {\tt Model} used
+in ArtiSynth is {\tt MechModel} (Section \ref{MechModel:sec}), which
+is the top-level container for a mechanical or biomechanical model.
+
+\subsubsection{The RootModel}
+\label{RootModel:sec}
+
+The top-level component in the hierarchy is the root model, which is a
+subclass of \javaclass[artisynth.core.workspace]{RootModel} and
+which contains a list of models along with lists of agents used to
+control and interact with these models. The component lists in {\tt
+RootModel} include:
+
+\begin{shadedregion}
+\begin{tabular}{ll}
+\tt models & top-level models of the component hierarchy \\
+\tt inputProbes & input data streams for controlling the simulation \\
+\tt controllers & functions for controlling the simulation \\
+\tt monitors & functions for observing the simulation \\
+\tt outputProbes & output data streams for observing the simulation \\
+\end{tabular}
+\end{shadedregion}
+
+Each agent may be associated with a specific top-level model.
+
+\subsubsection{Component path names}
+\label{PathNames:sec}
+
+The names and/or numbers of a component and its ancestors can be used to
+form a component path name. This path has a construction 
+analogous to Unix file path names, with the '/' character acting as a
+separator. Absolute paths start with '/', which indicates the root
+model. Relative paths omit the leading '/' and can begin lower down
+in the hierarchy. A typical path name might be
+\begin{verbatim}
+  /models/JawHyoidModel/axialSprings/lad
+\end{verbatim}
+For nameless components in the path, their numbers can be used
+instead.  Numbers can also be used for components that have
+names. Hence the path above could also be represented using
+only numbers, as in
+\begin{verbatim}
+  /0/0/1/5
+\end{verbatim}
+although this would most likely appear only in machine-generated
+output.
+
+\subsubsection{Model advancement}
+
+ArtiSynth simulation proceeds by advancing all of the root model's
+top-level models through a sequence of time steps. Every time
+step is achieved by calling each model's 
+\javamethod*[artisynth.core.modelbase.Model]{advance()} method:
+\begin{lstlisting}
+  public StepAdjustment advance (double t0, double t1) {
+     ... perform simulation ...
+  }
+\end{lstlisting}
+This method advances the model from time {\tt t0} to time {\tt t1},
+performing whatever physical simulation is required (see Section
+\ref{PhysicsSimulation:sec}). The method may optionally return a {\tt
+StepAdjusment} indicating that the step size ({\tt t1} - {\tt t0}) was
+too large and that the advance should be redone with a smaller step
+size. 
+
+The root model has it's own
+\javamethod*[artisynth.core.workspace.RootModel]{advance()}, which in
+turn calls the advance method for all of the top-level models, in
+sequence. The advance of each model is surrounded by the application
+whatever agents are associated with that model. This is done
+by calling the agent's {\tt apply()} method:
+\begin{lstlisting}
+   model.preadvance (t0, t1);
+   for (each input probe p) {
+      p.apply (t1);
+   }
+   for (each controller c) {
+      c.apply (t0, t1);
+   }
+   model.advance (t0, t1);
+   for (each monitor m) {
+      m.apply (t0, t1);
+   }
+   for (each output probe p) {
+      p.apply (t1);
+   }
+\end{lstlisting}
+Agents not associated with a specific model are applied by the root
+model's {\tt advance()} method before (or after) the advance of all
+other models.
+
+More precise details about model advancement are given in the 
+\href{http://www.artisynth.org/doc/html/artisynth/artisynth.html}{
+ArtiSynth Reference Manual}.
+
+\subsubsection{MechModel}
+\label{MechModel:sec}
+
+Most ArtiSynth applications contain a single top-level model which is
+an instance of \javaclass[artisynth.core.mechmodels]{MechModel}.  This
+is a \javaclass[artisynth.core.modelbase]{CompositeComponent} that may
+(recursively) contain an arbitrary number of mechanical components,
+including finite element models, other {\tt MechModel}s, particles,
+rigid bodies, constraints, attachments, and various force effectors.
+The {\tt MechModel} {\tt advance()} method invokes a physics simulator
+that advances these components forward in time (Section
+\ref{PhysicsSimulation:sec}).
+
+For convenience each {\tt MechModel} contains a number of predefined
+containers for different component types, including:
+
+%\begin{framed}%
+%\colorbox{shadecolor}{%
+\begin{shadedregion}
+\begin{tabular}{ll}
+\tt particles & 3 DOF particles \\
+\tt rigidBodies & 6 DOF rigid bodies \\
+\tt axialSprings & point-to-point springs \\
+\tt connectors & joint-type connectors between bodies \\
+\tt constrainers & general constraints \\
+\tt forceEffectors & general force-effectors \\
+\tt attachments & attachments between dynamic components \\
+\tt renderables & renderable components (for visualization only) \\
+\end{tabular}
+\end{shadedregion}
+Each of these is a child component of {\tt MechModel} and is
+implemented as a
+\javaclass[artisynth.core.modelbase]{ComponentList}. Special methods
+are provided for adding and removing items from them. However,
+applications are not required to use these containers, and may instead
+create any component containment structure that is appropriate
+(Section \ref{GeneralArrangements:sec}).  If not used, the containers
+will simply remain empty.
+
+\subsection{Physics simulation}
+\label{PhysicsSimulation:sec}
+
+Only a brief summary of ArtiSynth physics simulation is described
+here.  Full details are given in \cite{lloyd2012artisynth} and in the
+related
+\href{http://www.artisynth.org/doc/artisynth.pdf}{overview
+paper}.
+
+For purposes of physics simulation, the components of a {\tt
+MechModel} are grouped as follows:
+
+\begin{description}
+	
+\item[Dynamic components] \mbox{}\hfill\\
+Components, such as a particles and rigid bodies, that contain position
+and velocity state, as well as mass.
+
+\item[Force effectors] \mbox{}\hfill\\
+Components, such as springs or finite elements,
+that exert forces between dynamic components.
+
+\item[Constrainers] \mbox{}\hfill\\
+Components that enforce constraints between dynamic components. 
+
+\item[Attachments] \mbox{}\hfill\\
+Attachments between dynamic components. While technically these
+are constraints, they are implemented using a different approach.
+
+\end{description}
+
+The positions, velocities, and forces associated with all the
+dynamic components are denoted by the composite vectors 
+$\q$, $\u$, and $\f$. 
+In addition, the composite mass matrx is given by
+$\M$. 
+Newton's second law then gives
+\begin{equation}
+\f = \frac{d \M \u}{d t} = \M \dot\u + \dot\M \u,
+\label{newton:eqn}
+\end{equation}
+%
+where the $\dot\M \u$ accounts for various ``fictitous'' forces.
+
+Each integration step involves solving for
+the velocities $\u^{k+1}$ at time step $k+1$ given the velocities and forces
+at step $k$. One way to do this is to solve the expression
+%
+\begin{equation}
+\M \, \u^{k+1} = \M \u^k + h \bar\f
+\label{velupdate:eqn}
+\end{equation}
+%
+for $\u^{k+1}$, where $h$ is the step size and 
+$\bar\f \equiv \f - \dot\M \u$. Given the new velocities, we can
+then solve for the updated positions using 
+%
+\begin{equation}
+\q^{k+1} = \q^k + h \Q \u^{k+1},
+\label{posupdate:eqn}
+\end{equation}
+%
+where $\Q$ accounts for cases (like rigid bodies) where $\dot\q \ne
+\u$. (\ref{velupdate:eqn}) and (\ref{posupdate:eqn}) together comprise
+a simple symplectic Euler integrator.
+
+In addition to forces, bilateral and unilateral constraints give rise to
+locally linear constraints on $\u$ of the form
+\begin{equation}
+\G(\q) \u = 0, \qquad \N(\q) \u \ge 0.
+\label{constraints:eqn}
+\end{equation}
+%
+Bilateral constraints may include rigid body joints, FEM
+incompressibility, and point-surface constraints, while unilateral
+constraints include contact and joint limits.  Constraints give rise
+to constraint forces (in the directions $\G(\q)^T$ and $\N(\q)^T$)
+which supplement the forces of (\ref{newton:eqn}) in order to enforce
+the constraint conditions.  In addition, for unilateral constraints,
+we have a complementarity condition in which $\N \u > 0$ implies no
+constraint force, and a constraint force implies $\N \u = 0$.  Any
+given constraint usually involves only a few dynamic components and so
+$\G$ and $\N$ are generally sparse.
+
+Adding constraints to the velocity solve (\ref{velupdate:eqn})
+leads to a mixed linear complementarity problem (MLCP)
+of the form
+\begin{gather}
+\left(
+\begin{matrix}
+\hat\M^{k} & -\G^{T} & -\N^{T} \\
+\G & 0 & 0 \\
+\N & 0 & 0 
+\end{matrix}
+\right)
+\left(
+\begin{matrix}
+\u^{k+1} \\
+\Blam \\
+\z
+\end{matrix}
+\right)
++
+\left(
+\begin{matrix}
+-\M \u^{k} - h \hat\f^{k} \\
+-\g^k \\
+-\n^k
+\end{matrix}
+\right)
+=
+\left(
+\begin{matrix}
+0 \\
+0 \\
+\w
+\end{matrix}
+\right), \notag \\
+0 \le \z \perp \w \ge 0,
+\label{KKTvelocity:eqn}
+\end{gather}
+where $\w$ is a slack variable, $\Blam$ and $\z$ give the force
+constraint impulses over the time step, $\g$ and $\n$ are derivative
+terms arising if $\G$ and $\N$ are time varying.  In addition,
+$\hat\M$ and $\hat\f$ are $\M$ and $\bar\f$ augmented with stiffness
+and damping terms terms to accommodate implicit integration, which
+is often required for problems involving deformable bodies.
+
+The {\tt ConstrainedBackwardEuler} integrator used by ArtiSynth solves
+(\ref{KKTvelocity:eqn}) to determine the system velocity at each time
+step. Other ArtiSynth integrators typically solve a variation of this
+system with the same structure. The dynamic, force effector, and
+constrainer components of a {\tt MechModel} are gathered together
+and used to form the 
+
+The component hierarchy of the {\tt MechModel} is traversed, with
+dynamic components being used to determine $\q$, $\u$, and $\M$; force
+effectors used to determine $\hat\f$ and the stiffness/damping
+augmentation used to produce $\hat\M$; and constrainers used to
+determine $\G$, $\N$, $\g$ and $\n$.
+
+\subsection{Basic packages}
+
+The core code of the ArtiSynth project is divided into three main
+packages, each with a number of sub-packages.
+
+\subsubsection{maspack}
+
+The packages under {\tt maspack} contain general computational
+utilities that are independent of ArtiSynth and could be
+used in variety of other contexts. The main packages are:
+
+\begin{lstlisting}
+maspack.util               // general utilities
+maspack.matrix             // matrix and linear algebra
+maspack.graph              // graph algorithms
+maspack.fileutil           // remote file access 
+maspack.properties         // property implementation
+maspack.spatialmotion      // 3D spatial motion and dynamics
+maspack.solvers            // LCP solvers and linear solver interfaces
+maspack.render             // viewer and rendering classes
+maspack.geometry           // 3D geometry and meshes
+maspack.collision          // collision detection
+maspack.widgets            // Java swing widgets for maspack data types 
+maspack.apps               // stand-alone programs based only on maspack
+\end{lstlisting}
+
+\subsubsection{artisynth.core}
+
+The packages under {\tt artisynth.core} contain the core code for
+ArtiSynth model components and it's GUI infrastructure.
+
+\begin{lstlisting}
+artisynth.core.util        // general ArtiSynth utilities
+artisynth.core.modelbase   // base classes for model components
+artisynth.core.materials   // materials for springs and finite elements
+artisynth.core.mechmodels  // basic mechanical models
+artisynth.core.femmodels   // finite element models
+artisynth.core.probes      // input and output probes
+artisynth.core.workspace   // RootModel and associated components
+artisynth.core.driver      // start ArtiSynth and drive the simulation
+artisynth.core.gui         // graphical interface
+artisynth.core.inverse     // inverse controller
+\end{lstlisting}
+
+\subsubsection{artisynth.demos}
+
+These packages contain demonstration models that illustrate
+ArtiSynth's modeling capabilities:
+
+\begin{lstlisting}
+artisynth.demos.mech       // mechanical model demos
+artisynth.demos.fem        // demos involving finite elements
+artisynth.demos.inverse    // demos involving inverse control
+artisynth.demos.tutorial   // demos in this manual
+\end{lstlisting}
+
+\subsection{Properties}
+\label{Properties:sec}
+
+ArtiSynth components expose {\it properties}, which provide a uniform
+interface for accessing their internal parameters and
+state. Properties vary from component to component; those for {\tt
+RigidBody} include {\tt position}, {\tt orientation}, {\tt mass}, and
+{\tt density}, while those for {\tt AxialSpring} include {\tt
+restLength} and {\tt material}. Properties are particularly
+useful for automatically creating control panels and
+probes, as described in Section \ref{Agents:sec}.
+They are also used for automating component serialization.
+
+Properties are described only briefly in this section; 
+more detailed descriptions are available in the
+\href{http://www.artisynth.org/doc/html/maspack/maspack.html}{
+Maspack Reference Manual} and the 
+\href{http://www.artisynth.org/doc/artisynth.pdf}{overview
+paper}.
+
+The set of properties defined for a component is fixed for that
+component's class; while property values may vary between component
+instances, their definitions are class-specific.  
+Properties are exposed by a class through code contained in the class
+definition, as described in Section \ref{CustomProperties:sec}.
+
+\subsubsection{Property handles and paths}
+
+Each property has a unique name which may be used to obtain a {\it
+property handle} through which the property's value may be queried or
+set for a particular component. Property handles are implemented by
+the class \javaclass[maspack.property]{Property} and are returned by
+the component's
+\javamethod*[maspack.properties.HasProperties]{getProperty()} method.
+{\tt getProperty()} takes a property's name and returns the
+corresponding handle. For example, components of type {\tt Muscle}
+have a property {\tt excitation}, for which a handle
+may be obtained using a code fragment such as
+\begin{lstlisting}
+  Muscle muscle; 
+  ...
+  Property prop = muscle.getProperty ("excitation");
+\end{lstlisting}
+Property handles can also be obtained for
+sub-components, using a {\it property path} that consists
+of a path to the sub-component followed by a
+``{\tt :}'' and the property name. For example,
+to obtain the {\tt excitation} property for a sub-component
+located by {\tt axialSprings/lad} relative to a {\tt MechModel},
+once could use a call of the form
+\begin{lstlisting}
+  MechModel mechMod;
+  ...
+  Property prop = mechMod.getProperty ("axialSprings/lad:excitation");
+\end{lstlisting}
+
+\subsubsection{Composite and inheritable properties}
+
+\begin{figure}[t]
+\begin{center}
+ \includegraphics[width=3.75in]{images/inheritedProperties}
+\end{center}
+\caption{Inheritance of a property named {\it stiffness} among
+a component hierarchy. Explicit settings are in bold; inherited settings
+are in gray italic.}
+\label{inheritedProperties:fig}
+\end{figure}
+
+Composite properties are possible, in which a property value is a
+composite object that in turn has sub-properties. A good example of
+this is the {\tt RenderProps} class, which is
+associated with the property {\tt renderProps} for renderable objects
+and which itself can have a number of sub-properties such as {\tt
+visible}, {\tt faceStyle}, {\tt faceColor}, {\tt lineStyle}, {\tt
+lineColor}, etc.
+
+Properties can be declared to be {\tt inheritable}, so that their
+values can be inherited from the same properties hosted by ancestor
+components further up the component hierarchy. Inheritable properties
+require a more elaborate declaration and are associated with a {\it
+mode} which may be either {\tt Explicit} or {\tt Inherited}.  If a
+property's mode is inherited, then its value is obtained from
+the closest ancestor exposing the same property whose mode is
+explicit. In Figure (\ref{inheritedProperties:fig}), the property {\it
+stiffness} is explicitly set in components A, C, and E, and inherited
+in B and D (which inherit from A) and F (which inherits from C).
+
+\subsection{Creating an application model}
+\label{CreatingAnApplication:sec}
+
+ArtiSynth applications are created by writing and compiling
+an {\it application model} that is a subclass of {\tt RootModel}.
+This application-specific root model is then loaded and run by the
+ArtiSynth program.
+
+The code for the application model should:
+
+\begin{itemize}
+
+\item Declare a no-args constructor
+
+\item Override the {\tt RootModel}
+\javamethod*[artisynth.core.workspace.RootModel]{build()}
+method to construct the application.
+
+\end{itemize}
+
+ArtiSynth can load a model either using the build method
+or by reading it from a file:
+
+\begin{description}
+
+\item[Build method] \mbox{}
+
+ArtiSynth creates an instance of the
+model using the no-args constructor, assigns it a name
+(which is either user-specified or the simple name of the class), and
+then calls the {\tt build()} method to perform the actual
+construction.
+
+\item[Reading from a file] \mbox{}
+
+ArtiSynth creates an instance of the
+model using the no-args constructor, and then the model is named
+and constructed by reading the file.
+
+\end{description}
+
+The no-args constructor should perform whatever initialization is
+required in both cases, while the {\tt build()} takes the place of the
+file specification. Unless a model is originally created using a file
+specification (which is tedious at the present time), the first time
+creation of a model will almost always entail using the {\tt build()}
+method.
+
+The general template for application model code looks like this:
+
+\begin{lstlisting}
+package artisynth.models.experimental; // package where the model resides
+import artisynth.core.workspace.RootModel;
+... other imports ...
+
+public class MyModel extends RootModel {
+
+   // no-args constructor
+   public MyModel() {
+      ... basic initialization ...
+   }
+
+   // build method to do model construction
+   public void build (String[] args) {
+      ... code to build the model ....
+   }
+}
+\end{lstlisting}
+Here, the model itself is called {\tt MyModel}, and is defined in the
+package {\tt artisynth.models.experimental} (placing models in the super
+package {\tt artisynth.models} is common practice but not
+necessary).
+
+\begin{sideblock}
+Note: The {\tt build()} method was only introduced in ArtiSynth
+3.1. Prior to that, application models were constructed using a
+constructor taking a {\tt String} argument supplying the name of the
+model. This method of model construction still works but is
+deprecated.
+\end{sideblock}
+
+\subsubsection{Implementing the build() method}
+
+As mentioned above, the {\tt build()} method is responsible for actual
+model construction.  Many applications are built using a single
+top-level {\tt MechModel}.  Build methods for these may look
+like the following:
+\begin{lstlisting}
+   public void build (String[] args) {
+      MechModel mech = new MechModel("mech");
+      addModel (mech);
+
+      ... create and add components to the mech model ...
+      ... create and add any needed agents to the root model ...
+
+   }
+\end{lstlisting}
+First, a 
+\javaclass[artisynth.core.mechmodels]{MechModel} is
+created with the name {\tt mech} and added to the list of models in
+the root model. Subsequent code then creates and adds the components
+required by the {\tt MechModel}, as described in Sections
+\ref{MechModelsI:sec}, \ref{MechModelsII:sec} and \ref{FEMModels:sec}.
+The {\tt build()} method also creates and adds to the root model any
+agents required by the application (controllers, probes, etc.), as
+described in Section \ref{Agents:sec}.
+
+When constructing a model, there is no fixed order in which components
+need to be added. For instance, in the above example, {\tt
+addModel(mech)} could be called near the end of the {\tt build()}
+method rather than at the beginning. The only restriction is that when
+a component is added to the hierarchy, all other components that it
+refers to should already have been added to the hierarchy. For
+instance, an axial spring (Section \ref{ParticlesAndSprings:sec})
+refers to two point. When it is added to the hierarchy, those two
+points should already be present in the hierarchy.
+
+The {\tt build()} method supplies a {\tt String} array as an argument.
+(This is analgous to the {\tt args} argument passed to static {\tt
+main()} methods.) The first String is the name assigned to the model,
+while subsequent strings are reserved for future used as
+application-supplied arguments.
+
+\subsubsection{Makeing models visible to ArtiSynth}
+
+In order to load an application model into ArtiSynth, the classes
+associated with its implementation must be made visible to ArtiSynth.
+This usually involves adding the top-level class directory associated
+with the application code to the classpath used by ArtiSynth.
+
+\begin{sideblock}
+The demonstration models refered to in this guide belong to the
+package {\tt artisynth.demos.tutoral} and are already visible to
+ArtiSynth.
+\end{sideblock}
+
+In most current ArtiSynth projects, classes are stored in
+a directory tree separate from the source code, with the top-level
+class directory named {\tt classes}, located one level below
+the project root directory. A typical top-level class directory
+might be stored in a location like this:
+\begin{verbatim}
+  /home/joeuser/artisynthProjects/classes
+\end{verbatim}
+In the example shown in Section \ref{CreatingAnApplications:sec}, the
+model was created in the package {\tt artisynth.models.experimental}.
+Since Java classes are arranged in a directory structure that mirrors
+package names, with respect to the sample class directory shown
+above, the model class would be located in
+\begin{verbatim}
+  /home/joeuser/artisynthProjects/classes/artisynth/models/experimental
+\end{verbatim}
+
+At present there are three ways to make top-level class directories
+known to ArtiSynth.
+
+\begin{description}
+
+\item[Add projects to your Eclipse launch configuration]\mbox{}
+
+If you are using the Eclipse IDE, then you can add the project in
+which are developing your model code to the launch configuration that
+you use to run ArtiSynth. Other IDEs will presumably provide similar
+functionality.
+
+\item[Add the directories to the EXTCLASSPATH file]\mbox{}
+
+You can explictly list class directories in the file EXTCLASSPATH,
+located in the ArtiSynth root directory (it may be necessary to create
+this file).
+
+\item[Add the directories to your CLASSPATH environment variable]\mbox{}
+
+If you are running ArtiSynth from the command line, using the {\tt
+artisynth} command (or {\tt artisynth.bat} on Windows), then you can
+define a CLASSPATH environment variable in your environment and add
+the needed directories to this.
+
+\end{description}
+
+All of these methods are described in more detail in the "Installing
+External Models and Packages" section of the ArtiSynth Installation
+Guide (available for Linux, Windows, and MacOS at
+\href{http://www.artisynth.org}{www.artisynth.org}.
+
+\subsubsection{Loading a model into ArtiSynth}
+
+If a model's classes are visible to ArtiSynth, then it may be loaded
+into ArtiSynth in several ways:
+
+\begin{description}
+
+\item[Loading by class path]\mbox{}
+
+A model may be loaded by directly by choosing {\sf File > Load from
+class ...} and directly specifying its class name. It is also possible
+to use the {\tt -model <classname>} command line argument to have a
+model loaded directly into ArtiSynth when it starts up.
+
+\item[Loading from the Models menu]\mbox{}
+
+A faster way to load a model is by selecting it from of the {\sf
+Models} submenus. This may require editing the model menu
+configuration files.
+
+\item[Loading from a file]\mbox{}
+
+If a model has previously been saved to a file, it may be loaded from
+that file by choosing {\sf File > Load model ...}.
+
+\end{description}
+
+These methods are described in detail in the 
+section "Loading and Simulating Models" of the 
+\href{http://www.artisynth.org/doc/html/uiguide/uiguide.html}{
+ArtiSynth User Interface Guide}.
+
+\begin{sideblock}
+The demonstration models refered to in this guide should already
+be present in the models menu and may be loaded
+from the submenu reached by {\sf Models > All demos > tutorial}.
+\end{sideblock}
+
+\section{Mechanical Models I}
+\label{MechModelsI:sec}
+
+\subsection{Springs and particles}
+\label{ParticlesAndSprings:sec}
+
+\subsubsection{A simple particle-spring model}
+% ParticleSpring.tex
+
+\subsubsection{Dynamic vs. non-dynamic components}
+
+\subsubsection{Spring materials}
+
+\subsection{Rigid bodies}
+
+\subsubsection{Rigid transformations}
+
+\subsubsection{Creating rigid bodies}
+
+\subsubsection{Rigid body Inertia}
+
+\subsubsection{Frame markers}
+
+% RigidBodySpring
+
+\subsubsection{Damping parameters}
 
 \subsection{Joints and connectors}
 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
+\subsubsection{Joint coordinate frames}
 
+\subsubsection{Connecting two rigid bodies with a joint}
 
-\section{Springs and Muscles}
+% RigidBodyJoint
 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
+\subsection{Frame springs}
+
+\subsubsection{Frame spring coordinate frames}
+
+\subsubsection{Frame materials}
+
+\subsubsection{Connecting two rigid bodies with a frame spring}
+
+% LumbarFrameSpring
+
+\subsection{Attachments}
+
+\subsubsection{The attachment framework}
+
+\subsubsection{Attaching a particle to a Frame}
+
+\subsection{Simulation control properties}
+
+\section{Mechanical Models II}
+\label{MechModelsII:sec}
+
+\subsection{Multi-point springs}
+
+\subsubsection{Operation}
+
+\subsubsection{A simple multi-point muscle model}
+
+% MultiPointSpring
+
+\subsection{Point-to-point muscles}
+
+\subsubsection{Muscle materials}
+
+\subsubsection{A simple muscle demo}
+
+\subsubsection{Multi-point muscles}
+
+% SimpleMuscle
+
+\subsection{Mesh components}
+
+\subsubsection{Fixed meshes}
+
+\subsubsection{Simple mesh example}
+
+% SimpleMesh
+
+\subsubsection{Skinned meshes}
+
+\subsubsection{Simple skinned mesh example}
+
+% SimpleSkinnedMesh
+
+\subsection{Collision Handling}
+
+\subsubsection{Collidable bodies}
+
+\subsubsection{Enabling collisions in code}
+
+% JointedCollide
+
+\subsubsection{implementation and limitations}
+
+%\subsection{Moving non-dynamic components}
+
+\subsection{General component arrangements}
+\label{GeneralArrangements:sec}
+
+\subsubsection{Component lists}
+
+\subsubsection{General arrangement example}
+
+% NetDemo
+
+\subsubsection{Legacy containers in MechModel}
+
+\subsection{Render properties}
+
+\subsubsection{Render property taxonomy}
+
+\subsubsection{Setting render properties}
+
+\subsection{Scaling and transforming}
+
+\subsubsection{The ScalableUnits interface}
+
+\subsubsection{The TransformableGeometry interface}
+
+\section{Simulation Control}
+\label{Agents:sec}
+
+\subsection{Control Panels}
+
+\subsubsection{General principles}
+
+\subsubsection{Creating a simple control panel}
+
+% SimpleMuscleWithPanel
+
+\subsection{Custom properties}
+\label{CustomProperties:sec}
+
+\subsubsection{Adding custom properties to a RootModel}
+
+\subsubsection{Example: a visibility property}
+
+% SimpleMuscleWithProperties
+
+\subsection{Controllers and monitors}
+
+\subsubsection{Purpose and operation}
+
+\subsubsection{A controller to move a point}
+
+% SimpleMuscleWithController
+
+\subsection{Probes}
+
+\subsubsection{Input and output probes}
+
+\subsubsection{Adding probes in code}
+
+% SimpleMuscleWithProbes
+
+\subsubsection{Probe data files}
+
+\subsubsection{Adding probe data in-line}
 
 \section{Finite Element Models}
+\label{FEMModels:sec}
 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
+\subsection{Overview}
 
-\subsection{Creating model geometry}
+\subsubsection{Structure}
 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
+\subsubsection{Materials}
 
-\subsection{Materials}
+\subsubsection{Boundary conditions}
 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
+\subsection{FEM model creation}
 
-\section{FEM Muscle Models}
+\subsubsection{Using factory methods}
 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
+\subsubsection{Using external meshes}
 
-\section{Attaching components}
+\subsubsection{Using direct code}
 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
+\subsubsection{A simple beam model}
 
-\section{Collision Handling}
+% FemBeam
 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
+\subsection{FEM Geometry}
 
-\section{Render Properties}
+\subsubsection{Surface meshes}
 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
+\subsubsection{Embedding geometry within an FEM}
 
-\section{Scaling and Transforming models}
+\subsubsection{A beam with an embedded sphere}
 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
-blah blah blah blah blah blah blah blah blah blah blah blah 
+% EmbeddedFemSphere
 
+\subsection{Node attachments}
+
+\subsubsection{General principles}
+
+\subsubsection{Connecting a beam to a block}
+
+% FemBeamWithBlock
+
+\subsubsection{Connecting two FEMs together}
+
+% ConnectedFems
+
+\subsection{FEM markers}
+
+\subsubsection{Embedding particles in FEMs}
+
+\subsubsection{Attaching a FEM beam to a muscle}
+
+% FemBeamWithMuscle
+
+\subsection{Muscle activated FEM models}
+
+\subsubsection{FemMuscleModel}
+
+\subsubsection{Activation with fibres}
+
+\subsubsection{Activation with embedded materials}
+
+\subsubsection{Comparision with two beam examples}
+
+% FemMuscleBeams
+
+\subsection{Collisions}
+
+\subsubsection{Colliding with FEM geometry}
+
+\subsubsection{Colliding with the surface mesh}
+
+% FemMuscleHeart
+
+\subsubsection{Colliding with an embedded sphere}
+
+% EmbeddedFemSphere
+
+\subsection{Visualization}
+
+\subsubsection{Rendering settings}
+
+\subsubsection{Stress and strain plotting}
+
+\iflatexml
+\bibliographystyle{plain}
+\bibliography{references}
+\else
+\begin{btSect}{references}
+\btPrintCited
+\end{btSect}
+\fi
 
 \end{document}

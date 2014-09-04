@@ -6,6 +6,7 @@
 
 \title{ArtiSynth Reference Manual}
 \author{John Lloyd}
+\setpubdate{July 8, 2014}
 \iflatexml
 \date{}
 \fi
@@ -13,7 +14,7 @@
 \begin{document}
 \maketitle
 
-\iflatexml{\large\today}\fi
+\iflatexml{\large\pubdate}\fi
 
 \tableofcontents
 
@@ -39,7 +40,7 @@ component is an instance of \javaclassx{ModelComponent}, which contains
 a number of methods used to maintain the component hierarchy.
 These include methods for naming and numbering components:
 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   // get the name for this component
   String getName();
 
@@ -75,7 +76,7 @@ component that identifies its place in the hierarchy.  If a component
 does not have a name, its number is used in the path instead. Some
 example path names look like:
 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   models/jawmodel/axialSprings/lat
 
   models/mech/models/tongue/bundles/2/elementDescs/12
@@ -84,7 +85,7 @@ example path names look like:
 {\tt ModelComponent} contains a number of other methods for navigating
 and maintaining hierarchy structure:
 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   // get the parent of this component
   CompositeComponent getParent();
 
@@ -128,7 +129,7 @@ When either of these methods are called, the component's parent
 (as returned by \javamethodx[ModelComponent]{getParent()})
 will be valid, and so hierarchy-dependent initialization
 can be performed, like setting (or removing) back pointers to references, etc.:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   connectToHierarchy () {
      ... perform hierarchy-dependent initialization ...
   }
@@ -162,7 +163,7 @@ announced to the system by calling {\tt notifyParentOfChange()} with a
 \javamethodx[StructureChangeEvent]{stateIsChanged()} returns {\tt true}.
 
 A {\tt ModelComponent} also maintains a number of flags:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    // returns true if a component is selected
    boolean isSelected();
 
@@ -261,7 +262,7 @@ true}. A typical implementation pattern for {\tt updateReferences()}
 is shown by the following example, in which 
 {\tt maspack.util.ListRemove} is used to remove selected items from a list
 of soft references, and store information needed to undo this later:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    ArrayList<ModelComponent> mySoftRefs;
    ...
    void updateReferences (boolean undo, Deque<Object> undoInfo) {
@@ -313,7 +314,7 @@ for the super class, to be performed in sequence.
 \javaclassx{CompositeComponent} is a subinterface of \javaclassx{ModelComponent}
 which can contain children. Its main methods include:
 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   // returns the number of child components
   int numComponents();
  
@@ -355,7 +356,7 @@ added and removed by an ArtiSynth application. It is a generic class
 parameterized by a class type {\tt C} which must be an extension of
 {\tt ModelComponent}. Its definition is:
 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
 public interface MutableCompositeComponent<C extends ModelComponent>
 extends CompositeComponent {
 
@@ -403,7 +404,7 @@ and nodes, elements, and geometry for {\tt FemModel3d}).
 
 In the case of {\tt MechModel}, applications can create and add their
 own component lists to the model itself:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    MechModel mech; 
 
    ....
@@ -455,7 +456,7 @@ A \javaclassx{Model} is a specific \javaclassx{ModelComponent} that can
 contain state and be advanced forward in time.
 
 The methods associated with time advancement are:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   // initialize the model for time t
   void initialize (double t)
 
@@ -493,7 +494,7 @@ internal physics solver. The method can optionally return a
 
 A very basic simulation might proceed as follows:
 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   t = 0;
   model.initialize (t);
   while (simulating) {
@@ -518,7 +519,7 @@ needed to deterministically advance it forward in time.
 
 Models can contain state, as supported by the following methods:
 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   // creates an appropriate state object for storing model state
   ComponentState createState ();
 
@@ -538,7 +539,7 @@ The state of a model should contain all the internal information
 required to advance it forward in time. In particular, in the code
 fragment,
 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   model.getState (state);  // save state
   model.preadvance (t1, t2);
   model.advance (t1, t2);
@@ -579,7 +580,7 @@ Input probes can be used to perform a function analagous to
 the ``loading curves'' used in FEM analysis.
 
 A probe contains several principal methods:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   // apply this probe at time t
   apply (double t);
 
@@ -640,7 +641,7 @@ output data.
 
 The primary method for both is
 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   void apply (double t0, double t1)
 \end{lstlisting}
 
@@ -657,7 +658,7 @@ which are not explicitly associated with a model are implicitly
 associated with the root model Section \ref{RootModelSec}.
 
 Methods to obtain and set the associated model include:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   // returns the model (if any) associated with this agent
   Model getModel();
 
@@ -740,7 +741,7 @@ then populated with structures determined from the file.
 A {\tt RootModel} contains a list of all the system's models, probes,
 controllers, and monitors. Methods to add or remove these include:
 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   addModel (Model model);
   removeModel (Model model);
   removeAllModels();
@@ -768,7 +769,7 @@ The root model is the top-level object seen by the ArtiSynth scheduler
 when running a simulation. As a simulation proceeds, the scheduler determines
 the next time to advance to and then calls the root model's {\tt advance()}
 method:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   double t0; // current time
 
   while (simulating) {
@@ -802,7 +803,7 @@ than that of the root model, or some of its output probes may have
 events that preceed {\tt t1}, each model is advanced using
 a series of sub-advances, with {\tt advanceModel()} taking the
 form of a loop:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   advanceModel (model, t0, t1) {
      ta = t0;
      while (ta < t1) {
@@ -847,7 +848,7 @@ their own and are therefore considered to be ``owned'' by the root
 model. Because some of these output probes may have event
 times that preceed the desired advance time of {\tt t1}, this process
 is also done in a loop:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   advance (t0, t1) {
      ta = t0;
      while (ta < t1) {
@@ -886,7 +887,7 @@ returning a {\tt StepAdjustment} with a scaling of 1).
 
 Adaptive time stepping can be enabled or disabled using the {\tt adaptiveStepping}
 property of {\tt RootModel}, or by using the {\tt RootModel} methods
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   boolean getAdaptiveStepping();
 
   void setAdaptiveStepping (boolean enable);
@@ -894,7 +895,7 @@ property of {\tt RootModel}, or by using the {\tt RootModel} methods
 
 When adaptive stepping is enabled, the inner loop of the
 {\tt advanceModel()} procedure described above is modified to the following:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
      while (ta < t1) {
         tb = getNextAdvanceTime (model, ta, s);
         model.getState (state);
@@ -976,7 +977,7 @@ themselves from persistent storage. They do this by implementing the
 \javamethod[artisynth.core.modelbase.ModelComponent]{postscan()}
 method of \javaclass[artisynth.core.modelbase]{ModelComponent}:
 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   // write this component to a PrintWriter:
   void write (PrintWriter pw, NumberFormat fmt, Object ref) throws IOException
 
@@ -1008,7 +1009,7 @@ that are referenced by the component being written
 
 In general, each component writes out its attributes as a list
 of name/value pairs, each of the form
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   <name>=<value>
 \end{lstlisting}
 with the list itself enclosed between square brackets '{\tt [ ]}' which
@@ -1017,7 +1018,7 @@ attribute name may itself be a quantity (such as a vector, matrix, or
 another component) delimited by square brackets. For example, the
 output for a \javaclass[artisynth.core.mechmodels]{Particle} component
 may look like this:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    [ name="primary"
      position=[ 15.0 0.0 10.0 ]
      mass=20.0
@@ -1030,7 +1031,7 @@ attribute is a 3-vector also enclosed between square brackets.
 
 Within the {\tt write()} method, the above output could be produced
 with code like this:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   import maspack.util.*;
 
   void write (PrintWriter pw, NumberFormat fmt, Object ref) throws IOException {
@@ -1056,14 +1057,14 @@ information that is associated with a
 \javaclass[maspack.properties]{Property} (see the Property section of
 the Maspack Reference Manual) can be written out automatically using a
 code fragment of the form:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
 \end{lstlisting}
 In addition, any attribute information contained in a component's
 superclass will usually be written by that superclass.
 The default {\tt write()} definition for a model component
 is usually looks something like this:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    public void write (PrintWriter pw, NumberFormat fmt, Object ref)
    throws IOException {
 
@@ -1105,7 +1106,7 @@ For example,
 if a component has a non-property ``centroid'' attribute,
 it can be written by an override of {\tt writeItems()} 
 constructed like this:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    protected void writeItems (
    PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
    throws IOException {
@@ -1145,7 +1146,7 @@ ancestor, and write this to the output.
 
 As an example, here is a possible implementation of {\tt writeItems()}
 for a two-point spring:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    protected void writeItems (
    PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
    throws IOException {
@@ -1156,7 +1157,7 @@ for a two-point spring:
    }
 \end{lstlisting}
 This will produce an output like this,
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
       point0="models/points/0"
       point1="models/points/1"
 \end{lstlisting}
@@ -1164,7 +1165,7 @@ where {\tt models/points/n} gives the path name of the n-th point with
 respect to the ancestor.
 Alternatively, if a component has a variable number of references,
 they can be written out as a list between square brackets:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    protected void writeItems (
    PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
    throws IOException {
@@ -1180,7 +1181,7 @@ they can be written out as a list between square brackets:
    }
 \end{lstlisting}
 The above code will produce output like this:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
       points=[
         "models/points/0"
         "models/points/1"
@@ -1216,7 +1217,7 @@ then attribute names can be used to delimit each child. For example, suppose
 a component contains two children: a list of particles and a
 list of springs. This component could then be written using
 a code construction such as:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    protected void writeItems (
    PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
    throws IOException {
@@ -1235,7 +1236,7 @@ an instance of
 above can be written using the latter's
 \javamethod[artisynth.core.modelbase.ComponentListImpl]{writeComponentsByName()}
 method, which writes each child, using its component name as an attribute name:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    ComponentListImpl myComponents; 
 
    protected void writeItems (
@@ -1254,7 +1255,7 @@ cannot be identified by an attribute name. Instead, the components
 must simply be printed out in sequence.  For example, the {\tt
 writeItems()} method for a list of particles could be programmed like
 this:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    protected void writeItems (
    PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
    throws IOException {
@@ -1266,7 +1267,7 @@ this:
    }   
 \end{lstlisting}
 This would produce output such as:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   [ position=[ 10.0 0.0 20.0 ]
     mass=20.0
   ]
@@ -1301,7 +1302,7 @@ then one can use the latter's
 \javamethod[artisynth.core.modelbase.ComponentListImpl]{writeComponents()}
 method to automatically write out all the components, along with the necessary
 class information:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    ComponentListImpl myComponents; 
 
    protected void writeItems (
@@ -1313,7 +1314,7 @@ class information:
    }
 \end{lstlisting}
 The result may look something like this:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   [ position=[ 10.0 0.0 20.0 ]
     mass=20.0
   ]
@@ -1349,7 +1350,7 @@ class header.
 
 The main code inside the default {\tt scan()} method for a model
 component looks roughly like this:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    public void scan (ReaderTokenizer rtok, Object ref) 
    throws IOException {
 
@@ -1387,7 +1388,7 @@ back once. In particular, in the following sequence,
 
 The default implementation of {\tt scanItem()} provides
 code for reading property values and looks something like this:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
    throws IOException {
 
@@ -1414,7 +1415,7 @@ Section \ref{scanningReferencesSec}.
 Typically, component implementations will not need to override {\tt
 scan()} unless the scanning procedure calls for pre- or
 post-processing, as in:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    public void scan (ReaderTokenizer rtok, Object ref) 
    throws IOException {
 
@@ -1429,7 +1430,7 @@ post-processing in an override of {\tt postscan()} instead.
 
 Component implementations often {\it will} need to override {\tt
 scanItem()} to scan additional attribute information. For example:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
   throws IOException {
 
@@ -1457,17 +1458,17 @@ is called to see if it can match the current input.
 Most implementations of {\tt ModelComponent}
 provide the convenience method {\tt scanAttributeName(rtok, name)}
 which allows the code fragment 
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
      if (rtok.ttype == ReaderTokenizer.TT_WORD) {        
         if (rtok.sval.equals ("attributeXXX") {
 	   rtok.scanToken ('=');
 \end{lstlisting}
 to be replaced with
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
       if (scanAttributeName (rtok, "attributeXXX")) {
 \end{lstlisting}
 Employing this in a larger example, we have
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
   throws IOException {
 
@@ -1541,7 +1542,7 @@ tokens added in between as necessary.
 Revisiting the basic {\tt scan()} method code
 shown at the top of Section \ref{scanningComponentsSec},
 we show the additional code that is needed to handle this:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    public void scan (ReaderTokenizer rtok, Object ref) 
    throws IOException {
 
@@ -1574,7 +1575,7 @@ tokens in the original input.
 
 Consider the first example in \ref{writingReferencesSec}
 where the reference information for a two-point spring was output as:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
       point0="models/points/0"
       point1="models/points/1"
 \end{lstlisting}
@@ -1583,7 +1584,7 @@ names {\tt point0} and {\tt point1} and if either is found, we store both
 the attribute name and the reference path in the token queue using
 {\tt StringTokens}.  For {\tt point0}, the corresponding code
 looks like
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
       if (scanAttributeName (rtok, "point0")) {
          String refpath = rtok.scanWordOrQuotedString ('"');
 	 tokens.offer (new StringToken ("point0"));
@@ -1594,7 +1595,7 @@ looks like
 Most implementations of {\tt ModelComponent}
 provide the convenience method {\tt scanAndStoreReference (rtok, name, tokens)}
 which allows this to be compressed into
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
       if (scanAndStoreReference (rtok, "point0", tokens)) {
 	 return true;
       }
@@ -1603,7 +1604,7 @@ One may also use
 \javamethod[artisynth.core.modelbase]{ScanWriteUtils.scanAndStoreReference()}
 for the same purpose.
 The {\tt scanItem()} method for a two-point spring can then be written as:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
    throws IOException {
 
@@ -1621,7 +1622,7 @@ The {\tt scanItem()} method for a two-point spring can then be written as:
 
 Alternatively, if we have an attribute followed by 
 a list of references enclosed in square brackets, such as
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
       points=[
         "models/points/0"
         "models/points/1"
@@ -1630,7 +1631,7 @@ a list of references enclosed in square brackets, such as
 \end{lstlisting}
 then we want to store a sequence of tokens consisting of the
 attribute name, a BEGIN token, the reference paths, and an END token:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
       "points"
       BEGIN
       "models/points/0"
@@ -1639,7 +1640,7 @@ attribute name, a BEGIN token, the reference paths, and an END token:
       END
 \end{lstlisting}
 That can be done by a code sequence that looks like
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
       if (scanAttributeName (rotk, "points", tokens)) {
          rtok.scanToken ('[');
          tokens.offer (new StringToken ("points"));
@@ -1658,7 +1659,7 @@ That can be done by a code sequence that looks like
 \end{lstlisting}
 and which is available in most ModelComponent implementations
 via the convenience method {\tt scanAndStoreReferences()}:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
       if (scanAndStoreReferences (rtok, "point", tokens)) {
 	 return true;
       }
@@ -1683,7 +1684,7 @@ then these attributes names can be used to drive the scanning.
 The example composite from Section \ref{writingChildrenSec},
 comprising a list of particles and a list of springs, 
 could be scanned in using code such as:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
   throws IOException {
 
@@ -1710,7 +1711,7 @@ of \javaclass[artisynth.core.modelbase]{ComponentListImpl} (Section
 succinctly using the latter's
 \javamethod[artisynth.core.modelbase.ComponentListImpl]{scanAndStoreComponentByName()}
 method:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    ComponentListImpl myComponents; 
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
@@ -1742,7 +1743,7 @@ and \javamethod[artisynth.core.modelbase.ComponentListImpl]{scanEnd()}
 to handle the scanning.
 
 First, {\tt scanBegin()} is called in an override of {\tt scan()}:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    ComponentListImpl myComponents; 
 
    public void scan(ReaderTokenizer rtok, Object ref) throws IOException {
@@ -1753,7 +1754,7 @@ First, {\tt scanBegin()} is called in an override of {\tt scan()}:
 
 {\tt scanAndStoreComponent()} can then be called in {\tt scanItem()} to
 handle scanning of individual components:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
    throws IOException {
 
@@ -1783,7 +1784,7 @@ will be scanned ``in place''.
 
 Finally, {\tt scanEnd()} is called in an override of {\tt postscan()}
 method (discussed below):
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    public void postscan (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
@@ -1800,7 +1801,7 @@ a {\tt postscan()} method that takes as arguments the token queue and
 the ancestor with respect to which reference paths should be
 evaluated. The default {\tt postscan()} method for most components
 looks something like this:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    public void postscan (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
@@ -1823,7 +1824,7 @@ handling work, until a terminating {\tt END} token is found.
 As is the case with {\tt scan()}, subclasses typically do not need
 to override {\tt postscan()}. The exception to this is when
 post-processing is required after the scan process:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    public void postscan (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
@@ -1840,7 +1841,7 @@ them) using the queue's {\tt peek()} method. More usefully,
 the utility class 
 \javaclass[artisynth.core.modelbase]{ScanWriteUtils} provides
 a number of methods for token processing, including:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    boolean postscanAttributeName (tokens, name);
 
    C postscanReference (tokens, clazz, ancestor);
@@ -1866,7 +1867,7 @@ referenced components cannot be found.
 
 Employing these methods to handle the 
 {\tt point0}, {\tt point1} reference example above, we obtain:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    public boolean postscanItem (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
@@ -1883,7 +1884,7 @@ Employing these methods to handle the
 \end{lstlisting}
 
 Similarly, the {\tt points} reference example can be handled as:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    public boolean postscanItem (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
@@ -1903,7 +1904,7 @@ this can be done by calling the latter's
 method. For both 
 {\tt CompositeComponent} and {\tt MutableCompositeComponent}
 implementations, the corresponding code looks like this:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    protected boolean postscanItem (
       Deque<ScanToken> tokens, CompositeComponent ancestor) 
       throws IOException {
@@ -1938,7 +1939,7 @@ the properties during the post-scan. Two convenience methods,
 and 
 \javamethod[artisynth.core.modelbase]{ScanWriteUtils.postscanPropertyValues()}
 allow this to be done fairly easily:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    // properties that must be set during post-scan:
    String[] deferredProps = new String[] { "theta", "thetaRange" };
 
@@ -1974,7 +1975,7 @@ reference information be written out {\it before} the property
 information, so that in the post-scan step, it will be set before the
 property values.  That means that {\tt writeItems()} should be
 structured as follows:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
    protected void writeItems (
    PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
 
@@ -1991,7 +1992,7 @@ The two-step scanning process means that for the top-level
 invocation of {\tt scan}, the application 
 needs to create a token queue, call {\tt scan()} with this
 queue as the {\tt ref} argument, and then call {\tt postscan()}:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
       ArrayDeque<ScanToken> tokens = new ArrayDeque<ScanToken>();
       comp.scan (rtok, tokens);
       comp.postscan (tokens, ancestor);
@@ -2013,7 +2014,7 @@ themselves, there is no mandatory file structure imposed per-se.
 However, there is a structure that should be adhered to whenever
 possible. Expressed loosely as a production grammar, with '*'
 expressing repetition of zero or more times, this is:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
     component
             '[' componentItem* ']'
     
@@ -2059,7 +2060,7 @@ remaining characters on the line to be discarded.
 When tokens are saved for the post-scan step, they 
 should arranged in a structure similiar to that used
 for the file itself:
-\begin{lstlisting}FIXHACK
+\begin{lstlisting}
   componentTokens
 	BEGIN itemTokens* END
 

@@ -10,7 +10,11 @@
 \usepackage{makeidx}
 \usepackage{latexml}
 \usepackage{graphicx}
+\usepackage{framed}
 \usepackage{color}
+
+\newcommand{\pubdate}{\today}
+\newcommand{\setpubdate}[1]{\renewcommand{\pubdate}{#1}}
 
 \iflatexml
 \usepackage{hyperref}
@@ -24,7 +28,7 @@
 \usepackage{ragged2e}
 \setlength{\RaggedRightRightskip}{0pt plus 4em}
 \RaggedRight
-\renewcommand{\DBKpubdate}{\today}
+\renewcommand{\DBKpubdate}{\pubdate}
 \renewcommand{\DBKreleaseinfo}{}
 \fi
 
@@ -106,7 +110,6 @@
 \iflatexml
 \newenvironment{sideblock}{\begin{quote}}{\end{quote}}
 \else
-\usepackage{framed}
 \usepackage[strict]{changepage}
 \definecolor{sidebarshade}{rgb}{1.0,0.97,0.8}
 \newenvironment{sideblock}{%
@@ -126,6 +129,38 @@
   \vspace{2pt}\end{adjustwidth}\endMakeFramed%
 }
 \fi
+
+\iflatexml
+\newenvironment{shadedregion}{%
+  \definecolor{shadecolor}{rgb}{0.96,0.96,0.98}%
+  \begin{shaded*}%
+% Put text inside a quote to create a surrounding blockquote that
+% will properly accept the color and padding attributes
+  \begin{quote}%
+}
+{%
+  \end{quote}%
+  \end{shaded*}%
+}
+\else
+\newenvironment{shadedregion}{%
+  \definecolor{shadecolor}{rgb}{0.96,0.96,0.98}%
+  \begin{shaded*}%
+}
+{%
+  \end{shaded*}%
+}
+\fi
+
+% Wanted to create a 'listing' environment because lstlisting is
+% tedious to type and because under latexml it may need
+% some massaging to get it to work properly. But hard to do
+% because of the verbatim nature of listing
+%\iflatexml
+%\newenvironment{listing}{\begin{lstlisting}}{\end{lstlisting}}%
+%\else
+%\newenvironment{listing}{\begin{lstlisting}}{\end{lstlisting}}%
+%\fi
 
 \iflatexml\else
 % fancyhdr was complaining that it wanted a 36pt header height ...

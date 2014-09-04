@@ -11,7 +11,6 @@ import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.KeyEvent;
 import java.io.*;
 import java.net.URL;
 import java.util.*;
@@ -82,7 +81,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    protected static MainFrame myFrame;
    protected static MenuBarHandler myMenuBarHandler;
-   protected static GenericKeyHandler myKeyHandler;
+   protected static ArtisynthKeyHandler myKeyHandler;
    protected static Main myMain;
    protected static Scheduler myScheduler;
    protected static EditorManager myEditorManager;
@@ -418,7 +417,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       myFrame = new MainFrame (windowName, this, width, height);
       myMenuBarHandler = myFrame.getMenuBarHandler();
       myKeyHandler = new GenericKeyHandler();
-      myKeyHandler.attachMainFrame (myFrame);
+      myKeyHandler.setMainFrame (myFrame);
       mySelectionManager.setNavPanel (myFrame.getNavPanel());
       myFrame.getNavPanel().setSelectionManager (mySelectionManager);
 
@@ -784,7 +783,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          new TimelineController ("Timeline", myFrame, myViewer);
       mySelectionManager.addSelectionListener(timeline);
       timeline.setMultipleSelectionMask (
-         myViewer.getMultipleSelectionMask());
+         myViewer.getMouseHandler().getMultipleSelectionMask());
       myTimeline = timeline;
       //}
 
@@ -1170,54 +1169,59 @@ public class Main implements DriverInterface, ComponentChangeListener {
    public void setMouseBindings (String prefs) {
 
       System.out.println ("Setting mouse bindings to '"+prefs+"'");
-
+      GLMouseAdapter mouse = (GLMouseAdapter)myViewer.getMouseHandler();
+      if (mouse == null) {
+         mouse = new GLMouseAdapter(myViewer);
+         myViewer.setMouseHandler(mouse);
+      }
+      
       if (prefs.equalsIgnoreCase ("kees")) {
-         myViewer.setTranslateButtonMask (
+         mouse.setTranslateButtonMask (
             InputEvent.BUTTON1_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
-         myViewer.setZoomButtonMask (
+         mouse.setZoomButtonMask (
             InputEvent.BUTTON1_DOWN_MASK | InputEvent.ALT_DOWN_MASK);
-         myViewer.setRotateButtonMask (InputEvent.BUTTON1_DOWN_MASK);
-         myViewer.setSelectionButtonMask (
+         mouse.setRotateButtonMask (InputEvent.BUTTON1_DOWN_MASK);
+         mouse.setSelectionButtonMask (
             InputEvent.BUTTON1_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
-         myViewer.setMultipleSelectionMask(InputEvent.CTRL_DOWN_MASK);
-         myViewer.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);
+         mouse.setMultipleSelectionMask(InputEvent.CTRL_DOWN_MASK);
+         mouse.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);
       }
       else if (prefs.equalsIgnoreCase("laptop")) {
-         myViewer.setTranslateButtonMask (
+         mouse.setTranslateButtonMask (
             InputEvent.BUTTON1_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
-         myViewer.setZoomButtonMask (
+         mouse.setZoomButtonMask (
             InputEvent.BUTTON1_DOWN_MASK | InputEvent.ALT_DOWN_MASK);
-         myViewer.setRotateButtonMask (InputEvent.BUTTON1_DOWN_MASK);
-         myViewer.setSelectionButtonMask (
+         mouse.setRotateButtonMask (InputEvent.BUTTON1_DOWN_MASK);
+         mouse.setSelectionButtonMask (
             InputEvent.BUTTON1_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
-         myViewer.setMultipleSelectionMask(InputEvent.SHIFT_DOWN_MASK);
-         myViewer.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);         
+         mouse.setMultipleSelectionMask(InputEvent.SHIFT_DOWN_MASK);
+         mouse.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);         
       }
       else if (prefs.equalsIgnoreCase ("mac")) {
          // setup button masks for macbook trackpad
-         myViewer.setMultipleSelectionMask ((InputEvent.META_DOWN_MASK));
+         mouse.setMultipleSelectionMask ((InputEvent.META_DOWN_MASK));
          ButtonMasks.setContextMenuMask (
             (InputEvent.BUTTON1_DOWN_MASK | InputEvent.CTRL_DOWN_MASK)); 
          // right mouse button = CTRL + BUTTON
-         myViewer.setRotateButtonMask ( // middle mouse = ALT + BUTTON
+         mouse.setRotateButtonMask ( // middle mouse = ALT + BUTTON
             InputEvent.BUTTON1_DOWN_MASK | InputEvent.ALT_DOWN_MASK); 
-         myViewer.setTranslateButtonMask (
+         mouse.setTranslateButtonMask (
             InputEvent.BUTTON1_DOWN_MASK | InputEvent.ALT_DOWN_MASK |
             InputEvent.SHIFT_DOWN_MASK);
-         myViewer.setZoomButtonMask (
+         mouse.setZoomButtonMask (
             InputEvent.BUTTON1_DOWN_MASK | InputEvent.ALT_DOWN_MASK |
             InputEvent.META_DOWN_MASK);
-         myViewer.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);
-         myViewer.setSelectionButtonMask(InputEvent.BUTTON1_DOWN_MASK);
+         mouse.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);
+         mouse.setSelectionButtonMask(InputEvent.BUTTON1_DOWN_MASK);
       } else if (prefs.equalsIgnoreCase("default")) {
-         myViewer.setMultipleSelectionMask(InputEvent.CTRL_DOWN_MASK);
-         myViewer.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);
-         myViewer.setRotateButtonMask(InputEvent.BUTTON2_DOWN_MASK);
-         myViewer.setTranslateButtonMask(
+         mouse.setMultipleSelectionMask(InputEvent.CTRL_DOWN_MASK);
+         mouse.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);
+         mouse.setRotateButtonMask(InputEvent.BUTTON2_DOWN_MASK);
+         mouse.setTranslateButtonMask(
             InputEvent.BUTTON2_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
-         myViewer.setZoomButtonMask(
+         mouse.setZoomButtonMask(
             InputEvent.BUTTON2_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
-         myViewer.setSelectionButtonMask(InputEvent.BUTTON1_DOWN_MASK);
+         mouse.setSelectionButtonMask(InputEvent.BUTTON1_DOWN_MASK);
       }
       else {
          System.out.println ("unknown mouse bindings: " + prefs);

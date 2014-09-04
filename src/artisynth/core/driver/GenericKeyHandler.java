@@ -7,7 +7,6 @@
 package artisynth.core.driver;
 
 import java.awt.event.ActionEvent;
-import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
 /**
@@ -16,7 +15,7 @@ import java.awt.event.KeyEvent;
  * 
  */
 
-public class GenericKeyHandler extends KeyAdapter {
+public class GenericKeyHandler implements ArtisynthKeyHandler {
    MainFrame myMainFrame;
 
    /**
@@ -27,8 +26,12 @@ public class GenericKeyHandler extends KeyAdapter {
       myMainFrame = null;
    }
 
-   public void attachMainFrame (MainFrame extMainFrame) {
+   public void setMainFrame (MainFrame extMainFrame) {
       myMainFrame = extMainFrame;
+   }
+   
+   public MainFrame getMainFrame() {
+      return myMainFrame;
    }
 
    /**

@@ -1171,7 +1171,7 @@ public class MenuBarHandler implements
       JOptionPane.showInputDialog(
          myFrame,
          "Set zoom amount - amount by which single mouse scroll zooms",
-         myMain.getViewer().getMouseWheelZoomScale());
+         myMain.getViewer().getMouseHandler().getMouseWheelZoomScale());
 
       if (inputValue == null) {
          System.out.println("Clicked cancel on the zoom dialog");
@@ -1180,7 +1180,7 @@ public class MenuBarHandler implements
 
       try {
          Double val = Double.parseDouble(inputValue);
-         myMain.getViewer().setMouseWheelZoomScale(val);
+         myMain.getViewer().getMouseHandler().setMouseWheelZoomScale(val);
       } catch (NumberFormatException e) {
          JOptionPane.showMessageDialog(
             myFrame, "Setting zoom amount error", "Warning",

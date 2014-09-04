@@ -63,8 +63,8 @@ public class DragToolBase {
       
       myConstrainMask = MouseEvent.SHIFT_DOWN_MASK;
 
-      if (viewer != null) {
-         myDragMask = viewer.getSelectionButtonMask();
+      if (viewer != null && viewer.getMouseHandler() != null) {
+         myDragMask = viewer.getMouseHandler().getSelectionButtonMask();
       } else {
          myDragMask = InputEvent.BUTTON1_DOWN_MASK;
       }

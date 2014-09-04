@@ -125,7 +125,7 @@ public class Track extends JPanel {
          button.setActionCommand (button.getToolTipText());
 
          GenericKeyHandler keyHandler = new GenericKeyHandler();
-         keyHandler.attachMainFrame (Main.getMainFrame());
+         keyHandler.setMainFrame (Main.getMainFrame());
 
          button.addKeyListener (keyHandler);
          button.addActionListener (myListener);

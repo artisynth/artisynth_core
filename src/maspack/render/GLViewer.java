@@ -9,7 +9,6 @@ package maspack.render;
 
 import java.awt.Color;
 import java.awt.Rectangle;
-import java.awt.event.InputEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
@@ -259,10 +258,6 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
    private boolean bgColorRequest = true;
    private boolean resetViewVolume = false;
 
-   private Rectangle myDragBox;
-
-   double myWheelZoomScale = 10.0;
-
    private ArrayList<GLSelectionListener> mySelectionListeners =
       new ArrayList<GLSelectionListener>();
 
@@ -271,20 +266,22 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
 
    public static final double AUTO_FIT = -1.0;
 
-   private int multipleSelectionMask = (InputEvent.CTRL_DOWN_MASK);
-
-   private int dragSelectionMask = (InputEvent.SHIFT_DOWN_MASK);
-
-   private int rotateButtonMask = (InputEvent.BUTTON2_DOWN_MASK);
-   private int translateButtonMask =
-      (InputEvent.BUTTON2_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
-   private int zoomButtonMask =
-      (InputEvent.BUTTON2_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
-
-   private int selectionButtonMask = (InputEvent.BUTTON1_DOWN_MASK);
-
-   private int selectionModMask = (InputEvent.SHIFT_DOWN_MASK);
-
+   //   double myWheelZoomScale = 10.0;
+   //   private Rectangle myDragBox;
+   //   
+   //   private int multipleSelectionMask = (InputEvent.CTRL_DOWN_MASK);
+   //   private int dragSelectionMask = (InputEvent.SHIFT_DOWN_MASK);
+   //
+   //   private int rotateButtonMask = (InputEvent.BUTTON2_DOWN_MASK);
+   //   private int translateButtonMask =
+   //      (InputEvent.BUTTON2_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
+   //   private int zoomButtonMask =
+   //      (InputEvent.BUTTON2_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
+   //
+   //   private int selectionButtonMask = (InputEvent.BUTTON1_DOWN_MASK);
+   //
+   //   private int selectionModMask = (InputEvent.SHIFT_DOWN_MASK);
+   private Rectangle myDragBox;
    private GLGridPlane myGrid;
 
    public static PropertyList myProps = new PropertyList (GLViewer.class);
@@ -891,177 +888,177 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       }
    }
 
-   /**
-    * Sets the mouse button mask that enables rotation. This should be a
-    * combination of the following mouse buttons and extended modifiers defined
-    * in java.awt.event.InputEvent: BUTTON1_DOWN_MASK, BUTTON2_DOWN_MASK,
-    * BUTTON2_DOWN_MASK, SHIFT_DOWN_MASK, ALT_DOWN_MASK, META_DOWN_MASK, and
-    * CTRL_DOWN_MASK.
-    * 
-    * @param mask
-    * rotation button mask
-    */
-   public void setRotateButtonMask (int mask) {
-      rotateButtonMask = mask;
-   }
-
-   /**
-    * Gets the mouse button mask that enables rotation.
-    * 
-    * @return rotation button mask
-    * @see #setRotateButtonMask
-    */
-   public int getRotateButtonMask() {
-      return rotateButtonMask;
-   }
-
-   /**
-    * Sets the mouse button mask that enables translation. This should be a
-    * combination of the following mouse buttons and extended modifiers defined
-    * in java.awt.event.InputEvent: BUTTON1_DOWN_MASK, BUTTON2_DOWN_MASK,
-    * BUTTON2_DOWN_MASK, SHIFT_DOWN_MASK, ALT_DOWN_MASK, META_DOWN_MASK, and
-    * CTRL_DOWN_MASK.
-    * 
-    * @param mask
-    * translation button mask
-    */
-   public void setTranslateButtonMask (int mask) {
-      translateButtonMask = mask;
-   }
-
-   /**
-    * Gets the mouse button mask that enables translation.
-    * 
-    * @return translation button mask
-    * @see #setTranslateButtonMask
-    */
-   public int getTranslateButtonMask() {
-      return translateButtonMask;
-   }
-
-   /**
-    * Sets the mouse button mask that enables zooming. This should be a
-    * combination of the following mouse buttons and extended modifiers defined
-    * in java.awt.event.InputEvent: BUTTON1_DOWN_MASK, BUTTON2_DOWN_MASK,
-    * BUTTON2_DOWN_MASK, SHIFT_DOWN_MASK, ALT_DOWN_MASK, META_DOWN_MASK, and
-    * CTRL_DOWN_MASK.
-    * 
-    * @param mask
-    * zooming button mask
-    */
-   public void setZoomButtonMask (int mask) {
-      zoomButtonMask = mask;
-   }
-
-   /**
-    * Gets the mouse button mask that enables zooming.
-    * 
-    * @return zooming button mask
-    * @see #setZoomButtonMask
-    */
-   public int getZoomButtonMask() {
-      return zoomButtonMask;
-   }
-
-
-   /**
-    * set the mouse wheel zoom amount modified by Charles Krzysik on Apr 11th
-    * 2008 default: 100
-    * 
-    * @param s
-    * zoomAmount
-    */
-   public void setMouseWheelZoomScale (double s) {
-      myWheelZoomScale = s; // originally s
-   }
-
-   /**
-    * get the mouse wheel zoom amount default: 100
-    * 
-    * @return zoomAmount
-    */
-   public double getMouseWheelZoomScale() {
-      return myWheelZoomScale;
-   }
-
-   /**
-    * Sets the mouse button mask that enables selection. This should be a
-    * combination of the following mouse buttons and extended modifiers defined
-    * in java.awt.event.InputEvent: BUTTON1_DOWN_MASK, BUTTON2_DOWN_MASK,
-    * BUTTON2_DOWN_MASK, SHIFT_DOWN_MASK, ALT_DOWN_MASK, META_DOWN_MASK, and
-    * CTRL_DOWN_MASK.
-    * 
-    * @param mask
-    * selection button mask
-    */
-   public void setSelectionButtonMask (int mask) {
-      selectionButtonMask = mask;
-   }
-
-   /**
-    * Gets the mouse button mask that enables selection.
-    * 
-    * @return selection button mask
-    * @see #setSelectionButtonMask
-    */
-   public int getSelectionButtonMask() {
-      return selectionButtonMask;
-   }
-
-   /**
-    * Sets the modifier mask that enables multiple selection. This should be a
-    * combination of the following extended modifiers defined in
-    * java.awt.event.InputEvent: SHIFT_DOWN_MASK, ALT_DOWN_MASK, META_DOWN_MASK,
-    * and CTRL_DOWN_MASK.
-    * 
-    * @param mask
-    * multiple selection modifier mask
-    */
-   public void setMultipleSelectionMask (int mask) {
-      multipleSelectionMask = mask;
-   }
-
-   /**
-    * Gets the modifier mask that enables multiple selection.
-    * 
-    * @return multiple selection modifier mask
-    * @see #setMultipleSelectionMask
-    */
-   public int getMultipleSelectionMask() {
-      return multipleSelectionMask;
-   }
-
-   /**
-    * Sets the modifier mask to enable drag selection. This mask should be a
-    * combination of the following extended modifiers defined in
-    * java.awt.event.InputEvent: SHIFT_DOWN_MASK, ALT_DOWN_MASK, META_DOWN_MASK,
-    * and CTRL_DOWN_MASK.
-    * 
-    * @param mask
-    * selection modifier mask
-    */
-   public void setDragSelectionMask (int mask) {
-      dragSelectionMask = mask;
-   }
-
-   /**
-    * Gets the modifier mask that enables drag selection.
-    * 
-    * @return drag selection modifier mask
-    * @see #setDragSelectionMask
-    */
-   public int getDragSelectionMask() {
-      return dragSelectionMask;
-   }
-
-   /**
-    * Returns the mouse button modifiers that may accompany selection.
-    * 
-    * @return selection modifier mask
-    */
-   public int getSelectionModifierMask() {
-      return selectionModMask;
-   }
+   //   /**
+   //    * Sets the mouse button mask that enables rotation. This should be a
+   //    * combination of the following mouse buttons and extended modifiers defined
+   //    * in java.awt.event.InputEvent: BUTTON1_DOWN_MASK, BUTTON2_DOWN_MASK,
+   //    * BUTTON2_DOWN_MASK, SHIFT_DOWN_MASK, ALT_DOWN_MASK, META_DOWN_MASK, and
+   //    * CTRL_DOWN_MASK.
+   //    * 
+   //    * @param mask
+   //    * rotation button mask
+   //    */
+   //   public void setRotateButtonMask (int mask) {
+   //      rotateButtonMask = mask;
+   //   }
+   //
+   //   /**
+   //    * Gets the mouse button mask that enables rotation.
+   //    * 
+   //    * @return rotation button mask
+   //    * @see #setRotateButtonMask
+   //    */
+   //   public int getRotateButtonMask() {
+   //      return rotateButtonMask;
+   //   }
+   //
+   //   /**
+   //    * Sets the mouse button mask that enables translation. This should be a
+   //    * combination of the following mouse buttons and extended modifiers defined
+   //    * in java.awt.event.InputEvent: BUTTON1_DOWN_MASK, BUTTON2_DOWN_MASK,
+   //    * BUTTON2_DOWN_MASK, SHIFT_DOWN_MASK, ALT_DOWN_MASK, META_DOWN_MASK, and
+   //    * CTRL_DOWN_MASK.
+   //    * 
+   //    * @param mask
+   //    * translation button mask
+   //    */
+   //   public void setTranslateButtonMask (int mask) {
+   //      translateButtonMask = mask;
+   //   }
+   //
+   //   /**
+   //    * Gets the mouse button mask that enables translation.
+   //    * 
+   //    * @return translation button mask
+   //    * @see #setTranslateButtonMask
+   //    */
+   //   public int getTranslateButtonMask() {
+   //      return translateButtonMask;
+   //   }
+   //
+   //   /**
+   //    * Sets the mouse button mask that enables zooming. This should be a
+   //    * combination of the following mouse buttons and extended modifiers defined
+   //    * in java.awt.event.InputEvent: BUTTON1_DOWN_MASK, BUTTON2_DOWN_MASK,
+   //    * BUTTON2_DOWN_MASK, SHIFT_DOWN_MASK, ALT_DOWN_MASK, META_DOWN_MASK, and
+   //    * CTRL_DOWN_MASK.
+   //    * 
+   //    * @param mask
+   //    * zooming button mask
+   //    */
+   //   public void setZoomButtonMask (int mask) {
+   //      zoomButtonMask = mask;
+   //   }
+   //
+   //   /**
+   //    * Gets the mouse button mask that enables zooming.
+   //    * 
+   //    * @return zooming button mask
+   //    * @see #setZoomButtonMask
+   //    */
+   //   public int getZoomButtonMask() {
+   //      return zoomButtonMask;
+   //   }
+   //
+   //
+   //   /**
+   //    * set the mouse wheel zoom amount modified by Charles Krzysik on Apr 11th
+   //    * 2008 default: 100
+   //    * 
+   //    * @param s
+   //    * zoomAmount
+   //    */
+   //   public void setMouseWheelZoomScale (double s) {
+   //      myWheelZoomScale = s; // originally s
+   //   }
+   //
+   //   /**
+   //    * get the mouse wheel zoom amount default: 100
+   //    * 
+   //    * @return zoomAmount
+   //    */
+   //   public double getMouseWheelZoomScale() {
+   //      return myWheelZoomScale;
+   //   }
+   //
+   //   /**
+   //    * Sets the mouse button mask that enables selection. This should be a
+   //    * combination of the following mouse buttons and extended modifiers defined
+   //    * in java.awt.event.InputEvent: BUTTON1_DOWN_MASK, BUTTON2_DOWN_MASK,
+   //    * BUTTON2_DOWN_MASK, SHIFT_DOWN_MASK, ALT_DOWN_MASK, META_DOWN_MASK, and
+   //    * CTRL_DOWN_MASK.
+   //    * 
+   //    * @param mask
+   //    * selection button mask
+   //    */
+   //   public void setSelectionButtonMask (int mask) {
+   //      selectionButtonMask = mask;
+   //   }
+   //
+   //   /**
+   //    * Gets the mouse button mask that enables selection.
+   //    * 
+   //    * @return selection button mask
+   //    * @see #setSelectionButtonMask
+   //    */
+   //   public int getSelectionButtonMask() {
+   //      return selectionButtonMask;
+   //   }
+   //
+   //   /**
+   //    * Sets the modifier mask that enables multiple selection. This should be a
+   //    * combination of the following extended modifiers defined in
+   //    * java.awt.event.InputEvent: SHIFT_DOWN_MASK, ALT_DOWN_MASK, META_DOWN_MASK,
+   //    * and CTRL_DOWN_MASK.
+   //    * 
+   //    * @param mask
+   //    * multiple selection modifier mask
+   //    */
+   //   public void setMultipleSelectionMask (int mask) {
+   //      multipleSelectionMask = mask;
+   //   }
+   //
+   //   /**
+   //    * Gets the modifier mask that enables multiple selection.
+   //    * 
+   //    * @return multiple selection modifier mask
+   //    * @see #setMultipleSelectionMask
+   //    */
+   //   public int getMultipleSelectionMask() {
+   //      return multipleSelectionMask;
+   //   }
+   //
+   //   /**
+   //    * Sets the modifier mask to enable drag selection. This mask should be a
+   //    * combination of the following extended modifiers defined in
+   //    * java.awt.event.InputEvent: SHIFT_DOWN_MASK, ALT_DOWN_MASK, META_DOWN_MASK,
+   //    * and CTRL_DOWN_MASK.
+   //    * 
+   //    * @param mask
+   //    * selection modifier mask
+   //    */
+   //   public void setDragSelectionMask (int mask) {
+   //      dragSelectionMask = mask;
+   //   }
+   //
+   //   /**
+   //    * Gets the modifier mask that enables drag selection.
+   //    * 
+   //    * @return drag selection modifier mask
+   //    * @see #setDragSelectionMask
+   //    */
+   //   public int getDragSelectionMask() {
+   //      return dragSelectionMask;
+   //   }
+   //
+   //   /**
+   //    * Returns the mouse button modifiers that may accompany selection.
+   //    * 
+   //    * @return selection modifier mask
+   //    */
+   //   public int getSelectionModifierMask() {
+   //      return selectionModMask;
+   //   }
 
    public int getWidth() {
       return width;
@@ -1517,7 +1514,9 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
 
       resetViewVolume();
 
-      myMouseHandler = new GLMouseListener (this);
+      if (myMouseHandler == null) {
+         myMouseHandler = new GLMouseAdapter (this);
+      }
 
       if (canvas != null) {
          // canvas.addMouseListener(new GLMouseListener());
@@ -3957,6 +3956,18 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
          String msg = Error.gluErrorString(err);
          printErr(msg + " (" +err + ")");
       }
+   }
+
+   public int getSelectionButtonMask() {
+      return myMouseHandler.getSelectionButtonMask();
+   }
+   
+   public GLMouseListener getMouseHandler() {
+      return myMouseHandler;
+   }
+   
+   public void setMouseHandler(GLMouseListener handler) {
+      myMouseHandler = handler;
    }
 
 }

@@ -159,7 +159,7 @@ public class TimelineController extends Timeline
       popupInitialization();
       
       GenericKeyHandler keyHandler = new GenericKeyHandler();
-      keyHandler.attachMainFrame (mainFrame);
+      keyHandler.setMainFrame (mainFrame);
       workspacePane.addKeyListener (keyHandler);
       timelinePane.addKeyListener (keyHandler);
       timelineScrollPane.addKeyListener (keyHandler);

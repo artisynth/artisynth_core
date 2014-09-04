@@ -127,12 +127,14 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       boolean oneSelectedHasFixedRenderProps = false;
       boolean oneSelectedIsVisible = false;
       boolean oneSelectedIsInvisible = false;
+      boolean oneSelectedHasRenderPropsProperty = false;
 
       if (selection.size() > 0) {
          allSelectedHaveProperties = true;
          allSelectedAreTracable = true;
          for (ModelComponent c : selection) {
             if (c instanceof RenderableComponent) {
+                              
                oneSelectedIsRenderable = true;
                RenderableComponent rcomp = (RenderableComponent)c;
                if (isVisible (rcomp)) {
@@ -141,13 +143,20 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
                else {
                   oneSelectedIsInvisible = true;
                }
+               
+               // RenderableComponent > HasProperties, but may not have
+               //     renderProps property
+               PropertyInfo rinfo =
+                  rcomp.getAllPropertyInfo().get ("renderProps");
+               if (rinfo != null) {
+                  oneSelectedHasRenderPropsProperty = true;
+               }
+               
                if (rcomp.getRenderProps() != null) {
                   oneSelectedHasRenderProps = true;
                   // If still undecided, check to see if the render props can
                   // be set to null ...
                   if (!oneSelectedHasFixedRenderProps) {
-                     PropertyInfo rinfo =
-                        rcomp.getAllPropertyInfo().get ("renderProps");
                      if (!rinfo.getNullValueOK()) {
                         oneSelectedHasFixedRenderProps = true;
                      }
@@ -173,7 +182,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       if (allSelectedHaveProperties) {
          addMenuItem ("Edit properties ...");
       }
-      if (oneSelectedIsRenderable) {
+      if (oneSelectedIsRenderable && oneSelectedHasRenderPropsProperty) {
          if (oneSelectedHasRenderProps) {
             addMenuItem ("Edit render props ...");
 

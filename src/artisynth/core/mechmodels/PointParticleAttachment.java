@@ -19,12 +19,12 @@ import java.io.*;
 
 public class PointParticleAttachment extends PointAttachment {
 
-   DynamicMechComponent[] myMasters;
+   DynamicComponent[] myMasters;
    Particle myParticle;
 
-   public DynamicMechComponent[] getMasters() {
+   public DynamicComponent[] getMasters() {
       if (myMasters == null) {
-         myMasters = new DynamicMechComponent[1];
+         myMasters = new DynamicComponent[1];
          myMasters[0] = myParticle;
       }
       return myMasters;

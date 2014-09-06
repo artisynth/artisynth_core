@@ -24,7 +24,7 @@ import artisynth.core.mechmodels.DeformableCollisionData;
 import artisynth.core.mechmodels.DeformableCollisionDataBase;
 import artisynth.core.mechmodels.DeformableContactConstraint;
 import artisynth.core.mechmodels.DeformableContactConstraintGeneric;
-import artisynth.core.mechmodels.DynamicMechComponent;
+import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointAttachment;
@@ -62,12 +62,12 @@ public class SkinCollisionData extends DeformableCollisionDataBase {
       // attached to the face's nodes?  Might need to take in the face
       // as an additional argument
       int numMasters = pa.numMasters ();
-      DynamicMechComponent[] masters = pa.getMasters ();
+      DynamicComponent[] masters = pa.getMasters ();
       for (int i=0; i<numMasters; i++) {
          if (masters[i] instanceof Point) {
             Point node = (Point)masters[i];
             if (node.isAttached ()) {
-               DynamicMechComponent[] nodeMasters = node.getAttachment().getMasters();
+               DynamicComponent[] nodeMasters = node.getAttachment().getMasters();
                for (int j=0; j<nodeMasters.length; j++) {
                   // check parent and grandparent in case is fem or 
                   // any other kind of deformable
@@ -87,7 +87,7 @@ public class SkinCollisionData extends DeformableCollisionDataBase {
          } else if (masters[i] instanceof Frame) {
             Frame frame = (Frame)masters[i];
             if (frame.isAttached ()) {
-               DynamicMechComponent[] frameMasters = frame.getAttachment().getMasters();
+               DynamicComponent[] frameMasters = frame.getAttachment().getMasters();
                for (int j=0; j<frameMasters.length; j++) {
                   // check parent and grandparent in case is fem or 
                   // any other kind of deformable
@@ -153,7 +153,7 @@ public class SkinCollisionData extends DeformableCollisionDataBase {
          PointAttachment pa = mySMC.getAttachment (vidx);
          
          int numMasters = pa.numMasters ();
-         DynamicMechComponent[] masters = pa.getMasters ();
+         DynamicComponent[] masters = pa.getMasters ();
          for (int i=0; i<numMasters; i++) {
             if (masters[i] instanceof Point) {
                Point node = (Point)masters[i];
@@ -176,7 +176,7 @@ public class SkinCollisionData extends DeformableCollisionDataBase {
             PointAttachment pa = mySMC.getAttachment (vidx);
             
             int numMasters = pa.numMasters ();
-            DynamicMechComponent[] masters = pa.getMasters ();
+            DynamicComponent[] masters = pa.getMasters ();
             for (int j=0; i<numMasters; i++) {
                if (masters[j] instanceof Point) {
                   Point node = (Point)masters[j];
@@ -213,7 +213,7 @@ public class SkinCollisionData extends DeformableCollisionDataBase {
       PointAttachment pa = mySMC.getAttachment (vidx);
       
       int numMasters = pa.numMasters ();
-      DynamicMechComponent[] masters = pa.getMasters ();
+      DynamicComponent[] masters = pa.getMasters ();
       for (int i=0; i<numMasters; i++) {
          if (masters[i] instanceof Point) {
             Point node = (Point)masters[i];
@@ -282,7 +282,7 @@ public class SkinCollisionData extends DeformableCollisionDataBase {
          numPoints = size;
       } else if (pa instanceof PointSkinAttachment) {
          PointSkinAttachment ps = (PointSkinAttachment)pa;
-         DynamicMechComponent[] masters = ps.getMasters();
+         DynamicComponent[] masters = ps.getMasters();
          int numMasters = masters.length;
          pntWgts.setSize(numMasters);
          frameWgts.setSize(numMasters);
@@ -372,7 +372,7 @@ public class SkinCollisionData extends DeformableCollisionDataBase {
    public void markMasters(Vertex3d vtx, boolean marked) {
       
       PointAttachment pa = mySMC.getAttachment(vtx.getIndex());
-      for (DynamicMechComponent dmc : pa.getMasters()) {
+      for (DynamicComponent dmc : pa.getMasters()) {
          dmc.setMarked(marked);
       }
       
@@ -382,7 +382,7 @@ public class SkinCollisionData extends DeformableCollisionDataBase {
    public int numActiveUnmarkedMasters(Vertex3d vtx) {
       int nm = 0;
       PointAttachment pa = mySMC.getAttachment(vtx.getIndex());
-      for (DynamicMechComponent dmc : pa.getMasters()) {
+      for (DynamicComponent dmc : pa.getMasters()) {
          if (dmc.isActive() && !dmc.isMarked()) {
             nm++;
          }

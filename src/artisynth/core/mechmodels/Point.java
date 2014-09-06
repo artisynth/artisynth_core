@@ -45,9 +45,9 @@ import artisynth.core.probes.VectorTracingProbe; //import artisynth.core.mechmod
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.TransformableGeometry;
 
-public class Point extends DynamicMechComponentBase
+public class Point extends DynamicComponentBase
    implements RenderablePoint, TransformableGeometry, ScalableUnits,
-              DynamicMechComponent, Tracable, MotionTargetComponent, 
+              DynamicComponent, Tracable, MotionTargetComponent, 
               CopyableComponent {
 
    protected PointState myState = new PointState();
@@ -610,7 +610,7 @@ public class Point extends DynamicMechComponentBase
       return blk;
    }
    
-   public void setState (DynamicMechComponent c) {
+   public void setState (DynamicComponent c) {
       if (c instanceof Point) {
          setState ((Point)c);
       }

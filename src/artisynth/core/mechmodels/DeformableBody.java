@@ -213,7 +213,7 @@ public abstract class DeformableBody extends RigidBody {
    }   
 
    @Override      
-   public void setState (DynamicMechComponent c) {
+   public void setState (DynamicComponent c) {
       if (c.getClass() == getClass()) {
          DeformableBody bod = (DeformableBody)c;
          super.setState (bod);

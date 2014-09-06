@@ -39,7 +39,7 @@ import artisynth.core.femmodels.PointSkinAttachment.Connection;
 import artisynth.core.femmodels.PointSkinAttachment.FrameConnection;
 import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.CollisionData;
-import artisynth.core.mechmodels.DynamicMechComponent;
+import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.Particle;
@@ -1229,7 +1229,7 @@ public class SkinMesh extends SkinMeshBase implements Pullable, Collidable {
                PointSkinAttachment psa = (PointSkinAttachment)(attachments[i]);
                int numC = psa.numConnections();
                for (int j=0; j<numC; j++) {
-                  DynamicMechComponent master = psa.getMaster(j);
+                  DynamicComponent master = psa.getMaster(j);
 
                   if (master instanceof Point) {
                      Point p = (Point)master;
@@ -1241,7 +1241,7 @@ public class SkinMesh extends SkinMeshBase implements Pullable, Collidable {
                }
 
             } else {
-               DynamicMechComponent[] masters = attachments[i].getMasters();
+               DynamicComponent[] masters = attachments[i].getMasters();
                for (int j=0; j<masters.length; j++) {
                   if (masters[j] instanceof Point) {
                      Point p = (Point)masters[j];
@@ -1320,7 +1320,7 @@ public class SkinMesh extends SkinMeshBase implements Pullable, Collidable {
       // mass of all dependencies?
       double m = 0;
       for (PointAttachment pa : myVertexAttachments) {
-         for (DynamicMechComponent dmc : pa.getMasters()) {
+         for (DynamicComponent dmc : pa.getMasters()) {
             if (dmc != null && !dmc.isMarked()) {
                m += dmc.getMass(0);
                dmc.setMarked(true);
@@ -1330,7 +1330,7 @@ public class SkinMesh extends SkinMeshBase implements Pullable, Collidable {
       
       // unmark
       for (PointAttachment pa : myVertexAttachments) {
-         for (DynamicMechComponent dmc : pa.getMasters()) {
+         for (DynamicComponent dmc : pa.getMasters()) {
             if (dmc != null && dmc.isMarked()) {
                dmc.setMarked(false);
             }

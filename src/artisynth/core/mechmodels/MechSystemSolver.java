@@ -2082,7 +2082,7 @@ public class MechSystemSolver {
       RotationMatrix3d[] RBW = new RotationMatrix3d[2*myNumActive];
       MechSystemBase base = (MechSystemBase)mySys;
       for (int i=0; i<myNumActive; i++) {
-         DynamicMechComponent c = base.myDynamicComponents.get(i);
+         DynamicComponent c = base.myDynamicComponents.get(i);
          RotationMatrix3d R = new RotationMatrix3d(((RigidBody)c).getPose().R);
          RBW[i*2+0] = R;         
          RBW[i*2+1] = R;
@@ -2094,7 +2094,7 @@ public class MechSystemSolver {
       RotationMatrix3d[] RWB = new RotationMatrix3d[2*myNumActive];
       MechSystemBase base = (MechSystemBase)mySys;
       for (int i=0; i<myNumActive; i++) {
-         DynamicMechComponent c = base.myDynamicComponents.get(i);
+         DynamicComponent c = base.myDynamicComponents.get(i);
          RotationMatrix3d R = new RotationMatrix3d(((RigidBody)c).getPose().R);
          R.transpose();
          RWB[i*2+0] = R;         

@@ -75,7 +75,7 @@ import artisynth.core.materials.ViscoelasticState;
 import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.DeformableCollisionData;
 import artisynth.core.mechmodels.DynamicAttachment;
-import artisynth.core.mechmodels.DynamicMechComponent;
+import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.HasAuxState;
 import artisynth.core.mechmodels.MechSystemModel;
 import artisynth.core.mechmodels.MeshComponentList;
@@ -1869,7 +1869,7 @@ Collidable, CopyableComponent, HasAuxState {
       }
       else {
          mySolver.solve(t0, t1, stepAdjust);
-         DynamicMechComponent c = checkVelocityStability();
+         DynamicComponent c = checkVelocityStability();
          if (c != null) {
             throw new NumericalException(
                "Unstable velocity detected, component "

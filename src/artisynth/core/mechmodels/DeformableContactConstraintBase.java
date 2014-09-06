@@ -378,7 +378,7 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
     * Finds or allocates a CompInfo for a specific component. If no CompInfo is
     * found on the free list, a new one is allocated.
     */
-   protected CompInfo findCompInfo(DynamicMechComponent comp) {
+   protected CompInfo findCompInfo(DynamicComponent comp) {
       CompInfo prev = null;
       for (CompInfo info = myFreeComps; info != null; info = info.getNext()) {
          if (info.getComp() == comp) {
@@ -395,7 +395,7 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
       return null;
    }
 
-   protected CompInfo findAddedCompInfo(DynamicMechComponent comp) {
+   protected CompInfo findAddedCompInfo(DynamicComponent comp) {
       for (CompInfo info = myHeadComp; info != null; info = info.getNext()) {
          if (info.getComp() == comp) {
             return info;
@@ -734,7 +734,7 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
       /**
        * Returns the dynamic component
        */
-      public abstract DynamicMechComponent getComp();
+      public abstract DynamicComponent getComp();
 
       /**
        * Returns the solve index of the dynamic component
@@ -789,7 +789,7 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
          return myBlk;
       }
 
-      public DynamicMechComponent getComp() {
+      public DynamicComponent getComp() {
          return getPoint();
       }
 
@@ -883,7 +883,7 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
          return myBlk;
       }
 
-      public DynamicMechComponent getComp() {
+      public DynamicComponent getComp() {
          return getFrame();
       }
 

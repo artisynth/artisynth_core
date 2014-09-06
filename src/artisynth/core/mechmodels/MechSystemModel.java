@@ -16,9 +16,9 @@ public interface MechSystemModel extends Model, MechSystem {
    public void getAttachments (List<DynamicAttachment> list, int level);
 
    public void getDynamicComponents (
-      List<DynamicMechComponent> active,
-      List<DynamicMechComponent> attached,
-      List<DynamicMechComponent> parametric);
+      List<DynamicComponent> active,
+      List<DynamicComponent> attached,
+      List<DynamicComponent> parametric);
 
    public void getCollidables (List<Collidable> list, int level);
 
@@ -35,7 +35,7 @@ public interface MechSystemModel extends Model, MechSystem {
     * component appears to be unstable, return that component. Otherwise, return
     * null.
     */
-   public DynamicMechComponent checkVelocityStability();
+   public DynamicComponent checkVelocityStability();
 
    //public void recursivelyUpdateVelState (int flags);
 

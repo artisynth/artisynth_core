@@ -29,7 +29,7 @@ public interface ForceEffector {
     * will be need to be added at locations given by the block indices (<i>bi</i>,
     * <i>bj</i>), where <i>bi</i> and <i>bj</i> correspond to the solve
     * indices (as returned by {@link
-    * artisynth.core.mechmodels.DynamicMechComponent#getSolveIndex
+    * artisynth.core.mechmodels.DynamicComponent#getSolveIndex
     * getSolveIndex}) for all dynamic or attached components affected by this
     * force effector.
     * 

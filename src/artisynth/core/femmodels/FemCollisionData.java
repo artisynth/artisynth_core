@@ -25,7 +25,7 @@ import artisynth.core.mechmodels.CollisionHandler;
 import artisynth.core.mechmodels.DeformableCollisionData;
 import artisynth.core.mechmodels.DeformableCollisionDataBase;
 import artisynth.core.mechmodels.DeformableContactConstraint;
-import artisynth.core.mechmodels.DynamicMechComponent;
+import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.RigidBody;
@@ -79,7 +79,7 @@ public class FemCollisionData extends DeformableCollisionDataBase {
 
       FemNode node = ((FemMeshVertex)vtx).getPoint();
       if (node.isAttached()) {
-         DynamicMechComponent[] masters = node.getAttachment().getMasters();
+         DynamicComponent[] masters = node.getAttachment().getMasters();
          for (int i=0; i<masters.length; i++) {
 
             // check parent and grandparent in case is fem or any other kind of deformable

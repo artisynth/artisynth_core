@@ -185,7 +185,7 @@ public class FaceNodes3d {
       return true;
    }
 
-   public boolean containsNode (DynamicMechComponent c) {
+   public boolean containsNode (DynamicComponent c) {
       for (int i=0; i<nodes.length; i++) {
          if (nodes[i] == c) {
             return true;
@@ -213,7 +213,7 @@ public class FaceNodes3d {
             if (attach.numMasters() == nodes.length &&
                 attach.getSlave().getGrandParent() == fem) {
                boolean attachmentIsThisFace = true;
-               for (DynamicMechComponent c : a.getMasters()) {
+               for (DynamicComponent c : a.getMasters()) {
                   if (!containsNode (c)) {
                      attachmentIsThisFace = false;
                      break;

@@ -40,7 +40,7 @@ public abstract class MechSystemBase extends RenderableModelBase
    // to ensure constrainer.setUnilateralImpulses is never called with h = 0
    protected double myLastUnilateralH = 1;
    
-   protected ArrayList<DynamicMechComponent> myDynamicComponents;
+   protected ArrayList<DynamicComponent> myDynamicComponents;
    protected ArrayList<MotionTargetComponent> myParametricComponents;
    protected ArrayList<DynamicAttachment> myOrderedAttachments;
    protected ArrayList<Constrainer> myConstrainers;
@@ -381,13 +381,13 @@ public abstract class MechSystemBase extends RenderableModelBase
    protected void updateDynamicComponentLists() {
 
       if (myDynamicComponents == null) {
-         myDynamicComponents = new ArrayList<DynamicMechComponent>();
-         ArrayList<DynamicMechComponent> active =
-            new ArrayList<DynamicMechComponent>();
-         ArrayList<DynamicMechComponent> attached =
-            new ArrayList<DynamicMechComponent>();
-         ArrayList<DynamicMechComponent> parametric =
-            new ArrayList<DynamicMechComponent>();
+         myDynamicComponents = new ArrayList<DynamicComponent>();
+         ArrayList<DynamicComponent> active =
+            new ArrayList<DynamicComponent>();
+         ArrayList<DynamicComponent> attached =
+            new ArrayList<DynamicComponent>();
+         ArrayList<DynamicComponent> parametric =
+            new ArrayList<DynamicComponent>();
          getDynamicComponents (active, attached, parametric);
          myNumActive = active.size();
          myNumAttached = attached.size();
@@ -395,7 +395,7 @@ public abstract class MechSystemBase extends RenderableModelBase
          myParametricVelStateSize = 0;
          myParametricPosStateSize = 0;
          myParametricComponents = new ArrayList<MotionTargetComponent>();
-         for (DynamicMechComponent c : parametric) {
+         for (DynamicComponent c : parametric) {
             if (c instanceof MotionTargetComponent) {
                myParametricPosStateSize += c.getPosStateSize();
                myParametricVelStateSize += c.getVelStateSize();
@@ -415,14 +415,14 @@ public abstract class MechSystemBase extends RenderableModelBase
          myActivePosStateSize = 0;
 
          int idx = 0;
-         for (DynamicMechComponent c : active) {
+         for (DynamicComponent c : active) {
             myDynamicComponents.add (c);
             c.setSolveIndex (idx);
             myDynamicSizes[idx++] = c.getVelStateSize();
             myActivePosStateSize += c.getPosStateSize();
             myActiveVelStateSize += c.getVelStateSize();
          }
-         for (DynamicMechComponent c : myParametricComponents) {
+         for (DynamicComponent c : myParametricComponents) {
             if (MechModel.myParametricsInSystemMatrix) {
                myDynamicComponents.add (c);
                c.setSolveIndex (idx);
@@ -432,7 +432,7 @@ public abstract class MechSystemBase extends RenderableModelBase
                c.setSolveIndex (-1);
             }
          }
-         for (DynamicMechComponent c : attached) {
+         for (DynamicComponent c : attached) {
             myDynamicComponents.add (c);
             c.setSolveIndex (idx);
             myDynamicSizes[idx++] = c.getVelStateSize();
@@ -516,7 +516,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       updateDynamicComponentLists();
       double[] buf = u.getBuffer();
       for (int i=0; i<myNumActive; i++) {
-         DynamicMechComponent c = myDynamicComponents.get(i);
+         DynamicComponent c = myDynamicComponents.get(i);
          if (c instanceof RigidBody) {
             if (bodyCoords) {
                idx = ((RigidBody)c).getBodyVelState (buf, idx);
@@ -557,7 +557,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       int xidx = 0;
       int vidx = 0;
       for (int i=0; i<myNumActive; i++) {
-         DynamicMechComponent d = myDynamicComponents.get(i);
+         DynamicComponent d = myDynamicComponents.get(i);
          d.addPosImpulse (xbuf, xidx, h, vbuf, vidx);
          xidx += d.getPosStateSize();
          vidx += d.getVelStateSize();
@@ -713,22 +713,22 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
    }
 
-   private HashMap<DynamicMechComponent,DynamicStateOffsets>
+   private HashMap<DynamicComponent,DynamicStateOffsets>
       getDynamicCompOffsets (
          ArrayList<Object> comps, int idx, int numc, int off) {
 
-      HashMap<DynamicMechComponent,DynamicStateOffsets> map =
-         new HashMap<DynamicMechComponent,DynamicStateOffsets>();
+      HashMap<DynamicComponent,DynamicStateOffsets> map =
+         new HashMap<DynamicComponent,DynamicStateOffsets>();
 
       int posOff = off;
       // calculate velOff first
       int velOff = off;
       for (int i=0; i<numc; i++) {
-         DynamicMechComponent c = (DynamicMechComponent)comps.get(idx++);
+         DynamicComponent c = (DynamicComponent)comps.get(idx++);
          velOff += c.getPosStateSize();
       }
       for (int i=0; i<numc; i++) {
-         DynamicMechComponent c = (DynamicMechComponent)comps.get(idx++);
+         DynamicComponent c = (DynamicComponent)comps.get(idx++);
          map.put (c, new DynamicStateOffsets (posOff, velOff));
          posOff += c.getPosStateSize();
          velOff += c.getVelStateSize();
@@ -793,7 +793,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       int di = 0;
       double[] dbuf = state.dbuffer();
       for (int i=0; i<myNumActive+myNumParametric; i++) {
-         DynamicMechComponent c = myDynamicComponents.get(i);
+         DynamicComponent c = myDynamicComponents.get(i);
          int size = c.getPosStateSize() + c.getVelStateSize();
          // XXX should check size here
          di = c.setPosState (dbuf, di);
@@ -863,7 +863,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       state.zput (myConstrainers.size());
 
       for (int i=0; i<myNumActive+myNumParametric; i++) {
-         DynamicMechComponent c = myDynamicComponents.get(i);
+         DynamicComponent c = myDynamicComponents.get(i);
          int size = c.getVelStateSize()+c.getPosStateSize();
          int di = state.dsize();
          state.dsetSize (di+size);
@@ -903,8 +903,8 @@ public abstract class MechSystemBase extends RenderableModelBase
       updateForceComponentList();
       updateAuxStateComponentList();
 
-      HashMap<DynamicMechComponent,DataBuffer> dynCompMap =
-         new HashMap<DynamicMechComponent,DataBuffer>();
+      HashMap<DynamicComponent,DataBuffer> dynCompMap =
+         new HashMap<DynamicComponent,DataBuffer>();
 
       HashMap<HasAuxState,DataBuffer> auxCompMap =
          new HashMap<HasAuxState,DataBuffer>();
@@ -926,7 +926,7 @@ public abstract class MechSystemBase extends RenderableModelBase
          int numOldConstrainers = ostate.zget();
 
          for (int i=0; i<numOldDynComps; i++) {
-            DynamicMechComponent c = (DynamicMechComponent)ostate.oget();
+            DynamicComponent c = (DynamicComponent)ostate.oget();
             DataBuffer data = new DataBuffer ();
             data.setBuffersAndOffsets (ostate);
             dynCompMap.put (c, data);           
@@ -957,7 +957,7 @@ public abstract class MechSystemBase extends RenderableModelBase
 
       //double[] dbufNew = nstate.dbuffer();
       for (int i=0; i<myNumActive+myNumParametric; i++) {
-         DynamicMechComponent c = myDynamicComponents.get(i);
+         DynamicComponent c = myDynamicComponents.get(i);
          nstate.oput (c);
          DataBuffer data = dynCompMap.get (c);
          int size = c.getVelStateSize()+c.getPosStateSize();
@@ -1038,7 +1038,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       ArrayList<DynamicAttachment> attachments = getOrderedAttachments();
       int[] colSizes = new int[attachments.size()];
       for (int k=0; k<attachments.size(); k++) {
-         DynamicMechComponent slave = attachments.get(k).getSlave();
+         DynamicComponent slave = attachments.get(k).getSlave();
          int bj = attachments.size()-1-k;
          colSizes[bj] = myDynamicSizes[slave.getSolveIndex()];
       }
@@ -1047,8 +1047,8 @@ public abstract class MechSystemBase extends RenderableModelBase
          int bj = attachments.size()-1-k;
          DynamicAttachment a = attachments.get(k);
          int ssize = colSizes[bj];
-         DynamicMechComponent[] masters = a.getMasters();
-         DynamicMechComponent slave = a.getSlave();
+         DynamicComponent[] masters = a.getMasters();
+         DynamicComponent slave = a.getSlave();
          MatrixNdBlock sblk = new MatrixNdBlock (ssize, ssize);
          sblk.setIdentity();
          GT.addBlock (slave.getSolveIndex(), bj, sblk);
@@ -1166,7 +1166,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       boolean isConstant = true;
       int bi;
       for (int i=0; i<myDynamicComponents.size(); i++) {
-         DynamicMechComponent c = myDynamicComponents.get(i);
+         DynamicComponent c = myDynamicComponents.get(i);
          if ((bi = c.getSolveIndex()) != -1) {
             M.addBlock (bi, bi, c.createMassBlock());
             isConstant &= c.isMassConstant();
@@ -1194,7 +1194,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       int idx = 0;
       int bi;
       for (int i=0; i<myDynamicComponents.size(); i++) {
-         DynamicMechComponent c = myDynamicComponents.get(i);
+         DynamicComponent c = myDynamicComponents.get(i);
          if ((bi = c.getSolveIndex()) != -1) {
             c.getMass (M.getBlock (bi, bi), t);
             idx = c.getMassForces (f, t, idx);
@@ -1217,7 +1217,7 @@ public abstract class MechSystemBase extends RenderableModelBase
             "M improperly sized; perhaps not created with buildMassMatrix()?");
       }         
       for (int i=0; i<myNumActive; i++) {
-         DynamicMechComponent c = myDynamicComponents.get(i);
+         DynamicComponent c = myDynamicComponents.get(i);
          int bi;
          if ((bi = c.getSolveIndex()) != -1) {
             c.getInverseMass (Minv.getBlock (bi, bi), M.getBlock (bi, bi));
@@ -1235,7 +1235,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       S.addCols (myDynamicSizes, myDynamicSizes.length);
       S.setVerticallyLinked (true);
       for (int i=0; i<myDynamicComponents.size(); i++) {
-         DynamicMechComponent c = myDynamicComponents.get(i);
+         DynamicComponent c = myDynamicComponents.get(i);
          if (c.getSolveIndex() != -1) {
             c.addSolveBlock (S);
          }

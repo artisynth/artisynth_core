@@ -696,7 +696,7 @@ might be stored in a location like this:
 \begin{verbatim}
   /home/joeuser/artisynthProjects/classes
 \end{verbatim}
-In the example shown in Section \ref{CreatingAnApplications:sec}, the
+In the example shown in Section \ref{CreatingAnApplication:sec}, the
 model was created in the package {\tt artisynth.models.experimental}.
 Since Java classes are arranged in a directory structure that mirrors
 package names, with respect to the sample class directory shown
@@ -778,15 +778,150 @@ from the submenu reached by {\sf Models > All demos > tutorial}.
 \section{Mechanical Models I}
 \label{MechModelsI:sec}
 
+This section details how to build basic multibody-type mechanical
+models consisting of particles, springs, rigid bodies, joints, and
+other constraints.
+
 \subsection{Springs and particles}
 \label{ParticlesAndSprings:sec}
 
+The most basic type of mechanical model consists simply of particles
+connected together by axial springs.  Particles are implemented by
+the class \javaclass[artisynth.core.mechmodels]{Particle}, which is a
+dynamic component containing 3D positon and velocity state, together
+with a mass. It is an instance of the more general base class
+\javaclass[artisynth.core.mechmodels]{Point}, which is used to also
+implement spatial points such as {\tt markers} which do not have a
+mass.
+
+\subsubsection{Axial springs and materials}
+
+An axial spring is a simple spring that connects two points and is
+implemented by the class
+\javaclass[artisynth.core.mechmodels]{AxialSpring}. This is a {\it
+force effector} component that exerts equal and opposite forces on the
+two points, along the line separating them, with a magnitude $f$ that
+is a function $f(l, \dot l)$ of the distance $l$ between the points,
+and its derivative $\dot l$.
+
+Each axial spring is associated with an {\it axial material},
+implemented by subclass of
+\javaclass[artisynth.core.materials]{AxialMaterial}, that specifies
+the function $f(l, \dot l)$. The most basic type of axial material is
+a \javaclass[artisynth.core.materials]{LinearAxialMaterial}, which
+determines $f$ according to the linear relationship
+%
+\begin{equation}
+f(l, \dot l) = k (l-l_0) + d \dot l
+\end{equation}
+%
+where $l_0$ is the rest length and $k$ and $d$ are the stiffness and
+damping. Both $k$ and $d$ are properties of the material, while $l_0$
+is a property of the spring. 
+
+Axial springs are assigned a linear axial material by default.  More
+complex, non-linear axial materials may be defined in the package {\tt
+arttisynth.core.materials}. Setting or querying a spring's material
+may be done with the methods {\tt setMaterial()} and {\tt
+getMaterial()}.
+
 \subsubsection{A simple particle-spring model}
-% ParticleSpring.tex
+\label{ParticleSpringExample:sec}
 
-\subsubsection{Dynamic vs. non-dynamic components}
+\begin{figure}[t]
+\begin{center}
+ \includegraphics[width=3.75in]{images/ParticleSpringReduced}
+\end{center}
+\caption{ParticleSpring example loaded into ArtiSynth.}
+\label{ParticleSpring:fig}
+\end{figure}
 
-\subsubsection{Spring materials}
+An complete application model that implements a simple particle-spring
+model is given below. 
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+ParticleSpring} from the {\sf Models} menu. The model should load and
+initially appear as in Figure \ref{ParticleSpring:fig}.
+
+\lstset{numbers=left}
+\lstinputlisting{../../src/artisynth/demos/tutorial/ParticleSpring.java}
+\lstset{numbers=none}
+
+Line 1 of the source defines the package in which the model class will
+reside, in this case {\tt artisynth.demos.tutorial}. Lines 3-8 import
+definitions for other classes that will be used.
+
+The model application class is named {\tt ParticleSpring} and declared
+to extend {\tt RootModel} (line 13), and the {\tt build()} method
+definition begins at line 15. (A no-args constructor is also needed,
+but because no other constructors are defined, an empty one is created
+automatically.)
+
+To begin, the {\tt build()} method creates a {\tt MechModel} named
+{\tt "mech"}, and then adds it to the models list of the root model
+using the {\tt addModel()} method (lines 18-19). Next, two particles,
+{\tt p1} and {\tt p2}, are created, with masses equal to 2 and initial
+positions at 0, 0, 0, and 1, 0, 0, respectively (lines 22-23). Then an
+axial spring is created, with end points set to {\tt p1} and {\tt p2},
+and assigned a linear material with a stiffness and damping of 20 and
+10 (lines 24-27). Finally, after the particles and the spring are
+created, they are added to the {\tt particles} and {\tt axialSprings}
+component lists of the {\tt MechModel} using the methods {\tt
+addParticle()} and {\tt addAxialSpring()} (lines 30-32).
+
+At this point in the code, both particles are defined to be
+dynamically controlled, so that running the simulation would cause
+both to fall under the {\tt MechModel}'s default gravity acceleration
+of $(0, 0, -9.8)$. However, for this example, we want the first
+particle to remain fixed in place, so we set it to be {\it
+non-dynamic} (line 34), meaning that the physical simulation will not
+update its position in response to forces (Section
+\ref{DynamicVsParametric:sec}).
+
+The remaining calls control aspects of how the model is graphicaly
+rendered.  {\tt setBounds()} (line 37) increases the model's "bounding
+box" so that by default it will occupy a larger part of the viewer
+frustum. Both {\tt setPointRenderProps()} and {\tt
+setSpringRenderProps()} are convenience methods defined by the class
+(lines 44-48 and 5054) to set render properties for points and
+springs, respectively. Points are set to be rendered as red spheres
+with a radius of 0.06, while springs are set to be rendered as blue
+cylinders with a radius of 0.02. More details about setting render
+properties are given in Section \ref{RenderProperties:sec}.
+
+\subsubsection{Dynamic vs. parametric components}
+\label{DynamicVsParametric:sec}
+
+By default, a dynamic component is advanced through time in response
+to the forces applied to it. 
+
+\subsubsection{Custom axial materials}
+
+Application authors may also create their
+own materials by subclassing the functions
+%
+\begin{lstlisting}
+  double computeF (l, ldot, l0, excitation);
+  double computeDFdl (l, ldot, l0, excitation);
+  double computeDFdldot (l, ldot, l0, excitation);
+  boolean isDFdldotZero ();
+\end{lstlisting}
+%
+where {\tt excitation} is an additional {\it excitation} signal $a$, which
+is used to implement active springs and which in particular is used to
+implement axial muscles (Section \ref{PointToPointMuscles:sec}), for
+which $a$ is usually in the range $[0, 1]$.
+
+The first three methods should return the values of 
+%
+\begin{equation}
+f (l, \dot l, a), \quad
+\frac{\partial f(l, \dot l, a)}{\partial l}, \quad \text{and} \quad
+\frac{\partial f(l, \dot l, a)}{\partial \dot l},
+\end{equation}
+%
+respectively, while the last method should return {\tt true} if
+$\partial f(l, \dot l, a) / \partial \dot l \equiv 0$; i.e., if it always
+equals 0.
 
 \subsection{Rigid bodies}
 
@@ -831,6 +966,8 @@ from the submenu reached by {\sf Models > All demos > tutorial}.
 \section{Mechanical Models II}
 \label{MechModelsII:sec}
 
+\subsection{Units}
+
 \subsection{Multi-point springs}
 
 \subsubsection{Operation}
@@ -840,6 +977,7 @@ from the submenu reached by {\sf Models > All demos > tutorial}.
 % MultiPointSpring
 
 \subsection{Point-to-point muscles}
+\label{PointToPointMuscles:sec}
 
 \subsubsection{Muscle materials}
 
@@ -887,6 +1025,7 @@ from the submenu reached by {\sf Models > All demos > tutorial}.
 \subsubsection{Legacy containers in MechModel}
 
 \subsection{Render properties}
+\label{RenderProperties:sec}
 
 \subsubsection{Render property taxonomy}
 

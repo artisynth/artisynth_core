@@ -68,7 +68,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    protected PointList<FrameMarker> myFrameMarkers;
    protected CollisionManager myCollisionManager;
 
-   protected ArrayList<DynamicMechComponent> myLocalDynamicComps;
+   protected ArrayList<DynamicComponent> myLocalDynamicComps;
    protected ArrayList<RequiresInitialize> myLocalInitComps;
    protected ArrayList<RequiresPrePostAdvance> myLocalPrePostAdvanceComps;
    protected ArrayList<MechSystemModel> myLocalModels;
@@ -1120,20 +1120,20 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       addConstraintForces = enable;
    }
 
-   public static boolean isActive (DynamicMechComponent c) {
+   public static boolean isActive (DynamicComponent c) {
       return c.isActive();
    }
 
    protected void recursivelyGetDynamicComponents (
       CompositeComponent comp, 
-      List<DynamicMechComponent> active, 
-      List<DynamicMechComponent> attached,
-      List<DynamicMechComponent> parametric) {
+      List<DynamicComponent> active, 
+      List<DynamicComponent> attached,
+      List<DynamicComponent> parametric) {
       
       for (int i=0; i<comp.numComponents(); i++) {
          ModelComponent c = comp.get (i);
-         if (c instanceof DynamicMechComponent) {
-            DynamicMechComponent dm = (DynamicMechComponent)c;
+         if (c instanceof DynamicComponent) {
+            DynamicComponent dm = (DynamicComponent)c;
             if (dm.isActive()) {
                active.add (dm);
             }
@@ -1156,9 +1156,9 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    }
 
    public void getDynamicComponents (
-      List<DynamicMechComponent> active, 
-      List<DynamicMechComponent> attached,
-      List<DynamicMechComponent> parametric) {
+      List<DynamicComponent> active, 
+      List<DynamicComponent> attached,
+      List<DynamicComponent> parametric) {
 
       recursivelyGetDynamicComponents (this, active, attached, parametric);
    }
@@ -1363,7 +1363,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
             updateForces (t0);
          }
          mySolver.solve (t0, t1, stepAdjust);
-         DynamicMechComponent c = checkVelocityStability();
+         DynamicComponent c = checkVelocityStability();
          if (c != null) {
             throw new NumericalException (
                "Unstable velocity detected, component " +
@@ -1712,10 +1712,10 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    /**
     * {@inheritDoc}
     */
-   public DynamicMechComponent checkVelocityStability() {
+   public DynamicComponent checkVelocityStability() {
       updateDynamicComponentLists(); // PARANOID
       for (int i=0; i<myNumActive; i++) {
-         DynamicMechComponent c = myDynamicComponents.get(i);
+         DynamicComponent c = myDynamicComponents.get(i);
          if (c.velocityLimitExceeded (
                 myMaxTranslationalVel, myMaxRotationalVel)) {
             return c;
@@ -1781,11 +1781,11 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
 
    protected void updateLocalDynamicComponents () {
       if (myLocalDynamicComps == null) {
-         myLocalDynamicComps = new ArrayList<DynamicMechComponent>();
+         myLocalDynamicComps = new ArrayList<DynamicComponent>();
          
          //recursivelyGetLocalDynamicComponents (this, myLocalDynamicComponents);
          recursivelyGetLocalComponents (
-            this, myLocalDynamicComps, DynamicMechComponent.class);        
+            this, myLocalDynamicComps, DynamicComponent.class);        
       }
    }
    
@@ -1801,7 +1801,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
          updateLocalDynamicComponents();
          if (!myGravity.equals (Vector3d.ZERO)) {
             for (int i=0; i<myLocalDynamicComps.size(); i++) {
-               DynamicMechComponent c = myLocalDynamicComps.get(i); 
+               DynamicComponent c = myLocalDynamicComps.get(i); 
                c.applyGravity (myGravity);
             }
          }

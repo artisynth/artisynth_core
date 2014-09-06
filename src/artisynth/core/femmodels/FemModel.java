@@ -36,7 +36,7 @@ import artisynth.core.materials.MaterialBase;
 import artisynth.core.mechmodels.Constrainer;
 import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.DynamicAttachment;
-import artisynth.core.mechmodels.DynamicMechComponent;
+import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.ForceEffector;
 import artisynth.core.mechmodels.HasSlaveObjects;
 import artisynth.core.mechmodels.MechSystemBase;
@@ -805,9 +805,9 @@ public abstract class FemModel extends MechSystemBase
    //protected abstract ArrayList<? extends FemNode> getActiveNodes();
 
    public void getDynamicComponents (
-      List<DynamicMechComponent> active,
-      List<DynamicMechComponent> attached, 
-      List<DynamicMechComponent> parametric) {
+      List<DynamicComponent> active,
+      List<DynamicComponent> attached, 
+      List<DynamicComponent> parametric) {
 
       for (int i=0; i<numNodes(); i++) {
          FemNode n = getNodes().get(i);
@@ -1027,7 +1027,7 @@ public abstract class FemModel extends MechSystemBase
    /**
     * {@inheritDoc}
     */
-   public DynamicMechComponent checkVelocityStability() {
+   public DynamicComponent checkVelocityStability() {
       PointList<? extends FemNode> nodes = getNodes();
       for (int i=0; i<nodes.size(); i++) {
          FemNode node = nodes.get(i);

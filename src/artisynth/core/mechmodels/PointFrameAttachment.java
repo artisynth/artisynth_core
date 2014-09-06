@@ -20,13 +20,13 @@ import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
 public class PointFrameAttachment extends PointAttachment {
-   DynamicMechComponent[] myMasters;
+   DynamicComponent[] myMasters;
    Point3d myLoc = new Point3d(); // location of point in frame coordinates
    Frame myFrame;
    Matrix3d myTmp = new Matrix3d();
    Vector3d myVec = new Vector3d();
 
-   public DynamicMechComponent[] getMasters() {
+   public DynamicComponent[] getMasters() {
       return myMasters;
    }
 
@@ -53,12 +53,12 @@ public class PointFrameAttachment extends PointAttachment {
 
    void setFrame (Frame body) {
       myFrame = body;
-      if (body instanceof DynamicMechComponent) {
-         myMasters = new DynamicMechComponent[1];
-         myMasters[0] = (DynamicMechComponent)myFrame;
+      if (body instanceof DynamicComponent) {
+         myMasters = new DynamicComponent[1];
+         myMasters[0] = (DynamicComponent)myFrame;
       }
       else {
-         myMasters = new DynamicMechComponent[0];
+         myMasters = new DynamicComponent[0];
       }
    }
 

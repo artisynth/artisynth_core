@@ -14,8 +14,8 @@ import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.util.*;
 import java.util.*;
 
-public abstract class DynamicMechComponentBase extends RenderableComponentBase
-implements DynamicMechComponent {
+public abstract class DynamicComponentBase extends RenderableComponentBase
+implements DynamicComponent {
    DynamicAttachment myAttachment;
    LinkedList<DynamicAttachment> myMasterAttachments;
 
@@ -71,7 +71,7 @@ implements DynamicMechComponent {
          return true;
       }
       else if (isAttached()) {
-         DynamicMechComponent[] masters = getAttachment().getMasters();
+         DynamicComponent[] masters = getAttachment().getMasters();
          for (int i=0; i<masters.length; i++) {
             if (masters[i].isControllable()) {
                return true;
@@ -121,8 +121,8 @@ implements DynamicMechComponent {
 
    public ModelComponent copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
-      DynamicMechComponentBase comp =
-         (DynamicMechComponentBase)super.copy (flags, copyMap);
+      DynamicComponentBase comp =
+         (DynamicComponentBase)super.copy (flags, copyMap);
       comp.myAttachment = null;
       comp.myMasterAttachments = null;
       comp.mySolveIdx = -1;

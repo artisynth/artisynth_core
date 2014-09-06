@@ -30,7 +30,7 @@ import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.femmodels.SkinMesh.FrameBlending;
 import artisynth.core.femmodels.SkinMesh.FrameInfo;
-import artisynth.core.mechmodels.DynamicMechComponent;
+import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.Point;
@@ -62,7 +62,7 @@ public class PointSkinAttachment extends PointAttachment
    protected Connection[] myConnections = new Connection[0];
    protected int myNumConnections;
    protected SkinMesh mySkinMesh = null;
-   protected DynamicMechComponent[] myMasters = null;
+   protected DynamicComponent[] myMasters = null;
    protected Point3d myBasePos;
 
    /**
@@ -161,7 +161,7 @@ public class PointSkinAttachment extends PointAttachment
     * index of the connection. Must be in the range 0 to
     * {@link #numConnections()}.
     */
-   public DynamicMechComponent getMaster(int idx) {
+   public DynamicComponent getMaster(int idx) {
       return myConnections[idx].getMaster();
    }
 
@@ -285,7 +285,7 @@ public class PointSkinAttachment extends PointAttachment
       /**
        * Returns the master component associated with this connection.
        */
-      public abstract DynamicMechComponent getMaster();
+      public abstract DynamicComponent getMaster();
 
       /**
        * Adds this connection's point value contribution to <code>pos</code>.
@@ -334,7 +334,7 @@ public class PointSkinAttachment extends PointAttachment
          return myFrameInfo.myIndex;
       }
 
-      public DynamicMechComponent getMaster() {
+      public DynamicComponent getMaster() {
          return myFrameInfo.myFrame;
       }
 
@@ -383,7 +383,7 @@ public class PointSkinAttachment extends PointAttachment
          myWeight = w;
       }
 
-      public DynamicMechComponent getMaster() {
+      public DynamicComponent getMaster() {
          return myParticle;
       }
 
@@ -412,7 +412,7 @@ public class PointSkinAttachment extends PointAttachment
          myWeight = w;
       }
 
-      public DynamicMechComponent getMaster() {
+      public DynamicComponent getMaster() {
          return null;
       }
 
@@ -443,7 +443,7 @@ public class PointSkinAttachment extends PointAttachment
          myWeight = w;
       }
 
-      public DynamicMechComponent getMaster() {
+      public DynamicComponent getMaster() {
          return myNode;
       }
 
@@ -472,21 +472,21 @@ public class PointSkinAttachment extends PointAttachment
       // throw new IllegalStateException (
       // "SkinMesh is not set within this attacher");
       // }
-      ArrayList<DynamicMechComponent> masters =
-         new ArrayList<DynamicMechComponent>();
+      ArrayList<DynamicComponent> masters =
+         new ArrayList<DynamicComponent>();
       for (int i = 0; i < myNumConnections; i++) {
-         DynamicMechComponent m = myConnections[i].getMaster();
+         DynamicComponent m = myConnections[i].getMaster();
          if (m != null) {
             masters.add(m);
          }
       }
-      myMasters = masters.toArray(new DynamicMechComponent[0]);
+      myMasters = masters.toArray(new DynamicComponent[0]);
    }
 
    /**
     * {@inheritDoc}
     */
-   public DynamicMechComponent[] getMasters() {
+   public DynamicComponent[] getMasters() {
       if (myMasters == null) {
          initializeMasters();
       }
@@ -822,9 +822,9 @@ public class PointSkinAttachment extends PointAttachment
       if (point != null) {
          point.setAttached(this);
       }
-      DynamicMechComponent masters[] = getMasters();
+      DynamicComponent masters[] = getMasters();
       if (masters != null) {
-         for (DynamicMechComponent m : masters) {
+         for (DynamicComponent m : masters) {
             m.addMasterAttachment(this);
          }
       }
@@ -837,9 +837,9 @@ public class PointSkinAttachment extends PointAttachment
       if (point != null) {
          point.setAttached(null);
       }
-      DynamicMechComponent masters[] = getMasters();
+      DynamicComponent masters[] = getMasters();
       if (masters != null) {
-         for (DynamicMechComponent m : masters) {
+         for (DynamicComponent m : masters) {
             m.removeMasterAttachment(this);
          }
       }

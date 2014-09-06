@@ -21,8 +21,8 @@ import javax.media.opengl.*;
 
 import java.util.*;
 
-public class Frame extends DynamicMechComponentBase
-   implements TransformableGeometry, ScalableUnits, DynamicMechComponent,
+public class Frame extends DynamicComponentBase
+   implements TransformableGeometry, ScalableUnits, DynamicComponent,
               Tracable, MotionTargetComponent, CopyableComponent, HasCoordinateFrame {
 
    public static boolean dynamicVelInWorldCoords = true;
@@ -860,7 +860,7 @@ public class Frame extends DynamicMechComponentBase
       return myState.get (x, idx);
    }
 
-   public void setState (DynamicMechComponent c) {
+   public void setState (DynamicComponent c) {
       if (c instanceof Frame) {
          setState ((Frame)c);
       }

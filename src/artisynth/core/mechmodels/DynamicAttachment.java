@@ -22,14 +22,14 @@ public abstract class DynamicAttachment extends ModelComponentBase {
    private int attachedMasterCnt; // used internally for ordering the attachments
    private MatrixBlock[] myMasterBlks = null;
 
-   public abstract DynamicMechComponent[] getMasters();
+   public abstract DynamicComponent[] getMasters();
 
    public int numMasters() {
       return getMasters().length;
    }
 
-   public boolean containsMaster (DynamicMechComponent comp) {
-      DynamicMechComponent[] masters = getMasters();
+   public boolean containsMaster (DynamicComponent comp) {
+      DynamicComponent[] masters = getMasters();
       for (int i = 0; i < masters.length; i++) {
          if (masters[i] == comp) {
             return true;
@@ -46,7 +46,7 @@ public abstract class DynamicAttachment extends ModelComponentBase {
     * 
     * @return slave DynamicMechComponent, if any
     */
-   public abstract DynamicMechComponent getSlave();
+   public abstract DynamicComponent getSlave();
    
    /**
     * Returns the block index within the system solve matrix of the 
@@ -89,7 +89,7 @@ public abstract class DynamicAttachment extends ModelComponentBase {
     * and Gka is the constraint matrix for this attachment.
     */
    public void reduceConstraints (SparseBlockMatrix GT, VectorNd dg) {
-      DynamicMechComponent[] masters = getMasters();
+      DynamicComponent[] masters = getMasters();
 
       int bs = getSlaveSolveIndex();
       if (bs == -1) {
@@ -162,7 +162,7 @@ public abstract class DynamicAttachment extends ModelComponentBase {
          throw new IllegalArgumentException (
             "Matrix G is not vertically linked");
       }
-      DynamicMechComponent[] masters = getMasters();
+      DynamicComponent[] masters = getMasters();
       int bs = getSlaveSolveIndex();
       if (bs == -1) {
          return;
@@ -186,7 +186,7 @@ public abstract class DynamicAttachment extends ModelComponentBase {
    }
 
    public void reduceMass (SparseBlockMatrix M, VectorNd f) {
-      DynamicMechComponent[] masters = getMasters();
+      DynamicComponent[] masters = getMasters();
       int bs = getSlaveSolveIndex();
       if (bs == -1) {
          return;
@@ -221,7 +221,7 @@ public abstract class DynamicAttachment extends ModelComponentBase {
    }
 
    public void addSolveBlocks (SparseNumberedBlockMatrix S, boolean[] reduced) {
-      DynamicMechComponent[] masters = getMasters();
+      DynamicComponent[] masters = getMasters();
 
       if (!S.isVerticallyLinked()) {
          throw new IllegalArgumentException (
@@ -285,7 +285,7 @@ public abstract class DynamicAttachment extends ModelComponentBase {
    public void addAttachmentJacobian (
       SparseBlockMatrix S, VectorNd f, boolean[] reduced) {
 
-      DynamicMechComponent[] masters = getMasters();
+      DynamicComponent[] masters = getMasters();
       if (myMasterBlks == null || masters.length > myMasterBlks.length) {
          myMasterBlks = new MatrixBlock[masters.length];
       }
@@ -446,16 +446,16 @@ public abstract class DynamicAttachment extends ModelComponentBase {
    protected abstract MatrixBlock createColBlock (int rowSize);
 
    public static boolean containsLoops (List<DynamicAttachment> list) {
-      HashMap<DynamicMechComponent,DynamicAttachment> map =
-         new HashMap<DynamicMechComponent,DynamicAttachment>();
+      HashMap<DynamicComponent,DynamicAttachment> map =
+         new HashMap<DynamicComponent,DynamicAttachment>();
       for (DynamicAttachment a : list) {
-         DynamicMechComponent slave = a.getSlave();
+         DynamicComponent slave = a.getSlave();
          if (slave != null) {
             map.put (a.getSlave(), a);
          }
       }
       for (DynamicAttachment a : list) {
-         DynamicMechComponent slave = a.getSlave();
+         DynamicComponent slave = a.getSlave();
          if (slave != null) {
             if (containsLoop (a, slave, map)) {
                return true;
@@ -466,11 +466,11 @@ public abstract class DynamicAttachment extends ModelComponentBase {
    }
 
    public static boolean containsLoop (
-      DynamicAttachment a, DynamicMechComponent slave,
-      HashMap<DynamicMechComponent,DynamicAttachment> map) {
+      DynamicAttachment a, DynamicComponent slave,
+      HashMap<DynamicComponent,DynamicAttachment> map) {
       
       DynamicAttachment b;
-      for (DynamicMechComponent m : a.getMasters()) {
+      for (DynamicComponent m : a.getMasters()) {
          if (m == slave) {
             return true;
          }
@@ -491,7 +491,7 @@ public abstract class DynamicAttachment extends ModelComponentBase {
       LinkedList<DynamicAttachment> queue = new LinkedList<DynamicAttachment>();
       for (DynamicAttachment a : list) {
          a.attachedMasterCnt = 0;
-         for (DynamicMechComponent m : a.getMasters()) {
+         for (DynamicComponent m : a.getMasters()) {
             if (m.isAttached()) {
                a.attachedMasterCnt++;
             }

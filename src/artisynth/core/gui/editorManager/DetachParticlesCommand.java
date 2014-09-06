@@ -14,7 +14,7 @@ import java.util.*;
 public class DetachParticlesCommand implements Command {
    private String myName;
    private LinkedList<Particle> myParticles;
-   private DynamicMechComponent[] myMasters;
+   private DynamicComponent[] myMasters;
    private MechModel myMechModel;
 
    public DetachParticlesCommand (
@@ -22,7 +22,7 @@ public class DetachParticlesCommand implements Command {
       myName = name;
       myParticles = particles;
       myMechModel = mechModel;
-      myMasters = new DynamicMechComponent[particles.size()];
+      myMasters = new DynamicComponent[particles.size()];
    }
 
    public void execute() {
@@ -30,7 +30,7 @@ public class DetachParticlesCommand implements Command {
       for (Particle p : myParticles) {
          DynamicAttachment a = p.getAttachment();
          if (a.numMasters() == 1) {
-            DynamicMechComponent m = a.getMasters()[0];
+            DynamicComponent m = a.getMasters()[0];
             if (m instanceof Particle || m instanceof RigidBody) {
                myMechModel.detachPoint (p);
                myMasters[i] = m;

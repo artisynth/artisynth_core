@@ -23,7 +23,7 @@ import artisynth.core.mechmodels.CollisionHandler;
 import artisynth.core.mechmodels.DeformableCollisionData;
 import artisynth.core.mechmodels.DeformableCollisionDataBase;
 import artisynth.core.mechmodels.DeformableContactConstraint;
-import artisynth.core.mechmodels.DynamicMechComponent;
+import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointAttachment;
@@ -63,12 +63,12 @@ public class EmbeddedCollisionData extends DeformableCollisionDataBase {
       // attached to the face's nodes?  Might need to take in the face
       // as an additional argument
       int numMasters = pa.numMasters ();
-      DynamicMechComponent[] masters = pa.getMasters ();
+      DynamicComponent[] masters = pa.getMasters ();
       for (int i=0; i<numMasters; i++) {
          if (masters[i] instanceof FemNode3d) {
             FemNode3d node = (FemNode3d)masters[i];
             if (node.isAttached ()) {
-               DynamicMechComponent[] nodeMasters = node.getAttachment().getMasters();
+               DynamicComponent[] nodeMasters = node.getAttachment().getMasters();
                for (int j=0; j<masters.length; j++) {
                   // check parent and grandparent in case is fem or 
                   // any other kind of deformable
@@ -135,7 +135,7 @@ public class EmbeddedCollisionData extends DeformableCollisionDataBase {
          PointAttachment pa = myFMC.getAttachment (vidx);
          
          int numMasters = pa.numMasters ();
-         DynamicMechComponent[] masters = pa.getMasters ();
+         DynamicComponent[] masters = pa.getMasters ();
          for (int i=0; i<numMasters; i++) {
             if (masters[i] instanceof FemNode3d) {
                FemNode3d node = (FemNode3d)masters[i];
@@ -153,7 +153,7 @@ public class EmbeddedCollisionData extends DeformableCollisionDataBase {
             PointAttachment pa = myFMC.getAttachment (vidx);
             
             int numMasters = pa.numMasters ();
-            DynamicMechComponent[] masters = pa.getMasters ();
+            DynamicComponent[] masters = pa.getMasters ();
             for (int j=0; i<numMasters; i++) {
                if (masters[j] instanceof FemNode3d) {
                   FemNode3d node = (FemNode3d)masters[j];
@@ -185,7 +185,7 @@ public class EmbeddedCollisionData extends DeformableCollisionDataBase {
       PointAttachment pa = myFMC.getAttachment (vidx);
       
       int numMasters = pa.numMasters ();
-      DynamicMechComponent[] masters = pa.getMasters ();
+      DynamicComponent[] masters = pa.getMasters ();
       for (int i=0; i<numMasters; i++) {
          if (masters[i] instanceof FemNode3d) {
             FemNode3d node = (FemNode3d)masters[i];
@@ -315,7 +315,7 @@ public class EmbeddedCollisionData extends DeformableCollisionDataBase {
    public void markMasters(Vertex3d vtx, boolean marked) {
       
       PointAttachment pa = myFMC.getAttachment(vtx.getIndex());
-      for (DynamicMechComponent dmc : pa.getMasters()) {
+      for (DynamicComponent dmc : pa.getMasters()) {
          dmc.setMarked(marked);
       }
       
@@ -325,7 +325,7 @@ public class EmbeddedCollisionData extends DeformableCollisionDataBase {
    public int numActiveUnmarkedMasters(Vertex3d vtx) {
       int nm = 0;
       PointAttachment pa = myFMC.getAttachment(vtx.getIndex());
-      for (DynamicMechComponent dmc : pa.getMasters()) {
+      for (DynamicComponent dmc : pa.getMasters()) {
          if (dmc.isActive() && !dmc.isMarked()) {
             nm++;
          }

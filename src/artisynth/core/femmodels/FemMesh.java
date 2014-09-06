@@ -42,7 +42,7 @@ import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.CollisionData;
 import artisynth.core.mechmodels.DynamicAttachment;
-import artisynth.core.mechmodels.DynamicMechComponent;
+import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointAttachment;
@@ -961,7 +961,7 @@ public class FemMesh extends FemMeshBase implements Pullable, Collidable {
    public boolean hasNodeDependency(FemNode3d node) {
       
       for (PointAttachment pa : myVertexAttachments) {
-         for (DynamicMechComponent dmc : pa.getMasters()) {
+         for (DynamicComponent dmc : pa.getMasters()) {
             if (dmc == node) {
                return true;
             }
@@ -997,7 +997,7 @@ public class FemMesh extends FemMeshBase implements Pullable, Collidable {
       public void applyForce(Point3d pnt, Vector3d f) {
          // XXX zero out external force? 
          for (int i=0; i<attachments.length; i++) {
-            DynamicMechComponent[] comps = attachments[i].getMasters();
+            DynamicComponent[] comps = attachments[i].getMasters();
             for (int j=0; j<comps.length; j++) {
                if (comps[j] instanceof Point) {
                   Point p = (Point)comps[j];

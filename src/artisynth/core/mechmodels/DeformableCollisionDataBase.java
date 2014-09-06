@@ -378,7 +378,7 @@ implements DeformableCollisionData {
 
       for (Point node : nodes) {
          if (node.isAttached()) {
-            DynamicMechComponent[] masters = node.getAttachment().getMasters();
+            DynamicComponent[] masters = node.getAttachment().getMasters();
             for (int i=0; i<masters.length; i++) {
 
                // check parent and grandparent in case is fem or any other kind of deformable

@@ -60,7 +60,7 @@ import artisynth.core.materials.ViscoelasticBehavior;
 import artisynth.core.materials.SolidDeformation;
 import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.CollisionData;
-import artisynth.core.mechmodels.DynamicMechComponent;
+import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.HasAuxState;
 import artisynth.core.mechmodels.MechSystemModel;
 import artisynth.core.mechmodels.MeshComponent;
@@ -1480,7 +1480,7 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
       }
       else {
          mySolver.solve(t0, t1, stepAdjust);
-         DynamicMechComponent c = checkVelocityStability();
+         DynamicComponent c = checkVelocityStability();
          if (c != null) {
             throw new NumericalException(
                "Unstable velocity detected, component "
@@ -1501,7 +1501,7 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
    /**
     * {@inheritDoc}
     */
-   public DynamicMechComponent checkVelocityStability() {
+   public DynamicComponent checkVelocityStability() {
       PointList<MFreeNode3d> nodes = getNodes();
       for (int i = 0; i < nodes.size(); i++) {
          MFreeNode3d node = nodes.get(i);

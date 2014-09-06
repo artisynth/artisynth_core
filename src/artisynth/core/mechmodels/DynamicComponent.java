@@ -17,7 +17,7 @@ import maspack.matrix.VectorNd;
 import maspack.matrix.Vector3d;
 import java.util.*;
 
-public interface DynamicMechComponent extends ModelComponent, ForceEffector {
+public interface DynamicComponent extends ModelComponent, ForceEffector {
 
    /**
     * Returns the slave attachment associated with this component, if any.
@@ -179,7 +179,7 @@ public interface DynamicMechComponent extends ModelComponent, ForceEffector {
     * 
     * @param c component from which the state is to be copied.
     */
-   public void setState (DynamicMechComponent c);
+   public void setState (DynamicComponent c);
 
    public void addPosImpulse (
       double[] xbuf, int xidx, double h, double[] vbuf, int vidx);

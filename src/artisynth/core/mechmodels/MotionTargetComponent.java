@@ -12,7 +12,7 @@ import artisynth.core.mechmodels.MotionTarget.TargetActivity;
 /** 
  * Indicates a dynamic component for which motion targets can be set.
  */
-public interface MotionTargetComponent extends DynamicMechComponent {
+public interface MotionTargetComponent extends DynamicComponent {
 
    public TargetActivity getTargetActivity();
 

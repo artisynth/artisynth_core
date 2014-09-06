@@ -964,7 +964,7 @@ implements Constrainer {
       boolean compIsFem = (comp instanceof FemModel);      
       FemNode node = ((FemMeshVertex)vtx).getPoint();
       if (node.isAttached()) {
-         DynamicMechComponent[] masters = node.getAttachment().getMasters();
+         DynamicComponent[] masters = node.getAttachment().getMasters();
          for (int i=0; i<masters.length; i++) {
             if (compIsFem) {
                if (ComponentUtils.getGrandParent (masters[i]) == comp) {

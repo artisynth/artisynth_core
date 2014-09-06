@@ -33,7 +33,7 @@ public class MechModelEditor extends EditorBase {
       super (main, editManager);
    }
 
-   private MechModel getAttachmentModel (DynamicMechComponent c) {
+   private MechModel getAttachmentModel (DynamicComponent c) {
       CompositeComponent gp = ComponentUtils.getGrandParent(c.getAttachment());
       if (gp instanceof MechModel) {
          return (MechModel)gp;

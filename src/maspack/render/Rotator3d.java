@@ -240,14 +240,17 @@ public class Rotator3d extends Dragger3dBase {
          myIncrementalTransform.setIdentity();
          fireDraggerEndListeners (
             myTransform, myIncrementalTransform, e.getModifiersEx());
+         
          myDragMode = DragMode.OFF;
+         clearFlags();
          return true;
       }
       return false;
    }
 
    public boolean mousePressed (MouseRayEvent e) {
-      DragMode mode = getDragMode (e);
+      // DragMode mode = getDragMode (e);
+      DragMode mode = getDragMode ();
       if (mode != DragMode.OFF && mySelectedComponent != NONE) {
          myDragMode = mode;
          myXDraggerToWorld0.set (myXDraggerToWorld);
@@ -264,7 +267,8 @@ public class Rotator3d extends Dragger3dBase {
 
    public boolean mouseDragged (MouseRayEvent e) {
       if (mySelectedComponent != NONE) {
-         boolean constrained = dragIsConstrained (e);
+         //boolean constrained = dragIsConstrained (e);
+         boolean constrained = dragIsConstrained ();
          findRotation (myRot, myRotPnt, e.getRay());
          myRot.mulInverseLeft (myRot0, myRot);
          if (constrained) {
@@ -281,7 +285,8 @@ public class Rotator3d extends Dragger3dBase {
          // By default, do not move the rotator coordinate frame
          // with the rotation ...
          // myXDraggerToWorld.R.mul (myIncrementalTransform.R);
-         if (!dragIsRepositioning(e)) {
+         //if (!dragIsRepositioning(e)) {
+         if (!dragIsRepositioning()) {
             fireDraggerMoveListeners (
                myTransform, myIncrementalTransform, e.getModifiersEx());
          }

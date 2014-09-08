@@ -28,7 +28,8 @@ public class FreehandTool extends DrawToolBase {
 
    public boolean mousePressed (MouseRayEvent e) {
       if (isVisible()) {
-         DragMode mode = getDragMode (e);
+         //DragMode mode = getDragMode (e);
+         DragMode mode = getDragMode ();
          if (mode != DragMode.OFF) {
             Vector3d isect = new Vector3d();
             int height = myViewer.getHeight();
@@ -48,6 +49,7 @@ public class FreehandTool extends DrawToolBase {
       if (myDragMode != DragMode.OFF) {
          fireDrawToolEndListeners (e.getModifiersEx());
          myDragMode = DragMode.OFF;
+         clearFlags();
          return true;
       }
       return false;

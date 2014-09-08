@@ -473,7 +473,9 @@ public class Transrotator3d extends Dragger3dBase {
 //   }
 
    public boolean mousePressed (MouseRayEvent e) {
-      DragMode mode = getDragMode (e);
+      
+      // DragMode mode = getDragMode (e);
+      DragMode mode = getDragMode ();
       if (mode != DragMode.OFF && mySelectedComponent != NONE) {
          myDragMode = mode;
          if (mySelectedComponent >= X_ROTATE) {
@@ -501,6 +503,7 @@ public class Transrotator3d extends Dragger3dBase {
                myTransform, myIncrementalTransform, e.getModifiersEx());
          }
          myDragMode = DragMode.OFF;
+         clearFlags();
          return true;
       }
       return false;
@@ -508,7 +511,8 @@ public class Transrotator3d extends Dragger3dBase {
 
    public boolean mouseDragged (MouseRayEvent e) {
       if (mySelectedComponent != NONE) {
-         boolean constrained = dragIsConstrained (e);
+         // boolean constrained = dragIsConstrained (e);
+         boolean constrained = dragIsConstrained ();
          if (mySelectedComponent >= X_ROTATE) {
             RotationMatrix3d R = new RotationMatrix3d();
             findRotation (R, myRotPnt, e.getRay());
@@ -519,7 +523,8 @@ public class Transrotator3d extends Dragger3dBase {
             intersectRayAndFixture (pnt, e.getRay());
             updatePosition (myPnt0, pnt, constrained);
          }
-         if (!dragIsRepositioning(e)) {
+         //if (!dragIsRepositioning(e)) {
+         if (!dragIsRepositioning()) {
             fireDraggerMoveListeners (
                myTransform, myIncrementalTransform, e.getModifiersEx());
          }

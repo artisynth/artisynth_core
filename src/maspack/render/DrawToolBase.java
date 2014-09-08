@@ -230,7 +230,7 @@ public abstract class DrawToolBase extends DragToolBase implements Dragger3d {
          fireDrawToolRemovedListeners();
       }
       myViewer = viewer;
-      updateKeyMasks (viewer);
+
       if (viewer != null) {
          fireDrawToolAddedListeners();
      }

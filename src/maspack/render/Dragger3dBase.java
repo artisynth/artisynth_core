@@ -9,8 +9,6 @@ package maspack.render;
 import maspack.matrix.*;
 import maspack.util.Round;
 import java.util.LinkedList;
-import java.awt.event.InputEvent;
-import java.awt.event.MouseEvent;
 
 public abstract class Dragger3dBase extends DragToolBase implements Dragger3d {
    protected RigidTransform3d myXDraggerToWorld;
@@ -220,7 +218,7 @@ public abstract class Dragger3dBase extends DragToolBase implements Dragger3d {
          fireDraggerRemovedListeners();
       }
       myViewer = viewer;
-      updateKeyMasks (viewer);
+      // updateKeyMasks (viewer);
       if (viewer != null) {
          fireDraggerAddedListeners();
      }

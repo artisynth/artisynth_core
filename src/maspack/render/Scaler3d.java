@@ -300,7 +300,8 @@ public class Scaler3d extends Dragger3dBase {
 //   }
 
    public boolean mousePressed (MouseRayEvent e) {
-      DragMode mode = getDragMode (e);
+      // DragMode mode = getDragMode (e);
+      DragMode mode = getDragMode ();
       if (mode != DragMode.OFF && mySelectedComponent != NONE) {
          myDragMode = mode;
          intersectRayAndFixture (myPnt0, e.getRay());
@@ -318,7 +319,9 @@ public class Scaler3d extends Dragger3dBase {
          myIncrementalTransform.setIdentity();
          fireDraggerEndListeners (
             myTransform, myIncrementalTransform, e.getModifiersEx());
+         
          myDragMode = DragMode.OFF;
+         clearFlags();
          return true;
       }
       return false;
@@ -326,7 +329,8 @@ public class Scaler3d extends Dragger3dBase {
 
    public boolean mouseDragged (MouseRayEvent e) {
       if (mySelectedComponent != NONE) {
-         boolean constrained = dragIsConstrained (e);
+         // boolean constrained = dragIsConstrained (e);
+         boolean constrained = dragIsConstrained ();
          Point3d pnt = new Point3d();
          intersectRayAndFixture (pnt, e.getRay());
          updatePosition (pnt, constrained);

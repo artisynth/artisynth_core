@@ -103,7 +103,8 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
    }
 
    public boolean mousePressed (MouseRayEvent e) {
-      DragMode mode = getDragMode (e);
+      // DragMode mode = getDragMode (e);
+      DragMode mode = getDragMode ();
       if (mode != DragMode.OFF && myVisibleP) {
          double dpp = e.distancePerPixel (myXDraggerToWorld.p);
          if (checkComponentSelection (e.getRay(), dpp)) {
@@ -132,6 +133,7 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
             }
          }
          myDragMode = DragMode.OFF;
+         clearFlags();
          return true;
       }
       return false;

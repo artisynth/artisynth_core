@@ -9,7 +9,14 @@ package maspack.render;
 
 public interface Dragger3d extends GLSelectable {
    //public boolean isSelected();
-
+   
+   public final int CONSTRAIN = 0x01;
+   public final int REPOSITION = 0x02;
+   
+   public enum DragMode {
+      OFF, DRAG, REPOSITION
+   }
+   
    public boolean mouseClicked (MouseRayEvent e);
 
    public boolean mousePressed (MouseRayEvent e);
@@ -22,5 +29,16 @@ public interface Dragger3d extends GLSelectable {
 
    public boolean isVisible();
 
+   // Flags used for setting various modes
+   public int getFlags();
+   
+   public void setFlags(int f);
+   
+   public void clearFlags();
+   
+   public void setDragMode(DragMode mode);
+   
+   public DragMode getDragMode();
+   
    //public void draggerSelected (MouseRayEvent e);
 }

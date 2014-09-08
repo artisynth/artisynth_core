@@ -9,6 +9,7 @@ package artisynth.core.driver;
 
 import java.awt.*;
 import java.awt.event.InputEvent;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.*;
@@ -1176,32 +1177,47 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       
       if (prefs.equalsIgnoreCase ("kees")) {
+         
+         mouse.setRotateButtonMask (InputEvent.BUTTON1_DOWN_MASK);
          mouse.setTranslateButtonMask (
             InputEvent.BUTTON1_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
          mouse.setZoomButtonMask (
             InputEvent.BUTTON1_DOWN_MASK | InputEvent.ALT_DOWN_MASK);
-         mouse.setRotateButtonMask (InputEvent.BUTTON1_DOWN_MASK);
+         
          mouse.setSelectionButtonMask (
             InputEvent.BUTTON1_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
          mouse.setMultipleSelectionMask(InputEvent.CTRL_DOWN_MASK);
-         mouse.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);
+         // mouse.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);
+         
+         mouse.setDraggerConstrainMask(MouseEvent.SHIFT_DOWN_MASK);
+         mouse.setDraggerDragMask(InputEvent.BUTTON1_DOWN_MASK);
+         mouse.setDraggerRepositionMask(InputEvent.BUTTON1_DOWN_MASK | 
+            InputEvent.ALT_DOWN_MASK);
       }
       else if (prefs.equalsIgnoreCase("laptop")) {
+         
+         mouse.setRotateButtonMask (InputEvent.BUTTON1_DOWN_MASK);
          mouse.setTranslateButtonMask (
             InputEvent.BUTTON1_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
          mouse.setZoomButtonMask (
             InputEvent.BUTTON1_DOWN_MASK | InputEvent.ALT_DOWN_MASK);
-         mouse.setRotateButtonMask (InputEvent.BUTTON1_DOWN_MASK);
+         
          mouse.setSelectionButtonMask (
             InputEvent.BUTTON1_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
          mouse.setMultipleSelectionMask(InputEvent.SHIFT_DOWN_MASK);
-         mouse.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);         
+         // mouse.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);         
+         
+         mouse.setDraggerDragMask(InputEvent.BUTTON1_DOWN_MASK);
+         mouse.setDraggerConstrainMask(MouseEvent.SHIFT_DOWN_MASK);
+         mouse.setDraggerRepositionMask(InputEvent.BUTTON1_DOWN_MASK 
+            | InputEvent.ALT_DOWN_MASK);
       }
       else if (prefs.equalsIgnoreCase ("mac")) {
+         
          // setup button masks for macbook trackpad
-         mouse.setMultipleSelectionMask ((InputEvent.META_DOWN_MASK));
          ButtonMasks.setContextMenuMask (
             (InputEvent.BUTTON1_DOWN_MASK | InputEvent.CTRL_DOWN_MASK)); 
+         
          // right mouse button = CTRL + BUTTON
          mouse.setRotateButtonMask ( // middle mouse = ALT + BUTTON
             InputEvent.BUTTON1_DOWN_MASK | InputEvent.ALT_DOWN_MASK); 
@@ -1211,29 +1227,38 @@ public class Main implements DriverInterface, ComponentChangeListener {
          mouse.setZoomButtonMask (
             InputEvent.BUTTON1_DOWN_MASK | InputEvent.ALT_DOWN_MASK |
             InputEvent.META_DOWN_MASK);
-         mouse.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);
+         
          mouse.setSelectionButtonMask(InputEvent.BUTTON1_DOWN_MASK);
+         mouse.setMultipleSelectionMask ((InputEvent.META_DOWN_MASK));
+         // mouse.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);
+         
+         mouse.setDraggerConstrainMask(MouseEvent.SHIFT_DOWN_MASK);
+         mouse.setDraggerDragMask(InputEvent.BUTTON1_DOWN_MASK);
+         mouse.setDraggerRepositionMask(InputEvent.BUTTON1_DOWN_MASK 
+            | InputEvent.CTRL_DOWN_MASK);
+         
       } else if (prefs.equalsIgnoreCase("default")) {
-         mouse.setMultipleSelectionMask(InputEvent.CTRL_DOWN_MASK);
-         mouse.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);
+         
          mouse.setRotateButtonMask(InputEvent.BUTTON2_DOWN_MASK);
          mouse.setTranslateButtonMask(
             InputEvent.BUTTON2_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
          mouse.setZoomButtonMask(
             InputEvent.BUTTON2_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
+         
          mouse.setSelectionButtonMask(InputEvent.BUTTON1_DOWN_MASK);
+         mouse.setMultipleSelectionMask(InputEvent.CTRL_DOWN_MASK);
+         // mouse.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);
+         
+         mouse.setDraggerConstrainMask(MouseEvent.SHIFT_DOWN_MASK);
+         mouse.setDraggerDragMask(InputEvent.BUTTON1_DOWN_MASK);
+         mouse.setDraggerRepositionMask(InputEvent.BUTTON1_DOWN_MASK 
+            | InputEvent.CTRL_DOWN_MASK);
+         
       }
       else {
          System.out.println ("unknown mouse bindings: " + prefs);
          System.out.println ("unknown mouse bindings: " + prefs);
       }
-
-      // update key masks on draggers
-      translator3d.updateKeyMasks(myViewer);
-      transrotator3d.updateKeyMasks(myViewer);
-      rotator3d.updateKeyMasks(myViewer);
-      constrainedTranslator3d.updateKeyMasks(myViewer);
-      scalar3d.updateKeyMasks(myViewer);
 
    }
 

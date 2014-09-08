@@ -221,6 +221,7 @@ public class Jack3d extends Dragger3dBase {
 
    public boolean mouseReleased (MouseRayEvent e) {
       mySelectedComponent = NONE;
+      clearFlags();
       return true;
    }
 

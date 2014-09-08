@@ -113,9 +113,13 @@ public class RotatableScaler3d extends Transrotator3d {
    }
 
    public boolean mouseDragged (MouseRayEvent e) {
+      
       if (mySelectedComponent != NONE) {
-         boolean constrained = dragIsConstrained (e);
-         boolean repositioning = dragIsRepositioning (e);
+         //         boolean constrained = dragIsConstrained (e);
+         //         boolean repositioning = dragIsRepositioning (e);
+         
+         boolean constrained = dragIsConstrained ();
+         boolean repositioning = dragIsRepositioning ();
          if (mySelectedComponent >= X_ROTATE) {
             RotationMatrix3d R = new RotationMatrix3d();
             findRotation (R, myRotPnt, e.getRay());
@@ -132,6 +136,7 @@ public class RotatableScaler3d extends Transrotator3d {
          }
          return true;
       }
+      
       return false;
    }
 

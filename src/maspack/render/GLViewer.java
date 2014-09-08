@@ -3967,7 +3967,19 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
    }
    
    public void setMouseHandler(GLMouseListener handler) {
+      
+      if (myMouseHandler != null) { 
+         canvas.removeMouseListener(myMouseHandler);
+         canvas.removeMouseWheelListener (myMouseHandler);
+         canvas.removeMouseMotionListener (myMouseHandler);
+      }
+      
       myMouseHandler = handler;
+      
+      canvas.addMouseListener(myMouseHandler);
+      canvas.addMouseWheelListener (myMouseHandler);
+      canvas.addMouseMotionListener (myMouseHandler);
+      
    }
 
 }

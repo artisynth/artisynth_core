@@ -329,7 +329,8 @@ public class Translator3d extends Dragger3dBase {
    private void updatePosition (Point3d p0, Point3d p1, MouseRayEvent e) {
       Vector3d del = new Vector3d();
       del.sub (p1, p0);
-      if (dragIsConstrained(e)) {
+      // if (dragIsConstrained(e)) {
+      if (dragIsConstrained()) {
          GLViewer viewer = e.getViewer();
          boolean constrainedToGrid = false;
          if (viewer.getGridVisible()) {
@@ -371,7 +372,8 @@ public class Translator3d extends Dragger3dBase {
 //   }
 
    public boolean mousePressed (MouseRayEvent e) {
-      DragMode mode = getDragMode (e);
+      // DragMode mode = getDragMode (e);
+      DragMode mode = getDragMode ();
       if (mode != DragMode.OFF && mySelectedComponent != NONE) {
          myDragMode = mode;
          intersectRayAndFixture (myPnt0, e.getRay());
@@ -390,6 +392,7 @@ public class Translator3d extends Dragger3dBase {
          fireDraggerEndListeners (
             myTransform, myIncrementalTransform, e.getModifiersEx());
          myDragMode = DragMode.OFF;
+         clearFlags();
          return true;
       }
       return false;
@@ -400,7 +403,8 @@ public class Translator3d extends Dragger3dBase {
          Point3d pnt = new Point3d();
          intersectRayAndFixture (pnt, e.getRay());
          updatePosition (myPnt0, pnt, e);
-         if (!dragIsRepositioning(e)) {
+         // if (!dragIsRepositioning(e)) {
+         if (!dragIsRepositioning()) {
             fireDraggerMoveListeners (
                myTransform, myIncrementalTransform, e.getModifiersEx());
          }

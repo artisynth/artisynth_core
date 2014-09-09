@@ -139,5 +139,24 @@ public class GenericKeyHandler implements ArtisynthKeyHandler {
       // if (code >= 0 && code <= maxKeyCode) {
       //    myKeyPressed[code] = false;
       // }
+      
+      int code = e.getKeyCode();
+      int mods = e.getModifiersEx();
+      
+      // Ctrl + Shift + Backspace for reload
+      if ((mods & (KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK)) == 
+         (KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK)) {
+         if (code == KeyEvent.VK_BACK_SPACE) {
+            // Pause if playing
+            if (Main.getTimeline() != null) {
+               if (Main.getScheduler().isPlaying()) {
+                  myMainFrame.getMenuBarHandler().actionPerformed (
+                     new ActionEvent (this, 0, "Pause"));
+               }
+            }
+            myMainFrame.getMenuBarHandler().actionPerformed(
+               new ActionEvent(this, 0, "Reload model"));
+         }
+      }
    }
 }

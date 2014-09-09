@@ -560,7 +560,7 @@ public class MenuBarHandler implements
                DemoEntry demo = (DemoEntry)entry;
 
                JMenuItem newItem =
-               makeMenuItem(entry.getTitle(), demo.getModel().getName());
+                  makeMenuItem(entry.getTitle(), demo.getModel().getName());
                // automatically add entry to the hashmap
                myMain.addDemoName(
                   demo.getModel().getName(), demo.getModel().getFile());
@@ -659,6 +659,17 @@ public class MenuBarHandler implements
       }
    }
 
+   private void doReloadModel() {
+      try {
+         myMain.reloadModel();
+      } catch (Exception e) {
+         e.printStackTrace();
+         showError("Error reloading model:\n" + e);
+      }
+      updateModelButtons();
+
+   }
+
    private void doLoadModel() {
       File modelFile = selectFile("Load", myMain.getModelFile());
       if (modelFile != null) {
@@ -708,7 +719,7 @@ public class MenuBarHandler implements
       RootModel root = Main.getRootModel();
       int number = root.getControlPanels().nextComponentNumber();
       ControlPanel panel =
-      new ControlPanel("panel " + number, "LiveUpdate Close");
+         new ControlPanel("panel " + number, "LiveUpdate Close");
 
       GuiUtils.locateVertically(
          panel.getFrame(), myMain.getFrame(), GuiUtils.CENTER);
@@ -730,8 +741,8 @@ public class MenuBarHandler implements
          ControlPanel panel = null;
          try {
             panel =
-            (ControlPanel)ComponentUtils.loadComponent(
-               file, root, ControlPanel.class);
+               (ControlPanel)ComponentUtils.loadComponent(
+                  file, root, ControlPanel.class);
          } catch (Exception e) {
             showError("Error reading file: " + e.getMessage());
          }
@@ -788,7 +799,7 @@ public class MenuBarHandler implements
 
    private void doLoadProbes() {
       File probeFile =
-      selectFile("Load", null/* always select from working dir */);
+         selectFile("Load", null/* always select from working dir */);
       if (probeFile != null) {
          try {
             myMain.loadProbesFile(probeFile);
@@ -801,7 +812,7 @@ public class MenuBarHandler implements
 
    private File selectProbeDir(String approveMsg, File existingFile) {
       JFileChooser chooser =
-      new JFileChooser(Main.getMain().getProbeDirectory());
+         new JFileChooser(Main.getMain().getProbeDirectory());
       chooser.setApproveButtonText(approveMsg);
       chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
       int retval;
@@ -819,7 +830,7 @@ public class MenuBarHandler implements
          File probesFile = new File(dir, "probeInfo.art");
          if (!probesFile.isFile() || !probesFile.canRead()) {
             showError("File 'probeInfo.art' does not exist or " +
-            "cannot be read in chosen directory");
+               "cannot be read in chosen directory");
             dir = null;
          }
       }
@@ -902,7 +913,7 @@ public class MenuBarHandler implements
          String[] fmts = ImageIO.getWriterFormatNames();
          for (String fmt : fmts) {
             ExtensionFileFilter filter = 
-            new ExtensionFileFilter("." + fmt + " files", fmt);
+               new ExtensionFileFilter("." + fmt + " files", fmt);
             chooser.addChoosableFileFilter(filter);
          }
 
@@ -912,7 +923,7 @@ public class MenuBarHandler implements
       int returnVal = chooser.showSaveDialog(myFrame);
       if (returnVal == JFileChooser.APPROVE_OPTION) {
          ExtensionFileFilter filter =
-         (ExtensionFileFilter)chooser.getFileFilter();
+            (ExtensionFileFilter)chooser.getFileFilter();
          String ext = filter.getExtensions()[0];
          File file = chooser.getSelectedFile();
 
@@ -923,11 +934,11 @@ public class MenuBarHandler implements
          int confirmation = JOptionPane.YES_OPTION;
          if (file.exists()) {
             confirmation =
-            JOptionPane.showConfirmDialog(
-               myFrame, "File " + file.getName()
-               + " aleady exists. Proceed?",
-               "Confirm", JOptionPane.YES_NO_OPTION,
-               JOptionPane.QUESTION_MESSAGE);
+               JOptionPane.showConfirmDialog(
+                  myFrame, "File " + file.getName()
+                  + " aleady exists. Proceed?",
+                  "Confirm", JOptionPane.YES_NO_OPTION,
+                  JOptionPane.QUESTION_MESSAGE);
          }
          if (confirmation == JOptionPane.YES_OPTION) {
             GLViewer viewer = myMain.getViewer();
@@ -1010,15 +1021,15 @@ public class MenuBarHandler implements
       // ClassDialog.createDialog (
       // myFrame, "Choose model class", "Load", "class", existingClassName);
       WidgetDialog dialog =
-      WidgetDialog.createDialog(
-         myFrame, "Choose model class", "Load");
+         WidgetDialog.createDialog(
+            myFrame, "Choose model class", "Load");
 
       // find all instances of 'RootModel' and create an AutoComplete test field
       ArrayList<String> demoClassNames =
-      ClassFinder.findClassNames("artisynth.models", RootModel.class);
+         ClassFinder.findClassNames("artisynth.models", RootModel.class);
       AutoCompleteStringField widget =
-      new AutoCompleteStringField(
-         "class:", lastSelectedClassName, 30, demoClassNames);
+         new AutoCompleteStringField(
+            "class:", lastSelectedClassName, 30, demoClassNames);
 
       // widget.addValueCheckListener (
       // new ValueCheckListener() {
@@ -1168,10 +1179,10 @@ public class MenuBarHandler implements
 
    private void setMouseWheelZoom() {
       String inputValue =
-      JOptionPane.showInputDialog(
-         myFrame,
-         "Set zoom amount - amount by which single mouse scroll zooms",
-         myMain.getViewer().getMouseHandler().getMouseWheelZoomScale());
+         JOptionPane.showInputDialog(
+            myFrame,
+            "Set zoom amount - amount by which single mouse scroll zooms",
+            myMain.getViewer().getMouseHandler().getMouseWheelZoomScale());
 
       if (inputValue == null) {
          System.out.println("Clicked cancel on the zoom dialog");
@@ -1193,7 +1204,7 @@ public class MenuBarHandler implements
          PullController pc = myMain.getPullController();
          PropertyPanel panel = new PropertyPanel();
          PropertyDialog dialog =
-         new PropertyDialog("PullController properties", panel, "OK");
+            new PropertyDialog("PullController properties", panel, "OK");
          dialog.addWidget(pc, "stiffness");
          dialog.locateRight(myMain.getFrame());
          //dialog.setSynchronizeObject(Main.getRootModel());
@@ -1215,7 +1226,7 @@ public class MenuBarHandler implements
          LinkedList<HasProperties> list = new LinkedList<HasProperties>();
          list.add(pc);
          RenderPropsDialog dialog =
-         new RenderPropsDialog("Edit render properties", list);
+            new RenderPropsDialog("Edit render properties", list);
          dialog.locateRight(myMain.getFrame());
          //dialog.setSynchronizeObject(Main.getRootModel());
          dialog.setTitle("RenderProps for PullController");
@@ -1282,6 +1293,9 @@ public class MenuBarHandler implements
       }
       else if (cmd.equals("Save model as ...")) {
          doSaveModelAs();
+      }
+      else if (cmd.equals("Reload model")) {
+         doReloadModel();
       }
       else if (cmd.equals("Load model ...")) {
          doLoadModel();
@@ -1457,8 +1471,8 @@ public class MenuBarHandler implements
       }
       else if (cmd.equals("Remove traces")) {
          RemoveComponentsCommand rmCmd =
-         new RemoveComponentsCommand(
-            "remove traces", Main.getRootModel().getTracingProbes());
+            new RemoveComponentsCommand(
+               "remove traces", Main.getRootModel().getTracingProbes());
          Main.getUndoManager().saveStateAndExecute(rmCmd);
          Main.rerender();
       }
@@ -1678,9 +1692,9 @@ public class MenuBarHandler implements
          }
       };
       JDialog dialog =
-      JColorChooser.createDialog(
-         myFrame, "color chooser", /* modal= */true, colorChooser,
-         setBColor, setBColor);
+         JColorChooser.createDialog(
+            myFrame, "color chooser", /* modal= */true, colorChooser,
+            setBColor, setBColor);
       GuiUtils.locateRight(dialog, myFrame);
       dialog.setVisible(true);
    }
@@ -1766,19 +1780,24 @@ public class MenuBarHandler implements
       JMenuItem item;
 
       addMenuItem(menu, "New blank MechModel");
+      menu.add(new JSeparator());
 
       item = addMenuItem(menu, "Save model");
       item.setEnabled(myMain.getModelFile() != null);
 
       item = addMenuItem(menu, "Save model as ...");
       item.setEnabled(rootModelExists);
+      menu.add(new JSeparator());
 
+      if (rootModelExists) {
+         addMenuItem(menu, "Reload model");
+      }
       addMenuItem(menu, "Load model ...");
       addMenuItem(menu, "Load from class ...");
-      addMenuItem(menu, "Switch workspace ...");
 
       JMenuItem loadProbesItem, saveProbesItem, saveProbesAsItem;
 
+      menu.add(new JSeparator());
       if (Probe.useOldSaveMethod) {
          loadProbesItem = addMenuItem(menu, "Load probes ...");
          saveProbesItem = addMenuItem(menu, "Save probes");
@@ -1789,6 +1808,7 @@ public class MenuBarHandler implements
          saveProbesItem = addMenuItem(menu, "Save probes", "Save probes new");
          saveProbesAsItem = addMenuItem(menu, "Save probes in ...");
       }
+      menu.add(new JSeparator());
 
       loadProbesItem.setEnabled(workspaceExists);
       saveProbesItem.setEnabled(
@@ -1796,6 +1816,8 @@ public class MenuBarHandler implements
       saveProbesAsItem.setEnabled(workspaceExists);
 
       addMenuItem(menu, "Save viewer image ...");
+      addMenuItem(menu, "Switch workspace ...");
+      menu.add(new JSeparator());
 
       addMenuItem(menu, "Quit");
    }
@@ -1886,7 +1908,7 @@ public class MenuBarHandler implements
       style = Font.ITALIC;
 
       Font menuLabelFont =
-      new Font(menuFont.getName(), style, menuFont.getSize());
+         new Font(menuFont.getName(), style, menuFont.getSize());
 
       JLabel bindingLabel = new JLabel(" Button Configuration:");
       bindingLabel.setFont(menuLabelFont);
@@ -1895,7 +1917,7 @@ public class MenuBarHandler implements
       ButtonGroup group = new ButtonGroup();
       String [] mousePrefsOpts = Main.mousePrefsOptions;
       JRadioButtonMenuItem []rbItem =
-      new JRadioButtonMenuItem[mousePrefsOpts.length];
+         new JRadioButtonMenuItem[mousePrefsOpts.length];
 
       boolean selected = false;
       for (int i=0; i<mousePrefsOpts.length; i++) {

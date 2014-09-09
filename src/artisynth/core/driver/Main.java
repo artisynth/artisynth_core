@@ -1038,10 +1038,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       try {
          RootModel newRoot = null;
          Method method = demoClass.getMethod ("build", String[].class);
-         if (method.getDeclaringClass() != RootModel.class) {
+         if (demoClass == RootModel.class || method.getDeclaringClass() != RootModel.class) {
             System.out.println (
                "constructing model with build method ...");
-            Constructor constructor = demoClass.getConstructor();
+            Constructor<?> constructor = demoClass.getConstructor();
             newRoot = (RootModel)constructor.newInstance();
             newRoot.setName (args[0]);
             newRoot.build (args);
@@ -1049,7 +1049,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          else {
             System.out.println (
                "constructing model with legacy constructor method ...");
-            Constructor constructor = demoClass.getConstructor (String.class);
+            Constructor<?> constructor = demoClass.getConstructor (String.class);
             newRoot = (RootModel)constructor.newInstance (args[0]);
          }
          return newRoot;
@@ -1753,6 +1753,25 @@ public class Main implements DriverInterface, ComponentChangeListener {
          }
       }
       setRootModel (modelName, newRoot);
+   }
+   
+   public void reloadModel() throws IOException {
+      if (myModelFile != null) {
+         loadModelFile(myModelFile);
+      } else {
+         RootModel root = getRootModel();
+         if (root != null) {
+            Class<?> rootClass = root.getClass();
+            String name = myModelName;
+            if (name == null) {
+               name = root.getName();
+            }
+            if (name == null) {
+               name = "ArtiSynth";
+            }
+            loadModel(name, rootClass.getName());
+         }
+      }
    }
 
    public String getModelSaveFormat () {

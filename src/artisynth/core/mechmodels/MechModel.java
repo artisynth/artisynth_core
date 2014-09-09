@@ -844,6 +844,19 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       }
       addFrameMarker (mkr);
    }
+   
+   /**
+    * Adds a frame marker to a particular frame, with the location
+    * specified relative to the frame's coordinate frame
+    * @param frame frame object to add a marker to
+    * @param loc location within the frame (according to its own coordinate system)
+    * @return the created marker
+    */
+   public FrameMarker addFrameMarker(Frame frame, Point3d loc) {
+      FrameMarker mkr = new FrameMarker(frame, loc);
+      addFrameMarker(mkr);
+      return mkr;
+   }
 
    public void addFrameMarker (FrameMarker mkr) {
       myFrameMarkers.add (mkr);

@@ -3958,10 +3958,6 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       }
    }
 
-   public int getSelectionButtonMask() {
-      return myMouseHandler.getSelectionButtonMask();
-   }
-   
    public GLMouseListener getMouseHandler() {
       return myMouseHandler;
    }

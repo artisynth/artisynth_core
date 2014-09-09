@@ -8,7 +8,9 @@ package maspack.matrix;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+
 import maspack.util.ReaderTokenizer;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
@@ -283,6 +285,18 @@ public interface Vector extends Clonable {
     */
    public void scan (ReaderTokenizer rtok) throws IOException;
 
+   /**
+    * Returns a String representation of this vector, in which each element is
+    * formatted using a C <code>printf</code> style format string. The
+    * exact format for this string is described in the documentation for
+    * {@link maspack.util.NumberFormat#set(String)}{NumberFormat.set(String)}.
+    * 
+    * @param fmtStr printf style format string
+    * @return String representation of this vector
+    * @see maspack.util.NumberFormat
+    */
+   public String toString (String fmtStr);
+   
    /**
     * Returns a String representation of this vector, in which each element is
     * formatted using a C <code>printf</code> style format as decribed by the

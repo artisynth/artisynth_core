@@ -56,7 +56,7 @@ various types of mechanical and biomechanical models.  Sections
 \ref{MechModelsI:sec} and \ref{MechModelsII:sec} give detailed
 information about building general mechanical models, involving
 particles, springs, rigid bodies, joints, constraints, and
-contact. Section \ref{Agents:sec} describes how to add control panels,
+contact. Section \ref{SimulationControl:sec} describes how to add control panels,
 controllers, and input and output data streams to a simulation.
 Section \ref{FEMModels:sec} describes how to incorporate finite
 element models.
@@ -93,7 +93,7 @@ various {\it agent} components, such as control panels, controllers
 and monitors, and input and output data streams (i.e., {\it probes}),
 which have the ability to control and record the simulation as it
 advances in time. Agents are presented in more detail in Section
-\ref{Agents:sec}. 
+\ref{SimulationControl:sec}. 
 
 The models and agents are collected together within a top-level
 component known as a {\it root model}.  Simulation proceeds under the
@@ -282,20 +282,28 @@ MechModel} are grouped as follows:
 
 \begin{description}
 	
-\item[Dynamic components] \mbox{}\hfill\\
-Components, such as a particles and rigid bodies, that contain position
-and velocity state, as well as mass.
+\item[Dynamic components] \mbox{}\hfill\\ Components, such as a
+particles and rigid bodies, that contain position and velocity state,
+as well as mass. All dynamic components are instances of
+the Java interface
+\javaclass[artisynth.core.mechmodels]{DynamicComponent}.
 
 \item[Force effectors] \mbox{}\hfill\\
 Components, such as springs or finite elements,
 that exert forces between dynamic components.
+All force effectors are instances of the Java interface
+\javaclass[artisynth.core.mechmodels]{ForceEffector}.
 
 \item[Constrainers] \mbox{}\hfill\\
 Components that enforce constraints between dynamic components. 
+All constrainers are instances of the Java interface
+\javaclass[artisynth.core.mechmodels]{Constrainer}.
 
 \item[Attachments] \mbox{}\hfill\\
 Attachments between dynamic components. While technically these
 are constraints, they are implemented using a different approach.
+All attachment components are instances of
+\javaclass[artisynth.core.mechmodels]{DynamicAttachment}.
 
 \end{description}
 
@@ -322,17 +330,23 @@ at step $k$. One way to do this is to solve the expression
 \end{equation}
 %
 for $\u^{k+1}$, where $h$ is the step size and 
-$\bar\f \equiv \f - \dot\M \u$. Given the new velocities, we can
-then solve for the updated positions using 
+$\bar\f \equiv \f - \dot\M \u$. Given the updated velocities $\u^{k+1}$, one can
+determine $\dot\q^{k+1}$ from
 %
 \begin{equation}
-\q^{k+1} = \q^k + h \Q \u^{k+1},
+\dot\q^{k+1} = \Q \u^{k+1},
+\end{equation}
+%
+where $\Q$ accounts for situations (like rigid bodies) where $\dot\q \ne
+\u$, and then solve for the updated positions using 
+%
+\begin{equation}
+\q^{k+1} = \q^k + h \dot \q^{k+1}.
 \label{posupdate:eqn}
 \end{equation}
 %
-where $\Q$ accounts for cases (like rigid bodies) where $\dot\q \ne
-\u$. (\ref{velupdate:eqn}) and (\ref{posupdate:eqn}) together comprise
-a simple symplectic Euler integrator.
+(\ref{velupdate:eqn}) and (\ref{posupdate:eqn}) together comprise a
+simple {\it symplectic Euler} integrator.
 
 In addition to forces, bilateral and unilateral constraints give rise to
 locally linear constraints on $\u$ of the form
@@ -396,18 +410,36 @@ $\hat\M$ and $\hat\f$ are $\M$ and $\bar\f$ augmented with stiffness
 and damping terms terms to accommodate implicit integration, which
 is often required for problems involving deformable bodies.
 
-The {\tt ConstrainedBackwardEuler} integrator used by ArtiSynth solves
-(\ref{KKTvelocity:eqn}) to determine the system velocity at each time
-step. Other ArtiSynth integrators typically solve a variation of this
-system with the same structure. The dynamic, force effector, and
-constrainer components of a {\tt MechModel} are gathered together
-and used to form the 
+Attachments can be implemented by constraining the velocities of
+the attached components using special constraints of the form
+%
+\begin{equation}
+\u_j = -\G_{j\alpha} \u_\alpha
+\label{attachments:eqn}
+\end{equation}
+%
+where $\u_j$ and $\u_\alpha$ denote velocities of the attached and
+non-attached components. These constraints could be added directly to
+(\ref{KKTvelocity:eqn}), but their special form allows us to
+explicitly solve for $\u_j$, and hence actually simplify
+(\ref{KKTvelocity:eqn}), by factoring out the attached velocities
+before solution.
 
-The component hierarchy of the {\tt MechModel} is traversed, with
-dynamic components being used to determine $\q$, $\u$, and $\M$; force
-effectors used to determine $\hat\f$ and the stiffness/damping
-augmentation used to produce $\hat\M$; and constrainers used to
-determine $\G$, $\N$, $\g$ and $\n$.
+The MLCP (\ref{KKTvelocity:eqn}) corresponds to a single step
+integrator. However, higher order integrators, such as Newmark
+methods, usually give rise to MLCPs with an equivalent form.  Most
+ArtiSynth integrators use some variation of (\ref{KKTvelocity:eqn}) to
+determine the system velocity at each time step.
+
+To set up (\ref{KKTvelocity:eqn}), the {\tt MechModel} component
+hierarchy is traversed and the methods of the different component
+types are queried for the required values.  Dynamic compoinents (type
+{\tt DynamicComponent}) provide $\q$, $\u$, and $\M$; force effectors
+({\tt ForceEffector}) determine $\hat\f$ and the stiffness/damping
+augmentation used to produce $\hat\M$; constrainers ({\tt
+Constrainer}) supply $\G$, $\N$, $\g$ and $\n$, and attachments ({\tt
+DynamicAttachment}) provide the information needed to factor out
+attached velocities.
 
 \subsection{Basic packages}
 
@@ -475,7 +507,7 @@ RigidBody} include {\tt position}, {\tt orientation}, {\tt mass}, and
 {\tt density}, while those for {\tt AxialSpring} include {\tt
 restLength} and {\tt material}. Properties are particularly
 useful for automatically creating control panels and
-probes, as described in Section \ref{Agents:sec}.
+probes, as described in Section \ref{SimulationControl:sec}.
 They are also used for automating component serialization.
 
 Properties are described only briefly in this section; 
@@ -657,7 +689,7 @@ required by the {\tt MechModel}, as described in Sections
 \ref{MechModelsI:sec}, \ref{MechModelsII:sec} and \ref{FEMModels:sec}.
 The {\tt build()} method also creates and adds to the root model any
 agents required by the application (controllers, probes, etc.), as
-described in Section \ref{Agents:sec}.
+described in Section \ref{SimulationControl:sec}.
 
 When constructing a model, there is no fixed order in which components
 need to be added. For instance, in the above example, {\tt
@@ -775,6 +807,258 @@ be present in the models menu and may be loaded
 from the submenu reached by {\sf Models > All demos > tutorial}.
 \end{sideblock}
 
+\section{Supporting classes}
+
+ArtiSynth uses a large number of supporting classes, mostly defined in
+the super package {\tt maspack}, for handling mathematical and
+geometric quantities. Those that are refered to in this manual are
+summarized in this section.
+
+\subsection{Vectors and matrices}
+
+Among the most basic classes are those used to implement vectors and
+matrices, defined in {\tt mapack.matrix}. All vector classes implement
+the interface \javaclass[maspack.matrix]{Vector} and all matrix
+classes implement \javaclass[maspack.matrix]{Matrix}, which provide a
+number of standard methods for setting and accessing values and
+reading and writing from I/O streams. 
+
+General sized vectors and matrices are implemented by
+\javaclass[maspack.matrix]{VectorNd} and
+\javaclass[maspack.matrix]{MatrixNd}. These provide all the usual
+methods for linear algebra operations such as addition, scaling, and
+multiplication.
+%
+\begin{lstlisting}
+  VectorNd v1 = new VectorNd (5); // create a 5 element vector
+  VectorNd v2 = new VectorNd (5); 
+  VectorNd vr = new VectorNd (5); 
+  MatrixNd M = new MatrixNd (5, 5); // create a 5 x 5 matrix
+
+  M.setIdentity(); // turn M into a diagonal scaling matrix
+  M.scale (4);
+
+  v1.set (new double[] {1, 2, 3, 4, 5}); // set values
+  v2.set (new double[] {0, 1, 0, 2, 0});
+  v1.add (v2);
+  M.mul (vr, v1);
+
+  System.out.println ("result=" + vr.toString ("%8.3f"));
+\end{lstlisting}
+%
+As illustrated in the above example, vectors and matrices both provide
+a {\tt toString()} method that allows their elements to be formated
+using a C-printf style format string. This is useful for providing
+concise and uniformly formatted output, particularly for diagnostics.
+The output from the above example is
+%
+\begin{verbatim}
+  result=   4.000   12.000   12.000   24.000   20.000
+\end{verbatim}
+%
+Detailed specifications for the format string are provided in the
+documentation for \javamethod[maspack.util]{NumberFormat.set(String)}.
+If no format string is specified, {\tt toString()} formats all numbers
+using the full-precision output provided by {\tt
+Double.toString(value)}.
+
+For computational efficiency, a number of fixed-size vectors and
+matrices are also provided. The most commonly used are those defined
+for three dimensions, including \javaclass[maspack.matrix]{Vector3d}
+and \javaclass[maspack.matrix]{Matrix3d}:
+%
+\begin{lstlisting}
+  Vector3d v1 = new Vector3d (1, 2, 3);
+  Vector3d v2 = new Vector3d (3, 4, 5);
+  Vector3d vr = new Vector3d ();
+  Matrix3d M = new Matrix3d();
+
+  M.set (1, 2, 3,  4, 5, 6,  7, 8, 9);
+
+  M.mul (vr, v1);        // vr = M * v1
+  vr.scaledAdd (2, v2);  // vr += 2*v2;
+  vr.normalize();        // normalize vr
+  System.out.println ("result=" + vr.toString ("%8.3f"));
+\end{lstlisting}
+%
+
+\subsection{Rigid rotations and transformations}
+\label{RigidTransform3d:sec}
+
+ArtiSynth uses rigid transforms (Appendix
+\ref{RigidTransforms:sec}) to describe a rigid body's pose, as
+well as its relative position and orientation with respect to other
+bodies and coordinate frames.  Rigid transforms are implemented
+by \javaclass[maspack.matrix]{RigidTransform3d}, defined in {\tt
+maspack.matrix}, and the rotational component of a {\tt
+RigidTransform3d} is in turn implemented by the class
+\javaclass[maspack.matrix]{RotationMatrix3d}.
+
+{\tt RotationMatrix3d} contains numerous methods for setting rotation
+values and transforming other quantities. Some of the more commonly
+used methods are:
+%
+\begin{lstlisting}
+   RotationMatrix3d();         // create and set to the identity
+   RotationMatrix3d(u, angle); // create and set using an axis-angle
+
+   setAxisAngle (u, ang);      // set using an axis-angle
+   setRpy (roll, pitch, yaw);  // set using roll-pitch-yaw angles
+   setEuler (phi, theta, psi); // set using Euler angles
+   invert ();                  // invert this rotation
+   mul (R)                     // post multiply this rotation by R
+   mul (R1, R2);               // set this rotation to R1*R2
+   mul (vr, v1);               // vr = R*v1, where R is this rotation
+\end{lstlisting}
+%
+
+For a {\tt RigidTransform3d}, its rotational and translational
+components are publicly exposed and can be set and accessed directly through
+the fields {\tt R} and {\tt p}. In addition, some of its more commonly
+used methods include:
+%
+\begin{lstlisting}
+   RigidTransform3d();         // create and set to the identity
+   RigidTransfrom3d(x, y, z);  // create and set translation to x, y, z
+
+   // create and set translation to x, y, z and rotation to roll-pitch-yaw
+   RigidTransfrom3d(x, y, z, roll, pitch, yaw);
+
+   invert ();                  // invert this transform
+   mul (T)                     // post multiply this transform by T
+   mul (T1, T2);               // set this transform to T1*T2
+   mulLeftInverse (T1, T2);    // set this transform to inv(T1)*T2
+\end{lstlisting}
+%
+
+TODO Points
+
+TODO AxisAngle
+
+\subsection{Spatial vectors and inertias}
+\label{SpatialVectors:sec}
+
+TODO 
+
+\subsection{Meshes}
+\label{Meshes:sec}
+
+ArtiSynth makes extensive use of 3D meshes, which are defined in {\tt
+maspack.geometry}.  They are used for a variety of purposes, including
+visualization, collision detection, and computing physical properties
+(such as inertia or stiffness variation within a finite element
+model).
+
+A mesh is essentially a collection of vertices
+(i.e., points) that are topologically connected in some way.  All
+meshes extend the abstract base class
+\javaclass[maspack.geometry]{MeshBase}, which supports the vertex
+definitions, while subclasses provide the topology.
+
+Through {\tt MeshBase}, all meshes provide methods for
+adding and accessing vertices. Some of these include:
+%
+\begin{lstlisting}
+  int getNumVertices();              // return the number of vertices
+  Vertex3d getVertex (int idx);      // return the idx-th vertex
+  void addVertex (Vertex3d vtx);     // add vertex vtx
+  Vertex3d addVertex (Point3d p);    // create and return a vertex at position p
+  void removeVertex (Vertex3d vtx);  // remove vertex vtx
+  ArrayList<Vertex3d> getVertices(); // return the list of vertices
+\end{lstlisting}
+%
+Vertices are implemented by \javaclass[maspack.geometry]{Vertex3d},
+which defines the position of the vertex (returned by the method
+\javamethod*[maspack.geometry.Vertex3d]{getPosition()}, and also
+contains support for topological connections. In addition, each mesh
+maintains an index, obtainable via
+\javamethod*[maspack.geometry.Vertex3d]{getIndex()}, that equals the
+index of it's location within the mesh's vertex list. This makes it
+easy to set up parallel array structures for augmenting mesh
+properties.
+
+Mesh subclasses currently include:
+
+\begin{description}
+
+\item[\javaclass[maspack.geometry]{PolygonalMesh}]\mbox{}
+
+A 2D surface mesh containing faces implemented using half-edges.
+
+\item[\javaclass[maspack.geometry]{PolylineMesh}]\mbox{}
+
+A mesh consisting of connected line-segments (polylines).
+
+\item[\javaclass[maspack.geometry]{PointMesh}]\mbox{}
+
+A point cloud with no topological connectivity.
+
+\end{description}
+
+\javaclass[maspack.geometry]{PolygonalMesh} is used quite extensively
+and provides a number of methods for implementing faces, including:
+%
+\begin{lstlisting}
+  int getNumFaces();              // return the number of faces
+  Face getFace (int idx);         // return the idx-th face
+  Face addFace (int[] vidxs);     // create a face from specified vertex indices
+  void removeFace (Face f);       // remove the face f
+  ArrayList<Face> getFaces();     // return the list of faces
+\end{lstlisting}
+%
+The class \javaclass[maspack.geometry]{Face} implements a face as a
+counter-clockwise arrangement of vertices linked together by
+half-edges (class \javaclass[maspack.geometry]{HalfEdge}).
+{\tt Face} also supplies a face's (outward facing) normal
+via 
+\javamethod[maspack.geometry.Face]{getNormal()}.
+
+Some mesh uses within ArtiSynth, such as collision detection, require a
+{\it triangular} mesh; i.e., one where all faces have three vertices.
+The method \javamethod[maspack.geometry.PolygonalMesh]{isTriangular()}
+can be used to check for this. Meshes that are not triangular can be
+made triangular using 
+\javamethod[maspack.geometry.PolygonalMesh]{triangulate()}.
+
+\subsubsection{Mesh creation}
+
+It is possible to create a mesh by direct construction. For example,
+the following code fragment creates a simple closed tetrahedral
+surface:
+%
+\begin{lstlisting}
+   // a simple four-faced tetrahedral mesh 
+   PolygonalMesh mesh = new PolygonalMesh();
+   mesh.addVertex (0, 0, 0);
+   mesh.addVertex (1, 0, 0);
+   mesh.addVertex (0, 1, 0);
+   mesh.addVertex (0, 0, 1);
+   mesh.addFace (new int[] { 0, 2, 1 });
+   mesh.addFace (new int[] { 0, 3, 2 });
+   mesh.addFace (new int[] { 0, 1, 3 });
+   mesh.addFace (new int[] { 1, 2, 3 });      
+\end{lstlisting}
+%
+
+However, meshes are more commonly created using either one of the
+factory methods supplied by \javaclass[maspack.geometry]{MeshFactory},
+or by reading a definition from a file (Section \ref{MeshFileIO:sec}).
+
+Factory methods currently include:
+%
+\begin{lstlisting}
+TODO
+\end{lstlisting}
+%
+
+\subsubsection{Reading and writing from files}
+\label{MeshFileIO:sec}
+
+The package {\tt maspack.geometry.io} supplies a number of classes for
+writing and reading meshes to and from files.
+
+TODO 
+
 \section{Mechanical Models I}
 \label{MechModelsI:sec}
 
@@ -786,13 +1070,13 @@ other constraints.
 \label{ParticlesAndSprings:sec}
 
 The most basic type of mechanical model consists simply of particles
-connected together by axial springs.  Particles are implemented by
-the class \javaclass[artisynth.core.mechmodels]{Particle}, which is a
-dynamic component containing 3D positon and velocity state, together
-with a mass. It is an instance of the more general base class
-\javaclass[artisynth.core.mechmodels]{Point}, which is used to also
-implement spatial points such as {\tt markers} which do not have a
-mass.
+connected together by axial springs.  Particles are implemented by the
+class \javaclass[artisynth.core.mechmodels]{Particle}, which is a
+dynamic component containing a three-dimensional position state, a
+corresponding velocity state, and a mass. It is an instance of the
+more general base class \javaclass[artisynth.core.mechmodels]{Point},
+which is used to also implement spatial points such as {\tt markers}
+which do not have a mass.
 
 \subsubsection{Axial springs and materials}
 
@@ -830,7 +1114,7 @@ getMaterial()}.
 
 \begin{figure}[t]
 \begin{center}
- \includegraphics[width=3.75in]{images/ParticleSpringReduced}
+ \includegraphics[width=3.75in]{images/ParticleSpring}
 \end{center}
 \caption{ParticleSpring example loaded into ArtiSynth.}
 \label{ParticleSpring:fig}
@@ -888,11 +1172,68 @@ with a radius of 0.06, while springs are set to be rendered as blue
 cylinders with a radius of 0.02. More details about setting render
 properties are given in Section \ref{RenderProperties:sec}.
 
-\subsubsection{Dynamic vs. parametric components}
+\subsubsection{Dynamic, parameteric, and attached components}
 \label{DynamicVsParametric:sec}
 
 By default, a dynamic component is advanced through time in response
-to the forces applied to it. 
+to the forces applied to it. However, it is also possible to set a
+dynamic component's {\tt dynamic} property to {\tt false}, so that it
+does not respond to force inputs.  As shown in the example above, this
+can be done using the method
+\javamethod*[artisynth.core.mechmodels.DynamicComponent]{setDynamic()}:
+%
+\begin{verbatim}
+  comp.setDynamic (false);
+\end{verbatim}
+%
+The method
+\javamethod*[artisynth.core.mechmodels.DynamicComponent]{isDynamic()}
+can be used to query the {\tt dynamic} property.
+
+Dynamic components can also be {\tt attached} to other dynamic
+components (as mentioned in Section \ref{PhysicsSimulation:sec}) so
+that their positions and velocities are controlled by the {\it master}
+components that they are attached to.  To attach a dynamic component,
+one creates an {\tt AttachmentComponent} specifying the attachment
+connection and adds it to the {\tt MechModel}, as described in Section
+\ref{Attachments:sec}.  The method
+\javamethod*[artisynth.core.mechmodels.DynamicComponent]{isAttached()}
+can be used to determine if a component is attached, and if it is,
+\javamethod*[artisynth.core.mechmodels.DynamicComponent]{getAttachment()}
+can be used to find the corresponding {\tt AttachmentComponent}.
+
+Overall, a dynamic component can be in one of three states:
+
+\begin{description}
+
+\item[active]\mbox{}
+
+Component is dynamic and unattached. The method
+\javamethod*[artisynth.core.mechmodels.DynamicComponent]{isActive()}
+returns {\tt true}. The component will move in response to forces.
+
+\item[parametric]\mbox{}
+
+Component is not dynamic, and is unattached. 
+The method
+\javamethod*[artisynth.core.mechmodels.DynamicComponent]{isParametric()}
+returns {\tt true}.
+The component will either remain
+fixed, or will move around in response to external inputs specifying
+the component's position and/or velocity. One way to supply such
+inputs is to use controllers or input probes, as described in
+Section \ref{SimulationControl:sec}.
+
+\item[attached]\mbox{}
+
+Component is attached. The method
+\javamethod*[artisynth.core.mechmodels.DynamicComponent]{isAttached()}
+returns {\tt true}. The component will move so as to follow the other
+component(s) to which it is attached.
+
+\end{description}
+
+TODO setTargetPos
 
 \subsubsection{Custom axial materials}
 
@@ -925,11 +1266,80 @@ equals 0.
 
 \subsection{Rigid bodies}
 
-\subsubsection{Rigid transformations}
+Rigid bodies are implemented in ArtiSynth by the class
+\javaclass[artisynth.core.mechmodels]{RigidBody}, which is a dynamic
+component containing a six-dimensional position and orientation state,
+a corresponding velocity state, an inertia, and an optional surface
+mesh.
+
+\subsubsection{Pose and velocity}
+
+A rigid body is associated with its own 3D spatial coordinate frame.
+The combined position and orientation of this frame with respect to
+world coordinates defines the body's {\it pose}, and the associated 6
+degrees of freedom decribe its "position" state.
+
+A body's pose can be set and
+queried using the methods
+%
+\begin{lstlisting}
+  setPose (RigidTransform3d T);   // sets the pose to T
+  getPose (RigidTransform3d T);   // gets the current pose in T
+  RigidTransform3d getPose();     // returns the current pose (read-only)
+\end{lstlisting}
+%
+These use a \javaclass[maspack.matrix]{RigidTransform3d} (Section
+\ref{RigidTransform3d:sec}) to describe the pose.
+
+Rigid bodies also expose the position and rotational components of
+their pose via the properties {\tt position} and {\tt orientation},
+which can be queried and set independently using the methods
+%
+\begin{lstlisting}
+  setPosition (Point3d p);       // sets the position to p
+  getPosition (Point3d p);       // gets the current position in p
+  Point3d getPosition();         // returns the current position (read-only)
+
+  setOrientation (AxisAngle a);  // sets the orientation to a
+  getOrientation (AxisAngle a);  // gets the current orientation in a
+  AxisAngle getOrientation();    // returns the current orientation (read-only)
+\end{lstlisting}
+%
+
+The velocity of a rigid body is described using a
+\javaclass[maspack.spatialmotion]{Twist} (Section
+\ref{SpatialVectors:sec}), which contains both the translational and
+rotational velocities. The methods
+%
+\begin{lstlisting}
+  setVelocity (Twist v);         // sets the spatial velocity to v
+  getVelocity (Twist v);         // gets the current spatial velocity in v
+  Twist getVelocity();           // returns current spatial velocity (read-only)
+\end{lstlisting}
+%
+set and query the spatial velocity as described with respect to world
+coordinates.
+
+During simulation, the pose and velocity of a rigid body are typically
+updated in response to forces, so setting the pose or velocity
+generally makes only for setting initial conditions.
+
+TODO setTargetPos
+
+\subsubsection{Inertia and meshes}
+
+The "mass" of a rigid body is described by its spatial inertia,
+which is a $6 \times 6$
 
 \subsubsection{Creating rigid bodies}
 
-\subsubsection{Rigid body Inertia}
+A rigid body can be created directly via a constructor:
+%
+\begin{lstlisting}
+  RigidBody body = new RigidBody ("prism");
+  body.setMesh (
+\end{lstlisting}
+%
 
 \subsubsection{Frame markers}
 
@@ -956,8 +1366,12 @@ equals 0.
 % LumbarFrameSpring
 
 \subsection{Attachments}
+\label{Attachments:sec}
 
 \subsubsection{The attachment framework}
+
+masters components
+getMasterComponents
 
 \subsubsection{Attaching a particle to a Frame}
 
@@ -1038,7 +1452,7 @@ equals 0.
 \subsubsection{The TransformableGeometry interface}
 
 \section{Simulation Control}
-\label{Agents:sec}
+\label{SimulationControl:sec}
 
 \subsection{Control Panels}
 
@@ -1156,9 +1570,343 @@ equals 0.
 
 \subsection{Visualization}
 
+stuff stuff stuff
+
 \subsubsection{Rendering settings}
 
+stuff stuff stuff
+
 \subsubsection{Stress and strain plotting}
+
+stuff stuff stuff
+
+\section{Appendices}
+
+\subsection{Appendix A: Rotation transforms}
+\label{Rotations:sec}
+
+This appendix provides a quick review of 3D rotation matrices and
+transformations.
+
+\begin{figure}[t]
+\begin{center}
+\includegraphics[width=2in]{images/rotationAB}
+\end{center}
+\caption{Two coordinate frames A and B rotated with respect
+to each other.}
+\label{rotationAB:fig}
+\end{figure}
+
+Consider two 3D coordinate frames A and B that are rotated with
+respect to each other (Figure \ref{rotationAB:fig}).  The orientation
+of B with respect to A can be described by a $3 \times 3$ rotation
+matrix $\R_{BA}$, whose columns are the unit vectors giving the
+directions of the rotated axes $\x'$, $\y'$, and $\z'$ of B with
+respect to A.
+
+$\R_{BA}$ is an {\it orthogonal} matrix, meaning that
+its columns are both perpendicular and mutually
+orthogonal, so that
+%
+\begin{equation}
+\R_{BA}^T \, \R_{BA} = \I
+\end{equation}
+%
+where $\I$ is the $3 \times 3$ identity matrix. The inverse
+of $\R_{BA}$ is hence equal to its transpose:
+%
+\begin{equation}
+\R_{BA}^{_1} = \R_{BA}^T
+\label{RABinv:eqn}
+\end{equation}
+%
+Because $\R_{BA}$ is orthogonal, $|\det \R_{BA}| = 1$, and because it
+is a rotation, $\det \R_{BA} = 1$. The other case, where $\det \R_{BA}
+= -1$, is not a rotation but a {\it reflection}.
+The 6 orthogonality constraints associated with a rotation matrix mean
+that in spite of having 9 numbers, the matrix only has 3 degrees of
+freedom.
+
+Now, assume we have a 3D vector $\v$, and consider its coordinates
+with respect to both frames A and B.  Where necessary, we use a
+preceding superscript to indicate the coordinate frame with repect to
+which a quantity is described, so that ${}^A\v$ and ${}^B\v$ and
+denote $\v$ with respect to frames A and B, respectively.  Given the
+definition of $\R_{AB}$ given above, it is fairly straightforward to
+show that
+%
+\begin{equation}
+{}^A\v = \R_{BA} \, {}^B\v
+\label{vectorTransform:eqn}
+\end{equation}
+%
+and, given (\ref{RABinv:eqn}), that
+%
+\begin{equation}
+{}^B\v = \R_{BA}^T \, {}^A\v.
+\label{vectorInvTransform:eqn}
+\end{equation}
+%
+Hence in addition to describing the orientation of B with respect to A,
+$\R_{BA}$ is also a transformation matrix that maps vectors in B
+to vectors in A.
+
+It is straightforward to show that
+%
+\begin{equation}
+\R_{BA}^{-1} = \R_{BA}^T = \R_{AB}.
+\label{rotationInverse:eqn}
+\end{equation}
+%
+
+\begin{figure}[t]
+\begin{center}
+ \includegraphics[width=4.5in]{images/rotationsABC}
+\end{center}
+\caption{Schematic illustration of three coordinate frames A, B, and C
+and the rotational transforms relating them.}
+\label{rotationsABC:fig}
+\end{figure}
+
+A simple rotation by an angle $\theta$ about one of the basic
+coordinate axes known as a {\it basic} rotation. The three
+basic rotations about x, y, and z are:
+%
+\begin{equation*}
+\R_x(\theta) = \matl 1 & 0 & 0 \\ 
+               0 & \cos(\theta) & -\sin(\theta) \\ 
+               0 & \sin(\theta) & \cos(\theta) 
+		 \matr
+\end{equation*}
+%
+\begin{equation*}
+\R_y(\theta) = \matl \cos(\theta) & 0 & \sin(\theta) \\ 
+               0 & 1 & 0 \\ 
+               -\sin(\theta) & 0 & \cos(\theta) 
+                 \matr
+\end{equation*}
+%
+\begin{equation*}
+\R_z(\theta) = \matl \cos(\theta) & -\sin(\theta) & \\ 
+               \sin(\theta) & \cos(theta) & 0 \\ 
+               0 & 0 & 1 
+                 \matr
+\label{elementaryRotations:sec}
+\end{equation*}
+%
+
+Next, we consider transform composition. Suppose we have three
+coordinate frames, A, B, and C, whose orientation are related to each other by
+$\R_{BA}$, $\R_{CB}$, and $\R_{CA}$ (Figure
+\ref{transformsABC:fig}).  If we know $\R_{BA}$ and $\R_{CA}$,
+then we can determine $\R_{CB}$ from
+%
+\begin{equation}
+\R_{CB} = \R_{BA}^{-1} \, \R_{CA}.
+\label{rotationCB:eqn}
+\end{equation}
+%
+This can be understood in terms of vector transforms. $\R_{CB}$
+transforms a vector from C to B, which is equivalent to first
+transforming from C to A,
+%
+\begin{equation}
+{}^A\v = \R_{CA} \, {}^C\v,
+\end{equation}
+%
+and then transforming from A to B:
+%
+\begin{equation}
+{}^B\v = \R_{BA}^{-1} \, {}^A\v = \R_{BA}^{-1} \; \R_{CA} {}^C\v = \R_{CB} \, {}^C\v.
+\end{equation}
+%
+Note also from (\ref{rotationInverse:eqn}) that $\R_{CB}$ can be 
+expressed as
+%
+\begin{equation}
+\R_{CB} = \R_{AB} \, \R_{CA}.
+\label{rotationCBII:eqn}
+\end{equation}
+%
+
+In addition to specifying rotation matrix components explicity,
+there are numerous other ways to describe a rotation.
+Three of the most common are:
+
+\begin{description}
+
+\item[Roll-pitch-yaw angles]\mbox{}
+
+There are 6 variations of roll-pitch-yaw angles. The one used in
+ArtiSynth corresponds to older robotics texts (e.g., Paul, Spong) and
+consists of a roll rotation $r$ about the z axis, followed by a pitch
+rotation $p$ about the new y axis, followed by a yaw rotation $y$
+about the new x axis. The net rotation can be expressed by the
+following product of basic rotations: $\R_z(r) \, \R_y(p) \, \R_x(y)$.
+
+\item[Axis-angle]\mbox{}
+
+An axis angle rotation parameterizes a rotation as a rotation by
+an angle $\theta$ about a specific axis $\u$. Any rotation
+can be represented in such a way as a consequence of Euler's rotation
+theorem.
+
+\item[Euler angles]\mbox{}
+
+There are 6 variations of Euler angles. The one used in ArtiSynth
+consists of a rotation $\phi$ about the z axis, followed by a rotation
+$\theta$ about the new y axis, followed by a rotation $\psi$ about the
+new z axis. The net rotation can be expressed by the following product
+of basic rotations: $\R_z(\phi) \, \R_y(\theta) \, \R_z(\psi)$.
+
+\end{description}
+
+\subsection{Appendix B: Rigid transforms}
+\label{RigidTransforms:sec}
+
+This appendix provides a quick review of rigid transformations
+that are used to specify both the transformation of points and vectors
+between coordinate frames, as well as the relative
+position and orientation between coordinate frames.
+
+\begin{figure}[t]
+\begin{center}
+ \includegraphics[width=3.75in]{images/framesAB}
+\end{center}
+\caption{A position vector $\p_{BA}$ and rotation matrix
+$\R_{BA}$ describing the position and orientation of frame B
+with respect to frame A.}
+\label{framesAB:fig}
+\end{figure}
+
+Consider two 3D coordinate frames in space, A and B (Figure
+\ref{framesAB:fig}). The translational position of B with respect to A
+can be described by a vector $\p_{BA}$ from the origin of A to the
+origin of B (described with respect to frame A). Meanwhile, the
+orientation of B with respect to A can be described by the $3 \times
+3$ rotation matrix $\R_{BA}$ (Section \ref{Rotations:sec}).  The
+combined position and orientation of B with respect to A is known as
+the {\it pose} of B with respect to A.
+
+\begin{figure}[t]
+\begin{center}
+ \includegraphics[width=3.75in]{images/pointsAB}
+\end{center}
+\caption{Point vectors ${}^A\q$ and ${}^B\q$ describing
+the position of a point $\q$ with respect to frames A and B.}
+\label{pointsAB:fig}
+\end{figure}
+
+Now, assume we have a 3D point $\q$, and consider its
+coordinates with respect to both frames A and B (Figure
+\ref{pointsAB:fig}). Where necessary, we use a preceding superscript to
+indicate the coordinate frame with repect to which a quantity is
+described, so that ${}^A\q$ and ${}^B\q$ and denote $\q$ with respect
+to frames A and B, respectively.  Given the pose descriptions given
+above, it is fairly straightforward to show that
+%
+\begin{equation}
+{}^A\q = \R_{BA} \, {}^B\q + \p_{BA}
+\label{pointTransform:eqn}
+\end{equation}
+%
+and, given (\ref{RABinv:eqn}), that
+%
+\begin{equation}
+{}^B\q = \R_{BA}^T \, ({}^A\q - \p_{BA}).
+\label{pointInvTransform:eqn}
+\end{equation}
+%
+
+If we extend our points into a 4D {\it homogeneous} coordinate space
+with the fourth coordinate $w$ equal to 1, i.e.,
+%
+\begin{equation}
+\q^* \equiv \matl \q \\ 1 \matr,
+\end{equation}
+%
+then (\ref{pointTransform:eqn}) and
+(\ref{pointInvTransform:eqn}) can be simplified to
+%
+\begin{equation*}
+{}^A\q^* = \T_{BA} \, {}^B\q^* \quad \text{and} \quad
+{}^B\q^* = \T_{BA}^{-1} \, {}^A\q^*
+\end{equation*}
+%
+where
+%
+\begin{equation}
+\T_{BA} = \matl \R_{BA} & \p_{BA} \\ 0 & 1 \matr
+\end{equation}
+%
+and
+%
+\begin{equation}
+\T_{BA}^{-1} = \matl \R_{BA}^T & -\R_{BA}^T \p_{BA} \\ 0 & 1 \matr.
+\end{equation}
+%
+$\T_{BA}$ is the $4 \times 4$ {\it rigid transform matrix} that
+transforms points from B to A and also describes the pose of
+B with respect to A (Figure \ref{transformAB:fig}).
+
+\begin{figure}[t]
+\begin{center}
+ \includegraphics[width=3in]{images/transformAB}
+\end{center}
+\caption{The transform matrix $\T_{BA}$ from B to A.}
+\label{transformAB:fig}
+\end{figure}
+
+It is straightforward to show that $\R_{BA}^T$ and $-\R_{BA}^T
+\p_{BA}$ describe the orientation and position of $A$ with respect to
+$B$, and so therefore
+%
+\begin{equation}
+\T_{BA}^{-1} = \T_{AB}.
+\label{transformInverse:eqn}
+\end{equation}
+%
+
+Note that if we are transforming a vector $\v$ instead of a point
+between B and A, then we are only concerned about relative orientation
+and the vector transforms (\ref{vectorTransform:eqn}) and
+(\ref{vectorInvTransform:eqn}) should be used instead.
+However, we can express these using $\T_{BA}$ if
+we embed vectors in a homogeneous coordinate space 
+with the fourth coordinate $w$ equal to 0, i.e.,
+%
+\begin{equation}
+\v^* \equiv \matl \v \\ 0 \matr,
+\end{equation}
+%
+so that
+%
+\begin{equation*}
+{}^B\v^* = \T_{BA} \, {}^A\v^* \quad \text{and} \quad
+{}^A\v^* = \T_{BA}^T \, {}^B\v^*.
+\end{equation*}
+%
+
+\begin{figure}[t]
+\begin{center}
+ \includegraphics[width=4.5in]{images/transformABC}
+\end{center}
+\caption{Three coordinate frames A, B, and C and the transforms
+relating each one to the other.}
+\label{transformsABC:fig}
+\end{figure}
+
+Finally, we consider transform composition. Suppose we have three
+coordinate frames, A, B, and C, each related to the other by
+transforms $\T_{BA}$, $\T_{CB}$, and $\T_{CA}$ (Figure
+\ref{transformsABC:fig}).  Using the same reasoning used to derive
+(\ref{rotationCB:eqn}) and (\ref{rotationCBII:eqn}), it is easy to
+show that
+%
+\begin{equation}
+\T_{CB} = \T_{BA}^{-1} \; \T_{CA} = \T_{AB} \; \T_{CA}.
+\end{equation}
+%
 
 \iflatexml
 \bibliographystyle{plain}

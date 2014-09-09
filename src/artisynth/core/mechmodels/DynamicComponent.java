@@ -35,17 +35,31 @@ public interface DynamicComponent extends ModelComponent, ForceEffector {
     */
    public LinkedList<DynamicAttachment> getMasterAttachments();
 
-   /** M
+   /**
     * Attach this component to another via a DynamicAttachment object.
+    * This method is intended for internal use by attachment components.
     * 
     * @param attachment Specifies the attachment relationship between
     * this component and its master(s)
     */
    public void setAttached (DynamicAttachment attachment);
 
-
+   /**
+    * Add a DynamicAttachment to the list of master attachments associated
+    * with this component. This method is intended for internal use by 
+    * attachment components.
+    * 
+    * @param a master attachment to add
+    */
    public void addMasterAttachment (DynamicAttachment a);
 
+   /**
+    * Removes a DynamicAttachment from the list of master attachments associated
+    * with this component. This method is intended for internal use by 
+    * attachment components.
+    * 
+    * @param a master attachment to remove
+    */
    public void removeMasterAttachment (DynamicAttachment a);
 
 

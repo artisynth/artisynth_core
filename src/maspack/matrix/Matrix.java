@@ -1158,6 +1158,19 @@ public interface Matrix extends LinearTransformNd {
 
    /**
     * Returns a String representation of this matrix, in which each element is
+    * formatted using a C <code>printf</code> style format string. The
+    * exact format for this string is described in the documentation for
+    * {@link maspack.util.NumberFormat#set(String)}{NumberFormat.set(String)}.
+    * 
+    * @param fmtStr
+    * numeric printf style format string
+    * @return String representation of this vector
+    * @see maspack.util.NumberFormat
+    */
+   public String toString (String fmtStr);
+
+   /**
+    * Returns a String representation of this matrix, in which each element is
     * formatted using a C <code>printf</code> style format as decribed by the
     * parameter <code>NumberFormat</code>.
     * 

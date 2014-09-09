@@ -190,6 +190,10 @@ public class Frame extends DynamicComponentBase
       return myState.getAxisAngle();
    }
 
+   public void getOrientation(AxisAngle axisAng) {
+      axisAng.set(myState.getAxisAngle());
+   }
+
    public void setOrientation (AxisAngle axisAng) {
       RigidTransform3d X = new RigidTransform3d (myState.XFrameToWorld);
       X.R.setAxisAngle (axisAng);

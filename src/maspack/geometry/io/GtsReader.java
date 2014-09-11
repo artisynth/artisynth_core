@@ -70,6 +70,11 @@ public class GtsReader extends MeshReaderBase {
       return idxs;
    }
 
+   @Override
+   public PolygonalMesh readMesh() throws IOException {
+      return (PolygonalMesh)readMesh (new PolygonalMesh());
+   }
+
    public MeshBase readMesh (MeshBase mesh) throws IOException {
       if (mesh instanceof PolygonalMesh) {
          return readMesh ((PolygonalMesh)mesh);

@@ -108,6 +108,11 @@ public class OffReader extends MeshReaderBase {
       return mesh;
    }
 
+   @Override
+   public PolygonalMesh readMesh() throws IOException {
+      return (PolygonalMesh)readMesh (new PolygonalMesh());
+   }
+
    public PolygonalMesh readMesh (MeshBase mesh) throws IOException {
       if (mesh == null) {
          mesh = new PolygonalMesh();

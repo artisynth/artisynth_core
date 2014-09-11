@@ -237,7 +237,12 @@ public class FemMarker extends Marker {
          throw new InternalErrorException ("element is not set");
       }
       super.connectToHierarchy ();
-      //myElement.addBackReference (this);
+      FemNode nodes[] = myNodeAttachment.getMasters();
+      if (nodes != null) {
+         for (FemNode node : nodes) {
+            node.addMasterAttachment (myNodeAttachment);
+         }
+      }
    }
 
    @Override
@@ -245,8 +250,13 @@ public class FemMarker extends Marker {
       if (myElement == null) {
          throw new InternalErrorException ("element is not set");
       }
-      //myElement.removeBackReference (this);
       super.disconnectFromHierarchy();
+      FemNode nodes[] = myNodeAttachment.getMasters();
+      if (nodes != null) {
+         for (FemNode node : nodes) {
+            node.removeMasterAttachment (myNodeAttachment);
+         }
+      }
    }
 
    /**

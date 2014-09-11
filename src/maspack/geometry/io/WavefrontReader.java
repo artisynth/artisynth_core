@@ -1639,6 +1639,11 @@ public class WavefrontReader extends MeshReaderBase {
       }
       return mesh;
    }
+   
+   @Override
+   public PolygonalMesh readMesh() throws IOException {
+      return (PolygonalMesh)readMesh (new PolygonalMesh());
+   }
 
    public void setMesh (PointMesh mesh)
       throws IOException {

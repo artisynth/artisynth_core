@@ -484,6 +484,14 @@ public abstract class DynamicAttachment extends ModelComponentBase {
       return false;
    }   
 
+   /**
+    * Orders a list of (possibly interdependent) attachments so that the
+    * masters of any given attachment do not depend on any attachments further
+    * along the list. This means that state can be updated correctly by
+    * starting at the beginning of the list and running through to the end.  It
+    * also implicitly requires that the attachment configuration does not
+    * contain loops.
+    */
    public static ArrayList<DynamicAttachment> createOrderedList (
       List<DynamicAttachment> list) {
       

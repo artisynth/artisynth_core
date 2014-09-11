@@ -504,6 +504,11 @@ public class PlyReader extends MeshReaderBase {
 //      return read (mesh, myIstream);
 //   }
 
+   @Override
+   public PolygonalMesh readMesh() throws IOException {
+      return (PolygonalMesh)readMesh (new PolygonalMesh());
+   }
+
    public MeshBase readMesh (MeshBase mesh) throws IOException {
 
       DataInputStream is = new DataInputStream (myIstream);

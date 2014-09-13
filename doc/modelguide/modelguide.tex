@@ -12,7 +12,7 @@
 \setcounter{secnumdepth}{3}
 
 \title{ArtiSynth Modeling Guide}
-\author{John Lloyd and Antonio Sanchez}
+\author{John Lloyd and Antonio S\'anchez}
 \setpubdate{September 15, 2014}
 \iflatexml
 \date{}
@@ -981,15 +981,15 @@ Mesh subclasses currently include:
 
 \begin{description}
 
-\item[\javaclass[maspack.geometry]{PolygonalMesh}]\mbox{}
+\item[\protect{\javaclass[maspack.geometry]{PolygonalMesh}}]\mbox{}
 
 A 2D surface mesh containing faces implemented using half-edges.
 
-\item[\javaclass[maspack.geometry]{PolylineMesh}]\mbox{}
+\item[\protect{\javaclass[maspack.geometry]{PolylineMesh}}]\mbox{}
 
 A mesh consisting of connected line-segments (polylines).
 
-\item[\javaclass[maspack.geometry]{PointMesh}]\mbox{}
+\item[\protect{\javaclass[maspack.geometry]{PointMesh}}]\mbox{}
 
 A point cloud with no topological connectivity.
 
@@ -1912,6 +1912,7 @@ show that
 \bibliographystyle{plain}
 \bibliography{references}
 \else
+\bibliographystyle{plain}
 \begin{btSect}{references}
 \btPrintCited
 \end{btSect}

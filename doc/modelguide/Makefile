@@ -6,6 +6,8 @@ HTML_DIR = ../html/modelguide
 
 .PHONY: html pdf chunked
 
+default: pdf html
+
 html: $(HTML_DIR)/modelguide.html $(COPIED_IMAGE_FILES)
 
 pdf: $(PDF_DIR)/modelguide.pdf
@@ -17,6 +19,7 @@ $(PDF_DIR)/modelguide.pdf: modelguide.pdf
 
 modelguide.pdf: modelguide.tex ../texinputs/artisynthDoc.tex
 	pdflatex modelguide.tex
+	bibtex modelguide1
 	pdflatex modelguide.tex	
 	pdflatex modelguide.tex
 

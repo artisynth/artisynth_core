@@ -286,9 +286,9 @@ public class SkinMesh extends SkinMeshBase implements Pullable, Collidable {
       /**
        * Returns the displacement from the base pose to the Frame's
        * current pose. If the base pose is XBW, and the current
-       * pose is XFW, then this is computed as
+       * pose is TFW, then this is computed as
        * <pre>
-       *  XFW * inv(XBW)
+       *  TFW * inv(XBW)
        * </pre>
        * The computation is done in 
        */

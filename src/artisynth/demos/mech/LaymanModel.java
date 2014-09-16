@@ -241,12 +241,12 @@ public class LaymanModel extends MechModel {
       // override XFA so that we have an initial displacement
       XFA.p.set (0, 0, SHOULDER_Z - UPPER_ARM_Z);
       XFA.R.setRpy (0, 0, PI);
-      sjoint.setXFA (XFA);
+      sjoint.setTFA (XFA);
 
       XDW.p.set (ARM_SEP / 2, 0, SHOULDER_Z);
       XDW.R.setRpy (DTOR * 45, 0, DTOR * 80);
       sjoint = addSphericalJoint (myLUppArm, myTorso, XDW, 105);
-      sjoint.setXFA (XFA);
+      sjoint.setTFA (XFA);
 
       rjoint = addRevoluteJoint (myRUppArm, myRLowArm, -ARM_SEP / 2, 0, elbowZ);
       rjoint.setMaxTheta (5);

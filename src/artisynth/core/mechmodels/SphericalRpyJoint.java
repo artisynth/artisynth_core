@@ -64,8 +64,8 @@ public class SphericalRpyJoint extends SphericalJointBase {
       // myCoupling.getTheta();
       RigidTransform3d XFA = new RigidTransform3d();
       RigidTransform3d XCD = new RigidTransform3d();
-      getCurrentXFA (XFA);
-      getCurrentXDB (XCD);
+      getCurrentTFA (XFA);
+      getCurrentTDB (XCD);
       XCD.mulInverseBoth (XCD, XBW);
       XCD.mul (XAW);
       XCD.mul (XFA);
@@ -84,8 +84,8 @@ public class SphericalRpyJoint extends SphericalJointBase {
          RigidTransform3d XBA = new RigidTransform3d();
          RigidTransform3d XBW = 
             myBodyB != null ? myBodyB.getPose() : RigidTransform3d.IDENTITY;
-         XBA.mulInverseBoth (XCD, getXDB());
-         XBA.mul (getXFA(), XBA);
+         XBA.mulInverseBoth (XCD, getTDB());
+         XBA.mul (getTFA(), XBA);
          setPoses (XBA);
       }
       

@@ -93,12 +93,12 @@ public class FullPlanarJoint extends RigidBodyConnector
    }
 
    public void updateBounds (Point3d pmin, Point3d pmax) {
-      RigidTransform3d XDW = getCurrentXDW();
+      RigidTransform3d XDW = getCurrentTDW();
       XDW.p.updateBounds (pmin, pmax);
    }
 
    public void prerender (RenderList list) {
-      RigidTransform3d XDW = getCurrentXDW();
+      RigidTransform3d XDW = getCurrentTDW();
       myRenderFrame.set (XDW);
    }
 
@@ -132,7 +132,7 @@ public class FullPlanarJoint extends RigidBodyConnector
       // copy.setNumConstraints (5);
       copy.setAxisLength (myAxisLength);
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getXFA(), copy.myBodyB, getXDB());
+      copy.setBodies (copy.myBodyA, getTFA(), copy.myBodyB, getTDB());
       return copy;
    }
 

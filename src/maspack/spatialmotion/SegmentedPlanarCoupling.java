@@ -262,7 +262,7 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
    
    public void transformGeometry (
       AffineTransform3dBase X, RotationMatrix3d Ra, 
-      RigidTransform3d XFW, RigidTransform3d XDW) {
+      RigidTransform3d TFW, RigidTransform3d XDW) {
       
       // transform points by XDW.R^T Ra^T X.M XDW.R
       for (int i = 0; i < myPoints.size(); i++) {

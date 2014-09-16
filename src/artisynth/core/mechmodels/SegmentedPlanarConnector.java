@@ -278,7 +278,7 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
    // }
 
    public void updateBounds (Point3d pmin, Point3d pmax) {
-      RigidTransform3d XDW = getCurrentXDW();
+      RigidTransform3d XDW = getCurrentTDW();
       for (int i = 0; i < mySegPlaneCoupling.numPlanes(); i++) {
          computeRenderVtxs (i, XDW);
          for (int k = 0; k < myRenderVtxs.length; k++) {
@@ -292,15 +292,15 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
    }
 
    public void prerender (RenderList list) {
-      RigidTransform3d XFW = getCurrentXFW();
-      myRenderCoords[0] = (float)XFW.p.x;
-      myRenderCoords[1] = (float)XFW.p.y;
-      myRenderCoords[2] = (float)XFW.p.z;
+      RigidTransform3d TFW = getCurrentTFW();
+      myRenderCoords[0] = (float)TFW.p.x;
+      myRenderCoords[1] = (float)TFW.p.y;
+      myRenderCoords[2] = (float)TFW.p.z;
    }
 
    public void render (GLRenderer renderer, int flags) {
       Vector3d nrm = new Vector3d (0, 0, 1);
-      RigidTransform3d XDW = getCurrentXDW();
+      RigidTransform3d XDW = getCurrentTDW();
 
       GL2 gl = renderer.getGL2().getGL2();
       RenderProps props = myRenderProps;
@@ -536,7 +536,7 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
       copy.setPlaneSize (myPlaneSize);
       copy.setUnilateral (isUnilateral());
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getXFA(), copy.myBodyB, getXDB());
+      copy.setBodies (copy.myBodyA, getTFA(), copy.myBodyB, getTDB());
       ArrayList<Point3d> segPnts = mySegPlaneCoupling.getSegmentPoints();
       double[] segs = new double[segPnts.size() * 2];
       for (int i = 0; i < segPnts.size(); i++) {

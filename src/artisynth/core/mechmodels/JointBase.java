@@ -46,7 +46,7 @@ public abstract class JointBase extends RigidBodyConnector  {
    }
    
    public void getPosition(Point3d pos) {
-      pos.set(getCurrentXDW().p);
+      pos.set(getCurrentTDW().p);
    }
    
    public double getAxisLength() {

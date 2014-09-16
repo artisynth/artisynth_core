@@ -152,11 +152,11 @@ public class FrameSpring extends Spring
       myAxisLength = Math.max (0, len);
    }
 
-   public void setInitialX21 (RigidTransform3d X21) {
+   public void setInitialT21 (RigidTransform3d X21) {
       myInitialX21.set (X21);
    }
 
-   public RigidTransform3d getInitialX21 () {
+   public RigidTransform3d getInitialT21 () {
       return myInitialX21;
    }
 
@@ -164,7 +164,7 @@ public class FrameSpring extends Spring
     * Set the initialX21 to the current value of the transform from
     * frame 2 to frame 1.
     */
-   public void setInitialX21 () {
+   public void setInitialT21 () {
       myInitialX21.mulInverseBoth (myX1A, myFrameA.getPose());
       myInitialX21.mul (myFrameB.getPose());
       myInitialX21.mul (myX2B);

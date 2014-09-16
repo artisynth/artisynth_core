@@ -768,7 +768,7 @@ public class MechSystemSolver {
 
       if (bod != null) {
          if (con != null) {         
-            XCA.set (con.getXCA());
+            XCA.set (con.getTCA());
          }
          if (defbod != null) {
             defbod.computeUndeformedFrame (XCA0, polar, XCA);
@@ -806,7 +806,7 @@ public class MechSystemSolver {
       // begin deformable body constraint debug 
       if (bod != null) {
          if (con != null) {         
-            XCA.set (con.getXCA());
+            XCA.set (con.getTCA());
          }
          if (defbod != null) {
             defbod.computeUndeformedFrame (XCA0, polar, XCA);

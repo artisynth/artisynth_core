@@ -110,13 +110,13 @@ public class SolidJoint extends JointBase implements CopyableComponent {
    public void updateBounds (Point3d pmin, Point3d pmax) {
       Point3d p0 = new Point3d();
       Point3d p1 = new Point3d();
-      computeAxisEndPoints (p0, p1, getCurrentXDW());
+      computeAxisEndPoints (p0, p1, getCurrentTDW());
       p0.updateBounds (pmin, pmax);
       p1.updateBounds (pmin, pmax);
    }
 
    public void prerender (RenderList list) {
-      RigidTransform3d XDW = getCurrentXDW();
+      RigidTransform3d XDW = getCurrentTDW();
       myRenderFrame.set (XDW);
    }
 
@@ -135,7 +135,7 @@ public class SolidJoint extends JointBase implements CopyableComponent {
       // copy.setNumConstraints (5);
       copy.setAxisLength (myAxisLength);
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getXFA(), copy.myBodyB, getXDB());
+      copy.setBodies (copy.myBodyA, getTFA(), copy.myBodyB, getTDB());
       return copy;
    }
 

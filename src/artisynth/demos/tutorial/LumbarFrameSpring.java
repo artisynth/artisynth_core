@@ -61,9 +61,9 @@ public class LumbarFrameSpring extends RootModel {
       spring.setMaterial (
          new LinearFrameMaterial (
             /*ktrans=*/100, /*krot=*/0.01, /*dtrans=*/0, /*drot=*/0));
-      RigidTransform3d X1A = new RigidTransform3d();
-      X1A.mulInverseLeft (lumbar2.getPose(), lumbar1.getPose());
-      spring.setAttachFrameA (X1A);
+      RigidTransform3d T1A = new RigidTransform3d();
+      T1A.mulInverseLeft (lumbar2.getPose(), lumbar1.getPose());
+      spring.setAttachFrameA (T1A);
       spring.setAttachFrameB (RigidTransform3d.IDENTITY);
       mech.attachFrameSpring (lumbar2, lumbar1, spring);
 

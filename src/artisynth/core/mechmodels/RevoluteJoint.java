@@ -64,8 +64,8 @@ public class RevoluteJoint extends JointBase
       // myCoupling.getTheta();
       RigidTransform3d XFA = new RigidTransform3d();
       RigidTransform3d XCD = new RigidTransform3d();
-      getCurrentXFA (XFA);
-      getCurrentXDB (XCD);
+      getCurrentTFA (XFA);
+      getCurrentTDB (XCD);
       XCD.mulInverseBoth (XCD, XBW);
       XCD.mul (XAW);
       XCD.mul (XFA);
@@ -83,8 +83,8 @@ public class RevoluteJoint extends JointBase
          // if we are connected to the hierarchy, adjust the poses of the
          // attached bodies appropriately.
          RigidTransform3d XBA = new RigidTransform3d();      
-         XBA.mulInverseBoth (XCD, getXDB());
-         XBA.mul (getXFA(), XBA);
+         XBA.mulInverseBoth (XCD, getTDB());
+         XBA.mul (getTFA(), XBA);
          setPoses (XBA);
       }
    }
@@ -198,13 +198,13 @@ public class RevoluteJoint extends JointBase
    public void updateBounds (Point3d pmin, Point3d pmax) {
       Point3d p0 = new Point3d();
       Point3d p1 = new Point3d();
-      computeAxisEndPoints (p0, p1, getCurrentXDW());
+      computeAxisEndPoints (p0, p1, getCurrentTDW());
       p0.updateBounds (pmin, pmax);
       p1.updateBounds (pmin, pmax);
    }
 
    public void prerender (RenderList list) {
-      RigidTransform3d XDW = getCurrentXDW();
+      RigidTransform3d XDW = getCurrentTDW();
       myRenderFrame.set (XDW);
    }
 
@@ -252,7 +252,7 @@ public class RevoluteJoint extends JointBase
       // copy.setNumConstraints (5);
       copy.setAxisLength (myAxisLength);
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getXFA(), copy.myBodyB, getXDB());
+      copy.setBodies (copy.myBodyA, getTFA(), copy.myBodyB, getTDB());
       copy.setThetaRange (myThetaRange);
       return copy;
    }

@@ -43,7 +43,7 @@ public class MarkerPlanarConnector extends PlanarConnector {
    
    public void setFrameMarker(FrameMarker mkr) {
       myFrameMarker = mkr;
-      set ((RigidBody)mkr.getFrame(), mkr.getLocation(), getXDB());
+      set ((RigidBody)mkr.getFrame(), mkr.getLocation(), getTDB());
    }
    
    public FrameMarker getFrameMarker() {
@@ -55,10 +55,10 @@ public class MarkerPlanarConnector extends PlanarConnector {
     */
    public int getBilateralConstraints (ArrayList<RigidBodyConstraint> bilaterals) {
       if (myFrameMarker != null && 
-          !myFrameMarker.getLocation().equals (getXFA().p)) {
+          !myFrameMarker.getLocation().equals (getTFA().p)) {
          RigidTransform3d XFA = new RigidTransform3d ();
          XFA.p.set (myFrameMarker.getLocation ());
-         setXFA (XFA);
+         setTFA (XFA);
       }
       return myCoupling.getBilateralConstraints (bilaterals);
    }
@@ -66,10 +66,10 @@ public class MarkerPlanarConnector extends PlanarConnector {
    public double getUnilateralConstraints(
 	 ArrayList<RigidBodyConstraint> unilaterals, boolean setEngaged) {
       if (myFrameMarker != null && 
-          !myFrameMarker.getLocation().equals (getXFA().p)) {
+          !myFrameMarker.getLocation().equals (getTFA().p)) {
 	 RigidTransform3d XFA = new RigidTransform3d();
 	 XFA.p.set(myFrameMarker.getLocation());
-	 setXFA(XFA);
+	 setTFA(XFA);
       }
       return myCoupling.getUnilateralConstraints(unilaterals, setEngaged);
    }
@@ -103,13 +103,13 @@ public class MarkerPlanarConnector extends PlanarConnector {
       else if (scanAttributeName (rtok, "XFA")) {
          RigidTransform3d XFA = new RigidTransform3d();
          XFA.scan (rtok);
-         setXFA (XFA);
+         setTFA (XFA);
          return true;
       }
       else if (scanAttributeName (rtok, "XDB")) {
          RigidTransform3d XDB = new RigidTransform3d();
          XDB.scan (rtok);
-         setXDB (XDB);
+         setTDB (XDB);
          return true;
       }
       rtok.pushBack();
@@ -166,8 +166,8 @@ public class MarkerPlanarConnector extends PlanarConnector {
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
-      RigidTransform3d XFA = getXFA ();
-      RigidTransform3d XDB = getXDB ();
+      RigidTransform3d XFA = getTFA ();
+      RigidTransform3d XDB = getTDB ();
       printMarkerReference (pw, ancestor);
       printBodyAReference (pw, ancestor);
       printBodyBReference (pw, ancestor);

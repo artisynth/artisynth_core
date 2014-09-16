@@ -75,8 +75,8 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
       // myCoupling.getTheta();
       RigidTransform3d XFA = new RigidTransform3d();
       RigidTransform3d XCD = new RigidTransform3d();
-      getCurrentXFA (XFA);
-      getCurrentXDB (XCD);
+      getCurrentTFA (XFA);
+      getCurrentTDB (XCD);
       XCD.mulInverseBoth (XCD, XBW);
       XCD.mul (XAW);
       XCD.mul (XFA);     
@@ -99,8 +99,8 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
          RigidTransform3d XBA = new RigidTransform3d();
          RigidTransform3d XBW = 
             myBodyB != null ? myBodyB.getPose() : RigidTransform3d.IDENTITY;
-         XBA.mulInverseBoth (XCD, getXDB());
-         XBA.mul (getXFA(), XBA);
+         XBA.mulInverseBoth (XCD, getTDB());
+         XBA.mul (getTFA(), XBA);
          setPoses (XBA);
       }
    }
@@ -138,8 +138,8 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
    }
 
    public void updateBounds (Point3d pmin, Point3d pmax) {
-      RigidTransform3d XFW = getCurrentXFW();
-      XFW.p.updateBounds (pmin, pmax);
+      RigidTransform3d TFW = getCurrentTFW();
+      TFW.p.updateBounds (pmin, pmax);
    }
 
    public double getRoll () {
@@ -217,7 +217,7 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
    }
 
    public void prerender (RenderList list) {
-      RigidTransform3d XDW = getCurrentXDW();
+      RigidTransform3d XDW = getCurrentTDW();
       myRenderFrame.set (XDW);
    }
 
@@ -241,7 +241,7 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
       copy.myCoupling = new RollPitchCoupling ();
       copy.setAxisLength (myAxisLength);
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getXFA(), copy.myBodyB, getXDB());
+      copy.setBodies (copy.myBodyA, getTFA(), copy.myBodyB, getTDB());
       return copy;
    }
 

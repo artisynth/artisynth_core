@@ -28,7 +28,7 @@ public class JointedCollide extends RigidBodyJoint {
 
       super.build (args);
 
-      body1.setDynamic (true);  // allow body1 to fall freely
+      bodyB.setDynamic (true);  // allow bodyB to fall freely
 
       // create and add the base plate
       RigidBody base = RigidBody.createBox ("base", 25, 25, 2, 0.2);
@@ -38,7 +38,7 @@ public class JointedCollide extends RigidBodyJoint {
 
       // turn on collisions
       mech.setDefaultCollisionBehavior (true, 0.20);
-      mech.setCollisionBehavior (body1, body2, false);
+      mech.setCollisionBehavior (bodyA, bodyB, false);
    }
 
 }

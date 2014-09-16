@@ -68,6 +68,7 @@
 
 \newcommand{\javabase}{}
 \newcommand{\setjavabase}[1]{\renewcommand{\javabase}{#1}}
+
 \iflatexml
 \newcommand{\javaclassx}[2][]{%
 % Includes code to prevent an extra '.' at the front if #1 is empty. It
@@ -81,6 +82,10 @@
 \href{@JDOCBEGIN/\concatnames{\javabase}{#1}{#2}@JDOCEND}{#2}}
 \newcommand{\javamethodArgs}[2][]{%
 \href{@JDOCBEGIN/\concatnames{}{#1}{#2}@JDOCEND}{#2}}
+\newcommand{\javamethodAlt}[2]{%
+\href{@JDOCBEGIN/\concatnames{}{}{#1}@JDOCEND}{#2}}
+\newcommand{\javamethodAltx}[2]{%
+\href{@JDOCBEGIN/\concatnames{\javabase}{}{#1}@JDOCEND}{#2}}
 
 \newcommand{\javamethodNoArgsx}[2][]{%
 \href{@JDOCBEGIN/\concatnames{\javabase}{#1}{#2}@JDOCEND}{\removeargs{#2}}}
@@ -96,6 +101,8 @@
 %\href{\javaurl\dottoslash{\concatnames{\javabase}{#1}{#2}}.html}{#2}}
 \newcommand{\javamethodArgs}[2][]{{\color{darkblue}#2}}
 \newcommand{\javamethodNoArgs}[2][]{{\color{darkblue}\removeargs{#2}}}
+\newcommand{\javamethodAlt}[2]{{\color{darkblue}{#2}}}
+\newcommand{\javamethodAltx}[2]{{\color{darkblue}{#2}}}
 \fi
 
 \newcommand{\javamethod}{\@ifstar\javamethodNoArgs\javamethodArgs}

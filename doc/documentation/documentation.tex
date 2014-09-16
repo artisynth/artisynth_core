@@ -269,7 +269,7 @@ use different input depending on whether HTML or PDF output is being
 produced. Producing HTML implies the use of LaTeXML, which can be
 detected using the {\tt \BKS iflatexml} conditional, as in:
 
-\begin{lstlisting}
+\begin{lstlisting}[]
 \iflatexml
   do things in a conventional way that LaTeXML can deal with
 \else
@@ -330,7 +330,7 @@ Longer code examples are typeset using the {\tt lstlisting}
 environment (from the {\tt listings} package), which surrounds
 the output in a colored box:
 
-\begin{lstlisting}
+\begin{lstlisting}[]
 // Here is a longer code example
 interface Property
 {
@@ -349,7 +349,7 @@ A special environment called {\tt sideblock} is used to create
 admonition sections that contain special notes, warnings, or side
 information. The LaTeX source
 
-\begin{lstlisting}
+\begin{lstlisting}[]
 \begin{sideblock}
 Note: when producing PDF, the {\tt sideblock} environment
 is implemented using commands from the {\tt color} and
@@ -391,7 +391,7 @@ for HTML one may not want any scaling at all (in order to get
 pixel-for-pixel reproduction). This can be achieved using
 {\tt \BKS iflatexml}:
 
-\begin{lstlisting}
+\begin{lstlisting}[]
 \begin{figure}
 \begin{center}
 \iflatexml
@@ -430,7 +430,7 @@ method descriptions.
 The command {\tt \BKS javaclass} will create a Javadoc reference to 
 a class from the class name itself. The LaTeX source
 
-\begin{lstlisting}
+\begin{lstlisting}[]
 \javaclass{maspack.matrix.MatrixNd}, and \javaclass[maspack]{matrix.MatrixNd}, and
 \javaclass[maspack.matrix]{MatrixNd}.
 \end{lstlisting}
@@ -455,7 +455,7 @@ using the command {\tt \BKS setjavabase}, thus removing the need to
 explicly specify the full class name in the arguments to {\tt \BKS
 javaclassx}. For example,
 
-\begin{lstlisting}
+\begin{lstlisting}[]
 \setjavabase{maspack.matrix}
 Two important classes are \javaclassx{MatrixNd} and \javaclassx{VectorNd}.
 \end{lstlisting}
@@ -472,7 +472,7 @@ Methods can be referenced in a similar way using the command {\tt
 a (possibly abbreviated) argument signature.
 LaTeX source of the form
 
-\begin{lstlisting}
+\begin{lstlisting}[]
 \javamethod{maspack.matrix.MatrixNd.mul()}, 
 \javamethod[maspack.matrix]{MatrixNd.mul(MatrixNd)},
 \javamethod[maspack.matrix.MatrixNd]{mul(MatrixNd,MatrixNd)}.
@@ -490,7 +490,7 @@ javamethodx} is available which internally prepends the package name
 provided by the expansion of {\tt \BKS javabase} onto the class name,
 so that
 
-\begin{lstlisting}
+\begin{lstlisting}[]
 \setjavabase{maspack.matrix}
 \javamethodx[MatrixNd]{mul(MatrixNd)} takes one argument,
 while \javamethodx[MatrixNd]{mul(MatrixNd,MatrixNd)} takes two.
@@ -511,10 +511,10 @@ partly matches the fully qualified type name of each argument.
 
 For example,
 
-\begin{lstlisting}
-\javamethodx{MatrixNd.mul(maspack.matrix.MatrixNd,maspack.matrix.MatrixNd), 
-\javamethodx{MatrixNd.mul(matrix.MatrixNd,matrix.MatrixNd),
-\javamethodx{MatrixNd.mul(MatrixNd,MatrixNd).
+\begin{lstlisting}[]
+\javamethodx{MatrixNd.mul(maspack.matrix.MatrixNd,maspack.matrix.MatrixNd)}, 
+\javamethodx{MatrixNd.mul(matrix.MatrixNd,matrix.MatrixNd)},
+\javamethodx{MatrixNd.mul(MatrixNd,MatrixNd)}.
 \end{lstlisting}
 
 will all produce references to the same method. In fact, if the method
@@ -526,7 +526,7 @@ Finally, to omit the argument signature from
 the anchor text, one can use the commands {\tt \BKS javamethod*}
 or {\tt \BKS javamethodx*} instead, so that
 
-\begin{lstlisting}
+\begin{lstlisting}[]
 Method reference with argument signature:
 \javamethodx{MatrixNd.mul(MatrixNd,MatrixNd)}, and without:
 \javamethodx*{MatrixNd.mul(MatrixNd,MatrixNd)}.
@@ -652,7 +652,7 @@ installed. For example, on MacOS, if you have
 you can install a prebuilt release
 using 
 
-\begin{lstlisting}
+\begin{lstlisting}[]
   > sudo port install LaTeXML
 \end{lstlisting}
 
@@ -661,7 +661,7 @@ including Perl, LaTeX, and ImageMagick. You can then uninstall LaTeXML
 itself, and install directly from subversion, using a command
 sequence like this:
 
-\begin{lstlisting}
+\begin{lstlisting}[]
   > sudo port uninstall LaTeXML
   > svn co https://svn.mathweb.org/repos/LaTeXML
   > cd LaTeXML/trunk

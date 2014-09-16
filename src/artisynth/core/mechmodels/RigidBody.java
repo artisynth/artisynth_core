@@ -505,6 +505,10 @@ public class RigidBody extends Frame implements CopyableComponent, Collidable, P
       myMeshInfo.setFileTransform (X);
    }
 
+   public void setMesh (PolygonalMesh mesh) {
+      setSurfaceMesh (mesh, null, null);
+   }
+   
    public void setMesh (PolygonalMesh mesh, String fileName) {
       setSurfaceMesh (mesh, fileName, null);
    }

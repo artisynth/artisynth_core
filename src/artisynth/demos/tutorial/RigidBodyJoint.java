@@ -25,8 +25,8 @@ import javax.swing.*;
 public class RigidBodyJoint extends RootModel {
 
    MechModel mech;
-   RigidBody body1;
-   RigidBody body2;
+   RigidBody bodyA;
+   RigidBody bodyB;
    
    // dimensions for first body
    double lenx1 = 10;   
@@ -40,7 +40,7 @@ public class RigidBodyJoint extends RootModel {
 
    public void build (String[] args) {
 
-      // create mech model and set it's properties
+      // create MechModel and add to RootModel
       mech = new MechModel ("mech");
       mech.setGravity (0, 0, -98);
       mech.setFrameDamping (1.0);
@@ -51,30 +51,31 @@ public class RigidBodyJoint extends RootModel {
 
       // create first body and set its pose
       mesh = MeshFactory.createRoundedBox (lenx1, leny1, lenz1, /*nslices=*/8);
-      RigidTransform3d XMB = new RigidTransform3d (0, 0, 0, 1, 1, 1, 2*Math.PI/3);
-      mesh.transform (XMB);
-      body1 = RigidBody.createFromMesh ("body1", mesh, 0.2, 1.0);
-      body1.setPose (new RigidTransform3d (0, 0, 1.5*lenx1, 1, 0, 0, Math.PI/2));
-      body1.setDynamic (false);
+      RigidTransform3d TMB = 
+         new RigidTransform3d (0, 0, 0, /*axisAng=*/1, 1, 1, 2*Math.PI/3);
+      mesh.transform (TMB);
+      bodyB = RigidBody.createFromMesh ("bodyB", mesh, /*density=*/0.2, 1.0);
+      bodyB.setPose (new RigidTransform3d (0, 0, 1.5*lenx1, 1, 0, 0, Math.PI/2));
+      bodyB.setDynamic (false);
 
       // create second body and set its pose
       mesh = MeshFactory.createRoundedCylinder (
          leny2/2, lenx2, /*nslices=*/16, /*nsegs=*/1, /*flatBottom=*/false);
-      mesh.transform (XMB);
-      body2 = RigidBody.createFromMesh ("body2", mesh, 0.2, 1.0);
-      body2.setPose (new RigidTransform3d (
+      mesh.transform (TMB);
+      bodyA = RigidBody.createFromMesh ("bodyA", mesh, 0.2, 1.0);
+      bodyA.setPose (new RigidTransform3d (
                         (lenx1+lenx2)/2, 0, 1.5*lenx1, 1, 0, 0, Math.PI/2));
 
       // create the joint      
-      RigidTransform3d XCA = new RigidTransform3d (-lenx2/2, 0, 0);
-      RigidTransform3d XCB = new RigidTransform3d();
-      XCB.mulInverseLeft (body1.getPose(), body2.getPose());
-      XCB.mul (XCA);
-      RevoluteJoint joint = new RevoluteJoint (body2, XCA, body1, XCB);
+      RigidTransform3d TFA = new RigidTransform3d (-lenx2/2, 0, 0);
+      RigidTransform3d TDB = new RigidTransform3d();
+      TDB.mulInverseLeft (bodyB.getPose(), bodyA.getPose());
+      TDB.mul (TFA);
+      RevoluteJoint joint = new RevoluteJoint (bodyA, TFA, bodyB, TDB);
 
       // add components to the mech model
-      mech.addRigidBody (body1);
-      mech.addRigidBody (body2);
+      mech.addRigidBody (bodyB);
+      mech.addRigidBody (bodyA);
       mech.addRigidBodyConnector (joint);
 
       joint.setTheta (35);  // set joint position

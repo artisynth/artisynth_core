@@ -31,7 +31,7 @@ The standard is similar in appearance to the
 \href{http://java.sun.com/docs/codeconv}{coding rules provided by Sun},
 although it does differ slightly. For users of Eclipse, there is an code
 style file located in 
-\begin{lstlisting}
+\begin{lstlisting}[]
  $ARTISYNTH_HOME/support/eclipse/artisynthCodeFormat.xml
 \end{lstlisting}
 that supports most of the conventions, though not all, as noted
@@ -43,7 +43,7 @@ As with the Sun coding rules, all braces are cuddled. Basic indentation
 is set to 3 to keep code from creeping too far across that page.
 For example:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    public static RootModel getRootModel() {
       if (myWorkspace != null) {
          return myWorkspace.getRootModel();
@@ -60,7 +60,7 @@ As in the Sun rules, code following control constructs is always
 enclosed in a braced block, even when this is not necessary. That
 means that
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    for (int i=0; i<cnt; i++) {
       if (i % 2 == 0) {
 	 System.out.println ("Even");
@@ -71,7 +71,7 @@ means that
    }
 \end{lstlisting}
 should be used instead of
-\begin{lstlisting}
+\begin{lstlisting}[]
    for (int i=0; i<cnt; i++)
       if (i % 2 == 0)
 	 System.out.println ("Even");
@@ -99,7 +99,7 @@ often be necessary to wrap lines.
 If breaking a line is necessary, the beginning of an argument list is
 a good place to do it. The break should be indented by the usual 3 spaces.
 The result can look at bit like Lisp:
-\begin{lstlisting}
+\begin{lstlisting}[]
    public String getKeyBindings() {
       return artisynth.core.util.TextFromFile.getTextOrError (
          ArtisynthPath.getResource (
@@ -110,7 +110,7 @@ The result can look at bit like Lisp:
 If at all possible, do not break lines at the '{\tt .}' used for method or
 field references. For clarity, it is better to keep these together with 
 their objects. Therefore, please *do not* do this:
-\begin{lstlisting}
+\begin{lstlisting}[]
    public String getKeyBindings() {
       return artisynth.core.util.TextFromFile
 	 .getTextOrError (ArtisynthPath
@@ -125,7 +125,7 @@ conventions, so you need to do this yourself.
 
 Another good place for a line break is after an assignment
 operator, particularly if the left side is long:
-\begin{lstlisting}
+\begin{lstlisting}[]
    LinkedList<ClipPlaneControl> myClipPlaneControls =
       new LinkedList<ClipPlaneControl>();
 
@@ -143,7 +143,7 @@ manually.
 When line wrapping is used inside a conditional expression,
 the expression itself should be aligned with the opening
 parentheses, with operators placed at the right:
-\begin{lstlisting}
+\begin{lstlisting}[]
          if (e.getSource() instanceof Rotator3d ||
              e.getSource() instanceof Transrotator3d ||
              e.getSource() instanceof Scaler3d) {
@@ -153,7 +153,7 @@ parentheses, with operators placed at the right:
 Again, note the Eclipse will not generally enforce this, and will
 instead
 tend to produce output like this:
-\begin{lstlisting}
+\begin{lstlisting}[]
          if (e.getSource() instanceof Rotator3d
          || e.getSource() instanceof Transrotator3d
          || e.getSource() instanceof Scaler3d) {
@@ -165,7 +165,7 @@ tend to produce output like this:
 
 No spaces are placed before empty argument lists, as in
 
-\begin{lstlisting}
+\begin{lstlisting}[]
         getMainFrame().getMenuBarHandler().enableShowPlay();
 
         public ViewerManager getViewerManager() {

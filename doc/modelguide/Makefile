@@ -41,4 +41,7 @@ install_html: html
 install_pdf: pdf
 	rsync $(PDF_DIR)/modelguide.pdf $(WEB_DOC_URL)/pdf
 
+test:
+	latexml test.tex >test.xml	
+
 -include ../Makedefs

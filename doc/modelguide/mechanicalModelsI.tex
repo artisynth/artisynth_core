@@ -658,7 +658,7 @@ motions therefore correspond to the allowed values of the {\it joint transform}
 $\T_{CD}$.  D is the {\it base} frame and C is the {\it constraint}
 frame. For a revolute joint (Figure \ref{jointExample:fig}), C can
 move with respect to D by rotating about the z axis. Other motions are
-prohbited. $\T_{CD}$ therefore always has the form
+prohbited. $\T_{CD}$ should therefore alway have the form
 %
 \begin{equation}
 \T_{CD} = \matl
@@ -669,56 +669,63 @@ prohbited. $\T_{CD}$ therefore always has the form
 \end{equation}
 %
 where $\theta$ is the angle of joint rotation and is known as the {\it
-joint parameter}. Other joints have different parameterizations.
+joint parameter}. Other joints have different parameterizations, with
+the number of parameters equaling the number of degrees of freedom
+available to the joint. When $\T_{CD} = \I$ (where $\I$ is the
+identity transform), the parameters are all (usually) equal to zero,
+and the joint is said to be in the {\it zero state}.
 
 \begin{figure}[h]
 \begin{center}
  \includegraphics[width=2.5in]{images/jointFrames}
 \end{center}
-\caption{Schematric showing the joint base frame D, frame C that accounts for
-allowed joint motion, and frame F that accounts for additional errors
+\caption{2D schematric showing the joint frames D and C, along with
+the intermediate frame G that accounts for numeric error
 and complaint motion.}
 \label{jointFrames:fig}
 \end{figure}
 
-Each joint is also associated with an additional frame F that is
-nominally aligned with C but which varies from C to accomodate
-additional motions of the joint due to numerical error and compliance
-in the joint constraints (Section \ref{JointCompliance:sec}). Frames
-C, D, and F are all shown in Figure \ref{jointFrames:fig} along with
-their associated transforms.  $\T_{CD}$ accounts for the nominal
-allowed joint motion, $\T_{FC}$ accounts for additional motions due to
-numerical error and compliance, and the overall {\it joint transform}
-$\T_{FD} = \T_{CD} \, T_{FC}$ accounts for the entire joint motion.
-If there is no compliance or joint error, then frames F and C are the
-same, $\T_{FC} = \I$ (where $\I$ is the identity transform), and
-$\T_{FD} = \T_{FC}$.  When the joint transform $\T_{FD}$ is itself
-the identity, the joint is said to be in the {\it zero state}.
+In practice, due to numerical errors and/or compliance in the joint
+(Section \ref{JointCompliance:sec}), the joint transform $\T_{CD}$ may
+sometimes deviate from the allowed set of values dictated by the joint
+type. In ArtiSynth, this is accounted for by introducing an additional
+{\it constraint} frame G between D and C (Figure \ref{jointFrames:fig}).
+G is computed to be the nearest frame to C that lies exactly 
+in the joint constraint space. $\T_{GD}$ is therefore a
+valid transform for the joint, $\T_{GC}$ accomodates the error,
+and the whole joint transform is given by the composition
+%
+\begin{equation}
+\T_{CD} = \T_{GD} \; \T_{CG}.
+\end{equation}
+%
+If there is no compliance or joint error, then frames G and C are the
+same, $\T_{CG} = \I$, and $\T_{CD} = \T_{GD}$.
 
 In general, each joint is attached to two rigid bodies A and B, with
-frame F being fixed to body A and frame D being fixed to body B. The
-restrictions of the joint transform $\T_{FD}$ therefore restrict the
+frame C being fixed to body A and frame D being fixed to body B. The
+restrictions of the joint transform $\T_{CD}$ therefore restrict the
 relative poses of A and B.
 
 \begin{figure}[h]
 \begin{center}
  \includegraphics[width=3.74in]{images/jointBodyFrames}
 \end{center}
-\caption{Tranforms connecting joint coordinate frames F and D with
-rigid bodies A and B. Dotted lines indicate the bodies themselves.}
+\caption{Tranforms connecting joint coordinate frames C and D with
+rigid bodies A and B.}
 \label{jointBodyFrames:fig}
 \end{figure}
 
-Except in special cases, the joint coordinate frames F and D are not
+Except in special cases, the joint coordinate frames C and D are not
 coincident with the body frames A and B.  Instead, they are located
-relative to A and B by the transforms $\T_{FA}$ and $\T_{DB}$,
+relative to A and B by the transforms $\T_{CA}$ and $\T_{DB}$,
 respectively (Figure \ref{jointBodyFrames:fig}). 
-Since $\T_{FA}$ and $\T_{DFA}$ are both fixed, the pose
+Since $\T_{CA}$ and $\T_{DB}$ are both fixed, the pose
 of B relative to A can be determined from
-the joint transform $\T_{FD}$:
+the joint transform $\T_{CD}$:
 %
 \begin{equation}
-\T_{BA} = \T_{FA} \, \T_{FD}^{-1} \, \T_{DB}^{-1}.
+\T_{BA} = \T_{CA} \, \T_{CD}^{-1} \, \T_{DB}^{-1}.
 \label{jointPose:eqn}
 \end{equation}
 %
@@ -737,94 +744,111 @@ An application creates a joint by constructing it and adding it to a
 {\tt MechModel}. Most joints generally have a constructor of the form
 %
 \begin{lstlisting}
-  JointType (bodyA, XFA, bodyB, XDB);
+  JointType (bodyA, bodyB, XDW);
 \end{lstlisting}
 %
 which specifies the rigid bodies A and B which the joint connects,
-along with the transforms $\T_{FA}$ and $\T_{DB}$. These transform
-values must be set to locate the joint appropriately with respect to
-the bodies. The bodies and transforms may also be set
-using the method
+along with the transform $\T_{DW}$ giving the pose of the joint base
+frame D in world coordinates. Then constructor then assumes that the
+joint is in the zero state, so that $\T_{CD} = \I$ and C and D are
+the same, and then computes
+$\T_{CA}$ and $\T_{DB}$ from
+%
+\begin{align}
+\T_{CA} & = \T_{AW}^{-1} \; \T_{DW} \\
+\T_{DB} & = \T_{BW}^{-1} \; \T_{DW}
+\end{align}
+%
+where $\T_{AW}$ and $\T_{BW}$ are the poses of A and B.
+The same body and transform settings can be made on an existing
+joint using the method
 \javamethodAlt{artisynth.core.mechmodels.RigidBodyConnector.setBodies()}
-{setBodies(bodyA, XFA, bodyB, XDB)}.
+{setBodies(bodyA, bodyB, XDW)}.
 
-A common way to determine
-$\T_{FA}$ and $\T_{DB}$ is to first assume that the joint is in the
-zero state (so that $\T_{FD} = \I$ and frames F and D are the same),
-specify $\T_{FA}$ which then gives both F and D with respect to A,
-compute $\T_{BA}$ from the world body poses $\T_{AW}$ and
-$\T_{BW}$
+Alternatively, if we prefer to specify $\T_{CA}$ or $\T_{BA}$, then we
+can determine $\T_{DW}$ from $\T_{AW}$ or $\T_{BW}$ using
 %
-\begin{equation}
-\T_{BA} = \T_{AW}^-1 \; \T_{BW},
-\end{equation}
+\begin{align}
+\T_{DW} & = \T_{AW} \; \T_{CA} \\
+\T_{DW} & = \T_{BW} \; \T_{DB}.
+\end{align}
 %
-and finally use (\ref{jointPose:eqn}) to solve for $\T_{DB}$:
-%
-\begin{equation}
-\T_{DB} = \T_{BA}^{-1} \; \T_{FA}.
-\end{equation}
-%
-This can be accomplished using the following code fragment:
+For example, if we know $\T_{CA}$, this can be accomplished using
+the following code fragment:
 %
 \begin{lstlisting}
    RigidBody bodyA, bodyB;
-   RigidTransform3d TFA = new RigidTransform3d();
-   RigidTransform3d TDB = new RigidTransform3d();
-	
-   ... set TFA explicitly ...
+   RigidTransform3d TCA;
 
-   RigidTransform3d TBA = new RigidTransform3d(); // pose of B wrt A
-   TBA.mulInverseLeft (bodyA.getPose(), bodyB.getPose());
-   TDB.mulInverseLeft (TBA, TFA);   
+   ... initialize bodyA, bodyB, and TCA ...
+   
+   RigidTransform3d TDW = new RigidTransform3d();
+   TDW.mul (bodyA.getPose(), TCA);  // bodyA.getPose() returns TAW
+   RevoluteJoint joint = new RevoluteJoint (bodyA, bodyB, TDW);
 \end{lstlisting}
 %
-If it is prefered to specify F in world coordinates, 
-using $\T_{FW}$, then one can compute 
-$\T_{FA}$ from $\T_{AW}$:
+
+Another method,
+\javamethodAlt{artisynth.core.mechmodels.RigidBodyConnector.setBodies()}
+{setBodies(bodyA, XCA, bodyB, XDB)}, allows us to set both values of
+$\T_{CA}$ or $\T_{BA}$ explicity. This is useful if the joint
+transform $\T_{CD}$ is known to be some value {\it other} than the
+identity, in which case $\T_{CA}$ or $\T_{BA}$ can be computed
+from (\ref{jointPose:eqn}), where $\T_{BA}$ is given by
 %
 \begin{equation}
-\T_{FA} = \T_{AW}^{-1} \; \T_{FW},
+\T_{BA} = \T_{AW}^{-1} \; \T_{BW}.
 \end{equation}
 %
-which may be expressed in code as
+For instance, if we know $\T_{CA}$ and the joint transform $\T_{CD}$,
+then we can compute $\T_{DB}$
+from
+%
+\begin{equation}
+\T_{DB} = \T_{BA}^{-1} \, \T_{CA} \, \T_{CD}^{-1} = 
+\T_{BW}^{-1}  \, T_{AW} \, \T_{CA} \, \T_{CD}^{-1}
+\end{equation}
+%
+and set up the joint as follows:
+%
 \begin{lstlisting}
-   ... set TFA explicitly to TFW ...
+   RigidBody bodyA, bodyB;
+   RigidTransform3d TCA, TCD;
 
-   // convert to TFA
-   TFA.mulInverseLeft (bodyA.getPose(), TFA);
+   ... initialize bodyA, bodyB, TCA, TCD ...
+   
+   RigidTransform3d TBD = new RigidTransform3d();
+   TDB.mulInverseLeft (bodyB.getPose(), bodyA.getPose());
+   TDB.mul (TCA);
+   TDB.mulInverse (TCD);
+   RevoluteJoint joint = new RevoluteJoint ();
+   joint.setBodies (bodyA, TCA, bodyB, TDB);
 \end{lstlisting}
+%
 
-Sometimes when setting up a joint it may be preferable to
-
-
-Alternatively, we may have
-
-
-
-
-Once a joint has been created and added to a {\tt MechModel}, it is
-sometimes possible to "move" it by explicitly setting its joint
-parameters. This will cause the transform $\T_{CD}$ to be explicity
-set to the value implied by the joint parameters, the error transform
-$\T_{FC}$ to be set to the identity, and the joint transform 
-$\T_{FD}$ to therefore be set to $\T_{CD}$. The position
-of B relative to A is then updated using (\ref{jointPose:eqn}),
-and either body A or body B is moved accr
+Some joint implementations provide the ability to explictly set the
+joint parameter(s) after it has been created and added to the {\tt
+MechModel}, making it easy to "move" the joint to a specific
+configuration. For example, {\tt RevoluteJoint} provides the method
+\javamethod*[artisynth.core.mechmodels.RevolutJoint]{setTheta()}.
+This causes the transform $\T_{CD}$ to be explicity set to the value
+implied by the joint parameters, and the pose of either body A or B is
+changed to accommodate this. Whether body A or B is moved depends on
+which one is the least connected to ground, and other bodies that have
+joint connections to the moved body are moved as well.
 
 If desired, joints can be connected to only a single rigid body. In
 this case, the second body B is simply assumed to be "ground", and the
 coordinate frame that would be associated with body B is instead taken
-to be the world coordinate frame W. The corresponding constructor
-takes the form
+to be the world coordinate frame W. The corresponding calls
+to the joint constructor or {\tt setBodies()} take the
+form
 %
 \begin{lstlisting}
-  JointType (bodyA, XFA, XDW);
+  joint = new JointType (bodyA, null, XDW);
+  joint.setBodies (bodyA, null, XDW);
 \end{lstlisting}
 %
-One may also use
-\javamethodAlt{artisynth.core.mechmodels.RigidBodyConnector.setBodies()}
-{setBodies(bodyA, XFA, null, XDW)}.
 
 \subsubsection{Example:  A simple revolute joint}
 \label{RigidBodyJoint:sec}
@@ -881,11 +905,9 @@ The build method for this model is given below:
                         (lenx1+lenx2)/2, 0, 1.5*lenx1, 1, 0, 0, Math.PI/2));
 
       // create the joint      
-      RigidTransform3d TFA = new RigidTransform3d (-lenx2/2, 0, 0);
-      RigidTransform3d TDB = new RigidTransform3d();
-      TDB.mulInverseLeft (bodyB.getPose(), bodyA.getPose());
-      TDB.mul (TFA);
-      RevoluteJoint joint = new RevoluteJoint (bodyA, TFA, bodyB, TDB);
+      RigidTransform3d TDW = 
+         new RigidTransform3d (lenx1/2, 0, 1.5*lenx1, 1, 0, 0, Math.PI/2);
+      RevoluteJoint joint = new RevoluteJoint (bodyA, bodyB, TDW);
 
       // add components to the mech model
       mech.addRigidBody (bodyB);
@@ -922,28 +944,16 @@ axis-angle orientation values (lines 18 and 26).
 
 The revolute joint is implemented using
 \javaclass[artisynth.core.mechmodels]{RevoluteJoint}, which is
-constructed at line 34 using transform values {\tt TFA} and {\tt TDB}
-computed as described in Section \ref{CreatingJoints:sec}; the only
-difference is that in lines 32 and 33 the transform 
-$\T_{DB}$ is computed directly from 
-%
-\begin{equation}
-\T_{DB} = \T_{BW}^{-1} \; \T_{AW} \; \T_{FA},
-\end{equation}
-%
-based on the relation
-%
-\begin{equation}
-\T_{DB} = \T_{BA}^{-1} \; \T_{FA} = (\T_{AW}^{-1} \; \T_{BW})^{-1} \; \T_{FA},
-\end{equation}
-%
-which avoids the need to explicitly compute $\T_{BA}$.
+constructed at line 32 with the joint coordinate frame D being located
+in world coordinates by {\tt TDW} 
+as described in Section \ref{CreatingJoints:sec}.
 
 Once the joint is created at added to the {\tt MechModel}, the method
 \javamethod*[artisynth.core.mechmodels.RevoluteJoint]{setTheta()} is
-used to explicity set the joint parameter to 35 degrees. This will
-cause the joint transform $\T_{FD}$ to be explicitly set so
-that $\T_{CD}$
+used to explicity set the joint parameter to 35 degrees. The joint
+transform $\T_{CD}$ is then set appropriately and {\tt bodyA} is moved
+to accommodate this ({\tt bodyA} being chosen since it is the freeest
+to move).
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
 RigidBodySpring} from the {\sf Models} menu. The model should load and
@@ -954,7 +964,50 @@ fall and swing under gravity.
 \subsubsection{Commonly used joints}
 \label{CommonJoints:sec}
 
-TODO
+\begin{figure}
+\begin{center}
+\begin{tabular}{cc}
+\includegraphics[width=1.75in]{images/revoluteJoint}&
+\includegraphics[width=1.75in]{images/rollPitchJoint}\\
+\includegraphics[width=1.75in]{images/sphericalJoint}&
+\includegraphics[width=1.75in]{images/planarConnector}\\
+\end{tabular}
+\end{center}
+\caption{Commonly used joints. Clockwise from
+top left: revolute, roll-pitch, spherical, planer connector.}
+\label{CommonJoints:fig}
+\end{figure}
+
+Some of the joints commonly used by ArtiSynth are shown in Figure
+\ref{CommonJoints:fig}. Each illustration shows the allowed joint
+motion relative to the base coordinate frame D. Clockwise
+from the top-left, these joints are:
+
+\begin{description}
+
+\item[Revolute joint]
+
+A one DOF joint which allows rotation by a angle $\theta$ about
+the z axis.
+
+\item[Roll-pitch joint]
+
+A two DOF joint, similar to the revolute joint, which allows the
+rotation about z to be followed by an additional rotation $\phi$ about
+the (new) y axis.
+
+\item[Spherical joint]
+
+A three DOF joint in which the origin remains fixed but any orientation
+may be assumed.
+
+\item[Planar connector]
+
+A five DOF joint which connects a point on a single rigid body to a
+plane in space. The point may slide freely in the x-y plane, and the
+body may assume any orientation about the point.
+
+\end{description}
 
 \subsubsection{Joint Compliance}
 \label{JointCompliance:sec}
@@ -963,9 +1016,101 @@ OPTIONAL
 
 \subsection{Frame springs}
 
+Another way to connect two rigid bodies together is to use a {\it
+frame spring}, which is a six dimensional spring that generates
+restoring forces and moments between coordinate frames.
+
 \subsubsection{Frame spring coordinate frames}
 
+\begin{figure}[h]
+\begin{center}
+ \includegraphics[width=3in]{images/frameSpring}
+\end{center}
+\caption{A frame spring connecting two coordinate frames D and C.}
+\label{frameSpring:fig}
+\end{figure}
+
+The basic idea of a frame spring is shown in Figure
+\ref{frameSpring:fig}. It generates restoring forces and moments on
+two frames C and D which are a function of $\T_{DC}$ and $\hat\v_{DC}$
+(the spatial velocity of frame D with respect to frame C).
+
+Decomposing forces into stiffness and damping terms, the force
+$\f_c$ and moment $\Btau_c$ acting on C can be expressed as 
+%
+\begin{align}
+\f_C & = \f_{Ck} (\T_{DC}) + \f_{Cd} (\hat\v_{DC}) \notag \\
+\Btau_C & = \Btau_{Ck} (\T_{DC}) + \Btau_{Cd} (\hat\v_{DC}).
+\label{ftauC:eqn}
+\end{align}
+%
+The forces acting on D are equal and opposite, so that
+%
+\begin{align}
+\f_D & = - \f_C, \notag \\
+\Btau_D & = - \Btau_C.
+\label{ftau2:eqn}
+\end{align}
+%
+
+\begin{figure}[h]
+\begin{center}
+ \includegraphics[width=3in]{images/frameSpringBodies}
+\end{center}
+\caption{A frame spring connecting two rigid bodies A and B.}
+\label{frameSpringBodies:fig}
+\end{figure}
+
+If frames C and D are attached to a pair of rigid bodies A and B, then
+a frame spring can be used to connect them in a manner analogous to a
+joint. As with joints, C and D generally do not coincide with the body
+frames, and are instead offset from them by fixed transforms $\T_{CA}$
+and $\T_{DB}$ (Figure \ref{frameSpringBodies:fig}).
+
 \subsubsection{Frame materials}
+
+The restoring forces (\ref{ftauC:eqn}) generated in a frame spring
+depends on the {\it frame material} associated with the spring. Frame
+materials are defined in the package {\tt artisynth.core.materials},
+and are subclassed from
+\javaclass[artisynth.core.materials]{FrameMaterial}.
+The most basic type of material is a 
+\javaclass[artisynth.core.materials]{LinearFrameMaterial},
+in which the restoring forces are determined from
+%
+\begin{align*}
+\f_C & = 
+\K_{f} \, \x_{DC} + \D_{f} \, \v_{DC} \\
+\Btau_C & = 
+\K_{\tau} \, \hat\Bthe_{DC} + \D_{\tau} \, \Bom_{DC}
+\label{flinear:eqn}
+\end{align*}
+%
+where $\hat\Bthe_{DC}$ gives the small angle approximation of the
+rotational components of $\X_{DC}$ with respect to the $x$, $y$, and
+$z$ axes, and
+%
+\begin{gather*}
+\K_{f} \equiv 
+\matl k_{fx} & 0 & 0 \\ 0 & k_{fy} & 0 \\ 0 & 0 & k_{fz} \matr, \;
+\D_{f} \equiv 
+\matl d_{fx} & 0 & 0 \\ 0 & d_{fy} & 0 \\ 0 & 0 & d_{fz} \matr, \;\\
+\K_{\tau} \equiv
+\matl k_{\tau x} & 0 & 0 \\ 0 & k_{\tau y} & 0 \\ 0 & 0 & k_{\tau z} \matr, \;
+\D_{\tau} \equiv
+\matl d_{\tau x} & 0 & 0 \\ 0 & d_{\tau y} & 0 \\ 0 & 0 & d_{\tau z} \matr.
+\end{gather*}
+%
+are the stiffness and damping matrices. The stiffness and damping
+values $\k_f$, $\k_\tau$, $\d_f$, and $\d_\tau$ are exposed as the
+{\tt stiffness}, {\tt rotaryStiffness}, {\tt damping}, and {\tt
+rotaryDamping} properties of the material. Each of these is a 3
+dimensional vector giving stiffness or damping values along or about a
+particular axis. Specifying different values for different axes will
+result in an anisotropic behavior.
+
+Other frame materials offering nonlinear behaviour may be defined in
+{\tt artisynth.core.materials}.
 
 \subsubsection{Example: Two bodies connected by a frame spring}
 
@@ -987,6 +1132,59 @@ a frame spring is defined in
 \begin{verbatim}
   artisynth.demos.tutorial.LumbarFrameSpring
 \end{verbatim}
+%
+and most of the code for this is shown below:
+%
+\begin{lstlisting}
+   // path from which meshes will be read
+   private String geometryDir = ArtisynthPath.getSrcRelativePath (
+      LumbarFrameSpring.class, "../mech/geometry/");
+
+   // create and add a rigid body from a mesh
+   public RigidBody addBone (MechModel mech, String name) throws IOException {
+      PolygonalMesh mesh = new PolygonalMesh (new File (geometryDir+name+".obj"));
+      RigidBody rb = RigidBody.createFromMesh (name, mesh, density, /*scale=*/1);
+      mech.addRigidBody (rb);
+      return rb;
+   }
+
+   public void build (String[] args) throws IOException {
+
+      // create mech model and set it's properties
+      MechModel mech = new MechModel ("mech");
+      mech.setGravity (0, 0, 0);
+      mech.setFrameDamping (0.10);
+      mech.setRotaryDamping (0.001);
+      addModel (mech);
+
+      // create two rigid bodies and second one to be fixed
+      RigidBody lumbar1 = addBone (mech, "lumbar1");
+      RigidBody lumbar2 = addBone (mech, "lumbar2");
+      lumbar1.setPose (new RigidTransform3d (-0.016, 0.039, 0));
+      lumbar2.setDynamic (false);
+
+      // flip entire mech model around
+      mech.transformGeometry (
+         new RigidTransform3d (0, 0, 0, 0, 0, Math.toRadians (90)));
+
+      //create and add the frame spring
+      FrameSpring spring = new FrameSpring (null);
+      spring.setMaterial (
+         new LinearFrameMaterial (
+            /*ktrans=*/100, /*krot=*/0.01, /*dtrans=*/0, /*drot=*/0));
+      RigidTransform3d TCA = new RigidTransform3d();
+      TCA.mulInverseLeft (lumbar2.getPose(), lumbar1.getPose());
+      spring.setAttachFrameA (TCA);
+      spring.setAttachFrameB (RigidTransform3d.IDENTITY);
+      mech.attachFrameSpring (lumbar2, lumbar1, spring);
+
+      // set render properties for components
+      RenderProps.setLineColor (spring, Color.RED);
+      RenderProps.setLineRadius (spring, 0.0005);
+      RenderProps.setLineWidth (spring, 3);
+      spring.setAxisLength (0.02);
+   }
+\end{lstlisting}
 %
 
 \subsection{Attachments}

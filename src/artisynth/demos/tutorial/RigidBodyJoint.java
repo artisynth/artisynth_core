@@ -67,11 +67,9 @@ public class RigidBodyJoint extends RootModel {
                         (lenx1+lenx2)/2, 0, 1.5*lenx1, 1, 0, 0, Math.PI/2));
 
       // create the joint      
-      RigidTransform3d TFA = new RigidTransform3d (-lenx2/2, 0, 0);
-      RigidTransform3d TDB = new RigidTransform3d();
-      TDB.mulInverseLeft (bodyB.getPose(), bodyA.getPose());
-      TDB.mul (TFA);
-      RevoluteJoint joint = new RevoluteJoint (bodyA, TFA, bodyB, TDB);
+      RigidTransform3d TDW = 
+         new RigidTransform3d (lenx1/2, 0, 1.5*lenx1, 1, 0, 0, Math.PI/2);
+      RevoluteJoint joint = new RevoluteJoint (bodyA, bodyB, TDW);
 
       // add components to the mech model
       mech.addRigidBody (bodyB);

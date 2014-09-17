@@ -4,6 +4,17 @@
 DOC_DIR = ..
 HTML_DIR = ../html/modelguide
 
+SOURCES = \
+	../texinputs/artisynthDoc.tex \
+	modelguide.tex \
+	overview.tex \
+	supportingClasses.tex \
+	mechanicalModelsI.tex \
+	mechanicalModelsII.tex \
+	simulationControl.tex \
+	femModels.tex \
+	appendix.tex
+
 .PHONY: html pdf chunked
 
 default: pdf html
@@ -17,16 +28,16 @@ $(PDF_DIR)/modelguide.pdf: modelguide.pdf
 
 #chunked: $(HTML_DIR)/chunked $(COPIED_IMAGE_FILES)
 
-modelguide.pdf: modelguide.tex ../texinputs/artisynthDoc.tex
+modelguide.pdf: $(SOURCES)
 	pdflatex modelguide.tex
 	bibtex modelguide1
 	pdflatex modelguide.tex	
 	pdflatex modelguide.tex
 
-modelguide.xml: modelguide.tex 
+modelguide.xml: $(SOURCES)
 	latexml modelguide.tex >modelguide.xml
 
-$(HTML_DIR)/modelguide.html: modelguide.tex ../texinputs/artisynthDoc.tex
+$(HTML_DIR)/modelguide.html: $(SOURCES)
 	$(MAKE_HTML_DIR_IF_NECESSARY)
 	latexml modelguide.tex >modelguide.xml
 	$(LATEXMLPOST) modelguide.xml 

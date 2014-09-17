@@ -54,7 +54,7 @@ public class MainFrame extends JFrame {
 
    /** set the main frame constants */
 
-   private static final String ABOUT_ARTISYNTH_TEXT = "ArtiSynth 2.0";
+   private static final String ABOUT_ARTISYNTH_TEXT = "ArtiSynth 3.1";
    private static final String ABOUT_MODEL_NO_DESC = "No description available";
    private static final String ABOUT_MODEL_NOT_LOADED = "No model loaded.";
    private static final String ABOUT_MODEL_TITLE = "About model";
@@ -340,6 +340,7 @@ public class MainFrame extends JFrame {
     */
 
    public void displayAboutArtisynth() {
+      
       frameHelp.setFrameTitleAndText (
          ABOUT_ARTISYNTH_TITLE, ABOUT_ARTISYNTH_TEXT);
       frameHelp.setVisible (true);

@@ -107,7 +107,7 @@ public class FrameSpring extends Spring
                    RigidTransform3d.IDENTITY);
       myProps.add ("attachFrameB * *", "attachment for FrameB",
                    RigidTransform3d.IDENTITY);
-      myProps.add ("initialX21", "initial transform from frame 2 to frame 1",
+      myProps.add ("initialT21", "initial transform from frame 2 to frame 1",
                    RigidTransform3d.IDENTITY);
       myProps.add (
          "material", "spring material parameters", createDefaultMaterial(), "CE");

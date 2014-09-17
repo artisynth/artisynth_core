@@ -1,0 +1,461 @@
+\section{Supporting classes}
+
+ArtiSynth uses a large number of supporting classes, mostly defined in
+the super package {\tt maspack}, for handling mathematical and
+geometric quantities. Those that are refered to in this manual are
+summarized in this section.
+
+\subsection{Vectors and matrices}
+
+Among the most basic classes are those used to implement vectors and
+matrices, defined in {\tt mapack.matrix}. All vector classes implement
+the interface \javaclass[maspack.matrix]{Vector} and all matrix
+classes implement \javaclass[maspack.matrix]{Matrix}, which provide a
+number of standard methods for setting and accessing values and
+reading and writing from I/O streams. 
+
+General sized vectors and matrices are implemented by
+\javaclass[maspack.matrix]{VectorNd} and
+\javaclass[maspack.matrix]{MatrixNd}. These provide all the usual
+methods for linear algebra operations such as addition, scaling, and
+multiplication.
+%
+\begin{lstlisting}[]
+  VectorNd v1 = new VectorNd (5); // create a 5 element vector
+  VectorNd v2 = new VectorNd (5); 
+  VectorNd vr = new VectorNd (5); 
+  MatrixNd M = new MatrixNd (5, 5); // create a 5 x 5 matrix
+
+  M.setIdentity(); // turn M into a diagonal scaling matrix
+  M.scale (4);
+
+  v1.set (new double[] {1, 2, 3, 4, 5}); // set values
+  v2.set (new double[] {0, 1, 0, 2, 0});
+  v1.add (v2);
+  M.mul (vr, v1);
+
+  System.out.println ("result=" + vr.toString ("%8.3f"));
+\end{lstlisting}
+%
+As illustrated in the above example, vectors and matrices both provide
+a {\tt toString()} method that allows their elements to be formated
+using a C-printf style format string. This is useful for providing
+concise and uniformly formatted output, particularly for diagnostics.
+The output from the above example is
+%
+\begin{verbatim}
+  result=   4.000   12.000   12.000   24.000   20.000
+\end{verbatim}
+%
+Detailed specifications for the format string are provided in the
+documentation for \javamethod[maspack.util]{NumberFormat.set(String)}.
+If no format string is specified, {\tt toString()} formats all numbers
+using the full-precision output provided by {\tt
+Double.toString(value)}.
+
+For computational efficiency, a number of fixed-size vectors and
+matrices are also provided. The most commonly used are those defined
+for three dimensions, including \javaclass[maspack.matrix]{Vector3d}
+and \javaclass[maspack.matrix]{Matrix3d}:
+%
+\begin{lstlisting}[]
+  Vector3d v1 = new Vector3d (1, 2, 3);
+  Vector3d v2 = new Vector3d (3, 4, 5);
+  Vector3d vr = new Vector3d ();
+  Matrix3d M = new Matrix3d();
+
+  M.set (1, 2, 3,  4, 5, 6,  7, 8, 9);
+
+  M.mul (vr, v1);        // vr = M * v1
+  vr.scaledAdd (2, v2);  // vr += 2*v2;
+  vr.normalize();        // normalize vr
+  System.out.println ("result=" + vr.toString ("%8.3f"));
+\end{lstlisting}
+%
+
+\subsection{Rotations and transformations}
+\label{RigidTransform3d:sec}
+
+{\tt maspack.matrix} contains a number classes that implement rotation
+matrices, rigid transforms, and affine transforms. 
+
+Rotations (Section \ref{Rotations:sec}) are commonly described using
+\javaclass[maspack.matrix]{RotationMatrix3d}, which implements a
+rotation matrix and contains numerous methods for setting rotation
+values and transforming other quantities. Some of the more commonly
+used methods are:
+%
+\begin{lstlisting}[]
+   RotationMatrix3d();         // create and set to the identity
+   RotationMatrix3d(u, angle); // create and set using an axis-angle
+
+   setAxisAngle (u, ang);      // set using an axis-angle
+   setRpy (roll, pitch, yaw);  // set using roll-pitch-yaw angles
+   setEuler (phi, theta, psi); // set using Euler angles
+   invert ();                  // invert this rotation
+   mul (R)                     // post multiply this rotation by R
+   mul (R1, R2);               // set this rotation to R1*R2
+   mul (vr, v1);               // vr = R*v1, where R is this rotation
+\end{lstlisting}
+%
+Rotations can also be described by
+\javaclass[maspack.matrix]{AxisAngle}, which characterizes a rotation
+as a single rotation about a specific axis.
+
+Rigid transforms (Section \ref{RigidTransforms:sec}) are used by
+ArtiSynth to describe a rigid body's pose, as well as its relative
+position and orientation with respect to other bodies and coordinate
+frames.  They are implemented by
+\javaclass[maspack.matrix]{RigidTransform3d}, which exposes its
+rotational and translational components directly through the fields
+{\tt R} (a {\tt RotationMatrix3d}) and {\tt p} (a {\tt
+Vector3d}). Rotational and translational values can be set and
+accessed directly through these fields.  In addition, {\tt
+RigidTransform3d} provides numerous methods, some of the more commonly
+used of which include:
+%
+\begin{lstlisting}[]
+   RigidTransform3d();         // create and set to the identity
+   RigidTransfrom3d(x, y, z);  // create and set translation to x, y, z
+
+   // create and set translation to x, y, z and rotation to roll-pitch-yaw
+   RigidTransfrom3d(x, y, z, roll, pitch, yaw);
+
+   invert ();                  // invert this transform
+   mul (T)                     // post multiply this transform by T
+   mul (T1, T2);               // set this transform to T1*T2
+   mulLeftInverse (T1, T2);    // set this transform to inv(T1)*T2
+\end{lstlisting}
+%
+
+Affine transforms (Section \ref{AffineTransforms:sec}) are used by
+ArtiSynth to effect scaling and shearing transformations on
+components. They are implemented by
+\javaclass[maspack.matrix]{AffineTransform3d}.
+
+Rigid transformations are actually a specialized form of affine
+transformation in which the basic transform matrix equals a rotation.
+{\tt RigidTransform3d} and {\tt AffineTransform3d} hence both derive
+from the same base class
+\javaclass[maspack.matrix]{AffineTransform3dBase}.
+
+\subsection{Points and Vectors}
+
+The rotations and transforms described above can be used to transform
+both vectors and points in space.
+
+Vectors are most commonly implemented using
+\javaclass[maspack.matrix]{Vector3d}, while points can be implemented
+using the subclass \javaclass[maspack.matrix]{Point3d}.  The only
+difference between {\tt Vector3d} and {\tt Point3d} is that the former
+ignores the translational component of rigid and affine transforms;
+i.e., as described in Sections \ref{RigidTransforms:sec} and
+\ref{AffineTransforms:sec}, a vector {\tt v} has
+an implied homogeneous representation of
+%
+\begin{equation}
+\v^* \equiv \matl \v \\ 0 \matr,
+\end{equation}
+%
+while that for a point {\tt p} is
+%
+\begin{equation}
+\p^* \equiv \matl \p \\ 1 \matr.
+\end{equation}
+%
+
+Both classes provide a number of methods for applying rotational and
+affine transforms. Those used for rotations are
+%
+\begin{lstlisting}
+  void transform (R);		  // this = R * this
+  void transform (R, v1);         // this = R * v1
+  void inverseTransform (R);      // this = inverse(R) * this
+  void inverseTransform (R, v1);  // this = inverse(R) * v1
+\end{lstlisting}
+%
+where {\tt R} is a rotation matrix and {\tt v1} is a vector (or a point
+in the case of {\tt Point3d}).
+
+The methods for applying rigid or affine transforms include:
+\begin{lstlisting}
+  void transform (X);	          // transforms this by X         
+  void transform (X, v1);         // sets this to v1 transformed by X
+  void inverseTransform (X);      // transforms this by the inverse of X
+  void inverseTransform (X, v1);  // sets this to v1 transformed by inverse of X
+\end{lstlisting}
+where {\tt X} is a rigid or affine transform.
+As described above, in the case of {\tt Vector3d}, these methods
+ignore the translational part of the transform and apply only the
+matrix component ({\tt R} for a {\tt RigidTransform3d} and {\tt A} for
+an {\tt AffineTransform3d}).
+In particular, that means that for a {\tt RigidTransform3d} given by {\tt X}
+and a {\tt Vector3d} given by {\tt v},
+the method calls {\tt v.transform (X.R)} and {\tt v.transform (X)}
+produce the same result.
+
+\subsection{Spatial vectors and inertias}
+\label{SpatialVectors:sec}
+
+The velocities, forces and inertias associated with 3D coordinate
+frames and rigid bodies are represented using the 6 DOF spatial
+quantities described in Sections \ref{SpatialVelocitiesAndForces:sec}
+and \ref{SpatialInertia:sec}. These are implemented by classes in the
+package {\tt maspack.spatialmotion}.
+
+Spatial velocities (or twists) are implemented by
+\javaclass[maspack.spatialmotion]{Twist}, which exposes its
+translational and angular velocity components through the publicly
+accessible fields {\tt v} and {\tt w}, while spatial forces (or
+wrenches) are implemented by
+\javaclass[maspack.spatialmotion]{Wrench}, which exposes its
+translational force and moment components through the publicly
+accessible fields {\tt f} and {\tt m}.
+
+Both {\tt Twist} and {\tt Wrench} contain methods for algebraic
+operations such as addition and scaling. They also contain {\tt
+transform()} methods for applying rotational and rigid transforms.
+The rotation methods simply transform each component by the supplied
+rotation matrix. The rigid transform methods, on the other hand,
+assume that the supplied argument represents a transform between two
+frames fixed within a rigid body, and transform the twist or wrench
+accordingly, using either (\ref{XvelAB:eqn}) or (\ref{XforceAB:eqn}).
+
+The spatial inertia for a rigid body is implemented by
+\javaclass[maspack.spatialmotion]{SpatialInertia}, which contains a
+number of methods for setting its value given various mass, center of
+mass, and inertia values, and querying the values of its components.
+It also contains methods for scaling and adding, transforming between
+coordinate systems, inversion, and multiplying by spatial vectors.
+
+\subsection{Meshes}
+\label{Meshes:sec}
+
+ArtiSynth makes extensive use of 3D meshes, which are defined in {\tt
+maspack.geometry}.  They are used for a variety of purposes, including
+visualization, collision detection, and computing physical properties
+(such as inertia or stiffness variation within a finite element
+model).
+
+A mesh is essentially a collection of vertices
+(i.e., points) that are topologically connected in some way.  All
+meshes extend the abstract base class
+\javaclass[maspack.geometry]{MeshBase}, which supports the vertex
+definitions, while subclasses provide the topology.
+
+Through {\tt MeshBase}, all meshes provide methods for
+adding and accessing vertices. Some of these include:
+%
+\begin{lstlisting}[]
+  int getNumVertices();              // return the number of vertices
+  Vertex3d getVertex (int idx);      // return the idx-th vertex
+  void addVertex (Vertex3d vtx);     // add vertex vtx
+  Vertex3d addVertex (Point3d p);    // create and return a vertex at position p
+  void removeVertex (Vertex3d vtx);  // remove vertex vtx
+  ArrayList<Vertex3d> getVertices(); // return the list of vertices
+\end{lstlisting}
+%
+Vertices are implemented by \javaclass[maspack.geometry]{Vertex3d},
+which defines the position of the vertex (returned by the method
+\javamethod*[maspack.geometry.Vertex3d]{getPosition()}, and also
+contains support for topological connections. In addition, each mesh
+maintains an index, obtainable via
+\javamethod*[maspack.geometry.Vertex3d]{getIndex()}, that equals the
+index of it's location within the mesh's vertex list. This makes it
+easy to set up parallel array structures for augmenting mesh
+properties.
+
+Mesh subclasses currently include:
+
+\begin{description}
+
+\item[\protect{\javaclass[maspack.geometry]{PolygonalMesh}}]\mbox{}
+
+\javaclass[maspack.geometry]{PolygonalMesh} implements a 2D surface
+mesh containing faces implemented using half-edges.
+
+\item[\protect{\javaclass[maspack.geometry]{PolylineMesh}}]\mbox{}
+
+\javaclass[maspack.geometry]{PolylineMesh} implements a mesh
+consisting of connected line-segments (polylines).
+
+\item[\protect{\javaclass[maspack.geometry]{PointMesh}}]\mbox{}
+
+\javaclass[maspack.geometry]{PointMesh} implements a point cloud with
+no topological connectivity.
+
+\end{description}
+
+\javaclass[maspack.geometry]{PolygonalMesh} is used quite extensively
+and provides a number of methods for implementing faces, including:
+%
+\begin{lstlisting}[]
+  int getNumFaces();              // return the number of faces
+  Face getFace (int idx);         // return the idx-th face
+  Face addFace (int[] vidxs);     // create a face from specified vertex indices
+  void removeFace (Face f);       // remove the face f
+  ArrayList<Face> getFaces();     // return the list of faces
+\end{lstlisting}
+%
+The class \javaclass[maspack.geometry]{Face} implements a face as a
+counter-clockwise arrangement of vertices linked together by
+half-edges (class \javaclass[maspack.geometry]{HalfEdge}).
+{\tt Face} also supplies a face's (outward facing) normal
+via 
+\javamethod[maspack.geometry.Face]{getNormal()}.
+
+Some mesh uses within ArtiSynth, such as collision detection, require a
+{\it triangular} mesh; i.e., one where all faces have three vertices.
+The method \javamethod[maspack.geometry.PolygonalMesh]{isTriangular()}
+can be used to check for this. Meshes that are not triangular can be
+made triangular using 
+\javamethod[maspack.geometry.PolygonalMesh]{triangulate()}.
+
+\subsubsection{Mesh creation}
+
+It is possible to create a mesh by direct construction. For example,
+the following code fragment creates a simple closed tetrahedral
+surface:
+%
+\begin{lstlisting}[]
+   // a simple four-faced tetrahedral mesh 
+   PolygonalMesh mesh = new PolygonalMesh();
+   mesh.addVertex (0, 0, 0);
+   mesh.addVertex (1, 0, 0);
+   mesh.addVertex (0, 1, 0);
+   mesh.addVertex (0, 0, 1);
+   mesh.addFace (new int[] { 0, 2, 1 });
+   mesh.addFace (new int[] { 0, 3, 2 });
+   mesh.addFace (new int[] { 0, 1, 3 });
+   mesh.addFace (new int[] { 1, 2, 3 });      
+\end{lstlisting}
+%
+
+However, meshes are more commonly created using either one of the
+factory methods supplied by \javaclass[maspack.geometry]{MeshFactory},
+or by reading a definition from a file (Section \ref{MeshFileIO:sec}).
+
+Some of the more commonly used factory methods the create polyhedral
+meshes include:
+%
+\begin{lstlisting}[]
+  MeshFactory.createSphere (radius, nslices, nlevels);
+  MeshFactory.createBox (widthx, widthy, widthz);
+  MeshFactory.createCylinder (radius, height, nslices);
+  MeshFactory.createPrism (double[] xycoords, height);
+  MeshFactory.createTorus (rmajor, rminor, nmajor, nminor);
+\end{lstlisting}
+%
+Each factory method creates a mesh in some standard coordinate
+frame. After creation, the mesh can be transformed using the
+\javamethodAlt{maspack.geometry.MeshBase.transform(AffineTransform3dBase)}%
+{transform(X)} method, where {\tt X} is either a rigid transform (type
+\javaclass[maspack.matrix]{RigidTransform3d}) or a more general affine
+transform (type \javaclass[maspack.matrix]{AffineTransform3d}).
+For example, to create a rotated box centered on $(5, 6, 7)$,
+once could do:
+%
+\begin{lstlisting}[]
+  // create a box centered at the origin with widths 10, 20, 30:
+  PolygonalMesh box = MeshFactor.createBox (10, 20, 20);
+
+  // move the origin to 5, 6, 7 and rotate using roll-pitch-yaw
+  // angles 0, 0, 45 degrees:
+  box.transform (
+     new RigidTransform3d (5, 6, 7,  0, 0, Math.toRadians(45)));
+\end{lstlisting}
+%
+One can also scale a mesh using
+\javamethodAlt{maspack.geometry.MeshBase.scale(double)}{scale(s)}
+where {\tt s} is a single scale factor, or
+\javamethodAlt{maspack.geometry.MeshBase.scale(double,double,double)}%
+{scale(sx,sy,sz)}, where {\tt sx}, {\tt sy}, and {\tt sz} are separate
+scale factors for the x, y and z axes. This provides a useful way to
+create an ellipsoid:
+%
+\begin{lstlisting}[]
+   // start with a unit sphere with 12 slices and 6 levels ...
+  PolygonalMesh ellipsoid = MeshFactor.createSphere (1.0, 12, 6);
+
+  // and then turn it into an ellipsoid by scaling about the axes:
+  ellipsoid.scale (1.0, 2.0, 3.0);
+\end{lstlisting}
+%
+\javaclass[maspack.geomerty]{MeshFactory} can also be used to create
+new meshes by performing boolean operations on existing ones:
+%
+\begin{lstlisting}[]
+  MeshFactory.getIntersection (mesh1, mesh2);
+  MeshFactory.getUnion (mesh1, mesh2);
+  MeshFactory.getSubtraction (mesh1, mesh2);
+\end{lstlisting}
+%
+
+\subsubsection{Reading and writing mesh files}
+\label{MeshFileIO:sec}
+
+The package {\tt maspack.geometry.io} supplies a number of classes for
+writing and reading meshes to and from files of different formats.
+
+Some of the supported formats and their associated readers and writers
+include:
+
+\begin{tabular}{|lll|}
+\hline
+Extension & Format & Reader/writer classes \\
+\hline
+.obj & Alias Wavefront & \tt WavefrontReader, WavefrontWriter \\
+.ply & Polygon file format & \tt PlyReader, PlyWriter \\
+.stl & STereoLithography & \tt StlReader, StlWriter \\
+.gts & GNU triangulated surface & \tt GtsReader, GtsWriter \\
+.off & Object file format & \tt OffReader, OffWriter \\
+\hline
+\end{tabular}
+
+The general usage pattern for these classes is to construct the
+desired reader or writer with a path to the desired file, and then
+call {\tt readMesh()} or {\tt writeMesh()} as appropriate:
+%
+\begin{lstlisting}[]
+   // read a mesh from a .obj file:
+   WavefrontReader reader = new WavefrontReader ("meshes/torus.obj");
+   PolygonalMesh mesh = null;
+   try {
+      mesh = reader.readMesh();
+   }
+   catch (IOException e) {
+      System.err.println ("Can't read mesh:");
+      e.printStackTrace();
+   }
+\end{lstlisting}
+%
+Both {\tt readMesh()} and {\tt writeMesh()} may throw I/O exceptions,
+which must be either caught, as in the example above, or
+thrown out of the calling routine.
+
+For convenience, one can also use the classes
+\javaclass[maspack.geometry.io]{GenericMeshReader} or
+\javaclass[maspack.geometry.io]{GenericMeshWriter}, which internally
+create an appropriate reader or writer based on the file
+extension. This enables the writing of code
+that does not depend on the file format:
+%
+\begin{lstlisting}[]
+   String fileName;
+   ...
+   PolygonalMesh mesh = null;
+   try {
+      mesh = (PolygonalMesh)GenericMeshReader.readMesh(fileName);
+   }
+   catch (IOException e) {
+      System.err.println ("Can't read mesh:");
+      e.printStackTrace();
+   }
+\end{lstlisting}
+%
+Here, {\tt fileName} can refer to a mesh of any formats supported by
+{\tt GenericMeshReader}. Note that the mesh returned by {\tt
+readMesh()} is explicitly cast to {\tt PolygonalMesh}.  This is
+because {\tt readMesh()} returns the superclass {\tt MeshBase}, since
+the default mesh created for some file formats may be different from
+{\tt PolygonalMesh}.

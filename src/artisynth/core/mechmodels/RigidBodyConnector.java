@@ -876,6 +876,22 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       setTDB (TDB);
    }
 
+   public void setBodies (
+      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TCW) {
+
+      RigidTransform3d TFA = new RigidTransform3d();
+      RigidTransform3d TDB = new RigidTransform3d();
+      
+      TFA.mulInverseLeft(bodyA.getPose(), TCW);
+      if (bodyB != null) {
+         TDB.mulInverseLeft(bodyB.getPose(), TCW);
+      }
+      else {
+         TDB.set (TCW);
+      }
+      setBodies(bodyA, TFA, bodyB, TDB);
+   }
+
    public RigidTransform3d getCurrentTDW() {
       RigidTransform3d TDW = new RigidTransform3d();
       getCurrentTDB (TDW);

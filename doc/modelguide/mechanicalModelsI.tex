@@ -104,7 +104,7 @@ The remaining calls control aspects of how the model is graphicaly
 rendered.  {\tt setBounds()} (line 37) increases the model's "bounding
 box" so that by default it will occupy a larger part of the viewer
 frustum. Both {\tt setPointRenderProps()} and {\tt
-setSpringRenderProps()} are convenience methods defined by the class
+setLineRenderProps()} are convenience methods defined by the class
 (lines 44-48 and 5054) to set render properties for points and
 springs, respectively. Points are set to be rendered as red spheres
 with a radius of 0.06, while springs are set to be rendered as blue
@@ -372,7 +372,7 @@ This differs from ParticleSpring only in the {\tt build()} method:
       // set render properties for the components
       setPointRenderProps (p1);
       setPointRenderProps (mkr);
-      setSpringRenderProps (spring);
+      setLineRenderProps (spring);
    }
 \end{lstlisting}
 \lstset{numbers=none}
@@ -917,9 +917,8 @@ The build method for this model is given below:
       joint.setTheta (35);  // set joint position
 
       // set render properties for components
-      joint.setAxisLength (4);
-      RenderProps.setLineColor (joint, Color.BLUE);
       RenderProps.setLineRadius (joint, 0.2);
+      joint.setAxisLength (4);
    }
 \end{lstlisting}
 \lstset{numbers=none}
@@ -954,6 +953,13 @@ used to explicity set the joint parameter to 35 degrees. The joint
 transform $\T_{CD}$ is then set appropriately and {\tt bodyA} is moved
 to accommodate this ({\tt bodyA} being chosen since it is the freeest
 to move).
+
+Finally, render properties are set starting at line 42. A revolute
+joint is rendered as a line segment, using the line render properties,
+with {\tt lineStyle} and {\tt lineColor} set to {\tt Cylinder} and
+{\tt BLUE} by default. The cylinder radius and length are specified by
+the line render property {\tt lineRadius} and the revolute joint
+property {\tt axisLength}, which are set explicitly in the code.
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
 RigidBodySpring} from the {\sf Models} menu. The model should load and
@@ -1091,18 +1097,18 @@ rotational components of $\X_{DC}$ with respect to the $x$, $y$, and
 $z$ axes, and
 %
 \begin{gather*}
-\K_{f} \equiv 
-\matl k_{fx} & 0 & 0 \\ 0 & k_{fy} & 0 \\ 0 & 0 & k_{fz} \matr, \;
-\D_{f} \equiv 
-\matl d_{fx} & 0 & 0 \\ 0 & d_{fy} & 0 \\ 0 & 0 & d_{fz} \matr, \;\\
-\K_{\tau} \equiv
-\matl k_{\tau x} & 0 & 0 \\ 0 & k_{\tau y} & 0 \\ 0 & 0 & k_{\tau z} \matr, \;
-\D_{\tau} \equiv
-\matl d_{\tau x} & 0 & 0 \\ 0 & d_{\tau y} & 0 \\ 0 & 0 & d_{\tau z} \matr.
+\K_{t} \equiv 
+\matl k_{tx} & 0 & 0 \\ 0 & k_{ty} & 0 \\ 0 & 0 & k_{tz} \matr, \;
+\D_{t} \equiv 
+\matl d_{tx} & 0 & 0 \\ 0 & d_{ty} & 0 \\ 0 & 0 & d_{tz} \matr, \;\\
+\K_{r} \equiv
+\matl k_{r x} & 0 & 0 \\ 0 & k_{r y} & 0 \\ 0 & 0 & k_{r z} \matr, \;
+\D_{r} \equiv
+\matl d_{r x} & 0 & 0 \\ 0 & d_{r y} & 0 \\ 0 & 0 & d_{r z} \matr.
 \end{gather*}
 %
 are the stiffness and damping matrices. The stiffness and damping
-values $\k_f$, $\k_\tau$, $\d_f$, and $\d_\tau$ are exposed as the
+values $\k_t$, $\k_r$, $\d_t$, and $\d_ru$ are exposed as the
 {\tt stiffness}, {\tt rotaryStiffness}, {\tt damping}, and {\tt
 rotaryDamping} properties of the material. Each of these is a 3
 dimensional vector giving stiffness or damping values along or about a
@@ -1111,6 +1117,51 @@ result in an anisotropic behavior.
 
 Other frame materials offering nonlinear behaviour may be defined in
 {\tt artisynth.core.materials}.
+
+\subsubsection{Creating frame springs}
+\label{CreatingFrameSprings:sec}
+
+Frame springs are implemented by the class
+\javaclass[artisynth.core.mechmodels]{FrameSpring}.  Creating a frame
+spring generally involves instantiating this class, and then setting
+the material, the bodies A and B, and the transforms $\T_{CA}$ and
+$\T_{DB}$.
+
+A typical construction sequence might look like this:
+%
+\begin{lstlisting}
+  FrameSpring spring = new FrameSpring ("springA");
+  spring.setMaterial (new LinearFrameMaterial (kt, kr, dt, dr));
+  spring.setFrames (bodyA, bodyB, TDW);
+\end{lstlisting}
+%
+The material is set using
+\javamethod*[artisynth.core.mechmodels.FrameSpring]{setMaterial()}.
+The example above uses a {\tt LinearFrameMaterial}, created with a
+constructor that sets $\k_t$, $\k_r$, $\d_t$, and $\d_ru$ to uniform
+isotropic values specified by {\tt kt}, {\tt kr}, {\tt dt}, and {\tt
+dr}. 
+
+The bodies and transforms can be set in the same manner as for joints
+(Section \ref{CreatingJoints:sec}), with the methods
+\javamethodAlt{artisynth.core.mechmodels.FrameSpring.setFrames(Frame,Frame,RigidTranform3d)}{setFrames(bodyA,bodyB,TDW)}
+and
+\javamethodAlt{artisynth.core.mechmodels.FrameSpring.setFrames(Frame,RigidTransfrom3d,Frame,RigidTranform3d)}{setFrames(bodyA,TCA,bodyB,TDB)}
+assuming the role of {setBodies(bodyA,bodyB,TDW)} and
+{setBodies(bodyA,TCA,bodyB,TDB)} (rigid bodies are instances of the
+more general {\tt Frame} class). The former takes D specified in
+worlds coordinates and computes $\T_{CA}$ and $\T_{DB}$ assuming that
+there is no initial spring displacement (i.e., that $\T_{DC} = \I$),
+while the latter allows $\T_{CA}$ and $\T_{DB}$ to be specified
+explicitly.
+
+Frame springs and joints are often placed together, using the same
+transforms $\T_{CA}$ and $\T_{CB}$, with the spring providing
+restoring forces tp help keep the joint within presribed bounds.
+
+As with joints, a frame spring can be connected to only a single body,
+by specifying {\tt frameB} as {\tt null}. Frame B is then taken to be
+the world coordinate frame W.
 
 \subsubsection{Example: Two bodies connected by a frame spring}
 
@@ -1126,15 +1177,16 @@ Other frame materials offering nonlinear behaviour may be defined in
 \label{LumbarFrameSpring:fig}
 \end{figure}
 
-A simple model showing two rigid bodies connected by
-a frame spring is defined in
+A simple model showing two simplified lumbar vertebrae, modeled as
+rigid bodies and connected by a frame spring, is defined in
 %
 \begin{verbatim}
   artisynth.demos.tutorial.LumbarFrameSpring
 \end{verbatim}
 %
-and most of the code for this is shown below:
+and most of the code for this is shown here:
 %
+\lstset{numbers=left}
 \begin{lstlisting}
    // path from which meshes will be read
    private String geometryDir = ArtisynthPath.getSrcRelativePath (
@@ -1152,7 +1204,7 @@ and most of the code for this is shown below:
 
       // create mech model and set it's properties
       MechModel mech = new MechModel ("mech");
-      mech.setGravity (0, 0, 0);
+      mech.setGravity (0, 0, -1.0);
       mech.setFrameDamping (0.10);
       mech.setRotaryDamping (0.001);
       addModel (mech);
@@ -1163,7 +1215,7 @@ and most of the code for this is shown below:
       lumbar1.setPose (new RigidTransform3d (-0.016, 0.039, 0));
       lumbar2.setDynamic (false);
 
-      // flip entire mech model around
+      // rotate entire mech model 90 degrees about the x axis
       mech.transformGeometry (
          new RigidTransform3d (0, 0, 0, 0, 0, Math.toRadians (90)));
 
@@ -1172,29 +1224,230 @@ and most of the code for this is shown below:
       spring.setMaterial (
          new LinearFrameMaterial (
             /*ktrans=*/100, /*krot=*/0.01, /*dtrans=*/0, /*drot=*/0));
-      RigidTransform3d TCA = new RigidTransform3d();
-      TCA.mulInverseLeft (lumbar2.getPose(), lumbar1.getPose());
-      spring.setAttachFrameA (TCA);
-      spring.setAttachFrameB (RigidTransform3d.IDENTITY);
-      mech.attachFrameSpring (lumbar2, lumbar1, spring);
+      spring.setFrames (lumbar1, lumbar2, lumbar1.getPose());
+      mech.addFrameSpring (spring);
 
       // set render properties for components
       RenderProps.setLineColor (spring, Color.RED);
-      RenderProps.setLineRadius (spring, 0.0005);
       RenderProps.setLineWidth (spring, 3);
       spring.setAxisLength (0.02);
    }
 \end{lstlisting}
+\lstset{numbers=none}
 %
+For convenience, the code to create and add the vertebrae is wrapped
+into the method {\tt addBone()} defined at lines 6-11. This method
+takes two arguments: the {\tt MechModel} to add the bone to, and the
+name of the bone. Surface meshes for the bones are located in {\tt
+.obj} files located in the directory {\tt ../mech/geometry} relative
+to the source directory for the model itself;
+\javamethod*[artisynth.core.util]{ArtisynthPath.getSrcRelativePath()}
+is used to find a proper path to this directory given the model class
+type ({\tt LumbarFrameSpring.class}), and this is stored in the static
+string {\tt geometryDir}. Within {\tt addBone()}, the directory path
+and the bone name are used to create a path to the bone mesh itself,
+which is in turn used to create a {\tt PolygonalMesh} (line 7). The
+mesh is then used in conjunction with a {\tt density} to create a
+rigid body which is added to the {\tt MechModel} (lines 8-9) and
+returned.
+
+The {\tt build()} method begins by creating and adding a {\tt
+MechModel}, specifying a low value for gravity, and setting the rigid
+body damping damping properties {\tt frameDamping} and {\tt
+rotaryDamping} (lines 16-20). (The damping parameters are required
+because the frame spring itself will be created with no damping.)
+Rigid bodies representing the vertebrae {\tt lumbar1} and {\tt
+lumabr2} are then created by calling {\tt addBone()} (lines 23-24),
+{\tt lumbar1} is translated by setting the origin of it's pose to
+$(-0.016, 0.039, 0)^T$, and {\tt lumbar2} is set to be fixed by making
+it non-dynamic (line 26).
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/LumbarFrameSpringNoflip}
+\else
+ \includegraphics[width=3.75in]{images/LumbarFrameSpringNoflip}
+\fi
+\end{center}
+\caption{LumbarFrameSpring model as it would appear if not rotated
+about the x axis.}
+\label{LumbarFrameSpringNoflip:fig}
+\end{figure}
+
+At this point in the construction, if the model were to be loaded, it
+would appear as in Figure \ref{LumbarFrameSpringNoflip:fig}. To
+correct the viewpoint, we rotate the entire model about the x axis
+(line 29).  This is done using
+\javamethodAlt{artisynth.core.mechmodels.MechModel.transformGeometry()}
+{transformGeometry(X)}, which transforms the geometry of an entire
+model using a rigid or affine transform.
+
+The frame spring is created and added at lines 33-38, using the
+methods described in Section \ref{CreatingFrameSprings:sec}, with
+frame D set to the (initial) pose of {\tt lumbar1}.
+
+Render properties are set starting at line 41. By default, a frame
+spring renders as a pair of red, green, blue coordinate axes showing
+frames C and D, along with a line connecting them. The line width and
+the color of the connecting line are controlled by the line render
+properties {\tt lineWidth} and {\tt lineColor}, while the length of
+the coordinate axes is controlled by the special frame spring property
+{\tt axisLength}.
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+LumbarFrameSpring} from the {\sf Models} menu. The model should load
+and initially appear as in Figure \ref{LumbarFrameSpring:fig}.
+Running the model (Section \ref{LoadingAndRunning:sec}) will cause
+{\tt lumbar1} to fall slightly under gravity until the frame spring
+arrests the motion. To get a sense of the spring's behavior, one can
+interactively apply forces to {\tt lumbar1} using the pull manipulator
+(see the section "Pull Manipulator" in the
+\href{http://www.artisynth.org/doc/html/uiguide/uiguide.html}{
+ArtiSynth User Interface Guide}.
 
 \subsection{Attachments}
 \label{Attachments:sec}
 
-\subsubsection{The attachment framework}
+ArtiSynth provides the ability to rigidly attach dynamic components to
+other dynamic components, allowing different parts of a model to be
+connected together.
 
-masters components
-getMasterComponents
+\subsubsection{The attachment methods}
 
-\subsubsection{Attaching a particle to a Frame}
+Attachments are made by adding to a {\tt MechModel} special {\it
+attachment} components that manage the attachment physics as described
+briefly in Section
+\ref{PhysicsSimulation:sec}. At present, attachments
+are implemented only for point-based components.  Modeling
+applications do not generally handle the attachment components
+directly, but instead use the followng {\tt MechModel} methods,
+%
+\begin{lstlisting}
+  attachPoint (Point p1, Particle p2);
+  attachPoint (Point p1, RigidBody body, Point3d loc);
+  attachPoint (Point p1, RigidBody body);
+  attachPoint (Point p1, FemElement3d elem);
+  detachPoint (Point p1);
+\end{lstlisting}
+%
+which attach a point {\tt p1} to either a particle, rigid body, or a
+finite element.
+\javamethodAlt{artisynth.core.mechmodels.MechModel.attachPoint(Point,RigidBody,Point3d)}
+{attachPoint(p1, body, loc)} attaches {\tt p1} to {\tt body} at the
+point {\tt loc} specified in body coordinates, while
+\javamethodAlt{artisynth.core.mechmodels.MechModel.attachPoint(Point,RigidBody)}{attachPoint(p1,
+body)} computes the attachment location based on the current position
+and pose of {\tt p1} and {\tt body}.  Once {\tt p1} is attached, it
+will in the {\it attached} state, as described in Section
+\ref{DynamicVsParametric:sec}.
+An attachment can be removed by calling 
+\javamethod*[artisynth.core.mechmodels.MechModel]{dettachPoint()}.
+Finite element attachments are
+discussed in Section \ref{NodeAttachments:sec}.
+
+\subsubsection{Example: model with particle attachments}
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/ParticleAttachment}
+\else
+ \includegraphics[width=3.75in]{images/ParticleAttachment}
+\fi
+\end{center}
+\caption{ParticleAttachment model loaded into ArtiSynth.}
+\label{ParticleAttachment:fig}
+\end{figure}
+
+A model illustrating particle-particle and particle-rigid body attachments
+is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.ParticleAttachment
+\end{verbatim}
+%
+and most of the code is shown here:
+%
+\lstset{numbers=left}
+\begin{lstlisting}
+   public Particle addParticle (MechModel mech, double x, double y, double z) {
+      // create a particle at x, y, z and add it to mech
+      Particle p = new Particle (/*name=*/null, /*mass=*/.1, x, y, z);
+      mech.addParticle (p);
+      return p;
+   }
+
+   public AxialSpring addSpring (MechModel mech, Particle p1, Particle p2){
+      // create a spring connecting p1 and p2 and add it to mech
+      AxialSpring spr = new AxialSpring (/*name=*/null, /*restLength=*/0);
+      spr.setMaterial (new LinearAxialMaterial (/*k=*/20, /*d=*/10));
+      spr.setPoints (p1, p2);
+      mech.addAxialSpring (spr);
+      return spr;
+   }
+
+   public void build (String[] args) {
+
+      // create MechModel and add to RootModel
+      MechModel mech = new MechModel ("mech");
+      addModel (mech);
+
+      // create the components
+      Particle p1 = addParticle (mech, 0, 0, 0.55);
+      Particle p2 = addParticle (mech, 0.1, 0, 0.35);
+      Particle p3 = addParticle (mech, 0.1, 0, 0.35);
+      Particle p4 = addParticle (mech, 0, 0, 0.15);
+      addSpring (mech, p1, p2);
+      addSpring (mech, p3, p4);
+      // create box and set it's pose (position/orientation):
+      RigidBody box =
+         RigidBody.createBox ("box", /*wx,wy,wz=*/0.5, 0.3, 0.3, /*density=*/20);
+      box.setPose (new RigidTransform3d (/*x,y,z=*/0.2, 0, 0));
+      mech.addRigidBody (box);
+
+      p1.setDynamic (false);               // first particle set to be fixed
+
+      // set up the attachments
+      mech.attachPoint (p2, p3);
+      mech.attachPoint (p4, box, new Point3d (0, 0, 0.15));
+
+      // increase model bounding box for the viewer
+      mech.setBounds (/*min=*/-0.5, 0, -0.5, /*max=*/0.5, 0, 0);  
+      // set render properties for the components
+      setPointRenderProps (mech);
+      setLineRenderProps (mech);
+   }
+%
+\end{lstlisting}
+\lstset{numbers=none}
+
+The code is very similar to {\tt ParticleSpring} and {\tt
+RigidBodySpring} described in Sections \ref{ParticleSpringExample:sec}
+and \ref{RigidBodySpringExample:sec}, except that two convenience
+methods, {\tt addParticle()} and {\tt addSpring()} are defined at
+lines 1-15 to create particles and spring and add them to a {\tt
+MechModel}. These are used in the {\tt build()} method to create four
+particles and two springs (lines 24-29), along with a rigid body box
+(lines 31-34). As with the other examples, particle {\tt p1} is set to
+be non-dynamic (line 36) in order to fix it in place and provide a
+ground.
+
+The attachments are added at lines 39-40, with {\tt p2} attached to
+{\tt p3} and {\tt p4} connected to the box at the location $(0, 0,
+0.15)$ in box coordinates. 
+
+Finally, render properties are set starting at line 43. In this
+example, point and line render properties are set for the entire {\tt
+MechModel} instead of individual components.  Since render properties
+are inherited, this will implicitly set the specified render
+properties in all sub-components for which these properties are not
+explicitly set, either locally or in an intermediate ancestor.
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+ParticleAttachment} from the {\sf Models} menu. The model should load
+and initially appear as in Figure \ref{ParticleAttachment:fig}.
+Running the model (Section \ref{LoadingAndRunning:sec}) will cause the
+box to fall and swing under gravity.
 
 \subsection{Simulation control properties}

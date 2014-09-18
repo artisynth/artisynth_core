@@ -79,8 +79,7 @@ public class RigidBodyJoint extends RootModel {
       joint.setTheta (35);  // set joint position
 
       // set render properties for components
+       RenderProps.setLineRadius (joint, 0.2);
       joint.setAxisLength (4);
-      RenderProps.setLineColor (joint, Color.BLUE);
-      RenderProps.setLineRadius (joint, 0.2);
    }
 }

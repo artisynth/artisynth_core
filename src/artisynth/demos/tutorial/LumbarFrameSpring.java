@@ -41,7 +41,7 @@ public class LumbarFrameSpring extends RootModel {
 
       // create mech model and set it's properties
       MechModel mech = new MechModel ("mech");
-      mech.setGravity (0, 0, 0);
+      mech.setGravity (0, 0, -1.0);
       mech.setFrameDamping (0.10);
       mech.setRotaryDamping (0.001);
       addModel (mech);
@@ -61,15 +61,11 @@ public class LumbarFrameSpring extends RootModel {
       spring.setMaterial (
          new LinearFrameMaterial (
             /*ktrans=*/100, /*krot=*/0.01, /*dtrans=*/0, /*drot=*/0));
-      RigidTransform3d TCA = new RigidTransform3d();
-      TCA.mulInverseLeft (lumbar2.getPose(), lumbar1.getPose());
-      spring.setAttachFrameA (TCA);
-      spring.setAttachFrameB (RigidTransform3d.IDENTITY);
-      mech.attachFrameSpring (lumbar2, lumbar1, spring);
+      spring.setFrames (lumbar1, lumbar2, lumbar1.getPose());
+      mech.addFrameSpring (spring);
 
       // set render properties for components
       RenderProps.setLineColor (spring, Color.RED);
-      RenderProps.setLineRadius (spring, 0.0005);
       RenderProps.setLineWidth (spring, 3);
       spring.setAxisLength (0.02);
    }

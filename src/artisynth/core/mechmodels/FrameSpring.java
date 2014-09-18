@@ -166,7 +166,9 @@ public class FrameSpring extends Spring
     */
    public void setInitialT21 () {
       myInitialX21.mulInverseBoth (myX1A, myFrameA.getPose());
-      myInitialX21.mul (myFrameB.getPose());
+      if (myFrameB != null) {
+         myInitialX21.mul (myFrameB.getPose());
+      }
       myInitialX21.mul (myX2B);
    }
 
@@ -193,7 +195,9 @@ public class FrameSpring extends Spring
 
    public void updateBounds (Point3d pmin, Point3d pmax) {
       myFrameA.getPose().p.updateBounds (pmin, pmax);
-      myFrameB.getPose().p.updateBounds (pmin, pmax);
+      if (myFrameB != null) {
+         myFrameB.getPose().p.updateBounds (pmin, pmax);
+      }
    }
 
    public int getRenderHints() {
@@ -225,10 +229,15 @@ public class FrameSpring extends Spring
          gl.glLineWidth (1);
       }
 
-      myRenderFrame.set (myFrameB.myRenderFrame);
+      if (myFrameB != null) {
+         myRenderFrame.set (myFrameB.myRenderFrame);
+      }
+      else {
+         myRenderFrame.setIdentity();
+      }
       myRenderFrame.mul (myX2B);
       myRenderFrame.p.get (myRenderPnt2);
-
+         
       if (myAxisLength > 0) {
          GL2 gl = renderer.getGL2().getGL2();
          gl.glLineWidth (myRenderProps.getLineWidth());
@@ -265,15 +274,6 @@ public class FrameSpring extends Spring
    }
 
    public void setFrameA (Frame frame) {
-//      if (getParent() != null) { // then change is happening when connected
-//                                    // to hierarchy
-//         if (myFrameA != null) {
-//            myFrameA.removeBackReference (this);
-//         }
-//         if (frame != null) {
-//            frame.addBackReference (this);
-//         }
-//      }
       myFrameA = frame;
    }
 
@@ -282,15 +282,6 @@ public class FrameSpring extends Spring
    }
 
    public void setFrameB (Frame frame) {
-//      if (getParent() != null) { // then change is happening when connected
-//                                    // to hierarchy
-//         if (myFrameB != null) {
-//            myFrameB.removeBackReference (this);
-//         }
-//         if (frame != null) {
-//            frame.addBackReference (this);
-//         }
-//      }
       myFrameB = frame;
    }
 
@@ -313,6 +304,28 @@ public class FrameSpring extends Spring
    public RigidTransform3d getAttachFrameB() {
       return myX2B;
    }
+
+   public void setFrames (Frame frameA, Frame frameB, RigidTransform3d TDW) {
+      RigidTransform3d TFA = new RigidTransform3d();
+      RigidTransform3d TDB = new RigidTransform3d();
+      
+      TFA.mulInverseLeft(frameA.getPose(), TDW);
+      if (frameB != null) {
+         TDB.mulInverseLeft(frameB.getPose(), TDW);
+      }
+      else {
+         TDB.set (TDW);
+      }
+      setFrames (frameA, TFA, frameB, TDB);
+   }
+   
+   public void setFrames (Frame frameA, RigidTransform3d T1A,
+                          Frame frameB, RigidTransform3d T2B) {
+      myFrameA = frameA;
+      myX1A = new RigidTransform3d (T1A);
+      myFrameB = frameB;
+      myX2B = new RigidTransform3d (T2B);
+   }
    
    public Wrench getSpringForce() {
 	   return myF;
@@ -320,15 +333,22 @@ public class FrameSpring extends Spring
 
    private void computeRelativeDisplacements () {
       myX21.mulInverseBoth (myX1A, myFrameA.getPose());
-      myX21.mul (myFrameB.getPose());
+      if (myFrameB != null) {
+         myX21.mul (myFrameB.getPose());
+      }
       myX21.mul (myX2B);
 
       myFrameA.getBodyVelocity (myVel1);
       myVel1.inverseTransform (myX1A);
-      myFrameB.getBodyVelocity (myVel2);
-      myVel2.inverseTransform (myX2B);
-      myVel2.transform (myX21.R);
-      myVel21.sub (myVel2, myVel1);
+      if (myFrameB != null) {
+         myFrameB.getBodyVelocity (myVel2);
+         myVel2.inverseTransform (myX2B);
+         myVel2.transform (myX21.R);
+         myVel21.sub (myVel2, myVel1);
+      }
+      else {
+         myVel21.negate (myVel1);
+      }
    }   
 
    // Computes the force as seen in frame 1 and places the resukt in myF.
@@ -351,16 +371,18 @@ public class FrameSpring extends Spring
       myFTmp.transform (myX1A, myF);
       myFTmp.transform (myFrameA.getPose().R); // put into rotated world coords
       myFrameA.addForce (myFTmp);
-      
-      // Sanchez, July 9 2013
-      // Prevent changing myF in this function
-      myFTmp.set(myF);
-      myFTmp.inverseTransform (myX21.R);
-      
-      myFTmp.transform (myX2B, myFTmp);
-      myFTmp.transform (myFrameB.getPose().R); // put into rotated world coords
-      myFTmp.negate();
-      myFrameB.addForce (myFTmp);
+
+      if (myFrameB != null) {
+         // Sanchez, July 9 2013
+         // Prevent changing myF in this function
+         myFTmp.set(myF);
+         myFTmp.inverseTransform (myX21.R);
+         
+         myFTmp.transform (myX2B, myFTmp);
+         myFTmp.transform (myFrameB.getPose().R); // put into rotated world coords
+         myFTmp.negate();
+         myFrameB.addForce (myFTmp);
+      }
    }
 
    private void setScaledCrossProd (Matrix3d M, double s, Vector3d u) {
@@ -590,7 +612,13 @@ public class FrameSpring extends Spring
       RotationMatrix3d R1W = new RotationMatrix3d();
 
       RigidTransform3d XAW = myFrameA.getPose();
-      RigidTransform3d XBW = myFrameB.getPose();
+      RigidTransform3d XBW;
+      if (myFrameB != null) {
+         XBW = myFrameB.getPose();
+      }
+      else {
+         XBW = RigidTransform3d.IDENTITY;
+      }
 
       R1W.mul (XAW.R, myX1A.R);
 
@@ -613,7 +641,12 @@ public class FrameSpring extends Spring
       x21.transform (R1W);
 
       myFrameA.getVelocity (myVel1);
-      myFrameB.getVelocity (myVel2);
+      if (myFrameB != null) {
+         myFrameB.getVelocity (myVel2);
+      }
+      else {
+         myVel2.setZero();
+      }
 
       if (!mySymmetricJacobian) {
          mat.computeF (myF, myX21, myVel21, myInitialX21);
@@ -737,7 +770,14 @@ public class FrameSpring extends Spring
       RotationMatrix3d R1W = new RotationMatrix3d();
 
       RigidTransform3d XAW = myFrameA.getPose();
-      RigidTransform3d XBW = myFrameB.getPose();
+      RigidTransform3d XBW;
+      if (myFrameB != null) {
+         XBW = myFrameB.getPose();
+      }
+      else {
+         XBW = RigidTransform3d.IDENTITY;
+      }
+
 
       R1W.mul (XAW.R, myX1A.R);
 
@@ -781,7 +821,7 @@ public class FrameSpring extends Spring
 
    public void addSolveBlocks (SparseNumberedBlockMatrix M) {
       int bi0 = myFrameA.getSolveIndex();
-      int bi1 = myFrameB.getSolveIndex();
+      int bi1 = myFrameB != null ? myFrameB.getSolveIndex() : -1;
 
       // System.out.println ("add solve blocks " + bi0 + " " + bi1);
 
@@ -902,28 +942,6 @@ public class FrameSpring extends Spring
       }
    }
 
-//   @Override
-//   public void connectToHierarchy () {
-//      super.connectToHierarchy ();
-//      if (myFrameA != null) {
-//         myFrameA.addBackReference (this);
-//      }
-//      if (myFrameB != null) {
-//         myFrameB.addBackReference (this);
-//      }
-//   }
-//
-//   @Override
-//   public void disconnectFromHierarchy() {
-//      super.disconnectFromHierarchy();
-//      if (myFrameA != null) {
-//         myFrameA.removeBackReference (this);
-//      }
-//      if (myFrameB != null) {
-//         myFrameB.removeBackReference (this);
-//      }
-//   }
-
    /**
     * {@inheritDoc}
     */
@@ -959,17 +977,6 @@ public class FrameSpring extends Spring
       if (myRenderProps != null) {
          comp.setRenderProps (myRenderProps);
       }
-
-      // need to make Frames copyable so we can uncomment this code
-      // and finish the implementation of this method:
-
-      //Frame frameA =
-      //   (Frame)ComponentUtils.maybeCopy (flags, copyMap, myFrameA);  
-      //comp.setFrameA (frameA);
-
-      // Frame frameB =
-      //   (Frame)ComponentUtils.maybeCopy (flags, copyMap, myFrameB);  
-      //comp.setFrameB (frameB);
 
       if (myX1A != RigidTransform3d.IDENTITY) {
          comp.myX1A = new RigidTransform3d (myX1A);

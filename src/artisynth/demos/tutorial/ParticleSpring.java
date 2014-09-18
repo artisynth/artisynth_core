@@ -38,18 +38,18 @@ public class ParticleSpring extends RootModel {
       // set render properties for the components
       setPointRenderProps (p1);            
       setPointRenderProps (p2);
-      setSpringRenderProps (spring);
+      setLineRenderProps (spring);
    }
 
-   protected void setPointRenderProps (Point p) {
-      RenderProps.setPointColor (p, Color.RED);
-      RenderProps.setPointStyle (p, RenderProps.PointStyle.SPHERE);
-      RenderProps.setPointRadius (p, 0.06);
+   protected void setPointRenderProps (Renderable r) {
+      RenderProps.setPointColor (r, Color.RED);
+      RenderProps.setPointStyle (r, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointRadius (r, 0.06);
    }
 
-   protected void setSpringRenderProps (AxialSpring s) {
-      RenderProps.setLineColor (s, Color.BLUE);
-      RenderProps.setLineStyle (s, RenderProps.LineStyle.CYLINDER);
-      RenderProps.setLineRadius (s, 0.02);
+   protected void setLineRenderProps (Renderable r) {
+      RenderProps.setLineColor (r, Color.BLUE);
+      RenderProps.setLineStyle (r, RenderProps.LineStyle.CYLINDER);
+      RenderProps.setLineRadius (r, 0.02);
    }
 }

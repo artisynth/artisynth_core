@@ -33,6 +33,7 @@ import artisynth.core.materials.AxialMuscleMaterial;
 import artisynth.core.materials.ConstantAxialMuscle;
 import artisynth.core.materials.LinearAxialMuscle;
 import artisynth.core.materials.PeckAxialMuscle;
+import artisynth.core.materials.SimpleAxialMuscle;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ComponentUtils;
@@ -76,10 +77,12 @@ public class Muscle extends AxialSpring implements ExcitationComponent {
    
    public Muscle (String name) {
       super (name);
+      setMaterial (new SimpleAxialMuscle (1, 0, /*maxf=*/1));
    }
 
    public Muscle (String name, double l0) {
       super (name, l0);
+      setMaterial (new SimpleAxialMuscle (1, 0, /*maxf=*/1));
    }
 
    public Muscle (Point p1, Point p2) {

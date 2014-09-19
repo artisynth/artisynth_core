@@ -49,7 +49,7 @@ public class NetDemo extends RootModel {
       Muscle spr = new Muscle (p0, p1);
       //spr.setFirstPoint (p0);
       //spr.setSecondPoint (p1);
-      spr.setMaterial (new SpringAxialMuscle (stiffness, damping, maxForce));
+      spr.setMaterial (new SimpleAxialMuscle (stiffness, damping, maxForce));
       return spr;
    }
 

@@ -6,16 +6,15 @@ public class SpringAxialMuscle extends LinearAxialMaterial {
 
    protected static double DEFAULT_MAX_FORCE = 1;
 
-   protected double myMaxForce = DEFAULT_MAX_FORCE; // maxForce
+   protected double myMaxForce = DEFAULT_MAX_FORCE; // max force
    protected PropertyMode myMaxForceMode = PropertyMode.Inherited;
 
    public static PropertyList myProps =
       new PropertyList (SpringAxialMuscle.class, LinearAxialMaterial.class);
 
-
    static {
       myProps.addInheritable (
-         "maxForce", "force at unit excitation", DEFAULT_MAX_FORCE );
+         "maxForce", "excitation force gain", DEFAULT_MAX_FORCE );
    }
 
    public SpringAxialMuscle () {
@@ -24,10 +23,9 @@ public class SpringAxialMuscle extends LinearAxialMaterial {
 
    public SpringAxialMuscle (double k, double d, double maxf) {
       super();
-      // assume that maxForce = k * maxLength, and set maxLength accordingly
-      setMaxForce (maxf);
       setStiffness (k);
       setDamping (d);
+      setMaxForce (maxf);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -38,8 +36,8 @@ public class SpringAxialMuscle extends LinearAxialMaterial {
       return myMaxForce;
    }
 
-   public synchronized void setMaxForce (double E) {
-      myMaxForce = E;
+   public synchronized void setMaxForce (double max) {
+      myMaxForce = max;
       myMaxForceMode =
          PropertyUtils.propagateValue (
             this, "maxForce", myMaxForce, myMaxForceMode);
@@ -56,8 +54,9 @@ public class SpringAxialMuscle extends LinearAxialMaterial {
             this, "maxForce", myMaxForceMode, mode);
    }
 
-   public double computeF(double l, double ldot, double l0, double ex) {
-      return myStiffness*(l-l0) + myMaxForce*ex + myDamping*ldot;
+   public double computeF (
+      double l, double ldot, double l0, double ex) {
+      return myStiffness*(l-l0) + myDamping*ldot + myMaxForce*ex;
    }
 
    public double computeDFdl(double l, double ldot, double l0, double ex) {
@@ -72,4 +71,40 @@ public class SpringAxialMuscle extends LinearAxialMaterial {
    public boolean isDFdldotZero() {
       return myDamping == 0;
    }
+
+   public boolean equals (AxialMaterial mat) {
+      if (!(mat instanceof SpringAxialMuscle)) {
+         return false;
+      }
+      SpringAxialMuscle sam = (SpringAxialMuscle)mat;
+      if (myStiffness != sam.myStiffness ||
+          myMaxForce != sam.myMaxForce ||
+          myDamping != sam.myDamping) {
+         return false;
+      }
+      else {
+         return super.equals (mat);
+      }
+   }
+
+   public SpringAxialMuscle clone() {
+      SpringAxialMuscle mat = (SpringAxialMuscle)super.clone();
+      return mat;
+   }
+
+   @Override
+   public void scaleDistance (double s) {
+      super.scaleDistance (s);
+      myMaxForce *= s;
+   }
+
+   @Override
+   public void scaleMass (double s) {
+      super.scaleMass (s);
+      myStiffness *= s;
+      myMaxForce *= s;
+      myDamping *= s;
+   }
 }
+
+

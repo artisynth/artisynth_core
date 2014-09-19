@@ -24,16 +24,20 @@ public class SimpleMuscle extends RootModel
 
    public void build (String[] args) throws IOException {
 
+      // create MechModel and add to RootModel
       mech = new MechModel ("mech");
       addModel (mech);
 
-      p1 = new Particle ("p1", /*mass=*/2, 0, 0, 0);
-      // create box and set it's pose:
-      box = RigidBody.createBox ("box", 0.5, 0.3, 0.3, /*density=*/20);
-      box.setPose (new RigidTransform3d (1.00, 0, 0));
+      // create the components
+      p1 = new Particle ("p1", /*mass=*/2, /*x,y,z=*/0, 0, 0);
+      // create box and set its pose (position/orientation):
+      RigidBody box =
+         RigidBody.createBox ("box", /*wx,wy,wz=*/0.5, 0.3, 0.3, /*density=*/20);
+      box.setPose (new RigidTransform3d (/*x,y,z=*/0.75, 0, 0));
       // create marker point and connect it to the box:
-      FrameMarker mkr = new FrameMarker (-0.25, 0, 0);
+      FrameMarker mkr = new FrameMarker (/*x,y,z=*/-0.25, 0, 0);
       mkr.setFrame (box);
+
       // create the muscle:      
       muscle = new Muscle ("mus", /*restLength=*/0);
       muscle.setPoints (p1, mkr);
@@ -47,8 +51,9 @@ public class SimpleMuscle extends RootModel
       mech.addAxialSpring (muscle);
 
       p1.setDynamic (false);               // first particle set to be fixed
-      mech.setBounds (-1, 0, -1, 1, 0, 0); // increase viewer bounds
 
+      // increase model bounding box for the viewer
+      mech.setBounds (/*min=*/-1, 0, -1, /*max=*/1, 0, 0);  
       // set render properties for the components
       setPointRenderProps (p1);
       setPointRenderProps (mkr);

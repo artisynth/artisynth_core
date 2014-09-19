@@ -4,10 +4,9 @@ import maspack.properties.*;
 
 public class SimpleAxialMuscle extends LinearAxialMaterial {
 
-   protected static double DEFAULT_MAX_FORCE = 0;
+   protected static double DEFAULT_MAX_FORCE = 1;
 
    protected double myMaxForce = DEFAULT_MAX_FORCE; // max force
-
    protected PropertyMode myMaxForceMode = PropertyMode.Inherited;
 
    public static PropertyList myProps =
@@ -16,6 +15,17 @@ public class SimpleAxialMuscle extends LinearAxialMaterial {
    static {
       myProps.addInheritable (
          "maxForce", "excitation force gain", DEFAULT_MAX_FORCE );
+   }
+
+   public SimpleAxialMuscle () {
+      super();
+   }
+
+   public SimpleAxialMuscle (double k, double d, double maxf) {
+      super();
+      setStiffness (k);
+      setDamping (d);
+      setMaxForce (maxf);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -44,19 +54,22 @@ public class SimpleAxialMuscle extends LinearAxialMaterial {
             this, "maxForce", myMaxForceMode, mode);
    }
 
-   public SimpleAxialMuscle (){
-   }
-
-   public SimpleAxialMuscle (double k, double d, double max) {
-      setStiffness (k);
-      setDamping (d);
-      setMaxForce (max);
-   }
-   
-
    public double computeF (
+      double l, double ldot, double l0, double ex) {
+      return myStiffness*(l-l0) + myDamping*ldot + myMaxForce*ex;
+   }
+
+   public double computeDFdl(double l, double ldot, double l0, double ex) {
+      return myStiffness; 
+   }
+
+   public double computeDFdldot (
       double l, double ldot, double l0, double excitation) {
-      return myStiffness*(l-l0) + myDamping*ldot + myMaxForce*excitation;
+      return myDamping;
+   }
+
+   public boolean isDFdldotZero() {
+      return myDamping == 0;
    }
 
    public boolean equals (AxialMaterial mat) {

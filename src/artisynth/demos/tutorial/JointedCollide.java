@@ -30,7 +30,7 @@ public class JointedCollide extends RigidBodyJoint {
 
       bodyB.setDynamic (true);  // allow bodyB to fall freely
 
-      // create and add the base plate
+      // create and add the inclined plane
       RigidBody base = RigidBody.createBox ("base", 25, 25, 2, 0.2);
       base.setPose (new RigidTransform3d (5, 0, 0, 0, 1, 0, -Math.PI/8));
       base.setDynamic (false);

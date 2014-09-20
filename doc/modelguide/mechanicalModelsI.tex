@@ -1451,3 +1451,83 @@ Running the model (Section \ref{LoadingAndRunning:sec}) will cause the
 box to fall and swing under gravity.
 
 \subsection{Simulation control properties}
+
+Both \javaclass[artisynth.core.workspace]{RootModel} and
+\javaclass[artisynth.core.mechmodels]{MechModel} contain properties
+that control the simulation behavior. One of the most important of
+these is {\tt maxStepSize}. By default, simulation proceeds using the
+{\tt maxStepSize} value defined for the root model. A {\tt MechModel}
+contained within the root model may also request a smaller step size
+by specifying a smaller value for its own {\tt maxStepSize} property.
+For all models, the maximum step size may be set and queried
+using
+%
+\begin{lstlisting}
+  void setMaxStepSize (double maxh);
+  double getMaxStepSize();
+\end{lstlisting}
+%
+
+Another important simulation property is {\tt integrator} in {\tt
+MechModel}, which determines the type of integrator used for the
+physics simulation. The property value is the enumerated type
+{\tt MechSystemSolver.Integrator}, and it can currently
+be set to the following values:
+
+\begin{description}
+
+\item[ForwardEuler]\mbox{}
+
+First order forward Euler integrator. Unstable for stiff systems.
+
+\item[SymplecticEuler]\mbox{}
+
+First order symplectic Euler integrator, more energy conserving
+that forward Euler. Unstable for stiff systems.
+
+\item[RungeKutta4]\mbox{}
+
+Fourth order Runge Kutta integrator, quite accurate but also unstable
+for stiff systems.
+
+\item[ConstrainedBackwardEuler]\mbox{}
+
+First order backward order integrator. Generally stable for stiff systems.
+
+\item[Trapezoidal]\mbox{}
+
+Second order trapezoidal integrator. Generally stable for stiff
+systems, but slightly less so than {\tt ConstrainedBackwardEuler}.
+
+\end{description}
+
+The term "Unstable for stiff systems" means that the integrator is
+likely to go unstable in the presence of "stiff" systems, which
+typically include systems containing finite element models.  The
+default value for {\tt integrator} is {\tt ConstrainedBackwardEuler}.
+
+Another {\tt MechModel} simulation property is {\tt stabilization},
+which controls the stabilization method used correct drift from
+position constraints and correct interpenetrations due to collisions.
+The property value is the enumerated type {\tt
+MechSystemSolver.PosStabilization}, and it has two values:
+
+\begin{description}
+
+\item[GlobalMass]\mbox{}
+
+Uses only a diagonal mass matrix for the MLCP that is solved to
+determine the position corrections. This is default method.
+
+\item[GlobalStiffness]\mbox{}
+
+Uses a stiffness-corrected mass matrix for the MLCP that is solved to
+determine the position corrections. Slower than {\tt GlobalMass}, but
+more likely to produce stable results, particularly for
+problems involving FEM collisions.
+
+\end{description}
+
+
+
+

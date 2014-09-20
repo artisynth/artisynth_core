@@ -112,7 +112,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    protected static double DEFAULT_ROTARY_DAMPING = 0;
    protected static boolean DEFAULT_PROFILING = false;
    protected static PosStabilization DEFAULT_STABILIZATION =
-      PosStabilization.Default;
+      PosStabilization.GlobalMass;
 
    protected Integrator myIntegrationMethod;
    protected MatrixSolver myMatrixSolver;

@@ -1511,10 +1511,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
       MechSystemSolver.myDefaultHybridSolveP = !disableHybridSolves.value;
       FemModel3d.abortOnInvertedElems = abortOnInvertedElems.value;
-      if (posCorrection.value.equals ("Default")) {
-         MechSystemBase.setDefaultStabilization (PosStabilization.Default);
-      }
-      else if (posCorrection.value.equals("GlobalMass")) {
+//      if (posCorrection.value.equals ("Default")) {
+//         MechSystemBase.setDefaultStabilization (PosStabilization.Default);
+//      }
+      if (posCorrection.value.equals("GlobalMass")) {
          MechSystemBase.setDefaultStabilization (PosStabilization.GlobalMass);
       }
       else if (posCorrection.value.equals("GlobalStiffness")) {

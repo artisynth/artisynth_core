@@ -198,8 +198,7 @@ public class MechSystemSolver {
     */
    public enum PosStabilization {
       GlobalMass,
-      GlobalStiffness,
-      Default
+      GlobalStiffness
    }
 
    public boolean getHybridSolve () {
@@ -222,7 +221,7 @@ public class MechSystemSolver {
    ToleranceType myTolType = ToleranceType.RelativeResidual;
    int myMaxIterations = 20;
    boolean myUseDirectSolver = true;
-   PosStabilization myStabilization = PosStabilization.Default;
+   PosStabilization myStabilization = PosStabilization.GlobalMass;
 
    public void setParametricTargets (double s, double h) {
       // assumes that updateStateSizes() has been called

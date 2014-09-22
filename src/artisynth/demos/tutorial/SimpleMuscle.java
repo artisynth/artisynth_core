@@ -31,7 +31,7 @@ public class SimpleMuscle extends RootModel
       // create the components
       p1 = new Particle ("p1", /*mass=*/2, /*x,y,z=*/0, 0, 0);
       // create box and set its pose (position/orientation):
-      RigidBody box =
+      box =
          RigidBody.createBox ("box", /*wx,wy,wz=*/0.5, 0.3, 0.3, /*density=*/20);
       box.setPose (new RigidTransform3d (/*x,y,z=*/0.75, 0, 0));
       // create marker point and connect it to the box:

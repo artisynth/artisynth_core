@@ -11,6 +11,7 @@ probes} to observe and record simulation results at the end of each
 time step.
 
 \subsection{Control Panels}
+\label{ControlPanels:sec}
 
 A {\it control panel} is an editing panel that allows for the
 interactive adjustment of component properties.
@@ -158,21 +159,323 @@ while the model is either stationary or running.
 \subsection{Custom properties}
 \label{CustomProperties:sec}
 
-\subsubsection{Adding custom properties to a RootModel}
+Because of the usefulness of properties in creating control panels and
+probes (Sections \ref{ControlPanels:sec}) and Section
+\ref{Probes:sec}), model developers may wish to add their own
+properties, either to the root model, or to a custom component.
+
+This section provides only a brief summary of how to define
+properties. Full details are available in the "Properties" section of
+the \href{http://www.artisynth.org/doc/html/maspack/maspack.html}{
+Maspack Reference Manual}.
+
+\subsubsection{Adding properties to a component}
+
+As mentioned in Section \ref{Properties:sec}, properties are
+class-specific, and are exported by a class through code contained in
+the class's definition.  Often, it is convenient to add properties to
+the {\tt RootModel} subclass that defines the application model. In
+more advanced applications, developers may want to add properties to a
+custom component.
+
+The property definition steps are:
+
+\begin{description}
+
+\item[Declare the property list]\mbox{}
+
+The class creates its own static instance of a
+\javaclass[maspack.properties]{PropertyList}, using a declaration like
+%
+\begin{lstlisting}
+   static PropertyList myProps = new PropertyList (MyClass.class, MyParent.class);
+
+   @Override   
+   public PropertyList getAllPropertyInfo() {
+      return myProps;
+   }  
+\end{lstlisting}
+%
+where {\tt MyClass} and {\tt MyParent} are the {\tt Class} objects for
+the class in question and its parent. This will create a new property
+list, with a copy of all the properties contained in the parent class.
+If one does {\it not} want the parent class properties, or if the
+parent class does not have properties, then one would use the
+constructor
+\javamethodAlt{maspack.properties.PropertyList.PropertyList(Class)}%
+{PropertyList(MyClass.class)} instead. (If the parent class is an
+ArtiSynth model component (including the {\tt RootModel}), then it
+will always have its own properties.)  The declaration of {\tt
+getAllPropertyInfo()} exposes the property list to other classes.
+
+\item[Add properties to the list]\mbox{}
+
+Properties can then be added to the property list, by calling the {\tt
+PropertyList}'s
+\javamethod*[maspack.properties.PropertyList]{add(String,String,Object)}
+method:
+%
+\begin{lstlisting}
+   PropertyDesc add (String name, String description, Object defaultValue);
+\end{lstlisting}
+%
+where {\tt name} contains the name of the property (and, if desired,
+the names of it's accessor methods as well), {\tt description}
+is a comment describing the property, and {\tt defaultValue} is
+an object containing the property's default value.
+This is done inside a static code block:
+%
+\begin{lstlisting}
+   static {
+      myProps.add ("stiffness", "spring stiffness", /*defaultValue=*/1);
+      myProps.add ("damping", "spring damping", /*defaultValue=*/0);
+   }
+\end{lstlisting}
+%
+Variations on the {\tt add()} method exist for adding {\it read-only}
+or {\it inheritable} properties, or for setting various property
+options. Other methods allow the property list to be editted.
+
+\item[Declare property accessor functions]\mbox{}
+
+For each property {\tt propXXX} added to the property list, accessor functions of
+the form
+%
+\begin{lstlisting}
+   void setPropXXX (TypeX value);
+   TypeX getPropXXX();
+\end{lstlisting}
+%
+must be declared, where {\tt TypeX} is the value associated with the
+property. 
+
+\end{description}
 
 \subsubsection{Example: a visibility property}
+%
+An model illustrating the exporting of properties is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.SimpleMuscleWithProperties
+\end{verbatim}
+%
+This model extends {\tt SimpleMuscleWithPanel} (Section
+\ref{SimpleMuscleExample:sec}) to provide a custom property
+{\tt boxVisible} that is added to the control panel.
+The class definition, excluding {\tt include} statements,
+is shown below:
+%
+\lstset{numbers=left}
+\begin{lstlisting}
+public class SimpleMuscleWithProperties extends SimpleMuscleWithPanel {
+
+   // internal property list; inherits properties from SimpleMuscleWithPanel
+   static PropertyList myProps =
+      new PropertyList (
+         SimpleMuscleWithProperties.class, SimpleMuscleWithPanel.class);
+
+   // override getAllPropertyInfo() to return the new list
+   public PropertyList getAllPropertyInfo() {
+      return myProps;
+   }
+
+   // add new properties to the list
+   static {
+      myProps.add ("boxVisible", "box is visible", false);
+   }
+
+   // declare property accessors
+   public boolean getBoxVisible() {
+      return box.getRenderProps().isVisible();
+   }
+
+   public void setBoxVisible (boolean visible) {
+      RenderProps.setVisible (box, visible);
+   }
+
+   public void build (String[] args) throws IOException {
+
+      super.build (args);
+
+      panel.addWidget (this, "boxVisible");
+      panel.pack();
+   }
+}
+\end{lstlisting}
+\lstset{numbers=none}
+%
+First, a property list is created for the current class {\tt
+SimpleMuscleWithProperties.class} which contains a copy of all the
+properties from the parent class {\tt SimpleMuscleWithPanel.class}
+(lines 4-6). This property list is made visible by overriding {\tt
+getAllPropertyInfo()} (lines 9-11). The {\tt boxVisible} property
+itself is then added to the property list (line 15), and accessor
+functions for it are declared (lines 19-25).
+
+\begin{figure}[t]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/boxVisiblePanel}
+\else
+ \includegraphics[width=3in]{images/boxVisiblePanel}
+\fi
+\end{center}
+\caption{Control panel created by the model {\tt SimpleMuscleWithProperties},
+showing the newly defined property {\tt boxVisible}.}
+\label{boxVisiblePanel:fig}
+\end{figure}
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+SimpleMuscleWithProperties} from the {\sf Models} menu. The control
+panel will now contain an additional widget for the property {\tt
+boxVisible} as shown in Figure \ref{boxVisiblePanel:fig}. Toggling
+this property will make the box visible or invisible in the viewer.
 
 % SimpleMuscleWithProperties
 
 \subsection{Controllers and monitors}
+\label{ControllersAndMonitors:sec}
 
-\subsubsection{Purpose and operation}
+Application models can define custom {\it controllers} and {\it
+monitors} to control input values and monitor output values as a
+simulation progresses. Controllers are called every time step
+immediately before the {\tt advance()} method, and monitors are called
+immediately after (Section \ref{ModelAdvancement:sec}).
+ArtiSynth's inverse modeling feature uses an internal controller to
+estimate the actuation signals required to follow a specified motion
+trajectory.
 
-\subsubsection{A controller to move a point}
+More precise details about controllers and monitors and how they
+interact with model advancement are given in the
+\href{http://www.artisynth.org/doc/html/artisynth/artisynth.html}{
+ArtiSynth Reference Manual}.
 
-% SimpleMuscleWithController
+\subsubsection{Implemention}
+
+Applications may declare whatever controllers or monitors they require
+and then add them to the root model using the
+\javamethod*[artisynth.core.workspace.RootModel]{addController()} and
+\javamethod*[artisynth.core.workspace.RootModel]{addMonitor()}
+methods. They can be any type of
+\javaclass[artisynth.core.modelbase]{ModelComponent} that implements
+the \javaclass[artisynth.core.modelbase]{Controller} or
+\javaclass[artisynth.core.modelbase]{Monitor} interfaces.  For
+convenience, most applications simply subclass
+\javaclass[artisynth.core.modelbase]{ControllerBase} or
+\javaclass[artisynth.core.modelbase]{MonitorBase} and then override
+the necessary methods.
+
+The most important methods associated with both controllers and
+monitors are:
+%
+\begin{lstlisting}
+  public void initialize (double t0);
+  public void apply (double t0, double t1);
+\end{lstlisting}
+%
+{\tt apply(t0, t1)} is the "business" method and is called once per
+time step, with $t_0$ and $t_1$ indicating the start and end times
+associated with the step.  {\tt initialize(t0)} is called whenever an
+application model's state is set (or reset) at a particular time
+$t_0$. This occurs when a simulation is started or restarted (with
+$t_0 = 0$), and when the state is reset at a waypoint or during
+adaptive stepping.
+
+Controllers and monitors may be associated with a partcular model
+(among the list of models owned by the root model),
+which may be set or queried using
+%
+\begin{lstlisting}
+  void setModel (Model m);
+  Model getModel();
+\end{lstlisting}
+%
+If associated with a model, {\tt apply()} will be called immediately
+before (for controllers) or after (for monitors) that model's {\tt
+advance()} method. If not associated with a model, then {\tt apply()}
+will be called before or after the advance of {\it all} the models
+owned by the root model.
+
+Controllers and monitors may also contain {\it state}, in which case
+they should implement the relevant methods from the
+\javaclass[artisynth.core.modelbase]{HasState} interface.
+
+Typical actions for a controller include setting input force or
+excitation values on components, or specifying the motion trajectory
+of parametric components (Section \ref{DynamicVsParametric:sec}).
+Typical actions for a monitor include observing or recording
+the various motion profiles or constraint forces that arise
+from the simulation.
+
+When setting the position and/or velocity of a parametric components,
+a controller should not set its position or velocity directly, but
+should instead set its {\it target position} and/or {\it target
+velocity}, since this allows the solver to properly interpolate the
+position and velocity during the time step. The methods to set or
+query target positions and velocitys for
+\javaclass[artisynth.core.modelbase]{Point}-based compnents are
+%
+\begin{lstlisting}
+  setTargetPosition (Point3d pos);
+  Point3d getTargetPosition ();       // read-only
+
+  setTargetVelocity (Vector3d vel);
+  Vector3d getTargetVelocity ();      // read-only
+\end{lstlisting}
+%
+while for
+\javaclass[artisynth.core.modelbase]{Frame}-based compnents they are
+%
+\begin{lstlisting}
+  setTargetPosition (Point3d pos);
+  setTargetOrientation (AxisAngle axisAng);
+  setTargetPose (RigidTransform3d TFW);
+  Point3d getTargetPosition ();       // read-only
+  AxisAngle getTargetOrientation ();  // read-only
+  RigidTransform3d getTargetPose();   // read-only
+
+  setTargetVelocity (Twist vel);
+  Twist getTargetVelocity ();         // read-only
+\end{lstlisting}
+%
+
+\subsubsection{Example: A controller to move a point}
+
+A model showing a simple application-defined controller is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.SimpleMuscleWithController
+\end{verbatim}
+%
+This simply extends {\tt SimpleMuscle} (Section
+\ref{SimpleMuscleExample:sec}) and adds a controller which
+moves the fixed particle {\tt p1} along a circular path.
+The class definition is shown below:
+%
+\lstset{numbers=left}
+\lstinputlisting{../../src/artisynth/demos/tutorial/SimpleMuscleWithController.java}
+\lstset{numbers=none}
+%
+A controller called {\tt PointMover} is defined by extending {\tt
+ControllerBase} and overriding the {\tt apply()} method. It stores the
+point to be moved in {\tt myPnt}, and the initial position in
+{\tt myPos0}. The {\tt apply()} method computes a target position for
+the point that starts at {\tt myPos0} and then moves in a circle in the
+$x-z$ plane with an angular velocity of $\pi/2$ rad/sec (lines 22-28).
+
+The {\tt build()} method calls {\tt super.build()} to create the model
+used by {\tt SimpleMuscle}, and then creates an instance of {\tt
+PointMover} to move particle {\tt p1} and adds it to the root model
+(line 34). The viewer bounds are uodated to make the circular motion
+more visible by default (line 36).
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+SimpleMuscleWithController} from the {\sf Models} menu. When
+the model is run, the fixed particle {\tt p1} will trace
+out a circular path in the $x-z$ plane.
 
 \subsection{Probes}
+\label{Probes:sec}
 
 \subsubsection{Input and output probes}
 

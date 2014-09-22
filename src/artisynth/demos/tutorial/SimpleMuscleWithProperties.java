@@ -9,18 +9,22 @@ import artisynth.core.workspace.RootModel;
 
 public class SimpleMuscleWithProperties extends SimpleMuscleWithPanel {
 
-   public static PropertyList myProps =
+   // internal property list; inherits properties from SimpleMuscleWithPanel
+   static PropertyList myProps =
       new PropertyList (
          SimpleMuscleWithProperties.class, SimpleMuscleWithPanel.class);
 
-   static {
-      myProps.add ("boxVisible", "box is visible", false);
-   }
-
+   // override getAllPropertyInfo() to return the new list
    public PropertyList getAllPropertyInfo() {
       return myProps;
    }
 
+   // add new properties to the list
+   static {
+      myProps.add ("boxVisible", "box is visible", false);
+   }
+
+   // declare property accessors
    public boolean getBoxVisible() {
       return box.getRenderProps().isVisible();
    }
@@ -36,5 +40,4 @@ public class SimpleMuscleWithProperties extends SimpleMuscleWithPanel {
       panel.addWidget (this, "boxVisible");
       panel.pack();
    }
-
 }

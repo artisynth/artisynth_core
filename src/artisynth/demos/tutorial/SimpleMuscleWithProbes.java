@@ -1,7 +1,6 @@
 package artisynth.demos.tutorial;
 
 import java.io.IOException;
-
 import maspack.matrix.*;
 
 import artisynth.core.modelbase.*;
@@ -11,20 +10,16 @@ import artisynth.core.util.*;
 
 public class SimpleMuscleWithProbes extends SimpleMuscleWithPanel
 {
-
-   public void addInputProbe() throws IOException {
-
+   public void createInputProbe() throws IOException {
       NumericInputProbe p1probe =
          new NumericInputProbe (
             mech, "particles/p1:targetPosition",
             ArtisynthPath.getSrcRelativePath (this, "simpleMuscleP1Pos.txt"));
       p1probe.setName("Particle Position");
-      p1probe.setStopTime (5);
       addInputProbe (p1probe);
    }
 
-   public void addOutputProbe() throws IOException {
-      
+   public void createOutputProbe() throws IOException {
       NumericOutputProbe mkrProbe =
          new NumericOutputProbe (
             mech, "frameMarkers/0:velocity",
@@ -40,9 +35,8 @@ public class SimpleMuscleWithProbes extends SimpleMuscleWithPanel
 
       super.build (args);
 
-      addInputProbe ();
-      addOutputProbe ();
-
+      createInputProbe ();
+      createOutputProbe ();
       mech.setBounds (-1, 0, -1, 1, 0, 1);
    }
 

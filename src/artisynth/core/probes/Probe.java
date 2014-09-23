@@ -120,9 +120,13 @@ public abstract class Probe extends ModelAgentBase {
       myStopTime = t;
    }
 
-   public void setStartStopTimes (double startTime, double stopTime) {
+   public void setInterval (double startTime, double stopTime) {
       myStartTime = startTime;
-      myStopTime = stopTime;
+      myStopTime = stopTime;      
+   }
+   
+   public void setStartStopTimes (double startTime, double stopTime) {
+      setInterval (startTime, stopTime);
    }
 
    public double getScale() {

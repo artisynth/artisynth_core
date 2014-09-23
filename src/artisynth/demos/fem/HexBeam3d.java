@@ -5,6 +5,7 @@ import artisynth.core.femmodels.FemModel.IncompMethod;
 import artisynth.core.materials.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.*;
+import artisynth.core.probes.*;
 import maspack.matrix.*;
 
 import java.util.*;
@@ -58,7 +59,6 @@ public class HexBeam3d extends FemBeam3d {
       // myFemMod.setSoftIncompMethod (IncompMethod.NODAL);
       // myFemMod.setHardIncompMethod (IncompMethod.NODAL);
       //myFemMod.setIncompressible (FemModel.IncompMethod.AUTO);
-
       // SolveMatrixTest tester = new SolveMatrixTest();
       // System.out.println ("error=" + tester.testStiffness (myMechMod, 1e-8));
       // System.out.println ("K=\n" + tester.getK().toString ("%12.1f"));
@@ -99,7 +99,6 @@ public class HexBeam3d extends FemBeam3d {
       //myMechMod.setProfiling (true);
 
       // System.out.println ("DGT=\n" + DGT.toString ("%11.8f"));
-
    }
 
    public HexBeam3d (String name, String string, double d, double e, int i,

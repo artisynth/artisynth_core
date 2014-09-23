@@ -54,27 +54,27 @@ public class AffineNumericInputProbe extends NumericInputProbe {
       initTransform(myVsize);
    }
 
-   public AffineNumericInputProbe (Property prop, ModelComponent e) {
-      super(prop, e);
-      initTransform(myVsize);
-   }
-
-   public AffineNumericInputProbe (
-      Property prop, ModelComponent e, double ymin, double ymax) {
-      super(prop, e, ymin, ymax);
-      initTransform(myVsize);
-   }
-
-   public AffineNumericInputProbe (Property[] props, ModelComponent e) {
-      super(props, e);
-      initTransform(myVsize);
-   }
-
-   public AffineNumericInputProbe (
-      Property[] props, ModelComponent e, double ymin, double ymax) {
-      super(props, e, ymin, ymax);
-      initTransform(myVsize);
-   }
+//   public AffineNumericInputProbe (Property prop, ModelComponent e) {
+//      super(prop, e);
+//      initTransform(myVsize);
+//   }
+//
+//   public AffineNumericInputProbe (
+//      Property prop, ModelComponent e, double ymin, double ymax) {
+//      super(prop, e, ymin, ymax);
+//      initTransform(myVsize);
+//   }
+//
+//   public AffineNumericInputProbe (Property[] props, ModelComponent e) {
+//      super(props, e);
+//      initTransform(myVsize);
+//   }
+//
+//   public AffineNumericInputProbe (
+//      Property[] props, ModelComponent e, double ymin, double ymax) {
+//      super(props, e, ymin, ymax);
+//      initTransform(myVsize);
+//   }
 
    public VectorNd transform(VectorNd x) {
       VectorNd r = new VectorNd(x.size());

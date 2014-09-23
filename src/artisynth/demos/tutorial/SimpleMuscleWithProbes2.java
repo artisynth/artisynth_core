@@ -11,7 +11,7 @@ import artisynth.core.util.*;
 
 public class SimpleMuscleWithProbes2 extends SimpleMuscleWithProbes {
 
-   public void addInputProbe() throws IOException {
+   public void createInputProbe() throws IOException {
 
       NumericInputProbe p1probe =
          new NumericInputProbe (

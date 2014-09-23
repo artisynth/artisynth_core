@@ -78,13 +78,21 @@ public class NumericOutputProbe extends NumericProbeBase
 
    public NumericOutputProbe (
       ModelComponent comp, String propName, String fileName, double interval) {
+      this (comp, new String[] { propName }, fileName, interval);
+   }
+
+   public NumericOutputProbe (
+      ModelComponent comp, String[] propNames, String fileName, double interval) {
       this();
-      Property prop = comp.getProperty (propName);
-      if (prop == null) {
-         throw new IllegalArgumentException ("cannot find property '"
-         + propName + "'");
+      Property[] props = new Property[propNames.length];
+      for (int i=0; i<props.length; i++) {
+         props[i] = comp.getProperty (propNames[i]);
+         if (props[i] == null) {
+            throw new IllegalArgumentException ("cannot find property '"
+            + propNames[i] + "'");
+         }
       }
-      setOutputProperties (new Property[] { prop });
+      setOutputProperties (props);
       setAttachedFileName (fileName);
       setUpdateInterval (interval);
       setStopTime (1);

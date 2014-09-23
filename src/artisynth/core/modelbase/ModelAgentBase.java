@@ -23,12 +23,25 @@ public abstract class ModelAgentBase extends ModelComponentBase
    public void initialize(double t) {
    }
    
-   static Model findModel (ModelComponent m) {
-      // if m is not a Model, try to locate the most immediate ancestor this is
-      while (m != null && !(m instanceof Model)) {
-         m = m.getParent();
+   static Model findModel (ModelComponent c) {
+      // If c is not a Model, try to locate the nearest ancestor that is
+      Model model = null;
+      while (c != null && !(c instanceof Model)) {
+         c = c.getParent();
       }
-      return (Model)m;
+      if (c == null) {
+         return null;
+      }
+      else {
+         model = (Model)c;
+      }
+      // now try to find a higher model that is not a root model
+      for (c=c.getParent(); c.getParent() != null; c=c.getParent()) {
+         if (c instanceof Model) {
+            model = (Model)c;
+         }
+      }
+      return model;
    }
 
    public void setModelFromComponent (ModelComponent comp) {

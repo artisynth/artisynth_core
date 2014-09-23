@@ -503,7 +503,7 @@ queried using the following methods:
 \begin{lstlisting}
    setStartTime (double t0);
    setStopTime (double t1);
-   setStartStopTimes (double t0, double t1);
+   setInterval (double t0, double t1);
  
    double getStartTime();
    double getStopTime();
@@ -544,9 +544,9 @@ Numeric probes are associated with
 
 \item {\it A vector of temporally interpolated numeric data};
 
-\item {\it One or more properties} which are either set by the numeric
-data (input probes), or used to set the the numeric data (output
-probes).
+\item {\it One or more properties} to which the probe is bound and
+which are either set by the numeric data (input probes), or used to
+set the numeric data (output probes).
 
 \end{itemize}
 
@@ -593,7 +593,7 @@ knot points.
 
 \end{description}
 
-Each property associated with a numeric probe must have a value
+Each property bound to a numeric probe must have a value
 that can be mapped onto a scalar or vector value. Such properties
 are know as {\it numeric properties}, and whether or not
 a value is numeric can be tested
@@ -613,29 +613,293 @@ ArtiSynth User Interface Guide}.
 
 \subsubsection{Creating probes in code}
 
-Numeric probes have a number of constructors and methods that make it
-relatively easy to create instances of them in code. For 
-\javaclass[artisynth.core.probes]{NumericInputProbe}, there
-are the constructors
-%
-\begin{lstlisting}
-   NumericInputProbe (ModelComponent e, propName, String fileName);
-   NumericInputProbe (ModelComponent e, String[] propNames, String fileName);
-\end{lstlisting}
-%
-
-
-
-
-Numeric probes can
+This section discusses how to create numeric probes in code.  They can
 also be created and added to a model graphically, as described in the
 section "Adding and Editing Numeric Probes" in the
 \href{http://www.artisynth.org/doc/html/uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}.
 
+Numeric probes have a number of constructors and methods that make it
+relatively easy to create instances of them in code. For 
+\javaclass[artisynth.core.probes]{NumericInputProbe}, there
+is the constructor
+%
+\begin{lstlisting}
+   NumericInputProbe (ModelComponent c, String propPath, String filePath);
+\end{lstlisting}
+%
+which creates a {\tt NumericInputProbe}, binds it to a property
+located relative to the component {\tt c} by {\tt propPath}, and then
+attaches it to the file indicated by {\tt filePath} and loads data
+from it (see Section \ref{DataFileFormat:sec}). The probe start and
+stop times are specified in the file. The probe's vector size will be
+set to match the size of the scalar or vector value associated with
+the property.
+
+To create a probe attached to multiple properties, one may use the
+constructor
+%
+\begin{lstlisting}
+   NumericInputProbe (ModelComponent c, String propPaths[], String filePath);
+\end{lstlisting}
+%
+which binds the probe to multiple properties specified relative to
+{\tt c} by {\tt propPaths}.
+
+For \javaclass[artisynth.core.probes]{NumericOutputProbe}, one may use
+the constructor
+%
+\begin{lstlisting}
+   NumericOutputProbe (ModelComponent c, String propPath, String filePath, double sample);
+\end{lstlisting}
+%
+which creates a {\tt NumericOutputProbe}, binds it to the property
+{\tt propPath} located relative to {\tt c}, and then attaches it to
+the file indicated by {\tt filePath}. {\tt sample} indicates the {\it
+sample time} associated with the probe, in seconds; a value of 0.01
+means that data will be added to the probe every 0.01 seconds.  If
+{\tt sample} is specified as -1, then the sample rate will default to
+the maximum step size associated with the root model.  
+
+To create an output probe attached to multiple properties, one may use the
+constructor
+%
+\begin{lstlisting}
+   NumericOutputProbe (ModelComponent c, String propPaths[], String filePath, double sample);
+\end{lstlisting}
+%
+
+\begin{sideblock}
+As the simulation proceeds, data will be accumulated in the output
+probes, but will not be saved to any attached files until the probes'
+{\tt save()} methods are called. This can be requested in the GUI for
+all probes by clicking on the {\sf Save} button in the timeline
+toolbar, or for specific probes by selecting them in the navigation
+panel (or the timeline) and then choosing {\sf Save data} in the
+right-click contact menu.
+\end{sideblock}
+
+Output probes created with the above constructors have a default
+interval of [0, 1]. A different interval must be set explicitly using
+{\tt setInterval()}, {\tt setStartTime()}, or {\tt setStopTime()}.
+
+\subsubsection{Example: probes connected to SimpleMuscle}
+\label{SimpleMuscleWithProbes:sec}
+
+A model showing a simple application of probes is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.SimpleMuscleWithProbes
+\end{verbatim}
+%
+This extends {\tt SimpleMuscle} (Section
+\ref{SimpleMuscleExample:sec}) to add an input probe to move
+particle {\tt p1} along a defined path, along with an output probe to
+record the velocity of the frame marker.  The class definition is
+shown below:
+%
+\lstset{numbers=left}
+\lstinputlisting{../../src/artisynth/demos/tutorial/SimpleMuscleWithProbes.java}
+\lstset{numbers=none}
+%
+The input and output probes are added using the custom methods {\tt
+createInputProbe()} and {\tt createOutputProbe()}. At line 14, {\tt
+createInputProbe()} creates a new input probe bound to the {\tt
+targetPosition} property for the component {\tt particles/p1} located
+relative to the {\tt MechModel} {\tt mech}. The same constructor
+attaches the probe to the file {\tt simpleMuscleP1Pos.txt}, which is
+read to load the probe data. The format of this and other probe data
+files is described in Section \ref{DataFileFormat:sec}.
+\javamethod*[artisynth.core.util]{ArtisynthPath.getSrcRelativePath()}
+is used to find the file in the source directory for the application
+model class. The probe is then given the name {\tt Particle Position}
+(line 18) and added to the root model (line 19).
+
+Similarly, {\tt createOutputProbe()} creates a new output probe bound
+to the {\tt velocity} property for the component {\tt particles/0}
+located relative to {\tt mech}, attached to the file {\tt
+simpleMuscleMkrVel.txt} located in the application model source
+directory, and with a sample time of 0.01 seconds. This probe is then
+named {\tt FrameMarker Velocity} and added to the root model.
+
+The {\tt build()} method called {\tt super.build()} to create
+everything required for {\tt SimpleMuscle}, calls {\tt
+createInputProbe()} and {\tt createOutputProbe()} to add the probes,
+and adjusts the {\tt MechModel} viewer bounds to make the resulting
+probe motion more visible by default.
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+SimpleMuscleWithProbes} from the {\sf Models} menu. After the model is
+loaded, the input and output probes should appear on the timeline
+(Figure \ref{probes:fig}). Expanding the probes should display their
+numeric contents, with the knot points for the input probe clearly
+visible.  Running the model wil cause particle {\tt p1} to trace the
+trajectory specified by the input probe, while the velocity of the
+marker is recorded in the output probe. Figure
+\ref{probesExpanded:fig} shows an expanded view of both probes after
+the simulation has run for about six seconds.
+
+\begin{figure}[t]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/timelineProbes}
+\else
+ \includegraphics[width=4in]{images/timelineProbes}
+\fi
+\end{center}
+\caption{Timeline view of the probes created by SimpleMuscleWithProbes.}
+\label{probes:fig}
+\end{figure}
+
+\begin{figure}[t]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/timelineProbesExpanded}
+\else
+ \includegraphics[width=4in]{images/timelineProbesExpanded}
+\fi
+\end{center}
+\caption{Expanded view of the probes after the simulation has run for
+about 6 seconds, showing the data accumulated in the output probe {\tt
+FrameMarker Velocity}.}
+\label{probesExpanded:fig}
+\end{figure}
 
 % SimpleMuscleWithProbes
 
-\subsubsection{Probe data files}
+\subsubsection{Data file format}
+\label{DataFileFormat:sec}
+
+The data files associated with numeric probes are ascii files
+containing two lines of header information followed by a set of knot
+points, one per line, defining the numeric data. The time value
+(relative to the probe's start time) for each knot point can be
+specified explicitly at the start of the each line, in which case the
+file takes the following format:
+%
+\begin{lstlisting}
+startTime stopTime scale
+interpolation vsize explicit
+t0 val00 val01 val02 ...
+t1 val10 val11 val12 ...
+t0 val20 val21 val22 ...
+...
+\end{lstlisting}
+%
+Knot point information begins on line 3, with each line being a
+sequence of numbers giving the knot's time followed by $n$ values,
+where $n$ is the vector size of the probe.
+
+Alternatively, time values can be implicitly specified starting at 0
+((relative to the probe's start time) and incrementing by a uniform
+{\tt timeStep}, in which case the file assumes a second format:
+%
+\begin{lstlisting}
+startTime stopTime scale
+interpolation vsize timeStep
+val00 val01 val02 ...
+val10 val11 val12 ...
+val20 val21 val22 ...
+...
+\end{lstlisting}
+%
+For both formats, {\tt startTime}, {\tt startTime}, and {\tt scale}
+are numbers giving the probe's start and stop time in seconds and {\tt
+scale} gives the scale factor (which is typically 1.0).  {\tt
+interpolation} is a word describing how the data should be
+interpolated between knot points and is the string value of the {\tt
+Interpolation.Order} described in Section
+\ref{NumericProbeStructure:sec} (and which is typically {\tt Linear},
+{\tt Parabolic}, or {\tt Cubic}). {\tt vsize} is an integer giving the
+size of the probe's interpolation vector.
+
+The last entry on the second line is either a number specifying a
+(uniform) time step for the knot points, in which case the file
+assumes the second format, or the keyword {\tt explicit}, in which
+case the file assume the first format.
+
+As an example, the file used to specify data for the input probe in
+the example of Section \ref{SimpleMuscleWithProbes:sec} looks like
+the following:
+%
+\begin{lstlisting}
+0 4.0 1.0
+Linear 3 explicit
+0.0  0.0 0.0 0.0 
+1.0  0.5 0.0 0.5
+2.0  0.0 0.0 1.0
+3.0 -0.5 0.0 0.5
+4.0  0.0 0.0 0.0
+\end{lstlisting}
+%
+Since the data is uniformly spaced beginning at 0, it would also be
+possible to specify this using the second file format:
+%
+\begin{lstlisting}
+0 4.0 1.0
+Linear 3 1.0
+ 0.0 0.0 0.0 
+ 0.5 0.0 0.5
+ 0.0 0.0 1.0
+-0.5 0.0 0.5
+ 0.0 0.0 0.0
+\end{lstlisting}
+%
 
 \subsubsection{Adding probe data in-line}
+
+It is also possible to specify input probe data directly in code,
+instead of reading it from a file. For this, one would use the
+constructor
+%
+\begin{lstlisting}
+   NumericInputProbe (ModelComponent c, String propPath, double t0, double t1);
+\end{lstlisting}
+%
+which creates a {\tt NumericInputProbe} with the specified property
+and with start and stop times indicated by {\tt t0} and {\tt t1}.
+Data can then be added to this probe using the method
+%
+\begin{lstlisting}
+   addData (double[] data, double timeStep);
+\end{lstlisting}
+%
+where {\tt data} is an array of knot point data. This contains the
+same knot point information as described in
+Section \ref{DataFileFormat:sec}, arranged in row-major order.
+Times values for the knots are either implicitly specified, starting
+at 0 (relative to the probe's start time) and increasing uniformly by
+the amount specified by {\tt timeStep}, or are explicitly specified at
+the beginning of each knot if {\tt timeStep} is set to the built-in
+constant {\tt NumericInputProbe.EXPLICIT\_TIME}. The size of the {\tt
+data} array should either $n*m$ (implicit time values) or $(n+1)*m$
+(explicit time values), where $n$ is the probe's vector size and $m$
+is the number of knots.
+
+As an example, the data for the input probe in Section
+\ref{SimpleMuscleWithProbes:sec} could have been specified
+using the following code:
+%
+\begin{lstlisting}
+      NumericInputProbe p1probe =
+         new NumericInputProbe (
+            mech, "particles/p1:targetPosition", 0, 5);
+      p1probe.addData (
+         new double[] {
+            0.0,  0.0, 0.0, 0.0,
+            1.0,  0.5, 0.0, 0.5,
+            2.0,  0.0, 0.0, 1.0,
+            3.0, -0.5, 0.0, 0.5,
+            4.0,  0.0, 0.0, 0.0 },
+            NumericInputProbe.EXPLICIT_TIME);
+\end{lstlisting}
+
+When specifying data in code, the interpolation defaults to {\tt
+Linear} unless explcitly specified using {\tt
+setInterpolationOrder()}:
+%
+\begin{lstlisting}
+   probe.setInterpolationOrder (Order.Cubic);
+\end{lstlisting}
+%
+%

@@ -810,11 +810,11 @@ public class ProbeInfo implements Clonable, ActionListener {
       myDuplicateItem.addActionListener (this);
       myDuplicateItem.setActionCommand ("Duplicate");
 
-      JMenuItem mySaveItem = new JMenuItem ("Save");
+      JMenuItem mySaveItem = new JMenuItem ("Save data");
       mySaveItem.addActionListener (this);
       mySaveItem.setActionCommand ("Save");
 
-      JMenuItem mySaveasItem = new JMenuItem ("Save As...");
+      JMenuItem mySaveasItem = new JMenuItem ("Save data as...");
       mySaveasItem.addActionListener (this);
       mySaveasItem.setActionCommand ("Save As");
 

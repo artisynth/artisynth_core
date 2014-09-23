@@ -62,7 +62,7 @@ public class NumericInputProbe extends NumericProbeBase
       setModelFromComponent (e);
    }
 
-   public NumericInputProbe (ModelComponent e, String propName, String fileName)
+   public NumericInputProbe (ModelComponent e, String propName, String fileName) 
       throws IOException {
       this();
       setModelFromComponent (e);
@@ -119,25 +119,29 @@ public class NumericInputProbe extends NumericProbeBase
    }
 
    public NumericInputProbe (Property prop, ModelComponent e) {
-      this (new Property[] { prop }, e, 0, 0);
-   }
-
-   public NumericInputProbe (
-      Property prop, ModelComponent e, double ymin, double ymax) {
-      this (new Property[] { prop }, e, 0, 0);
-   }
-
-   public NumericInputProbe (Property[] props, ModelComponent e) {
-      this (props, e, 0, 0);
-   }
-
-   public NumericInputProbe (
-      Property[] props, ModelComponent e, double ymin, double ymax) {
       this();
       setModelFromComponent (e);
-      setInputProperties (props);
-      setDefaultDisplayRange (ymin, ymax);
+      setInputProperties (new Property[] { prop });
    }
+
+//   public NumericInputProbe (
+//      Property prop, ModelComponent e, double ymin, double ymax) {
+//      this (new Property[] { prop }, e, 0, 0);
+//   }
+
+   public NumericInputProbe (Property[] props, ModelComponent e) {
+      setModelFromComponent (e);
+      setInputProperties (props);      
+      //this (props, e, 0, 0);
+   }
+
+//   public NumericInputProbe (
+//      Property[] props, ModelComponent e, double ymin, double ymax) {
+//      this();
+//      setModelFromComponent (e);
+//      setInputProperties (props);
+//      setDefaultDisplayRange (ymin, ymax);
+//   }
 
    public void setInputProperties (Property[] props) {
       // set up default variable and driver list and pass this to
@@ -269,19 +273,21 @@ public class NumericInputProbe extends NumericProbeBase
          throw new IOException ("expecting interpolation method, line "
          + rtok.lineno());
       }
-      if (rtok.sval.equalsIgnoreCase ("linear")) {
-         interpolationOrder = Order.Linear;
-      }
-      else if (rtok.sval.equalsIgnoreCase ("step")) {
-         interpolationOrder = Order.Step;
-      }
-      else if (rtok.sval.equalsIgnoreCase ("cubic")) {
-         interpolationOrder = Order.Cubic;
-      }
-
-      else {
-         throw new IOException ("unknown interpolation order '" + rtok.sval
-         + "', line " + rtok.lineno());
+      interpolationOrder = Order.fromString (rtok.sval);
+      if (interpolationOrder == null) {
+         if (rtok.sval.equalsIgnoreCase ("linear")) {
+            interpolationOrder = Order.Linear;
+         }
+         else if (rtok.sval.equalsIgnoreCase ("step")) {
+            interpolationOrder = Order.Step;
+         }
+         else if (rtok.sval.equalsIgnoreCase ("cubic")) {
+            interpolationOrder = Order.Cubic;
+         }
+         else {
+            throw new IOException ("unknown interpolation order '" + rtok.sval
+               + "', line " + rtok.lineno());
+         }
       }
       if (rtok.nextToken() != ReaderTokenizer.TT_NUMBER ||
           (numValues = (int)rtok.nval) != rtok.nval) {
@@ -909,7 +915,7 @@ public class NumericInputProbe extends NumericProbeBase
       myVariables = newVariables;
       myDrivers = newDrivers;
 
-      if (myVsize != newVsize) {
+      if (myNumericList == null || myVsize != newVsize) {
          myVsize = newVsize;
          myNumericList = new NumericList (myVsize);
          myNumericList.setInterpolation (myInterpolation);

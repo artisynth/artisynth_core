@@ -56,7 +56,16 @@ public class Interpolation implements Scannable {
        * cubic interpolation (i.e., "slerp", as described by Shoemake's 1985
        * SIGGRAPH paper).  Otherwise, interpolation is cubic.
        */
-      SphericalCubic,
+      SphericalCubic;
+      
+      public static Order fromString (String str) {
+         try {
+            return valueOf (str); 
+         }
+         catch (Exception e) {
+            return null;
+         }
+      }
          
    };
 
@@ -151,7 +160,7 @@ public class Interpolation implements Scannable {
    public String toString () {
       return "[ " + myOrder + " " + myDataExtendedP + " ]";
    }
-
+   
    /**
     * {@inheritDoc}
     */

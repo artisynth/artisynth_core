@@ -477,9 +477,162 @@ out a circular path in the $x-z$ plane.
 \subsection{Probes}
 \label{Probes:sec}
 
-\subsubsection{Input and output probes}
+In addition to controllers and monitors, applications can also attach
+streams of data, known as {\it probes}, to input and output values
+associated with simulation. Probes derive from the same base class
+\javaclass[artisynth.core.modelbase]{ModelAgentBase} as 
+controllers and monitors, and use an {\tt apply()} method,
+but differ in that 
 
-\subsubsection{Adding probes in code}
+\begin{enumerate}
+
+\item They are associated with an explicit time interval during which
+they are applied;
+
+\item They can have an attached file for supplying input data or
+recording output data;
+
+\item They are displayable in the ArtiSynth {\it timeline} panel.
+
+\end{enumerate}
+
+A probe is applied (by calling its {\tt apply()} method) only for time
+steps that fall within its time interval. This interval can be set and
+queried using the following methods:
+%
+\begin{lstlisting}
+   setStartTime (double t0);
+   setStopTime (double t1);
+   setStartStopTimes (double t0, double t1);
+ 
+   double getStartTime();
+   double getStopTime();
+\end{lstlisting}
+%
+Its attached file can be set and queried by name using:
+%
+\begin{lstlisting}
+   setAttachedFileName (String fileName);
+   String getAttachedFileName ();
+\end{lstlisting}
+%
+Details about the timeline display can be found in
+the section "The Timeline" in the
+\href{http://www.artisynth.org/doc/html/uiguide/uiguide.html}{
+ArtiSynth User Interface Guide}.
+
+There are two types of probe: {\it input probes}, which are applied at
+the beginning of each simulation step before the controllers, and {\it
+output probes}, which are applied at the end of the step after the
+monitors.
+
+While applications are free to construct any type of probe required by
+subclassing either \javaclass[artisynth.core.probes]{InputProbe} or
+\javaclass[artisynth.core.probes]{OutputProbe}, most applications
+utilize either \javaclass[artisynth.core.probes]{NumericInputProbe} or
+\javaclass[artisynth.core.probes]{NumericOutputProbe}, which
+explicitly implement streams of numeric data which are connected to
+properties of various model components.  The remainder of this section
+will focus on numeric probes.
+
+\subsubsection{Numeric probe structure}
+\label{NumericProbeStructure:sec}
+
+Numeric probes are associated with
+
+\begin{itemize}
+
+\item {\it A vector of temporally interpolated numeric data};
+
+\item {\it One or more properties} which are either set by the numeric
+data (input probes), or used to set the the numeric data (output
+probes).
+
+\end{itemize}
+
+The numeric data is implemented internally by a
+\javaclass[maspack.interpolation]{NumericList}, which stores the data
+as a series of vector-valued knot points together with an
+interpolation scheme provided by
+\javaclass[maspack.interpolation]{Interpolation}.  
+
+Some of the methods associated with the interpolated data include:
+%
+\begin{lstlisting}
+   int getVsize();                      // returns size of the data vector
+   setInterpolationOrder (Order order); // set the interpolation scheme
+   Order getInterpolationOrder();       // returns the interpolation scheme
+
+   VectorNd getData (double t);         // interpolates data for time t
+   NumericList getNumericList();        // returns the underlying NumericList
+\end{lstlisting}
+%
+Interpolation schemes are described by the enumerated type {\tt
+Interpolation.Order} and presently include:
+
+\begin{description}
+
+\item[Step]\mbox{}
+
+Values are set to the values of the closest previous knot point.
+
+\item[Linear]\mbox{}
+
+Values are set by linear interpolation of the closest surrounding knot
+points.
+
+\item[Parabolic]\mbox{}
+
+Values are set by quadratic interpolation of the surrounding knot
+points.
+
+\item[Cubic]
+
+Values are set by cubic Catmull interpolation between the surrounding
+knot points.
+
+\end{description}
+
+Each property associated with a numeric probe must have a value
+that can be mapped onto a scalar or vector value. Such properties
+are know as {\it numeric properties}, and whether or not
+a value is numeric can be tested
+using \javamethodAlt{maspack.properties.NumericConverter.isNumeric()}%
+{NumericConverter.isNumeric(value)}.
+
+By default, the total number of scalar and vector values associated
+with all the properties should equal the size of the interpolated
+vector (as returned by
+\javamethod*[artisynth.core.probes.NumericProbeBase]{getVsize()}).
+However, it is possible to establish more complex mappings between the
+property values and the interpolated vector. These mappings are beyond
+the scope of this document, but are discussed in the sections "General
+input probes" and "General output probes" of the
+\href{http://www.artisynth.org/doc/html/uiguide/uiguide.html}{
+ArtiSynth User Interface Guide}.
+
+\subsubsection{Creating probes in code}
+
+Numeric probes have a number of constructors and methods that make it
+relatively easy to create instances of them in code. For 
+\javaclass[artisynth.core.probes]{NumericInputProbe}, there
+are the constructors
+%
+\begin{lstlisting}
+   NumericInputProbe (ModelComponent e, propName, String fileName);
+   NumericInputProbe (ModelComponent e, String[] propNames, String fileName);
+\end{lstlisting}
+%
+
+
+
+
+Numeric probes can
+also be created and added to a model graphically, as described in the
+section "Adding and Editing Numeric Probes" in the
+\href{http://www.artisynth.org/doc/html/uiguide/uiguide.html}{
+ArtiSynth User Interface Guide}.
+
 
 % SimpleMuscleWithProbes
 

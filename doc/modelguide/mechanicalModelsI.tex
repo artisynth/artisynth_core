@@ -231,7 +231,7 @@ pointDamping} and $\v_i$ is the particle's velocity.
 {\tt pointDamping} can be set and queried using the {\tt MechModel}
 methods
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   setPointDamping (double d);
   double getPointDamping();
 \end{lstlisting}
@@ -299,7 +299,7 @@ is a subclass of
 \javaclass[artisynth.core.mechmodels]{Point}.
 The methods
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   Point3d getLocation();
   void setLocation (Point3d r);
 \end{lstlisting}
@@ -338,7 +338,7 @@ A simple rigid body-spring model is defined in
 This differs from ParticleSpring only in the {\tt build()} method,
 which is listed below:
 \lstset{numbers=left}
-\begin{lstlisting}
+\begin{lstlisting}[]
    public void build (String[] args) {
 
       // create MechModel and add to RootModel
@@ -408,7 +408,7 @@ As illustrated above, rigid bodies can be created using factory
 methods supplied by \javaclass[artisynth.core.mechmodels]{RigidBody}.
 Some of these include:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   createBox (name, widthx, widthy, widthz, density);
   createCylinder (name, radius, height, density, nsides);
   createSphere (name, radius, density, nslices);
@@ -421,7 +421,7 @@ name} and can be specified as {\tt null}.
 In addition, there are also
 factory methods for creating a rigid body directly from a mesh:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   createFromMesh (name, mesh, density, scale);
   createFromMesh (name, meshFileName, density, scale);
 \end{lstlisting}
@@ -512,7 +512,7 @@ respect to the center of mass.
 Most rigid bodies are also associated with a polygonal surface mesh,
 which can be set and queried using the methods
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   setMesh (PolygonalMesh mesh);
   setMesh (PolygonalMesh mesh, String meshFileName);
   PolygonalMesh getMesh();
@@ -527,7 +527,7 @@ which can reduce the model file size considerably.
 The inertia of a rigid body can be explicitly set using a variety
 of methods including
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   setInertia (M)                    // SpatialInertia
   setInertia (mass, Jxx, Jyy, Jzz); // mass and diagonal rotational inertia
   setInertia (mass, J);             // mass and full rotational inertia
@@ -536,7 +536,7 @@ of methods including
 %
 and can be queried using 
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   getInertia (M);                   // get SpatialInertia in M
   getInertia ();                    // return read-only SpatialInertia
 \end{lstlisting}
@@ -566,7 +566,7 @@ Inertia is set explicitly.
 
 This property can be set and queried using
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   setInertiaMethod (InertiaMethod method);
   InertiaMethod getInertiaMethod();
 \end{lstlisting}
@@ -575,7 +575,7 @@ and it's default value is {\tt Density}. Explicitly setting the
 inertia using one of the above {\tt setInertia()} methods will cause
 the value to change to {\tt Explicit}. The method
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   setInertiaFromDensity (density); 
 \end{lstlisting}
 %
@@ -583,7 +583,7 @@ will (re)compute the inertia using the mesh and a density value
 and set {\tt inertiaMethod} to {\tt Density}, and
 the method
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   setInertiaFromMass (mass); 
 \end{lstlisting}
 %
@@ -593,7 +593,7 @@ and set {\tt inertiaMethod} to {\tt Mass}.
 Finally, the (assumed uniform) density of the body can be queried
 using
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    getDensity();
 \end{lstlisting}
 %
@@ -618,7 +618,7 @@ and angular velocity of the body's coordinate frame.
 The damping parameters can be set and queried using the {\tt MechModel}
 methods
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   setFrameDamping (double df);
   setRotaryDamping (double dr);
   double getFrameDamping();
@@ -748,7 +748,7 @@ the commonly used ones are described in Section
 An application creates a joint by constructing it and adding it to a
 {\tt MechModel}. Most joints generally have a constructor of the form
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   JointType (bodyA, bodyB, XDW);
 \end{lstlisting}
 %
@@ -782,7 +782,7 @@ can determine $\T_{DW}$ from $\T_{AW}$ or $\T_{BW}$ using
 For example, if we know $\T_{CA}$, this can be accomplished using
 the following code fragment:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    RigidBody bodyA, bodyB;
    RigidTransform3d TCA;
 
@@ -817,7 +817,7 @@ from
 %
 and set up the joint as follows:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    RigidBody bodyA, bodyB;
    RigidTransform3d TCA, TCD;
 
@@ -850,7 +850,7 @@ to be the world coordinate frame W. The corresponding calls
 to the joint constructor or {\tt setBodies()} take the
 form
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   joint = new JointType (bodyA, null, XDW);
   joint.setBodies (bodyA, null, XDW);
 \end{lstlisting}
@@ -881,7 +881,7 @@ a joint is defined in
 
 The build method for this model is given below:
 \lstset{numbers=left}
-\begin{lstlisting}
+\begin{lstlisting}[]
    public void build (String[] args) {
 
       // create MechModel and add to RootModel
@@ -1135,7 +1135,7 @@ $\T_{DB}$.
 
 A typical construction sequence might look like this:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   FrameSpring spring = new FrameSpring ("springA");
   spring.setMaterial (new LinearFrameMaterial (kt, kr, dt, dr));
   spring.setFrames (bodyA, bodyB, TDW);
@@ -1193,7 +1193,7 @@ rigid bodies and connected by a frame spring, is defined in
 and most of the code for this is shown here:
 %
 \lstset{numbers=left}
-\begin{lstlisting}
+\begin{lstlisting}[]
    // path from which meshes will be read
    private String geometryDir = ArtisynthPath.getSrcRelativePath (
       LumbarFrameSpring.class, "../mech/geometry/");
@@ -1329,7 +1329,7 @@ are implemented only for point-based components.  Modeling
 applications do not generally handle the attachment components
 directly, but instead use the followng {\tt MechModel} methods,
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   attachPoint (Point p1, Particle p2);
   attachPoint (Point p1, RigidBody body, Point3d loc);
   attachPoint (Point p1, RigidBody body);
@@ -1376,7 +1376,7 @@ is defined in
 and most of the code is shown here:
 %
 \lstset{numbers=left}
-\begin{lstlisting}
+\begin{lstlisting}[]
    public Particle addParticle (MechModel mech, double x, double y, double z) {
       // create a particle at x, y, z and add it to mech
       Particle p = new Particle (/*name=*/null, /*mass=*/.1, x, y, z);
@@ -1468,7 +1468,7 @@ by specifying a smaller value for its own {\tt maxStepSize} property.
 For all models, the maximum step size may be set and queried
 using
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   void setMaxStepSize (double maxh);
   double getMaxStepSize();
 \end{lstlisting}

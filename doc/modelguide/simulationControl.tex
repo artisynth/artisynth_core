@@ -84,7 +84,7 @@ excitation. The class definition, excluding {\tt include} statements,
 is shown below:
 %
 \lstset{numbers=left}
-\begin{lstlisting}
+\begin{lstlisting}[]
 public class SimpleMuscleWithPanel extends SimpleMuscle {
    ControlPanel panel;
 
@@ -187,7 +187,7 @@ The property definition steps are:
 The class creates its own static instance of a
 \javaclass[maspack.properties]{PropertyList}, using a declaration like
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    static PropertyList myProps = new PropertyList (MyClass.class, MyParent.class);
 
    @Override   
@@ -215,7 +215,7 @@ PropertyList}'s
 \javamethod*[maspack.properties.PropertyList]{add(String,String,Object)}
 method:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    PropertyDesc add (String name, String description, Object defaultValue);
 \end{lstlisting}
 %
@@ -225,7 +225,7 @@ is a comment describing the property, and {\tt defaultValue} is
 an object containing the property's default value.
 This is done inside a static code block:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    static {
       myProps.add ("stiffness", "spring stiffness", /*defaultValue=*/1);
       myProps.add ("damping", "spring damping", /*defaultValue=*/0);
@@ -241,7 +241,7 @@ options. Other methods allow the property list to be editted.
 For each property {\tt propXXX} added to the property list, accessor functions of
 the form
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    void setPropXXX (TypeX value);
    TypeX getPropXXX();
 \end{lstlisting}
@@ -266,7 +266,7 @@ The class definition, excluding {\tt include} statements,
 is shown below:
 %
 \lstset{numbers=left}
-\begin{lstlisting}
+\begin{lstlisting}[]
 public class SimpleMuscleWithProperties extends SimpleMuscleWithPanel {
 
    // internal property list; inherits properties from SimpleMuscleWithPanel
@@ -369,7 +369,7 @@ the necessary methods.
 The most important methods associated with both controllers and
 monitors are:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   public void initialize (double t0);
   public void apply (double t0, double t1);
 \end{lstlisting}
@@ -386,7 +386,7 @@ Controllers and monitors may be associated with a partcular model
 (among the list of models owned by the root model),
 which may be set or queried using
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   void setModel (Model m);
   Model getModel();
 \end{lstlisting}
@@ -416,7 +416,7 @@ position and velocity during the time step. The methods to set or
 query target positions and velocitys for
 \javaclass[artisynth.core.modelbase]{Point}-based compnents are
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   setTargetPosition (Point3d pos);
   Point3d getTargetPosition ();       // read-only
 
@@ -427,7 +427,7 @@ query target positions and velocitys for
 while for
 \javaclass[artisynth.core.modelbase]{Frame}-based compnents they are
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   setTargetPosition (Point3d pos);
   setTargetOrientation (AxisAngle axisAng);
   setTargetPose (RigidTransform3d TFW);
@@ -501,7 +501,7 @@ A probe is applied (by calling its {\tt apply()} method) only for time
 steps that fall within its time interval. This interval can be set and
 queried using the following methods:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    setStartTime (double t0);
    setStopTime (double t1);
    setInterval (double t0, double t1);
@@ -512,7 +512,7 @@ queried using the following methods:
 %
 Its attached file can be set and queried by name using:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    setAttachedFileName (String fileName);
    String getAttachedFileName ();
 \end{lstlisting}
@@ -559,7 +559,7 @@ interpolation scheme provided by
 
 Some of the methods associated with the interpolated data include:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    int getVsize();                      // returns size of the data vector
    setInterpolationOrder (Order order); // set the interpolation scheme
    Order getInterpolationOrder();       // returns the interpolation scheme
@@ -625,7 +625,7 @@ relatively easy to create instances of them in code. For
 \javaclass[artisynth.core.probes]{NumericInputProbe}, there
 is the constructor
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    NumericInputProbe (ModelComponent c, String propPath, String filePath);
 \end{lstlisting}
 %
@@ -640,7 +640,7 @@ the property.
 To create a probe attached to multiple properties, one may use the
 constructor
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    NumericInputProbe (ModelComponent c, String propPaths[], String filePath);
 \end{lstlisting}
 %
@@ -650,7 +650,7 @@ which binds the probe to multiple properties specified relative to
 For \javaclass[artisynth.core.probes]{NumericOutputProbe}, one may use
 the constructor
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    NumericOutputProbe (ModelComponent c, String propPath, String filePath, double sample);
 \end{lstlisting}
 %
@@ -665,7 +665,7 @@ the maximum step size associated with the root model.
 To create an output probe attached to multiple properties, one may use the
 constructor
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    NumericOutputProbe (ModelComponent c, String propPaths[], String filePath, double sample);
 \end{lstlisting}
 %
@@ -778,7 +778,7 @@ points, one per line, defining the numeric data. The time value
 specified explicitly at the start of the each line, in which case the
 file takes the following format:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
 startTime stopTime scale
 interpolation vsize explicit
 t0 val00 val01 val02 ...
@@ -795,7 +795,7 @@ Alternatively, time values can be implicitly specified starting at 0
 ((relative to the probe's start time) and incrementing by a uniform
 {\tt timeStep}, in which case the file assumes a second format:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
 startTime stopTime scale
 interpolation vsize timeStep
 val00 val01 val02 ...
@@ -823,7 +823,7 @@ As an example, the file used to specify data for the input probe in
 the example of Section \ref{SimpleMuscleWithProbes:sec} looks like
 the following:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
 0 4.0 1.0
 Linear 3 explicit
 0.0  0.0 0.0 0.0 
@@ -836,7 +836,7 @@ Linear 3 explicit
 Since the data is uniformly spaced beginning at 0, it would also be
 possible to specify this using the second file format:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
 0 4.0 1.0
 Linear 3 1.0
  0.0 0.0 0.0 
@@ -853,7 +853,7 @@ It is also possible to specify input probe data directly in code,
 instead of reading it from a file. For this, one would use the
 constructor
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    NumericInputProbe (ModelComponent c, String propPath, double t0, double t1);
 \end{lstlisting}
 %
@@ -861,7 +861,7 @@ which creates a {\tt NumericInputProbe} with the specified property
 and with start and stop times indicated by {\tt t0} and {\tt t1}.
 Data can then be added to this probe using the method
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    addData (double[] data, double timeStep);
 \end{lstlisting}
 %
@@ -881,7 +881,7 @@ As an example, the data for the input probe in Section
 \ref{SimpleMuscleWithProbes:sec} could have been specified
 using the following code:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
       NumericInputProbe p1probe =
          new NumericInputProbe (
             mech, "particles/p1:targetPosition", 0, 5);
@@ -899,7 +899,7 @@ When specifying data in code, the interpolation defaults to {\tt
 Linear} unless explcitly specified using {\tt
 setInterpolationOrder()}:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    probe.setInterpolationOrder (Order.Cubic);
 \end{lstlisting}
 %

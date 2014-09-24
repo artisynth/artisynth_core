@@ -68,7 +68,7 @@ implement the interafce
 \javaclass[artisynth.core.util]{ScalableUnits}, which
 provides the following methods for scaling mass and distance units:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   scaleDistance (s);    // scale distance units by s
   scaleMass (s);        // scale mass units by s
 \end{lstlisting}
@@ -81,14 +81,14 @@ as shown in Table \ref{Units:tab}.
 Converting a {\tt MechModel} from meters to centimeters can therefore be
 easily done by calling 
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    mech.scaleDistance (100);
 \end{lstlisting}
 %
 and adding the following code fragment to the end of the {\tt build()}
 method in {\tt RigidBodySpring} (Section \ref{RigidBodySpringExample:sec})
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    System.out.println ("length=" + spring.getLength());
    System.out.println ("density=" + box.getDensity());
    System.out.println ("gravity=" + mech.getGravity());
@@ -101,7 +101,7 @@ method in {\tt RigidBodySpring} (Section \ref{RigidBodySpringExample:sec})
 %
 will scale the distance by 100 and produce the following console output:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    length=0.5
    density=20.0
    gravity=0.0 0.0 -9.8
@@ -158,7 +158,7 @@ muscle force to be generated in response to its {\tt excitation}
 property. The excitation property can be set and queried using the
 methods
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    setExcitation (double a);
    double getExcitation();
 \end{lstlisting}
@@ -228,7 +228,7 @@ This model is identical to {\tt RigidBodySpring} described in Section
 the spring is replaced with code to create a muscle
 with a {\tt SimpleAxialMuscle} material:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
       // create the muscle:      
       muscle = new Muscle ("mus", /*restLength=*/0);
       muscle.setPoints (p1, mkr);
@@ -239,7 +239,7 @@ with a {\tt SimpleAxialMuscle} material:
 Also, just so that the muscle renders differently, the rendering style
 for lines is set to {\tt ELLIPSOID} instead of {\tt CYLINDER}:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
       RenderProps.setLineStyle (r, RenderProps.LineStyle.ELLIPSOID);
 \end{lstlisting}
 %
@@ -291,7 +291,7 @@ bodies, or a specfic behavior between individual pairs of bodies.
 The default collision behavior between all collidables can be
 controlled using two equivalent methods:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   setDefaultCollisionBehavior (enabled, mu);
   setDefaultCollisionBehavior (behavior);
 \end{lstlisting}
@@ -303,7 +303,7 @@ specifies both {\it enabled} and {\it mu}.
 In addition, collisions can be controlled for specific {\it types}
 of collidables using
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   setDefaultCollisionBehavior (typeA, typeB, enabled, mu);
   setDefaultCollisionBehavior (typeA, typeB, behavior);
 \end{lstlisting}
@@ -315,7 +315,7 @@ enable/disable self-collions between deformable objects.
 The default collision behavoir for any pair of types can
 be queried using
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   CollisionBehavior getDefaultCollisionBehavior (typeA, typeB);
 \end{lstlisting}
 %
@@ -323,7 +323,7 @@ be queried using
 In addition to default behaviors, collisions between individual
 collidables can be controlled and queried using
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   setCollisionBehavior (collidableA, collidableB, enabled, mu);
   setCollisionBehavior (collidableA, collidableB, behavior);
   getCollisionBehavior (collidableA, collidableB);
@@ -365,7 +365,7 @@ overrides the {\tt build()} method to add additional code
 to add an inclined plane and enable collisions with it:
 %
 \lstset{numbers=left}
-\begin{lstlisting}
+\begin{lstlisting}[]
    public void build (String[] args) {
 
       super.build (args);
@@ -460,7 +460,7 @@ ArtiSynth attempts to compute a reasonable default value for
 this property, it may sometimes be necessary to control
 it explicity using the {\tt MechModel} methods
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    setInterpenetrationTol (double dist);
    double getInterpenetrationTol();
 \end{lstlisting}
@@ -504,7 +504,7 @@ of subproperties used to control an object's rendered appearance.
 In code, the render properties for an object can be set or queried
 using the methods
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   setRenderProps (RenderProps props); // set render properties
   RenderProps getRenderProps();       // get render properties (read-only)
 \end{lstlisting}
@@ -619,7 +619,7 @@ should be treated as {\it read-only} and should {\it not}
 be used to set property values.
 For example, applications should {\it not} do the
 following:
-\begin{lstlisting}
+\begin{lstlisting}[]
    particle.getRenderProps().setPointColor (Color.BLUE);
 \end{lstlisting}
 %
@@ -634,7 +634,7 @@ Instead, {\tt RenderProps} provides a static method for each property
 that can be used to set that property's value for a specific
 component.  For example, the correct way to set {\tt pointColor} is
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    RenderProps.setPointColor (particle, Color.BLUE);
 \end{lstlisting}
 %
@@ -644,7 +644,7 @@ One can also set render properties by calling
 {\tt RenderProps} object. This is useful for setting a large number of
 properties  at once:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    RenderProps props = new RenderProps();
    props.setPointColor (Color.BLUE);
    props.setPointRadius (2);
@@ -684,7 +684,7 @@ hierarchy at which render properties can be set:
 
 For example, consider the following code:
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    MechModel mech = new MechModel ("mech");
 
    Particle p1 = new Particle (/*name=*/null, 2, 0, 0, 0);

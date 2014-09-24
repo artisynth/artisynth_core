@@ -167,7 +167,7 @@ while the representation for a point {\tt p} is
 Both classes provide a number of methods for applying rotational and
 affine transforms. Those used for rotations are
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   void transform (R);             // this = R * this
   void transform (R, v1);         // this = R * v1
   void inverseTransform (R);      // this = inverse(R) * this
@@ -178,7 +178,7 @@ where {\tt R} is a rotation matrix and {\tt v1} is a vector (or a point
 in the case of {\tt Point3d}).
 
 The methods for applying rigid or affine transforms include:
-\begin{lstlisting}
+\begin{lstlisting}[]
   void transform (X);             // transforms this by X         
   void transform (X, v1);         // sets this to v1 transformed by X
   void inverseTransform (X);      // transforms this by the inverse of X
@@ -193,7 +193,7 @@ In particular, that means that for a {\tt RigidTransform3d} given by {\tt X}
 and a {\tt Vector3d} given by {\tt v},
 the method calls
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
   v.transform (X.R)
   v.transform (X)
 \end{lstlisting}

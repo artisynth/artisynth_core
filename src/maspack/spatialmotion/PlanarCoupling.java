@@ -23,9 +23,9 @@ public class PlanarCoupling extends RigidBodyCoupling {
       super();
    }
 
-//   public PlanarCoupling (RigidTransform3d XFA, RigidTransform3d XDB) {
+//   public PlanarCoupling (RigidTransform3d XCA, RigidTransform3d XDB) {
 //      this();
-//      setXFA (XFA);
+//      setXFA (XCA);
 //      setXDB (XDB);
 //   }
 
@@ -40,9 +40,9 @@ public class PlanarCoupling extends RigidBodyCoupling {
    }
 
    @Override
-   public void projectToConstraint (RigidTransform3d XCD, RigidTransform3d XFD) {
-      XCD.set (XFD);
-      XCD.p.z = 0;
+   public void projectToConstraint (RigidTransform3d XGD, RigidTransform3d XCD) {
+      XGD.set (XCD);
+      XGD.p.z = 0;
    }
 
    public void initializeConstraintInfo (ConstraintInfo[] info) {
@@ -54,19 +54,19 @@ public class PlanarCoupling extends RigidBodyCoupling {
 
    @Override
    public void getConstraintInfo (
-      ConstraintInfo[] info, RigidTransform3d XCD, RigidTransform3d XFD, 
+      ConstraintInfo[] info, RigidTransform3d XGD, RigidTransform3d XCD, 
       RigidTransform3d XERR, boolean setEngaged) {
       
-      //projectToConstraint (XCD, XFD);
+      //projectToConstraint (XGD, XCD);
 
       // wrench force is the plane normal, which is (0,0,1) in D
       // coordinates, transformed to C, and so is given by the
-      // last column of inv(XCD.R), or the last row of XCD.R
+      // last column of inv(XGD.R), or the last row of XGD.R
       myErr.set (XERR);
       
-      info[0].wrenchC.f.set (XCD.R.m20, XCD.R.m21, XCD.R.m22);
+      info[0].wrenchC.f.set (XGD.R.m20, XGD.R.m21, XGD.R.m22);
       info[0].wrenchC.m.setZero();
-      //double d = XFD.p.z;
+      //double d = XCD.p.z;
       double d = info[0].wrenchC.dot (myErr);
 
       info[0].distance = d;

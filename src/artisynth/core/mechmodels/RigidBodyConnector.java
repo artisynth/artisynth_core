@@ -49,7 +49,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       new PropertyList (
          RigidBodyConnector.class, RenderableComponentBase.class);
 
-   RigidTransform3d myTFA = new RigidTransform3d();
+   RigidTransform3d myTCA = new RigidTransform3d();
    RigidTransform3d myTDB = new RigidTransform3d();
    
    RigidTransform3d myTGA = new RigidTransform3d();
@@ -153,8 +153,8 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
     * @param wr returns the constraint force
     */
    public void getBilateralForceInA (Wrench wr) {
-      wr.set (myCoupling.getBilateralForceF());
-      wr.transform (myTFA);
+      wr.set (myCoupling.getBilateralForceG());
+      wr.transform (myTCA);
    }
 
    /**
@@ -177,8 +177,8 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
     * @param wr returns the constraint force
     */
    public void getUnilateralForceInA (Wrench wr) {
-      wr.set (myCoupling.getUnilateralForceF());
-      wr.transform (myTFA);
+      wr.set (myCoupling.getUnilateralForceG());
+      wr.transform (myTCA);
    }
 
    /**
@@ -361,7 +361,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
    protected double getAverageRevoluteInertia() {
       double revi = 0;
       if (myBodyA != null) {
-         revi += getAverageRevoluteInertia (myBodyA, getTFA());
+         revi += getAverageRevoluteInertia (myBodyA, getTCA());
       }
       if (myBodyB != null) {
          revi += getAverageRevoluteInertia (myBodyB, getTDB());
@@ -397,23 +397,23 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       return myUnilateralBlkB;
    }
 
-   public RigidTransform3d getTFA() {
-      //return myCoupling.getTFA();
-      return myTFA;
+   public RigidTransform3d getTCA() {
+      //return myCoupling.getTCA();
+      return myTCA;
    }
 
-   public void getCurrentTFA (RigidTransform3d TFA) {
+   public void getCurrentTCA (RigidTransform3d TCA) {
       if (myBodyA instanceof DeformableBody) {
-         ((DeformableBody)myBodyA).computeDeformedFrame (TFA, myTFA);
+         ((DeformableBody)myBodyA).computeDeformedFrame (TCA, myTCA);
       }
       else {
-         TFA.set (myTFA);
+         TCA.set (myTCA);
       }
    }
 
-   public void setTFA (RigidTransform3d TFA) {
-      myTFA.set (TFA);
-      //myCoupling.setTFA (TFA);
+   public void setTCA (RigidTransform3d TCA) {
+      myTCA.set (TCA);
+      //myCoupling.setTCA (TCA);
    }
 
    public RigidTransform3d getTDB() {
@@ -868,28 +868,28 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
    // end implement Constrainer
 
    public void setBodies (
-      RigidBody bodyA, RigidTransform3d TFA, RigidBody bodyB,
+      RigidBody bodyA, RigidTransform3d TCA, RigidBody bodyB,
       RigidTransform3d TDB) {
       myBodyA = bodyA;
-      setTFA (TFA);
+      setTCA (TCA);
       myBodyB = bodyB;
       setTDB (TDB);
    }
 
    public void setBodies (
-      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TCW) {
+      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TDW) {
 
-      RigidTransform3d TFA = new RigidTransform3d();
+      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d TDB = new RigidTransform3d();
       
-      TFA.mulInverseLeft(bodyA.getPose(), TCW);
+      TCA.mulInverseLeft(bodyA.getPose(), TDW);
       if (bodyB != null) {
-         TDB.mulInverseLeft(bodyB.getPose(), TCW);
+         TDB.mulInverseLeft(bodyB.getPose(), TDW);
       }
       else {
-         TDB.set (TCW);
+         TDB.set (TDW);
       }
-      setBodies(bodyA, TFA, bodyB, TDB);
+      setBodies(bodyA, TCA, bodyB, TDB);
    }
 
    public RigidTransform3d getCurrentTDW() {
@@ -905,9 +905,9 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       X.set (getCurrentTDW());      
    }
 
-   public RigidTransform3d getCurrentTFW() {
+   public RigidTransform3d getCurrentTCW() {
       RigidTransform3d TFW = new RigidTransform3d();
-      getCurrentTFA (TFW);
+      getCurrentTCA (TFW);
       TFW.mul (myBodyA.getPose(), TFW);
       return TFW;
    }
@@ -922,11 +922,11 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       else if (scanAndStoreReference (rtok, "bodyB", tokens)) {
          return true;
       }
-      else if (scanAttributeName (rtok, "TFA") ||
-               scanAttributeName (rtok, "XFA")) { // XFA for backward compatible
-         RigidTransform3d TFA = new RigidTransform3d();
-         TFA.scan (rtok);
-         setTFA (TFA);
+      else if (scanAttributeName (rtok, "TCA") ||
+               scanAttributeName (rtok, "XCA")) { // XCA for backward compatible
+         RigidTransform3d TCA = new RigidTransform3d();
+         TCA.scan (rtok);
+         setTCA (TCA);
          return true;
       }
       else if (scanAttributeName (rtok, "TDB") ||
@@ -960,7 +960,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
-      RigidTransform3d TFA = getTFA();
+      RigidTransform3d TCA = getTCA();
       RigidTransform3d TDB = getTDB();
       pw.println ("bodyA="+ComponentUtils.getWritePathName (ancestor, myBodyA));
       pw.println ("bodyB="+ComponentUtils.getWritePathName (ancestor, myBodyB));
@@ -971,7 +971,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
          // that gives us full precision save/restore
          writeFormat = RigidTransform3d.MATRIX_3X4_STRING;
       }
-      pw.println ("TFA=" + TFA.toString (fmt, writeFormat));
+      pw.println ("TCA=" + TCA.toString (fmt, writeFormat));
       pw.println ("TDB=" + TDB.toString (fmt, writeFormat));
       super.writeItems (pw, fmt, ancestor);
       //getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
@@ -995,9 +995,9 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
          myBodyB != null ? myBodyB.getPose() : RigidTransform3d.IDENTITY;
 
       RigidTransform3d TGD = new RigidTransform3d();
-      RigidTransform3d TFD = new RigidTransform3d();
+      RigidTransform3d TCD = new RigidTransform3d();
       RigidTransform3d XBA = new RigidTransform3d();
-      RigidTransform3d TFC = new RigidTransform3d();
+      RigidTransform3d TCG = new RigidTransform3d();
 
       RigidTransform3d XERR = new RigidTransform3d();
       
@@ -1006,7 +1006,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
 
       XBA.mulInverseLeft (XAW, XBW);
       
-      RigidTransform3d TFA = myTFA;
+      RigidTransform3d TCA = myTCA;
       if (myBodyA instanceof DeformableBody) {
          defBodyA = (DeformableBody)myBodyA;
          if (myPolarCA == null) {
@@ -1015,8 +1015,8 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
          if (myPiAC == null) {
             myPiAC = new MatrixNd();
          }
-         TFA = new RigidTransform3d();
-         getCurrentTFA (TFA);
+         TCA = new RigidTransform3d();
+         getCurrentTCA (TCA);
       }
       RigidTransform3d TDB = myTDB;
       if (myBodyB instanceof DeformableBody) {
@@ -1030,16 +1030,16 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
          TDB = new RigidTransform3d();
          getCurrentTDB (TDB);
          
-         RigidTransform3d TFB = new RigidTransform3d();
-         RigidTransform3d TFB0 = new RigidTransform3d();
-         TFB.mulInverseLeft (XBA, TFA);
+         RigidTransform3d TCB = new RigidTransform3d();
+         RigidTransform3d TCB0 = new RigidTransform3d();
+         TCB.mulInverseLeft (XBA, TCA);
 
          // use myPolarCB as a temp for polarTF
-         defBodyB.computeUndeformedFrame (TFB0, myPolarCB, TFB);
-         RigidTransform3d TFD0 = new RigidTransform3d();
+         defBodyB.computeUndeformedFrame (TCB0, myPolarCB, TCB);
+         RigidTransform3d TCD0 = new RigidTransform3d();
          RigidTransform3d TGD0 = new RigidTransform3d();
-         TFD0.mulInverseLeft (myTDB, TFB0);
-         myCoupling.projectToConstraint (TGD0, TFD0);
+         TCD0.mulInverseLeft (myTDB, TCB0);
+         myCoupling.projectToConstraint (TGD0, TCD0);
 
          RigidTransform3d TGB0 = new RigidTransform3d();
          TGB0.mul (myTDB, TGD0);
@@ -1047,23 +1047,23 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
 
          // compute XERR using C and F
          XERR.mulInverseBoth (myTGB, XBA);
-         XERR.mul (TFA);
+         XERR.mul (TCA);
 
-         // For update constraints, use TGD0 and TFD0 in place of TGD and TFD
+         // For update constraints, use TGD0 and TCD0 in place of TGD and TCD
 
          //System.out.println ("bodyB deformable");
 
          TGD.set (TGD0);
-         TFD.set (TFD0);
+         TCD.set (TCD0);
       }
       else {
-         TFD.mulInverseBoth (TDB, XBA);
-         TFD.mul (TFA);
-         myCoupling.projectToConstraint (TGD, TFD);
+         TCD.mulInverseBoth (TDB, XBA);
+         TCD.mul (TCA);
+         myCoupling.projectToConstraint (TGD, TCD);
          myTGB.mul (myTDB, TGD);
          //System.out.println ("bodyB fixed");
 
-         XERR.mulInverseLeft (TGD, TFD);
+         XERR.mulInverseLeft (TGD, TCD);
       }
 
       myTGA.mul (XBA, myTGB);
@@ -1107,7 +1107,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
          velB.add (velx);
       }
       //System.out.println ("velC=" + velA.toString("%13.9f"));
-      myCoupling.updateBodyStates (TFD, TGD, XERR, velA, velB, setEngaged);
+      myCoupling.updateBodyStates (TCD, TGD, XERR, velA, velB, setEngaged);
    }
 
    /**
@@ -1139,7 +1139,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
    }
 
    public void scaleDistance (double s) {
-      myTFA.p.scale (s);
+      myTCA.p.scale (s);
       myTDB.p.scale (s);
       myCoupling.scaleDistance (s);
    }
@@ -1248,7 +1248,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
     * {@link maspack.matrix.RigidTransform3d#mulAffineLeft mulAffineLeft}, which
     * removes the stretching and shearing components from X when adjusting the
     * rotation matrix. The transforms TDB is then updated accordingly. A
-    * similar procedure is used for TFA.
+    * similar procedure is used for TCA.
     * 
     * @param X
     * an affine transform applied to frames D and F in world coordinates
@@ -1267,14 +1267,14 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       RigidTransform3d TDW = new RigidTransform3d();
       RigidTransform3d TFW = new RigidTransform3d();
       RigidTransform3d TDBnew = new RigidTransform3d();
-      RigidTransform3d TFAnew = new RigidTransform3d();
+      RigidTransform3d TCAnew = new RigidTransform3d();
       
       RotationMatrix3d Ra = new RotationMatrix3d();
       SVDecomposition3d SVD = new SVDecomposition3d();
       SVD.leftPolarDecomposition ((Matrix3d)null, Ra, X.getMatrix());
       
       TDW.mul (TBW, myTDB);
-      TFW.mul (TAW, myTFA);
+      TFW.mul (TAW, myTCA);
       
       myCoupling.transformGeometry (X, Ra, TFW, TDW);
       
@@ -1287,8 +1287,8 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       //TFW.mulAffineLeft (X, null);
       TFW.p.mulAdd (X.getMatrix(), TFW.p, X.getOffset());
       TFW.R.mul (Ra, TFW.R);      
-      TFAnew.mulInverseLeft (TAW, TFW);
-      setTFA (TFAnew);       
+      TCAnew.mulInverseLeft (TAW, TFW);
+      setTCA (TCAnew);       
 
       //myCoupling.transformGeometry (X, TAW, TBW);
    }
@@ -1374,11 +1374,11 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
          (myBodyB != null ? myBodyB.getPose() : RigidTransform3d.IDENTITY);
 
       if (body == myBodyA) {
-         RigidTransform3d TFA = new RigidTransform3d();
-         TFA.mulInverseLeft (XBodyToWorldNew, myBodyA.getPose());
-         TFA.mul (myTFA);
-         setTFA (TFA);         
-         //myCoupling.updateTFA (XBodyToWorldNew, myBodyA.getPose());
+         RigidTransform3d TCA = new RigidTransform3d();
+         TCA.mulInverseLeft (XBodyToWorldNew, myBodyA.getPose());
+         TCA.mul (myTCA);
+         setTCA (TCA);         
+         //myCoupling.updateTCA (XBodyToWorldNew, myBodyA.getPose());
       }
       else if (body == myBodyB) {
          RigidTransform3d TDB = new RigidTransform3d();

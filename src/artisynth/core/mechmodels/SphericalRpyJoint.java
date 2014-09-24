@@ -60,32 +60,32 @@ public class SphericalRpyJoint extends SphericalJointBase {
       RigidTransform3d XBW = 
          myBodyB != null ? myBodyB.getPose() : RigidTransform3d.IDENTITY;
       
-      // initialize XCD to XFD; it will get projected to XCD within
+      // initialize XGD to XCD; it will get projected to XGD within
       // myCoupling.getTheta();
-      RigidTransform3d XFA = new RigidTransform3d();
-      RigidTransform3d XCD = new RigidTransform3d();
-      getCurrentTFA (XFA);
-      getCurrentTDB (XCD);
-      XCD.mulInverseBoth (XCD, XBW);
-      XCD.mul (XAW);
-      XCD.mul (XFA);
+      RigidTransform3d XCA = new RigidTransform3d();
+      RigidTransform3d XGD = new RigidTransform3d();
+      getCurrentTCA (XCA);
+      getCurrentTDB (XGD);
+      XGD.mulInverseBoth (XGD, XBW);
+      XGD.mul (XAW);
+      XGD.mul (XCA);
       
       Vector3d rpy = new Vector3d();
-      ((SphericalCoupling)myCoupling).getRpy (rpy, XCD);
+      ((SphericalCoupling)myCoupling).getRpy (rpy, XGD);
       return rpy;
    }
 
    public void setRpyRad (Vector3d rpy) {
-      RigidTransform3d XCD = new RigidTransform3d();
-      ((SphericalCoupling)myCoupling).setRpy (XCD, rpy);
+      RigidTransform3d XGD = new RigidTransform3d();
+      ((SphericalCoupling)myCoupling).setRpy (XGD, rpy);
       if (getParent() != null) {
          // if we are connected to the hierarchy, adjust the poses of the
          // attached bodies appropriately.         
          RigidTransform3d XBA = new RigidTransform3d();
          RigidTransform3d XBW = 
             myBodyB != null ? myBodyB.getPose() : RigidTransform3d.IDENTITY;
-         XBA.mulInverseBoth (XCD, getTDB());
-         XBA.mul (getTFA(), XBA);
+         XBA.mulInverseBoth (XGD, getTDB());
+         XBA.mul (getTCA(), XBA);
          setPoses (XBA);
       }
       
@@ -99,27 +99,27 @@ public class SphericalRpyJoint extends SphericalJointBase {
       ((SphericalCoupling)myCoupling).setRangeType (SphericalCoupling.RPY_LIMIT);
    }
 
-   public SphericalRpyJoint (RigidBody bodyA, RigidTransform3d XFA,
+   public SphericalRpyJoint (RigidBody bodyA, RigidTransform3d XCA,
                              RigidTransform3d XDW) {
       this();
-      setBodies (bodyA, XFA, null, XDW);
+      setBodies (bodyA, XCA, null, XDW);
    }
 
-   public SphericalRpyJoint (RigidBody bodyA, RigidTransform3d XFA,
+   public SphericalRpyJoint (RigidBody bodyA, RigidTransform3d XCA,
                              RigidBody bodyB, RigidTransform3d XDB) {
       this();
-      setBodies (bodyA, XFA, bodyB, XDB);
+      setBodies (bodyA, XCA, bodyB, XDB);
    }
    
    public SphericalRpyJoint (RigidBody bodyA, RigidBody bodyB, RigidTransform3d XWJ) {
       this();
-      RigidTransform3d XFA = new RigidTransform3d();
+      RigidTransform3d XCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
       
-      XFA.mulInverseLeft(bodyA.getPose(), XWJ);
+      XCA.mulInverseLeft(bodyA.getPose(), XWJ);
       XDB.mulInverseLeft(bodyB.getPose(), XWJ);
       
-      setBodies(bodyA, XFA, bodyB, XDB);
+      setBodies(bodyA, XCA, bodyB, XDB);
       
    }
 

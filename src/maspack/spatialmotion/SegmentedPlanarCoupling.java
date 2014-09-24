@@ -88,16 +88,16 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
       super();
    }
 
-//   public SegmentedPlanarCoupling (RigidTransform3d XFA, RigidTransform3d XDB) {
+//   public SegmentedPlanarCoupling (RigidTransform3d XCA, RigidTransform3d XDB) {
 //      this();
-//      setXFA (XFA);
+//      setXFA (XCA);
 //      setXDB (XDB);
 //   }
 
-//   public SegmentedPlanarCoupling (RigidTransform3d XFA, RigidTransform3d XDB,
+//   public SegmentedPlanarCoupling (RigidTransform3d XCA, RigidTransform3d XDB,
 //   double[] segs) {
 //      this();
-//      setXFA (XFA);
+//      setXFA (XCA);
 //      setXDB (XDB);
 //      setSegments (segs);
 //   }
@@ -176,20 +176,20 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
       return myUnilateral ? 0 : 1;
    }
 
-   private Plane doProject (RigidTransform3d XCD, RigidTransform3d XFD) {
-      myTmp.set (XFD.p);
+   private Plane doProject (RigidTransform3d XGD, RigidTransform3d XCD) {
+      myTmp.set (XCD.p);
       Plane plane = closestPlane (myTmp);
       plane.project (myTmp, myTmp);
-      if (XCD != null) {
-         XCD.p.set (myTmp); 
-         XCD.R.set (XFD.R);
+      if (XGD != null) {
+         XGD.p.set (myTmp); 
+         XGD.R.set (XCD.R);
       }
       return plane;
    }
 
    @Override
-   public void projectToConstraint (RigidTransform3d XCD, RigidTransform3d XFD) {
-      doProject (XCD, XFD);
+   public void projectToConstraint (RigidTransform3d XGD, RigidTransform3d XCD) {
+      doProject (XGD, XCD);
    }
 
    public void initializeConstraintInfo (ConstraintInfo[] info) {
@@ -201,14 +201,14 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
 
    @Override
    public void getConstraintInfo (
-      ConstraintInfo[] info, RigidTransform3d XCD, RigidTransform3d XFD,
+      ConstraintInfo[] info, RigidTransform3d XGD, RigidTransform3d XCD,
       RigidTransform3d XERR, boolean setEngaged) {
       
       myErr.set (XERR);
-      Plane plane = doProject (null, XFD);
-      myPnt.set (XFD.p);
+      Plane plane = doProject (null, XCD);
+      myPnt.set (XCD.p);
 
-      myNrm.inverseTransform (XCD, plane.normal);
+      myNrm.inverseTransform (XGD, plane.normal);
 
       info[0].flags = LINEAR;
       if (!myUnilateral) {

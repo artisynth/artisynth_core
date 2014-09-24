@@ -58,37 +58,37 @@ public class SolidJoint extends JointBase implements CopyableComponent {
       myCoupling = new SolidCoupling ();
    }
 
-   public SolidJoint (RigidBody bodyA, RigidTransform3d XFA,
+   public SolidJoint (RigidBody bodyA, RigidTransform3d XCA,
    RigidBody bodyB, RigidTransform3d XDB) {
       this();
-      setBodies (bodyA, XFA, bodyB, XDB);
+      setBodies (bodyA, XCA, bodyB, XDB);
    }
 
-   public SolidJoint (RigidBody bodyA, RigidTransform3d XFA,
+   public SolidJoint (RigidBody bodyA, RigidTransform3d XCA,
    RigidTransform3d XDW) {
       this();
-      setBodies (bodyA, XFA, null, XDW);
+      setBodies (bodyA, XCA, null, XDW);
    }
    
    public SolidJoint (RigidBody bodyA, RigidBody bodyB, RigidTransform3d XWJ) {
       this();
-      RigidTransform3d XFA = new RigidTransform3d();
+      RigidTransform3d XCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
       
-      XFA.mulInverseLeft(bodyA.getPose(), XWJ);
+      XCA.mulInverseLeft(bodyA.getPose(), XWJ);
       XDB.mulInverseLeft(bodyB.getPose(), XWJ);
       
-      setBodies(bodyA, XFA, bodyB, XDB);
+      setBodies(bodyA, XCA, bodyB, XDB);
       
    }
    
    public SolidJoint(RigidBody bodyA, RigidBody bodyB) {
       this();
-      RigidTransform3d XFA = new RigidTransform3d();  // identity
+      RigidTransform3d XCA = new RigidTransform3d();  // identity
       RigidTransform3d XDB = new RigidTransform3d();
       XDB.mulInverseLeft(bodyB.getPose(), bodyA.getPose());
       
-      setBodies(bodyA, XFA, bodyB, XDB);
+      setBodies(bodyA, XCA, bodyB, XDB);
    }
 
    public RenderProps createRenderProps() {
@@ -135,7 +135,7 @@ public class SolidJoint extends JointBase implements CopyableComponent {
       // copy.setNumConstraints (5);
       copy.setAxisLength (myAxisLength);
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getTFA(), copy.myBodyB, getTDB());
+      copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
       return copy;
    }
 

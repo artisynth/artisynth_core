@@ -21,10 +21,10 @@ public class SolidCoupling extends RigidBodyCoupling {
       super();
    }
 
-//   public SolidCoupling (RigidTransform3d XFA, RigidTransform3d XDB) {
+//   public SolidCoupling (RigidTransform3d XCA, RigidTransform3d XDB) {
 //      this();
 //      setXDB (XDB);
-//      setXFA (XFA);
+//      setXFA (XCA);
 //   }
 
    @Override
@@ -38,9 +38,9 @@ public class SolidCoupling extends RigidBodyCoupling {
    }
 
    @Override
-   public void projectToConstraint (RigidTransform3d XCD, RigidTransform3d XFD) {
-      XCD.R.setIdentity();
-      XCD.p.setZero();
+   public void projectToConstraint (RigidTransform3d XGD, RigidTransform3d XCD) {
+      XGD.R.setIdentity();
+      XGD.p.setZero();
    }
 
    public void initializeConstraintInfo (ConstraintInfo[] info) {
@@ -61,11 +61,11 @@ public class SolidCoupling extends RigidBodyCoupling {
 
    @Override
    public void getConstraintInfo (
-      ConstraintInfo[] info, RigidTransform3d XCD, RigidTransform3d XFD,
+      ConstraintInfo[] info, RigidTransform3d XGD, RigidTransform3d XCD,
       RigidTransform3d XERR, boolean setEngaged) {
-      //projectToConstraint (XCD, XFD);
+      //projectToConstraint (XGD, XCD);
 
-      //myXFC.mulInverseLeft (XCD, XFD);
+      //myXFC.mulInverseLeft (XGD, XCD);
       myErr.set (XERR);
       setDistancesAndZeroDerivatives (info, 6, myErr);
    }

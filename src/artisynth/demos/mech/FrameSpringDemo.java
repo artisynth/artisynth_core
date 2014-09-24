@@ -85,15 +85,15 @@ public class FrameSpringDemo extends RootModel {
 
    public RevoluteJoint addRevoluteJoint (
       RigidBody bodyA, RigidBody bodyB, double x, double y, double z) {
-      RigidTransform3d XFA = new RigidTransform3d();
+      RigidTransform3d XCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
       RigidTransform3d XDW = new RigidTransform3d();
 
       XDW.p.set (x, y, z);
       XDW.R.setAxisAngle (Vector3d.Y_UNIT, Math.toRadians (90));
       XDB.mulInverseLeft (bodyB.getPose(), XDW);
-      XFA.mulInverseLeft (bodyA.getPose(), XDW);
-      RevoluteJoint joint = new RevoluteJoint (bodyA, XFA, bodyB, XDB);
+      XCA.mulInverseLeft (bodyA.getPose(), XDW);
+      RevoluteJoint joint = new RevoluteJoint (bodyA, XCA, bodyB, XDB);
       RenderProps.setLineStyle (joint, RenderProps.LineStyle.CYLINDER);
       RenderProps.setLineColor (joint, Color.BLUE);
       RenderProps.setLineRadius (joint, 0.025);
@@ -104,14 +104,14 @@ public class FrameSpringDemo extends RootModel {
 
    public SphericalJoint addSphericalJoint (
       RigidBody bodyA, RigidBody bodyB, double x, double y, double z) {
-      RigidTransform3d XFA = new RigidTransform3d();
+      RigidTransform3d XCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
       RigidTransform3d XDW = new RigidTransform3d();
 
       XDW.p.set (x, y, z);
       XDB.mulInverseLeft (bodyB.getPose(), XDW);
-      XFA.mulInverseLeft (bodyA.getPose(), XDW);
-      SphericalJoint joint = new SphericalJoint (bodyA, XFA, bodyB, XDB);
+      XCA.mulInverseLeft (bodyA.getPose(), XDW);
+      SphericalJoint joint = new SphericalJoint (bodyA, XCA, bodyB, XDB);
       RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.025);
@@ -122,12 +122,12 @@ public class FrameSpringDemo extends RootModel {
 
    public SphericalJoint addSphericalJoint (
       RigidBody bodyA, RigidBody bodyB, RigidTransform3d XDW) {
-      RigidTransform3d XFA = new RigidTransform3d();
+      RigidTransform3d XCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
 
       XDB.mulInverseLeft (bodyB.getPose(), XDW);
-      XFA.mulInverseLeft (bodyA.getPose(), XDW);
-      SphericalJoint joint = new SphericalJoint (bodyA, XFA, bodyB, XDB);
+      XCA.mulInverseLeft (bodyA.getPose(), XDW);
+      SphericalJoint joint = new SphericalJoint (bodyA, XCA, bodyB, XDB);
       RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.025);

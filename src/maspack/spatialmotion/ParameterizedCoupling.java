@@ -83,11 +83,11 @@ public class ParameterizedCoupling extends RigidBodyCoupling {
       setLimitType(type);
    }
 
-//   public ParameterizedCoupling (RigidTransform3d XFA, RigidTransform3d XDB, LimitType type)
+//   public ParameterizedCoupling (RigidTransform3d XCA, RigidTransform3d XDB, LimitType type)
 //   {
 //      this(type);
 //      setXDB(XDB);
-//      setXFA(XFA);
+//      setXFA(XCA);
 //   }
 
    @Override
@@ -128,10 +128,10 @@ public class ParameterizedCoupling extends RigidBodyCoupling {
    private RotationMatrix3d RzGarbage = new RotationMatrix3d();
    
    @Override
-   public void projectToConstraint(RigidTransform3d XCD, RigidTransform3d XFD) {
+   public void projectToConstraint(RigidTransform3d XGD, RigidTransform3d XCD) {
       
-      XCD.R.set(XFD.R);
-      XCD.p.setZero();
+      XGD.R.set(XCD.R);
+      XGD.p.setZero();
       
       switch(myLimitType) {
          
@@ -141,15 +141,15 @@ public class ParameterizedCoupling extends RigidBodyCoupling {
          case CURVE:            
             // decompose and set roll to zero (Rz = I)
             // XXX one of these frames is backwards
-            // XCD.R.transpose();
-            doRollDecomposition(XCD.R, XCD.R, RzGarbage);
-            // XCD.R.transpose();
+            // XGD.R.transpose();
+            doRollDecomposition(XGD.R, XGD.R, RzGarbage);
+            // XGD.R.transpose();
             return;
          case ROLL:
-            XCD.R.rotateZDirection (Vector3d.Z_UNIT);
+            XGD.R.rotateZDirection (Vector3d.Z_UNIT);
             return;
          case FIXED:
-            XCD.R.setIdentity();
+            XGD.R.setIdentity();
       }
       
    }
@@ -207,18 +207,18 @@ public class ParameterizedCoupling extends RigidBodyCoupling {
       return roll;
    }
    
-   public void setRoll (RigidTransform3d XCD, double roll) {
+   public void setRoll (RigidTransform3d XGD, double roll) {
       
       
       // decompose matrix, update roll matrix
       RotationMatrix3d Rz = new RotationMatrix3d();
-      RotationMatrix3d RDC = new RotationMatrix3d(XCD.R);
+      RotationMatrix3d RDC = new RotationMatrix3d(XGD.R);
       RDC.transpose();
       
       doRollDecomposition(RDC, RDC, Rz);
       Rz.setRotZ(roll);
       RDC.mul(Rz);
-      XCD.R.transpose(RDC);
+      XGD.R.transpose(RDC);
 
       checkConstraintStorage();
       myConstraintInfo[5].coordinate = roll;
@@ -258,13 +258,13 @@ public class ParameterizedCoupling extends RigidBodyCoupling {
       
    }
    
-   public double getRoll(RigidTransform3d XCD) {
+   public double getRoll(RigidTransform3d XGD) {
       
-      // On entry, XCD is set to XFD. It is then projected to XCD
-      projectToConstraint(XCD, XCD);
+      // On entry, XGD is set to XCD. It is then projected to XGD
+      projectToConstraint(XGD, XGD);
       
       RotationMatrix3d RDC = new RotationMatrix3d();
-      RDC.transpose(XCD.R);
+      RDC.transpose(XGD.R);
       return doGetRoll(RDC);
 
    }
@@ -279,12 +279,12 @@ public class ParameterizedCoupling extends RigidBodyCoupling {
    
    @Override
    public void getConstraintInfo(
-      ConstraintInfo[] info, RigidTransform3d XCD, RigidTransform3d XFD,
+      ConstraintInfo[] info, RigidTransform3d XGD, RigidTransform3d XCD,
       RigidTransform3d XERR, boolean setEngaged) {
 
-      //projectToConstraint(XCD, XFD);
+      //projectToConstraint(XGD, XCD);
 
-      //myXFC.mulInverseLeft(XCD, XFD);
+      //myXFC.mulInverseLeft(XGD, XCD);
       myErr.set(XERR);
 
       // set zeros
@@ -307,7 +307,7 @@ public class ParameterizedCoupling extends RigidBodyCoupling {
       if (myLimitType == LimitType.ROLL_CURVE || myLimitType == LimitType.ROLL) {
          
          RotationMatrix3d RDC = new RotationMatrix3d();
-         RDC.transpose(XCD.R);
+         RDC.transpose(XGD.R);
          double theta = doGetRoll(RDC);
          
          if (hasRestrictedRollRange()) {
@@ -336,13 +336,13 @@ public class ParameterizedCoupling extends RigidBodyCoupling {
          boolean engage = false;
          double theta = 0;
          
-         XCD.R.getColumn(2, znew);
-         XFD.R.getColumn(2, z);
+         XGD.R.getColumn(2, znew);
+         XCD.R.getColumn(2, z);
          
          
          if ( Math.abs(z[0]-znew[0]) > EPSILON ){
             System.out.printf("XFDz = (%f, %f, %f),  XCDz = (%f, %f, %f)\n", 
-               XFD.R.m02, XFD.R.m12, XFD.R.m22, XCD.R.m02,XCD.R.m12,XCD.R.m22);
+               XCD.R.m02, XCD.R.m12, XCD.R.m22, XGD.R.m02,XGD.R.m12,XGD.R.m22);
          }
          
          
@@ -350,7 +350,7 @@ public class ParameterizedCoupling extends RigidBodyCoupling {
          
          Vector3d v = new Vector3d(axis);
          v.normalize();
-         v.inverseTransform(XCD);
+         v.inverseTransform(XGD);
          
          // check if z inside curve, and project to boundary if outside
          if (!myCurve.isWithin(z)) {

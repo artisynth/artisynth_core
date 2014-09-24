@@ -306,17 +306,17 @@ public class FrameSpring extends Spring
    }
 
    public void setFrames (Frame frameA, Frame frameB, RigidTransform3d TDW) {
-      RigidTransform3d TFA = new RigidTransform3d();
+      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d TDB = new RigidTransform3d();
       
-      TFA.mulInverseLeft(frameA.getPose(), TDW);
+      TCA.mulInverseLeft(frameA.getPose(), TDW);
       if (frameB != null) {
          TDB.mulInverseLeft(frameB.getPose(), TDW);
       }
       else {
          TDB.set (TDW);
       }
-      setFrames (frameA, TFA, frameB, TDB);
+      setFrames (frameA, TCA, frameB, TDB);
    }
    
    public void setFrames (Frame frameA, RigidTransform3d T1A,

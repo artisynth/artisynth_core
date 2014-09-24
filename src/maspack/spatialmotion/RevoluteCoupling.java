@@ -76,10 +76,10 @@ public class RevoluteCoupling extends RigidBodyCoupling {
       super();
    }
 
-//   public RevoluteCoupling (RigidTransform3d XFA, RigidTransform3d XDB) {
+//   public RevoluteCoupling (RigidTransform3d XCA, RigidTransform3d XDB) {
 //      this();
 //      setXDB (XDB);
-//      setXFA (XFA);
+//      setXFA (XCA);
 //   }
 
    @Override
@@ -93,36 +93,36 @@ public class RevoluteCoupling extends RigidBodyCoupling {
    }
 
    @Override
-   public void projectToConstraint (RigidTransform3d XCD, RigidTransform3d XFD) {
-      XCD.R.set (XFD.R);
-      XCD.R.rotateZDirection (Vector3d.Z_UNIT);
-      XCD.p.setZero();
+   public void projectToConstraint (RigidTransform3d XGD, RigidTransform3d XCD) {
+      XGD.R.set (XCD.R);
+      XGD.R.rotateZDirection (Vector3d.Z_UNIT);
+      XGD.p.setZero();
    }
 
-   private double doGetTheta (RigidTransform3d XCD) {
+   private double doGetTheta (RigidTransform3d XGD) {
       checkConstraintStorage();
-      double theta = Math.atan2 (XCD.R.m01, XCD.R.m00);
+      double theta = Math.atan2 (XGD.R.m01, XGD.R.m00);
       theta = findNearestAngle (myConstraintInfo[5].coordinate, theta);
       myConstraintInfo[5].coordinate = theta;
       return theta;
    }
 
-   public double getTheta (RigidTransform3d XCD) {
-      // on entry, XCD is set to XFD. It is then projected to XCD
-      projectToConstraint (XCD, XCD);
-      return doGetTheta (XCD);
+   public double getTheta (RigidTransform3d XGD) {
+      // on entry, XGD is set to XCD. It is then projected to XGD
+      projectToConstraint (XGD, XGD);
+      return doGetTheta (XGD);
    }
 
    public void setTheta (
-      RigidTransform3d XCD, double theta) {
+      RigidTransform3d XGD, double theta) {
       checkConstraintStorage();
-      XCD.setIdentity();
+      XGD.setIdentity();
       double c = Math.cos (theta);
       double s = Math.sin (theta);
-      XCD.R.m00 = c;
-      XCD.R.m01 = s;
-      XCD.R.m10 = -s;
-      XCD.R.m11 = c;
+      XGD.R.m00 = c;
+      XGD.R.m01 = s;
+      XGD.R.m10 = -s;
+      XGD.R.m11 = c;
       myConstraintInfo[5].coordinate = theta;
    }
 
@@ -143,16 +143,16 @@ public class RevoluteCoupling extends RigidBodyCoupling {
 
    @Override
    public void getConstraintInfo (
-      ConstraintInfo[] info, RigidTransform3d XCD, RigidTransform3d XFD,
+      ConstraintInfo[] info, RigidTransform3d XGD, RigidTransform3d XCD,
       RigidTransform3d XERR, boolean setEngaged) {
-      //projectToConstraint (XCD, XFD);
+      //projectToConstraint (XGD, XCD);
 
-      //myXFC.mulInverseLeft (XCD, XFD);
+      //myXFC.mulInverseLeft (XGD, XCD);
       myErr.set (XERR);
       setDistancesAndZeroDerivatives (info, 5, myErr);
 
       //NumberFormat fmt = new NumberFormat ("%11.6f");
-      double theta = doGetTheta(XCD);
+      double theta = doGetTheta(XGD);
       if (hasRestrictedRange()) {
          if (setEngaged) {
             maybeSetEngaged (info[5], theta, myMinTheta, myMaxTheta);

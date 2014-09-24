@@ -144,12 +144,12 @@ public class LaymanModel extends MechModel {
 
    public SphericalJoint addSphericalJoint (
       RigidBody bodyA, RigidBody bodyB, RigidTransform3d XDW, double maxAng) {
-      RigidTransform3d XFA = new RigidTransform3d();
+      RigidTransform3d XCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
 
       XDB.mulInverseLeft (bodyB.getPose(), XDW);
-      XFA.mulInverseLeft (bodyA.getPose(), XDW);
-      SphericalJoint joint = new SphericalJoint (bodyA, XFA, bodyB, XDB);
+      XCA.mulInverseLeft (bodyA.getPose(), XDW);
+      SphericalJoint joint = new SphericalJoint (bodyA, XCA, bodyB, XDB);
       RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.035);
@@ -163,12 +163,12 @@ public class LaymanModel extends MechModel {
 
    public RevoluteJoint addRevoluteJoint (
       RigidBody bodyA, RigidBody bodyB, RigidTransform3d XDW) {
-      RigidTransform3d XFA = new RigidTransform3d();
+      RigidTransform3d XCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
 
       XDB.mulInverseLeft (bodyB.getPose(), XDW);
-      XFA.mulInverseLeft (bodyA.getPose(), XDW);
-      RevoluteJoint joint = new RevoluteJoint (bodyA, XFA, bodyB, XDB);
+      XCA.mulInverseLeft (bodyA.getPose(), XDW);
+      RevoluteJoint joint = new RevoluteJoint (bodyA, XCA, bodyB, XDB);
       RenderProps.setLineStyle (joint, RenderProps.LineStyle.CYLINDER);
       RenderProps.setLineColor (joint, Color.BLUE);
       RenderProps.setLineRadius (joint, 0.025);
@@ -230,7 +230,7 @@ public class LaymanModel extends MechModel {
       myLHand.setPose (ARM_SEP / 2, 0, handZ, 0, 0, 0);
 
       RigidTransform3d XDW = new RigidTransform3d();
-      RigidTransform3d XFA = new RigidTransform3d();
+      RigidTransform3d XCA = new RigidTransform3d();
 
       SphericalJoint sjoint;
       RevoluteJoint rjoint;
@@ -238,15 +238,15 @@ public class LaymanModel extends MechModel {
       XDW.p.set (-ARM_SEP / 2, 0, SHOULDER_Z);
       XDW.R.setRpy (-DTOR * 45, 0, DTOR * 80);
       sjoint = addSphericalJoint (myRUppArm, myTorso, XDW, 105);
-      // override XFA so that we have an initial displacement
-      XFA.p.set (0, 0, SHOULDER_Z - UPPER_ARM_Z);
-      XFA.R.setRpy (0, 0, PI);
-      sjoint.setTFA (XFA);
+      // override XCA so that we have an initial displacement
+      XCA.p.set (0, 0, SHOULDER_Z - UPPER_ARM_Z);
+      XCA.R.setRpy (0, 0, PI);
+      sjoint.setTCA (XCA);
 
       XDW.p.set (ARM_SEP / 2, 0, SHOULDER_Z);
       XDW.R.setRpy (DTOR * 45, 0, DTOR * 80);
       sjoint = addSphericalJoint (myLUppArm, myTorso, XDW, 105);
-      sjoint.setTFA (XFA);
+      sjoint.setTCA (XCA);
 
       rjoint = addRevoluteJoint (myRUppArm, myRLowArm, -ARM_SEP / 2, 0, elbowZ);
       rjoint.setMaxTheta (5);

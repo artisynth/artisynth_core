@@ -117,9 +117,9 @@ public class PlanarConnector extends RigidBodyConnector
     */
    public void set (
       RigidBody bodyA, Vector3d pCA, RigidBody bodyB, RigidTransform3d XPB) {
-      RigidTransform3d XFA = new RigidTransform3d();
-      XFA.p.set (pCA);
-      setBodies (bodyA, XFA, bodyB, XPB);
+      RigidTransform3d XCA = new RigidTransform3d();
+      XCA.p.set (pCA);
+      setBodies (bodyA, XCA, bodyB, XPB);
    }
 
    /**
@@ -137,9 +137,9 @@ public class PlanarConnector extends RigidBodyConnector
     * XPB.p
     */
    public void set (RigidBody bodyA, Vector3d pCA, RigidTransform3d XPW) {
-      RigidTransform3d XFA = new RigidTransform3d();
-      XFA.p.set (pCA);
-      setBodies (bodyA, XFA, null, XPW);
+      RigidTransform3d XCA = new RigidTransform3d();
+      XCA.p.set (pCA);
+      setBodies (bodyA, XCA, null, XPW);
    }
 
    public void updateBounds (Point3d pmin, Point3d pmax) {
@@ -154,7 +154,7 @@ public class PlanarConnector extends RigidBodyConnector
    }
 
    public void prerender (RenderList list) {
-      RigidTransform3d TFW = getCurrentTFW();
+      RigidTransform3d TFW = getCurrentTCW();
       myRenderCoords[0] = (float)TFW.p.x;
       myRenderCoords[1] = (float)TFW.p.y;
       myRenderCoords[2] = (float)TFW.p.z;
@@ -223,7 +223,7 @@ public class PlanarConnector extends RigidBodyConnector
       copy.setPlaneSize (myPlaneSize);
       copy.setUnilateral (isUnilateral());
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getTFA(), copy.myBodyB, getTDB());
+      copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
       return copy;
    }
 

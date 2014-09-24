@@ -281,12 +281,12 @@ public class CustomSphericalCoupling extends RigidBodyCoupling {
       super();
    }
 
-//   public CustomSphericalCoupling (RigidTransform3d XFA, RigidTransform3d XDB)
+//   public CustomSphericalCoupling (RigidTransform3d XCA, RigidTransform3d XDB)
 //
 //   {
 //      this();
 //      setXDB(XDB);
-//      setXFA(XFA);
+//      setXFA(XCA);
 //   }
 
    @Override
@@ -300,9 +300,9 @@ public class CustomSphericalCoupling extends RigidBodyCoupling {
    }
 
    @Override
-   public void projectToConstraint(RigidTransform3d XCD, RigidTransform3d XFD) {
-      XCD.R.set(XFD.R);
-      XCD.p.setZero();
+   public void projectToConstraint(RigidTransform3d XGD, RigidTransform3d XCD) {
+      XGD.R.set(XCD.R);
+      XGD.p.setZero();
    }
 
    private static double DOUBLE_PREC = 2.220446049250313e-16;
@@ -344,23 +344,23 @@ public class CustomSphericalCoupling extends RigidBodyCoupling {
       myConstraintInfo[3].coordinate = rpy[0];
    }
 
-   public void getRpy (Vector3d angs, RigidTransform3d XCD) {
-      // on entry, XCD is set to XFD. It is then projected to XCD
-      projectToConstraint(XCD, XCD);
+   public void getRpy (Vector3d angs, RigidTransform3d XGD) {
+      // on entry, XGD is set to XCD. It is then projected to XGD
+      projectToConstraint(XGD, XGD);
       double[] rpy = new double[3];
       RotationMatrix3d RDC = new RotationMatrix3d();
-      RDC.transpose(XCD.R);
+      RDC.transpose(XGD.R);
       doGetRpy(rpy, RDC);
       angs.x = rpy[2];
       angs.y = rpy[1];
       angs.z = rpy[0];
    }
 
-   public void setRpy(RigidTransform3d XCD, Vector3d angs) {
-      XCD.setIdentity();
+   public void setRpy(RigidTransform3d XGD, Vector3d angs) {
+      XGD.setIdentity();
       RotationMatrix3d RDC = new RotationMatrix3d();
       RDC.setRpy(angs.z, angs.y, angs.x);
-      XCD.R.transpose(RDC);
+      XGD.R.transpose(RDC);
 
       checkConstraintStorage();
       myConstraintInfo[5].coordinate = angs.x;
@@ -403,10 +403,10 @@ public class CustomSphericalCoupling extends RigidBodyCoupling {
 
    @Override
    public void getConstraintInfo(
-      ConstraintInfo[] info, RigidTransform3d XCD, RigidTransform3d XFD,
+      ConstraintInfo[] info, RigidTransform3d XGD, RigidTransform3d XCD,
       RigidTransform3d XERR, boolean setEngaged) {
 
-      //projectToConstraint(XCD, XFD);
+      //projectToConstraint(XGD, XCD);
 
       // info[0].bilateral = true;
       // info[1].bilateral = true;
@@ -415,7 +415,7 @@ public class CustomSphericalCoupling extends RigidBodyCoupling {
       // info[4].bilateral = false;
       // info[5].bilateral = false;
 
-      //myXFC.mulInverseLeft(XCD, XFD);
+      //myXFC.mulInverseLeft(XGD, XCD);
       myErr.set(XERR);
       setDistancesAndZeroDerivatives(info, 3, myErr);
 
@@ -423,15 +423,15 @@ public class CustomSphericalCoupling extends RigidBodyCoupling {
          Vector3d utilt = new Vector3d();
 
          // Tilt axis is is z(C) x z(D).
-         // In C coordinates, z(C) = (0,0,1) and z(D) = last row of XCD.R.
-         // In D coordinates, z(D) = (0,0,1) and z(C) = last col of XCD.R.
+         // In C coordinates, z(C) = (0,0,1) and z(D) = last row of XGD.R.
+         // In D coordinates, z(D) = (0,0,1) and z(C) = last col of XGD.R.
 
-         utilt.set(XCD.R.m12, -XCD.R.m02, 0); // D coordinates
-         // utilt.set (-XCD.R.m21, XCD.R.m20, 0); // in C coordinates
+         utilt.set(XGD.R.m12, -XGD.R.m02, 0); // D coordinates
+         // utilt.set (-XGD.R.m21, XGD.R.m20, 0); // in C coordinates
          double ulen = utilt.norm();
          double theta = 0;
          if (ulen > 1e-8) {
-            theta = Math.atan2(ulen, XCD.R.m22);
+            theta = Math.atan2(ulen, XGD.R.m22);
             utilt.scale(1 / ulen);
          }
          if (setEngaged) {
@@ -441,14 +441,14 @@ public class CustomSphericalCoupling extends RigidBodyCoupling {
          }
          if (info[3].engaged != 0) {
             info[3].distance = myMaxTilt - theta;
-            utilt.inverseTransform(XCD.R);
+            utilt.inverseTransform(XGD.R);
             info[3].wrenchC.set(0, 0, 0, utilt.x, utilt.y, utilt.z);
             info[3].dotWrenchC.setZero();
          }
       }
       else if (myRangeType == ROTATION_LIMIT) {
          Vector3d u = new Vector3d();
-         double ang = XCD.R.getAxisAngle(u);
+         double ang = XGD.R.getAxisAngle(u);
          u.normalize(); // paranoid
          Vector3d a =
             new Vector3d(u.x * myMaxRotX, u.y * myMaxRotY, u.z * myMaxRotZ);
@@ -473,7 +473,7 @@ public class CustomSphericalCoupling extends RigidBodyCoupling {
 
          // get relative z axis
          double [] z = new double[3]; 
-         XCD.R.getColumn(2, z);  // z(C) in D coordinates
+         XGD.R.getColumn(2, z);  // z(C) in D coordinates
                  
          // check if X inside curve, and project to boundary if outside
          boolean engage = false;
@@ -500,7 +500,7 @@ public class CustomSphericalCoupling extends RigidBodyCoupling {
          
          if (theta > 1e-7) {
             vAxis.cross(v1,v2);
-            vAxis.inverseTransform(XCD);   // transform to C coordinates?
+            vAxis.inverseTransform(XGD);   // transform to C coordinates?
          } else {
             theta=0;
             engage=false;
@@ -534,7 +534,7 @@ public class CustomSphericalCoupling extends RigidBodyCoupling {
 
          RotationMatrix3d RDC = new RotationMatrix3d();
          Vector3d wBA = new Vector3d();
-         RDC.transpose(XCD.R);
+         RDC.transpose(XGD.R);
          doGetRpy(rpy, RDC);
 
          roll = rpy[0];

@@ -56,7 +56,7 @@ public class SphericalJointBase extends JointBase
    }
 
    public void updateBounds (Point3d pmin, Point3d pmax) {
-      RigidTransform3d TFW = getCurrentTFW();
+      RigidTransform3d TFW = getCurrentTCW();
       TFW.p.updateBounds (pmin, pmax);
    }
 
@@ -87,7 +87,7 @@ public class SphericalJointBase extends JointBase
       copy.myCoupling = new SphericalCoupling ();
       copy.setAxisLength (myAxisLength);
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getTFA(), copy.myBodyB, getTDB());
+      copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
       return copy;
    }
 

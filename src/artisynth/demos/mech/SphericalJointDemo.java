@@ -63,12 +63,12 @@ public class SphericalJointDemo extends RootModel {
 
    public SphericalJoint addSphericalJoint (
       RigidBody bodyA, RigidBody bodyB, RigidTransform3d XDW) {
-      RigidTransform3d XFA = new RigidTransform3d();
+      RigidTransform3d XCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
 
       XDB.mulInverseLeft (bodyB.getPose(), XDW);
-      XFA.mulInverseLeft (bodyA.getPose(), XDW);
-      SphericalJoint joint = new SphericalJoint (bodyA, XFA, bodyB, XDB);
+      XCA.mulInverseLeft (bodyA.getPose(), XDW);
+      SphericalJoint joint = new SphericalJoint (bodyA, XCA, bodyB, XDB);
       RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.025);
@@ -79,12 +79,12 @@ public class SphericalJointDemo extends RootModel {
 
    public SphericalRpyJoint addSphericalRpyJoint (
       RigidBody bodyA, RigidBody bodyB, RigidTransform3d XDW) {
-      RigidTransform3d XFA = new RigidTransform3d();
+      RigidTransform3d XCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
 
       XDB.mulInverseLeft (bodyB.getPose(), XDW);
-      XFA.mulInverseLeft (bodyA.getPose(), XDW);
-      SphericalRpyJoint joint = new SphericalRpyJoint (bodyA, XFA, bodyB, XDB);
+      XCA.mulInverseLeft (bodyA.getPose(), XDW);
+      SphericalRpyJoint joint = new SphericalRpyJoint (bodyA, XCA, bodyB, XDB);
       RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.025);

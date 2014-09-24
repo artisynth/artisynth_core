@@ -209,9 +209,9 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
    private void doset (
       RigidBody bodyA, Vector3d pCA, RigidBody bodyB, RigidTransform3d XDB,
       double[] segs) {
-      RigidTransform3d XFA = new RigidTransform3d();
-      XFA.p.set (pCA);
-      setBodies (bodyA, XFA, bodyB, XDB);
+      RigidTransform3d XCA = new RigidTransform3d();
+      XCA.p.set (pCA);
+      setBodies (bodyA, XCA, bodyB, XDB);
       mySegPlaneCoupling.setSegments (segs);
    }
 
@@ -292,7 +292,7 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
    }
 
    public void prerender (RenderList list) {
-      RigidTransform3d TFW = getCurrentTFW();
+      RigidTransform3d TFW = getCurrentTCW();
       myRenderCoords[0] = (float)TFW.p.x;
       myRenderCoords[1] = (float)TFW.p.y;
       myRenderCoords[2] = (float)TFW.p.z;
@@ -536,7 +536,7 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
       copy.setPlaneSize (myPlaneSize);
       copy.setUnilateral (isUnilateral());
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getTFA(), copy.myBodyB, getTDB());
+      copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
       ArrayList<Point3d> segPnts = mySegPlaneCoupling.getSegmentPoints();
       double[] segs = new double[segPnts.size() * 2];
       for (int i = 0; i < segPnts.size(); i++) {

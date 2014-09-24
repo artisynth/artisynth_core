@@ -76,16 +76,16 @@ public class FullPlanarJoint extends RigidBodyConnector
       myCoupling = new FullPlanarCoupling ();
    }
 
-   public FullPlanarJoint (RigidBody bodyA, RigidTransform3d XFA,
+   public FullPlanarJoint (RigidBody bodyA, RigidTransform3d XCA,
                            RigidBody bodyB, RigidTransform3d XDB) {
       this();
-      setBodies (bodyA, XFA, bodyB, XDB);
+      setBodies (bodyA, XCA, bodyB, XDB);
    }
 
-   public FullPlanarJoint (RigidBody bodyA, RigidTransform3d XFA,
+   public FullPlanarJoint (RigidBody bodyA, RigidTransform3d XCA,
                            RigidTransform3d XDW) {
       this();
-      setBodies (bodyA, XFA, null, XDW);
+      setBodies (bodyA, XCA, null, XDW);
    }
 
    public RenderProps createRenderProps() {
@@ -132,7 +132,7 @@ public class FullPlanarJoint extends RigidBodyConnector
       // copy.setNumConstraints (5);
       copy.setAxisLength (myAxisLength);
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getTFA(), copy.myBodyB, getTDB());
+      copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
       return copy;
    }
 

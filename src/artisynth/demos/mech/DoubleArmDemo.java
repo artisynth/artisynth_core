@@ -133,13 +133,13 @@ public class DoubleArmDemo extends RootModel {
        
        RevoluteJoint j = new RevoluteJoint();
        j.setName("elbow");
-       RigidTransform3d XCA = new RigidTransform3d();
-       XCA.p.z = -len/2;
-       XCA.R.setAxisAngle(1,0,0,Math.PI/2);
-       RigidTransform3d XCW = new RigidTransform3d();
-       XCW.R.setAxisAngle(1,0,0,Math.PI/2);
+       RigidTransform3d TCA = new RigidTransform3d();
+       TCA.p.z = -len/2;
+       TCA.R.setAxisAngle(1,0,0,Math.PI/2);
+       RigidTransform3d TCW = new RigidTransform3d();
+       TCW.R.setAxisAngle(1,0,0,Math.PI/2);
 
-       j.setBodies (lowerArm, XCA, null, XCW);
+       j.setBodies (lowerArm, TCA, null, TCW);
        j.setAxisLength(len/3);
        model.addRigidBodyConnector(j);
        upperArm.setDynamic(false);
@@ -147,13 +147,13 @@ public class DoubleArmDemo extends RootModel {
        // add joint between lower and third
        j =new RevoluteJoint();
        j.setName("wrist");
-       XCA = new RigidTransform3d();
-       XCA.p.z = -len/2;
-       XCA.R.setAxisAngle(1,0,0,Math.PI/2);
-       XCW = new RigidTransform3d();
-       XCW.p.z =len/2;
-       XCW.R.setAxisAngle(1,0,0,Math.PI/2);
-       j.setBodies(thirdArm, XCA, lowerArm, XCW);
+       TCA = new RigidTransform3d();
+       TCA.p.z = -len/2;
+       TCA.R.setAxisAngle(1,0,0,Math.PI/2);
+       TCW = new RigidTransform3d();
+       TCW.p.z =len/2;
+       TCW.R.setAxisAngle(1,0,0,Math.PI/2);
+       j.setBodies(thirdArm, TCA, lowerArm, TCW);
        j.setAxisLength(len/3);
        model.addRigidBodyConnector(j);
        

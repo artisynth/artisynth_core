@@ -76,16 +76,16 @@ public class FullPlanarJoint extends RigidBodyConnector
       myCoupling = new FullPlanarCoupling ();
    }
 
-   public FullPlanarJoint (RigidBody bodyA, RigidTransform3d XCA,
+   public FullPlanarJoint (RigidBody bodyA, RigidTransform3d TCA,
                            RigidBody bodyB, RigidTransform3d XDB) {
       this();
-      setBodies (bodyA, XCA, bodyB, XDB);
+      setBodies (bodyA, TCA, bodyB, XDB);
    }
 
-   public FullPlanarJoint (RigidBody bodyA, RigidTransform3d XCA,
-                           RigidTransform3d XDW) {
+   public FullPlanarJoint (RigidBody bodyA, RigidTransform3d TCA,
+                           RigidTransform3d TDW) {
       this();
-      setBodies (bodyA, XCA, null, XDW);
+      setBodies (bodyA, TCA, null, TDW);
    }
 
    public RenderProps createRenderProps() {
@@ -93,13 +93,13 @@ public class FullPlanarJoint extends RigidBodyConnector
    }
 
    public void updateBounds (Point3d pmin, Point3d pmax) {
-      RigidTransform3d XDW = getCurrentTDW();
-      XDW.p.updateBounds (pmin, pmax);
+      RigidTransform3d TDW = getCurrentTDW();
+      TDW.p.updateBounds (pmin, pmax);
    }
 
    public void prerender (RenderList list) {
-      RigidTransform3d XDW = getCurrentTDW();
-      myRenderFrame.set (XDW);
+      RigidTransform3d TDW = getCurrentTDW();
+      myRenderFrame.set (TDW);
    }
 
    public void render (GLRenderer renderer, int flags) {

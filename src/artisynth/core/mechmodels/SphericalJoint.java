@@ -84,16 +84,16 @@ public class SphericalJoint extends SphericalJointBase {
    public SphericalJoint() {
    }
 
-   public SphericalJoint (RigidBody bodyA, RigidTransform3d XCA,
-                          RigidTransform3d XDW) {
+   public SphericalJoint (RigidBody bodyA, RigidTransform3d TCA,
+                          RigidTransform3d TDW) {
       this();
-      setBodies (bodyA, XCA, null, XDW);
+      setBodies (bodyA, TCA, null, TDW);
    }
 
-   public SphericalJoint (RigidBody bodyA, RigidTransform3d XCA,
+   public SphericalJoint (RigidBody bodyA, RigidTransform3d TCA,
                           RigidBody bodyB, RigidTransform3d XDB) {
       this();
-      setBodies (bodyA, XCA, bodyB, XDB);
+      setBodies (bodyA, TCA, bodyB, XDB);
    }
    
    public SphericalJoint (RigidBody bodyA, RigidBody bodyB, Point3d worldPnt ) {
@@ -104,24 +104,24 @@ public class SphericalJoint extends SphericalJointBase {
       XWJ.setTranslation(worldPnt);
       XWJ.setRotation(new AxisAngle(1,0,0,0));
       
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
       
-      XCA.mulInverseLeft(bodyA.getPose(), XWJ);
+      TCA.mulInverseLeft(bodyA.getPose(), XWJ);
       XDB.mulInverseLeft(bodyB.getPose(), XWJ);
       
-      setBodies(bodyA, XCA, bodyB, XDB);
+      setBodies(bodyA, TCA, bodyB, XDB);
    }
    
    public SphericalJoint (RigidBody bodyA, RigidBody bodyB, RigidTransform3d XWJ) {
       this();
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
       
-      XCA.mulInverseLeft(bodyA.getPose(), XWJ);
+      TCA.mulInverseLeft(bodyA.getPose(), XWJ);
       XDB.mulInverseLeft(bodyB.getPose(), XWJ);
       
-      setBodies(bodyA, XCA, bodyB, XDB);
+      setBodies(bodyA, TCA, bodyB, XDB);
       
    }
 

@@ -33,12 +33,12 @@ public abstract class JointBase extends RigidBodyConnector  {
    }
 
    // public RigidTransform3d getCurrentXDW() {
-   //    RigidTransform3d XDW = new RigidTransform3d();
-   //    XDW.set (getXDB());
+   //    RigidTransform3d TDW = new RigidTransform3d();
+   //    TDW.set (getXDB());
    //    if (myBodyB != null) {
-   //       XDW.mul (myBodyB.getPose(), XDW);
+   //       TDW.mul (myBodyB.getPose(), TDW);
    //    }
-   //    return XDW;
+   //    return TDW;
    // }
    
    public RigidTransform3d getRenderFrame() {

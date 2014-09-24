@@ -62,13 +62,13 @@ public class SphericalJointDemo extends RootModel {
    }
 
    public SphericalJoint addSphericalJoint (
-      RigidBody bodyA, RigidBody bodyB, RigidTransform3d XDW) {
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TDW) {
+      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
 
-      XDB.mulInverseLeft (bodyB.getPose(), XDW);
-      XCA.mulInverseLeft (bodyA.getPose(), XDW);
-      SphericalJoint joint = new SphericalJoint (bodyA, XCA, bodyB, XDB);
+      XDB.mulInverseLeft (bodyB.getPose(), TDW);
+      TCA.mulInverseLeft (bodyA.getPose(), TDW);
+      SphericalJoint joint = new SphericalJoint (bodyA, TCA, bodyB, XDB);
       RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.025);
@@ -78,13 +78,13 @@ public class SphericalJointDemo extends RootModel {
    }
 
    public SphericalRpyJoint addSphericalRpyJoint (
-      RigidBody bodyA, RigidBody bodyB, RigidTransform3d XDW) {
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TDW) {
+      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
 
-      XDB.mulInverseLeft (bodyB.getPose(), XDW);
-      XCA.mulInverseLeft (bodyA.getPose(), XDW);
-      SphericalRpyJoint joint = new SphericalRpyJoint (bodyA, XCA, bodyB, XDB);
+      XDB.mulInverseLeft (bodyB.getPose(), TDW);
+      TCA.mulInverseLeft (bodyA.getPose(), TDW);
+      SphericalRpyJoint joint = new SphericalRpyJoint (bodyA, TCA, bodyB, XDB);
       RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.025);
@@ -143,15 +143,15 @@ public class SphericalJointDemo extends RootModel {
 
       myLowerArm.setDynamic (false);
 
-//       SphericalJoint joint = addSphericalJoint (myHand, myLowerArm, XDW);
+//       SphericalJoint joint = addSphericalJoint (myHand, myLowerArm, TDW);
 //       joint.setMaxRotation (100);
-//       XDW.p.set (0, 0, -getHeight (myHand));
-//       joint = addSphericalJoint (myHand2, myHand, XDW);
+//       TDW.p.set (0, 0, -getHeight (myHand));
+//       joint = addSphericalJoint (myHand2, myHand, TDW);
 //       joint.setMaxRotation (45);
 
-      RigidTransform3d XDW = new RigidTransform3d();
-      XDW.R.setRpy (0, 0, Math.PI/2);
-      SphericalRpyJoint joint = addSphericalRpyJoint (myLowerArm, myHand, XDW);
+      RigidTransform3d TDW = new RigidTransform3d();
+      TDW.R.setRpy (0, 0, Math.PI/2);
+      SphericalRpyJoint joint = addSphericalRpyJoint (myLowerArm, myHand, TDW);
       joint.setRollRange (-90, 90);
       joint.setPitchRange (-45, 45);
       joint.setYawRange (-90, 90);

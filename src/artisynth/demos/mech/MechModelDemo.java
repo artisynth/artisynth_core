@@ -60,8 +60,8 @@ public class MechModelDemo extends RootModel {
 
       RigidTransform3d XMB = new RigidTransform3d();
       RigidTransform3d XLW = new RigidTransform3d();
-      RigidTransform3d XCA = new RigidTransform3d();
-      RigidTransform3d XCB = new RigidTransform3d();
+      RigidTransform3d TCA = new RigidTransform3d();
+      RigidTransform3d TCB = new RigidTransform3d();
       RigidTransform3d XAB = new RigidTransform3d();
       PolygonalMesh mesh;
       int nslices = 16; // number of slices for approximating a circle
@@ -153,13 +153,13 @@ public class MechModelDemo extends RootModel {
       // // joint 1
       // if (usePlanarJoint)
       // {
-      // XCA.setIdentity();
-      // XCA.p.set (-lenx1/2, 0, 0);
-      // XCA.R.setAxisAngle (1, 0, 0, -Math.PI/2);
-      // XCB.p.set (0, 0, lenx1);
-      // // XCB.R.setAxisAngle (1, 0, 0, -Math.PI/2);
+      // TCA.setIdentity();
+      // TCA.p.set (-lenx1/2, 0, 0);
+      // TCA.R.setAxisAngle (1, 0, 0, -Math.PI/2);
+      // TCB.p.set (0, 0, lenx1);
+      // // TCB.R.setAxisAngle (1, 0, 0, -Math.PI/2);
       // PlanarConnector planar =
-      // new PlanarConnector (link1, XCA.p, XCB);
+      // new PlanarConnector (link1, TCA.p, TCB);
       // planar.setName ("plane1");
       // planar.setPlaneSize (20);
       // RenderProps.setColor (planar, Color.BLUE);
@@ -167,18 +167,18 @@ public class MechModelDemo extends RootModel {
       // }
       // else
       // {
-      // XCA.setIdentity();
-      // XCA.p.set (-lenx1/2, 0, 0);
-      // // XCA.R.mulAxisAngle (0, 1, 0, Math.PI/4);
-      // XCB.set (link1.myState.XFrameToWorld);
-      // XCB.mul (XCA);
-      // RevoluteJoint rjoint = new RevoluteJoint (link1, XCA, XCB);
+      // TCA.setIdentity();
+      // TCA.p.set (-lenx1/2, 0, 0);
+      // // TCA.R.mulAxisAngle (0, 1, 0, Math.PI/4);
+      // TCB.set (link1.myState.XFrameToWorld);
+      // TCB.mul (TCA);
+      // RevoluteJoint rjoint = new RevoluteJoint (link1, TCA, TCB);
       // rjoint.setName ("joint1");
       // rjoint.setAxisLength (4);
       // RenderProps.setLineRadius(rjoint, 0.2);
       // joint1 = rjoint;
       // // SphericalJoint sjoint = new SphericalJoint (
-      // // link1, XCA, XCB);
+      // // link1, TCA, TCB);
       // // sjoint.setName ("joint1");
       // // sjoint.setAxisLength (5);
       // // joint1 = sjoint;
@@ -223,33 +223,33 @@ public class MechModelDemo extends RootModel {
 
       // joint 2
       if (useSphericalJoint) {
-         XCA.setIdentity();
-         XCA.p.set (-lenx2 / 2, 0, 0);
+         TCA.setIdentity();
+         TCA.p.set (-lenx2 / 2, 0, 0);
          XAB.mulInverseLeft (link1.getPose(), link2.getPose());
-         XCB.mul (XAB, XCA);
-         SphericalJoint sjoint = new SphericalJoint (link2, XCA, link1, XCB);
-         // RevoluteJoint joint2 = new RevoluteJoint (link2, XCA, XCB);
+         TCB.mul (XAB, TCA);
+         SphericalJoint sjoint = new SphericalJoint (link2, TCA, link1, TCB);
+         // RevoluteJoint joint2 = new RevoluteJoint (link2, TCA, TCB);
          sjoint.setName ("joint2");
          // RenderProps.setLineRadius(sjoint, 0.2);
          sjoint.setAxisLength (4);
          joint2 = sjoint;
       }
       else {
-         XCA.setIdentity();
-         XCA.p.set (-lenx2 / 2, 0, 0);
-         // XCA.R.mulAxisAngle (1, 0, 0, -Math.toRadians(90));
+         TCA.setIdentity();
+         TCA.p.set (-lenx2 / 2, 0, 0);
+         // TCA.R.mulAxisAngle (1, 0, 0, -Math.toRadians(90));
          XAB.mulInverseLeft (link1.getPose(), link2.getPose());
-         XCB.mul (XAB, XCA);
-         RevoluteJoint rjoint = new RevoluteJoint (link2, XCA, link1, XCB);
+         TCB.mul (XAB, TCA);
+         RevoluteJoint rjoint = new RevoluteJoint (link2, TCA, link1, TCB);
 
-         // XCB.mul (link2.getPose(), XCA);
+         // TCB.mul (link2.getPose(), TCA);
          // RevoluteJoint rjoint =
-         // new RevoluteJoint (link2, XCA, XCB);
+         // new RevoluteJoint (link2, TCA, TCB);
 
          // RigidTransform3d X = new RigidTransform3d();
          // X.R.setAxisAngle (1, 0, 0, -Math.toRadians(90));
-         // X.mul (XCB, X);
-         // X.mulInverseRight (X, XCB);
+         // X.mul (TCB, X);
+         // X.mulInverseRight (X, TCB);
          // rjoint.transformGeometry (X);
          // rjoint.printData();
 
@@ -257,11 +257,11 @@ public class MechModelDemo extends RootModel {
          rjoint.setAxisLength (4);
          RenderProps.setLineRadius (rjoint, 0.2);
          // RigidTransform3d X = new RigidTransform3d();
-         // RigidTransform3d XDW = rjoint.getXDW();
-         // System.out.println ("getXDW=\n" + XDW.toString("%8.3f"));
+         // RigidTransform3d TDW = rjoint.getXDW();
+         // System.out.println ("getXDW=\n" + TDW.toString("%8.3f"));
          // X.R.setAxisAngle (1, 0, 0, Math.toRadians(80));
-         // X.mulInverseRight (X, XDW);
-         // X.mul (XDW, X);
+         // X.mulInverseRight (X, TDW);
+         // X.mul (TDW, X);
          // rjoint.transformGeometry (X, rjoint);
          joint2 = rjoint;
       }
@@ -275,17 +275,17 @@ public class MechModelDemo extends RootModel {
       mechMod.attachAxialSpring (mk1, mk3, spr1);
 
       if (usePlanarContacts) {
-         XCA.setIdentity();
-         XCA.p.set (lenx2 / 2 + leny2 / 2, 0, 0);
-         XCB.setIdentity();
-         // XCB.p.set (0, 0, -lenx2/2);
-         // XCB.p.set (0, 0, lenx2/2);
+         TCA.setIdentity();
+         TCA.p.set (lenx2 / 2 + leny2 / 2, 0, 0);
+         TCB.setIdentity();
+         // TCB.p.set (0, 0, -lenx2/2);
+         // TCB.p.set (0, 0, lenx2/2);
 
-         XCB.R.setIdentity();
-         XCB.R.setAxisAngle (0, 0, 1, Math.PI / 2);
-         XCB.R.mulAxisAngle (1, 0, 0, Math.toRadians (20));
+         TCB.R.setIdentity();
+         TCB.R.setAxisAngle (0, 0, 1, Math.PI / 2);
+         TCB.R.mulAxisAngle (1, 0, 0, Math.toRadians (20));
 
-         PlanarConnector contact1 = new PlanarConnector (link2, XCA.p, XCB);
+         PlanarConnector contact1 = new PlanarConnector (link2, TCA.p, TCB);
          contact1.setUnilateral (true);
          contact1.setName ("contact1");
          contact1.setPlaneSize (20);
@@ -293,11 +293,11 @@ public class MechModelDemo extends RootModel {
          RenderProps.setAlpha (contact1, 0.5);
          mechMod.addRigidBodyConnector (contact1);
 
-         XCB.R.setIdentity();
-         XCB.R.setAxisAngle (0, 0, 1, Math.PI / 2);
-         XCB.R.mulAxisAngle (1, 0, 0, -Math.toRadians (20));
+         TCB.R.setIdentity();
+         TCB.R.setAxisAngle (0, 0, 1, Math.PI / 2);
+         TCB.R.mulAxisAngle (1, 0, 0, -Math.toRadians (20));
 
-         PlanarConnector contact2 = new PlanarConnector (link2, XCA.p, XCB);
+         PlanarConnector contact2 = new PlanarConnector (link2, TCA.p, TCB);
          contact2.setUnilateral (true);
          contact2.setName ("contact2");
          contact2.setPlaneSize (20);

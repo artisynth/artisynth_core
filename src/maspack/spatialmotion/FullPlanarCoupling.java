@@ -19,9 +19,9 @@ public class FullPlanarCoupling extends RigidBodyCoupling {
       super();
    }
 
-//   public FullPlanarCoupling (RigidTransform3d XCA, RigidTransform3d XDB) {
+//   public FullPlanarCoupling (RigidTransform3d TCA, RigidTransform3d XDB) {
 //      this();
-//      setXFA (XCA);
+//      setXFA (TCA);
 //      setXDB (XDB);
 //   }
 
@@ -36,10 +36,10 @@ public class FullPlanarCoupling extends RigidBodyCoupling {
    }
 
    @Override
-   public void projectToConstraint (RigidTransform3d XGD, RigidTransform3d XCD) {
-      XGD.set (XCD);
-      XGD.R.rotateZDirection (Vector3d.Z_UNIT);
-      XGD.p.z = 0;
+   public void projectToConstraint (RigidTransform3d TGD, RigidTransform3d TCD) {
+      TGD.set (TCD);
+      TGD.R.rotateZDirection (Vector3d.Z_UNIT);
+      TGD.p.z = 0;
    }
 
    public void initializeConstraintInfo (ConstraintInfo[] info) {
@@ -54,11 +54,11 @@ public class FullPlanarCoupling extends RigidBodyCoupling {
 
    @Override
    public void getConstraintInfo (
-      ConstraintInfo[] info, RigidTransform3d XGD, RigidTransform3d XCD,
+      ConstraintInfo[] info, RigidTransform3d TGD, RigidTransform3d TCD,
       RigidTransform3d XERR, boolean setEngaged) {
-      //projectToConstraint (XGD, XCD);
+      //projectToConstraint (TGD, TCD);
 
-      //myXFC.mulInverseLeft (XGD, XCD);
+      //myXFC.mulInverseLeft (TGD, TCD);
       myErr.set (XERR);
       setDistancesAndZeroDerivatives (info, 3, myErr);
    }

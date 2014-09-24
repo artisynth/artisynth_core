@@ -761,27 +761,27 @@ public class MechSystemSolver {
          defbod = (DeformableBody)bod;
       }
       RigidTransform3d XCA0 = new RigidTransform3d ();
-      RigidTransform3d XGA = new RigidTransform3d ();
+      RigidTransform3d TGA = new RigidTransform3d ();
       PolarDecomposition3d polar = new PolarDecomposition3d();
       Twist cvel = new Twist();
 
       if (bod != null) {
          if (con != null) {         
-            XGA.set (con.getTGA());
+            TGA.set (con.getTGA());
          }
          if (defbod != null) {
-            defbod.computeUndeformedFrame (XCA0, polar, XGA);
+            defbod.computeUndeformedFrame (XCA0, polar, TGA);
          }
          System.out.println ("bodyVelA=" + bod.getVelocity().toString("%13.9f"));
          if (defbod != null) {
             System.out.println ("elasVelA=" + defbod.getElasticVel().toString("%13.9f"));
          }
-         //System.out.println ("XGA=\n" + XGA.toString ("%13.9f"));
+         //System.out.println ("TGA=\n" + TGA.toString ("%13.9f"));
          bod.getBodyVelocity (cvel);
-         cvel.inverseTransform (XGA);
+         cvel.inverseTransform (TGA);
          if (defbod != null) {
             Twist velx = new Twist(); 
-            defbod.computeDeformedFrameVel (velx, polar, XGA);
+            defbod.computeDeformedFrameVel (velx, polar, TGA);
             System.out.println ("velx=" + velx.toString ("%13.9f"));
             cvel.add (velx);
          }
@@ -798,27 +798,27 @@ public class MechSystemSolver {
          defbod = (DeformableBody)bod;
       }
       RigidTransform3d XCA0 = new RigidTransform3d ();
-      RigidTransform3d XGA = new RigidTransform3d ();
+      RigidTransform3d TGA = new RigidTransform3d ();
       PolarDecomposition3d polar = new PolarDecomposition3d();
       Twist cvel = new Twist();
 
       // begin deformable body constraint debug 
       if (bod != null) {
          if (con != null) {         
-            XGA.set (con.getTGA());
+            TGA.set (con.getTGA());
          }
          if (defbod != null) {
-            defbod.computeUndeformedFrame (XCA0, polar, XGA);
+            defbod.computeUndeformedFrame (XCA0, polar, TGA);
          }
          System.out.println ("bodyVelB=" + bod.getVelocity().toString("%13.9f"));
          if (defbod != null) {
             System.out.println ("elasVelB=" + defbod.getElasticVel().toString("%13.9f"));
          }
          bod.getBodyVelocity (cvel);
-         cvel.inverseTransform (XGA);
+         cvel.inverseTransform (TGA);
          if (defbod != null) {
             Twist velx = new Twist(); 
-            defbod.computeDeformedFrameVel (velx, polar, XGA);
+            defbod.computeDeformedFrameVel (velx, polar, TGA);
             cvel.add (velx);
          }
          System.out.println ("velB=" + cvel.toString ("%13.9f"));

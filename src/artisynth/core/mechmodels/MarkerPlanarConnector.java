@@ -51,14 +51,14 @@ public class MarkerPlanarConnector extends PlanarConnector {
    }
 
    /*
-    * before returning constraints, update XCA from frame marker location if needed
+    * before returning constraints, update TCA from frame marker location if needed
     */
    public int getBilateralConstraints (ArrayList<RigidBodyConstraint> bilaterals) {
       if (myFrameMarker != null && 
           !myFrameMarker.getLocation().equals (getTCA().p)) {
-         RigidTransform3d XCA = new RigidTransform3d ();
-         XCA.p.set (myFrameMarker.getLocation ());
-         setTCA (XCA);
+         RigidTransform3d TCA = new RigidTransform3d ();
+         TCA.p.set (myFrameMarker.getLocation ());
+         setTCA (TCA);
       }
       return myCoupling.getBilateralConstraints (bilaterals);
    }
@@ -67,9 +67,9 @@ public class MarkerPlanarConnector extends PlanarConnector {
 	 ArrayList<RigidBodyConstraint> unilaterals, boolean setEngaged) {
       if (myFrameMarker != null && 
           !myFrameMarker.getLocation().equals (getTCA().p)) {
-	 RigidTransform3d XCA = new RigidTransform3d();
-	 XCA.p.set(myFrameMarker.getLocation());
-	 setTCA(XCA);
+	 RigidTransform3d TCA = new RigidTransform3d();
+	 TCA.p.set(myFrameMarker.getLocation());
+	 setTCA(TCA);
       }
       return myCoupling.getUnilateralConstraints(unilaterals, setEngaged);
    }
@@ -100,10 +100,10 @@ public class MarkerPlanarConnector extends PlanarConnector {
       else if (scanAndStoreReference (rtok, "bodyB", tokens)) {
          return true;
       }
-      else if (scanAttributeName (rtok, "XCA")) {
-         RigidTransform3d XCA = new RigidTransform3d();
-         XCA.scan (rtok);
-         setTCA (XCA);
+      else if (scanAttributeName (rtok, "TCA")) {
+         RigidTransform3d TCA = new RigidTransform3d();
+         TCA.scan (rtok);
+         setTCA (TCA);
          return true;
       }
       else if (scanAttributeName (rtok, "XDB")) {
@@ -166,13 +166,13 @@ public class MarkerPlanarConnector extends PlanarConnector {
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
-      RigidTransform3d XCA = getTCA ();
+      RigidTransform3d TCA = getTCA ();
       RigidTransform3d XDB = getTDB ();
       printMarkerReference (pw, ancestor);
       printBodyAReference (pw, ancestor);
       printBodyBReference (pw, ancestor);
-      pw.println ("XCA="
-      + XCA.toString (fmt, RigidTransform3d.AXIS_ANGLE_STRING));
+      pw.println ("TCA="
+      + TCA.toString (fmt, RigidTransform3d.AXIS_ANGLE_STRING));
       pw.println ("XDB="
       + XDB.toString (fmt, RigidTransform3d.AXIS_ANGLE_STRING));
       getAllPropertyInfo ().writeNonDefaultProps (this, pw, fmt);

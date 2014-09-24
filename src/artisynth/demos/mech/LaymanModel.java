@@ -109,18 +109,18 @@ public class LaymanModel extends MechModel {
    public void addFrameSpring (
       RigidBody bodyA, RigidBody bodyB, double x, double y, double z,
       double kRot) {
-      RigidTransform3d XDW = new RigidTransform3d();
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidTransform3d TDW = new RigidTransform3d();
+      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
-      XDW.p.set (x, y, z);
+      TDW.p.set (x, y, z);
 
-      XCA.mulInverseLeft (bodyA.getPose(), XDW);
-      XDB.mulInverseLeft (bodyB.getPose(), XDW);
+      TCA.mulInverseLeft (bodyA.getPose(), TDW);
+      XDB.mulInverseLeft (bodyB.getPose(), TDW);
 
       FrameSpring spring = new FrameSpring (null);
       spring.setMaterial (new RotAxisFrameMaterial (0, kRot, 0, 0));
       //spring.setRotaryStiffness (kRot);
-      spring.setAttachFrameA (XCA);
+      spring.setAttachFrameA (TCA);
       spring.setAttachFrameB (XDB);
       attachFrameSpring (bodyA, bodyB, spring);
    }
@@ -136,20 +136,20 @@ public class LaymanModel extends MechModel {
    public SphericalJoint addSphericalJoint (
       RigidBody bodyA, RigidBody bodyB, double x, double y, double z,
       double maxAng) {
-      RigidTransform3d XDW = new RigidTransform3d();
-      XDW.p.set (x, y, z);
+      RigidTransform3d TDW = new RigidTransform3d();
+      TDW.p.set (x, y, z);
 
-      return addSphericalJoint (bodyA, bodyB, XDW, maxAng);
+      return addSphericalJoint (bodyA, bodyB, TDW, maxAng);
    }
 
    public SphericalJoint addSphericalJoint (
-      RigidBody bodyA, RigidBody bodyB, RigidTransform3d XDW, double maxAng) {
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TDW, double maxAng) {
+      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
 
-      XDB.mulInverseLeft (bodyB.getPose(), XDW);
-      XCA.mulInverseLeft (bodyA.getPose(), XDW);
-      SphericalJoint joint = new SphericalJoint (bodyA, XCA, bodyB, XDB);
+      XDB.mulInverseLeft (bodyB.getPose(), TDW);
+      TCA.mulInverseLeft (bodyA.getPose(), TDW);
+      SphericalJoint joint = new SphericalJoint (bodyA, TCA, bodyB, XDB);
       RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.035);
@@ -162,13 +162,13 @@ public class LaymanModel extends MechModel {
    }
 
    public RevoluteJoint addRevoluteJoint (
-      RigidBody bodyA, RigidBody bodyB, RigidTransform3d XDW) {
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TDW) {
+      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
 
-      XDB.mulInverseLeft (bodyB.getPose(), XDW);
-      XCA.mulInverseLeft (bodyA.getPose(), XDW);
-      RevoluteJoint joint = new RevoluteJoint (bodyA, XCA, bodyB, XDB);
+      XDB.mulInverseLeft (bodyB.getPose(), TDW);
+      TCA.mulInverseLeft (bodyA.getPose(), TDW);
+      RevoluteJoint joint = new RevoluteJoint (bodyA, TCA, bodyB, XDB);
       RenderProps.setLineStyle (joint, RenderProps.LineStyle.CYLINDER);
       RenderProps.setLineColor (joint, Color.BLUE);
       RenderProps.setLineRadius (joint, 0.025);
@@ -179,10 +179,10 @@ public class LaymanModel extends MechModel {
 
    public RevoluteJoint addRevoluteJoint (
       RigidBody bodyA, RigidBody bodyB, double x, double y, double z) {
-      RigidTransform3d XDW = new RigidTransform3d();
-      XDW.p.set (x, y, z);
-      XDW.R.setAxisAngle (Vector3d.Y_UNIT, Math.toRadians (90));
-      return addRevoluteJoint (bodyA, bodyB, XDW);
+      RigidTransform3d TDW = new RigidTransform3d();
+      TDW.p.set (x, y, z);
+      TDW.R.setAxisAngle (Vector3d.Y_UNIT, Math.toRadians (90));
+      return addRevoluteJoint (bodyA, bodyB, TDW);
    }
    
    public LaymanModel() {
@@ -229,24 +229,24 @@ public class LaymanModel extends MechModel {
       myRHand.setPose (-ARM_SEP / 2, 0, handZ, 0, 0, 0);
       myLHand.setPose (ARM_SEP / 2, 0, handZ, 0, 0, 0);
 
-      RigidTransform3d XDW = new RigidTransform3d();
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidTransform3d TDW = new RigidTransform3d();
+      RigidTransform3d TCA = new RigidTransform3d();
 
       SphericalJoint sjoint;
       RevoluteJoint rjoint;
 
-      XDW.p.set (-ARM_SEP / 2, 0, SHOULDER_Z);
-      XDW.R.setRpy (-DTOR * 45, 0, DTOR * 80);
-      sjoint = addSphericalJoint (myRUppArm, myTorso, XDW, 105);
-      // override XCA so that we have an initial displacement
-      XCA.p.set (0, 0, SHOULDER_Z - UPPER_ARM_Z);
-      XCA.R.setRpy (0, 0, PI);
-      sjoint.setTCA (XCA);
+      TDW.p.set (-ARM_SEP / 2, 0, SHOULDER_Z);
+      TDW.R.setRpy (-DTOR * 45, 0, DTOR * 80);
+      sjoint = addSphericalJoint (myRUppArm, myTorso, TDW, 105);
+      // override TCA so that we have an initial displacement
+      TCA.p.set (0, 0, SHOULDER_Z - UPPER_ARM_Z);
+      TCA.R.setRpy (0, 0, PI);
+      sjoint.setTCA (TCA);
 
-      XDW.p.set (ARM_SEP / 2, 0, SHOULDER_Z);
-      XDW.R.setRpy (DTOR * 45, 0, DTOR * 80);
-      sjoint = addSphericalJoint (myLUppArm, myTorso, XDW, 105);
-      sjoint.setTCA (XCA);
+      TDW.p.set (ARM_SEP / 2, 0, SHOULDER_Z);
+      TDW.R.setRpy (DTOR * 45, 0, DTOR * 80);
+      sjoint = addSphericalJoint (myLUppArm, myTorso, TDW, 105);
+      sjoint.setTCA (TCA);
 
       rjoint = addRevoluteJoint (myRUppArm, myRLowArm, -ARM_SEP / 2, 0, elbowZ);
       rjoint.setMaxTheta (5);
@@ -283,13 +283,13 @@ public class LaymanModel extends MechModel {
       myRFoot.setPose (-LEG_SEP / 2, FOOT_Y, footZ, 0, 0, 0);
       myLFoot.setPose (LEG_SEP / 2, FOOT_Y, footZ, 0, 0, 0);
 
-      XDW.p.set (-LEG_SEP / 2, 0, hipZ);
-      // XDW.R.setRpy (0, 0, PI);
-      sjoint = addSphericalJoint (myRUppLeg, myPelvis, XDW, 180);
+      TDW.p.set (-LEG_SEP / 2, 0, hipZ);
+      // TDW.R.setRpy (0, 0, PI);
+      sjoint = addSphericalJoint (myRUppLeg, myPelvis, TDW, 180);
       sjoint.setMaxRotation (90, 45, 45);
-      XDW.p.set (LEG_SEP / 2, 0, hipZ);
-      // XDW.R.setRpy (0, 0, PI);
-      sjoint = addSphericalJoint (myLUppLeg, myPelvis, XDW, 180);
+      TDW.p.set (LEG_SEP / 2, 0, hipZ);
+      // TDW.R.setRpy (0, 0, PI);
+      sjoint = addSphericalJoint (myLUppLeg, myPelvis, TDW, 180);
       sjoint.setMaxRotation (90, 45, 45);
 
       rjoint = addRevoluteJoint (myRUppLeg, myRLowLeg, -LEG_SEP / 2, 0, kneeZ);

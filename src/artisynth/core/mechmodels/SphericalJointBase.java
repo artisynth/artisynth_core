@@ -65,8 +65,8 @@ public class SphericalJointBase extends JointBase
    }
 
     public void prerender (RenderList list) {
-      RigidTransform3d XDW = getCurrentTDW();
-      myRenderFrame.set (XDW);
+      RigidTransform3d TDW = getCurrentTDW();
+      myRenderFrame.set (TDW);
    }
 
    public void render (GLRenderer renderer, int flags) {

@@ -168,14 +168,14 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
     * rigid body
     * @param pCA
     * location of contact point relative to body
-    * @param XDW
+    * @param TDW
     * transformation from frame D to world coordinates
     * @param segs
     * segment boundaries, given as pairs of coordinates in the x-z plane.
     */
    public void set (
-      RigidBody bodyA, Vector3d pCA, RigidTransform3d XDW, double[] segs) {
-      doset (bodyA, pCA, null, XDW, segs);
+      RigidBody bodyA, Vector3d pCA, RigidTransform3d TDW, double[] segs) {
+      doset (bodyA, pCA, null, TDW, segs);
    }
 
    // private void makePlanesFromSegments (
@@ -209,9 +209,9 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
    private void doset (
       RigidBody bodyA, Vector3d pCA, RigidBody bodyB, RigidTransform3d XDB,
       double[] segs) {
-      RigidTransform3d XCA = new RigidTransform3d();
-      XCA.p.set (pCA);
-      setBodies (bodyA, XCA, bodyB, XDB);
+      RigidTransform3d TCA = new RigidTransform3d();
+      TCA.p.set (pCA);
+      setBodies (bodyA, TCA, bodyB, XDB);
       mySegPlaneCoupling.setSegments (segs);
    }
 
@@ -278,9 +278,9 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
    // }
 
    public void updateBounds (Point3d pmin, Point3d pmax) {
-      RigidTransform3d XDW = getCurrentTDW();
+      RigidTransform3d TDW = getCurrentTDW();
       for (int i = 0; i < mySegPlaneCoupling.numPlanes(); i++) {
-         computeRenderVtxs (i, XDW);
+         computeRenderVtxs (i, TDW);
          for (int k = 0; k < myRenderVtxs.length; k++) {
             myRenderVtxs[k].updateBounds (pmin, pmax);
          }
@@ -300,7 +300,7 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
 
    public void render (GLRenderer renderer, int flags) {
       Vector3d nrm = new Vector3d (0, 0, 1);
-      RigidTransform3d XDW = getCurrentTDW();
+      RigidTransform3d TDW = getCurrentTDW();
 
       GL2 gl = renderer.getGL2().getGL2();
       RenderProps props = myRenderProps;
@@ -312,7 +312,7 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
       for (int i = 0; i < planes.size(); i++) {
          Plane plane = planes.get (i);
          nrm.set (plane.getNormal());
-         computeRenderVtxs (i, XDW);
+         computeRenderVtxs (i, TDW);
          gl.glBegin (GL2.GL_POLYGON);
          if (myRenderNormalReversedP) {
             gl.glNormal3d (-nrm.x, -nrm.y, -nrm.z);
@@ -357,7 +357,7 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
       super.writeItems (pw, fmt, ancestor);
    }
 
-   protected void computeRenderVtxs (int planeIdx, RigidTransform3d XDW) {
+   protected void computeRenderVtxs (int planeIdx, RigidTransform3d TDW) {
       ArrayList<Point3d> segPnts = mySegPlaneCoupling.getSegmentPoints();
 
       if (planeIdx >= segPnts.size() - 1) {
@@ -382,15 +382,15 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
       myRenderVtxs[2].scaledAdd (myPlaneSize / 2, yaxis, myRenderVtxs[2]);
 
       for (int i = 0; i < myRenderVtxs.length; i++) {
-         myRenderVtxs[i].transform (XDW);
+         myRenderVtxs[i].transform (TDW);
       }
    }
 
    // private void updateCouplingTransforms()
    // {
-   // RigidTransform3d XCA = new RigidTransform3d();
-   // XCA.p.set (myPCA);
-   // myCoupling.setConstraintToBodyA (XCA);
+   // RigidTransform3d TCA = new RigidTransform3d();
+   // TCA.p.set (myPCA);
+   // myCoupling.setConstraintToBodyA (TCA);
    // }
 
    public void scaleDistance (double s) {

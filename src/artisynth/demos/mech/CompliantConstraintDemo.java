@@ -53,8 +53,8 @@ public class CompliantConstraintDemo extends RootModel {
 
       RigidTransform3d XMB = new RigidTransform3d();
       RigidTransform3d XLW = new RigidTransform3d();
-      RigidTransform3d XCA = new RigidTransform3d();
-      RigidTransform3d XCB = new RigidTransform3d();
+      RigidTransform3d TCA = new RigidTransform3d();
+      RigidTransform3d TCB = new RigidTransform3d();
       RigidTransform3d XAB = new RigidTransform3d();
       PolygonalMesh mesh;
       int nslices = 16; // number of slices for approximating a circle
@@ -99,12 +99,12 @@ public class CompliantConstraintDemo extends RootModel {
       RigidBodyConnector joint1 = null;
       RevoluteJoint rjoint = null;
 
-      XCA.setIdentity();
-      XCA.p.set (-lenx1/2, 0, 0);
-      // XCA.R.mulAxisAngle (0, 1, 0, Math.PI/4);
-      XCB.set (link1.getPose());
-      XCB.mul (XCA);
-      rjoint = new RevoluteJoint (link1, XCA, XCB);
+      TCA.setIdentity();
+      TCA.p.set (-lenx1/2, 0, 0);
+      // TCA.R.mulAxisAngle (0, 1, 0, Math.PI/4);
+      TCB.set (link1.getPose());
+      TCB.mul (TCA);
+      rjoint = new RevoluteJoint (link1, TCA, TCB);
       rjoint.setName ("joint1");
       rjoint.setAxisLength (4);
       RenderProps.setLineRadius(rjoint, 0.2);
@@ -149,24 +149,24 @@ public class CompliantConstraintDemo extends RootModel {
 
       // joint 2
       if (useSphericalJoint) {
-         XCA.setIdentity();
-         XCA.p.set (-lenx2 / 2, 0, 0);
+         TCA.setIdentity();
+         TCA.p.set (-lenx2 / 2, 0, 0);
          XAB.mulInverseLeft (link1.getPose(), link2.getPose());
-         XCB.mul (XAB, XCA);
-         SphericalJoint sjoint = new SphericalJoint (link2, XCA, link1, XCB);
-         // RevoluteJoint joint2 = new RevoluteJoint (link2, XCA, XCB);
+         TCB.mul (XAB, TCA);
+         SphericalJoint sjoint = new SphericalJoint (link2, TCA, link1, TCB);
+         // RevoluteJoint joint2 = new RevoluteJoint (link2, TCA, TCB);
          sjoint.setName ("joint2");
          // RenderProps.setLineRadius(sjoint, 0.2);
          sjoint.setAxisLength (4);
          joint2 = sjoint;
       }
       else {
-         XCA.setIdentity();
-         XCA.p.set (-lenx2 / 2, 0, 0);
-         // XCA.R.mulAxisAngle (1, 0, 0, -Math.toRadians(90));
+         TCA.setIdentity();
+         TCA.p.set (-lenx2 / 2, 0, 0);
+         // TCA.R.mulAxisAngle (1, 0, 0, -Math.toRadians(90));
          XAB.mulInverseLeft (link1.getPose(), link2.getPose());
-         XCB.mul (XAB, XCA);
-         rjoint = new RevoluteJoint (link2, XCA, link1, XCB);
+         TCB.mul (XAB, TCA);
+         rjoint = new RevoluteJoint (link2, TCA, link1, TCB);
 
          rjoint.setName ("joint2");
          rjoint.setAxisLength (4);

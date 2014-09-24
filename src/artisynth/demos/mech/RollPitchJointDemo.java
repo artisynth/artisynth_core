@@ -78,13 +78,13 @@ public class RollPitchJointDemo extends RootModel {
    }
 
    public RollPitchJoint addRollPitchJoint (
-      RigidBody bodyA, RigidBody bodyB, RigidTransform3d XDW) {
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TDW) {
+      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
 
-      XDB.mulInverseLeft (bodyB.getPose(), XDW);
-      XCA.mulInverseLeft (bodyA.getPose(), XDW);
-      RollPitchJoint joint = new RollPitchJoint (bodyA, XCA, bodyB, XDB);
+      XDB.mulInverseLeft (bodyB.getPose(), TDW);
+      TCA.mulInverseLeft (bodyA.getPose(), TDW);
+      RollPitchJoint joint = new RollPitchJoint (bodyA, TCA, bodyB, XDB);
       RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.025);
@@ -94,13 +94,13 @@ public class RollPitchJointDemo extends RootModel {
    }
 
    public SphericalRpyJoint addSphericalJoint (
-      RigidBody bodyA, RigidBody bodyB, RigidTransform3d XDW) {
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TDW) {
+      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
 
-      XDB.mulInverseLeft (bodyB.getPose(), XDW);
-      XCA.mulInverseLeft (bodyA.getPose(), XDW);
-      SphericalRpyJoint joint = new SphericalRpyJoint (bodyA, XCA, bodyB, XDB);
+      XDB.mulInverseLeft (bodyB.getPose(), TDW);
+      TCA.mulInverseLeft (bodyA.getPose(), TDW);
+      SphericalRpyJoint joint = new SphericalRpyJoint (bodyA, TCA, bodyB, XDB);
       RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.025);
@@ -160,17 +160,17 @@ public class RollPitchJointDemo extends RootModel {
 
       myBase.setDynamic (false);
 
-      // RollPitchJoint joint = addRollPitchJoint (myTip, myBase, XDW);
+      // RollPitchJoint joint = addRollPitchJoint (myTip, myBase, TDW);
       // joint.setMaxRotation (100);
-      // XDW.p.set (0, 0, -getHeight (myTip));
-      // joint = addRollPitchJoint (myTip2, myTip, XDW);
+      // TDW.p.set (0, 0, -getHeight (myTip));
+      // joint = addRollPitchJoint (myTip2, myTip, TDW);
       // joint.setMaxRotation (45);
 
-      RigidTransform3d XDW = new RigidTransform3d();
-      //XDW.p.set (0, 0, -getHeight (myTip));
-      XDW.R.setRpy (0, Math.PI, 0);
-      RollPitchJoint joint = addRollPitchJoint (myBase, myTip, XDW);
-      // SphericalRpyJoint joint = addSphericalJoint (myBase, myTip, XDW);
+      RigidTransform3d TDW = new RigidTransform3d();
+      //TDW.p.set (0, 0, -getHeight (myTip));
+      TDW.R.setRpy (0, Math.PI, 0);
+      RollPitchJoint joint = addRollPitchJoint (myBase, myTip, TDW);
+      // SphericalRpyJoint joint = addSphericalJoint (myBase, myTip, TDW);
       joint.setRollRange (-90, 90);
       joint.setPitchRange (-100, 100);
       joint.setRoll (0);

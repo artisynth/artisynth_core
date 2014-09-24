@@ -76,18 +76,18 @@ public class RigidTentacle extends RootModel {
    public void addFrameSpring (
       RigidBody bodyA, RigidBody bodyB, double x, double y, double z,
       double kRot) {
-      RigidTransform3d XDW = new RigidTransform3d();
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidTransform3d TDW = new RigidTransform3d();
+      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
-      XDW.p.set (x, y, z);
+      TDW.p.set (x, y, z);
 
-      XCA.mulInverseLeft (bodyA.getPose(), XDW);
-      XDB.mulInverseLeft (bodyB.getPose(), XDW);
+      TCA.mulInverseLeft (bodyA.getPose(), TDW);
+      XDB.mulInverseLeft (bodyB.getPose(), TDW);
 
       FrameSpring spring = new FrameSpring (null);
       spring.setMaterial (new RotAxisFrameMaterial (0, kRot, 0, 0));
       //spring.setRotaryStiffness (kRot);
-      spring.setAttachFrameA (XCA);
+      spring.setAttachFrameA (TCA);
       spring.setAttachFrameB (XDB);
       myMechMod.attachFrameSpring (bodyA, bodyB, spring);
    }
@@ -128,15 +128,15 @@ public class RigidTentacle extends RootModel {
 
    public RevoluteJoint addRevoluteJoint (
       RigidBody bodyA, RigidBody bodyB, double x, double y, double z) {
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
-      RigidTransform3d XDW = new RigidTransform3d();
+      RigidTransform3d TDW = new RigidTransform3d();
 
-      XDW.p.set (x, y, z);
-      XDW.R.setAxisAngle (Vector3d.Y_UNIT, Math.toRadians (90));
-      XDB.mulInverseLeft (bodyB.getPose(), XDW);
-      XCA.mulInverseLeft (bodyA.getPose(), XDW);
-      RevoluteJoint joint = new RevoluteJoint (bodyA, XCA, bodyB, XDB);
+      TDW.p.set (x, y, z);
+      TDW.R.setAxisAngle (Vector3d.Y_UNIT, Math.toRadians (90));
+      XDB.mulInverseLeft (bodyB.getPose(), TDW);
+      TCA.mulInverseLeft (bodyA.getPose(), TDW);
+      RevoluteJoint joint = new RevoluteJoint (bodyA, TCA, bodyB, XDB);
       RenderProps.setLineStyle (joint, RenderProps.LineStyle.CYLINDER);
       RenderProps.setLineColor (joint, Color.BLUE);
       RenderProps.setLineRadius (joint, 0.025);
@@ -147,14 +147,14 @@ public class RigidTentacle extends RootModel {
 
    public SphericalJoint addSphericalJoint (
       RigidBody bodyA, RigidBody bodyB, double x, double y, double z) {
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
-      RigidTransform3d XDW = new RigidTransform3d();
+      RigidTransform3d TDW = new RigidTransform3d();
 
-      XDW.p.set (x, y, z);
-      XDB.mulInverseLeft (bodyB.getPose(), XDW);
-      XCA.mulInverseLeft (bodyA.getPose(), XDW);
-      SphericalJoint joint = new SphericalJoint (bodyA, XCA, bodyB, XDB);
+      TDW.p.set (x, y, z);
+      XDB.mulInverseLeft (bodyB.getPose(), TDW);
+      TCA.mulInverseLeft (bodyA.getPose(), TDW);
+      SphericalJoint joint = new SphericalJoint (bodyA, TCA, bodyB, XDB);
       RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.025);
@@ -164,13 +164,13 @@ public class RigidTentacle extends RootModel {
    }
 
    public SphericalJoint addSphericalJoint (
-      RigidBody bodyA, RigidBody bodyB, RigidTransform3d XDW) {
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TDW) {
+      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
 
-      XDB.mulInverseLeft (bodyB.getPose(), XDW);
-      XCA.mulInverseLeft (bodyA.getPose(), XDW);
-      SphericalJoint joint = new SphericalJoint (bodyA, XCA, bodyB, XDB);
+      XDB.mulInverseLeft (bodyB.getPose(), TDW);
+      TCA.mulInverseLeft (bodyA.getPose(), TDW);
+      SphericalJoint joint = new SphericalJoint (bodyA, TCA, bodyB, XDB);
       RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.025);
@@ -309,9 +309,9 @@ public class RigidTentacle extends RootModel {
          double curSegmentZ = -(getCenter (curSegment).z + getHeight (curSegment) / 2);
          setBodyPose (curSegment, 0, 0, curSegmentZ - curHeight, -90, 0, 0);
    
-         RigidTransform3d XDW = new RigidTransform3d();      
-         XDW.p.set (0, 0, -curHeight);
-         SphericalJoint joint = addSphericalJoint (curSegment, prevSegment, XDW);
+         RigidTransform3d TDW = new RigidTransform3d();      
+         TDW.p.set (0, 0, -curHeight);
+         SphericalJoint joint = addSphericalJoint (curSegment, prevSegment, TDW);
    
          addFrameSpring (curSegment, prevSegment, 0, 0, 0, rk);
          curHeight += getHeight (curSegment);

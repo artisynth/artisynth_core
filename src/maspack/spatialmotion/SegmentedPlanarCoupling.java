@@ -88,16 +88,16 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
       super();
    }
 
-//   public SegmentedPlanarCoupling (RigidTransform3d XCA, RigidTransform3d XDB) {
+//   public SegmentedPlanarCoupling (RigidTransform3d TCA, RigidTransform3d XDB) {
 //      this();
-//      setXFA (XCA);
+//      setXFA (TCA);
 //      setXDB (XDB);
 //   }
 
-//   public SegmentedPlanarCoupling (RigidTransform3d XCA, RigidTransform3d XDB,
+//   public SegmentedPlanarCoupling (RigidTransform3d TCA, RigidTransform3d XDB,
 //   double[] segs) {
 //      this();
-//      setXFA (XCA);
+//      setXFA (TCA);
 //      setXDB (XDB);
 //      setSegments (segs);
 //   }
@@ -176,20 +176,20 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
       return myUnilateral ? 0 : 1;
    }
 
-   private Plane doProject (RigidTransform3d XGD, RigidTransform3d XCD) {
-      myTmp.set (XCD.p);
+   private Plane doProject (RigidTransform3d TGD, RigidTransform3d TCD) {
+      myTmp.set (TCD.p);
       Plane plane = closestPlane (myTmp);
       plane.project (myTmp, myTmp);
-      if (XGD != null) {
-         XGD.p.set (myTmp); 
-         XGD.R.set (XCD.R);
+      if (TGD != null) {
+         TGD.p.set (myTmp); 
+         TGD.R.set (TCD.R);
       }
       return plane;
    }
 
    @Override
-   public void projectToConstraint (RigidTransform3d XGD, RigidTransform3d XCD) {
-      doProject (XGD, XCD);
+   public void projectToConstraint (RigidTransform3d TGD, RigidTransform3d TCD) {
+      doProject (TGD, TCD);
    }
 
    public void initializeConstraintInfo (ConstraintInfo[] info) {
@@ -201,14 +201,14 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
 
    @Override
    public void getConstraintInfo (
-      ConstraintInfo[] info, RigidTransform3d XGD, RigidTransform3d XCD,
+      ConstraintInfo[] info, RigidTransform3d TGD, RigidTransform3d TCD,
       RigidTransform3d XERR, boolean setEngaged) {
       
       myErr.set (XERR);
-      Plane plane = doProject (null, XCD);
-      myPnt.set (XCD.p);
+      Plane plane = doProject (null, TCD);
+      myPnt.set (TCD.p);
 
-      myNrm.inverseTransform (XGD, plane.normal);
+      myNrm.inverseTransform (TGD, plane.normal);
 
       info[0].flags = LINEAR;
       if (!myUnilateral) {
@@ -239,21 +239,21 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
 //   public void transformGeometry (
 //      AffineTransform3dBase X, RigidTransform3d XAW, RigidTransform3d XBW) {
 //
-//      RigidTransform3d XDW = new RigidTransform3d();
-//      XDW.mul (XBW, myXDB);
+//      RigidTransform3d TDW = new RigidTransform3d();
+//      TDW.mul (XBW, myXDB);
 //
-//      // first transform points by X XDW
+//      // first transform points by X TDW
 //      for (int i = 0; i < myPoints.size(); i++) {
-//         myPoints.get(i).transform (XDW);
+//         myPoints.get(i).transform (TDW);
 //         myPoints.get(i).transform (X);
 //      }
 //      // now apply X to D
 //
 //      super.transformGeometry (X, XAW, XBW);
-//      // reset XDW from new D and transform points back to D
-//      XDW.mul (XBW, myXDB);
+//      // reset TDW from new D and transform points back to D
+//      TDW.mul (XBW, myXDB);
 //      for (int i = 0; i < myPoints.size(); i++) {
-//         myPoints.get(i).inverseTransform (XDW);
+//         myPoints.get(i).inverseTransform (TDW);
 //      }
 //      makePlanesFromSegments (myPoints);
 //
@@ -262,15 +262,15 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
    
    public void transformGeometry (
       AffineTransform3dBase X, RotationMatrix3d Ra, 
-      RigidTransform3d TFW, RigidTransform3d XDW) {
+      RigidTransform3d TFW, RigidTransform3d TDW) {
       
-      // transform points by XDW.R^T Ra^T X.M XDW.R
+      // transform points by TDW.R^T Ra^T X.M TDW.R
       for (int i = 0; i < myPoints.size(); i++) {
          Point3d pnt = myPoints.get(i);
-         pnt.transform (XDW.R);
+         pnt.transform (TDW.R);
          X.getMatrix().mul (pnt, pnt);
          pnt.inverseTransform (Ra);
-         pnt.inverseTransform (XDW.R);
+         pnt.inverseTransform (TDW.R);
       }
       makePlanesFromSegments (myPoints);
    }

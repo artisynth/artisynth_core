@@ -235,34 +235,34 @@ AddComponentAgent<RigidBodyConnector> {
    private void createAndAddConnector (Point3d origin) {
       RigidBodyConnector connector;
 
-      RigidTransform3d XCW = new RigidTransform3d();
-      XCW.R.set (myBodyA.getPose().R);
-      XCW.p.set (origin);
+      RigidTransform3d TCW = new RigidTransform3d();
+      TCW.R.set (myBodyA.getPose().R);
+      TCW.p.set (origin);
 
-      RigidTransform3d XCA = new RigidTransform3d();
-      XCA.mulInverseLeft (myBodyA.getPose(), XCW);
+      RigidTransform3d TCA = new RigidTransform3d();
+      TCA.mulInverseLeft (myBodyA.getPose(), TCW);
 
       if (myComponentType == RevoluteJoint.class) {
          RevoluteJoint joint;
          if (myBodyB == null) {
-            joint = new RevoluteJoint (myBodyA, XCA, XCW);
+            joint = new RevoluteJoint (myBodyA, TCA, TCW);
          }
          else {
-            RigidTransform3d XCB = new RigidTransform3d();
-            XCB.mulInverseLeft (myBodyB.getPose(), XCW);
-            joint = new RevoluteJoint (myBodyA, XCA, myBodyB, XCB);
+            RigidTransform3d TCB = new RigidTransform3d();
+            TCB.mulInverseLeft (myBodyB.getPose(), TCW);
+            joint = new RevoluteJoint (myBodyA, TCA, myBodyB, TCB);
          }
          connector = joint;
       }
       else if (myComponentType == SphericalJoint.class) {
          SphericalJoint joint;
          if (myBodyB == null) {
-            joint = new SphericalJoint (myBodyA, XCA, XCW);
+            joint = new SphericalJoint (myBodyA, TCA, TCW);
          }
          else {
-            RigidTransform3d XCB = new RigidTransform3d();
-            XCB.mulInverseLeft (myBodyB.getPose(), XCW);
-            joint = new SphericalJoint (myBodyA, XCA, myBodyB, XCB);
+            RigidTransform3d TCB = new RigidTransform3d();
+            TCB.mulInverseLeft (myBodyB.getPose(), TCW);
+            joint = new SphericalJoint (myBodyA, TCA, myBodyB, TCB);
          }
          connector = joint;
       }

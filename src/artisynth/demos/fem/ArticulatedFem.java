@@ -166,21 +166,21 @@ public class ArticulatedFem extends RootModel {
             model.attachPoint (n, rightBox);
          }
 
-         RigidTransform3d XCA = new RigidTransform3d();
-         RigidTransform3d XCB = new RigidTransform3d();
+         RigidTransform3d TCA = new RigidTransform3d();
+         RigidTransform3d TCB = new RigidTransform3d();
          RevoluteJoint joint;
 
-         XCA.p.set (-boxLength / 2, 0, boxHeight / 2);
-         XCA.R.mulAxisAngle (1, 0, 0, Math.PI / 2);
+         TCA.p.set (-boxLength / 2, 0, boxHeight / 2);
+         TCA.R.mulAxisAngle (1, 0, 0, Math.PI / 2);
          if (lastBox == null) {
-            XCB.mul (leftBox.getPose(), XCA);
-            // XCB.mulInverseLeft (leftAnchorBox.getPose(), XCB);
-            joint = new RevoluteJoint (leftBox, XCA, XCB);
+            TCB.mul (leftBox.getPose(), TCA);
+            // TCB.mulInverseLeft (leftAnchorBox.getPose(), TCB);
+            joint = new RevoluteJoint (leftBox, TCA, TCB);
          }
          else {
-            XCB.p.set (boxLength / 2, 0, boxHeight / 2);
-            XCB.R.mulAxisAngle (1, 0, 0, Math.PI / 2);
-            joint = new RevoluteJoint (leftBox, XCA, lastBox, XCB);
+            TCB.p.set (boxLength / 2, 0, boxHeight / 2);
+            TCB.R.mulAxisAngle (1, 0, 0, Math.PI / 2);
+            joint = new RevoluteJoint (leftBox, TCA, lastBox, TCB);
          }
          RenderProps.setLineRadius (joint, 0.01);
          RenderProps.setLineColor (joint, new Color (0.15f, 0.15f, 1f));
@@ -188,10 +188,10 @@ public class ArticulatedFem extends RootModel {
          model.addRigidBodyConnector (joint);
 
          if (addLastJoint && i == nlinks - 1) {
-            XCA.p.set (boxLength / 2, 0, boxHeight / 2);
-            XCB.mul (rightBox.getPose(), XCA);
-            // XCB.mulInverseLeft (rightAnchorBox.getPose(), XCB);
-            joint = new RevoluteJoint (rightBox, XCA, XCB);
+            TCA.p.set (boxLength / 2, 0, boxHeight / 2);
+            TCB.mul (rightBox.getPose(), TCA);
+            // TCB.mulInverseLeft (rightAnchorBox.getPose(), TCB);
+            joint = new RevoluteJoint (rightBox, TCA, TCB);
             RenderProps.setLineRadius (joint, 0.01);
             RenderProps.setLineColor (joint, new Color (0.15f, 0.15f, 1f));
             joint.setAxisLength (0.5);

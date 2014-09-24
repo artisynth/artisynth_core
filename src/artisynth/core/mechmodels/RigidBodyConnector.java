@@ -923,7 +923,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
          return true;
       }
       else if (scanAttributeName (rtok, "TCA") ||
-               scanAttributeName (rtok, "XCA")) { // XCA for backward compatible
+               scanAttributeName (rtok, "TCA")) { // TCA for backward compatible
          RigidTransform3d TCA = new RigidTransform3d();
          TCA.scan (rtok);
          setTCA (TCA);

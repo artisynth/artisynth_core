@@ -60,30 +60,30 @@ public class RevoluteJoint extends JointBase
       RigidTransform3d XBW = 
          myBodyB != null ? myBodyB.getPose() : RigidTransform3d.IDENTITY;
       
-      // initialize XGD to XCD; it will get projected to XGD within
+      // initialize TGD to TCD; it will get projected to TGD within
       // myCoupling.getTheta();
-      RigidTransform3d XCA = new RigidTransform3d();
-      RigidTransform3d XGD = new RigidTransform3d();
-      getCurrentTCA (XCA);
-      getCurrentTDB (XGD);
-      XGD.mulInverseBoth (XGD, XBW);
-      XGD.mul (XAW);
-      XGD.mul (XCA);
+      RigidTransform3d TCA = new RigidTransform3d();
+      RigidTransform3d TGD = new RigidTransform3d();
+      getCurrentTCA (TCA);
+      getCurrentTDB (TGD);
+      TGD.mulInverseBoth (TGD, XBW);
+      TGD.mul (XAW);
+      TGD.mul (TCA);
       
       double theta = Math.toDegrees (
-         ((RevoluteCoupling)myCoupling).getTheta(XGD));
+         ((RevoluteCoupling)myCoupling).getTheta(TGD));
       return theta;
    }
 
    public void setTheta (double theta) {
       theta = myThetaRange.makeValid (theta);
-      RigidTransform3d XGD = new RigidTransform3d();
-      ((RevoluteCoupling)myCoupling).setTheta(XGD, Math.toRadians(theta));
+      RigidTransform3d TGD = new RigidTransform3d();
+      ((RevoluteCoupling)myCoupling).setTheta(TGD, Math.toRadians(theta));
       if (getParent() != null) {
          // if we are connected to the hierarchy, adjust the poses of the
          // attached bodies appropriately.
          RigidTransform3d XBA = new RigidTransform3d();      
-         XBA.mulInverseBoth (XGD, getTDB());
+         XBA.mulInverseBoth (TGD, getTDB());
          XBA.mul (getTCA(), XBA);
          setPoses (XBA);
       }
@@ -131,34 +131,34 @@ public class RevoluteJoint extends JointBase
       myCoupling.setContactDistance (1e-8);
    }
 
-   public RevoluteJoint (RigidBody bodyA, RigidTransform3d XCA,
+   public RevoluteJoint (RigidBody bodyA, RigidTransform3d TCA,
    RigidBody bodyB, RigidTransform3d XDB) {
       this();
-      setBodies (bodyA, XCA, bodyB, XDB);
+      setBodies (bodyA, TCA, bodyB, XDB);
    }
 
-   public RevoluteJoint (RigidBody bodyA, RigidTransform3d XCA,
-   RigidTransform3d XDW) {
+   public RevoluteJoint (RigidBody bodyA, RigidTransform3d TCA,
+   RigidTransform3d TDW) {
       this();
-      setBodies (bodyA, XCA, null, XDW);
+      setBodies (bodyA, TCA, null, TDW);
    }
    
-   public RevoluteJoint (RigidBody bodyA, RigidTransform3d XCW) {
+   public RevoluteJoint (RigidBody bodyA, RigidTransform3d TCW) {
       this();
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidTransform3d TCA = new RigidTransform3d();
       
-      XCA.mulInverseLeft(bodyA.getPose(), XCW);
-      setBodies(bodyA, XCA, null, XCW);
+      TCA.mulInverseLeft(bodyA.getPose(), TCW);
+      setBodies(bodyA, TCA, null, TCW);
    }
 
-   public RevoluteJoint (RigidBody bodyA, RigidBody bodyB, RigidTransform3d XCW) {
+   public RevoluteJoint (RigidBody bodyA, RigidBody bodyB, RigidTransform3d TCW) {
       this();
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
       
-      XCA.mulInverseLeft(bodyA.getPose(), XCW);
-      XDB.mulInverseLeft(bodyB.getPose(), XCW);
-      setBodies(bodyA, XCA, bodyB, XDB);
+      TCA.mulInverseLeft(bodyA.getPose(), TCW);
+      XDB.mulInverseLeft(bodyB.getPose(), TCW);
+      setBodies(bodyA, TCA, bodyB, XDB);
    }
 
    public RenderProps createRenderProps() {
@@ -184,13 +184,13 @@ public class RevoluteJoint extends JointBase
    // }
 
    private void computeAxisEndPoints (
-      Point3d p0, Point3d p1, RigidTransform3d XDW) {
+      Point3d p0, Point3d p1, RigidTransform3d TDW) {
       Vector3d uW = new Vector3d(); // joint axis vector in world coords
 
       // first set p0 to contact center in world coords
-      p0.set (XDW.p);
+      p0.set (TDW.p);
       // now get axis unit vector in world coords
-      uW.set (XDW.R.m02, XDW.R.m12, XDW.R.m22);
+      uW.set (TDW.R.m02, TDW.R.m12, TDW.R.m22);
       p0.scaledAdd (-0.5 * myAxisLength, uW, p0);
       p1.scaledAdd (myAxisLength, uW, p0);
    }
@@ -204,8 +204,8 @@ public class RevoluteJoint extends JointBase
    }
 
    public void prerender (RenderList list) {
-      RigidTransform3d XDW = getCurrentTDW();
-      myRenderFrame.set (XDW);
+      RigidTransform3d TDW = getCurrentTDW();
+      myRenderFrame.set (TDW);
    }
 
    public void render (GLRenderer renderer, int flags) {

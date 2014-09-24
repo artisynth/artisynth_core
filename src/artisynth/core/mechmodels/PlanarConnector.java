@@ -117,9 +117,9 @@ public class PlanarConnector extends RigidBodyConnector
     */
    public void set (
       RigidBody bodyA, Vector3d pCA, RigidBody bodyB, RigidTransform3d XPB) {
-      RigidTransform3d XCA = new RigidTransform3d();
-      XCA.p.set (pCA);
-      setBodies (bodyA, XCA, bodyB, XPB);
+      RigidTransform3d TCA = new RigidTransform3d();
+      TCA.p.set (pCA);
+      setBodies (bodyA, TCA, bodyB, XPB);
    }
 
    /**
@@ -137,9 +137,9 @@ public class PlanarConnector extends RigidBodyConnector
     * XPB.p
     */
    public void set (RigidBody bodyA, Vector3d pCA, RigidTransform3d XPW) {
-      RigidTransform3d XCA = new RigidTransform3d();
-      XCA.p.set (pCA);
-      setBodies (bodyA, XCA, null, XPW);
+      RigidTransform3d TCA = new RigidTransform3d();
+      TCA.p.set (pCA);
+      setBodies (bodyA, TCA, null, XPW);
    }
 
    public void updateBounds (Point3d pmin, Point3d pmax) {
@@ -162,10 +162,10 @@ public class PlanarConnector extends RigidBodyConnector
 
    public void render (GLRenderer renderer, int flags) {
       Vector3d nrm = new Vector3d (0, 0, 1);
-      RigidTransform3d XDW = getCurrentTDW();
+      RigidTransform3d TDW = getCurrentTDW();
 
-      computeRenderVtxs (XDW);
-      nrm.transform (XDW);
+      computeRenderVtxs (TDW);
+      nrm.transform (TDW);
 
       GL2 gl = renderer.getGL2().getGL2();
       RenderProps props = myRenderProps;
@@ -184,13 +184,13 @@ public class PlanarConnector extends RigidBodyConnector
       renderer.drawPoint (myRenderProps, myRenderCoords, isSelected());
    }
 
-   protected void computeRenderVtxs (RigidTransform3d XDW) {
+   protected void computeRenderVtxs (RigidTransform3d TDW) {
       myRenderVtxs[0].set (myPlaneSize / 2, myPlaneSize / 2, 0);
       myRenderVtxs[1].set (-myPlaneSize / 2, myPlaneSize / 2, 0);
       myRenderVtxs[2].set (-myPlaneSize / 2, -myPlaneSize / 2, 0);
       myRenderVtxs[3].set (myPlaneSize / 2, -myPlaneSize / 2, 0);
       for (int i = 0; i < myRenderVtxs.length; i++) {
-         myRenderVtxs[i].transform (XDW);
+         myRenderVtxs[i].transform (TDW);
       }
    }
 

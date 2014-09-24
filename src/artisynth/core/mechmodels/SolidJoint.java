@@ -58,37 +58,37 @@ public class SolidJoint extends JointBase implements CopyableComponent {
       myCoupling = new SolidCoupling ();
    }
 
-   public SolidJoint (RigidBody bodyA, RigidTransform3d XCA,
+   public SolidJoint (RigidBody bodyA, RigidTransform3d TCA,
    RigidBody bodyB, RigidTransform3d XDB) {
       this();
-      setBodies (bodyA, XCA, bodyB, XDB);
+      setBodies (bodyA, TCA, bodyB, XDB);
    }
 
-   public SolidJoint (RigidBody bodyA, RigidTransform3d XCA,
-   RigidTransform3d XDW) {
+   public SolidJoint (RigidBody bodyA, RigidTransform3d TCA,
+   RigidTransform3d TDW) {
       this();
-      setBodies (bodyA, XCA, null, XDW);
+      setBodies (bodyA, TCA, null, TDW);
    }
    
    public SolidJoint (RigidBody bodyA, RigidBody bodyB, RigidTransform3d XWJ) {
       this();
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
       
-      XCA.mulInverseLeft(bodyA.getPose(), XWJ);
+      TCA.mulInverseLeft(bodyA.getPose(), XWJ);
       XDB.mulInverseLeft(bodyB.getPose(), XWJ);
       
-      setBodies(bodyA, XCA, bodyB, XDB);
+      setBodies(bodyA, TCA, bodyB, XDB);
       
    }
    
    public SolidJoint(RigidBody bodyA, RigidBody bodyB) {
       this();
-      RigidTransform3d XCA = new RigidTransform3d();  // identity
+      RigidTransform3d TCA = new RigidTransform3d();  // identity
       RigidTransform3d XDB = new RigidTransform3d();
       XDB.mulInverseLeft(bodyB.getPose(), bodyA.getPose());
       
-      setBodies(bodyA, XCA, bodyB, XDB);
+      setBodies(bodyA, TCA, bodyB, XDB);
    }
 
    public RenderProps createRenderProps() {
@@ -96,13 +96,13 @@ public class SolidJoint extends JointBase implements CopyableComponent {
    }
 
    private void computeAxisEndPoints (
-      Point3d p0, Point3d p1, RigidTransform3d XDW) {
+      Point3d p0, Point3d p1, RigidTransform3d TDW) {
       Vector3d uW = new Vector3d(); // joint axis vector in world coords
 
       // first set p0 to contact center in world coords
-      p0.set (XDW.p);
+      p0.set (TDW.p);
       // now get axis unit vector in world coords
-      uW.set (XDW.R.m02, XDW.R.m12, XDW.R.m22);
+      uW.set (TDW.R.m02, TDW.R.m12, TDW.R.m22);
       p0.scaledAdd (-0.5 * myAxisLength, uW, p0);
       p1.scaledAdd (myAxisLength, uW, p0);
    }
@@ -116,8 +116,8 @@ public class SolidJoint extends JointBase implements CopyableComponent {
    }
 
    public void prerender (RenderList list) {
-      RigidTransform3d XDW = getCurrentTDW();
-      myRenderFrame.set (XDW);
+      RigidTransform3d TDW = getCurrentTDW();
+      myRenderFrame.set (TDW);
    }
 
    public void render (GLRenderer renderer, int flags) {

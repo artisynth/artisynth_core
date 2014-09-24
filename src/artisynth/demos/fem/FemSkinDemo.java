@@ -152,11 +152,11 @@ public class FemSkinDemo extends RootModel {
       RigidBody leftBody = createBlock ("leftBlock", wx, wy, wz);
       leftBody.setPose (new RigidTransform3d (-transx, 0, 0));
 
-      RigidTransform3d XCW = new RigidTransform3d();
+      RigidTransform3d TCW = new RigidTransform3d();
 
-      XCW.p.set (-transx-wx/2, 0, wz/2);
-      XCW.R.mulAxisAngle (1, 0, 0, Math.PI / 2);
-      RevoluteJoint joint = new RevoluteJoint (leftBody, XCW);
+      TCW.p.set (-transx-wx/2, 0, wz/2);
+      TCW.R.mulAxisAngle (1, 0, 0, Math.PI / 2);
+      RevoluteJoint joint = new RevoluteJoint (leftBody, TCW);
       RenderProps.setLineRadius (joint, 0.01);
       joint.setAxisLength (0.4);
       myMech.addRigidBodyConnector (joint);
@@ -166,9 +166,9 @@ public class FemSkinDemo extends RootModel {
       RigidBody rightBody = createBlock ("rightBlock", wx, wy, wz);
       rightBody.setPose (new RigidTransform3d (transx, 0, 0));
 
-      XCW.p.set (transx+wx/2, 0, wz/2);
-      XCW.R.setAxisAngle (1, 0, 0, Math.PI / 2);
-      joint = new RevoluteJoint (rightBody, XCW);
+      TCW.p.set (transx+wx/2, 0, wz/2);
+      TCW.R.setAxisAngle (1, 0, 0, Math.PI / 2);
+      joint = new RevoluteJoint (rightBody, TCW);
       RenderProps.setLineRadius (joint, 0.01);
       joint.setAxisLength (0.4);
       myMech.addRigidBodyConnector (joint);

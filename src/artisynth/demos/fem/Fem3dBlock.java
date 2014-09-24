@@ -229,12 +229,12 @@ public class Fem3dBlock extends RootModel {
 
       RenderProps.setPointStyle (mechMod, RenderProps.PointStyle.SPHERE);
 
-      RigidTransform3d XCW = new RigidTransform3d();
-      RigidTransform3d XCA = new RigidTransform3d();
-      XCA.p.set (0, 0, wz / 2);
-      XCA.R.mulAxisAngle (1, 0, 0, Math.PI / 2);
-      XCW.mul (X, XCA);
-      RevoluteJoint joint = new RevoluteJoint (leftBody, XCA, XCW);
+      RigidTransform3d TCW = new RigidTransform3d();
+      RigidTransform3d TCA = new RigidTransform3d();
+      TCA.p.set (0, 0, wz / 2);
+      TCA.R.mulAxisAngle (1, 0, 0, Math.PI / 2);
+      TCW.mul (X, TCA);
+      RevoluteJoint joint = new RevoluteJoint (leftBody, TCA, TCW);
       RenderProps.setLineRadius (joint, 0.01);
       mechMod.addRigidBodyConnector (joint);
 

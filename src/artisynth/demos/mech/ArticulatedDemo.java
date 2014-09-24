@@ -277,43 +277,43 @@ public class ArticulatedDemo extends RootModel {
 
       // create the spherical joint(s)
 
-      RigidTransform3d XCW = new RigidTransform3d();
-      RigidTransform3d XCA = new RigidTransform3d();
+      RigidTransform3d TCW = new RigidTransform3d();
+      RigidTransform3d TCA = new RigidTransform3d();
       if (body0 != null) {
-         XCA.setIdentity();
-         XCA.p.set (0, 0, -len / 2);
-         XCW.mul (XLinkToWorld, XCA);
+         TCA.setIdentity();
+         TCA.p.set (0, 0, -len / 2);
+         TCW.mul (XLinkToWorld, TCA);
          SphericalJoint joint0;
          if (body0 == ground) {
-            joint0 = new SphericalJoint (link, XCA, XCW);
+            joint0 = new SphericalJoint (link, TCA, TCW);
          }
          else {
-            RigidTransform3d XCB = new RigidTransform3d();
-            XCB.mulInverseLeft (body0.getPose(), XCW);
-            joint0 = new SphericalJoint (link, XCA, body0, XCB);
+            RigidTransform3d TCB = new RigidTransform3d();
+            TCB.mulInverseLeft (body0.getPose(), TCW);
+            joint0 = new SphericalJoint (link, TCA, body0, TCB);
          }
          mechMod.addRigidBodyConnector (joint0);
       }
       if (body1 != null) {
-         XCA.setIdentity();
-         XCA.p.set (0, 0, len / 2);
-         XCW.mul (XLinkToWorld, XCA);
+         TCA.setIdentity();
+         TCA.p.set (0, 0, len / 2);
+         TCW.mul (XLinkToWorld, TCA);
          SphericalJoint joint1;
          if (body1 == ground) {
-            joint1 = new SphericalJoint (link, XCA, XCW);
+            joint1 = new SphericalJoint (link, TCA, TCW);
          }
          else {
-            RigidTransform3d XCB = new RigidTransform3d();
-            XCB.mulInverseLeft (body1.getPose(), XCW);
-            joint1 = new SphericalJoint (link, XCA, body1, XCB);
+            RigidTransform3d TCB = new RigidTransform3d();
+            TCB.mulInverseLeft (body1.getPose(), TCW);
+            joint1 = new SphericalJoint (link, TCA, body1, TCB);
          }
          mechMod.addRigidBodyConnector (joint1);
       }
       if (usePlanarContacts) { // set up a unilateral constraint at the tip
-         XCW.setIdentity();
-         XCW.p.set (0, 0, zPlane);
+         TCW.setIdentity();
+         TCW.p.set (0, 0, zPlane);
          Point3d pCA = new Point3d (0, 0, len / 2);
-         PlanarConnector contact = new PlanarConnector (link, pCA, XCW);
+         PlanarConnector contact = new PlanarConnector (link, pCA, TCW);
          contact.setUnilateral (true);
          contact.setPlaneSize (20);
          mechMod.addRigidBodyConnector (contact);

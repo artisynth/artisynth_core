@@ -18,21 +18,21 @@ General sized vectors and matrices are implemented by
 \javaclass[maspack.matrix]{VectorNd} and
 \javaclass[maspack.matrix]{MatrixNd}. These provide all the usual
 methods for linear algebra operations such as addition, scaling, and
-multiplication.
+multiplication:
 %
 \begin{lstlisting}[]
-  VectorNd v1 = new VectorNd (5); // create a 5 element vector
+  VectorNd v1 = new VectorNd (5);        // create a 5 element vector
   VectorNd v2 = new VectorNd (5); 
   VectorNd vr = new VectorNd (5); 
-  MatrixNd M = new MatrixNd (5, 5); // create a 5 x 5 matrix
+  MatrixNd M = new MatrixNd (5, 5);      // create a 5 x 5 matrix
 
-  M.setIdentity(); // turn M into a diagonal scaling matrix
-  M.scale (4);
+  M.setIdentity();                       // M = I
+  M.scale (4);                           // M = 4*M
 
   v1.set (new double[] {1, 2, 3, 4, 5}); // set values
   v2.set (new double[] {0, 1, 0, 2, 0});
-  v1.add (v2);
-  M.mul (vr, v1);
+  v1.add (v2);                           // v1 += v2
+  M.mul (vr, v1);                        // vr = M*v1
 
   System.out.println ("result=" + vr.toString ("%8.3f"));
 \end{lstlisting}
@@ -49,9 +49,9 @@ The output from the above example is
 %
 Detailed specifications for the format string are provided in the
 documentation for \javamethod[maspack.util]{NumberFormat.set(String)}.
-If no format string is specified, {\tt toString()} formats all numbers
-using the full-precision output provided by {\tt
-Double.toString(value)}.
+If either no format string, or the string {\tt "\%g"}, is specified,
+{\tt toString()} formats all numbers using the full-precision output
+provided by {\tt Double.toString(value)}.
 
 For computational efficiency, a number of fixed-size vectors and
 matrices are also provided. The most commonly used are those defined
@@ -79,7 +79,7 @@ and \javaclass[maspack.matrix]{Matrix3d}:
 {\tt maspack.matrix} contains a number classes that implement rotation
 matrices, rigid transforms, and affine transforms. 
 
-Rotations (Section \ref{Rotations:sec}) are commonly described using
+Rotations (Section \ref{Rotations:sec}) are commonly described using a
 \javaclass[maspack.matrix]{RotationMatrix3d}, which implements a
 rotation matrix and contains numerous methods for setting rotation
 values and transforming other quantities. Some of the more commonly
@@ -157,7 +157,7 @@ an implied homogeneous representation of
 \v^* \equiv \matl \v \\ 0 \matr,
 \end{equation}
 %
-while that for a point {\tt p} is
+while the representation for a point {\tt p} is
 %
 \begin{equation}
 \p^* \equiv \matl \p \\ 1 \matr.
@@ -168,7 +168,7 @@ Both classes provide a number of methods for applying rotational and
 affine transforms. Those used for rotations are
 %
 \begin{lstlisting}
-  void transform (R);		  // this = R * this
+  void transform (R);             // this = R * this
   void transform (R, v1);         // this = R * v1
   void inverseTransform (R);      // this = inverse(R) * this
   void inverseTransform (R, v1);  // this = inverse(R) * v1
@@ -179,7 +179,7 @@ in the case of {\tt Point3d}).
 
 The methods for applying rigid or affine transforms include:
 \begin{lstlisting}
-  void transform (X);	          // transforms this by X         
+  void transform (X);             // transforms this by X         
   void transform (X, v1);         // sets this to v1 transformed by X
   void inverseTransform (X);      // transforms this by the inverse of X
   void inverseTransform (X, v1);  // sets this to v1 transformed by inverse of X
@@ -191,7 +191,13 @@ matrix component ({\tt R} for a {\tt RigidTransform3d} and {\tt A} for
 an {\tt AffineTransform3d}).
 In particular, that means that for a {\tt RigidTransform3d} given by {\tt X}
 and a {\tt Vector3d} given by {\tt v},
-the method calls {\tt v.transform (X.R)} and {\tt v.transform (X)}
+the method calls
+%
+\begin{lstlisting}
+  v.transform (X.R)
+  v.transform (X)
+\end{lstlisting}
+%
 produce the same result.
 
 \subsection{Spatial vectors and inertias}
@@ -249,20 +255,20 @@ adding and accessing vertices. Some of these include:
 \begin{lstlisting}[]
   int getNumVertices();              // return the number of vertices
   Vertex3d getVertex (int idx);      // return the idx-th vertex
-  void addVertex (Vertex3d vtx);     // add vertex vtx
+  void addVertex (Vertex3d vtx);     // add vertex vtx to the mesh
   Vertex3d addVertex (Point3d p);    // create and return a vertex at position p
-  void removeVertex (Vertex3d vtx);  // remove vertex vtx
+  void removeVertex (Vertex3d vtx);  // remove vertex vtx for the mesh
   ArrayList<Vertex3d> getVertices(); // return the list of vertices
 \end{lstlisting}
 %
 Vertices are implemented by \javaclass[maspack.geometry]{Vertex3d},
 which defines the position of the vertex (returned by the method
-\javamethod*[maspack.geometry.Vertex3d]{getPosition()}, and also
-contains support for topological connections. In addition, each mesh
+\javamethod*[maspack.geometry.Vertex3d]{getPosition()}), and also
+contains support for topological connections. In addition, each vertex
 maintains an index, obtainable via
 \javamethod*[maspack.geometry.Vertex3d]{getIndex()}, that equals the
-index of it's location within the mesh's vertex list. This makes it
-easy to set up parallel array structures for augmenting mesh
+index of its location within the mesh's vertex list. This makes it
+easy to set up parallel array structures for augmenting mesh vertex
 properties.
 
 Mesh subclasses currently include:
@@ -271,17 +277,17 @@ Mesh subclasses currently include:
 
 \item[\protect{\javaclass[maspack.geometry]{PolygonalMesh}}]\mbox{}
 
-\javaclass[maspack.geometry]{PolygonalMesh} implements a 2D surface
+Implements a 2D surface
 mesh containing faces implemented using half-edges.
 
 \item[\protect{\javaclass[maspack.geometry]{PolylineMesh}}]\mbox{}
 
-\javaclass[maspack.geometry]{PolylineMesh} implements a mesh
+Implements a mesh
 consisting of connected line-segments (polylines).
 
 \item[\protect{\javaclass[maspack.geometry]{PointMesh}}]\mbox{}
 
-\javaclass[maspack.geometry]{PointMesh} implements a point cloud with
+Implements a point cloud with
 no topological connectivity.
 
 \end{description}
@@ -292,7 +298,7 @@ and provides a number of methods for implementing faces, including:
 \begin{lstlisting}[]
   int getNumFaces();              // return the number of faces
   Face getFace (int idx);         // return the idx-th face
-  Face addFace (int[] vidxs);     // create a face from specified vertex indices
+  Face addFace (int[] vidxs);     // create and add a face from specified vertex indices
   void removeFace (Face f);       // remove the face f
   ArrayList<Face> getFaces();     // return the list of faces
 \end{lstlisting}
@@ -335,7 +341,7 @@ However, meshes are more commonly created using either one of the
 factory methods supplied by \javaclass[maspack.geometry]{MeshFactory},
 or by reading a definition from a file (Section \ref{MeshFileIO:sec}).
 
-Some of the more commonly used factory methods the create polyhedral
+Some of the more commonly used factory methods for creating polyhedral
 meshes include:
 %
 \begin{lstlisting}[]
@@ -349,11 +355,11 @@ meshes include:
 Each factory method creates a mesh in some standard coordinate
 frame. After creation, the mesh can be transformed using the
 \javamethodAlt{maspack.geometry.MeshBase.transform(AffineTransform3dBase)}%
-{transform(X)} method, where {\tt X} is either a rigid transform (type
+{transform(X)} method, where {\tt X} is either a rigid transform (
 \javaclass[maspack.matrix]{RigidTransform3d}) or a more general affine
-transform (type \javaclass[maspack.matrix]{AffineTransform3d}).
+transform (\javaclass[maspack.matrix]{AffineTransform3d}).
 For example, to create a rotated box centered on $(5, 6, 7)$,
-once could do:
+one could do:
 %
 \begin{lstlisting}[]
   // create a box centered at the origin with widths 10, 20, 30:
@@ -366,7 +372,7 @@ once could do:
 \end{lstlisting}
 %
 One can also scale a mesh using
-\javamethodAlt{maspack.geometry.MeshBase.scale(double)}{scale(s)}
+\javamethodAlt{maspack.geometry.MeshBase.scale(double)}{scale(s)},
 where {\tt s} is a single scale factor, or
 \javamethodAlt{maspack.geometry.MeshBase.scale(double,double,double)}%
 {scale(sx,sy,sz)}, where {\tt sx}, {\tt sy}, and {\tt sz} are separate
@@ -381,7 +387,7 @@ create an ellipsoid:
   ellipsoid.scale (1.0, 2.0, 3.0);
 \end{lstlisting}
 %
-\javaclass[maspack.geomerty]{MeshFactory} can also be used to create
+\javaclass[maspack.geometry]{MeshFactory} can also be used to create
 new meshes by performing boolean operations on existing ones:
 %
 \begin{lstlisting}[]
@@ -453,7 +459,7 @@ that does not depend on the file format:
    }
 \end{lstlisting}
 %
-Here, {\tt fileName} can refer to a mesh of any formats supported by
+Here, {\tt fileName} can refer to a mesh of any format supported by
 {\tt GenericMeshReader}. Note that the mesh returned by {\tt
 readMesh()} is explicitly cast to {\tt PolygonalMesh}.  This is
 because {\tt readMesh()} returns the superclass {\tt MeshBase}, since

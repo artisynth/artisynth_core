@@ -25,10 +25,10 @@ implemented by the class
 force effector} component that exerts equal and opposite forces on the
 two points, along the line separating them, with a magnitude $f$ that
 is a function $f(l, \dot l)$ of the distance $l$ between the points,
-and its derivative $\dot l$.
+and the distance derivative $\dot l$.
 
 Each axial spring is associated with an {\it axial material},
-implemented by subclass of
+implemented by a subclass of
 \javaclass[artisynth.core.materials]{AxialMaterial}, that specifies
 the function $f(l, \dot l)$. The most basic type of axial material is
 a \javaclass[artisynth.core.materials]{LinearAxialMaterial}, which
@@ -39,8 +39,8 @@ f(l, \dot l) = k (l-l_0) + d \dot l
 \end{equation}
 %
 where $l_0$ is the rest length and $k$ and $d$ are the stiffness and
-damping. Both $k$ and $d$ are properties of the material, while $l_0$
-is a property of the spring. 
+damping terms. Both $k$ and $d$ are properties of the material, while
+$l_0$ is a property of the spring.
 
 Axial springs are assigned a linear axial material by default.  More
 complex, non-linear axial materials may be defined in the package {\tt
@@ -76,11 +76,11 @@ definitions for other classes that will be used.
 The model application class is named {\tt ParticleSpring} and declared
 to extend {\tt RootModel} (line 13), and the {\tt build()} method
 definition begins at line 15. (A no-args constructor is also needed,
-but because no other constructors are defined, an empty one is created
-automatically.)
+but because no other constructors are defined, the compiler creates
+one automatically.)
 
 To begin, the {\tt build()} method creates a {\tt MechModel} named
-{\tt "mech"}, and then adds it to the models list of the root model
+{\tt "mech"}, and then adds it to the {\tt models} list of the root model
 using the {\tt addModel()} method (lines 18-19). Next, two particles,
 {\tt p1} and {\tt p2}, are created, with masses equal to 2 and initial
 positions at 0, 0, 0, and 1, 0, 0, respectively (lines 22-23). Then an
@@ -88,7 +88,7 @@ axial spring is created, with end points set to {\tt p1} and {\tt p2},
 and assigned a linear material with a stiffness and damping of 20 and
 10 (lines 24-27). Finally, after the particles and the spring are
 created, they are added to the {\tt particles} and {\tt axialSprings}
-component lists of the {\tt MechModel} using the methods {\tt
+lists of the {\tt MechModel} using the methods {\tt
 addParticle()} and {\tt addAxialSpring()} (lines 30-32).
 
 At this point in the code, both particles are defined to be
@@ -105,7 +105,7 @@ rendered.  {\tt setBounds()} (line 37) increases the model's "bounding
 box" so that by default it will occupy a larger part of the viewer
 frustum. Both {\tt setPointRenderProps()} and {\tt
 setLineRenderProps()} are convenience methods defined by the class
-(lines 44-48 and 5054) to set render properties for points and
+(lines 44-48 and 50-54) to set render properties for points and
 springs, respectively. Points are set to be rendered as red spheres
 with a radius of 0.06, while springs are set to be rendered as blue
 cylinders with a radius of 0.02. More details about setting render
@@ -125,7 +125,7 @@ to the forces applied to it. However, it is also possible to set a
 dynamic component's {\tt dynamic} property to {\tt false}, so that it
 does not respond to force inputs.  As shown in the example above, this
 can be done using the method
-\javamethod*[artisynth.core.mechmodels.DynamicComponent]{setDynamic()}:
+{\tt setDynamic()}:
 %
 \begin{verbatim}
   comp.setDynamic (false);
@@ -135,7 +135,7 @@ The method
 \javamethod*[artisynth.core.mechmodels.DynamicComponent]{isDynamic()}
 can be used to query the {\tt dynamic} property.
 
-Dynamic components can also be {\tt attached} to other dynamic
+Dynamic components can also be {\it attached} to other dynamic
 components (as mentioned in Section \ref{PhysicsSimulation:sec}) so
 that their positions and velocities are controlled by the {\it master}
 components that they are attached to.  To attach a dynamic component,
@@ -174,16 +174,16 @@ Section \ref{SimulationControl:sec}.
 Component is attached. The method
 \javamethod*[artisynth.core.mechmodels.DynamicComponent]{isAttached()}
 returns {\tt true}. The component will move so as to follow the other
-component(s) to which it is attached.
+master component(s) to which it is attached.
 
 \end{description}
 
-TODO setTargetPos
-
 \subsubsection{Custom axial materials}
 
-Application authors may also create their
-own materials by subclassing the functions
+Application authors may create their
+own axial materials by subclassing 
+\javaclass[artisynth.core.materials]{AxialMaterial}
+and overriding the functions
 %
 \begin{lstlisting}[]
   double computeF (l, ldot, l0, excitation);
@@ -206,8 +206,8 @@ f (l, \dot l, a), \quad
 \end{equation}
 %
 respectively, while the last method should return {\tt true} if
-$\partial f(l, \dot l, a) / \partial \dot l \equiv 0$; i.e., if it always
-equals 0.
+$\partial f(l, \dot l, a) / \partial \dot l \equiv 0$; i.e., if it is
+always equals to 0.
 
 \subsubsection{Damping parameters}
 
@@ -217,7 +217,7 @@ dynamic component velocities, and is usually the major source of
 energy dissipation in the model. Damping forces can be generated by
 the spring components themselves, as described above.
 
-A general damping can also be set for all particles by setting the
+A general damping can be set for all particles by setting the
 {\tt MechModel}'s {\tt pointDamping} property. This causes
 a force
 %
@@ -244,7 +244,7 @@ property can be set and queried in code using methods of the form
   setPropX (T d);
   T getPropX();
 \end{verbatim}
-where {\tt T} is the class type associated with the property.
+where {\tt T} is the type associated with the property.
 \end{sideblock}
 
 {\tt pointDamping} can also be set for particles individualy.  This
@@ -286,7 +286,7 @@ points attached to dynamic components in the model. Markers are used
 for graphical display, implementing attachments, and transmiting
 forces back onto the underlying dynamic components.
 
-A {\tt frame marker} is a marker that can be attached to a
+A {\it frame marker} is a marker that can be attached to a
 \javaclass[artisynth.core.mechmodels]{Frame}, and most commonly to a
 \javaclass[artisynth.core.mechmodels]{RigidBody} (Figure
 \ref{frameMarker:fig}). They are frequently used to provide the
@@ -335,7 +335,8 @@ A simple rigid body-spring model is defined in
   artisynth.demos.tutorial.RigidBodySpring
 \end{verbatim}
 %
-This differs from ParticleSpring only in the {\tt build()} method:
+This differs from ParticleSpring only in the {\tt build()} method,
+which is listed below:
 \lstset{numbers=left}
 \begin{lstlisting}
    public void build (String[] args) {
@@ -375,22 +376,23 @@ This differs from ParticleSpring only in the {\tt build()} method:
       setLineRenderProps (spring);
    }
 \end{lstlisting}
-\lstset{numbers=none}
-The differences begin at line 9. Instead of creating a second
-particle, a rigid body is created using the factory method
+\lstset{numbers=none} 
+The differences from {\tt ParticleSpring} begin
+at line 9. Instead of creating a second particle, a rigid body is
+created using the factory method
 \javamethod*[artisynth.core.mechmodels]{RigidBody.createBox()}, which
-takes x, y, z widths and (uniform) density and creates a box-shaped
+takes x, y, z widths and a (uniform) density and creates a box-shaped
 rigid body complete with surface mesh and appropriate mass and
 inertia. As the box is initially centered at the origin, moving it
 elsewhere requires setting the body's pose, which is done using {\tt
 setPose()}. The {\tt RigidTransform3d} passed to {\tt setPose()} is
 created using a three-argument constructor that generates a
 translation-only transform.  Next, starting at line 14, a {\tt
-FrameMarker} is created for a location $-0.25, 0, 0$ relative to the
-rigid body, and the attached to the body using its {\tt setFrame()}
+FrameMarker} is created for a location $(-0.25, 0, 0)^T$ relative to the
+rigid body, and attached to the body using its {\tt setFrame()}
 method.
 
-The remainder of the build is the same as for ParticleSpringDemo,
+The remainder of {\tt build()} is the same as for {\tt ParticleSpring},
 except that the spring is attached to the frame marker instead of a
 second particle.
 
@@ -426,10 +428,10 @@ factory methods for creating a rigid body directly from a mesh:
 %
 These take either a polygonal mesh (Section \ref{Meshes:sec}), or a
 file name from which a mesh is read, and use it as the body's surface
-mesh and then compute the mass and inertia properties from a specified
-uniform density.
+mesh and then compute the mass and inertia properties from the specified
+(uniform) density.
 
-Alternatively, once can create a rigid body directly from a
+Alternatively, one can create a rigid body directly from a
 constructor, and then set the mesh and inertia properties explicitly:
 %
 \begin{lstlisting}[]
@@ -458,10 +460,10 @@ queried using the methods
 These use a \javaclass[maspack.matrix]{RigidTransform3d} (Section
 \ref{RigidTransform3d:sec}) to describe the pose. Body poses are
 described in world coordinates and specify the transform from body to
-world coordinates. In particular, the pose for a body A would specify
+world coordinates. In particular, the pose for a body A specifies
 the rigid transform $\T_{AW}$.
 
-Rigid bodies also expose the position and rotational components of
+Rigid bodies also expose the translational and rotational components of
 their pose via the properties {\tt position} and {\tt orientation},
 which can be queried and set independently using the methods
 %
@@ -479,7 +481,9 @@ which can be queried and set independently using the methods
 The velocity of a rigid body is described using a
 \javaclass[maspack.spatialmotion]{Twist} (Section
 \ref{SpatialVectors:sec}), which contains both the translational and
-rotational velocities. The methods
+rotational velocities. The following methods
+set and query the spatial velocity as described with respect to world
+coordinates:
 %
 \begin{lstlisting}[]
   setVelocity (Twist v);         // sets the spatial velocity to v
@@ -487,14 +491,15 @@ rotational velocities. The methods
   Twist getVelocity();           // returns current spatial velocity (read-only)
 \end{lstlisting}
 %
-set and query the spatial velocity as described with respect to world
-coordinates.
 
-During simulation, the pose and velocity of a rigid body are typically
-updated in response to forces, so setting the pose or velocity
-generally makes only for setting initial conditions.
-
-TODO setTargetPos
+During simulation, unless a rigid body has been set to be {\it
+parametric} (Section \ref{DynamicVsParametric:sec}), its pose and
+velocity are updated in response to forces, so setting the pose or
+velocity generally makes sense only for setting initial conditions.
+On the other hand, if a rigid body is parametric, then it is possible
+to control its pose during the simulation, but in that case it is
+better to set its {\it target pose} and/or {\it target velocity}, as
+described in Section \ref{ControllerImplementation:sec}.
 
 \subsubsection{Inertia and meshes}
 
@@ -523,7 +528,7 @@ The inertia of a rigid body can be explicitly set using a variety
 of methods including
 %
 \begin{lstlisting}
-  setInertia (M)		    // SpatialInertia
+  setInertia (M)                    // SpatialInertia
   setInertia (mass, Jxx, Jyy, Jzz); // mass and diagonal rotational inertia
   setInertia (mass, J);             // mass and full rotational inertia
   setInertia (mass, J, com);        // mass, rotational inertia, center-of-mass
@@ -762,7 +767,8 @@ $\T_{CA}$ and $\T_{DB}$ from
 where $\T_{AW}$ and $\T_{BW}$ are the poses of A and B.
 The same body and transform settings can be made on an existing
 joint using the method
-\javamethodAlt{artisynth.core.mechmodels.RigidBodyConnector.setBodies()}
+\javamethodAlt{%
+artisynth.core.mechmodels.RigidBodyConnector.setBodies(,,)}
 {setBodies(bodyA, bodyB, XDW)}.
 
 Alternatively, if we prefer to specify $\T_{CA}$ or $\T_{BA}$, then we
@@ -789,7 +795,7 @@ the following code fragment:
 %
 
 Another method,
-\javamethodAlt{artisynth.core.mechmodels.RigidBodyConnector.setBodies()}
+\javamethodAlt{artisynth.core.mechmodels.RigidBodyConnector.setBodies(,,,)}
 {setBodies(bodyA, XCA, bodyB, XDB)}, allows us to set both values of
 $\T_{CA}$ or $\T_{BA}$ explicity. This is useful if the joint
 transform $\T_{CD}$ is known to be some value {\it other} than the
@@ -830,7 +836,7 @@ Some joint implementations provide the ability to explictly set the
 joint parameter(s) after it has been created and added to the {\tt
 MechModel}, making it easy to "move" the joint to a specific
 configuration. For example, {\tt RevoluteJoint} provides the method
-\javamethod*[artisynth.core.mechmodels.RevolutJoint]{setTheta()}.
+\javamethod*[artisynth.core.mechmodels.RevoluteJoint]{setTheta()}.
 This causes the transform $\T_{CD}$ to be explicity set to the value
 implied by the joint parameters, and the pose of either body A or B is
 changed to accommodate this. Whether body A or B is moved depends on
@@ -1144,11 +1150,11 @@ dr}.
 
 The bodies and transforms can be set in the same manner as for joints
 (Section \ref{CreatingJoints:sec}), with the methods
-\javamethodAlt{artisynth.core.mechmodels.FrameSpring.setFrames(Frame,Frame,RigidTranform3d)}{setFrames(bodyA,bodyB,TDW)}
+\javamethodAlt{artisynth.core.mechmodels.FrameSpring.setFrames(Frame,Frame,RigidTransform3d)}{setFrames(bodyA,bodyB,TDW)}
 and
-\javamethodAlt{artisynth.core.mechmodels.FrameSpring.setFrames(Frame,RigidTransfrom3d,Frame,RigidTranform3d)}{setFrames(bodyA,TCA,bodyB,TDB)}
-assuming the role of {setBodies(bodyA,bodyB,TDW)} and
-{setBodies(bodyA,TCA,bodyB,TDB)} (rigid bodies are instances of the
+\javamethodAlt{artisynth.core.mechmodels.FrameSpring.setFrames(Frame,RigidTransform3d,Frame,RigidTransform3d)}{setFrames(bodyA,TCA,bodyB,TDB)}
+assuming the role of {\tt setBodies(bodyA,bodyB,TDW)} and
+{\tt setBodies(bodyA,TCA,bodyB,TDB)} (rigid bodies are instances of the
 more general {\tt Frame} class). The former takes D specified in
 worlds coordinates and computes $\T_{CA}$ and $\T_{DB}$ assuming that
 there is no initial spring displacement (i.e., that $\T_{DC} = \I$),
@@ -1303,7 +1309,7 @@ Running the model (Section \ref{LoadingAndRunning:sec}) will cause
 arrests the motion. To get a sense of the spring's behavior, one can
 interactively apply forces to {\tt lumbar1} using the pull manipulator
 (see the section "Pull Manipulator" in the
-\href{http://www.artisynth.org/doc/html/uiguide/uiguide.html}{
+\href{../uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}).
 
 \subsection{Attachments}
@@ -1342,7 +1348,7 @@ and pose of {\tt p1} and {\tt body}.  Once {\tt p1} is attached, it
 will in the {\it attached} state, as described in Section
 \ref{DynamicVsParametric:sec}.
 An attachment can be removed by calling 
-\javamethod*[artisynth.core.mechmodels.MechModel]{dettachPoint()}.
+\javamethod*[artisynth.core.mechmodels.MechModel]{detachPoint()}.
 Finite element attachments are
 discussed in Section \ref{NodeAttachments:sec}.
 
@@ -1527,7 +1533,4 @@ more likely to produce stable results, particularly for
 problems involving FEM collisions.
 
 \end{description}
-
-
-
 

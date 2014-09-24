@@ -298,7 +298,7 @@ controlled using two equivalent methods:
 %
 where {\tt enabled} is {\tt true} or {\tt false} depending on whether
 collisions are enabled or not, and {\tt behavior} is a
-\javaclass[artisynth.core.modelbase]{CollisionBehavior} object that
+\javaclass[artisynth.core.mechmodels]{CollisionBehavior} object that
 specifies both {\it enabled} and {\it mu}.
 In addition, collisions can be controlled for specific {\it types}
 of collidables using
@@ -417,14 +417,14 @@ between the two meshes as shown in Figure~\ref{Collision:fig}.
 
 \begin{figure}[ht]
 \begin{center}
-	\begin{tabular}{ccc}
-	\includegraphics[width=0.31\textwidth]{images/femCollide1} &
-	\includegraphics[width=0.31\textwidth]{images/femCollide2} &
-	\includegraphics[width=0.31\textwidth]{images/femCollide3}\\
-%	\end{tabular}
-%	\begin{tabular}{p{1.2cm}p{3.5cm}p{3.5cm}p{3.5cm}} 
-	 \large  $\mathrm{t}=0$s & \large $\mathrm{t}=0.25$s & \large $\mathrm{t}=0.5$s 	
-	\end{tabular}
+        \begin{tabular}{ccc}
+        \includegraphics[width=0.31\textwidth]{images/femCollide1} &
+        \includegraphics[width=0.31\textwidth]{images/femCollide2} &
+        \includegraphics[width=0.31\textwidth]{images/femCollide3}\\
+%       \end{tabular}
+%       \begin{tabular}{p{1.2cm}p{3.5cm}p{3.5cm}p{3.5cm}} 
+         \large  $\mathrm{t}=0$s & \large $\mathrm{t}=0.25$s & \large $\mathrm{t}=0.5$s         
+        \end{tabular}
 \end{center}
 \caption{Time sequence of contact handling between two deformable models 
 falling under gravity, 
@@ -513,7 +513,7 @@ Render properties can also be set in the GUI by selecting one or more
 components and the choosing {\sf Set render props ...}  in the
 right-clock context menu. More details on setting render properties
 through the GUI can be found in the section "Render properties" in the
-\href{http://www.artisynth.org/doc/html/uiguide/uiguide.html}{
+\href{../uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}.
 
 For many components, the default value of {\tt renderProps} is {\tt

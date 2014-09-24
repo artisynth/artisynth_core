@@ -37,7 +37,7 @@ method.
 
 One of the most commonly used means of adding widgets to a control
 panel is the method
-\javamethodAlt{artisynth.core.gui.ControlPanel.addMethod(HasProperties,String)}%
+\javamethodAlt{artisynth.core.gui.ControlPanel.addWidget(HasProperties,String)}%
 {addWidget(comp,propertyPath)}, which creates a widget for a property
 specified by {\tt propertyPath} with respect to a particular component
 {\tt comp}.  Property paths are discussed in the Section
@@ -49,12 +49,12 @@ Other flavors of {\tt addWidget()} also exist, as described in the API
 documentation for \javaclass[artisynth.core.gui]{ControlPanel}.  In
 addition to property widgets, any type of {\tt Swing} or {\tt awt}
 component can be added to a control panel using the method
-\javamethodAlt{artisynth.core.gui.ControlPanel.addMethod(Component)}%
+\javamethodAlt{artisynth.core.gui.ControlPanel.addWidget(Component)}%
 {addWidget(awtcomp)}.
 
 Control panels can also be created interactively using the GUI; see
 the section "Control Panels" in the
-\href{http://www.artisynth.org/doc/html/uiguide/uiguide.html}{
+\href{../uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}.
 
 \subsubsection{Example: Creating a simple control panel}
@@ -166,7 +166,7 @@ properties, either to the root model, or to a custom component.
 
 This section provides only a brief summary of how to define
 properties. Full details are available in the "Properties" section of
-the \href{http://www.artisynth.org/doc/html/maspack/maspack.html}{
+the \href{../maspack/maspack.html}{
 Maspack Reference Manual}.
 
 \subsubsection{Adding properties to a component}
@@ -347,10 +347,11 @@ trajectory.
 
 More precise details about controllers and monitors and how they
 interact with model advancement are given in the
-\href{http://www.artisynth.org/doc/html/artisynth/artisynth.html}{
+\href{../artisynth/artisynth.html}{
 ArtiSynth Reference Manual}.
 
 \subsubsection{Implemention}
+\label{ControllerImplementation:sec}
 
 Applications may declare whatever controllers or monitors they require
 and then add them to the root model using the
@@ -518,7 +519,7 @@ Its attached file can be set and queried by name using:
 %
 Details about the timeline display can be found in
 the section "The Timeline" in the
-\href{http://www.artisynth.org/doc/html/uiguide/uiguide.html}{
+\href{../uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}.
 
 There are two types of probe: {\it input probes}, which are applied at
@@ -608,7 +609,7 @@ However, it is possible to establish more complex mappings between the
 property values and the interpolated vector. These mappings are beyond
 the scope of this document, but are discussed in the sections "General
 input probes" and "General output probes" of the
-\href{http://www.artisynth.org/doc/html/uiguide/uiguide.html}{
+\href{../uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}.
 
 \subsubsection{Creating probes in code}
@@ -616,7 +617,7 @@ ArtiSynth User Interface Guide}.
 This section discusses how to create numeric probes in code.  They can
 also be created and added to a model graphically, as described in the
 section "Adding and Editing Numeric Probes" in the
-\href{http://www.artisynth.org/doc/html/uiguide/uiguide.html}{
+\href{../uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}.
 
 Numeric probes have a number of constructors and methods that make it

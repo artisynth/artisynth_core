@@ -13,7 +13,7 @@ visual effects.
 \subsection{System structure}
 
 An ArtiSynth model is composed of a hierarchy of models and model
-components (Figure ref{components:fig}) which are implemented by
+components which are implemented by
 various Java classes. These may include sub-models (including finite
 element models), particles, rigid bodies, springs, connectors, and
 constraints.  The component hierarchy may be in turn connected to
@@ -52,26 +52,31 @@ CompositeComponent} which simply contains a list of other components
 (such as particles, rigid bodies, sub-models, etc.).
 
 Components which contain state information (such as position and
-velocity) should extend {\tt HasState}, which provides
-the methods
+velocity) should extend 
+\javaclass[artisynth.core.modelbase]{HasState}, 
+which provides the methods
 \javamethod*[artisynth.core.modelbase.HasState]{getState()}
 and
 \javamethod*[artisynth.core.modelbase.HasState]{setState()}
 for saving and restoring state.
 
-A {\tt Model} is a sub-interface of {\tt CompositeComponent} and {\tt
+A
+\javaclass[artisynth.core.modelbase]{Model}
+is a sub-interface of {\tt CompositeComponent} and {\tt
 HasState} that contains the notion of advancing through time and which
 implements this with the methods {\tt initialize(t0)} and {\tt
-advance(t0, t1, flags)}. The most common instance of {\tt Model} used
+advance(t0, t1, flags)}, as discussed further in
+Section \ref{ModelAdvancement:sec}.
+The most common instance of {\tt Model} used
 in ArtiSynth is {\tt MechModel} (Section \ref{MechModel:sec}), which
 is the top-level container for a mechanical or biomechanical model.
 
 \subsubsection{The RootModel}
 \label{RootModel:sec}
 
-The top-level component in the hierarchy is the root model, which is a
-subclass of \javaclass[artisynth.core.workspace]{RootModel} and
-which contains a list of models along with lists of agents used to
+The top-level component in the hierarchy is the {\it root model},
+which is a subclass of \javaclass[artisynth.core.workspace]{RootModel}
+and which contains a list of models along with lists of agents used to
 control and interact with these models. The component lists in {\tt
 RootModel} include:
 
@@ -132,7 +137,8 @@ The root model has it's own
 \javamethod*[artisynth.core.workspace.RootModel]{advance()}, which in
 turn calls the advance method for all of the top-level models, in
 sequence. The advance of each model is surrounded by the application
-whatever agents are associated with that model. This is done
+of whatever 
+agents are associated with that model. This is done
 by calling the agent's {\tt apply()} method:
 \begin{lstlisting}[]
    model.preadvance (t0, t1);
@@ -150,12 +156,11 @@ by calling the agent's {\tt apply()} method:
       p.apply (t1);
    }
 \end{lstlisting}
-Agents not associated with a specific model are applied by the root
-model's {\tt advance()} method before (or after) the advance of all
-other models.
+Agents not associated with a specific model are applied before (or
+after) the advance of all other models.
 
 More precise details about model advancement are given in the 
-\href{http://www.artisynth.org/doc/html/artisynth/artisynth.html}{
+\href{../artisynth/artisynth.html}{
 ArtiSynth Reference Manual}.
 
 \subsubsection{MechModel}
@@ -333,7 +338,7 @@ of the form
 \label{KKTvelocity:eqn}
 \end{gather}
 where $\w$ is a slack variable, $\Blam$ and $\z$ give the force
-constraint impulses over the time step, $\g$ and $\n$ are derivative
+constraint impulses over the time step, and $\g$ and $\n$ are derivative
 terms arising if $\G$ and $\N$ are time varying.  In addition,
 $\hat\M$ and $\hat\f$ are $\M$ and $\bar\f$ augmented with stiffness
 and damping terms terms to accommodate implicit integration, which
@@ -347,10 +352,10 @@ the attached components using special constraints of the form
 \label{attachments:eqn}
 \end{equation}
 %
-where $\u_j$ and $\u_\alpha$ denote velocities of the attached and
+where $\u_j$ and $\u_\alpha$ denote the velocities of the attached and
 non-attached components. These constraints could be added directly to
 (\ref{KKTvelocity:eqn}), but their special form allows us to
-explicitly solve for $\u_j$, and hence actually simplify
+explicitly solve for $\u_j$, and hence reduce the size of
 (\ref{KKTvelocity:eqn}), by factoring out the attached velocities
 before solution.
 
@@ -379,7 +384,7 @@ packages, each with a number of sub-packages.
 
 The packages under {\tt maspack} contain general computational
 utilities that are independent of ArtiSynth and could be
-used in variety of other contexts. The main packages are:
+used in a variety of other contexts. The main packages are:
 
 \begin{lstlisting}[]
 maspack.util               // general utilities
@@ -399,7 +404,7 @@ maspack.apps               // stand-alone programs based only on maspack
 \subsubsection{artisynth.core}
 
 The packages under {\tt artisynth.core} contain the core code for
-ArtiSynth model components and it's GUI infrastructure.
+ArtiSynth model components and its GUI infrastructure.
 
 \begin{lstlisting}[]
 artisynth.core.util        // general ArtiSynth utilities
@@ -441,7 +446,7 @@ They are also used for automating component serialization.
 
 Properties are described only briefly in this section; 
 more detailed descriptions are available in the
-\href{http://www.artisynth.org/doc/html/maspack/maspack.html}{
+\href{../maspack/maspack.html}{
 Maspack Reference Manual} and the 
 \href{http://www.artisynth.org/doc/artisynth.pdf}{overview
 paper}.
@@ -458,7 +463,7 @@ definition, as described in Section \ref{CustomProperties:sec}.
 Each property has a unique name which may be used to obtain a {\it
 property handle} through which the property's value may be queried or
 set for a particular component. Property handles are implemented by
-the class \javaclass[maspack.property]{Property} and are returned by
+the class \javaclass[maspack.properties]{Property} and are returned by
 the component's
 \javamethod*[maspack.properties.HasProperties]{getProperty()} method.
 {\tt getProperty()} takes a property's name and returns the
@@ -472,15 +477,15 @@ may be obtained using a code fragment such as
 \end{lstlisting}
 Property handles can also be obtained for
 sub-components, using a {\it property path} that consists
-of a path to the sub-component followed by a
+of a path to the sub-component followed by a colon
 ``{\tt :}'' and the property name. For example,
 to obtain the {\tt excitation} property for a sub-component
 located by {\tt axialSprings/lad} relative to a {\tt MechModel},
 once could use a call of the form
 \begin{lstlisting}[]
-  MechModel mechMod;
+  MechModel mech;
   ...
-  Property prop = mechMod.getProperty ("axialSprings/lad:excitation");
+  Property prop = mech.getProperty ("axialSprings/lad:excitation");
 \end{lstlisting}
 
 \subsubsection{Composite and inheritable properties}
@@ -557,9 +562,9 @@ and constructed by reading the file.
 \end{description}
 
 The no-args constructor should perform whatever initialization is
-required in both cases, while the {\tt build()} takes the place of the
+required in both cases, while the {\tt build()} method takes the place of the
 file specification. Unless a model is originally created using a file
-specification (which is tedious at the present time), the first time
+specification (which is very tedious), the first time
 creation of a model will almost always entail using the {\tt build()}
 method.
 
@@ -584,6 +589,7 @@ public class MyModel extends RootModel {
 }
 \end{lstlisting}
 Here, the model itself is called {\tt MyModel}, and is defined in the
+(hypothetical) 
 package {\tt artisynth.models.experimental} (placing models in the super
 package {\tt artisynth.models} is common practice but not
 necessary).
@@ -612,11 +618,11 @@ like the following:
 
    }
 \end{lstlisting}
-First, a 
-\javaclass[artisynth.core.mechmodels]{MechModel} is
-created with the name {\tt mech} and added to the list of models in
-the root model. Subsequent code then creates and adds the components
-required by the {\tt MechModel}, as described in Sections
+First, a \javaclass[artisynth.core.mechmodels]{MechModel} is created
+(with the name {\tt "mech"} in this example, athough any name, or no
+name, may be given) and added to the list of models in the root
+model. Subsequent code then creates and adds the components required
+by the {\tt MechModel}, as described in Sections
 \ref{MechModelsI:sec}, \ref{MechModelsII:sec} and \ref{FEMModels:sec}.
 The {\tt build()} method also creates and adds to the root model any
 agents required by the application (controllers, probes, etc.), as
@@ -629,16 +635,16 @@ method rather than at the beginning. The only restriction is that when
 a component is added to the hierarchy, all other components that it
 refers to should already have been added to the hierarchy. For
 instance, an axial spring (Section \ref{ParticlesAndSprings:sec})
-refers to two point. When it is added to the hierarchy, those two
+refers to two points. When it is added to the hierarchy, those two
 points should already be present in the hierarchy.
 
 The {\tt build()} method supplies a {\tt String} array as an argument.
 (This is analgous to the {\tt args} argument passed to static {\tt
 main()} methods.) The first String is the name assigned to the model,
-while subsequent strings are reserved for future used as
+while subsequent strings are reserved for future use as
 application-supplied arguments.
 
-\subsubsection{Makeing models visible to ArtiSynth}
+\subsubsection{Making models visible to ArtiSynth}
 
 In order to load an application model into ArtiSynth, the classes
 associated with its implementation must be made visible to ArtiSynth.
@@ -662,14 +668,14 @@ might be stored in a location like this:
 In the example shown in Section \ref{CreatingAnApplication:sec}, the
 model was created in the package {\tt artisynth.models.experimental}.
 Since Java classes are arranged in a directory structure that mirrors
-package names, with respect to the sample class directory shown
+package names, with respect to the sample project directory shown
 above, the model class would be located in
 \begin{verbatim}
   /home/joeuser/artisynthProjects/classes/artisynth/models/experimental
 \end{verbatim}
 
 At present there are three ways to make top-level class directories
-known to ArtiSynth.
+known to ArtiSynth:
 
 \begin{description}
 
@@ -697,8 +703,9 @@ the needed directories to this.
 
 All of these methods are described in more detail in the "Installing
 External Models and Packages" section of the ArtiSynth Installation
-Guide (available for Linux, Windows, and MacOS at
-\href{http://www.artisynth.org}{www.artisynth.org}.
+Guide (available for \href{../installation/linuxInstallation.html}{Linux}, 
+\href{../installation/windowsInstallation.html}{Windows}, and
+\href{../installation/macosInstallation.html}{MacOS}).
 
 \subsubsection{Loading and running a model}
 \label{LoadingAndRunning:sec}
@@ -717,7 +724,7 @@ model loaded directly into ArtiSynth when it starts up.
 
 \item[Loading from the Models menu]\mbox{}
 
-A faster way to load a model is by selecting it from of the {\sf
+A faster way to load a model is by selecting it in one of the {\sf
 Models} submenus. This may require editing the model menu
 configuration files.
 
@@ -730,16 +737,16 @@ that file by choosing {\sf File > Load model ...}.
 
 These methods are described in detail in the 
 section "Loading and Simulating Models" of the
-\href{http://www.artisynth.org/doc/html/uiguide/uiguide.html}{
+\href{../uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}.
 
 \begin{sideblock}
 The demonstration models refered to in this guide should already
 be present in the models menu and may be loaded
-from the submenu reached by {\sf Models > All demos > tutorial}.
+from the submenu {\sf Models > All demos > tutorial}.
 \end{sideblock}
 
-Once a model is loaded, it can simulated, or {\it run}.
+Once a model is loaded, it can be simulated, or {\it run}.
 Simulation
 of the model can then be started, paused, single-stepped, or reset
 using the play controls (Figure \ref{PlayControlsFig})
@@ -761,6 +768,6 @@ single-step buttons.}%
 
 Comprehensive information on exploring and interacting with models is
 given in the
-\href{http://www.artisynth.org/doc/html/uiguide/uiguide.html}
+\href{../uiguide/uiguide.html}
 {ArtiSynth User Interface Guide}.
 

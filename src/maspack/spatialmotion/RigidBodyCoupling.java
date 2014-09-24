@@ -18,15 +18,15 @@ import java.util.ArrayList;
  * 
  * <p>
  * The coupling has its own coordinate frame D, which is anchored to B via a
- * fixed transform TDB. Body A is associated with an operation frame F,
+ * fixed transform TDB. Body A is associated with an operation frame C,
  * described with respect to A by the fixed transform TFA. Enforcement of the
- * constraint involves trying to keep F on a <i>constraint surface</i> whose
- * location is constant with respect to D. The constraint frame C is the frame
- * on the constraint surface which is nearest to F. Wrenches to enforce the
- * constraint are defined (initially) with repsect to C and then transformed
- * into the body frames A and B. Ideally, F and C coincide; otherwise, the
+ * constraint involves trying to keep C on a <i>constraint surface</i> whose
+ * location is constant with respect to D. The constraint frame G is the frame
+ * on the constraint surface which is nearest to C. Wrenches to enforce the
+ * constraint are defined (initially) with repsect to G and then transformed
+ * into the body frames A and B. Ideally, C and G coincide; otherwise, the
  * transform TFC defines the constraint error and a linearization of this,
- * projected onto the constraint wrenches in C, gives the linearized distance
+ * projected onto the constraint wrenches in G, gives the linearized distance
  * associated with each constraint.
  */
 public abstract class RigidBodyCoupling {
@@ -37,8 +37,8 @@ public abstract class RigidBodyCoupling {
 
    // internal temp variables
    protected RigidTransform3d myTFD = new RigidTransform3d();
-   protected RigidTransform3d myTCD = new RigidTransform3d();
-   protected RigidTransform3d myTFC = new RigidTransform3d();
+   protected RigidTransform3d myTGD = new RigidTransform3d();
+   protected RigidTransform3d myTCG = new RigidTransform3d();
    protected Twist myErr = new Twist();
    // protected RigidTransform3d myTBA = new RigidTransform3d();
    protected Twist myVelBA = new Twist();
@@ -47,7 +47,7 @@ public abstract class RigidBodyCoupling {
    protected Wrench myBilateralWrenchF = new Wrench();
    protected Wrench myUnilateralWrenchF = new Wrench();
 
-   // if true, wrenches should originate in frame F instead of C
+   // if true, wrenches should originate in frame C instead of G
 //   private boolean myConstraintsInF = false;
 
 //   int myBodyIdxA = -1;
@@ -311,20 +311,12 @@ public abstract class RigidBodyCoupling {
    }
 
    public void updateConstraintsFromC () {
-//      RigidTransform3d TCA = new RigidTransform3d();
-//
-//      // convert wrenchC to frame A and frame B
-//      TCA.mulInverseRight (TFA, myTFD);
-//      TCA.mul (myTCD);
 
       for (int i = 0; i < myConstraintInfo.length; i++) {
          ConstraintInfo info = myConstraintInfo[i];
          if (info.isBilateral() || info.engaged != 0) {
             RigidBodyConstraint c = myConstraints[i];
 
-//            c.myWrenchA.transform (TCA, info.wrenchC);
-//            c.myWrenchB.inverseTransform (myTBA, c.myWrenchA);
-//            c.myWrenchB.negate();
             c.myWrenchC.set (info.wrenchC);
             
             c.setDistance (info.distance);
@@ -334,67 +326,9 @@ public abstract class RigidBodyCoupling {
             double deriv = info.dotWrenchC.dot (myVelBA);
             deriv += info.wrenchC.dot (myVelBxA);
             c.setDerivative (deriv); 
-//            if (this instanceof RevoluteCoupling) {
-//               if (info.isBilateral()) {
-//                  System.out.println (
-//                     " deriv=" + info.dotWrenchC.dot (myVelBA) + " "+
-//                     info.wrenchC.dot (myVelBxA));
-//               }
-//            }
          }
       }
    }
-
-//   /**
-//    * Just an experimental method right now to see if we can easily apply
-//    * constraints from frame F instead of C
-//    */
-//   public void updateConstraintsFromF (RigidTransform3d TFA) {
-//      RigidTransform3d TCF = new RigidTransform3d();
-//
-//      // convert wrenchC to frame A and frame B
-//      TCF.mulInverseLeft (myTFD, myTCD);
-//      myErr.set (TCF);
-//
-//      for (int i = 0; i < myConstraintInfo.length; i++) {
-//         ConstraintInfo info = myConstraintInfo[i];
-//         if (info.isBilateral() || info.engaged != 0) {
-//            RigidBodyConstraint c = myConstraints[i];
-//
-//            Wrench wrenchF = c.myWrenchC; // tmp storage
-//
-//            // rotate from C into F
-//            wrenchF.f.transform (TCF.R, info.wrenchC.f);
-//            wrenchF.m.transform (TCF.R, info.wrenchC.m);
-//
-//            c.setDistance (-wrenchF.dot (myErr));
-//            c.setCompliance (info.compliance);
-//
-////            c.myWrenchA.transform (TFA, wrenchF);
-////            c.myWrenchB.inverseTransform (myTBA, c.myWrenchA);
-////            c.myWrenchB.negate();
-//            c.myWrenchC.set (info.wrenchC);
-//
-//            // ignore derivatives for now ...
-//            c.setDerivative (0);
-//         }
-//      }
-//   }
-
-//   private void updateConstraintInfo (
-//      RigidTransform3d TFA, RigidTransform3d TDB, boolean setEngaged) {
-//      checkConstraintStorage();
-//      myTFD.mulInverseBoth (TDB, myTBA);
-//      myTFD.mul (TFA);
-//      getConstraintInfo (myTCD, myConstraintInfo, myTFD, setEngaged);
-//
-//      if (myConstraintsInF) {
-//         updateConstraintsFromF (TFA);
-//      }
-//      else {
-//         updateConstraintsFromC (TFA);
-//      }
-//   }
 
    /**
     * Assumes that TBA has been updated
@@ -406,24 +340,6 @@ public abstract class RigidBodyCoupling {
       }
       myVelBA.sub (velB, velA);
       myVelBxA.cross (velB, velA);
-
-      // The code below is from when velA and velB were presented in frames
-      // A and B, respectively, instead of frame C:
-      
-//      myVelBA.inverseTransform (myTBA, velA); // transform velA into B frame
-//      myVelBA.sub (velB, myVelBA); // form velB-velA in B
-//      myVelBA.inverseTransform (TDB); // transform into D
-//      myVelBA.inverseTransform (myTCD);
-//      if (velB != Twist.ZERO) {
-//         myVelBxA.inverseTransform (myTBA, velA); // xform velA into B frame
-//         myVelBxA.cross (velB, myVelBxA);
-//         myVelBxA.inverseTransform (TDB); // transform into D
-//         myVelBxA.inverseTransform (myTCD);
-//      }
-//      else {
-//         myVelBxA.setZero();
-//      }
-     
    }
 
 
@@ -435,14 +351,14 @@ public abstract class RigidBodyCoupling {
       RigidTransform3d TBA, RigidTransform3d TFA, RigidTransform3d TDB, 
       Twist velA, Twist velB, boolean setEngaged) {
 
-      RigidTransform3d TCA = new RigidTransform3d();
-      RigidTransform3d TCB = new RigidTransform3d();
+      RigidTransform3d TGA = new RigidTransform3d();
+      RigidTransform3d TGB = new RigidTransform3d();
       RigidTransform3d TCF = new RigidTransform3d();
       
-      TCA.mulInverseRight (TFA, myTFD);
-      TCA.mul (myTCD);
-      TCB.mulInverseLeft (TBA, TCA);
-      TCF.mulInverseLeft (myTFD, myTCD);
+      TGA.mulInverseRight (TFA, myTFD);
+      TGA.mul (myTGD);
+      TGB.mulInverseLeft (TBA, TGA);
+      TCF.mulInverseLeft (myTFD, myTGD);
       
       Twist velA_A = new Twist(velA);
       Twist velB_B = new Twist();
@@ -450,9 +366,9 @@ public abstract class RigidBodyCoupling {
          velB_B.set (velB);
       }
       
-      // transform velA from frame C to frame A, and velB to frame B:
-      velA_A.transform (TCA);
-      velB_B.transform (TCB);
+      // transform velA from frame G to frame A, and velB to frame B:
+      velA_A.transform (TGA);
+      velB_B.transform (TGB);
       
       int numc = myConstraintInfo.length;
       ConstraintInfo[] newConstraintInfo = new ConstraintInfo[numc];
@@ -464,7 +380,7 @@ public abstract class RigidBodyCoupling {
       Twist velBA = new Twist();
       RigidTransform3d newTBA = new RigidTransform3d();
       RigidTransform3d newTFD = new RigidTransform3d();
-      RigidTransform3d newTCD = new RigidTransform3d();
+      RigidTransform3d newTGD = new RigidTransform3d();
       RigidTransform3d newTERR = new RigidTransform3d();
       velBA.inverseTransform (TBA, velA_A);
       velBA.sub (velB_B, velBA);
@@ -474,23 +390,23 @@ public abstract class RigidBodyCoupling {
          
       newTFD.mulInverseBoth (TDB, newTBA);
       newTFD.mul (TFA);
-      newTERR.mulInverseLeft (newTCD, newTFD);
-      getConstraintInfo (newConstraintInfo, newTCD, newTFD, newTERR, setEngaged);
+      newTERR.mulInverseLeft (newTGD, newTFD);
+      getConstraintInfo (newConstraintInfo, newTGD, newTFD, newTERR, setEngaged);
 
-      RigidTransform3d newTCA = new RigidTransform3d();
-      RigidTransform3d newTCB = new RigidTransform3d();
+      RigidTransform3d newTGA = new RigidTransform3d();
+      RigidTransform3d newTGB = new RigidTransform3d();
       RigidTransform3d newTCF = new RigidTransform3d();
-      RigidTransform3d diffTCA = new RigidTransform3d();
-      RigidTransform3d diffTCB = new RigidTransform3d();
+      RigidTransform3d diffTGA = new RigidTransform3d();
+      RigidTransform3d diffTGB = new RigidTransform3d();
       RigidTransform3d diffTCF = new RigidTransform3d();
 
-      newTCA.mulInverseRight (TFA, newTFD);
-      newTCA.mul (newTCD);
-      newTCB.mulInverseLeft (newTBA, newTCA);
-      newTCF.mulInverseLeft (newTFD, newTCD);
+      newTGA.mulInverseRight (TFA, newTFD);
+      newTGA.mul (newTGD);
+      newTGB.mulInverseLeft (newTBA, newTGA);
+      newTCF.mulInverseLeft (newTFD, newTGD);
 
-      diffTCA.mulInverseLeft (TCA, newTCA);
-      diffTCB.mulInverseLeft (TCB, newTCB);
+      diffTGA.mulInverseLeft (TGA, newTGA);
+      diffTGB.mulInverseLeft (TGB, newTGB);
       diffTCF.mulInverseLeft (TCF, newTCF);
 
       Twist velCA_A = new Twist();
@@ -498,12 +414,12 @@ public abstract class RigidBodyCoupling {
       Twist velCF_A = new Twist();
       Twist velCF_B = new Twist();
 
-      velCA_A.set (diffTCA);
-      velCA_A.transform (TCA);
-      velCB_B.set (diffTCB);
-      velCB_B.transform (TCB);
+      velCA_A.set (diffTGA);
+      velCA_A.transform (TGA);
+      velCB_B.set (diffTGB);
+      velCB_B.transform (TGB);
       velCF_A.set (diffTCF);
-      velCF_A.transform (TCA);
+      velCF_A.transform (TGA);
          
       velCA_A.scale(1/eps);
       velCB_B.scale(1/eps);
@@ -523,7 +439,7 @@ public abstract class RigidBodyCoupling {
 
       velCFxA.cross (velCF_A, velA_A);
       velCFxB.cross (velCF_B, velB_B);
-      velBxA_B.transform (TCB, myVelBxA);
+      velBxA_B.transform (TGB, myVelBxA);
 
       Wrench[] dotWrenchA = new Wrench[numc];
       Wrench[] dotWrenchB = new Wrench[numc];
@@ -534,13 +450,13 @@ public abstract class RigidBodyCoupling {
             Wrench oldWrenchA = new Wrench();
             Wrench oldWrenchB = new Wrench();
             
-            oldWrenchA.transform (TCA, oldinfo.wrenchC);
+            oldWrenchA.transform (TGA, oldinfo.wrenchC);
             oldWrenchB.inverseTransform (TBA, oldWrenchA);
             oldWrenchB.negate();
             
             dotWrenchA[i] = new Wrench();
             dotWrenchB[i] = new Wrench();
-            dotWrenchA[i].transform (newTCA, newinfo.wrenchC);
+            dotWrenchA[i].transform (newTGA, newinfo.wrenchC);
             dotWrenchB[i].inverseTransform (newTBA, dotWrenchA[i]);
             dotWrenchB[i].negate();
 
@@ -569,7 +485,7 @@ public abstract class RigidBodyCoupling {
    }
 
    public void updateBodyStates (
-      RigidTransform3d TFD, RigidTransform3d TCD, RigidTransform3d TERR,
+      RigidTransform3d TFD, RigidTransform3d TGD, RigidTransform3d TERR,
       Twist velA, Twist velB, boolean setEngaged) {
 
       myVelocitiesZeroP = false;
@@ -577,7 +493,7 @@ public abstract class RigidBodyCoupling {
       checkConstraintStorage();
       myTFD.set (TFD);
       
-      getConstraintInfo (myConstraintInfo, TCD, TFD, TERR, setEngaged);
+      getConstraintInfo (myConstraintInfo, TGD, TFD, TERR, setEngaged);
 
       updateVelocityInfo (velA, velB);
       
@@ -614,7 +530,7 @@ public abstract class RigidBodyCoupling {
          }
       }
       myBilateralWrenchF.scale (1/h);
-      myBilateralWrenchF.inverseTransform (myTFC);
+      myBilateralWrenchF.inverseTransform (myTCG);
       return idx;      
    }
    
@@ -746,7 +662,7 @@ public abstract class RigidBodyCoupling {
          }
       }
       myUnilateralWrenchF.scale (1/h);
-      myUnilateralWrenchF.inverseTransform (myTFC);
+      myUnilateralWrenchF.inverseTransform (myTCG);
       return idx;      
    }
 
@@ -769,16 +685,16 @@ public abstract class RigidBodyCoupling {
    }
 
    /**
-    * Computes the frame C on the constraint surface which is closest to a given
-    * frame F. The input consists of the transform from F to D.
+    * Computes the frame G on the constraint surface which is closest to a given
+    * frame C. The input consists of the transform from C to D.
     * 
-    * @param TCD
-    * returns the transform from C to D
+    * @param TGD
+    * returns the transform from G to D
     * @param TFD
-    * transform from frame F to D
+    * transform from frame C to D
     */
    public abstract void projectToConstraint (
-      RigidTransform3d TCD, RigidTransform3d TFD);
+      RigidTransform3d TGD, RigidTransform3d TFD);
 
    /**
     * Returns the number of bilateral constraints associated with this coupling.
@@ -796,8 +712,8 @@ public abstract class RigidBodyCoupling {
    public abstract int maxUnilaterals();
 
    /**
-    * Computes the constraint frame C and the associated constraint information.
-    * C is determined by projecting F onto the constraint surface.
+    * Computes the constraint frame G and the associated constraint information.
+    * G is determined by projecting C onto the constraint surface.
     * 
     * <p>
     * Information for each constraint wrench is returned through an array of
@@ -806,7 +722,7 @@ public abstract class RigidBodyCoupling {
     * bilateral constraints plus the maximum number of unilateral constraints.
     * Bilateral constraints appear first, followed by the unilateral
     * constraints. Constraint wrenches and their derivatives (with respect to
-    * frame C) are set within the fields <code>wrenchC</code> and
+    * frame G) are set within the fields <code>wrenchC</code> and
     * <code>dotWrenchC</code>, repsectively. Distances to set within the
     * <code>distance</code>; each of these should be the dot product of the
     * wrench with the linearization of the constraint error TFC. For computing
@@ -833,16 +749,16 @@ public abstract class RigidBodyCoupling {
     * getUnilateralConstraints}.
     * @param info
     * used to return information for each possible constraint wrenches
-    * @param TCD
-    * returns the transform from C to D
+    * @param TGD
+    * returns the transform from G to D
     * @param TFD
-    * transform from operation frame F to D
+    * transform from operation frame C to D
     * @param TERR TODO
     * @param setEngaged if <code>true</code>, this method should determine
     * if the constraint is engaged.
     */
    public abstract void getConstraintInfo (
-      ConstraintInfo[] info, RigidTransform3d TCD, RigidTransform3d TFD, 
+      ConstraintInfo[] info, RigidTransform3d TGD, RigidTransform3d TFD, 
       RigidTransform3d TERR, boolean setEngaged);
 
    public abstract void initializeConstraintInfo (ConstraintInfo[] info);
@@ -852,7 +768,7 @@ public abstract class RigidBodyCoupling {
     * Transforms the geometry of this coupling, in response to an affine
     * transform X applied in world coordinates. In order to facilitate the
     * application of this transform, this method also provides the current
-    * transforms from the F and D frames to world coordinates. It also provides
+    * transforms from the C and D frames to world coordinates. It also provides
     * the rotational component Ra of X.M, which should be determined from the
     * left polar decomposition of X.M:
     * 
@@ -876,7 +792,7 @@ public abstract class RigidBodyCoupling {
     * @param Ra
     * rotational component of the matrix part of X.
     * @param TFW
-    * current transform from F to world
+    * current transform from C to world
     * @param TDW
     * current transform from D to world
     */

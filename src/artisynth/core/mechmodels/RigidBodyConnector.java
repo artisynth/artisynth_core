@@ -52,8 +52,8 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
    RigidTransform3d myTFA = new RigidTransform3d();
    RigidTransform3d myTDB = new RigidTransform3d();
    
-   RigidTransform3d myTCA = new RigidTransform3d();
-   RigidTransform3d myTCB = new RigidTransform3d();
+   RigidTransform3d myTGA = new RigidTransform3d();
+   RigidTransform3d myTGB = new RigidTransform3d();
 
    MatrixNd myPiAC;
    MatrixNd myPiBC;
@@ -572,11 +572,11 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
             RigidBodyConstraint b = myBilaterals.get (j);
             if (blkA != null) {
                setBlockCol (
-                  blkA, j, b.getWrenchC(), getBodyA(), myTCA, myPiAC, false);
+                  blkA, j, b.getWrenchC(), getBodyA(), myTGA, myPiAC, false);
             }
             if (blkB != null) {
                setBlockCol (
-                  blkB, j, b.getWrenchC(), getBodyB(), myTCB, myPiBC, true);
+                  blkB, j, b.getWrenchC(), getBodyB(), myTGB, myPiBC, true);
             }
             if (dbuf != null) {
                dbuf[numb+j] = b.getDerivative();
@@ -603,15 +603,15 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
 
    static void setContactSpeed (
       RigidBodyConstraint c, RigidBody bodyA, RigidBody bodyB,
-      RigidTransform3d TCA, RigidTransform3d TCB) {
+      RigidTransform3d TGA, RigidTransform3d TGB) {
 
       double speed = 0;
       Twist bodyVel = new Twist();
 
       if (bodyA != null) {
          bodyA.getBodyVelocity (bodyVel);
-         if (TCA != null) {
-            bodyVel.inverseTransform (TCA);
+         if (TGA != null) {
+            bodyVel.inverseTransform (TGA);
             speed += c.getWrenchC().dot (bodyVel);
          }
          else {
@@ -620,8 +620,8 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       }
       if (bodyB != null) {
          bodyB.getBodyVelocity (bodyVel);
-         if (TCB != null) {
-            bodyVel.inverseTransform (TCB);
+         if (TGB != null) {
+            bodyVel.inverseTransform (TGB);
             speed -= c.getWrenchC().dot (bodyVel);
          }
          else {
@@ -661,17 +661,17 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
             RigidBodyConstraint u = myUnilaterals.get (j);
             if (blkA != null) {
                setBlockCol (
-                  blkA, j, u.getWrenchC(), bodyA, myTCA, myPiAC, false);
+                  blkA, j, u.getWrenchC(), bodyA, myTGA, myPiAC, false);
             }
             if (blkB != null) {
                setBlockCol (
-                  blkB, j, u.getWrenchC(), bodyB, myTCB, myPiBC, true);
+                  blkB, j, u.getWrenchC(), bodyB, myTGB, myPiBC, true);
             }
             if (dbuf != null) {
                dbuf[numu+j] = u.getDerivative();
             }
             if (!MechModel.addConstraintForces) {
-               setContactSpeed (u, bodyA, bodyB, myTCA, myTCB);
+               setContactSpeed (u, bodyA, bodyB, myTGA, myTGB);
             }
          }
       }
@@ -750,13 +750,13 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       SparseBlockMatrix DT, FrictionInfo[] finfo, int numf) {
 
       return addFrictionConstraints (
-         DT, finfo, numf, myUnilaterals, getBodyA(), getBodyB(), myTCA);
+         DT, finfo, numf, myUnilaterals, getBodyA(), getBodyB(), myTGA);
    }
 
    public static int addFrictionConstraints (
       SparseBlockMatrix DT, FrictionInfo[] finfo, int numf,
       ArrayList<RigidBodyConstraint> unilaterals,
-      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TCA) {      
+      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TGA) {      
 
       int nu = (unilaterals != null ? unilaterals.size() : 0);
 
@@ -783,11 +783,11 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
             Point3d pnt = u.getContactPoint();
             double mu = u.getFriction();
             double lam = u.getMultiplier();
-            // Hack here: TCA will be non-null for RigidBodyConnectors,
+            // Hack here: TGA will be non-null for RigidBodyConnectors,
             // where we use wrenchC instead of wrenchA
-            if (TCA != null) {
+            if (TGA != null) {
                nrm.set (u.getWrenchC().f);
-               nrm.transform (TCA.R, nrm);
+               nrm.transform (TGA.R, nrm);
             }
             else {
                nrm.set (u.getWrenchA().f);
@@ -994,7 +994,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       RigidTransform3d XBW =
          myBodyB != null ? myBodyB.getPose() : RigidTransform3d.IDENTITY;
 
-      RigidTransform3d TCD = new RigidTransform3d();
+      RigidTransform3d TGD = new RigidTransform3d();
       RigidTransform3d TFD = new RigidTransform3d();
       RigidTransform3d XBA = new RigidTransform3d();
       RigidTransform3d TFC = new RigidTransform3d();
@@ -1037,39 +1037,39 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
          // use myPolarCB as a temp for polarTF
          defBodyB.computeUndeformedFrame (TFB0, myPolarCB, TFB);
          RigidTransform3d TFD0 = new RigidTransform3d();
-         RigidTransform3d TCD0 = new RigidTransform3d();
+         RigidTransform3d TGD0 = new RigidTransform3d();
          TFD0.mulInverseLeft (myTDB, TFB0);
-         myCoupling.projectToConstraint (TCD0, TFD0);
+         myCoupling.projectToConstraint (TGD0, TFD0);
 
-         RigidTransform3d TCB0 = new RigidTransform3d();
-         TCB0.mul (myTDB, TCD0);
-         defBodyB.computeDeformedFrame (myTCB, myPolarCB, TCB0);   
+         RigidTransform3d TGB0 = new RigidTransform3d();
+         TGB0.mul (myTDB, TGD0);
+         defBodyB.computeDeformedFrame (myTGB, myPolarCB, TGB0);   
 
          // compute XERR using C and F
-         XERR.mulInverseBoth (myTCB, XBA);
+         XERR.mulInverseBoth (myTGB, XBA);
          XERR.mul (TFA);
 
-         // For update constraints, use TCD0 and TFD0 in place of TCD and TFD
+         // For update constraints, use TGD0 and TFD0 in place of TGD and TFD
 
          //System.out.println ("bodyB deformable");
 
-         TCD.set (TCD0);
+         TGD.set (TGD0);
          TFD.set (TFD0);
       }
       else {
          TFD.mulInverseBoth (TDB, XBA);
          TFD.mul (TFA);
-         myCoupling.projectToConstraint (TCD, TFD);
-         myTCB.mul (myTDB, TCD);
+         myCoupling.projectToConstraint (TGD, TFD);
+         myTGB.mul (myTDB, TGD);
          //System.out.println ("bodyB fixed");
 
-         XERR.mulInverseLeft (TCD, TFD);
+         XERR.mulInverseLeft (TGD, TFD);
       }
 
-      myTCA.mul (XBA, myTCB);
+      myTGA.mul (XBA, myTGB);
       if (defBodyA != null) {
-         RigidTransform3d TCA0 = new RigidTransform3d();
-         defBodyA.computeUndeformedFrame (TCA0, myPolarCA, myTCA);
+         RigidTransform3d TGA0 = new RigidTransform3d();
+         defBodyA.computeUndeformedFrame (TGA0, myPolarCA, myTGA);
       }
 
       Twist err = new Twist();
@@ -1077,12 +1077,12 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
 
       Twist velA = new Twist();
       myBodyA.getBodyVelocity (velA);
-      velA.inverseTransform (myTCA);
+      velA.inverseTransform (myTGA);
       Twist velB = null;
       if (myBodyB != null) {
          velB = new Twist();
          myBodyB.getBodyVelocity (velB);
-         velB.inverseTransform (myTCB);
+         velB.inverseTransform (myTGB);
       }
       // System.out.println ("bodyVelA=" + myBodyA.getVelocity().toString("%13.9f"));
       // if (defBodyA != null) {
@@ -1090,46 +1090,46 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       //       "elasVelA=" + defBodyA.getElasticVel().toString("%13.9f"));
       // }
 
-      //System.out.println ("myTCA=\n" + myTCA.toString ("%13.9f"));
+      //System.out.println ("myTGA=\n" + myTGA.toString ("%13.9f"));
 
       if (defBodyA != null) {
          Twist velx = new Twist(); 
-         defBodyA.computeDeformedFrameVel (velx, myPolarCA, myTCA);
-         defBodyA.computeElasticJacobian (myPiAC, myPolarCA, myTCA);
+         defBodyA.computeDeformedFrameVel (velx, myPolarCA, myTGA);
+         defBodyA.computeElasticJacobian (myPiAC, myPolarCA, myTGA);
          //System.out.println ("PiAC=\n" + myPiAC.toString ("%13.8f"));
          //System.out.println ("vel*=" + velx.toString("%13.9f"));
          velA.add (velx);         
       }
       if (defBodyB != null) {
          Twist velx = new Twist(); 
-         defBodyB.computeDeformedFrameVel (velx, myPolarCB, myTCB);
-         defBodyB.computeElasticJacobian (myPiBC, myPolarCB, myTCB);
+         defBodyB.computeDeformedFrameVel (velx, myPolarCB, myTGB);
+         defBodyB.computeElasticJacobian (myPiBC, myPolarCB, myTGB);
          velB.add (velx);
       }
       //System.out.println ("velC=" + velA.toString("%13.9f"));
-      myCoupling.updateBodyStates (TFD, TCD, XERR, velA, velB, setEngaged);
+      myCoupling.updateBodyStates (TFD, TGD, XERR, velA, velB, setEngaged);
    }
 
    /**
-    * Returns the most recently updated value for TCA. This update is done
+    * Returns the most recently updated value for TGA. This update is done
     * whenever <code>updateBodyStates()</code> is called. The returned value
     * must be treated as read-only and not modified.
     *
-    * @return current value for TCA.
+    * @return current value for TGA.
     */
-   public RigidTransform3d getTCA() {
-      return myTCA;
+   public RigidTransform3d getTGA() {
+      return myTGA;
    }
 
    /**
-    * Returns the most recently updated value for TCB. This update is done
+    * Returns the most recently updated value for TGB. This update is done
     * whenever <code>updateBodyStates()</code> is called. The returned value
     * must be treated as read-only and not modified.
     *
-    * @return current value for TCB.
+    * @return current value for TGB.
     */
-   public RigidTransform3d getTCB() {
-      return myTCB;
+   public RigidTransform3d getTGB() {
+      return myTGB;
    }
 
    /**

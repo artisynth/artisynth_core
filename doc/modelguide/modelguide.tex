@@ -13,7 +13,7 @@
 
 \title{ArtiSynth Modeling Guide}
 \author{John Lloyd and Antonio S\'anchez}
-\setpubdate{September 15, 2014}
+\setpubdate{October 12, 2014}
 \iflatexml
 \date{}
 \fi
@@ -38,8 +38,8 @@ in ArtiSynth using its Java API.
 It is assumed that the reader is familiar with basic Java programming,
 including variable assignment, control flow, exceptions, functions and
 methods, object construction, inheritance, and method overloading.
-Some familiarity with the {\tt Collections} packages in {\tt
-java.util}, such as {\tt ArrayList} and {\tt LinkedList} is also
+Some familiarity with the collection classes in {\tt
+java.util}, such as {\tt ArrayList} and {\tt LinkedList}, is also
 useful.
 
 \subsection{How to read this guide}
@@ -56,18 +56,19 @@ various types of mechanical and biomechanical models.  Sections
 \ref{MechModelsI:sec} and \ref{MechModelsII:sec} give detailed
 information about building general mechanical models, involving
 particles, springs, rigid bodies, joints, constraints, and
-contact. Section \ref{SimulationControl:sec} describes how to add control panels,
-controllers, and input and output data streams to a simulation.
-Section \ref{FEMModels:sec} describes how to incorporate finite
-element models.
+contact. Section \ref{SimulationControl:sec} describes how to add
+control panels, controllers, and input and output data streams to a
+simulation.  Section \ref{FEMModels:sec} describes how to incorporate
+finite element models. The required mathematics is reviewed in Section
+\ref{MathematicalReview:sec}.
 
 If time permits, the reader will profit from a top-to-bottom read.
 However, this may not always be necessary. Many of the sections
 contain detailed demonstration examples, all of which are available in
 the package {\tt artisynth.demos.tutorial} and which may be run from
-ArtiSynth using model menu {\sf Models > All demos > tutorials}.  The
+ArtiSynth using {\sf Models > All demos > tutorials}. 
 More experienced readers may wish to find an appropriate example and
-then work backwards into the text and preceeding section for any
+then work backwards into the text and preceeding sections for any
 needed explanatory detail.
 
 \input{overview}

@@ -38,6 +38,7 @@ public class PointForceDemo extends FrameSpringDemo {
       // m.setExternalForce (fext);
       PointForce pf = new PointForce (fext, m);
       pf.setMagnitude (magnitude);
+      pf.setForceScaling(1000);  // mm spatial units
       pf.setAxisLength (0.1);
       RenderProps.setLineStyle (pf, LineStyle.CYLINDER);
       RenderProps.setLineRadius (pf, pf.getAxisLength() / 20);

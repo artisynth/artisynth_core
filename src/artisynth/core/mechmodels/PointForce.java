@@ -6,20 +6,14 @@
  */
 package artisynth.core.mechmodels;
 
-import maspack.geometry.*;
 import maspack.properties.*;
 import maspack.render.*;
 import maspack.util.*;
 import maspack.matrix.*;
 import artisynth.core.util.*;
-import artisynth.core.mechmodels.MechSystemSolver.MatrixSolver;
 import artisynth.core.modelbase.*;
 
 import java.io.*;
-
-import maspack.render.*;
-
-import javax.media.opengl.*;
 
 import java.util.*;
 
@@ -27,6 +21,8 @@ public class PointForce extends ModelComponentBase
    implements RenderableLine, RenderableComponent, ScalableUnits, 
    ForceComponent, TransformableGeometry, CopyableComponent {
 
+   public static double DEFAULT_FORCE_SCALING = 1;
+   
    protected Point myPnt;
    protected Point3d myTail = new Point3d();
    float[] myTailCoords = new float[3];
@@ -41,9 +37,8 @@ public class PointForce extends ModelComponentBase
 
    double myAxisLength = 1.0;
 
-   // converts Newtons, which are used externally, to internal model force
-   // units
-   protected double forceScaling = 1000;
+   // Allows scaling of force to account for units (1000 for mm)
+   protected double forceScaling = DEFAULT_FORCE_SCALING; 
    Vector3d ftmp = new Vector3d();
 
    public static PropertyList myProps =
@@ -56,7 +51,7 @@ public class PointForce extends ModelComponentBase
       myProps.add ("magnitude", "force magnitude", 0d);
       myProps.add ("axisLength", "length of rendered frame axes", 1f);
       myProps.add (
-         "forceScaling * *", "scale factor from normial force units", 1000,
+         "forceScaling * *", "scale factor from normial force units", DEFAULT_FORCE_SCALING,
          "%.8g");
    }
 
@@ -313,7 +308,10 @@ public class PointForce extends ModelComponentBase
    }
 
    public void setForceScaling (double forceScaling) {
+      // adjust current force based on new force scaling
+      myMag = myMag/this.forceScaling*forceScaling;
       this.forceScaling = forceScaling;
+      updateForceVector();
    }
 
    public void transformGeometry (

@@ -521,14 +521,14 @@ which can be set and queried using the methods
 The second method takes an optional {\tt fileName} argument that can
 be set to the name of a file from which the mesh was read. Then if the
 model itself is saved to a file, the model file will specify the mesh
-using the file name (instead of explicit vertex and face information),
+using the file name instead of explicit vertex and face information,
 which can reduce the model file size considerably.
 
 The inertia of a rigid body can be explicitly set using a variety
 of methods including
 %
 \begin{lstlisting}[]
-  setInertia (M)                    // SpatialInertia
+  setInertia (M)                    // set using SpatialInertia M
   setInertia (mass, Jxx, Jyy, Jzz); // mass and diagonal rotational inertia
   setInertia (mass, J);             // mass and full rotational inertia
   setInertia (mass, J, com);        // mass, rotational inertia, center-of-mass
@@ -558,7 +558,7 @@ Inertia is computed from density;
 
 Inertia is computed from mass;
 
-\item[Explicit]
+\item[Explicit]\mbox{}
 
 Inertia is set explicitly.
 
@@ -571,9 +571,9 @@ This property can be set and queried using
   InertiaMethod getInertiaMethod();
 \end{lstlisting}
 %
-and it's default value is {\tt Density}. Explicitly setting the
-inertia using one of the above {\tt setInertia()} methods will cause
-the value to change to {\tt Explicit}. The method
+and its default value is {\tt Density}. Explicitly setting the
+inertia using one of {\tt setInertia()} methods described above will
+set {\tt inertiaMethod} to {\tt Explicit}. The method
 %
 \begin{lstlisting}[]
   setInertiaFromDensity (density); 
@@ -625,6 +625,12 @@ methods
   double getRotaryDamping();
 \end{lstlisting}
 %
+\begin{sideblock}
+For models involving rigid bodies, it is often necessary to set {\tt
+rotaryDamping} to a non-zero value because {\tt frameDamping} will
+provide no damping at all when a rigid body is simply rotating about
+its coordinate frame origin.
+\end{sideblock}
 
 Frame and rotatary damping can also be set for individual bodies using
 their own (inherited) {\tt frameDamping} and {\tt rotaryDamping}
@@ -641,13 +647,13 @@ the connection using hard constraints.
 
 Consider two bodies A and B. The pose of body B with respect to body A
 can be described by the 6 DOF rigid transform $\T_{BA}$.  If bodies A
-and B are unconnected, that $\T_{BA}$ may assume any possible value
+and B are unconnected, $\T_{BA}$ may assume any possible value
 and has a full six degrees of freedom. A {\it joint} between A and B
 restricts the set of poses that are possible between the two bodies
 and reduces the degrees of freedom available to $\T_{BA}$.  For
 simplicity, joints have their own coordinate frames for describing
 their constraining actions, and then these frames are related to the
-frames of the associated bodies by auxiliary transformations.
+frames A and B of the associated bodies by auxiliary transformations.
 
 \begin{figure}[h]
 \begin{center}
@@ -660,7 +666,7 @@ frames of the associated bodies by auxiliary transformations.
 Each joint is associated with two coordinate frames C and D which move
 with respect to each other as the joint moves. The allowed joint
 motions therefore correspond to the allowed values of the {\it joint transform}
-$\T_{CD}$.  D is the {\it base} frame and C is the {\it constraint}
+$\T_{CD}$.  D is the {\it base} frame and C is the {\it motion}
 frame. For a revolute joint (Figure \ref{jointExample:fig}), C can
 move with respect to D by rotating about the z axis. Other motions are
 prohbited. $\T_{CD}$ should therefore alway have the form
@@ -684,14 +690,15 @@ and the joint is said to be in the {\it zero state}.
 \begin{center}
  \includegraphics[width=2.5in]{images/jointFrames}
 \end{center}
-\caption{2D schematric showing the joint frames D and C, along with
+\caption{2D schematic showing the joint frames D and C, along with
 the intermediate frame G that accounts for numeric error
 and complaint motion.}
 \label{jointFrames:fig}
 \end{figure}
 
-In practice, due to numerical errors and/or compliance in the joint
-(Section \ref{JointCompliance:sec}), the joint transform $\T_{CD}$ may
+In practice, due to numerical errors and/or compliance in the joint,
+%(Section \ref{JointCompliance:sec}), 
+the joint transform $\T_{CD}$ may
 sometimes deviate from the allowed set of values dictated by the joint
 type. In ArtiSynth, this is accounted for by introducing an additional
 {\it constraint} frame G between D and C (Figure \ref{jointFrames:fig}).
@@ -749,18 +756,18 @@ An application creates a joint by constructing it and adding it to a
 {\tt MechModel}. Most joints generally have a constructor of the form
 %
 \begin{lstlisting}[]
-  JointType (bodyA, bodyB, XDW);
+  JointType (bodyA, bodyB, TDW);
 \end{lstlisting}
 %
 which specifies the rigid bodies A and B which the joint connects,
 along with the transform $\T_{DW}$ giving the pose of the joint base
 frame D in world coordinates. Then constructor then assumes that the
-joint is in the zero state, so that $\T_{CD} = \I$ and C and D are
-the same, and then computes
+joint is in the zero state, so that C and D are the same and
+$\T_{CD} = \I$ and $\T_{CW} = \T_{DW}$, and then computes
 $\T_{CA}$ and $\T_{DB}$ from
 %
 \begin{align}
-\T_{CA} & = \T_{AW}^{-1} \; \T_{DW} \\
+\T_{CA} & = \T_{AW}^{-1} \; \T_{CW} \\
 \T_{DB} & = \T_{BW}^{-1} \; \T_{DW}
 \end{align}
 %
@@ -769,9 +776,9 @@ The same body and transform settings can be made on an existing
 joint using the method
 \javamethodAlt{%
 artisynth.core.mechmodels.RigidBodyConnector.setBodies(,,)}
-{setBodies(bodyA, bodyB, XDW)}.
+{setBodies(bodyA, bodyB, TDW)}.
 
-Alternatively, if we prefer to specify $\T_{CA}$ or $\T_{BA}$, then we
+Alternatively, if we prefer to explicitly specify $\T_{CA}$ or $\T_{BA}$, then we
 can determine $\T_{DW}$ from $\T_{AW}$ or $\T_{BW}$ using
 %
 \begin{align}
@@ -796,7 +803,7 @@ the following code fragment:
 
 Another method,
 \javamethodAlt{artisynth.core.mechmodels.RigidBodyConnector.setBodies(,,,)}
-{setBodies(bodyA, XCA, bodyB, XDB)}, allows us to set both values of
+{setBodies(bodyA, TCA, bodyB, TDB)}, allows us to set both values of
 $\T_{CA}$ or $\T_{BA}$ explicity. This is useful if the joint
 transform $\T_{CD}$ is known to be some value {\it other} than the
 identity, in which case $\T_{CA}$ or $\T_{BA}$ can be computed
@@ -812,7 +819,7 @@ from
 %
 \begin{equation}
 \T_{DB} = \T_{BA}^{-1} \, \T_{CA} \, \T_{CD}^{-1} = 
-\T_{BW}^{-1}  \, T_{AW} \, \T_{CA} \, \T_{CD}^{-1}
+\T_{BW}^{-1}  \, \T_{AW} \, \T_{CA} \, \T_{CD}^{-1}
 \end{equation}
 %
 and set up the joint as follows:
@@ -840,19 +847,25 @@ configuration. For example, {\tt RevoluteJoint} provides the method
 This causes the transform $\T_{CD}$ to be explicity set to the value
 implied by the joint parameters, and the pose of either body A or B is
 changed to accommodate this. Whether body A or B is moved depends on
-which one is the least connected to ground, and other bodies that have
+which one is the least connected to "ground", and other bodies that have
 joint connections to the moved body are moved as well.
 
 If desired, joints can be connected to only a single rigid body. In
 this case, the second body B is simply assumed to be "ground", and the
-coordinate frame that would be associated with body B is instead taken
+coordinate frame B is instead taken
 to be the world coordinate frame W. The corresponding calls
 to the joint constructor or {\tt setBodies()} take the
 form
 %
 \begin{lstlisting}[]
-  joint = new JointType (bodyA, null, XDW);
-  joint.setBodies (bodyA, null, XDW);
+  JointType joint = new JointType (bodyA, null, TDW);
+\end{lstlisting}
+%
+or
+%
+\begin{lstlisting}[]
+  JointType joint = new JointType();
+  joint.setBodies (bodyA, null, TDW);
 \end{lstlisting}
 %
 
@@ -931,10 +944,11 @@ The build method for this model is given below:
 
 A {\tt MechModel} is created as usual at line 4. However, in this
 example, we also set some parameters for it:
-\javamethod*[artisynth.core.mechmodels.MechModel]{setGravity()} is used to set
-the gravity acceleration vector to $(0, 0, -98)^T$ instead of the
-default value of $(0, 0, -9.8)^T$, and frame and rotary damping
-(Section \ref{RigidBodyDamping:sec}) are set to provide dissipation.
+\javamethod*[artisynth.core.mechmodels.MechModel]{setGravity()} is
+used to set the gravity acceleration vector to $(0, 0, -98)^T$ instead
+of the default value of $(0, 0, -9.8)^T$, and the {\tt frameDamping}
+and {\tt rotaryDamping} properties (Section
+\ref{RigidBodyDamping:sec}) are set to provide appropriate damping.
 
 Each of the two rigid bodies are created from a mesh and a density.
 The meshes themselves are created using the factory methods
@@ -953,22 +967,23 @@ constructed at line 32 with the joint coordinate frame D being located
 in world coordinates by {\tt TDW} 
 as described in Section \ref{CreatingJoints:sec}.
 
-Once the joint is created at added to the {\tt MechModel}, the method
+Once the joint is created and added to the {\tt MechModel}, the method
 \javamethod*[artisynth.core.mechmodels.RevoluteJoint]{setTheta()} is
 used to explicity set the joint parameter to 35 degrees. The joint
 transform $\T_{CD}$ is then set appropriately and {\tt bodyA} is moved
-to accommodate this ({\tt bodyA} being chosen since it is the freeest
+to accommodate this ({\tt bodyA} being chosen since it is the freest
 to move).
 
 Finally, render properties are set starting at line 42. A revolute
-joint is rendered as a line segment, using the line render properties,
-with {\tt lineStyle} and {\tt lineColor} set to {\tt Cylinder} and
-{\tt BLUE} by default. The cylinder radius and length are specified by
-the line render property {\tt lineRadius} and the revolute joint
-property {\tt axisLength}, which are set explicitly in the code.
+joint is rendered as a line segment, using the line render properties
+(Section \ref{RenderProperties:sec}), with {\tt lineStyle} and {\tt
+lineColor} set to {\tt Cylinder} and {\tt BLUE}, respectively, by
+default. The cylinder radius and length are specified by the line
+render property {\tt lineRadius} and the revolute joint property {\tt
+axisLength}, which are set explicitly in the code.
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
-RigidBodySpring} from the {\sf Models} menu. The model should load and
+RigidBodyJoint} from the {\sf Models} menu. The model should load and
 initially appear as in Figure \ref{RigidBodyJoint:fig}.  Running the
 model (Section \ref{LoadingAndRunning:sec}) will cause {\tt bodyA} to
 fall and swing under gravity.
@@ -997,23 +1012,23 @@ from the top-left, these joints are:
 
 \begin{description}
 
-\item[Revolute joint]
+\item[Revolute joint]\mbox{}
 
-A one DOF joint which allows rotation by a angle $\theta$ about
+A one DOF joint which allows rotation by an angle $\theta$ about
 the z axis.
 
-\item[Roll-pitch joint]
+\item[Roll-pitch joint]\mbox{}
 
 A two DOF joint, similar to the revolute joint, which allows the
 rotation about z to be followed by an additional rotation $\phi$ about
 the (new) y axis.
 
-\item[Spherical joint]
+\item[Spherical joint]\mbox{}
 
 A three DOF joint in which the origin remains fixed but any orientation
 may be assumed.
 
-\item[Planar connector]
+\item[Planar connector]\mbox{}
 
 A five DOF joint which connects a point on a single rigid body to a
 plane in space. The point may slide freely in the x-y plane, and the
@@ -1021,12 +1036,11 @@ body may assume any orientation about the point.
 
 \end{description}
 
-\subsubsection{Joint Compliance}
-\label{JointCompliance:sec}
-
-OPTIONAL
+% LATER \subsubsection{Joint Compliance}
+% LATER \label{JointCompliance:sec}
 
 \subsection{Frame springs}
+\label{FrameSprings:sec}
 
 Another way to connect two rigid bodies together is to use a {\it
 frame spring}, which is a six dimensional spring that generates
@@ -1048,14 +1062,18 @@ two frames C and D which are a function of $\T_{DC}$ and $\hat\v_{DC}$
 (the spatial velocity of frame D with respect to frame C).
 
 Decomposing forces into stiffness and damping terms, the force
-$\f_c$ and moment $\Btau_c$ acting on C can be expressed as 
+$\f_C$ and moment $\Btau_C$ acting on C can be expressed as 
 %
 \begin{align}
-\f_C & = \f_{Ck} (\T_{DC}) + \f_{Cd} (\hat\v_{DC}) \notag \\
-\Btau_C & = \Btau_{Ck} (\T_{DC}) + \Btau_{Cd} (\hat\v_{DC}).
+\f_C & = \f_{k} (\T_{DC}) + \f_{d} (\hat\v_{DC}) \notag \\
+\Btau_C & = \Btau_{k} (\T_{DC}) + \Btau_{d} (\hat\v_{DC}).
 \label{ftauC:eqn}
 \end{align}
 %
+where the translational and rotational forces $\f_{k}$, $\f_{d}$,
+$\Btau_{k}$, and $\Btau_{d}$ are general functions of $\T_{DC}$ and
+$\hat\v_{DC}$.
+
 The forces acting on D are equal and opposite, so that
 %
 \begin{align}
@@ -1082,7 +1100,7 @@ and $\T_{DB}$ (Figure \ref{frameSpringBodies:fig}).
 \subsubsection{Frame materials}
 
 The restoring forces (\ref{ftauC:eqn}) generated in a frame spring
-depends on the {\it frame material} associated with the spring. Frame
+depend on the {\it frame material} associated with the spring. Frame
 materials are defined in the package {\tt artisynth.core.materials},
 and are subclassed from
 \javaclass[artisynth.core.materials]{FrameMaterial}.
@@ -1092,9 +1110,9 @@ in which the restoring forces are determined from
 %
 \begin{align*}
 \f_C & = 
-\K_{f} \, \x_{DC} + \D_{f} \, \v_{DC} \\
+\K_{t} \, \x_{DC} + \D_{t} \, \v_{DC} \\
 \Btau_C & = 
-\K_{\tau} \, \hat\Bthe_{DC} + \D_{\tau} \, \Bom_{DC}
+\K_{r} \, \hat\Bthe_{DC} + \D_{r} \, \Bom_{DC}
 \label{flinear:eqn}
 \end{align*}
 %
@@ -1113,13 +1131,13 @@ $z$ axes, and
 \matl d_{r x} & 0 & 0 \\ 0 & d_{r y} & 0 \\ 0 & 0 & d_{r z} \matr.
 \end{gather*}
 %
-are the stiffness and damping matrices. The stiffness and damping
-values $\k_t$, $\k_r$, $\d_t$, and $\d_ru$ are exposed as the
-{\tt stiffness}, {\tt rotaryStiffness}, {\tt damping}, and {\tt
-rotaryDamping} properties of the material. Each of these is a 3
-dimensional vector giving stiffness or damping values along or about a
-particular axis. Specifying different values for different axes will
-result in an anisotropic behavior.
+are the stiffness and damping matrices. The diagonal values defining
+each matrix are stored in the 3-dimensional vectors $\k_t$, $\k_r$,
+$\d_t$, and $\d_r$ which are exposed as the {\tt stiffness}, {\tt
+rotaryStiffness}, {\tt damping}, and {\tt rotaryDamping} properties of
+the material. Each of these specifies stiffness or damping values
+along or about a particular axis. Specifying different values for
+different axes will result in anisotropic behavior.
 
 Other frame materials offering nonlinear behaviour may be defined in
 {\tt artisynth.core.materials}.
@@ -1144,26 +1162,25 @@ A typical construction sequence might look like this:
 The material is set using
 \javamethod*[artisynth.core.mechmodels.FrameSpring]{setMaterial()}.
 The example above uses a {\tt LinearFrameMaterial}, created with a
-constructor that sets $\k_t$, $\k_r$, $\d_t$, and $\d_ru$ to uniform
+constructor that sets $\k_t$, $\k_r$, $\d_t$, and $\d_r$ to uniform
 isotropic values specified by {\tt kt}, {\tt kr}, {\tt dt}, and {\tt
 dr}. 
 
 The bodies and transforms can be set in the same manner as for joints
-(Section \ref{CreatingJoints:sec}), with the methods
-\javamethodAlt{artisynth.core.mechmodels.FrameSpring.setFrames(Frame,Frame,RigidTransform3d)}{setFrames(bodyA,bodyB,TDW)}
+(Section \ref{CreatingJoints:sec}), with the
+methods\\ \javamethodAlt{artisynth.core.mechmodels.FrameSpring.setFrames(Frame,Frame,RigidTransform3d)}{setFrames(bodyA,bodyB,TDW)}
 and
 \javamethodAlt{artisynth.core.mechmodels.FrameSpring.setFrames(Frame,RigidTransform3d,Frame,RigidTransform3d)}{setFrames(bodyA,TCA,bodyB,TDB)}
-assuming the role of {\tt setBodies(bodyA,bodyB,TDW)} and
-{\tt setBodies(bodyA,TCA,bodyB,TDB)} (rigid bodies are instances of the
-more general {\tt Frame} class). The former takes D specified in
-worlds coordinates and computes $\T_{CA}$ and $\T_{DB}$ assuming that
-there is no initial spring displacement (i.e., that $\T_{DC} = \I$),
-while the latter allows $\T_{CA}$ and $\T_{DB}$ to be specified
-explicitly.
+assuming the role of the {\tt setBodies()} methods used for joints.
+The former takes D specified in world coordinates and computes
+$\T_{CA}$ and $\T_{DB}$ assuming that there is no initial spring
+displacement (i.e., that $\T_{DC} = \I$), while the latter allows
+$\T_{CA}$ and $\T_{DB}$ to be specified explicitly with $\T_{DC}$
+assuming whatever value is implied.
 
 Frame springs and joints are often placed together, using the same
-transforms $\T_{CA}$ and $\T_{CB}$, with the spring providing
-restoring forces tp help keep the joint within presribed bounds.
+transforms $\T_{CA}$ and $\T_{DB}$, with the spring providing
+restoring forces to help keep the joint within presribed bounds.
 
 As with joints, a frame spring can be connected to only a single body,
 by specifying {\tt frameB} as {\tt null}. Frame B is then taken to be
@@ -1190,83 +1207,38 @@ rigid bodies and connected by a frame spring, is defined in
   artisynth.demos.tutorial.LumbarFrameSpring
 \end{verbatim}
 %
-and most of the code for this is shown here:
-%
+The definition for the entire model class is shown here:
 \lstset{numbers=left}
-\begin{lstlisting}[]
-   // path from which meshes will be read
-   private String geometryDir = ArtisynthPath.getSrcRelativePath (
-      LumbarFrameSpring.class, "../mech/geometry/");
-
-   // create and add a rigid body from a mesh
-   public RigidBody addBone (MechModel mech, String name) throws IOException {
-      PolygonalMesh mesh = new PolygonalMesh (new File (geometryDir+name+".obj"));
-      RigidBody rb = RigidBody.createFromMesh (name, mesh, density, /*scale=*/1);
-      mech.addRigidBody (rb);
-      return rb;
-   }
-
-   public void build (String[] args) throws IOException {
-
-      // create mech model and set it's properties
-      MechModel mech = new MechModel ("mech");
-      mech.setGravity (0, 0, -1.0);
-      mech.setFrameDamping (0.10);
-      mech.setRotaryDamping (0.001);
-      addModel (mech);
-
-      // create two rigid bodies and second one to be fixed
-      RigidBody lumbar1 = addBone (mech, "lumbar1");
-      RigidBody lumbar2 = addBone (mech, "lumbar2");
-      lumbar1.setPose (new RigidTransform3d (-0.016, 0.039, 0));
-      lumbar2.setDynamic (false);
-
-      // rotate entire mech model 90 degrees about the x axis
-      mech.transformGeometry (
-         new RigidTransform3d (0, 0, 0, 0, 0, Math.toRadians (90)));
-
-      //create and add the frame spring
-      FrameSpring spring = new FrameSpring (null);
-      spring.setMaterial (
-         new LinearFrameMaterial (
-            /*ktrans=*/100, /*krot=*/0.01, /*dtrans=*/0, /*drot=*/0));
-      spring.setFrames (lumbar1, lumbar2, lumbar1.getPose());
-      mech.addFrameSpring (spring);
-
-      // set render properties for components
-      RenderProps.setLineColor (spring, Color.RED);
-      RenderProps.setLineWidth (spring, 3);
-      spring.setAxisLength (0.02);
-   }
-\end{lstlisting}
+\lstinputlisting{../../src/artisynth/demos/tutorial/LumbarFrameSpring.java}
 \lstset{numbers=none}
-%
-For convenience, the code to create and add the vertebrae is wrapped
-into the method {\tt addBone()} defined at lines 6-11. This method
-takes two arguments: the {\tt MechModel} to add the bone to, and the
-name of the bone. Surface meshes for the bones are located in {\tt
-.obj} files located in the directory {\tt ../mech/geometry} relative
-to the source directory for the model itself;
+
+For convenience, the code to create and add each vertebrae is wrapped
+into the method {\tt addBone()} defined at lines 27-32. This method
+takes two arguments: the {\tt MechModel} to which the bone should be
+added, and the name of the bone. Surface meshes for the bones are
+located in {\tt .obj} files located in the directory {\tt
+../mech/geometry} relative to the source directory for the model
+itself.
 \javamethod*[artisynth.core.util]{ArtisynthPath.getSrcRelativePath()}
 is used to find a proper path to this directory given the model class
 type ({\tt LumbarFrameSpring.class}), and this is stored in the static
 string {\tt geometryDir}. Within {\tt addBone()}, the directory path
 and the bone name are used to create a path to the bone mesh itself,
-which is in turn used to create a {\tt PolygonalMesh} (line 7). The
+which is in turn used to create a {\tt PolygonalMesh} (line 28). The
 mesh is then used in conjunction with a {\tt density} to create a
-rigid body which is added to the {\tt MechModel} (lines 8-9) and
+rigid body which is added to the {\tt MechModel} (lines 29-30) and
 returned.
 
 The {\tt build()} method begins by creating and adding a {\tt
 MechModel}, specifying a low value for gravity, and setting the rigid
-body damping damping properties {\tt frameDamping} and {\tt
-rotaryDamping} (lines 16-20). (The damping parameters are required
-because the frame spring itself will be created with no damping.)
+body damping properties {\tt frameDamping} and {\tt
+rotaryDamping} (lines 37-41). (The damping parameters are needed
+here because the frame spring itself is created with no damping.)
 Rigid bodies representing the vertebrae {\tt lumbar1} and {\tt
-lumabr2} are then created by calling {\tt addBone()} (lines 23-24),
-{\tt lumbar1} is translated by setting the origin of it's pose to
+lumbar2} are then created by calling {\tt addBone()} (lines 44-45),
+{\tt lumbar1} is translated by setting the origin of its pose to
 $(-0.016, 0.039, 0)^T$, and {\tt lumbar2} is set to be fixed by making
-it non-dynamic (line 26).
+it non-dynamic (line 47).
 
 \begin{figure}[h]
 \begin{center}
@@ -1282,18 +1254,19 @@ about the x axis.}
 \end{figure}
 
 At this point in the construction, if the model were to be loaded, it
-would appear as in Figure \ref{LumbarFrameSpringNoflip:fig}. To
-correct the viewpoint, we rotate the entire model about the x axis
-(line 29).  This is done using
+would appear as in Figure \ref{LumbarFrameSpringNoflip:fig}. To change
+the viewpoint to that seen in Figure \ref{LumbarFrameSpring:fig}, we
+rotate the entire model about the x axis (line 50).  This is done
+using
 \javamethodAlt{artisynth.core.mechmodels.MechModel.transformGeometry()}
 {transformGeometry(X)}, which transforms the geometry of an entire
 model using a rigid or affine transform.
 
-The frame spring is created and added at lines 33-38, using the
+The frame spring is created and added at lines 54-59, using the
 methods described in Section \ref{CreatingFrameSprings:sec}, with
 frame D set to the (initial) pose of {\tt lumbar1}.
 
-Render properties are set starting at line 41. By default, a frame
+Render properties are set starting at line 62. By default, a frame
 spring renders as a pair of red, green, blue coordinate axes showing
 frames C and D, along with a line connecting them. The line width and
 the color of the connecting line are controlled by the line render
@@ -1323,34 +1296,39 @@ connected together.
 
 Attachments are made by adding to a {\tt MechModel} special {\it
 attachment} components that manage the attachment physics as described
-briefly in Section
-\ref{PhysicsSimulation:sec}. At present, attachments
-are implemented only for point-based components.  Modeling
+briefly in Section \ref{PhysicsSimulation:sec}. At present,
+attachments are implemented only for point-based components.  Modeling
 applications do not generally handle the attachment components
-directly, but instead use the followng {\tt MechModel} methods,
+directly, but instead create them implicitly using the followng {\tt
+MechModel} methods:
 %
 \begin{lstlisting}[]
   attachPoint (Point p1, Particle p2);
   attachPoint (Point p1, RigidBody body, Point3d loc);
   attachPoint (Point p1, RigidBody body);
   attachPoint (Point p1, FemElement3d elem);
-  detachPoint (Point p1);
 \end{lstlisting}
 %
 which attach a point {\tt p1} to either a particle, rigid body, or a
-finite element.
+finite element.  The second method,
 \javamethodAlt{artisynth.core.mechmodels.MechModel.attachPoint(Point,RigidBody,Point3d)}
-{attachPoint(p1, body, loc)} attaches {\tt p1} to {\tt body} at the
+{attachPoint(p1, body, loc)}, attaches {\tt p1} to {\tt body} at the
 point {\tt loc} specified in body coordinates, while
 \javamethodAlt{artisynth.core.mechmodels.MechModel.attachPoint(Point,RigidBody)}{attachPoint(p1,
 body)} computes the attachment location based on the current position
-and pose of {\tt p1} and {\tt body}.  Once {\tt p1} is attached, it
-will in the {\it attached} state, as described in Section
-\ref{DynamicVsParametric:sec}.
-An attachment can be removed by calling 
-\javamethod*[artisynth.core.mechmodels.MechModel]{detachPoint()}.
-Finite element attachments are
-discussed in Section \ref{NodeAttachments:sec}.
+and pose of {\tt p1} and {\tt body}.  
+Finite element attachments are discussed in Section
+\ref{NodeAttachments:sec}.
+
+Once at point is attached, it
+will be in the {\it attached} state, as described in Section
+\ref{DynamicVsParametric:sec}.  Attachments can be removed by
+calling
+%
+\begin{lstlisting}[]
+  detachPoint (Point p1);   
+\end{lstlisting}
+%
 
 \subsubsection{Example: model with particle attachments}
 
@@ -1406,7 +1384,7 @@ and most of the code is shown here:
       Particle p4 = addParticle (mech, 0, 0, 0.15);
       addSpring (mech, p1, p2);
       addSpring (mech, p3, p4);
-      // create box and set it's pose (position/orientation):
+      // create box and set its pose (position/orientation):
       RigidBody box =
          RigidBody.createBox ("box", /*wx,wy,wz=*/0.5, 0.3, 0.3, /*density=*/20);
       box.setPose (new RigidTransform3d (/*x,y,z=*/0.2, 0, 0));
@@ -1431,7 +1409,7 @@ and most of the code is shown here:
 The code is very similar to {\tt ParticleSpring} and {\tt
 RigidBodySpring} described in Sections \ref{ParticleSpringExample:sec}
 and \ref{RigidBodySpringExample:sec}, except that two convenience
-methods, {\tt addParticle()} and {\tt addSpring()} are defined at
+methods, {\tt addParticle()} and {\tt addSpring()}, are defined at
 lines 1-15 to create particles and spring and add them to a {\tt
 MechModel}. These are used in the {\tt build()} method to create four
 particles and two springs (lines 24-29), along with a rigid body box
@@ -1448,7 +1426,7 @@ example, point and line render properties are set for the entire {\tt
 MechModel} instead of individual components.  Since render properties
 are inherited, this will implicitly set the specified render
 properties in all sub-components for which these properties are not
-explicitly set, either locally or in an intermediate ancestor.
+explicitly set (either locally or in an intermediate ancestor).
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
 ParticleAttachment} from the {\sf Models} menu. The model should load
@@ -1456,81 +1434,4 @@ and initially appear as in Figure \ref{ParticleAttachment:fig}.
 Running the model (Section \ref{LoadingAndRunning:sec}) will cause the
 box to fall and swing under gravity.
 
-\subsection{Simulation control properties}
-
-Both \javaclass[artisynth.core.workspace]{RootModel} and
-\javaclass[artisynth.core.mechmodels]{MechModel} contain properties
-that control the simulation behavior. One of the most important of
-these is {\tt maxStepSize}. By default, simulation proceeds using the
-{\tt maxStepSize} value defined for the root model. A {\tt MechModel}
-contained within the root model may also request a smaller step size
-by specifying a smaller value for its own {\tt maxStepSize} property.
-For all models, the maximum step size may be set and queried
-using
-%
-\begin{lstlisting}[]
-  void setMaxStepSize (double maxh);
-  double getMaxStepSize();
-\end{lstlisting}
-%
-
-Another important simulation property is {\tt integrator} in {\tt
-MechModel}, which determines the type of integrator used for the
-physics simulation. The property value is the enumerated type
-{\tt MechSystemSolver.Integrator}, and it can currently
-be set to the following values:
-
-\begin{description}
-
-\item[ForwardEuler]\mbox{}
-
-First order forward Euler integrator. Unstable for stiff systems.
-
-\item[SymplecticEuler]\mbox{}
-
-First order symplectic Euler integrator, more energy conserving
-that forward Euler. Unstable for stiff systems.
-
-\item[RungeKutta4]\mbox{}
-
-Fourth order Runge Kutta integrator, quite accurate but also unstable
-for stiff systems.
-
-\item[ConstrainedBackwardEuler]\mbox{}
-
-First order backward order integrator. Generally stable for stiff systems.
-
-\item[Trapezoidal]\mbox{}
-
-Second order trapezoidal integrator. Generally stable for stiff
-systems, but slightly less so than {\tt ConstrainedBackwardEuler}.
-
-\end{description}
-
-The term "Unstable for stiff systems" means that the integrator is
-likely to go unstable in the presence of "stiff" systems, which
-typically include systems containing finite element models.  The
-default value for {\tt integrator} is {\tt ConstrainedBackwardEuler}.
-
-Another {\tt MechModel} simulation property is {\tt stabilization},
-which controls the stabilization method used correct drift from
-position constraints and correct interpenetrations due to collisions.
-The property value is the enumerated type {\tt
-MechSystemSolver.PosStabilization}, and it has two values:
-
-\begin{description}
-
-\item[GlobalMass]\mbox{}
-
-Uses only a diagonal mass matrix for the MLCP that is solved to
-determine the position corrections. This is default method.
-
-\item[GlobalStiffness]\mbox{}
-
-Uses a stiffness-corrected mass matrix for the MLCP that is solved to
-determine the position corrections. Slower than {\tt GlobalMass}, but
-more likely to produce stable results, particularly for
-problems involving FEM collisions.
-
-\end{description}
 

@@ -1,22 +1,16 @@
 package artisynth.demos.tutorial;
 
+import java.io.IOException;
+import java.io.File;
 import java.awt.Color;
-
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.*;
-import artisynth.core.materials.RotAxisFrameMaterial;
-import artisynth.core.materials.LinearFrameMaterial;
+import artisynth.core.materials.*;
 import artisynth.core.util.*;
 import artisynth.core.workspace.RootModel;
-import maspack.geometry.*;
-import maspack.spatialmotion.*;
 import maspack.matrix.*;
+import maspack.geometry.*;
 import maspack.render.*;
-import maspack.util.*;
-
-import java.io.*;
-import java.net.*;
-import java.util.*;
 
 /**
  * Demo of two rigid bodies connected by a 6 DOF frame spring

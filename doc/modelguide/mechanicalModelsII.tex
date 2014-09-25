@@ -1,6 +1,97 @@
 \section{Mechanical Models II}
 \label{MechModelsII:sec}
 
+This section provides addtional material on building basic
+multibody-type mechanical models.
+
+\subsection{Simulation control properties}
+
+Both \javaclass[artisynth.core.workspace]{RootModel} and
+\javaclass[artisynth.core.mechmodels]{MechModel} contain properties
+that control the simulation behavior. One of the most important of
+these is {\tt maxStepSize}. By default, simulation proceeds using the
+{\tt maxStepSize} value defined for the root model. A {\tt MechModel}
+(or any other type of {\tt Model}) contained in the root model's {\tt
+models} list may also request a smaller step size by specifying a
+smaller value for its own {\tt maxStepSize} property.  For all models,
+the {\tt maxStepSize} may be set and queried using
+%
+\begin{lstlisting}[]
+  void setMaxStepSize (double maxh);
+  double getMaxStepSize();
+\end{lstlisting}
+%
+
+Another important simulation property is {\tt integrator} in {\tt
+MechModel}, which determines the type of integrator used for the
+physics simulation. The value type of this property is the enumerated
+type {\tt MechSystemSolver.Integrator}, for which the following values
+are currently defined:
+
+\begin{description}
+
+\item[ForwardEuler]\mbox{}
+
+First order forward Euler integrator. Unstable for stiff systems.
+
+\item[SymplecticEuler]\mbox{}
+
+First order symplectic Euler integrator, more energy conserving
+that forward Euler. Unstable for stiff systems.
+
+\item[RungeKutta4]\mbox{}
+
+Fourth order Runge Kutta integrator, quite accurate but also unstable
+for stiff systems.
+
+\item[ConstrainedBackwardEuler]\mbox{}
+
+First order backward order integrator. Generally stable for stiff systems.
+
+\item[Trapezoidal]\mbox{}
+
+Second order trapezoidal integrator. Generally stable for stiff
+systems, but slightly less so than {\tt ConstrainedBackwardEuler}.
+
+\end{description}
+
+The term "Unstable for stiff systems" means that the integrator is
+likely to go unstable in the presence of "stiff" systems, which
+typically include systems containing finite element models, unless the
+simulation step size is set to an extremely small value.  The default
+value for {\tt integrator} is {\tt ConstrainedBackwardEuler}.
+
+\begin{sideblock}
+Stiff systems tend to arise in models containing interconnected
+deformable elements, for which the step size should not exceed the
+propagation time across the smallest element, an effect known as the
+Courant-Friedrichs-Lewy (CFL) condition. Larger stiffness and damping
+values decrease the propagation time and hence the allowable step
+size.
+\end{sideblock}
+
+Another {\tt MechModel} simulation property is {\tt stabilization},
+which controls the stabilization method used to correct drift from
+position constraints and correct interpenetrations due to collisions.
+The value type of this property value is the enumerated type {\tt
+MechSystemSolver.PosStabilization}, which presently has two values:
+
+\begin{description}
+
+\item[GlobalMass]\mbox{}
+
+Uses only a diagonal mass matrix for the MLCP that is solved to
+determine the position corrections. This is the default method.
+
+\item[GlobalStiffness]\mbox{}
+
+Uses a stiffness-corrected mass matrix for the MLCP that is solved to
+determine the position corrections. Slower than {\tt GlobalMass}, but
+more likely to produce stable results, particularly for
+problems involving FEM collisions.
+
+\end{description}
+
 \subsection{Units}
 
 ArtiSynth is primarily "unitless", in the sense that it does not
@@ -398,7 +489,7 @@ because the collision code would otherwise conflict with the fact that
 in a permanent state of collision.
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
-JointCollide} from the {\sf Models} menu. The model should load and
+JointedCollide} from the {\sf Models} menu. The model should load and
 initially appear as in Figure \ref{JointedCollide:fig}.  Running
 the model (Section \ref{LoadingAndRunning:sec}) will
 cause the jointed assembly to collide with and slide off the inclined

@@ -2,7 +2,7 @@
 %%Creator: idraw
 %%DocumentFonts: Helvetica
 %%Pages: 1
-%%BoundingBox: 144 365 410 560
+%%BoundingBox: 200 455 406 560
 %%EndComments
 
 %%BeginIdrawPrologue
@@ -77,7 +77,7 @@ end
 
 %%EndIdrawPrologue
 
-/arrowHeight 10 def
+/arrowHeight 11 def
 /arrowWidth 5 def
 
 /IdrawDict 51 dict def
@@ -507,7 +507,8 @@ Begin
 /originalCTM matrix currentmatrix def
 
 Begin %I Pict
-%I b u
+%I b 65535
+2 0 0 [] 0 SetB
 %I cfg u
 %I cbg u
 %I f u
@@ -612,48 +613,6 @@ Begin %I Pict
 %I f u
 %I p u
 %I t
-[ 0.974391 0.22486 -0.22486 0.974391 136.826 -43.4111 ] concat
-
-Begin %I Line
-%I b 65535
-2 0 1 [] 0 SetB
-%I cfg Black
-0 0 0 SetCFg
-%I cbg White
-1 1 1 SetCBg
-none SetP %I p n
-%I t
-[ 1 -0 -0 1 57 89 ] concat
-%I
-159 447 159 535 Line
-%I 1
-End
-
-Begin %I Line
-%I b 65535
-2 0 1 [] 0 SetB
-%I cfg Black
-0 0 0 SetCFg
-%I cbg White
-1 1 1 SetCBg
-none SetP %I p n
-%I t
-[ 1 -0 -0 1 57 89 ] concat
-%I
-159 447 247 447 Line
-%I 1
-End
-
-End %I eop
-
-Begin %I Pict
-%I b 65535
-1 0 0 [] 0 SetB
-%I cfg u
-%I cbg u
-%I f u
-%I p u
-%I t
 [ 0.994389 -0.105786 0.105786 0.994389 156.203 126.647 ] concat
 
 Begin %I Line
@@ -730,133 +689,9 @@ End
 
 End %I eop
 
-Begin %I Pict
-%I b 65535
-1 0 0 [] 0 SetB
-%I cfg u
-%I cbg u
-%I f u
-%I p u
-%I t
-[ 0.872143 0.489251 -0.489251 0.872143 525.391 -94.1868 ] concat
-
-Begin %I Line
-%I b 65535
-2 0 1 [] 0 SetB
-%I cfg Black
-0 0 0 SetCFg
-%I cbg White
-1 1 1 SetCBg
-none SetP %I p n
-%I t
-[ 1 0 0 1 57 89 ] concat
-%I
-159 447 159 535 Line
-%I 1
-End
-
-Begin %I Line
-%I b 65535
-2 0 1 [] 0 SetB
-%I cfg Black
-0 0 0 SetCFg
-%I cbg White
-1 1 1 SetCBg
-none SetP %I p n
-%I t
-[ 1 0 0 1 57 89 ] concat
-%I
-159 447 247 447 Line
-%I 1
-End
-
-End %I eop
-
-Begin %I Line
-%I b 65535
-2 0 1 [] 0 SetB
-%I cfg Black
-0 0 0 SetCFg
-%I cbg White
-1 1 1 SetCBg
-none SetP %I p n
-%I t
-[ 0.5 -0 -0 0.5 134.5 277.5 ] concat
-%I
-185 499 314 695 Line
-%I 2
-End
-
-Begin %I Line
-%I b 65535
-2 0 1 [] 0 SetB
-%I cfg Black
-0 0 0 SetCFg
-%I cbg White
-1 1 1 SetCBg
-none SetP %I p n
-%I t
-[ 0.5 -0 -0 0.5 134.5 277.5 ] concat
-%I
-635 402 586 719 Line
-%I 2
-End
-
-Begin %I Text
-%I cfg Black
-0 0 0 SetCFg
-%I f -*-helvetica-medium-r-normal--18-*
-Helvetica 18 SetF
-%I t
-[ 1 0 0 1 190 597.5 ] concat
-%I
-[
-(A)
-] Text
-End
-
-Begin %I Text
-%I cfg Black
-0 0 0 SetCFg
-%I f -*-helvetica-medium-r-normal--18-*
-Helvetica 18 SetF
-%I t
-[ 1 0 0 1 297 708.5 ] concat
-%I
-[
-(1)
-] Text
-End
-
-Begin %I Text
-%I cfg Black
-0 0 0 SetCFg
-%I f -*-helvetica-medium-r-normal--18-*
-Helvetica 18 SetF
-%I t
-[ 1 0 0 1 419.5 717.5 ] concat
-%I
-[
-(2)
-] Text
-End
-
-Begin %I Text
-%I cfg Black
-0 0 0 SetCFg
-%I f -*-helvetica-medium-r-normal--18-*
-Helvetica 18 SetF
-%I t
-[ 1 0 0 1 395 536.5 ] concat
-%I
-[
-(B)
-] Text
-End
-
 Begin %I MLine
 %I b 65535
-1 0 0 [] 0 SetB
+2 0 0 [] 0 SetB
 %I cfg Black
 0 0 0 SetCFg
 %I cbg White
@@ -886,14 +721,18 @@ none SetP %I p n
 %I 2
 End
 
-Begin %I Pict
-%I b u
-%I cfg u
-%I cbg u
-%I f u
-%I p u
+Begin %I Text
+%I cfg Black
+0 0 0 SetCFg
+%I f -*-helvetica-medium-r-normal--18-*
+Helvetica 18 SetF
 %I t
-[ 1 0 0 1 9 -57.5 ] concat
+[ 1 0 0 1 297 708.5 ] concat
+%I
+[
+(C)
+] Text
+End
 
 Begin %I Text
 %I cfg Black
@@ -901,64 +740,42 @@ Begin %I Text
 %I f -*-helvetica-medium-r-normal--18-*
 Helvetica 18 SetF
 %I t
-[ 1 0 0 1 237.5 665.5 ] concat
+[ 1 0 0 1 419.5 717.5 ] concat
 %I
 [
-(p)
+(D)
 ] Text
 End
 
-Begin %I Text
+Begin %I Line
+%I b 65535
+1 0 1 [] 0 SetB
 %I cfg Black
 0 0 0 SetCFg
-%I f -*-helvetica-medium-r-normal--14-*
-Helvetica 14 SetF
+%I cbg White
+1 1 1 SetCBg
+none SetP %I p n
 %I t
-[ 1 0 0 1 243.5 652.5 ] concat
+[ 0.484819 -0 -0 0.484819 227.138 424.702 ] concat
 %I
-[
-(1)
-] Text
+134 413 74 390 Line
+%I 2
 End
 
-End %I eop
-
-Begin %I Pict
-%I b u
-%I cfg u
-%I cbg u
-%I f u
-%I p u
-%I t
-[ 1 0 0 1 -64 -8 ] concat
-
-Begin %I Text
+Begin %I Line
+%I b 65535
+1 0 1 [] 0 SetB
 %I cfg Black
 0 0 0 SetCFg
-%I f -*-helvetica-medium-r-normal--18-*
-Helvetica 18 SetF
+%I cbg White
+1 1 1 SetCBg
+none SetP %I p n
 %I t
-[ 1 0 0 1 511.5 586.5 ] concat
+[ 0.484819 -0 -0 0.484819 227.138 424.702 ] concat
 %I
-[
-(p)
-] Text
+414 435 383 415 Line
+%I 2
 End
-
-Begin %I Text
-%I cfg Black
-0 0 0 SetCFg
-%I f -*-helvetica-medium-r-normal--14-*
-Helvetica 14 SetF
-%I t
-[ 1 0 0 1 518 572.5 ] concat
-%I
-[
-(2)
-] Text
-End
-
-End %I eop
 
 End %I eop
 

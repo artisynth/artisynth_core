@@ -96,26 +96,26 @@ problems involving FEM collisions.
 
 ArtiSynth is primarily "unitless", in the sense that it does not
 define default units for the fundamental physical quantities of time,
-length, and mass associated with model components. Although time is
+length, and mass. Although time is
 generally understood to be in seconds, and often declared as such in
 method arguments and return values, there is no hard requirement that
 it be interpreted as seconds. There are no assumptions at all
 regarding length and mass. Some components may have default parameter
 values that reflect a partcular choice of units, such as {\tt
-MechModel}'s default gravity value of $(0, 0, -9.8)^T$ which is
+MechModel}'s default gravity value of $(0, 0, -9.8)^T$, which is
 associated with the MKS system, but these values can always be
-overridden by the user.
+overridden by the application.
 
 Nevertheless, it is important, and up to the application developer to
 ensure, that units be {\it consistent}. For example, if one decides to
-switch length units from meters to centermeters (a common choice),
+switch length units from meters to centimetere (a common choice),
 then all units involving length will have to be scaled appropriately.
-Density, whose fundamental units are $m/d^3$, where $m$ is mass and
+For example, density, whose fundamental units are $m/d^3$, where $m$ is mass and
 $d$ is distance, needs to be scaled by $1/100^3$, or $0.000001$, when
 converting from meters to centermeters.
 
 Table \ref{Units:tab} lists a number of common physical quantities
-used in ArtiSynth.
+used in ArtiSynth and their associated fundamental units.
 
 \begin{table}
 \begin{center}
@@ -166,7 +166,7 @@ provides the following methods for scaling mass and distance units:
 %
 A call to one of these methods should cause all physical quantities
 within the component (and its descendents) to be
-scaled as required by the fundamental unit relationships such
+scaled as required by the fundamental unit relationships
 as shown in Table \ref{Units:tab}.
 
 Converting a {\tt MechModel} from meters to centimeters can therefore be
@@ -176,7 +176,7 @@ easily done by calling
    mech.scaleDistance (100);
 \end{lstlisting}
 %
-and adding the following code fragment to the end of the {\tt build()}
+As an example, adding the following code to the end of the {\tt build()}
 method in {\tt RigidBodySpring} (Section \ref{RigidBodySpringExample:sec})
 %
 \begin{lstlisting}[]
@@ -190,7 +190,8 @@ method in {\tt RigidBodySpring} (Section \ref{RigidBodySpringExample:sec})
    System.out.println ("scaled gravity=" + mech.getGravity());
 \end{lstlisting}
 %
-will scale the distance by 100 and produce the following console output:
+will scale the distance by 100 and print the values of various
+quantities before and after scaling. The resulting output is:
 %
 \begin{lstlisting}[]
    length=0.5
@@ -203,13 +204,11 @@ will scale the distance by 100 and produce the following console output:
 \end{lstlisting}
 %
 
-It is important not to confuse scaling units with scaling
-the geometry or mass itself. Scaling units should change
-all physical quantities so that the simulated behavior of the
-model remains unchanged.
-If the distance-scaled version of {\tt RigidBodySpring} is
-run, it should behave exactly the same as the non-distance
-scaled version.
+It is important not to confuse scaling units with scaling the geometry
+or mass itself. Scaling units should change all physical quantities so
+that the simulated behavior of the model remains unchanged.  If the
+distance-scaled version of {\tt RigidBodySpring} shown above is run,
+it should behave exactly the same as the non-distance scaled version.
 
 %\subsection{Multi-point springs}
 %OPTIONAL

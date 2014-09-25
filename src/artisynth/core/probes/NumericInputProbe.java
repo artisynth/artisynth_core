@@ -268,7 +268,7 @@ public class NumericInputProbe extends NumericProbeBase
       int numValues = 0;
       Order interpolationOrder;
       double timeStep;
-
+      
       if (rtok.nextToken() != ReaderTokenizer.TT_WORD) {
          throw new IOException ("expecting interpolation method, line "
          + rtok.lineno());
@@ -506,6 +506,11 @@ public class NumericInputProbe extends NumericProbeBase
       throws IOException {
       double time = 0;
 
+      // If zero vector size, don't bother adding data
+      if (myVsize == 0) {
+         return;
+      }
+      
       while (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
          NumericListKnot knot = new NumericListKnot (myVsize);
          if (timeStep == EXPLICIT_TIME) {

@@ -65,10 +65,10 @@ public class AffineNumericInputProbe extends NumericInputProbe {
 //      initTransform(myVsize);
 //   }
 //
-//   public AffineNumericInputProbe (Property[] props, ModelComponent e) {
-//      super(props, e);
-//      initTransform(myVsize);
-//   }
+   public AffineNumericInputProbe (Property[] props, ModelComponent e) {
+      super(props, e);
+      initTransform(myVsize);
+   }
 //
 //   public AffineNumericInputProbe (
 //      Property[] props, ModelComponent e, double ymin, double ymax) {

@@ -3950,12 +3950,14 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       System.err.println(className + "." + methodName + "():" + lineNumber + ": " + msg);
    }
 
-   public void checkAndPrintGLError() {
+   public boolean checkAndPrintGLError() {
       int err = gl.glGetError();
       if (err != GL.GL_NO_ERROR) {
          String msg = Error.gluErrorString(err);
          printErr(msg + " (" +err + ")");
+         return false;
       }
+      return true;
    }
 
    public GLMouseListener getMouseHandler() {

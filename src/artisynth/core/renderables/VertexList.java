@@ -87,6 +87,8 @@ implements TransformableGeometry, ScalableUnits {
 
    public void render (GLRenderer renderer, int flags) {
 
+      renderer.checkAndPrintGLError();
+      
       GL2 gl = renderer.getGL2();
       gl.glPushMatrix();
 
@@ -127,7 +129,6 @@ implements TransformableGeometry, ScalableUnits {
                   i++;
                }
             } else {
-
                renderer.setColor (color, false);
                if (useDisplayLists && !displayListValid) {
                   gl.glNewList(displayList, GL2.GL_COMPILE_AND_EXECUTE);
@@ -166,6 +167,7 @@ implements TransformableGeometry, ScalableUnits {
             renderer.setMaterialAndShading (props, pointMaterial, false);
 
             if (useDisplayLists && !displayListValid) {
+               renderer.validateInternalDisplayLists(props); // ensure valid sphere
                gl.glNewList(displayList, GL2.GL_COMPILE_AND_EXECUTE);
             }
             
@@ -217,6 +219,8 @@ implements TransformableGeometry, ScalableUnits {
       //      gl.glCallList(displayList);
 
       gl.glPopMatrix();
+      
+      renderer.checkAndPrintGLError();
    }
 
    public void drawPoints (GLRenderer renderer,

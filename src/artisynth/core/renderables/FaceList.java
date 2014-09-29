@@ -97,7 +97,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
          faceMat = renderer.getSelectionMaterial();
       }
 
-      GL2 gl = renderer.getGL2().getGL2();
+      GL2 gl = renderer.getGL2();
       gl.glPushMatrix();
 
       Shading shading = props.getShading();
@@ -416,7 +416,9 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
          i++;
       }
       
-      gl.glEnd();
+      if (lastType != -1) {
+         gl.glEnd();
+      }
 
       
    }

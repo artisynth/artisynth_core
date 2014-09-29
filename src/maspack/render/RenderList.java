@@ -262,7 +262,7 @@ public class RenderList {
 
    private int renderList (
       GLRenderer renderer, SortedRenderableList list, int qid, int flags) {
-      GL2 gl = renderer.getGL2().getGL2();
+      GL2 gl = renderer.getGL2();
       boolean selecting = renderer.isSelecting();
 
       for (int i = 0; i < list.size(); i++) {
@@ -284,6 +284,7 @@ public class RenderList {
 //                  r.render (renderer, flags);
 //               }
                r.render (renderer, flags);
+               renderer.checkAndPrintGLError();
                if (numq >= 0) {
                   renderer.endSubSelection ();
                }
@@ -301,6 +302,7 @@ public class RenderList {
 //       } 
          else {
             r.render (renderer, flags);
+            renderer.checkAndPrintGLError();
          }
       }
       return qid;

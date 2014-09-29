@@ -355,6 +355,6 @@ public interface GLRenderer {
    
    public int checkGLError();
    
-   public void checkAndPrintGLError();
+   public boolean checkAndPrintGLError();
    
 }

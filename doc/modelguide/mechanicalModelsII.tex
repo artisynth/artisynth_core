@@ -101,21 +101,21 @@ generally understood to be in seconds, and often declared as such in
 method arguments and return values, there is no hard requirement that
 it be interpreted as seconds. There are no assumptions at all
 regarding length and mass. Some components may have default parameter
-values that reflect a partcular choice of units, such as {\tt
+values that reflect a particular choice of units, such as {\tt
 MechModel}'s default gravity value of $(0, 0, -9.8)^T$, which is
 associated with the MKS system, but these values can always be
 overridden by the application.
 
 Nevertheless, it is important, and up to the application developer to
 ensure, that units be {\it consistent}. For example, if one decides to
-switch length units from meters to centimetere (a common choice),
+switch length units from meters to centimeters (a common choice),
 then all units involving length will have to be scaled appropriately.
 For example, density, whose fundamental units are $m/d^3$, where $m$ is mass and
 $d$ is distance, needs to be scaled by $1/100^3$, or $0.000001$, when
-converting from meters to centermeters.
+converting from meters to centimeters.
 
 Table \ref{Units:tab} lists a number of common physical quantities
-used in ArtiSynth and their associated fundamental units.
+used in ArtiSynth, along with their associated fundamental units.
 
 \begin{table}
 \begin{center}
@@ -130,7 +130,7 @@ velocity                & $d/t$ & \\
 acceleration            & $d/t^2$ & \\
 force                   & $m d/t^2$ & \\
 work/energy             & $m d^2/t^2$& \\
-torque                  & $m d^2/t^2$ & same as energy, somewhat counterintuitive \\
+torque                  & $m d^2/t^2$ & same as energy (somewhat counterintuitive)\\
 angular velocity        & $1/t$ & \\
 angular acceleration    & $1/t^2$ & \\
 rotational inertia      & $m d^2$ & \\
@@ -155,7 +155,7 @@ fundamental units of mass ($m$), distance ($d$), and time ($t$).}
 \subsubsection{Scaling units}
 
 For convenience, many ArtiSynth components, including {\tt MechModel},
-implement the interafce
+implement the interface
 \javaclass[artisynth.core.util]{ScalableUnits}, which
 provides the following methods for scaling mass and distance units:
 %
@@ -190,7 +190,7 @@ method in {\tt RigidBodySpring} (Section \ref{RigidBodySpringExample:sec})
    System.out.println ("scaled gravity=" + mech.getGravity());
 \end{lstlisting}
 %
-will scale the distance by 100 and print the values of various
+will scale the distance units by 100 and print the values of various
 quantities before and after scaling. The resulting output is:
 %
 \begin{lstlisting}[]
@@ -204,11 +204,14 @@ quantities before and after scaling. The resulting output is:
 \end{lstlisting}
 %
 
-It is important not to confuse scaling units with scaling the geometry
-or mass itself. Scaling units should change all physical quantities so
-that the simulated behavior of the model remains unchanged.  If the
-distance-scaled version of {\tt RigidBodySpring} shown above is run,
-it should behave exactly the same as the non-distance scaled version.
+\begin{sideblock}
+It is important not to confuse scaling units with scaling the actual
+geometry or mass. Scaling units should change all physical
+quantities so that the simulated behavior of the model remains
+unchanged.  If the distance-scaled version of {\tt RigidBodySpring}
+shown above is run, it should behave exactly the same as the
+non-scaled version.
+\end{sideblock}
 
 %\subsection{Multi-point springs}
 %OPTIONAL
@@ -243,10 +246,10 @@ Point-to-point muscles are a simple type of component in biomechanical
 models that provide muscle-activated forces acting along a line
 between two points. ArtiSynth provides this through
 \javaclass[artisynth.core.mechmodels]{Muscle}, which is a subclass of
-\javaclass[artisynth.core.mechmodels]{AxialSpring} that allows active
-muscle force to be generated in response to its {\tt excitation}
-property. The excitation property can be set and queried using the
-methods
+\javaclass[artisynth.core.mechmodels]{AxialSpring} that generates an
+active muscle force in response to its {\tt
+excitation} property. The excitation property can be set and queried
+using the methods
 %
 \begin{lstlisting}[]
    setExcitation (double a);
@@ -256,12 +259,12 @@ methods
 
 \subsubsection{Muscle materials}
 
-As with {\tt AxialSorings}, {\tt Muscle} components use an
+As with {\tt AxialSpring}s, {\tt Muscle} components use an
 \javaclass[artisynth.core.materials]{AxialMaterial} to compute the
 applied force $f (l, \dot l, a)$ in response to the muscle's length
 $l$, length velocity $\dot l$, and excitation signal $a$.  Usually the
 force is the sum of a {\it passive} component plus an {\it active}
-component that arises in respsonce to the excitation signal.
+component that arises in responce to the excitation signal.
 
 The default {\tt AxialMaterial} for a {\tt Muscle} is
 \javaclass[artisynth.core.materials]{SimpleAxialMuscle},
@@ -271,12 +274,12 @@ and
 which computes a simple force according to
 %
 \begin{equation}
-f(l, \dot l) = k (l-l_0) + d \dot l + \text{max}_f a
+f(l, \dot l) = k (l-l_0) + d \dot l + m_f a
 \end{equation}
 %
 where $k$ and $d$ are stiffness and damping terms, $a$ is the
-excitation value, and $\text{max}_f$ is the maximum excitation force.
-$k$, $d$ and $\text{max}_f$ are exposed through the properties {\tt
+excitation value, and $m_f$ is the maximum excitation force.
+$k$, $d$ and $m_f$ are exposed through the properties {\tt
 stiffness}, {\tt damping}, and {\tt maxForce}.
 
 More complex muscle materials are typically used for biomechanical
@@ -326,7 +329,7 @@ with a {\tt SimpleAxialMuscle} material:
          new SimpleAxialMuscle (/*stiffness=*/20, /*damping=*/10, /*maxf=*/10));
 \end{lstlisting}
 %
-Also, just so that the muscle renders differently, the rendering style
+Also, so that the muscle renders differently, the rendering style
 for lines is set to {\tt ELLIPSOID} instead of {\tt CYLINDER}:
 %
 \begin{lstlisting}[]
@@ -376,7 +379,7 @@ between any body that implements the interface
 
 Collisions can be enabled as either a default behavior between all
 bodies, a default behavior between certain {\it types} of
-bodies, or a specfic behavior between individual pairs of bodies.
+bodies, or a specific behavior between individual pairs of bodies.
 
 The default collision behavior between all collidables can be
 controlled using two equivalent methods:
@@ -387,11 +390,12 @@ controlled using two equivalent methods:
 \end{lstlisting}
 %
 where {\tt enabled} is {\tt true} or {\tt false} depending on whether
-collisions are enabled or not, and {\tt behavior} is a
+collisions are enabled, {\tt mu} is the coefficient of Coulomb (or
+dry) friction, and {\tt behavior} is a
 \javaclass[artisynth.core.mechmodels]{CollisionBehavior} object that
-specifies both {\it enabled} and {\it mu}.
-In addition, collisions can be controlled for specific {\it types}
-of collidables using
+specifies both {\it enabled} and {\it mu}. The {\tt mu} value is
+ignored if {\tt enabled} is {\tt false}.  In addition, collisions can
+be controlled for specific {\it types} of collidables using
 %
 \begin{lstlisting}[]
   setDefaultCollisionBehavior (typeA, typeB, enabled, mu);
@@ -399,10 +403,27 @@ of collidables using
 \end{lstlisting}
 %
 where {\tt typeA} and {\tt typeB} should be either {\tt
-Collidable.RigidBody} or {\tt Collidable.Deformable}.  In addition,
-{\tt Collidable.Deformable} can be paired with {\tt Collidable.Self}
+Collidable.RigidBody} or {\tt Collidable.Deformable}.  In addition,\\
+{\tt Collidable.Deformable} can be paired with {\tt Collidable.Self} to
 enable/disable self-collions between deformable objects.
-The default collision behavoir for any pair of types can
+
+A call to one of the {\tt setDefaultCollisionBehavior()} methods will
+override the effects of previous calls. So for instance, the code
+sequence
+%
+\begin{lstlisting}[]
+  setDefaultCollisionBehvaior (true, 0);
+  setDefaultCollisionBehvaior (
+    Collidable.Deformable, Collidable.RigidBody, false, 0);
+  setDefaultCollisionBehavior (true, 0.2);
+\end{lstlisting}
+%
+will initially enable collisions between all bodies with a friction
+coefficient of 0, then {\it disable} collisions between deformable and
+rigid bodies, and finally reenable collisions between all bodies with
+a friction coefficient of 0.2.
+
+The default collision behavior between any pair of body types can
 be queried using
 %
 \begin{lstlisting}[]
@@ -420,12 +441,14 @@ collidables can be controlled and queried using
 \end{lstlisting}
 %
 where {\tt collidableA} and {\tt collidableB} are individual
-collidable components such as rigid bodies or FEM models.
+collidable components such as rigid bodies or FEM models.  The effects
+of {\tt setCollisionBehavior()} methods are {\it not} invalidated by
+subsequent calls to {\tt setDefaultCollisionBehavior()} methods.
 
 \begin{sideblock}
 It is usually necessary to ensure that collisions are {\it disabled}
-between bodies that are connected by joints and therefore would be
-otherwise forced into a state of permanent collision.
+between adjacent bodies connected by joints, since otherwise these
+would be forced into a state of permanent collision.
 \end{sideblock}
 
 \subsubsection{Example: Collision with a plane}
@@ -451,8 +474,9 @@ and a plane is defined in
 %
 
 This model is simply a subclass of {\tt RigidBodyJoint} that
-overrides the {\tt build()} method to add additional code
-to add an inclined plane and enable collisions with it:
+overrides the {\tt build()} method 
+to add an inclined plane and enable collisions between it and
+the two connected bodies:
 %
 \lstset{numbers=left}
 \begin{lstlisting}[]
@@ -475,17 +499,16 @@ to add an inclined plane and enable collisions with it:
 \end{lstlisting}
 \lstset{numbers=none}
 
-The superclass {\tt build()} method called at line 3 builds everything
-contained in {\tt RigidBodyJoint}. The remaining code then alters that
-model. {\tt bodyB} is set to be dynamic (line 5) so that it will fall
-freely, and an inclined plane is created from a thin box that is
-translated and rotated and then set to be be non-dynamic (lines 8-11).
-Finally, collisions are enabled by setting the default collision
-behavior (line 14), and then specifically disabling collisions between
-{\tt bodyA} and {\tt bodyB} (line 15). The latter step is necessary
-because the collision code would otherwise conflict with the fact that
-{\tt bodyA} and {\tt bodyB} are connected by a joint and therefore
-in a permanent state of collision.
+The superclass {\tt build()} method called at line 3 creates
+everything contained in {\tt RigidBodyJoint}. The remaining code then
+alters that model: {\tt bodyB} is set to be dynamic (line 5) so that
+it will fall freely, and an inclined plane is created from a thin box
+that is translated and rotated and then set to be be non-dynamic
+(lines 8-11).  Finally, collisions are enabled by setting the default
+collision behavior (line 14), and then specifically disabling
+collisions between {\tt bodyA} and {\tt bodyB} (line 15). As indicated
+above, the latter step is necessary because the joint would otherwise
+keep the two bodies in a permanent state of collision.
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
 JointedCollide} from the {\sf Models} menu. The model should load and
@@ -498,7 +521,7 @@ plane.
 
 The ArtiSynth collision mechanism works by finding intersections
 between the surface meshes of each collidable object.  These surface
-meshes must at present be triangular, closed, and manifold.
+meshes must (at present) be triangular, closed, and manifold.
 A bounding-box 
 hierarchy is used to determine if any two surfaces meshes
 intersect. If they do, then a tracing algorithm
@@ -528,27 +551,34 @@ constraints for correcting the interpenetration and preventing
 interpenetrating velocities.  For rigid bodies, this is done by
 fitting a plane to each contour, projecting the contour onto this
 plane, and then sampling the vertices of the projection's 2D convex
-hull to create individual contact points, using the planar normal as
-the contact normal.  For deformable FEM models, the intersection
-contour is used to locate all the interpenetrating nodes, and then
-collision constraints are established between each node and the
-nearest triangular face of the opposing surface.
+hull to create individual contact points, with the contact normal set
+from the normal of the plane. For deformable FEM models, the
+intersection contour is used to locate all the interpenetrating nodes,
+and then collision constraints are established between each node and
+the nearest triangular face of the opposing surface.
 
 Because ArtiSynth currently uses static collision detection, it is
 possible for objects that are fast enough or thin enough to completely
 pass through each other in one simulation step. This means that for
 thin objects, it is important to keep the step size small enough to
-prevent such undetected interpentration.
+prevent such undetected interpenetration.
+
+ArtiSynth also uses a "box" friction approximation
+\cite{Lacoursiere07} to compute dry friction, instead of the
+polyhedralized friction cones common in the multibody dynamics
+literature \cite{AnitescuPotra2002,PotraEtAlTrapezoidal2006}.  This
+allows for a less expensive and more robust computation at the expense
+of some accuracy.
 
 Another issue is that ArtiSynth's attempt to separate colliding bodies
 at the end of each time step may cause a jittering behavior around the
 colliding area, as the surface collides, separates, and recollides.
 This can usually be stabilized by maintaining a certain
 interpenetration distance during contact. This distance is controlled
-by the {\tt MechModel} property {\tt penetrationTol}. While
-ArtiSynth attempts to compute a reasonable default value for
-this property, it may sometimes be necessary to control
-it explicity using the {\tt MechModel} methods
+by the {\tt MechModel} property {\tt penetrationTol}.  ArtiSynth
+attempts to compute a suitable default value for this property, but
+for some applications it may be necessary to control the value
+explicity using the {\tt MechModel} methods
 %
 \begin{lstlisting}[]
    setInterpenetrationTol (double dist);
@@ -558,10 +588,8 @@ it explicity using the {\tt MechModel} methods
 
 Other aspects of collision handling can be adjusted by directly
 setting properties of the {\tt MechModel}'s collision manager, which
-can be accessed graphically through the navigation panel, or in code
-using the
-\javamethod*[artisynth.core.mechmodels.MechModel]{getCollisionManager()}
-method.
+can be accessed graphically via the navigation panel, or in code using
+\javamethod*[artisynth.core.mechmodels.MechModel]{getCollisionManager()}.
 
 One of these properties is {\tt collisionPointTol}, which for
 collisions between rigid bodies specifies a minimum distance between
@@ -586,13 +614,13 @@ contact constraints and improve comptation time.
 \subsection{Render properties}
 \label{RenderProperties:sec}
 
-Most ArtiSynth components that are renderable maintain a property {\tt
-renderProps}, which can in turn store a
+All ArtiSynth components that are renderable maintain a property {\tt
+renderProps}, which stores a
 \javaclass[maspack.render]{RenderProps} object that contains a number
 of subproperties used to control an object's rendered appearance.
 
-In code, the render properties for an object can be set or queried
-using the methods
+In code, the {\tt renderProps} property for an object can be set or
+queried using the methods
 %
 \begin{lstlisting}[]
   setRenderProps (RenderProps props); // set render properties
@@ -601,7 +629,7 @@ using the methods
 %
 Render properties can also be set in the GUI by selecting one or more
 components and the choosing {\sf Set render props ...}  in the
-right-clock context menu. More details on setting render properties
+right-click context menu. More details on setting render properties
 through the GUI can be found in the section "Render properties" in the
 \href{../uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}.
@@ -610,8 +638,8 @@ For many components, the default value of {\tt renderProps} is {\tt
 null}; i.e., no {\tt RenderProps} object is assigned by default and
 render properties are instead inherited from ancestor components
 further up the hierarchy. The reason for this is because {\tt
-RenderProps} objects are fairly large (many kilobytes) and so
-assigning a unique one to every component would consume much
+RenderProps} objects are fairly large (many kilobytes), and so
+assigning a unique one to every component could consume too much
 memory. Even when a {\tt RenderProps} object is assigned, most of its
 properties are inherited by default, and so only those properties
 which are explicitly set will differ from those specified in ancestor
@@ -620,14 +648,14 @@ components.
 \subsubsection{Render property taxonomy}
 
 In general, the properties in {\tt RenderProps} are used to control
-the color, size, style, and resolution of the three main GL rendering
+the color, size, style, and resolution of the three primary rendering
 primitives: faces, lines, and points. Table \ref{RenderProps:tab}
 contains a complete list. Values for the {\tt shading}, {\tt
 faceStyle}, {\tt lineStyle} and {\tt pointStyle} properties are
-expressed using the enumerated types {\tt RenderProps.Shading}, {\tt
+defined using the enumerated types {\tt RenderProps.Shading}, {\tt
 RenderProps.Faces}, {\tt RenderProps.LineStyle}, and {\tt
-RenderProps.PointStyle}.  Colors are specified using instances of {\tt
-java.awt.Color} object.
+RenderProps.PointStyle}.  Colors are specified using {\tt
+java.awt.Color}.
 
 \begin{table}
 \begin{center}
@@ -681,21 +709,23 @@ pointSlices & number of slices used to render {\tt SPHERE} style spheres & 32 \\
 
 To increase and improve their visibility, both the line and point
 primitives are associated with styles ({\tt CYLINDER}, {\tt
-ELLIPSOID}, and {\tt SPHERE}) that allow lines and points to be
-rendered using 3D surface geometry.
+ELLIPSOID}, and {\tt SPHERE}) that allow them to be rendered using 3D
+surface geometry.
 
 Exactly how a component interprets its render properties is up to the
-rendering method for that component.  Not all render properties are
-relevant to all components, particularly if the rendering of that
-component does not use all of the GL primitives. For example,
+component (and more specifically, up to the rendering method for that
+component).  Not all render properties are relevant to all components,
+particularly if the rendering does not use all of the rendering
+primitives. For example,
 \javaclass[artisynth.core.mechmodels]{Particle} components use only
 the point primitives and
 \javaclass[artisynth.core.mechmodels]{AxialSpring} components use only
-the line primitives. For these reason, some components use subclasses
+the line primitives. For this reason, some components use subclasses
 of {\tt RenderProps}, such as
 \javaclass[maspack.render]{PointRenderProps} and
 \javaclass[maspack.render]{LineRenderProps}, that expose only a subset
-of the render properties. All renderable components provide the method
+of the available render properties. All renderable components provide
+the method
 \javamethod[maspack.render.HasRenderProps]{createRenderProps()} that
 will create and return a {\tt RenderProps} object suitable for that
 component.
@@ -714,11 +744,11 @@ following:
 \end{lstlisting}
 %
 This can cause problems for two reasons. First, {\tt getRenderProps()}
-may return {\tt null} if the object does not actually have it's own
-render properties object. Second, because {\tt RenderProps} objects
-are large, ArtiSynth may try to share them between components,
-and so be setting them for one component, the application my
-inadvertently set them for other components as well.
+will return {\tt null} if the object does not currently have a {\tt
+RenderProps} object. Second, because {\tt RenderProps} objects are
+large, ArtiSynth may try to share them between components, and so by
+setting them for one component, the application my inadvertently set
+them for other components as well.
 
 Instead, {\tt RenderProps} provides a static method for each property
 that can be used to set that property's value for a specific
@@ -731,8 +761,8 @@ component.  For example, the correct way to set {\tt pointColor} is
 
 One can also set render properties by calling
 \javamethod*[maspack.render.HasRenderProps]{setRenderProps()} with a
-{\tt RenderProps} object. This is useful for setting a large number of
-properties  at once:
+predefined {\tt RenderProps} object as an argument. This is useful for
+setting a large number of properties at once:
 %
 \begin{lstlisting}[]
    RenderProps props = new RenderProps();
@@ -744,31 +774,34 @@ properties  at once:
 
    particle.setRenderProps (props);
 \end{lstlisting}
+
+\begin{sideblock}
 Note that even though components may use a subclass of {\tt
 RenderProps} internally, one can always use the base {\tt RenderProps}
 class to set values; properties which are not relevant to the
 component will simply be ignored.
+\end{sideblock}
 
 Finally, as mentioned above, render properties are inherited.  Values
 set high in the component hierarchy will be inherited by descendent
 components, unless those descendents (or intermediate components)
-explicityl set overriding values.  For example, a {\tt MechModel}
-maintains its own {\tt RenderProps} (which is never null). Setting its
-{\tt pointColor} property to {\tt RED} will cause {\it all}
+explicitly set overriding values.  For example, a {\tt MechModel}
+maintains its own {\tt RenderProps} (and which is never null). Setting
+its {\tt pointColor} property to {\tt RED} will cause {\it all}
 point-related components within that {\tt MechModel} to be rendered as
 red {\it except} for components that set their {\tt pointColor} to a
-different property. 
+different property.
 
 There are typically three levels in a {\tt MechModel} component
 hierarchy at which render properties can be set:
 
 \begin{itemize}
 
-\item The {\tt MechModel} itself
+\item The {\tt MechModel} itself;
 
-\item Lists containing components
+\item Lists containing components;
 
-\item Individual components
+\item Individual components.
 
 \end{itemize}
 

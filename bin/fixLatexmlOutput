@@ -35,6 +35,8 @@ while (<>) {
     $line =~ s/\x{2018}/`/g;
     # replace unicode right quote with '
     $line =~ s/\x{2019}/'/g;
+	# replace %5C with backslash
+    $line =~ s/%5C(?=.*\.css)/\//g;
     # For XHTML: remove newline after <pre> tag in order to prevent
     # extra blank line at the beginning of the block (this is a
     # problem in xhtml, not html).

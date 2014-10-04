@@ -14,7 +14,7 @@ public class SimpleMuscleWithProperties extends SimpleMuscleWithPanel {
       new PropertyList (
          SimpleMuscleWithProperties.class, SimpleMuscleWithPanel.class);
 
-   // override getAllPropertyInfo() to return the new list
+   // override getAllPropertyInfo() to return property list for this class
    public PropertyList getAllPropertyInfo() {
       return myProps;
    }

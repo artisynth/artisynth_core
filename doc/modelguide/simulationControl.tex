@@ -2,11 +2,12 @@
 \section{Simulation Control}
 \label{SimulationControl:sec}
 
-This section describes the different devices which an application may
-use to control the simulation. These include {\it control panels} to
-allow for the interactive adjustment of properties, {\it controllers}
+This section describes different devices which an application may use
+to control the simulation. These include {\it control panels} to allow
+for the interactive adjustment of properties, as well as {\it agents}
+which are applied every time step. Agents include {\it controllers}
 and {\it input probes} to supply and modify input parameters at the
-beginning of each time step, and {\tt monitors} and {\it output
+beginning of each time step, and {\it monitors} and {\it output
 probes} to observe and record simulation results at the end of each
 time step.
 
@@ -19,19 +20,19 @@ interactive adjustment of component properties.
 It is always possible to adjust component properties through the GUI
 by selecting one or more components and then choosing {\sf Edit
 properties ...} in the right-click context menu. However, it may be
-tedious to select the required components, and the resulting panels
-present the user with {\it all} properties common to the selections.
-A control panel allows an application to provide an editing panel for
-a customized set of properties.
+tedious to repeatedly select the required components, and the
+resulting panels present the user with {\it all} properties common to
+the selection.  A control panel allows an application to provide a
+customized editing panel for selected properties.
 
 \subsubsection{General principles}
 
-Control panels are implemented by the model component
-\javaclass[artisynth.core.gui]{ControlPanel}. They can be created and
-added within a model's {\tt build()} method by creating an instance of
-{\tt ControlPanel}, populating it with widgets for editing the desired
-properties, and then adding it to the root model using the {\tt
-RootModel}'s
+Control panels are implemented by the
+\javaclass[artisynth.core.gui]{ControlPanel} model component.  They
+can be set up within a model's {\tt build()} method by creating an
+instance of {\tt ControlPanel}, populating it with widgets for editing
+the desired properties, and then adding it to the root model using the
+latter's
 \javamethod*[artisynth.core.workspace.RootModel]{addControlPanel()}
 method.
 
@@ -39,16 +40,16 @@ One of the most commonly used means of adding widgets to a control
 panel is the method
 \javamethodAlt{artisynth.core.gui.ControlPanel.addWidget(HasProperties,String)}%
 {addWidget(comp,propertyPath)}, which creates a widget for a property
-specified by {\tt propertyPath} with respect to a particular component
+specified by {\tt propertyPath} with respect to the component
 {\tt comp}.  Property paths are discussed in the Section
-\ref{PropertyHandlesAndPaths:sec}, and can consist simply of a
+\ref{PropertyHandlesAndPaths:sec}, and can consist solely of a
 property name, or, for properties located in descendent components, a
-component path followed by a colon '{\tt :}' and a property name.
+component path followed by a colon '{\tt :}' and the property name.
 
 Other flavors of {\tt addWidget()} also exist, as described in the API
 documentation for \javaclass[artisynth.core.gui]{ControlPanel}.  In
 addition to property widgets, any type of {\tt Swing} or {\tt awt}
-component can be added to a control panel using the method
+component can be added using the method
 \javamethodAlt{artisynth.core.gui.ControlPanel.addWidget(Component)}%
 {addWidget(awtcomp)}.
 
@@ -71,7 +72,7 @@ ArtiSynth User Interface Guide}.
 \label{controlPanel:fig}
 \end{figure}
 
-An model showing a control panel is defined in
+An application model showing a control panel is defined in
 %
 \begin{verbatim}
   artisynth.demos.tutorial.SimpleMuscleWithPanel
@@ -107,21 +108,21 @@ public class SimpleMuscleWithPanel extends SimpleMuscle {
 \lstset{numbers=none}
 %
 The {\tt build()} method calls {\tt super.build()} to create the model
-used by {\tt SimpleMuscle}. It the proceeds to create a {\tt
+used by {\tt SimpleMuscle}. It then proceeds to create a {\tt
 ControlPanel}, populate it with widgets, and add
 it to the root model (lines 8-15). The panel is given the name {\tt
 "controls"} in the constructor (line 8); this is its component name
-and is also used as the window title for the panel itself. A control
-panels does not need to be named, but if it is, then that name must be
+and is also used as the title for the panel's window frame. A control
+panel does not need to be named, but if it is, then that name must be
 unique among the control panels.
 
 Lines 9-11 create widgets for three properties located relative to the
 {\tt MechModel} referenced by {\tt mech}. The first is the {\tt
 MechModel}'s {\tt gravity}. The second is the {\tt mass} of the box,
 which is a component located relative to {\tt mech} by the path name
-(Section \ref{PathNames:sec}) {\tt rigidBodies/box}. The third is the
-box's face color, which is a sub-property of the box's {\tt
-renderProps} indicated by the string {\tt renderProps.faceColor}.
+(Section \ref{PathNames:sec}) {\tt "rigidBodies/box"}. The third is
+the box's face color, which is the sub-property {\tt faceColor} of the
+box's {\tt renderProps} property.
 
 Line 12 adds a {\tt JSeparator} to the panel, using the {\tt
 addWidget()} method that accepts general components, and line 13 adds
@@ -134,7 +135,7 @@ numbers instead of names, and so the box's mass property could be
 specified using {\tt "rigidBodies/0:mass"} instead of {\tt
 "rigidBodies/box:mass"} since the box's number is 0. Second, if a
 reference to a sub-component is available, one can specify properties
-directly with respect to that instead of indicating the sub-component
+directly with respect to that, instead of indicating the sub-component
 in the property path. For example, if the box was referenced by a
 variable {\tt body}, then one could use the construction
 %
@@ -182,10 +183,11 @@ The property definition steps are:
 
 \begin{description}
 
-\item[Declare the property list]\mbox{}
+\item[Declare the property list:]\mbox{}
 
-The class creates its own static instance of a
-\javaclass[maspack.properties]{PropertyList}, using a declaration like
+The class exporting the properties creates its own static instance of
+a \javaclass[maspack.properties]{PropertyList}, using a declaration
+like
 %
 \begin{lstlisting}[]
    static PropertyList myProps = new PropertyList (MyClass.class, MyParent.class);
@@ -196,19 +198,19 @@ The class creates its own static instance of a
    }  
 \end{lstlisting}
 %
-where {\tt MyClass} and {\tt MyParent} are the {\tt Class} objects for
-the class in question and its parent. This will create a new property
-list, with a copy of all the properties contained in the parent class.
-If one does {\it not} want the parent class properties, or if the
-parent class does not have properties, then one would use the
-constructor
+where {\tt MyClass} and {\tt MyParent} specify the class types of the
+exporting class and its parent class. The {\tt PropertyList}
+declaration creates a new property list, with a copy of all the
+properties contained in the parent class.  If one does {\it not} want
+the parent class properties, or if the parent class does not have
+properties, then one would use the constructor
 \javamethodAlt{maspack.properties.PropertyList.PropertyList(Class)}%
-{PropertyList(MyClass.class)} instead. (If the parent class is an
+{PropertyList(MyClass.class)} instead. If the parent class is an
 ArtiSynth model component (including the {\tt RootModel}), then it
-will always have its own properties.)  The declaration of {\tt
-getAllPropertyInfo()} exposes the property list to other classes.
+will always have its own properties. The declaration of the method
+{\tt getAllPropertyInfo()} exposes the property list to other classes.
 
-\item[Add properties to the list]\mbox{}
+\item[Add properties to the list:]\mbox{}
 
 Properties can then be added to the property list, by calling the {\tt
 PropertyList}'s
@@ -219,11 +221,10 @@ method:
    PropertyDesc add (String name, String description, Object defaultValue);
 \end{lstlisting}
 %
-where {\tt name} contains the name of the property (and, if desired,
-the names of it's accessor methods as well), {\tt description}
-is a comment describing the property, and {\tt defaultValue} is
-an object containing the property's default value.
-This is done inside a static code block:
+where {\tt name} contains the name of the property, {\tt description}
+is a comment describing the property, and {\tt defaultValue} is an
+object containing the property's default value.  This is done inside a
+static code block:
 %
 \begin{lstlisting}[]
    static {
@@ -236,18 +237,29 @@ Variations on the {\tt add()} method exist for adding {\it read-only}
 or {\it inheritable} properties, or for setting various property
 options. Other methods allow the property list to be editted.
 
-\item[Declare property accessor functions]\mbox{}
+\item[Declare property accessor functions:]\mbox{}
 
-For each property {\tt propXXX} added to the property list, accessor functions of
+For each property {\tt propXXX} added to the property list, accessor methods of
 the form
 %
 \begin{lstlisting}[]
-   void setPropXXX (TypeX value);
-   TypeX getPropXXX();
+   void setPropXXX (TypeX value) {
+      ...
+   }
+
+   TypeX getPropXXX() {
+      TypeX value = ...
+      return value;
+   }
 \end{lstlisting}
 %
 must be declared, where {\tt TypeX} is the value associated with the
 property. 
+\begin{sideblock}
+It is possible to specify different names for the accessor functions
+in the string argument {\tt name} supplied to the {\tt add()}
+method. Read-only properties only require a {\it get} accessor.
+\end{sideblock}
 
 \end{description}
 
@@ -274,7 +286,7 @@ public class SimpleMuscleWithProperties extends SimpleMuscleWithPanel {
       new PropertyList (
          SimpleMuscleWithProperties.class, SimpleMuscleWithPanel.class);
 
-   // override getAllPropertyInfo() to return the new list
+   // override getAllPropertyInfo() to return property list for this class
    public PropertyList getAllPropertyInfo() {
       return myProps;
    }
@@ -304,7 +316,7 @@ public class SimpleMuscleWithProperties extends SimpleMuscleWithPanel {
 \end{lstlisting}
 \lstset{numbers=none}
 %
-First, a property list is created for the current class {\tt
+First, a property list is created for the application class {\tt
 SimpleMuscleWithProperties.class} which contains a copy of all the
 properties from the parent class {\tt SimpleMuscleWithPanel.class}
 (lines 4-6). This property list is made visible by overriding {\tt
@@ -325,6 +337,11 @@ showing the newly defined property {\tt boxVisible}.}
 \label{boxVisiblePanel:fig}
 \end{figure}
 
+The {\tt build()} method calls {\tt super.build()} to perform all the
+model creation required by the super class, and then adds an
+additional widget for the {\tt boxVisible} property to the control
+panel.
+
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
 SimpleMuscleWithProperties} from the {\sf Models} menu. The control
 panel will now contain an additional widget for the property {\tt
@@ -340,10 +357,10 @@ Application models can define custom {\it controllers} and {\it
 monitors} to control input values and monitor output values as a
 simulation progresses. Controllers are called every time step
 immediately before the {\tt advance()} method, and monitors are called
-immediately after (Section \ref{ModelAdvancement:sec}).
-ArtiSynth's inverse modeling feature uses an internal controller to
-estimate the actuation signals required to follow a specified motion
-trajectory.
+immediately after (Section \ref{ModelAdvancement:sec}).  An example of
+controller usage is provided by ArtiSynth's inverse modeling feature,
+which uses an internal controller to estimate the actuation signals
+required to follow a specified motion trajectory.
 
 More precise details about controllers and monitors and how they
 interact with model advancement are given in the
@@ -354,10 +371,10 @@ ArtiSynth Reference Manual}.
 \label{ControllerImplementation:sec}
 
 Applications may declare whatever controllers or monitors they require
-and then add them to the root model using the
+and then add them to the root model using the methods
 \javamethod*[artisynth.core.workspace.RootModel]{addController()} and
-\javamethod*[artisynth.core.workspace.RootModel]{addMonitor()}
-methods. They can be any type of
+\javamethod*[artisynth.core.workspace.RootModel]{addMonitor()}.
+They can be any type of
 \javaclass[artisynth.core.modelbase]{ModelComponent} that implements
 the \javaclass[artisynth.core.modelbase]{Controller} or
 \javaclass[artisynth.core.modelbase]{Monitor} interfaces.  For
@@ -366,33 +383,35 @@ convenience, most applications simply subclass
 \javaclass[artisynth.core.modelbase]{MonitorBase} and then override
 the necessary methods.
 
-The most important methods associated with both controllers and
+The primary methods associated with both controllers and
 monitors are:
 %
 \begin{lstlisting}[]
   public void initialize (double t0);
+
   public void apply (double t0, double t1);
 \end{lstlisting}
 %
 {\tt apply(t0, t1)} is the "business" method and is called once per
-time step, with $t_0$ and $t_1$ indicating the start and end times
-associated with the step.  {\tt initialize(t0)} is called whenever an
-application model's state is set (or reset) at a particular time
-$t_0$. This occurs when a simulation is started or restarted (with
-$t_0 = 0$), and when the state is reset at a waypoint or during
-adaptive stepping.
+time step, with {\tt t0} and {\tt t1} indicating the start and end
+times $t_0$ and $t_1$ associated with the step.  {\tt initialize(t0)}
+is called whenever an application model's state is set (or reset) at a
+particular time $t_0$. This occurs when a simulation is firt started
+or after it is reset (with $t_0 = 0$), and also when the state is
+reset at a waypoint or during adaptive stepping.
 
 Controllers and monitors may be associated with a partcular model
-(among the list of models owned by the root model),
-which may be set or queried using
+(among the list of models owned by the root model). This model may be
+set or queried using
 %
 \begin{lstlisting}[]
   void setModel (Model m);
+
   Model getModel();
 \end{lstlisting}
 %
 If associated with a model, {\tt apply()} will be called immediately
-before (for controllers) or after (for monitors) that model's {\tt
+before (for controllers) or after (for monitors) the model's {\tt
 advance()} method. If not associated with a model, then {\tt apply()}
 will be called before or after the advance of {\it all} the models
 owned by the root model.
@@ -401,19 +420,20 @@ Controllers and monitors may also contain {\it state}, in which case
 they should implement the relevant methods from the
 \javaclass[artisynth.core.modelbase]{HasState} interface.
 
-Typical actions for a controller include setting input force or
+Typical actions for a controller include setting input forces or
 excitation values on components, or specifying the motion trajectory
 of parametric components (Section \ref{DynamicVsParametric:sec}).
 Typical actions for a monitor include observing or recording
-the various motion profiles or constraint forces that arise
+the motion profiles or constraint forces that arise
 from the simulation.
 
-When setting the position and/or velocity of a parametric components,
+When setting the position and/or velocity of a dynamic component that
+has been set to be parametric (Section \ref{DynamicVsParametric:sec}),
 a controller should not set its position or velocity directly, but
 should instead set its {\it target position} and/or {\it target
 velocity}, since this allows the solver to properly interpolate the
 position and velocity during the time step. The methods to set or
-query target positions and velocitys for
+query target positions and velocities for
 \javaclass[artisynth.core.modelbase]{Point}-based compnents are
 %
 \begin{lstlisting}[]
@@ -442,16 +462,16 @@ while for
 
 \subsubsection{Example: A controller to move a point}
 
-A model showing a simple application-defined controller is defined in
+A model showing an application-defined controller is defined in
 %
 \begin{verbatim}
   artisynth.demos.tutorial.SimpleMuscleWithController
 \end{verbatim}
 %
 This simply extends {\tt SimpleMuscle} (Section
-\ref{SimpleMuscleExample:sec}) and adds a controller which
-moves the fixed particle {\tt p1} along a circular path.
-The class definition is shown below:
+\ref{SimpleMuscleExample:sec}) and adds a controller which moves the
+fixed particle {\tt p1} along a circular path.  The complete class
+definition is shown below:
 %
 \lstset{numbers=left}
 \lstinputlisting{../../src/artisynth/demos/tutorial/SimpleMuscleWithController.java}
@@ -467,8 +487,8 @@ $x-z$ plane with an angular velocity of $\pi/2$ rad/sec (lines 22-28).
 The {\tt build()} method calls {\tt super.build()} to create the model
 used by {\tt SimpleMuscle}, and then creates an instance of {\tt
 PointMover} to move particle {\tt p1} and adds it to the root model
-(line 34). The viewer bounds are uodated to make the circular motion
-more visible by default (line 36).
+(line 34). The viewer bounds are updated to make the circular motion
+more visible (line 36).
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
 SimpleMuscleWithController} from the {\sf Models} menu. When
@@ -480,9 +500,9 @@ out a circular path in the $x-z$ plane.
 
 In addition to controllers and monitors, applications can also attach
 streams of data, known as {\it probes}, to input and output values
-associated with simulation. Probes derive from the same base class
+associated with the simulation. Probes derive from the same base class
 \javaclass[artisynth.core.modelbase]{ModelAgentBase} as 
-controllers and monitors, and use an {\tt apply()} method,
+controllers and monitors, 
 but differ in that 
 
 \begin{enumerate}
@@ -510,13 +530,15 @@ queried using the following methods:
    double getStopTime();
 \end{lstlisting}
 %
-Its attached file can be set and queried by name using:
+The probe's attached file can be set and queried using:
 %
 \begin{lstlisting}[]
    setAttachedFileName (String fileName);
    String getAttachedFileName ();
 \end{lstlisting}
 %
+where {\tt fileName} is a string giving the file's path name.
+
 Details about the timeline display can be found in
 the section "The Timeline" in the
 \href{../uiguide/uiguide.html}{
@@ -527,7 +549,7 @@ the beginning of each simulation step before the controllers, and {\it
 output probes}, which are applied at the end of the step after the
 monitors.
 
-While applications are free to construct any type of probe required by
+While applications are free to construct any type of probe by
 subclassing either \javaclass[artisynth.core.probes]{InputProbe} or
 \javaclass[artisynth.core.probes]{OutputProbe}, most applications
 utilize either \javaclass[artisynth.core.probes]{NumericInputProbe} or
@@ -539,11 +561,11 @@ will focus on numeric probes.
 \subsubsection{Numeric probe structure}
 \label{NumericProbeStructure:sec}
 
-Numeric probes are associated with
+Numeric probes are associated with:
 
 \begin{itemize}
 
-\item {\it A vector of temporally interpolated numeric data};
+\item {\it A vector of temporally-interpolated numeric data};
 
 \item {\it One or more properties} to which the probe is bound and
 which are either set by the numeric data (input probes), or used to
@@ -553,15 +575,17 @@ set the numeric data (output probes).
 
 The numeric data is implemented internally by a
 \javaclass[maspack.interpolation]{NumericList}, which stores the data
-as a series of vector-valued knot points together with an
+as a series of vector-valued knot points at prescribed times $t_k$ and
+then interpolates the data for an arbitrary time $t$ using an
 interpolation scheme provided by
-\javaclass[maspack.interpolation]{Interpolation}.  
+\javaclass[maspack.interpolation]{Interpolation}.
 
-Some of the methods associated with the interpolated data include:
+Some of the numeric probe methods associated with the interpolated
+data include:
 %
 \begin{lstlisting}[]
-   int getVsize();                      // returns size of the data vector
-   setInterpolationOrder (Order order); // set the interpolation scheme
+   int getVsize();                      // returns the size of the data vector
+   setInterpolationOrder (Order order); // sets the interpolation scheme
    Order getInterpolationOrder();       // returns the interpolation scheme
 
    VectorNd getData (double t);         // interpolates data for time t
@@ -575,22 +599,23 @@ Interpolation.Order} and presently include:
 
 \item[Step]\mbox{}
 
-Values are set to the values of the closest previous knot point.
+Values at time $t$ are set to the values of the closest knot point
+$k$ such that $t_k \le t$.
 
 \item[Linear]\mbox{}
 
-Values are set by linear interpolation of the closest surrounding knot
-points.
+Values at time $t$ are set by linear interpolation of the knot points
+$(k, k+1)$ such that $t_k \le t \le t_{k+1}$.
 
 \item[Parabolic]\mbox{}
 
-Values are set by quadratic interpolation of the surrounding knot
-points.
+Values at time $t$ are set by quadratic interpolation of the knots
+$(k-1, k, k+1)$ such that $t_k \le t \le t_{k+1}$.
 
 \item[Cubic]\mbox{}
 
-Values are set by cubic Catmull interpolation between the surrounding
-knot points.
+Values at time $t$ are set by cubic Catmull interpolation of the knots
+$(k-1, \ldots, k+2)$ such that $t_k \le t \le t_{k+1}$.
 
 \end{description}
 
@@ -632,8 +657,8 @@ is the constructor
 which creates a {\tt NumericInputProbe}, binds it to a property
 located relative to the component {\tt c} by {\tt propPath}, and then
 attaches it to the file indicated by {\tt filePath} and loads data
-from it (see Section \ref{DataFileFormat:sec}). The probe start and
-stop times are specified in the file. The probe's vector size will be
+from this file (see Section \ref{DataFileFormat:sec}). The probe's start and
+stop times are specified in the file, and its vector size is
 set to match the size of the scalar or vector value associated with
 the property.
 
@@ -645,7 +670,9 @@ constructor
 \end{lstlisting}
 %
 which binds the probe to multiple properties specified relative to
-{\tt c} by {\tt propPaths}.
+{\tt c} by {\tt propPaths}. The probe's vector size is set to
+the sum of the sizes of the scalar or vector values associated with
+these properties.
 
 For \javaclass[artisynth.core.probes]{NumericOutputProbe}, one may use
 the constructor
@@ -656,32 +683,33 @@ the constructor
 %
 which creates a {\tt NumericOutputProbe}, binds it to the property
 {\tt propPath} located relative to {\tt c}, and then attaches it to
-the file indicated by {\tt filePath}. {\tt sample} indicates the {\it
-sample time} associated with the probe, in seconds; a value of 0.01
-means that data will be added to the probe every 0.01 seconds.  If
-{\tt sample} is specified as -1, then the sample rate will default to
-the maximum step size associated with the root model.  
+the file indicated by {\tt filePath}. The argument {\tt sample}
+indicates the {\it sample time} associated with the probe, in seconds;
+a value of 0.01 means that data will be added to the probe every 0.01
+seconds.  If {\tt sample} is specified as -1, then the sample time
+will default to the maximum step size associated with the root model.
 
 To create an output probe attached to multiple properties, one may use the
 constructor
 %
 \begin{lstlisting}[]
-   NumericOutputProbe (ModelComponent c, String propPaths[], String filePath, double sample);
+   NumericOutputProbe (
+      ModelComponent c, String propPaths[], String filePath, double sample);
 \end{lstlisting}
 %
 
 \begin{sideblock}
-As the simulation proceeds, data will be accumulated in the output
-probes, but will not be saved to any attached files until the probes'
-{\tt save()} methods are called. This can be requested in the GUI for
+As the simulation proceeds, an output probe will accumulate data, but
+this data will not be saved to any attached file until the probe's
+{\tt save()} method is called. This can be requested in the GUI for
 all probes by clicking on the {\sf Save} button in the timeline
 toolbar, or for specific probes by selecting them in the navigation
 panel (or the timeline) and then choosing {\sf Save data} in the
-right-click contact menu.
+right-click context menu.
 \end{sideblock}
 
 Output probes created with the above constructors have a default
-interval of [0, 1]. A different interval must be set explicitly using
+interval of [0, 1]. A different interval may be set using
 {\tt setInterval()}, {\tt setStartTime()}, or {\tt setStopTime()}.
 
 \subsubsection{Example: probes connected to SimpleMuscle}
@@ -694,9 +722,9 @@ A model showing a simple application of probes is defined in
 \end{verbatim}
 %
 This extends {\tt SimpleMuscle} (Section
-\ref{SimpleMuscleExample:sec}) to add an input probe to move
-particle {\tt p1} along a defined path, along with an output probe to
-record the velocity of the frame marker.  The class definition is
+\ref{SimpleMuscleExample:sec}) to add an input probe to move particle
+{\tt p1} along a defined path, along with an output probe to record
+the velocity of the frame marker.  The complete class definition is
 shown below:
 %
 \lstset{numbers=left}
@@ -708,39 +736,41 @@ createInputProbe()} and {\tt createOutputProbe()}. At line 14, {\tt
 createInputProbe()} creates a new input probe bound to the {\tt
 targetPosition} property for the component {\tt particles/p1} located
 relative to the {\tt MechModel} {\tt mech}. The same constructor
-attaches the probe to the file {\tt simpleMuscleP1Pos.txt}, which is
+attaches the probe to the file\\ {\tt simpleMuscleP1Pos.txt}, which is
 read to load the probe data. The format of this and other probe data
-files is described in Section \ref{DataFileFormat:sec}.
+files is described in Section \ref{DataFileFormat:sec}.  The method
 \javamethod*[artisynth.core.util]{ArtisynthPath.getSrcRelativePath()}
-is used to find the file in the source directory for the application
-model class. The probe is then given the name {\tt Particle Position}
-(line 18) and added to the root model (line 19).
+is used to locate the file relative to the source directory for the
+application model. The probe is then given the name {\tt "Particle
+Position"} (line 18) and added to the root model (line 19).
 
-Similarly, {\tt createOutputProbe()} creates a new output probe bound
-to the {\tt velocity} property for the component {\tt particles/0}
-located relative to {\tt mech}, attached to the file {\tt
+Similarly, {\tt createOutputProbe()} creates a new output probe which
+is bound to the {\tt velocity} property for the component {\tt
+particles/0} located relative to {\tt mech}, is attached to the file {\tt
 simpleMuscleMkrVel.txt} located in the application model source
-directory, and with a sample time of 0.01 seconds. This probe is then
-named {\tt FrameMarker Velocity} and added to the root model.
+directory, and is assigned a sample time of 0.01 seconds. This probe is
+then named {\tt "FrameMarker Velocity"} and added to the root model.
 
-The {\tt build()} method called {\tt super.build()} to create
+The {\tt build()} method calls {\tt super.build()} to create
 everything required for {\tt SimpleMuscle}, calls {\tt
 createInputProbe()} and {\tt createOutputProbe()} to add the probes,
 and adjusts the {\tt MechModel} viewer bounds to make the resulting
-probe motion more visible by default.
+probe motion more visible.
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
 SimpleMuscleWithProbes} from the {\sf Models} menu. After the model is
 loaded, the input and output probes should appear on the timeline
 (Figure \ref{probes:fig}). Expanding the probes should display their
 numeric contents, with the knot points for the input probe clearly
-visible.  Running the model wil cause particle {\tt p1} to trace the
+visible.  Running the model will cause particle {\tt p1} to trace the
 trajectory specified by the input probe, while the velocity of the
 marker is recorded in the output probe. Figure
 \ref{probesExpanded:fig} shows an expanded view of both probes after
 the simulation has run for about six seconds.
 
-\begin{figure}[t]
+% SimpleMuscleWithProbes
+
+\begin{figure}[h]
 \begin{center}
 \iflatexml
  \includegraphics[]{images/timelineProbes}
@@ -752,7 +782,7 @@ the simulation has run for about six seconds.
 \label{probes:fig}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[h]
 \begin{center}
 \iflatexml
  \includegraphics[]{images/timelineProbesExpanded}
@@ -760,13 +790,11 @@ the simulation has run for about six seconds.
  \includegraphics[width=4in]{images/timelineProbesExpanded}
 \fi
 \end{center}
-\caption{Expanded view of the probes after the simulation has run for
-about 6 seconds, showing the data accumulated in the output probe {\tt
-FrameMarker Velocity}.}
+\caption{Expanded view of the probes after {\tt
+SimpleMuscleWithProbes} has run for about 6 seconds, showing the data
+accumulated in the output probe {\tt "FrameMarker Velocity"}.}
 \label{probesExpanded:fig}
 \end{figure}
-
-% SimpleMuscleWithProbes
 
 \subsubsection{Data file format}
 \label{DataFileFormat:sec}
@@ -789,10 +817,11 @@ t0 val20 val21 val22 ...
 %
 Knot point information begins on line 3, with each line being a
 sequence of numbers giving the knot's time followed by $n$ values,
-where $n$ is the vector size of the probe.
+where $n$ is the vector size of the probe (i.e., the value returned by
+{\tt getVsize()}).
 
 Alternatively, time values can be implicitly specified starting at 0
-((relative to the probe's start time) and incrementing by a uniform
+(relative to the probe's start time) and incrementing by a uniform
 {\tt timeStep}, in which case the file assumes a second format:
 %
 \begin{lstlisting}[]
@@ -808,16 +837,16 @@ For both formats, {\tt startTime}, {\tt startTime}, and {\tt scale}
 are numbers giving the probe's start and stop time in seconds and {\tt
 scale} gives the scale factor (which is typically 1.0).  {\tt
 interpolation} is a word describing how the data should be
-interpolated between knot points and is the string value of the {\tt
-Interpolation.Order} described in Section
+interpolated between knot points and is the string value of {\tt
+Interpolation.Order} as described in Section
 \ref{NumericProbeStructure:sec} (and which is typically {\tt Linear},
 {\tt Parabolic}, or {\tt Cubic}). {\tt vsize} is an integer giving the
-size of the probe's interpolation vector.
+probe's vector size.
 
 The last entry on the second line is either a number specifying a
 (uniform) time step for the knot points, in which case the file
 assumes the second format, or the keyword {\tt explicit}, in which
-case the file assume the first format.
+case the file assumes the first format.
 
 As an example, the file used to specify data for the input probe in
 the example of Section \ref{SimpleMuscleWithProbes:sec} looks like
@@ -866,16 +895,16 @@ Data can then be added to this probe using the method
 \end{lstlisting}
 %
 where {\tt data} is an array of knot point data. This contains the
-same knot point information as described in
-Section \ref{DataFileFormat:sec}, arranged in row-major order.
-Times values for the knots are either implicitly specified, starting
-at 0 (relative to the probe's start time) and increasing uniformly by
-the amount specified by {\tt timeStep}, or are explicitly specified at
-the beginning of each knot if {\tt timeStep} is set to the built-in
+same knot point information as provided by a file (Section
+\ref{DataFileFormat:sec}), arranged in row-major order.  Times values
+for the knots are either implicitly specified, starting at 0 (relative
+to the probe's start time) and increasing uniformly by the amount
+specified by {\tt timeStep}, or are explicitly specified at the
+beginning of each knot if {\tt timeStep} is set to the built-in
 constant {\tt NumericInputProbe.EXPLICIT\_TIME}. The size of the {\tt
-data} array should either $n*m$ (implicit time values) or $(n+1)*m$
-(explicit time values), where $n$ is the probe's vector size and $m$
-is the number of knots.
+data} array should then be either $n*m$ (implicit time values) or
+$(n+1)*m$ (explicit time values), where $n$ is the probe's vector size
+and $m$ is the number of knots.
 
 As an example, the data for the input probe in Section
 \ref{SimpleMuscleWithProbes:sec} could have been specified
@@ -897,7 +926,7 @@ using the following code:
 
 When specifying data in code, the interpolation defaults to {\tt
 Linear} unless explcitly specified using {\tt
-setInterpolationOrder()}:
+setInterpolationOrder()}, as in, for example:
 %
 \begin{lstlisting}[]
    probe.setInterpolationOrder (Order.Cubic);

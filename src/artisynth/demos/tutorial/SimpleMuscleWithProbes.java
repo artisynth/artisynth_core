@@ -32,7 +32,6 @@ public class SimpleMuscleWithProbes extends SimpleMuscleWithPanel
    }
 
    public void build (String[] args) throws IOException {
-
       super.build (args);
 
       createInputProbe ();

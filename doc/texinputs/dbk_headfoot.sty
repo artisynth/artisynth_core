@@ -45,16 +45,17 @@
 
 % Fancy header/footer for the front matter
 
-\def\DBKcheadfront{%
-  \begin{tabular}{%
-     >{\raggedright}p{5.5cm} >{\centering}p{5.5cm} >{\raggedleft}p{5.5cm}}%
-    \multirow{3}{5.5cm}{\DBKtitle}%
-    & & \textsf{\DBKreference{} \edhead}\tabularnewline
-    & \releasebox & \tabularnewline
-    & & \textsf{\thepage}%
-  \tabularnewline%
-  \end{tabular}%
-}
+%\def\DBKcheadfront{%
+%  \begin{tabular}{%
+%     >{\raggedright}p{5.5cm} >{\centering}p{5.5cm} >{\raggedleft}p{5.5cm}}%
+%    \multirow{3}{5.5cm}{\DBKtitle}%
+%    & & \textsf{\DBKreference{} \edhead}\tabularnewline
+%    & \releasebox f & \tabularnewline
+%    & & \textsf{\thepage}%
+%  \tabularnewline%
+%  \end{tabular}%
+%}
+\def\DBKcheadfront{}
 
 % Fancy header/footer for the doc body
 
@@ -69,6 +70,9 @@
   \end{tabular}%
 }
 
-\lhead[]{}
-\rhead[]{}
+%\lhead[]{}
+%\rhead[]{}
+
+\lhead[]{\textsf{\DBKtitle}}
+\rhead[]{\textsf{\thepage{}}}
 

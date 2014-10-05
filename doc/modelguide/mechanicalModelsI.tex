@@ -101,8 +101,8 @@ update its position in response to forces (Section
 \ref{DynamicVsParametric:sec}).
 
 The remaining calls control aspects of how the model is graphically
-rendered.  {\tt setBounds()} (line 37) increases the model's "bounding
-box" so that by default it will occupy a larger part of the viewer
+rendered.  {\tt setBounds()} (line 37) increases the model's ``bounding
+box'' so that by default it will occupy a larger part of the viewer
 frustum. Both {\tt setPointRenderProps()} and {\tt
 setLineRenderProps()} are convenience methods defined by the class
 (lines 44-48 and 50-54) to set render properties for points and
@@ -222,7 +222,7 @@ A general damping can be set for all particles by setting the
 a force
 %
 \begin{equation}
-\f_i = -d_p \v_i
+\f_i = -d_p \v_i \label{eq:pointdamping}
 \end{equation}
 %
 to be applied to all particles, where $d_p$ is the value of the {\tt
@@ -266,7 +266,7 @@ and is a subclass of the more general
 \javaclass[artisynth.core.mechmodels]{Frame} component.
 The combined position and orientation of this frame with respect to
 world coordinates defines the body's {\it pose}, and the associated 6
-degrees of freedom describe its "position" state.
+degrees of freedom describe its ``position'' state.
 
 \subsubsection{Frame markers}
 \label{FrameMarkers:sec}
@@ -503,7 +503,7 @@ described in Section \ref{ControllerImplementation:sec}.
 
 \subsubsection{Inertia and meshes}
 
-The "mass" of a rigid body is described by its spatial inertia
+The ``mass'' of a rigid body is described by its spatial inertia
 (Section \ref{SpatialInertia:sec}), implemented by a
 \javaclass[maspack.spatialmotion]{SpatialInertia} object, which
 specifies its mass, center of mass, and rotational inertia with
@@ -841,17 +841,17 @@ and set up the joint as follows:
 
 Some joint implementations provide the ability to explicitly set the
 joint parameter(s) after it has been created and added to the {\tt
-MechModel}, making it easy to "move" the joint to a specific
+MechModel}, making it easy to ``move'' the joint to a specific
 configuration. For example, {\tt RevoluteJoint} provides the method
 \javamethod*[artisynth.core.mechmodels.RevoluteJoint]{setTheta()}.
 This causes the transform $\T_{CD}$ to be explicitly set to the value
 implied by the joint parameters, and the pose of either body A or B is
 changed to accommodate this. Whether body A or B is moved depends on
-which one is the least connected to "ground", and other bodies that have
+which one is the least connected to ``ground'', and other bodies that have
 joint connections to the moved body are moved as well.
 
 If desired, joints can be connected to only a single rigid body. In
-this case, the second body B is simply assumed to be "ground", and the
+this case, the second body B is simply assumed to be ``ground'', and the
 coordinate frame B is instead taken
 to be the world coordinate frame W. The corresponding calls
 to the joint constructor or {\tt setBodies()} take the
@@ -1281,7 +1281,7 @@ Running the model (Section \ref{LoadingAndRunning:sec}) will cause
 {\tt lumbar1} to fall slightly under gravity until the frame spring
 arrests the motion. To get a sense of the spring's behavior, one can
 interactively apply forces to {\tt lumbar1} using the pull manipulator
-(see the section "Pull Manipulator" in the
+(see the section ``Pull Manipulator'' in the
 \href{../uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}).
 

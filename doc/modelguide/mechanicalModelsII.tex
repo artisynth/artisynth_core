@@ -55,8 +55,8 @@ systems, but slightly less so than {\tt ConstrainedBackwardEuler}.
 
 \end{description}
 
-The term "Unstable for stiff systems" means that the integrator is
-likely to go unstable in the presence of "stiff" systems, which
+The term ``Unstable for stiff systems'' means that the integrator is
+likely to go unstable in the presence of ``stiff'' systems, which
 typically include systems containing finite element models, unless the
 simulation step size is set to an extremely small value.  The default
 value for {\tt integrator} is {\tt ConstrainedBackwardEuler}.
@@ -93,8 +93,9 @@ problems involving FEM collisions.
 \end{description}
 
 \subsection{Units}
+\label{sec:mechii:units}
 
-ArtiSynth is primarily "unitless", in the sense that it does not
+ArtiSynth is primarily ``unitless'', in the sense that it does not
 define default units for the fundamental physical quantities of time,
 length, and mass. Although time is
 generally understood to be in seconds, and often declared as such in
@@ -563,7 +564,7 @@ pass through each other in one simulation step. This means that for
 thin objects, it is important to keep the step size small enough to
 prevent such undetected interpenetration.
 
-ArtiSynth also uses a "box" friction approximation
+ArtiSynth also uses a ``box'' friction approximation
 \cite{Lacoursiere07} to compute dry friction, instead of the
 polyhedralized friction cones common in the multibody dynamics
 literature \cite{AnitescuPotra2002,PotraEtAlTrapezoidal2006}.  This
@@ -630,7 +631,7 @@ queried using the methods
 Render properties can also be set in the GUI by selecting one or more
 components and the choosing {\sf Set render props ...}  in the
 right-click context menu. More details on setting render properties
-through the GUI can be found in the section "Render properties" in the
+through the GUI can be found in the section ``Render properties'' in the
 \href{../uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}.
 

@@ -1,0 +1,46 @@
+%% Antonio Sanchez, October 1, 2014: modified spacings for better formatting
+
+\ProvidesPackage{artisynth_papersize}[2014/10/01 Custom Papersize Package]
+
+\def\@letter@size{}
+\def\@afour@size{}
+\let\@paper@size\@letter@size
+
+\DeclareOption{A4}{ %
+\let\@paper@size\@afour@size %
+}
+\DeclareOption{a4}{ %
+\let\@paper@size\@afour@size %
+}
+\DeclareOption{letter}{ %
+\let\@paper@size\@letter@size %
+}
+
+\ExecuteOptions{letter}  % default to letter
+\ProcessOptions\relax
+
+\ifx\@paper@size\@afour@size
+\message{Detected A4 size}
+\setlength{\paperwidth}{21cm}
+\setlength{\paperheight}{29.7cm}
+\setlength{\textwidth}{17cm}
+\setlength{\textheight}{25.2cm}
+\else
+\message{Detected letter size}
+\setlength{\paperwidth}{8.5in}
+\setlength{\paperheight}{11in}
+\setlength{\textwidth}{7in}
+\setlength{\textheight}{9.25in}
+\fi
+
+\setlength{\hoffset}{-0.25in}
+\setlength{\voffset}{-1in}
+\setlength{\oddsidemargin}{0cm}
+\setlength{\evensidemargin}{0cm}
+\setlength{\marginparsep}{0cm}
+\setlength{\marginparwidth}{0cm}
+\setlength{\topmargin}{0.5cm}
+\setlength{\headsep}{16pt}
+\setlength{\footskip}{16pt}
+
+\endinput

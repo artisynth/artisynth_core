@@ -23,7 +23,11 @@
 %% docbook style, \RaggedRight
 \usepackage{ifxetex}
 \usepackage{pslatex} % fixes fonts; in particular sets a better-fitting \tt font
+
+\usepackage[A4]{artisynth_papersize}
+%\usepackage[letter]{artisynth_papersize}
 \usepackage[hyperlink]{asciidoc-dblatex} 
+
 %\usepackage{verbatim}
 \usepackage{ragged2e}
 \setlength{\RaggedRightRightskip}{0pt plus 4em}
@@ -173,7 +177,6 @@
 % fancyhdr was complaining that it wanted a 36pt header height ...
 \setlength{\headheight}{36pt}
 \fi
-
 
 % abbreviation for backslash character
 \newcommand\BKS{\textbackslash}

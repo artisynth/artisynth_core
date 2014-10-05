@@ -44,7 +44,7 @@ $l_0$ is a property of the spring.
 
 Axial springs are assigned a linear axial material by default.  More
 complex, non-linear axial materials may be defined in the package {\tt
-arttisynth.core.materials}. Setting or querying a spring's material
+artisynth.core.materials}. Setting or querying a spring's material
 may be done with the methods {\tt setMaterial()} and {\tt
 getMaterial()}.
 
@@ -100,7 +100,7 @@ non-dynamic} (line 34), meaning that the physical simulation will not
 update its position in response to forces (Section
 \ref{DynamicVsParametric:sec}).
 
-The remaining calls control aspects of how the model is graphicaly
+The remaining calls control aspects of how the model is graphically
 rendered.  {\tt setBounds()} (line 37) increases the model's "bounding
 box" so that by default it will occupy a larger part of the viewer
 frustum. Both {\tt setPointRenderProps()} and {\tt
@@ -117,7 +117,7 @@ initially appear as in Figure \ref{ParticleSpring:fig}.  Running
 the model (Section \ref{LoadingAndRunning:sec}) will
 cause the second particle to fall and swing about under gravity.
 
-\subsubsection{Dynamic, parameteric, and attached components}
+\subsubsection{Dynamic, parametric, and attached components}
 \label{DynamicVsParametric:sec}
 
 By default, a dynamic component is advanced through time in response
@@ -247,7 +247,7 @@ property can be set and queried in code using methods of the form
 where {\tt T} is the type associated with the property.
 \end{sideblock}
 
-{\tt pointDamping} can also be set for particles individualy.  This
+{\tt pointDamping} can also be set for particles individually.  This
 property is {\it inherited} (Section
 \ref{CompositeInheritableProperties:sec}), so that if not set
 explicitly, it inherits the nearest explicitly set value in an
@@ -266,7 +266,7 @@ and is a subclass of the more general
 \javaclass[artisynth.core.mechmodels]{Frame} component.
 The combined position and orientation of this frame with respect to
 world coordinates defines the body's {\it pose}, and the associated 6
-degrees of freedom decribe its "position" state.
+degrees of freedom describe its "position" state.
 
 \subsubsection{Frame markers}
 \label{FrameMarkers:sec}
@@ -283,7 +283,7 @@ coordinate frame B.}
 
 ArtiSynth makes extensive use of {\it markers}, which are (massless)
 points attached to dynamic components in the model. Markers are used
-for graphical display, implementing attachments, and transmiting
+for graphical display, implementing attachments, and transmitting
 forces back onto the underlying dynamic components.
 
 A {\it frame marker} is a marker that can be attached to a
@@ -314,7 +314,7 @@ generates a spatial force $\hat\f$ (Section
 \end{equation}
 %
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
 \iflatexml
  \includegraphics[]{images/RigidBodySpring}
@@ -632,7 +632,7 @@ provide no damping at all when a rigid body is simply rotating about
 its coordinate frame origin.
 \end{sideblock}
 
-Frame and rotatary damping can also be set for individual bodies using
+Frame and rotary damping can also be set for individual bodies using
 their own (inherited) {\tt frameDamping} and {\tt rotaryDamping}
 properties.
 
@@ -655,7 +655,7 @@ simplicity, joints have their own coordinate frames for describing
 their constraining actions, and then these frames are related to the
 frames A and B of the associated bodies by auxiliary transformations.
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
  \includegraphics[width=2.5in]{images/jointExample}
 \end{center}
@@ -669,7 +669,7 @@ motions therefore correspond to the allowed values of the {\it joint transform}
 $\T_{CD}$.  D is the {\it base} frame and C is the {\it motion}
 frame. For a revolute joint (Figure \ref{jointExample:fig}), C can
 move with respect to D by rotating about the z axis. Other motions are
-prohbited. $\T_{CD}$ should therefore alway have the form
+prohibited. $\T_{CD}$ should therefore alway have the form
 %
 \begin{equation}
 \T_{CD} = \matl
@@ -686,7 +686,7 @@ available to the joint. When $\T_{CD} = \I$ (where $\I$ is the
 identity transform), the parameters are all (usually) equal to zero,
 and the joint is said to be in the {\it zero state}.
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
  \includegraphics[width=2.5in]{images/jointFrames}
 \end{center}
@@ -704,7 +704,7 @@ type. In ArtiSynth, this is accounted for by introducing an additional
 {\it constraint} frame G between D and C (Figure \ref{jointFrames:fig}).
 G is computed to be the nearest frame to C that lies exactly 
 in the joint constraint space. $\T_{GD}$ is therefore a
-valid transform for the joint, $\T_{GC}$ accomodates the error,
+valid transform for the joint, $\T_{GC}$ accommodates the error,
 and the whole joint transform is given by the composition
 %
 \begin{equation}
@@ -719,11 +719,11 @@ frame C being fixed to body A and frame D being fixed to body B. The
 restrictions of the joint transform $\T_{CD}$ therefore restrict the
 relative poses of A and B.
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
  \includegraphics[width=3.74in]{images/jointBodyFrames}
 \end{center}
-\caption{Tranforms connecting joint coordinate frames C and D with
+\caption{Transforms connecting joint coordinate frames C and D with
 rigid bodies A and B.}
 \label{jointBodyFrames:fig}
 \end{figure}
@@ -804,7 +804,7 @@ the following code fragment:
 Another method,
 \javamethodAlt{artisynth.core.mechmodels.RigidBodyConnector.setBodies(,,,)}
 {setBodies(bodyA, TCA, bodyB, TDB)}, allows us to set both values of
-$\T_{CA}$ or $\T_{BA}$ explicity. This is useful if the joint
+$\T_{CA}$ or $\T_{BA}$ explicitly. This is useful if the joint
 transform $\T_{CD}$ is known to be some value {\it other} than the
 identity, in which case $\T_{CA}$ or $\T_{BA}$ can be computed
 from (\ref{jointPose:eqn}), where $\T_{BA}$ is given by
@@ -839,12 +839,12 @@ and set up the joint as follows:
 \end{lstlisting}
 %
 
-Some joint implementations provide the ability to explictly set the
+Some joint implementations provide the ability to explicitly set the
 joint parameter(s) after it has been created and added to the {\tt
 MechModel}, making it easy to "move" the joint to a specific
 configuration. For example, {\tt RevoluteJoint} provides the method
 \javamethod*[artisynth.core.mechmodels.RevoluteJoint]{setTheta()}.
-This causes the transform $\T_{CD}$ to be explicity set to the value
+This causes the transform $\T_{CD}$ to be explicitly set to the value
 implied by the joint parameters, and the pose of either body A or B is
 changed to accommodate this. Whether body A or B is moved depends on
 which one is the least connected to "ground", and other bodies that have
@@ -872,7 +872,7 @@ or
 \subsubsection{Example:  A simple revolute joint}
 \label{RigidBodyJoint:sec}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
 \iflatexml
  \includegraphics[]{images/RigidBodyJoint}
@@ -969,7 +969,7 @@ as described in Section \ref{CreatingJoints:sec}.
 
 Once the joint is created and added to the {\tt MechModel}, the method
 \javamethod*[artisynth.core.mechmodels.RevoluteJoint]{setTheta()} is
-used to explicity set the joint parameter to 35 degrees. The joint
+used to explicitly set the joint parameter to 35 degrees. The joint
 transform $\T_{CD}$ is then set appropriately and {\tt bodyA} is moved
 to accommodate this ({\tt bodyA} being chosen since it is the freest
 to move).
@@ -1048,7 +1048,7 @@ restoring forces and moments between coordinate frames.
 
 \subsubsection{Frame spring coordinate frames}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
  \includegraphics[width=3in]{images/frameSpring}
 \end{center}
@@ -1083,7 +1083,7 @@ The forces acting on D are equal and opposite, so that
 \end{align}
 %
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
  \includegraphics[width=3in]{images/frameSpringBodies}
 \end{center}
@@ -1180,7 +1180,7 @@ assuming whatever value is implied.
 
 Frame springs and joints are often placed together, using the same
 transforms $\T_{CA}$ and $\T_{DB}$, with the spring providing
-restoring forces to help keep the joint within presribed bounds.
+restoring forces to help keep the joint within prescribed bounds.
 
 As with joints, a frame spring can be connected to only a single body,
 by specifying {\tt frameB} as {\tt null}. Frame B is then taken to be
@@ -1188,7 +1188,7 @@ the world coordinate frame W.
 
 \subsubsection{Example: Two bodies connected by a frame spring}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
 \iflatexml
  \includegraphics[]{images/LumbarFrameSpring}
@@ -1240,7 +1240,7 @@ lumbar2} are then created by calling {\tt addBone()} (lines 44-45),
 $(-0.016, 0.039, 0)^T$, and {\tt lumbar2} is set to be fixed by making
 it non-dynamic (line 47).
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
 \iflatexml
  \includegraphics[]{images/LumbarFrameSpringNoflip}
@@ -1299,7 +1299,7 @@ attachment} components that manage the attachment physics as described
 briefly in Section \ref{PhysicsSimulation:sec}. At present,
 attachments are implemented only for point-based components.  Modeling
 applications do not generally handle the attachment components
-directly, but instead create them implicitly using the followng {\tt
+directly, but instead create them implicitly using the following {\tt
 MechModel} methods:
 %
 \begin{lstlisting}[]
@@ -1332,7 +1332,7 @@ calling
 
 \subsubsection{Example: model with particle attachments}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
 \iflatexml
  \includegraphics[]{images/ParticleAttachment}

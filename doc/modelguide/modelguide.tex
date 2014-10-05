@@ -3,8 +3,16 @@
 %   expect this to be around 45,000 words, or about 120 pages.
 
 \documentclass{article}
+
+% Add search paths for input files
+\makeatletter
+\def\input@path{{../}{../../}{../texinputs/}}
+\makeatother
+
 \usepackage{amsmath}
 \usepackage{framed}
+%\usepackage{layout}
+%\usepackage{showframe}
 \input{artisynthDoc}
 \input{mathdefs}
 
@@ -14,12 +22,46 @@
 \title{ArtiSynth Modeling Guide}
 \author{John Lloyd and Antonio S\'anchez}
 \setpubdate{October 12, 2014}
+
 \iflatexml
 \date{}
 \fi
 
+% Listings settings
+\definecolor{myblue}{rgb}{0,0,0.6}
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mylightgray}{rgb}{0.95,0.95,0.95}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+\definecolor{myblack}{rgb}{0,0,0}
+\lstset{
+   language=Java,                   % text highlighting for Java
+   breakatwhitespace=false,         % automatic breaks only at whitespace
+   breaklines=true,                 % automatic line breaking
+   commentstyle=\color{mygreen},    % comment style
+   keepspaces=true,                 % keeps spaces in text
+   keywordstyle=\color{myblue},     % keyword style
+   numbers=none,                    % line-numbers; values: (none, left, right)
+   numbersep=5pt,                   % how far the line-numbers are from code
+   numberstyle=\tiny\color{mygray}, % line-numbers style
+   showspaces=false,                % show spaces everywhere
+   showstringspaces=false,          % underline spaces within strings
+   showtabs=false,                  % show tabs
+   stepnumber=1,                    % the step between two line-numbers
+   stringstyle=\color{mymauve},     % string literal style
+   tabsize=3,                       % sets default tabsize to 3 spaces
+   backgroundcolor=\color{mylightgray}, % background color
+   frame=single, 					% adds a frame around the code
+   rulesepcolor=\color{mygray},
+   rulecolor=\color{myblack},
+   framerule=0pt,
+   xleftmargin=2.2ex,               % numbers inside box
+   framexleftmargin=2.2ex,			% indentation of frame
+}
+
 \begin{document}
 
+%\layout
 \maketitle
 
 \iflatexml{\large\pubdate}\fi
@@ -66,7 +108,7 @@ finite element models. The required mathematics is reviewed in Section
 
 If time permits, the reader will profit from a top-to-bottom read.
 However, this may not always be necessary. Many of the sections
-contain detailed demonstration examples, all of which are available in
+contain detailed examples, all of which are available in
 the package {\tt artisynth.demos.tutorial} and which may be run from
 ArtiSynth using {\sf Models > All demos > tutorials}. 
 More experienced readers may wish to find an appropriate example and
@@ -91,6 +133,7 @@ needed explanatory detail.
 \bibliographystyle{plain}
 \bibliography{references}
 \else
+\section*{References}
 \bibliographystyle{plain}
 \begin{btSect}{references}
 \btPrintCited

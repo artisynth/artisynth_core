@@ -244,7 +244,7 @@ All attachment components are instances of
 The positions, velocities, and forces associated with all the
 dynamic components are denoted by the composite vectors 
 $\q$, $\u$, and $\f$. 
-In addition, the composite mass matrx is given by
+In addition, the composite mass matrix is given by
 $\M$. 
 Newton's second law then gives
 \begin{equation}
@@ -252,7 +252,7 @@ Newton's second law then gives
 \label{newton:eqn}
 \end{equation}
 %
-where the $\dot\M \u$ accounts for various ``fictitous'' forces.
+where the $\dot\M \u$ accounts for various ``fictitious'' forces.
 
 Each integration step involves solving for
 the velocities $\u^{k+1}$ at time step $k+1$ given the velocities and forces
@@ -367,7 +367,7 @@ determine the system velocity at each time step.
 
 To set up (\ref{KKTvelocity:eqn}), the {\tt MechModel} component
 hierarchy is traversed and the methods of the different component
-types are queried for the required values.  Dynamic compoinents (type
+types are queried for the required values.  Dynamic components (type
 {\tt DynamicComponent}) provide $\q$, $\u$, and $\M$; force effectors
 ({\tt ForceEffector}) determine $\hat\f$ and the stiffness/damping
 augmentation used to produce $\hat\M$; constrainers ({\tt
@@ -619,7 +619,7 @@ like the following:
    }
 \end{lstlisting}
 First, a \javaclass[artisynth.core.mechmodels]{MechModel} is created
-(with the name {\tt "mech"} in this example, athough any name, or no
+(with the name {\tt "mech"} in this example, although any name, or no
 name, may be given) and added to the list of models in the root
 model. Subsequent code then creates and adds the components required
 by the {\tt MechModel}, as described in Sections
@@ -639,7 +639,7 @@ refers to two points. When it is added to the hierarchy, those two
 points should already be present in the hierarchy.
 
 The {\tt build()} method supplies a {\tt String} array as an argument.
-(This is analgous to the {\tt args} argument passed to static {\tt
+(This is analogous to the {\tt args} argument passed to static {\tt
 main()} methods.) The first String is the name assigned to the model,
 while subsequent strings are reserved for future use as
 application-supplied arguments.
@@ -652,8 +652,8 @@ This usually involves adding the top-level class directory associated
 with the application code to the classpath used by ArtiSynth.
 
 \begin{sideblock}
-The demonstration models refered to in this guide belong to the
-package {\tt artisynth.demos.tutoral} and are already visible to
+The demonstration models referred to in this guide belong to the
+package {\tt artisynth.demos.tutorial} and are already visible to
 ArtiSynth.
 \end{sideblock}
 
@@ -688,7 +688,7 @@ functionality.
 
 \item[Add the directories to the EXTCLASSPATH file]\mbox{}
 
-You can explictly list class directories in the file EXTCLASSPATH,
+You can explicitly list class directories in the file EXTCLASSPATH,
 located in the ArtiSynth root directory (it may be necessary to create
 this file).
 
@@ -741,7 +741,7 @@ section "Loading and Simulating Models" of the
 ArtiSynth User Interface Guide}.
 
 \begin{sideblock}
-The demonstration models refered to in this guide should already
+The demonstration models referred to in this guide should already
 be present in the models menu and may be loaded
 from the submenu {\sf Models > All demos > tutorial}.
 \end{sideblock}
@@ -752,7 +752,7 @@ of the model can then be started, paused, single-stepped, or reset
 using the play controls (Figure \ref{PlayControlsFig})
 located at the upper right of the ArtiSynth window frame.
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
 \iflatexml
 \includegraphics[]{../installation/images/playControls}

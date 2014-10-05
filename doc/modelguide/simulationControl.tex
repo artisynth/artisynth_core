@@ -43,7 +43,7 @@ panel is the method
 specified by {\tt propertyPath} with respect to the component
 {\tt comp}.  Property paths are discussed in the Section
 \ref{PropertyHandlesAndPaths:sec}, and can consist solely of a
-property name, or, for properties located in descendent components, a
+property name, or, for properties located in descendant components, a
 component path followed by a colon '{\tt :}' and the property name.
 
 Other flavors of {\tt addWidget()} also exist, as described in the API
@@ -235,7 +235,7 @@ static code block:
 %
 Variations on the {\tt add()} method exist for adding {\it read-only}
 or {\it inheritable} properties, or for setting various property
-options. Other methods allow the property list to be editted.
+options. Other methods allow the property list to be edited.
 
 \item[Declare property accessor functions:]\mbox{}
 
@@ -367,7 +367,7 @@ interact with model advancement are given in the
 \href{../artisynth/artisynth.html}{
 ArtiSynth Reference Manual}.
 
-\subsubsection{Implemention}
+\subsubsection{Implementation}
 \label{ControllerImplementation:sec}
 
 Applications may declare whatever controllers or monitors they require
@@ -396,11 +396,11 @@ monitors are:
 time step, with {\tt t0} and {\tt t1} indicating the start and end
 times $t_0$ and $t_1$ associated with the step.  {\tt initialize(t0)}
 is called whenever an application model's state is set (or reset) at a
-particular time $t_0$. This occurs when a simulation is firt started
+particular time $t_0$. This occurs when a simulation is first started
 or after it is reset (with $t_0 = 0$), and also when the state is
 reset at a waypoint or during adaptive stepping.
 
-Controllers and monitors may be associated with a partcular model
+Controllers and monitors may be associated with a particular model
 (among the list of models owned by the root model). This model may be
 set or queried using
 %
@@ -434,7 +434,7 @@ should instead set its {\it target position} and/or {\it target
 velocity}, since this allows the solver to properly interpolate the
 position and velocity during the time step. The methods to set or
 query target positions and velocities for
-\javaclass[artisynth.core.modelbase]{Point}-based compnents are
+\javaclass[artisynth.core.modelbase]{Point}-based components are
 %
 \begin{lstlisting}[]
   setTargetPosition (Point3d pos);
@@ -445,7 +445,7 @@ query target positions and velocities for
 \end{lstlisting}
 %
 while for
-\javaclass[artisynth.core.modelbase]{Frame}-based compnents they are
+\javaclass[artisynth.core.modelbase]{Frame}-based components they are
 %
 \begin{lstlisting}[]
   setTargetPosition (Point3d pos);
@@ -799,7 +799,7 @@ accumulated in the output probe {\tt "FrameMarker Velocity"}.}
 \subsubsection{Data file format}
 \label{DataFileFormat:sec}
 
-The data files associated with numeric probes are ascii files
+The data files associated with numeric probes are ASCII files
 containing two lines of header information followed by a set of knot
 points, one per line, defining the numeric data. The time value
 (relative to the probe's start time) for each knot point can be
@@ -925,7 +925,7 @@ using the following code:
 \end{lstlisting}
 
 When specifying data in code, the interpolation defaults to {\tt
-Linear} unless explcitly specified using {\tt
+Linear} unless explicitly specified using {\tt
 setInterpolationOrder()}, as in, for example:
 %
 \begin{lstlisting}[]

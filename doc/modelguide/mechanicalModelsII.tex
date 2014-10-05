@@ -1,7 +1,7 @@
 \section{Mechanical Models II}
 \label{MechModelsII:sec}
 
-This section provides addtional material on building basic
+This section provides additional material on building basic
 multibody-type mechanical models.
 
 \subsection{Simulation control properties}
@@ -41,7 +41,7 @@ that forward Euler. Unstable for stiff systems.
 
 \item[RungeKutta4]\mbox{}
 
-Fourth order Runge Kutta integrator, quite accurate but also unstable
+Fourth order Runge-Kutta integrator, quite accurate but also unstable
 for stiff systems.
 
 \item[ConstrainedBackwardEuler]\mbox{}
@@ -165,7 +165,7 @@ provides the following methods for scaling mass and distance units:
 \end{lstlisting}
 %
 A call to one of these methods should cause all physical quantities
-within the component (and its descendents) to be
+within the component (and its descendants) to be
 scaled as required by the fundamental unit relationships
 as shown in Table \ref{Units:tab}.
 
@@ -218,7 +218,7 @@ non-scaled version.
 %\subsubsection{Operation}
 %\subsubsection{Example: A single multi-point spring}
 
-%\begin{figure}[h]
+%\begin{figure}[ht]
 %\begin{center}
 %\iflatexml
 % \includegraphics[]{images/MultiPointSpring}
@@ -264,7 +264,7 @@ As with {\tt AxialSpring}s, {\tt Muscle} components use an
 applied force $f (l, \dot l, a)$ in response to the muscle's length
 $l$, length velocity $\dot l$, and excitation signal $a$.  Usually the
 force is the sum of a {\it passive} component plus an {\it active}
-component that arises in responce to the excitation signal.
+component that arises in response to the excitation signal.
 
 The default {\tt AxialMaterial} for a {\tt Muscle} is
 \javaclass[artisynth.core.materials]{SimpleAxialMuscle},
@@ -296,7 +296,7 @@ available in ArtiSynth include
 \subsubsection{Example: Muscle attached to a rigid body}
 \label{SimpleMuscleExample:sec}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
 \iflatexml
  \includegraphics[]{images/SimpleMuscle}
@@ -405,7 +405,7 @@ be controlled for specific {\it types} of collidables using
 where {\tt typeA} and {\tt typeB} should be either {\tt
 Collidable.RigidBody} or {\tt Collidable.Deformable}.  In addition,\\
 {\tt Collidable.Deformable} can be paired with {\tt Collidable.Self} to
-enable/disable self-collions between deformable objects.
+enable/disable self-collisions between deformable objects.
 
 A call to one of the {\tt setDefaultCollisionBehavior()} methods will
 override the effects of previous calls. So for instance, the code
@@ -420,7 +420,7 @@ sequence
 %
 will initially enable collisions between all bodies with a friction
 coefficient of 0, then {\it disable} collisions between deformable and
-rigid bodies, and finally reenable collisions between all bodies with
+rigid bodies, and finally re-enable collisions between all bodies with
 a friction coefficient of 0.2.
 
 The default collision behavior between any pair of body types can
@@ -453,7 +453,7 @@ would be forced into a state of permanent collision.
 
 \subsubsection{Example: Collision with a plane}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
 \iflatexml
  \includegraphics[]{images/JointedCollide}
@@ -572,13 +572,13 @@ of some accuracy.
 
 Another issue is that ArtiSynth's attempt to separate colliding bodies
 at the end of each time step may cause a jittering behavior around the
-colliding area, as the surface collides, separates, and recollides.
+colliding area, as the surface collides, separates, and re-collides.
 This can usually be stabilized by maintaining a certain
 interpenetration distance during contact. This distance is controlled
 by the {\tt MechModel} property {\tt penetrationTol}.  ArtiSynth
 attempts to compute a suitable default value for this property, but
 for some applications it may be necessary to control the value
-explicity using the {\tt MechModel} methods
+explicitly using the {\tt MechModel} methods
 %
 \begin{lstlisting}[]
    setInterpenetrationTol (double dist);
@@ -594,7 +594,7 @@ can be accessed graphically via the navigation panel, or in code using
 One of these properties is {\tt collisionPointTol}, which for
 collisions between rigid bodies specifies a minimum distance between
 contact points and therefore can be used to reduce the number of
-contact constraints and improve comptation time.
+contact constraints and improve computation time.
 
 % LATER: \subsubsection{Contact rendering}
 
@@ -663,7 +663,7 @@ java.awt.Color}.
 \hline property & purpose & usual default value \\ \hline
 %Generic properties:
 visible & whether or not the component is visible & {\tt true} \\
-alpha & transparency for polygonal faces (range 0 to 1) & 1 (opague) \\
+alpha & transparency for polygonal faces (range 0 to 1) & 1 (opaque) \\
 shading & polygon shading: ({\tt FLAT}, {\tt GOURARD}, {\tt PHONG}) & {\tt FLAT}\\
 shininess & shininess parameter for polygons (range 0 to 32) & 32 \\
 %Face related properties &
@@ -783,8 +783,8 @@ component will simply be ignored.
 \end{sideblock}
 
 Finally, as mentioned above, render properties are inherited.  Values
-set high in the component hierarchy will be inherited by descendent
-components, unless those descendents (or intermediate components)
+set high in the component hierarchy will be inherited by descendant
+components, unless those descendants (or intermediate components)
 explicitly set overriding values.  For example, a {\tt MechModel}
 maintains its own {\tt RenderProps} (and which is never null). Setting
 its {\tt pointColor} property to {\tt RED} will cause {\it all}

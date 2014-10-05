@@ -53,7 +53,7 @@ having 9 numbers, the matrix only has 3 degrees of freedom.
 
 Now, assume we have a 3D vector $\v$, and consider its coordinates
 with respect to both frames A and B.  Where necessary, we use a
-preceding superscript to indicate the coordinate frame with repect to
+preceding superscript to indicate the coordinate frame with respect to
 which a quantity is described, so that ${}^A\v$ and ${}^B\v$ and
 denote $\v$ with respect to frames A and B, respectively.  Given the
 definition of $\R_{AB}$ given above, it is fairly straightforward to
@@ -153,7 +153,7 @@ expressed as
 \end{equation}
 %
 
-In addition to specifying rotation matrix components explicity,
+In addition to specifying rotation matrix components explicitly,
 there are numerous other ways to describe a rotation.
 Three of the most common are:
 
@@ -192,7 +192,7 @@ Rigid transforms are used to specify both the transformation of points
 and vectors between coordinate frames, as well as the relative
 position and orientation between coordinate frames.
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
  \includegraphics[width=3.25in]{images/framesAB}
 \end{center}
@@ -339,7 +339,7 @@ generalized basis transformation combined with an offset of the origin
 columns of $\A$ still describe the transformed basis vectors $\x'$,
 $\y'$, and $\z'$, but these are generally no longer orthonormal.
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
  \includegraphics[width=3.25in]{images/affineAB}
 \end{center}
@@ -381,7 +381,7 @@ $\A$ is orthogonal (so that $\A^T \, \A = \I$) but with $\det \A =
 
 \subsection{Rotational velocity}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
  \includegraphics[width=3.25in]{images/angularvelAB}
 \end{center}
@@ -444,7 +444,7 @@ acting through the frame's origin:
 \end{equation}
 %
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
  \includegraphics[width=3.25in]{images/rigidAB}
 \end{center}
@@ -514,12 +514,21 @@ are expressed in frames $A$ and $B$, we can show that
 %
 where
 %
+% LaTeXML fails to interpret the [ bracket when directly after \\
+\iflatexml
+\begin{equation}
+\X^*_{BA} \equiv 
+\matl \R_{BA} & 0 \\  ~[\p_{BA}]\R_{BA} & \R_{BA} \matr. 
+\label{XforceAB:eqn}
+\end{equation}
+\else
 \begin{equation}
 \X^*_{BA} \equiv
 \matl \R_{BA} & 0 \\  [\p_{BA}] \R_{BA} & \R_{BA} \matr.
 \label{XforceAB:eqn}
 \end{equation}
-%
+\fi
+
 
 \subsection{Spatial inertia}
 \label{SpatialInertia:sec}

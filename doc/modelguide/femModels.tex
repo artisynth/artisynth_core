@@ -1,11 +1,105 @@
 \section{Finite Element Models}
 \label{FEMModels:sec}
 
+This section details how to construct three-dimensional finite element models,
+and how to couple them with the other simulation components described in
+previous sections (e.g.~particles and rigid bodies).  Finite element
+\emph{muscles}, which have additional properties that allow them to contract
+given activation signals, are discussed in Section \ref{sec:fem:muscle}.
+
 \subsection{Overview}
+\label{sec:fem:overview}
+
+The finite element method (FEM) is a numerical technique used for solving a 
+system of partial differential equations (PDEs) over some domain.  The general
+approach is to divide the domain into a set of building blocks, referred to
+as \emph{elements}, over which the problem can be discretized.  Using this
+discretization, the differential system is converted into an algebraic one,
+which is often linearized and iteratively solved.
+
+In ArtiSynth, the PDEs considered are the governing equations of
+continuum mechanics: the conservation of mass, momentum and energy.  To 
+complete the system, a \emph{constitutive equation} is required that describes
+the stress-strain response of the material.  This constitutive equation is what
+disguishes between material types.  The domain of the system is the 3D spatial 
+domain.  This must be divided into small elements which accurately represent
+the geometry. Within each element, the PDEs are
+sampled at a set of points, referred to as \emph{integration points}, and 
+terms are numerically integrated to form an algebraic system to solve.
+
+The purpose of the rest of this section is to describe the construction and
+use of finite elements models within ArtiSynth.  It does not discuss the
+mathematical framework or theory.
+For an in-depth coverage of the nonlinear finite element method, as applied
+to continuum mechanics, the reader is referred to the textbook by Bonet and 
+Wood \cite{bonet:fem:2000}.
 
 \subsubsection{Structure}
+\label{sec:fem:structure}
+
+The basic type of finite element model is implemented in the class 
+\javaclass[artisynth.core.femmodels]{FemModel3d}.  Each FEM model contains
+at least three lists of sub-components:
+
+\begin{description}
+\item[Elements]\mbox{}
+
+The building blocks of the model.  These define the sub-units over which
+the system is numerically integrated.
+
+\item[Nodes]\mbox{}
+
+The particle-like dynamic components of the model.  These lie at the corners
+of the elements, and carry all the mass.
+
+\item[Meshes]\mbox{}
+
+The geometry in the model.  This will include the surface mesh, and any other
+embedded geometries which are used for either display purposes, or for physical
+interactions (e.g.~collision).
+\end{description}
+
+Additionally, the model itself has several important properties which should be
+set:
+\begin{center}
+	\begin{tabular}{|ll|}
+		\hline
+		Property & Description\\
+		\hline
+		{\tt density} & The density of the model\\
+		{\tt particleDamping} & Proportional damping associated with the 
+		    particle-like motion of the FEM nodes.\\
+		{\tt stiffnessDamping} & Proportional damping associated with the 
+		    system's stiffness term.\\
+		{\tt material} & An object that describes the material's 
+		    \emph{constitutive law} (i.e.~it's 
+stress-strain relationship).\\
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{description}
+\item[density] \mbox{}
+
+The density of the model
+
+\item[particleDamping] \mbox{}
+
+Proportional damping associated with the particle-like motion of the FEM nodes.
+
+\item[stiffnessDamping]\mbox{}
+
+Proportional damping associated with the system's stiffness term.
+
+\item[material]\mbox{}
+
+An object that describes the material's \emph{constitutive law} (i.e.~it's 
+stress-strain relationship).
+\end{description}
+
 
 \subsubsection{Materials}
+\label{sec:fem:materials}
 
 \subsubsection{Boundary conditions}
 
@@ -19,7 +113,7 @@
 
 \subsubsection{A simple beam model}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
 \iflatexml
  \includegraphics[]{images/FemBeam}
@@ -48,7 +142,7 @@
 
 \subsubsection{Connecting a beam to a block}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
 \iflatexml
  \includegraphics[]{images/FemBeamWithBlock}
@@ -72,7 +166,7 @@
 
 \subsubsection{Attaching a FEM beam to a muscle}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
 \iflatexml
  \includegraphics[]{images/FemBeamWithMuscle}
@@ -87,6 +181,7 @@
 % FemBeamWithMuscle
 
 \subsection{Muscle activated FEM models}
+\label{sec:fem:muscle}
 
 \subsubsection{FemMuscleModel}
 
@@ -96,7 +191,7 @@
 
 \subsubsection{Comparision with two beam examples}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
 \iflatexml
  \includegraphics[]{images/FemMuscleBeams}
@@ -116,7 +211,7 @@
 
 \subsubsection{Colliding with the surface mesh}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
 \iflatexml
  \includegraphics[]{images/FemMuscleHeart}
@@ -132,7 +227,7 @@
 
 \subsubsection{Colliding with an embedded sphere}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
 \iflatexml
  \includegraphics[]{images/FemCollisions}

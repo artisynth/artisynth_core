@@ -15,7 +15,7 @@ PDF_DIR = $(DOC_DIR)/pdf
 BIN_DIR = $(DOC_DIR)/../bin
 #JAVADOC_URL = http://www.artisynth.org/doc/javadocs
 JAVADOC_URL = ../../javadocs
-LATEXMLPOST = latexmlpost --mathimages --css=$(DOC_DIR)/style/artisynth.css \
+LATEXMLPOST = latexmlpost --mathimages --format=html4 --css=$(DOC_DIR)/style/artisynth.css \
  --destination=$@
 FIX_HTML_OUTPUT = $(BIN_DIR)/setJavadocLinks --jdocDir $(DOC_DIR)/javadocs \
  --jdocUrl $(JAVADOC_URL) $@ | $(BIN_DIR)/fixLatexmlOutput

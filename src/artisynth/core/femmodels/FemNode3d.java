@@ -43,6 +43,8 @@ public class FemNode3d extends FemNode {
 
    static {
       myProps.get ("mass").setAutoWrite (false);
+      myProps.add ("restPosition",
+         "rest position for the node", Point3d.ZERO, "%.8g");
       myProps.add (
          "targetDisplacement",
          "target specified as a displacement from rest position", Point3d.ZERO,
@@ -428,9 +430,30 @@ public class FemNode3d extends FemNode {
    public Point3d getRestPosition() {
       return myRest;
    }
+   
+   private FemModel3d findFem() {
+      // XXX current hack to get FEM,
+      // dependent on current hierarchy
+      CompositeComponent gp = getGrandParent();
+      if (gp instanceof FemModel3d) {
+         return (FemModel3d)gp;
+      }
+      return null;
+   }
 
    public void setRestPosition (Point3d pos) {
       myRest.set (pos);
+
+      // invalidate rest data for attached elements
+      FemModel3d fem = findFem();
+      if (fem != null) {
+         fem.invalidateNodalRestVolumes();
+         fem.invalidateStressAndStiffness();
+      }
+      for (FemElement3d elem : myElementDeps) {
+         elem.invalidateRestData();
+      }
+      
    }
 
    public FemNode3d copy (

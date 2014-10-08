@@ -641,6 +641,7 @@ Collidable, CopyableComponent, HasAuxState {
             }
             fd.scale(myStiffnessDamping);
          }
+         // XXX Should particle have their own damping?
          fd.scaledAdd(myMassDamping * n.getMass(), n.getVelocity(), fd);
          n.subForce(fk);
          n.subForce(fd);
@@ -3587,10 +3588,15 @@ Collidable, CopyableComponent, HasAuxState {
       // should invalidate matrices for incompressibility here. However, at the
       // moment these are being rebuilt for each calculation anyway
    }
+   
+   // update, if necessary, nodal rest volumes
+   protected void invalidateNodalRestVolumes() {
+      myNodalRestVolumesValidP = false;
+   }
 
    public void invalidateRestData() {
       super.invalidateRestData();
-      myNodalRestVolumesValidP = false;
+      invalidateNodalRestVolumes();
    }
 
    public void resetRestPosition() {

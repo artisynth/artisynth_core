@@ -425,10 +425,30 @@ public abstract class FemModel extends MechSystemBase
       return myMassDamping;
    }
 
+   /**
+    * Sets the Rayleigh damping coefficient associated with the FEM's mass
+    */
+   public void setMassDamping(double d) {
+      setParticleDamping(d);
+   }
+   
+   /**
+    * Gets the Rayleigh damping coefficient associated with the FEM's mass
+    */
+   public double getMassDamping() {
+      return getParticleDamping();
+   }
+   
+   /**
+    * Sets the Rayleigh damping coefficient associated with the FEM's stiffness
+    */
    public void setStiffnessDamping (double d) {
       myStiffnessDamping = d;
    }
 
+   /**
+    * Gets the Rayleigh damping coefficient associated with the FEM's stiffness
+    */
    public double getStiffnessDamping() {
       return myStiffnessDamping;
    }

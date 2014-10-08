@@ -181,4 +181,20 @@
 % abbreviation for backslash character
 \newcommand\BKS{\textbackslash}
 
+
+% Convenience stuff
+\newcommand{\ifLaTeXMLelse}[2]{%
+  \iflatexml %
+  #1 %
+  \else %
+  #2 %
+  \fi %
+}
+
+\newcommand{\ifLaTeXML}[1]{ %
+  \iflatexml %
+  #1 %
+  \fi %
+}
+
 \makeatother

@@ -10,6 +10,7 @@ import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 import maspack.render.*;
+import maspack.render.RenderProps.LineStyle;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
@@ -137,7 +138,8 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
          }
       }
 
-      if (myRenderProps.getLineWidth() > 0) {
+      if ( (myRenderProps.getLineWidth() > 0 && myRenderProps.getLineStyle() == LineStyle.LINE) ||
+         (myRenderProps.getLineRadius() > 0 && myRenderProps.getLineStyle() == LineStyle.CYLINDER)) {
          switch (myRenderProps.getLineStyle()) {
             case LINE: {
                if (!selecting) {

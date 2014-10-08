@@ -1,3 +1,13 @@
+% Scale latexml image sizes 2x
+\newlength{\imglength}
+\newcommand{\setlengthLaTeXML}[3]{ %
+	\iflatexml %
+	\setlength{#1}{#2} %
+	\else %
+	\setlength{#1}{#3} %
+	\fi %
+}
+
 \section{Finite Element Models}
 \label{FEMModels:sec}
 
@@ -5,7 +15,17 @@ This section details how to construct three-dimensional finite element models,
 and how to couple them with the other simulation components described in
 previous sections (e.g.~particles and rigid bodies).  Finite element
 \emph{muscles}, which have additional properties that allow them to contract
-given activation signals, are discussed in Section \ref{sec:fem:muscle}.
+given activation signals, are discussed in Section \ref{sec:fem:muscle}.  An 
+example FEM model of the masseter, coupled to a rigid jaw and maxilla, is shown 
+in Figure \ref{fig:fem:masseter}.
+
+\begin{figure}[ht]
+	\centering
+	\setlengthLaTeXML{\imglength}{0.8\textwidth}{0.6\textwidth}
+	\includegraphics[width=\imglength]{images/fem_masseter}
+	\caption{Finite element model of the masseter, coupled to the jaw and 
+	         maxilla. \label{fig:fem:masseter}} 
+\end{figure}
 
 \subsection{Overview}
 \label{sec:fem:overview}
@@ -38,7 +58,7 @@ For an in-depth coverage of the nonlinear finite element method, as applied
 to continuum mechanics, the reader is referred to the textbook by Bonet and 
 Wood \cite{bonet:fem:2000}.
 
-\subsubsection{Component structure}
+\subsubsection{FemModel3d}
 \label{sec:fem:structure}
 
 The basic type of finite element model is implemented in the class 
@@ -75,40 +95,31 @@ stiffness within individual elements.  It handles the \emph{constitutive}
 component of the model.  Materials will be discussed in more detail in
 Section \ref{sec:fem:materials}.
 
-\paragraph{Damping}
-
-ArtiSynth uses \emph{Rayleigh damping} to dissipate energy within finite
-element models.  This is composed of a combination of two proportional
-damping terms: one related to the system's mass, and one related to
-stiffness.
-
-The ``particle damping'' (otherwise known as ``mass damping'') property 
-of the \javaclass[artisynth.core.femmodels]{FemModel3d} class
-specifies the damping coefficient associated with the model's mass.  This 
-induces a force acting against motion of FEM nodes:
+The two damping parameters are related to \emph{Rayleigh damping}, which
+is used to dissipate energy within finite element models.  There are two 
+proportional damping terms: one related to the system's mass, and one related 
+to stiffness.  The resulting damping force applied is
 \begin{align}
-\f_M & = -d_M \M\v, \label{eqn:massdamping} 
+	\f_d & = - (d_M \M + d_K\K)\v,
 \end{align}
-where $d_M$ is the value of {\tt particleDamping}, $\M$ is the FEM model's
-lumped mass matrix, and $\v$ is the vector of concatenated node velocities.
-Since $\M$ is diagonal, this expression is essentially the same as the
-``point damping'' described in Equation \eqref{eq:pointdamping}.  To complete
-Rayleigh damping, a ``stiffness damping'' term is added:
-\begin{align}
-\f_K & = -d_K\K\v, \label{eqn:stiffnessdamping}
-\end{align}
-where $d_K$ is the value of {\tt stiffnessDamping}, and $\K$ is the FEM's
-stiffness matrix.
+where $d_M$ is the value of {\tt particleDamping}, $d_K$ is the value of 
+{\tt stiffnessDamping}, $\M$ is the FEM model's lumped mass matrix, $\K$ is 
+the FEM's stiffness matrix, and $\v$ is the concatenated vector of FEM node
+velocities.  Since the lumped mass matrix is diagonal, the mass-related
+component of damping can be applied separately to each FEM node.  Thus, the
+mass component reduces to the same system as Equation \eqref{eqn:pointdamping},
+which is why it is referred to as ``particle damping''.
 
-\paragraph{Sub-components}
+\subsubsection{Component Structure}
 
-Each FEM model contains at least three lists of sub-components:
+Each \javaclass[artisynth.core.femmodels]{FemModel3d} contains three 
+lists of sub-components:
 
 \begin{description}
 \item[Nodes]\mbox{}
 
 The particle-like dynamic components of the model.  These lie at the corners
-of the elements, and carry all the mass.
+of the elements and carry all the mass (due to DLMM formulation).
 
 \item[Elements]\mbox{}
 
@@ -117,16 +128,120 @@ which the system is numerically integrated.
 
 \item[Meshes]\mbox{}
 
-The geometry in the model.  This will include the surface mesh, and any other
-embedded geometries which are used for either display purposes, or for physical
-interactions (e.g.~collision).
+The geometry in the model.  This includes the surface mesh, and any other
+embedded geometries.
 \end{description}
 
+An example showing each of these components is shown in Figure \ref{fig:fem}.
+
+
+\begin{figure}[ht]
+	\centering
+	%\subfigure[][FEM model \label{fig:fem:model}] {\includegraphics[width=0.2\textwidth]{images/fem_embedded.png}}
+	%\subfigure[][Nodes \label{fig:fem:nodes}] {\includegraphics[width=0.2\textwidth]{images/fem_embedded_nodes.png}}
+	%\subfigure[][Elements \label{fig:fem:elements}] {\includegraphics[width=0.2\textwidth]{images/fem_embedded_elements.png}}
+	%\subfigure[][Geometry \label{fig:fem:geometry}] {\includegraphics[width=0.2\textwidth]{images/fem_embedded_geometry.png}}
+	\setlengthLaTeXML{\imglength}{1.5in}{1.2in}
+	\begin{tabular}{cccc}
+	\includegraphics[width=\imglength]{images/fem_embedded.png} & 
+	\includegraphics[width=\imglength]{images/fem_embedded_nodes.png} &
+	\includegraphics[width=\imglength]{images/fem_embedded_elements.png} &
+	\includegraphics[width=\imglength]{images/fem_embedded_geometry.png}\\
+	(a) FEM model & (b) Nodes & (c) Elements & (d) Geometry
+	\end{tabular}
+	\caption{Sub-components of \javaclass[artisynth.core.femmodels]{FemModel3d}. \label{fig:fem}}
+\end{figure}
+
+\paragraph{Nodes}
+\ifLaTeXML{\newline}
+
+The finite element nodes are implemented in the class 
+\javaclass[artisynth.core.femmodels]{FemNode3d}, which is a subclass of 
+\javaclass[artisynth.core.mechmodels]{Particle} (Section 
+\ref{ParticlesAndSprings:sec}).  They are the main dynamic components of
+the finite element model.  The key properties affecting simulation dynamics
+are:
+\begin{center}
+	\begin{tabular}{|ll|}
+		\hline
+		Property & Description\\
+		\hline
+		{\tt restPosition} & The initial position of the node.\\
+		{\tt position} & The current position of the node.\\
+		{\tt velocity} & The current velocity of the node.\\
+		{\tt mass} & The mass of the node.\\
+		{\tt dynamic} & Whether the node is considered dynamic or parametric 
+		                (e.g.~boundary condition).\\
+		\hline
+	\end{tabular}
+\end{center}
+The {\tt restPosition} property defines the node's position in the FEM model's 
+``natural'' or ``undeformed'' state.  Rest positions are used to compute
+an initial configuration for the model, from which strains are determined.  A
+node's rest position can be updated in code using the method:
+\javamethod[artisynth.core.femmodels]{FemNode3d.setRestPosition(Point3d)}.
+
+\begin{sideblock}
+If any node's rest positions are changed, the current values 
+for stress and stiffness will become invalid.  They can be manually
+updated using the method \javamethod[artisynth.core.femmodels] %
+{FemModel3d.updateStressAndStiffness()} for the parent model. Otherwise,
+stress and stiffness will be automatically updated at the beginning of the 
+next time step. 
+\end{sideblock}
+
+The properties {\tt position} and {\tt velocity} give the node's current
+3D state.  These are common to all point-like particles, as is the 
+{\tt mass} property.  Here, however, {\tt mass} represents the lumped mass
+of the immediately surrounding material.  Its value is initialized by equally
+dividing mass contributions from each adjacent element, given their
+densities.  For a finer control of spatially-varying densities,
+node masses can be set manually after FEM creation.
+
+The FEM node's {\tt dynamic} property specifies whether or not the 
+node is considered when computing the dynamics of the system.  If not,
+it is treated as being parametrically controlled.  This has implications
+when setting boundary conditions (Section \ref{sec:fem:boundary}).
+
+\paragraph{Elements}
+\ifLaTeXML{\newline}
+
+Elements are classified by their shape.  ArtiSynth supports the following 
+element types:
+\begin{center}
+	\setlengthLaTeXML{\imglength}{1.5in}{1in}
+	\begin{tabular}{c@{\hspace{5ex}}c@{\hspace{5ex}}c@{\hspace{5ex}}c}
+		\includegraphics[height=\imglength]{images/fem_element_tet} &
+		\includegraphics[height=\imglength]{images/fem_element_pyramid} &
+		\includegraphics[height=\imglength]{images/fem_element_wedge} &
+		\includegraphics[height=\imglength]{images/fem_element_hex} \\
+		\javaclass[artisynth.core.femmodels]{TetElement} &
+		\javaclass[artisynth.core.femmodels]{PyramidElement} & 
+		\javaclass[artisynth.core.femmodels]{WedgeElement} &
+		\javaclass[artisynth.core.femmodels]{HexElement}
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{|ll|}
+		\hline
+		Property & Description\\
+		\hline
+		{\tt material} & An object that describes the \emph{constitutive law} 
+		                 within the element (i.e.~its stress-strain 
+		                 relationship).\\
+		\hline
+	\end{tabular}
+\end{center}
+
+\paragraph{Geometry}
+\ifLaTeXML{\newline}
 
 \subsubsection{Materials}
 \label{sec:fem:materials}
 
 \subsubsection{Boundary conditions}
+\label{sec:fem:boundary}
 
 \subsection{FEM model creation}
 

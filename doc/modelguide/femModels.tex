@@ -150,7 +150,6 @@ embedded geometries.
 
 An example showing each of these components is shown in Figure \ref{fig:fem}.
 
-
 \begin{figure}[ht]
 	\centering
 	%\subfigure[][FEM model \label{fig:fem:model}] {\includegraphics[width=0.2\textwidth]{images/fem_embedded.png}}
@@ -491,7 +490,7 @@ FemFactory.createGrid(beam, FemElementType.Hex,
 mech.addModel(beam);
 \end{lstlisting}
 
-\subsubsection{Loading external meshes}
+\subsubsection{Loading external FEM meshes}
 
 For more complex geometries, volumetric meshes can be loaded from external
 files.  A list of supported file types is provided in Table 
@@ -546,24 +545,119 @@ mech.addModel(tongue);
 \end{lstlisting}
 The method \javamethod[artisynth.core.util]{ArtisynthPath.getSrcRelativePath()}
 is used to find a path within the ArtiSynth source tree that is relative to the
-current model's source file.  Note the try-catch block.  Most of these read
-readers throw an {tt IOException} if the read fails.
+current model's source file.  Note the try-catch block.  Most of these readers 
+throw an {tt IOException} if the read fails.
+
+\subsubsection{Generating from surfaces}
+
+There are two ways a FEM model can be generated from a surface: by using a
+FEM mesh generator, and by extruding a surface along its normal direction.
+
+ArtiSynth has the ability to interface directly with the TetGen library 
+(\href{http://tetgen.org}{http://tetgen.org}) to create a tetrahedral 
+volumetric mesh given a closed and manifold surface.  The main java class for
+calling TetGen directly is \javaclass[maspack.geometry]{TetgenTesselator}.
+The tesselator has several advanced options, allowing for the computation of 
+convex hulls, and for adding points to a volumetric mesh.  For simply creating
+a FEM from a surface, there is a convenience routine within 
+\javaclass[artisynth.core.femmodels]{FemFactory} that handles both mesh 
+generation and constructing a {\tt FemModel3d}:
+\begin{lstlisting}[]
+// Create a FEM from a manifold mesh with a given quality
+FemFactory.createFromMesh( PolygonalMesh mesh, double quality );
+\end{lstlisting}
+If {\tt quality} $>0$, then points will be added in an attempt to bound the
+maximum radius-edge ratio (see the {\tt-q} switch for TetGen).  According
+to the TetGen documentation, the algorithm \emph{usually} succeeds for a 
+quality ratio of 1.2.
+
+It's also possible to create thin layer of elements by extruding a surface
+along its normal direction. 
+\begin{lstlisting}[]
+// Create a FEM by extruding a surface
+FemFactory.createExtrusion(
+      FemModel3d model, int nLayers, double layerThickness, double zOffset, 
+      PolygonalMesh surface);
+\end{lstlisting}
+For example, to create a two-layer slice of elements centered about a 
+surface of a tendon mesh, one might use
+\begin{lstlisting}[]
+// Load the tendon surface mesh
+PolygonalMesh tendonSurface = new PolygonalMesh("tendon.obj");
+
+// Create the tendon
+FemModel3d tendon = new FemModel3d("tendon");
+int layers = 2;             // 2 layers
+double thickness = 0.0005;  // 0.5 mm layer thickness
+double offset = thickness;  // center the layers about the surface
+
+// Create the extrusion
+FemFactory.createExtrusion( tendon, layers, thickness, offset, tendonSurface );
+\end{lstlisting} 
+For this type of extrusion, triangular faces become wedge elements, and 
+quadrilateral faces become hexahedral elements.  
+
+\begin{sideblock}
+Note: for extrusions, no care is taken to ensure element quality; if the 
+surface has a high curvature relative to the total extrusion thickness, 
+then some elements will be inverted.
+\end{sideblock}
 
 \subsubsection{Building elements in code}
 
-\subsubsection{A simple beam model}
+A finite element model's structure can also be manually constructed in code.  
+\javaclass[artisynth.core.femmodels]{FemModel3d} has the methods:
+\begin{lstlisting}[]
+addNode ( FemNode3d );       // add a node to the model
+addElement ( FemElement3d )  // add an element to the model
+\end{lstlisting}
+For an element to successfully be added, all its nodes must already have
+been added to the model.  Nodes can be constructed from a 3D location, and
+elements from an array of nodes.  A convenience routine is available in
+\javaclass[artisynth.core.femmodels]{FemElement3d} that automatically creates
+the appropriate element type given the number of nodes (Table 
+\ref{tbl:fem:elements}):
+\begin{lstlisting}[]
+// Creates an element using the supplied nodes
+FemElement3d FemElement3d.createElement( FemNode3d[] nodes );
+\end{lstlisting}
+Be aware of node orderings when supplying nodes.  For linear elements, 
+ArtiSynth uses a clockwise convention with respect to the outward
+normal for the first face, followed by the opposite node(s).  To determine the
+correct ordering for a particular element, check the coordinates returned by 
+the function 
+\javamethod*[artisynth.core.femmodels]{FemElement3d.getNodeCoords()}.
+This returns the concatenated coordinate list for an ``ideal'' element of
+the given type.
+
+\subsubsection{Example: a simple beam model}
 
 \begin{figure}[ht]
-\begin{center}
-\iflatexml
- \includegraphics[]{images/FemBeam}
-\else
- \includegraphics[width=3.75in]{images/FemBeam}
-\fi
-\end{center}
-\caption{FemBeam model loaded into ArtiSynth.}
-\label{FemBeam:fig}
+	\centering
+	\setlengthLaTeXML{\imglength}{0.8\textwidth}{0.6\textwidth}
+	\includegraphics[width=\imglength]{images/FemBeam}
+	\caption{FemBeam model loaded into ArtiSynth.}
+	\label{fig:fem:beam}
 \end{figure}
+
+A complete application model that implements a simple FEM beam is given below.
+\lstset{numbers=left}
+\lstinputlisting{../../src/artisynth/demos/tutorial/FemBeam.java}
+\lstset{numbers=none}
+This example can be found in {\tt artisynth.demos.tutorial.FemBeam}.  The 
+{\tt build()} method first creates a {\tt MechModel} and {\tt FemModel3d}.
+A FEM beam is created using a factory method on Line 36.  This beam is
+centered at the origin, so its length extends from {\tt-length/2} to 
+{\tt length/2}.  The density, damping and material properties are then 
+assigned.  
+
+On Lines 45--49, a fixed boundary condition is set to the left-hand side 
+of the beam by setting the corresponding nodes to be non-dynamic.  Due to 
+numerical precision, a small {\tt EPSILON} buffer is required to ensure 
+all left-hand boundary nodes are identified (Line 46).
+
+Rendering properties are then assigned to the FEM model on Line 52.  These 
+will be discussed further in Section \ref{sec:fem:rendering}.
 
 \subsection{FEM Geometry}
 \label{sec:fem:geometry}
@@ -686,6 +780,7 @@ same attachment mechanism as that described in Section \ref{Attachments:sec}.
 \end{figure}
 
 \subsection{Visualization}
+\label{sec:fem:rendering}
 
 stuff stuff stuff
 

@@ -1,3 +1,5 @@
+%!TEX root = modelguide.tex
+
 % Scale latexml image sizes 2x
 \newlength{\imglength}
 \newcommand{\setlengthLaTeXML}[3]{ %
@@ -80,6 +82,20 @@ simulation dynamics are:
 		\hline
 	\end{tabular}
 \end{center}
+These properties can be set and retrieved using the methods
+\begin{lstlisting}[]
+	setDensity ( double density );    // sets the density
+	double getDensity ();             // gets the density
+
+	setMaterial ( FemMaterial mat );  // sets the FEM's material
+	FemMaterial getMaterial ();       // gets the FEM's material
+
+	setParticleDamping ( double d );  // sets the particle (mass) damping coefficient
+	double getParticleDamping ();     // gets the particle (mass) damping coefficient
+
+	setStiffnessDamping ( double d ); // sets the stiffness damping coefficient
+	double getStiffnessDamping ( );   // gets the stiffness damping coefficient
+\end{lstlisting}
 Keep in mind that ArtiSynth is essentially ``unitless'' (Section 
 \ref{sec:mechii:units}), so it is the responsibility of the developer to
 ensure that all properties are specified in a compatible way.  
@@ -155,7 +171,7 @@ An example showing each of these components is shown in Figure \ref{fig:fem}.
 \paragraph{Nodes}
 \ifLaTeXML{\newline}
 
-The finite element nodes are implemented in the class 
+Finite element nodes are implemented in the class 
 \javaclass[artisynth.core.femmodels]{FemNode3d}, which is a subclass of 
 \javaclass[artisynth.core.mechmodels]{Particle} (Section 
 \ref{ParticlesAndSprings:sec}).  They are the main dynamic components of
@@ -175,6 +191,9 @@ are:
 		\hline
 	\end{tabular}
 \end{center}
+Each of these properties has corresponding {\tt getXxx()} and 
+{\tt setXxx(...)} functions to access and modify them.
+
 The {\tt restPosition} property defines the node's position in the FEM model's 
 ``natural'' or ``undeformed'' state.  Rest positions are used to compute
 an initial configuration for the model, from which strains are determined.  A
@@ -206,8 +225,16 @@ when setting boundary conditions (Section \ref{sec:fem:boundary}).
 \paragraph{Elements}
 \ifLaTeXML{\newline}
 
-Elements are classified by their shape.  ArtiSynth supports the following 
-element types:
+Elements are the spatial building blocks of the domain.  Within each element,
+the displacement (or strain) field is interpolated from displacements at nodes:
+\begin{align}
+	\u(\x) & = \sum_{i=1}^N \phi_i(\x)\u_i, \label{eqn:fem:interp}
+\end{align}
+where $\u_i$ is the displacement of the $i$th node that is adjacent to the 
+element, and $\phi_i(\cdot)$ is referred to as the \emph{shape function} (or 
+\emph{basis function}) associated with that node.  Elements are classified by 
+their shape, number of nodes, and shape function order (Table 
+\ref{tbl:fem:elements}).  ArtiSynth supports the following element types:
 \begin{center}
 	\setlengthLaTeXML{\imglength}{1.5in}{1in}
 	\begin{tabular}{c@{\hspace{5ex}}c@{\hspace{5ex}}c@{\hspace{5ex}}c}
@@ -215,18 +242,49 @@ element types:
 		\includegraphics[height=\imglength]{images/fem_element_pyramid} &
 		\includegraphics[height=\imglength]{images/fem_element_wedge} &
 		\includegraphics[height=\imglength]{images/fem_element_hex} \\
-		\javaclass[artisynth.core.femmodels]{TetElement} &
-		\javaclass[artisynth.core.femmodels]{PyramidElement} & 
-		\javaclass[artisynth.core.femmodels]{WedgeElement} &
-		\javaclass[artisynth.core.femmodels]{HexElement}
+		\javaclass[artisynth.core.femmodels]{TetElement}, &
+		\javaclass[artisynth.core.femmodels]{PyramidElement}, & 
+		\javaclass[artisynth.core.femmodels]{WedgeElement}, &
+		\javaclass[artisynth.core.femmodels]{HexElement},\\
+		\javaclass[artisynth.core.femmodels]{QuadtetElement} &
+		\javaclass[artisynth.core.femmodels]{QuadpyramidElement} & 
+		\javaclass[artisynth.core.femmodels]{QuadwedgeElement} &
+		\javaclass[artisynth.core.femmodels]{QuadhexElement}
 	\end{tabular}
 \end{center}
+The base class for all of these is \javaclass[artisynth.core.femmodels]%
+{FemElement3d}.  A numerical integration is performed within each element
+to create the (tangent) stiffness matrix.  This integration is performed
+by evaluating the stress and stiffness at a set of \emph{integration points}
+within each element, and applying numerical quadrature.
 
+\begin{table}[ht]
+\centering
+\caption{Supported element types \label{tbl:fem:elements}}
+\begin{tabular}{lccc}
+	\hline\hline
+	Element Type & \# Nodes & Order &  \# Integration Points \\
+	\hline
+	\javaclass[artisynth.core.femmodels]{TetElement} & 4 & linear & 1\\
+	\javaclass[artisynth.core.femmodels]{PyramidElement} & 5 & linear & 5\\
+	\javaclass[artisynth.core.femmodels]{WedgeElement} & 6 & linear & 6\\
+	\javaclass[artisynth.core.femmodels]{HexElement} & 8 & linear & 8\\
+	\javaclass[artisynth.core.femmodels]{QuadtetElement} & 10 & quadratic & 4\\
+	\javaclass[artisynth.core.femmodels]{QuadpyramidElement} & 13 & quadratic & 5\\
+	\javaclass[artisynth.core.femmodels]{QuadwedgeElement} & 15 & quadratic & 9\\
+	\javaclass[artisynth.core.femmodels]{QuadhexElement} & 20 & quadratic & 14\\
+	\hline
+\end{tabular}
+\end{table}
+
+All objects of type \javaclass[artisynth.core.femmodels]{FemModel3d} have the 
+following properties:
 \begin{center}
 	\begin{tabular}{|ll|}
 		\hline
 		Property & Description\\
 		\hline
+		{\tt density} & Density of the element\\
 		{\tt material} & An object that describes the \emph{constitutive law} 
 		                 within the element (i.e.~its stress-strain 
 		                 relationship).\\
@@ -234,22 +292,264 @@ element types:
 	\end{tabular}
 \end{center}
 
-\paragraph{Geometry}
+If left unspecified, the element's {\tt density} is inherited from the 
+containing {\tt FemModel3d} object.  When set, the mass of the element is
+computed and divided amongst all its nodes, updating the lumped mass
+matrix.
+
+Each element's' {\tt material} property is also inherited by default from the 
+containing {\tt FemModel3d}. Specifying a material here allows for spatially-
+varying material properties across the model.  Materials will be discussed
+further in Section \ref{sec:fem:materials}.
+
+\paragraph{Meshes}
 \ifLaTeXML{\newline}
+
+A geometry inside a finite element model is a mesh that moves along with the
+model.  These geometries can be used for visualizations, or for physical 
+interactions like collisions.  However, they have no physical properties 
+themselves. All FEM geometries are of type
+\javaclass[artisynth.core.femmodels]{FemMesh}, which stores a reference to
+a mesh object (Section \ref{Meshes:sec}), and attachment information that
+links vertices of the mesh to either FEM nodes or to specific locations inside
+containing elements. Creating geometries will be discussed in Section 
+\ref{sec:fem:geometry}.
 
 \subsubsection{Materials}
 \label{sec:fem:materials}
 
+The stress-strain relationship within each element is defined by a ``material''
+delegate object, implemented by a subclass of 
+\javaclass[artisynth.core.materials]{FemMaterial}.  This material object is 
+responsible for implementing the functions:
+%
+\begin{lstlisting}[]
+   public void computeStress (...)  // computes the symmetric stress tensor
+   public void computeTangent (...) // computes the local tangent stiffness matrix
+\end{lstlisting}
+%
+Inputs include a deformation gradient, pressure, and a coordinate frame that
+specifies any directions of anisotropy. The default material type is 
+\javaclass[artisynth.core.materials]{LinearMaterial}, where stress is related 
+to strain through:
+\begin{gather}
+  \sigma(\x) = D\,\epsilon(\x), \label{eqn:fem:mat:linear}\\
+  \text{where }\quad D = \begin{bmatrix}
+	  \lambda +2\mu & \lambda & \lambda  & 0 & 0 & 0\\
+	  \lambda &  \lambda +2\mu & \lambda & 0 & 0 & 0\\
+	  \lambda & \lambda & \lambda +2\mu & 0 & 0 & 0\\
+	  0 & 0 & 0 & \mu & 0 & 0\\
+	  0 & 0 & 0 & 0 & \mu & 0\\
+	  0 & 0 & 0 & 0 & 0 & \mu
+        \end{bmatrix}, \quad \lambda = \dfrac{E\nu}{(1+\nu)(1-2\nu)},  \quad
+      \mu = \dfrac{E}{2(1+\nu)},\notag
+\end{gather}
+$\sigma$ is the standard $6\times 1$ stress vector, $\epsilon$ is the 
+strain vector, $E$ is the Young's Modulus, and $\nu$ is Poisson's ratio. This
+linear material uses a corotational formulation, so rotations are removed
+per element before computing the strain \cite{ngan:fem:2008}.  To enable or
+disable this corotational formaulation, use 
+\javamethod[artisynth.core.materials]{LinearMaterial.setCorotated(boolean)}.
+
+Other, non-linear, models are available in the package  
+{\tt artisynth.core.materials}.  A list of common materials is provided in 
+Table \ref{tbl:fem:materials}.  Those that are subclasses of 
+\javaclass[artisynth.core.materials]{IncompressibleMaterial} allow for 
+incompressibility.
+
+\begin{table}[ht]
+	\centering
+ 	\caption{Commonly used FEM materials \label{tbl:fem:materials}}
+ 	\begin{tabular}{|lll|}
+ 		\hline
+ 		\hline
+ 		Material & Parameters & \\
+ 		\hline
+ 		\javaclass[artisynth.core.materials]{LinearMaterial} & $E$ & Young's modulus \\
+ 		& $\nu$ & Poisson's ratio\\
+ 		& corotated & corotational formulation\\
+ 		\hline
+ 		\javaclass[artisynth.core.materials]{StVenantKirchoffMaterial} & $E$ & Young's modulus\\
+ 		& $\nu$ & Poisson's ratio\\
+ 		\hline
+ 		\javaclass[artisynth.core.materials]{NeoHookeanMaterial} & $E$ & Young's modulus\\
+ 		& $\nu$ & Poisson's ratio\\
+ 		\hline
+ 		\javaclass[artisynth.core.materials]{IncompressibleNeoHookeanMaterial} & $G$ & shear modulus\\
+ 		& $\kappa$ & bulk modulus\\
+ 		\hline
+ 		\javaclass[artisynth.core.materials]{MooneyRivlinMaterial} & $C_{10},C_{01},C_{20},C_{02}$ & distortional parameters\\
+ 		& $\kappa$ & bulk modulus\\
+ 		\hline
+ 		\javaclass[artisynth.core.materials]{OgdenMaterial} & $\mu_1,\ldots,\mu_6$ & material parameters\\
+ 		& $\alpha_1,\ldots,\alpha_6$ &\\
+ 		& $\kappa$ & bulk modulus\\
+		\hline
+	\end{tabular}
+\end{table}
+
+
 \subsubsection{Boundary conditions}
 \label{sec:fem:boundary}
 
+Boundary conditions can be implemented in one of several ways:
+\begin{enumerate}
+	\item Explicitly setting FEM node positions/velocities
+	\item Attaching FEM nodes to other dynamic components
+	\item Enabling collisions
+\end{enumerate}
+To enforce an explicit (Dirichlet) boundary condition for a set of  
+nodes, their {\tt dynamic} property must be set to {\tt false}.  This notifies
+ArtiSynth that the state of these nodes (both position and velocity) will 
+be controlled parametrically.  By disabling dynamics, a fixed 
+boundary condition is applied.  For a moving boundary, positions and velocities 
+of the boundary nodes need to be explicitly set every timestep.  This can be 
+accomplished with either a \javaclass[artisynth.core.modelbase]{Controller} 
+(Section \ref{ControllersAndMonitors:sec}) or an 
+\javaclass[artisynth.core.probes]{InputProbe} (Section \ref{Probes:sec}).
+Note that both the position \emph{and} velocity of the nodes should be
+explicitly set for consistency.
+
+Another type of supported boundary condition is to attach FEM nodes to other
+components, including particles, springs, rigid bodies, and locations within
+other FEM elements.  Here, the node is still considered dynamic, but its
+motion is coupled to that of the attached component through a constraint
+mechanism. Attachments will be discussed further in Section 
+\ref{sec:fem:nodeattachments}.
+
+Finally, the boundary of a FEM can be constrained by enabling collisions
+with other components.  This will be covered in Section
+\ref{sec:fem:collision}.
+
+
 \subsection{FEM model creation}
 
-\subsubsection{Using factory methods}
+Creating a finite element model in ArtiSynth typically follows the pattern:
+\begin{lstlisting}[]
+   // Create and add main MechModel
+   MechModel mech = new MechModel("mech");
+   addModel(mech);
+      
+   // Create FEM
+   FemModel3d fem = new FemModel3d("fem");
+   
+   /* ... Setup FEM structure and properties ... */
+   
+   // Add FEM to model
+   mech.addModel(fem); 
+\end{lstlisting}
+The main code block for the FEM setup should do the following:
+\begin{itemize}
+	\setlength{\itemsep}{-0.3em}
+	\item Build the node/element structure
+	\item Set physical properties%
+	\ifLaTeXMLelse{}{\vspace{-0.5em}}
+	\begin{itemize}
+		\setlength{\itemsep}{-0.3em}
+		\item density
+		\item damping
+		\item material
+	\end{itemize} 
+	\item Set boundary conditions
+	\item Set render properties
+\end{itemize}
+Building the FEM structure can be done with the use of factory
+methods for simple shapes, by loading external files, or by writing code
+to manually assemble the nodes and elements.
 
-\subsubsection{Using external meshes}
+\subsubsection{Factory methods}
 
-\subsubsection{Using direct code}
+For simple shapes such as beams and ellipsoids, there are factory methods to 
+automatically build the node and element structure.  These methods are found
+in the \javaclass[artisynth.core.femmodels]{FemFactory} class.  Some common
+methods are
+\begin{lstlisting}[]
+FemFactory.createGrid(...)          // basic beam
+FemFactory.createCylinder(...)      // cylinder
+FemFactory.createTube(...)          // hollowed cylinder
+FemFactory.createEllipsoid(...)     // ellipsoid
+FemFactory.createTorus(...)         // torus
+\end{lstlisting}
+The inputs specify the dimensions, resolution, and potentially the type
+of element to use.  The following code creates a basic beam made up of
+hexahedral elements:
+\begin{lstlisting}[]
+// Create FEM
+FemModel3d beam = new FemModel3d("beam");
+      
+// Build FEM structure
+double[] size = {1.0, 0.25, 0.25};  // widths
+int[] res = {8, 2, 2};              // resolution (# elements)
+      
+FemFactory.createGrid(beam, FemElementType.Hex,
+	size[0], size[1], size[2], 
+	res[0], res[1], res[2]);
+
+/* ... Set FEM properties ... */
+
+// Add FEM to model
+mech.addModel(beam);
+\end{lstlisting}
+
+\subsubsection{Loading external meshes}
+
+For more complex geometries, volumetric meshes can be loaded from external
+files.  A list of supported file types is provided in Table 
+\ref{tbl:fem:fileformats}. To load a geometry, an appropriate file reader
+must be created.  Readers capable of reading FEM models implement the 
+interface \javaclass[artisynth.core.femmodels]{FemReader}, which has the
+method
+\begin{lstlisting}[]
+readFem( FemModel3d fem )   // populates the FEM based on file contents
+\end{lstlisting}
+Additionally, many {\tt FemReader} classes have static methods to handle
+the loading of files for convenience.
+
+\begin{table}[ht]
+	\centering
+	\caption{Supported FEM geometry files \label{tbl:fem:fileformats}}
+	\begin{tabular}{llll}
+		\hline\hline
+		Format & File extensions & Reader & Writer\\
+		\hline
+		ANSYS & .node, .elem & \javaclass[artisynth.core.femmodels]{AnsysReader} & \javaclass[artisynth.core.femmodels]{AnsysWriter}\\
+		TetGen & .node, .ele & \javaclass[artisynth.core.femmodels]{TetGenReader} & \javaclass[artisynth.core.femmodels]{TetGenWriter}\\
+		Abaqus & .inp & \javaclass[artisynth.core.femmodels]{AbaqusReader} & \javaclass[artisynth.core.femmodels]{AbaqusWriter}\\
+		VTK (ASCII) & .vtk & \javaclass[artisynth.core.femmodels]{VtkAsciiReader} & \multicolumn{1}{c}{--}\\
+		\hline
+	\end{tabular}
+\end{table}
+
+The following code snippet demonstrates how to load a model using the
+\javaclass[artisynth.core.femmodels]{AnsysReader}.
+\begin{lstlisting}[]
+// Create FEM
+FemModel3d tongue = new FemModel3d("tongue");
+      
+// Read FEM from file
+try {
+   // Get files relative to THIS class
+   String nodeFileName = ArtisynthPath.getSrcRelativePath(this, 
+                            "data/tongue.node");
+   String elemFileName = ArtisynthPath.getSrcRelativePath(this, 
+                            "data/tongue.elem");
+
+   AnsysReader.read(tongue, nodeFileName, elemFileName);
+
+} catch (IOException ioe) {         
+   // Wrap error, fail to create model
+   throw new RuntimeException("Failed to read model", ioe);
+}
+      
+// Add to model
+mech.addModel(tongue);
+\end{lstlisting}
+The method \javamethod[artisynth.core.util]{ArtisynthPath.getSrcRelativePath()}
+is used to find a path within the ArtiSynth source tree that is relative to the
+current model's source file.  Note the try-catch block.  Most of these read
+readers throw an {tt IOException} if the read fails.
+
+\subsubsection{Building elements in code}
 
 \subsubsection{A simple beam model}
 
@@ -266,6 +566,7 @@ element types:
 \end{figure}
 
 \subsection{FEM Geometry}
+\label{sec:fem:geometry}
 
 \subsubsection{Surface meshes}
 
@@ -276,9 +577,13 @@ element types:
 % EmbeddedFemSphere
 
 \subsection{Node attachments}
-\label{NodeAttachments:sec}
+\label{sec:fem:nodeattachments}
 
 \subsubsection{General principles}
+
+Since \javaclass[artisynth.core.femmodels]{FemNode3d} 
+is a subclass of \javaclass[artisynth.core.femmodels]{Particle}, it uses the 
+same attachment mechanism as that described in Section \ref{Attachments:sec}.
 
 \subsubsection{Connecting a beam to a block}
 
@@ -346,6 +651,7 @@ element types:
 % FemMuscleBeams
 
 \subsection{Collisions}
+\label{sec:fem:collision}
 
 \subsubsection{Colliding with FEM geometry}
 

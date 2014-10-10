@@ -446,6 +446,14 @@ li.ltx_item {
 }
 
 /**
+* Empty listings lines have height
+*/
+span.ltx_lst_line {
+    display: block;
+    min-height: 1em;
+}
+
+/**
 * Description items, navy and with newline
 * before content
 */

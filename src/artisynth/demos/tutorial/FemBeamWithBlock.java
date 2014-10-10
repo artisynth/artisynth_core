@@ -1,20 +1,17 @@
 package artisynth.demos.tutorial;
 
-import java.awt.Color;
 import java.io.IOException;
 
-import maspack.render.*;
-import maspack.matrix.*;
-
-import artisynth.core.mechmodels.*;
-import artisynth.core.femmodels.*;
-import artisynth.core.materials.*;
-import artisynth.core.workspace.RootModel;
+import maspack.matrix.RigidTransform3d;
+import artisynth.core.femmodels.FemNode3d;
+import artisynth.core.mechmodels.PointFrameAttachment;
+import artisynth.core.mechmodels.RigidBody;
 
 public class FemBeamWithBlock extends FemBeam {
 
    public void build (String[] args) throws IOException {
 
+      // Build simple FemBeam
       super.build (args);
 
       // Create a rigid block and move to the side of FEM

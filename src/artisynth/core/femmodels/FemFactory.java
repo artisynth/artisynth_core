@@ -1817,6 +1817,74 @@ public class FemFactory {
       return types;
    }
 
+   /**
+    * Extrudes each face along the normal direction
+    * @param model
+    * @param n number of points
+    * @param d thickness
+    * @param zOffset offset along normal to begin
+    * @param surface PolygonalMesh surface to extrude
+    * @return the FEM model
+    */
+   public static FemModel3d createExtrusion(
+      FemModel3d model, int n, double d, double zOffset, 
+      PolygonalMesh surface) {
+      
+      // create model
+      if (model == null) {
+         model = new FemModel3d();
+      } else {
+         model.clear();
+      }
+
+      // compute normals
+      Vector3d[] normals = new Vector3d[surface.getNumVertices()];
+      for (int i=0; i<surface.getNumVertices(); i++) {
+         normals[i] = new Vector3d();
+         Vertex3d vtx = surface.getVertex(i);
+         vtx.computeNormal(normals[i]);
+      }
+      
+      // add vertices as nodes
+      Point3d newpnt = new Point3d();
+      for (int i=0; i<surface.getNumVertices(); i++) {
+         Vertex3d v = surface.getVertex(i);
+         newpnt.scaledAdd(d, normals[i], v.pnt);
+         model.addNode(new FemNode3d(newpnt));
+      }
+
+      
+      for (int i = 0; i < n; i++) {
+         for (int j=0; j < surface.getNumVertices(); j++) {
+            Vertex3d v = surface.getVertex(j);
+            newpnt.scaledAdd((i + 1) * d + zOffset, normals[j], v.pnt);
+            model.addNode(new FemNode3d(newpnt));
+         }
+
+         for (Face f : surface.getFaces()) {
+            FemNode3d[] nodes = new FemNode3d[2 * f.numVertices()];
+            int cnt = 0;
+
+            for (Integer idx : f.getVertexIndices()) {
+               nodes[cnt++] =
+                  model.getNode(idx + (i + 1) * surface.getNumVertices());
+            }
+            for (Integer idx : f.getVertexIndices()) {
+               nodes[cnt++] = model.getNode(idx + i * surface.getNumVertices());
+            }
+
+            FemElement3d e = FemElement3d.createElement(nodes);
+            model.addElement(e);
+
+            System.out.println("node idxs");
+            for (int c = 0; c < e.getNodes().length; c++)
+               System.out.print(e.getNodes()[c].getNumber() + ", ");
+            System.out.println("");
+         }
+      }
+      return model;
+   }
+   
    /*
     * creates a tetrahedral fem model that is the extrusion of input quad
     * surface mesh.

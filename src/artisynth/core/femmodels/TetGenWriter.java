@@ -14,7 +14,7 @@ import java.io.PrintWriter;
 import maspack.util.NumberFormat;
 import artisynth.core.modelbase.ComponentList;
 
-public class TetGenWriter {
+public class TetGenWriter implements FemWriter {
    public static void writeNodeFile (FemModel3d fem, String fileName) {
       try {
          PrintWriter pw = new PrintWriter (new File (fileName));
@@ -74,6 +74,25 @@ public class TetGenWriter {
       catch (FileNotFoundException e) {
          e.printStackTrace();
       }
+   }
+   
+   private File myElemFile;
+   private File myNodeFile;
+   
+   public TetGenWriter(File nodeFile, File elemFile) {
+      myElemFile = elemFile;
+      myNodeFile = nodeFile;
+   }
+   
+   public TetGenWriter(String nodeFile, String elemFile) {
+      myNodeFile = new File(nodeFile);
+      myElemFile = new File(elemFile);
+   }
+   
+   @Override
+   public void writeFem(FemModel3d fem) throws IOException {
+      writeNodeFile(fem, myNodeFile.getAbsolutePath());
+      writeElemFile(fem, myElemFile.getAbsolutePath());
    }
 }
       

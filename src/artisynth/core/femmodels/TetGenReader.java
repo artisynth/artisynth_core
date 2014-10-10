@@ -16,7 +16,8 @@ import maspack.matrix.Vector3d;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.util.ArtisynthPath;
 
-public class TetGenReader {
+public class TetGenReader implements FemReader {
+   
    public static String rbPath1 =
       ArtisynthPath.getHomeRelativePath (
          "src/maspack/geometry/sampleData/", ".");
@@ -33,6 +34,25 @@ public class TetGenReader {
       ArtisynthPath.getHomeRelativePath (
          "src/maspack/geometry/tetgen/lib/", ".");
 
+   File myNodeFile;
+   File myElemFile;
+   
+   public TetGenReader(File nodes, File elems) {
+      myNodeFile = nodes;
+      myElemFile = elems;
+   }
+   
+   public TetGenReader(String nodeFile, String elemFile) {
+      myNodeFile = new File(nodeFile);
+      myElemFile = new File(elemFile);
+   }
+   
+   @Override
+   public FemModel3d readFem(FemModel3d fem) throws IOException {
+      return read(fem, myNodeFile.getAbsolutePath(), 
+         myElemFile.getAbsolutePath());
+   }
+   
    /*
     * To refine an existing surface mesh with Tetgen: - create a poly file from
     * the obj file containing the surface mesh. - run Tetgen to refine as

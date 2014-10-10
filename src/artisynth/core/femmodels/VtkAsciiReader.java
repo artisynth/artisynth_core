@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.ArrayList;
 
+import maspack.geometry.io.MeshWriter;
 import maspack.matrix.Point3d;
 import maspack.util.ReaderTokenizer;
 
@@ -18,21 +19,21 @@ import maspack.util.ReaderTokenizer;
  * @author Antonio
  *
  */
-public class VtkAsciiFemReader {
+public class VtkAsciiReader implements FemReader {
 
    protected InputStream myIstream;
    protected File myFile;
 
-   public VtkAsciiFemReader (InputStream is) throws IOException {
+   public VtkAsciiReader (InputStream is) throws IOException {
       myIstream = is;
    }
 
-   public VtkAsciiFemReader (File file) throws IOException {
+   public VtkAsciiReader (File file) throws IOException {
       this(new FileInputStream(file));
       myFile = file;
    }
 
-   public VtkAsciiFemReader (String fileName) throws IOException {
+   public VtkAsciiReader (String fileName) throws IOException {
       this (new File(fileName));
    }
    
@@ -177,6 +178,7 @@ public class VtkAsciiFemReader {
       }
    }
 
+   @Override
    public FemModel3d readFem (FemModel3d mesh) throws IOException {
       BufferedReader iread = 
          new BufferedReader (new InputStreamReader(myIstream));
@@ -184,7 +186,7 @@ public class VtkAsciiFemReader {
    }
 
    public static FemModel3d read (File file) throws IOException {
-      VtkAsciiFemReader reader = new VtkAsciiFemReader (file);
+      VtkAsciiReader reader = new VtkAsciiReader (file);
       return (FemModel3d)reader.readFem (new FemModel3d());
    }
 

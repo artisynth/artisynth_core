@@ -23,7 +23,22 @@ import maspack.util.ReaderTokenizer;
  * @author Antonio
  * 
  */
-public class AbaqusReader {
+public class AbaqusReader implements FemReader {
+
+   File myFile = null;
+   
+   public AbaqusReader(File file) {
+      myFile = file;
+   }
+   
+   public AbaqusReader(String filename) {
+      myFile = new File(filename);
+   }
+   
+   @Override
+   public FemModel3d readFem(FemModel3d fem) throws IOException {
+      return read(fem, myFile.getAbsolutePath());
+   }
 
    private enum FileSection {
       NODE, ELEM, OTHER

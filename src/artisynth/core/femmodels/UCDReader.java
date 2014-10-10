@@ -7,6 +7,7 @@
 package artisynth.core.femmodels;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
@@ -20,8 +21,19 @@ import maspack.util.ReaderTokenizer;
  * uniform density. The UCD data format is described in Appendix E
  * of the AVS Developer's Guide.
  */
-public class UCDReader {
+public class UCDReader implements FemReader {
 
+   private File myFile;
+   
+   public UCDReader(String filename) {
+      myFile = new File(filename);
+   }
+   
+   @Override
+   public FemModel3d readFem(FemModel3d fem) throws IOException {
+      return read(fem, myFile.getAbsolutePath(), -1);
+   }
+   
    /** 
     * Creates an FemModel with uniform density based on UCD data
     * contained in a specified file.
@@ -31,11 +43,11 @@ public class UCDReader {
     * @param density density of the model
     * @throws IOException if this is a problem reading the file
     */
-   public static void read (
+   public static FemModel3d read (
       FemModel3d model, String fileName, double density)
       throws IOException {
       
-      read (model, fileName, density, null);
+      return read (model, fileName, density, null);
    }
 
    /** 
@@ -49,11 +61,11 @@ public class UCDReader {
     * @param scale factor by which node coordinate data should be scaled
     * @throws IOException if this is a problem reading the file
     */
-   public static void read (
+   public static FemModel3d read (
       FemModel3d model, String fileName, double density, double scale)
       throws IOException {
       
-      read (model, fileName, density,
+      return read (model, fileName, density,
                    new Vector3d (scale, scale, scale));
    }
 
@@ -70,13 +82,14 @@ public class UCDReader {
     * @param scale if non-null, gives scaling about the x, y, and z axes
     * @throws IOException if this is a problem reading the file
     */
-   public static void read (
+   public static FemModel3d read (
       FemModel3d model, String fileName, double density, Vector3d scale)
       throws IOException {
 
       Reader reader = new FileReader (fileName);
-      read (model, reader, density, scale);
+      model = read (model, reader, density, scale);
       reader.close();
+      return model;
    }
 
    /** 
@@ -90,12 +103,20 @@ public class UCDReader {
     * @param scale if non-null, gives scaling about the x, y, and z axes
     * @throws IOException if this is a problem reading the file
     */
-   public static void read (
+   public static FemModel3d read (
       FemModel3d model, Reader reader, double density, Vector3d scale)
       throws IOException {
 
-      model.clear ();
-      model.setDensity (density);
+      if (model == null) {
+         model = new FemModel3d();
+      } else {
+         model.clear ();
+      }
+      if (density >= 0) {
+         model.setDensity (density);
+      } else {
+         model.setDensity(1);
+      }
       ReaderTokenizer rtok = new ReaderTokenizer (new BufferedReader (reader));
 
       int numNodes = rtok.scanInteger();
@@ -164,6 +185,8 @@ public class UCDReader {
                "Element type '"+cellType+"' is not supported");
          }
       }
+      
+      return model;
    }
 
    private static int[] scanNodeIndices (

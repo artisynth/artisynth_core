@@ -7,10 +7,14 @@
 package artisynth.core.femmodels;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
 
 import maspack.matrix.Point3d;
 import artisynth.core.modelbase.ModelComponentBase;
@@ -21,8 +25,10 @@ import artisynth.core.modelbase.ModelComponentBase;
  * @author Antonio
  * 
  */
-public class AbaqusWriter {
+public class AbaqusWriter extends FemWriterBase {
 
+   //XXX TODO: use number format
+   
    // Supported element types:
    // C3D4 - 4 node tet
    // C3D6 - 6 node wedge
@@ -326,7 +332,24 @@ public class AbaqusWriter {
          "**=========================================================================\n";
       writer.print(footer);
    }
+
+   protected AbaqusWriter (OutputStream os) {
+      myOstream = os;
+   }
+
+   protected AbaqusWriter (File file) throws IOException {
+      this (new FileOutputStream (file));
+      myFile = file;
+   }
+
+   protected AbaqusWriter (String fileName) throws IOException {
+      this (new File(fileName));
+   }
    
-   
+   @Override
+   public void writeFem(FemModel3d fem) throws IOException {
+      write(fem, new PrintWriter(myOstream));
+      
+   }
    
 }

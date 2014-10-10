@@ -7,6 +7,7 @@
 package artisynth.core.femmodels;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
@@ -21,7 +22,7 @@ import maspack.util.ReaderTokenizer;
 /**
  * A class to read an FEM described in the ANSYS file format.
  */
-public class AnsysReader {
+public class AnsysReader implements FemReader {
 
    /** 
     * Tells the reader to subdivide each hexahedral element into five
@@ -41,6 +42,24 @@ public class AnsysReader {
    static boolean cwTetWarningGiven; 
    static boolean nodeIdWarningGiven;
 
+   private File myNodeFile;
+   private File myElemFile;
+   
+   public AnsysReader(File nodes, File elems) {
+      myNodeFile = nodes;
+      myElemFile = elems;
+   }
+   
+   public AnsysReader(String nodeFile, String elemFile) {
+      myNodeFile = new File(nodeFile);
+      myElemFile = new File(elemFile);
+   }
+   
+   @Override
+   public FemModel3d readFem(FemModel3d fem) throws IOException {
+      return read(fem, myNodeFile.getAbsolutePath(), myElemFile.getAbsolutePath());
+   }
+   
    /**
     * Creates an FemModel with uniform density based on ANSYS data contained in
     * a specified file. The node coordinate data can be scaled non-uniformly
@@ -56,11 +75,11 @@ public class AnsysReader {
     * @throws IOException
     * if this is a problem reading the file
     */
-   public static void read (
+   public static FemModel3d read (
       FemModel3d model, String nodeFileName, String elemFileName)
       throws IOException {
 
-      read(model, nodeFileName, elemFileName, 1, null, 0);
+      return read(model, nodeFileName, elemFileName, -1, null, 0);
    }
    
    /**
@@ -85,7 +104,7 @@ public class AnsysReader {
     * @throws IOException
     * if this is a problem reading the file
     */
-   public static void read (
+   public static FemModel3d read (
       FemModel3d model, String nodeFileName, String elemFileName,
       double density, Vector3d scale, int options)
       throws IOException {
@@ -96,7 +115,7 @@ public class AnsysReader {
       try {
          nodeReader = new BufferedReader(new FileReader (nodeFileName));
          elemReader = new BufferedReader(new FileReader (elemFileName));
-         read (model, nodeReader, elemReader, density, scale, options);
+         model = read (model, nodeReader, elemReader, density, scale, options);
       }
       catch (IOException e) {
          throw e;
@@ -109,6 +128,8 @@ public class AnsysReader {
             elemReader.close ();
          }
       }
+      
+      return model;
    }
    
    /**
@@ -133,15 +154,21 @@ public class AnsysReader {
     * @throws IOException
     * if this is a problem reading the file
     */
-   public static void read (
+   public static FemModel3d read (
       FemModel3d model, Reader nodeReader, Reader elemReader, double density,
       Vector3d scale, int options) throws IOException {
 
       boolean tetrahedralize = (options & TETRAHEDRALIZE_HEXES) != 0;
       boolean useAnsysNum = (options & ONE_BASED_NUMBERING) != 0;
 
-      model.clear ();
-      model.setDensity (density);
+      if (model == null) {
+         model = new FemModel3d();
+      } else {
+         model.clear ();
+      }
+      if (density >= 0) {
+         model.setDensity (density);
+      }
       
       if (useAnsysNum) {
          model.useAnsysNumbering ();
@@ -229,6 +256,8 @@ public class AnsysReader {
             }
          }
       }
+      
+      return model;
    }
 
    public static LinkedHashMap<Integer, ArrayList<Integer>> readElemFile ( 

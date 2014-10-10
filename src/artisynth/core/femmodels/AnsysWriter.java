@@ -18,7 +18,8 @@ import java.util.TreeSet;
 import maspack.util.NumberFormat;
 import maspack.matrix.Point3d;
 
-public class AnsysWriter {
+public class AnsysWriter implements FemWriter {
+   
    public static void writeNodeFile (FemModel3d fem, String fileName) {
       try {
          PrintWriter pw = new PrintWriter (new File (fileName));
@@ -209,4 +210,26 @@ public class AnsysWriter {
 
       elemWriter.close ();
    }
+   
+   private File myElemFile;
+   private File myNodeFile;
+   
+   public AnsysWriter(File nodeFile, File elemFile) {
+      myElemFile = elemFile;
+      myNodeFile = nodeFile;
+   }
+   
+   public AnsysWriter(String nodeFile, String elemFile) {
+      myNodeFile = new File(nodeFile);
+      myElemFile = new File(elemFile);
+   }
+   
+   
+   
+   @Override
+   public void writeFem(FemModel3d fem) throws IOException {
+      writeNodeFile(fem, myNodeFile.getAbsolutePath());
+      writeElemFile(fem, myElemFile.getAbsolutePath());
+   }
+   
 }

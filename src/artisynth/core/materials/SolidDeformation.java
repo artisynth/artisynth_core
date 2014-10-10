@@ -10,7 +10,7 @@ public class SolidDeformation {
 
    Matrix3d myF;    // deformation gradient
    double myDetF;   // determinant of the deformation gradient
-   double myP;      // local presssure
+   double myP;      // local pressure
 
    public SolidDeformation() {
       myF = new Matrix3d();

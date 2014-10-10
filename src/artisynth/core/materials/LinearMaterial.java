@@ -182,7 +182,7 @@ public class LinearMaterial extends FemMaterial {
          if (mySVD == null) {
             mySVD = new SVDecomposition3d();
          }
-         // use sigma to store P; this will be converted to Cuachy strain
+         // use sigma to store P; this will be converted to Cauchy strain
          mySVD.polarDecomposition (R, sigma, F);
       }
       else {

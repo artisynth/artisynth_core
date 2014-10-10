@@ -79,10 +79,25 @@ public abstract class FemMaterial extends MaterialBase {
       }
    }   
 
+   /**
+    * Computes the tangent stiffness matrix
+    * @param D tangent stiffness, populated
+    * @param stress the current stress tensor
+    * @param def deformation information, includes deformation gradient and pressure
+    * @param Q coordinate frame specifying directions of anisotropy
+    * @param baseMat underlying base material (if any)
+    */
    public abstract void computeTangent (
       Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def, 
       Matrix3d Q, FemMaterial baseMat);
    
+   /**
+    * Computes the strain tensor given the supplied deformation
+    * @param sigma strain tensor, populated
+    * @param def deformation information, includes deformation gradient and pressure
+    * @param Q coordinate frame specifying directions of anisotropy
+    * @param baseMat underlying base material (if any)
+    */
    public abstract void computeStress (
       SymmetricMatrix3d sigma, SolidDeformation def, Matrix3d Q,
       FemMaterial baseMat);

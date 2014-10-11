@@ -307,12 +307,8 @@ further in Section \ref{sec:fem:materials}.
 A geometry inside a finite element model is a mesh that moves along with the
 model.  These geometries can be used for visualizations, or for physical 
 interactions like collisions.  However, they have no physical properties 
-themselves. All FEM geometries are of type
-\javaclass[artisynth.core.femmodels]{FemMesh}, which stores a reference to
-a mesh object (Section \ref{Meshes:sec}), and attachment information that
-links vertices of the mesh to either FEM nodes or to specific locations inside
-containing elements. Creating geometries will be discussed in Section 
-\ref{sec:fem:geometry}.
+themselves. FEM geometries will be discussed in more detail in Section  
+\ref{sec:fem:geometry}
 
 \subsubsection{Materials}
 \label{sec:fem:materials}
@@ -662,13 +658,76 @@ will be discussed further in Section \ref{sec:fem:rendering}.
 \subsection{FEM Geometry}
 \label{sec:fem:geometry}
 
+Associated with each FEM model is a list of geometry with the heading 
+{\tt meshes}.  This geometry can be used for either display purposes, 
+or for interactions such as collisions.  A geometry itself has no 
+physical properties; its motion is entirely governed by the FEM model 
+that contains it.  
+
+All FEM geometries are of type \javaclass[artisynth.core.femmodels]{FemMesh}, 
+which stores a reference to a mesh object (Section \ref{Meshes:sec}), as well
+as attachment information that links vertices of the mesh to points within
+the FEM.  
+
 \subsubsection{Surface meshes}
+
+By default, every {\tt FemModel3d} has an auto-generated geometry representing
+the ``surface mesh''.  The surface mesh consists of all un-shared element faces
+(i.e.~the faces of individual elements that are exposed to the world), and its
+vertices correspond to the nodes that make up those faces.  As the FEM nodes
+move, so do the mesh vertices due to the attachment framework.
+
+The surface mesh can be obtained using one of the following functions in 
+{\tt FemModel3d}:
+\begin{lstlisting}[]
+FemMesh getSurfaceFemMesh ();     // returns the FemMesh surface component
+PolygonalMesh getSurfaceMesh ();  // returns the underlying polygonal surface mesh
+\end{lstlisting}
+The first returns the surface complete with attachment information.  The latter 
+method directly returns the {\tt PolygonalMesh} that is controlled by the FEM.  
+
+It is possible to manually set the surface mesh:
+\begin{lstlisting}[]
+setSurfaceMesh ( PolygonalMesh surface );  // manually set surface mesh
+\end{lstlisting}
+However, doing so is normally not necessary.  It is always possible to add
+additional mesh geometries to a finite element model, and the visibility
+settings can be changed so that the default surface mesh is not rendered.  
 
 \subsubsection{Embedding geometry within an FEM}
 
-\subsubsection{A beam with an embedded sphere}
+Any geometry of type \javaclass[maspack.geometry]{MeshBase} can be added to
+a {\tt FemModel3d}.  To do so, first position the mesh so that its vertices 
+are in the desired locations inside the FEM, then call one of the functions:
+\begin{lstlisting}[]
+FemMesh addMesh ( MeshBase mesh );                // creates and returns FemMesh
+FemMesh addMesh ( String name, MeshBase mesh );
+\end{lstlisting}
+The latter method is a convenience routine that also gives the newly embedded
+{\tt FemMesh} a name. 
 
-% EmbeddedFemSphere
+\subsubsection{Example: a beam with an embedded sphere}
+
+\begin{figure}[ht]
+	\centering
+	\setlengthLaTeXML{\imglength}{0.8\textwidth}{0.6\textwidth}
+	\includegraphics[width=\imglength]{images/FemEmbeddedSphere}
+	\caption{FemEmbeddedSphere model loaded into ArtiSynth.}
+	\label{fig:fem:embedded}
+\end{figure}
+
+A complete model demonstrating embedding a mesh is given below.
+\lstset{numbers=left}
+\lstinputlisting{../../src/artisynth/demos/tutorial/FemEmbeddedSphere.java}
+\lstset{numbers=none}
+This example can be found in {\tt artisynth.demos.tutorial.FemEmbeddedSphere}.
+The model is very similar to {\tt FemBeam}.  A {\tt MechModel} and 
+{\tt FemModel3d} are created and added.  At Line 41, a {\tt PolygonalMesh}
+of a sphere is created using a factory method.  The sphere is already
+centered inside the beam, so it does not need to be repositioned.  At Line
+42, the sphere is embedded inside model {\tt fem}, creating a {\tt FemMesh}
+with the name ``sphere''.  The full model is shown in Figure 
+\ref{fig:fem:embedded}.
 
 \subsection{Node attachments}
 \label{sec:fem:nodeattachments}
@@ -679,7 +738,7 @@ Since \javaclass[artisynth.core.femmodels]{FemNode3d}
 is a subclass of \javaclass[artisynth.core.femmodels]{Particle}, it uses the 
 same attachment mechanism as that described in Section \ref{Attachments:sec}.
 
-\subsubsection{Connecting a beam to a block}
+\subsubsection{Example: connecting a beam to a block}
 
 \begin{figure}[ht]
 \begin{center}
@@ -695,7 +754,7 @@ same attachment mechanism as that described in Section \ref{Attachments:sec}.
 
 % FemBeamWithBlock
 
-\subsubsection{Connecting two FEMs together}
+\subsubsection{Example: connecting two FEMs together}
 
 % ConnectedFems
 
@@ -703,7 +762,7 @@ same attachment mechanism as that described in Section \ref{Attachments:sec}.
 
 \subsubsection{Embedding particles in FEMs}
 
-\subsubsection{Attaching a FEM beam to a muscle}
+\subsubsection{Example: attaching a FEM beam to a muscle}
 
 \begin{figure}[ht]
 \begin{center}
@@ -749,7 +808,7 @@ same attachment mechanism as that described in Section \ref{Attachments:sec}.
 
 \subsubsection{Colliding with FEM geometry}
 
-\subsubsection{Colliding with the surface mesh}
+\subsubsection{Example: colliding with the surface mesh}
 
 \begin{figure}[ht]
 \begin{center}
@@ -765,7 +824,7 @@ same attachment mechanism as that described in Section \ref{Attachments:sec}.
 
 % FemMuscleHeart
 
-\subsubsection{Colliding with an embedded sphere}
+\subsubsection{Example: colliding with an embedded sphere}
 
 \begin{figure}[ht]
 \begin{center}
@@ -779,7 +838,7 @@ same attachment mechanism as that described in Section \ref{Attachments:sec}.
 \label{FemCollisions:fig}
 \end{figure}
 
-\subsection{Visualization}
+\subsection{Rendering and Visualizations}
 \label{sec:fem:rendering}
 
 stuff stuff stuff

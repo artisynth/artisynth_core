@@ -699,13 +699,13 @@ public class FemMesh extends FemMeshBase implements Pullable, Collidable {
 
    protected void updateVertexColors() {
       
-      if (myColorRendering != SurfaceRender.Stress &&
-         myColorRendering != SurfaceRender.Strain) {
+      if (mySurfaceRendering != SurfaceRender.Stress &&
+         mySurfaceRendering != SurfaceRender.Strain) {
          return;
       }
 
       if (myStressPlotRanging == Ranging.Auto) {
-         myStressPlotRange.merge (myFem.getNodalPlotRange(myColorRendering));
+         myStressPlotRange.merge (myFem.getNodalPlotRange(mySurfaceRendering));
       } 
 
       RenderProps rprops = getRenderProps();
@@ -725,9 +725,9 @@ public class FemMesh extends FemMeshBase implements Pullable, Collidable {
                if (nodes[j] instanceof FemNode3d) { // paranoid!
                   FemNode3d node = (FemNode3d)nodes[j];
                   double w = weights.get(j);
-                  if (myColorRendering == SurfaceRender.Strain) {
+                  if (mySurfaceRendering == SurfaceRender.Strain) {
                      sval += w*node.getVonMisesStrain();
-                  } else if (myColorRendering == SurfaceRender.Stress) {
+                  } else if (mySurfaceRendering == SurfaceRender.Stress) {
                      sval += w*node.getVonMisesStress();
                   }
                }
@@ -736,9 +736,9 @@ public class FemMesh extends FemMeshBase implements Pullable, Collidable {
          else if (attacher instanceof PointParticleAttachment) {
             PointParticleAttachment ppa = (PointParticleAttachment)attacher;
             FemNode3d node = (FemNode3d)ppa.getParticle();
-            if (myColorRendering == SurfaceRender.Strain) {
+            if (mySurfaceRendering == SurfaceRender.Strain) {
                sval = node.getVonMisesStrain();
-            } else if (myColorRendering == SurfaceRender.Stress) {
+            } else if (mySurfaceRendering == SurfaceRender.Stress) {
                sval = node.getVonMisesStress();
             }
          }
@@ -817,13 +817,13 @@ public class FemMesh extends FemMeshBase implements Pullable, Collidable {
 
    @Override
    public void scan(ReaderTokenizer rtok, Object ref) throws IOException {
-      SurfaceRender shad1 = myColorRendering;
+      SurfaceRender shad1 = mySurfaceRendering;
       super.scan(rtok, ref);
-      SurfaceRender shad2 = myColorRendering;
+      SurfaceRender shad2 = mySurfaceRendering;
       if (shad1 != shad2) {
          System.out.println("Different shading");
       }
-      if (myColorRenderingMode == PropertyMode.Inherited) {
+      if (mySurfaceRenderingMode == PropertyMode.Inherited) {
          System.out.println("Why isn't it explicit?");
       }
       

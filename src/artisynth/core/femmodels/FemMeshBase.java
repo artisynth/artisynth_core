@@ -46,19 +46,19 @@ import artisynth.core.util.ScanToken;
  **/
 public abstract class FemMeshBase extends SkinMeshBase {
 
-   protected static SurfaceRender defaultColorRendering = SurfaceRender.Shaded;
+   protected static SurfaceRender defaultSurfaceRendering = SurfaceRender.Shaded;
    protected static Ranging defaultStressPlotRanging = Ranging.Auto;
    protected static DoubleInterval defaultStressPlotRange =
       new DoubleInterval(0,1);
    protected static ColorMapBase defaultColorMap =  new HueColorMap(2.0/3, 0);
    
-   protected SurfaceRender myColorRendering =  defaultColorRendering;   
+   protected SurfaceRender mySurfaceRendering =  defaultSurfaceRendering;   
    protected Ranging myStressPlotRanging = defaultStressPlotRanging;
    protected DoubleInterval myStressPlotRange =  new DoubleInterval(defaultStressPlotRange);
 
    protected PropertyMode myStressPlotRangeMode = PropertyMode.Inherited;
    protected PropertyMode myStressPlotRangingMode = PropertyMode.Inherited;
-   protected PropertyMode myColorRenderingMode = PropertyMode.Inherited;
+   protected PropertyMode mySurfaceRenderingMode = PropertyMode.Inherited;
    
    protected Color[] savedVertexColors;
    
@@ -75,7 +75,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
 
    static {
       myProps.addInheritable(
-         "colorRendering:Inherited", "either shaded, stress or strain", defaultColorRendering);
+         "surfaceRendering:Inherited", "either shaded, stress or strain", defaultSurfaceRendering);
       myProps.addInheritable (
          "stressPlotRanging:Inherited", "ranging mode for stress plots",
          defaultStressPlotRanging);         
@@ -164,13 +164,13 @@ public abstract class FemMeshBase extends SkinMeshBase {
       savedVertexColors = null;
    }
 
-   public void setColorRendering (SurfaceRender mode) {
-      if (myColorRendering != mode) {
+   public void setSurfaceRendering (SurfaceRender mode) {
+      if (mySurfaceRendering != mode) {
          if (myStressPlotRanging == Ranging.Auto) {
             myStressPlotRange.set (0, 0);
          }
-         SurfaceRender oldMode = myColorRendering;
-         myColorRendering = mode;
+         SurfaceRender oldMode = mySurfaceRendering;
+         mySurfaceRendering = mode;
          
          // save/restore original vertex colors
          MeshBase mesh = getMesh();
@@ -203,24 +203,24 @@ public abstract class FemMeshBase extends SkinMeshBase {
          
       }
       // propagate to make mode explicit
-      myColorRenderingMode =
+      mySurfaceRenderingMode =
          PropertyUtils.propagateValue (
-            this, "colorRendering", mode, myColorRenderingMode);
+            this, "surfaceRendering", mode, mySurfaceRenderingMode);
         
    }
 
-   public SurfaceRender getColorRendering() {
-      return myColorRendering;
+   public SurfaceRender getSurfaceRendering() {
+      return mySurfaceRendering;
    }
    
-   public PropertyMode getColorRenderingMode() {
-      return myColorRenderingMode;
+   public PropertyMode getSurfaceRenderingMode() {
+      return mySurfaceRenderingMode;
    }
    
-   public void setColorRenderingMode(PropertyMode mode) {
-      if (mode != myColorRenderingMode) {
-         myColorRenderingMode = PropertyUtils.setModeAndUpdate (
-            this, "colorRendering", myColorRenderingMode, mode);
+   public void setSurfaceRenderingMode(PropertyMode mode) {
+      if (mode != mySurfaceRenderingMode) {
+         mySurfaceRenderingMode = PropertyUtils.setModeAndUpdate (
+            this, "surfaceRendering", mySurfaceRenderingMode, mode);
       }
    }
 
@@ -283,8 +283,8 @@ public abstract class FemMeshBase extends SkinMeshBase {
    public void prerender(RenderList list) {
       super.prerender(list);
       
-      if (myColorRendering == SurfaceRender.Strain || 
-         myColorRendering == SurfaceRender.Stress) {
+      if (mySurfaceRendering == SurfaceRender.Strain || 
+         mySurfaceRendering == SurfaceRender.Stress) {
          updateVertexColors();
       }
    }
@@ -298,8 +298,8 @@ public abstract class FemMeshBase extends SkinMeshBase {
          flags |= GLRenderer.SELECTED;
       }
       
-      if (myColorRendering == SurfaceRender.Stress || 
-         myColorRendering == SurfaceRender.Strain) {
+      if (mySurfaceRendering == SurfaceRender.Stress || 
+         mySurfaceRendering == SurfaceRender.Strain) {
          
          if ( (flags & GLRenderer.REFRESH) != 0) {
             updateVertexColors();
@@ -313,7 +313,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
                       GLRenderer.HSV_COLOR_INTERPOLATION);
          }
          
-      } else if (myColorRendering == SurfaceRender.None) {
+      } else if (mySurfaceRendering == SurfaceRender.None) {
          return;
       }
       
@@ -450,7 +450,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
    public FemMeshBase copy(int flags, Map<ModelComponent,ModelComponent> copyMap) {
       FemMeshBase fmb = (FemMeshBase)super.copy(flags, copyMap);
       
-      fmb.myColorRendering =  myColorRendering;
+      fmb.mySurfaceRendering =  mySurfaceRendering;
       
       if (myStressPlotRangingMode == PropertyMode.Explicit) {
          fmb.setStressPlotRanging(myStressPlotRanging);

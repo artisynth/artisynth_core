@@ -1896,7 +1896,7 @@ Collidable, CopyableComponent, HasAuxState {
       if (myMeshList.size() > 0) {
          FemMesh surf = myMeshList.get(0);
          if (surf.isSurfaceMesh()) {
-            surf.setColorRendering(mode);
+            surf.setSurfaceRendering(mode);
          }
       }
 
@@ -3206,7 +3206,7 @@ Collidable, CopyableComponent, HasAuxState {
       if (myMeshList.size()==0 || !myMeshList.get(0).isSurfaceMesh()) {
          FemMesh surf = new FemMesh(this);
          surf.setName(DEFAULT_SURFACEMESH_NAME);
-         surf.setColorRendering(getSurfaceRendering());
+         surf.setSurfaceRendering(getSurfaceRendering());
          surf.markSurfaceMesh(true);
          addMesh(surf, 0);
          return surf;

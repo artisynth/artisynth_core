@@ -39,7 +39,7 @@ public class FemBeam extends RootModel {
       // Set FEM properties
       fem.setDensity (density);
       fem.setParticleDamping (0.1);
-      fem.setMaterial (new LinearMaterial (10000, 0.33));
+      fem.setMaterial (new LinearMaterial (4000, 0.33));
       
       // Fix left-hand nodes for boundary condition
       for (FemNode3d n : fem.getNodes()) {

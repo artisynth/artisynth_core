@@ -627,6 +627,7 @@ This returns the concatenated coordinate list for an ``ideal'' element of
 the given type.
 
 \subsubsection{Example: a simple beam model}
+\label{sec:fem:example:fembeam}
 
 \begin{figure}[ht]
 	\centering
@@ -642,17 +643,17 @@ A complete application model that implements a simple FEM beam is given below.
 \lstset{numbers=none}
 This example can be found in {\tt artisynth.demos.tutorial.FemBeam}.  The 
 {\tt build()} method first creates a {\tt MechModel} and {\tt FemModel3d}.
-A FEM beam is created using a factory method on Line 36.  This beam is
+A FEM beam is created using a factory method on line 36.  This beam is
 centered at the origin, so its length extends from {\tt-length/2} to 
 {\tt length/2}.  The density, damping and material properties are then 
 assigned.  
 
-On Lines 45--49, a fixed boundary condition is set to the left-hand side 
+On lines 45--49, a fixed boundary condition is set to the left-hand side 
 of the beam by setting the corresponding nodes to be non-dynamic.  Due to 
 numerical precision, a small {\tt EPSILON} buffer is required to ensure 
-all left-hand boundary nodes are identified (Line 46).
+all left-hand boundary nodes are identified (line 46).
 
-Rendering properties are then assigned to the FEM model on Line 52.  These 
+Rendering properties are then assigned to the FEM model on line 52.  These 
 will be discussed further in Section \ref{sec:fem:rendering}.
 
 \subsection{FEM Geometry}
@@ -698,13 +699,14 @@ settings can be changed so that the default surface mesh is not rendered.
 
 Any geometry of type \javaclass[maspack.geometry]{MeshBase} can be added to
 a {\tt FemModel3d}.  To do so, first position the mesh so that its vertices 
-are in the desired locations inside the FEM, then call one of the functions:
+are in the desired locations inside the FEM, then call one of the 
+{\tt FemModel3d} methods:
 \begin{lstlisting}[]
 FemMesh addMesh ( MeshBase mesh );                // creates and returns FemMesh
 FemMesh addMesh ( String name, MeshBase mesh );
 \end{lstlisting}
-The latter method is a convenience routine that also gives the newly embedded
-{\tt FemMesh} a name. 
+The latter is a convenience routine that also gives the newly embedded
+{\tt FemMesh} a name.
 
 \subsubsection{Example: a beam with an embedded sphere}
 
@@ -722,7 +724,7 @@ A complete model demonstrating embedding a mesh is given below.
 \lstset{numbers=none}
 This example can be found in {\tt artisynth.demos.tutorial.FemEmbeddedSphere}.
 The model is very similar to {\tt FemBeam}.  A {\tt MechModel} and 
-{\tt FemModel3d} are created and added.  At Line 41, a {\tt PolygonalMesh}
+{\tt FemModel3d} are created and added.  At line 41, a {\tt PolygonalMesh}
 of a sphere is created using a factory method.  The sphere is already
 centered inside the beam, so it does not need to be repositioned.  At Line
 42, the sphere is embedded inside model {\tt fem}, creating a {\tt FemMesh}
@@ -732,31 +734,119 @@ with the name ``sphere''.  The full model is shown in Figure
 \subsection{Node attachments}
 \label{sec:fem:nodeattachments}
 
+To couple FEM models to other dynamic components, an ``attachment'' mechanism 
+is used.  Since \javaclass[artisynth.core.femmodels]{FemNode3d} 
+is a subclass of \javaclass[artisynth.core.femmodels]{Particle}, the 
+same attachment framework described in Section \ref{Attachments:sec} is 
+available. FEM nodes can easily be connected to other dynamic objects, 
+including other particles, nodes, and locations within elements.
+
 \subsubsection{General principles}
 
-Since \javaclass[artisynth.core.femmodels]{FemNode3d} 
-is a subclass of \javaclass[artisynth.core.femmodels]{Particle}, it uses the 
-same attachment mechanism as that described in Section \ref{Attachments:sec}.
+To attach two components, a constraint system is established between their
+velocities.  In general, this takes the form: 
+%
+\begin{equation}
+\u_j = -\G_{j\alpha} \u_\alpha, \label{eqn:fem:attachment}
+\end{equation}
+%
+where $\u_j$ and $\u_\alpha$ denote the velocities of the attached and
+non-attached components.  The constraint matrix $G_{j\alpha}$ depends on
+the types of components to be attached.  If attaching two points together, 
+then $G_{j\alpha} = -I$.  For a point to a rigid body, $G_{j\alpha}$ will
+depend on the current body location.  
+
+An attachment is created in ArtiSynth by adding an object of type 
+\javaclass[artisynth.core.mechmodels]{DynamicAttachment}.
+Attachments involving a point (e.g.~{\tt FemNode3d}) extend the class 
+\javaclass[artisynth.core.mechmodels]{PointAttachment}.  Common point-based
+attachment classes are listed in Table \ref{tbl:fem:pointattachments}.
+To add such an attachment constraint, create an object of the appropriate
+type, and then add the attachment to the {\tt MechModel} using
+\begin{lstlisting}[]
+  addAttachment( DynamicAttachment attach ); // adds an attachment constraint
+\end{lstlisting}
+There are also convenience routines inside {\tt MechModel} that will create
+the appropriate attachments automatically (see Section 
+\ref{sec:mech:pointattachments}).
+
+\begin{table}
+	\centering
+	\caption{Point-based attachments \label{tbl:fem:pointattachments}}
+
+	\begin{tabular}{ll}
+		\hline
+		\hline
+		Attachment & Description \\
+		\hline
+		\javaclass[artisynth.core.mechmodels]{PointParticleAttachment} & Attaches one ``point'' to one ``particle''\\
+		\javaclass[artisynth.core.mechmodels]{PointFrameAttachment} & Attaches one ``point'' to one ``frame''\\
+		\javaclass[artisynth.core.femmodels]{PointFem3dAttachment} &  Attaches one ``point'' to a linear combination of FEM nodes\\
+		\hline
+	\end{tabular}
+\end{table}
 
 \subsubsection{Example: connecting a beam to a block}
 
 \begin{figure}[ht]
-\begin{center}
-\iflatexml
- \includegraphics[]{images/FemBeamWithBlock}
-\else
- \includegraphics[width=3.75in]{images/FemBeamWithBlock}
-\fi
-\end{center}
-\caption{FemBeamWithBlock model loaded into ArtiSynth.}
-\label{FemBeamWithBlock:fig}
+	\centering
+	\setlengthLaTeXML{\imglength}{0.8\textwidth}{0.6\textwidth}
+	\includegraphics[width=\imglength]{images/FemBeamWithBlock}
+	\caption{FemBeamWithBlock model loaded into ArtiSynth.}
+	\label{fig:fem:beamwithblock}
 \end{figure}
+
+The following model demonstrates attaching a FEM beam to a rigid block.
+\lstset{numbers=left}
+\lstinputlisting{../../src/artisynth/demos/tutorial/FemBeamWithBlock.java}
+\lstset{numbers=none}
+This model extends the {\tt FemBeam} example of Section 
+\ref{sec:fem:example:fembeam}.  The {\tt build()} method then creates 
+and adds a {\tt RigidBody} block (lines 18--20).  One line 21, the block
+is repositioned to the side of the beam to prepare for the attachment.
+On lines 24--28, all right-most nodes of the beam are then set to be attached
+to the block using a {\tt PointFrameAttachment}.  In this case, , the 
+attachments are explicitly created.  They could also have been attached using
+\begin{lstlisting}[]
+   mech.attachPoint(node, block);  // attach node to rigid block
+\end{lstlisting}
+
+
 
 % FemBeamWithBlock
 
 \subsubsection{Example: connecting two FEMs together}
 
-% ConnectedFems
+% FemBeamWithFemSphere
+\begin{figure}[ht]
+	\centering
+	\setlengthLaTeXML{\imglength}{0.8\textwidth}{0.6\textwidth}
+	\includegraphics[width=\imglength]{images/FemBeamWithFemSphere}
+	\caption{FemBeamWithFemSphere model loaded into ArtiSynth.}
+	\label{fig:fem:beamwithfemsphere}
+\end{figure}
+
+The following model demonstrates how to attach two FEM models together:
+\lstset{numbers=left}
+\lstinputlisting{../../src/artisynth/demos/tutorial/FemBeamWithFemSphere.java}
+\lstset{numbers=none}
+This example can be found in 
+{\tt artisynth.demos.tutorial.FemBeamWithFemSphere}.  The model extends 
+{\tt FemBeam}, adding a finite element sphere and coupling them together.
+The sphere is created and added on lines 18--28.  It is read from
+TetGen-generated files using the 
+\javaclass[artisynth.core.femmodels]{TetGenReader} class.  The model is then
+scaled to match the dimensions of the current model, and transformed to the
+right side of the beam.  To create attachments, the code first checks for 
+any nodes that belong to the sphere that fall inside the beam using the
+\javamethod[artisynth.core.femmodels]{FemModel3d.findContainingElement(Point3d)}
+method (line 36), which returns the containing element if the point is inside
+the model, or {\tt null} if the point is outside.  Internally, this spatial 
+search uses a bounding volume hierarchy for efficiency (see 
+\javaclass[maspack.geometry]{BVTree} and 
+\javaclass[maspack.geometry]{BVFeatureQuery}).  If the point is contained
+within the beam, then a {\tt PointFem3dAttachment} is implicitly added 
+(line 39).
 
 \subsection{FEM markers}
 
@@ -765,16 +855,18 @@ same attachment mechanism as that described in Section \ref{Attachments:sec}.
 \subsubsection{Example: attaching a FEM beam to a muscle}
 
 \begin{figure}[ht]
-\begin{center}
-\iflatexml
- \includegraphics[]{images/FemBeamWithMuscle}
-\else
- \includegraphics[width=3.75in]{images/FemBeamWithMuscle}
-\fi
-\end{center}
-\caption{FemBeamWithMuscle model loaded into ArtiSynth.}
-\label{FemBeamWithMuscle:fig}
+	\centering
+	\setlengthLaTeXML{\imglength}{0.8\textwidth}{0.6\textwidth}
+	\includegraphics[width=\imglength]{images/FemBeamWithMuscle}
+	\caption{FemBeamWithMuscle model loaded into ArtiSynth.}
+	\label{fig:fem:beamwithmuscle}
 \end{figure}
+
+A complete application model that implements a simple FEM beam is given below.
+\lstset{numbers=left}
+\lstinputlisting{../../src/artisynth/demos/tutorial/FemBeamWithMuscle.java}
+\lstset{numbers=none}
+This example can be found in {\tt artisynth.demos.tutorial.FemBeamWithMuscle}.
 
 % FemBeamWithMuscle
 
@@ -787,7 +879,7 @@ same attachment mechanism as that described in Section \ref{Attachments:sec}.
 
 \subsubsection{Activation with embedded materials}
 
-\subsubsection{Comparision with two beam examples}
+\subsubsection{Example: comparision with two beam examples}
 
 \begin{figure}[ht]
 \begin{center}

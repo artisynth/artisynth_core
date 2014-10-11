@@ -6,7 +6,6 @@
  */
 package artisynth.core.mechmodels;
 
-import maspack.matrix.Vector;
 import maspack.matrix.*;
 import maspack.util.*;
 import maspack.spatialmotion.Twist;

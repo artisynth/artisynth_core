@@ -244,7 +244,15 @@ public class IntegrationPoint3d {
          pos.scaledAdd (Nbuf[i], nodes[i].getPosition());
       }
    }
+   
+   public void computePosition (Point3d pos, FemElement3d elem) {
+      computePosition(pos, elem.getNodes());
+   }
 
+   public void computeRestPosition (Point3d pos, FemElement3d elem) {
+      computeRestPosition(pos, elem.getNodes());
+   }
+   
    public void computeRestPosition (Point3d pos, FemNode3d[] nodes) {
       double[] Nbuf = N.getBuffer();
       pos.setZero();

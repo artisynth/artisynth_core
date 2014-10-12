@@ -5,47 +5,25 @@ import java.io.IOException;
 
 import javax.swing.JSeparator;
 
-import maspack.matrix.AxisAngle;
-import maspack.matrix.Point3d;
-import maspack.matrix.RigidTransform3d;
-import maspack.matrix.Vector3d;
-import maspack.render.RenderList;
+import maspack.matrix.*;
 import maspack.render.RenderProps;
 import maspack.render.RenderProps.LineStyle;
-import maspack.util.DoubleInterval;
 import maspack.widgets.LabeledComponentBase;
-import artisynth.core.femmodels.FemElement3d;
-import artisynth.core.femmodels.FemFactory;
-import artisynth.core.femmodels.FemMesh;
-import artisynth.core.femmodels.FemModel.SurfaceRender;
-import artisynth.core.femmodels.FemMuscleModel;
-import artisynth.core.femmodels.FemNode3d;
-import artisynth.core.femmodels.MuscleBundle;
+import artisynth.core.femmodels.*;
 import artisynth.core.gui.ControlPanel;
-import artisynth.core.materials.AxialMuscleMaterial;
-import artisynth.core.materials.BlemkerAxialMuscle;
-import artisynth.core.materials.BlemkerMuscle;
-import artisynth.core.materials.FemMaterial;
-import artisynth.core.materials.MooneyRivlinMaterial;
-import artisynth.core.materials.MuscleMaterial;
-import artisynth.core.mechmodels.MechModel;
-import artisynth.core.mechmodels.MuscleExciter;
-import artisynth.core.mechmodels.Point;
-import artisynth.core.probes.FemDisplayProbe;
-import artisynth.core.renderables.ColorBar;
+import artisynth.core.materials.*;
+import artisynth.core.mechmodels.*;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
 
 public class FemMuscleBeams extends RootModel {
-
-   // Constructor
-   public FemMuscleBeams() {}
    
    // Main build function
    @Override
    public void build(String[] args) throws IOException {
       super.build(args);
       
+      // Mech model
       MechModel mech = new MechModel("mech");
       addModel(mech);
       mech.setGravity(0, 0, 0); // disable gravity
@@ -61,11 +39,10 @@ public class FemMuscleBeams extends RootModel {
                   new BlemkerAxialMuscle(
                   1.4*length/res[0], 1.0*length/res[0], 
                   3000*length/res[0]*length/res[0], 0, 0);
-
       muscleFibreMat.setForceScaling(1.0);
       
       double density = 1000;
-      double eps = 1e-6;     // for detecting left nodes
+      double eps = 1e-6;        // for detecting left boundary nodes
       
       //-------------------------------------------------------------
       // FIBRE MUSCLE

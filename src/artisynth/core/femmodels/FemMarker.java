@@ -149,17 +149,30 @@ public class FemMarker extends Marker {
    public void updateAttachment() {
       myNodeAttachment.updateAttachment();
    }
-
+   
    /** 
     * Called when the marker is moved (or when we remesh underneath it)
     * and we need to redetermine which element this marker is embedded in.
     */
    public boolean resetElement (FemModel3d model) {
-      FemElement updatedElement = model.findContainingElement (getPosition());
+      return resetElement(model, true);
+   }
+
+   /** 
+    * Called when the marker is moved (or when we remesh underneath it)
+    * and we need to redetermine which element this marker is embedded in.
+    */
+   public boolean resetElement (FemModel3d model, boolean project) {
+      Point3d pos = getPosition();
+      FemElement updatedElement = model.findContainingElement (pos);
       if (updatedElement == null) {
          Point3d res = new Point3d();
-         updatedElement = model.findNearestSurfaceElement (res, getPosition());
-         setPosition (res);
+         updatedElement = model.findNearestSurfaceElement (res,pos);
+         if (project) {
+            setPosition (res);
+         } else {
+            setPosition(pos);
+         }
       }
       if (updatedElement != myElement) {
          if (myElement != null) {

@@ -215,6 +215,11 @@ ExcitationComponent {
       return myTargets.size();
    }
 
+   public void addTarget (ExcitationComponent ex) {
+      myTargets.add (ex);
+      ex.addExcitationSource (this, 1.0);
+   }
+   
    public void addTarget (ExcitationComponent ex, double gain) {
       myTargets.add (ex);
       ex.addExcitationSource (this, gain);

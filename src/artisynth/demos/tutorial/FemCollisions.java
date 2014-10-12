@@ -29,6 +29,7 @@ public class FemCollisions extends RootModel {
    public void build(String[] args) throws IOException {
       super.build(args);
 
+      // Reduce step size to better resolve collisions
       setMaxStepSize(0.0002);
       
       // Create and add main MechModel
@@ -41,11 +42,9 @@ public class FemCollisions extends RootModel {
       
       // Create FEM beam
       FemModel3d beam = new FemModel3d("beam");
-
-      // FEM Setup
-      double[] size = {0.003, 0.0015, 0.0015};  // widths
-      int[] res = {4, 2, 2};                  // resolution
-
+      mech.addModel(beam);
+      double[] size = {0.003, 0.0015, 0.0015};         // widths
+      int[] res = {4, 2, 2};                           // resolution
       FemFactory.createGrid(beam, FemElementType.Hex, 
          size[0], size[1], size[2], 
          res[0], res[1], res[2]);
@@ -53,9 +52,6 @@ public class FemCollisions extends RootModel {
       // Set properties
       beam.setDensity(1000);
       beam.setMaterial(new LinearMaterial(300, 0.33));
-
-      // Add FEM to model
-      mech.addModel(beam);
       
       //-------------------------------------------------------------
       // ELLIPSOID
@@ -63,12 +59,9 @@ public class FemCollisions extends RootModel {
       
       // Create FEM ellipsoid
       FemModel3d ellipsoid = new FemModel3d("ellipsoid");
-
-      // FEM Setup
+      mech.addModel(ellipsoid);
       double[] radii = {0.002, 0.001, 0.001}; // radii (z, x, y)
       int[] eres = {16, 4, 3};                // resolution (theta, phi, r)
-
-      // Create ellipsoid
       FemFactory.createEllipsoid(ellipsoid, 
          radii[0], radii[1], radii[2], 
          eres[0], eres[1], eres[2]);
@@ -83,9 +76,6 @@ public class FemCollisions extends RootModel {
       trans.setRotation(new AxisAngle(1, 0, 0, Math.PI/2));
       trans.setTranslation(new Vector3d(0, 0.0005, 0.003));
       ellipsoid.transformGeometry(trans);
-
-      // Add FEM to model
-      mech.addModel(ellipsoid);
       
       //-------------------------------------------------------------
       // BLOCK WITH EMBEDDED SPHERE
@@ -93,29 +83,24 @@ public class FemCollisions extends RootModel {
       
       // Create FEM block
       FemModel3d block = new FemModel3d("block");
+      mech.addModel(block);
       FemFactory.createHexGrid(block, 0.002, 0.002, 0.002, 3, 3, 3);
-      
+
       // Set properties
       block.setDensity(1000);
       block.setMaterial(new LinearMaterial(300, 0.33));
 
-      // Create sphere geometry
+      // Create embedded sphere
       double r = 0.0008;
       int ref = 2;      // level of refinement
       PolygonalMesh sphere = MeshFactory.createOctahedralSphere(r, ref);
-      
-      // Add sphere to FEM
-      FemMesh embeddedSphere = block.addMesh(sphere);
-      embeddedSphere.setName("embedded");
+      FemMesh embeddedSphere = block.addMesh("embedded", sphere);
       
       // Transform: rotate 90 degrees about X-Axis
       //            translate left by 0.003
       trans = new RigidTransform3d();
       trans.setTranslation(new Vector3d(0, 0.003, 0));
       block.transformGeometry(trans);
-      
-      // Add FEM to model
-      mech.addModel(block);
       
       
       //-------------------------------------------------------------

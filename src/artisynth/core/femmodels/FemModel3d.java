@@ -588,12 +588,33 @@ Collidable, CopyableComponent, HasAuxState {
     * point to place a marker in the model
     */
    public FemMarker addMarker(Point3d pos) {
+      return addMarker(pos, true);
+   }
+   
+   /**
+    * Adds a marker to this FemModel. The element to which it belongs is
+    * determined automatically. If the marker's current position does not lie
+    * within the model and {@code project == true}, it will be projected onto 
+    * the model's surface.
+    * 
+    * @param pnt
+    * point to place a marker in the model
+    * @param project
+    * if true and pnt is outside the model, projects to the nearest point
+    * on the surface.  Otherwise, uses the original position.
+    * 
+    */
+   public FemMarker addMarker(Point3d pos, boolean project) {
       FemMarker mkr = new FemMarker();
       FemElement3d elem = findContainingElement(pos);
       if (elem == null) {
          Point3d newLoc = new Point3d();
          elem = findNearestSurfaceElement(newLoc, pos);
-         mkr.setPosition(newLoc);
+         if (project) {
+            mkr.setPosition(newLoc);
+         } else {
+            mkr.setPosition(pos);
+         }
       } else {
          mkr.setPosition(pos);
       }
@@ -602,12 +623,20 @@ Collidable, CopyableComponent, HasAuxState {
    }
 
    public FemMarker addNumberedMarker(Point3d pos, int markerId) {
+     return addNumberedMarker(pos, true, markerId);
+   }
+   
+   public FemMarker addNumberedMarker(Point3d pos, boolean project, int markerId) {
       FemMarker mkr = new FemMarker();
       FemElement3d elem = findContainingElement(pos);
       if (elem == null) {
          Point3d newLoc = new Point3d();
          elem = findNearestSurfaceElement(newLoc, pos);
-         mkr.setPosition(newLoc);
+         if (project) {
+            mkr.setPosition(newLoc);
+         } else {
+            mkr.setPosition(pos);
+         }
       } else {
          mkr.setPosition(pos);
       }
@@ -1893,6 +1922,7 @@ Collidable, CopyableComponent, HasAuxState {
       // SurfaceRender oldMode = mySurfaceRendering;
       super.setSurfaceRendering(mode);
 
+      updateStressPlotRange();
       if (myMeshList.size() > 0) {
          FemMesh surf = myMeshList.get(0);
          if (surf.isSurfaceMesh()) {
@@ -1981,8 +2011,22 @@ Collidable, CopyableComponent, HasAuxState {
       }
       return new DoubleInterval(min, max);
    }
+   
+   private void updateStressPlotRange() {
+ 
+      if (mySurfaceRendering != SurfaceRender.Stress &&
+         mySurfaceRendering != SurfaceRender.Strain) {
+         return;
+      }
+
+      if (myStressPlotRanging == Ranging.Auto) {
+         myStressPlotRange.merge (getNodalPlotRange(mySurfaceRendering));
+      } 
+
+   }
 
    public void prerender(RenderList list) {
+            
       list.addIfVisible(myNodes);
       list.addIfVisible(myElements);
       list.addIfVisible(myMarkers);
@@ -1991,6 +2035,8 @@ Collidable, CopyableComponent, HasAuxState {
          getSurfaceMesh();  // triggers creation of surface mesh
       }
 
+      updateStressPlotRange();
+      
       list.addIfVisible(myMeshList);
       myAdditionalMaterialsList.prerender(list);
 

@@ -21,7 +21,6 @@ import maspack.properties.PropertyUtils;
 import maspack.render.GLRenderable;
 import maspack.render.GLRenderer;
 import maspack.render.LineFaceRenderProps;
-import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
@@ -47,7 +46,7 @@ public class ColorBar extends TextComponentBase {
    //   }
    
    public static Rectangle defaultLoc = new Rectangle(40, 0, 20, 0);
-   public static Rectangle defaultNormLoc = new Rectangle(0, 0.1, 0, 0.8);
+   public static Rectangle defaultNormLoc = new Rectangle(0, 0.1, 0.05, 0.8);
    //   public static CornerRef defaultLocationRef = CornerRef.BOTTOM_RIGHT;
    public static Vector2d defaultTickFraction = new Vector2d(0.2, 0.2);
    public static double defaultTextSize = 12;
@@ -687,6 +686,10 @@ public class ColorBar extends TextComponentBase {
    
    public void setNumberFormat(NumberFormat fmt) {
       myNumberFormat.set(fmt);
+   }
+   
+   public void setNumberFormat(String fmtStr) {
+      myNumberFormat.set(fmtStr);
    }
    
    public NumberFormat getNumberFormat() {

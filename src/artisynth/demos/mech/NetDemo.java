@@ -25,8 +25,6 @@ import javax.media.opengl.*;
 
 import maspack.render.*;
 
-//import artisynth.core.mechmodels.DynamicMechComponent.Activity;
-
 public class NetDemo extends RootModel {
 
    private double stiffness = 1000.0;
@@ -38,39 +36,21 @@ public class NetDemo extends RootModel {
    private int nx = 8;
    private int ny = 8;
 
-   public NetDemo() {
-      super (null);
-   }
-
    private AxialSpring createSpring (
       PointList<Particle> parts, int pidx0, int pidx1) {
       Particle p0 = parts.get(pidx0);
       Particle p1 = parts.get(pidx1);
       Muscle spr = new Muscle (p0, p1);
-      //spr.setFirstPoint (p0);
-      //spr.setSecondPoint (p1);
       spr.setMaterial (new SimpleAxialMuscle (stiffness, damping, maxForce));
       return spr;
    }
 
-   public NetDemo (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       MechModel mech = new MechModel ("mech");
-      // PropertyInfoList list = mech.getAllPropertyInfo();
-      // for (PropertyInfo info : list)
-      // { System.out.println (info.getName());
-      // }
       mech.setGravity (0, 0, -980.0);
-      //mech.setGravity (0, 0, 0);
       mech.setPointDamping (1.0);
-
-      RenderProps.setPointStyle (mech, RenderProps.PointStyle.SPHERE);
-      RenderProps.setPointRadius (mech, widthx/50.0);
-      RenderProps.setLineRadius (mech, widthx/100.0);
-      RenderProps.setLineColor (mech, Color.BLUE);
-      RenderProps.setLineStyle (mech, RenderProps.LineStyle.ELLIPSOID);
+      addModel (mech);
 
       int nump = (nx+1)*(ny+1);
 
@@ -91,9 +71,6 @@ public class NetDemo extends RootModel {
             AxialSpring.class, "blueSprings");
       RenderProps.setLineColor (blueSprings, Color.BLUE);
 
-      // ReferenceList<ModelComponent> refs =
-      //    new ReferenceList<ModelComponent>("refs");
-
       for (int i=0; i<=nx; i++) {
          for (int j=0; j<=ny; j++) {
             Particle p = new Particle (
@@ -105,15 +82,18 @@ public class NetDemo extends RootModel {
          }
       }
 
-      // create springs along y
+      // create green springs along y
       for (int i=0; i<=nx; i++) {
          for (int j=0; j<ny; j++) {
-            greenSprings.add (createSpring (redParticles, i*(ny+1)+j, i*(ny+1)+j+1));
+            greenSprings.add (
+               createSpring (redParticles, i*(ny+1)+j, i*(ny+1)+j+1));
          }
       }
+      // create blue springs along x
       for (int j=0; j<=ny; j++) {
          for (int i=0; i<nx; i++) {
-            blueSprings.add (createSpring (redParticles, i*(ny+1)+j, (i+1)*(ny+1)+j));
+            blueSprings.add (
+               createSpring (redParticles, i*(ny+1)+j, (i+1)*(ny+1)+j));
          }
       }
 
@@ -123,15 +103,11 @@ public class NetDemo extends RootModel {
       mech.add (redParticles);
       mech.add (springs);
 
+      setPointRenderProps (mech);
+      setLineRenderProps (mech);
+
       ReferenceList greenMid = new ReferenceList ("middleGreenSprings");
       ReferenceList blueMid = new ReferenceList ("middleBlueSprings");
-
-      // refs.add (redParticles.get(0));
-      // refs.add (redParticles.get(1));
-      // refs.add (greenSprings.get(0));
-      // refs.add (greenSprings.get(1));
-      // refs.add (blueSprings.get(0));
-      // refs.add (blueSprings.get(1));
 
       for (int i=0; i<8; i++) {
          blueMid.addReference (blueSprings.get(32+i));
@@ -142,15 +118,24 @@ public class NetDemo extends RootModel {
       mech.add (greenMid);
       mech.add (blueMid);
 
-      addModel (mech);
       //addPanProbe ();
    }
 
+  protected void setPointRenderProps (Renderable r) {
+      RenderProps.setPointColor (r, Color.RED);
+      RenderProps.setPointStyle (r, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointRadius (r, widthx/50.0);
+   }
+
+   protected void setLineRenderProps (Renderable r) {
+      RenderProps.setLineColor (r, Color.BLUE);
+      RenderProps.setLineStyle (r, RenderProps.LineStyle.ELLIPSOID);
+      RenderProps.setLineRadius (r, widthx/100.0);
+   }
 
    public void attach (DriverInterface driver) {
       setViewerCenter (new Point3d (0.255913, -0.427015, -0.672117));
       setViewerEye (new Point3d (0, -38, 24));
-      // System.out.println();
    }
 
    private double[] computePanData (

@@ -1,5 +1,5 @@
 "Spring Mesh" artisynth.demos.mech.SpringMeshDemo
-"NetDemo" artisynth.demos.mech.NetDemo
+"NetDemo" artisynth.demos.tutorials.NetDemo
 "Rigid Body Spring" artisynth.demos.mech.RigidBodyDemo
 "MechModel Demo" artisynth.demos.mech.MechModelDemo
 "MechModelCollide" artisynth.demos.mech.MechModelCollide

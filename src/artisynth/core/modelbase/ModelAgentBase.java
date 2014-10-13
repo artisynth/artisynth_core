@@ -36,7 +36,7 @@ public abstract class ModelAgentBase extends ModelComponentBase
          model = (Model)c;
       }
       // now try to find a higher model that is not a root model
-      for (c=c.getParent(); c.getParent() != null; c=c.getParent()) {
+      for (c=c.getParent(); c != null; c=c.getParent()) {
          if (c instanceof Model) {
             model = (Model)c;
          }

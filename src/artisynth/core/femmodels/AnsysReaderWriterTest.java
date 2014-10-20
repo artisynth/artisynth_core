@@ -12,6 +12,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 
 import maspack.util.ReaderTokenizer;
+import maspack.util.TestException;
 
 public class AnsysReaderWriterTest {
 
@@ -74,66 +75,70 @@ public class AnsysReaderWriterTest {
       "    58    59\n" +
       "    65    66    67    67    68    69    70    70     1     9     1     1     0     9\n";
 
+   // checks to make sure entries a field size of less than 6 will still work
+   public static final String reducedElemStr =
+      "  1  2 3  4  5    6     7     8     1     1     1     1     0     1\n" +
+      "15  16 17  18 19 20 21    22 1     3     1     1     0     3\n" +
+      "    23 24 25 26   27  28 29   30  31  32  33  34\n" +
+      " 40 41 42  43   0 0 0  0     1     5     1     1 0  5\n" +
+      "  50  51 52 53 54  55    56    57 1 7 1 1     0     7\n" +
+      "58 59\n" +
+      "65 66 67 67    68    69    70    70 1 9     1     1    0     9\n";
+
    
+   protected static void checkStrings (String msg, String str, String chk) {
+
+      String[] strs = str.split ("\n");
+      String[] chks = chk.split ("\n");
+
+      if (strs.length != chks.length) {
+         throw new TestException (msg + ": got "+strs.length+" lines, expecting "+chks.length);
+      }
+      for (int i=0; i<strs.length; i++) {
+         if (!strs[i].equals (chks[i])) {
+            System.out.println (msg + ": line "+(i+1)+", expecting:\n" + strs[i] + "\ngot:\n" + chks[i]);
+            throw new TestException (msg + ": unequal lines");
+         }
+      }
+   }
+
    public static void main (String args[]) {
-      StringReader nodeReader = new StringReader (testNodeStr);
-      StringReader elemReader = new StringReader (testElemStr);
-      
-      FemModel3d fem = new FemModel3d();
-      
-      try {
-         AnsysReader.read (fem, nodeReader, elemReader, 1.0, null, /*options=*/0);
-      }
-      catch (IOException e) {
-         e.printStackTrace();
-         System.exit (1);
-      }
-      
-      StringWriter nodeWriter = new StringWriter ();
-      StringWriter elemWriter = new StringWriter ();
-      
-      AnsysWriter.writeNodeFile (fem, new PrintWriter (nodeWriter));
-      AnsysWriter.writeElemFile (fem, new PrintWriter (elemWriter));
-      
-      String nodeStr = nodeWriter.toString ();
-      String elemStr = elemWriter.toString ();
-      
-      try {
-         ReaderTokenizer rtok1 = new ReaderTokenizer(new StringReader(testNodeStr));
-         ReaderTokenizer rtok2 = new ReaderTokenizer(new StringReader(nodeStr));
-         rtok1.eolIsSignificant (true);
-         rtok2.eolIsSignificant (true);
 
-         while (rtok1.nextToken () != ReaderTokenizer.TT_EOF &&
-            rtok2.nextToken () != ReaderTokenizer.TT_EOF) {
-            
-            if (rtok1.ttype == ReaderTokenizer.TT_EOL &&
-               rtok2.ttype == ReaderTokenizer.TT_EOL ) {
-               continue;
-            }
-            
-            if (rtok1.nval != rtok2.nval) {
-               throw new Exception ("Input and output node strings do not equal");
-            }
-         }
-         
-         rtok1 = new ReaderTokenizer (new StringReader (testElemStr));
-         rtok2 = new ReaderTokenizer (new StringReader (elemStr));
-         rtok1.eolIsSignificant (true);
-         rtok2.eolIsSignificant (true);
+      try {
+         FemModel3d fem = new FemModel3d();
+         AnsysReader.read (
+            fem, new StringReader(testNodeStr), new StringReader(testElemStr),
+            1.0, null, /*options=*/0);
 
-         while (rtok1.nextToken () != ReaderTokenizer.TT_EOF &&
-            rtok2.nextToken () != ReaderTokenizer.TT_EOF) {
-            
-            if (rtok1.ttype == ReaderTokenizer.TT_EOL &&
-               rtok2.ttype == ReaderTokenizer.TT_EOL ) {
-               continue;
-            }
-            
-            if (rtok1.nval != rtok2.nval) {
-               throw new Exception ("Input and output elem strings do not equal");
-            }
-         }
+         StringWriter nodeWriter = new StringWriter ();
+         StringWriter elemWriter = new StringWriter ();
+      
+         AnsysWriter.writeNodeFile (fem, new PrintWriter (nodeWriter));
+         AnsysWriter.writeElemFile (fem, new PrintWriter (elemWriter));
+      
+         String nodeStr = nodeWriter.toString ();
+         String elemStr = elemWriter.toString ();
+
+         checkStrings ("Nodes", nodeStr, testNodeStr);
+         checkStrings ("Elems", elemStr, testElemStr);
+
+         fem = new FemModel3d();
+         AnsysReader.read (
+            fem, new StringReader(testNodeStr), new StringReader(reducedElemStr),
+            1.0, null, /*options=*/0);
+
+         nodeWriter = new StringWriter ();
+         elemWriter = new StringWriter ();
+      
+         AnsysWriter.writeNodeFile (fem, new PrintWriter (nodeWriter));
+         AnsysWriter.writeElemFile (fem, new PrintWriter (elemWriter));
+      
+         nodeStr = nodeWriter.toString ();
+         elemStr = elemWriter.toString ();
+
+         checkStrings ("Nodes", nodeStr, testNodeStr);
+         checkStrings ("Elems", elemStr, testElemStr);
+
       }
       catch (Exception e) {
          e.printStackTrace();

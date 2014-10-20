@@ -113,8 +113,8 @@ public class AnsysReader implements FemReader {
       Reader elemReader = null;
 
       try {
-         nodeReader = new BufferedReader(new FileReader (nodeFileName));
-         elemReader = new BufferedReader(new FileReader (elemFileName));
+         nodeReader = new FileReader (nodeFileName);
+         elemReader = new FileReader (elemFileName);
          model = read (model, nodeReader, elemReader, density, scale, options);
       }
       catch (IOException e) {
@@ -155,8 +155,8 @@ public class AnsysReader implements FemReader {
     * if this is a problem reading the file
     */
    public static FemModel3d read (
-      FemModel3d model, Reader nodeReader, Reader elemReader, double density,
-      Vector3d scale, int options) throws IOException {
+      FemModel3d model, Reader nodeReader, Reader elemReader,
+      double density, Vector3d scale, int options) throws IOException {
 
       boolean tetrahedralize = (options & TETRAHEDRALIZE_HEXES) != 0;
       boolean useAnsysNum = (options & ONE_BASED_NUMBERING) != 0;
@@ -235,8 +235,8 @@ public class AnsysReader implements FemReader {
                createQuadHex (model, nodeList, elemId, attrList);
                break;
             default:
-               System.out.println ("Ignoring unknown element type with " +
-                  nodeList.size() + "number of nodes");
+               System.out.println ("Element "+elemId+": unknown type with " +
+                  nodeList.size() + " nodes; ignoring");
          }
       }
       
@@ -260,7 +260,88 @@ public class AnsysReader implements FemReader {
       return model;
    }
 
+
+   protected static int parseNumber (
+      ArrayList<Integer> numbers, String line, int off, int lineno) 
+      throws IOException {
+      
+      int max = line.length();
+      // limit maximum digits for the first 13 numbers
+      if (numbers.size() < 13) {
+         max = Math.min (max, off+6);
+      }
+      int c = 0;
+      // skip leading white space
+      while (off < max && Character.isWhitespace((c=line.charAt(off)))) {
+         off++;
+      }
+      if (off == max) {
+         return -1;
+      }
+      if (!Character.isDigit(c)) {
+         throw new IOException (
+            "Error: non-digit '"+c+"' in file at line "+lineno);
+      }
+      int num = 0;
+      while (off < max && Character.isDigit((c=line.charAt(off)))) {
+         num = 10*num + (c-'0');
+         off++;
+      }
+      numbers.add (num);
+      return off;
+   }
+
    public static LinkedHashMap<Integer, ArrayList<Integer>> readElemFile ( 
+      Reader elemReader, boolean useAnsysNum) throws IOException {
+      
+      LinkedHashMap<Integer, ArrayList<Integer>> elemPositions = 
+         new LinkedHashMap<Integer, ArrayList<Integer>> ();
+      // ReaderTokenizer rtok =
+      //    new ReaderTokenizer (new BufferedReader (elemReader));
+      //rtok.eolIsSignificant (true);
+      
+      int offset = useAnsysNum ? 0 : -1;
+      
+      int elemId = 0;
+      String line;
+      int lineno = 0;
+      BufferedReader reader = new BufferedReader (elemReader);
+      while ((line = reader.readLine()) != null) {
+         
+         ArrayList<Integer> numbers = new ArrayList<Integer> ();
+         ArrayList<Integer> elemNumList;
+         lineno++;
+
+         int off = 0;
+         while ((off = parseNumber (numbers, line, off, lineno)) != -1) {
+         }
+         
+         if (numbers.size() == 14) {
+            elemNumList = new ArrayList<Integer> ();
+            
+            for (int i = 0; i < 8; i++) {
+               elemNumList.add (numbers.get (i) + offset);
+            }
+            for (int i = 8; i < 13; i++) {
+               elemNumList.add (0, numbers.get (i));
+            }
+            
+            elemId = numbers.get (13);
+         }
+         else {
+            elemNumList = elemPositions.get (elemId + offset);
+            
+            for (int i = 0; i < numbers.size(); i++) {
+               elemNumList.add (numbers.get (i) + offset);
+            }
+         }
+         elemPositions.put (elemId + offset, elemNumList);
+      }
+	   
+      return elemPositions;
+   }
+   
+   protected static LinkedHashMap<Integer, ArrayList<Integer>> readElemFileOld ( 
       Reader elemReader, boolean useAnsysNum) throws IOException {
       
       LinkedHashMap<Integer, ArrayList<Integer>> elemPositions = 

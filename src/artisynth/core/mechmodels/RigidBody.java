@@ -1051,6 +1051,28 @@ public class RigidBody extends Frame implements CopyableComponent, Collidable, P
    }
 
    /** 
+    * Creates an icosahedrally spherical RigidBody with a prescribed uniform
+    * density.  The sphere is centered on the origin.
+    * 
+    * @param bodyName name of the RigidBody
+    * @param r radius of the sphere
+    * @param density density of the body
+    * @param ndivisions number of divisions used in creating the mesh
+    * @return spherical rigid body
+    */
+   public static RigidBody createIcosahedralSphere (
+      String bodyName, double r, double density, int ndivisions) {
+
+      RigidBody body = new RigidBody (bodyName);
+      PolygonalMesh mesh = MeshFactory.createIcosahedralSphere (
+         r, Point3d.ZERO, ndivisions);
+      body.setMesh (mesh, null);
+      double mass = 4/3.0*Math.PI*r*r*r*density;
+      body.setInertia (SpatialInertia.createSphereInertia (mass, r));
+      return body;
+   }
+
+   /** 
     * Creates an ellipsoidal RigidBody with a prescribed uniform density.
     * The ellipsoid is centered on the origin.
     * 

@@ -1032,8 +1032,10 @@ implements Constrainer {
 
       GL2 gl = renderer.getGL2();
 
-      // estimate distance to offset lines/planes 
-      double offsetMag = (renderer.getFarClipPlaneZ()- renderer.getNearClipPlaneZ())*0.001;
+      // estimate distance to offset lines/planes
+      // XXX don't offset lines for now 
+      double offsetMag = 0; //(renderer.getFarClipPlaneZ()- renderer.getNearClipPlaneZ())*0.001;
+      renderer.getZDirection();
       Vector3d offDir = new Vector3d(renderer.getZDirection());
       // System.out.println("Z direction" + offDir);
       double scale = offsetMag/offDir.norm();

@@ -339,10 +339,10 @@ public class WayPointProbe extends OutputProbe {
 //      save ();
 //   }
 //   
-//   public void saveas(String fileName) {
-//      setAttachedFileName(fileName);
-//      save ();
-//   }
+  public void saveas(String fileName) {
+     setAttachedFileName(fileName);
+     save ();
+  }
 
    /**
     * Load waypoint state data from the attached file.
@@ -409,6 +409,11 @@ public class WayPointProbe extends OutputProbe {
       }
    }
 
+   public void loadfrom (String fileName) {
+      setAttachedFileName(fileName);
+      load ();
+   }
+   
    @Override
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
       super.scan (rtok, ref);

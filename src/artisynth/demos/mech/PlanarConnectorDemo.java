@@ -92,6 +92,7 @@ public class PlanarConnectorDemo extends RootModel {
       mechMod.addRigidBodyConnector (connector);
 
       addModel (mechMod);
+      addControlPanel (mechMod);
 
       RigidTransform3d X = new RigidTransform3d (box.getPose());
       X.p.z += 2;
@@ -100,26 +101,14 @@ public class PlanarConnectorDemo extends RootModel {
 
    ControlPanel myControlPanel;
 
-   public void attach (DriverInterface driver) {
-      super.attach (driver);
-
-      if (getControlPanels().size() == 0) {
-         myControlPanel = new ControlPanel ("options", "");
-         myControlPanel.addWidget (this, "models/mechMod:integrator");
-         myControlPanel.addWidget (this, "models/mechMod:maxStepSize");
-         myControlPanel.addWidget (
-            this, "models/mechMod/rigidBodyConnectors/0:unilateral");
-         myControlPanel.addWidget (
-            this, "models/mechMod/rigidBodyConnectors/0:compliance");
-         myControlPanel.addWidget (
-            this, "models/mechMod/rigidBodyConnectors/0:damping");
-         myControlPanel.pack();
-         myControlPanel.setVisible (true);
-         java.awt.Point loc = driver.getFrame().getLocation();
-         myControlPanel.setLocation (
-            loc.x + driver.getFrame().getWidth(), loc.y);
-         addControlPanel (myControlPanel);
-      }
+   public void addControlPanel (MechModel mech) {
+      myControlPanel = new ControlPanel ("options", "");
+      myControlPanel.addWidget (mech, "integrator");
+      myControlPanel.addWidget (mech, "maxStepSize");
+      myControlPanel.addWidget (mech, "rigidBodyConnectors/0:unilateral");
+      myControlPanel.addWidget (mech, "rigidBodyConnectors/0:compliance");
+      myControlPanel.addWidget (mech, "rigidBodyConnectors/0:damping");
+      addControlPanel (myControlPanel);
    }
 
    public void detach (DriverInterface driver) {

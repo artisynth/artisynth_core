@@ -125,7 +125,9 @@ public class InverseManager implements HasProperties {
          findOrCreateProbes(Main.getRootModel());
          configureProbes();
       }
-      showInversePanel();
+      if (Main.getMainFrame() != null) {
+         showInversePanel();
+      }
    }
 
    public void clearContoller() {
@@ -409,8 +411,9 @@ public class InverseManager implements HasProperties {
          }
    
          Main.getRootModel().addBreakPoint(myProbeDuration);
-   
-         Main.getTimeline().requestResetAll();
+         if (Main.getTimeline() != null) {
+            Main.getTimeline().requestResetAll();
+         }
       }
    }
 

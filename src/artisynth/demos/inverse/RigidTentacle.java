@@ -332,8 +332,7 @@ public class RigidTentacle extends RootModel {
    
    
    protected ControlPanel panel;
-   public void addPanel(DriverInterface driver) {
-      JFrame frame = driver.getFrame();
+   public void addPanel () {
       panel = new ControlPanel("Force Control", "");
 
       for (ForceEffector fe : myMechMod.forceEffectors ()) {
@@ -342,10 +341,6 @@ public class RigidTentacle extends RootModel {
             panel.addWidget (fex.getName ()+" ex", fex, "excitation", -1.0, 1.0);
          }
       }
-      panel.pack();
-      panel.setVisible(true);
-      java.awt.Point loc = frame.getLocation();
-      panel.setLocation(loc.x + frame.getWidth(), loc.y);
       addControlPanel (panel);
    }
    
@@ -372,6 +367,7 @@ public class RigidTentacle extends RootModel {
       tracker.setExcitationBounds (-1d, 1d);
       tracker.addL2RegularizationTerm(1);
       addController (tracker);
+      addPanel();
    }
    
    public void attach(DriverInterface driver) {    
@@ -381,10 +377,6 @@ public class RigidTentacle extends RootModel {
       ArtisynthPath.setWorkingDir(workingDir);
 
       addTrackingController ();
-      
-      if (getControlPanels().size() == 0) {         
-         addPanel(driver);
-      }
    }
     
    public void detach(DriverInterface driver) {    

@@ -45,6 +45,7 @@ import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointAttachment;
+import artisynth.core.mechmodels.Pullable;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.SkinMeshBase;
 import artisynth.core.modelbase.ComponentList;
@@ -55,7 +56,6 @@ import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.StringToken;
 import artisynth.core.util.TransformableGeometry;
-import artisynth.core.workspace.PullController.Pullable;
 
 /**
  * A MeshComponent that supports "skinning", in which the position of each mesh
@@ -1266,19 +1266,18 @@ public class SkinMesh extends SkinMeshBase implements Pullable, Collidable {
    }
 
    @Override
-   public Object getOriginData(MouseRayEvent ray) {
-      SkinOriginData origin = null;
+   public Object getOriginData(Point3d origin, Vector3d dir) {
+      SkinOriginData data = null;
       BVFeatureQuery query = new BVFeatureQuery();
       Point3d isectPoint = new Point3d();
       Vector3d duv = new Vector3d();
       Face faceHit = query.nearestFaceAlongRay (
-         isectPoint, duv, (PolygonalMesh)getMesh(),
-         ray.getRay().getOrigin(), ray.getRay().getDirection());
+         isectPoint, duv, (PolygonalMesh)getMesh(), origin, dir);
 
       if (faceHit != null) {
-         origin = new SkinOriginData(faceHit, duv);
+         data = new SkinOriginData(faceHit, duv);
       }
-      return origin;
+      return data;
    }
 
    @Override

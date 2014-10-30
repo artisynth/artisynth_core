@@ -15,7 +15,6 @@ import artisynth.core.probes.NumericInputProbe;
 import artisynth.core.probes.NumericOutputProbe;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.TimeBase;
-import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
@@ -29,7 +28,7 @@ public class MuscleArm extends RootModel
 
    
    public static final String meshDir = ArtisynthPath.getHomeRelativePath(
-      "src/artisynth/models/tutorial/",".");
+      "src/artisynth/demos/mech/geometry/",".");
     protected MechModel model;
     double len = 20;
     Vector3d size = new Vector3d(len/10,len/5,len);
@@ -60,7 +59,8 @@ public class MuscleArm extends RootModel
         
 //        addAntagonist();
         addEndPoint();
-        
+        addControlPanel();
+        addProbes();
     }
     
     public void addRigidBodies()
@@ -292,17 +292,12 @@ public class MuscleArm extends RootModel
     }
     
     protected ControlPanel panel;
-    public void addPanel(DriverInterface driver)
-    {
 
-        JFrame frame = driver.getFrame();
+    public void addControlPanel ()
+    {
         panel = new ControlPanel("Muscle Control", "");
         panel.addWidget (
            "Activation", model, "axialSprings/muscle:excitation", 0.0, 1.0);
-        panel.pack();
-        panel.setVisible(true);
-        java.awt.Point loc = frame.getLocation();
-        panel.setLocation(loc.x + frame.getWidth(), loc.y);
         addControlPanel (panel);
    }
     
@@ -313,7 +308,8 @@ public class MuscleArm extends RootModel
         double rate = 0.01;
         try 
         {
-           String path = ArtisynthPath.getHomeRelativePath("src/artisynth/models/tutorial/", ".");
+           String path = ArtisynthPath.getHomeRelativePath(
+              "src/artisynth/demos/mech/", ".");
            ip = new NumericInputProbe(model,
         	 "axialSprings/muscle:excitation",
         	 path+"muscleArmActivation.txt");
@@ -343,20 +339,4 @@ public class MuscleArm extends RootModel
         }
         
     }
-    
-    public void attach(DriverInterface driver)
-    {
-       super.attach(driver);
-       if (getControlPanels().size() == 0)
-        { 
-          addPanel(driver);
-        }
-       addProbes();
-    }
-    
-    public void detach(DriverInterface driver)
-    {
-        super.detach(driver);
-    }
-
 }

@@ -171,48 +171,16 @@ public class FemBeamMech extends RootModel {
       for (int i = 0; i < numWays; i++) {
          addWayPoint (new WayPoint ((i + 1)*res, true));
       }
+      addControlPanel (myMechMod, myFemMod);
    }
 
    ControlPanel myControlPanel;
 
-   @Override
-   public void attach (DriverInterface driver) {
-      super.attach (driver);
-      JFrame frame = driver.getFrame();
+   public void addControlPanel (MechModel mechMod, FemModel3d femMod) {
 
-      myFemMod = (FemModel3d)findComponent ("models/mech/models/fem");
-      myMechMod = (MechModel)findComponent ("models/mech");
-
-      if (getControlPanels().size() == 0) {
-         myControlPanel = new ControlPanel ("options", "");
-//         DoubleFieldSlider ymSlider =
-//            (DoubleFieldSlider)myControlPanel.addWidget (
-//               myFemMod, "YoungsModulus", 100000, 1600000);
-//         ymSlider.setRoundingTolerance (10000);
-         FemControlPanel.addFemControls (myControlPanel, myFemMod, myMechMod);
-
-         myControlPanel.pack();
-         myControlPanel.setVisible (true);
-         Point loc = frame.getLocation();
-         myControlPanel.setLocation (loc.x + frame.getWidth(), loc.y);
-         addControlPanel (myControlPanel);
-      }
-      try {
-         NumericOutputProbe collector =
-            new NumericOutputProbe (myFemMod, "volume", null, 0.01);
-         collector.setDefaultDisplayRange (0, 5);
-         collector.setStopTime (60);
-
-         addOutputProbe (collector);
-      }
-      catch (Exception e) {
-         e.printStackTrace();
-      }
-   }
-
-   @Override
-   public void detach (DriverInterface driver) {
-      super.detach (driver);
+      myControlPanel = new ControlPanel ("options", "");
+      FemControlPanel.addFemControls (myControlPanel, femMod, mechMod);
+      addControlPanel (myControlPanel);
    }
 
    /**

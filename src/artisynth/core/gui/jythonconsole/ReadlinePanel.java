@@ -1,5 +1,6 @@
 package artisynth.core.gui.jythonconsole;
 
+import java.io.*;
 import javax.swing.*;
 import javax.swing.text.*;
 import java.util.*;
@@ -8,7 +9,7 @@ import java.awt.*;
 
 import maspack.util.*;
 
-public class ReadlineConsole extends JTextArea {
+public class ReadlinePanel extends JTextArea {
    private static final long serialVersionUID = 255772702202415635L;
 
    String myPrompt = ">>> ";
@@ -17,7 +18,72 @@ public class ReadlineConsole extends JTextArea {
    int myMaxHistory = 500;
    int myMaxLines = 500;
    int myHistoryIdx = 0;
-   PromptLengths myPromptLengths;
+   int myLineStart;
+   boolean myInputRequested = false;
+
+   // I/O streams for connecting the console to an external thread
+   PipedWriter myInputWriter = null;
+   InterruptHandler myInterruptHandler = null;
+
+   public static interface InterruptHandler {
+      public void interrupt();
+   }
+
+   public static class OutputWriter extends Writer {
+
+      StringBuilder builder = new StringBuilder();
+      ReadlinePanel myConsole;
+
+      public OutputWriter (ReadlinePanel console) {
+         myConsole = console;
+      }
+
+      public void close() {
+         flush();
+      }
+
+      public void flush() {
+         if (builder.length() > 0) {
+            myConsole.appendText (builder.toString());
+            builder.setLength (0);
+         }
+      }
+
+      public void write (char[] cbuf, int off, int len) {
+         String str = new String (cbuf, off, len);
+         for (int i=0; i<len; i++) {
+            char c = cbuf[off+i];
+            builder.append (c);
+            if (c == '\n') {
+               myConsole.appendText (builder.toString());
+               builder.setLength (0);
+            }
+         }
+      }
+   }
+
+   public void setInterruptHandler (InterruptHandler h) {
+      myInterruptHandler = h;
+   }
+
+   public InterruptHandler getInterruptHandler() {
+      return myInterruptHandler;
+   }       
+
+   /**
+    * Create a reader for returning input from this console. Used
+    * when the console is connected to an external thread.
+    */   
+   public BufferedReader createReader () {
+      myInputWriter = new PipedWriter();
+      try {
+         return new BufferedReader (new PipedReader (myInputWriter));
+      }
+      catch (Exception e) {
+         throw new InternalErrorException (
+            "Can't create BufferedReader: " + e);
+      }      
+   }
 
    /** 
     * A prompt length is associated with every line, to indicate that
@@ -36,16 +102,15 @@ public class ReadlineConsole extends JTextArea {
       }
    }
 
-   public ReadlineConsole() {
+   public ReadlinePanel() {
       super (12, 80);
       setEditable (true);
 
-      myPromptLengths = new PromptLengths (64);
       initializeKeyMap();
       initializeFont();
-      initializeNewLine (null);
+      addHistory ("");
       addComponentListener (new MyComponentListener());
-
+      //initializeNewLine();
    }
 
    public void setRows (int nrows) {
@@ -69,6 +134,9 @@ public class ReadlineConsole extends JTextArea {
     * Can be overridden by subclasses to implement an interrupt function.
     */
    protected void interrupt() {
+      if (myInterruptHandler != null) {
+         myInterruptHandler.interrupt();
+      }
    }
 
    private static final int CTRL_A = 0x01;
@@ -135,12 +203,6 @@ public class ReadlineConsole extends JTextArea {
    private void doInsert (String text, int pos) {
       try {
          if (text.length() > 0) {
-            int lineno = getLineOfOffset (pos);
-            for (int idx=0; idx < text.length(); idx++) {
-               if (text.charAt(idx) == '\n') {
-                  myPromptLengths.add (++lineno, 0);
-               }
-            }
             insert (text, pos);
          }
       }
@@ -151,11 +213,14 @@ public class ReadlineConsole extends JTextArea {
 
    private void doDelete (int start, int end) {
       try {
-         int startLine = getLineOfOffset (start);
-         int endLine = getLineOfOffset (end);
          replaceRange (null, start, end);
-         if (endLine > startLine) {
-            myPromptLengths.removeRange (startLine+1, endLine+1);
+         if (start < myLineStart) {
+            if (end < myLineStart) {
+               myLineStart -= end-start;
+            }
+            else {
+               myLineStart = start;
+            }
          }
       }
       catch (Exception e) {
@@ -167,35 +232,13 @@ public class ReadlineConsole extends JTextArea {
       if (str != null) {
          doInsert (str, getDocument().getLength());
          removeExcessLines();
-      }      
+      }
       setCaretPosition (getDocument().getLength());
+      myLineStart = getCaretPosition();
    }
 
-   protected void initializeNewLine (String oldLine) {
-      if (oldLine == null) {
-         addHistory ("");
-         myPromptLengths.add (0);
-      }
-      else if (oldLine.length() > 0) {
-         setHistory (0, oldLine);
-         addHistory ("");
-      }
-      myHistoryIdx = 0;
-      try {
-         int off = getCaretPosition();
-         int lineno = getLineOfOffset (off);
-         if (getLineStartOffset(lineno) != off) {
-            // we are not at the start of a newline, so add at newline
-            appendText ("\n");
-            lineno++;
-         }
-         appendText (myPrompt);
-         // set prefixe length for the start of this line
-         myPromptLengths.set (lineno, myPrompt.length());
-      }
-      catch (BadLocationException e) {
-         throw new InternalErrorException ("bad location");
-      }
+   public void setLineText (String str) {
+      replaceLine (str);
    }
 
    private void insertText (String text, int loc) {
@@ -212,9 +255,9 @@ public class ReadlineConsole extends JTextArea {
       }
    }
 
-   String getLineText (int off) {
-      int begOff = getRowStart (off);
-      int endOff = getRowEnd (off);
+   String getLineText () {
+      int begOff = getLineStart();
+      int endOff = getLineEnd();
       try {
          return getText (begOff, endOff - begOff);
       }
@@ -223,32 +266,21 @@ public class ReadlineConsole extends JTextArea {
       }
    }
 
-   private int getRowStart (int off) {
-      try {
-         int lineno = getLineOfOffset (off);
-         return getLineStartOffset (lineno) + myPromptLengths.get (lineno);
-      }
-      catch (BadLocationException ble) {
-         throw new InternalErrorException ("bad location");
-      }
+   private int getLineStart () {
+      return myLineStart;
    }
 
-   private int getRowEnd (int off) {
+   private int getLineEnd () {
       try {
-         int lineno = getLineOfOffset (off);
-         int endOff = getLineEndOffset (lineno);
-         if (lineno < getLineCount() - 1) {
-            endOff--;
-         }
-         return endOff;
+         return getLineEndOffset (getLineCount()-1);
       }
       catch (BadLocationException e) {
          throw new InternalErrorException ("bad location");
-      }
+      }      
    }
 
    protected void endOfLine (boolean select) {
-      int endOffs = getRowEnd (getCaretPosition());
+      int endOffs = getLineEnd();
       if (select) {
          moveCaretPosition (endOffs);
       }
@@ -259,7 +291,7 @@ public class ReadlineConsole extends JTextArea {
 
    protected void beginningOfLine (boolean select) {
       int offs = getCaretPosition();
-      int begOffs = getRowStart (offs);
+      int begOffs = getLineStart();
       if (select) {
          moveCaretPosition (begOffs);
       }
@@ -270,7 +302,7 @@ public class ReadlineConsole extends JTextArea {
 
    protected void forwardChar (boolean select) {
       int offs = getCaretPosition();
-      if (offs < getRowEnd (offs)) {
+      if (offs < getLineEnd()) {
          if (select) {
             moveCaretPosition (offs + 1);
          }
@@ -282,8 +314,8 @@ public class ReadlineConsole extends JTextArea {
 
    protected void transposeChars() {
       int offs = getCaretPosition();
-      int begOffs = getRowStart (offs);
-      int endOffs = getRowEnd (offs);
+      int begOffs = getLineStart();
+      int endOffs = getLineEnd();
       if (offs > begOffs) {
          String text;
          int off0, off1;
@@ -307,7 +339,7 @@ public class ReadlineConsole extends JTextArea {
    }
 
    protected int nextWordEndOffset (int offs) {
-      String line = getLineText (offs, getRowEnd (offs));
+      String line = getLineText (offs, getLineEnd());
       int idx = 0;
       while (idx < line.length() && !isWordChar (line.charAt (idx))) {
          idx++;
@@ -335,7 +367,7 @@ public class ReadlineConsole extends JTextArea {
    }
 
    protected int prevWordStartOffset (int offs) {
-      String line = getLineText (getRowStart (offs), offs);
+      String line = getLineText (getLineStart(), offs);
       int idx = line.length() - 1;
       while (idx >= 0 && !isWordChar (line.charAt (idx))) {
          idx--;
@@ -363,12 +395,13 @@ public class ReadlineConsole extends JTextArea {
    }
 
    protected void clearScreen() {
-      doDelete (0, getRowStart (getCaretPosition()) - myPrompt.length());
+      
+      doDelete (0, getLineStart());
    }
 
    protected void backwardChar (boolean select) {
       int offs = getCaretPosition();
-      if (offs > getRowStart (offs)) {
+      if (offs > getLineStart()) {
          if (select) {
             moveCaretPosition (offs - 1);
          }
@@ -380,21 +413,21 @@ public class ReadlineConsole extends JTextArea {
 
    protected void deleteChar() {
       int offs = getCaretPosition();
-      if (offs < getRowEnd (offs)) {
+      if (offs < getLineEnd()) {
          doDelete (offs, offs + 1);
       }
    }
 
    protected void backwardDeleteChar() {
       int offs = getCaretPosition();
-      if (offs > getRowStart (offs)) {
+      if (offs > getLineStart()) {
          doDelete (offs - 1, offs);
       }
    }
 
    protected void killLine() {
       int offs = getCaretPosition();
-      int endOffs = getRowEnd (offs);
+      int endOffs = getLineEnd();
       if (offs < endOffs) {
          try {
             myKillBuffer = getText (offs, endOffs - offs);
@@ -413,7 +446,7 @@ public class ReadlineConsole extends JTextArea {
    }
 
    protected void backwardKillLine() {
-      int begOffs = getRowStart (getCaretPosition());
+      int begOffs = getLineStart();
       int offs = getCaretPosition();
       if (begOffs < offs) {
          try {
@@ -426,59 +459,93 @@ public class ReadlineConsole extends JTextArea {
       }
    }
 
-   private void replaceLine (String str, int off) {
-      int begOffs = getRowStart (off);
-      int endOffs = getRowEnd (off);
+   private void replaceLine (String str) {
+      int begOffs = getLineStart();
+      int endOffs = getLineEnd();
       doDelete (begOffs, endOffs);
       insertText (str, begOffs);
    }
 
    protected void previousHistory() {
       if (myHistoryIdx < myHistory.size() - 1) {
-         int dot = getCaretPosition();
-         setHistory (myHistoryIdx, getLineText (dot));
-         replaceLine (myHistory.get (++myHistoryIdx), dot);
+         setHistory (myHistoryIdx, getLineText());
+         replaceLine (myHistory.get (++myHistoryIdx));
       }
    }
 
    protected void beginningOfHistory() {
       if (myHistoryIdx < myHistory.size() - 1) {
-         int dot = getCaretPosition();
-         setHistory (myHistoryIdx, getLineText (dot));
+         setHistory (myHistoryIdx, getLineText());
          myHistoryIdx = myHistory.size() - 1;
-         replaceLine (myHistory.get (myHistoryIdx), dot);
+         replaceLine (myHistory.get (myHistoryIdx));
       }
    }
 
    protected void nextHistory() {
       if (myHistoryIdx > 0) {
-         int dot = getCaretPosition();
-         setHistory (myHistoryIdx, getLineText (dot));
-         replaceLine (myHistory.get (--myHistoryIdx), dot);
+         setHistory (myHistoryIdx, getLineText());
+         replaceLine (myHistory.get (--myHistoryIdx));
       }
    }
 
    protected void endOfHistory() {
       if (myHistoryIdx > 0) {
-         int dot = getCaretPosition();
-         setHistory (myHistoryIdx, getLineText (dot));
+         setHistory (myHistoryIdx, getLineText());
          myHistoryIdx = 0;
-         replaceLine (myHistory.get (myHistoryIdx), dot);
+         replaceLine (myHistory.get (myHistoryIdx));
       }
    }
 
-   public String processLine (String str) {
+   public void handleInput (String line) {
+      String result = processInput (line);
+      if (result != null && !result.endsWith ("\n")) {
+         result = result + "\n";
+      }
+      appendText (result);
+      requestInput (myPrompt);
+   }
+
+   public String processInput (String str) {
       return null;
    }
+
+   public void requestInput (String prompt) {
+      appendText (prompt);
+      myInputRequested = true;
+   }      
+
+   public void requestInput () {
+      requestInput (myPrompt);
+   }      
 
    // we synchronize acceptLine so that we can ensure that scripts
    // don't start running while we are still in this method
    protected synchronized void acceptLine() {
-      String line = getLineText (getCaretPosition());
+      String line = getLineText();
       appendText ("\n");
-      String result = processLine (line);
-      appendText (result);
-      initializeNewLine (line);
+      setHistory (0, line);
+      addHistory ("");
+      myHistoryIdx = 0;
+      myInputRequested = false;
+
+      if (myInputWriter == null) {
+         String result = processInput (line);
+         if (result != null && !result.endsWith ("\n")) {
+            result = result + "\n";
+         }
+         appendText (result);
+         requestInput (myPrompt);        
+      }
+      else {
+         try {
+            myInputWriter.write (line + "\n");
+            myInputWriter.flush();
+         }
+         catch (Exception e) {
+            throw new InternalErrorException (
+               "Error writing to commandWriter: " + e);
+         }
+      }
    }
 
    private void initializeFont() {
@@ -487,13 +554,6 @@ public class ReadlineConsole extends JTextArea {
 
    protected void selfInsert (char c) {
       doInsert (Character.toString (c), getCaretPosition());
-//       try {
-//          getDocument().insertString (
-//             getCaretPosition(), Character.toString (c), null);
-//       }
-//       catch (BadLocationException ble) {
-//          throw new InternalErrorException ("bad location");
-//       }
    }
 
    protected int metaState = NORMAL;
@@ -508,15 +568,28 @@ public class ReadlineConsole extends JTextArea {
 
    protected void adjustCaretIfNecessary() {
       int off = getCaretPosition();
-      int begOff = getRowStart (off);
-      if (off < begOff) {
-         setCaretPosition (begOff);
+      try {
+         if (getLineCount()-1 != getLineOfOffset(off)) {
+            setCaretPosition (getLineEndOffset (getLineCount()-1));
+         }
+         else {
+            int begOff = getLineStart();
+            if (off < begOff) {
+               setCaretPosition (begOff);
+            }
+         }
+      }
+      catch (Exception e) {
+         System.out.println (e);
       }
    }
 
    public class MyKeyListener extends KeyAdapter {
 
       public void keyPressed (KeyEvent evt) {
+         if (!myInputRequested) {
+            return;
+         }
          adjustCaretIfNecessary();
 
          int code = evt.getKeyCode();
@@ -558,6 +631,13 @@ public class ReadlineConsole extends JTextArea {
          char ch = evt.getKeyChar();
 
          if (metaState == NORMAL) {
+            if (!myInputRequested) {
+               if (ch == CTRL_C) {
+                  interrupt ();
+               }
+               return;
+            }
+         
             switch (ch) {
                case CTRL_A: {
                   beginningOfLine (selecting);
@@ -568,7 +648,7 @@ public class ReadlineConsole extends JTextArea {
                   break;
                }
                case CTRL_C: {
-                  interrupt ();
+                  //interrupt ();
                   break;
                }
                case CTRL_D: {
@@ -643,12 +723,18 @@ public class ReadlineConsole extends JTextArea {
             }
          }
          else if (metaState == QUOTING) {
+            if (!myInputRequested) {
+               return;
+            }
             if (ch >= 0x20) {
                selfInsert (ch);
             }
             metaState = NORMAL;
          }
          else if (metaState == ESCAPED) {
+            if (!myInputRequested) {
+               return;
+            }
             switch (ch) {
                case 'B':
                case 'b': {
@@ -694,26 +780,19 @@ public class ReadlineConsole extends JTextArea {
 
       InputMap map = getInputMap();
       KeyStroke[] keys = map.allKeys();
-      for (int i = 0; i < keys.length; i++) { // System.out.println (" " +
-                                                // keys[i] + " " +
-                                                // map.get(keys[i]));
+      for (int i = 0; i < keys.length; i++) {
          // disable this key binding
          map.put (keys[i], "none");
       }
-      // ActionMap amap = getActionMap();
-      // Object[] akeys = amap.allKeys();
-      // for (int i=0; i<akeys.length; i++)
-      // { System.out.println (
-      // " " + akeys[i] + " " + amap.get(akeys[i]));
-
-      // }
    }
 
    public static void main (String[] args) {
       JFrame frame = new JFrame ("console");
 
-      ReadlineConsole console = new ReadlineConsole();
+      ReadlinePanel console = new ReadlinePanel();
       console.setLineWrap (true);
+      console.requestInput ();
+
       JScrollPane pane = new JScrollPane(console);
       pane.setVerticalScrollBarPolicy (
          ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);

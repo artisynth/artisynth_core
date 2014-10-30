@@ -223,6 +223,7 @@ public class MainFrame extends JFrame {
       myMenuBar = new MenuBarHandler (main, this);
 
       getContentPane().add (splitPane);
+
       myMenuBar.createMenus();
       _instance = this;
 
@@ -251,7 +252,6 @@ public class MainFrame extends JFrame {
          setIconImage(icon.getImage());
       } catch (Exception e) {
       }
-      
    }
 
    public void setViewerSize (int w, int h) {

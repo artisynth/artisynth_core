@@ -1075,15 +1075,28 @@ public class ProbeInfo implements Clonable, ActionListener {
          editProbe();
       }
       else if (nameOfAction == "Large Display") {
-         // code by Andrei to display large probe window
-         System.out.println ("Display Large Probe: ProbeInfo");
+         if (setLargeDisplayVisible (true) == null) {
+            System.out.println ("Error: probe is not numeric");
+         }
+      }
 
-         // display large probe display
+      // refresh the track changes after the popup command has been executed
+      myTrack.refreshTrackChanges();
+   }
+
+   public NumericProbeDisplayLarge setLargeDisplayVisible (boolean visible) {
+      
+      Probe probe = getProbe();
+      if (!(probe instanceof NumericProbeBase)) {
+         return null;
+      }
+      // display large probe display
+      if (visible) {
          if (largeDisplay == null) {
             largeDisplay = new NumericProbeDisplayLarge (
-               getProbe(), Integer.toString (getTrackNumber ()));;
+               probe, Integer.toString (getTrackNumber ()));;
             largeDisplay.addWindowListener (new WindowHandler());
-
+            
             // position the large probe window to the left of the timeline window
             Point timelineLocation = myController.getLocation();
             Dimension timelineSize = myController.getSize();
@@ -1093,11 +1106,13 @@ public class ProbeInfo implements Clonable, ActionListener {
             largeDisplay.setLocation (newLargeProbePosition);
          }
          largeDisplay.setVisible (true);
-         // end of the code section
       }
-
-      // refresh the track changes after the popup command has been executed
-      myTrack.refreshTrackChanges();
+      else {
+         if (largeDisplay == null) {
+            largeDisplay.setVisible (false);
+         }
+      }
+      return largeDisplay;
    }
    
    //=============================================================

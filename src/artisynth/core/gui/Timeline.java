@@ -8,7 +8,9 @@ package artisynth.core.gui;
 import javax.swing.JFrame;
 
 import artisynth.core.gui.probeEditor.NumericProbeEditor;
+import artisynth.core.gui.NumericProbeDisplayLarge;
 import artisynth.core.probes.WayPoint;
+import artisynth.core.probes.Probe;
 
 public abstract class Timeline extends JFrame {
    private static final long serialVersionUID = 1L;
@@ -51,4 +53,7 @@ public abstract class Timeline extends JFrame {
    public static boolean isMultipleProbeSelecting() {
       return multipleSelecting;
    }
+
+   public abstract NumericProbeDisplayLarge setLargeDisplayVisible (
+      Probe probe, boolean visible);
 }

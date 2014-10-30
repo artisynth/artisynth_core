@@ -639,11 +639,6 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
    public boolean isPrintable() {
       return true;
    }
-   
-//   public VectorNd getData() {
-//      return getData(TimeBase.ticksToSeconds (
-//         Main.getTimeline().getTimescaleCursorTime()));
-//   }
 
    public VectorNd getData (double sec) {
 	  VectorNd vals = new VectorNd(myVsize);

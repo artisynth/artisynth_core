@@ -292,6 +292,7 @@ public class FemBeam3d extends RootModel {
       // myMechMod.setPrintState ("%g");
 
       // addModel (myFemMod);
+      addControlPanel (myMechMod, myFemMod);
    }
 
 
@@ -556,47 +557,28 @@ public class FemBeam3d extends RootModel {
       }
    }
          
-
    ControlPanel myControlPanel;
 
-   @Override
-   public void attach (DriverInterface driver) {
-      super.attach (driver);
-      JFrame frame = driver.getFrame();
+   public void addControlPanel (MechModel mechMod, FemModel3d femMod) {
 
-      // FemModel3d myFemMod = (FemModel3d)findComponent ("models/fem");
-      FemModel3d femMod = (FemModel3d)findComponent ("models/mech/models/fem");
-      MechModel mainMod = (MechModel)findComponent ("models/0");
-
-      if (getControlPanels().size() == 0) {
-         myControlPanel = new ControlPanel ("options", "LiveUpdate");
-         FemControlPanel.addFem3dControls (myControlPanel, femMod, mainMod);
-         myControlPanel.addWidget (femMod, "surfaceRendering");
-         myControlPanel.addWidget (femMod, "stressPlotRanging");
-         myControlPanel.addWidget (femMod, "stressPlotRange");
-         if (mainMod.axialSprings().size() > 0) {
-            myControlPanel.addWidget (this, "excitation0");
-            myControlPanel.addWidget (this, "excitation1");
-         }
-         else if (femMod instanceof FemMuscleModel) {
-            FemMuscleModel tissue = (FemMuscleModel)femMod;
-            if (tissue.getMuscleBundles().size() >= 2) {
-               myControlPanel.addWidget (femMod, "bundles/0:excitation");
-               myControlPanel.addWidget (femMod, "bundles/1:excitation");
-            }
-         }
-            
-         myControlPanel.pack();
-         //myControlPanel.setVisible (true);
-         Point loc = frame.getLocation();
-         myControlPanel.setLocation (loc.x + frame.getWidth(), loc.y);
-         addControlPanel (myControlPanel);
+      myControlPanel = new ControlPanel ("options", "LiveUpdate");
+      FemControlPanel.addFem3dControls (myControlPanel, femMod, mechMod);
+      myControlPanel.addWidget (femMod, "surfaceRendering");
+      myControlPanel.addWidget (femMod, "stressPlotRanging");
+      myControlPanel.addWidget (femMod, "stressPlotRange");
+      if (mechMod.axialSprings().size() > 0) {
+         myControlPanel.addWidget (this, "excitation0");
+         myControlPanel.addWidget (this, "excitation1");
       }
-   }
-
-   @Override
-   public void detach (DriverInterface driver) {
-      super.detach (driver);
+      else if (femMod instanceof FemMuscleModel) {
+         FemMuscleModel tissue = (FemMuscleModel)femMod;
+         if (tissue.getMuscleBundles().size() >= 2) {
+            myControlPanel.addWidget (femMod, "bundles/0:excitation");
+            myControlPanel.addWidget (femMod, "bundles/1:excitation");
+         }
+      }
+            
+      addControlPanel (myControlPanel);
    }
 
    /**

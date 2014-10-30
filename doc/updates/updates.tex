@@ -14,6 +14,32 @@
 %\renewcommand{\sectionname}{}
 \begin{document}
 
+\subsection*{getFrame() not needed when creating ControlPanels}
+
+When creating {\tt ControlPanel}s, it was once necessary to explicity
+pack them, make them visible, and set their position with respect tp
+the main ArtiSynth frame, using a code fragment that would look like
+this:
+%
+\begin{lstlisting}[]
+   controlPanel.pack();
+   controlPanel.setVisible(true);
+   JFrame frame = driverInterface.getFrame();
+   java.awt.Point loc = frame.getLocation();
+   controlPanel.setLocation(loc.x + refFrame.getWidth(), loc.y);
+   root.addControlPanel(controlPanel);
+\end{lstlisting}
+%
+All of these things are now done automatically by the {\tt
+addControlPanel()} method, and so the above code can be simplified to
+%
+\begin{lstlisting}[]
+   root.addControlPanel(controlPanel);
+\end{lstlisting}
+%
+Calling {\tt driver.getFrame()} is now only necessary to place the
+panel in an unconventional location.
+
 \section*{Sep 24, 2014}
 
 \subsection*{Joint coordinate frames renamed}

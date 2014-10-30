@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.swing.JFrame;
-
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderProps;
@@ -35,7 +33,6 @@ import artisynth.core.mechmodels.Muscle;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.modelbase.ComponentList;
 import artisynth.core.probes.NumericInputProbe;
-import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
 
 public class FemMuscleDemo extends RootModel {
@@ -230,6 +227,7 @@ public class FemMuscleDemo extends RootModel {
       }
 
       addProbes(tissue);
+      createMusclePanel ();
 
       // int numWays = 20;
       // double res = 0.1;
@@ -340,7 +338,7 @@ public class FemMuscleDemo extends RootModel {
       }
    }
 
-   public void createMusclePanel(JFrame frame) {
+   public void createMusclePanel () {
       ControlPanel myControlPanel = new ControlPanel("options", "LiveUpdate");
       FemControlPanel.addMuscleControls(myControlPanel, tissue, tissue);
       
@@ -382,28 +380,8 @@ public class FemMuscleDemo extends RootModel {
          });
          selector.add(checkBox);
       }
-      myControlPanel.pack();
-      myControlPanel.setVisible(true);
-      GuiUtils.locateRight(myControlPanel.getFrame(), frame);
+
       addControlPanel(myControlPanel);
-   }
-
-   public void attach(DriverInterface driver) {
-      super.attach(driver);
-
-      JFrame frame = driver.getFrame();
-
-      if (getControlPanels().size() == 0) {
-         createMusclePanel(frame);
-      }
-   }
-
-   public void detach(DriverInterface driver) {
-      super.detach(driver);
-      if (myControlPanel != null) {
-         myControlPanel.dispose();
-         myControlPanel = null;
-      }
    }
 
    /**

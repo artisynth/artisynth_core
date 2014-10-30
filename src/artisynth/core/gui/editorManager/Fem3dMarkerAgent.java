@@ -133,8 +133,9 @@ public class Fem3dMarkerAgent extends AddComponentAgent<FemMarker> {
             intersectClipPlane (rayEvent.getRay(), viewer.getClipPlane (0));
       }
       else {
-         isect =
-            EditorUtils.intersectWithMesh (myModel.getSurfaceMesh(), rayEvent);
+         isect = BVFeatureQuery.nearestPointAlongRay (
+            myModel.getSurfaceMesh(), 
+            rayEvent.getRay().getOrigin(), rayEvent.getRay().getDirection()); 
       }
       if (isect != null) {
          createAndAddMarker (isect, myModel);

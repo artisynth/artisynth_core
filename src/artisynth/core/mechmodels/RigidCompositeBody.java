@@ -12,6 +12,7 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.Map;
 
+import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PointMesh;
 import maspack.geometry.PolygonalMesh;
@@ -19,16 +20,15 @@ import maspack.geometry.PolylineMesh;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.properties.HierarchyNode;
-import maspack.render.MouseRayEvent;
 import maspack.render.RenderList;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import artisynth.core.gui.editorManager.EditorUtils;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentListImpl;
 import artisynth.core.modelbase.ComponentUtils;
@@ -775,7 +775,7 @@ public class RigidCompositeBody extends RigidBody implements
    
    // Pullable interface
    @Override
-   public Point3d getOriginData(MouseRayEvent ray) {
+   public Point3d getOriginData (Point3d origin, Vector3d dir) {
       
       Point3d myBodyPnt = null;
       Point3d nearest = null;
@@ -785,9 +785,10 @@ public class RigidCompositeBody extends RigidBody implements
          MeshBase mesh = mc.getMesh();
          if (mesh != null && mesh instanceof PolygonalMesh) {
             PolygonalMesh smesh = (PolygonalMesh)mesh;
-            Point3d pnt = EditorUtils.intersectWithMesh (smesh, ray);
+            Point3d pnt = BVFeatureQuery.nearestPointAlongRay (
+               smesh, origin, dir);
             if (pnt != null) {
-               double d = pnt.distance(ray.getRay().getOrigin());
+               double d = pnt.distance(origin);
                if (nearest == null || d < nearestDistance) {
                   nearestDistance = d;
                   nearest = pnt;

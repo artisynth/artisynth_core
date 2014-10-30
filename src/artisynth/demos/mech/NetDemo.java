@@ -118,6 +118,7 @@ public class NetDemo extends RootModel {
       mech.add (greenMid);
       mech.add (blueMid);
 
+      mech.setProfiling (true);
       //addPanProbe ();
    }
 

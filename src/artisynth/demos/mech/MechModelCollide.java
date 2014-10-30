@@ -184,31 +184,16 @@ public class MechModelCollide extends RootModel {
       // mechMod.setIntegrator (Integrator.ForwardEuler);
       //addBreakPoint (0.51);
       //mechMod.setProfiling (true);
+      addControlPanel (mechMod);
    }
 
    ControlPanel myControlPanel;
 
-   public void attach (DriverInterface driver) {
-      super.attach (driver);
-
-      if (getControlPanels().size() == 0) {
-         myControlPanel = new ControlPanel ("options", "");
-         myControlPanel.addWidget (this, "models/mechMod:integrator");
-         myControlPanel.addWidget (this, "models/mechMod:maxStepSize");
-         myControlPanel.pack();
-         myControlPanel.setVisible (true);
-         java.awt.Point loc = driver.getFrame().getLocation();
-         myControlPanel.setLocation (
-            loc.x + driver.getFrame().getWidth(), loc.y);
-         addControlPanel (myControlPanel);
-      }
-      WayPoint way = new WayPoint (1.3);
-      way.setBreakPoint (true);
-      // Main.getWorkspace().addWayPoint (way);
-   }
-
-   public void detach (DriverInterface driver) {
-      super.detach (driver);
+    public void addControlPanel (MechModel mech) {
+      myControlPanel = new ControlPanel ("options", "");
+      myControlPanel.addWidget (mech, "integrator");
+      myControlPanel.addWidget (mech, "maxStepSize");
+      addControlPanel (myControlPanel);
    }
 
    /**

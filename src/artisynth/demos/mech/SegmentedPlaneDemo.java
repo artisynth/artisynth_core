@@ -98,7 +98,7 @@ public class SegmentedPlaneDemo extends RootModel {
       mechMod.addRigidBodyConnector (segPlanes);
 
       addModel (mechMod);
-
+      addControlPanel (mechMod);
       
       // AffineTransform3d X = new AffineTransform3d ();
       // X.applyScaling (1, 1, 2);
@@ -110,24 +110,11 @@ public class SegmentedPlaneDemo extends RootModel {
 
    ControlPanel myControlPanel;
 
-   public void attach (DriverInterface driver) {
-      super.attach (driver);
-
-      if (getControlPanels().size() == 0) {
-         myControlPanel = new ControlPanel ("options", "");
-         myControlPanel.addWidget (this, "models/mechMod:integrator");
-         myControlPanel.addWidget (this, "models/mechMod:maxStepSize");
-         myControlPanel.pack();
-         //myControlPanel.setVisible (true);
-         java.awt.Point loc = driver.getFrame().getLocation();
-         myControlPanel.setLocation (
-            loc.x + driver.getFrame().getWidth(), loc.y);
-         addControlPanel (myControlPanel);
-      }
-   }
-
-   public void detach (DriverInterface driver) {
-      super.detach (driver);
+   public void addControlPanel (MechModel mech) {
+      myControlPanel = new ControlPanel ("options", "");
+      myControlPanel.addWidget (mech, "integrator");
+      myControlPanel.addWidget (mech, "maxStepSize");
+      addControlPanel (myControlPanel);
    }
 
    /**

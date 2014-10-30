@@ -112,8 +112,12 @@ public class Workspace {
                p.removeStalePropertyWidgets();
             }
          }
-         Main.getTimeline().requestUpdateWidgets();
-         Main.getMainFrame().updateWidgets();
+         if (Main.getTimeline() != null) {
+            Main.getTimeline().requestUpdateWidgets();
+         }
+         if (Main.getMainFrame() != null) {
+            Main.getMainFrame().updateWidgets();
+         }
       }
 
       public void run() {

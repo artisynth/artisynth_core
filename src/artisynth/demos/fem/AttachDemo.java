@@ -147,37 +147,18 @@ public class AttachDemo extends RootModel {
       mechMod.addModel (femMod1);
       mechMod.addRigidBody (block);
       addModel (mechMod);
+      addControlPanel (mechMod);
    }
 
    ControlPanel myControlPanel;
 
-   @Override
-   public void attach (DriverInterface driver) {
-      super.attach (driver);
-      JFrame frame = driver.getFrame();
+   public void addControlPanel (MechModel mech) {
+      myControlPanel = new ControlPanel ("options", "LiveUpdate");
 
-      // FemModel3d femMod = (FemModel3d)findComponent ("models/fem");
       FemModel3d femMod0 =
-         (FemModel3d)findComponent ("models/mech/models/fem0");
-      FemModel3d femMod1 =
-         (FemModel3d)findComponent ("models/mech/models/fem1");
-      Model mainMod = (Model)findComponent ("models/0");
-
-      if (getControlPanels().size() == 0) {
-         myControlPanel = new ControlPanel ("options", "LiveUpdate");
-         FemControlPanel.addFem3dControls (myControlPanel, femMod0, mainMod);
-
-         myControlPanel.pack();
-         myControlPanel.setVisible (true);
-         Point loc = frame.getLocation();
-         myControlPanel.setLocation (loc.x + frame.getWidth(), loc.y);
-         addControlPanel (myControlPanel);
-      }
-   }
-
-   @Override
-   public void detach (DriverInterface driver) {
-      super.detach (driver);
+         (FemModel3d)mech.findComponent ("models/fem0");     
+      FemControlPanel.addFem3dControls (myControlPanel, femMod0, mech);
+      addControlPanel (myControlPanel);
    }
 
    /**

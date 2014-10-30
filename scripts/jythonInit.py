@@ -9,15 +9,22 @@ _interpreter_.set ("addWayPoint", main.addWayPoint)
 _interpreter_.set ("addBreakPoint", main.addBreakPoint)
 _interpreter_.set ("clearWayPoints", main.clearWayPoints)
 _interpreter_.set ("root", main.getRootModel)
-_interpreter_.set ("script", main.getJythonFrame().executeScript)
-_interpreter_.set ("abort", main.getJythonFrame().abortScript)
+_interpreter_.set ("script", main.getJythonConsole().executeScript)
+#_interpreter_.set ("abort", main.getJythonInterface().abortScript)
 
-def loadModel (name) :
+def loadModel (name, *args) :
     classname = main.getDemoClassName (name)
     if classname == None:
         print "No class found for model " + name
         return False
-    main.loadModel (name, classname)
+    if len(args) == 0:
+       main.loadModel (classname, name, None)
+    else:
+       main.loadModel (classname, name, args)
+
+def testArgs (name, *args) :
+    print "name=" + name;
+    print "args=",  args;
 
 def loadModelFile (name) :
     file = File (name)

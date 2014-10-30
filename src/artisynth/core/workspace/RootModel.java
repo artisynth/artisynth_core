@@ -120,8 +120,8 @@ public class RootModel extends RenderableModelBase
    
    GLViewer myMainViewer;
    
-   private JFrame controlPanelsFrame;
-   private JTabbedPane controlPanelTabs;
+   private JFrame myControlPanelsFrame;
+   private JTabbedPane myControlPanelTabs;
 
    protected class ModelInfo {
       Model model;
@@ -582,9 +582,6 @@ public class RootModel extends RenderableModelBase
 
       myModelInfo = new LinkedHashMap<Model,ModelInfo>();
       
-      controlPanelsFrame = new JFrame (myName + ": Control panels");
-      controlPanelTabs = new JTabbedPane();
-      controlPanelsFrame.setContentPane (controlPanelTabs);
       myMaxStepSize = DEFAULT_MAX_STEP_SIZE;
    }
 
@@ -674,6 +671,10 @@ public class RootModel extends RenderableModelBase
 
    public void setMainViewer (GLViewer v) {
       myMainViewer = v;
+   }
+
+   public JFrame getMainFrame() {
+      return Main.getMainFrame();
    }
 
    public void setViewerCenter (Point3d c) {
@@ -777,9 +778,11 @@ public class RootModel extends RenderableModelBase
    }
 
    protected void locateControlPanel (ControlPanel panel) {
-      JFrame frame = Main.getMainFrame();
-      java.awt.Point loc = frame.getLocation();
-      panel.setLocation (loc.x + frame.getWidth(), loc.y);
+      JFrame frame = getMainFrame();
+      if (frame != null) {
+         java.awt.Point loc = frame.getLocation();
+         panel.setLocation (loc.x + frame.getWidth(), loc.y);
+      }
    }
 
    public void addControlPanel (ControlPanel panel) {
@@ -821,6 +824,7 @@ public class RootModel extends RenderableModelBase
          //panel.pack();
          //panel.setVisible (true);
          myControlPanels.add (panel);
+         locateControlPanel (panel);
       }
 
       return panel;
@@ -1663,8 +1667,10 @@ public class RootModel extends RenderableModelBase
       // }
       myControlPanels.removeAll();
       
-      controlPanelsFrame.setVisible (false);
-      controlPanelTabs.removeAll ();
+      if (myControlPanelsFrame != null) {
+         myControlPanelsFrame.setVisible (false);
+         myControlPanelTabs.removeAll ();
+      }
    }
 
    public void setWaypointChecking (boolean enable) {
@@ -1749,13 +1755,28 @@ public class RootModel extends RenderableModelBase
       }
    }
 
+   protected void createControlPanelsFrame() {
+      myControlPanelsFrame = new JFrame (myName + ": Control panels");
+      myControlPanelTabs = new JTabbedPane();
+      myControlPanelsFrame.setContentPane (myControlPanelTabs);
+   }
+
    public void mergeAllControlPanels (boolean combine) {
+      JFrame frame = getMainFrame();
+      if (frame == null) {
+         // ArtiSynth is running in batch mode, so do nothing
+         return;
+      }
+      if (myControlPanelsFrame == null) {
+         createControlPanelsFrame();
+      }
       if (!myControlPanels.isEmpty ()) {         
          for (ControlPanel panel : myControlPanels) {
             Container contentPane = panel.getFrame ().getContentPane ();
             
             if (combine) {
-               controlPanelTabs.addTab (panel.getFrame().getTitle(), contentPane);
+               myControlPanelTabs.addTab (
+                  panel.getFrame().getTitle(), contentPane);
             }
             else {
                panel.getFrame ().setContentPane (contentPane);
@@ -1764,29 +1785,36 @@ public class RootModel extends RenderableModelBase
             panel.setVisible (!combine);
          }
          
-         controlPanelsFrame.pack ();
+         myControlPanelsFrame.pack ();
          
-         if (controlPanelTabs.getTabCount () == 0) {
-            controlPanelsFrame.setVisible (false);
+         if (myControlPanelTabs.getTabCount () == 0) {
+            myControlPanelsFrame.setVisible (false);
          }
-         else if (!controlPanelsFrame.isVisible ()) {
-            Point loc = Main.getMainFrame ().getLocation();
-            controlPanelsFrame.setLocation (
-               loc.x + Main.getMainFrame ().getWidth(), loc.y);
-            controlPanelsFrame.setVisible (true);
+         else if (!myControlPanelsFrame.isVisible ()) {
+            Point loc = frame.getLocation();
+            myControlPanelsFrame.setLocation (loc.x + frame.getWidth(), loc.y);
+            myControlPanelsFrame.setVisible (true);
          }
       }
    }
    
    public JTabbedPane getControlPanelTabs() {
-      return controlPanelTabs;
+      return myControlPanelTabs;
    }
 
    public void mergeControlPanel (boolean combine, ControlPanel panel) {
+      JFrame frame = getMainFrame();
+      if (frame == null) {
+         // ArtiSynth is running in batch mode, so do nothing
+         return;
+      }
+      if (myControlPanelsFrame == null) {
+         createControlPanelsFrame();
+      }
       Container contentPane = panel.getFrame ().getContentPane ();
       
       if (combine) {
-         controlPanelTabs.addTab (panel.getFrame().getTitle(), contentPane);
+         myControlPanelTabs.addTab (panel.getFrame().getTitle(), contentPane);
       }
       else {
          panel.getFrame ().setContentPane (contentPane);
@@ -1794,16 +1822,15 @@ public class RootModel extends RenderableModelBase
       
       panel.setVisible (!combine);
       
-      controlPanelsFrame.pack ();
+      myControlPanelsFrame.pack ();
       
-      if (controlPanelTabs.getTabCount () == 0) {
-         controlPanelsFrame.setVisible (false);
+      if (myControlPanelTabs.getTabCount () == 0) {
+         myControlPanelsFrame.setVisible (false);
       }
-      else if (!controlPanelsFrame.isVisible ()) {
-         Point loc = Main.getMainFrame ().getLocation();
-         controlPanelsFrame.setLocation (
-            loc.x + Main.getMainFrame ().getWidth(), loc.y);
-         controlPanelsFrame.setVisible (true);
+      else if (!myControlPanelsFrame.isVisible ()) {
+         Point loc = frame.getLocation();
+         myControlPanelsFrame.setLocation (loc.x + frame.getWidth(), loc.y);
+         myControlPanelsFrame.setVisible (true);
       }
    }
 

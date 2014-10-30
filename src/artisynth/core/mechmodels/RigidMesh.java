@@ -11,19 +11,18 @@ import java.util.Map;
 
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.BVFeatureQuery;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.GLRenderer;
-import maspack.render.MouseRayEvent;
 import maspack.render.RenderProps;
-import artisynth.core.gui.editorManager.EditorUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.workspace.PullController.Pullable;
 
-public class RigidMesh extends MeshComponent implements Pullable, Collidable {
+public class RigidMesh extends MeshComponent 
+   implements Pullable, Collidable {
 
    public static boolean DEFAULT_PHYSICAL = true;
    protected boolean physical = DEFAULT_PHYSICAL;
@@ -117,15 +116,16 @@ public class RigidMesh extends MeshComponent implements Pullable, Collidable {
    }
 
    @Override
-   public Object getOriginData(MouseRayEvent ray) {
+   public Object getOriginData (Point3d origin, Vector3d dir) {
       RigidBody rb = (RigidBody)getGrandParent();
-      PullableOrigin origin = null;
+      PullableOrigin data = null;
 
-      Point3d pnt = EditorUtils.intersectWithMesh ((PolygonalMesh)getMesh(), ray);
+      Point3d pnt = BVFeatureQuery.nearestPointAlongRay (
+         (PolygonalMesh)getMesh(), origin, dir);
       if (pnt != null) {
-         origin = new PullableOrigin(rb, pnt);
+         data = new PullableOrigin(rb, pnt);
       }
-      return origin;
+      return data;
    }
 
    @Override

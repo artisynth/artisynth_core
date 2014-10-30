@@ -39,47 +39,6 @@ import maspack.render.MouseRayEvent;
  * 
  */
 public class EditorUtils {
-   /**
-    * For a given PolygonalMesh and MouseRayEvent check if the mesh will
-    * intersect with the ray.
-    * 
-    * @param mesh
-    * The mesh to intersect with.
-    * @param ray
-    * The ray that is intersecting the mesh.
-    * @return The point at which the ray intersects the mesh.
-    */
-   public static Point3d intersectWithMesh (
-      PolygonalMesh mesh, MouseRayEvent ray) {
-      // mesh.clearObbtree(); not sure why this was needed
-
-      // intersect the mesh with the ray, check if a face is hit
-      // no face is hit when a rigid body mesh is not a triangular mesh,
-      // should the mesh be triangulated?
-      BVFeatureQuery query = new BVFeatureQuery();
-      Point3d isectPoint = new Point3d();
-      Face faceHit = query.nearestFaceAlongRay (
-         isectPoint, null, mesh,
-         ray.getRay().getOrigin(), ray.getRay().getDirection());
-//         mesh.getObbtree().intersect (
-//            ray.getRay().getOrigin(), ray.getRay().getDirection(), duv,
-//            new TriangleIntersector());
-//      Point3d isectPoint = new Point3d();
-
-      if (faceHit != null) {
-//         // mesh and the ray if a face was hit
-//         isectPoint.scaledAdd (
-//            duv.x, ray.getRay().getDirection(), ray.getRay().getOrigin());
-//
-//         // // need to set the frame, rigidBody extends Frame!
-//         // RigidTransform3d X = new RigidTransform3d();
-//         // mesh.getMeshToWorld(X);
-//         // isectPoint.inverseTransform(X);
-         return isectPoint;
-      }
-
-      return null;
-   }
 
    /**
     * Intersect a mouse ray with a plane that goes through the specified

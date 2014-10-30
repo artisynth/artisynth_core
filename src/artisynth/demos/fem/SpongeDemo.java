@@ -65,6 +65,7 @@ public class SpongeDemo extends RootModel {
 
       // testActJacobian();
       // printSparseJacobian();
+      addControlPanel();
    }
 
    @Override
@@ -124,20 +125,15 @@ public class SpongeDemo extends RootModel {
 
    ControlPanel panel;
 
+   public void addControlPanel () {
+      panel = new ControlPanel ("options", "LiveUpdate");
+      panel.setScrollable (true);
+      addControls (panel);
+      addControlPanel (panel);
+   }
+
    public void attach (DriverInterface driver) {
       super.attach (driver);
-      JFrame frame = driver.getFrame();
-
-      if (getControlPanels().size() == 0) {
-         panel = new ControlPanel ("options", "LiveUpdate");
-         panel.setScrollable (true);
-         addControls (panel);
-         panel.pack();
-         panel.setVisible (true);
-         Point loc = frame.getLocation();
-         panel.setLocation (loc.x + frame.getWidth(), loc.y);
-         addControlPanel (panel);
-      }
 
       sponge = (SpongeModel)findComponent ("models/sponge");
       // set workspace

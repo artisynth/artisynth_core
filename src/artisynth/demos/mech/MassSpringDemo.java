@@ -83,6 +83,7 @@ public class MassSpringDemo extends RootModel {
 
       addModel (msmod);
       addControlPanel();
+      addOutputProbe();
 
    }
 
@@ -93,10 +94,7 @@ public class MassSpringDemo extends RootModel {
       addControlPanel (panel);
    }
 
-   public void attach (DriverInterface driver) {
-
-      super.attach (driver);
-
+   protected void addOutputProbe() {
       try {
          NumericOutputProbe collector =
             new NumericOutputProbe (
@@ -109,15 +107,6 @@ public class MassSpringDemo extends RootModel {
       catch (Exception e) {
          e.printStackTrace();
       }
+   }      
 
-      ControlPanel panel = (ControlPanel)getControlPanels().getByNumber (0);
-
-      if (panel != null) {
-         panel.pack();
-         panel.setVisible (true);
-         java.awt.Point loc = driver.getFrame().getLocation();
-         panel.setLocation (
-            loc.x + driver.getFrame().getWidth(), loc.y);
-      }
-   }
 }

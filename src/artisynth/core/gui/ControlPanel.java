@@ -66,7 +66,10 @@ import artisynth.core.workspace.RootModel;
 
 public class ControlPanel extends ModelComponentBase
    implements PropertyWindow, ActionListener {
+
    PropertyFrame myFrame;
+   PropertyPanel myPanel;
+   String myOptionsString; // store separately in case there is no frame
 
    public static PropertyList myProps =
       new PropertyList (ControlPanel.class, ModelComponentBase.class);
@@ -166,7 +169,7 @@ public class ControlPanel extends ModelComponentBase
 
       public void mouseClicked (MouseEvent e) {
          if (e.getClickCount() == 2 && e.getButton() == MouseEvent.BUTTON1) {
-            PropertyPanel panel = myFrame.getPropertyPanel();
+            PropertyPanel panel = myPanel;
             JComponent comp = panel.findWidget (e);
             if (comp instanceof LabeledComponentBase) {
                ModelComponent c =
@@ -226,22 +229,26 @@ public class ControlPanel extends ModelComponentBase
 
    public ControlPanel (String name, String options) {
       setName (name);
-      myFrame =
-         new PropertyFrame (
-            name==null ? "" : name, options, new AddablePropertyPanel());
-      myFrame.setScrollable (myScrollableP);
-      OptionPanel optpanel = myFrame.getOptionPanel();
-      if (optpanel != null) {
-         optpanel.addMouseListener (new MouseHandler());
-      }
-      myFrame.addWindowListener (new WindowAdapter() {
-         public void windowClosed (WindowEvent e) {
-            removeFromParent();
+      myPanel = new AddablePropertyPanel();
+      myOptionsString = options;
+      if (Main.getMainFrame() != null) {
+         myFrame =
+            new PropertyFrame (
+               name==null ? "" : name, options, myPanel);
+         myFrame.setScrollable (myScrollableP);
+         OptionPanel optpanel = myFrame.getOptionPanel();
+         if (optpanel != null) {
+            optpanel.addMouseListener (new MouseHandler());
          }
-
-         public void windowClosing (WindowEvent e) {}
-      });
-      myFrame.getPropertyPanel().addMouseListener (new MouseListener());
+         myFrame.addWindowListener (new WindowAdapter() {
+               public void windowClosed (WindowEvent e) {
+                  removeFromParent();
+               }
+               
+               public void windowClosing (WindowEvent e) {}
+            });
+      }
+      myPanel.addMouseListener (new MouseListener());
    }
 
    private void removeFromParent() {
@@ -276,8 +283,9 @@ public class ControlPanel extends ModelComponentBase
       popup.add (createPopupItem ("save as ...", this));
       
       JTabbedPane tabbedPane = Main.getRootModel().getControlPanelTabs();
-      if (tabbedPane.indexOfComponent (myFrame.getContentPane ()) < 0) {
-         popup.add (createPopupItem ("merge panel", this));
+      if (tabbedPane == null || 
+          tabbedPane.indexOfComponent (myFrame.getContentPane ()) < 0) {
+            popup.add (createPopupItem ("merge panel", this));
       }
       else {
          popup.add (createPopupItem ("separate panel", this));
@@ -287,7 +295,7 @@ public class ControlPanel extends ModelComponentBase
    }
 
    public int numWidgets() {
-      return myFrame.getPropertyPanel().numWidgets();
+      return myPanel.numWidgets();
    }
 
    public void setScrollable (boolean scrollable) {
@@ -300,38 +308,61 @@ public class ControlPanel extends ModelComponentBase
    }
 
    public boolean isScrollable() {
-      return myFrame.isScrollable();
+      return myScrollableP;
    }
 
    public Component addWidget (Component comp) {
-      return myFrame.addWidget (comp);
+      myPanel.addWidget (comp);
+      return comp;
    }
 
    public LabeledComponentBase addWidget (Property prop) {
-      return myFrame.addWidget (prop);
+      LabeledComponentBase comp = myPanel.addWidget (prop);
+      return comp;
    }
 
    public LabeledComponentBase addWidget (Property prop, double min, double max) {
-      return myFrame.addWidget (prop, min, max);
+      LabeledComponentBase comp = myPanel.addWidget (prop, min, max);
+      return comp;
    }
 
    public LabeledComponentBase addWidget (HasProperties host, String name) {
-      return myFrame.addWidget (host, name);
+      Property prop = host.getProperty (name);
+      if (prop != null) {
+         return addWidget (prop);
+      }
+      else {
+         return null;
+      }
    }
 
    public LabeledComponentBase addWidget (
       HasProperties host, String name, double min, double max) {
-      return myFrame.addWidget (host, name, min, max);
+      Property prop = host.getProperty (name);
+      if (prop != null) {
+         return addWidget (prop, min, max);
+      }
+      else {
+         return null;
+      }
    }
 
    public LabeledComponentBase addWidget (
       String labelText, HasProperties host, String name) {
-      return myFrame.addWidget (labelText, host, name);
+      LabeledComponentBase widget = addWidget (host, name);
+      if (widget != null) {
+         widget.setLabelText (labelText);
+      }
+      return widget;
    }
 
    public LabeledComponentBase addWidget (
       String labelText, HasProperties host, String name, double min, double max) {
-      return myFrame.addWidget (labelText, host, name, min, max);
+      LabeledComponentBase widget = addWidget (host, name, min, max);
+      if (widget != null) {
+         widget.setLabelText (labelText);
+      }
+      return widget;
    }
 
    public Component addLabel (String text) {
@@ -343,7 +374,7 @@ public class ControlPanel extends ModelComponentBase
    }
 
    public PropertyPanel getPropertyPanel() {
-      return myFrame.getPropertyPanel();
+      return myPanel;
    }
 
    public PropertyFrame getFrame() {
@@ -351,56 +382,66 @@ public class ControlPanel extends ModelComponentBase
    }
 
    public void dispose() {
-      myFrame.dispose();
+      if (myFrame != null) {
+         myFrame.dispose();
+      }
    }
 
    public void updateWidgetValues() {
-      myFrame.updateWidgetValues();
+      if (myFrame != null) {
+         myFrame.updateWidgetValues();
+      }
    }
 
    public void addGlobalValueChangeListener (ValueChangeListener l) {
-      myFrame.addGlobalValueChangeListener (l);
+      if (myFrame != null) {
+         myFrame.addGlobalValueChangeListener (l);
+      }
    }
 
    public void removeGlobalValueChangeListener (ValueChangeListener l) {
-      myFrame.removeGlobalValueChangeListener (l);
+      if (myFrame != null) {
+         myFrame.removeGlobalValueChangeListener (l);
+      }
    }
 
    public ValueChangeListener[] getGlobalValueChangeListeners() {
-      return myFrame.getGlobalValueChangeListeners();
+      if (myFrame != null) {
+         return myFrame.getGlobalValueChangeListeners();
+      }
+      else {
+         return new ValueChangeListener[0];
+      }
    }
 
    public void setSynchronizeObject (Object syncObj) {
-      myFrame.setSynchronizeObject (syncObj);
+      if (myFrame != null) {
+         myFrame.setSynchronizeObject (syncObj);
+      }
+      else {
+         myPanel.setSynchronizeObject (syncObj);
+      }
    }
 
    public Object getSynchronizeObject() {
-      return myFrame.getSynchronizeObject();
+      return myPanel.getSynchronizeObject();
    }
 
    public void locateRight (Component comp) {
-      GuiUtils.locateRight (myFrame, comp);
+      if (myFrame != null) {
+         GuiUtils.locateRight (myFrame, comp);
+      }
    }
 
    public boolean isLiveUpdatingEnabled() {
-      return myFrame.isLiveUpdatingEnabled();
+      return myFrame != null ? myFrame.isLiveUpdatingEnabled() : false;
    }
 
    public void enableLiveUpdating (boolean enable) {
-      myFrame.enableLiveUpdating (enable);
+      if (myFrame != null) {
+         myFrame.enableLiveUpdating (enable);
+      }
    }
-
-//   public void enableAutoRerendering (boolean enable) {
-//      myFrame.enableAutoRerendering (enable);
-//   }
-
-//   public boolean isAutoRerenderingEnabled() {
-//      return myFrame.isAutoRerenderingEnabled();
-//   }
-
-   // public void show() {
-   //    myFrame.setVisible (true);
-   // }
 
    public void writeWidget (
       PrintWriter pw, Component comp, NumberFormat fmt,
@@ -435,15 +476,23 @@ public class ControlPanel extends ModelComponentBase
       pw.print ("[ ");
       IndentingPrintWriter.addIndentation (pw, 2);
       getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
-      OptionPanel optpanel = myFrame.getOptionPanel();
-      if (optpanel != null) {
-         pw.println ("options=\"" + optpanel.getButtonString()
-         + "\"");
+      String optionsStr = null;
+      if (myFrame != null) {
+         OptionPanel optpanel = myFrame.getOptionPanel();
+         if (optpanel != null) {
+            optionsStr = optpanel.getButtonString();
+         }
+      }
+      else {
+         optionsStr = myOptionsString;
+      }
+      if (optionsStr != null) {
+         pw.println ("options=\"" + optionsStr + "\"");
       }
       else {
          pw.println ("options=null");
       }
-      for (Component comp : getPropertyPanel().getWidgets()) {
+      for (Component comp : myPanel.getWidgets()) {
          writeWidget (pw, comp, fmt, ancestor);
       }
       IndentingPrintWriter.addIndentation (pw, -2);
@@ -557,7 +606,7 @@ public class ControlPanel extends ModelComponentBase
          // properties (such as the range) are initialized
          if (widget != null && property != null) {
             PropertyWidget.finishWidget (widget, property);
-            getPropertyPanel().processPropertyWidget (property, widget);
+            myPanel.processPropertyWidget (property, widget);
          }
          if (widget != null) {
             addWidget (widget);
@@ -577,7 +626,7 @@ public class ControlPanel extends ModelComponentBase
       rtok.nextToken();
       if (scanAttributeName (rtok, "options")) {
          String options = rtok.scanQuotedString ('"');
-         if (options != null) {
+         if (options != null && myFrame != null) {
             OptionPanel optpanel = myFrame.addOptionPanel (options);
             optpanel.addMouseListener (new MouseHandler());
             myFrame.pack();
@@ -603,51 +652,65 @@ public class ControlPanel extends ModelComponentBase
    }
    
    public void pack() {
-      myFrame.pack();
+      if (myFrame != null) {
+         myFrame.pack();
+      }
    }
 
    public void setFocusableWindowState(boolean enable) {
-      myFrame.setFocusableWindowState(enable);
+      if (myFrame != null) {
+         myFrame.setFocusableWindowState(enable);
+      }
    }
 
    public void setVisible (boolean visible) {
-      myFrame.setVisible (visible);
+      if (myFrame != null) {
+         myFrame.setVisible (visible);
+      }
    }
 
    public boolean isVisible () {
-      return myFrame.isVisible();
+      return myFrame != null ? myFrame.isVisible() : false;
    }
 
    public void setSize (Dimension dim) {
-      myFrame.setSize (dim);
+      if (myFrame != null) {
+         myFrame.setSize (dim);
+      }
    }
 
    public void setSize (int w, int h) {
-      myFrame.setSize (w, h);
+      if (myFrame != null) {
+         myFrame.setSize (w, h);
+      }
    }
 
    public Dimension getSize() {
-      return myFrame.getSize();
+      return myFrame != null ? myFrame.getSize() : new Dimension(0,0);
    }
 
    public void setLocation (Point dim) {
-      myFrame.setLocation (dim);
+      if (myFrame != null) {
+         myFrame.setLocation (dim);
+      }
    }
 
    public void setLocation (int x, int y) {
-      myFrame.setLocation (x, y);
+      if (myFrame != null) {
+         myFrame.setLocation (x, y);
+      }
    }
 
    public int getHeight() {
-      return myFrame.getHeight();
+      return myFrame != null ? myFrame.getHeight() : 0;
    }
 
    public int getWidth() {
-      return myFrame.getWidth();
+      return myFrame != null ? myFrame.getWidth() : 0;
    }
 
    public Point getLocation() {
-      return myFrame.getLocation();
+      return myFrame != null ? myFrame.getLocation() : new Point(0,0);
    }
 
    private boolean isStale (Property prop) {
@@ -669,15 +732,14 @@ public class ControlPanel extends ModelComponentBase
    }
 
    public boolean removeStalePropertyWidgets() {
-      PropertyPanel panel = myFrame.getPropertyPanel();
 
       LinkedList<LabeledComponentBase> removeList =
          new LinkedList<LabeledComponentBase>();
-      for (int i=0; i<panel.numWidgets(); i++) {
-         if (panel.getWidget(i) instanceof LabeledComponentBase) {
+      for (int i=0; i<myPanel.numWidgets(); i++) {
+         if (myPanel.getWidget(i) instanceof LabeledComponentBase) {
             LabeledComponentBase widget =
-               (LabeledComponentBase)panel.getWidget(i);
-            Property prop = panel.getWidgetProperty (widget);
+               (LabeledComponentBase)myPanel.getWidget(i);
+            Property prop = myPanel.getWidgetProperty (widget);
             if (prop != null && !(prop instanceof EditingProperty)) {
                if (isStale (prop)) {
                   removeList.add (widget);
@@ -687,10 +749,12 @@ public class ControlPanel extends ModelComponentBase
       }
       if (removeList.size() > 0) {
          for (LabeledComponentBase widget : removeList) {
-            panel.removeWidget (widget);
+            myPanel.removeWidget (widget);
             //myWidgetPropMap.remove (widget);
          }
-         myFrame.pack();
+         if (myFrame != null) {
+            myFrame.pack();
+         }
          return true;
       }
       else {
@@ -701,19 +765,9 @@ public class ControlPanel extends ModelComponentBase
    public void actionPerformed (ActionEvent e) {
       String actionCmd = e.getActionCommand();
       if (actionCmd.equals ("add widget")) {
-         getPropertyPanel().actionPerformed (e);
+         myPanel.actionPerformed (e);
       }
       else if (actionCmd.equals ("set name")) {
-//          StringDialog dialog =
-//             StringDialog.createDialog (myFrame, "set name", "name:", getName());
-//          dialog.getStringField().addValueCheckListener (
-//             new ValueCheckListener() {
-//                public Object validateValue (
-//                   ValueChangeEvent e, StringHolder errMsg) {
-//                   String name = (String)e.getValue();
-//                   return ModelComponentBase.validateName (name, errMsg);
-//                }
-//             });
          WidgetDialog dialog =
             WidgetDialog.createDialog (myFrame, "set name", "Set");
          StringField widget = new StringField ("name:", getName(), 20);

@@ -22,7 +22,6 @@ import artisynth.core.mechmodels.MechSystemSolver;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.probes.NumericInputProbe;
 import artisynth.core.probes.NumericOutputProbe;
-import artisynth.core.workspace.DriverInterface;
 import artisynth.demos.mech.MuscleArm;
 
 public class FemMuscleArm extends MuscleArm
@@ -74,6 +73,8 @@ public class FemMuscleArm extends MuscleArm
 //        addLoad();
         addEndPoint();
         setCollisions(true);
+        addControlPanel();
+        addProbes();
     }
     
     public void addFemMuscle(Point3d upper, Point3d lower)
@@ -140,17 +141,12 @@ public class FemMuscleArm extends MuscleArm
         muscle.setSurfaceRendering (SurfaceRender.Shaded);
     }
     
-    public void addPanel(DriverInterface driver)
+    public void addControlPanel ()
     {
-        JFrame frame = driver.getFrame();
         panel = new ControlPanel("Muscle Control", "");
         panel.addWidget (
            "Activation", model, "models/muscle:excitation", 0.0, 1.0);
         panel.addWidget("Muscle-Arm Collision", this, "collisions");
-        panel.pack();
-        panel.setVisible(true);
-        java.awt.Point loc = frame.getLocation();
-        panel.setLocation(loc.x + frame.getWidth(), loc.y);
         addControlPanel (panel);
     }
     

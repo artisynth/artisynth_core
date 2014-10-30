@@ -9,8 +9,6 @@ package artisynth.core.gui;
 import java.awt.Color;
 import java.awt.Point;
 
-import javax.swing.JFrame;
-
 import maspack.render.RenderProps;
 import maspack.widgets.DoubleFieldSlider;
 import maspack.widgets.LabeledComponentBase;
@@ -114,7 +112,7 @@ public class FemControlPanel {
    }
 
    public static ControlPanel createMusclePanel(RootModel root,
-      FemMuscleModel fem, JFrame refFrame, boolean addExciters) {
+      FemMuscleModel fem, boolean addExciters) {
       ControlPanel controlPanel = new ControlPanel(fem.getName() + " Muscles",
          "LiveUpdate");
       controlPanel.setScrollable(true);
@@ -125,25 +123,22 @@ public class FemControlPanel {
       }
    
       // controlPanel.setVisible(true); -- set be set visible by addControlPanel
-      controlPanel.pack();
-      java.awt.Point loc = refFrame.getLocation();
-      controlPanel.setLocation(loc.x + refFrame.getWidth(), loc.y);
       root.addControlPanel(controlPanel);
       return controlPanel;
    }
 
-   public static ControlPanel createMuscleBundlesPanel(RootModel root,
-      FemMuscleModel fem, JFrame refFrame) {
-      return createMusclePanel(root, fem, refFrame, /* exciters= */false);
+   public static ControlPanel createMuscleBundlesPanel(
+      RootModel root, FemMuscleModel fem) {
+      return createMusclePanel(root, fem, /* exciters= */false);
    }
 
-   public static ControlPanel createMuscleExcitersPanel(RootModel root,
-      FemMuscleModel fem, JFrame refFrame) {
-      return createMusclePanel(root, fem, refFrame, /* exciters= */true);
+   public static ControlPanel createMuscleExcitersPanel(
+      RootModel root, FemMuscleModel fem) {
+      return createMusclePanel(root, fem, /* exciters= */true);
    }
 
    public static ControlPanel createControlPanel(RootModel root,
-      FemMuscleModel fem, ModelComponent topModel, JFrame refFrame) {
+      FemMuscleModel fem, ModelComponent topModel) {
       ControlPanel controlPanel =
          new ControlPanel(fem.getName() + " Controls", "LiveUpdate");
       controlPanel.setScrollable(true);
@@ -156,9 +151,6 @@ public class FemControlPanel {
       controlPanel.addWidget("surface rendering", fem, "surfaceRendering");
       // controlPanel.setVisible(true); -- will be set visible by
       // addControlPanel
-      controlPanel.pack();
-      java.awt.Point loc = refFrame.getLocation();
-      controlPanel.setLocation(loc.x + refFrame.getWidth(), loc.y);
       root.addControlPanel(controlPanel);
       return controlPanel;
    }

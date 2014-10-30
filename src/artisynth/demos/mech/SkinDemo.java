@@ -120,7 +120,7 @@ public class SkinDemo extends RootModel {
       PolygonalMesh mesh;
       try {
          String meshFilename = ArtisynthPath.getHomeRelativePath(
-            "src/artisynth/models/tutorial/",".") + meshName;
+            "src/artisynth/demos/mech/geometry/",".") + meshName;
          mesh = new PolygonalMesh();
          mesh.read(
             new BufferedReader(
@@ -335,10 +335,10 @@ public class SkinDemo extends RootModel {
       try  {        
          String path =
             ArtisynthPath.getHomeRelativePath(
-               "src/artisynth/models/tutorial/", ".");
+               "src/artisynth/demos/mech/", ".");
          ip = new NumericInputProbe(
             model, "axialSprings/muscle:excitation",
-            path+"activation.txt");
+            path+"muscleArmActivation.txt");
          ip.setStartStopTimes (0, 10.0);
          ip.setName("Muscle Activation");
          ip.setActive (false);

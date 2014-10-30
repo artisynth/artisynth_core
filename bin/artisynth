@@ -23,32 +23,43 @@ MEM_LIMIT="-Xmx6G"
 ART_HOME=
 declare -a MAIN_OPTS
 IDX=0
+MODEL_ARGS_SEP="-M"
 
 #---------------------------------------------------------
 # Process command line options
 #---------------------------------------------------------
 function parse_options()
 {
+    modelsArgsFound=false
     while [ $# -gt 0 ] ; do
-        case "$1" in
-            -fast)
-		JAVA_OPTS="$JAVA_OPTS -server -Dsun.java2d.opengl=true"
-                FAST=yes
-                shift ;;
-            -help)
-                HELP=yes
-                shift ;;
-            -home)
-                ART_HOME=$2
-                shift 2 ;;
-            -s)
-                SILENT=yes
-                shift ;;
-            *)
-		MAIN_OPTS[$IDX]=$1
-		IDX=$(($IDX+1))
-		shift ;;
-	esac
+        if [ "$modelArgsFound" = true ] ; then
+            MAIN_OPTS[$IDX]=$1
+            IDX=$(($IDX+1))
+            shift
+        else
+            case "$1" in
+                -fast)
+                    JAVA_OPTS="$JAVA_OPTS -server -Dsun.java2d.opengl=true"
+                    FAST=yes
+                    shift ;;
+                -help)
+                    HELP=yes
+                    shift ;;
+                -home)
+                    ART_HOME=$2
+                    shift 2 ;;
+                -s)
+                    SILENT=yes
+                    shift ;;
+                *)
+                    if [ "$1" = "$MODEL_ARGS_SEP" ] ; then
+                       modelArgsFound=true
+                    fi
+                    MAIN_OPTS[$IDX]=$1
+                    IDX=$(($IDX+1))
+                    shift ;;
+            esac
+        fi
     done
 }
 
@@ -58,7 +69,7 @@ function help()
     cat <<EOF
 synopsis:
 
-  artisynth [PROGRAM_OPTIONS]
+  artisynth [PROGRAM_OPTIONS] [-M MODEL_ARGS]
 
 options:
 

@@ -191,6 +191,29 @@ public class BVFeatureQuery {
    }
 
    /**
+    * Returns the nearest point on a polygonal mesh that intersects
+    * a given ray, or null if the ray does not intersect the mesh.
+    *
+    * @param mesh to intersect with the ray 
+    * @param origin origininating point of the ray.
+    * @param dir direction of the ray.
+    * @return nearest intersecting point, or null if no intersection
+    */
+   public static Point3d nearestPointAlongRay (
+      PolygonalMesh mesh, Point3d origin, Vector3d dir) {
+
+      BVFeatureQuery query = new BVFeatureQuery();
+      Point3d pnt = new Point3d();
+      Face faceHit = query.nearestFaceAlongRay (pnt, null, mesh, origin, dir);
+      if (faceHit != null) {
+         return pnt;
+      }
+      else {
+         return null; 
+      }
+   }
+
+   /**
     * Returns the nearest triangular mesh face to a point along a line.  This
     * method uses the default bounding volume hierarchy produced by the mesh.
     * If no face is found, the results returned int <code>nearPnt</code> and

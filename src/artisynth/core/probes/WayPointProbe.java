@@ -9,9 +9,6 @@ package artisynth.core.probes;
 import java.util.*;
 import java.io.*;
 
-import javax.swing.JFileChooser;
-
-import artisynth.core.driver.Main;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 import artisynth.core.workspace.RootModel;
@@ -337,15 +334,15 @@ public class WayPointProbe extends OutputProbe {
       }
    }
 
-   public void saveas () {
-      setAttachedFileFromUser ("Save As");
-      save ();
-   }
-   
-   public void saveas(String fileName) {
-      setAttachedFileName(fileName);
-      save ();
-   }
+//   public void saveas () {
+//      setAttachedFileFromUser ("Save As");
+//      save ();
+//   }
+//   
+//   public void saveas(String fileName) {
+//      setAttachedFileName(fileName);
+//      save ();
+//   }
 
    /**
     * Load waypoint state data from the attached file.
@@ -408,65 +405,10 @@ public class WayPointProbe extends OutputProbe {
             catch (IOException e) {
                System.err.println ("Could not load waypoint data: \n   " + e.getMessage ());
             }
-            //Main.getTimeline ().updateToolbar();
          }
       }
    }
 
-   public void loadfrom (String fileName) {
-      setAttachedFileName(fileName);
-      load ();
-   }
-   
-   public void loadfrom () {
-      setAttachedFileFromUser ("Load From");
-      load ();
-   }
-   
-   private void setAttachedFileFromUser(String text) {
-      String workspace = new String (ArtisynthPath.getWorkingDirPath());
-      File current = getAttachedFile();
-
-      if (current == null)
-         current = new File (workspace);
-
-      String absfile = null;
-      JFileChooser myFileChooser = new JFileChooser();
-      myFileChooser.setCurrentDirectory (current);
-      myFileChooser.setFileSelectionMode (JFileChooser.FILES_ONLY);
-      myFileChooser.setApproveButtonText (text);
-      int returnVal;
-      if (text == "Save As")
-         returnVal = myFileChooser.showSaveDialog (Main.getTimeline ());
-      else if (text == "Load From")
-         returnVal = myFileChooser.showOpenDialog (Main.getTimeline ());
-      else {
-         System.out.println("warning unknown filechooser type " + text);
-         returnVal = myFileChooser.showSaveDialog (Main.getTimeline ());
-      }
-         
-      if (returnVal == JFileChooser.APPROVE_OPTION) {
-         try {
-            absfile = myFileChooser.getSelectedFile().getCanonicalPath();
-         }
-         catch (Exception e) {
-            System.err.println ("File chooser: unable to get canonical path");
-            e.printStackTrace();
-         }
-      }
-
-      if (absfile != null) {
-         if (absfile.startsWith (workspace))
-            absfile = new String (absfile.substring (workspace.length() + 1));
-
-         System.out.println ("Workspace: " + workspace);
-         System.out.println ("Selected file address: " + absfile);
-         
-         setAttachedFileName (absfile);
-      }
-   }
-   
-   
    @Override
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
       super.scan (rtok, ref);

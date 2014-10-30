@@ -89,31 +89,15 @@ public class HydrostatDemo extends RootModel {
       mech.addRigidBody (block);
    }
 
-   public void loadControlPanels (JFrame refFrame) {
+   public void loadControlPanels () {
 
       for (String name : panelNames) {
          ControlPanel panel =
             loadControlPanel (ArtisynthPath.getSrcRelativePath (
                                  getClass(), "data/" + name + ".art"));
-
-         if (panel != null) {
-            java.awt.Point loc = refFrame.getLocation();
-            panel.setLocation (loc.x + refFrame.getWidth(), loc.y);
-
-            // if (loc.x == 0)
-            // panel.setLocation (loc.x + refFrame.getWidth(), loc.y);
-            // else
-            // panel.setLocation(loc.x, refFrame.getHeight() + loc.y);
-            // refFrame = panel.getFrame();
-         }
-         
-         
       }
 
       if (hydro.getMusclePanel() != null) {
-         java.awt.Point loc = refFrame.getLocation();
-         hydro.getMusclePanel().setLocation (
-            loc.x + refFrame.getWidth(), loc.y);
          addControlPanel (hydro.getMusclePanel());
       }
    }
@@ -136,7 +120,7 @@ public class HydrostatDemo extends RootModel {
 
    public void attach (DriverInterface driver) {
       super.attach (driver);
-      loadControlPanels (driver.getFrame());
+      loadControlPanels ();
 
       File workingDir =
          new File (ArtisynthPath.getSrcRelativePath (

@@ -441,12 +441,6 @@ public class PointModel extends RootModel
                panel.addWidget(name, m, "excitation", 0.0, 1.0);
             }
           }
-//         panel.addWidget (model, "integrator");
-         panel.pack();
-         // panel.setVisible(true) -- will be set visible in addControlPanel:
-         panel.setLocation(driver.getFrame().getLocation().x +
-                           driver.getFrame().getWidth(), 
-                           driver.getFrame().getLocation().y);
          addControlPanel (panel);
        }
       

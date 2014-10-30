@@ -132,31 +132,16 @@ public class PuddleDemo extends RootModel {
 
       addModel (myFemMod);
       addModel (myMechMod);
+      addControlPanel (myMechMod, myFemMod);
    }
 
    ControlPanel myControlPanel;
 
-   public void attach (DriverInterface driver) {
-      super.attach (driver);
-      JFrame frame = driver.getFrame();
+   public void addControlPanel (MechModel mechMod, FemModel3d femMod) {
 
-      myFemMod = (FemModel3d)findComponent ("models/fem");
-      System.out.println ("myFemMod=" + myFemMod);
-
-      if (getControlPanels().size() == 0) {
-         myControlPanel = new ControlPanel ("options", "");
-//         DoubleFieldSlider ymSlider =
-//            (DoubleFieldSlider)myControlPanel.addWidget (
-//               myFemMod, "YoungsModulus", 0, 10000.0);
-//         ymSlider.setRoundingTolerance (100);
-         FemControlPanel.addFem3dControls (myControlPanel, myFemMod, myFemMod);
-
-         myControlPanel.pack();
-         myControlPanel.setVisible (true);
-         Point loc = frame.getLocation();
-         myControlPanel.setLocation (loc.x + frame.getWidth(), loc.y);
-         addControlPanel (myControlPanel);
-      }
+      myControlPanel = new ControlPanel ("options", "");
+      FemControlPanel.addFem3dControls (myControlPanel, femMod, mechMod);
+      addControlPanel (myControlPanel);
    }
 
    public void detach (DriverInterface driver) {

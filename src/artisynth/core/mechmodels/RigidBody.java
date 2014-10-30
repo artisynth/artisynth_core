@@ -17,6 +17,7 @@ import java.util.Map;
 
 import javax.media.opengl.GL2;
 
+import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.matrix.AffineTransform3d;
@@ -31,7 +32,6 @@ import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.render.GLRenderer;
-import maspack.render.MouseRayEvent;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.spatialmotion.SpatialInertia;
@@ -42,7 +42,6 @@ import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.Range;
 import maspack.util.ReaderTokenizer;
-import artisynth.core.gui.editorManager.EditorUtils;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CopyableComponent;
@@ -50,9 +49,9 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.TransformableGeometry;
-import artisynth.core.workspace.PullController.Pullable;
 
-public class RigidBody extends Frame implements CopyableComponent, Collidable, Pullable {
+public class RigidBody extends Frame 
+   implements CopyableComponent, Collidable, Pullable {
    protected SpatialInertia mySpatialInertia;
    
    MeshInfo myMeshInfo = new MeshInfo();
@@ -1326,11 +1325,12 @@ public class RigidBody extends Frame implements CopyableComponent, Collidable, P
    }
    
    @Override
-   public Point3d getOriginData(MouseRayEvent ray) {
+   public Point3d getOriginData (Point3d origin, Vector3d dir) {
       Point3d myBodyPnt = new Point3d();
       PolygonalMesh mesh = getMesh();
       if (mesh != null) {
-         Point3d pnt = EditorUtils.intersectWithMesh (mesh, ray);
+         Point3d pnt = BVFeatureQuery.nearestPointAlongRay (
+            mesh, origin, dir);
          if (pnt != null) {
             myBodyPnt = new Point3d(pnt);
             myBodyPnt.inverseTransform (getPose());

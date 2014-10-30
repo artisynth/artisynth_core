@@ -138,8 +138,9 @@ public class FrameMarkerAgent extends AddComponentAgent<FrameMarker> {
       Point3d nearestIntersection = null;
       for (RigidBody body : myModel.rigidBodies()) {
          if (body.getMesh() != null) {
-            Point3d isectPoint =
-               EditorUtils.intersectWithMesh (body.getMesh(), rayEvent);
+            Point3d isectPoint = BVFeatureQuery.nearestPointAlongRay (
+               body.getMesh (),
+               rayEvent.getRay().getOrigin(), rayEvent.getRay().getDirection());             
             if (isectPoint != null) {
                double d = isectPoint.distance (rayEvent.getRay().getOrigin());
                if (d < mind) {

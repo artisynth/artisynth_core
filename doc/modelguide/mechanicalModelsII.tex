@@ -242,6 +242,272 @@ non-scaled version.
 
 % MultiPointSpring
 
+\subsection{Transforming geometry}
+\label{TransformingGeometry:sec}
+
+Certain ArtiSyth components, including {\tt MechModel}, implement the
+interface \javaclass[artsiynth.core.util]{TransformableGeometry},
+which permits the simultaneous transformation of all a component's
+geometry (i.e., meshes, point and frame loctions, etc.), as well as
+the geometry of it's child components. The interface provides the
+following method
+%
+\begin{lstlisting}[]
+   public void transformGeometry (AffineTransform3dBase X);
+\end{lstlisting}
+%
+where {\tt X} is an \javaclass[maspack.matrix]{AffineTransform3dBase}
+that may be either a \javaclass[maspack.matrix]{RigidTransform3d} or a
+more general \javaclass[maspack.matrix]{AffineTransform3d} (Section
+\ref{RigidTransform3d:sec}).
+
+{\tt tranformGeometry} can be used to translate, rotate, shear or
+scale model components. It can be applied to an entire model or just a
+set of it's components. Unlike
+\javamethod*[artisynth.core.util.ScalableUnits]{scaleDistance()}, it
+actually changes the physical geometry and so will change the
+simulation behaviour. It is often used to either scale or rotate
+components. For example,
+%
+\begin{lstlisting}[]
+   MechModel mech;
+
+   ... build mech model ...
+
+   AffineTransform3d X = new AffineTransform3d();
+   X.applyScaling (1.5, 2, 3);
+   mech.transformGeometry (X);
+   
+   RigidTransform3d T = 
+      new RigidTransform3d (/*x,y,z=*/0, 0, 0, /*r,p,y=*/0, 0, Math.PI));
+   mech.transformGeomerty (T);
+\end{lstlisting}
+%
+first scales a {\tt MechModel} by 1.5, 2, and 3 along the x, y, and z
+axes, and then flips the model upside down using a {\tt
+RigidTransform3d} that rotates it by 180 degrees about the x axis.
+
+\subsection{Render properties}
+\label{RenderProperties:sec}
+
+All ArtiSynth components that are renderable maintain a property {\tt
+renderProps}, which stores a
+\javaclass[maspack.render]{RenderProps} object that contains a number
+of subproperties used to control an object's rendered appearance.
+
+In code, the {\tt renderProps} property for an object can be set or
+queried using the methods
+%
+\begin{lstlisting}[]
+  setRenderProps (RenderProps props); // set render properties
+  RenderProps getRenderProps();       // get render properties (read-only)
+\end{lstlisting}
+%
+Render properties can also be set in the GUI by selecting one or more
+components and the choosing {\sf Set render props ...}  in the
+right-click context menu. More details on setting render properties
+through the GUI can be found in the section ``Render properties'' in the
+\href{../uiguide/uiguide.html}{
+ArtiSynth User Interface Guide}.
+
+For many components, the default value of {\tt renderProps} is {\tt
+null}; i.e., no {\tt RenderProps} object is assigned by default and
+render properties are instead inherited from ancestor components
+further up the hierarchy. The reason for this is because {\tt
+RenderProps} objects are fairly large (many kilobytes), and so
+assigning a unique one to every component could consume too much
+memory. Even when a {\tt RenderProps} object is assigned, most of its
+properties are inherited by default, and so only those properties
+which are explicitly set will differ from those specified in ancestor
+components.
+
+\subsubsection{Render property taxonomy}
+
+In general, the properties in {\tt RenderProps} are used to control
+the color, size, style, and resolution of the three primary rendering
+primitives: faces, lines, and points. Table \ref{RenderProps:tab}
+contains a complete list. Values for the {\tt shading}, {\tt
+faceStyle}, {\tt lineStyle} and {\tt pointStyle} properties are
+defined using the enumerated types {\tt RenderProps.Shading}, {\tt
+RenderProps.Faces}, {\tt RenderProps.LineStyle}, and {\tt
+RenderProps.PointStyle}.  Colors are specified using {\tt
+java.awt.Color}.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|lll|}
+\hline property & purpose & usual default value \\ \hline
+%Generic properties:
+visible & whether or not the component is visible & {\tt true} \\
+alpha & transparency for polygonal faces (range 0 to 1) & 1 (opaque) \\
+shading & polygon shading: ({\tt FLAT}, {\tt GOURARD}, {\tt PHONG}) & {\tt FLAT}\\
+shininess & shininess parameter for polygons (range 0 to 32) & 32 \\
+%Face related properties &
+\hline
+faceStyle &
+which polygonal faces are drawn ({\tt FRONT}, {\tt BACK},
+{\tt FRONT\_AND\_BACK}, {\tt NONE}) & {\tt FRONT} \\
+faceColor &
+color used for drawing faces & {\tt GREY} \\
+backColor &
+color used for drawing backs of faces. If {\tt null}, {\tt faceColor} is used. &
+{\tt null} \\
+drawEdges & if true, polygon edges are drawn explicitly & {\tt false} \\
+% Edge related properties &
+\hline
+edgeColor & color for edges & {\tt GREY} \\
+edgeWidth & edge width in pixels & 1 \\
+% Line related properties &
+\hline
+lineStyle: &
+how lines are drawn ({\tt CYLINDER}, {\tt LINE}, or {\tt ELLIPSOID}) & 
+{\tt LINE} \\
+lineColor & color for lines & {\tt GREY} \\
+lineWidth & width in pixels when {\tt LINE} style is selected & 1 \\
+lineRadius & radius when {\tt CYLINDER} or {\tt ELLIPSOID} style is selected &
+1 \\
+lineSlices &
+number of slices used to render {\tt CYLINDER} or {\tt ELLIPSOID} style lines &
+32 \\
+% Point related properties &
+\hline
+pointStyle & how points are drawn ({\tt SPHERE} or {\tt POINT}) & {\tt POINT} \\
+pointColor & color for points & {\tt GREY} \\
+pointSize & point size in pixels when {\tt POINT} style is selected & 1 \\
+pointRadius & sphere radius when {\tt SPHERE} style is selected & 1 \\
+pointSlices & number of slices used to render {\tt SPHERE} style spheres & 32 \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Render properties and their default values.}
+\label{RenderProps:tab}
+\end{table}
+
+To increase and improve their visibility, both the line and point
+primitives are associated with styles ({\tt CYLINDER}, {\tt
+ELLIPSOID}, and {\tt SPHERE}) that allow them to be rendered using 3D
+surface geometry.
+
+Exactly how a component interprets its render properties is up to the
+component (and more specifically, up to the rendering method for that
+component).  Not all render properties are relevant to all components,
+particularly if the rendering does not use all of the rendering
+primitives. For example,
+\javaclass[artisynth.core.mechmodels]{Particle} components use only
+the point primitives and
+\javaclass[artisynth.core.mechmodels]{AxialSpring} components use only
+the line primitives. For this reason, some components use subclasses
+of {\tt RenderProps}, such as
+\javaclass[maspack.render]{PointRenderProps} and
+\javaclass[maspack.render]{LineRenderProps}, that expose only a subset
+of the available render properties. All renderable components provide
+the method
+\javamethod[maspack.render.HasRenderProps]{createRenderProps()} that
+will create and return a {\tt RenderProps} object suitable for that
+component.
+
+\subsubsection{Setting render properties}
+\label{SettingRenderProperties:sec}
+
+When setting render properties, it is important to note that
+the value returned by
+\javamethod[maspack.render.HasRenderProps]{getRenderProps()} 
+should be treated as {\it read-only} and should {\it not}
+be used to set property values.
+For example, applications should {\it not} do the
+following:
+\begin{lstlisting}[]
+   particle.getRenderProps().setPointColor (Color.BLUE);
+\end{lstlisting}
+%
+This can cause problems for two reasons. First, {\tt getRenderProps()}
+will return {\tt null} if the object does not currently have a {\tt
+RenderProps} object. Second, because {\tt RenderProps} objects are
+large, ArtiSynth may try to share them between components, and so by
+setting them for one component, the application my inadvertently set
+them for other components as well.
+
+Instead, {\tt RenderProps} provides a static method for each property
+that can be used to set that property's value for a specific
+component.  For example, the correct way to set {\tt pointColor} is
+%
+\begin{lstlisting}[]
+   RenderProps.setPointColor (particle, Color.BLUE);
+\end{lstlisting}
+%
+
+One can also set render properties by calling
+\javamethod*[maspack.render.HasRenderProps]{setRenderProps()} with a
+predefined {\tt RenderProps} object as an argument. This is useful for
+setting a large number of properties at once:
+%
+\begin{lstlisting}[]
+   RenderProps props = new RenderProps();
+   props.setPointColor (Color.BLUE);
+   props.setPointRadius (2);
+   props.setPointStyle (RenderProps.PointStyle.SPHERE);
+
+   ...
+
+   particle.setRenderProps (props);
+\end{lstlisting}
+
+\begin{sideblock}
+Note that even though components may use a subclass of {\tt
+RenderProps} internally, one can always use the base {\tt RenderProps}
+class to set values; properties which are not relevant to the
+component will simply be ignored.
+\end{sideblock}
+
+Finally, as mentioned above, render properties are inherited.  Values
+set high in the component hierarchy will be inherited by descendant
+components, unless those descendants (or intermediate components)
+explicitly set overriding values.  For example, a {\tt MechModel}
+maintains its own {\tt RenderProps} (and which is never null). Setting
+its {\tt pointColor} property to {\tt RED} will cause {\it all}
+point-related components within that {\tt MechModel} to be rendered as
+red {\it except} for components that set their {\tt pointColor} to a
+different property.
+
+There are typically three levels in a {\tt MechModel} component
+hierarchy at which render properties can be set:
+
+\begin{itemize}
+
+\item The {\tt MechModel} itself;
+
+\item Lists containing components;
+
+\item Individual components.
+
+\end{itemize}
+
+For example, consider the following code:
+%
+\begin{lstlisting}[]
+   MechModel mech = new MechModel ("mech");
+
+   Particle p1 = new Particle (/*name=*/null, 2, 0, 0, 0);
+   Particle p2 = new Particle (/*name=*/null, 2, 1, 0, 0);
+   Particle p3 = new Particle (/*name=*/null, 2, 1, 1, 0);
+
+   mech.addParticle (p1);
+   mech.addParticle (p2);
+   mech.addParticle (p3);
+
+   RenderProps.setPointColor (mech, Color.BLUE);
+   RenderProps.setPointColor (mech.particles(), Color.GREEN);
+   RenderProps.setPointColor (p3, Color.RED);   
+\end{lstlisting}
+%
+Setting the {\tt MechModel} render property {\tt pointColor} to {\tt
+BLUE} will cause all point-related items to be rendered blue by
+default. Setting the {\tt pointColor} render property for the particle
+list (returned by {\tt mech.particles()}) will override this and cause
+all particles in the list to be rendered green by default. Lastly,
+setting {\tt pointColor} for {\tt p3} will cause it to be rendered as
+red.
+
 \subsection{Point-to-point muscles}
 \label{PointToPointMuscles:sec}
 
@@ -351,8 +617,6 @@ properties ...} from the right-click context menu.  This will open an
 editing panel that allows the muscle's properties to be adjusted
 interactively. Adjusting the {\tt excitation} property using the
 adjacent slider will cause the muscle force to vary.
-
-% SimpleMuscle
 
 % LATER \subsubsection{Multi-point muscles}
 
@@ -600,6 +864,86 @@ One of these properties is {\tt collisionPointTol}, which for
 collisions between rigid bodies specifies a minimum distance between
 contact points and therefore can be used to reduce the number of
 contact constraints and improve computation time.
+
+\subsubsection{Contact rendering}
+
+The {\tt MechModel}'s collision manager component contains render
+properties that can be used to render the contact points, normals, and
+mesh intersection contours associated with contact.
+
+By default, contact and contour rendering is disabled. To enable it,
+one can use the following code fragment:
+%
+\begin{verbatim}
+  RenderProps.setVisible (mechModel.getCollisionManager(), true);
+\end{verbatim}
+%
+The following render properties are used:
+
+\begin{description}
+
+\item[lineStyle] \mbox{}
+Style of the line used for rendering the contact normals
+
+\item[lineWidth] \mbox{}
+Width (in pixels) of the contact normal if the {\tt Line} line style is used
+
+\item[lineRadius] \mbox{}
+Radius of the contact normal if a solid line style is used
+
+\item[lineSlices] \mbox{}
+Number of slices in the contact normal for a solid line style
+
+\item[lineColor] \mbox{}
+Color of the contact normal
+
+\item[edgeWidth] \mbox{}
+Width (in pixels) of the line used to render the contour
+
+\item[edgeColor] \mbox{}
+Color of the contour
+
+\end{description}
+
+\begin{sideblock}
+{\bf Note:}\\
+Contours will only be rendered in Andrew Larkin's collision
+code is enabled, i.e., {\tt -useAjlCollision}.
+\end{sideblock}
+
+These properties can be set in the same way as the visibility, using
+the {\tt RenderProps} methods presented in Section
+\ref{SettingRenderProperties:sec}:
+
+\begin{lstlisting}[]
+  Renderable colManager = mechModel.getCollisionManager();
+  RenderProps.setEdgeWidth (col, 2);
+  RenderProps.setEdgeColor (col, Color.Red);
+\end{lstlisting}
+
+To access these properties on a read-only basis, one can do
+  
+\begin{lstlisting}[]
+  RenderProps props = mechModel.getCollisionManager().getRenderProps();
+\end{lstlisting}
+
+Finally, to set the length of the rendered contact normals, set the
+{\tt contactNormalLen} property in collision manager. Since contact
+normals have no preferred direction, it may be necessary to use a
+negative length value in order to visualize them properly.
+
+\begin{sideblock}
+For a demo, run the model {\sf DentalCasts}
+(artisynth.models.articulator.DentalDemo), and set the top cast
+invisible to see the contact interactions.
+\end{sideblock}
+
+\begin{sideblock}
+{\bf Note:}\\
+The artisynth command line option {\tt -renderCollisionContours} has
+been removed.
+\end{sideblock}
+
 
 % LATER: \subsubsection{Contact rendering}
 
@@ -897,238 +1241,13 @@ by default because they are empty.
 \label{NetDemoNav:fig}
 \end{figure}
 
-% LATER \label{GeneralArrangements:sec}
+\subsubsection{Adding containers to other models}
 
-% LATER \subsubsection{Component lists}
+In addition to {\tt MechModel}, application-defined containers can be
+added to any model that inherits from
+\javaclass[artisynth.core.modelbase]{ModelBase}. This includes {\tt
+RootModel} and {\tt FemModel}. However, at the present time,
+components added to such containers won't do anything, other than be
+rendered in the viewer if they are
+\javaclass[maspack.render]{Renderable}.
 
-% LATER \subsubsection{General arrangement example}
-
-% LATER NetDemo
-
-% LATER \subsubsection{Legacy containers in MechModel}
-
-\subsection{Render properties}
-\label{RenderProperties:sec}
-
-All ArtiSynth components that are renderable maintain a property {\tt
-renderProps}, which stores a
-\javaclass[maspack.render]{RenderProps} object that contains a number
-of subproperties used to control an object's rendered appearance.
-
-In code, the {\tt renderProps} property for an object can be set or
-queried using the methods
-%
-\begin{lstlisting}[]
-  setRenderProps (RenderProps props); // set render properties
-  RenderProps getRenderProps();       // get render properties (read-only)
-\end{lstlisting}
-%
-Render properties can also be set in the GUI by selecting one or more
-components and the choosing {\sf Set render props ...}  in the
-right-click context menu. More details on setting render properties
-through the GUI can be found in the section ``Render properties'' in the
-\href{../uiguide/uiguide.html}{
-ArtiSynth User Interface Guide}.
-
-For many components, the default value of {\tt renderProps} is {\tt
-null}; i.e., no {\tt RenderProps} object is assigned by default and
-render properties are instead inherited from ancestor components
-further up the hierarchy. The reason for this is because {\tt
-RenderProps} objects are fairly large (many kilobytes), and so
-assigning a unique one to every component could consume too much
-memory. Even when a {\tt RenderProps} object is assigned, most of its
-properties are inherited by default, and so only those properties
-which are explicitly set will differ from those specified in ancestor
-components.
-
-\subsubsection{Render property taxonomy}
-
-In general, the properties in {\tt RenderProps} are used to control
-the color, size, style, and resolution of the three primary rendering
-primitives: faces, lines, and points. Table \ref{RenderProps:tab}
-contains a complete list. Values for the {\tt shading}, {\tt
-faceStyle}, {\tt lineStyle} and {\tt pointStyle} properties are
-defined using the enumerated types {\tt RenderProps.Shading}, {\tt
-RenderProps.Faces}, {\tt RenderProps.LineStyle}, and {\tt
-RenderProps.PointStyle}.  Colors are specified using {\tt
-java.awt.Color}.
-
-\begin{table}
-\begin{center}
-\begin{tabular}{|lll|}
-\hline property & purpose & usual default value \\ \hline
-%Generic properties:
-visible & whether or not the component is visible & {\tt true} \\
-alpha & transparency for polygonal faces (range 0 to 1) & 1 (opaque) \\
-shading & polygon shading: ({\tt FLAT}, {\tt GOURARD}, {\tt PHONG}) & {\tt FLAT}\\
-shininess & shininess parameter for polygons (range 0 to 32) & 32 \\
-%Face related properties &
-\hline
-faceStyle &
-which polygonal faces are drawn ({\tt FRONT}, {\tt BACK},
-{\tt FRONT\_AND\_BACK}, {\tt NONE}) & {\tt FRONT} \\
-faceColor &
-color used for drawing faces & {\tt GREY} \\
-backColor &
-color used for drawing backs of faces. If {\tt null}, {\tt faceColor} is used. &
-{\tt null} \\
-drawEdges & if true, polygon edges are drawn explicitly & {\tt false} \\
-% Edge related properties &
-\hline
-edgeColor & color for edges & {\tt GREY} \\
-edgeWidth & edge width in pixels & 1 \\
-% Line related properties &
-\hline
-lineStyle: &
-how lines are drawn ({\tt CYLINDER}, {\tt LINE}, or {\tt ELLIPSOID}) & 
-{\tt LINE} \\
-lineColor & color for lines & {\tt GREY} \\
-lineWidth & width in pixels when {\tt LINE} style is selected & 1 \\
-lineRadius & radius when {\tt CYLINDER} or {\tt ELLIPSOID} style is selected &
-1 \\
-lineSlices &
-number of slices used to render {\tt CYLINDER} or {\tt ELLIPSOID} style lines &
-32 \\
-% Point related properties &
-\hline
-pointStyle & how points are drawn ({\tt SPHERE} or {\tt POINT}) & {\tt POINT} \\
-pointColor & color for points & {\tt GREY} \\
-pointSize & point size in pixels when {\tt POINT} style is selected & 1 \\
-pointRadius & sphere radius when {\tt SPHERE} style is selected & 1 \\
-pointSlices & number of slices used to render {\tt SPHERE} style spheres & 32 \\
-\hline
-\end{tabular}
-\end{center}
-\caption{Render properties and their default values.}
-\label{RenderProps:tab}
-\end{table}
-
-To increase and improve their visibility, both the line and point
-primitives are associated with styles ({\tt CYLINDER}, {\tt
-ELLIPSOID}, and {\tt SPHERE}) that allow them to be rendered using 3D
-surface geometry.
-
-Exactly how a component interprets its render properties is up to the
-component (and more specifically, up to the rendering method for that
-component).  Not all render properties are relevant to all components,
-particularly if the rendering does not use all of the rendering
-primitives. For example,
-\javaclass[artisynth.core.mechmodels]{Particle} components use only
-the point primitives and
-\javaclass[artisynth.core.mechmodels]{AxialSpring} components use only
-the line primitives. For this reason, some components use subclasses
-of {\tt RenderProps}, such as
-\javaclass[maspack.render]{PointRenderProps} and
-\javaclass[maspack.render]{LineRenderProps}, that expose only a subset
-of the available render properties. All renderable components provide
-the method
-\javamethod[maspack.render.HasRenderProps]{createRenderProps()} that
-will create and return a {\tt RenderProps} object suitable for that
-component.
-
-\subsubsection{Setting render properties}
-
-When setting render properties, it is important to note that
-the value returned by
-\javamethod[maspack.render.HasRenderProps]{getRenderProps()} 
-should be treated as {\it read-only} and should {\it not}
-be used to set property values.
-For example, applications should {\it not} do the
-following:
-\begin{lstlisting}[]
-   particle.getRenderProps().setPointColor (Color.BLUE);
-\end{lstlisting}
-%
-This can cause problems for two reasons. First, {\tt getRenderProps()}
-will return {\tt null} if the object does not currently have a {\tt
-RenderProps} object. Second, because {\tt RenderProps} objects are
-large, ArtiSynth may try to share them between components, and so by
-setting them for one component, the application my inadvertently set
-them for other components as well.
-
-Instead, {\tt RenderProps} provides a static method for each property
-that can be used to set that property's value for a specific
-component.  For example, the correct way to set {\tt pointColor} is
-%
-\begin{lstlisting}[]
-   RenderProps.setPointColor (particle, Color.BLUE);
-\end{lstlisting}
-%
-
-One can also set render properties by calling
-\javamethod*[maspack.render.HasRenderProps]{setRenderProps()} with a
-predefined {\tt RenderProps} object as an argument. This is useful for
-setting a large number of properties at once:
-%
-\begin{lstlisting}[]
-   RenderProps props = new RenderProps();
-   props.setPointColor (Color.BLUE);
-   props.setPointRadius (2);
-   props.setPointStyle (RenderProps.PointStyle.SPHERE);
-
-   ...
-
-   particle.setRenderProps (props);
-\end{lstlisting}
-
-\begin{sideblock}
-Note that even though components may use a subclass of {\tt
-RenderProps} internally, one can always use the base {\tt RenderProps}
-class to set values; properties which are not relevant to the
-component will simply be ignored.
-\end{sideblock}
-
-Finally, as mentioned above, render properties are inherited.  Values
-set high in the component hierarchy will be inherited by descendant
-components, unless those descendants (or intermediate components)
-explicitly set overriding values.  For example, a {\tt MechModel}
-maintains its own {\tt RenderProps} (and which is never null). Setting
-its {\tt pointColor} property to {\tt RED} will cause {\it all}
-point-related components within that {\tt MechModel} to be rendered as
-red {\it except} for components that set their {\tt pointColor} to a
-different property.
-
-There are typically three levels in a {\tt MechModel} component
-hierarchy at which render properties can be set:
-
-\begin{itemize}
-
-\item The {\tt MechModel} itself;
-
-\item Lists containing components;
-
-\item Individual components.
-
-\end{itemize}
-
-For example, consider the following code:
-%
-\begin{lstlisting}[]
-   MechModel mech = new MechModel ("mech");
-
-   Particle p1 = new Particle (/*name=*/null, 2, 0, 0, 0);
-   Particle p2 = new Particle (/*name=*/null, 2, 1, 0, 0);
-   Particle p3 = new Particle (/*name=*/null, 2, 1, 1, 0);
-
-   mech.addParticle (p1);
-   mech.addParticle (p2);
-   mech.addParticle (p3);
-
-   RenderProps.setPointColor (mech, Color.BLUE);
-   RenderProps.setPointColor (mech.particles(), Color.GREEN);
-   RenderProps.setPointColor (p3, Color.RED);   
-\end{lstlisting}
-%
-Setting the {\tt MechModel} render property {\tt pointColor} to {\tt
-BLUE} will cause all point-related items to be rendered blue by
-default. Setting the {\tt pointColor} render property for the particle
-list (returned by {\tt mech.particles()}) will override this and cause
-all particles in the list to be rendered green by default. Lastly,
-setting {\tt pointColor} for {\tt p3} will cause it to be rendered as
-red.
-
-%
-
-% LATER \subsection{Transforming Geometry}
-
-% LATER \subsubsection{The TransformableGeometry interface}

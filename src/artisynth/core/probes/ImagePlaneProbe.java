@@ -72,12 +72,6 @@ TransformableGeometry {
       setRenderProps (props);
 
       setImage (0);
-
-      // Main.getMain().getViewerManager().setBackgroundColor (Color.WHITE);
-
-      // AffineTransform3d X = new AffineTransform3d();
-      // X.applyScaling (ratio, 1, 1);
-      // transformGeometry (X);
    }
 
    public static PropertyList myProps =

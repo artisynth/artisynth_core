@@ -273,80 +273,23 @@ public class Fem3dBlock extends RootModel {
       addBreakPoint(5);
 
       // setupOutputProbes();
+      addControlPanel (mechMod, femMod);
 
    }
 
    ControlPanel myControlPanel;
 
+   public void addControlPanel (MechModel mechMod, FemModel3d femMod) {
+
+      myControlPanel = new ControlPanel ("options", "");
+      FemControlPanel.addFem3dControls (myControlPanel, femMod, mechMod);
+      myControlPanel.addWidget (this, "connected");
+      addControlPanel (myControlPanel);
+   }
+
    @Override
    public void attach (DriverInterface driver) {
       setConnected (getConnected());
-
-      super.attach (driver);
-      JFrame frame = driver.getFrame();
-
-      FemModel3d femMod = (FemModel3d)findComponent ("models/mech/models/fem");
-
-      if (getControlPanels().size() == 0) {
-         myControlPanel = new ControlPanel ("options", "");
-//         DoubleFieldSlider ymSlider =
-//            (DoubleFieldSlider)myControlPanel.addWidget (
-//               femMod, "YoungsModulus", 50000, 1000000);
-//         ymSlider.setRoundingTolerance (10000);
-//         myControlPanel.addWidget (femMod, "PoissonsRatio", -1, 0.5);
-         Model mainMod = models().get ("mech");
-         FemControlPanel.addFem3dControls (myControlPanel, femMod, mainMod);
-         myControlPanel.addWidget (this, "connected");
-
-         myControlPanel.pack();
-         //myControlPanel.setVisible (true);
-         Point loc = frame.getLocation();
-         myControlPanel.setLocation (loc.x + frame.getWidth(), loc.y);
-         addControlPanel (myControlPanel);
-      }
-   }
-
-//   public void writePose() {
-//      FemModel3d femMod = (FemModel3d)findComponent ("mech/fem");
-//      if (femMod != null) {
-//         try {
-//            PrintWriter pw;
-//            SparseBlockMatrix S =
-//               femMod.getSolveMatrix (MechSystem.FULL_MATRIX);
-//            int size = femMod.getActiveVelStateSize();
-//            NumberFormat fmt = new NumberFormat ("%g");
-//
-//            pw = ArtisynthIO.newIndentingPrintWriter ("beam.node");
-//            femMod.printANSYSNodes (pw);
-//            pw.close();
-//
-//            pw = ArtisynthIO.newIndentingPrintWriter ("beam.elem");
-//            femMod.printANSYSElements (pw);
-//            pw.close();
-//
-//            pw = ArtisynthIO.newIndentingPrintWriter ("beam.mat");
-//            S.write (pw, fmt, Matrix.WriteFormat.Sparse, size, size);
-//            pw.close();
-//
-//            pw = ArtisynthIO.newIndentingPrintWriter ("beam.mtx");
-//            S.write (pw, fmt, Matrix.WriteFormat.MatrixMarket, size, size);
-//            pw.close();
-//
-//            pw = ArtisynthIO.newIndentingPrintWriter ("beam.csr");
-//            S.write (pw, fmt, Matrix.WriteFormat.CRS, size, size);
-//            pw.close();
-//
-//         }
-//         catch (Exception e) {
-//            e.printStackTrace();
-//            System.exit (1);
-//         }
-//      }
-//   }
-
-   @Override
-   public void detach (DriverInterface driver) {
-      super.detach (driver);
    }
 
    /**

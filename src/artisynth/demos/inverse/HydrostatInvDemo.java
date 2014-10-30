@@ -75,10 +75,10 @@ public class HydrostatInvDemo extends HydrostatDemo
 //      super.attach(driver);
 //      loadControlPanels (driver.getFrame());
       if (useBundlesForInverse) {
-	 FemControlPanel.createMuscleBundlesPanel(this, hydro, driver.getFrame());
+	 FemControlPanel.createMuscleBundlesPanel(this, hydro);
       }
       else {
-	 FemControlPanel.createMuscleExcitersPanel(this, hydro, driver.getFrame());
+	 FemControlPanel.createMuscleExcitersPanel(this, hydro);
       } 
       
       File workingDir = new File(ArtisynthPath.getSrcRelativePath (this, 

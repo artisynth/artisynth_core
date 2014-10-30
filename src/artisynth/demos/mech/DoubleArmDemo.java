@@ -54,6 +54,7 @@ public class DoubleArmDemo extends RootModel {
       addJoint();
       addMuscles();
       addEndPoint();
+      addPanel();
    }
 
    public void addRigidBodies()
@@ -95,7 +96,7 @@ public class DoubleArmDemo extends RootModel {
        try
        {
            String meshFilename = ArtisynthPath.getHomeRelativePath(
-                       "src/artisynth/models/tutorial/",".") + meshName;
+                       "src/artisynth/demos/mech/geometry/",".") + meshName;
            mesh = new PolygonalMesh();
            mesh.read(
               new BufferedReader(
@@ -277,34 +278,15 @@ public class DoubleArmDemo extends RootModel {
    }
    
    protected ControlPanel panel;
-   public void addPanel(DriverInterface driver)
+   public void addPanel ()
    {
 
-       JFrame frame = driver.getFrame();
        panel = new ControlPanel("Muscle Control", "");
        panel.addWidget (
           "Upper Muscle", model, "axialSprings/muscle:excitation", 0.0, 1.0);
        panel.addWidget (
              "Lower Muscle", model, "axialSprings/muscle2:excitation", 0.0, 1.0);       
-       panel.pack();
-       panel.setVisible(true);
-       java.awt.Point loc = frame.getLocation();
-       panel.setLocation(loc.x + frame.getWidth(), loc.y);
        addControlPanel (panel);
   }
-   
-   public void attach(DriverInterface driver)
-   {
-      super.attach(driver);
-      if (getControlPanels().size() == 0)
-       { 
-         addPanel(driver);
-       }
-   }
-   
-   public void detach(DriverInterface driver)
-   {
-       super.detach(driver);
-   }
    
 }

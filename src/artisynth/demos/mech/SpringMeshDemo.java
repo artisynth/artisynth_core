@@ -304,15 +304,6 @@ public class SpringMeshDemo extends RootModel {
       setCollision (getCollision());
 
       //      addTracingProbe (model.particles().get (7), "position", 2, 4);
-
-      if (myControlPanel != null) {
-         myControlPanel.pack();
-         myControlPanel.setVisible (true);
-         java.awt.Point loc = driver.getFrame().getLocation();
-         myControlPanel.setLocation (
-            loc.x + driver.getFrame().getWidth(), loc.y);
-      }
-
    }
 
    public void detach (DriverInterface driver) {

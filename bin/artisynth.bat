@@ -4,56 +4,53 @@ setlocal EnableDelayedExpansion
 
 set FAST=no
 set HELP=no
-set HOME_ARG=-1
 set SILENT=no
 set JAVA_OPTS=-Xms200M -Xmx1G -Xmn100M
 set BATCHFILE=%~f0
 
 set COUNT=0
+set modelArgsFound=false
 
 for %%G IN (%*) DO (
-	set /a COUNT+=1
-	if %%G==-fast (
-		shift /!COUNT!
-		set FAST=yes
-		set JAVA_OPTS=%JAVA_OPTS% -server -Dsun.java2d.opengl=true
-		set /a COUNT-=1
-	) else (
-	if %%G==-help (
-		shift /!COUNT!
-		set HELP=yes
-		set /a COUNT-=1
-	) else (
-	if %%G==-home (
-		shift /!COUNT!
-		set HOME_ARG=!COUNT!
-		set /a COUNT-=1
-	) else (
-	if %%G==-s (
-		shift /!COUNT!
-		set SILENT=yes
-		set /a COUNT-=1
-	) )))
+        if !modelArgsFound!==true (
+                if defined MAIN_OPTS (
+                        set MAIN_OPTS=!MAIN_OPTS! %%G
+                ) else (
+                        set MAIN_OPTS=%%G
+                )
+        ) else (
+        if defined ART_HOME_PENDING (
+                set ART_HOME=%%G
+                set ART_HOME_PENDING=
+        ) else (
+                if %%G==-fast (
+                        set FAST=yes
+                        set JAVA_OPTS=%JAVA_OPTS% -server -Dsun.java2d.opengl=true
+                ) else (
+                if %%G==-help (
+                        set HELP=yes
+                ) else (
+                if %%G==-home (
+                        set ART_HOME_PENDING=true
+                ) else (
+                if %%G==-s (
+                        set SILENT=yes
+                ) else (
+                        if %%G==-M (
+                                set modelArgsFound=true
+                        )
+                        if defined MAIN_OPTS (
+                                set MAIN_OPTS=!MAIN_OPTS! %%G
+                        ) else (
+                                set MAIN_OPTS=%%G
+                        )
+                ))))
+        ))
 )
-
-set COUNT=0
-
-:MAIN_OPTS_LOOP
-set /a COUNT+=1
-if [%1]==[] goto SETVARS
-if %COUNT%==%HOME_ARG% (
-	set ART_HOME=%1
-	shift
+if defined ART_HOME_PENDING (
+        echo Error: option -home need to be followed by a path name
+        exit /B 1
 )
-if defined MAIN_OPTS (
-	set MAIN_OPTS=%MAIN_OPTS% %1
-) else (
-	set MAIN_OPTS=%1
-)
-shift
-goto MAIN_OPTS_LOOP
-
-:SETVARS
 if defined ART_HOME set ARTISYNTH_HOME=%ART_HOME%
 if not defined ARTISYNTH_HOME set ARTISYNTH_HOME=%~dp0..
 set ARTISYNTH_PATH=.;%HOMEPATH%;%ARTISYNTH_HOME%
@@ -70,12 +67,12 @@ if %PROCESSOR_ARCHITECTURE%==AMD64 (
 @rem need to create TEMP_PATH first because we need to quote it 
 set PATH=%TEMP_PATH:"=%
 if %HELP%==yes (
-	echo synopsis:
-	echo %  artisynth [PROGRAM_OPTIONS]
-	echo options:
-	echo %  -fast                 run using -server option
-  	echo %  -s                    suppress all console output
-  	echo %  -home ^<AHOME^>         ^set ARTISYNTH_HOME to AHOME
+        echo synopsis:
+        echo %  artisynth [PROGRAM_OPTIONS] [-M MODEL_OPTIONS]
+        echo options:
+        echo %  -fast                 run using -server option
+        echo %  -s                    suppress all console output
+        echo %  -home ^<AHOME^>         ^set ARTISYNTH_HOME to AHOME
     java artisynth.core.driver.Launcher -options
     exit /B 0
  )
@@ -99,9 +96,9 @@ java -version >> %log% 2>&1
 if exist %LOG% echo ------------------------------------------------ >> %LOG%
 
 if %SILENT%==yes ( 
-	java %JAVA_OPTS% artisynth.core.driver.Launcher %MAIN_OPTS%  >> %LOG% 2>&1
+        java %JAVA_OPTS% artisynth.core.driver.Launcher %MAIN_OPTS%  >> %LOG% 2>&1
 ) else (
-	java %JAVA_OPTS% artisynth.core.driver.Launcher %MAIN_OPTS%
+        java %JAVA_OPTS% artisynth.core.driver.Launcher %MAIN_OPTS%
 )
 
 set JAVAERROR=%ERRORLEVEL%

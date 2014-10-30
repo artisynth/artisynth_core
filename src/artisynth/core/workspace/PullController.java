@@ -27,35 +27,35 @@ import maspack.util.*;
 public class PullController extends ControllerBase
 implements SelectionListener, MouseInputListener {
 
-   /**
-    * Interface for handling pull events
-    */
-   public interface Pullable {
-
-      boolean isPullable();
-
-      /**
-       * Constructs force origin storage data given a mouse ray
-       * (e.g. intersect ray with mesh to determine for origin point)
-       * If null, assumes that there is no origin, so no force can
-       * be applied
-       */
-      public Object getOriginData(MouseRayEvent ray);
-
-      /**
-       * Determines the world-coordinate point to which force will
-       * be applied (used for determining magnitude of force)
-       */
-      public Point3d getOriginPoint(Object data);
-
-      public double getPointRenderRadius();
-
-      /**
-       * Given the supplied force origin info and a force vector,
-       * apply the force (typically sets an external force)
-       */
-      public void applyForce(Object orig, Vector3d force);
-   }
+//   /**
+//    * Interface for handling pull events
+//    */
+//   public interface Pullable {
+//
+//      boolean isPullable();
+//
+//      /**
+//       * Constructs force origin storage data given a mouse ray
+//       * (e.g. intersect ray with mesh to determine for origin point)
+//       * If null, assumes that there is no origin, so no force can
+//       * be applied
+//       */
+//      public Object getOriginData(MouseRayEvent ray);
+//
+//      /**
+//       * Determines the world-coordinate point to which force will
+//       * be applied (used for determining magnitude of force)
+//       */
+//      public Point3d getOriginPoint(Object data);
+//
+//      public double getPointRenderRadius();
+//
+//      /**
+//       * Given the supplied force origin info and a force vector,
+//       * apply the force (typically sets an external force)
+//       */
+//      public void applyForce(Object orig, Vector3d force);
+//   }
 
 
    private MouseRayEvent myPullEvent = null;
@@ -130,7 +130,8 @@ implements SelectionListener, MouseInputListener {
 
          Pullable p = (Pullable)comp;
          if (p.isPullable()) {
-            myOriginData = p.getOriginData(ray);
+            myOriginData = p.getOriginData (
+               ray.getRay().getOrigin(), ray.getRay().getDirection());
             if (myOriginData != null) {
                myComponent = comp;
                myPointRenderRadius = p.getPointRenderRadius();

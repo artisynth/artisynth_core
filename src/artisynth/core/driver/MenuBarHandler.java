@@ -133,7 +133,6 @@ public class MenuBarHandler implements
    protected boolean myModelMenuAddedP = false;
 
    private boolean isTimelineVisible = false;
-   private boolean isJythonVisible = false;
    private boolean isToolbarVisible = true;
 
    private RenderPropsDialog myPullControllerRenderPropsDialog;
@@ -630,7 +629,7 @@ public class MenuBarHandler implements
 
    private void doClearModel() {
       myMain.clearRootModel();
-      myMain.setRootModel(null, new RootModel());
+      myMain.setRootModel(new RootModel(), null, null);
    }
 
    private void doSaveModel() {
@@ -691,7 +690,8 @@ public class MenuBarHandler implements
             return;
          }
          String className = rootModelClass.getName();
-         if (!myMain.loadModel(rootModelClass.getSimpleName(), className)) {
+         if (!myMain.loadModel(
+               className, rootModelClass.getSimpleName(), null)) {
             showError(myMain.getErrorMessage());
          }
          updateModelButtons();
@@ -1083,7 +1083,8 @@ public class MenuBarHandler implements
       if (visible) {
          boolean created = false;
          if (myMain.myJythonFrame == null) {
-            myMain.createJythonConsole();
+            System.out.println ("Creating");
+            myMain.createJythonConsole(/*guiBased=*/true);
             created = true;
          }
          myMain.myJythonFrame.setVisible(true);
@@ -1096,8 +1097,6 @@ public class MenuBarHandler implements
             myMain.myJythonFrame.setVisible(false);
          }
       }
-
-      isJythonVisible = visible;
    }
 
    public void valueChange(ValueChangeEvent e) {
@@ -1272,7 +1271,7 @@ public class MenuBarHandler implements
          System.runFinalization();
 
          // load the model with name cmd
-         if (!myMain.loadModel(cmd, myMain.getDemoClassName(cmd))) {
+         if (!myMain.loadModel(myMain.getDemoClassName(cmd), cmd, null)) {
             showError(myMain.getErrorMessage());
          }
          else {
@@ -1575,15 +1574,35 @@ public class MenuBarHandler implements
    // singleStepButton.setEnabled (stepEnable);
    // }
 
+   private static String protectWindowsSlashes(String filename) {
+      StringBuilder out = new StringBuilder();
+      char[] chars = filename.toCharArray();
+      
+      for (int idx=0; idx <chars.length; idx++) {
+         if (chars[idx] == '\\' ) {
+            out.append("\\\\");  // double it up
+            if (idx+1 < chars.length && chars[idx+1] == '\\') {
+               // skip next char if was already doubled
+               idx++;
+            }
+         } else  {
+            out.append(chars[idx]);
+         }
+      }
+      return out.toString();
+   }
+
    public void runScript(String scriptName) {
       setJythonConsoleVisible(true);
       File[] files = ArtisynthPath.findFiles(scriptName);
       if (files != null && files.length > 0) {
-         String pathName = files[0].getPath();
+         String pathName = protectWindowsSlashes (files[0].getPath());
          try {
-            myMain.myJythonFrame.executeScript(pathName);
-         } catch (Exception e) {
-            showError("Error opening " + pathName + ": " + e.getMessage());
+            myMain.myJythonConsole.executeScript (pathName);
+         }
+         catch (Exception e) {
+            System.out.println ("Error executing script '"+pathName+"':");
+            System.out.println (e);
          }
       }
       else {
@@ -1976,7 +1995,7 @@ public class MenuBarHandler implements
       }
 
       if (JythonInit.jythonIsAvailable()) {
-         if (isJythonVisible) {
+         if (myMain.myJythonFrame != null && myMain.myJythonFrame.isVisible()) {
             addMenuItem(menu, "Hide Jython Console");
          }
          else {

@@ -22,10 +22,12 @@ import java.awt.geom.Line2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.*;
+import java.io.*;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
+import javax.swing.JFileChooser;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -60,11 +62,13 @@ import artisynth.core.gui.Timeline;
 import artisynth.core.gui.probeEditor.NumericProbeEditor;
 import artisynth.core.gui.selectionManager.SelectionListener;
 import artisynth.core.gui.selectionManager.SelectionEvent;
+import artisynth.core.gui.NumericProbeDisplayLarge;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.probes.Probe;
 import artisynth.core.probes.WayPoint;
 import artisynth.core.probes.WayPointProbe;
 import artisynth.core.util.TimeBase;
+import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.RootModel;
 
 public class TimelineController extends Timeline 
@@ -111,6 +115,7 @@ public class TimelineController extends Timeline
    private TimelinePane timelinePane;
    private TimeToolbar myToolBar;
    private JScrollPane timelineScrollPane;
+   private JFileChooser myWayPointFileChooser;
    
    private JPanel probesPane;
    private JPanel masterPane;
@@ -225,7 +230,6 @@ public class TimelineController extends Timeline
          new JMenuItem ("Load WayPoint Data From...");
       loadWaypointsFrom.addActionListener (wayTrackListener);
       loadWaypointsFrom.setActionCommand ("Load WayPoint Data From");
-
 
       myPopup.add (addWayHere);
       myPopup.add (addBreakHere);
@@ -1216,6 +1220,78 @@ public class TimelineController extends Timeline
                info.finalize();
             }
          }
+      }
+   }
+
+   public void saveWayPoints() {
+      WayPointProbe wayPoints = Main.getRootModel().getWayPoints();
+      wayPoints.save();
+   }
+
+   public void saveWayPointsAs() {
+      WayPointProbe wayPoints = Main.getRootModel().getWayPoints();
+      setAttachedFileFromUser (wayPoints, "Save As");
+      wayPoints.save();
+   }
+
+   public void loadWayPoints() {
+      WayPointProbe wayPoints = Main.getRootModel().getWayPoints();
+      wayPoints.load();
+      refreshWayPoints();
+   }
+
+   public void loadWayPointsFrom() {
+      WayPointProbe wayPoints = Main.getRootModel().getWayPoints();
+      setAttachedFileFromUser (wayPoints, "Load From");
+      wayPoints.load();
+      refreshWayPoints();
+   }
+
+   private void setAttachedFileFromUser (WayPointProbe wayPoints, String text) {
+      String workspace = new String (ArtisynthPath.getWorkingDirPath());
+      File current = wayPoints.getAttachedFile();
+
+      if (current == null) {
+         current = new File (workspace);
+      }
+
+      String absfile = null;
+      if (myWayPointFileChooser == null) {
+         myWayPointFileChooser = new JFileChooser();
+      }
+      myWayPointFileChooser.setCurrentDirectory (current);
+      myWayPointFileChooser.setFileSelectionMode (JFileChooser.FILES_ONLY);
+      myWayPointFileChooser.setApproveButtonText (text);
+      int returnVal;
+      if (text == "Save As") {
+         returnVal = myWayPointFileChooser.showSaveDialog (Main.getTimeline ());
+      }
+      else if (text == "Load From"){
+         returnVal = myWayPointFileChooser.showOpenDialog (Main.getTimeline ());
+      }
+      else {
+         System.out.println("warning unknown filechooser type " + text);
+         returnVal = myWayPointFileChooser.showSaveDialog (Main.getTimeline ());
+      }
+         
+      if (returnVal == JFileChooser.APPROVE_OPTION) {
+         try {
+            absfile = myWayPointFileChooser.getSelectedFile().getCanonicalPath();
+         }
+         catch (Exception e) {
+            System.err.println ("File chooser: unable to get canonical path");
+            e.printStackTrace();
+         }
+      }
+
+      if (absfile != null) {
+         if (absfile.startsWith (workspace))
+            absfile = new String (absfile.substring (workspace.length() + 1));
+
+         System.out.println ("Workspace: " + workspace);
+         System.out.println ("Selected file address: " + absfile);
+         
+         wayPoints.setAttachedFileName (absfile);
       }
    }
    
@@ -2457,18 +2533,16 @@ public class TimelineController extends Timeline
             deleteWayPoints();
          }
          else if (nameOfAction == "Save WayPoint Data As") {
-            Main.getRootModel ().getWayPoints ().saveas();
+            saveWayPointsAs();
          }
          else if (nameOfAction == "Save WayPoint Data") {
-            Main.getRootModel ().getWayPoints ().save();
+            saveWayPoints();
          }
          else if (nameOfAction == "Load WayPoint Data From") {
-            Main.getRootModel ().getWayPoints ().loadfrom ();
-            refreshWayPoints();
+            loadWayPointsFrom();
          }
          else if (nameOfAction == "Load WayPoint Data") {
-            Main.getRootModel ().getWayPoints ().load();
-            refreshWayPoints();
+            loadWayPoints();
          }
          
          requestUpdateDisplay();
@@ -2527,6 +2601,18 @@ public class TimelineController extends Timeline
    boolean isMultipleSelectionEnabled (MouseEvent e) {
       int mask = myMultipleSelectionMask;
       return (e.getModifiersEx() & mask) == mask;
+   }
+
+   public NumericProbeDisplayLarge setLargeDisplayVisible (
+      Probe probe, boolean visible) {
+      
+      ProbeInfo info = myProbeMap.get(probe);
+      if (info != null) {
+         return info.setLargeDisplayVisible (visible);
+      }
+      else {
+         return null;
+      }
    }
 
 }

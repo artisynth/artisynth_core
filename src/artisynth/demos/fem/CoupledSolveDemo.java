@@ -115,10 +115,6 @@ public class CoupledSolveDemo extends RootModel {
 
       FemControlPanel.addFem3dControls (panel, femMod, mechMod);
 
-      panel.setVisible (true);
-      panel.pack();
-      java.awt.Point loc = Main.getMainFrame().getLocation();
-      panel.setLocation (loc.x + Main.getMainFrame().getWidth(), loc.y);
       ControlPanel oldPanel = getControlPanels().get ("FemMod options");
       if (oldPanel != null) {
          removeControlPanel (oldPanel);

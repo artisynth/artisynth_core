@@ -45,7 +45,8 @@ import artisynth.core.gui.Timeline;
 import artisynth.core.gui.editorManager.EditorManager;
 import artisynth.core.gui.editorManager.TransformComponentsCommand;
 import artisynth.core.gui.editorManager.UndoManager;
-import artisynth.core.gui.jythonconsole.ArtisynthJythonFrame;
+import artisynth.core.gui.jythonconsole.JythonFrameConsole;
+import artisynth.core.gui.jythonconsole.ArtisynthJythonConsole;
 import artisynth.core.gui.selectionManager.SelectionEvent;
 import artisynth.core.gui.selectionManager.SelectionListener;
 import artisynth.core.gui.selectionManager.SelectionManager;
@@ -100,7 +101,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected String myErrMsg;
    protected GLViewer myViewer;
    protected SelectionManager mySelectionManager = null;
-   protected ArtisynthJythonFrame myJythonFrame = null;
+   protected ArtisynthJythonConsole myJythonConsole = null;
+   protected JFrame myJythonFrame = null;
    protected ViewerManager myViewerManager;
    protected AliasTable myDemoModels;
    protected Tree<MenuEntry> myDemoMenu = null;	// a tree containing the demo menu hierarchy description
@@ -110,6 +112,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected final static String PROJECT_NAME = "ArtiSynth";
 
    protected String myModelName;
+   protected String[] myModelArgs;
    protected int myFlags = 0;
    protected double myMaxStep = -1;
 
@@ -130,11 +133,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
    private boolean myArticulatedTransformsP = true;
    private boolean myInitDraggersInWorldCoordsP = false;
 
-   public enum ViewerMode {
-      FrontView, TopView, SideView, BottomView, RightView, BackView
-   }
-
-   private ViewerMode viewerMode;
+//   public enum ViewerMode {
+//      FrontView, TopView, SideView, BottomView, RightView, BackView
+//   }
+//
+//   private ViewerMode viewerMode;
 
    // protected boolean myOrthographicP;
    // private double cpuLoad = .8;
@@ -173,10 +176,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
    public GLViewer getViewer() {
       return myViewer;
    }
-
-//   public ViewerController getViewerController() {
-//      return myViewerManager.getController (0);
-//   }
 
    public static MainFrame getMainFrame() {
       return myFrame;
@@ -410,56 +409,57 @@ public class Main implements DriverInterface, ComponentChangeListener {
       myUndoManager = new UndoManager();
       myInverseManager = new InverseManager();
 
-      ToolTipManager.sharedInstance().setLightWeightPopupEnabled (false);
-
       // need to create selection manager before MainFrame, becuase
       // some things in MainFrame will assume it exists
       mySelectionManager = new SelectionManager();
-      myFrame = new MainFrame (windowName, this, width, height);
-      myMenuBarHandler = myFrame.getMenuBarHandler();
-      myKeyHandler = new GenericKeyHandler();
-      myKeyHandler.setMainFrame (myFrame);
-      mySelectionManager.setNavPanel (myFrame.getNavPanel());
-      myFrame.getNavPanel().setSelectionManager (mySelectionManager);
 
-      //myFrame.setDefaultCloseOperation (JFrame.EXIT_ON_CLOSE);
-      myViewer = myFrame.getViewer();
-      myViewer.addViewerListener (myMenuBarHandler);
+      if (width > 0) {
+         ToolTipManager.sharedInstance().setLightWeightPopupEnabled (false);
 
-      myViewerManager = new ViewerManager (myViewer);
+         myFrame = new MainFrame (windowName, this, width, height);
 
-      myViewerManager.setDefaultOrthographic (orthographic.value);
-      myViewerManager.setDefaultDrawGrid (drawGrid.value);
-      myViewerManager.setDefaultDrawAxes (drawAxes.value);
-      myViewerManager.setDefaultAxisLength (axisLength.value);
+         myMenuBarHandler = myFrame.getMenuBarHandler();
+         myKeyHandler = new GenericKeyHandler();
+         myKeyHandler.setMainFrame (myFrame);
+         mySelectionManager.setNavPanel (myFrame.getNavPanel());
+         myFrame.getNavPanel().setSelectionManager (mySelectionManager);
 
-      AxisAngle REW = getDefaultViewOrientation();
-      myViewer.setDefaultAxialView (
-         AxisAlignedRotation.getNearest (new RotationMatrix3d(REW)));
-      initializeViewer (myViewer, REW);
+         //myFrame.setDefaultCloseOperation (JFrame.EXIT_ON_CLOSE);
+         myViewer = myFrame.getViewer();
+         myViewer.addViewerListener (myMenuBarHandler);
 
-      setSelectionMode (SelectionMode.Select);
+         myViewerManager = new ViewerManager (myViewer);
 
-      addSelectionListener (new SelectionHandler());
+         myViewerManager.setDefaultOrthographic (orthographic.value);
+         myViewerManager.setDefaultDrawGrid (drawGrid.value);
+         myViewerManager.setDefaultDrawAxes (drawAxes.value);
+         myViewerManager.setDefaultAxisLength (axisLength.value);
 
-      // mySelectionManager.addSelectionListener(
-      // myFrame.getSelectCompPanelHandler());
+         AxisAngle REW = getDefaultViewOrientation();
+         myViewer.setDefaultAxialView (
+            AxisAlignedRotation.getNearest (new RotationMatrix3d(REW)));
+         initializeViewer (myViewer, REW);
 
-      Dragger3dHandler draggerHandler = new Dragger3dHandler();
-      translator3d.addListener (draggerHandler);
-      scalar3d.addListener (draggerHandler);
-      rotator3d.addListener (draggerHandler);
-      transrotator3d.addListener (draggerHandler);
-      constrainedTranslator3d.addListener (draggerHandler);
+         setSelectionMode (SelectionMode.Select);
 
-      myViewerManager.addDragger (translator3d);
-      myViewerManager.addDragger (scalar3d);
-      myViewerManager.addDragger (rotator3d);
-      myViewerManager.addDragger (transrotator3d);
-      myViewerManager.addDragger (constrainedTranslator3d);
-      myFrame.setViewerSize (width, height);
+         addSelectionListener (new SelectionHandler());
 
-      myPullController = new PullController (mySelectionManager);
+         Dragger3dHandler draggerHandler = new Dragger3dHandler();
+         translator3d.addListener (draggerHandler);
+         scalar3d.addListener (draggerHandler);
+         rotator3d.addListener (draggerHandler);
+         transrotator3d.addListener (draggerHandler);
+         constrainedTranslator3d.addListener (draggerHandler);
+
+         myViewerManager.addDragger (translator3d);
+         myViewerManager.addDragger (scalar3d);
+         myViewerManager.addDragger (rotator3d);
+         myViewerManager.addDragger (transrotator3d);
+         myViewerManager.addDragger (constrainedTranslator3d);
+         myFrame.setViewerSize (width, height);
+         
+         myPullController = new PullController (mySelectionManager);
+      }
    }
 
    /**
@@ -600,7 +600,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       try {
          System.out.println ("Initializing from "+fileOrUrl+" ...");
-         myJythonFrame.execfile (input, fileOrUrl.toString());
+         myJythonConsole.execfile (input, fileOrUrl.toString());
       }
       catch (Exception e) {
          System.out.println (
@@ -611,11 +611,18 @@ public class Main implements DriverInterface, ComponentChangeListener {
    /**
     * Creates a Jython console frame.
     */
-   void createJythonConsole() {
+   void createJythonConsole (boolean guiBased) {
       String initFileName = "scripts/jythonInit.py";
 
-      myJythonFrame = new ArtisynthJythonFrame ("Jython Console");
-      myJythonFrame.setMain (this);
+      if (guiBased) {
+         myJythonConsole = ArtisynthJythonConsole.createFrameConsole();
+         myJythonFrame = myJythonConsole.getFrame();
+      }
+      else {
+         myJythonConsole = ArtisynthJythonConsole.createJLineConsole();
+      }
+      
+      myJythonConsole.setMain (this);
       File stdFile = ArtisynthPath.getHomeRelativeFile (initFileName, ".");
       if (!stdFile.canRead()) {
          System.out.println (
@@ -637,8 +644,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    }
 
-   public ArtisynthJythonFrame getJythonFrame() {
-      return myJythonFrame;
+   public ArtisynthJythonConsole getJythonConsole() {
+      return myJythonConsole;
    }
 
    public static boolean isSimulating() {
@@ -674,7 +681,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
          try {
             Thread.sleep (1000);
          }
-         catch (Exception e) {
+         catch (InterruptedException e) {
+            break;
          }
       }
    }
@@ -721,7 +729,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    private void doSetMaxStep (double sec) {
       myMaxStep = sec;
-      myMenuBarHandler.updateStepDisplay ();
+      if (myMenuBarHandler != null) {
+         myMenuBarHandler.updateStepDisplay ();
+      }
    }
 
    public static double getMaxStep () {
@@ -759,7 +769,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       try {
          Thread.sleep ((int)(sec*1000));
       }
-      catch (Exception e) {
+      catch (InterruptedException e) {
       }  
    }      
 
@@ -833,35 +843,44 @@ public class Main implements DriverInterface, ComponentChangeListener {
    public void start (
       boolean startWithTimeline, boolean timeLineAllignedRight,
       boolean loadLargeTimeline) {
+
       timeLineRight = timeLineAllignedRight;
       doubleTime = loadLargeTimeline;
-      myFrame.setVisible (true);
 
       myScheduler = new Scheduler();
       setMaxStep (maxStep.value);
 
-      RenderProbe renderProbe =
-         new RenderProbe (this, 1/framesPerSecond.value);
-      // renderProbe.setMovieOptions(movieOptions);
-      getScheduler().setRenderProbe (renderProbe);
+      if (myFrame != null) {
+         myFrame.setVisible (true);
 
-      createTimeline (); //TODO
+         RenderProbe renderProbe =
+            new RenderProbe (this, 1/framesPerSecond.value);
+         // renderProbe.setMovieOptions(movieOptions);
+         getScheduler().setRenderProbe (renderProbe);
 
-      if (myTimeline instanceof TimelineController) {
-         myScheduler.addListener ((TimelineController)myTimeline);
-      }
-      myScheduler.addListener (myMenuBarHandler);
+         createTimeline (); //TODO
 
-      if (startWithTimeline) {
-         myTimeline.setVisible (true);
-         myMenuBarHandler.setTimelineVisible (true);
+         if (myTimeline instanceof TimelineController) {
+            myScheduler.addListener ((TimelineController)myTimeline);
+         }
+         myScheduler.addListener (myMenuBarHandler);
+
+         if (startWithTimeline) {
+            myTimeline.setVisible (true);
+            myMenuBarHandler.setTimelineVisible (true);
+         }
+         else {
+            myMenuBarHandler.setTimelineVisible (false);
+         }
+
+         if (startWithJython.value) {
+            myMenuBarHandler.setJythonConsoleVisible (true);
+         }
       }
       else {
-         myMenuBarHandler.setTimelineVisible (false);
-      }
-
-      if (startWithJython.value) {
-         myMenuBarHandler.setJythonConsoleVisible (true);
+         if (startWithJython.value) {
+            createJythonConsole (/*useGui=*/false);
+         }
       }
    }
 
@@ -893,10 +912,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // myWorkspace.getWayPoints().clear();
       // myWorkspace.clearInputProbes();
       // myWorkspace.clearOutputProbes();
-      myViewerManager.clearRenderables();
-      // for (GLViewer v : myViewerManager.getViewers())
-      // { v.clearRenderables();
-      // }
+      if (myViewerManager != null) {
+         myViewerManager.clearRenderables();
+      }
    }
 
    /** 
@@ -912,7 +930,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return null;
    }
 
-   public void setRootModel (String modelName, RootModel newRoot) {
+   public void setRootModel (
+      RootModel newRoot, String modelName, String[] modelArgs) {
+      
       myModelName = modelName;
       //CompositeUtils.testPaths (newRoot);
 
@@ -930,32 +950,25 @@ public class Main implements DriverInterface, ComponentChangeListener {
       newRoot.addComponentChangeListener (this);
       newRoot.setMainViewer (myViewer);
 
-      // initialize the play controls
-      myMenuBarHandler.enableShowPlay();
-      myMenuBarHandler.updateModelButtons();
-      //myMenuBarHandler.setResetButton (false);
+      if (myFrame != null) {
+         myMenuBarHandler.enableShowPlay();
+         myMenuBarHandler.updateModelButtons();
 
-      // start Chad
-      if (!SwingUtilities.isEventDispatchThread()) {
-         SwingUtilities.invokeLater (new Runnable() {
-            public void run() {
-               myFrame.updateNavBar();
-            }
-         });
+         if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater (new Runnable() {
+                  public void run() {
+                     myFrame.updateNavBar();
+                  }
+               });
+         }
+         else {
+            myFrame.updateNavBar();
+         }
+
+         // reset all the viewers
+         myViewerManager.clearRenderables();
+         myViewerManager.resetViewers (newRoot.getDefaultViewOrientation());
       }
-      else {
-         myFrame.updateNavBar();
-      }
-      // end Chad
-
-      // reset all the viewers
-      myViewerManager.clearRenderables();
-      myViewerManager.resetViewers (newRoot.getDefaultViewOrientation());
-      // for (GLViewer v : myViewerManager.getViewers())
-      // { resetViewer(v);
-      // }
-
-
 
       // model scheduler initialization called within initialize
       getScheduler().initialize();
@@ -968,46 +981,47 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myTimeline.requestResetAll();
       }
 
-      getWorkspace().setViewerManager (myViewerManager);
+      if (myFrame != null) {
+         getWorkspace().setViewerManager (myViewerManager);
+      }
 
-      // attach frame and viewer to the root model
-      // getWorkspace().getRootModel().attach(myFrame, myViewer);
-      //
       // This may generate render and widget update requests, if attach causes
       // any structural changes. That's why this is called *after*
       // timeline.reset(), because that has a window in which widget updates
       // will crash.
       newRoot.attach (this);
 
-      myMenuBarHandler.setModelMenuEnabled (
-         newRoot.getModelMenuItems() != null);
+      if (myFrame != null) {
+         myMenuBarHandler.setModelMenuEnabled (
+            newRoot.getModelMenuItems() != null);
 
-      // myViewerManager.updateRenderList();
+         // notify the frame root model is loaded
+         myFrame.notifyRootModelLoaded();
+         myWorkspace.rerender();
+         
+         myTimeline.automaticProbesZoom();
 
-      // notify the frame root model is loaded
-      myFrame.notifyRootModelLoaded();
-      myWorkspace.rerender();
-
-      myTimeline.automaticProbesZoom();
-
-      if (mySelectionMode == SelectionMode.Pull) {
-         newRoot.addController (
-            myPullController, findMechSystem(getRootModel()));
+         if (mySelectionMode == SelectionMode.Pull) {
+            newRoot.addController (
+               myPullController, findMechSystem(getRootModel()));
+         }
       }
    }
 
    private class LoadModelRunner implements Runnable {
       String myModelName;
+      String[] myModelArgs;
       String myClassName;
       boolean myStatus = false;
 
-      LoadModelRunner (String modelName, String className) {
-         myModelName = modelName;
+      LoadModelRunner (String className, String modelName, String[] modelArgs) {
          myClassName = className;
+         myModelName = modelName;
+         myModelArgs = modelArgs;
       }
 
       public void run() {
-         myStatus = loadModel (myModelName, myClassName);
+         myStatus = loadModel (myClassName, myModelName, myModelArgs);
       }
 
       public boolean getStatus() {
@@ -1034,23 +1048,30 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return true;
    }
 
-   protected RootModel createRootModel (Class<?> demoClass, String[] args) {
+   protected RootModel createRootModel (
+      Class<?> demoClass, String modelName, String[] args) {
+
+      if (args == null) {
+         args = new String[0];
+      }
       try {
          RootModel newRoot = null;
          Method method = demoClass.getMethod ("build", String[].class);
-         if (demoClass == RootModel.class || method.getDeclaringClass() != RootModel.class) {
+         if (demoClass == RootModel.class ||
+             method.getDeclaringClass() != RootModel.class) {
             System.out.println (
                "constructing model with build method ...");
             Constructor<?> constructor = demoClass.getConstructor();
             newRoot = (RootModel)constructor.newInstance();
-            newRoot.setName (args[0]);
+            newRoot.setName (modelName);
             newRoot.build (args);
          }
          else {
             System.out.println (
                "constructing model with legacy constructor method ...");
-            Constructor<?> constructor = demoClass.getConstructor (String.class);
-            newRoot = (RootModel)constructor.newInstance (args[0]);
+            Constructor<?> constructor = 
+               demoClass.getConstructor (String.class);
+            newRoot = (RootModel)constructor.newInstance (modelName);
          }
          return newRoot;
       }
@@ -1061,7 +1082,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
-   public boolean loadModel (String modelName, String className) {
+   public boolean loadModel (
+      String className, String modelName, String[] modelArgs) {
 
       // If we are not in the AWT event thread, switch to that thread
       // and build the model there. We do this because the model building
@@ -1069,8 +1091,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // and any such code must execute in the event thread. Typically,
       // we will not be in the event thread if loadModel is called from
       // the Jython console.
-      if (!SwingUtilities.isEventDispatchThread()) {
-         LoadModelRunner runner = new LoadModelRunner (modelName, className);
+      if (myViewer != null && !SwingUtilities.isEventDispatchThread()) {
+         LoadModelRunner runner =
+            new LoadModelRunner (className, modelName, modelArgs);
          if (!runInSwing (runner)) {
             return false;
          }
@@ -1112,23 +1135,29 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // Remove model and force repaint to clean the display.  
       // This is done so we can render
       // objects like an HUD while a new model is loading
-      myViewerManager.clearRenderables();
-      myViewerManager.render();	    // refresh the rendering lists
-      //myViewer.paint();				// force paint
-      
+      if (myViewerManager != null) {
+         myViewerManager.clearRenderables();
+         myViewerManager.render();	    // refresh the rendering lists
+      }
+            
       // getWorkspace().getWayPoints().clear();
       int numLoads = 1; // set to a large number for testing memory leaks
       for (int i = 0; i < numLoads; i++) {
-         newRoot = createRootModel (demoClass, new String[] { modelName });
+         if (modelArgs != null) {
+            System.out.println ("modelArgs.length=" + modelArgs.length);
+         }
+         newRoot = createRootModel (demoClass, modelName, modelArgs);
          if (newRoot == null) {
             // load empty model since some state info from existing model 
             // has been cleared, causing it to crash
-            loadModel("ArtiSynth", "artisynth.core.workspace.RootModel");
-            myViewerManager.render();
-            //myViewer.paint();
+            loadModel (
+               "artisynth.core.workspace.RootModel", "ArtiSynth", modelArgs);
+            if (myViewerManager != null) {
+               myViewerManager.render();
+            }
             return false;
          }
-         setRootModel (modelName, newRoot);
+         setRootModel (newRoot, modelName, modelArgs);
          if (numLoads > 1) {
             System.out.println ("load instance " + i);
          }
@@ -1137,23 +1166,20 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // check if an inverse controller was created by the rootmodel
       myInverseManager.setController(InverseManager.findInverseController());
 
-      // Sanchez, July 11, 2013
-      // force repaint again, updating viewer bounds to reflect
-      // new renderables
-      myViewerManager.render();	 // set external render lists
-      // myViewer.autoFit();      // auto-fit to new renderables (breaks setViewerEye... in attach(...))
-      //myViewer.paint();    
+      if (myFrame != null) {
+         // Sanchez, July 11, 2013
+         // force repaint again, updating viewer bounds to reflect
+         // new renderables
+         myViewerManager.render();	 // set external render lists
 
-      // when a model is loaded reset the viewer so no view is selected
-      setViewerMode (null);
+         // when a model is loaded reset the viewer so no view is selected
+         //setViewerMode (null);
 
-      // myMenuBarHandler.getViewerToolBar().setViewerButtons();
-
-      // remove the selected item in the selectComponentPanel
-      // otherwise the text for that selected component remains when a new model
-      // is loaded
-      myFrame.getSelectCompPanelHandler().clear();
-      myFrame.getSelectCompPanelHandler().setComponentFilter (null);
+         // remove the selected item in the selectComponentPanel otherwise the
+         // text for that selected component remains when a new model is loaded
+         myFrame.getSelectCompPanelHandler().clear();
+         myFrame.getSelectCompPanelHandler().setComponentFilter (null);
+      }
 
       return true;
    }
@@ -1326,6 +1352,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       new BooleanHolder (false);
    protected static BooleanHolder useArticulatedTransforms =
       new BooleanHolder (false);
+   protected static BooleanHolder noGui = new BooleanHolder (false);
+
    protected static IntHolder flags = new IntHolder();
 
    protected static StringHolder mousePrefs = new StringHolder(); // "kees"
@@ -1333,9 +1361,14 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    protected static float[] bgColor = new float[3];
 
-   Dimension getViewerSize() {
-      return myViewer.getCanvas().getSize();
-   }
+   // Dimension getViewerSize() {
+   //    if (myViewer != null) {
+   //       return myViewer.getCanvas().getSize();
+   //    }
+   //    else {
+   //       return null;
+   //    }
+   // }
 
    private static void verifyNativeLibraries (boolean update) {
 
@@ -1460,6 +1493,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       parser.addOption (
          "-updateLibs %v #update libraries from ArtiSynth server", updateLibs);
       parser.addOption ("-flags %x #flag bits passed to the application", flags);
+      parser.addOption ("-noGui %v #run ArtiSynth without the GUI", noGui);
 
       Locale.setDefault(Locale.CANADA);
 
@@ -1503,7 +1537,33 @@ public class Main implements DriverInterface, ComponentChangeListener {
          System.setProperty("awt.useSystemAAFontSettings","on"); 
       }
 
-      parser.matchAllArgs (args);
+      // Separate program arguments from model arguments introduced by -M
+      ArrayList<String> progArgs = new ArrayList<String>();
+      ArrayList<String> modelArgs = new ArrayList<String>();
+      boolean modelArgsFound=false;
+      for (String arg : args) {
+         if (modelArgsFound) {
+            modelArgs.add (arg);
+         }
+         else {
+            if (arg.equals ("-M")) {
+               modelArgsFound=true;
+            }
+            else {
+               progArgs.add (arg);
+            }
+         }
+      }
+      // System.out.println ("progArgs: " + progArgs.size());
+      // for (String a : progArgs) {
+      //    System.out.println (" " + a);
+      // }
+      // System.out.println ("modelArgs: " + modelArgs.size());
+      // for (String a : modelArgs) {
+      //    System.out.println (" " + a);
+      // }
+
+      parser.matchAllArgs (progArgs.toArray(new String[0]));
       if (printOptions.value) {
          System.out.println (parser.getOptionsMessage (2));
          exit (0);
@@ -1525,19 +1585,25 @@ public class Main implements DriverInterface, ComponentChangeListener {
          useSignedDistanceCollider.value;
       SurfaceMeshCollider.useAjlCollision = useAjlCollision.value;
 
+      if (noGui.value == true) {
+         width.value = -1;
+      }
       Main m = new Main (PROJECT_NAME, width.value, height.value);
 
       Main.setArticulatedTransformsEnabled (useArticulatedTransforms.value);
-      m.myViewer.setBackgroundColor (bgColor[0], bgColor[1], bgColor[2]);
-      // XXX this should be done in the Main constructor, but needs
-      // to be done here instead because of sizing effects
-      myMenuBarHandler.initToolbar();
-      myFrame.setViewerSize (width.value, height.value);
+
+      if (myFrame != null) {
+         m.myViewer.setBackgroundColor (bgColor[0], bgColor[1], bgColor[2]);
+         // XXX this should be done in the Main constructor, but needs
+         // to be done here instead because of sizing effects
+         myMenuBarHandler.initToolbar();
+         myFrame.setViewerSize (width.value, height.value);
+      }
 
       // create workspace
       createWorkspace();
 
-      if (mousePrefs.value != null) {
+      if (mousePrefs.value != null && m.myViewer != null) {
          m.setMouseBindings (mousePrefs.value);
       }
       Main.setFlags (flags.value);
@@ -1555,7 +1621,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // some sort of race condition when trying to set the
       // perspectve/orthogonal menu item while we are setting
       // the whole frame to be visible
-      if (orthographic.value) {
+      if (myFrame != null && orthographic.value) {
          m.getViewer().setOrthographicView (true);
       }
 
@@ -1564,7 +1630,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          if (className == null) {
             System.out.println ("No class associated with model name "
                + modelName.value);
-            m.setRootModel (null, new RootModel());
+            m.setRootModel (new RootModel(), null, null);
          }
          else {
             String name = modelName.value;
@@ -1575,11 +1641,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
                }
             }
             // load the model
-            m.loadModel (name, className);
+            m.loadModel (className, name, modelArgs.toArray(new String[0]));
          }
       }
       else {
-         m.setRootModel (null, new RootModel());
+         m.setRootModel (new RootModel(), null, null);
       }
       if (exitOnBreak.value) {
          Main.myScheduler.addListener (
@@ -1599,38 +1665,25 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       
       if (scriptFile.value != null) {
-    	  myMenuBarHandler.runScript(scriptFile.value);
+         if (myFrame != null) {
+            myMenuBarHandler.runScript(scriptFile.value);
+         }
+         else {
+            if (m.myJythonConsole == null) {
+               m.createJythonConsole (/*guiBased=*/false);
+            }
+            try {
+               m.myJythonConsole.executeScript (scriptFile.value);
+            }
+            catch (Exception e) {
+               System.out.println (
+                  "Error executing script '"+scriptFile.value+"':");
+               System.out.println (e);
+            }
+         }
       }
-   }
-
-   /**
-    * start given the model name
-    * 
-    * @param modelName
-    */
-
-   public void start (String modelName) {
-      IntHolder width = new IntHolder (500);
-      IntHolder height = new IntHolder (500);
-
-      Main m = new Main ("Artisynth", width.value, height.value);
-      this.myViewer.setBackgroundColor (bgColor[0], bgColor[1], bgColor[2]);
-      if (mousePrefs.value != null)
-         this.setMouseBindings (mousePrefs.value);
-
-      m.start (
-         startWithTimeline.value, timelineRight.value, largeTimeline.value);
-      if (orthographic.value) {
-         m.getViewer().setOrthographicView (true);
-      }
-
-      if (modelName != null) {
-         String className = this.getDemoClassName (modelName);
-         if (className == null)
-            System.out.println ("No class name associated with model name "
-               + modelName);
-         else
-            this.loadModel (modelName, className);
+      if (m.myJythonConsole != null && m.myJythonFrame == null) {
+         m.myJythonConsole.interact ();
       }
    }
 
@@ -1752,7 +1805,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             modelName = modelName.substring (0, dotIdx);
          }
       }
-      setRootModel (modelName, newRoot);
+      setRootModel (newRoot, modelName, null);
    }
    
    public void reloadModel() throws IOException {
@@ -1769,7 +1822,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             if (name == null) {
                name = "ArtiSynth";
             }
-            loadModel(name, rootClass.getName());
+            loadModel(rootClass.getName(), name, myModelArgs);
          }
       }
    }
@@ -1842,7 +1895,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    public void quit() {
       clearRootModel();
-      myFrame.dispose ();
+      if (myFrame != null) {
+         myFrame.dispose ();
+      }
       exit (0);
    }
 
@@ -1909,10 +1964,12 @@ public class Main implements DriverInterface, ComponentChangeListener {
          if (invalidateWaypoints) {
             root.getWayPoints().invalidateAfterTime(0);
          }
-         myTimeline.requestUpdateDisplay();
+         if (myTimeline != null) {
+            myTimeline.requestUpdateDisplay();
+         }
          ModelComponent c = e.getComponent();
          if (e.getCode() == ComponentChangeEvent.Code.STRUCTURE_CHANGED) {
-            if (c != null && c instanceof CompositeComponent) {
+            if (c != null && c instanceof CompositeComponent && myFrame != null) {
                myFrame.getNavPanel().updateStructure (c);
                if (c == root.getInputProbes() || c == root.getOutputProbes()) {
                   myTimeline.updateProbes();
@@ -1925,7 +1982,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       else if (e.getCode() == ComponentChangeEvent.Code.NAME_CHANGED) {
          ModelComponent c = e.getComponent();
-         if (c.getParent() != null) {
+         if (c.getParent() != null && myFrame != null) {
             myFrame.getNavPanel().updateStructure (c.getParent());
          }
          else {
@@ -1940,12 +1997,16 @@ public class Main implements DriverInterface, ComponentChangeListener {
                doSetMaxStep (getRootModel().getMaxStepSize());
             }
             else if (pe.getPropertyName().equals ("defaultViewOrientation")) {
-               myViewerManager.resetViewers (
-                  getRootModel().getDefaultViewOrientation());
+               if (myViewerManager != null) {
+                  myViewerManager.resetViewers (
+                     getRootModel().getDefaultViewOrientation());
+               }
             }
          }
          else if (pe.getPropertyName().startsWith ("navpanel")) {
-            myFrame.getNavPanel().updateStructure (e.getComponent());
+            if (myFrame != null) {
+               myFrame.getNavPanel().updateStructure (e.getComponent());
+            }
          }
       }
       else if (e.getCode() == ComponentChangeEvent.Code.GEOMETRY_CHANGED) {
@@ -2043,13 +2104,13 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
-   public void setViewerMode (ViewerMode viewerMode) {
-      this.viewerMode = viewerMode;
-   }
+//   public void setViewerMode (ViewerMode viewerMode) {
+//      this.viewerMode = viewerMode;
+//   }
 
-   public ViewerMode getViewerMode() {
-      return viewerMode;
-   }
+//   public ViewerMode getViewerMode() {
+//      return viewerMode;
+//   }
 
    private class SelectionHandler implements SelectionListener {
 
@@ -2440,24 +2501,26 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    public void arrangeControlPanels (RootModel root) {
-      java.awt.Point loc = myFrame.getLocation();
-      int locx = loc.x + myFrame.getWidth();
-      int locy = loc.y;
+      if (myFrame != null) {
+         java.awt.Point loc = myFrame.getLocation();
+         int locx = loc.x + myFrame.getWidth();
+         int locy = loc.y;
 
-      int maxWidth = 0;
-      for (ControlPanel panel : root.getControlPanels()) {
-         panel.pack();
-         panel.setLocation (locx, locy);
-         if (panel.getWidth() > maxWidth) {
-            maxWidth = panel.getWidth();
+         int maxWidth = 0;
+         for (ControlPanel panel : root.getControlPanels()) {
+            panel.pack();
+            panel.setLocation (locx, locy);
+            if (panel.getWidth() > maxWidth) {
+               maxWidth = panel.getWidth();
+            }
+            locy += panel.getHeight();
          }
-         locy += panel.getHeight();
-      }
-      for (ControlPanel panel : root.getControlPanels()) {
-         if (panel.getWidth() < maxWidth) {
-            panel.setSize (maxWidth, panel.getHeight());
+         for (ControlPanel panel : root.getControlPanels()) {
+            if (panel.getWidth() < maxWidth) {
+               panel.setSize (maxWidth, panel.getHeight());
+            }
+            panel.setVisible (true);
          }
-         panel.setVisible (true);
       }
    }
 
@@ -2593,7 +2656,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    /** 
     * Have our own exit method so that if we're running under matlab, we don't
     * actually exit.
-    */ 
+    */
    static public void exit (int code) {
       File testForFglrxDriver = new File ("/var/lib/dkms/fglrx/8.911");
       if (testForFglrxDriver.exists()) {

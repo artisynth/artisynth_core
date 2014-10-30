@@ -205,36 +205,19 @@ public class ArticulatedFem extends RootModel {
       }
       model.setIntegrator (Integrator.BackwardEuler);
       addModel (model);
+      addControlPanel (model);
+   }
+
+   protected void addControlPanel (MechModel mech) {
+      myControlPanel = new ControlPanel ("options", "");
+      myControlPanel.addWidget (mech, "integrator");
+      myControlPanel.addWidget (mech, "matrixSolver");
+      myControlPanel.addWidget (mech, "maxStepSize");
+
+      addControlPanel (myControlPanel);
    }
 
    ControlPanel myControlPanel;
-
-   @Override
-   public void attach (DriverInterface driver) {
-      super.attach (driver);
-      JFrame frame = driver.getFrame();
-
-      // FemModel3d femMod = (FemModel3d)findComponent ("models/fem");
-      MechModel mechMod = (MechModel)findComponent ("models/mech");
-
-      if (getControlPanels().size() == 0) {
-         myControlPanel = new ControlPanel ("options", "");
-         myControlPanel.addWidget (mechMod, "integrator");
-         myControlPanel.addWidget (mechMod, "matrixSolver");
-         myControlPanel.addWidget (mechMod, "maxStepSize");
-
-         myControlPanel.pack();
-         //myControlPanel.setVisible (true);
-         Point loc = frame.getLocation();
-         myControlPanel.setLocation (loc.x + frame.getWidth(), loc.y);
-         addControlPanel (myControlPanel);
-      }
-   }
-
-   @Override
-   public void detach (DriverInterface driver) {
-      super.detach (driver);
-   }
 
    /**
     * {@inheritDoc}

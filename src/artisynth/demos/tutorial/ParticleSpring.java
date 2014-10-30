@@ -14,6 +14,11 @@ public class ParticleSpring extends RootModel {
 
    public void build (String[] args) {
 
+      System.out.println (args.length+" args:");
+      for (String a : args) {
+         System.out.println (" "+a);
+      }
+
       // create MechModel and add to RootModel
       MechModel mech = new MechModel ("mech");
       addModel (mech);

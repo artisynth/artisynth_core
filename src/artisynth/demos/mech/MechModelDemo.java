@@ -310,7 +310,7 @@ public class MechModelDemo extends RootModel {
       mechMod.setBounds (new Point3d (0, 0, -10), new Point3d (0, 0, 10));
 
       addModel (mechMod);
-
+      addControlPanel (mechMod);
 
       // RigidTransform3d X = new RigidTransform3d (link1.getPose());
       // X.R.mulRpy (Math.toRadians(-10), 0, 0);
@@ -324,27 +324,11 @@ public class MechModelDemo extends RootModel {
 
    ControlPanel myControlPanel;
 
-   public void attach (DriverInterface driver) {
-      super.attach (driver);
-
-      if (getControlPanels().size() == 0) {
-         myControlPanel = new ControlPanel ("options", "");
-         myControlPanel.addWidget (this, "models/mechMod:integrator");
-         myControlPanel.addWidget (this, "models/mechMod:maxStepSize");
-         myControlPanel.pack();
-         //myControlPanel.setVisible (true);
-         java.awt.Point loc = driver.getFrame().getLocation();
-         myControlPanel.setLocation (
-            loc.x + driver.getFrame().getWidth(), loc.y);
-         addControlPanel (myControlPanel);
-      }
-      WayPoint way = new WayPoint (1.3);
-      way.setBreakPoint (true);
-      // Main.getWorkspace().addWayPoint (way);
-   }
-
-   public void detach (DriverInterface driver) {
-      super.detach (driver);
+   public void addControlPanel (MechModel mech) {
+      myControlPanel = new ControlPanel ("options", "");
+      myControlPanel.addWidget (mech, "integrator");
+      myControlPanel.addWidget (mech, "maxStepSize");
+      addControlPanel (myControlPanel);
    }
 
    /**

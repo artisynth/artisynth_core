@@ -14,31 +14,138 @@
 %\renewcommand{\sectionname}{}
 \begin{document}
 
+\section*{Oct 29, 2014}
+
+\subsection*{ArtiSynth can now be run in "batch" mode}
+
+Changes have been made to allow ArtiSynth to be run in "batch" mode.
+To do this, simply run ArtiSynth with the command line option
+%
+\begin{verbatim}
+   -noGui
+\end{verbatim}
+%
+and it will start up without any of the GUI structures.  The options
+{\tt -model} and {\tt -playFor} can be used to load a particular model
+and have it play for a specific time (in seconds), as in:
+%
+\begin{lstlisting}[]
+   artisynth -noGui -model artisynth.demos.tutorial.NetDemo -playFor 3
+\end{lstlisting}
+%
+
+It is also possible to specify a Jython script to be run, as in
+%
+\begin{lstlisting}[]
+   artisynth -noGui -script experiment.py
+\end{lstlisting}
+%
+Since there is no GUI, Jython will be initiated using a terminal
+console instead of the usual Swing text panel. When the script
+finishes, the console will remain available for interactive operation.
+
+One may also simply start with a Jython console, and no script:
+%
+\begin{lstlisting}[]
+   artisynth -noGui -showJythonConsole
+\end{lstlisting}
+%
+
+\subsection*{Batch mode causes some GUI structures to be {\tt null}}
+
+When run in batch mode, certain standard GUI structures, such as the
+viewer, viewer manager, timeline, and main frame, will not be created
+and any references to them will be {\tt null}. Models which refer to
+these structures must allow for this if they are to run properly in
+batch mode.
+
+In particular, calls to the RootModel methods {\tt getMainFrame()} and
+{\tt getMainViewer()} will return {\tt null} when operating in batch
+mode. The {\tt Main} method {\tt getViewerManager()} and {\tt
+getTimeline()} will also return {\tt null}.
+
+Control panels can still be created as before: in batch mode, they
+will still be added to the RootModel but will not be activated or made
+visible.
+
+\subsection*{Jython support code has been refactored}
+
+In order to support both Swing panel and terminal versions of Jython,
+it was necessary to refactor the Jython support code. The Swing panel
+is implemented using a {\tt ReadlinePanel} (formerly called {\tt
+ReadlineConsole}), while the terminal console is implemented by
+subclassing the {\tt JLineConsole} class found in the Jython package
+itself.
+
+Because of the different underlying implementations, the Swing panel
+and terminal implementations may behave slightly differently.  In
+particular, keyboard interrupts (CTRL-C) are implemented for the Swing
+panel and cause any currently existing command to be interrupted.
+However, CTRL-C may not do this for the terminal console (depending on
+the operating system), because of underlying issues with {\tt
+JLineConsole}. On Linux, entering CTRL-C on the terminal console
+simply aborts the entire program.
+
+\subsection*{Command line options can be passed to models}
+
+It is now possible to specify command line {\it model} options that
+are passed to the {\tt args} argument of a model's {\tt build()}
+method. Any command line option appearing {\it after} the delimiter
+option {\tt -M} will be passed to {\tt args} (which is a {\tt String}
+array). For example,
+%
+\begin{lstlisting}[]
+   artisynth -model artisynth.demos.tutorial.NetDemo -M -color red
+\end{lstlisting}
+%
+will cause {\tt args} to have a length of two and contain the
+strings {\tt "-color"} and {\tt "red"}. If no model options are
+specified, then {\tt args} will have a length of zero.
+
+Model options can also be specified in Jython, by supplying additional
+arguments to the {\tt loadModel} command:
+%
+\begin{lstlisting}[]
+   >>> loadModel ('artisynth.demos.tutorial.NetDemo', '-color', 'red')
+\end{lstlisting}
+%
+
 \subsection*{getFrame() not needed when creating ControlPanels}
 
 When creating {\tt ControlPanel}s, it was once necessary to explicity
 pack them, make them visible, and set their position with respect tp
-the main ArtiSynth frame, using a code fragment that would look like
-this:
+the main ArtiSynth frame, using a code fragment in the {\tt attach()}
+method that would look like this:
 %
 \begin{lstlisting}[]
-   controlPanel.pack();
-   controlPanel.setVisible(true);
-   JFrame frame = driverInterface.getFrame();
-   java.awt.Point loc = frame.getLocation();
-   controlPanel.setLocation(loc.x + refFrame.getWidth(), loc.y);
-   root.addControlPanel(controlPanel);
+   public void attach (DriverInterface driver) {
+      ControlPanel panel;
+      ... create panal ...
+      panel.pack();
+      panel.setVisible(true);
+      JFrame frame = driver.getFrame();
+      java.awt.Point loc = frame.getLocation();
+      panel.setLocation(loc.x + refFrame.getWidth(), loc.y);
+      root.addControlPanel(panel);
+   }
 \end{lstlisting}
 %
 All of these things are now done automatically by the {\tt
 addControlPanel()} method, and so the above code can be simplified to
 %
 \begin{lstlisting}[]
-   root.addControlPanel(controlPanel);
+   public void attach (DriverInterface driver) {
+      ControlPanel panel;
+      ... create panal ...
+      root.addControlPanel(panel);
+   }
 \end{lstlisting}
 %
 Calling {\tt driver.getFrame()} is now only necessary to place the
-panel in an unconventional location.
+panel in an unconventional location. Moreover, the frame can be
+obtained from the {\tt RootModel} method {\tt getFrame()}, and so
+there is no need to refer to the {\tt DriverInterface} structure and
+the code itself can be moved into the {\tt build()} method.
 
 \section*{Sep 24, 2014}
 

@@ -1,28 +1,22 @@
 # ArtisynthScript: "MechmodelTest"
 #
-# For repeatable result, enable the following settings:
-#
-#   -posCorrection GlobalMass
-#   -disableHybridSolves
-#
-# and disable these setting:
-#
-#  -noIncompressDamping
-#  -useAjlCollision
-#
-# Also, set the environment variable OMP_NUM_THREADS to 1
-#
-#---------------------------------------------------
+# For repeatable results, set the environment variable OMP_NUM_THREADS
+# to 1
 #
 # most recent test was run using:
 #   1 step of numerical refinement in Pardiso
 #   a time step of 0.01 in RigidBodyCollision
-#   cnt=2 in MechBodySolver projectPositionConstraints
 def setModelOpts (t, file) :
     mech = find ("models/0")
     mech.setPrintState ("%g")
     addBreakPoint (t)
     return mech
+
+# Adjust certain solver settings to ensure repeatable results:
+MechSystemSolver.myDefaultHybridSolveP = False
+MechSystemBase.setDefaultStabilization (PosStabilization.GlobalMass)
+FemModel3d.noIncompressStiffnessDamping = False
+SurfaceMeshCollider.useAjlCollision = False
 
 #main.maskFocusStealing (True)
 dataFileName = "mechmodelTest.out"

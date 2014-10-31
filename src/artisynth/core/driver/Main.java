@@ -196,7 +196,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    public String getDemoClassName (String classNameOrAlias) {
       String name = myDemoModels.getName (classNameOrAlias);
-      ;
       if (name != null) {
          return name;
       }

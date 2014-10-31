@@ -174,6 +174,7 @@ public class PardisoSolver implements DirectSolver {
    private static final int INIT_OK = 2;
 
    static int myInitStatus = INIT_UNKNOWN;
+   static int myDefaultNumThreads = -1;
 
    /**
     * Returns a message corresponding to a Pardiso error code.
@@ -442,6 +443,9 @@ public class PardisoSolver implements DirectSolver {
       myVals = new double[0];
       myColIdxs = new int[0];
       myRowOffs = new int[0];
+      if (myDefaultNumThreads > 0) {
+         setNumThreads (myDefaultNumThreads);
+      }
    }
 
    void initialize () {
@@ -812,6 +816,31 @@ public class PardisoSolver implements DirectSolver {
             "Not enough row start indices: rowIdxs.length=" + rowIdxs.length
             + ", size=" + size);
       }
+   }
+
+
+   /**
+    * Sets the number of threads that Pardiso is assigned when a
+    * <code>PardisoSolver</code> is created. Once created, this value can be
+    * overriden using {@link #setNumThreads(int)}.  Setting <code>num</code> to
+    * a value <= 0 will cause the number of threads to be determined by the
+    * value stored in the environment variable <code>OMP_NUM_THREADS</code>.
+    *
+    * @param num default number of threads to use
+    * @see #getDefaultNumThreads
+    */
+   public static void setDefaultNumThreads (int num) {
+      myDefaultNumThreads = num;
+   }
+
+   /**
+    * Returns the number of threads that Pardiso is assigned when a
+    * <code>PardisoSolver</code> is created.
+    *
+    * @see #setDefaultNumThreads
+    */
+   public static int getDefaultNumThreads () {
+      return myDefaultNumThreads;
    }
 
    /**

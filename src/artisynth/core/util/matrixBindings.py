@@ -4,7 +4,12 @@ class NonconformingSizeException(Exception):
 from maspack.util import *
 from maspack.matrix import *
 from maspack.geometry import *
+from maspack.collision import *
 from maspack.render import *
+from maspack.solvers import *
+from artisynth.core.mechmodels import *
+from artisynth.core.mechmodels.MechSystemSolver import Integrator
+from artisynth.core.mechmodels.MechSystemSolver import PosStabilization
 from artisynth.core.mechmodels import *
 from artisynth.core.femmodels import *
 from artisynth.core.materials import *

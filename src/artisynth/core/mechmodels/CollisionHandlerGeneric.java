@@ -1032,11 +1032,14 @@ implements Constrainer {
 
       GL2 gl = renderer.getGL2();
 
-      // estimate distance to offset lines/planes
-      // XXX don't offset lines for now 
-      double offsetMag = 0; //(renderer.getFarClipPlaneZ()- renderer.getNearClipPlaneZ())*0.001;
+      // Magnitude of offset vector to add to rendered contour lines.  The
+      // offset is needed because the contours coexist with polygonal surfaces,
+      // and rendering the latter would otherwise obscure rendering the former.
+      offsetMag = 1.0*renderer.centerDistancePerPixel();
+
       renderer.getZDirection();
       Vector3d offDir = new Vector3d(renderer.getZDirection());
+
       // System.out.println("Z direction" + offDir);
       double scale = offsetMag/offDir.norm();
       offDir.scale(scale);

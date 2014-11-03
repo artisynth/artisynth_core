@@ -217,7 +217,7 @@ public class JythonPanelConsole extends InteractiveConsole {
           // calls to setInsideExec. Not need to do anything; just
           // catch the signal
           if (!(e instanceof InterruptedException)) {
-             throw e;
+             throw new RuntimeException(e);
           }
        }
        if (myThread != null) {

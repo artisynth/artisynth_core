@@ -1035,7 +1035,7 @@ implements Constrainer {
       // Magnitude of offset vector to add to rendered contour lines.  The
       // offset is needed because the contours coexist with polygonal surfaces,
       // and rendering the latter would otherwise obscure rendering the former.
-      offsetMag = 1.0*renderer.centerDistancePerPixel();
+      double offsetMag = 1.0*renderer.centerDistancePerPixel();
 
       renderer.getZDirection();
       Vector3d offDir = new Vector3d(renderer.getZDirection());

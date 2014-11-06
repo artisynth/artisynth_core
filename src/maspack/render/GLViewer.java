@@ -2117,7 +2117,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       return myUp;
    }
 
-   private void doDisplay (GLAutoDrawable drawable, int flags) {
+   public void doDisplay (GLAutoDrawable drawable, int flags) {
       GL2 gl = drawable.getGL().getGL2();
 
       if (resetViewVolume && resizeEnabled) {
@@ -3821,6 +3821,10 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
 
    public void setGlobalRenderFlags(int flags) {
       myRenderFlags.setDefault (flags);
+   }
+
+   public int getRenderFlags () {
+      return myRenderFlags.get(); 
    }
 
    public void begin2DRendering() {

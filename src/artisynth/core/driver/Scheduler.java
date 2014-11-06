@@ -155,7 +155,8 @@ public class Scheduler {
 
       void doadvance (double t0sec, double t1sec, int flags) {
          
-         myWorkspace.advance (t0sec, t1sec, flags);
+         RootModel rootModel = getRootModel();
+         rootModel.advance (t0sec, t1sec, flags);
          myTime = t1sec;
 
          long realMsec1 = System.currentTimeMillis();
@@ -169,6 +170,7 @@ public class Scheduler {
             Thread.yield();
          }
          else if (myRealTimeAdvanceP && simElapsedMsec - realElapsedMsec > 10) {
+            // if connect to a viewer, slow down to real time
             // sleep only if we are more than 10 msec off real time, since
             // sleep usually works in 10 msec increments
             dosleep (simElapsedMsec - realElapsedMsec);
@@ -394,7 +396,7 @@ public class Scheduler {
    public boolean rewind() {
       WayPoint way = getWayPoints().getValidBefore (getTime());
       if (way != null) {
-         Main.getScheduler().setTime (way);
+         setTime (way);
          getWorkspace().rerender();
          fireListeners (Action.Rewind);
          return true;
@@ -409,7 +411,7 @@ public class Scheduler {
    public boolean fastForward() {
       WayPoint way = getWayPoints().getValidAfter (getTime());
       if (way != null) {
-         Main.getScheduler().setTime (way);
+         setTime (way);
          getWorkspace().rerender();
          fireListeners (Action.Rewind);
          return true;

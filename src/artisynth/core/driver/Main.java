@@ -527,7 +527,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return frame;
    }
 
-   private void initializeViewer (GLViewer viewer, AxisAngle REW) {
+   public void initializeViewer (GLViewer viewer, AxisAngle REW) {
       // ContextMouseListener contextListener = new ContextMouseListener();
 
       // keyHandler.attachGLViewer(viewer);
@@ -877,6 +877,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          }
       }
       else {
+         myScheduler.setRealTimeAdvance (false); // no need if no viewer
          if (startWithJython.value) {
             createJythonConsole (/*useGui=*/false);
          }

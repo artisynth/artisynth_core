@@ -214,6 +214,14 @@ public class MotionTerm
       return rowoff + Hm.rowSize();
    }
 
+   public void getJacobian ( MatrixNd H ) {
+      H.set (Hm);
+   }
+   
+   public void getVbar ( VectorNd b ) {
+      b.set (vbar);
+   }
+   
    private void pointMul(VectorNd v1, VectorNd v2, VectorNd out) {
       assert(v1.size() == v2.size() && v2.size() == out.size());
       

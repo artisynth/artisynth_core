@@ -118,9 +118,9 @@ public class LeastSquaresSolver
     * @param a
     * @param C
     * @param d
+    * @param a0
     * @param Aeq 
     * @param beq
-    * @param a0
     */
    public void solve(VectorNd a, MatrixNd C, VectorNd d, VectorNd a0, MatrixNd Aeq, VectorNd beq) {
       
@@ -249,7 +249,6 @@ public class LeastSquaresSolver
     */
    public void createBoundConstraints(MatrixNd A, VectorNd b, VectorNd lb, VectorNd ub)
    {
- 
       A.setIdentity ();
       int idx = 0;
    
@@ -270,7 +269,5 @@ public class LeastSquaresSolver
             b.set (idx++, -ub.get(i));
          }
       }
-      
-      
    }
 }

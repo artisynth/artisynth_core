@@ -181,7 +181,7 @@ public class InverseManager implements HasProperties {
       for (PropertyInfo propinfo : myController.getAllPropertyInfo())
          inverseControlPanel.addWidget(myController, propinfo.getName());
 
-      for (LeastSquaresTerm term : myController.getCostTerms()) {
+      for (QPTerm term : myController.getCostTerms()) {
          if (term instanceof LeastSquaresTermBase) {
             inverseControlPanel.addWidget(new JSeparator());
             inverseControlPanel.addWidget(new JLabel(term
@@ -264,7 +264,7 @@ public class InverseManager implements HasProperties {
          configureExcitationProbe();
       
          MotionTargetTerm moterm = null;
-         for (LeastSquaresTerm term : myController.getCostTerms()) {
+         for (QPTerm term : myController.getCostTerms()) {
             if (term instanceof MotionTargetTerm) {
                moterm = (MotionTargetTerm)term;
                break;

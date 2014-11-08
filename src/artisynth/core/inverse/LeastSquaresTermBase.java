@@ -6,31 +6,18 @@
  */
 package artisynth.core.inverse;
 
-import maspack.properties.HasProperties;
-import maspack.properties.Property;
-import maspack.properties.PropertyList;
+import maspack.matrix.MatrixNd;
+import maspack.matrix.VectorNd;
 
-
-public abstract class LeastSquaresTermBase implements LeastSquaresTerm, HasProperties {
-
-   protected double myWeight;
+public abstract class LeastSquaresTermBase extends QPTermBase
+   implements LeastSquaresTerm {
+   
+   protected int myRowSize;
+   
+   protected MatrixNd H = new MatrixNd(); //left hand side
+   protected VectorNd f = new VectorNd(); //right hand side
+  
    public static final double defaultWeight = 1;
-   
-   
-   public static PropertyList myProps =
-      new PropertyList (LeastSquaresTermBase.class);
-
-   static {
-      myProps.add ("weight * *", "weighting factor for this optimization term", 1);
-   }
-
-   public PropertyList getAllPropertyInfo() {
-      return myProps;
-   }
-
-   public Property getProperty(String pathName) {
-      return PropertyList.getProperty(pathName, this);
-   }
    
    public LeastSquaresTermBase() {
       this(defaultWeight);
@@ -40,12 +27,53 @@ public abstract class LeastSquaresTermBase implements LeastSquaresTerm, HasPrope
       myWeight = weight;
    }
 
-   public void setWeight(double w) {
-      myWeight = w;
+   /**
+    * Appends the provided rows to the cost term
+    * @param H left hand side
+    * @param f right hand side
+    */
+   public void addRows (MatrixNd H, VectorNd f) {
+      if (H.colSize() == mySize && H.rowSize() == f.size()) {
+         int oldRowSize = myRowSize;
+         myRowSize += H.rowSize();
+         setSize (mySize); //allocates extra space required to store the term
+         this.H.setSubMatrix (oldRowSize,0,H);
+         this.f.setSubVector (oldRowSize,f);
+      } else {
+         throw new IllegalArgumentException("Wrong argument sizes");
+      }
    }
    
-   public double getWeight() {
-      return myWeight;
+   public void getQP(MatrixNd Q, VectorNd P, double t0, double t1) {
+      compute(t0,t1);
+      this.Q.mulTransposeLeft (H,H);
+      this.P.mulTranspose (H,f);
+      this.P.negate ();
+      Q.add (this.Q);
+      P.add (this.P);
    }
-
+   
+   /**
+    * Gets the current least squares term and returns the index of the last row
+    * @param H container to store the left hand side
+    * @param f container to store the right hand side
+    * @param rowoff start from this row
+    * @param t0
+    * @param t1
+    */
+   public int getTerm (MatrixNd H, VectorNd f, int rowoff, double t0, double t1) {
+      compute(t0,t1);
+      H.setSubMatrix(rowoff, 0, this.H);
+      f.setSubVector(rowoff, this.f);
+      return rowoff+getRowSize();
+   }
+   
+   @Override
+   public void setSize(int size) {
+      super.setSize (size);
+      H.setSize (getRowSize(),size);
+      f.setSize (getRowSize());
+   }
+   
+   public abstract int getRowSize();
 }

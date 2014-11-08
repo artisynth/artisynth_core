@@ -41,14 +41,15 @@ import artisynth.core.util.TimeBase;
  *
  */
 public class MotionTargetTerm extends LeastSquaresTermBase {
-
+   public static final double defaultWeight = 1;
+   
    public static final boolean DEFAULT_USE_PD_CONTROL = false;
    boolean usePDControl = DEFAULT_USE_PD_CONTROL;
    boolean debug = false;
    boolean enabled = true;
 
+   protected TrackingController myController;
    protected MechSystemBase myMech;    // mech system, used to compute forces
-   protected TrackingController myController; // controller to which this term is associated
    protected MotionTerm myMotionTerm;
    protected ArrayList<MotionTargetComponent> mySources;
    protected ArrayList<MotionTargetComponent> myTargets;
@@ -61,8 +62,8 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    protected VectorNd myTargetPos = null;
    protected int myTargetVelSize;
    protected int myTargetPosSize;
-
    protected VectorNd myTargetWgts = null;   // size of myTargetVelSize, weights for system
+   
    public static boolean DEFAULT_NORMALIZE_H = false;
    protected boolean normalizeH = DEFAULT_NORMALIZE_H;
    
@@ -100,11 +101,15 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       return myProps;
    }
    
-   public MotionTargetTerm (TrackingController trackingController) {
-      super();
-      myMech = trackingController.getMech();
-      myController = trackingController;
-      myMotionTerm = new MotionTerm(trackingController);
+   public MotionTargetTerm (TrackingController controller) {
+      this(controller, defaultWeight);
+   }
+   
+   public MotionTargetTerm (TrackingController controller, double weight) {
+      super(weight);
+      myController = controller;
+      myMech = myController.getMech();
+      myMotionTerm = new MotionTerm(myController);
       mySources = new ArrayList<MotionTargetComponent>();
       myTargets = new ArrayList<MotionTargetComponent>();
       myTargetWeights = new ArrayList<Double>();
@@ -112,6 +117,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       initTargetRenderProps();
       initSourceRenderProps();
    }
+   
 
    public void updateTarget(double t0, double t1) {
       if (!isEnabled()) {
@@ -139,7 +145,6 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       
       }
       else {
-         
          setTargetVelocityFromPositionError(h);
          // updateTargetPosAndVel(h);
          updateTargetVelocityVec(); // set myTargetVel
@@ -703,13 +708,6 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    }
 
    /**
-    * Returns complete size of velocity vector (not number of targets)
-    */
-   public int getTargetSize() {
-      return getTargetVelSize();
-   }
-
-   /**
     * Fills <code>H</code> and <code>b</code> with this motion term
     * @param H LHS matrix to fill
     * @param b RHS vector to fill
@@ -725,8 +723,19 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
 //      fixTargetPositions();   // XXX not sure why this is needed
       return myMotionTerm.getTerm(H, b, rowoff, t0, t1,
          myTargetVel, myCurrentVel, myTargetWgts, getVelocityJacobian(), normalizeH);
-    
    }
+   
+   /**
+    * Fills <code>H</code> and <code>b</code> with this motion term
+    * In contrast to <code>getTerm</code>, this method does not
+    * recompute the values.
+    */
+   public void reGetTerm(MatrixNd H, VectorNd b) {
+      myMotionTerm.getJacobian (H);
+      myMotionTerm.getVbar(b);
+      //b.set (myTargetVel);
+   }
+   
    
    private void fixTargetPositions() {
       for (MotionTargetComponent comp : myTargets) {
@@ -908,6 +917,16 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     */
    public boolean getNormalizeH() {
       return normalizeH;
+   }
+
+   @Override
+   protected void compute (double t0, double t1) {
+      getTerm (H,f,0,t0,t1);
+   }
+   
+   @Override
+   public int getRowSize() {
+      return getTargetVelSize();
    }
 
 }

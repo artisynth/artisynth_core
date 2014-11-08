@@ -18,12 +18,15 @@ import javax.swing.JSeparator;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyInfo;
+import maspack.properties.PropertyInfoList;
 import maspack.properties.PropertyList;
 import maspack.render.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
 import maspack.render.RenderProps.PointStyle;
+import maspack.solvers.DantzigQPSolver;
+import maspack.solvers.DantzigQPSolver.Status;
 import maspack.util.ListView;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -108,12 +111,12 @@ public class TrackingController extends ControllerBase
    boolean useInverseManager = DEFAULT_USE_INVERSE_MANAGER; 
 
    protected MechSystemBase myMech;
-   protected LeastSquaresSolver mySolver;
-   protected ArrayList<LeastSquaresTerm> myCostTerms;
-   protected ArrayList<LeastSquaresTerm> myConstraintTerms;
-   // protected ComponentList<OptimizationTerm> myOptimizationTerms;
+   protected QPCostFunction myCostFunction;
+
    protected MotionTargetTerm myMotionTerm = null;  // contains target information
    protected L2RegularizationTerm myRegularizationTerm = null;
+   protected BoundsTerm myBoundsTerm = null;
+   
    // contains child components and implements CompositeComponent methods
    protected ComponentListImpl<ModelComponent> myComponents;
    
@@ -129,13 +132,7 @@ public class TrackingController extends ControllerBase
     */
    // ComplianceTerm cTerm = null;
    // StiffnessTerm kTerm = null;
-
-   protected MatrixNd H = new MatrixNd();
-   protected VectorNd f = new VectorNd();
    
-   protected MatrixNd A = new MatrixNd();
-   protected VectorNd b = new VectorNd();
-
 
    protected MuscleExciter myExciters;  // list of inputs
    protected VectorNd myExcitations = new VectorNd();    // computed excitatios
@@ -143,10 +140,6 @@ public class TrackingController extends ControllerBase
    protected VectorNd initExcitations = new VectorNd();  // initial, in case non-zero start (again, for damping)
 
    protected double maxExcitationJump = DEFAULT_MAX_EXCITATION_JUMP; // limit jump in activations
-
-   protected int exSize;   // number of excitations
-   protected int costRowSize;  // number of rows in H
-   protected int conRowSize;  // number of rows in A
 
    public static PropertyList myProps =
       new PropertyList(TrackingController.class, ControllerBase.class);
@@ -156,7 +149,7 @@ public class TrackingController extends ControllerBase
       myProps.add("enabled isEnabled *", "enable/disable controller", true);
       myProps.add(
          "maxExcitationJump * *", "maximum excitation step",
-         DEFAULT_MAX_EXCITATION_JUMP);
+         DEFAULT_MAX_EXCITATION_JUMP, "[0,1]");
       myProps.add(
          "targetsVisible * *", "allow showing or hiding of motion targets",
          true);
@@ -166,7 +159,6 @@ public class TrackingController extends ControllerBase
       myProps.add(
          "usePDControl * *", "use PD controller for motion term",
          MotionTargetTerm.DEFAULT_USE_PD_CONTROL);
-      // myProps.add("debug * *", "print target stuff", false);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -194,10 +186,8 @@ public class TrackingController extends ControllerBase
       super();
       setMech(m);
       setName(name);
-
-      mySolver = new LeastSquaresSolver();
-      myCostTerms = new ArrayList<LeastSquaresTerm>();
-      myConstraintTerms = new ArrayList<LeastSquaresTerm> ();
+      
+      myCostFunction = new QPCostFunction();
       
       myComponents = new ComponentListImpl (ModelComponent.class, this);
 
@@ -241,16 +231,18 @@ public class TrackingController extends ControllerBase
       myMotionTerm = new MotionTargetTerm (this);
       if (handleMotionTargetAsConstraint) {
          // add a constraint on the motion target
-         myConstraintTerms.add (myMotionTerm);
+         myCostFunction.addEqualityConstraint (myMotionTerm);
          
          // need a regularization term in the cost function if the motion term is constraint
-         myRegularizationTerm = new L2RegularizationTerm (this);
-         myCostTerms.add (myRegularizationTerm);
+         myRegularizationTerm = new L2RegularizationTerm ();
+         myCostFunction.addCostTerm (myRegularizationTerm);
       }
       else {
          // just add motion target to cost function
-         myCostTerms.add (myMotionTerm);
+         myCostFunction.addCostTerm (myMotionTerm);
       }
+      
+      setExcitationBounds(0d,1d);
    }
 
    /**
@@ -271,33 +263,21 @@ public class TrackingController extends ControllerBase
     */
    public void apply(double t0, double t1) {
 
+      if (t0 == 0) { // XXX need better way to zero excitations on reset
+         myCostFunction.setSize (numExcitations());
+         myExcitations = new VectorNd (numExcitations());
+      }
+      
       if (!isEnabled()) {
          return;
       }
 
-      checksize();
-      if (costRowSize <= 0 || exSize <= 0) {
-         return;
-      }
-
-      if (t0 == 0) { // XXX need better way to zero excitations on reset
-         myExcitations.set(initExcitations);
-      }
-
-      int rowoff = 0;
-      for (LeastSquaresTerm term : myCostTerms) {
-         rowoff = term.getTerm(H, f, rowoff, t0, t1);
-      }      
-      
-      rowoff = 0;
-      for (LeastSquaresTerm term : myConstraintTerms) {
-         rowoff = term.getTerm(A, b, rowoff, t0, t1);
-      }
-      //System.out.println ("H=\n" + H.toString ("%10.5f"));
-
       prevExcitations.set(myExcitations);
-      mySolver.solve(myExcitations, H, f, prevExcitations, A, b);
-
+      myExcitations.set(myCostFunction.solve (t0,t1));
+      
+      /*
+       * limit excitation jumps
+       */
       //System.out.println ("excitations="+myExcitations);
       NumberFormat f4 = new NumberFormat("%.4f");
       for (int j = 0; j < myExcitations.size(); j++) {
@@ -336,11 +316,11 @@ public class TrackingController extends ControllerBase
     * Clears all terms and disposes storage
     */
    public void dispose() {
-      System.out.println("optimization controller dispose()");
-      mySolver.dispose();
-      for (LeastSquaresTerm term : myCostTerms) {
-         term.dispose();
-      }
+      System.out.println("tracking controller dispose()");
+      myMotionTerm = null;
+      myRegularizationTerm = null;
+      myBoundsTerm = null;
+      myCostFunction.dispose();
       targetPoints.clear ();
       remove (targetPoints);
       targetFrames.clear ();
@@ -353,71 +333,28 @@ public class TrackingController extends ControllerBase
       remove (myExciters);
    }
 
-   private void checksize() {
-      int nCost = 0;
-      for (LeastSquaresTerm term : myCostTerms) {
-         nCost += term.getTargetSize();
-      }
-      
-      int nCon = 0;
-      for (LeastSquaresTerm term : myConstraintTerms) {
-         nCon += term.getTargetSize();
-      }
-
-      int m = myExciters.numTargets ();
-
-      if (nCost != costRowSize || nCon != conRowSize || m != exSize)
-         resize(nCost, nCon, m);
-   }
-
-   private void resize(int rows, int conRows, int excitations) {
-      H.setSize(rows, excitations);
-      f.setSize(rows);
-      A.setSize(conRows, excitations);
-      b.setSize(conRows);
-      myExcitations.setSize(excitations);
-      prevExcitations.setSize(excitations);
-      initExcitations.setSize(excitations);
-      costRowSize = rows;
-      conRowSize = conRows;
-      exSize = excitations;
-   }
-
    /**
     * Add another term to the optimization, typically 
     * for regularization
     * @param term the term to add
     */
-   public void addCostTerm(LeastSquaresTerm term) {
-      myCostTerms.add(term);
-      resize(costRowSize + term.getTargetSize(), conRowSize, exSize);
-
-      /*
-       * for debugging:
-       */
-      // if (term instanceof StiffnessTerm) {
-      // kTerm = (StiffnessTerm)term;
-      // }
-      // else if (term instanceof ComplianceTerm) {
-      // cTerm = (ComplianceTerm)term;
-      // }
-
+   public void addCostTerm(QPTerm term) {
+      myCostFunction.addCostTerm(term);
    }
 
    /**
     * Retrieves a list of all terms, including the tracking error
     * and any regularization terms
     */
-   public ArrayList<LeastSquaresTerm> getCostTerms() {
-      return myCostTerms;
+   public ArrayList<QPTerm> getCostTerms() {
+      return myCostFunction.getCostTerms();
    }
    
    /**
-    * Retrieves a list of all terms, including the tracking error
-    * and any regularization terms
+    * Retrieves a list of all equality constraints
     */
    public ArrayList<LeastSquaresTerm> getConstraintTerms() {
-      return myConstraintTerms;
+      return myCostFunction.getEqualityConstraints ();
    }
 
    /**
@@ -462,22 +399,7 @@ public class TrackingController extends ControllerBase
          return null;
    }
 
-   /**
-    * Gets the solver object
-    */
-   public LeastSquaresSolver getSolver() {
-      return mySolver;
-   }
-
-   /**
-    * Sets bounds for the excitations
-    * @param lower lower-bound (typically 0)
-    * @param upper upper-bound (typically 1)
-    */
-   public void setExcitationBounds(double lower, double upper) {
-      mySolver.setBounds(lower, upper);
-   }
-
+   
    /**
     * Determines the set of forces given a set of excitations.
     * Note: this actually sets the excitations in the model
@@ -539,7 +461,6 @@ public class TrackingController extends ControllerBase
    
    public void addExciter(ExcitationComponent ex, double gain) {
       myExciters.addTarget(ex, gain);
-      resize(costRowSize, conRowSize, myExciters.numTargets());
       if (ex instanceof MultiPointMuscle) {
          MultiPointMuscle m = (MultiPointMuscle)ex;
          if (m.getExcitationColor() == null) {
@@ -560,11 +481,17 @@ public class TrackingController extends ControllerBase
     * Clears all exciters
     */
    public void clearExciters() {
-//      myExciters.clear();
       myExciters.removeAllTargets ();
-      resize(costRowSize, conRowSize, 0);
    }
 
+   public void setExcitationBounds (double lower, double upper) {
+      if (myBoundsTerm == null) {
+         myBoundsTerm = new BoundsTerm();
+         myCostFunction.addInequalityConstraint (myBoundsTerm);
+      }
+      myBoundsTerm.setBounds (lower,upper);
+   }
+   
    /**
     * Number of exciters controlled by this controller
     */
@@ -787,34 +714,23 @@ public class TrackingController extends ControllerBase
       for (PropertyInfo propinfo : getAllPropertyInfo())
          inverseControlPanel.addWidget(this, propinfo.getName());
 
-      for (LeastSquaresTerm term : getCostTerms()) {
-         if (term instanceof LeastSquaresTermBase) {
-            inverseControlPanel.addWidget(new JSeparator());
-            inverseControlPanel.addWidget(
-               new JLabel(term.getClass().getSimpleName()));
+      for (QPTerm term : getCostTerms()) {
+         inverseControlPanel.addWidget(new JSeparator());
+         inverseControlPanel.addWidget(
+            new JLabel(term.getClass().getSimpleName()));
 
-            PropertyList propList =
-               ((LeastSquaresTermBase)term).getAllPropertyInfo();
-            for (PropertyInfo propinfo : propList) {
-               if (term instanceof MotionTargetTerm) {
-                  inverseControlPanel.addWidget(
-                     (MotionTargetTerm)term, propinfo.getName());
-               } else {
-                  inverseControlPanel.addWidget(
-                     (LeastSquaresTermBase)term, propinfo.getName());
-               }
-            }
+         PropertyInfoList propList = term.getAllPropertyInfo();
+         for (PropertyInfo propinfo : propList) {
+            inverseControlPanel.addWidget(term, propinfo.getName());
          }
       }
 
       Dimension d = Main.getMainFrame().getSize();
       java.awt.Point pos = Main.getMainFrame().getLocation();
       inverseControlPanel.getFrame().setLocation(d.width + pos.x, pos.y);
-
       inverseControlPanel.setScrollable(false);
       Main.getWorkspace().registerWindow(inverseControlPanel.getFrame());
       inverseControlPanel.setVisible(true);
-      
       return inverseControlPanel;
    }
 

@@ -10,30 +10,26 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.Iterator;
 
 import javax.swing.JLabel;
 import javax.swing.JSeparator;
 
-import maspack.matrix.MatrixNd;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyInfo;
 import maspack.properties.PropertyInfoList;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
-import maspack.render.RenderProps.PointStyle;
-import maspack.solvers.DantzigQPSolver;
-import maspack.solvers.DantzigQPSolver.Status;
 import maspack.util.ListView;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.driver.Main;
 import artisynth.core.femmodels.FemModel;
 import artisynth.core.gui.ControlPanel;
-import artisynth.core.mechmodels.CollisionHandler;
 import artisynth.core.mechmodels.ExcitationComponent;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystem;
@@ -45,19 +41,17 @@ import artisynth.core.mechmodels.MultiPointMuscle;
 import artisynth.core.mechmodels.Muscle;
 import artisynth.core.mechmodels.MuscleExciter;
 import artisynth.core.mechmodels.PointList;
-import artisynth.core.modelbase.ComponentList;
-import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.ComponentChangeEvent;
+import artisynth.core.modelbase.ComponentList;
 import artisynth.core.modelbase.ComponentListImpl;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ControllerBase;
+import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ReferenceList;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentList;
-import artisynth.core.modelbase.ScanWriteUtils;
-import artisynth.core.modelbase.StepAdjustment;
-import artisynth.core.util.*;
+import artisynth.core.util.ScanToken;
 
 /**
  * "Inverse" controller for computing muscle activations based on

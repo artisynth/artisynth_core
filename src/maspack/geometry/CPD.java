@@ -291,6 +291,23 @@ public class CPD {
     */
    public static double computeP(Point3d[] X, Point3d[] TY, double sigma2, double w,
       double[][] P, double[] P1, double [] Pt1) {
+      return computeP(X, TY, sigma2, w, P, P1, Pt1, sigma2*1e-12);
+   }
+   
+   /**
+    * Computes the CPD probability function P(m|n)
+    * @param X Input points
+    * @param TY Transformed output points
+    * @param sigma2 variance
+    * @param w weight to account for noise/outliers
+    * @param P MxN probability matrix
+    * @param P1 Mx1 vector, P*1
+    * @param Pt1 Nx1 vector, trans(P)*1
+    * @param tol2 squared point tolerance
+    * @return Np the sum of all entries in P
+    */
+   public static double computeP(Point3d[] X, Point3d[] TY, double sigma2, double w,
+      double[][] P, double[] P1, double [] Pt1, double tol2) {
       
       double N = X.length;
       double M = TY.length;
@@ -299,6 +316,9 @@ public class CPD {
       double c = 2*Math.PI*sigma2;
       c = c*c*c;
       c = Math.sqrt(c);
+      if (w == 1) {
+         w = 1-1e-16;  // always between [0,1], so we can hard-code a tolerance here
+      }
       c = c*M*w/((1-w)*N);
       
       Point3d xn, ym;
@@ -320,12 +340,27 @@ public class CPD {
             dy = xn.y-ym.y;
             dz = xn.z-ym.z;
             
-            d = Math.exp(- (dx*dx+dy*dy+dz*dz)/(2*sigma2));
+            
+            if (sigma2 > 0) {
+               d = Math.exp(- (dx*dx+dy*dy+dz*dz)/(2*sigma2));
+            } else if (tol2 > 0){
+               d = Math.exp(- (dx*dx+dy*dy+dz*dz)/(2*tol2));
+            } else {
+               if ( dx*dx+dy*dy+dz*dz == 0 ) {
+                  d = 1;
+               } else {
+                  d = 0;
+               }
+            }
             P[m][n] = d;
             msum += d;
             
          }
          msum += c;
+         
+         if (msum == 0) {
+            msum = 1;
+         }
          
          for (int m=0; m<M; m++) {
             
@@ -351,6 +386,21 @@ public class CPD {
     */
    public static double computeQ( Point3d[] X, Point3d[] TY, double[][] P, 
       double Np, double sigma2) {
+      return computeQ(X, TY, P, Np, sigma2, sigma2*1e-12);
+   }
+   
+   /**
+    * CPD Objective function
+    * @param X reference points
+    * @param TY transformed input points
+    * @param P probability matrix
+    * @param Np sum of all probabilities
+    * @param sigma2 probability variance
+    * @param tol2 squared point tolerance
+    * @return the objective function value
+    */
+   public static double computeQ( Point3d[] X, Point3d[] TY, double[][] P, 
+      double Np, double sigma2, double tol2) {
       
       double Q = 0;
       double M = TY.length;
@@ -373,7 +423,13 @@ public class CPD {
          }
       }
       
-      Q = Q/(2*sigma2)+Np*3/2*Math.log(sigma2);
+      if (sigma2 > 0) {
+         Q = Q/(2*sigma2)+Np*3/2*Math.log(sigma2);
+      } else if (tol2 > 0) {
+         Q = Q/(2*tol2)+Np*3/2*Math.log(tol2);
+      } else {
+         Q = Q/(2e-12)+Np*3/2*Math.log(1e-12);
+      }
       
       return Q;
       
@@ -755,13 +811,20 @@ public class CPD {
     * @param TY transformed points
     * @param sigma2Holder initial variance estimate
     */
-   public static void coherent(Point3d[] X, Point3d[] Y,
+   public static Point3d[] coherent(Point3d[] X, Point3d[] Y,
       double lambda, double beta2, double w, double tol, 
       int maxIters, Point3d[] TY, double[] sigma2Holder) {
       
       int M = Y.length;
       int N = X.length;
    
+      if (TY == null) {
+         TY = new Point3d[Y.length];
+         for (int i=0; i<TY.length; i++) {
+            TY[i] = new Point3d();
+         }
+      }
+      
       transformPoints(Y, TY);
       
       double sigma2;
@@ -847,6 +910,8 @@ public class CPD {
          sigma2Holder[0] = sigma2;
       }
       
+      return TY;
+      
    }
    
    private static void computeCoherentRHS(double[][] P, double[] P1, 
@@ -884,7 +949,6 @@ public class CPD {
    private static void computeG(double beta2, Point3d[] Y, MatrixNd G) {
       
       int M = Y.length;
-      
       for (int i=0; i<M; i++) {
          for (int j=0; j<M; j++) {
             G.set(i, j, Math.exp(-(Y[i].distanceSquared(Y[j]))/(2*beta2)));
@@ -902,13 +966,50 @@ public class CPD {
     * @param w weight, accounting to noise (w=0 --> no noise)
     * @param tol will iterative until objective function changes by less than this
     * @param maxIters maximum number of iterations
+    * @return TY transformed points
+    */
+   public static Point3d[] coherent(Point3d[] X, Point3d[] Y,
+      double lambda, double beta2, double w, double tol, 
+      int maxIters) {
+      
+      return coherent(X, Y, lambda, beta2, w, tol, maxIters, null, null);
+      
+   }
+   
+   /**
+    * Uses the coherent CPD algorithm to align a set of points
+    * @param X reference input points
+    * @param Y points to register
+    * @param lambda weight factor for regularization term (> 0)
+    * @param beta2 coherence factor, beta^2 (> 0)
+    * @param w weight, accounting to noise (w=0 --> no noise)
+    * @param tol will iterative until objective function changes by less than this
+    * @param maxIters maximum number of iterations
     * @param TY transformed points
     */
-   public static void coherent(Point3d[] X, Point3d[] Y,
+   public static Point3d[] coherent(Point3d[] X, Point3d[] Y,
       double lambda, double beta2, double w, double tol, 
       int maxIters, Point3d[] TY) {
       
-      coherent(X, Y, lambda, beta2, w, tol, maxIters, TY, null);
+      return coherent(X, Y, lambda, beta2, w, tol, maxIters, TY, null);
+      
+   }
+   
+   /**
+    * Uses the coherent CPD algorithm to align two meshes
+    * @param meshRef reference mesh
+    * @param meshReg mesh to register
+    * @param lambda weight factor for regularization term (> 0)
+    * @param beta2 coherence factor, beta^2 (> 0)
+    * @param w weight, accounting to noise (w=0 --> no noise)
+    * @param tol will iterative until objective function changes by less than this
+    * @param maxIters maximum number of iterations
+    * @return out transformed mesh
+    */
+   public static PolygonalMesh coherent(PolygonalMesh meshRef, PolygonalMesh meshReg, 
+      double lambda, double beta2, double w, double tol, int maxIters) {
+      
+      return coherent(meshRef, meshReg, lambda, beta2, w, tol, maxIters, null);
       
    }
    
@@ -923,7 +1024,7 @@ public class CPD {
     * @param maxIters maximum number of iterations
     * @param out transformed mesh
     */
-   public static void coherent(PolygonalMesh meshRef, PolygonalMesh meshReg, 
+   public static PolygonalMesh coherent(PolygonalMesh meshRef, PolygonalMesh meshReg, 
       double lambda, double beta2, double w, double tol, int maxIters, PolygonalMesh out) {
       
       int N = meshRef.getNumVertices();
@@ -949,8 +1050,14 @@ public class CPD {
       
       coherent(x, y, lambda, beta2, w, tol, maxIters, match, null);
       
-      out.clear();
+      if (out == null) {
+         out = new PolygonalMesh();
+      } else {
+         out.clear();
+      }
       out.set(match, faceIndices);
+      
+      return out;
       
    }
 }

@@ -6,7 +6,6 @@
  */
 package maspack.matrix;
 
-import maspack.matrix.*;
 import maspack.util.*;
 import java.io.IOException;
 

@@ -145,7 +145,7 @@ public class ForceTerm
       h = hold;
      
       if (Jc != null) {
-         Jc.mul (lambdabar, myLam, tforSize,tforSize);
+         Jc.mul (lambdabar, myLam, tforSize,myLam.size());
       }
       else {                                                    //get lambdabar
          lambdabar.set (myLam);  
@@ -179,7 +179,7 @@ public class ForceTerm
 
 
          if (Jc != null)
-               Jc.mul (Hc_j,lam,tforSize,tforSize);  //Hc_j=JcH_lambda for one column
+               Jc.mul (Hc_j,lam,tforSize,lam.size());  //Hc_j=JcH_lambda for one column
                //Hc_j=lam;
                //Hc_j.scale (Jc.get (1, j));
     //     }

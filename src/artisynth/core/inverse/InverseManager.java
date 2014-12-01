@@ -53,8 +53,8 @@ public class InverseManager implements HasProperties {
    public static boolean muscleColoring = true;
    public static double maxa = defaultMaxa;
 
-   public static final double defaultProbeDuration = 1.0;
-   public static final double defaultProbeUpdateInterval = 0.01;
+   public static double defaultProbeDuration = 1.0;
+   public static double defaultProbeUpdateInterval = 0.01;
    double myProbeDuration;
    double myProbeUpdateInterval;
 

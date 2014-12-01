@@ -12,11 +12,13 @@ import maspack.util.*;
 import maspack.properties.*;
 import maspack.render.*;
 import maspack.spatialmotion.*;
-import java.util.*;
 
+import java.util.*;
 import java.io.*;
+
 import artisynth.core.modelbase.*;
 import maspack.render.*;
+
 import javax.media.opengl.*;
 
 /**
@@ -79,7 +81,9 @@ public class PlanarConnector extends RigidBodyConnector
       myCoupling.setBreakAccel (1e-8);
       myCoupling.setContactDistance (1e-8);
    }
-
+   public RigidBodyConstraint getConstraint() {
+      return myCoupling.getConstraint (0); // only one constraint for a PlanarConnector
+   }
    public PlanarConnector() {
       myRenderVtxs = new Point3d[4];
       for (int i = 0; i < myRenderVtxs.length; i++) {

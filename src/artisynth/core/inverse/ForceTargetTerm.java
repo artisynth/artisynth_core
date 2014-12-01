@@ -462,4 +462,8 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       
    }
 
+   public void setForJacobian(double[] val)
+   {
+      myForJacobian= new MatrixNd (1, 4, val);   
+   }
 }

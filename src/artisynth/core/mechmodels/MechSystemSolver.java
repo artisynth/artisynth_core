@@ -749,6 +749,12 @@ public class MechSystemSolver {
 
       applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
    }
+   
+   //return constraint forces
+   public VectorNd getLambda()
+   {
+    return myLam;  
+   }
 
    double maxErr = 0;
 

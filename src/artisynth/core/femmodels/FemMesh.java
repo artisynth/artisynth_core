@@ -28,7 +28,6 @@ import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyMode;
-import maspack.render.MouseRayEvent;
 import maspack.render.RenderProps;
 import maspack.spatialmotion.Wrench;
 import maspack.util.ArraySupport;
@@ -49,6 +48,8 @@ import artisynth.core.mechmodels.PointAttachment;
 import artisynth.core.mechmodels.PointList;
 import artisynth.core.mechmodels.PointParticleAttachment;
 import artisynth.core.mechmodels.Pullable;
+import artisynth.core.modelbase.ComponentChangeEvent;
+import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
@@ -110,6 +111,11 @@ public class FemMesh extends FemMeshBase implements Pullable, Collidable {
    void finalizeSurfaceBuild() {
       super.finalizeSurfaceBuild();
       myEdgeVtxs.clear();
+      
+      notifyParentOfChange (new ComponentChangeEvent (Code.STRUCTURE_CHANGED, this));
+      
+      // save render info in case render gets called immediately
+      myMeshInfo.getMesh ().saveRenderInfo ();
    }
 
    private static class EdgeDesc {

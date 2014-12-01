@@ -166,9 +166,21 @@ public class TriangleIntersector {
    Point3d[] CONSTRUCT_INTERSECTION (
       Vector3d p1, Vector3d q1, Vector3d r1, Vector3d p2, Vector3d q2,
       Vector3d r2) {
+
+      // any normal to plane P1
+      v1.sub (q1, p1);
+      v2.sub (r1, p1);
+      N1.cross (v1, v2);
+      
+      // any normal to plane P2
+      v1.sub (p2, r2);
+      v2.sub (q2, r2);
+      N2.cross (v1, v2);
+      
       v1.sub (q1, p1);
       v2.sub (r2, p1);
       N.cross (v1, v2);
+      
       v.sub (p2, p1);
       if (v.dot (N) > 0.0) {
          v1.sub (r1, p1);

@@ -40,6 +40,7 @@ import maspack.util.ReaderTokenizer;
 import maspack.util.Round;
 import maspack.util.Write;
 import maspack.util.DataBuffer;
+import artisynth.core.util.TimeBase;
 import artisynth.core.driver.Main;
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.modelbase.ComponentChangeEvent;
@@ -1460,8 +1461,13 @@ public class RootModel extends RenderableModelBase
          (maxStep != -1 && TimeBase.modulo (t1, maxStep) == 0);  
 
       for (Probe p : list) {
-         if (p.isActive() && (p.isEventTime(t1) || 
-              (coincidesWithStep && p.getUpdateInterval() < 0))) {
+         if (!p.isActive() ||
+             TimeBase.compare (t1, p.getStartTime()) < 0 ||
+             TimeBase.compare (t1, p.getStopTime()) > 0) {
+            continue;
+         }
+         if (p.isEventTime(t1) || 
+             (coincidesWithStep && p.getUpdateInterval() < 0)) {
             p.apply (t1);
          }
       }

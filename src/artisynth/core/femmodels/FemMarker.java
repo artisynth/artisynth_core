@@ -171,7 +171,7 @@ public class FemMarker extends Marker {
          if (project) {
             setPosition (res);
          } else {
-            setPosition(pos);
+            //setPosition(pos); //XXX no need to reposition
          }
       }
       if (updatedElement != myElement) {
@@ -187,6 +187,7 @@ public class FemMarker extends Marker {
          return true;
       }
       else {
+         myNodeAttachment.updateAttachment();
          return false;
       }
    }

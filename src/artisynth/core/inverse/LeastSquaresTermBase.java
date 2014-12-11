@@ -71,9 +71,8 @@ public abstract class LeastSquaresTermBase extends QPTermBase
    @Override
    public void setSize(int size) {
       super.setSize (size);
-      H.setSize (getRowSize(),size);
-      f.setSize (getRowSize());
+      int rowSize = getRowSize();
+      H.setSize (rowSize,size);
+      f.setSize (rowSize);
    }
-   
-   public abstract int getRowSize();
 }

@@ -6,9 +6,7 @@ import maspack.properties.HasProperties;
 
 public interface QPTerm extends HasProperties {
    public void setWeight(double w);
-   
-   public int getSize();
-   
+     
    public void setSize(int size);
    
    public void dispose();

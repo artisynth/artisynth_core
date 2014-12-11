@@ -10,7 +10,7 @@ public class DampingTerm extends LeastSquaresTermBase {
    
    protected TrackingController myController;
 
-   public static final double defaultWeight = 0.001;
+   public static final double defaultWeight = 1e-5;
    
    public DampingTerm(TrackingController controller) {
       this(controller, defaultWeight);
@@ -31,16 +31,15 @@ public class DampingTerm extends LeastSquaresTermBase {
       this(controller, defaultWeight);
    }
 
-   public void dispose() {
-      // nothing to dispose
-   }
-
    @Override
    protected void compute (double t0, double t1) {
-      H.setIdentity();
-      H.scale(Math.sqrt(myWeight));
-      myController.getExcitations(f, 0);
-      f.scale(Math.sqrt(myWeight));
+      double dt = t1 - t0;
+      if (dt>0) {
+         H.setIdentity();
+         H.scale(Math.sqrt(myWeight/dt));
+         myController.getExcitations(f, 0);
+         f.scale(Math.sqrt(myWeight/dt));
+      }
    }
 
    @Override

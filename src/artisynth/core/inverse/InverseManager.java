@@ -182,14 +182,10 @@ public class InverseManager implements HasProperties {
          inverseControlPanel.addWidget(myController, propinfo.getName());
 
       for (QPTerm term : myController.getCostTerms()) {
-         if (term instanceof LeastSquaresTermBase) {
-            inverseControlPanel.addWidget(new JSeparator());
-            inverseControlPanel.addWidget(new JLabel(term
-               .getClass().getSimpleName()));
-            for (PropertyInfo propinfo : ((LeastSquaresTermBase)term)
-               .getAllPropertyInfo())
-               inverseControlPanel.addWidget(
-                  (LeastSquaresTermBase)term, propinfo.getName());
+         inverseControlPanel.addWidget(new JSeparator());
+         inverseControlPanel.addWidget(new JLabel(term.getClass().getSimpleName()));
+         for (PropertyInfo propinfo : term.getAllPropertyInfo ()) {
+            inverseControlPanel.addWidget(term,propinfo.getName ());
          }
       }
       

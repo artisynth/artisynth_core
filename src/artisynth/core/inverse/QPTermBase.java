@@ -68,4 +68,7 @@ public abstract class QPTermBase implements QPTerm, HasProperties {
       P.add(this.P);
    }
    
+   public void dispose() {
+      //nothing to dispose, override if required
+   }
 }

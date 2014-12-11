@@ -28,10 +28,6 @@ public class L2RegularizationTerm extends LeastSquaresTermBase {
       this();
    }
    
-   public void dispose() {
-      // nothing to dispose
-   }
-   
    @Override
    protected void compute (double t0, double t1) {
       H.setIdentity();

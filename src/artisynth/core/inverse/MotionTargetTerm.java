@@ -126,29 +126,27 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       // round because results are very sensitive to h and we want to keep them
       // identical to earlier results when t0, t1 where given as nsec integers
       double h = TimeBase.round(t1 - t0);
-
-      if (usePDControl) {
-         
+      if (usePDControl) {       
          if (t0 == 0) { // XXX need better way to reset
             prevTargetPos = null;
          }
-         
          interpolateTargetVelocity(h);
          updatePositionError ();
          updateVelocityError ();
-         
          if (myTargetVel == null || myTargetVel.size() != myTargetVelSize) {
             myTargetVel = new VectorNd(myTargetVelSize);
          }
          myTargetVel.scale (Kp, postionError);
          myTargetVel.scaledAdd (Kd, velocityError);
-      
       }
       else {
          setTargetVelocityFromPositionError(h);
          // updateTargetPosAndVel(h);
          updateTargetVelocityVec(); // set myTargetVel
+         
+         /* Teun edit: This seems to be an old line of code from before PD control was implemented
          myTargetVel.scale (Kd); // Peter edit, IAN -- this should use be Kp
+         */
       }
    }
    
@@ -733,7 +731,6 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    public void reGetTerm(MatrixNd H, VectorNd b) {
       myMotionTerm.getJacobian (H);
       myMotionTerm.getVbar(b);
-      //b.set (myTargetVel);
    }
    
    

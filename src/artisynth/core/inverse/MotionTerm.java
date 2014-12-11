@@ -115,6 +115,7 @@ public class MotionTerm
 
       f.scaledAdd(h, f_passive, f);
 
+      //TODO: automatically select
       boolean useTrapezoidal = true;
       double hscale = 1;
 
@@ -181,6 +182,18 @@ public class MotionTerm
          Hm.setColumn(j, Hm_j.getBuffer());
       }
 
+      /*START EDIT*/
+      double dt = t1-t0;
+      //Hm.scale(1/dt);      // makes it independent of the time step
+      //vbar.scale(1/dt);    // makes it independent of the time step
+      
+      double EPS = 1e-10;
+      if (t1 <= 0.4+EPS && t1 >=0.4-EPS) {
+         System.out.println("dt = " + dt + "    |Hm| = " + Hm.frobeniusNorm() + "    |vbar| = " + vbar.norm ());
+         System.out.println("         v = " + v + "      targetVel = " + targetVel);
+      }
+      /*END EDIT*/
+      
       if (debug) {
          System.out.println("vCurrent = [" + curVel.toString(fmt) + "]';");
          System.out.println("vTarget = [" + targetVel.toString(fmt) + "]';");

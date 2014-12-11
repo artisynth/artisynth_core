@@ -24,9 +24,9 @@ public class AffineNumericInputProbe extends NumericInputProbe {
 
    MatrixNd R = null; // rotation matrix
    VectorNd t = null; // translation vector
-   private double timeOffset = 0;
+   protected double timeOffset = 0;
 
-   private VectorNd myTmpVec; // private temporary vector
+   protected VectorNd myTmpVec; // private temporary vector
 
    /**
     * Interpolate data to specified time and set related properties values.

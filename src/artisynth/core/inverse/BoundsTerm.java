@@ -1,5 +1,8 @@
 package artisynth.core.inverse;
 
+import maspack.matrix.MatrixNd;
+import maspack.matrix.VectorNd;
+
 /**
  * Term to create (in)equality constraints:
  * -set lower, upper or both bounds with convenient methods
@@ -54,10 +57,10 @@ public class BoundsTerm extends LeastSquaresTermBase {
          }
       }
    }
-     
+   
    @Override
-   public void dispose () {
-      //nothing to dispose
+   protected void compute (double t0, double t1) {
+      // static term, nothing to compute
    }
 
    @Override
@@ -69,12 +72,7 @@ public class BoundsTerm extends LeastSquaresTermBase {
       result += useUpperBound ? mySize : 0;
       return result;
    }
-
-   @Override
-   protected void compute (double t0, double t1) {
-      // static term, nothing to compute
-   }
-   
+  
    @Override
    public void setSize(int size) {
       super.setSize(size);

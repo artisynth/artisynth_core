@@ -8,7 +8,7 @@ package artisynth.core.inverse;
  */
 public class ProportionalTerm extends QPTermBase {
 
-   public static final double defaultWeight = 1e-2;
+   public static final double defaultWeight = 1e-3;
    
    public ProportionalTerm() {
       this(defaultWeight);
@@ -16,11 +16,6 @@ public class ProportionalTerm extends QPTermBase {
    
    public ProportionalTerm(double weight) {
       super(weight);
-   }
-   
-   @Override
-   public void dispose () {
-      // nothing to dispose
    }
 
    @Override

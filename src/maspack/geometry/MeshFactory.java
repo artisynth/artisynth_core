@@ -1350,8 +1350,34 @@ public class MeshFactory {
       mesh.triangulate();
       return mesh;
    }
+   
+   public static void relax(PolygonalMesh mesh) {
+      
+      Point3d [] pnts = new Point3d[mesh.getNumVertices ()];
+      
+      for (int i=0; i<pnts.length; i++) {
+         pnts[i] = new Point3d();
+         
+         Vertex3d vtx = mesh.getVertex (i);
+         
+         // get all neighbours
+         int nbs = 0;
+         HalfEdgeNode hen = vtx.incidentHedges;
+         while (hen != null) {
+            pnts[i].add (hen.he.tail.getPosition ());
+            hen = hen.next;
+            nbs++;
+         }
+         pnts[i].scale (1.0/nbs);
+      }
+      
+      for (int i=0; i<pnts.length; i++) {
+         mesh.getVertex (i).setPosition (pnts[i]);
+      }
+      
+   }
 
-   private static void projectToSphere(double r, Point3d c, PolygonalMesh mesh) {
+   public static void projectToSphere(double r, Point3d c, PolygonalMesh mesh) {
       if (c == null) {
          c = new Point3d(0, 0, 0);
       }
@@ -1367,33 +1393,33 @@ public class MeshFactory {
       PolygonalMesh mesh = createOctahedron(r);
       for (int i = 0; i < divisions; i++) {
          mesh = subdivide(mesh);
+         // XXX important to project each time!
+         projectToSphere(r, null, mesh);  
       }
-      projectToSphere(r, null, mesh);
       return mesh;
    }
 
    public static PolygonalMesh createOctahedralSphere(double r, Point3d c,
       int divisions) {
-      PolygonalMesh mesh = createOctahedron(r);
+      PolygonalMesh mesh = createOctahedralSphere(r, divisions);
       mesh.transform(new RigidTransform3d(c.x, c.y, c.z));
-      mesh = subdivide(mesh, divisions);
-      projectToSphere(r, c, mesh);
-      return mesh;
-   }
-
-   public static PolygonalMesh createIcosahedralSphere(double r, Point3d c,
-      int divisions) {
-      PolygonalMesh mesh = createIcosahedron(r);
-      mesh.transform(new RigidTransform3d(c.x, c.y, c.z));
-      mesh = subdivide(mesh, divisions);
-      projectToSphere(r, c, mesh);
       return mesh;
    }
 
    public static PolygonalMesh createIcosahedralSphere(double r, int divisions) {
       PolygonalMesh mesh = createIcosahedron(r);
-      mesh = subdivide(mesh, divisions);
-      projectToSphere(r, null, mesh);
+      for (int i = 0; i < divisions; i++) {
+         mesh = subdivide(mesh);
+         // XXX important to project each time!
+         projectToSphere(r, null, mesh);  
+      }
+      return mesh;
+   }
+   
+   public static PolygonalMesh createIcosahedralSphere(double r, Point3d c,
+      int divisions) {
+      PolygonalMesh mesh = createIcosahedralSphere (r, divisions);
+      mesh.transform(new RigidTransform3d(c.x, c.y, c.z));
       return mesh;
    }
 

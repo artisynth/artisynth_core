@@ -51,4 +51,8 @@ public class EditablePolygonalMesh extends EditableMesh {
       return myFaceList;
    }
    
+   public FaceComponent getFaceComponent(int idx) {
+      return myFaceList.get (idx);
+   }
+   
 }

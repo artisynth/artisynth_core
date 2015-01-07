@@ -3150,14 +3150,17 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
    public void drawPoint (RenderProps props, float[] coords, boolean selected) {
       switch (props.getPointStyle()) {
          case POINT: {
-            setLightingEnabled (false);
-            gl.glPointSize (props.getPointSize());
-            setColor (props.getPointColorArray(), selected);
-            gl.glBegin (GL2.GL_POINTS);
-            gl.glVertex3fv (coords, 0);
-            gl.glEnd();
-            gl.glPointSize (1);
-            setLightingEnabled (true);
+            int size = props.getPointSize();
+            if (size > 0) {
+               setLightingEnabled (false);
+               gl.glPointSize (size);
+               setColor (props.getPointColorArray(), selected);
+               gl.glBegin (GL2.GL_POINTS);
+               gl.glVertex3fv (coords, 0);
+               gl.glEnd();
+               gl.glPointSize (1);
+               setLightingEnabled (true);
+            }
             break;
          }
          case SPHERE: {
@@ -3174,40 +3177,44 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
 
       switch (props.getPointStyle()) {
          case POINT: {
-            setLightingEnabled (false);
-            // draw regular points first
-            gl.glPointSize (props.getPointSize());
-            if (isSelecting()) {
-               // don't worry about color in selection mode
-               int i = 0;
-               while (iterator.hasNext()) {
-                  RenderablePoint pnt = iterator.next();
-                  if (pnt.getRenderProps() == null) {
-                     if (isSelectable (pnt)) {
-                        beginSelectionQuery (i);
-                        gl.glBegin (GL2.GL_POINTS);
+            int size = props.getPointSize();
+            if (size > 0) {
+               // draw regular points first
+               setLightingEnabled (false);
+               gl.glPointSize (size);
+               if (isSelecting()) {
+                  // don't worry about color in selection mode
+                  int i = 0;
+                  while (iterator.hasNext()) {
+                     RenderablePoint pnt = iterator.next();
+                     if (pnt.getRenderProps() == null) {
+                        if (isSelectable (pnt)) {
+                           beginSelectionQuery (i);
+                           gl.glBegin (GL2.GL_POINTS);
+                           gl.glVertex3fv (pnt.getRenderCoords(), 0);
+                           gl.glEnd();
+                           endSelectionQuery ();
+                        }
+                     }
+                     i++;
+                  }
+               }
+               else {
+                  gl.glBegin (GL2.GL_POINTS);
+                  setColor (props.getPointColorArray(), false);
+                  while (iterator.hasNext()) {
+                     RenderablePoint pnt = iterator.next();
+                     if (pnt.getRenderProps() == null) {
+                        updateColor (
+                           props.getPointColorArray(), pnt.isSelected());
                         gl.glVertex3fv (pnt.getRenderCoords(), 0);
-                        gl.glEnd();
-                        endSelectionQuery ();
                      }
                   }
-                  i++;
+                  gl.glEnd();
                }
+               gl.glPointSize (1);
+               setLightingEnabled (true);
             }
-            else {
-               gl.glBegin (GL2.GL_POINTS);
-               setColor (props.getPointColorArray(), false);
-               while (iterator.hasNext()) {
-                  RenderablePoint pnt = iterator.next();
-                  if (pnt.getRenderProps() == null) {
-                     updateColor (props.getPointColorArray(), pnt.isSelected());
-                     gl.glVertex3fv (pnt.getRenderCoords(), 0);
-                  }
-               }
-               gl.glEnd();
-            }
-            gl.glPointSize (1);
-            setLightingEnabled (true);
             break;
          }
          case SPHERE: {

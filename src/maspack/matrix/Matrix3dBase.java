@@ -235,6 +235,35 @@ java.io.Serializable, Clonable {
          }
       }
    }
+   
+   /**
+    * Scale a column
+    */
+   public void scaleColumn (int j, double s) {
+      switch (j) {
+         case 0: {
+            m00 *= s;
+            m10 *= s;
+            m20 *= s;
+            break;
+         }
+         case 1: {
+            m01 *= s;
+            m11 *= s;
+            m21 *= s;
+            break;
+         }
+         case 2: {
+            m02 *= s;
+            m12 *= s;
+            m22 *= s;
+            break;
+         }
+         default: {
+            throw new ArrayIndexOutOfBoundsException ("j=" + j);
+         }
+      }
+   }
 
    /**
     * {@inheritDoc}
@@ -293,6 +322,36 @@ java.io.Serializable, Clonable {
          }
       }
    }
+   
+   /**
+    * Scale a row by a particular value
+    */
+   public void scaleRow (int i, double s) {
+      switch (i) {
+         case 0: {
+            m00 *= s;
+            m01 *= s;
+            m02 *= s;
+            break;
+         }
+         case 1: {
+            m10 *= s;
+            m11 *= s;
+            m12 *= s;
+            break;
+         }
+         case 2: {
+            m20 *= s;
+            m21 *= s;
+            m22 *= s;
+            break;
+         }
+         default: {
+            throw new ArrayIndexOutOfBoundsException ("i=" + i);
+         }
+      }
+   }
+   
 
    /**
     * Copies a row of this matrix into a 3-vector.

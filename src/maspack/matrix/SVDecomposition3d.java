@@ -553,6 +553,14 @@ public class SVDecomposition3d {
       bidiagonalize (B);
       // get infinity norm of bidiagonalized matrix
       double anorm = bidiagNorm (B);
+      if (anorm == 0) {
+         sig0 = 0;
+         sig1 = 0;
+         sig2 = 0;
+         U_.setIdentity();
+         V_.setIdentity();
+         return;
+      }
 
       int icnt = 0;
 
@@ -608,6 +616,91 @@ public class SVDecomposition3d {
          }
       }
       sortResults();
+
+   }
+   
+   /**
+    * Peforms an SVD on the Matrix3dBase M, without throwing an exception
+    * max iterations being surpassed
+    * 
+    * @param M
+    * matrix to perform the SVD on
+    * @return true if successful, false otherwise
+    */
+   public boolean factorSafe (Matrix3dBase M) {
+      // initialize the calculation
+
+      if (B == null) {
+         B = new Matrix3d();
+      }
+      B.set (M);
+      bidiagonalize (B);
+      // get infinity norm of bidiagonalized matrix
+      double anorm = bidiagNorm (B);
+      if (anorm == 0) {
+         sig0 = 0;
+         sig1 = 0;
+         sig2 = 0;
+         U_.setIdentity();
+         V_.setIdentity();
+         return true;
+      }
+
+      int icnt = 0;
+
+      int maxIter = iterLimit * 3;
+
+      // System.out.println ("B=\n" + B.toString("%24g"));
+
+      boolean converged = true;
+      while (ABS (B.m12) > tol * (ABS (B.m11) + ABS (B.m22))) {
+         if (B.m11 + anorm == anorm) {
+            B.m11 = 0;
+         }
+         if (B.m11 != 0 && B.m01 != 0) { // use full 3x3 matrix
+            if (anorm + B.m00 == anorm) {
+               B.m00 = 0;
+               // System.out.println ("zeroRow 3x3");
+               zeroRow_3x3();
+            }
+            else {
+               takeStep_3x3();
+               // System.out.println ("takeStep 3x3");
+            }
+         }
+         else { // use lower right 2x2 matrix
+            if (B.m11 == 0) {
+               // System.out.println ("zeroRow lower 2x2");
+               zeroRow_lower_2x2();
+            }
+            else {
+               // System.out.println ("takeStep lower 2x2");
+               takeStep_lower_2x2();
+            }
+         }
+
+         // System.out.println ("B=\n" + B.toString("%24g"));
+         if (++icnt >= maxIter) {
+            converged = false;
+            break;
+         }
+      }
+      B.m12 = 0;
+
+      while (ABS (B.m01) > tol * (ABS (B.m00) + ABS (B.m11))) {
+         if (anorm + B.m00 == anorm) {
+            B.m00 = 0;
+            zeroRow_upper_2x2();
+         }
+         else {
+            takeStep_upper_2x2();
+         }
+         if (++icnt >= maxIter) {
+            converged = false;
+         }
+      }
+      sortResults();
+      return converged;
    }
 
    /**

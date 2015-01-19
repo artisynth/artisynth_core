@@ -14,7 +14,7 @@ import maspack.matrix.*;
 public abstract class Feature {
    protected int myFlags;
 
-   public static int VISITED = 0x1000000;
+   public static int VISITED = 0x01000000;
    
    public static final int UNKNOWN = 0;
    public static final int VERTEX_3D = 1;

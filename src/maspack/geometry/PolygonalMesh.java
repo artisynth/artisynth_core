@@ -291,12 +291,57 @@ public class PolygonalMesh extends MeshBase {
             }
             if (cnt != nume) {
                // some half edges can't be reached by traverse, so not a fan
-               System.out.println ("vtx " + vtx.getIndex() + " "+nume+" "+cnt);
+               // System.out.println ("vtx " + vtx.getIndex() + " "+nume+" "+cnt);
                return false;
             }
          }
       }
       return true;
+   }
+   
+   /**
+    */
+   public ArrayList<Vertex3d> findNonManifoldVertices() {
+      ArrayList<Vertex3d> nonManifold = new ArrayList<Vertex3d>();
+      HashSet<Vertex3d> adjacentVertices = new HashSet<Vertex3d>();
+      // check to see all faces around each vertex form a fan
+      for (int i=0; i<myVertices.size(); i++) {
+         Vertex3d vtx = myVertices.get(i);
+
+         Iterator<HalfEdge> it = vtx.getIncidentHalfEdges();
+         if (it.hasNext()) {
+            int nume = 0;
+            HalfEdge he0 = vtx.firstIncidentHalfEdge();            
+            adjacentVertices.clear();
+            while (it.hasNext()) {
+               HalfEdge he = it.next();
+               if (adjacentVertices.contains(he.tail)) {
+                  // there is more than one edge involving this tail
+                  System.out.println("More than one edge involving tail: " + he.tail.getIndex ());
+                  
+               }
+               adjacentVertices.add (he.tail);
+               if (he.opposite == null) {
+                  // boundary edge; use this to start fan traverse.
+                  // otherwise, any edge will do.
+                  he0 = he;
+               }
+               nume++;
+            }
+            HalfEdge heNext = he0.next.opposite;
+            int cnt = 1;
+            while (heNext != null && heNext.head == vtx && heNext != he0) {
+               heNext = heNext.next.opposite;
+               cnt++;
+            }
+            if (cnt != nume) {
+               // some half edges can't be reached by traverse, so not a fan
+               System.out.println ("vtx " + vtx.getIndex() + " has multiple fans: "+nume+" vs "+cnt);
+               nonManifold.add (vtx);
+            }
+         }
+      }
+      return nonManifold;
    }
 
    protected int numFaceEdges() {
@@ -553,7 +598,12 @@ public class PolygonalMesh extends MeshBase {
       }
       face.set (vtxList, indices.length, /* connect= */true);
       myFaces.add (face);
-      myTriQuadCountsValid = false;
+      if (indices.length == 3) {
+         myNumTriangles++;
+      } else if (indices.length == 4) {
+         myNumQuads++;
+      }
+      // myTriQuadCountsValid = false;
       notifyStructureChanged();
       return face;
    }
@@ -580,7 +630,12 @@ public class PolygonalMesh extends MeshBase {
       }
       face.set (vertices, vertices.length, /* connect= */true);
       myFaces.add (face);
-      myTriQuadCountsValid = false;
+      if (vertices.length == 3) {
+         myNumTriangles++;
+      } else if (vertices.length == 4) {
+         myNumQuads++;
+      }
+      //myTriQuadCountsValid = false;
       notifyStructureChanged();
       return face;
    }
@@ -623,7 +678,13 @@ public class PolygonalMesh extends MeshBase {
             myFaces.get(idx).setIndex(idx);
             myFaces.remove(last);
             
-            myTriQuadCountsValid = false;
+            int nv = face.numVertices ();
+            if (nv == 3) {
+               myNumTriangles--;
+            } else if (nv == 4) {
+               myNumQuads--;
+            }
+            //myTriQuadCountsValid = false;
             face.disconnect();
             face.setIndex(-1);
             notifyStructureChanged();
@@ -639,14 +700,47 @@ public class PolygonalMesh extends MeshBase {
             for (int i=face.getIndex(); i<myFaces.size(); i++) {
                myFaces.get(i).setIndex (i);
             }
-            myTriQuadCountsValid = false;
+            //myTriQuadCountsValid = false;
+            int nv = face.numVertices ();
+            if (nv == 3) {
+               myNumTriangles--;
+            } else if (nv == 4) {
+               myNumQuads--;
+            }
             notifyStructureChanged();
             return true;
-         }
-         else {
+         } else {
             return false;
          }
       }
+   }
+   
+   /**
+    * Removes a face from this mesh, potentially changing order of faces
+    */
+   public boolean removeFaceFast (Face face) {
+
+      int idx = face.getIndex();
+      int last = myFaces.size()-1;
+      if (idx >= 0 && idx <= last) {
+         myFaces.set(idx, myFaces.get(last));
+         myFaces.get(idx).setIndex(idx);
+         myFaces.remove(last);
+         int nv = face.numVertices ();
+         if (nv == 3) {
+            myNumTriangles--;
+         } else if (nv == 4) {
+            myNumQuads--;
+         }
+         //myTriQuadCountsValid = false;
+         face.disconnect();
+         face.setIndex(-1);
+         notifyStructureChanged();
+         return true;
+      } else {
+         return false;
+      }
+
    }
 
    /**

@@ -841,9 +841,10 @@ public class OBB extends BVNode {
     * @param p point to accommodate
     * @param margin extra space margin
     */
-   private void updateForPoint (Point3d p, double margin) {
+   public boolean updateForPoint (Point3d p, double margin) {
       // transform x, y, z of p into coordinates bx, by, bz of the coordinate
       // frame of this box.
+      boolean modified = false;
       RotationMatrix3d R = myX.R;
       double x = p.x - myX.p.x;
       double y = p.y - myX.p.y;
@@ -859,38 +860,48 @@ public class OBB extends BVNode {
       // now use bx, by, bz to update the bounds
       if ((del = bx+margin-hw.x) > 0) {
          hw.x += del;
+         modified = true;
       }
       else if ((del = -bx+margin-hw.x) > 0) {
          hw.x += del;
+         modified = true;
       }
       if ((del = by+margin-hw.y) > 0) {
          hw.y += del;
+         modified = true;
       }
       else if ((del = -by+margin-hw.y) > 0) {
          hw.y += del;
+         modified = true;
       }
       if ((del = bz+margin-hw.z) > 0) {
          hw.z += del;
+         modified = true;
       }
       else if ((del = -bz+margin-hw.z) > 0) {
          hw.z += del;
+         modified = true;
       }
+      return modified;
    }
    
-   public void update (double margin) {
+   public boolean update (double margin) {
       // Could be worth optimizing this by keeping a list of points
       // in addition to the list of elements, because of point
       // repetition among the elements, but if there are
       // only 1-2 elements, then the repitition is not likely
       // to be very large.      
+      boolean modified = false;
       for (int i=0; i<myElements.length; i++) {
          Boundable elem = myElements[i];
          for (int j=0; j<elem.numPoints(); j++) {
             for (OBB node=this; node != null; node=(OBB)node.getParent()) {
-               node.updateForPoint (elem.getPoint (j), margin);
+               modified |= node.updateForPoint (elem.getPoint (j), margin);
             }
          }
       }
+      
+      return modified;
    }
 
    public boolean isContained (Boundable[] boundables, double tol) {

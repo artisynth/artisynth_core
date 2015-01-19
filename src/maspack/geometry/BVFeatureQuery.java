@@ -1340,4 +1340,45 @@ public class BVFeatureQuery {
       }
       return nearestFeature;
    }
+   
+   public BVNode nearestLeafToPoint(BVTree bvh, Point3d pnt) {
+      
+      double nearestDistance = INF;
+      BVNode nearestNode = null;
+      
+      PriorityQueue<BVCheckRequest> queue =
+      new PriorityQueue<BVCheckRequest> (11, new BVCheckComparator());
+      
+      
+      double d = bvh.getRoot().distanceToPoint (pnt);
+      if (d != -1) {
+         queue.add (new BVCheckRequest (bvh.getRoot(), d));
+      }
+      while (!queue.isEmpty()) {
+         BVCheckRequest req = queue.poll();
+         if (req.myDist > nearestDistance) {
+            break;
+         }
+         BVNode node = req.myNode;
+         if (node.isLeaf()) {
+            d = node.distanceToPoint (pnt);
+            if (d != -1 && d < nearestDistance) {
+               nearestDistance = d;
+               nearestNode = node;
+            }
+         }
+         else {
+            // process node
+            BVNode child;
+            for (child=node.myFirstChild; child!=null; child=child.myNext) {
+               d = child.distanceToPoint (pnt);
+               if (d != -1 && d < nearestDistance) {
+                  queue.add (new BVCheckRequest (child, d));
+               }
+            }
+         }
+      }
+
+      return nearestNode;
+   }
 }

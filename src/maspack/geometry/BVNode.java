@@ -304,4 +304,24 @@ public abstract class BVNode implements GLRenderable {
       }
       return depth;
    }
+   
+   /**
+    * Update node
+    * @param margin supplied margin around boundary
+    * @return
+    */
+   abstract boolean update(double margin);
+   
+   abstract boolean updateForPoint(Point3d pnt, double margin);
+   
+   public boolean updateFor(Boundable b, double margin) {
+
+      boolean modified = false;
+      for (int i=0; i<b.numPoints (); i++) {
+         Point3d pnt = b.getPoint (i);
+         modified |= updateForPoint(pnt, margin);
+      }
+      return modified;
+   }
+   
 }

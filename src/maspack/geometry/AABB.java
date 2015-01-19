@@ -245,9 +245,42 @@ public class AABB extends BVNode {
       myMax.add(margin, margin, margin);
    }
 
-   public void update (double margin) {
+   public boolean updateForPoint(Point3d pnt, double margin) {
+      boolean modified = false;
+      double diff = 0;
+      if ((diff = pnt.x + margin) > myMax.x) {
+         myMax.x = diff;
+         modified = true;
+      }
+      if ((diff = pnt.x - margin) < myMin.x) {
+         myMin.x = diff;
+         modified = true;
+      }
+      if ((diff = pnt.y + margin) > myMax.y) {
+         myMax.y = diff;
+         modified = true;
+      }
+      if ((diff = pnt.y - margin) < myMin.y) {
+         myMin.y = diff;
+         modified = true;
+      }
+      if ((diff = pnt.z + margin) > myMax.z) {
+         myMax.z = diff;
+         modified = true;
+      }
+      if ((diff = pnt.z - margin) < myMin.z) {
+         myMin.z = diff;
+         modified = true;
+      }
+     
+      
+      return modified;
+   }
+   
+   public boolean update (double margin) {
       // just reset
       set (myElements, myElements.length, margin);
+      return true;
    }
 
    public boolean isContained (Boundable[] boundables, double tol) {

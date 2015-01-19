@@ -158,7 +158,7 @@ public class CSG {
     * Currently used for debugging intersection code
     */
    public static void sliceMeshes(PolygonalMesh mesh1, PolygonalMesh mesh2, 
-      double tol, int maxRayCasts, PolygonalMesh outMesh1, PolygonalMesh outMesh2) {
+      double tol, PolygonalMesh outMesh1, PolygonalMesh outMesh2) {
 
       BVTree bvt1 = mesh1.getBVTree();
       BVTree bvt2 = mesh2.getBVTree();
@@ -182,6 +182,373 @@ public class CSG {
       outMesh2 = meshFromPolygons(slice2, outMesh2);
 
    }
+   
+   private static Vertex3d maxAngle(Vertex3d vtx0, Vertex3d vtx1, Vertex3d vtx2) {
+      
+      // determine minimum angle on face
+      Vector3d v = new Vector3d();
+      
+      v.sub(vtx1.getPosition(), vtx0.getPosition());
+      double a = v.norm();
+      v.sub(vtx2.getPosition(), vtx1.getPosition());
+      double b = v.norm();
+      v.sub(vtx0.getPosition(), vtx2.getPosition());
+      double c = v.norm();
+      
+      double t1 = cosLawAngle(a,b,c); // v1
+      double t2 = cosLawAngle(b,c,a); // v2
+      double t3 = cosLawAngle(c,a,b); // v0
+      
+      if (t1 > t2) {
+         if (t1 > t3) {
+            return vtx1;
+         } else {
+            return vtx0;
+         }
+      } else {
+         if (t2 > t3) {
+            return vtx2;
+         }
+      }
+      return vtx0;
+   }
+   
+   private static void edgeFlipSmallFaces(PolygonalMesh mesh, double minArea) {
+      if (!mesh.isTriangular ()) {
+         mesh.triangulate();
+      }
+      
+      ArrayList<Face> toFlip = new ArrayList<Face>();
+      for (Face f : mesh.getFaces ()) {
+         if (f.computeArea () < minArea) {
+            toFlip.add (f);
+         }
+      }
+      
+      for (Face f : toFlip) {
+         
+         HalfEdge he0 = f.he0;
+         HalfEdge he1 = he0.next;
+         HalfEdge he2 = he1.next;
+         
+         // find largest angle
+         Vertex3d vtx0 = he0.head;
+         Vertex3d vtx1 = he1.head;
+         Vertex3d vtx2 = he2.head;
+         Vertex3d splitVtx = maxAngle (vtx0, vtx1, vtx2);
+         
+         HalfEdge f0 = he1.opposite;
+         HalfEdge f1 = he2.opposite;
+         HalfEdge f2 = he0.opposite;
+         
+         if (mesh.removeFaceFast (f)) {
+            if (splitVtx == vtx0) {
+               if (f0 != null) {
+                  Vertex3d vtxOpp = f0.next.head;
+                  mesh.removeFaceFast (f0.face);
+                  mesh.addFace (vtx0, vtx1, vtxOpp);
+                  mesh.addFace (vtx0, vtxOpp, vtx2);
+               }
+            } else if (splitVtx == vtx1) {
+               if (f1 != null) {
+                  Vertex3d vtxOpp = f1.next.head;
+                  mesh.removeFaceFast (f1.face);
+                  mesh.addFace (vtx1, vtx2, vtxOpp);
+                  mesh.addFace (vtx1, vtxOpp, vtx0);
+               }
+            } else if (splitVtx == vtx2) {
+               if (f2 != null) {
+                  Vertex3d vtxOpp = f2.next.head;
+                  mesh.removeFaceFast (f2.face);
+                  mesh.addFace (vtx2, vtx0, vtxOpp);
+                  mesh.addFace (vtx2, vtxOpp, vtx1);
+               }
+            }
+         }
+         
+      }
+      
+   }
+   
+   private static double minAngle(Vertex3d vtx0, Vertex3d vtx1, Vertex3d vtx2) {
+      
+      // determine minimum angle on face
+      Vector3d v = new Vector3d();
+      
+      v.sub(vtx1.getPosition(), vtx0.getPosition());
+      double a = v.norm();
+      v.sub(vtx2.getPosition(), vtx1.getPosition());
+      double b = v.norm();
+      v.sub(vtx0.getPosition(), vtx2.getPosition());
+      double c = v.norm();
+      
+      double t1 = cosLawAngle(a,b,c);
+      double t2 = cosLawAngle(b,c,a);
+      double t3 = cosLawAngle(c,a,b);
+      
+      double t = Math.min(t1, t2);
+      t = Math.min(t,  t3);
+      
+      return t;
+   }
+   
+   private static double cosLawAngle(double a, double b, double c) {
+      double t = (a*a+b*b-c*c)/(2*a*b);
+      if (t > 1) {
+         t = 1;
+      } else if (t < -1) {
+         t = -1;
+      }
+      t = Math.acos(t);
+      return t;
+   }
+   
+
+   public static void sliceMesh(PolygonalMesh mesh, BVTree bvt, Plane plane, double baryTol, double normalTol) {
+      sliceMesh(mesh, bvt, plane,  baryTol, normalTol, 0, 0);
+   }
+   
+   public static void sliceMesh(PolygonalMesh mesh, BVTree bvt, Plane plane, double baryTol, double normalTol, 
+      int newVtxFlag, int isectFlag) {
+      
+      if (!mesh.isTriangular()) {
+         mesh.triangulate ();
+      }
+     
+      if (bvt == null) {
+         bvt = mesh.getBVTree();
+      }
+      
+      ArrayList<BVNode> nodes = new ArrayList<BVNode>();
+      bvt.intersectPlane (nodes, plane);
+      
+      HashMap<HalfEdge,Vertex3d> edgeSplit = new HashMap<HalfEdge,Vertex3d>();
+      
+      //XXX
+      // mark edges to split
+      for (BVNode node : nodes) {
+         for (Boundable b : node.getElements()) {
+            Face f = (Face)b;
+            if ( Math.abs (f.getNormal().dot(plane.normal)) <= 1-normalTol  ) {
+            
+               // loop through edges, potentially mark a cut
+               HalfEdge he0 = f.he0;
+               HalfEdge he = he0;
+               do {
+                  if (he.isPrimary()) {
+                     // find if edge cut by plane
+                     Point3d hp = he.head.getPosition ();
+                     Point3d tp = he.tail.getPosition ();
+                     double dh = plane.distance (hp);
+                     double dt = plane.distance (tp);
+                     if (dh*dt < 0) { // opposite sides
+                        double t = dh/(dh-dt);
+                        if (t >= baryTol && t <= 1-baryTol ) {
+                           Point3d pnt = new Point3d();
+                           pnt.interpolate (hp, t, tp);
+                           
+                           Vertex3d nvtx = mesh.addVertex (pnt);
+                           nvtx.setFlag (isectFlag);
+                           nvtx.setFlag (newVtxFlag);
+                           edgeSplit.put (he, nvtx);
+                           if (he.opposite != null) {
+                              edgeSplit.put (he.opposite, nvtx);
+                           }
+                        }
+                     }
+                     
+                  }
+                  he = he.next;
+               } while (he != he0);
+               
+            } // plane not parallel to face
+         } // boundable in node
+      } // nodes
+      
+      int[] types = new int[7];
+      
+      // actually split faces
+      for (BVNode node : nodes) {
+         ArrayList<Boundable> boundablesToRemove = new ArrayList<Boundable>();
+         ArrayList<Boundable> boundablesToAdd = new ArrayList<Boundable>();
+         
+         for (Boundable b : node.getElements()) {
+            Face f = (Face)b;
+            if ( Math.abs (f.getNormal().dot(plane.normal)) <= 1-normalTol  ) {
+            
+               // Get points along edge, and make sure none are lost
+               HalfEdge he0 = f.he0;
+               Vertex3d v0 = edgeSplit.get (he0); 
+               HalfEdge he1 = he0.next;
+               Vertex3d v1 = edgeSplit.get (he1);
+               HalfEdge he2 = he1.next;
+               Vertex3d v2 = edgeSplit.get (he2);
+               
+               if (v0 != null || v1 != null || v2 != null) {
+                  mesh.removeFaceFast (f);
+                  boundablesToRemove.add(f);
+               }
+//               mesh.isManifold ();
+               
+               if ((v0 != null && v0.idx == 4421) || (v1 != null && v1.idx == 4421) || (v2 != null && v2.idx == 4421)
+                  || he0.head.idx == 4421 || he1.head.idx == 4421 || he2.head.idx == 4421 )
+               {
+//                  System.out.println ("What's going on here?");
+//                  mesh.findNonManifoldVertices ();
+//                  System.out.println ("^ before");
+               }
+               if (v0 != null && v1 != null && v2 != null) {
+                  // 3-split
+                  Face nf;
+                  nf = mesh.addFace (v0, he0.head, v1); 
+                  boundablesToAdd.add (nf);
+                  nf = mesh.addFace (v1, he1.head, v2);
+                  boundablesToAdd.add (nf);
+                  nf = mesh.addFace (v2, he2.head, v0);
+                  boundablesToAdd.add (nf);
+                  nf = mesh.addFace (v0, v1, v2);
+                  boundablesToAdd.add (nf);
+//                  mesh.isManifold ();
+                  types[0]++;
+               } else if (v0 != null && v1 != null) {
+                  
+                  // 2-split
+                  Face nf;
+                  nf = mesh.addFace (v0, he0.head, v1); 
+                  boundablesToAdd.add (nf);
+                  
+                  // best next two faces (max min angle)
+                  double s1 = minAngle (he2.head, v0, v1);
+                  double s2 = minAngle(he1.head, he2.head, v1);
+                  double smin = Math.min (s1, s2);
+                  
+                  double t1 = minAngle (he1.head, he2.head, v0);
+                  double t2 = minAngle(v1, he1.head, v0);
+                  double tmin = Math.min (t1, t2);
+                  
+                  if (smin > tmin) {
+                     nf = mesh.addFace (he2.head, v0, v1);
+                     boundablesToAdd.add (nf);
+                     nf = mesh.addFace (he1.head, he2.head, v1);
+                     boundablesToAdd.add (nf);
+                  } else {
+                     nf = mesh.addFace (he1.head, he2.head, v0);
+                     boundablesToAdd.add (nf);
+                     nf = mesh.addFace (v1, he1.head, v0);
+                     boundablesToAdd.add (nf);
+                  }
+                  types[1]++;
+//                  mesh.isManifold ();
+               } else if (v0 != null && v2 != null) {
+                  // 2-split
+                  Face nf;
+                  nf = mesh.addFace (v2, he2.head, v0); 
+                  boundablesToAdd.add (nf);
+                  
+                  // best next two faces (max min angle)
+                  double s1 = minAngle (he1.head, v2, v0);
+                  double s2 = minAngle(he0.head, he1.head, v0);
+                  double smin = Math.min (s1, s2);
+                  
+                  double t1 = minAngle (he0.head, he1.head, v2);
+                  double t2 = minAngle(v0, he0.head, v2);
+                  double tmin = Math.min (t1, t2);
+                  
+                  if (smin > tmin) {
+                     nf = mesh.addFace (he1.head, v2, v0);
+                     boundablesToAdd.add (nf);
+                     nf = mesh.addFace (he0.head, he1.head, v0);
+                     boundablesToAdd.add (nf);
+                  } else {
+                     nf = mesh.addFace (he0.head, he1.head, v2);
+                     boundablesToAdd.add (nf);
+                     nf = mesh.addFace (v0, he0.head, v2);
+                     boundablesToAdd.add (nf);
+                  } 
+                  types[2]++;
+//                  mesh.isManifold ();
+               } else if (v1 != null && v2 != null) {
+                  // 2-split
+                  Face nf;
+                  nf = mesh.addFace (v1, he1.head, v2); 
+                  boundablesToAdd.add (nf);
+                  
+                  // best next two faces (max min angle)
+                  double s1 = minAngle (he0.head, v1, v2);
+                  double s2 = minAngle(he2.head, he0.head, v2);
+                  double smin = Math.min (s1, s2);
+                  
+                  double t1 = minAngle (he2.head, he0.head, v1);
+                  double t2 = minAngle(v2, he2.head, v1);
+                  double tmin = Math.min (t1, t2);
+                  
+                  if (smin > tmin) {
+                     nf = mesh.addFace (he0.head, v1, v2);
+                     boundablesToAdd.add (nf);
+                     nf = mesh.addFace (he2.head, he0.head, v2);
+                     boundablesToAdd.add (nf);
+                  } else {
+                     nf = mesh.addFace (he2.head, he0.head, v1);
+                     boundablesToAdd.add (nf);
+                     nf = mesh.addFace (v2, he2.head, v1);
+                     boundablesToAdd.add (nf);
+                  }
+                  types[3]++;
+//                  mesh.isManifold ();
+               } else if (v0 != null) {
+                  Face nf = mesh.addFace (v0, he0.head, he1.head);
+                  boundablesToAdd.add (nf);
+                  nf = mesh.addFace (v0, he1.head, he2.head);
+                  boundablesToAdd.add (nf);
+                  
+                  // mark he1.head as falling on plane
+                  he1.head.setFlag (isectFlag);
+                  types[4]++;
+//                  mesh.isManifold ();
+               } else if (v1 != null) {
+                  Face nf = mesh.addFace (v1, he1.head, he2.head);
+                  boundablesToAdd.add (nf);
+                  nf = mesh.addFace (v1, he2.head, he0.head);
+                  boundablesToAdd.add (nf);
+                  
+                  // mark he1.head as falling on plane
+                  he2.head.setFlag (isectFlag);
+                  types[5]++;
+//                  mesh.isManifold ();
+               } else if (v2 != null) {
+                  
+                  Face nf = mesh.addFace (v2, he2.head, he0.head);
+                  boundablesToAdd.add (nf);
+                  nf = mesh.addFace (v2, he0.head, he1.head);
+                  boundablesToAdd.add (nf);
+                  
+                  // mark he1.head as falling on plane
+                  he0.head.setFlag (isectFlag);
+                  types[6]++;
+//                  mesh.isManifold ();
+               }
+               
+            } // plane not parallel to face
+         } // boundable in node
+         
+         // update boundables
+         if (boundablesToAdd.size () > 0 || boundablesToRemove.size () > 0) {
+            ArrayList<Boundable> b = new ArrayList<Boundable>();
+            b.addAll(Arrays.asList (node.getElements()));
+            b.removeAll (boundablesToRemove);
+            b.addAll (boundablesToAdd);
+            
+            node.setElements (b.toArray (new Boundable[b.size ()]));
+         }
+      } // nodes
+      
+      for (int i=0; i<types.length; i++) {
+         System.out.println("Type " + i + ": " + types[i]);
+      }
+      
+   }
+   
+   
 
    private static ArrayList<Polygon> cheapIntersection(PolygonalMesh mesh1, PolygonalMesh mesh2, 
       double tol, int maxRayCasts) {

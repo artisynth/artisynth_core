@@ -249,7 +249,7 @@ public class Face extends Feature implements Boundable {
             if (heOpp.uOppositeP) {
                // move directon vector over
                //heOpp.u.negate();
-               heOpp.uOppositeP = false;
+               heOpp.uOppositeP = false; // makes heOpp primary
             }
          }
          he.head.removeIncidentHalfEdge (he);

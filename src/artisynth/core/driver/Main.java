@@ -1353,6 +1353,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected static BooleanHolder useArticulatedTransforms =
       new BooleanHolder (false);
    protected static BooleanHolder noGui = new BooleanHolder (false);
+   protected static StringHolder collisionHandler = new StringHolder();
 
    protected static IntHolder flags = new IntHolder();
 
@@ -1494,6 +1495,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
          "-updateLibs %v #update libraries from ArtiSynth server", updateLibs);
       parser.addOption ("-flags %x #flag bits passed to the application", flags);
       parser.addOption ("-noGui %v #run ArtiSynth without the GUI", noGui);
+      parser.addOption (
+         "-collisionHandler %s #NEW,GENERIC, or OLD", collisionHandler);
 
       Locale.setDefault(Locale.CANADA);
 
@@ -1567,6 +1570,22 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (printOptions.value) {
          System.out.println (parser.getOptionsMessage (2));
          exit (0);
+      }
+
+      if (collisionHandler.value != null) {
+         CollisionManager.HandlerType type = null;
+         try {
+            type = Enum.valueOf (
+               CollisionManager.HandlerType.class, collisionHandler.value);
+         }
+         catch (Exception e) {
+            // ignore
+         }
+         if (type == null) {
+            throw new IllegalArgumentException (
+               "collisionHandler value must be NEW, GENERIC, or OLD");
+         }
+         CollisionManager.myDefaultHandlerType = type;
       }
 
       MechSystemSolver.myDefaultHybridSolveP = !disableHybridSolves.value;

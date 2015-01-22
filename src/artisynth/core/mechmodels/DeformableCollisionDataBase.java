@@ -36,7 +36,7 @@ implements DeformableCollisionData {
    protected double myPenetrationTol;
    protected double myMu;
 
-   private boolean myContactsChanged = true;
+   //private boolean myContactsChanged = true;
    private DeformableContactConstraint myContactStub;   // used for hashmap
 
    private static final ContactPenetratingPoint.DistanceComparator maxCppComparator = 
@@ -241,7 +241,7 @@ implements DeformableCollisionData {
    @Override
    public void addContact(DeformableContactConstraint c) {
       myConstraints.put (c, c);
-      myContactsChanged = true;
+      //myContactsChanged = true;
    }
 
    @Override
@@ -270,19 +270,19 @@ implements DeformableCollisionData {
          DeformableContactConstraint c = it.next();
          if (!c.isActive()) {
             it.remove();
-            myContactsChanged = true;
+            //myContactsChanged = true;
          }
       }
    }
 
-   public boolean hasActiveContacts() {
-      for (DeformableContactConstraint c : myConstraints.values()) {
-         if (c.isActive()) {
-            return true;
-         }
-      }
-      return false;
-   }
+//   public boolean hasActiveContacts() {
+//      for (DeformableContactConstraint c : myConstraints.values()) {
+//         if (c.isActive()) {
+//            return true;
+//         }
+//      }
+//      return false;
+//   }
 
    public int numActiveContacts() {
 
@@ -296,17 +296,17 @@ implements DeformableCollisionData {
 
    }
 
-   @Override
-   public void notifyContactsChanged() {
-      myContactsChanged = true;
-   }
+//   @Override
+//   public void notifyContactsChanged() {
+//      //myContactsChanged = true;
+//   }
 
-   @Override
-   public boolean contactsHaveChanged() {
-      boolean changed = myContactsChanged;
-      myContactsChanged = false;
-      return changed;
-   }
+//   @Override
+//   public boolean contactsHaveChanged() {
+//      boolean changed = myContactsChanged;
+//      myContactsChanged = false;
+//      return changed;
+//   }
 
    @Override
    public void clearContactData() {
@@ -321,7 +321,7 @@ implements DeformableCollisionData {
    @Override
    public void getAuxState(DataBuffer data, CollisionData otherData) {
       data.zput (myConstraints.size());
-      data.zput ((myContactsChanged ? 1 : 0));
+      data.zput (1); // (myContactsChanged ? 1 : 0));
       for (DeformableContactConstraint c : myConstraints.values()) {
          c.getAuxState (data, this, otherData);
       }
@@ -331,7 +331,7 @@ implements DeformableCollisionData {
    public void setAuxState(DataBuffer data, CollisionData other) {
       clearContactData();
       int nc = data.zget();
-      myContactsChanged = (data.zget() == 1);
+      data.zget(); // myContactsChanged = (data.zget() == 1);
       for (int i=0; i<nc; i++) {
          DeformableContactConstraint c = createContact();
          c.setAuxState (data, this, other);

@@ -20,43 +20,13 @@ import artisynth.core.gui.selectionManager.SelectionListener;
 import artisynth.core.gui.selectionManager.SelectionManager;
 import artisynth.core.gui.editorManager.EditorUtils;
 import maspack.matrix.*;
+import maspack.geometry.*;
 import maspack.render.*;
 import maspack.properties.*;
 import maspack.util.*;
 
 public class PullController extends ControllerBase
 implements SelectionListener, MouseInputListener {
-
-//   /**
-//    * Interface for handling pull events
-//    */
-//   public interface Pullable {
-//
-//      boolean isPullable();
-//
-//      /**
-//       * Constructs force origin storage data given a mouse ray
-//       * (e.g. intersect ray with mesh to determine for origin point)
-//       * If null, assumes that there is no origin, so no force can
-//       * be applied
-//       */
-//      public Object getOriginData(MouseRayEvent ray);
-//
-//      /**
-//       * Determines the world-coordinate point to which force will
-//       * be applied (used for determining magnitude of force)
-//       */
-//      public Point3d getOriginPoint(Object data);
-//
-//      public double getPointRenderRadius();
-//
-//      /**
-//       * Given the supplied force origin info and a force vector,
-//       * apply the force (typically sets an external force)
-//       */
-//      public void applyForce(Object orig, Vector3d force);
-//   }
-
 
    private MouseRayEvent myPullEvent = null;
    private SelectionManager mySelectionManager;
@@ -68,6 +38,9 @@ implements SelectionListener, MouseInputListener {
    // thread, where they are used to compute the applied force. Access to these
    // hence needs to be synchronized
    private ModelComponent myComponent = null;
+   private Point myPoint;
+   private PointAttachment myAttachment;
+
    // private Point3d myBodyPnt;
    private Object myOriginData;
    private Point3d myPullPos;
@@ -109,123 +82,95 @@ implements SelectionListener, MouseInputListener {
       setName ("pullController");
    }
 
-   private double getPointRenderRadius (Point pnt) {
-      RenderProps props = pnt.getRenderProps();
-      if (props == null) {
-         if (pnt.getParent() instanceof Renderable) {
-            props = ((Renderable)pnt.getParent()).getRenderProps();
+   private double getRenderRadius (ModelComponent comp) {
+      if (comp instanceof Renderable) {
+         RenderProps props = ((Renderable)comp).getRenderProps();
+         if (props == null) {
+            if (comp.getParent() instanceof Renderable) {
+               props = ((Renderable)comp.getParent()).getRenderProps();
+            }
          }
-      }
-      if (props != null) {
-         if (props.getPointStyle() == RenderProps.PointStyle.SPHERE) {
-            return props.getPointRadius();
+         if (props != null) {
+            if (props.getPointStyle() == RenderProps.PointStyle.SPHERE) {
+               return props.getPointRadius();
+            }
          }
       }
       return 0;
    }
 
-   private void initializeComponent (ModelComponent comp, MouseRayEvent ray) {
+   private void clearComponent() {
       myComponent = null;
-      if (comp instanceof Pullable) {
+      myPoint = null;
+      myAttachment = null;
+   }
 
-         Pullable p = (Pullable)comp;
-         if (p.isPullable()) {
-            myOriginData = p.getOriginData (
-               ray.getRay().getOrigin(), ray.getRay().getDirection());
-            if (myOriginData != null) {
-               myComponent = comp;
-               myPointRenderRadius = p.getPointRenderRadius();
+   private boolean computeRayIntersection (
+      Point3d nearest, HasSurfaceMesh comp, Line ray) {
+      
+      PolygonalMesh[] meshes = comp.getSurfaceMeshes();
+      if (meshes == null && meshes.length == 0) {
+         return false;
+      }
+      double nearestDistance = Double.POSITIVE_INFINITY;
+      for (PolygonalMesh mesh : meshes) {
+         Point3d pos = BVFeatureQuery.nearestPointAlongRay (
+            mesh, ray.getOrigin(), ray.getDirection());
+         if (pos != null) {
+            double d = pos.distance(ray.getOrigin());
+            if (d < nearestDistance) {
+               nearestDistance = d;
+               nearest.set (pos);
             }
          }
-      } else if (comp instanceof Point) {
-         myComponent = comp;
-         myPointRenderRadius = getPointRenderRadius ((Point)comp);
       }
-      //      else if (comp instanceof RigidBody) {
-      //         RigidBody bod = (RigidBody)comp;
-      //         PolygonalMesh mesh = bod.getMesh();
-      //         myPointRenderRadius = 0;
-      //         if (mesh != null) {
-      //            Point3d pnt = EditorUtils.intersectWithMesh (mesh, ray);
-      //            if (pnt != null) {
-      //               myBodyPnt = new Point3d(pnt);
-      //               myBodyPnt.inverseTransform (bod.getPose());
-      //               //myBodyPnt.setZero();
-      //               myComponent = comp;
-      //            }
-      //         }
-      //      }
+      return nearestDistance != Double.POSITIVE_INFINITY;
+   }
+
+   private void initializeComponent (ModelComponent comp, MouseRayEvent rev) {
+      clearComponent();
+
+      if (comp instanceof PointAttachable && comp instanceof HasSurfaceMesh) {
+         Point3d isect = new Point3d();
+         if (computeRayIntersection (isect, (HasSurfaceMesh)comp, rev.getRay())) {
+            Point pnt = new Point (isect);
+            PointAttachment pa =
+               ((PointAttachable)comp).createPointAttachment (pnt);
+            if (pa != null) {
+               myComponent = comp;
+               myAttachment = pa;
+               myPoint = pnt;
+            }
+         }
+      }
+      else if (comp instanceof Point) {
+         myComponent = comp;
+         myPoint = (Point)comp;
+         myAttachment = null;
+      }
+      if (myComponent != null) {
+         myPointRenderRadius = getRenderRadius (myComponent);
+      }
    }
 
    private void applyForce (Vector3d force) {
-
-      if (myComponent instanceof Pullable) {
-         ((Pullable)myComponent).applyForce(myOriginData, force);
-      } 
-      else if (myComponent instanceof Point) {
-         ((Point)myComponent).setExternalForce (force);
-      }
-      //      else if (myComponent instanceof RigidBody) {
-      //         RigidBody body = (RigidBody)myComponent;
-      //         Wrench bodyForce = new Wrench();
-      //         body.computeAppliedWrench (bodyForce, force, myBodyPnt);
-      //         bodyForce.transform (body.getPose().R);
-      //         body.setExternalForce (bodyForce);
-      //      }
-      else {
-         throw new InternalErrorException (
-            "Unimplemented component type " + myComponent.getClass());
+      myPoint.setForce (force);
+      if (myAttachment != null) {
+         myAttachment.applyForces();
       }
    }
 
-   private Point3d getOriginPoint() {
-
-      if (myComponent instanceof Pullable) {
-         return ((Pullable)myComponent).getOriginPoint(myOriginData);
-      } 
-      else if (myComponent instanceof Point) {
-         return ((Point)myComponent).getPosition();
+   Point3d getPointPosition() {
+      if (myPoint != null) {
+         if (myAttachment != null) {
+            myAttachment.updatePosStates();
+         }
+         return myPoint.getPosition();
       }
-      //      else if (myComponent instanceof RigidBody) {
-      //         RigidBody body = (RigidBody)myComponent;
-      //         Point3d pnt = new Point3d(myBodyPnt);
-      //         pnt.transform (body.getPose());
-      //         return pnt;
-      //      }
       else {
-         throw new InternalErrorException (
-            "Unimplemented component type " + myComponent.getClass());
+         return null;
       }
-   }   
-
-   private float[] getOriginRenderCoords() {
-
-      if (myComponent instanceof Pullable) {
-         Point3d pnt = ((Pullable)myComponent).getOriginPoint(myOriginData);
-         float[] coords = new float[3];
-         coords[0] = (float)pnt.x;
-         coords[1] = (float)pnt.y;
-         coords[2] = (float)pnt.z;
-         return coords;
-      }
-      else if (myComponent instanceof Point) {
-         return ((Point)myComponent).myRenderCoords;
-      }
-      //      else if (myComponent instanceof RigidBody) {
-      //         RigidBody body = (RigidBody)myComponent;
-      //         Point3d pnt = new Point3d(myBodyPnt);
-      //         pnt.transform (body.myRenderFrame);
-      //         float[] coords = new float[3];
-      //         coords[0] = (float)pnt.x;
-      //         coords[1] = (float)pnt.y;
-      //         coords[2] = (float)pnt.z;
-      //         return coords;
-      //      }
-      else {
-         throw new InternalErrorException (
-            "Unimplemented component type " + myComponent.getClass());
-      }
-   }         
+   }
 
    public synchronized void selectionChanged (SelectionEvent e) {
 
@@ -242,10 +187,10 @@ implements SelectionListener, MouseInputListener {
       if (e.getButton() == MouseEvent.BUTTON1) {
          myPullPos = null;
          if (myComponent != null) {
-            if (e.getClickCount() == 2) {
+            if (e.getClickCount() >= 2) {
                if (myHasPersistentComponent) {
                   // remove the component
-                  myComponent = null;
+                  clearComponent();
                   myHasPersistentComponent = false;
                }
                else {
@@ -256,7 +201,7 @@ implements SelectionListener, MouseInputListener {
                }                
             }
             else if (!myHasPersistentComponent) {
-               myComponent = null;
+               clearComponent();
                if (!Main.isSimulating()) {
                   Main.rerender();
                }                
@@ -285,7 +230,7 @@ implements SelectionListener, MouseInputListener {
          if (myComponent != null) {
             // find the world space point
             myPullPos = EditorUtils.intersectWithPlane (
-               getOriginPoint(), MouseRayEvent.create (e, viewer));
+               getPointPosition(), MouseRayEvent.create (e, viewer));
 
             if (!Main.isSimulating()) {
                Main.rerender();
@@ -303,7 +248,7 @@ implements SelectionListener, MouseInputListener {
          myPullEvent = null;
          myPullPos = null;
          if (myDragOccurred && !myHasPersistentComponent) {
-            myComponent = null;
+            clearComponent();
          }
          if (!Main.isSimulating()) {
             Main.rerender();
@@ -323,6 +268,9 @@ implements SelectionListener, MouseInputListener {
 
    // GLRenderable implementation
    public void prerender (RenderList list) {
+      if (myAttachment != null) {
+         myPoint.prerender (list);
+      }
    }
 
    public void render (GLRenderer renderer, int flags) {
@@ -337,7 +285,7 @@ implements SelectionListener, MouseInputListener {
                myRenderProps.setPointRadius (1.05*myPointRenderRadius);
             }
             renderer.drawPoint (
-               myRenderProps, getOriginRenderCoords(), false);
+               myRenderProps, myPoint.myRenderCoords, false);
             if (saveRadius <= myPointRenderRadius) {
                if (saveRadiusMode == PropertyMode.Inherited) {
                   myRenderProps.setPointRadiusMode (saveRadiusMode);
@@ -353,7 +301,7 @@ implements SelectionListener, MouseInputListener {
             pullCoords[1] = (float)myPullPos.y;
             pullCoords[2] = (float)myPullPos.z;
             renderer.drawLine (
-               myRenderProps, getOriginRenderCoords(), pullCoords, false);
+               myRenderProps, myPoint.myRenderCoords, pullCoords, false);
          }
       }
    }
@@ -383,8 +331,7 @@ implements SelectionListener, MouseInputListener {
    public synchronized void apply (double t0, double t1) {
       if (myComponent != null && myPullPos != null) {
          Vector3d force = new Vector3d();
-         Point3d origin = getOriginPoint();
-         force.sub (myPullPos, origin);
+         force.sub (myPullPos, getPointPosition());
          force.scale (myStiffness);
          applyForce (force);
       }

@@ -10,11 +10,7 @@ import java.util.Map;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
-import maspack.properties.HasProperties;
-import maspack.properties.PropertyList;
 import maspack.render.GLRenderer;
-import maspack.render.RenderList;
-import maspack.render.RenderProps;
 import maspack.spatialmotion.SphericalCoupling;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
@@ -25,28 +21,6 @@ import artisynth.core.modelbase.ModelComponent;
 public class SphericalJointBase extends JointBase 
    implements CopyableComponent {
 
-   public static PropertyList myProps =
-      new PropertyList (SphericalJointBase.class, JointBase.class);
-
-   protected static RenderProps defaultRenderProps (HasProperties host) {
-      RenderProps props = RenderProps.createPointProps (host);
-      return props;
-   }
-
-   static {
-      myProps.add (
-         "renderProps * *", "renderer properties", defaultRenderProps (null));
-   } 
-
-   public PropertyList getAllPropertyInfo() {
-      return myProps;
-   }
-
-   public void setDefaultValues() {
-      super.setDefaultValues();
-      setRenderProps (defaultRenderProps (null));
-   }
-   
    public SphericalJointBase() {
       setDefaultValues();
       myCoupling = new SphericalCoupling ();
@@ -55,25 +29,8 @@ public class SphericalJointBase extends JointBase
       myCoupling.setContactDistance (1e-8);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
-      RigidTransform3d TFW = getCurrentTCW();
-      TFW.p.updateBounds (pmin, pmax);
-   }
-
-   public RenderProps createRenderProps() {
-      return defaultRenderProps (this);
-   }
-
-    public void prerender (RenderList list) {
-      RigidTransform3d TDW = getCurrentTDW();
-      myRenderFrame.set (TDW);
-   }
-
    public void render (GLRenderer renderer, int flags) {
-      if (myAxisLength != 0) {
-         renderer.drawAxes (
-            myRenderProps, myRenderFrame, myAxisLength, isSelected());
-      }
+      super.render (renderer, flags);
       float[] coords =
          new float[] { (float)myRenderFrame.p.x, (float)myRenderFrame.p.y,
                       (float)myRenderFrame.p.z };

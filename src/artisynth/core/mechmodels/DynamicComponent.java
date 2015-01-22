@@ -222,6 +222,8 @@ public interface DynamicComponent extends ModelComponent, ForceEffector {
 
    public void setForcesToExternal();
    
+   public void applyExternalForces();
+   
    /**
     * Checks if the current component velocity exceeds specified limits. Used
     * to check solution stability.

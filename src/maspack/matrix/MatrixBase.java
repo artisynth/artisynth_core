@@ -484,8 +484,8 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
    }
 
    /**
-    * Writes the contents of this matrix to a specified file, and returns
-    * the PrintWriter that was created to do the writing.
+    * Writes this matrix to a specified file, and returns the PrintWriter that
+    * was created to do the writing.
     * 
     * @param fileName
     * Path name for the file to written
@@ -498,13 +498,34 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
     */
    public PrintWriter write (String fileName, String msg, WriteFormat wfmt)
       throws IOException {
+      return write (fileName, msg, wfmt, rowSize(), colSize());
+   }
+
+   /**
+    * Writes a principal submatrix of this matrix to a specified file, and
+    * returns the PrintWriter that was created to do the writing.
+    * 
+    * @param fileName
+    * Path name for the file to written
+    * @param msg
+    * Optional message - if not <code>null</code>, is printed on
+    * a separate line preceeding the matrix information.
+    * @param wfmt
+    * specifies the matrix output format
+    * @param nrows number of rows in the principle submatrix
+    * @param ncols number of columns in the principle submatrix
+    * @return PrintWriter used to do the writing
+    */
+   public PrintWriter write (
+      String fileName, String msg, WriteFormat wfmt, int nrows, int ncols)
+      throws IOException {
       NumberFormat fmt = new NumberFormat("%g");
       PrintWriter pw =
          new PrintWriter (new BufferedWriter (new FileWriter (fileName)));
       if (msg != null) {
          pw.println (msg);
       }
-      write (pw, fmt, wfmt, rowSize(), colSize());
+      write (pw, fmt, wfmt, nrows, ncols);
       return pw;
    }
 

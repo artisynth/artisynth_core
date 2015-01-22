@@ -9,22 +9,13 @@ package artisynth.core.mechmodels;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
-import javax.media.opengl.GL2;
-
 import maspack.collision.AbstractCollider;
 import maspack.collision.ContactInfo;
 import maspack.collision.ContactPenetratingPoint;
 import maspack.collision.ContactRegion;
 import maspack.collision.SurfaceMeshCollider;
 import maspack.geometry.PolygonalMesh;
-import maspack.matrix.AffineTransform3dBase;
-import maspack.matrix.MatrixNdBlock;
-import maspack.matrix.Point3d;
-import maspack.matrix.RigidTransform3d;
-import maspack.matrix.SparseBlockMatrix;
-import maspack.matrix.Vector3d;
-import maspack.matrix.VectorNd;
-import maspack.matrix.VectorNi;
+import maspack.matrix.*;
 import maspack.properties.HasProperties;
 import maspack.render.GLRenderable;
 import maspack.render.GLRenderer;
@@ -32,35 +23,31 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.spatialmotion.RigidBodyConstraint;
 import maspack.spatialmotion.Wrench;
-import maspack.util.DataBuffer;
-import maspack.util.IntHolder;
+import maspack.util.*;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
-import artisynth.core.util.TransformableGeometry;
 
 public class RigidBodyContact
-   implements RigidBodyConstrainer, GLRenderable, Constrainer {
+   implements HasAuxState, GLRenderable, Constrainer {
    AbstractCollider collider = SurfaceMeshCollider.newCollider();
 
    RigidBody myBodyA = null;
    PolygonalMesh myMeshA = null;
    RigidBody myBodyB = null;
    PolygonalMesh myMeshB = null;
-//   int myBodyIdxA = -1;
-//   int myBodyIdxB = -1;
 
-   MatrixNdBlock myBilateralBlkA;
-   MatrixNdBlock myBilateralBlkB;
    MatrixNdBlock myUnilateralBlkA;
    MatrixNdBlock myUnilateralBlkB;
 
    protected int myNumUnilaterals = 0;
    protected int myMaxUnilaterals = 100;
-   protected RigidBodyConstraint[] myConstraints;
-   //private RigidTransform3d myXBA = new RigidTransform3d();
-   //private RigidTransform3d myXAW = new RigidTransform3d();
+
+   private boolean useNew = true;
+   boolean worldWrench = true;
+   boolean checkNew = false;
 
    private ArrayList<RigidBodyConstraint> myUnilaterals; 
+   private ArrayList<ContactConstraint> myUnilateralsX; 
 
    private RenderProps myRenderProps;
    // back reference to collision handler provided for rendering purposes
@@ -86,26 +73,8 @@ public class RigidBodyContact
       return myBodyB;
    }
 
-   public double getFriction() {
-      return myFriction;
-   }
-
    public void setFriction (double mu) {
       myFriction = mu;
-   }
-
-   public MatrixNdBlock getBilateralBlockA (int numb) {
-      if (myBilateralBlkA == null || myBilateralBlkA.colSize() != numb) {
-         myBilateralBlkA = new MatrixNdBlock (6, numb);
-      }
-      return myBilateralBlkA;
-   }
-
-   public MatrixNdBlock getBilateralBlockB (int numb) {
-      if (myBilateralBlkB == null || myBilateralBlkB.colSize() != numb) {
-         myBilateralBlkB = new MatrixNdBlock (6, numb);
-      }
-      return myBilateralBlkB;
    }
 
    public MatrixNdBlock getUnilateralBlockA (int numu) {
@@ -122,7 +91,8 @@ public class RigidBodyContact
       return myUnilateralBlkB;
    }
 
-   public RigidBodyContact (RigidBody b0, PolygonalMesh m0, RigidBody b1, PolygonalMesh m1) {
+   public RigidBodyContact (
+      RigidBody b0, PolygonalMesh m0, RigidBody b1, PolygonalMesh m1) {
       super();
 
       myBodyA = b0;
@@ -130,11 +100,8 @@ public class RigidBodyContact
       myMeshA = m0;
       myMeshB = m1;
       
-      myConstraints = new RigidBodyConstraint[myMaxUnilaterals];
-      for (int i = 0; i < myMaxUnilaterals; i++) {
-         myConstraints[i] = new RigidBodyConstraint();
-      }
-
+      myUnilaterals = new ArrayList<RigidBodyConstraint>();
+      myUnilateralsX = new ArrayList<ContactConstraint>();
       myRenderProps = defaultRenderProps (null);
    }
    
@@ -149,50 +116,10 @@ public class RigidBodyContact
    LinkedList<Point3d> renderPoints = new LinkedList<Point3d>();
    Vector3d renderNormal = new Vector3d();
 
-   public synchronized void updateBodyStates (double t, boolean setEngaged) {
-   }
-
-//   public void checkRegion (ContactRegion r, int num) {
-//      RootModel root = Main.getRootModel();
-//      if (root.isCheckEnabled()) {
-//         String pfx = "R" + num + " ";
-//
-//         root.checkWrite (pfx + "normal=" + r.normal);
-//         root.checkWrite (pfx + "depth=" + r.depth);
-//         int k = 0;
-//         for (Point3d pnt : r.points) {
-//            root.checkWrite (pfx + "point" + k + "=" + pnt);
-//            k++;
-//         }
-//      }
-//   }
-//
-//   static void checkMesh (PolygonalMesh mesh) {
-//      RootModel root = Main.getRootModel();
-//      if (root.isCheckEnabled()) {
-//         int k = 0;
-//         for (Vertex3d vtx : mesh.getVertices()) {
-//            root.checkWrite ("vtx" + k + "=" + vtx.pnt);
-//            k++;
-//         }
-//         k = 0;
-//         for (Face face : mesh.getFaces()) {
-//            root.checkWrite ("nrm" + k + "=" + face.getNormal());
-//            k++;
-//         }
-//      }
-//   }
-
    /* Contact normal should point from mesh1 into mesh0 */
    public double updateValues (double t) {
-      // System.out.println("updating values " + t);
 
-      // if(linfo != null && linfo.points1.size() == 6)
-      // return;
-
-      // renderlines.clear();
-
-      // super.updateValues(t);
+      myUnilaterals.clear();
       double maxpen = 0;
 
       PolygonalMesh mesh0 = myMeshA;
@@ -205,7 +132,7 @@ public class RigidBodyContact
       double nrmlLen = 0;
       if (myCollisionHandler != null) {
          nrmlLen = myCollisionHandler.getContactNormalLen();
-         myCollisionHandler.clearLineSegments();
+         myCollisionHandler.clearRenderData();
       }
 
       // Currently, no correspondence is established between new contacts and
@@ -221,7 +148,6 @@ public class RigidBodyContact
          RigidTransform3d XAW = myBodyA.getPose();
          RigidTransform3d XBW = myBodyB.getPose();
 
-         int regionNum = 0;
          for (ContactRegion region : info.regions) {
             //checkRegion (region, regionNum);
             if (region.depth > 0.1) {
@@ -243,13 +169,8 @@ public class RigidBodyContact
                if (numc >= myMaxUnilaterals)
                   break;
 
-               // ///////////////////////////////////////
-               // Point3d np = new Point3d();
-               // np.scaledAdd(0.5, region.normal, p);
-               // renderlines.add(new Point3d[] {p, np});
-               // ///////////////////////////////////////
-
-               RigidBodyConstraint c = myConstraints[numc];
+               //RigidBodyConstraint c = myConstraints[numc];
+               RigidBodyConstraint c = new RigidBodyConstraint();
 
                Wrench w0 = new Wrench();
 
@@ -258,41 +179,51 @@ public class RigidBodyContact
                }
 
                w0.f.set (region.normal);
-               w0.m.cross (p, region.normal);
-               w0.inverseTransform (XAW);
+               if (worldWrench) {
+                  Vector3d l = new Vector3d();
+                  l.sub (p, XAW.p);
+                  w0.m.cross (l, region.normal);
+               }
+               else {
+                  w0.m.cross (p, region.normal);
+                  w0.inverseTransform (XAW);
+               }
                c.setWrenchA (w0);
 
-               // XBA.mulInverseLeft (XAW, myBodyB.getPose());
-               // w0.inverseTransform (XBA);
-               // w0.negate();
-               // c.setWrenchB (w0);
-
                w0.f.set (region.normal);
-               w0.m.cross (p, region.normal);
-               w0.inverseTransform (XBW);
+               if (worldWrench) {
+                  Vector3d l = new Vector3d();
+                  l.sub (p, XBW.p);
+                  w0.m.cross (l, region.normal);
+               }
+               else {
+                  w0.m.cross (p, region.normal);
+                  w0.inverseTransform (XBW);
+               }
                w0.negate();
                c.setWrenchB (w0);
 
                maxpen = region.depth;
                c.setDistance (-region.depth); // XXX check this
-               // System.out.println("Rigid Constraint distance: " + c.getDistance());
-               // c.setBodyIndexA (myBodyIdxA);
 
                // new code to update rigid body constraint
-               pInBodyA.inverseTransform (XAW, p);
+               if (worldWrench) {
+                  pInBodyA.set (p);
+               }
+               else {
+                  pInBodyA.inverseTransform (XAW, p);
+
+               }
                c.setContactPoint (pInBodyA);
 
                c.setFriction (myFriction);
                //c.setBodyIndexB (myBodyIdxB);
                c.setDerivative (0);
 
-               // pass on compliance and damping parameters from collision handler
-               c.setCompliance (myCollisionHandler.getCompliance());
-               c.setDamping (myCollisionHandler.getDamping());
-
                // ideally the multiplier values should be based on previous
                // contact values, if possible               
                c.setMultiplier (0);
+               myUnilaterals.add (c);
                numc++;
             }
          }
@@ -300,14 +231,83 @@ public class RigidBodyContact
       if (myCollisionHandler != null) {
          myCollisionHandler.setLastContactInfo(info);
       }
-      myNumUnilaterals = numc;
+      if (!useNew) {
+         myNumUnilaterals = numc;
+      }
       return maxpen;
-      // for(int i = numc; i < myNumConstraints; i++)
-      // {
-      // myWrenches[i].set(0, 0, 1, 0, 0, 1);
-      // myDerivatives[i] = 0;
-      // myDistances[i] = Double.POSITIVE_INFINITY;
-      // }
+   }
+
+   /* Contact normal should point from mesh1 into mesh0 */
+   public double updateValuesX (double t) {
+
+      myUnilateralsX.clear();
+      double maxpen = 0;
+
+      PolygonalMesh mesh0 = myMeshA;
+      PolygonalMesh mesh1 = myMeshB;
+
+      double nrmlLen = 0;
+      if (myCollisionHandler != null) {
+         nrmlLen = myCollisionHandler.getContactNormalLen();
+         myCollisionHandler.clearRenderData();
+      }
+
+      // Currently, no correspondence is established between new contacts and
+      // previous contacts. If there was, then we could set the multipliers for
+      // the new contacts to something based on the old contacts, thereby
+      // providing initial "warm start" values for the solver.
+
+      ContactInfo info = collider.getContacts (mesh0, mesh1, true);
+      linfo = info;
+      int numc = 0;
+
+      if (info != null) {
+
+         for (ContactRegion region : info.regions) {
+            //checkRegion (region, regionNum);
+            if (region.depth > 0.1) {
+               renderPoints.clear();
+
+               for (ContactPenetratingPoint cpp : info.points1) {
+                  Point3d pnt = new Point3d (cpp.vertex.pnt);
+                  pnt.transform (myBodyB.getPose());
+                  renderPoints.add (pnt);
+               }
+               for (ContactPenetratingPoint cpp : info.points0) {
+                  Point3d pnt = new Point3d (cpp.vertex.pnt);
+                  pnt.transform (myBodyA.getPose());
+                  renderPoints.add (pnt);
+               }
+            }
+            // region.depth = 0;
+            for (Point3d p : region.points) {
+               if (numc >= myMaxUnilaterals)
+                  break;
+
+               ContactConstraint c = new ContactConstraint(myCollisionHandler);
+               c.setContactPoint0 (p);
+               c.equateContactPoints();
+               c.setNormal (region.normal);
+               c.assignMasters (myBodyA, myBodyB);
+
+               if (nrmlLen != 0) {
+                  myCollisionHandler.addLineSegment (p, region.normal, nrmlLen);
+               }
+
+               maxpen = region.depth;
+               c.setDistance (-region.depth);
+               myUnilateralsX.add (c);
+               numc++;
+            }
+         }
+      }
+      if (myCollisionHandler != null) {
+         myCollisionHandler.setLastContactInfo(info);
+      }
+      if (useNew) {
+         myNumUnilaterals = numc;
+      }
+      return maxpen;
    }
 
    public void updateBounds (Point3d pmin, Point3d pmax) {
@@ -322,70 +322,11 @@ public class RigidBodyContact
       // renderlinesBuf.addAll (renderlines);
    }
 
-   // public void handleSelection (
-   // LinkedList<Renderable> list, int[] nameList, int idx)
-   // {
-   // }
-
    public synchronized void render (GLRenderer renderer, int flags) {
-      GL2 gl = renderer.getGL2().getGL2();
-      renderer.setLightingEnabled (false);
-      renderer.setColor (0f, 1f, 0f);
-
-      // if (renderPoints.size() > 0)
-      // {
-      // gl.glPointSize(4);
-      // gl.glBegin (GL2.GL_POINTS);
-      // for (Point3d p : renderPoints)
-      // { gl.glVertex3d (p.x, p.y, p.z);
-      // }
-      // gl.glEnd();
-      // }
-      // renderer.setLightingEnabled (true);
-
-      // System.out.println("rendering");
-
-      // if(linfo != null)
-      // {
-      // Vector3d v = new Vector3d();
-      // gl.glBegin (GL2.GL_LINES);
-      // int k = 0;
-      // for(ContactRegion region:linfo.regions)
-      // {
-
-      // for(Point3d p:region.points)
-      // {
-      // if (myConstraints[k++].getMultiplier() > 0)
-      // { renderer.setColor (1f, 0f, 0f);
-      // }
-      // else
-      // { renderer.setColor (0f, 1f, 0f);
-      // }
-      // gl.glVertex3d(p.x, p.y, p.z);
-      // v.add (p, region.normal);
-      // gl.glVertex3d (v.x, v.y, v.z);
-      // }
-      // }
-      // gl.glEnd();
-      // }
-
-      // gl.glLineWidth(3);
-      // renderer.setColor  (0f, 0f, 1f);
-      // //// gl.glDisable(GL2.GL_DEPTH_TEST);
-      // //
-      // for(Point3d[] ps:renderlinesBuf)
-      // {
-      // gl.glBegin(GL2.GL_LINE_STRIP);
-      // for(Point3d p:ps)
-      // {
-      // gl.glVertex3d(p.x, p.y, p.z);
-      // }
-      // gl.glEnd();
-      // }
-      // //
-      // //// gl.glEnable(GL2.GL_DEPTH_TEST);
-
-      renderer.setLightingEnabled (true);
+      //GL2 gl = renderer.getGL2().getGL2();
+      //renderer.setLightingEnabled (false);
+      //renderer.setColor (0f, 1f, 0f);
+      //renderer.setLightingEnabled (true);
    }
 
    public RenderProps createRenderProps() {
@@ -398,69 +339,67 @@ public class RigidBodyContact
       return props;
    }
 
-   public void scaleDistance (double s) {
-   }
-
-   public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject) {
-   }
-
-   public boolean hasUnilateralConstraints() {
-      return true;
-   }
-
-   public int numUnilateralConstraints() {
-      return myNumUnilaterals;
+   public int setUnilateralImpulses (VectorNd the, double h, int idx) {
+      int idx0 = idx;
+      setUnilateralImpulsesO (the, h, idx);
+      idx = setUnilateralImpulsesX (the, h, idx0);
+      return idx;
    }
    
-   public double getUnilateralConstraints (
-      ArrayList<RigidBodyConstraint> unilaterals, boolean setEngaged) {
-
-      double maxpen = 0;
-      if (setEngaged) {
-         maxpen = updateValues (0);
-      }
-      for (int i = 0; i < myNumUnilaterals; i++) {
-         unilaterals.add (myConstraints[i]);
-      }
-      return maxpen;
-   }
-
-   public void updateUnilateralConstraints (
-      ArrayList<RigidBodyConstraint> unilaterals, int offset, int num) {
-
-      for (int i = 0; i < num; i++) {
-         RigidBodyConstraint u = unilaterals.get (offset + i);
-      }
-   }
-
-   public int setUnilateralImpulses (VectorNd the, double h, int idx) {
+   public int setUnilateralImpulsesX (VectorNd the, double h, int idx) {
       double[] buf = the.getBuffer();
-      for (int i=0; i<myNumUnilaterals; i++) {
-         myConstraints[i].setMultiplier (buf[idx++]);
+      for (int i=0; i<myUnilateralsX.size(); i++) {
+         myUnilateralsX.get(i).setImpulse (buf[idx++]);
+      }
+      return idx;
+   }
+
+   public int setUnilateralImpulsesO (VectorNd the, double h, int idx) {
+      double[] buf = the.getBuffer();
+      for (int i=0; i<myUnilaterals.size(); i++) {
+         myUnilaterals.get(i).setMultiplier (buf[idx++]);
       }
       return idx;
    }
    
    public void zeroImpulses() {
-      for (int i=0; i<myNumUnilaterals; i++) {
-         myConstraints[i].setMultiplier (0);
+      for (int i=0; i<myUnilaterals.size(); i++) {
+         myUnilaterals.get(i).setMultiplier (0);
+      }     
+      for (int i=0; i<myUnilateralsX.size(); i++) {
+         myUnilateralsX.get(i).setImpulse (0);
       }     
    }
 
    public int getUnilateralImpulses (VectorNd the, int idx) {
+      if (useNew) {
+         return getUnilateralImpulsesX (the, idx);
+      }
+      else {
+         return getUnilateralImpulsesO (the, idx);
+      }
+   }
+
+   public int getUnilateralImpulsesX (VectorNd the, int idx) {
       double[] buf = the.getBuffer();
-      for (int i=0; i<myNumUnilaterals; i++) {
-         buf[idx++] = myConstraints[i].getMultiplier();
+      for (int i=0; i<myUnilateralsX.size(); i++) {
+         buf[idx++] = myUnilateralsX.get(i).getImpulse();
       }
       return idx;
    }
 
+   public int getUnilateralImpulsesO (VectorNd the, int idx) {
+      double[] buf = the.getBuffer();
+      for (int i=0; i<myUnilaterals.size(); i++) {
+         buf[idx++] = myUnilaterals.get(i).getMultiplier();
+      }
+      return idx;
+   }
 
    // added to implement Constrainer
 
    public void getBilateralSizes (VectorNi sizes) {
-      // no bilaterals, so do nothin
+      // no bilaterals, so do nothing to do
    }
 
    public void getUnilateralSizes (VectorNi sizes) {
@@ -470,30 +409,25 @@ public class RigidBodyContact
    }
 
    public double updateConstraints (double t, int flags) {
-      boolean setEngaged = (flags & MechSystem.UPDATE_CONTACTS) == 0;
 
-      double maxpen = 0;
-
-      updateBodyStates (t, setEngaged);
-      if (myUnilaterals == null) {
-         myUnilaterals = new ArrayList<RigidBodyConstraint>();
-      }
-      if (setEngaged) {
-         myUnilaterals.clear();
-         double dist = getUnilateralConstraints (myUnilaterals, setEngaged);
-         if (dist > maxpen) {
-            maxpen = dist;
-         }            
+      if ((flags & MechSystem.COMPUTE_CONTACTS) != 0) {
+         if (useNew) {
+            updateValues(t);
+            return updateValuesX(t);
+         }
+         else {
+            updateValuesX(t);
+            return updateValues(t);
+         }
       }
       else {
-         updateUnilateralConstraints (
-            myUnilaterals, 0, myUnilaterals.size());
+         // update - nothing to do
+         return 0;
       }
-      return maxpen;
    }
 
    public int addBilateralConstraints (
-      SparseBlockMatrix GT, VectorNd dg, int numb, IntHolder changeCnt) {
+      SparseBlockMatrix GT, VectorNd dg, int numb) {
 
       // there are no bilateral constraints, so nothing to add
       return numb;
@@ -505,30 +439,58 @@ public class RigidBodyContact
       return idx;
    }
 
-//   private void setContactSpeed (RigidBodyConstraint c) {
-//      double speed = 0;
-//      Twist bodyVel = new Twist();
-//
-//      RigidBody bodyA = getBodyA();
-//      if (bodyA != null) {
-//         bodyA.getBodyVelocity (bodyVel);
-//         speed += c.getWrenchA().dot (bodyVel);
-//      }
-//      RigidBody bodyB = getBodyB();
-//      if (bodyB != null) {
-//         bodyB.getBodyVelocity (bodyVel);
-//         speed += c.getWrenchB().dot (bodyVel);
-//      }
-//      c.setContactSpeed (speed);
-//   }
-
    public int addUnilateralConstraints (
-      SparseBlockMatrix NT, VectorNd dn, int numu, IntHolder changeCnt) {
+      SparseBlockMatrix NT, VectorNd dn, int numu) {
+
+      SparseBlockMatrix XT = NT.clone();
+      VectorNd dx = new VectorNd(dn);
+      int numu0 = numu;
+      int numx;
+
+      if (useNew) {
+         numx = addUnilateralConstraintsO (XT, dx, numu);
+         numu = addUnilateralConstraintsX (NT, dn, numu);
+      }
+      else {
+         numx = addUnilateralConstraintsX (XT, dx, numu);
+         numu = addUnilateralConstraintsO (NT, dn, numu);
+      }
+      
+      if (checkNew) {
+         if (numx != numu) {
+            throw new TestException ("numx=" + numx+" numu=" + numu);
+         }
+         for (int i=numu0; i<numu; i++) {
+            if (dx.get(i) != dn.get(i)) {
+               throw new TestException ("dn differs at i=" + i);
+            }
+         }
+         checkMatrix ("NT", NT, XT);
+      }
+      return numu;
+   }
+
+   public int addUnilateralConstraintsX (
+      SparseBlockMatrix NT, VectorNd dn, int numu) {
+
+      double[] dbuf = (dn != null ? dn.getBuffer() : null);
+      int bj = NT.numBlockCols();
+      for (int i=0; i<myUnilateralsX.size(); i++) {
+         ContactConstraint c = myUnilateralsX.get(i);
+         c.addConstraintBlocks (NT, bj++);
+         if (dbuf != null) {
+            dbuf[numu] = c.getDerivative();
+         }
+         numu++;
+      }
+      return numu;
+   }
+
+   public int addUnilateralConstraintsO (
+      SparseBlockMatrix NT, VectorNd dn, int numu) {
 
       double[] dbuf = (dn != null ? dn.getBuffer() : null);
 
-      int k = 0;
-      int cidx = 0;
       int nc = myUnilaterals.size();
       if (nc > 0) {
          int bj = NT.numBlockCols();
@@ -551,18 +513,34 @@ public class RigidBodyContact
 
          for (int j=0; j<nc; j++) {
             RigidBodyConstraint u = myUnilaterals.get (j);
+            Wrench wr = new Wrench();
             if (blkA != null) {
+               wr.set (u.getWrenchA());
+               if (worldWrench) {
+                  Vector3d l = new Vector3d();
+                  l.sub (u.getContactPoint(), bodyA.getPosition());
+                  wr.m.cross (l, wr.f);
+               }
                RigidBodyConnector.setBlockCol (
-                  blkA, j, u.getWrenchA(), bodyA, 
-                  RigidTransform3d.IDENTITY, null, /*negate=*/false);
+                  blkA, j, wr, bodyA, 
+                  RigidTransform3d.IDENTITY, null, /*negate=*/false, worldWrench);
             }
             if (blkB != null) {
+               wr.set (u.getWrenchB());
+               if (worldWrench) {
+                  Vector3d l = new Vector3d();
+                  l.sub (u.getContactPoint(), bodyB.getPosition());
+                  wr.m.cross (l, wr.f);
+               }
                RigidBodyConnector.setBlockCol (
-                  blkB, j, u.getWrenchB(), bodyB, 
-                  RigidTransform3d.IDENTITY, null, /*negate=*/false);
+                  blkB, j, wr, bodyB, 
+                  RigidTransform3d.IDENTITY, null, /*negate=*/false, worldWrench);
             }
             if (dbuf != null) {
                dbuf[numu+j] = u.getDerivative();
+               if (dbuf[numu+j] != 0) {
+                  throw new TestException ("zero expected for dn term");
+               }
             }
             if (!MechModel.addConstraintForces) {
                RigidBodyConnector.setContactSpeed (
@@ -574,7 +552,47 @@ public class RigidBodyContact
    }
 
    public int getUnilateralInfo (ConstraintInfo[] ninfo, int idx) {
+      ConstraintInfo[] xinfo = allocCinfo (ninfo.length);
+      int idx0 = idx;
+      int ixx;
 
+      if (useNew) {
+         ixx = getUnilateralInfoO (xinfo, idx0);
+         idx = getUnilateralInfoX (ninfo, idx);
+      }
+      else {
+         ixx = getUnilateralInfoX (xinfo, idx0);
+         idx = getUnilateralInfoO (ninfo, idx);
+      }
+      if (checkNew) {
+         if (ixx != idx) {
+            throw new TestException ("ixx="+ixx+" idx="+idx);
+         }
+         checkCinfo (ninfo, xinfo, idx0, idx);
+      }
+      return idx;
+   }
+
+   public int getUnilateralInfoX (ConstraintInfo[] ninfo, int idx) {
+
+     for (int i=0; i<myUnilateralsX.size(); i++) {
+         ContactConstraint c = myUnilateralsX.get(i);
+         c.setSolveIndex (idx);
+         ConstraintInfo ni = ninfo[idx++];
+         if (c.getDistance() < -myPenetrationTol) {
+            ni.dist = (c.getDistance() + myPenetrationTol);
+         }
+         else {
+            ni.dist = 0;
+         }
+         ni.compliance = myCollisionHandler.getCompliance();
+         ni.damping = myCollisionHandler.getDamping();
+      }
+      return idx;
+   }
+
+   public int getUnilateralInfoO (ConstraintInfo[] ninfo, int idx) {
+      
       int nc = myUnilaterals.size();
       if (nc > 0) {
          for (int j = 0; j < nc; j++) {
@@ -587,33 +605,142 @@ public class RigidBodyContact
             else {
                ni.dist = 0;
             }
-            ni.compliance = uc.getCompliance();
-            ni.damping = uc.getDamping();
+            ni.compliance = myCollisionHandler.getCompliance();
+            ni.damping = myCollisionHandler.getDamping();
          }
       }
       return idx;
    }
 
    public int maxFrictionConstraintSets() {
-      return myUnilaterals.size();
+      return myNumUnilaterals;
+   }
+
+   private void checkMatrix (
+      String msg, SparseBlockMatrix M, SparseBlockMatrix X) {
+
+      MatrixNd XX = new MatrixNd (X);
+      MatrixNd MM = new MatrixNd (M);
+      double norm = M.frobeniusNorm();
+      if (!XX.epsilonEquals (MM, norm*1e-12)) {
+         System.out.println ("X=\n" + XX.toString("%12.7f"));
+         System.out.println ("M=\n" + MM.toString("%12.7f"));
+         throw new TestException (msg + " matrices not equal");
+      }
+   }
+ 
+   private FrictionInfo[] allocFinfo (int size) {
+      FrictionInfo[] finfo = new FrictionInfo[size];
+      for (int i=0; i<finfo.length; i++) {
+         finfo[i] = new FrictionInfo();
+      }    
+      return finfo;
+   }
+
+   private void checkFinfo (
+      FrictionInfo[] finfo1, FrictionInfo[] finfo2, int min, int max) {
+
+      for (int i=min; i<max; i++) {
+         FrictionInfo f1 = finfo1[i];
+         FrictionInfo f2 = finfo2[i];
+         if (f1.mu != f2.mu) {
+            throw new TestException (
+               "friction mu unequal: "+f1.mu+", expected "+f2.mu+" i=" + i);
+         }
+         else if (f1.contactIdx != f2.contactIdx) {
+            throw new TestException (
+               "friction contactIdx unequal: "+f1.contactIdx+
+               ", expected "+f2.contactIdx);
+         }
+         else if (f1.flags != f2.flags) {
+            throw new TestException (
+               "friction flags unequal: " + f1.flags +
+               ", expected "+f2.flags);
+         }
+      }
+   }
+
+   private ConstraintInfo[] allocCinfo (int size) {
+      ConstraintInfo[] cinfo = new ConstraintInfo[size];
+      for (int i=0; i<cinfo.length; i++) {
+         cinfo[i] = new ConstraintInfo();
+      }    
+      return cinfo;
+   }
+
+   private void checkCinfo (
+      ConstraintInfo[] cinfo1, ConstraintInfo[] cinfo2, int min, int max) {
+
+      for (int i=min; i<max; i++) {
+         ConstraintInfo c1 = cinfo1[i];
+         ConstraintInfo c2 = cinfo2[i];
+         if (c1.dist != c2.dist) {
+            throw new TestException (
+               "cinfo dist unequal: "+c1.dist+", expected "+c2.dist+" i=" + i);
+         }
+         else if (c1.compliance != c2.compliance) {
+            throw new TestException (
+               "cinfo compliance unequal: "+c1.compliance+
+               ", expected "+c2.compliance);
+         }
+         else if (c1.damping != c2.damping) {
+            throw new TestException (
+               "cinfo damping unequal: " + c1.damping +
+               ", expected "+c2.damping);
+         }
+      }
    }
 
    public int addFrictionConstraints (
       SparseBlockMatrix DT, FrictionInfo[] finfo, int numf) {
 
-      return RigidBodyConnector.addFrictionConstraints (
-         DT, finfo, numf, myUnilaterals, getBodyA(), getBodyB(), null);
+      SparseBlockMatrix XT = DT.clone();
+      FrictionInfo[] xinfo = allocFinfo (finfo.length);
+      int numf0 = numf;
+      int numfx;
+
+      if (useNew) {
+         numfx = addFrictionConstraintsO (XT, xinfo, numf);
+         numf = addFrictionConstraintsX (DT, finfo, numf);
+      }
+      else {
+         numfx = addFrictionConstraintsX (XT, xinfo, numf);
+         numf = addFrictionConstraintsO (DT, finfo, numf);
+      }
+
+      if (checkNew) {
+         if (numfx != numf) {
+            throw new TestException ("numf="+numf+" numfx="+numfx);
+         }
+         checkMatrix ("DT", DT, XT);
+         checkFinfo (finfo, xinfo, numf0, numf);
+      }
+      return numf;
+   }
+
+   public int addFrictionConstraintsX (
+      SparseBlockMatrix DT, FrictionInfo[] finfo, int numf) {
+
+      for (int i=0; i<myUnilateralsX.size(); i++) {
+         ContactConstraint c = myUnilateralsX.get(i);
+         if (Math.abs(c.getImpulse())*myFriction < 1e-4) {
+            continue;
+         }
+         c.add2DFrictionConstraints (DT, finfo, myFriction, numf++);
+      }
+      return numf;
+   }
+
+   public int addFrictionConstraintsO (
+      SparseBlockMatrix DT, FrictionInfo[] finfo, int numf) {
+
+      numf = RigidBodyConnector.addFrictionConstraints (
+         DT, finfo, numf, myUnilaterals, getBodyA(), getBodyB(), null, 
+         worldWrench);
+      return numf;
    }
 
    // end implement Constrainer
-
-   public int numBilateralConstraints() {
-      return 0;
-   }
-
-   public int getBilateralConstraints (ArrayList<RigidBodyConstraint> bilaterals) {
-      return 0;
-   }
 
    public int setBilateralImpulses (VectorNd lam, double h, int idx) {
       return idx;
@@ -622,20 +749,6 @@ public class RigidBodyContact
    public int getBilateralImpulses (VectorNd lam, int idx) {
       return idx;
    }
-
-//   public void updateBodyIndices (HashMap<RigidBody,Integer> indexMap) {
-//      Integer idxObj = null;
-//      if ((idxObj = indexMap.get (myBodyA)) == null) {
-//         throw new InternalErrorException ("bodyA (name=" + myBodyA.getName()
-//         + ") not found in indexMap");
-//      }
-//      myBodyIdxA = idxObj.intValue();
-//      if ((idxObj = indexMap.get (myBodyB)) == null) {
-//         throw new InternalErrorException ("bodyB (name=" + myBodyB.getName()
-//         + ") not found in indexMap");
-//      }
-//      myBodyIdxB = idxObj.intValue();
-//   }
 
    public boolean equals (Object obj) {
       if (obj instanceof RigidBodyContact) {
@@ -660,17 +773,29 @@ public class RigidBodyContact
     * {@inheritDoc}
     */
    public void skipAuxState (DataBuffer data) {
-      int numu = data.zpeek();
-      data.zskip (1);
-      data.dskip (numu*RigidBodyConstraint.getStateSize());
+      int numu = data.zget();
+      if (useNew) {
+         for (int i=0; i<numu; i++) {
+            ContactConstraint.skipState (data);
+         }
+      }
+      else {
+         data.dskip (numu*RigidBodyConstraint.getStateSize());
+      }
    }
 
    public void getAuxState (DataBuffer data) {
       data.zput (myNumUnilaterals);
-      for (int i=0; i<myNumUnilaterals; i++) {
-         RigidBodyConstraint c = myConstraints[i];
-         c.getState (data);
-       }
+      if (useNew) {
+         for (int i=0; i<myNumUnilaterals; i++) {
+            myUnilateralsX.get(i).getState (data);
+         }
+      }
+      else {
+         for (int i=0; i<myNumUnilaterals; i++) {
+            myUnilaterals.get(i).getState (data);
+         }
+      }
    }
 
    public void getInitialAuxState (DataBuffer newData, DataBuffer oldData) {
@@ -681,51 +806,44 @@ public class RigidBodyContact
       else {
          int numu = oldData.zget();
          newData.zput (numu);
-         newData.putData (oldData, numu*RigidBodyConstraint.getStateSize(), 0);
+         if (useNew) {
+            for (int i=0; i<numu; i++) {
+               ContactConstraint.putState (newData, oldData);
+            }
+         }
+         else {
+            newData.putData (oldData, numu*RigidBodyConstraint.getStateSize(), 0);
+         }
       }
    }
 
    public void setAuxState (DataBuffer data) {
       myNumUnilaterals = data.zget();
-      for (int i=0; i<myNumUnilaterals; i++) {
-         RigidBodyConstraint c = myConstraints[i];
-         c.setState (data);
-//         c.setBodyIndexA (myBodyIdxA);
-//         c.setBodyIndexB (myBodyIdxB);
-         c.setFriction (myFriction);
+      if (useNew) {
+         myUnilateralsX.clear();
+         for (int i=0; i<myNumUnilaterals; i++) {
+            ContactConstraint c = new ContactConstraint(myCollisionHandler);
+            c.setState (data, myBodyA, myBodyB);
+            myUnilateralsX.add (c);
+         }
       }
-      if (hasUnilateralConstraints()) {
-         if (myUnilaterals == null) {
-            myUnilaterals = new ArrayList<RigidBodyConstraint>();
+      else {
+         myUnilaterals.clear();
+         for (int i=0; i<myNumUnilaterals; i++) {
+            RigidBodyConstraint c = new RigidBodyConstraint();
+            c.setState (data);
+            c.setFriction (myFriction);
+            myUnilaterals.add (c);
          }
-         else {
-            myUnilaterals.clear();
-         }
-         getUnilateralConstraints (myUnilaterals, /*setEngaged=*/false);
       }
    }
-   
+
+   public ArrayList<ContactConstraint> getUnilateralContacts() {
+      return myUnilateralsX;
+   }
+
    public boolean hasActiveContact() {
       return (myNumUnilaterals > 0);
    }
-   
-   // /**
-   // * {@inheritDoc}
-   // */
-   // @Override
-   // public void updateForBodyPositionChange (
-   // RigidBody body, RigidTransform3d XPoseOld)
-   // {
-   // if (body == myBodies.get(0))
-   // { // bodyA
-   // }
-   // else if (body == myBodies.get(1))
-   // { // bodyB
-   // }
-   // else
-   // { throw new IllegalArgumentException (
-   // "body is not referenced by this connector");
-   // }
-   // }
 
 }

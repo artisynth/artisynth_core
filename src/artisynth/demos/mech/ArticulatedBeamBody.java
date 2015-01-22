@@ -80,7 +80,8 @@ public class ArticulatedBeamBody extends RootModel {
       // mechMod.setRigidBodyDamper (new FrameDamper (1.0, 4.0));
       mechMod.setFrameDamping (0.1);
       mechMod.setRotaryDamping (0.1);
-      mechMod.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler);
+      mechMod.setIntegrator (
+         MechSystemSolver.Integrator.ConstrainedBackwardEuler);
 
       RigidTransform3d XMB = new RigidTransform3d();
       RigidTransform3d XLW = new RigidTransform3d();

@@ -38,14 +38,14 @@ public abstract class PointAttachment extends DynamicAttachment
    }
    
    
-   /**
-    * Distributes an external force applied at a particular point 
-    * to all masters
-    * @param pnt point at which to apply the force (to be used to compute a wrench)
-    * @param s force scale factor
-    * @param f force vector to apply
-    */
-   public abstract void addScaledExternalForce(Point3d pnt, double s, Vector3d f);
+//   /**
+//    * Distributes an external force applied at a particular point 
+//    * to all masters
+//    * @param pnt point at which to apply the force (to be used to compute a wrench)
+//    * @param s force scale factor
+//    * @param f force vector to apply
+//    */
+//   public abstract void addScaledExternalForce(Point3d pnt, double s, Vector3d f);
 
    protected double getMassForPoint (Object mass) {
       double m = 0;

@@ -10,8 +10,10 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Deque;
 import java.util.Map;
+import java.util.Collection;
 
 import maspack.geometry.MeshBase;
+import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
@@ -239,8 +241,42 @@ implements TransformableGeometry, ScalableUnits {
    public void updateSlavePos () {
    }
 
-
-   public MeshComponent copy(int flags, Map<ModelComponent,ModelComponent> copyMap) {
+   public static PolygonalMesh[] createSurfaceMeshArray (PolygonalMesh mesh) {
+      if (mesh != null) {
+         return new PolygonalMesh[] { mesh };
+      }
+      else {
+         return new PolygonalMesh[] {};
+      }
+   }
+   
+   public static int numSurfaceMeshes (
+      MeshComponentList<?> list) {
+      int num = 0;
+      for (MeshComponent mc : list) {
+         MeshBase mesh = mc.getMesh();
+         if (mesh != null && mesh instanceof PolygonalMesh) {
+            num++;
+         }
+      }
+      return num;
+   }
+   
+   public static PolygonalMesh[] getSurfaceMeshes (
+      MeshComponentList<?> list) {
+      PolygonalMesh[] meshes = new PolygonalMesh[numSurfaceMeshes(list)];
+      int k = 0;
+      for (MeshComponent mc : list) {
+         MeshBase mesh = mc.getMesh();
+         if (mesh != null && mesh instanceof PolygonalMesh) {
+            meshes[k++] = (PolygonalMesh)mesh;
+         }
+      }     
+      return meshes;
+   } 
+   
+   public MeshComponent copy (
+      int flags, Map<ModelComponent,ModelComponent> copyMap) {
       MeshComponent comp = (MeshComponent)super.copy (flags, copyMap);
 
       comp.myMeshInfo = myMeshInfo.copy();

@@ -6,6 +6,7 @@
  */
 package maspack.matrix;
 
+import java.util.ArrayList;
 import maspack.matrix.*;
 import maspack.matrix.Matrix.Partition;
 
@@ -428,10 +429,60 @@ public abstract class MatrixBlockBase extends DenseMatrixBase implements MatrixB
       }
    }
 
+
+   /**
+    * List the dimenions of the different fixed-size MatrixBlocks currently
+    * defined by the system.
+    */
+   static protected String[] mySizes = new String[] {
+      "1x1", "1x3", "1x6",
+      "2x2", "2x3", "2x6", 
+      "3x1", "3x2", "3x3", "3x4", "3x6",
+      "4x3", "4x4",
+      "6x1", "6x2", "6x3", "6x6"
+   };
+
+   static String[] getDefinedSizes() {
+      return mySizes;
+   }
+
+   static int numRows (String dimen) {
+      return dimen.charAt(0)-'0';
+   }
+
+   static int numCols (String dimen) {
+      return dimen.charAt(2)-'0';
+   }
+
+   /**
+    * Returns an array of integers giving the possible middle
+    * dimensions for a fixed-size block matrix multiple whose
+    * result is nr x nc.
+    */
+   static int[] getMulDimensions (int nr, int nc) {
+      ArrayList<Integer> middleDims = new ArrayList<Integer>();
+
+      for (String dimr : mySizes) {
+         if (numRows(dimr) == nr) {
+            for (String dimc : mySizes) {
+               if (numCols(dimc) == nc && numCols(dimr) == numRows(dimc)) {
+                  middleDims.add (numCols(dimr));
+               }
+            }
+         }
+      }
+      int[] mids = new int[middleDims.size()];
+      for (int k=0; k<mids.length; k++) {
+         mids[k] = middleDims.get(k);
+      }
+      return mids;
+   }
+
    static public MatrixBlock alloc (int nrows, int ncols) {
       switch (nrows) {
          case 1: {
             switch (ncols) {
+               case 1: return new Matrix1x1Block();
                case 3: return new Matrix1x3Block();
                case 6: return new Matrix1x6Block();
             }
@@ -458,6 +509,7 @@ public abstract class MatrixBlockBase extends DenseMatrixBase implements MatrixB
          case 4: {
             switch (ncols) {
                case 3: return new Matrix4x3Block();
+               case 4: return new Matrix4x4Block();
             }
             break;
          }

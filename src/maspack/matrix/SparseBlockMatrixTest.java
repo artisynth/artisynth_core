@@ -565,7 +565,7 @@ public class SparseBlockMatrixTest extends MatrixTest {
             "Error writing/scaning blocks: " + e);
       }
       X.checkConsistency();
-      if (!X.equals (M) || !X.structureEquals (M)) {
+      if (!X.equals (M) || !X.blockStructureEquals (M)) {
          throw new TestException (
             "Error writing/scaning: scanned matrix not equal to orginal");
       }
@@ -600,7 +600,7 @@ public class SparseBlockMatrixTest extends MatrixTest {
 
    private void testStructureEquals (
       SparseBlockMatrix M0, SparseBlockMatrix M1, boolean equal) {
-      if (M0.structureEquals (M1) != equal) {
+      if (M0.blockStructureEquals (M1) != equal) {
          System.out.println ("M0=\n" + M0.getBlockPattern());
          System.out.println ("M1=\n" + M1.getBlockPattern());
          throw new TestException (

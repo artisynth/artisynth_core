@@ -24,7 +24,6 @@ import maspack.render.RenderableUtils;
 import maspack.solvers.IterativeSolver.ToleranceType;
 import maspack.util.DoubleInterval;
 import maspack.util.FunctionTimer;
-import maspack.util.IntHolder;
 import maspack.util.StringHolder;
 import artisynth.core.util.PropertyChangeListener;
 import artisynth.core.util.PropertyChangeEvent;
@@ -93,7 +92,6 @@ public abstract class FemModel extends MechSystemBase
    protected PropertyMode myStressPlotRangeMode = PropertyMode.Inherited;
 
    protected boolean myWarpingP = true;
-   protected boolean myProfileP = false;
    protected FunctionTimer steptime = new FunctionTimer();
    protected Point3d myMinBound = null;
    protected Point3d myMaxBound = null;
@@ -129,7 +127,6 @@ public abstract class FemModel extends MechSystemBase
    protected static boolean DEFAULT_WARPING = true;
    protected static SurfaceRender DEFAULT_SURFACE_RENDERING =
       SurfaceRender.None;
-   protected static boolean DEFAULT_PROFILING = false;
    protected static double DEFAULT_STIFFNESS_DAMPING = 0;
    protected static double DEFAULT_MASS_DAMPING = 2;
    protected static Integrator DEFAULT_INTEGRATION =
@@ -184,8 +181,6 @@ public abstract class FemModel extends MechSystemBase
       myProps.add (
          "stiffnessDamping * *", "damping on stiffness matrix",
          DEFAULT_STIFFNESS_DAMPING);
-      myProps.add (
-         "profile isProfile *", "enable profiling ", DEFAULT_PROFILING);
       myProps.add ("integrator * *", "integration method ", DEFAULT_INTEGRATION);
       myProps.add ("matrixSolver * *", "matrix solver ", DEFAULT_MATRIX_SOLVER);
 
@@ -212,7 +207,6 @@ public abstract class FemModel extends MechSystemBase
       myStressPlotRanging = DEFAULT_STRESS_PLOT_RANGING;
       myStressPlotRange = DEFAULT_STRESS_PLOT_RANGE;
       myWarpingP = DEFAULT_WARPING;
-      myProfileP = DEFAULT_PROFILING;
       myStiffnessDamping = DEFAULT_STIFFNESS_DAMPING;
       myMassDamping = DEFAULT_MASS_DAMPING;
       setMaxStepSize (0.01);
@@ -728,14 +722,6 @@ public abstract class FemModel extends MechSystemBase
       return true;
    }
 
-   public boolean isProfile() {
-      return myProfileP;
-   }
-
-   public void setProfile (boolean profile) {
-      this.myProfileP = profile;
-   }
-
    public int getImplicitIterations() {
       return mySolver.getMaxIterations();
    }
@@ -979,7 +965,7 @@ public abstract class FemModel extends MechSystemBase
    }
 
    public int addBilateralConstraints (
-      SparseBlockMatrix GT, VectorNd dg, int numb, IntHolder changeCnt) {
+      SparseBlockMatrix GT, VectorNd dg, int numb) {
       return numb;
    }
 
@@ -991,7 +977,7 @@ public abstract class FemModel extends MechSystemBase
    }
 
    public int addUnilateralConstraints (
-      SparseBlockMatrix NT, VectorNd dn, int numu, IntHolder changeCnt) {
+      SparseBlockMatrix NT, VectorNd dn, int numu) {
       return numu;
    }
 
@@ -1080,7 +1066,6 @@ public abstract class FemModel extends MechSystemBase
       fem.setParticleDamping (myMassDamping);
       fem.setStiffnessDamping (myStiffnessDamping);
 
-      fem.setProfile (myProfileP);
       fem.setIntegrator (myIntegrator);
       fem.setMatrixSolver (myMatrixSolver);
 

@@ -15,6 +15,7 @@ import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.GLRenderer;
 import maspack.util.InternalErrorException;
+import artisynth.core.util.PropertyChangeEvent;
 import artisynth.core.femmodels.IntegrationData3d;
 import artisynth.core.femmodels.IntegrationPoint3d;
 import artisynth.core.materials.FemMaterial;
@@ -46,12 +47,12 @@ public class BeamBody extends DeformableBody {
 
    public void setStiffness (double E) {
       myStiffness = E;
-      computeStiffnessMatrix();
+      invalidateStiffness();
    }
 
    @Override public void setMaterial (FemMaterial mat) {
       super.setMaterial (mat);
-      computeStiffnessMatrix();
+      invalidateStiffness();
    }
 
    public BeamBody (
@@ -69,7 +70,9 @@ public class BeamBody extends DeformableBody {
    }
 
    public void updateStiffnessMatrix() {
-      // don't need to do anything; is constant and computed ahead of time
+      if (!myStiffnessValidP) {
+         computeStiffnessMatrix();
+      }
    }
 
    // private static Point3d[] myIntegrationPoints = new Point3d[] {
@@ -158,6 +161,7 @@ public class BeamBody extends DeformableBody {
 
       // System.out.println ("K0=\n" + myStiffnessMatrix.toString ("%10.5f"));
       computeStiffnessFromIntegration();
+      myStiffnessValidP = true;
    }
 
    private static double sqr (double x) {

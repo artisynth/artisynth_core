@@ -1275,13 +1275,16 @@ public class SpatialInertia extends Matrix6dBlock
     * Adds a point mass at a specified point to a 6x6 matrix representing a
     * spatial inertia. Note that subtracting a point mass can be achieved by
     * specifying a negative mass.
-    * 
+    *
+    * @param M
+    * Matrix containing the inertia. Must be a Matrix6d or a MatrixNd
+    * with size at least 6x6.
     * @param m
     * Mass of the point being added
     * @param pos
     * Point position relative to this inertia's coordinate frame
     */
-   public static void addPointMass (Matrix6d M, double m, Vector3d pos) {   
+   public static void addPointMass (Matrix M, double m, Vector3d pos) {   
 
       double cx = pos.x;
       double cy = pos.y;
@@ -1291,39 +1294,83 @@ public class SpatialInertia extends Matrix6dBlock
       double mcy = m*cy;
       double mcz = m*cz;
 
-      M.m00 += m;
-      M.m11 += m;
-      M.m22 += m;
+      if (M instanceof Matrix6dBase) {
+         Matrix6dBase M6 = (Matrix6dBase)M;
 
-      M.m33 += mcy*cy + mcz*cz; 
-      M.m44 += mcx*cx + mcz*cz;
-      M.m55 += mcx*cx + mcy*cy;
+         M6.m00 += m;
+         M6.m11 += m;
+         M6.m22 += m;
 
-      M.m34 -= mcx*cy;
-      M.m35 -= mcx*cz;
-      M.m45 -= mcy*cz;
-      M.m43 -= mcx*cy;
-      M.m53 -= mcx*cz;
-      M.m54 -= mcy*cz;
+         M6.m33 += mcy*cy + mcz*cz; 
+         M6.m44 += mcx*cx + mcz*cz;
+         M6.m55 += mcx*cx + mcy*cy;
 
-      M.m04 += mcz;
-      M.m05 -= mcy;
-      M.m15 += mcx;
-      M.m13 -= mcz;
-      M.m23 += mcy;
-      M.m24 -= mcx;
+         M6.m34 -= mcx*cy;
+         M6.m35 -= mcx*cz;
+         M6.m45 -= mcy*cz;
+         M6.m43 -= mcx*cy;
+         M6.m53 -= mcx*cz;
+         M6.m54 -= mcy*cz;
 
-      M.m40 += mcz;
-      M.m50 -= mcy;
-      M.m51 += mcx;
-      M.m31 -= mcz;
-      M.m32 += mcy;
-      M.m42 -= mcx;
+         M6.m04 += mcz;
+         M6.m05 -= mcy;
+         M6.m15 += mcx;
+         M6.m13 -= mcz;
+         M6.m23 += mcy;
+         M6.m24 -= mcx;
+
+         M6.m40 += mcz;
+         M6.m50 -= mcy;
+         M6.m51 += mcx;
+         M6.m31 -= mcz;
+         M6.m32 += mcy;
+         M6.m42 -= mcx;
+      }
+      else if (M instanceof MatrixNd) {
+         MatrixNd MN = (MatrixNd)M;
+
+         if (MN.rowSize() < 6 || M.colSize() < 6) {
+            throw new IllegalArgumentException (
+               "M must be a Matrix6dBase or a MatrixNd with size at least 6x6");
+         }
+
+         MN.add (0, 0,  m);
+         MN.add (1, 1,  m);
+         MN.add (2, 2,  m);
+
+         MN.add (3, 3,  mcy*cy + mcz*cz);
+         MN.add (4, 4,  mcx*cx + mcz*cz);
+         MN.add (5, 5,  mcx*cx + mcy*cy);
+
+         MN.add (3, 4, -mcx*cy);
+         MN.add (3, 5, -mcx*cz);
+         MN.add (4, 5, -mcy*cz);
+         MN.add (4, 3, -mcx*cy);
+         MN.add (5, 3, -mcx*cz);
+         MN.add (5, 4, -mcy*cz);
+
+         MN.add (0, 4,  mcz);
+         MN.add (0, 5, -mcy);
+         MN.add (1, 5,  mcx);
+         MN.add (1, 3, -mcz);
+         MN.add (2, 3,  mcy);
+         MN.add (2, 4, -mcx);
+
+         MN.add (4, 0,  mcz);
+         MN.add (5, 0, -mcy);
+         MN.add (5, 1,  mcx);
+         MN.add (3, 1, -mcz);
+         MN.add (3, 2,  mcy);
+         MN.add (4, 2, -mcx);
+      }
+      else {
+         throw new IllegalArgumentException (
+            "M must be a Matrix6dBase or a MatrixNd with size at least 6x6");
+      }
 
       if (M instanceof SpatialInertia) {
          ((SpatialInertia)M).componentUpdateNeeded = true;
       }
-
    }
 
    /** 

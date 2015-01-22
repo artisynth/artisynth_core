@@ -23,7 +23,8 @@ import java.util.*;
 
 public class Frame extends DynamicComponentBase
    implements TransformableGeometry, ScalableUnits, DynamicComponent,
-              Tracable, MotionTargetComponent, CopyableComponent, HasCoordinateFrame {
+              Tracable, MotionTargetComponent, CopyableComponent,
+              HasCoordinateFrame, CollidableDynamicComponent, PointAttachable {
 
    public static boolean dynamicVelInWorldCoords = true;
 
@@ -100,10 +101,6 @@ public class Frame extends DynamicComponentBase
       this();
       setPose (X);
    }
-
-//   public FrameState getState() {
-//      return myState;
-//   }
 
    public Wrench getForce() {
       return myForce;
@@ -241,6 +238,20 @@ public class Frame extends DynamicComponentBase
       pos.add (myState.XFrameToWorld.p);
    }
 
+   /**
+    * Computes the locstion, in body coordinates, of a point whose position
+    * is given in world coordinates. This is the inverse computation
+    * of {@link #computePointPosition}.
+    * 
+    * @param loc
+    * returns the point location
+    * @param pos
+    * position of the point, in world coordinates
+    */
+   public void computePointLocation (Vector3d loc, Vector3d pos) {
+      loc.sub (pos, myState.XFrameToWorld.p);
+      loc.inverseTransform (myState.XFrameToWorld.R);
+   }
 
    /**
     * Computes the velocity, in world coordinates, of a point attached to this
@@ -255,6 +266,60 @@ public class Frame extends DynamicComponentBase
       computePointVelocity (vel, loc, myState.getVelocity());
    }
 
+   /**
+    * Adds a point mass to a matrix that contains the spatial
+    * inertia for this Frame.
+    *
+    * @param M matrix containing existing spatial inertia
+    * @param m mass of the point
+    * @param loc location of the point (same coordinate frame as the inertia)
+    */
+   public void addPointMass (Matrix M, double m, Vector3d pos) {
+      SpatialInertia.addPointMass (M, m, pos);
+   }
+
+   /**
+    * Computes the force Jacobian, in world coordinates, for a point attached
+    * to this frame. If the velocity state size (vsize) of this frame is 6,
+    * then G should be an instance of Matrix6x3Block. Otherwise, it should be
+    * an instance of MatrixNdBlock with a size of vsize x 3.
+    *
+    * @param GT returns the force Jacobian
+    * @param loc
+    * position of the point, in body coordinates
+    */
+    public void computePointForceJacobian (MatrixBlock GT, Point3d loc) {
+       Matrix6x3Block blk;
+       try {
+          blk = (Matrix6x3Block)GT;
+       }
+       catch (ClassCastException e) {
+          throw new IllegalArgumentException (
+             "GT is not an instance of Matrix6x3Block, is "+GT.getClass());
+       }
+       RotationMatrix3d R = getPose().R;
+       blk.setZero();
+       blk.m00 = 1;
+       blk.m11 = 1;
+       blk.m22 = 1;
+
+       double lxb = loc.x;
+       double lyb = loc.y;
+       double lzb = loc.z;
+         
+       double lxw = R.m00*lxb + R.m01*lyb + R.m02*lzb;
+       double lyw = R.m10*lxb + R.m11*lyb + R.m12*lzb;
+       double lzw = R.m20*lxb + R.m21*lyb + R.m22*lzb;
+
+       blk.m40 =  lzw;
+       blk.m50 = -lyw;
+       blk.m51 =  lxw;
+       
+       blk.m31 = -lzw;
+       blk.m32 =  lyw;
+       blk.m42 = -lxw;
+    }
+  
    /**
     * Computes the velocity, in world coordinates, of a point attached to this
     * frame.
@@ -272,156 +337,58 @@ public class Frame extends DynamicComponentBase
       vel.crossAdd (frameVel.w, vel, frameVel.v);
    }
 
-//   /** 
-//    * Computes the portion of this frame's velocity that is parametrically
-//    * determined. This may be non-zero if the component itself is parametric,
-//    * or if it is attached, directly or indirectly, to one or more parametric
-//    * components.
-//    * 
-//    * @param vel returns the parametric velocity
-//    * @return false if there is no parametric velocity component.
-//    */
-//   public boolean computeParametricVelocity (Twist vel) {
-//      if (isParametric()) {
-//         vel.set (myState.getVelocity());
-//         return true;
-//      }
-//      else if (myAttachment != null) {
-//         return myAttachment.computeParametricVelocity (vel);
-//      }
-//      else {
-//         vel.setZero();
-//         return false;
-//      }
-//   }
+   /**
+    * Computes the velocity derivative of a point attached to this frame
+    * that is due to the current velocity of the frame.
+    * 
+    * @param cor
+    * returns the point Coriolis term (in world coordinates)
+    * @param loc
+    * position of the point, in body coordinates
+    */
+   public void computePointCoriolis (Vector3d cor, Point3d loc) {
+      Twist tw = getVelocity();
 
-//   /** 
-//    * Computes the portion of this frame's velocity that is actively
-//    * determined.
-//    * 
-//    * @param vel returns the active velocity
-//    * @return false if there is no active velocity component.
-//    */
-//   public boolean computeActiveVelocity (Twist vel) {
-//      if (isActive()) {
-//         vel.set (myState.getVelocity());
-//         return true;
-//      }
-//      else if (myAttachment != null) {
-//         return myAttachment.computeActiveVelocity (vel);
-//      }
-//      else {
-//         vel.setZero();
-//         return false;
-//      }
-//   }
-
-//   /**
-//    * Applies an impulse defined by lam*gt to the velocity of this frame.  The
-//    * impulse is assumed to be in body coordinates.  If the frame is attached,
-//    * the impulse is passed on to the masters.  If the frame is parametrically
-//    * controlled, nothing happens.
-//    */
-//   public void applyVelImpulse (double lam, Wrench gt) {
-//      if (myAttachment != null) {
-//         myAttachment.applyVelImpulse (lam, gt, /*ignoreRigidBodies=*/false);
-//      }
-//   }
-
-//   /**
-//    * Adjusts the velocity of this frame by applying an impulse lam*dir at a
-//    * specific point on the frame. If the frame is attached, the impulse is
-//    * passed on to the masters.  If the frame is parametrically controlled,
-//    * nothing happens. The direction <code>dir</code> is given in world
-//    * coordinates, while the point location <code>loc</code> is given in body
-//    * coordinates.
-//    */
-//   public void applyVelImpulse (double lam, Vector3d dir, Vector3d loc) {
-//      if (isActive()) {
-//         computeAppliedWrench (myBodyForce, dir, loc);
-//         applyVelImpulse (lam, myBodyForce);
-//      }
-//      else if (myAttachment != null) {
-//         computeAppliedWrench (myBodyForce, dir, loc);
-//         myAttachment.applyVelImpulse (
-//            lam, myBodyForce, /*ignoreRigidBodies=*/false);
-//      }
-//   }
-
-//   /**
-//    * Applies an impulse defined by lam*gt to the position of this frame.  The
-//    * impulse is assumed to be in body coordinates.  If the frame is attached,
-//    * the impulse is passed on to the masters.  If the frame is parametrically
-//    * controlled, nothing happens.
-//    */
-//   public void applyPosImpulse (double lam, Wrench gt) {
-//      if (myAttachment != null) {
-//         myAttachment.applyPosImpulse (lam, gt, /*ignoreRigidBodies=*/false);
-//      }
-//   }
-
-//   /**
-//    * Adjusts the position of this frame by applying an impulse lam*dir at a
-//    * specific point on the frame. If the frame is attached, the impulse is
-//    * passed on to the masters.  If the frame is parametrically controlled,
-//    * nothing happens. The direction <code>dir</code> is given in world
-//    * coordinates, while the point location <code>loc</code> is given in body
-//    * coordinates.
-//    */
-//   public void applyPosImpulse (double lam, Vector3d dir, Vector3d loc) {
-//      if (isActive()) {
-//         computeAppliedWrench (myBodyForce, dir, loc);
-//         applyPosImpulse (lam, myBodyForce);
-//      }
-//      else if (myAttachment != null) {
-//         computeAppliedWrench (myBodyForce, dir, loc);
-//         myAttachment.applyPosImpulse (
-//            lam, myBodyForce, /*ignoreRigidBodies=*/false);
-//      }
-//   }
-
-//   /**
-//    * Returns the inverse mass felt along a certain direction.
-//    */
-//   public double getInverseMass (Twist dir) {
-//      if (myAttachment != null) {
-//         return myAttachment.getInverseMass (dir, /*ignoreRigidBodies=*/false);
-//      }
-//      else {
-//         return 0;
-//      }
-//   }
-
-//   /** 
-//    * Returns the inverse mass associated with a specific attached point 
-//    * moving in a particular direction. The direction is given in world
-//    * coordinates, while the point location is given in body coordinates.
-//    * 
-//    * @param dir point direction (world coordinates)
-//    * @param loc point location (body coordinates)
-//    * @return inverse mass 
-//    */
-//   public double getInverseMass (Vector3d dir, Vector3d loc) {
-//      if (myAttachment != null) {
-//         computeAppliedWrench (myBodyForce, dir, loc);
-//         return myAttachment.getInverseMass (
-//            myBodyForce, /*ignoreRigidBodies=*/false );
-//      }
-//      else {
-//         return 0;
-//      }
-//   }
+      cor.transform (getPose().R, loc);
+      cor.cross (tw.w, cor);
+      cor.cross (tw.w, cor);      
+   }
 
    /**
-    * Adds the effect of a force applied at a specific postion with respect to
-    * this frame. The force is in world coordinates and the position in frame
-    * coordinates.
+    * Adds to <code>wr</code> the wrench arising from applying a force
+    * <code>f</code> on a point <code>loc</code>.
+    *
+    * @param wr wrench in which force is accumulated (world coordinates
+    * @param loc location of the point (body coordinates)
+    * @param f force applied to the point (world coordinates)
     */
-   public void addPointForce (Vector3d f, Point3d pos) {
+   public void addPointForce (Wrench wr, Point3d loc, Vector3d f) {
       // transform position to world coordinates
-      myTmpPos.transform (myState.XFrameToWorld.R, pos);
-      myForce.f.add (f, myForce.f);
-      myForce.m.crossAdd (myTmpPos, f, myForce.m);
+      myTmpPos.transform (myState.XFrameToWorld.R, loc);
+      wr.f.add (f);
+      wr.m.crossAdd (myTmpPos, f, wr.m);
+   }
+
+   /**
+    * Adds to this body's forces the wrench arising from applying a force
+    * <code>f</code> on a point <code>loc</code>.
+    *
+    * @param loc location of the point (body coordinates)
+    * @param f force applied to the point (world coordinates)
+    */
+   public void addPointForce (Point3d loc, Vector3d f) {
+      addPointForce (myForce, loc, f);
+   }
+
+   /**
+    * Adds to this body's external forces the wrench arising from
+    * applying a force <code>f</code> on a point <code>loc</code>.
+    *
+    * @param loc location of the point (body coordinates)
+    * @param f force applied to the point (world coordinates)
+    */
+   public void addExternalPointForce (Point3d loc, Vector3d f) {
+      addPointForce (myExternalForce, loc, f);
    }
 
    /**
@@ -734,6 +701,10 @@ public class Frame extends DynamicComponentBase
       myForce.set (myExternalForce);
    }
 
+   public void applyExternalForces() {
+      myForce.add (myExternalForce);
+   }
+
    public void applyForces (double t) {
       if (myFrameDamping != 0 || myRotaryDamping != 0) {
          Twist velBody = myState.getVelocity();
@@ -804,28 +775,6 @@ public class Frame extends DynamicComponentBase
       return idx;
    }
 
-//   public int adjustVelDeriv (VectorNd v, int idx) {
-//      if (!dynamicVelInWorldCoords) {
-//         Vector3d coriolisTerm = new Vector3d();
-//         coriolisTerm.cross (myState.vel.w, myState.vel.v);
-//         coriolisTerm.inverseTransform (myState.XFrameToWorld.R);
-//
-//         double[] buf = v.getBuffer();
-//         buf[idx++] -= coriolisTerm.x;
-//         buf[idx++] -= coriolisTerm.y;
-//         buf[idx++] -= coriolisTerm.z;
-//         idx += 3;
-//      }
-//      else {
-//         idx += 6;
-//      }
-//      return idx;
-//   }
-
-//   public void getEffectiveMass (Matrix M) {
-//      doGetInertia (M, SpatialInertia.ZERO);
-//   }
-
    protected void doGetInertia (Matrix M, Matrix6d SI) {
       if (M instanceof Matrix6d) {
          ((Matrix6d)M).set (SI);
@@ -873,34 +822,6 @@ public class Frame extends DynamicComponentBase
       }
    }
    
-//   public void setState (ComponentState state) {
-//      try {
-//         myState.set ((FrameState)state);
-//      }
-//      catch (ClassCastException e) {
-//         throw new IllegalArgumentException (
-//            "state is not an instance of FrameState");
-//      }
-//   }
-
-//   public void getState (ComponentState state) {
-//      try {
-//         getState ((FrameState)state);
-//      }
-//      catch (ClassCastException e) {
-//         throw new IllegalArgumentException (
-//            "state is not an instance of FrameState");
-//      }
-//   }
-
-//   public boolean hasState() {
-//      return true;
-//   }
-//
-//   public FrameState createState() {
-//      return new FrameState();
-//   }
-
    public int getPosState (double[] buf, int idx) {
       idx = myState.getPos (buf, idx);
       return idx;
@@ -948,31 +869,6 @@ public class Frame extends DynamicComponentBase
       xbuf[xidx++] = rot.u.x;
       xbuf[xidx++] = rot.u.y;
       xbuf[xidx++] = rot.u.z;
-
-      // xbuf[xidx  ] += h*vbuf[vidx  ];
-      // xbuf[xidx+1] += h*vbuf[vidx+1];
-      // xbuf[xidx+2] += h*vbuf[vidx+2];
-
-      // Vector3d w = new Vector3d (vbuf[vidx+3], vbuf[vidx+4], vbuf[vidx+5]);
-      // double ang = w.norm();
-      // if (ang > 0) {
-      //    // TODO: make this more efficient
-      //    w.scale (Math.sin(ang/2)/ang);
-      //    Quaternion qp = new Quaternion (
-      //       xbuf[xidx+3], xbuf[xidx+4], xbuf[xidx+5], xbuf[xidx+6]);
-      //    Quaternion qv = new Quaternion (Math.cos(ang/2), w);
-      //    if (dynamicVelInWorldCoords) {
-      //       qp.mul (qv, qp);
-      //    }
-      //    else {
-      //       qp.mul (qp, qv);
-      //    }
-      //    qp.normalize();
-      //    xbuf[xidx+3] = qp.s;
-      //    xbuf[xidx+4] = qp.u.x;
-      //    xbuf[xidx+5] = qp.u.y;
-      //    xbuf[xidx+6] = qp.u.z;
-      // }
    }
 
    public int getPosDerivative (double[] dxdt, int idx) {
@@ -1079,6 +975,15 @@ public class Frame extends DynamicComponentBase
       }
    }
 
+   public PointFrameAttachment createPointAttachment (Point pnt) {
+      PointFrameAttachment pfa = new PointFrameAttachment (this, pnt, null);
+      if (DynamicAttachment.containsLoop (pfa, pnt, null)) {
+         throw new IllegalArgumentException (
+            "attachment contains loop");
+      }
+      return pfa;
+   }
+
    public int getVelStateSize() {
       return 6;
    }
@@ -1113,5 +1018,43 @@ public class Frame extends DynamicComponentBase
       return false;
    }
 
+   public void setContactConstraint (
+      double[] buf, double w, Vector3d dir, ContactPoint cpnt) {
+
+      double lx = cpnt.myPoint.x - myState.pos.x;
+      double ly = cpnt.myPoint.y - myState.pos.y;
+      double lz = cpnt.myPoint.z - myState.pos.z;
+
+      double nx = w*dir.x;
+      double ny = w*dir.y;
+      double nz = w*dir.z;
+
+      buf[0] = nx;
+      buf[1] = ny;
+      buf[2] = nz;
+      buf[3] = ly*nz - lz*ny;
+      buf[4] = lz*nx - lx*nz;
+      buf[5] = lx*ny - ly*nx;
+   }
+
+   public void addToPointVelocity (
+      Vector3d vel, double w, ContactPoint cpnt) {
+      
+      // get point in world-oriented body coords
+      Vector3d v = myState.vel.v;
+      Vector3d o = myState.vel.w; // o for omega
+      double lx = cpnt.myPoint.x - myState.pos.x;
+      double ly = cpnt.myPoint.y - myState.pos.y;
+      double lz = cpnt.myPoint.z - myState.pos.z;
+      vel.x += w*(v.x - ly*o.z + lz*o.y);
+      vel.y += w*(v.y - lz*o.x + lx*o.z);
+      vel.z += w*(v.z - lx*o.y + ly*o.x);
+   }
+
+//   public boolean requiresContactVertexInfo() {
+//      return false;
+//   }
+
+   
 
 }

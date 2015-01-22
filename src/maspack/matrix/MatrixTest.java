@@ -96,6 +96,9 @@ class MatrixTest {
    void mulInverseBoth (Matrix MR, Matrix M1, Matrix M2) {
    }
 
+   void mulAdd (Matrix MR, Matrix M1, Matrix M2) {
+   }
+      
    void transpose (Matrix MR) {
    }
 
@@ -1155,13 +1158,29 @@ class MatrixTest {
    }
 
    void testDenseSetAndGet (DenseMatrix MR) {
-
+      
       int nrows = MR.rowSize();
       int ncols = MR.colSize();
       Vector vrow = new VectorNd (ncols);
       Vector vcol = new VectorNd (nrows);
       double[] setBuf = new double[nrows * ncols];
       double[] getBuf = new double[nrows * ncols];
+      double[] altBuf = new double[nrows * ncols];
+
+      for (int i = 0; i < altBuf.length; i++) {
+         altBuf[i] = randGen.nextDouble();
+      }
+      MR.set (altBuf);
+      MR.get (getBuf);
+      for (int i = 0; i < nrows; i++) {
+         for (int j = 0; j < ncols; j++) {
+            if (getBuf[i * ncols + j] != getExpected (
+                   altBuf[i * ncols + j], i, j)) {
+               throw new TestException (
+                  elementFailMessage ("set(double[])", i, j));
+            }
+         }
+      }
       for (int i = 0; i < nrows; i++) {
          for (int j = 0; j < ncols; j++) {
             double value = randGen.nextDouble();
@@ -1185,6 +1204,7 @@ class MatrixTest {
             }
          }
       }
+      MR.set (altBuf);
       for (int i = 0; i < nrows; i++) {
          double[] buf = new double[ncols];
          for (int j = 0; j < ncols; j++) {
@@ -1208,6 +1228,7 @@ class MatrixTest {
       if (!MR.equals (MX)) {
          throw new TestException ("setRow(*,double[]) failed");
       }
+      MR.set (altBuf);
       for (int i = 0; i < nrows; i++) {
          for (int j = 0; j < ncols; j++) {
             vrow.set (j, setBuf[i * ncols + j]);
@@ -1223,6 +1244,7 @@ class MatrixTest {
       if (!MR.equals (MX)) {
          throw new TestException ("setRow(*,Vector) failed");
       }
+      MR.set (altBuf);
       for (int j = 0; j < ncols; j++) {
          double[] buf = new double[nrows];
          for (int i = 0; i < nrows; i++) {
@@ -1247,6 +1269,7 @@ class MatrixTest {
       if (!MR.equals (MX)) {
          throw new TestException ("setColumn(*,double[]) failed");
       }
+      MR.set (altBuf);
       for (int j = 0; j < ncols; j++) {
          for (int i = 0; i < nrows; i++) {
             vcol.set (i, setBuf[i * ncols + j]);
@@ -1686,6 +1709,70 @@ class MatrixTest {
          eActual = e;
       }
       checkAndRestoreResult (MR);
+   }
+
+   void testMulAdd (Matrix MR, Matrix M1, Matrix M2) {
+
+      MatrixNd M0 = new MatrixNd (MR);
+      M0.setRandom();
+      MR.set (M0);
+      MatrixNd MRchk = new MatrixNd (MR);
+      MatrixNd M1N = new MatrixNd (M1);
+      MatrixNd M2N = new MatrixNd (M2);
+
+      if (M1 != MR) {
+         M1N.setRandom();
+         M1.set (M1N);
+      }
+      else {
+         M1N.set (MR);
+      }
+      
+      if (M2 != MR) {
+         M2N.setRandom();
+         M2.set (M2N);
+      }
+      else {
+         M2N.set (MR);
+      }
+
+      MatrixNd T = new MatrixNd (MR);
+      T.mul (M1N, M2N);
+      MRchk.add (T);
+
+      mulAdd (MR, M1, M2);
+      if (!MR.epsilonEquals (MRchk, 1e-10)) {
+         throw new TestException (
+            "testMulAdd: result:\n" + MR + "Expected\n" + MRchk);
+      }
+      MR.set (M0);
+      mulAdd (MR, M1N, M2N);
+      if (!MR.epsilonEquals (MRchk, 1e-10)) {
+         throw new TestException (
+            "testMulAdd: result:\n" + MR + "Expected\n" + MRchk);
+      }
+   }
+
+   void testMulAdd (Matrix MR) {
+
+      int nr = MR.rowSize();
+      int nc = MR.colSize();
+      int[] sizes = MatrixBlockBase.getMulDimensions (nr, nc);
+
+      for (int nk=1; nk<=8; nk++) {
+         MatrixBlock M1 = MatrixBlockBase.alloc (nr, nk);
+         MatrixBlock M2 = MatrixBlockBase.alloc (nk, nc);
+         testMulAdd (MR, M1, M2);
+         if (nk == nc) {
+            testMulAdd (MR, MR, M2);
+         }
+         if (nk == nr) {
+            testMulAdd (MR, M1, MR);
+         }
+         if (nk == nc && nk == nr) {
+            testMulAdd (MR, MR, MR);
+         }
+      }
    }
 
    private Exception checkAddSizes (Matrix MR, Matrix M1, Matrix M2) {

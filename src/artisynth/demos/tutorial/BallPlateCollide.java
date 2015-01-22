@@ -1,7 +1,6 @@
 package artisynth.demos.tutorial;
 
 import java.awt.Color;
-
 import maspack.matrix.*;
 import maspack.render.*;
 import artisynth.core.workspace.*;
@@ -11,18 +10,11 @@ public class BallPlateCollide extends RootModel {
 
    public void build (String[] args) {
 
-      System.out.println (args.length+" args:");
-      for (String a : args) {
-         System.out.println (" "+a);
-      }
-
       // create MechModel and add to RootModel
       MechModel mech = new MechModel ("mech");
       addModel (mech);
 
-      // create the components
-
-      // create and add the ball and plate and b
+      // create and add the ball and plate
       RigidBody ball = RigidBody.createIcosahedralSphere ("ball", 0.8, 0.1, 1);
       ball.setPose (new RigidTransform3d (0, 0, 2, 0.4, 0.1, 0.1));
       mech.addRigidBody (ball);
@@ -47,8 +39,5 @@ public class BallPlateCollide extends RootModel {
       RenderProps.setEdgeColor (cm, Color.BLUE);
       cm.setContactNormalLen (0.5);
       cm.setDrawIntersectionContours (true);
-
    }
-
-
 }

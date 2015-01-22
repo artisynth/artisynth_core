@@ -17,6 +17,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import maspack.geometry.AABBTree;
 import maspack.geometry.BVFeatureQuery;
@@ -39,7 +40,7 @@ import maspack.matrix.MatrixBlock;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.NumericalException;
 import maspack.matrix.Point3d;
-import maspack.matrix.SVDecomposition;
+import maspack.matrix.EigenDecomposition;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.SymmetricMatrix3d;
@@ -52,6 +53,7 @@ import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 import maspack.render.GLRenderer;
 import maspack.render.RenderList;
+import maspack.render.RenderableUtils;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
 import maspack.util.ArraySupport;
@@ -60,7 +62,6 @@ import maspack.util.DoubleInterval;
 import maspack.util.EnumRange;
 import maspack.util.FunctionTimer;
 import maspack.util.IndentingPrintWriter;
-import maspack.util.IntHolder;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.Range;
@@ -73,13 +74,23 @@ import artisynth.core.materials.SolidDeformation;
 import artisynth.core.materials.ViscoelasticBehavior;
 import artisynth.core.materials.ViscoelasticState;
 import artisynth.core.mechmodels.Collidable;
+import artisynth.core.mechmodels.CollidableDynamicComponent;
+import artisynth.core.mechmodels.ContactPoint;
+import artisynth.core.mechmodels.ContactMaster;
 import artisynth.core.mechmodels.DeformableCollisionData;
 import artisynth.core.mechmodels.DynamicAttachment;
-import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.HasAuxState;
+import artisynth.core.mechmodels.HasSurfaceMesh;
 import artisynth.core.mechmodels.MechSystemModel;
+import artisynth.core.mechmodels.MeshComponent;
 import artisynth.core.mechmodels.MeshComponentList;
+import artisynth.core.mechmodels.Particle;
+import artisynth.core.mechmodels.Point;
+import artisynth.core.mechmodels.PointAttachment;
+import artisynth.core.mechmodels.PointAttachable;
 import artisynth.core.mechmodels.PointList;
+import artisynth.core.mechmodels.PointParticleAttachment;
+import artisynth.core.mechmodels.RigidMesh;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.modelbase.ComponentUtils;
@@ -95,8 +106,9 @@ import artisynth.core.util.ScanToken;
 import artisynth.core.util.TransformableGeometry;
 
 public class FemModel3d extends FemModel
-implements TransformableGeometry, ScalableUnits, MechSystemModel,
-Collidable, CopyableComponent, HasAuxState {
+   implements TransformableGeometry, ScalableUnits, MechSystemModel, Collidable,
+              CopyableComponent, HasAuxState, PointAttachable, HasSurfaceMesh {
+
    protected PointList<FemNode3d> myNodes;
    // protected ArrayList<LinkedList<FemElement3d>> myElementNeighbors;
 
@@ -153,7 +165,7 @@ Collidable, CopyableComponent, HasAuxState {
    private boolean myHardIncompConfigValidP = false;
    private boolean myNodalRestVolumesValidP = false;
    private boolean myNodalIncompressConstraintsValidP = false;
-   private boolean myHardIncompConstraintsChangedP = true;
+   //private boolean myHardIncompConstraintsChangedP = true;
    private double myHardIncompUpdateTime = -1;
 
    // total number of incompressibility constraints (GT.colSize(), not blocks)
@@ -702,10 +714,11 @@ Collidable, CopyableComponent, HasAuxState {
    // }
 
    protected double checkMatrixStability(DenseMatrix D) {
-      SVDecomposition svd = new SVDecomposition();
-      VectorNd eig = svd.getEigenValues(D, null);
-      double min = eig.minElement();
-      double max = eig.maxElement();
+      EigenDecomposition evd = new EigenDecomposition();
+      evd.factorSymmetric (D, EigenDecomposition.OMIT_V);
+      VectorNd eig = evd.getEigReal();
+      double min = eig.get(0);
+      double max = eig.get(eig.size()-1);
       if (Math.abs(max) > Math.abs(min)) {
          return min / max;
       }
@@ -1875,47 +1888,33 @@ Collidable, CopyableComponent, HasAuxState {
    ////         getSoftIncompMethod()==IncompMethod.NODAL);
    //   }
 
-   public synchronized StepAdjustment advance(
-      double t0, double t1, int flags) {
-      // implicitStep (TimeBase.ticksToSeconds(t1 - t0));
-      // System.out.println(TimeBase.ticksToSeconds(t1-t0));
-      // System.out.println ("fem " + (t1-t0)/1000000);
-      if (myProfileP) {
-         steptime.start();
-      }
+   // public synchronized StepAdjustment advance (double t0, double t1, int flags) {
 
-      if (t0 == 0) {
-         updateForces(t0);
-      }
-      StepAdjustment stepAdjust = new StepAdjustment();
+   //    initializeAdvance (t0, t1, flags);
 
-      if (!myDynamicsEnabled) {
-         mySolver.nonDynamicSolve(t0, t1, stepAdjust);
-         // set parametric targets
-         // setParametricTargets (1, TimeBase.round(t1-t0));
-         // if (!myDynamicsEnabled) {
-         // return 1;
-         recursivelyFinalizeAdvance(null, t0, t1, flags, 0);
-      }
-      else {
-         mySolver.solve(t0, t1, stepAdjust);
-         DynamicComponent c = checkVelocityStability();
-         if (c != null) {
-            throw new NumericalException(
-               "Unstable velocity detected, component "
-               + ComponentUtils.getPathName(c));
-         }
-         recursivelyFinalizeAdvance(stepAdjust, t0, t1, flags, 0);
-         // checkForInvertedElements();
-      }
+   //    if (t0 == 0) {
+   //       updateForces(t0);
+   //    }
 
-      if (myProfileP) {
-         steptime.stop();
-         System.out.println(
-            "time=" + steptime.result(1));
-      }
-      return stepAdjust;
-   }
+   //    if (!myDynamicsEnabled) {
+   //       mySolver.nonDynamicSolve(t0, t1, myStepAdjust);
+   //       recursivelyFinalizeAdvance(null, t0, t1, flags, 0);
+   //    }
+   //    else {
+   //       mySolver.solve(t0, t1, myStepAdjust);
+   //       DynamicComponent c = checkVelocityStability();
+   //       if (c != null) {
+   //          throw new NumericalException(
+   //             "Unstable velocity detected, component "
+   //             + ComponentUtils.getPathName(c));
+   //       }
+   //       recursivelyFinalizeAdvance(myStepAdjust, t0, t1, flags, 0);
+   //       // checkForInvertedElements();
+   //    }
+
+   //    finalizeAdvance (t0, t1, flags);
+   //    return myStepAdjust;
+   // }
 
    public void setSurfaceRendering(SurfaceRender mode) {
 
@@ -2402,7 +2401,7 @@ Collidable, CopyableComponent, HasAuxState {
       }
       myHardIncompMethod = method;
       myHardIncompConfigValidP = false;
-      myHardIncompConstraintsChangedP = true;
+      //myHardIncompConstraintsChangedP = true;
       myHardIncompMethodValidP = false;
    }
 
@@ -2757,7 +2756,7 @@ Collidable, CopyableComponent, HasAuxState {
       }
       myDg = new VectorNd(myNumIncompressConstraints);
       myHardIncompConfigValidP = true;
-      myHardIncompConstraintsChangedP = true;
+      //myHardIncompConstraintsChangedP = true;
    }
 
    private boolean setNodalIncompBlocksAllocated(boolean allocated) {
@@ -2864,7 +2863,6 @@ Collidable, CopyableComponent, HasAuxState {
       myNumIncompressConstraints = ci;
       myIncompressLambda.setSize(ci);
       myIncompressLambda.setZero();
-      System.out.println("num incomp=" + ci);
 
       setNodalIncompConstraintsAllocated(true);
    }
@@ -3120,36 +3118,55 @@ Collidable, CopyableComponent, HasAuxState {
    //      mySurfaceMeshValid = true;
    //   }
 
-   public PolygonalMesh getSurfaceMesh() {
+
+   // Returns the FemMesh component for the surface mesh. If appropriate, the
+   // surface is generated on demand
+   FemMesh getSurfaceFemMesh() {
 
       if (myMeshList.size() < 1) {
          return null;
       }
 
       // if auto, take first.  If not, take first one marked as a surface mesh;
-      MeshBase mesh = myMeshList.get(0).getMesh();
       if (myAutoGenerateSurface && !mySurfaceMeshValid) {
          FemMesh newFM = recreateSurfaceMesh();         
-         mesh = newFM.getMesh(); // grab newly created mesh
+         MeshBase mesh = newFM.getMesh(); // grab newly created mesh
          // paranoid: call in case mesh is rendered directly before prerender() 
          PolygonalMesh smesh = (PolygonalMesh)mesh;
          smesh.saveRenderInfo();
-         return smesh;
-      } else if (myAutoGenerateSurface) {
-         return (PolygonalMesh)mesh;
+         return newFM;
+      }
+      else if (myAutoGenerateSurface) {
+         return myMeshList.get(0);
       }
 
       // find first mesh marked as surface mesh
       for (FemMesh fm : myMeshList) {
-         if (fm.isSurfaceMesh()) {
-            mesh = fm.getMesh();
-            if (mesh instanceof PolygonalMesh) {
-               return (PolygonalMesh)mesh;
-            }
+         if (fm.isSurfaceMesh() && fm.getMesh() instanceof PolygonalMesh) {
+            return fm;
          }
       }
-
       return null;   // null if not autogenerated
+   }      
+
+   public PolygonalMesh getSurfaceMesh() {
+      FemMesh sfm = getSurfaceFemMesh();
+      if (sfm != null) {
+         return (PolygonalMesh)sfm.getMesh();
+      }
+      else {
+         return null;
+      }
+   }
+   
+   @Override
+   public int numSurfaceMeshes() {
+      return MeshComponent.numSurfaceMeshes (myMeshList);
+   }
+   
+   @Override
+   public PolygonalMesh[] getSurfaceMeshes() {
+      return MeshComponent.getSurfaceMeshes (myMeshList);
    }
    
    @Override
@@ -3744,11 +3761,11 @@ Collidable, CopyableComponent, HasAuxState {
 
    // DIVBLK
    public int addBilateralConstraints(
-      SparseBlockMatrix GT, VectorNd dg, int numb, IntHolder changeCnt) {
-      if (myHardIncompConstraintsChangedP) {
-         changeCnt.value++;
-         myHardIncompConstraintsChangedP = false;
-      }
+      SparseBlockMatrix GT, VectorNd dg, int numb) {
+//      if (myHardIncompConstraintsChangedP) {
+//         //changeCnt.value++;
+//         myHardIncompConstraintsChangedP = false;
+//      }
       IncompMethod hardIncomp = getHardIncompMethod();
       if (hardIncomp != IncompMethod.OFF) {
 
@@ -3782,7 +3799,7 @@ Collidable, CopyableComponent, HasAuxState {
                   for (int i = 0; i < e.numNodes(); i++) {
                      FemNode3d n = e.myNodes[i];
                      // if (isControllable (n)) {
-                        GT.addBlock(n.getSolveIndex(), bj, constraints[i]);
+                     GT.addBlock(n.getSolveIndex(), bj, constraints[i]);
                         // }
                   }
                   bj++;
@@ -3960,6 +3977,44 @@ Collidable, CopyableComponent, HasAuxState {
 //      }
 //      return nodes;
 //   }
+   
+   public PointAttachment createPointAttachment (Point pnt) {
+      double reduceTol = 1e-8*RenderableUtils.getRadius(this);
+      return createPointAttachment (pnt, reduceTol);
+   }
+   
+   public PointAttachment createPointAttachment (
+      Point pnt, double reduceTol) {
+      
+      if (pnt.isAttached()) {
+         throw new IllegalArgumentException ("point is already attached");
+      }
+      if (ComponentUtils.isAncestorOf (this, pnt)) {
+         throw new IllegalArgumentException (
+            "FemModel is an ancestor of the point");
+      }
+      Point3d loc = new Point3d();
+      FemElement3d elem = findNearestElement (loc, pnt.getPosition());
+      FemNode3d nearestNode = null;
+      double nearestDist = Double.MAX_VALUE;
+      for (FemNode3d n : elem.getNodes()) {
+         double d = n.distance (pnt);
+         if (d < nearestDist) {
+            nearestNode = n;
+            nearestDist = d;
+         }
+      }
+      if (nearestDist <= reduceTol) {
+         // just attach to the node
+         return new PointParticleAttachment (nearestNode, pnt);
+      }
+      else {
+         return PointFem3dAttachment.create (pnt, elem, loc, reduceTol);
+         // Coords are computed in createNearest.  the point's position will be
+         // updated, if necessary, by the addRemove hook when the attachement is
+         // added.
+      }
+   }
 
    static PointFem3dAttachment getEdgeAttachment(
       FemNode3d n0, FemNode3d n1) {
@@ -4374,19 +4429,19 @@ Collidable, CopyableComponent, HasAuxState {
       //         fem.myCollisionMesh = myCollisionMesh; // XXX duplicate?
       //      }
 
-      for (FemMesh mc : myMeshList) {
-         FemMesh newFmc = mc.copy(flags, copyMap);
-         fem.addMesh(newFmc);
-      }
-      fem.myAutoGenerateSurface = myAutoGenerateSurface;
-      fem.mySurfaceMeshValid = false;  // trigger update
+        for (FemMesh mc : myMeshList) {
+           FemMesh newFmc = mc.copy(flags, copyMap);
+           fem.addMesh(newFmc);
+        }
+        fem.myAutoGenerateSurface = myAutoGenerateSurface;
+        fem.mySurfaceMeshValid = false;  // trigger update
 
-      fem.mySurfaceNodeMap = new HashMap<FemNode3d,FemMeshVertex>();
-      for (Entry<FemNode3d,FemMeshVertex> e : fem.mySurfaceNodeMap.entrySet()) {
-         FemNode3d key = (FemNode3d)copyMap.get (e.getKey());
-         // find corresponding vertex?
-         // fem.mySurfaceNodeMap.put(key, vertex);
-      }
+        fem.mySurfaceNodeMap = new HashMap<FemNode3d,FemMeshVertex>();
+        for (Entry<FemNode3d,FemMeshVertex> e : fem.mySurfaceNodeMap.entrySet()) {
+           FemNode3d key = (FemNode3d)copyMap.get (e.getKey());
+           // find corresponding vertex?
+           // fem.mySurfaceNodeMap.put(key, vertex);
+        }
 
         // fem.setIncompressible (myIncompressibleP);
         // fem.setSubSurfaceRendering(mySubSurfaceRendering);
@@ -4405,13 +4460,13 @@ Collidable, CopyableComponent, HasAuxState {
 
         fem.myNumIncompressConstraints = 0;
         fem.myHardIncompUpdateTime = -1;
-        fem.myHardIncompConstraintsChangedP = true;
+        //fem.myHardIncompConstraintsChangedP = true;
 
         // fem.myFreeVolume = myFreeVolume;
 
         // fem.myClearMeshColoring = myClearMeshColoring;
-      fem.myComputeNodalStress = myComputeNodalStress;
-      fem.myComputeNodalStrain = myComputeNodalStrain;
+        fem.myComputeNodalStress = myComputeNodalStress;
+        fem.myComputeNodalStrain = myComputeNodalStrain;
 
         fem.myHardIncompMethod = myHardIncompMethod;
         fem.myHardIncompMethodValidP = myHardIncompMethodValidP;
@@ -4431,66 +4486,124 @@ Collidable, CopyableComponent, HasAuxState {
         return fem;
      }
 
-     public ColorMapBase getColorMap() {
-        return myColorMap;
-     }
+   public ColorMapBase getColorMap() {
+      return myColorMap;
+   }
 
-     public void setColorMap(ColorMapBase colorMap) {
-        myColorMap = colorMap;
-        myColorMapMode =
-        PropertyUtils.propagateValue(
-           this, "colorMap", colorMap, myColorMapMode);
-     }
+   public void setColorMap(ColorMapBase colorMap) {
+      myColorMap = colorMap;
+      myColorMapMode =
+         PropertyUtils.propagateValue(
+            this, "colorMap", colorMap, myColorMapMode);
+   }
 
-     public PropertyMode getColorMapMode() {
-        return myColorMapMode;
-     }
+   public PropertyMode getColorMapMode() {
+      return myColorMapMode;
+   }
 
-     public void setColorMapMode(PropertyMode mode) {
-        if (mode != myColorMapMode) {
-           myColorMapMode = PropertyUtils.setModeAndUpdate(
-              this, "colorMap", myColorMapMode, mode);
-        }
-     }
+   public void setColorMapMode(PropertyMode mode) {
+      if (mode != myColorMapMode) {
+         myColorMapMode = PropertyUtils.setModeAndUpdate(
+            this, "colorMap", myColorMapMode, mode);
+      }
+   }
 
-     private FemMesh getSurfaceFemMesh() {
-        for (FemMesh fmc : myMeshList) {
-           if (fmc.isSurfaceMesh ()) {
-              return fmc;
-           }
-        }
-        return null;
-     }
+   // private FemMesh getSurfaceFemMesh() {
+   //    for (FemMesh fmc : myMeshList) {
+   //       if (fmc.isSurfaceMesh ()) {
+   //          return fmc;
+   //       }
+   //    }
+   //    return null;
+   // }
      
-     public DeformableCollisionData createCollisionData() {
+   // begin Collidable interface 
 
-        if (isAutoGeneratingSurface()) {
-           return new FemCollisionData (this, getSurfaceMesh ());
-           //return new EmbeddedCollisionData (this, getSurfaceFemMesh ());
-        }
+   public DeformableCollisionData createCollisionData() {
 
-        FemMesh fm = getSurfaceFemMesh();
-        if (fm != null) {
-           return new EmbeddedCollisionData (this, fm);
-        }
+      if (isAutoGeneratingSurface()) {
+         return new FemCollisionData (this, getSurfaceMesh ());
+         //return new EmbeddedCollisionData (this, getSurfaceFemMesh ());
+      }
+
+      FemMesh fm = getSurfaceFemMesh();
+      if (fm != null) {
+         return new EmbeddedCollisionData (this, fm);
+      }
         
-        return null;
-     }
+      return null;
+   }
+
+   /**
+    * Return the current collision mesh
+    */
+   @Override
+   public PolygonalMesh getCollisionMesh() {
+      FemMesh cfm = getCollisionFemMesh();
+      return cfm != null ? (PolygonalMesh)cfm.getMesh() : null;
+   }
+
+   /**
+    * Return the FemMesh component holding the collision mesh
+    */
+   FemMesh getCollisionFemMesh() {
+      return getSurfaceFemMesh();
+   }
+
+//   public void getContactMasters (
+//      List<ContactMaster> mlist, double weight, ContactPoint cpnt) {
+//
+//      FemMesh cfm = getCollisionFemMesh();
+//      if (cfm == null) {
+//         throw new IllegalStateException (
+//            "FemModel does not have a valid collision mesh");
+//      }
+//      cfm.getContactMasters (mlist, weight, cpnt);
+//   }
+//   
+   public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
+      FemMesh cfm = getCollisionFemMesh();
+      if (cfm == null) {
+         throw new IllegalStateException (
+            "FemModel does not have a valid collision mesh");
+      }
+      cfm.getVertexMasters (mlist, vtx);
+   }
+   
+   public boolean containsContactMaster (CollidableDynamicComponent comp) {
+      return comp.getParent() == myNodes;      
+   }
+   
+//   public boolean requiresContactVertexInfo() {
+//      return true;
+//   }
+   
+   public boolean allowCollision (
+      ContactPoint cpnt, Collidable other, Set<Vertex3d> attachedVertices) {
+      FemMesh cfm = getCollisionFemMesh();
+      if (cfm == null) {
+         throw new IllegalStateException (
+            "FemModel does not have a valid collision mesh");
+      }
+      return cfm.allowCollision (cpnt, null, null);
+   }   
+
+   // end Collidable interface 
      
-     public boolean isAbortOnInvertedElements() {
-        return myAbortOnInvertedElems;
-     }
+   public boolean isAbortOnInvertedElements() {
+      return myAbortOnInvertedElems;
+   }
      
-     public void setAbortOnInvertedElements(boolean set) {
-        myAbortOnInvertedElems = set;
-     }
+   public void setAbortOnInvertedElements(boolean set) {
+      myAbortOnInvertedElems = set;
+   }
      
-     public void setWarnOnInvertedElements(boolean set) {
-        myWarnOnInvertedElems = set;
-     }
+   public void setWarnOnInvertedElements(boolean set) {
+      myWarnOnInvertedElems = set;
+   }
      
-     public boolean isWarnOnInvertedElements() {
-        return myWarnOnInvertedElems;
-     }
+   public boolean isWarnOnInvertedElements() {
+      return myWarnOnInvertedElems;
+   }
 
 }

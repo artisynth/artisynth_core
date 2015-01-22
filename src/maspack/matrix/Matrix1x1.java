@@ -116,6 +116,18 @@ public class Matrix1x1 extends DenseMatrixBase {
    }
 
    /**
+    * Computes s M and places the result in this matrix.
+    * 
+    * @param s
+    * scaling factor
+    * @param M
+    * matrix to scale
+    */
+   public void scale (double s, Matrix1x1 M) {
+      m00 = s * M.m00;
+   }
+
+   /**
     * Adds this matrix to M and places the result in this matrix.
     * 
     * @param M
@@ -158,6 +170,20 @@ public class Matrix1x1 extends DenseMatrixBase {
    }
 
    /**
+    * Computes s M1 + M2 and places the result in this matrix.
+    * 
+    * @param s
+    * scaling factor
+    * @param M1
+    * matrix to be scaled
+    * @param M2
+    * matrix to be added
+    */
+   public void scaledAdd (double s, Matrix1x1 M1, Matrix1x1 M2) {
+      m00 = s * M1.m00 + M2.m00;
+   }
+
+   /**
     * Adds the contents of a Matrix1x1 to this matrix block.
     * 
     * @param M
@@ -165,6 +191,18 @@ public class Matrix1x1 extends DenseMatrixBase {
     */
    public void add (Matrix1x1 M) {
       m00 += M.m00;
+   }
+
+   /**
+    * Computes M1 + M2 and places the result in this matrix.
+    * 
+    * @param M1
+    * first matrix to add
+    * @param M2
+    * second matrix to add
+    */
+   public void add (Matrix1x1 M1, Matrix1x1 M2) {
+      m00 = M1.m00 + M2.m00;
    }
 
    /**
@@ -205,6 +243,38 @@ public class Matrix1x1 extends DenseMatrixBase {
     */
    public void sub (Matrix1x1 M) {
       m00 -= M.m00;
+   }
+
+    /**
+    * Computes M1 - M2 places the result in this matrix.
+    * 
+    * @param M1
+    * first matrix
+    * @param M2
+    * matrix to subtract
+    */
+   public void sub (Matrix1x1 M1, Matrix1x1 M2) {
+      m00 = M1.m00 - M2.m00;
+   }
+
+   /**
+    * Multiplies M1 by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulAdd (Matrix M1, Matrix M2) {
+      MatrixMulAdd.mulAdd1x1 (this, M1, M2);
+   }
+
+   /**
+    * Sets this matrix to the transpose of M
+    *
+    * @param M
+    * matrix to take the transpose of
+    */
+   public void transpose (Matrix1x1 M) {
+      m00 = M.m00;
    }
 
    /**

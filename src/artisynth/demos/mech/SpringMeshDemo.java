@@ -245,6 +245,8 @@ public class SpringMeshDemo extends RootModel {
       refs.addReference (p11);
       refs.addReference (msmod.particles());
       msmod.add (refs);
+
+      //msmod.setProfiling (true);
    }
 
    private void addControlPanel() {
@@ -284,6 +286,7 @@ public class SpringMeshDemo extends RootModel {
                ArtisynthPath.getSrcRelativePath (this, "springMeshOut.txt"),
                0.01);
          collector.setDefaultDisplayRange (-40, 20);
+         collector.setStartTime (0);
          collector.setStopTime (10);
          addOutputProbe (collector);
       }

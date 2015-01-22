@@ -15,7 +15,6 @@ import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.VectorNd;
 import maspack.matrix.VectorNi;
 import maspack.render.GLRenderer;
-import maspack.util.IntHolder;
 
 /**
  * 
@@ -92,7 +91,7 @@ public class LinearPointConstraint extends ConstrainerBase {
 
    @Override
    public int addBilateralConstraints(
-      SparseBlockMatrix GT, VectorNd dg, int numb, IntHolder changeCnt) {
+      SparseBlockMatrix GT, VectorNd dg, int numb) {
       int idx = 0;
       int bj = GT.numBlockCols();
       for (Point pnt : myPoints) {

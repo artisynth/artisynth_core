@@ -14,30 +14,37 @@ import maspack.spatialmotion.*;
 import maspack.util.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.materials.*;
-import artisynth.core.util.*;
+import artisynth.core.util.PropertyChangeEvent;
+import artisynth.core.util.PropertyChangeListener;
 import java.io.*;
 import java.util.*;
 
-public abstract class DeformableBody extends RigidBody {
+public abstract class DeformableBody extends RigidBody
+   implements PropertyChangeListener {
 
    protected static double DEFAULT_STIFFNESS_DAMPING = 0;
    protected static double DEFAULT_MASS_DAMPING = 0;
 
    protected static boolean freezeFrame = false;
 
-   FemMaterial myMaterial = createDefaultMaterial();
+   FemMaterial myMaterial;
    VectorNd myElasticPos;
    VectorNd myElasticVel;
    VectorNd myElasticForce;
    VectorNd myExternalElasticForce;
    VectorNd myElasticTmp;
    MatrixNd myStiffnessMatrix;
+   boolean myStiffnessValidP = false;
    SVDecomposition3d mySVD = new SVDecomposition3d();
 
    protected double myStiffnessDamping = DEFAULT_STIFFNESS_DAMPING;
    protected double myMassDamping = DEFAULT_MASS_DAMPING;
 
    Point3d[] myRestVertices;
+
+   public void invalidateStiffness() {
+      myStiffnessValidP = false;
+   }
 
    protected DeformableBody () {
       int numc = numElasticCoords();
@@ -47,6 +54,7 @@ public abstract class DeformableBody extends RigidBody {
       myElasticTmp = new VectorNd (numc);
       myExternalElasticForce = new VectorNd (numc);
       myStiffnessMatrix = new MatrixNd (numc, numc);
+      setMaterial (createDefaultMaterial());
    }
  
    public static PropertyList myProps =
@@ -104,6 +112,15 @@ public abstract class DeformableBody extends RigidBody {
       notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
    }
 
+   public void propertyChanged (PropertyChangeEvent e) {
+      myStiffnessValidP = false;
+      if (e.getHost() instanceof FemMaterial) {
+          // issue DynamicActivityChange in case solve matrix symmetry has
+          // changed:
+          notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+      }
+   }
+
    public VectorNd getElasticPos() {
       return myElasticPos;
    }
@@ -124,10 +141,35 @@ public abstract class DeformableBody extends RigidBody {
       return myElasticForce;
    }
   
+   public void setElasticForce (VectorNd f) {
+      myElasticForce.set (f);
+   }
+  
+   public void addElasticForce (VectorNd f) {
+      myElasticForce.add (f);
+   }
+
+   public VectorNd getExternalElasticForce () {
+      return myExternalElasticForce;
+   }   
+
+   public void setExternalElasticForce (VectorNd f) {
+      myExternalElasticForce.set (f);
+   }
+   
+   public void addExternalElasticForce (VectorNd f) {
+      myExternalElasticForce.add(f);
+   }
+   
+   public void addScaledExternalElasticForce (double s, VectorNd f) {
+      myExternalElasticForce.scaledAdd(s, f);
+   }
+  
    public void setElasticPos (VectorNd pos) {
       if (pos.size() != numElasticCoords()) {
          throw new IllegalArgumentException (
-            "argument pos has size of "+pos.size()+", expected "+numElasticCoords());
+            "argument pos has size of "+pos.size()+
+            ", expected "+numElasticCoords());
       }
       myElasticPos.set (pos);
       updatePosState();
@@ -136,7 +178,8 @@ public abstract class DeformableBody extends RigidBody {
    public void setElasticVel (VectorNd vel) {
       if (vel.size() != numElasticCoords()) {
          throw new IllegalArgumentException (
-            "argument vel has size of "+vel.size()+", expected "+numElasticCoords());
+            "argument vel has size of "+vel.size()+
+            ", expected "+numElasticCoords());
       }
       myElasticVel.set (vel);
       updateVelState();
@@ -323,9 +366,15 @@ public abstract class DeformableBody extends RigidBody {
    }
 
    @Override
-      public void setForcesToExternal() {
+   public void setForcesToExternal() {
       super.setForcesToExternal();
       myElasticForce.set (myExternalElasticForce);
+   }
+
+   @Override
+   public void applyExternalForces() {
+      super.applyExternalForces();
+      myElasticForce.add (myExternalElasticForce);
    }
 
    @Override protected void setMeshFromInfo () {
@@ -376,7 +425,7 @@ public abstract class DeformableBody extends RigidBody {
           MatrixNdBlock blk =
              (MatrixNdBlock)S.getBlockByNumber (mySolveBlockNum);
           // assumes that the stiffness matrix has already been updated
-          blk.addScaledSubMatrix (6, 6, s, myStiffnessMatrix);
+          blk.addScaledSubMatrix (6, 6, -s, myStiffnessMatrix);
        }
    }
 
@@ -397,11 +446,32 @@ public abstract class DeformableBody extends RigidBody {
 
    public abstract void getDShape (Matrix3d Dshp, int i, Vector3d pos0);
 
-   @Override 
+   @Override
+   public void addPointMass (Matrix M, double m, Vector3d pos) {
+      SpatialInertia.addPointMass (M, m, pos);
+      if (M instanceof MatrixNd) {
+         // for now, just assuming that elastic mass is diagonal
+         MatrixNd MN = (MatrixNd)M;
+         int numc = numElasticCoords();
+         for (int i=0; i<numc; i++) {
+            MN.add (i+6, i+6, m);
+         }
+      }
+   }
+
+  @Override 
    public void computePointPosition (Vector3d pos, Point3d loc) {
       computeDeformedPos (pos, loc);
       pos.transform (myState.XFrameToWorld.R, pos);
       pos.add (myState.XFrameToWorld.p);
+   }
+
+   @Override 
+   public void computePointLocation (Vector3d loc, Vector3d pos) {
+      Vector3d locdef = new Vector3d();
+      locdef.sub (pos, myState.XFrameToWorld.p);
+      locdef.inverseTransform (myState.XFrameToWorld.R);
+      computeUndeformedPos (loc, locdef, 1e-8);
    }
 
    @Override 
@@ -417,6 +487,118 @@ public abstract class DeformableBody extends RigidBody {
       computeDeformedPos (myTmpPos, loc);
       myTmpPos.transform (myState.XFrameToWorld.R);
       vel.crossAdd (frameVel.w, myTmpPos, vel);
+   }
+
+   @Override public void computePointCoriolis (Vector3d cor, Point3d loc) {
+      RotationMatrix3d R = myState.XFrameToWorld.R;
+      Twist tw = getVelocity();
+      Vector3d tmp = new Vector3d();
+
+      // elastic terms first
+      cor.setZero();
+      int numc = numElasticCoords();
+      for (int i=0; i<numc; i++) {
+         getShape (tmp, i, loc);
+         cor.scaledAdd (myElasticVel.get(i), tmp);
+      }     
+      cor.transform (R);
+      cor.scale (2);
+
+      computeDeformedPos (tmp, loc);
+      tmp.transform (R);
+      cor.crossAdd (tw.w, tmp, cor);
+      cor.cross (tw.w, cor);
+   }
+
+   /**
+    * Adds to <code>wr</code> and <code>fe</code> the wrench and elastic forces
+    * arising from applying a force <code>f</code> on a point <code>loc</code>.
+    *
+    * @param wr accumulates the wrench (world coordinates)
+    * @param fe accumulates the elastic forces
+    * @param loc location of the point (undeformed body coordinates)
+    * @param f force applied to the point (world coordinates)
+    */   
+   public void addPointForce (
+      Wrench wr, VectorNd fe, Point3d loc, Vector3d f) {
+
+      Vector3d pos = new Vector3d();
+      // compute deformed position in frame
+      computeDeformedPos (pos, loc);
+      // rotate position to world coordinates
+      pos.transform (myState.XFrameToWorld.R);
+
+      wr.f.add (f);
+      wr.m.crossAdd (pos, f, wr.m);
+
+      // now update elastic forces, using force in body frame
+      int numc = numElasticCoords();
+      Vector3d fbody = new Vector3d(f);
+      fbody.inverseTransform (myState.XFrameToWorld.R);
+      Vector3d shp = new Vector3d();
+      for (int i=0; i<numc; i++) {
+         getShape (shp, i, loc);
+         fe.add (i, shp.dot(fbody));
+      }
+   }
+
+   /**
+    * {@InheritDoc}
+    */
+   @Override public void addPointForce (Point3d loc, Vector3d f) {
+      addPointForce (myForce, myElasticForce, loc, f);
+   }
+
+   /**
+    * {@InheritDoc}
+    */
+   @Override public void addExternalPointForce (Point3d loc, Vector3d f) {
+      addPointForce (myExternalForce, myExternalElasticForce, loc, f);
+   }
+
+   @Override
+   public void computePointForceJacobian (MatrixBlock GT, Point3d loc) {
+       MatrixNdBlock blk;
+       try {
+          blk = (MatrixNdBlock)GT;
+       }
+       catch (ClassCastException e) {
+          throw new IllegalArgumentException (
+             "GT is not an instance of MatrixNdBlock, is "+GT.getClass());
+       }
+       if (blk.rowSize() != getVelStateSize() ||
+           blk.colSize() != 3) {
+          throw new IllegalArgumentException (
+             "GT has wrong size "+GT.getSize()+
+             ", expecting "+getVelStateSize()+"x3");
+       }
+       RotationMatrix3d R = getPose().R;
+       blk.setZero();
+
+       blk.set (0, 0, 1.0);
+       blk.set (1, 1, 1.0);
+       blk.set (2, 2, 1.0);
+       
+       computeDeformedPos (myTmpPos, loc);
+       myTmpPos.transform (R);
+
+       blk.set (4, 0,  myTmpPos.z);
+       blk.set (5, 0, -myTmpPos.y);
+       blk.set (5, 1,  myTmpPos.x);
+       
+       blk.set (3, 1, -myTmpPos.z);
+       blk.set (3, 2,  myTmpPos.y);
+       blk.set (4, 2, -myTmpPos.x);
+
+       int numc = numElasticCoords();
+       Vector3d shp = new Vector3d();
+       for (int i=0; i<numc; i++) {
+          getShape (shp, i, loc);
+          shp.transform (R);
+          blk.set (6+i, 0, shp.x);
+          blk.set (6+i, 1, shp.y);
+          blk.set (6+i, 2, shp.z);
+       }
    }
 
    /**
@@ -572,43 +754,43 @@ public abstract class DeformableBody extends RigidBody {
       setElasticPos (eposSave);
    }
 
-   /**
-    * Compute the transform that maps elastic velocities onto the spatial
-    * velocity of an attached frame A, as represented in the coordinates
-    * of A.
-    */
-   public void computeElasticJacobian (
-      MatrixNd Pi, RigidTransform3d A, RigidTransform3d A0) {
+   // /**
+   //  * Compute the transform that maps elastic velocities onto the spatial
+   //  * velocity of an attached frame A, as represented in the coordinates
+   //  * of A.
+   //  */
+   // public void computeElasticJacobian (
+   //    MatrixNd Pi, RigidTransform3d A, RigidTransform3d A0) {
 
-      int numc = numElasticCoords();   
-      Vector3d shp = new Vector3d();
+   //    int numc = numElasticCoords();   
+   //    Vector3d shp = new Vector3d();
       
-      Pi.setSize (6, numc);
+   //    Pi.setSize (6, numc);
 
-      for (int i=0; i<numc; i++) {
-         getShape (shp, i, A0.p);
-         // transform from body coords to A coords
+   //    for (int i=0; i<numc; i++) {
+   //       getShape (shp, i, A0.p);
+   //       // transform from body coords to A coords
          
-         shp.inverseTransform (A.R);
-         Pi.set (0, i, shp.x);
-         Pi.set (1, i, shp.y);
-         Pi.set (2, i, shp.z);
-      }
+   //       shp.inverseTransform (A.R);
+   //       Pi.set (0, i, shp.x);
+   //       Pi.set (1, i, shp.y);
+   //       Pi.set (2, i, shp.z);
+   //    }
 
-      Matrix3d Dshp = new Matrix3d();
-      RotationMatrix3d R = new RotationMatrix3d();
-      // recover R from A0 and A
-      R.mulInverseRight (A.R, A0.R);
+   //    Matrix3d Dshp = new Matrix3d();
+   //    RotationMatrix3d R = new RotationMatrix3d();
+   //    // recover R from A0 and A
+   //    R.mulInverseRight (A.R, A0.R);
 
-      for (int i=0; i<numc; i++) {
-         getDShape (Dshp, i, A0.p);
-         // compute inv(R) * D
-         Dshp.mulTransposeLeft (R, Dshp);
-         Pi.set (3, i, 0.5*(Dshp.m21 - Dshp.m12));
-         Pi.set (4, i, 0.5*(Dshp.m02 - Dshp.m20));
-         Pi.set (5, i, 0.5*(Dshp.m10 - Dshp.m01));
-      }      
-   }
+   //    for (int i=0; i<numc; i++) {
+   //       getDShape (Dshp, i, A0.p);
+   //       // compute inv(R) * D
+   //       Dshp.mulTransposeLeft (R, Dshp);
+   //       Pi.set (3, i, 0.5*(Dshp.m21 - Dshp.m12));
+   //       Pi.set (4, i, 0.5*(Dshp.m02 - Dshp.m20));
+   //       Pi.set (5, i, 0.5*(Dshp.m10 - Dshp.m01));
+   //    }      
+   // }
 
    /**
     * Computes the spatial velocity of an attached frame A, as represented
@@ -702,29 +884,29 @@ public abstract class DeformableBody extends RigidBody {
       }      
    }
 
-   /**
-    * Adds the effect of a force applied at a specific postion with respect to
-    * this frame. The force is in world coordinates and the position in frame
-    * coordinates.
-    */
-   @Override public void addPointForce (Vector3d f, Point3d loc) {
-      // compute deformed position in frame
-      computeDeformedPos (myTmpPos, loc);
-      // rotate position to world coordinates
-      myTmpPos.transform (myState.XFrameToWorld.R);
-      myForce.f.add (f, myForce.f);
-      myForce.m.crossAdd (myTmpPos, f, myForce.m);
+   // /**
+   //  * Adds the effect of a force applied at a specific postion with respect to
+   //  * this frame. The force is in world coordinates and the position in frame
+   //  * coordinates.
+   //  */
+   // @Override public void addPointForce (Vector3d f, Point3d loc) {
+   //    // compute deformed position in frame
+   //    computeDeformedPos (myTmpPos, loc);
+   //    // rotate position to world coordinates
+   //    myTmpPos.transform (myState.XFrameToWorld.R);
+   //    myForce.f.add (f, myForce.f);
+   //    myForce.m.crossAdd (myTmpPos, f, myForce.m);
 
-      // now update elastic forces, using force in body frame
-      int numc = numElasticCoords();
-      Vector3d fbody = new Vector3d(f);
-      fbody.inverseTransform (myState.XFrameToWorld.R);
-      Vector3d shp = new Vector3d();
-      for (int i=0; i<numc; i++) {
-         getShape (shp, i, loc);
-         myElasticForce.add (i, shp.dot(fbody));
-      }
-   }
+   //    // now update elastic forces, using force in body frame
+   //    int numc = numElasticCoords();
+   //    Vector3d fbody = new Vector3d(f);
+   //    fbody.inverseTransform (myState.XFrameToWorld.R);
+   //    Vector3d shp = new Vector3d();
+   //    for (int i=0; i<numc; i++) {
+   //       getShape (shp, i, loc);
+   //       myElasticForce.add (i, shp.dot(fbody));
+   //    }
+   // }
 
    public void setElasticPos (int idx, double value) {
       myElasticPos.set (idx, value);
@@ -744,4 +926,56 @@ public abstract class DeformableBody extends RigidBody {
       return myElasticVel.get (idx);
    }
 
+   public void setContactConstraint (
+      double[] buf, double w, Vector3d dir, ContactPoint cpnt) {
+
+      double lx = cpnt.myPoint.x - myState.pos.x;
+      double ly = cpnt.myPoint.y - myState.pos.y;
+      double lz = cpnt.myPoint.z - myState.pos.z;
+
+      double nx = w*dir.x;
+      double ny = w*dir.y;
+      double nz = w*dir.z;
+
+      buf[0] = nx;
+      buf[1] = ny;
+      buf[2] = nz;
+      buf[3] = ly*nz - lz*ny;
+      buf[4] = lz*nx - lx*nz;
+      buf[5] = lx*ny - ly*nx;
+
+      // transform dir to local coords
+      Vector3d dirl = new Vector3d(dir);
+      dirl.inverseTransform (myState.XFrameToWorld.R);
+      Vector3d loc = new Vector3d();
+      Vector3d shp = new Vector3d();      
+      computePointLocation (loc, cpnt.myPoint);
+      int numc = numElasticCoords();
+      for (int i=0; i<numc; i++) {
+         getShape (shp, i, loc);
+         buf[6+i] = w*shp.dot(dirl);
+      }
+   }
+
+   public void addToPointVelocity (
+      Vector3d vel, double w, ContactPoint cpnt) {
+
+      Vector3d loc = new Vector3d();
+      Vector3d tmp = new Vector3d();
+      computePointLocation (loc, cpnt.myPoint);
+      // compute elastic velocity in body coords
+      computeDeformedVel (tmp, loc);
+      // rotate to world coords
+      tmp.transform (myState.XFrameToWorld.R);
+
+      // add additional velocity components from body motion
+      Vector3d v = myState.vel.v;
+      Vector3d o = myState.vel.w; // o for omega
+      double lx = cpnt.myPoint.x - myState.pos.x;
+      double ly = cpnt.myPoint.y - myState.pos.y;
+      double lz = cpnt.myPoint.z - myState.pos.z;
+      vel.x += w*(v.x - ly*o.z + lz*o.y + tmp.x);
+      vel.y += w*(v.y - lz*o.x + lx*o.z + tmp.y);
+      vel.z += w*(v.z - lx*o.y + ly*o.x + tmp.z);
+   }
 }

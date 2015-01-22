@@ -945,6 +945,15 @@ public class Matrix3x6 extends DenseMatrixBase {
       m25 = M1.m25 - M2.m25;
    }
 
+   /**
+    * Multiplies M1 by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulAdd (Matrix M1, Matrix M2) {
+      MatrixMulAdd.mulAdd3x6 (this, M1, M2);
+   }
 
    /** 
     * Gets the 3x3 sub-matrix of this matrix starting at (0, 0).
@@ -1012,6 +1021,33 @@ public class Matrix3x6 extends DenseMatrixBase {
       m23 += M.m20; m24 += M.m21; m25 += M.m22; 
    }
    
+   /**
+    * Sets this matrix to the transpose of M
+    *
+    * @param M
+    * matrix to take the transpose of
+    */
+   public void transpose (Matrix6x3 M) {
+      m00 = M.m00;
+      m10 = M.m01;
+      m20 = M.m02;
+      m01 = M.m10;
+      m11 = M.m11;
+      m21 = M.m12;
+      m02 = M.m20;
+      m12 = M.m21;
+      m22 = M.m22;
+      m03 = M.m30;
+      m13 = M.m31;
+      m23 = M.m32;
+      m04 = M.m40;
+      m14 = M.m41;
+      m24 = M.m42;
+      m05 = M.m50;
+      m15 = M.m51;
+      m25 = M.m52;
+   }
+
    /**
     * Creates a clone of this matrix.
     */

@@ -254,6 +254,16 @@ public class Matrix6d extends Matrix6dBase {
    }
 
    /**
+    * Multiplies M1 by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulAdd (Matrix M1, Matrix M2) {
+      MatrixMulAdd.mulAdd6x6 (this, M1, M2);
+   }
+
+   /**
     * {@inheritDoc}
     */
    public void add (Matrix6dBase M1, Matrix6dBase M2) {

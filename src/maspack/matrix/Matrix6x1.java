@@ -134,6 +134,74 @@ public class Matrix6x1 extends DenseMatrixBase {
    }
 
    /**
+    * {@inheritDoc}
+    */
+   public void set (double[] values) {
+      m00 = values[0];
+      m10 = values[1];
+      m20 = values[2];
+      m30 = values[3];
+      m40 = values[4];
+      m50 = values[5];
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setColumn (int j, double[] values) {
+      switch (j) {
+         case 0: {
+            m00 = values[0];
+            m10 = values[1];
+            m20 = values[2];
+            m30 = values[3];
+            m40 = values[4];
+            m50 = values[5];
+            break;
+         }
+         default: {
+            throw new ArrayIndexOutOfBoundsException ("j=" + j);
+         }
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setRow (int i, double[] values) {
+      switch (i) {
+         case 0: {
+            m00 = values[0];
+            break;
+         }
+         case 1: {
+            m10 = values[0];
+            break;
+         }
+         case 2: {
+            m20 = values[0];
+            break;
+         }
+         case 3: {
+            m30 = values[0];
+            break;
+         }
+         case 4: {
+            m40 = values[0];
+            break;
+         }
+         case 5: {
+            m50 = values[0];
+            break;
+         }
+         default: {
+            throw new ArrayIndexOutOfBoundsException ("i=" + i);
+         }
+      }
+   }
+
+
+   /**
     * Sets the elements of this matrix to zero.
     */
    public void setZero() {
@@ -281,6 +349,23 @@ public class Matrix6x1 extends DenseMatrixBase {
    }
 
    /**
+    * Computes s M and places the result in this matrix.
+    * 
+    * @param s
+    * scaling factor
+    * @param M
+    * matrix to scale
+    */
+   public void scale (double s, Matrix6x1 M) {
+      m00 = s * M.m00;
+      m10 = s * M.m10;
+      m20 = s * M.m20;
+      m30 = s * M.m30;
+      m40 = s * M.m40;
+      m50 = s * M.m50;
+   }
+
+   /**
     * Adds this matrix to M and places the result in this matrix.
     * 
     * @param M
@@ -348,6 +433,23 @@ public class Matrix6x1 extends DenseMatrixBase {
    }
 
    /**
+    * Computes M1 + M2 and places the result in this matrix.
+    * 
+    * @param M1
+    * first matrix to add
+    * @param M2
+    * second matrix to add
+    */
+   public void add (Matrix6x1 M1, Matrix6x1 M2) {
+      m00 = M1.m00 + M2.m00;
+      m10 = M1.m10 + M2.m10;
+      m20 = M1.m20 + M2.m20;
+      m30 = M1.m30 + M2.m30;
+      m40 = M1.m40 + M2.m40;
+      m50 = M1.m50 + M2.m50;
+   }
+
+   /**
     * Adds the scaled contents of a Matrix6x1 to this matrix block.
     * 
     * @param M
@@ -360,6 +462,35 @@ public class Matrix6x1 extends DenseMatrixBase {
       m30 += s * M.m30;
       m40 += s * M.m40;
       m50 += s * M.m50;
+   }
+
+   /**
+    * Computes s M1 + M2 and places the result in this matrix.
+    * 
+    * @param s
+    * scaling factor
+    * @param M1
+    * matrix to be scaled
+    * @param M2
+    * matrix to be added
+    */
+   public void scaledAdd (double s, Matrix6x1 M1, Matrix6x1 M2) {
+      m00 = s * M1.m00 + M2.m00;
+      m10 = s * M1.m10 + M2.m10;
+      m20 = s * M1.m20 + M2.m20;
+      m30 = s * M1.m30 + M2.m30;
+      m40 = s * M1.m40 + M2.m40;
+      m50 = s * M1.m50 + M2.m50;
+   }
+
+   /**
+    * Multiplies M1 by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulAdd (Matrix M1, Matrix M2) {
+      MatrixMulAdd.mulAdd6x1 (this, M1, M2);
    }
 
    /**
@@ -403,6 +534,23 @@ public class Matrix6x1 extends DenseMatrixBase {
    }
 
    /**
+    * Computes M1 - M2 places the result in this matrix.
+    * 
+    * @param M1
+    * first matrix
+    * @param M2
+    * matrix to subtract
+    */
+   public void sub (Matrix6x1 M1, Matrix6x1 M2) {
+      m00 = M1.m00 - M2.m00;
+      m10 = M1.m10 - M2.m10;
+      m20 = M1.m20 - M2.m20;
+      m30 = M1.m30 - M2.m30;
+      m40 = M1.m40 - M2.m40;
+      m50 = M1.m50 - M2.m50;
+   }
+
+   /**
     * Returns the dot product of the elements of this matrix with a
     * 6-element vector formed from two 3-element vectors.
     * 
@@ -437,6 +585,21 @@ public class Matrix6x1 extends DenseMatrixBase {
       return (fmt.format (m00) + " " + fmt.format (m10) + " " +
               fmt.format (m20) + " " + fmt.format (m30) + " " +
               fmt.format (m40) + " " + fmt.format (m50));
+   }
+
+   /**
+    * Sets this matrix to the transpose of M
+    *
+    * @param M
+    * matrix to take the transpose of
+    */
+   public void transpose (Matrix1x6 M) {
+      m00 = M.m00;
+      m10 = M.m01;
+      m20 = M.m02;
+      m30 = M.m03;
+      m40 = M.m04;
+      m50 = M.m05;
    }
 
    /**

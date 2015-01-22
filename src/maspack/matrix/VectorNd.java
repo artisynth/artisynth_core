@@ -1406,6 +1406,23 @@ Clonable {
       }
    }
 
+   /**
+    * Exchange elements i and j of this vector.
+    */
+   public void exchangeElements (int i, int j) {
+      if (i < 0 || i >= size) {
+         throw new ArrayIndexOutOfBoundsException (
+            "index i is "+i+"; must be in the range 0 to "+(size-1));
+      }
+      if (j < 0 || j >= size) {
+         throw new ArrayIndexOutOfBoundsException (
+            "index j is "+j+"; must be in the range 0 to "+(size-1));
+      }
+      double tmp = buf[i];
+      buf[i] = buf[j];
+      buf[j] = tmp;
+   }
+
    /** 
     * Returns the distance between this vector and another. The distance
     * is just the Euclidean norm of the different between the two vectors.

@@ -310,7 +310,6 @@ public class Scheduler {
    }
 
    public void setTime (double time) {
-      
 
       if (getWorkspace().rootModelHasState()) {
          WayPoint way = getWayPoint (time);

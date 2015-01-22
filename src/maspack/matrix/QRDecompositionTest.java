@@ -6,6 +6,7 @@
  */
 package maspack.matrix;
 
+import java.util.Random;
 import maspack.util.FunctionTimer;
 import maspack.util.NumberFormat;
 import maspack.util.RandomGenerator;
@@ -58,14 +59,30 @@ class QRDecompositionTest {
       }
    }
 
+   public void testDecomposition (MatrixNd M1) {
+      testDecomposition (M1, false);
+      testDecomposition (M1, true);
+   }      
+
    public void testDecomposition (int nrows, int ncols) {
-      testDecomposition (nrows, ncols, false);
-      testDecomposition (nrows, ncols, true);
+      MatrixNd M1 = new MatrixNd (nrows, ncols);
+      for (int i=0; i<10; i++) {
+         M1.setRandom();
+         testDecomposition (M1);
+      }
+      // test with a (semi) diagonal matrix
+      M1.setZero();
+      Random rand = RandomGenerator.get();
+      for (int i=0; i<Math.min(nrows,ncols); i++) {
+         M1.set (i, i, rand.nextDouble()-0.5);
+      }
+      testDecomposition (M1);
    }
 
-   public void testDecomposition (int nrows, int ncols, boolean usePivoting) {
-      MatrixNd M1 = new MatrixNd (nrows, ncols);
-      M1.setRandom();
+   public void testDecomposition (MatrixNd M1, boolean usePivoting) {
+
+      int nrows = M1.rowSize();
+      int ncols = M1.colSize();
 
       Exception eActual = null;
 
@@ -105,6 +122,14 @@ class QRDecompositionTest {
             throw new TestException ("Q not orthogonal:\n"
             + Q.toString ("%12.9f"));
          }
+
+         if (p == mind) {
+            testPreMulQ (qr, M1);
+            testPreMulQTranspose (qr, M1);
+            testPostMulQ (qr, M1);
+            testPostMulQTranspose (qr, M1);
+         }
+         
       }
 
       if (nrows < ncols) {
@@ -312,21 +337,137 @@ class QRDecompositionTest {
       }
    }
 
+
+   protected void checkMatrix (
+      String msg, MatrixNd MR, MatrixNd Mchk, MatrixNd M) {
+      if (!MR.epsilonEquals (Mchk,EPSILON)) {
+         System.out.println ("Got:\n" + MR.toString ("%10.7f"));
+         System.out.println ("Expected:\n" + Mchk.toString ("%10.7f"));
+         System.out.println ("M=\n" + M.toString ("%10.5f"));
+         throw new TestException (msg);
+      }      
+   }
+
+   protected void testPreMulQ (QRDecomposition qr, MatrixNd M) {
+      
+      MatrixNd Q = new MatrixNd (qr.nrows, qr.ncols);
+      qr.get (Q, null);
+
+      MatrixNd M1 = new MatrixNd (Q.rowSize(), Q.colSize());
+      MatrixNd MR = new MatrixNd (Q.rowSize(), Q.colSize());
+
+      M1.setIdentity();
+      qr.preMulQ (MR, M1);
+      checkMatrix ("testPreMulQ failed", MR, Q, M);
+      MR.setIdentity();
+      qr.preMulQ (MR, MR);
+      checkMatrix ("testPreMulQ failed", MR, Q, M);
+
+      Q = new MatrixNd (qr.nrows, qr.nrows);
+      qr.get (Q, null);      
+      MatrixNd MX = new MatrixNd (Q.rowSize(), Q.colSize()+2);
+      MX.setRandom();
+      MatrixNd Mchk =  new MatrixNd();
+      Mchk.mul (Q, MX);
+      qr.preMulQ (MR, MX);
+      checkMatrix ("testPreMulQ failed", MR, Mchk, M);     
+   }
+
+   protected void testPreMulQTranspose (
+      QRDecomposition qr, MatrixNd M) {
+
+      MatrixNd QT = new MatrixNd (qr.nrows, qr.nrows);
+      qr.get (QT, null);
+      QT.transpose();
+
+      MatrixNd M1 = new MatrixNd (QT.rowSize(), QT.colSize());
+      MatrixNd MR = new MatrixNd (QT.rowSize(), QT.colSize());
+
+      M1.setIdentity();
+      qr.preMulQTranspose (MR, M1);
+      checkMatrix ("testPreMulQTranpose failed", MR, QT, M);
+      MR.setIdentity();
+      qr.preMulQTranspose (MR, MR);
+      checkMatrix ("testPreMulQTranpose failed", MR, QT, M);
+
+      MatrixNd MX = new MatrixNd (qr.nrows, qr.ncols+2);
+      MX.setRandom();
+      MatrixNd Mchk =  new MatrixNd();
+      Mchk.mul (QT, MX);
+      qr.preMulQTranspose (MR, MX);
+      checkMatrix ("testPreMulQ failed", MR, Mchk, M);     
+   }
+
+   protected void testPostMulQ (QRDecomposition qr, MatrixNd M) {
+
+      MatrixNd Q = new MatrixNd (qr.nrows, qr.nrows);
+      qr.get (Q, null);
+
+      MatrixNd M1 = new MatrixNd (Q.rowSize(), Q.colSize());
+      MatrixNd MR = new MatrixNd (Q.rowSize(), Q.colSize());
+
+      M1.setIdentity();
+      qr.postMulQ (MR, M1);
+      checkMatrix ("testPostMulQ failed", MR, Q, M);
+      MR.setIdentity();
+      qr.postMulQ (MR, MR);
+      checkMatrix ("testPostMulQ failed", MR, Q, M);
+
+      MatrixNd MX = new MatrixNd (qr.ncols+2, qr.nrows);
+      MX.setRandom();
+      MatrixNd Mchk =  new MatrixNd();
+      Mchk.mul (MX, Q);
+      qr.postMulQ (MR, MX);
+      checkMatrix ("testPreMulQ failed", MR, Mchk, M);     
+   }
+
+   protected void testPostMulQTranspose (
+      QRDecomposition qr, MatrixNd M) {
+
+      MatrixNd QT = new MatrixNd (qr.nrows, qr.ncols);
+      qr.get (QT, null);
+      QT.transpose();
+
+      MatrixNd M1 = new MatrixNd (QT.rowSize(), QT.colSize());
+      MatrixNd MR = new MatrixNd (QT.rowSize(), QT.colSize());
+
+      M1.setIdentity();
+      qr.postMulQTranspose (MR, M1);
+      checkMatrix ("testPostMulQTranpose failed", MR, QT, M);
+      MR.setIdentity();
+      qr.postMulQTranspose (MR, MR);
+      checkMatrix ("testPostMulQTranpose failed", MR, QT, M);
+
+      QT = new MatrixNd (qr.nrows, qr.nrows);
+      qr.get (QT, null);      
+      QT.transpose();
+      MatrixNd MX = new MatrixNd (qr.ncols+2, qr.nrows);
+      MX.setRandom();
+      MatrixNd Mchk =  new MatrixNd();
+      Mchk.mul (MX, QT);
+      qr.postMulQTranspose (MR, MX);
+      checkMatrix ("testPreMulQ failed", MR, Mchk, M);     
+   }
+
    public void execute() {
       RandomGenerator.setSeed (0x1234);
 
-      for (int i = 0; i < 10; i++) {
-         testDecomposition (4, 3);
-         testDecomposition (3, 4);
-         testDecomposition (6, 3);
-         testDecomposition (3, 6);
-         testDecomposition (5, 3);
-         testDecomposition (3, 5);
-         testDecomposition (4, 4);
-         testDecomposition (3, 3);
-         testDecomposition (2, 2);
-         testDecomposition (1, 1);
-      }
+      testDecomposition (4, 3);
+      testDecomposition (3, 4);
+      testDecomposition (6, 3);
+      testDecomposition (3, 6);
+      testDecomposition (5, 3);
+      testDecomposition (3, 5);
+      testDecomposition (4, 4);
+      testDecomposition (3, 3);
+      testDecomposition (2, 2);
+      testDecomposition (1, 1);
+      testDecomposition (1, 2);
+      testDecomposition (2, 1);
+      testDecomposition (3, 2);
+      testDecomposition (3, 1);
+      testDecomposition (2, 3);
+      testDecomposition (1, 3);
    }
 
    public static void main (String[] args) {

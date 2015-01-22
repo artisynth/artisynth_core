@@ -148,6 +148,14 @@ public interface MatrixBlock extends DenseMatrix, Clonable {
    public void setBlockNumber (int num);
 
    /**
+    * Multiplies M1 by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulAdd (Matrix M1, Matrix M2);
+
+   /**
     * Pre-multiplies a column vector by this matrix block and adds the result to
     * a set of existing values. The column vector values are supplied by the
     * argument <code>x</code>, starting at location <code>xIdx</code>, and
@@ -362,6 +370,13 @@ public interface MatrixBlock extends DenseMatrix, Clonable {
    // * @return number of non-zero values in the block
    // */
    // public int numNonZeroVals();
+
+   /**
+    * Creates a new MatrixBlock which is the transpose of this one.
+    * If the MatrixBlock has a fixed size, the transpose should have
+    * a fixed size as well.
+    */
+   public MatrixBlock createTranspose();
 
    /**
     * Creates a clone of this MatrixBlock, which duplicates the size, storage

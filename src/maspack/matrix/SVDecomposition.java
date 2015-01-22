@@ -29,10 +29,6 @@ public class SVDecomposition {
    private int mind; // min (m,n)
    private int maxd; // max (m,n)
 
-   private boolean computeU = false;
-   private boolean computeV = false;
-   private int flags = 0;
-
    private double tol = 100 * DOUBLE_PREC;
 
    private double sigmax;
@@ -43,11 +39,15 @@ public class SVDecomposition {
    private boolean transposedSolution = false;
 
    private double[] buf = new double[0];
-   private double[] sig = new double[0];
    private double[] vec = new double[0];
    private double[] wec = new double[0];
    private int[] sigIndices = new int[0];
+   // col and row beta hold the beta values for the HouseHolder vectors
+   // used to bidiagonalize the matrix
+   private double[] colBeta = new double[0];
+   private double[] rowBeta = new double[0];
 
+   private VectorNd sig = new VectorNd();
    private MatrixNd U_ = new MatrixNd (0, 0);
    private MatrixNd V_ = new MatrixNd (0, 0);
    private MatrixNd B_ = new MatrixNd (0, 0);
@@ -59,18 +59,20 @@ public class SVDecomposition {
    private double S;
    private double C;
 
-   // private MatrixNd SubMat = new MatrixNd(0,0);
-   private SubMatrixNd SubMat = new SubMatrixNd();
-
    /**
-    * Specifies that the matrix U should not be computed.
+    * Specifies that matrix U should not be computed.
     */
    public static final int OMIT_U = 0x1;
 
    /**
-    * Specifies that the matrix V should not be computed.
+    * Specifies that matrix V should not be computed.
     */
    public static final int OMIT_V = 0x2;
+   
+   /**
+    * Specifies that neither matrix U nor matrix V should not be computed.
+    */
+   public static final int OMIT_UV = OMIT_U | OMIT_V;
 
    /**
     * The default iteration limit for computing the SVD.
@@ -78,30 +80,6 @@ public class SVDecomposition {
    public static final int DEFAULT_ITERATION_LIMIT = 10;
 
    private int iterLimit = DEFAULT_ITERATION_LIMIT;
-
-   /**
-    * Sets the flags associated with SVD computation. The flags presently
-    * supported include {@link #OMIT_V OMIT_V} and {@link #OMIT_U OMIT_U}.
-    * 
-    * @param flags
-    * an or-ed combination of flags.
-    * @see #getFlags
-    */
-   public void setFlags (int flags) {
-      computeU = ((flags & OMIT_U) == 0);
-      computeV = ((flags & OMIT_V) == 0);
-      this.flags = flags;
-   }
-
-   /**
-    * Gets the flags associated with SVD computation.
-    * 
-    * @return flags
-    * @see #setFlags
-    */
-   public int getFlags() {
-      return this.flags;
-   }
 
    /**
     * Gets the iteration limit for SVD computations. The actual number of
@@ -130,48 +108,35 @@ public class SVDecomposition {
    }
 
    /**
-    * Creates an SVDecomposition and initializes it to the SVD for the matrix M.
+    * Creates an SVDecomposition and initializes it to the SVD for the matrix
+    * M.
     * 
     * @param M
     * matrix to perform the SVD on
     */
    public SVDecomposition (Matrix M) {
-      setFlags (0);
       factor (M);
    }
 
    /**
-    * Creates an SVDecomposition, sets the computation flags, and initializes it
-    * to the SVD for the matrix M.
+    * Creates an SVDecomposition and initializes it to the SVD for the matrix
+    * M. Computation of U and/or V may be omitted by specifying the flags
+    * {@link #OMIT_U} and/or {@link #OMIT_V}.
     * 
     * @param M
     * matrix to perform the SVD on
     * @param flags
-    * flags associated with SVD computation
+    * flags controlling the factorization
     * @see #setFlags
     */
    public SVDecomposition (Matrix M, int flags) {
-      setFlags (flags);
-      factor (M);
-   }
-
-   /**
-    * Creates an uninitialized SVDecomposition with the specified computation
-    * flags.
-    * 
-    * @param flags
-    * flags associated with SVD computation
-    * @see #setFlags
-    */
-   public SVDecomposition (int flags) {
-      setFlags (flags);
+      factor (M, flags);
    }
 
    /**
     * Creates an uninitialized SVDecomposition.
     */
    public SVDecomposition() {
-      setFlags (0);
    }
 
    private void givens (double a, double b) {
@@ -198,8 +163,8 @@ public class SVDecomposition {
    private void givensCol (MatrixNd Q, int k, int l) {
       // post-multiples A by a Givens rotation
       // 
-      // [ c s ]
-      // [ ]
+      // [ c s  ]
+      // [      ]
       // [ -s c ]
       //
 
@@ -217,12 +182,26 @@ public class SVDecomposition {
    }
 
    /**
-    * Peforms an SVD on the Matrix M.
+    * Peforms an SVD on the Matrix M. 
     * 
     * @param M
     * matrix to perform the SVD on
     */
    public void factor (Matrix M) {
+      factor (M, /*flags=*/0);
+   }
+
+   /**
+    * Peforms an SVD on the Matrix M. Computation of the matrices U and/or V
+    * may be omitted by specifying the flags {@link #OMIT_U} and/or {@link
+    * #OMIT_V}.
+    * 
+    * @param M
+    * matrix to perform the SVD on
+    * @param
+    * flags controlling the factorization.
+    */
+   public void factor (Matrix M, int flags) {
       // initialize the calculation
 
       m = M.rowSize();
@@ -239,10 +218,11 @@ public class SVDecomposition {
          mind = n;
          maxd = m;
       }
-      if (sig.length < mind) {
-         sig = new double[mind];
+      if (sigIndices.length < mind) {
          sigIndices = new int[mind];
       }
+      sig = new VectorNd(mind);
+      double[] sbuf = sig.getBuffer();
       if (vec.length < maxd) {
          vec = new double[maxd];
          wec = new double[maxd];
@@ -251,17 +231,21 @@ public class SVDecomposition {
       vtmp.setSize (mind);
       btmp.setSize (m);
       xtmp.setSize (n);
-      if (computeU) {
-         U_.setSize (m, mind);
-         // U_ = new MatrixNd (m, mind);
+      if ((flags & OMIT_U) == 0) {
+         U_ = new MatrixNd (m, mind);
          U_.setIdentity();
       }
-      if (computeV) {
-         V_.setSize (n, mind);
+      else {
+         U_ = null;
+      }
+      if ((flags & OMIT_V) == 0) {
          V_ = new MatrixNd (n, mind);
          V_.setIdentity();
       }
-
+      else {
+         V_ = null;
+      }
+      
       if (m >= n) {
          M.get (buf);
          transposedSolution = false;
@@ -289,27 +273,13 @@ public class SVDecomposition {
       B_.setBuffer (m, n, buf, n);
       bidiagonalize (B_);
 
-      if (computeU) {
+      if (U_ != null) {
          houseRowAccum (U_, buf, m, n);
-         // System.out.println ("U_=[\n" + U_.toString("%8.4f") + "]");
       }
-      if (computeV) {
+      if (V_ != null) {
          houseColAccum (V_, buf, n);
          V_.transpose();
       }
-
-      // MatrixNd B = new MatrixNd (m, n);
-      // for (int i=0; i<mind; i++)
-      // { B.set (i, i, buf[i*n+i]);
-      // if (i<mind-1)
-      // { B.set (i, i+1, buf[i*n+i+1]);
-      // }
-      // }
-
-      // System.out.println ("U=[\n" + U_.toString("%9.6f") + "]");
-      // System.out.println ("B=[\n" + B.toString("%9.6f") + "]");
-      // System.out.println ("V=[\n" + V_.toString("%9.6f") + "]");
-      // System.out.println ("*****");
 
       // estimate matrix norm
       double anorm = 0;
@@ -383,80 +353,72 @@ public class SVDecomposition {
          }
       }
 
-      {
-         double s;
+      double s;
 
-         sigdet = (n > 1 ? -1 : 1);
-         for (j = 0; j < n; j++) {
-            s = buf[j * n + j];
-            sigdet *= s;
-            if (s < 0) {
-               s = -s;
-               if (computeV) {
-                  int vw = V_.width;
-                  for (i = 0; i < n; i++) {
-                     V_.buf[i * vw + j] = -V_.buf[i * vw + j];
-                  }
-               }
+      sigdet = 1;
+      // start by setting the sign of the determinant according to
+      // the number of non-zero householder reflections
+      if (n > 1) {
+         for (j=0; j<n-1; j++) {
+            if (colBeta[j] != 0) {
+               sigdet = -sigdet;
             }
-            sig[j] = s;
-            sigIndices[j] = j;
          }
-
-         // bubble sort
-         for (i = 0; i < n - 1; i++) {
-            for (j = i + 1; j < n; j++) {
-               if (sig[i] < sig[j]) {
-                  double tmp = sig[i];
-                  sig[i] = sig[j];
-                  sig[j] = tmp;
-                  int idx = sigIndices[i];
-                  sigIndices[i] = sigIndices[j];
-                  sigIndices[j] = idx;
+         for (i=0; i<n-2; i++) {
+            if (rowBeta[i] != 0) {
+               sigdet = -sigdet;
+            }
+         }
+      }
+      for (j = 0; j < n; j++) {
+         s = buf[j * n + j];
+         sigdet *= s;
+         if (s < 0) {
+            s = -s;
+            if (V_ != null) {
+               int vw = V_.width;
+               for (i = 0; i < n; i++) {
+                  V_.buf[i * vw + j] = -V_.buf[i * vw + j];
                }
             }
          }
+         sbuf[j] = s;
+         sigIndices[j] = j;
+      }
 
-         // check to see if sort was necessary
-         boolean orderChanged = false;
-         for (j = 0; j < n; j++) {
-            if (sigIndices[j] != j) {
-               orderChanged = true;
-               break;
+      // bubble sort
+      for (i = 0; i < n - 1; i++) {
+         for (j = i + 1; j < n; j++) {
+            if (sbuf[i] < sbuf[j]) {
+               double tmp = sbuf[i];
+               sbuf[i] = sbuf[j];
+               sbuf[j] = tmp;
+               int idx = sigIndices[i];
+               sigIndices[i] = sigIndices[j];
+               sigIndices[j] = idx;
             }
          }
-         if (orderChanged) { // System.out.println ("order changed");
+      }
+
+      // check to see if sort was necessary
+      boolean orderChanged = false;
+      for (j = 0; j < n; j++) {
+         if (sigIndices[j] != j) {
+            orderChanged = true;
+            break;
+         }
+      }
+      if (orderChanged) { // System.out.println ("order changed");
+         if (U_ != null) {
             U_.permuteColumns (sigIndices);
+         }
+         if (V_ != null) {
             V_.permuteColumns (sigIndices);
          }
-         sigmin = sig[mind - 1];
-         sigmax = sig[0];
-
-         // sigmin = Double.POSITIVE_INFINITY;
-         // sigmax = Double.NEGATIVE_INFINITY;
-         // // if n > 1 then there are an odd number of Householder
-         // // reflections, with net determinant -1
-         // sigdet = (n > 1 ? -1 : 1);
-         // for (j=0; j<n; j++)
-         // { s = buf[j*n+j];
-         // sigdet *= s;
-         // if (s < 0)
-         // { s = -s;
-         // if (computeV)
-         // { for (i=0; i<n; i++)
-         // { V_.buf[i*n+j] = -V_.buf[i*n+j];
-         // }
-         // }
-         // }
-         // if (s > sigmax)
-         // { sigmax = s;
-         // }
-         // if (s < sigmin)
-         // { sigmin = s;
-         // }
-         // sig[j] = s;
-         // }
       }
+      sigmin = sbuf[mind - 1];
+      sigmax = sbuf[0];
+
       if (transposedSolution) {
          swapUandV();
       }
@@ -498,7 +460,7 @@ public class SVDecomposition {
          al1 = al1next;
          ak1 = buf[(k) * w + k + base];
          givens (ak1, al1);
-         if (computeU) {
+         if (U_ != null) {
             givensCol (U_, k + ib, ib);
          }
          buf[(k) * w + k + base] = ak1 * C - al1 * S;
@@ -609,7 +571,7 @@ public class SVDecomposition {
          bk12 = S * bk11 + C * bk12;
          bk22 = C * bk22;
          bk11 = btmp;
-         if (computeV) {
+         if (V_ != null) {
             givensCol (V_, ib + k, ib + k + 1);
          }
 
@@ -625,7 +587,7 @@ public class SVDecomposition {
          bk22 = S * bk12 + C * bk22;
          bk23 = +C * bk23;
          bk12 = btmp;
-         if (computeU) {
+         if (U_ != null) {
             givensCol (U_, ib + k, ib + k + 1);
          }
 
@@ -661,20 +623,29 @@ public class SVDecomposition {
     * Gets the matrices associated with the SVD.
     * 
     * @param U
-    * left-hand orthogonal matrix
+    * If not <code>null</code>, returns the left-hand orthogonal matrix
     * @param svec
-    * vector giving the diagonal elements of S
+    * If not <code>null</code>, returns the diagonal elements of S
     * @param V
-    * right-hand orthogonal matrix (note that this is V, and not it's transpose
-    * V').
+    * If not <code>null</code>, returns the right-hand orthogonal matrix
+    * (note that this is V, and not it's transpose V^T).
     * @throws ImproperStateException
-    * if this SVDecomposition is uninitialized
+    * if this SVDecomposition is uninitialized, or if either U or V are requested
+    * but were not computed
     * @throws ImproperSizeException
     * if U, svec, or V are not of the proper dimension and cannot be resized.
     */
    public void get (DenseMatrix U, Vector svec, DenseMatrix V) {
       if (!initialized) {
          throw new ImproperStateException ("SVD not initialized");
+      }
+      if (V != null && V_ == null) {
+         throw new ImproperStateException (
+            "V requested but was not computed in the decomposition");
+      }
+      if (U != null && U_ == null) {
+         throw new ImproperStateException (
+            "U requested but was not computed in the decomposition");
       }
       if (U != null && (U.rowSize() != m || U.colSize() != mind)) {
          if (!U.isFixedSize()) {
@@ -711,134 +682,170 @@ public class SVDecomposition {
       }
    }
 
-
    /**
-    * Factors a matrix M and returns its eigen decomposition:
-    * <pre>
-    * M = U E U^T
-    * </pre>
-    * where U is orthogonal and E is a diagonal matrix of eigenvalues. It is
-    * assumed that M is symmetric. If M is not symmetric, then a symmetric matrix
-    * is formed from
-    * <pre>
-    * 1/2 (M + M')
-    * </pre>
+    * Returns the current U matrix associated with this decomposition. If U was
+    * not computed, returns <code>null</code>. Subsequent factorizations will
+    * cause a different U to be created. The returned matrix should not be
+    * modified if any subsequent calls are to be made which depend on U
+    * (including solve and inverse methods).
     *
-    * @param M matrix to be factored
-    * @param U
-    * left-hand orthogonal matrix (optional, may be null)
-    * @return eigenvalues for the matrix
-    * @throws IllegalArgumentException 
-    * if M is not square
-    * @throws ImproperSizeException
-    * if U is not of the proper dimension and cannot be resized.
-    */
-   public VectorNd getEigenValues (DenseMatrix M, DenseMatrix U) {
-      if (M.rowSize() != M.colSize()) {
-         throw new IllegalArgumentException ("M is not square");
-      }
-      if (!M.isSymmetric(0)) {
-         int size = M.rowSize();
-         MatrixNd MS = new MatrixNd (size, size);
-         for (int i=0; i<size; i++) {
-            for (int j=i; j<size; j++) {
-               if (i == j) {
-                  MS.set (i, j, M.get(i, j));
-               }
-               else {
-                  double val = (M.get(i,j) + M.get(j,i))/2;
-                  MS.set (i, j, val);
-                  MS.set (j, i, val);
-               }
-            }
-         }
-         factor (MS);
-      }
-      else {
-         factor (M);
-      }
-      return getEigenValues (U);
-   }
-
-   /**
-    * Gets the eigen decomposition for the currently factore (symmetric) matrix M:
-    * <pre>
-    * M = U E U^T
-    * </pre>
-    * where U is orthogonal and E is a diagonal matrix of eigenvalues. It is
-    * assumed that <code>factor(M)</code> was called previously, and
-    * that M is symmetric.
-    * 
-    * @param U
-    * left-hand orthogonal matrix (optional, may be null)
-    * @return eigenvalues for the matrix
+    * @return current U matrix
     * @throws ImproperStateException
-    * if this SVDecomposition does not contain a factored matrix, or if
-    * that matrix is not square
-    * @throws ImproperSizeException
-    * if U is not of the proper dimension and cannot be resized.
+    * if this SVDecomposition is uninitialized
     */
-   public VectorNd getEigenValues (DenseMatrix U) {
+   public MatrixNd getU() {
       if (!initialized) {
          throw new ImproperStateException ("SVD not initialized");
       }
-      if (m != n) {
-         throw new ImproperStateException ("Original M matrix not square");
-      }
-      VectorNd evec = new VectorNd (m);
-      if (U != null && (U.rowSize() != m || U.colSize() != mind)) {
-         if (!U.isFixedSize()) {
-            U.setSize (m, mind);
-         }
-         else {
-            throw new ImproperSizeException ("Incompatible dimensions");
-         }
-      }
-      if (U != null) {
-         U.set (U_);
-      }
-      double[] ubuf = U_.getBuffer();
-      double[] vbuf = V_.getBuffer();
-      for (int j=0; j<n; j++) {
-         double dot = 0;
-         // U(:,j) should equal -V(:,j) or V(:,j). Determine which
-         // by taking the dot product
-         for (int i=0; i<n; i++) {
-            dot += ubuf[i*n+j]*vbuf[i*n+j];
-         }
-         evec.set (j, dot >= 0 ? sig[j] : -sig[j]);
-      }
-      boolean sort = true;
-      if (sort) {
-         double[] etmp = new double[n];
-         double[] vtmp = new double[n];
-         int[] perm = new int[n];
-         int kf = 0;
-         int ke = n-1;
-         for (int j=0; j<n; j++) {
-            if (evec.get(j) < 0) {
-               perm[ke] = j;
-               etmp[ke] = evec.get(j);
-               if (U != null) {
-                  U_.getColumn (j, vtmp);
-                  U.setColumn (ke, vtmp);
-               }
-               ke--;
-            }
-            else {
-               perm[kf] = j;
-               etmp[kf] = evec.get(j);
-               if (U != null) {
-                  U_.getColumn (j, vtmp);
-                  U.setColumn (kf, vtmp);
-               }
-               kf++;
-            }
-         }
-         evec.set (etmp);
-      }
-      return evec;
+      return U_;
    }
+
+   /**
+    * Returns the current V matrix associated with this decomposition. If V was
+    * not computed, returns <code>null</code>. Subsequent factorizations will
+    * cause a different V to be created. The returned matrix should not be
+    * modified if any subsequent calls are to be made which depend on V
+    * (including solve and inverse methods).
+    *
+    * @return current V matrix
+    * @throws ImproperStateException
+    * if this SVDecomposition is uninitialized
+    */
+   public MatrixNd getV() {
+      if (!initialized) {
+         throw new ImproperStateException ("SVD not initialized");
+      }
+      return V_;
+   }
+
+   /**
+    * Returns the current singular values associated with this
+    * decomposition. Subsequent factorizations will cause a different vector to
+    * be created. The returned vector should not be modified if any subsequent
+    * calls are to be made which depend on it (including solve and inverse
+    * methods).
+    *
+    * @return current singular values
+    * @throws ImproperStateException
+    * if this SVDecomposition is uninitialized
+    */
+   public VectorNd getS() {
+      if (!initialized) {
+         throw new ImproperStateException ("SVD not initialized");
+      }
+      return sig;
+   }
+
+   /**
+    * Convenience method that creates an SVDecomposition, factors it for the
+    * matrix M, and stores the resulting U, S and V values into the
+    * corresponding arguments. If the arguments U and/or V are specified
+    * as <code>null</code>, then U and/or V will not be computed.
+    *
+    * @param U
+    * If not <code>null</code>, returns the left-hand orthogonal matrix
+    * @param svec
+    * If not <code>null</code>, returns the diagonal elements of S
+    * @param V
+    * If not <code>null</code>, returns the right-hand orthogonal matrix
+    * (note that this is V, and not it's transpose V^T).
+    * @param M matrix to be factored
+    * @return the resulting SVDecomposition
+    */
+   public static SVDecomposition factor (
+      DenseMatrix U, Vector svec, DenseMatrix V, Matrix M) {
+      int flags = 0;
+      if (U == null) {
+         flags |= OMIT_U;
+      }
+      if (V == null) {
+         flags |= OMIT_V;
+      }
+      SVDecomposition svd = new SVDecomposition (M, flags);
+      svd.get (U, svec, V);
+      return svd;
+   }
+
+
+//   /**
+//    * Gets the eigen decomposition for the currently factore (symmetric) matrix M:
+//    * <pre>
+//    * M = U E U^T
+//    * </pre>
+//    * where U is orthogonal and E is a diagonal matrix of eigenvalues. It is
+//    * assumed that <code>factor(M)</code> was called previously, and
+//    * that M is symmetric.
+//    * 
+//    * @param U
+//    * left-hand orthogonal matrix (optional, may be null)
+//    * @return eigenvalues for the matrix
+//    * @throws ImproperStateException
+//    * if this SVDecomposition does not contain a factored matrix, or if
+//    * that matrix is not square
+//    * @throws ImproperSizeException
+//    * if U is not of the proper dimension and cannot be resized.
+//    */
+//   public VectorNd getEigenValues (DenseMatrix U) {
+//      if (!initialized) {
+//         throw new ImproperStateException ("SVD not initialized");
+//      }
+//      if (m != n) {
+//         throw new ImproperStateException ("Original M matrix not square");
+//      }
+//      VectorNd evec = new VectorNd (m);
+//      if (U != null && (U.rowSize() != m || U.colSize() != mind)) {
+//         if (!U.isFixedSize()) {
+//            U.setSize (m, mind);
+//         }
+//         else {
+//            throw new ImproperSizeException ("Incompatible dimensions");
+//         }
+//      }
+//      if (U != null) {
+//         U.set (U_);
+//      }
+//      double[] ubuf = U_.getBuffer();
+//      double[] vbuf = V_.getBuffer();
+//      for (int j=0; j<n; j++) {
+//         double dot = 0;
+//         // U(:,j) should equal -V(:,j) or V(:,j). Determine which
+//         // by taking the dot product
+//         for (int i=0; i<n; i++) {
+//            dot += ubuf[i*n+j]*vbuf[i*n+j];
+//         }
+//         evec.set (j, dot >= 0 ? sig.get(j) : -sig.get(j));
+//      }
+//      boolean sort = true;
+//      if (sort) {
+//         double[] etmp = new double[n];
+//         double[] vtmp = new double[n];
+//         int[] perm = new int[n];
+//         int kf = 0;
+//         int ke = n-1;
+//         for (int j=0; j<n; j++) {
+//            if (evec.get(j) < 0) {
+//               perm[ke] = j;
+//               etmp[ke] = evec.get(j);
+//               if (U != null) {
+//                  U_.getColumn (j, vtmp);
+//                  U.setColumn (ke, vtmp);
+//               }
+//               ke--;
+//            }
+//            else {
+//               perm[kf] = j;
+//               etmp[kf] = evec.get(j);
+//               if (U != null) {
+//                  U_.getColumn (j, vtmp);
+//                  U.setColumn (kf, vtmp);
+//               }
+//               kf++;
+//            }
+//         }
+//         evec.set (etmp);
+//      }
+//      return evec;
+//   }
 
    /**
     * Computes the condition number of the original matrix M associated with
@@ -889,6 +896,20 @@ public class SVDecomposition {
       return sigdet;
    }
 
+   private void checkForUandV() {
+      if (!initialized) {
+         throw new ImproperStateException ("SVD not initialized");
+      }
+      if (V_ == null) {
+         throw new ImproperStateException (
+            "V was not computed in the decomposition");
+      }
+      if (U_ == null) {
+         throw new ImproperStateException (
+            "U was not computed in the decomposition");
+      }
+   }
+
    /**
     * Solves the linear equation <br>
     * M x = b <br>
@@ -901,15 +922,13 @@ public class SVDecomposition {
     * constant vector
     * @return false if M is singular (within working precision)
     * @throws ImproperStateException
-    * if this decomposition is uninitialized
+    * if this decomposition is uninitialized, or if U or V were not computed
     * @throws ImproperSizeException
     * if b does not have a size compatible with M, or if x does not have a size
     * compatible with M and cannot be resized.
     */
    public boolean solve (VectorNd x, VectorNd b) {
-      if (!initialized) {
-         throw new ImproperStateException ("SVD not initialized");
-      }
+      checkForUandV();
       if (b.size() != n) {
          throw new ImproperSizeException ("improper size for b");
       }
@@ -923,7 +942,7 @@ public class SVDecomposition {
       }
       vtmp.mulTranspose (U_, b);
       for (int i = 0; i < vtmp.size; i++) {
-         vtmp.buf[i] /= sig[i];
+         vtmp.buf[i] /= sig.get(i);
       }
       x.mul (V_, vtmp);
       return sigmin != 0;
@@ -942,16 +961,14 @@ public class SVDecomposition {
     * @return false if M is singular (within working precision) and true
     * otherwise.
     * @throws ImproperStateException
-    * if this decomposition is uninitialized
+    * if this decomposition is uninitialized, or if U or V were not computed
     * @throws ImproperSizeException
     * if B has a different number of rows than M, or if X has a different number
     * of rows than M or a different number of columns than B and cannot be
     * resized.
     */
    public boolean solve (MatrixNd X, MatrixNd B) {
-      if (!initialized) {
-         throw new ImproperStateException ("SVD not initialized");
-      }
+      checkForUandV();
       if (B.rowSize() != n) {
          throw new ImproperSizeException ("improper size for B");
       }
@@ -967,7 +984,7 @@ public class SVDecomposition {
          B.getColumn (j, btmp);
          vtmp.mulTranspose (U_, btmp);
          for (int i = 0; i < vtmp.size; i++) {
-            vtmp.buf[i] /= sig[i];
+            vtmp.buf[i] /= sig.get(i);
          }
          xtmp.mul (V_, vtmp);
          X.setColumn (j, xtmp);
@@ -983,15 +1000,13 @@ public class SVDecomposition {
     * matrix in which the inverse is stored
     * @return false if M is singular (within working precision)
     * @throws ImproperStateException
-    * if this decomposition is uninitialized
+    * if this decomposition is uninitialized, or if U or V were not computed
     * @throws ImproperSizeException
     * if M is not square, or if R does not have the same size as M and cannot be
     * resized.
     */
    public boolean inverse (MatrixNd R) {
-      if (!initialized) {
-         throw new ImproperStateException ("SVD not initialized");
-      }
+      checkForUandV();
       if (m != n) {
          throw new ImproperSizeException ("Matrix not square");
       }
@@ -1006,7 +1021,7 @@ public class SVDecomposition {
       for (int j = 0; j < n; j++) {
          U_.getRow (j, vtmp);
          for (int i = 0; i < vtmp.size; i++) {
-            vtmp.buf[i] /= sig[i];
+            vtmp.buf[i] /= sig.get(i);
          }
          xtmp.mul (V_, vtmp);
          R.setColumn (j, xtmp);
@@ -1022,15 +1037,13 @@ public class SVDecomposition {
     * matrix in which the inverse is stored
     * @return false if M is singular (within working precision)
     * @throws ImproperStateException
-    * if this decomposition is uninitialized
+    * if this decomposition is uninitialized, or if U or V were not computed
     * @throws ImproperSizeException
     * if M is not square, or if R does not have the same size as M and cannot be
     * resized.
     */
    public boolean pseudoInverse (MatrixNd R) {
-      if (!initialized) {
-         throw new ImproperStateException ("SVD not initialized");
-      }
+      checkForUandV();
       if (m != n) {
          throw new ImproperSizeException ("Matrix not square");
       }
@@ -1045,8 +1058,8 @@ public class SVDecomposition {
       for (int j = 0; j < n; j++) {
          U_.getRow (j, vtmp);
          for (int i = 0; i < vtmp.size; i++) {
-            if (sig[i] != 0) {
-               vtmp.buf[i] /= sig[i];
+            if (sig.get(i) != 0) {
+               vtmp.buf[i] /= sig.get(i);
             } else {
                vtmp.buf[i] = 0;  // multiply by 0
             }
@@ -1074,81 +1087,45 @@ public class SVDecomposition {
       // stored implictly in buf, this routine computes Q^T
 
       int j, k;
-      // int w = n;
-      int firstCol;
-
-      // SubMat.setBuffer (m, n, Q.buf);
-      SubMat.setDimensions (0, 0, m, n, Q);
-
-      if (m > n) {
-         firstCol = n - 1;
-         // SubMat.makeSubMatrix (n, n, m-n, 0);
-         SubMat.resetDimensions (n, n, m - n, 0);
-      }
-      else {
-         firstCol = n - 2;
-         // SubMat.makeSubMatrix (n-1, n-1, m-n+1, 1);
-         SubMat.resetDimensions (n - 1, n - 1, m - n + 1, 1);
-      }
-      for (j = firstCol; j >= 0; j--) {
-         vec[0] = 1;
-         for (k = 1; k < m - j; k++) {
-            vec[k] = buf[(j + k) * n + j];
+      int firstCol = (m > n ? n-1 : n-2);
+      for (j=firstCol; j >= 0; j--) {
+         vec[j] = 1;
+         for (k = j+1; k < m; k++) {
+            vec[k] = buf[k*n + j];
          }
-         // SubMat.makeSubMatrix (-1, -1, SubMat.nrows+1, SubMat.ncols+1);
-         SubMat.resetDimensions (-1, -1, SubMat.nrows + 1, SubMat.ncols + 1);
-         // SubMat.rowHouseMul (vec, wec);
-         SubMat.rowHouseMul (vec, wec);
-         // houseRow (&Q[j*Qw+j], v, m-j, n-j, Qw);
+         QRDecomposition.housePreMul (Q, j, colBeta[j], vec, wec);
       }
-      SubMat.clear();
    }
 
    private void houseColAccum (MatrixNd Q, double[] buf, int n) {
       // given a set of householder column transforms P0 P1 ... Pn-1 = Q
       // stored implictly in buf, this routine computes Q^T
-
-      int j, k;
-      // int w = n;
-
-      // SubMat.setBuffer (n, n, Q.buf);
-      // SubMat.makeSubMatrix (n-1, n-1, 1, 1);
-      SubMat.setDimensions (n - 1, n - 1, 1, 1, Q);
-
-      for (j = n - 3; j >= 0; j--) {
-         vec[0] = 1;
-         for (k = j + 2; k < n; k++) {
-            vec[k - j - 1] = buf[j * n + k];
+      int i, k;
+      for (i = n - 3; i >= 0; i--) {
+         vec[i+1] = 1;
+         for (k=i+2; k<n; k++) {
+            vec[k] = buf[i*n + k];
          }
-         // SubMat.makeSubMatrix (-1, -1, SubMat.nrows+1, SubMat.ncols+1);
-         // SubMat.colHouseMul (vec, wec);
-         SubMat.resetDimensions (-1, -1, SubMat.nrows + 1, SubMat.ncols + 1);
-         SubMat.colHouseMul (vec, wec);
+         QRDecomposition.housePostMul (Q, i+1, rowBeta[i], vec, wec);
       }
-      SubMat.clear();
    }
 
    private void bidiagonalize (MatrixNd B) {
       int nrows = B.nrows;
       int ncols = B.ncols;
 
-      // SubMat.setBuffer (nrows, ncols, buf);
-      SubMat.setDimensions (0, 0, nrows, ncols, B);
 
       int columnLimit = (nrows == ncols ? ncols - 1 : ncols);
+      colBeta = new double[ncols]; // only need columnLimit
+      rowBeta = new double[ncols]; // only need max(0,ncols-2)
       for (int j = 0; j < columnLimit; j++) {
-         SubMat.rowHouseReduce (vec, wec, true);
+         colBeta[j] = QRDecomposition.rowHouseReduce (B, j, j, vec, wec);
          if (j < columnLimit - 1) {
-            // SubMat.makeSubMatrix (0, 1, SubMat.nrows, SubMat.ncols-1);
-            SubMat.resetDimensions (0, 1, SubMat.nrows, SubMat.ncols - 1);
             if (j < ncols - 2) {
-               SubMat.colHouseReduce (vec, wec, true);
+               rowBeta[j]=QRDecomposition.colHouseReduce (B, j, j+1, vec, wec);
             }
-            // SubMat.makeSubMatrix (1, 0, SubMat.nrows-1, SubMat.ncols);
-            SubMat.resetDimensions (1, 0, SubMat.nrows - 1, SubMat.ncols);
          }
       }
-      SubMat.clear();
    }
 
 }

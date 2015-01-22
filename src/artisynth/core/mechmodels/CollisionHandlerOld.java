@@ -37,7 +37,6 @@ import maspack.render.RenderProps;
 import maspack.render.Renderable;
 import maspack.util.DataBuffer;
 import maspack.util.FunctionTimer;
-import maspack.util.IntHolder;
 import artisynth.core.femmodels.FemContactConstraint;
 import artisynth.core.femmodels.FemMesh;
 import artisynth.core.femmodels.FemMeshVertex;
@@ -135,7 +134,7 @@ implements Constrainer {
       myLineSegments.add (new LineSeg (pnt0, nrm, len));
    }
 
-   void clearLineSegments() {
+   void clearRenderData() {
       myLineSegments = new ArrayList<LineSeg>();
    }
 
@@ -293,7 +292,7 @@ implements Constrainer {
       FemModel3d myFemMod;
       PolygonalMesh myMesh;
       
-      boolean myContactsChanged = true;
+      //boolean myContactsChanged = true;
       private FemContactConstraint myCstub;
 
       LinkedHashMap<FemContactConstraint,FemContactConstraint> myConstraints;
@@ -570,7 +569,7 @@ implements Constrainer {
 
       public void addContact (FemContactConstraint c) {
          myConstraints.put (c, c);
-         myContactsChanged = true;
+         //myContactsChanged = true;
       }
 
       /**
@@ -584,34 +583,34 @@ implements Constrainer {
             FemContactConstraint c = it.next();
             if (!c.isActive()) {
                it.remove();
-               myContactsChanged = true;
+               //myContactsChanged = true;
             }
          }
       }
 
-      /**
-       * Notification that the components associated with a specific contact
-       * constraint has changed, and therefore the GT matrix will have a
-       * different structure for the next step.
-       */
-      void notifyContactsChanged() {
-         myContactsChanged = true;
-      }
+//      /**
+//       * Notification that the components associated with a specific contact
+//       * constraint has changed, and therefore the GT matrix will have a
+//       * different structure for the next step.
+//       */
+//      void notifyContactsChanged() {
+//         //myContactsChanged = true;
+//      }
 
-      /**
-       * Returns true if the contact structure has changed such that the GT
-       * matrix will have a different structure and will have to be reanalyzed.
-       * Contact structure will change if contact constraints are added or
-       * removed, or if the components associated with a specific constraint
-       * have changed.
-       * 
-       * @return true if contact structure has changed.
-       */
-      boolean contactsHaveChanged() {
-         boolean changed = myContactsChanged;
-         myContactsChanged = false;
-         return changed;
-      }
+//      /**
+//       * Returns true if the contact structure has changed such that the GT
+//       * matrix will have a different structure and will have to be reanalyzed.
+//       * Contact structure will change if contact constraints are added or
+//       * removed, or if the components associated with a specific constraint
+//       * have changed.
+//       * 
+//       * @return true if contact structure has changed.
+//       */
+//      boolean contactsHaveChanged() {
+//         boolean changed = myContactsChanged;
+//         myContactsChanged = false;
+//         return changed;
+//      }
 
       /**
        * Clears all the contact constraint data. This is done whenever there is
@@ -651,7 +650,7 @@ implements Constrainer {
 
          clearContactData();
          int nc = data.zget();
-         myContactsChanged = (data.zget() == 1);
+         data.zget(); // was used to set myContactsChanged
          for (int i=0; i<nc; i++) {
             FemContactConstraint c = new FemContactConstraint();
             c.setAuxStateOld (data, model, mesh0, mesh1, other);
@@ -668,14 +667,14 @@ implements Constrainer {
          newData.zput (1); // contacts have changed
       }
 
-      public boolean hasActiveContacts() {
-         for (FemContactConstraint fcc : myConstraints.values()) {
-            if (fcc.isActive()) {
-               return true;
-            }
-         }
-         return false;
-      }
+//      public boolean hasActiveContacts() {
+//         for (FemContactConstraint fcc : myConstraints.values()) {
+//            if (fcc.isActive()) {
+//               return true;
+//            }
+//         }
+//         return false;
+//      }
 
    }
 
@@ -869,6 +868,15 @@ implements Constrainer {
       return maxpen;
    }
 
+   public void removeInactiveContacts() {
+      if (myFemData0 != null) {
+         myFemData0.removeInactiveContacts();
+      }
+      if (myFemData1 != null) {
+         myFemData1.removeInactiveContacts();
+      }
+   }
+
    /**
     * Implements projectPosConstraints for the deformable-rigidBody case.
     */
@@ -879,7 +887,7 @@ implements Constrainer {
       double maxpen = 0;
 
       // deactivate constraints; these may be reactivated later
-      clearLineSegments();
+      clearRenderData();
       femData.clearContactActivity();
 
       // get contacts
@@ -927,7 +935,7 @@ implements Constrainer {
       double maxpen = 0;
 
       // deactvate constraints; these may be reactivated later
-      clearLineSegments();
+      clearRenderData();
       femData0.clearContactActivity();
       femData1.clearContactActivity();
 
@@ -1119,9 +1127,9 @@ implements Constrainer {
       else { // mark constraint as active again
          cons.setActive (true);
       }
-      if (cons.componentsChanged()) {
-         data.notifyContactsChanged();
-      }
+//      if (cons.componentsChanged()) {
+//         data.notifyContactsChanged();
+//      }
       cons.setDistance (dist);
    }
    
@@ -1441,7 +1449,7 @@ implements Constrainer {
                }
                disp.sub (node.getPosition(), cpp.position);
                double dist = disp.dot(normal);
-               
+
                cons.setVertexBody (normal, myMu, vtx, 1, body, loc, 1);
                if (contactHasDOF (cons)) {
                   if (nrmlLen != 0) {
@@ -1506,6 +1514,7 @@ implements Constrainer {
                loc.transform (XBW, cpp.vertex.pnt);
                disp.sub (loc, cpp.position);
                double dist = disp.dot(normal);
+
                activateContact (cons, dist, femData);
                if (-dist > maxpen) {
                   maxpen = dist;
@@ -1549,18 +1558,18 @@ implements Constrainer {
       return maxpen;
    }
    
-   public boolean hasActiveContacts() {
-      if (myFemData0 != null && myFemData0.hasActiveContacts()) {
-         return true;
-      }
-      if (myFemData1 != null && myFemData1.hasActiveContacts()) {
-         return true;
-      }
-      if (isRigidBodyPair() && myRBContact != null) {
-         return myRBContact.hasActiveContact();
-      }
-      return false;
-   }
+//   public boolean hasActiveContacts() {
+//      if (myFemData0 != null && myFemData0.hasActiveContacts()) {
+//         return true;
+//      }
+//      if (myFemData1 != null && myFemData1.hasActiveContacts()) {
+//         return true;
+//      }
+//      if (isRigidBodyPair() && myRBContact != null) {
+//         return myRBContact.hasActiveContact();
+//      }
+//      return false;
+//   }
 
    /**
     * Notifies this CollisionPair that the component structure or activity has
@@ -1585,18 +1594,18 @@ implements Constrainer {
    }
 
    public int addBilateralConstraints (
-      SparseBlockMatrix GT, VectorNd dg, int numb, IntHolder changeCnt){
+      SparseBlockMatrix GT, VectorNd dg, int numb){
       if (myFemData0 != null) {
          numb = myFemData0.addBilateralConstraints (GT, dg, numb);
-         if (myFemData0.contactsHaveChanged()) {
-            changeCnt.value++;
-         }
+//         if (myFemData0.contactsHaveChanged()) {
+//            changeCnt.value++;
+//         }
       }
       if (myFemData1 != null) {
          numb = myFemData1.addBilateralConstraints (GT, dg, numb);
-         if (myFemData1.contactsHaveChanged()) {
-            changeCnt.value++;
-         }
+//         if (myFemData1.contactsHaveChanged()) {
+//            changeCnt.value++;
+//         }
       }
       // System.out.println ("CollisionPair.addBilaterals " + cnt);
       return numb;

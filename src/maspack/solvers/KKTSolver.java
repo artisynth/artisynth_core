@@ -18,6 +18,7 @@ import java.util.Arrays;
 
 public class KKTSolver {
    private static boolean myUseUmfpack = false;
+   public static boolean computeResidualMG = false;
 
    boolean myMDiagonalP = false;
    int mySizeM;
@@ -229,6 +230,13 @@ public class KKTSolver {
       int sizeMG = sizeM + numG;
       if (numG != 0) {
          GT.addNumNonZerosByRow (myLocalOffs, 0, Partition.Full, sizeM, numG);
+         // if (GT.colSize() == 5) {
+         //    System.out.println ("rowOffs:");
+         //    for (int i=0; i<sizeM; i++) {
+         //       System.out.print (myLocalOffs[i]+" "); 
+         //    }
+         //    System.out.println ("");
+         // }
          for (int i=sizeM; i<sizeMG; i++) {
             myLocalOffs[i] = 0;
          }
@@ -537,6 +545,55 @@ public class KKTSolver {
       return dosolve (vel, lam, the, null, bm, bg, bn, null, null);
    }
 
+   public double residual (
+      SparseBlockMatrix M, int sizeM, SparseBlockMatrix GT, VectorNd Rg,
+      SparseBlockMatrix NT, VectorNd Rn,
+      VectorNd vel, VectorNd lam, VectorNd the, VectorNd bm, VectorNd bg,
+      VectorNd bn) {
+
+      VectorNd resm = new VectorNd (sizeM);
+      VectorNd tmpm = new VectorNd (sizeM);
+      VectorNd resg = new VectorNd (GT.colSize());
+      VectorNd resn = new VectorNd (0);
+      M.mul (resm, vel, sizeM, sizeM);
+      GT.mul (tmpm, lam, sizeM, GT.colSize());
+      resm.sub (tmpm);
+      if (NT != null) {
+         NT.mul (tmpm, the, sizeM, NT.colSize());
+         resm.sub (tmpm);
+      }
+      resm.sub (bm);
+      GT.mulTranspose (resg, vel, GT.colSize(), sizeM);
+      resg.sub (bg);
+      if (Rg != null) {
+         for (int i=0; i<GT.colSize(); i++) {
+            resg.add (i, Rg.get(i)*lam.get(i));
+         }
+      }
+      if (NT != null) {
+         NT.mulTranspose (resn, vel, NT.colSize(), sizeM);
+         resn.sub (bn);
+         for (int i=0; i<NT.colSize(); i++) {
+            if (Rn != null) {
+               resn.add (i, Rn.get(i)*the.get(i));
+            }
+            // residual for an LCP is different - base it on
+            // the complemenatarity conditions
+            double w = resn.get(i);
+            double t = the.get(i);
+            double r = w < 0 ? w : 0;
+            if (t < 0 && t < r) {
+               r = t;
+            }
+            if (Math.abs(w*t) > Math.abs(r)) {
+               r = w*t;
+            }
+            resn.set (i, r);               
+         }
+      }
+      return Math.sqrt (resm.dot(resm) + resg.dot(resg) + resn.dot(resn));
+   }
+   
    /**
     * Solves the equality parts of a factored system.
     */
@@ -635,24 +692,7 @@ public class KKTSolver {
             xbuf[i + mySizeM] = bbuf[i];
          }
 
-         // // begin residual debug
-         // VectorNd r0 = new VectorNd();
-         // if (myMGy.size() == M.colSize()) {
-         //    M.mul (r0, myMGy);
-         //    r0.sub (myMGx);
-         // }
-         // // end 
-
          iterStatus = myPardiso.iterativeSolve (myVals, ybuf, xbuf, tolExp);
-
-         // // begin residual debug
-         // if (iterStatus > 0 && myMGy.size() == M.colSize()) {
-         //    VectorNd rf = new VectorNd();
-         //    M.mul (rf, myMGy);
-         //    rf.sub (myMGx);
-         //    System.out.printf ("r0=%g rf=%g\n", r0.norm(), rf.norm());
-         // }
-         // // end 
 
          if (iterStatus > 0) {
             bbuf = vel.getBuffer();
@@ -669,31 +709,12 @@ public class KKTSolver {
                myFirstIterativeTimeMsec = myIterativeTimeMsec;
             }
             myLastSolveWasIterative = true;
-            // double res = myPardiso.residual (
-            //    myRowOffs, myColIdxs, myVals, ybuf, xbuf, /*symmetric=*/true);
-            // System.out.println (
-            //    "Iterative solve with niter=" + iterStatus +
-            //    ", res=" + res + ", msec=" + myIterativeTimeMsec);
             return Status.SOLVED;
          }
-         // else {
-         //    System.out.printf (
-         //       "Iterative solve failed: %d %s\n", 
-         //       iterStatus, myPardiso.getErrorMessage());
-         // }
       }
       long t0 = System.nanoTime();
       factorMG (M, sizeM, GT, Rg);
       solveMG (vel, lam, bm, bg);
-
-      // // begin residual debug
-      // if (myMGy.size() == M.colSize()) {
-      //    VectorNd rf = new VectorNd();
-      //    M.mul (rf, myMGy);
-      //    rf.sub (myMGx);
-      //    System.out.printf ("rf=%g\n", rf.norm());
-      // }
-      // // end       
 
       long t1 = System.nanoTime();
 
@@ -704,9 +725,6 @@ public class KKTSolver {
       return Status.SOLVED;
    }
 
-   /**
-    * Solves the equality part of a factored system.
-    */
    private Status dosolve (
       VectorNd vel, VectorNd lam, VectorNd the, VectorNd phi,
       VectorNd bm, VectorNd bg, VectorNd bn, VectorNd bd, VectorNd flim) {
@@ -805,8 +823,14 @@ public class KKTSolver {
       // System.out.println ("LCP M=[\n" + myLcpM + "]");
       // System.out.println ("Q=" + myQ);
 
+      myDantzig.setComputeResidual (true);
       DantzigLCPSolver.Status status =
          myDantzig.solve (myZ, myLcpM, myQ, myZBasic);
+      myDantzig.setComputeResidual (false);
+      // System.out.println ("status=" + status + " res=" + myDantzig.getResidual());
+      // System.out.println ("M=\n" + myLcpM);
+      // System.out.println ("q=\n" + myQ);
+      // System.out.println ("z=\n" + myZ);
       if (status != DantzigLCPSolver.Status.SOLVED) {
          switch (status) {
             case NO_SOLUTION: {
@@ -1073,8 +1097,6 @@ public class KKTSolver {
          myRowIdxs[myLocalOffs[i]++] = myColIdxs[k];
       }
       myUmfpackVals = new double[fullNumVals];
-      // printStructure (System.out, myColOffs, myRowIdxs,
-      // myUmfpackVals.length);
    }
 
    private void loadUmfpackValues (int size, int numVals) {
@@ -1098,11 +1120,6 @@ public class KKTSolver {
          }
          myUmfpackVals[myLocalOffs[i]++] = myVals[k];
       }
-      // printStructure (System.out, myColOffs, myRowIdxs,
-      // myUmfpackVals.length);
-      // printValues (System.out, "%8.3f", myUmfpackVals,
-      // myColOffs, myRowIdxs, mySizeM + myNumG,
-      // myUmfpackVals.length);
    }
 
    public void printStructure (PrintStream ps) {
@@ -1143,6 +1160,17 @@ public class KKTSolver {
    public void printValues (PrintStream ps, String fmtStr) {
       printValues (
          ps, fmtStr, myVals, myRowOffs, myColIdxs, mySizeM + myNumG, myNumVals);
+   }
+
+
+   // for debugging
+   public MatrixNd getLinearMatrix() {
+      int size = mySizeM+myNumG;
+      MatrixNd KKT = new MatrixNd(size,size);
+      KKT.setCRSValues (
+         myVals, myColIdxs, myRowOffs, myNumVals, size,
+         Matrix.Partition.UpperTriangular);
+      return KKT;
    }
 
    public void printLinearProblem (
@@ -1249,6 +1277,13 @@ public class KKTSolver {
     */
    public void solveMG (VectorNd x, VectorNd b) {
       myMatrixSolver.solve (x, b);
+      if (computeResidualMG) {
+         double res = 
+            myPardiso.residual (
+               myRowOffs, myColIdxs, myVals, mySizeM+myNumG, 
+               x.getBuffer(), b.getBuffer(),(myTypeM & Matrix.SYMMETRIC) != 0);
+         System.out.println ("solveRes=" + res + " size="+(mySizeM+myNumG));
+      }
       // negate lam:
       double[] xbuf = x.getBuffer();
       for (int i = mySizeM; i < mySizeM + myNumG; i++) {
@@ -1256,7 +1291,7 @@ public class KKTSolver {
       }
    }
 
-   static boolean myDebugDone = false;
+   public static boolean myDebug = false;
 
    /**
     * Solve the system
@@ -1274,7 +1309,6 @@ public class KKTSolver {
     * 
     * This requires negating the value of lam from the original solve
     */
-
    public void solveMG (VectorNd xm, VectorNd xg, VectorNd bm, VectorNd bg) {
       double[] bbuf;
       double[] xbuf = myMGx.getBuffer();
@@ -1289,7 +1323,6 @@ public class KKTSolver {
          xbuf[i + mySizeM] = bbuf[i];
       }
       myMatrixSolver.solve (myMGy, myMGx);
-
       bbuf = xm.getBuffer();
       for (int i = 0; i < mySizeM; i++) {
          bbuf[i] = ybuf[i];
@@ -1298,13 +1331,6 @@ public class KKTSolver {
       for (int i = 0; i < myNumG; i++) {
          bbuf[i] = -ybuf[i + mySizeM];
       }
-
-      // Debugging for Pardiso bug
-//       if (myM != null && myGT != null) {
-//          double residual = KKTSolverTest.checkSolve (
-//             myM, mySizeM, myGT, null, xm, xg, null, bm, null);
-//          System.out.println ("KKT residual=" + residual);
-//       }
    }
 
    FunctionTimer timer = new FunctionTimer();

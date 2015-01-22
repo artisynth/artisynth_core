@@ -22,7 +22,7 @@ public interface Constrainer {
    public void getBilateralSizes (VectorNi sizes);
 
    public int addBilateralConstraints (
-      SparseBlockMatrix GT, VectorNd dg, int numb, IntHolder changeCnt);
+      SparseBlockMatrix GT, VectorNd dg, int numb);
 
    public int getBilateralInfo (ConstraintInfo[] ginfo, int idx);
 
@@ -35,18 +35,18 @@ public interface Constrainer {
    public void getUnilateralSizes (VectorNi sizes);
 
    public int addUnilateralConstraints (
-      SparseBlockMatrix NT, VectorNd dn, int numu, IntHolder changeCnt);
+      SparseBlockMatrix NT, VectorNd dn, int numu);
 
    public int getUnilateralInfo (ConstraintInfo[] ninfo, int idx);
 
    public int setUnilateralImpulses (VectorNd the, double h, int idx);
 
+   public int getUnilateralImpulses (VectorNd the, int idx);
+
    public int maxFrictionConstraintSets();
    
    public int addFrictionConstraints (
       SparseBlockMatrix DT, FrictionInfo[] finfo, int idx);
-
-   public int getUnilateralImpulses (VectorNd the, int idx);
 
    public double updateConstraints (double t, int flags);
 

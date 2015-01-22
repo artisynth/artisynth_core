@@ -127,7 +127,7 @@ class SymmetricMatrix3dTest {
       Matrix3d U = new Matrix3d();
       Matrix3d V = new Matrix3d();
       Vector3d s = new Vector3d();
-      SVDecomposition svd = new SVDecomposition (0);
+      SVDecomposition svd = new SVDecomposition ();
 
       FunctionTimer timer1 = new FunctionTimer();
       FunctionTimer timer2 = new FunctionTimer();

@@ -11,6 +11,7 @@ public class Hex3dBlock extends Fem3dBlock {
 
    public Hex3dBlock (String name) {
       super (name, "hex", 3, 1, 0);
+      //super (name, "hex", 1, 1, 0);
 
       
    }

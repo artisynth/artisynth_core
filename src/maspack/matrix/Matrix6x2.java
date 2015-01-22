@@ -312,6 +312,24 @@ public class Matrix6x2 extends DenseMatrixBase {
    /**
     * {@inheritDoc}
     */
+   public void set (double[] values) {
+      m00 = values[0];
+      m01 = values[1];
+      m10 = values[2];
+      m11 = values[3];
+      m20 = values[4];
+      m21 = values[5];
+      m30 = values[6];
+      m31 = values[7];
+      m40 = values[8];
+      m41 = values[9];
+      m50 = values[10];
+      m51 = values[11];
+   }
+
+   /**
+    * {@inheritDoc}
+    */
    public void setColumn (int j, double[] values) {
       switch (j) {
          case 0: {
@@ -816,6 +834,37 @@ public class Matrix6x2 extends DenseMatrixBase {
 
       m50 = M1.m50 - M2.m50;
       m51 = M1.m51 - M2.m51;
+   }
+
+   /**
+    * Multiplies M1 by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulAdd (Matrix M1, Matrix M2) {
+      MatrixMulAdd.mulAdd6x2 (this, M1, M2);
+   }
+
+   /**
+    * Sets this matrix to the transpose of M
+    *
+    * @param M
+    * matrix to take the transpose of
+    */
+   public void transpose (Matrix2x6 M) {
+      m00 = M.m00;
+      m01 = M.m10;
+      m10 = M.m01;
+      m11 = M.m11;
+      m20 = M.m02;
+      m21 = M.m12;
+      m30 = M.m03;
+      m31 = M.m13;
+      m40 = M.m04;
+      m41 = M.m14;
+      m50 = M.m05;
+      m51 = M.m15;
    }
 
    /**

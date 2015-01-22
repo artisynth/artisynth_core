@@ -1103,7 +1103,75 @@ LinearTransformNd, Clonable {
       setRandomOrthogonal (RandomGenerator.get());
    }
 
-   /**
+
+//   /**
+//    * Sets this matrix to a random orthogonal matrix, using a supplied random
+//    * number generator.
+//    * 
+//    * @param generator
+//    * random number generator
+//    * @see #setRandomOrthogonal()
+//    */
+//   public void setRandomOrthogonalOld (Random generator) {
+//      setIdentity();
+//
+//      if (ncols >= nrows) {
+//         double[] w = new double[nrows];
+//         double[] v = new double[ncols];
+//
+//         int nr = nrows;
+//         SubMatrixNd SubMat =
+//            new SubMatrixNd (nr - 1, nr - 1, 1, ncols - nr + 1, this);
+//         // makeSubMatrix (nr-1, nr-1, 1, ncols-nr+1);
+//         for (int i = 0; i < nr; i++) {
+//            for (int j = 0; j < ncols; j++) {
+//               v[j] = generator.nextDouble() - 0.5;
+//            }
+//            houseVector (v, 0, ncols);
+//            // colHouseMul (v, w);
+//            double beta = 0;
+//            for (int k=0; k<SubMat.ncols; k++) {
+//               beta += v[k]*v[k];
+//            }
+//            beta = 2/beta;
+//            SubMat.colHouseMul (v, w, beta);
+//
+//            if (i < nr - 1) { // makeSubMatrix (-1, -1, nrows+1, ncols+1);
+//               SubMat.resetDimensions (
+//                  -1, -1, SubMat.nrows + 1, SubMat.ncols + 1);
+//            }
+//         }
+//      }
+//      else {
+//         double[] w = new double[ncols];
+//         double[] v = new double[nrows];
+//
+//         int nc = ncols;
+//         SubMatrixNd SubMat =
+//            new SubMatrixNd (nc - 1, nc - 1, nrows - nc + 1, 1, this);
+//         // makeSubMatrix (nc-1, nc-1, nrows-nc+1, 1);
+//         for (int j = 0; j < nc; j++) {
+//            for (int i = 0; i < nrows; i++) {
+//               v[i] = generator.nextDouble() - 0.5;
+//            }
+//            houseVector (v, 0, nrows);
+//            double beta = 0;
+//            for (int k=0; k<SubMat.nrows; k++) {
+//               beta += v[k]*v[k];
+//            }
+//            beta = 2/beta;
+//            // rowHouseMul (v, w);
+//            SubMat.rowHouseMul (v, w, beta);
+//
+//            if (j < nc - 1) { // makeSubMatrix (-1, -1, nrows+1, ncols+1);
+//               SubMat.resetDimensions (
+//                  -1, -1, SubMat.nrows + 1, SubMat.ncols + 1);
+//            }
+//         }
+//      }
+//   }
+
+   /** 
     * Sets this matrix to a random orthogonal matrix, using a supplied random
     * number generator.
     * 
@@ -1119,21 +1187,17 @@ LinearTransformNd, Clonable {
          double[] v = new double[ncols];
 
          int nr = nrows;
-         SubMatrixNd SubMat =
-            new SubMatrixNd (nr - 1, nr - 1, 1, ncols - nr + 1, this);
+         // SubMatrixNd SubMat =
+         //    new SubMatrixNd (nr - 1, nr - 1, 1, ncols - nr + 1, this);
          // makeSubMatrix (nr-1, nr-1, 1, ncols-nr+1);
-         for (int i = 0; i < nr; i++) {
-            for (int j = 0; j < ncols; j++) {
+         for (int i = nr-1; i >= 0; i--) {
+            for (int j = i; j < ncols; j++) {
                v[j] = generator.nextDouble() - 0.5;
             }
-            houseVector (v, ncols);
+            double beta = QRDecomposition.houseVector (v, i, ncols);
             // colHouseMul (v, w);
-            SubMat.colHouseMul (v, w);
-
-            if (i < nr - 1) { // makeSubMatrix (-1, -1, nrows+1, ncols+1);
-               SubMat.resetDimensions (
-                  -1, -1, SubMat.nrows + 1, SubMat.ncols + 1);
-            }
+            QRDecomposition.housePostMul (
+               buf, width, nrows, ncols, i, i, beta, v, w);
          }
       }
       else {
@@ -1141,21 +1205,16 @@ LinearTransformNd, Clonable {
          double[] v = new double[nrows];
 
          int nc = ncols;
-         SubMatrixNd SubMat =
-            new SubMatrixNd (nc - 1, nc - 1, nrows - nc + 1, 1, this);
+         // SubMatrixNd SubMat =
+         //    new SubMatrixNd (nc - 1, nc - 1, nrows - nc + 1, 1, this);
          // makeSubMatrix (nc-1, nc-1, nrows-nc+1, 1);
-         for (int j = 0; j < nc; j++) {
-            for (int i = 0; i < nrows; i++) {
+         for (int j = nc-1; j >= 0; j--) {
+            for (int i = j; i < nrows; i++) {
                v[i] = generator.nextDouble() - 0.5;
             }
-            houseVector (v, nrows);
-            // rowHouseMul (v, w);
-            SubMat.rowHouseMul (v, w);
-
-            if (j < nc - 1) { // makeSubMatrix (-1, -1, nrows+1, ncols+1);
-               SubMat.resetDimensions (
-                  -1, -1, SubMat.nrows + 1, SubMat.ncols + 1);
-            }
+            double beta = QRDecomposition.houseVector (v, j, nrows);
+            QRDecomposition.housePreMul (
+               buf, width, nrows, ncols, j, j, beta, v, w);
          }
       }
    }
@@ -1360,7 +1419,6 @@ LinearTransformNd, Clonable {
       for (int i = 0; i < nRows; i++) {
          for (int j = 0; j < nCols; j++) {
             double sum = 0;
-            
             for (int k = 0; k < nMul; k++) {
                sum += M1.get(i, k)*M2.get(k, j);
             }
@@ -2306,124 +2364,143 @@ LinearTransformNd, Clonable {
       return singular;
    }
 
-   private double dotArray (double[] v1, double[] v2, int n) {
-      double sum = 0;
-      for (int i = 0; i < n; i++) {
-         sum += v1[i] * v2[i];
-      }
-      return sum;
-   }
+//   private double dotArray (double[] v1, double[] v2, int n) {
+//      double sum = 0;
+//      for (int i = 0; i < n; i++) {
+//         sum += v1[i] * v2[i];
+//      }
+//      return sum;
+//   }
+//
+//   /**
+//    * Overwrites v with its householder vector and returns beta
+//    */
+//   double houseVector (double[] v, int i0, int iend) {
+//      double x0 = v[i0];
+//      double sigma = 0;
+//      for (int i=i0+1; i<iend; i++) {
+//         sigma += v[i]*v[i];
+//      }
+//      v[i0] = 1;
+//      if (sigma == 0) {
+//         //return x0 >= 0 ? 0 : -2;
+//         return 0;
+//      }
+//      else {
+//         double mu = Math.sqrt(x0*x0 + sigma);
+//         double v0;
+//         if (x0 <= 0) {
+//            v0 = x0-mu;
+//         }
+//         else {
+//            v0 = -sigma/(x0+mu);
+//         }
+//         double beta = 2*v0*v0/(sigma+v0*v0);
+//         for (int i=i0+1; i<iend; i++) {
+//            v[i] /= v0;
+//         }
+//         return beta;
+//      }
+//   }
 
-   /**
-    * Overwrites v with its householder vector
-    */
-   void houseVector (double[] v, int n) {
-      double len = Math.sqrt (dotArray (v, v, n));
-      if (len != 0) {
-         double beta = v[0] + (v[0] >= 0 ? len : -len);
-         for (int i = 1; i < n; i++) {
-            v[i] /= beta;
-         }
-      }
-      v[0] = 1;
-   }
+//   /**
+//    * Premultiples this matrix by the Householder transform produced by the
+//    * Householder vector v, whose length should be equal to the number of rows.
+//    * w provides scratch space; it's length should equal or exceed the number of
+//    * columns.
+//    */
+//   void rowHouseMul (double[] v, double[] w, double beta) {
+//      //double beta = -2 / dotArray (v, v, nrows);
+//
+//      int idx;
+//      for (int j = 0; j < ncols; j++) {
+//         double sum = 0;
+//         idx = j + base;
+//         for (int i = 0; i < nrows; i++) {
+//            sum += buf[i * width + j + base] * v[i];
+//            idx += width;
+//         }
+//         w[j] = beta * sum;
+//      }
+//      idx = base;
+//      for (int i = 0; i < nrows; i++) {
+//         for (int j = 0; j < ncols; j++) {
+//            buf[idx + j] -= w[j] * v[i];
+//         }
+//         idx += width;
+//      }
+//   }
 
-   /**
-    * Premultiples this matrix by the Householder transform produced by the
-    * Householder vector v, whose length should be equal to the number of rows.
-    * w provides scratch space; it's length should equal or exceed the number of
-    * columns.
-    */
-   void rowHouseMul (double[] v, double[] w) {
-      double beta = -2 / dotArray (v, v, nrows);
+//   /**
+//    * Applies a Householder transform to zero out the trailing elements of the
+//    * first column of this matrix. If "store" is true, the zeroed matrix entries
+//    * are used to store the significant elements of the Householder vector.
+//    */
+//   double rowHouseReduce (double[] v, double[] w, boolean store) {
+//      int idx = base;
+//      for (int i = 0; i < nrows; i++) {
+//         v[i] = buf[idx];
+//         idx += width;
+//      }
+//      double beta = houseVector (v, 0, nrows);
+//      rowHouseMul (v, w, beta);
+//
+//      if (store) { // place the Householder vector in the first column
+//         idx = base + width;
+//         for (int i = 1; i < nrows; i++) {
+//            buf[idx] = v[i];
+//            idx += width;
+//         }
+//      }
+//      return beta;
+//   }
 
-      int idx;
-      for (int j = 0; j < ncols; j++) {
-         double sum = 0;
-         idx = j + base;
-         for (int i = 0; i < nrows; i++) {
-            sum += buf[i * width + j + base] * v[i];
-            idx += width;
-         }
-         w[j] = beta * sum;
-      }
-      idx = base;
-      for (int i = 0; i < nrows; i++) {
-         for (int j = 0; j < ncols; j++) {
-            buf[idx + j] += w[j] * v[i];
-         }
-         idx += width;
-      }
-   }
+//   /**
+//    * Postmultiples this matrix by the Householder transform produced by the
+//    * Householder vector v, whose length should be equals to the number of
+//    * columns. w provides scratch space; it's length should equal or exceed the
+//    * number of rows.
+//    */
+//   void colHouseMul (double[] v, double[] w, double beta) {
+//      //double beta = -2 / dotArray (v, v, ncols);
+//
+//      int idx = base;
+//      for (int i = 0; i < nrows; i++) {
+//         double sum = 0;
+//         for (int j = 0; j < ncols; j++) {
+//            sum += buf[idx + j] * v[j];
+//         }
+//         idx += width;
+//         w[i] = beta * sum;
+//      }
+//      idx = base;
+//      for (int i = 0; i < nrows; i++) {
+//         for (int j = 0; j < ncols; j++) {
+//            buf[idx + j] -= w[i] * v[j];
+//         }
+//         idx += width;
+//      }
+//   }
 
-   /**
-    * Applies a Householder transform to zero out the trailing elements of the
-    * first column of this matrix. If "store" is true, the zeroed matrix entries
-    * are used to store the significant elements of the Householder vector.
-    */
-   void rowHouseReduce (double[] v, double[] w, boolean store) {
-      int idx = base;
-      for (int i = 0; i < nrows; i++) {
-         v[i] = buf[idx];
-         idx += width;
-      }
-      houseVector (v, nrows);
-      rowHouseMul (v, w);
-
-      if (store) { // place the Householder vector in the first column
-         idx = base + width;
-         for (int i = 1; i < nrows; i++) {
-            buf[idx] = v[i];
-            idx += width;
-         }
-      }
-   }
-
-   /**
-    * Postmultiples this matrix by the Householder transform produced by the
-    * Householder vector v, whose length should be equals to the number of
-    * columns. w provides scratch space; it's length should equal or exceed the
-    * number of rows.
-    */
-   void colHouseMul (double[] v, double[] w) {
-      double beta = -2 / dotArray (v, v, ncols);
-
-      int idx = base;
-      for (int i = 0; i < nrows; i++) {
-         double sum = 0;
-         for (int j = 0; j < ncols; j++) {
-            sum += buf[idx + j] * v[j];
-         }
-         idx += width;
-         w[i] = beta * sum;
-      }
-      idx = base;
-      for (int i = 0; i < nrows; i++) {
-         for (int j = 0; j < ncols; j++) {
-            buf[idx + j] += w[i] * v[j];
-         }
-         idx += width;
-      }
-   }
-
-   /**
-    * Applies a Householder transform to zero out the trailing elements of the
-    * first row of this matrix. If "store" is true, the zeroed matrix entries
-    * are used to store the significant elements of the Householder vector.
-    */
-   void colHouseReduce (double[] v, double[] w, boolean store) {
-      for (int j = 0; j < ncols; j++) {
-         v[j] = buf[base + j];
-      }
-      houseVector (v, ncols);
-      colHouseMul (v, w);
-
-      if (store) { // store the Householder vector in the first row
-         for (int j = 1; j < ncols; j++) {
-            buf[base + j] = v[j];
-         }
-      }
-   }
+//   /**
+//    * Applies a Householder transform to zero out the trailing elements of the
+//    * first row of this matrix. If "store" is true, the zeroed matrix entries
+//    * are used to store the significant elements of the Householder vector.
+//    */
+//   double colHouseReduce (double[] v, double[] w, boolean store) {
+//      for (int j = 0; j < ncols; j++) {
+//         v[j] = buf[base + j];
+//      }
+//      double beta = houseVector (v, 0, ncols);
+//      colHouseMul (v, w, beta);
+//
+//      if (store) { // store the Householder vector in the first row
+//         for (int j = 1; j < ncols; j++) {
+//            buf[base + j] = v[j];
+//         }
+//      }
+//      return beta;
+//   }
 
    /**
     * Rearrange the columns of this matrix according to the specified
@@ -2656,6 +2733,32 @@ LinearTransformNd, Clonable {
             idx += width;
          }
          res[j] += sum;
+      }
+   }
+
+   public void mulAdd (Matrix M1, Matrix M2) {
+      if (M1.rowSize() != rowSize() ||
+          M2.colSize() != colSize() ||
+          M1.colSize() != M2.rowSize()) {
+         throw new ImproperSizeException (
+            "matrix sizes "+M1.getSize()+" and "+M2.getSize()+
+            " do not conform to "+getSize());
+      }
+      MatrixNd R = this;
+      if (M1 == this || M2 == this) {
+         R = new MatrixNd (this);
+      }
+      for (int i=0; i<rowSize(); i++) {
+         for (int j=0; j<colSize(); j++) {
+            double sum = 0;
+            for (int k=0; k<M1.colSize(); k++) {
+               sum += M1.get(i,k)*M2.get(k,j);
+            }
+            R.add (i, j, sum);
+         }
+      }
+      if (R != this) {
+         set (R);
       }
    }
 

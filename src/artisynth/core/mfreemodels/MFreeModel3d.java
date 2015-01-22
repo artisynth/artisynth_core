@@ -18,6 +18,7 @@ import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.DenseMatrix;
+import maspack.matrix.EigenDecomposition;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3x3Block;
 import maspack.matrix.Matrix6d;
@@ -44,7 +45,6 @@ import maspack.render.color.ColorMap;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
 import maspack.util.CountedList;
-import maspack.util.IntHolder;
 import artisynth.core.femmodels.AuxiliaryMaterial;
 import artisynth.core.femmodels.FemModel;
 import artisynth.core.femmodels.FemNode3d;
@@ -59,7 +59,11 @@ import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.ViscoelasticBehavior;
 import artisynth.core.materials.SolidDeformation;
 import artisynth.core.mechmodels.Collidable;
+import artisynth.core.mechmodels.CollidableDynamicComponent;
 import artisynth.core.mechmodels.CollisionData;
+import artisynth.core.mechmodels.CollisionHandlerNew;
+import artisynth.core.mechmodels.ContactMaster;
+import artisynth.core.mechmodels.ContactPoint;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.HasAuxState;
 import artisynth.core.mechmodels.MechSystemModel;
@@ -654,13 +658,13 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
          }
       }
    }
-
+   
    protected double checkMatrixStability(DenseMatrix D) {
-
-      SVDecomposition svd = new SVDecomposition();
-      VectorNd eig = svd.getEigenValues(D, null);
-      double min = eig.minElement();
-      double max = eig.maxElement();
+      EigenDecomposition evd = new EigenDecomposition();
+      evd.factorSymmetric (D, EigenDecomposition.OMIT_V);
+      VectorNd eig = evd.getEigReal();
+      double min = eig.get(0);
+      double max = eig.get(eig.size()-1);
       if (Math.abs(max) > Math.abs(min)) {
          return min / max;
       }
@@ -967,7 +971,8 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
       return myMeshes.get(idx).getMesh();
    }
    
-   private PolygonalMesh getCollisionMesh() {
+   @Override
+   public PolygonalMesh getCollisionMesh() {
       for (MeshComponent mc : myMeshes) {
          if (mc.getMesh() instanceof PolygonalMesh) {
             return (PolygonalMesh)(mc.getMesh());
@@ -1461,42 +1466,35 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
       updateVelState();
    }
 
-   @Override
-   public synchronized StepAdjustment advance(
-      double t0, double t1, int flags) {
+   // @Override
+   // public synchronized StepAdjustment advance(
+   //    double t0, double t1, int flags) {
 
-      if (myProfileP) {
-         steptime.start();
-      }
+   //    initializeAdvance (t0, t1, flags);
 
-      if (t0 == 0) {
-         updateForces(t0);
-      }
-      StepAdjustment stepAdjust = new StepAdjustment();
+   //    if (t0 == 0) {
+   //       updateForces(t0);
+   //    }
 
-      if (!myDynamicsEnabled) {
-         mySolver.nonDynamicSolve(t0, t1, stepAdjust);
-         recursivelyFinalizeAdvance(null, t0, t1, flags, 0);
-      }
-      else {
-         mySolver.solve(t0, t1, stepAdjust);
-         DynamicComponent c = checkVelocityStability();
-         if (c != null) {
-            throw new NumericalException(
-               "Unstable velocity detected, component "
-                  + ComponentUtils.getPathName(c));
-         }
-         recursivelyFinalizeAdvance(stepAdjust, t0, t1, flags, 0);
-         // checkForInvertedElements();
-      }
+   //    if (!myDynamicsEnabled) {
+   //       mySolver.nonDynamicSolve(t0, t1, myStepAdjust);
+   //       recursivelyFinalizeAdvance(null, t0, t1, flags, 0);
+   //    }
+   //    else {
+   //       mySolver.solve(t0, t1, myStepAdjust);
+   //       DynamicComponent c = checkVelocityStability();
+   //       if (c != null) {
+   //          throw new NumericalException(
+   //             "Unstable velocity detected, component "
+   //                + ComponentUtils.getPathName(c));
+   //       }
+   //       recursivelyFinalizeAdvance(myStepAdjust, t0, t1, flags, 0);
+   //       // checkForInvertedElements();
+   //    }
 
-      if (myProfileP) {
-         steptime.stop();
-         System.out.println(
-            "time=" + steptime.result(1));
-      }
-      return stepAdjust;
-   }
+   //    finalizeAdvance (t0, t1, flags);
+   //    return myStepAdjust;
+   // }
 
    /**
     * {@inheritDoc}
@@ -1694,7 +1692,7 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
 
    // DIVBLK
    public int addBilateralConstraints(
-      SparseBlockMatrix GT, VectorNd dg, int numb, IntHolder changeCnt) {
+      SparseBlockMatrix GT, VectorNd dg, int numb) {
       return numb;
    }
 
@@ -1839,6 +1837,27 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
 
    public CollisionData createCollisionData() {
      return new MFreeCollisionData(this, getCollisionMesh());
+   }
+
+   public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
+      // TODO
+   }
+   
+   public boolean containsContactMaster (CollidableDynamicComponent comp) {
+      return comp.getParent() == myNodes;      
+   }   
+   
+//   public boolean requiresContactVertexInfo() {
+//      return true;
+//   }
+   
+   public boolean allowCollision (
+      ContactPoint cpnt, Collidable other, Set<Vertex3d> attachedVertices) {
+      if (CollisionHandlerNew.attachedNearContact (
+         cpnt, other, attachedVertices)) {
+         return false;
+      }
+      return true;
    }
 
 }

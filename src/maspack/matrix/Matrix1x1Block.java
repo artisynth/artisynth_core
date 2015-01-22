@@ -181,6 +181,15 @@ public class Matrix1x1Block extends Matrix1x1 implements MatrixBlock {
    }
 
    /**
+    * Creates a transpose of this matrix block.
+    */
+   public Matrix1x1Block createTranspose() {
+      Matrix1x1Block M = new Matrix1x1Block();
+      M.transpose (this);
+      return M;
+   }
+
+   /**
     * Creates a clone of this matrix block, with the link and offset information
     * set to be undefined.
     */

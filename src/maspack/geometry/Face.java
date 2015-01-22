@@ -1447,6 +1447,21 @@ public class Face extends Feature implements Boundable {
       return vtxs;
    }
 
+   /**
+    * Returns the vertices of this Face, using a priori knowledge that the
+    * the face is a triangle and therefore has three vertices.
+    */
+   public Vertex3d[] getTriVertices() {
+      Vertex3d[] vtxs = new Vertex3d[3];
+      HalfEdge he = he0;
+      vtxs[0] = he.head;
+      he = he.next;
+      vtxs[1] = he.head;
+      he = he.next;
+      vtxs[2] = he.head;
+      return vtxs;
+   }
+
    public Vertex3d getVertex (int idx) {
       int num = 0;
       HalfEdge he = he0;

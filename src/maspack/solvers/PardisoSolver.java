@@ -1510,6 +1510,7 @@ public class PardisoSolver implements DirectSolver {
     * @param rowOffs matrix row offsets (CRS format)
     * @param colIdxs non-zero element column indices (CRS format)
     * @param vals non-zero element value (CRS format)
+    * @param size size of the matrix
     * @param x supplies the solution value
     * @param b supplies the right-hand-side
     * @param symmetric if <code>true</code>, assumes that the arguments
@@ -1518,10 +1519,9 @@ public class PardisoSolver implements DirectSolver {
     * <code>b</code> are incompatible with the matrix size.
     */
    public double residual (
-      int[] rowOffs, int[] colIdxs, double[] vals,
+      int[] rowOffs, int[] colIdxs, double[] vals, int size,
       double[] x, double[] b, boolean symmetric) {
 
-      int size = rowOffs.length-1;
       if (x.length < size) {
          throw new IllegalArgumentException ("x is too small: x.length="
          + x.length + ", expected size is " + size);

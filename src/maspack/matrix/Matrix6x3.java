@@ -1095,6 +1095,43 @@ public class Matrix6x3 extends DenseMatrixBase {
    }
 
    /**
+    * Multiplies M1 by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulAdd (Matrix M1, Matrix M2) {
+      MatrixMulAdd.mulAdd6x3 (this, M1, M2);
+   }
+
+   /**
+    * Sets this matrix to the transpose of M
+    *
+    * @param M
+    * matrix to take the transpose of
+    */
+   public void transpose (Matrix3x6 M) {
+      m00 = M.m00;
+      m01 = M.m10;
+      m02 = M.m20;
+      m10 = M.m01;
+      m11 = M.m11;
+      m12 = M.m21;
+      m20 = M.m02;
+      m21 = M.m12;
+      m22 = M.m22;
+      m30 = M.m03;
+      m31 = M.m13;
+      m32 = M.m23;
+      m40 = M.m04;
+      m41 = M.m14;
+      m42 = M.m24;
+      m50 = M.m05;
+      m51 = M.m15;
+      m52 = M.m25;
+   }
+
+   /**
     * Creates a clone of this matrix.
     */
    public Matrix6x3 clone() {

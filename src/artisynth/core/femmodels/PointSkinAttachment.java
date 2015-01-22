@@ -65,6 +65,10 @@ public class PointSkinAttachment extends PointAttachment
    protected DynamicComponent[] myMasters = null;
    protected Point3d myBasePos;
 
+   public void setPoint (Point pnt) {
+      myPoint = pnt;
+   }
+
    /**
     * Returns the SkinMesh associated with this attachment.
     */
@@ -155,7 +159,8 @@ public class PointSkinAttachment extends PointAttachment
 
    /**
     * Returns the underlying master component for a connection used by this
-    * attachment.
+    * attachment. If the connection has no master component, then
+    * <code>null</code> is returned.
     * 
     * @param idx
     * index of the connection. Must be in the range 0 to
@@ -222,13 +227,13 @@ public class PointSkinAttachment extends PointAttachment
 
    Point3d tmp = new Point3d();
 
-   public void addScaledExternalForce(Point3d pnt, double s, Vector3d f) {
-
-      for (int i = 0; i<myNumConnections; i++) {
-         myConnections[i].distributeExternalForce(pnt, s, f, tmp);
-      }
-
-   }
+//   public void addScaledExternalForce(Point3d pnt, double s, Vector3d f) {
+//
+//      for (int i = 0; i<myNumConnections; i++) {
+//         myConnections[i].distributeExternalForce(pnt, s, f, tmp);
+//      }
+//
+//   }
 
    /**
     * Minimizes the connection storage space. Should be called after all
@@ -299,9 +304,15 @@ public class PointSkinAttachment extends PointAttachment
        * temporary vector for optional use
        * @return true if this method is active
        */
-      public abstract boolean accumulate(Vector3d pos, Vector3d tmp);
+      public abstract boolean accumulate (Vector3d pos, Vector3d tmp);
 
       public abstract Connection copy();
+      
+      public abstract boolean addPointForce (Vector3d f);
+
+      public abstract boolean addExternalPointForce (Vector3d f);
+
+      public abstract boolean zeroExternalForces ();
 
       /**
        * Distributes an external force such that the total energy of the system
@@ -356,6 +367,39 @@ public class PointSkinAttachment extends PointAttachment
 
       private Wrench bodyForce = new Wrench();
 
+      @Override
+      public boolean addPointForce (Vector3d f) {
+         // NOTE: this method only assumes LINEAR BLENDING 
+         Point3d loc = new Point3d();
+         Vector3d ftmp = new Vector3d();
+         // get point location in frame coordinates
+         loc.inverseTransform (myFrameInfo.myBasePose, myBasePos);
+         // then use this to apply forces
+         ftmp.scale (myWeight, f);
+         myFrameInfo.myFrame.addPointForce (loc, ftmp);
+         return true;
+      }
+
+      @Override
+      public boolean addExternalPointForce (Vector3d f) {
+         // NOTE: this method only assumes LINEAR BLENDING 
+         Point3d loc = new Point3d();
+         Vector3d ftmp = new Vector3d();
+         // get point location in frame coordinates
+         loc.inverseTransform (myFrameInfo.myBasePose, myBasePos);
+         // then use this to apply forces
+         ftmp.scale (myWeight, f);
+         myFrameInfo.myFrame.addExternalPointForce (loc, ftmp);
+         return true;
+      }
+
+      @Override
+      public boolean zeroExternalForces () {
+         myFrameInfo.myFrame.zeroExternalForces();
+         return true;
+      }
+
+      @Override
       public boolean distributeExternalForce(Vector3d pos, double s,
          Vector3d force, Vector3d tmp) {
          // if (mySkinMesh.getFrameBlending() == FrameBlending.LINEAR) {
@@ -387,6 +431,7 @@ public class PointSkinAttachment extends PointAttachment
          return myParticle;
       }
 
+      @Override
       public boolean accumulate(Vector3d pos, Vector3d tmp) {
          pos.scaledAdd(myWeight, myParticle.getPosition());
          return true;
@@ -397,6 +442,24 @@ public class PointSkinAttachment extends PointAttachment
          Vector3d force,
          Vector3d tmp) {
          myParticle.addScaledExternalForce(s * myWeight, force);
+         return true;
+      }
+
+      @Override
+      public boolean addPointForce (Vector3d f) {
+         myParticle.addScaledForce (myWeight, f);
+         return true;
+      }
+
+      @Override
+      public boolean addExternalPointForce (Vector3d f) {
+         myParticle.addScaledExternalForce (myWeight, f);
+         return true;
+      }
+
+      @Override
+      public boolean zeroExternalForces () {
+         myParticle.zeroExternalForces();
          return true;
       }
 
@@ -425,6 +488,21 @@ public class PointSkinAttachment extends PointAttachment
       public boolean distributeExternalForce(Vector3d pos, double s,
          Vector3d force,
          Vector3d tmp) {
+         return false;
+      }
+
+      @Override
+      public boolean addPointForce (Vector3d f) {
+         return false;
+      }
+
+      @Override
+      public boolean addExternalPointForce (Vector3d f) {
+         return false;
+      }
+
+      @Override
+      public boolean zeroExternalForces () {
          return false;
       }
 
@@ -458,6 +536,24 @@ public class PointSkinAttachment extends PointAttachment
          Vector3d force,
          Vector3d tmp) {
          myNode.addScaledExternalForce(s * myWeight, force);
+         return true;
+      }
+
+      @Override
+      public boolean addPointForce (Vector3d f) {
+         myNode.addScaledForce (myWeight, f);
+         return true;
+      }
+
+      @Override
+      public boolean addExternalPointForce (Vector3d f) {
+         myNode.addScaledExternalForce (myWeight, f);
+         return true;
+      }
+
+      @Override
+      public boolean zeroExternalForces () {
+         myNode.zeroExternalForces();
          return true;
       }
 
@@ -574,8 +670,7 @@ public class PointSkinAttachment extends PointAttachment
          tmpQ.transform(tmp, myBasePos);
          pos.scaledAdd(dualw, tmp);
       }
-      else if (skinMesh.getFrameBlending() == FrameBlending.DUAL_QUATERNION_ITERATIVE
-         && fidx > 0) {
+      else if (skinMesh.getFrameBlending() == FrameBlending.DUAL_QUATERNION_ITERATIVE && fidx > 0) {
          tmpQ = new DualQuaternion();
          tmpQ.dualQuaternionIterativeBlending(
             weights, dualqs, fidx,
@@ -599,6 +694,14 @@ public class PointSkinAttachment extends PointAttachment
    }
 
    public void applyForces() {
+      if (myPoint != null) {
+         Vector3d f = myPoint.getForce();
+         if (!f.equals (Vector3d.ZERO)) {
+            for (int i = 0; i<myNumConnections; i++) {
+               myConnections[i].addPointForce (f);
+            }
+         }
+      }
    }
 
    protected MatrixBlock createRowBlock(int colSize) {

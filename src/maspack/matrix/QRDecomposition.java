@@ -39,6 +39,7 @@ public class QRDecomposition {
    private double[] vec = new double[0];
    private double[] wec = new double[0];
    private int[] piv = new int[0];
+   private double[] beta = new double[0];
    private double[] colMagSqr = new double[0];
    private boolean factoredInPlaceP = true;
 
@@ -47,8 +48,6 @@ public class QRDecomposition {
    };
 
    private State state = State.UNSET;
-
-   private SubMatrixNd SubMat = new SubMatrixNd();
 
    /**
     * Creates a QRDecomposition for the Matrix specified by M.
@@ -68,50 +67,6 @@ public class QRDecomposition {
       nrows = 0;
       ncols = 0;
       QR = new MatrixNd (0, 0);
-   }
-
-   private void houseRowAccum (MatrixNd Q, MatrixNd QR, int m, int n) {
-      // given a set of householder row transforms Pn-1 Pn-2 ... P0 = Q
-      // stored implictly in QR, this routine computes Q^T
-
-      int j, k;
-      int firstCol;
-
-      // int numQcols = Math.min(n,m);
-      // SubMat.setDimensions (0, 0, m, numQcols, Q);
-
-      // if (m > n)
-      // { firstCol = n-1;
-      // SubMat.resetDimensions (n, n, m-n, 0);
-      // }
-      // else
-      // { firstCol = m-2;
-      // SubMat.resetDimensions (m-1, m-1, 1, 1);
-      // }
-
-      int numQcols = Q.colSize();
-      SubMat.setDimensions (0, 0, m, numQcols, Q);
-
-      if (m > n) {
-         firstCol = n - 1;
-         SubMat.resetDimensions (n, n, m - n, numQcols - n);
-      }
-      else {
-         firstCol = m - 2;
-         SubMat.resetDimensions (m - 1, m - 1, 1, 1);
-      }
-
-      for (j = firstCol; j >= 0; j--) {
-         vec[0] = 1;
-         int Qbase = j * QR.width + j + QR.base;
-         for (k = 1; k < m - j; k++) {
-            vec[k] = QR.buf[k * QR.width + Qbase];
-         }
-         SubMat.resetDimensions (-1, -1, SubMat.nrows + 1, SubMat.ncols + 1);
-         SubMat.rowHouseMul (vec, wec);
-      }
-
-      SubMat.clear();
    }
 
    /**
@@ -144,23 +99,94 @@ public class QRDecomposition {
       factoredInPlaceP = true;
    }
 
+   /**
+    * Overwrites v with its householder vector and returns beta
+    */
+   static double houseVector (double[] v, int i0, int iend) {
+      double x0 = v[i0];
+      double sigma = 0;
+      for (int i=i0+1; i<iend; i++) {
+         sigma += v[i]*v[i];
+      }
+      v[i0] = 1;
+      if (sigma == 0) {
+         //return x0 >= 0 ? 0 : -2;
+         return 0;
+      }
+      else {
+         double mu = Math.sqrt(x0*x0 + sigma);
+         double v0;
+         if (x0 <= 0) {
+            v0 = x0-mu;
+         }
+         else {
+            v0 = -sigma/(x0+mu);
+         }
+         double beta = 2*v0*v0/(sigma+v0*v0);
+         for (int i=i0+1; i<iend; i++) {
+            v[i] /= v0;
+         }
+         return beta;
+      }
+   }
+
+   protected static double rowHouseReduce (
+      MatrixNd M, int j, int k, double[] vec, double[] wec) {
+
+      int m = M.nrows;
+      int n = M.ncols;
+      int w = M.width;
+
+      for (int i=k; i<m; i++) {
+         vec[i] = M.buf[i*w+j];
+      }
+      double beta = houseVector (vec, k, m);
+      housePreMul (M.buf, w, m, n, j, k, beta, vec, wec);
+      // store v in the zero-out section of M
+      for (int i=k+1; i<m; i++) {
+         M.buf[i*w+j] = vec[i];
+      }
+      return beta;
+   }
+
+   protected static double colHouseReduce (
+      MatrixNd M, int i, int k, double[] vec, double[] wec) {
+
+      int m = M.nrows;
+      int n = M.ncols;
+      int w = M.width;
+      for (int j=k; j<n; j++) {
+         vec[j] = M.buf[i*w+j];
+      }
+      double beta = houseVector (vec, k, n);
+      housePostMul (M.buf, w, m, n, i, k, beta, vec, wec);
+      for (int j=k+1; j<n; j++) {
+         M.buf[i*w+j] = vec[j];
+      }
+      return beta;
+   }
+   
    private void doFactor() {
       int maxd = Math.max (nrows, ncols);
+      int qw = QR.width;
       if (vec.length < maxd) {
          vec = new double[maxd];
          wec = new double[maxd];
       }
 
-      SubMat.setDimensions (0, 0, nrows, ncols, QR);
-
       int columnLimit = (nrows > ncols ? ncols : nrows - 1);
+      beta = new double[columnLimit];
       for (int j = 0; j < columnLimit; j++) {
-         SubMat.rowHouseReduce (vec, wec, true);
-         if (j < columnLimit - 1) {
-            SubMat.resetDimensions (1, 1, SubMat.nrows - 1, SubMat.ncols - 1);
-         }
+         beta[j] = rowHouseReduce (QR, j, j, vec, wec);
+         // for (int i=j; i<nrows; i++) {
+         //    vec[i] = QR.buf[i*qw+j];
+         // }
+         // beta[j] = houseVector (vec, j, nrows);
+         // housePreMul (QR.buf, qw, nrows, ncols, j, j, beta[j], vec, wec);
+         // for (int i=j+1; i<nrows; i++) {
+         //    QR.buf[i*qw+j] = vec[i];
+         // }
       }
-      SubMat.clear();
       state = State.SET;
    }
 
@@ -185,6 +211,7 @@ public class QRDecomposition {
     */
    public void factorWithPivoting (Matrix M) {
       QR.set (M);
+      int qw = QR.width;
 
       nrows = M.rowSize();
       ncols = M.colSize();
@@ -215,9 +242,8 @@ public class QRDecomposition {
       }
       int pivotCol = getPivotCol (colMagSqr, 0, ncols);
 
-      SubMat.setDimensions (0, 0, nrows, ncols, QR);
-
       int columnLimit = (nrows > ncols ? ncols : nrows - 1);
+      beta = new double[columnLimit];
       for (int j = 0; j < columnLimit; j++) {
          piv[j] = pivotCol;
 
@@ -227,9 +253,7 @@ public class QRDecomposition {
          colMagSqr[j] = colMagSqr[pivotCol];
          colMagSqr[pivotCol] = tmp;
 
-         SubMat.rowHouseReduce (vec, wec, true);
-         // System.out.println ("QR=\n" + QR.toString("%10.4f"));
-
+         beta[j] = rowHouseReduce (QR, j, j, vec, wec);
          // update colMagSqr
          for (int k = j + 1; k < ncols; k++) {
             double QR_jk = QR.buf[j * QR.width + QR.base + k];
@@ -245,11 +269,7 @@ public class QRDecomposition {
             }
             break;
          }
-         else if (j < columnLimit - 1) {
-            SubMat.resetDimensions (1, 1, SubMat.nrows - 1, SubMat.ncols - 1);
-         }
       }
-      SubMat.clear();
       state = State.SET_WITH_PIVOTING;
    }
 
@@ -317,7 +337,7 @@ public class QRDecomposition {
             }
          }
          Q.setIdentity();
-         houseRowAccum (Q, QR, nrows, ncols);
+         preMulQ (Q, Q);
       }
       if (R != null) {
          if (R.ncols != ncols || R.nrows < mind || R.nrows > nrows) {
@@ -367,21 +387,22 @@ public class QRDecomposition {
     * 
     * P = I - 2 v v^T / (v^T v)
     */
-   private void rowHouseMulVec (double[] u, int base, double[] v, int m) {
-      double sum = 0;
-      for (int k = 0; k < m; k++) {
-         sum += v[k] * v[k];
-      }
-      double beta = -2 / sum;
+   private void rowHouseMulVec (
+      double[] u, int base, double[] v, int m, double beta) {
+      // double sum = 0;
+      // for (int k = 0; k < m; k++) {
+      //    sum += v[k] * v[k];
+      // }
+      // double beta = -2 / sum;
 
-      sum = 0;
+      double sum = 0;
       for (int k = 0; k < m; k++) {
          sum += u[base + k] * v[k];
       }
       double w = beta * sum;
 
       for (int k = 0; k < m; k++) {
-         u[base + k] += w * v[k];
+         u[base + k] -= w * v[k];
       }
    }
 
@@ -394,7 +415,7 @@ public class QRDecomposition {
          for (int k = 1; k < nrows - j; k++) {
             vec[k] = QR.buf[k * QR.width + Qbase];
          }
-         rowHouseMulVec (sol, j, vec, nrows - j);
+         rowHouseMulVec (sol, j, vec, nrows - j, beta[j]);
       }
       return doSolveR (sol);
    }
@@ -845,9 +866,15 @@ public class QRDecomposition {
       for (int i = 0; i < Math.min (ncols, nrows); i++) {
          detR *= QR.buf[i * QR.width + i + QR.base];
       }
-      // determinant of Q is -1^p, where p is the number of HouseHolder
+      // determinant of Q is -1^p, where p is the number of non-zero HouseHolder
       // transformations
-      int p = (nrows > ncols ? ncols : nrows - 1);
+      int nhouse = (nrows > ncols ? ncols : nrows - 1);
+      int p = nhouse;
+      for (int j=0; j<nhouse; j++) {
+         if (beta[j] == 0) {
+            p--;
+         }
+      }
       int detQ = ((p % 2) == 0 ? 1 : -1);
 
       if (state == State.SET_WITH_PIVOTING) { // apply the sign of the
@@ -920,6 +947,285 @@ public class QRDecomposition {
          rank++;
       }
       return rank;
+   }
+
+   /**
+    * Load HouseHolder vector k from its location in QR and store
+    * it in v(k:m-1) of m.
+    */
+   protected void loadHouseVector (double[] v, int m, int k) {
+      v[k] = 1;
+      for (int i=k+1; i<m; i++) {
+         v[i] = QR.buf [i*QR.width+k];
+      }      
+   }
+
+   /**
+    * Computes
+    * <pre>
+    * A(:,j0:n-1) = P_k A(:,j0:n-1)
+    * </pre>
+    * where A is an m X n matrix and P_k is a k-th Householder reflection
+    * determined from
+    * <pre>
+    * P_k = I - beta v v^T
+    * </pre>
+    * Here, "k-th Householder" implies that only elements (k,m-1) of v are
+    * non-zero and hence only rows (k:m-1) of A are affected.
+    *
+    * @param Abuf double buffer holding the values of A
+    * @param aw width of A such that A(i,j) = Abuf[i*aw+j]
+    * @param m number of rows in A
+    * @param n number of columnes in A
+    * @param j0 index of first column in A to which reflection should be applied
+    * @param k index of first non-zero entry in the Householder vector
+    * @param beta beta value associated with the reflection
+    * @param v contains Householder vector (with length at least m)
+    * @param w work vector (with length at least n)
+    */
+   protected static void housePreMul (
+      double[] Abuf, int aw, int m, int n, int j0,
+      int k, double beta, double[] v, double[] w) {
+
+      for (int j=j0; j<n; j++) {
+         double sum = 0;
+         for (int i=k; i<m; i++) {
+            sum += Abuf[i*aw+j]*v[i];
+         }
+         w[j] = beta*sum;
+      }
+      for (int j=j0; j<n; j++) {
+         for (int i=k; i<m; i++) {
+            Abuf[i*aw+j] -= v[i]*w[j];
+         }
+      }
+   }
+
+   /**
+    * Computes
+    * <pre>
+    * A = P_k A
+    * </pre>
+    * where A is an m X n matrix and P_k is a k-th Householder reflection
+    * determined from
+    * <pre>
+    * P_k = I - beta v v^T
+    * </pre>
+    * Here, "k-th Householder" implies that only elements (k,m-1) of v are
+    * non-zero and hence only rows (k:m-1) of A are affected.
+    *
+    * @param A matrix to which reflection is applied
+    * @param k index of first non-zero entry in the Householder vector
+    * @param beta beta value associated with the reflection
+    * @param v contains Householder vector (with length at least m)
+    * @param w work vector (with length at least n)
+    */
+   protected static void housePreMul (
+      MatrixNd A, int k, double beta, double[] v, double[] w) {
+
+      housePreMul (A.buf, A.width, A.nrows, A.ncols, 0, k, beta, v, w);
+   }
+
+   /**
+    * Computes
+    * <pre>
+    * A(i0:m-1,:) = A(i0:m-1,:) P_k
+    * </pre>
+    * where A is an m X n matrix and P_k is a k-th Householder reflection
+    * determined from
+    * <pre>
+    * P_k = I - beta v v^T
+    * </pre>
+    * Here, "k-th Householder" implies that only elements (k,m-1) of v are
+    * non-zero and hence only columns (k:n-1) of A are affected.
+    *
+    * @param Abuf double buffer holding the values of A
+    * @param aw width of A such that A(i,j) = Abuf[i*aw+j]
+    * @param m number of rows in A
+    * @param n number of columnes in A
+    * @param i0 index of first row in A to which reflection should be applied
+    * @param k index of first non-zero entry in the Householder vector
+    * @param beta beta value associated with the reflection
+    * @param v contains Householder vector (with length at least n)
+    * @param w work vector (with length at least m)
+    */
+   protected static void housePostMul (
+      double[] Abuf, int aw, int m, int n, int i0,
+      int k, double beta, double[] v, double[] w) {
+
+      for (int i=i0; i<m; i++) {
+         double sum = 0;
+         for (int j=k; j<n; j++) {
+            sum += Abuf[i*aw+j]*v[j];
+         }
+         w[i] = beta*sum;
+      }
+      for (int i=i0; i<m; i++) {
+         for (int j=k; j<n; j++) {
+            Abuf[i*aw+j] -= v[j]*w[i];
+         }
+      }
+   }
+
+   /**
+    * Computes
+    * <pre>
+    * A = A P_k
+    * </pre>
+    * where A is an m X n matrix and P_k is a k-th Householder reflection
+    * determined from
+    * <pre>
+    * P_k = I - beta v v^T
+    * </pre>
+    * Here, "k-th Householder" implies that only elements (k,m-1) of v are
+    * non-zero and hence only columns (k:n-1) of A are affected.
+    *
+    * @param A matrix to which reflection is applied
+    * @param k index of first non-zero entry in the Householder vector
+    * @param beta beta value associated with the reflection
+    * @param v contains Householder vector (with length at least n)
+    * @param w work vector (with length at least m)
+    */
+   protected static void housePostMul (
+      MatrixNd A, int k, double beta, double[] v, double[] w) {
+
+      housePostMul (A.buf, A.width, A.nrows, A.ncols, 0, k, beta, v, w);
+   }
+
+   /**
+    * Computes
+    * <pre>
+    *   MR = Q M1
+    * </pre>
+    * where Q is the full m X m orthogonal matrix associated with the
+    * decomposition.  Before calling this method, the decomposition must be
+    * initialized with a factorization. In order to conform with Q, M1 must
+    * have m rows.
+    *
+    * @param MR result matrix
+    * @param M1 matrix to pre-multiply by Q
+    */
+   public void preMulQ (MatrixNd MR, MatrixNd M1) {
+      if (state == State.UNSET) {
+         throw new ImproperStateException ("Uninitialized decomposition");
+      }
+      if (M1.rowSize() != nrows) {
+         throw new IllegalArgumentException (
+            "M1 has "+M1.rowSize()+" rows; should have "+nrows);
+      }
+      if (MR != M1) {
+         MR.set (M1);
+      }
+      double[] w = wec;
+      if (M1.colSize() > wec.length) {
+         w = new double[M1.colSize()];
+      }
+      for (int k=beta.length-1; k>=0; k--) {
+         loadHouseVector (vec, nrows, k);
+         housePreMul (MR, k, beta[k], vec, w);
+      }
+   }
+
+   /**
+    * Computes
+    * <pre>
+    *   MR = Q^T M1
+    * </pre>
+    * where Q is the full m X m orthogonal matrix associated with the
+    * decomposition.  Before calling this method, the decomposition must be
+    * initialized with a factorization. In order to conform with Q, M1 must
+    * have m rows.
+    *
+    * @param MR result matrix
+    * @param M1 matrix to pre-multiply by Q transpose
+    */
+   public void preMulQTranspose (MatrixNd MR, MatrixNd M1) {
+      if (state == State.UNSET) {
+         throw new ImproperStateException ("Uninitialized decomposition");
+      }
+      if (M1.rowSize() != nrows) {
+         throw new IllegalArgumentException (
+            "M1 has "+M1.rowSize()+" rows; should have "+nrows);
+      }
+      if (MR != M1) {
+         MR.set (M1);
+      }
+      double[] w = wec;
+      if (M1.colSize() > wec.length) {
+         w = new double[M1.colSize()];
+      }
+      for (int k=0; k<beta.length; k++) {
+         loadHouseVector (vec, nrows, k);
+         housePreMul (MR, k, beta[k], vec, w);
+      }
+   }
+
+   /**
+    * Computes
+    * <pre>
+    *   MR = M1 Q
+    * </pre>
+    * where Q is the full m X m orthogonal matrix associated with the
+    * decomposition.  Before calling this method, the decomposition must be
+    * initialized with a factorization. In order to conform with Q, M1 must
+    * have m columns.
+    *
+    * @param MR result matrix
+    * @param M1 matrix to post-multiply by Q
+    */
+   public void postMulQ (MatrixNd MR, MatrixNd M1) {
+      if (state == State.UNSET) {
+         throw new ImproperStateException ("Uninitialized decomposition");
+      }
+      if (M1.colSize() != nrows) {
+         throw new IllegalArgumentException (
+            "M1 has "+M1.colSize()+" cols; should have "+nrows);
+      }
+      if (MR != M1) {
+         MR.set (M1);
+      }
+      double[] w = wec;
+      if (M1.rowSize() > wec.length) {
+         w = new double[M1.rowSize()];
+      }
+      for (int k=0; k<beta.length; k++) {
+         loadHouseVector (vec, nrows, k);
+         housePostMul (MR, k, beta[k], vec, w);
+      }
+   }
+
+   /**
+    * Computes
+    * <pre>
+    *   MR = M1 Q^T
+    * </pre>
+    * where Q is the full m X m orthogonal matrix associated with the
+    * decomposition.  Before calling this method, the decomposition must be
+    * initialized with a factorization. In order to conform with Q, M1 must
+    * have m columns.
+    *
+    * @param MR result matrix
+    * @param M1 matrix to post-multiply by Q transpose
+    */
+   public void postMulQTranspose (MatrixNd MR, MatrixNd M1) {
+      if (state == State.UNSET) {
+         throw new ImproperStateException ("Uninitialized decomposition");
+      }
+      if (M1.colSize() != nrows) {
+         throw new IllegalArgumentException (
+            "M1 has "+M1.colSize()+" cols; should have "+nrows);
+      }
+      if (MR != M1) {
+         MR.set (M1);
+      }
+      double[] w = wec;
+      if (M1.rowSize() > wec.length) {
+         w = new double[M1.rowSize()];
+      }
+      for (int k=beta.length-1; k>=0; k--) {
+         loadHouseVector (vec, nrows, k);
+         housePostMul (MR, k, beta[k], vec, w);
+      }
    }
 
    public static void main (String[] args) {

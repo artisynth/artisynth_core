@@ -566,8 +566,17 @@ public class Matrix6dBlock extends Matrix6d implements MatrixBlock {
    public boolean valueIsNonZero (int i, int j) {
       return true;
    }
-
+ 
    /**
+    * Creates a transpose of this matrix block.
+    */
+   public Matrix6dBlock createTranspose() {
+      Matrix6dBlock M = new Matrix6dBlock();
+      M.transpose (this);
+      return M;
+   }
+
+  /**
     * Creates a clone of this matrix block, with the link and offset information
     * set to be undefined.
     */

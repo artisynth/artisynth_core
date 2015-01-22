@@ -8,6 +8,7 @@ package artisynth.core.mechmodels;
 
 import java.io.PrintStream;
 
+import artisynth.core.femmodels.*;
 import maspack.collision.ContactPenetratingPoint;
 import maspack.collision.EdgeEdgeContact;
 import maspack.geometry.Vertex3d;
@@ -160,11 +161,6 @@ extends DeformableContactConstraintBase {
 
       disp.sub (vtx.getWorldPoint(), cpp.position);
       double dist = disp.dot (normal);
-
-      //      NumberFormat fmt = new NumberFormat ("%.10g");
-      //      System.out.println("VRB n:" + myInfo.normal.toString(fmt) + " (" + vtx.getIndex() + ")" +
-      //      " (" + body.getName() + "," + loc.toString(fmt) + ")" + " dist:" + fmt.format (dist));
-
       return dist;
    }
 
@@ -253,7 +249,8 @@ extends DeformableContactConstraintBase {
       Vertex3d vtx3 = cpp.face.getVertex(2);
       cpp.face.computeNormal(normal);
 
-      disp.sub(vtx0.getWorldPoint(), vtx1.getWorldPoint());
+      //disp.sub(vtx0.getWorldPoint(), vtx1.getWorldPoint());
+      disp.sub(vtx0.getWorldPoint(), cpp.position);
       double dist = disp.dot(normal);
 
       setVertexFace(

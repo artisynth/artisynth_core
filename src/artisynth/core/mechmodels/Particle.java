@@ -16,7 +16,7 @@ import java.io.*;
 import java.util.List;
 import java.util.Map;
 
-public class Particle extends Point {
+public class Particle extends Point implements PointAttachable {
    protected double myMass;
    // protected double myEffectiveMass;
    protected Vector3d myConstraint;
@@ -200,6 +200,15 @@ public class Particle extends Point {
     */
    public boolean isDuplicatable() {
       return true;
+   }
+
+   public PointParticleAttachment createPointAttachment (Point pnt) {
+      PointParticleAttachment ppa = new PointParticleAttachment (this, pnt);
+      if (DynamicAttachment.containsLoop (ppa, pnt, null)) {
+         throw new IllegalArgumentException (
+            "attachment contains loop");
+      }
+      return ppa;
    }
 
    /**

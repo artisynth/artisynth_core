@@ -773,36 +773,46 @@ public class RigidCompositeBody extends RigidBody implements
       
    }
    
-   // Pullable interface
+//   // Pullable interface
+//   @Override
+//   public Point3d getOriginData (Point3d origin, Vector3d dir) {
+//
+//      Point3d myBodyPnt = null;
+//      Point3d nearest = null;
+//      double nearestDistance = Double.POSITIVE_INFINITY;
+//
+//      for (RigidMesh mc : myMeshList) {
+//         MeshBase mesh = mc.getMesh();
+//         if (mesh != null && mesh instanceof PolygonalMesh) {
+//            PolygonalMesh smesh = (PolygonalMesh)mesh;
+//            Point3d pnt = BVFeatureQuery.nearestPointAlongRay (
+//               smesh, origin, dir);
+//            if (pnt != null) {
+//               double d = pnt.distance(origin);
+//               if (nearest == null || d < nearestDistance) {
+//                  nearestDistance = d;
+//                  nearest = pnt;
+//               }
+//            }
+//         }
+//      }
+//
+//      if (nearest != null) {
+//         myBodyPnt = new Point3d(nearest);
+//         myBodyPnt.inverseTransform (getPose());
+//      }
+//      
+//      return myBodyPnt;
+//   }
+   
    @Override
-   public Point3d getOriginData (Point3d origin, Vector3d dir) {
-      
-      Point3d myBodyPnt = null;
-      Point3d nearest = null;
-      double nearestDistance = Double.POSITIVE_INFINITY;
-
-      for (RigidMesh mc : myMeshList) {
-         MeshBase mesh = mc.getMesh();
-         if (mesh != null && mesh instanceof PolygonalMesh) {
-            PolygonalMesh smesh = (PolygonalMesh)mesh;
-            Point3d pnt = BVFeatureQuery.nearestPointAlongRay (
-               smesh, origin, dir);
-            if (pnt != null) {
-               double d = pnt.distance(origin);
-               if (nearest == null || d < nearestDistance) {
-                  nearestDistance = d;
-                  nearest = pnt;
-               }
-            }
-         }
-      }
-
-      if (nearest != null) {
-         myBodyPnt = new Point3d(nearest);
-         myBodyPnt.inverseTransform (getPose());
-      }
-      
-      return myBodyPnt;
+   public int numSurfaceMeshes() {
+      return MeshComponent.numSurfaceMeshes (myMeshList);
    }
    
+   @Override
+   public PolygonalMesh[] getSurfaceMeshes() {
+      return MeshComponent.getSurfaceMeshes (myMeshList);
+   }
+
 }

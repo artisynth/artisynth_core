@@ -50,6 +50,10 @@ class Matrix6x3Test extends MatrixTest {
       ((Matrix6x3)MR).set ((Matrix6x3)M1);
    }
 
+   void mulAdd (Matrix MR, Matrix M1, Matrix M2) {
+      ((Matrix6x3)MR).mulAdd (M1, M2);
+   }
+
    public void execute() {
       Matrix6x3 MR = new Matrix6x3();
       Matrix6x3 M1 = new Matrix6x3();
@@ -81,6 +85,8 @@ class Matrix6x3Test extends MatrixTest {
          testSet (MR, MR);
 
          testNorms (M1);
+
+         testMulAdd (MR);
       }
    }
 

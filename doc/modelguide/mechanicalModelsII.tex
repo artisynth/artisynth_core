@@ -815,6 +815,8 @@ showing the intersection contours
 \label{Collision:fig}
 \end{figure}
 
+% XXX -useAjlCollision and contours?
+
 Determining the intersection contour allows us to create a set of
 constraints for correcting the interpenetration and preventing
 interpenetrating velocities.  For rigid bodies, this is done by
@@ -905,12 +907,6 @@ Color of the contour
 
 \end{description}
 
-\begin{sideblock}
-{\bf Note:}\\
-Contours will only be rendered in Andrew Larkin's collision
-code is enabled, i.e., {\tt -useAjlCollision}.
-\end{sideblock}
-
 These properties can be set in the same way as the visibility, using
 the {\tt RenderProps} methods presented in Section
 \ref{SettingRenderProperties:sec}:
@@ -932,22 +928,35 @@ Finally, to set the length of the rendered contact normals, set the
 normals have no preferred direction, it may be necessary to use a
 negative length value in order to visualize them properly.
 
-\begin{sideblock}
-For a demo, run the model {\sf DentalCasts}
-(artisynth.models.articulator.DentalDemo), and set the top cast
-invisible to see the contact interactions.
-\end{sideblock}
+A simple model showing a contact rendering is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.BallPlateCollide
+\end{verbatim}
+%
+and the complete source code is shown below:
+%
+\lstset{numbers=left}
+\lstinputlisting{../../src/artisynth/demos/tutorial/BallPlateCollide.java}
+\lstset{numbers=none}
 
-\begin{sideblock}
-{\bf Note:}\\
-The artisynth command line option {\tt -renderCollisionContours} has
-been removed.
-\end{sideblock}
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+BallPlateCollide} from the {\sf Models} menu. When run, the ball
+will collide with the plate and the contact normals and collision 
+contours with be draw and shown in Figure \ref{BallPlateCollide:fig}.
 
-
-% LATER: \subsubsection{Contact rendering}
-
-% LATER \subsection{Moving non-dynamic components}
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/BallPlateCollide}
+\else
+ \includegraphics[width=3.75in]{images/BallPlateCollide}
+\fi
+\end{center}
+\caption{BallPlateCollide showing contact normals (red) and collision contour
+(blue) of the ball colliding with the plate.}
+\label{BallPlateCollide:fig}
+\end{figure}
 
 \subsection{General component arrangements}
 

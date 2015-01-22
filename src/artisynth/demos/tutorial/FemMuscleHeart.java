@@ -27,7 +27,6 @@ import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.probes.NumericInputProbe;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.DriverInterface;
-import artisynth.core.workspace.PullController;
 import artisynth.core.workspace.RootModel;
 
 public class FemMuscleHeart extends RootModel {

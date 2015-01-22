@@ -105,6 +105,55 @@ public class Matrix3x1 extends DenseMatrixBase {
    }
 
    /**
+    * {@inheritDoc}
+    */
+   public void set (double[] values) {
+      m00 = values[0];
+      m10 = values[1];
+      m20 = values[2];
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setColumn (int j, double[] values) {
+      switch (j) {
+         case 0: {
+            m00 = values[0];
+            m10 = values[1];
+            m20 = values[2];
+            break;
+         }
+         default: {
+            throw new ArrayIndexOutOfBoundsException ("j=" + j);
+         }
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setRow (int i, double[] values) {
+      switch (i) {
+         case 0: {
+            m00 = values[0];
+            break;
+         }
+         case 1: {
+            m10 = values[0];
+            break;
+         }
+         case 2: {
+            m20 = values[0];
+            break;
+         }
+         default: {
+            throw new ArrayIndexOutOfBoundsException ("i=" + i);
+         }
+      }
+   }
+
+   /**
     * Sets the elements of this matrix to zero.
     */
    public void setZero() {
@@ -161,6 +210,20 @@ public class Matrix3x1 extends DenseMatrixBase {
       m00 *= s;
       m10 *= s;
       m20 *= s;
+   }
+
+   /**
+    * Computes s M and places the result in this matrix.
+    * 
+    * @param s
+    * scaling factor
+    * @param M
+    * matrix to scale
+    */
+   public void scale (double s, Matrix3x1 M) {
+      m00 = s * M.m00;
+      m10 = s * M.m10;
+      m20 = s * M.m20;
    }
 
    /**
@@ -251,6 +314,20 @@ public class Matrix3x1 extends DenseMatrixBase {
    }
 
    /**
+    * Computes M1 + M2 and places the result in this matrix.
+    * 
+    * @param M1
+    * first matrix to add
+    * @param M2
+    * second matrix to add
+    */
+   public void add (Matrix3x1 M1, Matrix3x1 M2) {
+      m00 = M1.m00 + M2.m00;
+      m10 = M1.m10 + M2.m10;
+      m20 = M1.m20 + M2.m20;
+   }
+
+   /**
     * Adds the scaled contents of a Matrix3x1 to this matrix block.
     * 
     * @param M
@@ -260,6 +337,22 @@ public class Matrix3x1 extends DenseMatrixBase {
       m00 += s * M.m00;
       m10 += s * M.m10;
       m20 += s * M.m20;
+   }
+
+   /**
+    * Computes s M1 + M2 and places the result in this matrix.
+    * 
+    * @param s
+    * scaling factor
+    * @param M1
+    * matrix to be scaled
+    * @param M2
+    * matrix to be added
+    */
+   public void scaledAdd (double s, Matrix3x1 M1, Matrix3x1 M2) {
+      m00 = s * M1.m00 + M2.m00;
+      m10 = s * M1.m10 + M2.m10;
+      m20 = s * M1.m20 + M2.m20;
    }
 
    /**
@@ -297,6 +390,20 @@ public class Matrix3x1 extends DenseMatrixBase {
    }
 
    /**
+    * Computes M1 - M2 places the result in this matrix.
+    * 
+    * @param M1
+    * first matrix
+    * @param M2
+    * matrix to subtract
+    */
+   public void sub (Matrix3x1 M1, Matrix3x1 M2) {
+      m00 = M1.m00 - M2.m00;
+      m10 = M1.m10 - M2.m10;
+      m20 = M1.m20 - M2.m20;
+   }
+
+   /**
     * Forms the dot product of this Matrix3x1 with a vector.
     * 
     * @param v
@@ -304,6 +411,16 @@ public class Matrix3x1 extends DenseMatrixBase {
     */
    public double dot (Vector3d v) {
       return m00 * v.x + m10 * v.y + m20 * v.z;
+   }
+
+   /**
+    * Multiplies M1 by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulAdd (Matrix M1, Matrix M2) {
+      MatrixMulAdd.mulAdd3x1 (this, M1, M2);
    }
 
    /** 
@@ -344,6 +461,18 @@ public class Matrix3x1 extends DenseMatrixBase {
 
    public String transposeToString (NumberFormat fmt) {
       return (fmt.format(m00) + " " + fmt.format(m10) + " " + fmt.format(m20));
+   }
+
+   /**
+    * Sets this matrix to the transpose of M
+    *
+    * @param M
+    * matrix to take the transpose of
+    */
+   public void transpose (Matrix1x3 M) {
+      m00 = M.m00;
+      m10 = M.m01;
+      m20 = M.m02;
    }
 
    /**

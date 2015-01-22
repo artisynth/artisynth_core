@@ -133,6 +133,70 @@ public class Matrix1x6 extends DenseMatrixBase {
       }
    }
 
+   public void set (double[] vals) {
+      m00 = vals[0];
+      m01 = vals[1];
+      m02 = vals[2];
+      m03 = vals[3];
+      m04 = vals[4];
+      m05 = vals[5];
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setColumn (int j, double[] values) {
+      switch (j) {
+         case 0: {
+            m00 = values[0];
+            break;
+         }
+         case 1: {
+            m01 = values[0];
+            break;
+         }
+         case 2: {
+            m02 = values[0];
+            break;
+         }
+         case 3: {
+            m03 = values[0];
+            break;
+         }
+         case 4: {
+            m04 = values[0];
+            break;
+         }
+         case 5: {
+            m05 = values[0];
+            break;
+         }
+         default: {
+            throw new ArrayIndexOutOfBoundsException ("j=" + j);
+         }
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setRow (int i, double[] values) {
+      switch (i) {
+         case 0: {
+            m00 = values[0];
+            m01 = values[1];
+            m02 = values[2];
+            m03 = values[3];
+            m04 = values[4];
+            m05 = values[5];
+            break;
+         }
+         default: {
+            throw new ArrayIndexOutOfBoundsException ("i=" + i);
+         }
+      }
+   }
+
    /**
     * Sets the elements of this matrix to zero.
     */
@@ -279,6 +343,23 @@ public class Matrix1x6 extends DenseMatrixBase {
    }
 
    /**
+    * Computes s M and places the result in this matrix.
+    * 
+    * @param s
+    * scaling factor
+    * @param M
+    * matrix to scale
+    */
+   public void scale (double s, Matrix1x6 M) {
+      m00 = s * M.m00;
+      m01 = s * M.m01;
+      m02 = s * M.m02;
+      m03 = s * M.m03;
+      m04 = s * M.m04;
+      m05 = s * M.m05;
+   }
+
+   /**
     * Adds this matrix to M and places the result in this matrix.
     * 
     * @param M
@@ -346,6 +427,23 @@ public class Matrix1x6 extends DenseMatrixBase {
    }
 
    /**
+    * Computes M1 + M2 and places the result in this matrix.
+    * 
+    * @param M1
+    * first matrix to add
+    * @param M2
+    * second matrix to add
+    */
+   public void add (Matrix1x6 M1, Matrix1x6 M2) {
+      m00 = M1.m00 + M2.m00;
+      m01 = M1.m01 + M2.m01;
+      m02 = M1.m02 + M2.m02;
+      m03 = M1.m03 + M2.m03;
+      m04 = M1.m04 + M2.m04;
+      m05 = M1.m05 + M2.m05;
+   }
+
+   /**
     * Adds the scaled contents of a Matrix1x6 to this matrix block.
     * 
     * @param M
@@ -358,6 +456,25 @@ public class Matrix1x6 extends DenseMatrixBase {
       m03 += s * M.m03;
       m04 += s * M.m04;
       m05 += s * M.m05;
+   }
+
+   /**
+    * Computes s M1 + M2 and places the result in this matrix.
+    * 
+    * @param s
+    * scaling factor
+    * @param M1
+    * matrix to be scaled
+    * @param M2
+    * matrix to be added
+    */
+   public void scaledAdd (double s, Matrix1x6 M1, Matrix1x6 M2) {
+      m00 = s * M1.m00 + M2.m00;
+      m01 = s * M1.m01 + M2.m01;
+      m02 = s * M1.m02 + M2.m02;
+      m03 = s * M1.m03 + M2.m03;
+      m04 = s * M1.m04 + M2.m04;
+      m05 = s * M1.m05 + M2.m05;
    }
 
    /**
@@ -401,6 +518,33 @@ public class Matrix1x6 extends DenseMatrixBase {
    }
 
    /**
+    * Computes M1 - M2 places the result in this matrix.
+    * 
+    * @param M1
+    * first matrix
+    * @param M2
+    * matrix to subtract
+    */
+   public void sub (Matrix1x6 M1, Matrix1x6 M2) {
+      m00 = M1.m00 - M2.m00;
+      m01 = M1.m01 - M2.m01;
+      m02 = M1.m02 - M2.m02;
+      m03 = M1.m03 - M2.m03;
+      m04 = M1.m04 - M2.m04;
+      m05 = M1.m05 - M2.m05;
+   }
+
+   /**
+    * Multiplies M1 by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulAdd (Matrix M1, Matrix M2) {
+      MatrixMulAdd.mulAdd1x6 (this, M1, M2);
+   }
+
+   /**
     * Returns the dot product of the elements of this matrix with a
     * 6-element vector formed from two 3-element vectors.
     * 
@@ -421,6 +565,21 @@ public class Matrix1x6 extends DenseMatrixBase {
     */
    public double dot (Matrix1x6 M) {
       return m00*M.m00 + m01*M.m01 + m02*M.m02 + m03*M.m03 + m04*M.m04 + m05*M.m05;
+   }
+
+   /**
+    * Sets this matrix to the transpose of M
+    *
+    * @param M
+    * matrix to take the transpose of
+    */
+   public void transpose (Matrix6x1 M) {
+      m00 = M.m00;
+      m01 = M.m10;
+      m02 = M.m20;
+      m03 = M.m30;
+      m04 = M.m40;
+      m05 = M.m50;
    }
 
    /**

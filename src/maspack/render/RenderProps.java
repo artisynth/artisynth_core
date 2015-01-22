@@ -29,6 +29,7 @@ import maspack.util.ReaderTokenizer;
 import maspack.util.Scannable;
 
 public class RenderProps implements CompositeProperty, Scannable, Clonable {
+
    public enum Shading {
       FLAT, GOURARD, PHONG, NONE
    };
@@ -2996,6 +2997,16 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    public static void setPointSlicesMode (Renderable r, PropertyMode mode) {
       RenderProps props = createAndAssignProps (r);
       props.setPointSlicesMode (mode);
+      r.setRenderProps (props);
+   }
+
+   public static void setSphericalPoints (Renderable r, double rad, Color color) {
+      RenderProps props = createAndAssignProps (r);
+      props.setPointStyle (PointStyle.SPHERE);
+      props.setPointRadius (rad);
+      if (color != null) {
+         props.setPointColor (color);
+      }
       r.setRenderProps (props);
    }
 

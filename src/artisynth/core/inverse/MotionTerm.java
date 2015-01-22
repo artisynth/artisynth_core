@@ -125,14 +125,14 @@ public class MotionTerm
       if (useTrapezoidal) {
          // trapezoidal
          myMechSysSolver.KKTFactorAndSolve(
-            v, null, f, /* tmp= */ftmp, curVel, t1, h,
-            -h / 2, -h * h / 4, -h / 2, h * h / 4, /* velocitySolve= */true);
+            v, null, f, /* tmp= */ftmp, curVel, h,
+            -h / 2, -h * h / 4, -h / 2, h * h / 4);
       }
       else {
          // backward euler
          myMechSysSolver.KKTFactorAndSolve(
-            v, null, f, /*tmp=*/ftmp, curVel, t1,
-            h, -h, -h*h, -h, 0, /*velocitySolve=*/true);
+            v, null, f, /*tmp=*/ftmp, curVel,
+            h, -h, -h*h, -h, 0);
       }
       h = hold;
 
@@ -188,10 +188,10 @@ public class MotionTerm
       //vbar.scale(1/dt);    // makes it independent of the time step
       
       double EPS = 1e-10;
-      if (t1 <= 0.4+EPS && t1 >=0.4-EPS) {
-         System.out.println("dt = " + dt + "    |Hm| = " + Hm.frobeniusNorm() + "    |vbar| = " + vbar.norm ());
-         System.out.println("         v = " + v + "      targetVel = " + targetVel);
-      }
+      // if (t1 <= 0.4+EPS && t1 >=0.4-EPS) {
+      //    System.out.println("dt = " + dt + "    |Hm| = " + Hm.frobeniusNorm() + "    |vbar| = " + vbar.norm ());
+      //    System.out.println("         v = " + v + "      targetVel = " + targetVel);
+      // }
       /*END EDIT*/
       
       if (debug) {

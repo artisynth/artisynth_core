@@ -8,11 +8,14 @@ package artisynth.core.mechmodels;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.FileWriter;
+import java.io.BufferedWriter;
 import java.util.*;
 
 import maspack.matrix.Matrix;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.MatrixNdBlock;
+import maspack.matrix.NumericalException;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.VectorNd;
@@ -30,6 +33,7 @@ public abstract class MechSystemBase extends RenderableModelBase
    implements MechSystemModel {
 
    public static boolean myParametricsInSystemMatrix = true;
+   //public static boolean myZeroForcesInPreadvance = true;
 
    protected int myStructureVersion = 0;
 
@@ -48,6 +52,8 @@ public abstract class MechSystemBase extends RenderableModelBase
    protected ArrayList<HasAuxState> myAuxStateComponents;
    protected ArrayList<HasSlaveObjects> mySlaveObjectComponents;
 
+   protected VectorNd myInitialForces = new VectorNd();
+
    int[] myDynamicSizes;
    int mySystemSize;
    protected int myNumComponents;
@@ -57,15 +63,15 @@ public abstract class MechSystemBase extends RenderableModelBase
 
    protected int myActiveVelStateSize;
    protected int myActivePosStateSize;
+   protected int myAttachedVelStateSize;
+   protected int myAttachedPosStateSize;
    protected int myParametricVelStateSize;
    protected int myParametricPosStateSize;
-
-   protected int myGTMatrixChangeCnt = 0;
-   protected int myNTMatrixChangeCnt = 0;
 
    protected MechSystemSolver mySolver;
 
    protected static boolean DEFAULT_DYNAMICS_ENABLED = true;
+   protected static boolean DEFAULT_PROFILING = false;
    protected static boolean DEFAULT_UPDATE_FORCES_AT_STEP_END = false;
 
    SparseBlockMatrix myMassMatrix;   
@@ -74,7 +80,14 @@ public abstract class MechSystemBase extends RenderableModelBase
       PosStabilization.GlobalMass;
    //protected PosStabilization myStabilization = myDefaultStabilization;
 
-   protected boolean myDynamicsEnabled = DEFAULT_DYNAMICS_ENABLED;   
+   protected boolean myDynamicsEnabled = DEFAULT_DYNAMICS_ENABLED; 
+   protected boolean myProfilingP = DEFAULT_PROFILING;
+   protected boolean myInsideAdvanceP = false;
+   protected long mySolveTime;
+   protected StepAdjustment myStepAdjust;
+
+   String myPrintState = null;
+   PrintWriter myPrintStateWriter = null;
 
    // objects for projecting position constraints
    //KKTSolver myPosSolver = new KKTSolver();
@@ -103,6 +116,8 @@ public abstract class MechSystemBase extends RenderableModelBase
          "updateForcesAtStepEnd",
          "update forces values at the end of each step", 
          DEFAULT_UPDATE_FORCES_AT_STEP_END);
+      myProps.add (
+         "profiling", "print step time and computation time", DEFAULT_PROFILING);
    }
 
    public void setPenetrationLimit (double lim) {
@@ -125,6 +140,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       super.setDefaultValues();
       setDynamicsEnabled (DEFAULT_DYNAMICS_ENABLED);
       setPenetrationLimit (-1);
+      setProfiling (DEFAULT_PROFILING);
       // mySolver will be null if setDefaultValues() called from constructor
       if (mySolver != null) {
          setStabilization (myDefaultStabilization);
@@ -204,7 +220,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       int idx = 0;
       for (int i=0; i<myConstrainers.size(); i++) {
          idx = myConstrainers.get(i).addUnilateralConstraints (
-            NT, dn, idx, changeCnt);
+            NT, dn, idx);
       }
       for (DynamicAttachment a : getOrderedAttachments()) {
          a.reduceConstraints (NT, dn);
@@ -242,21 +258,19 @@ public abstract class MechSystemBase extends RenderableModelBase
          dg.setSize (myBilateralSizes.sum());
       }
 
-      IntHolder changeCnt = new IntHolder(myGTMatrixChangeCnt);
+      IntHolder changeCnt = new IntHolder(0);
       int idx = 0;
       for (int i=0; i<myConstrainers.size(); i++) {
          idx = myConstrainers.get(i).addBilateralConstraints (
-            GT, dg, idx, changeCnt);
+            GT, dg, idx);
       }      
-      //addBilateralConstraints (GT, dg, 0, t, changeCnt);
-      myGTMatrixChangeCnt = changeCnt.value;
-
+      
       for (DynamicAttachment a : getOrderedAttachments()) {
          a.reduceConstraints (GT, dg);
       }
       // need this for now - would be good to get rid of it:
       GT.setVerticallyLinked (true);
-      return myGTMatrixChangeCnt;
+      return 0;
    }
 
    public void getBilateralInfo (ConstraintInfo[] ginfo) {
@@ -378,6 +392,22 @@ public abstract class MechSystemBase extends RenderableModelBase
       return myStructureVersion;
    }
 
+
+   /**
+    * Returns in <code>sizes</code> the number of (velocity) degrees of freedom
+    * for the dynamic components in the system. The results are arranged
+    * according to each component's solveIndex. If the length of
+    * <code>sizes</code> is less than the number of dynamic components, the
+    * results are truncated.
+    */
+   public void getDynamicSizes (int[] sizes) {
+      updateDynamicComponentLists();
+      int max = Math.min (sizes.length, myDynamicSizes.length);
+      for (int i=0; i<max; i++) {
+         sizes[i] = myDynamicSizes[i];
+      }
+   }
+
    protected void updateDynamicComponentLists() {
 
       if (myDynamicComponents == null) {
@@ -413,6 +443,8 @@ public abstract class MechSystemBase extends RenderableModelBase
             
          myActiveVelStateSize = 0;
          myActivePosStateSize = 0;
+         myAttachedVelStateSize = 0;
+         myAttachedPosStateSize = 0;
 
          int idx = 0;
          for (DynamicComponent c : active) {
@@ -436,6 +468,8 @@ public abstract class MechSystemBase extends RenderableModelBase
             myDynamicComponents.add (c);
             c.setSolveIndex (idx);
             myDynamicSizes[idx++] = c.getVelStateSize();
+            myAttachedPosStateSize += c.getPosStateSize();
+            myAttachedVelStateSize += c.getVelStateSize();
          }
          mySystemSize = 0;
          for (int i=0; i<myDynamicSizes.length; i++) {
@@ -458,8 +492,14 @@ public abstract class MechSystemBase extends RenderableModelBase
 
    protected void updateAuxStateComponentList() {
       if (myAuxStateComponents == null) {
-         myAuxStateComponents = new ArrayList<HasAuxState>();
-         getAuxStateComponents (myAuxStateComponents, 0);
+         // XXX getAuxStateComponents might trigger a FEM surface build, which
+         // will in turn trigger a structure change that will call
+         // clearCachedData(). So, we need to make sure
+         // updateAuxStateComponentList() is called before any other updates
+         // are called.
+         ArrayList<HasAuxState> list = new ArrayList<HasAuxState>();
+         getAuxStateComponents (list, 0);
+         myAuxStateComponents = list;
       }
    }
 
@@ -637,6 +677,32 @@ public abstract class MechSystemBase extends RenderableModelBase
    /** 
     * {@inheritDoc}
     */
+   public void getForces (VectorNd f) {
+      updateDynamicComponentLists();
+      f.setSize (
+         myActiveVelStateSize+myAttachedVelStateSize+myParametricVelStateSize);
+      double[] buf = f.getBuffer();
+      int idx = 0;
+      for (int i=0; i<myDynamicComponents.size(); i++) {
+         idx = myDynamicComponents.get(i).getForce (buf, idx);
+      }      
+   }
+
+   /** 
+    * {@inheritDoc}
+    */
+   public void setForces (VectorNd f) {
+      updateDynamicComponentLists();
+      double[] buf = f.getBuffer();
+      int idx = 0;
+      for (int i=0; i<myDynamicComponents.size(); i++) {
+         idx = myDynamicComponents.get(i).setForce (buf, idx);
+      }      
+   }
+
+   /** 
+    * {@inheritDoc}
+    */
    public void getParametricForces (VectorNd f) {
       updateDynamicComponentLists();
       f.setSize (myParametricVelStateSize);
@@ -659,12 +725,128 @@ public abstract class MechSystemBase extends RenderableModelBase
       }      
    }
 
+   public synchronized String getPrintState() {
+      return myPrintState;
+   }
+
+   public synchronized void setPrintState (String fmt) {
+      myPrintState = fmt;
+   }
+
+   public synchronized PrintWriter openPrintStateFile (String name)
+      throws IOException {
+      if (myPrintStateWriter != null) {
+         myPrintStateWriter.close();
+      }
+      myPrintStateWriter = new PrintWriter (
+         new BufferedWriter (new FileWriter (name)));
+      return myPrintStateWriter;
+   }
+
+   public synchronized PrintWriter reopenPrintStateFile (String name)
+      throws IOException {
+      if (myPrintStateWriter != null) {
+         myPrintStateWriter.close();
+      }
+      myPrintStateWriter = new PrintWriter (
+         new BufferedWriter (new FileWriter (name, /*append=*/true)));
+      return myPrintStateWriter;
+   }
+
+   public synchronized void closePrintStateFile () throws IOException {
+      if (myPrintStateWriter != null) {
+         myPrintStateWriter.close();
+      }
+   }
+
+   private synchronized void printState (String fmt, double t) {
+      updateDynamicComponentLists();
+      VectorNd x = new VectorNd (myActivePosStateSize);
+      VectorNd v = new VectorNd (myActiveVelStateSize);
+      getActivePosState (x, 0);
+      // Hack: get vel in body coords until data is converted ...
+      getActiveVelState (v, 0, /*bodyCoords=*/false);
+      if (myPrintStateWriter == null) {
+         System.out.println ("t="+t+":");
+         System.out.println ("v: " + v.toString (fmt));
+         System.out.println ("x: " + x.toString (fmt));
+      }
+      else {
+         myPrintStateWriter.println ("t="+t+":");
+         myPrintStateWriter.println ("v: " + v.toString (fmt));
+         myPrintStateWriter.println ("x: " + x.toString (fmt));
+         myPrintStateWriter.flush();
+      }
+   }
+
+   private void checkState() {
+//      updateDynamicComponents();
+//      RootModel root = Main.getRootModel();
+//      if (root.isCheckEnabled()) {
+//         VectorNd x = new VectorNd (myActivePosStateSize);
+//         VectorNd v = new VectorNd (myActiveVelStateSize);
+//         getActivePosState (x, 0);
+//         getActiveVelState (v, 0);
+//         root.checkWrite ("v: " + v.toString ("%g"));
+//         root.checkWrite ("x: " + x.toString ("%g"));
+//      }
+   }
+
    public StepAdjustment preadvance (double t0, double t1, int flags) {
       updateAuxStateComponentList();
       for (int i=0; i<myAuxStateComponents.size(); i++) {
          myAuxStateComponents.get(i).advanceAuxState (t0, t1);
       }
+      // zero forces
+      updateDynamicComponentLists();
+      for (int i=0; i<myDynamicComponents.size(); i++) {
+         myDynamicComponents.get(i).zeroForces();
+      }
       return null;
+   }
+
+   public StepAdjustment advance (double t0, double t1, int flags) {
+
+      myInsideAdvanceP = true;
+      if (myProfilingP) {
+         mySolveTime = System.nanoTime();
+      }      
+      StepAdjustment stepAdjust = new StepAdjustment();
+      collectInitialForces();
+
+      if (t0 == 0) {
+         updateForces (t0);
+      }
+
+      if (!myDynamicsEnabled) {
+         mySolver.nonDynamicSolve (t0, t1, stepAdjust);
+         recursivelyFinalizeAdvance (null, t0, t1, flags, 0);
+      }
+      else {
+         if (t0 == 0 && myPrintState != null) {
+            printState (myPrintState, 0);
+         }
+         checkState();
+         mySolver.solve (t0, t1, stepAdjust);
+         DynamicComponent c = checkVelocityStability();
+         if (c != null) {
+            throw new NumericalException (
+               "Unstable velocity detected, component " +
+               ComponentUtils.getPathName (c));
+         }
+         recursivelyFinalizeAdvance (stepAdjust, t0, t1, flags, 0);
+         if (myPrintState != null) {
+            printState (myPrintState, t1);
+         }
+      }
+
+      if (myProfilingP) {
+         mySolveTime = System.nanoTime() - mySolveTime;
+         System.out.println (
+            "T1=" + t1 + " solveTime=" + mySolveTime/1e6);
+      }
+      myInsideAdvanceP = false;
+      return stepAdjust;
    }
 
 //   public void increaseAuxStateOffsets (DataBuffer data) {
@@ -758,9 +940,9 @@ public abstract class MechSystemBase extends RenderableModelBase
       NumericState state = (NumericState)pstate;
       state.resetOffsets();
 
+      updateAuxStateComponentList();
       updateDynamicComponentLists();
       updateForceComponentList();
-      updateAuxStateComponentList();
 
       int chk = state.zget();
       if (chk != 0x1234) {
@@ -850,9 +1032,10 @@ public abstract class MechSystemBase extends RenderableModelBase
       state.clear();
 
       // get the required sizes
+      updateAuxStateComponentList();
       updateDynamicComponentLists();
       updateForceComponentList();
-      updateAuxStateComponentList();
+
 
       int numb = getNumBilateralImpulses();
       int numu = getNumUnilateralImpulses();
@@ -899,9 +1082,9 @@ public abstract class MechSystemBase extends RenderableModelBase
       NumericState nstate = (NumericState)newstate;
       nstate.clear();
 
+      updateAuxStateComponentList();
       updateDynamicComponentLists();
       updateForceComponentList();
-      updateAuxStateComponentList();
 
       HashMap<DynamicComponent,DataBuffer> dynCompMap =
          new HashMap<DynamicComponent,DataBuffer>();
@@ -980,6 +1163,7 @@ public abstract class MechSystemBase extends RenderableModelBase
    }
 
    public void initialize (double t) {
+      collectInitialForces();
       recursivelyInitialize (t, 0);
    }
 
@@ -1000,6 +1184,14 @@ public abstract class MechSystemBase extends RenderableModelBase
       StepAdjustment stepAdjust, double t0, double t1, int flags, int level) {
    }  
 
+   public void setProfiling (boolean enable) {
+      myProfilingP = enable;
+   }
+
+   public boolean getProfiling() {
+      return myProfilingP;
+   }
+
    protected void clearCachedData() {
       myDynamicComponents = null;
       myOrderedAttachments = null;
@@ -1008,8 +1200,6 @@ public abstract class MechSystemBase extends RenderableModelBase
       myAuxStateComponents = null;
       mySlaveObjectComponents = null;
       myMassMatrix = null;
-      myGTMatrixChangeCnt++;
-      myNTMatrixChangeCnt++;
       myStructureVersion++; // maybe this should go elsewhere?
    }
 
@@ -1405,9 +1595,8 @@ public abstract class MechSystemBase extends RenderableModelBase
       msb.myActivePosStateSize = 0;
       msb.myParametricVelStateSize = 0;
       msb.myParametricPosStateSize = 0;
+      msb.myProfilingP = myProfilingP;
 
-      msb.myGTMatrixChangeCnt = 0;
-      msb.myNTMatrixChangeCnt = 0;
       msb.myMassMatrix = null;
 
       //msb.myStabilization = myStabilization;
@@ -1434,41 +1623,75 @@ public abstract class MechSystemBase extends RenderableModelBase
       return mySolver.createActiveStiffnessMatrix(1);
    }
 
-   public void writeStiffnessMatrix (String fileName, double h)
-      throws IOException {
+   public void writeStiffnessMatrix (
+      String fileName, double h, Matrix.WriteFormat matfmt) throws IOException {
       updatePosState();
       SparseBlockMatrix K = mySolver.createActiveStiffnessMatrix(h);
       PrintWriter pw = ArtisynthIO.newIndentingPrintWriter (fileName);
       int size = getActiveVelStateSize();
       NumberFormat fmt = new NumberFormat ("%g");
-      K.write (pw, fmt, Matrix.WriteFormat.MatrixMarket, size, size);
+      K.write (pw, fmt, matfmt, size, size);
+      pw.close();
+   }
+
+   public void writeStiffnessMatrix (
+      String fileName, double h) throws IOException {
+      writeStiffnessMatrix (fileName, h, Matrix.WriteFormat.MatrixMarket);
+   }                                        
+
+   public void writeMassMatrix (String fileName, Matrix.WriteFormat matfmt)
+      throws IOException {      
+      updatePosState();
+      PrintWriter pw = ArtisynthIO.newIndentingPrintWriter (fileName);
+      SparseBlockMatrix M = mySolver.createActiveMassMatrix (0);
+      NumberFormat fmt = new NumberFormat ("%g");
+      M.write (pw, fmt, matfmt);
       pw.close();
    }
 
    public void writeMassMatrix (String fileName)
       throws IOException {
-      updatePosState();
+      writeMassMatrix (fileName, Matrix.WriteFormat.MatrixMarket);
+   }
+
+   public void writeBilateralConstraintMatrix (
+      String fileName, Matrix.WriteFormat matfmt) throws IOException {
       PrintWriter pw = ArtisynthIO.newIndentingPrintWriter (fileName);
-      SparseBlockMatrix M = mySolver.createActiveMassMatrix (0);
+      SparseBlockMatrix GT = mySolver.createActiveBilateralMatrix (0);
       NumberFormat fmt = new NumberFormat ("%g");
-      M.write (pw, fmt, Matrix.WriteFormat.MatrixMarket);
+      GT.write (pw, fmt, matfmt);
       pw.close();
    }
 
    public void writeBilateralConstraintMatrix (String fileName)
       throws IOException {
-      PrintWriter pw = ArtisynthIO.newIndentingPrintWriter (fileName);
-      SparseBlockMatrix GT = mySolver.createActiveBilateralMatrix (0);
-      NumberFormat fmt = new NumberFormat ("%g");
-      GT.write (pw, fmt, Matrix.WriteFormat.MatrixMarket);
-      pw.close();
+      writeBilateralConstraintMatrix (fileName, Matrix.WriteFormat.MatrixMarket);
+   }
+
+   public void collectInitialForces () {
+      updateDynamicComponentLists();
+      // add external forces
+      for (int i=0; i<myDynamicComponents.size(); i++) {
+         myDynamicComponents.get(i).applyExternalForces();
+      }
+      getForces (myInitialForces);
    }
 
    public void updateForces (double t) {
       updateDynamicComponentLists();
       updateForceComponentList();
-      for (int i=0; i<myDynamicComponents.size(); i++) {
-         myDynamicComponents.get(i).setForcesToExternal();
+      // initialize the forces by adding the initial forces that 
+      // were collected at the beginning of the advance. 
+      // We only do this if updateForces is being called from *within*
+      // the advance method, since otherwise myInitialForces won't be properly
+      // set.
+      if (myInsideAdvanceP) {
+         setForces (myInitialForces);
+      }
+      else {
+         for (int i=0; i<myDynamicComponents.size(); i++) {
+            myDynamicComponents.get(i).setForcesToExternal();
+         }
       }
       for (int i=0; i<myForceEffectors.size(); i++) {
          myForceEffectors.get(i).applyForces (t);

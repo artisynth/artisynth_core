@@ -497,10 +497,19 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       MatrixNdBlock blk, int j, Wrench wr,
       RigidBody body, RigidTransform3d TCtoBod,
       MatrixNd PiBodToC, boolean negate) {
+      
+      setBlockCol (blk, j, wr, body, TCtoBod, PiBodToC, negate, /*world=*/false);
+
+   }
+
+   static void setBlockCol (
+      MatrixNdBlock blk, int j, Wrench wr,
+      RigidBody body, RigidTransform3d TCtoBod,
+      MatrixNd PiBodToC, boolean negate, boolean inWorld) {
 
       Wrench wtmp = new Wrench();
       wtmp.transform (TCtoBod, wr);
-      if (Frame.dynamicVelInWorldCoords) {
+      if (Frame.dynamicVelInWorldCoords && !inWorld) {
          // transform wrench into world coords
          wtmp.transform (body.getPose().R, wtmp);
       }
@@ -548,7 +557,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
    }
 
    public int addBilateralConstraints (
-      SparseBlockMatrix GT, VectorNd dg, int numb, IntHolder changeCnt) {
+      SparseBlockMatrix GT, VectorNd dg, int numb) {
 
       double[] dbuf = (dg != null ? dg.getBuffer() : null);
 
@@ -632,7 +641,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
    }
 
    public int addUnilateralConstraints (
-      SparseBlockMatrix NT, VectorNd dn, int numu, IntHolder changeCnt) {
+      SparseBlockMatrix NT, VectorNd dn, int numu) {
 
       int nc = (myUnilaterals != null ? myUnilaterals.size() : 0);
 
@@ -750,13 +759,14 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       SparseBlockMatrix DT, FrictionInfo[] finfo, int numf) {
 
       return addFrictionConstraints (
-         DT, finfo, numf, myUnilaterals, getBodyA(), getBodyB(), myTGA);
+         DT, finfo, numf, myUnilaterals, getBodyA(), getBodyB(), myTGA, false);
    }
 
    public static int addFrictionConstraints (
       SparseBlockMatrix DT, FrictionInfo[] finfo, int numf,
       ArrayList<RigidBodyConstraint> unilaterals,
-      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TGA) {      
+      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TGA, 
+      boolean inWorld) {      
 
       int nu = (unilaterals != null ? unilaterals.size() : 0);
 
@@ -774,6 +784,11 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
          int idxB = getSolveIdx (bodyB);
 
          getRelativePoseAndVelocity (XBA, velRel, bodyA, bodyB);
+         if (inWorld) {
+            velRel.transform (bodyA.getPose().R);
+            XBA.setIdentity();
+            XBA.p.sub (bodyB.getPosition(), bodyA.getPosition());
+         }
 
          Vector3d nrm = new Vector3d();
          for (int j=0; j<nu; j++) {
@@ -781,6 +796,9 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
             RigidBodyConstraint u = unilaterals.get (j);
 
             Point3d pnt = u.getContactPoint();
+            if (inWorld && pnt != null) {
+               pnt = new Point3d(pnt);
+            }
             double mu = u.getFriction();
             double lam = u.getMultiplier();
             // Hack here: TGA will be non-null for RigidBodyConnectors,
@@ -812,51 +830,46 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
                DT.addBlock (idxB, bj, DB);
             }
 
+            if (inWorld) {
+               pnt.sub (bodyA.getPosition());
+            }
             computeTangentDirection (dir, velRel, nrm, pnt);
 
             wr.f.set (dir);
             wr.m.cross (pnt, wr.f);
             if (DA != null) {
-               if (Frame.dynamicVelInWorldCoords) {
-                  wrW.transform (bodyA.getPose().R, wr);
-                  DA.setColumn (0, wrW.f, wrW.m);
+               wrW.set (wr);
+               if (!inWorld) {
+                  wrW.transform (bodyA.getPose().R);
                }
-               else {
-                  DA.setColumn (0, wr.f, wr.m);
-               }
+               DA.setColumn (0, wrW.f, wrW.m);
             }
             wr.inverseTransform (XBA);
             wr.negate();
             if (DB != null) {
-               if (Frame.dynamicVelInWorldCoords) {
-                  wrW.transform (bodyB.getPose().R, wr);
-                  DB.setColumn (0, wrW.f, wrW.m);     
+               wrW.set (wr);
+               if (!inWorld) {
+                  wrW.transform (bodyB.getPose().R);
                }
-               else {
-                  DB.setColumn (0, wr.f, wr.m);     
-               }
+               DB.setColumn (0, wrW.f, wrW.m);     
             }
             wr.f.cross (nrm, dir);
             wr.m.cross (pnt, wr.f);
             if (DA != null) {
-               if (Frame.dynamicVelInWorldCoords) {
-                  wrW.transform (bodyA.getPose().R, wr);
-                  DA.setColumn (1, wrW.f, wrW.m);
+               wrW.set (wr);
+               if (!inWorld) {
+                  wrW.transform (bodyA.getPose().R);
                }
-               else {
-                  DA.setColumn (1, wr.f, wr.m);
-               }
+               DA.setColumn (1, wrW.f, wrW.m);
             }
             wr.inverseTransform (XBA);
             wr.negate();
             if (DB != null) {
-               if (Frame.dynamicVelInWorldCoords) {
-                  wrW.transform (bodyB.getPose().R, wr);
-                  DB.setColumn (1, wrW.f, wrW.m);
+               wrW.set (wr);
+               if (!inWorld) {
+                  wrW.transform (bodyB.getPose().R);
                }
-               else {
-                  DB.setColumn (1, wr.f, wr.m);     
-               }
+               DB.setColumn (1, wrW.f, wrW.m);
             }
             numf++;
             bj++;

@@ -24,6 +24,7 @@ public class PointFrameAttachment extends PointAttachment {
    Frame myFrame;
    Matrix3d myTmp = new Matrix3d();
    Vector3d myVec = new Vector3d();
+   MatrixBlock myGT = null;
 
    public DynamicComponent[] getMasters() {
       return myMasters;
@@ -41,13 +42,27 @@ public class PointFrameAttachment extends PointAttachment {
       myLoc.set (pnt);
    }
 
-   public void setDefaultLocation() {
-      myLoc.inverseTransform (
-         myFrame.myState.XFrameToWorld, myPoint.myState.pos);
-   }
+   // public void setDefaultLocation() {
+   //    myLoc.inverseTransform (
+   //       myFrame.myState.XFrameToWorld, myPoint.myState.pos);
+   // }
 
    public Point3d getLocation() {
       return myLoc;
+   }
+
+   protected void updateJacobian() {
+      if (myFrame != null) {
+         if (myGT == null) {
+            if (myFrame.getVelStateSize() == 6) {
+               myGT = new Matrix6x3Block();
+            }
+            else {
+               myGT = new MatrixNdBlock(myFrame.getVelStateSize(), 3);
+            }
+         }
+         myFrame.computePointForceJacobian (myGT, myLoc);
+      }
    }
 
    void setFrame (Frame body) {
@@ -59,16 +74,16 @@ public class PointFrameAttachment extends PointAttachment {
       else {
          myMasters = new DynamicComponent[0];
       }
+      updateJacobian();
    }
-
+   
    void setSlave (Point slave, Point3d loc) {
       myPoint = slave;
       if (loc != null) {
          myLoc.set (loc);
       }
       else {
-         myLoc.inverseTransform (
-            myFrame.myState.XFrameToWorld, myPoint.myState.pos);
+         myFrame.computePointLocation (myLoc, myPoint.myState.pos);
       }
    }
 
@@ -85,6 +100,7 @@ public class PointFrameAttachment extends PointAttachment {
 
    public void updatePosStates() {
       computePosState (myPoint.myState.pos);
+      updateJacobian();
    }
 
    public void updateVelStates() { 
@@ -92,17 +108,20 @@ public class PointFrameAttachment extends PointAttachment {
    }
 
    public void applyForces() {
-      myFrame.addPointForce (myPoint.myForce, myLoc);
+      myFrame.addPointForce (myLoc, myPoint.myForce);
    }
 
-   public void addScaledExternalForce(Point3d pnt, double s, Vector3d f) {
-      Wrench bodyForce = new Wrench();
-      Point3d bodyPnt = new Point3d(pnt);
-      bodyPnt.inverseTransform(myFrame.getPose());
-      myFrame.computeAppliedWrench (bodyForce, f, bodyPnt);
-      bodyForce.transform (myFrame.getPose().R);
-      myFrame.addScaledExternalForce (s, bodyForce);
-   }
+
+
+//   // FIX
+//   public void addScaledExternalForce (Point3d pnt, double s, Vector3d f) {
+//      Wrench bodyForce = new Wrench();
+//      Point3d bodyPnt = new Point3d(pnt);
+//      bodyPnt.inverseTransform(myFrame.getPose());
+//      myFrame.computeAppliedWrench (bodyForce, f, bodyPnt);
+//      bodyForce.transform (myFrame.getPose().R);
+//      myFrame.addScaledExternalForce (s, bodyForce);
+//   }
    
    protected MatrixBlock createRowBlock (int colSize) {
       return createRowBlockNew (colSize);
@@ -113,75 +132,104 @@ public class PointFrameAttachment extends PointAttachment {
    }
 
    protected MatrixBlock createColBlockNew (int rowSize) {
-      switch (rowSize) {
-         case 1:
-            return new Matrix1x6Block();
-         case 3:
-            return new Matrix3x6Block();
-         case 6: 
-            return new Matrix6dBlock();
-         default:
-            return new MatrixNdBlock(rowSize, 6);
+      int vsize = myFrame.getVelStateSize();
+      if (vsize == 6) {
+         switch (rowSize) {
+            case 1:
+               return new Matrix1x6Block();
+            case 3:
+               return new Matrix3x6Block();
+            case 6: 
+               return new Matrix6dBlock();
+            default:
+               return new MatrixNdBlock(rowSize, 6);
+         }
+      }
+      else {
+         return new MatrixNdBlock (rowSize, vsize);
       }
    }
 
    protected MatrixBlock createRowBlockNew (int colSize) {
-      switch (colSize) {
-         case 1:
-            return new Matrix6x1Block();
-         case 3:
-            return new Matrix6x3Block();
-         case 6: 
-            return new Matrix6dBlock();
-         default:
-            return new MatrixNdBlock(6, colSize);
+      int vsize = myFrame.getVelStateSize();
+      if (vsize == 6) {
+         switch (colSize) {
+            case 1:
+               return new Matrix6x1Block();
+            case 3:
+               return new Matrix6x3Block();
+            case 6: 
+               return new Matrix6dBlock();
+            default:
+               return new MatrixNdBlock(6, colSize);
+         }
+      }
+      else {
+         return new MatrixNdBlock(vsize, colSize);
       }
    }
 
    public void mulSubGT (MatrixBlock D, MatrixBlock B, int idx) {
-      mulSubGTNew (D, B, idx);
+      MatrixNdBlock Dcheck = new MatrixNdBlock (D.rowSize(), D.colSize());
+      // Dcheck.set (D);
+      // Dcheck.mulAdd (myGT, B);
+      // mulSubGTNew (D, B, idx);
+      // if (!Dcheck.epsilonEquals (D, 1e-10)) {
+      //    System.out.println ("D=\n" + D);
+      //    System.out.println ("Dcheck=\n" + Dcheck);
+      // }
+      D.mulAdd (myGT, B);
    }
 
    public void mulSubG (MatrixBlock D, MatrixBlock B, int idx) {
-      mulSubGNew (D, B, idx);
+      if (myGT != null) {
+         MatrixBlock G = myGT.createTranspose();
+         D.mulAdd (B, G);
+      }
+      //mulSubGNew (D, B, idx);
    }
 
+   // FIX: use getPointJacobian()? mulPointJacobian()?
    public void mulSubGT (
       double[] ybuf, int yoff, double[] xbuf, int xoff, int idx) {
 
-      RotationMatrix3d R = myFrame.myState.XFrameToWorld.R;
-
-      double bx = xbuf[xoff  ];
-      double by = xbuf[xoff+1];
-      double bz = xbuf[xoff+2];
-
-      double tx, ty, tz;
-
-      if (Frame.dynamicVelInWorldCoords) {
-         myVec.transform (R, myLoc);
-         tx = bx;
-         ty = by;
-         tz = bz;
+      if (myGT != null) {
+         myGT.mulAdd (ybuf, yoff, xbuf, xoff);
       }
-      else {
-         myVec.set (myLoc);
-         tx = bx*R.m00 + by*R.m10 + bz*R.m20;
-         ty = bx*R.m01 + by*R.m11 + bz*R.m21;
-         tz = bx*R.m02 + by*R.m12 + bz*R.m22;
-      }
-      double xx = myVec.y*tz - myVec.z*ty;
-      double xy = myVec.z*tx - myVec.x*tz;
-      double xz = myVec.x*ty - myVec.y*tx;
 
-      ybuf[yoff  ] += tx;
-      ybuf[yoff+1] += ty;
-      ybuf[yoff+2] += tz;
-      ybuf[yoff+3] += xx;
-      ybuf[yoff+4] += xy;
-      ybuf[yoff+5] += xz;
+      // RotationMatrix3d R = myFrame.myState.XFrameToWorld.R;
+
+      // double bx = xbuf[xoff  ];
+      // double by = xbuf[xoff+1];
+      // double bz = xbuf[xoff+2];
+
+      // double tx, ty, tz;
+
+      // if (Frame.dynamicVelInWorldCoords) {
+      //    myVec.transform (R, myLoc);
+      //    tx = bx;
+      //    ty = by;
+      //    tz = bz;
+      // }
+      // else {
+      //    myVec.set (myLoc);
+      //    tx = bx*R.m00 + by*R.m10 + bz*R.m20;
+      //    ty = bx*R.m01 + by*R.m11 + bz*R.m21;
+      //    tz = bx*R.m02 + by*R.m12 + bz*R.m22;
+      // }
+      // double xx = myVec.y*tz - myVec.z*ty;
+      // double xy = myVec.z*tx - myVec.x*tz;
+      // double xz = myVec.x*ty - myVec.y*tx;
+
+      // ybuf[yoff  ] += tx;
+      // ybuf[yoff+1] += ty;
+      // ybuf[yoff+2] += tz;
+      // ybuf[yoff+3] += xx;
+      // ybuf[yoff+4] += xy;
+      // ybuf[yoff+5] += xz;
    }
 
-
+   // FIX: use getPointJacobian()? mulPointJacobian()?
    public void mulSubGTNew (MatrixBlock D, MatrixBlock B, int idx) {
 
       RotationMatrix3d R = myFrame.myState.XFrameToWorld.R;
@@ -297,6 +345,7 @@ public class PointFrameAttachment extends PointAttachment {
       //      System.out.println ("R=\n" + ((MatrixBase)D).toString ("%8.3f"));
    }
 
+   // FIX: use getPointJacobian()? mulPointJacobian()?
    public void mulSubGNew (MatrixBlock D, MatrixBlock B, int idx) {
 
       RotationMatrix3d R = myFrame.myState.XFrameToWorld.R;
@@ -415,23 +464,15 @@ public class PointFrameAttachment extends PointAttachment {
       //      System.out.println ("R=\n" + ((MatrixBase)D).toString ("%8.3f"));
    }
 
+   // FIX: use computePointLocation?
    public void updateAttachment() {
-      myLoc.inverseTransform (
-         myFrame.myState.XFrameToWorld, myPoint.myState.pos);
+      myFrame.computePointLocation (myLoc, myPoint.myState.pos);
+      // myLoc.inverseTransform (
+      //    myFrame.myState.XFrameToWorld, myPoint.myState.pos);
       if (myPoint instanceof FrameMarker) {
          ((FrameMarker)myPoint).myLocation.set (myLoc);
       }
    }
-
-   // @Override
-   // public void getReferences (List<ModelComponent> refs) {
-   //    if (myPoint == null || myFrame == null) {
-   //       throw new InternalErrorException ("null point and/or frame");
-   //    }
-   //    super.getReferences (refs);
-   //    refs.add (myPoint);
-   //    refs.add (myFrame);
-   // }
 
    @Override
    public void transformSlaveGeometry (
@@ -447,13 +488,16 @@ public class PointFrameAttachment extends PointAttachment {
       }
    }
 
-   public int addTargetJacobian (SparseBlockMatrix J, int bi) {
-      Matrix3x6Block blk = new Matrix3x6Block();
-      setFrameJacobian (blk);
+   // FIX: use getPointJacobian?
+   public int addTargetJacobian (SparseBlockMatrix J, int bi) { // FIX
+      MatrixBlock blk = myGT.createTranspose();
+      //Matrix3x6Block blk = new Matrix3x6Block();
+      //setFrameJacobian (blk);
       J.addBlock (bi, myFrame.getSolveIndex(), blk);
       return bi++;      
    }
 
+   // FIX: replace with getPointJacobian?
    /** 
     * Frame Jacobian is set to
     * <pre>
@@ -462,54 +506,83 @@ public class PointFrameAttachment extends PointAttachment {
     *   [                      ]
     * </pre>
     */
-   private void setFrameJacobian (Matrix3x6Block blk) {
-      RotationMatrix3d R = myFrame.getPose().R;
+   private void setFrameJacobian (MatrixBlock blk) {
 
-      if (Frame.dynamicVelInWorldCoords) {
-         blk.setZero();
-         blk.m00 = 1;
-         blk.m11 = 1;
-         blk.m22 = 1;
-
-         double lxb = myLoc.x;
-         double lyb = myLoc.y;
-         double lzb = myLoc.z;
-         
-         double lxw = R.m00*lxb + R.m01*lyb + R.m02*lzb;
-         double lyw = R.m10*lxb + R.m11*lyb + R.m12*lzb;
-         double lzw = R.m20*lxb + R.m21*lyb + R.m22*lzb;
-
-         blk.m04 =  lzw;
-         blk.m05 = -lyw;
-         blk.m15 =  lxw;
-
-         blk.m13 = -lzw;
-         blk.m23 =  lyw;
-         blk.m24 = -lxw;
+      if (myGT != null) {
+         int vsize = myGT.rowSize();
+         if (vsize > 6) {
+            MatrixNdBlock G = null;
+            if (blk instanceof MatrixNdBlock) {
+               G = (MatrixNdBlock)blk;
+            }
+            if (blk == null || blk.rowSize() != 3 || blk.colSize() != vsize) {
+               throw new IllegalArgumentException (
+                  "Expecting blk to be a MatrixNdBlock of size 3x"+vsize);
+            }
+            G.transpose ((MatrixNdBlock)myGT);
+         }
+         else {
+            if (!(blk instanceof Matrix3x6Block)) {
+               throw new IllegalArgumentException (
+                  "Expecting blk to be a Matrix3x6Block");
+            }
+            Matrix3x6Block G = (Matrix3x6Block)blk;
+            G.transpose ((Matrix6x3Block)myGT);
+         }
       }
       else {
-         blk.m00 = R.m00; blk.m01 = R.m01; blk.m02 = R.m02;
-         blk.m10 = R.m10; blk.m11 = R.m11; blk.m12 = R.m12;
-         blk.m20 = R.m20; blk.m21 = R.m21; blk.m22 = R.m22;
-
-         double lxb = myLoc.x;
-         double lyb = myLoc.y;
-         double lzb = myLoc.z;
-         
-         blk.m03 = -lzb*R.m01 + lyb*R.m02;
-         blk.m13 = -lzb*R.m11 + lyb*R.m12;
-         blk.m23 = -lzb*R.m21 + lyb*R.m22;
-
-         blk.m04 =  lzb*R.m00 - lxb*R.m02;
-         blk.m14 =  lzb*R.m10 - lxb*R.m12;
-         blk.m24 =  lzb*R.m20 - lxb*R.m22;
-
-         blk.m05 = -lyb*R.m00 + lxb*R.m01;
-         blk.m15 = -lyb*R.m10 + lxb*R.m11;
-         blk.m25 = -lyb*R.m20 + lxb*R.m21;
+         blk.setZero();
       }
+      
+      // RotationMatrix3d R = myFrame.getPose().R;
+
+      // if (Frame.dynamicVelInWorldCoords) {
+      //    blk.setZero();
+      //    blk.m00 = 1;
+      //    blk.m11 = 1;
+      //    blk.m22 = 1;
+
+      //    double lxb = myLoc.x;
+      //    double lyb = myLoc.y;
+      //    double lzb = myLoc.z;
+         
+      //    double lxw = R.m00*lxb + R.m01*lyb + R.m02*lzb;
+      //    double lyw = R.m10*lxb + R.m11*lyb + R.m12*lzb;
+      //    double lzw = R.m20*lxb + R.m21*lyb + R.m22*lzb;
+
+      //    blk.m04 =  lzw;
+      //    blk.m05 = -lyw;
+      //    blk.m15 =  lxw;
+
+      //    blk.m13 = -lzw;
+      //    blk.m23 =  lyw;
+      //    blk.m24 = -lxw;
+      // }
+      // else {
+      //    blk.m00 = R.m00; blk.m01 = R.m01; blk.m02 = R.m02;
+      //    blk.m10 = R.m10; blk.m11 = R.m11; blk.m12 = R.m12;
+      //    blk.m20 = R.m20; blk.m21 = R.m21; blk.m22 = R.m22;
+
+      //    double lxb = myLoc.x;
+      //    double lyb = myLoc.y;
+      //    double lzb = myLoc.z;
+         
+      //    blk.m03 = -lzb*R.m01 + lyb*R.m02;
+      //    blk.m13 = -lzb*R.m11 + lyb*R.m12;
+      //    blk.m23 = -lzb*R.m21 + lyb*R.m22;
+
+      //    blk.m04 =  lzb*R.m00 - lxb*R.m02;
+      //    blk.m14 =  lzb*R.m10 - lxb*R.m12;
+      //    blk.m24 =  lzb*R.m20 - lxb*R.m22;
+
+      //    blk.m05 = -lyb*R.m00 + lxb*R.m01;
+      //    blk.m15 = -lyb*R.m10 + lxb*R.m11;
+      //    blk.m25 = -lyb*R.m20 + lxb*R.m21;
+      // }
    }
 
+
+   // FIX: add addPointMass to Frame?
    public void addMassToMaster (MatrixBlock mblk, MatrixBlock sblk, int idx) {
       
       if (idx != 0) {
@@ -522,19 +595,10 @@ public class PointFrameAttachment extends PointAttachment {
       Matrix3x3Block slaveBlk = (Matrix3x3Block)sblk;
       double mass = slaveBlk.m00;
       if (mass != 0) {
-         if (!(mblk instanceof Matrix6dBlock)) {
-            throw new IllegalArgumentException (
-               "Master block not instance of Matrix6dBlock");
-         }
-         if (Frame.dynamicVelInWorldCoords) {
-            myVec.transform (myFrame.getPose().R, myLoc);
-            SpatialInertia.addPointMass (
-               (Matrix6dBlock)mblk, mass, myVec);
-         }
-         else {
-            SpatialInertia.addPointMass (
-               (Matrix6dBlock)mblk, mass, myLoc);
-         }
+         myFrame.computePointPosition (myVec, myLoc);
+         // sub Frame position since vec only wanted in world orientation 
+         myVec.sub (myFrame.getPosition());
+         myFrame.addPointMass (mblk, mass, myVec);
       }
    }
 
@@ -578,20 +642,19 @@ public class PointFrameAttachment extends PointAttachment {
       pw.println ("");
    }
 
+   // FIX
    public boolean getDerivative (double[] buf, int idx) {
-      Twist tw = myFrame.getVelocity();
-      if (Frame.dynamicVelInWorldCoords) {
-         myVec.transform (myFrame.getPose().R, myLoc);
-         myVec.cross (tw.w, myVec);
-         // do we need to add this?
-         //myVec.add (tw.v);
-         myVec.cross (tw.w, myVec);
-      }
-      else {
-         myVec.transform (myFrame.getPose().R, myLoc);
-         myVec.cross (tw.w, myVec);
-         myVec.cross (tw.w, myVec);
-      }
+
+      myFrame.computePointCoriolis (myVec, myLoc);
+
+      // Twist tw = myFrame.getVelocity();
+
+      // myVec.transform (myFrame.getPose().R, myLoc);
+      // myVec.cross (tw.w, myVec);
+      // // do we need to add this?
+      // //myVec.add (tw.v);
+      // myVec.cross (tw.w, myVec);
+
       buf[idx  ] = myVec.x;
       buf[idx+1] = myVec.y;
       buf[idx+2] = myVec.z;
@@ -656,8 +719,7 @@ public class PointFrameAttachment extends PointAttachment {
       a.myVec = new Vector3d();
       a.myLoc = new Point3d (myLoc);
       if (myFrame != null) {
-         a.myFrame =
-            (Frame)ComponentUtils.maybeCopy (flags, copyMap, myFrame);
+         a.setFrame ((Frame)ComponentUtils.maybeCopy (flags, copyMap, myFrame));
       }
       return a;
    }

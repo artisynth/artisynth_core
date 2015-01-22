@@ -17,6 +17,21 @@ import maspack.matrix.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.TransformableGeometry;
 
+/**
+ * Component that implements attachment between dynamic components.
+ * A component 'a' can be attached to one or more "master" components
+ * 'b' if it's position q_a can be made an
+ * explicit differentiable function of the positions q_m of the masters:
+ * <pre>
+ * q_a = f (q_m)
+ * </pre>
+ * Differentiating means that the attached component velocity u_a
+ * is a linear function of the master velocities u_m:
+ * <pre>
+ * u_a = -G (u_m)
+ * </pre>
+ * where G = -(d f)/(d q_m) is the "constraint matrix".
+ */
 public abstract class DynamicAttachment extends ModelComponentBase {
 
    private int attachedMasterCnt; // used internally for ordering the attachments

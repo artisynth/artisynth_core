@@ -47,7 +47,7 @@ public class ParticlePlaneConstraint extends ConstrainerBase
    }
 
    public int addBilateralConstraints (
-      SparseBlockMatrix GT, VectorNd dg, int numb, IntHolder changeCnt) {
+      SparseBlockMatrix GT, VectorNd dg, int numb) {
 
       int idx = myParticle.getSolveIndex();
       int bj = GT.numBlockCols();

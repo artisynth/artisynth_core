@@ -100,6 +100,10 @@ class MatrixNdTest extends MatrixTest {
       ((MatrixNd)MR).set ((MatrixNd)M1);
    }
 
+   void mulAdd (Matrix MR, Matrix M1, Matrix M2) {
+      ((MatrixNd)MR).mulAdd (M1, M2);
+   }
+
    void testCopySubMatrix (
       MatrixNd MR, int row0, int col0, int nrows, int ncols, MatrixNd MT,
       int rowDest, int colDest) {
@@ -585,6 +589,12 @@ class MatrixNdTest extends MatrixTest {
             testNorms (M1sub_4x3);
             testNorms (M1sub_3x4);
             testNorms (M1_4x4);
+         }
+
+         for (int nr=1; nr<=8; nr++) {
+            for (int nc=1; nc<=8; nc++) {
+               testMulAdd (new MatrixNd (nr, nc));
+            }
          }
       }
       catch (Exception e) {

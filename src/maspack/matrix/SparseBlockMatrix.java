@@ -1519,6 +1519,8 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
 
       myNumBlockRows = M.myNumBlockRows;
       myNumBlockCols = M.myNumBlockCols;
+      myNumRows = M.myNumRows;
+      myNumCols = M.myNumCols;
 
       myVerticallyLinkedP = M.myVerticallyLinkedP;
 
@@ -1575,46 +1577,6 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
             "clone not supported for super class of SparseBlockMatrix");
       }
       M.set (this);
-      // M.myVerticallyLinkedP = myVerticallyLinkedP;
-
-      // M.myRows = new MatrixBlockRowList[myNumBlockRows];
-      // M.myRowOffsets = new int[myNumBlockRows+1];
-      // for (int bi = 0; bi < myNumBlockRows; bi++) {
-      //    M.myRows[bi] = new MatrixBlockRowList();
-      //    M.myRowOffsets[bi] = myRowOffsets[bi];
-      // }
-      // M.myRowOffsets[myNumBlockRows] = myRowOffsets[myNumBlockRows];
-
-      // M.myCols = new MatrixBlockColList[myNumBlockCols];
-      // M.myColOffsets = new int[myNumBlockCols+1];
-      // for (int bj = 0; bj < myNumBlockCols; bj++) {
-      //    if (myVerticallyLinkedP) {
-      //       M.myCols[bj] = new MatrixBlockColList();
-      //    }
-      //    M.myColOffsets[bj] = myColOffsets[bj];
-      // }
-      // M.myColOffsets[myNumBlockCols] = myColOffsets[myNumBlockCols];
-
-      // M.myRowIndicesPartition = Partition.None;
-      // M.myRowIndicesNumBlkRows = -1;
-      // M.myRowIndicesNumBlkCols = -1;
-      // M.myRowIndices = null;
-
-      // M.myColIndicesPartition = Partition.None;
-      // M.myColIndicesNumBlkRows = -1;
-      // M.myColIndicesNumBlkCols = -1;
-      // M.myColIndices = null;
-
-      // for (int bi=0; bi<myNumBlockRows; bi++) {
-      //    MatrixBlock blk = myRows[bi].firstBlock();
-      //    while (blk != null) {
-      //       MatrixBlock newBlk = blk.clone();
-      //       M.addBlockWithoutNumber (bi, blk.getBlockCol(), newBlk);
-      //       newBlk.setBlockNumber (blk.getBlockNumber());
-      //       blk = blk.next();
-      //    }
-      // }
-         
       return M;
    }
 
@@ -2191,6 +2153,112 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
    }
    
    /**
+    * Returns an integer array that uniquely describes the block structure of
+    * this matrix. If this equals the array returned by {@link
+    * #getStructure} for another matrix, then the block structure of the
+    * two matrices are equal.
+    *
+    * The size of the array is
+    * <pre>
+    * 2 + 2*numBlockRows + numBlockCols + numBlocks
+    * </pre>
+    * where <code>numBlockRows</code>, <code>numBlockCols</code>,
+    * and <code>numBlocks</code> are the values returned by
+    * {@link #numBlockRows()}, {@link #numBlockCols()}, and {@link #numBlocks()}.
+    * The contents of the array are:
+    * <pre>
+    *    quantity                                            number of values
+    *    --------------------------------------------------------------------
+    *    number of block rows                                1
+    *    number of block columns                             1
+    *    block row size for each block row                   numBlockRows
+    *    block col size for each block column                numBlockCols
+    *    number of blocks in each block row                  numBlockRows
+    *    block column index of each block (row major order)  numBlocks
+    * </pre>
+    * @return matrix block structure
+    */
+   public int[] getBlockStructure() {
+      int[] struct = new int[2+2*myNumBlockRows+myNumBlockCols+numBlocks()];
+      struct[0] = myNumBlockRows;
+      struct[1] = myNumBlockCols;
+      int k = 2;
+      for (int bi=0; bi<myNumBlockRows; bi++) {
+         struct[k++] = getBlockRowSize(bi);
+      }
+      for (int bj=0; bj<myNumBlockCols; bj++) {
+         struct[k++] = getBlockColSize(bj);
+      }
+      int j = k+myNumBlockRows; // index into block column index section
+      for (int bi=0; bi<myNumBlockRows; bi++) {
+         int numBlks = 0;
+         for (MatrixBlock blk=myRows[bi].myHead; blk!=null; blk=blk.next()) {
+            if (j == struct.length) {
+               throw new InternalErrorException (
+                  "numBlocks() returns value less than the actual block number");
+            }
+            struct[j++] = blk.getBlockCol();
+            numBlks++;
+         }
+         struct[k++] = numBlks;
+      }
+      if (j != struct.length) {
+         throw new InternalErrorException (
+            "numBlocks() returns value greater than the actual block number");
+      }
+      return struct;
+   }
+
+   /**
+    * Returns <code>true</code> if the block structure of this matrix
+    * matches the structure described by <code>struct</code>, which should
+    * have the same length and format as the array returned by
+    * {@link #getStructure}.
+    *
+    * @param struct block structure description 
+    * @return true if the structure matches
+    */
+   public boolean blockStructureEquals (int[] struct) {
+
+      if (struct.length < 2+2*myNumBlockRows+myNumBlockCols) {
+         return false;
+      }
+      if (struct[0] != myNumBlockRows ||
+          struct[1] != myNumBlockCols) {
+         return false;
+      }
+      int k = 2;
+      for (int bi=0; bi<myNumBlockRows; bi++) {
+         if (struct[k++] != getBlockRowSize(bi)) {
+            return false;
+         }
+      }
+      for (int bj=0; bj<myNumBlockCols; bj++) {
+         if (struct[k++] != getBlockColSize(bj)) {
+            return false;
+         }
+      }
+      int j = k+myNumBlockRows; // index into block column index section
+      for (int bi=0; bi<myNumBlockRows; bi++) {
+         int numBlks = 0;
+         for (MatrixBlock blk=myRows[bi].myHead; blk!=null; blk=blk.next()) {
+            if (j == struct.length || struct[j++] != blk.getBlockCol()) {
+               return false;
+            }
+            numBlks++;
+         }
+         if (struct[k++] != numBlks) {
+            return false;
+         }
+      }
+      if (j != struct.length) {
+         return false;
+      }
+      return true;
+   }
+
+
+   /**
     * Returns true if the structure of this SparseBlockMatrix matches
     * that of another. This means that the matrices must match in
     * terms of size, row and column blocks sizes, and block placement.
@@ -2199,7 +2267,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
     * matrix to compare with
     * @return false if the matrices have different structures.
     */
-   public boolean structureEquals (SparseBlockMatrix M1) {
+   public boolean blockStructureEquals (SparseBlockMatrix M1) {
       if (M1.myNumBlockRows != myNumBlockRows ||
           M1.myNumBlockCols != myNumBlockCols) {
          return false;

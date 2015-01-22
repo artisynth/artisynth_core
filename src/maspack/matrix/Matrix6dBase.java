@@ -2360,50 +2360,50 @@ public abstract class Matrix6dBase extends DenseMatrixBase implements Clonable {
    }
 
    /**
-    * Takes the transpose of matrix M1 and places the result in this matrix.
-    * 
-    * @param M1
+    * Sets this matrix to the transpose of M
+    *
+    * @param M
     * matrix to take the transpose of
     */
-   protected void transpose (Matrix6dBase M1) {
-      double tmp01 = M1.m01;
-      double tmp02 = M1.m02;
-      double tmp03 = M1.m03;
-      double tmp04 = M1.m04;
-      double tmp05 = M1.m05;
-      double tmp12 = M1.m12;
-      double tmp13 = M1.m13;
-      double tmp14 = M1.m14;
-      double tmp15 = M1.m15;
-      double tmp23 = M1.m23;
-      double tmp24 = M1.m24;
-      double tmp25 = M1.m25;
-      double tmp34 = M1.m34;
-      double tmp35 = M1.m35;
-      double tmp45 = M1.m45;
+   protected void transpose (Matrix6dBase M) {
+      double tmp01 = M.m01;
+      double tmp02 = M.m02;
+      double tmp03 = M.m03;
+      double tmp04 = M.m04;
+      double tmp05 = M.m05;
+      double tmp12 = M.m12;
+      double tmp13 = M.m13;
+      double tmp14 = M.m14;
+      double tmp15 = M.m15;
+      double tmp23 = M.m23;
+      double tmp24 = M.m24;
+      double tmp25 = M.m25;
+      double tmp34 = M.m34;
+      double tmp35 = M.m35;
+      double tmp45 = M.m45;
 
-      m00 = M1.m00;
-      m11 = M1.m11;
-      m22 = M1.m22;
-      m33 = M1.m33;
-      m44 = M1.m44;
-      m55 = M1.m55;
+      m00 = M.m00;
+      m11 = M.m11;
+      m22 = M.m22;
+      m33 = M.m33;
+      m44 = M.m44;
+      m55 = M.m55;
 
-      m01 = M1.m10;
-      m02 = M1.m20;
-      m03 = M1.m30;
-      m04 = M1.m40;
-      m05 = M1.m50;
-      m12 = M1.m21;
-      m13 = M1.m31;
-      m14 = M1.m41;
-      m15 = M1.m51;
-      m23 = M1.m32;
-      m24 = M1.m42;
-      m25 = M1.m52;
-      m34 = M1.m43;
-      m35 = M1.m53;
-      m45 = M1.m54;
+      m01 = M.m10;
+      m02 = M.m20;
+      m03 = M.m30;
+      m04 = M.m40;
+      m05 = M.m50;
+      m12 = M.m21;
+      m13 = M.m31;
+      m14 = M.m41;
+      m15 = M.m51;
+      m23 = M.m32;
+      m24 = M.m42;
+      m25 = M.m52;
+      m34 = M.m43;
+      m35 = M.m53;
+      m45 = M.m54;
 
       m10 = tmp01;
       m20 = tmp02;

@@ -23,7 +23,7 @@ public abstract class ConstrainerBase
    public abstract void getBilateralSizes (VectorNi sizes);
 
    public abstract int addBilateralConstraints (
-      SparseBlockMatrix GT, VectorNd dg, int numb, IntHolder changeCnt);
+      SparseBlockMatrix GT, VectorNd dg, int numb);
 
    public abstract int getBilateralInfo (ConstraintInfo[] ginfo, int idx);
 
@@ -37,7 +37,7 @@ public abstract class ConstrainerBase
    }
 
    public int addUnilateralConstraints (
-      SparseBlockMatrix NT, VectorNd dn, int numu, IntHolder changeCnt) {
+      SparseBlockMatrix NT, VectorNd dn, int numu) {
       return numu;
    }
 

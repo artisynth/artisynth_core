@@ -71,9 +71,9 @@ public class PointParticleAttachment extends PointAttachment {
       myParticle.myForce.add (myPoint.myForce);
    }
    
-   public void addScaledExternalForce(Point3d pnt, double s, Vector3d f) {
-      myParticle.addScaledExternalForce(s, f);
-   }
+//   public void addScaledExternalForce(Point3d pnt, double s, Vector3d f) {
+//      myParticle.addScaledExternalForce(s, f);
+//   }
 
    protected MatrixBlock createRowBlock (int colSize) {
       return createRowBlockNew (colSize);

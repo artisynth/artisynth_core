@@ -31,7 +31,7 @@ public class PolarDecomposition3dTest {
       rand.setSeed (0x1234);
       Matrix3d M = new Matrix3d();
       Matrix3d I = new Matrix3d();
-      SVDecomposition SVD = new SVDecomposition (0);
+      SVDecomposition SVD = new SVDecomposition ();
       PolarDecomposition3d PD = new PolarDecomposition3d();
 
       if (doTiming) {

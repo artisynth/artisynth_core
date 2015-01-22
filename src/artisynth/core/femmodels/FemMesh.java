@@ -14,8 +14,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.Face;
@@ -26,6 +28,7 @@ import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Vector2d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyMode;
 import maspack.render.RenderProps;
@@ -39,7 +42,11 @@ import artisynth.core.femmodels.FemModel.ElementFilter;
 import artisynth.core.femmodels.FemModel.Ranging;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.mechmodels.Collidable;
+import artisynth.core.mechmodels.CollidableDynamicComponent;
 import artisynth.core.mechmodels.CollisionData;
+import artisynth.core.mechmodels.CollisionHandlerNew;
+import artisynth.core.mechmodels.ContactPoint;
+import artisynth.core.mechmodels.ContactMaster;
 import artisynth.core.mechmodels.DynamicAttachment;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
@@ -47,6 +54,7 @@ import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointAttachment;
 import artisynth.core.mechmodels.PointList;
 import artisynth.core.mechmodels.PointParticleAttachment;
+import artisynth.core.mechmodels.PointAttachable;
 import artisynth.core.mechmodels.Pullable;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentChangeEvent.Code;
@@ -62,7 +70,8 @@ import artisynth.core.util.StringToken;
  * Describes a surface mesh that is "skinned" onto an FEM, such that its vertex
  * positions are determined by weighted combinations of FEM node positions.
  **/
-public class FemMesh extends FemMeshBase implements Pullable, Collidable {
+public class FemMesh extends FemMeshBase
+   implements Collidable, PointAttachable {
 
    protected static double EPS = 1e-10;
    protected ArrayList<PointAttachment> myVertexAttachments;
@@ -977,94 +986,95 @@ public class FemMesh extends FemMeshBase implements Pullable, Collidable {
       
    }
 
-   // Pullable interface
-   protected class SkinOriginData {
-      PointAttachment[] attachments;
-      Vector3d weights;
+//   // Pullable interface
+//   protected class SkinOriginData {
+//      PointAttachment[] attachments;
+//      Vector3d weights;
+//
+//      public SkinOriginData(Face face, Vector3d duv) {
+//         int[] vidxs = face.getVertexIndices();
+//         attachments = new PointAttachment[3];
+//         attachments[0] = myVertexAttachments.get(vidxs[0]);
+//         attachments[1] = myVertexAttachments.get(vidxs[1]);
+//         attachments[2] = myVertexAttachments.get(vidxs[2]);
+//         weights = new Vector3d(1 - duv.y - duv.z, duv.y, duv.z);
+//      }
+//
+//      public void computeOrig(Point3d pnt) {
+//         pnt.setZero();
+//         Point3d tmp = new Point3d();
+//         for (int i=0; i<attachments.length; i++) {
+//            attachments[i].computePosState(tmp);
+//            pnt.scaledAdd(weights.get(i), tmp);
+//         }
+//      }
+//
+//      public void applyForce(Point3d pnt, Vector3d f) {
+//         // XXX zero out external force? 
+//         for (int i=0; i<attachments.length; i++) {
+//            DynamicComponent[] comps = attachments[i].getMasters();
+//            for (int j=0; j<comps.length; j++) {
+//               if (comps[j] instanceof Point) {
+//                  Point p = (Point)comps[j];
+//                  p.setExternalForce(Vector3d.ZERO);
+//               } else if (comps[j] instanceof Frame) {
+//                  // should never be here for regular FEM
+//                  Frame fr = (Frame)comps[j];
+//                  fr.setExternalForce(Wrench.ZERO);
+//               }
+//            }
+//         }
+//         for (int i=0; i<attachments.length; i++) {
+//            attachments[i].addScaledExternalForce(pnt, weights.get(i), f);
+//         }
+//      }
+//   }
 
-      public SkinOriginData(Face face, Vector3d duv) {
-         int[] vidxs = face.getVertexIndices();
-         attachments = new PointAttachment[3];
-         attachments[0] = myVertexAttachments.get(vidxs[0]);
-         attachments[1] = myVertexAttachments.get(vidxs[1]);
-         attachments[2] = myVertexAttachments.get(vidxs[2]);
-         weights = new Vector3d(1 - duv.y - duv.z, duv.y, duv.z);
-      }
+//   @Override
+//   public boolean isPullable() {
+//      return true;
+//   }
+//
+//   @Override
+//   public Object getOriginData (Point3d origin, Vector3d dir) {
+//      SkinOriginData data = null;
+//      BVFeatureQuery query = new BVFeatureQuery();
+//      Point3d isectPoint = new Point3d();
+//      Vector3d duv = new Vector3d();
+//      Face faceHit = query.nearestFaceAlongRay (
+//         isectPoint, duv, (PolygonalMesh)getMesh(), origin, dir);
+//
+//      if (faceHit != null) {
+//         data = new SkinOriginData(faceHit, duv);
+//      }
+//      return data;
+//   }
+//
+//   @Override
+//   public Point3d getOriginPoint(Object data) {
+//      SkinOriginData orig = (SkinOriginData)data;
+//      Point3d pnt = new Point3d();
+//      orig.computeOrig(pnt);
+//      return pnt;
+//   }
+//
+//   @Override
+//   public double getPointRenderRadius() {
+//      return 0;
+//   }
+//
+//   @Override
+//   public void applyForce(Object orig, Vector3d force) {
+//      SkinOriginData origin = (SkinOriginData)orig;
+//      Point3d loc = new Point3d();
+//      origin.computeOrig(loc);
+//      origin.applyForce(loc, force);
+//   }
 
-      public void computeOrig(Point3d pnt) {
-         pnt.setZero();
-         Point3d tmp = new Point3d();
-         for (int i=0; i<attachments.length; i++) {
-            attachments[i].computePosState(tmp);
-            pnt.scaledAdd(weights.get(i), tmp);
-         }
-      }
-
-      public void applyForce(Point3d pnt, Vector3d f) {
-         // XXX zero out external force? 
-         for (int i=0; i<attachments.length; i++) {
-            DynamicComponent[] comps = attachments[i].getMasters();
-            for (int j=0; j<comps.length; j++) {
-               if (comps[j] instanceof Point) {
-                  Point p = (Point)comps[j];
-                  p.setExternalForce(Vector3d.ZERO);
-               } else if (comps[j] instanceof Frame) {
-                  // should never be here for regular FEM
-                  Frame fr = (Frame)comps[j];
-                  fr.setExternalForce(Wrench.ZERO);
-               }
-            }
-         }
-         for (int i=0; i<attachments.length; i++) {
-            attachments[i].addScaledExternalForce(pnt, weights.get(i), f);
-         }
-      }
-   }
-
-   @Override
-   public boolean isPullable() {
-      return true;
-   }
-
-   @Override
-   public Object getOriginData (Point3d origin, Vector3d dir) {
-      SkinOriginData data = null;
-      BVFeatureQuery query = new BVFeatureQuery();
-      Point3d isectPoint = new Point3d();
-      Vector3d duv = new Vector3d();
-      Face faceHit = query.nearestFaceAlongRay (
-         isectPoint, duv, (PolygonalMesh)getMesh(), origin, dir);
-
-      if (faceHit != null) {
-         data = new SkinOriginData(faceHit, duv);
-      }
-      return data;
-   }
-
-   @Override
-   public Point3d getOriginPoint(Object data) {
-      SkinOriginData orig = (SkinOriginData)data;
-      Point3d pnt = new Point3d();
-      orig.computeOrig(pnt);
-      return pnt;
-   }
-
-   @Override
-   public double getPointRenderRadius() {
-      return 0;
-   }
-
-   @Override
-   public void applyForce(Object orig, Vector3d force) {
-      SkinOriginData origin = (SkinOriginData)orig;
-      Point3d loc = new Point3d();
-      origin.computeOrig(loc);
-      origin.applyForce(loc, force);
-   }
-
-   // Collidable implementation
+   // begin Collidable implementation
    
-   private PolygonalMesh getCollisionMesh() {
+   @Override
+   public PolygonalMesh getCollisionMesh() {
       MeshBase mesh = getMesh ();
       if (mesh instanceof PolygonalMesh) {
          return (PolygonalMesh)mesh;
@@ -1090,5 +1100,129 @@ public class FemMesh extends FemMeshBase implements Pullable, Collidable {
    public double getMass () {
       return myFem.getMass ();
    }
+   
+//   public void getContactMasters (
+//      List<ContactMaster> mlist, double weight, ContactPoint cpnt) {
+//
+//      Vertex3d[] vtxs = cpnt.getVertices();
+//      double[] wgts = cpnt.getWeights();
+//      for (int i=0; i<vtxs.length; i++) {
+//         double w = weight*wgts[i];
+//         PointAttachment pa = getAttachment(vtxs[i].getIndex());
+//         if (pa instanceof PointFem3dAttachment) {
+//            PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
+//            FemNode[] masters = pfa.getMasters();
+//            for (int j=0; j<masters.length; j++) {
+//               mlist.add (new ContactMaster (
+//                             masters[j], w*pfa.getCoordinate(j), cpnt));
+//            }
+//         }
+//         else {
+//            PointParticleAttachment ppa = (PointParticleAttachment)pa;
+//            DynamicComponent[] masters = ppa.getMasters ();
+//            mlist.add (new ContactMaster ((FemNode3d)masters[0], w, cpnt));
+//         }
+//      }
+//   }
+   
+   public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
+      PointAttachment pa = getAttachment(vtx.getIndex());
+      if (pa instanceof PointFem3dAttachment) {
+         PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
+         FemNode[] masters = pfa.getMasters();
+         for (int j=0; j<masters.length; j++) {
+            mlist.add (new ContactMaster (masters[j], pfa.getCoordinate(j)));
+         }
+      }
+      else {
+         PointParticleAttachment ppa = (PointParticleAttachment)pa;
+         DynamicComponent[] masters = ppa.getMasters ();
+         mlist.add (new ContactMaster ((FemNode3d)masters[0], 1));
+      }      
+   }
+   
+   public boolean containsContactMaster (CollidableDynamicComponent comp) {
+      return comp.getParent() == myFem.myNodes;      
+   }
+   
+//   public boolean requiresContactVertexInfo() {
+//      return true;
+//   }
+   
+   public boolean allowCollision (
+      ContactPoint cpnt, Collidable other, Set<Vertex3d> attachedVertices) {
+      if (CollisionHandlerNew.attachedNearContact (
+         cpnt, other, attachedVertices)) {
+         return false;
+      }
+      return true;
+   }
+   
+   // end Collidable implementation
+
+   private void accumulateNodeWeights (
+      FemNode node, double w, HashMap<FemNode,Double> nodeWeights) {
+
+      if (nodeWeights.get (node) == null) {
+         nodeWeights.put (node, w);
+      }
+      else {
+         double prevw = nodeWeights.get (node);
+         nodeWeights.put (node, w+prevw);
+      }
+   }
+
+   public PointFem3dAttachment createPointAttachment (Point pnt) {
+      
+      if (!(getMesh() instanceof PolygonalMesh)) {
+         return null;
+      }
+      PolygonalMesh mesh = (PolygonalMesh)getMesh();
+      if (!mesh.isTriangular()) {
+         return null;
+      }
+      // Find nearest face to the point. The vertices of this face will be used
+      // to find the nodes and weight for the attachment.
+      BVFeatureQuery query = new BVFeatureQuery();
+      Point3d near = new Point3d();
+      Vector2d uv = new Vector2d();
+      Face face = query.nearestFaceToPoint (near, uv, mesh, pnt.getPosition());
+
+      Vertex3d[] vtxs = face.getTriVertices();
+      double[] wgts = new double[] { 1-uv.x-uv.y, uv.x, uv.y };          
+
+      HashMap<FemNode,Double> nodeWeights = new HashMap<FemNode,Double>();
+      for (int i=0; i<vtxs.length; i++) {
+         PointAttachment va = myVertexAttachments.get(vtxs[i].getIndex());
+         if (va instanceof PointParticleAttachment) {
+            PointParticleAttachment ppa = (PointParticleAttachment)va;
+            FemNode node = (FemNode)ppa.getParticle();
+            accumulateNodeWeights (node, wgts[i], nodeWeights);
+         }
+         else if (va instanceof PointFem3dAttachment) {
+            PointFem3dAttachment pfa = (PointFem3dAttachment)va;
+            for (int k=0; k<pfa.numMasters(); k++) {
+               FemNode node = pfa.getMasters()[k];
+               double w = pfa.getCoordinate(k);
+               accumulateNodeWeights (node, w*wgts[i], nodeWeights);
+            }
+         }
+      }
+      // Create a new PointFem3dAttachment
+            
+      PointFem3dAttachment ax = new PointFem3dAttachment (pnt);
+      ax.setNodes (nodeWeights.keySet(), nodeWeights.values());
+      return ax;
+   }
+
+   public PolygonalMesh getSurfaceNesh() {
+      if (getMesh() instanceof PolygonalMesh) {
+         return (PolygonalMesh)getMesh();
+      }
+      else {
+         return null;
+      }
+   }
+
 
 }

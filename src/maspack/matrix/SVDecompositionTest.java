@@ -14,7 +14,7 @@ class SVDecompositionTest {
    private static double DOUBLE_PREC = 2.220446049250313e-16;
    private static double EPSILON = 100 * DOUBLE_PREC;
 
-   SVDecomposition svd = new SVDecomposition (0);
+   SVDecomposition svd = new SVDecomposition ();
 
    static boolean isOrthogonal (MatrixNd M) {
       if (M.nrows >= M.ncols) {
@@ -291,7 +291,7 @@ class SVDecompositionTest {
       MatrixNd V = new MatrixNd (nc, nd);
       VectorNd s = new VectorNd (nd);
 
-      SVDecomposition svd = new SVDecomposition (0);
+      SVDecomposition svd = new SVDecomposition ();
 
       int cnt = 10000;
       FunctionTimer timer = new FunctionTimer();

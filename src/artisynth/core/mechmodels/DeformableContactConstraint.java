@@ -115,13 +115,13 @@ public interface DeformableContactConstraint {
     */
    public void endSet();
 
-   /**
-    * Returns true if the component structure of this constraint has changed.
-    * This will be true if, since the last call to clearComponents(), new
-    * component infos have been added, or if any infos are left on the free
-    * list.
-    */
-   public boolean componentsChanged();
+//   /**
+//    * Returns true if the component structure of this constraint has changed.
+//    * This will be true if, since the last call to clearComponents(), new
+//    * component infos have been added, or if any infos are left on the free
+//    * list.
+//    */
+//   public boolean componentsChanged();
 
    /**
     * Returns true if at least one of the components associated with this

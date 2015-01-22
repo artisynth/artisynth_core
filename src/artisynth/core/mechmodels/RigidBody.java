@@ -14,15 +14,19 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.media.opengl.GL2;
 
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.Vertex3d;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix;
+import maspack.matrix.MatrixBlock;
+import maspack.matrix.Matrix6x1Block;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Quaternion;
@@ -51,7 +55,7 @@ import artisynth.core.util.ScanToken;
 import artisynth.core.util.TransformableGeometry;
 
 public class RigidBody extends Frame 
-   implements CopyableComponent, Collidable, Pullable {
+   implements CopyableComponent, Collidable, HasSurfaceMesh {
    protected SpatialInertia mySpatialInertia;
    
    MeshInfo myMeshInfo = new MeshInfo();
@@ -469,6 +473,14 @@ public class RigidBody extends Frame
    
    public PolygonalMesh getSurfaceMesh() {
       return (PolygonalMesh)myMeshInfo.myMesh;
+   }
+   
+   public int numSurfaceMeshes() {
+      return getSurfaceMesh() != null ? 1 : 0;
+   }
+   
+   public PolygonalMesh[] getSurfaceMeshes() {
+      return MeshComponent.createSurfaceMeshArray (getSurfaceMesh());
    }
    
    //   public MeshBase getMeshBase() {
@@ -1305,8 +1317,15 @@ public class RigidBody extends Frame
       }
    }
    
+   // begin Collidable interface
+
    public RigidBodyCollisionData createCollisionData() {
       return new RigidBodyCollisionData(this, getMesh());
+   }
+   
+   @Override
+   public PolygonalMesh getCollisionMesh() {
+      return getMesh();
    }
 
    @Override
@@ -1317,45 +1336,107 @@ public class RigidBody extends Frame
       }
       return false;
    }
+
+
+   private class RBContactMaster extends ContactMaster {
+      Point3d myLoc = new Point3d();
+      double myWeight;
+
+      RBContactMaster (Frame frame, double w, ContactPoint cpnt) {
+         super (frame, w, cpnt);
+         myLoc = new Point3d(cpnt.myPoint);
+         myLoc.inverseTransform (getPose());
+         myWeight = w;
+      }
+
+      public MatrixBlock getBlock (Vector3d dir) {
+         Matrix6x1Block blk = new Matrix6x1Block();
+         computeAppliedWrench (blk, dir, myLoc);
+         blk.transform (getPose().R);
+         blk.scale (myWeight);
+         return blk;
+      }
+
+     public void addRelativeVelocity (Vector3d vel) {
+        Vector3d tmp = new Vector3d();
+        computePointVelocity(tmp, myLoc);
+        vel.scaledAdd (myWeight, tmp);
+     }
+
+   }
+
+
+//   public void getContactMasters (
+//      List<ContactMaster> mlist, double weight, ContactPoint cpnt) {
+//      mlist.add (new ContactMaster (this, weight, cpnt));
+//   }
    
-   // Pullable interface:
-   @Override
-   public boolean isPullable() {
+   public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
+      mlist.add (new ContactMaster (this, 1));
+   }
+   
+   public boolean containsContactMaster (CollidableDynamicComponent comp) {
+      return comp == this;
+   }  
+   
+// public void getContactMastersX (
+   //    List<ContactMaster> mlist, double weight, ContactPoint cpnt) {
+   //    // REVERT
+   //    mlist.add (new RBContactMaster (this, weight, cpnt));
+   // }
+
+//   public boolean requiresContactVertexInfo() {
+//      return false;
+//   }
+   
+   public boolean allowCollision (
+      ContactPoint cpnt, Collidable other, Set<Vertex3d> attachedVertices) {
       return true;
    }
+
+   // end Collidable interface
    
-   @Override
-   public Point3d getOriginData (Point3d origin, Vector3d dir) {
-      Point3d myBodyPnt = new Point3d();
-      PolygonalMesh mesh = getMesh();
-      if (mesh != null) {
-         Point3d pnt = BVFeatureQuery.nearestPointAlongRay (
-            mesh, origin, dir);
-         if (pnt != null) {
-            myBodyPnt = new Point3d(pnt);
-            myBodyPnt.inverseTransform (getPose());
-         }
-      }
-      return myBodyPnt;
-   }
-
-   @Override
-   public Point3d getOriginPoint(Object data) {
-      Point3d pnt = new Point3d((Point3d)data);
-      pnt.transform (getPose());
-      return pnt;
-   }
-
-   @Override
-   public double getPointRenderRadius() {
-      return 0;
-   }
-
-   @Override
-   public void applyForce(Object orig, Vector3d force) {
-      Wrench bodyForce = new Wrench();
-      computeAppliedWrench (bodyForce, force, (Point3d)orig);
-      bodyForce.transform (getPose().R);
-      setExternalForce (bodyForce);
-   }
+   // Pullable interface:
+//   @Override
+//   public boolean isPullable() {
+//      return true;
+//   }
+//   
+//   @Override
+//   public Point3d getOriginData (Point3d origin, Vector3d dir) {
+//      Point3d myBodyPnt = new Point3d();
+//      PolygonalMesh mesh = getMesh();
+//      if (mesh != null) {
+//         Point3d pnt = BVFeatureQuery.nearestPointAlongRay (
+//            mesh, origin, dir);
+//         if (pnt != null) {
+//            myBodyPnt = new Point3d();
+//            computePointLocation (myBodyPnt, pnt);
+//            //myBodyPnt.inverseTransform (getPose());
+//         }
+//      }
+//      return myBodyPnt;
+//   }
+//
+//   @Override
+//   public Point3d getOriginPoint(Object data) {
+//      Point3d pnt = new Point3d();
+//      computePointPosition (pnt, (Point3d)data);
+//      return pnt;
+//   }
+//
+//   @Override
+//   public double getPointRenderRadius() {
+//      return 0;
+//   }
+//
+//   @Override
+//   public void applyForce(Object orig, Vector3d force) {
+//      zeroExternalForces();
+//      addExternalPointForce ((Point3d)orig, force);
+//      // Wrench bodyForce = new Wrench();
+//      // computeAppliedWrench (bodyForce, force, (Point3d)orig);
+//      // bodyForce.transform (getPose().R);
+//      // setExternalForce (bodyForce);
+//   }
 }

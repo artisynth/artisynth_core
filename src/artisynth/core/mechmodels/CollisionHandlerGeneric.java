@@ -36,7 +36,6 @@ import maspack.render.RenderProps;
 import maspack.render.RenderProps.Shading;
 import maspack.util.DataBuffer;
 import maspack.util.FunctionTimer;
-import maspack.util.IntHolder;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import artisynth.core.modelbase.ModelComponent;
@@ -150,7 +149,7 @@ implements Constrainer {
       myLineSegments.add (new LineSeg (pnt0, nrm, len));
    }
 
-   void clearLineSegments() {
+   void clearRenderData() {
       myLineSegments = new ArrayList<LineSeg>();
       myFaceSegments = null;
    }
@@ -388,6 +387,7 @@ implements Constrainer {
       return myComponent0.hashCode() / 2 + myComponent1.hashCode() / 2;
    }
 
+
    public void updateFrictionConstraints () {
       if (myDefData0 != null) {
          myDefData0.updateFrictionConstraints();
@@ -446,14 +446,15 @@ implements Constrainer {
    /**
     * Implements projectPosConstraints for the deformable-rigidBody case.
     */
-   private double projectPosRbDef (RigidBodyCollisionData rbData, DeformableCollisionData defData) {
+   private double projectPosRbDef (
+      RigidBodyCollisionData rbData, DeformableCollisionData defData) {
 
       PolygonalMesh meshrb = rbData.getMesh();
       PolygonalMesh meshdef = defData.getMesh();
       double maxpen = 0;
 
       // deactivate constraints; these may be reactivated later
-      clearLineSegments();
+      clearRenderData();
       defData.clearContactActivity();
 
       // get contacts
@@ -481,21 +482,24 @@ implements Constrainer {
       myLastContactInfo = info;
       // remove contacts which are still inactive
       defData.removeInactiveContacts();
+      // if (info != null) {
+      //    System.out.println ("numc0=" + defData.numActiveContacts());
+      // }
       return maxpen;
    }
 
-   public boolean hasActiveContacts() {
-      if (myDefData0 != null && myDefData0.hasActiveContacts()) {
-         return true;
-      }
-      if (myDefData1 != null && myDefData1.hasActiveContacts()) {
-         return true;
-      }
-      if (isRigidBodyPair() && myRBContact != null) {
-         return myRBContact.hasActiveContact();
-      }
-      return false;
-   }
+//   public boolean hasActiveContacts() {
+//      if (myDefData0 != null && myDefData0.hasActiveContacts()) {
+//         return true;
+//      }
+//      if (myDefData1 != null && myDefData1.hasActiveContacts()) {
+//         return true;
+//      }
+//      if (isRigidBodyPair() && myRBContact != null) {
+//         return myRBContact.hasActiveContact();
+//      }
+//      return false;
+//   }
 
    /**
     * Implements projectPosConstraints for the deformable-deformable case.
@@ -508,7 +512,7 @@ implements Constrainer {
       double maxpen = 0;
 
       // deactivate constraints; these may be reactivated later
-      clearLineSegments();
+      clearRenderData();
       defData0.clearContactActivity();
       defData1.clearContactActivity();
 
@@ -522,11 +526,13 @@ implements Constrainer {
          double max;
          //checkRegionPoints ("mesh0", info.points0);
          //checkRegionPoints ("mesh1", info.points1);
-         max = createDefDefContacts (info.points0, defData0, info.points1, defData1);
+         max = createDefDefContacts (
+            info.points0, defData0, info.points1, defData1);
          if (max > maxpen) {
             maxpen = max;
          }
-         //         max = createDefDefContacts (info.points1, defData1, info.points0, defData0);
+         // max = createDefDefContacts (
+         //         info.points1, defData1, info.points0, defData0);
          //         if (max > maxpen) {
          //            maxpen = max;
          //         }
@@ -537,7 +543,20 @@ implements Constrainer {
       // remove contacts which are still inactive
       defData0.removeInactiveContacts();
       defData1.removeInactiveContacts();
+      // if (info != null) {
+      //    System.out.println ("numc0=" + defData0.numActiveContacts());
+      //    System.out.println ("numc1=" + defData1.numActiveContacts());
+      // }
       return maxpen;
+   }
+
+   public void removeInactiveContacts() {
+      if (myDefData0 != null) {
+         myDefData0.removeInactiveContacts();
+      }
+      if (myDefData1 != null) {
+         myDefData1.removeInactiveContacts();
+      }
    }
 
    /** 
@@ -560,7 +579,8 @@ implements Constrainer {
             DeformableContactConstraint cons = defData0.getContact (eec, true);
             // As long as the constraint exists and is not already marked 
             // as active, then we add it
-            if (cons != null && ( !cons.isActive() || ( -cons.getDistance() < eec.displacement ) )) {
+            if (cons != null &&
+                (!cons.isActive() || (-cons.getDistance() < eec.displacement))) {
                cons.setEdgeEdge (eec, myMu, defData0, defData1);               
                if (contactHasDOF (cons)) {
                   activateContact (
@@ -578,7 +598,8 @@ implements Constrainer {
     */
    private double createDefDefContacts (
       ArrayList<ContactPenetratingPoint> points, DeformableCollisionData data,
-      ArrayList<ContactPenetratingPoint> otherPoints,  DeformableCollisionData otherData) {
+      ArrayList<ContactPenetratingPoint> otherPoints,
+      DeformableCollisionData otherData) {
 
       Vector3d normal = new Vector3d();
       double nrmlLen = getContactNormalLen();
@@ -597,7 +618,8 @@ implements Constrainer {
          DeformableContactConstraint cons = data.getContact (cpp, true);
          // As long as the constraint exists and is not already marked 
          // as active, then we add it
-         if (cons != null && ( !cons.isActive() || ( -cons.getDistance() < cpp.distance ) )) {
+         if (cons != null &&
+             (!cons.isActive() || (-cons.getDistance() < cpp.distance ) )) {
 
             double dist = cons.setVertexDeformable(cpp, myMu, data, otherData);
             //          System.out.println("dist = " + dist);
@@ -628,7 +650,8 @@ implements Constrainer {
          DeformableContactConstraint cons = otherData.getContact (cpp, true);
          // As long as the constraint exists and is not already marked 
          // as active, then we add it
-         if (cons != null && ( !cons.isActive() || ( -cons.getDistance() < cpp.distance ) )) {
+         if (cons != null &&
+             ( !cons.isActive() || ( -cons.getDistance() < cpp.distance ) )) {
 
             double dist = cons.setVertexDeformable(cpp, myMu, otherData, data);
             //          System.out.println("dist = " + dist);
@@ -654,7 +677,8 @@ implements Constrainer {
    }
 
    public void activateContact (
-      DeformableContactConstraint cons, double dist, DeformableCollisionData data) {
+      DeformableContactConstraint cons, double dist,
+      DeformableCollisionData data) {
 
       if (!cons.isAdded()) { // new constraint, so we need to add it
          data.addContact (cons);
@@ -664,21 +688,23 @@ implements Constrainer {
       else { // mark constraint as active again
          cons.setActive (true);
       }
-      if (cons.componentsChanged()) {
-         data.notifyContactsChanged();
-      }
+//      if (cons.componentsChanged()) {
+//         data.notifyContactsChanged();
+//      }
       cons.setDistance (dist);
       // cons.print(System.out);
    }
 
-   private static final ArrayList<ContactPenetratingPoint> emptyCppList = new ArrayList<ContactPenetratingPoint>(0);
+   private static final ArrayList<ContactPenetratingPoint> emptyCppList =
+      new ArrayList<ContactPenetratingPoint>(0);
    /**
     * Create the constraints, and apply one pass of interpenetration resolution,
     * for the contacts associated with a deformable-rigidBody contact.
     */
    private double createRbDefContacts (
       RigidBodyCollisionData rbData, ArrayList<ContactPenetratingPoint> pointsRb,
-      DeformableCollisionData defData, ArrayList<ContactPenetratingPoint> pointsDef, 
+      DeformableCollisionData defData,
+      ArrayList<ContactPenetratingPoint> pointsDef, 
       ArrayList<EdgeEdgeContact> edgeEdgeContacts) { 
 
       if (reduceConstraints) {
@@ -707,7 +733,8 @@ implements Constrainer {
          DeformableContactConstraint cons = defData.getContact (cpp, true);
          // As long as the constraint exists and is not already marked 
          // as active, then we add it
-         if (cons != null && ( !cons.isActive() || ( -cons.getDistance() < cpp.distance ) )) {
+         if (cons != null &&
+             ( !cons.isActive() || ( -cons.getDistance() < cpp.distance ) )) {
             double dist = cons.setVertexRigidBody(cpp, myMu, defData,
                rbData, useSignedDistanceCollider);
 
@@ -732,7 +759,8 @@ implements Constrainer {
          // add active body->face contacts
          for (ContactPenetratingPoint cpp : pointsRb) {
             DeformableContactConstraint cons = defData.getContact (cpp, false);
-            if (cons != null && ( !cons.isActive() || ( -cons.getDistance() < cpp.distance ) )) {
+            if (cons != null &&
+                ( !cons.isActive() || (-cons.getDistance() < cpp.distance))) {
                double dist = cons.setFaceRigidBody(cpp, myMu, defData,
                   rbData);
                if (contactHasDOF (cons)) {
@@ -742,7 +770,7 @@ implements Constrainer {
                      } else {
                         normal.transform (XBW, cpp.face.getNormal());
                      }
-                     addLineSegment (cpp.position, normal, nrmlLen);               
+                     addLineSegment (cpp.position, normal, nrmlLen); 
                   }
                   activateContact (cons, dist, defData);
                   if (-dist > maxpen) {
@@ -761,7 +789,8 @@ implements Constrainer {
             }
 
             DeformableContactConstraint cons = defData.getContact (eec, true);
-            if (cons != null && ( !cons.isActive() || ( -cons.getDistance() < eec.displacement ) )) {
+            if (cons != null &&
+                ( !cons.isActive() || (-cons.getDistance() < eec.displacement))) {
                cons.setEdgeRigidBody(eec, myMu, defData, rbData);
                if (contactHasDOF (cons)) {
                   double dist = -eec.displacement;
@@ -790,6 +819,9 @@ implements Constrainer {
       }
    }
 
+   /* ===== Begin Constrainer methods ===== */
+
+   @Override
    public void getBilateralSizes (VectorNi sizes) {
       if (myDefData0 != null) {
          myDefData0.getBilateralSizes (sizes);
@@ -799,24 +831,26 @@ implements Constrainer {
       }
    }
 
+   @Override
    public int addBilateralConstraints (
-      SparseBlockMatrix GT, VectorNd dg, int numb, IntHolder changeCnt){
+      SparseBlockMatrix GT, VectorNd dg, int numb){
       if (myDefData0 != null) {
          numb = myDefData0.addBilateralConstraints (GT, dg, numb);
-         if (myDefData0.contactsHaveChanged()) {
-            changeCnt.value++;
-         }
+//         if (myDefData0.contactsHaveChanged()) {
+//            changeCnt.value++;
+//         }
       }
       if (myDefData1 != null) {
          numb = myDefData1.addBilateralConstraints (GT, dg, numb);
-         if (myDefData1.contactsHaveChanged()) {
-            changeCnt.value++;
-         }
+//         if (myDefData1.contactsHaveChanged()) {
+//            changeCnt.value++;
+//         }
       }
       // System.out.println ("CollisionPair.addBilaterals " + cnt);
       return numb;
    }
 
+   @Override
    public int getBilateralInfo (ConstraintInfo[] ginfo, int idx) {
       int idx0 = idx;
       if (myDefData0 != null) {
@@ -832,18 +866,6 @@ implements Constrainer {
       return idx;
    }
 
-   // public int getBilateralOffsets (
-   //    VectorNd Rg, VectorNd bg, int idx, int mode) {
-
-   //    if (myFemData0 != null) {
-   //       idx = myFemData0.getBilateralOffsets (Rg, bg, idx, mode);
-   //    }
-   //    if (myFemData1 != null) {
-   //       idx = myFemData1.getBilateralOffsets (Rg, bg, idx, mode);
-   //    }
-   //    return idx;
-   // }
-
    @Override
    public int setBilateralImpulses (VectorNd lam, double h, int idx) {
       if (myDefData0 != null) {
@@ -855,6 +877,7 @@ implements Constrainer {
       return idx;
    }
 
+   @Override
    public void zeroImpulses() {
       if (myDefData0 != null) {
          myDefData0.zeroImpulses();
@@ -864,6 +887,7 @@ implements Constrainer {
       }      
    }
 
+   @Override
    public int getBilateralImpulses (VectorNd lam, int idx) {
       if (myDefData0 != null) {
          idx = myDefData0.getBilateralImpulses (lam, idx);
@@ -874,6 +898,7 @@ implements Constrainer {
       return idx;
    }
 
+   @Override
    public int maxFrictionConstraintSets() {
       int max = 0;
       if (myDefData0 != null) {
@@ -885,6 +910,7 @@ implements Constrainer {
       return max;
    }
 
+   @Override
    public int addFrictionConstraints (
       SparseBlockMatrix DT, FrictionInfo[] finfo, int numf) {
       if (myDefData0 != null) {
@@ -896,6 +922,24 @@ implements Constrainer {
       // System.out.println ("CollisionPair.addBilaterals " + cnt);
       return numf;
    }
+
+   @Override
+   public double updateConstraints (double t, int flags) {
+      if ((flags & MechSystem.COMPUTE_CONTACTS) != 0) {
+         return projectPosConstraints (t);
+      }
+      else if ((flags & MechSystem.UPDATE_CONTACTS) != 0) {
+         // right now just leave the same contacts in place ...
+         return 0;
+      }
+      else {
+         return 0;
+      }
+   }
+
+   /* ===== End Constrainer methods ===== */
+
+   /* ===== Begin Render methods ===== */
 
    @Override
    public void setDrawIntersectionContours(boolean set) {
@@ -945,7 +989,8 @@ implements Constrainer {
 
    }
 
-   protected void findInsideFaces(Face face, BVFeatureQuery query, PolygonalMesh mesh,
+   protected void findInsideFaces (
+      Face face, BVFeatureQuery query, PolygonalMesh mesh,
       ArrayList<FaceSeg> faces) {
 
       face.setVisited();
@@ -1193,9 +1238,12 @@ implements Constrainer {
             gl.glBegin(GL2.GL_TRIANGLES);
             for (FaceSeg seg : myRenderFaces) {
                gl.glNormal3d(seg.nrm.x, seg.nrm.y, seg.nrm.z);
-               gl.glVertex3d(seg.p0.x + offDir.x, seg.p0.y + offDir.y, seg.p0.z + offDir.z);
-               gl.glVertex3d(seg.p1.x + offDir.x, seg.p1.y + offDir.y, seg.p1.z + offDir.z);
-               gl.glVertex3d(seg.p2.x + offDir.x, seg.p2.y + offDir.y, seg.p2.z + offDir.z);
+               gl.glVertex3d(
+                  seg.p0.x + offDir.x, seg.p0.y + offDir.y, seg.p0.z + offDir.z);
+               gl.glVertex3d(
+                  seg.p1.x + offDir.x, seg.p1.y + offDir.y, seg.p1.z + offDir.z);
+               gl.glVertex3d(
+                  seg.p2.x + offDir.x, seg.p2.y + offDir.y, seg.p2.z + offDir.z);
             }
             gl.glEnd();
 
@@ -1237,11 +1285,19 @@ implements Constrainer {
       }
    }
 
+   /* ===== End Render methods ===== */
+
+   /* ===== Begin AuxState methods ===== */
+
    /** 
     * {@inheritDoc}
     */
-   public void skipAuxState (
-      DataBuffer data) {
+   public void skipAuxState (DataBuffer data) {
+
+      if (isRigidBodyPair()) {
+         getRigidBodyContact().skipAuxState (data);
+         return;
+      }
 
       int dsize = data.zget();
       int zsize = data.zget();
@@ -1253,6 +1309,11 @@ implements Constrainer {
     * {@inheritDoc}
     */
    public void getAuxState (DataBuffer data) {
+
+      if (isRigidBodyPair()) {
+         getRigidBodyContact().getAuxState (data);
+         return;
+      }
 
       int didx0 = data.dsize();
       int zidx0 = data.zsize();
@@ -1280,6 +1341,11 @@ implements Constrainer {
    public void getInitialAuxState (
       DataBuffer newData, DataBuffer oldData) {
 
+      if (isRigidBodyPair()) {
+         getRigidBodyContact().getInitialAuxState (newData, oldData);
+         return;
+      }
+
       int didx0 = newData.dsize();
       int zidx0 = newData.zsize();
       newData.zput (0);   // reserve space for size info
@@ -1300,6 +1366,11 @@ implements Constrainer {
     * {@inheritDoc}
     */
    public void setAuxState (DataBuffer data) {
+
+      if (isRigidBodyPair()) {
+         getRigidBodyContact().setAuxState (data);
+         return;
+      }
 
       int dsize = data.zget(); // should use for sanity checking?
       int zsize = data.zget();
@@ -1322,44 +1393,9 @@ implements Constrainer {
          (data.doffset()-olddidx) != dsize) {
          throw new IllegalStateException("Failed to read state correctly");
       }
-
-
    }
 
-   public double updateConstraints (double t, int flags) {
-      if ((flags & MechSystem.COMPUTE_CONTACTS) != 0) {
-         return projectPosConstraints (t);
-      }
-      else if ((flags & MechSystem.UPDATE_CONTACTS) != 0) {
-         // right now just leave the same contacts in place ...
-         return 0;
-      }
-      else {
-         return 0;
-      }
-   }
-
-   //   @Override
-   //   public void connectToHierarchy () {
-   //      super.connectToHierarchy ();
-   //      if (myComponent0 instanceof ModelComponentBase) {
-   //         ((ModelComponentBase)myComponent0).addBackReference (this);
-   //      }
-   //      if (myComponent1 instanceof ModelComponentBase) {
-   //         ((ModelComponentBase)myComponent1).addBackReference (this);
-   //      }
-   //   }
-   //
-   //   @Override
-   //   public void disconnectFromHierarchy() {
-   //      super.disconnectFromHierarchy();
-   //      if (myComponent0 instanceof ModelComponentBase) {
-   //         ((ModelComponentBase)myComponent0).removeBackReference (this);
-   //      }
-   //      if (myComponent1 instanceof ModelComponentBase) {
-   //         ((ModelComponentBase)myComponent1).removeBackReference (this);
-   //      }
-   //   }
+   /* ===== End AuxState methods ===== */
 
    @Override
    void setLastContactInfo(ContactInfo info) {

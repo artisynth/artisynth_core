@@ -14,6 +14,36 @@
 %\renewcommand{\sectionname}{}
 \begin{document}
 
+\section*{Jan 21, 2015}
+
+\subsection*{Refactoring of collision code}
+
+The collision code has been refactored internally.  These changes
+should be largely invisible, but if you encounter any problems, you
+can (at the moment) revert to the old collision code using the command
+line option {\tt -collisionHandler GENERIC}. The old collision code
+will be removed completely at a later date.
+
+\subsection*{Forces now zeroed in preadvance()}
+
+Forces applied to dynamic components are now zeroed in the {\tt
+MechModel}'s {\tt preadvance()} method, {\it before} its input probes
+and controllers are applied. This is a subtle change, but it means
+that probes and controllers can now set forces directly, rather than
+having to set the external force. (Note that input probes and
+controllers {\it not} associated with the model are called {\it
+before} {\tt preadvance()} and so these will still
+need to set external forces in order to have any effect.)
+
+\subsection*{EigenDecomposition added to matrix package}
+
+A new decomposition class, {\tt EigenDecomposition}, has been added to
+{\tt maspack.matrix}. This computes eigenvalue decompositions for both
+unsymmetric and symmetric dense matrices, using the methods {\tt
+factor()} and {\tt factorSymmetric()}. Some of the code, particularly
+for the unsymmetric case, was taken for the public domain JAMA
+library.
+
 \section*{Oct 29, 2014}
 
 \subsection*{ArtiSynth can now be run in "batch" mode}

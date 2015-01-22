@@ -13,6 +13,8 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
+import java.util.LinkedList;
+import java.util.Set;
 
 import maspack.function.ConstantFuntion1x1;
 import maspack.function.SISOFunction;
@@ -38,13 +40,19 @@ import maspack.util.ReaderTokenizer;
 import artisynth.core.femmodels.PointSkinAttachment.Connection;
 import artisynth.core.femmodels.PointSkinAttachment.FrameConnection;
 import artisynth.core.mechmodels.Collidable;
+import artisynth.core.mechmodels.CollisionHandlerNew;
+import artisynth.core.mechmodels.DynamicAttachment;
+import artisynth.core.mechmodels.CollidableDynamicComponent;
 import artisynth.core.mechmodels.CollisionData;
+import artisynth.core.mechmodels.ContactPoint;
+import artisynth.core.mechmodels.ContactMaster;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointAttachment;
+import artisynth.core.mechmodels.PointAttachable;
 import artisynth.core.mechmodels.Pullable;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.SkinMeshBase;
@@ -196,7 +204,10 @@ import artisynth.core.util.TransformableGeometry;
  * SkinMesh#numFemModels() numFemModels()}, and {@link
  * SkinMesh#getFemModel getFemModel()}.
  */
-public class SkinMesh extends SkinMeshBase implements Pullable, Collidable {
+public class SkinMesh extends SkinMeshBase 
+   implements Collidable, PointAttachable {
+   
+
    /**
     * Characterizes the blend mechanism used for the frame-based
     * portion of the skinning.
@@ -213,6 +224,11 @@ public class SkinMesh extends SkinMeshBase implements Pullable, Collidable {
    protected ArrayList<FrameInfo> myFrameInfo;
    protected ArrayList<FemModelInfo> myFemModelInfo;
    protected ComponentList<PointSkinAttachment> myVertexAttachments;
+
+   // default sigma value to be used by computeDisplacementAndWeights()
+   public static double myDefaultSigma = -1;
+   // last sigma value used by computeDisplacementAndWeights()
+   protected double myLastSigma = myDefaultSigma;
 
    /**
     * Base class for information about bodies (e.g., Frames or
@@ -900,7 +916,7 @@ public class SkinMesh extends SkinMeshBase implements Pullable, Collidable {
 
 
    public void computeWeights() {
-      computeDisplacementAttachments (-1);
+      computeDisplacementAttachments (myDefaultSigma);
    }
 
    /**
@@ -932,6 +948,7 @@ public class SkinMesh extends SkinMeshBase implements Pullable, Collidable {
          PointSkinAttachment a = dcalc.computeDisplacementAttachment();
          addAttachment (a);
       }
+      myLastSigma = sigma;
    }
    
    protected void updateDualQuaternions () {
@@ -1196,111 +1213,111 @@ public class SkinMesh extends SkinMeshBase implements Pullable, Collidable {
       }
    }
 
-   // Pullable interface
-   protected class SkinOriginData {
-      PointAttachment[] attachments;
-      Vector3d weights;
+//   // Pullable interface
+//   protected class SkinOriginData {
+//      PointAttachment[] attachments;
+//      Vector3d weights;
+//
+//      public SkinOriginData(Face face, Vector3d duv) {
+//         int[] vidxs = face.getVertexIndices();
+//         attachments = new PointAttachment[3];
+//         attachments[0] = myVertexAttachments.get(vidxs[0]);
+//         attachments[1] = myVertexAttachments.get(vidxs[1]);
+//         attachments[2] = myVertexAttachments.get(vidxs[2]);
+//         weights = new Vector3d(1 - duv.y - duv.z, duv.y, duv.z);
+//      }
+//
+//      public void computeOrig(Point3d pnt) {
+//         pnt.setZero();
+//         Point3d tmp = new Point3d();
+//         for (int i=0; i<attachments.length; i++) {
+//            attachments[i].computePosState(tmp);
+//            pnt.scaledAdd(weights.get(i), tmp);
+//         }
+//      }
+//
+//      public void applyForce(Point3d pnt, Vector3d f) {
+//            
+//         // XXX zero out external force? 
+//         for (int i=0; i<attachments.length; i++) {
+//
+//            // XXX inconsistency here regarding masters
+//            if (attachments[i] instanceof PointSkinAttachment) {
+//               PointSkinAttachment psa = (PointSkinAttachment)(attachments[i]);
+//               int numC = psa.numConnections();
+//               for (int j=0; j<numC; j++) {
+//                  DynamicComponent master = psa.getMaster(j);
+//
+//                  if (master instanceof Point) {
+//                     Point p = (Point)master;
+//                     p.setExternalForce(Vector3d.ZERO);
+//                  } else if (master instanceof Frame) {
+//                     Frame fr = (Frame)master;
+//                     fr.setExternalForce(Wrench.ZERO);
+//                  }
+//               }
+//
+//            } else {
+//               DynamicComponent[] masters = attachments[i].getMasters();
+//               for (int j=0; j<masters.length; j++) {
+//                  if (masters[j] instanceof Point) {
+//                     Point p = (Point)masters[j];
+//                     p.setExternalForce(Vector3d.ZERO);
+//                  } else if (masters[j] instanceof Frame) {
+//                     Frame fr = (Frame)masters[j];
+//                     fr.setExternalForce(Wrench.ZERO);
+//                  }
+//               }
+//            }
+//         }
+//
+//         for (int i=0; i<attachments.length; i++) {
+//            attachments[i].addScaledExternalForce(pnt, weights.get(i), f);
+//         }
+//      }
+//   }
 
-      public SkinOriginData(Face face, Vector3d duv) {
-         int[] vidxs = face.getVertexIndices();
-         attachments = new PointAttachment[3];
-         attachments[0] = myVertexAttachments.get(vidxs[0]);
-         attachments[1] = myVertexAttachments.get(vidxs[1]);
-         attachments[2] = myVertexAttachments.get(vidxs[2]);
-         weights = new Vector3d(1 - duv.y - duv.z, duv.y, duv.z);
-      }
-
-      public void computeOrig(Point3d pnt) {
-         pnt.setZero();
-         Point3d tmp = new Point3d();
-         for (int i=0; i<attachments.length; i++) {
-            attachments[i].computePosState(tmp);
-            pnt.scaledAdd(weights.get(i), tmp);
-         }
-      }
-
-      public void applyForce(Point3d pnt, Vector3d f) {
-            
-         // XXX zero out external force? 
-         for (int i=0; i<attachments.length; i++) {
-
-            // XXX inconsistency here regarding masters
-            if (attachments[i] instanceof PointSkinAttachment) {
-               PointSkinAttachment psa = (PointSkinAttachment)(attachments[i]);
-               int numC = psa.numConnections();
-               for (int j=0; j<numC; j++) {
-                  DynamicComponent master = psa.getMaster(j);
-
-                  if (master instanceof Point) {
-                     Point p = (Point)master;
-                     p.setExternalForce(Vector3d.ZERO);
-                  } else if (master instanceof Frame) {
-                     Frame fr = (Frame)master;
-                     fr.setExternalForce(Wrench.ZERO);
-                  }
-               }
-
-            } else {
-               DynamicComponent[] masters = attachments[i].getMasters();
-               for (int j=0; j<masters.length; j++) {
-                  if (masters[j] instanceof Point) {
-                     Point p = (Point)masters[j];
-                     p.setExternalForce(Vector3d.ZERO);
-                  } else if (masters[j] instanceof Frame) {
-                     Frame fr = (Frame)masters[j];
-                     fr.setExternalForce(Wrench.ZERO);
-                  }
-               }
-            }
-         }
-
-         for (int i=0; i<attachments.length; i++) {
-            attachments[i].addScaledExternalForce(pnt, weights.get(i), f);
-         }
-      }
-   }
-
-   @Override
-   public boolean isPullable() {
-      return true;
-   }
-
-   @Override
-   public Object getOriginData(Point3d origin, Vector3d dir) {
-      SkinOriginData data = null;
-      BVFeatureQuery query = new BVFeatureQuery();
-      Point3d isectPoint = new Point3d();
-      Vector3d duv = new Vector3d();
-      Face faceHit = query.nearestFaceAlongRay (
-         isectPoint, duv, (PolygonalMesh)getMesh(), origin, dir);
-
-      if (faceHit != null) {
-         data = new SkinOriginData(faceHit, duv);
-      }
-      return data;
-   }
-
-   @Override
-   public Point3d getOriginPoint(Object data) {
-      SkinOriginData orig = (SkinOriginData)data;
-      Point3d pnt = new Point3d();
-      orig.computeOrig(pnt);
-      return pnt;
-   }
-
-   @Override
-   public double getPointRenderRadius() {
-      return 0;
-   }
-
-   @Override
-   public void applyForce(Object orig, Vector3d force) {
-      SkinOriginData origin = (SkinOriginData)orig;
-      Point3d loc = new Point3d();
-      origin.computeOrig(loc);
-      origin.applyForce(loc, force);
-   }
-   
+//   @Override
+//   public boolean isPullable() {
+//      return true;
+//   }
+//
+//   @Override
+//   public Object getOriginData(Point3d origin, Vector3d dir) {
+//      SkinOriginData data = null;
+//      BVFeatureQuery query = new BVFeatureQuery();
+//      Point3d isectPoint = new Point3d();
+//      Vector3d duv = new Vector3d();
+//      Face faceHit = query.nearestFaceAlongRay (
+//         isectPoint, duv, (PolygonalMesh)getMesh(), origin, dir);
+//
+//      if (faceHit != null) {
+//         data = new SkinOriginData(faceHit, duv);
+//      }
+//      return data;
+//   }
+//
+//   @Override
+//   public Point3d getOriginPoint(Object data) {
+//      SkinOriginData orig = (SkinOriginData)data;
+//      Point3d pnt = new Point3d();
+//      orig.computeOrig(pnt);
+//      return pnt;
+//   }
+//
+//   @Override
+//   public double getPointRenderRadius() {
+//      return 0;
+//   }
+//
+//   @Override
+//   public void applyForce(Object orig, Vector3d force) {
+//      SkinOriginData origin = (SkinOriginData)orig;
+//      Point3d loc = new Point3d();
+//      origin.computeOrig(loc);
+//      origin.applyForce(loc, force);
+//   }
+//   
    // Collidable interface
 
    @Override
@@ -1308,6 +1325,17 @@ public class SkinMesh extends SkinMeshBase implements Pullable, Collidable {
       return new SkinCollisionData(this);
    }
 
+   @Override
+   public PolygonalMesh getCollisionMesh() {
+      MeshBase mesh = getMesh();
+      if (mesh instanceof PolygonalMesh) {
+         return (PolygonalMesh)mesh;
+      }
+      else {
+         return null;
+      }
+   }
+   
    @Override
    public boolean isCollidable() {
       return true;
@@ -1338,4 +1366,113 @@ public class SkinMesh extends SkinMeshBase implements Pullable, Collidable {
       return m;
    }
 
+//   public void getContactMasters (
+//      List<ContactMaster> mlist, double weight, ContactPoint cpnt) {
+//
+//      Vertex3d[] vtxs = cpnt.getVertices();
+//      double[] wgts = cpnt.getWeights();
+//      for (int i=0; i<vtxs.length; i++) {
+//         double w = weight*wgts[i];
+//         PointSkinAttachment pa = getAttachment(vtxs[i].getIndex());
+//         for (int j=0; j<pa.numConnections(); j++) {
+//            DynamicComponent m = pa.getMaster (j);
+//            // note that m may be null - not all connections are associated
+//            // with a master component (i.e., numMasters <= numConnections
+//            if (m instanceof CollidableDynamicComponent) {
+//               double wm = pa.getWeight (j);
+//               //System.out.println (
+//               //   "adding for "+ComponentUtils.getPathName(m)+" w=" + w*wm);
+//               mlist.add (
+//                  new ContactMaster (
+//                     (CollidableDynamicComponent)m, w*wm, cpnt));
+//            }
+//         }
+//      }
+//   }
+//   
+   public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
+
+      PointSkinAttachment pa = getAttachment(vtx.getIndex());
+      for (int j=0; j<pa.numConnections(); j++) {
+         DynamicComponent m = pa.getMaster (j);
+         // note that m may be null - not all connections are associated
+         // with a master component (i.e., numMasters <= numConnections
+         if (m instanceof CollidableDynamicComponent) {
+            double wm = pa.getWeight (j);
+            //System.out.println (
+            //   "adding for "+ComponentUtils.getPathName(m)+" w=" + w*wm);
+            mlist.add (
+               new ContactMaster (
+                  (CollidableDynamicComponent)m, wm));
+         }
+      }
+   }
+   
+   public boolean containsContactMaster (CollidableDynamicComponent comp) {
+      LinkedList<DynamicAttachment> malist = comp.getMasterAttachments();
+      if (malist != null) {
+         for (DynamicAttachment ma : malist) {
+            if (ma instanceof PointSkinAttachment) {
+               return ((PointSkinAttachment)ma).mySkinMesh == this;
+            }
+         }
+      }
+      return false;
+   }
+   
+//   public boolean requiresContactVertexInfo() {
+//      return true;
+//   }
+
+   public boolean allowCollision (
+      ContactPoint cpnt, Collidable other, Set<Vertex3d> attachedVertices) {
+      if (CollisionHandlerNew.attachedNearContact (
+         cpnt, other, attachedVertices)) {
+         return false;
+      }
+      return true;
+   }
+
+   public PointSkinAttachment createPointAttachment (Point pnt) {
+      
+      if (!(getMesh() instanceof PolygonalMesh)) {
+         return null;
+      }
+      PolygonalMesh mesh = (PolygonalMesh)getMesh();
+      if (!mesh.isTriangular()) {
+         return null;
+      }
+      // Find nearest face to the point; we'll need this to
+      // estimate a basePosition for the attachments from the
+      // start by find
+      BVFeatureQuery query = new BVFeatureQuery();
+      Point3d near = new Point3d();
+      Vector2d uv = new Vector2d();
+      Face face = query.nearestFaceToPoint (near, uv, mesh, pnt.getPosition());
+
+      // Create a new PointSkinAttachment
+
+      MeshDistCalc dcalc = new MeshDistCalc();
+      dcalc.computeDistancesAndWeights (pnt.getPosition(), myLastSigma);
+      PointSkinAttachment a = dcalc.computeDisplacementAttachment();
+      a.setSkinMesh (this);
+
+      // Now estimate the basePosition from the face vertices
+      Point3d basePos = new Point3d();
+      Vertex3d[] vtxs = face.getTriVertices();
+      double[] wgts = new double[] { 1-uv.x-uv.y, uv.x, uv.y };
+      for (int i=0; i<vtxs.length; i++) {
+         PointSkinAttachment va =
+            (PointSkinAttachment)myVertexAttachments.get(vtxs[i].getIndex());
+         basePos.scaledAdd (wgts[i], va.getBasePosition());
+      }
+      a.setBasePosition (basePos);
+      a.setPoint (pnt);
+      return a;
+   }
+
 }
+
+
+
+

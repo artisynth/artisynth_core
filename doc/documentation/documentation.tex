@@ -257,7 +257,7 @@ All documentation is written in LaTeX, and conversion to HTML is done
 via \href{http://dlmf.nist.gov/LaTeXML/}{LaTeXML}.  The latter is a
 Perl-based application which translates a {\tt .tex} file into an XML
 schema, which is then translated to HTML using XSLT. Currently,
-version 0.7.9 or higher of LaTeXML is required; see 
+version 0.8.0 or higher of LaTeXML is required; see 
 Section \ref{ExternalSoftwareSec}.
 
 LaTeXML is an ongoing project which was originally developed to
@@ -634,23 +634,22 @@ MacOS systems.
 
 Detailed instructions on installing LaTeXML are available at
 \href{http://dlmf.nist.gov/LaTeXML/}{dlmf.nist.gov/LaTeXML}.  For the
-ArtiSynth documentation, version 0.7.9 or higher is required, which
-currently means it is necessary to install the most recent version
-from a subversion ({\tt svn}) checkout, since the prebuilt releases
-provide only version 0.7.0. The installation instructions also
-describe the required prerequisite software, which includes Perl,
+ArtiSynth documentation, version 0.8.0 or higher is required (note
+that some prebuilt releases may not provide versions this recent).
+The installation instructions also describe the required prerequisite
+software, which includes Perl,
 \href{http://www.imagemagick.org}{ImageMagick}, and a few support
 packages for Perl.
 
-Although the prebuilt releases provide only version 0.7.0, it may be
-useful to first install a prebuilt release anyway, in order to ensure
-installation of the prerequisite software (such as the Perl packages
-and ImageMagick). Then the prebuilt release can be uninstalled,
-leaving the prerequisites in place, and the subversion release can be
-installed. For example, on MacOS, if you have 
-\href{http://www.macports.org}{MacPorts} installed, 
-you can install a prebuilt release
-using 
+Although the prebuilt releases may not provide the required 0.8.0
+version, it may be useful to first install a prebuilt release anyway,
+in order to ensure installation of the prerequisite software (such as
+the Perl packages and ImageMagick). Then the prebuilt release can be
+uninstalled, leaving the prerequisites in place, and a more recent
+version can be installed, perhaps from a source tarball or GitHub. For
+example, on MacOS, if you have
+\href{http://www.macports.org}{MacPorts} installed, you can install a
+prebuilt release using
 
 \begin{lstlisting}[]
   > sudo port install LaTeXML
@@ -658,13 +657,13 @@ using
 
 This may take a while, but it will install all necessary prerequisites
 including Perl, LaTeX, and ImageMagick. You can then uninstall LaTeXML
-itself, and install directly from subversion, using a command
+itself, and install directly from GitHub, using a command
 sequence like this:
 
 \begin{lstlisting}[]
   > sudo port uninstall LaTeXML
-  > svn co https://svn.mathweb.org/repos/LaTeXML
-  > cd LaTeXML/trunk
+  > git clone https://github.com/brucemiller/LaTeXML.git
+  > cd LaTeXML
   > perl Makefile.PL
   > make
   > make test

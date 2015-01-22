@@ -22,7 +22,7 @@ import maspack.util.*;
  * 
  * <pre>
  *                  T
- * w &gt;= 0, z &gt;= 0, w z = 0
+ * w >= 0, z >= 0, w z = 0
  * </pre>
  * 
  * Dantig's method does this by a series of <i>pivoting</i> operations. Each
@@ -76,6 +76,8 @@ public class DantzigLCPSolver {
    protected double myTol;
    protected int myIterationLimit = 10;
    protected int myIterationCnt;
+   protected boolean myComputeResidual = false;
+   protected double myResidual = 0;
 
    public static final int SHOW_NONE = 0x00;
    public static final int SHOW_PIVOTS = 0x01;
@@ -125,6 +127,18 @@ public class DantzigLCPSolver {
 
    public void setDebug (int code) {
       myDebug = code;
+   }
+
+   public boolean getComputeResidual() {
+      return myComputeResidual;
+   }
+
+   public void setComputeResidual (boolean enable) {
+      myComputeResidual = enable;
+   }
+
+   public double getResidual() {
+      return myResidual;
    }
 
    /**
@@ -403,7 +417,29 @@ public class DantzigLCPSolver {
             zBasic[i] = (myState[i] == Z_VAR);
          }
       }
+      if (myComputeResidual) {
+         myResidual = computeResidual (z, M, q);
+      }
       return status;
+   }
+
+   protected double computeResidual (VectorNd z, MatrixNd M, VectorNd q) {
+      VectorNd w = new VectorNd (z.size());
+      M.mul (w, z);
+      w.add (q);
+      double res = 0;
+      for (int i=0; i<M.rowSize(); i++) {
+         double wv = w.get(i);
+         double zv = z.get(i);
+         if (wv < 0) {
+            res = Math.max (res, -wv);
+         }
+         if (zv < 0) {
+            res = Math.max (res, -zv);            
+         }
+         res = Math.max (res, Math.abs(wv*zv));
+      }
+      return res;
    }
 
    /**

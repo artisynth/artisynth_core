@@ -340,7 +340,7 @@ public class FemMuscleDemo extends RootModel {
 
    public void createMusclePanel () {
       ControlPanel myControlPanel = new ControlPanel("options", "LiveUpdate");
-      FemControlPanel.addMuscleControls(myControlPanel, tissue, tissue);
+      FemControlPanel.addMuscleControls(myControlPanel, tissue, myModel);
       
       myControlPanel.addWidget(tissue, "profile");
       

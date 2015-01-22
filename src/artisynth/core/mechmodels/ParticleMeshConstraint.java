@@ -156,7 +156,7 @@ public class ParticleMeshConstraint extends ConstrainerBase
    }
 
    public int addBilateralConstraints (
-      SparseBlockMatrix GT, VectorNd dg, int numb, IntHolder changeCnt) {
+      SparseBlockMatrix GT, VectorNd dg, int numb) {
 
       if (!myUnilateralP) {
          int idx = myParticle.getSolveIndex();
@@ -214,7 +214,7 @@ public class ParticleMeshConstraint extends ConstrainerBase
    }
 
    public int addUnilateralConstraints (
-      SparseBlockMatrix NT, VectorNd dn, int numu, IntHolder changeCnt) {
+      SparseBlockMatrix NT, VectorNd dn, int numu) {
 
       if (myUnilateralP) {
          int idx = myParticle.getSolveIndex();

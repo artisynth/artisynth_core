@@ -23,7 +23,7 @@ import artisynth.core.util.*;
  * a {@link PointAttachment}.
  */
 public abstract class SkinMeshBase extends MeshComponent
-   implements HasSlaveObjects, CompositeComponent {
+   implements HasSlaveObjects, CompositeComponent, HasSurfaceMesh {
 
    protected ComponentListImpl<ModelComponent> myComponents;
    protected ComponentList<PointAttachment> myAttachments;
@@ -298,4 +298,21 @@ public abstract class SkinMeshBase extends MeshComponent
       return smb;
    }
 
+   public PolygonalMesh getSurfaceMesh() {
+      if (getMesh() instanceof PolygonalMesh) {
+         return (PolygonalMesh)getMesh();
+      }
+      else {
+         return null;
+      }
+   }
+   
+   public int numSurfaceMeshes() {
+      return getSurfaceMesh() != null ? 1 : 0;
+   }
+   
+   public PolygonalMesh[] getSurfaceMeshes() {
+      return MeshComponent.createSurfaceMeshArray (getSurfaceMesh());
+   }
+   
 }

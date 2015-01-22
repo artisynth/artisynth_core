@@ -764,6 +764,16 @@ public class Matrix3x4 extends DenseMatrixBase {
       m23 = M1.m23 - M2.m23;
    }
 
+   /**
+    * Multiplies M1 by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulAdd (Matrix M1, Matrix M2) {
+      MatrixMulAdd.mulAdd3x4 (this, M1, M2);
+   }
+
    /** 
     * Computes
     * <p>
@@ -811,6 +821,27 @@ public class Matrix3x4 extends DenseMatrixBase {
       MR.m20 += M1.m20*T00 + M1.m21*T10 + M1.m22*T20 + M1.m23*T30;
       MR.m21 += M1.m20*T01 + M1.m21*T11 + M1.m22*T21 + M1.m23*T31;
       MR.m22 += M1.m20*T02 + M1.m21*T12 + M1.m22*T22 + M1.m23*T32;
+   }
+
+   /**
+    * Sets this matrix to the transpose of M
+    *
+    * @param M
+    * matrix to take the transpose of
+    */
+   public void transpose (Matrix4x3 M) {
+      m00 = M.m00;
+      m10 = M.m01;
+      m20 = M.m02;
+      m01 = M.m10;
+      m11 = M.m11;
+      m21 = M.m12;
+      m02 = M.m20;
+      m12 = M.m21;
+      m22 = M.m22;
+      m03 = M.m30;
+      m13 = M.m31;
+      m23 = M.m32;
    }
 
    /**

@@ -266,6 +266,10 @@ public class TrackingController extends ControllerBase
          return;
       }
 
+      // need to save forces so that we can restore them at the end
+      VectorNd savedForces = new VectorNd();
+      myMech.getForces (savedForces);
+
       prevExcitations.set(myExcitations);
       myExcitations.set(myCostFunction.solve (t0,t1));
       
@@ -294,6 +298,7 @@ public class TrackingController extends ControllerBase
       }
 
       setExcitations(myExcitations, 0);
+      myMech.setForces (savedForces);
 
       // if (kTerm != null) {
       // System.out.println("K* = "+kTerm.getStiffnessTargetVec().toString("%8.2f"));

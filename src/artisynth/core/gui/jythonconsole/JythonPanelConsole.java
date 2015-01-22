@@ -213,10 +213,15 @@ public class JythonPanelConsole extends InteractiveConsole {
           }
        }
        catch (Exception e) {
-          // paranoid - just in case interrupt slips through between
-          // calls to setInsideExec. Not need to do anything; just
+          // paranoid - just in case an InterruptException slips through
+          // between calls to setInsideExec. Not need to do anything; just
           // catch the signal
-          if (!(e instanceof InterruptedException)) {
+          if (e instanceof RuntimeException) {
+             // shouldn't happen ...
+             throw (RuntimeException)e;
+          }
+          else if (!(e instanceof InterruptedException)) {
+             // shouldn't happen ...
              throw new RuntimeException(e);
           }
        }

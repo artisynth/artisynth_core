@@ -36,7 +36,7 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
    protected Twist myTmpT = new Twist();
 
    protected static double DOUBLE_PREC = 2.2204460492503131e-16;
-   protected boolean myCompsChanged = false;
+   //protected boolean myCompsChanged = false;
 
    public static final int VERTEX_FACE = 1;
    public static final int VERTEX_BODY = 2;
@@ -238,12 +238,17 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
     */
    public void addConstraintBlocks(SparseBlockMatrix GT, int bj) {
       for (CompInfo info = myHeadComp; info != null; info = info.getNext()) {
-         if (info.getSolveIndex() != -1) {
-            MatrixBlock blk = info.getBlock();
-            MatrixBlock nblk = blk.clone();
-            nblk.setBlockRow(blk.getBlockRow());
-            GT.addBlock(nblk.getBlockRow(), bj, nblk);
+         int bi = info.getSolveIndex();
+         if (bi != -1) {
+            MatrixBlock blk = info.getBlock().clone();
+            GT.addBlock(bi, bj, blk);
          }
+         // if (info.getSolveIndex() != -1) {
+         //    MatrixBlock blk = info.getBlock();
+         //    MatrixBlock nblk = blk.clone();
+         //    nblk.setBlockRow(blk.getBlockRow());
+         //    GT.addBlock(nblk.getBlockRow(), bj, nblk);
+         // }
       }
    }
 
@@ -251,7 +256,7 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
       for (CompInfo info = myHeadComp; info != null; info = info.getNext()) {
          if (info.getSolveIndex() != -1) {
             MatrixBlock blk = info.getBlock();
-            ps.println("row "+ blk.getBlockRow() + ":" + blk);
+            ps.println ("row "+ blk.getBlockRow() + ":" + blk);
          }
       }
    }
@@ -349,7 +354,7 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
     * all components have been added, endSet() should be called.
     */
    public void beginSet() {
-      myCompsChanged = false;
+      //myCompsChanged = false;
       myFreeComps = myHeadComp;
       myHeadComp = null;
       myTailComp = null;
@@ -361,18 +366,18 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
    public void endSet() {
    }
 
-   /**
-    * Returns true if the component structure of this constraint has changed.
-    * This will be true if, since the last call to clearComponents(), new
-    * component infos have been added, or if any infos are left on the free
-    * list.
-    */
-   public boolean componentsChanged() {
-      if (myFreeComps != null) {
-         myCompsChanged = true;
-      }
-      return myCompsChanged;
-   }
+//   /**
+//    * Returns true if the component structure of this constraint has changed.
+//    * This will be true if, since the last call to clearComponents(), new
+//    * component infos have been added, or if any infos are left on the free
+//    * list.
+//    */
+//   public boolean componentsChanged() {
+//      if (myFreeComps != null) {
+//         myCompsChanged = true;
+//      }
+//      return myCompsChanged;
+//   }
 
    /**
     * Finds or allocates a CompInfo for a specific component. If no CompInfo is
@@ -486,7 +491,7 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
             PointInfo pinfo = new PointInfo(pnt);
 
             info = pinfo;
-            myCompsChanged = true;
+            //myCompsChanged = true;
          }
          ((PointInfo)info).setConstraint(myInfo.normal, weight);
          addCompInfo(info);
@@ -519,7 +524,7 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
             FrameInfo finfo = new FrameInfo(frame);
 
             info = finfo;
-            myCompsChanged = true;
+            //myCompsChanged = true;
          }
          ((FrameInfo)info).setConstraint(myInfo.normal, weight, loc);
          addCompInfo(info);
@@ -746,8 +751,8 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
        */
       public abstract boolean isParametric();
 
-      public abstract double computeDirectionalVelocity(
-         Vector3d dir, Twist tmpT);
+//      public abstract double computeDirectionalVelocity(
+//         Vector3d dir, Twist tmpT);
 
       // /**
       // * Computes the component's constraint value for its parametric
@@ -816,9 +821,9 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
          return myWeight;
       }
 
-      public double computeDirectionalVelocity(Vector3d dir, Twist tmpT) {
-         return getWeight() * dir.dot(getPoint().getVelocity());
-      }
+//      public double computeDirectionalVelocity(Vector3d dir, Twist tmpT) {
+//         return getWeight() * dir.dot(getPoint().getVelocity());
+//      }
 
       // public double parametricConstraintValue (Twist tmpT) {
       // Vector3d vel = tmpT.v;
@@ -876,6 +881,7 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
             myBlk.transform(getFrame().getPose().R);
          }
          myBlk.scale(getWeight());
+         //System.out.println ("blk=\n" + myBlk);
       }
 
       public Matrix6x1Block getBlock() {
@@ -897,7 +903,7 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
 
       public FrameInfo (Frame frame) {
          setFrame(frame);
-         setLoc(new Point3d());
+         myLoc = new Point3d();
          myBlk = new Matrix6x1Block();
          myBlk.setBlockRow(frame.getSolveIndex());
       }
@@ -909,13 +915,13 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
          // updateBlock();
       }
 
-      public double computeDirectionalVelocity(Vector3d dir, Twist tmpT) {
-         getFrame().getBodyVelocity(tmpT);
-         // compute contact velocity in tmpT.v
-         tmpT.v.crossAdd(tmpT.w, getLoc(), tmpT.v);
-         tmpT.v.transform(getFrame().getPose().R);
-         return getWeight() * dir.dot(tmpT.v);
-      }
+//      public double computeDirectionalVelocity(Vector3d dir, Twist tmpT) {
+//         getFrame().getBodyVelocity(tmpT);
+//         // compute contact velocity in tmpT.v
+//         tmpT.v.crossAdd(tmpT.w, getLoc(), tmpT.v);
+//         tmpT.v.transform(getFrame().getPose().R);
+//         return getWeight() * dir.dot(tmpT.v);
+//      }
 
       // public double parametricConstraintValue (Twist tmpT) {
       // if (myFrame.computeParametricVelocity (tmpT)) {
@@ -976,9 +982,6 @@ public abstract class DeformableContactConstraintBase implements DeformableConta
          return myLoc;
       }
 
-      public void setLoc(Point3d myLoc) {
-         this.myLoc = myLoc;
-      }
    }
 
 }

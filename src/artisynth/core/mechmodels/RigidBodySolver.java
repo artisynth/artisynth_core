@@ -81,11 +81,11 @@ public class RigidBodySolver {
 
    /**
     * XXX this is currently a hack - a rigid body is assumed to correspond to
-    * any component whose velocity state size is 6. Instead, we should get this
+    * any component whose velocity state size is >= 6. Instead, we should get this
     * information from MechSystem in some way.
     */
    private boolean componentIsRigidBody (int idx, SparseBlockMatrix M) {
-      return M.getBlockRowSize(idx) == 6;
+      return M.getBlockRowSize(idx) >= 6;
    }
 
    private void doUpdateStructure (SparseBlockMatrix M, SparseBlockMatrix GT) {
@@ -97,9 +97,8 @@ public class RigidBodySolver {
             myNumActiveBodies++;
          }
       }
-      mySizeM = 6*myNumActiveBodies;
 
-      if (mySizeM > 0) {
+      if (myNumActiveBodies > 0) {
          myBodyCompMap = new int[myNumActiveBodies];
          myCompBodyMap = new int[nactive];
 
@@ -119,19 +118,25 @@ public class RigidBodySolver {
          // create local mass matrix
          
          myMassSizes = new int[myNumActiveBodies];
+         mySizeM = 0;
+         for (bi=0; bi<myNumActiveBodies; bi++) {
+            int size = M.getBlockRowSize(myBodyCompMap[bi]);
+            myMassSizes[bi] = size;
+            mySizeM += size;
+         }
 
          myVelIdxs = new int[mySizeM];
-         for (bi=0; bi<myNumActiveBodies; bi++) {
-            myMassSizes[bi] = 6;
-         }
          myMass = new SparseBlockMatrix (myMassSizes);
+         int boff = 0;
          for (bi=0; bi<myNumActiveBodies; bi++) {
             int ci = myBodyCompMap[bi];
             myMass.addBlock (bi, bi, M.getBlock(ci,ci).clone());
             int vidx = M.getBlockRowOffset (ci);
-            for (int k=0; k<6; k++) {
-               myVelIdxs[6*bi+k] = vidx++;
+            int size = myMassSizes[bi];
+            for (int k=0; k<size; k++) {
+               myVelIdxs[boff+k] = vidx++;
             }
+            boff += size;
          }
          myVel = new VectorNd (mySizeM);
          myBf = new VectorNd (mySizeM);
@@ -325,9 +330,12 @@ public class RigidBodySolver {
       mySolver.factor (myMass, mySizeM, myGT, myRg, myNT, myRn);
       mySolver.solve (myVel, myLam, myThe, myBf, myBg, myBn);
 
+      int boff = 0;
       for (int i=0; i<myNumActiveBodies; i++) {
-         VectorNd bvel = new VectorNd(6);
-         myVel.getSubVector (i*6, bvel);
+         int size = myMassSizes[i];
+         VectorNd bvel = new VectorNd(size);
+         myVel.getSubVector (boff, bvel);
+         boff += size;
       }
 
       vel.setSubVector (myVelIdxs, myVel);

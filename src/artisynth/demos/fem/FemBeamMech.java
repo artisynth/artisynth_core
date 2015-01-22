@@ -113,7 +113,7 @@ public class FemBeamMech extends RootModel {
       }
 
       RenderProps.setFaceColor (myFemMod, new Color (0.4f, 0.4f, 1.0f));
-      myFemMod.setProfile (true);
+      myFemMod.setProfiling (true);
 
       RigidBody anchorBox = new RigidBody ("anchorBox");
       PolygonalMesh mesh = MeshFactory.createBox (0.1, 0.3, 0.3);

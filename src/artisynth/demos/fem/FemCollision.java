@@ -68,7 +68,7 @@ public class FemCollision extends RootModel {
          MechModel mechmod = new MechModel();
          mechmod.setIntegrator (Integrator.ConstrainedBackwardEuler);
          //mechmod.setIntegrator(Integrator.BackwardEuler);
-         //mechmod. setProfiling (true);
+         //mechmod.setProfiling (true);
 
          CollisionManager collisions = mechmod.getCollisionManager();
          RenderProps.setVisible (collisions, true);
@@ -208,7 +208,7 @@ public class FemCollision extends RootModel {
          addModel (mechmod);
 
          //mechmod.setIntegrator (Integrator.BackwardEuler);
-         //addBreakPoint (0.29);
+         //addBreakPoint (2.36);
          // reset();
       }
       catch (Exception e) {
@@ -280,6 +280,9 @@ public class FemCollision extends RootModel {
             reset();
             lastResetTime = t1;
          }
+      }
+      if (t1 == 2.34) {
+         fem1.setIncompressible (FemModel3d.IncompMethod.OFF);
       }
       return adj;
    }

@@ -17,15 +17,15 @@ public class TriTriIntersection {
    public Face face1;
    public Point3d[] points;
 
-   /**
-    * The two faces.
-    */
-   public TriTriIntersection (Face f0, Face f1,
-      ArrayList<Point3d> _points) {
-      face0 = f0;
-      face1 = f1;
-      points = _points.toArray(new Point3d[2]);
-   }
+//   /**
+//    * The two faces.
+//    */
+//   public TriTriIntersection (Face f0, Face f1,
+//      ArrayList<Point3d> _points) {
+//      face0 = f0;
+//      face1 = f1;
+//      points = _points.toArray(new Point3d[2]);
+//   }
    
    /**
     * The two faces.

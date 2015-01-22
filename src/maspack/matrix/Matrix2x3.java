@@ -123,6 +123,67 @@ public class Matrix2x3 extends DenseMatrixBase {
    }
 
    /**
+    * {@inheritDoc}
+    */
+   public void set (double[] values) {
+      m00 = values[0];
+      m01 = values[1];
+      m02 = values[2];
+      m10 = values[3];
+      m11 = values[4];
+      m12 = values[5];
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setColumn (int j, double[] values) {
+      switch (j) {
+         case 0: {
+            m00 = values[0];
+            m10 = values[1];
+            break;
+         }
+         case 1: {
+            m01 = values[0];
+            m11 = values[1];
+            break;
+         }
+         case 2: {
+            m02 = values[0];
+            m12 = values[1];
+            break;
+         }
+         default: {
+            throw new ArrayIndexOutOfBoundsException ("j=" + j);
+         }
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setRow (int i, double[] values) {
+      switch (i) {
+         case 0: {
+            m00 = values[0];
+            m01 = values[1];
+            m02 = values[2];
+            break;
+         }
+         case 1: {
+            m10 = values[0];
+            m11 = values[1];
+            m12 = values[2];
+            break;
+         }
+         default: {
+            throw new ArrayIndexOutOfBoundsException ("i=" + i);
+         }
+      }
+   }
+
+   /**
     * Sets the elements of this matrix to zero.
     */
    public void setZero() {
@@ -181,6 +242,24 @@ public class Matrix2x3 extends DenseMatrixBase {
       m10 *= s;
       m11 *= s;
       m12 *= s;
+   }
+
+   /**
+    * Computes s M and places the result in this matrix.
+    * 
+    * @param s
+    * scaling factor
+    * @param M
+    * matrix to scale
+    */
+   public void scale (double s, Matrix2x3 M) {
+      m00 = s * M.m00;
+      m01 = s * M.m01;
+      m02 = s * M.m02;
+
+      m10 = s * M.m10;
+      m11 = s * M.m11;
+      m12 = s * M.m12;
    }
 
    /**
@@ -251,6 +330,25 @@ public class Matrix2x3 extends DenseMatrixBase {
       m12 += M.m12;
    }
 
+
+   /**
+    * Computes M1 + M2 and places the result in this matrix.
+    * 
+    * @param M1
+    * first matrix to add
+    * @param M2
+    * second matrix to add
+    */
+   public void add (Matrix2x3 M1, Matrix2x3 M2) {
+      m00 = M1.m00 + M2.m00;
+      m01 = M1.m01 + M2.m01;
+      m02 = M1.m02 + M2.m02;
+
+      m10 = M1.m10 + M2.m10;
+      m11 = M1.m11 + M2.m11;
+      m12 = M1.m12 + M2.m12;
+   }
+
    /**
     * Adds the scaled contents of a Matrix2x3 to this matrix block.
     * 
@@ -267,6 +365,26 @@ public class Matrix2x3 extends DenseMatrixBase {
       m10 += s * M.m10;
       m11 += s * M.m11;
       m12 += s * M.m12;
+   }
+
+   /**
+    * Computes s M1 + M2 and places the result in this matrix.
+    * 
+    * @param s
+    * scaling factor
+    * @param M1
+    * matrix to be scaled
+    * @param M2
+    * matrix to be added
+    */
+   public void scaledAdd (double s, Matrix2x3 M1, Matrix2x3 M2) {
+      m00 = s * M1.m00 + M2.m00;
+      m01 = s * M1.m01 + M2.m01;
+      m02 = s * M1.m02 + M2.m02;
+
+      m10 = s * M1.m10 + M2.m10;
+      m11 = s * M1.m11 + M2.m11;
+      m12 = s * M1.m12 + M2.m12;
    }
 
    /**
@@ -308,6 +426,58 @@ public class Matrix2x3 extends DenseMatrixBase {
       m10 -= M.m10;
       m11 -= M.m11;
       m12 -= M.m12;
+   }
+
+   /**
+    * Computes M1 - M2 places the result in this matrix.
+    * 
+    * @param M1
+    * first matrix
+    * @param M2
+    * matrix to subtract
+    */
+   public void sub (Matrix2x3 M1, Matrix2x3 M2) {
+      m00 = M1.m00 - M2.m00;
+      m01 = M1.m01 - M2.m01;
+      m02 = M1.m02 - M2.m02;
+
+      m10 = M1.m10 - M2.m10;
+      m11 = M1.m11 - M2.m11;
+      m12 = M1.m12 - M2.m12;
+   }
+
+   /**
+    * Multiplies M1 by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulAdd (Matrix M1, Matrix M2) {
+      MatrixMulAdd.mulAdd2x3 (this, M1, M2);
+   }
+
+   /**
+    * Creates a transpose of this matrix block.
+    */
+   public Matrix3x2Block createTranspose() {
+      Matrix3x2Block M = new Matrix3x2Block();
+      M.transpose (this);
+      return M;
+   }
+
+   /**
+    * Sets this matrix to the transpose of M
+    *
+    * @param M
+    * matrix to take the transpose of
+    */
+   public void transpose (Matrix3x2 M) {
+      m00 = M.m00;
+      m10 = M.m01;
+      m01 = M.m10;
+      m11 = M.m11;
+      m02 = M.m20;
+      m12 = M.m21;
    }
 
    /**

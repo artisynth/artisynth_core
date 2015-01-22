@@ -268,30 +268,19 @@ public class Matrix2x6 extends DenseMatrixBase {
    /**
     * {@inheritDoc}
     */
-   public void setRow (int i, double[] values) {
-      switch (i) {
-         case 0: {
-            m00 = values[0];
-            m01 = values[1];
-            m02 = values[2];
-            m03 = values[3];
-            m04 = values[4];
-            m05 = values[5];
-            break;
-         }
-         case 1: {
-            m10 = values[0];
-            m11 = values[1];
-            m12 = values[2];
-            m13 = values[3];
-            m14 = values[4];
-            m15 = values[5];
-            break;
-         }
-         default: {
-            throw new ArrayIndexOutOfBoundsException ("i=" + i);
-         }
-      }
+   public void set (double[] values) {
+      m00 = values[0];
+      m01 = values[1];
+      m02 = values[2];
+      m03 = values[3];
+      m04 = values[4];
+      m05 = values[5];
+      m10 = values[6];
+      m11 = values[7];
+      m12 = values[8];
+      m13 = values[9];
+      m14 = values[10];
+      m15 = values[11];
    }
 
    /**
@@ -331,6 +320,35 @@ public class Matrix2x6 extends DenseMatrixBase {
          }
          default: {
             throw new ArrayIndexOutOfBoundsException ("j=" + j);
+         }
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setRow (int i, double[] values) {
+      switch (i) {
+         case 0: {
+            m00 = values[0];
+            m01 = values[1];
+            m02 = values[2];
+            m03 = values[3];
+            m04 = values[4];
+            m05 = values[5];
+            break;
+         }
+         case 1: {
+            m10 = values[0];
+            m11 = values[1];
+            m12 = values[2];
+            m13 = values[3];
+            m14 = values[4];
+            m15 = values[5];
+            break;
+         }
+         default: {
+            throw new ArrayIndexOutOfBoundsException ("i=" + i);
          }
       }
    }
@@ -713,6 +731,37 @@ public class Matrix2x6 extends DenseMatrixBase {
       m13 = M1.m13 - M2.m13;
       m14 = M1.m14 - M2.m14;
       m15 = M1.m15 - M2.m15;
+   }
+
+   /**
+    * Multiplies M1 by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulAdd (Matrix M1, Matrix M2) {
+      MatrixMulAdd.mulAdd2x6 (this, M1, M2);
+   }
+
+   /**
+    * Sets this matrix to the transpose of M
+    *
+    * @param M
+    * matrix to take the transpose of
+    */
+   public void transpose (Matrix6x2 M) {
+      m00 = M.m00;
+      m10 = M.m01;
+      m01 = M.m10;
+      m11 = M.m11;
+      m02 = M.m20;
+      m12 = M.m21;
+      m03 = M.m30;
+      m13 = M.m31;
+      m04 = M.m40;
+      m14 = M.m41;
+      m05 = M.m50;
+      m15 = M.m51;
    }
 
    /**

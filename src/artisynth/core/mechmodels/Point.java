@@ -48,7 +48,7 @@ import artisynth.core.util.TransformableGeometry;
 public class Point extends DynamicComponentBase
    implements RenderablePoint, TransformableGeometry, ScalableUnits,
               DynamicComponent, Tracable, MotionTargetComponent, 
-              CopyableComponent {
+              CopyableComponent, CollidableDynamicComponent {
 
    protected PointState myState = new PointState();
    protected PointTarget myTarget = null;
@@ -137,6 +137,10 @@ public class Point extends DynamicComponentBase
 
    public void setForcesToExternal() {
       myForce.set (myExternalForce);
+   }
+
+   public void applyExternalForces() {
+      myForce.add (myExternalForce);
    }
 
    public void addExternalForce(Vector3d f) {
@@ -698,4 +702,24 @@ public class Point extends DynamicComponentBase
    public int getPosStateSize() {
       return 3;
    }
+
+   public void setContactConstraint (
+      double[] buf, double w, Vector3d dir, ContactPoint cpnt) {
+
+      buf[0] = w*dir.x;
+      buf[1] = w*dir.y;
+      buf[2] = w*dir.z;
+   }
+
+   public void addToPointVelocity (
+      Vector3d vel, double w, ContactPoint cpnt) {
+
+      vel.scaledAdd (w, myState.vel);      
+   }
+
+//   public boolean requiresContactVertexInfo() {
+//      return false;
+//   }
+
+
 }

@@ -84,11 +84,6 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    protected double myRotaryDamping = 0;
    protected PropertyMode myRotaryDampingMode = PropertyMode.Inherited;
 
-   protected boolean myProfiling = false;
-   protected boolean myProfileUpdateForces = false;
-   protected long myUpdateTime;
-   protected long mySolveTime;
-
    protected ComponentList<MechSystemModel> myModels;
 
    protected ComponentList<DynamicAttachment> myAttachments;
@@ -110,7 +105,6 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    protected static double DEFAULT_POINT_DAMPING = 0;
    protected static double DEFAULT_FRAME_DAMPING = 0;
    protected static double DEFAULT_ROTARY_DAMPING = 0;
-   protected static boolean DEFAULT_PROFILING = false;
    protected static PosStabilization DEFAULT_STABILIZATION =
       PosStabilization.GlobalMass;
 
@@ -146,8 +140,6 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
          DEFAULT_MATRIX_SOLVER);
       myProps.add (
          "stabilization", "position stabilization method", DEFAULT_STABILIZATION);
-      myProps.add (
-         "profiling", "print time step information", DEFAULT_PROFILING);
       myProps.addInheritable (
          "frameDamping:Inherited", "intrinsic translational damping",
          DEFAULT_FRAME_DAMPING);
@@ -254,7 +246,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
          new RenderableComponentList<RenderableComponent> (
             RenderableComponent.class, "renderables", "re");
 
-      myCollisionManager = new CollisionManager();
+      myCollisionManager = new CollisionManager(this);
       myCollisionManager.setName ("collisionManager");
 
       addFixed (myModels);
@@ -1187,7 +1179,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
                list.add (rbc);
             }
          }
-         else if (c instanceof Constrainer) {
+         else if (c instanceof Constrainer && !(c instanceof CollisionManager)) {
             list.add ((Constrainer)c);
          }
          else if (c instanceof MechSystemModel) {
@@ -1195,7 +1187,8 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
          }
          else if (c instanceof CollisionManager) {
             if (level == 0) {
-               ((CollisionManager)c).getConstrainers (list);
+               //((CollisionManager)c).getConstrainers (list);
+               list.add ((CollisionManager)c);
             }
          }
          else if (c instanceof CompositeComponent) {
@@ -1227,15 +1220,15 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
          if (c instanceof MechSystemModel) {
             ((MechSystemModel)c).getAuxStateComponents (list, level+1);
          }
+         else if (c instanceof CollisionManager) {
+            if (level == 0) {
+               list.add ((CollisionManager)c);
+            }
+         }
          else if (c instanceof HasAuxState) {
             // this will include inactive RigidBodyConnecters;
             // that should be OK
             list.add ((HasAuxState)c);
-         }
-         else if (c instanceof CollisionManager) {
-            if (level == 0) {
-               ((CollisionManager)c).addAuxStateComponents (list);
-            }
          }
          else if (c instanceof CompositeComponent) {
             recursivelyGetAuxStateComponents (
@@ -1269,73 +1262,6 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       return (type1 & type2);
    }
 
-   public synchronized String getPrintState() {
-      return myPrintState;
-   }
-
-   public synchronized void setPrintState (String fmt) {
-      myPrintState = fmt;
-   }
-
-   public synchronized PrintWriter openPrintStateFile (String name)
-      throws IOException {
-      if (myPrintStateWriter != null) {
-         myPrintStateWriter.close();
-      }
-      myPrintStateWriter = new PrintWriter (
-         new BufferedWriter (new FileWriter (name)));
-      return myPrintStateWriter;
-   }
-
-   public synchronized PrintWriter reopenPrintStateFile (String name)
-      throws IOException {
-      if (myPrintStateWriter != null) {
-         myPrintStateWriter.close();
-      }
-      myPrintStateWriter = new PrintWriter (
-         new BufferedWriter (new FileWriter (name, /*append=*/true)));
-      return myPrintStateWriter;
-   }
-
-   public synchronized void closePrintStateFile () throws IOException {
-      if (myPrintStateWriter != null) {
-         myPrintStateWriter.close();
-      }
-   }
-
-   private synchronized void printState (String fmt, double t) {
-      updateDynamicComponentLists();
-      VectorNd x = new VectorNd (myActivePosStateSize);
-      VectorNd v = new VectorNd (myActiveVelStateSize);
-      getActivePosState (x, 0);
-      // Hack: get vel in body coords until data is converted ...
-      getActiveVelState (v, 0, /*bodyCoords=*/false);
-      if (myPrintStateWriter == null) {
-         System.out.println ("t="+t+":");
-         System.out.println ("v: " + v.toString (fmt));
-         System.out.println ("x: " + x.toString (fmt));
-      }
-      else {
-         myPrintStateWriter.println ("t="+t+":");
-         myPrintStateWriter.println ("v: " + v.toString (fmt));
-         myPrintStateWriter.println ("x: " + x.toString (fmt));
-         myPrintStateWriter.flush();
-      }
-   }
-
-   private void checkState() {
-//      updateDynamicComponents();
-//      RootModel root = Main.getRootModel();
-//      if (root.isCheckEnabled()) {
-//         VectorNd x = new VectorNd (myActivePosStateSize);
-//         VectorNd v = new VectorNd (myActiveVelStateSize);
-//         getActivePosState (x, 0);
-//         getActiveVelState (v, 0);
-//         root.checkWrite ("v: " + v.toString ("%g"));
-//         root.checkWrite ("x: " + x.toString ("%g"));
-//      }
-   }
-
    public StepAdjustment preadvance (double t0, double t1, int flags) {
       if (t0 == 0) {
          mySolver.projectPosConstraints (0);
@@ -1347,56 +1273,39 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       return super.preadvance (t0, t1, flags);
    }
 
-   public StepAdjustment advance (
-      double t0, double t1, int flags) {
-      // System.out.println ("advancing " + (t1sec-t0sec));
+   // public StepAdjustment advance (double t0, double t1, int flags) {
 
-      if (myProfiling) {
-         mySolveTime = System.nanoTime();
-      }
+   //    initializeAdvance (t0, t1, flags);
 
-      // if (t0 == 0) {
-      //    mySolver.projectPosConstraints (t0);
-      // }
-      StepAdjustment stepAdjust = new StepAdjustment();
+   //    if (t0 == 0) {
+   //       updateForces (t0);
+   //    }
 
-      if (!myDynamicsEnabled) {
-         mySolver.nonDynamicSolve (t0, t1, stepAdjust);
-         recursivelyFinalizeAdvance (null, t0, t1, flags, 0);
-      }
-      else {
-         if (t0 == 0 && myPrintState != null) {
-            printState (myPrintState, 0);
-         }
-         checkState();
+   //    if (!myDynamicsEnabled) {
+   //       mySolver.nonDynamicSolve (t0, t1, myStepAdjust);
+   //       recursivelyFinalizeAdvance (null, t0, t1, flags, 0);
+   //    }
+   //    else {
+   //       if (t0 == 0 && myPrintState != null) {
+   //          printState (myPrintState, 0);
+   //       }
+   //       checkState();
+   //       mySolver.solve (t0, t1, myStepAdjust);
+   //       DynamicComponent c = checkVelocityStability();
+   //       if (c != null) {
+   //          throw new NumericalException (
+   //             "Unstable velocity detected, component " +
+   //             ComponentUtils.getPathName (c));
+   //       }
+   //       recursivelyFinalizeAdvance (myStepAdjust, t0, t1, flags, 0);
+   //       if (myPrintState != null) {
+   //          printState (myPrintState, t1);
+   //       }
+   //    }
 
-         // this is a waste since we only need to update forces
-         // if an external constraint acted on the system
-         if (t0 == 0) {
-            updateForces (t0);
-         }
-         mySolver.solve (t0, t1, stepAdjust);
-         DynamicComponent c = checkVelocityStability();
-         if (c != null) {
-            throw new NumericalException (
-               "Unstable velocity detected, component " +
-               ComponentUtils.getPathName (c));
-         }
-         recursivelyFinalizeAdvance (stepAdjust, t0, t1, flags, 0);
-         if (myPrintState != null) {
-            printState (myPrintState, t1);
-         }
-      }
-
-      if (myProfiling) {
-         mySolveTime = System.nanoTime() - mySolveTime;
-         System.out.println (
-            "T1=" + t1 +
-            " updateTime=" + myUpdateTime/1e6 + " solveTime=" + mySolveTime/1e6);
-      }
-
-      return stepAdjust;
-   }
+   //    finalizeAdvance (t0, t1, flags);
+   //    return myStepAdjust;
+   // }
 
    private void zeroExternalForces() {
       updateLocalDynamicComponents();
@@ -1677,14 +1586,6 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
          comp=comp.getParent();
       }
       return mech;
-   }
-
-   public void setProfiling (boolean enable) {
-      myProfiling = enable;
-   }
-
-   public boolean getProfiling() {
-      return myProfiling;
    }
 
    protected void clearCachedData () {

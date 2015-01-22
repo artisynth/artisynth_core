@@ -6,11 +6,12 @@
  */
 package artisynth.core.mechmodels;
 
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.Arrays;
+import java.util.HashSet;
 
 import maspack.matrix.Matrix;
+import maspack.matrix.Matrix.Partition;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3x1;
 import maspack.matrix.Matrix6d;
@@ -36,8 +37,9 @@ import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
-import artisynth.core.modelbase.StepAdjustment;
-import artisynth.core.util.ArtisynthIO;
+import artisynth.core.modelbase.*;
+import artisynth.core.mechmodels.*;
+import artisynth.core.util.*;
 
 /**
  * Implements implicit integration for MechSystem
@@ -56,6 +58,7 @@ public class MechSystemSolver {
    //public static boolean updateForcesAtStepEnd = true;
 
    private boolean myUpdateForcesAtStepEnd = false;
+   private boolean computeKKTResidual = false;
 
    // mass matrix stuff
 
@@ -438,12 +441,6 @@ public class MechSystemSolver {
    }
 
    public void setIntegrator (Integrator integrator) {
-      // myIntegrator = getIntegratorForSolver (integrator, myMatrixSolver);
-      // if (myIntegrator != integrator) {
-      //    System.out.println (
-      //       "Warning: cannot use "+integrator+
-      //       " with matrix solver "+myMatrixSolver+", substituting "+myIntegrator);
-      // }
       myIntegrator = integrator;
       switch (integrator) {
          case ConstrainedBackwardEuler:
@@ -506,12 +503,6 @@ public class MechSystemSolver {
    }
 
    public void setMatrixSolver (MatrixSolver solver) {
-      // if (getIntegratorForSolver (myIntegrator, solver) != myIntegrator) {
-      //    System.out.println (
-      //       "Warning: cannot use "+myIntegrator+
-      //       " with matrix solver "+solver);
-      //    return;
-      // }
       if (solver != myMatrixSolver) {
          switch (solver) {
             case Pardiso: {
@@ -855,8 +846,6 @@ public class MechSystemSolver {
 
       mySys.getActivePosState (myQ);
 
-      //System.out.println ("\nNEW");
-
       myU.scaledAdd (h, myDudt, myU);
       mySys.setActiveVelState (myU);         
 
@@ -1010,7 +999,7 @@ public class MechSystemSolver {
    }
 
    public void addActiveMassMatrix (
-      MechSystem sys, SparseBlockMatrix S, double t) {
+      MechSystem sys, SparseBlockMatrix S) {
       // assumes that updateMassMatrix() has been called
       for (int bi=0; bi<sys.numActiveComponents(); bi++) {
          S.getBlock(bi, bi).add (myMass.getBlock(bi, bi));
@@ -1084,7 +1073,6 @@ public class MechSystemSolver {
       mulActiveInertias (myB, myU);
 
       mySys.getActiveForces (myF);
-      //System.out.println ("myF=" + myF);
       myF.add (myMassForces);
       myB.scaledAdd (h, myF, myB);
 
@@ -1104,7 +1092,7 @@ public class MechSystemSolver {
          myB.scaledAdd (h, myC);
       }
 
-      addActiveMassMatrix (mySys, mySolveMatrix, t1);
+      addActiveMassMatrix (mySys, mySolveMatrix);
 
       int n = myB.size();
 
@@ -1172,18 +1160,27 @@ public class MechSystemSolver {
       }
    }
 
-   protected void updateBilateralConstraints (double t) {
+
+   void printArray (String msg, int[] array) {
+      System.out.print (msg);
+      for (int i=0; i<array.length; i++) {
+         System.out.print (" " + array[i]);
+      }
+      System.out.println ("");      
+   }
+
+   protected void updateBilateralConstraints () {
       // assumes that updateStateSizes() has been called
-      SparseBlockMatrix oldGT = myGT;
+      int[] oldStructure = null;
+
+      if (myGT != null) {
+         oldStructure = myGT.getBlockStructure();
+      }
       myGT = new SparseNumberedBlockMatrix ();
-      int version = mySys.getBilateralConstraints (myGT, myGdot);
-      // if (version != myGTVersion) {
-      //    myGTVersion = version;
-      // }
-      // XXX Sanchez, Jun 23, 2014
-      // Collision bug??  Need better way to check structure change
-      // since blocks are reused when constructing myGT
-      if (oldGT == null || !myGT.structureEquals (oldGT)) {
+      mySys.getBilateralConstraints (myGT, myGdot);
+      //myGT.checkConsistency();
+
+      if (oldStructure == null || !myGT.blockStructureEquals (oldStructure)) {
          myGTVersion++;
       }
       myGsize = myGT.colSize();
@@ -1193,7 +1190,7 @@ public class MechSystemSolver {
       myLam.setSize (myGsize);
    }
 
-   protected void updateUnilateralConstraints (double t) {
+   protected void updateUnilateralConstraints () {
       // assumes that updateStateSizes() has been called
       myNT = new SparseNumberedBlockMatrix ();
       mySys.getUnilateralConstraints (myNT, myNdot);
@@ -1224,7 +1221,6 @@ public class MechSystemSolver {
       else {
          myBd.setZero();
       }        
-
    }
 
    /** 
@@ -1248,13 +1244,21 @@ public class MechSystemSolver {
     * XXX question about which time do we want? t0 or t1? Right
     * now it is set to t1; setting it to t0 seems to cause a
     * small difference in the inverse tongue model.
+    * 
+    * @param vel returns the computed velocity
+    * @param fpar if useFictitousJacobianForces is true, returns fictitious 
+    * Jacobian forces for parametric components
+    * @param bf right side offset
+    * @param btmp temporary vector
+    * @param vel0 right side velocity
+    * @param h interval time step
     */
    public void KKTFactorAndSolve (
       VectorNd vel, VectorNd fpar, VectorNd bf, VectorNd btmp, VectorNd vel0, 
-      double t, double h, boolean velocitySolve) {
+      double h) {
 
       KKTFactorAndSolve (
-         vel, fpar, bf, btmp, vel0, t, h, -h, -h*h, -h, 0, velocitySolve);
+         vel, fpar, bf, btmp, vel0, h, -h, -h*h, -h, 0);
    }
 
    // Setting crsFileName will cause the KKT system matrix and RHS
@@ -1323,11 +1327,24 @@ public class MechSystemSolver {
     * where h is the time step and f is the generalized forces, while
     * on output bf is modified to include the Jacobian terms described
     * above.
+    * 
+    * @param vel returns the computed velocity
+    * @param fpar if useFictitousJacobianForces is true, returns fictitious 
+    * Jacobian forces for parametric components
+    * @param bf right side offset
+    * @param btmp temporary vector
+    * @param vel0 right side velocity
+    * @param t
+    * @param h interval time step - used to scale constraint offsets and 
+    * impulses
+    * @param a0 left side df/dv coefficient
+    * @param a1 left side df/dx coefficient
+    * @param a2 right side df/dv coefficient
+    * @param a3 right side df/dx coefficient
     */
    public void KKTFactorAndSolve (
       VectorNd vel, VectorNd fpar, VectorNd bf, VectorNd btmp, VectorNd vel0,
-      double t, double h, double a0, double a1, double a2, double a3,
-      boolean velocitySolve) {
+      double h, double a0, double a1, double a2, double a3) {
 
       // assumes that updateMassMatrix() has been called
       updateStateSizes();
@@ -1373,7 +1390,7 @@ public class MechSystemSolver {
          bf.scaledAdd (beta, btmp);
       }
 
-      addActiveMassMatrix (mySys, S, t);
+      addActiveMassMatrix (mySys, S);
 
       if (velSize > 0 && myParametricVelSize > 0) {
          S.mulTranspose (
@@ -1385,16 +1402,12 @@ public class MechSystemSolver {
          myKKTSolver = new KKTSolver();
       }
 
-      updateBilateralConstraints (t);
+      updateBilateralConstraints ();
       if (myKKTGTVersion != myGTVersion) {
          analyze = true;
          myKKTGTVersion = myGTVersion;
       }
 
-      if (!velocitySolve) {
-         throw new InternalErrorException (
-            "KKTFactorAndSolve now only does velocity solves");
-      }
       if (myGsize > 0 && myParametricVelSize > 0) {
          myGT.mulTranspose (
             myBg, myUpar, 0, myGsize, velSize, myParametricVelSize);
@@ -1407,7 +1420,7 @@ public class MechSystemSolver {
       //myBg.scaledAdd (a0, myGdot);
       setBilateralOffsets (h, -a0);
 
-      updateUnilateralConstraints (t);
+      updateUnilateralConstraints ();
 
       if (myNsize > 0 && myParametricVelSize > 0) {
          myNT.mulTranspose (
@@ -1420,18 +1433,10 @@ public class MechSystemSolver {
       // a0 is assumed to be negative, which moves myGdot over to the rhs
       setUnilateralOffsets (h, -a0);
 
-      myLam.setSize (myGT.colSize());
-      if (myNT != null) {
-         myThe.setSize (myNT.colSize());
-      }
-      else {
-         myThe.setSize (0);
-      }
-      if (t == 0) {
-         // set these to zero in case we are doing hybrid solves
-         myThe.setZero();
-         myLam.setZero();
-      }
+      // get these in case we are doing hybrid solves and they are needed to
+      // help with a warm start
+      mySys.getBilateralImpulses (myLam);
+      mySys.getUnilateralImpulses (myThe);
 
       if (!solveModePrinted) {
          System.out.println (myHybridSolveP ? "hybrid solves" : "direct solves");
@@ -1455,8 +1460,7 @@ public class MechSystemSolver {
          if (analyze) {
             myKKTSolver.analyze (S, velSize, myGT, mySys.getSolveMatrixType());
          }
-         if (myHybridSolveP && !analyze &&
-            (myNT == null || myNT.colSize() == 0)) {
+         if (myHybridSolveP && !analyze && myNT.colSize() == 0) {
             if (profileKKTSolveTime) {
                timerStart();
             }
@@ -1476,8 +1480,17 @@ public class MechSystemSolver {
                timerStop ("KKTsolve");
             }
          }
+         if (computeKKTResidual) {
+            double res = myKKTSolver.residual (
+               S, velSize, myGT, myRg, myNT, myRn, 
+               vel, myLam, myThe, bf, myBg, myBn);
+            System.out.println (
+               "vel residual ("+velSize+","+myGT.colSize()+","+
+               myNT.colSize()+"): " + res);
+         }
          //System.out.println ("bg=" + myBg);
          //System.out.println ("S=\n" + S);
+
          if (crsWriter != null) {
             String msg = 
                "# KKTsolve M="+velSize+" G="+myGT.colSize()+
@@ -1486,14 +1499,13 @@ public class MechSystemSolver {
             try {
                crsWriter.println (msg);
                myKKTSolver.printLinearProblem (
-                  crsWriter, bf, myBg, "%.6g", crsOmitDiag);
+                  crsWriter, bf, myBg, "%g", crsOmitDiag);
             }
             catch (Exception e) {
                e.printStackTrace(); 
                crsWriter = null;
                crsFileName = null;
             }
-
          }
       }
 
@@ -1705,19 +1717,6 @@ public class MechSystemSolver {
       return phi;
    }
 
-   private void printArray (String name, int[] array) {
-      if (array == null) {
-         System.out.println (name + "=null");
-      }
-      else {
-         System.out.print (name + "=[ ");
-         for (int i=0; i<array.length; i++) {
-            System.out.print (array[i] + " ");
-         }
-         System.out.println ("]");
-      }
-   }
-
    protected void projectFrictionConstraints (VectorNd vel, double t0) {
       // BEGIN project friction constraints
       updateFrictionConstraints();
@@ -1786,8 +1785,8 @@ public class MechSystemSolver {
       if (myConSolver == null) {
          myConSolver = new KKTSolver();
       }
-      updateBilateralConstraints (t1);
-      updateUnilateralConstraints (t1);
+      updateBilateralConstraints ();
+      updateUnilateralConstraints ();
       if (myGsize == 0 && myNsize == 0) {
          // no constraints, so no solve needed
          return;
@@ -1829,8 +1828,21 @@ public class MechSystemSolver {
          myConMassVersion = myMassVersion;
          myConGTVersion = myGTVersion;
       }
+      // get these in case (at some future point) they are needed for warm
+      // startin the solve
+      mySys.getBilateralImpulses (myLam);
+      mySys.getUnilateralImpulses (myThe);
+
       myConSolver.factor (myMass, velSize, myGT, myRg, myNT, myRn);
       myConSolver.solve (vel, myLam, myThe, myBf, myBg, myBn);
+      if (computeKKTResidual) {
+         double res = myConSolver.residual (
+            myMass, velSize, myGT, myRg, myNT, myRn, 
+            vel, myLam, myThe, myBf, myBg, myBn);
+         System.out.println (
+            "vel cor residual ("+velSize+","+myGT.colSize()+","+
+            myNT.colSize()+"): " + res);
+      }
       //vel.set (myVel);
       mySys.setBilateralImpulses (myLam, h);
       mySys.setUnilateralImpulses (myThe, h);
@@ -1876,8 +1888,8 @@ public class MechSystemSolver {
       if (myConSolver == null) {
          myConSolver = new KKTSolver();
       }
-      updateBilateralConstraints (t);
-      updateUnilateralConstraints (t);
+      updateBilateralConstraints ();
+      updateUnilateralConstraints ();
       myVel.setSize (velSize);
       if (myGsize > 0 || myNsize > 0) {
 
@@ -1919,6 +1931,14 @@ public class MechSystemSolver {
       }
       myConSolver.factor (myMass, velSize, myGT, myRg, myNT, myRn);
       myConSolver.solve (vel, myLam, myThe, myBf, myBg, myBn);
+      if (computeKKTResidual) {
+         double res = myConSolver.residual (
+            myMass, velSize, myGT, myRg, myNT, myRn, 
+            vel, myLam, myThe, myBf, myBg, myBn);
+         System.out.println (
+            "mass pos cor residual ("+velSize+","+myGT.colSize()+","+
+            myNT.colSize()+"): " + res);
+      }
    }
 
    protected void computeStiffnessPosCorrection (VectorNd vel, int velSize) {
@@ -1932,7 +1952,7 @@ public class MechSystemSolver {
       S.setZero();
       mySys.addVelJacobian (S, null, -1);
       mySys.addPosJacobian (S, null, -1);
-      addActiveMassMatrix (mySys, S, 0);
+      addActiveMassMatrix (mySys, S);
       if (myKKTSolver == null) {
          myKKTSolver = new KKTSolver();
          analyze = true;
@@ -1944,14 +1964,21 @@ public class MechSystemSolver {
       if (analyze) {
          myKKTSolver.analyze (S, velSize, myGT, mySys.getSolveMatrixType());
       }
-      if (myHybridSolveP && !analyze &&
-         (myNT == null || myNT.colSize() == 0)) {
+      if (myHybridSolveP && !analyze && myNT.colSize() == 0) {
          myKKTSolver.factorAndSolve (
             S, velSize, myGT, myRg, vel, myLam, myBf, myBg, myHybridSolveTol);
       }
       else {
          myKKTSolver.factor (S, velSize, myGT, myRg, myNT, myRn);
          myKKTSolver.solve (vel, myLam, myThe, myBf, myBg, myBn);
+      }
+      if (computeKKTResidual) {
+         double res = myKKTSolver.residual (
+            S, velSize, myGT, myRg, myNT, myRn, 
+            vel, myLam, myThe, myBf, myBg, myBn);
+         System.out.println (
+            "stiffness pos cor residual ("+velSize+","+myGT.colSize()+","+
+            myNT.colSize()+"): " + res);
       }
    }
 
@@ -2000,8 +2027,8 @@ public class MechSystemSolver {
       if (myConSolver == null) {
          myConSolver = new KKTSolver();
       }
-      updateBilateralConstraints (t);
-      updateUnilateralConstraints (t);
+      updateBilateralConstraints ();
+      updateUnilateralConstraints ();
       // myVel.setSize (velSize);
       if (myGsize > 0 || myNsize > 0) {
          boolean allConstraintsCompliant = true;
@@ -2212,6 +2239,19 @@ public class MechSystemSolver {
       System.out.println ("");
    }
 
+   ModelComponent findComponent () {
+      MechSystemBase sys = (MechSystemBase)mySys;
+      return sys.findComponent ("models/fem0/nodes/39");
+   }
+
+   void printCompVel (String msg) {
+      ModelComponent c = findComponent();
+      if (c != null) {
+         Point n = (Point)c;
+         System.out.println (msg + " " + n.getVelocity());
+      }
+   }
+
    // protected void computeImplicitParametricForces (VectorNd vel, VectorNd pfict) {
    //    // back solve for parametric forces for an implicit integrator
    //    int velSize = myActiveVelSize;
@@ -2269,12 +2309,11 @@ public class MechSystemSolver {
       mySys.getActiveForces (myF);
       myF.add (myMassForces);
       myB.scaledAdd (h, myF, myB);
-
-      KKTFactorAndSolve (
-         myUtmp, myFparC, myB,
-         /*tmp=*/myF, myU, t1, h, /*velocitySolve=*/true);
+      
+      KKTFactorAndSolve (myUtmp, myFparC, myB, /*tmp=*/myF, myU, h);
 
       mySys.setActiveVelState (myUtmp);
+      //System.out.println ("vel=" + myUtmp.toString ("%g"));
 
       if (useGlobalFriction) {
          projectFrictionConstraints (myUtmp, t1);
@@ -2285,16 +2324,24 @@ public class MechSystemSolver {
       //computeImplicitParametricForces (myUtmp, myFparC);
 
       mySys.getActivePosState (myQ);
-
       mySys.addActivePosImpulse (myQ, h, myUtmp);
-
       mySys.setActivePosState (myQ);
-
-
       applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
+
+      // if (t1 == 0.32) {
+      //    try {
+      //       myGT.write (
+      //          "GT.txt", "# GT", 
+      //          Matrix.WriteFormat.CRS, velSize, myGT.colSize());
+      //    }
+      //    catch (Exception e) {
+      //    }
+      // }
    }
 
-   private double computeForceResidual (double t0, double t1, int velSize) {
+   private double computeForceResidual (
+      double t0, double t1, VectorNd btmp, int velSize) {
+
       double h = t1 - t0;
       myDelV.setSize (velSize);
       myFx.setSize (velSize);
@@ -2305,12 +2352,18 @@ public class MechSystemSolver {
       if (myNT != null) {
          myNT.mulAdd (myFx, myThe, velSize, myNT.colSize());
       }
+      if (velSize > 0 && myParametricVelSize > 0) {
+         mySolveMatrix.mulTranspose (
+            btmp, myUpar, 0, velSize, velSize, myParametricVelSize);
+         myFx.sub (btmp);
+      }
       myFx.scale (-1/h);
 
       double fxMag = myFx.norm();
       mySys.getActiveForces (myF);
       // XXX mass forces need to be updated?
       myF.add (myMassForces);
+
       myFx.sub (myF);
       double resMag = myFx.norm();
       double fMag = myF.norm();
@@ -2322,7 +2375,9 @@ public class MechSystemSolver {
       }
    }
 
-   public void fullBackwardEuler (double t0, double t1, StepAdjustment stepAdjust) {
+   public void fullBackwardEuler (
+      double t0, double t1, StepAdjustment stepAdjust) {
+
       if (myMatrixSolver == MatrixSolver.None) {
          throw new UnsupportedOperationException (
             "MatrixSolver cannot be 'None' for this integrator");
@@ -2353,8 +2408,7 @@ public class MechSystemSolver {
       myF.add (myMassForces);
       myB.scaledAdd (h, myF, myB);
 
-      KKTFactorAndSolve (
-         myUtmp, myFparC, myB, /*tmp=*/myF, myU, t1, h, /*velocitySolve=*/true);
+      KKTFactorAndSolve (myUtmp, myFparC, myB, /*tmp=*/myF, myU, h);
 
       mySys.setActiveVelState (myUtmp);
       mySys.getActivePosState (xVec0);
@@ -2364,20 +2418,23 @@ public class MechSystemSolver {
       mySys.addActivePosImpulse (myQ, h, myUtmp);
       mySys.setActivePosState (myQ);
 
-      double fres = computeForceResidual (t0, t1, velSize);
+      mySys.updateForces (t1);
+      double fres = computeForceResidual (t0, t1, /*tmp=*/myF, velSize);
 
-      double FRES_TOL = 0.0001;
+      double FRES_TOL = 1e-8;
       int MAX_ITER = 5;
+
       int iter = 0;
 
-      //System.out.println ("vel=" + myUtmp.toString ("%10.4f"));
-      System.out.printf ("fres[%d]=%g\n", 0, fres);
+      //System.out.println ("vel=" + myUtmp.toString ("%g"));
+      //System.out.printf ("fres[%d]=%g\n", 0, fres);
 
       if (fres > FRES_TOL) {
          VectorNd velk = new VectorNd (velSize);
          while (fres > FRES_TOL && iter < MAX_ITER) {
             velk.set (myUtmp);
 
+            // no need to update mass matrix 
             mulActiveInertias (myB, myU);
             mySys.getActiveForces (myF);
             // XXX mass forces need to be updated?
@@ -2385,8 +2442,8 @@ public class MechSystemSolver {
             myB.scaledAdd (h, myF, myB);
 
             KKTFactorAndSolve (
-               myUtmp, myFparC, myB, /*tmp=*/myF, velk, t1, h,
-               -h, -h*h, -h, -h*h, /*velocitySolve=*/true);
+               myUtmp, myFparC, myB, /*tmp=*/myF, velk, h,
+               -h, -h*h, -h, -h*h);
 
             mySys.setActiveVelState (myUtmp);
             //mySys.getActivePosDerivative (dxdtVec, t1, 0);
@@ -2395,15 +2452,16 @@ public class MechSystemSolver {
             mySys.addActivePosImpulse (myQ, h, myUtmp);
             mySys.setActivePosState (myQ);
 
-            fres = computeForceResidual (t0, t1, velSize);
+            mySys.updateForces (t1);
+            fres = computeForceResidual (t0, t1, /*tmp=*/myF, velSize);
 
             iter++;
 
             //System.out.println ("vel=" + myUtmp.toString ("%10.4f"));
-            System.out.printf ("fres[%d]=%g\n", iter, fres);
+            //System.out.printf ("fres[%d]=%g\n", iter, fres);
          }
       }
-      System.out.println ("iter=" + iter);
+      //System.out.println ("iter=" + iter);
 
       //computeImplicitParametricForces (myUtmp, myFparC);
 
@@ -2444,7 +2502,7 @@ public class MechSystemSolver {
 
       KKTFactorAndSolve (
          myUtmp, myFparC, myB, /*tmp=*/myF, myU, 
-         t1, h, -h/2, -h*h/4, -h/2, h*h/4, /*velocitySolve=*/true);
+         h, -h/2, -h*h/4, -h/2, h*h/4);
 
       //mySys.getActivePosDerivative (dxdtVec0, t0, 0);
 
@@ -2487,7 +2545,7 @@ public class MechSystemSolver {
 
    public SparseBlockMatrix createActiveBilateralMatrix (double t) {
       updateStateSizes();
-      updateBilateralConstraints (t);
+      updateBilateralConstraints ();
       int nactive = mySys.numActiveComponents();
       return myGT.createSubMatrix (nactive, myGT.numBlockCols());
    }

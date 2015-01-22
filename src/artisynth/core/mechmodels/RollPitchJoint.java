@@ -35,14 +35,7 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
    public static PropertyList myProps =
       new PropertyList (RollPitchJoint.class, JointBase.class);
 
-   protected static RenderProps defaultRenderProps (HasProperties host) {
-      RenderProps props = RenderProps.createPointProps (host);
-      return props;
-   }
-
    static {
-      myProps.add (
-         "renderProps * *", "renderer properties", defaultRenderProps (null));
       myProps.add (
          "roll", "joint roll angle (degrees)", 0, "%8.3f 1E [-360,360]");
       myProps.add (
@@ -59,11 +52,6 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
 
    public PropertyList getAllPropertyInfo() {
       return myProps;
-   }
-
-   public void setDefaultValues() {
-      super.setDefaultValues();
-      setRenderProps (defaultRenderProps (null));
    }
    
   public double[] getRollPitchRad() {
@@ -212,22 +200,8 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
       setPitchRange (new DoubleInterval (min, max));
    }
 
-   public RenderProps createRenderProps() {
-      return defaultRenderProps (this);
-   }
-
-   public void prerender (RenderList list) {
-      RigidTransform3d TDW = getCurrentTDW();
-      myRenderFrame.set (TDW);
-   }
-
    public void render (GLRenderer renderer, int flags) {
-      
-      if (myAxisLength != 0) {
-         double [] axisLengths = {0, myAxisLength, myAxisLength};
-         renderer.drawAxes (
-            myRenderProps, myRenderFrame, axisLengths, isSelected());
-      }
+      super.render (renderer, flags);
       float[] coords =
          new float[] { (float)myRenderFrame.p.x, (float)myRenderFrame.p.y,
                       (float)myRenderFrame.p.z };

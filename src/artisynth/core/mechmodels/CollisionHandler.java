@@ -50,7 +50,7 @@ public abstract class CollisionHandler extends ConstrainerBase
    abstract double getContactNormalLen();
    
    abstract void addLineSegment (Point3d p, Vector3d normal, double nrmlLen);
-   abstract void clearLineSegments();
+   abstract void clearRenderData();
    
    public abstract double getCompliance();
    public abstract void setCompliance (double c);
@@ -81,7 +81,7 @@ public abstract class CollisionHandler extends ConstrainerBase
    /**
     * Checks if this collision handler has any active contact constraints
     */
-   public abstract boolean hasActiveContacts();
+   //public abstract boolean hasActiveContacts();
    
    // Rendering
    public abstract void setDrawIntersectionContours(boolean set);
@@ -92,6 +92,8 @@ public abstract class CollisionHandler extends ConstrainerBase
 
    public abstract void setDrawIntersectionPoints(boolean set);
    public abstract boolean isDrawIntersectionPoints();
+
+   public abstract void removeInactiveContacts();
    
    public boolean isReduceConstraints() {
       return reduceConstraints;

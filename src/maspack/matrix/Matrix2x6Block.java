@@ -258,6 +258,15 @@ public class Matrix2x6Block extends Matrix2x6 implements MatrixBlock {
    }
 
    /**
+    * Creates a transpose of this matrix block.
+    */
+   public Matrix6x2Block createTranspose() {
+      Matrix6x2Block M = new Matrix6x2Block();
+      M.transpose (this);
+      return M;
+   }
+
+   /**
     * Creates a clone of this matrix block, with the link and offset information
     * set to be undefined.
     */

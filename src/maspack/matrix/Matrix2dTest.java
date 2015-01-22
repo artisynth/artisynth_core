@@ -121,6 +121,10 @@ class Matrix2dTest extends MatrixTest {
       ((Matrix2d)MR).set ((Matrix2d)M1);
    }
 
+   void mulAdd (Matrix MR, Matrix M1, Matrix M2) {
+      ((Matrix2d)MR).mulAdd (M1, M2);
+   }
+
    public void execute() {
       Matrix2d MR = new Matrix2d();
       Matrix2d M1 = new Matrix2d();
@@ -172,6 +176,8 @@ class Matrix2dTest extends MatrixTest {
          testInvert (MR, MR);
 
          testNorms (M1);
+
+         testMulAdd (MR);
       }
    }
 

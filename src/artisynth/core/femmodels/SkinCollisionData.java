@@ -284,16 +284,20 @@ public class SkinCollisionData extends DeformableCollisionDataBase {
          PointSkinAttachment ps = (PointSkinAttachment)pa;
          DynamicComponent[] masters = ps.getMasters();
          int numMasters = masters.length;
+
          pntWgts.setSize(numMasters);
          frameWgts.setSize(numMasters);
-         for (int i=0; i<masters.length; i++) {
-            if (masters[i] instanceof Point) {
+         for (int i=0; i<ps.numConnections(); i++) {
+            DynamicComponent m = ps.getMaster(i);
+            // note that m may be null - not all connections are associated
+            // with a master component (i.e., numMasters <= numConnections
+            if (m instanceof Point) {
                pntWgts.set(numPoints,ps.getWeight(i));
-               pointDeps.add((Point)masters[i]);
+               pointDeps.add((Point)m);
                numPoints++;
-            } else if (masters[i] instanceof Frame) {
+            } else if (m instanceof Frame) {
                frameWgts.set(numFrames,ps.getWeight(i));
-               frameDeps.add((Frame)masters[i]);
+               frameDeps.add((Frame)m);
                numFrames++;
             }
          }

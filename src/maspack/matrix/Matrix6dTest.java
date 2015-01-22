@@ -122,6 +122,10 @@ class Matrix6dTest extends MatrixTest {
       ((Matrix6d)MR).set ((Matrix6d)M1);
    }
 
+   void mulAdd (Matrix MR, Matrix M1, Matrix M2) {
+      ((Matrix6d)MR).mulAdd (M1, M2);
+   }
+
    public void testTransform (Matrix6d M1) {
       RotationMatrix3d R = new RotationMatrix3d();
       R.setRandom();
@@ -216,6 +220,8 @@ class Matrix6dTest extends MatrixTest {
          testInvert (MR, MR);
 
          testNorms (M1);
+
+         testMulAdd (MR);
 
          testTransform (M1);
       }

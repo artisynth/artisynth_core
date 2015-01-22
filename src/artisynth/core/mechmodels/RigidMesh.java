@@ -7,11 +7,14 @@
 package artisynth.core.mechmodels;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.BVFeatureQuery;
+import maspack.geometry.Vertex3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
@@ -22,7 +25,7 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 
 public class RigidMesh extends MeshComponent 
-   implements Pullable, Collidable {
+   implements PointAttachable, HasSurfaceMesh, Collidable {
 
    public static boolean DEFAULT_PHYSICAL = true;
    protected boolean physical = DEFAULT_PHYSICAL;
@@ -103,51 +106,52 @@ public class RigidMesh extends MeshComponent
       }
    }
    
-   @Override
-   public boolean isPullable() {
-      MeshBase mb = getMesh();
-      if (mb instanceof PolygonalMesh) {
-         CompositeComponent gp = getGrandParent();
-         if (gp instanceof RigidBody) {
-            return true;
-         }
-      }
-      return false;
-   }
-
-   @Override
-   public Object getOriginData (Point3d origin, Vector3d dir) {
-      RigidBody rb = (RigidBody)getGrandParent();
-      PullableOrigin data = null;
-
-      Point3d pnt = BVFeatureQuery.nearestPointAlongRay (
-         (PolygonalMesh)getMesh(), origin, dir);
-      if (pnt != null) {
-         data = new PullableOrigin(rb, pnt);
-      }
-      return data;
-   }
-
-   @Override
-   public Point3d getOriginPoint(Object data) {
-      
-      PullableOrigin orig = (PullableOrigin)data;
-      Point3d pnt = new Point3d(orig.bodyPnt);
-      pnt.transform (orig.rb.getPose());
-      return pnt;
-   }
-
-   @Override
-   public double getPointRenderRadius() {
-      return 0;
-   }
-
-   @Override
-   public void applyForce(Object orig, Vector3d force) {
-      PullableOrigin origin = (PullableOrigin)orig;
-      origin.rb.applyForce(origin.bodyPnt, force);
-   }
-   
+//   @Override
+//   public boolean isPullable() {
+//      MeshBase mb = getMesh();
+//      if (mb instanceof PolygonalMesh) {
+//         CompositeComponent gp = getGrandParent();
+//         if (gp instanceof RigidBody) {
+//            return true;
+//         }
+//      }
+//      return false;
+//   }
+//
+//   @Override
+//   public Object getOriginData (Point3d origin, Vector3d dir) {
+//
+//      RigidBody rb = (RigidBody)getGrandParent();
+//      PullableOrigin data = null;
+//
+//      Point3d pnt = BVFeatureQuery.nearestPointAlongRay (
+//         (PolygonalMesh)getMesh(), origin, dir);
+//      if (pnt != null) {
+//         data = new PullableOrigin(rb, pnt);
+//      }
+//      return data;
+//   }
+//
+//   @Override
+//   public Point3d getOriginPoint(Object data) {
+//      
+//      PullableOrigin orig = (PullableOrigin)data;
+//      Point3d pnt = new Point3d(orig.bodyPnt);
+//      pnt.transform (orig.rb.getPose());
+//      return pnt;
+//   }
+//
+//   @Override
+//   public double getPointRenderRadius() {
+//      return 0;
+//   }
+//
+//   @Override
+//   public void applyForce(Object orig, Vector3d force) {
+//      PullableOrigin origin = (PullableOrigin)orig;
+//      origin.rb.applyForce(origin.bodyPnt, force);
+//   }
+//   
 
    @Override
    public int numSelectionQueriesNeeded() {
@@ -176,6 +180,7 @@ public class RigidMesh extends MeshComponent
       return null;
    }
 
+   @Override
    public PolygonalMesh getCollisionMesh () {
       MeshBase mesh = getMesh();
       if (mesh instanceof PolygonalMesh) {
@@ -197,5 +202,70 @@ public class RigidMesh extends MeshComponent
       }
       return false;
    }
+
+//   public void getContactMasters (
+//      List<ContactMaster> mlist, double weight, ContactPoint cpnt) {
+//
+//      RigidBody rb = getRigidBody();
+//      if (rb == null) {
+//         throw new IllegalStateException (
+//            "RigidMesh not associated with a rigid body");
+//      }
+//      mlist.add (new ContactMaster (rb, weight, cpnt));
+//   }
+   
+   public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
+
+      RigidBody rb = getRigidBody();
+      if (rb == null) {
+         throw new IllegalStateException (
+            "RigidMesh not associated with a rigid body");
+      }
+      mlist.add (new ContactMaster (rb, 1));
+   }
+   
+   public boolean containsContactMaster (CollidableDynamicComponent comp) {
+      return comp == getRigidBody();    
+   }   
+   
+//   public boolean requiresContactVertexInfo() {
+//      return false;
+//   }
+   
+   public boolean allowCollision (
+      ContactPoint cpnt, Collidable other, Set<Vertex3d> attachedVertices) {
+      return true;
+   }
+
+   public PointFrameAttachment createPointAttachment (Point pnt) {
+      
+      if (getGrandParent() instanceof RigidBody) {
+         RigidBody rb = (RigidBody)getGrandParent();
+         return rb.createPointAttachment (pnt);
+      }
+      else {
+         return null;
+      }
+   }
+
+   public PolygonalMesh getSurfaceMesh() {
+      if (getMesh() instanceof PolygonalMesh) {
+         return (PolygonalMesh)getMesh();
+      }
+      else {
+         return null;
+      }
+   }
+   
+   public int numSurfaceMeshes() {
+      return getSurfaceMesh() != null ? 1 : 0;
+   }
+   
+   public PolygonalMesh[] getSurfaceMeshes() {
+      return MeshComponent.createSurfaceMeshArray (getSurfaceMesh());
+   }
+
    
 }
+
+

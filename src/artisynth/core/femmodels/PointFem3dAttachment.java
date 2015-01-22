@@ -66,13 +66,13 @@ public class PointFem3dAttachment extends PointAttachment {
       }
    }
    
-   @Override
-   public void addScaledExternalForce(Point3d pnt, double s, Vector3d f) {
-      // distribute force to nodes based on weights
-      for (int i=0; i<numMasters(); i++) {
-         myNodes[i].addScaledExternalForce(s*myCoords.get(i), f);
-      } 
-   }
+//   @Override
+//   public void addScaledExternalForce(Point3d pnt, double s, Vector3d f) {
+//      // distribute force to nodes based on weights
+//      for (int i=0; i<numMasters(); i++) {
+//         myNodes[i].addScaledExternalForce(s*myCoords.get(i), f);
+//      } 
+//   }
 
    // public FemElement getElement() {
    //    return myElement;
@@ -161,6 +161,10 @@ public class PointFem3dAttachment extends PointAttachment {
 
    public VectorNd getCoordinates() {
       return myCoords;
+   }
+   
+   public double getCoordinate (int idx) {
+      return myCoords.get(idx);
    }
 
    public void updatePosStates() {

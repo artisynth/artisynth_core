@@ -90,39 +90,39 @@ public class FemContactConstraint extends
 
    }
 
-   /**
-    * Set the constraint for a deformable-deformable edge-edge contact.
-    * 
-    * This constraint can be used to prevent interpenetration of two edges edge1
-    * and edge0 as follows: n0, n1 are the nodes on the ends of edge0. n2, n3
-    * are the nodes on the ends of edge1. w0, w1 are the weights of the nodes
-    * n0, n1: 0 <= w0 <= 1, w1 = 1 - w0 They define a position p0 on edge0: p0 =
-    * w0*n0.getPosition() + w1*n1.getPosition() Similarly, w2, w3 are the
-    * weights of the nodes n2, n3: 0 <= w2 <= 1, w3 = 1 - w2 They define a
-    * position p1 on edge1: p1 = w2 * n2.getPosition() + w3 * n3.getPosition()
-    * nrml is the direction in which p0 should move to remove the
-    * interpenetration. The constraint will ensure that q > 0 where q = (p0 -
-    * p1).dot(nrml). and will remain active as long as q < 0. The constraint
-    * also generates frictional forces opposite to the direction of any relative
-    * motion perpendicular to nrml.
-    */
-   public void setEdgeEdge(
-      Vector3d nrml, double mu,
-      FemMeshVertex v0, FemMeshVertex v1, Point3d loc1, double w0, double w1,
-      Vertex3d v2, Vertex3d v3, Point3d loc2, double w2, double w3,
-      DeformableCollisionData otherData) {
-
-      myInfo.type = EDGE_EDGE;
-      myInfo.normal.set(nrml);
-      setFriction(mu);
-      
-      beginSet();
-      addPoint(v0, w0);
-      addPoint(v1, w1);
-      otherData.addConstraintInfo(v2, loc2, -w2, this);
-      otherData.addConstraintInfo(v3, loc2, -w3, this);
-      endSet();
-   }
+//   /**
+//    * Set the constraint for a deformable-deformable edge-edge contact.
+//    * 
+//    * This constraint can be used to prevent interpenetration of two edges edge1
+//    * and edge0 as follows: n0, n1 are the nodes on the ends of edge0. n2, n3
+//    * are the nodes on the ends of edge1. w0, w1 are the weights of the nodes
+//    * n0, n1: 0 <= w0 <= 1, w1 = 1 - w0 They define a position p0 on edge0: p0 =
+//    * w0*n0.getPosition() + w1*n1.getPosition() Similarly, w2, w3 are the
+//    * weights of the nodes n2, n3: 0 <= w2 <= 1, w3 = 1 - w2 They define a
+//    * position p1 on edge1: p1 = w2 * n2.getPosition() + w3 * n3.getPosition()
+//    * nrml is the direction in which p0 should move to remove the
+//    * interpenetration. The constraint will ensure that q > 0 where q = (p0 -
+//    * p1).dot(nrml). and will remain active as long as q < 0. The constraint
+//    * also generates frictional forces opposite to the direction of any relative
+//    * motion perpendicular to nrml.
+//    */
+//   public void setEdgeEdge(
+//      Vector3d nrml, double mu,
+//      FemMeshVertex v0, FemMeshVertex v1, Point3d loc1, double w0, double w1,
+//      Vertex3d v2, Vertex3d v3, Point3d loc2, double w2, double w3,
+//      DeformableCollisionData otherData) {
+//
+//      myInfo.type = EDGE_EDGE;
+//      myInfo.normal.set(nrml);
+//      setFriction(mu);
+//      
+//      beginSet();
+//      addPoint(v0, w0);
+//      addPoint(v1, w1);
+//      otherData.addConstraintInfo(v2, loc2, -w2, this);
+//      otherData.addConstraintInfo(v3, loc2, -w3, this);
+//      endSet();
+//   }
 
    protected void addPoint(FemMeshVertex fvtx, double weight) {
       addPoint(fvtx.getPoint(), weight);
@@ -148,25 +148,25 @@ public class FemContactConstraint extends
       endSet();
    }
    
-   /**
-    * Set the constraint for a deformable-deformable node-face contact.
-    */
-   public void setVertexFace(
-      Vector3d nrml, double mu, FemMeshVertex v0, double w0,
-      Vertex3d v1, Vertex3d v2, Vertex3d v3, Point3d loc2,
-      double w1, double w2, double w3, DeformableCollisionData otherData) {
-
-      myInfo.type = VERTEX_FACE;
-      myInfo.normal.set(nrml);
-      setFriction(mu);
-
-      beginSet();
-      addPoint(v0, 1);
-      otherData.addConstraintInfo(v1, loc2, -w1, this);
-      otherData.addConstraintInfo(v2, loc2, -w2, this);
-      otherData.addConstraintInfo(v3, loc2, -w3, this);
-      endSet();
-   }
+//   /**
+//    * Set the constraint for a deformable-deformable node-face contact.
+//    */
+//   public void setVertexFace(
+//      Vector3d nrml, double mu, FemMeshVertex v0, double w0,
+//      Vertex3d v1, Vertex3d v2, Vertex3d v3, Point3d loc2,
+//      double w1, double w2, double w3, DeformableCollisionData otherData) {
+//
+//      myInfo.type = VERTEX_FACE;
+//      myInfo.normal.set(nrml);
+//      setFriction(mu);
+//
+//      beginSet();
+//      addPoint(v0, 1);
+//      otherData.addConstraintInfo(v1, loc2, -w1, this);
+//      otherData.addConstraintInfo(v2, loc2, -w2, this);
+//      otherData.addConstraintInfo(v3, loc2, -w3, this);
+//      endSet();
+//   }
 
    //   /**
    //    * Set the constraint for a deformable-deformable node-face contact.

@@ -123,6 +123,10 @@ class Matrix3dTest extends MatrixTest {
       ((Matrix3d)MR).set ((Matrix3d)M1);
    }
 
+   void mulAdd (Matrix MR, Matrix M1, Matrix M2) {
+      ((Matrix3d)MR).mulAdd (M1, M2);
+   }
+
    public void testTransform (Matrix3d M1) {
       RotationMatrix3d R = new RotationMatrix3d();
       R.setRandom();
@@ -208,6 +212,8 @@ class Matrix3dTest extends MatrixTest {
          testNorms (M1);
 
          testTransform (M1);
+
+         testMulAdd (MR);
       }
    }
 

@@ -132,15 +132,15 @@ public class ForceTerm
       if (useTrapezoidal) {
          // trapezoidal
          myMechSysSolver.KKTFactorAndSolve(
-            v, null, f, /* tmp= */ftmp, curVel, t1, h,
-            -h / 2, -h * h / 4, -h / 2, h * h / 4, /* velocitySolve= */true);
+            v, null, f, /* tmp= */ftmp, curVel, h,
+            -h / 2, -h * h / 4, -h / 2, h * h / 4);
          myLam=myMechSysSolver.getLambda();             // get constraint forces without activation
       }
       else {
          // backward euler
          myMechSysSolver.KKTFactorAndSolve(
-            v, null, f, /*tmp=*/ftmp, curVel, t1,
-            h, -h, -h*h, -h, 0, /*velocitySolve=*/true);
+            v, null, f, /*tmp=*/ftmp, curVel,
+            h, -h, -h*h, -h, 0);
       }
       h = hold;
      

@@ -35,7 +35,7 @@ public class RevoluteJoint extends JointBase
    private DoubleInterval myThetaRange = new DoubleInterval(DEFAULT_THETA_RANGE);
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
-      RenderProps props = RenderProps.createLineProps (host);
+      RenderProps props = RenderProps.createPointLineProps (host);
       props.setLineColor (Color.BLUE);
       props.setLineStyle (RenderProps.LineStyle.CYLINDER);
       return props;
@@ -47,8 +47,7 @@ public class RevoluteJoint extends JointBase
       myProps.add ("theta", "joint angle", 0, "1E %8.3f [-360,360]");
       myProps.add (
          "thetaRange", "range for theta", DEFAULT_THETA_RANGE, "%8.3f 1E");
-      myProps.add (
-         "renderProps", "renderer properties", defaultRenderProps (null));
+      myProps.get ("renderProps").setDefaultValue (defaultRenderProps (null));
       myProps.add (
          "compliance", "compliance for each constraint", ZERO_VEC);
       myProps.add (
@@ -203,12 +202,9 @@ public class RevoluteJoint extends JointBase
       p1.updateBounds (pmin, pmax);
    }
 
-   public void prerender (RenderList list) {
-      RigidTransform3d TDW = getCurrentTDW();
-      myRenderFrame.set (TDW);
-   }
-
    public void render (GLRenderer renderer, int flags) {
+      super.render (renderer, flags);
+
       Point3d p0 = new Point3d();
       Point3d p1 = new Point3d();
       computeAxisEndPoints (p0, p1, myRenderFrame);

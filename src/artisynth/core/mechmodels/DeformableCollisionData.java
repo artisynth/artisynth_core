@@ -130,7 +130,7 @@ public interface DeformableCollisionData extends CollisionData {
     * Determines whether or not any of the contact constraints are currently
     * active
     */
-   public boolean hasActiveContacts();
+   //public boolean hasActiveContacts();
    
    /**
     * Counts the number of contact constraints that are currently
@@ -145,23 +145,23 @@ public interface DeformableCollisionData extends CollisionData {
     */
    void removeInactiveContacts();
 
-   /**
-    * Notification that the components associated with a specific contact
-    * constraint has changed, and therefore the GT matrix will have a
-    * different structure for the next step.
-    */
-   void notifyContactsChanged();
+//   /**
+//    * Notification that the components associated with a specific contact
+//    * constraint has changed, and therefore the GT matrix will have a
+//    * different structure for the next step.
+//    */
+//   void notifyContactsChanged();
 
-   /**
-    * Returns true if the contact structure has changed such that the GT
-    * matrix will have a different structure and will have to be reanalyzed.
-    * Contact structure will change if contact constraints are added or
-    * removed, or if the components associated with a specific constraint
-    * have changed.
-    * 
-    * @return true if contact structure has changed.
-    */
-   boolean contactsHaveChanged();
+//   /**
+//    * Returns true if the contact structure has changed such that the GT
+//    * matrix will have a different structure and will have to be reanalyzed.
+//    * Contact structure will change if contact constraints are added or
+//    * removed, or if the components associated with a specific constraint
+//    * have changed.
+//    * 
+//    * @return true if contact structure has changed.
+//    */
+//   boolean contactsHaveChanged();
 
    /**
     * Clears all the contact constraint data. This is done whenever there is

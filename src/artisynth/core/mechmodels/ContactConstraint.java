@@ -11,6 +11,7 @@ import java.util.*;
 import maspack.matrix.*;
 import maspack.util.*;
 import maspack.geometry.*;
+import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 
 /**
@@ -81,11 +82,6 @@ public class ContactConstraint {
 
    public ArrayList<ContactMaster> getMasters() {
       return myMasters;
-   }
-
-   public void addMaster (
-      CollidableDynamicComponent comp, double w, ContactPoint cpnt) {
-      myMasters.add (new ContactMaster (comp, w, cpnt));
    }
 
    public boolean isControllable() {
@@ -254,13 +250,27 @@ public class ContactConstraint {
       else {
          Vertex3d[] vtxs = cpnt.getVertices();
          double[] wgts = cpnt.getWeights();
+         ArrayList<ContactMaster> newMasters = new ArrayList<ContactMaster>();
          for (int i=0; i<vtxs.length; i++) {
-            int k0 = myMasters.size();
-            collidable.getVertexMasters (myMasters, vtxs[i]);
-            for (int k=k0; k<myMasters.size(); k++) {
-               ContactMaster cm = myMasters.get(k);
-               cm.myWeight = w*wgts[i]*cm.myWeight;
-               cm.myCpnt = cpnt;
+            newMasters.clear();
+            collidable.getVertexMasters (newMasters, vtxs[i]);
+            for (int j=0; j<newMasters.size(); j++) {
+               ContactMaster cm = newMasters.get(j);
+               // see if master has already been added; if so, just adjust weight
+               boolean masterAlreadyAdded = false;
+               for (int k=0; k<myMasters.size(); k++) {
+                  ContactMaster pm = myMasters.get(k);
+                  if (pm.myComp == cm.myComp) {
+                     pm.myWeight += (w*wgts[i]*cm.myWeight);
+                     masterAlreadyAdded = true;
+                     break;
+                  }
+               }
+               if (!masterAlreadyAdded) {
+                  cm.myWeight = w*wgts[i]*cm.myWeight;
+                  cm.myCpnt = cpnt;
+                  myMasters.add (cm);
+               }
             }
          }
       }

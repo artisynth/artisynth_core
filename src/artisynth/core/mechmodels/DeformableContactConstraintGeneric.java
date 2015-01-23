@@ -252,7 +252,7 @@ extends DeformableContactConstraintBase {
       //disp.sub(vtx0.getWorldPoint(), vtx1.getWorldPoint());
       disp.sub(vtx0.getWorldPoint(), cpp.position);
       double dist = disp.dot(normal);
-
+      
       setVertexFace(
          normal, mu, vtx0, cpp.vertex.pnt, 1, thisData,
          vtx1, vtx2, vtx3, cpp.position, w0, w1, w2, otherData);

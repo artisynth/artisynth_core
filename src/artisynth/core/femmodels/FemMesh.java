@@ -76,6 +76,12 @@ public class FemMesh extends FemMeshBase
 
    protected static double EPS = 1e-10;
    protected ArrayList<PointAttachment> myVertexAttachments;
+   // myNodeVertexMap maps each node used by this FemMesh onto either
+   // a single vertex which it completely controls, or the dummy variable 
+   // NO_SINGLE_VERTEX if there is no such vertex.
+   protected HashMap<FemNode3d,Vertex3d> myNodeVertexMap;
+   protected static final Vertex3d NO_SINGLE_VERTEX = new Vertex3d();
+   
    HashMap<EdgeDesc,Vertex3d[]> myEdgeVtxs;
    private boolean isSurfaceMesh;
 
@@ -84,6 +90,7 @@ public class FemMesh extends FemMeshBase
    public FemMesh () {
       super();
       myVertexAttachments = new ArrayList<PointAttachment>();
+      myNodeVertexMap = new HashMap<FemNode3d,Vertex3d>();
    }
 
    public FemMesh (FemModel3d fem) {
@@ -115,6 +122,26 @@ public class FemMesh extends FemMeshBase
       myVertexAttachments.clear();
    }
 
+   protected void buildNodeVertexMap() {
+      myNodeVertexMap.clear();
+      for (int i=0; i<myVertexAttachments.size(); i++) {
+         PointAttachment pa = myVertexAttachments.get(i);
+         if (pa instanceof PointParticleAttachment) {
+            FemNode3d node = 
+               (FemNode3d)((PointParticleAttachment)pa).getParticle();
+            myNodeVertexMap.put (node, getMesh().getVertex(i));
+         }
+         else if (pa instanceof PointFem3dAttachment) {
+            PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
+            for (FemNode node : pfa.getMasters()) {
+               if (myNodeVertexMap.get(node) == null) {
+                  myNodeVertexMap.put ((FemNode3d)node, NO_SINGLE_VERTEX);
+               }
+            }
+         }
+      }
+   }
+   
    /** 
     * Finalize data structures after vertices and faces have been added.
     */
@@ -196,7 +223,22 @@ public class FemMesh extends FemMeshBase
       }
       return null;
    }
-
+   
+   /**
+    * Returns a vertex whose position is identical to the specified
+    * node, or <code>null</code> if there is no such vertex.
+    * 
+    * @param node node whose vertex is being queried
+    * @return vertex completely controlled by the node, or <code>null</code>.
+    */
+   public Vertex3d getNodeVertex (FemNode3d node) {
+      Vertex3d vtx = myNodeVertexMap.get (node);
+      if (vtx == NO_SINGLE_VERTEX) {
+         vtx = null;
+      }
+      return vtx;
+   }
+   
    /**
     * Find the FEM element corresponding to a surface face.
     */
@@ -236,8 +278,9 @@ public class FemMesh extends FemMeshBase
 
    private FemMeshVertex createVertex (FemMeshVertex v) {
       FemMeshVertex vtx = new FemMeshVertex (v.getPoint(), v.getPosition());
+      FemNode3d node = (FemNode3d)v.getPoint();
       PointParticleAttachment attacher =
-         new PointParticleAttachment ((FemNode3d)v.getPoint(), null);
+         new PointParticleAttachment (node, null);
       myVertexAttachments.add (attacher);
       getMesh().addVertex (vtx);
       return vtx;
@@ -350,32 +393,32 @@ public class FemMesh extends FemMeshBase
       return createEmbedded(surf, mesh, surf.myFem);
    }
    
-   public void setVertexAttachment(int vidx, PointAttachment attachment) {
-      // update vertex attachment size
-      if (vidx == myVertexAttachments.size()) {
-         myVertexAttachments.add(attachment);
-      } else if (vidx < myVertexAttachments.size()) {
-         myVertexAttachments.set(vidx, attachment);   
-      } else {
-         // add null attachments
-         for (int i=myVertexAttachments.size(); i<vidx; i++) {
-            myVertexAttachments.add(null);
-         }
-         myVertexAttachments.add(attachment);
-      }
-   }
-   
-   public void setVertexAttachment(int vidx, double [] weights, FemNode3d[] nodes) {
-      if (weights.length > 1) {
-         PointFem3dAttachment pattacher = new PointFem3dAttachment();
-         pattacher.setNodes (nodes, weights);
-         setVertexAttachment(vidx, pattacher);
-      } else if (weights.length == 1) {
-         PointParticleAttachment attacher = new PointParticleAttachment(nodes[0], null);
-         setVertexAttachment(vidx, attacher);
-      }
-      
-   }
+//   protected void setVertexAttachment(int vidx, PointAttachment attachment) {
+//      // update vertex attachment size
+//      if (vidx == myVertexAttachments.size()) {
+//         myVertexAttachments.add(attachment);
+//      } else if (vidx < myVertexAttachments.size()) {
+//         myVertexAttachments.set(vidx, attachment);   
+//      } else {
+//         // add null attachments
+//         for (int i=myVertexAttachments.size(); i<vidx; i++) {
+//            myVertexAttachments.add(null);
+//         }
+//         myVertexAttachments.add(attachment);
+//      }
+//   }
+//   
+//   public void setVertexAttachment(int vidx, double [] weights, FemNode3d[] nodes) {
+//      if (weights.length > 1) {
+//         PointFem3dAttachment pattacher = new PointFem3dAttachment();
+//         pattacher.setNodes (nodes, weights);
+//         setVertexAttachment(vidx, pattacher);
+//      } else if (weights.length == 1) {
+//         PointParticleAttachment attacher = new PointParticleAttachment(nodes[0], null);
+//         setVertexAttachment(vidx, attacher);
+//      }
+//      
+//   }
 
    public static FemMesh createEmbedded (
       FemMesh surf, MeshBase mesh, FemModel3d fem) {
@@ -438,6 +481,7 @@ public class FemMesh extends FemMeshBase
             surf.myVertexAttachments.add(attacher);
          }
       }
+      surf.buildNodeVertexMap();
 
       // we manually control display lists, so this should work
       mesh.setUseDisplayList(true);
@@ -450,11 +494,10 @@ public class FemMesh extends FemMeshBase
    }
 
    protected void createFineSurface (int resolution, 
-      ElementFilter efilter,
-      Map<FemNode3d,FemMeshVertex> nodeVtxMap) {
+      ElementFilter efilter) {
 
       // build from nodes/element filter
-      createSurface(efilter, nodeVtxMap);
+      createSurface(efilter);
 
       if (resolution < 2) {
          // if resolution < 2, just return regular surface
@@ -474,15 +517,11 @@ public class FemMesh extends FemMeshBase
 
       ArrayList<Face> baseFaces = baseMesh.getFaces();
       ArrayList<Vertex3d> baseVerts = baseMesh.getVertices();
-      if (nodeVtxMap == null) {
-         nodeVtxMap = new HashMap<FemNode3d, FemMeshVertex>(baseVerts.size());
-      } else {
-         nodeVtxMap.clear();  // clear map to start building new mesh
-      }
+      myNodeVertexMap.clear();
 
       for (int k=0; k<baseVerts.size(); k++) {
          FemMeshVertex newVtx = createVertex ((FemMeshVertex)baseVerts.get(k));
-         nodeVtxMap.put((FemNode3d)newVtx.getPoint(), newVtx);
+         myNodeVertexMap.put((FemNode3d)newVtx.getPoint(), newVtx);
       }
       for (int k=0; k<baseFaces.size(); k++) {
          Face face = baseFaces.get(k);
@@ -619,16 +658,10 @@ public class FemMesh extends FemMeshBase
       face.setAllNodes(allNodes.toArray(new FemNode3d[0]));
    }
 
-   public void createSurface (ElementFilter efilter, 
-      Map<FemNode3d,FemMeshVertex> surfaceNodeMap) {
+   public void createSurface (ElementFilter efilter) {
 
       initializeSurfaceBuild();
-      if (surfaceNodeMap == null) {
-         surfaceNodeMap = new HashMap<FemNode3d,FemMeshVertex>();
-      }
-      else {
-         surfaceNodeMap.clear();
-      }
+      myNodeVertexMap.clear();
 
       LinkedList<FaceNodes3d> allFaces = new LinkedList<FaceNodes3d>();
       // faces adjacent to each node
@@ -704,15 +737,15 @@ public class FemMesh extends FemMeshBase
                (triangles.length == 2 && triangles[0][0] == triangles[1][0]);
             for (int i = 0; i < triangles.length; i++) {
                FemNode3d[] tri = triangles[i];
-               FemMeshVertex[] vtxs = new FemMeshVertex[3];
+               Vertex3d[] vtxs = new Vertex3d[3];
                for (int j = 0; j < 3; j++) {
                   FemNode3d node = tri[j];
-                  if ((vtxs[j] = surfaceNodeMap.get(node)) == null) {
+                  if ((vtxs[j] = myNodeVertexMap.get(node)) == null) {
                      FemMeshVertex vtx = new FemMeshVertex (node);
                      mesh.addVertex (vtx);
                      myVertexAttachments.add (
                         new PointParticleAttachment (node, null));
-                     surfaceNodeMap.put (node, vtx);
+                     myNodeVertexMap.put (node, vtx);
                      vtxs[j] = vtx;
                   }
                }
@@ -897,6 +930,7 @@ public class FemMesh extends FemMeshBase
                pfa.setNodes (nodes, coords);
             }
          }
+         buildNodeVertexMap();
          return true;
       }
       return super.postscanItem (tokens, ancestor);
@@ -948,6 +982,7 @@ public class FemMesh extends FemMeshBase
          PointAttachment newPa = pa.copy(flags, copyMap);
          fm.myVertexAttachments.add(newPa);
       }
+      fm.buildNodeVertexMap();
 
       fm.myEdgeVtxs = new HashMap<EdgeDesc,Vertex3d[]>(myEdgeVtxs.size());
       for (Entry<EdgeDesc,Vertex3d[]> het : myEdgeVtxs.entrySet()) {
@@ -1157,7 +1192,12 @@ public class FemMesh extends FemMeshBase
    }
    
    public boolean containsContactMaster (CollidableDynamicComponent comp) {
-      return comp.getParent() == myFem.myNodes;      
+      if (comp instanceof FemNode3d && myNodeVertexMap.get((FemNode3d)comp) != null) {
+         return true;
+      }
+      else {
+         return false;
+      }
    }
    
 //   public boolean requiresContactVertexInfo() {
@@ -1229,15 +1269,5 @@ public class FemMesh extends FemMeshBase
       ax.setNodes (nodeWeights.keySet(), nodeWeights.values());
       return ax;
    }
-
-   public PolygonalMesh getSurfaceNesh() {
-      if (getMesh() instanceof PolygonalMesh) {
-         return (PolygonalMesh)getMesh();
-      }
-      else {
-         return null;
-      }
-   }
-
 
 }

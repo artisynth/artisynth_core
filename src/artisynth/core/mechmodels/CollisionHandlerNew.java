@@ -13,7 +13,7 @@ import maspack.util.*;
 
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
-import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.*;
 
 public class CollisionHandlerNew extends CollisionHandler {
 
@@ -332,26 +332,50 @@ public class CollisionHandlerNew extends CollisionHandler {
               mesh0.getNumVertices() > mesh1.getNumVertices());
    }
 
-   protected boolean vertexAttachedToCollidable (
-      Vertex3d vtx, Collidable collidable) {
-      ArrayList<ContactMaster> masters = new ArrayList<ContactMaster>();
-      collidable.getVertexMasters (masters, vtx);
-      for (int i=0; i<masters.size(); i++) {
-         DynamicAttachment attachment = masters.get(i).myComp.getAttachment();
-         if (attachment == null) {
-            return false;
-         }
-         else {
-            DynamicComponent[] attachMasters = attachment.getMasters();
-            for (int k=0; k<attachMasters.length; k++) {
-               CollidableDynamicComponent mcomp = null;
-               if (attachMasters[k] instanceof CollidableDynamicComponent) {
-                  mcomp = (CollidableDynamicComponent)attachMasters[k];
-               }
-               if (mcomp == null || !collidable.containsContactMaster (mcomp)) {
-                  return false;
-               }
+   protected boolean isCompletelyAttached (
+      DynamicComponent comp, Collidable collidable) {
+      DynamicAttachment attachment = comp.getAttachment();
+      if (attachment == null) {
+         return false;
+      }
+      else {
+         DynamicComponent[] attachMasters = attachment.getMasters();
+         for (int k=0; k<attachMasters.length; k++) {
+            CollidableDynamicComponent mcomp = null;
+            if (attachMasters[k] instanceof CollidableDynamicComponent) {
+               mcomp = (CollidableDynamicComponent)attachMasters[k];
             }
+            if (mcomp == null || !collidable.containsContactMaster (mcomp)) {
+               return false;
+            }
+         }
+      }
+      return true;
+   }
+   
+   protected boolean isContainedIn (
+      DynamicComponent comp, Collidable collidable) {
+      if (comp instanceof CollidableDynamicComponent) {
+         return collidable.containsContactMaster (
+            (CollidableDynamicComponent)comp);
+      }
+      else {
+         return false;
+      }
+   }
+   
+   protected boolean vertexAttachedToCollidable (
+      Vertex3d vtx, Collidable collidable0, Collidable collidable1) {
+      ArrayList<ContactMaster> masters = new ArrayList<ContactMaster>();
+      collidable0.getVertexMasters (masters, vtx);
+      // vertex is considered attached if 
+      // (a) all masters are completely attached to collidable1, or
+      // (b) all masters are actually contained in collidable1
+      for (int i=0; i<masters.size(); i++) {
+         DynamicComponent comp = masters.get(i).myComp;
+         if (!isCompletelyAttached (comp, collidable1) &&
+             !isContainedIn (comp, collidable1)) {
+            return false;
          }
       }
       return true;
@@ -367,7 +391,7 @@ public class CollisionHandlerNew extends CollisionHandler {
       PolygonalMesh mesh = collidable0.getCollisionMesh();
       HashSet<Vertex3d> attached = new HashSet<Vertex3d>();
       for (Vertex3d vtx : mesh.getVertices()) {
-         if (vertexAttachedToCollidable (vtx, collidable1)) {
+         if (vertexAttachedToCollidable (vtx, collidable0, collidable1)) {
             attached.add (vtx);
          }
       }
@@ -381,6 +405,15 @@ public class CollisionHandlerNew extends CollisionHandler {
          myAttachedVertices1 =
             computeAttachedVertices (myCollidable1, myCollidable0);
          myAttachedVerticesValid = true;
+//         System.out.println (
+//            ComponentUtils.getPathName(myCollidable0) + " " +
+//            ComponentUtils.getPathName(myCollidable1));
+//         System.out.println (
+//            "num attached0: " + 
+//            (myAttachedVertices0 != null ? myAttachedVertices0.size() : 0));
+//         System.out.println (
+//            "num attached1: " + 
+//            (myAttachedVertices1 != null ? myAttachedVertices1.size() : 0));
       }
    }
 
@@ -463,6 +496,7 @@ public class CollisionHandlerNew extends CollisionHandler {
       Vector3d normal = new Vector3d();
       boolean hashUsingFace = hashContactUsingFace (collidable0, collidable1);
 
+      updateAttachedVertices();
       for (ContactPenetratingPoint cpp : points) {
 
          ContactPoint pnt0, pnt1;
@@ -470,8 +504,10 @@ public class CollisionHandlerNew extends CollisionHandler {
          pnt1 = new ContactPoint (cpp.position, cpp.face, cpp.coords);
          
          // TODO: finish this ...
-         if (!collidable0.allowCollision (pnt0, collidable1, null) ||
-             !collidable1.allowCollision (pnt1, collidable0, null)) {
+         if (!collidable0.allowCollision (
+                pnt0, collidable1, myAttachedVertices0) ||
+             !collidable1.allowCollision (
+                pnt1, collidable0, myAttachedVertices1)) {
             continue;
          }
 
@@ -847,17 +883,17 @@ public class CollisionHandlerNew extends CollisionHandler {
       SparseBlockMatrix DT, FrictionInfo[] finfo, int numf) {
 
       for (ContactConstraint c : myBilaterals0.values()) {
-         c.add1DFrictionConstraints (DT, finfo, myFriction, numf++);
+         numf = c.add1DFrictionConstraints (DT, finfo, myFriction, numf);
       }
       for (ContactConstraint c : myBilaterals1.values()) {
-         c.add1DFrictionConstraints (DT, finfo, myFriction, numf++);
+         numf = c.add1DFrictionConstraints (DT, finfo, myFriction, numf);
       }
       for (int i=0; i<myUnilaterals.size(); i++) {
          ContactConstraint c = myUnilaterals.get(i);
          if (Math.abs(c.getImpulse())*myFriction < 1e-4) {
             continue;
          }
-         c.add2DFrictionConstraints (DT, finfo, myFriction, numf++);
+         numf = c.add2DFrictionConstraints (DT, finfo, myFriction, numf);
       }
       return numf;
    }

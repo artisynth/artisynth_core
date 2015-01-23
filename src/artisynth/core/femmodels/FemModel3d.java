@@ -65,6 +65,7 @@ import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.Range;
 import maspack.util.ReaderTokenizer;
+import maspack.util.TestException;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.IncompressibleMaterial;
 import artisynth.core.materials.IncompressibleMaterial.BulkPotential;
@@ -138,8 +139,6 @@ public class FemModel3d extends FemModel
 
    protected FemElement3dList myElements;
    protected AuxMaterialBundleList myAdditionalMaterialsList;
-   // ArrayList<FemNode3d> myActiveNodes = null;
-   HashMap<FemNode3d,FemMeshVertex> mySurfaceNodeMap;
 
    // private String mySolveMatrixFile = "solve.mat";
    private String mySolveMatrixFile = null;
@@ -317,7 +316,6 @@ public class FemModel3d extends FemModel
       myElements = new FemElement3dList("elements", "e");
       myAdditionalMaterialsList =
       new AuxMaterialBundleList("materials", "mat");
-      mySurfaceNodeMap = new HashMap<FemNode3d,FemMeshVertex>();
       addFixed(myNodes);
       addFixed(myElements);
       addFixed(myAdditionalMaterialsList);
@@ -2318,12 +2316,17 @@ public class FemModel3d extends FemModel
       pw.flush();
    }
 
-   public Vertex3d getSurfaceVertex(FemNode node) {
-      getSurfaceFemMesh();
-      return mySurfaceNodeMap.get(node);
+   public Vertex3d getSurfaceVertex (FemNode3d node) {
+      FemMesh femMesh = getSurfaceFemMesh();
+      if (femMesh != null) {
+         return femMesh.getNodeVertex (node);
+      }
+      else {
+         return null;
+      }
    }
 
-   public FemNode3d getSurfaceMeshNode (Vertex3d vtx) {
+   public FemNode3d getSurfaceNode (Vertex3d vtx) {
       FemMesh femMesh = getSurfaceFemMesh();
       if (femMesh != null) {
          return femMesh.getVertexNode (vtx);
@@ -2333,9 +2336,8 @@ public class FemModel3d extends FemModel
       }
    }
 
-   public boolean isSurfaceNode(FemNode3d node) {
-      getSurfaceMesh();
-      return mySurfaceNodeMap.containsKey(node);
+   public boolean isSurfaceNode (FemNode3d node) {
+      return getSurfaceVertex (node) != null;
    }
 
 //   private static class ArrayElementFilter extends FemModel.ElementFilter {
@@ -2358,9 +2360,9 @@ public class FemModel3d extends FemModel
 
       // by default, build fine surface mesh if quadratic elements present
       if (numQuadraticElements() > 0) {
-         femMesh.createFineSurface (3, new ElementFilter(), mySurfaceNodeMap);
+         femMesh.createFineSurface (3, new ElementFilter());
       } else {
-         femMesh.createSurface(new ElementFilter(), mySurfaceNodeMap);
+         femMesh.createSurface(new ElementFilter());
       }
 
       mySurfaceMeshValid = true;
@@ -2373,7 +2375,7 @@ public class FemModel3d extends FemModel
 
    public FemMesh createSurfaceMesh (ElementFilter efilter) {
       FemMesh femMesh = getOrCreateEmptySurfaceMesh();
-      femMesh.createSurface (efilter, mySurfaceNodeMap);
+      femMesh.createSurface (efilter);
       // mySurfaceMesh = (PolygonalMesh)femMesh.getMesh();
       mySurfaceMeshValid = true;
       myAutoGenerateSurface = false;   // disable auto regeneration since mesh was manually created
@@ -2429,6 +2431,25 @@ public class FemModel3d extends FemModel
       }
       else {
          return null;
+      }
+   }
+   
+   private void testSimpleSurfaceMesh() {
+      FemMesh sfm = getSurfaceFemMesh();
+      if (sfm != null) {
+         for (Vertex3d vtx : sfm.getMesh().getVertices()) {
+            FemNode3d node = getSurfaceNode (vtx);
+            if (node == null) {
+               throw new TestException (
+                  "no node found for vertex "+vtx.getIndex());
+            }
+            Vertex3d chk = getSurfaceVertex (node);
+            if (chk != vtx) {
+               throw new TestException (
+                  "no vertex found for node "+node.getNumber());
+            }
+         }
+         System.out.println ("SURFACE OK");
       }
    }
    
@@ -2554,25 +2575,25 @@ public class FemModel3d extends FemModel
       FemMesh.createEmbedded(surfMesh, mesh);
 
       // build map
-      mySurfaceNodeMap.clear();
-      for (Vertex3d vtx : mesh.getVertices()) {
-         if (vtx instanceof FemMeshVertex) {
-            //throw new IllegalArgumentException(
-            //   "vertex " + vtx.getIndex() + " is not a FemMeshVertex");
-            FemMeshVertex fmv = (FemMeshVertex)vtx;
-            FemNode3d node = (FemNode3d)fmv.getPoint();
-            if (node == null || node.getGrandParent() != this) {
-               throw new IllegalArgumentException(
-                  "vertex " + vtx.getIndex()
-                  + ": node is null or not part of this FEM");
-            }
-            mySurfaceNodeMap.put(node, fmv);
-         } else {
-            System.err.println("Warning: supplied mesh contains vertex that " +
-            "is not a FemMeshVertex...\n  Internal mySurfaceNodeMap may not be valid" );
-         }
-
-      }
+//      mySurfaceNodeMap.clear();
+//      for (Vertex3d vtx : mesh.getVertices()) {
+//         if (vtx instanceof FemMeshVertex) {
+//            //throw new IllegalArgumentException(
+//            //   "vertex " + vtx.getIndex() + " is not a FemMeshVertex");
+//            FemMeshVertex fmv = (FemMeshVertex)vtx;
+//            FemNode3d node = (FemNode3d)fmv.getPoint();
+//            if (node == null || node.getGrandParent() != this) {
+//               throw new IllegalArgumentException(
+//                  "vertex " + vtx.getIndex()
+//                  + ": node is null or not part of this FEM");
+//            }
+//            mySurfaceNodeMap.put(node, fmv);
+//         } else {
+//            System.err.println("Warning: supplied mesh contains vertex that " +
+//            "is not a FemMeshVertex...\n  Internal mySurfaceNodeMap may not be valid" );
+//         }
+//
+//      }
       // mySurfaceMesh = mesh;
 
       myAutoGenerateSurface = false;
@@ -3533,12 +3554,12 @@ public class FemModel3d extends FemModel
         fem.myAutoGenerateSurface = myAutoGenerateSurface;
         fem.mySurfaceMeshValid = false;  // trigger update
 
-        fem.mySurfaceNodeMap = new HashMap<FemNode3d,FemMeshVertex>();
-        for (Entry<FemNode3d,FemMeshVertex> e : fem.mySurfaceNodeMap.entrySet()) {
-           FemNode3d key = (FemNode3d)copyMap.get (e.getKey());
-           // find corresponding vertex?
-           // fem.mySurfaceNodeMap.put(key, vertex);
-        }
+//        fem.mySurfaceNodeMap = new HashMap<FemNode3d,FemMeshVertex>();
+//        for (Entry<FemNode3d,FemMeshVertex> e : fem.mySurfaceNodeMap.entrySet()) {
+//           FemNode3d key = (FemNode3d)copyMap.get (e.getKey());
+//           // find corresponding vertex?
+//           // fem.mySurfaceNodeMap.put(key, vertex);
+//        }
 
         // fem.setIncompressible (myIncompressibleP);
         // fem.setSubSurfaceRendering(mySubSurfaceRendering);
@@ -3648,7 +3669,8 @@ public class FemModel3d extends FemModel
    }
    
    public boolean containsContactMaster (CollidableDynamicComponent comp) {
-      return comp.getParent() == myNodes;      
+      FemMesh cfm = getCollisionFemMesh();
+      return cfm.containsContactMaster (comp);
    }
    
    public boolean allowCollision (
@@ -3658,7 +3680,7 @@ public class FemModel3d extends FemModel
          throw new IllegalStateException (
             "FemModel does not have a valid collision mesh");
       }
-      return cfm.allowCollision (cpnt, null, null);
+      return cfm.allowCollision (cpnt, null, attachedVertices);
    }   
 
    // end Collidable interface 

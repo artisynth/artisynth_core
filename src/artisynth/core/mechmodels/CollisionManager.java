@@ -1333,7 +1333,7 @@ public class CollisionManager extends RenderableCompositeBase
             if (Math.abs(c.getImpulse())*mu < 1e-4) {
                continue;
             }
-            c.add2DFrictionConstraints (DT, finfo, mu, numf++);
+            numf = c.add2DFrictionConstraints (DT, finfo, mu, numf);
          }
       }
       return numf;

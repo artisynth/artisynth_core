@@ -113,6 +113,11 @@ public class FemCollisionData extends DeformableCollisionDataBase {
       }
 
       if (!allow) {
+         // if (isVertex && cpp.vertex instanceof FemMeshVertex) {
+         //    System.out.println (
+         //       "disallowing A for " +
+         //       ((FemMeshVertex)cpp.vertex).getPoint().getSolveIndex());
+         // }
          return false;
       }
 
@@ -131,6 +136,12 @@ public class FemCollisionData extends DeformableCollisionDataBase {
             return true;
          }
       }
+
+         // if (isVertex && cpp.vertex instanceof FemMeshVertex) {
+         //    System.out.println (
+         //       "disallowing B for " +
+         //       ((FemMeshVertex)cpp.vertex).getPoint().getSolveIndex());
+         // }
 
       return false;
 
@@ -327,8 +338,7 @@ public class FemCollisionData extends DeformableCollisionDataBase {
       double weight, DeformableContactConstraint con) {
 
       if (vtx instanceof FemMeshVertex) {
-         FemMeshVertex fvtx = (FemMeshVertex)vtx;
-         con.addPoint(fvtx.getPoint(), weight);
+         con.addPoint(((FemMeshVertex)vtx).getPoint(), weight);
          return 1;
       }
       return 0;

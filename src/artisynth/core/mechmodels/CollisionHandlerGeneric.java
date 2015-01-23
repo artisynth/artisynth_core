@@ -18,7 +18,7 @@ import maspack.collision.MeshIntersectionContour;
 import maspack.collision.MeshIntersectionPoint;
 import maspack.collision.SignedDistanceCollider;
 import maspack.collision.SurfaceMeshCollider;
-import maspack.geometry.BVFeatureQuery;
+import maspack.geometry.*;
 import maspack.geometry.Face;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.PolygonalMesh;
@@ -36,6 +36,7 @@ import maspack.render.RenderProps;
 import maspack.render.RenderProps.Shading;
 import maspack.util.DataBuffer;
 import maspack.util.FunctionTimer;
+import artisynth.core.femmodels.FemMeshVertex;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import artisynth.core.modelbase.ModelComponent;
@@ -591,6 +592,15 @@ implements Constrainer {
       }
    }
 
+   private boolean hasSolveIndex (Vertex3d vtx, int idx) {
+      if (vtx instanceof FemMeshVertex) {
+         return ((FemMeshVertex)vtx).getPoint().getSolveIndex() == idx;
+      }
+      else {
+         return false;
+      }
+   }
+
    /**
     * Create the constraints, and apply one pass of interpenetration resolution,
     * for the contacts associated with one body of a deformable-deformable
@@ -608,6 +618,8 @@ implements Constrainer {
       if (reduceConstraints) {
          data.reduceConstraints(points, otherPoints, otherData);
       }
+
+      boolean found = false;
 
       for (ContactPenetratingPoint cpp : points) {
          if (!data.allowCollision(cpp, /*vertex*/ true, otherData)) {

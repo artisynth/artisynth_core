@@ -243,8 +243,10 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
 
    protected MatrixBlock addBlockWithoutNumber (int bi, int bj, MatrixBlock blk) {
       if (bi > myNumBlockRows || bj > myNumBlockCols) {
-         throw new IllegalArgumentException ("Requested block location " + bi
-         + "," + bj + " is out of bounds");
+         throw new IllegalArgumentException (
+            "Requested block location "+bi+","+bj+
+            " is out of bounds; matrix block size is "+
+            numBlockRows()+"X"+numBlockCols());
       }
       MatrixBlock oldBlk = null;
       int rowSize = blk.rowSize();

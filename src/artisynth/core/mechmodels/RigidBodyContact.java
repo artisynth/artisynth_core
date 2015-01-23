@@ -726,7 +726,7 @@ public class RigidBodyContact
          if (Math.abs(c.getImpulse())*myFriction < 1e-4) {
             continue;
          }
-         c.add2DFrictionConstraints (DT, finfo, myFriction, numf++);
+         numf = c.add2DFrictionConstraints (DT, finfo, myFriction, numf);
       }
       return numf;
    }

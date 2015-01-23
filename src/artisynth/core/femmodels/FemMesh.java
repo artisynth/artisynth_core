@@ -50,6 +50,7 @@ import artisynth.core.mechmodels.ContactMaster;
 import artisynth.core.mechmodels.DynamicAttachment;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
+import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointAttachment;
 import artisynth.core.mechmodels.PointList;
@@ -180,6 +181,20 @@ public class FemMesh extends FemMeshBase
 
    protected FemNode3d getEdgeNode (HalfEdge he) {
       return (FemNode3d)((FemMeshVertex)he.getHead()).getPoint();
+   }
+
+   public FemNode3d getVertexNode (Vertex3d vtx) {
+      PointAttachment pa = myVertexAttachments.get(vtx.getIndex());
+      if (pa instanceof PointParticleAttachment) {
+         Particle p = ((PointParticleAttachment)pa).getParticle();
+         if (p instanceof FemNode3d) {
+            FemNode3d node = (FemNode3d)p;
+            if (node.getGrandParent() == myFem) {
+               return node;
+            }
+         }
+      }
+      return null;
    }
 
    /**

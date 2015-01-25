@@ -239,6 +239,11 @@ implements TransformableGeometry, ScalableUnits {
    }
 
    public void updateSlavePos () {
+      // potentially notify of vertex modification
+      // TODO: potentially remove this once MFreeModel3d transitions to FemMesh
+      if (!myMeshInfo.myMesh.isFixed()) {
+         myMeshInfo.myMesh.notifyVertexPositionsModified ();
+      }
    }
 
    public static PolygonalMesh[] createSurfaceMeshArray (PolygonalMesh mesh) {

@@ -6,7 +6,11 @@
  */
 package artisynth.core.mfreemodels;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 
 import maspack.function.ConstantFuntion3x1;
 import maspack.function.Function3x1;
@@ -20,14 +24,13 @@ import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.DenseMatrix;
 import maspack.matrix.EigenDecomposition;
 import maspack.matrix.Matrix;
+import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3x3Block;
 import maspack.matrix.Matrix6d;
-import maspack.matrix.Matrix3d;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.NumericalException;
 import maspack.matrix.Point3d;
-import maspack.matrix.SVDecomposition;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SparseMatrixNd;
 import maspack.matrix.SparseNumberedBlockMatrix;
@@ -38,13 +41,10 @@ import maspack.matrix.VectorNi;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderable;
 import maspack.render.GLRenderer;
 import maspack.render.RenderList;
-import maspack.render.color.ColorMap;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
-import maspack.util.CountedList;
 import artisynth.core.femmodels.AuxiliaryMaterial;
 import artisynth.core.femmodels.FemModel;
 import artisynth.core.femmodels.FemNode3d;
@@ -56,7 +56,6 @@ import artisynth.core.gui.FemControlPanel;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.IncompressibleMaterial;
 import artisynth.core.materials.LinearMaterial;
-import artisynth.core.materials.ViscoelasticBehavior;
 import artisynth.core.materials.SolidDeformation;
 import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.CollidableDynamicComponent;
@@ -72,7 +71,6 @@ import artisynth.core.mechmodels.MeshComponentList;
 import artisynth.core.mechmodels.PointList;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentChangeEvent.Code;
-import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
@@ -1840,17 +1838,27 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
    }
 
    public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
-      // TODO
+      
+      // XXX currently assumed vtx is instance of MFreeVertex3d
+      // This will change once MFreeModel uses FemMesh equivalent
+      if (vtx instanceof MFreeVertex3d) {
+         MFreeVertex3d mvtx = (MFreeVertex3d)vtx;
+         
+         ArrayList<MFreeNode3d> nodes = mvtx.getDependentNodes ();
+         VectorNd coords = mvtx.getNodeCoordinates ();
+         
+         for (int j=0; j<nodes.size (); j++) {
+            mlist.add(new ContactMaster(nodes.get(j), coords.get(j)));
+         }      
+      } else {
+         System.out.println("Unknown masters.");
+      }
    }
    
    public boolean containsContactMaster (CollidableDynamicComponent comp) {
       return comp.getParent() == myNodes;      
    }   
-   
-//   public boolean requiresContactVertexInfo() {
-//      return true;
-//   }
-   
+
    public boolean allowCollision (
       ContactPoint cpnt, Collidable other, Set<Vertex3d> attachedVertices) {
       if (CollisionHandlerNew.attachedNearContact (

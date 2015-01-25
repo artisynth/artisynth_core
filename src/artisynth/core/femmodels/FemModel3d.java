@@ -2316,6 +2316,14 @@ public class FemModel3d extends FemModel
       pw.flush();
    }
 
+   /**
+    * Returns the surface mesh vertex (if any) associated with a specified
+    * node. The mesh checked is the one returned by {@link #getSurfaceMesh}.
+    * 
+    * @param node node to check
+    * @return surface vertex associated with <code>node</code>, or
+    * <code>null</code> if no such vertex exists
+    */
    public Vertex3d getSurfaceVertex (FemNode3d node) {
       FemMesh femMesh = getSurfaceFemMesh();
       if (femMesh != null) {
@@ -2326,6 +2334,15 @@ public class FemModel3d extends FemModel
       }
    }
 
+   /**
+    * Returns the FEM node (if any) associated with a specified
+    * surface mesh vertex. The mesh checked is the one returned by 
+    * {@link #getSurfaceMesh}.
+    * 
+    * @param vtx vertex to check
+    * @return FEM node associated with <code>vtx</code>, or
+    * <code>null</code> if no such node exists
+    */
    public FemNode3d getSurfaceNode (Vertex3d vtx) {
       FemMesh femMesh = getSurfaceFemMesh();
       if (femMesh != null) {
@@ -2336,6 +2353,13 @@ public class FemModel3d extends FemModel
       }
    }
 
+   /**
+    * Returns true if a specified node lies on the surface mesh returned by 
+    * {@link #getSurfaceMesh}.
+    * 
+    * @param node node to check
+    * @return <code>true</code> if <code>node</code> lies on the surface mesh
+    */
    public boolean isSurfaceNode (FemNode3d node) {
       return getSurfaceVertex (node) != null;
    }
@@ -2573,33 +2597,8 @@ public class FemModel3d extends FemModel
       // Create embedded mesh
       FemMesh surfMesh = getOrCreateEmptySurfaceMesh();
       FemMesh.createEmbedded(surfMesh, mesh);
-
-      // build map
-//      mySurfaceNodeMap.clear();
-//      for (Vertex3d vtx : mesh.getVertices()) {
-//         if (vtx instanceof FemMeshVertex) {
-//            //throw new IllegalArgumentException(
-//            //   "vertex " + vtx.getIndex() + " is not a FemMeshVertex");
-//            FemMeshVertex fmv = (FemMeshVertex)vtx;
-//            FemNode3d node = (FemNode3d)fmv.getPoint();
-//            if (node == null || node.getGrandParent() != this) {
-//               throw new IllegalArgumentException(
-//                  "vertex " + vtx.getIndex()
-//                  + ": node is null or not part of this FEM");
-//            }
-//            mySurfaceNodeMap.put(node, fmv);
-//         } else {
-//            System.err.println("Warning: supplied mesh contains vertex that " +
-//            "is not a FemMeshVertex...\n  Internal mySurfaceNodeMap may not be valid" );
-//         }
-//
-//      }
-      // mySurfaceMesh = mesh;
-
       myAutoGenerateSurface = false;
       mySurfaceMeshValid = true;
-
-
       return surfMesh;
    }
 
@@ -2649,33 +2648,26 @@ public class FemModel3d extends FemModel
       super.notifyStructureChanged(comp);
    }
 
-   public FemElement3d getSurfaceElement(Face face) {
-      if (face.numVertices() != 3) {
-         throw new IllegalArgumentException(
-            "Face does not belong to a surface mesh");
-      }
-      FemNode3d[] nodes = new FemNode3d[3];
-      for (int i = 0; i < 3; i++) {
-         Vertex3d vtx = face.getVertex(i);
-         if (!(vtx instanceof FemMeshVertex)) {
-            throw new IllegalArgumentException(
-               "Face does not belong to a surface mesh");
+   public FemElement3d getSurfaceElement (Face face) {
+      
+      HashSet<FemElement3d> elems = new HashSet<FemElement3d>();
+
+      int numv = face.numVertices();
+      for (int i = 0; i < numv; i++) {
+         FemNode3d node = getSurfaceNode (face.getVertex(i));
+         if (node == null) {
+            return null;
          }
-         nodes[i] = (FemNode3d)((FemMeshVertex)vtx).getPoint();
+         if (i == 0) {
+            elems.addAll(node.getElementDependencies());
+         } else {
+            elems.retainAll(node.getElementDependencies());
+         }
       }
-      // find the one neighboring elements that is common to all
-      // three vertices
-      LinkedList<FemElement3d> elems = new LinkedList<FemElement3d>();
-
-      elems.addAll(nodes[0].getElementDependencies());
-      elems.retainAll(nodes[1].getElementDependencies());
-      elems.retainAll(nodes[2].getElementDependencies());
-
-      if (elems.size() != 1) {
+      if (elems.size() == 1) {
+         return elems.iterator().next();
+      } else {
          return null;
-      }
-      else {
-         return elems.get(0);
       }
    }
 

@@ -207,7 +207,7 @@ public class FemMesh extends FemMeshBase
    }
 
    protected FemNode3d getEdgeNode (HalfEdge he) {
-      return (FemNode3d)((FemMeshVertex)he.getHead()).getPoint();
+      return getVertexNode (he.getHead());
    }
 
    public FemNode3d getVertexNode (Vertex3d vtx) {
@@ -276,9 +276,8 @@ public class FemMesh extends FemMeshBase
       return (FemElement3d)elems.toArray()[0];
    }
 
-   private FemMeshVertex createVertex (FemMeshVertex v) {
-      FemMeshVertex vtx = new FemMeshVertex (v.getPoint(), v.getPosition());
-      FemNode3d node = (FemNode3d)v.getPoint();
+   private FemMeshVertex createVertex (FemNode3d node, Vertex3d v) {
+      FemMeshVertex vtx = new FemMeshVertex (node, v.getPosition());
       PointParticleAttachment attacher =
          new PointParticleAttachment (node, null);
       myVertexAttachments.add (attacher);
@@ -439,12 +438,14 @@ public class FemMesh extends FemMeshBase
          // this could works very similarly to the code that adds
          // marker points into a mesh
          Vertex3d vtx = verts.get(i);
-         if (vtx instanceof FemMeshVertex) {
-            nodes.clear();
-            nodes.add(((FemMeshVertex)vtx).getPoint());
-            weights.clear();
-            weights.add(1.0);
-         } else {
+         // if (vtx instanceof FemMeshVertex) {
+         //    nodes.clear();
+         //    nodes.add(((FemMeshVertex)vtx).getPoint());
+         //    weights.clear();
+         //    weights.add(1.0);
+         // }
+         // else 
+         {
             FemElement3d elem = surf.myFem.findContainingElement (vtx.pnt);
             Point3d newLoc = new Point3d(vtx.pnt);
             if (elem == null) {
@@ -452,22 +453,51 @@ public class FemMesh extends FemMeshBase
                elem = surf.myFem.findNearestSurfaceElement (newLoc, vtx.pnt);
             }
             VectorNd coords = new VectorNd (elem.numNodes());
-            Vector3d c3 = new Vector3d();
-            boolean converged = elem.getNaturalCoordinatesRobust(c3, vtx.pnt, 1000);
-            if (!converged) {
-               System.err.println(
-                  "Warning: system did not converge when computing natural coordinates");
-            }
-            for (int j=0; j<elem.numNodes(); j++) {
-               coords.set (j, elem.getN (j, c3));
-            }
 
-            nodes.clear();
-            weights.clear();
-            for (int k=0; k<coords.size(); k++) {
-               if (Math.abs(coords.get(k)) >= reduceTol) {
-                  nodes.add (elem.getNodes()[k]);
-                  weights.add (coords.get(k));                            
+            // first see if there's a node within reduceTol of the point,
+            // and if so just use that
+            double maxDist = Double.NEGATIVE_INFINITY;
+            double minDist = Double.POSITIVE_INFINITY;
+            FemNode3d nearestNode = null;
+            FemNode3d[] elemNodes = elem.getNodes();
+            for (int k=0; k<elemNodes.length; k++) {
+               double d = vtx.pnt.distance(elemNodes[k].getPosition());
+               if (d > maxDist) {
+                  maxDist = d;
+               }
+               if (d < minDist) {
+                  minDist = d;
+                  nearestNode = elemNodes[k];
+               }
+            }
+            if (minDist/maxDist <= reduceTol) {
+               // weight everything to the nearest node
+               nodes.clear();
+               nodes.add(nearestNode);
+               weights.clear();
+               weights.add(1.0);
+            }
+            else {
+               Vector3d c3 = new Vector3d();
+               boolean converged = 
+                  elem.getNaturalCoordinatesRobust (c3, vtx.pnt, 1000);
+               if (!converged) {
+                  System.err.println(
+                     "Warning: getNaturalCoordinatesRobust() did not converge, "+
+                     "element=" + ComponentUtils.getPathName(elem) +
+                     ", point=" + vtx.pnt);
+               }
+               for (int j=0; j<elem.numNodes(); j++) {
+                  coords.set (j, elem.getN (j, c3));
+               }
+
+               nodes.clear();
+               weights.clear();
+               for (int k=0; k<coords.size(); k++) {
+                  if (Math.abs(coords.get(k)) >= reduceTol) {
+                     nodes.add (elem.getNodes()[k]);
+                     weights.add (coords.get(k));                            
+                  }
                }
             }
          }
@@ -477,7 +507,8 @@ public class FemMesh extends FemMeshBase
             attacher.setNodes (nodes, weights);
             surf.myVertexAttachments.add (attacher);
          } else if (weights.size() == 1) {
-            PointParticleAttachment attacher = new PointParticleAttachment(nodes.get(0), null);
+            PointParticleAttachment attacher =
+               new PointParticleAttachment(nodes.get(0), null);
             surf.myVertexAttachments.add(attacher);
          }
       }
@@ -493,8 +524,7 @@ public class FemMesh extends FemMeshBase
       return createEmbedded (new FemMesh(fem), mesh);
    }
 
-   protected void createFineSurface (int resolution, 
-      ElementFilter efilter) {
+   protected void createFineSurface (int resolution, ElementFilter efilter) {
 
       // build from nodes/element filter
       createSurface(efilter);
@@ -516,12 +546,12 @@ public class FemMesh extends FemMeshBase
       PolygonalMesh surfMesh = (PolygonalMesh)getMesh();
 
       ArrayList<Face> baseFaces = baseMesh.getFaces();
-      ArrayList<Vertex3d> baseVerts = baseMesh.getVertices();
-      myNodeVertexMap.clear();
-
-      for (int k=0; k<baseVerts.size(); k++) {
-         FemMeshVertex newVtx = createVertex ((FemMeshVertex)baseVerts.get(k));
-         myNodeVertexMap.put((FemNode3d)newVtx.getPoint(), newVtx);
+      HashMap<FemNode3d,Vertex3d> baseNodeVertexMap = myNodeVertexMap;
+      myNodeVertexMap = new HashMap<FemNode3d,Vertex3d>();
+      
+      for (Map.Entry<FemNode3d,Vertex3d> entry : baseNodeVertexMap.entrySet()) {
+         FemMeshVertex newVtx = createVertex (entry.getKey(), entry.getValue());
+         myNodeVertexMap.put(entry.getKey(), newVtx);
       }
       for (int k=0; k<baseFaces.size(); k++) {
          Face face = baseFaces.get(k);

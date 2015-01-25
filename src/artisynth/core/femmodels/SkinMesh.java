@@ -489,11 +489,14 @@ public class SkinMesh extends SkinMeshBase
             }
             else {
                // body is an FEM - create a weighted connection to face nodes
+               FemModel3d fem = ((FemModelInfo)meshBodies.get(j)).myFemModel;
                Vertex3d[] vtxs = faces[j].getVertices();
                for (int k=0; k<3; k++) {
                   double w = wgts[j]*coords[j][k];
-                  a.addFemDisplacementConnection (
-                     (FemNode3d)((FemMeshVertex)vtxs[k]).getPoint(), w);
+                  FemNode3d node = fem.getSurfaceNode (vtxs[k]);
+                  if (node != null) {
+                     a.addFemDisplacementConnection (node, w);
+                  }
                }
                a.addBaseConnection (wgts[j]);
             }

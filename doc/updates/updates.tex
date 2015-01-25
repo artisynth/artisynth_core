@@ -14,6 +14,24 @@
 %\renewcommand{\sectionname}{}
 \begin{document}
 
+\section*{XXX}
+
+\subsection*{FemMeshVertex has been removed}
+
+{\tt FemMeshVertex}, which was a special subclass of {\tt Vertex3d}
+used for creating FEM meshes, has been removed. Its purpose had been
+to store the {\tt FemNode3d} (if any) associated with a mesh vertex.
+This information is now maintained elsewhere, and the node (if any)
+associated with a vertex can now be determined using either {\tt
+getSurfaceNode(vertex)} (in {\tt FemModel3d}), or {\tt
+getVertexNode(vertex)} (in {\tt FemMesh}).
+
+One change required by this is that {\tt
+FemFactory.createHexWedgeExtrusion()} now takes and additional fifth
+argument, which is either the FEM associated with the supplied surface
+mesh, or {\tt null} if there is no FEM associated with the mesh.
+
+
 \section*{Jan 21, 2015}
 
 \subsection*{Refactoring of collision code}

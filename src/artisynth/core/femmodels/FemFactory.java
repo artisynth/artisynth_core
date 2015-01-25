@@ -906,9 +906,9 @@ public class FemFactory {
       PolygonalMesh mesh = mod.getSurfaceMesh();
       // iterate through all edges in the surface mesh.
       for (Face face : mesh.getFaces()) {
-         FemMeshVertex vtx = (FemMeshVertex)face.getVertex(0);
+         Vertex3d vtx = (Vertex3d)face.getVertex(0);
          for (int i = 1; i < face.numVertices(); i++) {
-            FemMeshVertex nextVtx = (FemMeshVertex)face.getVertex(i);
+            Vertex3d nextVtx = (Vertex3d)face.getVertex(i);
             // a vertex resided on an edge if two or more of its
             // coordinates have extremal values. If both vertices
             // reside on the edge, set the edge to be hard
@@ -1515,49 +1515,51 @@ public class FemFactory {
       return model;
    }
 
-   /**
-    * Given a face attached to a FEM surface mesh, find the element associated
-    * with that face.
-    */
-   private static FemElement3d getElementForFace(Face face) {
-
-      HashSet<FemElement3d> elems = new HashSet<FemElement3d>();
-
-      int numv = face.numVertices();
-      for (int i = 0; i < numv; i++) {
-         Vertex3d vtx = face.getVertex(i);
-         FemNode3d node = null;
-         if (vtx instanceof FemMeshVertex) {
-            node = (FemNode3d)((FemMeshVertex)vtx).getPoint();
-         } else {
-            return null;
-         }
-         if (i == 0) {
-            elems.addAll(node.getElementDependencies());
-         } else {
-            elems.retainAll(node.getElementDependencies());
-         }
-      }
-      if (elems.size() == 1) {
-         return elems.iterator().next();
-      } else {
-         return null;
-      }
-   }
+//   /**
+//    * Given a face attached to a FEM surface mesh, find the element associated
+//    * with that face.
+//    */
+//   private static FemElement3d getElementForFace(Face face) {
+//
+//      HashSet<FemElement3d> elems = new HashSet<FemElement3d>();
+//
+//      int numv = face.numVertices();
+//      for (int i = 0; i < numv; i++) {
+//         Vertex3d vtx = face.getVertex(i);
+//         FemNode3d node = null;
+//         if (vtx instanceof FemMeshVertex) {
+//            node = (FemNode3d)((FemMeshVertex)vtx).getPoint();
+//         } else {
+//            return null;
+//         }
+//         if (i == 0) {
+//            elems.addAll(node.getElementDependencies());
+//         } else {
+//            elems.retainAll(node.getElementDependencies());
+//         }
+//      }
+//      if (elems.size() == 1) {
+//         return elems.iterator().next();
+//      } else {
+//         return null;
+//      }
+//   }
 
    /**
     * Given a triangular face associated with an element, finds the
     * corresponding face in the element, and if that face is a quad, returns the
     * additional node completes the quad.
+    * @param surfaceFem TODO
     */
-   private static FemNode3d getQuadFaceNode(Face tri, FemElement3d elem) {
+   private static FemNode3d getQuadFaceNode(
+      Face tri, FemElement3d elem, FemModel3d surfaceFem) {
 
       int[] faceNodeIdxs = elem.getFaceIndices();
       boolean[] marked = new boolean[4];
       int[] localTriIdxs = new int[3];
 
       for (int k = 0; k < 3; k++) {
-         FemNode node = ((FemMeshVertex)tri.getVertex(k)).getPoint();
+         FemNode node = surfaceFem.getSurfaceNode (tri.getVertex(k));
          localTriIdxs[k] = elem.getLocalNodeIndex(node);
          if (localTriIdxs[k] == -1) {
             throw new InternalErrorException(
@@ -1603,20 +1605,33 @@ public class FemFactory {
       return null;
    }
 
-   /*
+   /**
     * Creates a combined hex/wedge fem model by extruding triangles into wedges
     * and quads into hexes. If the mesh is the surface mesh of an underlying
     * FemModel, then each triangle is examined to see if it is associated with
     * an underlying hex element, and if it is, then a hex element is extruded
     * from both the surface triangles connected to that element.
     * 
-    * n - number of layers d - layer thickness
+    * @param Empty FEM model to which elements are added. If <code>null</code>,
+    * then a new FEM model will be created and returned. Note that
+    * <code>model</code> must be different from <code>surfaceFem</code>
+    * @param n number of layers 
+    * @param d layer thickness
+    * @param surface surface mesh to extrude
+    * @param surfaceFem FEM associated with the surface mesh, or 
+    * <code>null</code> if there is associated FEM.
+    * @return extruded FEM model, which will be <code>model</code> if
+    * that argument is not <code>null</code>.
     */
    public static FemModel3d createHexWedgeExtrusion(
-      FemModel3d model, int n, double d, PolygonalMesh surface) {
+      FemModel3d model, int n, double d, PolygonalMesh surface, 
+      FemModel3d surfaceFem) {
 
       if (model == null) {
          model = new FemModel3d();
+      } else if (model == surfaceFem) {
+         throw new IllegalArgumentException (
+            "model and surfaceFem cannot be the same FEM");
       } else {
          model.clear();
       }
@@ -1656,13 +1671,15 @@ public class FemFactory {
                // For cases where the surface mesh is an an actual FEM surface
                // mesh, find the element corresponding to this face. Otherwise,
                // elem will be set to null.
-               FemElement3d elem = getElementForFace(f);
                FemNode3d quadNode = null;
-               if (elem != null && numv == 3) {
-                  // If there is an element associated with f, and f is a
-                  // triangle, see if the element has a correspondign quad face
-                  // and if so, find the extra node associated with it.
-                  quadNode = getQuadFaceNode(f, elem);
+               if (surfaceFem != null) {
+                  FemElement3d elem = surfaceFem.getSurfaceElement(f);
+                  if (elem != null && numv == 3) {
+                     // If there is an element associated with f, and f is a
+                     // triangle, see if the element has a corresponding quad 
+                     // face and if so, find the extra node associated with it.
+                     quadNode = getQuadFaceNode(f, elem, surfaceFem);
+                  }
                }
                if (quadNode != null) {
                   vertexIndices = new int[4];
@@ -1673,7 +1690,7 @@ public class FemFactory {
                   for (int j = 0; j < 3; j++) {
                      vertexIndices[k++] = he.tail.getIndex();
                      Vertex3d vop = he.opposite.getNext().head;
-                     if (((FemMeshVertex)vop).getPoint() == quadNode) {
+                     if (surfaceFem.getSurfaceNode(vop) == quadNode) {
                         // add the extra quad vertex if it is on the triangle
                         // opposite this half edge, and mark that triangle.
                         vertexIndices[k++] = vop.getIndex();

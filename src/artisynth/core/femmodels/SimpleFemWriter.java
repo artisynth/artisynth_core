@@ -148,8 +148,8 @@ public class SimpleFemWriter {
          surfaceWriter.print(faceToken);
          
          for (Vertex3d vtx : face.getVertices()) {
-            if (vtx instanceof FemMeshVertex) {
-               FemNode3d node = (FemNode3d)((FemMeshVertex)vtx).getPoint();
+            FemNode3d node = fem.getSurfaceNode (vtx);
+            if (node != null) {
                surfaceWriter.print(" " + (node.getNumber()+nodeOffset));
             }
          }

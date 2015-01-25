@@ -254,6 +254,11 @@ public class OBB extends BVNode {
             throw new UnsupportedOperationException (
                "Method " + method + " not implemented for points");
       }
+      
+      // set half widths from max/min
+      setWidthsAndCenter (min, max, margin);
+      
+      
    }     
 
    /**

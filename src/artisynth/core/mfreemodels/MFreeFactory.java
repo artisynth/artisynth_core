@@ -41,11 +41,16 @@ import maspack.util.FunctionTimer;
 import maspack.util.IndexedBinaryHeap;
 import maspack.util.Point3dGridUtility;
 import artisynth.core.femmodels.FemElement3d;
-import artisynth.core.femmodels.FemMeshVertex;
+import artisynth.core.femmodels.FemMesh;
 import artisynth.core.femmodels.FemModel3d;
+import artisynth.core.femmodels.FemNode;
 import artisynth.core.femmodels.FemNode3d;
 import artisynth.core.femmodels.IntegrationData3d;
 import artisynth.core.femmodels.IntegrationPoint3d;
+import artisynth.core.femmodels.PointFem3dAttachment;
+import artisynth.core.mechmodels.DynamicComponent;
+import artisynth.core.mechmodels.PointAttachment;
+import artisynth.core.mechmodels.PointParticleAttachment;
 import artisynth.core.mfreemodels.MFreeShapeFunction.MFreeShapeFunctionType;
 import artisynth.core.mfreemodels.RadialWeightFunction.RadialWeightFunctionType;
 
@@ -1107,22 +1112,49 @@ public class MFreeFactory {
       }
 
       // convert surface mesh
-      PolygonalMesh surfaceFem = fem.getSurfaceMesh();
+      FemMesh surfaceFem = fem.getSurfaceFemMesh ();
+      PolygonalMesh mesh = (PolygonalMesh)surfaceFem.getMesh ();
       PolygonalMesh surfaceMFree = new PolygonalMesh();
-      HashMap<FemMeshVertex,MFreeVertex3d> vtxMap =
-         new HashMap<FemMeshVertex,MFreeVertex3d>();
-      for (Vertex3d vtx : surfaceFem.getVertices()) {
-         FemMeshVertex fvtx = ((FemMeshVertex)vtx);
-         MFreeNode3d mnode = nodeMap.get(fvtx.getPoint());
+      HashMap<Vertex3d,MFreeVertex3d> vtxMap = new HashMap<Vertex3d,MFreeVertex3d>();
+      
+      for (Vertex3d vtx : mesh.getVertices()) {
+         
+         MFreeVertex3d mvtx = null;
+         
+         PointAttachment pa = surfaceFem.getAttachment(vtx.getIndex());
+         
+         if (pa instanceof PointFem3dAttachment) {
+            PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
+            FemNode[] masters = pfa.getMasters();
+            
+            ArrayList<MFreeNode3d> deps = new ArrayList<MFreeNode3d>(masters.length);
+            VectorNd coords = new VectorNd(masters.length);
+            
+            for (int j=0; j<masters.length; j++) {
+               //mlist.add (new ContactMaster (masters[j], pfa.getCoordinate(j)));
+               deps.add (nodeMap.get (masters[j]));
+               coords.set (j, pfa.getCoordinate (j));
+            }
+            
+            mvtx = new MFreeVertex3d (deps, coords);
+            
+         }
+         else {
+            PointParticleAttachment ppa = (PointParticleAttachment)pa;
+            DynamicComponent[] masters = ppa.getMasters ();
 
-         ArrayList<MFreeNode3d> deps = new ArrayList<MFreeNode3d>(1);
-         deps.add(mnode);
-         VectorNd coords = new VectorNd(new double[] { 1 });
-         MFreeVertex3d mvtx = new MFreeVertex3d(deps, coords);
-         vtxMap.put(fvtx, mvtx);
+            ArrayList<MFreeNode3d> deps = new ArrayList<MFreeNode3d>(1);
+            deps.add (nodeMap.get (masters[0]));
+            VectorNd coords = new VectorNd(new double[] { 1 });
+            mvtx = new MFreeVertex3d (deps, coords);
+            
+         }     
+         
+         vtxMap.put(vtx, mvtx);
          surfaceMFree.addVertex(mvtx);
       }
-      for (Face face : surfaceFem.getFaces()) {
+      
+      for (Face face : mesh.getFaces()) {
          Vertex3d[] verts = new Vertex3d[face.numVertices()];
          for (int i = 0; i < face.numVertices(); i++) {
             verts[i] = vtxMap.get(face.getVertex(i));

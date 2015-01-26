@@ -2444,7 +2444,7 @@ public class FemModel3d extends FemModel
 
    // Returns the FemMesh component for the surface mesh. If appropriate, the
    // surface is generated on demand
-   FemMesh getSurfaceFemMesh() {
+   public FemMesh getSurfaceFemMesh() {
 
       if (myMeshList.size() < 1) {
          return null;

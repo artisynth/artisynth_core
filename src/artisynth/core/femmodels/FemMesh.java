@@ -27,12 +27,11 @@ import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
-import maspack.matrix.Vector3d;
 import maspack.matrix.Vector2d;
+import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyMode;
 import maspack.render.RenderProps;
-import maspack.spatialmotion.Wrench;
 import maspack.util.ArraySupport;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
@@ -45,18 +44,16 @@ import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.CollidableDynamicComponent;
 import artisynth.core.mechmodels.CollisionData;
 import artisynth.core.mechmodels.CollisionHandlerNew;
-import artisynth.core.mechmodels.ContactPoint;
 import artisynth.core.mechmodels.ContactMaster;
+import artisynth.core.mechmodels.ContactPoint;
 import artisynth.core.mechmodels.DynamicAttachment;
 import artisynth.core.mechmodels.DynamicComponent;
-import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.Point;
+import artisynth.core.mechmodels.PointAttachable;
 import artisynth.core.mechmodels.PointAttachment;
 import artisynth.core.mechmodels.PointList;
 import artisynth.core.mechmodels.PointParticleAttachment;
-import artisynth.core.mechmodels.PointAttachable;
-import artisynth.core.mechmodels.Pullable;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.modelbase.ComponentUtils;
@@ -106,6 +103,10 @@ public class FemMesh extends FemMeshBase
 
    public int numAttachments () {
       return myVertexAttachments.size();
+   }
+   
+   public PointAttachment getAttachment(Vertex3d vtx) {
+      return getAttachment (vtx.getIndex());
    }
 
    public PointAttachment getAttachment (int idx) {

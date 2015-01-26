@@ -1662,101 +1662,125 @@ public class FemModel3d extends FemModel
       notifyStructureChanged(this);
    }
 
-   public void writeMesh(PrintWriter pw, PolygonalMesh mesh) {
-      pw.print("[ ");
-      IndentingPrintWriter.addIndentation(pw, 2);
-      for (Face face : mesh.getFaces()) {
-         pw.print("f");
-         HalfEdge he0 = face.firstHalfEdge();
-         HalfEdge he = he0;
-         do {
-            FemMeshVertex vtx = (FemMeshVertex)he.head;
-            pw.print(" " + vtx.myPnt.getNumber());
-            he = he.getNext();
-         } while (he != he0);
-         pw.println("");
-      }
-      IndentingPrintWriter.addIndentation(pw, -2);
-      pw.println("]");
-   }
+//   public void writeMesh(PrintWriter pw, FemMesh mesh) {
+//      pw.print("[ ");
+//      IndentingPrintWriter.addIndentation(pw, 2);
+//      for (Face face : mesh.getFaces()) {
+//         pw.print("f");
+//         HalfEdge he0 = face.firstHalfEdge();
+//         HalfEdge he = he0;
+//         do {
+//            FemMeshVertex vtx = (FemMeshVertex)he.head;
+//            pw.print(" " + vtx.myPnt.getNumber());
+//            he = he.getNext();
+//         } while (he != he0);
+//         pw.println("");
+//      }
+//      IndentingPrintWriter.addIndentation(pw, -2);
+//      pw.println("]");
+//   }
 
-   public PolygonalMesh scanMesh(String fileName) throws IOException {
-      return scanMesh(ArtisynthIO.newReaderTokenizer(fileName));
-   }
+//   public PolygonalMesh scanMesh(String fileName) throws IOException {
+//      return scanMesh(ArtisynthIO.newReaderTokenizer(fileName));
+//   }
+//
+//   /**
+//    * Creates a triangular polygonal mesh from a list of faces whose vertices
+//    * are described by FEM node numbers.
+//    */
+//   public PolygonalMesh scanMesh(ReaderTokenizer rtok) throws IOException {
+//
+//      PolygonalMesh mesh = new PolygonalMesh();
+//      HashMap<FemNode3d,FemMeshVertex> nodeVertexMap =
+//      new HashMap<FemNode3d,FemMeshVertex>();
+//
+//      mesh.setFixed(false);
+//      mesh.setUseDisplayList(true); // use display list for surface mesh
+//      // it is manually cleared at prerender
+//      rtok.scanToken('[');
+//      ArrayList<FemMeshVertex> vtxList = new ArrayList<FemMeshVertex>();
+//      while (rtok.nextToken() == ReaderTokenizer.TT_WORD &&
+//      rtok.sval.equals("f")) {
+//         vtxList.clear();
+//         while (rtok.nextToken() == ReaderTokenizer.TT_NUMBER &&
+//         rtok.tokenIsInteger()) {
+//            int nnum = (int)rtok.lval;
+//            FemNode3d node = null;
+//            if ((node = myNodes.getByNumber(nnum)) == null) {
+//               throw new IOException("Node " + nnum + " not found, " + rtok);
+//            }
+//            FemMeshVertex vtx = nodeVertexMap.get(node);
+//            if (vtx == null) {
+//               vtx = new FemMeshVertex(node);
+//               nodeVertexMap.put(node, vtx);
+//               mesh.addVertex(vtx);
+//            }
+//            vtxList.add(vtx);
+//         }
+//         if (vtxList.size() != 3) {
+//            throw new IOException(
+//               "Face has " + vtxList.size() + " vertices instead of 3, " + rtok);
+//         }
+//         mesh.addFace(vtxList.toArray(new FemMeshVertex[0]));
+//         rtok.pushBack();
+//      }
+//      rtok.pushBack();
+//      rtok.scanToken(']');
+//      if (mesh.getNumVertices() == 0) {
+//         return null;
+//      }
+//      else {
+//         mesh.setRenderBuffered(true);
+//         return mesh;
+//      }
+//   }
 
-   /**
-    * Creates a triangular polygonal mesh from a list of faces whose vertices
-    * are described by FEM node numbers.
-    */
-   public PolygonalMesh scanMesh(ReaderTokenizer rtok) throws IOException {
-
-      PolygonalMesh mesh = new PolygonalMesh();
-      HashMap<FemNode3d,FemMeshVertex> nodeVertexMap =
-      new HashMap<FemNode3d,FemMeshVertex>();
-
-      mesh.setFixed(false);
-      mesh.setUseDisplayList(true); // use display list for surface mesh
-      // it is manually cleared at prerender
-      rtok.scanToken('[');
-      ArrayList<FemMeshVertex> vtxList = new ArrayList<FemMeshVertex>();
-      while (rtok.nextToken() == ReaderTokenizer.TT_WORD &&
-      rtok.sval.equals("f")) {
-         vtxList.clear();
-         while (rtok.nextToken() == ReaderTokenizer.TT_NUMBER &&
-         rtok.tokenIsInteger()) {
-            int nnum = (int)rtok.lval;
-            FemNode3d node = null;
-            if ((node = myNodes.getByNumber(nnum)) == null) {
-               throw new IOException("Node " + nnum + " not found, " + rtok);
-            }
-            FemMeshVertex vtx = nodeVertexMap.get(node);
-            if (vtx == null) {
-               vtx = new FemMeshVertex(node);
-               nodeVertexMap.put(node, vtx);
-               mesh.addVertex(vtx);
-            }
-            vtxList.add(vtx);
-         }
-         if (vtxList.size() != 3) {
-            throw new IOException(
-               "Face has " + vtxList.size() + " vertices instead of 3, " + rtok);
-         }
-         mesh.addFace(vtxList.toArray(new FemMeshVertex[0]));
-         rtok.pushBack();
-      }
-      rtok.pushBack();
-      rtok.scanToken(']');
-      if (mesh.getNumVertices() == 0) {
-         return null;
+   public boolean writeSurfaceMesh(PrintWriter pw) {
+      FemMesh fm = getSurfaceFemMesh();
+      if (fm != null) {
+         return fm.writeMesh (pw);
       }
       else {
-         mesh.setRenderBuffered(true);
-         return mesh;
+         return false;
       }
-   }
-
-   public void writeSurfaceMesh(PrintWriter pw) {
-      writeMesh(pw, getSurfaceMesh());
    }
 
    public void writeSurfaceMesh(String fileName) {
+      IndentingPrintWriter pw = null;
       try {
-         IndentingPrintWriter pw =
-         ArtisynthIO.newIndentingPrintWriter(fileName);
-         writeMesh(pw, getSurfaceMesh());
-         pw.close();
+         pw = ArtisynthIO.newIndentingPrintWriter(fileName);
+         writeSurfaceMesh (pw);
       } catch (IOException e) {
          e.printStackTrace();
       }
+      finally {
+         if (pw != null) {
+            pw.close();
+         }
+      }
    }
 
-   public void scanSurfaceMesh(ReaderTokenizer rtok) throws IOException {
-      PolygonalMesh mesh = scanMesh(rtok);
-      setSurfaceMesh(mesh);
+   public FemMesh scanSurfaceMesh(ReaderTokenizer rtok) throws IOException {
+      // Create embedded mesh
+      FemMesh surfMesh = getOrCreateEmptySurfaceMesh();
+      surfMesh.scanMesh (rtok);
+      myAutoGenerateSurface = false;
+      mySurfaceMeshValid = true;
+      return surfMesh;
    }
 
-   public void scanSurfaceMesh(String fileName) throws IOException {
-      scanSurfaceMesh(ArtisynthIO.newReaderTokenizer(fileName));
+   public FemMesh scanSurfaceMesh(String fileName) throws IOException {
+      return scanSurfaceMesh(ArtisynthIO.newReaderTokenizer(fileName));
+   }
+   
+   public FemMesh scanMesh (ReaderTokenizer rtok) throws IOException {
+      FemMesh mesh = new FemMesh (this);
+      mesh.scanMesh (rtok);
+      return mesh;
+   }
+
+   public FemMesh scanMesh (String fileName) throws IOException {
+      return scanMesh (ArtisynthIO.newReaderTokenizer(fileName));
    }
 
    protected void writeItems (
@@ -2327,7 +2351,7 @@ public class FemModel3d extends FemModel
    public Vertex3d getSurfaceVertex (FemNode3d node) {
       FemMesh femMesh = getSurfaceFemMesh();
       if (femMesh != null) {
-         return femMesh.getNodeVertex (node);
+         return femMesh.getVertexForNode (node);
       }
       else {
          return null;
@@ -2346,7 +2370,7 @@ public class FemModel3d extends FemModel
    public FemNode3d getSurfaceNode (Vertex3d vtx) {
       FemMesh femMesh = getSurfaceFemMesh();
       if (femMesh != null) {
-         return femMesh.getVertexNode (vtx);
+         return femMesh.getNodeForVertex (vtx);
       }
       else {
          return null;
@@ -2521,15 +2545,23 @@ public class FemModel3d extends FemModel
       return myMeshList.size();
    }
 
-   public void addMesh(FemMesh surf) {
+   public void addMesh (FemMesh surf) {
       if (surf.myFem == this) {
          myMeshList.add (surf);
       }
+      else {
+         throw new IllegalArgumentException (
+            "FemMesh does not reference the FEM to which is is being added");
+      }
    }
 
-   private void addMesh(FemMesh surf, int pos) {
+   private void addMesh (FemMesh surf, int pos) {
       if (surf.myFem == this) {
          myMeshList.add(surf, pos);
+      }
+      else {
+         throw new IllegalArgumentException (
+            "FemMesh does not reference the FEM to which is is being added");         
       }
    }
 
@@ -2593,7 +2625,6 @@ public class FemModel3d extends FemModel
 //   }
 
    public FemMesh setSurfaceMesh(PolygonalMesh mesh) {
-
       // Create embedded mesh
       FemMesh surfMesh = getOrCreateEmptySurfaceMesh();
       FemMesh.createEmbedded(surfMesh, mesh);

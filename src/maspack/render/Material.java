@@ -148,6 +148,12 @@ public class Material {
    }
 
    public void setShininess (float s) {
+      if (s < 0) {
+         s = 0;
+      }
+      else if (s > 128) {
+         s = 128;
+      }
       shininess = s;
    }
 

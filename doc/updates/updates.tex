@@ -32,6 +32,28 @@ argument, which is either the FEM associated with the supplied surface
 mesh, or {\tt null} if there is no FEM associated with the mesh.
 
 
+\subsection*{Changes to scanMesh in FemModel3d}
+
+The methods {\tt scanMesh(fileName)} and {\tt scanMesh(tokenizer)} in
+{\tt FemModel3d}, which read FEM meshes from a special file in which
+faces are identified by node numbers, have been changed so that they
+now create and return a {\tt FemMesh} object instead of a {\tt
+PolygonalMesh}. The PolygonalMesh itself can be obtained using {\tt
+getMesh()} on the returned {\tt FemMesh}.
+
+Meshes can still be scanned and added to a FEM model using
+code snippets of the form
+%
+\begin{lstlisting}[]
+   fem.addMesh (fem.scanMesh (meshFileName));
+\end{lstlisting}
+%
+
+\begin{sideblock}
+{\bf Note:} more changes are likely in the way that FEM meshes 
+are created and maintained.
+\end{sideblock}
+
 \section*{Jan 21, 2015}
 
 \subsection*{Refactoring of collision code}

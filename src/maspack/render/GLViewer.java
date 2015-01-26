@@ -2614,10 +2614,8 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       GL2 gl = drawable.getGL().getGL2();
 
       gl.glPushMatrix();
-      checkAndPrintGLError();
       gl.glTranslatef (coords[0], coords[1], coords[2]);
       gl.glScaled (r, r, r);
-      checkAndPrintGLError();
 
       boolean normalizeEnabled = gl.glIsEnabled (GL2.GL_NORMALIZE);
       gl.glEnable (GL2.GL_NORMALIZE);
@@ -2638,14 +2636,11 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
 
          if (displayList > 0) {
             gl.glEndList();
-            checkAndPrintGLError();
             gl.glCallList(displayList);
-            checkAndPrintGLError();
          }
       }
       else {
          gl.glCallList (displayList);
-         checkAndPrintGLError();
       }
 
       if (!normalizeEnabled) {
@@ -3954,14 +3949,17 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
    }
 
    private static void printErr(String msg) {
-      String fullClassName = Thread.currentThread().getStackTrace()[3].getClassName();            
-      String className = fullClassName.substring(fullClassName.lastIndexOf(".") + 1);
-      String methodName = Thread.currentThread().getStackTrace()[3].getMethodName();
-      int lineNumber = Thread.currentThread().getStackTrace()[3].getLineNumber();
-      System.err.println(className + "." + methodName + "():" + lineNumber + ": " + msg);
+      StackTraceElement[] trace = Thread.currentThread().getStackTrace();
+      String fullClassName = trace[3].getClassName();            
+      String className = 
+         fullClassName.substring(fullClassName.lastIndexOf(".") + 1);
+      String methodName = trace[3].getMethodName();
+      int lineNumber = trace[3].getLineNumber();
+      System.err.println (
+         className + "." + methodName + "():" + lineNumber + ": " + msg);
    }
 
-   public boolean checkAndPrintGLError() {
+   public static boolean checkAndPrintGLError (GL gl) {
       int err = gl.glGetError();
       if (err != GL.GL_NO_ERROR) {
          String msg = Error.gluErrorString(err);
@@ -3969,6 +3967,10 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
          return false;
       }
       return true;
+   }
+
+   public boolean checkAndPrintGLError() {
+      return checkAndPrintGLError (gl);
    }
 
    public GLMouseListener getMouseHandler() {

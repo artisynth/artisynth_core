@@ -165,7 +165,8 @@ public class PlyReader extends MeshReaderBase {
                throw new EOFException();
             }
          }
-         while (myLine.startsWith ("comment"));
+         while (myLine.startsWith ("comment") || myLine.startsWith ("obj_info"));
+         // some softwares (like VTK) write "obj_info" header data; ignore for now. 
       }
    }
 

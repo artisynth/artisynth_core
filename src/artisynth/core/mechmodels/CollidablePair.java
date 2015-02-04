@@ -43,15 +43,12 @@ public class CollidablePair {
    }
    
    public boolean includesCollidables(Collidable a, Collidable b) {
-      if ((myCompA == a && myCompB == b) || 
-         (myCompA == b && myCompB == a) ){
-        return true;
-     }
-     return false;
+     return ((myCompA == a && myCompB == b) || 
+             (myCompA == b && myCompB == a) );
    }
 
    public int hashCode() {
-      return (myCompA.hashCode() + myCompB.hashCode() )/2;
+      return (myCompA.hashCode() ^ myCompB.hashCode() );
    }
 
    public static boolean isGeneric (Collidable c) {
@@ -77,8 +74,11 @@ public class CollidablePair {
       if (isGeneric (c)) {
          return c.toString();
       }
-      else {
+      else if (ref != null) {
          return ComponentUtils.getPathName (ref, c);
+      }
+      else {
+         return ComponentUtils.getPathName (c);
       }
    }
 
@@ -86,6 +86,10 @@ public class CollidablePair {
       String out = toString(ref, getA());
       out += "-" + toString(ref, getB());
       return out; 
+   }
+
+   public String toString () {
+      return toString (null);
    }
 
 }

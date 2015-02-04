@@ -2285,6 +2285,19 @@ public class ReaderTokenizer {
    }
 
    /**
+    * Returns true if the current token is a word with a specified value.  This
+    * is a convenience routine for checking that {@link #ttype ttype} equals
+    * {@link #TT_WORD TT_WORD} and that {@link #sval sval} equals the
+    * specified word.
+    *
+    * @param value required word value 
+    * @return true if the current token matches the specified value.
+    */
+   public boolean tokenIsWord (String value) {
+      return ttype == TT_WORD && sval.equals(value);
+   }
+
+   /**
     * Returns true if the current token represents a boolean. A token represents
     * a boolean if it is a word token equal (ignoring case) to either
     * <code>true</code> or <code>false</code>.

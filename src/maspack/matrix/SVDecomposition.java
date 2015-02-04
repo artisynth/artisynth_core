@@ -127,7 +127,6 @@ public class SVDecomposition {
     * matrix to perform the SVD on
     * @param flags
     * flags controlling the factorization
-    * @see #setFlags
     */
    public SVDecomposition (Matrix M, int flags) {
       factor (M, flags);

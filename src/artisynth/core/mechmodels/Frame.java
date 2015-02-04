@@ -272,10 +272,10 @@ public class Frame extends DynamicComponentBase
     *
     * @param M matrix containing existing spatial inertia
     * @param m mass of the point
-    * @param loc location of the point (same coordinate frame as the inertia)
+    * @param loc location of the point (in local frame coordinates)
     */
-   public void addPointMass (Matrix M, double m, Vector3d pos) {
-      SpatialInertia.addPointMass (M, m, pos);
+   public void addPointMass (Matrix M, double m, Vector3d loc) {
+      SpatialInertia.addPointMass (M, m, loc);
    }
 
    /**

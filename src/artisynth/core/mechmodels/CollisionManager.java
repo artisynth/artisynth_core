@@ -8,12 +8,7 @@ package artisynth.core.mechmodels;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.Comparator;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import maspack.util.*;
 import maspack.matrix.*;
@@ -29,8 +24,6 @@ import maspack.render.RenderableUtils;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import artisynth.core.femmodels.FemMesh;
-import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import artisynth.core.modelbase.ComponentChangeEvent;
@@ -38,40 +31,77 @@ import artisynth.core.modelbase.ComponentList;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableCompositeBase;
 import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.ScanToken;
 
 /**
- * A special component the manages collisions between collidable bodies.
+ * A special component that manages collisions between collidable bodies on
+ * behalf of a MechModel.
+ *
+ * Because collision handling can be expensive, and also because it is not as
+ * accurate as other aspects of the simulation (due largely to its
+ * discontinuous nature), it is important to be able to control very precisely
+ * how it is applied. The CollisionManager allows collision behavior to be
+ * specified through 
+ *
+ * (a) default collision behaviors between generic body types (presently
+ * Rigid and Deformable), and
+ *
+ * (b) specific behaviors between pairs of collidables which override
+ * the default behaviors.
+ *
+ * The CollisionManager maintains:
+ *
+ * (1) A set of defaut behaviors;
+ * 
+ * (2) A set of override behaviors, which are stored as invisible
+ * model components;
+ * 
+ * (3) A behavior map which describes the collision behavior for every
+ * CollidableBody in the MechModel and which is updated on demand;
+ *
+ * (4) A set of CollisionHandlers which provides a collision handler for every
+ * active collision behavior in the behavior map and which is also updated on
+ * demand;
+ *
+ * Collidable components can be arranged hierarchically. Any component which is
+ * a descendant of a Collidable A is known as a sub-collidable of A (a
+ * sub-collidable does not need to be an immediate child; it only need to be a
+ * descendant). Within a hierarchy, only the leaf nodes do that actual
+ * colliding, and these should be instances of the sub-interface
+ * CollidableBody. 
+ *
+ * Normally collidables within a hierarchy do not collide with each other.  The
+ * exception is when either (a) self-collision is specified for one of the
+ * ancestor nodes in the hierarchy, or (b) an explicit collision behavior is
+ * set between members of the hierarchy. If a self-collision behavior is
+ * specified for an ancestor node A, and A is deformable (i.e., its
+ * isDeformable() method returns <code>true</code>), then that behavior will be
+ * passed on to all pairs of sub-collidables of A for which A's method
+ * allowSelfCollisions() returns true.
+ * 
+ * When a collision behavior is specified between two collidables A and B that
+ * are *not* part of the same hierarchy, then that behavior is imparted to all
+ * pairs of leaf-nodes located at or below A and B.
  */
 public class CollisionManager extends RenderableCompositeBase 
-   implements ScalableUnits, Constrainer, HasAuxState {
+   implements ScalableUnits, Constrainer {
    
-   public enum HandlerType {
-      NEW,
-      GENERIC,
-      OLD
-   };
-
-   public static HandlerType DEFAULT_HANDLER_TYPE = HandlerType.NEW;
-   public static HandlerType myDefaultHandlerType = DEFAULT_HANDLER_TYPE;
    public static boolean DEFAULT_REDUCE_CONSTRAINTS = false;
-   
-   protected HandlerType myHandlerType = myDefaultHandlerType;
    protected boolean myReduceConstraints = DEFAULT_REDUCE_CONSTRAINTS;
 
-   boolean useContacts = false;
-   boolean useNew = true;
-   
    CollisionHandlerList myCollisionHandlers;
    ArrayList<Constrainer> myConstrainers;
-   ArrayList<ContactConstraint> myUnilaterals;
    protected boolean myCollisionHandlersValid = false;
    ComponentList<CollisionComponent> myCollisionComponents;
-   HashMap<CollidablePair,CollisionComponent> myCollisionComponentMap;
-   boolean myCollisionComponentMapValidP = false;
+   // map from CollidablePairs to collision components giving default and
+   // override collision behaviors
+   CollisionComponent[] myDefaultBehaviors;
+   HashMap<CollidablePair,CollisionBehavior> myBehaviorMap;
+   boolean myMaskBehaviorMapClearP = false;
 
    protected static boolean myAllowSelfIntersections = true;
 
@@ -90,7 +120,7 @@ public class CollisionManager extends RenderableCompositeBase
    protected double myCollisionDamping = 0;
    protected double myCollisionAccel = 0;
 
-   protected MechSystemBase myMechSystem;
+   protected MechModel myMechModel;
 
    // Estimate of the radius of the set of collidable objects.
    // Used for computing default tolerances.
@@ -105,8 +135,6 @@ public class CollisionManager extends RenderableCompositeBase
       myProps.add (
          "renderProps * *", "render properties for this constraint",
          defaultRenderProps);
-      myProps.add (
-         "handlerType", "which collison handler to use", DEFAULT_HANDLER_TYPE);
       myProps.add ("reduceConstraints", "reduce the number of constraints", 
          DEFAULT_REDUCE_CONSTRAINTS);
       
@@ -151,29 +179,6 @@ public class CollisionManager extends RenderableCompositeBase
          ch.setPenetrationTol (tol);
       }
    }
-
-   // public void setPenetrationTol (double tol) {
-   //    if (tol != myPenetrationTol) {
-   //       System.out.println ("setting " + tol);
-   //       myPenetrationTol = tol;
-   //       if (tol != -1) {
-   //          setPenetrationTolInHandlers (tol);
-   //       }
-   //    }
-   // }
-
-   // public double getPenetrationTol() {
-   //    if (myPenetrationTol == -1) {
-   //       double tol = 0.0001;
-   //       double radius = getCollisionArenaRadius();
-   //       if (radius != 0) {
-   //          tol = 1e-4*radius;
-   //       }
-   //       myPenetrationTol = tol;
-   //       setPenetrationTolInHandlers (tol);
-   //    }
-   //    return myPenetrationTol;
-   // }
    /**
     * Sets the penetration tolerance for this component. Setting a
     * value of -1 will cause a default value to be computed based
@@ -224,9 +229,9 @@ public class CollisionManager extends RenderableCompositeBase
 
    public double getCollisionArenaRadius () {
       if (myCollisionArenaRadius < 0) {
-         if (getParent() instanceof Renderable) {
+         if (myMechModel instanceof Renderable) {
             myCollisionArenaRadius =
-               RenderableUtils.getRadius ((Renderable)getParent());
+               RenderableUtils.getRadius ((Renderable)myMechModel);
          }
          else {
             myCollisionArenaRadius = 0;
@@ -333,9 +338,9 @@ public class CollisionManager extends RenderableCompositeBase
    /**
     * Create a collision manager for a specific mech system.
     */
-   public CollisionManager (MechSystemBase mech) {
+   public CollisionManager (MechModel mech) {
 
-      myMechSystem = mech;
+      myMechModel = mech;
       setRenderProps (createRenderProps());
 
       myCollisionHandlers =
@@ -347,17 +352,19 @@ public class CollisionManager extends RenderableCompositeBase
             CollisionComponent.class, "collisionComponents", "col");
       myCollisionComponents.setNavpanelVisibility (NavpanelVisibility.HIDDEN);
 
+      // add collision handlers to the component hierarchy so that they will
+      // inherit render properties 
       add (myCollisionHandlers);
       add (myCollisionComponents);
 
-      initializeCollisionComponentMap();
+      initializeDefaultBehaviors();
    }
 
    public void clear() {
       setRenderProps (createRenderProps());
       myCollisionHandlers.removeAll();
       myCollisionComponents.removeAll();
-      initializeCollisionComponentMap();
+      initializeDefaultBehaviors();
    }
 
    public void setFriction (double mu) {
@@ -366,78 +373,34 @@ public class CollisionManager extends RenderableCompositeBase
       }
    }
 
+   static CollidablePair RIGID_RIGID =
+      new CollidablePair (Collidable.RigidBody, Collidable.RigidBody);
+   static CollidablePair DEFORMABLE_RIGID  =
+      new CollidablePair (Collidable.Deformable, Collidable.RigidBody);
+   static CollidablePair DEFORMABLE_DEFORMABLE  =
+      new CollidablePair (Collidable.Deformable, Collidable.Deformable);
+   static CollidablePair DEFORMABLE_SELF  =
+      new CollidablePair (Collidable.Deformable, Collidable.Self);
+
+
    protected CollidablePair[] getDefaultPairs() {
       return new CollidablePair[] {
-         new CollidablePair (Collidable.RigidBody, Collidable.RigidBody),
-         new CollidablePair (Collidable.Deformable, Collidable.RigidBody),
-         new CollidablePair (Collidable.Deformable, Collidable.Deformable),
-         new CollidablePair (Collidable.Deformable, Collidable.Self)
+         RIGID_RIGID, 
+         DEFORMABLE_RIGID, 
+         DEFORMABLE_DEFORMABLE,
+         DEFORMABLE_SELF
       };
    }
 
-   protected HashMap<CollidablePair,CollisionComponent>
-      getCollisionComponentMap() {
-      if (!myCollisionComponentMapValidP) {
-         updateCollisionComponentMap();
-         myCollisionComponentMapValidP = true;
-      }
-      return myCollisionComponentMap;
-   }
-
-   protected void updateCollisionComponents() {
-   }
-
-   private void updateCollisionComponentMap () {
-      // rebuild the collision component map from the (possibly changed) set of
-      // CollisionComponents, while keeping the existing default behaviors.
-      HashMap<CollidablePair,CollisionComponent> newmap =
-         new HashMap<CollidablePair,CollisionComponent>();
-      for (CollidablePair pair : myCollisionComponentMap.keySet()) {
-         if (pair.isValidDefault()) {
-            newmap.put (pair, myCollisionComponentMap.get(pair));
-         }
-      }
-      for (int i=0; i<myCollisionComponents.size(); i++) {
-         CollisionComponent r = myCollisionComponents.get(i);
-         newmap.put (r.myPair, r);
-      }
-      myCollisionComponentMap = newmap;
-   }
-
-   private void initializeCollisionComponentMap () {
-      myCollisionComponentMap = new HashMap<CollidablePair,CollisionComponent>();
-      for (CollidablePair pair : getDefaultPairs()) {
-         addDefaultCollisionBehavior (pair.getA(), pair.getB(), false, 0);
+   private void initializeDefaultBehaviors() {
+      CollidablePair[] pairs = getDefaultPairs();
+      myDefaultBehaviors = new CollisionComponent[pairs.length];
+      for (int i=0; i<pairs.length; i++) {
+         myDefaultBehaviors[i] = 
+            new CollisionComponent (pairs[i], new CollisionBehavior(false, 0));
       }
    }
    
-   private void addDefaultCollisionBehavior (
-      Collidable typeA, Collidable typeB, boolean enabled, double mu) {
-      CollidablePair pair = new CollidablePair (typeA, typeB);
-      if (!pair.isValidDefault()) {
-          throw new IllegalArgumentException (
-             "Invalid generic collidable pair: "+pair.toString(getParent()));
-      }
-      CollisionComponent comp = 
-         new CollisionComponent (pair, new CollisionBehavior (enabled, mu));
-      myCollisionComponentMap.put (pair, comp);
-   }
-   
-   /** 
-    * Specifies the default collision behavior for all default pairs
-    * (RigidBody-RigidBody, RigidBody-Deformable, Deformable-Deformable,
-    * Deformable-Self).
-    * This is a convenience wrapper for
-    * {@link #setDefaultCollisionBehavior(CollisionBehavior)
-    * setDefaultCollisionBehavior(behavior)}.
-    * 
-    * @param enabled if true, enables collisions
-    * @param mu friction coefficient (ignored if enabled is false)
-    */
-   public void setDefaultCollisionBehavior (boolean enabled, double mu) {
-      setDefaultCollisionBehavior (new CollisionBehavior (enabled, mu));
-   }
-
    /** 
     * Specifies the default collision behavior for all default pairs
     * (RigidBody-RigidBody, RigidBody-Deformable, Deformable-Deformable,
@@ -445,21 +408,28 @@ public class CollisionManager extends RenderableCompositeBase
     * 
     * @param behavior desired collision behavior
     */
-   public void setDefaultCollisionBehavior (CollisionBehavior behavior) {
-
+   public void setDefaultBehavior (CollisionBehavior behavior) {
       for (CollidablePair pair : getDefaultPairs()) {
-         setDefaultCollisionBehavior (pair.getA(), pair.getB(), behavior);
+         setDefaultBehavior (pair.getA(), pair.getB(), behavior);
       }
    }
 
+   private CollisionBehavior getDefaultBehavior (CollidablePair pair) {
+      CollisionComponent comp = null;
+      for (int i=0; i<myDefaultBehaviors.length; i++) {
+         if (myDefaultBehaviors[i].getPair().equals(pair)) {
+            comp = myDefaultBehaviors[i];
+            break;
+         }
+      }
+      return comp != null ? comp.getBehavior() : null;
+   }
+
    /** 
-    * Gets the default collision behavior,
-    * for a specified pair of generic collidable types. 
-    * Allowed collidable types are {@link Collidable#RigidBody} and
-    * {@link Collidable#Deformable}. In addition, the type
-    * {@link Collidable#Self} can be paired with {@link Collidable#Deformable}
-    * to obtain the default behavior for deformable self collisions;
-    * {@link Collidable#Self} cannot be paired with other types.
+    * Gets the default collision behavior for a specified pair of generic
+    * collidable types. Implements for
+    * {@link MechModel#getDefaultCollisionBehavior
+    * MechModel#getDefaultCollisionBehavior(typeA,typeB)}.
     * 
     * @param typeA first generic collidable type
     * @param typeB second generic collidable type
@@ -473,47 +443,25 @@ public class CollisionManager extends RenderableCompositeBase
           throw new IllegalArgumentException (
              "Invalid generic collidable pair: "+pair.toString(getParent()));
       }
-      CollisionComponent comp = getCollisionComponentMap().get (pair);
-      if (comp == null) {
+      CollisionBehavior behavior = getDefaultBehavior(pair);
+      if (behavior == null) {
          throw new IllegalArgumentException (
             "No default behavior defined for "+pair);
       }
-      return comp.getBehavior();
+      return behavior;
    }
 
    /**
-    * Sets the default collision behavior 
-    * for a specified pair of generic collidable types.
-    * This is a convenience wrapper for {@link
-    * #setDefaultCollisionBehavior(Collidable,Collidable,CollisionBehavior) 
-    * setDefaultCollisionBehavior(typeA,typeB,behavior)}.
-    *
-    * @param typeA first generic collidable type
-    * @param typeB second generic collidable type
-    * @param enabled if true, enables collisions
-    * @param mu friction coefficient (ignored if enabled is false)
-    */
-   public void setDefaultCollisionBehavior (
-      Collidable typeA, Collidable typeB, boolean enabled, double mu) {
-
-      setDefaultCollisionBehavior (
-         typeA, typeB, new CollisionBehavior (enabled, mu));
-   }
-
-   /**
-    * Sets the default collision behavior
-    * for a specified pair of generic collidable types. 
-    * Allowed collidable types are {@link Collidable#RigidBody} and
-    * {@link Collidable#Deformable}. In addition, the type
-    * {@link Collidable#Self} can be paired with {@link Collidable#Deformable}
-    * to set the default behavior for deformable self collisions;
-    * {@link Collidable#Self} cannot be paired with other types.
+    * Sets the default collision behavior for a specified pair of generic
+    * collidable types. Implements {@link
+    * MechModel#setDefaultCollisionBehavior(Collidable,Collidable,CollisionBehavior)
+    * MechModel.setDefaultCollisionBehavior(typeA,typeB,behavior)}.
     *
     * @param typeA first generic collidable type
     * @param typeB second generic collidable type
     * @param behavior specified collision behavior
     */
-   public void setDefaultCollisionBehavior (
+   public void setDefaultBehavior (
       Collidable typeA, Collidable typeB, CollisionBehavior behavior) {
 
       CollidablePair pair = new CollidablePair (typeA, typeB);
@@ -521,141 +469,130 @@ public class CollisionManager extends RenderableCompositeBase
           throw new IllegalArgumentException (
              "Invalid generic collidable pair: "+pair.toString(getParent()));
       }
-      CollisionComponent comp = getCollisionComponentMap().get (pair);
-      if (comp == null) {
+      CollisionBehavior behav = getDefaultBehavior (pair);
+      if (behav == null) {
          throw new IllegalArgumentException (
             "No default behavior defined for "+pair);
       }
-      comp.setBehavior (behavior);
+      behav.set (behavior);
       notifyStructureChanged();
    }
 
-   public void setCollisionBehavior ( 
-      Collidable a, Collidable b, boolean enabled) {
-      setCollisionBehavior(
-         a, b, new CollisionBehavior(enabled, /*mu=*/0));
-   }
+   private CollidablePair validateCollidablePair (
+      Collidable a, Collidable b, boolean forSetting) {
 
-   private boolean isDeformableModel (ModelComponent c) {
-      return !(c instanceof RigidBody);
-   }
-
-   private CollidablePair validateCollidablePair (Collidable a, Collidable b) {
       CollidablePair pair = new CollidablePair (a, b);
-      return validateCollidablePair (pair);
-   }
-
-   private CollidablePair validateCollidablePair (CollidablePair pair) {
-      if (CollidablePair.isGeneric (pair.myCompA) ||
-          CollidablePair.isGeneric (pair.myCompB)) {
+      if (forSetting) {
+         if (getParent() instanceof MechModel) {
+         // make sure collidables both belong to the manager's MechModel
+            MechModel mech = (MechModel)getParent();
+            checkMechModelInclusion (mech, a);
+            checkMechModelInclusion (mech, b);
+         }
+         if (ModelComponentBase.recursivelyContains (a, b)) {
+            throw new IllegalArgumentException (
+               "Collidable b is a descendant of collidable a");
+         }
+         if (ModelComponentBase.recursivelyContains (b, a)) {
+            throw new IllegalArgumentException (
+               "Collidable a is a descendant of collidable b");
+         }
+      }
+      if (CollidablePair.isGeneric (a) ||
+          CollidablePair.isGeneric (b)) {
          throw new IllegalArgumentException (
             "Generic collision pair "+
             pair.toString(getParent())+" not permitted");
       }
-      if ((pair.myCompA==Collidable.Self && !isDeformableModel(pair.myCompB)) ||
-          (pair.myCompB==Collidable.Self && !isDeformableModel(pair.myCompA))) {
+      if ((a==Collidable.Self && !b.isDeformable()) ||
+          (b==Collidable.Self && !a.isDeformable())) {
          throw new IllegalArgumentException (
             "Illegal self-intersection pair "+
             pair.toString(getParent()));
       }
-      if (pair.myCompA==Collidable.Self) {
-         pair = new CollidablePair (pair.myCompA, pair.myCompA);
+      if (a==Collidable.Self) {
+         pair = new CollidablePair (a, a);
       }
-      else if (pair.myCompB==Collidable.Self) {
-         pair = new CollidablePair (pair.myCompB, pair.myCompB);
+      else if (b==Collidable.Self) {
+         pair = new CollidablePair (b, b);
       }
-      if (pair.myCompA == pair.myCompB) {
-         if (!isDeformableModel(pair.myCompA)) {
-            throw new IllegalArgumentException (
-               "Component "+ComponentUtils.getPathName(pair.myCompA)+
+      if (forSetting) {
+         if (a == b) {
+            if (!a.isDeformable()) {
+               throw new IllegalArgumentException (
+                  "Component "+ComponentUtils.getPathName(a)+
                " cannot self-intersect");
+            }
          }
       }
       return pair;
    }
 
-   /** 
-    * Sets collision behavior for a specified pair of Collidables, overriding,
-    * if necessary, the primary behavior. Each collidable must be a particular
-    * component instance. This is a convenience wrapper for
-    * {@link #setCollisionBehavior(Collidable,Collidable,CollisionBehavior)
-    * setCollisionBehavior(a,b,behavior)}.
-    * 
-    * @param a first Collidable
-    * @param b second Collidable
-    * @param enabled if true, enables collisions
-    * @param mu friction coefficient (ignored if enabled is false)
-    */
-   public void setCollisionBehavior (
-      Collidable a, Collidable b, boolean enabled, double mu) {
-
-      setCollisionBehavior (a, b, new CollisionBehavior (enabled, mu));
+   private void checkMechModelInclusion (MechModel mech, Collidable col) {
+      if (!ModelComponentBase.recursivelyContains (mech, col)) {
+         throw new IllegalArgumentException (
+            "Collidable "+ComponentUtils.getPathName(col) +
+            " not contained within MechModel "+ComponentUtils.getPathName(mech));
+      }
    }
 
    /** 
     * Sets collision behavior for a specified pair of Collidables, overriding,
-    * if necessary, the primary behavior.  Each collidable must be a particular
-    * component instance. A deformable body may be paired with {@link
-    * Collidable#Self} to indicate self-intersection; otherwise, generic
-    * designations (such as {@link Collidable#RigidBody}) are not allowed.
-    *
-    * <p> If the specified collision behavior equals the existing collision
-    * behavior (as returned by {@link #getCollisionBehavior}), then this method
-    * does nothing. Otherwise, if the collision behavior can be obtained by
-    * removing an existing collision override for the pair, the override is
-    * removed. Otherwise, a collision override is created for the desired
-    * behavior, replacing any existing override.
+    * if necessary, the primary behavior. Implements {@link
+    * MechModel#setCollisionBehavior(Collidable,Collidable,CollisionBehavior)
+    * MechModel.setCollisionBehavior(a,b,behavior)}.
     * 
     * @param a first Collidable
     * @param b second Collidable
     * @param behavior specified collision behavior
     */
-   public void setCollisionBehavior (
+   public void setBehavior (
       Collidable a, Collidable b, CollisionBehavior behavior) {
 
-      CollidablePair pair = validateCollidablePair (a, b);
-      CollisionComponent comp = getCollisionComponentMap().get (pair);
-      if (comp != null) {
-         if (!behavior.equals (comp.getBehavior())) {
-            CollisionBehavior prim = getPrimaryCollisionBehavior (pair);
-            if (behavior.equals (prim)) {
-               removeCollisionOverride (comp);
-            }
-            else {
-               comp.setBehavior (behavior);
-               // notify structure change because higher level models may have to
-               // clear internal collision structures to handle the new setting
-               notifyStructureChanged ();
-            }
-         }
-      }
-      else {
-         CollisionBehavior prim = getPrimaryCollisionBehavior (pair);
-         if (!behavior.equals (prim)) {
-            addCollisionOverride (pair, behavior);
-         }
-      }
+      CollidablePair pair = validateCollidablePair (a, b, /*forSetting=*/true);
+      setBehavior (pair, behavior);
    }
    
-   protected CollisionBehavior getDefaultCollisionBehavior (CollidablePair pair) {
-      CollisionComponent resp;
-      Collidable a = pair.myCompA;
-      Collidable b = pair.myCompB;
-      if ((a instanceof RigidBody) != (b instanceof RigidBody)) {
-         resp = getCollisionOverride (
-            Collidable.Deformable, Collidable.RigidBody);
-      }
-      else if (a instanceof RigidBody) {
-         resp = getCollisionOverride (
-            Collidable.RigidBody, Collidable.RigidBody);
-      }
-      else {
-         resp = getCollisionOverride (
-            Collidable.Deformable, Collidable.Deformable);
-      }
-      return resp.getBehavior();
+   /** 
+    * Clears any collision behavior that has been defined for a specified
+    * pair of Collidables to override the primary behavior. Implements
+    * {@link MechModel#clearCollisionBehavior(Collidable,Collidable)
+    * MechModel.clearCollisionBehavior(a,b)}.
+    * 
+    * @param a first Collidable
+    * @param b second Collidable
+    * @return <code>true</code> if an override behavior was specified
+    * and removed for the indicated collidables.
+    */
+   public boolean clearCollisionBehavior (Collidable a, Collidable b) {
+
+      CollidablePair pair = validateCollidablePair (a, b, /*forSetting=*/true);
+      return clearBehavior (pair);
    }
 
+   /** 
+    * Clears any collision behaviors that have been defined to override
+    * the default collision behaviors betweem pairs of Collidables.
+    * Implements {@link MechModel#clearCollisionBehaviors()
+    * MechModel.clearCollisionBehaviors()}.
+    */
+   public void clearCollisionBehaviors () {
+      myCollisionComponents.clear();
+   }
+   
+   private Collidable nearestCommonCollidableAncestor (
+      Collidable a, Collidable b) {
+         
+      ModelComponent ancestor = ComponentUtils.findCommonAncestor (a, b);
+      while (ancestor != null) {
+         if (ancestor instanceof Collidable) {
+            return (Collidable)ancestor;
+         }
+         ancestor = ancestor.getParent();
+      }
+      return null;      
+   }
+   
    /** 
     * Returns the CollisionCompenent in this model associated with
     * a particular collision override. If no such component exists,
@@ -666,276 +603,482 @@ public class CollisionManager extends RenderableCompositeBase
     * @return CollisionComponent in this model overriding collision
     * behavior for the specified pair, if any
     */
-   public CollisionComponent getCollisionOverride (CollidablePair pair) {
-      return getCollisionOverride(pair.getA(), pair.getB());
-   }
-
-   /** 
-    * Returns the CollisionCompenent in this model associated with
-    * a particular collision override. If no such component exists,
-    * <code>null</code> is returned. This method is provided mostly for
-    * internal ArtiSynth use.
-    * 
-    * @param a first collidable
-    * @param b second collidable
-    * @return CollisionComponent in this model overriding collision behavior
-    * for (a, b), if any
-    */
-   public CollisionComponent getCollisionOverride (Collidable a, Collidable b) {
-      HashMap<CollidablePair,CollisionComponent> map = getCollisionComponentMap();
-      for (CollidablePair cp : map.keySet()) {
-         if (cp.includesCollidables(a, b)) {
-            return map.get(cp);
+   public CollisionComponent getCollisionComponent (CollidablePair pair) {
+      for (int i=0; i<myCollisionComponents.size(); i++) {
+         CollisionComponent comp = myCollisionComponents.get(i);
+         if (comp.getPair().equals (pair)) {
+            return comp;
          }
-      }
+      }     
       return null;
    }
 
-   /** 
-    * Adds a CollisionComponent to override the primary
-    * collision behavior for a specific pair of components.  Each collidable
-    * must be a particular component instance. A deformable body may be paired
-    * with {@link Collidable#Self} to indicate self-intersection; otherwise,
-    * generic designations (such as {@link Collidable#RigidBody}) are not
-    * allowed.  This method is mainly intended for ArtiSynth internal use.
-    * 
-    * @param pair specified pair of collidables
-    * @param behavior desired override collision behavior
-    */
-   public void addCollisionOverride (
-      CollidablePair pair, CollisionBehavior behavior) {
-      pair = validateCollidablePair (pair);
-      myCollisionComponents.add (new CollisionComponent (pair, behavior));
-   }
-
-   /** 
-    * Removes a CollisionComponent, removing
-    * the collision override for the associated pair of components.
-    * This method is mainly intended for ArtiSynth internal use.
-    * 
-    * @param comp CollisionComponent overriding primary collision
-    * behavior for a specific pair of components
-    * @return true if the specified collision component was present
-    */
-   public boolean removeCollisionOverride (CollisionComponent comp) {
-      return myCollisionComponents.remove (comp);
-   }
-
-   /** 
-    * Removes all collision overrides, so
-    * that the collision behavior between all components will
-    * revert back to their primary behavior.
-    */
-   public void clearCollisionOverrides() {
-      myCollisionComponents.clear();
-   }
-
-   /** 
-    * Returns the primary collision behavior for a specified component
-    * pair as seen by this model. A primary collision behavior is
-    * the collision behavior that will occur in the absence of
-    * any override behaviors in this model. Typically, this
-    * will be the default behavior, unless both components in
-    * the pair belong to a sub-MechModel, in which case the CollisionManager
-    * in the sub-MechModel determines the behavior.
-    *
-    * <p>Each collidable must be a particular
-    * component instance. A deformable body may be paired with {@link
-    * Collidable#Self} to indicate self-intersection; otherwise, generic
-    * designations (such as {@link Collidable#RigidBody}) are not allowed.
-    * 
-    * @param pair specified pair of collidables
-    * @return primary collision behavior for the specified component pair
-    */
-   public CollisionBehavior getPrimaryCollisionBehavior (CollidablePair pair) {
-      pair = validateCollidablePair (pair);
-      MechModel lowModel = MechModel.lowestCommonModel (
-         pair.myCompA, pair.myCompB);
+   private CollisionBehavior getPrimaryCollisionBehavior (
+      CollidableBody a, CollidableBody b) {
+      MechModel lowModel = MechModel.lowestCommonModel (a, b);
       if (lowModel == null) {
          throw new IllegalArgumentException (
             "One or both components do not reside in this model:\n" +
-            ComponentUtils.getPathName (pair.myCompA) + "\n" +
-            ComponentUtils.getPathName (pair.myCompB));
+            ComponentUtils.getPathName (a) + "\n" + 
+            ComponentUtils.getPathName (b));
       }
-      CollisionManager cm = lowModel.getCollisionManager();
-      CollisionBehavior behavior = cm.getDefaultCollisionBehavior (pair);
-      ModelComponent comp = lowModel;
-      while (comp != getParent()) {
-         if (comp instanceof MechModel) {
-            cm = ((MechModel)comp).getCollisionManager();
-            CollisionComponent cc = cm.getCollisionOverride (pair);
-            if (cc != null) {
-               behavior = cc.getBehavior();
-            }
+      if (lowModel == myMechModel) {
+         if (a == b) {
+            // Self collision not currently supported for CollidableBody 
+            return new CollisionBehavior (false, 0);
          }
-         comp = comp.getParent();
+         else if (a.isDeformable() != b.isDeformable()) {
+            return getDefaultBehavior (DEFORMABLE_RIGID);
+         }
+         else if (a.isDeformable()) {
+            return getDefaultBehavior (DEFORMABLE_DEFORMABLE);
+         }
+         else {
+            return getDefaultBehavior (RIGID_RIGID);
+         }
       }
-      return behavior;
+      else {
+         // climb to MechModel right below this one
+         ModelComponent comp=lowModel.getParent();
+         while (comp != getParent()) {
+            if (comp instanceof MechModel) {
+               lowModel = (MechModel)comp;
+            }
+            comp = comp.getParent();
+         }
+         CollisionManager cm = lowModel.getCollisionManager();
+         return cm.getBehavior (new CollidablePair(a,b));
+      }
    }
-
 
    /** 
     * Returns the collision behavior for a specified pair of collidables.  Each
-    * collidable must be a particular component instance. A deformable body may
-    * be paired with {@link Collidable#Self} to indicate self-intersection;
-    * otherwise, generic designations (such as {@link Collidable#RigidBody})
-    * are not allowed.
-    *
-    * <p>If this CollisionManager contains a collision override for
-    * the specified pair, then the behavior will be determined
-    * by that override. Otherwise, the behavior will equal
-    * that returned by {@link #getPrimaryCollisionBehavior}.
+    * collidable must be a particular component instance. Implements {@link
+    * MechModel#getCollisionBehavior(Collidable,Collidable)
+    * MechModel.getCollisionBehavior(a,b)}.
     * 
     * @param a first Collidable
     * @param b second Collidable
     * @return behavior for this pair of Collidables.
     */
-   public CollisionBehavior getCollisionBehavior (Collidable a, Collidable b) {
-      CollidablePair pair = validateCollidablePair (a, b);
-      CollisionComponent cc = getCollisionOverride (pair);
-      if (cc != null) {
-         return cc.getBehavior();
-      }
-      else {
-         return getPrimaryCollisionBehavior (pair);
-      }
+   public CollisionBehavior getBehavior (Collidable a, Collidable b) {
+      CollidablePair pair = validateCollidablePair (a, b, /*forSetting=*/false);
+      return getBehavior (pair);
    }
 
-   private CollisionHandler createCollisionHandler(
-      Collidable c0, Collidable c1, double mu) {
-
-      CollisionHandler handler = null;
-      switch (myHandlerType) {
-         case NEW: {
-            handler = new CollisionHandlerNew (c0, c1, mu);
-            break;
-         }
-         case GENERIC: {
-            handler = new CollisionHandlerGeneric (c0, c1, mu);
-            break;
-         }
-         case OLD: {
-            handler = new CollisionHandlerOld (c0, c1, mu);
-            break;
-         }
-         default: {
-            throw new InternalErrorException (
-               "Unknown handler type " + myHandlerType);
-         }
-      }
+   private CollisionHandler createCollisionHandler (
+      CollidableBody c0, CollidableBody c1, CollisionBehavior behavior) {
+      
+      double mu = behavior.getFriction();
+      CollisionHandler handler = new CollisionHandler (this, c0, c1, mu);
       handler.setReduceConstraints (myReduceConstraints);
+      handler.setRigidPointTolerance (getCollisionPointTol());
+      handler.setRigidRegionTolerance (getCollisionRegionTol());
+
+      double ptol = getPenetrationTol();
+      handler.setPenetrationTol (ptol);
+      if (myCollisionAccel != 0) {
+         handler.autoComputeCompliance (myCollisionAccel, getPenetrationTol());
+      }
+      else {
+         handler.setCompliance (getCollisionCompliance());
+         handler.setDamping (getCollisionDamping());
+      }
       return handler;
    }
-   
-   private CollisionHandler createCollisionPair (
-      Collidable c0, Collidable c1, CollisionBehavior behavior) {
-      
-      CollisionHandler pair = 
-         createCollisionHandler(c0, c1, behavior.getFriction());
-         
-      if (pair.isRigidBodyPair()) {
-         pair.setRigidPointTolerance (getCollisionPointTol());
-         pair.setRigidRegionTolerance (getCollisionRegionTol());
-      }
-      double ptol = getPenetrationTol();
-      pair.setPenetrationTol (ptol);
-      if (myCollisionAccel != 0) {
-         pair.autoComputeCompliance (myCollisionAccel, getPenetrationTol());
-      }
-      else {
-         pair.setCompliance (getCollisionCompliance());
-         pair.setDamping (getCollisionDamping());
-      }
-      return pair;
-   }
 
-   private void createSelfCollisionPairs (
-      FemModel3d fem, CollisionBehavior behavior) {
-      
-      // int num = fem.numSubSurfaces();
-     
-      MeshComponentList<FemMesh> meshes = fem.getMeshes ();
-      int num = meshes.size ();
-      
-      for (int i=0; i<num; i++) {
-         FemMesh fmeshi = meshes.get(i);
-         if (!fmeshi.isSurfaceMesh () && fmeshi.isCollidable ()) {
-            for (int j=i+1; j<num; j++) {
-               // ignore surface mesh
-               FemMesh fmeshj = meshes.get(j);
-               if (!fmeshj.isSurfaceMesh() && fmeshj.isCollidable ())
-               myCollisionHandlers.add (
-                  createCollisionPair (fmeshi, fmeshj, behavior));
+   private void getCollidableBodies (
+      List<CollidableBody> list, ModelComponent mc) {
+
+      if (mc instanceof CompositeComponent) {
+         CompositeComponent comp = (CompositeComponent)mc;
+         for (int i=0; i<comp.numComponents(); i++) {
+            ModelComponent c = comp.get (i);
+            if (c instanceof Collidable && isCollidableBody ((Collidable)c)) {
+               list.add ((CollidableBody)c);
             }
+            getCollidableBodies (list, c);
          }
       }
    }
 
-
-   protected void updateCollisionHandlers() {
+   protected void updateHandlers() {
+      updateBehaviorMap();
       if (!myCollisionHandlersValid) {
+         myMaskBehaviorMapClearP = true;
          myCollisionHandlers.removeAll();
-         // guess at initial capacity for collidable list
-         ArrayList<Collidable> collidables =
-            new ArrayList<Collidable>(1000);
-         if (getParent() instanceof MechModel) {
-            ((MechModel)getParent()). getCollidables (collidables, /*level=*/0);
-         }
+         
+         ArrayList<Collidable> allCollidables = new ArrayList<Collidable> (1000);
+         myMechModel.getCollidables (allCollidables, /*level=*/0);
+         ArrayList<CollidableBody> collidables =
+            new ArrayList<CollidableBody> (allCollidables.size());
+         // reduce list to only collidable bodies
+         for (Collidable c : allCollidables) {
+            if (isCollidableBody(c)) {
+               collidables.add ((CollidableBody)c);
+            }
+         }         
+         
+         //getAllCollidableBodies (collidables);
+
          for (int i=0; i<collidables.size(); i++) {
-            for (int j=i; j<collidables.size(); j++) {
-               Collidable ci = collidables.get(i);
-               Collidable cj = collidables.get(j);
-               if (ci == cj) {
-                  if (!(ci instanceof RigidBody) && myAllowSelfIntersections) {
-                     // for now, implement self intersection using sub-surfaces
-                     CollisionBehavior behavior =
-                        getCollisionBehavior (ci, ci);
-                     if (ci instanceof FemModel3d && behavior.isEnabled()) {
-                        FemModel3d fem = (FemModel3d)ci;
-                        
-                        if (fem.getNumMeshes () > 1) {
-                           createSelfCollisionPairs (fem, behavior);
-                        }
-                     }
-                  }
-               }
-               else {
-                  // note: adds in both directions
-                  CollisionBehavior behavior = getCollisionBehavior (ci, cj);
-                  if (behavior.isEnabled()) {
-                     CollisionHandler ch = null;
-                     if (ci.isCollidable () && cj.isCollidable ()) {
-                        ch =
-                           createCollisionPair(ci, cj, behavior);
-                     }
-                     if (ch != null) {
-                        myCollisionHandlers.add (ch);
-                     }
-                  }
+            CollidableBody ci = collidables.get(i);
+            for (int j=i+1; j<collidables.size(); j++) {
+               CollidableBody cj = collidables.get(j);
+               CollisionBehavior behavior =
+                  myBehaviorMap.get (new CollidablePair (ci, cj));
+               if (behavior != null && behavior.isEnabled()) {
+                  myCollisionHandlers.add (
+                     createCollisionHandler (ci, cj, behavior));
                }
             }
          }
+         myMaskBehaviorMapClearP = false;
+
+         // This is a more efficient way to get the collision pairs, but it
+         // gets them in a different order and so currently changes the results
+         // of the regression testing:
+
+         // for (Map.Entry<CollidablePair,CollisionBehavior> entry :
+         //         myBehaviorMap.entrySet()) {
+         //    Collidable a = entry.getKey().myCompA;
+         //    Collidable b = entry.getKey().myCompB;
+         //    System.out.println ("handler for "+
+         //                        ComponentUtils.getPathName (a) + "-" +
+         //                        ComponentUtils.getPathName (b));
+         //    myCollisionHandlers.add (
+         //       createCollisionHandler (a, b, entry.getValue())); 
+         // }
          myConstrainers = new ArrayList<Constrainer>();
-         myUnilaterals = new ArrayList<ContactConstraint>();
          for (CollisionHandler handler : myCollisionHandlers) {
             handler.setDrawIntersectionContours(drawIntersectionContours);
             handler.setDrawIntersectionFaces(drawIntersectionFaces);
             handler.setDrawIntersectionPoints(drawIntersectionPoints);
-            if (!useContacts && handler.isRigidBodyPair()) {
-               if (myHandlerType == HandlerType.NEW) {
-                  myConstrainers.add (handler);
-               }
-               else {
-                  myConstrainers.add (handler.getRigidBodyContact());
-               }
-            }
-         }
-         for (CollisionHandler handler : myCollisionHandlers) {
-            if (!handler.isRigidBodyPair()) {
-               myConstrainers.add (handler);
-            }
+            myConstrainers.add (handler);
          }
          myCollisionHandlersValid = true;
+      }
+   }
+
+   protected Collidable getCollidableAncestor (
+      ModelComponent comp, ModelComponent top) {
+      if (comp == top) {
+         return null;
+      }
+      for (comp=comp.getParent(); comp != top; comp=comp.getParent()) {
+         if (comp instanceof Collidable) {
+            return (Collidable)comp;
+         }
+      }
+      return null;
+   }
+
+//   protected boolean isCollidable (Collidable col) {
+//      do {
+//         if (!col.isCollidable() || col.getCollisionMesh() == null) {
+//            return false;
+//         }
+//      }
+//      while ((col=getCollidableAncestor(col, null)) != null);
+//      return true;
+//   }
+
+   private boolean equal (CollisionBehavior b1, CollisionBehavior b2) {
+      if ((b1 == null) != (b2 == null)) {
+         return false;
+      }
+      else if (b1 == null) {
+         return true;
+      }
+      else {
+         return b1.equals (b2);
+      }
+   }         
+
+   private void setBehaviorMap (CollidablePair pair, CollisionBehavior behavior) {
+      if (!behavior.isEnabled()) {
+         behavior = null;
+      }      
+      CollisionBehavior prev = myBehaviorMap.get (pair);
+      if (!equal (prev, behavior)) {
+         if (behavior == null) {
+            myBehaviorMap.remove (pair);
+         }
+         else {
+            myBehaviorMap.put (pair, behavior);
+         }
+      }
+   }
+
+   private CollisionBehavior getBehaviorMap (CollidablePair pair) {
+      CollisionBehavior behavior = myBehaviorMap.get (pair);
+      if (behavior == null) {
+         return new CollisionBehavior(false, 0);
+      }
+      else {
+         return behavior;
+      }
+   }
+
+   private void applySelfIntersection (Collidable c, CollisionBehavior behavior) {
+      ArrayList<CollidableBody> bodies = new ArrayList<CollidableBody>();
+      if (isCollidableBody (c)) {
+         throw new InternalErrorException (
+            "Self-intersection not yet supported for MeshBodies");
+      }
+      getCollidableBodies (bodies, c);
+      for (int i=0; i<bodies.size(); i++) {
+         CollidableBody ai = bodies.get(i);
+         for (int j=i+1; j<bodies.size(); j++) {
+            CollidableBody aj = bodies.get(j);
+            if (c.allowSelfIntersection (ai) && c.allowSelfIntersection (aj)) {
+               setBehaviorMap (new CollidablePair(ai, aj), behavior);
+            }
+            else {
+               setBehaviorMap (new CollidablePair(ai, aj),
+                               new CollisionBehavior(false, 0));
+            }
+         }
+      }
+   }
+
+   private void applyBehaviorOverride (
+      CollidablePair pair, CollisionBehavior behavior) {
+
+      Collidable a = pair.myCompA;
+      Collidable b = pair.myCompB;
+      if (isCollidableBody (a) && isCollidableBody (b)) {
+         setBehaviorMap (pair, behavior);
+      }
+      else if (a == b) {
+         // self intersection case
+         applySelfIntersection (a, behavior);
+      }
+      else {
+         ArrayList<CollidableBody> bodiesA = new ArrayList<CollidableBody>();
+         ArrayList<CollidableBody> bodiesB = new ArrayList<CollidableBody>();
+         if (isCollidableBody (a)) {
+            bodiesA.add ((CollidableBody)a);
+         }
+         else {
+            getCollidableBodies (bodiesA, a);
+         }
+         if (isCollidableBody (b)) {
+            bodiesB.add ((CollidableBody)b);
+         }
+         else {
+            getCollidableBodies (bodiesB, b);
+         }
+         for (int i=0; i<bodiesA.size(); i++) {
+            CollidableBody ai = bodiesA.get(i);
+            for (int j=0; j<bodiesB.size(); j++) {
+               CollidableBody bj = bodiesB.get(j);
+               setBehaviorMap (new CollidablePair(ai, bj), behavior);
+            }
+         }
+      }
+   }
+
+   private boolean clearBehavior (CollidablePair pair) {
+      for (int i=0; i<myCollisionComponents.size(); i++) {
+         if (myCollisionComponents.get(i).getPair().equals (pair)) {
+            myCollisionComponents.remove (i);
+            return true;
+         }
+      }
+      return false;
+   }
+      
+   public void setBehavior (CollidablePair pair, CollisionBehavior behavior) {
+      updateBehaviorMap();
+      myMaskBehaviorMapClearP = true;
+      clearBehavior (pair);
+      myCollisionComponents.add (new CollisionComponent (pair, behavior));
+      myMaskBehaviorMapClearP = false;
+      applyBehaviorOverride (pair, behavior);
+   }
+
+   private CollisionBehavior getBehavior (CollidablePair pair) {
+
+      updateBehaviorMap();
+      Collidable a = pair.myCompA;
+      Collidable b = pair.myCompB;
+      if (isCollidableBody (a) && isCollidableBody (b)) {
+         return getBehaviorMap (pair);
+      }
+      else if (a == b) {
+         // self intersection case
+         ArrayList<CollidableBody> bodies = new ArrayList<CollidableBody>();
+         if (isCollidableBody (a)) {
+            throw new InternalErrorException (
+               "Self-intersection not yet supported for MeshBodies");
+         }
+         getCollidableBodies (bodies, a);
+         CollisionBehavior behavior = null;
+         for (int i=0; i<bodies.size(); i++) {
+            CollidableBody ai = bodies.get(i);
+            if (a.allowSelfIntersection (ai)) {
+               for (int j=i+1; j<bodies.size(); j++) {
+                  CollidableBody aj = bodies.get(j);
+                  if (a.allowSelfIntersection (aj)) {
+                     CollisionBehavior behav =
+                        getBehaviorMap (new CollidablePair(ai, aj));
+                     if (behavior == null) {
+                        behavior = behav;
+                     }
+                     else if (!equal (behavior, behav)) {
+                        return null;
+                     }
+                  }
+               }
+            }
+         }
+         return behavior;
+      }
+      else {
+         ArrayList<CollidableBody> bodiesA = new ArrayList<CollidableBody>();
+         ArrayList<CollidableBody> bodiesB = new ArrayList<CollidableBody>();
+         if (isCollidableBody (a)) {
+            bodiesA.add ((CollidableBody)a);
+         }
+         else {
+            getCollidableBodies (bodiesA, a);
+         }
+         if (isCollidableBody (b)) {
+            bodiesB.add ((CollidableBody)b);
+         }
+         else {
+            getCollidableBodies (bodiesB, b);
+         }
+         CollisionBehavior behavior = null;
+         for (int i=0; i<bodiesA.size(); i++) {
+            CollidableBody ai = bodiesA.get(i);
+            for (int j=0; j<bodiesB.size(); j++) {
+               CollidableBody bj = bodiesB.get(j);
+               CollisionBehavior behav =
+                  getBehaviorMap (new CollidablePair(ai, bj));
+               if (behavior == null) {
+                  behavior = behav;
+               }
+               else if (!equal (behavior, behav)) {
+                  return null;
+               }
+            }
+         }
+         return behavior;
+      }
+   }
+
+   // /**
+   //  * Collect all the CollidableBodies located under this manager's
+   //  * MechModel.
+   //  */
+   // private void getAllCollidableBodies (List<CollidableBody> list) {
+   //    if (myMechModel != null) {
+   //       ArrayList<Collidable> allCollidables = new ArrayList<Collidable>(100);
+   //       myMechModel.getCollidables (allCollidables, /*level=*/0);
+   //       // return only collidable bodies
+   //       for (Collidable c : allCollidables) {
+   //          if (c instanceof CollidableBody &&
+   //             // XXX hack until RigidBody and RigidCompositeBody are merged
+   //             !(c instanceof RigidCompositeBody)) {
+   //             list.add ((CollidableBody)c);
+   //          }
+   //       }
+   //    }      
+   // }
+
+   private boolean isCollidableBody (Collidable c) {
+      // XXX Need to call isCollidable() first, because FemModel3d uses that to
+      // trigger on-demand surface mesh generation, without which the actual
+      // FemMesh object containing the surface will have a null mesh.
+      if (!c.isCollidable()) {
+         return false;
+      }
+      else if (c instanceof CollidableBody &&
+         // XXX hack until RigidBody and RigidCompositeBody are merged
+         !(c instanceof RigidCompositeBody)) {
+         CollidableBody body = (CollidableBody)c;
+         return (body.getCollisionMesh() != null);
+      }
+      else {
+         return false;
+      }
+   }
+   
+   private String getName (Collidable c) {
+      if (CollidablePair.isGeneric(c)) {
+         return c.toString();
+      }
+      else {
+         return ComponentUtils.getPathName(c);
+      }
+   }
+
+   private String getName (CollidablePair pair) {
+      return getName(pair.myCompA) + "-" + getName(pair.myCompB);
+   }      
+
+   private MechModel nearestMechModel (ModelComponent c) {
+      while (c != null) {
+         if (c instanceof MechModel) {
+            return (MechModel)c;
+         }               
+         c = c.getParent();
+      }
+      return null;
+   }         
+
+   private void updateBehaviorMap() {
+      if (myBehaviorMap == null) {
+         // mask map clearing since calls to isCollidable() might trigger
+         // structure change events: e.g., auto generation of surface meshes in
+         // FemModel3d
+         myMaskBehaviorMapClearP = true;
+         myBehaviorMap = new HashMap<CollidablePair,CollisionBehavior>();
+
+         ArrayList<Collidable> collidables = new ArrayList<Collidable> (1000);
+         myMechModel.getCollidables (collidables, /*level=*/0);
+         //getAllCollidableBodies (collidables);
+
+         CollisionBehavior selfBehavior = getDefaultBehavior (DEFORMABLE_SELF);
+         if (!selfBehavior.isEnabled()) {
+            selfBehavior = null;
+         }
+
+         // start by setting primary behavior
+         for (int i=0; i<collidables.size(); i++) {
+            Collidable ci = collidables.get(i);
+            if (isCollidableBody(ci)) {
+               for (int j=i+1; j<collidables.size(); j++) {
+                  Collidable cj = collidables.get(j);
+                  if (isCollidableBody(cj)) {
+                     CollisionBehavior behavior =
+                        getPrimaryCollisionBehavior (
+                           (CollidableBody)ci, (CollidableBody)cj);
+                     if (nearestCommonCollidableAncestor (ci, cj) == null) {
+                        if (behavior != null && behavior.isEnabled()) {
+                           // make sure behavior is a copy or
+                           myBehaviorMap.put (
+                              new CollidablePair (ci, cj), behavior);
+                        }
+                     }
+                  }
+               } 
+            }
+            else {
+               if (ci.isDeformable() &&
+                   selfBehavior != null &&
+                   nearestMechModel(ci) == myMechModel) {
+                  applySelfIntersection (ci, selfBehavior);
+               }
+            }
+         }
+         // now add in override behaviors
+         for (CollisionComponent cc : myCollisionComponents) {
+            applyBehaviorOverride (cc.getPair(), cc.getBehavior());
+         }
+         myMaskBehaviorMapClearP = false;
       }
    }
 
@@ -944,7 +1087,7 @@ public class CollisionManager extends RenderableCompositeBase
     * contact info.
     */
    public CollisionHandlerList collisionHandlers() {
-      updateCollisionHandlers();
+      updateHandlers();
       return myCollisionHandlers;
    }
 
@@ -954,6 +1097,9 @@ public class CollisionManager extends RenderableCompositeBase
 
    protected void notifyStructureChanged () {
       myCollisionHandlersValid = false;
+      if (!myMaskBehaviorMapClearP) {
+         myBehaviorMap = null;
+      }
       notifyParentOfChange (new StructureChangeEvent (this));
    }
 
@@ -1001,13 +1147,17 @@ public class CollisionManager extends RenderableCompositeBase
 
    public void clearCachedData () {
       myCollisionHandlersValid = false;
+      if (!myMaskBehaviorMapClearP) {
+         myBehaviorMap = null;
+      }
    }
 
    protected void writeDefaultBehaviors (PrintWriter pw, NumberFormat fmt) {
       pw.println ("[");
       IndentingPrintWriter.addIndentation (pw, 2);
-      for (CollidablePair pair : getDefaultPairs()) {
-         CollisionBehavior behavior = getDefaultCollisionBehavior (pair);
+      for (CollisionComponent comp : myDefaultBehaviors) {
+         CollidablePair pair = comp.getPair();
+         CollisionBehavior behavior = comp.getBehavior();
          pw.println (
             pair.getA()+" "+pair.getB()+" "+
             behavior.isEnabled()+" "+fmt.format(behavior.getFriction()));
@@ -1024,7 +1174,7 @@ public class CollisionManager extends RenderableCompositeBase
          Collidable typeB = scanDefaultCollidable (rtok);
          boolean enabled = rtok.scanBoolean();
          double mu = rtok.scanNumber();
-         setDefaultCollisionBehavior (
+         setDefaultBehavior (
             typeA, typeB, new CollisionBehavior (enabled, mu));
       }
    }
@@ -1074,33 +1224,15 @@ public class CollisionManager extends RenderableCompositeBase
          pw, myCollisionComponents, fmt, ancestor);
    }
 
-   // /**
-   //  * Used to notify this CollisionManager that model structure has
-   //  * changed and collision information may need to be updated.
-   //  */
-   // public void notifyStructureChanged() {
-   //    myCollisionComponentMapValidP = false;
-   // }
-
    @Override
    public void componentChanged (ComponentChangeEvent e) {
-      myCollisionComponentMapValidP = false;
-      // no need to propagate change event back to the MechModel,
-      // esp since we aren't displaying these components anywhere
-      //notifyParentOfChange (e);
+      if (!myMaskBehaviorMapClearP) {
+         myBehaviorMap = null;
+         myCollisionHandlersValid = false;            
+      }
+      notifyParentOfChange (e);
    }
 
-   public void setHandlerType (HandlerType type) {
-      if (myHandlerType != type) {
-         myHandlerType = type;
-         myCollisionHandlersValid = false;
-      }
-   }
-   
-   public HandlerType getHandlerType () {
-      return myHandlerType;
-   }
-   
    public void setDrawIntersectionContours(boolean set) {
       drawIntersectionContours = set;
       for (CollisionHandler handler : collisionHandlers()) {
@@ -1148,7 +1280,7 @@ public class CollisionManager extends RenderableCompositeBase
    // ==== Begin Constrainer implementation ====
 
    public void getBilateralSizes (VectorNi sizes) {
-      updateCollisionHandlers();
+      updateHandlers();
       for (int i=0; i<myConstrainers.size(); i++) {
          myConstrainers.get(i).getBilateralSizes (sizes);
       }
@@ -1156,24 +1288,16 @@ public class CollisionManager extends RenderableCompositeBase
 
    public int addBilateralConstraints (
       SparseBlockMatrix GT, VectorNd dg, int numb) {
-      int numb0 = numb;
-      updateCollisionHandlers();
+      updateHandlers();
       for (int i=0; i<myConstrainers.size(); i++) {
          numb = myConstrainers.get(i).addBilateralConstraints (
             GT, dg, numb);
       }
-      // if (numb-numb0 > 0) {
-      //    MatrixNd GTALL = new MatrixNd (GT);
-      //    MatrixNd GTX = new MatrixNd (GT.rowSize(), numb-numb0);
-      //    GTALL.getSubMatrix (0, numb0, GTX);
-      //    System.out.println ("GT=\n" + GTX.toString ("%12.7f"));
-      // }
       return numb;
    }
 
    public int getBilateralInfo (ConstraintInfo[] ginfo, int idx) {
-      updateCollisionHandlers();
-      int idx0 = idx;
+      updateHandlers();
       for (int i=0; i<myConstrainers.size(); i++) {
          idx = myConstrainers.get(i).getBilateralInfo (ginfo, idx);
       }
@@ -1186,7 +1310,7 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    public int setBilateralImpulses (VectorNd lam, double h, int idx) {
-      updateCollisionHandlers();
+      updateHandlers();
       for (int i=0; i<myConstrainers.size(); i++) {
          idx = myConstrainers.get(i).setBilateralImpulses (lam, h, idx);
       }
@@ -1194,7 +1318,7 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    public int getBilateralImpulses (VectorNd lam, int idx) {
-      updateCollisionHandlers();
+      updateHandlers();
       for (int i=0; i<myConstrainers.size(); i++) {
          idx = myConstrainers.get(i).getBilateralImpulses (lam, idx);
       }
@@ -1202,139 +1326,67 @@ public class CollisionManager extends RenderableCompositeBase
    }
    
    public void zeroImpulses() {
-      updateCollisionHandlers();
+      updateHandlers();
       for (int i=0; i<myConstrainers.size(); i++) {
          myConstrainers.get(i).zeroImpulses();
-      }
-      if (useContacts) {
-         for (int i=0; i<myUnilaterals.size(); i++) {
-            myUnilaterals.get(i).setImpulse (0);
-         }
       }
    }
 
    public void getUnilateralSizes (VectorNi sizes) {
-      updateCollisionHandlers();
-      if (useContacts) {
-         if (myUnilaterals.size() > 0) {
-            sizes.append (myUnilaterals.size());
-         }
-      }
-      else {
-         for (int i=0; i<myConstrainers.size(); i++) {
-            myConstrainers.get(i).getUnilateralSizes (sizes);
-         }
+      updateHandlers();
+      for (int i=0; i<myConstrainers.size(); i++) {
+         myConstrainers.get(i).getUnilateralSizes (sizes);
       }
    }
 
    public int addUnilateralConstraints (
       SparseBlockMatrix NT, VectorNd dn, int numu) {
-      updateCollisionHandlers();
-      if (useContacts) {
-         double[] dbuf = (dn != null ? dn.getBuffer() : null);
-         int bj = NT.numBlockCols();
-         for (int i=0; i<myUnilaterals.size(); i++) {
-            ContactConstraint c = myUnilaterals.get(i);
-            c.addConstraintBlocks (NT, bj++);
-            if (dbuf != null) {
-               dbuf[numu] = c.getDerivative();
-            }
-            numu++;
-         }
-      }
-      else {
-         for (int i=0; i<myConstrainers.size(); i++) {
-            numu = myConstrainers.get(i).addUnilateralConstraints (
-               NT, dn, numu);
-         }
+      updateHandlers();
+      for (int i=0; i<myConstrainers.size(); i++) {
+         numu = myConstrainers.get(i).addUnilateralConstraints (
+            NT, dn, numu);
       }
       return numu;
    }
 
    public int getUnilateralInfo (ConstraintInfo[] ninfo, int idx) {
-      updateCollisionHandlers();
-      if (useContacts) {
-         for (int i=0; i<myUnilaterals.size(); i++) {
-            ContactConstraint c = myUnilaterals.get(i);
-            c.setSolveIndex (idx);
-            ConstraintInfo ni = ninfo[idx++];
-            if (c.getDistance() < -myPenetrationTol) {
-               ni.dist = (c.getDistance() + myPenetrationTol);
-            }
-            else {
-               ni.dist = 0;
-            }
-            ni.compliance = c.myHandler.getCompliance();
-            ni.damping = c.myHandler.getDamping();
-         }
-      }
-      else {
-         for (int i=0; i<myConstrainers.size(); i++) {
-            idx = myConstrainers.get(i).getUnilateralInfo (ninfo, idx);
-         }
+      updateHandlers();
+      for (int i=0; i<myConstrainers.size(); i++) {
+         idx = myConstrainers.get(i).getUnilateralInfo (ninfo, idx);
       }
       return idx;
    }
 
    public int setUnilateralImpulses (VectorNd the, double h, int idx) {
-      updateCollisionHandlers();
-      if (useContacts) {
-         double[] buf = the.getBuffer();
-         for (int i=0; i<myUnilaterals.size(); i++) {
-            myUnilaterals.get(i).setImpulse (buf[idx++]);
-         }
-      }
-      else {
-         for (int i=0; i<myConstrainers.size(); i++) {
-            idx = myConstrainers.get(i).setUnilateralImpulses (the, h, idx);
-         }
+      updateHandlers();
+      for (int i=0; i<myConstrainers.size(); i++) {
+         idx = myConstrainers.get(i).setUnilateralImpulses (the, h, idx);
       }
       return idx;
    }
 
    public int getUnilateralImpulses (VectorNd the, int idx) {
-      updateCollisionHandlers();
-      if (useContacts) {
-         double[] buf = the.getBuffer();
-         for (int i=0; i<myUnilaterals.size(); i++) {
-            buf[idx++] = myUnilaterals.get(i).getImpulse();
-         }
-      }
-      else {
-         for (int i=0; i<myConstrainers.size(); i++) {
-            idx = myConstrainers.get(i).getUnilateralImpulses (the, idx);
-         }
+      updateHandlers();
+      for (int i=0; i<myConstrainers.size(); i++) {
+         idx = myConstrainers.get(i).getUnilateralImpulses (the, idx);
       }
       return idx;
    }
 
    public int maxFrictionConstraintSets() {
-      updateCollisionHandlers();
+      updateHandlers();
       int max = 0;
       for (int i=0; i<myConstrainers.size(); i++) {      
          max += myConstrainers.get(i).maxFrictionConstraintSets();
-      }
-      if (useContacts) {
-         max += myUnilaterals.size();
       }
       return max;
    }
    
    public int addFrictionConstraints (
       SparseBlockMatrix DT, FrictionInfo[] finfo, int numf) {
-      updateCollisionHandlers();
+      updateHandlers();
       for (int i=0; i<myConstrainers.size(); i++) {
          numf = myConstrainers.get(i).addFrictionConstraints (DT, finfo, numf);
-      }
-      if (useContacts) {
-         for (int i=0; i<myUnilaterals.size(); i++) {
-            ContactConstraint c = myUnilaterals.get(i);
-            double mu = c.myHandler.getFriction();
-            if (Math.abs(c.getImpulse())*mu < 1e-4) {
-               continue;
-            }
-            numf = c.add2DFrictionConstraints (DT, finfo, mu, numf);
-         }
       }
       return numf;
    }
@@ -1372,7 +1424,6 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    protected void markMasters (ContactConstraint c, boolean[] marked) {
-      int num = 0;
       ArrayList<ContactMaster> masters = c.getMasters();
       for (int i=0; i<masters.size(); i++) {
          int idx = masters.get(i).myComp.getSolveIndex();
@@ -1386,8 +1437,8 @@ public class CollisionManager extends RenderableCompositeBase
       ArrayList<ContactConstraint> bilaterals =
          new ArrayList<ContactConstraint>();
       for (int i=0; i<myCollisionHandlers.size(); i++) {
-         CollisionHandlerNew handler =
-            (CollisionHandlerNew)myCollisionHandlers.get(i);
+         CollisionHandler handler =
+            myCollisionHandlers.get(i);
          handler.getBilateralConstraints (bilaterals);
       }        
       Collections.sort (bilaterals, new DescendingDistance());
@@ -1395,10 +1446,10 @@ public class CollisionManager extends RenderableCompositeBase
       // for (int i=0; i<bilaterals.size(); i++) {
       //    System.out.println (bilaterals.get(i).myDistance);
       // }
-      int[] dofs = new int[myMechSystem.numActiveComponents()];
-      myMechSystem.getDynamicSizes (dofs);
+      int[] dofs = new int[myMechModel.numActiveComponents()];
+      myMechModel.getDynamicSizes (dofs);
 
-      boolean[] marked = new boolean[myMechSystem.numActiveComponents()];
+      boolean[] marked = new boolean[myMechModel.numActiveComponents()];
 
       // make sure each constraint has at least one unmarked active master
       for (int i=0; i<bilaterals.size(); i++) {
@@ -1413,34 +1464,20 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    public double updateConstraints (double t, int flags) {
-      updateCollisionHandlers();
+      updateHandlers();
       FunctionTimer timer = new FunctionTimer();
       timer.start();
-      boolean newContacts = ((flags & MechSystem.COMPUTE_CONTACTS) != 0);
-      if (newContacts) {
-         myUnilaterals.clear();
-      }
       double maxpen = 0;
       for (int i=0; i<myCollisionHandlers.size(); i++) {
          CollisionHandler handler = myCollisionHandlers.get(i);
-         double pen;
-         if (myHandlerType != HandlerType.NEW && handler.isRigidBodyPair()) {
-            RigidBodyContact rbhandler = handler.getRigidBodyContact();
-            pen = rbhandler.updateConstraints (t, flags);
-            if (newContacts) {
-               myUnilaterals.addAll (rbhandler.getUnilateralContacts());
-            }
-         }
-         else {
-            pen = handler.updateConstraints (t, flags);
-         }
+         double pen = handler.updateConstraints (t, flags);
          if (pen > maxpen) {
             maxpen = pen;
          }
       }
       timer.stop();
 
-      if (myReduceConstraints && myHandlerType == HandlerType.NEW) {
+      if (myReduceConstraints) {
          reduceBilateralConstraints();
       }
 
@@ -1451,47 +1488,40 @@ public class CollisionManager extends RenderableCompositeBase
       return maxpen;
    }
 
-   // ***** Begin HasAuxState *****
+   // // ***** Begin HasAuxState *****
 
-   public void advanceAuxState (double t0, double t1) {
-      // contact constraints don't need to advance their aux state
-   }
+   // public void advanceAuxState (double t0, double t1) {
+   //    // contact constraints don't need to advance their aux state
+   // }
 
-   public void skipAuxState (DataBuffer data) {
-      updateCollisionHandlers();
-      for (int i=0; i<myCollisionHandlers.size(); i++) {
-         myCollisionHandlers.get(i).skipAuxState (data);
-      }
-   }
+   // public void skipAuxState (DataBuffer data) {
+   //    updateHandlers();
+   //    for (int i=0; i<myCollisionHandlers.size(); i++) {
+   //       myCollisionHandlers.get(i).skipAuxState (data);
+   //    }
+   // }
 
-   public void getAuxState (DataBuffer data) {
-      updateCollisionHandlers();
-      for (int i=0; i<myCollisionHandlers.size(); i++) {
-         myCollisionHandlers.get(i).getAuxState (data);
-      }
-   }
+   // public void getAuxState (DataBuffer data) {
+   //    updateHandlers();
+   //    for (int i=0; i<myCollisionHandlers.size(); i++) {
+   //       myCollisionHandlers.get(i).getAuxState (data);
+   //    }
+   // }
 
-   public void getInitialAuxState (DataBuffer newData, DataBuffer oldData) {
-      updateCollisionHandlers();
-      for (int i=0; i<myCollisionHandlers.size(); i++) {
-         myCollisionHandlers.get(i).getInitialAuxState (newData, oldData);
-      }
-   }
+   // public void getInitialAuxState (DataBuffer newData, DataBuffer oldData) {
+   //    updateHandlers();
+   //    for (int i=0; i<myCollisionHandlers.size(); i++) {
+   //       myCollisionHandlers.get(i).getInitialAuxState (newData, oldData);
+   //    }
+   // }
 
-   public void setAuxState (DataBuffer data) {
-      updateCollisionHandlers();
-      if (useContacts) {
-         myUnilaterals.clear();
-      }
-      for (int i=0; i<myCollisionHandlers.size(); i++) {
-         CollisionHandler ch = myCollisionHandlers.get(i);
-         ch.setAuxState (data);
-         if (useContacts && ch.isRigidBodyPair()) {
-            myUnilaterals.addAll (
-               ch.getRigidBodyContact().getUnilateralContacts());
-         }
-      }
-   }
+   // public void setAuxState (DataBuffer data) {
+   //    updateHandlers();
+   //    for (int i=0; i<myCollisionHandlers.size(); i++) {
+   //       CollisionHandler ch = myCollisionHandlers.get(i);
+   //       ch.setAuxState (data);
+   //    }
+   // }
 
-   // ***** End HasAuxState *****
+   // // ***** End HasAuxState *****
 }

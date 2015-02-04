@@ -2157,7 +2157,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
    /**
     * Returns an integer array that uniquely describes the block structure of
     * this matrix. If this equals the array returned by {@link
-    * #getStructure} for another matrix, then the block structure of the
+    * #getBlockStructure()} for another matrix, then the block structure of the
     * two matrices are equal.
     *
     * The size of the array is
@@ -2215,7 +2215,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
     * Returns <code>true</code> if the block structure of this matrix
     * matches the structure described by <code>struct</code>, which should
     * have the same length and format as the array returned by
-    * {@link #getStructure}.
+    * {@link #getBlockStructure()}.
     *
     * @param struct block structure description 
     * @return true if the structure matches

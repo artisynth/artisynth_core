@@ -8,37 +8,66 @@ package artisynth.core.driver;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+
+import artisynth.core.gui.selectionManager.SelectionManager;
+import artisynth.core.modelbase.ModelComponent;
 
 /**
  * 
  * @author andreio moved out the key listener to extend it
  * 
  */
-
-public class GenericKeyHandler implements ArtisynthKeyHandler {
+public class GenericKeyHandler implements KeyListener {
    MainFrame myMainFrame;
+   SelectionManager mySelectionManager;
 
    /**
-    * set the default values to null, they need to be attached from the outside
-    * because we don't know where this key handler will be used, in which class
+    * Create a KeyHandler using a handle to Main
     */
-   public GenericKeyHandler() {
-      myMainFrame = null;
+   public GenericKeyHandler(Main main) {
+      myMainFrame = main.getMainFrame();
+      mySelectionManager = main.getSelectionManager();
    }
 
-   public void setMainFrame (MainFrame extMainFrame) {
-      myMainFrame = extMainFrame;
-   }
-   
    public MainFrame getMainFrame() {
       return myMainFrame;
    }
 
+   private void setSelectionToSelectionParent() {
+      ModelComponent c = mySelectionManager.getLastSelected();
+      if (c != null && c.getParent() != null) {
+         mySelectionManager.clearSelections();
+         mySelectionManager.addSelected (c.getParent());
+      }
+   }
+
+   public static String getKeyBindings() {
+      return (
+         "Keyboard bindings for ArtiSynth:\n"+
+         "\n"+
+         "  q   - quit\n"+
+         "  t   - toggle time line visible\n" +
+         "  z   - undo last command\n" +
+         "  ESC - selection parent of last selection\n" +
+         "\n"+
+         "Play controls:\n" + 
+         "  p or SPC - play/pause\n" +
+         "  s   - single step\n" +
+         "  r   - reset\n" +
+         "\n" +
+         "Viewer controls:\n" +
+         "  w   - reset view\n" +
+         "  o   - toggle orthographic/perspective view\n" +
+         "  a   - toggle visible axes\n" +
+         "  g   - toggle visible grid\n" +
+         "\n" +
+         "Note: you need to focus on the graphics viewer to get the bindings.");
+   }
+
    /**
     * parsing the keys typed and performing actions
-    * 
     */
-
    public void keyTyped (KeyEvent e) {
       switch (e.getKeyChar()) {
          case 'q':
@@ -104,8 +133,11 @@ public class GenericKeyHandler implements ArtisynthKeyHandler {
             Main.getUndoManager().undoLastCommand();
             break;
 
+         case '\033': // escape
+            setSelectionToSelectionParent();
+            
          default:
-            // System.out.print(e.getKeyCode() + " " + (int) e.getKeyChar());
+            //System.out.println(e.getKeyCode() + " " + (int) e.getKeyChar());
       }
    }
 

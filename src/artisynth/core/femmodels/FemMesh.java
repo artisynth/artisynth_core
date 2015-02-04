@@ -9,6 +9,7 @@ package artisynth.core.femmodels;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,11 +28,13 @@ import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
-import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Vector2d;
 import maspack.matrix.VectorNd;
+import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.render.RenderProps;
+import maspack.spatialmotion.Wrench;
 import maspack.util.ArraySupport;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
@@ -41,35 +44,37 @@ import artisynth.core.femmodels.FemModel.ElementFilter;
 import artisynth.core.femmodels.FemModel.Ranging;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.mechmodels.Collidable;
+import artisynth.core.mechmodels.CollidableBody;
 import artisynth.core.mechmodels.CollidableDynamicComponent;
-import artisynth.core.mechmodels.CollisionData;
-import artisynth.core.mechmodels.CollisionHandlerNew;
-import artisynth.core.mechmodels.ContactMaster;
+import artisynth.core.mechmodels.CollisionHandler;
 import artisynth.core.mechmodels.ContactPoint;
+import artisynth.core.mechmodels.ContactMaster;
 import artisynth.core.mechmodels.DynamicAttachment;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.Point;
-import artisynth.core.mechmodels.PointAttachable;
 import artisynth.core.mechmodels.PointAttachment;
 import artisynth.core.mechmodels.PointList;
 import artisynth.core.mechmodels.PointParticleAttachment;
+import artisynth.core.mechmodels.PointAttachable;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.util.ObjectToken;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.StringToken;
+import artisynth.core.util.ArtisynthIO;
 
 /**
  * Describes a surface mesh that is "skinned" onto an FEM, such that its vertex
  * positions are determined by weighted combinations of FEM node positions.
  **/
 public class FemMesh extends FemMeshBase
-   implements Collidable, PointAttachable {
+   implements CollidableBody, PointAttachable {
 
    protected static double EPS = 1e-10;
    protected ArrayList<PointAttachment> myVertexAttachments;
@@ -78,12 +83,27 @@ public class FemMesh extends FemMeshBase
    // NO_SINGLE_VERTEX if there is no such vertex.
    protected HashMap<FemNode3d,Vertex3d> myNodeVertexMap;
    protected static final Vertex3d NO_SINGLE_VERTEX = new Vertex3d();
+   protected static final boolean DEFAULT_COLLIDABLE = true;
    
    HashMap<EdgeDesc,Vertex3d[]> myEdgeVtxs;
    private boolean isSurfaceMesh;
    private int myNumSingleAttachments;
+   protected boolean myCollidableP = DEFAULT_COLLIDABLE;
 
    private float[] colorArray = new float[3];
+
+   public static PropertyList myProps =
+      new PropertyList (FemMesh.class, FemMeshBase.class);
+
+   static {
+      myProps.add (
+         "collidable isCollidable setCollidable", 
+         "sets whether or not the mesh is collidable", DEFAULT_COLLIDABLE);
+   }
+
+   public PropertyList getAllPropertyInfo() {
+      return myProps;
+   }
 
    public FemMesh () {
       super();
@@ -222,7 +242,7 @@ public class FemMesh extends FemMeshBase
    /**
     * Returns <code>true</code> if every vertex in this mesh is
     * directly attached to a single FEM node. If this is the case, then
-    * {@link #getVertexNode} and {@link #getNodeVertex} will never return
+    * {@link #getNodeForVertex} and {@link #getVertexForNode} will never return
     * <code>null</code>.
     * 
     * @return <code>true</code> if every vertex is attached
@@ -321,7 +341,7 @@ public class FemMesh extends FemMeshBase
    }
 
    private Vertex3d createVertex (FemNode3d node, Vertex3d v) {
-      Vertex3d vtx = new FemMeshVertex (node, v.getPosition());
+      Vertex3d vtx = new Vertex3d (v.getPosition());
       PointParticleAttachment attacher =
          new PointParticleAttachment (node, null);
       myVertexAttachments.add (attacher);
@@ -578,6 +598,18 @@ public class FemMesh extends FemMeshBase
       return createEmbedded (new FemMesh(fem), mesh);
    }
 
+   public static FemMesh createSurface (
+      String name, FemModel3d fem, Collection<FemElement3d> elems) {
+      FemMesh femMesh = new FemMesh(fem);
+      femMesh.setName (name);
+      femMesh.createSurface (elems);
+      return femMesh; 
+   }
+   
+   public static FemMesh createSurface (String name, FemModel3d fem) {
+      return createSurface (name, fem, fem.getElements());
+   }
+   
    protected void createFineSurface (int resolution, ElementFilter efilter) {
 
       // build from nodes/element filter
@@ -750,6 +782,20 @@ public class FemMesh extends FemMeshBase
 
    public void createSurface (ElementFilter efilter) {
 
+      ArrayList<FemElement3d> elems = 
+         new ArrayList<FemElement3d>(myFem.numElements());
+      // create a list of all the faces for all the elements, and for
+      // each node, create a list of all the faces it is associated with
+      for (FemElement3d e : myFem.getElements()) {
+         if (efilter.elementIsValid(e)) {
+            elems.add (e);
+         }
+      }
+      createSurface (elems);
+   }
+
+   public void createSurface (Collection<FemElement3d> elems) {
+
       initializeSurfaceBuild();
       // nodeVertexMap is used during the construction of this surface,
       // so we build it during the construction rather then letting
@@ -770,22 +816,20 @@ public class FemMesh extends FemMeshBase
 
       // create a list of all the faces for all the elements, and for
       // each node, create a list of all the faces it is associated with
-      for (FemElement3d e : myFem.getElements()) {
-         if (efilter.elementIsValid(e)) {
-            FaceNodes3d[] faces = e.getTriFaces();
-            for (FaceNodes3d f : faces) {
-               addEdgeNodesToFace(f, myFem);
-               for (FemNode3d n : f.getAllNodes()) {
-                  int idx = femNodes.indexOf(n);
-                  if (idx == -1) {
-                     throw new InternalErrorException(
-                        "Element " + e.getNumber() + ": bad node "
-                           + n.getNumber());
-                  }
-                  nodeFaces.get(femNodes.indexOf(n)).add(f);
+      for (FemElement3d e : elems) {
+         FaceNodes3d[] faces = e.getTriFaces();
+         for (FaceNodes3d f : faces) {
+            addEdgeNodesToFace(f, myFem);
+            for (FemNode3d n : f.getAllNodes()) {
+               int idx = femNodes.indexOf(n);
+               if (idx == -1) {
+                  throw new InternalErrorException(
+                     "Element " + e.getNumber() + ": bad node "
+                     + n.getNumber());
                }
-               allFaces.add(f);
+               nodeFaces.get(femNodes.indexOf(n)).add(f);
             }
+            allFaces.add(f);
          }
       }
 
@@ -835,7 +879,7 @@ public class FemMesh extends FemMeshBase
                for (int j = 0; j < 3; j++) {
                   FemNode3d node = tri[j];
                   if ((vtxs[j] = myNodeVertexMap.get(node)) == null) {
-                     Vertex3d vtx = new FemMeshVertex (node);
+                     Vertex3d vtx = new Vertex3d (node.getPosition());
                      mesh.addVertex (vtx);
                      myVertexAttachments.add (
                         new PointParticleAttachment (node, null));
@@ -905,107 +949,178 @@ public class FemMesh extends FemMeshBase
       }
    }
 
-   // public void scaleDistance (double s) {
-   //    super.scaleDistance (s);
-   //    // shouldn't need to change anything since everything is weight-based
-   //    updatePosState();
-   // }  
-
-   // public void transformGeometry (
-   //    AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-
-   //    if ((flags & TransformableGeometry.SIMULATING) != 0) {
-   //       return;
-   //    }
-   // }
+   private void writeVertexInfo (PrintWriter pw, Vertex3d vtx, NumberFormat fmt) {
+      PointAttachment pa = null;
+      if (vtx.getIndex() < myVertexAttachments.size()) {
+         pa = getAttachment(vtx.getIndex());
+      }
+      if (pa instanceof PointFem3dAttachment) {
+         PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
+         FemNode[] masters = pfa.getMasters();
+         pw.print ("v");
+         for (int j=0; j<masters.length; j++) {
+            pw.print (
+               " " + masters[j].getNumber()+" "+fmt.format(pfa.getCoordinate(j)));
+         }
+         pw.println ("");               
+      }
+      else if (pa instanceof PointParticleAttachment) {
+         PointParticleAttachment ppa = (PointParticleAttachment)pa;
+         FemNode3d n = (FemNode3d)ppa.getMasters()[0];
+         pw.println ("v " + n.getNumber() + " 1.0");
+      }      
+      else {
+         pw.println ("v -1 "+vtx.getPosition().toString(fmt));
+      }
+   }
 
    /**
-    * Writes the mesh for this FemMesh out to a file, using a format like this:
+    * Writes the mesh for this FemMesh out to a named file,
+    * using the format described for
+    * {@link #writeMesh(PrintWriter)}.
+    *
+    * @param fileName Name of file to write the mesh to
+    * @return <code>true</code> if the mesh is a polygonal mesh and was written,
+    * and <code>false</code> otherwise.
+    */
+   public boolean writeMesh (String fileName) {
+      IndentingPrintWriter pw = null;
+      boolean status = false;
+      try {
+         pw = ArtisynthIO.newIndentingPrintWriter(fileName);
+         status = writeMesh (pw);
+      } catch (IOException e) {
+         e.printStackTrace();
+      }
+      finally {
+         if (pw != null) {
+            pw.close();
+         }
+      }
+      return status;
+   }
+
+   /**
+    * Writes the mesh for this FemMesh out to a PrintWriter, using a format
+    * of the form
     * <pre>
-    * [ f 2 3 4
-    *   f 4 5 6
-    *   f 6 7 8
+    * [ v 3 1.0
+    *   v 3 0.5 1 0.5
+    *   v 1 0.25 2 0.35 3 0.25 4 0.25
+    *   v 2 0.5 4 0.5
+    *   v 4 1.0
+    *   f 1 3 2
+    *   f 1 5 3
+    *   f 3 5 4
     * ]
     * </pre>
-    * in which the faces are represented using the numbers of the
-    * underlying nodes. If the mesh is not a an instance of
+    * Here each line beginning with <code>v</code> describes a mesh
+    * vertex in terms of the FEM nodes to which it is attached.
+    * This takes the form of a list of number/weight pairs:
+    * <pre>
+    *   v n_0 w_0 n_1 w_1 n_2 w_2 ...
+    * </pre>
+    * where <code>n_i</code> and <code>w_i</code> indicate, respectively,
+    * a FEM node (using its number as returned by
+    * {@link artisynth.core.modelbase.ModelComponent#getNumber getNumber()}),
+    * and its corresponding weight. In the case where a vertex
+    * is not associated with any nodes, then it is described by
+    * a line of the form
+    * <pre>
+    *   v -1 pz py pz
+    * </pre>
+    * where <code>px</code>, <code>py</code>, and <code>pz</code>
+    * give the vertex's (fixed) position in space.
+    * <p>
+    * Each line beginning with <code>f</code> describes a mesh face,
+    * using the vertex numbers in counter-clockwise order about the
+    * outward facing normal. To be consistent with Wavefront <code>.obj</code>
+    * format, the vertex numbers are 1-based and so are equal to the
+    * vertex indices plus one.
+    * <p>
+    * If the mesh is not an instance of
     * {@link maspack.geometry.PolygonalMesh}, then the method does
-    * nothing and returns <code>null</code>. In the case
-    * where the FemMesh is not single node mapped (i.e.,
-    * {@link #isSingleNodeMapped} returns <code>false</code>),
-    * vertices that do not map directly to nodes are ignored, as
-    * are any faces that consequently do not have at least three edges.
+    * nothing and returns <code>null</code>.
     *
     * @param pw writer to whichmesh is written
     * @return <code>true</code> if the mesh is a polygonal mesh and was written,
     * and <code>false</code> otherwise.
     */
    public boolean writeMesh (PrintWriter pw) {
+      return writeMesh (pw, /*nodeFormat=*/false);
+   }      
+
+   public boolean writeMesh (PrintWriter pw, boolean nodeFormat) {
       PolygonalMesh mesh = null;
       if (!(getMesh() instanceof PolygonalMesh)) {
          return false;
       }
       mesh = (PolygonalMesh)getMesh();
       pw.print("[ ");
+      NumberFormat fmt = new NumberFormat ("%.8g");
       IndentingPrintWriter.addIndentation(pw, 2);
+      if (!nodeFormat) {
+         for (Vertex3d vtx : mesh.getVertices()) {
+            writeVertexInfo (pw, vtx, fmt);
+         }
+      }
       ArrayList<Integer> nodeNums = new ArrayList<Integer>();
       for (Face face : mesh.getFaces()) {
-         nodeNums.clear();
          HalfEdge he0 = face.firstHalfEdge();
          HalfEdge he = he0;
+         pw.print("f");         
          do {
-            FemNode3d node = getNodeForVertex (he.head);
-            if (node != null) {
-               nodeNums.add (node.getNumber());
+            int vidx = he.head.getIndex();
+            if (nodeFormat) {
+               PointParticleAttachment ppa =
+                  (PointParticleAttachment)getAttachment(vidx);
+               FemNode3d node = (FemNode3d)ppa.getParticle();
+               pw.print (" " + node.getNumber());
+            }
+            else {
+               pw.print (" " + (vidx+1));
             }
             he = he.getNext();
          }
          while (he != he0);
-         if (nodeNums.size() >= 3) {
-            pw.print("f");
-            for (int num : nodeNums) {
-               pw.print (" " + num);
-            }
-            pw.println("");
-         }
+         pw.println("");
       }
       IndentingPrintWriter.addIndentation(pw, -2);
       pw.println("]");
       return true;
    }      
 
-   /**
-    * Scans this mesh from a file, using the format described for
-    * {@link #writeMesh}.
-    *
-    * @param rtok tokenizer from which mesh is read
-    * @return the scanned mesh
-    */
-   public MeshBase scanMesh (ReaderTokenizer rtok) throws IOException {
+   private FemNode3d getNodeFromNumber (
+      ReaderTokenizer rtok, int nnum) throws IOException {
+      FemNode3d node = null;
+      if ((node = myFem.getNodes().getByNumber(nnum)) == null) {
+         throw new IOException("Node " + nnum + " not found, " + rtok);
+      }
+      return node;
+   }
 
-      initializeSurfaceBuild();
-      // nodeVertexMap is used during the construction of this surface,
+   /**
+    * Old method of scanning mesh usign node numbers only.
+    */
+   private void scanMeshUsingNodeNumbers (ReaderTokenizer rtok)
+      throws IOException {
+      PolygonalMesh mesh = (PolygonalMesh)getMesh();
+      // nodeVertexMap is used during the construction of the mesh,
       // so we build it during the construction rather then letting
       // it be built in finalizeSurfaceBuild()
       myNodeVertexMap = new HashMap<FemNode3d,Vertex3d>();
       myNumSingleAttachments = 0;
-      
-      PolygonalMesh mesh = (PolygonalMesh)getMesh();
-      rtok.scanToken('[');
       ArrayList<Vertex3d> vtxList = new ArrayList<Vertex3d>();
-      while (rtok.nextToken() == ReaderTokenizer.TT_WORD &&
-             rtok.sval.equals("f")) {
+      rtok.nextToken();
+      while (rtok.tokenIsWord("f")) {
          vtxList.clear();
-         while (rtok.nextToken() == ReaderTokenizer.TT_NUMBER &&
-                rtok.tokenIsInteger()) {
+         rtok.nextToken();
+         while (rtok.tokenIsInteger()) {
             int nnum = (int)rtok.lval;
-            FemNode3d node = null;
-            if ((node = myFem.getNodes().getByNumber(nnum)) == null) {
-               throw new IOException("Node " + nnum + " not found, " + rtok);
-            }
+            FemNode3d node = getNodeFromNumber (rtok, nnum);
             Vertex3d vtx = myNodeVertexMap.get(node);
             if (vtx == null) {
-               vtx = new FemMeshVertex(node);
+               vtx = new Vertex3d (node.getPosition());
                myNodeVertexMap.put(node, vtx);
                myVertexAttachments.add (
                   new PointParticleAttachment(node, null));
@@ -1013,15 +1128,122 @@ public class FemMesh extends FemMeshBase
                mesh.addVertex(vtx);
             }
             vtxList.add(vtx);
+            rtok.nextToken();
          }
-         mesh.addFace(vtxList.toArray(new FemMeshVertex[0]));
-         rtok.pushBack();
+         mesh.addFace(vtxList.toArray(new Vertex3d[0]));
       }
       rtok.pushBack();
+   }
+
+   /**
+    * New scan method where the vertex attachments are also scanned
+    */
+   private void scanMeshUsingVertexInfo (ReaderTokenizer rtok)
+      throws IOException {
+      PolygonalMesh mesh = (PolygonalMesh)getMesh();
+      ArrayList<Vertex3d> vtxList = new ArrayList<Vertex3d>();
+      ArrayList<FemNode> nodes = new ArrayList<FemNode>();
+      ArrayList<Double> weights = new ArrayList<Double>();
+      rtok.nextToken();
+      while (rtok.tokenIsWord()) {
+         if (rtok.sval.equals("v")) {
+            int nnum = rtok.scanInteger();
+            if (nnum == -1) {
+               double x = rtok.scanNumber();
+               double y = rtok.scanNumber();
+               double z = rtok.scanNumber();
+               mesh.addVertex (new Vertex3d (x, y, z));
+               myVertexAttachments.add (null);
+               rtok.nextToken();
+            }
+            else {
+               PointAttachment ax;
+               double w = rtok.scanNumber();
+               rtok.nextToken();
+               Vertex3d vtx = new Vertex3d();
+               if (rtok.tokenIsInteger()) {
+                  nodes.clear();
+                  weights.clear();
+                  nodes.add (getNodeFromNumber (rtok, nnum));
+                  weights.add (w);
+                  while (rtok.tokenIsInteger()) {
+                     nodes.add (getNodeFromNumber (rtok, (int)rtok.lval));
+                     weights.add (rtok.scanNumber());
+                     rtok.nextToken();
+                  }
+                  PointFem3dAttachment attacher = new PointFem3dAttachment();
+                  attacher.setNodes (nodes, weights);
+                  ax = attacher;
+               }
+               else {
+                  FemNode3d node = getNodeFromNumber (rtok, nnum);
+                  ax = new PointParticleAttachment (node, null);
+               }
+               mesh.addVertex (vtx);
+               myVertexAttachments.add (ax);
+            }
+         }
+         else if (rtok.sval.equals ("f")) {
+            vtxList.clear();
+            rtok.nextToken();
+            while (rtok.tokenIsInteger()) {
+               int vnum = (int)rtok.lval;
+               if (vnum > mesh.getNumVertices()) {
+                  throw new IOException(
+                     "Vertex number "+vnum+" not found, "+rtok);
+               }
+               vtxList.add (mesh.getVertex(vnum-1));
+               rtok.nextToken();
+            }
+            mesh.addFace(vtxList.toArray(new Vertex3d[0]));
+         }
+         else {
+            throw new IOException ("Unexpected token: "+rtok);
+         }
+      }
+      rtok.pushBack();
+   }
+
+   /**
+    * Scans this mesh from a file, using the format described for
+    * {@link #writeMesh}. For backward compatibility, a format
+    * of the form
+    * <pre>
+    * [ f 0 1 2
+    *   f 2 3 4
+    *   f 4 5 6
+    * ]
+    * </pre>
+    * Where no vertex information is given, and each face is instead
+    * described using the numbers of the FEM nodes that underlie
+    * each vertex. This makes the assumption that the mesh is
+    * single node mapped (i.e., {@link #isSingleNodeMapped} returns
+    * <code>true</code>), so that each vertex is associated with
+    * a single FEM node.
+    *
+    * @param rtok tokenizer from which mesh is read
+    * @return the scanned mesh
+    */
+   public MeshBase scanMesh (ReaderTokenizer rtok) throws IOException {
+
+      initializeSurfaceBuild();
+
+      rtok.scanToken('[');
+      ArrayList<Vertex3d> vtxList = new ArrayList<Vertex3d>();
+      rtok.nextToken();
+      if (rtok.ttype  == ReaderTokenizer.TT_WORD && rtok.sval.startsWith("f")) {
+         rtok.pushBack();
+         scanMeshUsingNodeNumbers (rtok);
+      }
+      else {
+         rtok.pushBack();
+         scanMeshUsingVertexInfo (rtok);
+      }
       rtok.scanToken(']');
 
       finalizeSurfaceBuild();
-      return mesh;
+      updateSlavePos();
+      return (PolygonalMesh)getMesh();
    }
 
    protected void writeAttachment (
@@ -1032,9 +1254,7 @@ public class FemMesh extends FemMeshBase
       if (attacher instanceof PointParticleAttachment) {
          PointParticleAttachment ppa = (PointParticleAttachment)attacher;
          FemNode node = (FemNode)ppa.getParticle();
-         pw.print (
-            ComponentUtils.getWritePathName (ancestor, node) +
-            " 1 ");
+         pw.print (ComponentUtils.getWritePathName (ancestor, node) + " 1 ");
       }
       else if (attacher instanceof PointFem3dAttachment) {
          PointFem3dAttachment pfa = (PointFem3dAttachment)attacher;
@@ -1239,7 +1459,6 @@ public class FemMesh extends FemMeshBase
 
    // begin Collidable implementation
    
-   @Override
    public PolygonalMesh getCollisionMesh() {
       MeshBase mesh = getMesh ();
       if (mesh instanceof PolygonalMesh) {
@@ -1249,16 +1468,24 @@ public class FemMesh extends FemMeshBase
    }
    
    @Override
-   public CollisionData createCollisionData () {
-      return new EmbeddedCollisionData (myFem, this);
+   public boolean isCollidable () {
+      return myCollidableP;
+   }
+
+   public void setCollidable (boolean enable) {
+      if (myCollidableP != enable) {
+         myCollidableP = enable;
+         notifyParentOfChange (new StructureChangeEvent (this));
+      }
    }
 
    @Override
-   public boolean isCollidable () {
-      PolygonalMesh mesh = getCollisionMesh ();
-      if (mesh != null) {
-         return true;
-      }
+   public boolean isDeformable () {
+      return true;
+   }
+   
+   @Override
+   public boolean allowSelfIntersection (Collidable col) {
       return false;
    }
 
@@ -1295,7 +1522,7 @@ public class FemMesh extends FemMeshBase
    
    public boolean allowCollision (
       ContactPoint cpnt, Collidable other, Set<Vertex3d> attachedVertices) {
-      if (CollisionHandlerNew.attachedNearContact (
+      if (CollisionHandler.attachedNearContact (
          cpnt, other, attachedVertices)) {
          return false;
       }

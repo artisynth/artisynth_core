@@ -23,18 +23,24 @@ import maspack.render.GLRenderer;
 import maspack.render.RenderProps;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.StructureChangeEvent;
 
 public class RigidMesh extends MeshComponent 
-   implements PointAttachable, HasSurfaceMesh, Collidable {
+   implements PointAttachable, HasSurfaceMesh, CollidableBody {
 
    public static boolean DEFAULT_PHYSICAL = true;
+   protected static final boolean DEFAULT_COLLIDABLE = true;
+
    protected boolean physical = DEFAULT_PHYSICAL;
-   
+   protected boolean myCollidableP = DEFAULT_COLLIDABLE;
+
    public static PropertyList myProps = new PropertyList(
       RigidMesh.class, MeshComponent.class);
 
    static {
       myProps.add("physical isPhysical setPhysical", "", DEFAULT_PHYSICAL);
+      myProps.add("collidable isCollidable setCollidable", 
+         "sets whether or not the mesh is collidable", DEFAULT_COLLIDABLE);
    }
    
    public RigidMesh() {
@@ -167,19 +173,6 @@ public class RigidMesh extends MeshComponent
       list.addLast(this);
    }
    
-   // Collidable implementation
-   @Override
-   public CollisionData createCollisionData () {
-      RigidBody rb = getRigidBody();
-      if (rb != null) {
-         PolygonalMesh cmesh = getCollisionMesh ();
-         if (cmesh != null) {
-            return new RigidBodyCollisionData(rb, getCollisionMesh());
-         }
-      }
-      return null;
-   }
-
    @Override
    public PolygonalMesh getCollisionMesh () {
       MeshBase mesh = getMesh();
@@ -196,10 +189,28 @@ public class RigidMesh extends MeshComponent
 
    @Override
    public boolean isCollidable () {
-      CollisionData cdata = createCollisionData ();
-      if (cdata != null) {
-         return true;
+      return myCollidableP;
+   }
+
+   public void setCollidable (boolean enable) {
+      if (myCollidableP != enable) {
+         myCollidableP = enable;
+         notifyParentOfChange (new StructureChangeEvent (this));
       }
+   }
+
+   @Override
+   public boolean isDeformable () {
+      RigidBody rb = getRigidBody();
+      if (rb == null) {
+         throw new IllegalStateException (
+            "RigidMesh not associated with a rigid body");
+      }
+      return rb.getVelStateSize() > 6;
+   }
+
+   @Override
+   public boolean allowSelfIntersection (Collidable col) {
       return false;
    }
 
@@ -215,7 +226,6 @@ public class RigidMesh extends MeshComponent
 //   }
    
    public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
-
       RigidBody rb = getRigidBody();
       if (rb == null) {
          throw new IllegalStateException (

@@ -40,10 +40,10 @@ import maspack.util.ReaderTokenizer;
 import artisynth.core.femmodels.PointSkinAttachment.Connection;
 import artisynth.core.femmodels.PointSkinAttachment.FrameConnection;
 import artisynth.core.mechmodels.Collidable;
-import artisynth.core.mechmodels.CollisionHandlerNew;
+import artisynth.core.mechmodels.CollidableBody;
+import artisynth.core.mechmodels.CollisionHandler;
 import artisynth.core.mechmodels.DynamicAttachment;
 import artisynth.core.mechmodels.CollidableDynamicComponent;
-import artisynth.core.mechmodels.CollisionData;
 import artisynth.core.mechmodels.ContactPoint;
 import artisynth.core.mechmodels.ContactMaster;
 import artisynth.core.mechmodels.DynamicComponent;
@@ -53,7 +53,6 @@ import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointAttachment;
 import artisynth.core.mechmodels.PointAttachable;
-import artisynth.core.mechmodels.Pullable;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.SkinMeshBase;
 import artisynth.core.modelbase.ComponentList;
@@ -61,6 +60,7 @@ import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.StringToken;
 import artisynth.core.util.TransformableGeometry;
@@ -205,8 +205,7 @@ import artisynth.core.util.TransformableGeometry;
  * SkinMesh#getFemModel getFemModel()}.
  */
 public class SkinMesh extends SkinMeshBase 
-   implements Collidable, PointAttachable {
-   
+   implements CollidableBody, PointAttachable {
 
    /**
     * Characterizes the blend mechanism used for the frame-based
@@ -229,6 +228,9 @@ public class SkinMesh extends SkinMeshBase
    public static double myDefaultSigma = -1;
    // last sigma value used by computeDisplacementAndWeights()
    protected double myLastSigma = myDefaultSigma;
+
+   protected static final boolean DEFAULT_COLLIDABLE = true;
+   protected boolean myCollidableP = DEFAULT_COLLIDABLE;
 
    /**
     * Base class for information about bodies (e.g., Frames or
@@ -511,6 +513,8 @@ public class SkinMesh extends SkinMeshBase
    static {
       myProps.add("frameBlending", "frame blending mechanism",
                   DEFAULT_FRAME_BLENDING);
+      myProps.add("collidable isCollidable setCollidable", 
+         "sets whether or not this SkinMesh is collidable", DEFAULT_COLLIDABLE);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -1324,11 +1328,6 @@ public class SkinMesh extends SkinMeshBase
    // Collidable interface
 
    @Override
-   public CollisionData createCollisionData() {
-      return new SkinCollisionData(this);
-   }
-
-   @Override
    public PolygonalMesh getCollisionMesh() {
       MeshBase mesh = getMesh();
       if (mesh instanceof PolygonalMesh) {
@@ -1341,7 +1340,24 @@ public class SkinMesh extends SkinMeshBase
    
    @Override
    public boolean isCollidable() {
+      return myCollidableP;
+   }
+
+   public void setCollidable (boolean enable) {
+      if (myCollidableP != enable) {
+         myCollidableP = enable;
+         notifyParentOfChange (new StructureChangeEvent (this));
+      }
+   }
+
+   @Override
+   public boolean isDeformable () {
       return true;
+   }
+
+   @Override
+   public boolean allowSelfIntersection (Collidable col) {
+      return false;
    }
 
    @Override
@@ -1429,7 +1445,7 @@ public class SkinMesh extends SkinMeshBase
 
    public boolean allowCollision (
       ContactPoint cpnt, Collidable other, Set<Vertex3d> attachedVertices) {
-      if (CollisionHandlerNew.attachedNearContact (
+      if (CollisionHandler.attachedNearContact (
          cpnt, other, attachedVertices)) {
          return false;
       }

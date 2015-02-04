@@ -77,6 +77,11 @@ public abstract class DeformableBody extends RigidBody
 
    public abstract int numElasticCoords();
 
+   @Override
+   public boolean isDeformable () {
+      return true;
+   }
+
    public void setMassDamping (double d) {
       myMassDamping = d;
    }
@@ -543,14 +548,14 @@ public abstract class DeformableBody extends RigidBody
    }
 
    /**
-    * {@InheritDoc}
+    * {@inheritDoc}
     */
    @Override public void addPointForce (Point3d loc, Vector3d f) {
       addPointForce (myForce, myElasticForce, loc, f);
    }
 
    /**
-    * {@InheritDoc}
+    * {@inheritDoc}
     */
    @Override public void addExternalPointForce (Point3d loc, Vector3d f) {
       addPointForce (myExternalForce, myExternalElasticForce, loc, f);

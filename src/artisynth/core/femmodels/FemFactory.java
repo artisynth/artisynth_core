@@ -1612,7 +1612,7 @@ public class FemFactory {
     * an underlying hex element, and if it is, then a hex element is extruded
     * from both the surface triangles connected to that element.
     * 
-    * @param Empty FEM model to which elements are added. If <code>null</code>,
+    * @param model Empty FEM model to which elements are added. If <code>null</code>,
     * then a new FEM model will be created and returned. Note that
     * <code>model</code> must be different from <code>surfaceFem</code>
     * @param n number of layers 

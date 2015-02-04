@@ -13,7 +13,7 @@ public interface HasSurfaceMesh {
     * Returns the surface mesh associated with this component, or
     * <code>null</code> if no mesh exists. If multiple surface
     * meshes exist, this should be first one in the array returned
-    * by {@link getSurfaceMeshes}.
+    * by {@link #getSurfaceMeshes()}.
     * 
     * @return component's (primary) surface mesh
     */
@@ -21,7 +21,7 @@ public interface HasSurfaceMesh {
    
    /**
     * Returns the number of surfaces meshes associated with this
-    * component, or 0 if no meshes exist. If {@link #getSurfaceMesh}
+    * component, or 0 if no meshes exist. If {@link #getSurfaceMesh()}
     * returns <code>null</code>, then this method should return 0.
     * 
     * @return number of surface meshes associated with this component

@@ -7,19 +7,15 @@
 package artisynth.core.mechmodels;
 
 import java.awt.Color;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
 
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix;
-import maspack.matrix.NumericalException;
 import maspack.matrix.Point3d;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.Vector3d;
-import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
@@ -30,10 +26,7 @@ import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.util.StringHolder;
 import maspack.util.Disposable;
-import artisynth.core.femmodels.FemElement3d;
-import artisynth.core.femmodels.FemModel3d;
-import artisynth.core.femmodels.FemNode3d;
-import artisynth.core.femmodels.PointFem3dAttachment;
+import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 import artisynth.core.mechmodels.MechSystemSolver.MatrixSolver;
 import artisynth.core.mechmodels.MechSystemSolver.PosStabilization;
@@ -399,8 +392,8 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
     * Specifies the default collision behavior for all default pairs
     * (RigidBody-RigidBody, RigidBody-Deformable, Deformable-Deformable,
     * Deformable-Self) associated with this MechModel. 
-    * This is a wrapper for the CollisionManager method
-    * {@link CollisionManager#setDefaultCollisionBehavior(CollisionBehavior)
+    * This is a convenience wrapper for
+    * {@link #setDefaultCollisionBehavior(CollisionBehavior)
     * setDefaultCollisionBehavior(behavior)}.
     * 
     * @param enabled if true, enables collisions
@@ -414,22 +407,21 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
     * Specifies a default collision behavior for all default pairs
     * (RigidBody-RigidBody, RigidBody-Deformable, Deformable-Deformable,
     * Deformable-Self) associated with this MechModel.
-    * This is a wrapper for the CollisionManager method
-    * {@link CollisionManager#setDefaultCollisionBehavior(CollisionBehavior)
-    * setDefaultCollisionBehavior(behavior)}.
     * 
     * @param behavior desired collision behavior
     */
    public void setDefaultCollisionBehavior (CollisionBehavior behavior) {
-      myCollisionManager.setDefaultCollisionBehavior (behavior);
+      myCollisionManager.setDefaultBehavior (behavior);
    }
 
    /** 
-    * Gets the default collision behavior, for this MechModel, 
-    * for a specified pair of generic collidable types.
-    * This is a wrapper for the CollisionManager method
-    * {@link CollisionManager#getDefaultCollisionBehavior(Collidable,Collidable)
-    * getDefaultCollisionBehavior(typeA,typeB)}.
+    * Gets the default collision behavior
+    * for a specified pair of generic collidable types. 
+    * Allowed collidable types are {@link Collidable#RigidBody} and
+    * {@link Collidable#Deformable}. In addition, the type
+    * {@link Collidable#Self} can be paired with {@link Collidable#Deformable}
+    * to obtain the default behavior for deformable self collisions;
+    * {@link Collidable#Self} cannot be paired with other types.
     * 
     * @param typeA first generic collidable type
     * @param typeB second generic collidable type
@@ -443,10 +435,11 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
 
    /**
     * Sets the default collision behavior, for this MechModel, for a specified
-    * pair of generic collidable types.  This is a wrapper for the
-    * CollisionManager method {@link
-    * CollisionManager#setDefaultCollisionBehavior(Collidable,Collidable,CollisionBehavior)
-    * setDefaultCollisionBehavior(typeA,typeB,behavior)}.
+    * pair of generic collidable types.  Allowed collidable types are {@link
+    * Collidable#RigidBody} and {@link Collidable#Deformable}. In addition, the
+    * type {@link Collidable#Self} can be paired with {@link
+    * Collidable#Deformable} to set the default behavior for deformable self
+    * collisions; {@link Collidable#Self} cannot be paired with other types.
     *
     * @param typeA first generic collidable type
     * @param typeB second generic collidable type
@@ -455,14 +448,14 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    public void setDefaultCollisionBehavior (
       Collidable typeA, Collidable typeB, CollisionBehavior behavior) {
 
-      myCollisionManager.setDefaultCollisionBehavior (typeA, typeB, behavior);
+      myCollisionManager.setDefaultBehavior (typeA, typeB, behavior);
    }
 
    /**
     * Sets the default collision behavior, for this MechModel, for a specified
-    * pair of generic collidable types.  This is a wrapper for the
-    * CollisionManager method {@link
-    * CollisionManager#setDefaultCollisionBehavior(Collidable,Collidable,CollisionBehavior)
+    * pair of generic collidable types.  This is a convenience wrapper for
+    * {@link
+    * #setDefaultCollisionBehavior(Collidable,Collidable,CollisionBehavior)
     * setDefaultCollisionBehavior(typeA,typeB,behavior)}.
     *
     * @param typeA first generic collidable type
@@ -478,16 +471,14 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    }
 
    /** 
-    * Enables or disables collisions for a specified pair of Collidables,
-    * overriding, if necessary, the primary collision behavior.  Each
-    * collidable must be a particular component instance. If collisions are
-    * enabled, the friction coefficient is set to 0. This is a wrapper for the
-    * CollisionManager method {@link
-    * CollisionManager#setCollisionBehavior(Collidable,Collidable,CollisionBehavior)
+    * Enables or disables collisions for a specified pair of collidables,
+    * overriding, if necessary, the primary collision behavior. This is a
+    * convenience wrapper for {@link
+    * #setCollisionBehavior(Collidable,Collidable,CollisionBehavior)
     * setCollisionBehavior(a,b,behavior)}.
     * 
-    * @param a first Collidable
-    * @param b second Collidable
+    * @param a first collidable
+    * @param b second collidable
     * @param enabled if true, enables collisions
     */
    public void setCollisionBehavior (
@@ -497,15 +488,14 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    }
 
    /** 
-    * Sets collision behavior for a specified pair of Collidables, overriding,
-    * if necessary, the primary behavior. Each collidable must be a particular
-    * component instance. This is a wrapper for the CollisionManager method
+    * Sets collision behavior for a specified pair of collidables, overriding,
+    * if necessary, the primary behavior. This is a convenience wrapper for
     * {@link
-    * CollisionManager#setCollisionBehavior(Collidable,Collidable,CollisionBehavior)
+    * #setCollisionBehavior(Collidable,Collidable,CollisionBehavior)
     * setCollisionBehavior(a,b,behavior)}.
     * 
-    * @param a first Collidable
-    * @param b second Collidable
+    * @param a first collidable
+    * @param b second collidable
     * @param enabled if true, enables collisions
     * @param mu friction coefficient (ignored if enabled is false)
     */
@@ -516,36 +506,93 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    }
 
    /** 
-    * Sets collision behavior for a specified pair of Collidables, overriding,
-    * if necessary, the primary behavior.  Each collidable must be a particular
-    * component instance. This is a wrapper for the
-    * CollisionManager method {@link
-    * CollisionManager#setCollisionBehavior(Collidable,Collidable,CollisionBehavior)
-    * setCollisionBehavior(a,b,behavior)}.
+    * Sets collision behavior for a specified pair of collidables
+    * <code>a</code> and <code>b</code>, overriding, if necessary, the primary
+    * behavior. The primary behavior is the default collision behavior, unless
+    * <code>a</code> and <code>b</code> both belong to a sub MechModel, in
+    * which case it is the value of
+    * {@link #getCollisionBehavior getCollisionBehavior(a,b)} for that
+    * MechModel.
+    * <p>
+    * Each collidable must be a particular
+    * component instance. A deformable body may be paired with {@link
+    * Collidable#Self} to indicate self-intersection; otherwise, generic
+    * designations (such as {@link Collidable#RigidBody}) are not allowed.
+    *
+    * <p>
+    * If <code>a</code> or <code>b</code> contain sub-collidables (i.e.,
+    * descendants components which are also <code>Collidable</code>),
+    * then the behavior is applied to all pairs of these sub-collidables.
+    * If <code>a</code> and <code>b</code> are the same, then the
+    * behavior is applied to the self-collision among all sub-collidables
+    * of <code>a</code> for which a's
+    * {@link Collidable#allowSelfIntersection allowSelfIntersection()}
+    * method returns <code>true</code>.
+    *
+    * <p>
+    * The behavior specified by this method can be removed
+    * using {@link #clearCollisionBehavior clearCollisionBehavior(a,b)}.
     * 
-    * @param a first Collidable
-    * @param b second Collidable
+    * @param a first collidable
+    * @param b second collidable
     * @param behavior specified collision behavior
     */
    public void setCollisionBehavior (
       Collidable a, Collidable b, CollisionBehavior behavior) {
-      myCollisionManager.setCollisionBehavior (a, b, behavior);
+      myCollisionManager.setBehavior (a, b, behavior);
    }
 
    /** 
-    * Returns the collision behavior for a specified pair of collidables.  Each
-    * collidable must be a particular component instance.  Each collidable must
-    * be a particular component instance. This is a wrapper for the
-    * CollisionManager method {@link
-    * CollisionManager#getCollisionBehavior(Collidable,Collidable)
-    * getCollisionBehavior(a,b)}.
+    * Clears any collision behavior that has been defined for
+    * <code>a</code> and <code>b</code> (using the
+    * <code>setCollisionBehavior()</code> methods)
+    * to override the primary behavior. The collidables
+    * that may be specified are described in the documentation for
+    * {@link #setCollisionBehavior(Collidable,Collidable,CollisionBehavior)
+    * setCollisionBehavior()}.
     * 
-    * @param a first Collidable
-    * @param b second Collidable
-    * @return behavior for this pair of Collidables.
+    * @param a first collidable
+    * @param b second collidable
+    * @return <code>true</code> if an override behavior was specified
+    * and removed for the indicated collidables.
+    */
+   public boolean clearCollisionBehavior (Collidable a, Collidable b) {
+      return myCollisionManager.clearCollisionBehavior (a, b);
+   }
+
+   /** 
+    * Clears any collision behaviors that have been defined (using the
+    * <code>setCollisionBehavior()</code> methods) to override the default
+    * collision behaviors betweem pairs of Collidables.
+    */
+   public void clearCollisionBehaviors () {
+      myCollisionManager.clearCollisionBehaviors();
+   }
+   
+
+   /** 
+    * Returns the collision behavior for a specified pair of collidables
+    * <code>a</code> and <code>b</code>. Generic designations (such as {@link
+    * Collidable#RigidBody}) are not allowed.
+    * The returned behavior is the current effective behavior resulting from
+    * the application of all default and explicit collision behavior
+    * settings.
+    *
+    * <p> If <code>a</code> or <i><code>b</code> contain sub-collidables, then
+    * if a consistent collision behavior is found amount all pairs of
+    * sub-collidables, that behavior is returned; otherwise, <code>null</code>
+    * is returned. If <code>a</code> equals <i><code>b</code>, then this method
+    * searches for a consistent collision behavior among all sub-collidables of
+    * <code>a</code> for for which a's
+    * {@link Collidable#allowSelfIntersection allowSelfIntersection()}
+    * method returns <code>true</code>.
+    * 
+    * @param a first collidable
+    * @param b second collidable
+    * @return behavior for this pair of collidables.
     */
    public CollisionBehavior getCollisionBehavior (Collidable a, Collidable b) {
-      return myCollisionManager.getCollisionBehavior (a, b);
+      return myCollisionManager.getBehavior (a, b);
    }
 
    public void getCollidables (List<Collidable> list, int level) {
@@ -936,17 +983,35 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       myModels.removeAll();
    }
 
-   public void attachPoint (Point p1, Particle p2) {
+   /** 
+    * Attaches a particle to a PointAttachable component, using both
+    * component's current position state.
+    * @param p1 Point to connect. Must currently be a particle.
+    * @param comp Component to attach the particle to.
+    */
+   public void attachPoint (Point p1, PointAttachable comp) {
       if (p1.isAttached()) {
          throw new IllegalArgumentException ("point is already attached");
       }
-      PointParticleAttachment ax = new PointParticleAttachment (p2, p1);
+      PointAttachment ax = comp.createPointAttachment (p1);
       if (DynamicAttachment.containsLoop (ax, p1, null)) {
          throw new IllegalArgumentException (
             "attachment contains loop");
       }
       addAttachment (ax);
    }
+
+   // public void attachPoint (Point p1, Particle p2) {
+   //    if (p1.isAttached()) {
+   //       throw new IllegalArgumentException ("point is already attached");
+   //    }
+   //    PointParticleAttachment ax = new PointParticleAttachment (p2, p1);
+   //    if (DynamicAttachment.containsLoop (ax, p1, null)) {
+   //       throw new IllegalArgumentException (
+   //          "attachment contains loop");
+   //    }
+   //    addAttachment (ax);
+   // }
 
    public void attachPoint (Point p1, RigidBody body, Point3d loc) {
       if (p1.isAttached()) {
@@ -960,81 +1025,55 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       addAttachment (rbax);
    }
 
-   /** 
-    * Attaches a point to an FEM. The point in question is connected to either
-    * its containing element, or projected to the nearest surface element.
-    * 
-    * @param p1 Point to connect. Must currently be a particle.
-    * @param fem FemModel to connect the point to.
-    * @param reduceTol if > 0, attempts to reduce the number of nodes
-    * in the connection by removing any whose coordinate weights are
-    * less than <code>reduceTol</code>. 
-    */
-   public void attachPoint (Point p1, FemModel3d fem, double reduceTol) {
-      if (p1.isAttached()) {
-         throw new IllegalArgumentException ("point is already attached");
-      }
-      if (!(p1 instanceof Particle)) {
-         throw new IllegalArgumentException ("point is not a particle");
-      }
-      if (ComponentUtils.isAncestorOf (fem, p1)) {
-         throw new IllegalArgumentException (
-            "FemModel is an ancestor of the point");
-      }
-      Point3d loc = new Point3d();
-      FemElement3d elem = fem.findNearestElement (loc, p1.getPosition());
-      FemNode3d nearestNode = null;
-      double nearestDist = Double.MAX_VALUE;
-      for (FemNode3d n : elem.getNodes()) {
-         double d = n.distance (p1);
-         if (d < nearestDist) {
-            nearestNode = n;
-            nearestDist = d;
-         }
-      }
-      if (nearestDist <= reduceTol) {
-         // just attach to the node
-         attachPoint (p1, nearestNode);
-      }
-      else {
-         PointFem3dAttachment ax =
-            PointFem3dAttachment.create (p1, elem, loc, reduceTol);
-         // Coords are computed in createNearest.  the point's position will be
-         // updated, if necessary, by the addRemove hook when the attachement is
-         // added.
-         addAttachment (ax);
-      }
-   }
+//   /** 
+//    * Attaches a point to an FEM. The point in question is connected to either
+//    * its containing element, or projected to the nearest surface element.
+//    * 
+//    * @param p1 Point to connect. Must currently be a particle.
+//    * @param fem FemModel to connect the point to.
+//    * @param reduceTol if > 0, attempts to reduce the number of nodes
+//    * in the connection by removing any whose coordinate weights are
+//    * less than <code>reduceTol</code>. 
+//    */
+//   public void attachPoint (Point p1, FemModel3d fem, double reduceTol) {
+//      if (p1.isAttached()) {
+//         throw new IllegalArgumentException ("point is already attached");
+//      }
+//      if (!(p1 instanceof Particle)) {
+//         throw new IllegalArgumentException ("point is not a particle");
+//      }
+//      if (ComponentUtils.isAncestorOf (fem, p1)) {
+//         throw new IllegalArgumentException (
+//            "FemModel is an ancestor of the point");
+//      }
+//      Point3d loc = new Point3d();
+//      FemElement3d elem = fem.findNearestElement (loc, p1.getPosition());
+//      FemNode3d nearestNode = null;
+//      double nearestDist = Double.MAX_VALUE;
+//      for (FemNode3d n : elem.getNodes()) {
+//         double d = n.distance (p1);
+//         if (d < nearestDist) {
+//            nearestNode = n;
+//            nearestDist = d;
+//         }
+//      }
+//      if (nearestDist <= reduceTol) {
+//         // just attach to the node
+//         attachPoint (p1, nearestNode);
+//      }
+//      else {
+//         PointFem3dAttachment ax =
+//            PointFem3dAttachment.create (p1, elem, loc, reduceTol);
+//         // Coords are computed in createNearest.  the point's position will be
+//         // updated, if necessary, by the addRemove hook when the attachement is
+//         // added.
+//         addAttachment (ax);
+//      }
+//   }
 
-   /** 
-    * Attaches a point to the element of an FEM. The points coordinates
-    * within the element are determined using its current position,
-    * whether or not the point is outside the element.
-    * @param p1 Point to connect. Must currently be a particle.
-    * @param elem Element to connect the point to.
-    */
-   public void attachPoint (Point p1, FemElement3d elem) {
-      if (p1.isAttached()) {
-         throw new IllegalArgumentException ("point is already attached");
-      }
-      if (!(p1 instanceof Particle)) {
-         throw new IllegalArgumentException ("point is not a particle");
-      }
-      if (ComponentUtils.isAncestorOf (elem.getGrandParent(), p1)) {
-         throw new IllegalArgumentException (
-            "Element's FemModel is an ancestor of the point");
-      }
-      PointFem3dAttachment ax = new PointFem3dAttachment (p1, elem);
-      // call update attachment to compute the coordinates.
-      // the point's position will be updated, if necessary, by the
-      // addRemove hook when the attachment is added.
-      ax.updateAttachment();
-      addAttachment (ax);
-   }
-
-   public void attachPoint (Point p1, RigidBody body) {
-      attachPoint (p1, body, null);
-   }
+   // public void attachPoint (Point p1, RigidBody body) {
+   //    attachPoint (p1, body, null);
+   // }
 
    public ComponentList<DynamicAttachment> attachments() {
       return myAttachments;
@@ -1222,7 +1261,14 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
          }
          else if (c instanceof CollisionManager) {
             if (level == 0) {
-               list.add ((CollisionManager)c);
+               CollisionManager cm = (CollisionManager)c;
+               // XXX Call updateCollisionHandlers() here, in order to get any
+               // FEM surface mesh rebuilds out of the way. Rebuilds that
+               // happen later will structure changes that will clear the
+               // MechSystemBase component cache.
+               cm.updateHandlers();
+               list.addAll (cm.collisionHandlers());
+               //list.add (cm);
             }
          }
          else if (c instanceof HasAuxState) {

@@ -16,7 +16,35 @@
 
 \section*{XXX}
 
-\subsection*{FemMeshVertex has been removed}
+\subsection*{Removal of old collision handling code}
+
+The old collision handling code has been removed, along with the
+command line option {\tt -collisionHandler GENERIC}.
+
+\subsection*{Changes to collision and self-collision control}
+
+The ability to control collisions and self-collisions among objects
+has been enhanced.
+
+The {\tt Collidable} interface now contains a method {\tt
+isCollidable()}, which for many bodies is associated with a {\tt
+collidable} property. Setting this property to {\tt false} will
+disable collisions for that bodies, regardless of which default and
+explicit collisions behaviors are specified.
+
+{\tt Collidable} has also been modified to properly support
+self-collisions. A collidable object A can be associated with
+sub-collidables, defined by any descendant component of A that is also
+collidable. Self-collision can then by effected by enabling
+collisions between all pairs of sub-collidables for which A's {\tt
+allowSelfCollision()} method returns {\tt true}.
+
+More details are given in the Collision Handling section (currently
+5.6) of the
+\href{http://www.artisynth.org/doc/html/modelguide/modelguide.html}%
+{ArtiSynth Modeling Guide}.
+
+\subsection*{Removal of FemMeshVertex}
 
 {\tt FemMeshVertex}, which was a special subclass of {\tt Vertex3d}
 used for creating FEM meshes, has been removed. Its purpose had been
@@ -31,8 +59,10 @@ FemFactory.createHexWedgeExtrusion()} now takes and additional fifth
 argument, which is either the FEM associated with the supplied surface
 mesh, or {\tt null} if there is no FEM associated with the mesh.
 
+Also: {\tt getSurfaceMeshVertex()} has been replaced by {\tt
+getSurfaceVertex()}.
 
-\subsection*{Changes to scanMesh in FemModel3d}
+\subsection*{Changes to scanMesh() in FemModel3d}
 
 The methods {\tt scanMesh(fileName)} and {\tt scanMesh(tokenizer)} in
 {\tt FemModel3d}, which read FEM meshes from a special file in which
@@ -49,10 +79,103 @@ code snippets of the form
 \end{lstlisting}
 %
 
+In addition, the file format has been changed from one in which faces
+are indicated simply by the numbers of the underlying FEM nodes, as in
+%
+\begin{lstlisting}[]
+    [ f 0 1 2
+      f 2 3 4
+      f 4 5 6
+    ]
+\end{lstlisting}
+%
+to one where faces are specified by vertex indices and vertices
+are specified by their associated nodes and weights, as in:
+%
+\begin{lstlisting}[]
+    [ v 3 1.0
+      v 3 0.5 1 0.5
+      v 1 0.25 2 0.35 3 0.25 4 0.25
+      v 2 0.5 4 0.5
+      v 4 1.0
+      f 1 3 2
+      f 1 5 3
+      f 3 5 4
+    ]
+\end{lstlisting}
+%
+This allows the handling of meshes for which each vertex does not
+correspond exactly to one FEM node, such as fine surface and embedded
+meshes. For more details, see the API documentation for {\tt
+scanMesh()} and {\tt writeMesh()} in {\tt FemMesh}.
+
+The old face-node format is maintained for backward compatibility.
+
 \begin{sideblock}
 {\bf Note:} more changes are likely in the way that FEM meshes 
 are created and maintained.
 \end{sideblock}
+
+\subsection*{Changes to attachPoint() in MechModel}
+
+The following methods in MechModel:
+%
+\begin{lstlisting}[]
+   attachPoint (Point pnt, RigidBody body);
+   attachPoint (Point pnt, Particle p);
+   attachPoint (Point pnt, FemElement3d elem);
+   attachPoint (Point pnt, FemModel3d fem, double reduceTol);
+\end{lstlisting}
+%
+have all been replaced with the single method
+\begin{lstlisting}[]
+   attachPoint (Point pnt, PointAttachable comp);
+\end{lstlisting}
+where {\tt PointAttachable} is an interface indicating any component
+that is capable of creating it's own point attachments
+using the method
+\begin{lstlisting}[]
+   PointAttachment createPointAttachment (Point pnt);
+\end{lstlisting}
+Implementing components include {\tt RigidBody}, {\tt Particle}, {\tt
+FemElement3d}, and {\tt FemModel3d}.  For {\tt FemModel3d},
+attachments are created using a default reduction tolerance of 0. If
+you want to specify a larger tolerance (and hence possibly reduce the
+number of nodes the point is attached to), you can explicitly create
+and add the attachment using code like this:
+%
+\begin{lstlisting}[]
+   double reduceTol = 1e-8;
+   PointAttachment ax = fem.createPointAttachment (pnt, reduceTol);
+   mech.addAttachment (ax);
+\end{lstlisting}
+%
+
+The {\tt PointAttachment} interface makes it possible to decouple {\tt
+MechModel} from other packages that implement {\tt PointAttachable}
+components. 
+
+\subsection*{New key binding to select parent of current selection}
+
+Recent changes have moved the surface meshes of some body components
+into separate components located beneath the body in question. For
+example, the surface mesh for a {\tt FemModel3d} is now stored as a
+{\tt FemMesh} component located in {\tt meshes/surface} beneath the
+FEM model. This allows for greater flexibility in controlling the
+visibility and rendering of mesh components, but it also means that
+when you graphicaly select on a body's surface mesh, you select the
+component containing the mesh rather than the body itself.
+
+To make it easy to get to the body in question, you can now use the
+ESC key to quickly select the parent of the last selected component.
+For surface meshes, two quick presses of ESC will get you from the
+mesh component to the body in question (with the revised selection
+showing up in the component selection box at the bottom of the main
+ArtiSynth frame). While it was already possible to do parent selection
+using the "UP" arrow in the component selection box, using the ESC key
+is faster.
+
+\subsection*{New createSurface methods for FemMesh}
 
 \section*{Jan 21, 2015}
 

@@ -308,7 +308,7 @@ public abstract class BVNode implements GLRenderable {
    /**
     * Update node
     * @param margin supplied margin around boundary
-    * @return
+    * @return true if node was modified
     */
    abstract boolean update(double margin);
    

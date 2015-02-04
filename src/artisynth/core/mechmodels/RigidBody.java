@@ -50,12 +50,13 @@ import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.TransformableGeometry;
 
 public class RigidBody extends Frame 
-   implements CopyableComponent, Collidable, HasSurfaceMesh {
+   implements CopyableComponent, CollidableBody, HasSurfaceMesh {
    protected SpatialInertia mySpatialInertia;
    
    MeshInfo myMeshInfo = new MeshInfo();
@@ -105,7 +106,10 @@ public class RigidBody extends Frame
    private static Point3d DEFAULT_CENTER_OF_MASS = new Point3d (0, 0, 0);
    private static double DEFAULT_DENSITY = 1.0;
 
-   static {
+   protected static final boolean DEFAULT_COLLIDABLE = true;
+   protected boolean myCollidableP = DEFAULT_COLLIDABLE;
+
+    static {
       myProps.remove ("renderProps");
       myProps.add ("renderProps * *", "render properties", null);
       myProps.add (
@@ -123,6 +127,8 @@ public class RigidBody extends Frame
       myProps.add (
          "dynamic isDynamic", "true if component is dynamic (non-parametric)",
          true);
+      myProps.add("collidable isCollidable setCollidable", 
+         "sets whether or not this body is collidable", DEFAULT_COLLIDABLE);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -1319,10 +1325,6 @@ public class RigidBody extends Frame
    
    // begin Collidable interface
 
-   public RigidBodyCollisionData createCollisionData() {
-      return new RigidBodyCollisionData(this, getMesh());
-   }
-   
    @Override
    public PolygonalMesh getCollisionMesh() {
       return getMesh();
@@ -1330,13 +1332,25 @@ public class RigidBody extends Frame
 
    @Override
    public boolean isCollidable () {
-      PolygonalMesh surface = getMesh();
-      if (surface != null) {
-         return true;
+      return myCollidableP;
+   }
+
+   public void setCollidable (boolean enable) {
+      if (myCollidableP != enable) {
+         myCollidableP = enable;
+         notifyParentOfChange (new StructureChangeEvent (this));
       }
+   }
+
+   @Override
+   public boolean isDeformable () {
       return false;
    }
 
+   @Override
+   public boolean allowSelfIntersection (Collidable col) {
+      return false;
+   }
 
    private class RBContactMaster extends ContactMaster {
       Point3d myLoc = new Point3d();
@@ -1364,12 +1378,6 @@ public class RigidBody extends Frame
      }
 
    }
-
-
-//   public void getContactMasters (
-//      List<ContactMaster> mlist, double weight, ContactPoint cpnt) {
-//      mlist.add (new ContactMaster (this, weight, cpnt));
-//   }
    
    public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
       mlist.add (new ContactMaster (this, 1));
@@ -1379,64 +1387,10 @@ public class RigidBody extends Frame
       return comp == this;
    }  
    
-// public void getContactMastersX (
-   //    List<ContactMaster> mlist, double weight, ContactPoint cpnt) {
-   //    // REVERT
-   //    mlist.add (new RBContactMaster (this, weight, cpnt));
-   // }
-
-//   public boolean requiresContactVertexInfo() {
-//      return false;
-//   }
-   
    public boolean allowCollision (
       ContactPoint cpnt, Collidable other, Set<Vertex3d> attachedVertices) {
       return true;
    }
 
    // end Collidable interface
-   
-   // Pullable interface:
-//   @Override
-//   public boolean isPullable() {
-//      return true;
-//   }
-//   
-//   @Override
-//   public Point3d getOriginData (Point3d origin, Vector3d dir) {
-//      Point3d myBodyPnt = new Point3d();
-//      PolygonalMesh mesh = getMesh();
-//      if (mesh != null) {
-//         Point3d pnt = BVFeatureQuery.nearestPointAlongRay (
-//            mesh, origin, dir);
-//         if (pnt != null) {
-//            myBodyPnt = new Point3d();
-//            computePointLocation (myBodyPnt, pnt);
-//            //myBodyPnt.inverseTransform (getPose());
-//         }
-//      }
-//      return myBodyPnt;
-//   }
-//
-//   @Override
-//   public Point3d getOriginPoint(Object data) {
-//      Point3d pnt = new Point3d();
-//      computePointPosition (pnt, (Point3d)data);
-//      return pnt;
-//   }
-//
-//   @Override
-//   public double getPointRenderRadius() {
-//      return 0;
-//   }
-//
-//   @Override
-//   public void applyForce(Object orig, Vector3d force) {
-//      zeroExternalForces();
-//      addExternalPointForce ((Point3d)orig, force);
-//      // Wrench bodyForce = new Wrench();
-//      // computeAppliedWrench (bodyForce, force, (Point3d)orig);
-//      // bodyForce.transform (getPose().R);
-//      // setExternalForce (bodyForce);
-//   }
 }

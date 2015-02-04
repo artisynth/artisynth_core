@@ -143,7 +143,7 @@ public class RotationMatrix3d extends Matrix3dBase {
    /**
     * Creates a new rotation specified by a rotation about an axis.
     * 
-    * @param axis
+    * @param u
     * gives the rotation axis
     * @param ang
     * rotation angle (radians)

@@ -21,13 +21,17 @@ import maspack.render.RenderProps;
 import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.IncompressibleMaterial;
+import artisynth.core.mechmodels.Particle;
+import artisynth.core.mechmodels.PointAttachable;
+import artisynth.core.mechmodels.PointAttachment;
+import artisynth.core.mechmodels.Point;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.util.*;
 
 public abstract class FemElement3d extends FemElement
-   implements Boundable {
+   implements PointAttachable, Boundable {
    protected FemNode3d[] myNodes;
    protected FemNodeNeighbor[][] myNbrs = null;
    // average shape function gradient; used for incompressibility
@@ -1592,6 +1596,26 @@ public abstract class FemElement3d extends FemElement
                "Unknown element type with " + nodes.length + " nodes");
       }
       
+   }
+
+   public PointAttachment createPointAttachment (Point pnt) {
+      if (pnt.isAttached()) {
+         throw new IllegalArgumentException ("point is already attached");
+      }
+      if (!(pnt instanceof Particle)) {
+         throw new IllegalArgumentException ("point is not a particle");
+      }
+      if (ComponentUtils.isAncestorOf (getGrandParent(), pnt)) {
+         throw new IllegalArgumentException (
+            "Element's FemModel is an ancestor of the point");
+      }
+      PointFem3dAttachment ax = new PointFem3dAttachment (pnt, this);
+      // call update attachment to compute the coordinates.
+      // the point's position will be updated, if necessary, by the
+
+      // addRemove hook when the attachment is added.
+      ax.updateAttachment();
+      return ax;
    }
 
    // implementation of IndexedPointSet

@@ -99,6 +99,10 @@ implements SelectionListener, MouseInputListener {
       return 0;
    }
 
+   public void clear() {
+      clearComponent();
+   }
+   
    private void clearComponent() {
       myComponent = null;
       myPoint = null;
@@ -269,6 +273,7 @@ implements SelectionListener, MouseInputListener {
    // GLRenderable implementation
    public void prerender (RenderList list) {
       if (myAttachment != null) {
+         myAttachment.updatePosStates();
          myPoint.prerender (list);
       }
    }
@@ -328,6 +333,10 @@ implements SelectionListener, MouseInputListener {
       return -1;
    }
 
+   @Override
+   public void initialize (double t0) {
+   }
+   
    public synchronized void apply (double t0, double t1) {
       if (myComponent != null && myPullPos != null) {
          Vector3d force = new Vector3d();

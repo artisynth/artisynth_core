@@ -139,7 +139,7 @@ public class AttachedBeamDemo extends RootModel {
       mechMod.addRigidBody (block);
 
       for (FemNode3d n : getRightNodes(beam0)) {
-         mechMod.attachPoint (n, beam1, EPS);
+         mechMod.addAttachment (beam1.createPointAttachment (n, EPS));
       }
 
       for (FemNode3d n : getRightNodes(beam1)) {

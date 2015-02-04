@@ -1334,7 +1334,6 @@ public class MechSystemSolver {
     * @param bf right side offset
     * @param btmp temporary vector
     * @param vel0 right side velocity
-    * @param t
     * @param h interval time step - used to scale constraint offsets and 
     * impulses
     * @param a0 left side df/dv coefficient

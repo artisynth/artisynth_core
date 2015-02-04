@@ -674,9 +674,6 @@ public abstract class MechSystemBase extends RenderableModelBase
       }      
    }
 
-   /** 
-    * {@inheritDoc}
-    */
    public void getForces (VectorNd f) {
       updateDynamicComponentLists();
       f.setSize (
@@ -688,9 +685,6 @@ public abstract class MechSystemBase extends RenderableModelBase
       }      
    }
 
-   /** 
-    * {@inheritDoc}
-    */
    public void setForces (VectorNd f) {
       updateDynamicComponentLists();
       double[] buf = f.getBuffer();

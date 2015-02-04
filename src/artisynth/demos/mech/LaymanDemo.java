@@ -78,7 +78,7 @@ public class LaymanDemo extends RootModel {
       CollisionManager cm = myMechMod.getCollisionManager();
       cm.setCollisionPointTol (1e-2);
       cm.setCollisionRegionTol (1e-1);
-      cm.setDefaultCollisionBehavior (true, 0.2);
+      myMechMod.setDefaultCollisionBehavior (true, 0.2);
       myMechMod.setPenetrationTol (1e-3);
 
 //       RigidBody head = (RigidBody)myLayman.findComponent ("rigidBodies/head");

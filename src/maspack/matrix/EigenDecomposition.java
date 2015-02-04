@@ -138,7 +138,6 @@ public class EigenDecomposition {
     * matrix to perform the Eigen decomposition on
     * @param flags
     * flags associated with computation
-    * @see #setFlags
     */
    public EigenDecomposition (Matrix M, int flags) {
       factor (M, flags);

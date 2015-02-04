@@ -722,8 +722,6 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       LinkedList<ModelComponent> delete = 
          ComponentUtils.findDependentComponents (update, selection);
 
-      System.out.println ("update.size()=" + update.size());
-
       if (delete.size() > selection.size()) {
          // first, see if we can actually delete:
          if (!componentsAreDeletable (delete)) {

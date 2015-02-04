@@ -364,6 +364,20 @@ public class MechModelEditor extends EditorBase {
       if (mech == null) {
          return;
       }
+      if (collidables.size() > 1) {
+         for (int i=0; i<collidables.size(); i++) {
+            Collidable ci = collidables.get(i);
+            for (int j=i+1; j<collidables.size(); j++) {
+               Collidable cj = collidables.get(j);
+               if (ModelComponentBase.recursivelyContains (ci, cj) ||
+                   ModelComponentBase.recursivelyContains (cj, ci)) {
+                  EditorUtils.showError (
+                     frame, "One or more collidables is a descendant of another");
+                  return;
+               }
+            }
+         }
+      }
       SetCollisionsDialog dialog =
          new SetCollisionsDialog (frame, mech, collidables);
       GuiUtils.locateCenter (dialog, frame);

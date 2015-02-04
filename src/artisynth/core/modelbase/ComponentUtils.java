@@ -91,11 +91,13 @@ public class ComponentUtils {
       HashMap<ModelComponent,Dependencies> depMap) {
 
       Dependencies localDeps = depMap.get(c);
-      if (localDeps.myHard != null) {
-         deps.myHard.addAll (localDeps.myHard);
-      }
-      if (localDeps.mySoft != null) {
-         deps.mySoft.addAll (localDeps.mySoft);
+      if (localDeps != null) {
+         if (localDeps.myHard != null) {
+            deps.myHard.addAll (localDeps.myHard);
+         }
+         if (localDeps.mySoft != null) {
+            deps.mySoft.addAll (localDeps.mySoft);
+         }
       }
       if (c instanceof CompositeComponent) {
          CompositeComponent cc = (CompositeComponent)c;

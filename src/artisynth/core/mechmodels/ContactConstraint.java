@@ -236,7 +236,7 @@ public class ContactConstraint {
    }
 
    protected void assignMasters (
-      Collidable collidable, double w, ContactPoint cpnt) {
+      CollidableBody collidable, double w, ContactPoint cpnt) {
       
       if (collidable instanceof RigidBody) {
          myMasters.add (
@@ -276,7 +276,9 @@ public class ContactConstraint {
       }
    }
    
-   public void assignMasters (Collidable collidable0, Collidable collidable1) {
+   public void assignMasters (
+      CollidableBody collidable0, CollidableBody collidable1) {
+
       myMasters.clear();
 
       // if (!(collidable1 instanceof RigidBody) &&
@@ -304,7 +306,7 @@ public class ContactConstraint {
    }
 
    public void setState (
-      DataBuffer data, Collidable collidable0, Collidable collidable1) {
+      DataBuffer data, CollidableBody collidable0, CollidableBody collidable1) {
       
       myCpnt0 = ContactPoint.setState (data, collidable0.getCollisionMesh());
       myCpnt1 = ContactPoint.setState (data, collidable1.getCollisionMesh());

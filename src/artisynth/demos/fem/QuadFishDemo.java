@@ -135,7 +135,7 @@ public class QuadFishDemo extends RootModel {
       myMechMod.setIntegrator (Integrator.BackwardEuler);
 
       myMechMod.setCollisionBehavior (collisionbody0, collisionbody2, true);
-
+      myMechMod.getCollisionManager().setReduceConstraints (true);
       //myMechMod.setProfiling (true);
 
       addModel (myMechMod);

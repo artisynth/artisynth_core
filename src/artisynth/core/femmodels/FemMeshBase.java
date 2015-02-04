@@ -71,11 +71,11 @@ public abstract class FemMeshBase extends SkinMeshBase {
    private float[] colorArray = new float[3];
    
    public static PropertyList myProps =
-      new PropertyList (FemMeshBase.class, MeshComponent.class);
+   new PropertyList (FemMeshBase.class, MeshComponent.class);
 
-   static {
-      myProps.addInheritable(
-         "surfaceRendering:Inherited", "either shaded, stress or strain", defaultSurfaceRendering);
+static {
+   myProps.addInheritable(
+      "surfaceRendering:Inherited", "either shaded, stress or strain", defaultSurfaceRendering);
       myProps.addInheritable (
          "stressPlotRanging:Inherited", "ranging mode for stress plots",
          defaultStressPlotRanging);         

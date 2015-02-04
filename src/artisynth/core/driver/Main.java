@@ -83,7 +83,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    protected static MainFrame myFrame;
    protected static MenuBarHandler myMenuBarHandler;
-   protected static ArtisynthKeyHandler myKeyHandler;
+   protected static GenericKeyHandler myKeyHandler;
    protected static Main myMain;
    protected static Scheduler myScheduler;
    protected static EditorManager myEditorManager;
@@ -107,8 +107,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected AliasTable myDemoModels;
    protected Tree<MenuEntry> myDemoMenu = null;	// a tree containing the demo menu hierarchy description
    protected AliasTable myScripts;
-   protected final static String KEY_BINDINGS_FILE =
-      "artisynth/core/driver/keyBindings.txt";
    protected final static String PROJECT_NAME = "ArtiSynth";
 
    protected String myModelName;
@@ -161,8 +159,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * @return string with keybindings
     */
    public String getKeyBindings() {
-      return artisynth.core.util.TextFromFile.getTextOrError (
-         ArtisynthPath.getResource (KEY_BINDINGS_FILE));
+      return GenericKeyHandler.getKeyBindings();
    }
 
    public void setErrorMessage (String msg) {
@@ -418,8 +415,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myFrame = new MainFrame (windowName, this, width, height);
 
          myMenuBarHandler = myFrame.getMenuBarHandler();
-         myKeyHandler = new GenericKeyHandler();
-         myKeyHandler.setMainFrame (myFrame);
+         myKeyHandler = new GenericKeyHandler(this);
          mySelectionManager.setNavPanel (myFrame.getNavPanel());
          myFrame.getNavPanel().setSelectionManager (mySelectionManager);
 
@@ -1002,6 +998,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myTimeline.automaticProbesZoom();
 
          if (mySelectionMode == SelectionMode.Pull) {
+            myPullController.clear();
             newRoot.addController (
                myPullController, findMechSystem(getRootModel()));
          }
@@ -1353,7 +1350,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected static BooleanHolder useArticulatedTransforms =
       new BooleanHolder (false);
    protected static BooleanHolder noGui = new BooleanHolder (false);
-   protected static StringHolder collisionHandler = new StringHolder();
 
    protected static IntHolder flags = new IntHolder();
 
@@ -1495,8 +1491,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
          "-updateLibs %v #update libraries from ArtiSynth server", updateLibs);
       parser.addOption ("-flags %x #flag bits passed to the application", flags);
       parser.addOption ("-noGui %v #run ArtiSynth without the GUI", noGui);
-      parser.addOption (
-         "-collisionHandler %s #NEW,GENERIC, or OLD", collisionHandler);
 
       Locale.setDefault(Locale.CANADA);
 
@@ -1570,22 +1564,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (printOptions.value) {
          System.out.println (parser.getOptionsMessage (2));
          exit (0);
-      }
-
-      if (collisionHandler.value != null) {
-         CollisionManager.HandlerType type = null;
-         try {
-            type = Enum.valueOf (
-               CollisionManager.HandlerType.class, collisionHandler.value);
-         }
-         catch (Exception e) {
-            // ignore
-         }
-         if (type == null) {
-            throw new IllegalArgumentException (
-               "collisionHandler value must be NEW, GENERIC, or OLD");
-         }
-         CollisionManager.myDefaultHandlerType = type;
       }
 
       MechSystemSolver.myDefaultHybridSolveP = !disableHybridSolves.value;

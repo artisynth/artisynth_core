@@ -57,10 +57,10 @@ import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.IncompressibleMaterial;
 import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.SolidDeformation;
+import artisynth.core.mechmodels.CollidableBody;
 import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.CollidableDynamicComponent;
-import artisynth.core.mechmodels.CollisionData;
-import artisynth.core.mechmodels.CollisionHandlerNew;
+import artisynth.core.mechmodels.CollisionHandler;
 import artisynth.core.mechmodels.ContactMaster;
 import artisynth.core.mechmodels.ContactPoint;
 import artisynth.core.mechmodels.DynamicComponent;
@@ -80,7 +80,7 @@ import artisynth.core.util.TransformableGeometry;
 
 public class MFreeModel3d extends FemModel implements TransformableGeometry,
    ScalableUnits, MechSystemModel,
-   Collidable, CopyableComponent {
+   CollidableBody, CopyableComponent {
 
    protected SparseBlockMatrix M = null;
    protected VectorNd b = null;
@@ -987,6 +987,16 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
       }
       return false;
    }
+
+   @Override
+   public boolean isDeformable () {
+      return true;
+   }
+
+   @Override
+   public boolean allowSelfIntersection (Collidable col) {
+      return false;
+   }
    
    public Collection<MeshComponent> getMeshes() {
       return myMeshes;
@@ -1833,10 +1843,6 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
       }
    }
 
-   public CollisionData createCollisionData() {
-     return new MFreeCollisionData(this, getCollisionMesh());
-   }
-
    public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
       
       // XXX currently assumed vtx is instance of MFreeVertex3d
@@ -1861,7 +1867,7 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
 
    public boolean allowCollision (
       ContactPoint cpnt, Collidable other, Set<Vertex3d> attachedVertices) {
-      if (CollisionHandlerNew.attachedNearContact (
+      if (CollisionHandler.attachedNearContact (
          cpnt, other, attachedVertices)) {
          return false;
       }

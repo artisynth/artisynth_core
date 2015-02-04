@@ -642,6 +642,12 @@ bodies (finite element models in particular), and more generally
 between any body that implements the interface 
 \javaclass[artisynth.core.mechmodels]{Collidable}.
 
+It is important to understand that collison handling is both
+computationally expensive and, due to it's discontinuous nature, less
+accurate than other aspects of the simulation.  ArtiSynth therefore
+provides a number of ways to selectively control collision handling
+between different pairs of bodies.
+
 %\subsubsection{Collidable bodies}
 
 \subsubsection{Enabling collisions in code}
@@ -675,6 +681,8 @@ where {\tt typeA} and {\tt typeB} should be either {\tt
 Collidable.RigidBody} or {\tt Collidable.Deformable}.  In addition,\\
 {\tt Collidable.Deformable} can be paired with {\tt Collidable.Self} to
 enable/disable self-collisions between deformable objects.
+Self-collision is described in greater detail in Section
+\ref{SelfCollision:sec}.
 
 A call to one of the {\tt setDefaultCollisionBehavior()} methods will
 override the effects of previous calls. So for instance, the code
@@ -710,15 +718,39 @@ collidables can be controlled and queried using
 \end{lstlisting}
 %
 where {\tt collidableA} and {\tt collidableB} are individual
-collidable components such as rigid bodies or FEM models.  The effects
-of {\tt setCollisionBehavior()} methods are {\it not} invalidated by
-subsequent calls to {\tt setDefaultCollisionBehavior()} methods.
+collidable components such as rigid bodies or FEM models.  Collision
+behaviors specified by {\tt setCollisionBehavior()} {\it override} the
+default collision behaviors, and are {\it not} invalidated by
+subsequent calls to the {\tt setDefaultCollisionBehavior()} methods.
+An overide collision behavior for a specific pair of collidables
+can be removed by
+%
+\begin{lstlisting}[]
+  clearCollisionBehavior (collidableA, collidableB);
+\end{lstlisting}
+%
+and {\it all} override behaviors in a {\tt MechModel} can
+be removed by 
+%
+\begin{lstlisting}[]
+  clearCollisionBehaviors ();
+\end{lstlisting}
+%
 
 \begin{sideblock}
-It is usually necessary to ensure that collisions are {\it disabled}
+Note: It is usually necessary to ensure that collisions are {\it disabled}
 between adjacent bodies connected by joints, since otherwise these
 would be forced into a state of permanent collision.
 \end{sideblock}
+
+Each collidable component also provides an
+\javamethod[artisynth.core.mechmodels.Collidable]{isCollidable()}
+method, which must return {\tt true} to enable collisions involving
+that component. For some collidables, the value of this method is tied
+to a {\tt collidable} property, so that setting {\tt collidable} to
+{\tt false} will disable all collisions involving that component,
+regardless of any default and explcit collision behaviors that
+have been specified,
 
 \subsubsection{Example: Collision with a plane}
 
@@ -785,6 +817,101 @@ initially appear as in Figure \ref{JointedCollide:fig}.  Running
 the model (Section \ref{LoadingAndRunning:sec}) will
 cause the jointed assembly to collide with and slide off the inclined
 plane.
+
+\subsubsection{Self-collision and collidable hierarchies}
+\label{SelfCollision:sec}
+
+At present, {\tt ArtiSynth} does not support the detection or handling
+of self-collision within single meshes. However, self-collision can
+still be effected by allowing a collidable to have multiple
+{\it sub-collidables} and then enabling collisions between some or all of
+these.
+
+Any descendant component of a
+\javaclass[artisynth.core.mechmodels]{Collidable} component A which is
+itself {\tt Collidable} is considered to be a sub-collidable of A.
+Certain types of components maintain sub-collidables by default.  For
+example, some components (such as finite element models; Section
+\ref{FEMModels:sec}) maintain a list of associated meshes (such as
+embedded and surface meshes) in a child component list named {\tt
+meshes}, and meshes within this list can be made 
+collidable.  In general, an ArtiSynth model will contain a collection
+of collidables, some of which posses sub-collidables and others which
+are solitary (Figure \ref{CollidableGroups:fig}).
+
+\begin{sideblock}
+Note: A collidable does not need to be an immediate child component
+of a collidale A in order to be a sub-collidable of A;
+it need only be a descendent of A. 
+\end{sideblock}
+
+\begin{figure}[ht]
+\begin{center}
+ \includegraphics[width=5in]{images/CollidableGroups}
+\end{center}
+\caption{A collection of collidable components, where A possesses
+sub-collidables A1, A2, and A3, B is solitary, and C possesses
+sub-collidables C1 and C2. Self-collisions are allowed among 
+a subset of the sub-collidables which are shaded grey.}
+\label{CollidableGroups:fig}
+\end{figure}
+
+Within a collection of collidables:
+
+\begin{itemize}
+
+\item Actual collisions happen only between leaf components; ancestor
+components are used only for grouping purposes.
+
+\item By default, sub-collidables of a component A will not collide
+among themselves unless self-collision is enabled for A, in which case
+collisions will be enabled among those for which A's 
+\javamethod[artisynth.core.mechmodels.Collidable]{allowSelfCollisions()}
+method returns {\tt true} (shaded grey in Figure \ref{CollidableGroups:fig}.
+
+\item Self-collision is only possible among the sub-collidables of
+A if A is itself deformable; i.e., its
+\javamethod[artisynth.core.mechmodels.Collidable]{isDeformable()}
+method returns {\tt true}.
+
+\item Collision among specific pairs of sub-collidables may also be
+explicitly enabled or disabled with an override behavior set using one
+of the {\tt setCollisionBehavior()} methods.
+
+\item Specifying a collision behavior among two collidables A and B which
+are {\it not} within the same hierarchy will cause that behavior to be
+specified among all sub-collidables of A and B.
+
+\end{itemize}
+
+This is best illustrated with some examples. Refer to Figure
+\ref{CollidableGroups:fig}, assume that components A, B and C are
+deformable, and that self-collision is allowed among those
+sub-collidables which are shaded grey (A1 and A2 for A, B1 and B2 for
+B). Then:
+%
+\begin{lstlisting}[]
+   // Set default collision among deformable components with friction = 0.2:
+   setDefaultCollisionBehavior (
+      Collidable.DEFORMABLE, Collidable.DEFORMABLE, true, 0.2);
+   // Collisions are now enabled between A1, A2, and A3 and each of B, C1, and
+   // C2, and between B and C1 and C2, but not among A1, A2, and A3 or C1 and C2.
+
+   // Enable self-collision between A1 and A2 and B1 and B2 with friction = 0:
+   setDefaultCollisionBehavior (Collidable.DEFORMABLE, Collidable.SELF, true, 0);
+    
+   // Specifically disable collision between B and A3:
+   setCollisionBehavior (B, A3, false);
+
+   // Specifically enable collision between A3 and C with friction = 0.3:
+   setCollisionBehavior (A3, C, true, 0.3);
+   // This behavior will be applied between A3 and each of C1 and C2.
+
+   // Disable self-collision within A:
+   setCollisionBehavior (A, A, false);
+   // This will disable all self-collisions among A1, A2 and A3.
+\end{lstlisting}
+%
 
 \subsubsection{Implementation and limitations}
 

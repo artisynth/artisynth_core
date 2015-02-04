@@ -438,7 +438,8 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
     * component to check for descendence from ancestor
     */
    public static boolean recursivelyContains (
-      CompositeComponent ancestor, ModelComponent comp) {
+      ModelComponent ancestor, ModelComponent comp) {
+
       if (ancestor == comp) {
          return false;
       }

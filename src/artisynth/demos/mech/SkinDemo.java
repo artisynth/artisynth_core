@@ -5,28 +5,31 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.*;
 
-import javax.swing.JFrame;
-
+import maspack.geometry.MeshFactory;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.PolylineMesh;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.properties.PropertyList;
+import maspack.render.RenderProps;
+import maspack.spatialmotion.SpatialInertia;
 import artisynth.core.driver.Main;
 import artisynth.core.femmodels.SkinMesh;
-import artisynth.core.femmodels.FemMeshVertex;
-import artisynth.core.femmodels.FemNode3d;
-import artisynth.core.femmodels.PointSkinAttachment;
-import artisynth.core.gui.*;
-import artisynth.core.mechmodels.*;
+import artisynth.core.gui.ControlPanel;
+import artisynth.core.mechmodels.AxialSpring;
+import artisynth.core.mechmodels.FrameMarker;
+import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.MechSystemSolver;
+import artisynth.core.mechmodels.Muscle;
+import artisynth.core.mechmodels.Particle;
+import artisynth.core.mechmodels.RevoluteJoint;
+import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.probes.NumericInputProbe;
 import artisynth.core.probes.NumericOutputProbe;
 import artisynth.core.util.ArtisynthPath;
-import artisynth.core.util.TimeBase;
-import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
-import maspack.geometry.*;
-import maspack.matrix.*;
-import maspack.properties.*;
-import maspack.render.*;
-import maspack.spatialmotion.SpatialInertia;
 
 public class SkinDemo extends RootModel {
 

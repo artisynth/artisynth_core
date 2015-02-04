@@ -16,6 +16,9 @@ import artisynth.core.modelbase.ModelComponentBase;
 
 /**
  * Indicates a model component that can collide with other Collidables.
+ * Collidables can be arranged hierarchically, for grouping purposes and to
+ * support self-intersection. Only leaf nodes of the hierarchy do the actual
+ * collision handling, and these should implement the sub-class CollidableBody.
  */
 public interface Collidable extends ModelComponent {
 
@@ -29,101 +32,58 @@ public interface Collidable extends ModelComponent {
          return myName;
       }
       
-      public CollisionData createCollisionData() {
-         return  null;
-      }
-
-      @Override
-      public double getMass() {
-         return 0;
-      }
-      
       @Override
       public boolean isCollidable () {
          return false;
       }
       
       @Override
-      public PolygonalMesh getCollisionMesh() {
-         return null;
-      }
-
-//      @Override
-//      public void getContactMasters (
-//         List<ContactMaster> mlist, double weight, ContactPoint cpnt) {
-//      }
-
-      @Override
-      public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
-      }
-      
-      @Override
-      public boolean containsContactMaster (CollidableDynamicComponent comp) {
-         return false;      
-      }     
-
-//      @Override
-//      public boolean requiresContactVertexInfo() {
-//         return false;
-//      }
-      
-      @Override
-      public boolean allowCollision (
-         ContactPoint cpnt, Collidable other, Set<Vertex3d> attachedVertices) {
+      public boolean isDeformable() {
          return false;
       }
       
+      @Override
+      public boolean allowSelfIntersection (Collidable col) {
+         return false;
+      }
    };
    
-   CollisionData createCollisionData();
-   public boolean isCollidable();
-   public double getMass();
-   
    /**
-    * Returns the mesh that should be used for computing collisions
-    * 
-    * @return collision mesh
+    * Returns <code>true</code> if this collidable is actually allowed to
+    * collide with other collidables. This can be predicated on several
+    * factors, such as the setting of a <code>collidable</code> property or
+    * whether or not this collidable currently possesses a valid collision
+    * mesh.  If this method returns <code>false</code>, then no collisions will
+    * be performed for this collidable, regardless any default or explicit
+    * collision behaviors that have been arranged by the system.
+    *
+    * @return <code>true</code> if collisions are allowed for this
+    * collidable.
     */
-   public PolygonalMesh getCollisionMesh();
+   public boolean isCollidable();
 
    /**
-    * Returns all the contact master components associated with a particular
-    * mesh vertex. Information for each contact master should be appended
-    * to <code>mlist</code>. The list should not be cleared. The vertex
-    * should be a vertex of the mesh returned by {@link getCollisionMesh}.
-    * 
-    * @param mlist collected master component information
-    * @param vtx vertex for which the master components are requested
+    * Returns <code>true</code> if this collidable is deformable. Whether or
+    * not a collidable is deformable determines how it responds to default
+    * collision behaviors involving deformable and rigid collidables. Also,
+    * self-collisions among sub-collidables of a collidable A are permitted
+    * only if A is deformable.
+    *
+    * @return <code>true</code> if this collidable is deformable
     */
-   public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx);
+   public boolean isDeformable();
    
    /**
-    * Returns true if this Collidable contains a specified contact master
-    * component.
-    * 
-    * @param comp component to test for
-    * @return <code>true</code> if <code>comp</code> is contained in
-    * this Collidable
+    * Returns <code>true</code> if <code>col</code> is a sub-collidable of
+    * this collidable which is allowed to collide with other sub-collidables.
+    * For a collidable A, self-collision is only permitted 
+    * among its sub-collidables for which this method returns <code>true</code>.
+    * @param col collidable to be tested
+    * @return <code>true</code> if <code>col</code> is allowed to collide
+    * with other sub-collidables.
     */
-   public boolean containsContactMaster (CollidableDynamicComponent comp);
-   
-   //public boolean requiresContactVertexInfo();
-   
-   /**
-    * Returns <code>true</code> if a collision between this Collidable
-    * and <code>other</code> should be allowed for the contact point
-    * <code>cpnt</code>. In making this decision, this method may
-    * refer to <code>attachedVertices</code>, which supplies a list
-    * of vertices on this Collidable which are <i>attached</i> in some way 
-    * to the other Collidable.
-    * 
-    * @param cpnt contact point being tested
-    * @param other opposing collidable
-    * @param attachedVertices list of vertices attached to <code>other</code>.
-    * @return <code>true</code> if the collision should be allowed
-    */
-   public boolean allowCollision (
-      ContactPoint cpnt, Collidable other, Set<Vertex3d> attachedVertices);
+   public boolean allowSelfIntersection (Collidable col);
+
    
    public static Collidable Default = new DefaultCollidable("Default");
    public static Collidable RigidBody = new DefaultCollidable("RigidBody");

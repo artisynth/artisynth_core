@@ -86,6 +86,7 @@ public class SetCollisionsDialog extends PropertyDialog
             for (int j=i+1; j<collidables.size(); j++) {
                Collidable ci = collidables.get(i);
                Collidable cj = collidables.get(j);
+               // ??? doesn't look like ci can equal cj 
                if ((ci == cj && !(ci instanceof RigidBody)) ||
                    (ci != cj)) {
                   pairs.add (new CollidablePair (ci, cj));
@@ -111,24 +112,11 @@ public class SetCollisionsDialog extends PropertyDialog
          new LinkedList<CollisionComponent>();
       CollisionManager colmanager = myMechModel.getCollisionManager();
       for (CollidablePair pair : myCollisionPairs) {
-         CollisionComponent comp = colmanager.getCollisionOverride (pair);
+         CollisionComponent comp = colmanager.getCollisionComponent (pair);
          if (comp != null) {
-            if (!behavior.equals (comp.getBehavior())) {
-               removeList.add (comp);
-               CollisionBehavior prim =
-                  colmanager.getPrimaryCollisionBehavior (pair);
-               if (!behavior.equals (prim)) {
-                  addList.add (new CollisionComponent (pair, behavior));
-               }
-            }
+            removeList.add (comp);
          }
-         else {
-            CollisionBehavior prim =
-               colmanager.getPrimaryCollisionBehavior (pair);
-            if (!behavior.equals (prim)) {
-               addList.add (new CollisionComponent (pair, behavior));
-            }
-         }
+         addList.add (new CollisionComponent (pair, behavior));
       }
 
       return new RemoveAddCommand (

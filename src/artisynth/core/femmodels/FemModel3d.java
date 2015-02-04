@@ -77,7 +77,7 @@ import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.CollidableDynamicComponent;
 import artisynth.core.mechmodels.ContactPoint;
 import artisynth.core.mechmodels.ContactMaster;
-import artisynth.core.mechmodels.DeformableCollisionData;
+
 import artisynth.core.mechmodels.DynamicAttachment;
 import artisynth.core.mechmodels.HasAuxState;
 import artisynth.core.mechmodels.HasSurfaceMesh;
@@ -98,6 +98,7 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.modelbase.StepAdjustment;
+import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.util.ArtisynthIO;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.ScanToken;
@@ -182,6 +183,9 @@ public class FemModel3d extends FemModel
    private double myElementWidgetSize = DEFAULT_ELEMENT_WIDGET_SIZE;
    PropertyMode myElementWidgetSizeMode = PropertyMode.Inherited;
 
+   protected static final boolean DEFAULT_COLLIDABLE = true;
+   protected boolean myCollidableP = DEFAULT_COLLIDABLE;
+
    // maximum number of pressure DOFs that can occur in an element
    private static int MAX_PRESSURE_VALS = 8;
    // maximum number of nodes for elements associated with nodal
@@ -235,6 +239,8 @@ public class FemModel3d extends FemModel
          DEFAULT_ELEMENT_WIDGET_SIZE, "[0,1]");
       myProps.addInheritable("colorMap:Inherited", "color map for stress/strain", 
          defaultColorMap, "CE");
+      myProps.add("collidable isCollidable setCollidable", 
+         "sets whether or not the FEM is collidable", DEFAULT_COLLIDABLE);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -526,8 +532,8 @@ public class FemModel3d extends FemModel
     * determined automatically. If the marker's current position does not lie
     * within the model, it is projected onto the model's surface.
     * 
-    * @param pnt
-    * point to place a marker in the model
+    * @param pos
+    * position to place a marker in the model
     */
    public FemMarker addMarker(Point3d pos) {
       return addMarker(pos, true);
@@ -539,8 +545,8 @@ public class FemModel3d extends FemModel
     * within the model and {@code project == true}, it will be projected onto 
     * the model's surface.
     * 
-    * @param pnt
-    * point to place a marker in the model
+    * @param pos
+    * position to place a marker in the model
     * @param project
     * if true and pnt is outside the model, projects to the nearest point
     * on the surface.  Otherwise, uses the original position.
@@ -2515,13 +2521,34 @@ public class FemModel3d extends FemModel
    public boolean isCollidable () {
       PolygonalMesh mesh = getSurfaceMesh();
       if (mesh != null) {
-         return true;
+         return myCollidableP;
       }
       return false;
    }
 
+   public void setCollidable (boolean enable) {
+      if (myCollidableP != enable) {
+         myCollidableP = enable;
+         notifyParentOfChange (new StructureChangeEvent (this));
+      }
+   }
+
+   @Override
+   public boolean allowSelfIntersection (Collidable col) {
+      return
+         (col instanceof FemMesh &&
+          col.getParent() == myMeshList &&
+          col != getSurfaceFemMesh());          
+   }
+
+   @Override
+   public boolean isDeformable () {
+      return true;
+   }
+
    public FemMesh addMesh(MeshBase mesh) {
-      String meshName = ModelComponentBase.makeValidName(mesh.getName(), null, myMeshList);
+      String meshName =
+         ModelComponentBase.makeValidName(mesh.getName(), null, myMeshList);
       return addMesh(meshName, mesh);
    }
    
@@ -3147,12 +3174,10 @@ public class FemModel3d extends FemModel
    }
 
    public PointAttachment createPointAttachment (Point pnt) {
-      double reduceTol = 1e-8*RenderableUtils.getRadius(this);
-      return createPointAttachment (pnt, reduceTol);
+      return createPointAttachment (pnt, 0);
    }
    
-   public PointAttachment createPointAttachment (
-      Point pnt, double reduceTol) {
+   public PointAttachment createPointAttachment (Point pnt, double reduceTol) {
       
       if (pnt.isAttached()) {
          throw new IllegalArgumentException ("point is already attached");
@@ -3179,8 +3204,8 @@ public class FemModel3d extends FemModel
       else {
          return PointFem3dAttachment.create (pnt, elem, loc, reduceTol);
          // Coords are computed in createNearest.  the point's position will be
-         // updated, if necessary, by the addRemove hook when the attachement is
-         // added.
+         // updated, if necessary, by the addRemove hook when the attachement
+         // is added.
       }
    }
 
@@ -3651,60 +3676,12 @@ public class FemModel3d extends FemModel
 
    // begin Collidable interface 
 
-   public DeformableCollisionData createCollisionData() {
-
-      if (isAutoGeneratingSurface()) {
-         return new FemCollisionData (this, getSurfaceMesh ());
-         //return new EmbeddedCollisionData (this, getSurfaceFemMesh ());
-      }
-
-      FemMesh fm = getSurfaceFemMesh();
-      if (fm != null) {
-         return new EmbeddedCollisionData (this, fm);
-      }
-        
-      return null;
-   }
-
-   /**
-    * Return the current collision mesh
-    */
-   @Override
-   public PolygonalMesh getCollisionMesh() {
-      FemMesh cfm = getCollisionFemMesh();
-      return cfm != null ? (PolygonalMesh)cfm.getMesh() : null;
-   }
-
    /**
     * Return the FemMesh component holding the collision mesh
     */
    FemMesh getCollisionFemMesh() {
       return getSurfaceFemMesh();
    }
-
-   public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
-      FemMesh cfm = getCollisionFemMesh();
-      if (cfm == null) {
-         throw new IllegalStateException (
-            "FemModel does not have a valid collision mesh");
-      }
-      cfm.getVertexMasters (mlist, vtx);
-   }
-   
-   public boolean containsContactMaster (CollidableDynamicComponent comp) {
-      FemMesh cfm = getCollisionFemMesh();
-      return cfm.containsContactMaster (comp);
-   }
-   
-   public boolean allowCollision (
-      ContactPoint cpnt, Collidable other, Set<Vertex3d> attachedVertices) {
-      FemMesh cfm = getCollisionFemMesh();
-      if (cfm == null) {
-         throw new IllegalStateException (
-            "FemModel does not have a valid collision mesh");
-      }
-      return cfm.allowCollision (cpnt, null, attachedVertices);
-   }   
 
    // end Collidable interface 
      

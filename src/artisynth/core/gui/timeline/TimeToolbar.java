@@ -141,8 +141,7 @@ public class TimeToolbar extends JToolBar {
       button.setActionCommand (toolTip);
       button.addActionListener (new TimelineButtonListener());
 
-      GenericKeyHandler keyHandler = new GenericKeyHandler();
-      keyHandler.setMainFrame (Main.getMainFrame());
+      GenericKeyHandler keyHandler = new GenericKeyHandler(Main.getMain());
       
       button.addKeyListener (keyHandler);
       return button;

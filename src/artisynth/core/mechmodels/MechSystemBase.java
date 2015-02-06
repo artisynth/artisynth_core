@@ -480,13 +480,24 @@ public abstract class MechSystemBase extends RenderableModelBase
    }
 
    protected void updateForceComponentList() {
+      // Build new constrainer and force effector lists if necessary.
+      // Create using temporary lists just in case clearCache() gets
+      // called while the lists are being built.
+      ArrayList<Constrainer> newConstrainers = null;
+      ArrayList<ForceEffector> newForceEffectors = null;
       if (myConstrainers == null) {
-         myConstrainers = new ArrayList<Constrainer>();
-         getConstrainers (myConstrainers, 0);
+         newConstrainers = new ArrayList<Constrainer>();
+         getConstrainers (newConstrainers, 0);
       }
       if (myForceEffectors == null) {
-         myForceEffectors = new ArrayList<ForceEffector>();
-         getForceEffectors (myForceEffectors, 0);
+         newForceEffectors = new ArrayList<ForceEffector>();
+         getForceEffectors (newForceEffectors, 0);
+      }
+      if (newConstrainers != null) {
+         myConstrainers = newConstrainers;
+      }
+      if (newForceEffectors != null) {
+         myForceEffectors = newForceEffectors;
       }
    }
 
@@ -1737,10 +1748,12 @@ public abstract class MechSystemBase extends RenderableModelBase
 //      addAttachmentSolveBlocks(M);
    }
 
-   public double getMass() {
+   public double getActiveMass() {
       double m = 0;
       updateDynamicComponentLists();      
-      for (int i=0; i<myDynamicComponents.size(); i++) {
+      // restrict mass to active components, esp. since mass for parametric
+      // components maybe arbitrary
+      for (int i=0; i<myNumActive; i++) {
          m += myDynamicComponents.get(i).getMass(0);
       }
       return m;

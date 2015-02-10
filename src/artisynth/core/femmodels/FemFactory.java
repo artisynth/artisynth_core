@@ -493,9 +493,68 @@ public class FemFactory {
 
    }
 
-   // combination of hex, wedge, pyramid and tets
-   // rl should be the longest radius, has wedge core
-   // like the cylinder
+
+   /**
+    * Creates a tet-based spherical model based on a icosahedron. The method
+    * works by creating an icosahedral surface mesh and then using tetgen.
+    * 
+    * @param mod empty FEM model to which elements are added; if
+    * <code>null</code> then a new model is allocated
+    * @param r radius
+    * @param ndivisions number of divisions used in creating the surface mesh.
+    * Typical values are 1 or 2.
+    * @param quality quality parameter passed to tetgen. See
+    * {@link #buildFromMesh} for a full description.
+    * @return the FEM model (which will be <code>mod</code> if
+    * <code>mod</code> is not <code>null</code>).
+    */
+   public static FemModel3d createIcosahedralSphere (
+      FemModel3d mod, double r, int ndivisions, double quality) {
+
+      PolygonalMesh mesh = MeshFactory.createIcosahedralSphere (
+         r, Point3d.ZERO, ndivisions);
+      return createFromMesh (mod, mesh, quality);
+   }
+
+   /**
+    * Convenience method to create a symmetric hex/wedge dominant sphere
+    * using {@link #createEllipsoid}.
+    * 
+    * @param mod empty FEM model to which elements are added; if
+    * <code>null</code> then a new model is allocated
+    * @param r radius
+    * @param nt number of nodes in each ring parallel to the equator
+    * @param nl number of nodes in each quarter ring perpendicular to the
+    * equator (including end nodes)
+    * @param ns number of nodes in each radial line extending out from
+    * the polar axis (including end nodes)
+    * @return the FEM model (which will be <code>mod</code> if
+    * <code>mod</code> is not <code>null</code>).
+    */
+   public static FemModel3d createSphere (
+       FemModel3d mod, double r, int nt, int nl, int ns) {
+      return createEllipsoid (mod, r, r, r, nt, nl, ns);
+   }
+
+   /**
+    * Creates an ellipsoidal model using a combination of hex, wedge, and tet
+    * elements. The model is created symmetrically about a central polar axis,
+    * using wedge elements at the core.  <code>rl</code> should be the longest
+    * radius, and corresponds to the polar axis.
+    *
+    * @param mod empty FEM model to which elements are added; if
+    * <code>null</code> then a new model is allocated
+    * @param rl longest radius (also the polar radius)
+    * @param rs1 first radius perpendicular to the polar axis
+    * @param rs2 second radius perpendicular to the polar axis
+    * @param nt number of nodes in each ring parallel to the equator
+    * @param nl number of nodes in each quarter ring perpendicular to the
+    * equator (including end nodes)
+    * @param ns number of nodes in each radial line extending out from
+    * the polar axis (including end nodes)
+    * @return the FEM model (which will be <code>mod</code> if
+    * <code>mod</code> is not <code>null</code>).
+    */
    public static FemModel3d createEllipsoid(
       FemModel3d mod, double rl, double rs1, double rs2, int nt, int nl, int ns) {
 
@@ -2142,13 +2201,7 @@ public class FemFactory {
     * <p>
     * The tessellation is done using tetgen, which is called through a JNI
     * interface. The tessellation quality is controlled using the
-    * <code>quality</code> variable. If <code>quality</code> is 0, then only the
-    * mesh nodes will be used to form the tessellation. However, this may result
-    * in highly degenerate tetrahedra. Otherwise, if <code>quality</code> is >
-    * 0, tetgen will add additional nodes to ensure that the minimum edge-radius
-    * ratio does not exceed <code>quality</code>. A good default value for
-    * <code>quality</code> is 2. If set too small (such as less then 1), then
-    * tetgen may not terminate.
+    * <code>quality</code> variable, described below.
     *
     * @param model
     * model to which the tetrahedra should be added, or <code>null</code> if the
@@ -2156,7 +2209,13 @@ public class FemFactory {
     * @param surface
     * triangular surface mesh used to define the tessellation.
     * @param quality
-    * quality parameter passed to tetgen.
+    * If 0, then only the
+    * mesh nodes will be used to form the tessellation. However, this may result
+    * in highly degenerate tetrahedra. Otherwise, if >
+    * 0, tetgen will add additional nodes to ensure that the minimum edge-radius
+    * ratio does not exceed <code>quality</code>. A good default value for
+    * <code>quality</code> is 2. If set too small (such as less then 1), then
+    * tetgen may not terminate.
     * @return the FEM model
     */
    public static FemModel3d createFromMesh(
@@ -2649,8 +2708,6 @@ public class FemFactory {
     * the model is to be created from scratch.
     * @param fem0
     * existing FEM model to be refined.
-    * @return refined FEM model (which will be <code>femr</code> if
-    * <code>femr</code> is not <code>null</code>).
     */
    public static FemModel3d subdivideFem(FemModel3d femr, FemModel3d fem0) {
       if (fem0 == null) {

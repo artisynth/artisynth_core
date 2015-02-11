@@ -350,22 +350,37 @@ implements SelectionListener, MouseInputListener {
       super.setModel (model);
       double radius = 0;
       double mass = 0;
+      double gravityStiffness = 0;
+      double accelStiffness = 0;
       if (model instanceof Renderable) {
          radius = RenderableUtils.getRadius ((Renderable)model);
       }
       if (model instanceof MechSystemBase) {
-         mass = ((MechSystemBase)model).getMass();
+         mass = ((MechSystemBase)model).getActiveMass();
+      }
+      if (model instanceof MechModel) {
+         double g = ((MechModel)model).getGravity().norm();
+         if (g > 0) {
+            // enough to suspend entire model against gravity
+            gravityStiffness = g*mass/radius;
+         }
+      }
+      if (mass > 0 && radius > 0) {
+         // enough accelerate whole model to a velocity of radius/sec in 2 sec
+         accelStiffness = radius*mass/2;
+      }
+      // choose the maximum of the two values, or default to 10.0
+      if (accelStiffness > 0 || gravityStiffness > 0) {
+         setStiffness (Math.max (accelStiffness, gravityStiffness));
+      }
+      else {
+         setStiffness (10.0);
       }
       if (radius > 0) {
          myRenderProps.setPointStyle (RenderProps.PointStyle.SPHERE);
          myRenderProps.setPointRadius (0.02*radius);
          myRenderProps.setLineRadius (0.01*radius);
          myRenderProps.setLineStyle (RenderProps.LineStyle.SOLID_ARROW);
-      }
-      if (mass > 0) {
-         // set stiffness so that a displacement of 1/10 radius will accelerate
-         // the whole model to a velocity of radius/sec in 1 seconds
-         setStiffness (10*mass/(1*1));
       }
    }
 

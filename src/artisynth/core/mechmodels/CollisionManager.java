@@ -1230,7 +1230,12 @@ public class CollisionManager extends RenderableCompositeBase
          myBehaviorMap = null;
          myCollisionHandlersValid = false;            
       }
-      notifyParentOfChange (e);
+      if (e.getComponent() != myCollisionHandlers) {
+         // no need to notify parent about changes to the collision handler
+         // list; those are maintained as sub-components simply so that they can
+         // inherit render properties
+         notifyParentOfChange (e);
+      }
    }
 
    public void setDrawIntersectionContours(boolean set) {

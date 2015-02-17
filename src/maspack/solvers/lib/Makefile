@@ -113,7 +113,7 @@ else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 	PARDISO_MKL_TARGET = PardisoJNI.1.1.dll
 	LIB_FLAGS = -shared -Wl,--add-stdcall-alias
 else ifeq ($(SYSTEM),Darwin)
-	NATIVE_DIR = Darwin-x86_64
+	NATIVE_DIR = MacOS64
         JAVA_INC=/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers
 	CC_INCS = -I$(JAVA_INC) -I$(UMFPACK_DIR)/include -I.
 	CC_FLAGS = -m64 -g -fno-strict-aliasing -fPIC -DDARWIN -fpermissive

@@ -1,3 +1,28 @@
+Feb 11, 2014
+------------
+
+MKL 11 1.3 (version 1, update 3) and higher versions contain Pardiso
+modifications that prevent hybrid solves from working properly using
+the undocumented interface described to us by Olaf.
+
+To obtain MKL download, log in to Intel Registration center
+(john_e_lloyd), and then download the desired composer executable.
+
+For MKL 11 1.2, the file is w_ccompxe_2013_sp1.2.176.exe
+
+An NMakefile32 file has been created for building 32-bit libraries. To
+use it, open an IA-32 command prompt configured for the 32bit
+compiler:
+
+Start > All programs > Intel Parallel Studio XE 2013 > 
+    Command Prompt > Parallel Stuido XE with Intel Compiler > 
+        IA-32 Visual Studio 2013 mode
+
+Then within this window do:
+
+> cd %ARTISYNTH_HOME%\src\maspack\solvers\lib
+> nmake /F NMakefile32
+
 July 31, 2014
 -------------
 
@@ -16,7 +41,7 @@ For example:
 
 Start > All programs > Intel Parallel Studio XE 2013 > 
     Command Prompt > Parallel Stuido XE with Intel Compiler > 
-        Intel 64 Visual Studio 2130 mode
+        Intel 64 Visual Studio 2013 mode
 
 A batch file that sets the environment is found in C:\Program Files
 (x86)\Intel\Composer XE 2013 SP1\bin\compilevars
@@ -60,10 +85,3 @@ Linker-specific options must come at the end, after the /link
 option. Linker options are documented elsewhere, as part of the
 general MicroSoft documentation. One such option is /LIBPATH, which
 serves the same role as -L on unix.
-
-
-
-
-
-
-

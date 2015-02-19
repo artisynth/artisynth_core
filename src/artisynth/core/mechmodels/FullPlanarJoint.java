@@ -77,14 +77,23 @@ public class FullPlanarJoint extends RigidBodyConnector
    }
 
    public FullPlanarJoint (RigidBody bodyA, RigidTransform3d TCA,
-                           RigidBody bodyB, RigidTransform3d XDB) {
+                           RigidBody bodyB, RigidTransform3d TDB) {
       this();
-      setBodies (bodyA, TCA, bodyB, XDB);
+      setBodies (bodyA, TCA, bodyB, TDB);
    }
 
    public FullPlanarJoint (RigidBody bodyA, RigidTransform3d TCA,
                            RigidTransform3d TDW) {
       this();
+      setBodies (bodyA, TCA, null, TDW);
+   }
+   
+   public FullPlanarJoint (RigidBody bodyA, Vector3d worldPlaneNormal) {
+      this();
+      RigidTransform3d TDW = new RigidTransform3d ();
+      TDW.R.setZDirection (worldPlaneNormal);
+      RigidTransform3d TCA = new RigidTransform3d ();
+      TCA.mulInverseLeft (bodyA.getPose (), TDW);
       setBodies (bodyA, TCA, null, TDW);
    }
 

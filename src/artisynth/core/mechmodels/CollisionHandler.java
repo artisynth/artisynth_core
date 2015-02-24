@@ -1447,6 +1447,14 @@ public class CollisionHandler extends ConstrainerBase
       }
    }
 
+   /**
+    * Get most recent ContactInfo info, for rendering purposes. If no collision
+    * occured, this may be null.
+    */
+   public synchronized ContactInfo getRenderContactInfo() {
+      return myRenderContactInfo;
+   }
+
    /* ===== End Render methods ===== */
    
 }

@@ -164,7 +164,7 @@ public class NativeLibraryManager {
    public static int VERBOSE = 0x02;
 
    // remote server from which to obtain libraries.
-   private static String myRemoteServer = "www.magic.ubc.ca";
+   private static String myRemoteServer = "artisynth.magic.ubc.ca";
    private static String myRemoteHost = // where to try and get missing files
       "http://"+myRemoteServer+"/artisynth/files/lib";
 

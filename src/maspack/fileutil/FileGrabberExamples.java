@@ -6,7 +6,7 @@ import java.io.IOException;
 
 public class FileGrabberExamples {
 
-   private static String host = "http://www.magic.ubc.ca/artisynth/files/";
+   private static String host = "http://artisynth.magic.ubc.ca/artisynth/files/";
    private static String local = "tmp/";
    
    private static String example1_file = "lib/argparser.jar";

@@ -30,7 +30,7 @@ public class Launcher {
 
    public static String DEFAULT_MAIN_CLASS_NAME = "artisynth.core.driver.Main";
    private static String myRemoteHost = // where to try and get missing files
-      "http://www.magic.ubc.ca/artisynth/files/lib";
+      "http://artisynth.magic.ubc.ca/artisynth/files/lib";
 
    public static boolean useJOGL2 = true;
    private String myMainClassName;
@@ -43,8 +43,11 @@ public class Launcher {
       this (DEFAULT_MAIN_CLASS_NAME);
    }
    
-   public void launch (String[] args) {
+   public Object launch (String[] args) {
 
+      if (args == null) {
+         args = new String[0];
+      }
       boolean updateLibs = false;
       for (int i=0; i<args.length; i++) {
          if (args[i].equals ("-updateLibs")) {
@@ -84,15 +87,30 @@ public class Launcher {
          } else {
             throw new NoSuchMethodException();
          }
+         Method getMain = mainClass.getMethod("getMain");
+         modifiers = getMain.getModifiers();
+         Object mainObj = null;
+         if (Modifier.isPublic(modifiers) && Modifier.isStatic(modifiers)) {
+            mainObj = getMain.invoke(null);
+         } else {
+            throw new NoSuchMethodException();
+         }
+         return mainObj;
       } catch (Exception e) {
          System.err.println("Error running class " + myMainClassName);
          e.printStackTrace();
+         return null;
       }
    }
  
    public static void main(String[] args) {
       Launcher launcher = new Launcher();
       launcher.launch(args);
+   }
+
+   public static Object dolaunch (String[] args) {
+      Launcher launcher = new Launcher();
+      return launcher.launch(args);
    }
 
    /**

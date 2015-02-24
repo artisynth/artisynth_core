@@ -2,7 +2,7 @@ ifndef ARTISYNTH_WEB_ACCOUNT
 ARTISYNTH_WEB_ACCOUNT = $(USER)
 endif
 
-WEBSERVER = www.magic.ubc.ca
+WEBSERVER = artisynth.magic.ubc.ca
 WEB_HOME = /ubc/magic/home/wwwrun/docs/artisynth
 WEB_DOC_DIR = $(WEB_HOME)/artisynth/doc
 WEB_DOC_URL = $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER):$(WEB_HOME)/artisynth/doc

@@ -1,5 +1,5 @@
 ROOT_DIR = ..
-WEBINSTALL_DIR=/cs/web/www.magic.ubc.ca/docs/artisynth/artisynth/doc
+WEBINSTALL_DIR=/cs/web/artisynth.magic.ubc.ca/docs/artisynth/artisynth/doc
 WEBLOC = $(WEBSERVER):$(WEB_DOC_DIR)
 DOC_DIR = .
 

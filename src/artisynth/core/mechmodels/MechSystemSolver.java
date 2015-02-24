@@ -1727,8 +1727,6 @@ public class MechSystemSolver {
          myRg, myBg, myRn, myBn, myBd, myFrictionInfo, vel, myLam, myThe, myPhi);
 
       // do a Gauss-Siedel project on remaining friction constraints:
-      // 
-      // 1. Determine remaining constraints:
 
       int[] RBDTmap = myRBSolver.getDTMap();
       if (RBDTmap != null) {

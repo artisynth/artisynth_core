@@ -19,6 +19,10 @@ import maspack.spatialmotion.*;
  */
 public class RigidBodySolver {
 
+   private static final int G_MATRIX = 1;
+   private static final int N_MATRIX = 2;
+   private static final int D_MATRIX = 3;
+   
    private int myStructureVersion = -1;
    private int myBilateralVersion = -1;
 
@@ -144,7 +148,7 @@ public class RigidBodySolver {
          // create local GT matrix
 
          myGT = new SparseBlockMatrix (myMassSizes, new int[0]);
-         myGTMap = createConstraintMatrix (myGT, GT);
+         myGTMap = createConstraintMatrix (myGT, GT, G_MATRIX);
          mySizeG = myGT.colSize();
          myLamIdxs = createConstraintIdxs (GT, myGTMap, mySizeG);
          myLam.setSize (mySizeG);
@@ -177,7 +181,7 @@ public class RigidBodySolver {
    }
 
    private int[] createConstraintMatrix (
-      SparseBlockMatrix XT, SparseBlockMatrix XTGlobal) {
+      SparseBlockMatrix XT, SparseBlockMatrix XTGlobal, int type) {
       
       // alloc max possible size for column map
       int[] colMap = new int[XTGlobal.numBlockCols()];
@@ -193,8 +197,12 @@ public class RigidBodySolver {
          while (blk != null) {
             bi = blk.getBlockRow();
             // don't add the constraint if we find a non-body constraint,
-            // or the constraint involves more than two bodies
-            if (!componentIsRigidBody (bi, XTGlobal) || ++numBodies > 2) {
+            // or the constraint involves more than two bodies, or if this
+            // is a D matrix and the block column size is one and hence
+            // indicates a unidirectional constraint
+            if (!componentIsRigidBody (bi, XTGlobal) || 
+                ++numBodies > 2 || 
+                (type == D_MATRIX && blk.colSize() == 1)) {
                blkA = null;
                break;
             }
@@ -240,7 +248,7 @@ public class RigidBodySolver {
 
    private void updateNT (SparseBlockMatrix NT) {
       myNT = new SparseBlockMatrix (myMassSizes, new int[0]);
-      myNTMap = createConstraintMatrix (myNT, NT);
+      myNTMap = createConstraintMatrix (myNT, NT, N_MATRIX);
       mySizeN = myNT.colSize();
       myTheIdxs = createConstraintIdxs (NT, myNTMap, mySizeN);
       myThe.setSize (mySizeN);
@@ -254,7 +262,7 @@ public class RigidBodySolver {
 
    private void updateDT (SparseBlockMatrix DT) {
       myDT = new SparseBlockMatrix (myMassSizes, new int[0]);
-      myDTMap = createConstraintMatrix (myDT, DT);
+      myDTMap = createConstraintMatrix (myDT, DT, D_MATRIX);
       mySizeD = myDT.colSize();
       myPhiIdxs = createConstraintIdxs (DT, myDTMap, mySizeD);
       myPhi.setSize (mySizeD);

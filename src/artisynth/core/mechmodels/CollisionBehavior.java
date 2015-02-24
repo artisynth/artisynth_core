@@ -11,9 +11,19 @@ package artisynth.core.mechmodels;
  * between two bodies.
  */
 public class CollisionBehavior {
+   
+   public enum Method {
+      DEFAULT,
+      VERTEX_PENETRATION,
+      VERTEX_EDGE_PENETRATION,
+      CONTOUR_REGION,
+      VERTEX_PENETRATION_BILATERAL
+   }
+
    boolean myEnabled = true;
    double myFriction = 0.0;
    CollidablePair myPair = null;
+   Method myMethod = Method.DEFAULT;
 //   MechModel myModel = null;
 
    /** 
@@ -22,6 +32,7 @@ public class CollisionBehavior {
    public CollisionBehavior() {
       myEnabled = false;
       myFriction = 0.0;
+      myMethod = Method.DEFAULT;
    }
 
    /** 
@@ -83,6 +94,24 @@ public class CollisionBehavior {
    }
 
    /** 
+    * Returns the collision method to be used by this behavior.
+    * 
+    * @return collision method for this behavior
+    */
+   public Method getMethod() {
+      return myMethod;
+   }
+
+   /** 
+    * Set the collision method to be used by this behavior.
+    * 
+    * @param method collision method to be used
+    */
+   public void setMethod (Method method) {
+      myMethod = method;
+   }
+
+   /** 
     * Returns true if this behavior equals another. The values
     * returned by {@link #getPair getPair}
     * are not considered in this comparision.
@@ -92,12 +121,14 @@ public class CollisionBehavior {
     */
    public boolean equals (CollisionBehavior b) {
       return (myEnabled == b.myEnabled &&
-              myFriction == b.myFriction);
+              myFriction == b.myFriction &&
+              myMethod == b.myMethod);
    }
 
    public void set (CollisionBehavior v) {
       myFriction = v.myFriction;
       myEnabled = v.myEnabled;
+      myMethod = v.myMethod;
    }
 
    /** 
@@ -111,7 +142,8 @@ public class CollisionBehavior {
    }
 
    public String toString() {
-      return "enabled=" + myEnabled + " friction=" + myFriction;
+      return ("enabled=" + myEnabled + " friction=" + myFriction +
+             " method=" + myMethod);
    }
 
 //   /** 

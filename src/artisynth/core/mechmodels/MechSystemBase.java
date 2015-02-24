@@ -481,7 +481,7 @@ public abstract class MechSystemBase extends RenderableModelBase
 
    protected void updateForceComponentList() {
       // Build new constrainer and force effector lists if necessary.
-      // Create using temporary lists just in case clearCache() gets
+      // Create using temporary lists just in case clearCachedData() gets
       // called while the lists are being built.
       ArrayList<Constrainer> newConstrainers = null;
       ArrayList<ForceEffector> newForceEffectors = null;
@@ -797,11 +797,16 @@ public abstract class MechSystemBase extends RenderableModelBase
 //      }
    }
 
-   public StepAdjustment preadvance (double t0, double t1, int flags) {
+   
+   void advanceAuxState (double t0, double t1) {
       updateAuxStateComponentList();
       for (int i=0; i<myAuxStateComponents.size(); i++) {
          myAuxStateComponents.get(i).advanceAuxState (t0, t1);
       }
+   }      
+
+   public StepAdjustment preadvance (double t0, double t1, int flags) {
+      advanceAuxState (t0, t1);
       // zero forces
       updateDynamicComponentLists();
       for (int i=0; i<myDynamicComponents.size(); i++) {

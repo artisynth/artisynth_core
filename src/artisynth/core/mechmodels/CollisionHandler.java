@@ -20,16 +20,10 @@ import maspack.util.*;
 
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
-import artisynth.core.modelbase.*;
+import artisynth.core.mechmodels.CollisionBehavior.Method;
 
 public class CollisionHandler extends ConstrainerBase 
    implements HasRenderProps, GLRenderable {
-
-   public enum Method {
-      VERTEX_PENETRATION,
-      VERTEX_EDGE_PENETRATION,
-      CONTOUR_REGION
-   }
 
    SignedDistanceCollider mySDCollider;
    LinkedHashMap<ContactPoint,ContactConstraint> myBilaterals0;
@@ -52,6 +46,7 @@ public class CollisionHandler extends ConstrainerBase
    boolean myDrawIntersectionContours = false;
    boolean myDrawIntersectionFaces = false;
    boolean myDrawIntersectionPoints = false;
+   boolean myDrawConstraints = false;
 
    ContactInfo myLastContactInfo; // last contact info produced by this handler
    ContactInfo myRenderContactInfo; // contact info to be used for rendering
@@ -60,15 +55,13 @@ public class CollisionHandler extends ConstrainerBase
    HashSet<Vertex3d> myAttachedVertices1 = null;
    boolean myAttachedVerticesValid = false;
 
-   CollisionHandler.Method myMethod = CollisionHandler.myDefaultMethod;
+   CollisionBehavior.Method myMethod;
    public static boolean useSignedDistanceCollider = false;
    
    public static boolean doBodyFaceContact = false;
    public static boolean computeTimings = false;
    
    public boolean reduceConstraints = false;
-
-   public static Method myDefaultMethod = Method.VERTEX_PENETRATION;
 
    public static PropertyList myProps =
       new PropertyList (CollisionHandler.class, ConstrainerBase.class);
@@ -145,14 +138,14 @@ public class CollisionHandler extends ConstrainerBase
 
    public void setRigidPointTolerance (double tol) {
       // XXX should we always set this?
-      if (myMethod == CollisionHandler.Method.CONTOUR_REGION) {
+      if (myMethod == CollisionBehavior.Method.CONTOUR_REGION) {
          myCollider.setPointTolerance (tol);
       }
    }
 
    public double getRigidPointTolerance() {
       // XXX should we always set this?
-      if (myMethod == CollisionHandler.Method.CONTOUR_REGION) {
+      if (myMethod == CollisionBehavior.Method.CONTOUR_REGION) {
          return myCollider.getPointTolerance();
       }
       else {
@@ -162,14 +155,14 @@ public class CollisionHandler extends ConstrainerBase
 
    public void setRigidRegionTolerance (double tol) {
       // XXX should we always set this?
-      if (myMethod == CollisionHandler.Method.CONTOUR_REGION) {
+      if (myMethod == CollisionBehavior.Method.CONTOUR_REGION) {
          myCollider.setRegionTolerance (tol);
       }
    }
 
    public double getRigidRegionTolerance() {
       // XXX should we always set this?
-      if (myMethod == CollisionHandler.Method.CONTOUR_REGION) {
+      if (myMethod == CollisionBehavior.Method.CONTOUR_REGION) {
          return myCollider.getRegionTolerance();
       }
       else {
@@ -223,19 +216,27 @@ public class CollisionHandler extends ConstrainerBase
 
    public CollisionHandler (
       CollisionManager manager,
-      CollidableBody col0, CollidableBody col1, double mu) {
+      CollidableBody col0, CollidableBody col1, CollisionBehavior behav) {
 
       this (manager);
       myCollidable0 = col0;
       myCollidable1 = col1;
-      if (isRigid(col0) && isRigid(col1)) {
-         myMethod = CollisionHandler.Method.CONTOUR_REGION;
+      Method method = behav.getMethod();
+      if (method == Method.DEFAULT) {
+         if (isRigid(col0) && isRigid(col1)) {
+            method = CollisionBehavior.Method.CONTOUR_REGION;
+         }
+         else {
+            method = CollisionBehavior.Method.VERTEX_PENETRATION;
+         }
       }
-      else if (col0 instanceof RigidBody) {
+      if (method != CollisionBehavior.Method.CONTOUR_REGION &&
+          isRigid(col0) && !isRigid(col1)) {
          myCollidable0 = col1;
-         myCollidable1 = col0;        
+         myCollidable1 = col0;         
       }
-      setFriction (mu);
+      myMethod = method;
+      setFriction (behav.getFriction());
    }
 
    public static boolean attachedNearContact (
@@ -324,11 +325,12 @@ public class CollisionHandler extends ConstrainerBase
       myMesh0 = myCollidable0.getCollisionMesh();
       myMesh1 = myCollidable1.getCollisionMesh();
 
-      boolean needContours = (myMethod==CollisionHandler.Method.CONTOUR_REGION);
+      boolean needContours = (myMethod==CollisionBehavior.Method.CONTOUR_REGION);
       ContactInfo info = myCollider.getContacts (myMesh0, myMesh1, needContours);
       double maxpen;
       switch (myMethod) {
          case VERTEX_PENETRATION: 
+         case VERTEX_PENETRATION_BILATERAL:
          case VERTEX_EDGE_PENETRATION: {
             maxpen = computeVertexPenetrationConstraints (
                info, myCollidable0, myCollidable1);
@@ -537,7 +539,6 @@ public class CollisionHandler extends ConstrainerBase
          pnt0 = new ContactPoint (cpp.vertex);
          pnt1 = new ContactPoint (cpp.position, cpp.face, cpp.coords);
          
-         // TODO: finish this ...
          if (!collidable0.allowCollision (
                 pnt0, collidable1, myAttachedVertices0) ||
              !collidable1.allowCollision (
@@ -626,7 +627,7 @@ public class CollisionHandler extends ConstrainerBase
                maxpen = pen;
             }
          }
-         if (myMethod == CollisionHandler.Method.VERTEX_EDGE_PENETRATION) {
+         if (myMethod == CollisionBehavior.Method.VERTEX_EDGE_PENETRATION) {
             double pen = computeEdgePenetrationConstraints (
                info.edgeEdgeContacts, collidable0, collidable1);
             if (pen > maxpen) {
@@ -775,6 +776,7 @@ public class CollisionHandler extends ConstrainerBase
    public int addBilateralConstraints (
       SparseBlockMatrix GT, VectorNd dg, int numb) {
 
+      int numb0 = numb;
       double[] dbuf = (dg != null ? dg.getBuffer() : null);
 
       for (ContactConstraint c : myBilaterals0.values()) {
@@ -805,6 +807,8 @@ public class CollisionHandler extends ConstrainerBase
          else {
             gi.dist = 0;
          }
+         gi.compliance = getCompliance();
+         gi.damping = getDamping();
       }
       for (ContactConstraint c : myBilaterals1.values()) {
          c.setSolveIndex (idx);
@@ -815,6 +819,8 @@ public class CollisionHandler extends ConstrainerBase
          else {
             gi.dist = 0;
          }
+         gi.compliance = getCompliance();
+         gi.damping = getDamping();
       }
       return idx;
    }
@@ -1039,10 +1045,21 @@ public class CollisionHandler extends ConstrainerBase
       }
    }
 
+   private class ConstraintSeg extends LineSeg {
+      float lambda;
+
+      public ConstraintSeg (
+         Point3d pnt0, Vector3d nrm, double len, double lam) {
+         super (pnt0, nrm, len);
+         lambda = (float)lam;
+      }
+   }
+
    private ArrayList<LineSeg> myLineSegments;
    private ArrayList<LineSeg> myRenderSegments; // for rendering
    private ArrayList<FaceSeg> myFaceSegments; 
    private ArrayList<FaceSeg> myRenderFaces; // for rendering
+   private ArrayList<ConstraintSeg> myRenderConstraints; // for rendering
 
    void clearRenderData() {
       myLineSegments = new ArrayList<LineSeg>();
@@ -1066,6 +1083,40 @@ public class CollisionHandler extends ConstrainerBase
       myLastContactInfo = null;
    }
 
+   private double getMaxLambda (Collection<ContactConstraint> cons, double max) {
+      for (ContactConstraint c : cons) {
+         double lam = c.myLambda;
+         if (lam > max) {
+            max = lam;
+         }
+      }
+      return max;
+   }
+
+   private double getMaxLambda () {
+      double max = 0;
+      max = getMaxLambda (myBilaterals0.values(), max);
+      max = getMaxLambda (myBilaterals1.values(), max);
+      max = getMaxLambda (myUnilaterals, max);
+      return max;
+   }
+
+   private double maxlam = 0.20;
+
+   private void addConstraintRenderInfo (
+      Collection<ContactConstraint> cons, double nrmlLen) {
+
+      Point3d pos = new Point3d();
+      for (ContactConstraint c : cons) {
+         double lam = c.myLambda;
+         pos.add (c.myCpnt0.myPoint, c.myCpnt1.myPoint);
+         pos.scale (0.5);
+         myRenderConstraints.add (
+            new ConstraintSeg (
+               pos, c.myNormal, nrmlLen*(lam/maxlam), c.myLambda));
+      }
+   }
+
    public void prerender (RenderList list) {
       if (myDrawIntersectionFaces &&
           myLastContactInfo != null &&
@@ -1074,7 +1125,16 @@ public class CollisionHandler extends ConstrainerBase
          buildFaceSegments(myLastContactInfo, myFaceSegments);
       }
       saveRenderData();
-
+      if (myDrawConstraints) {
+         double nrmlLen = getContactNormalLen();
+         //System.out.println ("max=" + getMaxLambda());
+         if (nrmlLen > 0) {
+            myRenderConstraints = new ArrayList<ConstraintSeg>();
+            addConstraintRenderInfo (myBilaterals0.values(), nrmlLen);
+            addConstraintRenderInfo (myBilaterals1.values(), nrmlLen);
+            addConstraintRenderInfo (myUnilaterals, nrmlLen);
+         }
+      }
       // if (myMethod == Method.CONTOUR_REGION) {
       //    myRBContact.prerender (list);
       // }
@@ -1162,12 +1222,14 @@ public class CollisionHandler extends ConstrainerBase
 
       ArrayList<LineSeg> renderSegments = null;
       ArrayList<FaceSeg> renderFaces = null;
+      ArrayList<ConstraintSeg> renderConstraints = null;
       ContactInfo renderContactInfo = null;
       
       synchronized (this) {
          renderSegments = myRenderSegments;
          renderFaces = myRenderFaces;
          renderContactInfo = myRenderContactInfo;
+         renderConstraints = myRenderConstraints;
       }
 
       // Magnitude of offset vector to add to rendered contour lines.  The
@@ -1181,6 +1243,13 @@ public class CollisionHandler extends ConstrainerBase
       // System.out.println("Z direction" + offDir);
       double scale = offsetMag/offDir.norm();
       offDir.scale(scale);
+
+      if (renderConstraints != null) {
+         for (LineSeg seg : renderConstraints) {
+            renderer.drawLine (
+               props, seg.coords0, seg.coords1, /*selected=*/false);
+         }
+      }
 
       //       if (myRigidBodyPairP && myRBContact != null) {
       //          myRBContact.render (renderer);

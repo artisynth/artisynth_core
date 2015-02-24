@@ -670,7 +670,7 @@ public class CollisionManager extends RenderableCompositeBase
       CollidableBody c0, CollidableBody c1, CollisionBehavior behavior) {
       
       double mu = behavior.getFriction();
-      CollisionHandler handler = new CollisionHandler (this, c0, c1, mu);
+      CollisionHandler handler = new CollisionHandler (this, c0, c1, behavior);
       handler.setReduceConstraints (myReduceConstraints);
       handler.setRigidPointTolerance (getCollisionPointTol());
       handler.setRigidRegionTolerance (getCollisionRegionTol());

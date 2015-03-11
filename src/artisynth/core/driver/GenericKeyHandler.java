@@ -26,14 +26,18 @@ public class GenericKeyHandler implements KeyListener {
     * Create a KeyHandler using a handle to Main
     */
    public GenericKeyHandler(Main main) {
-      myMainFrame = main.getMainFrame();
+      setMainFrame(main.getMainFrame());
       mySelectionManager = main.getSelectionManager();
    }
 
    public MainFrame getMainFrame() {
       return myMainFrame;
    }
-
+   
+   public void setMainFrame(MainFrame mainFrame) {
+      this.myMainFrame = mainFrame;
+   }
+   
    private void setSelectionToSelectionParent() {
       ModelComponent c = mySelectionManager.getLastSelected();
       if (c != null && c.getParent() != null) {

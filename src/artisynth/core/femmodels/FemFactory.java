@@ -639,7 +639,7 @@ public class FemFactory {
 
       return mod;
    }
-
+   
    /**
     * Creates a cylinder made of mostly hex elements, with wedges in the centre
     * column
@@ -650,7 +650,7 @@ public class FemFactory {
       return createHexWedgeCylinder(mod, l, r, nt, nl, nr);
 
    }
-
+   
    public static FemModel3d createHexWedgeCylinder(
       FemModel3d mod, double l, double r, int nt, int nl, int nr) {
 
@@ -712,6 +712,88 @@ public class FemFactory {
 
                         nodes[i][j][k], nodes[(i + 1) % nt][j][k],
                         nodes[(i + 1) % nt][j + 1][k], nodes[i][j + 1][k]);
+                  mod.addElement(hex);
+               }
+
+            }
+         }
+      }
+
+      return mod;
+   }
+   
+   /**
+    * Creates a partial cylinder made of mostly hex elements, with wedges in the centre
+    * column
+    */
+   public static FemModel3d createPartialCylinder(
+      FemModel3d mod, double l, double r, double theta, int nl, int nr, int ntheta) {
+
+      return createPartialHexWedgeCylinder(mod, l, r, theta, nl, nr, ntheta);
+
+   }
+   
+   public static FemModel3d createPartialHexWedgeCylinder(
+      FemModel3d mod, double l, double r, double theta, int nl, int nr, int ntheta) {
+
+      if (mod == null) {
+         mod = new FemModel3d("partial_cylinder");
+      }
+
+      FemNode3d nodes[][][] = new FemNode3d[ntheta][nl][nr];
+
+      double dl = l / (nl - 1);
+      double dt = theta / (ntheta-1);
+      double dr = 1.0 / (nr - 1);
+
+      // generate nodes
+      for (int k = 0; k < nr; k++) {
+         for (int j = 0; j < nl; j++) {
+
+            if (k == 0) {
+               FemNode3d node =
+                  new FemNode3d(new Point3d(0, 0, -l / 2 + j * dl));
+               for (int i = 0; i < ntheta; i++) {
+                  nodes[i][j][k] = node;
+               }
+               mod.addNode(node);
+            } else {
+               for (int i = 0; i < ntheta; i++) {
+                  double rr = r * Math.pow(dr * k, 0.7);
+                  nodes[i][j][k] =
+                     new FemNode3d(new Point3d(-rr * Math.sin(dt * i), rr
+                        * Math.cos(dt * i), -l / 2 + j * dl));
+                  mod.addNode(nodes[i][j][k]);
+               }
+            }
+         }
+      }
+
+      // generate elements
+      for (int k = 0; k < nr - 1; k++) {
+         for (int j = 0; j < nl - 1; j++) {
+            for (int i = 0; i < ntheta -1; i++) {
+
+               if (k == 0) {
+                  // wedge element
+                  WedgeElement wedge =
+                     new WedgeElement(
+                        nodes[i][j][k + 1], nodes[i + 1][j][k + 1],
+                        nodes[i][j][k],
+
+                        nodes[i][j + 1][k + 1],
+                        nodes[i + 1][j + 1][k + 1], nodes[i][j + 1][k]);
+                  mod.addElement(wedge);
+               } else {
+                  // hex element
+                  HexElement hex =
+                     new HexElement(
+                        nodes[i][j][k + 1], nodes[i + 1][j][k + 1],
+                        nodes[i + 1][j + 1][k + 1],
+                        nodes[i][j + 1][k + 1],
+
+                        nodes[i][j][k], nodes[i + 1][j][k],
+                        nodes[i + 1][j + 1][k], nodes[i][j + 1][k]);
                   mod.addElement(hex);
                }
 
@@ -826,6 +908,120 @@ public class FemFactory {
                      nodes[(i + 1) % nt][j + 1][k + 1], nodes[i][j + 1][k + 1],
                      nodes[i][j][k], nodes[(i + 1) % nt][j][k], nodes[(i + 1)
                         % nt][j + 1][k], nodes[i][j + 1][k], (i + j) % 2 == 0);
+
+               mod.addElement(elems[i][j][k][0]);
+               mod.addElement(elems[i][j][k][1]);
+               mod.addElement(elems[i][j][k][2]);
+               mod.addElement(elems[i][j][k][3]);
+               mod.addElement(elems[i][j][k][4]);
+            }
+         }
+      }
+
+      // mod.getSurfaceMesh().setEdgeHard(mod.getNode(3), mod.getNode(34),
+      // true);
+      setTubeEdgesHard(mod, l, rin, rout);
+      return mod;
+   }
+   
+   public static FemModel3d createPartialHexTube(
+      FemModel3d mod, double l, double rin, double rout, double theta, int nl, int nr, int ntheta) {
+      FemNode3d nodes[][][] = new FemNode3d[ntheta][nl][nr];
+
+      double dl = l / (nl - 1);
+      double dt = theta / (ntheta-1);
+      double dr = (rout - rin) / (nr - 1);
+      // double dr = 0.5*r;
+
+      for (int k = 0; k < nr; k++) {
+         for (int j = 0; j < nl; j++) {
+            for (int i = 0; i < ntheta; i++) {
+               nodes[i][j][k] =
+                  // new FemNode3d(new Point3d(
+                  // -l/2+j*dl,
+                  // (rin+dr*k)*Math.cos(dt*i),
+                  // (rin+dr*k)*Math.sin(dt*i)));
+                  // Changed to align tube with z axis
+                  new FemNode3d(new Point3d(
+                     -(rin + dr * k) * Math.sin(dt * i), (rin + dr * k)
+                        * Math.cos(dt * i), -l / 2 + j * dl));
+               mod.addNode(nodes[i][j][k]);
+            }
+         }
+      }
+
+      HexElement elems[][][] = new HexElement[ntheta][nl - 1][nr - 1];
+      LinkedList<HexElement> elemList = new LinkedList<HexElement>();
+
+      for (int k = 0; k < nr - 1; k++) {
+         for (int j = 0; j < nl - 1; j++) {
+            for (int i = 0; i < ntheta-1; i++) {
+               elems[i][j][k] =
+                  new HexElement(
+                     nodes[i][j][k + 1], nodes[i + 1][j][k + 1],
+                     nodes[i + 1][j + 1][k + 1], nodes[i][j + 1][k + 1],
+
+                     nodes[i][j][k], nodes[i + 1][j][k], nodes[i + 1][j + 1][k],
+                     nodes[i][j + 1][k]
+                  );
+
+               // elems[i][j][k].setParity ((i+j)%2==0 ? 1 : 0);
+
+               elemList.add(elems[i][j][k]);
+               mod.addElement(elems[i][j][k]);
+            }
+         }
+      }
+      HexElement.setParities(elemList);
+
+      setTubeEdgesHard(mod, l, rin, rout);
+      return mod;
+   }
+
+   public static FemModel3d createPartialTetTube(
+      FemModel3d mod, double l, double rin, double rout, double theta, int nl, int nr, int ntheta) {
+      // HexModel mod = new HexModel();
+
+      FemNode3d nodes[][][] = new FemNode3d[ntheta][nl][nr];
+
+      double dl = l / (nl - 1);
+      double dt = theta / (ntheta-1);
+      double dr = (rout - rin) / (nr - 1);
+      // double dr = 0.5*r;
+
+      for (int k = 0; k < nr; k++) {
+         for (int j = 0; j < nl; j++) {
+            for (int i = 0; i < ntheta; i++) {
+               nodes[i][j][k] =
+                  // new FemNode3d(new Point3d(-l/2+j*dl,
+                  // (rin+dr*k)*Math.cos(dt*i),
+                  // (rin+dr*k)*Math.sin(dt*i)));
+                  // changed to make tube align with the z axis
+                  new FemNode3d(new Point3d(
+                     -(rin + dr * k) * Math.sin(dt * i), (rin + dr * k)
+                        * Math.cos(dt * i), -l / 2 + j * dl));
+               mod.addNode(nodes[i][j][k]);
+            }
+         }
+      }
+
+      // for(FemNode3d n : tetMod.getNodes())
+      // {
+      // R.mul(pos, n.getPosition());
+      // n.setPosition(new Point3d(pos));
+      // }
+
+      TetElement elems[][][][] = new TetElement[ntheta][nl - 1][nr - 1][5];
+
+      for (int k = 0; k < nr - 1; k++) {
+         for (int j = 0; j < nl - 1; j++) {
+            for (int i = 0; i < ntheta -1; i++) {
+               elems[i][j][k] =
+                  TetElement.createCubeTesselation(
+                     nodes[i][j][k + 1], nodes[i + 1][j][k + 1],
+                     nodes[i + 1][j + 1][k + 1], nodes[i][j + 1][k + 1],
+                     nodes[i][j][k], nodes[i + 1][j][k], nodes[i + 1][j + 1][k],
+                     nodes[i][j + 1][k], (i + j) % 2 == 0);
 
                mod.addElement(elems[i][j][k][0]);
                mod.addElement(elems[i][j][k][1]);
@@ -2106,6 +2302,20 @@ public class FemFactory {
             return model;
       }
    }
+   
+   public static FemModel3d createPartialTube(
+      FemModel3d model, FemElementType type, double l, double rin, double rout,
+      double theta, int nl, int nr, int ntheta) {
+      switch (type) {
+         case Tet:
+            return createPartialTetTube(model, l, rin, rout, theta, nl, nr, ntheta);
+         case Hex:
+            return createPartialHexTube(model, l, rin, rout, theta, nl, nr, ntheta);
+         default:
+            System.out.println("unknown element type " + type.toString());
+            return model;
+      }
+   }
 
    public static FemModel3d createTube(
       FemModel3d model, FemElemType type, double l, double rin, double rout,
@@ -2795,5 +3005,7 @@ public class FemFactory {
          out.addElement(newElem);
       }
    }
+   
+   
 
 }

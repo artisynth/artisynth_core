@@ -57,19 +57,6 @@ public class Launcher {
       }
       verifyLibraries (updateLibs);
 
-      // int nlmFlags = NativeLibraryManager.VERBOSE;
-      // if (updateLibs) {
-      //    nlmFlags |= NativeLibraryManager.UPDATE;
-      // }
-      // //LibraryManager.setFlags (LibraryManager.VERBOSE | LibraryManager.UPDATE);
-      // NativeLibraryManager.setFlags (nlmFlags);
-      // NativeLibraryManager.setLibDir (
-      //    ArtisynthPath.getHomeRelativePath ("lib", "."));
-      // NativeLibraryManager.verify ("gluegen-rt");
-      // NativeLibraryManager.verify ("jogl");
-      // NativeLibraryManager.verify ("jogl_awt");
-      // NativeLibraryManager.verify ("jogl_cg");
-
       ClassLoader loader =
          new URLClassLoader (getClasspathURLs(), null);
 
@@ -165,7 +152,7 @@ public class Launcher {
     * Returns true if a character is a legal starting character for an
     * environment variable.
     */
-   private boolean isEnvVariableStart (int c) {
+   private static boolean isEnvVariableStart (int c) {
       return (Character.isLetter (c) || c == '_');
    }
 
@@ -173,7 +160,7 @@ public class Launcher {
     * Returns true if a character is a legal non-starting character for an
     * environment variable.
     */
-   private boolean isEnvVariablePart (int c) {
+   private static boolean isEnvVariablePart (int c) {
       return (Character.isLetterOrDigit (c) || c == '_');
    }
 
@@ -182,7 +169,7 @@ public class Launcher {
     * expected to begin with '$'. If no value is found for a variable, no
     * substitution occurs and the variable is simply removed from the string.
     */   
-   private String subEnvironmentVariables (String str) {
+   private static String subEnvironmentVariables (String str) {
       if (str.indexOf ("$") == -1) {
          return str;
       }
@@ -223,7 +210,7 @@ public class Launcher {
    private static String PSEP = File.pathSeparator;
 
 
-   private String[] readAuxFilesFromLine (BufferedReader reader)
+   private static String[] readAuxFilesFromLine (BufferedReader reader)
       throws IOException {
       
       String line = reader.readLine();
@@ -249,7 +236,7 @@ public class Launcher {
     * Returns a list of external jar files and class directories as specified
     * in the file $ARTISYNTH_HOME/EXTCLASSPATH.
     */
-   private File[] getAuxFiles (String homeDirPath) {
+   private static File[] getExtFiles (String homeDirPath) {
       LinkedList<File> pfiles = new LinkedList<File>();
       File file = new File (homeDirPath+SEP+"EXTCLASSPATH");
       if (file.canRead()) {
@@ -259,8 +246,6 @@ public class Launcher {
             String[] auxFiles;
             while ((auxFiles=readAuxFilesFromLine (reader)) != null) {
                for (String auxFile : auxFiles) {
-                  System.out.println (
-                     "'"+subEnvironmentVariables(auxFile)+"'");
                   File pfile = new File (subEnvironmentVariables(auxFile));
                   if (pfile.canRead()) {
                      pfiles.add (pfile);
@@ -279,35 +264,28 @@ public class Launcher {
                }
             }
          }
-         // ReaderTokenizer rtok = null;
-         // try {
-         //    rtok = ArtisynthIO.newReaderTokenizer (file);
-         //    rtok.wordChars ("\\:");
-         //    while (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
-         //       if (rtok.tokenIsWordOrQuotedString('"')) {
-         //          File pfile = new File (subEnvironmentVariables(rtok.sval));
-         //          if (pfile.canRead()) {
-         //             pfiles.add (pfile);
-         //          }
-         //       }
-         //    }
-         // }
-         // catch (Exception ignore) {
-         // }
-         //finally {
-         //   if (rtok != null) {
-         //      rtok.close();
-         // }
-         //}       
       }
       return pfiles.toArray (new File[0]);      
+   }
+
+   /**
+    * Returns a list of the path names of the external jar files and class
+    * directories as specified in the file $ARTISYNTH_HOME/EXTCLASSPATH.
+    */
+   public static String[] getExtFilePathNames (String homeDirPath) {
+      File[] files = getExtFiles (homeDirPath);
+      String[] pathNames = new String[files.length];
+      for (int i=0; i<pathNames.length; i++) {
+         pathNames[i] = files[i].toString();
+      }
+      return pathNames;
    }
 
    /**
     * Verifies or updates jar files and some native libraries, based on the
     * contents of the file $ARTISYNTH_HOME/lib/LIBRARIES.
     */
-   private void verifyLibraries (boolean update) {
+   public static void verifyLibraries (boolean update) {
 
       LibraryInstaller installer = new LibraryInstaller();
       File libFile = ArtisynthPath.getHomeRelativeFile ("lib/LIBRARIES", ".");
@@ -326,49 +304,6 @@ public class Launcher {
       }
       if (libFile != null) {
          installer.clearNativeLibs();
-         // check only JOGL libraries here; larger libs will be verified
-         // in Main once the GUI comes up and we can show a progress bar
-
-         // if (useJOGL2) {
-         //    // new JOGL 2 libraries
-         //    SystemType sysType = NativeLibraryManager.getSystemType();
-         //    String suffix = null;
-         //    switch (sysType) {
-         //       case Linux64: {
-         //          suffix = "linux-amd64";
-         //          break;
-         //       }
-         //       case Windows64: {
-         //          suffix = "windows-amd64";
-         //          break;
-         //       }
-         //       case Windows32: {
-         //          suffix = "windows-i586";
-         //          break;
-         //       }
-         //       case MacOS64: {
-         //          suffix = "macosx-universal";
-         //          break;
-         //       }
-         //       default: {
-         //          System.out.println (
-         //             "Warning: system type "+sysType+" not supported for JOGL 2");
-         //          sysType = null;
-         //       }
-         //    }
-         //    if (suffix != null) {
-         //       installer.addLibrary ("jogl2-gluegen-rt-natives-"+suffix+".jar");
-         //       installer.addLibrary ("jogl2-all-natives-"+suffix+".jar");
-         //    }
-         // }
-         // else {
-         //    // old JOGL libraries
-         //    installer.addLibrary ("gluegen-rt");
-         //    installer.addLibrary ("jogl");
-         //    installer.addLibrary ("jogl_awt");
-         //    installer.addLibrary ("jogl_cg");
-         // }
-
          boolean allOK = true;
          try {
             allOK &= installer.verifyJars (update);
@@ -446,7 +381,7 @@ public class Launcher {
          addFileIfNeeded (files, fileSet, file);
       }
 
-      File[] auxFiles = getAuxFiles (ahome);
+      File[] auxFiles = getExtFiles (ahome);
       for (File file : auxFiles) {
          addFileIfNeeded (files, fileSet, file);
       }

@@ -77,8 +77,8 @@ public class AliasTable {
       rtok.wordChar ('-');
 
       String alias = null;
-      while (rtok.nextToken() != ReaderTokenizer.TT_EOF
-      && rtok.tokenIsWordOrQuotedString ('"')) {
+      while (rtok.nextToken() != ReaderTokenizer.TT_EOF &&
+             rtok.tokenIsWordOrQuotedString ('"')) {
          if (alias == null) {
             alias = rtok.sval;
          }
@@ -90,6 +90,33 @@ public class AliasTable {
       if (rtok.ttype != ReaderTokenizer.TT_EOF) {
          throw new IOException ("Warning: unknown token " + rtok.tokenName());
       }
+   }
+
+   /**
+    * Add quotes to a string if it contains white space.
+    */
+   public String getPrintString (String str) {
+      for (int i=0; i<str.length(); i++) {
+         if (Character.isWhitespace(str.charAt(i))) {
+            return "\"" + str + "\"";
+         }
+      }
+      return str;
+   }
+
+   public void write (PrintWriter pw) throws IOException {
+
+      for (Map.Entry<String,String> entry : aliasesToNames.entrySet()) {
+         pw.println ("\""+entry.getKey()+"\" "+getPrintString(entry.getValue()));
+      }
+      pw.flush();
+   }
+
+   public void write (String fileName) throws IOException {
+      PrintWriter pw = new PrintWriter (
+         new BufferedWriter (new FileWriter (fileName)));
+      write (pw);
+      pw.close();
    }
 
    /**

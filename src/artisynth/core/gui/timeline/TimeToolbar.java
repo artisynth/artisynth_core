@@ -39,7 +39,7 @@ public class TimeToolbar extends JToolBar {
 
    // // updates the stepTime into the timestep field
    // void updateStepTime () {
-   //    double newStep = Main.getScheduler().getStepTime();
+   //    double newStep = parent.myScheduler.getStepTime();
    //    if (newStep != myStepTime) {
    //       getTimestepTextField().setText (Double.toString (newStep*1000));
    //       myStepTime = newStep;
@@ -141,7 +141,7 @@ public class TimeToolbar extends JToolBar {
       button.setActionCommand (toolTip);
       button.addActionListener (new TimelineButtonListener());
 
-      GenericKeyHandler keyHandler = new GenericKeyHandler(Main.getMain());
+      GenericKeyHandler keyHandler = new GenericKeyHandler(parent.myMain);
       
       button.addKeyListener (keyHandler);
       return button;
@@ -176,8 +176,8 @@ public class TimeToolbar extends JToolBar {
    // }
 
    private void refreshToolbar() {
-      boolean timeIsZero = (Main.getScheduler().getTime() == 0);
-      if (!Main.getScheduler ().isPlaying ()) {
+      boolean timeIsZero = (parent.myScheduler.getTime() == 0);
+      if (!parent.myScheduler.isPlaying ()) {
          //resetButton.setEnabled (!timeIsZero);
          fastBackwardButton.setEnabled (!timeIsZero);
          playButton.setIcon (GuiStorage.PLAY_ICON);
@@ -275,24 +275,24 @@ public class TimeToolbar extends JToolBar {
             return;
          }
          else if (nameOfAction == "Reset") {
-            Main.getScheduler().reset();            
-            //Main.getScheduler().rewind();
+            parent.myScheduler.reset();            
+            //parent.myScheduler.rewind();
          }
          else if (nameOfAction == "Rewind") {       
-            Main.getScheduler().rewind();
+            parent.myScheduler.rewind();
          }
          else if (nameOfAction == "Play") {
-            Main.getScheduler().play();
+            parent.myScheduler.play();
          }
          else if (nameOfAction == "Pause") {
-            Main.getScheduler().pause();
+            parent.myScheduler.pause();
             //parent.pauseTimeline();
          }
          else if (nameOfAction == "Step Forward") {
-            Main.getScheduler().step();
+            parent.myScheduler.step();
          }
          else if (nameOfAction == "Fast Forward") {
-            Main.getScheduler().fastForward();
+            parent.myScheduler.fastForward();
          }
          else if (nameOfAction == "Zoom In") {
             parent.zoom (TimelineConstants.ZOOM_IN);

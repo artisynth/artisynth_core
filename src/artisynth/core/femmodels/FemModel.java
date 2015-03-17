@@ -25,8 +25,8 @@ import maspack.solvers.IterativeSolver.ToleranceType;
 import maspack.util.DoubleInterval;
 import maspack.util.FunctionTimer;
 import maspack.util.StringHolder;
-import artisynth.core.util.PropertyChangeListener;
-import artisynth.core.util.PropertyChangeEvent;
+import artisynth.core.modelbase.PropertyChangeListener;
+import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.TransformableGeometry;
 import artisynth.core.materials.FemMaterial;
@@ -1095,7 +1095,7 @@ public abstract class FemModel extends MechSystemBase
       if (e.getHost() instanceof FemMaterial) {
          invalidateStressAndStiffness();
          invalidateRestData();
-         if (e.getPropName().equals ("viscoBehavior")) {
+         if (e.getPropertyName().equals ("viscoBehavior")) {
             // issue a structure change event in order to invalidate WayPoints
             notifyStructureChanged (this);            
          }

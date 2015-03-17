@@ -290,7 +290,7 @@ public class ViewerManager {
    RenderList buildRenderList() {
       RenderList list = new RenderList();
       list.addIfVisibleAll (myRenderables);
-      RootModel root = Main.getRootModel();
+      RootModel root = Main.getMain().getRootModel();
       if (root != null) {
 	 // modified by Ian: add RootModel to the render list, 
 	 // 	note that prerender is called by addIfVisible()

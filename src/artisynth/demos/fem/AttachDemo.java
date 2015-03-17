@@ -58,10 +58,6 @@ public class AttachDemo extends RootModel {
 
    private IncompMethod myIncompressible = IncompMethod.OFF;
 
-   public AttachDemo() {
-      super (null);
-   }
-
    private FemModel3d createEllipsoid (
       String name, double sx, double sy, double sz) {
       FemModel3d fem = createFem (name);
@@ -98,9 +94,7 @@ public class AttachDemo extends RootModel {
       return fem;
    }
 
-   public AttachDemo (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       int nn = 2;
       double len0 = 0.8;

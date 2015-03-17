@@ -19,6 +19,8 @@ import artisynth.core.modelbase.ModelComponent;
  * 
  */
 public class GenericKeyHandler implements KeyListener {
+
+   Main myMain;
    MainFrame myMainFrame;
    SelectionManager mySelectionManager;
 
@@ -26,7 +28,8 @@ public class GenericKeyHandler implements KeyListener {
     * Create a KeyHandler using a handle to Main
     */
    public GenericKeyHandler(Main main) {
-      setMainFrame(main.getMainFrame());
+      myMain = main;
+      myMainFrame = main.getMainFrame();
       mySelectionManager = main.getSelectionManager();
    }
 
@@ -82,8 +85,8 @@ public class GenericKeyHandler implements KeyListener {
          case ' ':
          case 'p':
 
-            if (Main.getTimeline() != null) {
-               if (Main.getScheduler().isPlaying()) {
+            if (myMain.getTimeline() != null) {
+               if (myMain.getScheduler().isPlaying()) {
                   myMainFrame.getMenuBarHandler().actionPerformed (
                      new ActionEvent (this, 0, "Pause"));
                }
@@ -96,8 +99,8 @@ public class GenericKeyHandler implements KeyListener {
 
          case 'r':
 
-            if (Main.getTimeline() != null) {
-               if (Main.getScheduler().isPlaying()) {
+            if (myMain.getTimeline() != null) {
+               if (myMain.getScheduler().isPlaying()) {
                   myMainFrame.getMenuBarHandler().actionPerformed (
                      new ActionEvent (this, 0, "Pause"));
                }
@@ -121,8 +124,8 @@ public class GenericKeyHandler implements KeyListener {
 
          case 't':
 
-            if (Main.getTimeline() != null) {
-               if (Main.getTimeline().isShowing()) {
+            if (myMain.getTimeline() != null) {
+               if (myMain.getTimeline().isShowing()) {
                   myMainFrame.getMenuBarHandler().actionPerformed (
                      new ActionEvent (this, 0, "Hide timeline"));
                }
@@ -134,7 +137,7 @@ public class GenericKeyHandler implements KeyListener {
             break;
 
          case 'z':
-            Main.getUndoManager().undoLastCommand();
+            myMain.getUndoManager().undoLastCommand();
             break;
 
          case '\033': // escape
@@ -156,17 +159,17 @@ public class GenericKeyHandler implements KeyListener {
       //    myKeyPressed[code] = true;
       // }
       if (code == KeyEvent.VK_RIGHT) {
-	 Main.getScheduler().fastForward();
-	 if (Main.getMovieMaker().isGrabbing()) {
+	 myMain.getScheduler().fastForward();
+	 if (myMain.getMovieMaker().isGrabbing()) {
 	    try {
-	       Main.getMovieMaker().grab();
+	       myMain.getMovieMaker().grab();
 	    } catch (Exception e1) {
 //	       e1.printStackTrace();
 	    }
 	 }
       }
       else if (code == KeyEvent.VK_LEFT) {
-	 Main.getScheduler().rewind();
+	 myMain.getScheduler().rewind();
       }
    }
 
@@ -184,8 +187,8 @@ public class GenericKeyHandler implements KeyListener {
          (KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK)) {
          if (code == KeyEvent.VK_BACK_SPACE) {
             // Pause if playing
-            if (Main.getTimeline() != null) {
-               if (Main.getScheduler().isPlaying()) {
+            if (myMain.getTimeline() != null) {
+               if (myMain.getScheduler().isPlaying()) {
                   myMainFrame.getMenuBarHandler().actionPerformed (
                      new ActionEvent (this, 0, "Pause"));
                }

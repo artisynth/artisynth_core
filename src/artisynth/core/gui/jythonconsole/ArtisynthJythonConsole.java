@@ -19,11 +19,13 @@ public class ArtisynthJythonConsole {
    }
 
    public static ArtisynthJythonConsole createJLineConsole() {
-      return new ArtisynthJythonConsole (new JythonJLineConsole());
+      InteractiveConsole console = new JythonJLineConsole();
+      return new ArtisynthJythonConsole (console);
    }
 
    public static ArtisynthJythonConsole createFrameConsole() {
-      return new ArtisynthJythonConsole (new JythonFrameConsole());
+      InteractiveConsole console = new JythonFrameConsole();
+      return new ArtisynthJythonConsole (console);
    }
 
    public void setMain (Main main) {
@@ -58,6 +60,13 @@ public class ArtisynthJythonConsole {
       }
       else {
          return null;
+      }
+   }
+
+   public void dispose() {
+      if (myConsole instanceof JythonFrameConsole) {
+         ((JythonFrameConsole)myConsole).dispose();
+         myConsole = null;
       }
    }
 

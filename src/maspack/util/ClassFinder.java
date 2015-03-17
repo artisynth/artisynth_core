@@ -158,10 +158,12 @@ public class ClassFinder {
                   }
 
                } catch (Exception e) {
+                  //e.printStackTrace(); 
                   System.out.println(
                      "Class  " + className + "' could not be initialized: " +
                      e.toString() + ", " + e.getMessage());
                } catch (Error err) {
+                  //err.printStackTrace(); 
                   System.out.println(
                      "Class  " + className + "' could not be initialized: " +
                      err.toString() + ", " + err.getMessage());

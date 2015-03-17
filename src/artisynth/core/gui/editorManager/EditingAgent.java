@@ -35,7 +35,7 @@ public abstract class EditingAgent {
 
    public EditingAgent (Main main) {
       myMain = main;
-      myUndoManager = Main.getUndoManager();
+      myUndoManager = myMain.getUndoManager();
       mySelectionManager = myMain.getSelectionManager();
       myViewerManager = myMain.getViewerManager();
       myEditManager = myMain.getEditorManager();

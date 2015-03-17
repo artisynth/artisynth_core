@@ -64,7 +64,7 @@ public class PropertyPanel extends LabeledComponentPanel {
    }
 
    public void addWidgets(Iterable<?> items) {
-      addWidgets(items, defaultOrganize, defaultExpandable);
+      addWidgets (items, defaultOrganize, defaultExpandable);
    }
    
    /**
@@ -86,86 +86,6 @@ public class PropertyPanel extends LabeledComponentPanel {
       }
 
    }
-   
-   //   private ArrayList<Component> getWidgetGroup(String group, 
-   //      List<Property> props, HashSet<Property> used) {
-   //      
-   //      ArrayList<Component> widgets = new ArrayList<Component>();
-   //      for (Property prop : props) {
-   //         if (prop.getGroups().contains(group)) {
-   //            maybeAddWidget(widgets, prop, prop.getRange());
-   //            used.add(prop);
-   //         }
-   //      } 
-   //      
-   //      return widgets;
-   //   }
-   //   
-   //   private void doAddWidgetsGrouped(Iterable<?> items, boolean expandable) {
-   //      
-   //      ArrayList<Component> comps = new ArrayList<Component>();
-   //      ArrayList<Property> props = new ArrayList<Property>();
-   //      
-   //      // get list of groups
-   //      ArrayList<String> groups = new ArrayList<String>();
-   //      for (Object obj : items) {
-   //         if (obj instanceof Property) {
-   //            addIfUnique(((Property)obj).getGroups(), groups);   
-   //            props.add((Property)obj);
-   //         } else if (obj instanceof Component) {
-   //            comps.add((Component)obj);
-   //         }
-   //      }
-   //      
-   //      // separate properties in groups
-   //      HashMap<String, ArrayList<Component>> widgetMap = 
-   //         new HashMap<String,ArrayList<Component>>(groups.size());
-   //      HashSet<Property> used = new HashSet<Property>();
-   //      for (String group : groups) {
-   //         widgetMap.put(group, getWidgetGroup(group, props, used));
-   //      }
-   //      
-   //      // add remaining
-   //      ArrayList<Component> remaining = new ArrayList<Component>();
-   //      for (Property prop : props) {
-   //         if (!used.contains(prop)) {
-   //            maybeAddWidget(remaining, prop, prop.getRange());
-   //            used.add(prop);
-   //         }
-   //      }
-   //      
-   //      // now build widget list
-   //      ArrayList<Component> widgets = new ArrayList<Component>();
-   //      widgets.addAll(remaining);
-   //      widgets.addAll(comps);
-   //      
-   //      // groups
-   //      if (!expandable) {
-   //         for (String group : groups) {
-   //            List<Component> gw = widgetMap.get(group);
-   //            if (gw.size() > 0) {
-   //               addSection(widgets, group);
-   //               widgets.addAll(gw);
-   //            }
-   //         }
-   //      } else {
-   //         
-   //         // add panels
-   //         for (String group : groups) {
-   //            List<Component> gw = widgetMap.get(group);
-   //            if (gw.size() > 0) {
-   //               LabeledExpandablePropertyPanel panel = 
-   //                  new LabeledExpandablePropertyPanel(group);
-   //               panel.addExtraWidgets(gw);
-   //               addSeparator(widgets);
-   //               widgets.add(panel);
-   //            }
-   //         }
-   //         
-   //      }
-   //      
-   //      addWidgets(widgets);
-   //   }
    
    protected LabeledComponentBase maybeAddWidget (
       List<Component> widgets, Property p, Range range) {
@@ -224,7 +144,9 @@ public class PropertyPanel extends LabeledComponentPanel {
    /**
     * Returns true if a new section was actually added (non-empty set of widgets)
     */
-   protected boolean addSection (LinkedList<Component> widgets, int idx, String name) {
+   protected boolean addSection (
+      LinkedList<Component> widgets, int idx, String name) {
+
       JSeparator sep = new JSeparator();
       sep.setAlignmentX (JLabel.LEFT_ALIGNMENT);
       
@@ -593,65 +515,5 @@ public class PropertyPanel extends LabeledComponentPanel {
          }
       }
    }
-
-//   public ArrayList<String> getMenuActionCommands() {
-//      ArrayList<String> actions = super.getMenuActionCommands();
-//      if (Main.getMain() != null && mySelectedWidgets.size() == 1) {
-//         actions.add (0, "add widget");
-//      }
-//      return actions;
-//   }
-
-
-//   public void actionPerformed (ActionEvent e) {
-//      String command = e.getActionCommand();
-//
-//      if (command.equals ("add widget")) {
-//         Window win = SwingUtilities.getWindowAncestor (this);
-//         if (win != null) {
-//            PropertyWidgetDialog dialog =
-//               PropertyWidgetDialog.createDialog (
-//                  win, "widget creation dialog", Main.getMain());
-//            GuiUtils.locateVertically (dialog, this, GuiUtils.BELOW);
-//            GuiUtils.locateHorizontally (dialog, this, GuiUtils.CENTER);
-//            JComponent sourceComp = null;
-//            if (mySelectedWidgets.iterator().hasNext()) {
-//               sourceComp = mySelectedWidgets.iterator().next();
-//            }
-//            dialog.addWindowListener (new AddWidgetHandler (sourceComp));
-//            dialog.setVisible (true);
-//         }
-//      }
-//      else {
-//         super.actionPerformed (e);
-//      }
-//   }
-
-   // private ModelComponent getPropertyComponent (LabeledComponentBase widget) {
-   //    Property prop = PropertyWidget.getProperty (widget);
-   //    if (prop != null && prop.getHost() instanceof ModelComponent) {
-   //       return (ModelComponent)prop.getHost();
-   //    }
-   //    else {
-   //       return null;
-   //    }
-   // }
-
-   // public void mouseClicked (MouseEvent e) {
-   //    if (e.getClickCount() == 2 && e.getButton() == MouseEvent.BUTTON1) {
-   //       JComponent comp = findWidget (e);
-   //       if (comp instanceof LabeledComponentBase) {
-   //          ModelComponent c = getPropertyComponent ((LabeledComponentBase)comp);
-   //          System.out.println ("x=" + c);
-
-   //          if (c != null) {
-   //             SelectionManager selManager =
-   //                Main.getMain().getSelectionManager();
-   //             selManager.clearSelections();
-   //             selManager.addSelected (c);
-   //          }
-   //       }
-   //    }
-   // }
 
 }

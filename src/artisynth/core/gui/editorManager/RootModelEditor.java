@@ -45,7 +45,7 @@ public class RootModelEditor extends EditorBase {
             }
          }
          else if (actionCommand == "Set current state as default") {
-            Main.getMain().componentChanged (
+            myMain.componentChanged (
                new ComponentChangeEvent (Code.STRUCTURE_CHANGED));
          }
       }

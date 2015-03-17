@@ -10,7 +10,6 @@ public class QLVState extends ViscoelasticState {
 
    protected SymmetricMatrix3d mySigmaPrev;
    protected SymmetricMatrix3d mySigmaSave;
-   protected SymmetricMatrix3d myDeltaSigma;
    protected double[] myGHPrev;
    protected double[] myS;
    
@@ -19,7 +18,6 @@ public class QLVState extends ViscoelasticState {
    public QLVState () {
       mySigmaPrev = new SymmetricMatrix3d();
       mySigmaSave = new SymmetricMatrix3d();
-      myDeltaSigma = new SymmetricMatrix3d();
       myGHPrev = new double[QLVBehavior.N_MAX*6];
       myS = new double[QLVBehavior.N_MAX];
    }
@@ -39,12 +37,12 @@ public class QLVState extends ViscoelasticState {
       data.dput (mySigmaSave.m01);
       data.dput (mySigmaSave.m02);
       data.dput (mySigmaSave.m12);
-      data.dput (myDeltaSigma.m00);
-      data.dput (myDeltaSigma.m11);
-      data.dput (myDeltaSigma.m22);
-      data.dput (myDeltaSigma.m01);
-      data.dput (myDeltaSigma.m02);
-      data.dput (myDeltaSigma.m12);
+      data.dput (mySigmaPrev.m00);
+      data.dput (mySigmaPrev.m11);
+      data.dput (mySigmaPrev.m22);
+      data.dput (mySigmaPrev.m01);
+      data.dput (mySigmaPrev.m02);
+      data.dput (mySigmaPrev.m12);
       for (int k=0; k<myGHPrev.length; k++) {
          data.dput (myGHPrev[k]);             
       }
@@ -63,12 +61,20 @@ public class QLVState extends ViscoelasticState {
       mySigmaSave.m01 = data.dget();
       mySigmaSave.m02 = data.dget();
       mySigmaSave.m12 = data.dget();
-      myDeltaSigma.m00 = data.dget();
-      myDeltaSigma.m11 = data.dget();
-      myDeltaSigma.m22 = data.dget();
-      myDeltaSigma.m01 = data.dget();
-      myDeltaSigma.m02 = data.dget();
-      myDeltaSigma.m12 = data.dget();
+      mySigmaSave.m10 = mySigmaSave.m01;
+      mySigmaSave.m20 = mySigmaSave.m02;
+      mySigmaSave.m21 = mySigmaSave.m12;
+
+      mySigmaPrev.m00 = data.dget();
+      mySigmaPrev.m11 = data.dget();
+      mySigmaPrev.m22 = data.dget();
+      mySigmaPrev.m01 = data.dget();
+      mySigmaPrev.m02 = data.dget();
+      mySigmaPrev.m12 = data.dget();
+      mySigmaPrev.m10 = mySigmaPrev.m01;
+      mySigmaPrev.m20 = mySigmaPrev.m02;
+      mySigmaPrev.m21 = mySigmaPrev.m12;
+
       for (int k=0; k<myGHPrev.length; k++) {
          myGHPrev[k] = data.dget();
       }

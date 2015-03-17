@@ -205,7 +205,7 @@ ActionListener, ValueChangeListener {
          settings.pointRadius = mesh.computeAverageRadius();
       }
       else {
-         GLViewer viewer = Main.getMain().getViewerManager().getViewer (0);
+         GLViewer viewer = Main.getMain().getViewer();
          double w =
             (viewer.distancePerPixel (viewer.getCenter()) * viewer.getWidth());
          settings.pointRadius = w / 8;
@@ -352,7 +352,7 @@ ActionListener, ValueChangeListener {
              !objectsEqual (myMeshFileTransform,
                             myAttachedBody.getMeshFileTransform())) {
             myAttachedBody.setMesh (myMesh, myMeshFileName, myMeshFileTransform);
-            Main.rerender();
+            Main.getMain().rerender();
          }
       }
    }
@@ -881,7 +881,7 @@ ActionListener, ValueChangeListener {
          setWidget (myGeometrySelector, GeometryType.Mesh);
          rebuildGeometryWidgets (GeometryType.Mesh);
          repackWindow();
-         Main.rerender();
+         Main.getMain().rerender();
       }
    }
 

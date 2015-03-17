@@ -18,12 +18,9 @@ public class Tentacle extends HydrostatInvDemo {
 
    public static boolean passive = false;
    public static final String dataDir = ArtisynthPath.getSrcRelativePath (Tentacle.class, "data/");
-   
-   public Tentacle () throws IOException {
-   }
 
-   public Tentacle (String name) throws IOException {
-      super (name);
+   public void build (String[] args) throws IOException {
+      super.build (args);
       
       hydro.setSurfaceRendering (SurfaceRender.None);
       //Vector3d bounds = getBounds(hydro);

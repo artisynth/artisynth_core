@@ -14,7 +14,100 @@
 %\renewcommand{\sectionname}{}
 \begin{document}
 
-\section*{XXX}
+\section*{March 16, 2015}
+
+\subsection*{MATLAB interface revised and documented}
+
+The ArtiSynth MATLAB interface has been overhauled and significant
+functionality has been added to enable ArtiSynth to be run and
+scripted within MATLAB. The Jython interface has also been revised so
+that the scripting commands are essentially the same in both
+interfaces. A new document,
+\href{http://www.artisynth.org/doc/html/matlabAndJython/matlabAndJython.html}%
+{Interfacing ArtiSynth to MATLAB and Jython}, has been prepared that
+describes both interfaces in detail.
+
+\subsection*{Pardiso library updated}
+
+The Pardiso library has been recompiled with MKL 11.1.2. This is the
+most recent version of MKL for which hybrid solves still work properly
+in ArtiSynth. The updated Pardiso library is named PardisoJNI.1.1.
+You may want to run {\tt updateArtisynthLibs} in {\tt
+\$ARTISYNTH\_HOME/bin} to make sure that the library is properly
+updated.
+
+\subsection*{ArtiSynth server renamed}
+
+The domain name of the ArtiSynth file server (used by some applications
+to access files using {\tt maspack.fileutil.FileGrabber}) has
+been changed from 
+\begin{verbatim}
+www.magic.ubc.ca
+\end{verbatim}
+to
+\begin{verbatim}
+artisynth.magic.ubc.ca
+\end{verbatim}
+Where necessary, application code has been
+updated to reflect this change.
+
+\subsection*{Changed everything in demos to use build method}
+
+All {\tt RootModel} instances in the package {\tt artisynth.demos} now
+create their models using the {\tt build()} method. Code that depends
+on these packages has been updated accordingly.
+
+\subsection*{Removal of static methods from Main}
+
+%XXX Tell scot moisik about changes to MeasurementTools.java to remove
+%static initializer bug.
+
+To improve code modularity almost all methods and attributes
+in {\tt Main} have now been made non-static.  This means that they
+must now be called using a {\tt Main} instance, as in:
+%
+\begin{lstlisting}[]
+   main.getWorkspace();
+\end{lstlisting}
+%
+The current {\tt Main} instance can still be obtained using
+{\tt Main.getMain()}, so that 
+%
+\begin{lstlisting}[]
+   Main.getMain().getWorkspace();
+\end{lstlisting}
+%
+will work if necessary.
+
+In some cases, the required functionality has been moved directly into
+the {\tt RootModel}, and whenever possible this interface should be
+used instead:
+
+\begin{tabular}{|ll|}
+\hline
+Static Main method & RootModel replacement \\
+\hline
+Main.rerender() & rerender() \\
+Main.getMainFrame().getViewer() &  getMainViewer() \\
+Main.getMainFrame() &  getMainFrame() \\
+Main.getWorkspace().scanProbes (rtok, root) & scanProbes (rtok) \\
+Main.getWorkspace().writeProbes (pw, fmt, root) & writeProbes (pw, fmt) \\
+\hline
+\end{tabular}
+
+Also, these methods should ideally not be called from within the
+RootModel constructor but from within its {\tt build()} method
+instead.
+
+\begin{sideblock}
+Please use {\tt Main.getMain()} sparingly. The use of the static {\tt
+Main} instance is being reconsidered, since it prevents the
+possibility of creating multiple ArtiSynth instances within the same
+executing program (one place where it might be useful to do this is
+within MATLAB).
+\end{sideblock}
+
+\section*{Feb 3, 2015}
 
 \subsection*{Removal of old collision handling code}
 
@@ -27,17 +120,28 @@ The ability to control collisions and self-collisions among objects
 has been enhanced.
 
 The {\tt Collidable} interface now contains a method {\tt
-isCollidable()}, which for many bodies is associated with a {\tt
-collidable} property. Setting this property to {\tt false} will
-disable collisions for that bodies, regardless of which default and
-explicit collisions behaviors are specified.
+isCollidable()}. If this method returns {\tt false}, then collisions
+will be disabled for that collidable, regardless of which default and
+explicit collisions behaviors have been specified. For most currently
+implemented bodies, the value returned by {\tt isCollidable()} is
+associated with a {\tt collidable} property, so setting that property
+to {\tt false} will disable collisions for that body.
 
 {\tt Collidable} has also been modified to properly support
-self-collisions. A collidable object A can be associated with
-sub-collidables, defined by any descendant component of A that is also
-collidable. Self-collision can then by effected by enabling
-collisions between all pairs of sub-collidables for which A's {\tt
-allowSelfCollision()} method returns {\tt true}.
+self-collisions.  If a collidable A has any descendant components
+which are also collidable, then these descendents are called {\it
+sub-collidables} of A. Self-collision within A can then be effected by
+enabling collisions between all pairs of its sub-collidables for which
+its {\tt allowSelfCollision()} method returns {\tt true}.
+
+As a particular example, {\tt FemModel3d} is a collidable, while the
+mesh components located in its {\tt meshes} sublist are
+sub-collidables. If self-collision is enabled for a FEM model,
+collisions will be enabled between any of these mesh components which
+(a) contain a polygonal mesh and (b) are marked as collidable. The
+surface mesh is excluded, since {\tt
+FemModel3d.allowSelfIntersection()} returns {\tt false} for the surface
+mesh.
 
 More details are given in the Collision Handling section (currently
 5.6) of the
@@ -52,15 +156,15 @@ to store the {\tt FemNode3d} (if any) associated with a mesh vertex.
 This information is now maintained elsewhere, and the node (if any)
 associated with a vertex can now be determined using either {\tt
 getSurfaceNode(vertex)} (in {\tt FemModel3d}), or {\tt
-getVertexNode(vertex)} (in {\tt FemMesh}).
+getNodeForVertex(vertex)} (in {\tt FemMesh}).
 
 One change required by this is that {\tt
-FemFactory.createHexWedgeExtrusion()} now takes and additional fifth
+FemFactory.createHexWedgeExtrusion()} now takes an additional fifth
 argument, which is either the FEM associated with the supplied surface
 mesh, or {\tt null} if there is no FEM associated with the mesh.
 
-Also: {\tt getSurfaceMeshVertex()} has been replaced by {\tt
-getSurfaceVertex()}.
+Also, in {\tt FemModel3d}: {\tt getSurfaceMeshVertex()} has been
+replaced by {\tt getSurfaceVertex()}.
 
 \subsection*{Changes to scanMesh() in FemModel3d}
 
@@ -68,7 +172,7 @@ The methods {\tt scanMesh(fileName)} and {\tt scanMesh(tokenizer)} in
 {\tt FemModel3d}, which read FEM meshes from a special file in which
 faces are identified by node numbers, have been changed so that they
 now create and return a {\tt FemMesh} object instead of a {\tt
-PolygonalMesh}. The PolygonalMesh itself can be obtained using {\tt
+PolygonalMesh}. The {\tt PolygonalMesh} itself can be obtained using {\tt
 getMesh()} on the returned {\tt FemMesh}.
 
 Meshes can still be scanned and added to a FEM model using
@@ -89,8 +193,8 @@ are indicated simply by the numbers of the underlying FEM nodes, as in
     ]
 \end{lstlisting}
 %
-to one where faces are specified by vertex indices and vertices
-are specified by their associated nodes and weights, as in:
+to one where faces are specified by vertex indices and vertices are in
+turn specified by their associated nodes and weights, as in:
 %
 \begin{lstlisting}[]
     [ v 3 1.0
@@ -104,7 +208,7 @@ are specified by their associated nodes and weights, as in:
     ]
 \end{lstlisting}
 %
-This allows the handling of meshes for which each vertex does not
+This allows the handling of situations where each vertex does not
 correspond exactly to one FEM node, such as fine surface and embedded
 meshes. For more details, see the API documentation for {\tt
 scanMesh()} and {\tt writeMesh()} in {\tt FemMesh}.
@@ -133,16 +237,18 @@ have all been replaced with the single method
 \end{lstlisting}
 where {\tt PointAttachable} is an interface indicating any component
 that is capable of creating it's own point attachments
-using the method
+using the method:
 \begin{lstlisting}[]
    PointAttachment createPointAttachment (Point pnt);
 \end{lstlisting}
 Implementing components include {\tt RigidBody}, {\tt Particle}, {\tt
-FemElement3d}, and {\tt FemModel3d}.  For {\tt FemModel3d},
-attachments are created using a default reduction tolerance of 0. If
-you want to specify a larger tolerance (and hence possibly reduce the
-number of nodes the point is attached to), you can explicitly create
-and add the attachment using code like this:
+FemElement3d}, and {\tt FemModel3d}.  
+
+For {\tt FemModel3d}, the previous {\tt attachPoint()} method also
+allowed the specification of a {\it reduction tolerance}, which if
+non-zero could be used to reduce the number of nodes the point was
+attached to. This can still be achieved by explicitly creating and
+adding the attachment like this:
 %
 \begin{lstlisting}[]
    double reduceTol = 1e-8;
@@ -166,16 +272,26 @@ visibility and rendering of mesh components, but it also means that
 when you graphicaly select on a body's surface mesh, you select the
 component containing the mesh rather than the body itself.
 
-To make it easy to get to the body in question, you can now use the
-ESC key to quickly select the parent of the last selected component.
-For surface meshes, two quick presses of ESC will get you from the
-mesh component to the body in question (with the revised selection
-showing up in the component selection box at the bottom of the main
-ArtiSynth frame). While it was already possible to do parent selection
-using the "UP" arrow in the component selection box, using the ESC key
-is faster.
+To make it easy to navigate to the body in question, you can now use
+the ESC key to quickly select the parent of the last selected
+component.  For surface meshes, two quick presses of ESC will get you
+from the surface mesh to the body itself (and the path name of the
+revised selection will appear in the component selection box at the
+bottom of the main ArtiSynth frame). While it was already possible to
+do parent selection using the "UP" arrow in the component selection
+box, using the ESC key is faster.
 
-\subsection*{New createSurface methods for FemMesh}
+\subsection*{New createSurface() method for FemMesh}
+
+A new static method in {\tt FemMesh},
+%
+\begin{lstlisting}[]
+   FemMesh createSurface (String name, FemModel3d fem, Collection elements);
+\end{lstlisting}
+%
+allows the creation of a FEM surface mesh which encloses a specified
+collection of elements. This should make it easier to create
+sub-surfaces.
 
 \section*{Jan 21, 2015}
 

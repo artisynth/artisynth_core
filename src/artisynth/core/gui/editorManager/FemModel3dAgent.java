@@ -236,7 +236,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
    }
 
    protected Map<Class, ModelComponent> getPrototypeMap () {
-      RootModel root = Main.getRootModel();
+      RootModel root = myMain.getRootModel();
       if (root != null && root != myLastRootModel) {
          myPrototypeMap = new HashMap<Class, ModelComponent>();
          myLastRootModel = root;
@@ -460,21 +460,21 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
          lastScale = 1.0;
       }
       
-      Main.getWorkspace().getViewerManager().addRenderable (mesh);
+      myMain.getWorkspace().getViewerManager().addRenderable (mesh);
       
       rotator = new Transrotator3d();
-      GLViewer viewer = Main.getMain().getViewer();
+      GLViewer viewer = myMain.getMain().getViewer();
       rotator.setDraggerToWorld (X);
       rotator.setSize (
          viewer.distancePerPixel (viewer.getCenter()) * viewer.getWidth() / 6);
       rotator.addListener (new FemModelDraggerListener());
-      Main.getWorkspace().getViewerManager().addDragger (rotator);
+      myMain.getWorkspace().getViewerManager().addDragger (rotator);
       
-      Main.rerender ();
+      myMain.rerender ();
    }
 
    protected void createDisplay() {
-      if (myLastRootModel != Main.getRootModel()) {
+      if (myLastRootModel != myMain.getRootModel()) {
          mySettings = null;
       }
       
@@ -494,7 +494,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
       createGeometryPanel();
       
       myUsePlaneToggle = new JCheckBox ("constrain to plane");
-      if (Main.getMain().getViewer().getNumClipPlanes() > 0) {
+      if (myMain.getMain().getViewer().getNumClipPlanes() > 0) {
          addWidget (myUsePlaneToggle);
       }
       
@@ -746,7 +746,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
       positionField.setVoidValueEnabled (false);
       orientationField.setValue (new AxisAngle());
       
-      GLViewer viewer = Main.getMain().getViewer();      
+      GLViewer viewer = myMain.getMain().getViewer();      
       double width = viewer.distancePerPixel (viewer.getCenter()) * 
          viewer.getWidth() / 6;
       
@@ -979,7 +979,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
          
          fem.getSurfaceMesh().setMeshToWorld (X);
          rotator.setDraggerToWorld (X);            
-         Main.rerender();
+         myMain.rerender();
       }
    }
    
@@ -1177,7 +1177,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
             scaleField.maskValueChangeListeners (false);
             lastScale = scale;
             
-            Main.rerender();
+            myMain.rerender();
          }
       }
       else {
@@ -1210,7 +1210,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
       double meshWidth = maxBound.x - minBound.x;
       double meshHeight = maxBound.y - minBound.y;
 
-      GLViewer viewer = Main.getMain().getViewer();  
+      GLViewer viewer = myMain.getMain().getViewer();  
       double distancePerPixel = viewer.distancePerPixel (viewer.getCenter());
       double width = distancePerPixel * viewer.getWidth() / 4;
       double height = distancePerPixel * viewer.getHeight() / 4;
@@ -1243,7 +1243,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
    
    private void disposePreviewModel() {
       if (fem != null) {
-         ViewerManager viewerMan = Main.getWorkspace().getViewerManager();
+         ViewerManager viewerMan = myMain.getWorkspace().getViewerManager();
          viewerMan.removeRenderable (fem.getSurfaceMesh());
          viewerMan.removeDragger (rotator);
          
@@ -1251,7 +1251,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
          fem = null;
          rotator = null;
          
-         Main.rerender();
+         myMain.rerender();
       }
    }
 
@@ -1282,7 +1282,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
       String cmd = evt.getActionCommand();
       
       if (cmd.equals ("Add")) {
-         ViewerManager viewerMan = Main.getWorkspace().getViewerManager();
+         ViewerManager viewerMan = myMain.getWorkspace().getViewerManager();
          viewerMan.removeRenderable (fem.getSurfaceMesh());
          viewerMan.removeDragger (rotator);
          rotator = null;
@@ -1382,7 +1382,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
          orientationField.setValue (X.R.getAxisAngle());
          orientationField.maskValueChangeListeners (false);
          
-         Main.rerender();
+         myMain.rerender();
       } 
    }
    

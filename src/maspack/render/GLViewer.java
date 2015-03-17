@@ -1459,6 +1459,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       myGrid.setViewer (this);
 
       setAxialView (myAxialView);
+      myMouseHandler = new GLMouseAdapter (this);
    }
 
    public GLCanvas getCanvas() {
@@ -1485,8 +1486,8 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
 
       if (gl.isExtensionAvailable("GL_ARB_multisample")) {
          gl.glEnable(GL2.GL_MULTISAMPLE);
-         System.out.println ("multisample enabled = " +
-            gl.glIsEnabled(GL2.GL_MULTISAMPLE));
+         //System.out.println ("multisample enabled = " +
+         //  gl.glIsEnabled(GL2.GL_MULTISAMPLE));
          myMultiSampleEnabled = true;
       }
 
@@ -1513,10 +1514,6 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       }
 
       resetViewVolume();
-
-      if (myMouseHandler == null) {
-         myMouseHandler = new GLMouseAdapter (this);
-      }
 
       if (canvas != null) {
          // canvas.addMouseListener(new GLMouseListener());

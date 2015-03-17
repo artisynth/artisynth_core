@@ -724,11 +724,11 @@ public class TrackingController extends ControllerBase
          }
       }
 
-      Dimension d = Main.getMainFrame().getSize();
-      java.awt.Point pos = Main.getMainFrame().getLocation();
+      Dimension d = Main.getMain().getMainFrame().getSize();
+      java.awt.Point pos = Main.getMain().getMainFrame().getLocation();
       inverseControlPanel.getFrame().setLocation(d.width + pos.x, pos.y);
       inverseControlPanel.setScrollable(false);
-      Main.getWorkspace().registerWindow(inverseControlPanel.getFrame());
+      Main.getMain().registerWindow(inverseControlPanel.getFrame());
       inverseControlPanel.setVisible(true);
       return inverseControlPanel;
    }

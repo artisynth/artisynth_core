@@ -259,7 +259,7 @@ AddComponentAgent<C> {
          myTmpList.add (spring);
          myList.add ((C)spring);
          clearNameField();
-         Main.rerender(); // XXX shouldn't need this
+         myMain.rerender(); // XXX shouldn't need this
       }
       else {
          uninstallSelectionFilter();

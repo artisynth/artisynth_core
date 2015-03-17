@@ -190,14 +190,14 @@ ActionListener, Disposable, ComponentChangeListener {
     * its resources.
     */
    public void dispose() {
-      if (Main.getWorkspace().deregisterDisposable (this)) {
-         if (Main.getRootModel() == myRootModel) {
+      if (myMain.getWorkspace().deregisterDisposable (this)) {
+         if (myMain.getRootModel() == myRootModel) {
             myRootModel.removeComponentChangeListener (this);
          }
          else {
             throw new InternalErrorException (
                "Root model has changed unexpectedly from " + myRootModel + " to "
-               + Main.getRootModel());
+               + myMain.getRootModel());
          }
          if (myDisplay != null) {
             myDisplay.dispose();

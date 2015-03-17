@@ -259,8 +259,8 @@ public class InputNumericProbeEditor extends NumericProbeEditor {
          AddComponentsCommand cmd =
             new AddComponentsCommand (
                "add input probe", probeToSet,
-               Main.getRootModel().getInputProbes());
-         Main.getUndoManager().saveStateAndExecute (cmd);
+               myMain.getRootModel().getInputProbes());
+         myMain.getUndoManager().saveStateAndExecute (cmd);
       }
    }
 
@@ -599,7 +599,7 @@ public class InputNumericProbeEditor extends NumericProbeEditor {
 //             myParent.actionPerformed (new ActionEvent (this, 0, "ProbeEdited"));
 //          }
          
-         Timeline timeline = Main.getTimeline();
+         Timeline timeline = myMain.getTimeline();
          if (timeline != null) {
             timeline.updateProbes();
          }

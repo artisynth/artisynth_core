@@ -618,50 +618,6 @@ public class HostList {
       }
    }
 
-//   private Object checkAllHosts (
-//      int[] indexPath, Object value, StringHolder errMsg) {
-//      for (int i = 0; i < myHosts.size(); i++) {
-//         PropTreeData data = myDataList[i];
-//         HasProperties host = null;
-//         for (int level = 0; level < indexPath.length; level++) {
-//            host = data.myHost;
-//            if (data.getSubData() == null) {
-//               throw new InternalErrorException ("data tree not initialized");
-//            }
-//            // XXSystem.out.println ("24");
-//            data = data.getSubData()[indexPath[level]];
-//         }
-//         Object res =
-//            PropertyUtils.validateValue (data.myInfo, host, value, errMsg);
-//         if (res != value) {
-//            return res;
-//         }
-//      }
-//      return value;
-//   }
-
-//   public Object validateValue (
-//      PropTreeCell cell, Object value, StringHolder errMsg) {
-//      Object origValue = value;
-//      int[] indexPath = cell.getIndexPath();
-//      if (indexPath.length == 0) {
-//         throw new InternalErrorException (
-//            "validateValue cannot be called for top-level cell");
-//      }
-//      Object validValue = checkAllHosts (indexPath, value, errMsg);
-//      if (validValue == value || validValue == Property.IllegalValue) {
-//         return validValue;
-//      }
-//      if (checkAllHosts (indexPath, validValue, null) != validValue) {
-//         if (errMsg != null) {
-//            errMsg.value = "Illegal adjusted value: " + errMsg.value;
-//         }
-//         return Property.IllegalValue;
-//      }
-//      value = validValue;
-//      return value;
-//   }
-
    public Object getCommonValue (PropTreeCell cell) {
       int[] indexPath = cell.getIndexPath();
       if (indexPath.length == 0) {

@@ -54,10 +54,6 @@ public class LockingDemo extends RootModel {
 
    ControlPanel myControlPanel;
 
-   public LockingDemo() {
-      super (null);
-   }
-
    private void setModelProperties (FemModel3d mod) {
       mod.setDensity (DENSITY);
       setRenderProperties (mod, LENGTH);
@@ -71,10 +67,7 @@ public class LockingDemo extends RootModel {
       }
    }
 
-   public LockingDemo (String name) {
-
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       myTetMod = new FemModel3d ("tet");
       FemFactory.createTetGrid (

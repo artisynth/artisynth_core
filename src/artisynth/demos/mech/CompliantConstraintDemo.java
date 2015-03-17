@@ -35,13 +35,7 @@ public class CompliantConstraintDemo extends RootModel {
 
    private boolean useSphericalJoint = false;
 
-   public CompliantConstraintDemo() {
-      super (null);
-   }
-
-   public CompliantConstraintDemo (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       MechModel mechMod = new MechModel ("mechMod");
       // mechMod.setProfiling (true);

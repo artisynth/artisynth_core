@@ -1293,6 +1293,14 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
    /**
     * {@inheritDoc}
     */
+   public int getCRSIndices (int[] colIdxs, int[] rowOffs) {
+      return getCRSIndices (
+         colIdxs, rowOffs, Partition.Full, rowSize(), colSize());
+   }
+
+   /**
+    * {@inheritDoc}
+    */
    public int getCRSIndices (int[] colIdxs, int[] rowOffs, Partition part) {
       return getCRSIndices (colIdxs, rowOffs, part, rowSize(), colSize());
    }
@@ -1325,6 +1333,13 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
       }
       rowOffs[numRows] = off+1;
       return off;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getCRSValues (double[] vals) {
+      return getCRSValues (vals, Partition.Full, rowSize(), colSize());
    }
 
    /**
@@ -1397,6 +1412,14 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
    /**
     * {@inheritDoc}
     */
+   public int getCCSIndices (int[] rowIdxs, int[] colOffs) {
+      return getCCSIndices (
+         rowIdxs, colOffs, Partition.Full, rowSize(), colSize());
+   }
+
+   /**
+    * {@inheritDoc}
+    */
    public int getCCSIndices (int[] rowIdxs, int[] colOffs, Partition part) {
       return getCCSIndices (rowIdxs, colOffs, part, rowSize(), colSize());
    }
@@ -1429,6 +1452,13 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
       }
       colOffs[numCols] = off+1;
       return off;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getCCSValues (double[] vals) {
+      return getCCSValues (vals, Partition.Full, rowSize(), colSize());
    }
 
    /**

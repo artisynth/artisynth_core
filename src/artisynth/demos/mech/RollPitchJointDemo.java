@@ -131,12 +131,8 @@ public class RollPitchJointDemo extends RootModel {
       return mkr;
    }
 
-   public RollPitchJointDemo() {
-      super (null);
-   }
+   public void build (String[] args) throws IOException {
 
-   public RollPitchJointDemo (String name) throws IOException {
-      this();
       myMechMod = new MechModel ("rollPitchJointDemo");
       myMechMod.setProfiling (false);
       myMechMod.setGravity (0, 0, -9.8);

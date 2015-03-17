@@ -9,8 +9,7 @@ package artisynth.core.modelbase;
 import maspack.matrix.*;
 
 /**
- * Base class for storing information about changes within a component
- * hierarchy.
+ * Reports a change in a component's name.
  */
 public class NameChangeEvent extends PropertyChangeEvent {
    private String myOldName;

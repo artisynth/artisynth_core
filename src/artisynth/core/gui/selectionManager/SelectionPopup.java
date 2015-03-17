@@ -46,6 +46,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
    private static final long serialVersionUID = -8708147234861383471L;
    private Component myParentGUIComponent;
    private SelectionManager mySelectionManager;
+   private Main myMain;
    private EditActionMap myEditActionMap;
 
    public static boolean useRefListExpansion = false;
@@ -120,7 +121,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       
       // parse the selection list.
       boolean allSelectedHaveProperties = false;
-      boolean allSelectedAreTracable = false;
+      boolean allSelectedAreTraceable = false;
       int tracingCnt = 0;
       boolean oneSelectedIsRenderable = false;
       boolean oneSelectedHasRenderProps = false;
@@ -131,7 +132,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
 
       if (selection.size() > 0) {
          allSelectedHaveProperties = true;
-         allSelectedAreTracable = true;
+         allSelectedAreTraceable = true;
          for (ModelComponent c : selection) {
             if (c instanceof RenderableComponent) {
                               
@@ -166,13 +167,13 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
             if (!(c instanceof HasProperties)) {
                allSelectedHaveProperties = false;
             }
-            if (!(c instanceof Tracable)) {
-               allSelectedAreTracable = false;
+            if (!(c instanceof Traceable)) {
+               allSelectedAreTraceable = false;
             }
          }
       }
-      Collection<Tracable> traceSet = Main.getRootModel().getTraceSet();
-      for (Tracable tr : traceSet) {
+      Collection<Traceable> traceSet = myMain.getRootModel().getTraceSet();
+      for (Traceable tr : traceSet) {
          if (tr instanceof ModelComponent &&
              ((ModelComponent)tr).isSelected()) {
             tracingCnt++;
@@ -203,7 +204,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
          addMenuItem ("Set invisible");
       }
 
-      if (allSelectedAreTracable) {
+      if (allSelectedAreTraceable) {
          if (selection.size() - tracingCnt > 0) {
             addMenuItem ("Enable tracing");
          }
@@ -212,9 +213,9 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
          }
          JMenuItem menuItem = new JMenuItem ("Clear trace");
          menuItem.addActionListener (this);
-         String[] commonTracables = getCommonTracables (selection);
-         if (commonTracables.length > 0) {
-            menuItem = new JMenuItem ("Add tracing");
+         String[] commonTraceables = getCommonTraceables (selection);
+         if (commonTraceables.length > 0) {
+            menuItem = new JMenuItem ("Add tracing probe");
             myTraceItem = menuItem;
          }
          menuItem.addActionListener (this);
@@ -230,6 +231,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       JMenuItem menuItem = null;
 
       mySelectionManager = selManager;
+      myMain = Main.getMain();
       LinkedList<ModelComponent> selection;
 
       myParentGUIComponent = parentGUIComponent;
@@ -269,7 +271,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
          addPropertyEditMenuItems (myPropertyEditSelection);
       }
 
-      EditorManager editManager = Main.getEditorManager();
+      EditorManager editManager = myMain.getEditorManager();
       myEditActionMap = editManager.getActionMap (selManager);
       if (myEditActionMap.size() > 0) {
          addSeparatorIfNecessary();
@@ -353,22 +355,22 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       super.setVisible (enable);
    }
 
-   String[] getCommonTracables (LinkedList<ModelComponent> selection) {
+   String[] getCommonTraceables (LinkedList<ModelComponent> selection) {
       LinkedList<String> list = null;
       for (ModelComponent comp : selection) {
-         if (comp instanceof Tracable) {
-            String[] tracables = ((Tracable)comp).getTracables();
+         if (comp instanceof Traceable) {
+            String[] traceables = ((Traceable)comp).getTraceables();
             if (list == null) {
                list = new LinkedList<String>();
-               for (int i = 0; i < tracables.length; i++) {
-                  list.add (tracables[i]);
+               for (int i = 0; i < traceables.length; i++) {
+                  list.add (traceables[i]);
                }
             }
             else {
                for (String tname : list) {
                   boolean found = false;
-                  for (int i = 0; i < tracables.length; i++) {
-                     if (tracables[i].equals (tname)) {
+                  for (int i = 0; i < traceables.length; i++) {
+                     if (traceables[i].equals (tname)) {
                         found = true;
                         break;
                      }
@@ -509,10 +511,10 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
                propDialog, myLastBounds, 0.5, 0.5, 0, 0.5);
          }
          else {
-            propDialog.locateRight (Main.getMain().getFrame());
+            propDialog.locateRight (myMain.getFrame());
          }
-         //propDialog.setSynchronizeObject (Main.getRootModel());
-         Main.getMain().registerWindow (propDialog);
+         //propDialog.setSynchronizeObject (myMain.getRootModel());
+         myMain.registerWindow (propDialog);
          propDialog.setTitle (
             "Properties for "+getNameForSelection (selectedItems));
          propDialog.setVisible (true);
@@ -573,9 +575,9 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
                   dialog, myLastBounds, 0.5, 0.5, 0, 0.5);
             }
             else {
-               dialog.locateRight (Main.getMain().getFrame());
+               dialog.locateRight (myMain.getFrame());
             }
-            Main.getMain().registerWindow (dialog);
+            myMain.registerWindow (dialog);
             dialog.setTitle (
                "RenderProps for "+getNameForSelection (myPropertyEditSelection));
             dialog.setVisible (true);
@@ -606,10 +608,10 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
          requestViewerUpdate();
       }
       else if (command.equals ("Enable tracing")) {
-         RootModel rootModel = Main.getRootModel();
+         RootModel rootModel = myMain.getRootModel();
          for (ModelComponent c : myPropertyEditSelection) {
-            if (c instanceof Tracable) {
-               Tracable tr = (Tracable)c;
+            if (c instanceof Traceable) {
+               Traceable tr = (Traceable)c;
                if (!rootModel.isTracing (tr)) {
                   rootModel.enableTracing (tr);
                }
@@ -617,10 +619,10 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
          }
       }
       else if (command.equals ("Disable tracing")) {
-         RootModel rootModel = Main.getRootModel();
+         RootModel rootModel = myMain.getRootModel();
          for (ModelComponent c : myPropertyEditSelection) {
-            if (c instanceof Tracable) {
-               Tracable tr = (Tracable)c;
+            if (c instanceof Traceable) {
+               Traceable tr = (Traceable)c;
                if (rootModel.isTracing (tr)) {
                   rootModel.disableTracing (tr);
                }
@@ -628,18 +630,18 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
          }
       }
       else if (command.equals ("Clear trace")) {
-         RootModel rootModel = Main.getRootModel();
+         RootModel rootModel = myMain.getRootModel();
          for (ModelComponent c : myPropertyEditSelection) {
-            if (c instanceof Tracable) {
-               Tracable tr = (Tracable)c;
+            if (c instanceof Traceable) {
+               Traceable tr = (Traceable)c;
                if (rootModel.isTracing (tr)) {
                   rootModel.clearTracing (tr);
                }
             }
          }
-         Main.rerender();
+         myMain.rerender();
       }
-      else if (command.equals ("Add tracing")) {
+      else if (command.equals ("Add tracing probe")) {
          addTracing (myPropertyEditSelection);
       }
       else if (command.equals ("Save as ...")) {
@@ -667,25 +669,25 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
    }
 
    private void addTracing (LinkedList<ModelComponent> selectedItems) {
-//      RootModel root = Main.getRootModel();
+//      RootModel root = myMain.getRootModel();
 //      String name = null;
-//      double startTime = Main.getTimeSec();
+//      double startTime = myMain.getTimeSec();
 //      double updateInterval = root.getMaxStepSizeSec();
 
-      Tracable firstTracable = null;
+      Traceable firstTraceable = null;
       for (ModelComponent comp : selectedItems) {
-         if (comp instanceof Tracable) {
-            firstTracable = (Tracable)comp;
+         if (comp instanceof Traceable) {
+            firstTraceable = (Traceable)comp;
          }
       }
-      if (firstTracable == null) {
+      if (firstTraceable == null) {
          throw new InternalErrorException (
-            "'Add tracing' called with no tracabled in selection");
+            "'Add tracing' called with no traceabled in selection");
       }
 
       TracingProbePanel panel =
          new TracingProbePanel (
-            firstTracable, getCommonTracables (selectedItems));
+            firstTraceable, getCommonTraceables (selectedItems));
       panel.pack();
       GuiUtils.locateRelative (panel, myLastBounds, 0.5, 0.5, 0, 0.5);
       // if (myTraceItemLoc != null)
@@ -695,9 +697,9 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       panel.setVisible (true);
       if (panel.getReturnValue() == OptionPanel.OK_OPTION) {
          for (ModelComponent comp : selectedItems) {
-            if (comp instanceof Tracable) {
-               TracingProbe probe = panel.createProbe ((Tracable)comp);
-               Main.getRootModel().addOutputProbe (probe);
+            if (comp instanceof Traceable) {
+               TracingProbe probe = panel.createProbe ((Traceable)comp);
+               myMain.getRootModel().addOutputProbe (probe);
             }
          }
       }
@@ -710,7 +712,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
          new RemoveComponentsCommand (
             "delete",
             myRefComponentSelection);
-      Main.getUndoManager().saveStateAndExecute (cmd);
+      myMain.getUndoManager().saveStateAndExecute (cmd);
       requestViewerUpdate();
    }
 
@@ -769,7 +771,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       @SuppressWarnings("unchecked")
       RemoveComponentsCommand cmd =
          new RemoveComponentsCommand ("delete", delete, update);
-      Main.getUndoManager().saveStateAndExecute (cmd);
+      myMain.getUndoManager().saveStateAndExecute (cmd);
       requestViewerUpdate();
    }
 
@@ -810,12 +812,11 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
          copyList.addFirst (copy);
       }
       DuplicateAgent widget =
-         new DuplicateAgent (Main.getMain(), copyList, parentList);
+         new DuplicateAgent (myMain, copyList, parentList);
       widget.show();
    }
 
    private void requestViewerUpdate() {
-      Main.getMain();
-      Main.rerender();
+      myMain.rerender();
    }
 }

@@ -60,10 +60,6 @@ public class CoupledSolveDemo extends RootModel {
 
    double myScale = 1.0;
 
-   public CoupledSolveDemo() {
-      super();
-   }
-
    public void addFemModel() {
       femMod = new FemModel3d ("FemMod");
       femMod.setDensity (1000.0);
@@ -149,9 +145,7 @@ public class CoupledSolveDemo extends RootModel {
       mod.setCollisionBehavior (femMod, collider, true);
    }
 
-   public CoupledSolveDemo (String name) throws Exception {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       MechModel mechMod = new MechModel ("mechModel");
       mechMod.getCollisionManager().setPenetrationTol (1e-5);

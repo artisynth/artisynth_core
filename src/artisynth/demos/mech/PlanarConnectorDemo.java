@@ -27,13 +27,7 @@ public class PlanarConnectorDemo extends RootModel {
 
    boolean writeDemoToFile = true;
 
-   public PlanarConnectorDemo() {
-      super (null);
-   }
-
-   public PlanarConnectorDemo (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       // set up the mechmodel
 

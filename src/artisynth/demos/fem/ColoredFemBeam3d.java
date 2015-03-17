@@ -6,13 +6,11 @@ import maspack.render.color.RainbowColorMap;
 
 public class ColoredFemBeam3d extends FemBeam3d {
 
-   public ColoredFemBeam3d () {
-      this("ColoredFemBeam3d");
-   }
    
-   public ColoredFemBeam3d(String name) {
-      super(name);
+   public void build(String[] args) {
       
+      super.build (args);
+
       PolygonalMesh surf = myFemMod.getSurfaceMesh();
       surf.setUseVertexColoring(true);
       

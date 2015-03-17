@@ -35,13 +35,7 @@ public class DoubleArmDemo extends RootModel {
    Vector3d size = new Vector3d(len/10,len/5,len);
    boolean addCompression = true;
    
-   public DoubleArmDemo() {
-      super();
-   }
-   
-   public DoubleArmDemo(String name) {
-     
-      setName(name);
+   public void build (String[] args) {
 
       model = new MechModel("Arm");
       addModel(model);

@@ -15,7 +15,6 @@ import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.GLRenderer;
 import maspack.util.InternalErrorException;
-import artisynth.core.util.PropertyChangeEvent;
 import artisynth.core.femmodels.IntegrationData3d;
 import artisynth.core.femmodels.IntegrationPoint3d;
 import artisynth.core.materials.FemMaterial;

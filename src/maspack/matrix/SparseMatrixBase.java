@@ -423,5 +423,4 @@ public abstract class SparseMatrixBase extends MatrixBase
    // protected abstract void mulTransposeVec (
    //    double[] res, double[] vec, int r0, int nr, int c0, int nc);
 
-
 }

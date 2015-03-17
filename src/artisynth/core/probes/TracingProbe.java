@@ -8,8 +8,10 @@ package artisynth.core.probes;
 
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentBase;
+import artisynth.core.modelbase.Traceable;
 import maspack.render.*;
 import maspack.properties.*;
+import maspack.util.*;
 import maspack.matrix.Point3d;
 
 import java.util.*;
@@ -126,5 +128,43 @@ RenderableComponent {
          code |= TRANSLUCENT;
       }
       return code;
+   }
+
+   static public TracingProbe create (Traceable host, String traceableName) {
+      Property prop = host.getProperty (traceableName);
+      if (prop == null) {
+         throw new InternalErrorException (
+            "Property '"+traceableName+"' not found in Traceable " + host);
+      }
+      Class<?> valueClass = prop.getInfo().getValueClass();
+      if (Point3d.class.isAssignableFrom (valueClass)) {
+         // property is point - use a point tracing probe
+         return new PointTracingProbe (host, prop, 1.0);
+      }
+      else {
+         // assume that the probe is a vector probe
+         String refPosName = host.getTraceablePositionProperty (traceableName);
+         if (refPosName == null) {
+            throw new InternalErrorException (
+               "No position property found for '"+traceableName+"'");
+         }
+         boolean renderAsPush = true;
+         if (refPosName.startsWith ("-")) {
+            refPosName = refPosName.substring (1);
+         }
+         else if (refPosName.startsWith ("+")) {
+            refPosName = refPosName.substring (1);
+            renderAsPush = false;
+         }
+         Property refPosProp = host.getProperty (refPosName);
+         if (refPosProp == null) {
+            throw new InternalErrorException (
+               "Property '"+refPosName+"' not found in Traceable " + host);
+         }       
+         VectorTracingProbe prb =
+            new VectorTracingProbe (host, prop, refPosProp, 1.0);
+         prb.setRenderAsPush (renderAsPush);
+         return prb;
+      }
    }
 }

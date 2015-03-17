@@ -5,14 +5,9 @@ import java.io.IOException;
 
 public class PointModel2d extends PointModel {
 
-   public PointModel2d() throws IOException {
-      super();
+   public void build(String[] args) throws IOException {
+      build (DemoType.Point2d);
    }
-
-   public PointModel2d(String name) throws IOException {
-      super(name, DemoType.Point2d);
-   }
-
    
    public void addTrackingController() {
       super.addTrackingController();

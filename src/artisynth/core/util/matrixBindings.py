@@ -1,6 +1,7 @@
 import sys
 class NonconformingSizeException(Exception):
    "Jython exception for non-conforming argument sizes"
+
 from maspack.util import *
 from maspack.matrix import *
 from maspack.geometry import *
@@ -120,6 +121,7 @@ def Matrix__mul__(self, m):
          return res
    except ImproperSizeException:
       raise NonconformingSizeException, "argument sizes do not conform" 
+
 def Vector__getitem__(self, key):
    if isinstance(key,int):
       return self.get(key)
@@ -163,6 +165,7 @@ def Matrix__getitem__(self, ij):
    return self.get(ij[0],ij[1])
 def Matrix__setitem__(self, ij, v):
    return self.set(ij[0],ij[1],v)
+
 setattr(VectorNd, '__abs__', VectorNd__abs__)
 setattr(VectorNd, '__neg__', VectorNd__neg__)
 setattr(VectorNd, '__pos__', VectorNd__pos__)
@@ -193,8 +196,8 @@ setattr(Matrix, '__getitem__', Matrix__getitem__)
 setattr(Matrix, '__setitem__', Matrix__setitem__)
 
 # string methods not really useful -- see above
-#setattr(VectorBase, 'toString', Vector__str__)
-#setattr(MatrixBase, 'toString', Matrix__str__)
+setattr(VectorBase, 'toString', Vector__str__)
+setattr(MatrixBase, 'toString', Matrix__str__)
 
 setFormat ("%.5g")
 #VectorBase.setColumnVectorStringsVertical(1)

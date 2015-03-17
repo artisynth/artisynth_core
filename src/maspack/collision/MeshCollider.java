@@ -66,8 +66,8 @@ public class MeshCollider implements AbstractCollider {
 
    public ContactInfo getContacts (
       PolygonalMesh mesh0, PolygonalMesh mesh1, boolean calculateLoops) {
-      // collisionMetrics.getContactsCalls++;
-      // long time = System.nanoTime();
+
+      //long t0 = System.nanoTime();
       // collisionMetrics.totalTime -= time;
       // collisionMetrics.cullTime -= time;
       // if (iFirst++ == 0) collisionMetrics.elapsedRealTime = -time;
@@ -78,6 +78,10 @@ public class MeshCollider implements AbstractCollider {
       //            mesh1.getObbtree(), info.intersections, intersector);
       boolean didInt = 
          myIntersector.intersectMeshMesh (info.intersections, mesh0, mesh1);
+
+      //long t1 = System.nanoTime();
+      //System.out.println ("time=" + (t1-t0)*1e-3);
+
       // ArrayList<TriangleTriangleIntersection> check = new
       //    ArrayList<TriangleTriangleIntersection>();
       // mesh0.getObbtree().intersectFully (
@@ -215,6 +219,7 @@ public class MeshCollider implements AbstractCollider {
          }
          // collisionMetrics.femTime += System.nanoTime();
       }
+
 
       return info;
    }

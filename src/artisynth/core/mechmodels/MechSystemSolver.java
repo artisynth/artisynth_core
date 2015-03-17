@@ -617,7 +617,6 @@ public class MechSystemSolver {
    }
 
    private void initializeSolvers() {
-      System.out.println ("Initialize solver");
       if (PardisoSolver.isAvailable()) {
          setMatrixSolver (MatrixSolver.Pardiso);
       }

@@ -3,9 +3,6 @@ package artisynth.core.materials;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
 
-import artisynth.core.util.PropertyChangeListener;
-import artisynth.core.util.PropertyChangeEvent;
-
 public abstract class ViscoelasticBehavior extends MaterialBase {
 
    static Class<?>[] mySubClasses = new Class[] {
@@ -37,6 +34,8 @@ public abstract class ViscoelasticBehavior extends MaterialBase {
    public abstract void computeStress (
       SymmetricMatrix3d sigma, ViscoelasticState state);
    
+   public abstract double getTangentScale();
+
    public abstract void advanceState (
       ViscoelasticState state, double t0, double t1);
 

@@ -39,13 +39,6 @@ public class LumbarSpringDemo extends RootModel {
       X1A.mulInverseLeft (bodyA.getPose(), bodyB.getPose());
       X1A.mul (X2B);
 
-      // XBA.mulInverseLeft (bodyA.getPose(), bodyB.getPose());
-      // X1A.set (XBA);
-      // X1A.p.scale (0.5);
-
-      // X2B.mulInverseLeft (bodyB.getPose(), bodyA.getPose());
-      // X2B.mul (X1A);
-
       FrameSpring spring = new FrameSpring (null);
       spring.setMaterial (new LinearFrameMaterial (kt, kr, 0, 0));
       RenderProps.setLineColor (spring, Color.RED);
@@ -59,27 +52,6 @@ public class LumbarSpringDemo extends RootModel {
       myMechMod.attachFrameSpring (bodyA, bodyB, spring);
    }
 
-   public LumbarSpringDemo() {
-      super (null);
-   }
-
-//    class ArmMover extends MonitorBase {
-//       RigidBody myBody;
-//       ArmMover (RigidBody body) {
-//          myBody = body;
-//       }
-//       public void apply (long t) {
-//          double s = TimeBase.ticksToSeconds(t)%1;
-//          Point3d pos = new Point3d(myBody.getPosition());
-//             if (s < 0.5) {
-//                pos.x += 0.05;
-//             }
-//             else {
-//                pos.x -= 0.05;
-//             }
-//             myBody.setPosition(pos);
-//       }
-//    }
    private String rigidBodyPath = ArtisynthPath.getSrcRelativePath (
       LumbarSpringDemo.class, "geometry/");
 
@@ -99,8 +71,7 @@ public class LumbarSpringDemo extends RootModel {
       return rb;
    }
 
-   public LumbarSpringDemo (String name) throws IOException {
-      this();
+   public void build (String[] args) throws IOException {
 
       myMechMod = new MechModel ("mech");
       myMechMod.setProfiling (false);

@@ -117,6 +117,13 @@ public class OBBTree extends BVTree {
    }
    
    public void build (Boundable[] elems, int num) {
+      // XXX this is a hack to handle situations (like boxes) where
+      // there is a small number of large faces, and so an OBB that
+      // covers even two elements can be quite large. There should
+      // be a better way to determine this.
+      if (elems.length < 50) {
+         setMaxLeafElements (1);
+      }
       elemData = new ElemData[num];
       for (int i = 0; i < num; i++) {
          ElemData edata = new ElemData (elems[i], i);

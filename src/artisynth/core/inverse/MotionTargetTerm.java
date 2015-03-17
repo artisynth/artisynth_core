@@ -378,7 +378,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       // XXX should be updated on a change event...
       myVelJacobian = null;
 
-      // Main.getInverseManager().configureTargetProbes();
+      // Main.getMain().getInverseManager().configureTargetProbes();
       // mySolver.resetVariables();
       return target;
    }
@@ -413,7 +413,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       // XXX should be updated on a change event...
       myVelJacobian = null;
 
-      // Main.getInverseManager().configureTargetProbes();
+      // Main.getMain().getInverseManager().configureTargetProbes();
       // mySolver.resetVariables();
    }
 

@@ -9,13 +9,8 @@ import artisynth.core.materials.*;
 
 public class PointModel1d extends PointModel {
 
-   public PointModel1d() throws IOException {
-      super();
-   }
-
-   public PointModel1d(String name) throws IOException {
-      super(name, DemoType.Point1d);
-//      setProperties();
+   public void build(String[] args) throws IOException {
+      build (DemoType.Point1d);
    }
 
    public void setProperties() {

@@ -1352,32 +1352,32 @@ public class RigidBody extends Frame
       return false;
    }
 
-   private class RBContactMaster extends ContactMaster {
-      Point3d myLoc = new Point3d();
-      double myWeight;
-
-      RBContactMaster (Frame frame, double w, ContactPoint cpnt) {
-         super (frame, w, cpnt);
-         myLoc = new Point3d(cpnt.myPoint);
-         myLoc.inverseTransform (getPose());
-         myWeight = w;
-      }
-
-      public MatrixBlock getBlock (Vector3d dir) {
-         Matrix6x1Block blk = new Matrix6x1Block();
-         computeAppliedWrench (blk, dir, myLoc);
-         blk.transform (getPose().R);
-         blk.scale (myWeight);
-         return blk;
-      }
-
-     public void addRelativeVelocity (Vector3d vel) {
-        Vector3d tmp = new Vector3d();
-        computePointVelocity(tmp, myLoc);
-        vel.scaledAdd (myWeight, tmp);
-     }
-
-   }
+//   private class RBContactMaster extends ContactMaster {
+//      Point3d myLoc = new Point3d();
+//      double myWeight;
+//
+//      RBContactMaster (Frame frame, double w, ContactPoint cpnt) {
+//         super (frame, w, cpnt);
+//         myLoc = new Point3d(cpnt.myPoint);
+//         myLoc.inverseTransform (getPose());
+//         myWeight = w;
+//      }
+//
+//      public MatrixBlock getBlock (Vector3d dir) {
+//         Matrix6x1Block blk = new Matrix6x1Block();
+//         computeAppliedWrench (blk, dir, myLoc);
+//         blk.transform (getPose().R);
+//         blk.scale (myWeight);
+//         return blk;
+//      }
+//
+//     public void addRelativeVelocity (Vector3d vel) {
+//        Vector3d tmp = new Vector3d();
+//        computePointVelocity(tmp, myLoc);
+//        vel.scaledAdd (myWeight, tmp);
+//     }
+//
+//   }
    
    public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
       mlist.add (new ContactMaster (this, 1));

@@ -249,6 +249,10 @@ public class LabeledComponentPanel extends JPanel
       return widgets;
    }
 
+   public int numBasicWidgets() {
+      return myNumBasicWidgets;
+   }
+
    public Component addWidget (String labelText, LabeledComponentBase comp) {
       comp.setLabelText (labelText);
       addWidget (comp, myNumBasicWidgets);

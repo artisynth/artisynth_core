@@ -10,12 +10,9 @@ import maspack.matrix.*;
 
 public class TetBeam3d extends FemBeam3d {
 
-   public TetBeam3d () {
-   }    
-
-   public TetBeam3d (String name) {
+   public void build (String[] args) {
       //Normal:
-      super (name, "tet", 4, 2, /*options=*/ADD_MUSCLES);
+      build ("tet", 4, 2, /*options=*/ADD_MUSCLES);
 
       //super (name, "tet", 4, 2, 0);
       //LinearMaterial lmat = new LinearMaterial (100000, 0.33);

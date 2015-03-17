@@ -163,7 +163,7 @@ public class Fem3dMarkerAgent extends AddComponentAgent<FemMarker> {
       addComponent (new AddComponentsCommand (
          "add FemMarker", marker, (MutableCompositeComponent<?>)myModel.markers()));
 
-      Main.rerender(); // XXX shouldn't need this
+      myMain.rerender(); // XXX shouldn't need this
       setState (State.SelectingLocation);
    }
 

@@ -42,13 +42,7 @@ public class MechModelDemo extends RootModel {
 
    boolean usePlanarContacts = true;
 
-   public MechModelDemo() {
-      super (null);
-   }
-
-   public MechModelDemo (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       MechModel mechMod = new MechModel ("mechMod");
       // mechMod.setProfiling (true);

@@ -34,15 +34,7 @@ public class MuscleArm extends RootModel
     Vector3d size = new Vector3d(len/10,len/5,len);
     boolean addCompression = true;
     
-    public MuscleArm()
-    {
-        super(null);
-    }
-
-    public MuscleArm(String name)
-    {
-        this();
-        setName(name);
+   public void build (String[] args) throws IOException {
 
         model = new MechModel("Arm");
         addModel(model);

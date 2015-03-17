@@ -16,8 +16,8 @@ public class StartFromMatlab {
       if (args == null) {
          args = new String[0];
       }
-      Main.setRunningUnderMatlab (true);
       Main.main (args);
+      Main.getMain().setRunningUnderMatlab (true);
    }
 
    public Main getMain() {

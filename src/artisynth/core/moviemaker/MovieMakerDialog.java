@@ -189,7 +189,7 @@ implements ActionListener, ValueChangeListener {
       super();
 
       myMain = main;
-      myFrame = Main.getMainFrame();
+      myFrame = myMain.getMainFrame();
       myMovieMaker = movieMaker;
 
       // Initialize the contents of the movie dialog
@@ -291,7 +291,7 @@ implements ActionListener, ValueChangeListener {
       recordAudioTxt = new JCheckBox (REC_AUDIO_TO_TXT_CMD, null, false);
       recordAudioTxt.addActionListener (this);
 
-      setAudioOptions (Main.getRootModel() instanceof HasAudio);
+      setAudioOptions (myMain.getRootModel() instanceof HasAudio);
 
       recOptionsBox.add (recOptions);  
 
@@ -680,8 +680,8 @@ implements ActionListener, ValueChangeListener {
       beginRecordOnStart.setEnabled(false);
 
       // manual control of scheduler and rendering
-      Scheduler scheduler = Main.getScheduler();
-      ViewerManager manager = Main.getMain().getViewerManager();
+      Scheduler scheduler = myMain.getScheduler();
+      ViewerManager manager = myMain.getViewerManager();
 
       try {
 
@@ -753,7 +753,7 @@ implements ActionListener, ValueChangeListener {
          // Right now we expect the models to either produce a RAW audio
          // file, or a text file. The RAW file should be merged with the
          // movie, while the text is left alone as is.
-         if (Main.getRootModel() instanceof HasAudio) {
+         if (myMain.getRootModel() instanceof HasAudio) {
             if (recordAudio.isSelected()) { // Render a raw audio file
                myMovieMaker.setAudioFileName (tmpDirectory + "/aud.raw");
             }
@@ -766,7 +766,7 @@ implements ActionListener, ValueChangeListener {
 
             boolean renderToFile =
                recordAudio.isSelected() || recordAudioTxt.isSelected();
-            ((HasAudio) Main.getRootModel()).setRenderAudioToFile (
+            ((HasAudio) myMain.getRootModel()).setRenderAudioToFile (
                renderToFile);
          }
          
@@ -787,11 +787,11 @@ implements ActionListener, ValueChangeListener {
             myMovieMaker.setDataPath (tmpDirectory);
             // Start playing when start button is clicked 
             // if not already playing
-            if (Main.getScheduler().isPlaying() == false &&
+            if (myMain.getScheduler().isPlaying() == false &&
                beginRecordOnStart.isSelected()) {
-               //Main.getScheduler().playRequest();
+               //myMain.getScheduler().playRequest();
                //myFrame.getMenuBarHandler().disableShowPlay();
-               Main.getScheduler().play();
+               myMain.getScheduler().play();
             }
             isRecordingStarted = true;
          }
@@ -812,8 +812,8 @@ implements ActionListener, ValueChangeListener {
    public void stopMovie() {  
 
       // re-enable viewer resize
-      // Main.getMain().getViewer().setResizeEnabled(true);
-      // Main.getMain().getViewer().rerender(); // trigger rerender
+      // myMain.getViewer().setResizeEnabled(true);
+      // myMain.getViewer().rerender(); // trigger rerender
 
       Thread stopThread = new Thread() {
          public void run() {
@@ -829,9 +829,9 @@ implements ActionListener, ValueChangeListener {
             myFrame.setAlwaysOnTop (false);
 
             // Stop playing when stop movie maker is pressed
-            if (Main.getScheduler().isPlaying() == true &&
+            if (myMain.getScheduler().isPlaying() == true &&
                endRecordOnStop.isSelected()) {
-               Main.getScheduler().pause();  
+               myMain.getScheduler().pause();  
             }
 
             // Make the movie out of the frames
@@ -847,7 +847,7 @@ implements ActionListener, ValueChangeListener {
                      myMovieMaker.render (movieFileName);
                   }
                   else {
-                     ((HasAudio) Main.getRootModel()).onStop();
+                     ((HasAudio) myMain.getRootModel()).onStop();
                      String tmpMovieFn = "file:" + tmpDirectory + "/noAudio.mov";
                      String finalMovieFn =
                         "file:" + ArtisynthPath.getHomeDir() + "/" + movieFileName;
@@ -887,7 +887,7 @@ implements ActionListener, ValueChangeListener {
             }
 
             // change the audio source back to outputting to sound card
-            if ((Main.getRootModel() instanceof HasAudio) &&
+            if ((myMain.getRootModel() instanceof HasAudio) &&
                ((recordAudio.isSelected()) || recordAudioTxt.isSelected()) ) {
                System.out.println("Going back to soundcard output...");
 
@@ -900,7 +900,7 @@ implements ActionListener, ValueChangeListener {
                normalizeAudio.setSelected (false);
                normalizeAudio.setEnabled (false);
 
-               ((HasAudio) Main.getRootModel()).setRenderAudioToFile (false);
+               ((HasAudio) myMain.getRootModel()).setRenderAudioToFile (false);
             }
             
             System.out.println("Done making movie");

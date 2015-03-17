@@ -161,7 +161,6 @@ public class RigidCompositeBody extends RigidBody implements
             setInertiaFromMass (getMass());            
          }
       }
-      
    }
    
    /**

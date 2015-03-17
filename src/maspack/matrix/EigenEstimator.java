@@ -120,19 +120,20 @@ public class EigenEstimator {
 
    int dsconv (int n, double[] ritz, double[] bounds, int off, double tol) {
 
-      // NumberFormat fmt = new NumberFormat ("%16.13f");
+      NumberFormat fmt = new NumberFormat ("%16.10e");
 
-      // System.out.println ("tol=" + tol);
-      // System.out.print ("ritz=    ");
-      // for (int i=off; i<off+n; i++) {
-      //    System.out.print (fmt.format (ritz[i])+" ");
-      // }
-      // System.out.println ("");
-      // System.out.print ("bounds=  ");
-      // for (int i=off; i<off+n; i++) {
-      //    System.out.print (fmt.format (bounds[i])+" ");
-      // }
-      // System.out.println ("");
+      System.out.println ("tol=" + tol);
+      System.out.print ("ritz=    ");
+      for (int i=off; i<off+n; i++) {
+         System.out.print (fmt.format (ritz[i])+" ");
+      }
+      System.out.println ("");
+      System.out.print ("bounds=  ");
+      for (int i=off; i<off+n; i++) {
+         System.out.print (fmt.format (bounds[i])+" ");
+      }
+      System.out.println ("");
+      System.out.println ("eps23=" + eps23);
 
       int nconv = 0;
 
@@ -882,6 +883,11 @@ public class EigenEstimator {
             for (int i=0; i<n; i++) {
                resid[i] = 2*rand.nextDouble()-1;
             }
+            if (true) {
+               VectorNd resv = new VectorNd(n);
+               resv.set (resid);
+               System.out.println ("v0=\n" + resv.toString ("%16.12f"));
+            }
             // if (n == 6) {
             //    if (xgetvcnt == 0) {
             //       double[] vec = new double[] {
@@ -978,17 +984,18 @@ public class EigenEstimator {
     * @param np
     * Number of additional Arnoldi steps to take.
     * @param resid
-    * Residual vector of length n
+    * Residual vector of length n (input/output)
     * @param rnorm
-    * Norm of the residual
+    * Norm of the residual (input/output)
     * @param v
-    * n X k+np matrix
+    * n X k+np matrix (input/output)
     * @param wv
     * witdh of v, such that v(i,j) = v[i*vw+j]
     * @param d
-    * k+np diagonal entries of tridiagonal matrix
+    * k+np diagonal entries of tridiagonal matrix (input/output)
     * @param e
     * k+np-1 off-diagonal entries of tridiagonal matrix, starting at 1
+    * (input/output)
     * @param A
     * computes y = A*x, where A is the problem matrix 
     */
@@ -1209,6 +1216,8 @@ public class EigenEstimator {
          else {
             e[j-1] = rnorm.value;/*ZB*/
          }
+         //System.out.println ("d["+(j-1)+"]=" + d[j-1]);
+         //System.out.println ("e["+(j-1)+"]=" + e[j-1]);
 //
          int iter  = 0;
 //
@@ -1488,6 +1497,7 @@ public class EigenEstimator {
 //    %----------------------------------------------------------%
 
       xsaitr (ido, n, 0, nev0, resid, rnorm, v, vw, d, e, A);
+
       if (info > 0) {
 
 //       %-----------------------------------------------------%
@@ -1538,9 +1548,10 @@ public class EigenEstimator {
 //       | of the current symmetric tridiagonal matrix.           |
 //       %--------------------------------------------------------%
 
+
          int ierr = dseigt (rnorm.value, kplusp, d, e, ritz, bounds);
          System.out.println (
-            "iter=" + iter + " " + (new VectorNd(ritz)).toString ("%16.13f"));
+            "iter=" + iter + " " + (new VectorNd(ritz)).toString ("%19.16f"));
 
          if (ierr != 0) {
             return -8;
@@ -1585,7 +1596,7 @@ public class EigenEstimator {
             globalTol = 0;
          }
          nconv = dsconv (nev, ritz, workl0, np, tol);
-         System.out.println ("nconv=" + nconv + " tol=" + tol);
+         System.out.println ("nconv=" + nconv + " tol=" + tol + " np=" + np);
 
 //       %---------------------------------------------------------%
 //       | Count the number of unwanted Ritz values that have zero |
@@ -2082,7 +2093,14 @@ public class EigenEstimator {
 
       double[] resid = new double[n];
       double tol = 100*epsmch;
-      tol = 1e-13;
+      tol = 1e-14;
+
+      myNumConverged = 0;
+      myIterCnt = 0;
+      rnorm0 = 0;
+      iter = 0;
+      rnormSave = 0;
+      //RandomGenerator.setSeed (0x1234);
 
       int ierr = xsaupd (n, which, nev, tol, 
                          resid, ncv, V.buf, V.width, /*info=*/0, A);

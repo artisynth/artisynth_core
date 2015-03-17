@@ -59,10 +59,6 @@ public class ArticulatedFem extends RootModel {
 
    double boxMass = boxLength * boxHeight * boxHeight * myDensity;
 
-   public ArticulatedFem() {
-      super (null);
-   }
-
    private RigidBody makeBox() {
       RigidBody box = new RigidBody();
       box.setInertia (SpatialInertia.createBoxInertia (
@@ -72,9 +68,7 @@ public class ArticulatedFem extends RootModel {
       return box;
    }
 
-   public ArticulatedFem (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       int nlinks = 3;
       int nelemsx = 6;

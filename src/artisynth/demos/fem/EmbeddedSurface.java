@@ -10,13 +10,10 @@ import artisynth.demos.fem.FemBeam3d;
 
 public class EmbeddedSurface extends FemBeam3d {
 
-   public EmbeddedSurface() {
-   }
-
-   public EmbeddedSurface (String name) {
+   public void build (String[] args) {
 
       // NORMAL:
-      super (name, "hex", 1.0, 0.5, 4, 2, /*options=*/VERTICAL);
+      build ("hex", 1.0, 0.5, 4, 2, /*options=*/VERTICAL);
       
       myMechMod.setGravity(0,0,1e-10);
       //myFemMod.setSurfaceRendering (SurfaceRender.None);

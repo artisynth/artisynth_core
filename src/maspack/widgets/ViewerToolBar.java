@@ -201,6 +201,11 @@ public class ViewerToolBar extends JToolBar
    }
 
    public void updateIcons () {
+      if (myAxialViewMenuItems == null) {
+         // do nothing - render has been called before ViewerToolBar
+         // has finished constructing
+         return;
+      }
       AxisAlignedRotation defaultView = myViewer.getDefaultAxialView();
       if (defaultView != myDefaultAxialView) {
          // default view has changed; rebuild the icon list

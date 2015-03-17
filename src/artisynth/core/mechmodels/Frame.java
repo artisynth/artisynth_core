@@ -8,8 +8,6 @@ package artisynth.core.mechmodels;
 
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.MotionTarget.TargetActivity;
-import artisynth.core.probes.TracingProbe;
-import artisynth.core.probes.VectorTracingProbe;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.TransformableGeometry;
 import maspack.matrix.*;
@@ -23,7 +21,7 @@ import java.util.*;
 
 public class Frame extends DynamicComponentBase
    implements TransformableGeometry, ScalableUnits, DynamicComponent,
-              Tracable, MotionTargetComponent, CopyableComponent,
+              Traceable, MotionTargetComponent, CopyableComponent,
               HasCoordinateFrame, CollidableDynamicComponent, PointAttachable {
 
    public static boolean dynamicVelInWorldCoords = true;
@@ -956,23 +954,18 @@ public class Frame extends DynamicComponentBase
       myState.getBodyVelocity (v);
    }
 
-   public String[] getTracables() {
+   /**
+    * {@inheritDoc}
+    */
+   public String[] getTraceables() {
       return new String[] { "transforce", "moment" };
    }
-
-   public TracingProbe getTracingProbe (String tracableName) {
-      if (tracableName.equals ("transforce")) {
-         return new VectorTracingProbe (
-            this, getProperty ("transForce"), getProperty ("position"), 1.0);
-      }
-      else if (tracableName.equals ("moment")) {
-         return new VectorTracingProbe (
-            this, getProperty ("moment"), getProperty ("position"), 1.0);
-      }
-      else {
-         throw new IllegalArgumentException ("Unknown tracable '"
-         + tracableName + "'");
-      }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public String getTraceablePositionProperty (String traceableName) {
+      return "position";
    }
 
    public PointFrameAttachment createPointAttachment (Point pnt) {

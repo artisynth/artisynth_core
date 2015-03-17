@@ -1304,25 +1304,28 @@ briefly in Section \ref{PhysicsSimulation:sec}. At present,
 attachments are implemented only for point-based components.  Modeling
 applications do not generally handle the attachment components
 directly, but instead create them implicitly using the following {\tt
-MechModel} methods:
+MechModel} method:
 %
 \begin{lstlisting}[]
-  attachPoint (Point p1, Particle p2);
-  attachPoint (Point p1, RigidBody body, Point3d loc);
-  attachPoint (Point p1, RigidBody body);
-  attachPoint (Point p1, FemElement3d elem);
+  attachPoint (Point p1, PointAttachable comp);
 \end{lstlisting}
 %
-which attach a point {\tt p1} to either a particle, rigid body, or a
-finite element.  The second method,
-\javamethodAlt{artisynth.core.mechmodels.MechModel.attachPoint(Point,RigidBody,Point3d)}
-{attachPoint(p1, body, loc)}, attaches {\tt p1} to {\tt body} at the
-point {\tt loc} specified in body coordinates, while
-\javamethodAlt{artisynth.core.mechmodels.MechModel.attachPoint(Point,RigidBody)}{attachPoint(p1,
-body)} computes the attachment location based on the current position
-and pose of {\tt p1} and {\tt body}.  
-Finite element attachments are discussed in Section
-\ref{sec:fem:nodeattachments}.
+This attaches a point {\tt p1} to any component which implements the
+interface {\tt PointAttachment}, indicating that it is capable
+creating an attachment to a point. Components that implement {\tt
+PointAttachable} currently include rigid bodies, particles, and finite
+element models. The attachment is created based on the the current
+position of the point and component in question.
+For attaching a point to a rigid body, another method
+may be used:
+%
+\begin{lstlisting}[]
+  attachPoint (Point p1, RigidBody body, Point3d loc);
+\end{lstlisting}
+%
+This attaches {\tt p1} to {\tt body} at the point {\tt loc} specified
+in body coordinates.  Finite element attachments are discussed in
+Section \ref{sec:fem:nodeattachments}.
 
 Once at point is attached, it
 will be in the {\it attached} state, as described in Section

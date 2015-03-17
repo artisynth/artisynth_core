@@ -115,13 +115,9 @@ public class FemBeam3d extends RootModel {
       }
    }
 
-   public FemBeam3d() {
-      super (null);
-   }
-
-   public FemBeam3d (String name) {
+   public void build (String[] args) {
       //this (name, "hex", 24, 12, /*options=*/0); // ADD_BLOCKS
-      this (name, "hex", 8, 4, /*options=*/0); // ADD_BLOCKS
+      build ("hex", 8, 4, /*options=*/0); // ADD_BLOCKS
 
       myMechMod.setIntegrator (Integrator.Trapezoidal);
       myFemMod.setMaterial (new MooneyRivlinMaterial());
@@ -129,23 +125,20 @@ public class FemBeam3d extends RootModel {
       //mainMod.setProfiling (true);      
    }
 
-   public FemBeam3d (
-      String name, String type, int nx, int nyz, int options) {
-      this (name, type, LENGTH, WIDTH, nx, nyz, options);
+   public void build (
+      String type, int nx, int nyz, int options) {
+      build (type, LENGTH, WIDTH, nx, nyz, options);
    }      
 
-   public FemBeam3d (
-      String name, String type, double length, double width,
+   public void build (
+      String type, double length, double width,
       int nx, int nyz, int options) {
-      this (name, type, length, width, width, nx, nyz, nyz, options);
+      build (type, length, width, width, nx, nyz, nyz, options);
    }
 
-   public FemBeam3d (
-      String name, String type, double length, double widthy, double widthz,
+   public void build (
+      String type, double length, double widthy, double widthz,
       int nx, int ny, int nz, int options) {
-
-      this();
-      setName (name);
 
       if (useFemMuscleModel) {
          myFemMod = new FemMuscleModel ("fem");

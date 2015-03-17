@@ -64,7 +64,10 @@ public class InverseManager implements HasProperties {
    private NumericOutputProbe modelTargetPosOutProbe;
    private NumericOutputProbe refTargetPosOutProbe;
 
-   public InverseManager () {
+   private Main myMain;
+
+   public InverseManager (Main main) {
+      myMain = main;
    }
 
    public static PropertyList myProps = new PropertyList(InverseManager.class);
@@ -107,7 +110,7 @@ public class InverseManager implements HasProperties {
          invcon.addMotionTarget(target);
       for (ExcitationComponent ex : exciters)
          invcon.addExciter(ex);
-      Main.getRootModel().addController(invcon);
+      myMain.getRootModel().addController(invcon);
 
       setController(invcon);
    }
@@ -122,10 +125,10 @@ public class InverseManager implements HasProperties {
       }
       myController = controller;
       if (myController.isManaged()) {
-         findOrCreateProbes(Main.getRootModel());
+         findOrCreateProbes(myMain.getRootModel());
          configureProbes();
       }
-      if (Main.getMainFrame() != null) {
+      if (myMain.getMainFrame() != null) {
          showInversePanel();
       }
    }
@@ -141,7 +144,7 @@ public class InverseManager implements HasProperties {
       if (!enable) {
          maxa = defaultMaxa; // reset maxa to default
       }
-      Main.rerender();
+      Main.getMain().rerender();
    }
 
    public void showInversePanel() {
@@ -159,7 +162,7 @@ public class InverseManager implements HasProperties {
 
    public void hideInversePanel() {
       if (inverseControlPanel != null) {
-         Main.getWorkspace().deregisterWindow(inverseControlPanel.getFrame());
+         myMain.deregisterWindow(inverseControlPanel.getFrame());
          inverseControlPanel.dispose();
          inverseControlPanel = null;
       }
@@ -167,7 +170,7 @@ public class InverseManager implements HasProperties {
 
    private void removeInverseControlPanel() {
       if (inverseControlPanel != null) {
-         Main.getWorkspace().deregisterWindow(inverseControlPanel.getFrame());
+         myMain.deregisterWindow(inverseControlPanel.getFrame());
          inverseControlPanel.dispose();
          inverseControlPanel = null;
       }
@@ -201,12 +204,12 @@ public class InverseManager implements HasProperties {
          }
       }
 
-      Dimension d = Main.getMainFrame().getSize();
-      java.awt.Point pos = Main.getMainFrame().getLocation();
+      Dimension d = myMain.getMainFrame().getSize();
+      java.awt.Point pos = myMain.getMainFrame().getLocation();
       inverseControlPanel.getFrame().setLocation(pos.x+d.width, pos.y+d.height);
 
       inverseControlPanel.setScrollable(false);
-      Main.getWorkspace().registerWindow(inverseControlPanel.getFrame());
+      myMain.registerWindow(inverseControlPanel.getFrame());
    }
 
    private void findOrCreateProbes(RootModel root) {
@@ -391,9 +394,9 @@ public class InverseManager implements HasProperties {
    public void setProbeDuration(double probeDuration) {
       
       if (myController.isManaged()) {
-         WayPoint waypoint = Main.getRootModel().getWayPoint(myProbeDuration);
+         WayPoint waypoint = myMain.getRootModel().getWayPoint(myProbeDuration);
          if (waypoint != null && waypoint.isBreakPoint()) {
-            Main.getRootModel().removeWayPoint(waypoint);
+            myMain.getRootModel().removeWayPoint(waypoint);
          }
    
          myProbeDuration = probeDuration;
@@ -406,9 +409,9 @@ public class InverseManager implements HasProperties {
             excitationInput.setStartStopTimes(0, myProbeDuration);
          }
    
-         Main.getRootModel().addBreakPoint(myProbeDuration);
-         if (Main.getTimeline() != null) {
-            Main.getTimeline().requestResetAll();
+         myMain.getRootModel().addBreakPoint(myProbeDuration);
+         if (myMain.getTimeline() != null) {
+            myMain.getTimeline().requestResetAll();
          }
       }
    }
@@ -453,7 +456,8 @@ public class InverseManager implements HasProperties {
 
    public static TrackingController findInverseController() {
       TrackingController ic = null;
-      for (Controller c : Main.getRootModel().getControllers()) {
+      RootModel root = Main.getMain().getRootModel();
+      for (Controller c : root.getControllers()) {
          if (c instanceof TrackingController) {
             ic = (TrackingController)c;
             break;
@@ -463,13 +467,15 @@ public class InverseManager implements HasProperties {
    }
 
    public static boolean isInversePanelVisible() {
-      ControlPanel inversePanel = Main.getInverseManager().inverseControlPanel;
+      Main main = Main.getMain();
+      ControlPanel inversePanel = main.getInverseManager().inverseControlPanel;
       return (inversePanel != null);
    }
 
    public static MechModel findMechModel() {
+      Main main = Main.getMain();
       MechModel mech = null;
-      for (Model model : Main.getRootModel().models()) {
+      for (Model model : main.getRootModel().models()) {
          if (model instanceof MechModel) {
             mech = (MechModel)model;
          }

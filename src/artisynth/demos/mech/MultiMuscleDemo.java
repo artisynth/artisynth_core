@@ -14,12 +14,8 @@ import artisynth.core.mechmodels.RigidBody;
 
 public class MultiMuscleDemo extends MultiSpringDemo {
 
-   public MultiMuscleDemo () {
-      super (null);
-   }
-
-   public MultiMuscleDemo (String name) {
-      super (name);
+   public void build (String[] args) {
+      super.build (args);
 
       MechModel mechMod = (MechModel)models().get ("mechMod");
       RigidBody block = mechMod.rigidBodies ().get ("block");

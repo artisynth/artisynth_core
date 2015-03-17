@@ -27,13 +27,8 @@ public class SpongeDemo extends RootModel {
 
    // boolean kinematic = false;
 
-   public SpongeDemo() {
-      super (null);
-   }
+   public void build (String[] args) throws IOException {
 
-   public SpongeDemo (String name) throws IOException {
-      this();
-      setName (name);
       sponge = new SpongeModel ("sponge");
       addModel (sponge);
 
@@ -90,8 +85,8 @@ public class SpongeDemo extends RootModel {
       System.out.println ("Loading Probes from File: " + probeFileFullPath);
 
       try {
-         Main.getWorkspace().scanProbes (
-            ArtisynthIO.newReaderTokenizer (probeFileFullPath), this);
+         scanProbes (
+            ArtisynthIO.newReaderTokenizer (probeFileFullPath));
       }
       catch (Exception e) {
          System.out.println ("Error reading probe file");

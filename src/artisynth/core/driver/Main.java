@@ -45,7 +45,6 @@ import artisynth.core.gui.Timeline;
 import artisynth.core.gui.editorManager.EditorManager;
 import artisynth.core.gui.editorManager.TransformComponentsCommand;
 import artisynth.core.gui.editorManager.UndoManager;
-import artisynth.core.gui.jythonconsole.JythonFrameConsole;
 import artisynth.core.gui.jythonconsole.ArtisynthJythonConsole;
 import artisynth.core.gui.selectionManager.SelectionEvent;
 import artisynth.core.gui.selectionManager.SelectionListener;
@@ -56,6 +55,8 @@ import artisynth.core.mechmodels.MechSystemSolver.PosStabilization;
 import artisynth.core.modelbase.*;
 import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.probes.WayPoint;
+import artisynth.core.probes.Probe;
+import artisynth.core.probes.NumericProbeBase;
 import artisynth.core.moviemaker.MovieMaker;
 import artisynth.core.util.*;
 import artisynth.core.workspace.DriverInterface;
@@ -78,24 +79,24 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * private data members for the driver interface 
     */
 
-   protected static File myModelDir;
-   protected static File myProbeDir;
+   protected File myModelDir;
+   protected File myProbeDir;
 
-   protected static MainFrame myFrame;
-   protected static MenuBarHandler myMenuBarHandler;
-   protected static GenericKeyHandler myKeyHandler;
+   protected MainFrame myFrame;
+   protected MenuBarHandler myMenuBarHandler;
+   protected GenericKeyHandler myKeyHandler;
    protected static Main myMain;
-   protected static Scheduler myScheduler;
-   protected static EditorManager myEditorManager;
-   protected static UndoManager myUndoManager;
-   protected static InverseManager myInverseManager;
+   protected Scheduler myScheduler;
+   protected EditorManager myEditorManager;
+   protected UndoManager myUndoManager;
+   protected InverseManager myInverseManager;
    protected MovieMaker myMovieMaker;
 
    protected static boolean myRunningUnderMatlab = false;
 
    // root model declared
-   protected static Workspace myWorkspace = null;
-   protected static Timeline myTimeline;
+   protected Workspace myWorkspace = null;
+   protected Timeline myTimeline;
    protected boolean timeLineRight = false;
    protected boolean doubleTime = false;
    protected String myErrMsg;
@@ -108,13 +109,25 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected Tree<MenuEntry> myDemoMenu = null;	// a tree containing the demo menu hierarchy description
    protected AliasTable myScripts;
    protected final static String PROJECT_NAME = "ArtiSynth";
+   protected MatlabInterface myMatlabConnection;
 
    protected String myModelName;
    protected String[] myModelArgs;
    protected int myFlags = 0;
    protected double myMaxStep = -1;
+   protected boolean disposed = false;
 
    protected String myModelSaveFormat = "%g"; // "%.8g";
+
+   private Vector3d myVec = new Vector3d();
+
+   public Vector3d getVector() {
+      return myVec;
+   }
+
+   public void setVector (Vector3d v) {
+      myVec.set (v);
+   }
 
    public enum SelectionMode {
       Scale,
@@ -147,6 +160,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       myRunningUnderMatlab = underMatlab;
    }
 
+   public static boolean isRunningUnderMatlab () {
+      return myRunningUnderMatlab;
+   }
+
    // MovieOptions movieOptions = new MovieOptions();
 
    public SelectionManager getSelectionManager() {
@@ -174,7 +191,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return myViewer;
    }
 
-   public static MainFrame getMainFrame() {
+   public MainFrame getMainFrame() {
       return myFrame;
    }
 
@@ -306,6 +323,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
+   public AliasTable getDemoTable() {
+      return myDemoModels;
+   }
+
    private String getScriptFileName (File file, Pattern pattern) {
       if (!file.canRead()) {
          return null;
@@ -403,7 +424,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
       myEditorManager = new EditorManager (this);
       myUndoManager = new UndoManager();
-      myInverseManager = new InverseManager();
+      myInverseManager = new InverseManager(this);
 
       // need to create selection manager before MainFrame, becuase
       // some things in MainFrame will assume it exists
@@ -455,6 +476,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          
          myPullController = new PullController (mySelectionManager);
       }
+      createWorkspace();
    }
 
    /**
@@ -472,8 +494,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myTimeline.setVisible (true);
       }
       else {
-         if (myTimeline != null)
+         if (myTimeline != null) {
             myTimeline.setVisible (false);
+         }
       }
    }
 
@@ -643,7 +666,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return myJythonConsole;
    }
 
-   public static boolean isSimulating() {
+   public boolean isSimulating() {
       return getScheduler().isPlaying();
    }
 
@@ -674,7 +697,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    public void waitForStop () {
       while (getScheduler().isPlaying()) {
          try {
-            Thread.sleep (1000);
+            Thread.sleep (10);
          }
          catch (InterruptedException e) {
             break;
@@ -690,7 +713,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       myScheduler.fastForward();
    }
 
-   public static double getTime() {
+   public double getTime() {
       return myScheduler.getTime();
    }
 
@@ -729,19 +752,26 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
-   public static double getMaxStep () {
+   public double getMaxStep () {
       // this value mirrors rootModel.getMaxStepSize() ...
-      return myMain.myMaxStep;
+      return myMaxStep;
    }
 
    public boolean removeWayPoint (WayPoint way) {
-      if (getRootModel().removeWayPoint (way)) {
-         getTimeline().removeWayPointFromRoot (way);
-         return true;
+      RootModel root = getRootModel();
+      if (root != null) {
+         return root.removeWayPoint (way);
       }
       else {
          return false;
       }
+      // if (getRootModel().removeWayPoint (way)) {
+      //    getTimeline().removeWayPointFromRoot (way);
+      //    return true;
+      // }
+      // else {
+      //    return false;
+      // }
    }
 
    public boolean removeWayPoint (double t) {
@@ -775,18 +805,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
    private void createTimeline() {
       if (getScheduler().isPlaying()) {
          getScheduler().stopRequest();
-         while (getScheduler().isPlaying()) {
-            // sleep for 10 milliseconds
-            try {
-               Thread.sleep (10);
-            }
-            catch (Exception e) {
-            }
-         }
+         waitForStop();
       }
-
       TimelineController timeline = 
-         new TimelineController ("Timeline", myFrame, myViewer);
+         new TimelineController ("Timeline", this, myViewer);
       mySelectionManager.addSelectionListener(timeline);
       timeline.setMultipleSelectionMask (
          myViewer.getMouseHandler().getMultipleSelectionMask());
@@ -796,11 +818,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // add window listener to the timeline to catch window close events
       myTimeline.addWindowListener (new WindowAdapter() {
          public void windowClosed (WindowEvent e) {
-            System.out.println ("timeline closed");
          }
 
          public void windowClosing (WindowEvent e) {
-            System.out.println ("timeline closing");
             myMenuBarHandler.setTimelineVisible (false);
          }
       });
@@ -842,7 +862,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       timeLineRight = timeLineAllignedRight;
       doubleTime = loadLargeTimeline;
 
-      myScheduler = new Scheduler();
+      myScheduler = new Scheduler(this);
       setMaxStep (maxStep.value);
 
       if (myFrame != null) {
@@ -880,7 +900,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
-   public static RootModel getRootModel() {
+   public RootModel getRootModel() {
       if (myWorkspace != null) {
          return myWorkspace.getRootModel();
       }
@@ -911,8 +931,111 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (myViewerManager != null) {
          myViewerManager.clearRenderables();
       }
+      getWorkspace().setRootModel (null);
    }
 
+   /**
+    * Gets the data associated with a numeric input probe and returns it as a
+    * 2-dimensional array of doubles. The identity of the probe is indicated by
+    * a string that gives either it's name or number within the current root
+    * model's list of input probes. The method returns null if the specified
+    * probe cannot be found or if it is not a numeric probe.
+    *
+    * <p> This is primarily intended as a convenience method for extracting
+    * probe data into other applications (such as Matlab).
+    *
+    * @param nameOrNumber name or number of the probe in question
+    * @return probe's current data, or <code>null</code> if the probe is not
+    * found
+    */
+   public double[][] getInputProbeData (String nameOrNumber) {
+      RootModel root = getRootModel();
+      if (root != null) {
+         Probe probe = root.getInputProbes().findComponent (nameOrNumber);
+         if (probe instanceof NumericProbeBase) {
+            return ((NumericProbeBase)probe).getValues();
+         }
+      }
+      return null;
+   }
+    
+   /**
+    * Sets the data associated with a numeric input probe. The data is supplied
+    * as a 2-dimensional array of double, and the identity of the probe is
+    * indicated by a string that gives either it's name or number within the
+    * current root model's list of input probes. The method returns false if the
+    * specified probe cannot be found or if it is not a numeric probe.
+    *
+    * <p> This is primarily intended as a convenience method for setting
+    * probe data from other applications (such as Matlab).
+    *
+    * @param nameOrNumber name or number of the probe in question
+    * @param data new data to set inside the probe
+    * @return <code>false</code> if the probe is not found
+    */
+   public boolean setInputProbeData (String name, double[][] data) {
+      RootModel root = getRootModel();
+      if (root != null) {
+         Probe probe = root.getInputProbes().findComponent (name);
+         if (probe instanceof NumericProbeBase) {
+            ((NumericProbeBase)probe).setValues(data);
+            return true;
+         }
+      }
+      return false;
+   }
+   
+   /**
+    * Gets the data associated with a numeric output probe and returns it as a
+    * 2-dimensional array of doubles. The identity of the probe is indicated by
+    * a string that gives either it's name or number within the current root
+    * model's list of output probes. The method returns null if the specified
+    * probe cannot be found or if it is not a numeric probe.
+    *
+    * <p> This is primarily intended as a convenience method for extracting
+    * probe data into other applications (such as Matlab).
+    *
+    * @param nameOrNumber name or number of the probe in question
+    * @return probe's current data, or <code>null</code> if the probe is not
+    * found
+    */
+   public double[][] getOutputProbeData (String nameOrNumber) {
+      RootModel root = getRootModel();
+      if (root != null) {
+         Probe probe = root.getOutputProbes().findComponent (nameOrNumber);
+         if (probe instanceof NumericProbeBase) {
+            return ((NumericProbeBase)probe).getValues();
+         }
+      }
+      return null;
+   }
+    
+   /**
+    * Sets the data associated with a numeric output probe. The data is supplied
+    * as a 2-dimensional array of double, and the identity of the probe is
+    * indicated by a string that gives either it's name or number within the
+    * current root model's list of output probes. The method returns false if the
+    * specified probe cannot be found or if it is not a numeric probe.
+    *
+    * <p> This is primarily intended as a convenience method for setting
+    * probe data from other applications (such as Matlab).
+    *
+    * @param nameOrNumber name or number of the probe in question
+    * @param data new data to set inside the probe
+    * @return <code>false</code> if the probe is not found
+    */
+   public boolean setOutputProbeData (String name, double[][] data) {
+      RootModel root = getRootModel();
+      if (root != null) {
+         Probe probe = root.getOutputProbes().findComponent (name);
+         if (probe instanceof NumericProbeBase) {
+            ((NumericProbeBase)probe).setValues(data);
+            return true;
+         }
+      }
+      return false;
+   }
+   
    /** 
     * Returns the first MechSystem, if any, among the models of the current
     * RootModel.
@@ -944,7 +1067,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       newRoot.setNumber (0);
       getWorkspace().setRootModel (newRoot);
       newRoot.addComponentChangeListener (this);
-      newRoot.setMainViewer (myViewer);
+
+      // mainViewer should already be set if constructed with build() method:
+      newRoot.setMainViewer (myViewer); 
 
       if (myFrame != null) {
          myMenuBarHandler.enableShowPlay();
@@ -1056,11 +1181,12 @@ public class Main implements DriverInterface, ComponentChangeListener {
          Method method = demoClass.getMethod ("build", String[].class);
          if (demoClass == RootModel.class ||
              method.getDeclaringClass() != RootModel.class) {
-            System.out.println (
-               "constructing model with build method ...");
+            //System.out.println (
+            // "constructing model with build method ...");
             Constructor<?> constructor = demoClass.getConstructor();
             newRoot = (RootModel)constructor.newInstance();
             newRoot.setName (modelName);
+            newRoot.setMainViewer (myViewer); 
             newRoot.build (args);
          }
          else {
@@ -1288,7 +1414,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    /**
     * rerender all viewers and update all widgets
     */
-   public static void rerender() {
+   public void rerender() {
       if (myWorkspace != null) {
          myWorkspace.rerender();
       }
@@ -1297,12 +1423,13 @@ public class Main implements DriverInterface, ComponentChangeListener {
    /**
     * update all widgets
     */
-   public static void rewidgetUpdate() {
+   public void rewidgetUpdate() {
       if (myWorkspace != null) {
          myWorkspace.rewidgetUpdate();
       }
    }
 
+   protected static BooleanHolder printHelp = new BooleanHolder (false);
    protected static BooleanHolder fullScreen = new BooleanHolder (false);
    protected static BooleanHolder yup = new BooleanHolder (false);
    protected static BooleanHolder drawAxes = new BooleanHolder (false);
@@ -1357,6 +1484,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    public static final String [] mousePrefsOptions = {"default", "laptop", "kees", "mac"};
 
    protected static float[] bgColor = new float[3];
+   protected static BooleanHolder openMatlab = new BooleanHolder(false);
 
    // Dimension getViewerSize() {
    //    if (myViewer != null) {
@@ -1367,7 +1495,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    //    }
    // }
 
-   private static void verifyNativeLibraries (boolean update) {
+   private void verifyNativeLibraries (boolean update) {
 
       LibraryInstaller installer = new LibraryInstaller();
       File libFile = ArtisynthPath.getHomeRelativeFile ("lib/LIBRARIES", ".");
@@ -1407,6 +1535,21 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
+   private static class QuitOnBreakListener implements SchedulerListener {
+
+      private Main myMain = null;
+
+      public QuitOnBreakListener (Main main) {
+         myMain = main;
+      }
+
+      public void schedulerActionPerformed (Scheduler.Action action) {
+         if (action == Action.Stopped) {
+            myMain.quit();
+         }
+      }
+   }
+
    /**
     * the main entry point
     * 
@@ -1416,8 +1559,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       IntHolder width = new IntHolder (750);
       IntHolder height = new IntHolder (500);
 
-      ArgParser parser = new ArgParser ("java artisynth.core.driver.Main");
-      parser.addOption ("-help %h #prints help message", null);
+      ArgParser parser = new ArgParser ("java artisynth.core.driver.Main", false);
+      parser.addOption ("-help %v #prints help message", printHelp);
       parser.addOption ("-width %d #width (pixels)", width);
       parser.addOption ("-height %d #height (pixels)", height);
       parser.addOption (
@@ -1478,8 +1621,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // parser.addOption ("-useOldTimeline %v #use old timeline", useOldTimeline);
       parser.addOption (
          "-useSignedDistanceCollider %v "+
-            "#use SignedDistanceCollider where possible", 
-            useSignedDistanceCollider);
+         "#use SignedDistanceCollider where possible", 
+         useSignedDistanceCollider);
       parser.addOption ("-useAjlCollision" +
          "%v #use AJL collision detection", useAjlCollision);
       parser.addOption ("-useBodyVelsInSolve" +
@@ -1491,6 +1634,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
          "-updateLibs %v #update libraries from ArtiSynth server", updateLibs);
       parser.addOption ("-flags %x #flag bits passed to the application", flags);
       parser.addOption ("-noGui %v #run ArtiSynth without the GUI", noGui);
+      parser.addOption (
+         "-openMatlabConnection %v " +
+         "#open a MATLAB connection if possible", openMatlab);
 
       Locale.setDefault(Locale.CANADA);
 
@@ -1560,10 +1706,32 @@ public class Main implements DriverInterface, ComponentChangeListener {
       //    System.out.println (" " + a);
       // }
 
-      parser.matchAllArgs (progArgs.toArray(new String[0]));
-      if (printOptions.value) {
+      // Match arguments one at a time so we can avoid exitOnError if we are
+      // running inside matlab
+      String[] pargs = progArgs.toArray(new String[0]);
+      int idx = 0;
+      while (idx < pargs.length) {
+         try {
+            idx = parser.matchArg (pargs, idx);
+            String unmatched;
+            if ((unmatched=parser.getUnmatchedArgument()) != null) {
+               System.out.println (
+                  "Unrecognized argument: " + unmatched +
+                  "\nUse -help for help information");
+               return;
+            }
+         }
+         catch (Exception e) {
+            System.out.println (
+               "Error parsing options: "+ e.getMessage());
+            return;
+         }
+      }
+
+      // parser.matchAllArgs (progArgs.toArray(new String[0]));
+      if (printOptions.value || printHelp.value) {
          System.out.println (parser.getOptionsMessage (2));
-         exit (0);
+         return;
       }
 
       MechSystemSolver.myDefaultHybridSolveP = !disableHybridSolves.value;
@@ -1587,23 +1755,20 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       Main m = new Main (PROJECT_NAME, width.value, height.value);
 
-      Main.setArticulatedTransformsEnabled (useArticulatedTransforms.value);
+      m.setArticulatedTransformsEnabled (useArticulatedTransforms.value);
 
-      if (myFrame != null) {
+      if (m.myFrame != null) {
          m.myViewer.setBackgroundColor (bgColor[0], bgColor[1], bgColor[2]);
          // XXX this should be done in the Main constructor, but needs
          // to be done here instead because of sizing effects
-         myMenuBarHandler.initToolbar();
-         myFrame.setViewerSize (width.value, height.value);
+         m.myMenuBarHandler.initToolbar();
+         m.myFrame.setViewerSize (width.value, height.value);
       }
-
-      // create workspace
-      createWorkspace();
 
       if (mousePrefs.value != null && m.myViewer != null) {
          m.setMouseBindings (mousePrefs.value);
       }
-      Main.setFlags (flags.value);
+      m.setFlags (flags.value);
       if (useBodyVelsInSolve.value) {
          Frame.dynamicVelInWorldCoords = false;
       }
@@ -1612,13 +1777,13 @@ public class Main implements DriverInterface, ComponentChangeListener {
       m.start (
          startWithTimeline.value, timelineRight.value, largeTimeline.value);
 
-      verifyNativeLibraries (updateLibs.value);
+      m.verifyNativeLibraries (updateLibs.value);
 
       // we put.setOrthographicView *after* start because otherwise it sets up
       // some sort of race condition when trying to set the
       // perspectve/orthogonal menu item while we are setting
       // the whole frame to be visible
-      if (myFrame != null && orthographic.value) {
+      if (m.myFrame != null && orthographic.value) {
          m.getViewer().setOrthographicView (true);
       }
 
@@ -1645,14 +1810,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          m.setRootModel (new RootModel(), null, null);
       }
       if (exitOnBreak.value) {
-         Main.myScheduler.addListener (
-            new SchedulerListener() {
-               public void schedulerActionPerformed (Scheduler.Action action) {
-                  if (action == Action.Stopped) {
-                     exit (0);
-                  }
-               }
-            });
+         m.myScheduler.addListener (new QuitOnBreakListener(m));
       }
       if (playFor.value > 0) {
          m.play (playFor.value);
@@ -1662,8 +1820,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       
       if (scriptFile.value != null) {
-         if (myFrame != null) {
-            myMenuBarHandler.runScript(scriptFile.value);
+         if (m.myFrame != null) {
+            m.myMenuBarHandler.runScript(scriptFile.value);
          }
          else {
             if (m.myJythonConsole == null) {
@@ -1682,6 +1840,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (m.myJythonConsole != null && m.myJythonFrame == null) {
          m.myJythonConsole.interact ();
       }
+      if (openMatlab.value) {
+         m.openMatlabConnection();
+      }
    }
 
    /**
@@ -1692,35 +1853,33 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * @return workspace object
     */
 
-   public static Workspace getWorkspace() {
+   public Workspace getWorkspace() {
       return myWorkspace;
    }
 
-   public static void createWorkspace() {
-      if (myWorkspace == null)
-         myWorkspace = new Workspace();
+   public void createWorkspace() {
+      if (myWorkspace == null) {
+         myWorkspace = new Workspace (this);
+      }
    }
 
    public static Main getMain() {
       return myMain;
    }
 
-   public static int getFlags() {
-      return myMain.myFlags;
-   }
-
-   public static void setFlags(int flags) {
-      myMain.myFlags = flags;
-   }
-
    /**
-    * set the root model
-    * 
-    * @param newWorkspace
+    * For internal use only; be careful!!
     */
+   public static void setMain (Main main) {
+      myMain = main;
+   }
 
-   public static void setWorkspace (Workspace newWorkspace) {
-      myWorkspace = newWorkspace;
+   public int getFlags() {
+      return myFlags;
+   }
+
+   public void setFlags(int flags) {
+      myFlags = flags;
    }
 
    /**
@@ -1729,7 +1888,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * @return scheduler
     */
 
-   public static Scheduler getScheduler() {
+   public Scheduler getScheduler() {
       return myScheduler;
    }
 
@@ -1738,15 +1897,15 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * 
     * @return EditorManager
     */
-   public static EditorManager getEditorManager() {
+   public EditorManager getEditorManager() {
       return myEditorManager;
    }
 
-   public static UndoManager getUndoManager() {
+   public UndoManager getUndoManager() {
       return myUndoManager;
    }
 
-   public static InverseManager getInverseManager() {
+   public InverseManager getInverseManager() {
       return myInverseManager;
    }
 
@@ -1756,7 +1915,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * @return timeline controller
     */
 
-   public static Timeline getTimeline() {
+   public Timeline getTimeline() {
       return myTimeline;
    }
 
@@ -1890,11 +2049,36 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return true;
    }
 
-   public void quit() {
-      clearRootModel();
-      if (myFrame != null) {
-         myFrame.dispose ();
+   public void dispose() {
+      if (!disposed) {
+         clearRootModel();
+         if (myFrame != null) {
+            myFrame.dispose ();
+            myFrame = null;
+         }
+         if (myTimeline != null) {
+            myTimeline.dispose ();
+            myTimeline = null;
+         }
+         if (myScheduler != null) {
+            myScheduler.dispose();
+            myScheduler = null;
+         }
+         if (myJythonConsole != null) {
+            myJythonConsole.dispose();
+            myJythonConsole = null;
+         }
+         disposed = true;
       }
+   }
+
+   public boolean isDisposed() {
+      return disposed;
+   }
+
+   public void quit () {
+      dispose();
+      DisplayListManager.requestReset();
       exit (0);
    }
 
@@ -1961,10 +2145,16 @@ public class Main implements DriverInterface, ComponentChangeListener {
          if (invalidateWaypoints) {
             root.getWayPoints().invalidateAfterTime(0);
          }
-         if (myTimeline != null) {
-            myTimeline.requestUpdateDisplay();
-         }
          ModelComponent c = e.getComponent();
+         if (myTimeline != null) {
+            if (c == root.getWayPoints()) {
+               myTimeline.requestUpdateWidgets();
+            }
+            else {
+               // update timeline display regardless
+               myTimeline.requestUpdateDisplay();
+            }
+         }
          if (e.getCode() == ComponentChangeEvent.Code.STRUCTURE_CHANGED) {
             if (c != null && c instanceof CompositeComponent && myFrame != null) {
                myFrame.getNavPanel().updateStructure (c);
@@ -2015,20 +2205,20 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
-   public static boolean getInitDraggersInWorldCoords () {
-      return myMain.myInitDraggersInWorldCoordsP;
+   public boolean getInitDraggersInWorldCoords () {
+      return myInitDraggersInWorldCoordsP;
    }
 
-   public static void setInitDraggersInWorldCoords (boolean enable) {
-      myMain.myInitDraggersInWorldCoordsP = enable;
+   public void setInitDraggersInWorldCoords (boolean enable) {
+      myInitDraggersInWorldCoordsP = enable;
    }
 
-   public static boolean getArticulatedTransformsEnabled () {
-      return myMain.myArticulatedTransformsP;
+   public boolean getArticulatedTransformsEnabled () {
+      return myArticulatedTransformsP;
    }
 
-   public static void setArticulatedTransformsEnabled (boolean enable) {
-      myMain.myArticulatedTransformsP = enable;
+   public void setArticulatedTransformsEnabled (boolean enable) {
+      myArticulatedTransformsP = enable;
    }
 
    public SelectionMode getSelectionMode() {
@@ -2452,19 +2642,16 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
-   public static MovieMaker getMovieMaker() {
-      if (myMain == null) {
-         throw new IllegalStateException ("Main has not yet been created");
-      }
-      if (myMain.myMovieMaker == null) {
+   public MovieMaker getMovieMaker() {
+      if (myMovieMaker == null) {
          try {
-            myMain.myMovieMaker = new MovieMaker (myMain.getViewer ());
+            myMovieMaker = new MovieMaker (getViewer ());
          }
          catch (Exception e) {
             throw new InternalErrorException ("Cannot create movie maker");
          }
       }
-      return myMain.myMovieMaker;
+      return myMovieMaker;
    }
 
    public void setModelDirectory (File dir) {
@@ -2665,10 +2852,64 @@ public class Main implements DriverInterface, ComponentChangeListener {
          solver.systemExit (code);
       }
       else if (myRunningUnderMatlab) {
-         throw new IllegalArgumentException ("Quit");
+         //throw new IllegalArgumentException ("Quit");
       }
       else {
          System.exit (code);
+      }
+   }
+
+   public boolean closeMatlabConnection () {
+      if (myMatlabConnection != null) {
+         myMatlabConnection.dispose();
+         myMatlabConnection = null;
+         return true;
+      }
+      else {
+         return false;
+      }
+   }      
+
+   public MatlabInterface openMatlabConnection () {
+      if (!hasMatlabConnection()) {
+         try {
+            myMatlabConnection = MatlabInterface.create();
+         }
+         catch (Exception e) {
+            System.out.println (
+               "Error connecting to MATLAB: " + e.getMessage());
+            myMatlabConnection = null;
+         }
+      }
+      return myMatlabConnection;
+   }
+
+   public MatlabInterface getMatlabConnection() {
+      if (myMatlabConnection != null && !myMatlabConnection.isConnected()) {
+         closeMatlabConnection();
+      }
+      return myMatlabConnection;
+   }
+
+   public boolean hasMatlabConnection() {
+      if (myMatlabConnection == null) {
+         return false;
+      }
+      else if (!myMatlabConnection.isConnected()) {
+         closeMatlabConnection();
+         return false;
+      }
+      else {
+         return true;
+      }
+   }
+
+
+   public void printAllThreads() {
+      Set<Thread> threads = Thread.getAllStackTraces().keySet();
+      System.out.println ("num threads=" + threads.size());
+      for (Thread thr : threads) {
+         System.out.println (thr.getClass());
       }
    }
 

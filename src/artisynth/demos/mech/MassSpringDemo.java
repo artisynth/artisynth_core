@@ -47,13 +47,7 @@ public class MassSpringDemo extends RootModel {
       }  
    }
 
-   public MassSpringDemo() {
-      super (null);
-   }
-
-   public MassSpringDemo (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       msmod = new MechModel ("massSpring");
 

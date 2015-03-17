@@ -12,19 +12,20 @@ import java.util.*;
 
 public class ViscousBeam extends FemBeam3d {
 
-   public ViscousBeam() {
-   }
-
-   public ViscousBeam (String name) {
+   public void build (String[] args) {
 
       // NORMAL:
-      super (name, "hex", 1.0, 0.2, 4, 2, /*options=*/0);
+      //super (name, "hex", 1.0, 0.2, 4, 2, /*options=*/0);
+      build ("hex", 1.0, 0.2, 4, 2, /*options=*/0);
       
       FemMaterial mat = new MooneyRivlinMaterial (50000.0, 0, 0, 0, 0, 2000000.0);
 
       QLVBehavior qlv = new QLVBehavior();
-      qlv.setTau (0.1, 0.01, 0, 0, 0, 0);
-      qlv.setGamma (0.9, 0.2, 0, 0, 0, 0);
+      qlv.setTau (0.1, 0.0, 0, 0, 0, 0);
+      qlv.setGamma (4.0, 0, 0, 0, 0, 0);      
+      //qlv.setTau (0.1, 0.01, 0, 0, 0, 0);
+      //qlv.setGamma (0.9, 0.2, 0, 0, 0, 0);
+
       mat.setViscoBehavior (qlv);
       myFemMod.setMaterial (mat);
       myFemMod.setStiffnessDamping (0);
@@ -32,17 +33,17 @@ public class ViscousBeam extends FemBeam3d {
       myMechMod.setIntegrator (Integrator.BackwardEuler);
    }
 
-   public ViscousBeam (String name, String string, double d, double e, int i,
-      int j, int k) {
-      super(name,string,d,e,i,j,k);
-      myFemMod.setMaterial (
-         new MooneyRivlinMaterial (50000.0, 0, 0, 0, 0, 5000000.0));
-      myFemMod.setIncompressible (FemModel.IncompMethod.AUTO);
-   }
+   // public void build (String string, double d, double e, int i,
+   //    int j, int k) {
+   //    super.build (string,d,e,i,j,k);
+   //    myFemMod.setMaterial (
+   //       new MooneyRivlinMaterial (50000.0, 0, 0, 0, 0, 5000000.0));
+   //    myFemMod.setIncompressible (FemModel.IncompMethod.AUTO);
+   // }
 
    public StepAdjustment advance (double t0, double t1, int flags) {
-      // SolveMatrixTest tester = new SolveMatrixTest();
-      // System.out.println ("error=" + tester.testStiffness (myMechMod, 1e-8));
+      SolveMatrixTest tester = new SolveMatrixTest();
+      //System.out.println ("error=" + tester.testStiffness (myMechMod, 1e-8));
 
       return super.advance (t0, t1, flags);
    }

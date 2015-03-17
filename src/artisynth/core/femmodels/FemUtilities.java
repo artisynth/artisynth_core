@@ -538,7 +538,7 @@ public class FemUtilities {
          k += n;
       }
       int[] trif = new int[3*numtri];
-      System.out.println ("trif.length = " + 3*numtri);
+      //System.out.println ("trif.length = " + 3*numtri);
 
       k = 0;
       int i = 0;

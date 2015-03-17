@@ -44,10 +44,31 @@ public class DisplayListManager {
       }
    }
 
-   private static LinkedList<Integer> myFreeLists = new LinkedList<Integer>();
+   private static LinkedList<Integer> myFreeLists;
+   private static HashMap<Object,ListInfo> mySharedLists;
+   private static boolean resetP = true;
 
-   private static HashMap<Object,ListInfo> mySharedLists =
-      new HashMap<Object,ListInfo>();
+   public static void requestReset() {
+      resetP = true;
+   }
+
+   private static void resetIfNeeded (GL2 gl) {
+      if (resetP) {
+         if (mySharedLists != null) {
+            clearSharedLists (gl);
+         }
+         else {
+            mySharedLists = new HashMap<Object,ListInfo>();
+         }
+         if (myFreeLists != null) {
+            clearFreeLists (gl);
+         }
+         else {
+            myFreeLists = new LinkedList<Integer>();
+         }
+         resetP = false;
+      }
+   }
 
    private static ListInfo getSharedInfo (Object key) {
       synchronized (mySharedLists) {
@@ -76,6 +97,15 @@ public class DisplayListManager {
       }
    }
 
+   private static void clearSharedLists (GL2 gl) {
+      synchronized (mySharedLists) {
+         for (ListInfo info : mySharedLists.values()) {
+            gl.glDeleteLists (info.listNum, 1);
+         }
+         mySharedLists.clear();
+      }
+   }
+
    private static void addToFreeList (int num) {
       synchronized (myFreeLists) {
          myFreeLists.add (num);
@@ -87,12 +117,14 @@ public class DisplayListManager {
    }
 
    public static int allocList (GL2 gl) {
+      resetIfNeeded (gl);
       clearFreeLists (gl);
       int num = gl.glGenLists (1);
       return num;
    }
 
    public static int allocSharedList (GL2 gl, Object key) {
+      resetIfNeeded (gl);
       int listNum = allocList (gl);
       if (listNum < 0) {
          return -1;
@@ -104,6 +136,7 @@ public class DisplayListManager {
    }
 
    public static int getSharedList (GL2 gl, Object key) {
+      resetIfNeeded (gl);
       ListInfo info = getSharedInfo (key);
       if (info == null) {
          return -1;
@@ -111,21 +144,6 @@ public class DisplayListManager {
       info.refCnt++;
       return info.listNum;
    }
-
-   // public static int getOrAllocSharedList (GL2 gl, Object key)
-   // {
-   // ListInfo info = getSharedInfo (key);
-   // if (info == null)
-   // { int listNum = allocList (gl);
-   // if (listNum <= 0)
-   // { return -1;
-   // }
-   // info = new ListInfo (listNum);
-   // putSharedInfo (key, info);
-   // }
-   // info.refCnt++;
-   // return info.listNum;
-   // }
 
    public static void freeSharedList (Object key) {
       ListInfo info = getSharedInfo (key);

@@ -460,7 +460,7 @@ public class NativeLibraryManager {
       
       String osname = System.getProperty ("os.name");
       String osarch = System.getProperty ("os.arch");
-      System.out.println ("osname=" + osname);
+      //System.out.println ("osname=" + osname);
       if (osname.equals ("Linux")) {
          if (osarch.endsWith ("64")) {
             return SystemType.Linux64;

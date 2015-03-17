@@ -145,7 +145,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
    }
 
    protected HashMap<Class, ModelComponent> getPrototypeMap() {
-      RootModel root = Main.getRootModel();
+      RootModel root = myMain.getRootModel();
       if (root != null && root != myLastRootModel) {
          myPrototypeMap = new HashMap<Class, ModelComponent>();
          myLastRootModel = root;
@@ -206,24 +206,24 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
       props.setDrawEdges (true);
       props.setLineColor (Color.LIGHT_GRAY);
       body.setRenderProps (props);
-      Main.getWorkspace().getViewerManager().addRenderable (body);
+      myMain.getWorkspace().getViewerManager().addRenderable (body);
 
       rotator = new Transrotator3d();
-      GLViewer viewer = Main.getMain().getViewer();
+      GLViewer viewer = myMain.getMain().getViewer();
       rotator.setDraggerToWorld (X);
       rotator.setSize (
          viewer.distancePerPixel (viewer.getCenter()) * viewer.getWidth() / 6);
       rotator.addListener (new RigidBodyDraggerListener());
-      Main.getWorkspace().getViewerManager().addDragger (rotator);
+      myMain.getWorkspace().getViewerManager().addDragger (rotator);
       
       myGeometryPanel.setAttachedBody (body);
       
-      Main.rerender ();
+      myMain.rerender ();
    }
 
    private void disposePreviewBody() {
       if (body != null) {
-         ViewerManager viewerMan = Main.getWorkspace().getViewerManager();
+         ViewerManager viewerMan = myMain.getWorkspace().getViewerManager();
          viewerMan.removeRenderable (body);
          viewerMan.removeDragger (rotator);
          
@@ -232,7 +232,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
          
          myGeometryPanel.setAttachedBody (null);
          
-         Main.rerender();
+         myMain.rerender();
       }
    }
    
@@ -245,7 +245,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
    }
    
    protected void createDisplay() {
-      if (myLastRootModel != Main.getRootModel()) {
+      if (myLastRootModel != myMain.getRootModel()) {
          //mySettings = null;
          myGeometrySettings = null;
       }
@@ -269,7 +269,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
       createGeometryPanel();
       
       myUsePlaneToggle = new JCheckBox ("Constrain to plane");
-      if (Main.getWorkspace().getViewerManager().getViewer(0).getNumClipPlanes() > 0) {
+      if (myMain.getWorkspace().getViewerManager().getViewer(0).getNumClipPlanes() > 0) {
          addWidget (myUsePlaneToggle);
       }
       
@@ -320,7 +320,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
          GuiUtils.createTitledPanelBorder ("Geometry And Inertia"));      
 
       if (myGeometrySettings == null) {
-         GLViewer viewer = Main.getMain().getViewer();  
+         GLViewer viewer = myMain.getMain().getViewer();  
          double width = viewer.distancePerPixel (viewer.getCenter()) * 
             viewer.getWidth() / 6;
          
@@ -394,7 +394,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
          
          body.setPose (X);
          rotator.setDraggerToWorld (X);            
-         Main.rerender();
+         myMain.rerender();
       }
    }
    
@@ -407,7 +407,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
       double meshWidth = maxBound.x - minBound.x;
       double meshHeight = maxBound.y - minBound.y;
 
-      GLViewer viewer = Main.getMain().getViewer();
+      GLViewer viewer = myMain.getMain().getViewer();
       double distancePerPixel = viewer.distancePerPixel (viewer.getCenter());
       double width = distancePerPixel * viewer.getWidth() / 4;
       double height = distancePerPixel * viewer.getHeight() / 4;
@@ -477,7 +477,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
          updateDisplayGeometry();
       }
       else if (source == geometrySelector) {
-         GLViewer viewer = Main.getMain().getViewer();  
+         GLViewer viewer = myMain.getMain().getViewer();  
          double width = viewer.distancePerPixel (viewer.getCenter()) * 
             viewer.getWidth() / 6;
          
@@ -521,7 +521,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
             
             resetPreviewModel();
             
-            Main.rerender();
+            myMain.rerender();
          }
       }
       else if (source == myGeometryPanel.myBoxWidthsField ||
@@ -530,7 +530,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
                source == myGeometryPanel.myMeshXformWidget.getTranslationField()){
          resetPreviewModel();
          
-         Main.rerender();
+         myMain.rerender();
       }
       else if (source == myGeometryPanel.myMeshFileField) {
          File file = new File (myGeometryPanel.myMeshFileField.getStringValue());
@@ -561,7 +561,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
       String cmd = evt.getActionCommand();
       
       if (cmd.equals ("Add")) {
-         ViewerManager viewerMan = Main.getWorkspace().getViewerManager();
+         ViewerManager viewerMan = myMain.getWorkspace().getViewerManager();
          viewerMan.removeRenderable (body);
          viewerMan.removeDragger (rotator);
          rotator = null;
@@ -648,7 +648,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
          orientationField.setValue (X.R.getAxisAngle());
          orientationField.maskValueChangeListeners (false);
          
-         Main.rerender();
+         myMain.rerender();
       } 
    }
 }

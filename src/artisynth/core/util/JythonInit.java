@@ -8,6 +8,7 @@ package artisynth.core.util;
 
 import org.python.util.*;
 import org.python.core.*;
+import org.python.core.packagecache.*;
 import java.io.*;
 import java.net.URL;
 
@@ -29,7 +30,8 @@ public class JythonInit {
          throw new InternalErrorException (
             "Cannot find Jython initialization file " + initFileName);
       }
-      PySystemState.initialize();
+      // Don't initialize, since state should already have been initialized ...
+      //PySystemState.initialize();
       PythonInterpreter interp = new PythonInterpreter();
       interp.execfile (bindings);
 
@@ -51,16 +53,12 @@ public class JythonInit {
    }
 
    private static void initialize() {
-      System.out.println ("Initializing Jython ...");
       try {
          myInit = new JythonInit();
       }
       catch (Exception e) {
          System.out.println ("Error: " + e);
          e.printStackTrace();
-      }
-      if (myInit != null) {
-         System.out.println ("done");
       }
       myInitDone = true;
    }

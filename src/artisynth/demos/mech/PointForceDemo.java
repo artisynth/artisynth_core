@@ -13,12 +13,8 @@ import artisynth.core.mechmodels.PointForce;
 
 public class PointForceDemo extends FrameSpringDemo {
 
-   public PointForceDemo() {
-      super();
-   }
-
-   public PointForceDemo (String name) throws IOException {
-      super (name);
+   public void build (String[] args) throws IOException {
+      super.build (args);
 
       if (myMechMod == null || myHand2 == null) {
          System.err.println ("null mechmodel of hand2");

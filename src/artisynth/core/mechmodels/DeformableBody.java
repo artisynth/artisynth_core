@@ -14,8 +14,8 @@ import maspack.spatialmotion.*;
 import maspack.util.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.materials.*;
-import artisynth.core.util.PropertyChangeEvent;
-import artisynth.core.util.PropertyChangeListener;
+import artisynth.core.modelbase.PropertyChangeEvent;
+import artisynth.core.modelbase.PropertyChangeListener;
 import java.io.*;
 import java.util.*;
 
@@ -708,34 +708,34 @@ public abstract class DeformableBody extends RigidBody
       A.R.mul (R, A0.R);
    }
 
-   /**
-    * Computes the spatial velocity of an attached frame A, as represented
-    * in the coordinates of A.
-    */
-   public void computeDeformedFrameVel (
-      Twist vel, RigidTransform3d A, RigidTransform3d A0) {
-
-      int numc = numElasticCoords();      
-      computeDeformedVel (vel.v, A0.p);
-      vel.v.inverseTransform (A.R); // transform from body to A coords
-      Matrix3d Dshp = new Matrix3d();
-      Matrix3d D = new Matrix3d();
-      RotationMatrix3d R = new RotationMatrix3d();
-      for (int i=0; i<numc; i++) {
-         getDShape (Dshp, i, A0.p);
-         D.scaledAdd (myElasticVel.get(i), Dshp);
-      }
-      // recover R from A0 and A
-      R.mulInverseRight (A.R, A0.R);
-      // compute inv(R) * D
-      D.mulTransposeLeft (R, D);
-
-      vel.w.x = 0.5*(D.m21 - D.m12);
-      vel.w.y = 0.5*(D.m02 - D.m20);
-      vel.w.z = 0.5*(D.m10 - D.m01);
-      // uncomment if we want vel in frame coords
-      // vel.w.transform (A.R);
-   }
+//   /**
+//    * Computes the spatial velocity of an attached frame A, as represented
+//    * in the coordinates of A.
+//    */
+//   public void computeDeformedFrameVel (
+//      Twist vel, RigidTransform3d A, RigidTransform3d A0) {
+//
+//      int numc = numElasticCoords();      
+//      computeDeformedVel (vel.v, A0.p);
+//      vel.v.inverseTransform (A.R); // transform from body to A coords
+//      Matrix3d Dshp = new Matrix3d();
+//      Matrix3d D = new Matrix3d();
+//      RotationMatrix3d R = new RotationMatrix3d();
+//      for (int i=0; i<numc; i++) {
+//         getDShape (Dshp, i, A0.p);
+//         D.scaledAdd (myElasticVel.get(i), Dshp);
+//      }
+//      // recover R from A0 and A
+//      R.mulInverseRight (A.R, A0.R);
+//      // compute inv(R) * D
+//      D.mulTransposeLeft (R, D);
+//
+//      vel.w.x = 0.5*(D.m21 - D.m12);
+//      vel.w.y = 0.5*(D.m02 - D.m20);
+//      vel.w.z = 0.5*(D.m10 - D.m01);
+//      // uncomment if we want vel in frame coords
+//      // vel.w.transform (A.R);
+//   }
 
    void computeNumericFrameVel (Twist vel, RigidTransform3d A0) {
       int numc = numElasticCoords();

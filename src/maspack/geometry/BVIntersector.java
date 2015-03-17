@@ -84,16 +84,15 @@ public class BVIntersector {
       if (X21.equals (RigidTransform3d.IDENTITY)) {
          X21 = RigidTransform3d.IDENTITY;
       }
-
       ArrayList<BVNode> nodes1 = new ArrayList<BVNode>();
       ArrayList<BVNode> nodes2 = new ArrayList<BVNode>();
-      
-      bvh1.intersectTree (nodes1, nodes2, bvh2, X21);
 
+      bvh1.intersectTree (nodes1, nodes2, bvh2, X21);
       for (int i=0; i<nodes1.size(); i++) {
          intersectBoundingVolumeTriangles (
             intersections, nodes1.get(i), nodes2.get(i), X21);
       }
+
       RigidTransform3d X1W = bvh1.getBvhToWorld();
       if (X1W != RigidTransform3d.IDENTITY) {
          // convert intersection points to world coordinates

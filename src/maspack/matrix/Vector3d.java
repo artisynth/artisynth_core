@@ -95,6 +95,21 @@ Clonable {
    }
 
    /**
+    * Creates a 3-vector by copying an existing Vector. The
+    * size of the copied vector must be at least 3.
+    * 
+    * @param v
+    * vector to be copied
+    */
+   public Vector3d (Vector v) {
+      if (v.size() < 3) {
+         throw new IllegalArgumentException (
+            "v must have a size of at least 3");
+      }
+      set (v);
+   }
+
+   /**
     * Creates a 3-vector with the supplied element values.
     * 
     * @param x

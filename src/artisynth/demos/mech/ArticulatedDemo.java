@@ -31,10 +31,6 @@ public class ArticulatedDemo extends RootModel {
 
    private static RigidBody ground = new RigidBody ("ground");
 
-   public ArticulatedDemo() {
-      super (null);
-   }
-
    void create9LinkLoop (MechModel mech) {
       RigidBody box = addBox (mech, /* mass= */10, 20, 10, 2, 0, 0, 10);
       box.setDynamic (false);
@@ -209,9 +205,7 @@ public class ArticulatedDemo extends RootModel {
          addSphericalLinkage (mech, radius, ground, base3, link3, tip2);
    }
 
-   public ArticulatedDemo (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       MechModel mechMod = new MechModel ("mechMod");
       mechMod.setGravity (0, 0, -9.8);

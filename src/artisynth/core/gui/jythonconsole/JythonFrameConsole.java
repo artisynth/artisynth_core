@@ -55,7 +55,12 @@ public class JythonFrameConsole extends JythonPanelConsole {
          myFrame.dispose();
       }
       if (myThread != null) {
-         myThread.stop();
+         if (myThread == Thread.currentThread()) {
+            quitThread();
+         }
+         else {
+            myThread.stop();
+         }
       }
    }
 

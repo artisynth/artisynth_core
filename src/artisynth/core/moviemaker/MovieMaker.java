@@ -203,7 +203,7 @@ public class MovieMaker {
          // robust, because we still get timeouts ...
          int cnt = 0;
          while (myViewer.grabPending() && 
-            !Main.getScheduler().stopRequestPending() && 
+                !Main.getMain().getScheduler().stopRequestPending() && 
             cnt++ < 500) {
             try {
                Thread.sleep (10);

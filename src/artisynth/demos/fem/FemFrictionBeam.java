@@ -58,12 +58,7 @@ public class FemFrictionBeam extends RootModel {
       return myProps;
    }
 
-   public FemFrictionBeam () {
-      super (null);
-   }
-
-   public FemFrictionBeam (String name) {
-      super (name);
+   public void build (String[] args) {
 
       double feml = 0.1;
       double femw = 0.05;

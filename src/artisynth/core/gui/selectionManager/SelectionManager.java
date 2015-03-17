@@ -28,7 +28,6 @@ import artisynth.core.modelbase.*;
  */
 public class SelectionManager {
 
-   static SelectionManager _instance = null;
    protected ViewerSelectionHandler myViewerSelectionHandler;
    protected ViewerSelectionFilter myViewerSelectionFilter;
    protected LinkedList<ModelComponent> mySelectedItems;
@@ -565,7 +564,7 @@ public class SelectionManager {
    }
 
    private void requestViewerUpdate() {
-      Main.rerender();
+      Main.getMain().rerender();
    }
 
    /**

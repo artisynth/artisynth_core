@@ -9,8 +9,7 @@ package artisynth.core.modelbase;
 import maspack.matrix.*;
 
 /**
- * Base class for storing information about changes within a component
- * hierarchy.
+ * Reports changes in a component's dynamic state
  */
 public class DynamicActivityChangeEvent extends ComponentChangeEvent {
    /**

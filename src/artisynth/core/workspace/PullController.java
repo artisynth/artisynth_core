@@ -30,6 +30,7 @@ implements SelectionListener, MouseInputListener {
 
    private MouseRayEvent myPullEvent = null;
    private SelectionManager mySelectionManager;
+   private Main myMain;
 
    private double myStiffness = DEFAULT_STIFFNESS;
 
@@ -77,6 +78,7 @@ implements SelectionListener, MouseInputListener {
    }
 
    public PullController (SelectionManager selManager) {
+      myMain = Main.getMain();
       myRenderProps = createDefaultRenderProps();
       mySelectionManager = selManager;
       setName ("pullController");
@@ -200,14 +202,14 @@ implements SelectionListener, MouseInputListener {
                else {
                   myHasPersistentComponent = true;
                }
-               if (!Main.isSimulating()) {
-                  Main.rerender();
+               if (!myMain.isSimulating()) {
+                  myMain.rerender();
                }                
             }
             else if (!myHasPersistentComponent) {
                clearComponent();
-               if (!Main.isSimulating()) {
-                  Main.rerender();
+               if (!myMain.isSimulating()) {
+                  myMain.rerender();
                }                
             }
          }
@@ -236,8 +238,8 @@ implements SelectionListener, MouseInputListener {
             myPullPos = EditorUtils.intersectWithPlane (
                getPointPosition(), MouseRayEvent.create (e, viewer));
 
-            if (!Main.isSimulating()) {
-               Main.rerender();
+            if (!myMain.isSimulating()) {
+               myMain.rerender();
             }     
          }
          myDragOccurred = true;
@@ -254,8 +256,8 @@ implements SelectionListener, MouseInputListener {
          if (myDragOccurred && !myHasPersistentComponent) {
             clearComponent();
          }
-         if (!Main.isSimulating()) {
-            Main.rerender();
+         if (!myMain.isSimulating()) {
+            myMain.rerender();
          }     
       }
       myDragEnabled = false;

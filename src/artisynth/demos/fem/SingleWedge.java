@@ -25,7 +25,7 @@ import maspack.matrix.*;
 public class SingleWedge extends RootModel {
    FemModel3d mod;
 
-   public SingleWedge (String name) {
+   public void build (String[] args) {
       mod = new FemModel3d();
 
       double[] coords = new double[]

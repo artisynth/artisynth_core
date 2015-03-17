@@ -258,7 +258,7 @@ SelectionListener {
          }
          myTargetPanel.revalidate();
          myTargetPanel.repaint();
-         Main.rerender ();
+         myMain.rerender ();
       }
       else {
          super.actionPerformed (e);

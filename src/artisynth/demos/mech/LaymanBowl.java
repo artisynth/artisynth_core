@@ -54,12 +54,8 @@ public class LaymanBowl extends RootModel {
       }
    }
 
-   public LaymanBowl() {
-      super (null);
-   }
+   public void build (String[] args) throws IOException {
 
-   public LaymanBowl (String name) throws IOException {
-      this();
       myMechMod = new MechModel ("twoPuppets");
       myMechMod.setProfiling (false);
       myMechMod.setGravity (0, 0, -9.8);

@@ -151,19 +151,24 @@ public class TimelineController extends Timeline
 //   private static final int UPDATE_COMPONENTS =
 //      (UPDATE_WIDGETS | REFRESH_COMPONENTS);
 
+   protected Main myMain;
+   protected Scheduler myScheduler;
+   
    /**
     * Creates the timeline
     */
    public TimelineController (
-      String title, MainFrame mainFrame, GLViewer glViewer) {
+      String title, Main main, GLViewer glViewer) {
       myViewer = glViewer;
+      myMain = main;
+      myScheduler = main.getScheduler();
       
       fieldsInitialization();
       panesDisplayInitialization();      
       displaySetup();
       popupInitialization();
       
-      GenericKeyHandler keyHandler = new GenericKeyHandler(Main.getMain());
+      GenericKeyHandler keyHandler = new GenericKeyHandler(myMain);
       workspacePane.addKeyListener (keyHandler);
       timelinePane.addKeyListener (keyHandler);
       timelineScrollPane.addKeyListener (keyHandler);
@@ -254,12 +259,12 @@ public class TimelineController extends Timeline
 
             // If the simulation has stopped and the timescale is
             // adjusted manually, then the restart time must be changed
-            if (!Main.getScheduler().isPlaying() && 
+            if (!myScheduler.isPlaying() && 
                   timescale.isTimeManuallyDragged()) {
                // If the model is not dynamic, the scheduler time can
                // be reset to any time corresponding to the timeline cursor
-               if (!Main.getWorkspace().rootModelHasState()) {
-                  Main.getScheduler().setTime (cursorTime);
+               if (!myMain.getWorkspace().rootModelHasState()) {
+                  myScheduler.setTime (cursorTime);
                }
                // Else only reset the scheduler time to the closest valid 
                // waypoint when the cursor is dragged past a valid waypoint
@@ -428,7 +433,7 @@ public class TimelineController extends Timeline
       
       timelinePane.addMouseListener (new MouseAdapter () {
          public void mouseClicked (MouseEvent m_evt) {
-            Main.getMain().getSelectionManager().clearSelections();
+            myMain.getSelectionManager().clearSelections();
          }      
       });
    }
@@ -518,11 +523,11 @@ public class TimelineController extends Timeline
       setAllWaypointDisplay();
       updateAllProbeDisplays();
       updateTimeDisplay (t);
-      if (refreshCursor || Main.getScheduler().isPlaying()) {
+      if (refreshCursor || myScheduler.isPlaying()) {
          timescale.updateTimeCursor (t);
       }
       updateTimelineScroll();
-      setAllMutable (!Main.getScheduler().isPlaying());
+      setAllMutable (!myScheduler.isPlaying());
    }
 
    public void updateDisplay() {
@@ -653,8 +658,8 @@ public class TimelineController extends Timeline
 
       // Find previous waypoint that is valid before or at current cursor time
       WayPoint way = getWayPoints().getValidOnOrBefore (currentCursorTime);
-      if (way.getTime() != Main.getScheduler().getTime()) {
-         Main.getScheduler().setTime (way);
+      if (way.getTime() != myScheduler.getTime()) {
+         myScheduler.setTime (way);
       }
    }
    
@@ -747,7 +752,7 @@ public class TimelineController extends Timeline
 //    * Called internally when the step time is set by the GUI
 //    */
 //   void setStepTime (double newStep) {
-//      Main.getScheduler().setStepTime (newStep);
+//      myScheduler.setStepTime (newStep);
 //   }
 
    /**
@@ -756,8 +761,8 @@ public class TimelineController extends Timeline
     */
    public void resetAll() {
       // Assume that caller has ensured the scheduler is not running
-      //Main.getScheduler().stopRequest();
-      //Main.getScheduler().waitForPlayingToStop();
+      //myScheduler.stopRequest();
+      //myScheduler.waitForPlayingToStop();
 
       int count = myInTracks.size();
       for (int i = 0; i < count; i++) {
@@ -773,12 +778,12 @@ public class TimelineController extends Timeline
       Track suitableTrack;
 
       // Process all the input probes into proper places
-      for (Probe p : Main.getRootModel().getInputProbes()) {
+      for (Probe p : myMain.getRootModel().getInputProbes()) {
          addProbe (p);
       }
 
       // Process all the output probes into proper places
-      for (Probe p : Main.getRootModel().getOutputProbes()) {
+      for (Probe p : myMain.getRootModel().getOutputProbes()) {
          if (!(p instanceof WayPointProbe)) {
             addProbe (p);
          }
@@ -977,7 +982,7 @@ public class TimelineController extends Timeline
       for (ProbeInfo info : myProbeMap.values()) {
          info.myMark = true;
       }
-      for (Probe p : Main.getRootModel().getInputProbes()) {
+      for (Probe p : myMain.getRootModel().getInputProbes()) {
          ProbeInfo info = myProbeMap.get(p);
          if (info != null) {
             info.myMark = false;
@@ -987,7 +992,7 @@ public class TimelineController extends Timeline
             updateWasNeeded = true;
          }
       }
-      for (Probe p : Main.getRootModel().getOutputProbes()) {
+      for (Probe p : myMain.getRootModel().getOutputProbes()) {
          ProbeInfo info = myProbeMap.get(p);
          if (info != null) {
             info.myMark = false;
@@ -1013,7 +1018,7 @@ public class TimelineController extends Timeline
     * Updates probes when probes are added or removed from the RootModel.
     */
    public void updateProbes() {
-      RootModel root = Main.getRootModel();
+      RootModel root = myMain.getRootModel();
       
       LinkedList<Probe> inList = new LinkedList<Probe>();
       for (int i = 0; i < myInTracks.size(); i++) {
@@ -1105,7 +1110,7 @@ public class TimelineController extends Timeline
          wayInfo.updateWaypointIndex();
       }
       
-      WayPointProbe wayProbe = Main.getRootModel().getWayPoints();
+      WayPointProbe wayProbe = myMain.getRootModel().getWayPoints();
       wayProbe.remove (modifiedWay.myWaypoint);
       wayProbe.add (modifiedWay.myWaypoint);
    }
@@ -1223,24 +1228,24 @@ public class TimelineController extends Timeline
    }
 
    public void saveWayPoints() {
-      WayPointProbe wayPoints = Main.getRootModel().getWayPoints();
+      WayPointProbe wayPoints = myMain.getRootModel().getWayPoints();
       wayPoints.save();
    }
 
    public void saveWayPointsAs() {
-      WayPointProbe wayPoints = Main.getRootModel().getWayPoints();
+      WayPointProbe wayPoints = myMain.getRootModel().getWayPoints();
       setAttachedFileFromUser (wayPoints, "Save As");
       wayPoints.save();
    }
 
    public void loadWayPoints() {
-      WayPointProbe wayPoints = Main.getRootModel().getWayPoints();
+      WayPointProbe wayPoints = myMain.getRootModel().getWayPoints();
       wayPoints.load();
       refreshWayPoints();
    }
 
    public void loadWayPointsFrom() {
-      WayPointProbe wayPoints = Main.getRootModel().getWayPoints();
+      WayPointProbe wayPoints = myMain.getRootModel().getWayPoints();
       setAttachedFileFromUser (wayPoints, "Load From");
       wayPoints.load();
       refreshWayPoints();
@@ -1263,14 +1268,14 @@ public class TimelineController extends Timeline
       myWayPointFileChooser.setApproveButtonText (text);
       int returnVal;
       if (text == "Save As") {
-         returnVal = myWayPointFileChooser.showSaveDialog (Main.getTimeline ());
+         returnVal = myWayPointFileChooser.showSaveDialog (myMain.getTimeline ());
       }
       else if (text == "Load From"){
-         returnVal = myWayPointFileChooser.showOpenDialog (Main.getTimeline ());
+         returnVal = myWayPointFileChooser.showOpenDialog (myMain.getTimeline ());
       }
       else {
          System.out.println("warning unknown filechooser type " + text);
-         returnVal = myWayPointFileChooser.showSaveDialog (Main.getTimeline ());
+         returnVal = myWayPointFileChooser.showSaveDialog (myMain.getTimeline ());
       }
          
       if (returnVal == JFileChooser.APPROVE_OPTION) {
@@ -1385,11 +1390,11 @@ public class TimelineController extends Timeline
    }
 
    private WayPointProbe getWayPoints() {
-      return Main.getRootModel().getWayPoints();
+      return myMain.getRootModel().getWayPoints();
    }
 
    public double getCurrentTime() {
-      return Main.getScheduler().getTime();
+      return myScheduler.getTime();
    }
 
    public Timescale getTimescale() {
@@ -1416,7 +1421,7 @@ public class TimelineController extends Timeline
    }
    
    public boolean rootModelExists() {
-      return (Main.getWorkspace().getRootModel() == null ? false : true);
+      return (myMain.getWorkspace().getRootModel() == null ? false : true);
    }
    
    public boolean isActiveWaypointExist() {
@@ -2180,7 +2185,7 @@ public class TimelineController extends Timeline
             break;
          }
          case Play: {
-//             setAllMutable (!Main.getScheduler().isPlaying());
+//             setAllMutable (!myScheduler.isPlaying());
 //             myToolBar.updateToolbarState ();
 //            updateTimelineScroll();
             requestUpdateWidgets();
@@ -2188,7 +2193,7 @@ public class TimelineController extends Timeline
          }
          case Pause: {
             requestUpdateWidgets();
-            //setAllMutable (!Main.getScheduler().isPlaying());
+            //setAllMutable (!myScheduler.isPlaying());
             //myToolBar.updateToolbarState ();
             break;
          }
@@ -2200,7 +2205,7 @@ public class TimelineController extends Timeline
          case Step: {
             requestUpdateWidgets();
             //myToolBar.updateToolbarState ();
-            //setAllMutable (!Main.getScheduler().isPlaying());            
+            //setAllMutable (!myScheduler.isPlaying());            
             break;
          }
          case Forward: {
@@ -2214,7 +2219,7 @@ public class TimelineController extends Timeline
             break;
          }
 //         case StepTimeSet: {
-//            double newStep = Main.getScheduler().getStepTime();
+//            double newStep = myScheduler.getStepTime();
 //            if (myToolBar.getStepTime() != newStep) {
 //               requestUpdateWidgets();
 //            }
@@ -2248,11 +2253,11 @@ public class TimelineController extends Timeline
    }
 
    public int getNumberOfWayPoints() {
-      return Main.getRootModel().getWayPoints().size();
+      return myMain.getRootModel().getWayPoints().size();
    }
 
    public double getLargestWaypointTime() {
-      return Main.getRootModel().getWayPoints().maxEventTime();
+      return myMain.getRootModel().getWayPoints().maxEventTime();
    }
 
    public void extendTimeline() {
@@ -2286,7 +2291,7 @@ public class TimelineController extends Timeline
       }
 
       // Save waypoint datafile
-      Main.getRootModel ().getWayPoints ().save ();
+      myMain.getRootModel ().getWayPoints ().save ();
    }
 
    public void zoom (int mode) {
@@ -2612,6 +2617,19 @@ public class TimelineController extends Timeline
       else {
          return null;
       }
+   }
+
+   void showError(String msg) {
+      JOptionPane.showMessageDialog (
+         this, msg, "Error", JOptionPane.ERROR_MESSAGE);
+   }
+
+   public void dispose() {
+      if (myRequestTimer != null) {
+         myRequestTimer.cancel();
+         myRequestTimer = null;
+      }
+      super.dispose();
    }
 
 }

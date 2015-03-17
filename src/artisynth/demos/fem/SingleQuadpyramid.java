@@ -26,7 +26,7 @@ public class SingleQuadpyramid extends RootModel {
 
    private double EPS = 1e-8;
 
-   public SingleQuadpyramid (String name) {
+   public void build (String[] args) {
       mod = new FemModel3d();
 
       double[] coords = new double[]

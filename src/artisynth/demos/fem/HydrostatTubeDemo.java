@@ -6,13 +6,7 @@ import artisynth.demos.fem.HydrostatModel.Shape;
 
 public class HydrostatTubeDemo extends HydrostatDemo {
 
-   public HydrostatTubeDemo() {
-      super();
-   }
-
-   public HydrostatTubeDemo (String name) throws IOException {
-      this();
-      setName (name);
+   public void build (String[] args) throws IOException {
 
       if (simple) {
          hydro =

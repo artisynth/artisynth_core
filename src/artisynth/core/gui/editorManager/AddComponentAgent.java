@@ -157,13 +157,13 @@ ValueChangeListener {
       else {
          GuiUtils.locateRight (myDisplay, myMain.getFrame());
       }
-      myRootModel = Main.getRootModel();
+      myRootModel = myMain.getRootModel();
       myRootModel.addComponentChangeListener (this);
       if (myComponentList != null) {
          myComponentList.setSelectionManager (mySelectionManager);
       }
       mySelectionManager.addSelectionListener (this);
-      Main.getWorkspace().registerDisposable (this);
+      myMain.getWorkspace().registerDisposable (this);
       setInitialState();
       myDisplay.setVisible (true);
    }
@@ -176,14 +176,14 @@ ValueChangeListener {
       myEditManager.releaseEditLock();
       // dispose might be called more than once again; check to
       // so that we execute cleanup only once
-      if (Main.getWorkspace().deregisterDisposable (this)) {
-         if (Main.getRootModel() == myRootModel) {
+      if (myMain.getWorkspace().deregisterDisposable (this)) {
+         if (myMain.getRootModel() == myRootModel) {
             myRootModel.removeComponentChangeListener (this);
          }
          else {
             throw new InternalErrorException (
                "Root model has changed unexpectedly from "+myRootModel+" to "
-               + Main.getRootModel());
+               + myMain.getRootModel());
          }
          mySelectionManager.removeSelectionListener (this);
          if (myComponentList != null) {
@@ -447,13 +447,13 @@ ValueChangeListener {
       if (cmd.equals ("Add")) {
          mySelectionManager.clearSelections();
          myMain.setSelectionMode (Main.SelectionMode.Select);
-         Main.rerender();
+         myMain.rerender();
          setInitialState();
       }
       else if (cmd.equals ("Stop")) {
          mySelectionManager.clearSelections();
          resetState();
-         Main.rerender();
+         myMain.rerender();
       }
       else if (cmd.equals ("Configure Properties")) {
          JOptionPane.showOptionDialog (

@@ -17,13 +17,7 @@ import java.io.*;
 
 public class FallingSkull extends RootModel {
 
-   public FallingSkull() {
-      super (null);
-   }
-
-   public FallingSkull (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       MechModel mech = new MechModel ("mech");
       mech.setGravity (0, 0, -9.8);

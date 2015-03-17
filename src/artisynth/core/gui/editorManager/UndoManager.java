@@ -95,13 +95,13 @@ public class UndoManager {
          for (int i = cmdState.myCmds.size() - 1; i >= 0; i--) {
             cmdState.myCmds.get (i).undo();
          }
-         RootModel rootModel = Main.getRootModel();
+         RootModel rootModel = Main.getMain().getRootModel();
          if (rootModel == null) {
             throw new InternalErrorException ("rootModel is null");
          }
          if (cmdState.myState != null) {
             rootModel.setState (cmdState.myState);
-            rootModel.initialize (Main.getTime());
+            rootModel.initialize (Main.getMain().getTime());
          }
          rootModel.rerender();
       }

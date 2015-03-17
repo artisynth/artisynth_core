@@ -27,7 +27,7 @@ public class SingleQuadhex extends RootModel {
 
    private double EPS = 1e-8;
 
-   public SingleQuadhex (String name) {
+   public void build (String[] args) {
       mod = new FemModel3d();
 
       double[] coords = new double[]

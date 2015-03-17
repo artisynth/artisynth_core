@@ -115,12 +115,8 @@ public class SphericalJointDemo extends RootModel {
       body.setPose (X);
    }
 
-   public SphericalJointDemo() {
-      super (null);
-   }
+   public void build (String[] args) throws IOException {
 
-   public SphericalJointDemo (String name) throws IOException {
-      this();
       myMechMod = new MechModel ("sphericalJoint");
       myMechMod.setProfiling (false);
       myMechMod.setGravity (0, 0, -9.8);

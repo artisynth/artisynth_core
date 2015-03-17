@@ -317,6 +317,17 @@ public class FemModel3d extends FemModel
       this(null);
    }
 
+   /**
+    * Creates a surface mesh component in the first location of the mesh list
+    */
+   private FemMesh createSurfaceMeshComponent() {
+      FemMesh surf = new FemMesh(this);
+      surf.setName(DEFAULT_SURFACEMESH_NAME);
+      surf.setSurfaceRendering(getSurfaceRendering());
+      surf.markSurfaceMesh(true);
+      return surf;
+   }      
+
    protected void initializeChildComponents() {
       myNodes = new PointList<FemNode3d>(FemNode3d.class, "nodes", "n");
       myElements = new FemElement3dList("elements", "e");
@@ -325,6 +336,9 @@ public class FemModel3d extends FemModel
       addFixed(myNodes);
       addFixed(myElements);
       addFixed(myAdditionalMaterialsList);
+      myMeshList =  new MeshComponentList<FemMesh>(
+         FemMesh.class, "meshes", "msh");
+      addFixed(myMeshList);
       super.initializeChildComponents();
    }
 
@@ -355,16 +369,7 @@ public class FemModel3d extends FemModel
       for (int i = 0; i < MAX_NODAL_INCOMP_NODES; i++) {
          myNodalConstraints[i] = new Vector3d();
       }
-
-      myMeshList =
-      new MeshComponentList<FemMesh>(
-      FemMesh.class, "meshes", "msh");
-      addFixed(myMeshList);
-      // add auto-generated surface
-      if (myAutoGenerateSurface) {
-         getOrCreateEmptySurfaceMesh();
-         mySurfaceMeshValid = false;
-      }
+      myMeshList.addFixed (createSurfaceMeshComponent());
    }
 
    protected BVTree getBVTree() {
@@ -435,6 +440,7 @@ public class FemModel3d extends FemModel
             return false;
          }
       }
+      myInternalSurfaceMeshComp = null;
 
 
       if (myNodes.remove(p)) {
@@ -481,6 +487,7 @@ public class FemModel3d extends FemModel
       myElements.add(e);
       if (myAutoGenerateSurface) {
          mySurfaceMeshValid = false;
+         myInternalSurfaceMeshComp = null;
       }
    }
 
@@ -488,6 +495,7 @@ public class FemModel3d extends FemModel
       myElements.addNumbered(e, elemId);
       if (myAutoGenerateSurface) {
          mySurfaceMeshValid = false;
+         myInternalSurfaceMeshComp = null;
       }
    }
 
@@ -495,6 +503,7 @@ public class FemModel3d extends FemModel
       boolean success = myElements.remove(e);
       if (myAutoGenerateSurface) {
          mySurfaceMeshValid = false;
+         myInternalSurfaceMeshComp = null;
       }
       return success;
    }
@@ -506,6 +515,7 @@ public class FemModel3d extends FemModel
       }
       if (myAutoGenerateSurface) {
          mySurfaceMeshValid = false;
+         myInternalSurfaceMeshComp = null;
       }
    }
 
@@ -643,7 +653,7 @@ public class FemModel3d extends FemModel
    }
 
    private void computePressuresAndRinv(
-      FemElement3d e, IncompressibleMaterial imat) {
+      FemElement3d e, IncompressibleMaterial imat, double scale) {
 
       int npvals = e.numPressureVals();
 
@@ -685,12 +695,12 @@ public class FemModel3d extends FemModel
          myPressures.scale(1 / restVol);
          if (imat.getBulkPotential() == BulkPotential.QUADRATIC) {
             myRinv.set(W);
-            myRinv.scale(imat.getBulkModulus() / restVol);
+            myRinv.scale(scale*imat.getBulkModulus() / restVol);
          }
          else {
             // optimize later
             MatrixNd Wtmp = new MatrixNd(W);
-            Wtmp.scale(1.0 / restVol);
+            Wtmp.scale(scale / restVol);
             myRinv.mul(Wtmp);
             myRinv.mul(Wtmp, myRinv);
          }
@@ -698,8 +708,8 @@ public class FemModel3d extends FemModel
       else {
          double Jpartial = e.myVolumes[0] / e.myRestVolumes[0];
          pbuf[0] = (imat.getEffectivePressure(Jpartial) +
-         0 * e.myLagrangePressures[0]);
-         myRinv.set(0, 0, imat.getEffectiveModulus(Jpartial) / restVol);
+                    0 * e.myLagrangePressures[0]);
+         myRinv.set(0, 0, scale*imat.getEffectiveModulus(Jpartial) / restVol);
       }
    }
 
@@ -740,6 +750,12 @@ public class FemModel3d extends FemModel
       double[] nodalExtrapMat = null;
       SymmetricMatrix3d C = new SymmetricMatrix3d();
 
+      ViscoelasticBehavior veb = mat.getViscoBehavior();
+      double vebTangentScale = 1;
+      if (veb != null) {
+         vebTangentScale = veb.getTangentScale();
+      }
+
       SymmetricMatrix3d sigmaAux = null;
       Matrix6d DAux = null;
       if (e.numAuxiliaryMaterials() > 0) {
@@ -777,7 +793,7 @@ public class FemModel3d extends FemModel
          imat = (IncompressibleMaterial)mat;
          if (softIncomp == IncompMethod.ELEMENT) {
 
-            computePressuresAndRinv(e, imat);
+            computePressuresAndRinv (e, imat, vebTangentScale);
             if (D != null) {
                constraints = e.getIncompressConstraints();
                for (int i = 0; i < e.myNodes.length; i++) {
@@ -903,10 +919,6 @@ public class FemModel3d extends FemModel
                if (D != null) {
                   mat.computeTangent(D, pt.sigma, def, Q, null);
                }
-               // mat.computeStress (pt.sigma, pt, dt, null);
-               // if (D != null) {
-               // mat.computeTangent(D, pt.sigma, pt, dt, null);
-               // }
             }
 
             // reset pressure to zero for auxiliary
@@ -920,18 +932,11 @@ public class FemModel3d extends FemModel
                      aux.computeTangent(DAux, sigmaAux, def, pt, dt, mat);
                      D.add(DAux);
                   }
-
-                  // if (D != null) {
-                  // aux.addStressAndTangent(pt.sigma, D, pt, dt, mat);
-                  // } else {
-                  // aux.addStress(pt.sigma, pt, dt, mat);
-                  // }
                }
             }
             pt.avgp = pressure; // bring back pressure term
             def.setAveragePressure(pressure);
-            if (mat.getViscoBehavior() != null) {
-               ViscoelasticBehavior veb = mat.getViscoBehavior();
+            if (veb != null) {
                ViscoelasticState state = idata[k].getViscoState();
                if (state == null) {
                   state = veb.createState();
@@ -945,6 +950,7 @@ public class FemModel3d extends FemModel
             else {
                dt.clearState();
             }
+            //System.out.println ("sigma=\n" + pt.sigma);
 
             // pt.avgp += e.myLagrangePressure;
 
@@ -992,7 +998,7 @@ public class FemModel3d extends FemModel
                               GNx[i], D, p, pt.sigma, GNx[j], dv);
                            if (kp != 0) {
                               e.myNbrs[i][j].addDilationalStiffness(
-                                 kp, GNx[i], GNx[j]);
+                                 vebTangentScale*kp, GNx[i], GNx[j]);
                            }
                         }
                      }
@@ -1354,6 +1360,10 @@ public class FemModel3d extends FemModel
    public static String DEFAULT_SURFACEMESH_NAME = "surface";
    private boolean myAutoGenerateSurface = defaultAutoGenerateSurface;
    protected boolean mySurfaceMeshValid = false;
+   // private surface mesh component which is used in situations like
+   // findNearestSurfaceElement() where we need a surface mesh but the
+   // official surface mesh is null.
+   protected FemMesh myInternalSurfaceMeshComp;
 
    protected boolean checkSolveMatrixIsSymmetric() {
       if (!myMaterial.hasSymmetricTangent()) {
@@ -1620,10 +1630,9 @@ public class FemModel3d extends FemModel
 
    protected void doclear() {
       super.doclear();
-      myMeshList.clear();
       myElements.clear();
       myNodes.clear();
-      mySurfaceMeshValid = false;
+      removeAllMeshes();
    }
 
    public void scan(ReaderTokenizer rtok, Object ref) throws IOException {
@@ -1768,10 +1777,11 @@ public class FemModel3d extends FemModel
 
    public FemMesh scanSurfaceMesh(ReaderTokenizer rtok) throws IOException {
       // Create embedded mesh
-      FemMesh surfMesh = getOrCreateEmptySurfaceMesh();
+      FemMesh surfMesh = doGetSurfaceMeshComp();
       surfMesh.scanMesh (rtok);
       myAutoGenerateSurface = false;
       mySurfaceMeshValid = true;
+      myInternalSurfaceMeshComp = null;
       return surfMesh;
    }
 
@@ -2409,73 +2419,56 @@ public class FemModel3d extends FemModel
    /**
     * Recreates the surface mesh based on all elements
     */
-   protected FemMesh recreateSurfaceMesh() {
-      FemMesh femMesh = getOrCreateEmptySurfaceMesh();
-
+   protected void createDefaultSurfaceMesh (FemMesh meshc) {
       // by default, build fine surface mesh if quadratic elements present
       if (numQuadraticElements() > 0) {
-         femMesh.createFineSurface (3, new ElementFilter());
+         meshc.createFineSurface (3, new ElementFilter());
       } else {
-         femMesh.createSurface(new ElementFilter());
+         meshc.createSurface(new ElementFilter());
       }
-
-      mySurfaceMeshValid = true;
-      return femMesh;
    }
 
-//   public FemMesh createSurfaceMesh(Collection<FemElement> elems) {
-//      return createSurfaceMesh(new ArrayElementFilter(elems));
-//   }
-
    public FemMesh createSurfaceMesh (ElementFilter efilter) {
-      FemMesh femMesh = getOrCreateEmptySurfaceMesh();
+      FemMesh femMesh = doGetSurfaceMeshComp();
       femMesh.createSurface (efilter);
       // mySurfaceMesh = (PolygonalMesh)femMesh.getMesh();
       mySurfaceMeshValid = true;
-      myAutoGenerateSurface = false;   // disable auto regeneration since mesh was manually created
+      myInternalSurfaceMeshComp = null;
+      // disable auto regeneration since mesh was manually created
+      myAutoGenerateSurface = false;   
       return femMesh;
    }
-
-//   public FemMesh createFineSurfaceMesh (int resolution, ElementFilter efilter) {
-//      // XXX note: if element is removed and we're on "auto" surface mesh,
-//      // we may lose ability to re-create
-//      FemMesh femMesh = null;
-//      femMesh = getOrCreateEmptySurfaceMesh();
-//      femMesh.createFineSurface (resolution, efilter, mySurfaceNodeMap);
-//      // mySurfaceMesh = (PolygonalMesh)femMesh.getMesh();
-//      mySurfaceMeshValid = true;
-//      myAutoGenerateSurface = false;   // disable since manually created
-//      return femMesh;
-//   }
 
    // Returns the FemMesh component for the surface mesh. If appropriate, the
    // surface is generated on demand
    public FemMesh getSurfaceFemMesh() {
 
       if (myMeshList.size() < 1) {
-         return null;
+         throw new IllegalArgumentException (
+            "Default surface mesh component has been removed");
       }
 
       // if auto, take first.  If not, take first one marked as a surface mesh;
-      if (myAutoGenerateSurface && !mySurfaceMeshValid) {
-         FemMesh newFM = recreateSurfaceMesh();         
-         MeshBase mesh = newFM.getMesh(); // grab newly created mesh
-         // paranoid: call in case mesh is rendered directly before prerender() 
-         PolygonalMesh smesh = (PolygonalMesh)mesh;
-         smesh.saveRenderInfo();
-         return newFM;
+      if (!mySurfaceMeshValid) {
+         if (myAutoGenerateSurface) {
+            FemMesh meshc = doGetSurfaceMeshComp();
+            createDefaultSurfaceMesh (meshc);
+            mySurfaceMeshValid = true;
+            myInternalSurfaceMeshComp = null;
+            MeshBase mesh = meshc.getMesh(); // grab newly created mesh
+            // paranoid: call in case mesh is rendered directly before
+            // prerender()
+            PolygonalMesh smesh = (PolygonalMesh)mesh;
+            smesh.saveRenderInfo();
+            return meshc;
+         }
+         else {
+            return null;
+         }         
       }
-      else if (myAutoGenerateSurface) {
+      else {
          return myMeshList.get(0);
       }
-
-      // find first mesh marked as surface mesh
-      for (FemMesh fm : myMeshList) {
-         if (fm.isSurfaceMesh() && fm.getMesh() instanceof PolygonalMesh) {
-            return fm;
-         }
-      }
-      return null;   // null if not autogenerated
    }      
 
    public PolygonalMesh getSurfaceMesh() {
@@ -2486,6 +2479,15 @@ public class FemModel3d extends FemModel
       else {
          return null;
       }
+   }
+
+   private PolygonalMesh getInternalSurfaceMesh() {
+      if (myInternalSurfaceMeshComp == null) {
+         myInternalSurfaceMeshComp = new FemMesh(this);
+         myInternalSurfaceMeshComp.markSurfaceMesh (true);
+         createDefaultSurfaceMesh (myInternalSurfaceMeshComp);
+      }
+      return (PolygonalMesh)myInternalSurfaceMeshComp.getMesh();
    }
    
    private void testSimpleSurfaceMesh() {
@@ -2519,11 +2521,8 @@ public class FemModel3d extends FemModel
    
    @Override
    public boolean isCollidable () {
-      PolygonalMesh mesh = getSurfaceMesh();
-      if (mesh != null) {
-         return myCollidableP;
-      }
-      return false;
+      getSurfaceMesh(); // build surface mesh if necessary
+      return myCollidableP;
    }
 
    public void setCollidable (boolean enable) {
@@ -2582,61 +2581,45 @@ public class FemModel3d extends FemModel
       }
    }
 
-   private void addMesh (FemMesh surf, int pos) {
-      if (surf.myFem == this) {
-         myMeshList.add(surf, pos);
+   // private void addMesh (FemMesh surf, int pos) {
+   //    if (surf.myFem == this) {
+   //       myMeshList.add(surf, pos);
+   //    }
+   //    else {
+   //       throw new IllegalArgumentException (
+   //          "FemMesh does not reference the FEM to which is is being added");         
+   //    }
+   // }
+
+   public boolean removeMesh (FemMesh surf) {
+      if (surf == myMeshList.get(0)) {
+         throw new IllegalArgumentException (
+            "First mesh reserved for default surface and cannot be removed");
       }
       else {
-         throw new IllegalArgumentException (
-            "FemMesh does not reference the FEM to which is is being added");         
+         return myMeshList.remove(surf);
       }
-   }
-
-   public boolean removeMesh(FemMesh surf) {
-      if (myAutoGenerateSurface) {
-         // removing autogenerated surface
-         if (surf == myMeshList.get(0)) {
-            myAutoGenerateSurface = false;
-         }
-      }
-      return myMeshList.remove(surf);
    }
 
    public void removeAllMeshes() {
-      myMeshList.clear();
-      if (myAutoGenerateSurface) {
-         // regenerate surface mesh
-         setAutoGenerateSurface(true);
+      for (int i=myMeshList.size()-1; i>0; i--) {
+         myMeshList.remove (i);
       }
+      mySurfaceMeshValid = false;
+      myInternalSurfaceMeshComp = null;
    }
 
-   private FemMesh getOrCreateEmptySurfaceMesh() {
+   private FemMesh doGetSurfaceMeshComp() {
       if (myMeshList.size()==0 || !myMeshList.get(0).isSurfaceMesh()) {
-         FemMesh surf = new FemMesh(this);
-         surf.setName(DEFAULT_SURFACEMESH_NAME);
-         surf.setSurfaceRendering(getSurfaceRendering());
-         surf.markSurfaceMesh(true);
-         addMesh(surf, 0);
-         return surf;
+         throw new InternalErrorException (
+            "surface mesh component missing from mesh list");
       }
-
       return myMeshList.get(0);
    }
 
    public void setAutoGenerateSurface(boolean val) {
       if (val != myAutoGenerateSurface) {
          myAutoGenerateSurface = val;
-         if (myAutoGenerateSurface) {
-            recreateSurfaceMesh();
-         } else {
-            FemMesh surf = null;
-            if (myMeshList.size() > 0) {
-               surf = myMeshList.get(0);
-            }
-            if (surf.isSurfaceMesh()) {
-               removeMesh(surf);
-            }
-         }
       }
    }
 
@@ -2653,15 +2636,17 @@ public class FemModel3d extends FemModel
 
    public FemMesh setSurfaceMesh(PolygonalMesh mesh) {
       // Create embedded mesh
-      FemMesh surfMesh = getOrCreateEmptySurfaceMesh();
+      FemMesh surfMesh = doGetSurfaceMeshComp();
       FemMesh.createEmbedded(surfMesh, mesh);
       myAutoGenerateSurface = false;
       mySurfaceMeshValid = true;
+      myInternalSurfaceMeshComp = null;
       return surfMesh;
    }
 
    public void invalidateSurfaceMesh() {
       mySurfaceMeshValid = false;
+      myInternalSurfaceMeshComp = null;
       // myFineSurfaceValid = false;
    }
 
@@ -2684,18 +2669,6 @@ public class FemModel3d extends FemModel
       clearCachedData();
       if (e.getCode() == ComponentChangeEvent.Code.STRUCTURE_CHANGED) {
          // should invalidate elasticity
-
-         // check if surface mesh deleted
-         if (myMeshList != null && e.getComponent() == myMeshList) {
-            if (myAutoGenerateSurface) {
-               if (myMeshList.size() < 1 || 
-               !myMeshList.get(0).isSurfaceMesh()) {
-                  // re-generate
-                  getOrCreateEmptySurfaceMesh();
-                  mySurfaceMeshValid = false;
-               }
-            }
-         }
       }
       notifyParentOfChange(e);
    }
@@ -2766,13 +2739,23 @@ public class FemModel3d extends FemModel
     */
    public FemElement3d findNearestSurfaceElement(Point3d loc, Point3d pnt) {
       Vector2d coords = new Vector2d();
-      Face face = BVFeatureQuery.getNearestFaceToPoint(
-         loc, coords, getSurfaceMesh(), pnt);
-      FemElement3d elem = getSurfaceElement(face);
-      if (elem == null) {
-         throw new InternalErrorException("surface element not found for face");
+      PolygonalMesh surf = getSurfaceMesh();
+      if (surf == null || surf.getNumFaces() == 0) {
+         surf = getInternalSurfaceMesh();
       }
-      return elem;
+      if (surf != null) {
+         Face face = BVFeatureQuery.getNearestFaceToPoint (
+            loc, coords, surf, pnt);
+         FemElement3d elem = getSurfaceElement(face);
+         if (elem == null) {
+            throw new InternalErrorException (
+               "surface element not found for face");
+         }
+         return elem;
+      }
+      else {
+         return null;
+      }
    }
 
    /**
@@ -3552,7 +3535,7 @@ public class FemModel3d extends FemModel
      }
 
      @Override
-     public FemModel3d copy(
+     public FemModel3d copy (
         int flags, Map<ModelComponent,ModelComponent> copyMap) {
 
         if (copyMap == null) {
@@ -3595,22 +3578,19 @@ public class FemModel3d extends FemModel
            fem.ansysElemProps.put(newe, props);
         }
 
-        for (FemMesh mc : myMeshList) {
+        for (int i=0; i<myMeshList.size(); i++) {
+           FemMesh mc = myMeshList.get(i);
            FemMesh newFmc = mc.copy(flags, copyMap);
-           fem.addMesh(newFmc);
+           if (i == 0) {
+              fem.myMeshList.addFixed (newFmc);
+           }
+           else {
+              fem.addMesh(newFmc);
+           }
         }
         fem.myAutoGenerateSurface = myAutoGenerateSurface;
-        fem.mySurfaceMeshValid = false;  // trigger update
-
-//        fem.mySurfaceNodeMap = new HashMap<FemNode3d,FemMeshVertex>();
-//        for (Entry<FemNode3d,FemMeshVertex> e : fem.mySurfaceNodeMap.entrySet()) {
-//           FemNode3d key = (FemNode3d)copyMap.get (e.getKey());
-//           // find corresponding vertex?
-//           // fem.mySurfaceNodeMap.put(key, vertex);
-//        }
-
-        // fem.setIncompressible (myIncompressibleP);
-        // fem.setSubSurfaceRendering(mySubSurfaceRendering);
+        fem.mySurfaceMeshValid = mySurfaceMeshValid;
+        fem.myInternalSurfaceMeshComp = null;
 
         fem.setElementWidgetSizeMode(myElementWidgetSizeMode);
         if (myElementWidgetSizeMode == PropertyMode.Explicit) {
@@ -3674,17 +3654,6 @@ public class FemModel3d extends FemModel
       }
    }
 
-   // begin Collidable interface 
-
-   /**
-    * Return the FemMesh component holding the collision mesh
-    */
-   FemMesh getCollisionFemMesh() {
-      return getSurfaceFemMesh();
-   }
-
-   // end Collidable interface 
-     
    public boolean isAbortOnInvertedElements() {
       return myAbortOnInvertedElems;
    }

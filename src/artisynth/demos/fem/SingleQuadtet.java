@@ -26,7 +26,8 @@ public class SingleQuadtet extends RootModel {
 
    private double EPS = 1e-8;
 
-   public SingleQuadtet (String name) {
+   public void build (String[] args) {
+
       mod = new FemModel3d();
 
       double c30 = Math.cos (Math.toRadians (30));

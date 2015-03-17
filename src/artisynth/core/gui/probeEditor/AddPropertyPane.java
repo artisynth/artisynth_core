@@ -296,7 +296,7 @@ MouseListener, ValueChangeListener {
       myParent.actionPerformed (new ActionEvent (this, 0, "Invalidate"));
       // System.out.println("new value "+compNameField.getText());
       Object compOrProp = myPropField.getValue();
-      RootModel root = Main.getRootModel();
+      RootModel root = Main.getMain().getRootModel();
       if (compOrProp instanceof ModelComponent) {
          propertyPath =
             ComponentUtils.getPathName (root, (ModelComponent)compOrProp);
@@ -492,7 +492,7 @@ MouseListener, ValueChangeListener {
 
    public void setCompPath (String path) {
       myPropField.setValue (ComponentUtils.findComponentOrProperty (
-                               Main.getRootModel(), path));
+                               Main.getMain().getRootModel(), path));
       // validCompField = path;
       // compNameField.attachSelectionListener(false);
       // System.out.println("setting comp path: " + path);

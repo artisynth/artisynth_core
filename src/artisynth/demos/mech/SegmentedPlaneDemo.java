@@ -31,13 +31,7 @@ public class SegmentedPlaneDemo extends RootModel {
 
    boolean writeDemoToFile = true;
 
-   public SegmentedPlaneDemo() {
-      super (null);
-   }
-
-   public SegmentedPlaneDemo (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       // set up the mechmodel
 

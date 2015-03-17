@@ -7,6 +7,7 @@
 package artisynth.core.mechmodels;
 
 import maspack.matrix.*;
+import maspack.util.*;
 
 public class SolveMatrixTest {
 
@@ -16,7 +17,7 @@ public class SolveMatrixTest {
    MatrixNd myK;
    MatrixNd myKnumeric;
 
-   public double testStiffness (MechSystem sys, double h) {
+   public double testStiffness (MechSystemBase sys, double h) {
       myS = new SparseNumberedBlockMatrix();
       myVsize = sys.getActiveVelStateSize();
       myQsize = sys.getActivePosStateSize();
@@ -34,27 +35,38 @@ public class SolveMatrixTest {
       VectorNd f = new VectorNd (myVsize);
       sys.buildSolveMatrix (myS);
 
-      // save old velocity, because we are going to zero the velocity
-      // and we will need to restore the velocity
+
+      DataBuffer auxsave = new DataBuffer();
+      // save old velocity and any auxiliary state, because we are going to
+      // zero the velocity and advance the auxState and we will need to restore
       sys.getActiveVelState (usave);
       sys.setActiveVelState (u0);
+      sys.getAuxState (auxsave);
 
       // build numeric stiffness matrix
       sys.getActivePosState (q0);
       sys.updateForces (0);
       sys.getActiveForces (f0);
-      System.out.println ("f0=" + f0);
+      System.out.println ("f0=  " + f0.toString("%16.6f"));
+
+      // the aux state code is necessary to handle situations involving
+      // state-bearing force effectors like viscous materials
+      sys.advanceAuxState (0, h);
+
       for (int i=0; i<myVsize; i++) {
+         // increment position by a small amount
          uimp.setZero();
          uimp.set (i, 1);
          q.set (q0);
          sys.addActivePosImpulse (q, h, uimp);
          sys.setActivePosState (q);
-         sys.updateForces (0);
+
+         sys.updateForces (h);
          sys.getActiveForces (f);
-         System.out.println ("f=" + f);
+         System.out.println ("f["+i+"]=" + f.toString("%16.6f"));
          f.sub (f0);
          f.scale (1/h);
+         System.out.println ("df=" + f);
          myKnumeric.setColumn (i, f);
       }
       sys.setActivePosState (q0);
@@ -64,6 +76,7 @@ public class SolveMatrixTest {
 
       sys.addPosJacobian (myS, null, 1);
 
+      sys.setAuxState (auxsave);
       sys.setActiveVelState (usave);
       sys.updateForces (0);
 

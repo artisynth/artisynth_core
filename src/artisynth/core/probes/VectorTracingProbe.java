@@ -131,7 +131,7 @@ public class VectorTracingProbe extends TracingProbe {
 
    public void render (GLRenderer renderer, int flags) {
 
-      double t = Main.getScheduler().getTime();
+      double t = Main.getMain().getTime();
 
       if (myNumericList.getLast() == null ||
           myRefPositionProp == null ||

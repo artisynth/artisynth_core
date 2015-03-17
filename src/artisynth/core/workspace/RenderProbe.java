@@ -11,30 +11,31 @@ import artisynth.core.moviemaker.MovieMaker;
 import artisynth.core.probes.OutputProbe;
 
 public class RenderProbe extends OutputProbe {
-   // private Main myMain;
+   
+   private Main myMain;
 
    public RenderProbe (Main main, double interval) {
       super();
       setStopTime (Double.POSITIVE_INFINITY);
       setUpdateInterval (interval);
-      // myMain = main;
+      myMain = main;
    }
 
    public void apply (double t) {
-      MovieMaker movieMaker = Main.getMovieMaker();
 
-      if (Main.getWorkspace() != null) {
-         Main.getWorkspace().rerender();
-      }
+      if (myMain != null) {
+         myMain.rerender();
+         MovieMaker movieMaker = myMain.getMovieMaker();
 
-      if (movieMaker.isGrabbing ()) {
-         System.out.println ("grab at t=" + t);
-         try {
-            movieMaker.grab ();
-         }
-         catch (Exception e) {
-            e.printStackTrace();
-            System.out.println ("ERROR grabbing movie frame");
+         if (movieMaker.isGrabbing ()) {
+            System.out.println ("grab at t=" + t);
+            try {
+               movieMaker.grab ();
+            }
+            catch (Exception e) {
+               e.printStackTrace();
+               System.out.println ("ERROR grabbing movie frame");
+            }
          }
       }
    }

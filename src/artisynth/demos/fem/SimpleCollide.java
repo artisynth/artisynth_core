@@ -104,10 +104,6 @@ public class SimpleCollide extends RootModel {
       return myProps;
    }
 
-   public SimpleCollide() {
-      super();
-   }
-
    private FemModel3d createFem (String name) {
       FemModel3d fem = new FemModel3d (name);
       fem.setDensity (myDensity);
@@ -543,9 +539,7 @@ public class SimpleCollide extends RootModel {
       myBottomType = type;
    }
 
-   public SimpleCollide (String name) throws Exception {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       MechModel mechMod = new MechModel ("mechModel");
       mechMod.setMaxStepSize (0.01);

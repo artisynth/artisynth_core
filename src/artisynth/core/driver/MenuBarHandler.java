@@ -615,16 +615,16 @@ public class MenuBarHandler implements
    }
 
    void updateTimeDisplay() {
-      myTimeDisplay.setValue(Main.getTime());
+      myTimeDisplay.setValue(myMain.getTime());
    }
 
    void updateStepDisplay() {
-      myStepDisplay.setValue(Main.getMaxStep());
+      myStepDisplay.setValue(myMain.getMaxStep());
    }
 
    private void doBlankMechmodel() {
       doClearModel();
-      Main.getRootModel().addModel(new MechModel());
+      myMain.getRootModel().addModel(new MechModel());
    }
 
    private void doClearModel() {
@@ -716,7 +716,7 @@ public class MenuBarHandler implements
     * add a control panel to the model
     */
    private void doAddControlPanel() {
-      RootModel root = Main.getRootModel();
+      RootModel root = myMain.getRootModel();
       int number = root.getControlPanels().nextComponentNumber();
       ControlPanel panel =
          new ControlPanel("panel " + number, "LiveUpdate Close");
@@ -732,7 +732,7 @@ public class MenuBarHandler implements
     * Load a control panel into the model
     */
    private void doLoadControlPanel() {
-      RootModel root = Main.getRootModel();
+      RootModel root = myMain.getRootModel();
       JFileChooser chooser = new JFileChooser();
       chooser.setCurrentDirectory(myMain.getModelDirectory());
       int retVal = chooser.showOpenDialog(myFrame);
@@ -756,7 +756,7 @@ public class MenuBarHandler implements
    }
 
    private void doUndoCommand() {
-      Main.getUndoManager().undoLastCommand();
+      myMain.getUndoManager().undoLastCommand();
    }
 
    /**
@@ -775,7 +775,7 @@ public class MenuBarHandler implements
       }
 
       // also save all probe data files
-      Main.getTimeline().saveAllProbes();
+      myMain.getTimeline().saveAllProbes();
    }
 
    private void doSaveProbesAs() {
@@ -790,7 +790,7 @@ public class MenuBarHandler implements
       }
 
       // also save all probe data files
-      Main.getTimeline().saveAllProbes();
+      myMain.getTimeline().saveAllProbes();
    }
 
    /**
@@ -812,7 +812,7 @@ public class MenuBarHandler implements
 
    private File selectProbeDir(String approveMsg, File existingFile) {
       JFileChooser chooser =
-         new JFileChooser(Main.getMain().getProbeDirectory());
+         new JFileChooser(myMain.getMain().getProbeDirectory());
       chooser.setApproveButtonText(approveMsg);
       chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
       int retval;
@@ -840,7 +840,7 @@ public class MenuBarHandler implements
    private boolean saveProbesFile(File dir) {
       File probesFile = new File(dir, "probeInfo.art");
       try {
-         if (!Main.getMain().saveProbesFile(probesFile)) {
+         if (!myMain.getMain().saveProbesFile(probesFile)) {
             return false;
          }
       } catch (IOException e) {
@@ -854,7 +854,7 @@ public class MenuBarHandler implements
    private boolean loadProbesFile(File dir) {
       File probesFile = new File(dir, "probeInfo.art");
       try {
-         if (!Main.getMain().loadProbesFile(probesFile)) {
+         if (!myMain.getMain().loadProbesFile(probesFile)) {
             return false;
          }
       } catch (IOException e) {
@@ -869,11 +869,11 @@ public class MenuBarHandler implements
     * save the probes in a new directory
     */
    private void newSaveProbesIn() {
-      File dir = selectProbeDir("Save", Main.getMain().getProbeDirectory());
+      File dir = selectProbeDir("Save", myMain.getMain().getProbeDirectory());
       if (dir != null) {
          if (saveProbesFile(dir)) {
-            Main.getMain().setProbeDirectory(dir);
-            Main.getTimeline().saveAllProbes();
+            myMain.getMain().setProbeDirectory(dir);
+            myMain.getTimeline().saveAllProbes();
          }
       }
    }
@@ -882,18 +882,18 @@ public class MenuBarHandler implements
     * save the probes
     */
    private void newSaveProbes() {
-      if (saveProbesFile(Main.getMain().getProbeDirectory())) {
-         Main.getTimeline().saveAllProbes();
+      if (saveProbesFile(myMain.getMain().getProbeDirectory())) {
+         myMain.getTimeline().saveAllProbes();
       }
    }
 
    private void newLoadProbesFrom() {
-      File dir = selectProbeDir("Load", Main.getMain().getProbeDirectory());
+      File dir = selectProbeDir("Load", myMain.getMain().getProbeDirectory());
       if (dir != null) {
-         File oldDir = Main.getMain().getProbeDirectory();
-         Main.getMain().setProbeDirectory(dir);
+         File oldDir = myMain.getMain().getProbeDirectory();
+         myMain.getMain().setProbeDirectory(dir);
          if (!loadProbesFile(dir)) {
-            Main.getMain().setProbeDirectory(oldDir);
+            myMain.getMain().setProbeDirectory(oldDir);
          }
       }
    }
@@ -971,6 +971,16 @@ public class MenuBarHandler implements
       }
    }
 
+   private void doOpenMatlab() {
+      if (myMain.openMatlabConnection() == null) {
+         showError ("Unable to open connection");
+      }
+   }
+
+   private void doCloseMatlab() {
+      myMain.closeMatlabConnection();
+   }
+
    /**
     * this function opens up a dialog that allows the adding of probes
     */
@@ -986,7 +996,7 @@ public class MenuBarHandler implements
       java.awt.Point loc = myMain.getFrame().getLocation();
       dialog.setLocation(loc.x + myMain.getFrame().getWidth() / 2,
          myMain.getFrame().getHeight() / 2);
-      Main.getTimeline().addProbeEditor(dialog);
+      myMain.getTimeline().addProbeEditor(dialog);
    }
 
    private File selectFile(String approveMsg, File existingFile) {
@@ -1083,7 +1093,6 @@ public class MenuBarHandler implements
       if (visible) {
          boolean created = false;
          if (myMain.myJythonFrame == null) {
-            System.out.println ("Creating");
             myMain.createJythonConsole(/*guiBased=*/true);
             created = true;
          }
@@ -1107,7 +1116,7 @@ public class MenuBarHandler implements
 
    private void setRealTimeScaling() {
 
-      Scheduler scheduler = Main.getScheduler(); 
+      Scheduler scheduler = myMain.getScheduler(); 
 
       double scaling = scheduler.getRealTimeScaling ();
       if (!scheduler.getRealTimeAdvance ()) {
@@ -1206,7 +1215,7 @@ public class MenuBarHandler implements
             new PropertyDialog("PullController properties", panel, "OK");
          dialog.addWidget(pc, "stiffness");
          dialog.locateRight(myMain.getFrame());
-         //dialog.setSynchronizeObject(Main.getRootModel());
+         //dialog.setSynchronizeObject(myMain.getRootModel());
          dialog.addWindowListener(new WindowAdapter() {
             public void windowClosed(WindowEvent e) {
                myPullControllerPropertyDialog = null;
@@ -1227,7 +1236,7 @@ public class MenuBarHandler implements
          RenderPropsDialog dialog =
             new RenderPropsDialog("Edit render properties", list);
          dialog.locateRight(myMain.getFrame());
-         //dialog.setSynchronizeObject(Main.getRootModel());
+         //dialog.setSynchronizeObject(myMain.getRootModel());
          dialog.setTitle("RenderProps for PullController");
          dialog.addWindowListener(new WindowAdapter() {
             public void windowClosed(WindowEvent e) {
@@ -1261,12 +1270,11 @@ public class MenuBarHandler implements
       }
       else if (myMain.isDemoClassName(cmd)) {
          // Collect as much possible space before loading another model
-         if (Main.getScheduler().isPlaying()) {
-            Main.getScheduler().stopRequest();
-            Main.getScheduler().waitForPlayingToStop();
+         if (myMain.getScheduler().isPlaying()) {
+            myMain.getScheduler().stopRequest();
+            myMain.getScheduler().waitForPlayingToStop();
          }
 
-         System.out.println("Loading " + cmd);
          System.gc();
          System.runFinalization();
 
@@ -1304,6 +1312,12 @@ public class MenuBarHandler implements
       }
       else if (cmd.equals("Switch workspace ...")) {
          doSwitchWorkspace();
+      }
+      else if (cmd.equals("Open MATLAB connection")) {
+         doOpenMatlab();
+      }
+      else if (cmd.equals("Close MATLAB connection")) {
+         doCloseMatlab();
       }
       else if (cmd.equals("Load probes ...")) {
          doLoadProbes();
@@ -1346,16 +1360,16 @@ public class MenuBarHandler implements
       }
       else if (cmd.equals("Delete inverse controller")) {
          System.out.println("deleting inverse controller...");
-         Main.getRootModel().removeController(
+         myMain.getRootModel().removeController(
             InverseManager.findInverseController());
-         Main.getInverseManager().clearContoller();
+         myMain.getMain().getInverseManager().clearContoller();
       }
       else if (cmd.equals("Create inverse controller")) {
          System.out.println("create inverse controller...");
-         Main.getInverseManager().createController(
+         myMain.getMain().getInverseManager().createController(
             InverseManager.findMechModel());
-         Main.getRootModel().addController(
-            Main.getInverseManager().getController());
+         myMain.getRootModel().addController(
+            myMain.getMain().getInverseManager().getController());
       }
       else if (cmd.equals("Print selection")) {
          SelectionManager sm = myMain.getSelectionManager();
@@ -1382,16 +1396,16 @@ public class MenuBarHandler implements
          setMouseWheelZoom();
       }
       else if (cmd.equals("Init draggers in world coords")) {
-         Main.setInitDraggersInWorldCoords (true);
+         myMain.setInitDraggersInWorldCoords (true);
       }
       else if (cmd.equals("Init draggers in local coords")) {
-         Main.setInitDraggersInWorldCoords (false);
+         myMain.setInitDraggersInWorldCoords (false);
       }
       else if (cmd.equals("Enable articulated transforms")) {
-         Main.setArticulatedTransformsEnabled(true);
+         myMain.setArticulatedTransformsEnabled(true);
       }
       else if (cmd.equals("Disable articulated transforms")) {
-         Main.setArticulatedTransformsEnabled(false);
+         myMain.setArticulatedTransformsEnabled(false);
       }
       else if (cmd.equals("Enable GL_SELECT selection")) {
          GLViewer.enableGLSelectSelection (true);
@@ -1430,28 +1444,28 @@ public class MenuBarHandler implements
       else if (cmd.equals("Orthographic view")) {
          myMain.getViewer().setOrthographicView(true);
       }
-      else if (cmd.equals("Hide Jython Console")) {
+      else if (cmd.equals("Hide Jython console")) {
          setJythonConsoleVisible(false);
       }
-      else if (cmd.equals("Show Jython Console")) {
+      else if (cmd.equals("Show Jython console")) {
          setJythonConsoleVisible(true);
       }
-      else if (cmd.equals("Show Inverse Panel")) {
-         // Main.getInverseManager().showInversePanel();
-         Main.getInverseManager().setController(
+      else if (cmd.equals("Show Inverse panel")) {
+         // myMain.getMain().getInverseManager().showInversePanel();
+         myMain.getMain().getInverseManager().setController(
             InverseManager.findInverseController());
       }
-      else if (cmd.equals("Hide Inverse Panel")) {
-         Main.getInverseManager().hideInversePanel();
+      else if (cmd.equals("Hide Inverse panel")) {
+         myMain.getMain().getInverseManager().hideInversePanel();
       }
       else if (cmd.equals("Show movie panel")) {
          myFrame.getMain().getViewer().getCanvas().display();
-         Main.getMovieMaker().showDialog(myFrame);
+         myMain.getMovieMaker().showDialog(myFrame);
       }
       else if (cmd.equals("Hide movie panel")) {
          // TODO: this isn't implemented yet because we need to set
          // this up as an action
-         Main.getMovieMaker().closeDialog();
+         myMain.getMovieMaker().closeDialog();
       }
       else if (cmd.equals ("Show empty components in navpanel")) {
          myFrame.getNavPanel().setHideEmptyComponents (false);
@@ -1463,25 +1477,25 @@ public class MenuBarHandler implements
          myMain.createViewerFrame();
       }
       else if (cmd.equals("Clear traces")) {
-         Main.getRootModel().clearTraces();
+         myMain.getRootModel().clearTraces();
       }
       else if (cmd.equals("Disable all tracing")) {
-         Main.getRootModel().disableAllTracing();
+         myMain.getRootModel().disableAllTracing();
       }
       else if (cmd.equals("Remove traces")) {
          RemoveComponentsCommand rmCmd =
             new RemoveComponentsCommand(
-               "remove traces", Main.getRootModel().getTracingProbes());
-         Main.getUndoManager().saveStateAndExecute(rmCmd);
-         Main.rerender();
+               "remove traces", myMain.getRootModel().getTracingProbes());
+         myMain.getUndoManager().saveStateAndExecute(rmCmd);
+         myMain.rerender();
       }
       else if (cmd.equals("Set traces visible")) {
-         Main.getRootModel().setTracingProbesVisible(true);
-         Main.rerender();
+         myMain.getRootModel().setTracingProbesVisible(true);
+         myMain.rerender();
       }
       else if (cmd.equals("Set traces invisible")) {
-         Main.getRootModel().setTracingProbesVisible(false);
-         Main.rerender();
+         myMain.getRootModel().setTracingProbesVisible(false);
+         myMain.rerender();
       }
       else if (cmd.equals("Hide viewer toolbar")) {
          isToolbarVisible = false;
@@ -1492,10 +1506,10 @@ public class MenuBarHandler implements
          attachViewerToolbar(toolbarPanel);
       }
       else if (cmd.equals("Merge control panels")) {
-         Main.getRootModel().mergeAllControlPanels(true);
+         myMain.getRootModel().mergeAllControlPanels(true);
       }
       else if (cmd.equals("Separate control panels")) {
-         Main.getRootModel().mergeAllControlPanels(false);
+         myMain.getRootModel().mergeAllControlPanels(false);
       }
       else if (cmd.equals("Show progress")) {
          spawnProgressBar ();
@@ -1507,7 +1521,7 @@ public class MenuBarHandler implements
          myFrame.displayAboutArtisynth();
       }
       else if (cmd.equals("About the current model")) {
-         myFrame.displayAboutModel(Main.getWorkspace().getRootModel());
+         myFrame.displayAboutModel(myMain.getRootModel());
       }
       else if (cmd.equals("Keybindings")) {
          myFrame.displayKeybindings();
@@ -1528,30 +1542,30 @@ public class MenuBarHandler implements
          navBarButton.setActionCommand("Hide NavBar");
       }
       else if (cmd.equals("Re-render")) {
-         Main.rerender();
+         myMain.rerender();
       }
       else if (cmd.equals("Reset")) {
-         Main.getScheduler().reset();
+         myMain.getScheduler().reset();
       }
       else if (cmd.equals("Rewind")) {
-         Main.getScheduler().rewind();
+         myMain.getScheduler().rewind();
       }
       else if (cmd.equals("Play")) {
-         Main.getScheduler().play();
+         myMain.getScheduler().play();
       }
       else if (cmd.equals("Pause")) {
-         Main.getScheduler().pause();
+         myMain.getScheduler().pause();
       }
       else if (cmd.equals("Single step")) {
-         Main.getScheduler().step();
+         myMain.getScheduler().step();
       }
       else if (cmd.equals("Fast forward")) {
-         Main.getScheduler().fastForward();
+         myMain.getScheduler().fastForward();
       }
       else if (cmd.startsWith("MousePrefs ")) {
          String prefs = cmd.substring(11); // cut off MousePrefs
-         Main.mousePrefs.value = prefs;
-         Main.getMain().setMouseBindings(prefs);
+         myMain.mousePrefs.value = prefs;
+         myMain.getMain().setMouseBindings(prefs);
       }
       else if (cmd.equals("cancel")) {
          return;
@@ -1793,8 +1807,8 @@ public class MenuBarHandler implements
    }
 
    private void createFileMenu(JMenu menu) {
-      boolean rootModelExists = (Main.getRootModel() != null);
-      boolean workspaceExists = (Main.getWorkspace() != null);
+      boolean rootModelExists = (myMain.getRootModel() != null);
+      boolean workspaceExists = (myMain.getWorkspace() != null);
 
       JMenuItem item;
 
@@ -1836,13 +1850,20 @@ public class MenuBarHandler implements
 
       addMenuItem(menu, "Save viewer image ...");
       addMenuItem(menu, "Switch workspace ...");
+
+      if (myMain.hasMatlabConnection()) {
+         addMenuItem(menu, "Close MATLAB connection");
+      }
+      else {
+         addMenuItem(menu, "Open MATLAB connection");
+      }
       menu.add(new JSeparator());
 
       addMenuItem(menu, "Quit");
    }
 
    private void createEditMenu(JMenu menu) {
-      boolean rootModelExists = (Main.getRootModel() != null);
+      boolean rootModelExists = (myMain.getRootModel() != null);
 
       JMenuItem item;
 
@@ -1873,7 +1894,7 @@ public class MenuBarHandler implements
       addMenuItem(menu, "Print selection");
 
       JMenuItem undoItem = makeMenuItem("Undo", "Undo");
-      Command cmd = Main.getUndoManager().getLastCommand();
+      Command cmd = myMain.getUndoManager().getLastCommand();
       if (cmd != null && rootModelExists) {
          undoItem.setEnabled(true);
          String text = "Undo";
@@ -1897,14 +1918,14 @@ public class MenuBarHandler implements
       addMenuItem(menu, "Visual display rate");
       addMenuItem(menu, "Real-time scaling");
 
-      if (Main.getInitDraggersInWorldCoords()) {
+      if (myMain.getInitDraggersInWorldCoords()) {
          addMenuItem(menu, "Init draggers in local coords");
       }
       else {
          addMenuItem(menu, "Init draggers in world coords");
       }
 
-      if (Main.getArticulatedTransformsEnabled()) {
+      if (myMain.getArticulatedTransformsEnabled()) {
          addMenuItem(menu, "Disable articulated transforms");
       }
       else {
@@ -1934,7 +1955,7 @@ public class MenuBarHandler implements
       submenu.add(bindingLabel);
 
       ButtonGroup group = new ButtonGroup();
-      String [] mousePrefsOpts = Main.mousePrefsOptions;
+      String [] mousePrefsOpts = myMain.mousePrefsOptions;
       JRadioButtonMenuItem []rbItem =
          new JRadioButtonMenuItem[mousePrefsOpts.length];
 
@@ -1942,7 +1963,7 @@ public class MenuBarHandler implements
       for (int i=0; i<mousePrefsOpts.length; i++) {
          rbItem[i] = addRadioMenuItem(
             submenu, mousePrefsOpts[i], "MousePrefs " + mousePrefsOpts[i], group);
-         if (mousePrefsOpts[i].equals(Main.mousePrefs.value)) {
+         if (mousePrefsOpts[i].equals(myMain.mousePrefs.value)) {
             rbItem[i].setSelected(true);
             selected = true;
          }         
@@ -1968,8 +1989,8 @@ public class MenuBarHandler implements
    private void createViewMenu(JMenu menu) {
       JMenuItem item;
 
-      RootModel root = Main.getRootModel();
-      boolean hasTracables = root.getNumTracables() > 0;
+      RootModel root = myMain.getRootModel();
+      boolean hasTraceables = root.getNumTraceables() > 0;
 
       boolean hasTraces = false;
       boolean hasVisibleTrace = false;
@@ -1996,19 +2017,19 @@ public class MenuBarHandler implements
 
       if (JythonInit.jythonIsAvailable()) {
          if (myMain.myJythonFrame != null && myMain.myJythonFrame.isVisible()) {
-            addMenuItem(menu, "Hide Jython Console");
+            addMenuItem(menu, "Hide Jython console");
          }
          else {
-            addMenuItem(menu, "Show Jython Console");
+            addMenuItem(menu, "Show Jython console");
          }
       }
 
       if (InverseManager.inverseControllerExists()) {
          if (InverseManager.isInversePanelVisible()) {
-            addMenuItem(menu, "Hide Inverse Panel");
+            addMenuItem(menu, "Hide Inverse panel");
          }
          else {
-            addMenuItem(menu, "Show Inverse Panel");
+            addMenuItem(menu, "Show Inverse panel");
          }
       }
 
@@ -2053,10 +2074,10 @@ public class MenuBarHandler implements
       menu.add(new JSeparator());      
 
       item = addMenuItem(menu, "Clear traces");
-      item.setEnabled(hasTracables);
+      item.setEnabled(hasTraceables);
 
       item = addMenuItem(menu, "Disable all tracing");
-      item.setEnabled(hasTracables);
+      item.setEnabled(hasTraceables);
 
       item = addMenuItem(menu, "Remove traces");
       item.setEnabled(hasTraces);
@@ -2074,7 +2095,7 @@ public class MenuBarHandler implements
    }
 
    private void createHelpMenu(JMenu menu) {
-      RootModel rootModel = Main.getRootModel();
+      RootModel rootModel = myMain.getRootModel();
 
       addMenuItem(menu, "About ArtiSynth");
 
@@ -2086,7 +2107,7 @@ public class MenuBarHandler implements
    }
 
    private void createModelMenu(JMenu menu) {
-      RootModel rootModel = Main.getRootModel();
+      RootModel rootModel = myMain.getRootModel();
 
       Object[] items = rootModel.getModelMenuItems();
 
@@ -2109,7 +2130,7 @@ public class MenuBarHandler implements
    }
 
    public void schedulerActionPerformed(Scheduler.Action action) {
-      if (Main.getScheduler().isPlaying()) {
+      if (myMain.getScheduler().isPlaying()) {
          disableShowPlay();
       }
       else {

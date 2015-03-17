@@ -247,7 +247,7 @@ public class MuscleElementAgent extends AddComponentAgent<MuscleElementDesc> {
          }
       }
       uninstallSelectionFilter();
-      Main.rerender();
+      myMain.rerender();
       super.dispose();
    }
 

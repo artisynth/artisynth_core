@@ -25,7 +25,7 @@ import maspack.matrix.*;
 public class SinglePyramid extends RootModel {
    FemModel3d mod;
 
-   public SinglePyramid (String name) {
+   public void build (String[] args) {
       mod = new FemModel3d();
 
       double[] coords = new double[]

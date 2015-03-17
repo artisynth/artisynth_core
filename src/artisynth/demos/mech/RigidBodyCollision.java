@@ -2,6 +2,7 @@ package artisynth.demos.mech;
 
 import java.awt.Color;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -39,13 +40,8 @@ public class RigidBodyCollision extends RootModel {
    MechModel mechmod;
 
    boolean wireFrame = true;
-   
-   public RigidBodyCollision() {
-      super();
-   }
 
-   public RigidBodyCollision (String name) throws Exception {
-      super (name);
+   public void build (String[] args) throws IOException {
 
       try {
          mechmod = new MechModel();
@@ -165,7 +161,7 @@ public class RigidBodyCollision extends RootModel {
          // setWaypointChecking (true);
 
       }
-      catch (Exception e) {
+      catch (IOException e) {
          throw e;
       }
    }

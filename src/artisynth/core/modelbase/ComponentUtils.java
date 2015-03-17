@@ -7,7 +7,6 @@
 package artisynth.core.modelbase;
 
 import java.util.*;
-import java.net.*;
 
 import maspack.util.*;
 import maspack.properties.*;
@@ -15,25 +14,9 @@ import maspack.properties.*;
 import java.io.*;
 
 import artisynth.core.util.*;
-import artisynth.core.workspace.RootModel;
 
 public class ComponentUtils {
    public static final char componentPropertySeparator = ':';
-
-   // static public void addDependentComponents (
-   //    List<ModelComponent> list, ModelComponent comp) {
-   //    LinkedList<ModelComponent> deps = new LinkedList<ModelComponent>();
-   //    // get immediate referals for component
-   //    // getExternalDependencies (deps, comp);
-   //    comp.getDependencies (deps, comp);
-   //    for (ModelComponent rcomp : deps) {
-   //       addDependentComponents (list, rcomp);
-   //    }
-   //    if (!comp.isMarked()) {
-   //       list.add (comp);
-   //       comp.setMarked (true);
-   //    }
-   // }
 
    static class Dependencies {
       ArrayList<ModelComponent> myHard;
@@ -229,16 +212,17 @@ public class ComponentUtils {
          new LinkedHashMap<ModelComponent,LinkedList<ModelComponent>>();
       ModelComponent currentParent = null;
       LinkedList<ModelComponent> listForParent = null;
-      RootModel root = null;
+      ModelComponent root = null;
       for (ModelComponent c : delete) {
          ModelComponent parent = c.getParent();
          if (parent == null) {
-            if (c instanceof RootModel) {
-               root = (RootModel)c;
+            if (root == null) {
+               root = c;
             }
-            else {
+            else if (c != root) {
                throw new InternalErrorException (
-                  "Component "+c+" at "+getPathName(c)+" has no parent");
+                  "Multiple root components found:\n" + 
+                  getPathName(c)+"\n" + getPathName(root));
             }
          }
          else {
@@ -262,197 +246,6 @@ public class ComponentUtils {
       }
       return delete;
    }
-
-   // Extends a list of components to include all refering components.
-   // The list is returned with refering components placed first,
-   // in the same order that components should be deleted.
-   public static LinkedList<ModelComponent> findDependentComponentsOld (
-      List<ModelComponent> update, List<? extends ModelComponent> comps) {
-
-      // find the common reference-containing ancestor for all components,
-      // to give us a starting point to build the dependency map.
-      ModelComponent acomp = findCommonAncestor (comps);
-      if (acomp == null) {
-         throw new IllegalArgumentException (
-            "Components do not have a common ancestor");
-      }
-      CompositeComponent ancestor = nearestEncapsulatingAncestor(acomp);
-      HashMap<ModelComponent,Dependencies> depMap = 
-         buildDependencyMap (ancestor);
-      HashSet<ModelComponent> updateSet = new LinkedHashSet<ModelComponent>();
-
-      LinkedList<ModelComponent> delete = new LinkedList<ModelComponent>();
-      Deque<ModelComponent> queue = new ArrayDeque<ModelComponent>();
-      for (ModelComponent c : comps) {
-         recursivelyAddDelete (queue, /*updateSet=*/null, c);
-      }
-      while (!queue.isEmpty()) {
-         ModelComponent c = queue.poll();
-         delete.add (c);
-         Dependencies deps = depMap.get(c);
-         if (deps != null) {
-            if (deps.myHard != null) {
-               for (ModelComponent rhard : deps.myHard) {
-                  recursivelyAddDelete (queue, updateSet, rhard);
-               }            
-            }
-            if (deps.mySoft != null) {
-               for (ModelComponent rsoft : deps.mySoft) {
-                  if (!rsoft.isMarked()) {
-                     updateSet.add (rsoft);
-                  }
-               }
-            }               
-         }      
-      }
-      // remove components which are going to be deleted because 
-      // an ancestor is going to be deleted
-      ListIterator<ModelComponent> li = delete.listIterator();
-      while (li.hasNext()) {
-         ModelComponent c = li.next();
-         if (ancestorIsMarked(c)) {
-            c.setMarked(false);
-            li.remove();
-         }
-      }
-      for (ModelComponent c : delete) {
-         c.setMarked (false);
-      }
-      update.addAll (updateSet);
-      
-      // Need to rearrange the delete list so that all components with the same
-      // parents are grouped together. This greatly improves the efficiency of
-      // the resulting operation.
-      //
-      // Note that in doing this, we must be sure that the 'parents' appear in
-      // the same order that they first appear in the list, in order to ensure
-      // that components are deleted in the correct dependency order. We are
-      // explicitly making the assumption that all components belonging to the
-      // same parent form a closure with respect to the dependency ordering.
-      LinkedHashMap<ModelComponent,LinkedList<ModelComponent>> parentMap =
-         new LinkedHashMap<ModelComponent,LinkedList<ModelComponent>>();
-      ModelComponent currentParent = null;
-      LinkedList<ModelComponent> listForParent = null;
-      RootModel root = null;
-      for (ModelComponent c : delete) {
-         ModelComponent parent = c.getParent();
-         if (parent == null) {
-            if (c instanceof RootModel) {
-               root = (RootModel)c;
-            }
-            else {
-               throw new InternalErrorException (
-                  "Component "+c+" at "+getPathName(c)+" has no parent");
-            }
-         }
-         else {
-            if (parent != currentParent) {
-               listForParent = parentMap.get (parent);
-               if (listForParent == null) {
-                  listForParent = new LinkedList<ModelComponent>();
-                  parentMap.put (parent, listForParent);
-               }
-               currentParent = parent;
-            }
-            listForParent.add (c);
-         }
-      }
-      delete.clear();
-      if (root != null){
-         delete.add (root);
-      }
-      for (LinkedList<ModelComponent> l : parentMap.values()) {
-         delete.addAll (l);
-      }
-      return delete;
-   }
-
-   // static public void addReferencedComponents (
-   // List<ModelComponent> list, ModelComponent comp)
-   // {
-   // LinkedList<ModelComponent> refs = new LinkedList<ModelComponent>();
-   // // get immediate referals for component
-   //
-   // getExternalReferences (refs, comp);
-   // for (ModelComponent rcomp : refs)
-   // { addReferencedComponents (list, rcomp);
-   // }
-   // if (!comp.isMarked())
-   // { list.add (comp);
-   // comp.setMarked(true);
-   // }
-   // }
-
-   // // Extends a list of components to include all refering components.
-   // // The list is returned with refering components placed first,
-   // // in the same order that components should be deleted.
-   // public static LinkedList<ModelComponent> findReferencedComponents (
-   // List<ModelComponent> comps)
-   // {
-   // LinkedList<ModelComponent> list = new LinkedList<ModelComponent>();
-   // for (ModelComponent c : comps)
-   // { addReferencedComponents (list, c);
-   // }
-   // for (ModelComponent c : list)
-   // { c.setMarked (false);
-   // }
-   // return list;
-   // }
-
-   // /**
-   // * Returns all back references held by a specified component
-   // * and its descendants, discarding any which are descendants
-   // * of a specified ancestor.
-   // *
-   // * @param refs list in which to place external back references
-   // * @param comp component for which to assemble external back references
-   // * @param ancestor back references which are descendants of this
-   // * component are discared
-   // */
-   // public static void getUncontainedReferences (
-   // List<ModelComponent> refs, ModelComponent comp,
-   // CompositeComponent ancestor)
-   // {
-   // if (ancestor != null)
-   // { LinkedList<ModelComponent> newRefs =
-   // new LinkedList<ModelComponent>();
-   // comp.getReferences (newRefs);
-   // // // Just the superparent??? All parents?
-   // // if (superparent != null)
-   // // { superparent.getDescendantReferences (comp, newRefs);
-   // // }
-   // for (ModelComponent referer : newRefs)
-   // { if (!ComponentUtils.withinHierarchy (referer, ancestor))
-   // { refs.add (referer);
-   // }
-   // }
-   // }
-   // else
-   // { comp.getReferences (refs);
-   // }
-   // if (comp instanceof CompositeComponent)
-   // { Iterator<? extends ModelComponent> children =
-   // ((CompositeComponent)comp).getComponents();
-   // while (children.hasNext())
-   // { getUncontainedReferences (refs, children.next(), ancestor);
-   // }
-   // }
-   // }
-
-   // // Returns all back references held by a component and its descendants,
-   // // which are different from the component and its descendants.
-   // public static void getExternalReferences (
-   // List<ModelComponent> refs, ModelComponent comp)
-   // {
-   // if (comp instanceof CompositeComponent)
-   // { getUncontainedReferences (
-   // refs, comp, (CompositeComponent)comp);
-   // }
-   // else
-   // { getUncontainedReferences (
-   // refs, comp, null);
-   // }
-   // }
 
    public static LinkedList<MutableCompositeComponent<?>> removeComponents (
       List<? extends ModelComponent> list, int[] indices) {
@@ -1391,11 +1184,11 @@ public class ComponentUtils {
 
    public static String getPropertyPathName (Property prop) {
       return doGetPropertyPathName (
-         prop, RootModel.class,/*excludeLeaf=*/false);
+         prop, null, /*excludeLeaf=*/false);
    }
 
    private static String doGetPropertyPathName (
-      Property prop, Object topAncestor, boolean excludeLeaf) {
+      Property prop, ModelComponent topAncestor, boolean excludeLeaf) {
       StringBuilder buf = new StringBuilder();
       if (!excludeLeaf) {
          buf.append (prop.getName());
@@ -1412,7 +1205,7 @@ public class ComponentUtils {
       }
       if (host instanceof ModelComponent) {
          String path;
-         if (topAncestor == RootModel.class) {
+         if (topAncestor == null) {
             path = getPathName ((ModelComponent)host);
          }
          else {

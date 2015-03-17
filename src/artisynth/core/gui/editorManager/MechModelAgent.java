@@ -56,7 +56,7 @@ public class MechModelAgent extends AddComponentAgent<MechModel> {
    }
 
    protected HashMap<Class,ModelComponent> getPrototypeMap() {
-      RootModel root = Main.getRootModel();
+      RootModel root = myMain.getRootModel();
       if (root != null && root != myLastRootModel) {
          myPrototypeMap = new HashMap<Class,ModelComponent>();
          myLastRootModel = root;
@@ -79,14 +79,14 @@ public class MechModelAgent extends AddComponentAgent<MechModel> {
       String cmd = e.getActionCommand();
       // if (cmd.equals ("Add+Done")) {
       //    createAndAddMechModel();
-      //    Main.rerender();
+      //    myMain.rerender();
       //    setInitialState();
       //    super.actionPerformed (new ActionEvent (
       //       e.getSource(), e.getID(), "Done"));
       // }
       if (cmd.equals ("Add")) {
          createAndAddMechModel();
-         Main.rerender();
+         myMain.rerender();
          myDisplay.setVisible (false);
          dispose();  
       }
@@ -97,7 +97,7 @@ public class MechModelAgent extends AddComponentAgent<MechModel> {
 
    protected boolean isContextValid() {
       return (ComponentUtils.withinHierarchy (
-                 myRootModel, Main.getRootModel()));
+                 myRootModel, myMain.getRootModel()));
    }
 
    protected void resetState() {

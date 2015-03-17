@@ -10,12 +10,9 @@ import java.util.*;
 
 public class RobustCube extends FemBeam3d {
 
-   public RobustCube() {
-   }
+   public void build (String[] args) {
 
-   public RobustCube (String name) {
-
-      super (name, "hex", 1.0, 1.0, 5, 5, /*options=*/0);
+      build ("hex", 1.0, 1.0, 5, 5, /*options=*/0);
 
       RandomGenerator.setSeed (0x1234);
 

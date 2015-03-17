@@ -57,10 +57,6 @@ public class FemSkinDemo extends RootModel {
       return myProps;
    }
 
-   public FemSkinDemo() {
-      super (null);
-   }
-
    LinkedList<FemNode3d> getLeftNodes (FemModel3d femMod) {
       LinkedList<FemNode3d> nodes = new LinkedList<FemNode3d>();
       double minx = Double.POSITIVE_INFINITY;
@@ -124,9 +120,7 @@ public class FemSkinDemo extends RootModel {
       return body;
    }
 
-   public FemSkinDemo (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       myMech = new MechModel ("mech");
       RenderProps.setPointStyle (myMech, RenderProps.PointStyle.SPHERE);

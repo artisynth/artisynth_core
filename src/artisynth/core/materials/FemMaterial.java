@@ -5,8 +5,8 @@ import maspack.matrix.Matrix3d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyUtils;
-import artisynth.core.util.PropertyChangeListener;
-import artisynth.core.util.PropertyChangeEvent;
+import artisynth.core.modelbase.PropertyChangeListener;
+import artisynth.core.modelbase.PropertyChangeEvent;
 
 public abstract class FemMaterial extends MaterialBase {
 

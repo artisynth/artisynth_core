@@ -17,19 +17,12 @@ public class HexFrame extends RootModel {
    static double DENSITY = 1000;
    static double TOL = 1e-6;
 
-   public HexFrame() {
-      super (null);
-   }
-
    private void addFem (FemModel3d fem, RigidTransform3d X) {
       fem.transformGeometry (X);
       FemFactory.addFem (myFem, fem, TOL);
    }
 
-   public HexFrame (String name) {
-
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       // /*flags=*/VERTICAL|ADD_DISPLACEMENT);
       //super (name, "hex", 1.0, 0.2, 25, 10, 0);

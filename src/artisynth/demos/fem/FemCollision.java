@@ -2,6 +2,7 @@ package artisynth.demos.fem;
 
 import java.awt.Color;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -55,12 +56,7 @@ public class FemCollision extends RootModel {
    // boolean incBox0=false, incFem0=false, incFem1=true, wireFrame=true;
    boolean testEdgeEdge = false;
 
-   public FemCollision () {
-      super (null);
-   }
-
-   public FemCollision (String name) throws Exception {
-      super (name);
+   public void build (String[] args) throws IOException {
 
       try {
 
@@ -210,7 +206,7 @@ public class FemCollision extends RootModel {
          //addBreakPoint (2.36);
          // reset();
       }
-      catch (Exception e) {
+      catch (IOException e) {
          throw e;
       }
    }

@@ -11,9 +11,10 @@ import maspack.widgets.ValueChangeListener;
 import artisynth.core.driver.Main;
 
 public class RerenderListener implements ValueChangeListener {
+
    public void valueChange (ValueChangeEvent e) {
-      if (Main.getWorkspace() != null) {
-         Main.getWorkspace().rerender();
+      if (Main.getMain() != null) {
+         Main.getMain().rerender();
       }
    }
 }

@@ -8,8 +8,8 @@ package artisynth.core.femmodels;
 
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.ScalableUnits;
-import artisynth.core.util.PropertyChangeListener;
-import artisynth.core.util.PropertyChangeEvent;
+import artisynth.core.modelbase.PropertyChangeListener;
+import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.MaterialBase;
 import artisynth.core.modelbase.*;
@@ -450,7 +450,7 @@ public abstract class FemElement extends RenderableComponentBase
    public void propertyChanged (PropertyChangeEvent e) {
       if (e.getHost() instanceof FemMaterial) {
          invalidateRestData();
-         if (e.getPropName().equals ("viscoBehavior")) {
+         if (e.getPropertyName().equals ("viscoBehavior")) {
             // issue a structure change event in order to invalidate WayPoints
             notifyParentOfChange (new StructureChangeEvent (this));
          }

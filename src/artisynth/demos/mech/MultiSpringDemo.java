@@ -32,16 +32,9 @@ public class MultiSpringDemo extends RootModel {
 
    private SoftPlaneCollider myCollider;
 
-   public MultiSpringDemo() {
-      super (null);
-   }
-
    protected static double size = 1.0;
 
-   public MultiSpringDemo (String name) {
-      this();
-      setName (name);
-
+   public void build (String[] args) {
       MechModel mechMod = new MechModel ("mechMod");
 
       mechMod.setGravity (0, 0, -9.8);

@@ -18,8 +18,10 @@ public class QLVBehavior extends ViscoelasticBehavior {
 
    public static int N_MAX = 6;
 
+   private static double myGamma0 = 1.0;
    private double[] myGamma;
    private double[] myTau;
+   private double myTangentScale;
 
    static {
       myProps.add (
@@ -98,34 +100,41 @@ public class QLVBehavior extends ViscoelasticBehavior {
 
    public void advanceState (
       ViscoelasticState state, double t0, double t1) {
-      
+
+      QLVState qlvstate = (QLVState)state;      
       double h = t1 - t0;
-      QLVState qlvstate = (QLVState)state;
+      qlvstate.myH = h;
       
-      qlvstate.myH = t1 - t0;       
-      qlvstate.mySigmaPrev.set (qlvstate.mySigmaSave);
-      SymmetricMatrix3d deltaSigma = qlvstate.myDeltaSigma;
+      SymmetricMatrix3d deltaSigma = new SymmetricMatrix3d();
+      deltaSigma.sub (qlvstate.mySigmaSave, qlvstate.mySigmaPrev);
+      if (t0 >= 0) {
+         qlvstate.mySigmaPrev.set (qlvstate.mySigmaSave);
+      }
+
       double[] S = qlvstate.myS;
       double[] GHPrev = qlvstate.myGHPrev;
-      for (int n=0; n<N_MAX; n++) {
-         double g = Math.exp(- h / myTau[n]);
-         double gH;
-         int idx = n*6;
 
-         gH = g*(S[n]*deltaSigma.m00 + GHPrev[idx]);
+      myTangentScale = myGamma0;
+      for (int i=0; i<N_MAX; i++) {
+         double g = Math.exp(- h / myTau[i]);
+         double gH;
+         int idx = i*6;
+
+         gH = g*(S[i]*deltaSigma.m00 + GHPrev[idx]);
          GHPrev[idx++] = gH;
-         gH = g*(S[n]*deltaSigma.m11 + GHPrev[idx]);
+         gH = g*(S[i]*deltaSigma.m11 + GHPrev[idx]);
          GHPrev[idx++] = gH;
-         gH = g*(S[n]*deltaSigma.m22 + GHPrev[idx]);
+         gH = g*(S[i]*deltaSigma.m22 + GHPrev[idx]);
          GHPrev[idx++] = gH;
-         gH = g*(S[n]*deltaSigma.m01 + GHPrev[idx]);
+         gH = g*(S[i]*deltaSigma.m01 + GHPrev[idx]);
          GHPrev[idx++] = gH;
-         gH = g*(S[n]*deltaSigma.m02 + GHPrev[idx]);
+         gH = g*(S[i]*deltaSigma.m02 + GHPrev[idx]);
          GHPrev[idx++] = gH;
-         gH = g*(S[n]*deltaSigma.m12 + GHPrev[idx]);
+         gH = g*(S[i]*deltaSigma.m12 + GHPrev[idx]);
          GHPrev[idx++] = gH;
         
-         S[n] = (1.0 - g) / ( h / myTau[n] );
+         S[i] = (1.0 - g) / ( h / myTau[i] );
+         myTangentScale += myGamma[i]*S[i];
       }
    }
 
@@ -138,39 +147,40 @@ public class QLVBehavior extends ViscoelasticBehavior {
       if (h == 0) {
          return;
       }
-      SymmetricMatrix3d sigmaPrev = qlvstate.mySigmaPrev;
-      SymmetricMatrix3d deltaSigma = qlvstate.myDeltaSigma;
       double[] GHPrev = qlvstate.myGHPrev;
       double[] S = qlvstate.myS;
 
-      double myGamma0 = 1.0;
-
-      deltaSigma.sub (sigma, sigmaPrev);
+      SymmetricMatrix3d deltaSigma = new SymmetricMatrix3d();
+      deltaSigma.sub (sigma, qlvstate.mySigmaPrev);
 
       qlvstate.mySigmaSave.set (sigma);
       sigma.scale(myGamma0);
 
-      for (int n=0; n<N_MAX; n++) {
-         double H00 = S[n]*deltaSigma.m00 + GHPrev[n*6  ];
-         double H11 = S[n]*deltaSigma.m11 + GHPrev[n*6+1];
-         double H22 = S[n]*deltaSigma.m22 + GHPrev[n*6+2];
-         double H01 = S[n]*deltaSigma.m01 + GHPrev[n*6+3];
-         double H02 = S[n]*deltaSigma.m02 + GHPrev[n*6+4];
-         double H12 = S[n]*deltaSigma.m12 + GHPrev[n*6+5];
+      for (int i=0; i<N_MAX; i++) {
+         double H00 = S[i]*deltaSigma.m00 + GHPrev[i*6  ];
+         double H11 = S[i]*deltaSigma.m11 + GHPrev[i*6+1];
+         double H22 = S[i]*deltaSigma.m22 + GHPrev[i*6+2];
+         double H01 = S[i]*deltaSigma.m01 + GHPrev[i*6+3];
+         double H02 = S[i]*deltaSigma.m02 + GHPrev[i*6+4];
+         double H12 = S[i]*deltaSigma.m12 + GHPrev[i*6+5];
 
-         double a = myGamma[n];
-         sigma.m00 += a*H00;
-         sigma.m11 += a*H11;
-         sigma.m22 += a*H22;
-         sigma.m01 += a*H01;
-         sigma.m02 += a*H02;
-         sigma.m12 += a*H12;
+         double gamma = myGamma[i];
+         sigma.m00 += gamma*H00;
+         sigma.m11 += gamma*H11;
+         sigma.m22 += gamma*H22;
+         sigma.m01 += gamma*H01;
+         sigma.m02 += gamma*H02;
+         sigma.m12 += gamma*H12;
       }
 
       sigma.m10 = sigma.m01;
       sigma.m20 = sigma.m02;
       sigma.m21 = sigma.m12;
   }
+
+   public double getTangentScale () {
+      return myTangentScale;
+   }
 
    public void computeTangent (Matrix6d c, ViscoelasticState state) {
       
@@ -180,18 +190,16 @@ public class QLVBehavior extends ViscoelasticBehavior {
          return;
       }
 
-      double myGamma0 = 1.0;
-
       double scaleFactor = myGamma0;
       double[] S = qlvstate.myS;	   
-      for (int n=0; n<N_MAX; n++) {
-         //double g = Math.exp(- h / myTau[n]);
-         //double s = (1.0 - g) / (h / myTau[n]);
-         scaleFactor += myGamma[n] * S[n];
+      for (int i=0; i<N_MAX; i++) {
+         //double g = Math.exp(- h / myTau[i]);
+         //double s = (1.0 - g) / (h / myTau[i]);
+         scaleFactor += myGamma[i] * S[i];
       }
       c.scale(scaleFactor);
    }
-   
+
    public boolean equals (ViscoelasticBehavior veb) {
       if (!(veb instanceof QLVBehavior)) {
          return false;

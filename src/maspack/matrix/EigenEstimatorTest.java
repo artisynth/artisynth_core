@@ -125,7 +125,7 @@ public class EigenEstimatorTest extends UnitTest {
    public void testMatrix (Matrix M, int nev) {
 
       testMatrix (M, nev, Ordering.LA);
-      //testMatrix (M, nev, Ordering.SA);
+      testMatrix (M, nev, Ordering.SA);
       //testMatrix (M, nev, Ordering.LM);
       //testMatrix (M, nev, Ordering.SM);
       if (false && nev != 1) {
@@ -176,7 +176,7 @@ public class EigenEstimatorTest extends UnitTest {
             2, 1, 5, 0, 3,  6
          });            
 
-      test (2, new double[] {123, 45, 2, 1, 0.1, 0.01, 0.01});
+      //test (2, new double[] {123, 45, 2, 1, 0.1, 0.01, 0.01});
       test (3, new double[] {123, 45, 2, 1, 1, 1, 0.1, 0.01, 0.01, 0.01});
       test (2, new double[] {123, 45, 2, 1, 0.01, 0});
       test (2, new double[] {123, 45, 2, 1, 0.0000001, 0});

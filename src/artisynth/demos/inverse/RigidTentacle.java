@@ -263,30 +263,8 @@ public class RigidTentacle extends RootModel {
 //      mySkinMesh = skinMesh;
    }
    
-   public RigidTentacle() {
-      super (null);
-   }
+   public void build (String[] args) throws IOException {
 
-//    class ArmMover extends MonitorBase {
-//       RigidBody myBody;
-//       ArmMover (RigidBody body) {
-//          myBody = body;
-//       }
-//       public void apply (long t) {
-//          double s = TimeBase.ticksToSeconds(t)%1;
-//          Point3d pos = new Point3d(myBody.getPosition());
-//             if (s < 0.5) {
-//                pos.x += 0.05;
-//             }
-//             else {
-//                pos.x -= 0.05;
-//             }
-//             myBody.setPosition(pos);
-//       }
-//    }
-   
-   public RigidTentacle (String name) throws IOException {
-      this();
       myMechMod = new MechModel ("RigidTentacle");
       myMechMod.setProfiling (false);
       myMechMod.setGravity (0, 0, 0);

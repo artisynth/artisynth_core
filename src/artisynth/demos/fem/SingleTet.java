@@ -28,7 +28,7 @@ public class SingleTet extends RootModel {
    FemNode3d myN3;
    FemNode3d myN4;
 
-   public SingleTet (String name) {
+   public void build (String[] args) {
       mod = new FemModel3d();
 
       myN1 = new FemNode3d (-1, -1, 1);
@@ -68,6 +68,10 @@ public class SingleTet extends RootModel {
       monMat.setBulkModulus (15000000);
       monMat.setC10 (150000);
       monMat.setJLimit (0.2);
+      QLVBehavior qlv = new QLVBehavior();
+      qlv.setTau (0.1, 0.0, 0, 0, 0, 0);
+      qlv.setGamma (4.0, 0, 0, 0, 0, 0);
+      monMat.setViscoBehavior (qlv);
 
       LinearMaterial linMat = new LinearMaterial (500000, 0.4);
 
@@ -84,9 +88,11 @@ public class SingleTet extends RootModel {
 
       mod.setGravity (0, 0, -9.8);
       mod.setDensity (10000);
+      mod.setParticleDamping (0);
 
       createControlPanel (mod);
 
+      mechMod.setProfiling (true);
       //myN4.setPosition (-2, 0, 0);
 
       //testInvertedForces (tet);

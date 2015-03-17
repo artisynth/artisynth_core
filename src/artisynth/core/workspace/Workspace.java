@@ -45,6 +45,7 @@ public class Workspace {
    // protected ArrayList<Probe> myOutputProbes = null;
    // protected WayPointProbe myWayPoints = null;
    protected ViewerManager myViewerManager = null;
+   protected Main myMain;
    protected RootModel myRoot = null;
    private LinkedList<PropertyWindow> myPropertyWindows =
       new LinkedList<PropertyWindow>();
@@ -55,28 +56,12 @@ public class Workspace {
    private boolean myRenderRequested = false;
    private boolean myWidgetUpdateRequested = false;
    private UpdateAction myRequestedUpdateAction = null;
-   private boolean useNewProbeFileFormat = false;
+   private static boolean useNewProbeFileFormat = false;
    private RerenderListener myRerenderListener = new RerenderListener();
 
-   public Workspace() {
-      this (null);
-   }
-
-   // private void setClosures (DependencyClosure[] closures)
-   // {
-   // myRoot.setClosures(closures);
-   // }
-
-   /**
-    * create workspace by creating input and output probes, creating waypoints
-    * and creating root model object which will store the currently loaded root
-    * model
-    * 
-    * @param name
-    */
-
-   public Workspace (String name) {
-      myRoot = new RootModel (name);
+   public Workspace (Main main) {
+      myRoot = new RootModel (null);
+      myMain = main;
    }
 
    // WS ???
@@ -112,11 +97,11 @@ public class Workspace {
                p.removeStalePropertyWidgets();
             }
          }
-         if (Main.getTimeline() != null) {
-            Main.getTimeline().requestUpdateWidgets();
+         if (myMain.getTimeline() != null) {
+            myMain.getTimeline().requestUpdateWidgets();
          }
-         if (Main.getMainFrame() != null) {
-            Main.getMainFrame().updateWidgets();
+         if (myMain.getMainFrame() != null) {
+            myMain.getMainFrame().updateWidgets();
          }
       }
 
@@ -126,7 +111,7 @@ public class Workspace {
          }
          try {
             if (myRenderRequested) {
-               Main.getMain().updateDragger();
+               myMain.updateDragger();
                if (myViewerManager != null) {
                   myViewerManager.render();
                }
@@ -163,8 +148,8 @@ public class Workspace {
    private void requestUpdateAction () {
       if (myRequestedUpdateAction == null) {
          myRequestedUpdateAction = new UpdateAction();
-         Scheduler scheduler = Main.getScheduler();
-         //JythonFrame jframe = Main.getMain().getJythonFrame();
+         Scheduler scheduler = myMain.getScheduler();
+         //JythonFrame jframe = myMain.getMain().getJythonFrame();
          if (scheduler.requestAction (myRequestedUpdateAction)) {
             //System.out.println ("$sched");
          }
@@ -208,7 +193,6 @@ public class Workspace {
     * @param rtok
     * @throws IOException
     */
-
    public void scanProbes (ReaderTokenizer rtok) throws IOException {
       scanProbes (rtok, getRootModel());
    }
@@ -220,7 +204,7 @@ public class Workspace {
     * @param rootModel
     * @throws IOException
     */
-   public void scanProbes (ReaderTokenizer rtok, RootModel rootModel)
+   public static void scanProbes (ReaderTokenizer rtok, RootModel rootModel)
       throws IOException {
       if (useNewProbeFileFormat) {
          newScanProbes (rtok, rootModel);
@@ -230,7 +214,7 @@ public class Workspace {
       }
    }
 
-   private void newScanProbes (ReaderTokenizer rtok, RootModel rootModel)
+   private static void newScanProbes (ReaderTokenizer rtok, RootModel rootModel)
       throws IOException {
          
       rtok.scanToken ('[');
@@ -268,13 +252,13 @@ public class Workspace {
       rtok.scanToken (']');
    }
 
-   private void oldScanProbes (ReaderTokenizer rtok, RootModel rootModel)
+   private static void oldScanProbes (ReaderTokenizer rtok, RootModel rootModel)
       throws IOException {
       // myInputProbes.clear();
       // myOutputProbes.clear()
-      myRoot.removeAllInputProbes();
-      myRoot.removeAllOutputProbes();
-      myRoot.removeAllWayPoints();
+      rootModel.removeAllInputProbes();
+      rootModel.removeAllOutputProbes();
+      rootModel.removeAllWayPoints();
       // myOutputProbes.add(myWayPoints); will be read from file
       // boolean isInvalid = false;
 
@@ -292,7 +276,7 @@ public class Workspace {
 
          Object probeObj = null;
          if (probeClass == WayPointProbe.class) {
-            probeObj = myRoot.getWayPoints();
+            probeObj = rootModel.getWayPoints();
          }
          else {
             try {
@@ -309,7 +293,7 @@ public class Workspace {
                Probe iprobe = (Probe)probeObj;
                try {
                   ScanWriteUtils.scanfull (rtok, iprobe, rootModel);
-                  myRoot.addInputProbe (iprobe);
+                  rootModel.addInputProbe (iprobe);
                }
                catch (IOException e) {
                   String errMsg = "scan probe failed, ";
@@ -325,7 +309,7 @@ public class Workspace {
                   ScanWriteUtils.scanfull (rtok, oprobe, rootModel);
                   if (!(oprobe instanceof WayPointProbe)) { // waypoint probe is
                                                             // already added
-                     myRoot.addOutputProbe (oprobe);
+                     rootModel.addOutputProbe (oprobe);
                   }
                }
                catch (IOException e) {
@@ -351,7 +335,7 @@ public class Workspace {
       writeProbes (pw, fmt, getRootModel());
    }
 
-   public void writeProbes (
+   public static void writeProbes (
       PrintWriter pw, NumberFormat fmt, RootModel rootModel)
       throws IOException {
       if (useNewProbeFileFormat) {
@@ -362,7 +346,7 @@ public class Workspace {
       }
    }
 
-   private void newWriteProbes (
+   private static void newWriteProbes (
       PrintWriter pw, NumberFormat fmt, RootModel rootModel)
       throws IOException {
 
@@ -393,33 +377,33 @@ public class Workspace {
     * @throws IOException
     */
    // WS
-   private void oldWriteProbes (
+   private static void oldWriteProbes (
       PrintWriter pw, NumberFormat fmt, RootModel rootModel) throws IOException {
       if (fmt == null)
          fmt = new NumberFormat ("%g");
 
-      if (myRoot.getInputProbes().size() > 0 ||
-          myRoot.getOutputProbes().size() > 0 || 
-          myRoot.getWayPoints ().size () > 0) {
+      if (rootModel.getInputProbes().size() > 0 ||
+          rootModel.getOutputProbes().size() > 0 || 
+          rootModel.getWayPoints ().size () > 0) {
          pw.println ("[");
          IndentingPrintWriter.addIndentation (pw, 2);
 
          // write out the input probes
-         for (Probe iprobe : myRoot.getInputProbes()) {
+         for (Probe iprobe : rootModel.getInputProbes()) {
             pw.println (ClassAliases.getAliasOrName (iprobe.getClass()));
             iprobe.write (pw, fmt, rootModel);
          }
 
          // write out the output probes
-         for (Probe oprobe : myRoot.getOutputProbes()) {
+         for (Probe oprobe : rootModel.getOutputProbes()) {
             pw.println (ClassAliases.getAliasOrName (oprobe.getClass()));
             oprobe.write (pw, fmt, rootModel);
          }
 
          // write way points
          pw.println (ClassAliases.getAliasOrName (
-                      myRoot.getWayPoints().getClass()));
-         myRoot.getWayPoints().write (pw, fmt, myRoot);
+                      rootModel.getWayPoints().getClass()));
+         rootModel.getWayPoints().write (pw, fmt, rootModel);
          IndentingPrintWriter.removeIndentation (pw, 2);
          pw.println ("]");
       }

@@ -23,6 +23,7 @@ import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
+import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
@@ -38,16 +39,13 @@ import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
-import artisynth.core.modelbase.Tracable;
-import artisynth.core.probes.PointTracingProbe;
-import artisynth.core.probes.TracingProbe;
-import artisynth.core.probes.VectorTracingProbe; //import artisynth.core.mechmodels.DynamicMechComponent.Activity;
+import artisynth.core.modelbase.Traceable;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.TransformableGeometry;
 
 public class Point extends DynamicComponentBase
    implements RenderablePoint, TransformableGeometry, ScalableUnits,
-              DynamicComponent, Tracable, MotionTargetComponent, 
+              DynamicComponent, Traceable, MotionTargetComponent, 
               CopyableComponent, CollidableDynamicComponent {
 
    protected PointState myState = new PointState();
@@ -488,23 +486,18 @@ public class Point extends DynamicComponentBase
       return RenderProps.createPointProps (this);
    }
 
-   public String[] getTracables() {
+   /**
+    * {@inheritDoc}
+    */
+   public String[] getTraceables() {
       return new String[] { "position", "force" };
    }
-
-   public TracingProbe getTracingProbe (String tracableName) {
-      if (tracableName.equals ("position")) {
-         return new PointTracingProbe (
-            this, getProperty ("position"), 1.0);
-      }
-      else if (tracableName.equals ("force")) {
-         return new VectorTracingProbe (
-            this, getProperty ("force"), getProperty ("position"), 1.0);
-      }
-      else {
-         throw new IllegalArgumentException ("Unknown tracable '"
-         + tracableName + "'");
-      }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public String getTraceablePositionProperty (String traceableName) {
+      return "+position";
    }
 
    public void prerender (RenderList list) {

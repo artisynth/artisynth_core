@@ -64,13 +64,7 @@ public class QuadFishDemo extends RootModel {
       ArtisynthPath.getHomeRelativePath (
          "src/artisynth/core/femmodels/meshes/", ".");
 
-   public QuadFishDemo() {
-      super (null);
-   }
-
-   public QuadFishDemo (String name) throws Exception {
-      this();
-      setName (name);
+   public void build (String[] args) throws IOException {
 
       myMechMod = new MechModel();
       //myMechMod.setProfiling (true);

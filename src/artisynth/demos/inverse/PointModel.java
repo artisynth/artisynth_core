@@ -123,18 +123,13 @@ public class PointModel extends RootModel
 //	 'NorthWest';
 //	 'NorthNorthWest'}
    
-   public PointModel() throws IOException
+   public void build (String[] args) throws IOException
    {
-      super();
+      build (defaultDemoType);
    }
    
-   public PointModel(String name) throws IOException
-   {
-      this(name, defaultDemoType);
-   }
-   
-   public PointModel(String name, DemoType demoType) {
-      super(name);
+   public void build (DemoType demoType) {
+
       myDemoType = demoType;
       
       model = new MechModel("point");
@@ -493,8 +488,8 @@ public class PointModel extends RootModel
 
       try
       {
-         Main.getWorkspace().scanProbes(
-                  ArtisynthIO.newReaderTokenizer(probeFileFullPath), this);
+         scanProbes(
+                  ArtisynthIO.newReaderTokenizer(probeFileFullPath));
       }
       catch (Exception e)
       {

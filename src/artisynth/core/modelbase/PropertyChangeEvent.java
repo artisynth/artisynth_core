@@ -6,11 +6,10 @@
  */
 package artisynth.core.modelbase;
 
-import maspack.matrix.*;
+import maspack.properties.HasProperties;
 
 /**
- * Base class for storing information about changes within a component
- * hierarchy.
+ * Reports changes in a component's properties.
  */
 public class PropertyChangeEvent extends ComponentChangeEvent {
    // /**
@@ -20,15 +19,25 @@ public class PropertyChangeEvent extends ComponentChangeEvent {
    //();
 
    private String myPropName;
+   // use a separate host field in case the host is not a model component
+   private HasProperties myHost;
 
    public PropertyChangeEvent (ModelComponent comp, String name) {
       super (Code.PROPERTY_CHANGED, comp);
       myPropName = name;
+      myHost = comp;
    };
 
    public PropertyChangeEvent (Code code, ModelComponent comp, String name) {
       super (code, comp);
       myPropName = name;
+      myHost = comp;
+   };
+
+   public PropertyChangeEvent (HasProperties host, String name) {
+      super (Code.PROPERTY_CHANGED, null);
+      myPropName = name;
+      myHost = host;
    };
 
    // public PropertyChangeEvent()
@@ -38,5 +47,9 @@ public class PropertyChangeEvent extends ComponentChangeEvent {
 
    public String getPropertyName() {
       return myPropName;
+   }
+
+   public HasProperties getHost() {
+      return myHost;
    }
 }

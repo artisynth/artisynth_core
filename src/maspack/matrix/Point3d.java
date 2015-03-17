@@ -60,6 +60,21 @@ public class Point3d extends Vector3d {
    }
 
    /**
+    * Creates a Point3d by copying an existing Vector. The
+    * size of the copied vector must be at least 3.
+    * 
+    * @param v
+    * vector to be copied
+    */
+   public Point3d (Vector v) {
+      if (v.size() < 3) {
+         throw new IllegalArgumentException (
+            "v must have a size of at least 3");
+      }
+      set (v);
+   }
+
+   /**
     * Creates a Point3d with the supplied element values.
     * 
     * @param values

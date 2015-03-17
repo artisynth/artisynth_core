@@ -32,7 +32,7 @@ public class WayPointInfo extends JPanel {
    // when the waypoint is created by the user
    public WayPointInfo (TimelineController controller, double time) {
       this (controller, new WayPoint (time));
-      Main.getRootModel().addWayPoint (myWaypoint);
+      myController.myMain.getRootModel().addWayPoint (myWaypoint);
    }
 
    // when the waypoint is extracted from the root model
@@ -45,7 +45,7 @@ public class WayPointInfo extends JPanel {
    }
 
    public boolean removeWayPointFromRoot() {
-      return Main.getRootModel().removeWayPoint (myWaypoint);
+      return myController.myMain.getRootModel().removeWayPoint (myWaypoint);
    }
 
    public void setWayMarkersLocation() {
@@ -193,7 +193,7 @@ public class WayPointInfo extends JPanel {
    private class WayPointListener extends MouseInputAdapter
       implements ActionListener {
       public void mousePressed (MouseEvent e) {
-         if (!Main.getScheduler().isPlaying()) {
+         if (!myController.myScheduler.isPlaying()) {
             if (e.isPopupTrigger())
                getPopupMenu().show (e.getComponent(), e.getX(), e.getY());
 
@@ -210,7 +210,7 @@ public class WayPointInfo extends JPanel {
       }
 
       public void mouseDragged (MouseEvent e) {
-         if (!Main.getScheduler().isPlaying()) {
+         if (!myController.myScheduler.isPlaying()) {
             int tempCoor = e.getX();
 
             // store the original properties prior to dragging
@@ -232,7 +232,7 @@ public class WayPointInfo extends JPanel {
       }
 
       public void mouseReleased (MouseEvent e) {
-         if (!Main.getScheduler().isPlaying()) {
+         if (!myController.myScheduler.isPlaying()) {
             if (e.isPopupTrigger()) {
                getPopupMenu().show (e.getComponent(), e.getX(), e.getY());
             }

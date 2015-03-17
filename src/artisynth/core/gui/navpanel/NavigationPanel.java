@@ -67,8 +67,6 @@ public class NavigationPanel extends JPanel {
 
    private HashMap<String,Boolean> map = new HashMap<String,Boolean>();
 
-   private static NavigationPanel _instance = null;
-
    private ArrayList<TreeSelectionListener> mySelectionListeners;
 
    private SelectionManager mySelectionManager;
@@ -104,7 +102,7 @@ public class NavigationPanel extends JPanel {
       mySelectionManager = slectionManager;
    }
 
-   private NavigationPanel () {
+   public NavigationPanel () {
       //this.parent = parent;
       mySelectionListeners = new ArrayList<TreeSelectionListener>(8);
       setAlignmentX(0);
@@ -126,12 +124,6 @@ public class NavigationPanel extends JPanel {
 
    public void setParentScrollBar(JScrollPane parentScrollBar) {
       this.parentScrollBar = parentScrollBar;
-   }
-
-   public static NavigationPanel getInstance() {
-      if (_instance == null)
-         _instance = new NavigationPanel();
-      return _instance;
    }
 
    public void expandAll(JTree tree) {

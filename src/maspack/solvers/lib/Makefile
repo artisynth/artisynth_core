@@ -31,14 +31,25 @@ ifeq ($(SYSTEM),Linux)
 	ifeq ($(ARCH), 64)
 	   NATIVE_DIR = Linux64
 	   PARDISO = pardisoX86_64
-	   MKL_HOME = /scratch/intel/composer_xe_2013_sp1.0.080/mkl
-	   MKL=$(MKL_HOME)/lib/intel64
+	   # currently, hybrid solves works for MKL 11.1.2, but breaks for 11.1.3
+	   # and 11.2.2
+	   MKL_HOME = /scratch/intel/composer_xe_2013_sp1.2.144
+	   #MKL_HOME = /scratch/intel/composer_xe_2015.2.164/mkl
+	   MKL=$(MKL_HOME)/mkl/lib/intel64
 	   #MKL_HOME = /scratch/intel/mkl/10.2.4.032
-	   #MKL=$(MKL_HOME)/lib/em64t
+	   #MKL=$(MKL_HOME)/mkl/lib/em64t
 	   # At last check, intel MKL blas were about 20% faster
-	   LDS_PARDISO_MKL = -Wl,--start-group \
-             $(MKL)/libmkl_intel_lp64.a $(MKL)/libmkl_gnu_thread.a \
-             $(MKL)/libmkl_core.a -Wl,--end-group -fopenmp -lm
+           #
+	   # link with iomp5 because libiomp5 is more compatible when
+	   # running ArtiSynth under matlab. Matlab uses libiomp5, so
+	   # we save an extra load of a thread-enabled dll and are
+	   # hence less likely to encounter the error "dlopen: cannot
+	   # load any more object with static TLS".
+	   LDS_PARDISO_MKL = -L$(MKL_HOME)/compiler/lib/intel64 \
+	     -Wl,--start-group \
+             $(MKL)/libmkl_intel_lp64.a $(MKL)/libmkl_intel_thread.a \
+             $(MKL)/libmkl_core.a -Wl,--end-group -ldl -liomp5 -lpthread -lm
+	   CC_FLAGS = -m64 -O2 -fno-strict-aliasing -fPIC -pthread -DLINUX 
 	else
 	   NATIVE_DIR = Linux
 	   PARDISO = pardisoX86
@@ -47,10 +58,11 @@ ifeq ($(SYSTEM),Linux)
 	   LDS_PARDISO_MKL = -Wl,--start-group \
              $(MKL)/libmkl_intel.a $(MKL)/libmkl_gnu_thread.a \
              $(MKL)/libmkl_core.a -Wl,--end-group -fopenmp -lm
+	   CC_FLAGS = -O2 -fno-strict-aliasing -fPIC -pthread -DLINUX 
 	endif
 	CC_INCS = -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux \
 		-I$(UMFPACK_DIR)/include -I.
-	CC_FLAGS = -g -fno-strict-aliasing -fPIC -pthread -DLINUX 
+
         # need to specify libraries repeatedly to resolve circular dependenices
 	LDS_UMFPACK = -lm -L$(UMFPACK_DIR)/lib/Linux -lumfpack -lamd -lgoto
 
@@ -116,7 +128,7 @@ else ifeq ($(SYSTEM),Darwin)
 	NATIVE_DIR = MacOS64
         JAVA_INC=/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers
 	CC_INCS = -I$(JAVA_INC) -I$(UMFPACK_DIR)/include -I.
-	CC_FLAGS = -m64 -g -fno-strict-aliasing -fPIC -DDARWIN -fpermissive
+	CC_FLAGS = -m64 -fno-strict-aliasing -fPIC -DDARWIN -fpermissive
 	#CC_FLAGS = -m64 -g -fno-strict-aliasing -fPIC -W -Wall -Wno-unused \
 	#	-Wno-parentheses -DDARWIN -fpermissive -faltivec
 	LDS_UMFPACK = -lm -L$(UMFPACK_DIR)/lib/Darwin -lumfpack -lamd \

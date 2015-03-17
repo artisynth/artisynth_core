@@ -21,8 +21,9 @@ import java.util.*;
 // Layman demo with puppet strings attached
 
 public class PuppetDemo extends LaymanDemo {
-   public PuppetDemo (String name) throws IOException {
-      super (name);
+
+   public void build (String[] args) throws IOException {
+      super.build (args);
 
       RigidBody plate = RigidBody.createBox ("plate", 1, 1, 0.1, 1000);
 

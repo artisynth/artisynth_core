@@ -63,13 +63,7 @@ public class RigidBodyDemo extends RootModel {
       }
    }
 
-   public RigidBodyDemo() {
-      super (null);
-   }
-
-   public RigidBodyDemo (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       MechModel msmod = new MechModel ("msmod");
       msmod.setGravity (0, 0, -4.9);

@@ -44,9 +44,23 @@ public class SpringMeshDemo extends RootModel {
    public static PropertyList myProps =
       new PropertyList (SpringMeshDemo.class, RootModel.class);
 
+   static VectorNd myZeroVec = new VectorNd(7);
+
    static {
       myProps.add ("attachment * *", "point constraint enabled", false);
       myProps.add ("collision * *", "plane constraint enabled", false);
+      myProps.add ("vector * *", "vector", myZeroVec);
+   }
+
+   VectorNd myVec = new VectorNd (new double[] {
+         11, 22, 33, 44, 55, 66, 77 });
+
+   public VectorNd getVector () {
+      return new VectorNd(myVec);
+   }
+
+   public void setVector (VectorNd vec) {
+      myVec.set (vec);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -59,7 +73,6 @@ public class SpringMeshDemo extends RootModel {
          Particle pntA = model.particles().get ("pntA");
          Particle pntB = model.particles().get ("pntB");
 
-         System.out.println ("num particles=" + model.particles().size());
          // make sure model is consistent
          if (pntA.isAttached() && !enable) {
             model.detachPoint (pntA);
@@ -99,10 +112,6 @@ public class SpringMeshDemo extends RootModel {
       }
    }
 
-   public SpringMeshDemo() {
-      super (null);
-   }
-
    public SoftPlaneCollider getCollider (MechModel model) {
       if (myCollider == null) {
          SoftPlaneCollider collider =
@@ -116,9 +125,7 @@ public class SpringMeshDemo extends RootModel {
       return myCollider;
    }
 
-   public SpringMeshDemo (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       MechModel msmod = new MechModel ("msmod");
       // PropertyInfoList list = msmod.getAllPropertyInfo();
@@ -255,6 +262,7 @@ public class SpringMeshDemo extends RootModel {
       myControlPanel.addWidget (this, "collision");
       myControlPanel.addWidget (this, "models/msmod:integrator");
       myControlPanel.addWidget (this, "models/msmod:maxStepSize");
+      //myControlPanel.addWidget (this, "vector");
       addControlPanel (myControlPanel);
    }
 

@@ -200,11 +200,15 @@ public class ControlPanel extends ModelComponentBase
 
          myFrame.setTitle (name == null ? "panel " + getNumber() : name);
          
-         JTabbedPane tabbedPane = Main.getRootModel().getControlPanelTabs();
-         if (tabbedPane != null) {
-            int tabIdx = tabbedPane.indexOfComponent (myFrame.getContentPane ());
-            if (tabIdx > -1) {
-               tabbedPane.setTitleAt (tabIdx, myFrame.getTitle ());
+         RootModel root = Main.getMain().getRootModel();
+         if (root != null) {
+            JTabbedPane tabbedPane = root.getControlPanelTabs();
+            if (tabbedPane != null) {
+               int tabIdx =
+                  tabbedPane.indexOfComponent (myFrame.getContentPane ());
+               if (tabIdx > -1) {
+                  tabbedPane.setTitleAt (tabIdx, myFrame.getTitle ());
+               }
             }
          }
       }
@@ -231,7 +235,7 @@ public class ControlPanel extends ModelComponentBase
       setName (name);
       myPanel = new AddablePropertyPanel();
       myOptionsString = options;
-      if (Main.getMainFrame() != null) {
+      if (Main.getMain().getMainFrame() != null) {
          myFrame =
             new PropertyFrame (
                name==null ? "" : name, options, myPanel);
@@ -255,7 +259,7 @@ public class ControlPanel extends ModelComponentBase
       if (myParent instanceof MutableCompositeComponent) {
          RemoveComponentsCommand rmCmd =
             new RemoveComponentsCommand ("delete controlPanel", this);
-         Main.getUndoManager().saveStateAndExecute (rmCmd);
+         Main.getMain().getUndoManager().saveStateAndExecute (rmCmd);
       }
    }
 
@@ -282,7 +286,8 @@ public class ControlPanel extends ModelComponentBase
       popup.add (createPopupItem ("set name", this));
       popup.add (createPopupItem ("save as ...", this));
       
-      JTabbedPane tabbedPane = Main.getRootModel().getControlPanelTabs();
+      JTabbedPane tabbedPane =
+         Main.getMain().getRootModel().getControlPanelTabs();
       if (tabbedPane == null || 
           tabbedPane.indexOfComponent (myFrame.getContentPane ()) < 0) {
             popup.add (createPopupItem ("merge panel", this));
@@ -799,7 +804,7 @@ public class ControlPanel extends ModelComponentBase
       }
       else if (actionCmd.equals ("save as ...")) {
          Main main = Main.getMain();
-         RootModel root = Main.getRootModel();
+         RootModel root = main.getRootModel();
          JFileChooser chooser = new JFileChooser();
          chooser.setCurrentDirectory (main.getModelDirectory());
          int retVal = chooser.showSaveDialog (myFrame);
@@ -817,10 +822,12 @@ public class ControlPanel extends ModelComponentBase
          }
       }
       else if (actionCmd.equals ("merge panel")) {
-         Main.getRootModel ().mergeControlPanel (true, this);
+         Main main = Main.getMain();
+         main.getRootModel ().mergeControlPanel (true, this);
       }
       else if (actionCmd.equals ("separate panel")) {
-         Main.getRootModel ().mergeControlPanel (false, this);         
+         Main main = Main.getMain();
+         main.getRootModel ().mergeControlPanel (false, this);         
       }
       else {
          throw new InternalErrorException ("Unknown action: " + actionCmd);

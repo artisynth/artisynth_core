@@ -28,7 +28,7 @@ public class SingleHex extends RootModel {
    FemModel3d mod;
    MechModel mechMod;
 
-   public SingleHex (String name) {
+   public void build (String[] args) {
       mod = new FemModel3d();
 
       double[] coords = new double[]

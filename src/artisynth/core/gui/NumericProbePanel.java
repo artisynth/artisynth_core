@@ -1618,7 +1618,7 @@ public class NumericProbePanel extends JPanel {
       private void setInterpolationOrder (Interpolation.Order order) {
          if (myProbe.getInterpolationOrder() != order) {
             myProbe.setInterpolationOrder (order);
-            Main.rewidgetUpdate();
+            Main.getMain().rewidgetUpdate();
          }
       }
 

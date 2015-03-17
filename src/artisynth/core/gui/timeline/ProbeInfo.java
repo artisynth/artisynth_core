@@ -7,7 +7,6 @@ import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.*;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
@@ -17,12 +16,13 @@ import javax.swing.event.*;
 
 import maspack.util.Clonable;
 import maspack.util.InternalErrorException;
-
 import artisynth.core.driver.Main;
+import artisynth.core.driver.Scheduler;
 import artisynth.core.gui.Displayable;
 import artisynth.core.gui.NumericProbeDisplayLarge;
 import artisynth.core.gui.NumericProbePanel;
 import artisynth.core.gui.editorManager.AddComponentsCommand;
+import artisynth.core.gui.editorManager.ProbeEditor;
 import artisynth.core.gui.probeEditor.InputNumericProbeEditor;
 import artisynth.core.gui.probeEditor.NumericProbeEditor;
 import artisynth.core.gui.probeEditor.OutputNumericProbeEditor;
@@ -36,6 +36,7 @@ import artisynth.core.probes.NumericProbeBase;
 import artisynth.core.probes.Probe;
 import artisynth.core.probes.WayPoint;
 import artisynth.core.probes.WayPointProbe;
+import artisynth.core.util.MatlabInterface;
 import artisynth.core.util.TimeBase;
 import artisynth.core.util.ArtisynthPath;
 
@@ -89,6 +90,14 @@ public class ProbeInfo implements Clonable, ActionListener {
    private boolean isHighlighted;
    private Rectangle myProbeShadow;
    private boolean isShadowValid = true;
+
+   private Scheduler getScheduler() {
+      return myController.myScheduler;
+   }
+
+   private Main getMain() {
+      return myController.myMain;
+   }
 
    public ProbeInfo (TimelineController setController, 
       Track setTrack, Probe setProbe) {
@@ -288,10 +297,10 @@ public class ProbeInfo implements Clonable, ActionListener {
 
       AddComponentsCommand cmd = new AddComponentsCommand (
          "duplicate probe", newProbe, (MutableCompositeComponent) oldProbe.getParent());
-      Main.getUndoManager().saveStateAndExecute (cmd);
-      SelectionManager selectionManager = Main.getMain().getSelectionManager();
-      selectionManager.removeSelected (oldProbe);
-      selectionManager.addSelected (newProbe);
+      getMain().getUndoManager().saveStateAndExecute (cmd);
+      SelectionManager selman = getMain().getSelectionManager();
+      selman.removeSelected (oldProbe);
+      selman.addSelected (newProbe);
       //myController.deselectAllProbes(); XXX need to fix?
    }
 
@@ -324,6 +333,14 @@ public class ProbeInfo implements Clonable, ActionListener {
          System.out.println ("Couldn't load probe ");
          e.printStackTrace();
       }
+   }
+
+   // load a probe from a MATLAB variable
+   public void loadFromMatlab (Probe probe) {
+      // connection should exist or this method shouldn't be called
+      MatlabInterface mi = getMain().getMatlabConnection();
+      NumericProbeBase np = (NumericProbeBase)probe;
+      ProbeEditor.loadFromMatlab (np, mi, myController);
    }
 
    private void clearProbeData() {
@@ -448,6 +465,25 @@ public class ProbeInfo implements Clonable, ActionListener {
       }
    }
 
+   private String getMatlabName (Probe probe) {
+      if (probe.getName() != null) {
+         return probe.getName();
+      }
+      else if (probe.isInput()) {
+         return "iprobe" + probe.getNumber();
+      }
+      else {
+         return "oprobe" + probe.getNumber();
+      }
+   }
+
+   private void saveToMatlab (Probe probe) {
+      // connection should exist or this method shouldn't be called
+      MatlabInterface mi = getMain().getMatlabConnection();
+      NumericProbeBase np = (NumericProbeBase)probe;
+      ProbeEditor.saveToMatlab (np, mi, myController);
+   }
+
    private void printProbe() {
       getProbe().print (
          myController.getTimescale().getTimescaleCursorTime());
@@ -463,22 +499,22 @@ public class ProbeInfo implements Clonable, ActionListener {
     * 
     */
    private void toggleProbeActivation() {
-      WayPointProbe wayProbe = Main.getRootModel().getWayPoints();
+      WayPointProbe wayProbe = getMain().getRootModel().getWayPoints();
       double earliestTime = getStartTime();
       wayProbe.invalidateAfterTime (getStartTime());
 
       if (myController.getCurrentTime() > earliestTime) {
-         if (Main.getWorkspace().rootModelHasState()) {
+         if (getMain().getWorkspace().rootModelHasState()) {
             WayPoint way = wayProbe.getNearestValidBefore (earliestTime);
             if (way != null) {
-               Main.getScheduler().setTime (way);
+               getScheduler().setTime (way);
             }
             else {
-               Main.getScheduler().setTime (0);               
+               getScheduler().setTime (0);               
             }
          }
          else {
-            Main.getScheduler().setTime (earliestTime);
+            getScheduler().setTime (earliestTime);
          }
       }
 
@@ -563,11 +599,11 @@ public class ProbeInfo implements Clonable, ActionListener {
       
       dialog.setVisible (true);
       
-      Point loc = Main.getMain().getFrame().getLocation();
-      dialog.setLocation (loc.x + Main.getMain().getFrame().getWidth(),
-                          Main.getMain().getFrame().getHeight());
+      Point loc = getMain().getFrame().getLocation();
+      dialog.setLocation (loc.x + getMain().getFrame().getWidth(),
+                          getMain().getFrame().getHeight());
       
-      Main.getTimeline().addProbeEditor (dialog);
+      myController.addProbeEditor (dialog);
    }
 
    // update the probe changes
@@ -784,6 +820,13 @@ public class ProbeInfo implements Clonable, ActionListener {
       }
    }
 
+   private void addMenuItem (JPopupMenu menu, String cmd) {
+      JMenuItem item = new JMenuItem (cmd);
+      item.addActionListener (this);
+      item.setActionCommand (cmd);
+      menu.add (item);      
+   }
+
    private void showPopupMenu (Component component, int x, int y) {
       final JPopupMenu popupMenu = new JPopupMenu ();
       JMenuItem myChangeNameItem = new JMenuItem ("Rename");
@@ -848,11 +891,19 @@ public class ProbeInfo implements Clonable, ActionListener {
       popupMenu.add (myDuplicateItem);
       popupMenu.add (mySaveItem);
       popupMenu.add (mySaveasItem);
+      if (getProbe() instanceof NumericProbeBase &&
+          getMain().hasMatlabConnection()) {
+         addMenuItem (popupMenu, "Save to MATLAB");
+      }
       popupMenu.add (mySetItem);
       popupMenu.add (myPrintItem);
       popupMenu.addSeparator();
       popupMenu.add (myLoadfromItem);
       popupMenu.add (myLoadItem);
+      if (getProbe() instanceof NumericProbeBase &&
+          getMain().hasMatlabConnection()) {
+         addMenuItem (popupMenu, "Load from MATLAB");
+      }
       
       if (NumericProbeBase.class.isAssignableFrom (getProbe().getClass())) {
          popupMenu.addSeparator();
@@ -975,7 +1026,7 @@ public class ProbeInfo implements Clonable, ActionListener {
 
    private void invalidateWayPoints() {
       // determine which waypoints have to be invalidated
-      WayPointProbe wayProbe = Main.getRootModel().getWayPoints();
+      WayPointProbe wayProbe = getMain().getRootModel().getWayPoints();
 
       double newStartTime = getStartTime();
       wayProbe.invalidateAfterTime (
@@ -1042,6 +1093,9 @@ public class ProbeInfo implements Clonable, ActionListener {
       else if (nameOfAction == "Save As") {
          saveasProbe();
       }
+      else if (nameOfAction == "Save to MATLAB") {
+         saveToMatlab(myProbe);
+      }
       else if (nameOfAction == "Set") {
          setProbe();
       }
@@ -1053,6 +1107,9 @@ public class ProbeInfo implements Clonable, ActionListener {
       }
       else if (nameOfAction == "Load") {
          loadProbe();
+      }
+      else if (nameOfAction == "Load from MATLAB") {
+         loadFromMatlab(myProbe);
       }
       else if (nameOfAction == "Clear") {
          clearProbeData();
@@ -1126,8 +1183,7 @@ public class ProbeInfo implements Clonable, ActionListener {
          if (e.getButton () == MouseEvent.BUTTON1) {
             // select the probe that was clicked on
             boolean multSelection = myController.isMultipleSelectionEnabled(e);
-            SelectionManager selectionManager =
-               Main.getMain().getSelectionManager();
+            SelectionManager selectionManager = getMain().getSelectionManager();
 
             boolean selected = isProbeSelected();
             if (!selected) {
@@ -1143,7 +1199,7 @@ public class ProbeInfo implements Clonable, ActionListener {
             }
          }
          
-         if (!Main.getScheduler().isPlaying()) {
+         if (!getScheduler().isPlaying()) {
             if (e.isPopupTrigger() && myTrack.isEnabled()) {
                showPopupMenu (e.getComponent(), e.getX(), e.getY());
             }
@@ -1168,7 +1224,7 @@ public class ProbeInfo implements Clonable, ActionListener {
       }
    
       public void mouseDragged (MouseEvent e) {
-         if (!Main.getScheduler ().isPlaying () && myTrack.isEnabled()) {
+         if (!getScheduler ().isPlaying () && myTrack.isEnabled()) {
             if (isProbeSelected()) { 
                draggingP = true;
                
@@ -1179,7 +1235,7 @@ public class ProbeInfo implements Clonable, ActionListener {
       }
       
       public void mouseReleased (MouseEvent e) {
-         if (!Main.getScheduler().isPlaying()) {
+         if (!getScheduler().isPlaying()) {
             if (e.isPopupTrigger() && myTrack.isEnabled()) {
                showPopupMenu (e.getComponent(), e.getX(), e.getY());
             }

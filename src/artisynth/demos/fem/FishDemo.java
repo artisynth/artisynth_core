@@ -64,13 +64,7 @@ public class FishDemo extends RootModel {
       ArtisynthPath.getHomeRelativePath (
          "src/artisynth/core/femmodels/meshes/", ".");
 
-   public FishDemo() {
-      super (null);
-   }
-
-   public FishDemo (String name) throws Exception {
-      this();
-      setName (name);
+   public void build (String[] args) throws IOException {
 
       myMechMod = new MechModel();
 

@@ -37,19 +37,14 @@ public class HydrostatInvDemo extends HydrostatDemo
    double s = 1;
    boolean useBundlesForInverse = true;
 
-
-   public HydrostatInvDemo() throws IOException
+   public void build(String[] args) throws IOException
    {
-      super ();
-   }
-
-   public HydrostatInvDemo(String name) throws IOException
-   {
-      this (name, Shape.Beam);
+      build (Shape.Beam);
    }
    
-   public HydrostatInvDemo (String name, Shape shape) throws IOException {
-      super(name, shape);
+   public void build (Shape shape) throws IOException {
+
+      super.build (shape);
       hydro.setMaxStepSize(0.005);
       hydro.setIntegrator(Integrator.Trapezoidal);
       

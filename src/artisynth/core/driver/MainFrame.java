@@ -42,7 +42,6 @@ import artisynth.core.workspace.RootModel;
 public class MainFrame extends JFrame {
    private static final long serialVersionUID = 1L;
    protected JMenuItem quitItem;
-   static MainFrame _instance = null;
    private MenuBarHandler myMenuBar;
    private NavigationPanel myNavPanel;
    private GLViewerPanel GLPanel;
@@ -73,16 +72,6 @@ public class MainFrame extends JFrame {
 
    /** frame help instance allocated only once */
    private FrameHelp frameHelp = null;
-
-   /**
-    * get instance of the main frame
-    * 
-    * @return main frame instance
-    */
-
-   public static MainFrame getInstance() {
-      return _instance;
-   }
 
    /**
     * set the error message
@@ -171,7 +160,7 @@ public class MainFrame extends JFrame {
       baseName = name;
       GLPanel = new GLViewerPanel (width, height);
 
-      myNavPanel = NavigationPanel.getInstance();
+      myNavPanel = new NavigationPanel();
       myNavPanel.setLayout (new FlowLayout (FlowLayout.LEFT));
 
       // content panes must be opaque
@@ -225,7 +214,6 @@ public class MainFrame extends JFrame {
       getContentPane().add (splitPane);
 
       myMenuBar.createMenus();
-      _instance = this;
 
       // create one instance of help frame
       frameHelp = new FrameHelp();

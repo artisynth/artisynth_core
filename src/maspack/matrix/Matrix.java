@@ -795,6 +795,24 @@ public interface Matrix extends LinearTransformNd {
    public void set (double[] values, int[] indices, int numValues);
 
    /**
+    * Gets the compressed row storage (CRS) indices for this matrix.  This is a
+    * convenience wrapper for {@link #getCRSIndices(int[],int[],Partition)
+    * getCRSIndices(int[],int[],Partition)} with the Partition set to
+    * <code>Full</code>. For a detailed detailed decsription of the CRS format,
+    * see {@link #setCRSValues setCRSValues()}.
+    * 
+    * @param colIdxs returns the column indices of each non-zero element,
+    * in row-major order. This array must have a length equal
+    * at least to the number of non-zero elements.
+    * @param rowOffs returns the row start offsets into
+    * <code>colIdxs</code>, followed by nvals+1, where nvals is the number of
+    * non-zero elements. This array must have a length equal at least to
+    * nrows+1, where nrows is the number of rows in this matrix.
+    * @return number of non-zero elements
+    */
+   public int getCRSIndices (int[] colIdxs, int[] rowOffs);
+
+   /**
     * Gets the compressed row storage (CRS) indices for this matrix. Indices
     * are 1-based and the matrix is traversed in row-major order. For a
     * detailed decsription of the CRS format, see {@link #setCRSValues
@@ -843,6 +861,20 @@ public interface Matrix extends LinearTransformNd {
     */
    public int getCRSIndices (
       int[] colIdxs, int[] rowOffs, Partition part, int numRows, int numCols);
+
+   /**
+    * Gets the compressed row storage (CRS) values for this matrix, in
+    * row-major order. This is a convenience wrapper for {@link
+    * #getCRSValue(double[],Partition) getCRSValues(double[],Partition)} with
+    * the Partition set to <code>Full</code>. For a detailed decsription of the
+    * CRS format, see {@link #setCRSValues setCRSValues()}.
+    * 
+    * @param vals
+    * returns the value of each non-zero element. This array must have a length
+    * equal at least to the number of non-zero elements.
+    * @return number of non-zero elements
+    */
+   public int getCRSValues (double[] vals);
 
    /**
     * Gets the compressed row storage (CRS) values for this matrix, in
@@ -947,6 +979,24 @@ public interface Matrix extends LinearTransformNd {
       Partition part);
 
    /**
+    * Gets the compressed column storage (CCS) indices for this matrix. This is
+    * a convenience wrapper for {@link #getCCSIndices(int[],int[],Partition)
+    * getCCSIndices(int[],int[],Partition)} with the Partition set to
+    * <code>Full</code>.  For a detailed decsription of the CCS format, see
+    * {@link #setCCSValues setCCSValues()}.
+    * 
+    * @param rowIdxs returns the row indices of each non-zero element,
+    * in column-major order. This array must have a length equal
+    * at least to the number of non-zero elements.
+    * @param colOffs returns the column start offsets into
+    * <code>rowIdxs</code>, followed by nvals+1, where nvals is the number of
+    * non-zero elements. This array must have a length equal at least to
+    * ncols+1, where ncols is the number of columns in this matrix.
+    * @return number of non-zero elements
+    */
+   public int getCCSIndices (int[] rowIdxs, int[] colOffs);
+
+   /**
     * Gets the compressed column storage (CCS) indices for this matrix. Indices
     * are 1-based and the matrix is traversed in column-major order. For a
     * detailed decsription of the CCS format, see {@link #setCCSValues
@@ -995,6 +1045,20 @@ public interface Matrix extends LinearTransformNd {
     */
    public int getCCSIndices (
       int[] rowIdxs, int[] colOffs, Partition part, int numRows, int numCols);
+
+   /**
+    * Gets the compressed column storage (CCS) values for this matrix, in
+    * column-major order. This is a convenience wrapper for {@link
+    * #getCCSValue(double[],Partition) getCCSValues(double[],Partition)} with
+    * the Partition set to <code>Full</code>. For a detailed decsription of the
+    * CCS format, see {@link #setCCSValues setCCSValues()}.
+    * 
+    * @param vals
+    * returns the value of each non-zero element. This array must have a length
+    * equal at least to the number of non-zero elements.
+    * @return number of non-zero elements
+    */
+   public int getCCSValues (double[] vals);
 
    /**
     * Gets the compressed column storage (CCS) values for this matrix, in

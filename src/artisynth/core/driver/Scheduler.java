@@ -29,8 +29,11 @@ public class Scheduler {
 
    protected LinkedList<SchedulerListener> myListeners;
 
-   public Scheduler() {
+   private Main myMain;
+   
+   public Scheduler(Main main) {
       myListeners = new LinkedList<SchedulerListener>();
+      myMain = main;
    }
 
    public enum Action {
@@ -80,15 +83,15 @@ public class Scheduler {
    }
 
    private RootModel getRootModel() {
-      return Main.getRootModel();
+      return myMain.getRootModel();
    }
 
    private double getStepSize() {
-      return Main.getMaxStep();
+      return myMain.getMaxStep();
    }
    
    private Workspace getWorkspace() {
-      return Main.getWorkspace();
+      return myMain.getWorkspace();
    }
 
    private WayPointProbe getWayPoints() {
@@ -111,6 +114,7 @@ public class Scheduler {
       double endTime;
       boolean myStopReq;
       boolean myAlive;
+      boolean myKilled = false;
       double startTime; // simulation time
       double timeScale; // simulationTime = timeScale * real_time
       long realStartMsec; // real start time, in msec
@@ -250,10 +254,10 @@ public class Scheduler {
        * main run method of a thread
        */
       public void run() {
-         while (true) {
+         while (!myKilled) {
             play();
             synchronized (this) {
-               while (!myAlive) {
+               while (!myAlive && !myKilled) {
                   try {
                      wait();
                   }
@@ -266,6 +270,12 @@ public class Scheduler {
 
       public synchronized void start (double endTime) {
          doinitialize (endTime);
+         notify ();
+      }
+
+      public synchronized void dispose() {
+         myStopReq = true;
+         myKilled = true;
          notify ();
       }
    }
@@ -557,5 +567,12 @@ public class Scheduler {
       }
       //System.out.println ("next "+TimeBase.ticksToSeconds(min));
       return TimeBase.round (min);
+   }
+
+   public void dispose() {
+      if (myPlayer != null) {
+         myPlayer.dispose();
+         myPlayer = null;
+      }
    }
 }

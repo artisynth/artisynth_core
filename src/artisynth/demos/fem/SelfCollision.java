@@ -11,9 +11,6 @@ import maspack.matrix.*;
 
 public class SelfCollision extends FemBeam3d {
 
-   public SelfCollision() {
-   }
-
    private static double EPS = 1e-8;
 
    private void makeNodesCircularInYZ (double x, double r) {
@@ -31,8 +28,8 @@ public class SelfCollision extends FemBeam3d {
       }
    }
 
-   public SelfCollision (String name) {
-      super (name, "hex", 1.0, 0.1, 10, 2, NO_FIXED_NODES);
+   public void build (String[] args) {
+      build ("hex", 1.0, 0.1, 10, 2, NO_FIXED_NODES);
 
       try {
          myFemMod.addMesh (

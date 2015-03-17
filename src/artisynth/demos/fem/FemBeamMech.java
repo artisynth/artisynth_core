@@ -63,19 +63,14 @@ public class FemBeamMech extends RootModel {
 
    private String modPath;
 
-   public FemBeamMech() {
-      super (null);
-      femPath = "models/mech/models/fem/";
-      modPath = "models/mech/";
-   }
-
    public static String fempath =
       ArtisynthPath.getHomeRelativePath (
          "src/artisynth/core/femmodels/meshes/", ".");
 
-   public FemBeamMech (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
+
+      femPath = "models/mech/models/fem/";
+      modPath = "models/mech/";
 
       int nn = 2;
 

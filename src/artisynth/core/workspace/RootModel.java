@@ -65,7 +65,7 @@ import artisynth.core.modelbase.RenderableModelBase;
 import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.modelbase.StepAdjustment;
 import artisynth.core.modelbase.StructureChangeEvent;
-import artisynth.core.modelbase.Tracable;
+import artisynth.core.modelbase.Traceable;
 import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.probes.Probe;
 import artisynth.core.probes.TracingProbe;
@@ -94,7 +94,7 @@ public class RootModel extends RenderableModelBase
    protected RenderableComponentList<Probe> myInputProbes;
    protected RenderableComponentList<Probe> myOutputProbes;
    protected RenderableComponentList<RenderableComponent> myRenderables;
-   protected LinkedHashSet<Tracable> myTraceSet;
+   protected LinkedHashSet<Traceable> myTraceSet;
    protected WayPointProbe myWayPoints = null;
    protected ComponentList<Controller> myControllers;
    protected ComponentList<Monitor> myMonitors;
@@ -135,6 +135,7 @@ public class RootModel extends RenderableModelBase
       // asked to create a new state, so as to provide sizing hints
       HashMap<HasState,ComponentState> lastStateMap;
       double h; // current step size
+      double maxStepSize; // current effective mass step size
       double lasts; // last return value from advance
       int successCnt;
       int failedIncreaseCnt;
@@ -156,7 +157,8 @@ public class RootModel extends RenderableModelBase
          monitors.clear();
          outputProbes.clear();
          lastStateMap.clear();
-         h = getEffectiveMaxStepSize();
+         maxStepSize = getEffectiveMaxStepSize();
+         h = maxStepSize;
          lasts = 1;
          successCnt = 0;
          failedIncreaseCnt = 0;
@@ -338,7 +340,11 @@ public class RootModel extends RenderableModelBase
 
       double getNextAdvanceTime (double t0, double t1) {
          double hmax = getEffectiveMaxStepSize();
-         if (h > hmax) {
+         if (hmax != maxStepSize) {
+            maxStepSize = hmax;
+            h = hmax;
+         }
+         else if (h > hmax) {
             h = hmax;
          }
          double te = nextProbeEvent (outputProbes, t0);
@@ -443,6 +449,7 @@ public class RootModel extends RenderableModelBase
          data.zput (successCnt);
          data.zput (failedIncreaseCnt);
          data.dput (h);
+         data.dput (maxStepSize); // not sure we need to save this ...
          data.dput (lasts);
       }
       
@@ -450,6 +457,7 @@ public class RootModel extends RenderableModelBase
          successCnt = data.zget();
          failedIncreaseCnt = data.zget();
          h = data.dget();
+         maxStepSize = data.dget();
          lasts = data.dget();
       }
 
@@ -579,7 +587,7 @@ public class RootModel extends RenderableModelBase
       
       myWayPoints = new WayPointProbe (this);
       myWayPoints.setName ("WayPoints");
-      myTraceSet = new LinkedHashSet<Tracable>();
+      myTraceSet = new LinkedHashSet<Traceable>();
 
       myModelInfo = new LinkedHashMap<Model,ModelInfo>();
       
@@ -667,7 +675,14 @@ public class RootModel extends RenderableModelBase
    }
    
    public GLViewer getMainViewer() {
-      return myMainViewer;
+      if (myMainViewer == null) {
+         // XXX hack in case this is called inside the RootModel constructor
+         // instead of inside the build method
+         return Main.getMain().getViewer();
+      }
+      else {
+         return myMainViewer;
+      }
    }
 
    public void setMainViewer (GLViewer v) {
@@ -675,18 +690,20 @@ public class RootModel extends RenderableModelBase
    }
 
    public JFrame getMainFrame() {
-      return Main.getMainFrame();
+      return Main.getMain().getMainFrame();
    }
 
    public void setViewerCenter (Point3d c) {
-      if (myMainViewer != null) {
-         myMainViewer.setCenter (c);
+      GLViewer viewer = getMainViewer();
+      if (viewer != null) {
+         viewer.setCenter (c);
       }
    }
 
    public Point3d getViewerCenter() {
-      if (myMainViewer != null) {
-         return myMainViewer.getCenter();
+      GLViewer viewer = getMainViewer();
+      if (viewer != null) {
+         return viewer.getCenter();
       }
       else {
          return new Point3d (DEFAULT_VIEWER_CENTER);
@@ -694,14 +711,16 @@ public class RootModel extends RenderableModelBase
    }
 
    public void setViewerEye (Point3d e) {
-      if (myMainViewer != null) {
-         myMainViewer.setEye (e);
+      GLViewer viewer = getMainViewer();
+      if (viewer != null) {
+         viewer.setEye (e);
       }
    }
 
    public Point3d getViewerEye() {
-      if (myMainViewer != null) {
-         return myMainViewer.getEye();
+      GLViewer viewer = getMainViewer();
+      if (viewer != null) {
+         return viewer.getEye();
       }
       else {
          return new Point3d (DEFAULT_VIEWER_EYE);
@@ -859,12 +878,12 @@ public class RootModel extends RenderableModelBase
 
    /**
     * Convenience routine to add a tracing probe to this RootModel. The probe is
-    * created for a specified trace of a Tracable component. Start and stop
+    * created for a specified trace of a Traceable component. Start and stop
     * times are given in seconds. The probe's update interval is set to the
     * maximum step size of this RootModel, and the render interval is set to 50
     * msec.
     * 
-    * @param tracable
+    * @param traceable
     * component to be traced
     * @param traceName
     * name of the trace
@@ -875,8 +894,8 @@ public class RootModel extends RenderableModelBase
     * @return created tracing probe
     */
    public TracingProbe addTracingProbe (
-      Tracable tracable, String traceName, double startTime, double stopTime) {
-      TracingProbe probe = tracable.getTracingProbe (traceName);
+      Traceable traceable, String traceName, double startTime, double stopTime) {
+      TracingProbe probe = TracingProbe.create (traceable, traceName);
       probe.setStartTime (startTime);
       probe.setStopTime (stopTime);
       probe.setUpdateInterval (getMaxStepSize());
@@ -933,12 +952,16 @@ public class RootModel extends RenderableModelBase
       return myWayPoints;
    }
 
+   private double getTime() {
+      return Main.getMain().getTime();
+   }
+
    // WS
    public void addWayPoint (WayPoint way) {
       if (way.getTime() != 0) {
          myWayPoints.add (way);
          // set the state if we can. Don't bother if myRootInfo not set up yet
-         if (way.getTime() == Main.getTime() && myRootInfo != null) {
+         if (way.getTime() == getTime() && myRootInfo != null) {
             way.setState (this);
          }
          componentChanged (new StructureChangeEvent(myWayPoints));
@@ -989,7 +1012,7 @@ public class RootModel extends RenderableModelBase
       componentChanged (new StructureChangeEvent(myWayPoints));
    }
 
-   public TracingProbe getTracingProbe (Tracable tr, String propName) {
+   public TracingProbe getTracingProbe (Traceable tr, String propName) {
       for (Probe p : myOutputProbes) {
          if (p instanceof TracingProbe) {
             TracingProbe tp = (TracingProbe)p;
@@ -1001,18 +1024,18 @@ public class RootModel extends RenderableModelBase
       return null;
    }
 
-   public void enableTracing (Tracable tr) {
+   public void enableTracing (Traceable tr) {
       if (getTracingProbe (tr, "position") == null) {
          addTracingProbe (tr, "position", 0, 10);
          rerender();
       }
    }
 
-   public boolean isTracing (Tracable tr) {
+   public boolean isTracing (Traceable tr) {
       return getTracingProbe (tr, "position") != null;
    }
 
-   public boolean disableTracing (Tracable tr) {
+   public boolean disableTracing (Traceable tr) {
       TracingProbe tp = getTracingProbe (tr, "position");
       if (tp != null) {
          removeOutputProbe (tp);
@@ -1024,7 +1047,7 @@ public class RootModel extends RenderableModelBase
       }
    }
 
-   public void clearTracing (Tracable tr) {
+   public void clearTracing (Traceable tr) {
       TracingProbe tp = getTracingProbe (tr, "position");
       if (tp != null) {
          tp.getNumericList().clear();
@@ -1040,7 +1063,7 @@ public class RootModel extends RenderableModelBase
          if (p instanceof TracingProbe) {
             TracingProbe tp = (TracingProbe)p;
             if (tp.isTracing (null, "position") &&
-                tp.getHost (0) instanceof Tracable) {
+                tp.getHost (0) instanceof Traceable) {
                tprobes.add (tp);
             }
          }
@@ -1066,16 +1089,16 @@ public class RootModel extends RenderableModelBase
       rerender();
    }
 
-   public Collection<Tracable> getTraceSet() {
+   public Collection<Traceable> getTraceSet() {
       Collection<TracingProbe> tprobes = getTracingProbes();
-      ArrayList<Tracable> traceSet = new ArrayList<Tracable>();
+      ArrayList<Traceable> traceSet = new ArrayList<Traceable>();
       for (TracingProbe tp : tprobes) {
-         traceSet.add ((Tracable)tp.getHost (0));
+         traceSet.add ((Traceable)tp.getHost (0));
       }
       return traceSet;
    }
 
-   public int getNumTracables() {
+   public int getNumTraceables() {
       return myTraceSet.size();
    }
 
@@ -1128,7 +1151,7 @@ public class RootModel extends RenderableModelBase
    }
 
    public void rerender() {
-      Main.getWorkspace().rerender();
+      Main.getMain().rerender();
    }
 
    /**
@@ -1606,8 +1629,18 @@ public class RootModel extends RenderableModelBase
       myWayPoints.write (pw, fmt, this);
    }
 
+   public void scanProbes (ReaderTokenizer rtok) throws IOException {
+      Workspace.scanProbes (rtok, this);
+   }
+
+   // WS
+   public void writeProbes (PrintWriter pw, NumberFormat fmt)
+      throws IOException {
+      Workspace.writeProbes (pw, fmt, this);
+   }
+
    /**
-    * {@inheritDoc}
+    * {@inheritDoc}q
     */
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
       super.scan (rtok, ref);
@@ -1741,12 +1774,12 @@ public class RootModel extends RenderableModelBase
          else {
             String check = myCheckReader.readLine();
             if (check == null) {
-               System.out.println ("CHECK FINISHED, time "+Main.getTime());
+               System.out.println ("CHECK FINISHED, time "+getTime());
                myCheckEnable = false;
                return;
             }
             else if (!check.equals (str)) {
-               System.out.println ("CHECK FAILED, time "+Main.getTime());
+               System.out.println ("CHECK FAILED, time "+getTime());
                System.out.println ("original:");
                System.out.println (check);
                System.out.println ("current:");

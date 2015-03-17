@@ -51,13 +51,7 @@ public class FemMuscleDemo extends RootModel {
    private boolean autoComputeMidDirections = false;
    private boolean addMidMuscle = false;
 
-   public FemMuscleDemo () {
-      super(null);
-   }
-
-   public FemMuscleDemo (String name) throws IOException {
-      this();
-      setName(name);
+   public void build (String[] args) throws IOException {
       initializeModel();
    }
 
@@ -359,7 +353,7 @@ public class FemMuscleDemo extends RootModel {
                "", muscles.get(i), "renderProps.visible");
          checkBox.addValueChangeListener(new ValueChangeListener() {
             public void valueChange(ValueChangeEvent e) {
-               Main.getWorkspace().rerender();
+               rerender();
             }
          });
          slider.add(checkBox);
@@ -375,7 +369,7 @@ public class FemMuscleDemo extends RootModel {
                "", muscles.get(i).getFibres(), "renderProps.visible");
          checkBox.addValueChangeListener(new ValueChangeListener() {
             public void valueChange(ValueChangeEvent e) {
-               Main.getWorkspace().rerender();
+               rerender();
             }
          });
          selector.add(checkBox);

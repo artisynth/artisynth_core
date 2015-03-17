@@ -43,10 +43,6 @@ public class AttachedBeamDemo extends RootModel {
    private double myStiffnessDamping = 0.002;
    private boolean myIncompressible = false;
 
-   public AttachedBeamDemo() {
-      super (null);
-   }
-
    Color PURPLE = new Color (153, 0, 204);
 
    private double EPS = 1e-9;
@@ -112,9 +108,7 @@ public class AttachedBeamDemo extends RootModel {
       return nodes;
    }
 
-   public AttachedBeamDemo (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       FemModel3d beam0 = FemFactory.createHexGrid (
          createFem ("beam0"), 1, 0.5, 0.5, 4, 4, 4);

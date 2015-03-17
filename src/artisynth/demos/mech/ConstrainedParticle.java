@@ -23,13 +23,7 @@ import javax.swing.JFrame;
 
 public class ConstrainedParticle extends RootModel {
 
-   public ConstrainedParticle() {
-      super (null);
-   }
-
-   public ConstrainedParticle (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       MechModel mech = new MechModel ("mech");
       mech.setGravity (0, 0, -9.8);

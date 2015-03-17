@@ -128,12 +128,6 @@ public class Fem3dBlock extends RootModel {
 
    private String modPath;
 
-   public Fem3dBlock() {
-      super (null);
-      femPath = "models/mech/models/fem/";
-      modPath = "models/mech/";
-   }
-
    LinkedList<FemNode3d> getLeftNodes (FemModel3d femMod) {
       LinkedList<FemNode3d> nodes = new LinkedList<FemNode3d>();
       for (FemNode3d n : femMod.getNodes()) {
@@ -154,13 +148,13 @@ public class Fem3dBlock extends RootModel {
       return nodes;
    }
 
-   public Fem3dBlock (String name) {
-      this (name, "tet", 3, 1, 0);
+   public void build (String[] args) {
+      femPath = "models/mech/models/fem/";
+      modPath = "models/mech/";
+      build ("tet", 3, 1, 0);
    }
 
-   public Fem3dBlock (String name, String type, int nz, int nxy, int options) {
-      this();
-      setName (name);
+   public void build (String type, int nz, int nxy, int options) {
 
       FemModel3d femMod = new FemModel3d ("fem");
       femMod.setDensity (myDensity);

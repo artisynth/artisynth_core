@@ -93,10 +93,10 @@ public class GLRenderableEditor extends EditorBase {
                propDialog, popupBounds, 0.5, 0.5, 0, 0.5);
          }
          else {
-            propDialog.locateRight (Main.getMain().getFrame());
+            propDialog.locateRight (myMain.getFrame());
          }
-         //propDialog.setSynchronizeObject (Main.getRootModel());
-         Main.getMain().registerWindow (propDialog);
+         //propDialog.setSynchronizeObject (myMain.getRootModel());
+         myMain.registerWindow (propDialog);
          propDialog.setTitle (
             "Properties for selected GLRenderables");
          propDialog.setVisible (true);

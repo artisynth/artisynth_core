@@ -49,13 +49,7 @@ public class PuddleDemo extends RootModel {
 
    static double myDensity = 1000;
 
-   public PuddleDemo() {
-      super (null);
-   }
-
-   public PuddleDemo (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       int nn = 2;
       myFemMod =

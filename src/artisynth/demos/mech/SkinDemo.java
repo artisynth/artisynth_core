@@ -65,14 +65,7 @@ public class SkinDemo extends RootModel {
       RenderProps.setAlpha (myLower, alpha);
    }
     
-   public SkinDemo() {
-      super(null);
-   }
-
-   public SkinDemo(String name) {
-
-      this();
-      setName(name);
+   public void build (String[] args) {
 
       model = new MechModel("Arm");
       addModel(model);

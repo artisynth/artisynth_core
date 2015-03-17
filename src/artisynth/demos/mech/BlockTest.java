@@ -27,24 +27,7 @@ public class BlockTest extends RootModel {
    RigidBody myBase;
    private static boolean seeContacts = true;
 
-   public BlockTest() {
-      super (null);
-   }
-
-   // private class MyMonitor extends MonitorBase {
-   //    public void apply (long t0, long t1) {
-   //       Twist bodyVel = new Twist();
-   //       Wrench bodyForce = new Wrench();
-   //       myBlock.getBodyVelocity (bodyVel);
-   //       myBlock.getBodyForce (bodyForce);
-   //       // System.out.println ("vel=" + bodyVel.toString ("%8.3f"));
-   //       // System.out.println ("for=" + bodyForce.toString ("%8.3f"));
-   //    }
-   // }
-
-   public BlockTest (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       MechModel msmod = new MechModel ("msmod");
       msmod.setGravity (0, 0, -1);

@@ -1,6 +1,7 @@
 package artisynth.demos.fem;
 
 import java.awt.Color;
+import java.io.IOException;
 
 import javax.swing.JFrame;
 
@@ -41,17 +42,8 @@ public class FemMuscleArm extends MuscleArm
      {
        return myProps;
      }
-    
-    public FemMuscleArm()
-    {
-        super();
-    }
 
-    public FemMuscleArm(String name)
-        throws Exception
-    {
-        this();
-        setName(name);
+   public void build (String[] args) throws IOException {
         
         model = new MechModel("Arm");
         addModel(model);
@@ -77,8 +69,8 @@ public class FemMuscleArm extends MuscleArm
         addProbes();
     }
     
-    public void addFemMuscle(Point3d upper, Point3d lower)
-        throws Exception
+   public void addFemMuscle(Point3d upper, Point3d lower)   
+        throws IOException 
     {
         upperArm = model.rigidBodies().get("upper");
         RigidBody lowerArm = model.rigidBodies().get("lower");

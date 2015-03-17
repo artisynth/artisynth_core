@@ -6,17 +6,14 @@
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */package artisynth.core.gui.editorManager;
 
-import java.awt.event.*;
-import java.util.*;
+import java.awt.event.ActionEvent;
+import java.util.HashMap;
 
-import artisynth.core.driver.*;
-import artisynth.core.gui.*;
-import artisynth.core.gui.widgets.*;
-import artisynth.core.util.TimeBase;
-import artisynth.core.workspace.RootModel;
-import artisynth.core.modelbase.*;
-import artisynth.core.probes.*;
-import maspack.util.*;
+import maspack.properties.EditingProperty;
+import maspack.properties.HasProperties;
+import maspack.properties.HostList;
+import maspack.properties.PropTreeCell;
+import maspack.util.InternalErrorException;
 import maspack.widgets.DoubleField;
 import maspack.widgets.OptionPanel;
 import maspack.widgets.PropertyDialog;
@@ -25,18 +22,23 @@ import maspack.widgets.StringField;
 import maspack.widgets.StringSelector;
 import maspack.widgets.ValueChangeEvent;
 import maspack.widgets.ValueChangeListener;
-import maspack.properties.*;
+import artisynth.core.driver.Main;
+import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.Traceable;
+import artisynth.core.probes.Probe;
+import artisynth.core.probes.TracingProbe;
+import artisynth.core.workspace.RootModel;
 
 public class TracingProbePanel extends PropertyDialog implements
 ValueChangeListener {
    Double foo;
-   Tracable myTracable;
-   String myTracableName;
+   Traceable myTraceable;
+   String myTraceableName;
    TracingProbe myPrototype;
    PropTreeCell myPropTree;
    String[] myExcludedProps =
       { "attachedFile", "name", "format", "interpolationOrder", "showTime",
-       "showHeader", "renderProps" };
+        "showHeader", "renderProps", "updateInterval" };
    int myNumFixedWidgets = 0;
 
    StringSelector myTraceSelector;
@@ -44,36 +46,39 @@ ValueChangeListener {
    DoubleField myDurationField;
    DoubleField myStartTimeField;
    DoubleField myUpdateIntervalField;
+   Main myMain;
 
    private static double myDefaultDuration = 5.0;
 
-   static HashMap<Class,TracingProbe> myPrototypeMap =
-      new HashMap<Class,TracingProbe>();
+   static HashMap<Class<?>,TracingProbe> myPrototypeMap =
+      new HashMap<Class<?>,TracingProbe>();
 
    protected void setProperties (HasProperties dst, HasProperties src) {
       myPropTree.setTreeValuesInHost (dst, src);
    }
 
-   protected TracingProbe getPrototypeProbe (String tracableName) {
-      TracingProbe tmpProbe = myTracable.getTracingProbe (tracableName);
-      Class type = tmpProbe.getClass();
+   protected TracingProbe getPrototypeProbe (String traceableName) {
+      TracingProbe tmpProbe = 
+         TracingProbe.create (myTraceable, traceableName);
+      Class<?> type = tmpProbe.getClass();
       TracingProbe comp = myPrototypeMap.get (type);
       if (comp == null) { // look for prototype as the last instance in the
                           // container
-         RootModel root = Main.getRootModel();
+         RootModel root = myMain.getRootModel();
          for (Probe probe : root.getOutputProbes()) {
             if (type.isAssignableFrom (probe.getClass())) {
                comp = (TracingProbe)probe;
             }
          }
          if (comp == null || !(comp instanceof CopyableComponent)) {
-            try {
-               comp = (TracingProbe)type.newInstance();
-            }
-            catch (Exception e) {
-               throw new InternalErrorException (
-                  "cannot create no-args instance of " + type);
-            }
+            comp = tmpProbe;
+//            try {
+//               comp = (TracingProbe)type.newInstance();
+//            }
+//            catch (Exception e) {
+//               throw new InternalErrorException (
+//                  "cannot create no-args instance of " + type);
+//            }
             initializePrototype (comp);
          }
          else {
@@ -86,18 +91,18 @@ ValueChangeListener {
 
    private void initializePrototype (TracingProbe probe) {
       probe.getProperty ("updateInterval").set (
-         Main.getRootModel().getMaxStepSize());
+         myMain.getRootModel().getMaxStepSize());
    }
 
-   protected void setTracingProbe (String tracableName) {
-      if (tracableName.equals (myTracableName)) {
+   protected void setTracingProbe (String traceableName) {
+      if (traceableName.equals (myTraceableName)) {
          return;
       }
-      myTracableName = tracableName;
+      myTraceableName = traceableName;
       // if (myPrototype != null)
       // { setProperties (myPrototype, myPrototype);
       // }
-      myPrototype = getPrototypeProbe (tracableName);
+      myPrototype = getPrototypeProbe (traceableName);
       if (myPrototype != null) {
          HostList hostList = new HostList (new HasProperties[] { myPrototype });
          myPropTree = hostList.commonProperties (null, false);
@@ -116,7 +121,7 @@ ValueChangeListener {
          // remove non-fixed widgets
          int deleteCnt = myPanel.getComponentCount() - myNumFixedWidgets;
          for (int i = 0; i < deleteCnt; i++) {
-            myPanel.remove (myNumFixedWidgets);
+            myPanel.removeWidget (myNumFixedWidgets);
          }
          // add the new widgets
          myPanel.addWidgets (EditingProperty.createProperties (
@@ -130,21 +135,22 @@ ValueChangeListener {
    }
 
    /**
-    * Called when tracable is changed.
+    * Called when traceable is changed.
     */
    public void valueChange (ValueChangeEvent e) {
       setTracingProbe ((String)myTraceSelector.getValue());
    }
 
-   public TracingProbePanel (Tracable tcomp, String[] tracables) {
+   public TracingProbePanel (Traceable tcomp, String[] traceables) {
       super ("Select tracing", new PropertyPanel(), "OK Cancel");
-      myTracable = tcomp;
+      myTraceable = tcomp;
 
+      myMain = Main.getMain();
       String defaultName = null;
-      double defaultStartTime = Main.getTime();
+      double defaultStartTime = myMain.getTime();
 
       myTraceSelector =
-         new StringSelector ("tracable", tracables[0], tracables);
+         new StringSelector ("traceable", traceables[0], traceables);
       myTraceSelector.addValueChangeListener (this);
       addWidget (myTraceSelector);
 
@@ -161,13 +167,13 @@ ValueChangeListener {
 
       myNumFixedWidgets = myPanel.getComponentCount();
 
-      setTracingProbe (tracables[0]);
+      setTracingProbe (traceables[0]);
       setModal (true);
    }
 
-   public TracingProbe createProbe (Tracable tcomp) {
-      TracingProbe probe =
-         tcomp.getTracingProbe ((String)myTraceSelector.getValue());
+   public TracingProbe createProbe (Traceable tcomp) {
+      String traceableName = (String)myTraceSelector.getValue();
+      TracingProbe probe = TracingProbe.create (tcomp, traceableName);
       if (getProbeName() != null) {
          probe.setName (getProbeName());
       }
@@ -178,7 +184,7 @@ ValueChangeListener {
       return probe;
    }
 
-   public String getTracable() {
+   public String getTraceable() {
       return (String)myTraceSelector.getValue();
    }
 

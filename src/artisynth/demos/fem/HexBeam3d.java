@@ -12,9 +12,6 @@ import java.util.*;
 
 public class HexBeam3d extends FemBeam3d {
 
-   public HexBeam3d() {
-   }
-
    private class Vibrator extends MonitorBase {
 
       List<FemNode3d> myNodes;
@@ -43,10 +40,10 @@ public class HexBeam3d extends FemBeam3d {
       }
    }
 
-   public HexBeam3d (String name) {
+   public void build (String[] args) {
 
       // NORMAL:
-      super (name, "hex", 1.0, 0.2, 4, 2, /*options=*/0);
+      build ("hex", 1.0, 0.2, 4, 2, /*options=*/0);
       //super (name, "hex", 1.0, 0.2, 2, 1, /*options=*/0);
       //super (name, "hex", 1.0, 0.2, 10, 5, 0);
       myFemMod.setSurfaceRendering (FemModel3d.SurfaceRender.None);
@@ -101,9 +98,9 @@ public class HexBeam3d extends FemBeam3d {
       // System.out.println ("DGT=\n" + DGT.toString ("%11.8f"));
    }
 
-   public HexBeam3d (String name, String string, double d, double e, int i,
+   public void build (String string, double d, double e, int i,
       int j, int k) {
-      super(name,string,d,e,i,j,k);
+      super.build(string,d,e,i,j,k);
       myFemMod.setMaterial (
          new MooneyRivlinMaterial (50000.0, 0, 0, 0, 0, 5000000.0));
       myFemMod.setIncompressible (FemModel.IncompMethod.AUTO);

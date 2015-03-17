@@ -9,8 +9,7 @@ package artisynth.core.modelbase;
 import maspack.matrix.*;
 
 /**
- * Base class for storing information about changes within a component
- * hierarchy.
+ * Reports changes in the structure of the component hierarchy.
  */
 public class StructureChangeEvent extends ComponentChangeEvent {
  

@@ -35,13 +35,7 @@ public class MechModelCollide extends RootModel {
    boolean useSphericalJoint = false;
    boolean transparentLinks = true;
 
-   public MechModelCollide() {
-      super (null);
-   }
-
-   public MechModelCollide (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       MechModel mechMod = new MechModel ("mechMod");
       // mechMod.setProfiling (true);

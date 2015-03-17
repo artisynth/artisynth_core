@@ -231,7 +231,7 @@ public class MechModelEditor extends EditorBase {
             dialog.setVisible(true);
             if (dialog.getReturnValue() == OptionPanel.OK_OPTION) {
                Command cmd = dialog.createCommand();
-               Main.getUndoManager().saveStateAndExecute (cmd);               
+               myMain.getUndoManager().saveStateAndExecute (cmd);               
             }
          }
          else if (actionCommand == "Remove collision overrides") {
@@ -241,7 +241,7 @@ public class MechModelEditor extends EditorBase {
             comps.addAll (colmanager.collisionComponents());
             Command cmd = RemoveAddCommand.createRemoveCommand (
                "remove collision overrides", comps);
-            Main.getUndoManager().saveStateAndExecute (cmd);               
+            myMain.getUndoManager().saveStateAndExecute (cmd);               
          }
       }
       else if (containsSingleSelection (selection, RigidBody.class)) {
@@ -318,7 +318,7 @@ public class MechModelEditor extends EditorBase {
                MechModel mechMod = getAttachmentModel (attached.get(0));
                DetachParticlesCommand cmd = new DetachParticlesCommand (
                   "Detach particles", attached, mechMod);
-               Main.getUndoManager().saveStateAndExecute (cmd);
+               myMain.getUndoManager().saveStateAndExecute (cmd);
             }
          }
       }
@@ -384,7 +384,7 @@ public class MechModelEditor extends EditorBase {
       dialog.setVisible(true);
       if (dialog.getReturnValue() == OptionPanel.OK_OPTION) {
          Command cmd = dialog.createCommand();
-         Main.getUndoManager().saveStateAndExecute (cmd);               
+         myMain.getUndoManager().saveStateAndExecute (cmd);               
       }
    }
 

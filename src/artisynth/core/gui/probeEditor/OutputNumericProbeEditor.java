@@ -234,12 +234,12 @@ ValueChangeListener {
          AddComponentsCommand cmd =
             new AddComponentsCommand (
                "add output probe", probeToSet,
-               Main.getRootModel().getOutputProbes());
-         Main.getUndoManager().saveStateAndExecute (cmd);
+               myMain.getRootModel().getOutputProbes());
+         myMain.getUndoManager().saveStateAndExecute (cmd);
 
          // System.out.println("track index: "+probeToSet.getTrack());
-         // Main.getRootModel().addOutputProbe(probeToSet);
-         // Main.getTimeline().addProbe(probeToSet);
+         // myMain.getRootModel().addOutputProbe(probeToSet);
+         // myMain.getTimeline().addProbe(probeToSet);
       }
    }
 
@@ -454,7 +454,7 @@ ValueChangeListener {
 //             myParent.actionPerformed (new ActionEvent (this, 0, "ProbeEdited"));
 //          }
          
-         Timeline timeline = Main.getTimeline();
+         Timeline timeline = myMain.getTimeline();
          if (timeline != null) {
             timeline.updateProbes();
          }

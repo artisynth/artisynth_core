@@ -6,6 +6,7 @@
  */
 package artisynth.core.femmodels;
 
+import java.io.IOException;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import artisynth.core.mechmodels.Muscle;
@@ -75,7 +76,7 @@ public class PointToPointMuscle extends FemMuscleModel {
 
    public PointToPointMuscle (
       String name, double density, double scale, String meshName,
-      boolean addMuscles) throws Exception {
+      boolean addMuscles) throws IOException {
       super (name);
 
       TetGenReader.read (

@@ -13,6 +13,7 @@ public class JythonPanelConsole extends InteractiveConsole {
    protected Thread myThread;
    protected boolean myPromptSent = false;
    protected boolean myInterruptReq = false;
+   protected boolean myQuitReq = false;
    protected boolean myInsideExec = false;
 
    protected class InterruptHandler implements ReadlinePanel.InterruptHandler {
@@ -32,12 +33,17 @@ public class JythonPanelConsole extends InteractiveConsole {
       }
    }
 
+   public synchronized void quitThread() {
+      myQuitReq = true;
+   }
+
    public synchronized void setInsideExec (boolean inside) {
       myInsideExec = inside;
    }
 
    public JythonPanelConsole() {
       super();
+
       myConsole = new ReadlinePanel();
       myConsole.setLineWrap (true);
       myWriter = new ReadlinePanel.OutputWriter(myConsole);
@@ -151,7 +157,7 @@ public class JythonPanelConsole extends InteractiveConsole {
       exec("2");
       // System.err.println("interp2"); 
       boolean more = false;
-      while(true) {
+      while(!myQuitReq) {
          PyObject prompt = more ? systemState.ps2 : systemState.ps1;
          String line;
          try {

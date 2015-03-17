@@ -48,31 +48,7 @@ public class ArticulatedBeamBody extends RootModel {
 
    RigidBody myBase;
 
-   public ArticulatedBeamBody() {
-      super (null);
-   }
-
-   // private void addBase (MechModel mechMod) {
-   //    myBase = new RigidBody ("base");
-   //    myBase.setInertia (SpatialInertia.createBoxInertia (
-   //       10, lenx0, leny0, lenz0));
-   //    PolygonalMesh mesh = MeshFactory.createTriangularBox (lenx0, leny0, lenz0);
-   //    // XMB.setIdentity();
-   //    // XMB.R.setAxisAngle (1, 1, 1, 2*Math.PI/3);
-   //    // mesh.transform (XMB);
-   //    // mesh.setRenderMaterial (Material.createSpecial (Material.GRAY));
-   //    myBase.setMesh (mesh, /* fileName= */null);
-   //    RigidTransform3d XLW = new RigidTransform3d();
-   //    XLW.setIdentity();
-   //    XLW.p.set (0, 0, 22);
-   //    myBase.setPose (XLW);
-   //    myBase.setDynamic (false);
-   //    mechMod.addRigidBody (myBase);
-   // }
-
-   public ArticulatedBeamBody (String name) {
-      this();
-      setName (name);
+   public void build (String[] args) {
 
       MechModel mechMod = new MechModel ("mechMod");
       // mechMod.setProfiling (true);

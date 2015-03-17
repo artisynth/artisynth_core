@@ -9,8 +9,7 @@ package artisynth.core.modelbase;
 import maspack.matrix.*;
 
 /**
- * Base class for storing information about changes within a component
- * hierarchy.
+ * Reports changes in component geometry.
  */
 public class GeometryChangeEvent extends ComponentChangeEvent {
    private AffineTransform3dBase myX;

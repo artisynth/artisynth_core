@@ -747,4 +747,42 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       removeLegend();
    }
 
+   public String getMatlabName () {
+      if (getName() != null) {
+         return getName();
+      }
+      else if (isInput()) {
+         return "iprobe" + getNumber();
+      }
+      else {
+         return "oprobe" + getNumber();
+      }
+   }
+
+   public void saveToMatlab (MatlabInterface mi, String matlabName)
+      throws MatlabInterfaceException {
+        
+      if (matlabName == null) {
+         matlabName = getMatlabName();
+      }
+      mi.objectToMatlab (getValues(), matlabName);
+   }
+
+   public boolean loadFromMatlab (MatlabInterface mi, String matlabName) 
+      throws MatlabInterfaceException {
+
+      if (matlabName == null) {
+         matlabName = getMatlabName();
+      }
+      double[][] vals = mi.arrayFromMatlab (matlabName);
+      if (vals == null) {
+         return false;
+      }
+      else {
+         setValues (vals);
+         return true;
+      }
+   }
+      
+
 }

@@ -132,6 +132,7 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
    protected ArrayList<Property> myProperties;
 
    protected boolean isReady;
+   protected Main myMain;
 
    public NumericProbeEditor () {
       isReady = false;
@@ -164,6 +165,8 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
          // frame.setSize(FRAME_WIDTH, FRAME_HEIGHT);
          }
       });
+
+      myMain = Main.getMain();
 
       mainPane = new JPanel();
       mainPane.setSize (FRAME_WIDTH, FRAME_HEIGHT);
@@ -522,7 +525,7 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
             // System.out.println(compPath);
             // System.out.println(propPath);
             Property prop =
-               ComponentUtils.findProperty (Main.getRootModel(), fullPropPath);
+               ComponentUtils.findProperty (myMain.getRootModel(), fullPropPath);
             if (prop != null) {
                properties[i] = prop;
             }
@@ -548,10 +551,11 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
    // TODO: probably makes more sense to move the next few methods into
    // AddProeprtyPane class
    public static Property getProp (String fullPath) {
-      return ComponentUtils.findProperty (Main.getRootModel(), fullPath);
+      return ComponentUtils.findProperty (
+         Main.getMain().getRootModel(), fullPath);
       // String compPath = splitPath(fullPath, true);
       // String propPath = splitPath(fullPath, false);
-      // ModelComponent comp = Main.getMain().getRootModel().findComponent(
+      // ModelComponent comp = myMain.getRootModel().findComponent(
       // compPath);
       // Property prop = comp.getProperty(propPath);
       // return prop;
@@ -561,7 +565,7 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
    // {
    // String fullPath = propList.get(0).getPropPath();
    // if (fullPath.startsWith (""))
-   // { return Main.getMain().getRootModel();
+   // { return myMain.getRootModel();
    // }
    // String compPath = fullPath.substring(0,fullPath.indexOf("/"));
    // fullPath = fullPath.substring(fullPath.indexOf("/")+1);
@@ -579,7 +583,7 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
    // }
 
    // ModelComponent comp =
-   // Main.getMain().getRootModel().findComponent(compPath);
+   // myMain.getRootModel().findComponent(compPath);
 
    // return comp;
    // }
@@ -894,8 +898,8 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
     */
    protected String getFullPropPath (Property prop) {
       String compPath = prop.getName();
-      Main.getMain();
-      ModelComponent root = Main.getRootModel();
+
+      ModelComponent root = myMain.getRootModel();
       Object host = prop.getHost();
       // System.out.println("Looking for parent path...");
       if (host instanceof CompositeProperty) {

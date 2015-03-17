@@ -124,7 +124,8 @@ public class Track extends JPanel {
 
          button.setActionCommand (button.getToolTipText());
 
-         GenericKeyHandler keyHandler = new GenericKeyHandler(Main.getMain());
+         GenericKeyHandler keyHandler =
+            new GenericKeyHandler(myController.myMain);
 
          button.addKeyListener (keyHandler);
          button.addActionListener (myListener);
@@ -392,8 +393,8 @@ public class Track extends JPanel {
       if (confirmDelete ("Delete this probe?", isParentTrackDeleted)) {
          RemoveComponentsCommand rmCmd = new RemoveComponentsCommand (
             "delete probe", probeInfos.get (indexProbe).getProbe());
-         Main.getUndoManager().saveStateAndExecute (rmCmd);
-         Main.rerender();
+         myController.myMain.getUndoManager().saveStateAndExecute (rmCmd);
+         myController.myMain.rerender();
       }
    }
 
@@ -487,7 +488,7 @@ public class Track extends JPanel {
    }
 
    public void muteTrack (boolean mute) {
-      WayPointProbe wayProbe = Main.getRootModel().getWayPoints();
+      WayPointProbe wayProbe = myController.myMain.getRootModel().getWayPoints();
 
       double earliestTime;
 
@@ -497,19 +498,19 @@ public class Track extends JPanel {
          wayProbe.invalidateAfterTime (earliestTime);
 
          if (myController.getCurrentTime() > earliestTime) {
-            if (Main.getWorkspace().rootModelHasState()) {
+            if (myController.myMain.getWorkspace().rootModelHasState()) {
                WayPoint wayPoint = 
                   wayProbe.getNearestValidBefore (earliestTime);
             
                if (wayPoint != null) {
-                  Main.getScheduler().setTime (wayPoint);
+                  myController.myScheduler.setTime (wayPoint);
                }
                else {
-                  Main.getScheduler().setTime (0);
+                  myController.myScheduler.setTime (0);
                }
             }
             else {
-               Main.getScheduler().setTime (earliestTime);
+               myController.myScheduler.setTime (earliestTime);
             }
          }
       }

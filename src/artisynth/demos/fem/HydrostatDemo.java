@@ -44,17 +44,11 @@ public class HydrostatDemo extends RootModel {
 //                    "hydrostat_muscles_exciters" 
                      };
 
-   public HydrostatDemo() {
-      super();
-   }
-
-   public HydrostatDemo (String name) throws IOException {
-      this(name, Shape.Beam);
+   public void build (String[] args) throws IOException {
+      build (Shape.Beam);
    }
    
-   public HydrostatDemo (String name, Shape shape) throws IOException {
-      this();
-      setName (name);
+   public void build (Shape shape) throws IOException {
 
       if (simple) {
 	 hydro = new HydrostatModel("hydrostat", Element.Hex, shape, 100,
@@ -107,10 +101,10 @@ public class HydrostatDemo extends RootModel {
          return;
 
       try {
-         Main.getWorkspace().scanProbes (
+         scanProbes (
             ArtisynthIO.newReaderTokenizer (
                ArtisynthPath.getWorkingDir().getPath()
-               + "/" + probeFilename), this);
+               + "/" + probeFilename));
       }
       catch (Exception e) {
          System.out.println ("Error reading probe file");

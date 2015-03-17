@@ -133,4 +133,9 @@ public abstract class PointAttachment extends DynamicAttachment
       return false;
    }
 
+   public int addTargetJacobian (SparseBlockMatrix j, int bi) {
+      // Required by MotionTargetTerm
+      return 0;
+   }
+
 }

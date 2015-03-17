@@ -2251,6 +2251,30 @@ public class ReaderTokenizer {
       }
       return max;
    }
+   
+   /**
+    * Reads a series of numeric tokens and returns their values. Reading halts
+    * when either a non-integer token is encountered, or <code>max</code>
+    * numbers have been read. Note that this token will also be numeric if the
+    * input contains more than <i>max</i> consecutive integer tokens.
+    * 
+    * @param vals
+    * used to return integer values
+    * @param max
+    * maximum number of integer tokens to read
+    * @return number of integer tokens actually read
+    */
+   public int scanIntegers (int[] vals, int max) throws IOException {
+      for (int i = 0; i < max; i++) {
+         nextToken();
+         if (myTokenIsInteger) {
+            vals[i] = (int)nval;
+         } else {
+            return i;
+         }
+      }
+      return max;
+   }
 
    /**
     * Returns true if the current token is a number. This is a convenience

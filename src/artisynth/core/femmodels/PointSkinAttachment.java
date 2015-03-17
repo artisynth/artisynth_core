@@ -269,7 +269,7 @@ public class PointSkinAttachment extends PointAttachment
    /**
     * Base class for connections associated with this attachment.
     */
-   protected abstract class Connection {
+   public abstract class Connection {
 
       public double myWeight;
 
@@ -332,7 +332,7 @@ public class PointSkinAttachment extends PointAttachment
          Vector3d force, Vector3d tmp);
    }
 
-   protected class FrameConnection extends Connection {
+   public class FrameConnection extends Connection {
 
       FrameInfo myFrameInfo;
 
@@ -418,7 +418,7 @@ public class PointSkinAttachment extends PointAttachment
 
    }
 
-   protected class ParticleConnection extends Connection {
+   public class ParticleConnection extends Connection {
 
       public Particle myParticle;
 
@@ -469,7 +469,7 @@ public class PointSkinAttachment extends PointAttachment
 
    }
 
-   protected class BaseConnection extends Connection {
+   public class BaseConnection extends Connection {
 
       public BaseConnection (double w) {
          myWeight = w;
@@ -512,7 +512,7 @@ public class PointSkinAttachment extends PointAttachment
 
    }
 
-   protected class FemDisplacementConnection extends Connection {
+   public class FemDisplacementConnection extends Connection {
 
       public FemNode3d myNode;
 

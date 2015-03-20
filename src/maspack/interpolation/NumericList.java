@@ -205,6 +205,15 @@ public class NumericList
       knot.myList = this;
       return existing;
    }
+   
+   public void shiftTime(double t) {
+      NumericListKnot nlk = myHead; 
+      do {
+         nlk.t += t;
+         nlk = nlk.next;
+      } while (nlk != myTail);
+      nlk.t += t;
+   }
 
    public void getMinMaxValues (double[] minMax) {
       if (!myMinMaxValid) {

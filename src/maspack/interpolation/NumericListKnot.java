@@ -57,4 +57,12 @@ public class NumericListKnot {
       myList = null;
    }
 
+   public NumericListKnot getNext() {
+      return next;
+   }
+   
+   public NumericListKnot getPrev() {
+      return prev;
+   }
+   
 }

@@ -122,7 +122,7 @@ public class AffineNumericInputProbe extends NumericInputProbe {
    public VectorNd getValues(double t) {
       VectorNd result = new VectorNd(myVsize);
 
-      double tloc = (t - getStartTime()) / myScale;
+      double tloc = (t - getStartTime()-timeOffset) / myScale;
       myNumericList.interpolate(result, tloc);
       result = transform(result);
 
@@ -171,7 +171,7 @@ public class AffineNumericInputProbe extends NumericInputProbe {
 
    @Override
    public void apply(double t) {
-      double tloc = (t - getStartTime() + timeOffset) / myScale;
+      double tloc = (t - getStartTime() - timeOffset) / myScale;
       myNumericList.interpolate(myTmpVec, tloc); // fills myTmpVec
       myTmpVec = transform(myTmpVec); // here is where I perform the transform
                                       // on the data

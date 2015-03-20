@@ -14,15 +14,17 @@ import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.Property;
 import artisynth.core.modelbase.ModelComponent;
 
 // allows for Affine transform of numeric input probes
+// XXX DOESN'T WORK FOR FRAMES, ONLY POINTS
 public class AffineNumericInputProbe extends NumericInputProbe {
 
-   MatrixNd R = null; // rotation matrix
+   MatrixNd R = null; // affine matrix
    VectorNd t = null; // translation vector
    protected double timeOffset = 0;
 
@@ -69,14 +71,9 @@ public class AffineNumericInputProbe extends NumericInputProbe {
       super(props, e);
       initTransform(myVsize);
    }
-//
-//   public AffineNumericInputProbe (
-//      Property[] props, ModelComponent e, double ymin, double ymax) {
-//      super(props, e, ymin, ymax);
-//      initTransform(myVsize);
-//   }
 
-   public VectorNd transform(VectorNd x) {
+
+   protected VectorNd transform(VectorNd x) {
       VectorNd r = new VectorNd(x.size());
       r.mul(R, x);
       r.add(t);

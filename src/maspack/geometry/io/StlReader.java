@@ -6,6 +6,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.BufferedReader;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.CharBuffer;
 import java.util.ArrayList;
 
 import maspack.geometry.PolygonalMesh;
@@ -55,7 +58,105 @@ public class StlReader extends MeshReaderBase {
    }
    
    public static PolygonalMesh read(PolygonalMesh mesh, Reader reader, double tol) throws IOException {
+      // Determine if ASCII or Binary and call appropriate method
+      reader.mark (8);
+      char[] cbuf = new char[5];
+      reader.read (cbuf, 0, 5);
+      if ((new String(cbuf)).equals ("solid")) {
+         reader.reset ();
+         return readASCII(mesh, reader, tol);
+      } else {
+         //reader.reset ();
+         return readBinary(mesh, reader, tol);
+      }
+
+      //throw new IOException ("Invalid STL file!");
       
+   }
+   
+   public static PolygonalMesh readBinary(PolygonalMesh mesh, Reader reader, double tol) throws IOException {
+      // Byte ordering is assumed to be Little Endian (see wikipedia on STL format).
+      // Format of binary STL is 
+      // 80 byte header (skip)
+      // 4 byte int indicating num facets to follow
+      // 
+      reader.skip (75);
+      char[] cbuf = new char[4];
+      byte[] bbuf = new byte[4];
+      reader.read (cbuf, 0, 4);
+      
+      for (int i=0; i<4; i++) {
+         bbuf[i] = (byte)cbuf[i];
+      }
+      
+      ByteBuffer bb = ByteBuffer.wrap (bbuf);
+      bb.order(ByteOrder.LITTLE_ENDIAN);
+      // This is a simple way to read unsigned long from 4 bytes (LittleEndian)
+      long numFacets = (long)bb.getInt ();
+//      numFacets |= cbuf[3] & 0xFF;
+//      numFacets <<= 8;
+//      numFacets |= cbuf[2] & 0xFF;
+//      numFacets <<= 8;
+//      numFacets |= cbuf[1] & 0xFF;
+//      numFacets <<= 8;
+//      numFacets |= cbuf[0] & 0xFF;
+
+      // XXX: DEBUG
+      System.out.println("Num facets: "+ numFacets);
+      
+      ArrayList<Point3d> nodeList = new ArrayList<Point3d>();
+      ArrayList<ArrayList<Integer>> faceList = new ArrayList<ArrayList<Integer>>();
+
+      int facetSize = 50;
+      bbuf = new byte[facetSize];
+      cbuf = new char[facetSize*(int)numFacets];
+      
+      reader.read(cbuf,0,facetSize*(int)numFacets);
+      
+      for (int i=0; i<numFacets; i++) {
+         ArrayList<Integer> faceNodes = new ArrayList<Integer>(3); 
+         
+         for (int idx = 0; idx<facetSize; idx++) {
+            bbuf[idx] = (byte) cbuf[facetSize*i + idx];
+         }
+         bb = ByteBuffer.wrap(bbuf);
+         bb.order(ByteOrder.LITTLE_ENDIAN);
+         
+         // Ignore normal
+         bb.getFloat ();
+         bb.getFloat ();
+         bb.getFloat ();
+         
+         // Read all 3 vertices
+         double[] vals = new double[3];
+         for (int j=0; j<3; j++) {
+            vals[0] = bb.getFloat();
+            vals[1] = bb.getFloat();
+            vals[2] = bb.getFloat();
+            
+            int idx = findOrAddNode(new Point3d(vals), nodeList, tol);
+            faceNodes.add(idx);
+         }
+         bb.getShort (); // Attribute byte count should = 0
+
+         faceList.add (faceNodes);
+      }
+      
+//      boolean setMeshName = true;
+//      if (mesh != null) {
+//         setMeshName = false;
+//      }
+      mesh = buildMesh(mesh, nodeList,faceList);
+      
+//      if (setMeshName) {
+//         mesh.setName(solidName);
+//      }
+         
+      return mesh;
+      
+   }
+   
+   public static PolygonalMesh readASCII(PolygonalMesh mesh, Reader reader, double tol) throws IOException {
       ReaderTokenizer rtok = new ReaderTokenizer(reader);
       ArrayList<Point3d> nodeList = new ArrayList<Point3d>();
       ArrayList<ArrayList<Integer>> faceList = new ArrayList<ArrayList<Integer>>();
@@ -93,8 +194,7 @@ public class StlReader extends MeshReaderBase {
                }
                   
                return mesh;
-            }
-            
+            } 
          }
       }
       

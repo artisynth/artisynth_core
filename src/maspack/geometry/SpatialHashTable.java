@@ -57,6 +57,7 @@ public class SpatialHashTable<T> {
    private double myGridSpacing;
    private HashMap<Index, List<T>> myGrid = new HashMap<>();
 //   private ArrayList<Index> myUsedIndexList;
+   private boolean myIndexListInitialized = false;
    private HashMap<Index, List<List<T>>> myIndexList = new HashMap<>();
 
    public SpatialHashTable (double gridSpacing) {
@@ -72,23 +73,27 @@ public class SpatialHashTable<T> {
     * @param elements List of elements which will populate this
     *   SpatialHashTable
     */
-   public void setup (List<? extends Point3d> positions, List<? extends T> elements) {
+   public synchronized void setup (List<? extends Point3d> positions, List<? extends T> elements) {
       myGrid.clear();
+      myIndexListInitialized = false;
 //      myUsedIndexList.clear();
-      
+      if (positions.size() != elements.size()) {
+         throw new IllegalArgumentException ("Non-matching position and element sizes!");
+      }
       Index idx = new Index();
-      for( int i=0; i<elements.size (); i++ ) {
+      for (int i=0; i<elements.size (); i++) {
          T p = elements.get(i);
          
          int idxX, idxY, idxZ;
          
          // This is ok since negative indices are allowed now
-//         idxX = (int) Math.round( (p.getPosReadOnly().x)/myGridSpacing );
-//         idxY = (int) Math.round( (p.getPosReadOnly().y)/myGridSpacing );
-//         idxZ = (int) Math.round( (p.getPosReadOnly().z)/myGridSpacing );
-         idxX = (int) Math.round( (positions.get(i).x)/myGridSpacing );
-         idxY = (int) Math.round( (positions.get(i).y)/myGridSpacing );
-         idxZ = (int) Math.round( (positions.get(i).z)/myGridSpacing );
+//         idxX = (int) Math.round((p.getPosReadOnly().x)/myGridSpacing);
+//         idxY = (int) Math.round((p.getPosReadOnly().y)/myGridSpacing);
+//         idxZ = (int) Math.round((p.getPosReadOnly().z)/myGridSpacing);
+         Point3d pos = positions.get(i);
+         idxX = (int) Math.round((pos.x)/myGridSpacing);
+         idxY = (int) Math.round((pos.y)/myGridSpacing);
+         idxZ = (int) Math.round((pos.z)/myGridSpacing);
 
          idx.vals[0] = idxX;
          idx.vals[1] = idxY;
@@ -96,7 +101,7 @@ public class SpatialHashTable<T> {
 
          List<T> parList = myGrid.get(idx);
 
-         if( parList == null ) {
+         if (parList == null) {
             Index newIndex = new Index();
             newIndex.vals[0] = idxX;
             newIndex.vals[1] = idxY;
@@ -112,9 +117,38 @@ public class SpatialHashTable<T> {
       setupListsToNeighbours();
    }
    
-   protected void setupListsToNeighbours () {
-//      if (false)
-//         return;
+//   /**
+//    * Add a single element into the spatial hash table
+//    * @param pos position of the element
+//    * @param el element to be added.
+//    */
+//   public synchronized void addElement (Point3d pos, T el) {
+//      Index idx = new Index();
+//      // This is ok since negative indices are allowed now
+//      idx.vals[0] = (int) Math.round((pos.x)/myGridSpacing);
+//      idx.vals[1] = (int) Math.round((pos.y)/myGridSpacing);
+//      idx.vals[2] = (int) Math.round((pos.z)/myGridSpacing);
+//      
+//      List<T> parList = myGrid.get(idx);
+//
+//      if (parList == null) {
+//         Index newIndex = new Index();
+//         newIndex.vals[0] = idx.vals[0];
+//         newIndex.vals[1] = idx.vals[1];
+//         newIndex.vals[2] = idx.vals[2];
+//         
+//         parList = new ArrayList<T>();
+//         myGrid.put(newIndex, parList);
+//      }
+//      
+//      parList.add(el);
+//      myIndexListInitialized = false;
+//   }
+   
+   protected synchronized void setupListsToNeighbours () {
+      if (myIndexListInitialized) {
+         return;
+      }
       myIndexList.clear ();
       for (Index index : myGrid.keySet ()) {
          List<List<T>> list = new LinkedList<>();
@@ -129,25 +163,9 @@ public class SpatialHashTable<T> {
 
          myIndexList.put(index,list);
       }
+      myIndexListInitialized = true;
    }
 
-   public void testIter (int a, int b, int c) {
-      NearCellIter it = new NearCellIter (a, b, c);
-      System.out.println ("Iterator test:");
-      boolean caught = false;
-      for (int i=0; i<28; i++) {
-         System.out.println (i + ": " + it);
-         try {
-            it.next();
-         } catch (NoSuchElementException e) {
-            caught = true;
-         }
-      }
-      if (!caught) {
-         throw new RuntimeException("Test failed, didn't catch exception!");
-      }
-   }
-   
    /**
     * Returns a List of cells (List<T>'s) that might intersect a
     * bv tree.
@@ -192,8 +210,9 @@ public class SpatialHashTable<T> {
     * @return Iterator for 27 bins.
     */
    public Iterator<List<T>> getCellsNear (Point3d pos) {
-//      if (false)
-//         return getCellsNearOld (pos);
+      if (!myIndexListInitialized) 
+         setupListsToNeighbours();
+
       int xIdx = (int) Math.round (pos.x/myGridSpacing);
       int yIdx = (int) Math.round (pos.y/myGridSpacing);
       int zIdx = (int) Math.round (pos.z/myGridSpacing);
@@ -204,9 +223,11 @@ public class SpatialHashTable<T> {
 
    /**
     * This is the old method that for sure works, but might be slower.
-    * It requires lots of hashmap lookups.
+    * It requires lots of hashmap lookups. Iterator may iterate through
+    * some null cells.
+    * 
     * @param pos
-    * @return
+    * @return 
     */
    public Iterator<List<T>> getCellsNearOld (Point3d pos) {
       int xIdx = (int) Math.round (pos.x/myGridSpacing);
@@ -217,6 +238,23 @@ public class SpatialHashTable<T> {
       return it;
    }
    
+   public void testIter (int a, int b, int c) {
+      NearCellIter it = new NearCellIter (a, b, c);
+      System.out.println ("Iterator test:");
+      boolean caught = false;
+      for (int i=0; i<28; i++) {
+         System.out.println (i + ": " + it);
+         try {
+            it.next();
+         } catch (NoSuchElementException e) {
+            caught = true;
+         }
+      }
+      if (!caught) {
+         throw new RuntimeException("Test failed, didn't catch exception!");
+      }
+   }
+
    private class Index {
       // give direct access to values for convenience 
       protected int[] vals;

@@ -1559,6 +1559,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       IntHolder width = new IntHolder (750);
       IntHolder height = new IntHolder (500);
 
+      if (args == null) {
+         args = new String[0];
+      }
+
       ArgParser parser = new ArgParser ("java artisynth.core.driver.Main", false);
       parser.addOption ("-help %v #prints help message", printHelp);
       parser.addOption ("-width %d #width (pixels)", width);

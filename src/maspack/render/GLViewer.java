@@ -1528,8 +1528,8 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
             canvas.addMouseWheelListener (l);
          }
       }
-      width = drawable.getWidth();
-      height = drawable.getHeight();
+      //width = drawable.getWidth();
+      //height = drawable.getHeight();
 
       // Sanchez Sept 25, 2013:
       // On dual-monitor setups under Linux, OpenGL *sometimes* 

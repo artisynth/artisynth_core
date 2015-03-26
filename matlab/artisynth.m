@@ -5,7 +5,18 @@ if (isempty(getenv('ARTISYNTH_HOME')))
     status = 0;
     return
 end
-setArtisynthClasspath (getenv('ARTISYNTH_HOME'));
+AH = getenv('ARTISYNTH_HOME');
+setArtisynthClasspath (AH);
+if (isempty(getenv('ARTISYNTH_PATH')))
+    % set up an appropriate default ARTISYNTH_PATH
+    psep = char(java.lang.System.getProperty ('path.separator'));
+    AP = [ '.', psep ];
+    if (isempty(getenv('HOME')) == 0)
+       AP = [ AP , getenv('HOME'), psep ];
+    end
+    AP = [ AP, AH ];
+    setenv ('ARTISYNTH_PATH', AP);    
+end
 args = [];
 if (isempty(varargin) == 0)
    nargs = length(varargin);

@@ -9,22 +9,23 @@ C = javaclasspath('-all');
 % add ARTISYNTH_HOME/classes to the java class path
 %
 newentries = [];
-sep = char(java.lang.System.getProperty ('path.separator'));
-classespath = strcat(homedir, '/classes');
+psep = char(java.lang.System.getProperty ('path.separator'));
+fsep = char(java.lang.System.getProperty ('file.separator'));
+classespath = strcat(homedir, fsep, 'classes');
 if isempty(find(strcmp(C,classespath))) == 1 
    javaaddpath (classespath);
-   newentries = [ sep, classespath ];
+   newentries = [ psep, classespath ];
 end
 %
 % add jar files in ARTISYNTH_HOME/lib to the java class path
 %
-libpath = strcat(homedir, '/lib/');
+libpath = strcat(homedir, fsep, 'lib', fsep );
 jars = dir(strcat(libpath, '*.jar'));
 P = strcat(repmat({libpath},length(jars),1),{jars.name}');
 for i = 1:length(P) 
    if isempty(find(strcmp(C,P{i}))) == 1 
       javaaddpath (P{i});
-      newentries = [ newentries, sep, P{i} ];
+      newentries = [ newentries, psep, P{i} ];
    end
 end
 %
@@ -39,7 +40,7 @@ P = strcat(repmat({libpath},length(jars),1),{jars.name}');
 for i = 1:length(P) 
    if isempty(find(strcmp(C,P{i}))) == 1 
       javaaddpath (P{i});
-      newentries = [ newentries, sep, P{i} ];
+      newentries = [ newentries, psep, P{i} ];
    end
 end
 % 
@@ -49,7 +50,7 @@ exts = cell(artisynth.core.driver.Launcher.getExtFilePathNames(homedir));
 for i = 1:length(exts)
    if isempty(find(strcmp(C,exts{i}))) == 1 
       javaaddpath (exts{i});
-      newentries = [ newentries, sep, exts{i} ];
+      newentries = [ newentries, psep, exts{i} ];
    end
 end
 %

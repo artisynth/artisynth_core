@@ -274,6 +274,10 @@ public class SkinMesh extends SkinMeshBase
          myIndex = idx;
       }
       
+      public int getIndex() {
+         return myIndex;
+      }
+      
       /**
        * Returns the Frame component itself.
        */
@@ -597,6 +601,18 @@ public class SkinMesh extends SkinMeshBase
          a.setBasePosition (getVertex(vidx).getPosition());
       }
    }
+   
+   public void setAttachment(int idx, PointSkinAttachment a) {
+      setAttachment(idx, a, true);
+   }
+   
+   public void setAttachment( int idx, PointSkinAttachment a, boolean initBase) {
+      myVertexAttachments.set(idx, a);
+      a.setSkinMesh (this);
+      if (initBase) {
+         a.setBasePosition (getVertex(idx).getPosition());
+      }
+   }
 
    /**
     * Clears all the attachments associated with this SkinMesh.
@@ -614,6 +630,7 @@ public class SkinMesh extends SkinMeshBase
    public PointSkinAttachment getAttachment (int idx) {
       return myVertexAttachments.getByNumber (idx);
    }
+   
 
    protected void setMeshFromInfo () {
       // Overloaded from super class. Is called by super.setMesh() and by scan
@@ -664,13 +681,52 @@ public class SkinMesh extends SkinMeshBase
    }
 
    /**
+    * Removes a Frame from this SkinMesh
+    * @param frame Frmae to be removed
+    * @return true if frame found aand removed, false otherwise
+    */
+   public boolean removeFrame (Frame frame) {
+      
+      FrameInfo found = null;;
+      for (FrameInfo frameInfo : myFrameInfo) {
+         if (frameInfo.getFrame() == frame) {
+            // mark for removal
+            found = frameInfo;
+            break;
+         }
+      }
+      
+      if (found != null) {
+         int idx = found.getIndex();
+         int lastIdx = myFrameInfo.size ()-1;
+         // replace with last item
+         if (idx != lastIdx) {
+            FrameInfo last = myFrameInfo.get(lastIdx);
+            last.setIndex(idx);  // renumber
+            myFrameInfo.set(idx, last);
+            myFrameInfo.remove(lastIdx);
+         }
+         return true;
+      }
+      
+      return false;
+      
+   }
+
+   
+   /**
     * Returns true is a specified Frame is currently registered with this
     * SkinMesh.
     *
     * @param frame Frame to be queried
     */
    public boolean hasFrame (Frame frame) {
-      return myFrameInfo.contains (frame);
+      for (FrameInfo fi : myFrameInfo) {
+         if (fi.getFrame() == frame) {
+            return true;
+         }
+      }
+      return false;
    }
 
    /**
@@ -1489,6 +1545,7 @@ public class SkinMesh extends SkinMeshBase
       a.setPoint (pnt);
       return a;
    }
+
 
 }
 

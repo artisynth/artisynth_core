@@ -123,6 +123,18 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       notifyStructureChanged (myComp, comp.hasState());
       return status;
    }
+   
+   public C set(int idx, C comp) {
+      C prev = get(idx);
+      int number = prev.getNumber();
+      return setNumbered(idx, comp, number);
+   }
+   
+   public C setNumbered (int idx, C comp, int number) {
+      C status = doSet(idx, comp, number);
+      notifyStructureChanged (myComp, comp.hasState());
+      return status;
+   }
 
    // prepare a component for insertion in the list
    private void initComponent (C comp, int number, int idx) {

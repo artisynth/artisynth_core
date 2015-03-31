@@ -229,9 +229,18 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
 
    // XXX we need this?
    public boolean addNumbered (C comp, int number) {
+      
       return myComponents.addNumbered (comp, number);
       //notifyStructureChanged (this, !comp.hasState());
       //return status;
+   }
+   
+   public C set (int idx, C comp) {
+      return myComponents.set(idx, comp);
+   }
+   
+   public C setNumbered (int idx, C comp, int number) {
+      return myComponents.setNumbered(idx, comp, number);
    }
 
    /**

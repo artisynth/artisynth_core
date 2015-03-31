@@ -183,7 +183,7 @@ public class TrackingController extends ControllerBase
       
       myCostFunction = new QPCostFunction();
       
-      myComponents = new ComponentListImpl (ModelComponent.class, this);
+      myComponents = new ComponentListImpl<ModelComponent> (ModelComponent.class, this);
 
       // list of target points that store/show the location of motion targets for points
       targetPoints =

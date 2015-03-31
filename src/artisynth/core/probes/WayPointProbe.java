@@ -317,7 +317,7 @@ public class WayPointProbe extends OutputProbe {
             }
             System.out.println ("saving waypoint data to " + file.getName ());
             DataOutputStream dos =
-               new DataOutputStream (new FileOutputStream (file));
+               new DataOutputStream (new BufferedOutputStream(new FileOutputStream (file)));
             dos.writeInt (numValid ());
             for (WayPoint way : myWayPoints) {
                if (way.getState () != null) {
@@ -360,7 +360,7 @@ public class WayPointProbe extends OutputProbe {
             // read data from binary file
             try {
                DataInputStream dis =
-                  new DataInputStream (new FileInputStream (file));
+                  new DataInputStream (new BufferedInputStream(new FileInputStream (file)));
 
                ListIterator<WayPoint> li = myWayPoints.listIterator();
 

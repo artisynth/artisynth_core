@@ -309,27 +309,6 @@ public class PointSkinAttachment extends PointAttachment
       public abstract Connection copy();
       
       public abstract boolean addPointForce (Vector3d f);
-
-      public abstract boolean addExternalPointForce (Vector3d f);
-
-      public abstract boolean zeroExternalForces ();
-
-      /**
-       * Distributes an external force such that the total energy of the system
-       * is preserved
-       * 
-       * @param pos
-       * location of force to distribute
-       * @param s
-       * scale to apply to force
-       * @param force
-       * total force to distribute
-       * @param tmp
-       * temporary vector for optional use
-       * @return true if this method is active
-       */
-      public abstract boolean distributeExternalForce(Vector3d pos, double s,
-         Vector3d force, Vector3d tmp);
    }
 
    public class FrameConnection extends Connection {
@@ -380,41 +359,41 @@ public class PointSkinAttachment extends PointAttachment
          return true;
       }
 
-      @Override
-      public boolean addExternalPointForce (Vector3d f) {
-         // NOTE: this method only assumes LINEAR BLENDING 
-         Point3d loc = new Point3d();
-         Vector3d ftmp = new Vector3d();
-         // get point location in frame coordinates
-         loc.inverseTransform (myFrameInfo.myBasePose, myBasePos);
-         // then use this to apply forces
-         ftmp.scale (myWeight, f);
-         myFrameInfo.myFrame.addExternalPointForce (loc, ftmp);
-         return true;
-      }
+//      @Override
+//      public boolean addExternalPointForce (Vector3d f) {
+//         // NOTE: this method only assumes LINEAR BLENDING 
+//         Point3d loc = new Point3d();
+//         Vector3d ftmp = new Vector3d();
+//         // get point location in frame coordinates
+//         loc.inverseTransform (myFrameInfo.myBasePose, myBasePos);
+//         // then use this to apply forces
+//         ftmp.scale (myWeight, f);
+//         myFrameInfo.myFrame.addExternalPointForce (loc, ftmp);
+//         return true;
+//      }
 
-      @Override
-      public boolean zeroExternalForces () {
-         myFrameInfo.myFrame.zeroExternalForces();
-         return true;
-      }
+//      @Override
+//      public boolean zeroExternalForces () {
+//         myFrameInfo.myFrame.zeroExternalForces();
+//         return true;
+//      }
 
-      @Override
-      public boolean distributeExternalForce(Vector3d pos, double s,
-         Vector3d force, Vector3d tmp) {
-         // if (mySkinMesh.getFrameBlending() == FrameBlending.LINEAR) {
-         FrameInfo finfo = myFrameInfo;
-         Frame frame = finfo.myFrame;
-         tmp.inverseTransform(frame.getPose(), pos);
-         frame.computeAppliedWrench(bodyForce, force, tmp);
-         bodyForce.transform(frame.getPose().R);
-         frame.addScaledExternalForce(s * myWeight, bodyForce);
-         return true;
-         // }
-         // else {
-         // return false;
-         // }
-      }
+//      @Override
+//      public boolean distributeExternalForce(Vector3d pos, double s,
+//         Vector3d force, Vector3d tmp) {
+//         // if (mySkinMesh.getFrameBlending() == FrameBlending.LINEAR) {
+//         FrameInfo finfo = myFrameInfo;
+//         Frame frame = finfo.myFrame;
+//         tmp.inverseTransform(frame.getPose(), pos);
+//         frame.computeAppliedWrench(bodyForce, force, tmp);
+//         bodyForce.transform(frame.getPose().R);
+//         frame.addScaledExternalForce(s * myWeight, bodyForce);
+//         return true;
+//         // }
+//         // else {
+//         // return false;
+//         // }
+//      }
 
    }
 
@@ -437,13 +416,13 @@ public class PointSkinAttachment extends PointAttachment
          return true;
       }
 
-      @Override
-      public boolean distributeExternalForce(Vector3d pos, double s,
-         Vector3d force,
-         Vector3d tmp) {
-         myParticle.addScaledExternalForce(s * myWeight, force);
-         return true;
-      }
+//      @Override
+//      public boolean distributeExternalForce(Vector3d pos, double s,
+//         Vector3d force,
+//         Vector3d tmp) {
+//         myParticle.addScaledExternalForce(s * myWeight, force);
+//         return true;
+//      }
 
       @Override
       public boolean addPointForce (Vector3d f) {
@@ -451,17 +430,17 @@ public class PointSkinAttachment extends PointAttachment
          return true;
       }
 
-      @Override
-      public boolean addExternalPointForce (Vector3d f) {
-         myParticle.addScaledExternalForce (myWeight, f);
-         return true;
-      }
+//      @Override
+//      public boolean addExternalPointForce (Vector3d f) {
+//         myParticle.addScaledExternalForce (myWeight, f);
+//         return true;
+//      }
 
-      @Override
-      public boolean zeroExternalForces () {
-         myParticle.zeroExternalForces();
-         return true;
-      }
+//      @Override
+//      public boolean zeroExternalForces () {
+//         myParticle.zeroExternalForces();
+//         return true;
+//      }
 
       public ParticleConnection copy() {
          return new ParticleConnection(myParticle, myWeight);
@@ -484,27 +463,27 @@ public class PointSkinAttachment extends PointAttachment
          return true;
       }
 
-      @Override
-      public boolean distributeExternalForce(Vector3d pos, double s,
-         Vector3d force,
-         Vector3d tmp) {
-         return false;
-      }
+//      @Override
+//      public boolean distributeExternalForce(Vector3d pos, double s,
+//         Vector3d force,
+//         Vector3d tmp) {
+//         return false;
+//      }
 
       @Override
       public boolean addPointForce (Vector3d f) {
          return false;
       }
 
-      @Override
-      public boolean addExternalPointForce (Vector3d f) {
-         return false;
-      }
+//      @Override
+//      public boolean addExternalPointForce (Vector3d f) {
+//         return false;
+//      }
 
-      @Override
-      public boolean zeroExternalForces () {
-         return false;
-      }
+//      @Override
+//      public boolean zeroExternalForces () {
+//         return false;
+//      }
 
       public BaseConnection copy() {
          return new BaseConnection(myWeight);
@@ -531,13 +510,13 @@ public class PointSkinAttachment extends PointAttachment
          return true;
       }
 
-      @Override
-      public boolean distributeExternalForce(Vector3d pos, double s,
-         Vector3d force,
-         Vector3d tmp) {
-         myNode.addScaledExternalForce(s * myWeight, force);
-         return true;
-      }
+//      @Override
+//      public boolean distributeExternalForce(Vector3d pos, double s,
+//         Vector3d force,
+//         Vector3d tmp) {
+//         myNode.addScaledExternalForce(s * myWeight, force);
+//         return true;
+//      }
 
       @Override
       public boolean addPointForce (Vector3d f) {
@@ -545,17 +524,17 @@ public class PointSkinAttachment extends PointAttachment
          return true;
       }
 
-      @Override
-      public boolean addExternalPointForce (Vector3d f) {
-         myNode.addScaledExternalForce (myWeight, f);
-         return true;
-      }
+//      @Override
+//      public boolean addExternalPointForce (Vector3d f) {
+//         myNode.addScaledExternalForce (myWeight, f);
+//         return true;
+//      }
 
-      @Override
-      public boolean zeroExternalForces () {
-         myNode.zeroExternalForces();
-         return true;
-      }
+//      @Override
+//      public boolean zeroExternalForces () {
+//         myNode.zeroExternalForces();
+//         return true;
+//      }
 
       public FemDisplacementConnection copy() {
          return new FemDisplacementConnection(myNode, myWeight);

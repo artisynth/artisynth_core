@@ -24,6 +24,7 @@ import maspack.render.RenderableUtils;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import artisynth.core.modelbase.ComponentChangeEvent;
@@ -55,7 +56,7 @@ import artisynth.core.util.ScanToken;
  *
  * The CollisionManager maintains:
  *
- * (1) A set of defaut behaviors;
+ * (1) A set of default behaviors;
  * 
  * (2) A set of override behaviors, which are stored as invisible
  * model components;
@@ -687,17 +688,52 @@ public class CollisionManager extends RenderableCompositeBase
       return handler;
    }
 
-   private void getCollidableBodies (
+   private boolean isCollidable (Collidable c) {
+      return c.getCollidable() != Collidability.OFF;
+   }
+
+   private boolean isExternallyCollidable (Collidable c) {
+      Collidability ca = c.getCollidable();
+      return (ca == Collidability.ALL || ca == Collidability.EXTERNAL);
+   }
+
+   private boolean isInternallyCollidable (Collidable c) {
+      Collidability ca = c.getCollidable();
+      return (ca == Collidability.ALL || ca == Collidability.INTERNAL);
+   }
+
+   private void getExternallyCollidableBodies (
       List<CollidableBody> list, ModelComponent mc) {
 
       if (mc instanceof CompositeComponent) {
          CompositeComponent comp = (CompositeComponent)mc;
          for (int i=0; i<comp.numComponents(); i++) {
             ModelComponent c = comp.get (i);
-            if (c instanceof Collidable && isCollidableBody ((Collidable)c)) {
-               list.add ((CollidableBody)c);
+            if (c instanceof Collidable) {
+               Collidable col = (Collidable)c;
+               if (isCollidableBody (col) && isExternallyCollidable (col)) {
+                  list.add ((CollidableBody)c);
+               }
             }
-            getCollidableBodies (list, c);
+            getExternallyCollidableBodies (list, c);
+         }
+      }
+   }
+
+   private void getInternallyCollidableBodies (
+      List<CollidableBody> list, ModelComponent mc) {
+
+      if (mc instanceof CompositeComponent) {
+         CompositeComponent comp = (CompositeComponent)mc;
+         for (int i=0; i<comp.numComponents(); i++) {
+            ModelComponent c = comp.get (i);
+            if (c instanceof Collidable) {
+               Collidable col = (Collidable)c;
+               if (isCollidableBody (col) && isInternallyCollidable (col)) {
+                  list.add ((CollidableBody)c);
+               }
+            }
+            getInternallyCollidableBodies (list, c);
          }
       }
    }
@@ -773,16 +809,6 @@ public class CollisionManager extends RenderableCompositeBase
       return null;
    }
 
-//   protected boolean isCollidable (Collidable col) {
-//      do {
-//         if (!col.isCollidable() || col.getCollisionMesh() == null) {
-//            return false;
-//         }
-//      }
-//      while ((col=getCollidableAncestor(col, null)) != null);
-//      return true;
-//   }
-
    private boolean equal (CollisionBehavior b1, CollisionBehavior b2) {
       if ((b1 == null) != (b2 == null)) {
          return false;
@@ -824,19 +850,22 @@ public class CollisionManager extends RenderableCompositeBase
       ArrayList<CollidableBody> bodies = new ArrayList<CollidableBody>();
       if (isCollidableBody (c)) {
          throw new InternalErrorException (
-            "Self-intersection not yet supported for MeshBodies");
+            "Self-intersection not yet supported for individual Collidables");
       }
-      getCollidableBodies (bodies, c);
-      for (int i=0; i<bodies.size(); i++) {
-         CollidableBody ai = bodies.get(i);
-         for (int j=i+1; j<bodies.size(); j++) {
-            CollidableBody aj = bodies.get(j);
-            if (c.allowSelfIntersection (ai) && c.allowSelfIntersection (aj)) {
-               setBehaviorMap (new CollidablePair(ai, aj), behavior);
-            }
-            else {
-               setBehaviorMap (new CollidablePair(ai, aj),
-                               new CollisionBehavior(false, 0));
+      if (isInternallyCollidable (c)) {
+         getInternallyCollidableBodies (bodies, c);
+         for (int i=0; i<bodies.size(); i++) {
+            CollidableBody ai = bodies.get(i);
+            for (int j=i+1; j<bodies.size(); j++) {
+               CollidableBody aj = bodies.get(j);
+               if (isInternallyCollidable(ai) &&
+                   isInternallyCollidable(aj)) {
+                  setBehaviorMap (new CollidablePair(ai, aj), behavior);
+               }
+               else {
+                  setBehaviorMap (new CollidablePair(ai, aj),
+                                  new CollisionBehavior(false, 0));
+               }
             }
          }
       }
@@ -848,7 +877,19 @@ public class CollisionManager extends RenderableCompositeBase
       Collidable a = pair.myCompA;
       Collidable b = pair.myCompB;
       if (isCollidableBody (a) && isCollidableBody (b)) {
-         setBehaviorMap (pair, behavior);
+         if (nearestCommonCollidableAncestor (a, b) != null) {
+            // if a and b have a common ancester, INTERNAL collidability
+            // must be enabled
+            if (isInternallyCollidable (a) && isInternallyCollidable (b)) {
+               setBehaviorMap (pair, behavior);
+            }
+         }
+         else {
+            // otherwise, EXTERNAL collidability must be enabled
+            if (isExternallyCollidable (a) && isExternallyCollidable (b)) {
+               setBehaviorMap (pair, behavior);
+            }
+         }
       }
       else if (a == b) {
          // self intersection case
@@ -857,17 +898,17 @@ public class CollisionManager extends RenderableCompositeBase
       else {
          ArrayList<CollidableBody> bodiesA = new ArrayList<CollidableBody>();
          ArrayList<CollidableBody> bodiesB = new ArrayList<CollidableBody>();
-         if (isCollidableBody (a)) {
+         if (isCollidableBody (a) && isExternallyCollidable (a)) {
             bodiesA.add ((CollidableBody)a);
          }
-         else {
-            getCollidableBodies (bodiesA, a);
+         else if (isExternallyCollidable(a)) {
+            getExternallyCollidableBodies (bodiesA, a);
          }
-         if (isCollidableBody (b)) {
+         if (isCollidableBody (b) && isExternallyCollidable (b)) {
             bodiesB.add ((CollidableBody)b);
          }
-         else {
-            getCollidableBodies (bodiesB, b);
+         else if (isExternallyCollidable(b)) {
+            getExternallyCollidableBodies (bodiesB, b);
          }
          for (int i=0; i<bodiesA.size(); i++) {
             CollidableBody ai = bodiesA.get(i);
@@ -903,52 +944,50 @@ public class CollisionManager extends RenderableCompositeBase
       updateBehaviorMap();
       Collidable a = pair.myCompA;
       Collidable b = pair.myCompB;
-      if (isCollidableBody (a) && isCollidableBody (b)) {
+      if (isCollidableBody (a) && isCollidableBody (b)) { // ALL
          return getBehaviorMap (pair);
       }
       else if (a == b) {
          // self intersection case
          ArrayList<CollidableBody> bodies = new ArrayList<CollidableBody>();
-         if (isCollidableBody (a)) {
+         if (isCollidableBody (a)) { // ALL
             throw new InternalErrorException (
                "Self-intersection not yet supported for MeshBodies");
          }
-         getCollidableBodies (bodies, a);
          CollisionBehavior behavior = null;
-         for (int i=0; i<bodies.size(); i++) {
-            CollidableBody ai = bodies.get(i);
-            if (a.allowSelfIntersection (ai)) {
+         if (isInternallyCollidable (a)) {
+            getInternallyCollidableBodies (bodies, a);
+            for (int i=0; i<bodies.size(); i++) {
+               CollidableBody ai = bodies.get(i);
                for (int j=i+1; j<bodies.size(); j++) {
                   CollidableBody aj = bodies.get(j);
-                  if (a.allowSelfIntersection (aj)) {
-                     CollisionBehavior behav =
-                        getBehaviorMap (new CollidablePair(ai, aj));
-                     if (behavior == null) {
-                        behavior = behav;
-                     }
-                     else if (!equal (behavior, behav)) {
-                        return null;
-                     }
+                  CollisionBehavior behav =
+                     getBehaviorMap (new CollidablePair(ai, aj));
+                  if (behavior == null) {
+                     behavior = behav;
+                  }
+                  else if (!equal (behavior, behav)) {
+                     return null;
                   }
                }
             }
          }
-         return behavior;
+         return behavior == null ? new CollisionBehavior (false, 0) : behavior;
       }
       else {
          ArrayList<CollidableBody> bodiesA = new ArrayList<CollidableBody>();
          ArrayList<CollidableBody> bodiesB = new ArrayList<CollidableBody>();
-         if (isCollidableBody (a)) {
+         if (isCollidableBody (a) && isExternallyCollidable(a)) {
             bodiesA.add ((CollidableBody)a);
          }
-         else {
-            getCollidableBodies (bodiesA, a);
+         else if (isExternallyCollidable(a)) {
+            getExternallyCollidableBodies (bodiesA, a);
          }
-         if (isCollidableBody (b)) {
+         if (isCollidableBody (b) && isExternallyCollidable(b)) {
             bodiesB.add ((CollidableBody)b);
          }
-         else {
-            getCollidableBodies (bodiesB, b);
+         else if (isExternallyCollidable(b)) {
+            getExternallyCollidableBodies (bodiesB, b);
          }
          CollisionBehavior behavior = null;
          for (int i=0; i<bodiesA.size(); i++) {
@@ -965,7 +1004,7 @@ public class CollisionManager extends RenderableCompositeBase
                }
             }
          }
-         return behavior;
+         return behavior == null ? new CollisionBehavior (false, 0) : behavior;
       }
    }
 
@@ -992,7 +1031,7 @@ public class CollisionManager extends RenderableCompositeBase
       // XXX Need to call isCollidable() first, because FemModel3d uses that to
       // trigger on-demand surface mesh generation, without which the actual
       // FemMesh object containing the surface will have a null mesh.
-      if (!c.isCollidable()) {
+      if (!isCollidable(c)) {
          return false;
       }
       else if (c instanceof CollidableBody &&
@@ -1057,7 +1096,9 @@ public class CollisionManager extends RenderableCompositeBase
                         getPrimaryCollisionBehavior (
                            (CollidableBody)ci, (CollidableBody)cj);
                      if (nearestCommonCollidableAncestor (ci, cj) == null) {
-                        if (behavior != null && behavior.isEnabled()) {
+                        if (isExternallyCollidable (ci) &&
+                            isExternallyCollidable (cj) &&
+                            behavior != null && behavior.isEnabled()) {
                            // make sure behavior is a copy or
                            myBehaviorMap.put (
                               new CollidablePair (ci, cj), behavior);
@@ -1488,6 +1529,10 @@ public class CollisionManager extends RenderableCompositeBase
 
       for (int i=0; i<myCollisionHandlers.size(); i++) {
          myCollisionHandlers.get(i).removeInactiveContacts();
+         // System.out.println (
+         //    "numc: " +
+         //    myCollisionHandlers.get(i).myBilaterals0.size() + " " + 
+         //    myCollisionHandlers.get(i).myBilaterals1.size());
       }
       
       return maxpen;

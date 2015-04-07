@@ -973,10 +973,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * @param data new data to set inside the probe
     * @return <code>false</code> if the probe is not found
     */
-   public boolean setInputProbeData (String name, double[][] data) {
+   public boolean setInputProbeData (String nameOrNumber, double[][] data) {
       RootModel root = getRootModel();
       if (root != null) {
-         Probe probe = root.getInputProbes().findComponent (name);
+         Probe probe = root.getInputProbes().findComponent (nameOrNumber);
          if (probe instanceof NumericProbeBase) {
             ((NumericProbeBase)probe).setValues(data);
             return true;
@@ -1024,10 +1024,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * @param data new data to set inside the probe
     * @return <code>false</code> if the probe is not found
     */
-   public boolean setOutputProbeData (String name, double[][] data) {
+   public boolean setOutputProbeData (String nameOrNumber, double[][] data) {
       RootModel root = getRootModel();
       if (root != null) {
-         Probe probe = root.getOutputProbes().findComponent (name);
+         Probe probe = root.getOutputProbes().findComponent (nameOrNumber);
          if (probe instanceof NumericProbeBase) {
             ((NumericProbeBase)probe).setValues(data);
             return true;
@@ -1559,6 +1559,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       IntHolder width = new IntHolder (750);
       IntHolder height = new IntHolder (500);
 
+      // some interfaces (like Matlab) may pass args in as null
       if (args == null) {
          args = new String[0];
       }
@@ -2132,8 +2133,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // XXX there ought to be a cleaner way to do this ...
       ModelComponent comp = e.getComponent();
       if (comp == root.getWayPoints() ||
-         (e instanceof StructureChangeEvent &&
-            ((StructureChangeEvent)e).stateIsChanged())) {
+          (e instanceof StructureChangeEvent &&
+           ((StructureChangeEvent)e).stateIsChanged())) {
          return false;
       }
       else {
@@ -2144,14 +2145,17 @@ public class Main implements DriverInterface, ComponentChangeListener {
    public void componentChanged (ComponentChangeEvent e) {
       if (e.getCode() == ComponentChangeEvent.Code.STRUCTURE_CHANGED ||
          e.getCode() == ComponentChangeEvent.Code.DYNAMIC_ACTIVITY_CHANGED) {
+         boolean invalidateWaypoints = false;
          RootModel root = getRootModel();
-         boolean invalidateWaypoints = changeAffectsWaypoints(root, e);
-         if (invalidateWaypoints) {
-            root.getWayPoints().invalidateAfterTime(0);
+         if (root != null) {
+            invalidateWaypoints = changeAffectsWaypoints(root, e);
+            if (invalidateWaypoints) {
+               root.getWayPoints().invalidateAfterTime(0);
+            }
          }
          ModelComponent c = e.getComponent();
          if (myTimeline != null) {
-            if (c == root.getWayPoints()) {
+            if (root != null && c == root.getWayPoints()) {
                myTimeline.requestUpdateWidgets();
             }
             else {
@@ -2162,7 +2166,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
          if (e.getCode() == ComponentChangeEvent.Code.STRUCTURE_CHANGED) {
             if (c != null && c instanceof CompositeComponent && myFrame != null) {
                myFrame.getNavPanel().updateStructure (c);
-               if (c == root.getInputProbes() || c == root.getOutputProbes()) {
+               if (root != null &&
+                   (c == root.getInputProbes() || c == root.getOutputProbes())) {
                   myTimeline.updateProbes();
                }
             }

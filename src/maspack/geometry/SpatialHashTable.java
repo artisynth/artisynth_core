@@ -171,7 +171,6 @@ public class SpatialHashTable<T> {
     * bv tree.
     * 
     * @param bvtree
-    * @return
     */
    public Map<List<T>,ArrayList<BVNode>> getCellsIntersecting (BVTree bvtree) {
       Map<List<T>,ArrayList<BVNode>> potentials = new HashMap<>();
@@ -227,7 +226,6 @@ public class SpatialHashTable<T> {
     * some null cells.
     * 
     * @param pos
-    * @return 
     */
    public Iterator<List<T>> getCellsNearOld (Point3d pos) {
       int xIdx = (int) Math.round (pos.x/myGridSpacing);

@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import maspack.geometry.*;
 import maspack.render.RenderProps;
+import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.femmodels.*;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.materials.LinearMaterial;
@@ -40,6 +41,7 @@ public class FemEmbeddedSphere extends RootModel {
       // Add an embedded sphere mesh
       PolygonalMesh sphereSurface = MeshFactory.createOctahedralSphere(0.15, 3);
       sphere = fem.addMesh("sphere", sphereSurface);
+      sphere.setCollidable (Collidability.EXTERNAL);
       
       // Boundary condition: fixed LHS
       for (FemNode3d node : fem.getNodes()) {

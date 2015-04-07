@@ -326,7 +326,6 @@ public class MechSystemSolver {
          //mySys.getComponentSizes (sizes);
          //myComponentSizes = Arrays.copyOf (sizes.getBuffer(), sizes.size());
 
-
          myQ.setSize (myActivePosSize);
          myU.setSize (myActiveVelSize);
          myUtmp.setSize (myActiveVelSize);

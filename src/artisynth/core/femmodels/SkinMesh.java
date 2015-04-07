@@ -40,6 +40,7 @@ import maspack.util.ReaderTokenizer;
 import artisynth.core.femmodels.PointSkinAttachment.Connection;
 import artisynth.core.femmodels.PointSkinAttachment.FrameConnection;
 import artisynth.core.mechmodels.Collidable;
+import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.mechmodels.CollidableBody;
 import artisynth.core.mechmodels.CollisionHandler;
 import artisynth.core.mechmodels.DynamicAttachment;
@@ -229,8 +230,9 @@ public class SkinMesh extends SkinMeshBase
    // last sigma value used by computeDisplacementAndWeights()
    protected double myLastSigma = myDefaultSigma;
 
-   protected static final boolean DEFAULT_COLLIDABLE = true;
-   protected boolean myCollidableP = DEFAULT_COLLIDABLE;
+   protected static final Collidability DEFAULT_COLLIDABILITY =
+      Collidability.ALL;   
+   protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
 
    /**
     * Base class for information about bodies (e.g., Frames or
@@ -517,8 +519,9 @@ public class SkinMesh extends SkinMeshBase
    static {
       myProps.add("frameBlending", "frame blending mechanism",
                   DEFAULT_FRAME_BLENDING);
-      myProps.add("collidable isCollidable setCollidable", 
-         "sets whether or not this SkinMesh is collidable", DEFAULT_COLLIDABLE);
+      myProps.add (
+         "collidable", 
+         "sets the collidability of this SkinMesh mesh", DEFAULT_COLLIDABILITY);      
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -1393,15 +1396,16 @@ public class SkinMesh extends SkinMeshBase
          return null;
       }
    }
-   
+
    @Override
-   public boolean isCollidable() {
-      return myCollidableP;
+   public Collidability getCollidable () {
+      getSurfaceMesh(); // build surface mesh if necessary
+      return myCollidability;
    }
 
-   public void setCollidable (boolean enable) {
-      if (myCollidableP != enable) {
-         myCollidableP = enable;
+   public void setCollidable (Collidability c) {
+      if (myCollidability != c) {
+         myCollidability = c;
          notifyParentOfChange (new StructureChangeEvent (this));
       }
    }
@@ -1409,11 +1413,6 @@ public class SkinMesh extends SkinMeshBase
    @Override
    public boolean isDeformable () {
       return true;
-   }
-
-   @Override
-   public boolean allowSelfIntersection (Collidable col) {
-      return false;
    }
 
    @Override

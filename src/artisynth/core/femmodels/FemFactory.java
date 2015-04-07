@@ -504,7 +504,7 @@ public class FemFactory {
     * @param ndivisions number of divisions used in creating the surface mesh.
     * Typical values are 1 or 2.
     * @param quality quality parameter passed to tetgen. See
-    * {@link #buildFromMesh} for a full description.
+    * {@link #createFromMesh} for a full description.
     * @return the FEM model (which will be <code>mod</code> if
     * <code>mod</code> is not <code>null</code>).
     */

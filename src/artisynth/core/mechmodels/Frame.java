@@ -51,9 +51,12 @@ public class Frame extends DynamicComponentBase
    protected Wrench myBodyForce = new Wrench(); // preallocated temporary
 
    static {
-      myProps.add ("renderProps * *", "render properties", null);
-      myProps.add ("pose * *", "pose state", null, "NE NW");
-      myProps.add ("position", "position of the body coordinate frame",null,"NW");
+      myProps.add (
+         "renderProps * *", "render properties", null);
+      myProps.add (
+         "pose * *", "pose state", null, "NE NW");
+      myProps.add (
+         "position", "position of the body coordinate frame",null,"NW");
       myProps.add (
          "orientation", "orientation of the body coordinate frame", null, "NW");
       myProps.add ("velocity * *", "velocity state", null, "NW");
@@ -66,16 +69,22 @@ public class Frame extends DynamicComponentBase
       myProps.add (
          "targetOrientation", "target orientation for the body coordinate frame",
          AxisAngle.IDENTITY, "NW");
-      myProps.add ("targetVelocity", "velocity target", Twist.ZERO, "NW");
-      myProps.add ("targetActivity", "specifies which targets are active",
-                   TargetActivity.Auto, "NW");
+      myProps.add (
+         "targetVelocity", "velocity target", Twist.ZERO, "NW");
+      myProps.add (
+         "targetActivity", "specifies which targets are active",
+         TargetActivity.Auto, "NW");
       
-      myProps.addReadOnly ("force", "total force wrench", "NW");
+      myProps.addReadOnly (
+         "force", "total force wrench", "NW");
       myProps.addReadOnly (
          "transForce", "translational component of total force wrench", "NW");
-      myProps.addReadOnly ("moment", "moment component total force wrench", "NW");
-      myProps.add ("externalForce * *", "external force wrench", null, "NW");
-      myProps.add ("axisLength * *", "length of rendered frame axes", 1f);
+      myProps.addReadOnly (
+         "moment", "moment component total force wrench", "NW");
+      myProps.add (
+         "externalForce * *", "external force wrench", null, "NW");
+      myProps.add (
+         "axisLength * *", "length of rendered frame axes", 1f);
       myProps.addInheritable (
          "frameDamping:Inherited", "intrinsic translational damping", 0.0);
       myProps.addInheritable (
@@ -237,7 +246,7 @@ public class Frame extends DynamicComponentBase
    }
 
    /**
-    * Computes the locstion, in body coordinates, of a point whose position
+    * Computes the location, in body coordinates, of a point whose position
     * is given in world coordinates. This is the inverse computation
     * of {@link #computePointPosition}.
     * 
@@ -378,20 +387,20 @@ public class Frame extends DynamicComponentBase
       addPointForce (myForce, loc, f);
    }
 
-   /**
-    * Adds to this body's external forces the wrench arising from
-    * applying a force <code>f</code> on a point <code>loc</code>.
-    *
-    * @param loc location of the point (body coordinates)
-    * @param f force applied to the point (world coordinates)
-    */
-   public void addExternalPointForce (Point3d loc, Vector3d f) {
-      addPointForce (myExternalForce, loc, f);
-   }
+//   /**
+//    * Adds to this body's external forces the wrench arising from
+//    * applying a force <code>f</code> on a point <code>loc</code>.
+//    *
+//    * @param loc location of the point (body coordinates)
+//    * @param f force applied to the point (world coordinates)
+//    */
+//   public void addExternalPointForce (Point3d loc, Vector3d f) {
+//      addPointForce (myExternalForce, loc, f);
+//   }
 
    /**
     * Computes the wrench (in body coordinates) produced by applying a
-    * point at a particular point.
+    * force at a particular point.
     *
     * @param wr returns the wrench in body coordinates
     * @param f applied force at the point (world coordinates)
@@ -402,18 +411,18 @@ public class Frame extends DynamicComponentBase
       wr.m.cross (p, wr.f);
    }
 
-   /**
-    * Computes the wrench (in body coordinates) produced by applying a
-    * force at a particular point.
-    *
-    * @param wr returns the wrench in body coordinates
-    * @param f applied force at the point (world coordinates)
-    * @param p location of the point on the body (body coordinates)
-    */
-   public void computeAppliedWrench (Matrix6x1 wr, Vector3d f, Vector3d p) {
-      myBodyForce.f.inverseTransform (myState.XFrameToWorld.R, f);
-      wr.setWrench (myBodyForce.f, p);
-   }
+//   /**
+//    * Computes the wrench (in body coordinates) produced by applying a
+//    * force at a particular point.
+//    *
+//    * @param wr returns the wrench in body coordinates
+//    * @param f applied force at the point (world coordinates)
+//    * @param p location of the point on the body (body coordinates)
+//    */
+//   public void computeAppliedWrench (Matrix6x1 wr, Vector3d f, Vector3d p) {
+//      myBodyForce.f.inverseTransform (myState.XFrameToWorld.R, f);
+//      wr.setWrench (myBodyForce.f, p);
+//   }
 
    public void resetTargets() {
       if (myTarget != null) {
@@ -789,36 +798,36 @@ public class Frame extends DynamicComponentBase
       mySolveBlock = blk;
    }
 
-   public MatrixBlock createSolveBlock () {
-      FrameBlock blk = new FrameBlock (this);
-      mySolveBlock = blk;
-      return blk;
-   }
+//   public MatrixBlock createSolveBlock () {
+//      FrameBlock blk = new FrameBlock (this);
+//      mySolveBlock = blk;
+//      return blk;
+//   }
                                         
    public void setState (Frame frame) {
       myState.set (frame.myState);
    }
 
-   public int setState (VectorNd x, int idx) {
-      return myState.set (x, idx);
-   }
+//   public int setState (VectorNd x, int idx) {
+//      return myState.set (x, idx);
+//   }
 
-   public void getState (FrameState state) {
-      state.set (myState);
-   }
+//   public void getState (FrameState state) {
+//      state.set (myState);
+//   }
 
-   public int getState (VectorNd x, int idx) {
-      return myState.get (x, idx);
-   }
+//   public int getState (VectorNd x, int idx) {
+//      return myState.get (x, idx);
+//   }
 
-   public void setState (DynamicComponent c) {
-      if (c instanceof Frame) {
-         setState ((Frame)c);
-      }
-      else {
-         throw new IllegalArgumentException ("component c is not a Frame");
-      }
-   }
+//   public void setState (DynamicComponent c) {
+//      if (c instanceof Frame) {
+//         setState ((Frame)c);
+//      }
+//      else {
+//         throw new IllegalArgumentException ("component c is not a Frame");
+//      }
+//   }
    
    public int getPosState (double[] buf, int idx) {
       idx = myState.getPos (buf, idx);
@@ -1047,7 +1056,5 @@ public class Frame extends DynamicComponentBase
 //   public boolean requiresContactVertexInfo() {
 //      return false;
 //   }
-
-   
 
 }

@@ -51,6 +51,7 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.TransformableGeometry;
@@ -106,8 +107,9 @@ public class RigidBody extends Frame
    private static Point3d DEFAULT_CENTER_OF_MASS = new Point3d (0, 0, 0);
    private static double DEFAULT_DENSITY = 1.0;
 
-   protected static final boolean DEFAULT_COLLIDABLE = true;
-   protected boolean myCollidableP = DEFAULT_COLLIDABLE;
+   protected static final Collidability DEFAULT_COLLIDABILITY =
+      Collidability.ALL;   
+   protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
 
     static {
       myProps.remove ("renderProps");
@@ -127,8 +129,9 @@ public class RigidBody extends Frame
       myProps.add (
          "dynamic isDynamic", "true if component is dynamic (non-parametric)",
          true);
-      myProps.add("collidable isCollidable setCollidable", 
-         "sets whether or not this body is collidable", DEFAULT_COLLIDABLE);
+      myProps.add (
+         "collidable", 
+         "sets the collidability of this body", DEFAULT_COLLIDABILITY);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -631,15 +634,15 @@ public class RigidBody extends Frame
       updateVelState();
    }
 
-   public void addVelocity (Twist v) {
-      myState.addVelocity (v);
-      updateVelState();
-   }
-
-   public void addScaledVelocity (double s, Twist v) {
-      myState.addScaledVelocity (s, v);
-      updateVelState();
-   }
+//   public void addVelocity (Twist v) {
+//      myState.addVelocity (v);
+//      updateVelState();
+//   }
+//
+//   public void addScaledVelocity (double s, Twist v) {
+//      myState.addScaledVelocity (s, v);
+//      updateVelState();
+//   }
 
    public void setState (Frame frame) {
       super.setState (frame);
@@ -647,12 +650,12 @@ public class RigidBody extends Frame
       updateVelState();
    }
 
-   public int setState (VectorNd x, int idx) {
-      idx = super.setState (x, idx);
-      updatePosState();
-      updateVelState();
-      return idx;
-   }
+//   public int setState (VectorNd x, int idx) {
+//      idx = super.setState (x, idx);
+//      updatePosState();
+//      updateVelState();
+//      return idx;
+//   }
 
 //   public void setState (ComponentState state) {
 //      super.setState (state);
@@ -714,19 +717,19 @@ public class RigidBody extends Frame
       myForce.m.crossAdd (com, fgrav, myForce.m);
    }
 
-   public int applyPosImpulse (double[] delx, int idx) {
-      Twist tw = new Twist();
-      tw.v.x = delx[idx++];
-      tw.v.y = delx[idx++];
-      tw.v.z = delx[idx++];
-      tw.w.x = delx[idx++];
-      tw.w.y = delx[idx++];
-      tw.w.z = delx[idx++];
-      //myState.adjustPose (tw);
-      myState.adjustPose (tw, 1);
-      updatePosState();
-      return idx;
-   }
+//   public int applyPosImpulse (double[] delx, int idx) {
+//      Twist tw = new Twist();
+//      tw.v.x = delx[idx++];
+//      tw.v.y = delx[idx++];
+//      tw.v.z = delx[idx++];
+//      tw.w.x = delx[idx++];
+//      tw.w.y = delx[idx++];
+//      tw.w.z = delx[idx++];
+//      //myState.adjustPose (tw);
+//      myState.adjustPose (tw, 1);
+//      updatePosState();
+//      return idx;
+//   }
 
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
       myState.vel.setZero();
@@ -826,22 +829,7 @@ public class RigidBody extends Frame
       throws IOException {
       dowrite (pw, fmt, ref);
    }
-   //    pw.print ("[ ");
-   //    IndentingPrintWriter.addIndentation (pw, 2);
-   //    pw.println (mySpatialInertia.toString (
-   //       fmt, SpatialInertia.MASS_INERTIA_STRING));
-   //    pw.println (myState.XFrameToWorld.toString (
-   //       fmt, RigidTransform3d.AXIS_ANGLE_STRING));
-   //    if (!myState.vel.v.equals (zeroVect) || !myState.vel.w.equals (zeroVect)) {
-   //       pw.print ("[ ");
-   //       pw.print (myState.vel.toString (fmt));
-   //       pw.println (" ]");
-   //    }
-   //    writeMesh (pw, fmt);
-   //    getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
-   //    IndentingPrintWriter.addIndentation (pw, -2);
-   //    pw.println ("]");
-   // }
+
 
    /* ======== Renderable implementation ======= */
 
@@ -1331,13 +1319,14 @@ public class RigidBody extends Frame
    }
 
    @Override
-   public boolean isCollidable () {
-      return myCollidableP;
+   public Collidability getCollidable () {
+      getSurfaceMesh(); // build surface mesh if necessary
+      return myCollidability;
    }
 
-   public void setCollidable (boolean enable) {
-      if (myCollidableP != enable) {
-         myCollidableP = enable;
+   public void setCollidable (Collidability c) {
+      if (myCollidability != c) {
+         myCollidability = c;
          notifyParentOfChange (new StructureChangeEvent (this));
       }
    }
@@ -1347,38 +1336,6 @@ public class RigidBody extends Frame
       return false;
    }
 
-   @Override
-   public boolean allowSelfIntersection (Collidable col) {
-      return false;
-   }
-
-//   private class RBContactMaster extends ContactMaster {
-//      Point3d myLoc = new Point3d();
-//      double myWeight;
-//
-//      RBContactMaster (Frame frame, double w, ContactPoint cpnt) {
-//         super (frame, w, cpnt);
-//         myLoc = new Point3d(cpnt.myPoint);
-//         myLoc.inverseTransform (getPose());
-//         myWeight = w;
-//      }
-//
-//      public MatrixBlock getBlock (Vector3d dir) {
-//         Matrix6x1Block blk = new Matrix6x1Block();
-//         computeAppliedWrench (blk, dir, myLoc);
-//         blk.transform (getPose().R);
-//         blk.scale (myWeight);
-//         return blk;
-//      }
-//
-//     public void addRelativeVelocity (Vector3d vel) {
-//        Vector3d tmp = new Vector3d();
-//        computePointVelocity(tmp, myLoc);
-//        vel.scaledAdd (myWeight, tmp);
-//     }
-//
-//   }
-   
    public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
       mlist.add (new ContactMaster (this, 1));
    }

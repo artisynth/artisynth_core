@@ -252,27 +252,27 @@ public abstract class DeformableBody extends RigidBody
       mySolveBlock = blk;
    }
 
-   @Override   
-   public MatrixBlock createSolveBlock () {
-      int msize = 6 + numElasticCoords();      
-      MatrixNdBlock blk = new MatrixNdBlock (msize, msize);
-      mySolveBlock = blk;
-      return blk;
-   }   
+//   @Override   
+//   public MatrixBlock createSolveBlock () {
+//      int msize = 6 + numElasticCoords();      
+//      MatrixNdBlock blk = new MatrixNdBlock (msize, msize);
+//      mySolveBlock = blk;
+//      return blk;
+//   }   
 
-   @Override      
-   public void setState (DynamicComponent c) {
-      if (c.getClass() == getClass()) {
-         DeformableBody bod = (DeformableBody)c;
-         super.setState (bod);
-         myElasticPos.set (bod.myElasticPos);
-         myElasticVel.set (bod.myElasticVel);
-      }
-      else {
-         throw new IllegalArgumentException (
-            "component c is not an instance of "+getClass());
-      }
-   }   
+//   @Override      
+//   public void setState (DynamicComponent c) {
+//      if (c.getClass() == getClass()) {
+//         DeformableBody bod = (DeformableBody)c;
+//         super.setState (bod);
+//         myElasticPos.set (bod.myElasticPos);
+//         myElasticVel.set (bod.myElasticVel);
+//      }
+//      else {
+//         throw new IllegalArgumentException (
+//            "component c is not an instance of "+getClass());
+//      }
+//   }   
 
    @Override      
    public void addPosImpulse (
@@ -554,12 +554,12 @@ public abstract class DeformableBody extends RigidBody
       addPointForce (myForce, myElasticForce, loc, f);
    }
 
-   /**
-    * {@inheritDoc}
-    */
-   @Override public void addExternalPointForce (Point3d loc, Vector3d f) {
-      addPointForce (myExternalForce, myExternalElasticForce, loc, f);
-   }
+//   /**
+//    * {@inheritDoc}
+//    */
+//   @Override public void addExternalPointForce (Point3d loc, Vector3d f) {
+//      addPointForce (myExternalForce, myExternalElasticForce, loc, f);
+//   }
 
    @Override
    public void computePointForceJacobian (MatrixBlock GT, Point3d loc) {

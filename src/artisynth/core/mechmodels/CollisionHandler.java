@@ -539,10 +539,18 @@ public class CollisionHandler extends ConstrainerBase
          pnt0 = new ContactPoint (cpp.vertex);
          pnt1 = new ContactPoint (cpp.position, cpp.face, cpp.coords);
          
+         HashSet<Vertex3d> attachedVtxs0 = myAttachedVertices0;
+         HashSet<Vertex3d> attachedVtxs1 = myAttachedVertices1;
+         if (collidable0 == myCollidable1) {
+            // flip attached vertex lists
+            attachedVtxs0 = myAttachedVertices1;
+            attachedVtxs1 = myAttachedVertices0;
+         }
+
          if (!collidable0.allowCollision (
-                pnt0, collidable1, myAttachedVertices0) ||
+                pnt0, collidable1, attachedVtxs0) ||
              !collidable1.allowCollision (
-                pnt1, collidable0, myAttachedVertices1)) {
+                pnt1, collidable0, attachedVtxs1)) {
             continue;
          }
 
@@ -936,6 +944,14 @@ public class CollisionHandler extends ConstrainerBase
          numf = c.add2DFrictionConstraints (DT, finfo, myFriction, numf);
       }
       return numf;
+   }
+
+   public int numBilateralConstraints() {
+      return myBilaterals0.size() + myBilaterals1.size();
+   }
+
+   public int numUnilateralConstraints() {
+      return myUnilaterals.size();
    }
 
    /** 

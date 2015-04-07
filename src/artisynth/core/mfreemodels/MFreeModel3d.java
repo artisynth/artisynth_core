@@ -59,6 +59,7 @@ import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.SolidDeformation;
 import artisynth.core.mechmodels.CollidableBody;
 import artisynth.core.mechmodels.Collidable;
+import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.mechmodels.CollidableDynamicComponent;
 import artisynth.core.mechmodels.CollisionHandler;
 import artisynth.core.mechmodels.ContactMaster;
@@ -979,23 +980,18 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
       return null;
    }
    
-   @Override
-   public boolean isCollidable () {
+   @Override 
+   public Collidability getCollidable() {
       PolygonalMesh mesh = getCollisionMesh();
       if (mesh != null) {
-         return true;
+         return Collidability.EXTERNAL;
       }
-      return false;
+      return Collidability.OFF;
    }
 
    @Override
    public boolean isDeformable () {
       return true;
-   }
-
-   @Override
-   public boolean allowSelfIntersection (Collidable col) {
-      return false;
    }
    
    public Collection<MeshComponent> getMeshes() {

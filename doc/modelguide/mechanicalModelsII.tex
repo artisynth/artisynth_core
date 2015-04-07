@@ -743,15 +743,6 @@ between adjacent bodies connected by joints, since otherwise these
 would be forced into a state of permanent collision.
 \end{sideblock}
 
-Each collidable component also provides an
-\javamethod[artisynth.core.mechmodels.Collidable]{isCollidable()}
-method, which must return {\tt true} to enable collisions involving
-that component. For some collidables, the value of this method is tied
-to a {\tt collidable} property, so that setting {\tt collidable} to
-{\tt false} will disable all collisions involving that component,
-regardless of any default and explcit collision behaviors that
-have been specified,
-
 \subsubsection{Example: Collision with a plane}
 
 \begin{figure}[ht]
@@ -818,6 +809,7 @@ the model (Section \ref{LoadingAndRunning:sec}) will
 cause the jointed assembly to collide with and slide off the inclined
 plane.
 
+
 \subsubsection{Self-collision and collidable hierarchies}
 \label{SelfCollision:sec}
 
@@ -832,16 +824,13 @@ Any descendant component of a
 itself {\tt Collidable} is considered to be a sub-collidable of A.
 Certain types of components maintain sub-collidables by default.  For
 example, some components (such as finite element models; Section
-\ref{FEMModels:sec}) maintain a list of associated meshes (such as
-embedded and surface meshes) in a child component list named {\tt
-meshes}, and meshes within this list can be made 
-collidable.  In general, an ArtiSynth model will contain a collection
-of collidables, some of which posses sub-collidables and others which
-are solitary (Figure \ref{CollidableGroups:fig}).
+\ref{FEMModels:sec}) maintain a list of meshes in a child component
+list named {\tt meshes}; these can be used to implement self-collision
+as described below.
 
 \begin{sideblock}
 Note: A collidable does not need to be an immediate child component
-of a collidale A in order to be a sub-collidable of A;
+of a collidable A in order to be a sub-collidable of A;
 it need only be a descendent of A. 
 \end{sideblock}
 
@@ -851,36 +840,47 @@ it need only be a descendent of A.
 \end{center}
 \caption{A collection of collidable components, where A possesses
 sub-collidables A1, A2, and A3, B is solitary, and C possesses
-sub-collidables C1 and C2. Self-collisions are allowed among 
-a subset of the sub-collidables which are shaded grey.}
+sub-collidables C1 and C2. Internal collisions are enabled among those
+sub-collidables which are shaded grey.}
 \label{CollidableGroups:fig}
 \end{figure}
 
-Within a collection of collidables:
+In general, an ArtiSynth model will contain a collection of
+collidables, some of which posses sub-collidables and others which are
+solitary (Figure \ref{CollidableGroups:fig}).  Within a collection of
+collidables:
 
 \begin{itemize}
 
-\item Actual collisions happen only between leaf components; ancestor
-components are used only for grouping purposes.
+\item Actual collisions happen only between leaf collidables; ancestor
+collidables are used only for grouping purposes.
 
-\item By default, sub-collidables of a component A will not collide
-among themselves unless self-collision is enabled for A, in which case
-collisions will be enabled among those for which A's 
-\javamethod[artisynth.core.mechmodels.Collidable]{allowSelfCollisions()}
-method returns {\tt true} (shaded grey in Figure \ref{CollidableGroups:fig}.
+\item By default, the sub-collidables of a component A will only
+collide among themselves if self-collision is specified for A (via
+either a default or override collision behavior). If self-collision is
+specified for A, then collisions may occur only among those
+sub-collidables for which {\it internal} collisions are enabled.
+Internal collisions are enabled for a collidable if its {\tt
+collidable} property (Section \ref{collidability:sec}) is set to
+either {\tt ALL} or {\tt INTERNAL}.
 
-\item Self-collision is only possible among the sub-collidables of
-A if A is itself deformable; i.e., its
+\item Self-collision is also only possible among the sub-collidables
+of A if A is itself deformable; i.e., its
 \javamethod[artisynth.core.mechmodels.Collidable]{isDeformable()}
 method returns {\tt true}.
+
+\item Sub-collidables may collide with collidables outside their
+hierarchy if their {\tt collidable} property is set to either {\tt
+ALL} or {\tt EXTERNAL}.
 
 \item Collision among specific pairs of sub-collidables may also be
 explicitly enabled or disabled with an override behavior set using one
 of the {\tt setCollisionBehavior()} methods.
 
-\item Specifying a collision behavior among two collidables A and B which
-are {\it not} within the same hierarchy will cause that behavior to be
-specified among all sub-collidables of A and B.
+\item Specifying a collision behavior among two collidables A and B
+which are {\it not} within the same hierarchy will cause that behavior
+to be specified among all sub-collidables of A and B whose {\tt
+collidable} property enables the collision.
 
 \end{itemize}
 
@@ -912,6 +912,49 @@ B). Then:
    // This will disable all self-collisions among A1, A2 and A3.
 \end{lstlisting}
 %
+
+\subsubsection{Collidability}
+\label{collidability:sec}
+
+Each collidable component maintains a {\tt collidable} property
+(which can be queried using
+\javamethod[artisynth.core.mechmodels.Collidable]{getCollidable()})
+which specifically enables or disables the ability of that collidable
+to collide with other collidables.
+
+The {\tt collidable} property value is of the enumerated type
+\javaclass[artisynth.core.mechmodels]{Collidable.Collidability}, which
+has four possible settings:
+
+\begin{description}
+
+\item[OFF]\mbox{}
+
+All collisions disabled: the collidable will not collide with
+anything.
+
+\item[INTERNAL]\mbox{}
+
+Internal (self) collisions enabled: the collidable may only collide
+with other Collidables with which it shares a common ancestor.
+
+\item[EXTERNAL]\mbox{}
+
+External collisions enabled: the collidable may only collide with
+other Collidables with which it does {\it not} share a common
+ancestor.
+
+\item[ALL]\mbox{}
+
+All collisions (both self and external) enabled: the collidable may
+collide with any other Collidable.
+
+\end{description}
+
+Note that collidability only {\it enables} collisions.  In order for
+collisions to actually occur between two collidables, a default or
+override collision behavior must also be specified for them in the
+MechModel.
 
 \subsubsection{Implementation and limitations}
 

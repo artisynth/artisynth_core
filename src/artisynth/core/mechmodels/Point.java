@@ -607,14 +607,14 @@ public class Point extends DynamicComponentBase
       return blk;
    }
    
-   public void setState (DynamicComponent c) {
-      if (c instanceof Point) {
-         setState ((Point)c);
-      }
-      else {
-         throw new IllegalArgumentException ("component c is not a Point");
-      }
-   }
+//   public void setState (DynamicComponent c) {
+//      if (c instanceof Point) {
+//         setState ((Point)c);
+//      }
+//      else {
+//         throw new IllegalArgumentException ("component c is not a Point");
+//      }
+//   }
   
    public void setState (Point point) {
       myState.set (point.myState);

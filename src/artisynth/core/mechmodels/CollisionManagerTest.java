@@ -8,6 +8,7 @@ import maspack.geometry.*;
 import maspack.render.*;
 
 import artisynth.core.mechmodels.*;
+import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.modelbase.*;
 import artisynth.core.femmodels.*;
 import artisynth.core.workspace.*;
@@ -198,7 +199,7 @@ public class CollisionManagerTest extends UnitTest {
       return null;
    }
 
-   boolean hasCollidableAncestor (CollidableBody  a, CollidableBody b) {
+   boolean hasCollidableAncestor (Collidable a, Collidable b) {
       ModelComponent comp = ComponentUtils.findCommonAncestor(a, b);
       while (comp != null) {
          if (comp instanceof Collidable) {
@@ -231,10 +232,29 @@ public class CollisionManagerTest extends UnitTest {
       }
    }
 
-   private void applyBehavior (
+   boolean isInternallyCollidable (Collidable c) {
+      return (c.getCollidable() == Collidability.ALL ||
+              c.getCollidable() == Collidability.INTERNAL);
+   }
+ 
+   boolean isExternallyCollidable (Collidable c) {
+      return (c.getCollidable() == Collidability.ALL ||
+              c.getCollidable() == Collidability.EXTERNAL);
+   }
+
+  private void applyBehavior (
       Collidable a, Collidable b, CollisionBehavior behavior) {
       if (isBody(a) && isBody(b)) {
-         setBehavior ((CollidableBody)a, (CollidableBody)b, behavior);
+         if (hasCollidableAncestor(a, b)) {
+            if (isInternallyCollidable(a) && isInternallyCollidable(b)) {
+               setBehavior ((CollidableBody)a, (CollidableBody)b, behavior);
+            }
+         }
+         else {
+            if (isExternallyCollidable(a) && isExternallyCollidable(b)) {
+               setBehavior ((CollidableBody)a, (CollidableBody)b, behavior);
+            }
+         }
       }
       else if (a == b) {
          ArrayList<CollidableBody> bodies = getSubBodies (a);
@@ -242,7 +262,7 @@ public class CollisionManagerTest extends UnitTest {
             CollidableBody ai = bodies.get(i);
             for (int j=i+1; j<bodies.size(); j++) {
                CollidableBody aj = bodies.get(j);
-               if (a.allowSelfIntersection(ai) && a.allowSelfIntersection(aj)) {
+               if (isInternallyCollidable(ai) && isInternallyCollidable(aj)) {
                   setBehavior (ai, aj, behavior);
                }
                else {
@@ -270,9 +290,13 @@ public class CollisionManagerTest extends UnitTest {
          }
          for (int i=0; i<bodiesA.size(); i++) {
             CollidableBody ai = bodiesA.get(i);
-            for (int j=0; j<bodiesB.size(); j++) {
-               CollidableBody bj = bodiesB.get(j);
-               setBehavior (ai, bj, behavior);
+            if (isExternallyCollidable (ai)) {
+               for (int j=0; j<bodiesB.size(); j++) {
+                  CollidableBody bj = bodiesB.get(j);
+                  if (isExternallyCollidable (bj)) {
+                     setBehavior (ai, bj, behavior);
+                  }
+               }
             }
          }
       }
@@ -291,7 +315,9 @@ public class CollisionManagerTest extends UnitTest {
                if (isBody(cj)) {
                   CollidableBody bi = (CollidableBody)ci;
                   CollidableBody bj = (CollidableBody)cj;
-                  if (!hasCollidableAncestor (bi, bj)) {
+                  if (!hasCollidableAncestor (bi, bj) &&
+                      isExternallyCollidable (bi) &&
+                      isExternallyCollidable (bj)) {
                      CollisionBehavior behavior = getPrimaryBehavior (bi, bj);
                      setBehavior (bi, bj, behavior);
                   }
@@ -359,7 +385,7 @@ public class CollisionManagerTest extends UnitTest {
                CollidableBody ai = bodies.get(i);
                for (int j=i+1; j<bodies.size(); j++) {
                   CollidableBody aj = bodies.get(j);
-                  if (a.allowSelfIntersection(ai) && a.allowSelfIntersection(aj)) {
+                  if (isInternallyCollidable(ai) && isInternallyCollidable(aj)) {
                      CollisionBehavior behavior = getMapBehavior (ai, aj);
                      if (behavior0 == null) {
                         behavior0 = behavior;
@@ -403,20 +429,30 @@ public class CollisionManagerTest extends UnitTest {
          }
          CollisionBehavior behavior0 = null;
          for (int i=0; i<bodiesA.size(); i++) {
-            for (int j=0; j<bodiesB.size(); j++) {
-               CollisionBehavior behavior =
-                  getMapBehavior (bodiesA.get(i), bodiesB.get(j));
-               if (behavior0 == null) {
-                  behavior0 = behavior;
-               }
-               else {
-                  if (!behavior.equals(behavior0)) {
-                     return null;
+            CollidableBody bi = bodiesA.get(i);
+            if (isExternallyCollidable (bi)) {
+               for (int j=0; j<bodiesB.size(); j++) {
+                  CollidableBody bj = bodiesB.get(j);
+                  if (isExternallyCollidable (bj)) {
+                     CollisionBehavior behavior = getMapBehavior (bi, bj);
+                     if (behavior0 == null) {
+                        behavior0 = behavior;
+                     }
+                     else {
+                        if (!behavior.equals(behavior0)) {
+                           return null;
+                        }
+                     }
                   }
                }
             }
          }
-         return behavior0;
+         if (behavior0 == null) {
+            return new CollisionBehavior();
+         }
+         else {
+            return behavior0;
+         }
       }
    }
 
@@ -508,7 +544,7 @@ public class CollisionManagerTest extends UnitTest {
          pair.myCompA, pair.myCompB, enabled, mu);
       CollisionBehavior check = 
          mech.getDefaultCollisionBehavior(pair.myCompA, pair.myCompB);
-      azzert ("getDefaultBehavior", check.equals(behavior));
+      azzert ("getDefaultBehavior", check.equals (behavior));
       if (mech == myMech) {
          myDefaults.put (pair, behavior);
       }
@@ -527,10 +563,29 @@ public class CollisionManagerTest extends UnitTest {
       MechModel mech, Collidable a, Collidable b, boolean enabled, double mu) {
 
       CollisionBehavior behavior = new CollisionBehavior (enabled, mu);
+      // see if we can actually set the behavior for this collidable pair
+      boolean settable = true;
+      if (hasCollidableAncestor (a,b)) {
+         // then a and b need to be internally collidable
+         if (!isInternallyCollidable (a) || !isInternallyCollidable (b)) {
+            settable = false;
+         }
+      }
+      else {
+         // then a and b need to be externally collidable
+         if (!isExternallyCollidable (a) || !isExternallyCollidable (b)) {
+            settable = false;
+         }
+      }
+      CollisionBehavior prev = mech.getCollisionBehavior(a, b);
       mech.setCollisionBehavior (a, b, enabled, mu);
-      CollisionBehavior check = 
-         mech.getCollisionBehavior(a, b);
-      azzert ("getBehavior", check.equals(behavior));
+      CollisionBehavior check = mech.getCollisionBehavior(a, b);
+      if (settable) {
+         azzert ("getBehavior", check.equals(behavior));
+      }
+      else {
+         azzert ("getBehavior", equal (prev, check));
+      }
       if (mech == myMech) {
          myOverrides.put (new CollidablePair(a, b), behavior);
       }
@@ -652,6 +707,7 @@ public class CollisionManagerTest extends UnitTest {
             }
          }
       }
+      checkBehaviors();
    }
 
    Collidable findCollidable (String name) {
@@ -692,39 +748,39 @@ public class CollisionManagerTest extends UnitTest {
       Collidable comp = findCollidable ("rigidBodies/comp");
 
       Collidable surf1 = findCollidable ("models/fem1/meshes/surface");
-      Collidable sub11 = findCollidable ("models/fem1/meshes/sub1");
-      Collidable sub12 = findCollidable ("models/fem1/meshes/sub2");
+      FemMesh    sub11 = (FemMesh)findCollidable ("models/fem1/meshes/sub1");
+      FemMesh    sub12 = (FemMesh)findCollidable ("models/fem1/meshes/sub2");
       Collidable surf2 = findCollidable ("models/fem2/meshes/surface");
-      Collidable sub21 = findCollidable ("models/fem2/meshes/sub1");
-      Collidable sub22 = findCollidable ("models/fem2/meshes/sub2");
+      FemMesh    sub21 = (FemMesh)findCollidable ("models/fem2/meshes/sub1");
+      FemMesh    sub22 = (FemMesh)findCollidable ("models/fem2/meshes/sub2");
       Collidable comp0 = findCollidable ("rigidBodies/comp/meshes/0");
       Collidable comp1 = findCollidable ("rigidBodies/comp/meshes/1");
       Collidable comp2 = findCollidable ("rigidBodies/comp/meshes/2");
       Collidable ball = findCollidable ("rigidBodies/ball");
       Collidable base = findCollidable ("rigidBodies/base");
 
-      verify (". . . 1 1 1 . . . . . "+  // surf1
-              "  . . 1 1 1 . . . . . "+  // sub11
-              "    . 1 1 1 . . . . . "+  // sub12
+      verify (". . . 1 . . . . . . . "+  // surf1
+              "  . . . . . . . . . . "+  // sub11
+              "    . . . . . . . . . "+  // sub12
               "      . . . . . . . . "+  // surf2
               "        . . . . . . . "+  // sub21
               "          . . . . . . "); // sub22
       setDefaultBehavior (CollisionManager.DEFORMABLE_SELF, true, 2);
 
-      verify (". . . 1 1 1 . . . . . "+  // surf1
-              "  . 2 1 1 1 . . . . . "+  // sub11
-              "    . 1 1 1 . . . . . "+  // sub12
+      verify (". . . 1 . . . . . . . "+  // surf1
+              "  . 2 . . . . . . . . "+  // sub11
+              "    . . . . . . . . . "+  // sub12
               "      . . . . . . . . "+  // surf2
               "        . 2 . . . . . "+  // sub21
               "          . . . . . . "); // sub22
       setDefaultBehavior (CollisionManager.DEFORMABLE_RIGID, true, 3);
 
-      verify (". . . 1 1 1 3 3 3 3 3 "+  // surf1
-              "  . 2 1 1 1 3 3 3 3 3 "+  // sub11
-              "    . 1 1 1 3 3 3 3 3 "+  // sub12
+      verify (". . . 1 . . 3 3 3 3 3 "+  // surf1
+              "  . 2 . . . . . . . . "+  // sub11
+              "    . . . . . . . . . "+  // sub12
               "      . . . 3 3 3 3 3 "+  // surf2
-              "        . 2 3 3 3 3 3 "+  // sub21
-              "          . 3 3 3 3 3 "+  // sub22
+              "        . 2 . . . . . "+  // sub21
+              "          . . . . . . "+  // sub22
               "            . . . . . "+  // comp0
               "              . . . . "+  // comp1
               "                . . . "+  // comp2
@@ -733,12 +789,12 @@ public class CollisionManagerTest extends UnitTest {
 
       setDefaultBehavior (CollisionManager.RIGID_RIGID, true, 2);
 
-      verify (". . . 1 1 1 3 3 3 3 3 "+  // surf1
-              "  . 2 1 1 1 3 3 3 3 3 "+  // sub11
-              "    . 1 1 1 3 3 3 3 3 "+  // sub12
+      verify (". . . 1 . . 3 3 3 3 3 "+  // surf1
+              "  . 2 . . . . . . . . "+  // sub11
+              "    . . . . . . . . . "+  // sub12
               "      . . . 3 3 3 3 3 "+  // surf2
-              "        . 2 3 3 3 3 3 "+  // sub21
-              "          . 3 3 3 3 3 "+  // sub22
+              "        . 2 . . . . . "+  // sub21
+              "          . . . . . . "+  // sub22
               "            . . . 2 2 "+  // comp0
               "              . . 2 2 "+  // comp1
               "                . 2 2 "+  // comp2
@@ -748,9 +804,9 @@ public class CollisionManagerTest extends UnitTest {
       setDefaultBehavior (CollisionManager.DEFORMABLE_RIGID, false,0);
       setDefaultBehavior (CollisionManager.RIGID_RIGID, false,0); 
 
-      verify (". . . 1 1 1 . . . . . "+  // surf1
-              "  . . 1 1 1 . . . . . "+  // sub11
-              "    . 1 1 1 . . . . . "+  // sub12
+      verify (". . . 1 . . . . . . . "+  // surf1
+              "  . . . . . . . . . . "+  // sub11
+              "    . . . . . . . . . "+  // sub12
               "      . . . . . . . . "+  // surf2
               "        . . . . . . . "+  // sub21
               "          . . . . . . "); // sub22
@@ -758,12 +814,12 @@ public class CollisionManagerTest extends UnitTest {
       setDefaultBehavior (CollisionManager.DEFORMABLE_SELF, true,2);
       setDefaultBehavior (CollisionManager.DEFORMABLE_RIGID, true,3);
       setDefaultBehavior (CollisionManager.RIGID_RIGID, true,2);
-      verify (". . . 1 1 1 3 3 3 3 3 "+  // surf1
-              "  . 2 1 1 1 3 3 3 3 3 "+  // sub11
-              "    . 1 1 1 3 3 3 3 3 "+  // sub12
+      verify (". . . 1 . . 3 3 3 3 3 "+  // surf1
+              "  . 2 . . . . . . . . "+  // sub11
+              "    . . . . . . . . . "+  // sub12
               "      . . . 3 3 3 3 3 "+  // surf2
-              "        . 2 3 3 3 3 3 "+  // sub21
-              "          . 3 3 3 3 3 "+  // sub22
+              "        . 2 . . . . . "+  // sub21
+              "          . . . . . . "+  // sub22
               "            . . . 2 2 "+  // comp0
               "              . . 2 2 "+  // comp1
               "                . 2 2 "+  // comp2
@@ -776,12 +832,12 @@ public class CollisionManagerTest extends UnitTest {
       setBehavior (surf1, comp, true, 5);
       setBehavior (surf2, sub22, true, 5);
 
-      verify (". . . 1 1 1 5 5 5 4 3 "+  // surf1
-              "  . 2 1 1 1 3 3 3 4 3 "+  // sub11
-              "    . 1 1 1 3 3 3 4 3 "+  // sub12
-              "      . . 5 5 5 5 3 3 "+  // surf2
-              "        . 2 5 5 5 3 3 "+  // sub21
-              "          . 5 5 5 3 3 "+  // sub22
+      verify (". . . 1 . . 5 5 5 4 3 "+  // surf1
+              "  . 2 . . . . . . . . "+  // sub11
+              "    . . . . . . . . . "+  // sub12
+              "      . . . 5 5 5 3 3 "+  // surf2
+              "        . 2 . . . . . "+  // sub21
+              "          . . . . . . "+  // sub22
               "            . . . 2 2 "+  // comp0
               "              . . 2 2 "+  // comp1
               "                . 2 2 "+  // comp2
@@ -795,12 +851,12 @@ public class CollisionManagerTest extends UnitTest {
       setBehavior (fem2, base, false, 0);
       setBehavior (fem2, fem2, true, 7);
 
-      verify (". . . 1 1 1 5 5 5 3 4 "+  // surf1
-              "  . . 1 1 1 3 3 3 3 4 "+  // sub11
-              "    . 1 1 1 3 3 3 3 4 "+  // sub12
+      verify (". . . 1 . . 5 5 5 3 4 "+  // surf1
+              "  . . . . . . . . . . "+  // sub11
+              "    . . . . . . . . . "+  // sub12
               "      . . . 5 5 5 3 . "+  // surf2
-              "        . 7 5 5 5 3 . "+  // sub21
-              "          . 5 5 5 3 . "+  // sub22
+              "        . 7 . . . . . "+  // sub21
+              "          . . . . . . "+  // sub22
               "            . . . 2 2 "+  // comp0
               "              . . 2 2 "+  // comp1
               "                . 2 2 "+  // comp2
@@ -808,12 +864,12 @@ public class CollisionManagerTest extends UnitTest {
               "                    . "); // base
 
       clearBehaviors();
-      verify (". . . 1 1 1 3 3 3 3 3 "+  // surf1
-              "  . 2 1 1 1 3 3 3 3 3 "+  // sub11
-              "    . 1 1 1 3 3 3 3 3 "+  // sub12
+      verify (". . . 1 . . 3 3 3 3 3 "+  // surf1
+              "  . 2 . . . . . . . . "+  // sub11
+              "    . . . . . . . . . "+  // sub12
               "      . . . 3 3 3 3 3 "+  // surf2
-              "        . 2 3 3 3 3 3 "+  // sub21
-              "          . 3 3 3 3 3 "+  // sub22
+              "        . 2 . . . . . "+  // sub21
+              "          . . . . . . "+  // sub22
               "            . . . 2 2 "+  // comp0
               "              . . 2 2 "+  // comp1
               "                . 2 2 "+  // comp2
@@ -834,15 +890,23 @@ public class CollisionManagerTest extends UnitTest {
       Collidable ball1 = (Collidable)mySubMech.findComponent("rigidBodies/ball1");
       Collidable ball2 = (Collidable)mySubMech.findComponent("rigidBodies/ball2");
 
-      verify (". . . 1 1 1 1 1 1 3 3 3 3 3 3 3 "+ // surf1
-              "  . 2 1 1 1 1 1 1 3 3 3 3 3 3 3 "+ // sub11
-              "    . 1 1 1 1 1 1 3 3 3 3 3 3 3 "+ // sub12
-              "      . . . 1 1 1 3 3 3 3 3 3 3 "+ // surf2 
-              "        . 2 1 1 1 3 3 3 3 3 3 3 "+ // sub21
-              "          . 1 1 1 3 3 3 3 3 3 3 "+ // sub22
+      // reset Collidability of FEM sub meshes so that they
+      // can collide with anything
+      sub11.setCollidable (Collidability.ALL);
+      sub12.setCollidable (Collidability.ALL);
+      sub21.setCollidable (Collidability.ALL);
+      sub22.setCollidable (Collidability.ALL);
+      updateBehaviorMap();
+
+      verify (". . . 1 1 1 1 . . 3 3 3 3 3 3 3 "+ // surf1
+              "  . 2 1 1 1 1 . . 3 3 3 3 3 3 3 "+ // sub11
+              "    . 1 1 1 1 . . 3 3 3 3 3 3 3 "+ // sub12
+              "      . . . 1 . . 3 3 3 3 3 3 3 "+ // surf2 
+              "        . 2 1 . . 3 3 3 3 3 3 3 "+ // sub21
+              "          . 1 . . 3 3 3 3 3 3 3 "+ // sub22
               "            . . . . . 3 3 3 3 3 "+ // surf3
-              "              . . . . 3 3 3 3 3 "+ // sub31
-              "                . . . 3 3 3 3 3 "+ // sub32
+              "              . . . . . . . . . "+ // sub31
+              "                . . . . . . . . "+ // sub32
               "                  . . 2 2 2 2 2 "+ // ball1
               "                    . 2 2 2 2 2 "+ // ball2
               "                      . . . 2 2 "+ // comp0
@@ -857,15 +921,15 @@ public class CollisionManagerTest extends UnitTest {
       setBehavior (surf3, ball1, true, 8);
       setBehavior (ball, sub31, true, 7);
 
-      verify (". . . 1 1 1 1 1 1 3 3 3 3 3 3 3 "+ // surf1
-              "  . 2 1 1 1 1 1 1 3 3 3 3 3 3 3 "+ // sub11
-              "    . 1 1 1 1 1 1 3 3 3 3 3 3 3 "+ // sub12
-              "      . . . 1 1 1 3 3 3 3 3 3 3 "+ // surf2 
-              "        . 2 1 1 1 3 3 3 3 3 3 3 "+ // sub21
-              "          . 1 1 1 3 3 3 3 3 3 3 "+ // sub22
+      verify (". . . 1 1 1 1 . . 3 3 3 3 3 3 3 "+ // surf1
+              "  . 2 1 1 1 1 . . 3 3 3 3 3 3 3 "+ // sub11
+              "    . 1 1 1 1 . . 3 3 3 3 3 3 3 "+ // sub12
+              "      . . . 1 . . 3 3 3 3 3 3 3 "+ // surf2 
+              "        . 2 1 . . 3 3 3 3 3 3 3 "+ // sub21
+              "          . 1 . . 3 3 3 3 3 3 3 "+ // sub22
               "            . . . 8 2 3 3 3 3 3 "+ // surf3
-              "              . 7 2 2 3 3 3 7 3 "+ // sub31
-              "                . 2 2 3 3 3 3 3 "+ // sub32
+              "              . 7 . . . . . . . "+ // sub31
+              "                . . . . . . . . "+ // sub32
               "                  . 6 2 2 2 2 2 "+ // ball1
               "                    . 2 2 2 2 2 "+ // ball2
               "                      . . . 2 2 "+ // comp0

@@ -525,9 +525,9 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
     * then the behavior is applied to all pairs of these sub-collidables.
     * If <code>a</code> and <code>b</code> are the same, then the
     * behavior is applied to the self-collision among all sub-collidables
-    * of <code>a</code> for which a's
-    * {@link Collidable#allowSelfIntersection allowSelfIntersection()}
-    * method returns <code>true</code>.
+    * whose {@link Collidable#getCollidable getCollidable()} method
+    * returns <code>Colidability.ALL</code> or
+    * <code>Colidability.INTERNAL</code>.
     *
     * <p>
     * The behavior specified by this method can be removed
@@ -583,9 +583,10 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
     * sub-collidables, that behavior is returned; otherwise, <code>null</code>
     * is returned. If <code>a</code> equals <i><code>b</code>, then this method
     * searches for a consistent collision behavior among all sub-collidables of
-    * <code>a</code> for for which a's
-    * {@link Collidable#allowSelfIntersection allowSelfIntersection()}
-    * method returns <code>true</code>.
+    * <code>a</code> whose {@link Collidable#getCollidable getCollidable()}
+    * method returns <code>Colidability.ALL</code> or
+    * <code>Colidability.INTERNAL</code>.
+
     * 
     * @param a first collidable
     * @param b second collidable

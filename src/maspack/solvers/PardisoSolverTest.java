@@ -169,6 +169,8 @@ public class PardisoSolverTest implements ActionListener {
          SparseMatrixCRS M = new SparseMatrixCRS(size, size);
          M.setCRSValues (vals, colIdxs, rowOffs, nvals, size, myPartition);
          solver.analyze (M, size, myMatrixType);
+         System.out.println (
+            "numNonZerosInFactors=" + solver.getNumNonZerosInFactors());
          solver.factor ();
          solver.solve (x, rhs);
          M.mul (res, x);

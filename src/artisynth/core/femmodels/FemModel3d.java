@@ -28,6 +28,8 @@ import maspack.geometry.HalfEdge;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
+import maspack.render.*;
+import maspack.matrix.AxisAngle;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.DenseMatrix;
 import maspack.matrix.Matrix;
@@ -40,6 +42,7 @@ import maspack.matrix.MatrixNd;
 import maspack.matrix.NumericalException;
 import maspack.matrix.Point3d;
 import maspack.matrix.EigenDecomposition;
+import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.SymmetricMatrix3d;
@@ -55,6 +58,7 @@ import maspack.render.RenderList;
 import maspack.render.RenderableUtils;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
+import maspack.spatialmotion.Twist;
 import maspack.util.ArraySupport;
 import maspack.util.DataBuffer;
 import maspack.util.DoubleInterval;
@@ -73,32 +77,10 @@ import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.SolidDeformation;
 import artisynth.core.materials.ViscoelasticBehavior;
 import artisynth.core.materials.ViscoelasticState;
-import artisynth.core.mechmodels.Collidable;
-import artisynth.core.mechmodels.CollidableDynamicComponent;
-import artisynth.core.mechmodels.ContactPoint;
-import artisynth.core.mechmodels.ContactMaster;
-
-import artisynth.core.mechmodels.DynamicAttachment;
-import artisynth.core.mechmodels.HasAuxState;
-import artisynth.core.mechmodels.HasSurfaceMesh;
-import artisynth.core.mechmodels.MechSystemModel;
-import artisynth.core.mechmodels.MeshComponent;
-import artisynth.core.mechmodels.MeshComponentList;
-import artisynth.core.mechmodels.Point;
-import artisynth.core.mechmodels.PointAttachment;
-import artisynth.core.mechmodels.PointAttachable;
-import artisynth.core.mechmodels.PointList;
-import artisynth.core.mechmodels.PointParticleAttachment;
-import artisynth.core.modelbase.ComponentChangeEvent;
+import artisynth.core.mechmodels.*;
+import artisynth.core.mechmodels.Collidable.Collidability;
+import artisynth.core.modelbase.*;
 import artisynth.core.modelbase.ComponentChangeEvent.Code;
-import artisynth.core.modelbase.ComponentUtils;
-import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.modelbase.CopyableComponent;
-import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.modelbase.ModelComponentBase;
-import artisynth.core.modelbase.RenderableComponentList;
-import artisynth.core.modelbase.StepAdjustment;
-import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.util.ArtisynthIO;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.ScanToken;
@@ -107,6 +89,10 @@ import artisynth.core.util.TransformableGeometry;
 public class FemModel3d extends FemModel
    implements TransformableGeometry, ScalableUnits, MechSystemModel, Collidable,
               CopyableComponent, HasAuxState, PointAttachable, HasSurfaceMesh {
+
+   protected Frame myFrame;
+   protected FrameFem3dConstraint myFrameConstraint;
+   protected boolean myUseLocalCoords;
 
    protected PointList<FemNode3d> myNodes;
    // protected ArrayList<LinkedList<FemElement3d>> myElementNeighbors;
@@ -183,9 +169,10 @@ public class FemModel3d extends FemModel
    private double myElementWidgetSize = DEFAULT_ELEMENT_WIDGET_SIZE;
    PropertyMode myElementWidgetSizeMode = PropertyMode.Inherited;
 
-   protected static final boolean DEFAULT_COLLIDABLE = true;
-   protected boolean myCollidableP = DEFAULT_COLLIDABLE;
-
+   protected static final Collidability DEFAULT_COLLIDABILITY =
+      Collidability.ALL;   
+   protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
+   
    // maximum number of pressure DOFs that can occur in an element
    private static int MAX_PRESSURE_VALS = 8;
    // maximum number of nodes for elements associated with nodal
@@ -224,6 +211,12 @@ public class FemModel3d extends FemModel
    new PropertyList(FemModel3d.class, FemModel.class);
 
    static {
+      myProps.add (
+         "axisLength * *", "length of rendered frame axes", 0);
+      myProps.add (
+         "useLocalCoords",
+         "compute displacements locally with respect to the coordinate frame",
+         false);
       myProps.add(
          "incompressible",
          "Enforce incompressibility using constraints", DEFAULT_HARD_INCOMP);
@@ -239,8 +232,9 @@ public class FemModel3d extends FemModel
          DEFAULT_ELEMENT_WIDGET_SIZE, "[0,1]");
       myProps.addInheritable("colorMap:Inherited", "color map for stress/strain", 
          defaultColorMap, "CE");
-      myProps.add("collidable isCollidable setCollidable", 
-         "sets whether or not the FEM is collidable", DEFAULT_COLLIDABLE);
+      myProps.add (
+         "collidable", 
+         "sets the collidability of the FEM", DEFAULT_COLLIDABILITY);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -325,14 +319,18 @@ public class FemModel3d extends FemModel
       surf.setName(DEFAULT_SURFACEMESH_NAME);
       surf.setSurfaceRendering(getSurfaceRendering());
       surf.markSurfaceMesh(true);
+      surf.setCollidable (Collidability.EXTERNAL);
       return surf;
    }      
 
    protected void initializeChildComponents() {
+      myFrame = new Frame ();
+      myFrame.setName ("frame");
       myNodes = new PointList<FemNode3d>(FemNode3d.class, "nodes", "n");
       myElements = new FemElement3dList("elements", "e");
       myAdditionalMaterialsList =
       new AuxMaterialBundleList("materials", "mat");
+      addFixed(myFrame);
       addFixed(myNodes);
       addFixed(myElements);
       addFixed(myAdditionalMaterialsList);
@@ -527,7 +525,7 @@ public class FemModel3d extends FemModel
     * @param mkr
     * marker point to add to the model
     */
-   public void addMarker(FemMarker mkr) {
+   public void addMarker (FemMarker mkr) {
       FemElement3d elem = findContainingElement(mkr.getPosition());
       if (elem == null) {
          Point3d newLoc = new Point3d();
@@ -1590,6 +1588,7 @@ public class FemModel3d extends FemModel
 
    public void prerender(RenderList list) {
             
+      list.addIfVisible (myFrame);
       list.addIfVisible(myNodes);
       list.addIfVisible(myElements);
       list.addIfVisible(myMarkers);
@@ -2518,26 +2517,18 @@ public class FemModel3d extends FemModel
    public PolygonalMesh[] getSurfaceMeshes() {
       return MeshComponent.getSurfaceMeshes (myMeshList);
    }
-   
+
    @Override
-   public boolean isCollidable () {
+   public Collidability getCollidable () {
       getSurfaceMesh(); // build surface mesh if necessary
-      return myCollidableP;
+      return myCollidability;
    }
 
-   public void setCollidable (boolean enable) {
-      if (myCollidableP != enable) {
-         myCollidableP = enable;
+   public void setCollidable (Collidability c) {
+      if (myCollidability != c) {
+         myCollidability = c;
          notifyParentOfChange (new StructureChangeEvent (this));
       }
-   }
-
-   @Override
-   public boolean allowSelfIntersection (Collidable col) {
-      return
-         (col instanceof FemMesh &&
-          col.getParent() == myMeshList &&
-          col != getSurfaceFemMesh());          
    }
 
    @Override
@@ -2555,6 +2546,7 @@ public class FemModel3d extends FemModel
       mesh.setFixed(false);
       FemMesh surf = FemMesh.createEmbedded(this, mesh);
       surf.setName(name);
+      surf.setCollidable (Collidability.INTERNAL);
       myMeshList.add(surf);
       return surf;
    }
@@ -2573,6 +2565,7 @@ public class FemModel3d extends FemModel
 
    public void addMesh (FemMesh surf) {
       if (surf.myFem == this) {
+         surf.setCollidable (Collidability.INTERNAL);
          myMeshList.add (surf);
       }
       else {
@@ -2580,16 +2573,6 @@ public class FemModel3d extends FemModel
             "FemMesh does not reference the FEM to which is is being added");
       }
    }
-
-   // private void addMesh (FemMesh surf, int pos) {
-   //    if (surf.myFem == this) {
-   //       myMeshList.add(surf, pos);
-   //    }
-   //    else {
-   //       throw new IllegalArgumentException (
-   //          "FemMesh does not reference the FEM to which is is being added");         
-   //    }
-   // }
 
    public boolean removeMesh (FemMesh surf) {
       if (surf == myMeshList.get(0)) {
@@ -2819,6 +2802,11 @@ public class FemModel3d extends FemModel
       super.updateSlavePos();
       myMeshList.updateSlavePos();
       myBVTreeValid = false;
+      if (myFrameConstraint != null) {
+         RigidTransform3d T = new RigidTransform3d();
+         myFrameConstraint.computeFrame (T);
+         myFrame.setPose (T);
+      }
    }
 
    /**
@@ -3587,7 +3575,10 @@ public class FemModel3d extends FemModel
            else {
               fem.addMesh(newFmc);
            }
+           // do this this since addMesh sets collidability by default
+           newFmc.setCollidable (mc.getCollidable());        
         }
+     
         fem.myAutoGenerateSurface = myAutoGenerateSurface;
         fem.mySurfaceMeshValid = mySurfaceMeshValid;
         fem.myInternalSurfaceMeshComp = null;
@@ -3669,5 +3660,67 @@ public class FemModel3d extends FemModel
    public boolean isWarnOnInvertedElements() {
       return myWarnOnInvertedElems;
    }
+
+   /* =================== Frame support ======================= */
+
+   public boolean getUseLocalCoords() {
+      return myUseLocalCoords;
+   }
+
+   public void setUseLocalCoords (boolean enable) {
+      if (myUseLocalCoords != enable) {
+         myUseLocalCoords = enable;
+         notifyStructureChanged(this);
+      }
+   }
+
+   public void attachFrame (RigidTransform3d TRW) {
+      if (TRW == null) {
+         myFrameConstraint = null;
+         myFrame.setPose (RigidTransform3d.IDENTITY);
+         myFrame.setVelocity (Twist.ZERO);
+      }
+      else {
+         RigidTransform3d TX = new RigidTransform3d(TRW);
+         Point3d pos = new Point3d(TRW.p);
+         FemElement3d elem = findContainingElement (pos);
+         if (elem == null) {
+            Point3d newLoc = new Point3d();
+            elem = findNearestSurfaceElement(newLoc, pos);
+            TX.p.set (newLoc);
+         }         
+         myFrameConstraint = new FrameFem3dConstraint (TX, elem);
+         myFrame.setPose (TRW);
+      }
+   }
+
+   public double getAxisLength() {
+      return myFrame.getAxisLength();
+   }
+
+   public void setAxisLength (double len) {
+      myFrame.setAxisLength (len);
+   }
+
+   public void getDynamicComponents (
+      List<DynamicComponent> active,
+      List<DynamicComponent> attached, 
+      List<DynamicComponent> parametric) {
+
+      super.getDynamicComponents (active, attached, parametric);
+      if (myUseLocalCoords) {
+         if (myFrame.isActive()) {
+            active.add (myFrame);
+         }
+         else {
+            parametric.add (myFrame);
+         }
+      }
+      else {
+         attached.add (myFrame);
+      }
+   }
+
+   /* =================== end Frame support ======================= */
 
 }

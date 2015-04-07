@@ -22,6 +22,40 @@ import artisynth.core.modelbase.ModelComponentBase;
  */
 public interface Collidable extends ModelComponent {
 
+   /**
+    * Indicates the collision types that are enabled for this Collidable.
+    * These include internal (self) collisions (involving the sub-collidables
+    * of a common ancestor) and external collisions (among collidables that do
+    * not share a common ancestor).
+    */
+   public enum Collidability {
+
+      /**
+       * All collisions disabled: the Collidable will not collide with
+       * anything.
+       */
+      OFF,
+
+      /**
+       * Internal (self) collisions enabled: the Collidable may only collide
+       * with other Collidables with which it shares a common ancestor.
+       */
+      INTERNAL,
+
+      /**
+       * External collisions enabled: the Collidable may only collide with
+       * other Collidables with which it does <i>not</i>share a common
+       * ancestor.
+       */
+      EXTERNAL,
+
+      /**
+       * All collisions (both self and external) enabled: the Collidable may
+       * collide with any other Collidable.
+       */
+      ALL      
+   }
+
    class DefaultCollidable extends ModelComponentBase implements Collidable {
       
       DefaultCollidable (String name) {
@@ -32,35 +66,30 @@ public interface Collidable extends ModelComponent {
          return myName;
       }
       
-      @Override
-      public boolean isCollidable () {
-         return false;
+      @Override      
+      public Collidability getCollidable() {
+         return Collidability.OFF;   
       }
       
       @Override
       public boolean isDeformable() {
          return false;
       }
-      
-      @Override
-      public boolean allowSelfIntersection (Collidable col) {
-         return false;
-      }
    };
    
    /**
-    * Returns <code>true</code> if this collidable is actually allowed to
-    * collide with other collidables. This can be predicated on several
-    * factors, such as the setting of a <code>collidable</code> property or
-    * whether or not this collidable currently possesses a valid collision
-    * mesh.  If this method returns <code>false</code>, then no collisions will
-    * be performed for this collidable, regardless any default or explicit
-    * collision behaviors that have been arranged by the system.
+    * Returns the {@link Collidability} of this Collidable. This provides
+    * control over whether external and/or internal collisions are enabled for
+    * this Collidable. This setting takes precedence over default and
+    * explicitly requested collision behaviors.
     *
-    * @return <code>true</code> if collisions are allowed for this
-    * collidable.
+    * <p>Note that for collisions to actually occur, they still need to be
+    * enabled through either a default or explicit collision behavior in the
+    * MechModel.
+    *
+    * @return Collidability of this collidable.
     */
-   public boolean isCollidable();
+   public Collidability getCollidable();
 
    /**
     * Returns <code>true</code> if this collidable is deformable. Whether or
@@ -72,18 +101,6 @@ public interface Collidable extends ModelComponent {
     * @return <code>true</code> if this collidable is deformable
     */
    public boolean isDeformable();
-   
-   /**
-    * Returns <code>true</code> if <code>col</code> is a sub-collidable of
-    * this collidable which is allowed to collide with other sub-collidables.
-    * For a collidable A, self-collision is only permitted 
-    * among its sub-collidables for which this method returns <code>true</code>.
-    * @param col collidable to be tested
-    * @return <code>true</code> if <code>col</code> is allowed to collide
-    * with other sub-collidables.
-    */
-   public boolean allowSelfIntersection (Collidable col);
-
    
    public static Collidable Default = new DefaultCollidable("Default");
    public static Collidable RigidBody = new DefaultCollidable("RigidBody");

@@ -173,7 +173,7 @@ public interface DynamicComponent extends ModelComponent, ForceEffector {
 
    public void addSolveBlock (SparseNumberedBlockMatrix S);
 
-   public MatrixBlock createSolveBlock ();
+//   public MatrixBlock createSolveBlock ();
 
 //    /**
 //     * Update the velocity states of attached components using an impulse-based
@@ -187,13 +187,13 @@ public interface DynamicComponent extends ModelComponent, ForceEffector {
 //     */
 //    public void updateAttachmentPosStates();
    
-   /**
-    * Sets the state of this DynamicMechComponent from that of
-    * another.
-    * 
-    * @param c component from which the state is to be copied.
-    */
-   public void setState (DynamicComponent c);
+//   /**
+//    * Sets the state of this DynamicMechComponent from that of
+//    * another.
+//    * 
+//    * @param c component from which the state is to be copied.
+//    */
+//   public void setState (DynamicComponent c);
 
    public void addPosImpulse (
       double[] xbuf, int xidx, double h, double[] vbuf, int vidx);

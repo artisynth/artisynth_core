@@ -44,6 +44,7 @@ import artisynth.core.femmodels.FemModel.ElementFilter;
 import artisynth.core.femmodels.FemModel.Ranging;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.mechmodels.Collidable;
+import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.mechmodels.CollidableBody;
 import artisynth.core.mechmodels.CollidableDynamicComponent;
 import artisynth.core.mechmodels.CollisionHandler;
@@ -83,12 +84,13 @@ public class FemMesh extends FemMeshBase
    // NO_SINGLE_VERTEX if there is no such vertex.
    protected HashMap<FemNode3d,Vertex3d> myNodeVertexMap;
    protected static final Vertex3d NO_SINGLE_VERTEX = new Vertex3d();
-   protected static final boolean DEFAULT_COLLIDABLE = true;
+   protected static final Collidability DEFAULT_COLLIDABILITY =
+      Collidability.ALL;   
    
    HashMap<EdgeDesc,Vertex3d[]> myEdgeVtxs;
    private boolean isSurfaceMesh;
    private int myNumSingleAttachments;
-   protected boolean myCollidableP = DEFAULT_COLLIDABLE;
+   protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
 
    private float[] colorArray = new float[3];
 
@@ -97,8 +99,8 @@ public class FemMesh extends FemMeshBase
 
    static {
       myProps.add (
-         "collidable isCollidable setCollidable", 
-         "sets whether or not the mesh is collidable", DEFAULT_COLLIDABLE);
+         "collidable", 
+         "sets the collidability of the mesh", DEFAULT_COLLIDABILITY);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -1466,15 +1468,15 @@ public class FemMesh extends FemMeshBase
       }
       return null;
    }
-   
+
    @Override
-   public boolean isCollidable () {
-      return myCollidableP;
+   public Collidability getCollidable () {
+      return myCollidability;
    }
 
-   public void setCollidable (boolean enable) {
-      if (myCollidableP != enable) {
-         myCollidableP = enable;
+   public void setCollidable (Collidability c) {
+      if (myCollidability != c) {
+         myCollidability = c;
          notifyParentOfChange (new StructureChangeEvent (this));
       }
    }
@@ -1482,11 +1484,6 @@ public class FemMesh extends FemMeshBase
    @Override
    public boolean isDeformable () {
       return true;
-   }
-   
-   @Override
-   public boolean allowSelfIntersection (Collidable col) {
-      return false;
    }
 
    @Override

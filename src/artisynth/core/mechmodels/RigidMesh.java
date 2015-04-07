@@ -24,23 +24,27 @@ import maspack.render.RenderProps;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.mechmodels.Collidable.Collidability;
 
 public class RigidMesh extends MeshComponent 
    implements PointAttachable, HasSurfaceMesh, CollidableBody {
 
    public static boolean DEFAULT_PHYSICAL = true;
-   protected static final boolean DEFAULT_COLLIDABLE = true;
 
    protected boolean physical = DEFAULT_PHYSICAL;
-   protected boolean myCollidableP = DEFAULT_COLLIDABLE;
+
+   protected static final Collidability DEFAULT_COLLIDABILITY =
+      Collidability.ALL;   
+   protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
 
    public static PropertyList myProps = new PropertyList(
       RigidMesh.class, MeshComponent.class);
 
    static {
       myProps.add("physical isPhysical setPhysical", "", DEFAULT_PHYSICAL);
-      myProps.add("collidable isCollidable setCollidable", 
-         "sets whether or not the mesh is collidable", DEFAULT_COLLIDABLE);
+      myProps.add (
+         "collidable", 
+         "sets the collidability of the mesh", DEFAULT_COLLIDABILITY);
    }
    
    public RigidMesh() {
@@ -188,13 +192,14 @@ public class RigidMesh extends MeshComponent
    }
 
    @Override
-   public boolean isCollidable () {
-      return myCollidableP;
+   public Collidability getCollidable () {
+      getSurfaceMesh(); // build surface mesh if necessary
+      return myCollidability;
    }
 
-   public void setCollidable (boolean enable) {
-      if (myCollidableP != enable) {
-         myCollidableP = enable;
+   public void setCollidable (Collidability c) {
+      if (myCollidability != c) {
+         myCollidability = c;
          notifyParentOfChange (new StructureChangeEvent (this));
       }
    }
@@ -208,22 +213,6 @@ public class RigidMesh extends MeshComponent
       }
       return rb.getVelStateSize() > 6;
    }
-
-   @Override
-   public boolean allowSelfIntersection (Collidable col) {
-      return false;
-   }
-
-//   public void getContactMasters (
-//      List<ContactMaster> mlist, double weight, ContactPoint cpnt) {
-//
-//      RigidBody rb = getRigidBody();
-//      if (rb == null) {
-//         throw new IllegalStateException (
-//            "RigidMesh not associated with a rigid body");
-//      }
-//      mlist.add (new ContactMaster (rb, weight, cpnt));
-//   }
    
    public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
       RigidBody rb = getRigidBody();

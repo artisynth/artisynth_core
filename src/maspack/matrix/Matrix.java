@@ -865,7 +865,7 @@ public interface Matrix extends LinearTransformNd {
    /**
     * Gets the compressed row storage (CRS) values for this matrix, in
     * row-major order. This is a convenience wrapper for {@link
-    * #getCRSValue(double[],Partition) getCRSValues(double[],Partition)} with
+    * #getCRSValues(double[],Partition) getCRSValues(double[],Partition)} with
     * the Partition set to <code>Full</code>. For a detailed decsription of the
     * CRS format, see {@link #setCRSValues setCRSValues()}.
     * 
@@ -1049,7 +1049,7 @@ public interface Matrix extends LinearTransformNd {
    /**
     * Gets the compressed column storage (CCS) values for this matrix, in
     * column-major order. This is a convenience wrapper for {@link
-    * #getCCSValue(double[],Partition) getCCSValues(double[],Partition)} with
+    * #getCCSValues(double[],Partition) getCCSValues(double[],Partition)} with
     * the Partition set to <code>Full</code>. For a detailed decsription of the
     * CCS format, see {@link #setCCSValues setCCSValues()}.
     * 

@@ -383,7 +383,7 @@ public class PardisoSolver implements DirectSolver {
    }
 
    /**
-    * Returns the current state for this solver. Possible states are
+    * Returns the current stateface for this solver. Possible states are
     * {@link #UNSET UNSET}, {@link #ANALYZED ANALYZED}, and
     * {@link #FACTORED FACTORED}.
     *

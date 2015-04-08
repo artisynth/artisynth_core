@@ -418,6 +418,18 @@ java.io.Serializable, Clonable {
    public void setTranslation (Vector3d p) {
       b.set (p);
    }
+   
+   /**
+    * Sets the translation component of this affine transform.
+    * 
+    * @param tx x-component of translation
+    * @param ty y-component of translation
+    * @param tz z-component of translation
+    * 
+    */
+   public void setTranslation (double tx, double ty, double tz) {
+      b.set (tx, ty, tz);
+   }
 
    /**
     * Sets the matrix component of this affine transform to an explicit

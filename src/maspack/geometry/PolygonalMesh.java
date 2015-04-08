@@ -1326,6 +1326,33 @@ public class PolygonalMesh extends MeshBase {
          }
       }
    }
+   
+   /**
+    * Sets the vertex points and faces associated with this mesh.
+    * 
+    * @param pnts
+    * set of values (x,y,z) from which the vertices are formed
+    * @param faceIndices
+    * integer arrays giving the indices of each face. Each index should
+    * correspond to a particular point in pnts.
+    * @throws IllegalArgumentException
+    * if a vertex index is out of bounds
+    */
+   public void set(double[][] pnts, int[][] faceIndices) {
+      clear();
+      for (int i = 0; i < pnts.length; i++) {
+         addVertex (pnts[i][0], pnts[i][1], pnts[i][2]);
+      }
+      for (int k = 0; k < faceIndices.length; k++) {
+         try {
+            addFace (faceIndices[k]);
+         }
+         catch (IllegalArgumentException e) {
+            clear();
+            throw e;
+         }
+      }
+   }
 
    protected boolean ctrlPntsEqual (Vector4d[] pnts, int base, int inc, int num) {
       for (int i = 1; i < num; i++) {

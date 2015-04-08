@@ -26,6 +26,20 @@ public class Polyline {
    public Polyline (int idx) {
       this.idx = idx;
    }
+   
+   /**
+    * Creates a duplicate copy of a polyline
+    * @param p
+    */
+   public Polyline(Polyline p) {
+      this.idx = p.idx;
+      Vertex3d[] ovtxs = p.getVertices();
+      
+      myVtxs = new Vertex3d[ovtxs.length];
+      for (int i=0; i<myVtxs.length; i++) {
+         myVtxs[i] = new Vertex3d(new Point3d(ovtxs[i].pnt), ovtxs[i].idx);
+      }
+   }
 
    /**
     * Returns the index value for this polyline.
@@ -54,7 +68,6 @@ public class Polyline {
     */
    public void set (Vertex3d[] vtxs, int numVtxs) {
       myVtxs = new Vertex3d[numVtxs];
-
       for (int i=0; i<numVtxs; i++) {
          myVtxs[i] = vtxs[i];
       }

@@ -1039,6 +1039,8 @@ public class ReaderTokenizer {
    public final boolean isQuoteChar (int ch) {
       if (ch >= ctype.length) {
          return false; // default
+      } else if (ch < 0) {
+         return false; // default
       }
       else {
          return (ctype[ch] & C_QUOTE) != 0;
@@ -1194,7 +1196,7 @@ public class ReaderTokenizer {
          return (ctype[ch] & C_COMMENT) != 0;
       }
    }
-
+  
    /**
     * Returns a string describing the type and value of the current token, as
     * well as the current line number.
@@ -2296,6 +2298,10 @@ public class ReaderTokenizer {
     */
    public boolean tokenIsInteger() {
       return myTokenIsInteger;
+   }
+   
+   public boolean tokenIsHexInteger() {
+      return  tokenIsInteger() && myTokenIsHex;
    }
 
    /**

@@ -490,9 +490,6 @@ static {
    
    @Override
    public void getSelection(LinkedList<Object> list, int qid) {
-      if (myFem != null) {
-         list.addLast(myFem);
-      }
       list.addLast(this);
    }
    

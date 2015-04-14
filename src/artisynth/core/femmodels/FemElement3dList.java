@@ -259,12 +259,13 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
 
    public void getSelection (LinkedList<Object> list, int qid) {
       if (qid >= 0 && qid < 2*size()) {
-         CompositeComponent p = getParent();
-         if (p instanceof GLRenderable) {
-            if (!list.contains(p)) {
-               list.addLast((GLRenderable)p);
-            }
-         }
+         // John Lloyd, April 13 2015: don't want to select the FEM as well
+//         CompositeComponent p = getParent();
+//         if (p instanceof GLRenderable) {
+//            if (!list.contains(p)) {
+//               list.addLast((GLRenderable)p);
+//            }
+//         }
          list.addLast (get (qid%size()));
       }
    }

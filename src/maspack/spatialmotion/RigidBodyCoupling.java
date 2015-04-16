@@ -78,14 +78,14 @@ public abstract class RigidBodyCoupling {
     * Returns constraint information along a particular degree of freedom.
     */
    protected class ConstraintInfo {
-      Wrench wrenchC;
-      Wrench dotWrenchC;
-      double distance;
-      double compliance;
-      double damping;
-      double coordinate; 
-      int engaged;
-      int flags;
+      public Wrench wrenchC;
+      public Wrench dotWrenchC;
+      public double distance;
+      public double compliance;
+      public double damping;
+      public double coordinate; 
+      public int engaged;
+      public int flags;
 
       ConstraintInfo (ConstraintInfo info) {
          this();
@@ -257,6 +257,21 @@ public abstract class RigidBodyCoupling {
       }
       return info;
    }
+   
+   /**
+    * For debugging only
+    */
+   public void printConstraintInfo() {
+      int idx = 0;
+      for (ConstraintInfo ci : myConstraintInfo) {
+         System.out.println("info[" + idx++ + "]");
+         System.out.println("       .flags      = " + ci.flags);
+         System.out.println("       .engaged    = " + ci.engaged);
+         System.out.println("       .coordinate = " + ci.coordinate);
+         System.out.println("       .distance   = " + ci.distance);
+         System.out.println("       .wrench     = " + ci.wrenchC);
+      }
+   }
 
    public Wrench getBilateralForceG() {
       return myBilateralWrenchG;
@@ -302,11 +317,15 @@ public abstract class RigidBodyCoupling {
          // }
       }
    }
+   
+   protected void resetConstraintInfo() {
+      initializeConstraintStorage();
+      initializeConstraintInfo (myConstraintInfo);
+   }
 
    protected void checkConstraintStorage() {
       if (myConstraintInfo == null) {
-         initializeConstraintStorage();
-         initializeConstraintInfo (myConstraintInfo);
+         resetConstraintInfo();
       }
    }
 

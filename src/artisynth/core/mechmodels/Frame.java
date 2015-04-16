@@ -173,6 +173,12 @@ public class Frame extends DynamicComponentBase
    public void setPose (RigidTransform3d XFrameToWorld) {
       myState.setPose (XFrameToWorld);
    }
+   
+   public void transformPose(RigidTransform3d trans) {
+      RigidTransform3d pose = myState.getPose();
+      pose.mul(trans, pose);
+      setPose(pose);
+   }
 
    public RigidTransform3d getPose() {
       return myState.XFrameToWorld;

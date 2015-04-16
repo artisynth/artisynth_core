@@ -13,6 +13,8 @@ public class PlanarCoupling extends RigidBodyCoupling {
 
    public void setUnilateral (boolean unilateral) {
       myUnilateral = unilateral;
+      // re-initialize
+      resetConstraintInfo();  // re-initialize based on changed info
    }
 
    public boolean isUnilateral() {
@@ -70,6 +72,7 @@ public class PlanarCoupling extends RigidBodyCoupling {
       double d = info[0].wrenchC.dot (myErr);
 
       info[0].distance = d;
+      info[0].coordinate = d;
       info[0].dotWrenchC.setZero();
       if (setEngaged) {
          if (myUnilateral && d < getContactDistance()) {

@@ -156,6 +156,13 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       wr.set (myCoupling.getBilateralForceG());
       wr.transform (myTCA);
    }
+   
+   /**
+    * For debugging only
+    */
+   public void printConstraintInfo() {
+      myCoupling.printConstraintInfo();
+   }
 
    /**
     * Returns the most recently computed bilateral constraint force as seen in
@@ -1076,6 +1083,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
          myTGB.mul (myTDB, TGD);
          //System.out.println ("bodyB fixed");
 
+         // XXX is this true?  I would expect XERR.mulInverseRight(TGD,TCD)
          XERR.mulInverseLeft (TGD, TCD);
       }
 

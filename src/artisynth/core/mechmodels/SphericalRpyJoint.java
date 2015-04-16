@@ -6,19 +6,15 @@
  */
 package artisynth.core.mechmodels;
 
-import maspack.geometry.*;
 import maspack.matrix.*;
 import maspack.util.*;
 import maspack.properties.*;
-import maspack.render.*;
 import maspack.spatialmotion.*;
 import java.util.*;
 import java.io.*;
 
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
-import maspack.render.*;
-import javax.media.opengl.*;
 
 /**
  * Auxiliary class used to solve constrained rigid body problems.

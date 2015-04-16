@@ -56,7 +56,7 @@ public class EulerFilter {
          // check the two alternatives
          double d1 = (roll - ref[0]) * (roll - ref[0])
             + (pitch - ref[1]) * (pitch - ref[1])
-            + (yaw - ref[1]) * (yaw - ref[2]);
+            + (yaw - ref[2]) * (yaw - ref[2]);
 
          out[0] = findNearestAngle(ref[0], roll + Math.PI);
          double nearestSingularPitch;

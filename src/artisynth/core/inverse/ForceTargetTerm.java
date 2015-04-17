@@ -69,7 +69,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    protected MatrixNd myForJacobian = null;
    protected VectorNd myTargetFor;
    protected int myTargetForSize;
-
+   
 
    public static boolean DEFAULT_NORMALIZE_H = false;
    protected boolean normalizeH = DEFAULT_NORMALIZE_H;
@@ -79,6 +79,9 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
 
    public static double DEFAULT_Kp = 100;
    protected double Kp = DEFAULT_Kp;
+   
+   public static double[] lam={200};
+   public static VectorNd DEFAULT_FT= new VectorNd (lam);
    
    private static final int POINT_ENTRY_SIZE = 3;
    private static final int FRAME_POS_SIZE = 6;
@@ -96,8 +99,9 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       myProps.add(
          "Kp", "proportional gain", DEFAULT_Kd);
       myProps.add(
-         "normalizeH", "normalize contribution by frobenius norm",                              //AD EXTRA PROPS???
+         "normalizeH", "normalize contribution by frobenius norm",                              
          DEFAULT_NORMALIZE_H);
+      myProps.add ("MyTargetForce","force targets", DEFAULT_FT);
       myProps.addReadOnly (
          "derr", "derivative error at current timestep");
       myProps.addReadOnly (
@@ -340,7 +344,25 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       return myForceTerm.getTerm(H, b, rowoff, t0, t1,
           myCurrentVel, myTargetFor, myForTargetWgts,  myForJacobian, normalizeH);
    }
-
+   public VectorNd getMyTargetForce()
+   {
+      return myForceTargets.get(0).getTargetLambda ();
+   }
+   
+   public void setMyTargetForce(VectorNd tarlam)
+   {
+  /*    if (tar.size() == myForceTargets.get (0).getTargetLambda ().size()) {
+         //myTargetFor.clear();
+         //for (int i=0; i<myTargetFor.size(); i++) {
+            myForceTargets.get (0).setTargetLambda (tar);
+    //     }
+     
+     */
+     
+      myForceTargets.get (0).setTargetLambda (tarlam);
+         updateTargetForce ();
+         
+   }
 
 
    /**
@@ -464,7 +486,8 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
 
    public void setForJacobian(double[] val)
    {
-      myForJacobian= new MatrixNd (1, 4, val);   
+      //myForJacobian= new MatrixNd (1, 4, val);
+      myForJacobian= new MatrixNd (1,  val.length, val);
    }
    public ForceTarget getForceTarget()
    {

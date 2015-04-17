@@ -145,6 +145,9 @@ public class ForceTerm
       h = hold;
      
       if (Jc != null) {
+         System.out.println("myLam size"+myLam.size ());
+         System.out.println("tforSize"+tforSize);
+         System.out.println("Jc"+Jc);
          Jc.mul (lambdabar, myLam, tforSize,myLam.size());
       }
       else {                                                    //get lambdabar

@@ -55,10 +55,10 @@ import maspack.matrix.Point3d;
  */
 public class SpatialHashTable<T> {
    private double myGridSpacing;
-   private HashMap<Index, List<T>> myGrid = new HashMap<>();
+   private HashMap<Index, List<T>> myGrid = new HashMap<Index, List<T>>();
 //   private ArrayList<Index> myUsedIndexList;
    private boolean myIndexListInitialized = false;
-   private HashMap<Index, List<List<T>>> myIndexList = new HashMap<>();
+   private HashMap<Index, List<List<T>>> myIndexList = new HashMap<Index, List<List<T>>>();
 
    public SpatialHashTable (double gridSpacing) {
       myGridSpacing = gridSpacing;
@@ -151,7 +151,7 @@ public class SpatialHashTable<T> {
       }
       myIndexList.clear ();
       for (Index index : myGrid.keySet ()) {
-         List<List<T>> list = new LinkedList<>();
+         List<List<T>> list = new LinkedList<List<T>>();
          NearCellIter it = new NearCellIter(index.vals[0], index.vals[1], index.vals[2]);
          while (it.hasNext ()) {
             List<T> cells = it.next();
@@ -173,7 +173,7 @@ public class SpatialHashTable<T> {
     * @param bvtree
     */
    public Map<List<T>,ArrayList<BVNode>> getCellsIntersecting (BVTree bvtree) {
-      Map<List<T>,ArrayList<BVNode>> potentials = new HashMap<>();
+      Map<List<T>,ArrayList<BVNode>> potentials = new HashMap<List<T>,ArrayList<BVNode>>();
       
       // Do this naively and just intersect sphere of each cell with the bvtree.
       Point3d cellCentre = new Point3d();
@@ -184,7 +184,7 @@ public class SpatialHashTable<T> {
       searchRad += myGridSpacing;
       double sphereRadius = Math.sqrt(2*searchRad*searchRad);
       for (Index index : myGrid.keySet ()) {
-         ArrayList<BVNode> nodes = new ArrayList<> ();
+         ArrayList<BVNode> nodes = new ArrayList<BVNode> ();
          // We need to add all cells which do intersect, and their neighbouring cells.
          cellCentre.x = index.vals[0] * myGridSpacing;
          cellCentre.y = index.vals[1] * myGridSpacing;

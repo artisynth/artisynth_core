@@ -119,8 +119,8 @@ public class StlReader extends MeshReaderBase {
       int facetSize = 50;
       bbuf = new byte[facetSize];
       
-      List<Point3d> allPoints = new ArrayList<>(3*(int)numFacets);
-      List<Point3d[]> allFaces = new ArrayList<>((int)numFacets);
+      List<Point3d> allPoints = new ArrayList<Point3d>(3*(int)numFacets);
+      List<Point3d[]> allFaces = new ArrayList<Point3d[]>((int)numFacets);
 
       for (long i=0; i<numFacets; i++) {
          int nBytesRead = is.read(bbuf,0,facetSize);
@@ -157,7 +157,7 @@ public class StlReader extends MeshReaderBase {
          start = System.nanoTime ();
       }
       
-      SpatialHashTable<Point3d> table = new SpatialHashTable<>(tol);
+      SpatialHashTable<Point3d> table = new SpatialHashTable<Point3d>(tol);
       table.setup (allPoints, allPoints);
       
       if (_printDebug) {
@@ -166,7 +166,7 @@ public class StlReader extends MeshReaderBase {
          start = System.nanoTime ();
       }
       
-      HashMap<Point3d, Integer> allToUniqueMap = new HashMap<> (allPoints.size());
+      HashMap<Point3d, Integer> allToUniqueMap = new HashMap<Point3d, Integer> (allPoints.size());
       double tolSq = tol*tol;
       for (Point3d pnt : allPoints) {
          if (allToUniqueMap.containsKey (pnt)) {
@@ -174,7 +174,7 @@ public class StlReader extends MeshReaderBase {
          }
          
          // Find all points within tol of pnt
-         List<Point3d> results = new ArrayList<>(); 
+         List<Point3d> results = new ArrayList<Point3d>(); 
          Iterator<List<Point3d>> it = table.getCellsNearOld (pnt);
          while (it.hasNext ()) {
             List<Point3d> cell = it.next ();

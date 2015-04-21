@@ -8,6 +8,7 @@ public interface QPTerm extends HasProperties {
    public void setWeight(double w);
      
    public void setSize(int size);
+   public int getSize();
    
    public void dispose();
    

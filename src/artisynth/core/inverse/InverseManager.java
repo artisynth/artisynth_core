@@ -401,12 +401,12 @@ public class InverseManager implements HasProperties {
    
          myProbeDuration = probeDuration;
    
-         refTargetPosInProbe.setStartStopTimes(0, myProbeDuration);
-         excitationOutProbe.setStartStopTimes(0, myProbeDuration);
-         modelTargetPosOutProbe.setStartStopTimes(0, myProbeDuration);
-         refTargetPosOutProbe.setStartStopTimes(0, myProbeDuration);
+         refTargetPosInProbe.setStopTime (myProbeDuration);
+         excitationOutProbe.setStopTime (myProbeDuration);
+         modelTargetPosOutProbe.setStopTime (myProbeDuration);
+         refTargetPosOutProbe.setStopTime (myProbeDuration);
          if (excitationInput != null) {
-            excitationInput.setStartStopTimes(0, myProbeDuration);
+            excitationInput.setStopTime (myProbeDuration);
          }
    
          myMain.getRootModel().addBreakPoint(myProbeDuration);

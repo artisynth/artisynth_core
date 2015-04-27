@@ -763,16 +763,16 @@ public class TrackingController extends ControllerBase
       }
 
       public MotionTargetComponent get (int idx) {
-         return myMotionTerm.getSources().get (idx);
+         return myMotionTerm.getTargets().get (idx);
       }
 
       public int size() {
-         return myMotionTerm.getSources().size();
+         return myMotionTerm.getTargets().size();
       }
 
       public int indexOf (Object elem) {
-         for (int i = 0; i < myMotionTerm.getSources().size(); i++) {
-            if (myMotionTerm.getSources().get (i) == elem) {
+         for (int i = 0; i < myMotionTerm.getTargets().size(); i++) {
+            if (myMotionTerm.getTargets().get (i) == elem) {
                return i;
             }
          }

@@ -216,6 +216,10 @@ public class MayaAsciiReader {
       public String toString() {
          return info.name;
       }
+      
+      public String type() {
+         return "Generic";
+      }
    }
 
    public static class MayaTransform extends MayaNode {
@@ -242,11 +246,23 @@ public class MayaAsciiReader {
          scale = new double[] { s1, s2, s3 };
       }
 
+      public boolean inheritsTransform() {
+         MayaAttribute ma = attributes.get("inheritsTransform");
+         if (ma == null) {
+            return true;
+         } 
+         return (boolean)(ma.data);
+      }
+      
       public void getTransform(AffineTransform3d trans) {
          trans.set(transform);
          if (scale != null) {
             trans.applyScaling(scale[0], scale[1], scale[2]);
          }
+      }
+      
+      public String type() {
+         return "Transform";
       }
    }
 
@@ -267,6 +283,10 @@ public class MayaAsciiReader {
 
       public MayaNurbsCurve(MayaNodeInfo info) {
          super(info);
+      }
+      
+      public String type() {
+         return "Curve";
       }
    }
 
@@ -311,6 +331,10 @@ public class MayaAsciiReader {
             mesh = createMesh();
          }
          return mesh;
+      }
+      
+      public String type() {
+         return "Mesh";
       }
    }
 
@@ -445,8 +469,13 @@ public class MayaAsciiReader {
          dtrans.getTransform(tu);
 
          // convert units
-         trans.p.scale(dtrans.units.length.getSI() / units.length.getSI());
-         trans.mul(tu, trans);
+         tu.p.scale(dtrans.units.length.getSI() / units.length.getSI());
+         // only multiply if inherited
+         if (dtrans.inheritsTransform()) {
+            trans.mul(tu, trans);
+         } else {
+            trans.set(tu);
+         }
       } else if (data instanceof MayaMesh) {
          MayaMesh mm = (MayaMesh)data;
          PolygonalMesh mmesh = mm.getMesh();
@@ -531,8 +560,12 @@ public class MayaAsciiReader {
             dtrans.getTransform(tu);
 
             // convert units
-            trans.p.scale(dtrans.units.length.getSI() / units.length.getSI());
-            trans.mul(tu, trans);
+            tu.p.scale(dtrans.units.length.getSI() / units.length.getSI());
+            if (dtrans.inheritsTransform()) {
+               trans.mul(tu, trans);
+            } else {
+               trans.set(tu);
+            }
          }
 
          recursiveBuildParentTransform(parent, trans, units);
@@ -553,8 +586,12 @@ public class MayaAsciiReader {
          dtrans.getTransform(tu);
 
          // convert units
-         trans.p.scale(dtrans.units.length.getSI() / units.length.getSI());
-         trans.mul(tu, trans);
+         tu.p.scale(dtrans.units.length.getSI() / units.length.getSI());
+         if (dtrans.inheritsTransform()) {
+            trans.mul(tu, trans);
+         } else {
+            trans.set(tu);
+         }
       } else if (data instanceof MayaNurbsCurve) {
          MayaNurbsCurve mnc = (MayaNurbsCurve)data;
          Polyline line = new Polyline(mnc.curve);
@@ -584,12 +621,16 @@ public class MayaAsciiReader {
          return tree.getRootElement();
       }
 
-      int idx = nodeName.indexOf(':');
-      if (idx < 0) {
-         return recursiveGetNode(tree.getRootElement(), nodeName);
+      // first look for node with given exact name
+      Node<MayaNode> node = recursiveGetNode(tree.getRootElement(), nodeName);
+      
+      if (node == null) {
+         int idx = nodeName.indexOf(':');
+         if (idx < 0) {
+            node = recursiveGetNode(tree.getRootElement(), nodeName);
+         }
       }
-
-      return getNode(tree.getRootElement(), nodeName);
+      return  node;
    }
 
    public Node<MayaNode> getNode(Node<MayaNode> root, String nodeName) {
@@ -1038,6 +1079,8 @@ public class MayaAsciiReader {
 
             if (rtok.sval.equals("setAttr")) {
                parseAttribute(rtok, attributes);
+            } else if (rtok.sval.equals("connectAttr")) {
+               // connect two attributes
             } else {
                System.err.println("Unknown command \"" + rtok.sval
                + "\" (Line " + rtok.lineno() + ")");
@@ -1186,6 +1229,38 @@ public class MayaAsciiReader {
          }
          return false;
       }
+      
+      protected static double[][] resize(double[][] array, int size) {
+         
+         if (array.length == size) {
+            return array;
+         }
+         
+         double[][] narray = new double[size][];
+         int N = Math.min(size, array.length);
+         
+         for (int i=0; i<N; i++) {
+            narray[i] = array[i];
+         }
+         
+         return narray;
+      }
+      
+      protected static int[][] resize(int[][] array, int size) {
+         
+         if (array.length == size) {
+            return array;
+         }
+         
+         int[][] narray = new int[size][];
+         int N = Math.min(size, array.length);
+         
+         for (int i=0; i<N; i++) {
+            narray[i] = array[i];
+         }
+         
+         return narray;
+      }
    }
 
    private static class TransformParser extends MayaNodeParser {
@@ -1205,6 +1280,12 @@ public class MayaAsciiReader {
          attributes.put("rotatePivot", "rotatePivot");
          attributes.put("sp", "scalePivot");
          attributes.put("scalePivot", "scalePivot");
+         attributes.put("rpt", "rotatePivotTranslate");
+         attributes.put("rotatePivotTranslate", "rotatePivotTranslate");
+         attributes.put("spt", "scalePivotTranslate");
+         attributes.put("scalePivotTranslate", "scalePivotTranslate");
+         attributes.put("it", "inheritsTransform");
+         attributes.put("inheritsTransform", "inheritsTransform");
       }
 
       @Override
@@ -1235,6 +1316,8 @@ public class MayaAsciiReader {
             double[] s = new double[3];
             parse3double(rtok, s);
             attribute.data = s;
+         } else if ("inheritsTransform".equals(attribute.name)) {
+            attribute.data = scanBoolean(rtok);
          } else {
             //throw new IOException("Unhandled attribute with name '"
             //+ attribute.name + "' (Line " + rtok.lineno() + ")");
@@ -1291,6 +1374,10 @@ public class MayaAsciiReader {
          attributes.put("visible", "visible");
          attributes.put("cc", "cached"); // curve geometry
          attributes.put("cached", "cached");
+         attributes.put("tw", "tweak");
+         attributes.put("tweak", "tweak");
+         attributes.put("cp", "controlPoints");
+         attributes.put("controlPoints", "controlPoints");
       }
 
       @Override
@@ -1336,6 +1423,64 @@ public class MayaAsciiReader {
             }
 
             attribute.data = curve;
+         } else if ("tweak".equals(attribute.name)) {
+            attribute.data = scanBoolean(rtok);
+         } else if ("controlPoints".equals(attribute.name)) {
+            double[][] cp = (double[][])(attribute.data);
+            // resize if required
+            int s = -1;
+            if (attribute.options.get("size") != null) {
+               s = (int)(attribute.options.get("size"));
+            }
+            if (range != null) {
+               if (range[1]+1 > s) {
+                  s = range[1]+s;
+               }
+            }
+            
+            // create or adjust vrts array if required
+            if (cp == null) {
+               cp = new double[s][];
+            } else if (cp.length < s) {
+               // expand and copy over old values
+               cp = resize(cp, s);
+            }
+            
+            // read in values
+            if (range == null) {
+               int idx = 0;
+               while (rtok.ttype != SEMICOLON) {
+                  // keep reading in values
+                  double[] nextpnt = new double[3];
+                  int scanned = rtok.scanNumbers(nextpnt, 3);
+                  if (scanned != 3) {
+                     throw new IOException("Unable to scan numbers (Line " + rtok.lineno() + ")");
+                  }
+                  if (idx+1 > cp.length) {
+                     cp = resize(cp, (int)((idx+1)*1.5));
+                  }
+                  cp[idx] = nextpnt;
+                  idx++;
+               }
+               if (idx < cp.length) {
+                  cp = resize(cp, idx);
+               }
+               
+            } else {
+               // fill in range
+               for (int i = range[0]; i <= range[1]; i++) {
+                  cp[i] = new double[3];
+                  int scanned = rtok.scanNumbers(cp[i], 3);
+                  if (scanned != 3) {
+                     throw new IOException("Unable to scan numbers (Line " + rtok.lineno() + ")");
+                  }
+               }
+            }
+            if (rtok.ttype != SEMICOLON) {
+               readToNextSemicolon(rtok);
+            }
+            
+            attribute.data = cp;            
          }
       }
 
@@ -1362,6 +1507,18 @@ public class MayaAsciiReader {
                   vtxs[i] =
                      new Vertex3d(new Point3d(
                         pnts[i][0], pnts[i][1], pnts[i][2]));
+               }
+               curveNode.curve.set(vtxs, nPoints);
+            } else if ("controlPoints".equals(key)) {
+               double[][] cp =(double[][])(attrib.getValue().data);
+
+               // build from set of points            
+               int nPoints = cp.length;
+               Vertex3d vtxs[] = new Vertex3d[nPoints];
+
+               for (int i = 0; i < nPoints; i++) {
+                  vtxs[i] =  new Vertex3d(new Point3d(
+                        cp[i][0], cp[i][1], cp[i][2]));
                }
                curveNode.curve.set(vtxs, nPoints);
             }
@@ -1409,6 +1566,9 @@ public class MayaAsciiReader {
          attributes.put("normals", "normals");
          attributes.put("fc", "face");
          attributes.put("face", "face");
+         attributes.put("iog", "instObjGroups");
+         attributes.put("instObjGroups", "instObjGroups");
+         attributes.put("vnm", "vnm");
       }
 
       @Override
@@ -1416,38 +1576,6 @@ public class MayaAsciiReader {
          return attributes.get(shortOrLongName);
       }
       
-      private static double[][] resize(double[][] array, int size) {
-         
-         if (array.length == size) {
-            return array;
-         }
-         
-         double[][] narray = new double[size][];
-         int N = Math.min(size, array.length);
-         
-         for (int i=0; i<N; i++) {
-            narray[i] = array[i];
-         }
-         
-         return narray;
-      }
-      
-      private static int[][] resize(int[][] array, int size) {
-         
-         if (array.length == size) {
-            return array;
-         }
-         
-         int[][] narray = new int[size][];
-         int N = Math.min(size, array.length);
-         
-         for (int i=0; i<N; i++) {
-            narray[i] = array[i];
-         }
-         
-         return narray;
-      }
-
       @Override
       public void parseAttributeData(
          MayaAttribute attribute, int[] range, String[] subAttributes,
@@ -1719,7 +1847,10 @@ public class MayaAsciiReader {
             attribute.data = readToNextSemicolon(rtok);
          } else if ("holeFaceData".equals(attribute.name)) {
             attribute.data = readToNextSemicolon(rtok);
-         } 
+         } else {
+            System.err.println("Unhandled attribute with name '" + attribute.name + "' (Line " + rtok.lineno() + ")" );
+            attribute.data = readToNextSemicolon(rtok);
+         }
       }
 
       @Override

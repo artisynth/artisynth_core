@@ -14,6 +14,7 @@ import java.io.Reader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
@@ -259,16 +260,43 @@ public class AnsysReader implements FemReader {
       
       return model;
    }
-
+   
+   protected static int computeWidths (List<Integer> widths, String line) 
+      throws IOException {
+      
+      int max = line.length();
+      int off = 0;
+      int width = 0;
+      
+      // skip leading white space
+      while (off < max) {
+         width = 0;
+         
+         // leading white space
+         while (off < max && Character.isWhitespace((line.charAt(off)))) {
+            off++;
+            width++;
+         }
+         // digits
+         while (off < max && Character.isDigit((line.charAt(off)))) {
+            off++;
+            width++;
+         }
+         
+         widths.add(width);
+      }
+      
+      return widths.size();
+   }
 
    protected static int parseNumber (
-      ArrayList<Integer> numbers, String line, int off, int lineno) 
+      ArrayList<Integer> numbers, String line, int off, int maxWidth, int lineno) 
       throws IOException {
       
       int max = line.length();
       // limit maximum digits for the first 13 numbers
-      if (numbers.size() < 13) {
-         max = Math.min (max, off+6);
+      if (numbers.size() < 13 && maxWidth > 0) {
+         max = Math.min (max, off+maxWidth);  // maximum number width
       }
       int c = 0;
       // skip leading white space
@@ -306,14 +334,21 @@ public class AnsysReader implements FemReader {
       String line;
       int lineno = 0;
       BufferedReader reader = new BufferedReader (elemReader);
-      while ((line = reader.readLine()) != null) {
+      line = reader.readLine();
+      
+      // compute widths
+      ArrayList<Integer> widths = new ArrayList<Integer>(14);
+      computeWidths(widths, line);
+      while (line != null) {
          
          ArrayList<Integer> numbers = new ArrayList<Integer> ();
          ArrayList<Integer> elemNumList;
          lineno++;
 
          int off = 0;
-         while ((off = parseNumber (numbers, line, off, lineno)) != -1) {
+         int nidx = 0;
+         while ((off = parseNumber (numbers, line, off, widths.get(nidx), lineno)) != -1) {
+            nidx++;
          }
          
          if (numbers.size() == 14) {
@@ -336,6 +371,9 @@ public class AnsysReader implements FemReader {
             }
          }
          elemPositions.put (elemId + offset, elemNumList);
+         
+         // queue-up next line
+         line = reader.readLine();
       }
 	   
       return elemPositions;

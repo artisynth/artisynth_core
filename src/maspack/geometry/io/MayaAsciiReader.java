@@ -251,7 +251,7 @@ public class MayaAsciiReader {
          if (ma == null) {
             return true;
          } 
-         return (boolean)(ma.data);
+         return (Boolean)(ma.data);
       }
       
       public void getTransform(AffineTransform3d trans) {
@@ -1430,7 +1430,7 @@ public class MayaAsciiReader {
             // resize if required
             int s = -1;
             if (attribute.options.get("size") != null) {
-               s = (int)(attribute.options.get("size"));
+               s = (Integer)(attribute.options.get("size"));
             }
             if (range != null) {
                if (range[1]+1 > s) {

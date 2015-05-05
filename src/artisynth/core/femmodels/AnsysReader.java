@@ -19,6 +19,7 @@ import java.util.List;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.util.ReaderTokenizer;
+import maspack.widgets.WidgetDialog;
 
 /**
  * A class to read an FEM described in the ANSYS file format.
@@ -339,6 +340,8 @@ public class AnsysReader implements FemReader {
       // compute widths
       ArrayList<Integer> widths = new ArrayList<Integer>(14);
       computeWidths(widths, line);
+      widths.add(0); // terminal width to prevent crashes if no space at end of line
+      
       while (line != null) {
          
          ArrayList<Integer> numbers = new ArrayList<Integer> ();
@@ -347,8 +350,12 @@ public class AnsysReader implements FemReader {
 
          int off = 0;
          int nidx = 0;
-         while ((off = parseNumber (numbers, line, off, widths.get(nidx), lineno)) != -1) {
+         while ( (off = parseNumber (numbers, line, off, widths.get(nidx), lineno)) != -1) {
             nidx++;
+            // break if at the end of the line
+            if(off >= line.length()) {
+               break;
+            }
          }
          
          if (numbers.size() == 14) {

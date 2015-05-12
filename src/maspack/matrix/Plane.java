@@ -226,6 +226,12 @@ public class Plane implements java.io.Serializable {
          throw new IllegalArgumentException ("colinear points");
       }
       normal.scale (1 / mag);
+      // compute offset as the average offset for all three points;
+      // should be marginally more robust
+      offset  = normal.dot (p1);
+      offset += normal.dot (p2);
+      offset += normal.dot (p3);
+      offset /= 3;
    }
    
    public void flip() {

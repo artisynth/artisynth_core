@@ -251,7 +251,7 @@ public class MeshRenderer {
             // convert color to HSV representation
             GLSupport.RGBtoHSV (myColorBuf, color);
             gl.glColor4f (
-               myColorBuf[0], myColorBuf[1], myColorBuf[2], myColorBuf[3]);
+               myColorBuf[0], myColorBuf[1], myColorBuf[2], color[3]);
          }
          else {
             gl.glColor4f (
@@ -275,7 +275,9 @@ public class MeshRenderer {
       boolean useVertexColors = (flags & GLRenderer.VERTEX_COLORING) != 0;
       boolean useHSVInterpolation =
          (flags & GLRenderer.HSV_COLOR_INTERPOLATION) != 0;
-      useHSVInterpolation =false;
+      System.out.println (useHSVInterpolation);
+      //useHSVInterpolation =false;
+
       boolean useTextureCoords =
          (textureProps != null && textureProps.isEnabled() &&
           !textureProps.isAutomatic() && mesh.myTextureIndices != null);
@@ -453,7 +455,7 @@ public class MeshRenderer {
       boolean useVertexColors = (flags & GLRenderer.VERTEX_COLORING) != 0;
       boolean useHSVInterpolation =
          (flags & GLRenderer.HSV_COLOR_INTERPOLATION) != 0;
-      useHSVInterpolation =false;
+      //useHSVInterpolation =false;
       // XXX not clear when we want to merge quad triangles when drawing edges
       boolean mergeQuadTriangles = false;
 

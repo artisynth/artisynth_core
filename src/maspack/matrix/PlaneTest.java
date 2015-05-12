@@ -90,12 +90,32 @@ class PlaneTest {
       }
    }
 
+   public void testSet() {
+      Point3d[] pnts = new Point3d[] {
+         new Point3d(), new Point3d(), new Point3d()};
+      for (int k=0; k<10; k++) {
+         for (int i=0; i<pnts.length; i++) {
+            pnts[i].setRandom();
+         }
+         Plane plane = new Plane (pnts[0], pnts[1], pnts[2]);
+         for (int i=0; i<pnts.length; i++) {
+            if (plane.distance (pnts[i]) > 1e-16) {
+               throw new TestException (
+                  "distance of point from associated plane is " +
+                  plane.distance (pnts[i]) + "; should be nearly 0");
+            }
+         }
+      }
+   }
+
    public void test() {
       testFit();
       testIntersectPlane();
+      testSet();
    }
 
    public static void main (String[] args) {
+      RandomGenerator.setSeed (0x1234);
       PlaneTest tester = new PlaneTest();
       try {
          tester.test();

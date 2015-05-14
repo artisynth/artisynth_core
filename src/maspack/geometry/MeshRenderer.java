@@ -275,7 +275,7 @@ public class MeshRenderer {
       boolean useVertexColors = (flags & GLRenderer.VERTEX_COLORING) != 0;
       boolean useHSVInterpolation =
          (flags & GLRenderer.HSV_COLOR_INTERPOLATION) != 0;
-      System.out.println (useHSVInterpolation);
+      //System.out.println (useHSVInterpolation);
       //useHSVInterpolation =false;
 
       boolean useTextureCoords =

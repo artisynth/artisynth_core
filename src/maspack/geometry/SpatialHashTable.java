@@ -75,8 +75,7 @@ public class SpatialHashTable<T> {
     */
    public synchronized void setup (List<? extends Point3d> positions, List<? extends T> elements) {
       myGrid.clear();
-      myIndexListInitialized = false;
-//      myUsedIndexList.clear();
+      myIndexListInitialized = false; // This operation invalidates IndexLists
       if (positions.size() != elements.size()) {
          throw new IllegalArgumentException ("Non-matching position and element sizes!");
       }
@@ -87,9 +86,6 @@ public class SpatialHashTable<T> {
          int idxX, idxY, idxZ;
          
          // This is ok since negative indices are allowed now
-//         idxX = (int) Math.round((p.getPosReadOnly().x)/myGridSpacing);
-//         idxY = (int) Math.round((p.getPosReadOnly().y)/myGridSpacing);
-//         idxZ = (int) Math.round((p.getPosReadOnly().z)/myGridSpacing);
          Point3d pos = positions.get(i);
          idxX = (int) Math.round((pos.x)/myGridSpacing);
          idxY = (int) Math.round((pos.y)/myGridSpacing);
@@ -108,8 +104,7 @@ public class SpatialHashTable<T> {
             newIndex.vals[2] = idxZ;
             
             parList = new ArrayList<T>();
-            myGrid.put(newIndex, parList );
-//            myUsedIndexList.add( newIndex );
+            myGrid.put(newIndex, parList);
          }
          
          parList.add(p);
@@ -216,7 +211,12 @@ public class SpatialHashTable<T> {
       int yIdx = (int) Math.round (pos.y/myGridSpacing);
       int zIdx = (int) Math.round (pos.z/myGridSpacing);
 
-      Iterator<List<T>> it = myIndexList.get (new Index(xIdx, yIdx, zIdx)).listIterator ();
+      //Iterator<List<T>> it = myIndexList.get (new Index(xIdx, yIdx, zIdx)).listIterator ();
+      List<List<T>> list = myIndexList.get(new Index(xIdx, yIdx, zIdx));
+      if (list == null) {
+         return getCellsNearOld(pos);
+      }
+      Iterator<List<T>> it = list.listIterator ();
       return it;
    }
 
@@ -235,7 +235,7 @@ public class SpatialHashTable<T> {
       NearCellIter it = new NearCellIter (xIdx, yIdx, zIdx);
       return it;
    }
-   
+
    public void testIter (int a, int b, int c) {
       NearCellIter it = new NearCellIter (a, b, c);
       System.out.println ("Iterator test:");

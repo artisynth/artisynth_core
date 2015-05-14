@@ -326,6 +326,7 @@ public class WayPointProbe extends OutputProbe {
                   way.getState ().writeBinary (dos);
                }
             }
+            dos.close ();
          }
          catch (Exception e) {
             System.out.println ("Error writing file " + file.getName ());
@@ -401,6 +402,7 @@ public class WayPointProbe extends OutputProbe {
                   cs.readBinary (dis);
                   way.setState (cs);
                }
+               dis.close ();
             }
             catch (IOException e) {
                System.err.println ("Could not load waypoint data: \n   " + e.getMessage ());

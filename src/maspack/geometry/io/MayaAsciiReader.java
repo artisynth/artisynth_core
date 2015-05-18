@@ -14,6 +14,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
 
 import maspack.geometry.Face;
 import maspack.geometry.PolygonalMesh;
@@ -472,7 +473,7 @@ public class MayaAsciiReader {
          tu.p.scale(dtrans.units.length.getSI() / units.length.getSI());
          // only multiply if inherited
          if (dtrans.inheritsTransform()) {
-            trans.mul(tu, trans);
+            trans.mul(tu);
          } else {
             trans.set(tu);
          }
@@ -485,6 +486,7 @@ public class MayaAsciiReader {
             HashMap<Vertex3d,Vertex3d> vtxMap = new HashMap<Vertex3d,Vertex3d>();
             for (Vertex3d vtx : mmesh.getVertices()) {
                Vertex3d nvtx = new Vertex3d(vtx.pnt);
+               // XXX  prevent transform
                nvtx.pnt.scale(mm.units.length.getSI() / units.length.getSI());
                nvtx.pnt.transform(trans);
                vtxMap.put(vtx, nvtx);
@@ -509,18 +511,26 @@ public class MayaAsciiReader {
    }
 
    public PolylineMesh getPolylineMesh() {
-      return getPolylineMesh(tree.getRootElement(), null);
+      return getPolylineMesh(tree.getRootElement(), null, null);
    }
 
    public PolylineMesh getPolylineMesh(UnitInfo units) {
-      return getPolylineMesh(tree.getRootElement(), units);
+      return getPolylineMesh(tree.getRootElement(), units, null);
+   }
+   
+   public PolylineMesh getPolylineMesh(String group, String regex) {
+      return getPolylineMesh(group, null, regex);
    }
 
    public PolylineMesh getPolylineMesh(String group) {
-      return getPolylineMesh(group, null);
+      return getPolylineMesh(group, null, null);
    }
 
    public PolylineMesh getPolylineMesh(String group, UnitInfo units) {
+      return getPolylineMesh(group, units, null);
+   }
+   
+   public PolylineMesh getPolylineMesh(String group, UnitInfo units, String regex) {
 
       Node<MayaNode> root = tree.getRootElement();
       if (group != null) {
@@ -531,10 +541,10 @@ public class MayaAsciiReader {
          + "\" not found.");
       }
 
-      return getPolylineMesh(root, units);
+      return getPolylineMesh(root, units, regex);
    }
 
-   private PolylineMesh getPolylineMesh(Node<MayaNode> root, UnitInfo units) {
+   private PolylineMesh getPolylineMesh(Node<MayaNode> root, UnitInfo units, String regex) {
 
       if (units == null) {
          units = defaultUnits;
@@ -542,7 +552,12 @@ public class MayaAsciiReader {
       PolylineMesh mesh = new PolylineMesh();
       AffineTransform3d trans = new AffineTransform3d();
       recursiveBuildParentTransform(root, trans, units);
-      recursiveAddPolylines(root, mesh, trans, units);
+      
+      Pattern pregex = null;
+      if (regex != null) {
+         pregex = Pattern.compile(regex);
+      }
+      recursiveAddPolylines(root, mesh, trans, units, pregex);
 
       return mesh;
 
@@ -562,7 +577,7 @@ public class MayaAsciiReader {
             // convert units
             tu.p.scale(dtrans.units.length.getSI() / units.length.getSI());
             if (dtrans.inheritsTransform()) {
-               trans.mul(tu, trans);
+               trans.mul(tu);
             } else {
                trans.set(tu);
             }
@@ -574,7 +589,7 @@ public class MayaAsciiReader {
 
    private void recursiveAddPolylines(
       Node<MayaNode> root, PolylineMesh mesh, AffineTransform3d trans,
-      UnitInfo units) {
+      UnitInfo units, Pattern pregex) {
 
       trans = new AffineTransform3d(trans); // make copy so can traverse
                                             // children independently
@@ -588,26 +603,31 @@ public class MayaAsciiReader {
          // convert units
          tu.p.scale(dtrans.units.length.getSI() / units.length.getSI());
          if (dtrans.inheritsTransform()) {
-            trans.mul(tu, trans);
+            trans.mul(tu);
          } else {
             trans.set(tu);
          }
       } else if (data instanceof MayaNurbsCurve) {
          MayaNurbsCurve mnc = (MayaNurbsCurve)data;
-         Polyline line = new Polyline(mnc.curve);
          
-         if (line != null) {
-            // transform line
-            for (Vertex3d vtx : line.getVertices()) {
-               vtx.pnt.scale(mnc.units.length.getSI() / units.length.getSI());
-               vtx.pnt.transform(trans);
-            }
-            mesh.addLine(line);
+         if (pregex == null || pregex.matcher(mnc.getName()).matches()) {
+            Polyline line = new Polyline(mnc.curve);
+            
+            if (line != null) {
+               // transform line
+               for (Vertex3d vtx : line.getVertices()) {
+                  vtx.pnt.scale(mnc.units.length.getSI() / units.length.getSI());
+                  vtx.pnt.transform(trans);
+               }
+               mesh.addLine(line);
+            }      
          }
+         
+         
       }
 
       for (Node<MayaNode> child : root.getChildren()) {
-         recursiveAddPolylines(child, mesh, trans, units);
+         recursiveAddPolylines(child, mesh, trans, units, pregex);
       }
 
    }
@@ -625,40 +645,38 @@ public class MayaAsciiReader {
       Node<MayaNode> node = recursiveGetNode(tree.getRootElement(), nodeName);
       
       if (node == null) {
-         int idx = nodeName.indexOf(':');
-         if (idx < 0) {
-            node = recursiveGetNode(tree.getRootElement(), nodeName);
+         int idx = nodeName.indexOf('>');
+         if (idx >= 0) {
+            String[] nodePath = nodeName.split(">");
+            node = getSplitNode(tree.getRootElement(), nodePath);
          }
       }
       return  node;
    }
 
-   public Node<MayaNode> getNode(Node<MayaNode> root, String nodeName) {
+   public Node<MayaNode> getSplitNode(Node<MayaNode> root, String[] nodePath) {
 
-      int idx = nodeName.indexOf(':');
-      String childName = nodeName;
-      String rest = null;
-      if (idx >= 0) {
-         childName = nodeName.substring(0, idx);
-         if (idx < nodeName.length() - 1) {
-            rest = nodeName.substring(idx + 1);
-         }
-      }
-
-      for (Node<MayaNode> child : root.getChildren()) {
-         MayaNode data = child.getData();
-         if (data != null) {
-            if (data.getName().equals(childName)) {
-               if (rest == null) {
-                  return child;
-               } else {
-                  return getNode(child, rest);
+      // traverse tree until we find the full path
+      Node<MayaNode> node = root;
+      for (int i=0; i<nodePath.length; i++) {
+         List<Node<MayaNode>> children = node.getChildren();
+         node = null;
+         for (Node<MayaNode> child : children) {
+            MayaNode data = child.getData();
+            if (data != null) {
+               if (data.getName().equals(nodePath[i])) {
+                  node = child;
+                  continue;
                }
             }
          }
+         
+         if (node == null) {
+            return null;
+         }
       }
-
-      return null;
+      
+      return node;
 
    }
 

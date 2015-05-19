@@ -39,6 +39,7 @@ public class MayaAsciiReader {
    private static int SEMICOLON = ';';
    private static int DASH_CHAR = '-';
    private static String PERIOD_STR = ".";
+   public static boolean verbose = false;
 
    static final UnitInfo SI_UNITS = new UnitInfo(
       LengthUnit.METER, AngleUnit.RADIAN, TimeUnit.SECOND);
@@ -797,9 +798,10 @@ public class MayaAsciiReader {
       }
 
    }
-
+   
    private static void buildTree(Tree<MayaNode> tree, ArrayList<MayaNode> nodes) {
 
+      
       Node<MayaNode> root = new Node<MayaNode>();
       tree.setRootElement(root);
       // ArrayList<Node<MayaNode>> treeNodes = new ArrayList<Node<MayaNode>>();
@@ -807,11 +809,15 @@ public class MayaAsciiReader {
       ArrayDeque<Node<MayaNode>> orphan = new ArrayDeque<Node<MayaNode>>();
       ArrayList<Node<MayaNode>> treeNodes = new ArrayList<Node<MayaNode>>();
 
-      // build tree nodes
-      // first sort by depth if possible
+      // sort by depth if possible
       Collections.sort(nodes, new TreeDepthComparator());
+      
+      // create a map of all nodes
+      HashMap<String,Node<MayaNode>> nodeMap = new HashMap<String,Node<MayaNode>>(nodes.size());
       for (MayaNode node : nodes) {
-         orphan.add(new Node<MayaNode>(node));
+         Node<MayaNode> mnode = new Node<MayaNode>(node);
+         nodeMap.put(node.getName(), mnode);
+         orphan.add(mnode);  
       }
 
       // build tree
@@ -822,6 +828,7 @@ public class MayaAsciiReader {
 
          boolean mod = false; // whether tree was modified
          Node<MayaNode> node = orphan.poll(); // grab the first entry
+         
 
          // attach parent
          String parent = node.getData().getParent();
@@ -838,12 +845,7 @@ public class MayaAsciiReader {
             if (hnames[0].equals("")) {
                pnode = root;
             } else {
-               for (Node<MayaNode> tnode : treeNodes) {
-                  if (tnode.getData().getName().equals(hnames[0])) {
-                     pnode = tnode;
-                     break;
-                  }
-               }
+               pnode = nodeMap.get(hnames[0]);
             }
 
             // travel down tree
@@ -932,8 +934,10 @@ public class MayaAsciiReader {
       // find appropriate parser
       MayaNodeParser parser = parsers.get(info.type);
       if (parser == null) {
-         System.err.println("Unknown node of type '" + info.type
-            + "', ignoring.");
+         if (verbose) {
+            System.err.println("Unknown node of type '" + info.type
+               + "', ignoring.");
+         }
          parser = ignoreParser;
       }
       return parser.parseNode(info, units, rtok);
@@ -1150,8 +1154,10 @@ public class MayaAsciiReader {
             } else if (rtok.sval.equals("connectAttr")) {
                // connect two attributes
             } else {
-               System.err.println("Unknown command \"" + rtok.sval
-                  + "\" (Line " + rtok.lineno() + ")");
+               if (verbose) {
+                  System.err.println("Unknown command \"" + rtok.sval
+                     + "\" (Line " + rtok.lineno() + ")");
+               }
             }
 
             if (rtok.ttype != SEMICOLON) {
@@ -1442,8 +1448,10 @@ public class MayaAsciiReader {
          } else {
             // throw new IOException("Unhandled attribute with name '"
             // + attribute.name + "' (Line " + rtok.lineno() + ")");
-            System.err.println("Unhandled attribute with name '"
-               + attribute.name + "' (Line " + rtok.lineno() + ")");
+            if (verbose) {
+               System.err.println("Unhandled attribute with name '"
+                  + attribute.name + "' (Line " + rtok.lineno() + ")");
+            }
             attribute.data = readToNextSemicolon(rtok);
          }
       }
@@ -1959,8 +1967,10 @@ public class MayaAsciiReader {
          } else if ("holeFaceData".equals(attribute.name)) {
             attribute.data = readToNextSemicolon(rtok);
          } else {
-            System.err.println("Unhandled attribute with name '"
-               + attribute.name + "' (Line " + rtok.lineno() + ")");
+            if (verbose) {
+               System.err.println("Unhandled attribute with name '"
+                  + attribute.name + "' (Line " + rtok.lineno() + ")");
+            }
             attribute.data = readToNextSemicolon(rtok);
          }
       }

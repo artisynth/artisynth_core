@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014, by the Authors: Ian Stavness (UBC)
+ * Copyright (c) 2014, by the Authors: Ian Stavness, Benedikt Sagl
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -63,13 +63,13 @@ public class ForceTerm
 
    protected int getTerm(MatrixNd H, VectorNd b, int rowoff,
       double t0, double t1, VectorNd curVel, VectorNd targetFor, VectorNd wgts_c,
-       MatrixNd Jc) {
+      SparseBlockMatrix Jc) {
       return getTerm(
          H, b, rowoff, t0, t1, curVel, targetFor, wgts_c, Jc, DEFAULT_NORMALIZE);
    }
 
    protected int getTerm(MatrixNd H, VectorNd b, int rowoff,
-      double t0, double t1, VectorNd curVel, VectorNd targetFor, VectorNd wgts_c, MatrixNd Jc, boolean normalizeH) {
+      double t0, double t1, VectorNd curVel, VectorNd targetFor, VectorNd wgts_c, SparseBlockMatrix Jc, boolean normalizeH) {
 
       // round because results are very sensitive to h and we want to keep them
       // identical to earlier results when t0, t1 where given as nsec integers
@@ -90,7 +90,7 @@ public class ForceTerm
       //v.setSize(velSize);
       myLam.setSize(tforSize);
       ex.setSize(exSize);
-      
+      lambdabar.setSize(tforSize);
       f_passive.setSize(velSize);
       f.setSize(velSize);
       ftmp.setSize(velSize);
@@ -148,13 +148,13 @@ public class ForceTerm
          System.out.println("myLam size"+myLam.size ());
          System.out.println("tforSize"+tforSize);
          System.out.println("Jc"+Jc);
-         Jc.mul (lambdabar, myLam, tforSize,myLam.size());
+         Jc.mul (lambdabar, myLam);    //works only for planar constraints
       }
       else {                                                    //get lambdabar
          lambdabar.set (myLam);  
       }
-      lambdabar.sub(targetFor,lambdabar);
-      
+      lambdabar.sub(targetFor,lambdabar); 
+      System.out.println(targetFor);
       // Hm = Jm Hu
       // get column j of Hu by solving with RHS = Lambda * ej
       for (int j = 0; j < exSize; j++)
@@ -182,7 +182,7 @@ public class ForceTerm
 
 
          if (Jc != null)
-               Jc.mul (Hc_j,lam,tforSize,lam.size());  //Hc_j=JcH_lambda for one column
+               Jc.mul (Hc_j,lam);  //Hc_j=JcH_lambda for one column
                //Hc_j=lam;
                //Hc_j.scale (Jc.get (1, j));
     //     }

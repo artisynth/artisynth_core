@@ -8,6 +8,7 @@ package artisynth.core.inverse;
 
 import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import maspack.matrix.MatrixNd;
 import maspack.matrix.Point3d;
@@ -39,7 +40,7 @@ import artisynth.core.util.TimeBase;
 /**
  * Force error term for the TrackingController
  * 
- * @author Ian Stavness, with modifications by Antonio Sanchez
+ * @author Ian Stavness, Benedikt Sagl
  *
  */
 public class ForceTargetTerm extends LeastSquaresTermBase {
@@ -48,6 +49,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    boolean usePDControl = DEFAULT_USE_PD_CONTROL;
    boolean debug = false;
    boolean enabled = true;
+   double CONSTR_FOR_SIZE=1;
 
    protected MechSystemBase myMech;    // mech system, used to compute forces
    protected TrackingController myController; // controller to which this term is associated
@@ -66,7 +68,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    
    //double[] values={0,1,0,0};                  //////////////////////////////////////////////////////////////////////////
   // protected MatrixNd myForJacobian = new MatrixNd (1, 4, values);   
-   protected MatrixNd myForJacobian = null;
+   protected SparseBlockMatrix myForJacobian = null;
    protected VectorNd myTargetFor;
    protected int myTargetForSize;
    
@@ -80,8 +82,8 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    public static double DEFAULT_Kp = 100;
    protected double Kp = DEFAULT_Kp;
    
-   public static double[] lam={200};
-   public static VectorNd DEFAULT_FT= new VectorNd (lam);
+   static double[] val={1,1};
+   public static VectorNd DEFAULT_WEIGHTS= new VectorNd (val);
    
    private static final int POINT_ENTRY_SIZE = 3;
    private static final int FRAME_POS_SIZE = 6;
@@ -93,7 +95,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       new PropertyList(ForceTargetTerm.class, LeastSquaresTermBase.class);
 
    static {
-      myProps.add("targetWeights", "Weights for each target", null);
+      myProps.add("targetWeights", "Weights for each target", DEFAULT_WEIGHTS);
       myProps.add(
          "Kd", "derivative gain", DEFAULT_Kd);
       myProps.add(
@@ -101,7 +103,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       myProps.add(
          "normalizeH", "normalize contribution by frobenius norm",                              
          DEFAULT_NORMALIZE_H);
-      myProps.add ("MyTargetForce","force targets", DEFAULT_FT);
+      //myProps.add ("MyTargetForce","force targets", DEFAULT_FT);
       myProps.addReadOnly (
          "derr", "derivative error at current timestep");
       myProps.addReadOnly (
@@ -132,12 +134,26 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    
    public void updateTargetForce()
    {
-      for (int i=0; i<myForceTargets.size();i++)
+      if (myTargetFor == null || myTargetFor.size() != myTargetForSize)
+         myTargetFor = new VectorNd(myTargetForSize);
+      double[] buf = myTargetFor.getBuffer();
+      
+      
+      int idx = 0;
+      for (int i = 0; i < myForceTargets.size(); i++) {
+         ForceTarget target = myForceTargets.get(i);
+         VectorNd lambda = target.getMyTargetForce ();
+       
+            buf[i] = lambda.get (0);   //work only for planar constraints
+        
+      }
+   System.out.println(myTargetFor);
+   /*for (int i=0; i<myForceTargets.size();i++)
       {
-         myTargetFor= new VectorNd (myForceTargets.get (i).getTargetLambda ());
+         myTargetFor.
          double[] val={1};
          myForTargetWgts= new VectorNd (val);
-      }
+      }*/
    
    }
    
@@ -224,12 +240,58 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       {
        myTargetForceWeights.add(weight);
        myForceTargets.add(source);
+       myTargetForSize += CONSTR_FOR_SIZE;
      //  myController.targetForces.add (source);
       // updateforWeightsVector();  //To be created
       return source;
       }
    
-  
+   public SparseBlockMatrix getForceJacobian() {
+      if (myForJacobian == null) {
+         createVelocityJacobian();
+      }
+      return myForJacobian;
+   }
+
+   private void createVelocityJacobian() {
+      MechModel mechMod = (MechModel)myMech;
+    int[] target_idx= new int [myForceTargets.size()];
+   
+    int idx=0;
+    int cons_ind=0;
+    System.out.println(mechMod.rigidBodyConnectors ().size());
+    for (int i=0; i < mechMod.rigidBodyConnectors ().size(); i++)
+    {
+       
+       System.out.println(mechMod.rigidBodyConnectors ().get (i).getName());
+       for(int j =0; j<myForceTargets.size(); j++)
+       {
+          if(mechMod.rigidBodyConnectors ().get (i).getName()==myForceTargets.get (j).getName())
+          {
+             target_idx[idx]=cons_ind;
+             idx++;
+          }
+       }
+       if(mechMod.rigidBodyConnectors ().get (i).isEnabled ()==true)
+       {
+         // dynsize[i]=1;
+          cons_ind++;
+       }
+    }
+    int[] dynsize=new int[cons_ind];
+    Arrays.fill (dynsize, 1);
+      myForJacobian= new SparseBlockMatrix (new int[0], dynsize);
+      
+
+      for (int i = 0; i < myForceTargets.size(); i++) {
+         ForceTarget target = myForceTargets.get(i);
+         target.addForceJacobian(myForJacobian, i,target_idx[i]);
+      }
+
+      // fold attachments into targets on dynamic components (same as constraint
+      // jacobians)
+    //  myMech.reduceVelocityJacobian(myVelJacobian);
+   }
    /**
     * Removes a target to the term for trajectory error
     * @param source
@@ -254,12 +316,13 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       myForceTargets.add (new ForceTarget(lam,con));
       double weight=1;
       myTargetForceWeights.add(weight);
+      myTargetForSize += CONSTR_FOR_SIZE;
    }
    
    
    private void updateWeightsVector() {
       
-      myForTargetWgts = new VectorNd(myTargetForSize);
+      myForTargetWgts = new VectorNd(myForceTargets.size());
       
       int idx = 0;
       for (int t = 0; t< myForceTargets.size(); t++) {
@@ -342,27 +405,21 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       updateModelVelocity(); // set myCurrentVel
 //      fixTargetPositions();   // XXX not sure why this is needed
       return myForceTerm.getTerm(H, b, rowoff, t0, t1,
-          myCurrentVel, myTargetFor, myForTargetWgts,  myForJacobian, normalizeH);
+          myCurrentVel, myTargetFor, myForTargetWgts,  getForceJacobian(), normalizeH);
    }
-   public VectorNd getMyTargetForce()
+  /* public VectorNd getMyTargetForce()
    {
-      return myForceTargets.get(0).getTargetLambda ();
+      return myForceTargets.get(0).getMyTargetForce ();
    }
    
    public void setMyTargetForce(VectorNd tarlam)
    {
-  /*    if (tar.size() == myForceTargets.get (0).getTargetLambda ().size()) {
-         //myTargetFor.clear();
-         //for (int i=0; i<myTargetFor.size(); i++) {
-            myForceTargets.get (0).setTargetLambda (tar);
-    //     }
+
      
-     */
-     
-      myForceTargets.get (0).setTargetLambda (tarlam);
+      myForceTargets.get (0).setMyTargetForce (tarlam);
          updateTargetForce ();
          
-   }
+   }*/
 
 
    /**
@@ -484,13 +541,13 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       
    }
 
-   public void setForJacobian(double[] val)
+  /* public void setForJacobian(double[] val)
    {
       //myForJacobian= new MatrixNd (1, 4, val);
       myForJacobian= new MatrixNd (1,  val.length, val);
-   }
-   public ForceTarget getForceTarget()
+   }*/
+   public ArrayList<ForceTarget> getForceTargets()
    {
-      return myForceTargets.get(0);
+      return myForceTargets;
    }
 }

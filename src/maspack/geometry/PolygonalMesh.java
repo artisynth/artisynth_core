@@ -3517,4 +3517,10 @@ public class PolygonalMesh extends MeshBase {
       return g;
    }
 
+   public void flip() {
+      for (Face f : myFaces) {
+         f.flip(true);
+      }
+   }
+
 }

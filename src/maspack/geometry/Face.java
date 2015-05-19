@@ -170,6 +170,22 @@ public class Face extends Feature implements Boundable {
       face.set (vtxs, vtxs.length, /* connect= */false);
       return face;
    }
+   
+   
+   /**
+    * Flips the face, disconnecting HEdges as required
+    */
+   public void flip(boolean connect) {
+      disconnect();
+      Vertex3d[] vtxs = getVertices();
+      int n = vtxs.length-1;
+      for (int i=0; i<vtxs.length/2; i++) {
+         Vertex3d tmp = vtxs[i];
+         vtxs[i] = vtxs[n-i];
+         vtxs[n-i] = tmp;
+      }
+      set(vtxs,n+1, connect);
+   }
 
    /**
     * Creates a face from a counter-clockwise list of vertices. This involves

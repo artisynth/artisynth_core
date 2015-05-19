@@ -131,8 +131,12 @@ public class FileTransferMonitorAgent {
          destExists = this.dest.exists();
          if (destExists) {
             destTimestamp = this.dest.getContent().getLastModifiedTime();
-            destTransfersize = this.dest.getContent().getSize();
             destIsDirectory = this.dest.getType().hasChildren();
+            if (this.dest.isFile()) {
+               destTransfersize = this.dest.getContent().getSize();
+            } else {
+               destTransfersize = -1;
+            }
          }
       } catch (FileSystemException fse) {
          fse.printStackTrace();

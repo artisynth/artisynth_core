@@ -13,6 +13,7 @@ import maspack.fileutil.vfs.SimpleIdRepoFactory;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemOptions;
+import org.apache.commons.vfs2.FileType;
 import org.apache.commons.vfs2.Selectors;
 import org.apache.commons.vfs2.UserAuthenticator;
 import org.apache.commons.vfs2.impl.DefaultFileSystemConfigBuilder;
@@ -160,7 +161,12 @@ public class FileCacher {
 
       // transfer content
       try {
-         localTempFile.copyFrom(remoteFile, Selectors.SELECT_SELF);
+         if (remoteFile.isFile()) {
+            localTempFile.copyFrom(remoteFile, Selectors.SELECT_SELF);
+         } else if (remoteFile.isFolder()) {
+            localTempFile.copyFrom(remoteFile, Selectors.SELECT_SELF_AND_CHILDREN);
+         }
+         
          if (monitor != null) {
             monitor.fireCompleteEvent(localTempFile);
          }
@@ -182,7 +188,11 @@ public class FileCacher {
 
       // now that the copy is complete, do a rename operation
       try {
-         SafeFileUtils.moveFile(tmpCacheFile, cacheFile);
+         if (tmpCacheFile.isDirectory()) {
+            SafeFileUtils.moveDirectory(tmpCacheFile, cacheFile);
+         } else {
+            SafeFileUtils.moveFile(tmpCacheFile, cacheFile);
+         }
       } catch (Exception e) {
          localCacheFile.delete(); // delete if possible
          throw new RuntimeException("Failed to atomically move " +

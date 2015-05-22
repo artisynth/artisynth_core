@@ -566,7 +566,7 @@ public class BVFeatureQuery {
     */
    public Face getFaceForInsideOrientedTest (Point3d nearLoc, Vector2d uv) {
       if (myPointFaceCalc == null || myPointFaceCalc.myFace == null) {
-         System.out.println ("NULL " + myPointFaceCalc);
+         // System.out.println ("NULL " + myPointFaceCalc);
          return null;
       }
       else {

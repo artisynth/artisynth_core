@@ -1150,7 +1150,13 @@ public class MayaAsciiReader {
             && !rtok.sval.equals("createNode")) {
 
             if (rtok.sval.equals("setAttr")) {
-               parseAttribute(rtok, attributes);
+               try {
+                  parseAttribute(rtok, attributes);
+               } catch (IOException e) {
+                  if (verbose) {
+                     System.err.println("IOError: " + e.getMessage());
+                  }
+               }
             } else if (rtok.sval.equals("connectAttr")) {
                // connect two attributes
             } else {
@@ -1677,7 +1683,6 @@ public class MayaAsciiReader {
          attributes.put("face", "face");
          attributes.put("iog", "instObjGroups");
          attributes.put("instObjGroups", "instObjGroups");
-         attributes.put("vnm", "vnm");
       }
 
       @Override

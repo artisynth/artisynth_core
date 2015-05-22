@@ -516,7 +516,7 @@ public abstract class MeshBase implements Renderable {
    public boolean removeVertex (Vertex3d vtx) {
       
       if (fastRemoval) {
-         removeVertex(vtx);
+         return removeVertex(vtx);
       } else {
      
          if (myVertices.remove (vtx)) {

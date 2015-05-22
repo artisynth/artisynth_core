@@ -480,6 +480,31 @@ public abstract class MeshBase implements Renderable {
       myVertices.add (vtx);
       notifyStructureChanged();
    }
+   
+   /**
+    * Removes a vertex from this mesh.
+    *
+    * @param vtx
+    * vertex to remove
+    * @return true if the vertex was present
+    */
+   public boolean removeVertexFast (Vertex3d vtx) {
+
+      int idx = vtx.getIndex();
+      int last = myVertices.size()-1;
+      if (idx >= 0 && idx <= last ) {
+         myVertices.set(idx, myVertices.get(last));
+         myVertices.get(idx).setIndex(idx);
+         myVertices.remove(last);
+
+         vtx.setMesh (null);
+         vtx.setIndex(-1);
+         notifyStructureChanged();
+         return true;
+      } else {
+         return false;
+      }
+   }
 
    /**
     * Removes a vertex from this mesh.
@@ -491,22 +516,7 @@ public abstract class MeshBase implements Renderable {
    public boolean removeVertex (Vertex3d vtx) {
       
       if (fastRemoval) {
-         
-         int idx = vtx.getIndex();
-         int last = myVertices.size()-1;
-         if (idx >= 0 && idx <= last ) {
-            myVertices.set(idx, myVertices.get(last));
-            myVertices.get(idx).setIndex(idx);
-            myVertices.remove(last);
-            
-            vtx.setMesh (null);
-            vtx.setIndex(-1);
-            notifyStructureChanged();
-            return true;
-         } else {
-            return false;
-         }
-         
+         removeVertex(vtx);
       } else {
      
          if (myVertices.remove (vtx)) {

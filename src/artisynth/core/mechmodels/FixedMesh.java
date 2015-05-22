@@ -99,6 +99,11 @@ public class FixedMesh extends MeshComponent {
       this();
       setMesh (mesh);
    }
+   
+   public FixedMesh(String name, MeshBase mesh) {
+      this(name);
+      setMesh(mesh);
+   }
 
    public void setMeshFromFile (MeshBase mesh, String fileName) throws IOException {
       setMeshFromFile (mesh, fileName, null);

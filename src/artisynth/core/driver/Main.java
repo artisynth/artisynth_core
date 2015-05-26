@@ -2178,11 +2178,13 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       else if (e.getCode() == ComponentChangeEvent.Code.NAME_CHANGED) {
          ModelComponent c = e.getComponent();
-         if (c.getParent() != null && myFrame != null) {
-            myFrame.getNavPanel().updateStructure (c.getParent());
-         }
-         else {
-            myFrame.getNavPanel().updateStructure (c);
+         if (myFrame != null) {
+            if (c.getParent() != null) {
+               myFrame.getNavPanel().updateStructure (c.getParent());
+            }
+            else {
+               myFrame.getNavPanel().updateStructure (c);
+            }
          }
       }
       else if (e.getCode() == ComponentChangeEvent.Code.PROPERTY_CHANGED) {

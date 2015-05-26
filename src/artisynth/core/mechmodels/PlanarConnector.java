@@ -103,6 +103,13 @@ public class PlanarConnector extends RigidBodyConnector
       this();
       set (bodyA, pCA, XPW);
    }
+   
+   public void set(RigidBody bodyA, Point3d pCA, Vector3d worldPlaneNormal) {
+      RigidTransform3d XPW = new RigidTransform3d ();
+      XPW.p.transform (bodyA.getPose (), pCA);
+      XPW.R.setZDirection (worldPlaneNormal);
+      set (bodyA, pCA, XPW);
+   }
 
    /**
     * Sets this PlanarConnectorX to connect two rigid bodies. The first body (A)

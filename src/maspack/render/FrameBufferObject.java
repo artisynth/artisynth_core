@@ -429,7 +429,12 @@ public class FrameBufferObject {
       int byteRowWidth = width * 4;
 
       int[] pixelsARGB = new int[width * height];
-
+      
+      // grab back-color
+      float[] bkColor = new float[4];
+      gl.glGetFloatv(GL2.GL_COLOR_CLEAR_VALUE, bkColor,0);
+      float bkAlpha = bkColor[3];
+      
       // Convert RGBA bytes to ARGB integers.
       for (int row = 0, currentInt = 0; row < height; ++row) {
          byteRow -= byteRowWidth;
@@ -445,9 +450,11 @@ public class FrameBufferObject {
             // Set alpha to be completely opaque or completely invisible.
              //(alpha != 0) ? 0xff000000 : 0x00000000;
             
-            // allow alpha to be anything
-            alpha = alpha << 24;
-            pixelsARGB[currentInt++] = alpha
+            // compute final dest alpha
+            float fAlpha = 1-(1-alpha/255f)*(1-bkAlpha);
+            alpha = (int)(fAlpha*bkAlpha*255);
+            
+            pixelsARGB[currentInt++] = (alpha << 24)
                | ((red & 0x000000ff) << 16)
                | ((green & 0x000000ff) << 8)
                | (blue & 0x000000ff);

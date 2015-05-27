@@ -1813,6 +1813,9 @@ public class ReaderTokenizer {
                buf.append ((char)c);
             }
             myLastCommentLine = buf.toString();
+            // skip EOL as well, otherwise we get EOL after EOL after EOL 
+            // for a bunch of comments if EOL is significant
+            c = getc();
          }
          else if ((type & C_WHITESPACE) != 0) {
             c = getc();

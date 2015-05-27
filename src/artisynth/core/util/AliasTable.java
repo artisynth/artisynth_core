@@ -7,8 +7,10 @@
 package artisynth.core.util;
 
 import java.util.*;
+import java.util.Map.Entry;
 import java.io.*;
 import java.net.URL;
+
 import maspack.util.*;
 
 /**
@@ -197,6 +199,10 @@ public class AliasTable {
       return aliasesToNames.values().toArray (new String[0]);
    }
 
+   public Set<Entry<String,String>> getEntries() {
+      return aliasesToNames.entrySet();
+   }
+   
    /**
     * Returns true if this table contains the specified name.
     * 

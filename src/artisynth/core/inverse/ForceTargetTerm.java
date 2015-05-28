@@ -248,35 +248,40 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    
    public SparseBlockMatrix getForceJacobian() {
       if (myForJacobian == null) {
-         createVelocityJacobian();
+         createForceJacobian();
       }
       return myForJacobian;
    }
 
-   private void createVelocityJacobian() {
+   private void createForceJacobian() {
       MechModel mechMod = (MechModel)myMech;
     int[] target_idx= new int [myForceTargets.size()];
    
     int idx=0;
     int cons_ind=0;
     System.out.println(mechMod.rigidBodyConnectors ().size());
-    for (int i=0; i < mechMod.rigidBodyConnectors ().size(); i++)
+    for (int i=0; i < myForceTargets.size(); i++)
     {
-       
+       cons_ind=0;
        System.out.println(mechMod.rigidBodyConnectors ().get (i).getName());
-       for(int j =0; j<myForceTargets.size(); j++)
+       for(int j =0; j<mechMod.rigidBodyConnectors ().size(); j++)
        {
-          if(mechMod.rigidBodyConnectors ().get (i).getName()==myForceTargets.get (j).getName())
+          
+          if(mechMod.rigidBodyConnectors ().get (j).getName()==myForceTargets.get (i).getName())
           {
              target_idx[idx]=cons_ind;
              idx++;
+             
           }
+          if(mechMod.rigidBodyConnectors ().get (j).isEnabled ()==true)
+          {cons_ind++;}
+          
        }
-       if(mechMod.rigidBodyConnectors ().get (i).isEnabled ()==true)
+     /*  if(mechMod.rigidBodyConnectors ().get (i).isEnabled ()==true)
        {
          // dynsize[i]=1;
-          cons_ind++;
-       }
+          
+       }*/
     }
     int[] dynsize=new int[cons_ind];
     Arrays.fill (dynsize, 1);

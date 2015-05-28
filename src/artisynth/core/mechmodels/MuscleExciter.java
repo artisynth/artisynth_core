@@ -261,7 +261,7 @@ ExcitationComponent {
       return myTargets.get(idx).getExcitationGain (this);
    }
 
-   public void setGain (int idx, int gain) {
+   public void setGain (int idx, double gain) {
       if (idx >= myTargets.size()) {
          throw new ArrayIndexOutOfBoundsException ("index " + idx
          + " is out of bounds");

@@ -1301,6 +1301,7 @@ public class NumericProbePanel extends JPanel {
             popupMenu.add (createMenuItem ("Step Interpolation"));
             popupMenu.add (createMenuItem ("Linear Interpolation"));
             popupMenu.add (createMenuItem ("Cubic Interpolation"));
+            popupMenu.add (createMenuItem ("CubicStep Interpolation"));
             if (getVectorSize() == 4) {
                popupMenu.add (createMenuItem ("Spherical Linear Interpolation"));
                popupMenu.add (createMenuItem ("Spherical Cubic Interpolation"));
@@ -1640,6 +1641,11 @@ public class NumericProbePanel extends JPanel {
          else if (nameOfAction == "Cubic Interpolation") {
             if (myProbe.isInput()) {
                setInterpolationOrder (Interpolation.Order.Cubic);
+            }
+         }
+         else if (nameOfAction == "CubicStep Interpolation") {
+            if (myProbe.isInput()) {
+               setInterpolationOrder (Interpolation.Order.CubicStep);
             }
          }
          else if (nameOfAction == "Spherical Linear Interpolation") {

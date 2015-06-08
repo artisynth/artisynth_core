@@ -43,6 +43,12 @@ public class Interpolation implements Scannable {
        * knot points.
        */
       Cubic,
+      
+      /**
+       * Values are set by cubic hermite interpolation between the surrounding
+       * knot points. Slopes are set to zero.
+       */
+      CubicStep,
 
       /**
        * Where appropriate, 3D rotation values are set by piecewise spherical

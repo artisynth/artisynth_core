@@ -627,6 +627,21 @@ public class NumericList
 
    }
 
+   private void interpCubicStep (
+      NumericListKnot prev, VectorNd v, double t) {
+
+      NumericListKnot next = prev.next;
+      double s = (t-prev.t)/(next.t-prev.t);
+      
+      allocateTmps (v.size());
+      VectorNd v0 = myTmp0;
+      VectorNd v1 = myTmp1;
+      v0.setZero ();
+      v1.setZero ();
+
+      VectorNd.hermiteInterpolate (v, prev.v, v0, next.v, v1, s, next.t-prev.t);
+   }
+   
    private void interpCubic (
       NumericListKnot prev, VectorNd v, double t) {
 
@@ -803,6 +818,10 @@ public class NumericList
             if (size == 16) {
                interpCubicPosition (prev, v, t);
             }
+            break;
+         }
+         case CubicStep: {
+            interpCubicStep (prev, v, t);
             break;
          }
          default: {

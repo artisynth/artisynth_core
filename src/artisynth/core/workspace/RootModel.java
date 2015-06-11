@@ -1400,7 +1400,7 @@ public class RootModel extends RenderableModelBase
          CompositeState ostate = (CompositeState)oldstate;
          if (ostate.numComponents() != ostate.numSubStates()) {
             throw new IllegalArgumentException (
-               "oldstate has "+ostate.numComponents()+" vs. "+
+               "oldstate has "+ostate.numComponents()+" components vs. "+
                ostate.numSubStates()+" substates");
          }
          ArrayList<Object> comps = ostate.getComponents();

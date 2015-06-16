@@ -564,6 +564,7 @@ public class MeshCollider implements AbstractCollider {
          weight += 2 * length;
       }
       center.scale (1.0 / weight);
+      region.centroid = center;
 
       // calculate the weighted normal
       Vector3d cp0 = new Vector3d(), cp1 = new Vector3d();

@@ -637,7 +637,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myJythonFrame = myJythonConsole.getFrame();
       }
       else {
-         myJythonConsole = ArtisynthJythonConsole.createJLineConsole();
+         myJythonConsole = ArtisynthJythonConsole.createTerminalConsole();
       }
       
       myJythonConsole.setMain (this);

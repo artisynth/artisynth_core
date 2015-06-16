@@ -62,6 +62,10 @@ public class JythonPanelConsole extends InteractiveConsole {
       Thread.sleep (msec);
    }
 
+   public void exit (int code) {
+      System.exit (code);
+   }
+
    private static String protectWindowsSlashes(String filename) {
       StringBuilder out = new StringBuilder();
       char[] chars = filename.toCharArray();

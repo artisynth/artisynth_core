@@ -5,14 +5,17 @@ import org.python.util.*;
 import org.python.core.*;
 
 /**
- * A Jython console connected directly to console I/O and which provides
- * interactive emacs-style editing based on JLine.
+ * A Jython console connected directly to console I/O, without any editing
+ * features (as opposed to JythonJLineConsole, which does have editing).  This
+ * is useful for running tasks in the background, since JythonJLineConsole
+ * adjusts the console terminal to permit unbuffered input, which can result in
+ * "tty output" suspensions for background tasks.
  */
-public class JythonJLineConsole extends JLineConsole {
+public class JythonInteractiveConsole extends InteractiveConsole {
 
    JythonConsoleImpl myImpl;
 
-   public JythonJLineConsole() {
+   public JythonInteractiveConsole() {
       super();
       myImpl = new JythonConsoleImpl (this);
       myImpl.setupSymbols();
@@ -27,6 +30,7 @@ public class JythonJLineConsole extends JLineConsole {
    }
 
    public void executeScript (String fileName) throws IOException {
+      System.out.println ("executing " + fileName);
       myImpl.executeScript (fileName);
    }
 
@@ -41,13 +45,18 @@ public class JythonJLineConsole extends JLineConsole {
       return super.raw_input (prompt);
    }
 
-    public void runcode(PyObject code) {
-       myImpl.runcode (code);
-    }
+   @Override
+   public void runcode(PyObject code) {
+      myImpl.runcode (code);
+   }
 
    public static void main (String[] args) {
 
-      JythonJLineConsole console = new JythonJLineConsole();
+      PySystemState.initialize();
+      System.out.println (
+         "interactive=" + ((PyFile)Py.defaultSystemState.stdout).isatty());
+
+      JythonInteractiveConsole console = new JythonInteractiveConsole();
 
       try {
          console.executeScript ("test2.py");

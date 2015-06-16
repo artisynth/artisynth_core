@@ -52,7 +52,6 @@ public class EditorManager {
       myEditors.add (new FemModel3dEditor (myMain, this));
       myEditors.add (new FemMuscleModelEditor (myMain, this));
       myEditors.add (new FrameMarkerEditor (myMain, this));
-      myEditors.add (new RigidBodyConnectorEditor (myMain, this));
       myEditors.add (new MuscleEditor (myMain, this));
       myEditors.add (new MuscleBundleEditor (myMain, this));
       myEditors.add (new MuscleExciterEditor (myMain, this));

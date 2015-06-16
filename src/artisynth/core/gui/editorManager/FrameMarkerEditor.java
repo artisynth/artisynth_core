@@ -10,10 +10,12 @@ import java.awt.Rectangle;
 import java.util.LinkedList;
 
 import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
 import artisynth.core.driver.Main;
 import artisynth.core.mechmodels.FrameMarker;
-import artisynth.core.mechmodels.MarkerPlanarConnector;
 import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.PlanarConnector;
+import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.gui.selectionManager.SelectionManager;
 
@@ -44,9 +46,15 @@ public class FrameMarkerEditor extends EditorBase {
             FrameMarker mkr = (FrameMarker)selection.get (0);
             RigidTransform3d XPW = new RigidTransform3d ();
             XPW.p.set (mkr.getPosition ());
-            MarkerPlanarConnector mpc = new MarkerPlanarConnector (mkr, XPW);
-            mpc.setPlaneSize (getDefaultPlaneSize ());
-            ((MechModel)mkr.getGrandParent ()).addRigidBodyConnector (mpc);
+            if (mkr.getFrame () instanceof RigidBody && mkr.getGrandParent () instanceof MechModel) {
+               PlanarConnector pc = new PlanarConnector ();
+               pc.set ((RigidBody)mkr.getFrame(), mkr.getLocation (), Vector3d.Z_UNIT);
+               pc.setPlaneSize (getDefaultPlaneSize ());
+               ((MechModel)mkr.getGrandParent ()).addRigidBodyConnector (pc);
+            }
+            else {
+               System.out.println("Unable to create PlanarConnector from selected FrameMarker");
+            }
          }
       }
    }

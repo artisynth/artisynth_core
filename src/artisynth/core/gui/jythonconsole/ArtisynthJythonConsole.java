@@ -23,10 +23,11 @@ public class ArtisynthJythonConsole {
     * Return true if it appears that stdout has been routed to a file.
     */
    private static boolean outputDirectedToFile() {
-      if (Py.defaultSystemState == null) {
-         PySystemState.initialize();
-      }
-      return !((PyFile)Py.defaultSystemState.stdout).isatty();
+//      if (Py.defaultSystemState == null) {
+//         PySystemState.initialize();
+//      }
+//      return !((PyFile)Py.defaultSystemState.stdout).isatty();
+      return System.console() == null;
    }
 
    public static ArtisynthJythonConsole createTerminalConsole() {

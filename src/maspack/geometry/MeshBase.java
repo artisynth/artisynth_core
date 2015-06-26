@@ -399,24 +399,26 @@ public abstract class MeshBase implements Renderable {
          if (pnt.x > pmax.x) {
             pmax.x = pnt.x;
          }
-         else if (pnt.x < pmin.x) {
+         if (pnt.x < pmin.x) {
             pmin.x = pnt.x;
          }
          if (pnt.y > pmax.y) {
             pmax.y = pnt.y;
          }
-         else if (pnt.y < pmin.y) {
+         if (pnt.y < pmin.y) {
             pmin.y = pnt.y;
          }
          if (pnt.z > pmax.z) {
             pmax.z = pnt.z;
          }
-         else if (pnt.z < pmin.z) {
+         if (pnt.z < pmin.z) {
             pmin.z = pnt.z;
          }
       }
       myLocalBoundsValid = true;
    }
+
+   private static double inf = Double.POSITIVE_INFINITY;
 
    protected void recomputeWorldBounds() {
       Point3d pnt = new Point3d();
@@ -427,7 +429,6 @@ public abstract class MeshBase implements Renderable {
          pmax.set (0, 0, 0);
       }
       else {
-         double inf = Double.POSITIVE_INFINITY;
          pmin.set (inf, inf, inf);
          pmax.set (-inf, -inf, -inf);
       }
@@ -441,19 +442,19 @@ public abstract class MeshBase implements Renderable {
          if (pnt.x > pmax.x) {
             pmax.x = pnt.x;
          }
-         else if (pnt.x < pmin.x) {
+         if (pnt.x < pmin.x) {
             pmin.x = pnt.x;
          }
          if (pnt.y > pmax.y) {
             pmax.y = pnt.y;
          }
-         else if (pnt.y < pmin.y) {
+         if (pnt.y < pmin.y) {
             pmin.y = pnt.y;
          }
          if (pnt.z > pmax.z) {
             pmax.z = pnt.z;
          }
-         else if (pnt.z < pmin.z) {
+         if (pnt.z < pmin.z) {
             pmin.z = pnt.z;
          }
       }

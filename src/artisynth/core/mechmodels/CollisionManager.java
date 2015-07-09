@@ -1132,6 +1132,32 @@ public class CollisionManager extends RenderableCompositeBase
       return myCollisionHandlers;
    }
 
+   /**
+    * Returns the collision handler for a specific pair of Collidables, or
+    * <code>null</code> if no collisions are enabled for that pair.  The query
+    * is symmetric, so that <code>getCollisionHandler(A,B)</code> and
+    * <code>getCollisionHandler(B,A)</code> will return the same value.
+    *
+    * <p> Note that collision handlers are currently regenerated whenever the
+    * set of enabled collisions between objects changes. Any handler returned
+    * by this method prior to such a change will then become invalid.
+    *
+    * @param colA first collidable
+    * @param colB second collidable
+    * @return collision handler (if any) for A and B.
+    */
+   public CollisionHandler getCollisionHandler (
+      Collidable colA, Collidable colB) {
+      updateHandlers();
+      for (CollisionHandler handler : myCollisionHandlers) {
+         if ((handler.myCollidable0 == colA && handler.myCollidable1 == colB) ||
+             (handler.myCollidable0 == colB && handler.myCollidable1 == colA)) {
+            return handler;
+         }
+      }
+      return null;
+   }
+
    public ComponentList<CollisionComponent> collisionComponents() {
       return myCollisionComponents;
    }

@@ -1482,22 +1482,38 @@ public class CollisionHandler extends ConstrainerBase
       }
    }
    
-   public Map<Vertex3d,Vector3d> getContactImpulses() {
+   public Map<Vertex3d,Vector3d> getContactImpulses(CollidableBody colA) {
       LinkedHashMap<Vertex3d,Vector3d> map =
          new LinkedHashMap<Vertex3d,Vector3d>();
 
-      // add impulses due to vertices on collidable0 interpenetrating
-      // collidable1 ...
+      // add impulses associated with vertices on colA. These will arise from
+      // contact constraints in both myBilaterals0 and myBilaterals1. The
+      // associated vertices are stored either in cpnt0 or cpnt1.  For
+      // myBilaterals0, cpnt0 and cpnt1 store the vertices associated
+      // myCollidable0 and myCollidable1, respectively. The reverse is true for
+      // myBilaterals1. Cpnt0 or cpnt1 are then used depending on whether col
+      // equals myCollidable0 or myCollidable1. When cpnt1 is used, the scalar
+      // impulse is negated since in that case the normal is oriented for the
+      // opposite body.
       for (ContactConstraint c : myBilaterals0.values()) {
-         accumulateImpulses (
-            map, c.myCpnt0, c.getNormal(), c.getImpulse());
+         if (colA == myCollidable0) {
+            accumulateImpulses (
+               map, c.myCpnt0, c.getNormal(), c.getImpulse());
+         }
+         else {
+            accumulateImpulses (
+               map, c.myCpnt1, c.getNormal(), -c.getImpulse());
+         }
       }
-      // ... then add impulses due to vertices on collidable1 interpenetrating
-      // collidable0. Note that the scalar impulse is negated since in this
-      // case the normals face in the opposite direction.
       for (ContactConstraint c : myBilaterals1.values()) {
-         accumulateImpulses (
-            map, c.myCpnt1, c.getNormal(), -c.getImpulse());
+         if (colA == myCollidable0) {
+            accumulateImpulses (
+               map, c.myCpnt1, c.getNormal(), -c.getImpulse());
+         }
+         else {
+            accumulateImpulses (
+               map, c.myCpnt0, c.getNormal(), c.getImpulse());
+         }
       }
       return map;
    }

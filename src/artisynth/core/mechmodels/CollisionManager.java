@@ -1202,7 +1202,7 @@ public class CollisionManager extends RenderableCompositeBase
          return null;
       }
       else {
-         return handler.getContactImpulses();
+         return handler.getContactImpulses(colA);
       }
    }
 

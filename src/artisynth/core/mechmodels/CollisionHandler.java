@@ -402,7 +402,8 @@ public class CollisionHandler extends ConstrainerBase
    }
 
    protected boolean isCompletelyAttached (
-      DynamicComponent comp, CollidableBody collidable) {
+      DynamicComponent comp,
+      CollidableBody collidable0, CollidableBody collidable1) {
       DynamicAttachment attachment = comp.getAttachment();
       if (attachment == null) {
          return false;
@@ -414,7 +415,11 @@ public class CollisionHandler extends ConstrainerBase
             if (attachMasters[k] instanceof CollidableDynamicComponent) {
                mcomp = (CollidableDynamicComponent)attachMasters[k];
             }
-            if (mcomp == null || !collidable.containsContactMaster (mcomp)) {
+            if (collidable0.containsContactMaster (mcomp)) {
+               // ignore
+               continue;
+            }
+            if (mcomp == null || !collidable1.containsContactMaster (mcomp)) {
                return false;
             }
          }
@@ -442,7 +447,7 @@ public class CollisionHandler extends ConstrainerBase
       // (b) all masters are actually contained in collidable1
       for (int i=0; i<masters.size(); i++) {
          DynamicComponent comp = masters.get(i).myComp;
-         if (!isCompletelyAttached (comp, collidable1) &&
+         if (!isCompletelyAttached (comp, collidable0, collidable1) &&
              !isContainedIn (comp, collidable1)) {
             return false;
          }
@@ -533,6 +538,7 @@ public class CollisionHandler extends ConstrainerBase
       boolean hashUsingFace = hashContactUsingFace (collidable0, collidable1);
 
       updateAttachedVertices();
+         
       for (ContactPenetratingPoint cpp : points) {
 
          ContactPoint pnt0, pnt1;
@@ -1281,7 +1287,7 @@ public class CollisionHandler extends ConstrainerBase
          props.getEdgeWidth() > 0 &&
          renderContactInfo != null) {
 
-         gl.glLineWidth (props.getEdgeWidth());
+         renderer.setLineWidth (props.getEdgeWidth());
          float[] rgb = props.getEdgeColorArray();
          if (rgb == null) {
             rgb = props.getLineColorArray();
@@ -1312,7 +1318,7 @@ public class CollisionHandler extends ConstrainerBase
          }
 
          renderer.setLightingEnabled (true);
-         gl.glLineWidth (1);
+         renderer.setLineWidth (1);
       }
 
       float[] coords = new float[3];
@@ -1370,8 +1376,7 @@ public class CollisionHandler extends ConstrainerBase
          }
 
          if (props.getFaceStyle() != RenderProps.Faces.NONE) {
-            int[] savedShadeModel = new int[1];
-            gl.glGetIntegerv (GL2.GL_SHADE_MODEL, savedShadeModel, 0);
+            RenderProps.Shading savedShadeModel = renderer.getShadeModel();
 
             if (shading == Shading.NONE) {
                renderer.setLightingEnabled (false);
@@ -1379,10 +1384,10 @@ public class CollisionHandler extends ConstrainerBase
                   props.getFaceColorArray(), false);
             }
             else if (shading != Shading.FLAT && !renderer.isSelecting()) {
-               gl.glShadeModel (GL2.GL_SMOOTH);
+               renderer.setShadeModel (RenderProps.Shading.GOURARD);
             }
             else { // shading == Shading.FLAT
-               gl.glShadeModel (GL2.GL_FLAT);
+               renderer.setShadeModel (RenderProps.Shading.FLAT);
             }
 
             byte[] savedCullFaceEnabled = new byte[1];
@@ -1437,7 +1442,7 @@ public class CollisionHandler extends ConstrainerBase
             if (shading == Shading.NONE) {
                renderer.setLightingEnabled (true);
             }
-            gl.glShadeModel (savedShadeModel[0]);
+            renderer.setShadeModel (savedShadeModel);
          }
          gl.glPopMatrix();
       }
@@ -1461,6 +1466,34 @@ public class CollisionHandler extends ConstrainerBase
             pnt.updateBounds (pmin, pmax);
          }
       }
+   }
+
+   protected void accumulateImpulses (
+      Map<Vertex3d,Vector3d> map, ContactPoint cpnt, Vector3d nrml, double lam) {
+      Vertex3d[] vtxs = cpnt.getVertices();
+      double[] wgts = cpnt.getWeights();
+      for (int i=0; i<vtxs.length; i++) {
+         Vector3d imp = map.get(vtxs[i]);
+         if (imp == null) {
+            imp = new Vector3d();
+            map.put (vtxs[i], imp);
+         }
+         imp.scaledAdd (lam*wgts[i], nrml);
+      }
+   }
+   
+   public Map<Vertex3d,Vector3d> getContactImpulses() {
+      LinkedHashMap<Vertex3d,Vector3d> map =
+         new LinkedHashMap<Vertex3d,Vector3d>();
+      for (ContactConstraint c : myBilaterals0.values()) {
+         accumulateImpulses (
+            map, c.myCpnt0, c.getNormal(), c.getImpulse());
+      }
+      for (ContactConstraint c : myBilaterals1.values()) {
+         accumulateImpulses (
+            map, c.myCpnt1, c.getNormal(), -c.getImpulse());
+      }
+      return map;
    }
 
    /**

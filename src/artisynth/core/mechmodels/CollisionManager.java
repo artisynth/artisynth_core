@@ -24,6 +24,7 @@ import maspack.render.RenderableUtils;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import maspack.geometry.Vertex3d;
 import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
@@ -1133,7 +1134,7 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    /**
-    * Returns the collision handler for a specific pair of Collidables, or
+    * Returns the collision handler for a specific pair of CollidableBodys, or
     * <code>null</code> if no collisions are enabled for that pair.  The query
     * is symmetric, so that <code>getCollisionHandler(A,B)</code> and
     * <code>getCollisionHandler(B,A)</code> will return the same value.
@@ -1147,7 +1148,7 @@ public class CollisionManager extends RenderableCompositeBase
     * @return collision handler (if any) for A and B.
     */
    public CollisionHandler getCollisionHandler (
-      Collidable colA, Collidable colB) {
+      CollidableBody colA, CollidableBody colB) {
       updateHandlers();
       for (CollisionHandler handler : myCollisionHandlers) {
          if ((handler.myCollidable0 == colA && handler.myCollidable1 == colB) ||
@@ -1156,6 +1157,53 @@ public class CollisionManager extends RenderableCompositeBase
          }
       }
       return null;
+   }
+
+   /**
+    * Returns a map specifying the contact impulses acting on the
+    * CollidableBody <code>colA</code> in response to contact with another
+    * CollidableBody <code>colB</code>. This method currently requires that
+    * <code>colA</code> is a deformable body. If it is not, or if no collisions
+    * are enabled between <code>colA</code> and <code>colB</code>, then
+    * <code>null</code> is returned.
+    *
+    * <p>The map gives the most recently computed impulses acting on each
+    * vertex of the collision mesh of <code>colA</code> (this is the same mesh
+    * returned by {@link CollidableBody#getCollisionMesh}). Vertices for which
+    * no impulses were computed do not appear in the map. To turn the impulses
+    * into forces, one must divide by the current step size.
+    *
+    * <p>Contact impulses give the forces that arise in order to prevent
+    * further interpenetration between <code>colA</code> and <code>colB</code>.
+    * They do <i>not</i> include impulses that are computed to separate
+    * <code>colA</code> and <code>colB</code> when they initially come into
+    * contact.
+    *
+    * @param colA first collidable
+    * @param colB second collidable
+    * @return if appropriate, map giving the contact impulses acting on
+    * <code>colA</code> in response to <code>colB</code>.
+    */
+   public Map<Vertex3d,Vector3d> getContactImpulses (
+      CollidableBody colA, CollidableBody colB) {
+
+      if (!colA.isDeformable()) {
+         return null;
+      }
+      updateHandlers();
+      CollisionHandler handler = null;
+      for (CollisionHandler h : myCollisionHandlers) {
+         if ((h.myCollidable0 == colA && h.myCollidable1 == colB) ||
+             (h.myCollidable0 == colB && h.myCollidable1 == colA)) {
+            handler = h;
+         }
+      }      
+      if (handler == null) {
+         return null;
+      }
+      else {
+         return handler.getContactImpulses();
+      }
    }
 
    public ComponentList<CollisionComponent> collisionComponents() {

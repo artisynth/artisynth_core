@@ -1485,10 +1485,16 @@ public class CollisionHandler extends ConstrainerBase
    public Map<Vertex3d,Vector3d> getContactImpulses() {
       LinkedHashMap<Vertex3d,Vector3d> map =
          new LinkedHashMap<Vertex3d,Vector3d>();
+
+      // add impulses due to vertices on collidable0 interpenetrating
+      // collidable1 ...
       for (ContactConstraint c : myBilaterals0.values()) {
          accumulateImpulses (
             map, c.myCpnt0, c.getNormal(), c.getImpulse());
       }
+      // ... then add impulses due to vertices on collidable1 interpenetrating
+      // collidable0. Note that the scalar impulse is negated since in this
+      // case the normals face in the opposite direction.
       for (ContactConstraint c : myBilaterals1.values()) {
          accumulateImpulses (
             map, c.myCpnt1, c.getNormal(), -c.getImpulse());

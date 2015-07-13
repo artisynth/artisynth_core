@@ -18,6 +18,7 @@ import javax.media.opengl.glu.GLU;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.render.RenderProps.LineStyle;
 
 public interface GLRenderer {
 
@@ -154,6 +155,18 @@ public interface GLRenderer {
    public void updateMaterial (
       RenderProps props, Material mat, float[] diffuseColor, boolean selected);
 
+   public void setLineWidth (int width);
+   
+   public int getLineWidth ();
+   
+   public void setPointSize (int size);
+   
+   public int getPointSize ();
+   
+   public RenderProps.Shading getShadeModel();
+   
+   public void setShadeModel (RenderProps.Shading shading);
+   
    public void drawSphere (RenderProps props, float[] coords);
    
    public void drawSphere (RenderProps props, float[] coords, double r);
@@ -205,6 +218,10 @@ public interface GLRenderer {
    public void drawLines (
       RenderProps props, Iterator<? extends RenderableLine> iterator);
 
+   public void drawLineStrip (
+      RenderProps props, Iterable<float[]> vertexList, 
+      LineStyle style, boolean isSelected);
+
    public void drawPoint (RenderProps props, float[] coords, boolean selected);
 
    public void drawPoints (
@@ -213,8 +230,8 @@ public interface GLRenderer {
    public void drawAxes (
       RenderProps props, RigidTransform3d X, double len, boolean selected);
 
-   public void drawAxes (
-      RenderProps props, RigidTransform3d X, double[] len, boolean selected);
+//   public void drawAxes (
+//      RenderProps props, RigidTransform3d X, double[] len, boolean selected);
    
    //public void drawMesh (RenderProps props, PolygonalMesh mesh, int flags);
 
@@ -232,6 +249,10 @@ public interface GLRenderer {
 
    public void mulTransform (RigidTransform3d X);
 
+   public void pushMatrix();
+   
+   public void popMatrix();
+   
    public SelectionHighlighting getSelectionHighlighting();
 
    public Color getSelectionColor();

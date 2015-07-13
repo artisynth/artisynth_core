@@ -65,6 +65,9 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
    private int height;
    Vector3d zDir = new Vector3d();     // used for determining zOrder
    private boolean rendering2d;
+   private int myLineWidth = 1;
+   private int myPointSize = 1;
+   private RenderProps.Shading myShadeModel;
 
    /**
     * Class to set and hold rendering flags.  We enclose these in a class so
@@ -2100,8 +2103,59 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
             myTransparencyEnabledP = enable;
          }
       }
-   }               
+   }
+   
+   public int getLineWidth() {
+      return myLineWidth;
+   }
+   
+   public void setLineWidth (int width) {
+      getGL2().glLineWidth (width);
+      myLineWidth = width;
+   }
 
+   public int getPointSize() {
+      return myPointSize;
+   }
+   
+   public void setPointSize (int size) {
+      getGL2().glPointSize (size);
+      myLineWidth = size;
+   }
+
+   public RenderProps.Shading getShadeModel() {
+      if (myShadeModel == null) {
+         int[] model = new int[1];
+         gl.glGetIntegerv (GL2.GL_SHADE_MODEL, model, 0);
+         if (model[0] == GL2.GL_FLAT) {
+            myShadeModel = RenderProps.Shading.FLAT;
+         }
+         else {
+            myShadeModel = RenderProps.Shading.GOURARD;
+         }
+      }
+      return myShadeModel;
+   }
+   
+   public void setShadeModel (RenderProps.Shading shading) {
+      if (shading == null) {
+         throw new IllegalArgumentException ("null shading not allowed");
+      }
+      if (shading != myShadeModel) {
+         switch (shading) {
+            case FLAT: {
+               gl.glShadeModel (GL2.GL_FLAT);
+               break;
+            }
+            default: {
+               gl.glShadeModel (GL2.GL_SMOOTH);
+               break;
+            }
+         }
+         myShadeModel = shading;
+      }
+   }
+   
    /*
     * set "up" vector for viewing matrix
     */
@@ -2258,6 +2312,14 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
    public void mulTransform (AffineTransform3d X) {
       GLSupport.transformToGLMatrix (GLMatrix, X);
       getGL2().glMultMatrixd (GLMatrix, 0);
+   }
+   
+   public void pushMatrix() {
+      getGL2().glPushMatrix();
+   }
+
+   public void popMatrix() {
+      getGL2().glPopMatrix();
    }
 
    public void getModelViewMatrix (Matrix4d X) {
@@ -3235,43 +3297,93 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       }
    }
 
-   public static void drawLineStrip (
-      GLRenderer renderer, Iterable<float[]> vertexList, RenderProps props,
-      boolean isSelected) {
-      GL2 gl = renderer.getGL2().getGL2();
+   // public static void drawLineStrip (
+   //    GLRenderer renderer, Iterable<float[]> vertexList, RenderProps props,
+   //    boolean isSelected) {
+   //    GL2 gl = renderer.getGL2().getGL2();
 
-      LineStyle lineStyle = props.getLineStyle();
-      switch (lineStyle) {
+   //    LineStyle lineStyle = props.getLineStyle();
+   //    switch (lineStyle) {
+   //       case LINE: {
+   //          renderer.setLightingEnabled (false);
+   //          // draw regular points first
+   //          gl.glLineWidth (props.getLineWidth());
+   //          gl.glBegin (GL2.GL_LINE_STRIP);
+   //          renderer.setColor (props.getLineColorArray(), isSelected);
+   //          for (float[] v : vertexList) {
+   //             gl.glVertex3fv (v, 0);
+   //          }
+   //          gl.glEnd();
+   //          gl.glLineWidth (1);
+   //          renderer.setLightingEnabled (true);
+   //          break;
+   //       }
+   //       case ELLIPSOID:
+   //       case SOLID_ARROW:
+   //       case CYLINDER: {
+   //          renderer.setMaterialAndShading (
+   //             props, props.getLineMaterial(), isSelected);
+   //          float[] v0 = null;
+   //          for (float[] v1 : vertexList) {
+   //             if (v0 != null) {
+   //                if (lineStyle == LineStyle.ELLIPSOID) {
+   //                   renderer.drawTaperedEllipsoid (props, v0, v1);
+   //                }
+   //                else if (lineStyle == LineStyle.SOLID_ARROW) {
+   //                   renderer.drawSolidArrow (props, v0, v1);
+   //                }
+   //                else {
+   //                   renderer.drawCylinder (props, v0, v1);
+   //                }
+   //             }
+   //             else {
+   //                v0 = new float[3];
+   //             }
+   //             v0[0] = v1[0];
+   //             v0[1] = v1[1];
+   //             v0[2] = v1[2];
+   //          }
+   //          renderer.restoreShading (props);
+   //       }
+   //    }
+   // }
+
+   public void drawLineStrip (
+      RenderProps props, Iterable<float[]> vertexList, 
+      LineStyle style, boolean isSelected) {
+      GL2 gl = getGL2().getGL2();
+
+      switch (style) {
          case LINE: {
-            renderer.setLightingEnabled (false);
+            setLightingEnabled (false);
             // draw regular points first
             gl.glLineWidth (props.getLineWidth());
             gl.glBegin (GL2.GL_LINE_STRIP);
-            renderer.setColor (props.getLineColorArray(), isSelected);
+            setColor (props.getLineColorArray(), isSelected);
             for (float[] v : vertexList) {
                gl.glVertex3fv (v, 0);
             }
             gl.glEnd();
             gl.glLineWidth (1);
-            renderer.setLightingEnabled (true);
+            setLightingEnabled (true);
             break;
          }
          case ELLIPSOID:
          case SOLID_ARROW:
          case CYLINDER: {
-            renderer.setMaterialAndShading (
+            setMaterialAndShading (
                props, props.getLineMaterial(), isSelected);
             float[] v0 = null;
             for (float[] v1 : vertexList) {
                if (v0 != null) {
-                  if (lineStyle == LineStyle.ELLIPSOID) {
-                     renderer.drawTaperedEllipsoid (props, v0, v1);
+                  if (style == LineStyle.ELLIPSOID) {
+                     drawTaperedEllipsoid (props, v0, v1);
                   }
-                  else if (lineStyle == LineStyle.SOLID_ARROW) {
-                     renderer.drawSolidArrow (props, v0, v1);
+                  else if (style == LineStyle.SOLID_ARROW) {
+                     drawSolidArrow (props, v0, v1);
                   }
                   else {
-                     renderer.drawCylinder (props, v0, v1);
+                     drawCylinder (props, v0, v1);
                   }
                }
                else {
@@ -3281,7 +3393,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
                v0[1] = v1[1];
                v0[2] = v1[2];
             }
-            renderer.restoreShading (props);
+            restoreShading (props);
          }
       }
    }
@@ -3407,35 +3519,35 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       setLightingEnabled (true);
    }
 
-   public void drawAxes (
-      RenderProps props, RigidTransform3d X, double [] len, boolean selected) {
-      GL2 gl = getGL().getGL2();
-      Vector3d u = new Vector3d();
-      setLightingEnabled (false);
-      gl.glLineWidth (props.getLineWidth());
-
-      if (selected) {
-         setColor (null, selected);
-      }
-
-      gl.glBegin (GL2.GL_LINES);
-      for (int i = 0; i < 3; i++) {
-         if (len[i] != 0) {
-            if (!selected && !selectEnabled) {
-               gl.glColor3f (
-                  i == 0 ? 1f : 0f, i == 1 ? 1f : 0f, i == 2 ? 1f : 0f);
-            }
-            gl.glVertex3d (X.p.x, X.p.y, X.p.z);
-            X.R.getColumn (i, u);
-            gl.glVertex3d (
-               X.p.x + len[i] * u.x, X.p.y + len[i] * u.y, X.p.z + len[i] * u.z);
-         }
-      }
-
-      gl.glEnd();
-      gl.glLineWidth (1);
-      setLightingEnabled (true);
-   }
+//   public void drawAxes (
+//      RenderProps props, RigidTransform3d X, double [] len, boolean selected) {
+//      GL2 gl = getGL().getGL2();
+//      Vector3d u = new Vector3d();
+//      setLightingEnabled (false);
+//      gl.glLineWidth (props.getLineWidth());
+//
+//      if (selected) {
+//         setColor (null, selected);
+//      }
+//
+//      gl.glBegin (GL2.GL_LINES);
+//      for (int i = 0; i < 3; i++) {
+//         if (len[i] != 0) {
+//            if (!selected && !selectEnabled) {
+//               gl.glColor3f (
+//                  i == 0 ? 1f : 0f, i == 1 ? 1f : 0f, i == 2 ? 1f : 0f);
+//            }
+//            gl.glVertex3d (X.p.x, X.p.y, X.p.z);
+//            X.R.getColumn (i, u);
+//            gl.glVertex3d (
+//               X.p.x + len[i] * u.x, X.p.y + len[i] * u.y, X.p.z + len[i] * u.z);
+//         }
+//      }
+//
+//      gl.glEnd();
+//      gl.glLineWidth (1);
+//      setLightingEnabled (true);
+//   }
 
    public void setFaceMode (RenderProps.Faces mode) {
       switch (mode) {

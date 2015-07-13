@@ -163,7 +163,8 @@ public class PointTracingProbe extends TracingProbe {
          }
       }
       else {
-         GLViewer.drawLineStrip (renderer, vi, myRenderProps, isSelected());
+         renderer.drawLineStrip (
+            myRenderProps, vi, myRenderProps.getLineStyle(), isSelected());
       }
    }
 

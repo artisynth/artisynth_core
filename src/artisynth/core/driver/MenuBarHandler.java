@@ -1358,19 +1358,6 @@ public class MenuBarHandler implements
       else if (cmd.equals("Load control panel")) {
          doLoadControlPanel();
       }
-      else if (cmd.equals("Delete inverse controller")) {
-         System.out.println("deleting inverse controller...");
-         myMain.getRootModel().removeController(
-            InverseManager.findInverseController());
-         myMain.getMain().getInverseManager().clearContoller();
-      }
-      else if (cmd.equals("Create inverse controller")) {
-         System.out.println("create inverse controller...");
-         myMain.getMain().getInverseManager().createController(
-            InverseManager.findMechModel());
-         myMain.getRootModel().addController(
-            myMain.getMain().getInverseManager().getController());
-      }
       else if (cmd.equals("Print selection")) {
          SelectionManager sm = myMain.getSelectionManager();
          for (ModelComponent c : sm.getCurrentSelection()) {
@@ -1451,9 +1438,7 @@ public class MenuBarHandler implements
          setJythonConsoleVisible(true);
       }
       else if (cmd.equals("Show Inverse panel")) {
-         // myMain.getMain().getInverseManager().showInversePanel();
-         myMain.getMain().getInverseManager().setController(
-            InverseManager.findInverseController());
+          myMain.getMain().getInverseManager().showInversePanel(myMain.getRootModel (), InverseManager.findInverseController ());
       }
       else if (cmd.equals("Hide Inverse panel")) {
          myMain.getMain().getInverseManager().hideInversePanel();
@@ -1878,18 +1863,6 @@ public class MenuBarHandler implements
 
       item = addMenuItem(menu, "Load control panel");
       item.setEnabled(rootModelExists);
-
-      if (rootModelExists) {
-         //JMenuItem inverseControllerItem;
-         if (InverseManager.inverseControllerExists()) {
-            item = addMenuItem(menu, "Delete inverse controller");
-            item.setEnabled(true);
-         }
-         else if (InverseManager.mechModelExists()) {
-            item = addMenuItem(menu, "Create inverse controller");
-            item.setEnabled(true);
-         }
-      }
 
       addMenuItem(menu, "Print selection");
 

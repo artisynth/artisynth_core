@@ -52,6 +52,7 @@ import artisynth.core.modelbase.ReferenceList;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.util.ScanToken;
+import artisynth.core.workspace.RootModel;
 
 /**
  * "Inverse" controller for computing muscle activations based on
@@ -102,7 +103,6 @@ public class TrackingController extends ControllerBase
    protected boolean targetsVisible = true;
    protected boolean sourcesVisible = true;
    protected double targetsPointRadius = 1d;
-   boolean useInverseManager = DEFAULT_USE_INVERSE_MANAGER; 
 
    protected MechSystemBase myMech;
    protected QPCostFunction myCostFunction;
@@ -135,6 +135,11 @@ public class TrackingController extends ControllerBase
 
    protected double maxExcitationJump = DEFAULT_MAX_EXCITATION_JUMP; // limit jump in activations
 
+   public static final double DEFAULT_PROBE_DURATION = 1.0;
+   public static final double DEFAULT_PROBE_INTERVAL = 0.01;
+   double myProbeDuration = DEFAULT_PROBE_DURATION;
+   double myProbeUpdateInterval = DEFAULT_PROBE_INTERVAL;
+   
    public static PropertyList myProps =
       new PropertyList(TrackingController.class, ControllerBase.class);
 
@@ -153,6 +158,12 @@ public class TrackingController extends ControllerBase
       myProps.add(
          "usePDControl * *", "use PD controller for motion term",
          MotionTargetTerm.DEFAULT_USE_PD_CONTROL);
+      myProps.add(
+         "probeDuration", "duration of inverse managed probes",
+         DEFAULT_PROBE_DURATION);
+      myProps.add(
+         "probeUpdateInterval", "update interval of inverse managed probes",
+         DEFAULT_PROBE_INTERVAL);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -250,6 +261,23 @@ public class TrackingController extends ControllerBase
    public L2RegularizationTerm getRegularizationTerm() {
       return myRegularizationTerm;
    }
+   
+   public void createProbes(RootModel root) {
+      Main.getMain ().getInverseManager ().resetProbes (root, this);
+   }
+   
+   /**
+    * Creates a control panel for this inverse controller
+    */
+   public void createPanel(RootModel root) {
+      Main.getMain().getInverseManager ().showInversePanel (root, this);
+   }
+   
+   public void createProbesAndPanel(RootModel root) {
+      createProbes (root);
+      createPanel (root);
+   }
+
    
    /**
     * Applies the controller, estimating and setting the next
@@ -676,61 +704,12 @@ public class TrackingController extends ControllerBase
       return debug;
    }
 
-   /**
-    * Flag used by InverseManager telling it whether or not
-    * to set up and control the targets with probes
-    */
-   public boolean isManaged() {
-      return useInverseManager;
-   }
-
-   /**
-    * Sets a flag used by InverseManager telling it whether or not
-    * to set up and control the targets with probes.  If true,
-    * the InverseManager expects certain probes to be defined.
-    * Otherwise, you must manually control target positions.
-    * 
-    */
-   public void setManaged(boolean set) {
-      useInverseManager = set;
-   }
-   
    public void setUsePDControl(boolean usePD) {
       myMotionTerm.usePDControl = usePD;
    }
 
    public boolean getUsePDControl() {
       return myMotionTerm.usePDControl;
-   }
-   
-   /**
-    * Creates a control panel for this inverse controller
-    */
-   public ControlPanel createInverseControlPanel() {
-      ControlPanel inverseControlPanel =
-         new ControlPanel("Inverse Control Panel");
-
-      for (PropertyInfo propinfo : getAllPropertyInfo())
-         inverseControlPanel.addWidget(this, propinfo.getName());
-
-      for (QPTerm term : getCostTerms()) {
-         inverseControlPanel.addWidget(new JSeparator());
-         inverseControlPanel.addWidget(
-            new JLabel(term.getClass().getSimpleName()));
-
-         PropertyInfoList propList = term.getAllPropertyInfo();
-         for (PropertyInfo propinfo : propList) {
-            inverseControlPanel.addWidget(term, propinfo.getName());
-         }
-      }
-
-      Dimension d = Main.getMain().getMainFrame().getSize();
-      java.awt.Point pos = Main.getMain().getMainFrame().getLocation();
-      inverseControlPanel.getFrame().setLocation(d.width + pos.x, pos.y);
-      inverseControlPanel.setScrollable(false);
-      Main.getMain().registerWindow(inverseControlPanel.getFrame());
-      inverseControlPanel.setVisible(true);
-      return inverseControlPanel;
    }
 
    /**
@@ -875,6 +854,22 @@ public class TrackingController extends ControllerBase
          throw new IllegalArgumentException("Wrong number of excitations");
       }
       initExcitations.set(init);
+   }
+   
+   public double getProbeDuration() {
+      return myProbeDuration;
+   }
+   
+   public void setProbeDuration(double newProbeDuration) {
+      myProbeDuration = newProbeDuration;
+   }
+
+   public double getProbeUpdateInterval() {
+      return myProbeUpdateInterval;
+   }
+
+   public void setProbeUpdateInterval(double h) {
+      myProbeUpdateInterval = h;
    }
 
    

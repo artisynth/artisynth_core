@@ -186,7 +186,6 @@ public class ForceTargetDemo extends RootModel{
       setPointRenderProps((TargetPoint) myTrackingController.getMotionTargets ().get (0));
      
       ForceTargetTerm mft=new ForceTargetTerm(myTrackingController);
-      Main.getMain().getInverseManager ().defaultProbeDuration = 10.0;
      // mft.addMotionTarget(mkr);
     //  setPointRenderProps((TargetPoint) mft.getMotionTargets ().get (0));
       double[] lam={-3.5};
@@ -194,6 +193,8 @@ public class ForceTargetDemo extends RootModel{
       mft.addForceTarget (con, tarlam);
       myTrackingController.addCostTerm (mft);
 //      myTrackingController.getSolver().setBounds(0.01, 0.99);
+      myTrackingController.setProbeDuration (10.0);
+      myTrackingController.createProbesAndPanel(this);
       addController(myTrackingController);
    }
 

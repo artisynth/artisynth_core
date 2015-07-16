@@ -8,19 +8,14 @@ import java.util.ArrayList;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SparseBlockMatrix;
-import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderProps;
 import maspack.render.RenderProps.LineStyle;
-import artisynth.core.driver.Main;
 import artisynth.core.gui.ControlPanel;
-import artisynth.core.inverse.L2RegularizationTerm;
 import artisynth.core.inverse.TrackingController;
-import artisynth.core.materials.ConstantAxialMuscle;
 import artisynth.core.materials.LinearAxialMuscle;
-import artisynth.core.materials.PeckAxialMuscle;
-import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.AxialSpring;
+import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 import artisynth.core.mechmodels.Muscle;
 import artisynth.core.mechmodels.Particle;
@@ -141,23 +136,8 @@ public class PointModel extends RootModel
       
       setupRenderProps();
 
+      setWorkingDir ("east/");
       addTrackingController();      
-
-//      MotionTarget targetModel = new MotionTarget("target");
-//      ArrayList<ModelComponent> target = new ArrayList<ModelComponent>();
-//      target.add (center);
-//      targetModel.setTargets (target);
-//      targetModel.setTransparent(true);
-//      targetModel.setTargetPointRadius(2*center.getRenderProps().getPointRadius());
-//      addModel (targetModel);
-//
-//      
-//      if (MainInv.getWorkspace () != null)
-//      { MainInv.getWorkspace ().getInvSolver().setW2norm (0.01);
-//        MainInv.getWorkspace().setProbeDuration(1);
-//      }
-      
-
    }
    
    public void printType() {
@@ -438,21 +418,16 @@ public class PointModel extends RootModel
           }
          addControlPanel (panel);
        }
-      
-      String wdir = "east/";
-      
+   }
+
+   public void setWorkingDir(String wdir) {
       // set default working directory to repository location
       File workingDir = new File(ArtisynthPath.getSrcRelativePath(
-	    PointModel.class, "data/point/"+wdir));
+            PointModel.class, "data/point/"+wdir));
       ArtisynthPath.setWorkingDir(workingDir);
       System.out.println("Set working directory to " + 
          ArtisynthPath.getWorkingDir().getAbsolutePath());
-      
-//      loadProbes();
-      
-//      addTrackingController();
    }
-   
    
    public void addTrackingController() {
       TrackingController myTrackingController = new TrackingController(model, "tcon");
@@ -476,6 +451,8 @@ public class PointModel extends RootModel
       myTrackingController.addMotionTarget(center);
       
 //      myTrackingController.getSolver().setBounds(0.01, 0.99);
+      
+      myTrackingController.createProbesAndPanel (this);
       addController(myTrackingController);
    }
    

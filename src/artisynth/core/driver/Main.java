@@ -1286,9 +1286,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
          }
       }
 
-      // check if an inverse controller was created by the rootmodel
-      myInverseManager.setController(InverseManager.findInverseController());
-
       if (myFrame != null) {
          // Sanchez, July 11, 2013
          // force repaint again, updating viewer bounds to reflect

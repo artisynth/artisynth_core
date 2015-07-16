@@ -344,6 +344,7 @@ public class RigidTentacle extends RootModel {
       
       tracker.setExcitationBounds (-1d, 1d);
       tracker.addL2RegularizationTerm(1);
+      tracker.createProbesAndPanel (this);
       addController (tracker);
       addPanel();
    }

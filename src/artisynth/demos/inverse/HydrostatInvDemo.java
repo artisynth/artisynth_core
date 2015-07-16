@@ -108,6 +108,8 @@ public class HydrostatInvDemo extends HydrostatDemo
       }
       
       trackingController.addL2RegularizationTerm(100*100);
+      trackingController.setProbeDuration (5.0);
+      trackingController.createProbesAndPanel (this);
       addController(trackingController);
    }
    

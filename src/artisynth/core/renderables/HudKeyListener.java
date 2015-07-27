@@ -10,8 +10,8 @@ import java.awt.Component;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
-import maspack.render.GLRenderer;
-import maspack.render.GLViewer;
+import maspack.render.Renderer;
+import maspack.render.GL.GLViewer;
 
 /**
  * Class that listens to key events, and executes a scroll-up, scroll-down or
@@ -30,7 +30,7 @@ public class HudKeyListener implements KeyListener {
       new KeyCombo(0, '`', 0);
 
    HudPrintStream myHud;
-   GLRenderer myRenderer;
+   Renderer myRenderer;
    KeyCombo myScrollUpKeys = defaultScrollUpKeys;
    KeyCombo myScrollDownKeys = defaultScrollDownKeys;
    KeyCombo myFullscreenKeys = defaultFullscreenKeys;
@@ -76,7 +76,7 @@ public class HudKeyListener implements KeyListener {
     * @param renderer
     * (optional) a renderer use to trigger re-render events after changes
     */
-   public HudKeyListener (HudPrintStream hud, GLRenderer renderer) {
+   public HudKeyListener (HudPrintStream hud, Renderer renderer) {
       myHud = hud;
       myRenderer = renderer;
    }
@@ -191,7 +191,7 @@ public class HudKeyListener implements KeyListener {
     * @return the created HudKeyListener
     */
    public static HudKeyListener createListener(HudPrintStream hud,
-      Component comp, GLRenderer renderer) {
+      Component comp, Renderer renderer) {
       HudKeyListener kl = new HudKeyListener(hud, renderer);
       if (comp != null) {
          comp.addKeyListener(kl);

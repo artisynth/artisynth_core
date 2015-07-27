@@ -6,35 +6,81 @@
  */
 package maspack.apps;
 
-import java.io.*;
-import java.lang.reflect.Constructor;
-import java.util.*;
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.Color;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
 
-import javax.swing.event.*;
-import javax.swing.*;
-import javax.swing.filechooser.FileFilter;
+import javax.media.opengl.GL2;
+import javax.swing.JFileChooser;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
+import javax.swing.JToolBar;
+import javax.swing.event.MenuEvent;
 
-import javax.media.opengl.*;
-
-import maspack.render.*;
-import maspack.widgets.*;
-import maspack.util.*;
-import maspack.widgets.DraggerToolBar.ButtonType;
+import maspack.geometry.HalfEdge;
+import maspack.geometry.LaplacianSmoother;
+import maspack.geometry.MeshBase;
+import maspack.geometry.NURBSCurve2d;
+import maspack.geometry.NURBSCurve3d;
+import maspack.geometry.PointMesh;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.QuadBezierDistance2d;
+import maspack.geometry.Vertex3d;
+import maspack.geometry.io.GenericMeshReader;
+import maspack.geometry.io.GenericMeshWriter;
+import maspack.geometry.io.XyzbReader;
+import maspack.matrix.AxisAlignedRotation;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector2d;
+import maspack.matrix.Vector3d;
+import maspack.properties.HasProperties;
+import maspack.properties.Property;
+import maspack.properties.PropertyList;
+import maspack.properties.PropertyUtils;
+import maspack.render.Dragger3d;
 import maspack.render.DrawToolBase.FrameBinding;
-import maspack.properties.*;
-import maspack.geometry.*;
-import maspack.geometry.io.*;
-import maspack.matrix.*;
+import maspack.render.DrawToolEvent;
+import maspack.render.DrawToolListener;
+import maspack.render.RenderListener;
+import maspack.render.RenderProps;
+import maspack.render.RenderableBase;
+import maspack.render.Renderer;
+import maspack.render.GL.GLSelectionEvent;
+import maspack.render.GL.GLSelectionListener;
+import maspack.render.GL.GL2.GL2Viewer;
+import maspack.util.IndentingPrintWriter;
+import maspack.util.InternalErrorException;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
+import maspack.widgets.DraggerToolBar;
+import maspack.widgets.DraggerToolBar.ButtonType;
+import maspack.widgets.MenuAdapter;
+import maspack.widgets.PropertyDialog;
+import maspack.widgets.RenderPropsPanel;
+import maspack.widgets.SplineTool;
+import maspack.widgets.ValueChangeEvent;
+import maspack.widgets.ValueChangeListener;
+import maspack.widgets.ViewerFrame;
 import argparser.ArgParser;
-import argparser.BooleanHolder;
-import argparser.DoubleHolder;
 import argparser.IntHolder;
 import argparser.StringHolder;
 
 public class MeshThicken extends ViewerFrame 
-   implements ActionListener, DrawToolListener, GLViewerListener,
+   implements ActionListener, DrawToolListener, RenderListener,
               HasProperties, GLSelectionListener {
 
    private static final long serialVersionUID = 1L;
@@ -324,11 +370,11 @@ public class MeshThicken extends ViewerFrame
          pw.flush();
       }
 
-      public void render (GLRenderer renderer, int flags) {
+      public void render (Renderer renderer, int flags) {
          render (renderer, myRenderProps, /*flags=*/0);
       }
 
-      public void render (GLRenderer renderer, RenderProps props, int flags) {
+      public void render (Renderer renderer, RenderProps props, int flags) {
 
          if (!myVisibleP) {
             return;
@@ -336,7 +382,12 @@ public class MeshThicken extends ViewerFrame
          if (myCurve != null) {
             myCurve.render (renderer, flags);
          }
-         GL2 gl = renderer.getGL2().getGL2();
+         if (!(renderer instanceof GL2Viewer)) {
+            return;
+         }
+         GL2Viewer viewer = (GL2Viewer)renderer;
+         GL2 gl = viewer.getGL2();
+         
          gl.glPushMatrix();
          RigidTransform3d X = new RigidTransform3d (myFrame);
          X.mulXyz (0, 0, myHeight);

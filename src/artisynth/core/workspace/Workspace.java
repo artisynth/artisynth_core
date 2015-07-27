@@ -12,7 +12,7 @@ import java.util.*;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
-import maspack.render.GLViewer;
+import maspack.render.GL.GLViewer;
 import maspack.util.*;
 import maspack.widgets.PropertyWindow;
 import artisynth.core.modelbase.*;

@@ -19,7 +19,7 @@ import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderProps;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
@@ -76,7 +76,7 @@ public class RigidMesh extends MeshComponent
    }
    
    @Override
-   public void render (GLRenderer renderer, RenderProps props, int flags) {
+   public void render (Renderer renderer, RenderProps props, int flags) {
 
       if (renderer.isSelecting()) {
          renderer.beginSelectionQuery (0);

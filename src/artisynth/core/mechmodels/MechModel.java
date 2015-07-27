@@ -19,7 +19,7 @@ import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderableUtils;
 import maspack.util.FunctionTimer;
 import maspack.util.NumberFormat;
@@ -1497,7 +1497,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       super.updateBounds (pmin, pmax);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
    }
 
    public void transformGeometry (AffineTransform3dBase X) {

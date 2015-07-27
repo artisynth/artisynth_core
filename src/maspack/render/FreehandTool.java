@@ -6,12 +6,14 @@
  */
 package maspack.render;
 
-import java.util.*;
-import java.awt.event.*;
+import java.util.ArrayList;
 
-import maspack.matrix.*;
+import javax.media.opengl.GL2;
 
-import javax.media.opengl.*;
+import maspack.matrix.Point2d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.render.GL.GL2.GL2Viewer;
 
 public class FreehandTool extends DrawToolBase {
 
@@ -66,11 +68,17 @@ public class FreehandTool extends DrawToolBase {
       return false;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (!myVisibleP) {
          return;
       }
-      GL2 gl = renderer.getGL2().getGL2();
+      
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       float[] rgb = new float[3];
 
       gl.glPushMatrix();

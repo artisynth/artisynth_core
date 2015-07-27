@@ -202,7 +202,7 @@ public class PointForce extends ModelComponentBase
       return -1;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (myMag > 0) {
       renderer.drawArrow (
          myRenderProps, myPnt.myRenderCoords, getRenderCoords1(),

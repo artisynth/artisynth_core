@@ -8,12 +8,12 @@ package maspack.render;
 
 import java.awt.Color;
 import java.awt.event.*;
-
 import java.util.LinkedList;
 
 import maspack.matrix.*;
+import maspack.render.GL.GLClipPlane;
+import maspack.render.GL.GLViewer;
 import maspack.util.*;
-import maspack.util.Round;
 
 public abstract class DrawToolBase extends DragToolBase implements Dragger3d {
 

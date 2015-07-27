@@ -6,14 +6,16 @@
  */
 package maspack.render;
 
-import java.util.*;
-import java.awt.event.InputEvent;
+import java.util.LinkedList;
 
-import maspack.matrix.*;
-import maspack.util.*;
-
-import javax.media.opengl.GLDrawable;
-import javax.media.opengl.GL2;
+import maspack.matrix.Line;
+import maspack.matrix.Plane;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.render.GL.GLGridPlane;
+import maspack.render.GL.GLViewer;
+import maspack.util.InternalErrorException;
 
 public class Translator3d extends Dragger3dBase {
 
@@ -33,10 +35,10 @@ public class Translator3d extends Dragger3dBase {
    static final int Y_AXIS = 2;
    static final int Z_AXIS = 3;
 
-   static final int XY_PLANE = 4;
+   static final int ZX_PLANE = 4;
    static final int YZ_PLANE = 5;
-   static final int ZX_PLANE = 6;
-
+   static final int XY_PLANE = 6;
+   
    private static Line xAxis = new Line (0, 0, 0, 1, 0, 0);
    private static Line yAxis = new Line (0, 0, 0, 0, 1, 0);
    private static Line zAxis = new Line (0, 0, 0, 0, 0, 1);
@@ -56,111 +58,111 @@ public class Translator3d extends Dragger3dBase {
       setSize (size);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (!myVisibleP) {
          return;
       }
-      GL2 gl = renderer.getGL2().getGL2();
-      gl.glPushMatrix();
-      GLViewer.mulTransform (gl, myXDraggerToWorld);
-
-      renderer.setLightingEnabled (false);
-      gl.glLineWidth (myLineWidth);
-
-      if (myDragMode != DragMode.OFF) {      
-         gl.glColor3d (1f, 1f, 0f);
-         gl.glPointSize (3);
-         gl.glBegin (GL2.GL_POINTS);
-         gl.glVertex3d (myPnt0.x, myPnt0.y, myPnt0.z);
-         gl.glEnd();
-         gl.glPointSize (1);
+      if (!(renderer instanceof GLViewer)) {
+         return;
       }
+      GLViewer viewer = (GLViewer)renderer;
 
-      if (mySelectedComponent == X_AXIS) {
-         gl.glColor3d (1f, 1f, 0);
+      viewer.setLightingEnabled (false);
+      viewer.setLineWidth(myLineWidth);
+      
+      viewer.pushModelMatrix();
+      viewer.mulModelMatrix(myXDraggerToWorld);
+      
+      float[] coords = new float[3];
+      if (myDragMode != DragMode.OFF && mySelectedComponent != NONE) { 
+         viewer.setColor(1.0f, 1.0f, 0f);
+         viewer.setPointSize(3);
+         myPnt0.get(coords);
+         viewer.drawPoint(coords);
+         viewer.setPointSize(1);
       }
-      else {
-         gl.glColor3d (1f, 0, 0);
+      
+      viewer.scaleModelMatrix(mySize);
+
+      RenderObject ro = viewer.getSharedObject(Translator3d.class);
+      if (ro == null || !ro.isValid()) {
+         ro = createTranslatorRenderable();
+         viewer.addSharedObject(Translator3d.class, ro);
       }
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (0, 0.0, 0.0);
-      gl.glVertex3d (mySize, 0.0, 0.0);
-      gl.glEnd();
-
-      if (mySelectedComponent == Y_AXIS) {
-         gl.glColor3d (1f, 1f, 0);
+      
+      // select appropriate color buffer
+      ro.colorSet(mySelectedComponent);  
+      viewer.drawLines(ro);
+      
+      viewer.popModelMatrix();
+      
+      viewer.setLineWidth(1);
+      viewer.setLightingEnabled (true);
+   }
+   
+   private static RenderObject createTranslatorRenderable() {
+      
+      final float TRANS_BOX_SIZE = 0.4f;
+      
+      RenderObject scalerr = new RenderObject();
+      
+      // 3 axis, 3 plane boxes
+      int xcolor = scalerr.addColor(1.0f, 0.0f, 0.0f, 1.0f);
+      int ycolor = scalerr.addColor(0.0f, 1.0f, 0.0f, 1.0f);
+      int zcolor = scalerr.addColor(0.0f, 0.0f, 1.0f, 1.0f);
+      int yzcolor = scalerr.addColor(0.5f, 0.5f, 0.5f, 1.0f);
+      int zxcolor = scalerr.addColor(0.5f, 0.5f, 0.5f, 1.0f);
+      int xycolor = scalerr.addColor(0.5f, 0.5f, 0.5f, 1.0f);
+      
+      // 6 more color sets, one each with a component highlighted yellow
+      int[] colors = new int[]{xcolor,ycolor,zcolor,yzcolor,zxcolor,xycolor};
+      for (int i=0; i<colors.length; ++i) {
+         scalerr.createColorSetFrom(0);
+         scalerr.setColor(i, 1.0f, 1.0f, 0.0f, 1.0f);
       }
-      else {
-         gl.glColor3d (0, 1f, 0);
-      }
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (0, 0.0, 0.0);
-      gl.glVertex3d (0, mySize, 0.0);
-      gl.glEnd();
+      
+      int v0, v1, v2;
+      
+      // x-axis
+      scalerr.color(xcolor);
+      v0 = scalerr.vertex(0, 0, 0);
+      v1 = scalerr.vertex(1, 0, 0);
+      scalerr.addLine(v0, v1);
+      
+      // y-axis
+      scalerr.color(ycolor);
+      v0 = scalerr.vertex(0, 0, 0);
+      v1 = scalerr.vertex(0, 1, 0);
+      scalerr.addLine(v0, v1);
+      
+      // z-axis
+      scalerr.color(zcolor);
+      v0 = scalerr.vertex(0, 0, 0);
+      v1 = scalerr.vertex(0, 0, 1);
+      scalerr.addLine(v0, v1);
+      
+      // yz-plane
+      scalerr.color(yzcolor);
+      v0 = scalerr.vertex(0, TRANS_BOX_SIZE, 0);
+      v1 = scalerr.vertex(0, TRANS_BOX_SIZE, TRANS_BOX_SIZE);
+      v2 = scalerr.vertex(0, 0, TRANS_BOX_SIZE);
+      scalerr.addLineStrip(v0, v1, v2);
 
-      if (mySelectedComponent == Z_AXIS) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0, 0, 1f);
-      }
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (0, 0.0, 0.0);
-      gl.glVertex3d (0, 0, mySize);
-      gl.glEnd();
-
-      double len = myPlaneBoxRelativeSize * mySize;
-
-      // gl.glDisable (GL2.GL_CULL_FACE);
-
-      // circle in x-y plane
-
-      if (mySelectedComponent == XY_PLANE) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0.5, 0.5, 0.5);
-      }
-
-      gl.glBegin (GL2.GL_LINE_STRIP);
-      gl.glVertex3d (len, 0, 0);
-      gl.glVertex3d (len, len, 0);
-      gl.glVertex3d (0, len, 0);
-      gl.glEnd();
-
-      // circle in y-z plane
-      if (mySelectedComponent == YZ_PLANE) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0.5, 0.5, 0.5);
-      }
-
-      gl.glBegin (GL2.GL_LINE_STRIP);
-      gl.glVertex3d (0, len, 0);
-      gl.glVertex3d (0, len, len);
-      gl.glVertex3d (0, 0, len);
-      gl.glEnd();
-
-      // circle in z-x plane
-      if (mySelectedComponent == ZX_PLANE) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0.5, 0.5, 0.5);
-      }
-
-      gl.glBegin (GL2.GL_LINE_STRIP);
-      gl.glVertex3d (0, 0, len);
-      gl.glVertex3d (len, 0, len);
-      gl.glVertex3d (len, 0, 0);
-      gl.glEnd();
-
-      gl.glLineWidth (1);
-      renderer.setLightingEnabled (true);
-
-      // gl.glEnable (GL2.GL_CULL_FACE);
-      gl.glPopMatrix();
+      // zx-plane
+      scalerr.color(zxcolor);
+      v0 = scalerr.vertex(0, 0, TRANS_BOX_SIZE);
+      v1 = scalerr.vertex(TRANS_BOX_SIZE, 0, TRANS_BOX_SIZE);
+      v2 = scalerr.vertex(TRANS_BOX_SIZE, 0, 0);
+      scalerr.addLineStrip(v0, v1, v2);
+      
+      // xy-plane
+      scalerr.color(xycolor);
+      v0 = scalerr.vertex(TRANS_BOX_SIZE, 0, 0);
+      v1 = scalerr.vertex(TRANS_BOX_SIZE, TRANS_BOX_SIZE, 0);
+      v2 = scalerr.vertex(0, TRANS_BOX_SIZE, 0);
+      scalerr.addLineStrip(v0, v1, v2);
+   
+      return scalerr;
    }
 
    public void getSelection (LinkedList<Object> list, int qid) {

@@ -7,6 +7,7 @@
 package maspack.render;
 
 import maspack.matrix.*;
+import maspack.render.GL.GLViewer;
 
 public class DrawToolEvent {
    protected Dragger3d mySource;

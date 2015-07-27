@@ -6,18 +6,47 @@
  */
 package artisynth.core.mechmodels;
 
-import artisynth.core.modelbase.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import javax.media.opengl.GL2;
+
+import maspack.matrix.AffineTransform3d;
+import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.AxisAngle;
+import maspack.matrix.Matrix;
+import maspack.matrix.Matrix6d;
+import maspack.matrix.Matrix6dBlock;
+import maspack.matrix.Matrix6x3Block;
+import maspack.matrix.MatrixBlock;
+import maspack.matrix.Point3d;
+import maspack.matrix.Quaternion;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
+import maspack.matrix.SparseBlockMatrix;
+import maspack.matrix.SparseNumberedBlockMatrix;
+import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
+import maspack.properties.PropertyList;
+import maspack.properties.PropertyMode;
+import maspack.properties.PropertyUtils;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.RenderableUtils;
+import maspack.render.Renderer;
+import maspack.render.GL.GL2.GL2Viewer;
+import maspack.spatialmotion.SpatialInertia;
+import maspack.spatialmotion.Twist;
+import maspack.spatialmotion.Wrench;
 import artisynth.core.mechmodels.MotionTarget.TargetActivity;
+import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.HasCoordinateFrame;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.Traceable;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.TransformableGeometry;
-import maspack.matrix.*;
-import maspack.properties.*;
-import maspack.render.*;
-import maspack.spatialmotion.*;
-
-import javax.media.opengl.*;
-
-import java.util.*;
 
 public class Frame extends DynamicComponentBase
    implements TransformableGeometry, ScalableUnits, DynamicComponent,
@@ -642,12 +671,17 @@ public class Frame extends DynamicComponentBase
    }
 
    public static void drawAxes (
-      GLRenderer renderer, RigidTransform3d XFrameToWorld, float len) {
+      Renderer renderer, RigidTransform3d XFrameToWorld, float len) {
       
-      GL2 gl = renderer.getGL2().getGL2();
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       gl.glPushMatrix();
       renderer.setLightingEnabled (false);
-      GLViewer.mulTransform (gl, XFrameToWorld);
+      GL2Viewer.mulTransform (gl, XFrameToWorld);
       gl.glBegin (GL2.GL_LINES);
       renderer.setColor (1f, 0f, 0f);
       gl.glVertex3f (0f, 0f, 0f);
@@ -663,12 +697,11 @@ public class Frame extends DynamicComponentBase
       gl.glPopMatrix();
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (myAxisLength > 0) {
-         GL2 gl = renderer.getGL2().getGL2();
-         gl.glLineWidth (myRenderProps.getLineWidth());
+         renderer.setLineWidth (myRenderProps.getLineWidth());
          drawAxes (renderer, myRenderFrame, (float)myAxisLength);
-         gl.glLineWidth (1);
+         renderer.setLineWidth(1);
       }
    }
 

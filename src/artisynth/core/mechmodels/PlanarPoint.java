@@ -13,7 +13,7 @@ import maspack.util.*;
 import maspack.properties.*;
 import maspack.render.*;
 
-import javax.media.opengl.*;
+import com.jogamp.opengl.*;
 
 import java.util.*;
 import java.io.*;

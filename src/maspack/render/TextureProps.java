@@ -9,7 +9,6 @@ package maspack.render;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Deque;
 
 import maspack.properties.CompositeProperty;
 import maspack.properties.HasProperties;
@@ -100,7 +99,7 @@ public class TextureProps implements CompositeProperty, Scannable, Clonable {
    protected static double[] defaultTCoords = new double[] { 0, 0.01, 0, 0 };
    protected PropertyMode myTCoordsMode;
 
-   protected Texture myTexture = null;
+   protected GLTexture myTexture = null;
 
    public TextureProps() {
       setDefaultModes();
@@ -166,9 +165,6 @@ public class TextureProps implements CompositeProperty, Scannable, Clonable {
 
    public void clearTextureData() {
       myTexture = null;
-      if (myHost instanceof RenderProps) {
-         ((RenderProps)myHost).clearMeshDisplayList();
-      }
    }
 
    // enabled
@@ -237,11 +233,11 @@ public class TextureProps implements CompositeProperty, Scannable, Clonable {
       return ((new File (myFileName)).isFile());
    }
 
-   public Texture getTexture() {
+   public GLTexture getTexture() {
       return myTexture;
    }
 
-   public void setTexture (Texture texture) {
+   public void setTexture (GLTexture texture) {
       myTexture = texture;
    }
 

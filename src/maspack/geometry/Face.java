@@ -26,7 +26,7 @@ public class Face extends Feature implements Boundable {
    // Flag to indicate that this face is the first triangle of a triangulated
    // quad. This enables rendering software to combine the rendering of
    // this face and the one following it to create a smoothly rendered quad.
-   protected static int FIRST_QUAD_TRIANGLE = 0x100;
+   public static int FIRST_QUAD_TRIANGLE = 0x100;
 
    //private Vector3d myWorldNormal; // cached value of normal in world coords
    //public int myWorldCoordCnt = -1;
@@ -1780,6 +1780,14 @@ public class Face extends Feature implements Boundable {
          i_next = (i_min == vtxs.length - 1 ? 0 : i_min + 1);
          return new Vertex3d[] { vtxs[i_prev], vtxs[i_min], vtxs[i_next] };
       }
+   }
+
+   public int getFlags() {
+      return myFlags;
+   }
+   
+   public void setFlags(int flags) {
+      myFlags = flags;
    }
 
 }

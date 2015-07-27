@@ -6,12 +6,7 @@
  */
 package maspack.geometry;
 
-import java.util.Collection;
-import java.util.ArrayList;
-
-import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-import maspack.render.RenderableUtils;
 
 public class AABBTree extends BVTree {
 

@@ -14,9 +14,9 @@ import maspack.matrix.Point2d;
 import maspack.properties.PropertyDesc;
 import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
+import maspack.render.GL.GLRenderable;
 
 import com.jogamp.opengl.util.awt.TextRenderer;
 
@@ -108,7 +108,7 @@ public class HudPrintStream extends TextComponentBase {
 //   }
    
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
 
       if (!isSelectable() && renderer.isSelecting()) {
          return;

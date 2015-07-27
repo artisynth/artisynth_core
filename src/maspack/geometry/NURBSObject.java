@@ -6,19 +6,22 @@
  */
 package maspack.geometry;
 
-import java.util.LinkedList;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.LinkedList;
 
-import maspack.matrix.Point3d;
-import maspack.matrix.Vector4d;
-import maspack.matrix.RigidTransform3d;
-import maspack.matrix.AffineTransform3dBase;
-import maspack.render.GLSelectable;
-import maspack.render.*;
 import javax.media.opengl.GL2;
-import javax.media.opengl.GLDrawable;
 
-import java.io.*;
+import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector4d;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.Renderable;
+import maspack.render.Renderer;
+import maspack.render.GL.GL2.GL2Viewer;
 
 /**
  * Base class for a NURBS curve or surface.
@@ -39,7 +42,7 @@ public abstract class NURBSObject implements Renderable {
    protected RenderProps myRenderProps;
    protected static final boolean DEFAULT_DRAW_CONTROL_SHAPE = true;
    protected boolean myDrawControlShapeP = DEFAULT_DRAW_CONTROL_SHAPE;
-
+   
    protected NURBSObject() {
       myRenderProps = createRenderProps();
       myCtrlPnts = new ArrayList<Vector4d>();
@@ -185,9 +188,14 @@ public abstract class NURBSObject implements Renderable {
    } 
 
    private void drawControlPoint (
-      GLRenderer renderer, RenderProps props, int i, Point3d tmp) {
+      Renderer renderer, RenderProps props, int i, Point3d tmp) {
 
-      GL2 gl = renderer.getGL2().getGL2();
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       int psize = props.getPointSize();
       boolean selected = myCtrlPntSelected.get(i); 
       gl.glPointSize (selected ? psize+1 : psize);
@@ -203,10 +211,16 @@ public abstract class NURBSObject implements Renderable {
    } 
 
    protected void drawControlPoints (
-      GLRenderer renderer, RenderProps props, int flags) {
+      Renderer renderer, RenderProps props, int flags) {
 
       Point3d tmp = new Point3d();
-      GL2 gl = renderer.getGL2().getGL2();
+      
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       boolean selecting = renderer.isSelecting();
       for (int i=0; i<myCtrlPnts.size(); i++) {
          if (selecting) {
@@ -307,12 +321,12 @@ public abstract class NURBSObject implements Renderable {
       return myRenderProps;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       render (renderer, myRenderProps, /*flags=*/0);
    }
 
    public abstract void render (
-      GLRenderer renderer, RenderProps props, int flags);
+      Renderer renderer, RenderProps props, int flags);
 
    /**
     * Applies an affine transformation to the control points this NURBS

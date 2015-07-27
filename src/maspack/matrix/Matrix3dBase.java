@@ -693,7 +693,7 @@ java.io.Serializable, Clonable {
     * @param M2
     * right-hand matrix
     */
-   protected void mul (Matrix3dBase M1, Matrix3dBase M2) {
+   public void mul (Matrix3dBase M1, Matrix3dBase M2) {
       double tmp00 = M1.m00 * M2.m00 + M1.m01 * M2.m10 + M1.m02 * M2.m20;
       double tmp01 = M1.m00 * M2.m01 + M1.m01 * M2.m11 + M1.m02 * M2.m21;
       double tmp02 = M1.m00 * M2.m02 + M1.m01 * M2.m12 + M1.m02 * M2.m22;

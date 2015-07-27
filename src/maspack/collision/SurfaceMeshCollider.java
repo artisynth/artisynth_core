@@ -15,9 +15,10 @@ import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
+import maspack.render.GL.GLRenderable;
+import maspack.render.GL.GL2.GL2Viewer;
 import maspack.util.InternalErrorException;
 
 public class SurfaceMeshCollider implements AbstractCollider {
@@ -481,8 +482,14 @@ public class SurfaceMeshCollider implements AbstractCollider {
          }
       }
 
-      public void render (GLRenderer renderer, int flags) {
-         GL2 gl = renderer.getGL2().getGL2();
+      public void render (Renderer renderer, int flags) {
+         
+         if (!(renderer instanceof GL2Viewer)) {
+            return;
+         }
+         GL2Viewer viewer = (GL2Viewer)renderer;
+         GL2 gl = viewer.getGL2();
+         
          renderer.setLightingEnabled (false);
          gl.glDisable (GL2.GL_LINE_STIPPLE);
          gl.glEnable (GL2.GL_LINE_SMOOTH);
@@ -529,8 +536,13 @@ public class SurfaceMeshCollider implements AbstractCollider {
          renderer.setLightingEnabled (true);
       }
 
-      void renderFace (GLRenderer renderer, Face aFace) {
-         GL2 gl = renderer.getGL2().getGL2();
+      void renderFace (Renderer renderer, Face aFace) {
+         if (!(renderer instanceof GL2Viewer)) {
+            return;
+         }
+         GL2Viewer viewer = (GL2Viewer)renderer;
+         GL2 gl = viewer.getGL2();
+         
          gl.glLineWidth (26.0f);
          gl.glBegin (GL2.GL_LINE_LOOP);
          Point3d p = aFace.getEdge (0).tail.getWorldPoint();
@@ -542,8 +554,13 @@ public class SurfaceMeshCollider implements AbstractCollider {
          gl.glEnd();
       }
 
-      void renderMeshNormals (GLRenderer renderer, PolygonalMesh mesh) {
-         GL2 gl = renderer.getGL2().getGL2();
+      void renderMeshNormals (Renderer renderer, PolygonalMesh mesh) {
+         if (!(renderer instanceof GL2Viewer)) {
+            return;
+         }
+         GL2Viewer viewer = (GL2Viewer)renderer;
+         GL2 gl = viewer.getGL2();
+         
          Point3d p = new Point3d();
          gl.glLineWidth (20f);
          gl.glBegin (GL2.GL_LINES);

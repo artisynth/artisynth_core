@@ -13,7 +13,7 @@ import maspack.matrix.Matrix6d;
 import maspack.matrix.Matrix6x1;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.util.InternalErrorException;
 import artisynth.core.femmodels.IntegrationData3d;
 import artisynth.core.femmodels.IntegrationPoint3d;
@@ -230,7 +230,7 @@ public class BeamBody extends DeformableBody {
       }
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       super.render (renderer, flags);
       // // debugging to ckeck deformed frames
       // RigidTransform3d X0 = new RigidTransform3d (-1, 0, 0.2);

@@ -18,7 +18,7 @@ import maspack.render.*;
 import maspack.properties.*;
 import artisynth.core.util.*;
 import java.util.*;
-import javax.media.opengl.*;
+import com.jogamp.opengl.*;
 
 public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
 
@@ -55,7 +55,7 @@ public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
       return true;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       renderer.drawLines (myRenderProps, iterator());
    }
 

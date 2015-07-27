@@ -17,7 +17,7 @@ import java.util.*;
 import maspack.render.*;
 import artisynth.core.modelbase.*;
 
-import javax.media.opengl.*;
+import com.jogamp.opengl.*;
 import java.awt.Color;
 import java.io.*;
 
@@ -111,7 +111,7 @@ public class FullPlanarJoint extends RigidBodyConnector
       myRenderFrame.set (TDW);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (myAxisLength != 0) {
          renderer.drawAxes (
             myRenderProps, myRenderFrame, myAxisLength, isSelected());

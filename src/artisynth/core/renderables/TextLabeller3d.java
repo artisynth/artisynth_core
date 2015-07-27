@@ -12,8 +12,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point2d;
 import maspack.matrix.Point3d;
@@ -22,9 +20,8 @@ import maspack.matrix.RotationMatrix3d;
 import maspack.properties.PropertyDesc;
 import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
-import maspack.render.GLSupport;
+import maspack.render.Renderer;
+import maspack.render.GL.GLRenderable;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointList;
 
@@ -117,7 +114,7 @@ public class TextLabeller3d extends TextComponentBase {
 //   }
    
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
     
       if (!isSelectable() && renderer.isSelecting()) {
          return;
@@ -125,7 +122,7 @@ public class TextLabeller3d extends TextComponentBase {
       
       FaceRenderProps rprops = (FaceRenderProps)getRenderProps();
       rprops.getFaceColor(rgb);
-      GL2 gl = renderer.getGL2().getGL2();
+
       float fTextSize = (float)(myTextSize/getFontSize());
       Point3d tmp = new Point3d();
       
@@ -190,14 +187,13 @@ public class TextLabeller3d extends TextComponentBase {
          renderPos.add(tmp);
          myTransform.p.set(renderPos);
          
-         gl.glPushMatrix();
-         GLSupport.transformToGLMatrix (GLMatrix, myTransform);
-         gl.glMultMatrixd (GLMatrix, 0);
+         renderer.pushModelMatrix();
+         renderer.mulTransform(myTransform);
          
          myTextRenderer.draw3D(label.text, 0,0,0, fTextSize);
          myTextRenderer.flush();
          
-         gl.glPopMatrix();
+         renderer.popModelMatrix();
       }
 
       myTextRenderer.end3DRendering();

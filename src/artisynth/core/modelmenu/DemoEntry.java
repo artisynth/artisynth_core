@@ -6,26 +6,27 @@
  */
 package artisynth.core.modelmenu;
 
+import artisynth.core.driver.ModelInfo;
 import artisynth.core.modelmenu.DemoMenuParser.MenuType;
 
 public class DemoEntry extends MenuEntry {
-   private DemoModel model;
+   private ModelInfo model;
 
-   public DemoEntry(String filename) {
+   public DemoEntry(String filename, String[] args) {
       super(filename);
-      setModel(new DemoModel(filename, filename));
+      setModel(new ModelInfo(filename, filename, args));
    }
 
-   public DemoEntry(String name, String file) {
+   public DemoEntry(String file, String name, String[] args) {
       super(name);
-      setModel(new DemoModel(name, file));
+      setModel(new ModelInfo(file, name, args));
    }
 
-   public DemoModel getModel() {
+   public ModelInfo getModel() {
       return model;
    }
 
-   public void setModel(DemoModel model) {
+   public void setModel(ModelInfo model) {
       this.model = model;
    }
 

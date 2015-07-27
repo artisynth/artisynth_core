@@ -7,7 +7,9 @@
 package maspack.widgets;
 
 import java.awt.event.*;
+
 import maspack.render.*;
+import maspack.render.GL.GLViewer;
 import maspack.matrix.*;
 
 public class ViewerKeyListener implements KeyListener {

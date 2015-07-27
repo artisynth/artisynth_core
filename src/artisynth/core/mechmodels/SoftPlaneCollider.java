@@ -6,24 +6,34 @@
  */
 package artisynth.core.mechmodels;
 
-import artisynth.core.modelbase.*;
-import artisynth.core.util.*;
-import maspack.render.*;
-
-import java.util.*;
-
-import maspack.matrix.*;
-import maspack.geometry.*;
-import maspack.properties.*;
-
-import java.io.*;
-
-import maspack.render.*;
-import maspack.util.*;
-
-import javax.media.opengl.*;
-
 import java.awt.Color;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Deque;
+
+import javax.media.opengl.GL2;
+
+import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.Matrix;
+import maspack.matrix.Plane;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.SparseNumberedBlockMatrix;
+import maspack.matrix.Vector3d;
+import maspack.properties.HasProperties;
+import maspack.properties.PropertyList;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.GL.GL2.GL2Viewer;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.RenderableComponentBase;
+import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.util.ScalableUnits;
+import artisynth.core.util.ScanToken;
+import artisynth.core.util.TransformableGeometry;
 
 public class SoftPlaneCollider extends RenderableComponentBase implements
 ScalableUnits, ForceComponent, TransformableGeometry {
@@ -208,10 +218,14 @@ ScalableUnits, ForceComponent, TransformableGeometry {
       myCenter.updateBounds (pmin, pmax);
    }
 
-   public void render (GLRenderer renderer, int flags) {
-      GL2 gl = renderer.getGL2().getGL2();
-      // GLU glu = renderer.getGLU();
-
+   public void render (Renderer renderer, int flags) {
+      
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       Point3d renderCenter = new Point3d();
       myPlane.set (myNormal, myCenter);
       myPlane.project (renderCenter, myCenter);
@@ -221,7 +235,7 @@ ScalableUnits, ForceComponent, TransformableGeometry {
       X.R.setZDirection (nrml);
       X.p.set (renderCenter);
       gl.glPushMatrix();
-      GLViewer.mulTransform (gl, X);
+      GL2Viewer.mulTransform (gl, X);
 
       
       if (!renderer.isSelecting()) {

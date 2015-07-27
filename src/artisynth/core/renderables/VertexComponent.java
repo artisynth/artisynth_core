@@ -11,7 +11,7 @@ import maspack.geometry.Vertex3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderablePoint;
@@ -55,7 +55,7 @@ public class VertexComponent extends RenderableComponentBase implements Renderab
    }
    
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       
       RenderProps rprops = getRenderProps();
       if (rprops == null) {

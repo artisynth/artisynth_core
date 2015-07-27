@@ -16,10 +16,10 @@ import maspack.matrix.Point3d;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.GL.GLRenderable;
 import artisynth.core.materials.AxialMaterial;
 import artisynth.core.materials.AxialMuscleMaterial;
 import artisynth.core.materials.LinearAxialMaterial;
@@ -196,7 +196,7 @@ public abstract class PointSpringBase extends Spring
       return -1;
    }
 
-   public abstract void render (GLRenderer renderer, int flags);
+   public abstract void render (Renderer renderer, int flags);
 
    public void getSelection (LinkedList<Object> list, int qid) {
    }

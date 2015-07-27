@@ -10,10 +10,10 @@ import java.util.LinkedList;
 import java.util.Map;
 
 import maspack.matrix.Point3d;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.GL.GLRenderable;
 
 public abstract class ControllerMonitorBase extends ModelAgentBase
 implements RenderableComponent {
@@ -34,7 +34,7 @@ implements RenderableComponent {
    public void updateBounds (Point3d pmin, Point3d pmax) {
    }
 
-   public abstract void render (GLRenderer renderer, int flags);
+   public abstract void render (Renderer renderer, int flags);
 
    public void getSelection (LinkedList<Object> list, int qid) {
    }

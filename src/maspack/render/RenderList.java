@@ -6,11 +6,12 @@
  */
 package maspack.render;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
 
-import javax.media.opengl.*;
-
-import maspack.matrix.*;
+import maspack.matrix.Point3d;
+import maspack.render.GL.GLRenderable;
+import maspack.render.GL.GLSelectable;
 
 /**
  * Maintains a list of renderable objects for use by GLViewer.
@@ -168,16 +169,31 @@ public class RenderList {
       return myOpaque.get (i);
    }
 
+   public SortedRenderableList getOpaque() {
+      return myOpaque;
+   }
+   
    public GLRenderable getTransparent (int i) {
       return myTransparent.get (i);
+   }
+   
+   public SortedRenderableList getTransparent() {
+      return myTransparent;
    }
    
    public GLRenderable getOpaque2d(int i) {
       return myOpaque2d.get(i);
    }
    
+   public SortedRenderableList getOpaque2d() {
+      return myOpaque2d;
+   }
+   
    public GLRenderable getTransparent2d(int i) {
       return myTransparent2d.get(i);
+   }
+   public SortedRenderableList getTransparent2d() {
+      return myTransparent2d;
    }
 
    // public int get (GLRenderable[] array, int idx)
@@ -261,8 +277,8 @@ public class RenderList {
    }
 
    private int renderList (
-      GLRenderer renderer, SortedRenderableList list, int qid, int flags) {
-      GL2 gl = renderer.getGL2();
+      Renderer renderer, SortedRenderableList list, int qid, int flags) {
+
       boolean selecting = renderer.isSelecting();
 
       for (int i = 0; i < list.size(); i++) {
@@ -278,13 +294,7 @@ public class RenderList {
                else {
                   renderer.beginSelectionQuery (qid);
                }
-//               if (r instanceof GLRenderableExtended) {
-//                  ((GLRenderableExtended)r).renderx(renderer, flags);
-//               } else {
-//                  r.render (renderer, flags);
-//               }
                r.render (renderer, flags);
-               renderer.checkAndPrintGLError();
                if (numq >= 0) {
                   renderer.endSubSelection ();
                }
@@ -297,30 +307,26 @@ public class RenderList {
             // don't render if not selectable (saves mucho time when lots of
             // non-selectable renderables, such as text labels)
          } 
-//       else if (r instanceof GLRenderableExtended){
-//            ((GLRenderableExtended)r).renderx(renderer, flags);
-//       } 
          else {
             r.render (renderer, flags);
-            renderer.checkAndPrintGLError();
          }
       }
       return qid;
    }
 
-   int renderOpaque (GLRenderer renderer, int qid, int flags) {
+   public int renderOpaque (Renderer renderer, int qid, int flags) {
       return renderList (renderer, myOpaque, qid, flags);
    }
 
-   int renderTransparent (GLRenderer renderer, int qid, int flags) {
+   public int renderTransparent (Renderer renderer, int qid, int flags) {
       return renderList (renderer, myTransparent, qid, flags);
    }
    
-   int renderOpaque2d (GLRenderer renderer, int qid, int flags) {
+   public int renderOpaque2d (Renderer renderer, int qid, int flags) {
       return renderList (renderer, myOpaque2d, qid, flags);
    }
 
-   int renderTransparent2d (GLRenderer renderer, int qid, int flags) {
+   public int renderTransparent2d (Renderer renderer, int qid, int flags) {
       return renderList (renderer, myTransparent2d, qid, flags);
    }
 

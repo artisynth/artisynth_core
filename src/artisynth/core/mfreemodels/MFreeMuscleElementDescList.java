@@ -8,15 +8,12 @@ package artisynth.core.mfreemodels;
 
 import java.util.LinkedList;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import artisynth.core.mfreemodels.MFreeMuscleBundle.DirectionRenderType;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
@@ -142,9 +139,8 @@ public class MFreeMuscleElementDescList
    }
 
    private void renderDirections (
-      GLRenderer renderer, double len, DirectionRenderType type, boolean selected) {
+      Renderer renderer, double len, DirectionRenderType type, boolean selected) {
 
-      GL2 gl = renderer.getGL2().getGL2();
       Matrix3d F = new Matrix3d();
       Vector3d dir = new Vector3d();
       float[] coords0 = new float[3];
@@ -171,11 +167,10 @@ public class MFreeMuscleElementDescList
       }
    }
 
-   private void dorender (GLRenderer renderer, int flags, boolean selected) {
+   private void dorender (Renderer renderer, int flags, boolean selected) {
       // This code is taken mostly verbatim from FemElement3dList.
       // Should find a way to avoid duplicate code ...
 
-      GL2 gl = renderer.getGL2().getGL2();
       boolean selecting = renderer.isSelecting();
 
       if (!addDescsInPrerender) {
@@ -239,7 +234,7 @@ public class MFreeMuscleElementDescList
       }
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       dorender (renderer, flags, /*selected=*/true);
       dorender (renderer, flags, /*selected=*/false);
    }

@@ -7,17 +7,24 @@
 package maspack.apps;
 
 import java.awt.Color;
+import java.util.ArrayList;
 
-import javax.media.opengl.*;
+import javax.media.opengl.GL2;
 
-import java.util.*;
-
-import maspack.render.*;
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.NagataInterpolator;
 import maspack.geometry.PolygonalMesh;
-import maspack.matrix.*;
+import maspack.matrix.Point3d;
+import maspack.matrix.Vector2d;
+import maspack.matrix.Vector3d;
+import maspack.render.HasRenderProps;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.GL.GLRenderable;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GL2.GL2Viewer;
 
 
 public class NagataDistanceTest implements GLRenderable, HasRenderProps {
@@ -187,9 +194,13 @@ public class NagataDistanceTest implements GLRenderable, HasRenderProps {
    public void prerender (RenderList list) {
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
 
-      GL2 gl = renderer.getGL2().getGL2();
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
 
       float[] coords0 = new float[3];
       float[] coords1 = new float[3];

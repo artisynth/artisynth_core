@@ -24,11 +24,11 @@ import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
+import maspack.render.GL.GLRenderable;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -876,7 +876,7 @@ public class MFreeMuscleBundle extends CompositeComponentBase
       list.addIfVisible (myElementDescs);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
    }
 
    /**

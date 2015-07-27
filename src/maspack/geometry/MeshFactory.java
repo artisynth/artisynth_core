@@ -753,7 +753,7 @@ public class MeshFactory {
       PolygonalMesh mesh = new PolygonalMesh();
       mesh.set(plist, faceIndices);
 
-      mesh.setTextureIndices(faceIndices);
+      mesh.setTextureIndicesArray(faceIndices);
       ArrayList<Vector3d> vt = new ArrayList<Vector3d>();
       vt.add(new Point3d(1, 1, 0));
       vt.add(new Point3d(0, 1, 0));
@@ -812,7 +812,7 @@ public class MeshFactory {
       PolygonalMesh mesh = new PolygonalMesh();
       mesh.set(plist, faceIndices);
 
-      mesh.setTextureIndices(faceIndices);
+      mesh.setTextureIndicesArray(faceIndices);
       mesh.setTextureVertices(vt);
       return mesh;
    }

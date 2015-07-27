@@ -8,7 +8,7 @@ package maspack.widgets;
 
 import javax.swing.*;
 
-import maspack.render.GLGridResolution;
+import maspack.render.GL.GLGridResolution;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.util.StringHolder;

@@ -15,14 +15,17 @@ import javax.media.opengl.GL2;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
 import maspack.properties.PropertyList;
-import maspack.render.DisplayListManager;
-import maspack.render.GLRenderer;
 import maspack.render.Material;
 import maspack.render.PointRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.RenderProps.PointStyle;
 import maspack.render.RenderablePoint;
 import maspack.render.RenderableUtils;
+import maspack.render.Renderer;
+import maspack.render.GL.GL2.DisplayListKey;
+import maspack.render.GL.GL2.DisplayListManager.DisplayListPassport;
+import maspack.render.GL.GL2.GL2Viewer;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.TransformableGeometry;
@@ -32,9 +35,42 @@ implements TransformableGeometry, ScalableUnits {
 
    protected static final long serialVersionUID = 1;
    
-   boolean useDisplayLists = false;
-   int displayList = 0;
-   boolean displayListValid = false;
+   DisplayListKey vKey;
+   int version;
+   boolean vchanged;
+   
+   private static class VListPrint {
+      int version;
+      PointStyle style;
+      int pList;
+      
+      public VListPrint(PointStyle style, int pointDisplayList, int version) {
+         this.version = version;
+         this.style = style;
+         this.pList = pointDisplayList;
+      }
+
+      @Override
+      public int hashCode() {
+         return version*31 + style.hashCode()*17 + pList;
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+         if (this == obj) {
+            return true;
+         }
+         if (obj == null || getClass() != obj.getClass()) {
+            return false;
+         }
+         VListPrint other = (VListPrint)obj;
+         if (version != other.version || style != other.style || pList != other.pList) {
+            return false;
+         }
+         return true;
+      }
+      
+   }
 
    public static PropertyList myProps =
       new PropertyList (VertexList.class, RenderableComponentList.class);
@@ -54,14 +90,25 @@ implements TransformableGeometry, ScalableUnits {
    public VertexList (Class<P> type, String name, String shortName) {
       super (type, name, shortName);
       setRenderProps (createRenderProps());
+      vchanged = true;
+      version = 0;
+      vKey = new DisplayListKey(this, 0);
    }
    
    @Override
    protected void notifyStructureChanged(Object comp, boolean stateIsChanged) {
       super.notifyStructureChanged(comp, stateIsChanged);
-      displayListValid = false;
+      vchanged = true;
    }
 
+   private VListPrint getFingerPrint(PointStyle style, int pointDisplayList) {
+      if (vchanged) {
+         version++;
+         vchanged = false;
+      }
+      return new VListPrint(style, pointDisplayList, version);
+   }
+   
    /* ======== Renderable implementation ======= */
 
    public RenderProps createRenderProps() {
@@ -78,18 +125,21 @@ implements TransformableGeometry, ScalableUnits {
             p.prerender (list);
          }
       }
-      displayListValid = false;
+      version++;
    }
 
    public boolean rendersSubComponents() {
       return true;
    }
 
-   public void render (GLRenderer renderer, int flags) {
-
-      renderer.checkAndPrintGLError();
+   public void render (Renderer renderer, int flags) {
       
-      GL2 gl = renderer.getGL2();
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       gl.glPushMatrix();
 
       RenderProps props = getRenderProps();
@@ -100,11 +150,6 @@ implements TransformableGeometry, ScalableUnits {
       if (isSelected()) {
          color = selColor;
          pointMaterial = renderer.getSelectionMaterial();
-      }
-
-      if (useDisplayLists && displayList == 0) {
-         displayList  = DisplayListManager.allocList(gl);
-         displayListValid = false;
       }
       
       boolean lastSelected = false;
@@ -130,12 +175,24 @@ implements TransformableGeometry, ScalableUnits {
                }
             } else {
                renderer.setColor (color, false);
-               if (useDisplayLists && !displayListValid) {
-                  gl.glNewList(displayList, GL2.GL_COMPILE_AND_EXECUTE);
+               
+               DisplayListPassport vPP = viewer.getDisplayListPassport(gl, vKey);
+               VListPrint vPrint = getFingerPrint(PointStyle.POINT, 0);
+               boolean compile = true;
+               
+               if (vPP == null) {
+                  vPP = viewer.allocateDisplayListPassport(gl, vKey, vPrint);
+                  compile = true;
+               } else {
+                  compile = !(vPP.compareExchangeFingerPrint(vPrint));
                }
                
-               if (!displayListValid || renderer.isSelecting()) {
-               
+               if (compile || vPP == null) {
+                  if (vPP != null) {
+                     gl.glNewList(vPP.getList(), GL2.GL_COMPILE);      
+                  }
+                  
+                  gl.glBegin (GL2.GL_POINTS);
                   for (VertexComponent vc : this) {
                      if (vc.getRenderProps() == null) {
    
@@ -145,18 +202,18 @@ implements TransformableGeometry, ScalableUnits {
                         } else if (!vc.isSelected() && lastSelected){
                            renderer.setColor(color);
                         }
-                        gl.glBegin (GL2.GL_POINTS);
+                        
                         gl.glVertex3fv (vc.getRenderCoords(), 0);
-                        gl.glEnd();
                      }
                   }
+                  gl.glEnd();
                   
-                  if (useDisplayLists) {
+                  if (vPP != null) {
                      gl.glEndList();
-                     displayListValid = true;
+                     gl.glCallList(vPP.getList());
                   }
-               } else if (displayListValid) {
-                 gl.glCallList(displayList);
+               } else {
+                 gl.glCallList(vPP.getList());
                }
             }
             
@@ -166,12 +223,28 @@ implements TransformableGeometry, ScalableUnits {
          case SPHERE: {
             renderer.setMaterialAndShading (props, pointMaterial, false);
 
-            if (useDisplayLists && !displayListValid) {
-               renderer.validateInternalDisplayLists(props); // ensure valid sphere
-               gl.glNewList(displayList, GL2.GL_COMPILE_AND_EXECUTE);
+            DisplayListPassport vPP = null;
+            VListPrint vPrint = null;
+            boolean compile = true;
+            boolean useDisplayList = !renderer.isSelecting();
+            
+            if (useDisplayList) {
+               vPP = viewer.getDisplayListPassport(gl, vKey);
+               int sphereDisplayList = viewer.getSphereDisplayList(gl, props.getPointSlices());
+               vPrint = getFingerPrint(PointStyle.POINT, sphereDisplayList);
+               if (vPP == null) {
+                  vPP = viewer.allocateDisplayListPassport(gl, vKey, vPrint);
+                  compile = true;
+               } else {
+                  compile = !(vPP.compareExchangeFingerPrint(vPrint));
+               }
             }
             
-            if (!displayListValid || renderer.isSelecting()) {
+            if (!useDisplayList || compile) {
+               if (vPP != null) {
+                  gl.glNewList(vPP.getList(), GL2.GL_COMPILE);      
+               }
+               
                int i=0;
                for (VertexComponent vc : this) {
                   if (vc.getRenderProps() == null) {
@@ -194,18 +267,18 @@ implements TransformableGeometry, ScalableUnits {
                   i++;
                }
               
-               if (useDisplayLists) {
+               if (vPP != null) {
                   gl.glEndList();
-                  displayListValid = true;
+                  gl.glCallList(vPP.getList());
                }
             } else {
-               gl.glCallList(displayList);
-               
-               int err = gl.glGetError();
-               if (err != GL.GL_NO_ERROR) {
-                  System.err.println("GL Error: " + err);
-               }
+              gl.glCallList(vPP.getList());
+              int err = gl.glGetError();
+              if (err != GL.GL_NO_ERROR) {
+                 System.err.println("GL Error: " + err);
+              }
             }
+               
             renderer.restoreShading (props);
          }
       }
@@ -219,14 +292,18 @@ implements TransformableGeometry, ScalableUnits {
       //      gl.glCallList(displayList);
 
       gl.glPopMatrix();
-      
-      renderer.checkAndPrintGLError();
+
    }
 
-   public void drawPoints (GLRenderer renderer,
+   public void drawPoints (Renderer renderer,
       RenderProps props, Iterator<? extends RenderablePoint> iterator) {
 
-      GL2 gl = renderer.getGL2().getGL2();
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       gl.glPushMatrix();
 
       switch (props.getPointStyle()) {

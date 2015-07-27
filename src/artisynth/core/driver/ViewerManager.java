@@ -6,24 +6,37 @@
  */
 package artisynth.core.driver;
 
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
-import java.awt.Color;
-import java.awt.event.*;
-import java.util.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.LinkedList;
 
-import artisynth.core.gui.selectionManager.SelectionManager;
-import artisynth.core.modelbase.*;
-import artisynth.core.workspace.RootModel;
-
-import javax.swing.*;
+import javax.swing.JPopupMenu;
 import javax.swing.event.MouseInputAdapter;
 import javax.swing.event.MouseInputListener;
 
-import maspack.matrix.*;
-import maspack.render.*;
-import maspack.render.GLRenderer.SelectionHighlighting;
-import maspack.widgets.*;
+import maspack.matrix.AxisAlignedRotation;
+import maspack.matrix.AxisAngle;
+import maspack.matrix.RotationMatrix3d;
+import maspack.render.Dragger3d;
+import maspack.render.Renderer;
+import maspack.render.GL.GLRenderable;
+import maspack.render.GL.GLRenderer;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewerFrame;
+import maspack.render.GL.GLViewerPanel;
+import maspack.render.Renderer.SelectionHighlighting;
+import maspack.render.RenderList;
+import maspack.widgets.ButtonMasks;
+import maspack.widgets.GuiUtils;
+import maspack.widgets.PropertyDialog;
+import maspack.widgets.ViewerPopupManager;
+import artisynth.core.gui.selectionManager.SelectionManager;
+import artisynth.core.workspace.RootModel;
 
 /**
  * Driver class for model rendering. Each time the top-level model needs to be
@@ -38,8 +51,8 @@ public class ViewerManager {
 
    // Flags for special "refresh" rendering
    public static final int DEFAULT_REFRESH_FLAGS = 
-      (GLRenderer.REFRESH |
-       GLRenderer.CLEAR_MESH_DISPLAY_LISTS | 
+      (Renderer.UPDATE_RENDER_CACHE |
+       Renderer.CLEAR_RENDER_CACHE | 
        GLRenderer.SORT_FACES);
    private int myRefreshRenderFlags = DEFAULT_REFRESH_FLAGS;
 
@@ -300,12 +313,8 @@ public class ViewerManager {
       return list;
    }
 
-   /**
-    * causes the repaint of the viewers
-    * 
-    */
-
    public void render() {
+      // System.out.println("vm_render");
       myRenderList = buildRenderList();
       for (GLViewer v : myViewers) {
          v.setExternalRenderList (myRenderList);
@@ -313,6 +322,10 @@ public class ViewerManager {
       }
    }
    
+   /**
+    * causes the repaint of the viewers
+    * 
+    */
    public void paint() {
       for (GLViewer v : myViewers) {
          v.paint();

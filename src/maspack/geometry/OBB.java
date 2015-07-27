@@ -10,17 +10,16 @@ import java.util.ArrayList;
 
 import javax.media.opengl.GL2;
 
-import maspack.matrix.Point3d;
-import maspack.matrix.Vector2d;
-import maspack.matrix.Vector3d;
-import maspack.matrix.RotationMatrix3d;
-import maspack.matrix.RigidTransform3d;
-import maspack.matrix.SymmetricMatrix3d;
-import maspack.matrix.SVDecomposition3d;
 import maspack.matrix.Matrix3d;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
+import maspack.matrix.SymmetricMatrix3d;
+import maspack.matrix.Vector3d;
+import maspack.render.Renderer;
+import maspack.render.RenderList;
+import maspack.render.GL.GL2.GL2Viewer;
 import maspack.util.InternalErrorException;
-import maspack.render.*;
-
 import quickhull3d.QuickHull3D;
 
 public class OBB extends BVNode {
@@ -1195,15 +1194,19 @@ public class OBB extends BVNode {
       p.updateBounds (pmin, pmax);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
 
-      GL2 gl = renderer.getGL2().getGL2();
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
 
       renderer.setLightingEnabled (false);
 
       Vector3d hw = myHalfWidths;
       gl.glPushMatrix();
-      GLViewer.mulTransform (gl, myX);
+      GL2Viewer.mulTransform (gl, myX);
 
       renderer.setColor (0, 0, 1);
       gl.glBegin (GL2.GL_LINE_STRIP);

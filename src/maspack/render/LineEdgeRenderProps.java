@@ -18,7 +18,8 @@ public class LineEdgeRenderProps extends RenderProps {
       myProps.remove ("alpha");
       myProps.remove ("shading");
       myProps.remove ("shininess");
-
+      myProps.remove ("ambience");
+      
       myProps.remove ("faceStyle");
       myProps.remove ("faceColor");
       myProps.remove ("backColor");

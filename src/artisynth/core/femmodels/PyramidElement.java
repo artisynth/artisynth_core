@@ -12,7 +12,7 @@ import java.util.*;
 import artisynth.core.mechmodels.*;
 import maspack.matrix.*;
 import maspack.util.*;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderProps;
 
 public class PyramidElement extends FemElement3d {
@@ -266,7 +266,7 @@ public class PyramidElement extends FemElement3d {
    }
 
    public void renderWidget (
-      GLRenderer renderer, double size, RenderProps props) {
+      Renderer renderer, double size, RenderProps props) {
       renderer.drawPyramid (
          props, size,
          myNodes[0].myRenderCoords, myNodes[1].myRenderCoords, 

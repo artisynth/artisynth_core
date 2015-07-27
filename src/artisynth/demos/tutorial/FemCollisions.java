@@ -8,8 +8,10 @@ import maspack.geometry.PolygonalMesh;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
-import maspack.render.GLViewer.BlendType;
 import maspack.render.RenderProps;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GL2.GL2Viewer;
+import maspack.render.GL.GL2.GL2Viewer.BlendType;
 import artisynth.core.femmodels.FemFactory;
 import artisynth.core.femmodels.FemFactory.FemElementType;
 import artisynth.core.femmodels.FemMesh;
@@ -150,6 +152,9 @@ public class FemCollisions extends RootModel {
       super.attach(driver);
       
       // Enable transparency blending
-      getMainViewer().setDBlending(BlendType.GL_ONE_MINUS_SRC_ALPHA);
+      GLViewer viewer = getMainViewer();
+      if (viewer instanceof GL2Viewer) {
+         ((GL2Viewer)viewer).setDBlending(BlendType.GL_ONE_MINUS_SRC_ALPHA);
+      }
    }
 }

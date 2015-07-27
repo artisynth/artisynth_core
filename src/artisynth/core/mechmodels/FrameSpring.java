@@ -26,10 +26,10 @@ import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.GL.GLRenderable;
 import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
 import maspack.util.*;
@@ -216,17 +216,16 @@ public class FrameSpring extends Spring
       return -1;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
 
       myRenderFrame.set (myFrameA.myRenderFrame);
       myRenderFrame.mul (myX1A);
       myRenderFrame.p.get (myRenderPnt1);
 
       if (myAxisLength > 0) {
-         GL2 gl = renderer.getGL2().getGL2();
-         gl.glLineWidth (myRenderProps.getLineWidth());
+         renderer.setLineWidth(myRenderProps.getLineWidth());
          Frame.drawAxes (renderer, myRenderFrame, (float)myAxisLength);
-         gl.glLineWidth (1);
+         renderer.setLineWidth(1);
       }
 
       if (myFrameB != null) {
@@ -239,10 +238,9 @@ public class FrameSpring extends Spring
       myRenderFrame.p.get (myRenderPnt2);
          
       if (myAxisLength > 0) {
-         GL2 gl = renderer.getGL2().getGL2();
-         gl.glLineWidth (myRenderProps.getLineWidth());
+         renderer.setLineWidth (myRenderProps.getLineWidth());
          Frame.drawAxes (renderer, myRenderFrame, (float)myAxisLength);
-         gl.glLineWidth (1);
+         renderer.setLineWidth (1);
       }
 
       renderer.drawLine (

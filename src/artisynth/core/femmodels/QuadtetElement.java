@@ -317,7 +317,7 @@ public class QuadtetElement extends FemElement3d {
    }
 
    public void renderWidget (
-      GLRenderer renderer, double size, RenderProps props) {
+      Renderer renderer, double size, RenderProps props) {
       renderWidget (renderer, size, myWidgetFaces, props);
    }
 

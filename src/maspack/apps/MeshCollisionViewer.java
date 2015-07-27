@@ -14,11 +14,17 @@ import java.awt.event.*;
 
 import javax.swing.event.*;
 import javax.swing.*;
+
 import javax.media.opengl.GL2;
 
 import maspack.render.*;
+import maspack.render.GL.GLRenderable;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewerFrame;
+import maspack.render.GL.GL2.GL2Viewer;
 import maspack.render.RenderProps.Shading;
 import maspack.render.RenderProps.Faces;
+import maspack.render.Renderer;
 import maspack.widgets.PropertyDialog;
 import maspack.widgets.RenderPropsPanel;
 import maspack.widgets.ValueChangeEvent;
@@ -71,7 +77,7 @@ public class MeshCollisionViewer extends GLViewerFrame
    private RenderProps createRenderProps (PolygonalMesh mesh) {
       RenderProps props = mesh.createRenderProps();
 
-      props.setShading (smooth.value ? Shading.GOURARD : Shading.FLAT);
+      props.setShading (smooth.value ? Shading.GOURAUD : Shading.FLAT);
       if (noDrawFaces.value) {
          props.setFaceStyle (Faces.NONE);
       }
@@ -207,8 +213,12 @@ public class MeshCollisionViewer extends GLViewerFrame
    private int contourWidth = 2;
    private float[] contourColor = new float [] { 1f, 1f, 0 };
 
-   public void render (GLRenderer renderer, int flags) {
-      GL2 gl = renderer.getGL2().getGL2();
+   public void render (Renderer renderer, int flags) {
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
 
       if (contourWidth > 0 &&
           myContactInfo != null) {

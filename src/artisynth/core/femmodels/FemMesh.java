@@ -28,13 +28,12 @@ import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
-import maspack.matrix.Vector3d;
 import maspack.matrix.Vector2d;
+import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.render.RenderProps;
-import maspack.spatialmotion.Wrench;
 import maspack.util.ArraySupport;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
@@ -44,20 +43,19 @@ import artisynth.core.femmodels.FemModel.ElementFilter;
 import artisynth.core.femmodels.FemModel.Ranging;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.mechmodels.Collidable;
-import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.mechmodels.CollidableBody;
 import artisynth.core.mechmodels.CollidableDynamicComponent;
 import artisynth.core.mechmodels.CollisionHandler;
-import artisynth.core.mechmodels.ContactPoint;
 import artisynth.core.mechmodels.ContactMaster;
+import artisynth.core.mechmodels.ContactPoint;
 import artisynth.core.mechmodels.DynamicAttachment;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.Point;
+import artisynth.core.mechmodels.PointAttachable;
 import artisynth.core.mechmodels.PointAttachment;
 import artisynth.core.mechmodels.PointList;
 import artisynth.core.mechmodels.PointParticleAttachment;
-import artisynth.core.mechmodels.PointAttachable;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.modelbase.ComponentUtils;
@@ -65,10 +63,10 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.util.ArtisynthIO;
 import artisynth.core.util.ObjectToken;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.StringToken;
-import artisynth.core.util.ArtisynthIO;
 
 /**
  * Describes a surface mesh that is "skinned" onto an FEM, such that its vertex
@@ -589,9 +587,6 @@ public class FemMesh extends FemMeshBase
          }
       }
       surf.buildNodeVertexMap();
-
-      // we manually control display lists, so this should work
-      mesh.setUseDisplayList(true);
 
       return surf;
    }

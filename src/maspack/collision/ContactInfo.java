@@ -7,7 +7,8 @@ import javax.media.opengl.GL2;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.TriTriIntersection;
 import maspack.matrix.Point3d;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
+import maspack.render.GL.GL2.GL2Viewer;
 
 public class ContactInfo {
    /*
@@ -57,7 +58,7 @@ public class ContactInfo {
       mesh1 = m1;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
 
       /*
        * For fem-fem collisions render lines from each penetrating vertex to the
@@ -77,8 +78,13 @@ public class ContactInfo {
    }
 
    void renderCPPoints (
-      GLRenderer renderer, ArrayList<ContactPenetratingPoint> points) {
-      GL2 gl = renderer.getGL2().getGL2();
+      Renderer renderer, ArrayList<ContactPenetratingPoint> points) {
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       renderer.setColor (0.9f, 0.6f, 0.8f);
       gl.glBegin (GL2.GL_LINES);
       for (ContactPenetratingPoint p : points) {

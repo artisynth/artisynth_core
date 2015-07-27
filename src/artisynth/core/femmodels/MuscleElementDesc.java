@@ -18,10 +18,10 @@ import maspack.matrix.Point3d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
-import maspack.render.GLSupport;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.GL.GLSupport;
 import maspack.util.ArraySort;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
@@ -331,7 +331,7 @@ public class MuscleElementDesc
    }
    
 
-   protected void renderINodeDirection(GLRenderer renderer, RenderProps props,
+   protected void renderINodeDirection(Renderer renderer, RenderProps props,
       float[] coords0, float[] coords1, Matrix3d F, Vector3d dir, double len) {
       
       IntegrationPoint3d[] ipnt = myElement.getIntegrationPoints();
@@ -375,7 +375,7 @@ public class MuscleElementDesc
       
    }
    
-   protected void renderElementDirection(GLRenderer renderer, RenderProps props,
+   protected void renderElementDirection(Renderer renderer, RenderProps props,
       float[] coords0, float[] coords1, Matrix3d F, Vector3d dir, double len) {
       
       myElement.computeRenderCoordsAndGradient (F, coords0);
@@ -415,7 +415,7 @@ public class MuscleElementDesc
    }
    
    void renderDirection (
-      GLRenderer renderer, RenderProps props,
+      Renderer renderer, RenderProps props,
       float[] coords0, float[] coords1, Matrix3d F, Vector3d dir, double len, DirectionRenderType type) {
 
       
@@ -431,7 +431,7 @@ public class MuscleElementDesc
    }
       
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       double widgetSize = 0;
       double directionLength = 0;
       ModelComponent gparent = getGrandParent();

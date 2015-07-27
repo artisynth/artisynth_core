@@ -86,7 +86,7 @@ public abstract class JointBase extends RigidBodyConnector  {
       myRenderFrame.set (TDW);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (myDrawFrame) {
          renderer.drawAxes (
             myRenderProps, myRenderFrame, myAxisLength, isSelected());

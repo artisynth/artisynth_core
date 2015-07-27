@@ -1,7 +1,7 @@
 package artisynth.demos.tutorial;
 
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import artisynth.core.mechmodels.CollisionHandler;
@@ -47,7 +47,7 @@ public class PenetrationRenderer extends MonitorBase {
    }
 
    @Override
-   public void render (GLRenderer gl, int flags) {
+   public void render (Renderer gl, int flags) {
       super.render (gl, flags);
       System.out.println ("PR - render");
 

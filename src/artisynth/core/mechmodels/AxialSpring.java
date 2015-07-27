@@ -19,7 +19,7 @@ import java.io.*;
 
 import maspack.render.*;
 
-import javax.media.opengl.*;
+import com.jogamp.opengl.*;
 
 import java.util.*;
 
@@ -216,7 +216,7 @@ public class AxialSpring extends PointSpringBase
       myPnt1.updateBounds (pmin, pmax);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       renderer.drawLine (
          myRenderProps, myPnt0.myRenderCoords, myPnt1.myRenderCoords,
          isSelected());

@@ -16,6 +16,7 @@ import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
 import artisynth.core.gui.*;
 import maspack.render.*;
+import maspack.render.GL.GLViewer;
 
 import java.awt.Color;
 import java.io.*;

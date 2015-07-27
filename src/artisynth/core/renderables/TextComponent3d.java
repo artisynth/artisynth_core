@@ -9,8 +9,6 @@ package artisynth.core.renderables;
 import java.awt.Font;
 import java.awt.geom.Rectangle2D;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AxisAngle;
@@ -19,11 +17,9 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.properties.PropertyDesc;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
-import maspack.render.GLSupport;
-import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.GL.GLRenderable;
 import artisynth.core.util.TransformableGeometry;
 
 import com.jogamp.opengl.util.awt.TextRenderer;
@@ -185,7 +181,7 @@ public class TextComponent3d extends TextComponentBase implements
 //
     
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       
       if (!isSelectable() && renderer.isSelecting()) {
          return;
@@ -251,17 +247,15 @@ public class TextComponent3d extends TextComponentBase implements
       renderPos.add(myPos);
       myTransform.p.set(renderPos);
       
-      GL2 gl = renderer.getGL2().getGL2();
-      gl.glPushMatrix();
-      GLSupport.transformToGLMatrix (GLMatrix, myTransform);
-      gl.glMultMatrixd (GLMatrix, 0);
+      renderer.pushModelMatrix();
+      renderer.mulTransform(myTransform);
       
       myTextRenderer.begin3DRendering();            
       myTextRenderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());
       myTextRenderer.draw3D(myText, 0,0,0,fTextSize);
       myTextRenderer.end3DRendering();
       
-      gl.glPopMatrix();
+      renderer.popModelMatrix();
       
    }
    

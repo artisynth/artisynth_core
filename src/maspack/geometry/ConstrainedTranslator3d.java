@@ -8,8 +8,6 @@ package maspack.geometry;
 
 import java.util.LinkedList;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.Line;
 import maspack.matrix.Plane;
 import maspack.matrix.Point3d;
@@ -17,10 +15,11 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.render.Dragger3dBase;
-import maspack.render.GLRenderer;
-import maspack.render.GLViewer;
+import maspack.render.Renderer;
 import maspack.render.MouseRayEvent;
 //import maspack.render.Dragger3dBase.DragMode;
+import maspack.render.RenderObject;
+import maspack.render.GL.GLViewer;
 
 /**
  * A translational dragger that keeps its origin attached to the surface
@@ -61,45 +60,62 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
    public void getSelection (LinkedList<Object> list, int qid) {
    }
    
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (!myVisibleP) {
          return;
       }
+      
+      if (!(renderer instanceof GLViewer)) {
+         return;
+      }
+      
+      GLViewer viewer = (GLViewer)renderer;
 
-      GL2 gl = renderer.getGL2().getGL2();
-
-      renderer.setLightingEnabled (false);
-      gl.glLineWidth (myLineWidth);
-
-      gl.glPushMatrix();
-      gl.glTranslated (
-         myXDraggerToWorld.p.x, myXDraggerToWorld.p.y, myXDraggerToWorld.p.z);
-
-      gl.glBegin (GL2.GL_LINES);
-
-      if (selected)
-         gl.glColor3d (1, 1, 0);
-
-      if (!selected)
-         gl.glColor3d (1, 0, 0);
-      gl.glVertex3d (-mySize, 0, 0);
-      gl.glVertex3d (mySize, 0, 0);
-
-      if (!selected)
-         gl.glColor3d (0, 1, 0);
-      gl.glVertex3d (0, -mySize, 0);
-      gl.glVertex3d (0, mySize, 0);
-
-      if (!selected)
-         gl.glColor3d (0, 0, 1);
-      gl.glVertex3d (0, 0, -mySize);
-      gl.glVertex3d (0, 0, mySize);
-
-      gl.glEnd();
-
-      gl.glPopMatrix();
-
-      renderer.setLightingEnabled (true);
+      viewer.setLightingEnabled (false);
+      viewer.setLineWidth(myLineWidth);
+      
+      viewer.pushModelMatrix();
+      viewer.translateModelMatrix(myXDraggerToWorld.p);
+      viewer.scaleModelMatrix(mySize);
+      
+      RenderObject ro = viewer.getSharedObject(ConstrainedTranslator3d.class);
+      if (ro == null || !ro.isValid()) {
+         ro = createRenderable();
+         viewer.addSharedObject(ConstrainedTranslator3d.class, ro);
+      }
+      
+      if (selected) {
+         ro.colorSet(1);
+      } else {
+         ro.colorSet(0);
+      }
+      viewer.drawLines(ro);
+      
+      viewer.popModelMatrix();
+      viewer.setLightingEnabled (true);
+   }
+   
+   private RenderObject createRenderable() {
+      RenderObject ro = new RenderObject();
+      
+      int xcolor = ro.addColor(1.0f, 0f, 0f, 1.0f);
+      int ycolor = ro.addColor(0f, 1.0f, 0f, 1.0f);
+      int zcolor = ro.addColor(0f, 0f, 1.0f, 1.0f);
+      
+      // selected color set
+      ro.createColorSet();
+      ro.setColor(0, 1.0f, 1.0f, 0f, 1.0f);
+      ro.setColor(1, 1.0f, 1.0f, 0f, 1.0f);
+      ro.setColor(2, 1.0f, 1.0f, 0f, 1.0f);
+      
+      ro.color(xcolor);
+      ro.addLine(new float[]{-1,0,0}, new float[]{1,0,0}); // x-axis
+      ro.color(ycolor);
+      ro.addLine(new float[]{0,-1,0}, new float[]{0,1,0}); // y-axis
+      ro.color(zcolor);
+      ro.addLine(new float[]{0,0,-1}, new float[]{0,0,1}); // z-axis
+            
+      return ro;
    }
 
    public boolean mousePressed (MouseRayEvent e) {
@@ -177,6 +193,9 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
    }
 
    private void updateLocation (MouseRayEvent e) {
+      if (mesh == null) {
+         return;
+      }
       Line ray = e.getRay();
       Point3d origin = ray.getOrigin();
       Vector3d direction = ray.getDirection();

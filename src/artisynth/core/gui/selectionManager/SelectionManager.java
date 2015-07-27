@@ -13,10 +13,10 @@ import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.TreePath;
 
-import maspack.render.GLSelectable;
-import maspack.render.GLSelectionEvent;
-import maspack.render.GLSelectionFilter;
-import maspack.render.GLSelectionListener;
+import maspack.render.GL.GLSelectable;
+import maspack.render.GL.GLSelectionEvent;
+import maspack.render.GL.GLSelectionFilter;
+import maspack.render.GL.GLSelectionListener;
 import maspack.util.*;
 import artisynth.core.driver.Main;
 import artisynth.core.gui.navpanel.NavPanelNode;

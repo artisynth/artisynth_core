@@ -466,7 +466,7 @@ public class ParticleMeshConstraint extends ConstrainerBase
    // public void prerender (RenderList list) {
    // }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       //myMeshInfo.render (renderer, myRenderProps, isSelected());
    }
    

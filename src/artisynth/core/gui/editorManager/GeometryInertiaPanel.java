@@ -17,7 +17,7 @@ import java.util.*;
 
 import maspack.matrix.*;
 import maspack.geometry.*;
-import maspack.render.GLViewer;
+import maspack.render.GL.GLViewer;
 import maspack.spatialmotion.*;
 import maspack.properties.PropertyUtils;
 import maspack.util.InternalErrorException;

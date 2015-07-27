@@ -24,9 +24,10 @@ import artisynth.core.workspace.RootModel;
 import java.io.*;
 import java.awt.Color;
 
-import javax.media.opengl.*;
+import com.jogamp.opengl.*;
 
 import maspack.render.*;
+import maspack.render.GL.GLViewer;
 
 //import artisynth.core.mechmodels.DynamicMechComponent.Activity;
 

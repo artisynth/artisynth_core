@@ -20,10 +20,10 @@ import maspack.properties.PropertyInfo.Edit;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderer;
-import maspack.render.GLSupport;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.GL.GLSupport;
 import maspack.render.RenderProps.LineStyle;
 import maspack.render.Renderable;
 import maspack.spatialmotion.Wrench;
@@ -345,7 +345,7 @@ public class Muscle extends AxialSpring implements ExcitationComponent {
    }
 
    @Override
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       renderer.drawLine (
          myRenderProps, myPnt0.myRenderCoords, myPnt1.myRenderCoords,
          /*capped=*/false, myRenderColor, isSelected());

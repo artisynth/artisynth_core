@@ -1,15 +1,12 @@
 package artisynth.core.renderables;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
-import maspack.render.GLViewer;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import artisynth.core.modelbase.RenderableComponentBase;
 
 public class GridPlane extends RenderableComponentBase {
@@ -49,14 +46,13 @@ public class GridPlane extends RenderableComponentBase {
    }
 
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       
-      boolean selected = ((flags & GLRenderer.SELECTED) != 0);
+      boolean selected = ((flags & Renderer.SELECTED) != 0);
       RenderProps props = getRenderProps();
       
-      GL2 gl = renderer.getGL2();
-      gl.glPushMatrix();
-      GLViewer.mulTransform (gl, XGridToWorld);
+      renderer.pushModelMatrix();
+      renderer.mulTransform(XGridToWorld);
       
       float [] coords0 = new float[3];
       float[] coords1 = new float[3];
@@ -81,7 +77,7 @@ public class GridPlane extends RenderableComponentBase {
          renderer.drawLine(props, coords0, coords1, selected);
       }
       
-      gl.glPopMatrix();
+      renderer.popModelMatrix();
    }
 
    /**

@@ -8,7 +8,7 @@ package maspack.geometry;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-import maspack.render.GLRenderable;
+import maspack.render.GL.GLRenderable;
 
 /**
  * Base class for bounding volumes such as oriented and axis-aligned bounding
@@ -23,7 +23,7 @@ public abstract class BVNode implements GLRenderable {
    BVNode myParent;
    Boundable[] myElements;
    int myNumber;
-
+   
    public BVNode() {
    }
 

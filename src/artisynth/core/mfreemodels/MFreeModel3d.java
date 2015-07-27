@@ -41,7 +41,7 @@ import maspack.matrix.VectorNi;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
@@ -1530,7 +1530,7 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
       }
    }
 
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       super.render(renderer, flags);
    }
 

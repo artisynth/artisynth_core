@@ -13,9 +13,9 @@ import maspack.matrix.Plane;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.RotationMatrix3d;
-import maspack.render.GLViewer;
-import maspack.render.GLRenderable;
-import maspack.render.GLClipPlane;
+import maspack.render.GL.GLClipPlane;
+import maspack.render.GL.GLRenderable;
+import maspack.render.GL.GLViewer;
 
 /**
  * This is the base class for all EditWidgets. An EditWidget is responsible for

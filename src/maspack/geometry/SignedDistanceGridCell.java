@@ -12,10 +12,11 @@ import javax.media.opengl.GL2;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
-import maspack.render.GLSelectable;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
+import maspack.render.GL.GLRenderable;
+import maspack.render.GL.GLSelectable;
+import maspack.render.GL.GL2.GL2Viewer;
 
 
 // This is a class to make grid points renderable and selectable.
@@ -77,8 +78,13 @@ public class SignedDistanceGridCell implements GLSelectable {
    public void prerender (RenderList list) {
    }
    
-   public void render (GLRenderer renderer, int flags) {
-      GL2 gl = renderer.getGL2().getGL2();
+   public void render (Renderer renderer, int flags) {
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       double meshVertex[] = new double[3];
       meshVertex = myGrid.getMeshCoordinatesFromGrid (
          vertex[0], vertex[1], vertex[2]);

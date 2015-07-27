@@ -12,7 +12,6 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.Map;
 
-import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PointMesh;
 import maspack.geometry.PolygonalMesh;
@@ -20,7 +19,6 @@ import maspack.geometry.PolylineMesh;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
-import maspack.matrix.Vector3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.properties.HierarchyNode;
@@ -539,9 +537,7 @@ public class RigidCompositeBody extends RigidBody implements
       for (RigidMesh mc : myMeshList) {
          Xpose.set (myState.XFrameToWorld);
          Xlocal.setIdentity();
-         if (mc.transformGeometry(X, Xpose, Xlocal)) {
-            mc.getRenderProps().clearMeshDisplayList();
-         }
+         mc.transformGeometry(X, Xpose, Xlocal);
       }
       super.transformGeometry(X, topObject, flags);
       
@@ -554,7 +550,6 @@ public class RigidCompositeBody extends RigidBody implements
          MeshBase mesh = mc.getMesh();
          mesh.scale(s);
          mesh.setMeshToWorld(myState.XFrameToWorld);
-         mc.getRenderProps().clearMeshDisplayList();
       }
       
    }

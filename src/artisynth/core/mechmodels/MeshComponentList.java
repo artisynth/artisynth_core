@@ -9,7 +9,7 @@ package artisynth.core.mechmodels;
 import java.util.LinkedList;
 
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.MeshRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
@@ -74,11 +74,11 @@ public class MeshComponentList<P extends MeshComponent>
       return true;
    }
 
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       
       boolean selecting = renderer.isSelecting();
       if (isSelected())  {
-         flags |= GLRenderer.SELECTED;
+         flags |= Renderer.SELECTED;
       }
       
       for (int i=0; i<size(); i++) {

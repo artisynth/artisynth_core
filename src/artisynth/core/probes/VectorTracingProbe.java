@@ -17,7 +17,7 @@ import maspack.matrix.VectorNd;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.HasRenderProps;
 import maspack.render.RenderProps;
 import maspack.render.RenderProps.LineStyle;
@@ -129,7 +129,7 @@ public class VectorTracingProbe extends TracingProbe {
       endpt.updateBounds (pmin, pmax);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
 
       double t = Main.getMain().getTime();
 

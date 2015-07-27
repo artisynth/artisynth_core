@@ -8,14 +8,9 @@ package artisynth.core.mfreemodels;
 
 import java.util.LinkedList;
 
-import javax.media.opengl.GL2;
-
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import artisynth.core.femmodels.FemElement3d;
-import artisynth.core.femmodels.FemModel3d;
+import maspack.render.Renderer;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.util.ClassAliases;
 
@@ -67,8 +62,8 @@ public class MFreeElement3dList extends RenderableComponentList<MFreeElement3d> 
       return true;
    }
 
-   private void dorender (GLRenderer renderer, boolean selected) {
-      GL2 gl = renderer.getGL2().getGL2();
+   private void dorender (Renderer renderer, boolean selected) {
+
       if (!addElementsInPrerender) {
          // we render all elements ourselves, taking care to render selected
          // elements first. This provides the maximum visibility for selected
@@ -93,7 +88,7 @@ public class MFreeElement3dList extends RenderableComponentList<MFreeElement3d> 
       }      
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       dorender (renderer, /*selected=*/true);
       dorender (renderer, /*selected=*/false);
       

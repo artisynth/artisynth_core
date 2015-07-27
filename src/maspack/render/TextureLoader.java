@@ -35,7 +35,7 @@ import javax.media.opengl.GL2;
  */
 public class TextureLoader {
    /** The table of textures that have been loaded in this loader */
-   private HashMap<String,Texture> table = new HashMap<String,Texture>();
+   private HashMap<String,GLTexture> table = new HashMap<String,GLTexture>();
    /** The GL context used to load textures */
    private GL2 gl;
    /** The colour model including alpha for the GL image */
@@ -85,8 +85,8 @@ public class TextureLoader {
     * @throws IOException
     * Indicates a failure to access the resource
     */
-   public Texture getTexture (String resourceName) throws IOException {
-      Texture tex = (Texture)table.get (resourceName);
+   public GLTexture getTexture (String resourceName) throws IOException {
+      GLTexture tex = (GLTexture)table.get (resourceName);
 
       if (tex != null) {
          return tex;
@@ -122,7 +122,7 @@ public class TextureLoader {
     * @throws IOException
     * Indicates a failure to access the resource
     */
-   public Texture getTexture (
+   public GLTexture getTexture (
       String resourceName, int target, int dstPixelFormat, int minFilter,
       int magFilter) throws IOException {
       int srcPixelFormat = 0;
@@ -130,7 +130,7 @@ public class TextureLoader {
       // create the texture ID for this texture
 
       int textureID = createTextureID();
-      Texture texture = new Texture (target, textureID);
+      GLTexture texture = new GLTexture (target, textureID);
 
       // bind this texture
 
@@ -179,11 +179,11 @@ public class TextureLoader {
       return texture;
    }
 
-   public Texture getTexture (String resourceName,
+   public GLTexture getTexture (String resourceName,
       byte[] buffer, int width, int height, 
       int srcPixelFormat, int dstPixelFormat) {
       
-      Texture tex = (Texture)table.get (resourceName);
+      GLTexture tex = (GLTexture)table.get (resourceName);
       if (tex != null) {
          return tex;
       }
@@ -201,7 +201,7 @@ public class TextureLoader {
       return tex;
    }
    
-   public Texture getTexture (
+   public GLTexture getTexture (
       String name, 
       byte[] bytes, int width, int height, int srcPixelFormat,
       int target, int dstPixelFormat, int minFilter,
@@ -210,7 +210,7 @@ public class TextureLoader {
       // create the texture ID for this texture
 
       int textureID = createTextureID();
-      Texture texture = new Texture (target, textureID);
+      GLTexture texture = new GLTexture (target, textureID);
 
       // bind this texture
       gl.glBindTexture (target, textureID);
@@ -297,7 +297,7 @@ public class TextureLoader {
     * @return A buffer containing the data
     */
    private ByteBuffer convertImageData (
-      BufferedImage bufferedImage, Texture texture) {
+      BufferedImage bufferedImage, GLTexture texture) {
       ByteBuffer imageBuffer = null;
       WritableRaster raster;
       BufferedImage texImage;
@@ -380,7 +380,7 @@ public class TextureLoader {
    }
    
    public void clearTexture(String id) {
-      Texture tex = table.get (id);
+      GLTexture tex = table.get (id);
       if (tex != null) {
          tex.delete(gl);
          table.remove(id);
@@ -388,19 +388,19 @@ public class TextureLoader {
    }
    
    public void clearAllTextures() {
-      for (Entry<String,Texture> entry : table.entrySet()) {
+      for (Entry<String,GLTexture> entry : table.entrySet()) {
          entry.getValue().delete(gl);
       }
       table.clear();
    }
    
-   public Texture getTextureByName (String name) {
-      Texture tex = table.get(name);
+   public GLTexture getTextureByName (String name) {
+      GLTexture tex = table.get(name);
       return tex;
    }
    
    public boolean isTextureValid(String id) {
-      Texture tex = table.get(id);
+      GLTexture tex = table.get(id);
       if (tex == null) {
          return false;
       }

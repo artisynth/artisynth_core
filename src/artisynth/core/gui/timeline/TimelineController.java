@@ -41,7 +41,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import maspack.properties.Property;
-import maspack.render.GLViewer;
+import maspack.render.GL.GLViewer;
 import maspack.util.InternalErrorException;
 import maspack.util.StringHolder;
 import maspack.widgets.BooleanSelector;

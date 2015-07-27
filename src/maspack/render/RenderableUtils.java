@@ -7,6 +7,7 @@
 package maspack.render;
 
 import maspack.matrix.*;
+import maspack.render.GL.GLRenderable;
 
 /**
  * Provides utility routines for Renderable objects.
@@ -25,7 +26,7 @@ public class RenderableUtils {
    /**
     * Sets the RenderProps of a Renderable object to a copy of its existing
     * RenderProps. If the object does not currently have any RenderProps, (i.e.,
-    * {@link Renderable#getRenderProps getRenderProps} returns <code>null</code>),
+    * {@link GLRenderable#getRenderProps getRenderProps} returns <code>null</code>),
     * then this method does nothing.
     * 
     * <p>
@@ -91,7 +92,7 @@ public class RenderableUtils {
     * @param max
     * maximum coordinate values (optional)
     */
-   public static void getBounds (Renderable r, Point3d min, Point3d max) {
+   public static void getBounds (GLRenderable r, Point3d min, Point3d max) {
       if (min == null) {
          min = new Point3d();
       }

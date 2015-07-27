@@ -10,6 +10,7 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 
 import maspack.matrix.*;
+import maspack.render.GL.GLViewer;
 
 public class MouseRayEvent extends MouseEvent {
    protected double myViewPlaneWidth;

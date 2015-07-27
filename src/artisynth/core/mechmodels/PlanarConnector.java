@@ -6,20 +6,25 @@
  */
 package artisynth.core.mechmodels;
 
-import maspack.geometry.*;
-import maspack.matrix.*;
-import maspack.util.*;
-import maspack.properties.*;
-import maspack.render.*;
-import maspack.spatialmotion.*;
+import java.util.Map;
 
-import java.util.*;
-import java.io.*;
+import javax.media.opengl.GL2;
 
-import artisynth.core.modelbase.*;
-import maspack.render.*;
-
-import javax.media.opengl.*;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
+import maspack.properties.HasProperties;
+import maspack.properties.PropertyList;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.GL.GL2.GL2Viewer;
+import maspack.spatialmotion.PlanarCoupling;
+import maspack.spatialmotion.RigidBodyConstraint;
+import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.StructureChangeEvent;
 
 /**
  * Auxiliary class used to solve constrained rigid body problems.
@@ -173,14 +178,19 @@ public class PlanarConnector extends RigidBodyConnector
       myRenderCoords[2] = (float)TFW.p.z;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       Vector3d nrm = new Vector3d (0, 0, 1);
       RigidTransform3d TDW = getCurrentTDW();
 
       computeRenderVtxs (TDW);
       nrm.transform (TDW);
 
-      GL2 gl = renderer.getGL2().getGL2();
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       RenderProps props = myRenderProps;
 
       renderer.setMaterialAndShading (props, props.getFaceMaterial(), isSelected());

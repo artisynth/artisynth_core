@@ -1123,7 +1123,7 @@ public class WavefrontReader extends MeshReaderBase {
          if (map != null) {
             // set texture properties
             props.setFaceStyle(RenderProps.Faces.FRONT_AND_BACK);
-            props.setShading(RenderProps.Shading.GOURARD);
+            props.setShading(RenderProps.Shading.GOURAUD);
             TextureProps tprops = new TextureProps();
             tprops.setFileName(currPath + "/" + map);
             tprops.setEnabled(true);
@@ -1600,7 +1600,7 @@ public class WavefrontReader extends MeshReaderBase {
          }
       }
       ArrayList<Vector3d> textureVertexList = new ArrayList<Vector3d>();
-      mesh.setTextureIndices (
+      mesh.setTextureIndicesArray (
          getLocalTextureIndicesAndVertices (textureVertexList));
       mesh.setTextureVertices (textureVertexList);
       ArrayList<Vector3d> normalList = new ArrayList<Vector3d>();

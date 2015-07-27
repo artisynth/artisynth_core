@@ -12,6 +12,9 @@ import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import maspack.render.GL.GLRenderable;
+import maspack.render.GL.GLSelectable;
+
 /**
  * Set of renderables sorted by zOrder.  This is very similar to what would be 
  * a SortedSet<GLRenderable>, except I do no checks to ensure elements are 

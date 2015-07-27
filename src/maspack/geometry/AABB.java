@@ -6,10 +6,13 @@
  */
 package maspack.geometry;
 
-import maspack.matrix.*;
-import maspack.render.*;
+import javax.media.opengl.GL2;
 
-import javax.media.opengl.*;
+import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
+import maspack.render.RenderList;
+import maspack.render.Renderer;
+import maspack.render.GL.GL2.GL2Viewer;
 
 public class AABB extends BVNode {
 
@@ -539,8 +542,14 @@ public class AABB extends BVNode {
    public void prerender (RenderList list) {
    }
    
-   public void render (GLRenderer renderer, int flags) {
-      GL2 gl = renderer.getGL2().getGL2();      
+   public void render (Renderer renderer, int flags) {
+      
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       renderer.setLightingEnabled (false);
       renderer.setColor (0, 1f, 0);
       gl.glBegin (GL2.GL_LINE_LOOP);

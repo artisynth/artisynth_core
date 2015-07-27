@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -20,7 +21,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
@@ -32,26 +33,34 @@ import maspack.util.ReaderTokenizer;
  * connected in some specific way.
  */
 public abstract class MeshBase implements Renderable {
-   
-   private boolean fastRemoval = false;
-   
+
    public RigidTransform3d XMeshToWorld = new RigidTransform3d();
    protected boolean myXMeshToWorldIsIdentity = true;
    protected ArrayList<Vertex3d> myVertices = new ArrayList<Vertex3d>();
 
    protected RenderProps myRenderProps = null;
    public boolean isFixed = true;
-   public boolean useVertexColoring = false;
-
+   public boolean hasVertexColoring = false;
+   public boolean myColorsFixed = false;
    
-   // Allow ability to directly control display list
-   // even for non-fixed mesh (e.g. when model is paused,
-   // but rotating view)
-   public boolean myUseDisplayList = false;  
-   public boolean myDisplayListValid = false;
+   int version = 0;  // used for detecting changes
+   boolean modified = true;  
+   
+   /*
+    * vertex normals saved if mesh is read in from a file with explicit vertex
+    * normals.
+    */
+   protected ArrayList<Vector3d> myNormalList = new ArrayList<Vector3d>();
+   protected ArrayList<int[]> myNormalIndices = null;
+
+   /*
+    * vertex colors
+    */
+   protected ArrayList<byte[]> myColorList = new ArrayList<byte[]>();
+   protected ArrayList<int[]> myColorIndices = null;
 
    protected boolean myRenderBufferedP = false;
-   RigidTransform3d myXMeshToWorldRender;
+   private RigidTransform3d myXMeshToWorldRender;
    protected Point3d myLocalMinCoords = new Point3d();
    protected Point3d myLocalMaxCoords = new Point3d();
    protected boolean myLocalBoundsValid = false;
@@ -63,7 +72,7 @@ public abstract class MeshBase implements Renderable {
    //protected int myWorldCoordCounter = 0;
 
    protected String myName;
-   
+
    public void setName (String name) {
       myName = name;
    }
@@ -92,6 +101,22 @@ public abstract class MeshBase implements Renderable {
       myLocalBoundsValid = false;
       myWorldBoundsValid = false;
    }
+
+   private void incrementVersion() {
+      version++;
+   }
+   
+   public int getVersion() {
+      if (modified) {
+         modified = false;
+         incrementVersion();
+      }
+      return version;
+   }
+   
+   public void notifyModified() {
+      modified = true;
+   }
    
    /**
     * Notifies this mesh that vertex positions have been modified, and cached
@@ -99,15 +124,16 @@ public abstract class MeshBase implements Renderable {
     */
    public void notifyVertexPositionsModified() {
       invalidateBoundingInfo();
-      clearDisplayList();
+      notifyModified();
    }
-   
+
    /** 
     * Used internally and by subclasses to notify this mesh that its
     * topological structure has changed.
     */
    protected void notifyStructureChanged() {
       clearBoundingInfo();
+      notifyModified();
    }
 
    /**
@@ -119,7 +145,7 @@ public abstract class MeshBase implements Renderable {
 
    /**
     * Sets whether or not this mesh to is to be considered ``fixed''. A fixed
-    * mesh is one for which the vertex coordinate values are considered
+    * mesh is one for which the vertex coordinate values and normals are considered
     * constant. Rendering speeds can therefore be improved by pre-allocating
     * appropriate graphical display buffers.
     * 
@@ -132,7 +158,10 @@ public abstract class MeshBase implements Renderable {
     * @see #isFixed
     */
    public void setFixed (boolean fixed) {
-      isFixed = fixed;
+      if (fixed != isFixed()) {
+         isFixed = fixed;
+         notifyModified();
+      }
    }
 
    /**
@@ -144,7 +173,7 @@ public abstract class MeshBase implements Renderable {
    public boolean isFixed() {
       return isFixed;
    }
-   
+
 
    /**
     * Sets whether or not this mesh to is to use per-vertex coloring. 
@@ -156,21 +185,24 @@ public abstract class MeshBase implements Renderable {
     * if true, sets this mesh to use per-vertex coloring.
     * @see #isUsingVertexColoring
     */
-   public void setUseVertexColoring (boolean vertexColoring) {
-      useVertexColoring = vertexColoring;
+   public void setVertexColoring (boolean vertexColoring) {
+      if (hasVertexColoring != vertexColoring) {
+         hasVertexColoring = vertexColoring;
+         notifyModified();
+      }
    }
-   
-   
+
+
    /**
     * Returns whether or not this mesh is using per-vertex coloring, as described in
     * {@link #setUseVertexColoring setUseVertexColoring}.
     * 
     * @return true if this mesh is using per-vertex coloring.
     */
-   public boolean isUsingVertexColoring () {
-      return useVertexColoring;
+   public boolean hasVertexColoring () {
+      return hasVertexColoring;
    }
-   
+
 
    /**
     * {@inheritDoc}
@@ -273,21 +305,6 @@ public abstract class MeshBase implements Renderable {
    public int getNumVertices() {
       return myVertices.size();
    }
-
-   /**
-    * Returns the number of normals in this mesh.
-    * 
-    * @return number of normals in this mesh
-    */
-   public abstract int getNumNormals();
-
-   /**
-    * Returns the idx-th normal in this mesh.
-    *
-    * @param idx index of the desired normal
-    * @return idx-th normal
-    */
-   public abstract Vector3d getNormal (int idx);
 
    /**
     * Returns the idx-th vertex in this mesh.
@@ -481,7 +498,7 @@ public abstract class MeshBase implements Renderable {
       myVertices.add (vtx);
       notifyStructureChanged();
    }
-   
+
    /**
     * Removes a vertex from this mesh.
     *
@@ -515,28 +532,23 @@ public abstract class MeshBase implements Renderable {
     * @return true if the vertex was present
     */
    public boolean removeVertex (Vertex3d vtx) {
-      
-      if (fastRemoval) {
-         return removeVertex(vtx);
-      } else {
-     
-         if (myVertices.remove (vtx)) {
-            
-            // reindex subsequent vertices
-            
-            for (int i=vtx.getIndex(); i<myVertices.size(); i++) {
-               myVertices.get(i).setIndex (i);
-            }
-            vtx.setMesh (null);
-            notifyStructureChanged();
-            return true;
+
+      if (myVertices.remove (vtx)) {
+
+         // reindex subsequent vertices
+
+         for (int i=vtx.getIndex(); i<myVertices.size(); i++) {
+            myVertices.get(i).setIndex (i);
          }
-         else {
-            return false;
-         }
+         vtx.setMesh (null);
+         notifyStructureChanged();
+         return true;
+      }
+      else {
+         return false;
       }
    }
-   
+
    /**
     * Removes a set of vertices from this mesh, as indicated by a collection.
     *
@@ -552,7 +564,7 @@ public abstract class MeshBase implements Renderable {
       if (deleteIdxs.size() > 0) {
          Collections.sort (deleteIdxs);
          ArrayList<Vertex3d> newVertexList =
-            new ArrayList<Vertex3d>(myVertices.size()-deleteIdxs.size());
+         new ArrayList<Vertex3d>(myVertices.size()-deleteIdxs.size());
          int k = 0;
          for (int i=0; i<myVertices.size(); i++) {
             Vertex3d v = myVertices.get(i);
@@ -680,12 +692,10 @@ public abstract class MeshBase implements Renderable {
       for (Vertex3d vertex : myVertices) {
          vertex.pnt.scale (s);
       }
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
-      }
       clearBoundingInfo();
+      notifyModified();      
    }
-   
+
    /**
     * Scales the vertices of this mesh in the given directions. 
     * The topology remains unchanged.
@@ -701,10 +711,8 @@ public abstract class MeshBase implements Renderable {
       for (Vertex3d vertex : myVertices) {
          vertex.pnt.scale (sx, sy, sz);
       }
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
-      }
       clearBoundingInfo();
+      notifyModified();
    }   
 
    /*
@@ -762,10 +770,8 @@ public abstract class MeshBase implements Renderable {
       for (Vertex3d vertex : myVertices) {
          vertex.pnt.add (off);
       }
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
-      }
       clearBoundingInfo();
+      notifyModified();
    }
 
    /**
@@ -779,10 +785,8 @@ public abstract class MeshBase implements Renderable {
       for (Vertex3d vertex : myVertices) {
          vertex.pnt.transform (X);
       }
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
-      }
       clearBoundingInfo();
+      notifyModified();
    }
 
    /**
@@ -796,10 +800,8 @@ public abstract class MeshBase implements Renderable {
       for (Vertex3d vertex : myVertices) {
          vertex.pnt.inverseTransform (X);
       }
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
-      }
       clearBoundingInfo();
+      notifyModified();
    }
 
    /**
@@ -823,6 +825,7 @@ public abstract class MeshBase implements Renderable {
       myLocalMaxCoords.set (0, 0, 0);
       myWorldMinCoords.set (0, 0, 0);
       myWorldMaxCoords.set (0, 0, 0);
+      notifyModified();
    }
 
    /**
@@ -836,7 +839,7 @@ public abstract class MeshBase implements Renderable {
 
    public void getSelection (LinkedList<Object> list, int qid) {
    }
-   
+
    public boolean isSelectable() {
       return false;
    }
@@ -855,35 +858,6 @@ public abstract class MeshBase implements Renderable {
       }
       return newIdxs;
    }
-   
-   /**
-    * Gives control over display lists even if not fixed mesh
-    * (for rendering while paused and mesh isn't changing)
-    */
-   public void setUseDisplayList(boolean set) {
-      myUseDisplayList = set;
-   }
-
-   public void clearDisplayList() {
-      myRenderProps.clearMeshDisplayList();
-      myDisplayListValid = false;
-   }
-   
-   public void clearDisplayList(RenderProps props) {
-      props.clearMeshDisplayList();
-      myDisplayListValid = false;
-   }
-   
-   public boolean isDisplayListValid(RenderProps rprops) {
-      if (isFixed) {
-         return (rprops.getMeshDisplayList() > 0);
-      }
-      return (myDisplayListValid && (rprops.getMeshDisplayList() > 0));
-   }
-   
-   public boolean isUsingDisplayList() {
-      return (myUseDisplayList || isFixed);
-   }
 
    protected void printIdxs (String name, int[] idxs) {
       System.out.print (name + ":");
@@ -895,7 +869,7 @@ public abstract class MeshBase implements Renderable {
 
    public void setRenderBuffered (boolean enable) {
       if (enable) { // do a save render info right away to be ready for the
-                     // next render
+         // next render
          saveRenderInfo();
       }
       // set myRenderBufferedP last because otherwise render might occur
@@ -908,10 +882,10 @@ public abstract class MeshBase implements Renderable {
    }
 
    public void saveRenderInfo() {
-      if (myXMeshToWorldRender == null) {
-         myXMeshToWorldRender = new RigidTransform3d();
+      if (getXMeshToWorldRender() == null) {
+         setXMeshToWorldRender(new RigidTransform3d());
       }
-      myXMeshToWorldRender.set (XMeshToWorld);
+      getXMeshToWorldRender().set (XMeshToWorld);
       if (!isFixed) {
          for (int i = 0; i < myVertices.size(); i++) {
             myVertices.get (i).saveRenderInfo();
@@ -975,30 +949,38 @@ public abstract class MeshBase implements Renderable {
       }
       return radius/myVertices.size();
    }
-   
+
    /**
     * {@inheritDoc}
     */
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       render (renderer, myRenderProps, flags);
    }
 
    public abstract void render (
-      GLRenderer renderer, RenderProps props, int flags);
-      
+      Renderer renderer, RenderProps props, int flags);
+
    /**
     * Base method for testing if two meshes are equal. Two MeshBase objects are
-    * considered equal if their vertex coordinates and transforms are equal
+    * considered equal if their vertex coordinates, normals, and transforms are equal
     * within <code>eps</code>. This method, and its overrides, is used
     * in mesh unit tests.
     */
    public boolean epsilonEquals (MeshBase base, double eps) {
+      if (this == base) {
+         return true;
+      }
+
       if (!XMeshToWorld.epsilonEquals (base.XMeshToWorld, eps)) {
          return false;
       }
       if (myVertices.size() != base.myVertices.size()) {
          return false;
       }
+      if (hasNormals() != base.hasNormals()) {
+         return false;
+      }
+
       for (int i=0; i<myVertices.size(); i++) {
          Vertex3d vtx0 = myVertices.get(i);
          Vertex3d vtx1 = base.myVertices.get(i);
@@ -1006,56 +988,277 @@ public abstract class MeshBase implements Renderable {
             return false;
          }
       }
+
+      if (hasNormals()) {
+         if (myNormalIndices.size() != base.myNormalIndices.size()) {
+            return false;
+         }
+         for (int i=0; i<myNormalIndices.size(); ++i) {
+            int[] n0idx = myNormalIndices.get(i);
+            int[] n1idx = base.myNormalIndices.get(i);
+            if (n0idx.length != n1idx.length) {
+               return false;
+            }
+            for (int j=0; j<n0idx.length; ++j) {
+               Vector3d n0 = getNormal(n0idx[j]);
+               Vector3d n1 = base.getNormal(n1idx[j]);
+               if (!n0.epsilonEquals(n1, eps)) {
+                  return false;
+               }
+            }
+         }
+      }
+
       return true;
    }
-   
-   public void setFastRemoval(boolean set) {
-      fastRemoval = set;
-   }
-   
-   public boolean isFastRemoval() {
-      return fastRemoval;
-   }
-   
+
    public void setVertexColor(int i, Color color) {
       myVertices.get (i).setColor(color);
+      notifyModified();
    }
-   
+
    public void setVertexColor(int i, Color color, float alpha) {
       myVertices.get(i).setColor(color, alpha);
+      notifyModified();
    }
-   
+
    public void setVertexColor(int i, double r, double g, double b) {
       myVertices.get(i).setColor(r, g, b, 1);
+      notifyModified();
    }
-   
+
    public void setVertexColor(int i, double r, double g, double b, double a) {
       myVertices.get(i).setColor(r, g, b, a);
+      notifyModified();
    }
-   
+
    public void setVertexColor(int i, float r, float g, float b) {
       myVertices.get(i).setColor(r, g, b, 1);
+      notifyModified();
    }
-   
+
    public void setVertexColor(int i, float r, float g, float b, float a) {
       myVertices.get(i).setColor(r, g, b, a);
+      notifyModified();
    }
-   
+
    public void setVertexColorHSV (int i, double h, double s, double b) {
       myVertices.get(i).setColorHSV(h,s,b,1);
+      notifyModified();
    }
 
    public void setVertexColorHSV (int i, double h, double s, double b, double a) {
       myVertices.get(i).setColorHSV(h,s,b,1);
+      notifyModified();
    }
 
    public Color getVertexColor(int i) {
       return myVertices.get(i).getColor();
    }
-   
+
    public float[] getVertexColorArray(int i) {
       return myVertices.get(i).getColorArray();
    }
 
+   public RigidTransform3d getXMeshToWorldRender() {
+      return myXMeshToWorldRender;
+   }
+
+   public void setXMeshToWorldRender(RigidTransform3d myXMeshToWorldRender) {
+      this.myXMeshToWorldRender = myXMeshToWorldRender;
+   }
+
+   public abstract void setNormalIndices(int[][] normals);
+
+   public ArrayList<int[]> getNormalIndices() {
+      return this.myNormalIndices;
+   }
+
+   public boolean hasNormals() {
+      return myNormalIndices != null;
+   }
+
+   /** * Sets list of normals
+    * 
+    * @param normals
+    */
+   public void setNormalList (ArrayList<Vector3d> normals) {
+      myNormalList.clear();
+      for (int i=0; i<normals.size(); i++) {
+         Vector3d nrm = new Vector3d(normals.get(i));
+         nrm.normalize();
+         myNormalList.add (nrm);
+      }
+      notifyModified();
+   }
+
+   public ArrayList<Vector3d> getNormalList() {
+      return this.myNormalList;
+   }
+
+   /**
+    * Returns the number of normals in this mesh.
+    * 
+    * @return number of normals in this mesh
+    */
+   public int getNumNormals() {
+      if (myNormalList == null) {
+         return 0;
+      }
+      else {
+         return myNormalList.size();
+      }
+   }
+
+   /**
+    * Returns the idx-th normal in this mesh.
+    *
+    * @param idx index of the desired normal
+    * @return idx-th normal
+    */
+   public Vector3d getNormal (int idx) {
+      if (myNormalList == null) {
+         throw new ArrayIndexOutOfBoundsException ("idx="+idx+", size=0");
+      }
+      else {
+         return myNormalList.get(idx);
+      }
+   }
+
+   public void clearNormals() {
+      myNormalList.clear();
+      myNormalIndices = null;
+      notifyModified();
+   }
+
+   public abstract void setColorIndices(int[][] colors);
+
+   public ArrayList<int[]> getColorIndices() {
+      return this.myColorIndices;
+   }
+
+   public boolean hasColors() {
+      return myColorIndices != null;
+   }
+
+   /** Sets list of colors
+    * 
+    * @param colors
+    */
+   public void setColorList (ArrayList<byte[]> colors) {
+      myColorList = new ArrayList<byte[]>(colors.size());
+      for (int i=0; i<colors.size(); i++) {
+         byte[] c = colors.get(i);
+         myColorList.add (Arrays.copyOf(c, c.length));
+      }
+      notifyModified();
+   }
+
+   public ArrayList<byte[]> getColorList() {
+      return this.myColorList;
+   }
+
+   /**
+    * Returns the number of colors in this mesh.
+    * 
+    * @return number of colors in this mesh
+    */
+   public int getNumColors() {
+      if (myColorList == null) {
+         return 0;
+      }
+      else {
+         return myColorList.size();
+      }
+   }
+
+   /**
+    * Returns the idx-th color in this mesh.
+    *
+    * @param idx index of the desired color
+    * @return idx-th color
+    */
+   public byte[] getColor (int idx) {
+      if (myColorList == null) {
+         throw new ArrayIndexOutOfBoundsException ("idx="+idx+", size=0");
+      }
+      else {
+         return myColorList.get(idx);
+      }
+   }
+
+   public void clearColors() {
+      myColorList.clear();
+      myColorIndices = null;
+      notifyModified();
+   }
+   
+   /**
+    * Sets whether or not colors should be considered ``fixed''.  This is
+    * used as a hint to determine how to cache rendering info for the mesh.
+    */
+   public void setColorsFixed(boolean set) {
+      if (myColorsFixed != set) {
+         myColorsFixed = set;
+         notifyModified();
+      }
+   }
+   
+   /**
+    * See {@link #setColorsFixed(boolean)}
+    */
+   public boolean isColorsFixed() {
+      return myColorsFixed;
+   }
+   
+   protected void copyNormals (MeshBase old) {
+      if (old.hasNormals()) {
+         if (myNormalList == null) {
+            myNormalList = new ArrayList<>();
+         } else {
+            myNormalList.clear();
+         }
+         myNormalList.ensureCapacity (old.myNormalList.size());
+         for (int i=0; i<old.myNormalList.size(); i++) {
+            myNormalList.add (new Vector3d (old.myNormalList.get(i)));
+         }
+         
+         if (myNormalIndices == null) {
+            myNormalIndices = new ArrayList<>();
+         }
+         myNormalIndices.clear();
+         myNormalIndices.ensureCapacity (old.myNormalIndices.size());
+         for (int i=0; i<old.myNormalIndices.size(); i++) {
+            int[] oidx = old.myNormalIndices.get(i);
+            myNormalIndices.add (Arrays.copyOf(oidx, oidx.length));
+         }
+         notifyModified();
+      }
+      
+   }    
+   
+   protected void copyColors (MeshBase old) {
+      
+      if (old.hasColors()) {
+         if (myColorList == null) {
+            myColorList = new ArrayList<>();
+         } else {
+            myColorList.clear();
+         }
+         myColorList.ensureCapacity (old.myColorList.size());
+         for (int i=0; i<old.myColorList.size(); i++) {
+            byte[] oc = old.myColorList.get(i);
+            myColorList.add (Arrays.copyOf(oc, oc.length));
+         }
+         
+         myColorIndices.clear();
+         myColorIndices.ensureCapacity (old.myColorIndices.size());
+         for (int i=0; i<old.myColorIndices.size(); i++) {
+            int[] oi = old.myColorIndices.get(i);
+            myColorIndices.add (Arrays.copyOf(oi, oi.length));
+         }
+         notifyModified();
+      }
+   }
 
 }

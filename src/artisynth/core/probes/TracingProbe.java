@@ -109,7 +109,7 @@ RenderableComponent {
 
    public abstract void updateBounds (Point3d pmin, Point3d pmax);
 
-   public abstract void render (GLRenderer renderer, int flags);
+   public abstract void render (Renderer renderer, int flags);
 
    public boolean isSelectable() {
       return true;

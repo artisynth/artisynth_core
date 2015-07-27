@@ -130,7 +130,7 @@ public class ParticlePlaneConstraint extends ConstrainerBase
 //      myParticle.removeBackReference (this);
 //   }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
    }
    
    public void scaleMass (double s) {

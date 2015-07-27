@@ -27,7 +27,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 
 /**
  * A basic display probe that shows the intersection of a rigid body
@@ -194,7 +194,7 @@ public class MeshIntersectingProbe extends CutPlaneProbe {
    }
    
    @Override
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
      
       if (myPlaneSurface != null) {
          if (drawIntersections) {

@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Deque;
 import java.util.Map;
-import java.util.Collection;
 
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
@@ -20,7 +19,7 @@ import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.util.NumberFormat;
@@ -38,7 +37,7 @@ import artisynth.core.util.TransformableGeometry;
  * definition.
  */
 public class MeshComponent extends RenderableComponentBase
-implements TransformableGeometry, ScalableUnits {
+   implements TransformableGeometry, ScalableUnits {
 
    protected MeshInfo myMeshInfo;
 
@@ -74,9 +73,6 @@ implements TransformableGeometry, ScalableUnits {
       MeshBase mesh = getMesh();
       if (mesh != null) {
          mesh.setFixed (true);
-      }
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
       }
    }
 
@@ -147,21 +143,21 @@ implements TransformableGeometry, ScalableUnits {
       MeshBase mesh = getMesh();
       if (mesh != null) {
          mesh.saveRenderInfo();
-         if (!mesh.isFixed() && mesh.myUseDisplayList) {
-            mesh.clearDisplayList(myRenderProps);
+         if (!mesh.isFixed()) {
+            mesh.notifyVertexPositionsModified();
          }
       }
    }
 
    public void render(
-      GLRenderer renderer, RenderProps props, int flags) {
+      Renderer renderer, RenderProps props, int flags) {
       myMeshInfo.render (renderer, props, flags);
    }
 
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       if (isSelected() || isParentOrGrandParentSelected()) {
-         flags |= GLRenderer.SELECTED;
+         flags |= Renderer.SELECTED;
       }
       render(renderer, getRenderProps(), flags);
    }
@@ -233,9 +229,6 @@ implements TransformableGeometry, ScalableUnits {
          return;
       }
       myMeshInfo.transformGeometry (X);
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
-      }
    }
 
    public void updateSlavePos () {

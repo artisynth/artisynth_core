@@ -30,7 +30,7 @@ import maspack.properties.Property;
 import maspack.properties.PropertyInfo;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLGridResolution;
+import maspack.render.GL.GLGridResolution;
 import maspack.util.DoubleInterval;
 import maspack.util.EnumRange;
 import maspack.util.IntegerInterval;

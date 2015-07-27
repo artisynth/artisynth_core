@@ -15,12 +15,12 @@ import java.util.Deque;
 import maspack.matrix.Point3d;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
-import maspack.render.GLSelectable;
+import maspack.render.Renderer;
 import maspack.render.HasRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.GL.GLRenderable;
+import maspack.render.GL.GLSelectable;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.util.Scannable;
@@ -219,7 +219,7 @@ public class GLRenderableHolder extends RenderableComponentBase {
    }
    
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       myRenderable.render(renderer, flags);
    }
    

@@ -7,7 +7,9 @@
 package maspack.render;
 
 import maspack.matrix.*;
+import maspack.render.GL.GLViewer;
 import maspack.util.Round;
+
 import java.util.LinkedList;
 
 public abstract class Dragger3dBase extends DragToolBase implements Dragger3d {

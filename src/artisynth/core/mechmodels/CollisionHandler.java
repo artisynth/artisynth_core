@@ -15,9 +15,10 @@ import maspack.geometry.*;
 import maspack.matrix.*;
 import maspack.properties.*;
 import maspack.render.*;
+import maspack.render.GL.GLRenderable;
+import maspack.render.GL.GL2.GL2Viewer;
 import maspack.render.RenderProps.Shading;
 import maspack.util.*;
-
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import artisynth.core.mechmodels.CollisionBehavior.Method;
@@ -1232,15 +1233,19 @@ public class CollisionHandler extends ConstrainerBase
       return RenderProps.createRenderProps (this);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       render (renderer, myRenderProps, flags);
    }
 
    // Twist lastmomentumchange = null;
 
-   public void render (GLRenderer renderer, RenderProps props, int flags) {
+   public void render (Renderer renderer, RenderProps props, int flags) {
 
-      GL2 gl = renderer.getGL2();
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
 
       ArrayList<LineSeg> renderSegments = null;
       ArrayList<FaceSeg> renderFaces = null;
@@ -1384,7 +1389,7 @@ public class CollisionHandler extends ConstrainerBase
                   props.getFaceColorArray(), false);
             }
             else if (shading != Shading.FLAT && !renderer.isSelecting()) {
-               renderer.setShadeModel (RenderProps.Shading.GOURARD);
+               renderer.setShadeModel (RenderProps.Shading.GOURAUD);
             }
             else { // shading == Shading.FLAT
                renderer.setShadeModel (RenderProps.Shading.FLAT);

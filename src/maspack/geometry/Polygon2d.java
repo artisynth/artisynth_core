@@ -6,19 +6,24 @@
  */
 package maspack.geometry;
 
-import maspack.matrix.*;
-import maspack.util.NumberFormat;
-
-import java.util.ListIterator;
+import java.io.IOException;
 import java.util.LinkedList;
+import java.util.ListIterator;
 import java.util.NoSuchElementException;
 
-import maspack.util.ReaderTokenizer;
-import maspack.render.*;
-import java.io.IOException;
-
 import javax.media.opengl.GL2;
-import javax.media.opengl.GLDrawable;
+
+import maspack.matrix.AffineTransform2dBase;
+import maspack.matrix.Point2d;
+import maspack.matrix.Point3d;
+import maspack.render.PointLineRenderProps;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.Renderable;
+import maspack.render.Renderer;
+import maspack.render.GL.GL2.GL2Viewer;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 public class Polygon2d implements Renderable {
    Vertex2d firstVertex;
@@ -476,13 +481,17 @@ public class Polygon2d implements Renderable {
       }
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       render (renderer, myRenderProps, /*flags=*/0);
    }
 
-   public void render (GLRenderer renderer, RenderProps props, int flags) {
+   public void render (Renderer renderer, RenderProps props, int flags) {
 
-      GL2 gl = renderer.getGL2().getGL2();
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
       renderer.setLightingEnabled (false);
 
       Point2d pnt = new Point2d();

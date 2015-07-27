@@ -18,10 +18,11 @@ import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.LineFaceRenderProps;
 import maspack.render.RenderProps;
+import maspack.render.GL.GLRenderable;
+import maspack.render.GL.GL2.GL2Viewer;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
 import maspack.util.DoubleInterval;
@@ -153,13 +154,18 @@ public class ColorBar extends TextComponentBase {
 //
    
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
 
       if (!isSelectable() && renderer.isSelecting()) {
          return;
       }
       
-      GL2 gl = renderer.getGL2().getGL2();
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       int screenWidth = renderer.getWidth();
       int screenHeight = renderer.getHeight();
       boolean saved2d = renderer.is2DRendering();
@@ -196,9 +202,6 @@ public class ColorBar extends TextComponentBase {
       if (bheight <= 0) {
          bheight = myNormLoc.height*screenHeight;
       }
-
-      
-
 
       float[] rgb = new float[3];
 

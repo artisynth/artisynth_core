@@ -7,6 +7,7 @@
 package artisynth.core.workspace;
 
 import artisynth.core.driver.Main;
+import artisynth.core.driver.ViewerManager;
 import artisynth.core.moviemaker.MovieMaker;
 import artisynth.core.probes.OutputProbe;
 

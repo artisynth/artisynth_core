@@ -308,20 +308,20 @@ public class MeshInfo {
    }
 
    public void render (
-      GLRenderer renderer, RenderProps props, boolean selected) {
-      int flags = selected ? GLRenderer.SELECTED : 0;
+      Renderer renderer, RenderProps props, boolean selected) {
+      int flags = selected ? Renderer.SELECTED : 0;
       render(renderer, props, flags);         
    }
    
    public void render (
-      GLRenderer renderer, RenderProps props, boolean selected, 
+      Renderer renderer, RenderProps props, boolean selected, 
       int flags) {
-      flags |= selected ? GLRenderer.SELECTED : 0;
+      flags |= selected ? Renderer.SELECTED : 0;
       render(renderer, props, flags);
    }
    
    public void render (
-      GLRenderer renderer, RenderProps props, int flags) {
+      Renderer renderer, RenderProps props, int flags) {
 
       if (myMesh != null) {
          myMesh.render (renderer, props, flags);

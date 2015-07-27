@@ -14,7 +14,8 @@ import maspack.geometry.TriTriIntersection;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
+import maspack.render.GL.GL2.GL2Viewer;
 
 public class ContactRegion {
    // triangle triangle intersections
@@ -479,9 +480,14 @@ public class ContactRegion {
       }
    }
 
-   void render (GLRenderer renderer, int flags) {
+   void render (Renderer renderer, int flags) {
 
-      GL2 gl = renderer.getGL2().getGL2();
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       renderer.setColor (0f, 0f, 1f);
       if (contour != null) {
          contour.render (renderer, flags); // draw the contour

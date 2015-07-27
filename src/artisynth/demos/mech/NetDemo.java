@@ -21,7 +21,7 @@ import artisynth.core.workspace.RootModel;
 import java.io.*;
 import java.awt.Color;
 
-import javax.media.opengl.*;
+import com.jogamp.opengl.*;
 
 import maspack.render.*;
 

@@ -198,7 +198,7 @@ public class DoubleArmDemo extends RootModel {
        rp.setLineStyle(RenderProps.LineStyle.ELLIPSOID);
        rp.setLineRadius(len/20);
        rp.setLineSlices(10);
-       rp.setShading(RenderProps.Shading.GOURARD);
+       rp.setShading(RenderProps.Shading.GOURAUD);
        rp.setLineColor(Color.RED);
        muscle.setRenderProps(rp);
        muscle2.setRenderProps(rp);
@@ -251,7 +251,7 @@ public class DoubleArmDemo extends RootModel {
        //lowerArm.addMarker(endPoint);
        
        RenderProps rp = new RenderProps(model.getRenderProps());
-       rp.setShading(RenderProps.Shading.GOURARD);
+       rp.setShading(RenderProps.Shading.GOURAUD);
        rp.setPointColor(Color.ORANGE);
        rp.setPointRadius(len/20);
        endPoint.setRenderProps(rp);

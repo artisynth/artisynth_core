@@ -19,6 +19,7 @@
 	<xs:element name="label" type="labelType" />
 	<xs:element name="include" type="includeType" />
 	<xs:element name="hidden" type="hiddenType" />
+	<xs:element name="history" type="historyType" />
 
 	<!-- Element Types -->
 	<xs:complexType name="rootType">
@@ -31,6 +32,7 @@
 			<xs:element ref="label" />
 			<xs:element ref="include"/>
 			<xs:element ref="hidden"/>
+			<xs:element ref="history"/>
 		</xs:choice>
 	</xs:complexType>
 
@@ -55,6 +57,7 @@
 		<xs:attribute name="class" type="javaType" use="required" />
 		<xs:attribute name="text" type="xs:string" use="optional" />
 		<xs:attribute name="icon" type="xs:anyURI" use="optional" />
+		<xs:attribute name="args" type="xs:string" use="optional" />
 		<xs:attributeGroup ref="fontAttr" />
 	</xs:complexType>
 
@@ -62,7 +65,8 @@
 		<xs:attribute name="source" type="javaType" use="required" />
 		<xs:attribute name="base" type="javaType"
 			default="artisynth.core.workspace.RootModel" use="optional" />
-			<xs:attribute name="regex" type="xs:string" use="optional" />
+		<xs:attribute name="args" type="xs:string" use="optional" />
+		<xs:attribute name="regex" type="xs:string" use="optional" />
 		<xs:attribute name="view" type="viewType" default="hierarchical"
 			use="optional" />
 		<xs:attribute name="compact" type="compactType" default="0"
@@ -72,6 +76,7 @@
 
 	<xs:complexType name="demosFileType">
 		<xs:attribute name="file" type="xs:anyURI" use="required" />
+		<xs:attribute name="args" type="xs:string" use="optional" />
 		<xs:attributeGroup ref="fontAttr" />
 	</xs:complexType>
 
@@ -86,6 +91,14 @@
 	
 	<xs:complexType name="includeType">
 		<xs:attribute name="file" type="xs:anyURI" use="required" />
+	</xs:complexType>
+	
+	<xs:complexType name="historyType">
+		<xs:attribute name="size" type="positiveIntegerType" default = "4" 
+			use="optional" />
+		<xs:attribute name="compact" type="compactType" default="0"
+			use="optional" />
+		<xs:attributeGroup ref="fontAttr" />
 	</xs:complexType>
 
 	<!-- Attributes Types -->
@@ -112,6 +125,12 @@
 		<xs:restriction base="xs:integer">
 			<xs:minInclusive value="0" />
 			<xs:maxInclusive value="2" />
+		</xs:restriction>
+	</xs:simpleType>
+	
+	<xs:simpleType name="positiveIntegerType">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="0" />
 		</xs:restriction>
 	</xs:simpleType>
 

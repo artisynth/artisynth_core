@@ -18,7 +18,8 @@ import maspack.properties.*;
 import maspack.util.InternalErrorException;
 
 public class RenderPropsPanel extends PropertyPanel {
-
+   private static final long serialVersionUID = -8163801337166221686L;
+   
    maspack.render.Material mat = new maspack.render.Material();
    PropTreeCell node = new PropTreeCell();
 
@@ -116,6 +117,7 @@ public class RenderPropsPanel extends PropertyPanel {
       maybeAddWidget (widgets, "alpha", 0, 1, propList);
       maybeAddWidget (widgets, "shading", propList);
       maybeAddWidget (widgets, "shininess", 0, INF, propList);
+      maybeAddWidget (widgets, "ambience", 0, 1, propList);
 
       int baseIdx = widgets.size();
 

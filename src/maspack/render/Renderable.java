@@ -6,9 +6,7 @@
  */
 package maspack.render;
 
-import java.util.*;
-import maspack.matrix.*;
-import javax.media.opengl.*;
+import maspack.render.GL.GLSelectable;
 
 public interface Renderable extends GLSelectable, HasRenderProps {
    // /**

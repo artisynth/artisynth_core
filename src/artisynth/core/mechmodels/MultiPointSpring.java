@@ -19,7 +19,7 @@ import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
 import maspack.util.IndentingPrintWriter;
@@ -393,7 +393,7 @@ public class MultiPointSpring extends PointSpringBase
       }
    }
 
-   void dorender (GLRenderer renderer, RenderProps props) {
+   void dorender (Renderer renderer, RenderProps props) {
       updateSegsIfNecessary();
       for (int i=0; i<mySegs.size(); i++) {
          SegmentData seg = mySegs.get(i);
@@ -404,7 +404,7 @@ public class MultiPointSpring extends PointSpringBase
       }
    }     
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       dorender (renderer, myRenderProps);
    }
 

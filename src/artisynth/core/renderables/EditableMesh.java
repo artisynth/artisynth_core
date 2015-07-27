@@ -15,7 +15,7 @@ import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.properties.HierarchyNode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.util.IndentingPrintWriter;
@@ -286,7 +286,7 @@ public class EditableMesh extends MeshComponent
    }
 
    @Override
-   public void render(GLRenderer renderer, int flags) {      
+   public void render(Renderer renderer, int flags) {      
    }
 
    public VertexList<VertexComponent> getVertexComponents() {

@@ -40,9 +40,10 @@ import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.properties.HasProperties;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.Material;
 import maspack.render.RenderProps;
+import maspack.render.GL.GL2.PolygonalMeshRenderer;
 import maspack.util.InternalErrorException;
 import maspack.util.ListIndexComparator;
 import maspack.util.NumberFormat;
@@ -58,17 +59,9 @@ public class PolygonalMesh extends MeshBase {
    protected int[] myFaceOrder;  // used for sorting/drawing faces
 
    // begin texture mapping stuff
-   protected ArrayList<Vector3d> myTextureVertexList = new ArrayList<Vector3d>();
-   protected ArrayList<int[]> myTextureIndices = null;
-
-   /*
-    * vertex normals saved if mesh is read in from a file with explicit vertex
-    * normals. If vertex normals are defined they will be used in write(), but
-    * explicit normals are not currently used in MeshRenderer (see
-    * Vertex3d.computeNormal())
-    */
-   protected ArrayList<Vector3d> myNormalList = new ArrayList<Vector3d>();
-   protected ArrayList<int[]> myNormalIndices = null;
+   private ArrayList<Vector3d> myTextureVertexList = new ArrayList<Vector3d>();
+   private ArrayList<int[]> myTextureIndices = null;
+   private boolean myTexCoordsFixed = true;  // by default, texture coordinates considered fixed
 
    private Material myFaceMaterial = null;
    private Material myBackMaterial = null;
@@ -91,7 +84,7 @@ public class PolygonalMesh extends MeshBase {
    private boolean myFaceNormalsValid = false;
    private boolean myRenderNormalsValid = false;
 
-   protected MeshRenderer myMeshRenderer = null;
+   protected PolygonalMeshRenderer myMeshRenderer = null;
 
    /*
     * Set to true if this mesh may be subject to self intersections. If set, it
@@ -174,6 +167,7 @@ public class PolygonalMesh extends MeshBase {
             myFaces.get (i).computeRenderNormal();
          }
          myRenderNormalsValid = true;
+         notifyModified();
       }
    }
 
@@ -217,6 +211,7 @@ public class PolygonalMesh extends MeshBase {
     * Prints out the vertices surrounding this face, in the (clockwise) order
     * order produced by adjacent half-edge traversing.
     */
+   @SuppressWarnings("unused")
    private void printIncidentVertices (Vertex3d vtx) {
       HashSet<HalfEdge> edges = new HashSet<HalfEdge>();
       ArrayList<HalfEdge> startingEdges = new ArrayList<HalfEdge>();
@@ -298,7 +293,7 @@ public class PolygonalMesh extends MeshBase {
       }
       return true;
    }
-   
+
    /**
     */
    public ArrayList<Vertex3d> findNonManifoldVertices() {
@@ -318,7 +313,7 @@ public class PolygonalMesh extends MeshBase {
                if (adjacentVertices.contains(he.tail)) {
                   // there is more than one edge involving this tail
                   System.out.println("More than one edge involving tail: " + he.tail.getIndex ());
-                  
+
                }
                adjacentVertices.add (he.tail);
                if (he.opposite == null) {
@@ -467,6 +462,15 @@ public class PolygonalMesh extends MeshBase {
          addFace (f.getVertexIndices());
       }
       setMeshToWorld (old.XMeshToWorld);
+      if (old.hasNormals()) {
+         copyNormals(old);
+      }
+      if (old.hasColors()) {
+         copyColors(old);
+      }
+      if (old.hasTextureCoords()) {
+         copyTextures(old);
+      }
    }
 
    public void setMeshToWorld (RigidTransform3d X) {
@@ -548,7 +552,7 @@ public class PolygonalMesh extends MeshBase {
     * numbering starts at 1.
     */
    public void read (ReaderTokenizer rtok, boolean zeroIndexed)
-      throws IOException {
+   throws IOException {
 
       clear();
       WavefrontReader wfr = new WavefrontReader(rtok);
@@ -624,7 +628,7 @@ public class PolygonalMesh extends MeshBase {
       for (int i = 0; i < vertices.length; i++) {
          int idx = vertices[i].getIndex();
          if (idx < 0 || idx >= myVertices.size() ||
-            myVertices.get (idx) != vertices[i]) {
+         myVertices.get (idx) != vertices[i]) {
             throw new IllegalArgumentException ("Vertex not present in mesh");
          }
       }
@@ -668,53 +672,27 @@ public class PolygonalMesh extends MeshBase {
     * @return false if the face does not belong to this mesh.
     */
    public boolean removeFace (Face face) {
-      
-      if (isFastRemoval()) {
-         
-         int idx = face.getIndex();
-         int last = myFaces.size()-1;
-         if (idx >= 0 && idx <= last) {
-            myFaces.set(idx, myFaces.get(last));
-            myFaces.get(idx).setIndex(idx);
-            myFaces.remove(last);
-            
-            int nv = face.numVertices ();
-            if (nv == 3) {
-               myNumTriangles--;
-            } else if (nv == 4) {
-               myNumQuads--;
-            }
-            //myTriQuadCountsValid = false;
-            face.disconnect();
-            face.setIndex(-1);
-            notifyStructureChanged();
-            return true;
-         } else {
-            return false;
+
+      if (myFaces.remove (face)) {
+         face.disconnect();
+         // reindex faces which occur after this one
+         for (int i=face.getIndex(); i<myFaces.size(); i++) {
+            myFaces.get(i).setIndex (i);
          }
-         
+         //myTriQuadCountsValid = false;
+         int nv = face.numVertices ();
+         if (nv == 3) {
+            myNumTriangles--;
+         } else if (nv == 4) {
+            myNumQuads--;
+         }
+         notifyStructureChanged();
+         return true;
       } else {
-         if (myFaces.remove (face)) {
-            face.disconnect();
-            // reindex faces which occur after this one
-            for (int i=face.getIndex(); i<myFaces.size(); i++) {
-               myFaces.get(i).setIndex (i);
-            }
-            //myTriQuadCountsValid = false;
-            int nv = face.numVertices ();
-            if (nv == 3) {
-               myNumTriangles--;
-            } else if (nv == 4) {
-               myNumQuads--;
-            }
-            notifyStructureChanged();
-            return true;
-         } else {
-            return false;
-         }
+         return false;
       }
    }
-   
+
    /**
     * Removes a face from this mesh, potentially changing order of faces
     */
@@ -758,7 +736,7 @@ public class PolygonalMesh extends MeshBase {
       if (deleteIdxs.size() > 0) {
          Collections.sort (deleteIdxs);
          ArrayList<Face> newFaceList =
-            new ArrayList<Face>(myFaces.size()-deleteIdxs.size());
+         new ArrayList<Face>(myFaces.size()-deleteIdxs.size());
          int k = 0;
          for (int i=0; i<myFaces.size(); i++) {
             Face f = myFaces.get(i);
@@ -887,12 +865,12 @@ public class PolygonalMesh extends MeshBase {
          ee.head = head;
          if (ee.tail == head) {
             throw new InternalErrorException (
-               "reassigned tail edge (ee) has head == tail");
+            "reassigned tail edge (ee) has head == tail");
          }
          ee.next.tail = head;
          if (ee.next.head == head) {
             throw new InternalErrorException (
-               "reassigned tail edge (ee.next) has head == tail");
+            "reassigned tail edge (ee.next) has head == tail");
          }
       }
 
@@ -993,7 +971,7 @@ public class PolygonalMesh extends MeshBase {
                if (!vertexRemoveList.isEmpty()) {
                   System.out.println (
                      "WARNING: could not merge "+vertexRemoveList.size()+
-                     " vertices because of topology issues");
+                  " vertices because of topology issues");
                }
             }
          }
@@ -1001,6 +979,7 @@ public class PolygonalMesh extends MeshBase {
 
       removeVertices (deadVertices);
       removeFaces (deadFaces);
+      
       return deadVertices.size();
    }
 
@@ -1115,9 +1094,9 @@ public class PolygonalMesh extends MeshBase {
    public int removeDisconnectedFaces () {
 
       ArrayList<HashMap<Vertex3d,Integer>> vertexMaps =
-         new ArrayList<HashMap<Vertex3d,Integer>>();
+      new ArrayList<HashMap<Vertex3d,Integer>>();
       ArrayList<HashSet<Face>> faceSets =
-         new ArrayList<HashSet<Face>>();
+      new ArrayList<HashSet<Face>>();
 
       partitionConnectedComponents (vertexMaps, faceSets);
 
@@ -1158,9 +1137,9 @@ public class PolygonalMesh extends MeshBase {
    public PolygonalMesh[] partitionIntoConnectedMeshes() {
 
       ArrayList<HashMap<Vertex3d,Integer>> vertexMaps =
-         new ArrayList<HashMap<Vertex3d,Integer>>();
+      new ArrayList<HashMap<Vertex3d,Integer>>();
       ArrayList<HashSet<Face>> faceSets =
-         new ArrayList<HashSet<Face>>();
+      new ArrayList<HashSet<Face>>();
 
       partitionConnectedComponents (vertexMaps, faceSets);
 
@@ -1239,19 +1218,19 @@ public class PolygonalMesh extends MeshBase {
             if (he.head != heNext.tail) {
                throw new InternalErrorException (
                   "Face "+i+", edge "+edgeStr(he)+
-                  ": head not equal to tail of next edge");
+               ": head not equal to tail of next edge");
             }
             if (he.head == he.tail) {
                throw new InternalErrorException (
                   "Face "+i+", edge "+edgeStr(he)+
-                  ": head and tail are the same");
+               ": head and tail are the same");
             }
             if (he.opposite != null) {
                HalfEdge heOpp = he.opposite;
                if (heOpp.opposite != he) {
                   throw new InternalErrorException (
                      "Face "+i+", edge "+edgeStr(he)+
-                     ": opposite edge doesn't point back to edge");
+                  ": opposite edge doesn't point back to edge");
                }
                if (heOpp.uOppositeP == he.uOppositeP) {
                   throw new InternalErrorException (
@@ -1268,7 +1247,7 @@ public class PolygonalMesh extends MeshBase {
             if (!he.head.hasIncidentHalfEdge (he)) {
                throw new InternalErrorException (
                   "Face "+i+", edge "+edgeStr(he)+
-                  ": head is missing incident reference");
+               ": head is missing incident reference");
             }
             if (he.face != face) {
                throw new InternalErrorException (
@@ -1289,7 +1268,7 @@ public class PolygonalMesh extends MeshBase {
             if (myFaces.get(face.getIndex()) != face) {
                throw new InternalErrorException (
                   "Vertex "+i+", incident edge "+k+
-                  ": face not contained in mesh");
+               ": face not contained in mesh");
             }
             k++;
          }
@@ -1326,7 +1305,7 @@ public class PolygonalMesh extends MeshBase {
          }
       }
    }
-   
+
    /**
     * Sets the vertex points and faces associated with this mesh.
     * 
@@ -1358,7 +1337,7 @@ public class PolygonalMesh extends MeshBase {
       for (int i = 1; i < num; i++) {
          int k = base + i * inc;
          if (pnts[base].x != pnts[k].x || pnts[base].y != pnts[k].y ||
-            pnts[base].z != pnts[k].z) {
+         pnts[base].z != pnts[k].z) {
             return false;
          }
       }
@@ -1390,7 +1369,7 @@ public class PolygonalMesh extends MeshBase {
       }
       NumberFormat fmt = new NumberFormat (fmtStr);
       PrintWriter pw =
-         new PrintWriter (new BufferedWriter (new FileWriter (file)));
+      new PrintWriter (new BufferedWriter (new FileWriter (file)));
       write (pw, fmt, /*zeroIndexed=*/false, /*facesClockwise=*/false);
    }
 
@@ -1453,84 +1432,84 @@ public class PolygonalMesh extends MeshBase {
    public void write (
       PrintWriter pw, NumberFormat fmt,
       boolean zeroIndexed, boolean facesClockwise)
-         throws IOException {
+      throws IOException {
       if (fmt == null) {
          fmt = new NumberFormat ("%.8g");
       }
       boolean writeTextureInfo =
-         myTextureVertexList.size() > 0 && myTextureIndices != null;
-         boolean writeNormals =
-            myNormalList.size() > 0 && myNormalIndices != null;
-            for (Vertex3d vertex : myVertices) {
-               Point3d pnt = vertex.pnt;
-               pw.println ("v " + fmt.format (pnt.x) + " " + fmt.format (pnt.y) + " " +
-                  fmt.format (pnt.z));
+      getTextureCoordList().size() > 0 && getTextureIndices() != null;
+      boolean writeNormals =
+      myNormalList.size() > 0 && myNormalIndices != null;
+      for (Vertex3d vertex : myVertices) {
+         Point3d pnt = vertex.pnt;
+         pw.println ("v " + fmt.format (pnt.x) + " " + fmt.format (pnt.y) + " " +
+         fmt.format (pnt.z));
+      }
+      if (writeNormals) {
+         for (Vector3d vn : myNormalList) {
+            pw.println ("vn " + fmt.format (vn.x) + " " + fmt.format (vn.y) +
+               " " + fmt.format (vn.z));
+         }
+      }
+      if (writeTextureInfo) {
+         for (Vector3d vt : getTextureCoordList()) {
+            pw.println ("vt " + fmt.format (vt.x) + " " + fmt.format (vt.y) +
+               " " + fmt.format (vt.z));
+         }
+      }
+      int faceCnt = 0;
+      for (Face face : myFaces) {
+         int idxCnt = 0;
+         pw.print ("f");
+         Vertex3d[] vtxList = new Vertex3d[face.numEdges()];
+         int k = 0;
+         HalfEdge he = face.he0;
+         do {
+            vtxList[k++] = he.head;
+            he = he.next;
+         }
+         while (he != face.he0);
+         if (facesClockwise) {
+            // reverse vertex list
+            for (k=1; k<=(vtxList.length-1)/2; k++) {
+               int l = vtxList.length-k;
+               Vertex3d tmp = vtxList[l];
+               vtxList[l] = vtxList[k];
+               vtxList[k] = tmp;
             }
-            if (writeNormals) {
-               for (Vector3d vn : myNormalList) {
-                  pw.println ("vn " + fmt.format (vn.x) + " " + fmt.format (vn.y) +
-                     " " + fmt.format (vn.z));
+         }
+         for (k=0; k<vtxList.length; k++) {
+            Vertex3d vtx = vtxList[k];
+            if (zeroIndexed) {
+               pw.print (" " + (vtx.idx));
+               if (writeTextureInfo) {
+                  pw.print ("/" + (getTextureIndices().get(faceCnt)[idxCnt]));
                }
-            }
-            if (writeTextureInfo) {
-               for (Vector3d vt : myTextureVertexList) {
-                  pw.println ("vt " + fmt.format (vt.x) + " " + fmt.format (vt.y) +
-                     " " + fmt.format (vt.z));
-               }
-            }
-            int faceCnt = 0;
-            for (Face face : myFaces) {
-               int idxCnt = 0;
-               pw.print ("f");
-               Vertex3d[] vtxList = new Vertex3d[face.numEdges()];
-               int k = 0;
-               HalfEdge he = face.he0;
-               do {
-                  vtxList[k++] = he.head;
-                  he = he.next;
-               }
-               while (he != face.he0);
-               if (facesClockwise) {
-                  // reverse vertex list
-                  for (k=1; k<=(vtxList.length-1)/2; k++) {
-                     int l = vtxList.length-k;
-                     Vertex3d tmp = vtxList[l];
-                     vtxList[l] = vtxList[k];
-                     vtxList[k] = tmp;
+               if (writeNormals) {
+                  if (!writeTextureInfo) {
+                     pw.print ("/");
                   }
+                  pw.print ("/" + (myNormalIndices.get(faceCnt)[idxCnt]));
                }
-               for (k=0; k<vtxList.length; k++) {
-                  Vertex3d vtx = vtxList[k];
-                  if (zeroIndexed) {
-                     pw.print (" " + (vtx.idx));
-                     if (writeTextureInfo) {
-                        pw.print ("/" + (myTextureIndices.get(faceCnt)[idxCnt]));
-                     }
-                     if (writeNormals) {
-                        if (!writeTextureInfo) {
-                           pw.print ("/");
-                        }
-                        pw.print ("/" + (myNormalIndices.get(faceCnt)[idxCnt]));
-                     }
-                  }
-                  else {
-                     pw.print (" " + (vtx.idx + 1));
-                     if (writeTextureInfo) {
-                        pw.print ("/" + (myTextureIndices.get(faceCnt)[idxCnt] + 1));
-                     }
-                     if (writeNormals) {
-                        if (!writeTextureInfo) {
-                           pw.print ("/");
-                        }
-                        pw.print ("/" + (myNormalIndices.get(faceCnt)[idxCnt] + 1));
-                     }
-                  }
-                  idxCnt++;
-               }
-               pw.println ("");
-               faceCnt++;
             }
-            pw.flush();
+            else {
+               pw.print (" " + (vtx.idx + 1));
+               if (writeTextureInfo) {
+                  pw.print ("/" + (getTextureIndices().get(faceCnt)[idxCnt] + 1));
+               }
+               if (writeNormals) {
+                  if (!writeTextureInfo) {
+                     pw.print ("/");
+                  }
+                  pw.print ("/" + (myNormalIndices.get(faceCnt)[idxCnt] + 1));
+               }
+            }
+            idxCnt++;
+         }
+         pw.println ("");
+         faceCnt++;
+      }
+      pw.flush();
    }
 
    /* Write the mesh to a file in the .poly format for tetgen. */
@@ -1643,13 +1622,13 @@ public class PolygonalMesh extends MeshBase {
       myTriQuadCountsValid = true;
    }
 
-   public void render (GLRenderer renderer, RenderProps props, int flags) {
+   public void render (Renderer renderer, RenderProps props, int flags) {
       if (myMeshRenderer == null) {
-         myMeshRenderer = new MeshRenderer();
+         myMeshRenderer = new PolygonalMeshRenderer();
       }
-      if (isUsingVertexColoring () && ((flags & GLRenderer.SELECTED) == 0)) {
-         flags |= GLRenderer.VERTEX_COLORING;
-         flags |= GLRenderer.HSV_COLOR_INTERPOLATION;
+      if (hasVertexColoring () && ((flags & Renderer.SELECTED) == 0)) {
+         flags |= Renderer.VERTEX_COLORING;
+         flags |= Renderer.HSV_COLOR_INTERPOLATION;
       }
       myMeshRenderer.render (renderer, this, props, flags);
    }
@@ -1679,7 +1658,7 @@ public class PolygonalMesh extends MeshBase {
                double v = j * d;
 
                SubdivisionVertex3d vertex =
-                  new SubdivisionVertex3d (face, u, v);
+               new SubdivisionVertex3d (face, u, v);
 
                mesh.addVertex (vertex);
             }
@@ -1695,8 +1674,8 @@ public class PolygonalMesh extends MeshBase {
             }
 
             mesh.addFace (new int[] { i0 + subdivisions - i,
-               i1 + subdivisions - i,
-               i0 + subdivisions - i + 1 });
+                                      i1 + subdivisions - i,
+                                      i0 + subdivisions - i + 1 });
 
             i0 = i1;
          }
@@ -1722,7 +1701,7 @@ public class PolygonalMesh extends MeshBase {
 
          for (int v = 0; v < normals.length; v++) {
             ((Vertex3d)myVertices.get (v)).computeNormal (normals[v] =
-               new Vector3d());
+            new Vector3d());
          }
 
          for (Object vertexobject : mesh.myVertices) {
@@ -1737,7 +1716,7 @@ public class PolygonalMesh extends MeshBase {
             Vertex3d v2 = he.next.head;
 
             Vector3d n0 = normals[v0.idx], n1 = normals[v1.idx], n2 =
-               normals[v2.idx];
+            normals[v2.idx];
 
             if (vertex.f != lastFace)
                patch = new TrianglePatch (v0.pnt, n0, v1.pnt, n1, v2.pnt, n2);
@@ -1774,13 +1753,13 @@ public class PolygonalMesh extends MeshBase {
       Vertex3d v2 = he.next.head;
 
       Vector3d n0tmp = new Vector3d(), n1tmp = new Vector3d(), n2tmp =
-         new Vector3d();
+      new Vector3d();
       v0.computeNormal (n0tmp);
       v1.computeNormal (n1tmp);
       v2.computeNormal (n2tmp);
 
       TrianglePatch patch =
-         new TrianglePatch (v0.pnt, n0tmp, v1.pnt, n1tmp, v2.pnt, n2tmp);
+      new TrianglePatch (v0.pnt, n0tmp, v1.pnt, n1tmp, v2.pnt, n2tmp);
 
       patch.interpolate (p, u, v, (1.0 - u - v));
    }
@@ -1834,7 +1813,7 @@ public class PolygonalMesh extends MeshBase {
             if (indices[i] == null) {
                System.out.println (
                   "Warning: some faces have normals, others don't; " +
-                  "ignoring normals");               
+               "ignoring normals");               
                indices = null;
                break;
             }
@@ -1842,26 +1821,72 @@ public class PolygonalMesh extends MeshBase {
       }
       if (indices != null) {
          ArrayList<int[]> newNormalIndices =
-            new ArrayList<int[]>(myFaces.size());
-            for (int i=0; i<myFaces.size(); i++) {
-               int numv = myFaces.get(i).numVertices();
-               if (indices[i].length < numv) {
-                  throw new IllegalArgumentException (
-                     "indices for face " + i + " are insufficient in number");
-               }
-               newNormalIndices.add (copyWithOffset (indices[i], 0));
+         new ArrayList<int[]>(myFaces.size());
+         for (int i=0; i<myFaces.size(); i++) {
+            int numv = myFaces.get(i).numVertices();
+            if (indices[i].length < numv) {
+               throw new IllegalArgumentException (
+                  "indices for face " + i + " are insufficient in number");
             }
-            this.myNormalIndices = newNormalIndices;
+            newNormalIndices.add (copyWithOffset (indices[i], 0));
+         }
+         this.myNormalIndices = newNormalIndices;
       }
       else {
          this.myNormalIndices = null;
          this.myNormalList.clear();
       }
+      notifyModified();
    }
 
-   public ArrayList<int[]> getNormalIndices() {
-      return this.myNormalIndices;
+   /**
+    * Sets normal indices for this mesh. If <code>indices</code> is not
+    * <code>null</code>, it is assumed to supply one set of normal indices per
+    * face, each with the same number of indices as the face itself.
+    * Otherwise, if <code>indices</code> is <code>null</code>, the normal
+    * information is cleared.
+    * 
+    * @param indices
+    * indices is matrix NxV, where N is number of faces and V is number of
+    * vertices in one face.
+    */
+   public void setColorIndices (int[][] indices) {
+      if (indices != null) {
+         if (indices.length < myFaces.size()) {
+            throw new IllegalArgumentException (
+               "indices length " + indices.length +
+               " less than number of faces " + myFaces.size());
+         }
+         for (int i=0; i<myFaces.size(); i++) {
+            if (indices[i] == null) {
+               System.out.println (
+                  "Warning: some faces have colors, others don't; " +
+               "ignoring colors");               
+               indices = null;
+               break;
+            }
+         }
+      }
+      if (indices != null) {
+         ArrayList<int[]> newColorIndices =
+         new ArrayList<int[]>(myFaces.size());
+         for (int i=0; i<myFaces.size(); i++) {
+            int numv = myFaces.get(i).numVertices();
+            if (indices[i].length < numv) {
+               throw new IllegalArgumentException (
+                  "indices for face " + i + " are insufficient in number");
+            }
+            newColorIndices.add (copyWithOffset (indices[i], 0));
+         }
+         this.myColorIndices = newColorIndices;
+      }
+      else {
+         clearColors();
+      }
+      notifyModified();
    }
+
+
 
    /**
     * Computes vertex normals using an area-weighted average of the triangles
@@ -1922,48 +1947,7 @@ public class PolygonalMesh extends MeshBase {
          normalIndices.add (idxs);
       }
       myNormalIndices = normalIndices;
-   }
-
-   /**
-    * Sets list of normals
-    * 
-    * @param normals
-    */
-   public void setNormalList (ArrayList<Vector3d> normals) {
-      myNormalList.clear();
-      for (int i=0; i<normals.size(); i++) {
-         Vector3d nrm = new Vector3d(normals.get(i));
-         nrm.normalize();
-         myNormalList.add (nrm);
-      }
-   }
-
-   public ArrayList<Vector3d> getNormalList() {
-      return this.myNormalList;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public int getNumNormals() {
-      if (myNormalList == null) {
-         return 0;
-      }
-      else {
-         return myNormalList.size();
-      }
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public Vector3d getNormal (int idx) {
-      if (myNormalList == null) {
-         throw new ArrayIndexOutOfBoundsException ("idx="+idx+", size=0");
-      }
-      else {
-         return myNormalList.get(idx);
-      }
+      notifyModified();
    }
 
    /**
@@ -1977,7 +1961,7 @@ public class PolygonalMesh extends MeshBase {
     * indices is matrix NxV, where N is number of faces and V is number of
     * vertices in one face.
     */
-   public void setTextureIndices (int[][] indices) {
+   public void setTextureIndicesArray (int[][] indices) {
       if (indices != null) {
          if (indices.length < myFaces.size()) {
             throw new IllegalArgumentException (
@@ -1988,7 +1972,7 @@ public class PolygonalMesh extends MeshBase {
             if (indices[i] == null) {
                System.out.println (
                   "Warning: some faces have texture coords, others don't; " +
-                  "ignoring texture");
+               "ignoring texture");
                indices = null;
                break;
             }
@@ -1996,21 +1980,22 @@ public class PolygonalMesh extends MeshBase {
       }
       if (indices != null) {      
          ArrayList<int[]> newTextureIndices =
-            new ArrayList<int[]>(myFaces.size());
-            for (int i=0; i<myFaces.size(); i++) {
-               int numv = myFaces.get(i).numVertices();
-               if (indices[i].length < numv) {
-                  throw new IllegalArgumentException (
-                     "indices for face " + i + " are insufficient in number");
-               }
-               newTextureIndices.add (copyWithOffset (indices[i], 0));
+         new ArrayList<int[]>(myFaces.size());
+         for (int i=0; i<myFaces.size(); i++) {
+            int numv = myFaces.get(i).numVertices();
+            if (indices[i].length < numv) {
+               throw new IllegalArgumentException (
+                  "indices for face " + i + " are insufficient in number");
             }
-            this.myTextureIndices = newTextureIndices; 
+            newTextureIndices.add (copyWithOffset (indices[i], 0));
+         }
+         this.myTextureIndices = newTextureIndices; 
       }
       else {
          this.myTextureIndices = null;
-         this.myTextureVertexList.clear();
+         this.getTextureCoordList().clear();
       }
+      notifyModified();
    }
 
    public ArrayList<int[]> getTextureIndices() {
@@ -2023,11 +2008,15 @@ public class PolygonalMesh extends MeshBase {
     * @param textureVertices
     */
    public void setTextureVertices (ArrayList<Vector3d> textureVertices) {
-      this.myTextureVertexList = textureVertices;
+      this.setTextureVertexList(textureVertices);
    }
 
    public ArrayList<Vector3d> getTextureVertices() {
-      return this.myTextureVertexList;
+      return this.getTextureCoordList();
+   }
+   
+   public Vector3d getTextureCoord(int idx) {
+      return myTextureVertexList.get(idx);
    }
 
    /**
@@ -2065,7 +2054,7 @@ public class PolygonalMesh extends MeshBase {
       HalfEdge he = he0;
 
       ArrayList<Vertex3d> iverts = new ArrayList<Vertex3d>(), overts =
-         new ArrayList<Vertex3d>();
+      new ArrayList<Vertex3d>();
 
       do {
          HalfEdgeNode hen = he.tail.incidentHedges;
@@ -2097,7 +2086,7 @@ public class PolygonalMesh extends MeshBase {
       while (he != he0);
 
       Vertex3d lastiv = iverts.get (iverts.size() - 1), lastov =
-         overts.get (overts.size() - 1);
+      overts.get (overts.size() - 1);
 
       for (int v = 0; v < iverts.size(); v++) {
          Vertex3d iv = iverts.get (v), ov = overts.get (v);
@@ -2273,17 +2262,21 @@ public class PolygonalMesh extends MeshBase {
       int estNewFaces = 2*(myFaces.size()-myNumTriangles);
 
       ArrayList<Face> newFaceList =
-         new ArrayList<Face>(myNumTriangles+estNewFaces);
+      new ArrayList<Face>(myNumTriangles+estNewFaces);
 
       ArrayList<int[]> newFaceIndices = new ArrayList<int[]>(estNewFaces);
       ArrayList<int[]> newNormalIndices = null;
       ArrayList<int[]> newTextureIndices = null;
+      ArrayList<int[]> newColorIndices = null;
 
-      if (myTextureIndices != null) {
+      if (getTextureIndices() != null) {
          newTextureIndices = new ArrayList<int[]>(myNumTriangles+estNewFaces);
       }
       if (myNormalIndices != null) {
          newNormalIndices = new ArrayList<int[]>(myNumTriangles+estNewFaces);
+      }
+      if (myColorIndices != null) {
+         newColorIndices = new ArrayList<int[]>(myNumTriangles+estNewFaces);
       }
 
       for (int i=0; i<myFaces.size(); i++) {
@@ -2291,23 +2284,30 @@ public class PolygonalMesh extends MeshBase {
          int numEdges = face.numEdges();
          if (numEdges == 3) {
             newFaceList.add (face);
-            if (myTextureIndices != null) {
-               newTextureIndices.add (myTextureIndices.get(i));
+            if (getTextureIndices() != null) {
+               newTextureIndices.add (getTextureIndices().get(i));
             }
             if (myNormalIndices != null) {
                newNormalIndices.add (myNormalIndices.get(i));
+            }
+            if (myColorIndices != null) {
+               newColorIndices.add(myColorIndices.get(i));
             }
          } else {
 
             face.disconnect();
             int tidxs[] = null;
             int nidxs[] = null;
+            int cidxs[] = null;
             int idxs[] = face.getVertexIndices();
-            if (myTextureIndices != null) {
-               tidxs = myTextureIndices.get(i);
+            if (getTextureIndices() != null) {
+               tidxs = getTextureIndices().get(i);
             }
             if (myNormalIndices != null) {
                nidxs = myNormalIndices.get(i);
+            }
+            if (myColorIndices != null) {
+               cidxs = myColorIndices.get(i);
             }
 
             ArrayList<Vertex3d> convex = new ArrayList<Vertex3d>(idxs.length);
@@ -2326,13 +2326,17 @@ public class PolygonalMesh extends MeshBase {
                   // add the corresponding chord triangle for the texture and
                   // normal coordinates, if present, and remove the chord from
                   // these indices too
-                  if (myTextureIndices != null) {
+                  if (getTextureIndices() != null) {
                      newTextureIndices.add (getChord (chordIdxs, tidxs));
                      tidxs = removeIndex (chordIdxs[1], tidxs);
                   }
                   if (myNormalIndices != null) {
                      newNormalIndices.add (getChord (chordIdxs, nidxs));
                      nidxs = removeIndex (chordIdxs[1], nidxs);
+                  }
+                  if (myColorIndices != null) {
+                     newColorIndices.add(getChord(chordIdxs, cidxs));
+                     cidxs = removeIndex(chordIdxs[1], cidxs);
                   }
                }
             } else {
@@ -2411,7 +2415,7 @@ public class PolygonalMesh extends MeshBase {
 
                   if (earIdx < 0) {
                      System.err.println("Error: I can't figure out how" +
-                        " to split this non-convex face (Index: " + face.getIndex() + ")");
+                     " to split this non-convex face (Index: " + face.getIndex() + ")");
                      earIdx = 0;
                      chordIdxs[0] = idxs.length-1;
                      chordIdxs[1] = 0;
@@ -2425,7 +2429,7 @@ public class PolygonalMesh extends MeshBase {
                   // add the corresponding chord triangle for the texture and
                   // normal coordinates, if present, and remove the chord from
                   // these indices too
-                  if (myTextureIndices != null) {
+                  if (getTextureIndices() != null) {
                      newTextureIndices.add (getChord (chordIdxs, tidxs));
                      tidxs = removeIndex (chordIdxs[1], tidxs);
                   }
@@ -2433,7 +2437,10 @@ public class PolygonalMesh extends MeshBase {
                      newNormalIndices.add (getChord (chordIdxs, nidxs));
                      nidxs = removeIndex (chordIdxs[1], nidxs);
                   }
-
+                  if (myColorIndices != null) {
+                     newColorIndices.add (getChord (chordIdxs, cidxs));
+                     cidxs = removeIndex (chordIdxs[1], cidxs);
+                  }
 
                }
 
@@ -2441,11 +2448,14 @@ public class PolygonalMesh extends MeshBase {
 
             // last triplet
             newFaceIndices.add (idxs);
-            if (myTextureIndices != null) {
+            if (getTextureIndices() != null) {
                newTextureIndices.add (tidxs);
             }
             if (myNormalIndices != null) {
                newNormalIndices.add (nidxs);
+            }
+            if (myColorIndices != null) {
+               newColorIndices.add(cidxs);
             }
          }
       }
@@ -2459,8 +2469,8 @@ public class PolygonalMesh extends MeshBase {
          addFace (idxs);
       }
 
-      if (myTextureIndices != null) {
-         myTextureIndices = newTextureIndices;
+      if (getTextureIndices() != null) {
+         setTextureIndices(newTextureIndices);
          // for (int[] idxs : newTextureIndices) {
          //    myTextureIndices.add (idxs);
          // }
@@ -2470,6 +2480,9 @@ public class PolygonalMesh extends MeshBase {
          // for (int[] idxs : newNormalIndices) {
          //    myNormalIndices.add (idxs);
          // }
+      }
+      if (myColorIndices != null) {
+         myColorIndices = newColorIndices;
       }
 
       myNumTriangles = myFaces.size();
@@ -2507,6 +2520,7 @@ public class PolygonalMesh extends MeshBase {
       if (he.opposite != null) {
          he.opposite.setHard (hard);
       }
+      notifyModified();
    }
 
    void computeFaceNormals() {
@@ -2514,6 +2528,7 @@ public class PolygonalMesh extends MeshBase {
          myFaces.get (i).computeNormal();
       }
       myFaceNormalsValid = true;
+      notifyModified();
    }
 
    public double checkFaceNormals() {
@@ -2552,7 +2567,7 @@ public class PolygonalMesh extends MeshBase {
             for (int i=0; i<3; i++) {
                Vertex3d v = face.getVertex(i);
                System.out.println (" " + v + " " + v.pnt + " " +
-                  v.numIncidentHalfEdges());
+               v.numIncidentHalfEdges());
             }
 
          }
@@ -2584,32 +2599,11 @@ public class PolygonalMesh extends MeshBase {
       for (int i = 0; i < getNumFaces(); i++) {
          mesh.addFace (myFaces.get (i).getVertexIndices());
       }
-      for (int i = 0; i < myNormalList.size(); i++) {
-         Vector3d vn = new Vector3d (myNormalList.get (i));
-         mesh.myNormalList.add (vn);
-      }
-
-      if (myNormalIndices != null) {
-         mesh.myNormalIndices = new ArrayList<int[]>(myNormalIndices.size());
-         for (int i=0; i<myNormalIndices.size(); i++) {
-            mesh.myNormalIndices.add (
-               copyWithOffset (myNormalIndices.get(i), 0));
-         }
-      }
-
-      for (int i = 0; i < myTextureVertexList.size(); i++) {
-         Vector3d tv = new Vector3d (myTextureVertexList.get (i));
-         mesh.myTextureVertexList.add (tv);
-      }
-
-      if (myTextureIndices != null) {
-         mesh.myTextureIndices = new ArrayList<int[]>(myTextureIndices.size());
-         for (int i=0; i<myTextureIndices.size(); i++) {
-            mesh.myTextureIndices.add (
-               copyWithOffset (myTextureIndices.get(i), 0));
-         }
-      }
-
+      
+      mesh.copyNormals(this);
+      mesh.copyTextures(this);
+      mesh.copyColors(this);
+      
       if (myRenderProps != null) {
          mesh.setRenderProps (myRenderProps);
       }
@@ -2647,7 +2641,7 @@ public class PolygonalMesh extends MeshBase {
       }
 
       if (mesh.myNormalIndices != null &&
-         (myNormalIndices != null || myFaces.size() == 0)) {
+      (myNormalIndices != null || myFaces.size() == 0)) {
          int vnoff = myNormalList.size();
          for (int i=0; i<mesh.myNormalList.size(); i++) {
             Vector3d vn = new Vector3d (mesh.myNormalList.get (i));
@@ -2662,30 +2656,47 @@ public class PolygonalMesh extends MeshBase {
          }
       }
       else {
-         setNormalIndices (null);
+         clearNormals();
       }
 
-      if (mesh.myTextureIndices != null &&
-         (myTextureIndices != null || myFaces.size() == 0)) {
-         int vtoff = myTextureVertexList.size();
-         for (int i=0; i<mesh.myTextureVertexList.size(); i++) {
-            Vector3d vt = new Vector3d (mesh.myTextureVertexList.get (i));
-            myTextureVertexList.add (vt);
+      if (mesh.getTextureIndices() != null &&
+      (getTextureIndices() != null || myFaces.size() == 0)) {
+         int vtoff = getTextureCoordList().size();
+         for (int i=0; i<mesh.getTextureCoordList().size(); i++) {
+            Vector3d vt = new Vector3d (mesh.getTextureCoordList().get (i));
+            getTextureCoordList().add (vt);
          }
-         if (myTextureIndices == null) {
-            myTextureIndices = new ArrayList<int[]>();
+         if (getTextureIndices() == null) {
+            setTextureIndices(new ArrayList<int[]>());
          }
-         for (int i=0; i<mesh.myTextureIndices.size(); i++) {
-            myTextureIndices.add (
-               copyWithOffset (mesh.myTextureIndices.get(i), vtoff));
+         for (int i=0; i<mesh.getTextureIndices().size(); i++) {
+            getTextureIndices().add (
+               copyWithOffset (mesh.getTextureIndices().get(i), vtoff));
          }
       }
       else {
-         setTextureIndices (null);
+         clearTextures();
       }
 
-      // EDIT: Sanchez, May 2012
-      // changed order to allow texture indices to be copied over
+      if (mesh.getColorIndices() != null &&
+         (getColorIndices() != null || myFaces.size() == 0)) {
+         int vcoff = getColorList().size();
+         for (int i=0; i<mesh.getColorList().size(); i++) {
+            byte[] c = mesh.getColorList().get(i);
+            myColorList.add (Arrays.copyOf(c, c.length));
+         }
+         if (myColorIndices == null) {
+            myColorIndices = new ArrayList<>();
+         }
+         for (int i=0; i<mesh.getColorIndices().size(); i++) {
+            myColorIndices.add (
+               copyWithOffset (mesh.getColorIndices().get(i), vcoff));
+         }
+      }
+      else {
+         clearColors();
+      }      
+      
       for (int i = 0; i < mesh.getNumFaces(); i++) {
          addFace (copyWithOffset (
             mesh.getFaces().get(i).getVertexIndices(), voff));
@@ -2736,7 +2747,6 @@ public class PolygonalMesh extends MeshBase {
    public double computeAverageEdgeLength() {
       double len = 0;
       int nume =0;
-      Vector3d del = new Vector3d();
       for (Face face : getFaces()) {
          HalfEdge he = face.he0;
          do {
@@ -2965,9 +2975,9 @@ public class PolygonalMesh extends MeshBase {
          }
 
          Icc =
-            (SQR (na) * Iaa + 2 * na * nb * Iab + SQR (nb) * Ibb + d
-               * (2 * (na * Ia + nb * Ib) + d * I))
-               * SQR (inv);
+         (SQR (na) * Iaa + 2 * na * nb * Iab + SQR (nb) * Ibb + d
+         * (2 * (na * Ia + nb * Ib) + d * I))
+         * SQR (inv);
 
          if (mov1 != null) {
             mov1.set (a, mov1.get (a) + inv * na * Iaa);
@@ -2976,11 +2986,11 @@ public class PolygonalMesh extends MeshBase {
          }
 
          Iccc =
-            -(CUBE (na) * Iaaa + 3 * SQR (na) * nb * Iaab + 3 * na * SQR (nb)
-               * Iabb + CUBE (nb) * Ibbb + 3
-               * (SQR (na) * Iaa + 2 * na * nb * Iab + SQR (nb) * Ibb) * d + d * d
-               * (3 * (na * Ia + nb * Ib) + d * I))
-               * CUBE (inv);
+         -(CUBE (na) * Iaaa + 3 * SQR (na) * nb * Iaab + 3 * na * SQR (nb)
+         * Iabb + CUBE (nb) * Ibbb + 3
+         * (SQR (na) * Iaa + 2 * na * nb * Iab + SQR (nb) * Ibb) * d + d * d
+         * (3 * (na * Ia + nb * Ib) + d * I))
+         * CUBE (inv);
          if (mov2 != null) {
             mov2.set (a, mov2.get (a) + inv * na * Iaaa);
             mov2.set (b, mov2.get (b) + inv * nb * Ibbb);
@@ -2989,9 +2999,9 @@ public class PolygonalMesh extends MeshBase {
 
          Ibbc = -(d * Ibb + na * Iabb + nb * Ibbb) * inv;
          Icca =
-            (SQR (na) * Iaaa + 2 * na * nb * Iaab + SQR (nb) * Iabb + d
-               * (2 * (na * Iaa + nb * Iab) + d * Ia))
-               * SQR (inv);
+         (SQR (na) * Iaaa + 2 * na * nb * Iaab + SQR (nb) * Iabb + d
+         * (2 * (na * Iaa + nb * Iab) + d * Ia))
+         * SQR (inv);
 
          if (pov != null) {
             pov.set (c, pov.get (c) + inv * na * Iaab);
@@ -3012,11 +3022,11 @@ public class PolygonalMesh extends MeshBase {
 
       return vol_;
    }
-   
+
    public RigidTransform3d computePrincipalAxes() {
       return computePrincipalAxes(this);
    }
-   
+
    public static RigidTransform3d computePrincipalAxes(PolygonalMesh mesh) {
 
       Vector3d mov1 = new Vector3d();
@@ -3039,7 +3049,7 @@ public class PolygonalMesh extends MeshBase {
          (mov2.y + mov2.z), -pov.z, -pov.y,
          -pov.z, (mov2.x + mov2.z), -pov.x,
          -pov.y, -pov.x, (mov2.x + mov2.y));
-      
+
       // Jc = J + m[c][c]
       Matrix3d Jc = new Matrix3d();
       Jc.mul(covMatrix, covMatrix);
@@ -3188,11 +3198,12 @@ public class PolygonalMesh extends MeshBase {
 
       ZOrderComparator zComparator = new ZOrderComparator(zdir);
       ListIndexComparator<Face> faceComparator = 
-         new ListIndexComparator<Face>(myFaces, zComparator);
+      new ListIndexComparator<Face>(myFaces, zComparator);
 
       Integer[] idxs = faceComparator.createIndexArray();
       Arrays.sort(idxs, faceComparator);
       myFaceOrder = new int[idxs.length];
+      notifyModified();
 
       // unbox
       for (int i=0; i<idxs.length; i++) {
@@ -3209,7 +3220,7 @@ public class PolygonalMesh extends MeshBase {
       Vector3d pdisp = new Vector3d();
       Point3d centroid1 = new Point3d();
       Point3d centroid2 = new Point3d();
-      
+
       public ZOrderComparator(Vector3d zDir) {
          myDir.set(zDir);
       }
@@ -3295,19 +3306,10 @@ public class PolygonalMesh extends MeshBase {
             return false;
          }
       }
-      if (!vectorListsEqual (myNormalList, mesh.myNormalList, eps)) {
-         System.out.println ("here1");
+      if (!vectorListsEqual (getTextureCoordList(), mesh.getTextureCoordList(),eps)) {
          return false;
       }
-      if (!indexListsEqual (myNormalIndices, mesh.myNormalIndices)) {
-         System.out.println ("here2");
-         return false;
-      }
-      if (!vectorListsEqual (myTextureVertexList, mesh.myTextureVertexList,eps)) {
-
-         return false;
-      }
-      if (!indexListsEqual (myTextureIndices, mesh.myTextureIndices)) {
+      if (!indexListsEqual (getTextureIndices(), mesh.getTextureIndices())) {
          return false;
       }
       return true;
@@ -3341,8 +3343,8 @@ public class PolygonalMesh extends MeshBase {
 
       double mass = density*vol;
       SymmetricMatrix3d J =
-         new SymmetricMatrix3d (
-            mov2.y+mov2.z, mov2.x+mov2.z, mov2.x+mov2.y, -pov.z, -pov.y, -pov.x); 
+      new SymmetricMatrix3d (
+         mov2.y+mov2.z, mov2.x+mov2.z, mov2.x+mov2.y, -pov.z, -pov.y, -pov.x); 
       J.scale (density);
       // J contains the mass[com][com] term; remove this:
       J.m00 -= mass * (cov.z * cov.z + cov.y * cov.y);
@@ -3358,7 +3360,7 @@ public class PolygonalMesh extends MeshBase {
       M.set (mass, J, cov);
       return vol;
    }
-   
+
    /**
     * Computes the centre of volume of the mesh
     */
@@ -3521,6 +3523,66 @@ public class PolygonalMesh extends MeshBase {
       for (Face f : myFaces) {
          f.flip(true);
       }
+   }
+
+   public boolean hasTextureCoords() {
+      return myTextureIndices != null;
+   }
+
+   public void setTextureIndices(ArrayList<int[]> myTextureIndices) {
+      this.myTextureIndices = myTextureIndices;
+      notifyModified();
+   }
+
+   public ArrayList<Vector3d> getTextureCoordList() {
+      return myTextureVertexList;
+   }
+
+   public void setTextureVertexList(ArrayList<Vector3d> myTextureVertexList) {
+      this.myTextureVertexList = myTextureVertexList;
+      notifyModified();
+   }
+
+   private void copyTextures (PolygonalMesh old) {
+      
+      myTextureVertexList.clear();
+      myTextureVertexList.ensureCapacity (old.myTextureVertexList.size());
+      for (int i=0; i<old.myTextureVertexList.size(); i++) {
+         myTextureVertexList.add (new Vector3d (old.myTextureVertexList.get(i)));
+      }
+      
+      myTextureIndices.clear();
+      myTextureIndices.ensureCapacity (old.myTextureIndices.size());
+      for (int i=0; i<old.myTextureIndices.size(); i++) {
+         int[] oidx = old.myTextureIndices.get(i);
+         myTextureIndices.add (Arrays.copyOf(oidx, oidx.length));
+      }
+      notifyModified();
+   }
+   
+   public void clearTextures() {
+      myTextureVertexList.clear();
+      myTextureIndices = null;
+      notifyModified();
+   }
+   
+   /**
+    * Sets whether or not texture coordinates should be considered ``fixed''.
+    * This is used as a hint to determine how to cache rendering info for the
+    * mesh.
+    */
+   public void setTextureCoordsFixed(boolean set) {
+      if (myTexCoordsFixed != set) {
+         myTexCoordsFixed = set;
+         notifyModified();
+      }
+   }
+   
+   /**
+    * See {@link #setTextureCoordsFixed(boolean)}
+    */
+   public boolean isTextureCoordsFixed() {
+      return myTexCoordsFixed;
    }
 
 }

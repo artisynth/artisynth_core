@@ -6,21 +6,12 @@
  */
 package maspack.render;
 
-import java.awt.event.InputEvent;
-import java.util.LinkedList;
-
-import javax.media.opengl.GL2;
-
-import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AffineTransform3d;
-import maspack.matrix.RigidTransform3d;
-import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.AxisAngle;
-import maspack.matrix.Line;
-import maspack.matrix.Plane;
 import maspack.matrix.Point3d;
+import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
-import maspack.util.InternalErrorException;
+import maspack.render.GL.GLViewer;
 
 public class RotatableScaler3d extends Transrotator3d {
 
@@ -120,7 +111,9 @@ public class RotatableScaler3d extends Transrotator3d {
          
          boolean constrained = dragIsConstrained ();
          boolean repositioning = dragIsRepositioning ();
-         if (mySelectedComponent >= X_ROTATE) {
+         if (mySelectedComponent == X_ROTATE
+            || mySelectedComponent == Y_ROTATE
+            || mySelectedComponent == Z_ROTATE) {
             RotationMatrix3d R = new RotationMatrix3d();
             findRotation (R, myRotPnt, e.getRay());
             updateRotation (R, constrained, repositioning);

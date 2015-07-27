@@ -10,23 +10,21 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.Map.Entry;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JColorChooser;
 import javax.swing.JDialog;
@@ -46,15 +44,14 @@ import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileFilter;
 
-import maspack.graph.Node;
-import maspack.graph.Tree;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLGridPlane;
-import maspack.render.GLViewer;
-import maspack.render.GLViewerEvent;
-import maspack.render.GLViewerListener;
+import maspack.render.RendererEvent;
+import maspack.render.RenderListener;
 import maspack.render.RenderableUtils;
+import maspack.render.GL.GLGridPlane;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GL2.GL2Viewer;
 import maspack.solvers.PardisoSolver;
 import maspack.util.ClassFinder;
 import maspack.util.InternalErrorException;
@@ -86,11 +83,12 @@ import artisynth.core.inverse.InverseManager;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.modelmenu.DemoEntry;
-import artisynth.core.modelmenu.LabelEntry;
-import artisynth.core.modelmenu.MenuEntry;
+import artisynth.core.modelmenu.ArtisynthModelMenu;
+import artisynth.core.modelmenu.ModelActionEvent;
+import artisynth.core.modelmenu.ModelActionListener;
 import artisynth.core.probes.Probe;
 import artisynth.core.probes.TracingProbe;
+import artisynth.core.util.AliasTable;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.ExtensionFileFilter;
 import artisynth.core.util.JythonInit;
@@ -104,12 +102,14 @@ import artisynth.core.workspace.RootModel;
  */
 
 public class MenuBarHandler implements 
-   ActionListener, ValueChangeListener, SchedulerListener, GLViewerListener {
+   ActionListener, ValueChangeListener, SchedulerListener, RenderListener,
+   ModelActionListener {
    private Main myMain;
    private MainFrame myFrame;
+   
+   protected ArtisynthModelMenu myModelsMenuGenerator;  // generates models menu
 
-   public static final int MAX_MENU_ROWS = 20; // change to grid layout if
-   // larger
+   public static final int MAX_MENU_ROWS = 20; // change to grid layout if larger
 
    protected JButton navBarButton, rerenderButton, resetButton, playButton,
    singleStepButton;
@@ -224,20 +224,8 @@ public class MenuBarHandler implements
       menu = createDemosMenu("Models");
       myMenuBar.add(menu);
 
-      String[] scriptNames = myMain.getScriptNames();
-      scriptMenuItems = new JMenuItem[scriptNames.length];
-      if (scriptNames.length != 0) {
-         menu = new JMenu("Scripts");
-         VerticalGridLayout scriptGrid = new VerticalGridLayout(20, 0);
-         menu.getPopupMenu().setLayout(scriptGrid);
-
-         for (int i = 0; i < scriptNames.length; i++) {
-            JMenuItem item = makeMenuItem(scriptNames[i], scriptNames[i]);
-            item.setToolTipText(myMain.getScriptName(scriptNames[i]));
-            menu.add(item);
-            scriptMenuItems[i] = item;
-         }
-
+      menu = createScriptsMenu("Scripts");
+      if (menu != null) {
          myMenuBar.add(menu);
       }
 
@@ -397,188 +385,109 @@ public class MenuBarHandler implements
       myFrame.setJMenuBar(myMenuBar);
       myFrame.add(myToolBar, BorderLayout.NORTH);
    }
+   
+   private JMenu createScriptsMenu(String title) {
+      
+      String[] scriptNames = myMain.getScriptNames();
+      scriptMenuItems = new JMenuItem[scriptNames.length];
+      JMenu menu = null;
+      if (scriptNames.length != 0) {
+         menu = new JMenu(title);
+         VerticalGridLayout scriptGrid = new VerticalGridLayout(20, 0);
+         menu.getPopupMenu().setLayout(scriptGrid);
+   
+         for (int i = 0; i < scriptNames.length; i++) {
+            JMenuItem item = makeMenuItem(scriptNames[i], scriptNames[i]);
+            item.setToolTipText(myMain.getScriptName(scriptNames[i]));
+            menu.add(item);
+            scriptMenuItems[i] = item;
+         }
+         
+         // separator before load
+         menu.add(new JSeparator());
+        
+      } else {
+         menu = new JMenu(title); // empty
+      }
+      
+      // load from file dialog
+      JMenuItem loadItem = makeMenuItem("Load script...", "load script from file");
+      menu.add(loadItem);
+      
+      return menu;
+   }
+   
+   /**
+    * Reads the demo menu stuff
+    */
+   ArtisynthModelMenu readDemoMenu(String filename) {
+
+      // if no file specified, exit
+      if (filename==null || filename.equals("")) {
+         return null;
+      } 
+
+      ArtisynthModelMenu modelsMenu = null;
+      File file = ArtisynthPath.findFile(filename);
+      if (file == null) {
+         System.out.println ("Warning: demosMenuFile '" + filename + "' not found");
+      }
+      else {
+         try {
+            modelsMenu = new ArtisynthModelMenu(file);
+            return modelsMenu;
+         } catch (Exception e) {
+            System.out.println ("Warning: error reading demosMenuFile: "
+               + filename);
+            System.out.println (e.getMessage());
+            modelsMenu = null;
+         }
+      }
+      return modelsMenu;
+   }
 
    private JMenu createDemosMenu(String menuTitle) {
 
       JMenu menu = new JMenu(menuTitle);
-      Tree<MenuEntry> menuTree = myMain.getDemoMenu();
+      myModelsMenuGenerator = null;
+      
+      String menuFilename = myMain.getDemosMenuFilename(); 
+      if (menuFilename != null) {
+         myModelsMenuGenerator = readDemoMenu(menuFilename);
+      }
 
       // read from demonames
-      if (menuTree == null) {
+      if (myModelsMenuGenerator == null) {
          VerticalGridLayout menuGrid = new VerticalGridLayout(MAX_MENU_ROWS, 0);
          menu.getPopupMenu().setLayout(menuGrid);
-         String[] demoNames = myMain.getDemoNames();
-         for (int i = 0; i < demoNames.length; i++) {
-            JMenuItem item = makeMenuItem(demoNames[i], demoNames[i]);
-            item.setToolTipText(myMain.getDemoClassName(demoNames[i]));
+
+         AliasTable demoTable = myMain.getDemoTable();
+         for (Entry<String,String> entry : demoTable.getEntries()) {
+            String demoName = entry.getKey();
+            String demoClass = entry.getValue();
+            JMenuItem item = makeMenuItem(demoName, demoName);
+            item.setToolTipText(demoClass);
             menu.add(item);
          }
+
       } else {
          // build from tree
-         if (menuTree.getRootElement().getChildren().size() > MAX_MENU_ROWS) {
-            VerticalGridLayout menuGrid = new VerticalGridLayout(MAX_MENU_ROWS,
-               0);
-            menu.getPopupMenu().setLayout(menuGrid);
+         myModelsMenuGenerator.buildMenu(menu, this, myMain.getModelHistory());
+         // add demo entries from menu
+         AliasTable demoTable = myMain.getDemoTable();
+         AliasTable generatedTable = myModelsMenuGenerator.getDemoTable();
+         for (Entry<String,String> entry : generatedTable.getEntries()) {
+            demoTable.addEntry(entry.getKey(), entry.getValue());
          }
-         // climb through tree and build menus
-         for (Node<MenuEntry> node : menuTree.getRootElement().getChildren()) {
-            if (!isMenuEmpty (node)) {
-               buildMenu(menu, node); // recursively builds menu
-            }
-         }
+
       }
+
       return menu;
    }
-
-   private boolean isMenuEmpty(Node<MenuEntry> node) { 
-
-      MenuEntry entry = node.getData();
-
-      switch (entry.getType ()) {
-         case DIVIDER:
-            return false;
-         case LABEL:
-            return false;
-         default:
-            if (hasModelEntries (node)) {
-               return false;
-            }
-      }
-      return true;
-
-   }
    
-   // Recursively find if there are any model entries under a node.
-   // Faster than actually counting entries.
-   private boolean hasModelEntries(Node<MenuEntry> node) {
-      MenuEntry entry = node.getData();
-
-      switch (entry.getType()) {
-         case MENU: {
-            for (Node<MenuEntry> child : node.getChildren()) {
-               boolean hasModels = hasModelEntries (child);
-               if (hasModels) {
-                  return true;
-               }
-            }
-            break;
-         }
-         case MODEL: {
-            if (entry instanceof DemoEntry) {
-               return true;
-            }
-            break;
-         }
-         default:
-            break;
-      }
-      return false;
-   }
-   
-   // recursively find the number of model entries under a node
-   private int numModelEntries (Node<MenuEntry> node) {
-
-      int num = 0;
-      MenuEntry entry = node.getData();
-
-      switch (entry.getType()) {
-         case MENU: {
-            for (Node<MenuEntry> child : node.getChildren()) {
-               num += numModelEntries (child);
-            }
-            break;
-         }
-         case MODEL: {
-            if (entry instanceof DemoEntry) {
-               num++;
-            }
-            break;
-         }
-         default:
-            break;
-      }
-      return num;
-   }
-
-   // recursively build menu from supplied tree
-   private void buildMenu(JMenu menu, Node<MenuEntry> menuNode) {
-
-      MenuEntry entry = menuNode.getData();
-
-      switch (entry.getType()) {
-         case MENU:
-
-            JMenu newMenu = new JMenu(entry.getTitle());
-            if (entry.getIcon() != null) {
-               URL iconFile = ArtisynthPath.findResource(entry.getIcon());
-               newMenu.setIcon(new ImageIcon(iconFile));
-            }
-            if (entry.getFont() != null) {
-               newMenu.setFont(entry.getFont());
-            }
-            menu.add(newMenu);
-            // adjust layout if need to
-            if (menuNode.getChildren().size() > MAX_MENU_ROWS) {
-               VerticalGridLayout menuGrid =
-               new VerticalGridLayout(MAX_MENU_ROWS,
-                  0);
-               newMenu.getPopupMenu().setLayout(menuGrid);
-            }
-
-            // loop through all children
-            for (Node<MenuEntry> child : menuNode.getChildren()) {
-               if (!isMenuEmpty (child)) {
-                  buildMenu(newMenu, child);
-               }
-            }
-
-            break;
-         case DIVIDER:
-
-            JSeparator div = new JSeparator();
-            div.setLayout(new GridLayout());
-            menu.add(div);
-            break;
-
-         case LABEL:
-            if (entry instanceof LabelEntry) {
-               LabelEntry label = (LabelEntry)entry;
-               JLabel lbl = new JLabel(label.getTitle());
-               if (label.getIcon() != null) {
-                  URL iconFile = ArtisynthPath.findResource(entry.getIcon());
-                  lbl.setIcon(new ImageIcon(iconFile));
-               }
-               if (entry.getFont() != null) {
-                  lbl.setFont(entry.getFont());
-               }
-
-               menu.add(lbl);
-            }
-         case MODEL:
-            if (entry instanceof DemoEntry) {
-               DemoEntry demo = (DemoEntry)entry;
-
-               JMenuItem newItem =
-                  makeMenuItem(entry.getTitle(), demo.getModel().getName());
-               // automatically add entry to the hashmap
-               myMain.addDemoName(
-                  demo.getModel().getName(), demo.getModel().getFile());
-
-               if (entry.getIcon() != null) {
-                  URL iconFile = ArtisynthPath.findResource(entry.getIcon());
-                  newItem.setIcon(new ImageIcon(iconFile));
-               }
-               if (entry.getFont() != null) {
-                  newItem.setFont(entry.getFont());
-               }
-               newItem.setToolTipText(demo.getModel().getFile());
-               menu.add(newItem);
-            }
-            break;
-         default:
-            break;
-      }
-
+   public void updateHistoryMenu() {
+      ModelHistory hist = myMain.getModelHistory();
+      myModelsMenuGenerator.updateHistoryNodes(hist, this);
    }
 
    private DoubleField createTimeDisplay() {
@@ -690,8 +599,8 @@ public class MenuBarHandler implements
             return;
          }
          String className = rootModelClass.getName();
-         if (!myMain.loadModel(
-               className, rootModelClass.getSimpleName(), null)) {
+         ModelInfo mi = new ModelInfo(className, rootModelClass.getSimpleName(), null);
+         if (!myMain.loadModel(mi)) {
             showError(myMain.getErrorMessage());
          }
          updateModelButtons();
@@ -1255,36 +1164,67 @@ public class MenuBarHandler implements
       PardisoSolver s = new PardisoSolver();
    }
 
+   private void doLoadModelSafely(String className, String title, String[] args) {
+      doLoadModelSafely(new ModelInfo(className, title, args));
+   }
+
+   private void doLoadModelSafely(ModelInfo mi) {
+      // Collect as much possible space before loading another model
+      if (myMain.getScheduler().isPlaying()) {
+         myMain.getScheduler().stopRequest();
+         myMain.getScheduler().waitForPlayingToStop();
+      }
+
+      System.gc();
+      System.runFinalization();
+
+      // load the model with name cmd
+      if (!myMain.loadModel(mi)) {
+         showError(myMain.getErrorMessage());
+      } else {
+         myFrame.setBaseTitle("Artisynth " + mi.getShortName());
+      }
+   }
+   
+ 
+   /**
+    * action performed to process all the menu and button actions in this class
+    */
+   public void actionPerformed(ModelActionEvent event) {
+      String cmd = event.getCommand();
+      ModelInfo mi = event.getModelInfo();
+
+      if ("load".equals(cmd)) {
+         doLoadModelSafely(mi);
+      }
+   }
+
    /**
     * action performed to process all the menu and button actions in this class
     */
    public void actionPerformed(ActionEvent event) {
       String cmd = event.getActionCommand();
-
+      
       //
-      // Models menu
-      //
+      // Scripts menu
       if (isScriptMenuItem(event.getSource())) {
          String scriptName = myMain.getScriptName(cmd);
          runScript(scriptName);
+      } else if (cmd.equals("load script from file")) {
+         JFileChooser fileChooser = new JFileChooser();
+         fileChooser.setCurrentDirectory(ArtisynthPath.getWorkingDir());
+         int result = fileChooser.showOpenDialog(myFrame);
+         if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            runScript(selectedFile.getAbsolutePath());
+        }
       }
+      //
+      // Models menu
+      //
       else if (myMain.isDemoClassName(cmd)) {
-         // Collect as much possible space before loading another model
-         if (myMain.getScheduler().isPlaying()) {
-            myMain.getScheduler().stopRequest();
-            myMain.getScheduler().waitForPlayingToStop();
-         }
-
-         System.gc();
-         System.runFinalization();
-
-         // load the model with name cmd
-         if (!myMain.loadModel(myMain.getDemoClassName(cmd), cmd, null)) {
-            showError(myMain.getErrorMessage());
-         }
-         else {
-            myFrame.setBaseTitle("Artisynth " + cmd);
-         }
+         ModelInfo mi = new ModelInfo(myMain.getDemoClassName(cmd), cmd, null);
+         doLoadModelSafely(mi);
       }
       //
       // File Menu
@@ -1395,10 +1335,10 @@ public class MenuBarHandler implements
          myMain.setArticulatedTransformsEnabled(false);
       }
       else if (cmd.equals("Enable GL_SELECT selection")) {
-         GLViewer.enableGLSelectSelection (true);
+         GL2Viewer.enableGLSelectSelection (true);
       }
       else if (cmd.equals("Disable GL_SELECT selection")) {
-         GLViewer.enableGLSelectSelection (false);
+         GL2Viewer.enableGLSelectSelection (false);
       }
       else if (cmd.equals("PullController properties ...")) {
          showPullControllerPropertyDialog();
@@ -1905,7 +1845,7 @@ public class MenuBarHandler implements
          addMenuItem(menu, "Enable articulated transforms");
       }
 
-      if (GLViewer.isGLSelectSelectionEnabled()) {
+      if (GL2Viewer.isGLSelectSelectionEnabled()) {
          addMenuItem(menu, "Disable GL_SELECT selection");
       }
       else {
@@ -2111,7 +2051,7 @@ public class MenuBarHandler implements
       }
    }
 
-   public void renderOccurred (GLViewerEvent e) {
+   public void renderOccurred (RendererEvent e) {
       updateWidgets();
    }
 

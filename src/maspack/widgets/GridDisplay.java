@@ -16,9 +16,9 @@ import java.awt.event.WindowEvent;
 
 import javax.swing.*;
 
-import maspack.render.GLGridPlane;
-import maspack.render.GLViewer;
-import maspack.render.GLGridResolution;
+import maspack.render.GL.GLGridPlane;
+import maspack.render.GL.GLGridResolution;
+import maspack.render.GL.GLViewer;
 import maspack.util.Disposable;
 import artisynth.core.driver.Main;
 

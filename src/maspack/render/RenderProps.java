@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
+ * Copyright (c) 2014, by the Authors: John E Lloyd (UBC), C Antonio Sanchez
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -10,8 +10,6 @@ import java.awt.Color;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
-
-import javax.media.opengl.GL2;
 
 import maspack.properties.CompositeProperty;
 import maspack.properties.HasProperties;
@@ -31,7 +29,7 @@ import maspack.util.Scannable;
 public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
    public enum Shading {
-      FLAT, GOURARD, PHONG, NONE
+      FLAT, GOURAUD, PHONG, NONE
    };
 
    public enum PointStyle {
@@ -52,6 +50,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       zOrder,
       Shading,
       Shininess,
+      Ambience,
       FaceStyle,
       FaceColor,
       FaceColorDiffuse,
@@ -165,6 +164,10 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected float myShininess;
    protected PropertyMode myShininessMode;
    protected static float defaultShininess = 32f;
+   
+   protected float myAmbience;
+   protected PropertyMode myAmbienceMode;
+   protected static float defaultAmbience = 0f;
 
    protected PointStyle myPointStyle;
    protected PropertyMode myPointStyleMode;
@@ -245,7 +248,8 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          "shading:Inherited", "shading style", defaultShading);
       myProps.addInheritable (
          "shininess:Inherited", "specular shininess", defaultShininess, "[0,Inf]");
-     
+      myProps.addInheritable (
+         "ambience:Inherited", "ambience factor (scaled diffuse)", defaultAmbience, "[0,1]");
       myProps.addInheritable (
          "faceStyle:Inherited", "draw front/back of faces", defaultFaceStyle);
       myProps.addInheritable (
@@ -302,11 +306,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       //  "pointStyle", "pointColor", "pointSize", "pointRadius", "pointSlices");
    }
    
-   private int taperedEllipsoidDisplayList = 0;
-   private int sphereDisplayList = 0;
-   private int meshDisplayList = 0;
-   private int edgeDisplayList = 0;
-
    public RenderProps() {
       setDefaultModes();
       setDefaultValues();
@@ -347,7 +346,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    public void setLineWidth (int width) {
       if (myLineWidth != width) {
          myLineWidth = width;
-         clearMeshDisplayList();
       }
       myLineWidthMode =
          PropertyUtils.propagateValue (
@@ -373,7 +371,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    public void setPointSize (int size) {
       if (myPointSize != size) {
          myPointSize = size;
-         clearMeshDisplayList();
       }
       myPointSizeMode =
          PropertyUtils.propagateValue (
@@ -466,21 +463,23 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       return changed;
    }
 
-   protected void updateMaterial(Material mat, Color c, float alpha, float shine) {
+   protected void updateMaterial(Material mat, Color c, float alpha, float shine, float ambience) {
       if (mat != null) {
          mat.setDiffuse(c);
          mat.setAlpha(alpha);
          mat.setShininess(shine);
+         mat.setAmbienceCoefficient(ambience);
       }
    }
 
-   private void updateMaterial(Material mat, float[] c, float alpha, float shine) {
+   private void updateMaterial(Material mat, float[] c, float alpha, float shine, float ambience) {
       if (mat != null) {
          if (c != null) {
             mat.setDiffuse(c);
          }
          mat.setAlpha(alpha);
          mat.setShininess(shine);
+         mat.setAmbienceCoefficient(ambience);
       }
    }
 
@@ -496,7 +495,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
    public void setFaceColor (Color color) {
       if (doSetColor (myFaceColor, color)) {
-         updateMaterial(myFaceMaterial, color, myAlpha, myShininess);
+         updateMaterial(myFaceMaterial, color, myAlpha, myShininess, myAmbience);
       }
       if (myBackColor == null && myBackMaterial != null) {
          myBackMaterial.setDiffuse(myFaceColor);
@@ -649,6 +648,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       mat.setDiffuse(diffuse);
       mat.setAlpha(myAlpha);
       mat.setShininess(myShininess);
+      mat.setAmbienceCoefficient(myAmbience);
       return mat;
    }
 
@@ -658,6 +658,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       mat.setDiffuse(diffuse);
       mat.setAlpha(myAlpha);
       mat.setShininess(myShininess);
+      mat.setAmbienceCoefficient(myAmbience);
       return mat;
    }
 
@@ -667,6 +668,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       mat.setDiffuse(diffuse);
       mat.setAlpha(myAlpha);
       mat.setShininess(myShininess);
+      mat.setAmbienceCoefficient(myAmbience);
       return mat;
    }
 
@@ -792,10 +794,10 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected boolean doSetAlpha (float a) {
       if (myAlpha != a) {
          myAlpha = a;
-         updateMaterial(myFaceMaterial, myFaceColor, a, myShininess);
-         updateMaterial(myBackMaterial, myBackColor, a, myShininess);
-         updateMaterial(myLineMaterial, myLineColor, a, myShininess);
-         updateMaterial(myPointMaterial, myPointColor, a, myShininess);
+         updateMaterial(myFaceMaterial, myFaceColor, a, myShininess, myAmbience);
+         updateMaterial(myBackMaterial, myBackColor, a, myShininess, myAmbience);
+         updateMaterial(myLineMaterial, myLineColor, a, myShininess, myAmbience);
+         updateMaterial(myPointMaterial, myPointColor, a, myShininess, myAmbience);
          return true;
       }
       else {
@@ -854,12 +856,11 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    public void setShading (Shading shading) {
       if (myShading != shading) {
          myShading = shading;
-         clearMeshDisplayList();
       }
       myShadingMode =
          PropertyUtils.propagateValue (this, "shading", shading, myShadingMode);
    }
-
+   
    public PropertyMode getShadingMode() {
       return myShadingMode;
    }
@@ -872,10 +873,10 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected boolean doSetShininess (float s) {
       if (myShininess != s) {
          myShininess = s;
-         updateMaterial(myFaceMaterial, myFaceColor, myAlpha, myShininess);
-         updateMaterial(myBackMaterial, myBackColor, myAlpha, myShininess);
-         updateMaterial(myLineMaterial, myLineColor, myAlpha, myShininess);
-         updateMaterial(myPointMaterial, myPointColor, myAlpha, myShininess);
+         updateMaterial(myFaceMaterial, myFaceColor, myAlpha, myShininess, myAmbience);
+         updateMaterial(myBackMaterial, myBackColor, myAlpha, myShininess, myAmbience);
+         updateMaterial(myLineMaterial, myLineColor, myAlpha, myShininess, myAmbience);
+         updateMaterial(myPointMaterial, myPointColor, myAlpha, myShininess, myAmbience);
          return true;
       }
       else {
@@ -904,11 +905,48 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          PropertyUtils.setModeAndUpdate (
             this, "shininess", myShininessMode, mode);
    }
+   
+   protected boolean doSetAmbience (float a) {
+      if (myAmbience != a) {
+         myAmbience = a;
+         updateMaterial(myFaceMaterial, myFaceColor, myAlpha, myShininess, myAmbience);
+         updateMaterial(myBackMaterial, myBackColor, myAlpha, myShininess, myAmbience);
+         updateMaterial(myLineMaterial, myLineColor, myAlpha, myShininess, myAmbience);
+         updateMaterial(myPointMaterial, myPointColor, myAlpha, myShininess, myAmbience);
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   // property ambience
+
+   public float getAmbience() {
+      return myAmbience;
+   }
+
+   public void setAmbience (float a) {
+      doSetAmbience (a);
+      myAmbienceMode =
+         PropertyUtils.propagateValue (this, "ambience", a, myAmbienceMode);
+   }
+
+   public PropertyMode getAmbienceMode() {
+      return myAmbienceMode;
+   }
+
+   public void setAmbienceMode (PropertyMode mode) {
+      myAmbienceMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "ambience", myAmbienceMode, mode);
+   }
 
    public Material getFaceMaterial() {
       if (myFaceMaterial == null) {
          myFaceMaterial =
             Material.createDiffuse (myFaceColor, myAlpha, myShininess);
+         myFaceMaterial.setAmbienceCoefficient(myAmbience);
       }
       return myFaceMaterial;
    }
@@ -967,7 +1005,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
    public void setPointSlices (int num) {
       if (myPointSlices != num) {
-         clearSphereDisplayList();
          myPointSlices = num;
       }
       myPointSlicesMode =
@@ -1039,7 +1076,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
    public void setLineSlices (int num) {
       if (myLineSlices != num) {
-         clearTaperedEllipsoidDisplayList();
          myLineSlices = num;
       }
       myLineSlicesMode =
@@ -1066,7 +1102,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    public void setDrawEdges (boolean enable) {
       if (myDrawEdgesP != enable) {
          myDrawEdgesP = enable;
-         clearMeshDisplayList();
       }
       myDrawEdgesMode =
          PropertyUtils.propagateValue (
@@ -1187,7 +1222,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    public void setFaceStyle (Faces mode) {
       if (myFaceStyle != mode) {
          myFaceStyle = mode;
-         clearMeshDisplayList();
       }
       myFaceStyleMode =
          PropertyUtils.propagateValue (this, "faceStyle", mode, myFaceStyleMode);
@@ -1263,7 +1297,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    public void setBackColor (Color color) {
       if (doSetBackColor (color)) {
          if (color != null) {
-            updateMaterial(myBackMaterial, color, myAlpha, myShininess);
+            updateMaterial(myBackMaterial, color, myAlpha, myShininess, myAmbience);
          }
       }
       myBackColorMode =
@@ -1515,7 +1549,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
    public void setLineColor (Color color) {
       if (doSetColor (myLineColor, color)) {
-         updateMaterial(myLineMaterial, color, myAlpha, myShininess);
+         updateMaterial(myLineMaterial, color, myAlpha, myShininess, myAmbience);
       }
       myLineColorMode =
          PropertyUtils.propagateValue (
@@ -1897,6 +1931,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       if (myBackMaterial == null && myBackColor != null) {
          myBackMaterial =
             Material.createDiffuse (myBackColor, myAlpha, myShininess);
+         myBackMaterial.setAmbienceCoefficient(myAmbience);
       } else if (myBackColor == null) {
          return null;
       }
@@ -1907,6 +1942,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       if (myLineMaterial == null) {
          myLineMaterial =
             Material.createDiffuse (myLineColor, myAlpha, myShininess);
+         myLineMaterial.setAmbienceCoefficient(myAmbience);
       }
       return myLineMaterial;
    }
@@ -1915,6 +1951,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       if (myPointMaterial == null) {
          myPointMaterial =
             Material.createDiffuse (myPointColor, myAlpha, myShininess);
+         myPointMaterial.setAmbienceCoefficient(myAmbience);
       }
       return myPointMaterial;
    }
@@ -1944,7 +1981,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
             PropertyUtils.updateCompositeProperty (myTextureProps);
          }
       }
-      clearMeshDisplayList();
    }
 
    public Property getProperty (String name) {
@@ -1964,6 +2000,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myZOrderMode = INHERITED;
       myShadingMode = INHERITED;
       myShininessMode = INHERITED;
+      myAmbienceMode = INHERITED;
       myPointStyleMode = INHERITED;
       myPointRadiusMode = INHERITED;
       myPointSlicesMode = INHERITED;
@@ -1988,6 +2025,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myZOrder = defaultZOrder;
       myShading = defaultShading;
       myShininess = defaultShininess;
+      myAmbience = defaultAmbience;
       myPointStyle = defaultPointStyle;
       myPointRadius = defaultPointRadius;
       myPointSlices = defaultPointSlices;
@@ -2031,6 +2069,8 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myShadingMode = r.myShadingMode;
       myShininess = r.myShininess;
       myShininessMode = r.myShininessMode;
+      myAmbience = r.myAmbience;
+      myAmbienceMode = r.myAmbienceMode;
 
       myFaceStyle = r.myFaceStyle;
       myFaceStyleMode = r.myFaceStyleMode;
@@ -2090,11 +2130,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myPointRadiusMode = r.myPointRadiusMode;
       myPointSlices = r.myPointSlices;
       myPointSlicesMode = r.myPointSlicesMode;
-
-      taperedEllipsoidDisplayList = r.taperedEllipsoidDisplayList;
-      sphereDisplayList = r.sphereDisplayList;    
-      meshDisplayList = 0; // clear mesh display list
-      edgeDisplayList = 0;
 
    }
 
@@ -2215,6 +2250,12 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          return false;
       }
       else if (myShininessMode == EXPLICIT && myShininess != r.myShininess) {
+         return false;
+      }
+      if (myAmbience != r.myAmbience) {
+         return false;
+      } 
+      else if (myAmbienceMode == EXPLICIT && myAmbience != r.myAmbience) {
          return false;
       }
       if (myPointStyleMode != r.myPointStyleMode) {
@@ -2379,99 +2420,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       }
    }
 
-   public int getTaperedEllipsoidDisplayList (GL2 gl) {
-      if (taperedEllipsoidDisplayList < 1) {
-         Object key =
-            DisplayListManager.createKey ("taperedEllipsoid", myLineSlices);
-         taperedEllipsoidDisplayList =
-            DisplayListManager.getSharedList (gl, key);
-      }
-      return taperedEllipsoidDisplayList;
-   }
-
-   public int allocTaperedEllipsoidDisplayList (GL2 gl) {
-      Object key =
-         DisplayListManager.createKey ("taperedEllipsoid", myLineSlices);
-      taperedEllipsoidDisplayList =
-         DisplayListManager.allocSharedList (gl, key);
-      return taperedEllipsoidDisplayList;
-   }
-
-   public void clearTaperedEllipsoidDisplayList() {
-      if (taperedEllipsoidDisplayList > 0) {
-         Object key =
-            DisplayListManager.createKey ("taperedEllipsoid", myLineSlices);
-         DisplayListManager.freeSharedList (key);
-         taperedEllipsoidDisplayList = 0;
-         clearMeshDisplayList();  // mesh might be dependent on tapered ellipsoid
-      }
-   }
-
-   public int getSphereDisplayList (GL2 gl) {
-      if (sphereDisplayList < 1) {
-         Object key = DisplayListManager.createKey ("sphere", myPointSlices);
-         sphereDisplayList = DisplayListManager.getSharedList (gl, key);
-      }
-      return sphereDisplayList;
-   }
-
-   public int allocSphereDisplayList (GL2 gl) {
-      Object key = DisplayListManager.createKey ("sphere", myPointSlices);
-      sphereDisplayList = DisplayListManager.allocSharedList (gl, key);
-      return sphereDisplayList;
-   }
-
-   public void clearSphereDisplayList() {
-      if (sphereDisplayList > 0) {
-         Object key = DisplayListManager.createKey ("sphere", myPointSlices);
-         DisplayListManager.freeSharedList (key);
-         sphereDisplayList = 0;
-         clearMeshDisplayList();  // mesh might be depending on old sphere display list
-      }
-   }
-
-   public int getMeshDisplayList() {
-      return meshDisplayList;
-   }
-
-   public int allocMeshDisplayList (GL2 gl) {
-      meshDisplayList = DisplayListManager.allocList (gl);
-      return meshDisplayList;
-   }
-
-   public void clearMeshDisplayList() {
-      if (meshDisplayList > 0) {
-         DisplayListManager.freeList (meshDisplayList);
-         meshDisplayList = 0;
-      }
-      
-      // also clear edges
-      clearEdgeDisplayList();
-   }
-   
-   public void clearEdgeDisplayList() {
-      if (edgeDisplayList > 0) {
-         DisplayListManager.freeList(edgeDisplayList);
-         edgeDisplayList = 0;
-      }
-   }
-   
-   public int allocEdgeDisplayList (GL2 gl) {
-      edgeDisplayList = DisplayListManager.allocList (gl);
-      return edgeDisplayList;
-   }
-   
-   public int getEdgeDisplayList() {
-      return edgeDisplayList;
-   }
-
-   public void clearAllDisplayLists() {
-      clearMeshDisplayList();
-      clearEdgeDisplayList();
-      clearSphereDisplayList();
-      clearTaperedEllipsoidDisplayList();
-   }
-
    private static RenderProps initRenderProps (
       RenderProps props, HasProperties host) {
       if (host != null) {
@@ -2621,17 +2569,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       }
    }
 
-   public void dispose() {
-      clearTaperedEllipsoidDisplayList();
-      clearSphereDisplayList();
-      clearMeshDisplayList();
-   }
-
-   protected void finalize() throws Throwable {
-      dispose();
-      super.finalize();
-   }
-
    protected String colorString (float[] color) {
       if (color == null) {
          return "null";
@@ -2649,6 +2586,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       buf.append ("ZOrder=" + myZOrder + " " + myZOrderMode + ", ");
       buf.append ("Shading=" + myShading + " " + myShadingMode + ", ");
       buf.append ("Shininess=" + myShininess + " " + myShininessMode + ", ");
+      buf.append ("Ambience=" + myAmbience + " " + myAmbienceMode + ", ");
       buf.append ("FaceStyle=" + myFaceStyle + " " + myFaceStyleMode + ", ");
       buf.append ("FaceColor=" + colorString (myFaceColor) + " " +
          myFaceColorMode + ", ");
@@ -2808,6 +2746,18 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       r.setRenderProps (props);
    }
 
+   public static void setAmbience (Renderable r, double ambience) {
+      RenderProps props = createAndAssignProps (r);
+      props.setAmbience ((float)ambience);
+      r.setRenderProps (props);
+   }
+
+   public static void setAmbienceMode (Renderable r, PropertyMode mode) {
+      RenderProps props = createAndAssignProps (r);
+      props.setAmbienceMode (mode);
+      r.setRenderProps (props);
+   }
+   
    public static void setFaceStyle (Renderable r, Faces style) {
       RenderProps props = createAndAssignProps (r);
       props.setFaceStyle (style);

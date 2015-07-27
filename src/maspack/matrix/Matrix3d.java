@@ -1017,5 +1017,10 @@ public class Matrix3d extends Matrix3dBase {
          Q.addOuterProduct (w0, w1, w2, 1, v01, v02);
       }
    }
+   
+   @Override
+   public Matrix3d clone() {
+      return new Matrix3d(this);
+   }
 
 }

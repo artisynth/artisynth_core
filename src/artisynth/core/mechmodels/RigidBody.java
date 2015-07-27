@@ -18,15 +18,12 @@ import java.util.Set;
 
 import javax.media.opengl.GL2;
 
-import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix;
-import maspack.matrix.MatrixBlock;
-import maspack.matrix.Matrix6x1Block;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Quaternion;
@@ -35,9 +32,10 @@ import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.GL.GL2.GL2Viewer;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
@@ -51,7 +49,6 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.StructureChangeEvent;
-import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.TransformableGeometry;
@@ -556,7 +553,6 @@ public class RigidBody extends Frame
             }
          }
       }
-      myRenderProps.clearMeshDisplayList();
    }
 
    /**
@@ -847,15 +843,20 @@ public class RigidBody extends Frame
       }
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (myAxisLength > 0) {
-         GL2 gl = renderer.getGL2().getGL2();
+         if (!(renderer instanceof GL2Viewer)) {
+            return;
+         }
+         GL2Viewer viewer = (GL2Viewer)renderer;
+         GL2 gl = viewer.getGL2();
+         
          gl.glLineWidth (myRenderProps.getLineWidth());
          drawAxes (renderer, myRenderFrame, (float)myAxisLength);
          gl.glLineWidth (1);
       }
       if (isSelected()) {
-         flags |= GLRenderer.SELECTED;
+         flags |= Renderer.SELECTED;
       }
       myMeshInfo.render (renderer, myRenderProps, flags);
    }
@@ -873,13 +874,7 @@ public class RigidBody extends Frame
 
       Xpose.set (myState.XFrameToWorld);
 
-      if (myMeshInfo.transformGeometry (X, Xpose, Xlocal)) {
-         // mesh was transformed in addition to having its transform set
-         // so clear the display list (if set)
-         if (myRenderProps != null) {
-            myRenderProps.clearMeshDisplayList();
-         }
-      }
+      myMeshInfo.transformGeometry (X, Xpose, Xlocal);
 
       if (myConnectors != null && 
           (flags & TransformableGeometry.SIMULATING)==0 &&
@@ -912,7 +907,6 @@ public class RigidBody extends Frame
       if (mesh != null) {
          mesh.scale (s);
          mesh.setMeshToWorld (myState.XFrameToWorld);
-         myRenderProps.clearMeshDisplayList();
       }
       
       myDensity /= (s * s * s);

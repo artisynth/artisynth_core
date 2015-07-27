@@ -9,17 +9,14 @@ package artisynth.core.renderables;
 import java.awt.Font;
 import java.awt.geom.Rectangle2D;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.Point2d;
 import maspack.matrix.RigidTransform3d;
 import maspack.properties.PropertyDesc;
 import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
-import maspack.render.GLSupport;
-import maspack.render.RenderList;
+import maspack.render.Renderer;
+import maspack.render.GL.GLRenderable;
+import maspack.render.GL.GLSupport;
 
 import com.jogamp.opengl.util.awt.TextRenderer;
 
@@ -193,7 +190,7 @@ public class TextComponent2d extends TextComponentBase {
 
    
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
 
       if (!isSelectable() && renderer.isSelecting()) {
          return;
@@ -275,17 +272,16 @@ public class TextComponent2d extends TextComponentBase {
          renderer.begin2DRendering(sw, sh);
       }
 
-      GL2 gl = renderer.getGL2().getGL2();
-      gl.glPushMatrix();
+      renderer.pushModelMatrix();
       GLSupport.transformToGLMatrix (GLMatrix, myTransform);
-      gl.glMultMatrixd (GLMatrix, 0);
+      renderer.mulTransform(myTransform);
       
       myTextRenderer.begin3DRendering();
       myTextRenderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());
       myTextRenderer.draw3D(myText, 0, 0, 0, fTextSize);
       myTextRenderer.end3DRendering();
 
-      gl.glPopMatrix();
+      renderer.popModelMatrix();
 
       if (!saved2d) {
          renderer.end2DRendering();

@@ -19,7 +19,7 @@ import maspack.render.*;
 
 import java.util.*;
 
-import javax.media.opengl.*;
+import com.jogamp.opengl.*;
 
 public class PointList<P extends Point> extends RenderableComponentList<P>
 implements TransformableGeometry, ScalableUnits {
@@ -104,7 +104,7 @@ implements TransformableGeometry, ScalableUnits {
       return true;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       renderer.drawPoints (myRenderProps, iterator());
    }
 

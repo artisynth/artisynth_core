@@ -1,6 +1,7 @@
 package maspack.collision;
 
 import javax.media.opengl.GL2;
+
 import javax.swing.JFrame;
 
 import com.jogamp.opengl.util.gl2.GLUT;
@@ -13,10 +14,11 @@ import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
-import maspack.render.GLViewerFrame;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
+import maspack.render.GL.GLRenderable;
+import maspack.render.GL.GLViewerFrame;
+import maspack.render.GL.GL2.GL2Viewer;
 
 public class MeshColliderTest {
    static double epsilon = 1e-8;
@@ -373,8 +375,13 @@ public class MeshColliderTest {
          public void prerender (RenderList list) {
          }
 
-         public void render (GLRenderer renderer, int flags) {
-            GL2 gl = renderer.getGL2().getGL2();
+         public void render (Renderer renderer, int flags) {
+            if (!(renderer instanceof GL2Viewer)) {
+               return;
+            }
+            GL2Viewer viewer = (GL2Viewer)renderer;
+            GL2 gl = viewer.getGL2();
+            
             renderer.setLightingEnabled (false);
 
             if (info != null) {

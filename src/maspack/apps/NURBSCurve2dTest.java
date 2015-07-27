@@ -6,19 +6,37 @@
  */
 package maspack.apps;
 
-import java.io.*;
 import java.awt.Color;
-import javax.swing.*;
-
-import maspack.util.*;
-import maspack.matrix.*;
-import maspack.widgets.*;
-import maspack.widgets.DraggerToolBar.ButtonType;
-import maspack.render.*;
-import maspack.geometry.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 
 import javax.media.opengl.GL2;
-import javax.media.opengl.GLDrawable;
+import javax.swing.JToolBar;
+
+import maspack.geometry.MeshFactory;
+import maspack.geometry.NURBSCurve2d;
+import maspack.geometry.Polygon2d;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.QuadBezierDistance2d;
+import maspack.matrix.AxisAlignedRotation;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector2d;
+import maspack.matrix.Vector4d;
+import maspack.render.DrawToolEvent;
+import maspack.render.DrawToolListener;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.GL.GLRenderableBase;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GL2.GL2Viewer;
+import maspack.util.IndentingPrintWriter;
+import maspack.util.ReaderTokenizer;
+import maspack.widgets.DraggerToolBar;
+import maspack.widgets.DraggerToolBar.ButtonType;
+import maspack.widgets.ViewerFrame;
 
 public class NURBSCurve2dTest implements DrawToolListener {
 
@@ -63,8 +81,12 @@ public class NURBSCurve2dTest implements DrawToolListener {
          myDist = new double[nx*ny];
       }
       
-      public void render (GLRenderer renderer, int flags) {
-         GL2 gl = renderer.getGL2();
+      public void render (Renderer renderer, int flags) {
+         if (!(renderer instanceof GL2Viewer)) {
+            return;
+         }
+         GL2Viewer viewer = (GL2Viewer)renderer;
+         GL2 gl = viewer.getGL2();
 
          renderer.setLightingEnabled (false);
 

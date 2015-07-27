@@ -18,7 +18,7 @@ import javax.swing.JOptionPane;
 import maspack.properties.HasProperties;
 import maspack.properties.HostList;
 import maspack.properties.PropTreeCell;
-import maspack.render.GLRenderable;
+import maspack.render.GL.GLRenderable;
 import maspack.widgets.GuiUtils;
 import maspack.widgets.PropertyDialog;
 import artisynth.core.driver.Main;

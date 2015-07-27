@@ -26,10 +26,9 @@ import maspack.properties.PropertyList;
 import maspack.render.Dragger3dBase;
 import maspack.render.Dragger3dEvent;
 import maspack.render.Dragger3dListener;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
-import maspack.render.GLViewer;
-import maspack.render.GLViewer.DraggerType;
+import maspack.render.Renderer;
+import maspack.render.Dragger3d.DraggerType;
+import maspack.render.GL.GLViewer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderProps.Faces;
@@ -210,7 +209,7 @@ public abstract class CutPlaneProbe extends OutputProbe
    public void prerender(RenderList list) {
    }
 
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       if (myPlaneSurface != null) {
          //renderer.drawMesh(myRenderProps, myPlaneSurface, flags);
          myPlaneSurface.render (renderer, myRenderProps, flags);
@@ -224,13 +223,13 @@ public abstract class CutPlaneProbe extends OutputProbe
       }
    }
 
-   protected void drawBoundary(GLRenderer renderer, boolean selected) {
+   protected void drawBoundary(Renderer renderer, boolean selected) {
       for (Vertex3d[] boundary : mySurfaceBoundaries) {
          drawContour(boundary, renderer, selected);
       }
    }
 
-   protected void drawContour(Vertex3d[] contour, GLRenderer renderer,
+   protected void drawContour(Vertex3d[] contour, Renderer renderer,
       boolean selected) {
 
       float[] coords0 = new float[3];
@@ -255,7 +254,7 @@ public abstract class CutPlaneProbe extends OutputProbe
    }
 
    protected void drawContour(List<? extends Point3d> contour,
-      GLRenderer renderer, boolean selected) {
+      Renderer renderer, boolean selected) {
 
       float[] coords0 = new float[3];
       float[] coords1 = new float[3];

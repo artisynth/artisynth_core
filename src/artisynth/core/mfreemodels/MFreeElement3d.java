@@ -12,7 +12,6 @@ import javax.media.opengl.GL2;
 
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.Boundable;
-import maspack.geometry.MeshRenderer;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.AffineTransform3d;
@@ -29,9 +28,10 @@ import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.GL.GL2.PolygonalMeshRenderer;
 import maspack.util.InternalErrorException;
 import artisynth.core.femmodels.AuxiliaryMaterial;
 import artisynth.core.femmodels.FemElement;
@@ -668,7 +668,7 @@ public class MFreeElement3d extends FemElement implements Boundable {
       return vol;
    }
 
-   private MeshRenderer myMeshRenderer = new MeshRenderer();
+   private PolygonalMeshRenderer myMeshRenderer = new PolygonalMeshRenderer();
    
    @Override
    public void prerender (RenderList list) {
@@ -677,17 +677,17 @@ public class MFreeElement3d extends FemElement implements Boundable {
    }
    
    @Override
-   protected void renderEdges(GLRenderer renderer, RenderProps props) {
+   protected void renderEdges(Renderer renderer, RenderProps props) {
       if (myBoundaryMesh != null) {
          myMeshRenderer.renderEdges(renderer, myBoundaryMesh, props, 0);
       }
    }
 
-   public void renderWidget(GLRenderer renderer, RenderProps props, int flags) {
+   public void renderWidget(Renderer renderer, RenderProps props, int flags) {
       renderWidget(renderer, myElementWidgetSize, props, flags);
    }
 
-   public void renderWidget(GLRenderer renderer, double size,
+   public void renderWidget(Renderer renderer, double size,
       RenderProps props, int flags) {
 
       if (myBoundaryMesh != null && size > 0) {
@@ -706,12 +706,11 @@ public class MFreeElement3d extends FemElement implements Boundable {
          trans.setTranslation(cntr);
          trans.applyScaling(size, size, size);
          
-         GL2 gl = renderer.getGL2().getGL2();
-         gl.glPushMatrix();
+         renderer.pushModelMatrix();
          renderer.mulTransform(trans);
          //renderer.drawMesh(props, myBoundaryMesh, 0);
          myBoundaryMesh.render (renderer, props, 0);
-         gl.glPopMatrix();
+         renderer.popModelMatrix();
          
       }
    }
@@ -737,7 +736,7 @@ public class MFreeElement3d extends FemElement implements Boundable {
    }
    
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       RenderProps myProps = getRenderProps();
       if (myProps.isVisible()) {
          super.render(renderer, flags);

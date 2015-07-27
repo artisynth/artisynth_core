@@ -19,8 +19,8 @@ import javax.swing.event.MouseInputAdapter;
 
 import maspack.interpolation.Interpolation;
 import maspack.matrix.*;
-import maspack.render.GLViewer;
 import maspack.render.RenderProps;
+import maspack.render.GL.GLViewer;
 import maspack.util.*;
 import maspack.widgets.DoubleFieldSlider;
 import maspack.widgets.LabeledControl;
@@ -132,7 +132,7 @@ public class CoupledSolveDemo extends RootModel {
       collider.setInertiaFromDensity (10000);
       collider.setDynamic (false);
 
-      RenderProps.setShading (collider, RenderProps.Shading.GOURARD);
+      RenderProps.setShading (collider, RenderProps.Shading.GOURAUD);
       RenderProps.setVisible (collider, true);
       RenderProps.setFaceStyle (collider, RenderProps.Faces.FRONT_AND_BACK);
       RenderProps.setFaceColor (collider, new Color(0.7f,0f,0f));

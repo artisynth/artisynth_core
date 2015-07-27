@@ -15,6 +15,7 @@ import maspack.matrix.Matrix;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.Vector3d;
 import maspack.render.*;
+import maspack.render.GL.GLSupport;
 import maspack.render.RenderProps.LineStyle;
 import maspack.properties.*;
 import maspack.properties.PropertyInfo.Edit;

@@ -125,7 +125,7 @@ public class FemMuscleArm extends MuscleArm
         rp.setFaceColor(Color.RED);
         rp.setLineStyle(RenderProps.LineStyle.LINE);
         rp.setPointStyle(RenderProps.PointStyle.POINT);
-        rp.setShading(RenderProps.Shading.GOURARD);
+        rp.setShading(RenderProps.Shading.GOURAUD);
         rp.setLineColor(Color.WHITE);
         muscle.setRenderProps(rp);
 

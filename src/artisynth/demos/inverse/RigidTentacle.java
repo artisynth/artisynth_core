@@ -119,7 +119,7 @@ public class RigidTentacle extends RootModel {
       myMechMod.addFrameMarker (endpoint, body, loc);
         
       RenderProps rp = new RenderProps(myMechMod.getRenderProps());
-      rp.setShading(RenderProps.Shading.GOURARD);
+      rp.setShading(RenderProps.Shading.GOURAUD);
       rp.setPointColor(Color.ORANGE);
       rp.setPointStyle(PointStyle.SPHERE);
       rp.setPointRadius(0.02);

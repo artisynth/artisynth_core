@@ -6,6 +6,7 @@ import java.awt.event.KeyEvent;
 import java.util.Random;
 
 import javax.media.opengl.GL2;
+
 import javax.swing.JFrame;
 
 import maspack.collision.ContactInfo;
@@ -15,12 +16,13 @@ import maspack.matrix.MatrixNd;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
-import maspack.render.GLViewer;
-import maspack.render.GLViewerFrame;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.GL.GLRenderable;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewerFrame;
+import maspack.render.GL.GL2.GL2Viewer;
 
 public class Test {
    PolygonalMesh mesh1, mesh2;
@@ -190,8 +192,13 @@ public class Test {
     */
    class RenderableAxes implements GLRenderable {
 
-      public void render (GLRenderer renderer, int flags) {
-         GL2 gl = renderer.getGL2().getGL2();
+      public void render (Renderer renderer, int flags) {
+         if (!(renderer instanceof GL2Viewer)) {
+            return;
+         }
+         GL2Viewer viewer = (GL2Viewer)renderer;
+         GL2 gl = viewer.getGL2();
+         
          renderer.setLightingEnabled (false);
 
          double axisSize = 1000.0;

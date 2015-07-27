@@ -15,6 +15,10 @@ import maspack.geometry.PolygonalMesh;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.SignedDistanceGrid;
 import maspack.render.*;
+import maspack.render.GL.GLSelectable;
+import maspack.render.GL.GLSupport;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GL2.GL2Viewer;
 import maspack.util.*;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
@@ -440,8 +444,13 @@ public class SignedDistanceGridTest {
       public void prerender (RenderList list) {
          
       }
-      public void render (GLRenderer renderer, int flags) {
-         GL2 gl = renderer.getGL2().getGL2();
+      public void render (Renderer renderer, int flags) {
+         if (!(renderer instanceof GL2Viewer)) {
+            return;
+         }
+         GL2Viewer viewer = (GL2Viewer)renderer;
+         GL2 gl = viewer.getGL2();
+         
          gl.glEnable (GL2.GL_POINT_SMOOTH);
          gl.glPointSize (3);
          renderer.setColor (pointColour[0], pointColour[1], pointColour[2]);

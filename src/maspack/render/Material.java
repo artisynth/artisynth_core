@@ -7,6 +7,7 @@
 package maspack.render;
 
 import java.awt.Color;
+
 import javax.media.opengl.GL2;
 
 public class Material {
@@ -16,6 +17,7 @@ public class Material {
    private float[] emission;
    private float[] temp;
    private float shininess;
+   private float diffuseAmbienceFactor; // scale of diffuse
 
    public static final float[] default_ambient = {0.1f, 0.1f, 0.1f, 1f};
    public static final float[] default_specular = {0.1f, 0.1f, 0.1f, 1f};
@@ -86,35 +88,37 @@ public class Material {
       set (mat);
    }
 
-   public Material (float[] diff, float[] amb, float[] spec, float[] em, float shin) {
+   public Material (float[] diff, float[] amb, float[] spec, float[] em, float shin, float diffuseAmbience) {
       this();
-      set (diff, amb, spec, em, shin);
+      set (diff, amb, spec, em, shin, diffuseAmbience);
    }
    
-   public Material (Color diff, Color amb, Color spec, Color em, float shin) {
+   public Material (Color diff, Color amb, Color spec, Color em, float shin, float diffuseAmbience) {
       this();
-      set (diff, amb, spec, em, shin);
+      set (diff, amb, spec, em, shin, diffuseAmbience);
    }
    
    
-   public void set (float[] diff, float[] amb, float[] spec, float[] em, float shin) {
+   public void set (float[] diff, float[] amb, float[] spec, float[] em, float shin, float diffuseAmbience) {
       setDiffuse (diff);
       setAmbient (amb);
       setSpecular (spec);
       setEmission(em);
       setShininess (shin);
+      setAmbienceCoefficient(diffuseAmbience);
    }
    
-   public void set (Color diff, Color amb, Color spec, Color em, float shin) {
+   public void set (Color diff, Color amb, Color spec, Color em, float shin, float diffuseAmbience) {
       setDiffuse (diff);
       setAmbient (amb);
       setSpecular (spec);
       setEmission(em);
       setShininess (shin);
+      setAmbienceCoefficient(diffuseAmbience);
    }
 
    public void set (Material mat) {
-      set (mat.diffuse, mat.ambient, mat.specular, mat.emission, mat.shininess);
+      set (mat.diffuse, mat.ambient, mat.specular, mat.emission, mat.shininess, mat.diffuseAmbienceFactor);
    }
 
    public void setAmbient (float r, float g, float b, float a) {
@@ -253,8 +257,9 @@ public class Material {
 
    public void apply (GL2 gl, int sides, float[] diffuseOverride) {
       
+      float[] diff = diffuse;
+      
       gl.glMaterialfv(sides, GL2.GL_EMISSION, emission, 0);
-      gl.glMaterialfv (sides, GL2.GL_AMBIENT, ambient, 0);
       gl.glMaterialf (sides, GL2.GL_SHININESS, shininess);
       gl.glMaterialfv (sides, GL2.GL_SPECULAR, specular, 0);
       if (diffuseOverride != null) {
@@ -262,11 +267,17 @@ public class Material {
          temp[1] = diffuseOverride[1];
          temp[2] = diffuseOverride[2];
          temp[3] = diffuse[3];
-         gl.glMaterialfv (sides, GL2.GL_DIFFUSE, temp, 0);
+         diff = temp;
       }
-      else {
-         gl.glMaterialfv (sides, GL2.GL_DIFFUSE, diffuse, 0);
-      }
+      gl.glMaterialfv (sides, GL2.GL_DIFFUSE, diff, 0);
+      // mix ambience and diffuse
+      float a1 = diffuseAmbienceFactor;
+      float a0 = 1-a1; 
+      temp[0] = ambient[0]*a0 + diff[0]*a1;
+      temp[1] = ambient[1]*a0 + diff[1]*a1;
+      temp[2] = ambient[2]*a0 + diff[2]*a1;
+      temp[3] = 1.0f;
+      gl.glMaterialfv (sides, GL2.GL_AMBIENT, temp, 0);
    }
 
    private String floatArrayToString (float[] array) {
@@ -400,10 +411,21 @@ public class Material {
       if (shininess != mat.shininess) {
          return false;
       }
+      if (diffuseAmbienceFactor != mat.diffuseAmbienceFactor) {
+         return false;
+      }
       // alpha value
       if (diffuse[3] != mat.diffuse[3]) {
          return false;
       }
       return true;
+   }
+
+   public void setAmbienceCoefficient(float ambience) {
+      diffuseAmbienceFactor = ambience;
+   }
+   
+   public float getAmbienceCoefficient() {
+      return diffuseAmbienceFactor;
    }
 }

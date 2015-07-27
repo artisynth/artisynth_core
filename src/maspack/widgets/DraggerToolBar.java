@@ -18,6 +18,7 @@ import java.util.*;
 import maspack.util.*;
 import maspack.render.*;
 import maspack.render.DrawToolBase.FrameBinding;
+import maspack.render.GL.GLViewer;
 
 public class DraggerToolBar extends JToolBar implements ActionListener {
 

@@ -7,21 +7,23 @@
 package maspack.geometry;
 
 import java.awt.Color;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.util.ArrayList;
 
+import javax.media.opengl.GL2;
+
 import maspack.geometry.io.WavefrontReader;
 import maspack.matrix.Point3d;
-import maspack.matrix.Vector4d;
 import maspack.matrix.RigidTransform3d;
-import maspack.render.*;
-import maspack.util.*;
-
-import javax.media.opengl.GL2;
-import javax.media.opengl.GLDrawable;
+import maspack.matrix.Vector4d;
+import maspack.render.PointEdgeRenderProps;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.GL.GL2.GL2Viewer;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 /**
  * Base class for 2 and 3 dimensional NURBS curves
@@ -820,9 +822,14 @@ public abstract class NURBSCurveBase extends NURBSObject {
    /**
     * {@inheritDoc}
     */
-   public void render (GLRenderer renderer, RenderProps props, int flags) {
+   public void render (Renderer renderer, RenderProps props, int flags) {
       boolean selecting = renderer.isSelecting();
-      GL2 gl = renderer.getGL2().getGL2();
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       int numc = numControlPoints();
       if (numc == 0) {
          return;

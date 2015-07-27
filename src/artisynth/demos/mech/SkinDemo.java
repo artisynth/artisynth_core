@@ -194,7 +194,7 @@ public class SkinDemo extends RootModel {
       rp.setLineStyle(RenderProps.LineStyle.ELLIPSOID);
       rp.setLineRadius(len/20);
       rp.setLineSlices(10);
-      rp.setShading(RenderProps.Shading.GOURARD);
+      rp.setShading(RenderProps.Shading.GOURAUD);
       rp.setLineColor(Color.RED);
       muscle.setRenderProps(rp);
         
@@ -261,7 +261,7 @@ public class SkinDemo extends RootModel {
       //        Particle load = new Particle(mass,new Point3d(0,0,0));
         
       RenderProps rp = new RenderProps(model.getRenderProps());
-      rp.setShading(RenderProps.Shading.GOURARD);
+      rp.setShading(RenderProps.Shading.GOURAUD);
       rp.setPointColor(Color.ORANGE);
       rp.setPointRadius(len/20);
       load.setRenderProps(rp);
@@ -286,7 +286,7 @@ public class SkinDemo extends RootModel {
       //lowerArm.addMarker(endPoint);
         
       RenderProps rp = new RenderProps(model.getRenderProps());
-      rp.setShading(RenderProps.Shading.GOURARD);
+      rp.setShading(RenderProps.Shading.GOURAUD);
       rp.setPointColor(Color.ORANGE);
       rp.setPointRadius(len/20);
       endPoint.setRenderProps(rp);

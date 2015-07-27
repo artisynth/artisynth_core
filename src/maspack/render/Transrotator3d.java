@@ -6,25 +6,23 @@
  */
 package maspack.render;
 
-import java.awt.event.InputEvent;
 import java.util.LinkedList;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.AffineTransform3dBase;
-import maspack.matrix.RigidTransform3d;
-import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Line;
 import maspack.matrix.Plane;
 import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
+import maspack.render.GL.GLViewer;
+import maspack.render.RenderObject.BuildMode;
 import maspack.util.InternalErrorException;
 
 public class Transrotator3d extends Dragger3dBase {
    protected AffineTransform3dBase myTransform;
    protected AffineTransform3dBase myIncrementalTransform;
-   protected int myCircleRes = 20;
    protected int mySelectedComponent = NONE;
    protected Point3d myPnt0 = new Point3d();
    protected Point3d myRotPnt = new Point3d();
@@ -43,10 +41,10 @@ public class Transrotator3d extends Dragger3dBase {
    static final int Y_AXIS = 2;
    static final int Z_AXIS = 3;
 
-   static final int XY_PLANE = 4;
-   static final int YZ_PLANE = 5;
-   static final int ZX_PLANE = 6;
-
+   static final int YZ_PLANE = 4;
+   static final int ZX_PLANE = 5;
+   static final int XY_PLANE = 6;
+   
    static final int X_ROTATE = 7;
    static final int Y_ROTATE = 8;
    static final int Z_ROTATE = 9;
@@ -71,174 +69,171 @@ public class Transrotator3d extends Dragger3dBase {
       //myViewer = viewer;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
+      
       if (!myVisibleP) {
          return;
       }
-      GL2 gl = renderer.getGL2().getGL2();
+      if (!(renderer instanceof GLViewer)) {
+         return;
+      }
+      GLViewer viewer = (GLViewer)renderer;
+      
+      viewer.setLightingEnabled (false);
+      viewer.setLineWidth(myLineWidth);
 
-      renderer.setLightingEnabled (false);
-      gl.glLineWidth (myLineWidth);
+      viewer.pushModelMatrix();
+      viewer.mulModelMatrix(myXDraggerToWorld);
 
-      gl.glPushMatrix();
-      GLViewer.mulTransform (gl, myXDraggerToWorld);
+      float[] coords = new float[3];
+      if (myDragMode != DragMode.OFF && mySelectedComponent != NONE) {
+         viewer.setColor(1, 1, 0);
+         viewer.setPointSize(3);
+         myPnt0.get(coords);;
+         viewer.drawPoint(coords);
+         viewer.setPointSize(1);
+      }
+      viewer.scaleModelMatrix(mySize);
+      
+      RenderObject ro = viewer.getSharedObject(Transrotator3d.class);
+      if (ro == null || !ro.isValid()) {
+         ro = createTransrotatorRenderable();
+         viewer.addSharedObject(Transrotator3d.class, ro);
+      }
+      
+      // select appropriate color buffer
+      ro.colorSet(mySelectedComponent);  
+      viewer.drawLines(ro);
+      
+      viewer.popModelMatrix();
 
-      if (myDragMode != DragMode.OFF) {
-         gl.glColor3d (1f, 1f, 0f);
-         gl.glPointSize (3);
-         gl.glBegin (GL2.GL_POINTS);
-         gl.glVertex3d (myPnt0.x, myPnt0.y, myPnt0.z);
-         gl.glEnd();
-         gl.glPointSize (1);
-      }
 
-      if (mySelectedComponent == X_AXIS) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (1f, 0, 0);
-      }
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (0, 0.0, 0.0);
-      gl.glVertex3d (mySize, 0.0, 0.0);
-      gl.glEnd();
-
-      if (mySelectedComponent == Y_AXIS) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0, 1f, 0);
-      }
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (0, 0.0, 0.0);
-      gl.glVertex3d (0, mySize, 0.0);
-      gl.glEnd();
-
-      if (mySelectedComponent == Z_AXIS) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0, 0, 1f);
-      }
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (0, 0.0, 0.0);
-      gl.glVertex3d (0, 0, mySize);
-      gl.glEnd();
-
-      double len = myPlaneBoxRelativeSize * mySize;
-
-      // gl.glDisable (GL2.GL_CULL_FACE);
-
-      // x-y plane box
-      if (mySelectedComponent == XY_PLANE) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0.5, 0.5, 0.5);
-      }
-      gl.glBegin (GL2.GL_LINE_STRIP);
-      gl.glVertex3d (len, 0, 0);
-      gl.glVertex3d (len, len, 0);
-      gl.glVertex3d (0, len, 0);
-      gl.glEnd();
-
-      // y-z plane box
-      if (mySelectedComponent == YZ_PLANE) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0.5, 0.5, 0.5);
-      }
-      gl.glBegin (GL2.GL_LINE_STRIP);
-      gl.glVertex3d (0, len, 0);
-      gl.glVertex3d (0, len, len);
-      gl.glVertex3d (0, 0, len);
-      gl.glEnd();
-
-      // z-x plane box
-      if (mySelectedComponent == ZX_PLANE) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0.5, 0.5, 0.5);
-      }
-      gl.glBegin (GL2.GL_LINE_STRIP);
-      gl.glVertex3d (0, 0, len);
-      gl.glVertex3d (len, 0, len);
-      gl.glVertex3d (len, 0, 0);
-      gl.glEnd();
-
-      len = myRotatorRelativeSize * mySize;
-
-      // x axis rotator
-      if (mySelectedComponent == X_ROTATE) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (1f, 0, 0);
-      }
-      gl.glBegin (GL2.GL_LINE_STRIP);
-      for (int i = 0; i <= myNumCircleSides / 4; i++) {
-         double ang = 2 * Math.PI * i / myNumCircleSides;
-         gl.glVertex3d (0, len * Math.cos (ang), len * Math.sin (ang));
-      }
-      gl.glEnd();
-
-      // y axis rotator
-      if (mySelectedComponent == Y_ROTATE) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0, 1f, 0);
-      }
-      gl.glBegin (GL2.GL_LINE_STRIP);
-      for (int i = 0; i <= myNumCircleSides / 4; i++) {
-         double ang = 2 * Math.PI * i / myNumCircleSides;
-         gl.glVertex3d (len * Math.sin (ang), 0, len * Math.cos (ang));
-      }
-      gl.glEnd();
-
-      // z axis rotator
-      if (mySelectedComponent == Z_ROTATE) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0, 0, 1f);
-      }
-      gl.glBegin (GL2.GL_LINE_STRIP);
-      for (int i = 0; i <= myNumCircleSides / 4; i++) {
-         double ang = 2 * Math.PI * i / myNumCircleSides;
-         gl.glVertex3d (len * Math.cos (ang), len * Math.sin (ang), 0.0);
-      }
-      gl.glEnd();
-
-      gl.glPopMatrix();
-
-      if (myDragMode != DragMode.OFF && mySelectedComponent >= X_ROTATE) {
+      if (myDragMode != DragMode.OFF && 
+         (mySelectedComponent == X_ROTATE
+         || mySelectedComponent == Y_ROTATE
+         || mySelectedComponent == Z_ROTATE)) {
          // Draw rotation lines using the orientation at the time the drag was
          // started
          RigidTransform3d X = new RigidTransform3d (myXDraggerToWorld0);
          X.p.set (myXDraggerToWorld.p);
-         gl.glPushMatrix();
-         GLViewer.mulTransform (gl, X);
+         
+         viewer.pushModelMatrix();
+         viewer.mulModelMatrix(X);
+         final float[] coords0 = new float[]{0,0,0};
 
-         gl.glBegin (GL2.GL_LINES);
-         gl.glColor3f (0.5f, 0.5f, 0.5f);
-         gl.glVertex3d (0, 0, 0);
-         gl.glVertex3d (myPnt0.x, myPnt0.y, myPnt0.z);
-         gl.glColor3f (1f, 1f, 0);
-         gl.glVertex3d (0, 0, 0);
-         gl.glVertex3d (myRotPnt.x, myRotPnt.y, myRotPnt.z);
-         gl.glEnd();
+         viewer.setColor(0.5f, 0.5f, 0.5f);
+         myPnt0.get(coords);
+         viewer.drawLine(coords0, coords);
+         
+         viewer.setColor(1,1,0);
+         myRotPnt.get(coords);
+         viewer.drawLine(coords0, coords);
 
-         gl.glPopMatrix();
+         viewer.popModelMatrix();
       }
 
-      gl.glLineWidth (1);
-      renderer.setLightingEnabled (true);
+      viewer.setLineWidth(1);
+      viewer.setLightingEnabled (true);
 
-      // gl.glEnable (GL2.GL_CULL_FACE);
+   }
+   
+   private static RenderObject createTransrotatorRenderable() {
+      
+      final int QUARTER_CIRCLE_RESOLUTION = 32;
+      final int FULL_CIRCLE_RESOLUTION = 4*QUARTER_CIRCLE_RESOLUTION;
+      final float TRANS_BOX_SIZE = 0.4f;
+      final float TRANS_ROT_SIZE = 0.8f;
+      
+      RenderObject transrotr = new RenderObject();
+      
+      // 3 axis, 3 plane boxes
+      int xcolor  = transrotr.addColor(1.0f, 0.0f, 0.0f, 1.0f);
+      int ycolor  = transrotr.addColor(0.0f, 1.0f, 0.0f, 1.0f);
+      int zcolor  = transrotr.addColor(0.0f, 0.0f, 1.0f, 1.0f);
+      int yzcolor = transrotr.addColor(0.5f, 0.5f, 0.5f, 1.0f);
+      int zxcolor = transrotr.addColor(0.5f, 0.5f, 0.5f, 1.0f);
+      int xycolor = transrotr.addColor(0.5f, 0.5f, 0.5f, 1.0f);
+      int xrcolor = transrotr.addColor(1.0f, 0.0f, 0.0f, 1.0f);
+      int yrcolor = transrotr.addColor(0.0f, 1.0f, 0.0f, 1.0f);
+      int zrcolor = transrotr.addColor(0.0f, 0.0f, 1.0f, 1.0f);
+      
+      // 9 more color sets, one each with a component highlighted yellow
+      int[] colors = new int[]{xcolor,  ycolor,  zcolor,
+                               yzcolor, zxcolor, xycolor,
+                               xrcolor, yrcolor, zrcolor};
+      for (int i=0; i<colors.length; ++i) {
+         transrotr.createColorSetFrom(0);                // duplicate original color set
+         transrotr.setColor(i, 1.0f, 1.0f, 0.0f, 1.0f);  // replace ith color with yellow
+      }
+      
+      transrotr.beginBuild(BuildMode.LINES);
+      // x-axis
+      transrotr.color(xcolor);
+      transrotr.vertex(0, 0, 0);
+      transrotr.vertex(1, 0, 0);
+      // y-axis
+      transrotr.color(ycolor);
+      transrotr.vertex(0, 0, 0);
+      transrotr.vertex(0, 1, 0);
+      // z-axis
+      transrotr.color(zcolor);
+      transrotr.vertex(0, 0, 0);
+      transrotr.vertex(0, 0, 1);
+      transrotr.endBuild();
+      
+      // yz-plane
+      int v0, v1, v2;
+      transrotr.color(yzcolor);
+      v0 = transrotr.vertex(0, TRANS_BOX_SIZE, 0);
+      v1 = transrotr.vertex(0, TRANS_BOX_SIZE, TRANS_BOX_SIZE);
+      v2 = transrotr.vertex(0, 0, TRANS_BOX_SIZE);
+      transrotr.addLineStrip(v0, v1, v2);
 
+      // zx-plane
+      transrotr.color(zxcolor);
+      v0 = transrotr.vertex(0, 0, TRANS_BOX_SIZE);
+      v1 = transrotr.vertex(TRANS_BOX_SIZE, 0, TRANS_BOX_SIZE);
+      v2 = transrotr.vertex(TRANS_BOX_SIZE, 0, 0);
+      transrotr.addLineStrip(v0, v1, v2);
+      
+      // xy-plane
+      transrotr.color(xycolor);
+      v0 = transrotr.vertex(TRANS_BOX_SIZE, 0, 0);
+      v1 = transrotr.vertex(TRANS_BOX_SIZE, TRANS_BOX_SIZE, 0);
+      v2 = transrotr.vertex(0, TRANS_BOX_SIZE, 0);
+      transrotr.addLineStrip(v0, v1, v2);
+      
+   // x-rotation
+      transrotr.beginBuild(BuildMode.LINE_STRIP);
+      transrotr.color(xrcolor);
+      for (int i = 0; i <= QUARTER_CIRCLE_RESOLUTION; i++) {
+         double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
+         transrotr.vertex(
+            0f, TRANS_ROT_SIZE*(float)Math.cos (ang), TRANS_ROT_SIZE*(float)Math.sin (ang));
+      }
+      transrotr.endBuild();
+            
+      // y-rotation
+      transrotr.beginBuild(BuildMode.LINE_STRIP);
+      transrotr.color(yrcolor);
+      for (int i = 0; i <= QUARTER_CIRCLE_RESOLUTION; i++) {
+         double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
+         transrotr.vertex(
+            TRANS_ROT_SIZE*(float)Math.cos (ang), 0f, TRANS_ROT_SIZE*(float)Math.sin (ang));
+      }
+      transrotr.endBuild();
+            
+      // z-rotation
+      transrotr.beginBuild(BuildMode.LINE_STRIP);
+      transrotr.color(zrcolor);
+      for (int i = 0; i <= QUARTER_CIRCLE_RESOLUTION; i++) {
+         double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
+         transrotr.vertex( 
+            TRANS_ROT_SIZE*(float)Math.cos (ang), TRANS_ROT_SIZE*(float)Math.sin (ang), 0f);
+      }
+      transrotr.endBuild();
+   
+      return transrotr;
    }
 
    public void getSelection (LinkedList<Object> list, int qid) {
@@ -478,7 +473,9 @@ public class Transrotator3d extends Dragger3dBase {
       DragMode mode = getDragMode ();
       if (mode != DragMode.OFF && mySelectedComponent != NONE) {
          myDragMode = mode;
-         if (mySelectedComponent >= X_ROTATE) {
+         if (mySelectedComponent == X_ROTATE
+           || mySelectedComponent == Y_ROTATE
+           || mySelectedComponent == Z_ROTATE) {
             myXDraggerToWorld0.set (myXDraggerToWorld);
             findRotation (myRot0, myPnt0, e.getRay());
             myRotPnt.set (myPnt0);
@@ -513,7 +510,9 @@ public class Transrotator3d extends Dragger3dBase {
       if (mySelectedComponent != NONE) {
          // boolean constrained = dragIsConstrained (e);
          boolean constrained = dragIsConstrained ();
-         if (mySelectedComponent >= X_ROTATE) {
+         if (mySelectedComponent == X_ROTATE
+         || mySelectedComponent == Y_ROTATE
+         || mySelectedComponent == Z_ROTATE) {
             RotationMatrix3d R = new RotationMatrix3d();
             findRotation (R, myRotPnt, e.getRay());
             updateRotation (R, constrained);

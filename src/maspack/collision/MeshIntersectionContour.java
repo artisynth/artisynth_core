@@ -14,7 +14,8 @@ import maspack.geometry.HalfEdge;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
+import maspack.render.GL.GL2.GL2Viewer;
 
 public class MeshIntersectionContour extends ArrayList<MeshIntersectionPoint> {
    private static final long serialVersionUID = 1L;
@@ -297,8 +298,14 @@ public class MeshIntersectionContour extends ArrayList<MeshIntersectionPoint> {
       }
    }
 
-   void render (GLRenderer renderer, int flags) {
-      GL2 gl = renderer.getGL2().getGL2();
+   void render (Renderer renderer, int flags) {
+      
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       gl.glLineWidth (44);
       gl.glDisable (GL2.GL_LINE_STIPPLE);
       if (isClosed) {

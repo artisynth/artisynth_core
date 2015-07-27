@@ -8,6 +8,7 @@ package maspack.geometry;
 
 import maspack.matrix.*;
 import maspack.render.*;
+import maspack.render.GL.GLRenderable;
 import maspack.util.*;
 
 import java.io.*;
@@ -27,7 +28,7 @@ public abstract class BVTree implements GLRenderable {
    protected static final double INF = Double.POSITIVE_INFINITY;
 
    protected RigidTransform3d myBvhToWorld = RigidTransform3d.IDENTITY;
-
+   
    /**
     * Returns an approximate "radius" for this bounding volume hierarchy.
     * This is just the radius of the root bounding volume.
@@ -248,12 +249,12 @@ public abstract class BVTree implements GLRenderable {
          PolylineMesh pmesh = (PolylineMesh)mesh;
          
          int numElems = 0;
-         for (Polyline line : pmesh.getLines()) {
+         for (Polyline line : pmesh.getPolyLines()) {
             numElems += line.numVertices()-1;
          }
          ArrayList<Boundable> elist =
             new ArrayList<Boundable>(numElems);
-         for (Polyline line : pmesh.getLines()) {
+         for (Polyline line : pmesh.getPolyLines()) {
             Vertex3d[] vtxs = line.getVertices();
             for (int i=0; i<line.numVertices()-1; i++) {
                elist.add (new LineSegment (vtxs[i], vtxs[i+1]));
@@ -620,14 +621,14 @@ public abstract class BVTree implements GLRenderable {
    /**
     * {@inheritDoc}
     */
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (getRoot() != null) {
          recursivelyRender (renderer, flags, getRoot());
       }
    }
 
    protected void recursivelyRender (
-      GLRenderer renderer, int flags, BVNode node) {
+      Renderer renderer, int flags, BVNode node) {
       node.render (renderer, flags);
       BVNode child = node.myFirstChild;
       while (child != null) {

@@ -11,7 +11,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.Deque;
 
 import maspack.geometry.MeshBase;
 import maspack.matrix.AffineTransform3d;
@@ -21,8 +21,6 @@ import maspack.matrix.Point3d;
 import maspack.matrix.Quaternion;
 import maspack.matrix.RigidTransform3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
-import maspack.render.RenderList;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.modelbase.CompositeComponent;
@@ -129,7 +127,6 @@ public class FixedMesh extends MeshComponent {
       MeshBase mesh = getMesh();
       if (mesh != null) {
          mesh.setMeshToWorld (myState.XFrameToWorld);
-         myRenderProps.clearMeshDisplayList();
       }
    }
 
@@ -153,9 +150,6 @@ public class FixedMesh extends MeshComponent {
 
    public void transformMesh (AffineTransform3dBase X) {
       getMesh().transform (X);
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
-      }
    }
 
    public void transformGeometry (
@@ -164,13 +158,7 @@ public class FixedMesh extends MeshComponent {
       RigidTransform3d Xpose = new RigidTransform3d();
       AffineTransform3d Xlocal = new AffineTransform3d();
       Xpose.set (myState.XFrameToWorld);
-      if (myMeshInfo.transformGeometry (X, Xpose, Xlocal)) {
-         // mesh was transformed in addition to having its transform set
-         // so clear the display list (if set)
-         if (myRenderProps != null) {
-            myRenderProps.clearMeshDisplayList();
-         }
-      }
+      myMeshInfo.transformGeometry (X, Xpose, Xlocal);
       setPose (Xpose);
    }
 

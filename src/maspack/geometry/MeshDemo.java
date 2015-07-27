@@ -7,9 +7,10 @@
 package maspack.geometry;
 
 import maspack.matrix.*;
-import maspack.render.GLViewerFrame;
 import maspack.render.Material;
 import maspack.render.RenderProps;
+import maspack.render.GL.GLViewerFrame;
+
 import java.awt.Color;
 
 /**

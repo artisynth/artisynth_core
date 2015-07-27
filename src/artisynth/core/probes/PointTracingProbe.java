@@ -11,6 +11,7 @@ import java.awt.Color;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.TimeBase;
 import maspack.render.*;
+import maspack.render.GL2.GL2Viewer;
 import maspack.properties.*;
 import maspack.matrix.Point3d;
 import maspack.matrix.VectorNd;
@@ -151,7 +152,7 @@ public class PointTracingProbe extends TracingProbe {
       }
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (myNumericList == null || myNumericList.isEmpty()) {
          return;
       }
@@ -163,8 +164,7 @@ public class PointTracingProbe extends TracingProbe {
          }
       }
       else {
-         renderer.drawLineStrip (
-            myRenderProps, vi, myRenderProps.getLineStyle(), isSelected());
+         GL2Viewer.drawLineStrip (renderer, vi, myRenderProps, isSelected());
       }
    }
 

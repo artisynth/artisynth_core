@@ -6,136 +6,169 @@
  */
 package maspack.render;
 
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.IntBuffer;
 
-import javax.imageio.ImageIO;
-import javax.media.opengl.GL2;
+import javax.media.opengl.GL;
+import javax.media.opengl.GL2GL3;
 
 import com.jogamp.common.nio.Buffers;
 
 
 public class FrameBufferObject {
-   
-   // This static var keeps track of which FBO has been activated
-   public static int ActiveFBO = 0;
-   public static int defaultSamples = 8;
-   
-   public int FBOhandle = -1; // FrameBuffer Object
-   public int DBhandle = -1; // RenderBuffer Object (provides depth buffer)
-   public int CBhandle = -1; // Texture handle
 
-   public int FBNhandle = -1; // Multisample FrameBuffer Object
-   public int CBNhandle = -1; // Multisample RGB buffer handle
+   public static int defaultMultiSamples = 8;
+
+   public int FBOhandle = -1; // Main FrameBuffer Object
+   public int DBhandle = -1;  // Depth RenderBuffer Object
+   public int CBhandle = -1;  // Color buffer handle
+
+   // intermediate fbo for blitting (no depth required)
+   public int FBNhandle = -1;
+   public int CBNhandle = -1;
 
    public int x;
    public int y;
    public int width; // dimensions of framebuffer
    public int height;
-   public final static int SIZE_INT = 4;
-   public GL2 gl;
-
-   public File file;
-   public String format;
-
+   public int nMultiSamples;
+   private boolean gammaCorrected;
+   boolean initialized;
+   
    // status returned by OpenGL after FBO init
    // if this isn't == GL_FRAMEBUFFER_COMPLETE then init() had a problem
    int status = 0;
-   public boolean setup = false;
-   public int samples = defaultSamples;
-   
-   /**
-    * Create a framebuffer with the given dimensions
-    */
-   public FrameBufferObject (int w, int h, File file, String format, GL2 gl) {
-      width = w;
-      height = h;
-      x = 0;
-      y = 0;
-      this.gl = gl;
-      this.file = file;
-      this.format = format;
+
+   public FrameBufferObject (int x, int y, int w, int h, int nsamples, boolean gammaCorrection) {
+      set(x,y,w,h,nsamples, gammaCorrection);
    }
    
-   /**
-    * Create a framebuffer with the given dimensions
-    */
-   public FrameBufferObject (int x, int y, int w, int h, File file, String format, GL2 gl) {
-      width = w;
-      height = h;
+   private void set(int x, int y, int w, int h, int nsamples, boolean gammaCorrection) {
       this.x = x;
       this.y = y;
-      this.gl = gl;
-      this.file = file;
-      this.format = format;
+      this.width = w;
+      this.height = h;
+      if (nsamples <= 0) {
+         nsamples = defaultMultiSamples;
+      }
+      this.nMultiSamples = nsamples;
+      this.gammaCorrected = gammaCorrection;
+      this.initialized = false;
    }
+
+   /**
+    * Create a framebuffer with the given dimensions
+    */
+   public FrameBufferObject (int w, int h) {
+      this(0,0,w,h,-1, false);
+   }
+
+   public FrameBufferObject (int w, int h, int nsamples) {
+      this(0,0,w,h,nsamples, false);
+   }
+
+   /**
+    * Create a framebuffer with the given dimensions
+    */
+   public FrameBufferObject (int x, int y, int w, int h) {
+      this(x,y,w,h,-1, false);
+   }
+
+   //   public void reconfigure(int w, int h) {
+   //      reconfigure(x, y, w, h, -1);
+   //   }
+   //   
+   //   public void reconfigure(int w, int h, int nsamples) {
+   //      reconfigure(x, y, w, h, nsamples);
+   //   }
+   //   
+   //   public void reconfigure(int x, int y, int w, int h) {
+   //      reconfigure(x, y, w, h, -1);
+   //   }
+   
+   public void reconfigure(int w, int h, int nsamples, boolean gammaCorrected) {
+      reconfigure(x, y, w, h, nsamples, gammaCorrected);
+   }
+   
+   public void reconfigure(int x, int y, int w, int h, int nsamples, boolean gammaCorrected) {
+      if (nsamples <= 0) {
+         nsamples = this.nMultiSamples;
+      }
+      if (x != this.x || y != this.y || w != this.width || h != this.height
+         || nsamples != this.nMultiSamples || gammaCorrected != this.gammaCorrected) {
+         
+         // clean up old buffer, create new
+         set(x,y,w,h,nsamples, gammaCorrected);
+         initialized = false;
+      }
+   }
+   
+   
 
    /**
     * Prepare framebuffer for use. Width and height should be set to rational
     * values before calling this function. Creates framebuffer with depth buffer
     * and one texture.
     */
-   public void setupFBO () {
-      setup = true;
+   private void init (GL2GL3 gl) {
+      dispose(gl);  // maybe clean FBO
       
-      IntBuffer handle = allocInts(1);
-      // create the frame buffer object
-      gl.glGenFramebuffers(1, handle);
-      FBOhandle = handle.get(0);
+      int[] buff = new int[1];
+      // create the single-sample frame buffer object (for final image)
+      gl.glGenFramebuffers(1, buff, 0);
+      FBOhandle = buff[0];
 
-      if (samples > 1) {
-         gl.glGenFramebuffers(1, handle);
-         FBNhandle = handle.get(0);
+      // generate multisampled FBO
+      if (nMultiSamples > 1) {
+         gl.glGenFramebuffers(1, buff, 0);
+         FBNhandle = buff[0];
       }
-      
 
-      addDepthBuffer ();
-      addRgbBuffer ();
+      addDepthBuffer (gl);
+      addRgbBuffer (gl);
       // CBhandle = makeTexture();
       // attachTexture(CBhandle);
-      
-      checkStatus ();
+
+      checkStatus (gl);
+      initialized = true;
    }
-   
+
    /**
     *  Return the error code from the FBO
     */
-   public int checkStatus() {
-      gl.glBindFramebuffer(GL2.GL_FRAMEBUFFER, FBOhandle);
-      status = gl.glCheckFramebufferStatus(GL2.GL_FRAMEBUFFER);
-      gl.glBindFramebuffer(GL2.GL_FRAMEBUFFER, ActiveFBO);
-      System.out.println("Framebuffer status is " + status + 
-         " = " + framebuffer_status_string(status));
+   public int checkStatus(GL gl) {
+      gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, FBOhandle);
+      status = gl.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER);
+      gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0);
+      if (status != GL.GL_FRAMEBUFFER_COMPLETE) {
+         System.out.println("Framebuffer status is " + status + 
+            " = " + getFramebufferStatus(status));
+      }
       return status;
    }
 
    /**
     * Return a string representing the given fbo status code
     */
-   public static String framebuffer_status_string(int statcode)
+   public static String getFramebufferStatus(int statcode)
    {
       switch(statcode) {
-         case GL2.GL_FRAMEBUFFER_COMPLETE:
+         case GL.GL_FRAMEBUFFER_COMPLETE:
             return ("complete!");
-         case GL2.GL_FRAMEBUFFER_UNSUPPORTED:
+         case GL.GL_FRAMEBUFFER_UNSUPPORTED:
             return ("GL_FRAMEBUFFER_UNSUPPORTED");
-         case GL2.GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+         case GL.GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
             return ("INCOMPLETE_ATTACHMENT");
-         case GL2.GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+         case GL.GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
             return ("FRAMEBUFFER_MISSING_ATTACHMENT");
-         case GL2.GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
+         case GL.GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
             return ("FRAMEBUFFER_DIMENSIONS");
-         case GL2.GL_FRAMEBUFFER_INCOMPLETE_FORMATS:
+         case GL.GL_FRAMEBUFFER_INCOMPLETE_FORMATS:
             return ("INCOMPLETE_FORMATS");
-         case GL2.GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+         case GL2GL3.GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
             return ("INCOMPLETE_DRAW_BUFFER");
-         case GL2.GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+         case GL2GL3.GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
             return ("INCOMPLETE_READ_BUFFER");
-         case GL2.GL_FRAMEBUFFER_BINDING:
+         case GL.GL_FRAMEBUFFER_BINDING:
             return ("BINDING");
          default:
             return ("Unknown status code");
@@ -152,10 +185,10 @@ public class FrameBufferObject {
    //  */
    // private void attachTexture (int textureId) {
    //    // attach the texture to FBO color attachement point
-   //    gl.glBindFramebuffer(GL2.GL_FRAMEBUFFER, FBOhandle);
-   //    gl.glFramebufferTexture2DEXT(GL2.GL_FRAMEBUFFER, 
-   //       GL2.GL_COLOR_ATTACHMENT0, GL2.GL_TEXTURE_2D, textureId, 0);
-   //    gl.glBindFramebuffer(GL2.GL_FRAMEBUFFER, ActiveFBO);
+   //    gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, FBOhandle);
+   //    gl.glFramebufferTexture2DEXT(GL.GL_FRAMEBUFFER, 
+   //       GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D, textureId, 0);
+   //    gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, ActiveFBO);
    //    CBhandle = textureId;
    // }
 
@@ -167,27 +200,22 @@ public class FrameBufferObject {
    //    IntBuffer textureHandle = allocInts (1);
    //    gl.glGenTextures(1, textureHandle);
    //    int textureId = textureHandle.get (0);
-      
-   //    gl.glBindTexture(GL2.GL_TEXTURE_2D, textureId);
 
-   //    gl.glTexParameterf(GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_MAG_FILTER, GL2.GL_LINEAR_MIPMAP_LINEAR);
-   //    gl.glTexParameterf(GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_MIN_FILTER, GL2.GL_LINEAR_MIPMAP_LINEAR);
-   //    gl.glTexParameteri(GL2.GL_TEXTURE_2D, GL2.GL_GENERATE_MIPMAP, GL2.GL_TRUE);
+   //    gl.glBindTexture(GL.GL_TEXTURE_2D, textureId);
 
-   //    gl.glTexParameteri(GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_WRAP_S, GL2.GL_REPEAT);
-   //    gl.glTexParameteri(GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_WRAP_T, GL2.GL_REPEAT);
+   //    gl.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR_MIPMAP_LINEAR);
+   //    gl.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR_MIPMAP_LINEAR);
+   //    gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_GENERATE_MIPMAP, GL.GL_TRUE);
+
+   //    gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_REPEAT);
+   //    gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT);
 
    //    // make the texture
-   //    gl.glTexImage2D(GL2.GL_TEXTURE_2D, 0, GL2.GL_RGBA8, 
-   //       width, height, 0, GL2.GL_RGBA, GL2.GL_UNSIGNED_BYTE, null);
-   //    gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
+   //    gl.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA8, 
+   //       width, height, 0, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, null);
+   //    gl.glBindTexture(GL.GL_TEXTURE_2D, 0);
    //    return textureId;
    // }
-
-   private IntBuffer allocInts(int howmany) {
-      return ByteBuffer.allocateDirect(howmany * SIZE_INT).order(
-         ByteOrder.nativeOrder()).asIntBuffer();
-  }
 
    // ---------------------------------------------------------------------------
    // Render Buffer Object functions
@@ -197,84 +225,110 @@ public class FrameBufferObject {
     * Create a renderBuffer configured as a depth buffer and attach it to the
     * FBO
     */
-   private void addDepthBuffer () {
+   private void addDepthBuffer (GL2GL3 gl) {
       // IntBuffer numSamps = allocInts (1);
-      // gl.glGetIntegerv(GL2.GL_MAX_SAMPLES, numSamps);
+      // gl.glGetIntegerv(GL.GL_MAX_SAMPLES, numSamps);
       // System.out.println ("numSamps=" + numSamps.get(0));
 
       // make renderbuffer for depth
-      System.out.println("adding depth buffer");
+      // System.out.println("adding depth buffer");
 
-      IntBuffer rboId = allocInts (1);
-      gl.glGenRenderbuffers (1, rboId);
-      DBhandle = rboId.get (0);
-      gl.glBindFramebuffer(GL2.GL_FRAMEBUFFER, FBOhandle);
-      gl.glBindRenderbuffer(GL2.GL_RENDERBUFFER, DBhandle);
+      int[] buff = new int[1];
+      gl.glGenRenderbuffers (1, buff, 0);
+      DBhandle = buff[0];
+
+      gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, FBOhandle);
+      gl.glBindRenderbuffer(GL.GL_RENDERBUFFER, DBhandle);
       
-      if (samples > 1) {
-         gl.glRenderbufferStorageMultisample(GL2.GL_RENDERBUFFER, samples, GL2.GL_DEPTH_COMPONENT, width, height);
+      // either bind depth buffer to the single FBO or to the multisampled
+      if (nMultiSamples > 1) {
+         gl.glRenderbufferStorageMultisample(GL.GL_RENDERBUFFER, nMultiSamples, 
+            GL2GL3.GL_DEPTH_COMPONENT, width, height);
       } else {
-         gl.glRenderbufferStorage(GL2.GL_RENDERBUFFER, GL2.GL_DEPTH_COMPONENT, width, height);
+         gl.glRenderbufferStorage(GL.GL_RENDERBUFFER, 
+            GL2GL3.GL_DEPTH_COMPONENT, width, height);
       }
-      
-      // gl.glRenderbufferStorageMultisampleEXT (
-      //    GL2.GL_RENDERBUFFER, /*samps=*/8,
-      //    GL2.GL_DEPTH_COMPONENT, width, height);
 
       // attach the renderbuffer to depth attachment point
       gl.glFramebufferRenderbuffer (
-         GL2.GL_FRAMEBUFFER, GL2.GL_DEPTH_ATTACHMENT,
-         GL2.GL_RENDERBUFFER, DBhandle);
+         GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT,
+         GL.GL_RENDERBUFFER, DBhandle);
+
+      gl.glBindRenderbuffer (GL.GL_RENDERBUFFER, 0); // detach for safety
+      gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0);
       
-      // XXX Why detach?
-      gl.glBindRenderbuffer (GL2.GL_RENDERBUFFER, 0);
-      gl.glBindFramebuffer (GL2.GL_FRAMEBUFFER, ActiveFBO);
    }
 
    /**
     * Create a renderBuffer configured as an RGB buffer and attach it to the
     * FBO
     */
-   private void addRgbBuffer () {
+   private void addRgbBuffer (GL2GL3 gl) {
       // IntBuffer numSamps = allocInts (1);
-      // gl.glGetIntegerv(GL2.GL_MAX_SAMPLES, numSamps);
+      // gl.glGetIntegerv(GL.GL_MAX_SAMPLES, numSamps);
       // System.out.println ("numSamps=" + numSamps.get(0));
 
       // make renderbuffer for depth
+      // System.out.println ("adding rgb buffer");
 
-      System.out.println ("adding rgb buffer");
+      int[] buff = new int[1];
+      gl.glGenRenderbuffers (1, buff, 0);
+      CBhandle = buff[0];
 
-      IntBuffer rboId = allocInts (1);
-      gl.glGenRenderbuffers (1, rboId);
-      CBhandle = rboId.get (0);
-      
-      gl.glBindFramebuffer(GL2.GL_FRAMEBUFFER, FBOhandle);
-      gl.glBindRenderbuffer (GL2.GL_RENDERBUFFER, CBhandle);
-      
-      if (samples > 1) {
-         gl.glGenRenderbuffers (1, rboId);
-         CBNhandle = rboId.get (0);
-         gl.glRenderbufferStorageMultisample (
-             GL2.GL_RENDERBUFFER, samples, GL2.GL_RGBA8, width, height);
+      // bind color buffer to non-multisampled FBO
+      gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, FBOhandle);
+      gl.glBindRenderbuffer (GL.GL_RENDERBUFFER, CBhandle);
+      if (nMultiSamples > 1) {
+         if (gammaCorrected) {
+            gl.glRenderbufferStorageMultisample (
+               GL.GL_RENDERBUFFER, nMultiSamples, GL.GL_RGBA8, width, height);   
+         } else {
+            gl.glRenderbufferStorageMultisample (
+               GL.GL_RENDERBUFFER, nMultiSamples, GL.GL_SRGB8_ALPHA8, width, height);  
+         }
+      } else {
+         if (gammaCorrected) {
+            gl.glRenderbufferStorage (
+               GL.GL_RENDERBUFFER, GL.GL_SRGB8_ALPHA8, width, height);  
+         } else {
+            gl.glRenderbufferStorage (
+               GL.GL_RENDERBUFFER, GL.GL_RGBA8, width, height);
+         }
       }
-      else {
-          gl.glRenderbufferStorage (
-             GL2.GL_RENDERBUFFER, GL2.GL_RGBA8, width, height);
-      }
-
-      // attach the renderbuffer to depth attachment point
       gl.glFramebufferRenderbuffer (
-         GL2.GL_FRAMEBUFFER, GL2.GL_COLOR_ATTACHMENT0,
-         GL2.GL_RENDERBUFFER, CBhandle);
-      
-      // XXX Why disconnect?
-      gl.glBindRenderbuffer (GL2.GL_RENDERBUFFER, 0);
-      gl.glBindFramebuffer (GL2.GL_FRAMEBUFFER, ActiveFBO);
+         GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0,
+         GL.GL_RENDERBUFFER, CBhandle);
+      gl.glBindRenderbuffer (GL.GL_RENDERBUFFER, 0); // detach for safety
+
+      // Create secondary FBO
+      if (nMultiSamples > 1) {
+         gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, FBNhandle);
+         gl.glGenRenderbuffers (1, buff, 0);
+         CBNhandle = buff[0];
+         gl.glBindRenderbuffer (GL.GL_RENDERBUFFER, CBNhandle);
+         if (gammaCorrected) {
+            gl.glRenderbufferStorage (
+               GL.GL_RENDERBUFFER, GL.GL_SRGB8_ALPHA8, width, height);   
+         } else {
+            gl.glRenderbufferStorage (
+               GL.GL_RENDERBUFFER, GL.GL_RGBA8, width, height);   
+         }
+         
+         gl.glFramebufferRenderbuffer (
+            GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0,
+            GL.GL_RENDERBUFFER, CBNhandle);
+         gl.glBindRenderbuffer (GL.GL_RENDERBUFFER, 0); // detach for safety
+      }
+
+      // detach
+      gl.glBindFramebuffer (GL.GL_FRAMEBUFFER, 0);
    }
 
    // ---------------------------------------------------------------------------
    // Frame Buffer Object functions
    // ---------------------------------------------------------------------------
+
+   int[] savedViewport = null;
 
    /**
     * Once activated() all further rendering will go to the framebuffer object.
@@ -290,16 +344,19 @@ public class FrameBufferObject {
     * 
     * @see #deactivate
     */
-   public void activate () {
+   public void activate (GL2GL3 gl) {
+      if (!initialized) {
+         init(gl);
+      }
+      
       // Select the framebuffer for subsequent rendering operations
-      gl.glBindFramebuffer (GL2.GL_FRAMEBUFFER, FBOhandle);
+      gl.glBindFramebuffer (GL.GL_FRAMEBUFFER, FBOhandle);
 
       // Set viewport to match fbo dimensions
-      gl.glPushAttrib (GL2.GL_VIEWPORT_BIT);
+      savedViewport = new int[4];
+      gl.glGetIntegerv(GL.GL_VIEWPORT, savedViewport, 0);
       gl.glViewport (x, y, width, height);
 
-      // keep track of the FBO that is active
-      FrameBufferObject.ActiveFBO = FBOhandle;
    }
 
    /**
@@ -308,103 +365,52 @@ public class FrameBufferObject {
     * 
     * @see #activate
     */
-   public void deactivate () {
+   public void deactivate (GL gl) {
       // return viewport to previous state
-      gl.glPopAttrib ();
+      if (savedViewport != null) {
+         gl.glViewport(savedViewport[0], savedViewport[1], 
+            savedViewport[2], savedViewport[3]);
+      }
 
       // Stop rendering to FBO
-      gl.glBindFramebuffer (GL2.GL_FRAMEBUFFER, 0);
+      gl.glBindFramebuffer (GL.GL_FRAMEBUFFER, 0);
 
-      // 0 means no FBO is active
-      FrameBufferObject.ActiveFBO = 0;
    }
 
    /**
     * delete the framebufferobject and renderbufferobject
     */
-   public void cleanup () {
-      // XXX huge hack here, every delete buffer seems to fail
+   public void dispose (GL gl) {
+
       if (FBOhandle != -1) {
-         IntBuffer fboHandleBuff = allocInts (1).put (FBOhandle);
-         try {
-            gl.glDeleteFramebuffers (1, fboHandleBuff);
-         } catch (Exception e) {
-            System.out.println("Cannot delete FBOhandle");
-         }
+         int[] buff = new int[]{FBOhandle};
+         gl.glDeleteFramebuffers (1, buff, 0);
          FBOhandle = -1;
       }
       if (DBhandle != -1) {
-         IntBuffer dbHandleBuff = allocInts (1).put (DBhandle);
-         try {
-            gl.glDeleteRenderbuffers (1, dbHandleBuff);
-         } catch (Exception e) {
-            System.out.println("Cannot delete DBhandle");
-         }
+         int[] buff = new int[]{DBhandle};
+         gl.glDeleteRenderbuffers (1, buff, 0);
          DBhandle = -1;
       }
       if (CBhandle != -1) {
-         IntBuffer cbHandleBuff = allocInts (1).put (CBhandle);
-         try {
-            gl.glDeleteRenderbuffers (1, cbHandleBuff);
-         } catch (Exception e) {
-            System.out.println("Cannot delete CBhandle");
-         }
+         int[] buff = new int[]{CBhandle};
+         gl.glDeleteRenderbuffers (1, buff, 0);
          CBhandle = -1;
       }
 
+      // clean up multisample
       if (FBNhandle != -1) {
-         IntBuffer fbnHandleBuff = allocInts (1).put (FBNhandle);
-         try {
-            gl.glDeleteFramebuffers (1, fbnHandleBuff);
-         } catch (Exception e) {
-            System.out.println("Cannot delete FBNhandle");
-         }
+         int[] buff = new int[]{FBNhandle};
+         gl.glDeleteFramebuffers (1, buff, 0);
          FBNhandle = -1;
       }
-       if (CBNhandle != -1) {
-         IntBuffer cbnHandleBuff = allocInts (1).put (CBNhandle);
-         try {
-            gl.glDeleteRenderbuffers (1, cbnHandleBuff);
-         } catch (Exception e) {
-            System.out.println("Cannot delete CBNhandle");
-         }
+      if (CBNhandle != -1) {
+         int[] buff = new int[]{CBNhandle};
+         gl.glDeleteRenderbuffers (1, buff, 0);
          CBNhandle = -1;
       }
-      setup = false;
-      
-   }
+      initialized = false;
 
-   /**
-    * Captures an image of the canvas and saves it to the specified file.
-    */
-   public void capture () {
-      gl.glBindFramebuffer (GL2.GL_FRAMEBUFFER, FBOhandle);
-      
-      BufferedImage image = null;
-
-      // Get the ARGB pixels as integers.
-      int[] pixelsARGB = getPixelsARGB ();
-      // JPG for some reason breaks if we turn on the alpha layer.
-      // JPG doesn't support alpha anyways.
-      if (format.equalsIgnoreCase("jpg") || format.equalsIgnoreCase("jpeg")) {
-         image = new BufferedImage (width, height, BufferedImage.TYPE_INT_RGB);
-      } else {
-         image = new BufferedImage (width, height, BufferedImage.TYPE_INT_ARGB);
-      }
-      
-      image.setRGB (0, 0,
-                    width, height,
-                    pixelsARGB,
-                    0, width);
-      
-      try {
-         ImageIO.write (image, format, file);
-      }
-      catch (IOException io_e) {
-         io_e.printStackTrace();
-      }
-      
-      gl.glBindFramebuffer (GL2.GL_FRAMEBUFFER, ActiveFBO);
    }
 
    /**
@@ -421,20 +427,21 @@ public class FrameBufferObject {
     * @param height  the height of the canvas.
     * @return  The ARGB pixels as integers.
     */
-   private int[] getPixelsARGB () {
+   public int[] getPixelsARGB (GL2GL3 gl) {
+
       // Get the canvas RGB pixels as bytes and set up counters.
-      ByteBuffer pixelsBGRA = getPixelsBGRA ();
+      ByteBuffer pixelsBGRA = getPixelsBGRA (gl);
       int byteRow = width * height * 4;
       int currentByte = byteRow;
       int byteRowWidth = width * 4;
 
       int[] pixelsARGB = new int[width * height];
-      
+
       // grab back-color
       float[] bkColor = new float[4];
-      gl.glGetFloatv(GL2.GL_COLOR_CLEAR_VALUE, bkColor,0);
+      gl.glGetFloatv(GL.GL_COLOR_CLEAR_VALUE, bkColor,0);
       float bkAlpha = bkColor[3];
-      
+
       // Convert RGBA bytes to ARGB integers.
       for (int row = 0, currentInt = 0; row < height; ++row) {
          byteRow -= byteRowWidth;
@@ -445,22 +452,26 @@ public class FrameBufferObject {
             int green = pixelsBGRA.get (currentByte++);
             int red = pixelsBGRA.get (currentByte++);
             int alpha = pixelsBGRA.get (currentByte++);
-            
-            
+
+
             // Set alpha to be completely opaque or completely invisible.
-             //(alpha != 0) ? 0xff000000 : 0x00000000;
-            
-            // compute final dest alpha
-            float fAlpha = 1-(1-alpha/255f)*(1-bkAlpha);
-            alpha = (int)(fAlpha*bkAlpha*255);
-            
+            //(alpha != 0) ? 0xff000000 : 0x00000000;
+
+            float fAlpha = alpha/255f;
+
+            // adjust to account for background alpha
+            // if either foreground or background has alpha 1, then dest will have value 1
+            fAlpha = 1-(1-fAlpha)*(1-bkAlpha);
+
+            alpha = (int)(fAlpha*255);
+
             pixelsARGB[currentInt++] = (alpha << 24)
-               | ((red & 0x000000ff) << 16)
-               | ((green & 0x000000ff) << 8)
-               | (blue & 0x000000ff);
+            | ((red & 0x000000ff) << 16)
+            | ((green & 0x000000ff) << 8)
+            | (blue & 0x000000ff);
          }
       }
-      
+
       return pixelsARGB;
    }
 
@@ -472,36 +483,49 @@ public class FrameBufferObject {
     * @param height  the height of the canvas.
     * @return  The RGBA pixels as bytes.
     */
-   private ByteBuffer getPixelsBGRA () {
+   private ByteBuffer getPixelsBGRA (GL2GL3 gl) {
+      return getPixels(gl, GL.GL_BGRA);
+   }
+   
+   public ByteBuffer getPixels(GL2GL3 gl, int format) {
       int size = width * height * 4; // 4 bytes per RGBA pixel
-      ByteBuffer pixelsBGRA = Buffers.newDirectByteBuffer(size);
-      
-      // gl.glReadBuffer (GL2.GL_FRONT); // XXX shouldn't need this, and regardless should use GL_BACK
+      ByteBuffer pixels = Buffers.newDirectByteBuffer(size);
 
-      if (samples > 1) {
-         System.out.println ("blitting");
-         gl.glBindFramebuffer(GL2.GL_DRAW_FRAMEBUFFER, FBNhandle);
-         gl.glBindRenderbuffer(GL2.GL_RENDERBUFFER, CBNhandle);
-         gl.glRenderbufferStorage (
-            GL2.GL_RENDERBUFFER, GL2.GL_RGBA8, width, height);
-         gl.glFramebufferRenderbuffer (
-            GL2.GL_FRAMEBUFFER,
-            GL2.GL_COLOR_ATTACHMENT0, GL2.GL_RENDERBUFFER, CBNhandle);
+      if (nMultiSamples > 1) {
+         // System.out.println ("blitting");
+         // read from multisample, write to single sample
+         gl.glBindFramebuffer(GL2GL3.GL_READ_FRAMEBUFFER, FBOhandle);
+         gl.glBindFramebuffer(GL2GL3.GL_DRAW_FRAMEBUFFER, FBNhandle);
          // Blit the multisampled FBO to the normal FBO
          gl.glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, 
-            GL2.GL_COLOR_BUFFER_BIT, GL2.GL_LINEAR);
-         
+            GL.GL_COLOR_BUFFER_BIT, GL.GL_LINEAR);
          // Bind the normal FBO for reading
-         gl.glBindFramebuffer(GL2.GL_READ_FRAMEBUFFER, FBNhandle);
-       } 
+         gl.glBindFramebuffer(GL2GL3.GL_READ_FRAMEBUFFER, FBNhandle);
+      } else {
+         gl.glBindFramebuffer(GL2GL3.GL_READ_FRAMEBUFFER, FBOhandle);
+      }
+      
 
       gl.glReadPixels (0,
-                       0,
-                       width,
-                       height,
-                       GL2.GL_BGRA, 
-                       GL2.GL_UNSIGNED_BYTE,
-                       pixelsBGRA);
-      return pixelsBGRA;
+         0,
+         width,
+         height,
+         format, 
+         GL.GL_UNSIGNED_BYTE,
+         pixels);
+
+      // detach
+      gl.glBindFramebuffer (GL.GL_FRAMEBUFFER, 0);
+
+      return pixels;
    }
+
+   public int getWidth() {
+      return width;
+    }
+   
+   public int getHeight() {
+     return height;
+   }
+
 }

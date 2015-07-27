@@ -4,7 +4,7 @@ import java.awt.Color;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderProps;
 import artisynth.core.driver.Main;
 import artisynth.core.mechmodels.CollisionHandler;

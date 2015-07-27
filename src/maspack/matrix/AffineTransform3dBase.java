@@ -422,6 +422,16 @@ java.io.Serializable, Clonable {
    /**
     * Sets the translation component of this affine transform.
     * 
+    * @param p
+    * translation vector
+    */
+   public void addTranslation (Vector3d p) {
+      b.add (p);
+   }
+   
+   /**
+    * Sets the translation component of this affine transform.
+    * 
     * @param tx x-component of translation
     * @param ty y-component of translation
     * @param tz z-component of translation
@@ -429,6 +439,18 @@ java.io.Serializable, Clonable {
     */
    public void setTranslation (double tx, double ty, double tz) {
       b.set (tx, ty, tz);
+   }
+   
+   /**
+    * Sets the translation component of this affine transform.
+    * 
+    * @param tx x-component of translation
+    * @param ty y-component of translation
+    * @param tz z-component of translation
+    * 
+    */
+   public void addTranslation (double tx, double ty, double tz) {
+      b.add (tx, ty, tz);
    }
 
    /**
@@ -604,6 +626,11 @@ java.io.Serializable, Clonable {
     */
    public void mul (Vector4d vr) {
       mul (vr, vr);
+   }
+   
+   
+   public void mul(RigidTransform3d X2) {
+      mul(this, X2);
    }
 
    /**

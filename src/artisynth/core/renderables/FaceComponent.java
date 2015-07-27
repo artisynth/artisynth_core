@@ -14,10 +14,11 @@ import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.Material;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.GL.GL2.GL2Viewer;
 import maspack.render.RenderProps.Shading;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponentBase;
@@ -53,7 +54,7 @@ public class FaceComponent extends RenderableComponentBase {
    }
 
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
 
       RenderProps props = getRenderProps();
       
@@ -66,7 +67,12 @@ public class FaceComponent extends RenderableComponentBase {
          faceMat = renderer.getSelectionMaterial();
       }
 
-      GL2 gl = renderer.getGL2().getGL2();
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       gl.glPushMatrix();
 
       Shading shading = props.getShading();
@@ -201,7 +207,7 @@ public class FaceComponent extends RenderableComponentBase {
       gl.glEnd();
    }
 
-   private void drawFaces(GL2 gl, GLRenderer renderer, RenderProps props, Material faceMat) {
+   private void drawFaces(GL2 gl, Renderer renderer, RenderProps props, Material faceMat) {
 
       byte[] savedCullFaceEnabled = new byte[1];
       int[] savedCullFaceMode = new int[1];
@@ -247,7 +253,7 @@ public class FaceComponent extends RenderableComponentBase {
 
    }
 
-   void drawFacesRaw(GLRenderer renderer, GL2 gl, RenderProps props, Material faceMaterial) {
+   void drawFacesRaw(Renderer renderer, GL2 gl, RenderProps props, Material faceMaterial) {
 
       int[] shadingModel = new int[1];
 

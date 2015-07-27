@@ -8,31 +8,34 @@ package artisynth.core.renderables;
 
 import java.util.LinkedList;
 
-import javax.media.opengl.GL2;
-
 import maspack.geometry.Face;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.DisplayListManager;
-import maspack.render.GLRenderer;
 import maspack.render.Material;
 import maspack.render.PointRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderProps.Shading;
+import maspack.render.Renderer;
+import maspack.render.GL.GL2.DisplayListKey;
+import maspack.render.GL.GL2.GL2Viewer;
+import maspack.render.GL.GL2.DisplayListManager.DisplayListPassport;
 import artisynth.core.modelbase.RenderableComponentList;
+
+import javax.media.opengl.GL2;
 
 public class FaceList<P extends FaceComponent> extends RenderableComponentList<P> {
 
    protected static final long serialVersionUID = 1;
-   int displayList = 0;
-   boolean displayListValid = false;
-   int edgeDisplayList = 0;
-   boolean edgeDisplayListValid = false;
-   boolean useDisplayLists = true;
+   DisplayListKey faceKey;
+   DisplayListKey edgeKey;
+   int faceListVersion;
+   int edgeListVersion;
+   boolean facesChanged;
+   boolean edgesChanged;
    
    float[] myColorBuf = new float[4];
    boolean useVertexColouring = false;
@@ -48,11 +51,31 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       return myProps;
    }
    
+   private void notifyRenderChanged() {
+      facesChanged = true;
+      edgesChanged = true;
+   }
+   
+   private int getFaceVersion() {
+      if (facesChanged) {
+         faceListVersion++;
+         facesChanged = false;
+      }
+      return faceListVersion;
+   }
+   
+   private int getEdgeVersion() {
+      if (edgesChanged) {
+         edgeListVersion++;
+         edgesChanged = false;
+      }
+      return edgeListVersion;
+   }
+   
    @Override
    protected void notifyStructureChanged(Object comp, boolean stateIsChanged) {
       super.notifyStructureChanged(comp, stateIsChanged);
-      displayListValid = false;
-      edgeDisplayListValid = false;
+      notifyRenderChanged();
    }
    
    public FaceList (Class<P> type) {
@@ -63,6 +86,13 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       Class<P> type, String name, String shortName) {
       super (type, name, shortName);
       setRenderProps (createRenderProps());
+      
+      faceKey = new DisplayListKey(this, 0);
+      edgeKey = new DisplayListKey(this, 1);
+      faceListVersion = 0;
+      edgeListVersion = 0;
+      facesChanged = true;
+      edgesChanged = true;
    }
 
    /* ======== Renderable implementation ======= */
@@ -81,15 +111,14 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
             p.prerender (list);
          }
       }
-      displayListValid = false;
-      edgeDisplayListValid = false;
+      notifyRenderChanged();
    }
 
    public boolean rendersSubComponents() {
       return true;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       
       RenderProps props = getRenderProps();
       Material faceMat = props.getFaceMaterial();
@@ -97,7 +126,12 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
          faceMat = renderer.getSelectionMaterial();
       }
 
-      GL2 gl = renderer.getGL2();
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       gl.glPushMatrix();
 
       Shading shading = props.getShading();
@@ -143,24 +177,32 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
             renderer.setLightingEnabled (false);
          }
 
-         if (displayList == 0 && useDisplayLists) {
-            displayList = DisplayListManager.allocList(gl);
-            displayListValid = false;
+         boolean useDisplayList = !renderer.isSelecting();
+         DisplayListPassport facePP = null;
+         int facePrint = getFaceVersion();
+         boolean compile = true;
+         
+         if (useDisplayList) {
+            facePP = viewer.getDisplayListPassport(gl, faceKey);
+            if (facePP == null) {
+               facePP = viewer.allocateDisplayListPassport(gl, faceKey, facePrint);
+               compile = true;
+            } else {
+               compile = !(facePP.compareExchangeFingerPrint(facePrint));
+            }
          }
-         if (!displayListValid && !renderer.isSelecting()) {
-            if (useDisplayLists) {
-               gl.glNewList(displayList, GL2.GL_COMPILE);
+         
+         if (!useDisplayList || compile) {
+            if (facePP != null) {
+               gl.glNewList(facePP.getList(), GL2.GL_COMPILE);
             }
             drawFaces (gl, renderer, props, faceMat);
-            if (useDisplayLists) {
+            if (facePP != null) {
                gl.glEndList();
-               gl.glCallList(displayList);
-               displayListValid = true;
+               gl.glCallList(facePP.getList());
             }
-         } else if (renderer.isSelecting()) {
-            drawFaces (gl, renderer, props, faceMat);
          } else {
-            gl.glCallList(displayList);
+            gl.glCallList(facePP.getList());
          }
 
          if (useVertexColouring) {
@@ -211,25 +253,32 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
             gl.glShadeModel (GL2.GL_FLAT);
          }
 
+         boolean useDisplayList = !renderer.isSelecting();
+         DisplayListPassport edgePP = null;
+         int edgePrint = getEdgeVersion();
+         boolean compile = true;
          
-         if (edgeDisplayList == 0) {
-            edgeDisplayList = DisplayListManager.allocList(gl);
-            edgeDisplayListValid = false;
+         if (useDisplayList) {
+            edgePP = viewer.getDisplayListPassport(gl, edgeKey);
+            if (edgePP == null) {
+               edgePP = viewer.allocateDisplayListPassport(gl, edgeKey, edgePrint);
+               compile = true;
+            } else {
+               compile = !(edgePP.compareExchangeFingerPrint(edgePrint));
+            }
          }
-         if (!edgeDisplayListValid && !renderer.isSelecting()) {
-            if (useDisplayLists) {
-               gl.glNewList(edgeDisplayList, GL2.GL_COMPILE);
+         
+         if (!useDisplayList || compile) {
+            if (edgePP != null) {
+               gl.glNewList(edgePP.getList(), GL2.GL_COMPILE);
             }
             drawEdges(gl, props);
-            if (useDisplayLists) {
+            if (edgePP != null) {
                gl.glEndList();
-               gl.glCallList(edgeDisplayList);
-               edgeDisplayListValid = true;
+               gl.glCallList(edgePP.getList());
             }
-         } else if (renderer.isSelecting()) {
-            drawEdges(gl, props);
          } else {
-            gl.glCallList(edgeDisplayList);
+            gl.glCallList(edgePP.getList());
          }
 
          if (reenableLighting) {
@@ -273,7 +322,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       gl.glEnd();
    }
 
-   private void drawFaces(GL2 gl, GLRenderer renderer, RenderProps props, Material faceMat) {
+   private void drawFaces(GL2 gl, Renderer renderer, RenderProps props, Material faceMat) {
 
       byte[] savedCullFaceEnabled = new byte[1];
       int[] savedCullFaceMode = new int[1];
@@ -319,7 +368,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
 
    }
 
-   void drawFacesRaw(GLRenderer renderer, GL2 gl, RenderProps props, Material faceMaterial) {
+   void drawFacesRaw(Renderer renderer, GL2 gl, RenderProps props, Material faceMaterial) {
 
       int[] shadingModel = new int[1];
 

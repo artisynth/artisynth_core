@@ -21,6 +21,7 @@ import com.jogamp.opengl.util.FPSAnimator;
 
 public class MultiViewerTest {
    
+   public static boolean doFPS = false;
    private static final int FPS = 60; // animator's target frames per second
    
    public static interface SimpleSelectable extends GLSelectable {
@@ -170,12 +171,20 @@ public class MultiViewerTest {
                   viewer.addSelectionListener(new SimpleSelectionHandler(renderables));
 
                   // Create a animator that drives canvas' display() at the specified FPS.
-                  final FPSAnimator animator = new FPSAnimator(viewer.getCanvas(), FPS, true);
-                  animator.setUpdateFPSFrames(3, null);
-                  animator.start();
-                  final FPSMonitor fpsMonitor = new FPSMonitor(title + " FPS: ", animator);
-                  new Thread(fpsMonitor).start();
-
+                  final FPSAnimator animator;
+                  final FPSMonitor fpsMonitor;
+                  
+                  if (MultiViewerTest.doFPS) {
+                     animator = new FPSAnimator(viewer.getCanvas(), FPS, true);
+                     animator.setUpdateFPSFrames(3, null);
+                     animator.start();
+                     fpsMonitor = new FPSMonitor(title + " FPS: ", animator);
+                     new Thread(fpsMonitor).start();
+                  } else {
+                     animator = null;
+                     fpsMonitor = null;
+                  }
+                  
                   // Create the top-level container
                   frame = new JFrame(); // Swing's JFrame or AWT's Frame
                   frame.getContentPane().add(viewer.getCanvas());
@@ -188,11 +197,14 @@ public class MultiViewerTest {
                         new Thread() {
                            @Override
                            public void run() {
-                              if (animator.isStarted()) {
+                              
+                              if (animator != null && animator.isStarted()) {
                                  animator.stop();
                               }
-                              fpsMonitor.stop();
-                              //                              
+                              if (fpsMonitor != null) { 
+                                 fpsMonitor.stop();
+                              }
+                                                            
                               // remove JOGL content to prevent crash on exit
                               try {
                                  SwingUtilities.invokeAndWait(

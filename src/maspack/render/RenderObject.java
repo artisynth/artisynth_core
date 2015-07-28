@@ -10,6 +10,19 @@ public class RenderObject {
    private static int nextIdNumber = 0;
    
    /**
+    * During construction, allows automatic generation of primitives
+    */
+   public enum BuildMode {
+      POINTS,
+      LINES,
+      LINE_STRIP,
+      LINE_LOOP,
+      TRIANGLES,
+      TRIANGLE_STRIP,
+      TRIANGLE_FAN
+   }
+   
+   /**
     * Used for uniquely identifying a RenderObject, and checking
     * validity (can be safely shared)
     */
@@ -466,15 +479,6 @@ public class RenderObject {
    boolean colorsModified;
    boolean texturesModified;
    
-   public enum BuildMode {
-      POINTS,
-      LINES,
-      LINE_STRIP,
-      LINE_LOOP,
-      TRIANGLES,
-      TRIANGLE_STRIP,
-      TRIANGLE_FAN
-   }
    BuildMode buildMode;
    int buildModeStart;  // starting number of vertices when build mode began
 

@@ -19,7 +19,7 @@ import maspack.matrix.VectorNi;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.Renderer;
+import maspack.render.GLRenderer;
 import maspack.render.RenderableUtils;
 import maspack.solvers.IterativeSolver.ToleranceType;
 import maspack.util.DoubleInterval;
@@ -683,7 +683,7 @@ public abstract class FemModel extends MechSystemBase
       }
    }
 
-   public void render (Renderer renderer, int flags) {
+   public void render (GLRenderer renderer, int flags) {
    }
 
    protected void updateLocalAttachmentPos() {

@@ -14,7 +14,7 @@ import java.util.Map;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-import maspack.render.Renderer;
+import maspack.render.GLRenderer;
 import maspack.render.RenderProps;
 import maspack.util.InternalErrorException;
 import artisynth.core.modelbase.ModelComponent;
@@ -400,7 +400,7 @@ public class HexElement extends FemElement3d {
    }
 
    public void renderWidget (
-      Renderer renderer, double size, RenderProps props) {
+      GLRenderer renderer, double size, RenderProps props) {
       renderer.drawHex (props, size,
                         myNodes[0].myRenderCoords, myNodes[1].myRenderCoords, 
                         myNodes[2].myRenderCoords, myNodes[3].myRenderCoords,

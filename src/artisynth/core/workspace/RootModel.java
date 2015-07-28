@@ -27,12 +27,12 @@ import maspack.matrix.AxisAngle;
 import maspack.matrix.NumericalException;
 import maspack.matrix.Point3d;
 import maspack.properties.PropertyList;
-import maspack.render.Renderer;
+import maspack.render.GLRenderable;
+import maspack.render.GLRenderer;
+import maspack.render.GLViewer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
-import maspack.render.GL.GLRenderable;
-import maspack.render.GL.GLViewer;
 import maspack.util.Disposable;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
@@ -633,13 +633,13 @@ public class RootModel extends RenderableModelBase
       myControllers.add (controller);
    }
 
-   public GLRenderableHolder addRenderable(Renderable renderable) {
+   public GLRenderableHolder addRenderable(GLRenderable renderable) {
       GLRenderableHolder holder = new GLRenderableHolder(renderable);
       addRenderable(holder);
       return holder;
    }
    
-   public boolean removeRenderable(Renderable renderable) {
+   public boolean removeRenderable(GLRenderable renderable) {
       for (RenderableComponent rc : myRenderables) {
          if (rc instanceof GLRenderableHolder) {
             GLRenderableHolder holder = (GLRenderableHolder)rc;
@@ -1145,7 +1145,7 @@ public class RootModel extends RenderableModelBase
       myRenderables.updateBounds(pmin, pmax);
    }
 
-   public void render (Renderer renderer, int flags) {
+   public void render (GLRenderer renderer, int flags) {
       // no actual rendering; all-subcomponents render themselves
       // after being assembled in the RenderList
    }

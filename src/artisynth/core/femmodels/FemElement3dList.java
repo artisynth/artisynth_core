@@ -6,20 +6,17 @@
  */
 package artisynth.core.femmodels;
 
-import java.util.LinkedList;
-
-import javax.media.opengl.GL2;
-
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.RenderList;
-import maspack.render.RenderProps;
+import maspack.render.*;
 import maspack.render.RenderProps.LineStyle;
-import maspack.render.Renderer;
-import maspack.render.GL.GL2.GL2Viewer;
-import artisynth.core.modelbase.RenderableComponentList;
-import artisynth.core.util.ClassAliases;
+import artisynth.core.modelbase.*;
+import artisynth.core.util.*;
+
+import javax.media.opengl.*;
+
+import java.util.*;
 
 public class FemElement3dList extends RenderableComponentList<FemElement3d> {
    protected static final long serialVersionUID = 1;
@@ -115,14 +112,8 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
       return true;
    }
 
-   private void dorender (Renderer renderer, boolean selected) {
-      
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
-      
+   private void dorender (GLRenderer renderer, boolean selected) {
+      GL2 gl = renderer.getGL2();
       boolean selecting = renderer.isSelecting();
       if (!addElementsInPrerender) {
          // we render all elements ourselves, taking care to render selected
@@ -241,7 +232,7 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
       renderer.restoreShading (myRenderProps);
    }
 
-   public void render (Renderer renderer, int flags) {
+   public void render (GLRenderer renderer, int flags) {
       // GL2 gl = renderer.getGL2().getGL2();
       // if (renderer.isSelecting()) {
       //    gl.glPushName (-1);

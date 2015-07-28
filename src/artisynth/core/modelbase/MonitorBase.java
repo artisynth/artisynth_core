@@ -11,7 +11,7 @@ import maspack.render.*;
 public abstract class MonitorBase extends ControllerMonitorBase
    implements Monitor {
    
-   public void render (Renderer gl, int flags) {
+   public void render (GLRenderer gl, int flags) {
    }
 
 }

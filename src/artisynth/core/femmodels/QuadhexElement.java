@@ -561,7 +561,7 @@ public class QuadhexElement extends FemElement3d {
    }
 
    public void renderWidget (
-      Renderer renderer, double size, RenderProps props) {
+      GLRenderer renderer, double size, RenderProps props) {
       renderWidget (renderer, size, myWidgetFaces, props);
    }
 

@@ -9,9 +9,8 @@ package artisynth.core.femmodels;
 import javax.media.opengl.GL2;
 
 import maspack.matrix.*;
-import maspack.render.Renderer;
+import maspack.render.GLRenderer;
 import maspack.render.RenderProps;
-import maspack.render.GL.GL2.GL2Viewer;
 
 public class QuadpyramidElement extends FemElement3d {
 
@@ -318,7 +317,7 @@ public class QuadpyramidElement extends FemElement3d {
    }
 
    public void renderWidget (
-      Renderer renderer, double size, RenderProps props) {
+      GLRenderer renderer, double size, RenderProps props) {
       renderWidget (renderer, size, myWidgetFaces, props);
    }
 
@@ -342,14 +341,9 @@ public class QuadpyramidElement extends FemElement3d {
     * the shape functions are determined from condensation and the natural
     * coordinates correspond to a cube).
     */   
-   public void renderEdges (Renderer renderer, RenderProps props) {
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
-      
+   public void renderEdges (GLRenderer renderer, RenderProps props) {
       int[] idxs = getEdgeIndices();
+      GL2 gl = renderer.getGL2().getGL2();
 
       Vector3d ncoords0 = new Vector3d();
       Vector3d ncoords1 = new Vector3d();

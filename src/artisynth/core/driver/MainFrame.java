@@ -24,8 +24,8 @@ import javax.swing.JTextArea;
 import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 
-import maspack.render.GL.GLViewer;
-import maspack.render.GL.GLViewerPanel;
+import maspack.render.GLViewer;
+import maspack.render.GLViewerPanel;
 import artisynth.core.gui.navpanel.NavigationPanel;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.RootModel;
@@ -168,7 +168,6 @@ public class MainFrame extends JFrame {
 
       addWindowListener (new WindowAdapter() {
             public void windowClosing (WindowEvent e) {
-               GLPanel.dispose();  // cleanly close JOGL context
                Main.exit (0);
             }
 

@@ -22,7 +22,6 @@ import artisynth.core.gui.editorManager.EditorUtils;
 import maspack.matrix.*;
 import maspack.geometry.*;
 import maspack.render.*;
-import maspack.render.GL.GLViewer;
 import maspack.properties.*;
 import maspack.util.*;
 
@@ -281,7 +280,7 @@ implements SelectionListener, MouseInputListener {
       }
    }
 
-   public void render (Renderer renderer, int flags) {
+   public void render (GLRenderer renderer, int flags) {
 
       if (myComponent != null) {
          if (myPullPos != null || myHasPersistentComponent) {

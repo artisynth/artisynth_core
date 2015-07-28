@@ -17,7 +17,7 @@ import maspack.matrix.Matrix6d;
 import maspack.matrix.Point3d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.properties.PropertyList;
-import maspack.render.Renderer;
+import maspack.render.GLRenderer;
 import maspack.render.RenderProps;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
@@ -519,7 +519,7 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
    }
 
    @Override
-   public void render(Renderer renderer, int flags) {
+   public void render(GLRenderer renderer, int flags) {
       
       double widgetSize = 0;
       double rad = 0;
@@ -551,7 +551,7 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
       }
    }
    
-   public void renderFraction( Renderer renderer, RenderProps props, double rad, FractionRenderType renderType ) {
+   public void renderFraction( GLRenderer renderer, RenderProps props, double rad, FractionRenderType renderType ) {
       switch(renderType) {
          case ELEMENT:
          case ELEMENT_SCALED:
@@ -565,7 +565,7 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
    }
    
    Matrix3d RF = new Matrix3d();
-   private void renderElementFraction(  Renderer renderer, RenderProps props, double rad, boolean scaled) {
+   private void renderElementFraction(  GLRenderer renderer, RenderProps props, double rad, boolean scaled) {
       
       
       myElement.computeRenderCoordsAndGradient(RF, rcoords);
@@ -588,7 +588,7 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
       renderer.drawSphere(props, rcoords, r);
    }
    
-   private void renderINodeFraction(  Renderer renderer, RenderProps props, double rad, boolean scaled) {
+   private void renderINodeFraction(  GLRenderer renderer, RenderProps props, double rad, boolean scaled) {
       
       IntegrationPoint3d[] ipnt = myElement.getIntegrationPoints();
       

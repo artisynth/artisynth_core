@@ -94,7 +94,7 @@ ComponentList<C> implements RenderableComponentListView<C>, RenderableComponent 
       return false;
    }
 
-   public void render (Renderer renderer, int flags) {
+   public void render (GLRenderer renderer, int flags) {
    }
 
    public int getRenderHints() {

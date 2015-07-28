@@ -18,10 +18,10 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.Renderer;
+import maspack.render.GLRenderable;
+import maspack.render.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.GL.GLRenderable;
 import maspack.render.RenderProps.Faces;
 import maspack.render.TextureProps;
 import artisynth.core.modelbase.ModelComponent;
@@ -128,6 +128,7 @@ TransformableGeometry {
 
    public void transformGeometry (AffineTransform3dBase X) {
       planeMesh.transform (X);
+      myRenderProps.clearMeshDisplayList();
    }
 
    public boolean isSelectable() {
@@ -154,9 +155,9 @@ TransformableGeometry {
       // list.addIfVisible (imagePlane);
    }
 
-   public void render (Renderer renderer, int flags) {
+   public void render (GLRenderer renderer, int flags) {
       planeMesh.render (
-         renderer, myRenderProps, isSelected() ? Renderer.SELECTED : 0);
+         renderer, myRenderProps, isSelected() ? GLRenderer.SELECTED : 0);
       //renderer.drawMesh (
       //   myRenderProps, planeMesh, isSelected() ? GLRenderer.SELECTED : 0);
    }

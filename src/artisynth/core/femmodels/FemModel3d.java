@@ -53,7 +53,7 @@ import maspack.matrix.VectorNi;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.Renderer;
+import maspack.render.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderableUtils;
 import maspack.render.color.ColorMapBase;
@@ -1542,7 +1542,7 @@ public class FemModel3d extends FemModel
       }
    }
 
-   public void render(Renderer renderer, int flags) {
+   public void render(GLRenderer renderer, int flags) {
    }
 
    public DoubleInterval getNodalPlotRange(SurfaceRender rendering) {

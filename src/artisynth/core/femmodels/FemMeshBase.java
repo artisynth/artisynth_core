@@ -9,18 +9,21 @@ package artisynth.core.femmodels;
 import java.awt.Color;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.Vertex3d;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
+import maspack.render.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.Renderer;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
 import maspack.util.DoubleInterval;
@@ -35,6 +38,7 @@ import artisynth.core.mechmodels.SkinMeshBase;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.util.ScanToken;
 
 /**
@@ -63,6 +67,8 @@ public abstract class FemMeshBase extends SkinMeshBase {
    
    protected static double EPS = 1e-10;
    FemModel3d myFem;
+
+   private float[] colorArray = new float[3];
    
    public static PropertyList myProps =
    new PropertyList (FemMeshBase.class, MeshComponent.class);
@@ -106,6 +112,7 @@ static {
       PolygonalMesh mesh = new PolygonalMesh();
       setMesh (mesh);
       mesh.setFixed (false);
+      mesh.setUseDisplayList(true);
    }
 
    /** 
@@ -121,6 +128,10 @@ static {
       MeshBase mesh = getMesh();
       if (mesh != null) {
          mesh.setFixed (false);
+         mesh.setUseDisplayList (true);
+      }
+      if (myRenderProps != null) {
+         myRenderProps.clearMeshDisplayList();
       }
    }
 
@@ -130,7 +141,7 @@ static {
    
    protected void saveVertexColors() {
       MeshBase mesh = getMesh();
-      if (mesh.hasVertexColoring()) {
+      if (mesh.isUsingVertexColoring()) {
          savedVertexColors = new Color[mesh.getNumVertices()];
          for (int i=0; i<mesh.getNumVertices(); i++) {
             savedVertexColors[i] = mesh.getVertexColor(i);
@@ -140,11 +151,11 @@ static {
    
    protected void restoreVertexColors() {
       MeshBase mesh = getMesh();
-      if (savedVertexColors != null && mesh.hasVertexColoring()) {
+      if (savedVertexColors != null && mesh.isUsingVertexColoring()) {
          for (int i=0; i<mesh.getNumVertices(); i++) {
             mesh.setVertexColor(i, savedVertexColors[i]);
          }
-      } else if (!mesh.hasVertexColoring()) {
+      } else if (!mesh.isUsingVertexColoring()) {
          // clear colors
          for (int i=0; i<mesh.getNumVertices(); i++) {
             mesh.setVertexColor(i, null);
@@ -163,7 +174,7 @@ static {
          
          // save/restore original vertex colors
          MeshBase mesh = getMesh();
-         if ( mesh != null && mesh.hasVertexColoring()) {
+         if ( mesh != null && mesh.isUsingVertexColoring()) {
             if ( (oldMode == SurfaceRender.Strain || oldMode == SurfaceRender.Stress)
                && (mode != SurfaceRender.Strain && mode != SurfaceRender.Stress) ) {
                restoreVertexColors();
@@ -280,26 +291,26 @@ static {
    
    @Override
    public void render(
-      Renderer renderer, RenderProps props, int flags) {
+      GLRenderer renderer, RenderProps props, int flags) {
 
       // highlight if either fem or mesh is selected
       if (isSelected() || (myFem != null && myFem.isSelected() )) {
-         flags |= Renderer.SELECTED;
+         flags |= GLRenderer.SELECTED;
       }
       
       if (mySurfaceRendering == SurfaceRender.Stress || 
          mySurfaceRendering == SurfaceRender.Strain) {
          
-         if ( (flags & Renderer.UPDATE_RENDER_CACHE) != 0) {
+         if ( (flags & GLRenderer.REFRESH) != 0) {
             updateVertexColors();
          }
          
          // only enable vertex colors if not selecting
          // During selection, requires VERTEX_COLORING in order to
          //    skip using display list
-         if (renderer.isSelecting() || !((flags & Renderer.SELECTED) != 0)) {
-            flags |= (Renderer.VERTEX_COLORING |
-                      Renderer.HSV_COLOR_INTERPOLATION);
+         if (renderer.isSelecting() || !((flags & GLRenderer.SELECTED) != 0)) {
+            flags |= (GLRenderer.VERTEX_COLORING |
+                      GLRenderer.HSV_COLOR_INTERPOLATION);
          }
          
       } else if (mySurfaceRendering == SurfaceRender.None) {
@@ -317,6 +328,10 @@ static {
    
    public void setColorMap(ColorMapBase map) {
       myColorMap = map;
+      MeshBase mesh = getMesh();
+      if (mesh != null) {
+         mesh.clearDisplayList(myRenderProps);
+      }
       myColorMapMode =
          PropertyUtils.propagateValue (
             this, "colorMap", map, myColorMapMode);

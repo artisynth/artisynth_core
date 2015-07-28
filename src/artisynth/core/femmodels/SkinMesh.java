@@ -12,8 +12,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.LinkedList;
 import java.util.Set;
 
 import maspack.function.ConstantFuntion1x1;
@@ -31,6 +31,8 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
+import maspack.render.MouseRayEvent;
+import maspack.spatialmotion.Wrench;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.ListRemove;
 import maspack.util.NumberFormat;
@@ -38,19 +40,20 @@ import maspack.util.ReaderTokenizer;
 import artisynth.core.femmodels.PointSkinAttachment.Connection;
 import artisynth.core.femmodels.PointSkinAttachment.FrameConnection;
 import artisynth.core.mechmodels.Collidable;
+import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.mechmodels.CollidableBody;
-import artisynth.core.mechmodels.CollidableDynamicComponent;
 import artisynth.core.mechmodels.CollisionHandler;
-import artisynth.core.mechmodels.ContactMaster;
-import artisynth.core.mechmodels.ContactPoint;
 import artisynth.core.mechmodels.DynamicAttachment;
+import artisynth.core.mechmodels.CollidableDynamicComponent;
+import artisynth.core.mechmodels.ContactPoint;
+import artisynth.core.mechmodels.ContactMaster;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.Point;
-import artisynth.core.mechmodels.PointAttachable;
 import artisynth.core.mechmodels.PointAttachment;
+import artisynth.core.mechmodels.PointAttachable;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.SkinMeshBase;
 import artisynth.core.modelbase.ComponentList;
@@ -639,6 +642,10 @@ public class SkinMesh extends SkinMeshBase
       MeshBase mesh = getMesh();
       if (mesh != null) {
          mesh.setFixed (false);
+         mesh.setUseDisplayList (true);
+      }
+      if (myRenderProps != null) {
+         myRenderProps.clearMeshDisplayList();
       }
    }
 

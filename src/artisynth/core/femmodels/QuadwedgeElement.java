@@ -12,7 +12,7 @@ import java.util.*;
 import artisynth.core.mechmodels.*;
 import maspack.matrix.*;
 import maspack.util.*;
-import maspack.render.Renderer;
+import maspack.render.GLRenderer;
 import maspack.render.RenderProps;
 
 public class QuadwedgeElement extends FemElement3d {
@@ -332,7 +332,7 @@ public class QuadwedgeElement extends FemElement3d {
    }
 
    public void renderWidget (
-      Renderer renderer, double size, RenderProps props) {
+      GLRenderer renderer, double size, RenderProps props) {
       renderWidget (renderer, size, myWidgetFaces, props);
    }
 

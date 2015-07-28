@@ -15,7 +15,7 @@ import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
@@ -284,7 +284,7 @@ public class AuxMaterialBundle extends CompositeComponentBase
       list.addIfVisible (myElementDescs);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
    }
 
    /**

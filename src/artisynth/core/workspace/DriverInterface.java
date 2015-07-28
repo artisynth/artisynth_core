@@ -6,7 +6,7 @@
  */
 package artisynth.core.workspace;
 
-import maspack.render.GLViewer;
+import maspack.render.GL.GLViewer;
 import maspack.widgets.PropertyWindow;
 
 import javax.swing.JFrame;

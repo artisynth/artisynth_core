@@ -16,8 +16,9 @@ import maspack.util.*;
 import maspack.geometry.*;
 import maspack.properties.*;
 import maspack.util.InternalErrorException;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderProps;
+import maspack.render.GL.GL2.GL2Viewer;
 import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.IncompressibleMaterial;
@@ -1107,8 +1108,14 @@ public abstract class FemElement3d extends FemElement
     * applying a scale transformation about the centroid of the nodes.
     */   
    public void renderWidget (
-      GLRenderer renderer, double scale, int[] trifaces, RenderProps props) {
+      Renderer renderer, double scale, int[] trifaces, RenderProps props) {
 
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       int nnodes = numNodes();
 
       float cx = 0;
@@ -1128,7 +1135,6 @@ public abstract class FemElement3d extends FemElement
 
       // set up a scaling transform about the nodal centroid
       float s = (float)scale;
-      GL2 gl = renderer.getGL2().getGL2();
       gl.glPushMatrix();
       gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
       gl.glScalef (s, s, s);
@@ -1154,12 +1160,12 @@ public abstract class FemElement3d extends FemElement
       gl.glPopMatrix();
    }
 
-   public void renderWidget (GLRenderer renderer, RenderProps props) {
+   public void renderWidget (Renderer renderer, RenderProps props) {
       renderWidget (renderer, myElementWidgetSize, props);
    }
 
    public void renderWidget (
-      GLRenderer renderer, double size, RenderProps props) {
+      Renderer renderer, double size, RenderProps props) {
    }
 
    public double computeDirectedRenderSize (Vector3d dir) {
@@ -1179,7 +1185,7 @@ public abstract class FemElement3d extends FemElement
       ipnt.computeCoordsForRender (coords, getNodes());
    }
 
-   public void render(GLRenderer renderer, RenderProps rprops, int flags) {
+   public void render(Renderer renderer, RenderProps rprops, int flags) {
       super.render (renderer, rprops, flags);
       if (myElementWidgetSize > 0) {         
          maspack.render.Material mat = rprops.getFaceMaterial();
@@ -1192,7 +1198,7 @@ public abstract class FemElement3d extends FemElement
       }
    }
    
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       render(renderer, myRenderProps, flags);
    }
 
@@ -1292,9 +1298,15 @@ public abstract class FemElement3d extends FemElement
       gl.glEnd();      
    }
 
-   public void renderEdges (GLRenderer renderer, RenderProps props) {
+   public void renderEdges (Renderer renderer, RenderProps props) {
+      
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       int[] idxs = getEdgeIndices();
-      GL2 gl = renderer.getGL2();
       gl.glBegin (GL2.GL_LINES);
       int n = 2;
       for (int i=0; i<idxs.length; i+=(n+1)) {
@@ -1319,12 +1331,18 @@ public abstract class FemElement3d extends FemElement
       }
    }
    
-   public void renderWidgetEdges(GLRenderer renderer, RenderProps props) {
+   public void renderWidgetEdges(Renderer renderer, RenderProps props) {
       renderWidgetEdges(renderer, myElementWidgetSize, props);
    }
    
-   public void renderWidgetEdges(GLRenderer renderer, double size, RenderProps props) {
+   public void renderWidgetEdges(Renderer renderer, double size, RenderProps props) {
       // determine centre and adjust scale
+      
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
       
       float cx=0, cy=0, cz=0;
       
@@ -1338,7 +1356,6 @@ public abstract class FemElement3d extends FemElement
       cz = cz/myNodes.length;
 
       float s = (float)size;
-      GL2 gl = renderer.getGL2();
       gl.glPushMatrix();
       gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
       gl.glScalef (s, s, s);

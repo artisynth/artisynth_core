@@ -91,7 +91,7 @@ RenderableComponent {
       recursivelyUpdateBounds (this, pmin, pmax);
    }
 
-   public abstract void render (GLRenderer renderer, int flags);
+   public abstract void render (Renderer renderer, int flags);
 
    public void getSelection (LinkedList<Object> list, int qid) {
    }

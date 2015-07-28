@@ -11,7 +11,7 @@ import java.util.LinkedList;
 import javax.media.opengl.GL2;
 
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import artisynth.core.femmodels.AuxMaterialBundle.FractionRenderType;
@@ -73,7 +73,7 @@ public class AuxMaterialElementDescList
       return true;
    }
 
-   private void dorender (GLRenderer renderer, int flags, boolean selected) {
+   private void dorender (Renderer renderer, int flags, boolean selected) {
       // This code is taken mostly verbatim from FemElement3dList.
       // Should find a way to avoid duplicate code ...
 
@@ -146,7 +146,7 @@ public class AuxMaterialElementDescList
    }
    
    private void renderFractions (
-      GLRenderer renderer, double len, FractionRenderType type,
+      Renderer renderer, double len, FractionRenderType type,
       boolean selected) {
 
       for (int i=0; i<size(); i++) {
@@ -167,7 +167,7 @@ public class AuxMaterialElementDescList
       }
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       dorender (renderer, flags, /*selected=*/true);
       dorender (renderer, flags, /*selected=*/false);
    }

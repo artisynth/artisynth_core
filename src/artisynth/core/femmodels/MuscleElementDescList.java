@@ -13,9 +13,10 @@ import javax.media.opengl.GL2;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.GL.GL2.GL2Viewer;
 import artisynth.core.femmodels.MuscleBundle.DirectionRenderType;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
@@ -141,10 +142,15 @@ public class MuscleElementDescList
    }
 
    private void renderDirections (
-      GLRenderer renderer, double len, DirectionRenderType type,
+      Renderer renderer, double len, DirectionRenderType type,
       boolean selected) {
 
-      GL2 gl = renderer.getGL2().getGL2();
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
+      
       Matrix3d F = new Matrix3d();
       Vector3d dir = new Vector3d();
       float[] coords0 = new float[3];
@@ -171,11 +177,15 @@ public class MuscleElementDescList
       }
    }
 
-   private void dorender (GLRenderer renderer, int flags, boolean selected) {
+   private void dorender (Renderer renderer, int flags, boolean selected) {
       // This code is taken mostly verbatim from FemElement3dList.
       // Should find a way to avoid duplicate code ...
 
-      GL2 gl = renderer.getGL2().getGL2();
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2Viewer viewer = (GL2Viewer)renderer;
+      GL2 gl = viewer.getGL2();
       boolean selecting = renderer.isSelecting();
 
       if (!addDescsInPrerender) {
@@ -243,7 +253,7 @@ public class MuscleElementDescList
       }
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       dorender (renderer, flags, /*selected=*/true);
       dorender (renderer, flags, /*selected=*/false);
    }

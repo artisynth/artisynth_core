@@ -14,7 +14,7 @@ import maspack.render.*;
 import maspack.util.*;
 
 import java.util.*;
-import javax.media.opengl.*;
+import com.jogamp.opengl.*;
 
 import java.io.*;
 
@@ -286,7 +286,7 @@ public class TetElement extends FemElement3d {
    }
 
    public void renderWidget (
-      GLRenderer renderer, double size, RenderProps props) {
+      Renderer renderer, double size, RenderProps props) {
       renderer.drawTet (props, size,
                         myNodes[0].myRenderCoords, myNodes[1].myRenderCoords, 
                         myNodes[2].myRenderCoords, myNodes[3].myRenderCoords);

@@ -7,17 +7,20 @@
 package artisynth.core.probes;
 
 import java.awt.Color;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
-import artisynth.core.modelbase.*;
-import artisynth.core.util.TimeBase;
-import maspack.render.*;
-import maspack.render.GL2.GL2Viewer;
-import maspack.properties.*;
+import maspack.interpolation.NumericListKnot;
 import maspack.matrix.Point3d;
 import maspack.matrix.VectorNd;
-import maspack.interpolation.*;
-
-import java.util.*;
+import maspack.properties.Property;
+import maspack.properties.PropertyList;
+import maspack.properties.PropertyMode;
+import maspack.render.HasRenderProps;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.GL.GL2.GL2Viewer;
+import artisynth.core.modelbase.ModelComponent;
 
 public class PointTracingProbe extends TracingProbe {
    ModelComponent myComponent;
@@ -164,7 +167,7 @@ public class PointTracingProbe extends TracingProbe {
          }
       }
       else {
-         GL2Viewer.drawLineStrip (renderer, vi, myRenderProps, isSelected());
+         GL2Viewer.drawLineStrip (renderer, vi, myRenderProps, myRenderProps.getLineStyle(), isSelected());
       }
    }
 

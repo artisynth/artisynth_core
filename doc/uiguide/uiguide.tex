@@ -1,5 +1,11 @@
 \documentclass{article}
 \usepackage{amsmath}
+
+% Add search paths for input files
+\makeatletter
+\def\input@path{{../}{../../}{../texinputs/}}
+\makeatother
+
 \input{artisynthDoc}
 
 \setcounter{tocdepth}{5}
@@ -3800,6 +3806,7 @@ following XML elements are defined:
 {\tt menu:} & creates a sub-menu\\
 {\tt package:} & finds and lists all models from a specified Java package\\
 {\tt demosFile:} & imports all models from a file in plaintext format\\
+{\tt history:} & adds a set of recently loaded models\\
 {\tt include:} & imports a menu from another XML file\\
 {\tt hidden: } & convenience element for hidding menu entries (i.e. commenting
    them out)
@@ -3850,6 +3857,7 @@ must be a sub-class of \javaclass[artisynth.core.workspace]{RootModel}.
 \noindent \textbf{Attributes:}\\
 \begin{tabular}{ll}
    {\tt class*:} & the class to load when the entry is selected\\
+   {\tt args:} & command-line style arguments to be passed to the model\\
    {\tt text:} & the text to display in the menu (default: the class name)\\
    {\tt icon:} & filename of an icon (relative or absolute path)\\
    {\tt fontname:} & font family for the displayed text\\
@@ -3978,6 +3986,7 @@ compact & flat & hierarchical \\
    {\tt source*:} & the package to search for models\\
    {\tt base:} & the base class from which all models must inherit 
       (default: {\tt RootModel})\\
+   {\tt args:} & command-line style arguments to be passed to the models\\
    {\tt view:} & display format \{\quot{flat}, \quot{hierarchicial}\} (default:
       \quot{hierarchical})\\
    {\tt compact:} & level of compactness \{0, 1, 2\} (default: 0)\\
@@ -4051,6 +4060,24 @@ The following line loads all models from the original default ArtiSynth
 \end{lstlisting}
 If font information is provided, it is applied to all model entries that are
 created.
+
+\subsubsection{History}
+
+If model history tracking is enabled, then a set of \emph{recent items} can
+be added to the menu.  To enable history tracking, pass the following command-%
+line parameter to ArtiSynth on load:\\
+\hspace{4ex}\textbf{-historyFile <filename>}\\
+The {\tt history} element then specifies the number of most recently loaded
+models to add to the history menu.
+
+\noindent \textbf{Attributes:}\\
+\begin{tabular}{ll}
+   {\tt size:} & number of recent models to add (default: "4")\\
+   {\tt fontname:} & font family for the displayed text\\
+   {\tt fontstyle:} & font style, from \{\quot{}, \quot{bold}, \quot{italic},
+      \quot{bold italic}\}\\
+   {\tt fontsize:} & font size
+\end{tabular}
 
 \subsubsection{Importing other XML files}
 

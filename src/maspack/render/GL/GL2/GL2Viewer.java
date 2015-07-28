@@ -7,6 +7,7 @@
  */
 package maspack.render.GL.GL2;
 
+import java.awt.Dimension;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.util.Iterator;
@@ -343,10 +344,9 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          myGLResources = new GL2Resources(canvas.getContext());
       }
       canvas.addGLEventListener (this);
+      canvas.setPreferredSize(new Dimension(width, height));
       canvas.setSize (width, height);
       
-      
-
       this.width = width;
       this.height = height;
       myDraggers = new LinkedList<Dragger3d>();

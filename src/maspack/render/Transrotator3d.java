@@ -21,6 +21,7 @@ import maspack.render.RenderObject.BuildMode;
 import maspack.util.InternalErrorException;
 
 public class Transrotator3d extends Dragger3dBase {
+   
    protected AffineTransform3dBase myTransform;
    protected AffineTransform3dBase myIncrementalTransform;
    protected int mySelectedComponent = NONE;
@@ -89,7 +90,7 @@ public class Transrotator3d extends Dragger3dBase {
       if (myDragMode != DragMode.OFF && mySelectedComponent != NONE) {
          viewer.setColor(1, 1, 0);
          viewer.setPointSize(3);
-         myPnt0.get(coords);;
+         myPnt0.get(coords);
          viewer.drawPoint(coords);
          viewer.setPointSize(1);
       }
@@ -203,7 +204,7 @@ public class Transrotator3d extends Dragger3dBase {
       v2 = transrotr.vertex(0, TRANS_BOX_SIZE, 0);
       transrotr.addLineStrip(v0, v1, v2);
       
-   // x-rotation
+      // x-rotation
       transrotr.beginBuild(BuildMode.LINE_STRIP);
       transrotr.color(xrcolor);
       for (int i = 0; i <= QUARTER_CIRCLE_RESOLUTION; i++) {

@@ -375,7 +375,7 @@ public class GL3Object extends GL3ResourceBase implements GL3Drawable {
       ByteBuffer vbuff, int nverts, BufferStorage vstorage, int vstride, int vUsage) {
       
      return createV(gl, mode, vbuff, nverts, 
-        GL3Util.getGLType(vstorage.type()), vstorage.size(),  vstride, vUsage);
+        GL3Util.getGLType(vstorage.type()), vstorage.size(), vstride, vUsage);
       
    }
    

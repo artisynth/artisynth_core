@@ -307,7 +307,7 @@ public class GLSLGenerator {
                if (info.hasVertexNormals()) {
                   appendln(mb, "   vec4 camera_normal = normal_matrix * vec4(normal, 0.0);");
                } else {
-                  appendln(mb, "   vec4 camera_normal = -camera_position");
+                  appendln(mb, "   vec4 camera_normal = -camera_position;");
                }
                appendln(mb, "   vec3 nfront = normalize(camera_normal.xyz);");
                appendln(mb, "   vec3 nback = -nfront;");
@@ -353,7 +353,7 @@ public class GLSLGenerator {
                appendln(mb, "      flspec += intensity_scale*att*ds.y*light[i].specular.rgb;");
                appendln(mb, "      flambi += intensity_scale*light[i].ambient.rgb;");
                appendln(mb);
-               appendln(mb, "      ds = blinnPhong( nback, -light_direction, e, back_material.specular.a);");
+               appendln(mb, "      ds = blinnPhongCoeffs( nback, -light_direction, e, back_material.specular.a);");
                appendln(mb, "      bldiff += intensity_scale*att*ds.x*light[i].diffuse.rgb;");
                appendln(mb, "      blspec += intensity_scale*att*ds.y*light[i].specular.rgb;");
                appendln(mb, "      blambi += intensity_scale*light[i].ambient.rgb;");

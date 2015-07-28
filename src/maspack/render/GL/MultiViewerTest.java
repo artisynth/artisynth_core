@@ -1,5 +1,6 @@
 package maspack.render.GL;
 
+import java.awt.Dimension;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.lang.reflect.InvocationTargetException;
@@ -168,12 +169,12 @@ public class MultiViewerTest {
                   
                   viewer.addSelectionListener(new SimpleSelectionHandler(renderables));
 
-                  //                  // Create a animator that drives canvas' display() at the specified FPS.
-                  //                  final FPSAnimator animator = new FPSAnimator(viewer.getCanvas(), FPS, true);
-                  //                  animator.setUpdateFPSFrames(FPS, null);
-                  //                  animator.start();
-                  //                  final FPSMonitor fpsMonitor = new FPSMonitor(title + " FPS: ", animator);
-                  //                  new Thread(fpsMonitor).start();
+                  // Create a animator that drives canvas' display() at the specified FPS.
+                  final FPSAnimator animator = new FPSAnimator(viewer.getCanvas(), FPS, true);
+                  animator.setUpdateFPSFrames(3, null);
+                  animator.start();
+                  final FPSMonitor fpsMonitor = new FPSMonitor(title + " FPS: ", animator);
+                  new Thread(fpsMonitor).start();
 
                   // Create the top-level container
                   frame = new JFrame(); // Swing's JFrame or AWT's Frame
@@ -187,8 +188,10 @@ public class MultiViewerTest {
                         new Thread() {
                            @Override
                            public void run() {
-                              //                              if (animator.isStarted()) animator.stop();
-                              //                              fpsMonitor.stop();
+                              if (animator.isStarted()) {
+                                 animator.stop();
+                              }
+                              fpsMonitor.stop();
                               //                              
                               // remove JOGL content to prevent crash on exit
                               try {
@@ -208,7 +211,7 @@ public class MultiViewerTest {
                      }
                   });
                   frame.setTitle(title);
-                  frame.pack();
+                  // frame.pack();
                   frame.setVisible(true);
                   // animator.start(); // start the animation loop
                }
@@ -237,12 +240,26 @@ public class MultiViewerTest {
             SwingUtilities.invokeAndWait(new Runnable() {
                @Override
                public void run() {
-                  frame.setSize(w, h);
                   frame.setLocation(x, y);
+                  frame.setPreferredSize(new Dimension(w, h));
+                  frame.setSize(w, h);
                }
             });
          } catch (InvocationTargetException | InterruptedException e) {
          }
+      }
+      
+      public void setSize(final int w, final int h) {
+         try {
+            SwingUtilities.invokeAndWait(new Runnable() {
+               @Override
+               public void run() {
+                  frame.setSize(w, h);
+               }
+            });
+         } catch (InvocationTargetException | InterruptedException e) {
+         }
+         System.out.println(frame.getTitle() + ": " + frame.getSize());
       }
       
    }   
@@ -335,9 +352,20 @@ public class MultiViewerTest {
       }
    }
 
-
    public ArrayList<SimpleViewerApp> getWindows() {
       return windows;
+   }
+   
+   public void setWindowSizes(int width, int height) {
+      for (SimpleViewerApp app : windows) {
+         app.setSize(width,height);
+      }
+   }
+   
+   public void autoFitViewers() {
+      for (SimpleViewerApp app : windows) {
+         app.viewer.autoFit();
+      }
    }
 
 }

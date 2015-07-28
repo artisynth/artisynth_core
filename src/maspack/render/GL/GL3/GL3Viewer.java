@@ -1,6 +1,7 @@
 package maspack.render.GL.GL3;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -41,8 +42,8 @@ import maspack.render.GL.GLLightManager;
 import maspack.render.GL.GLMouseAdapter;
 import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLViewer;
-import maspack.render.GL.GL3.GLSLInfo.InstancedRendering;
 import maspack.render.GL.GL3.GLSLInfo.ColorInterpolation;
+import maspack.render.GL.GL3.GLSLInfo.InstancedRendering;
 import maspack.util.InternalErrorException;
 
 public class GL3Viewer extends GLViewer {
@@ -148,6 +149,7 @@ public class GL3Viewer extends GLViewer {
 
       canvas.addGLEventListener (this);
       
+      canvas.setPreferredSize(new Dimension(width, height));
       canvas.setSize (width, height);
 
       this.width = width;
@@ -1506,7 +1508,7 @@ public class GL3Viewer extends GLViewer {
             buff.putFloat(coords1[i]);
          }
          buff.rewind();
-         lineGLO = GL3Object.createV(gl, GL.GL_LINES, buff, 6, GL.GL_FLOAT, 3, 3*Float.BYTES, GL.GL_DYNAMIC_DRAW);
+         lineGLO = GL3Object.createV(gl, GL.GL_LINES, buff, 2, GL.GL_FLOAT, 3, 3*Float.BYTES, GL.GL_DYNAMIC_DRAW);
       } else {
          ByteBuffer buff = lineGLO.vbos[0].mapNewBuffer(gl);
          for (int i=0; i<3; ++i) {
@@ -1530,13 +1532,13 @@ public class GL3Viewer extends GLViewer {
    private void drawGLPoint(GL3 gl, float[] coords) {
 
       if (pointGLO == null) {
-         ByteBuffer buff = ByteBuffer.allocateDirect(6*Float.BYTES);
+         ByteBuffer buff = ByteBuffer.allocateDirect(3*Float.BYTES);
          buff.order(ByteOrder.nativeOrder());
          for (int i=0; i<3; ++i) {
             buff.putFloat(coords[i]);
          }
          buff.rewind();
-         pointGLO = GL3Object.createV(gl, GL.GL_POINTS, buff,  6, GL.GL_FLOAT, 3, 3*Float.BYTES, GL.GL_DYNAMIC_DRAW);
+         pointGLO = GL3Object.createV(gl, GL.GL_POINTS, buff,  1, GL.GL_FLOAT, 3, 3*Float.BYTES, GL.GL_DYNAMIC_DRAW);
       } else {
          ByteBuffer buff = pointGLO.vbos[0].mapNewBuffer(gl);
          for (int i=0; i<3; ++i) {

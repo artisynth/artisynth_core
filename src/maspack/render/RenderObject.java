@@ -368,7 +368,7 @@ public class RenderObject {
       final int nidx;
       final int cidx;
       final int tidx;
-      VertexIndexSet(int p, int n, int c, int t) {
+      public VertexIndexSet(int p, int n, int c, int t) {
          pidx = p;
          nidx = n;
          cidx = c;
@@ -2025,7 +2025,7 @@ public class RenderObject {
     * Creates a new group of points that can be rendered.  By default,
     * only one point group exists.
     * @return the index of the new group of points
-    * @see #setPointGroup(int)
+    * @see #pointGroup(int)
     */
    public int createPointGroup() {
       if (primitivesCommitted) {
@@ -2046,7 +2046,7 @@ public class RenderObject {
     * Sets the current active point group for rendering.
     * @param setIdx index of active point group.
     */
-   public void setPointGroup(int setIdx) {
+   public void pointGroup(int setIdx) {
       stateInfo.pointGroupIdx = setIdx;
       if (points != null) {
          currentPointGroup = points.get(stateInfo.pointGroupIdx);
@@ -2275,7 +2275,7 @@ public class RenderObject {
     * Creates a new group of lines that can be rendered.  By default,
     * only one line group exists.
     * @return the index of the new group of lines
-    * @see #setLineGroup(int)
+    * @see #lineGroup(int)
     */
    public int createLineGroup() {
       if (primitivesCommitted) {
@@ -2296,7 +2296,7 @@ public class RenderObject {
     * Sets the current active line group for rendering.
     * @param setIdx index of active line group.
     */
-   public void setLineGroup(int setIdx) {
+   public void lineGroup(int setIdx) {
       stateInfo.lineGroupIdx = setIdx;
       if (lines != null) {
          currentLineGroup = lines.get(stateInfo.lineGroupIdx);
@@ -2537,7 +2537,7 @@ public class RenderObject {
     * Creates a new group of triangles that can be rendered.  By default,
     * only one triangle group exists.
     * @return the index of the new group of triangles
-    * @see #setTriangleGroup(int)
+    * @see #triangleGroup(int)
     */
    public int createTriangleGroup() {
       if (primitivesCommitted) {
@@ -2558,7 +2558,7 @@ public class RenderObject {
     * Sets the current active triangle group for rendering.
     * @param setIdx index of active triangle group.
     */
-   public void setTriangleGroup(int setIdx) {
+   public void triangleGroup(int setIdx) {
       stateInfo.triangleGroupIdx = setIdx;
       if (triangles != null) {
          currentTriangleGroup = triangles.get(stateInfo.triangleGroupIdx);
@@ -3002,13 +3002,13 @@ public class RenderObject {
       }
 
       if (stateInfo.pointGroupIdx >= 0) {
-         r.setPointGroup(stateInfo.pointGroupIdx);
+         r.pointGroup(stateInfo.pointGroupIdx);
       }
       if (stateInfo.lineGroupIdx >= 0) {
-         r.setLineGroup(stateInfo.lineGroupIdx);
+         r.lineGroup(stateInfo.lineGroupIdx);
       }
       if (stateInfo.triangleGroupIdx >= 0) {
-         r.setTriangleGroup(stateInfo.triangleGroupIdx);
+         r.triangleGroup(stateInfo.triangleGroupIdx);
       }
 
       r.pointsModified = pointsModified;

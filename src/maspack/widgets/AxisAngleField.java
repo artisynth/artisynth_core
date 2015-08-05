@@ -90,7 +90,23 @@ public class AxisAngleField extends LabeledTextField {
             tmp.set (i, rtok.nval);
          }
          if (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
-            return illegalValue ("Extra characters after last element", errMsg);
+            // check if specified degrees or radians
+            if (rtok.tokenIsWord()) {
+               if (rtok.sval.toLowerCase().equals("r") ||
+                  rtok.sval.toLowerCase().equals("rad") ||
+                  rtok.sval.toLowerCase().equals("radians")) {
+                  // radians
+                  tmp.set(3, Math.toDegrees(tmp.get(3)));
+               } else if  (rtok.sval.toLowerCase().equals("d") ||
+                  rtok.sval.toLowerCase().equals("deg") ||
+                  rtok.sval.toLowerCase().equals("degrees")) {
+                  // already in degrees
+               } else {
+                  return illegalValue ("Only angle unit specifier allowed after last entry", errMsg);
+               }
+            } else {
+               return illegalValue ("Extra characters after last element", errMsg);
+            }
          }
          return validValue (new AxisAngle (
                                tmp.get(0), tmp.get(1), tmp.get(2),

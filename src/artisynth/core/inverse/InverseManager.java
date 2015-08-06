@@ -70,11 +70,12 @@ public class InverseManager {
 
    public void showInversePanel(RootModel root, TrackingController controller) {
       hideInversePanel();
-      createInverseControlPanel(root, controller);
-      if (!RootModel.isFocusable()) {
-         inverseControlPanel.setFocusableWindowState(false);
+      if (createInverseControlPanel(root, controller)) {
+         if (!RootModel.isFocusable()) {
+            inverseControlPanel.setFocusableWindowState(false);
+         }
+         inverseControlPanel.setVisible(true);
       }
-       inverseControlPanel.setVisible(true);
    }
 
    public void hideInversePanel() {
@@ -85,14 +86,20 @@ public class InverseManager {
       }
    }
 
-   private void createInverseControlPanel(RootModel root, TrackingController controller) {
-      inverseControlPanel = new InverseControlPanel (root, controller);
+   private boolean createInverseControlPanel (
+      RootModel root, TrackingController controller) {
+      if (myMain.getMainFrame() != null) {
+         inverseControlPanel = new InverseControlPanel (root, controller);
 
-      Dimension d = myMain.getMainFrame().getSize();
-      java.awt.Point pos = myMain.getMainFrame().getLocation();
-      inverseControlPanel.getFrame().setLocation(pos.x+d.width, pos.y+d.height);
-
-      myMain.registerWindow(inverseControlPanel.getFrame());
+         Dimension d = myMain.getMainFrame().getSize();
+         java.awt.Point pos = myMain.getMainFrame().getLocation();
+         inverseControlPanel.getFrame().setLocation(pos.x+d.width, pos.y+d.height);
+         myMain.registerWindow(inverseControlPanel.getFrame());
+         return true;
+      }
+      else {
+         return false;
+      }
    }
 
    private void findOrCreateProbes(RootModel root, TrackingController controller) {

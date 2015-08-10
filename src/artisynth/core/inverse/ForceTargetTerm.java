@@ -256,25 +256,41 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    private void createForceJacobian() {
       MechModel mechMod = (MechModel)myMech;
     int[] target_idx= new int [myForceTargets.size()];
-   
+  
     int idx=0;
     int cons_ind=0;
     System.out.println(mechMod.rigidBodyConnectors ().size());
+    SparseBlockMatrix GT=new SparseBlockMatrix ();
+    VectorNd dg= new VectorNd();
+    mechMod.getBilateralConstraints (GT, dg);
+    System.out.println(GT.colSize ());
+    System.out.println(GT.rowSize ());
+    System.out.println(GT.getSize ());
+    System.out.println(GT.numBlocks ());
+    System.out.println(GT.getBlock (0, 0));
+    System.out.println(GT.getBlock (0, 1));
+    System.out.println(GT.getBlock (0, 2));
+    System.out.println(GT.getBlock (1, 0));
+    int[] constraint_blocksize=new int[mechMod.rigidBodyConnectors ().size()];
     for (int i=0; i < myForceTargets.size(); i++)
     {
        cons_ind=0;
-       System.out.println(mechMod.rigidBodyConnectors ().get (i).getName());
+       
        for(int j =0; j<mechMod.rigidBodyConnectors ().size(); j++)
        {
-          
+          System.out.println(mechMod.rigidBodyConnectors ().get (j).getName());
           if(mechMod.rigidBodyConnectors ().get (j).getName()==myForceTargets.get (i).getName())
           {
              target_idx[idx]=cons_ind;
              idx++;
-             
+                
           }
           if(mechMod.rigidBodyConnectors ().get (j).isEnabled ()==true)
-          {cons_ind++;}
+          {
+          System.out.println(mechMod.rigidBodyConnectors ().get (j).numBilateralConstraints ());
+          constraint_blocksize[cons_ind]=mechMod.rigidBodyConnectors ().get (j).numBilateralConstraints ();
+          cons_ind++;
+          }
           
        }
      /*  if(mechMod.rigidBodyConnectors ().get (i).isEnabled ()==true)
@@ -285,7 +301,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
     }
     int[] dynsize=new int[cons_ind];
     Arrays.fill (dynsize, 1);
-      myForJacobian= new SparseBlockMatrix (new int[0], dynsize);
+      myForJacobian= new SparseBlockMatrix (new int[0], constraint_blocksize);
       
 
       for (int i = 0; i < myForceTargets.size(); i++) {

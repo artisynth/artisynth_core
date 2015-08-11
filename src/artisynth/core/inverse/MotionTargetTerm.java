@@ -31,6 +31,7 @@ import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointList;
 import artisynth.core.mechmodels.PointState;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.util.TimeBase;
 
@@ -63,9 +64,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    protected int myTargetVelSize;
    protected int myTargetPosSize;
    protected VectorNd myTargetWgts = null;   // size of myTargetVelSize, weights for system
-   
-   public static boolean DEFAULT_NORMALIZE_H = false;
-   protected boolean normalizeH = DEFAULT_NORMALIZE_H;
+
    
    public static double DEFAULT_Kd = 1.0;
    protected double Kd = DEFAULT_Kd;
@@ -78,23 +77,32 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    private static final int FRAME_VEL_SIZE = 7;
 
    protected VectorNd myCurrentVel = null;
+   
 
    public static PropertyList myProps =
       new PropertyList(MotionTargetTerm.class, LeastSquaresTermBase.class);
 
    static {
-      myProps.add("targetWeights", "Weights for each target", null);
+      myProps.add("useTimestepScaling", "flag for scaling motion term H and vbar by 1/h", 
+         MotionTerm.DEFAULT_USE_TIMESTEP_SCALING);
+      myProps.add("useKKTFactorAndSolve", "flag for re-factoring at each internal KKT solve", 
+         MotionTerm.DEFAULT_USE_KKT_FACTORANDSOLVE);
+      myProps.add(
+         "usePDControl * *", "use PD controller for motion term",
+         MotionTargetTerm.DEFAULT_USE_PD_CONTROL);
+      myProps.add(
+         "normalizeH", "normalize contribution by frobenius norm",
+         MotionTerm.DEFAULT_NORMALIZE_H);
       myProps.add(
          "Kd", "derivative gain", DEFAULT_Kd);
       myProps.add(
          "Kp", "proportional gain", DEFAULT_Kd);
-      myProps.add(
-         "normalizeH", "normalize contribution by frobenius norm",
-         DEFAULT_NORMALIZE_H);
       myProps.addReadOnly (
          "derr", "derivative error at current timestep");
       myProps.addReadOnly (
          "perr", "proporational error at current timestep");
+      myProps.add("targetWeights", "Weights for each target", null);
+
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -136,7 +144,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
          if (myTargetVel == null || myTargetVel.size() != myTargetVelSize) {
             myTargetVel = new VectorNd(myTargetVelSize);
          }
-         myTargetVel.scale (Kp, postionError);
+         myTargetVel.scale (Kp/h, postionError);
          myTargetVel.scaledAdd (Kd, velocityError);
       }
       else {
@@ -719,8 +727,12 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       updateTarget(t0, t1); // set myTargetVel
       updateModelVelocity(); // set myCurrentVel
 //      fixTargetPositions();   // XXX not sure why this is needed
+      if (myMech instanceof MechModel) {
+         myMotionTerm.useTrapezoidalSolver = ((MechModel)myMech).getIntegrator ()==Integrator.Trapezoidal;
+      }
+      
       return myMotionTerm.getTerm(H, b, rowoff, t0, t1,
-         myTargetVel, myCurrentVel, myTargetWgts, getVelocityJacobian(), normalizeH);
+         myTargetVel, myCurrentVel, myTargetWgts, getVelocityJacobian());
    }
    
    /**
@@ -903,7 +915,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * @param set
     */
    public void setNormalizeH(boolean set) {
-      normalizeH = set;
+      myMotionTerm.normalizeH = set;
    }
    
    /**
@@ -913,7 +925,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * <code>H</code> and <code>b</code>
     */
    public boolean getNormalizeH() {
-      return normalizeH;
+      return myMotionTerm.normalizeH;
    }
 
    @Override
@@ -925,5 +937,32 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    public int getRowSize() {
       return getTargetVelSize();
    }
+   
+   
+   public boolean getUseKKTFactorAndSolve () {
+      return myMotionTerm.useKKTFactorAndSolve;
+   }
+
+   public void setUseKKTFactorAndSolve (boolean useKKTFactorAndSolve) {
+      myMotionTerm.useKKTFactorAndSolve = useKKTFactorAndSolve;
+   }
+   
+   public boolean getUseTimestepScaling () {
+      return myMotionTerm.useTimestepScaling;
+   }
+
+   public void setUseTimestepScaling (boolean useTimestepScaling) {
+      myMotionTerm.useTimestepScaling = useTimestepScaling;
+   }
+
+
+   public void setUsePDControl(boolean usePD) {
+      usePDControl = usePD;
+   }
+
+   public boolean getUsePDControl() {
+      return usePDControl;
+   }
+
 
 }

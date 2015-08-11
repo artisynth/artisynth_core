@@ -52,6 +52,7 @@ import artisynth.core.modelbase.ReferenceList;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.util.ScanToken;
+import artisynth.core.util.TimeBase;
 import artisynth.core.workspace.RootModel;
 
 /**
@@ -120,13 +121,12 @@ public class TrackingController extends ControllerBase
    protected ComponentList<ExcitationComponent> exciters;
    protected ReferenceList sourcePoints;
    protected ReferenceList sourceFrames;
-
-   /*
-    * for debugging:
-    */
-   // ComplianceTerm cTerm = null;
-   // StiffnessTerm kTerm = null;
    
+   public static boolean isDebugTimestep(double t0, double t1) {
+      double EPS = 1e-10;
+//      return (t0 < EPS || (t1 <= 0.4+EPS && t1 >=0.4-EPS));
+      return false;
+   }
 
    protected MuscleExciter myExciters;  // list of inputs
    protected VectorNd myExcitations = new VectorNd();    // computed excitatios
@@ -155,9 +155,6 @@ public class TrackingController extends ControllerBase
       myProps.add(
          "sourcesVisible * *", "allow showing or hiding of motion markers",
          true);
-      myProps.add(
-         "usePDControl * *", "use PD controller for motion term",
-         MotionTargetTerm.DEFAULT_USE_PD_CONTROL);
       myProps.add(
          "probeDuration", "duration of inverse managed probes",
          DEFAULT_PROBE_DURATION);
@@ -267,7 +264,7 @@ public class TrackingController extends ControllerBase
    }
    
    /**
-    * Creates a control panel for this inverse controller
+    * Creates a control panel for this inverse controller       
     */
    public void createPanel(RootModel root) {
       Main.getMain().getInverseManager ().showInversePanel (root, this);
@@ -284,6 +281,7 @@ public class TrackingController extends ControllerBase
     * set of muscle activations
     */
    public void apply(double t0, double t1) {
+//      System.out.println("dt = "+(t1-t0)+"     h = "+ TimeBase.round(t1 - t0));
 
       if (t0 == 0) { // XXX need better way to zero excitations on reset
          myCostFunction.setSize (numExcitations());
@@ -702,14 +700,6 @@ public class TrackingController extends ControllerBase
 
    public boolean getDebug() {
       return debug;
-   }
-
-   public void setUsePDControl(boolean usePD) {
-      myMotionTerm.usePDControl = usePD;
-   }
-
-   public boolean getUsePDControl() {
-      return myMotionTerm.usePDControl;
    }
 
    /**

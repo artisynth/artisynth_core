@@ -20,8 +20,22 @@ public class MotionTerm
    boolean debug = false;
    NumberFormat fmt = new NumberFormat("%g");
 
+
    TrackingController myController;
    MechSystemSolver myMechSysSolver;
+   
+   public static boolean DEFAULT_USE_TIMESTEP_SCALING = false;
+   protected boolean useTimestepScaling = DEFAULT_USE_TIMESTEP_SCALING;
+   
+   public static boolean DEFAULT_USE_KKT_FACTORANDSOLVE = false;
+   protected boolean useKKTFactorAndSolve = DEFAULT_USE_KKT_FACTORANDSOLVE;
+   
+   public static boolean DEFAULT_USE_TRAPEZOIDAL_SOLVER = false;
+   protected boolean useTrapezoidalSolver = DEFAULT_USE_TRAPEZOIDAL_SOLVER;
+   
+   public static boolean DEFAULT_NORMALIZE_H = false;
+   protected boolean normalizeH = DEFAULT_NORMALIZE_H;
+
 
    double weight = 1;
 
@@ -37,15 +51,15 @@ public class MotionTerm
    }
 
    SparseBlockMatrix Jm;
-   VectorNd Lambda_j = new VectorNd();
+   VectorNd fa = new VectorNd();
    VectorNd Hu_j = new VectorNd();
    VectorNd Hm_j = new VectorNd();
    MatrixNd Hm = new MatrixNd();
-   VectorNd v = new VectorNd();
+   VectorNd u0 = new VectorNd();
    VectorNd ex = new VectorNd();
    VectorNd vbar = new VectorNd();
-   VectorNd f_passive = new VectorNd();
-   VectorNd f = new VectorNd();
+   VectorNd fp = new VectorNd();
+   VectorNd bf = new VectorNd();
    VectorNd ftmp = new VectorNd();
 
    VectorNd lam = new VectorNd(0);
@@ -56,15 +70,9 @@ public class MotionTerm
    // VectorNd curVel = new VectorNd(0);
 
    protected int getTerm(MatrixNd H, VectorNd b, int rowoff,
-      double t0, double t1, VectorNd targetVel, VectorNd curVel, VectorNd wgts,
-      SparseBlockMatrix Jm) {
-      return getTerm(
-         H, b, rowoff, t0, t1, targetVel, curVel, wgts, Jm, DEFAULT_NORMALIZE);
-   }
-
-   protected int getTerm(MatrixNd H, VectorNd b, int rowoff,
       double t0, double t1, VectorNd targetVel, VectorNd curVel,
-      VectorNd wgts, SparseBlockMatrix Jm, boolean normalizeH) {
+      VectorNd wgts, SparseBlockMatrix Jm) {
+      
 
       // round because results are very sensitive to h and we want to keep them
       // identical to earlier results when t0, t1 where given as nsec integers
@@ -77,16 +85,16 @@ public class MotionTerm
       if (Jm == null) 
          assert velSize == tvelSize;
 
-      Lambda_j.setSize(velSize);
+      fa.setSize(velSize);
       Hu_j.setSize(velSize);
       Hm_j.setSize(tvelSize);
       Hm.setSize(tvelSize, exSize);
 
-      v.setSize(velSize);
+      u0.setSize(velSize);
       ex.setSize(exSize);
       vbar.setSize(tvelSize);
-      f_passive.setSize(velSize);
-      f.setSize(velSize);
+      fp.setSize(velSize);
+      bf.setSize(velSize);
       ftmp.setSize(velSize);
 
       curEx.setSize(exSize);
@@ -97,83 +105,92 @@ public class MotionTerm
          System.out.println("h = " + h);
          System.out.println("targetVel = " + targetVel.toString(fmt));
          System.out.println("exPrev = " + curEx.toString(fmt));
+         // Jm = motionTarget.getVelocityJacobian();
+         // System.out.println("Jm = ["+Jm.toString(fmt)+" ]");
       }
 
-      // Jm = motionTarget.getVelocityJacobian();
-      // System.out.println("Jm = ["+Jm.toString(fmt)+" ]");
 
-      // b = M v
+      // bf = M v
       myMechSysSolver.updateStateSizes();
       myMechSysSolver.updateMassMatrix(t0);
-      myMechSysSolver.mulActiveInertias(f, curVel);
+      myMechSysSolver.mulActiveInertias(bf, curVel);
 
-      // passive forces with act = 0
+      // fp = passive forces with zero muscle activation
       ex.setZero();
-      myController.getForces(f_passive, ex);
+      myController.getForces(fp, ex);
       myController.updateConstraints(t1);
-      myMechSysSolver.addMassForces(f_passive, t0);
+      myMechSysSolver.addMassForces(fp, t0);
 
-      f.scaledAdd(h, f_passive, f);
+      // bf = M v + h fp
+      bf.scaledAdd(h, fp, bf);
 
-      //TODO: automatically select
-      boolean useTrapezoidal = true;
-      double hscale = 1;
+      if (useTrapezoidalSolver) {
+         // use Trapezoidal integration
+         myMechSysSolver.KKTFactorAndSolve (
+            u0, null, bf, /*tmp=*/ftmp, curVel, 
+            h, -h/2, -h*h/4, -h/2, h*h/4);
 
-      double hold = h;
-      h *= hscale;
-
-      if (useTrapezoidal) {
-         // trapezoidal
-         myMechSysSolver.KKTFactorAndSolve(
-            v, null, f, /* tmp= */ftmp, curVel, h,
-            -h / 2, -h * h / 4, -h / 2, h * h / 4);
       }
       else {
-         // backward euler
+         // use ConstrainedBackwardEuler integration
          myMechSysSolver.KKTFactorAndSolve(
-            v, null, f, /*tmp=*/ftmp, curVel,
-            h, -h, -h*h, -h, 0);
+            u0, null, bf, /*tmp=*/ftmp, curVel, h);
       }
-      h = hold;
+      
+//      if (TrackingController.isDebugTimestep (t0, t1)) {
+//         System.out.println("b' = " + bf);
+//         System.out.println("fp = " + fp);
+//      }
 
       // vbar = v* - Jm u0
       if (Jm != null) {
-         Jm.mul(vbar, v, tvelSize, velSize);
+         Jm.mul(vbar, u0, tvelSize, velSize);
       }
       else {
-         vbar.set(v);
+         vbar.set(u0);
       }
-      //System.out.println ("f_passive=" + f_passive);
-
-      // vbar.mul(Jm, v);
       vbar.sub(targetVel, vbar);
-      
+            
       // Hm = Jm Hu
-      // get column j of Hu by solving with RHS = Lambda * ej
+      // compute Hu: get column j of Hu by solving with RHS = fa(e_j) = f(e_j) - f(0)
+      // where e_j is elementary unit vector
       for (int j = 0; j < exSize; j++)
       {
          if (j > 0) {
             ex.set(j - 1, 0.0);
          }
          ex.set(j, 1.0);
-         myController.getForces(Lambda_j, ex);
-         Lambda_j.sub(f_passive); // subtract passive forces
-         Lambda_j.scale(h);
-         // if (j == 0) {
-         // trapezoidal
-         // myMechSysSolver.KKTFactorAndSolve(Hu_j, Lambda_j, /*tmp=*/ftmp,
-         // null/*zero vel*/, t1,
-         // -h/2, -h*h/4, -h/2, h*h/4, /*velocitySolve=*/true);
-         // backward euler
-         // myMechSysSolver.KKTFactorAndSolve(v, f, /*tmp=*/ftmp, curVel, t1,
-         // -h, -h*h, -h, 0, /*velocitySolve=*/true);
-         // }
-         // else {
+         myController.getForces(fa, ex); 
+         fa.sub (fa, fp);
+         fa.scale (h);
+         
+         if (useKKTFactorAndSolve) {        
+            if (useTrapezoidalSolver) {
+                // use Trapezoidal integration
+                myMechSysSolver.KKTFactorAndSolve (
+                   Hu_j, null, fa, /*tmp=*/ftmp, curVel, 
+                   h, -h/2, -h*h/4, -h/2, h*h/4);
+             }
+             else {
+                // use ConstrainedBackwardEuler integration
+                myMechSysSolver.KKTFactorAndSolve(
+                   Hu_j, null, fa, /*tmp=*/ftmp, curVel, h);
+             }     
+         }
+         else {
+            // use pre-factored KKT system
+            // Note neglecting change in jacobians due to excitation
+            myMechSysSolver.KKTSolve(Hu_j, lam, the, fa);
+         }
+         
+         
+//         if (TrackingController.isDebugTimestep (t0, t1)) {
+//            System.out.println("fa"+j+" = " + fa);            
+//            System.out.println("Hu_"+j+" = " + Hu_j);
+//         }
+//         
 
-         myMechSysSolver.KKTSolve(Hu_j, lam, the, Lambda_j);
-         // }
-
-         // Jm.mul (Hm_j, Hu_j);
+         // Hm_j = Jm Hu_j);
          if (Jm != null)
             Jm.mul(Hm_j, Hu_j, tvelSize, velSize);
          else
@@ -182,16 +199,15 @@ public class MotionTerm
          Hm.setColumn(j, Hm_j.getBuffer());
       }
 
-      /*START EDIT*/
-      double dt = t1-t0;
-      //Hm.scale(1/dt);      // makes it independent of the time step
-      //vbar.scale(1/dt);    // makes it independent of the time step
+      if (useTimestepScaling) { // makes it independent of the time step
+         Hm.scale(1/h);      
+         vbar.scale(1/h); 
+      }
       
-      double EPS = 1e-10;
-      // if (t1 <= 0.4+EPS && t1 >=0.4-EPS) {
-      //    System.out.println("dt = " + dt + "    |Hm| = " + Hm.frobeniusNorm() + "    |vbar| = " + vbar.norm ());
-      //    System.out.println("         v = " + v + "      targetVel = " + targetVel);
-      // }
+       if (TrackingController.isDebugTimestep (t0, t1)) {
+          System.out.println("dt = " + h + "    |Hm| = " + Hm.frobeniusNorm() + "    |vbar| = " + vbar.norm ());
+          System.out.println("    vbar = " + vbar + " equals    targetVel = " + targetVel + "    minus    v0 = " + u0 );
+       }
       /*END EDIT*/
       
       if (debug) {
@@ -207,7 +223,11 @@ public class MotionTerm
           Hm.scale(fn);
           vbar.scale(fn);
        }
-
+      
+//      if (TrackingController.isDebugTimestep (t0, t1)) {
+//         System.out.println("dt = " + h + " normalizeH   |Hm| = " + Hm.frobeniusNorm() + "    |vbar| = " + vbar.norm ());
+//      }
+      
       // apply weights
       if (wgts != null) {
          diagMul(wgts,Hm,Hm);

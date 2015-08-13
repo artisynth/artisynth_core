@@ -691,14 +691,16 @@ public class MayaAsciiReader {
       if (nodeName == null) {
          return tree.getRootElement();
       }
+      
+      System.out.print(getGroupNames());
 
       // first look for node with given exact name
       Node<MayaNode> node = recursiveGetNode(tree.getRootElement(), nodeName);
 
       if (node == null) {
-         int idx = nodeName.indexOf('>');
+         int idx = nodeName.indexOf('/');
          if (idx >= 0) {
-            String[] nodePath = nodeName.split(">");
+            String[] nodePath = nodeName.split("/");
             node = getSplitNode(tree.getRootElement(), nodePath);
          }
       }

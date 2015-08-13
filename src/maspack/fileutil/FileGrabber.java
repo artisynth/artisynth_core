@@ -330,7 +330,7 @@ public class FileGrabber {
          String fn = base.getFragment() + extension;
          merged.setFragment(fn);
       } else {
-         String fn = base.getPath() + extension;
+         String fn = base.getPath(false) + extension;
          merged.setPath(fn);
       }
       
@@ -570,7 +570,7 @@ public class FileGrabber {
       if (dest == null) {    
          // if source is relative, take that
          if (source.isRelative()) {
-            dest = new File(source.getPath());
+            dest = new File(source.getPath(false));
          } else {
             // otherwise, simply extract the file name from source
             dest = new File(srcFile);
@@ -578,7 +578,7 @@ public class FileGrabber {
       } else if (dest.isDirectory()) {
          
          if (source.isRelative()) {            
-            srcFile = source.getPath();
+            srcFile = source.getPath(false);
          }
          dest = new File(dest,srcFile);
          
@@ -685,7 +685,7 @@ public class FileGrabber {
       // default destination if none provided
       if (dest == null) {
          if (source.isRelative()) {
-            dest = new File(source.getPath());
+            dest = new File(source.getPath(false));
          } else {
             dest = new File(extractFileName(source));
          }
@@ -1178,7 +1178,7 @@ public class FileGrabber {
       // default local copy if none provided
       if (localCopy == null) {
          if (source.isRelative()) {
-            localCopy = new File(source.getPath());
+            localCopy = new File(source.getPath(false));
          } else {
             localCopy = new File(extractFileName(source));
          }

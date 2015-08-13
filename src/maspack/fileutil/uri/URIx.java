@@ -226,7 +226,7 @@ public class URIx {
       if (encoded) {
         return percentEncode(userName, STANDARD_RESERVED);
       }
-      return percentDecode(userName);
+      return userName;
    }
    
    public void setUserName(String userName) {
@@ -247,7 +247,7 @@ public class URIx {
       if (encoded) {
          return percentEncode(password, PASSWORD_RESERVED);
       }
-      return percentDecode(password);
+      return password;
    }
    public void setPassword(String password) {
       if ("".equals(password) || password == null) {
@@ -267,7 +267,7 @@ public class URIx {
       if (encoded) {
          return percentEncode(host, STANDARD_RESERVED);
       }
-      return percentDecode(host);
+      return host;
    }
    public void setHost(String host) {
       if ("".equals(host) || host == null) {
@@ -295,7 +295,7 @@ public class URIx {
       if (encoded) {
          return percentEncode(path, PATH_RESERVED);
       }
-      return percentDecode(path);
+      return path;
    }
    private static String convertSlashes(String in) {
       return in.replace('\\', '/');
@@ -318,7 +318,7 @@ public class URIx {
       if (encoded) {
          return percentEncode(query, QUERY_RESERVED);
       }
-      return percentDecode(query);
+      return query;
    }
    public void setQuery(String query) {
       if ("".equals(query) || query == null) {
@@ -349,7 +349,7 @@ public class URIx {
          }
          return percentEncode(fragment, FRAGMENT_RESERVED);
       }
-      return percentDecode(fragment);
+      return fragment;
    }
    public void setFragment(String fragment) {
       if ("".equals(fragment) || fragment == null) {
@@ -664,8 +664,7 @@ public class URIx {
       return sb.toString();
    }
 
-   public static String
-      percentDecode(String str) {
+   public static String percentDecode(String str) {
       if (str == null) {
          return null;
       }

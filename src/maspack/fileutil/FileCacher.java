@@ -129,10 +129,13 @@ public class FileCacher {
 
       // For atomic operation, first download to temporary directory
       File tmpCacheFile = new File(cacheFile.getAbsolutePath() + TMP_EXTENSION);
+      
+      URIx cacheURI = new URIx(cacheFile.getAbsoluteFile());
+      URIx tmpCacheURI = new URIx(tmpCacheFile.getAbsoluteFile());
       FileObject localTempFile =
-         manager.resolveFile(tmpCacheFile.getAbsolutePath());
+         manager.resolveFile(tmpCacheURI.toString(true));
       FileObject localCacheFile =
-         manager.resolveFile(cacheFile.getAbsolutePath());
+         manager.resolveFile(cacheURI.toString(true));
 
       FileObject remoteFile = null; // will resolve next
 

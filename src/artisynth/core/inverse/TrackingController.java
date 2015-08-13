@@ -861,6 +861,10 @@ public class TrackingController extends ControllerBase
    public void setProbeUpdateInterval(double h) {
       myProbeUpdateInterval = h;
    }
+   
+   public PointList<TargetPoint> getTargetPoints() {
+      return targetPoints;
+   }
 
    
    // ========== Begin Rendering ==========

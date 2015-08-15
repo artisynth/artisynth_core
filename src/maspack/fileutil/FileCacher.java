@@ -10,6 +10,7 @@ import maspack.fileutil.uri.URIx;
 import maspack.fileutil.uri.URIxMatcher;
 import maspack.fileutil.vfs.SimpleIdRepoFactory;
 
+import org.apache.commons.vfs2.AllFileSelector;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemOptions;
@@ -167,7 +168,9 @@ public class FileCacher {
          if (remoteFile.isFile()) {
             localTempFile.copyFrom(remoteFile, Selectors.SELECT_SELF);
          } else if (remoteFile.isFolder()) {
-            localTempFile.copyFrom(remoteFile, Selectors.SELECT_SELF_AND_CHILDREN);
+            // final FileObject fileSystem = manager.createFileSystem(remoteFile);
+            localTempFile.copyFrom(remoteFile, new AllFileSelector());
+            // fileSystem.close();
          }
          
          if (monitor != null) {

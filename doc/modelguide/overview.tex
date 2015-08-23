@@ -186,7 +186,9 @@ containers for different component types, including:
 \begin{shadedregion}
 \begin{tabular}{ll}
 \tt particles & 3 DOF particles \\
+\tt points & other 3 DOF points \\
 \tt rigidBodies & 6 DOF rigid bodies \\
+\tt frames & other 6 DOF frames \\
 \tt axialSprings & point-to-point springs \\
 \tt connectors & joint-type connectors between bodies \\
 \tt constrainers & general constraints \\
@@ -355,7 +357,49 @@ the attached components using special constraints of the form
 \end{equation}
 %
 where $\u_j$ and $\u_\alpha$ denote the velocities of the attached and
-non-attached components. These constraints could be added directly to
+non-attached components. The constraint matrix $\G_{j\alpha}$ is
+sparse, with a non-zero block entry for each {\it master} component to
+which the attached component is connected. The simplest case involves
+attaching a point $j$ to another point $k$, with the simple velocity relationship
+%
+\begin{equation}
+\u_j = \u_k
+\end{equation}
+%
+That means that $\G_{j\alpha}$ has a single entry of $-\I$ (where $\I$
+is the $3 \times 3$ identity matrix) in the $k$-th block column.
+Another common case involves connecting a point $j$ to
+a rigid frame $k$. The velocity relationship for this is
+%
+\begin{equation}
+\u_j = \u_k - \l_j \times \Bom_k
+\end{equation}
+%
+where $\u_k$ and $\Bom_k$ are the translational and rotational
+velocity of the frame and $l_j$ is the location of the point relative
+to the frame's origin (as seen in world coordinates). The corresponding
+$\G_{j\alpha}$ contains a single $3 \times 6$ block entry of the form
+%
+\begin{equation}
+\left(\begin{matrix}
+\I & [ l_j ]
+\end{matrix}\right)
+\end{equation}
+%
+in the $k-th$ block column, where
+%
+\begin{equation}
+[ l ] \equiv 
+\left(\begin{matrix}
+0 & -l_z & l_y \\
+l_z & 0 & -l_x \\
+-l_y & l_x & 0
+\end{matrix}\right)
+\end{equation}
+%
+is a skew-symmetric {\it cross product matrix}.
+The attachment constraints $\G_{j\alpha}$ 
+could be added directly to
 (\ref{KKTvelocity:eqn}), but their special form allows us to
 explicitly solve for $\u_j$, and hence reduce the size of
 (\ref{KKTvelocity:eqn}), by factoring out the attached velocities

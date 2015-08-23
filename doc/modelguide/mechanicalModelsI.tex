@@ -639,6 +639,7 @@ their own (inherited) {\tt frameDamping} and {\tt rotaryDamping}
 properties.
 
 \subsection{Joints and connectors}
+\label{JointsAndConnectors:sec}
 
 In a typical mechanical model, many of the rigid bodies are
 interconnected, either using spring-type components that exert binding
@@ -780,7 +781,7 @@ joint using the method
 artisynth.core.mechmodels.RigidBodyConnector.setBodies(,,)}
 {setBodies(bodyA, bodyB, TDW)}.
 
-Alternatively, if we prefer to explicitly specify $\T_{CA}$ or $\T_{BA}$, then we
+Alternatively, if we prefer to explicitly specify $\T_{CA}$ or $\T_{DB}$, then we
 can determine $\T_{DW}$ from $\T_{AW}$ or $\T_{BW}$ using
 %
 \begin{align}
@@ -1293,31 +1294,35 @@ ArtiSynth User Interface Guide}).
 
 ArtiSynth provides the ability to rigidly attach dynamic components to
 other dynamic components, allowing different parts of a model to be
-connected together.
+connected together.  Attachments are made by adding to a {\tt
+MechModel} special {\it attachment} components that manage the
+attachment physics as described briefly in Section
+\ref{PhysicsSimulation:sec}.
 
-\subsubsection{The attachment methods}
+\subsubsection{Point attachments}
 \label{sec:mech:pointattachments}
 
-Attachments are made by adding to a {\tt MechModel} special {\it
-attachment} components that manage the attachment physics as described
-briefly in Section \ref{PhysicsSimulation:sec}. At present,
-attachments are implemented only for point-based components.  Modeling
-applications do not generally handle the attachment components
-directly, but instead create them implicitly using the following {\tt
-MechModel} method:
+Point attachments allow particles and other point-based components to
+be attached to other, more complex components, such as frames, rigid
+bodies, or finite element models (Section \ref{sec:fem:nodeattachments}). Point
+attachments are implemented by creating attachment components that are
+instances of \javaclass[artisynth.core.mechmodels]{PointAttachment}.
+Modeling applications do not generally handle the attachment
+components directly, but instead create them implicitly using the
+following {\tt MechModel} method:
 %
 \begin{lstlisting}[]
   attachPoint (Point p1, PointAttachable comp);
 \end{lstlisting}
 %
 This attaches a point {\tt p1} to any component which implements the
-interface {\tt PointAttachment}, indicating that it is capable
-creating an attachment to a point. Components that implement {\tt
-PointAttachable} currently include rigid bodies, particles, and finite
-element models. The attachment is created based on the the current
-position of the point and component in question.
-For attaching a point to a rigid body, another method
-may be used:
+interface \javaclass[artisynth.core.mechmodels]{PointAttachable},
+indicating that it is capable creating an attachment to a
+point. Components that implement {\tt PointAttachable} currently
+include rigid bodies, particles, and finite element models. The
+attachment is created based on the the current position of the point
+and component in question.  For attaching a point to a rigid body,
+another method may be used:
 %
 \begin{lstlisting}[]
   attachPoint (Point p1, RigidBody body, Point3d loc);
@@ -1409,10 +1414,9 @@ and most of the code is shown here:
       setPointRenderProps (mech);
       setLineRenderProps (mech);
    }
-%
 \end{lstlisting}
 \lstset{numbers=none}
-
+%
 The code is very similar to {\tt ParticleSpring} and {\tt
 RigidBodySpring} described in Sections \ref{ParticleSpringExample:sec}
 and \ref{RigidBodySpringExample:sec}, except that two convenience
@@ -1441,4 +1445,112 @@ and initially appear as in Figure \ref{ParticleAttachment:fig}.
 Running the model (Section \ref{LoadingAndRunning:sec}) will cause the
 box to fall and swing under gravity.
 
+\subsubsection{Frame attachments}
+\label{sec:mech:frameattachments}
+
+Frame attachments allow rigid bodies and other frame-based components to
+be attached to other components, including frames, rigid
+bodies, or finite element models (Section \ref{sec:fem:frameattachments}).
+Frame attachments are implemented by creating attachment components that are
+instances of \javaclass[artisynth.core.mechmodels]{FrameAttachment}.
+
+As with point attachments, modeling applications do not generally
+handle frame attachment components directly, but instead create and
+add them
+implicitly using the following {\tt MechModel} methods:
+%
+\begin{lstlisting}[]
+  attachFrame (Frame frame, FrameAttachable comp);
+
+  attachFrame (Frame frame, FrameAttachable comp, RigidTransform3d TFW);
+\end{lstlisting}
+%
+These attach {\tt frame} to any component which implements the
+interface \javaclass[artisynth.core.mechmodels]{FrameAttachable},
+indicating that it is capable of creating an attachment to a
+frame. Components that implement {\tt FrameAttachable} currently
+include frames, rigid bodies, and finite element models.  For the
+first method, the attachment is created based on the the current
+position of the frame and component in question. For the second
+method, the attachment is created so that the initial pose of the frame
+(in world coordinates) is described by {\tt TFW}.
+
+Once a frame is attached, it
+will be in the {\it attached} state, as described in Section
+\ref{DynamicVsParametric:sec}.  Frame attachments can be removed by
+calling
+%
+\begin{lstlisting}[]
+  detachFrame (Frame frame);   
+\end{lstlisting}
+%
+
+\begin{sideblock}
+While it is possible to create composite rigid bodies using {\tt
+FrameAttachments}, this is much less computationally efficient (and
+less accurate) than creating a single rigid body through mesh merging
+or similar techniques.
+\end{sideblock}
+
+\subsubsection{Example: model with frame attachments}
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/FrameBodyAttachment}
+\else
+ \includegraphics[width=3.75in]{images/FrameBodyAttachment}
+\fi
+\end{center}
+\caption{FrameBodyAttachment model loaded into ArtiSynth.}
+\label{FrameBodyAttachment:fig}
+\end{figure}
+
+A model illustrating rigidBody-rigidBody and frame-rigidBody attachments
+is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.FrameBodyAttachment
+\end{verbatim}
+%
+Most of the code is identical to that for {\tt RigidBodyJoint}
+as described in Section \ref{RigidBodyJoint:sec}, except that
+the joint is further to the left and connects {\tt bodyB} to ground,
+rather than to {\tt bodyA}, and the initial pose of {\tt bodyA}
+is changed so that it is aligned vertically. {\tt bodyA} is
+then connected to {\tt bodyB}, and an auxiliary frame is created
+and attached to {\tt bodyA}, using code at the end
+of the {\tt build()} method as shown here:
+%
+\lstset{numbers=left}
+\begin{lstlisting}[]
+   public void build (String[] args) {
+
+      ... create model mostly similar to RigidBodyJoint ...
+
+      // now connect bodyA to bodyB using a FrameAttachment
+      mech.attachFrame (bodyA, bodyB);
+
+      // create an auxiliary frame and add it to the mech model
+      Frame frame = new Frame();
+      mech.addFrame (frame);
+      
+      // set the frames axis length > 0 so we can see it
+      frame.setAxisLength (4.0); 
+      // set the attached frame's pose to that of bodyA ...
+      RigidTransform3d TFW = new RigidTransform3d (bodyA.getPose());
+      // ... plus a translation of lenx2/2 along the x axis:
+      TFW.mulXyz (lenx2/2, 0, 0);
+      // finally, attach the frame to bodyA
+      mech.attachFrame (frame, bodyA, TFW);
+   }
+\end{lstlisting}
+\lstset{numbers=none}
+%
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+FrameBodyAttachment} from the {\sf Models} menu. The model should load
+and initially appear as in Figure \ref{ParticleAttachment:fig}.  The
+frame attached to {\tt bodyA} is visible in the lower right corner.
+Running the model (Section \ref{LoadingAndRunning:sec}) will cause
+both bodies to fall and swing about the joint under gravity.
 

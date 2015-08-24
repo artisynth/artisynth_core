@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.fileutil;
 
 import java.io.File;
@@ -509,7 +516,17 @@ public class FileGrabber {
       // get final part of path
       int idx = fileName.lastIndexOf('/'); // this is the only separator in uri's
       if (idx >= 0) {
-         fileName = fileName.substring(idx+1);
+         if (idx == fileName.length()-1) {
+            int lidx = idx;
+            idx = fileName.lastIndexOf('/', lidx-1);
+            if (idx >= 0) {
+               fileName = fileName.substring(idx, lidx);
+            } else {
+               fileName = fileName.substring(0, lidx);
+            }
+         } else {
+            fileName = fileName.substring(idx+1);
+         }
       }
       
       return fileName;
@@ -563,7 +580,7 @@ public class FileGrabber {
 
       // ensure that source is a file, and not a path
       String srcFile = extractFileName(source);
-      if (srcFile.equals("") || srcFile.endsWith("/")) {
+      if (srcFile.equals("") ) { //|| srcFile.endsWith("/")) {
          throw new IllegalArgumentException("Source URI must refer to a file: <" + source + ">"); 
       }
       

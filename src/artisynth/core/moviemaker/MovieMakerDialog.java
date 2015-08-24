@@ -678,6 +678,7 @@ implements ActionListener, ValueChangeListener {
       // disable play (otherwise destroys waypoints)
       boolean savedBegin = beginRecordOnStart.isEnabled();
       beginRecordOnStart.setEnabled(false);
+      beginRecordOnStart.setSelected (false);
 
       // manual control of scheduler and rendering
       Scheduler scheduler = myMain.getScheduler();
@@ -711,6 +712,7 @@ implements ActionListener, ValueChangeListener {
       }
 
       beginRecordOnStart.setEnabled(savedBegin);
+      beginRecordOnStart.setSelected (savedBegin);
 
 
    }

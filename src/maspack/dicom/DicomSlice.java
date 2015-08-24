@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.dicom;
 
 import maspack.dicom.DicomPixelBuffer.PixelType;
@@ -5,9 +12,17 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 
-
+/**
+ * A single DICOM slice, with DICOM header information and image buffer
+ * @author Antonio
+ */
 public class DicomSlice {
 
+   /**
+    * Size, location and series information of he DICOM slice
+    * @author Antonio
+    *
+    */
    public static class SliceInfo {
       
       String title;
@@ -37,6 +52,12 @@ public class DicomSlice {
    private DicomHeader header;
    DicomPixelBuffer pixelBuff;
    
+   /**
+    * Construct a DICOM slice with a given title, DICOM header information, and image pixels
+    * @param title
+    * @param header
+    * @param pixels
+    */
    public DicomSlice(String title, DicomHeader header, DicomPixelBuffer pixels) {
       this.header = header;
       this.pixelBuff = pixels;
@@ -77,6 +98,9 @@ public class DicomSlice {
       
    }
    
+   /**
+    * @return Returns the pixel type of the slice (byte/short grayscale, byte RGB)
+    */
    public PixelType getPixelType() {
       return pixelBuff.getPixelType();
    }
@@ -94,6 +118,21 @@ public class DicomSlice {
       return offset;
    }
    
+   /**
+    * Populates an array of grayscale(byte) pixels from the slice, 
+    * interpolated using an interpolator
+    * 
+    * @param x starting x voxel
+    * @param y starting y voxel
+    * @param dx voxel step in x direction
+    * @param dy voxel step in y direction
+    * @param nx number of voxels in x direction
+    * @param ny number of voxels in y direction
+    * @param pixels output array to fill
+    * @param offset offset in output pixel array
+    * @param interp interpolator for converting pixels to appropriate form
+    * @return the next unfilled index in the output pixel array 
+    */
    public int getPixelsByte(int x, int y, 
       int dx, int dy,
       int nx, int ny, byte[] pixels, int offset,
@@ -104,14 +143,24 @@ public class DicomSlice {
          offset = pixelBuff.getPixelsByte(idx, dx, nx, pixels, offset, interp);
       }
       
-      //      for (int i=0; i<nx; i++) {
-      //         int idx = (x + dx*i)*info.cols + y;
-      //         offset = pixelBuff.getPixelsByte(idx, dy, ny, pixels, offset, interp);
-      //      }
-      
       return offset;
    }
    
+   /**
+    * Populates an array of grayscale(short) pixels from the slice, 
+    * interpolated using an interpolator
+    * 
+    * @param x starting x voxel
+    * @param y starting y voxel
+    * @param dx voxel step in x direction
+    * @param dy voxel step in y direction
+    * @param nx number of voxels in x direction
+    * @param ny number of voxels in y direction
+    * @param pixels output array to fill
+    * @param offset offset in output pixel array
+    * @param interp interpolator for converting pixels to appropriate form
+    * @return the next unfilled index in the output pixel array 
+    */
    public int getPixelsShort(int x, int y,
       int dx, int dy, 
       int nx, int ny, short[] pixels, int offset,
@@ -125,6 +174,20 @@ public class DicomSlice {
       return offset;
    }
    
+   /**
+    * Populates a pixel buffer from the slice, interpolated using an interpolator
+    * 
+    * @param x starting x voxel
+    * @param y starting y voxel
+    * @param dx voxel step in x direction
+    * @param dy voxel step in y direction
+    * @param nx number of voxels in x direction
+    * @param ny number of voxels in y direction
+    * @param pixels output buffer to fill
+    * @param offset offset in output pixel buffer
+    * @param interp interpolator for converting pixels to appropriate form
+    * @return the next unfilled index in the output pixel array 
+    */
    public int getPixels(int x, int y, 
       int dx, int dy,
       int nx, int ny,
@@ -138,14 +201,23 @@ public class DicomSlice {
       return offset;
    }
    
+   /**
+    * @return maximum pixel intensity in the slice
+    */
    public int getMaxIntensity() {
       return pixelBuff.getMaxIntensity();
    }
    
+   /**
+    * @return minimum pixel intensity in the slice
+    */
    public int getMinIntensity() {
       return pixelBuff.getMinIntensity();
    }
 
+   /**
+    * @return the DICOM header information for the slice
+    */
    public DicomHeader getHeader() {
       return header;
    }

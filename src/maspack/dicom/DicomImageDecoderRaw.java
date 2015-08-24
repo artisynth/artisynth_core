@@ -1,7 +1,19 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.dicom;
 
 import maspack.dicom.DicomElement.VR;
 
+/**
+ * Decodes images stored in raw form (non-encoded)
+ * @author Antonio
+ *
+ */
 public class DicomImageDecoderRaw implements DicomImageDecoder {
 
    @Override

@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.dicom;
 
 import java.util.Arrays;
@@ -9,7 +16,10 @@ import maspack.matrix.Vector3d;
 
 public class DicomImage {
 
-   public static final int MAX_CAP_ADJUSTMENT = 128;
+   /**
+    * Increase image capacity at most by this much when dynamically adding slice information
+    */
+   private static final int MAX_CAP_ADJUSTMENT = 128;
    
    String title;
    int rows;
@@ -25,6 +35,12 @@ public class DicomImage {
    int timeOffsets[];
    int size;
    
+   /**
+    * Creates a new DICOM image, extracting common header information from the 
+    * provided first slice.  The slice is also added to the image.
+    * @param title title to use for DICOM image
+    * @param firstSlice the first slice, which determines header information
+    */
    public DicomImage(String title, DicomSlice firstSlice) {
       this.title = title;
       this.rows = firstSlice.info.rows;
@@ -44,6 +60,12 @@ public class DicomImage {
       addSlice(firstSlice);
    }
    
+   /**
+    * Checks whether the provided slice has compatible image dimensions with the
+    * the current image set
+    * @param slice new slice to verify
+    * @return true if compatible
+    */
    public boolean compatible(DicomSlice slice) {
       if (slice.info.rows == rows &&
          slice.info.cols == cols &&
@@ -55,7 +77,14 @@ public class DicomImage {
       }
       return false;
    }
-   
+
+   /**
+    * Appends a slice to the current DICOM image set.  The order of the image
+    * is extracted from header information contained in the slice, based on
+    * temporal and slice position indices if possible.
+    * @param slice
+    * @return true if added
+    */
    public boolean addSlice(DicomSlice slice) {
       if (compatible(slice)) {
          maybeGrowCapacity(size+1);
@@ -167,6 +196,10 @@ public class DicomImage {
       }
    }
    
+   /**
+    * Ensure a minimum capacity for number of slices
+    * @param cap minimum number of slices to support
+    */
    public void ensureCapacity(int cap) {
       if (slices.length < cap) {
          DicomSlice[] oldSlices = slices;
@@ -177,6 +210,9 @@ public class DicomImage {
       }
    }
    
+   /**
+    * Trims the array of slices to match the number currently contained in the image
+    */
    public void trim() {
       if (size < slices.length) {
          DicomSlice[] oldSlices = slices;
@@ -187,10 +223,17 @@ public class DicomImage {
       }
    }
    
+   /**
+    * Finalize DICOM image construction
+    */
    public void complete() {
       trim();
    }
    
+   /**
+    * Determines the type of pixels stored in the image
+    * @return byte grayscale, short grayscale, or byte RGB
+    */
    public PixelType getPixelType() {
       return pixelType;
    }
@@ -207,17 +250,49 @@ public class DicomImage {
       return str.toString();
    }
    
+   /**
+    * Fills a buffer with RGB pixel values from the image
+    * @param x starting x voxel position
+    * @param y starting y voxel position
+    * @param z starting z voxel position
+    * @param dx voxel step in x
+    * @param dy voxel step in y
+    * @param dz voxel step in z
+    * @param nx number of voxels in x direction
+    * @param ny number of voxels in y direction
+    * @param nz number of voxels in z direction
+    * @param time time index
+    * @param pixels pixel buffer to fill
+    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
+    * @return the next unfilled index in the pixel buffer
+    */
    public int getPixelsRGB(int x, int y, int z, 
       int dx, int dy, int dz,
       int nx, int ny, int nz, 
       int time,
       byte[] pixels,
       DicomPixelConverter interp) {
-      z = timeOffsets[time] + z;
       
+      z = timeOffsets[time] + z;
       return getPixelsRGB(x,y,z,dx,dy,dz,nx,ny,nz,pixels,interp);
    }
    
+   /**
+    * Fills a buffer with grayscale byte pixel values from the image
+    * @param x starting x voxel position
+    * @param y starting y voxel position
+    * @param z starting z voxel position
+    * @param dx voxel step in x
+    * @param dy voxel step in y
+    * @param dz voxel step in z
+    * @param nx number of voxels in x direction
+    * @param ny number of voxels in y direction
+    * @param nz number of voxels in z direction
+    * @param time time index
+    * @param pixels pixel buffer to fill
+    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
+    * @return the next unfilled index in the pixel buffer
+    */
    public int getPixelsByte(int x, int y, int z, 
       int dx, int dy, int dz,
       int nx, int ny, int nz, 
@@ -229,6 +304,22 @@ public class DicomImage {
       return getPixelsByte(x,y,z,dx,dy,dz,nx,ny,nz,pixels,interp);
    }
    
+   /**
+    * Fills a buffer with grayscale short pixel values from the image
+    * @param x starting x voxel position
+    * @param y starting y voxel position
+    * @param z starting z voxel position
+    * @param dx voxel step in x
+    * @param dy voxel step in y
+    * @param dz voxel step in z
+    * @param nx number of voxels in x direction
+    * @param ny number of voxels in y direction
+    * @param nz number of voxels in z direction
+    * @param time time index
+    * @param pixels pixel buffer to fill
+    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
+    * @return the next unfilled index in the pixel buffer
+    */
    public int getPixelsShort(int x, int y, int z, 
       int dx, int dy, int dz,
       int nx, int ny, int nz, 
@@ -240,6 +331,22 @@ public class DicomImage {
       return getPixelsShort(x,y,z,dx,dy,dz,nx,ny,nz,pixels,interp);
    }
    
+   /**
+    * Fills a buffer pixel values from the image
+    * @param x starting x voxel position
+    * @param y starting y voxel position
+    * @param z starting z voxel position
+    * @param dx voxel step in x
+    * @param dy voxel step in y
+    * @param dz voxel step in z
+    * @param nx number of voxels in x direction
+    * @param ny number of voxels in y direction
+    * @param nz number of voxels in z direction
+    * @param time time index
+    * @param pixels pixel buffer to fill (class determines types of values)
+    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
+    * @return the next unfilled index in the pixel buffer
+    */
    public int getPixels(int x, int y, int z, 
       int dx, int dy, int dz,
       int nx, int ny, int nz, 
@@ -251,6 +358,21 @@ public class DicomImage {
       return getPixels(x,y,z,dx,dy,dz,nx,ny,nz,pixels,interp);
    }
    
+   /**
+    * Fills a buffer with RGB pixel values from the image
+    * @param x starting x voxel position
+    * @param y starting y voxel position
+    * @param z starting z voxel position
+    * @param dx voxel step in x
+    * @param dy voxel step in y
+    * @param dz voxel step in z
+    * @param nx number of voxels in x direction
+    * @param ny number of voxels in y direction
+    * @param nz number of voxels in z direction
+    * @param pixels pixel buffer to fill
+    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
+    * @return the next unfilled index in the pixel buffer
+    */
    public int getPixelsRGB(int x, int y, int z, 
       int dx, int dy, int dz,
       int nx, int ny, int nz, byte[] pixels,
@@ -264,6 +386,21 @@ public class DicomImage {
       return offset;
    }
    
+   /**
+    * Fills a buffer with grayscale byte pixel values from the image
+    * @param x starting x voxel position
+    * @param y starting y voxel position
+    * @param z starting z voxel position
+    * @param dx voxel step in x
+    * @param dy voxel step in y
+    * @param dz voxel step in z
+    * @param nx number of voxels in x direction
+    * @param ny number of voxels in y direction
+    * @param nz number of voxels in z direction
+    * @param pixels pixel buffer to fill
+    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
+    * @return the next unfilled index in the pixel buffer
+    */
    public int getPixelsByte(int x, int y, int z, 
       int dx, int dy, int dz,
       int nx, int ny, int nz, byte[] pixels,
@@ -277,6 +414,21 @@ public class DicomImage {
       return offset;
    }
    
+   /**
+    * Fills a buffer with grayscale short pixel values from the image
+    * @param x starting x voxel position
+    * @param y starting y voxel position
+    * @param z starting z voxel position
+    * @param dx voxel step in x
+    * @param dy voxel step in y
+    * @param dz voxel step in z
+    * @param nx number of voxels in x direction
+    * @param ny number of voxels in y direction
+    * @param nz number of voxels in z direction
+    * @param pixels pixel buffer to fill
+    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
+    * @return the next unfilled index in the pixel buffer
+    */
    public int getPixelsShort(int x, int y, int z, 
       int dx, int dy, int dz,
       int nx, int ny, int nz, short[] pixels,
@@ -290,6 +442,21 @@ public class DicomImage {
       return offset;
    }
    
+   /**
+    * Fills a buffer pixel values from the image
+    * @param x starting x voxel position
+    * @param y starting y voxel position
+    * @param z starting z voxel position
+    * @param dx voxel step in x
+    * @param dy voxel step in y
+    * @param dz voxel step in z
+    * @param nx number of voxels in x direction
+    * @param ny number of voxels in y direction
+    * @param nz number of voxels in z direction
+    * @param pixels pixel buffer to fill (class determines types of values)
+    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
+    * @return the next unfilled index in the pixel buffer
+    */
    public int getPixels(int x, int y, int z,  
       int dx, int dy, int dz,
       int nx, int ny, int nz,
@@ -304,18 +471,32 @@ public class DicomImage {
       return offset;
    }
    
+   /**
+    * @return Number of y-positions (rows) in each image slice
+    */
    public int getNumRows() {
       return rows;
    }
    
+   /**
+    * @return Number of x-positions (columns) in each image slice
+    */
    public int getNumCols() {
       return cols;
    }
    
+   /**
+    * @return Number of time instances, each representing a 3D DICOM image stack
+    */
    public int getNumTimes() {
       return timeOffsets.length;
    }
    
+   /**
+    * @return Number of (z-)slices in a single 3D DICOM image stack (for DICOM images
+    * with multiple time points, assumes all times have the same number of slices as
+    * the image at the first time index)
+    */
    public int getNumSlices() {
       if (timeOffsets.length == 1) {
          return size;
@@ -325,6 +506,17 @@ public class DicomImage {
       }
    }
    
+   /**
+    * @return the total number of slices, including all times
+    */
+   public int size() {
+      return size;
+   }
+   
+   /**
+    * @return Maximum intensity value in the entire image set, useful for
+    * adjusting an intensity window for display
+    */
    public int getMaxIntensity() {
       
       int max = 0;
@@ -337,6 +529,10 @@ public class DicomImage {
       return max;
    }
    
+   /**
+    * @return Minimum intensity value in the entire image set, useful for
+    * adjusting an intensity window for display
+    */
    public int getMinIntensity() {
       int min = Integer.MAX_VALUE;
       for (int i=0; i<size; i++) {
@@ -348,19 +544,37 @@ public class DicomImage {
       return min;
    }
    
+   /**
+    * Extracts a DICOM slice at a given index
+    * @param slice index of slice
+    * @return the DICOM slice at the given index
+    */
    public DicomSlice getSlice(int slice) {
       return slices[slice];
    }
    
+   /**
+    * Extracts a DICOM slice at a given time point and slice index
+    * @param timeIdx time point (identifies 3D stack)
+    * @param slice slice index (identifies z position in stack)
+    * @return the appropriate DICOM slice
+    */
    public DicomSlice getSlice(int timeIdx, int slice ) {
       return getSlice(timeOffsets[timeIdx]+slice);
    }
    
-   
+   /**
+    * Spatial location of the first slice
+    * @return the 3D transform of the voxel (0,0,0) in the DICOM image stack
+    */
    public RigidTransform3d getTransform() {
       return trans;
    }
    
+   /**
+    * Transform for converting integer voxel locations into spatial locations
+    * @return the 3D affine transform for converting voxels to spatial locations
+    */
    public AffineTransform3d getPixelTransform() {
       
       int nSlices = getNumSlices();
@@ -374,6 +588,13 @@ public class DicomImage {
       AffineTransform3d pixelTrans = new AffineTransform3d(trans);
       pixelTrans.applyScaling(pixelSpacingRows, pixelSpacingCols, pixelSpacingSlice);
       return pixelTrans;
+   }
+
+   /**
+    * @return the title of the image
+    */
+   public String getTitle() {
+      return title;
    }
    
 }

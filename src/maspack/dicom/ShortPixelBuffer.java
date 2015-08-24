@@ -1,5 +1,16 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.dicom;
 
+/**
+ * Stores a set of pixels in grayscale short form
+ * @author Antonio
+ */
 public class ShortPixelBuffer implements DicomPixelBuffer {
 
    short[] pixels;
@@ -10,11 +21,6 @@ public class ShortPixelBuffer implements DicomPixelBuffer {
    
    public ShortPixelBuffer(short[] pixels) {
       this.pixels = pixels;
-   }
-
-   @Override
-   public Object getPixels() {
-      return pixels;
    }
 
    @Override

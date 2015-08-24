@@ -1,5 +1,16 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.dicom;
 
+/**
+ * Stores a set of pixels in RGB byte form (3 consecutive bytes per pixel)
+ * @author Antonio
+ */
 public class RGBPixelBuffer implements DicomPixelBuffer {
 
    byte[] pixels;
@@ -21,11 +32,6 @@ public class RGBPixelBuffer implements DicomPixelBuffer {
          this.pixels[sidx++] = (byte)((pixels[i] & 0x000000FF));
       }
 
-   }
-
-   @Override
-   public Object getPixels() {
-      return pixels;
    }
 
    @Override

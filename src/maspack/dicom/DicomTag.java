@@ -1,8 +1,20 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.dicom;
 
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+/**
+ * Listing of known DICOM tags, and utilities for determining their default storage type
+ * @author Antonio
+ *
+ */
 public class DicomTag {
    
    public static final int NUMBER_OF_FRAMES = 0x00280008;
@@ -732,6 +744,11 @@ public class DicomTag {
       tagInfoMap.put( 0xFFFEE0DD, new TagInfo(0xFFFEE0DD, DicomElement.VR.DL, "Sequence Delimitation Item") );
    }
    
+   /**
+    * Determines the default value representation for a tag
+    * @param tagId DICOM tag
+    * @return the appropriate value representation
+    */
    public static DicomElement.VR getImplicitVR(int tagId) {
       TagInfo info = tagInfoMap.get(tagId);
       if (info != null) {
@@ -740,6 +757,11 @@ public class DicomTag {
       return null;
    }
    
+   /**
+    * Determines the human-readable name of a tag
+    * @param tagId DICOM tag identifier
+    * @return name of tag
+    */
    public static String getName(int tagId) {
       TagInfo info = tagInfoMap.get(tagId);
       if (info != null) {
@@ -748,6 +770,11 @@ public class DicomTag {
       return null;
    }
    
+   /**
+    * Determines the tag identifier for a DICOM tag with a specified name
+    * @param name human-readable name of tag
+    * @return DICOM tag identifier, -1 if unknown
+    */
    public static int getTagId(String name) {
       for (Entry<Integer,TagInfo> entry : tagInfoMap.entrySet()) {
          if (name.equalsIgnoreCase(entry.getValue().name)) {
@@ -758,6 +785,12 @@ public class DicomTag {
       return -1;
    }
    
+   /**
+    * Adds new tag information for custom tags
+    * @param tagId
+    * @param name
+    * @param vr
+    */
    public static void setTagInfo(int tagId, String name, DicomElement.VR vr) {
       tagInfoMap.put(tagId, new TagInfo(tagId, vr, name));
    }

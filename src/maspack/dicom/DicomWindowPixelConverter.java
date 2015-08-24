@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.dicom;
 
 import java.util.Arrays;
@@ -7,6 +14,13 @@ import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.util.StringRange;
 
+/**
+ * Window interpolator, rescales intensities based on a center intensity and width
+ * (as defined in the DICOM file format).  The interpolator allows for multiple named
+ * windows, which can be read directly from a DICOM file.
+ * @author Antonio
+ *
+ */
 public class DicomWindowPixelConverter extends DicomPixelConverter {
 
    private static final int BYTE_MASK = 0xFF;
@@ -22,6 +36,11 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
       myProps.add("windowWidth", "Width of window", 0x7FF, "[1,Inf]");
    }
    
+   /**
+    * Preset loaded from DICOM file
+    * @author Antonio
+    *
+    */
    private static class WindowPreset implements Comparable<WindowPreset>{
       String name;
       int width;
@@ -63,10 +82,19 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
    int windowWidth;
    int nextIdx = 0;
    
+   /**
+    * Create a default windowed interpolator, centered at intensity 2047 with
+    * width 2*2047.
+    */
    public DicomWindowPixelConverter() {
-      this(DEFAULT_WINDOW_CENTER, DEFAULT_WINDOW_WIDTH);
+      this(DEFAULT_WINDOW_CENTER, 2*DEFAULT_WINDOW_WIDTH);
    }
    
+   /**
+    * Constructs a new interpolator given a center intensity and width
+    * @param center centre intensity
+    * @param width intensity width
+    */
    public DicomWindowPixelConverter(int center, int width) {
       presetMap = new HashMap<String, WindowPreset>();
       customPreset = new WindowPreset("CUSTOM", center, width, Integer.MAX_VALUE);
@@ -74,22 +102,41 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
       setWindow("CUSTOM");
    }
    
+   /**
+    * @return the name of the currently active preset window
+    */
    public String getWindow() {
       return currentPreset.name;
    }
    
+   /**
+    * @return list of preset window names
+    */
    public String[] getWindowNames() {
       return  presetMap.keySet().toArray(new String[0]);
    }
    
+   /**
+    * @return the number of window presets available
+    */
    public int numWindows() {
       return presetMap.size();
    }
    
+   /**
+    * Adds a window preset to this interpolator
+    * @param preset name of the preset window
+    * @param center center intensity of window
+    * @param width width of window
+    */
    public void addWindowPreset(String preset, int center, int width) {
       presetMap.put(preset, new WindowPreset(preset, center, width, nextIdx++));
    }
    
+   /**
+    * Sets the currently active preset window
+    * @param preset name of preset
+    */
    public void setWindow(String preset) {
       if (preset != null) {
          WindowPreset window = presetMap.get(preset);
@@ -103,6 +150,10 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
       }
    }
    
+   /**
+    * @return a range of strings representing the various presets available
+    * (mostly for internal use in widgets)
+    */
    public StringRange getWindowRange() {
       WindowPreset[] presets = presetMap.values().toArray(new WindowPreset[0]);
       Arrays.sort(presets);
@@ -113,6 +164,12 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
       return new StringRange(range);
    }
    
+   /**
+    * Sets the center of the window.  Note that if this differs from the
+    * value defined in a selected preset, then the window will automatically
+    * be changed to the 'custom' sized window
+    * @param center
+    */
    public void setWindowCenter(int center) {
       if (center != windowCenter) {
          windowCenter = center;
@@ -129,10 +186,19 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
       }
    }
    
+   /**
+    * @return the middle intensity for the window
+    */
    public int getWindowCenter() {
       return windowCenter;
    }
    
+   /**
+    * Sets the width of the window.  Note that if the width differs
+    * from the currently active preset, then the window will automatically
+    * be switched to the 'custom' sized window
+    * @param width
+    */
    public void setWindowWidth(int width) {
       
       if (width != windowWidth) {
@@ -155,6 +221,9 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
       
    }
    
+   /**
+    * @return the window width
+    */
    public int getWindowWidth() {
       return windowWidth;
    }
@@ -310,13 +379,13 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
             
             switch (out.getPixelType()) {
                case BYTE: {
-                  return interpByteByte((byte[])in.getPixels(), idx, (byte[])out.getPixels(), odx);
+                  return interpByteByte((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
                }
                case RGB: {
-                  return interpByteRGB((byte[])in.getPixels(), idx, (byte[])out.getPixels(), odx);
+                  return interpByteRGB((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
                }
                case SHORT: {
-                  return interpByteShort((byte[])in.getPixels(), idx, (short[])out.getPixels(), odx);
+                  return interpByteShort((byte[])in.getBuffer(), idx, (short[])out.getBuffer(), odx);
                }
                default: {
                   throw new IllegalArgumentException("Unknown type: " + out.getPixelType());
@@ -326,13 +395,13 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
          case RGB: {
             switch (out.getPixelType()) {
                case BYTE: {
-                  return interpRGBByte((byte[])in.getPixels(), idx, (byte[])out.getPixels(), odx);
+                  return interpRGBByte((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
                }
                case RGB: {
-                  return interpRGBRGB((byte[])in.getPixels(), idx, (byte[])out.getPixels(), odx);
+                  return interpRGBRGB((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
                }
                case SHORT: {
-                  return interpRGBShort((byte[])in.getPixels(), idx, (short[])out.getPixels(), odx);
+                  return interpRGBShort((byte[])in.getBuffer(), idx, (short[])out.getBuffer(), odx);
                }
                default: {
                   throw new IllegalArgumentException("Unknown type: " + out.getPixelType());
@@ -342,13 +411,13 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
          case SHORT: {
             switch (out.getPixelType()) {
                case BYTE: {
-                  return interpShortByte((short[])in.getPixels(), idx, (byte[])out.getPixels(), odx);
+                  return interpShortByte((short[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
                }
                case RGB: {
-                  return interpShortRGB((short[])in.getPixels(), idx, (byte[])out.getPixels(), odx);
+                  return interpShortRGB((short[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
                }
                case SHORT: {
-                  return interpShortShort((short[])in.getPixels(), idx, (short[])out.getPixels(), odx);
+                  return interpShortShort((short[])in.getBuffer(), idx, (short[])out.getBuffer(), odx);
                }
                default: {
                   throw new IllegalArgumentException("Unknown type: " + out.getPixelType());

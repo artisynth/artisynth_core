@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.dicom;
 
 import java.io.BufferedInputStream;
@@ -20,8 +27,16 @@ import maspack.threads.NamedThreadFactory;
 import maspack.util.BinaryInputStream;
 import maspack.util.FunctionTimer;
 
+/**
+ * Reads DICOM files and folders, creating DicomSlices and populating a DicomImage
+ * @author Antonio
+ *
+ */
 public class DicomReader {
 
+   /**
+    * List of known image decoders
+    */
    private ArrayList<DicomImageDecoder> imageDecoders;
 
    public DicomReader() {
@@ -42,14 +57,29 @@ public class DicomReader {
       }
    }
 
+   /**
+    * Add a custom image decoder, the new decoder taking priority over existing ones
+    * if multiple decoders can handle a given DICOM file
+    * @param decoder decoder to add
+    */
    public void addImageDecoder(DicomImageDecoder decoder) {
       addImageDecoderFirst(decoder);
    }
 
+   /**
+    * Add a custom image decoder, the new decoder taking priority over existing ones
+    * if multiple decoders can handle a given DICOM file
+    * @param decoder decoder to add
+    */
    public void addImageDecoderFirst(DicomImageDecoder decoder) {
       imageDecoders.add(0, decoder);
    }
 
+   /**
+    * Add a custom image decoder, the new decoder will be the last to try, 
+    * prioritizing existing decoders if multiple can handle a given DICOM file
+    * @param decoder decoder to add
+    */
    public void addImageDecoderLast(DicomImageDecoder decoder) {
       imageDecoders.add(decoder);
    }
@@ -81,6 +111,18 @@ public class DicomReader {
 
    }
 
+   /**
+    * Populates a DicomImage based on a given directory containing DICOM files
+    * and a file pattern to restrict files to load.
+    * 
+    * @param im DICOM image to populate, or null to generate a new image
+    * @param directory directory from which to load files
+    * @param filePattern regular expression pattern for accepting files to load.  The pattern 
+    * is applied to the full absolute file names of files found. 
+    * @param checkSubdirectories whether to recursively search sub-directories for matching files
+    * @return the populated DICOM image
+    * @throws IOException if there is an error reading a DICOM file
+    */
    public DicomImage read(
       DicomImage im, String directory, Pattern filePattern,
       boolean checkSubdirectories) throws IOException {
@@ -88,6 +130,22 @@ public class DicomReader {
       return read(im, directory, filePattern, checkSubdirectories, -1);
    }
 
+   /**
+    * Populates a DicomImage based on a given directory containing DICOM files
+    * and a file pattern to restrict files to load.  This allows the specification
+    * of a temporal position of the slice. 
+    * 
+    * @param im DICOM image to populate, or null to generate a new image
+    * @param directory directory from which to load files
+    * @param filePattern regular expression pattern for accepting files to load.  The pattern 
+    * is applied to the full absolute file names of files found. 
+    * @param checkSubdirectories whether to recursively search sub-directories for matching files
+    * @param temporalPosition temporal index of slice (identifies stack).  If negative, a temporal position will
+    * be extracted from each slice's header information.  If positive or zero, the
+    * temporal position will be manually assigned.
+    * @return the populated DICOM image
+    * @throws IOException if there is an error reading a DICOM file
+    */
    public DicomImage read(
       DicomImage im, String directory, Pattern filePattern,
       boolean checkSubdirectories, int temporalPosition) throws IOException {
@@ -213,6 +271,13 @@ public class DicomReader {
 
    }
 
+   /**
+    * Reads a slice or set of slices from a single input stream (e.g. from a file).
+    * @param sliceTitle title to assign slice
+    * @param in binary input
+    * @return the slice(s) (since a single file may represent multiple slices)
+    * @throws IOException if there is a read failure
+    */
    public DicomSlice[] readSlice(String sliceTitle, BinaryInputStream in)
       throws IOException {
 
@@ -326,29 +391,6 @@ public class DicomReader {
       }
 
       return null;
-   }
-
-   public DicomImage read(
-      DicomImage dcm, String sliceTitle, BinaryInputStream in)
-         throws IOException {
-
-      DicomSlice[] slices = readSlice(sliceTitle, in);
-
-      if (slices != null) {
-         // split up into frames
-         for (int i = 0; i < slices.length; i++) {
-            if (dcm == null) {
-               dcm = new DicomImage(sliceTitle, slices[i]);
-            }
-            else {
-               dcm.addSlice(slices[i]);
-            }
-         }
-
-      }
-
-      return dcm;
-
    }
 
    private short flipBytes(short s) {
@@ -489,7 +531,7 @@ public class DicomReader {
       }
 
       if (vr == null) {
-         System.err.println("huh?");
+         throw new IOException("Unable to determine value representation");
       }
 
       switch (vr) {

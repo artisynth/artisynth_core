@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.dicom;
 
 import java.io.BufferedOutputStream;
@@ -14,6 +21,11 @@ import maspack.util.BinaryInputStream;
 import maspack.util.BitInputStream;
 import maspack.util.ProcessMonitor;
 
+/**
+ * Relies on the ImageMagick command-line utilities to decode an image slice 
+ * @author Antonio
+ *
+ */
 public class DicomImageDecoderImageMagick implements DicomImageDecoder {
 
    private static final String DEFAULT_CONVERT_COMMAND = "convert";

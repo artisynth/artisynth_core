@@ -1,5 +1,16 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.dicom;
 
+/**
+ * Stores a set of pixels in grayscale byte form
+ * @author Antonio
+ */
 public class BytePixelBuffer implements DicomPixelBuffer {
 
    byte[] pixels;
@@ -10,11 +21,6 @@ public class BytePixelBuffer implements DicomPixelBuffer {
    
    public BytePixelBuffer (byte[] pixels) {
       this.pixels = pixels; 
-   }
-   
-   @Override
-   public Object getPixels() {
-      return pixels;
    }
 
    @Override
@@ -32,6 +38,7 @@ public class BytePixelBuffer implements DicomPixelBuffer {
       return pixels[n];
    }
    
+   @Override
    public int getPixelsRGB(int x,
       int dx,
       int nx, byte[] pixels, int offset,
@@ -49,6 +56,7 @@ public class BytePixelBuffer implements DicomPixelBuffer {
       return oidx;
    }
    
+   @Override
    public int getPixelsByte(int x, 
       int dx,
       int nx, byte[] pixels, int offset,
@@ -64,6 +72,7 @@ public class BytePixelBuffer implements DicomPixelBuffer {
       return oidx;
    }
    
+   @Override
    public int getPixelsShort(int x,
       int dx,
       int nx, short[] pixels, int offset,
@@ -78,6 +87,7 @@ public class BytePixelBuffer implements DicomPixelBuffer {
       return oidx;
    }
    
+   @Override
    public int getPixels(int x, 
       int dx,
       int nx,
@@ -87,6 +97,7 @@ public class BytePixelBuffer implements DicomPixelBuffer {
       return pixels.setPixelsByte(x, dx, nx, this.pixels, offset, interp);
    }
    
+   @Override
    public int setPixelsRGB(int x,
       int dx,
       int nx, byte[] pixels, int offset,
@@ -102,6 +113,7 @@ public class BytePixelBuffer implements DicomPixelBuffer {
       return iidx;
    }
    
+   @Override
    public int setPixelsByte(int x, 
       int dx,
       int nx, byte[] pixels, int offset,
@@ -116,6 +128,7 @@ public class BytePixelBuffer implements DicomPixelBuffer {
       return iidx;
    }
    
+   @Override
    public int setPixelsShort(int x,
       int dx,
       int nx, short[] pixels, int offset,
@@ -131,6 +144,7 @@ public class BytePixelBuffer implements DicomPixelBuffer {
       return iidx;
    }
    
+   @Override
    public int setPixels(int x, 
       int dx,
       int nx,
@@ -140,6 +154,7 @@ public class BytePixelBuffer implements DicomPixelBuffer {
       return pixels.getPixelsByte(x, dx, nx, this.pixels, offset, interp);
    }
    
+   @Override
    public int getMaxIntensity() {
       int max = Byte.MIN_VALUE;
       for (int i=0; i<pixels.length; i++) {
@@ -151,6 +166,7 @@ public class BytePixelBuffer implements DicomPixelBuffer {
       return max;
    }
    
+   @Override
    public int getMinIntensity() {
       int min = Byte.MAX_VALUE;
       for (int i=0; i<pixels.length; i++) {
@@ -162,6 +178,7 @@ public class BytePixelBuffer implements DicomPixelBuffer {
       return min;
    }
    
+   @Override
    public byte[] getBuffer() {
       return pixels;
    }

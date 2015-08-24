@@ -1,4 +1,11 @@
-package maspack.dicom;
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
+package artisynth.core.renderables;
 
 import java.io.File;
 import java.util.regex.Pattern;
@@ -9,6 +16,12 @@ import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.modelbase.PropertyChangeListener;
 import artisynth.core.modelbase.RenderableComponentBase;
+import maspack.dicom.DicomHeader;
+import maspack.dicom.DicomImage;
+import maspack.dicom.DicomPixelConverter;
+import maspack.dicom.DicomReader;
+import maspack.dicom.DicomTag;
+import maspack.dicom.DicomWindowPixelConverter;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
@@ -23,7 +36,8 @@ import maspack.render.Texture;
 import maspack.render.TextureLoader;
 import maspack.util.IntegerInterval;
 
-public class DicomViewer extends RenderableComponentBase implements PropertyChangeListener {
+public class DicomViewer extends RenderableComponentBase 
+   implements PropertyChangeListener {
 
    DicomImage myImage;
    DicomPixelConverter converter = null;
@@ -74,9 +88,23 @@ public class DicomViewer extends RenderableComponentBase implements PropertyChan
    Point3d[] boxRenderCoords;
    Point3d[][] sliceRenderCoords;
 
+   /**
+    * Creates a new viewer widget, with supplied name and DICOM image
+    * @param name
+    * @param image
+    */
    public DicomViewer(String name, DicomImage image) {
       super();
       init(name, image);
+   }
+   
+   /**
+    * Creates a new viewer widget, with supplied DICOM image.  The
+    * name of the component becomes the image name
+    * @param image
+    */
+   public DicomViewer(DicomImage image) {
+      this(image.getTitle(), image);
    }
    
    private void init(String name, DicomImage image) {
@@ -105,7 +133,7 @@ public class DicomViewer extends RenderableComponentBase implements PropertyChan
       window.addWindowPreset("FULL DYNAMIC", c, diff);
       window.setWindow("FULL DYNAMIC");
       
-      // add other windows
+      // add other windows, loaded from first slice
       DicomHeader header = myImage.getSlice(0).getHeader();
       double[] windowCenters = header.getMultiDecimalValue(DicomTag.WINDOW_CENTER);
       if (windowCenters != null) {
@@ -132,10 +160,14 @@ public class DicomViewer extends RenderableComponentBase implements PropertyChan
       return RenderProps.createLineProps(this);
    }
    
-   public DicomViewer(DicomImage image) {
-      this(image.title, image);
-   }
-   
+   /**
+    * Reads DICOM files into a 3D (+time) image
+    * @param name name of the viewer component
+    * @param imagePath directory containing DICOM files
+    * @param filePattern pattern for accepting/rejecting contained files.  The pattern is applied
+    * to the absolute file names of all files contained in the imagePath
+    * @param checkSubdirs recursively check sub-folders for further DICOM files
+    */
    public DicomViewer(String name, String imagePath, Pattern filePattern, boolean checkSubdirs) {
       DicomImage im = null;
       try {
@@ -147,30 +179,70 @@ public class DicomViewer extends RenderableComponentBase implements PropertyChan
       init(name, im);
    }
 
+   /**
+    * Reads DICOM files into a 3D (+time) image
+    * @param name name of the viewer component
+    * @param imagePath directory containing DICOM files
+    * @param filePattern pattern for accepting/rejecting contained files.  The pattern is applied
+    * to the absolute file names of all files contained in the imagePath
+    */
    public DicomViewer(String name, String imagePath, Pattern filePattern) {
       this(name, imagePath, filePattern, false);
    }
    
+   /**
+    * Reads DICOM files into a 3D (+time) image
+    * @param name name of the viewer component
+    * @param imagePath directory containing DICOM files
+    * @param checkSubdirs recursively check sub-folders for further DICOM files
+    */
    public DicomViewer(String name, String imagePath) {
       this(name, imagePath, null);
    }
    
+   /**
+    * Reads DICOM files into a 3D (+time) image
+    * @param name name of the viewer component
+    * @param imagePath directory containing DICOM files
+    * @param filePattern pattern for accepting/rejecting contained files.  The pattern is applied
+    * to the absolute file names of all files contained in the imagePath
+    * @param checkSubdirs recursively check sub-folders for further DICOM files
+    */
    public DicomViewer(String name, File imagePath, Pattern filePattern, boolean checkSubdirs) {
       this(name, imagePath.getAbsolutePath(), filePattern, checkSubdirs);
    }
 
+   /**
+    * Reads DICOM files into a 3D (+time) image
+    * @param name name of the viewer component
+    * @param imagePath directory containing DICOM files
+    * @param filePattern pattern for accepting/rejecting contained files.  The pattern is applied
+    * to the absolute file names of all files contained in the imagePath
+    */
    public DicomViewer(String name, File imagePath, Pattern filePattern) {
       this(name, imagePath, filePattern, false);
    }
    
+   /**
+    * Reads DICOM files into a 3D (+time) image
+    * @param name name of the viewer component
+    * @param imagePath directory containing DICOM files
+    */
    public DicomViewer(String name, File imagePath) {
       this(name, imagePath, null);
    }
    
+   /**
+    * @return the DICOM image being displayed
+    */
    public DicomImage getImage() {
       return myImage;
    }
    
+   /**
+    * Sets the DICOM image to display
+    * @param image
+    */
    public void setImage(DicomImage image) {
       myImage = image;
       if (textureLoader != null) {
@@ -182,6 +254,9 @@ public class DicomViewer extends RenderableComponentBase implements PropertyChan
       numPixels[2] = myImage.getNumSlices();
    }
  
+   /**
+    * @return the number of interpolation windows available in the DICOM image
+    */
    public int numWindows() {
       //return myImage.get
       if (converter instanceof DicomWindowPixelConverter) {
@@ -191,6 +266,9 @@ public class DicomViewer extends RenderableComponentBase implements PropertyChan
       return 0;
    }
    
+   /**
+    * @return the names of all possible interpolation windows available in the DICOM image
+    */
    public String[] getWindowNames() {
       //return myImage.get
       if (converter instanceof DicomWindowPixelConverter) {
@@ -200,6 +278,10 @@ public class DicomViewer extends RenderableComponentBase implements PropertyChan
       return null;
    }
    
+   /**
+    * Sets the current interpolation window to use, based on a preset name
+    * @param presetName name of the interpolation window
+    */
    public void setWindow(String presetName) {
       //return myImage.get
       if (converter instanceof DicomWindowPixelConverter) {
@@ -208,27 +290,33 @@ public class DicomViewer extends RenderableComponentBase implements PropertyChan
       }
    }
    
-   public void setSliceCoordinates(double s, double t, double u) {
+   /**
+    * Sets the normalized slice coordinates to display
+    * @param x in [0,1], sets the 'x' slice
+    * @param y in [0,1], sets the 'y' slice
+    * @param z in [0,1], sets the 'z' slice
+    */
+   public void setSliceCoordinates(double x, double y, double z) {
       
-      if (s < 0) {
-         s = 0;
-      } else if (s > 1) {
-         s = 1;
+      if (x < 0) {
+         x = 0;
+      } else if (x > 1) {
+         x = 1;
       }
       
-      if (t < 0) {
-         t = 0;
-      } else if (t > 1) {
-         t = 1;
+      if (y < 0) {
+         y = 0;
+      } else if (y > 1) {
+         y = 1;
       }
       
-      if (u < 0) {
-         u = 0;
-      } else if (u > 1) {
-         u = 1;
+      if (z < 0) {
+         z = 0;
+      } else if (z > 1) {
+         z = 1;
       }
   
-      sliceCoords.set(s, t, u);
+      sliceCoords.set(x, y, z);
       
       for (int i=0; i<3; i++) {
          int newId = (int)(Math.round(sliceCoords.get(i)*(numPixels[i]-1)));
@@ -239,6 +327,11 @@ public class DicomViewer extends RenderableComponentBase implements PropertyChan
       }
    }
    
+   /**
+    * Sets the normalized slice coordinates to display
+    * @param coords
+    * @see DicomViewer#setSliceCoordinates(double, double, double)
+    */
    public void setSliceCoordinates(Vector3d coords) {
       setSliceCoordinates(coords.x, coords.y, coords.z);
    }
@@ -401,10 +494,18 @@ public class DicomViewer extends RenderableComponentBase implements PropertyChan
       }
    }
 
+   /**
+    * Sets a 3D transform to apply to the image
+    * @param trans
+    */
    public void setTransform(AffineTransform3d trans) {
       myTransform.set(trans);
    }
    
+   /**
+    * Sets a 3D transform to apply to the image
+    * @param trans
+    */
    public void setTransform(AffineTransform3dBase trans) {
       myTransform.set(trans);
    }
@@ -474,6 +575,10 @@ public class DicomViewer extends RenderableComponentBase implements PropertyChan
       }
    }
    
+   /**
+    * @return the 3D transform applied to the image.  By default,
+    * this is the voxel-to-world transform
+    */
    public AffineTransform3d getTransform() {
       return myTransform;
    }
@@ -560,6 +665,11 @@ public class DicomViewer extends RenderableComponentBase implements PropertyChan
 
    }
    
+   /**
+    * Sets the converter to use for interpolating pixels from raw form to a form suitable
+    * for display
+    * @param converter
+    */
    public void setPixelConverter(DicomPixelConverter converter) {
       if (this.converter != null) {
          this.converter.setPropertyHost(null);
@@ -571,8 +681,12 @@ public class DicomViewer extends RenderableComponentBase implements PropertyChan
       clearTextures();
    }
    
+   /**
+    * @return the current pixel interpolator
+    * @see DicomViewer#setPixelConverter(DicomPixelConverter)
+    */
    public DicomPixelConverter getPixelConverter() {
-	   return converter;
+      return converter;
    }
    
    @Override
@@ -590,34 +704,63 @@ public class DicomViewer extends RenderableComponentBase implements PropertyChan
       return true;
    }
    
+   /**
+    * @return the current normalized 'x' coordinate
+    */
    public double getX() {
       return sliceCoords.x;
    }
    
+   /**
+    * Sets the current normalized 'x' coordinate
+    * @param x
+    */
    public void setX(double x) {
       setSliceCoordinates(x, sliceCoords.y, sliceCoords.z);
    }
    
+   /**
+    * 
+    * @return the current normalized 'y' coordinate
+    */
    public double getY() {
       return sliceCoords.y;
    }
    
+   /**
+    * Sets the current normalized 'y' coordinate
+    * @param y
+    */
    public void setY(double y) {
       setSliceCoordinates(sliceCoords.x, y, sliceCoords.z);
    }
    
+   /**
+    * @return the current normalized 'z' coordinate
+    */
    public double getZ() {
       return sliceCoords.z;
    }
    
+   /**
+    * Sets the current normalized 'z' coordinate
+    * @param z
+    */
    public void setZ(double z) {
       setSliceCoordinates(sliceCoords.x, sliceCoords.y, z);
    }
    
+   /**
+    * @return the current time index
+    */
    public int getTimeIndex() {
       return timeIdx;
    }
    
+   /**
+    * Sets the current time index
+    * @param idx
+    */
    public void setTimeIndex(int idx) {
       if (idx < 0) {
          idx = 0;
@@ -630,38 +773,69 @@ public class DicomViewer extends RenderableComponentBase implements PropertyChan
       }
    }
    
+   /**
+    * @return the number of time indices available in the DICOM image
+    */
    public IntegerInterval getTimeIndexRange() {
       return new IntegerInterval(0, myImage.getNumTimes()-1);
    }
    
+   /**
+    * @return whether or not to draw the YZ plane (at the current 'x' coordinate)
+    */
    public boolean getDrawYZ() {
       return drawSlice[0];
    }
    
+   /**
+    * Sets whether or not to draw the YZ plane (at the current 'x' coordinate)
+    * @param set
+    */
    public void setDrawYZ(boolean set) {
       drawSlice[0] = set;
    }
    
+   /**
+    * @return whether or not to draw the XZ plane (at the current 'y' coordinate)
+    */
    public boolean getDrawXZ() {
       return drawSlice[1];
    }
-   
+
+   /**
+    * Sets whether or not to draw the XZ plane (at the current 'y' coordinate)
+    * @param set
+    */
    public void setDrawXZ(boolean set) {
       drawSlice[1] = set;
    }
    
+   /**
+    * @return whether or not to draw the XY plane (at the current 'z' coordinate)
+    */
    public boolean getDrawXY() {
       return drawSlice[2];
    }
    
+   /**
+    * Sets whether or not to draw the XY plane (at the current 'z' coordinate)
+    * @param set
+    */
    public void setDrawXY(boolean set) {
       drawSlice[2] = set;
    }
    
+   /**
+    * @return whether or not to draw the 3D bounding box outline
+    */
    public boolean getDrawBox() {
       return drawBox;
    }
    
+   /**
+    * Sets whether or not to draw the 3D bounding box outline
+    * @param set
+    */
    public void setDrawBox(boolean set) {
       drawBox = set;
    }

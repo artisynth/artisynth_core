@@ -1,8 +1,21 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.dicom;
 
 import maspack.matrix.VectorNd;
 
+/**
+ * DICOM header element
+ */
 public class DicomElement {
+   /**
+    * DICOM Value representation
+    */
    public static enum VR {
       AE('A', 'E', "Application Entity"), 
       AS('A', 'S', "Age String"),
@@ -43,6 +56,12 @@ public class DicomElement {
          this.c1 = c1;
       }
 
+      /**
+       * Find VR element based on 2-character representation
+       * @param c0
+       * @param c1
+       * @return the VR entity
+       */
       public static VR get(char c0, char c1) {
          for (VR vr : VR.values()) {
             if (vr.c0 == c0 && vr.c1 == c1) {
@@ -64,6 +83,11 @@ public class DicomElement {
       this.value = data;
    }
 
+   /**
+    * Determines the integer represented by the supplied string
+    * @param in string representation
+    * @return represented integer
+    */
    public static int parseIntString(String in) {
       return convertCharsToInt(in.toCharArray(), 0, in.length());
    }
@@ -99,6 +123,11 @@ public class DicomElement {
 
    }
 
+   /**
+    * Determines the decimal represented by the supplied string
+    * @param in string representation
+    * @return represented decimal number
+    */
    public static double parseDecimalString(String in) {
 
       StringBuilder s = new StringBuilder();
@@ -151,6 +180,11 @@ public class DicomElement {
 
    }
 
+   /**
+    * Determines the decimal vector represented by the supplied string
+    * @param in string representation
+    * @return represented vector
+    */
    public static VectorNd parseMultiDecimalString(String in) {
 
       VectorNd out = new VectorNd();

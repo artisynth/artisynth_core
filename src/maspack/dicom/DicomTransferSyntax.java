@@ -1,5 +1,18 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.dicom;
 
+/**
+ * DICOM transfer syntax, determining byte order, whether or not the VR is explicit,
+ * and whether or not the image byte stream is encoded
+ * @author Antonio
+ *
+ */
 public class DicomTransferSyntax {
    String name;
    String uid;
@@ -7,6 +20,10 @@ public class DicomTransferSyntax {
    boolean explicit;
    boolean encoded;
 
+   /**
+    * Basic constructor, assumes default of little endian, explicit VR, and encoded image
+    * @param uid
+    */
    public DicomTransferSyntax(String uid) {
       this.name = uid;
       this.uid = uid;

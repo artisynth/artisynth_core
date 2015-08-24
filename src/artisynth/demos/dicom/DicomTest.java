@@ -5,10 +5,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.regex.Pattern;
 
+import artisynth.core.renderables.DicomViewer;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
-import maspack.dicom.DicomViewer;
 import maspack.fileutil.FileGrabber;
 
 public class DicomTest extends RootModel {

@@ -4,9 +4,22 @@
 \let\olditem\item
 \newcommand{\lstitem}[2][]{\olditem[{\protect\texttt{#1}}]\mbox{}\newline#2}
 \newenvironment{lstdescription}{%
+   \iflatexml
+   \begin{description}
+   \else
    \begin{description}[nolistsep]
+   \fi
    \let\item\lstitem
 }{\end{description}}
+
+\newenvironment{tightemize}{%
+   \iflatexml
+   \begin{itemize}
+   \else
+   \begin{itemize}[nolistsep,noitemsep]
+   \fi
+}{\end{itemize}}
+
 
 \section{DICOM Images}
 \label{sec:dicom}
@@ -18,7 +31,7 @@ example widget and its property panel is shown in Figure \ref{fig:dicom:heart}.
 
 \begin{figure}[!ht]
    \begin{center}
-      \setlengthLaTeXML{\imglength}{0.8\textwidth}{0.8\textwidth}
+      \setlengthLaTeXML{\imglength}{\textwidth}{0.8\textwidth}
       \includegraphics[width=\imglength]{images/dicom_heart}
       \caption{DICOM image of the heart, 
       downloaded from \url{http://www.osirix-viewer.com}. \label{fig:dicom:heart}}
@@ -68,13 +81,13 @@ Each DICOM file contains a number of concatenated attributes (a.k.a.~elements), 
 \end{table}
 
 Each DICOM attribute is composed of:
-\begin{itemize}[noitemsep,nolistsep]
+\begin{tightemize}
    \item a standardized unique integer \emph{tag} in the format (\texttt{XXXX},\texttt{XXXX}) that defines the \emph{group} and \emph{element} of the attribute
    \item a \emph{value representation} (VR) that describes the data type and format of the attribute's value (see Table \ref{tbl:dicom:vr})
    \item a \emph{value length} that defines the length in bytes of the attribute's value to follow
    \item a \emph{value field} that contains the attribute's value
-\end{itemize}
-This layout is depicted in Figure \ref{fig:dicom:attribute}.
+\end{tightemize}
+This layout is depicted in Figure \ref{fig:dicom:attribute}.  A list of important attributes are provided in Table \ref{tbl:dicom:attribute}.
 \begin{figure}[ht]
    \centering
    \begin{tabular}{|c|c|c|c|}
@@ -88,7 +101,6 @@ This layout is depicted in Figure \ref{fig:dicom:attribute}.
    \fi
    \caption{DICOM attribute structure \label{fig:dicom:attribute}}
 \end{figure}
-A list of important attributes are provided in Table \ref{tbl:dicom:attribute}.
 \begin{table}[ht]
    \centering
    \caption{A selection of useful DICOM attributes \label{tbl:dicom:attribute}}
@@ -139,11 +151,11 @@ These five classes are described in further detail in the following sections.
 
 The \javaclass[maspack.dicom]{DicomElement} class is a simple container for DICOM attribute information.  It has
 three main properties:
-\begin{itemize}[noitemsep,nolistsep]
+\begin{tightemize}
 \item an integer \emph{tag}
 \item a \emph{value representation} (VR)
 \item a value
-\end{itemize}
+\end{tightemize}
 These properties can be obtained using the corresponding \lstinline{get} function: \lstinline{getTag()}, \lstinline{getVR()}, \lstinline{getValue()}.  The tag refers to the concatenated group/element tag. For example, the \emph{transfer syntax UID} which corresponds to group 0x0002 and element 0x0010 has a numeric tag of 0x00020010. The VR is represented by an enumerated type, \javaclass[maspack.dicom]{DicomElement.VR}.  The `value' is the \emph{raw} value extracted from the DICOM file.  In most cases, this will be a \lstinline{String}.  For raw numeric values (i.e.~stored in the DICOM file in binary form) such as the unsigned short (US), the `value' property is exactly the numeric value.
 
 For VRs such as the integer string (IS) or decimal string (DS), the string will still need to be parsed in order to extract the appropriate sequence of numeric values.  There are static utility functions for handling this within \lstinline{DicomElement}.  For a `best-guess' of the desired parsed value based on the VR, one can use the method \lstinline{getParsedValue()}.  Often, however, the desired value is also context-dependent, so the user should know a priori what type of value(s) to expect.  Parsing can also be done automatically by querying for values directly through the \lstinline{DicomHeader} object.  
@@ -176,11 +188,11 @@ will return \lstinline{null}.
 
 The \javaclass[maspack.dicom]{DicomPixelBuffer} contains the decoded image information of an image slice.
 There are three possible pixel types currently supported:
-\begin{itemize}[noitemsep,nolistsep]
+\begin{tightemize}
    \item byte grayscale values (\lstinline{PixelType.BYTE})
    \item short grayscale values (\lstinline{PixelType.SHORT})
    \item byte RGB values, with layout \lstinline{RGBRGB...RGB} (\lstinline{PixelType.RGB})
-\end{itemize}
+\end{tightemize}
 The pixel buffer stores all pixels in one of these types.  The pixels can be queried for directly
 using \lstinline{getPixel(idx)} to get a single pixel, or \lstinline{getBuffer()} to get the
 entire pixel buffer.  Alternatively, a \javaclass[maspack.dicom]{DicomPixelConverter} object

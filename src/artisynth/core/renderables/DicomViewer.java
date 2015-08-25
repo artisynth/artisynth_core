@@ -217,7 +217,6 @@ public class DicomViewer extends RenderableComponentBase
     * Reads DICOM files into a 3D (+time) image
     * @param name name of the viewer component
     * @param imagePath directory containing DICOM files
-    * @param checkSubdirs recursively check sub-folders for further DICOM files
     */
    public DicomViewer(String name, String imagePath) {
       this(name, imagePath, null);

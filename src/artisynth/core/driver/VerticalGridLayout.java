@@ -50,7 +50,7 @@ import java.awt.*;
  * If the container's <code>ComponentOrientation</code> property is horizontal
  * and right-to-left, the example produces the output shown in Figure 2.
  * <p>
- * <center><table COLS=2 WIDTH=600 summary="layout">
+ * <center><table WIDTH=600 summary="layout">
  * <tr ALIGN=CENTER>
  * <td><img SRC="doc-files/VerticalGridLayout-1.gif" alt="Shows 6 buttons in
  * rows of 2. Row 1 shows buttons 1 then 2. Row 2 shows buttons 3 then 4. Row 3

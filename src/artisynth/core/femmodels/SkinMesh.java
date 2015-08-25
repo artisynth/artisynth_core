@@ -161,7 +161,7 @@ import artisynth.core.util.TransformableGeometry;
  * A sketch of the required code might look like this:
  * <pre>
  *    skinMesh.clearAttachments();
- *    for (int i=0; i &lt skinMesh.numVertices(); i++) {
+ *    for (int i=0; i &lt; skinMesh.numVertices(); i++) {
  *       Vertex3d vtx = skinMesh.getVertex (i);
  *
  *       ... use vertex position to compute weights w1, w2, w3, w4

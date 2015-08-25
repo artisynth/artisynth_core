@@ -537,7 +537,7 @@ public class HudPrintStream extends TextComponentBase {
    }
 
    /**
-    * Set number of lines to scroll up 0 <= offset <= # buffered lines - lines
+    * Set number of lines to scroll up 0 &lt;= offset &lt;= # buffered lines - lines
     * on screen
     */
    public void setScrollOffset(int offset) {

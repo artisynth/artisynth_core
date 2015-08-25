@@ -539,7 +539,6 @@ public abstract class DynamicAttachment extends ModelComponentBase {
     * @param yoff offset into ybuf
     * @param xbuf buffer containing right hand side vector
     * @param xoff offset into xbuf
-    * @param B matrix associated with a slave component
     * @param idx master component index
     */
    protected abstract void mulSubGT (

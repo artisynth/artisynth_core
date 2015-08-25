@@ -61,8 +61,7 @@ import artisynth.core.workspace.RootModel;
  * <p>
  * 
  * Terminology: <br>
- * <table>
- * 
+ * <table summary="">
  * <tbody>
  *    <tr><td>"Targets"</td><td>are trajectories of points/frames that we wish our model to follow</td></tr>
  *    <tr><td>"Markers" or "Sources"</td><td>are the points/frames in the model we want to follow the target trajectories</td></tr>

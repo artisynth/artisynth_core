@@ -862,7 +862,7 @@ public class ScanWriteUtils {
     * @param host host containing the properties
     * @param propNames names of properties to match
     * @param tokens token queue for postscan
-    * @return <core>true</code> if a property value was scanned
+    * @return <code>true</code> if a property value was scanned
     * and stored.
     * @throws IOException
     */

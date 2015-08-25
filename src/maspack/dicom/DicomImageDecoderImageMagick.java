@@ -47,8 +47,6 @@ public class DicomImageDecoderImageMagick implements DicomImageDecoder {
 
    /**
     * Creates a decoder provided the supplied conversion command
-    * 
-    * @see #setConvertCommand(String)
     */
    public DicomImageDecoderImageMagick(String identifyCmd, String convertCmd) {
       setCommands(identifyCmd, convertCmd);

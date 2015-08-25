@@ -359,7 +359,7 @@ public abstract class LabeledControl extends LabeledComponent {
     * that do and wish to make it externally controlable. The default value for
     * this setting is <code>false</code>.
     * 
-    * @enable enables or disables null values for this control
+    * @param enable enables or disables null values for this control
     */
    protected void setNullValueEnabled (boolean enable) {
       myNullEnabled = enable;

@@ -35,9 +35,9 @@ import maspack.fileutil.uri.*;
  *<p>
  * Libraries are specified generically using a name of the form
  * <pre>
- *    <basename><versionStr>
+ *    &lt;basename&gt;&lt;versionStr&gt;
  * </pre>
- * where <versionStr> is an optional string of the form ".I.J.K ..."
+ * where &lt;versionStr&gt; is an optional string of the form ".I.J.K ..."
  * with I, J, K, etc. being positive integers that specify version
  * numbers. The first number I specifies the major version number,
  * while the second number J, if present, specifies the minor
@@ -54,7 +54,7 @@ import maspack.fileutil.uri.*;
  * assumed to be incompatible. However, libraries with the same basename and
  * major version are assumed to be backward compatible across minor version
  * numbers. That means that if we need a library <code>xxx.I.J</code>,
- * then any library <code>xxx.I.K</code> will suffice as long as K >= J.
+ * then any library <code>xxx.I.K</code> will suffice as long as K &gt;= J.
  * If a library is requested and it is not present and cannot be
  * downloaded, but a compatible library with a higher minor version
  * number is present, then that compatible library will be used instead.

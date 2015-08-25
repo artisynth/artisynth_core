@@ -414,12 +414,12 @@ public class NumericInputProbe extends NumericProbeBase
    }
 
    /**
-    * Adds one or more data samples to internal data list.<br />
-    * <br />
+    * Adds one or more data samples to internal data list.<br>
+    * <br>
     * Samples can be evenly distributed with given time step or time of each
     * sample can be explicitly set. In this case, timeStep must have value of
     * {@link #EXPLICIT_TIME} and before every data sample must be its temporal
-    * information.<br />
+    * information.<br>
     * 
     * Internal data sample size of this input probe can be determined by
     * {@link #getVsize()} method.

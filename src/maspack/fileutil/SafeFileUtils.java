@@ -72,8 +72,6 @@ public class SafeFileUtils {
     * the destination file
     * @throws NullPointerException
     * if source or destination is {@code null}
-    * @throws FileExistsException
-    * if the destination file exists
     * @throws IOException
     * if source or destination is invalid
     * @throws IOException
@@ -131,8 +129,6 @@ public class SafeFileUtils {
     * the destination file
     * @throws NullPointerException
     * if source or destination is {@code null}
-    * @throws FileExistsException
-    * if the destination file exists
     * @throws IOException
     * if source or destination is invalid
     * @throws IOException

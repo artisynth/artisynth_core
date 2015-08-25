@@ -88,7 +88,7 @@ public interface FileTransferMonitor extends Runnable {
     *  
     * @param destFile transfer destination
     * @param srcFile transfer source
-    * @param size the size of the source file (total transfer size).  If <0, then we determine
+    * @param size the size of the source file (total transfer size).  If &lt; 0, then we determine
     *        the transfer size from srcFile
     * @param displayName the name associated with the transfer (may be different than 
     *    destFile if .part is used)

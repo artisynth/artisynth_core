@@ -135,7 +135,7 @@ public abstract class FrameAttachment extends DynamicAttachment
     * Also optionally returns the velocity derivative term, defined by
     * <pre>
     * \dot J velm
-    * <pre>
+    * </pre>
     * where <code>J</code> is the matrix that maps master velocities
     * to the attached frame velocity (in frame coordinates), and <code>velm</code>
     * are the master velocities.

@@ -2838,7 +2838,7 @@ public class FemModel3d extends FemModel
     * 
     * @param pnt Point for which the nearest node should be located
     * @param maxDist Maximum distance that the node must be from the
-    * point. If <code>maxDist</code> < 0, then <code>null</code>
+    * point. If <code>maxDist</code> &lt; 0, then <code>null</code>
     * will be returned.
     * @return Nearest point within the prescribed distance, or <code>null</code>
     * if there is no such point

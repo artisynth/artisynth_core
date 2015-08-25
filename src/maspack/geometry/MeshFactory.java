@@ -769,8 +769,8 @@ public class MeshFactory {
     *
     * @param wx width in the x direction
     * @param wy width in the y direction
-    * @param xdiv number of divisions in x (>=1)
-    * @param ydiv number of divisions in y (>=1)
+    * @param xdiv number of divisions in x (&gt;=1)
+    * @param ydiv number of divisions in y (&gt;=1)
     * 
     */
    public static PolygonalMesh createPlane (

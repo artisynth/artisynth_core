@@ -14,25 +14,26 @@ import maspack.matrix.Point3d;
 
 
 /** 
- * Spatial Hash Table for speeding up 3D spatial nearest neighbour searches.
+ * Spatial Hash Table for speeding up 3D spatial nearest neighbour searches.<br><br>
  * 
  * 3D space is partitioned into an orthogonal, equally spaced grid. Each grid 
- * point is the centre of a "cell", which is essentially a List<T>. To search
+ * point is the centre of a "cell", which is essentially a List&lt;T&gt;. To search
  * for elements T near a point P, the cell containing P, AND the cells 
  * that neighbour the cell containing P must be searched. These cells can be 
  * easily found by calling getCellsNear or getCellsIntersecting, which returns
- * an Iterator<List<T>>, where each List<T> represents the elements in a single 
- * cell. 
+ * an Iterator&lt;List&lt;T&gt;&gt;, where each List&lt;T&gt; represents the elements in a single 
+ * cell. <br><br>
  * 
  * Grid spacing is defined upon construction, and construction is performed 
- * by calling setup().
+ * by calling setup().<br><br>
  
- * Example usage:
- * List<T> myElements;
+ * Example usage:<br>
+ * <pre>
+ * List&lt;T&gt; myElements;
  * ...
- * SpatialHashTable<T> table = new SpatialHashTable<>(spacing);
+ * SpatialHashTable&lt;T&gt; table = new SpatialHashTable&lt;&gt;(spacing);
  * 
- * List<Point3d> positions = new ArrayList<Point3d>();
+ * List&lt;Point3d&gt; positions = new ArrayList&lt;Point3d&gt;();
  * for (T el : myElements) {
  *    positions.add(el.getPos());
  * }
@@ -41,14 +42,14 @@ import maspack.matrix.Point3d;
  * 
  * Point3d mySearchPoint = new Point3d(0., 1., 2.);
  * 
- * Iterator<List<T>> it = table.getCellsNear (searchPoint);
+ * Iterator&lt;List&lt;T&gt;&gt; it = table.getCellsNear (searchPoint);
  * while (it.hasNext()) {
- *    List<T> cell = it.next();
+ *    List&lt;T&gt; cell = it.next();
  *    for (T el : cell) {
  *       el.doSomething();
  *    }
  * }
- * 
+ * </pre>
  * @author andrew ho
  */
 public class SpatialHashTable<T> {
@@ -118,7 +119,7 @@ public class SpatialHashTable<T> {
    }
 
    /**
-    * Returns a List of cells (List<T>'s) that might intersect a
+    * Returns a List of cells (List&lt;T&gt;'s) that might intersect a
     * bv tree.
     * 
     * @param bvtree

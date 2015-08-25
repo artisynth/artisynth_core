@@ -116,7 +116,6 @@ public class AutoFemReader implements FemReader {
     * 
     * @param fileName
     * @return type of the file
-    * @throws IOException
     */
    public static FemFileType detectType(String fileName) {
       

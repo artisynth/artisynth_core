@@ -211,7 +211,7 @@ public class AnimatedGifWriter {
 
    /**
     * Main function
-    * Usage: java artisynth.core.moviemaker.AnimatedGifWriter [options] <list of input files> <output file>
+    * Usage: java artisynth.core.moviemaker.AnimatedGifWriter [options] &lt;list of input files&gt; &lt;output file&gt;
     */
    public static void main(String[] args) throws Exception {
       

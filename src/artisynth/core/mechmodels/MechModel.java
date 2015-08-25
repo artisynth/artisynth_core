@@ -588,10 +588,10 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
     * the application of all default and explicit collision behavior
     * settings.
     *
-    * <p> If <code>a</code> or <i><code>b</code> contain sub-collidables, then
+    * <p> If <code>a</code> or <code>b</code> contain sub-collidables, then
     * if a consistent collision behavior is found amount all pairs of
     * sub-collidables, that behavior is returned; otherwise, <code>null</code>
-    * is returned. If <code>a</code> equals <i><code>b</code>, then this method
+    * is returned. If <code>a</code> equals <code>b</code>, then this method
     * searches for a consistent collision behavior among all sub-collidables of
     * <code>a</code> whose {@link Collidable#getCollidable getCollidable()}
     * method returns <code>Colidability.ALL</code> or

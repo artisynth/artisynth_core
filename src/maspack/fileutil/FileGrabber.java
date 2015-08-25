@@ -28,7 +28,7 @@ import org.apache.commons.vfs2.UserAuthenticator;
 /**
  * Downloads files from URIs satisfying the generic/zip URI syntax according to
  * specifications RFC 3986 and proposed jar/zip extension.
- * <https://www.iana.org/assignments/uri-schemes/prov/jar><br>
+ * &lt;https://www.iana.org/assignments/uri-schemes/prov/jar&gt;<br>
  * <br>
  * 
  * A typical use will look like this:

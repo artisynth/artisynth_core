@@ -60,7 +60,7 @@ public class MechModelEditor extends EditorBase {
 
    /**
     * Returns true if the selection list contains a set of components
-    & for which collisions can be set.
+    &amp; for which collisions can be set.
     */
    public boolean containsCollidableSelection (
       LinkedList<ModelComponent> selection) {

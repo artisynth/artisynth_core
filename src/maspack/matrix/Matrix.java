@@ -942,7 +942,7 @@ public interface Matrix extends LinearTransformNd {
     * <dd>An array giving the column indices of all the
     * non-zero elements in the sparse matrix, in row-major order. The indices
     * are 1-based, so that 1 denotes the first column.</dd>
-    * <dr>rowOffs</dt>
+    * <dt>rowOffs</dt>
     * <dd>An array of size nrows+1, where nrows is the number
     * of matrix rows, giving the offsets into <code>vals</code> and
     * <code>colIdxs</code> corresponding to the first non-zero element in each
@@ -1126,7 +1126,7 @@ public interface Matrix extends LinearTransformNd {
     * <dd>An array giving the row indices of all the
     * non-zero elements in the sparse matrix, in column-major order. The indices
     * are 1-based, so that 1 denotes the first row.</dd>
-    * <dr>colOffs</dt>
+    * <dt>colOffs</dt>
     * <dd>An array of size ncols+1, where ncols is the number of matrix
     * columns, giving the offsets into <code>vals</code> and
     * <code>colIdxs</code> corresponding to the first non-zero element in each

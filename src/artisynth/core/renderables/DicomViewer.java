@@ -8,6 +8,7 @@
 package artisynth.core.renderables;
 
 import java.io.File;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import javax.media.opengl.GL2;
@@ -175,6 +176,28 @@ public class DicomViewer extends RenderableComponentBase
          im = rs.read(im, imagePath, filePattern, checkSubdirs);
       } catch(Exception e) {
          throw new RuntimeException("Failed to read dicom images in " + imagePath, e);
+      }
+      if (im == null) {
+         throw new RuntimeException("No image data loaded");
+      }
+      init(name, im);
+   }
+   
+   /**
+    * Reads DICOM files into a 3D (+time) image
+    * @param name name of the viewer component
+    * @param files list of DICOM files to load
+    */
+   public DicomViewer(String name, List<File> files) {
+      DicomImage im = null;
+      try {
+         DicomReader rs = new DicomReader();
+         im = rs.read(im, files);
+      } catch(Exception e) {
+         throw new RuntimeException("Failed to read dicom images", e);
+      }
+      if (im == null) {
+         throw new RuntimeException("No image data loaded");
       }
       init(name, im);
    }

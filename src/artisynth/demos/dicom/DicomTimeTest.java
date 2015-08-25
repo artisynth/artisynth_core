@@ -15,22 +15,25 @@ import maspack.dicom.DicomImageDecoderImageMagick;
 import maspack.dicom.DicomReader;
 import maspack.fileutil.FileGrabber;
 
-
+/**
+ * DICOM image of the heart, with time
+ *
+ */
 public class DicomTimeTest extends RootModel {
 
    String dicom_url = "http://www.osirix-viewer.com/datasets/DATA/MAGIX.zip";
    String dicom_root = "MAGIX/Cardiaque Cardiaque_standard (Adulte)/";
    String[] dicom_folders = new String[] {
-                                        "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 0 % - 10",
-                                        "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 10 % - 10",
-                                        "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 20 % - 10",
-                                        "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 30 % - 10",
-                                        "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 40 % - 10",
-                                        "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 50 % - 10",
-                                        "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 60 % - 10",
-                                        "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 70 % - 10",
-                                        "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 80 % - 10",
-                                        "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 90 % - 10"};
+       "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 0 % - 10",
+       "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 10 % - 10",
+       "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 20 % - 10",
+       "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 30 % - 10",
+       "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 40 % - 10",
+       "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 50 % - 10",
+       "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 60 % - 10",
+       "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 70 % - 10",
+       "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 80 % - 10",
+       "Cir  CardiacCirc  3.0  B20f  0-90% RETARD_DECLECHEMENT 90 % - 10"};
    
    DicomViewer dcp;
    
@@ -42,17 +45,20 @@ public class DicomTimeTest extends RootModel {
          throw new RuntimeException("This demo requires ImageMagick to be installed and available on the system PATH.");
       }
       
+      // prepare utility for downloading DICOM sample
       String localDir = ArtisynthPath.getSrcRelativePath(this, "data/MAGIX");
       FileGrabber fileGrabber = new FileGrabber(localDir, "zip:" + dicom_url + "!/");
       fileGrabber.setConsoleProgressPrinting(true);
       fileGrabber.setOptions(FileGrabber.DOWNLOAD_ZIP); // download zip file first
       
-      // download dicom image
+      // download dicom data
       File dicomPath = fileGrabber.get(dicom_root); // extract all of the dicom root
       
+      // 
       DicomImage im = null;
       try {
          DicomReader rs = new DicomReader();
+         
          // load all dicom volume sequences, specifying temporal position
          for (int i=0; i<dicom_folders.length; i++) {
             File  file = new File(dicomPath, dicom_folders[i]);
@@ -60,6 +66,7 @@ public class DicomTimeTest extends RootModel {
                fileGrabber.get(dicom_root + dicom_folders[i]);
             }
             
+            // restrict to files ending in .dcm
             im = rs.read(im, file.getAbsolutePath(), Pattern.compile(".*\\.dcm"), false, i);
          }
          System.out.println(im);
@@ -68,7 +75,7 @@ public class DicomTimeTest extends RootModel {
          throw new RuntimeException("Failed to load image", e);
       }
 
-      dcp = new DicomViewer(im);
+      dcp = new DicomViewer("Beating Heart", im);
       addRenderable(dcp);
    }
    

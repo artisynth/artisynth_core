@@ -11,6 +11,9 @@ import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
 import maspack.fileutil.FileGrabber;
 
+/**
+ * DICOM image of the brain, raw encoding, using REGEX to limit files
+ */
 public class DicomTest extends RootModel {
 
    String dicom_url = "http://www.osirix-viewer.com/datasets/DATA/BRAINIX.zip";
@@ -30,7 +33,7 @@ public class DicomTest extends RootModel {
       // but due to UTF-8 character encoding in the filenames, which is not supported 
       // on all systems, I'm accessing the desired files using a regular expression
       // on the parent folder
-      DicomViewer dcp = new DicomViewer("Dicom", dicomPath.getAbsolutePath(), 
+      DicomViewer dcp = new DicomViewer("Brain", dicomPath.getAbsolutePath(), 
          Pattern.compile(".*/T2W-FE-EPI - 501/.*\\.dcm"), /*check subdirectories*/true);
       
       addRenderable(dcp);

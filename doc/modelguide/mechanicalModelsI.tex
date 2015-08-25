@@ -103,15 +103,15 @@ update its position in response to forces (Section
 \ref{DynamicVsParametric:sec}).
 
 The remaining calls control aspects of how the model is graphically
-rendered.  {\tt setBounds()} (line 37) increases the model's ``bounding
-box'' so that by default it will occupy a larger part of the viewer
-frustum. Both {\tt setPointRenderProps()} and {\tt
-setLineRenderProps()} are convenience methods defined by the class
-(lines 44-48 and 50-54) to set render properties for points and
-springs, respectively. Points are set to be rendered as red spheres
-with a radius of 0.06, while springs are set to be rendered as blue
-cylinders with a radius of 0.02. More details about setting render
-properties are given in Section \ref{RenderProperties:sec}.
+rendered.  {\tt setBounds()} (line 37) increases the model's
+``bounding box'' so that by default it will occupy a larger part of
+the viewer frustum. The covenience method {\tt
+RenderProps.setSphericalPoints()} is used to set points {\tt p1} and
+{\tt p2} to render as solid red spheres with a radius of 0.06, while
+{\tt RenderProps.setCylindricalLines()} is used to set {\tt spring} to
+render as a solid blue cylinder with a radius of 0.02. More details
+about setting render properties are given in Section
+\ref{RenderProperties:sec}.
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
 ParticleSpring} from the {\sf Models} menu. The model should load and
@@ -373,9 +373,9 @@ which is listed below:
       // increase model bounding box for the viewer
       mech.setBounds (/*min=*/-1, 0, -1, /*max=*/1, 0, 0);  
       // set render properties for the components
-      setPointRenderProps (p1);
-      setPointRenderProps (mkr);
-      setLineRenderProps (spring);
+      RenderProps.setSphericalPoints (p1, 0.06, Color.RED);
+      RenderProps.setSphericalPoints (mkr, 0.06, Color.RED);
+      RenderProps.setCylindricalLines (mkr, 0.02, Color.BLUE);
    }
 \end{lstlisting}
 \lstset{numbers=none} 
@@ -1411,8 +1411,8 @@ and most of the code is shown here:
       // increase model bounding box for the viewer
       mech.setBounds (/*min=*/-0.5, 0, -0.5, /*max=*/0.5, 0, 0);  
       // set render properties for the components
-      setPointRenderProps (mech);
-      setLineRenderProps (mech);
+      RenderProps.setSphericalPoints (mech, 0.06, Color.RED);
+      RenderProps.setCylindricalLines (mech, 0.02, Color.BLUE);
    }
 \end{lstlisting}
 \lstset{numbers=none}

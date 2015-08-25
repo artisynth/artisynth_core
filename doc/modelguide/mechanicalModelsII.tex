@@ -600,10 +600,10 @@ with a {\tt SimpleAxialMuscle} material:
 \end{lstlisting}
 %
 Also, so that the muscle renders differently, the rendering style
-for lines is set to {\tt ELLIPSOID} instead of {\tt CYLINDER}:
+for lines is set to {\tt ELLIPSOID} using the convenience method
 %
 \begin{lstlisting}[]
-      RenderProps.setLineStyle (r, RenderProps.LineStyle.ELLIPSOID);
+      RenderProps.setEllipsoidalLines (muscle, 0.02, Color.RED);
 \end{lstlisting}
 %
 
@@ -1358,8 +1358,8 @@ this example are shown below.
       // set render properties for the components      
       RenderProps.setLineColor (greenSprings, new Color(0f, 0.5f, 0f));
       RenderProps.setLineColor (blueSprings, Color.BLUE);
-      setPointRenderProps (mech);
-      setLineRenderProps (mech);
+      RenderProps.setSphericalPoints (mech, widthx/50.0, Color.RED);
+      RenderProps.setCylindricalLines (mech, widthx/100.0, Color.BLUE);
    }
 \end{lstlisting}
 \lstset{numbers=none}

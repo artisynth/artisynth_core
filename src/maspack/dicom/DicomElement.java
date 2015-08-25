@@ -8,6 +8,7 @@
 package maspack.dicom;
 
 import maspack.matrix.VectorNd;
+import maspack.util.InternalErrorException;
 
 /**
  * DICOM header element
@@ -82,7 +83,89 @@ public class DicomElement {
       this.vr = type;
       this.value = data;
    }
-
+   
+   /**
+    * @return the DICOM tag id
+    */
+   public int getTag() {
+      return tagId;
+   }
+   
+   /**
+    * @return the element's VR
+    */
+   public VR getVR() {
+      return  vr;
+   }
+   
+   /**
+    * @return the RAW value extracted from the DICOM file
+    */
+   public Object getValue() {
+      return value;
+   }
+   
+   /**
+    * @return the 'best-guess' type of value based on the VR
+    */
+   public Object getParsedValue() {
+      switch (vr) {
+         case AE:
+         case AS:
+         case CS:
+         case LT:
+         case ST:
+         case UI:
+         case UN:
+         case UT:
+            // string
+            return (String)value;
+         case AT:
+            // binary integer
+            return (int[])value;
+         case DA:
+            return parseDate((String)value);
+         case DL:
+         case SQ:
+            // sequence and delimiter have null value
+            return null;
+         case DS:
+            return parseMultiDecimalValue((String)value);
+         case DT:
+            return parseDateTime((String)value);
+         case FD:
+            return (double[])value;
+         case FL:
+            return (float[])value;
+         case IS:
+            return parseMultiIntValue((String)value);
+         case OB:
+            return (byte[])value;
+         case OF:
+            return (float[])value;
+         case OW:
+            return (short[])value;
+         case OX:
+            return value;
+         case LO:
+         case PN:
+         case SH:
+            String str = ((String)value).trim();
+            return str.split("\\\\");
+         case SL:
+         case UL:
+            return (int[])value;
+         case SS:
+         case US:
+            return (short[])value;
+         case TM:
+            return parseTime((String)value);
+         default:
+            break;         
+      }
+      return value;
+   }
+   
    /**
     * Determines the integer represented by the supplied string
     * @param in string representation
@@ -91,7 +174,7 @@ public class DicomElement {
    public static int parseIntString(String in) {
       return convertCharsToInt(in.toCharArray(), 0, in.length());
    }
-
+   
    private static int convertCharsToInt(char[] array, int offset,  int len) {
 
       int out = 0;
@@ -437,5 +520,196 @@ public class DicomElement {
 
       return out.toString();
    }
+   
+   public static DicomDateTime parseDateTime(String in) {
+      // YYYYMMDDHHMMSS.FFFFFF&ZZZZ
+      String dtStr = in;
+      
+      // optional offset
+      int offsetMinutes = 0;
+      int idSign = dtStr.indexOf('+');
+      if (idSign < 0) {
+         idSign = dtStr.indexOf('-');
+      }
+      if (idSign >= 0) {
+         String strOffset = dtStr.substring(idSign);
+         dtStr = dtStr.substring(0, idSign);
+         
+         boolean minus = (dtStr.charAt(0) == '-');
+         strOffset = strOffset.substring(1);
+         if (strOffset.length() == 2) {
+            offsetMinutes = 60*Integer.parseInt(strOffset);
+         } else if (strOffset.length() == 4) {
+            offsetMinutes = 60*Integer.parseInt(strOffset.substring(0, 2))
+               + Integer.parseInt(strOffset.substring(2,  4));
+         } else {
+            throw new InternalErrorException(
+               "Date offset does not adhere to proper format. (" + strOffset + ")");
+         }
+         if (minus) {
+            offsetMinutes = -offsetMinutes;
+         }
+      }
+      
+      // parse actual Date/Time
+      int micros = 0;
+      int idPeriod = dtStr.indexOf('.');
+      if (idPeriod >= 0) {
+         String strDecimal = dtStr.substring(idPeriod);
+         dtStr = dtStr.substring(0, idPeriod);
+         micros = Math.round(Float.parseFloat(strDecimal)*1000000);
+      }
+      
+      // YYYYMMDDHHMMSS
+      int year = 1970;
+      int month = 1;
+      int date = 1;
+      int hour = 0;
+      int min = 0;
+      int sec = 0;
+      String substr;
+      switch (dtStr.length()) {
+         case 14: {
+            substr = dtStr.substring(12);
+            sec = Integer.parseInt(substr);
+            dtStr = dtStr.substring(0, 12);
+         }
+         case 12: {
+            substr = dtStr.substring(10);
+            min = Integer.parseInt(substr);
+            dtStr = dtStr.substring(0, 10);
+         }
+         case 10: {
+            substr = dtStr.substring(8);
+            hour = Integer.parseInt(substr);
+            dtStr = dtStr.substring(0, 8);
+         }
+         case 8: {
+            substr = dtStr.substring(6);
+            date = Integer.parseInt(substr);
+            dtStr = dtStr.substring(0, 6);
+         }
+         case 6: {
+            substr = dtStr.substring(4);
+            month = Integer.parseInt(substr);
+            dtStr = dtStr.substring(0, 4);
+         }
+         case 4: {
+            year = Integer.parseInt(dtStr);
+            break;
+         } 
+         default: {
+            throw new InternalErrorException(
+               "Date/Time string in invalid format (" + dtStr + ")");
+         }
+            
+      }
+      
+      DicomDateTime dt = new DicomDateTime(year, month, date, hour, min, sec, micros); 
+      if (offsetMinutes != 0) {
+         dt.addTimeMinutes(offsetMinutes);
+      }
+      return dt;
+   }
+   
+   public static DicomDateTime parseDate(String in) {
+      // YYYYMMDD or YYYY.MM.DD
+      String dtStr = in;
+      // remove periods
+      dtStr = dtStr.replace(".", "");
+   
+      int year = 1970;
+      int month = 1;
+      int date = 1;
+      String substr;
+      switch (dtStr.length()) {
+         case 8: {
+            substr = dtStr.substring(6);
+            date = Integer.parseInt(substr);
+            dtStr = dtStr.substring(0, 6);
+         }
+         case 6: {
+            substr = dtStr.substring(4);
+            month = Integer.parseInt(substr);
+            dtStr = dtStr.substring(0, 4);
+         }
+         case 4: {
+            year = Integer.parseInt(dtStr);
+            break;
+         } 
+         default: {
+            throw new InternalErrorException(
+               "Date/Time string in invalid format (" + dtStr + ")");
+         }
+            
+      }
+      
+      DicomDateTime dt = new DicomDateTime(year, month, date, 0, 0, 0, 0); 
+      return dt;
+   }
+   
+   public static DicomDateTime parseTime(String in) {
+      // HHMMSS.FFFFFF or HH:MM:SS.FFFFFF
+      String dtStr = in;
+      // remove colons
+      dtStr = dtStr.replace(":", "");
+      
+      // fraction
+      int micros = 0;
+      int idPeriod = dtStr.indexOf('.');
+      if (idPeriod >= 0) {
+         String strDecimal = dtStr.substring(idPeriod);
+         dtStr = dtStr.substring(0, idPeriod);
+         micros = Math.round(Float.parseFloat(strDecimal)*1000000);
+      }
+      
+      // HHMMSS
+      int hour = 0;
+      int min = 0;
+      int sec = 0;
+      String substr;
+      switch (dtStr.length()) {
+         case 6: {
+            substr = dtStr.substring(4);
+            sec = Integer.parseInt(substr);
+            dtStr = dtStr.substring(0, 4);
+         }
+         case 4: {
+            substr = dtStr.substring(2);
+            min = Integer.parseInt(substr);
+            dtStr = dtStr.substring(0, 2);
+         }
+         case 2: {
+            hour = Integer.parseInt(dtStr);
+            break;
+         }
+         default: {
+            throw new InternalErrorException(
+               "Date/Time string in invalid format (" + dtStr + ")");
+         }
+            
+      }
+      
+      DicomDateTime dt = new DicomDateTime(1970, 1, 1, hour, min, sec, micros); 
+      return dt;
+   }
 
+   public static double[] parseMultiDecimalValue(String ds) {
+      String[] svals = ds.split("\\\\");
+      double[] dvals = new double[svals.length];
+      for (int i=0; i<svals.length; i++) {
+         dvals[i] = Double.parseDouble(svals[i]);
+      }
+      return dvals;
+   }
+   
+   public static int[] parseMultiIntValue(String is) {
+      String[] svals = is.split("\\\\");
+      int[] ivals = new int[svals.length];
+      for (int i=0; i<svals.length; i++) {
+         ivals[i] = Integer.parseInt(svals[i]);
+      }
+      return ivals;
+   }
+   
 }

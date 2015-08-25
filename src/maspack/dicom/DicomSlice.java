@@ -105,6 +105,28 @@ public class DicomSlice {
       return pixelBuff.getPixelType();
    }
    
+   /**
+    * @return the underlying pixel buffer
+    */
+   public DicomPixelBuffer getPixelBuffer() {
+      return pixelBuff;
+   }
+   
+   /**
+    * Populates an array of RGB(byte) pixels from the slice, 
+    * interpolated using an interpolator
+    * 
+    * @param x starting x voxel
+    * @param y starting y voxel
+    * @param dx voxel step in x direction
+    * @param dy voxel step in y direction
+    * @param nx number of voxels in x direction
+    * @param ny number of voxels in y direction
+    * @param pixels output array to fill
+    * @param offset offset in output pixel array
+    * @param interp interpolator for converting pixels to appropriate form
+    * @return the next unfilled index in the output pixel array 
+    */
    public int getPixelsRGB(int x, int y, 
       int dx, int dy,
       int nx, int ny, byte[] pixels, int offset,

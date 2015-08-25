@@ -146,6 +146,10 @@ public class DicomImageDecoderImageMagick implements DicomImageDecoder {
       return false;
    }
    
+   /**
+    * Checks for availability of ImageMagick on the system path
+    * @return true if available
+    */
    public static boolean checkForImageMagick() {
    
       String[] cmdArray = new String[2];

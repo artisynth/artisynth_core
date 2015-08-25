@@ -8,6 +8,7 @@
 package maspack.dicom;
 
 import java.io.BufferedInputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
@@ -86,27 +88,19 @@ public class DicomReader {
 
    private class SliceReaderCallable implements Callable<DicomSlice[]> {
 
-      private BinaryInputStream bis;
+      private File file;
       private String sliceName;
 
       public SliceReaderCallable(File file) {
 
          sliceName = file.getName();
-
-         try {
-            bis =
-               new BinaryInputStream(
-                  new BufferedInputStream(new FileInputStream(file)));
-         }
-         catch (FileNotFoundException e) {
-            bis = null;
-         }
+         this.file = file;
 
       }
 
       @Override
       public DicomSlice[] call() throws IOException {
-         return readSlice(sliceName, bis);
+         return readSlice(sliceName, file);
       }
 
    }
@@ -117,8 +111,23 @@ public class DicomReader {
     * 
     * @param im DICOM image to populate, or null to generate a new image
     * @param directory directory from which to load files
+    * @return the populated DICOM image
+    * @throws IOException if there is an error reading a DICOM file
+    */
+   public DicomImage read(
+      DicomImage im, String directory) throws IOException {
+
+      return read(im, directory, null, false, -1);
+   }
+   
+   /**
+    * Populates a DicomImage based on a given directory containing DICOM files
+    * and a file pattern to restrict files to load.
+    * 
+    * @param im DICOM image to populate, or null to generate a new image
+    * @param directory directory from which to load files
     * @param filePattern regular expression pattern for accepting files to load.  The pattern 
-    * is applied to the full absolute file names of files found. 
+    * is applied to the full absolute file names of files found. If null, all files are accepted.
     * @param checkSubdirectories whether to recursively search sub-directories for matching files
     * @return the populated DICOM image
     * @throws IOException if there is an error reading a DICOM file
@@ -138,7 +147,7 @@ public class DicomReader {
     * @param im DICOM image to populate, or null to generate a new image
     * @param directory directory from which to load files
     * @param filePattern regular expression pattern for accepting files to load.  The pattern 
-    * is applied to the full absolute file names of files found. 
+    * is applied to the full absolute file names of files found.  If null, all files are accepted.
     * @param checkSubdirectories whether to recursively search sub-directories for matching files
     * @param temporalPosition temporal index of slice (identifies stack).  If negative, a temporal position will
     * be extracted from each slice's header information.  If positive or zero, the
@@ -160,7 +169,40 @@ public class DicomReader {
          throw new IOException(
             "No valid image files in directory '" + directory + "'");
       }
+      
+      return read(im, fileList, temporalPosition);
+   }
 
+   /**
+    * Populates a DicomImage based on a given list of DICOM files.
+    * 
+    * @param im image to populate (null to generate new image)
+    * @param files list of DICOM files
+    * @return the populated DICOM image
+    * @throws IOException if there is a read failure
+    */
+   public DicomImage read(DicomImage im, List<File> files) throws IOException {
+      return read(im, files, -1);
+   }
+   
+   /**
+    * Populates a DicomImage based on a given list of DICOM files.
+    * 
+    * @param im image to populate (null to generate new image)
+    * @param files list of DICOM files
+    * @param temporalPosition temporal index
+    * @return the populated DICOM image
+    * @throws IOException if there is a read failure
+    */
+   public DicomImage read(
+      DicomImage im, List<File> files, int temporalPosition) throws IOException {
+
+      if (files.size() == 0) {
+         return null;
+      }
+      
+      String imageName = files.get(0).getParentFile().getName();
+      
       int cpus = Runtime.getRuntime().availableProcessors();
 
       ExecutorService executor =
@@ -172,8 +214,8 @@ public class DicomReader {
          new ExecutorCompletionService<DicomSlice[]>(executor);
 
       int nReaders = 0;
-      for (int i = 0; i < fileList.size(); i++) {
-         SliceReaderCallable reader = new SliceReaderCallable(fileList.get(i));
+      for (int i = 0; i < files.size(); i++) {
+         SliceReaderCallable reader = new SliceReaderCallable(files.get(i));
          sliceReaders.add(ecs.submit(reader));
          nReaders++;
       }
@@ -181,6 +223,11 @@ public class DicomReader {
 
       FunctionTimer timer = new FunctionTimer();
       timer.start();
+      
+      int nTimes = 0;
+      if (im != null) {
+         nTimes = im.getNumTimes();
+      }
 
       // process futures as they come in
       int nProcessed = 0;
@@ -213,13 +260,13 @@ public class DicomReader {
                            stime = vals[0];
                         }
                         else {
-                           // set unknown time
-                           stime = 0;
+                           // set unknown time?
+                           stime = nTimes;
                         }
                      }
                      slices[i].info.temporalPosition = stime;
                      if (im == null) {
-                        im = new DicomImage(dir.getName(), slices[i]);
+                        im = new DicomImage(imageName, slices[i]);
                      }
                      else {
                         im.addSlice(slices[i]);
@@ -232,13 +279,17 @@ public class DicomReader {
             } // end try-catching errors
          } // end checking if future complete
       } // end main loop
-
+      
       timer.stop();
       double usec = timer.getTimeUsec();
       System.out.println("Read took " + usec * 1e-6 + " seconds");
 
+      if (im == null) {
+         return null;
+      }
+      
       if (im.title == null) {
-         im.title = dir.getName();
+         im.title = imageName;
       }
 
       return im;
@@ -263,6 +314,9 @@ public class DicomReader {
                } else if (filePattern.matcher(sf.getAbsolutePath().replace('/', '\\')).matches()) {
                   out.add(sf);
                }
+            } else {
+               // no file pattern, accept everything
+               out.add(sf);
             }
          }
       }
@@ -274,13 +328,24 @@ public class DicomReader {
    /**
     * Reads a slice or set of slices from a single input stream (e.g. from a file).
     * @param sliceTitle title to assign slice
-    * @param in binary input
+    * @param file input file
     * @return the slice(s) (since a single file may represent multiple slices)
     * @throws IOException if there is a read failure
     */
-   public DicomSlice[] readSlice(String sliceTitle, BinaryInputStream in)
+   public DicomSlice[] readSlice(String sliceTitle, File file)
       throws IOException {
 
+      BinaryInputStream in = null;
+      try {
+         in =
+            new BinaryInputStream(
+               new BufferedInputStream(new FileInputStream(file)));
+      }
+      catch (FileNotFoundException e) {
+         System.err.println("File '" + file.getPath() + "' not found");
+         return null;
+      }
+      
       // DICOM specifies little endian to start, single byte
       in.setLittleEndian(true);
       in.setByteChar(true);
@@ -289,24 +354,29 @@ public class DicomReader {
       // check first characters, look for DICOM header
       char[] c4 = new char[4];
 
-      c4[0] = (char)in.readByte();
-      if (c4[0] != 'D') {
-         // 128 header bytes
-         in.skip(127);
+      try {
          c4[0] = (char)in.readByte();
+         c4[1] = (char)in.readByte();
+         c4[2] = (char)in.readByte();
+         c4[3] = (char)in.readByte();
+         if (c4[0] != 'D' || c4[1] != 'I' || c4[2] != 'C' || c4[3] != 'M') {
+            // skip header stuff
+            in.skip(124);
+            c4[0] = (char)in.readByte();
+            c4[1] = (char)in.readByte();
+            c4[2] = (char)in.readByte();
+            c4[3] = (char)in.readByte();
+         }
+      } catch (EOFException eof) {
       }
 
-      DicomHeader header = new DicomHeader();
-
       // ensure format
-      c4[1] = (char)in.readByte();
-      c4[2] = (char)in.readByte();
-      c4[3] = (char)in.readByte();
-
       if (c4[0] != 'D' || c4[1] != 'I' || c4[2] != 'C' || c4[3] != 'M') {
-         throw new IOException(
-            "Couldn't find 'DICM' identifer, found: " + c4[0] + c4[1] + c4[2]
+         System.err.println(
+            "Couldn't find 'DICM' identifer in file '"+ file.getPath() +"', found: " + c4[0] + c4[1] + c4[2]
                + c4[3]);
+         in.close();
+         return null;
       }
 
       short[] s = new short[2];
@@ -318,6 +388,8 @@ public class DicomReader {
       boolean explicit = true;
       boolean past0002 = false;
 
+      DicomHeader header = new DicomHeader();
+      
       // read until we hit data
       while (tagId != DicomTag.PIXEL_DATA) {
          DicomElement elem;
@@ -387,9 +459,11 @@ public class DicomReader {
             out[i] = new DicomSlice(title, header, pixels[i]);
          }
 
+         in.close();
          return out;
       }
 
+      in.close();
       return null;
    }
 

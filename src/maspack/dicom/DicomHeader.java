@@ -150,6 +150,7 @@ public class DicomHeader {
       }
 
       switch (elem.vr) {
+         case DS:
          case IS: {
             String is = (String)elem.value;
             return DicomElement.parseIntString(is);
@@ -393,13 +394,7 @@ public class DicomHeader {
 
       switch (elem.vr) {
          case DS: {
-            String ds = (String)elem.value;
-            String[] svals = ds.split("\\\\");
-            double[] dvals = new double[svals.length];
-            for (int i=0; i<svals.length; i++) {
-               dvals[i] = Double.parseDouble(svals[i]);
-            }
-            return dvals;
+            return DicomElement.parseMultiDecimalValue((String)elem.value);
          }
          case FL:
          {
@@ -433,174 +428,13 @@ public class DicomHeader {
       
       switch(elem.vr) {
          case DT: {
-            // YYYYMMDDHHMMSS.FFFFFF&ZZZZ
-            String dtStr = (String)(elem.value);
-            
-            // optional offset
-            int offsetMinutes = 0;
-            int idSign = dtStr.indexOf('+');
-            if (idSign < 0) {
-               idSign = dtStr.indexOf('-');
-            }
-            if (idSign >= 0) {
-               String strOffset = dtStr.substring(idSign);
-               dtStr = dtStr.substring(0, idSign);
-               
-               boolean minus = (dtStr.charAt(0) == '-');
-               strOffset = strOffset.substring(1);
-               if (strOffset.length() == 2) {
-                  offsetMinutes = 60*Integer.parseInt(strOffset);
-               } else if (strOffset.length() == 4) {
-                  offsetMinutes = 60*Integer.parseInt(strOffset.substring(0, 2))
-                     + Integer.parseInt(strOffset.substring(2,  4));
-               } else {
-                  throw new InternalErrorException(
-                     "Date offset does not adhere to proper format. (" + strOffset + ")");
-               }
-               if (minus) {
-                  offsetMinutes = -offsetMinutes;
-               }
-            }
-            
-            // parse actual Date/Time
-            int micros = 0;
-            int idPeriod = dtStr.indexOf('.');
-            if (idPeriod >= 0) {
-               String strDecimal = dtStr.substring(idPeriod);
-               dtStr = dtStr.substring(0, idPeriod);
-               micros = Math.round(Float.parseFloat(strDecimal)*1000000);
-            }
-            
-            // YYYYMMDDHHMMSS
-            int year = 1970;
-            int month = 1;
-            int date = 1;
-            int hour = 0;
-            int min = 0;
-            int sec = 0;
-            String substr;
-            switch (dtStr.length()) {
-               case 14: {
-                  substr = dtStr.substring(12);
-                  sec = Integer.parseInt(substr);
-                  dtStr = dtStr.substring(0, 12);
-               }
-               case 12: {
-                  substr = dtStr.substring(10);
-                  min = Integer.parseInt(substr);
-                  dtStr = dtStr.substring(0, 10);
-               }
-               case 10: {
-                  substr = dtStr.substring(8);
-                  hour = Integer.parseInt(substr);
-                  dtStr = dtStr.substring(0, 8);
-               }
-               case 8: {
-                  substr = dtStr.substring(6);
-                  date = Integer.parseInt(substr);
-                  dtStr = dtStr.substring(0, 6);
-               }
-               case 6: {
-                  substr = dtStr.substring(4);
-                  month = Integer.parseInt(substr);
-                  dtStr = dtStr.substring(0, 4);
-               }
-               case 4: {
-                  year = Integer.parseInt(dtStr);
-                  break;
-               } 
-               default: {
-                  throw new InternalErrorException(
-                     "Date/Time string in invalid format (" + dtStr + ")");
-               }
-                  
-            }
-            
-            DicomDateTime dt = new DicomDateTime(year, month, date, hour, min, sec, micros); 
-            if (offsetMinutes != 0) {
-               dt.addTimeMinutes(offsetMinutes);
-            }
-            return dt;
+            return DicomElement.parseDateTime((String)elem.value);
          }
          case DA: {
-            // YYYYMMDD or YYYY.MM.DD
-            String dtStr = (String)(elem.value);
-            // remove periods
-            dtStr = dtStr.replace(".", "");
-         
-            int year = 1970;
-            int month = 1;
-            int date = 1;
-            String substr;
-            switch (dtStr.length()) {
-               case 8: {
-                  substr = dtStr.substring(6);
-                  date = Integer.parseInt(substr);
-                  dtStr = dtStr.substring(0, 6);
-               }
-               case 6: {
-                  substr = dtStr.substring(4);
-                  month = Integer.parseInt(substr);
-                  dtStr = dtStr.substring(0, 4);
-               }
-               case 4: {
-                  year = Integer.parseInt(dtStr);
-                  break;
-               } 
-               default: {
-                  throw new InternalErrorException(
-                     "Date/Time string in invalid format (" + dtStr + ")");
-               }
-                  
-            }
-            
-            DicomDateTime dt = new DicomDateTime(year, month, date, 0, 0, 0, 0); 
-            return dt;
+            return DicomElement.parseDate((String)elem.value);
          }
          case TM: {
-            // HHMMSS.FFFFFF or HH:MM:SS.FFFFFF
-            String dtStr = (String)(elem.value);
-            // remove colons
-            dtStr = dtStr.replace(":", "");
-            
-            // fraction
-            int micros = 0;
-            int idPeriod = dtStr.indexOf('.');
-            if (idPeriod >= 0) {
-               String strDecimal = dtStr.substring(idPeriod);
-               dtStr = dtStr.substring(0, idPeriod);
-               micros = Math.round(Float.parseFloat(strDecimal)*1000000);
-            }
-            
-            // HHMMSS
-            int hour = 0;
-            int min = 0;
-            int sec = 0;
-            String substr;
-            switch (dtStr.length()) {
-               case 6: {
-                  substr = dtStr.substring(4);
-                  sec = Integer.parseInt(substr);
-                  dtStr = dtStr.substring(0, 4);
-               }
-               case 4: {
-                  substr = dtStr.substring(2);
-                  min = Integer.parseInt(substr);
-                  dtStr = dtStr.substring(0, 2);
-               }
-               case 2: {
-                  hour = Integer.parseInt(dtStr);
-                  break;
-               }
-               default: {
-                  throw new InternalErrorException(
-                     "Date/Time string in invalid format (" + dtStr + ")");
-               }
-                  
-            }
-            
-            DicomDateTime dt = new DicomDateTime(1970, 1, 1, hour, min, sec, micros); 
-            return dt;
+            return DicomElement.parseTime((String)elem.value);
          }
          default:
             return null;

@@ -41,10 +41,10 @@ elements, the \emph{nodes}, become control points in a discretized system.
 The solution is then assumed to be
 smoothly interpolated across the elements based on values determined at the
 nodes.  Using this discretization, the differential system is converted into 
-an algebraic one, which is often linearized and iteratively solved.
+an algebraic one, which is often linearized and solved iteratively.
 
 In ArtiSynth, the PDEs considered are the governing equations of
-continuum mechanics: the conservation of mass, momentum and energy.  To 
+continuum mechanics: the conservation of mass, momentum, and energy.  To 
 complete the system, a \emph{constitutive equation} is required that describes
 the stress-strain response of the material.  This constitutive equation is what
 distinguishes between material types.  The domain is the three-dimensional space
@@ -101,7 +101,7 @@ Keep in mind that ArtiSynth is essentially ``unitless'' (Section
 ensure that all properties are specified in a compatible way.  
 
 The density of the model is used to compute the mass distribution throughout
-the model.  Note that we use a \emph{diagonally lumped mass matrix} (DLMM)
+the volume.  Note that we use a \emph{diagonally lumped mass matrix} (DLMM)
 formulation, so the mass is assumed to be concentrated at the location of
 the discretized FEM nodes.  To allow for a spatially-varying density,
 a mass can later be specified for each node individually.
@@ -217,7 +217,7 @@ The properties {\tt position} and {\tt velocity} give the node's current
 {\tt mass} property.  Here, however, {\tt mass} represents the lumped mass
 of the immediately surrounding material.  Its value is initialized by equally
 dividing mass contributions from each adjacent element, given their
-densities.  For a finer control of spatially-varying densities,
+densities.  For a finer control of spatially-varying density,
 node masses can be set manually after FEM creation.
 
 The FEM node's {\tt dynamic} property specifies whether or not the 
@@ -255,16 +255,6 @@ their shape, number of nodes, and shape function order (Table
 		\javaclass[artisynth.core.femmodels]{QuadhexElement}
 	\end{tabular}
 \end{center}
-The base class for all of these is \javaclass[artisynth.core.femmodels]%
-{FemElement3d}.  A numerical integration is performed within each element
-to create the (tangent) stiffness matrix.  This integration is performed
-by evaluating the stress and stiffness at a set of \emph{integration points}
-within each element, and applying numerical quadrature.  The list of elements
-in a model can be obtained with the method
-\begin{lstlisting}[]
-RenderableComponentList<FemElement3d> getElements();  // return the list of elements
-\end{lstlisting}
-
 \begin{table}[ht]
 \centering
 \caption{Supported element types \label{tbl:fem:elements}}
@@ -283,6 +273,15 @@ RenderableComponentList<FemElement3d> getElements();  // return the list of elem
 	\hline
 \end{tabular}
 \end{table}
+The base class for all of these is \javaclass[artisynth.core.femmodels]%
+{FemElement3d}.  A numerical integration is performed within each element
+to create the (tangent) stiffness matrix.  This integration is performed
+by evaluating the stress and stiffness at a set of \emph{integration points}
+within each element, and applying numerical quadrature.  The list of elements
+in a model can be obtained with the method
+\begin{lstlisting}[]
+RenderableComponentList<FemElement3d> getElements();  // return the list of elements
+\end{lstlisting}
 
 All objects of type \javaclass[artisynth.core.femmodels]{FemModel3d} have the 
 following properties:
@@ -305,18 +304,23 @@ computed and divided amongst all its nodes, updating the lumped mass
 matrix.
 
 Each element's' {\tt material} property is also inherited by default from the 
-containing {\tt FemModel3d}. Specifying a material here allows for spatially-
+containing {\tt FemModel3d}. Specifying a material here allows for spatially-%
 varying material properties across the model.  Materials will be discussed
 further in Section \ref{sec:fem:materials}.
 
 \paragraph{Meshes}
 \ifLaTeXML{\newline}
 
-A geometry inside a finite element model is a mesh that moves along with the
-model.  These geometries can be used for visualizations, or for physical 
-interactions like collisions.  However, they have no physical properties 
-themselves. FEM geometries will be discussed in more detail in Section  
-\ref{sec:fem:geometry}.  The list of meshes can be obtained with the method
+The geometry associated with a finite element model consists of a collection
+of meshes (e.g.~\javaclass[maspack.geometry]{PolygonalMesh}, \javaclass[maspack.geometry]{PolylineMesh},
+\javaclass[maspack.geometry]{PointMesh}) that move along with the
+model in a way that maintains the shape function interpolation equation 
+\eqref{eqn:fem:interp}
+at each vertex location.  These geometries can be used for visualizations, or 
+for physical interactions like collisions.  However, they have no physical 
+properties themselves. FEM geometries will be discussed in more detail in 
+Section \ref{sec:fem:geometry}.  The list of meshes can be obtained with the 
+method
 \begin{lstlisting}[]
 MeshComponentList<FemMesh> getMeshes();   // return the list of meshes in a FEM
 \end{lstlisting}
@@ -335,7 +339,7 @@ responsible for implementing the functions:
 \end{lstlisting}
 %
 Inputs include a deformation gradient, pressure, and a coordinate frame that
-specifies any directions of anisotropy. The default material type is 
+specifies potential directions of anisotropy. The default material type is 
 \javaclass[artisynth.core.materials]{LinearMaterial}, where stress is related 
 to strain through:
 \begin{gather}
@@ -357,7 +361,7 @@ per element before computing the strain \cite{ngan:fem:2008}.  To enable or
 disable this corotational formulation, use 
 \javamethod[artisynth.core.materials]{LinearMaterial.setCorotated(boolean)}.
 
-Other, non-linear, models are available in the package  
+All material models, including linear and non-linear, are available in the package  
 {\tt artisynth.core.materials}.  A list of common materials is provided in 
 Table \ref{tbl:fem:materials}.  Those that are subclasses of 
 \javaclass[artisynth.core.materials]{IncompressibleMaterial} allow for 
@@ -409,10 +413,10 @@ nodes, their {\tt dynamic} property must be set to {\tt false}.  This notifies
 ArtiSynth that the state of these nodes (both position and velocity) will 
 be controlled parametrically.  By disabling dynamics, a fixed 
 boundary condition is applied.  For a moving boundary, positions and velocities 
-of the boundary nodes need to be explicitly set every timestep.  This can be 
+of the boundary nodes must be explicitly set every timestep.  This can be 
 accomplished with either a \javaclass[artisynth.core.modelbase]{Controller} 
-(Section \ref{ControllersAndMonitors:sec}) or an 
-\javaclass[artisynth.core.probes]{InputProbe} (Section \ref{Probes:sec}).
+(see Section \ref{ControllersAndMonitors:sec}) or an 
+\javaclass[artisynth.core.probes]{InputProbe} (see Section \ref{Probes:sec}).
 Note that both the position \emph{and} velocity of the nodes should be
 explicitly set for consistency.
 
@@ -679,7 +683,9 @@ that contains it.
 All FEM geometries are of type \javaclass[artisynth.core.femmodels]{FemMesh}, 
 which stores a reference to a mesh object (Section \ref{Meshes:sec}), as well
 as attachment information that links vertices of the mesh to points within
-the FEM.  
+the FEM.  The attachments enforce the shape function interpolation in Equation
+\eqref{eqn:fem:interp} to hold at each mesh vertex, with constant shape function
+coefficients.
 
 \subsubsection{Surface meshes}
 
@@ -753,7 +759,7 @@ as described in Section \ref{Attachments:sec}.
 Common point-based
 attachment classes are listed in Table \ref{tbl:fem:pointattachments}.
 
-\begin{table}
+\begin{table}[ht]
 	\centering
 	\caption{Point-based attachments \label{tbl:fem:pointattachments}}
 
@@ -785,10 +791,9 @@ the appropriate attachments automatically (see Section
 Since
 \javaclass[artisynth.core.femmodels]{FemNode3d} is a subclass of
 \javaclass[artisynth.core.mechmodels]{Particle}, the same methods
-described in that section for attaching particles to other particles
-and frames are available. 
-
-For example, we can attach an FEM node to a rigid body using a
+described in Section \ref{sec:mech:pointattachments} for attaching 
+particles to other particles and frames are available. For example, 
+we can attach an FEM node to a rigid body using a
 either a statement of the form
 %
 \begin{lstlisting}[]
@@ -802,7 +807,7 @@ or the following equivalent statement which does the same thing:
 \end{lstlisting}
 %
 Both of these create a {\tt PointFrameAttachment} between a rigid body (called
-{\tt block}) and an FEM node (called {\tt node}) and then adds it to
+{\tt body}) and an FEM node (called {\tt node}) and then adds it to
 the {\tt MechModel} {\tt mech}.
 
 One can also attach the nodes of one FEM model to the nodes of another
@@ -818,7 +823,7 @@ or
    mech.attachPoint (node2, node1);
 \end{lstlisting}
 %
-which attach {\tt node2} to {\tt node1}.
+which attaches {\tt node2} to {\tt node1}.
 
 \subsubsection{Example: connecting a beam to a block}
 
@@ -845,13 +850,13 @@ attachments are explicitly created.  They could also have been attached using
    mech.attachPoint (node, block);  // attach node to rigid block
 \end{lstlisting}
 
-\subsubsection{Connecting nodes to directly to elements}
+\subsubsection{Connecting nodes directly to elements}
 
-Typically, the nodes of FEM models do not align in a way that makes it
+Typically, nodes do not align in a way that makes it
 possible to connect them to other FEM models and/or points based on
 simple point-to-node attachments.  Instead, we use a different
 mechanism that allows us to attach a point to an arbitrary location
-within an fem model. This is done using an attachment component of
+within a FEM model. This is done using an attachment component of
 type
 \javaclass[artisynth.core.femmodels]{PointFem3dAttachment}, which
 implements an attachment where the position $\p$ and velocity $\u$ of the
@@ -871,8 +876,8 @@ to the nodes, according to the relation
 \label{pointFemForces:eqn}
 \end{equation}
 %
-where $\f_k$ is the force acting on node $k$ due to $\f$.
-
+where $\f_k$ is the force acting on node $k$ due to $\f$.  This
+relation can be derived based on the conservation of energy.
 If $\p$ is embedded within a single element, then the $\p_k$ are
 simply the element nodes and the $w_i$ are corresponding shape
 function values; this is known as an {\it element-based} attachment.
@@ -979,7 +984,7 @@ In particular, this is sometimes the case when connecting FEM models
 to point-to-point springs. The end-point of such a spring may end up
 exerting a large force on the FEM, and then if the number of nodes to
 which the end-point is attached are too small, the resulting forces on
-these nodes (equation \ref{pointFemForces:eqn}) may end up being too
+these nodes (Equation \ref{pointFemForces:eqn}) may end up being too
 large. In other words, it may be desirable to distribute the spring's
 force more evenly throughout the FEM model. 
 
@@ -1009,7 +1014,7 @@ signatures for these include:
   boolean setFromNodes (Point3d pos, Collection<FemNode> nodes)
 \end{lstlisting}
 The last two methods determine the weights automatically, using an
-inverse distance based calculation in which each weight $w_k$
+inverse-distance-based calculation in which each weight $w_k$
 is initially computed as
 %
 \begin{equation}
@@ -1226,7 +1231,7 @@ associated with the attachment, as described in Section
 \end{lstlisting}
 %
 There are a variety of methods available to set the attachment, mirroring
-those available in the underlying {\tt PointFem3dAttachment}:
+those available in the underlying base class {\tt PointFem3dAttachment}:
 \begin{lstlisting}[]
   void setFromFem (FemModel3d fem)
   void setFromElement (FemElement3d elem)
@@ -1271,7 +1276,7 @@ as with any other particles, using the methods
 The return values from these methods should not be
 modified. Alternatively, when a 3D force $\f$ is applied to the
 marker, it is distributed to the attached nodes according to the nodel
-weights, as described in equation (\ref{pointFemForces:eqn}).
+weights, as described in Equation \eqref{pointFemForces:eqn}.
 
 \subsubsection{Example: attaching a FEM beam to a muscle}
 
@@ -1309,7 +1314,7 @@ Analagously to
 attachment is implemented by connecting the frame to a set of FEM
 nodes, and attachments can be either element-based or nodal-based.  The
 frame's origin is computed in the same way as for point attachments,
-using a weighted sum of node positions (equation
+using a weighted sum of node positions (Equation
 \ref{pointFemAttachment:eqn}), while the orientation is computed using
 a polar decomposition on a deformation gradient determined from either
 element shape functions (for element-based attachments) or a
@@ -1569,30 +1574,27 @@ ArtiSynth User Interface Guide}).
 \subsection{Incompressiblity}
 
 FEM incompressibility within ArtiSynth is enforced by trying to ensure
-that the volume of a FEM remains locally constant. This in turn is
-done by constraining nodal velocities so that the local volume change,
-or {\it divergence}, is zero or close to zero. There are generally two
+that the volume of a FEM remains locally constant. This, in turn, is
+accomplished by constraining nodal velocities so that the local volume change,
+or \emph{divergence}, is zero (or close to zero). There are generally two
 ways to do this:
 
 \begin{itemize}
-
 \item {\it Hard incompressibility}, which sets up explicit constraints on the
 nodal velocities;
-
 \item {\it Soft incompressibility}, which uses a restoring pressure based on a
-potential field to try and keep the volume constant.
-
+potential field to try to keep the volume constant.
 \end{itemize}
 
-Both of these methods operate independently and both can be used
-separately or together. Generally speaking, hard incompressibility
+Both of these methods operate independently, and both can be used
+either separately or together. Generally speaking, hard incompressibility
 will result in incompressibility being more rigorously enforced, but
 at the cost of increased computation time and (sometimes) less
 stability. Soft incompressibility allows the application to control
 the restoring force used to enforce incompressibility, usually by
-adjusting the value of the {\it bulk modulus} material property.  As
+adjusting the value of the \emph{bulk modulus} material property.  As
 the bulk modulus is increased, soft incompressibility starts to act
-more like 'hard' incompressibility, with an infinite bulk modulus
+more like `hard' incompressibility, with an infinite bulk modulus
 corresponding to perfect incompressibilty. However, very large bulk
 modulus values will generally produce stability problems.
 
@@ -1603,24 +1605,20 @@ Both hard and soft incompressibility can be applied to different
 regions of local volume. From larger to smaller, these regions are:
 
 \begin{itemize}
-
 \item {\it Nodal} - the local volume surrounding each node;
-
 \item {\it Element} - the volume of each element;
-
 \item {\it Full} - the volume at each integration point.
-
 \end{itemize}
 
 Element-based incompressibility is the standard method generally seen
-in the literature. However, it tends not to work so well for
+in the literature. However, it tends not to work well for
 tetrahedral meshes, because constraining the volume of each tet in a
 tetrahedral mesh tends to over constrain the system. This is because
 the number of tets in a large tetrahedral mesh is often $O(5 n)$,
 where $n$ is the number of nodes, and so putting a volume constraint
 on each element may result in $O(5 n)$ constraints, which exceeds the
 $3 n$ degrees of freedom (DOF) in the FEM. This overconstraining results in an
-artificially increased stiffness known as {\it locking}. Because of
+artificially increased stiffness known as \emph{locking}. Because of
 locking, for tetrahedrally based meshes it may be better to use
 nodal-based incomressibility, which creates a single volume constraint
 around each node, resulting in only $n$ constraints, leaving $2 n$ DOF
@@ -1631,7 +1629,7 @@ and may not be as stable.
 Generally, the best solution for incompressible problems is to use
 element-based incompressibility with a mesh consisting of hexahedra,
 or primarily hexahedra and a mix of other elements (the latter
-commonly being known as a {\it hex dominant} mesh). For hex-based
+commonly being known as a \emph{hex dominant} mesh). For hex-based
 meshes, the number of elements is roughly equal to the number of
 nodes, and so adding a volume constraint for each element imposes $n$
 constraints on the model, which (like nodal incompressibility)
@@ -1763,7 +1761,7 @@ along a particular direction. A value of $0$ allows the material to be
 compressed or extended without any transverse contraction or
 expansion, while a value of $0.5$ in theory indicates a perfectly
 incompressible material. However, setting $\nu = 0.5$ in practice
-causes a zero division and so only values close to 0.5 (such as 0.49)
+causes a division by zero, so only values close to 0.5 (such as 0.49)
 can be used. 
 
 Moreover, the incompressibility only applies to small displacements,
@@ -1800,7 +1798,7 @@ everything previously discussed for regular FEM models also applies to FEM
 muscles.  Muscles have additional properties that allow them to contract when 
 activated.  There are two types of muscles supported:
 \begin{description}
-\item[Fibre-based:] Point-to-point muscle fibres embedded in the model.
+\item[Fibre-based:] Point-to-point muscle fibres are embedded in the model.
 \item[Material-based:] An auxiliary material is added to the constitutive law
     to embed muscle properties. 
 \end{description}
@@ -1808,7 +1806,7 @@ In this section, both types will be described.
 
 \subsubsection{FemMuscleModel}
 
-The class for FEM-based muscles is 
+The main class for FEM-based muscles is 
 \javaclass[artisynth.core.femmodels]{FemMuscleModel}, a subclass 
 of \javaclass[artisynth.core.femmodels]{FemModel3d}.  It differs from a basic
 FEM model in that it has the new property
@@ -1824,9 +1822,8 @@ FEM model in that it has the new property
 \end{center}
 This is a delegate object of type 
 \javaclass[artisynth.core.materials]{MuscleMaterial} that computes activation-%
-dependent stress and stiffness in the muscle.  This property only applies to 
-material-based muscles.  In addition, {\tt FemMuscleModel} has two more
-lists of subcomponents:
+dependent stress and stiffness in the muscle. In addition to this property, 
+{\tt FemMuscleModel} adds two new lists of subcomponents:
 \begin{description}
    \item[{\tt bundles}]\mbox{}\\
    Groupings of muscle sub-units (fibres or elements) that can be activated.
@@ -1872,10 +1869,10 @@ The two types will be covered in Sections \ref{sec:fem:fibremuscle} and
 
 Muscle exciters enable you to simultaneously activate a group of ``excitation 
 components''.  This includes: point-to-point muscles, muscle bundles, muscle
-fibre, material-based muscle elements, and other muscle exciters.  Components 
+fibres, material-based muscle elements, and other muscle exciters.  Components 
 that can be excited all implement the 
 \javaclass[artisynth.core.mechmodels]{ExcitationComponent}
-interface.  To add or remove an component to the exciter, use
+interface.  To add or remove a component to the exciter, use
 \begin{lstlisting}[]
   addTarget (ExcitationComponent ex);    // adds a component to the exciter
   addTarget (ExcitationComponent ex,     // adds a component with a gain factor
@@ -1903,10 +1900,9 @@ addFibre( Muscle muscle );              // adds a point-to-point fibre
 Muscle addFibre( Point p0, Point p1,    // creates and adds a fibre
 	 AxialMuscleMaterial mat);
 \end{lstlisting}
-The latter returns the newly created {\tt Muscle} fibre.
-
-The following code snippet demonstrates how to create a fibre-based {\tt MuscleBundle}
-and add it to a FEM muscle.
+The latter returns the newly created {\tt Muscle} fibre.  
+The following code snippet demonstrates how to create a fibre-based 
+{\tt MuscleBundle} and add it to a FEM muscle.
 \lstset{numbers=left}
 \begin{lstlisting}[]
 // Create a muscle bundle
@@ -1972,8 +1968,8 @@ By default, the {\tt MuscleMaterial} is inherited from the bundle's
 \javaclass[artisynth.core.materials]{FullBlemkerMuscle}.  The Blemker-type
 materials are based on \cite{blemker:2005:muscle}.  {\tt BlemkerMuscle} only
 uses the muscle-specific terms (since a base material is provided the 
-underlying FEM model).  {\tt FullBlemkerMuscle} adds all terms described in 
-the paper.
+underlying FEM model), whereas {\tt FullBlemkerMuscle} adds all terms described in 
+the aforementioned paper.
 
 Elements can be added to a muscle bundle using one of the methods:
 \begin{lstlisting}[]
@@ -2032,7 +2028,7 @@ In the fibre-based one, since forces only act between point on the fibres,
 the muscle seems to bulge.  In the material-based muscle, the entire
 continuous volume contracts, leading to a uniform deformation.  
 
-Material-based muscles are more realistic.  However, it comes at the cost
+Material-based muscles are more realistic.  However, this often comes at the cost
 of stability.  The added terms to the constitutive law are highly non-linear,
 which may cause numerical issues as elements become highly contracted or
 highly deformed.  Fibre-based muscles are, in general, more stable.  However,
@@ -2054,7 +2050,8 @@ its underlying mesh structure.  At present, only meshes of type
 
 Since {\tt FemMesh} is also a {\tt Collidable}, this means we can enable 
 collisions with any embedded mesh inside a FEM.  Any forces resulting from
-the collision are then transfered back to the underlying nodes of the model.
+the collision are then automatically transfered back to the underlying nodes 
+of the model using Equation \eqref{pointFemForces:eqn}.
 
 \subsubsection{Example: FEM collisions}
 
@@ -2122,19 +2119,22 @@ The next two properties in Table \ref{tbl:fem:rendering} apply to the muscle cla
 When {\tt directionRenderLen > 0}, lines are drawn inside elements to indicate fibre
 directions.  If {\tt directionRenderType = ELEMENT}, then one line is drawn per
 element indicating the average contraction direction.  If 
-{\tt directionRenderType = INTEGRATION\_POINT}, a separate line is drawn per point.
+{\tt directionRenderType = INTEGRATION\_POINT}, a separate direction line is drawn 
+per point.
 
 The last four properties apply to 
 \javaclass[artisynth.core.femmodels]{FemModel3d} and 
 \javaclass[artisynth.core.femmodels]{FemMesh}.
 They control how the surface is colored.  This can be used to enable stress/strain
 visualizations.  The property {\tt surfaceRendering} sets what to draw:\\
+\medskip
 \begin{tabular}{lll}
 & {\tt None} & no surface\\
 & {\tt Shaded} & the face color specified by the mesh's {\tt RenderProps}\\
 & {\tt Stress} & the von Mises stress\\
 & {\tt Strain} & the von Mises strain
 \end{tabular}
+\medskip\\
 The {\tt stressPlotRange} controls the range of values to use when plotting 
 stress/strain.  Values outside this range are truncated.  The {\tt colorMap}
 is a delegate object that converts those stress and strain values to colors.
@@ -2171,8 +2171,8 @@ will override the normalized location, specifying values in absolute pixels.
 Negative values for position correspond to distances from the left/top.
 For instance,
 \begin{lstlisting}[]
-setNormalizedLocation(0, 0.1, 0, 0.8);
-setLocationOverride(-40, 0, 20, 0);
+setNormalizedLocation(0, 0.1, 0, 0.8);  // set relative positions
+setLocationOverride(-40, 0, 20, 0);     // override with pixel lengths
 \end{lstlisting}
 will create a bar that is 10\% up from the bottom of the screen, 40 pixels from
 the right edge, with a height occupying 80\% of the screen, and width 20 pixels.

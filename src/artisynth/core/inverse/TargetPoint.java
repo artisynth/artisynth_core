@@ -32,7 +32,7 @@ public class TargetPoint extends Point {
       super.transformGeometry (X, topObject, flags);
       // XXX should actually transform target pos; here assuming target==actual
       if (myTarget != null) {
-         myTarget.setTargetPos (myState.getPos ());
+         myTarget.setTargetPos (getPosition());
       }
    }
 

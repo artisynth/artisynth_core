@@ -57,11 +57,13 @@ import artisynth.core.util.ScanToken;
 import artisynth.core.util.TransformableGeometry;
 
 public class RigidBody extends Frame 
-   implements CopyableComponent, CollidableBody, HasSurfaceMesh {
+   implements CollidableBody, HasSurfaceMesh, ConnectableBody {
+   
    protected SpatialInertia mySpatialInertia;
+   protected SpatialInertia myEffectiveInertia;
    
    MeshInfo myMeshInfo = new MeshInfo();
-   protected LinkedList<RigidBodyConnector> myConnectors;
+   protected ArrayList<RigidBodyConnector> myConnectors;
 
    // pre-allocated temporary storage variables
    protected Wrench myCoriolisForce = new Wrench();
@@ -160,10 +162,58 @@ public class RigidBody extends Frame
          doGetInertia (M, mySpatialInertia);
       }
    }
+
+   public SpatialInertia getEffectiveInertia() {
+      if (myEffectiveInertia == null) {
+         return mySpatialInertia;
+      }
+      else {
+         return myEffectiveInertia;
+      }
+   }
    
-   public int getMassForces (VectorNd f, double t, int idx) {
+   public void getEffectiveMass (Matrix M, double t) {
+      SpatialInertia S = getEffectiveInertia();
+      if (dynamicVelInWorldCoords) {
+         if (M instanceof Matrix6d) {
+            S.getRotated ((Matrix6d)M, getPose().R);
+         }
+         else {
+            throw new IllegalArgumentException (
+               "Matrix not instance of Matrix6d");
+         }
+      }
+      else {
+         doGetInertia (M, S);
+      }
+   }
+
+   public int mulInverseEffectiveMass (
+      Matrix M, double[] a, double[] f, int idx) {
+      SpatialInertia S = getEffectiveInertia();
+
+      Twist tw = new Twist();
+      Wrench wr = new Wrench();
+      wr.f.x = f[idx];
+      wr.f.y = f[idx+1];
+      wr.f.z = f[idx+2];
+      wr.m.x = f[idx+3];
+      wr.m.y = f[idx+4];
+      wr.m.z = f[idx+5];
+      S.mulInverse (tw, wr);
+      a[idx++] = tw.v.x;
+      a[idx++] = tw.v.y;
+      a[idx++] = tw.v.z;
+      a[idx++] = tw.w.x;
+      a[idx++] = tw.w.y;
+      a[idx++] = tw.w.z;
+      return idx;
+   }
+
+   public int getEffectiveMassForces (VectorNd f, double t, int idx) {
       myBodyVel.inverseTransform (myState.XFrameToWorld.R, myState.vel);
-      mySpatialInertia.coriolisForce (myCoriolisForce, myBodyVel);
+      SpatialInertia S = getEffectiveInertia();
+      S.coriolisForce (myCoriolisForce, myBodyVel);
       if (dynamicVelInWorldCoords) {
          myCoriolisForce.transform (myState.XFrameToWorld.R);
       }
@@ -175,6 +225,27 @@ public class RigidBody extends Frame
       buf[idx++] = -myCoriolisForce.m.y;
       buf[idx++] = -myCoriolisForce.m.z;
       return idx;
+   }
+
+   public void resetEffectiveMass() {
+      myEffectiveInertia = null;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void addEffectivePointMass (double m, Vector3d loc) {
+      if (myEffectiveInertia == null) {
+         myEffectiveInertia = new SpatialInertia (mySpatialInertia);
+      }
+      SpatialInertia.addPointMass (myEffectiveInertia, m, loc);
+   }
+
+   public void addEffectiveInertia (SpatialInertia M) {
+      if (myEffectiveInertia == null) {
+         myEffectiveInertia = new SpatialInertia (mySpatialInertia);
+      }
+      myEffectiveInertia.add (M);
    }
 
    public void getInverseMass (Matrix Minv, Matrix M) {
@@ -583,6 +654,7 @@ public class RigidBody extends Frame
       setMeshFromInfo();
    }
 
+   @Override
    protected void updatePosState() {
       updateAttachmentPosStates();
       PolygonalMesh mesh = getMesh();
@@ -594,10 +666,10 @@ public class RigidBody extends Frame
    protected void updateVelState() {
    }
 
-   public void setPose (RigidTransform3d XBodyToWorld) {
-      super.setPose (XBodyToWorld);
-      updatePosState();
-   }
+//   public void setPose (RigidTransform3d XBodyToWorld) {
+//      super.setPose (XBodyToWorld);
+//      updatePosState();
+//   }
 
    public void setPose (double x, double y, double z,
                         double roll, double pitch, double yaw) {
@@ -609,30 +681,30 @@ public class RigidBody extends Frame
       setPose (X);
    }
 
-   public void setPosition (Point3d pos) {
-      super.setPosition (pos);
-      updatePosState();
-   }   
-
-   public void setRotation (Quaternion q) {
-      super.setRotation (q);
-      updatePosState();
-   }   
+//   public void setPosition (Point3d pos) {
+//      super.setPosition (pos);
+//      updatePosState();
+//   }   
+//
+//   public void setRotation (Quaternion q) {
+//      super.setRotation (q);
+//      updatePosState();
+//   }   
 
    public void extrapolatePose (Twist vel, double h) {
       myState.adjustPose (vel, h);
       updatePosState();
    }
 
-   public void setVelocity (Twist v) {
-      super.setVelocity (v);
-      updateVelState();
-   }
-
-   public void setBodyVelocity (Twist v) {
-      myState.setBodyVelocity (v);
-      updateVelState();
-   }
+//   public void setVelocity (Twist v) {
+//      super.setVelocity (v);
+//      updateVelState();
+//   }
+//
+//   public void setBodyVelocity (Twist v) {
+//      myState.setBodyVelocity (v);
+//      updateVelState();
+//   }
 
 //   public void addVelocity (Twist v) {
 //      myState.addVelocity (v);
@@ -644,11 +716,11 @@ public class RigidBody extends Frame
 //      updateVelState();
 //   }
 
-   public void setState (Frame frame) {
-      super.setState (frame);
-      updatePosState();
-      updateVelState();
-   }
+//   public void setState (Frame frame) {
+//      super.setState (frame);
+//      updatePosState();
+//      updateVelState();
+//   }
 
 //   public int setState (VectorNd x, int idx) {
 //      idx = super.setState (x, idx);
@@ -663,17 +735,17 @@ public class RigidBody extends Frame
 //      updateVelState();
 //   }
 
-   public int setPosState (double[] buf, int idx) {
-      idx = myState.setPos (buf, idx);
-      updatePosState();
-      return idx;
-   }
-
-   public int setVelState (double[] buf, int idx) {
-      idx = super.setVelState (buf, idx);
-      updateVelState();
-      return idx;
-   }
+//   public int setPosState (double[] buf, int idx) {
+//      idx = myState.setPos (buf, idx);
+//      updatePosState();
+//      return idx;
+//   }
+//
+//   public int setVelState (double[] buf, int idx) {
+//      idx = super.setVelState (buf, idx);
+//      updateVelState();
+//      return idx;
+//   }
 
    public RigidBody() {
       super();
@@ -699,10 +771,10 @@ public class RigidBody extends Frame
       setMesh (mesh, meshFileName);
    }
 
-   public void updatePose() {
-      super.updatePose();
-      updatePosState();
-   }
+//   public void updatePose() {
+//      super.updatePose();
+//      updatePosState();
+//   }
 
    public void applyGravity (Vector3d gacc) {
       // apply a force of -mass gacc at the bodies's center of mass
@@ -849,10 +921,9 @@ public class RigidBody extends Frame
 
    public void render (GLRenderer renderer, int flags) {
       if (myAxisLength > 0) {
-         GL2 gl = renderer.getGL2().getGL2();
-         gl.glLineWidth (myRenderProps.getLineWidth());
-         drawAxes (renderer, myRenderFrame, (float)myAxisLength);
-         gl.glLineWidth (1);
+         renderer.setLineWidth (myRenderProps.getLineWidth());
+         drawAxes (renderer, myRenderFrame, (float)myAxisLength, isSelected());
+         renderer.setLineWidth (1);
       }
       if (isSelected()) {
          flags |= GLRenderer.SELECTED;
@@ -871,6 +942,7 @@ public class RigidBody extends Frame
       RigidTransform3d Xpose = new RigidTransform3d();
       AffineTransform3d Xlocal = new AffineTransform3d();
 
+      // Note: Xpose will be transformed by X in myMeshInfo.transformGeometry()
       Xpose.set (myState.XFrameToWorld);
 
       if (myMeshInfo.transformGeometry (X, Xpose, Xlocal)) {
@@ -881,14 +953,30 @@ public class RigidBody extends Frame
          }
       }
 
-      if (myConnectors != null && 
+      boolean adjustConnectors = 
+         (myConnectors != null && 
           (flags & TransformableGeometry.SIMULATING)==0 &&
-          ((flags & TransformableGeometry.ARTICULATED)==0 || topObject!=this)) {
+          ((flags & TransformableGeometry.ARTICULATED)==0 || topObject!=this));
+
+      RigidTransform3d[] TXWs = null;
+      if (adjustConnectors) {
+         TXWs = new RigidTransform3d[myConnectors.size()];
+         int k = 0;
          for (RigidBodyConnector c : myConnectors) {
-            c.updateForBodyPositionChange (this, Xpose);
+            TXWs[k++] = c.getCurrentTXW (this);
          }
       }
       myState.setPose (Xpose);
+      updatePosState();
+      if (topObject == this && getAttachment() != null) {
+         getAttachment().updateAttachment();
+      }
+      if (adjustConnectors) {
+         int k = 0;
+         for (RigidBodyConnector c : myConnectors) {
+            c.updateForBodyPositionChange (this, TXWs[k++]);
+         }
+      }
       if (myMasterAttachments != null) {
          for (DynamicAttachment a : myMasterAttachments) {
             if (!ComponentUtils.withinHierarchy (a.getSlave(), topObject)) {
@@ -906,7 +994,7 @@ public class RigidBody extends Frame
       super.scaleDistance (s);
       this.myAxisLength *= s;
       mySpatialInertia.scaleDistance (s);
-      // probably don't need this, since effectiveIneria will be recalculated:
+      // probably don't need this, since effectiveInertia will be recalculated:
       // myEffectiveInertia.scaleDistance (s); 
       PolygonalMesh mesh = getMesh();
       if (mesh != null) {
@@ -958,7 +1046,7 @@ public class RigidBody extends Frame
    }
 
    @Override
-   public ModelComponent copy (
+   public RigidBody copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       RigidBody comp = (RigidBody)super.copy (flags, copyMap);
 
@@ -970,8 +1058,11 @@ public class RigidBody extends Frame
       comp.mySpatialInertia = new SpatialInertia (mySpatialInertia);
       // comp.myEffectiveInertia = new SpatialInertia (mySpatialInertia);
       PolygonalMesh mesh = getMesh();
+      comp.myMeshInfo = new MeshInfo();
       if (mesh != null) {
-         comp.setMesh (mesh.copy(), getMeshFileName(), getMeshFileTransform());
+         PolygonalMesh meshCopy = mesh.copy();
+         comp.setMesh (meshCopy, getMeshFileName(), getMeshFileTransform());
+         System.out.println ("mesh=" + mesh + " copy=" + meshCopy);
       }
       else {
          comp.setMesh (null, null, null);
@@ -1010,20 +1101,28 @@ public class RigidBody extends Frame
       return list.toArray (new FrameMarker[0]);
    }
 
-   void addDependency (RigidBodyConnector c) {
+   public void addConnector (RigidBodyConnector c) {
       if (myConnectors == null) {
-         myConnectors = new LinkedList<RigidBodyConnector>();
+         myConnectors = new ArrayList<RigidBodyConnector>();
       }
       myConnectors.add (c);
    }
 
-   void removeDependency (RigidBodyConnector c) {
+   public void removeConnector (RigidBodyConnector c) {
       if (myConnectors == null || !myConnectors.remove (c)) {
          throw new InternalErrorException ("connector not found");
       }
       if (myConnectors.size() == 0) {
          myConnectors = null;
       }
+   }
+   
+   public List<RigidBodyConnector> getConnectors() {
+      return myConnectors;
+   }
+   
+   public boolean isFreeBody() {
+      return !isParametric();
    }
 
    public void updateAttachmentPosStates() {
@@ -1206,110 +1305,112 @@ public class RigidBody extends Frame
    //      }
    //   }
   
-   private static RigidBody getOtherBody (RigidBodyConnector c, RigidBody body) {
-      if (c.myBodyA == body) {
-         return c.myBodyB;
-      }
-      else if (c.myBodyB == body) {
-         return c.myBodyA;
-      }
-      else {
-         throw new InternalErrorException (
-            "Connector does not reference body " +
-            ComponentUtils.getPathName(body));
-      }
-   }
+//   private static RigidBody getOtherBody (
+//      RigidBodyConnector c, RigidBody body) {
+//      
+//      if (c.myBodyA == body) {
+//         return c.myBodyB;
+//      }
+//      else if (c.myBodyB == body) {
+//         return c.myBodyA;
+//      }
+//      else {
+//         throw new InternalErrorException (
+//            "Connector does not reference body " +
+//            ComponentUtils.getPathName(body));
+//      }
+//   }
+//
+//   private static boolean recursivelyFindFreeAttachedBodies (
+//      RigidBody body, LinkedList<RigidBody> list, boolean rejectSelected) {
+//
+//      if (body == null) {
+//         return false;
+//      }
+//      boolean isFree = true;     
+//      if (!body.isMarked()) {
+//         body.setMarked (true);
+//         list.add (body);
+//         if (body.isParametric()) {
+//            isFree = false;
+//         }
+//         if (rejectSelected && body.isSelected()) {
+//            isFree = false;
+//         }
+//         if (body.myConnectors != null) {
+//            for (RigidBodyConnector c : body.myConnectors) {
+//               RigidBody obody = getOtherBody (c, body);
+//               if (!recursivelyFindFreeAttachedBodies (
+//                      obody, list, rejectSelected)) {
+//                  isFree = false;
+//               }
+//            }
+//         }
+//      }
+//      return isFree;
+//   }
+//  
+//   public boolean findFreeAttachedBodies (
+//      List<RigidBody> freeBodies, boolean rejectSelected) {
+//      LinkedList<RigidBody> nonfreeBodies = new LinkedList<RigidBody>();
+//      LinkedList<RigidBody> list = new LinkedList<RigidBody>();
+//      boolean allFree = true;
+//      setMarked (true);
+//      if (isParametric() || (rejectSelected && isSelected())) {
+//         allFree = false;
+//      }
+//      if (myConnectors != null) {
+//         for (RigidBodyConnector c : myConnectors) {
+//            RigidBody body = getOtherBody (c, this);
+//            list.clear();
+//            if (recursivelyFindFreeAttachedBodies (body, list, rejectSelected)) {
+//               freeBodies.addAll (list);
+//            }
+//            else {
+//               nonfreeBodies.addAll (list);
+//               allFree = false;
+//            }
+//         }
+//      }
+//      for (RigidBody b : freeBodies) {
+//         b.setMarked (false);
+//      }
+//      for (RigidBody b : nonfreeBodies) {
+//         b.setMarked (false);
+//      }
+//      setMarked (false);
+//      return allFree;
+//   }
 
-   private static boolean recursivelyFindFreeAttachedBodies (
-      RigidBody body, LinkedList<RigidBody> list, boolean rejectSelected) {
+   // public ArrayList<RigidTransform3d> getRelativePoses (
+   //    List<RigidBody> bodies) {
+   //    ArrayList<RigidTransform3d> poses =
+   //       new ArrayList<RigidTransform3d>(bodies.size());
 
-      if (body == null) {
-         return false;
-      }
-      boolean isFree = true;     
-      if (!body.isMarked()) {
-         body.setMarked (true);
-         list.add (body);
-         if (body.isParametric()) {
-            isFree = false;
-         }
-         if (rejectSelected && body.isSelected()) {
-            isFree = false;
-         }
-         if (body.myConnectors != null) {
-            for (RigidBodyConnector c : body.myConnectors) {
-               RigidBody obody = getOtherBody (c, body);
-               if (!recursivelyFindFreeAttachedBodies (
-                      obody, list, rejectSelected)) {
-                  isFree = false;
-               }
-            }
-         }
-      }
-      return isFree;
-   }
-  
-   public boolean findFreeAttachedBodies (
-      List<RigidBody> freeBodies, boolean rejectSelected) {
-      LinkedList<RigidBody> nonfreeBodies = new LinkedList<RigidBody>();
-      LinkedList<RigidBody> list = new LinkedList<RigidBody>();
-      boolean allFree = true;
-      setMarked (true);
-      if (isParametric() || (rejectSelected && isSelected())) {
-         allFree = false;
-      }
-      if (myConnectors != null) {
-         for (RigidBodyConnector c : myConnectors) {
-            RigidBody body = getOtherBody (c, this);
-            list.clear();
-            if (recursivelyFindFreeAttachedBodies (body, list, rejectSelected)) {
-               freeBodies.addAll (list);
-            }
-            else {
-               nonfreeBodies.addAll (list);
-               allFree = false;
-            }
-         }
-      }
-      for (RigidBody b : freeBodies) {
-         b.setMarked (false);
-      }
-      for (RigidBody b : nonfreeBodies) {
-         b.setMarked (false);
-      }
-      setMarked (false);
-      return allFree;
-   }
+   //    for (RigidBody bod : bodies) {
+   //       // X is the transform from bod to this body
+   //       RigidTransform3d X = new RigidTransform3d();
+   //       X.mulInverseLeft (getPose(), bod.getPose());
+   //       poses.add (X);
+   //    }
+   //    return poses;
+   // }
 
-   public ArrayList<RigidTransform3d> getRelativePoses (
-      List<RigidBody> bodies) {
-      ArrayList<RigidTransform3d> poses =
-         new ArrayList<RigidTransform3d>(bodies.size());
-
-      for (RigidBody bod : bodies) {
-         // X is the transform from bod to this body
-         RigidTransform3d X = new RigidTransform3d();
-         X.mulInverseLeft (getPose(), bod.getPose());
-         poses.add (X);
-      }
-      return poses;
-   }
-
-   public void setRelativePoses (
-      List<RigidBody> bodies, ArrayList<RigidTransform3d> poses) {
+   // public void setRelativePoses (
+   //    List<RigidBody> bodies, ArrayList<RigidTransform3d> poses) {
       
-      if (bodies.size() != poses.size()) {
-         throw new IllegalArgumentException (
-            "Error: poses and bodies have inconsistent sizes");
-      }
-      int i = 0;
-      RigidTransform3d X = new RigidTransform3d();
-      for (RigidBody bod : bodies) {
-         X.mul (getPose(), poses.get(i));
-         bod.setPose (X);
-         i++;
-      }
-   }
+   //    if (bodies.size() != poses.size()) {
+   //       throw new IllegalArgumentException (
+   //          "Error: poses and bodies have inconsistent sizes");
+   //    }
+   //    int i = 0;
+   //    RigidTransform3d X = new RigidTransform3d();
+   //    for (RigidBody bod : bodies) {
+   //       X.mul (getPose(), poses.get(i));
+   //       bod.setPose (X);
+   //       i++;
+   //    }
+   // }
    
    // begin Collidable interface
 

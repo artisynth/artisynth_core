@@ -111,10 +111,12 @@ public class FemModel3dEditor extends EditorBase {
       public boolean elementIsValid (FemElement e) {
          if (myPlanes != null && myPlanes.length > 0) {
             for (int i=0; i<myPlanes.length; i++) {
-               FemNode[] nodes = e.getNodes();
-               for (int k=0; k<nodes.length; k++) {
-                  if (myPlanes[i].isClipped (nodes[k].getPosition())) {
-                     return false;
+               if (myPlanes[i].isClippingEnabled()) {
+                  FemNode[] nodes = e.getNodes();
+                  for (int k=0; k<nodes.length; k++) {
+                     if (myPlanes[i].isClipped (nodes[k].getPosition())) {
+                        return false;
+                     }
                   }
                }
             }

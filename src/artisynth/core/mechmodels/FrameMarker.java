@@ -18,8 +18,6 @@ import java.util.*;
 import artisynth.core.util.*;
 
 public class FrameMarker extends Marker {
-   protected Frame myFrame;
-   protected Point3d myLocation; // location relative to the frame
    protected Point3d myRefPos;
    private PointFrameAttachment myFrameAttachment = null;
 
@@ -37,7 +35,7 @@ public class FrameMarker extends Marker {
       myProps.add (
          "refPos * *", "reference position used to calculate displacement",
          null, "%.8g");
-      myProps.add ("location", "marker location relative to frame", null);
+      myProps.add ("location", "marker location relative to frame", null, "NW");
       // myProps.get ("renderProps").setDefaultValue (new
       // PointLineRenderProps());
    }
@@ -48,8 +46,9 @@ public class FrameMarker extends Marker {
 
    public FrameMarker() {
       super();
-      myLocation = new Point3d();
       myRefPos = new Point3d();
+      myFrameAttachment = new PointFrameAttachment(this);
+      setAttached (myFrameAttachment);      
    }
 
    public FrameMarker (String name) {
@@ -64,18 +63,27 @@ public class FrameMarker extends Marker {
 
    public FrameMarker (Point3d pos) {
       this();
-      myLocation.set (pos);
+      myFrameAttachment.setLocation (pos);
    }
 
    public FrameMarker (double x, double y, double z) {
       this();
-      myLocation.set (x, y, z);
+      myFrameAttachment.setLocation (new Point3d(x,y,z));
    }
 
    public FrameMarker (Frame frame, double x, double y, double z) {
       this();
-      myLocation.set (x, y, z);
+      myFrameAttachment.setLocation (new Point3d(x,y,z));
       setFrame (frame);
+   }
+
+   @Override
+   public void setAttached (DynamicAttachment ax) {
+      if (ax != myFrameAttachment) {
+         throw new IllegalArgumentException (
+            "Changing the attachment for marker is not permitted");
+      }
+      super.setAttached (ax);
    }
 
    /** 
@@ -87,39 +95,36 @@ public class FrameMarker extends Marker {
    }
 
    public void getLocation (Point3d loc) {
-      loc.set (myLocation);
+      loc.set (myFrameAttachment.getLocation());
    }
 
    public Point3d getLocation() {
-      return myLocation;
+      return myFrameAttachment.getLocation();
    }
 
    public void setLocation (Point3d loc) {
-      myLocation.set (loc);
-      if (myFrameAttachment != null) {
-         myFrameAttachment.setLocation (myLocation);
-      }
+      myFrameAttachment.setLocation (loc);
       updateState();
    }
 
    public void transformLocation (AffineTransform3dBase X) {
-      myLocation.transform (X);
-      if (myFrameAttachment != null) {
-         myFrameAttachment.setLocation (myLocation);
-      }
+      Point3d loc = new Point3d (getLocation());
+      loc.transform (X);
+      setLocation (loc);
    }
 
    public void setWorldLocation (Point3d loc) {
-      myLocation.set (loc);
-      if (myFrame != null) {
-         myLocation.inverseTransform (myFrame.myState.XFrameToWorld);
-         myFrameAttachment.setLocation (myLocation);
+      Point3d newLoc = new Point3d (loc);
+      Frame frame = myFrameAttachment.getFrame();
+      if (frame != null) {
+         newLoc.inverseTransform (frame.getPose());
+         myFrameAttachment.setLocation (newLoc);
       }
       updateState();
    }
 
    public Frame getFrame() {
-      return myFrame;
+      return myFrameAttachment.getFrame();
    }
 
    public void setFrame (Frame frame) {
@@ -127,21 +132,17 @@ public class FrameMarker extends Marker {
    }
 
    protected void setFrame (Frame frame, boolean updateRefPos) {
-      if (getParent() != null) {
-         throw new IllegalStateException (
-            "Cannot set frame when marker is connected to component hierarchy");
-      }
-      myFrame = frame;
-      if (myFrame != null) {
+      if (frame != null) {
+         removeBackRefsIfConnected();
          if (updateRefPos) {
-            myRefPos.transform (myFrame.myState.XFrameToWorld, myLocation);
+            myRefPos.transform (frame.myState.XFrameToWorld, getLocation());
          }
-         myFrameAttachment = new PointFrameAttachment (frame, this, myLocation);
-         setAttached (myFrameAttachment);
+         myFrameAttachment.setFrame (frame, getLocation());
+         addBackRefsIfConnected();
+         notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);         
       }
       else {
-         myFrameAttachment = null;
-         setAttached (null);
+         // not sure what to do here - is frame ever null?
       }
       updateState();
    }
@@ -158,34 +159,38 @@ public class FrameMarker extends Marker {
    }
 
    public void updateState() {
-      if (myFrame != null) {
-         if (!RigidBody.useExternalAttachments) {
-            updatePosState();
-            updateVelState();
-         }
-         else {
-            FrameState bodyState = myFrame.myState;
-            Twist velBody = myFrame.getVelocity();
-            myState.pos.transform (bodyState.XFrameToWorld, myLocation);
-
-            Vector3d vtmp = myState.vel; // use for temp storage
-            vtmp.sub (myState.pos, bodyState.pos);
-            vtmp.cross (velBody.w, vtmp);
-            myState.vel.add (vtmp, velBody.v);
-         }
-
-      }
-      else {
-         myState.pos.set (myLocation);
-         myState.vel.setZero();
-      }
+      myFrameAttachment.updatePosStates();
+      myFrameAttachment.updateVelStates();      
+//      if (myFrame != null) {
+//         if (!RigidBody.useExternalAttachments) {
+//            updatePosState();
+//            updateVelState();
+//         }
+//         else {
+//            FrameState bodyState = myFrame.myState;
+//            Twist velBody = myFrame.getVelocity();
+//            myState.pos.transform (bodyState.XFrameToWorld, myLocation);
+//
+//            Vector3d vtmp = new Vector3d();
+//            vtmp.sub (myState.pos, bodyState.pos);
+//            vtmp.cross (velBody.w, vtmp);
+//            myState.vel.add (vtmp, velBody.v);
+//         }
+//
+//      }
+//      else {
+//         myState.pos.set (myLocation);
+//         myState.vel.setZero();
+//      }
    }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 
       rtok.nextToken();
-      if (scanAndStoreReference (rtok, "frame", tokens)) {
+      if (scanAttributeName (rtok, "attachment")) {
+         tokens.offer (new StringToken ("attachment", rtok.lineno()));
+         myFrameAttachment.scan (rtok, tokens);
          return true;
       }
       rtok.pushBack();
@@ -195,9 +200,8 @@ public class FrameMarker extends Marker {
    protected boolean postscanItem (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
-      if (postscanAttributeName (tokens, "frame")) {
-         setFrame (postscanReference (tokens, Frame.class, ancestor),
-                   /*updateRefPos=*/false);
+      if (postscanAttributeName (tokens, "attachment")) {
+         myFrameAttachment.postscan (tokens, ancestor);
          return true;
       }
       return super.postscanItem (tokens, ancestor);
@@ -207,9 +211,11 @@ public class FrameMarker extends Marker {
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
-      // need to write frame first so that refPos can overwrite
-      pw.println (
-         "frame=" + ComponentUtils.getWritePathName (ancestor, myFrame));
+      if (myFrameAttachment != null) {
+         pw.print ("attachment=");
+         myFrameAttachment.write (pw, fmt, ancestor);
+      }
+      // need to write attachment first so that refPos can overwrite
       super.writeItems (pw, fmt, ancestor);
    }
 
@@ -224,7 +230,7 @@ public class FrameMarker extends Marker {
    
    public Point3d getDisplacement() {
       Point3d disp = new Point3d();
-      disp.sub (myState.pos, myRefPos);
+      disp.sub (getPosition(), myRefPos);
       return disp;
    }
 
@@ -242,35 +248,22 @@ public class FrameMarker extends Marker {
    }
 
    public void updateAttachment() {
-      myLocation.inverseTransform (
-         myFrame.myState.XFrameToWorld, getPosition());
-
-      if (myFrame != null) {
-         myRefPos.transform (myFrame.myState.XFrameToWorld, myLocation);
+      Frame frame = myFrameAttachment.getFrame();
+      if (frame != null) {
+         myRefPos.set (getPosition());
          myFrameAttachment.updateAttachment();
       }
    }
 
-   protected void scale (double s) {
-      super.scaleDistance (s);
-      myLocation.scale (s);
-      myRefPos.scale (s);
-      // if (myFrameAttachment != null)
-      // { myFrameAttachment.setLocation (myLocation);
-      // }
-   }
-
    public void scaleDistance (double s) {
-      scale (s);
-
-      if (isAttached()) {
-         getAttachment().updateAttachment();
-      }
+      super.scaleDistance (s);
+      myRefPos.scale (s);
+      myFrameAttachment.scale (s);
    }
 
-   public void applyForces() {
-      myFrameAttachment.applyForces();
-   }
+   // public void applyForces() {
+   //    myFrameAttachment.applyForces();
+   // }
 
    public void updatePosState() {
       myFrameAttachment.updatePosStates();
@@ -280,55 +273,55 @@ public class FrameMarker extends Marker {
       myFrameAttachment.updateVelStates();
    }
 
-   /**
-    * Adds a diagonal block to the Jacobian for this marker if the frame to
-    * which it is attached is active.
-    */
-   public int addAttachedSolveBlock (SparseNumberedBlockMatrix S) {
-      if (myFrame.isActive()) {
-         addSolveBlock (S);
-         return 1;
-      }
-      else {
-         setSolveIndex (-1);
-         return 0;
-      }
-   }
+//   /**
+//    * Adds a diagonal block to the Jacobian for this marker if the frame to
+//    * which it is attached is active.
+//    */
+//   public int addAttachedSolveBlock (SparseNumberedBlockMatrix S) {
+//      if (myFrame.isActive()) {
+//         addSolveBlock (S);
+//         return 1;
+//      }
+//      else {
+//         setSolveIndex (-1);
+//         return 0;
+//      }
+//   }
 
-   @Override
-   public void connectToHierarchy () {
-      if (myFrame == null) {
-         throw new InternalErrorException ("frame is not set");
-      }
-      super.connectToHierarchy ();
-      updateState();
-      myFrame.addMasterAttachment (myFrameAttachment);
-   }
+//   @Override
+//   public void connectToHierarchy () {
+//      if (myFrame == null) {
+//         throw new InternalErrorException ("frame is not set");
+//      }
+//      super.connectToHierarchy ();
+//      updateState();
+//      myFrame.addMasterAttachment (myFrameAttachment);
+//   }
+//
+//   @Override
+//   public void disconnectFromHierarchy() {
+//      if (myFrame == null) {
+//         throw new InternalErrorException ("frame is not set");
+//      }
+//      super.disconnectFromHierarchy();
+//      myFrame.removeMasterAttachment (myFrameAttachment);
+//   }
 
-   @Override
-   public void disconnectFromHierarchy() {
-      if (myFrame == null) {
-         throw new InternalErrorException ("frame is not set");
-      }
-      super.disconnectFromHierarchy();
-      myFrame.removeMasterAttachment (myFrameAttachment);
-   }
+//   @Override
+//   public void getHardReferences (List<ModelComponent> refs) {
+//      super.getHardReferences (refs);
+//      if (myFrame == null) {
+//         throw new InternalErrorException ("null frame");
+//      }
+//      refs.add (myFrame);
+//   }
 
-   @Override
-   public void getHardReferences (List<ModelComponent> refs) {
-      super.getHardReferences (refs);
-      if (myFrame == null) {
-         throw new InternalErrorException ("null frame");
-      }
-      refs.add (myFrame);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void getAttachments (List<DynamicAttachment> list) {
-      list.add (getAttachment());
-   }
+//   /**
+//    * {@inheritDoc}
+//    */
+//   public void getAttachments (List<DynamicAttachment> list) {
+//      list.add (getAttachment());
+//   }
 
    /**
     * {@inheritDoc}
@@ -348,12 +341,16 @@ public class FrameMarker extends Marker {
    @Override
    public ModelComponent copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
-      FrameMarker mkr = (FrameMarker)super.copy (flags, copyMap);
-      mkr.myLocation = new Point3d();
-      mkr.myRefPos = new Point3d();
-      mkr.setLocation (myLocation);
-      mkr.setRefPos (myRefPos);
-      mkr.setFrame (myFrame);
-      return mkr;
+      FrameMarker m = (FrameMarker)super.copy (flags, copyMap);
+
+      // bit of a hack: enter the new marker in the copyMap so that
+      // PointFem3dAttachment.copy() will be able to find it
+      if (copyMap != null) {
+	 copyMap.put (this, m);
+      }
+      m.myFrameAttachment = myFrameAttachment.copy (flags, copyMap);
+      m.setAttached (m.myFrameAttachment);      
+      m.myRefPos = new Point3d(myRefPos);
+      return m;
    }
 }

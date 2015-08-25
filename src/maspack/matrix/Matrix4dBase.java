@@ -95,9 +95,6 @@ public abstract class Matrix4dBase extends DenseMatrixBase implements Clonable {
     */
    public double m33;
 
-   private LUDecomposition lu = null;
-   private Matrix4d Tmp;
-
    /**
     * Returns the number of rows in this matrix (which is always 4).
     * 
@@ -1061,9 +1058,7 @@ public abstract class Matrix4dBase extends DenseMatrixBase implements Clonable {
    protected boolean mulInverseRight (Matrix4dBase M1, Matrix4dBase M2) {
       boolean nonSingular = true;
       if (M1 == this || M1 == this) {
-         if (Tmp == null) {
-            Tmp = new Matrix4d();
-         }
+         Matrix4d Tmp = new Matrix4d();
          nonSingular = Tmp.invert (M2);
          mul (M1, Tmp);
       }
@@ -1087,9 +1082,7 @@ public abstract class Matrix4dBase extends DenseMatrixBase implements Clonable {
    protected boolean mulInverseLeft (Matrix4dBase M1, Matrix4dBase M2) {
       boolean nonSingular = true;
       if (M1 == this || M1 == this) {
-         if (Tmp == null) {
-            Tmp = new Matrix4d();
-         }
+         Matrix4d Tmp = new Matrix4d();
          nonSingular = Tmp.invert (M1);
          mul (Tmp, M2);
       }
@@ -1245,9 +1238,7 @@ public abstract class Matrix4dBase extends DenseMatrixBase implements Clonable {
     * @return false if this matrix is singular
     */
    public boolean mulInverse (Vector4d vr, Vector4d v1) {
-      if (Tmp == null) {
-         Tmp = new Matrix4d();
-      }
+      Matrix4d Tmp = new Matrix4d();
       boolean nonSingular = Tmp.invert (this);
       Tmp.mul (vr, v1);
       return nonSingular;
@@ -1276,9 +1267,7 @@ public abstract class Matrix4dBase extends DenseMatrixBase implements Clonable {
     * @return false if this matrix is singular
     */
    public boolean mulInverseTranspose (Vector4d vr, Vector4d v1) {
-      if (Tmp == null) {
-         Tmp = new Matrix4d();
-      }
+      Matrix4d Tmp = new Matrix4d();
       boolean nonSingular = Tmp.invert (this);
       Tmp.mulTranspose (vr, v1);
       return nonSingular;
@@ -1834,9 +1823,7 @@ public abstract class Matrix4dBase extends DenseMatrixBase implements Clonable {
     * @return false if M is singular
     */
    protected boolean invert (Matrix4dBase M1) {
-      if (lu == null) {
-         lu = new LUDecomposition();
-      }
+      LUDecomposition lu = new LUDecomposition();
       lu.factor (M1);
       boolean singular = false;
       try {
@@ -1853,9 +1840,7 @@ public abstract class Matrix4dBase extends DenseMatrixBase implements Clonable {
     * @return matrix determinant
     */
    public double determinant() throws ImproperSizeException {
-      if (lu == null) {
-         lu = new LUDecomposition();
-      }
+      LUDecomposition lu = new LUDecomposition();
       lu.factor (this);
       return (lu.determinant());
    }

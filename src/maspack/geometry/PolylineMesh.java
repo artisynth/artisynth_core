@@ -494,8 +494,7 @@ public class PolylineMesh extends MeshBase {
       
       GL2 gl = renderer.getGL2().getGL2();
       
-      int[] savedShadeModel = new int[1];
-      gl.glGetIntegerv (GL2.GL_SHADE_MODEL, savedShadeModel, 0);
+      RenderProps.Shading savedShadeModel = renderer.getShadeModel();
       boolean reenableLighting = false;
       
       if (props.getLineColor() != null && !renderer.isSelecting()) {
@@ -542,7 +541,7 @@ public class PolylineMesh extends MeshBase {
             if (reenableLighting) {
                renderer.setLightingEnabled (false);
             }
-            gl.glShadeModel(GL2.GL_SMOOTH);
+            renderer.setShadeModel (RenderProps.Shading.FLAT);
          }
          
          // draw all the cylinders
@@ -603,7 +602,7 @@ public class PolylineMesh extends MeshBase {
          gl.glEnable(GL2.GL_CULL_FACE);
       }
       renderer.restoreShading (props);
-      gl.glShadeModel (savedShadeModel[0]);
+      renderer.setShadeModel (savedShadeModel);
       
    }
    
@@ -698,12 +697,10 @@ public class PolylineMesh extends MeshBase {
       GL2 gl = renderer.getGL2().getGL2();
       
       boolean reenableLighting = false;
-      int[] savedLineWidth = new int[1];
-      gl.glGetIntegerv (GL2.GL_LINE_WIDTH, savedLineWidth, 0);
-      int[] savedShadeModel = new int[1];
-      gl.glGetIntegerv (GL2.GL_SHADE_MODEL, savedShadeModel, 0);
+      int savedLineWidth = renderer.getLineWidth();
+      RenderProps.Shading savedShadeModel = renderer.getShadeModel();
 
-      gl.glLineWidth (props.getLineWidth());
+      renderer.setLineWidth (props.getLineWidth());
 
       if (props.getLineColor() != null && !renderer.isSelecting()) {
          reenableLighting = renderer.isLightingEnabled();
@@ -750,7 +747,7 @@ public class PolylineMesh extends MeshBase {
          if (useVertexColors) {
             reenableLighting = renderer.isLightingEnabled();
             renderer.setLightingEnabled (false);
-            gl.glShadeModel(GL2.GL_SMOOTH);
+            renderer.setShadeModel (RenderProps.Shading.FLAT);
          }
          for (int i=0; i<myLines.size(); i=i+1+renderSkip) {
             Polyline line = myLines.get(i);
@@ -783,8 +780,8 @@ public class PolylineMesh extends MeshBase {
       if (reenableLighting) {
          renderer.setLightingEnabled (true);
       }
-      gl.glLineWidth (savedLineWidth[0]);
-      gl.glShadeModel (savedShadeModel[0]);
+      renderer.setLineWidth (savedLineWidth);
+      renderer.setShadeModel (savedShadeModel);
    }
 
    /** 

@@ -12,7 +12,6 @@ import java.util.Random;
  * A general 4 x 4 matrix with the elements stored as explicit fields.
  */
 public class Matrix6d extends Matrix6dBase {
-   Matrix6d Tmp = null;
 
    /**
     * Global zero matrix. Should not be modified.

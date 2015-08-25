@@ -113,7 +113,7 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
    }
 
    private void dorender (GLRenderer renderer, boolean selected) {
-      GL2 gl = renderer.getGL2();
+      //GL2 gl = renderer.getGL2();
       boolean selecting = renderer.isSelecting();
       if (!addElementsInPrerender) {
          // we render all elements ourselves, taking care to render selected
@@ -146,7 +146,7 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
                   renderer.setLightingEnabled (false);
                }
                // draw regular points first
-               gl.glLineWidth (myRenderProps.getLineWidth());
+               renderer.setLineWidth (myRenderProps.getLineWidth());
                renderer.setColor (myRenderProps.getLineColorArray(), false);
                for (int i = 0; i < size(); i++) {
                   FemElement3d elem = get (i);
@@ -167,7 +167,7 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
                      }
                   }
                }
-               gl.glLineWidth (1);
+               renderer.setLineWidth (1);
                if (!selecting) {
                   renderer.setLightingEnabled (true);
                }

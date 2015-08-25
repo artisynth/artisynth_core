@@ -75,6 +75,21 @@ public class PlanarConnector extends RigidBodyConnector
       myPlaneSize = len;
    }
 
+   /**
+    * Gets the current plane normal, in world coordinates. Also
+    * return the plane offset.
+    * 
+    * @param nrm returns the plane normal
+    */
+   public double getPlaneNormal (Vector3d nrm) {
+      RigidTransform3d TDW = new RigidTransform3d();
+      getCurrentTDW (TDW);
+      nrm.x = TDW.R.m02;
+      nrm.y = TDW.R.m12;
+      nrm.z = TDW.R.m22;
+      return nrm.dot (TDW.p);
+   }
+   
    private void initializeCoupling() {
       myCoupling = new PlanarCoupling ();
       myCoupling.setBreakSpeed (1e-8);
@@ -183,7 +198,8 @@ public class PlanarConnector extends RigidBodyConnector
       GL2 gl = renderer.getGL2().getGL2();
       RenderProps props = myRenderProps;
 
-      renderer.setMaterialAndShading (props, props.getFaceMaterial(), isSelected());
+      renderer.setMaterialAndShading (
+         props, props.getFaceMaterial(), isSelected());
       renderer.setFaceMode (props.getFaceStyle());
       gl.glBegin (GL2.GL_POLYGON);
       gl.glNormal3d (nrm.x, nrm.y, nrm.z);
@@ -236,7 +252,7 @@ public class PlanarConnector extends RigidBodyConnector
       copy.setPlaneSize (myPlaneSize);
       copy.setUnilateral (isUnilateral());
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
+      //copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
       return copy;
    }
 

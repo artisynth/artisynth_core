@@ -463,20 +463,20 @@ public class FemMuscleModel extends FemModel3d
       myMuscleMat.scaleMass(s);
    }
 
-   private static int addVertex(PolygonalMesh mesh, FemNode3d n) {
-      int index = -1;
-      // for(Vertex3d v:mesh.getVertices())
-      // {
-      //
-      // }
-      index = mesh.getVertices().indexOf(n.getPosition());
-      if (index == -1) {
-         index =
-            mesh.getVertices().indexOf(
-               mesh.addVertex(n.getPosition(), true));
-      }
-      return index;
-   }
+//   private static int addVertex(PolygonalMesh mesh, FemNode3d n) {
+//      int index = -1;
+//      // for(Vertex3d v:mesh.getVertices())
+//      // {
+//      //
+//      // }
+//      index = mesh.getVertices().indexOf(n.getPosition());
+//      if (index == -1) {
+//         index =
+//            mesh.getVertices().indexOf(
+//               mesh.addVertex(n.getPosition(), true));
+//      }
+//      return index;
+//   }
 
    // @Override
    // public void updateForces (double t, StepAdjust stepAdjust) {

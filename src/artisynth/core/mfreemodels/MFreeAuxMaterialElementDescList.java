@@ -77,7 +77,7 @@ public class MFreeAuxMaterialElementDescList
       // This code is taken mostly verbatim from FemElement3dList.
       // Should find a way to avoid duplicate code ...
 
-      GL2 gl = renderer.getGL2().getGL2();
+//      GL2 gl = renderer.getGL2().getGL2();
       boolean selecting = renderer.isSelecting();
       if (!addDescsInPrerender) {
          // we render all descs ourselves, taking care to render selected descs

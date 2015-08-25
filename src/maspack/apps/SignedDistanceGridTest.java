@@ -443,7 +443,7 @@ public class SignedDistanceGridTest {
       public void render (GLRenderer renderer, int flags) {
          GL2 gl = renderer.getGL2().getGL2();
          gl.glEnable (GL2.GL_POINT_SMOOTH);
-         gl.glPointSize (3);
+         renderer.setPointSize (3);
          renderer.setColor (pointColour[0], pointColour[1], pointColour[2]);
          
          gl.glBegin (GL2.GL_POINTS);
@@ -451,7 +451,7 @@ public class SignedDistanceGridTest {
          gl.glEnd();
          // Get the normal to the surface and render it.
          //Vector3d normal = new Vector3d();
-         gl.glLineWidth (1.0f);
+         renderer.setLineWidth (1);
          gl.glBegin (GL2.GL_LINES);
          gl.glVertex3d (myVertex.x, myVertex.y, myVertex.z);
          gl.glVertex3d (myVertex.x + normal.x * 0.1,

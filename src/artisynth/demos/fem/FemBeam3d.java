@@ -550,7 +550,7 @@ public class FemBeam3d extends RootModel {
       }
    }
          
-   ControlPanel myControlPanel;
+   protected ControlPanel myControlPanel;
 
    public void addControlPanel (MechModel mechMod, FemModel3d femMod) {
 

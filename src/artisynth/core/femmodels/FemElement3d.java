@@ -336,7 +336,12 @@ public abstract class FemElement3d extends FemElement
     * @return true if point is inside the element
     */
    public boolean isInside (Point3d pnt) {
-      return false;
+      Vector3d coords = new Vector3d();
+      if (!getNaturalCoordinates (coords, pnt)) {
+         // if the calculation did not converge, assume we are outside
+         return false;
+      }
+      return coordsAreInside (coords);
    }
    
    /** 
@@ -683,7 +688,7 @@ public abstract class FemElement3d extends FemElement
 
    public abstract boolean coordsAreInside (Vector3d coords);
 
-   public void getMarkerCoordinates (VectorNd coords, Point3d pnt) {
+   public boolean getMarkerCoordinates (VectorNd coords, Point3d pnt) {
       if (coords.size() < numNodes()) {
          throw new IllegalArgumentException (
             "coords size "+coords.size()+" != number of nodes "+numNodes());
@@ -693,6 +698,7 @@ public abstract class FemElement3d extends FemElement
       for (int i=0; i<numNodes(); i++) {
          coords.set (i, getN (i, ncoords));
       }
+      return coordsAreInside (ncoords);
    }
    
    public abstract double[] getNodeCoords ();
@@ -707,74 +713,19 @@ public abstract class FemElement3d extends FemElement
    }
 
    /**
-    * Given point p, get its natural coordinates with respect to this element.
-    * Returns true if the natural coordinates indicate that p is inside the
-    * element. Uses Newton's method to solve the equations. The
-    * <code>coords</code> argument that returned the coordinates is
-    * used, on input, to supply an initial guess of the coordinates.
-    * Zero is generally a safe guess.
+    * Calls {@link #getNaturalCoordinates(Vector3d,Point3d,int)}
+    * with a default maximum number of interations.
     * 
     * @param coords
     * Outputs the natural coordinates, and supplies (on input) an initial
     * guess as to their position.
     * @param pnt
-    * A given point.
-    * @return true if the natural coordinates indicate that p is inside
-    * the element.
+    * A given point (in world coords)
+    * @return true if the calculation converged
     */
    public boolean getNaturalCoordinates (Vector3d coords, Point3d pnt) {
-
-      if (!coordsAreInside(coords)) {
-         coords.setZero();
-      }
-
-      LUDecomposition LUD = new LUDecomposition();
-
-      /*
-       * solve using Newton's method: Need a good guess! Just guessed zero here.
-       */
-      final int NEWTONS_SOLVE_ITERATIONS = 100;
-      Vector3d dNds = new Vector3d();
-      Matrix3d dxds = new Matrix3d();
-      Vector3d res = new Point3d();
-      Vector3d del = new Point3d();
-
-      int i;
-      for (i = 0; i < NEWTONS_SOLVE_ITERATIONS; i++) {
-//         double s1 = coords.x;
-//         double s2 = coords.y;
-//         double s3 = coords.z;
-
-         // compute the Jacobian dx/ds for the current guess
-         dxds.setZero();
-         res.setZero();
-         for (int k=0; k<numNodes(); k++) {
-            getdNds (dNds, k, coords);
-            dxds.addOuterProduct (myNodes[k].getPosition(), dNds);
-            res.scaledAdd (getN (k, coords), myNodes[k].getPosition(), res);
-         }
-         res.sub (pnt);
-
-         LUD.factor (dxds);
-         double cond = LUD.conditionEstimate (dxds);
-         if (cond > 1e10)
-            System.err.println (
-               "Warning: condition number for solving natural coordinates is "
-               + cond);
-         LUD.solve (del, res);
-         // assume that natural coordinates are general around 1 in magnitude
-         if (del.norm() < 1e-10) {
-            break;
-         }
-         coords.sub (del);
-      }
-      //      System.out.println ("coords: " + coords.toString ("%4.3f"));
-
-      // natural coordinates should all be between -1 and +1 iff the point is
-      // inside it
-      return coordsAreInside (coords);
+      return getNaturalCoordinates (coords, pnt, /*maxIters=*/1000);
    }
-
    
    /**
     * Given point p, get its natural coordinates with respect to this element.
@@ -788,15 +739,24 @@ public abstract class FemElement3d extends FemElement
     * Outputs the natural coordinates, and supplies (on input) an initial
     * guess as to their position.
     * @param pnt
-    * A given point.
+    * A given point (in world coords)
     * @param maxIters
     * Maximum number of Newton iterations
-    * @return true if we converged
+    * @return true if the calculation converged
     */
-   public boolean getNaturalCoordinatesRobust (Vector3d coords, Point3d pnt, int maxIters) {
+   public boolean getNaturalCoordinates (
+      Vector3d coords, Point3d pnt, int maxIters) {
 
       if (!coordsAreInside(coords)) {
          coords.setZero();
+      }
+      // if FEM is frame-relative, transform to local coords
+      Point3d lpnt = new Point3d(pnt);
+      if (getGrandParent() instanceof FemModel3d) {
+         FemModel3d fem = (FemModel3d)getGrandParent();
+         if (fem.isFrameRelative()) {
+            lpnt.inverseTransform (fem.getFrame().getPose());
+         }
       }
 
       LUDecomposition LUD = new LUDecomposition();
@@ -819,10 +779,11 @@ public abstract class FemElement3d extends FemElement
          res.setZero();
          for (int k=0; k<numNodes(); k++) {
             getdNds (dNds, k, coords);
-            dxds.addOuterProduct (myNodes[k].getPosition(), dNds);
-            res.scaledAdd (getN (k, coords), myNodes[k].getPosition(), res);
+            dxds.addOuterProduct (myNodes[k].getLocalPosition(), dNds);
+            res.scaledAdd (
+               getN (k, coords), myNodes[k].getLocalPosition(), res);
          }
-         res.sub (pnt);
+         res.sub (lpnt);
          LUD.factor (dxds);
          
          double cond = LUD.conditionEstimate (dxds);
@@ -852,9 +813,10 @@ public abstract class FemElement3d extends FemElement
             coords.scaledAdd (-alpha, del, prevCoords);
             res.setZero();
             for (int k=0; k<numNodes(); k++) {
-               res.scaledAdd (getN (k, coords), myNodes[k].getPosition(), res);
+               res.scaledAdd (
+                  getN (k, coords), myNodes[k].getLocalPosition(), res);
             }
-            res.sub (pnt);
+            res.sub (lpnt);
             
             rn2 = res.normSquared();
             alpha = alpha / 2;
@@ -1609,11 +1571,8 @@ public abstract class FemElement3d extends FemElement
          throw new IllegalArgumentException (
             "Element's FemModel is an ancestor of the point");
       }
-      PointFem3dAttachment ax = new PointFem3dAttachment (pnt, this);
-      // call update attachment to compute the coordinates.
-      // the point's position will be updated, if necessary, by the
-
-      // addRemove hook when the attachment is added.
+      PointFem3dAttachment ax = new PointFem3dAttachment (pnt);
+      ax.setFromElement (pnt.getPosition(), this);
       ax.updateAttachment();
       return ax;
    }

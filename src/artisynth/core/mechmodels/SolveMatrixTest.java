@@ -47,7 +47,7 @@ public class SolveMatrixTest {
       sys.getActivePosState (q0);
       sys.updateForces (0);
       sys.getActiveForces (f0);
-      System.out.println ("f0=  " + f0.toString("%16.6f"));
+      //System.out.println ("f0=  " + f0.toString("%16.6f"));
 
       // the aux state code is necessary to handle situations involving
       // state-bearing force effectors like viscous materials
@@ -63,10 +63,10 @@ public class SolveMatrixTest {
 
          sys.updateForces (h);
          sys.getActiveForces (f);
-         System.out.println ("f["+i+"]=" + f.toString("%16.6f"));
+         //System.out.println ("f["+i+"]=" + f.toString("%16.6f"));
          f.sub (f0);
          f.scale (1/h);
-         System.out.println ("df=" + f);
+         //System.out.println ("df=" + f);
          myKnumeric.setColumn (i, f);
       }
       sys.setActivePosState (q0);
@@ -83,11 +83,11 @@ public class SolveMatrixTest {
       MatrixNd Sdense = new MatrixNd (myS);
       Sdense.getSubMatrix (0, 0, myK);
 
-      System.out.println ("K=\n" + myK.toString ("%8.3f"));
-      System.out.println ("Knumeric=\n" + myKnumeric.toString ("%8.3f"));
-      MatrixNd ERR = new MatrixNd (myK);
-      ERR.sub (myKnumeric);
-      System.out.println ("Err=\n" + ERR.toString ("%8.3f"));
+      //System.out.println ("K=\n" + myK.toString ("%8.3f"));
+      //System.out.println ("Knumeric=\n" + myKnumeric.toString ("%8.3f"));
+      //MatrixNd ERR = new MatrixNd (myK);
+      //ERR.sub (myKnumeric);
+      //System.out.println ("Err=\n" + ERR.toString ("%8.3f"));
 
       double norm = Math.max (myK.infinityNorm(), myKnumeric.infinityNorm());
       return getKerror().infinityNorm()/norm;

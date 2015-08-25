@@ -316,6 +316,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
                 !(parent instanceof MutableCompositeComponent<?>) ||
                 ComponentUtils.isAncestorSelected(c) || 
                 !(c instanceof CopyableComponent)) {
+               System.out.println ("failed here "+c);
                duplicateOK = false;
                break;
             }

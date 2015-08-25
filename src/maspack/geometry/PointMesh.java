@@ -406,14 +406,11 @@ public class PointMesh extends MeshBase {
       } 
 
       boolean reenableLighting = false;
-      int[] savedPointSize = new int[1];
-      gl.glGetIntegerv (GL2.GL_POINT_SIZE, savedPointSize, 0);
-      int[] savedLineWidth = new int[1];
-      gl.glGetIntegerv (GL2.GL_LINE_WIDTH, savedLineWidth, 0);
-      int[] savedShadeModel = new int[1];
-      gl.glGetIntegerv (GL2.GL_SHADE_MODEL, savedShadeModel, 0);
+      int savedPointSize = renderer.getPointSize();
+      int savedLineWidth = renderer.getLineWidth();
+      RenderProps.Shading savedShadeModel = renderer.getShadeModel();
 
-      gl.glPointSize( props.getPointSize());
+      renderer.setPointSize( props.getPointSize());
       
       Shading shading = props.getShading();
       boolean selected = ((flags & GLRenderer.SELECTED) != 0);
@@ -520,7 +517,7 @@ public class PointMesh extends MeshBase {
                   renderer.setColor (color[0], color[1], color[2], alpha);
                }
             }
-            gl.glLineWidth (1);
+            renderer.setLineWidth (1);
             gl.glBegin (GL2.GL_LINES);
             for (int i=0; i<myVertices.size(); i++) {
                Vertex3d vtx = myVertices.get(i);
@@ -546,9 +543,9 @@ public class PointMesh extends MeshBase {
       if (reenableLighting) {
          renderer.setLightingEnabled (true);
       }
-      gl.glPointSize (savedPointSize[0]);
-      gl.glLineWidth (savedLineWidth[0]);
-      gl.glShadeModel (savedShadeModel[0]);
+      renderer.setPointSize (savedPointSize);
+      renderer.setLineWidth (savedLineWidth);
+      renderer.setShadeModel (savedShadeModel);
 
       gl.glPopMatrix();
       

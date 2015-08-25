@@ -113,11 +113,11 @@ public class StiffnessWarper3d {
    public void computeWarping (
       FemNode3d n0, FemNode3d n1, FemNode3d n2, FemNode3d n3) {
       
-      tmp.sub (n1.getPosition(), n0.getPosition());
+      tmp.sub (n1.getLocalPosition(), n0.getLocalPosition());
       A.setColumn (0, tmp);
-      tmp.sub (n2.getPosition(), n0.getPosition());
+      tmp.sub (n2.getLocalPosition(), n0.getLocalPosition());
       A.setColumn (1, tmp);
-      tmp.sub (n3.getPosition(), n0.getPosition());
+      tmp.sub (n3.getLocalPosition(), n0.getLocalPosition());
       A.setColumn (2, tmp);
 
       A.mul (J0inv);
@@ -194,7 +194,7 @@ public class StiffnessWarper3d {
       if (warping) {
          tmp.setZero();
          for (int j=0; j<nodes.length; j++) {
-            R.mulTranspose (pos, nodes[j].getPosition());
+            R.mulTranspose (pos, nodes[j].getLocalPosition());
             K0[i][j].mulAdd (tmp, pos, tmp);
          }
          tmp.sub (f0[i]);
@@ -204,7 +204,7 @@ public class StiffnessWarper3d {
       else {
          tmp.setZero();
          for (int j=0; j<nodes.length; j++) {
-            K0[i][j].mulAdd (tmp, nodes[j].getPosition(), tmp);
+            K0[i][j].mulAdd (tmp, nodes[j].getLocalPosition(), tmp);
          }
          tmp.sub (f0[i]);
          f.add (tmp);

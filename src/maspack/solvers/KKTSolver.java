@@ -114,6 +114,7 @@ public class KKTSolver {
       Object M, int sizeM, SparseBlockMatrix GT, VectorNd Rg, int typeM) {
       int numG = (GT != null ? GT.colSize() : 0);
       int numVals = 0;
+
       myTypeM = typeM;
       if ((typeM & Matrix.SYMMETRIC) != 0) {
          myPartitionM = Partition.UpperTriangular;

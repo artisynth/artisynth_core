@@ -838,7 +838,7 @@ public abstract class NURBSCurveBase extends NURBSObject {
       if (myDrawControlShapeP) {
          // draw the control polygon
          if (props.getDrawEdges()) {
-            gl.glLineWidth (props.getEdgeWidth());
+            renderer.setLineWidth (props.getEdgeWidth());
             if (!selecting) {
                renderer.setColor (props.getEdgeOrLineColorArray());
             }
@@ -869,7 +869,7 @@ public abstract class NURBSCurveBase extends NURBSObject {
       int nsegs = (int)Math.max(10, len/res);      
 
       Point3d pnt = new Point3d();
-      gl.glLineWidth (props.getLineWidth());
+      renderer.setLineWidth (props.getLineWidth());
       gl.glBegin (GL2.GL_LINE_STRIP);
       double[] urange = new double[2];
       getRange (urange);
@@ -879,7 +879,7 @@ public abstract class NURBSCurveBase extends NURBSObject {
       }
       gl.glEnd();
 
-      gl.glLineWidth (1);
+      renderer.setLineWidth (1);
 
       renderer.setLightingEnabled (true);
 

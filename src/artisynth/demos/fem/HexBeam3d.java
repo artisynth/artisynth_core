@@ -1,12 +1,16 @@
 package artisynth.demos.fem;
 
+import java.awt.Color;
+
 import artisynth.core.femmodels.*;
 import artisynth.core.femmodels.FemModel.IncompMethod;
 import artisynth.core.materials.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.*;
+
 import artisynth.core.probes.*;
 import maspack.matrix.*;
+import maspack.render.*;
 
 import java.util.*;
 
@@ -50,6 +54,13 @@ public class HexBeam3d extends FemBeam3d {
 
       LinearMaterial lmat = new LinearMaterial (100000, 0.33);
       myFemMod.setMaterial (lmat);
+
+      // FemMarker mkr = new FemMarker(1, 0, 0);
+      // RenderProps.setSphericalPoints (mkr, 0.05, Color.RED);
+      // mkr.setFromFem (myFemMod);
+      // myMechMod.addPoint (mkr);
+      //myFemMod.addMarker (mkr);
+      
       
       //myFemMod.setMaterial (
       //   new MooneyRivlinMaterial (50000.0, 0, 0, 0, 0, 5000000.0));

@@ -51,14 +51,14 @@ public class Jack3d extends Dragger3dBase {
       GLViewer.mulTransform (gl, myXDraggerToWorld);
 
       renderer.setLightingEnabled (false);
-      gl.glLineWidth (myLineWidth);
+      renderer.setLineWidth (myLineWidth);
 
       gl.glColor3d (1f, 1f, 0f);
-      gl.glPointSize (3);
+      renderer.setPointSize (3);
       gl.glBegin (GL2.GL_POINTS);
       gl.glVertex3d (myPnt0.x, myPnt0.y, myPnt0.z);
       gl.glEnd();
-      gl.glPointSize (1);
+      renderer.setPointSize (1);
 
       gl.glColor3d (0, 0, 1f);
 
@@ -110,7 +110,7 @@ public class Jack3d extends Dragger3dBase {
       }
       gl.glEnd();
 
-      gl.glLineWidth (1);
+      renderer.setLineWidth (1);
       renderer.setLightingEnabled (true);
       gl.glPopMatrix();
    }

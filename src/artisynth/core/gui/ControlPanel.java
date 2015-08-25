@@ -729,7 +729,12 @@ public class ControlPanel extends ModelComponentBase
          return true;
       }
       RootModel myroot = RootModel.getRoot (this);
-      if (RootModel.getRoot(comp) != myroot) {
+      // John Lloyd Aug 12 2015
+      // myroot might be null if this method is called while this panel is
+      // being scanned - which can happen because components are added to
+      // ComponentLists before their parent is set. So if myroot is null,
+      // we don't bother with the stale check
+      if (myroot != null && RootModel.getRoot(comp) != myroot) {
          System.out.println ("not in root");
          return true;
       }

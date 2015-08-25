@@ -276,13 +276,13 @@ public abstract class FemElement extends RenderableComponentBase
       if (rprops.getLineWidth() > 0) {
          switch (rprops.getLineStyle()) {
             case LINE: {
-               GL2 gl = renderer.getGL2();
+               //GL2 gl = renderer.getGL2();
                renderer.setLightingEnabled (false);
-               gl.glLineWidth (rprops.getLineWidth());
+               renderer.setLineWidth (rprops.getLineWidth());
                renderer.setColor (
                   rprops.getLineColorArray(), isSelected());
                renderEdges (renderer, rprops);
-               gl.glLineWidth (1);
+               renderer.setLineWidth (1);
                renderer.setLightingEnabled (true);
                break;
             }
@@ -362,7 +362,8 @@ public abstract class FemElement extends RenderableComponentBase
       return myInvertedP;
    }
 
-   public void getMarkerCoordinates (VectorNd coords, Point3d pnt) {
+   public boolean getMarkerCoordinates (VectorNd coords, Point3d pnt) {
+      return false;
    }
 
    /** 

@@ -239,7 +239,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       updateForceComponentList();
       for (int i=0; i<myConstrainers.size(); i++) {
          myConstrainers.get(i).getBilateralSizes (sizes);
-      }      
+      }
    }
 
    public int getBilateralConstraints (SparseBlockMatrix GT, VectorNd dg) {
@@ -1173,6 +1173,8 @@ public abstract class MechSystemBase extends RenderableModelBase
    }
 
    public void initialize (double t) {
+      updatePosState();
+      updateVelState();
       collectInitialForces();
       recursivelyInitialize (t, 0);
    }
@@ -1372,6 +1374,8 @@ public abstract class MechSystemBase extends RenderableModelBase
             isConstant &= c.isMassConstant();
          }
       }
+      addGeneralMassBlocks (M);
+      // XXX add attachment solve blocks
       return isConstant;
    }
 
@@ -1390,19 +1394,18 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
       if (f != null) {
          f.setSize (mySystemSize);
-      }
-      int idx = 0;
-      int bi;
+      }           
       for (int i=0; i<myDynamicComponents.size(); i++) {
-         DynamicComponent c = myDynamicComponents.get(i);
-         if ((bi = c.getSolveIndex()) != -1) {
-            c.getMass (M.getBlock (bi, bi), t);
-            idx = c.getMassForces (f, t, idx);
-         }
-      }
+         myDynamicComponents.get(i).resetEffectiveMass();
+      }      
       for (DynamicAttachment a : getOrderedAttachments()) {
-         a.reduceMass (M, f);
+         a.addMassToMasters ();
       }
+      getMassMatrixValues (M, f, t);
+      // TODO - need to fix this for non-block diagonal mass matrices:
+      // for (DynamicAttachment a : getOrderedAttachments()) {
+      //    a.reduceMass (M, f);
+      // } 
    }
 
    public void getInverseMassMatrix (
@@ -1440,6 +1443,7 @@ public abstract class MechSystemBase extends RenderableModelBase
             c.addSolveBlock (S);
          }
       }      
+      addGeneralMassBlocks (S);
       addGeneralSolveBlocks (S);
       addAttachmentSolveBlocks (S);
    }
@@ -1699,8 +1703,15 @@ public abstract class MechSystemBase extends RenderableModelBase
          setForces (myInitialForces);
       }
       else {
+         // we zero forces, then apply external forces. This is done
+         // in two passes since applying external forces to component A
+         // may cause forces to be applied to other components to which
+         // A is implicitly attached (such as frames associated with points).
          for (int i=0; i<myDynamicComponents.size(); i++) {
-            myDynamicComponents.get(i).setForcesToExternal();
+            myDynamicComponents.get(i).zeroForces();
+         }
+         for (int i=0; i<myDynamicComponents.size(); i++) {
+            myDynamicComponents.get(i).applyExternalForces();
          }
       }
       for (int i=0; i<myForceEffectors.size(); i++) {
@@ -1744,6 +1755,10 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
       addAttachmentJacobian(S, f);
    }    
+
+   public void addGeneralMassBlocks (SparseBlockMatrix M) {
+      // do nothing if mass matrix is block diagonal
+   }
 
    public void addGeneralSolveBlocks (SparseNumberedBlockMatrix M) {
       updateForceComponentList();

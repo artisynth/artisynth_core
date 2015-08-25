@@ -398,10 +398,10 @@ public class RigidBodySolver {
          FrictionInfo info = finfo[myDTMap[bk]];
          double phiMax;
          if ((info.flags & FrictionInfo.BILATERAL) != 0) {
-            phiMax = info.mu*lam.get(info.contactIdx);
+            phiMax = info.getMaxFriction (lam);
          }
          else {
-            phiMax = info.mu*the.get(info.contactIdx);
+            phiMax = info.getMaxFriction (the);
          }         
          //System.out.println ("fm"+bk+" "+phiMax);
          for (int i=0; i<myDT.getBlockColSize(bk); i++) {

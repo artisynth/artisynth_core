@@ -193,7 +193,8 @@ public class ContactConstraint {
       Vector3d dir = new Vector3d();
       if (myMasters.size() > 0 && computeFrictionDir(dir) > 0) {
          finfo[numf].mu = mu;
-         finfo[numf].contactIdx = mySolveIndex;
+         finfo[numf].contactIdx0 = mySolveIndex;
+         finfo[numf].contactIdx1 = -1;
          finfo[numf].flags = FrictionInfo.BILATERAL;
          for (int i=0; i<myMasters.size(); i++) {
             ContactMaster cm = myMasters.get(i);
@@ -220,7 +221,8 @@ public class ContactConstraint {
          Vector3d dir2 = new Vector3d();
          computeFrictionDirs (dir1, dir2);
          finfo[numf].mu = mu;
-         finfo[numf].contactIdx = mySolveIndex;
+         finfo[numf].contactIdx0 = mySolveIndex;
+         finfo[numf].contactIdx1 = -1;
          finfo[numf].flags = 0;
          for (int i=0; i<myMasters.size(); i++) {
             ContactMaster cm = myMasters.get(i);

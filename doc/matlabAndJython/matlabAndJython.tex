@@ -871,6 +871,16 @@ be {\tt .py} file that begins with the special first line
 %
 where {\tt scriptName} is the desired name for the script.
 
+\begin{sideblock}
+The {\tt ARTISYNTH\_PATH} environment variable provides a list of
+directories, separated by semi-colons ';' (on Windows) or colons ':'
+(MacOS, Linux) that ArtiSynth uses to search for certain files.  For
+ArtiSynth to locate script files, {\tt ARTISYNTH\_PATH} must be set
+and must include the directories in which the script files reside.
+Directions for setting {\tt ARTISYNTH\_PATH} are given in the
+"Environment variables" section of the {\it Installation Guide}.
+\end{sideblock}
+
 \subsection{Running scripts in batch mode}
 \label{JythonBatchScripting:sec}
 

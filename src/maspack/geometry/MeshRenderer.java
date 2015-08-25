@@ -261,14 +261,15 @@ public class MeshRenderer {
    }
 
    private void drawFacesRaw (
-      GL2 gl, PolygonalMesh mesh, TextureProps textureProps, int flags) {
+      GLRenderer renderer, PolygonalMesh mesh, 
+      TextureProps textureProps, int flags) {
       // need to use begin/end polygon
       Vector3d nrm;
       Vector3d[] nrms = null;
       Vector3d vtxNrm = new Vector3d();
-      int[] shadingModel = new int[1];
+      RenderProps.Shading savedShadeModel = renderer.getShadeModel();
 
-      gl.glGetIntegerv (GL2.GL_SHADE_MODEL, shadingModel, 0);
+      GL2 gl = renderer.getGL2();
 
       boolean computeVertexNormals = (flags & COMPUTE_VERTEX_NORMALS) != 0;
       boolean useRenderNormals = mesh.isRenderBuffered() && !mesh.isFixed();
@@ -282,7 +283,7 @@ public class MeshRenderer {
          (textureProps != null && textureProps.isEnabled() &&
           !textureProps.isAutomatic() && mesh.myTextureIndices != null);
       // merge quad triangles if we are using smooth shading
-      boolean mergeQuadTriangles = (shadingModel[0] == GL2.GL_SMOOTH);
+      boolean mergeQuadTriangles = (savedShadeModel != Shading.FLAT);
 
       if ((flags & IS_SELECTING) != 0) {
          // don't set color while selecting
@@ -399,11 +400,13 @@ public class MeshRenderer {
       }
    }
 
-   private void drawEdges(GL2 gl, RenderProps props, 
+   private void drawEdges (GLRenderer renderer, RenderProps props, 
       PolygonalMesh mesh, int flags) {
       
       boolean useDisplayList = false;
       int displayList = 0;
+      
+      GL2 gl = renderer.getGL2();
 
       boolean selecting = (flags & IS_SELECTING) != 0;
       boolean useVertexColors = (flags & GLRenderer.VERTEX_COLORING) != 0;
@@ -431,7 +434,7 @@ public class MeshRenderer {
             }
          }
          
-         drawEdgesRaw (gl, mesh, flags);
+         drawEdgesRaw (renderer, mesh, flags);
          
          if (useDisplayList && displayList > 0) {
             gl.glEndList();
@@ -444,12 +447,11 @@ public class MeshRenderer {
    }
    
    private void drawEdgesRaw (
-      GL2 gl, PolygonalMesh mesh, int flags) {
+      GLRenderer renderer, PolygonalMesh mesh, int flags) {
       
+      GL2 gl = renderer.getGL2();
       // need to use begin/end polygon
-      int[] shadingModel = new int[1];
-
-      gl.glGetIntegerv (GL2.GL_SHADE_MODEL, shadingModel, 0);
+      RenderProps.Shading savedShadeModel = renderer.getShadeModel();
 
       boolean useRenderNormals = mesh.isRenderBuffered() && !mesh.isFixed();
       boolean useVertexColors = (flags & GLRenderer.VERTEX_COLORING) != 0;
@@ -488,9 +490,11 @@ public class MeshRenderer {
    }
 
    private void drawFaces (
-      GL2 gl, PolygonalMesh mesh, RenderProps props, int flags) {
+      GLRenderer renderer, PolygonalMesh mesh, RenderProps props, int flags) {
       boolean useDisplayList = false;
       int displayList = 0;
+      
+      GL2 gl = renderer.getGL2();
 
       boolean drawEdges = (flags & DRAW_EDGES) != 0;
       boolean selecting = (flags & IS_SELECTING) != 0;
@@ -566,7 +570,7 @@ public class MeshRenderer {
             default:
                break;
          }
-         drawFacesRaw (gl, mesh, textureProps, flags);
+         drawFacesRaw (renderer, mesh, textureProps, flags);
 
          if (savedCullFaceEnabled[0] != 0) {
             gl.glEnable (GL2.GL_CULL_FACE);
@@ -622,12 +626,10 @@ public class MeshRenderer {
       }
 
       boolean reenableLighting = false;
-      int[] savedLineWidth = new int[1];
-      gl.glGetIntegerv (GL2.GL_LINE_WIDTH, savedLineWidth, 0);
-      int[] savedShadeModel = new int[1];
-      gl.glGetIntegerv (GL2.GL_SHADE_MODEL, savedShadeModel, 0);
+      int savedLineWidth = renderer.getLineWidth();
+      RenderProps.Shading savedShadeModel = renderer.getShadeModel();
 
-      gl.glLineWidth (props.getEdgeWidth());
+      renderer.setLineWidth (props.getEdgeWidth());
 
       if (!renderer.isSelecting()) {
          reenableLighting = renderer.isLightingEnabled();
@@ -648,12 +650,12 @@ public class MeshRenderer {
       if ((flags & GLRenderer.VERTEX_COLORING) != 0 &&
           !renderer.isSelecting()) {
          // smooth shading is needed to get line colors to interpolate
-         gl.glShadeModel (GL2.GL_SMOOTH);
+         renderer.setShadeModel (RenderProps.Shading.GOURARD);
       } else {
-         gl.glShadeModel (GL2.GL_FLAT);
+         renderer.setShadeModel (RenderProps.Shading.FLAT);
       }
          
-      drawEdges (gl, props, mesh, flags);
+      drawEdges (renderer, props, mesh, flags);
       //gl.glPolygonMode (GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
       //drawFaces (gl, mesh, props, flags | GLRenderer.DRAW_EDGES);
       //gl.glPolygonMode (GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
@@ -661,8 +663,8 @@ public class MeshRenderer {
       if (reenableLighting) {
          renderer.setLightingEnabled (true);
       }
-      gl.glLineWidth (savedLineWidth[0]);
-      gl.glShadeModel (savedShadeModel[0]);
+      renderer.setLineWidth (savedLineWidth);
+      renderer.setShadeModel (savedShadeModel);
 
       gl.glPopMatrix();
       
@@ -750,12 +752,10 @@ public class MeshRenderer {
 
       if (props.getDrawEdges()) {
          boolean reenableLighting = false;
-         int[] savedLineWidth = new int[1];
-         gl.glGetIntegerv (GL2.GL_LINE_WIDTH, savedLineWidth, 0);
-         int[] savedShadeModel = new int[1];
-         gl.glGetIntegerv (GL2.GL_SHADE_MODEL, savedShadeModel, 0);
+         int savedLineWidth = renderer.getLineWidth();
+         RenderProps.Shading savedShadeModel = renderer.getShadeModel();
 
-         gl.glLineWidth (props.getEdgeWidth());
+         renderer.setLineWidth (props.getEdgeWidth());
 
          if (!renderer.isSelecting()) {
             reenableLighting = renderer.isLightingEnabled();
@@ -777,13 +777,13 @@ public class MeshRenderer {
          if ((flags & GLRenderer.VERTEX_COLORING) != 0 &&
              !renderer.isSelecting()) {
             // smooth shading is needed to get line colors to interpolate
-            gl.glShadeModel (GL2.GL_SMOOTH);
+            renderer.setShadeModel (RenderProps.Shading.GOURARD);
          }
          else {
-            gl.glShadeModel (GL2.GL_FLAT);
+            renderer.setShadeModel (RenderProps.Shading.FLAT);
          }
               
-         drawEdges(gl, props, mesh, flags);
+         drawEdges (renderer, props, mesh, flags);
          //gl.glPolygonMode (GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
          //drawFaces (gl, mesh, props, flags | GLRenderer.DRAW_EDGES);
          //gl.glPolygonMode (GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
@@ -791,13 +791,12 @@ public class MeshRenderer {
          if (reenableLighting) {
             renderer.setLightingEnabled (true);
          }
-         gl.glLineWidth (savedLineWidth[0]);
-         gl.glShadeModel (savedShadeModel[0]);
+         renderer.setLineWidth (savedLineWidth);
+         renderer.setShadeModel (savedShadeModel);
       }
 
       if (props.getFaceStyle() != RenderProps.Faces.NONE) {
-         int[] savedShadeModel = new int[1];
-         gl.glGetIntegerv (GL2.GL_SHADE_MODEL, savedShadeModel, 0);
+         RenderProps.Shading savedShadeModel = renderer.getShadeModel();
 
          if (shading == Shading.NONE) {
             renderer.setLightingEnabled (false);
@@ -807,13 +806,13 @@ public class MeshRenderer {
          else if (((shading != Shading.FLAT) ||
                    (flags & GLRenderer.VERTEX_COLORING) != 0) &&
                   !renderer.isSelecting()) {
-            gl.glShadeModel (GL2.GL_SMOOTH);
+            renderer.setShadeModel (RenderProps.Shading.GOURARD);
             if ((flags & GLRenderer.VERTEX_COLORING) == 0){
                flags |= COMPUTE_VERTEX_NORMALS;
             }
          }
          else { // shading == Shading.FLAT
-            gl.glShadeModel (GL2.GL_FLAT);
+            renderer.setShadeModel (RenderProps.Shading.FLAT);
          }
 
          if (props.getDrawEdges()) {
@@ -823,7 +822,7 @@ public class MeshRenderer {
          if ((flags & GLRenderer.VERTEX_COLORING) != 0) {
             renderer.setLightingEnabled (false);
          }
-         drawFaces (gl, mesh, props, flags);
+         drawFaces (renderer, mesh, props, flags);
          if ((flags & GLRenderer.VERTEX_COLORING) != 0) {
             renderer.setLightingEnabled (true);
          }
@@ -833,7 +832,7 @@ public class MeshRenderer {
          if (shading == Shading.NONE) {
             renderer.setLightingEnabled (true);
          }
-         gl.glShadeModel (savedShadeModel[0]);
+         renderer.setShadeModel (savedShadeModel);
       }
 
       if (!renderer.isSelecting()) {

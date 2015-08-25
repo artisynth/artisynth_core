@@ -307,6 +307,15 @@ run()
 waitForStop()
 reset()
 
+loadModel ("artisynth.demos.mech.AttachedBeamBody")
+mech = setModelOpts (1, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+pw.println ("#AttachedBeamBody ConstrainedBackwardEuler");
+run()
+waitForStop()
+reset()
+
 loadModel ("artisynth.demos.mech.BlockTest")
 mech = setModelOpts (2, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
@@ -365,6 +374,34 @@ waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 pw.println ("#RigidBodyCollision ConstrainedBackwardEuler");
+run()
+waitForStop()
+reset()
+
+loadModel ("artisynth.demos.fem.FemSkinDemo")
+mech = setModelOpts (0.5, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+pw.println ("#FemSkinDemo ConstrainedBackwardEuler");
+run()
+waitForStop()
+reset()
+
+loadModel ("artisynth.models.collision.SkinCollisionTest")
+mech = setModelOpts (2.0, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+pw.println ("#SkinCollisionTest ConstrainedBackwardEuler");
+run()
+waitForStop()
+reset()
+
+loadModel ("artisynth.demos.mech.SkinDemo")
+mech = setModelOpts (2.5, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+pw.println ("#SkinDemo ConstrainedBackwardEuler");
+root().getInputProbes().get(0).setActive(True)
 run()
 waitForStop()
 reset()
@@ -446,6 +483,7 @@ reset()
 
 loadModel ("artisynth.demos.inverse.PointModel3d")
 mech = setModelOpts (1, dataFileName)
+mech.setMaxStepSize (0.05)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.Trapezoidal)
 pw.println ("#PointInv3d Trapezoidal");
@@ -463,5 +501,6 @@ waitForStop()
 reset()
 
 #main.maskFocusStealing (False)
+quit()
 
 

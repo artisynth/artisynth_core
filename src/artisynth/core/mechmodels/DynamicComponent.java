@@ -157,7 +157,7 @@ public interface DynamicComponent extends ModelComponent, ForceEffector {
     * where forces should be stored
     * @return updated value for <code>idx</code>
     */
-   public int getMassForces (VectorNd f, double t, int idx);
+   public int getEffectiveMassForces (VectorNd f, double t, int idx);
 
    /** 
     * Inverts a mass for this component.
@@ -167,7 +167,22 @@ public interface DynamicComponent extends ModelComponent, ForceEffector {
     */
    public void getInverseMass (Matrix Minv, Matrix M);
 
-   // public void getEffectiveMass (Matrix M);
+   /**
+    * Resets the effective mass of this component to the nominal mass.
+    */
+   public void resetEffectiveMass();
+
+   /** 
+    * Gets the effective mass of this component at a particular time.  The
+    * effective mass is the nominal mass plus any additional mass incurred from
+    * attached components.
+    * 
+    * @param M matrix to return the mass in
+    * @param t current time
+    */
+   public void getEffectiveMass (Matrix M, double t);
+
+   public int mulInverseEffectiveMass (Matrix M, double[] a, double[] f, int idx);
 
    //public void invertMass (MatrixBlock Minv, MatrixBlock M);
 
@@ -220,7 +235,7 @@ public interface DynamicComponent extends ModelComponent, ForceEffector {
 
    public void zeroExternalForces();
 
-   public void setForcesToExternal();
+   //public void setForcesToExternal();
    
    public void applyExternalForces();
    

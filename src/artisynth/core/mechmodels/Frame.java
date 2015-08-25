@@ -22,11 +22,12 @@ import java.util.*;
 public class Frame extends DynamicComponentBase
    implements TransformableGeometry, ScalableUnits, DynamicComponent,
               Traceable, MotionTargetComponent, CopyableComponent,
-              HasCoordinateFrame, CollidableDynamicComponent, PointAttachable {
+              HasCoordinateFrame, CollidableDynamicComponent,
+              PointAttachable, FrameAttachable {
 
    public static boolean dynamicVelInWorldCoords = true;
 
-   FrameState myState = new FrameState();
+   protected FrameState myState = new FrameState();
    protected FrameTarget myTarget = null;
    protected TargetActivity myTargetActivity = TargetActivity.Auto;
    protected Quaternion myQvel = new Quaternion();
@@ -163,6 +164,7 @@ public class Frame extends DynamicComponentBase
 
    public void setVelocity (Twist v) {
       myState.setVelocity (v);
+      updateVelState();
    }
 
    public void setVelocity (
@@ -172,12 +174,14 @@ public class Frame extends DynamicComponentBase
 
    public void setPose (RigidTransform3d XFrameToWorld) {
       myState.setPose (XFrameToWorld);
+      updatePosState();
    }
    
-   public void transformPose(RigidTransform3d trans) {
-      RigidTransform3d pose = myState.getPose();
-      pose.mul(trans, pose);
-      setPose(pose);
+   public void transformPose (RigidTransform3d T) {
+      RigidTransform3d TFW = new RigidTransform3d();
+      TFW.mul (T, myState.getPose());
+      myState.setPose (TFW);
+      updatePosState();
    }
 
    public RigidTransform3d getPose() {
@@ -194,6 +198,7 @@ public class Frame extends DynamicComponentBase
 
    public void setPosition (Point3d pos) {
       myState.setPosition (pos);
+      updatePosState();
    }
 
    public AxisAngle getOrientation() {
@@ -216,11 +221,12 @@ public class Frame extends DynamicComponentBase
 
    public void setRotation (Quaternion q) {
       myState.setRotation (q);
+      updatePosState();
    }
 
-   public void updatePose() {
-      myState.updatePose();
-   }
+//   public void updatePose() {
+//      myState.updatePose();
+//   }
 
    /**
     * {@inheritDoc}
@@ -294,14 +300,25 @@ public class Frame extends DynamicComponentBase
    /**
     * Computes the force Jacobian, in world coordinates, for a point attached
     * to this frame. If the velocity state size (vsize) of this frame is 6,
-    * then G should be an instance of Matrix6x3Block. Otherwise, it should be
+    * then GT should be an instance of Matrix6x3Block. Otherwise, it should be
     * an instance of MatrixNdBlock with a size of vsize x 3.
+    * 
+    * For the Matrix6x3Block case, the Jacobian is a 6x3 matrix with 
+    * the following form:
+    * <pre>
+    * [     I     ]
+    * [           ]
+    * [ [ R loc ] ]
+    * </pre>
+    * where I is the 3x3 identity matrix, R is the frame orientation matrix,
+    * and [ x ] denotes the 3x3 skew-symmetric cross product matrix.
     *
     * @param GT returns the force Jacobian
     * @param loc
     * position of the point, in body coordinates
     */
-    public void computePointForceJacobian (MatrixBlock GT, Point3d loc) {
+    public void computeWorldPointForceJacobian (MatrixBlock GT, Point3d loc) {
+       
        Matrix6x3Block blk;
        try {
           blk = (Matrix6x3Block)GT;
@@ -309,7 +326,7 @@ public class Frame extends DynamicComponentBase
        catch (ClassCastException e) {
           throw new IllegalArgumentException (
              "GT is not an instance of Matrix6x3Block, is "+GT.getClass());
-       }
+       }       
        RotationMatrix3d R = getPose().R;
        blk.setZero();
        blk.m00 = 1;
@@ -332,7 +349,99 @@ public class Frame extends DynamicComponentBase
        blk.m32 =  lyw;
        blk.m42 = -lxw;
     }
-  
+
+    /**
+     * Computes a force Jacobian for a point attached to this frame, and then
+     * optionally rotates its columns using a rotation matrix R. If the
+     * velocity state size (vsize) of this frame is 6, then G should be an
+     * instance of Matrix6x3Block. Otherwise, it should be an instance of
+     * MatrixNdBlock with a size of vsize x 3.
+     * 
+     * If the rotation matrix R is <code>null</code>, then the Jacobian
+     * takes the following form for the 6x3 matrix case:
+     * <pre>
+     * [     I       ]
+     * [             ]
+     * [ [ RF loc ]  ]
+     * </pre>
+     * where RF is the frame orientation matrix, loc is the location of the
+     * point in frame coordinates, and [ x ] denotes the 3x3 skew-symmetric
+     * cross product matrix.
+     *
+     * If the rotation matrix R is not <code>null</code>, then the
+     * 6x3 case takes the following form:
+     * <pre>
+     * [     R         ]
+     * [               ]
+     * [ [ RF loc ]  R ]
+     * </pre>
+     *
+     * @param GT returns the force Jacobian
+     * @param loc location of the point, relative to the frame
+     * @param R optional rotation transform
+     */
+     public void computeLocalPointForceJacobian (
+        MatrixBlock GT, Vector3d loc, RotationMatrix3d R) {
+        
+        Matrix6x3Block blk;
+        try {
+           blk = (Matrix6x3Block)GT;
+        }
+        catch (ClassCastException e) {
+           throw new IllegalArgumentException (
+              "GT is not an instance of Matrix6x3Block, is "+GT.getClass());
+        }       
+
+        Vector3d locw = new Vector3d();
+        locw.transform (getPose().R, loc);
+        double x = locw.x;
+        double y = locw.y;
+        double z = locw.z;
+
+        if (R == null) {
+           blk.m00 = 1;
+           blk.m01 = 0;
+           blk.m02 = 0;
+           blk.m10 = 0;
+           blk.m11 = 1;
+           blk.m12 = 0;
+           blk.m20 = 0;
+           blk.m21 = 0;
+           blk.m22 = 1;
+
+           blk.m30 = 0;
+           blk.m31 = -z;
+           blk.m32 = y;
+           blk.m40 = z;
+           blk.m41 = 0;
+           blk.m42 = -x;           
+           blk.m50 = -y;
+           blk.m51 = x;
+           blk.m52 = 0;
+        }
+        else {
+           blk.m00 = R.m00;
+           blk.m01 = R.m01;
+           blk.m02 = R.m02;
+           blk.m10 = R.m10;
+           blk.m11 = R.m11;
+           blk.m12 = R.m12;
+           blk.m20 = R.m20;
+           blk.m21 = R.m21;
+           blk.m22 = R.m22;
+
+           blk.m30 = y*R.m20 - z*R.m10;
+           blk.m31 = y*R.m21 - z*R.m11;
+           blk.m32 = y*R.m22 - z*R.m12;
+           blk.m40 = z*R.m00 - x*R.m20;
+           blk.m41 = z*R.m01 - x*R.m21;
+           blk.m42 = z*R.m02 - x*R.m22;
+           blk.m50 = x*R.m10 - y*R.m00;
+           blk.m51 = x*R.m11 - y*R.m01;
+           blk.m52 = x*R.m12 - y*R.m02;
+        }
+     }
+
    /**
     * Computes the velocity, in world coordinates, of a point attached to this
     * frame.
@@ -351,6 +460,27 @@ public class Frame extends DynamicComponentBase
    }
 
    /**
+    * Computes the velocity, in world coordinates, of a point attached to this
+    * frame.
+    * 
+    * @param vel
+    * returns the point velocity
+    * @param loc
+    * position of the point, in body coordinates
+    * @param pvel
+    * independent velocity for the point, in body coordinates
+    */
+   public void computePointVelocity (Vector3d vel, Point3d loc, Vector3d pvel) {
+      // use vel to store loc transformed into world coords
+      Twist frameVel = myState.getVelocity();
+      vel.transform (myState.XFrameToWorld.R, loc);
+      vel.crossAdd (frameVel.w, vel, frameVel.v);
+      Vector3d tmp = new Vector3d();
+      tmp.transform (myState.XFrameToWorld.R, pvel);
+      vel.add (tmp);
+   }
+
+   /**
     * Computes the velocity derivative of a point attached to this frame
     * that is due to the current velocity of the frame.
     * 
@@ -359,12 +489,27 @@ public class Frame extends DynamicComponentBase
     * @param loc
     * position of the point, in body coordinates
     */
-   public void computePointCoriolis (Vector3d cor, Point3d loc) {
+   public void computePointCoriolis (Vector3d cor, Vector3d loc) {
       Twist tw = getVelocity();
 
       cor.transform (getPose().R, loc);
       cor.cross (tw.w, cor);
       cor.cross (tw.w, cor);      
+   }
+
+   /**
+    * Subtracts from <code>wr</code> the wrench arising from applying a force
+    * <code>f</code> on a point <code>loc</code>.
+    *
+    * @param wr wrench from which force is subtracted (world coordinates
+    * @param loc location of the point (body coordinates)
+    * @param f force acting on the point (world coordinates)
+    */
+   public void subPointForce (Wrench wr, Point3d loc, Vector3d f) {
+      // transform position to world coordinates
+      myTmpPos.transform (myState.XFrameToWorld.R, loc);
+      wr.f.sub (f);
+      wr.m.crossAdd (f, myTmpPos, wr.m);
    }
 
    /**
@@ -391,6 +536,17 @@ public class Frame extends DynamicComponentBase
     */
    public void addPointForce (Point3d loc, Vector3d f) {
       addPointForce (myForce, loc, f);
+   }
+   
+   /**
+    * Subtracts from this body's forces the wrench arising from applying a force
+    * <code>f</code> on a point <code>loc</code>.
+    *
+    * @param loc location of the point (body coordinates)
+    * @param f force applied to the point (world coordinates)
+    */
+   public void subPointForce (Point3d loc, Vector3d f) {
+      subPointForce (myForce, loc, f);
    }
 
 //   /**
@@ -642,20 +798,30 @@ public class Frame extends DynamicComponentBase
    }
 
    public static void drawAxes (
-      GLRenderer renderer, RigidTransform3d XFrameToWorld, float len) {
+      GLRenderer renderer, RigidTransform3d XFrameToWorld, 
+      float len, boolean selected) {
       
       GL2 gl = renderer.getGL2().getGL2();
       gl.glPushMatrix();
       renderer.setLightingEnabled (false);
       GLViewer.mulTransform (gl, XFrameToWorld);
+      if (selected) {
+         renderer.setColor (renderer.getSelectionColor());
+      }
       gl.glBegin (GL2.GL_LINES);
-      renderer.setColor (1f, 0f, 0f);
+      if (!selected) {
+         renderer.setColor (1f, 0f, 0f);
+      }
       gl.glVertex3f (0f, 0f, 0f);
       gl.glVertex3f (len, 0f, 0f);
-      renderer.setColor (0f, 1f, 0f);
+      if (!selected) {
+         renderer.setColor (0f, 1f, 0f);
+      }
       gl.glVertex3f (0f, 0f, 0f);
       gl.glVertex3f (0f, len, 0f);
-      renderer.setColor (0f, 0f, 1f);
+      if (!selected) {
+         renderer.setColor (0f, 0f, 1f);
+      }
       gl.glVertex3f (0f, 0f, 0f);
       gl.glVertex3f (0f, 0f, len);
       gl.glEnd();
@@ -665,10 +831,9 @@ public class Frame extends DynamicComponentBase
 
    public void render (GLRenderer renderer, int flags) {
       if (myAxisLength > 0) {
-         GL2 gl = renderer.getGL2().getGL2();
-         gl.glLineWidth (myRenderProps.getLineWidth());
-         drawAxes (renderer, myRenderFrame, (float)myAxisLength);
-         gl.glLineWidth (1);
+         renderer.setLineWidth (myRenderProps.getLineWidth());
+         drawAxes (renderer, myRenderFrame, (float)myAxisLength, isSelected());
+         renderer.setLineWidth (1);
       }
    }
 
@@ -688,9 +853,11 @@ public class Frame extends DynamicComponentBase
       Xpose.set (myState.XFrameToWorld);
       Xpose.mulAffineLeft (X, Xlocal.A);
 
-      System.out.println ("Xpose=\n" + Xpose);
-
       myState.setPose (Xpose);
+      updatePosState();
+      if (topObject == this && getAttachment() != null) {
+         getAttachment().updateAttachment();
+      }
    }
 
    public void scaleDistance (double s) {
@@ -710,9 +877,9 @@ public class Frame extends DynamicComponentBase
       myForce.setZero();
    }
 
-   public void setForcesToExternal() {
-      myForce.set (myExternalForce);
-   }
+   // public void setForcesToExternal() {
+   //    myForce.set (myExternalForce);
+   // }
 
    public void applyExternalForces() {
       myForce.add (myExternalForce);
@@ -777,7 +944,35 @@ public class Frame extends DynamicComponentBase
       doGetInertia (M, SpatialInertia.ZERO);
    }
 
-   public int getMassForces (VectorNd f, double t, int idx) {
+   public void getEffectiveMass (Matrix M, double t) {
+      doGetInertia (M, SpatialInertia.ZERO);
+   }
+
+   public int mulInverseEffectiveMass (
+      Matrix M, double[] a, double[] f, int idx) {
+      a[idx++] = 0;
+      a[idx++] = 0;
+      a[idx++] = 0;
+      a[idx++] = 0;
+      a[idx++] = 0;
+      a[idx++] = 0;
+      return idx;
+   }
+
+   public void resetEffectiveMass() {
+   }
+
+   /**
+    * Adds a point mass to the effective spatial inertia for this Frame.
+    *
+    * @param m mass of the point
+    * @param loc location of the point (in local frame coordinates)
+    */
+   public void addEffectivePointMass (double m, Vector3d loc) {
+      // subclasses must override if necessary; Frame itself has no inertia
+   }
+
+   public int getEffectiveMassForces (VectorNd f, double t, int idx) {
       double[] buf = f.getBuffer();
       buf[idx++] = 0;
       buf[idx++] = 0;
@@ -812,6 +1007,8 @@ public class Frame extends DynamicComponentBase
                                         
    public void setState (Frame frame) {
       myState.set (frame.myState);
+      updatePosState();
+      updateVelState();
    }
 
 //   public int setState (VectorNd x, int idx) {
@@ -842,6 +1039,7 @@ public class Frame extends DynamicComponentBase
 
    public int setPosState (double[] buf, int idx) {
       idx = myState.setPos (buf, idx);
+      updatePosState();
       return idx;
    }
 
@@ -923,6 +1121,7 @@ public class Frame extends DynamicComponentBase
       else {
          idx = myState.setBodyVel (buf, idx);
       }
+      updateVelState();
       return idx;
    }
 
@@ -946,7 +1145,7 @@ public class Frame extends DynamicComponentBase
       return idx;
    }
  
-   public ModelComponent copy (
+   public Frame copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       Frame comp = (Frame)super.copy (flags, copyMap);
       comp.myState = new FrameState();
@@ -963,6 +1162,7 @@ public class Frame extends DynamicComponentBase
 
    public void setBodyVelocity (Twist v) {
       myState.setBodyVelocity (v);
+      updateVelState();
    }
 
    public void getBodyVelocity (Twist v) {
@@ -990,6 +1190,26 @@ public class Frame extends DynamicComponentBase
             "attachment contains loop");
       }
       return pfa;
+   }
+
+   public FrameFrameAttachment createFrameAttachment (
+      Frame frame, RigidTransform3d TFW) {
+      if (frame == null && TFW == null) {
+         throw new IllegalArgumentException (
+            "frame and TFW cannot both be null");
+      }
+      if (frame != null && frame.isAttached()) {
+         throw new IllegalArgumentException ("frame is already attached");
+      }
+      FrameFrameAttachment ffa = new FrameFrameAttachment (frame);
+      ffa.set (this, TFW);
+      if (frame != null) {
+         if (DynamicAttachment.containsLoop (ffa, frame, null)) {
+            throw new IllegalArgumentException (
+               "attachment contains loop");
+         }
+      }
+      return ffa;
    }
 
    public int getVelStateSize() {
@@ -1059,6 +1279,23 @@ public class Frame extends DynamicComponentBase
       vel.z += w*(v.z - lx*o.y + ly*o.x);
    }
 
+   /**
+    * Called whenever the position state is changed. Subclasses
+    * can use this as a hook to update anything that depends
+    * on the position state.
+    */
+   protected void updatePosState() {
+      
+   }
+   
+   /**
+    * Called whenever the velocity state is changed. Subclasses
+    * can use this as a hook to update anything that depends
+    * on the velocity state.
+    */
+   protected void updateVelState() {
+      
+   }
 //   public boolean requiresContactVertexInfo() {
 //      return false;
 //   }

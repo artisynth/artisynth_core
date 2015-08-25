@@ -35,10 +35,47 @@ public class TransformComponentsCommand implements Command, Clonable {
       myX = X;
    }
 
+   private ArrayList<RigidTransform3d> getRelativePoses (
+      ConnectableBody body, List<ConnectableBody> bodies) {
+      ArrayList<RigidTransform3d> poses =
+         new ArrayList<RigidTransform3d>(bodies.size());
+
+      for (ConnectableBody bod : bodies) {
+         // X is the transform from bod to this body
+         if (bod instanceof RigidBody) {
+            RigidBody rbod = (RigidBody)bod;
+            RigidTransform3d X = new RigidTransform3d();
+            X.mulInverseLeft (rbod.getPose(), rbod.getPose());
+            poses.add (X);
+         }
+      }
+      return poses;
+   }
+   
+   private void setRelativePoses (
+      ConnectableBody body, List<ConnectableBody> bodies, 
+      ArrayList<RigidTransform3d> poses) {
+      
+      if (bodies.size() != poses.size()) {
+         throw new IllegalArgumentException (
+            "Error: poses and bodies have inconsistent sizes");
+      }
+      int i = 0;
+      RigidTransform3d X = new RigidTransform3d();
+      for (ConnectableBody bod : bodies) {
+         if (bod instanceof RigidBody) {
+            RigidBody rbod = (RigidBody)bod;
+            X.mul (rbod.getPose(), poses.get(i));
+            rbod.setPose (X);
+            i++;
+         }
+      }
+   }   
+   
    private void transform (AffineTransform3dBase X) {
       CompositeComponent currentParent = null;
       
-      ArrayList<ArrayList<RigidBody>> allFreeBodies = null;
+      ArrayList<ArrayList<ConnectableBody>> allFreeBodies = null;
       ArrayList<ArrayList<RigidTransform3d>> allFreePoses = null;
       MechModel mechMod = null;
 
@@ -51,13 +88,14 @@ public class TransformComponentsCommand implements Command, Clonable {
                RigidBody bod = (RigidBody)c;
 
                if (allFreeBodies == null) {
-                  allFreeBodies = new ArrayList<ArrayList<RigidBody>>();
+                  allFreeBodies = new ArrayList<ArrayList<ConnectableBody>>();
                   allFreePoses = new ArrayList<ArrayList<RigidTransform3d>>();
                }
-               ArrayList<RigidBody> freeBods = new ArrayList<RigidBody>();
-               bod.findFreeAttachedBodies (freeBods, /*rejectSelected*/true);
+               ArrayList<ConnectableBody> freeBods = new ArrayList<ConnectableBody>();
+               RigidBodyConnector.findFreeAttachedBodies (
+                  bod, freeBods, /*rejectSelected*/true);
                ArrayList<RigidTransform3d> freePoses =
-                  bod.getRelativePoses (freeBods);
+                  getRelativePoses (bod, freeBods);
                allFreeBodies.add (freeBods);
                allFreePoses.add (freePoses);
                if (bod.getGrandParent() instanceof MechModel) {
@@ -91,15 +129,15 @@ public class TransformComponentsCommand implements Command, Clonable {
       }
       if (articulated) {
          if (mechMod != null) {
-            mechMod = mechMod.topMechModel (mechMod);
+            mechMod = MechModel.topMechModel (mechMod);
             mechMod.projectRigidBodyPositionConstraints();
          }
-         ArrayList<RigidBody> freeBodies = new ArrayList<RigidBody>();
          int k = 0;
          for (ModelComponent c : myComponents) {
             if (c instanceof RigidBody) {
                RigidBody bod = (RigidBody)c;
-               bod.setRelativePoses (allFreeBodies.get(k), allFreePoses.get(k));
+               setRelativePoses (
+                  bod, allFreeBodies.get(k), allFreePoses.get(k));
                k++;
             }
          }

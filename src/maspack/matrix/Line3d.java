@@ -238,7 +238,7 @@ public class Line3d {
     * @return
     * Point3d on the line representing the projection
     */
-   public Point3d project(Point3d point) {
+   public Point3d project (Vector3d point) {
       
       // x = b + (a-b)dot(v) / v^2, where line=b+k*v
       Point3d out = new Point3d(point);
@@ -250,7 +250,17 @@ public class Line3d {
       out.add(pnt);
 
       return out;
-      
+   }
+
+   /**
+    * Finds the distance of a point to this line.
+    * @param pnt
+    * Point to find the distance to
+    * @return
+    * distance to the point
+    */
+   public double distance (Vector3d pnt) {
+      return pnt.distance (project (pnt));
    }
    
    /**
@@ -271,8 +281,9 @@ public class Line3d {
          return false;
       }
       return true;
-      
    }
+
+   
    
    /**
     * Returns true if supplied point lies exactly on the line

@@ -6,6 +6,7 @@
  */
 package artisynth.core.femmodels;
 
+import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.PointTarget;
 import artisynth.core.modelbase.*;
@@ -134,7 +135,7 @@ public class FemNode3d extends FemNode {
 
    public Vector3d getDisplacement () {
       Vector3d del = new Vector3d();
-      del.sub (getPosition(), myRest);
+      del.sub (getLocalPosition(), getRestPosition());
       return del;
    }         
 
@@ -144,7 +145,7 @@ public class FemNode3d extends FemNode {
       }
       else {
          Vector3d del = new Vector3d();
-         del.sub (getTargetPosition(), myRest);
+         del.sub (getTargetPosition(), getRestPosition());
          return del;
       }
    }
@@ -154,7 +155,7 @@ public class FemNode3d extends FemNode {
          myTarget = new PointTarget (myTargetActivity);
       }
       Point3d pos = new Point3d();
-      pos.add (del, myRest);
+      pos.add (del, getRestPosition());
       myTarget.setTargetPos (pos);
    }
 
@@ -413,6 +414,13 @@ public class FemNode3d extends FemNode {
       // paranoid; do this in both connect and disconnect
       myNodeNeighbors.clear();
       clearIndirectNeighbors();
+      ModelComponent gp = getGrandParent();
+      if (gp instanceof FemModel3d) {
+         FemModel3d fem = (FemModel3d)gp;
+         if (fem.isFrameRelative()) {
+            setFrame (fem.getFrame());
+         }
+      }
    }
 
    @Override
@@ -420,14 +428,42 @@ public class FemNode3d extends FemNode {
       super.disconnectFromHierarchy();
       myNodeNeighbors.clear();
       clearIndirectNeighbors();
+      setFrame (null);
+   }
+
+   public void setFrame (Frame frame) {
+      Frame oldFrame = myPointFrame;
+      super.setPointFrame (frame);
+      if (oldFrame != frame) {
+         // need to reset rest position 
+         if (oldFrame != null) {
+            myRest.transform (oldFrame.getPose());
+         }
+         if (frame != null) {
+            myRest.inverseTransform (frame.getPose());
+         }
+      }
+      // no need to invalidate stress, etc. since setFrame() will only be
+      // called by FemModel, which will take care of that
    }
 
    public void resetRestPosition() {
-      myRest.set (getPosition());
+      myRest.set (getLocalPosition());
       notifyParentOfChange (new ComponentChangeEvent (Code.STRUCTURE_CHANGED));
    }
 
    public Point3d getRestPosition() {
+      if (myPointFrame != null) {
+         Point3d rest = new Point3d(myRest);
+         rest.transform (myPointFrame.getPose());
+         return rest;
+      }
+      else {
+         return myRest;
+      }
+   }
+
+   public Point3d getLocalRestPosition() {
       return myRest;
    }
    
@@ -443,7 +479,9 @@ public class FemNode3d extends FemNode {
 
    public void setRestPosition (Point3d pos) {
       myRest.set (pos);
-
+      if (myPointFrame != null) {
+         myRest.inverseTransform (myPointFrame.getPose());
+      }
       // invalidate rest data for attached elements
       FemModel3d fem = findFem();
       if (fem != null) {
@@ -453,7 +491,6 @@ public class FemNode3d extends FemNode {
       for (FemElement3d elem : myElementDeps) {
          elem.invalidateRestData();
       }
-      
    }
 
    public FemNode3d copy (

@@ -15,8 +15,6 @@ import maspack.util.FunctionTimer;
  */
 public class Matrix3d extends Matrix3dBase {
    private static final long serialVersionUID = 1L;
-   Matrix3d next = null;
-   Matrix3d Tmp = null;
 
    /**
     * Global identity matrix. Should not be modified.
@@ -449,17 +447,13 @@ public class Matrix3d extends Matrix3dBase {
     */
    public void setSymmetric (Matrix3d M1) {
 
-      double m01 = 0.5*(M1.m01 + M1.m10);
-      double m02 = 0.5*(M1.m02 + M1.m20);
-      double m12 = 0.5*(M1.m12 + M1.m21);
+      m01 = 0.5*(M1.m01 + M1.m10);
+      m02 = 0.5*(M1.m02 + M1.m20);
+      m12 = 0.5*(M1.m12 + M1.m21);
 
       m00 = M1.m00;
       m11 = M1.m11;
       m22 = M1.m22;
-
-      m01 = m01;
-      m02 = m02;
-      m12 = m12;
 
       m10 = m01;
       m20 = m02;
@@ -529,7 +523,10 @@ public class Matrix3d extends Matrix3dBase {
 
    /**
     * Computes the cross product of v with each column of M and places the
-    * result in this matrix.
+    * result in this matrix. This is equivalent to computing
+    * <pre>
+    * this = [v] M
+    * </pre>
     * 
     * @param v
     * first cross product argument
@@ -563,7 +560,10 @@ public class Matrix3d extends Matrix3dBase {
 
    /**
     * Computes the cross product of each row of M with v and places the result
-    * in this matrix.
+    * in this matrix. This is equivalent to computing
+    * <pre>
+    * this = M [v]
+    * </pre>
     * 
     * @param M
     * matrix whose rows supply the first cross product argument
@@ -814,29 +814,6 @@ public class Matrix3d extends Matrix3dBase {
       super.inverseTransform(R, M);
    }
 
-   private static class Allocator {
-      
-      private Matrix3d myFreeList;
-
-      public Matrix3d alloc() {
-         Matrix3d M = myFreeList;
-         if (M != null) {
-            myFreeList = M.next;
-            return M;
-         }
-         else {
-            System.out.println ("creating");
-            return new Matrix3d();
-         }
-      }
-      
-      public void free(Matrix3d M) {
-         M.next = myFreeList;
-         myFreeList = M;
-      }
-   }
-         
-
    public static void main(String[] args) {
       Matrix3d MX = new Matrix3d(new double[] { 1, 2, 3, 4, 2, 4, 6, 5, 4 });
       Matrix3d M = new Matrix3d();
@@ -884,48 +861,6 @@ public class Matrix3d extends Matrix3dBase {
       timer.stop();
       System.out.println("set time: " + timer.result(cnt));
 
-      // test creation time
-      cnt = 500000;
-      Matrix3d[] array = new Matrix3d[cnt];
-      Allocator allocator = new Allocator();
-
-      timer.start();
-      for (int i = 0; i < cnt; i++) {
-         array[i] = new Matrix3d();
-      }
-      timer.stop();
-
-      timer.start();
-      for (int i = 0; i < cnt; i++) {
-         array[i] = new Matrix3d();
-      }
-      timer.stop();
-
-      System.out.println("create time: " + timer.result(cnt));
-
-      for (int i=0; i<cnt; i++) {
-         allocator.free (array[i]);
-      }
-
-      for (int k=0; k<10; k++) {
-         timer.start();
-         for (int i = 0; i < cnt; i++) {
-            array[i] = allocator.alloc();
-         }
-         for (int i = 0; i < cnt; i++) {
-            allocator.free(array[i]);
-         }
-         timer.stop();
-      }
-
-      timer.start();
-      for (int i = 0; i < cnt; i++) {
-         Matrix3d R = allocator.alloc();
-         // R.mul(MX, MX);
-         allocator.free(R);
-      }
-      timer.stop();
-      System.out.println("mul with alloc time: " + timer.result(cnt));
 
    }
 

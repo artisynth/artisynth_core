@@ -78,18 +78,18 @@ public class Transrotator3d extends Dragger3dBase {
       GL2 gl = renderer.getGL2().getGL2();
 
       renderer.setLightingEnabled (false);
-      gl.glLineWidth (myLineWidth);
+      renderer.setLineWidth (myLineWidth);
 
       gl.glPushMatrix();
       GLViewer.mulTransform (gl, myXDraggerToWorld);
 
       if (myDragMode != DragMode.OFF) {
          gl.glColor3d (1f, 1f, 0f);
-         gl.glPointSize (3);
+         renderer.setPointSize (3);
          gl.glBegin (GL2.GL_POINTS);
          gl.glVertex3d (myPnt0.x, myPnt0.y, myPnt0.z);
          gl.glEnd();
-         gl.glPointSize (1);
+         renderer.setPointSize (1);
       }
 
       if (mySelectedComponent == X_AXIS) {
@@ -234,7 +234,7 @@ public class Transrotator3d extends Dragger3dBase {
          gl.glPopMatrix();
       }
 
-      gl.glLineWidth (1);
+      renderer.setLineWidth (1);
       renderer.setLightingEnabled (true);
 
       // gl.glEnable (GL2.GL_CULL_FACE);

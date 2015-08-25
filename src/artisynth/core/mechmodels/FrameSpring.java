@@ -223,10 +223,10 @@ public class FrameSpring extends Spring
       myRenderFrame.p.get (myRenderPnt1);
 
       if (myAxisLength > 0) {
-         GL2 gl = renderer.getGL2().getGL2();
-         gl.glLineWidth (myRenderProps.getLineWidth());
-         Frame.drawAxes (renderer, myRenderFrame, (float)myAxisLength);
-         gl.glLineWidth (1);
+         renderer.setLineWidth (myRenderProps.getLineWidth());
+         Frame.drawAxes (
+            renderer, myRenderFrame, (float)myAxisLength, isSelected());
+         renderer.setLineWidth (1);
       }
 
       if (myFrameB != null) {
@@ -239,10 +239,10 @@ public class FrameSpring extends Spring
       myRenderFrame.p.get (myRenderPnt2);
          
       if (myAxisLength > 0) {
-         GL2 gl = renderer.getGL2().getGL2();
-         gl.glLineWidth (myRenderProps.getLineWidth());
-         Frame.drawAxes (renderer, myRenderFrame, (float)myAxisLength);
-         gl.glLineWidth (1);
+         renderer.setLineWidth (myRenderProps.getLineWidth());
+         Frame.drawAxes (
+            renderer, myRenderFrame, (float)myAxisLength, isSelected());
+         renderer.setLineWidth (1);
       }
 
       renderer.drawLine (

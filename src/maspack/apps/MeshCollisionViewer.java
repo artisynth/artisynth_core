@@ -213,8 +213,8 @@ public class MeshCollisionViewer extends GLViewerFrame
       if (contourWidth > 0 &&
           myContactInfo != null) {
          renderer.setLightingEnabled (false);
-         gl.glLineWidth (contourWidth);
-         gl.glPointSize (contourWidth);
+         renderer.setLineWidth (contourWidth);
+         renderer.setPointSize (contourWidth);
          renderer.setColor (contourColor, false);
 
          if (myContactInfo.contours != null) {
@@ -241,8 +241,8 @@ public class MeshCollisionViewer extends GLViewerFrame
          gl.glEnd();
 
          renderer.setLightingEnabled (true);
-         gl.glLineWidth (1);
-         gl.glPointSize (1);
+         renderer.setLineWidth (1);
+         renderer.setPointSize (1);
       }
    }   
 

@@ -32,6 +32,11 @@ public class DisplayListManager {
       public int hashCode() {
          return myStr.hashCode() + myNum;
       }
+      
+      public String toString() {
+         return myStr + ":" + myNum;
+      }
+     
    }
 
    private static class ListInfo {
@@ -148,7 +153,8 @@ public class DisplayListManager {
    public static void freeSharedList (Object key) {
       ListInfo info = getSharedInfo (key);
       if (info == null) {
-         System.out.println ("Warning: no display list found for key " + key);
+         System.out.println (
+            "Warning: no display list found for key " + key);
          return;
       }
       else if (info.refCnt <= 0) {
@@ -158,6 +164,7 @@ public class DisplayListManager {
       }
       if (--info.refCnt == 0) {
          addToFreeList (info.listNum);
+         System.out.println ("removing shared info for " + key);
          removeSharedInfo (key);
       }
    }

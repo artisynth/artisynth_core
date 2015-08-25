@@ -12,6 +12,7 @@ import java.util.Random;
 import maspack.matrix.ImproperSizeException;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3d;
+import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.Matrix6dBase;
 import maspack.matrix.Matrix6dBlock;
@@ -657,7 +658,7 @@ public class SpatialInertia extends Matrix6dBlock
     * @param com
     * returns the center of mass
     */
-   public void getCenterOfMass (Point3d com) {
+   public void getCenterOfMass (Vector3d com) {
       if (componentUpdateNeeded) {
          updateComponents();
       }
@@ -770,6 +771,9 @@ public class SpatialInertia extends Matrix6dBlock
     * center of mass
     */
    public void setCenterOfMass (Point3d com) {
+      if (componentUpdateNeeded) {
+         updateComponents();
+      }
       this.com.set (com);
       setMassCom (mass*com.x, mass*com.y, mass*com.z);
       addScaledComCom (J, -mass, com);
@@ -1562,7 +1566,7 @@ public class SpatialInertia extends Matrix6dBlock
       if (componentUpdateNeeded) {
          updateComponents();
       }
-      Vector3d vtmp = myTmpT.v; // use myTmpT.v as temporary storage
+      Vector3d vtmp = new Vector3d();
       vtmp.crossAdd (wr1.f, com, wr1.m);
       solveJ (twr.w, vtmp);
       twr.v.scale (1 / mass, wr1.f);
@@ -1587,8 +1591,7 @@ public class SpatialInertia extends Matrix6dBlock
       if (componentUpdateNeeded) {
          updateComponents();
       }
-      // Vector3d vtmp = svr.a; // use svr.a as tempory storage
-      Vector3d vtmp = myTmpT.v; // use myTmpT.v as temporary storage
+      Vector3d vtmp = new Vector3d();
       vtmp.crossAdd (sv1.a, com, sv1.b);
       solveJ (svr.b, vtmp);
       svr.a.scale (1 / mass, sv1.a);
@@ -1929,6 +1932,33 @@ public class SpatialInertia extends Matrix6dBlock
       SpatialInertia M = new SpatialInertia();
       M.setEllipsoid (m, a, b, c);
       return M;
+   }
+
+   /**
+    * Add to a rotational inertia the effect of a point mass at location r.
+    * This is equivalent to computing
+    *
+    * J = J - m [c] [c]
+    */
+   public static void addPointRotationalInertia (
+      Matrix3dBase J, double m, Vector3d r) {
+      
+      double rx2 = r.x*r.x;
+      double ry2 = r.y*r.y;
+      double rz2 = r.z*r.z;
+
+      J.m00 += m*(rz2+ry2);
+      J.m01 -= m*(r.x*r.y);
+      J.m02 -= m*(r.x*r.z);
+
+      J.m11 += m*(rz2+rx2);
+      J.m12 -= m*(r.y*r.z);
+
+      J.m22 += m*(rx2+ry2);
+
+      J.m10 = J.m01;
+      J.m20 = J.m02;
+      J.m21 = J.m12;
    }
 
 //   /**

@@ -171,7 +171,7 @@ public abstract class PointSpringBase extends Spring
    }
 
    public RenderProps createRenderProps() {
-      return RenderProps.createLineProps (this);
+      return RenderProps.createPointLineProps (this);
    }
 
    public void prerender (RenderList list) {
@@ -254,9 +254,9 @@ public abstract class PointSpringBase extends Spring
       }
    }
 
-   protected static class SegmentData {
-      Point pnt0;
-      Point pnt1;
+   protected class SegmentData {
+      public Point pnt0;
+      public Point pnt1;
       MatrixBlock blk00;
       MatrixBlock blk11;
       MatrixBlock blk01;
@@ -265,12 +265,12 @@ public abstract class PointSpringBase extends Spring
       int blk11Num;
       int blk01Num;
       int blk10Num;      
-      Vector3d uvec;
-      double len;
-      Matrix3d P;
-      boolean isActive;
+      public Vector3d uvec;
+      public double len;
+      public Matrix3d P;
+      public boolean isActive;
 
-      SegmentData (Point p0, Point p1) {
+      public SegmentData (Point p0, Point p1) {
          pnt0 = p0;
          pnt1 = p1;
          uvec = new Vector3d();
@@ -278,7 +278,7 @@ public abstract class PointSpringBase extends Spring
          isActive = true;
       }
 
-      double updateU () {
+      public double updateU () {
          uvec.sub (pnt1.getPosition(), pnt0.getPosition());
          len = uvec.norm();
          if (len != 0) {
@@ -288,7 +288,7 @@ public abstract class PointSpringBase extends Spring
       }
 
       // assumes that uvec is up to date
-      double getLengthDot () {
+      public double getLengthDot () {
          Vector3d vel1 = pnt1.getVelocity();
          Vector3d vel0 = pnt0.getVelocity();
          double dvx = vel1.x-vel0.x;
@@ -298,7 +298,7 @@ public abstract class PointSpringBase extends Spring
       } 
 
       // assumes that uvec is up to date
-      void updateP () {
+      public void updateP () {
          P.outerProduct (uvec, uvec);
          P.negate();
          P.m00 += 1;
@@ -306,7 +306,7 @@ public abstract class PointSpringBase extends Spring
          P.m22 += 1;
       }
 
-      void addSolveBlocks (SparseNumberedBlockMatrix M) {
+      public void addSolveBlocks (SparseNumberedBlockMatrix M) {
          int bi0 = pnt0.getSolveIndex();
          int bi1 = pnt1.getSolveIndex();
 

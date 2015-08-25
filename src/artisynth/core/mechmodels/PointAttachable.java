@@ -6,12 +6,14 @@
  */
 package artisynth.core.mechmodels;
 
+import artisynth.core.modelbase.*;
+
 /**
  * Defines a component to which a point can be attached.
  * 
  * @author lloyd
  */
-public interface PointAttachable {
+public interface PointAttachable extends ModelComponent {
    
    /**
     * Returns a PointAttachment that attaches <code>pnt</code>

@@ -61,6 +61,9 @@ public class Point extends DynamicComponentBase
    protected double myPointDamping;
    private PropertyMode myPointDampingMode = PropertyMode.Inherited;
 
+   protected Frame myPointFrame = null;
+   protected PointState myWorldState = null;
+
    public static PropertyList myProps =
       new PropertyList (Point.class, ModelComponentBase.class);
 
@@ -85,6 +88,7 @@ public class Point extends DynamicComponentBase
    public Point() {
       myState = new PointState();
       myForce = new Vector3d();
+      myWorldState = myState;
       myExternalForce = new Vector3d();
       mySolveBlockValidP = false;
    }
@@ -98,6 +102,41 @@ public class Point extends DynamicComponentBase
 //      return myState;
 //   }
 
+   public void setPointFrame (Frame frame) {
+      if (frame != myPointFrame) {
+         myPointFrame = frame;
+         if (frame == null) {
+            // removing the frame, so world state and state will now be the same
+            myState.set (myWorldState);
+            myWorldState = myState;
+         }
+         else {
+            // adding or replacing frame, so compute new local state to 
+            // match current world state
+            PointState worldState = myWorldState;
+            if (myWorldState == myState) {
+               myWorldState = new PointState();
+            }
+            setPosition (worldState.pos);
+            setVelocity (worldState.vel);
+         }
+         DynamicAttachment sa = getAttachment();
+         if (sa != null) {
+            sa.invalidateMasters();
+         }
+         List<DynamicAttachment> masters = getMasterAttachments();
+         if (masters != null) {
+            for (DynamicAttachment ma : masters) {
+               ma.invalidateMasters();
+            }
+         }
+      }
+   }
+
+   public Frame getPointFrame() {
+      return myPointFrame;
+   }
+
    public Vector3d getForce() {
       return myForce;
    }
@@ -108,24 +147,36 @@ public class Point extends DynamicComponentBase
 
    public void addForce (Vector3d f) {
       myForce.add (f);
+      if (myPointFrame != null) {
+         myPointFrame.addPointForce (getLocalPosition(), f);
+      }
    }
 
    public void addScaledForce (double s, Vector3d f) {
       myForce.scaledAdd (s, f, myForce);
+      if (myPointFrame != null) {
+         Vector3d fscaled = new Vector3d();
+         fscaled.scale (s, f);
+         myPointFrame.addPointForce (getLocalPosition(), fscaled);
+      }
    }
 
-//   /**
-//    * Adjusts the force so that it does not have a negative component along the
-//    * specified normal. The normal is assumed to be a unit vector.
-//    */
-//   public void constrainForce (Vector3d nrm) {
-//      double dot = nrm.dot (myForce);
-//      if (dot < 0) {
-//         myForce.scaledAdd (-dot, nrm, myForce);
-//      }
-//   }
-
    public void subForce (Vector3d f) {
+      myForce.sub (f);
+      if (myPointFrame != null) {
+         myPointFrame.subPointForce (getLocalPosition(), f);
+      }
+   }
+
+   public void addLocalForce (Vector3d f) {
+      myForce.add (f);
+   }
+
+   public void addScaledLocalForce (double s, Vector3d f) {
+      myForce.scaledAdd (s, f, myForce);
+   }
+
+   public void subLocalForce (Vector3d f) {
       myForce.sub (f);
    }
 
@@ -133,12 +184,15 @@ public class Point extends DynamicComponentBase
       myForce.setZero();
    }
 
-   public void setForcesToExternal() {
-      myForce.set (myExternalForce);
-   }
+   // public void setForcesToExternal() {
+   //    myForce.set (myExternalForce);
+   // }
 
    public void applyExternalForces() {
       myForce.add (myExternalForce);
+      if (myPointFrame != null) {
+         myPointFrame.addPointForce (getLocalPosition(), myExternalForce);
+      }
    }
 
    public void addExternalForce(Vector3d f) {
@@ -167,7 +221,7 @@ public class Point extends DynamicComponentBase
 
    public void applyForces (double t) {
       if (myPointDamping != 0) {
-         myForce.scaledAdd (-myPointDamping, myState.vel);
+         addScaledForce (-myPointDamping, myWorldState.vel);
       }
    }
 
@@ -189,23 +243,40 @@ public class Point extends DynamicComponentBase
       return Matrix.SPD;
    }
 
+   /**
+    * Returns the current position of this point, in world coordinates. The
+    * returned value should be treated as read-only and not modified.
+    *
+    * @return current world position (read-only)
+    */
    public Point3d getPosition() {
-      return myState.pos;
+      return myWorldState.pos;
    }
 
    public void getPosition (Point3d pos) {
-      pos.set (myState.pos);
+      pos.set (myWorldState.pos);
+   }
+
+   public void setPosition (Point3d p) {
+      myWorldState.pos.set (p);
+      if (myState != myWorldState) {
+         myPointFrame.computePointLocation (myState.pos, p);
+      }
+   }
+
+   public void setPosition (double x, double y, double z) {
+      setPosition (new Point3d (x, y, z));
    }
 
    // Sanchez, March 27, 2013
    // Changed to getPosition() instead of myState.pos
    // so I can use correct position in MFreeModel
    public double distance (Point pnt) {
-      return myState.pos.distance (pnt.getPosition());
+      return getPosition().distance (pnt.getPosition());
    }
 
    public double distance (Point3d pos) {
-      return myState.pos.distance (pos);
+      return getPosition().distance (pos);
    }
 
    public int getPosState (double[] x, int idx) {
@@ -215,38 +286,31 @@ public class Point extends DynamicComponentBase
       return idx;
    }
 
-   public void setPosition (Point3d p) {
-      myState.pos.set (p);
-   }
-
-   public void setPosition (double x, double y, double z) {
-      myState.pos.set (x, y, z);
-   }
-
    // public void scalePosition (double s) {
    //    myState.pos.scale (s);
    // }
 
-   public void addPosition (double dx, double dy, double dz) {
-      myState.pos.add (dx, dy, dz);
-   }
+//   public void addPosition (double dx, double dy, double dz) {
+//      myState.pos.add (dx, dy, dz);
+//   }
 
-   /**
-    * Adds a scaled vector to this point's position.
-    * 
-    * @param s
-    * scale factor
-    * @param v
-    * vector to scale and add
-    */
-   public void addScaledPosition (double s, Vector3d v) {
-      myState.pos.scaledAdd (s, v);
-   }
+//   /**
+//    * Adds a scaled vector to this point's position.
+//    * 
+//    * @param s
+//    * scale factor
+//    * @param v
+//    * vector to scale and add
+//    */
+//   public void addScaledPosition (double s, Vector3d v) {
+//      myState.pos.scaledAdd (s, v);
+//   }
 
    public int setPosState (double[] p, int idx) {
       myState.pos.x = p[idx++];
       myState.pos.y = p[idx++];
       myState.pos.z = p[idx++];
+      updatePosState(); // update world state if necessary
       return idx;
    }
 
@@ -266,11 +330,27 @@ public class Point extends DynamicComponentBase
    }
 
    public Vector3d getVelocity() {
-      return myState.vel;
+      return myWorldState.vel;
    }
 
    public void getVelocity (Vector3d vel) {
-      vel.set (myState.vel);
+      vel.set (myWorldState.vel);
+   }
+
+   public void setVelocity (Vector3d vel) {
+      myWorldState.vel.set (vel);
+      if (myState != myWorldState) {
+         // compute corresponding local velocity
+         Vector3d tmp = new Vector3d();
+         myPointFrame.computePointVelocity (tmp, myState.pos);
+         tmp.sub (vel, tmp);
+         tmp.inverseTransform (myPointFrame.getPose().R);
+         myState.vel.set (tmp);
+      }
+   }
+
+   public void setVelocity (double x, double y, double z) {
+      setVelocity (new Vector3d (x, y, z));
    }
 
    public int getVelState (double[] v, int idx) {
@@ -280,40 +360,44 @@ public class Point extends DynamicComponentBase
       return idx;
    }
 
-   public void setVelocity (Vector3d v) {
-      myState.vel.set (v);
-   }
-
-   public void addVelocity (double dx, double dy, double dz) {
-      myState.vel.add (dx, dy, dz);
-   }
-
-   public void addScaledVelocity (double s, Vector3d v) {
-      myState.vel.scaledAdd (s, v, myState.vel);
-   }
+//   public void addVelocity (double dx, double dy, double dz) {
+//      myState.vel.add (dx, dy, dz);
+//   }
+//
+//   public void addScaledVelocity (double s, Vector3d v) {
+//      myState.vel.scaledAdd (s, v, myState.vel);
+//   }
 
    public int setVelState (double[] v, int idx) {
       myState.vel.x = v[idx++];
       myState.vel.y = v[idx++];
       myState.vel.z = v[idx++];
+      updateVelState();
       return idx;
-   }
-
-   public void setVelocity (double x, double y, double z) {
-      myState.vel.set (x, y, z);
    }
 
    public int setForce (double[] f, int idx) {
       myForce.x = f[idx++];
       myForce.y = f[idx++];
       myForce.z = f[idx++];
+      if (myState != myWorldState) {
+         myForce.transform (myPointFrame.getPose());
+      }
       return idx;
    }
  
    public int getForce (double[] f, int idx) {
-      f[idx++] = myForce.x;
-      f[idx++] = myForce.y;
-      f[idx++] = myForce.z;
+      Vector3d force;
+      if (myState == myWorldState) {
+         force = myForce;
+      }
+      else {
+         force = new Vector3d();
+         force.inverseTransform (myPointFrame.getPose(), myForce);
+      }
+      f[idx++] = force.x;
+      f[idx++] = force.y;
+      f[idx++] = force.z;
       return idx;
    }
  
@@ -501,13 +585,14 @@ public class Point extends DynamicComponentBase
    }
 
    public void prerender (RenderList list) {
-      myRenderCoords[0] = (float)myState.pos.x;
-      myRenderCoords[1] = (float)myState.pos.y;
-      myRenderCoords[2] = (float)myState.pos.z;
+      Point3d pos = getPosition();
+      myRenderCoords[0] = (float)pos.x;
+      myRenderCoords[1] = (float)pos.y;
+      myRenderCoords[2] = (float)pos.z;
    }
 
    public void updateBounds (Point3d pmin, Point3d pmax) {
-      myState.pos.updateBounds (pmin, pmax);
+      getPosition().updateBounds (pmin, pmax);
    }
 
    public boolean isSelectable() {
@@ -578,14 +663,38 @@ public class Point extends DynamicComponentBase
       doGetMass (M, 0);
    }
 
-   public int getMassForces (VectorNd f, double t, int idx) {
+   public double getEffectiveMass () {
+      return 0;   
+   }
+   
+   public void getEffectiveMass (Matrix M, double t) {
+      doGetMass (M, 0);
+   }
+
+   public int mulInverseEffectiveMass (
+      Matrix M, double[] a, double[] f, int idx) {
+      a[idx++] = 0;
+      a[idx++] = 0;
+      a[idx++] = 0;
+      return idx;
+   }
+
+   public int getEffectiveMassForces (VectorNd f, double t, int idx) {
       double[] buf = f.getBuffer();
+      // Note that if the point is attached to a moving frame, then that
+      // will produce mass forces that are not computed here.
       buf[idx++] = 0;
       buf[idx++] = 0;
       buf[idx++] = 0;
       return idx;
    }
 
+   public void resetEffectiveMass() {
+   }
+
+   public void addEffectiveMass (double m) {
+      // subclasses must override if necessary; Point itself has no mass
+   }
 
    protected void doGetMass (Matrix M, double m) {
       if (M instanceof Matrix3d) {
@@ -625,9 +734,9 @@ public class Point extends DynamicComponentBase
       return idx;
    }
 
-   public void getState (PointState state) {
-      state.set (myState);
-   }
+//   public void getState (PointState state) {
+//      state.set (myState);
+//   }
 
    public int getState (VectorNd x, int idx) {
       return myState.get (x, idx);
@@ -676,13 +785,24 @@ public class Point extends DynamicComponentBase
    public ModelComponent copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       Point comp = (Point)super.copy (flags, copyMap);
-      comp.myState = new PointState();
+      if (myState != myWorldState) {
+         comp.myState = new PointState();
+         comp.myState.set (myState);
+         comp.myWorldState = new PointState();
+         comp.myWorldState.set (myWorldState);
+      }
+      else {
+         comp.myState = new PointState();
+         comp.myState.set (myState);
+         comp.myWorldState = comp.myState;
+      }
+      comp.myPointFrame = (Frame)ComponentUtils.maybeCopy (flags, copyMap, myPointFrame);
+      System.out.println ("setting frame " + comp.myPointFrame);
       comp.myForce = new Vector3d();
       comp.myExternalForce = new Vector3d();
       comp.myRenderCoords = new float[3];
       comp.mySolveBlockValidP = false;
       comp.mySolveBlockNum = -1;
-      comp.setPosition (getPosition());
       comp.myTargetActivity = TargetActivity.Auto;
       comp.myTarget = null;
       return comp;
@@ -708,6 +828,53 @@ public class Point extends DynamicComponentBase
       Vector3d vel, double w, ContactPoint cpnt) {
 
       vel.scaledAdd (w, myState.vel);      
+   }
+
+   public void getLocalPosition (Vector3d pos) {
+      myState.getPos (pos);
+   }
+
+   public Point3d getLocalPosition() {
+      return myState.getPos();
+   }
+
+   public void setLocalPosition (Vector3d pos) {
+      myState.setPos (pos);
+      updatePosState();
+   }
+
+   public void setLocalPosition (double x, double y, double z) {
+      setLocalPosition (new Point3d (x, y, z));
+   }
+
+   public void getLocalVelocity (Vector3d vel) {
+      myState.getVel (vel);
+   }
+
+   public Vector3d getLocalVelocity() {
+      return myState.getVel();
+   }
+
+   public void setLocalVelocity (Vector3d vel) {
+      myState.setVel (vel);
+      updateVelState();
+   }
+
+   public void setLocalVelocity (double x, double y, double z) {
+      setLocalVelocity (new Vector3d (x, y, z));
+   }
+
+   public void updatePosState() {
+      if (myState != myWorldState) {
+         myWorldState.pos.transform (myPointFrame.getPose(), myState.pos);
+      }
+   }      
+
+   public void updateVelState() {
+      if (myState != myWorldState) {
+         myPointFrame.computePointVelocity (
+            myWorldState.vel, myState.pos, myState.vel);
+      }
    }
 
 //   public boolean requiresContactVertexInfo() {

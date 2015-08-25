@@ -18,6 +18,7 @@ import java.util.Map;
 
 public class Particle extends Point implements PointAttachable {
    protected double myMass;
+   protected double myEffectiveMass;
    // protected double myEffectiveMass;
    protected Vector3d myConstraint;
    protected boolean myConstraintSet;
@@ -77,26 +78,25 @@ public class Particle extends Point implements PointAttachable {
    }
 
    public Particle (double m) {
-      myState = new PointState();
-      myForce = new Vector3d();
+      super();
       setMass (m);
       setDynamic (true);
    }
 
    public Particle (double m, Point3d p) {
       this (m);
-      myState.pos.set (p);
+      setPosition (p);
    }
 
    public Particle (double m, double x, double y, double z) {
       this (m);
-      myState.pos.set (x, y, z);
+      setPosition (x, y, z);
    }
 
    public Particle (String name, double m, double x, double y, double z) {
       this (m);
       setName (name);
-      myState.pos.set (x, y, z);
+      setPosition (x, y, z);
    }
 
    public double getMass() {
@@ -109,6 +109,31 @@ public class Particle extends Point implements PointAttachable {
 
    public void getMass (Matrix M, double t) {
       doGetMass (M, myMass);
+   }
+   
+   public double getEffectiveMass() {
+      return myEffectiveMass; 
+   }
+
+   public void getEffectiveMass (Matrix M, double t) {
+      doGetMass (M, myEffectiveMass);
+   }
+
+   public int mulInverseEffectiveMass (
+      Matrix M, double[] a, double[] f, int idx) {
+      double minv = 1/myEffectiveMass;
+      a[idx++] = minv*f[idx];
+      a[idx++] = minv*f[idx];
+      a[idx++] = minv*f[idx];
+      return idx;
+   }
+
+   public void resetEffectiveMass() {
+      myEffectiveMass = myMass;
+   }
+
+   public void addEffectiveMass (double m) {
+      myEffectiveMass += m;
    }
 
    public void getInverseMass (Matrix Minv, Matrix M) {

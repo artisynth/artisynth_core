@@ -205,6 +205,10 @@ public class ParticleMeshConstraint extends ConstrainerBase
       myLam = 0;
    }
 
+   public boolean isEngaged() {
+      return myEngagedP;
+   }
+
    public void getUnilateralSizes (VectorNi sizes) {
       if (myUnilateralP) {
          if (myEngagedP && myParticle.getSolveIndex() != -1) {

@@ -6,12 +6,16 @@
  */
 package artisynth.core.mechmodels;
 
+import java.util.Map;
+
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.*;
 import maspack.render.*;
+
+import artisynth.core.modelbase.*;
 
 public abstract class JointBase extends RigidBodyConnector  {
 
@@ -113,6 +117,13 @@ public abstract class JointBase extends RigidBodyConnector  {
       super.scaleDistance (s);
       myAxisLength *= s;
       myRenderProps.scaleDistance (s);
+   }
+   @Override
+   public ModelComponent copy (
+      int flags, Map<ModelComponent,ModelComponent> copyMap) {
+      JointBase copy = (JointBase)super.copy (flags, copyMap);
+      copy.myRenderFrame = new RigidTransform3d (myRenderFrame);
+      return copy;
    }
    
 

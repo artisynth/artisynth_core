@@ -462,32 +462,16 @@ public class MultiPointMuscle extends MultiPointSpring implements ExcitationComp
    }
 
    public double getForceNorm() {
-      double len = 0;
-      double dldt = 0;
       updateSegsIfNecessary();
-      for (int i=0; i<mySegs.size(); i++) {
-         SegmentData seg = mySegs.get(i);
-         if (seg.isActive) {
-            len += computeU (myTmp, seg.pnt0, seg.pnt1);
-            dldt += myTmp.dot (
-               seg.pnt1.getVelocity())-myTmp.dot(seg.pnt0.getVelocity());
-         }
-      }
+      double len = getActiveLength();
+      double dldt = getActiveLengthDot();
       return computeF (len, dldt);
    }
    
    public double getPassiveForceNorm() {
-      double len = 0;
-      double dldt = 0;
       updateSegsIfNecessary();
-      for (int i=0; i<mySegs.size(); i++) {
-         SegmentData seg = mySegs.get(i);
-         if (seg.isActive) {
-            len += computeU (myTmp, seg.pnt0, seg.pnt1);
-            dldt += myTmp.dot (
-               seg.pnt1.getVelocity())-myTmp.dot(seg.pnt0.getVelocity());
-         }
-      }
+      double len = getActiveLength();
+      double dldt = getActiveLengthDot();
       return computePassiveF (len, dldt);
    }
 

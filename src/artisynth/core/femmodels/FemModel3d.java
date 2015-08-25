@@ -8,6 +8,7 @@ package artisynth.core.femmodels;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
@@ -36,6 +37,9 @@ import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3x1Block;
 import maspack.matrix.Matrix3x3Block;
+import maspack.matrix.Matrix3x6Block;
+import maspack.matrix.Matrix6x3Block;
+import maspack.matrix.Matrix6dBlock;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.MatrixNd;
@@ -43,6 +47,7 @@ import maspack.matrix.NumericalException;
 import maspack.matrix.Point3d;
 import maspack.matrix.EigenDecomposition;
 import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.SymmetricMatrix3d;
@@ -59,6 +64,8 @@ import maspack.render.RenderableUtils;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
 import maspack.spatialmotion.Twist;
+import maspack.spatialmotion.Wrench;
+import maspack.spatialmotion.SpatialInertia;
 import maspack.util.ArraySupport;
 import maspack.util.DataBuffer;
 import maspack.util.DoubleInterval;
@@ -88,13 +95,16 @@ import artisynth.core.util.TransformableGeometry;
 
 public class FemModel3d extends FemModel
    implements TransformableGeometry, ScalableUnits, MechSystemModel, Collidable,
-              CopyableComponent, HasAuxState, PointAttachable, HasSurfaceMesh {
+              CopyableComponent, HasAuxState, HasSurfaceMesh,
+              PointAttachable, ConnectableBody {
 
-   protected Frame myFrame;
+   protected FemModelFrame myFrame;
    protected FrameFem3dConstraint myFrameConstraint;
-   protected boolean myUseLocalCoords;
+   protected boolean myFrameRelativeP;
 
    protected PointList<FemNode3d> myNodes;
+   protected ArrayList<RigidBodyConnector> myConnectors;
+   
    // protected ArrayList<LinkedList<FemElement3d>> myElementNeighbors;
 
    public static boolean abortOnInvertedElems = false;
@@ -105,7 +115,10 @@ public class FemModel3d extends FemModel
    public static double detJStepReductionLimit = 0.01;
    // This will disable detJ step reduction:
    // public static double detJStepReductionLimit = -Double.MAX_VALUE;
-
+   
+   // fraction of element mass that should be added to the FemFrame
+   // when operating in frame-relative mode
+   public static double frameMassFraction = 0.0;
    
    private boolean myAbortOnInvertedElems = abortOnInvertedElems;
    private boolean myWarnOnInvertedElems = true;
@@ -214,8 +227,8 @@ public class FemModel3d extends FemModel
       myProps.add (
          "axisLength * *", "length of rendered frame axes", 0);
       myProps.add (
-         "useLocalCoords",
-         "compute displacements locally with respect to the coordinate frame",
+         "frameRelative isFrameRelative",
+         "compute displacements with respect to the coordinate frame",
          false);
       myProps.add(
          "incompressible",
@@ -324,8 +337,7 @@ public class FemModel3d extends FemModel
    }      
 
    protected void initializeChildComponents() {
-      myFrame = new Frame ();
-      myFrame.setName ("frame");
+      myFrame = new FemModelFrame ("frame");
       myNodes = new PointList<FemNode3d>(FemNode3d.class, "nodes", "n");
       myElements = new FemElement3dList("elements", "e");
       myAdditionalMaterialsList =
@@ -464,7 +476,7 @@ public class FemModel3d extends FemModel
    /**
     * Gets the indirect neighbors for a node. This is used when computing
     * soft nodal-based incompressibility. See the documentation in
-    * FemNode3d.getgetIndirectNeighbors().
+    * FemNode3d.getIndirectNeighbors().
     */
    protected LinkedList<FemNodeNeighbor> getIndirectNeighbors(FemNode3d node) {
       LinkedList<FemNodeNeighbor> indirect;
@@ -516,23 +528,29 @@ public class FemModel3d extends FemModel
          myInternalSurfaceMeshComp = null;
       }
    }
-
+   
    /**
-    * Adds a marker to this FemModel. The element to which it belongs is
-    * determined automatically. If the marker's current position does not lie
-    * within the model, it is projected onto the model's surface.
+    * Adds a marker to this FemModel. If the marker has not already been
+    * set (i.e., if no nodes or elements have been assigned to it), then
+    * it is attached to the nearest element in the model. This is either
+    * the containing element, or the nearest element on the model's surface.
     * 
     * @param mkr
     * marker point to add to the model
     */
    public void addMarker (FemMarker mkr) {
-      FemElement3d elem = findContainingElement(mkr.getPosition());
-      if (elem == null) {
-         Point3d newLoc = new Point3d();
-         elem = findNearestSurfaceElement(newLoc, mkr.getPosition());
-         mkr.setPosition(newLoc);
+      if (mkr.getAttachment().numMasters() == 0) {
+         FemElement3d elem = findContainingElement(mkr.getPosition());
+         if (elem == null) {
+            Point3d newLoc = new Point3d();
+            elem = findNearestSurfaceElement(newLoc, mkr.getPosition());
+            mkr.setPosition(newLoc);
+         }
+         addMarker(mkr, elem);
       }
-      addMarker(mkr, elem);
+      else {
+         super.addMarker (mkr);
+      }
    }
    
    /**
@@ -543,7 +561,7 @@ public class FemModel3d extends FemModel
     * @param pos
     * position to place a marker in the model
     */
-   public FemMarker addMarker(Point3d pos) {
+   public FemMarker addMarker (Point3d pos) {
       return addMarker(pos, true);
    }
    
@@ -606,8 +624,9 @@ public class FemModel3d extends FemModel
          updateStressAndStiffness();
       }
       boolean hasGravity = !myGravity.equals(Vector3d.ZERO);
-      Vector3d fk = new Vector3d();
-      Vector3d fd = new Vector3d();
+      Vector3d fk = new Vector3d(); // stiffness force
+      Vector3d fd = new Vector3d(); // damping force
+      Vector3d md = new Vector3d(); // mass damping (used with attached frames)
 
       for (FemNode3d n : myNodes) {
          // n.setForce (n.getExternalForce());
@@ -626,14 +645,25 @@ public class FemModel3d extends FemModel
             }
             fd.scale(myStiffnessDamping);
          }
-         // XXX Should particle have their own damping?
-         fd.scaledAdd(myMassDamping * n.getMass(), n.getVelocity(), fd);
-         n.subForce(fk);
-         n.subForce(fd);
+         if (usingAttachedRelativeFrame()) {
+            md.scale (myMassDamping * n.getMass(), n.getVelocity());
+            n.subForce (md);
+            // if (n.isActive()) {
+            //    myFrame.addPointForce (n.getLocalPosition(), n.getForce());
+            // }
+            fk.add (fd);
+            fk.transform (myFrame.getPose().R);
+            n.subLocalForce (fk);
+            //if (n.isActive()) {
+               // myFrame.addPointForce (n.getLocalPosition(), n.getForce());
+               //}
+         }
+         else {
+            fd.scaledAdd(myMassDamping * n.getMass(), n.getVelocity(), fd);
+            n.subForce(fk);
+            n.subForce(fd);
+         }
       }
-      // if (stepAdjust != null && myMinDetJ <= 0) {
-      // stepAdjust.recommendAdjustment (0.5, "element inversion");
-      // }
    }
 
    protected double checkMatrixStability(DenseMatrix D) {
@@ -1813,6 +1843,49 @@ public class FemModel3d extends FemModel
 
       super.writeItems(pw, fmt, ancestor);
    }
+   
+   public void addConnector (RigidBodyConnector c) {
+      if (myConnectors == null) {
+         myConnectors = new ArrayList<RigidBodyConnector>();
+      }
+      myConnectors.add (c);
+   }
+
+   public void removeConnector (RigidBodyConnector c) {
+      if (myConnectors == null || !myConnectors.remove (c)) {
+         throw new InternalErrorException ("connector not found");
+      }
+      if (myConnectors.size() == 0) {
+         myConnectors = null;
+      }
+   }
+   
+   public List<RigidBodyConnector> getConnectors() {
+      return myConnectors;
+   }
+
+   @Override
+   public boolean isFreeBody() {
+      // XXX TODO need to finish
+      return true;
+   }
+   
+   public void transformPose (RigidTransform3d T) {
+      if (isFrameRelative()) {
+         RigidTransform3d TFW = new RigidTransform3d();
+         TFW.mul (T, myFrame.getPose());
+         myFrame.setPose (TFW);        
+      }
+      else {
+         Point3d pos = new Point3d();
+         for (FemNode n : myNodes) {
+            n.getPosition (pos);
+            pos.transform (T);
+            n.setPosition (pos);
+         }
+      }
+      updatePosState();
+   }
 
    public void transformGeometry(AffineTransform3dBase X) {
       transformGeometry(X, this, 0);
@@ -1827,13 +1900,10 @@ public class FemModel3d extends FemModel
       for (FemElement3d e : myElements) {
          e.invalidateRestData();
       }
+      
       updateLocalAttachmentPos();
       invalidateStressAndStiffness();
-      // // Is this needed? Don't think so ...
 
-      // for (DynamicAttachment a : myAttachments) {
-      // a.updateAttachment();
-      // }
       if (myMinBound != null) {
          myMinBound.transform(X);
       }
@@ -1841,8 +1911,8 @@ public class FemModel3d extends FemModel
          myMaxBound.transform(X);
       }
 
-      // update meshes
-      myMeshList.updateSlavePos();
+      // update meshes, attached frame, etc.
+      updateSlavePos();
    }
 
    public IncompMethod getIncompressible() {
@@ -1897,7 +1967,7 @@ public class FemModel3d extends FemModel
       myHardIncompMethodValidP = false;
    }
 
-   public Range getHardIncompMethodRange() {
+   public Range getIncompressibleRange() {
       return new EnumRange<IncompMethod>(
       IncompMethod.class, new IncompMethod[] {
                                               IncompMethod.NODAL,
@@ -2802,10 +2872,8 @@ public class FemModel3d extends FemModel
       super.updateSlavePos();
       myMeshList.updateSlavePos();
       myBVTreeValid = false;
-      if (myFrameConstraint != null) {
-         RigidTransform3d T = new RigidTransform3d();
-         myFrameConstraint.computeFrame (T);
-         myFrame.setPose (T);
+      if (myFrameConstraint != null && !myFrameRelativeP) {
+         myFrameConstraint.updateFramePose(/*frameRelative=*/false);
       }
    }
 
@@ -2912,7 +2980,12 @@ public class FemModel3d extends FemModel
       notifyParentOfChange(new ComponentChangeEvent(Code.STRUCTURE_CHANGED));
    }
 
+   // === Constrainer interface ===
+
    public double updateConstraints(double t, int flags) {
+      if (usingAttachedRelativeFrame()) {
+         myFrameConstraint.updateConstraints (t, flags);
+      }
       if (!myVolumeValid) {
          updateVolume();
       }
@@ -2923,6 +2996,10 @@ public class FemModel3d extends FemModel
    }
 
    public int setBilateralImpulses(VectorNd lam, double h, int idx) {
+
+      if (usingAttachedRelativeFrame()) {
+         idx = myFrameConstraint.setBilateralImpulses (lam, h, idx);
+      }
       IncompMethod hardIncomp = getHardIncompMethod();
       if (hardIncomp == IncompMethod.NODAL) {
          lam.getSubVector(idx, myIncompressLambda);
@@ -2943,6 +3020,10 @@ public class FemModel3d extends FemModel
    }
 
    public void zeroImpulses() {
+
+      if (usingAttachedRelativeFrame()) {
+         myFrameConstraint.zeroImpulses();
+      }
       IncompMethod hardIncomp = getHardIncompMethod();
       if (hardIncomp == IncompMethod.NODAL) {
          myIncompressLambda.setZero();
@@ -2960,6 +3041,10 @@ public class FemModel3d extends FemModel
    }
 
    public int getBilateralImpulses(VectorNd lam, int idx) {
+
+      if (usingAttachedRelativeFrame()) {
+         idx = myFrameConstraint.getBilateralImpulses (lam, idx);
+      }
       IncompMethod hardIncomp = getHardIncompMethod();
       if (hardIncomp == IncompMethod.NODAL) {
          lam.setSubVector(idx, myIncompressLambda);
@@ -2979,7 +3064,11 @@ public class FemModel3d extends FemModel
       return idx;
    }
 
-   public void getBilateralSizes(VectorNi sizes) {
+   public void getBilateralSizes (VectorNi sizes) {
+
+      if (usingAttachedRelativeFrame()) {
+         myFrameConstraint.getBilateralSizes (sizes);
+      }
       IncompMethod hardIncomp = getHardIncompMethod();
       if (hardIncomp != IncompMethod.OFF) {
          if (!myHardIncompConfigValidP) {
@@ -3004,6 +3093,10 @@ public class FemModel3d extends FemModel
    // DIVBLK
    public int addBilateralConstraints(
       SparseBlockMatrix GT, VectorNd dg, int numb) {
+
+      if (usingAttachedRelativeFrame()) {
+         numb = myFrameConstraint.addBilateralConstraints (GT, dg, numb);
+      }
       IncompMethod hardIncomp = getHardIncompMethod();
       if (hardIncomp != IncompMethod.OFF) {
 
@@ -3056,6 +3149,10 @@ public class FemModel3d extends FemModel
    }
 
    public int getBilateralInfo(ConstraintInfo[] ginfo, int idx) {
+
+      if (usingAttachedRelativeFrame()) {
+         idx = myFrameConstraint.getBilateralInfo (ginfo, idx);
+      }
       IncompMethod hardIncomp = getHardIncompMethod();
       if (hardIncomp != IncompMethod.OFF) {
          int ncols = myNumIncompressConstraints;
@@ -3145,7 +3242,7 @@ public class FemModel3d extends FemModel
    }
 
    public PointAttachment createPointAttachment (Point pnt) {
-      return createPointAttachment (pnt, 0);
+      return createPointAttachment (pnt, /*reduceTol=*/1e-8);
    }
    
    public PointAttachment createPointAttachment (Point pnt, double reduceTol) {
@@ -3180,6 +3277,37 @@ public class FemModel3d extends FemModel
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public FrameFem3dAttachment createFrameAttachment (
+      Frame frame, RigidTransform3d TFW) {
+
+      if (frame == null && TFW == null) {
+         throw new IllegalArgumentException (
+            "frame and TFW cannot both be null");
+      }
+      if (frame != null && frame.isAttached()) {
+         throw new IllegalArgumentException ("frame is already attached");
+      }
+      Point3d loc = new Point3d();
+      Point3d pos = new Point3d(TFW != null ? TFW.p : frame.getPose().p);
+      FemElement3d elem = findNearestElement (loc, pos);
+      if (!loc.equals (pos)) {
+         TFW = new RigidTransform3d (TFW);
+         TFW.p.set (loc);
+      }
+      FrameFem3dAttachment ffa = new FrameFem3dAttachment (frame);
+      ffa.setFromElement (TFW, elem);
+      if (frame != null) {
+         if (DynamicAttachment.containsLoop (ffa, frame, null)) {
+            throw new IllegalArgumentException (
+               "attachment contains loop");
+         }
+      }
+      return ffa;
+   }
+
    static PointFem3dAttachment getEdgeAttachment(
       FemNode3d n0, FemNode3d n1) {
       double weight = 0;
@@ -3192,7 +3320,7 @@ public class FemModel3d extends FemModel
          if (a instanceof PointFem3dAttachment) {
             PointFem3dAttachment pfa = (PointFem3dAttachment)a;
             if (pfa.numMasters() == 2 && pfa.getSlave() instanceof FemNode3d) {
-               if (containsNode(n1, pfa.getMasters())) {
+               if (containsNode(n1, pfa.getNodes())) {
                   double w = pfa.getCoordinates().get(0);
                   if (Math.abs(w - 0.5) < Math.abs(weight - 0.5)) {
                      // this point is closer
@@ -3281,7 +3409,7 @@ public class FemModel3d extends FemModel
          if (a instanceof PointFem3dAttachment) {
             PointFem3dAttachment pfa = (PointFem3dAttachment)a;
             if (pfa.numMasters() == 4 && pfa.getSlave() instanceof FemNode3d) {
-               FemNode[] nodes = pfa.getMasters();
+               FemNode[] nodes = pfa.getNodes();
                if (containsNode(n1, nodes) &&
                containsNode(n2, nodes) &&
                containsNode(n3, nodes)) {
@@ -3346,9 +3474,8 @@ public class FemModel3d extends FemModel
             edgeNode = createNode(new FemNode3d[] { n0, n1 });
             addedNodes.add(edgeNode);
             if (numElementsWithEdge(n0, n1) > 1) {
-               PointFem3dAttachment a =
-               new PointFem3dAttachment(
-                  edgeNode, new FemNode[] { n0, n1 }, edgeWeights);
+               PointFem3dAttachment a = new PointFem3dAttachment(edgeNode);
+               a.setFromNodes (new FemNode[] { n0, n1 }, edgeWeights);
                addedAttachments.add(a);
             }
          }
@@ -3374,9 +3501,8 @@ public class FemModel3d extends FemModel
             faceNode = createNode(new FemNode3d[] { n0, n1, n2, n3 });
             addedNodes.add(faceNode);
             if (numElementsWithFace(n0, n1, n2, n3) > 1) {
-               PointFem3dAttachment a =
-               new PointFem3dAttachment(
-                  faceNode, new FemNode[] { n0, n1, n2, n3 }, faceWeights);
+               PointFem3dAttachment a = new PointFem3dAttachment(faceNode);
+               a.setFromNodes (new FemNode[] { n0, n1, n2, n3 }, faceWeights);
                addedAttachments.add(a);
             }
          }
@@ -3533,6 +3659,20 @@ public class FemModel3d extends FemModel
 
         FemModel3d fem = (FemModel3d)super.copy(flags, copyMap);
 
+        // fem.myFrame was created in super.copy(), but we redo this
+        // so as to create an exact copy of the orginal frame
+        FemModelFrame newFrame = myFrame.copy (flags, copyMap);
+        newFrame.setName (myFrame.getName());
+        copyMap.put(myFrame, newFrame);
+        fem.myFrame = newFrame;
+        if (myFrameConstraint != null) {
+           fem.attachFrame (myFrame.getPose());
+        }
+        else {
+           fem.attachFrame (null);
+        }
+        fem.myFrameRelativeP = myFrameRelativeP;
+
         for (FemNode3d n : myNodes) {
            FemNode3d newn = n.copy(flags, copyMap);
            newn.setName(n.getName());
@@ -3663,15 +3803,31 @@ public class FemModel3d extends FemModel
 
    /* =================== Frame support ======================= */
 
-   public boolean getUseLocalCoords() {
-      return myUseLocalCoords;
+   public FemModelFrame getFrame() {
+      return myFrame;
    }
 
-   public void setUseLocalCoords (boolean enable) {
-      if (myUseLocalCoords != enable) {
-         myUseLocalCoords = enable;
+   public boolean isFrameRelative() {
+      return myFrameRelativeP;
+   }
+
+   public void setFrameRelative (boolean enable) {
+      if (myFrameRelativeP != enable) {
+         myFrameRelativeP = enable;
+         Frame frame = enable ? myFrame : null;
+         for (int i=0; i<myNodes.size(); i++) {
+            myNodes.get(i).setFrame (frame);
+         }
          notifyStructureChanged(this);
       }
+   }
+
+   public boolean usingAttachedRelativeFrame() {
+      return myFrameConstraint != null && myFrameRelativeP;
+   }
+
+   public FrameFem3dConstraint getFrameConstraint() {
+      return myFrameConstraint;
    }
 
    public void attachFrame (RigidTransform3d TRW) {
@@ -3689,8 +3845,8 @@ public class FemModel3d extends FemModel
             elem = findNearestSurfaceElement(newLoc, pos);
             TX.p.set (newLoc);
          }         
-         myFrameConstraint = new FrameFem3dConstraint (TX, elem);
-         myFrame.setPose (TRW);
+         myFrame.setPose (TX);
+         myFrameConstraint = new FrameFem3dConstraint (myFrame, elem);
       }
    }
 
@@ -3708,7 +3864,7 @@ public class FemModel3d extends FemModel
       List<DynamicComponent> parametric) {
 
       super.getDynamicComponents (active, attached, parametric);
-      if (myUseLocalCoords) {
+      if (myFrameRelativeP) {
          if (myFrame.isActive()) {
             active.add (myFrame);
          }
@@ -3718,6 +3874,351 @@ public class FemModel3d extends FemModel
       }
       else {
          attached.add (myFrame);
+      }
+   }
+
+   public void addGeneralMassBlocks (SparseBlockMatrix M) {
+      if (myFrameRelativeP) {
+         int bi = myFrame.getSolveIndex();
+         if (bi != -1) {
+            for (int i=0; i<myNodes.size(); i++) {
+               int bj = myNodes.get(i).getSolveIndex();
+               if (bj != -1) {
+                  M.addBlock (bi, bj, new Matrix6x3Block());
+                  M.addBlock (bj, bi, new Matrix3x6Block());
+               }
+            }
+         }
+      }
+   }
+
+   /**
+    * Computes the coupling mass between this model's frame coordinates and a
+    * specific frame-relative node. This is a 3x6 matrix with the form
+    *
+    * [ m R^T   - m R^T [c] ]
+    *
+    * where R is the frame's orientation, c is the node's local position (
+    * rotated into frame coodinates), and m is the node's mass.
+    */
+   private void setCouplingMass (
+      Matrix3x6Block blk, double m, RotationMatrix3d R, Vector3d c) {
+      
+      blk.m00 = m*R.m00;
+      blk.m01 = m*R.m10;
+      blk.m02 = m*R.m20;
+      blk.m10 = m*R.m01;
+      blk.m11 = m*R.m11;
+      blk.m12 = m*R.m21;
+      blk.m20 = m*R.m02;
+      blk.m21 = m*R.m12;
+      blk.m22 = m*R.m22;
+
+      double x = m*c.x;
+      double y = m*c.y;
+      double z = m*c.z;
+
+      blk.m03 = y*R.m20 - z*R.m10;
+      blk.m13 = y*R.m21 - z*R.m11;
+      blk.m23 = y*R.m22 - z*R.m12;
+      blk.m04 = z*R.m00 - x*R.m20;
+      blk.m14 = z*R.m01 - x*R.m21;
+      blk.m24 = z*R.m02 - x*R.m22;
+      blk.m05 = x*R.m10 - y*R.m00;
+      blk.m15 = x*R.m11 - y*R.m01;
+      blk.m25 = x*R.m12 - y*R.m02;
+   }
+
+   /**
+    * Scale the masses of the nodes that are connected to the frame,
+    * in order to ensure that the mass matrix is non-singular.
+    */
+   private void scaleFrameNodeMasses (
+      SparseBlockMatrix M, VectorNd f, double s) {
+
+      int bf = myFrame.getSolveIndex();
+      FemNode3d[] nodes = myFrameConstraint.getElement().getNodes();
+      double[] fbuf = f.getBuffer();
+
+      int bk;
+      for (int k=0; k<nodes.length; k++) {
+         if ((bk = nodes[k].getSolveIndex()) != -1) {
+            M.getBlock (bk, bk).scale (s);
+            M.getBlock (bf, bk).scale (s);
+            M.getBlock (bk, bf).scale (s);
+
+            // scale fictitious force terms for node
+            int idx = M.getBlockRowOffset (bk);
+            fbuf[idx++] *= s;
+            fbuf[idx++] *= s;
+            fbuf[idx++] *= s;
+         }
+      }
+   }
+
+   @Override
+   public void getMassMatrixValues (SparseBlockMatrix M, VectorNd f, double t) {
+
+      int bk;
+
+      for (int k=0; k<myNodes.size(); k++) {
+         FemNode3d n = myNodes.get(k);
+          if ((bk = n.getSolveIndex()) != -1) {
+            n.getEffectiveMass (M.getBlock (bk, bk), t);
+            n.getEffectiveMassForces (f, t, M.getBlockRowOffset (bk));
+          }
+      }
+
+      if (myFrameRelativeP) {
+
+         Vector3d wbod = new Vector3d(); // angular velocity in body coords
+         RotationMatrix3d R = myFrame.getPose().R;
+         double[] fbuf = f.getBuffer();
+
+         wbod.inverseTransform (R, myFrame.getVelocity().w);
+         Vector3d w = myFrame.getVelocity().w;
+         //wbod.setZero();
+
+         // update inertia in Frame
+         double mass = 0;
+         Point3d com = new Point3d();
+         SymmetricMatrix3d J = new SymmetricMatrix3d();
+
+         // extra fictitious forces for spatial inertia due to nodal velocity
+         Vector3d fv = new Vector3d();
+         Vector3d fw = new Vector3d();
+         Vector3d fn = new Vector3d();
+         Vector3d tmp = new Vector3d();
+
+         Point3d c = new Point3d(); // local node position rotated to world
+         Vector3d v = new Vector3d(); // local node velocity rotated to world
+         
+         int bf = myFrame.getSolveIndex();
+
+         for (int k=0; k<myNodes.size(); k++) {
+            FemNode3d n = myNodes.get(k);
+
+            // if (n.getNumber() == 16) {
+            //    Vector3d lf = new Vector3d();
+            //    System.out.println ("  cl=  " + n.getLocalPosition());
+            //    System.out.println ("  c=  " + n.getPosition());
+            //    System.out.println ("  lvel=" + n.getLocalVelocity());
+            //    lf.inverseTransform (R, n.getForce());
+            //    System.out.println ("  lf=  " + lf);
+            // }
+
+
+            if ((bk = n.getSolveIndex()) != -1) {
+               c.transform (R, n.getLocalPosition());
+               v.transform (R, n.getLocalVelocity());
+               double m = n.getEffectiveMass();
+               //System.out.println ("m " + k + " " + m);
+               com.scaledAdd (m, c);
+               mass += m;
+               SpatialInertia.addPointRotationalInertia (J, m, c);
+
+               Matrix3x6Block blk   = (Matrix3x6Block)M.getBlock (bk, bf);
+               Matrix6x3Block blkT  = (Matrix6x3Block)M.getBlock (bf, bk);
+               setCouplingMass (blk, m, R, c);
+
+               blkT.transpose (blk);
+
+               // compute fictitious forces for nodes, and accumulate nodal
+               // velocity fictitious force terms for spatial inertia
+
+               tmp.cross (w, v);        // tmp = 2*m (w X v)
+               tmp.scale (2*m);
+
+               // System.out.println ("  vl=" + v);
+               // System.out.println ("  vw=" + n.getVelocity());
+
+               fv.add (tmp);               // fv += 2*m (w X v)
+               fw.crossAdd (c, tmp, fw);  // fw += 2*m (c X w X v)
+
+               fn.set (tmp);               // fn = 2*m (w X v)
+
+               tmp.cross (w, c);        // tmp = m*w X c
+               tmp.scale (m);
+               fn.crossAdd (w, tmp, fn);// fn += m (w X w X c)
+               fn.inverseTransform (R);
+               
+               // set fictitious force terms for node
+               int idx = M.getBlockRowOffset (bk);
+               fbuf[idx++] = -fn.x;
+               fbuf[idx++] = -fn.y;
+               fbuf[idx++] = -fn.z;
+            }
+
+            // if (n.getNumber() == 16) {
+            //    System.out.println ("  fn=  " + fn);
+            // }
+            
+         }
+         com.scale (1/mass);
+         SpatialInertia.addPointRotationalInertia (J, -mass, com);
+
+         SpatialInertia S = new SpatialInertia();
+         S.set (mass, J, com);
+         S.inverseTransform (R); // Frame keeps inertia in local coords
+         myFrame.setInertia (S);
+
+         myFrame.getMass (M.getBlock (bf, bf), t);
+         myFrame.getEffectiveMassForces (f, t, M.getBlockRowOffset (bf));
+
+         // add nodal velocity fictitious force terms for spatial inertia
+         //fv.transform (R);    // convert from local coords ...
+         //fw.transform (R);
+         int idx = M.getBlockRowOffset (bf);
+
+         VectorNd f6 = new VectorNd (6);
+         f.getSubVector (idx, f6);
+         // System.out.println ("xmass forces: "+fv);
+         // System.out.println ("xmass forces: "+fw);
+
+         fbuf[idx++] -= fv.x;
+         fbuf[idx++] -= fv.y;
+         fbuf[idx++] -= fv.z;
+         fbuf[idx++] -= fw.x;
+         fbuf[idx++] -= fw.y;
+         fbuf[idx++] -= fw.z;
+
+         // fbuf[idx++] = 0;
+         // fbuf[idx++] = 0;
+         // fbuf[idx++] = 0;
+         // fbuf[idx++] = 0;
+         // fbuf[idx++] = 0;
+         // fbuf[idx++] = 0;
+
+         if (frameMassFraction != 0) {
+            scaleFrameNodeMasses (M, f, 1.0-frameMassFraction);
+         }
+      }
+
+      // int size = 3*numNodes()+6;
+      // VectorNd fchk = new VectorNd ();
+      // MatrixNd Mchk = FemModel3dTest.computeFrameRelativeMass (fchk, this);
+      // double tol = M.frobeniusNorm()*1e-12;
+
+      // if (!Mchk.epsilonEquals (M, tol)) {
+      //    System.out.println ("ERROR: mass matrix not equal");
+      //    System.out.println ("M=\n" + M.toString ("%7.3f"));
+      //    System.out.println ("Mchk=\n" + Mchk.toString ("%7.3f"));
+      // }
+      // if (!fchk.epsilonEquals (f, tol)) {
+      //    System.out.println ("ERROR: fictitious forces not equal");
+      //    System.out.println ("f=   \n" + f.toString ("%7.3f"));
+      //    System.out.println ("fchk=\n" + fchk.toString ("%7.3f"));
+      // }
+
+   }
+
+   private void zero6Vector (double[] vec) {
+      vec[0] = 0;
+      vec[1] = 0;
+      vec[2] = 0;
+      vec[3] = 0;
+      vec[4] = 0;
+      vec[5] = 0;
+   }
+
+   private void zero3Vector (double[] vec) {
+      vec[0] = 0;
+      vec[1] = 0;
+      vec[2] = 0;
+   }
+
+   private void scaledAdd (Wrench wr, double s, double[] vec, int idx) {
+      wr.f.x += s*vec[idx++];
+      wr.f.y += s*vec[idx++];
+      wr.f.z += s*vec[idx++];
+      wr.m.x += s*vec[idx++];
+      wr.m.y += s*vec[idx++];
+      wr.m.z += s*vec[idx++];
+   }
+
+   private void setFromTwist (double[] vec, int idx, Twist tw) {
+      vec[idx++] = tw.v.x;
+      vec[idx++] = tw.v.y;
+      vec[idx++] = tw.v.z;
+      vec[idx++] = tw.w.x;
+      vec[idx++] = tw.w.y;
+      vec[idx++] = tw.w.z;
+   }
+
+   @Override
+   public void mulInverseMass (
+      SparseBlockMatrix M, VectorNd a, VectorNd f) {
+
+      double[] abuf = a.getBuffer();
+      double[] fbuf = f.getBuffer();
+      int asize = a.size();
+
+      if (M.getAlignedBlockRow (asize) == -1) {
+         throw new IllegalArgumentException (
+            "size of 'a' not block aligned with 'M'");
+      }
+      if (f.size() < asize) {
+         throw new IllegalArgumentException (
+            "size of 'f' is less than the size of 'a'");
+      }
+      int bf = myFrame.getSolveIndex();
+      int bk;
+
+      if (myFrameRelativeP && bf < asize) {
+         int fidx = M.getBlockRowOffset (bf);
+         Wrench wtmp = new Wrench();
+         double[] tmp6 = new double[6];
+         for (int i=0; i<myNodes.size(); i++) {
+            FemNode3d n = myNodes.get(i);
+            if ((bk=n.getSolveIndex()) != -1) {
+               int idx = M.getBlockRowOffset (bk);
+               if (idx < asize) {
+                  MatrixBlock Mfk = M.getBlock (bf, bk);
+                  zero6Vector (tmp6);
+                  Mfk.mulAdd (tmp6, 0, fbuf, idx);
+                  Matrix3x3Block Mkk = (Matrix3x3Block)M.getBlock(bk, bk);
+                  // XXX do we want to use n.mulInverseEffectiveMass?
+                  scaledAdd (wtmp, -1/Mkk.m00, tmp6, 0);
+               }
+            }
+         }
+         scaledAdd (wtmp, 1, fbuf, fidx);
+         // XXX do we need to use getBlock (bf, bf)???
+         Matrix6dBlock Mff = (Matrix6dBlock)M.getBlock (bf, bf);
+         SpatialInertia S = new SpatialInertia ();
+         S.set (Mff);
+         Twist ttmp = new Twist();
+         S.mulInverse (ttmp, wtmp);
+         setFromTwist (abuf, fidx, ttmp);
+         double[] tmp3 = new double[3];
+         for (int i=0; i<myNodes.size(); i++) {
+            FemNode3d n = myNodes.get(i);
+            if ((bk=n.getSolveIndex()) != -1) {
+               int idx = M.getBlockRowOffset (bk);
+               if (idx < asize) {
+                  MatrixBlock Mkf = M.getBlock (bk, bf);
+                  Matrix3x3Block Mkk = (Matrix3x3Block)M.getBlock(bk, bk);
+                  double minv = 1/Mkk.m00;
+                  zero3Vector (tmp3);
+                  Mkf.mulAdd (tmp3, 0, abuf, fidx);
+                  abuf[idx++] = minv*(fbuf[idx] - tmp3[0]);
+                  abuf[idx++] = minv*(fbuf[idx] - tmp3[1]);
+                  abuf[idx++] = minv*(fbuf[idx] - tmp3[2]);
+               }
+            }
+         }
+      }
+      else {
+         for (int i=0; i<myNodes.size(); i++) {
+            FemNode3d n = myNodes.get(i);
+            if ((bk=n.getSolveIndex()) != -1) {
+               int idx = M.getBlockRowOffset (bk);
+               if (idx < asize) {
+                  n.mulInverseEffectiveMass (
+                     M.getBlock(bk, bk), abuf, fbuf, idx);
+               }
+            }
+         }
       }
    }
 

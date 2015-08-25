@@ -30,7 +30,7 @@ public class GLHSVShaderTest implements GLRenderable {
       }
 
       gl.glDisable (GLLightingFunc.GL_LIGHTING);
-      gl.glShadeModel (GL2.GL_SMOOTH);
+      renderer.setShadeModel (RenderProps.Shading.GOURARD);
       gl.glBegin (GL.GL_TRIANGLES);
       gl.glColor3d (0, 1, 1);
       gl.glVertex3d (0, 1, 0);

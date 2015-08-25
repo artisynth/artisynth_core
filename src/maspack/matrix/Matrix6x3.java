@@ -712,7 +712,8 @@ public class Matrix6x3 extends DenseMatrixBase {
       }
       else {
          if (M.rowSize() != 6 || M.colSize() != 3) {
-            throw new ImproperSizeException ("matrix sizes do not conform");
+            throw new ImproperSizeException (
+               "matrix sizes do not conform; M is "+M.getSize());
          }
          m00 += M.get (0, 0);
          m01 += M.get (0, 1);

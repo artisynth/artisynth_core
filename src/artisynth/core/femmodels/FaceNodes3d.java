@@ -241,7 +241,7 @@ public class FaceNodes3d {
          PointFem3dAttachment a = FemModel3d.getFaceAttachment (n);
          if (a != null) {
             boolean attached = true;
-            for (FemNode m : a.getMasters()) {
+            for (FemNode m : a.getNodes()) {
                if (m.getGrandParent() != fem) {
                   attached = false;
                   break;

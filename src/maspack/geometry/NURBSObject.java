@@ -172,17 +172,19 @@ public abstract class NURBSObject implements Renderable {
       }
    }
 
-   private void drawControlPoint (GL2 gl, int i, Point3d tmp) {
-      gl.glPointSize (myCtrlPntSelected.get(i) ? myPointSize + 1 : myPointSize);
-      gl.glBegin (GL2.GL_POINTS);
-      Vector4d cpnt = myCtrlPnts.get(i);
-      tmp.set (cpnt.x, cpnt.y, cpnt.z);
-      // if (myXObjToWorld != RigidTransform3d.IDENTITY) {
-      //    tmp.transform (myXObjToWorld);
-      // }
-      gl.glVertex3d (tmp.x, tmp.y, tmp.z);
-      gl.glEnd();
-   } 
+//   private void drawControlPoint (GLRenderer renderer, int i, Point3d tmp) {
+//      GL2 gl = renderer.getGL2();
+//      renderer.setPointSize (
+//         myCtrlPntSelected.get(i) ? myPointSize + 1 : myPointSize);
+//      gl.glBegin (GL2.GL_POINTS);
+//      Vector4d cpnt = myCtrlPnts.get(i);
+//      tmp.set (cpnt.x, cpnt.y, cpnt.z);
+//      // if (myXObjToWorld != RigidTransform3d.IDENTITY) {
+//      //    tmp.transform (myXObjToWorld);
+//      // }
+//      gl.glVertex3d (tmp.x, tmp.y, tmp.z);
+//      gl.glEnd();
+//   } 
 
    private void drawControlPoint (
       GLRenderer renderer, RenderProps props, int i, Point3d tmp) {
@@ -190,7 +192,7 @@ public abstract class NURBSObject implements Renderable {
       GL2 gl = renderer.getGL2().getGL2();
       int psize = props.getPointSize();
       boolean selected = myCtrlPntSelected.get(i); 
-      gl.glPointSize (selected ? psize+1 : psize);
+      renderer.setPointSize (selected ? psize+1 : psize);
       renderer.setColor (props.getPointColorArray(), selected);
       gl.glBegin (GL2.GL_POINTS);
       Vector4d cpnt = myCtrlPnts.get(i);
@@ -206,7 +208,6 @@ public abstract class NURBSObject implements Renderable {
       GLRenderer renderer, RenderProps props, int flags) {
 
       Point3d tmp = new Point3d();
-      GL2 gl = renderer.getGL2().getGL2();
       boolean selecting = renderer.isSelecting();
       for (int i=0; i<myCtrlPnts.size(); i++) {
          if (selecting) {
@@ -218,7 +219,7 @@ public abstract class NURBSObject implements Renderable {
             drawControlPoint (renderer, props, i, tmp);
          }
       }
-      gl.glPointSize (1);
+      renderer.setPointSize (1);
    }
 
    /**

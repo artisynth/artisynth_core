@@ -67,7 +67,7 @@ public class Rotator3d extends Dragger3dBase {
       GLViewer.mulTransform (gl, myXDraggerToWorld);
 
       renderer.setLightingEnabled (false);
-      gl.glLineWidth (myLineWidth);
+      renderer.setLineWidth (myLineWidth);
 
       if (mySelectedComponent == X_AXIS) {
          gl.glColor3d (1f, 1f, 0);
@@ -148,7 +148,7 @@ public class Rotator3d extends Dragger3dBase {
          }
       }
 
-      gl.glLineWidth (1);
+      renderer.setLineWidth (1);
       renderer.setLightingEnabled (true);
       // gl.glEnable (GL2.GL_CULL_FACE);
    }

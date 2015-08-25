@@ -13,9 +13,10 @@ package maspack.matrix;
 public class MatrixBlockColList {
    protected MatrixBlock myHead;
    protected MatrixBlock myTail;
+   protected MatrixBlock myLast; // last block added, or following last removed
 
    public MatrixBlockColList() {
-      myHead = myTail = null;
+      myHead = myTail = myLast = null;
    }
 
    public boolean isEmpty() {
@@ -49,6 +50,7 @@ public class MatrixBlockColList {
    }
 
    private void remove (MatrixBlock prevBlk, MatrixBlock oldBlk) {
+      myLast = oldBlk.down();
       if (prevBlk != null) {
          prevBlk.setDown (oldBlk.down());
       }
@@ -77,7 +79,7 @@ public class MatrixBlockColList {
    }
 
    public void removeAll() {
-      myHead = myTail = null;
+      myHead = myTail = myLast = null;
    }
 
    public MatrixBlock add (MatrixBlock newBlk) {
@@ -90,30 +92,56 @@ public class MatrixBlockColList {
             throw new IllegalArgumentException ("inconsistent column size");
          }
       }
-      // check end of list first in case blocks are being added in order
-      if (myTail == null || myTail.getBlockRow() < bi) {
-         prevBlk = myTail;
+      // // check end of list first in case blocks are being added in order
+      // if (myTail == null || myTail.getBlockRow() < bi) {
+      //    prevBlk = myTail;
+      // }
+      // else {
+      //    for (MatrixBlock blk = myHead; blk != null; blk = blk.down()) {
+      //       if (blk.getBlockRow() == bi) {
+      //          int bj = blk.getBlockCol();
+      //          if (SparseBlockMatrix.warningLevel > 0) {
+      //             System.out.println (
+      //               "Warning: replacing SparseBlockMatrix block ("+bi+","+bj+")");
+      //          }
+      //          remove (prevBlk, blk);
+      //          oldBlk = blk;
+      //          break;
+      //       }
+      //       else if (blk.getBlockRow() > bi) {
+      //          break;
+      //       }
+      //       else {
+      //          prevBlk = blk;
+      //       }
+      //    }
+      // }
+
+      // check myLast to start search for insertion location, in case
+      // blocks are being added in order
+      MatrixBlock start = myHead;
+      if (myLast != null && myLast.getBlockRow() < bi) {
+         start = myLast;
       }
-      else {
-         for (MatrixBlock blk = myHead; blk != null; blk = blk.down()) {
-            if (blk.getBlockRow() == bi) {
-               int bj = blk.getBlockCol();
-               if (SparseBlockMatrix.warningLevel > 0) {
-                  System.out.println (
-                    "Warning: replacing SparseBlockMatrix block ("+bi+","+bj+")");
-               }
-               remove (prevBlk, blk);
-               oldBlk = blk;
-               break;
+      for (MatrixBlock blk = start; blk != null; blk = blk.down()) {
+         if (blk.getBlockRow() == bi) {
+            int bj = blk.getBlockCol();
+            if (SparseBlockMatrix.warningLevel > 0) {
+               System.out.println (
+                  "Warning: replacing SparseBlockMatrix block ("+bi+","+bj+")");
             }
-            else if (blk.getBlockRow() > bi) {
-               break;
-            }
-            else {
-               prevBlk = blk;
-            }
+            remove (prevBlk, blk);
+            oldBlk = blk;
+            break;
+         }
+         else if (blk.getBlockRow() > bi) {
+            break;
+         }
+         else {
+            prevBlk = blk;
          }
       }
+
       if (prevBlk == null) { // add to beginning of list
          newBlk.setDown (myHead);
          if (myHead == null) {
@@ -128,6 +156,7 @@ public class MatrixBlockColList {
          }
          prevBlk.setDown (newBlk);
       }
+      myLast = newBlk;
       return oldBlk;
    }
 

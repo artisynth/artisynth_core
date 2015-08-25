@@ -846,6 +846,7 @@ public abstract class MeshBase implements Renderable {
    }
 
    public void prerender (RenderList list) {
+      saveRenderInfo();
    }
 
    protected int[] copyWithOffset (int[] idxs, int off) {

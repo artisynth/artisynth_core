@@ -304,7 +304,6 @@ public class MeshFactory {
       if (nang <= 0) {
          throw new IllegalArgumentException ("nang must be positive");
       }
-
       // create faces starting from the bottom
       double dh = h/nh;
       double dang = ang/nang;

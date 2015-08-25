@@ -246,8 +246,7 @@ public class PointSkinAttachment extends PointAttachment
    }
 
    /**
-    * Should be called after all connections have been added. At the moment, all
-    * this does is trim the connection storage space.
+    * Should be called after all connections have been added. 
     */
    public void finalizeConnections() {
       trimToSize();
@@ -541,14 +540,13 @@ public class PointSkinAttachment extends PointAttachment
       }
    }
 
-   private void initializeMasters() {
+   protected void doInitializeMasters() {
       // Note sure if we should require a skinMesh here or not ...
       // if (mySkinMesh == null) {
       // throw new IllegalStateException (
       // "SkinMesh is not set within this attacher");
       // }
-      ArrayList<DynamicComponent> masters =
-         new ArrayList<DynamicComponent>();
+      ArrayList<DynamicComponent> masters = new ArrayList<DynamicComponent>();
       for (int i = 0; i < myNumConnections; i++) {
          DynamicComponent m = myConnections[i].getMaster();
          if (m != null) {
@@ -558,25 +556,42 @@ public class PointSkinAttachment extends PointAttachment
       myMasters = masters.toArray(new DynamicComponent[0]);
    }
 
-   /**
-    * {@inheritDoc}
-    */
-   public DynamicComponent[] getMasters() {
-      if (myMasters == null) {
-         initializeMasters();
-      }
-      return myMasters;
-   }
+//   /**
+//    * {@inheritDoc}
+//    */
+//   public DynamicComponent[] getMasters() {
+//      if (myMasters == null) {
+//         doInitializeMasters();
+//      }
+//      return myMasters;
+//   }
 
-   /**
-    * {@inheritDoc}
-    */
-   public int numMasters() {
-      if (myMasters == null) {
-         initializeMasters();
+   protected void collectMasters (List<DynamicComponent> masters) {
+      super.collectMasters (masters);
+      for (int i = 0; i < myNumConnections; i++) {
+         DynamicComponent m = myConnections[i].getMaster();
+         if (m != null) {
+            masters.add(m);
+         }
       }
-      return myMasters.length;
    }
+   
+   @Override
+   protected int updateMasterBlocks() {
+      // TODO: need to finish this to make attachments work correctly
+      int idx = super.updateMasterBlocks();
+      return idx;
+   }
+   
+//   /**
+//    * {@inheritDoc}
+//    */
+//   public int numMasters() {
+//      if (myMasters == null) {
+//         doInitializeMasters();
+//      }
+//      return myMasters.length;
+//   }
 
    /**
     * Creates an empty PointSkinAttachment. The associated skin mesh will have
@@ -659,21 +674,36 @@ public class PointSkinAttachment extends PointAttachment
       }
    }
 
-   public void computePosState(Vector3d pos) {
+   public void getCurrentPos(Vector3d pos) {
       computePosState(pos, mySkinMesh);
+   }
+   
+   public void getCurrentVel (Vector3d vel, Vector3d dvel) {
+      vel.setZero();
+      // TODO FINISH this, as well as computeVelDerivative()
+      if (dvel != null) {
+         computeVelDerivative (dvel);
+      }
    }
 
    public void updatePosStates() {
       if (myPoint != null) {
-         computePosState(myPoint.getPosition());
+         Point3d pntw = new Point3d();
+         getCurrentPos(pntw);
+         myPoint.setPosition (pntw);
+         updateMasterBlocks();
       }
    }
 
    public void updateVelStates() {
+      if (myPoint != null) {
+         // TODO: finish implementation
+      }
    }
 
    public void applyForces() {
       if (myPoint != null) {
+         super.applyForces();
          Vector3d f = myPoint.getForce();
          if (!f.equals (Vector3d.ZERO)) {
             for (int i = 0; i<myNumConnections; i++) {
@@ -683,39 +713,39 @@ public class PointSkinAttachment extends PointAttachment
       }
    }
 
-   protected MatrixBlock createRowBlock(int colSize) {
-      return createRowBlockNew(colSize);
-   }
-
-   protected MatrixBlock createColBlock(int rowSize) {
-      return createColBlockNew(rowSize);
-   }
-
-   protected MatrixBlock createColBlockNew(int rowSize) {
-      switch (rowSize) {
-         case 1:
-            return new Matrix1x6Block();
-         case 3:
-            return new Matrix3x6Block();
-         case 6:
-            return new Matrix6dBlock();
-         default:
-            return new MatrixNdBlock(rowSize, 6);
-      }
-   }
-
-   protected MatrixBlock createRowBlockNew(int colSize) {
-      switch (colSize) {
-         case 1:
-            return new Matrix6x1Block();
-         case 3:
-            return new Matrix6x3Block();
-         case 6:
-            return new Matrix6dBlock();
-         default:
-            return new MatrixNdBlock(6, colSize);
-      }
-   }
+//   protected MatrixBlock createRowBlock(int colSize) {
+//      return createRowBlockNew(colSize);
+//   }
+//
+//   protected MatrixBlock createColBlock(int rowSize) {
+//      return createColBlockNew(rowSize);
+//   }
+//
+//   protected MatrixBlock createColBlockNew(int rowSize) {
+//      switch (rowSize) {
+//         case 1:
+//            return new Matrix1x6Block();
+//         case 3:
+//            return new Matrix3x6Block();
+//         case 6:
+//            return new Matrix6dBlock();
+//         default:
+//            return new MatrixNdBlock(rowSize, 6);
+//      }
+//   }
+//
+//   protected MatrixBlock createRowBlockNew(int colSize) {
+//      switch (colSize) {
+//         case 1:
+//            return new Matrix6x1Block();
+//         case 3:
+//            return new Matrix6x3Block();
+//         case 6:
+//            return new Matrix6dBlock();
+//         default:
+//            return new MatrixNdBlock(6, colSize);
+//      }
+//   }
 
    public void mulSubGT(MatrixBlock D, MatrixBlock B, int idx) {
    }
@@ -735,6 +765,9 @@ public class PointSkinAttachment extends PointAttachment
       AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
    }
 
+   public void addMassToMasters() {
+   }
+   
    public void addMassToMaster(MatrixBlock mblk, MatrixBlock sblk, int idx) {
    }
 
@@ -835,7 +868,6 @@ public class PointSkinAttachment extends PointAttachment
                      " not recognized," + rtok);
             }
          }
-         trimToSize(); // move to postscan
          return true;
       }
       rtok.pushBack();
@@ -871,7 +903,7 @@ public class PointSkinAttachment extends PointAttachment
       Deque<ScanToken> tokens, CompositeComponent ancestor)
       throws IOException {
       super.postscan(tokens, ancestor);
-      trimToSize();
+      finalizeConnections();
    }
 
    public void writeItems(
@@ -893,39 +925,50 @@ public class PointSkinAttachment extends PointAttachment
       pw.println("]");
    }
 
+   private boolean computeVelDerivative (Vector3d dvel) {
+      boolean isNonZero = false;
+      // TODO - FINISH
+      return isNonZero;
+   }
+   
    public boolean getDerivative(double[] buf, int idx) {
-      return false;
+      Vector3d dvel = new Vector3d();
+      boolean isNonZero = computeVelDerivative (dvel);
+      buf[idx  ] = dvel.x;
+      buf[idx+1] = dvel.y;
+      buf[idx+2] = dvel.z;
+      return isNonZero;
    }
 
-   @Override
-   public void connectToHierarchy() {
-      super.connectToHierarchy();
-      Point point = getPoint();
-      if (point != null) {
-         point.setAttached(this);
-      }
-      DynamicComponent masters[] = getMasters();
-      if (masters != null) {
-         for (DynamicComponent m : masters) {
-            m.addMasterAttachment(this);
-         }
-      }
-   }
-
-   @Override
-   public void disconnectFromHierarchy() {
-      super.disconnectFromHierarchy();
-      Point point = getPoint();
-      if (point != null) {
-         point.setAttached(null);
-      }
-      DynamicComponent masters[] = getMasters();
-      if (masters != null) {
-         for (DynamicComponent m : masters) {
-            m.removeMasterAttachment(this);
-         }
-      }
-   }
+//   @Override
+//   public void connectToHierarchy() {
+//      super.connectToHierarchy();
+//      Point point = getPoint();
+//      if (point != null) {
+//         point.setAttached(this);
+//      }
+//      DynamicComponent masters[] = getMasters();
+//      if (masters != null) {
+//         for (DynamicComponent m : masters) {
+//            m.addMasterAttachment(this);
+//         }
+//      }
+//   }
+//
+//   @Override
+//   public void disconnectFromHierarchy() {
+//      super.disconnectFromHierarchy();
+//      Point point = getPoint();
+//      if (point != null) {
+//         point.setAttached(null);
+//      }
+//      DynamicComponent masters[] = getMasters();
+//      if (masters != null) {
+//         for (DynamicComponent m : masters) {
+//            m.removeMasterAttachment(this);
+//         }
+//      }
+//   }
 
    @Override
    public void getSoftReferences (List<ModelComponent> refs) {

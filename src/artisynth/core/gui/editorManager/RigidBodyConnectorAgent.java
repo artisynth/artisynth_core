@@ -309,8 +309,8 @@ class RigidBodyConnectorList extends ComponentListWidget<RigidBodyConnector> {
    @Override
    protected String getName (
       RigidBodyConnector comp, CompositeComponent ancestor) {
-      RigidBody bodyA = comp.getBodyA();
-      RigidBody bodyB = comp.getBodyB();
+      ConnectableBody bodyA = comp.getBodyA();
+      ConnectableBody bodyB = comp.getBodyB();
       if (bodyB != null) {
          return ComponentUtils.getPathName (ancestor, bodyA) + " - "
          + ComponentUtils.getPathName (ancestor, bodyB);

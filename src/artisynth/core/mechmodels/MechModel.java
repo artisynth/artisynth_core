@@ -14,8 +14,11 @@ import java.util.*;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix;
 import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SparseNumberedBlockMatrix;
+import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
@@ -50,11 +53,13 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    protected static boolean myAllowSelfIntersections = true;
 
    protected PointList<Particle> myParticles;
+   protected PointList<Point> myPoints;
    protected AxialSpringList<AxialSpring> myAxialSprings;
    protected PointSpringList<MultiPointSpring> myMultiPointSprings;
    protected ComponentList<FrameSpring> myFrameSprings;
    protected ComponentList<ForceComponent> myForceEffectors;
    protected ComponentList<RigidBody> myRigidBodies;
+   protected ComponentList<Frame> myFrames;
    protected ComponentList<MeshComponent> myMeshBodies;
    protected ComponentList<RigidBodyConnector> myConnectors;
    protected ComponentList<ConstrainerBase> myConstrainers;
@@ -198,6 +203,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    public MechModel (String name) {
       super (name);
       myParticles = new PointList<Particle> (Particle.class, "particles", "p");
+      myPoints = new PointList<Point> (Point.class, "points", "ps");
       myModels =
          new ComponentList<MechSystemModel> (
             MechSystemModel.class, "models", "m");
@@ -215,6 +221,8 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
             ForceComponent.class, "forceEffectors", "f");
       myRigidBodies =
          new ComponentList<RigidBody> (RigidBody.class, "rigidBodies", "r");
+      myFrames =
+         new ComponentList<Frame> (Frame.class, "frames", "fr");
       myMeshBodies =
          new ComponentList<MeshComponent> (
             MeshComponent.class, "meshBodies", "mb");
@@ -244,7 +252,9 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
 
       addFixed (myModels);
       addFixed (myParticles);
+      addFixed (myPoints);
       addFixed (myRigidBodies);
+      addFixed (myFrames);
       addFixed (myMeshBodies);
       addFixed (myFrameMarkers);
       addFixed (myConnectors);
@@ -664,6 +674,22 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       myParticles.removeAll();
    }
 
+   public PointList<Point> points() {
+      return myPoints;
+   }
+
+   public void addPoint (Point p) {
+      myPoints.add (p);
+   }
+
+   public void removePoint (Point p) {
+      myPoints.remove (p);
+   }
+
+   public void clearPoints() {
+      myPoints.removeAll();
+   }
+
    public RenderableComponentList<AxialSpring> axialSprings() {
       return myAxialSprings;
    }
@@ -860,6 +886,22 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       myRigidBodies.removeAll();
    }
 
+   public ComponentListView<Frame> frames() {
+      return myFrames;
+   }
+
+   public void addFrame (Frame rb) {
+      myFrames.add (rb);
+   }
+
+   public void removeFrame (Frame rb) {
+      myFrames.remove (rb);
+   }
+
+   public void clearFrames() {
+      myFrames.removeAll();
+   }
+
    public ComponentListView<MeshComponent> meshBodies() {
       return myMeshBodies;
    }
@@ -1002,18 +1044,6 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       addAttachment (ax);
    }
 
-   // public void attachPoint (Point p1, Particle p2) {
-   //    if (p1.isAttached()) {
-   //       throw new IllegalArgumentException ("point is already attached");
-   //    }
-   //    PointParticleAttachment ax = new PointParticleAttachment (p2, p1);
-   //    if (DynamicAttachment.containsLoop (ax, p1, null)) {
-   //       throw new IllegalArgumentException (
-   //          "attachment contains loop");
-   //    }
-   //    addAttachment (ax);
-   // }
-
    public void attachPoint (Point p1, RigidBody body, Point3d loc) {
       if (p1.isAttached()) {
          throw new IllegalArgumentException ("point is already attached");
@@ -1024,6 +1054,59 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
             "attachment contains loop");
       }
       addAttachment (rbax);
+   }
+
+   public boolean detachPoint (Point p1) {
+      DynamicAttachment a = p1.getAttachment();
+      if (a != null && a.getParent() == myAttachments) {
+         removeAttachment (a);
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+    /** 
+    * Attaches a frame to a FrameAttachable component, with the
+    * initial pose of the frame described by <code>TFW</code>usin
+    * component's current position state.
+    * @param frame Frame to connect.
+    * @param comp component to attach the frame to.
+    * @param TFW initial desired pose of the frame, in world coordinates 
+    */
+   public void attachFrame (
+      Frame frame, FrameAttachable comp, RigidTransform3d TFW) {
+      if (frame.isAttached()) {
+         throw new IllegalArgumentException ("frame is already attached");
+      }
+      FrameAttachment ax = comp.createFrameAttachment (frame, TFW);
+      if (DynamicAttachment.containsLoop (ax, frame, null)) {
+         throw new IllegalArgumentException (
+            "attachment contains loop");
+      }
+      addAttachment (ax);
+   }
+
+   /** 
+    * Attaches a frame to a FrameAttachable component, using each
+    * component's current position state.
+    * @param frame Frame to connect.
+    * @param comp component to attach the frame to.
+    */
+   public void attachFrame (Frame frame, FrameAttachable comp) {
+      attachFrame (frame, comp, frame.getPose());
+   }
+
+   public boolean detachFrame (Frame frame) {
+      DynamicAttachment a = frame.getAttachment();
+      if (a != null && a.getParent() == myAttachments) {
+         removeAttachment (a);
+         return true;
+      }
+      else {
+         return false;
+      }
    }
 
 //   /** 
@@ -1089,18 +1172,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       myAttachments.remove (ax);
    }
 
-   public boolean detachPoint (Point p1) {
-      DynamicAttachment a = p1.getAttachment();
-      if (a != null && a.getParent() == myAttachments) {
-         removeAttachment (a);
-         return true;
-      }
-      else {
-         return false;
-      }
-   }
-
-   protected void recursivelyGetAttachments (
+  protected void recursivelyGetAttachments (
       CompositeComponent comp, List<DynamicAttachment> list, int level) {
       for (int i=0; i<comp.numComponents(); i++) {
          ModelComponent c = comp.get (i);
@@ -1249,6 +1321,61 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       }
       recursivelyGetLocalComponents (this, list, ForceEffector.class);
       list.add (new GravityEffector());
+   }
+
+   public void addGeneralMassBlocks (SparseBlockMatrix M) {
+      updateLocalModels();
+      for (MechSystemModel m : myLocalModels) {
+         m.addGeneralMassBlocks (M);
+      }
+   }
+
+   @Override
+   public void getMassMatrixValues (SparseBlockMatrix M, VectorNd f, double t) {
+      updateLocalModels();
+      for (MechSystemModel m : myLocalModels) {
+         m.getMassMatrixValues (M, f, t);
+      }
+      updateLocalDynamicComponents();
+      int bi;
+      for (int i=0; i<myLocalDynamicComps.size(); i++) {
+         DynamicComponent c = myLocalDynamicComps.get(i);
+          if ((bi = c.getSolveIndex()) != -1) {
+            c.getEffectiveMass (M.getBlock (bi, bi), t);
+            c.getEffectiveMassForces (f, t, M.getBlockRowOffset (bi));
+          }
+      }
+   }
+
+   @Override
+   public void mulInverseMass (
+      SparseBlockMatrix M, VectorNd a, VectorNd f) {
+      updateLocalModels();
+      for (MechSystemModel m : myLocalModels) {
+         m.mulInverseMass (M, a, f);
+      }
+      updateLocalDynamicComponents();
+      double[] abuf = a.getBuffer();
+      double[] fbuf = f.getBuffer();
+      int asize = a.size();
+      if (M.getAlignedBlockRow (asize) == -1) {
+         throw new IllegalArgumentException (
+            "size of 'a' not block aligned with 'M'");
+      }
+      if (f.size() < asize) {
+         throw new IllegalArgumentException (
+            "size of 'f' is less than the size of 'a'");
+      }
+      for (int i=0; i<myLocalDynamicComps.size(); i++) {
+         DynamicComponent c = myLocalDynamicComps.get(i);
+         int bi = c.getSolveIndex();
+         if (bi != -1) {
+            int idx = M.getBlockRowOffset (bi);
+            if (idx < asize) {
+               c.mulInverseEffectiveMass (M.getBlock (bi, bi), abuf, fbuf, idx);
+            }
+         }
+      }
    }
 
    protected void recursivelyGetAuxStateComponents (
@@ -1526,9 +1653,9 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
 
       recursivelyTransformGeometry (this, X, topObject, flags);
 
-      for (DynamicAttachment a : buildLocalAttachments()) {
-         a.updateAttachment();
-      }
+      //for (DynamicAttachment a : buildLocalAttachments()) {
+      //   a.updateAttachment();
+      //}
       if (myMinBound != null) {
          myMinBound.transform (X);
       }

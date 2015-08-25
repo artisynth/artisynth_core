@@ -30,7 +30,7 @@ public interface RigidBodyConstrainer extends HasAuxState {
     * 
     * @return first body associated with this constrainer
     */
-   public RigidBody getBodyA();
+   public ConnectableBody getBodyA();
 
    /**
     * Returns the second body associated with this constrainer, or null if there
@@ -38,15 +38,15 @@ public interface RigidBodyConstrainer extends HasAuxState {
     * 
     * @return second body associated with this constrainer
     */
-   public RigidBody getBodyB();
+   public ConnectableBody getBodyB();
 
-   public MatrixNdBlock getBilateralBlockA (int numb);
-
-   public MatrixNdBlock getBilateralBlockB (int numb);
-
-   public MatrixNdBlock getUnilateralBlockA (int numu);
-
-   public MatrixNdBlock getUnilateralBlockB (int numu);
+//   public MatrixNdBlock getBilateralBlockA (int numb);
+//
+//   public MatrixNdBlock getBilateralBlockB (int numb);
+//
+//   public MatrixNdBlock getUnilateralBlockA (int numu);
+//
+//   public MatrixNdBlock getUnilateralBlockB (int numu);
 
 //   /**
 //    * Updates the indices of the bodies associated with this constrainer.

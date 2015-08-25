@@ -14,6 +14,44 @@
 %\renewcommand{\sectionname}{}
 \begin{document}
 
+\section*{August 24, 2015}
+
+\subsection*{Method renaming}
+
+{\tt FemMarker.setElement(e)} has been renamed to {\tt
+FemMarker.setFromElement(e)}
+
+\subsection*{Frame attachments added}
+
+The long-standing ability to attach points to certain types of
+ArtiSynth components is now complemented by the ability to attach
+frames to components, including other frames and FEM models. See
+Sections 4.5.3 and 7.6 in the Modeling Guide, and the examples {\tt
+artisynth.demos.tutorial.FrameBodyAttachment} and {\tt
+artisynth.demos.tutorial.FrameFemAttachment}.
+
+\subsection*{Joints can be connected to FEM models}
+
+The ability to add frames to FEM models allows us to connect joints
+directly to these models. See Section 7.6.2 in the Modeling Guide,
+and the example {\tt artisynth.demos.tutorial.JointedFemBeams}.
+
+\subsection{Point-FEM attachments can involve arbitray nodes}
+
+Point attachments can now be made for arbitrary collections of FEM nodes.
+See Sections 7.4.3 through 7.4.6 in the Modeling Guide, and the
+example {\tt artisynth.demos.tutorial.PointFemAttachment}.  The same
+ability holds for FEM markers; see Section 7.5.
+
+\subsection{Wrapping surface support added}
+
+Support has been added for wrapping surfaces. This is done by
+extending {\tt MultiPointSpring} to make some segments {\it
+wrappable}, allowing them to wrap around any {\tt Wrappable} obstacle
+that is added to the spring. Documentation is being prepared. In the
+meantime, see the example {\tt
+artisynth.demos.tutorial.CylinderWrapping}.
+
 \section*{March 16, 2015}
 
 \subsection*{MATLAB interface revised and documented}

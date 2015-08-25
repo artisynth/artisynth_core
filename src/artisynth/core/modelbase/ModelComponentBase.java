@@ -275,6 +275,15 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
    }
 
    /**
+    * Returns true if this component is currently connected to a component
+    * hierarchy. This means that it currently has an ancestor under which all
+    * inter-component references should be contained.
+    */
+   public boolean isConnectedToHierarchy() {
+      return ComponentUtils.nearestEncapsulatingAncestor(this) != null;
+   }
+
+   /**
     * {@inheritDoc}
     */
    public CompositeComponent getParent() {

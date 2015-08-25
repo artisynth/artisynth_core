@@ -84,7 +84,7 @@ public class IntegrationData3d {
       Matrix3d J0 = new Matrix3d();
       J0.setZero();
       for (int i=0; i<nodes.length; i++) {
-         Vector3d pos = nodes[i].getRestPosition();
+         Vector3d pos = nodes[i].getLocalRestPosition();
          Vector3d dNds = GNs[i];
          J0.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
       }

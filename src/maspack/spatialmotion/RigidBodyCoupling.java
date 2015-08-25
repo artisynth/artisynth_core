@@ -41,11 +41,13 @@ public abstract class RigidBodyCoupling {
    protected RigidTransform3d myTCG = new RigidTransform3d();
    protected Twist myErr = new Twist();
    // protected RigidTransform3d myTBA = new RigidTransform3d();
-   protected Twist myVelBA = new Twist();
-   protected Twist myVelBxA = new Twist();
+//   protected Twist myVelBA = new Twist();
+//   protected Twist myVelBxA = new Twist();
    protected boolean myVelocitiesZeroP = true;
    protected Wrench myBilateralWrenchG = new Wrench();
    protected Wrench myUnilateralWrenchG = new Wrench();
+
+   public static boolean useNewDerivatives = true;
 
    // if true, wrenches should originate in frame C instead of G
 //   private boolean myConstraintsInF = false;
@@ -337,175 +339,182 @@ public abstract class RigidBodyCoupling {
             RigidBodyConstraint c = myConstraints[i];
 
             c.myWrenchC.set (info.wrenchC);
+            c.myDotWrenchC.set (info.dotWrenchC);
             
             c.setDistance (info.distance);
             c.setCompliance (info.compliance);
             c.setDamping (info.damping);
 
-            double deriv = info.dotWrenchC.dot (myVelBA);
-            deriv += info.wrenchC.dot (myVelBxA);
+            double deriv = 0;
+            if (useNewDerivatives) {
+               deriv = 0; // -info.dotWrenchC.dot (myVelBA);
+            }
+            else {
+//               deriv = info.dotWrenchC.dot (myVelBA);
+//               deriv += info.wrenchC.dot (myVelBxA);
+            }
             c.setDerivative (deriv); 
          }
       }
    }
 
-   /**
-    * Assumes that TBA has been updated
-    */
-   private void updateVelocityInfo (
-      Twist velA, Twist velB) {
-      if (velB == null) {
-         velB = Twist.ZERO;
-      }
-      myVelBA.sub (velB, velA);
-      myVelBxA.cross (velB, velA);
-   }
+//   /**
+//    * Assumes that TBA has been updated
+//    */
+//   private void updateVelocityInfo (
+//      Twist velA, Twist velB) {
+//      if (velB == null) {
+//         velB = Twist.ZERO;
+//      }
+//      myVelBA.sub (velB, velA);
+//      myVelBxA.cross (velB, velA);
+//   }
 
 
-   /**
-    * Special method to numerically check the derivative values for bilateral
-    * constraints.
-    */
-   private void checkBilateralDerivsNumerically (
-      RigidTransform3d TBA, RigidTransform3d TCA, RigidTransform3d TDB, 
-      Twist velA, Twist velB, boolean setEngaged) {
-
-      RigidTransform3d TGA = new RigidTransform3d();
-      RigidTransform3d TGB = new RigidTransform3d();
-      RigidTransform3d TGC = new RigidTransform3d();
-      
-      TGA.mulInverseRight (TCA, myTCD);
-      TGA.mul (myTGD);
-      TGB.mulInverseLeft (TBA, TGA);
-      TGC.mulInverseLeft (myTCD, myTGD);
-      
-      Twist velA_A = new Twist(velA);
-      Twist velB_B = new Twist();
-      if (velB != null) {
-         velB_B.set (velB);
-      }
-      
-      // transform velA from frame G to frame A, and velB to frame B:
-      velA_A.transform (TGA);
-      velB_B.transform (TGB);
-      
-      int numc = myConstraintInfo.length;
-      ConstraintInfo[] newConstraintInfo = new ConstraintInfo[numc];
-      for (int i=0; i<numc; i++) {
-         newConstraintInfo[i] = new ConstraintInfo(myConstraintInfo[i]);
-      }
-         
-      double eps = 1e-8;
-      Twist velBA = new Twist();
-      RigidTransform3d newTBA = new RigidTransform3d();
-      RigidTransform3d newTCD = new RigidTransform3d();
-      RigidTransform3d newTGD = new RigidTransform3d();
-      RigidTransform3d newTERR = new RigidTransform3d();
-      velBA.inverseTransform (TBA, velA_A);
-      velBA.sub (velB_B, velBA);
-      
-      newTBA.set (TBA);
-      velBA.extrapolateTransform (newTBA, 1e-8);
-         
-      newTCD.mulInverseBoth (TDB, newTBA);
-      newTCD.mul (TCA);
-      newTERR.mulInverseLeft (newTGD, newTCD);
-      getConstraintInfo (newConstraintInfo, newTGD, newTCD, newTERR, setEngaged);
-
-      RigidTransform3d newTGA = new RigidTransform3d();
-      RigidTransform3d newTGB = new RigidTransform3d();
-      RigidTransform3d newTGC = new RigidTransform3d();
-      RigidTransform3d diffTGA = new RigidTransform3d();
-      RigidTransform3d diffTGB = new RigidTransform3d();
-      RigidTransform3d diffTGC = new RigidTransform3d();
-
-      newTGA.mulInverseRight (TCA, newTCD);
-      newTGA.mul (newTGD);
-      newTGB.mulInverseLeft (newTBA, newTGA);
-      newTGC.mulInverseLeft (newTCD, newTGD);
-
-      diffTGA.mulInverseLeft (TGA, newTGA);
-      diffTGB.mulInverseLeft (TGB, newTGB);
-      diffTGC.mulInverseLeft (TGC, newTGC);
-
-      Twist velCA_A = new Twist();
-      Twist velCB_B = new Twist();
-      Twist velCF_A = new Twist();
-      Twist velCF_B = new Twist();
-
-      velCA_A.set (diffTGA);
-      velCA_A.transform (TGA);
-      velCB_B.set (diffTGB);
-      velCB_B.transform (TGB);
-      velCF_A.set (diffTGC);
-      velCF_A.transform (TGA);
-         
-      velCA_A.scale(1/eps);
-      velCB_B.scale(1/eps);
-      velCF_A.scale(1/eps);
-      velCF_B.inverseTransform (TBA, velCF_A);
-
-      Twist velACxA = new Twist();
-      Twist velBCxB = new Twist();
-      Twist velCFxA = new Twist();
-      Twist velCFxB = new Twist();
-      Twist velBxA_B = new Twist();
-
-      velACxA.cross (velCA_A, velA_A);
-      velACxA.scale(-1);
-      velBCxB.cross (velCB_B, velB_B);
-      velBCxB.scale(-1);
-
-      velCFxA.cross (velCF_A, velA_A);
-      velCFxB.cross (velCF_B, velB_B);
-      velBxA_B.transform (TGB, myVelBxA);
-
-      Wrench[] dotWrenchA = new Wrench[numc];
-      Wrench[] dotWrenchB = new Wrench[numc];
-      for (int i=0; i<numc; i++) {
-         ConstraintInfo newinfo = newConstraintInfo[i];
-         ConstraintInfo oldinfo = myConstraintInfo[i];
-         if (newinfo.isBilateral()) {
-            Wrench oldWrenchA = new Wrench();
-            Wrench oldWrenchB = new Wrench();
-            
-            oldWrenchA.transform (TGA, oldinfo.wrenchC);
-            oldWrenchB.inverseTransform (TBA, oldWrenchA);
-            oldWrenchB.negate();
-            
-            dotWrenchA[i] = new Wrench();
-            dotWrenchB[i] = new Wrench();
-            dotWrenchA[i].transform (newTGA, newinfo.wrenchC);
-            dotWrenchB[i].inverseTransform (newTBA, dotWrenchA[i]);
-            dotWrenchB[i].negate();
-
-            RigidBodyConstraint c = myConstraints[i];
-            dotWrenchA[i].sub (oldWrenchA);
-            dotWrenchA[i].scale (1/eps);
-            dotWrenchB[i].sub (oldWrenchB);
-            dotWrenchB[i].scale (1/eps);
-            double deriv = (dotWrenchA[i].dot (velA_A) + 
-                             dotWrenchB[i].dot (velB_B));
-            System.out.printf (
-               "nderiv=%10.5f %10.5f %10.5f\n",
-               dotWrenchA[i].dot (velA_A), 
-               dotWrenchB[i].dot (velB_B), deriv);
-            System.out.printf (
-               "xderiv=%10.5f %10.5f %10.5f\n",
-               oldWrenchA.dot (velACxA),
-               oldWrenchB.dot (velBCxB),
-               oldWrenchA.dot (velACxA)+oldWrenchB.dot (velBCxB));
-            System.out.printf (
-               "yderiv=%10.5f %10.5f\n",
-               -oldWrenchA.dot (velCFxA), 
-               -oldWrenchB.dot (velCFxB) + oldWrenchB.dot(velBxA_B));
-         }
-      }
-   }
+//   /**
+//    * Special method to numerically check the derivative values for bilateral
+//    * constraints.
+//    */
+//   private void checkBilateralDerivsNumerically (
+//      RigidTransform3d TBA, RigidTransform3d TCA, RigidTransform3d TDB, 
+//      Twist velA, Twist velB, boolean setEngaged) {
+//
+//      RigidTransform3d TGA = new RigidTransform3d();
+//      RigidTransform3d TGB = new RigidTransform3d();
+//      RigidTransform3d TGC = new RigidTransform3d();
+//      
+//      TGA.mulInverseRight (TCA, myTCD);
+//      TGA.mul (myTGD);
+//      TGB.mulInverseLeft (TBA, TGA);
+//      TGC.mulInverseLeft (myTCD, myTGD);
+//      
+//      Twist velA_A = new Twist(velA);
+//      Twist velB_B = new Twist();
+//      if (velB != null) {
+//         velB_B.set (velB);
+//      }
+//      
+//      // transform velA from frame G to frame A, and velB to frame B:
+//      velA_A.transform (TGA);
+//      velB_B.transform (TGB);
+//      
+//      int numc = myConstraintInfo.length;
+//      ConstraintInfo[] newConstraintInfo = new ConstraintInfo[numc];
+//      for (int i=0; i<numc; i++) {
+//         newConstraintInfo[i] = new ConstraintInfo(myConstraintInfo[i]);
+//      }
+//         
+//      double eps = 1e-8;
+//      Twist velBA = new Twist();
+//      RigidTransform3d newTBA = new RigidTransform3d();
+//      RigidTransform3d newTCD = new RigidTransform3d();
+//      RigidTransform3d newTGD = new RigidTransform3d();
+//      RigidTransform3d newTERR = new RigidTransform3d();
+//      velBA.inverseTransform (TBA, velA_A);
+//      velBA.sub (velB_B, velBA);
+//      
+//      newTBA.set (TBA);
+//      velBA.extrapolateTransform (newTBA, 1e-8);
+//         
+//      newTCD.mulInverseBoth (TDB, newTBA);
+//      newTCD.mul (TCA);
+//      newTERR.mulInverseLeft (newTGD, newTCD);
+//      getConstraintInfo (newConstraintInfo, newTGD, newTCD, newTERR, setEngaged);
+//
+//      RigidTransform3d newTGA = new RigidTransform3d();
+//      RigidTransform3d newTGB = new RigidTransform3d();
+//      RigidTransform3d newTGC = new RigidTransform3d();
+//      RigidTransform3d diffTGA = new RigidTransform3d();
+//      RigidTransform3d diffTGB = new RigidTransform3d();
+//      RigidTransform3d diffTGC = new RigidTransform3d();
+//
+//      newTGA.mulInverseRight (TCA, newTCD);
+//      newTGA.mul (newTGD);
+//      newTGB.mulInverseLeft (newTBA, newTGA);
+//      newTGC.mulInverseLeft (newTCD, newTGD);
+//
+//      diffTGA.mulInverseLeft (TGA, newTGA);
+//      diffTGB.mulInverseLeft (TGB, newTGB);
+//      diffTGC.mulInverseLeft (TGC, newTGC);
+//
+//      Twist velCA_A = new Twist();
+//      Twist velCB_B = new Twist();
+//      Twist velCF_A = new Twist();
+//      Twist velCF_B = new Twist();
+//
+//      velCA_A.set (diffTGA);
+//      velCA_A.transform (TGA);
+//      velCB_B.set (diffTGB);
+//      velCB_B.transform (TGB);
+//      velCF_A.set (diffTGC);
+//      velCF_A.transform (TGA);
+//         
+//      velCA_A.scale(1/eps);
+//      velCB_B.scale(1/eps);
+//      velCF_A.scale(1/eps);
+//      velCF_B.inverseTransform (TBA, velCF_A);
+//
+//      Twist velACxA = new Twist();
+//      Twist velBCxB = new Twist();
+//      Twist velCFxA = new Twist();
+//      Twist velCFxB = new Twist();
+//      Twist velBxA_B = new Twist();
+//
+//      velACxA.cross (velCA_A, velA_A);
+//      velACxA.scale(-1);
+//      velBCxB.cross (velCB_B, velB_B);
+//      velBCxB.scale(-1);
+//
+//      velCFxA.cross (velCF_A, velA_A);
+//      velCFxB.cross (velCF_B, velB_B);
+//      velBxA_B.transform (TGB, myVelBxA);
+//
+//      Wrench[] dotWrenchA = new Wrench[numc];
+//      Wrench[] dotWrenchB = new Wrench[numc];
+//      for (int i=0; i<numc; i++) {
+//         ConstraintInfo newinfo = newConstraintInfo[i];
+//         ConstraintInfo oldinfo = myConstraintInfo[i];
+//         if (newinfo.isBilateral()) {
+//            Wrench oldWrenchA = new Wrench();
+//            Wrench oldWrenchB = new Wrench();
+//            
+//            oldWrenchA.transform (TGA, oldinfo.wrenchC);
+//            oldWrenchB.inverseTransform (TBA, oldWrenchA);
+//            oldWrenchB.negate();
+//            
+//            dotWrenchA[i] = new Wrench();
+//            dotWrenchB[i] = new Wrench();
+//            dotWrenchA[i].transform (newTGA, newinfo.wrenchC);
+//            dotWrenchB[i].inverseTransform (newTBA, dotWrenchA[i]);
+//            dotWrenchB[i].negate();
+//
+//            RigidBodyConstraint c = myConstraints[i];
+//            dotWrenchA[i].sub (oldWrenchA);
+//            dotWrenchA[i].scale (1/eps);
+//            dotWrenchB[i].sub (oldWrenchB);
+//            dotWrenchB[i].scale (1/eps);
+//            double deriv = (dotWrenchA[i].dot (velA_A) + 
+//                             dotWrenchB[i].dot (velB_B));
+//            System.out.printf (
+//               "nderiv=%10.5f %10.5f %10.5f\n",
+//               dotWrenchA[i].dot (velA_A), 
+//               dotWrenchB[i].dot (velB_B), deriv);
+//            System.out.printf (
+//               "xderiv=%10.5f %10.5f %10.5f\n",
+//               oldWrenchA.dot (velACxA),
+//               oldWrenchB.dot (velBCxB),
+//               oldWrenchA.dot (velACxA)+oldWrenchB.dot (velBCxB));
+//            System.out.printf (
+//               "yderiv=%10.5f %10.5f\n",
+//               -oldWrenchA.dot (velCFxA), 
+//               -oldWrenchB.dot (velCFxB) + oldWrenchB.dot(velBxA_B));
+//         }
+//      }
+//   }
 
    public void updateBodyStates (
       RigidTransform3d TCD, RigidTransform3d TGD, RigidTransform3d TERR,
-      Twist velA, Twist velB, boolean setEngaged) {
+      boolean setEngaged) {
 
       myVelocitiesZeroP = false;
 
@@ -514,7 +523,7 @@ public abstract class RigidBodyCoupling {
       
       getConstraintInfo (myConstraintInfo, TGD, TCD, TERR, setEngaged);
 
-      updateVelocityInfo (velA, velB);
+//      updateVelocityInfo (velA, velB);
       
       updateConstraintsFromC ();
    }

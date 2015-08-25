@@ -231,6 +231,7 @@ public class LaymanModel extends MechModel {
 
       RigidTransform3d TDW = new RigidTransform3d();
       RigidTransform3d TCA = new RigidTransform3d();
+      RigidTransform3d TCW = new RigidTransform3d();
 
       SphericalJoint sjoint;
       RevoluteJoint rjoint;
@@ -241,12 +242,14 @@ public class LaymanModel extends MechModel {
       // override TCA so that we have an initial displacement
       TCA.p.set (0, 0, SHOULDER_Z - UPPER_ARM_Z);
       TCA.R.setRpy (0, 0, PI);
-      sjoint.setTCA (TCA);
+      TCW.mul (myRUppArm.getPose(), TCA);
+      sjoint.setCurrentTCW (TCW);
 
       TDW.p.set (ARM_SEP / 2, 0, SHOULDER_Z);
       TDW.R.setRpy (DTOR * 45, 0, DTOR * 80);
       sjoint = addSphericalJoint (myLUppArm, myTorso, TDW, 105);
-      sjoint.setTCA (TCA);
+      TCW.mul (myLUppArm.getPose(), TCA);
+      sjoint.setCurrentTCW (TCW);
 
       rjoint = addRevoluteJoint (myRUppArm, myRLowArm, -ARM_SEP / 2, 0, elbowZ);
       rjoint.setMaxTheta (5);

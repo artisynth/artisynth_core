@@ -22,15 +22,14 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
    implements ScalableUnits, TransformableGeometry, RigidBodyConstrainer,
               Constrainer, HasCoordinateFrame {
               
-   protected RigidBody myBodyA;
-   protected RigidBody myBodyB;
+   protected ConnectableBody myBodyA;
+   protected ConnectableBody myBodyB;
+   protected FrameAttachment myAttachmentA;
+   protected FrameAttachment myAttachmentB;
+   protected FrameAttachment myAttachmentBG;
+   
    private boolean myEnabledP = true;
    protected RigidBodyCoupling myCoupling;
-
-   MatrixNdBlock myBilateralBlkA;
-   MatrixNdBlock myBilateralBlkB;
-   MatrixNdBlock myUnilateralBlkA;
-   MatrixNdBlock myUnilateralBlkB;
 
    protected VectorNd myCompliance = null;
    protected VectorNd myDamping = null;
@@ -49,17 +48,15 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       new PropertyList (
          RigidBodyConnector.class, RenderableComponentBase.class);
 
-   RigidTransform3d myTCA = new RigidTransform3d();
-   RigidTransform3d myTDB = new RigidTransform3d();
-   
-   RigidTransform3d myTGA = new RigidTransform3d();
-   RigidTransform3d myTGB = new RigidTransform3d();
+   RigidTransform3d myTCG = new RigidTransform3d();
 
-   MatrixNd myPiAC;
-   MatrixNd myPiBC;
+   // transform from D (but with world-aligned orientation) to G. 
+   RigidTransform3d myTDwG = new RigidTransform3d();
+   // transform from C (but with world-aligned orientation) to G. 
+   RigidTransform3d myTCwG = new RigidTransform3d();
 
-   PolarDecomposition3d myPolarCA;
-   PolarDecomposition3d myPolarCB;
+   Twist myDotXv = new Twist();
+   Twist myVelBA = new Twist();
 
    static {
       myProps.add (
@@ -67,9 +64,6 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       myProps.add (
          "rotaryCompliance", "compliance along rotary directions", 0, "[0,inf]");
       myProps.add ("enabled isEnabled *", "constraint is enabled", true);
-      // myProps.add (
-      //    "penetrationTol", "collision penetration tolerance",
-      //    DEFAULT_PENETRATION_TOL);
       myProps.addReadOnly (
          "bilateralForceInA", "bilateral constraint force as seen in body A");
       myProps.addReadOnly (
@@ -77,6 +71,12 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       myProps.addInheritable (
          "penetrationTol:Inherited", "collision penetration tolerance",
          DEFAULT_PENETRATION_TOL);      
+   }
+
+   protected boolean myHasTranslation = false;
+
+   public boolean hasTranslation() {
+      return myHasTranslation;
    }
 
    /**
@@ -144,19 +144,33 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       }
       return false;
    }
+   
+   private void computeForceInA (Wrench wr, Wrench forceG) {
+      if (myAttachmentA instanceof FrameFrameAttachment) {
+         FrameFrameAttachment ffa = (FrameFrameAttachment)myAttachmentA;
+         VectorNd f = new VectorNd(6);
+         ffa.getMasterForces (f, forceG);
+         // wrench values will be the first 6 values of f
+         wr.set (f.getBuffer());
+         wr.inverseTransform (ffa.getMaster().getPose().R);
+      }
+      else {
+         wr.setZero();
+      }      
+   }
 
    /**
-    * Returns the most recently computed bilateral constraint force as seen in
-    * the coordinate frame of body A. This method is more efficient than than
-    * {@link #getBilateralForceInA} since it does not allocate a Wrench object.
+    * If body A is a Frame, computes the wrench acting on body A
+    * in response to the most recent bilateral constraint forces.
+    * If body A is not a Frame, the computed wrench is set to zero.
     *
-    * @param wr returns the constraint force
+    * @param wr returns the bilateral constraint wrench acting on A,
+    * in the coordinates of A
     */
    public void getBilateralForceInA (Wrench wr) {
-      wr.set (myCoupling.getBilateralForceG());
-      wr.transform (myTCA);
+      computeForceInA (wr, myCoupling.getBilateralForceG());
    }
-   
+
    /**
     * For debugging only
     */
@@ -165,10 +179,12 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
    }
 
    /**
-    * Returns the most recently computed bilateral constraint force as seen in
-    * the coordinate frame of body A.
+    * If body A is a Frame, computes the wrench acting on body A
+    * in response to the most recent bilateral constraint forces.
+    * If body A is not a Frame, the computed wrench is set to zero.
     *
-    * @return bilateral constraint force in body A
+    * @return the bilateral constraint wrench acting on A,
+    * in the coordinates of A
     */
    public Wrench getBilateralForceInA() {
       Wrench wr = new Wrench();
@@ -177,22 +193,24 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
    }
 
    /**
-    * Returns the most recently computed unilateral constraint force as seen in
-    * the coordinate frame of body A. This method is more efficient than than
-    * {@link #getUnilateralForceInA} since it does not allocate a Wrench object.
+    * If body A is a Frame, computes the wrench acting on body A
+    * in response to the most recent unilateral constraint forces.
+    * If body A is not a Frame, the computed wrench is set to zero.
     *
-    * @param wr returns the constraint force
+    * @param wr returns the unilateral constraint wrench acting on A,
+    * in the coordinates of A
     */
    public void getUnilateralForceInA (Wrench wr) {
-      wr.set (myCoupling.getUnilateralForceG());
-      wr.transform (myTCA);
+      computeForceInA (wr, myCoupling.getUnilateralForceG());
    }
 
    /**
-    * Returns the most recently computed unilateral constraint force as seen in
-    * the coordinate frame of body A.
+    * If body A is a Frame, computes the wrench acting on body A
+    * in response to the most recent unilateral constraint forces.
+    * If body A is not a Frame, the computed wrench is set to zero.
     *
-    * @return unilateral constraint force in body A
+    * @return the unilateral constraint wrench acting on A,
+    * in the coordinates of A
     */
    public Wrench getUnilateralForceInA() {
       Wrench wr = new Wrench();
@@ -335,114 +353,47 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       return myBodyB == null ? 1 : 2;
    }
 
-   public RigidBody getBodyA() {
+   public ConnectableBody getBodyA() {
       return myBodyA;
    }
 
-   public RigidBody getBodyB() {
+   public ConnectableBody getBodyB() {
       return myBodyB;
+   }
+   
+   public ConnectableBody getOtherBody (ConnectableBody body) {
+      if (body == myBodyA) {
+         return myBodyB;
+      }
+      else if (body == myBodyB) {
+         return myBodyA;
+      }
+      else {
+         return null;
+      }
    }
 
    protected double getAverageBodyMass() {
-      double mass = 0;
-      if (myBodyA != null) {
-         mass += myBodyA.getMass();
-      }
-      if (myBodyB != null) {
-         mass += myBodyB.getMass();
-      }
+      double mass = 
+         myAttachmentA.getAverageMasterMass() + 
+         myAttachmentB.getAverageMasterMass();
       return mass/2;
    }
 
-   /** 
-    * Returns the average inertia of a specified body about the compliance frame.
-    */
-   private double getAverageRevoluteInertia (RigidBody bod, RigidTransform3d T) {
-      SpatialInertia inertia = bod.getInertia();
-      Vector3d com = new Vector3d(); // vector from COM to compliance frame
-      com.sub (T.p, inertia.getCenterOfMass());
-      double l = com.norm();
-      return inertia.getRotationalInertia().trace()/3 + inertia.getMass()*l*l;
-   }
-
    protected double getAverageRevoluteInertia() {
-      double revi = 0;
-      if (myBodyA != null) {
-         revi += getAverageRevoluteInertia (myBodyA, getTCA());
-      }
-      if (myBodyB != null) {
-         revi += getAverageRevoluteInertia (myBodyB, getTDB());
-      }
-      return revi/2;
+      double inertia = 
+         myAttachmentA.getAverageMasterInertia() + 
+         myAttachmentB.getAverageMasterInertia();
+      return inertia/2;
    }
 
-   public MatrixNdBlock getBilateralBlockA (int numb) {
-      if (myBilateralBlkA == null || myBilateralBlkA.colSize() != numb) {
-         myBilateralBlkA = new MatrixNdBlock (myBodyA.getVelStateSize(), numb);
-      }
-      return myBilateralBlkA;
+   protected void getCurrentTCD (RigidTransform3d TCD) {
+      RigidTransform3d TDW = new RigidTransform3d ();
+      RigidTransform3d TCW = new RigidTransform3d ();
+      getCurrentTCW (TCW);
+      getCurrentTDW (TDW);
+      TCD.mulInverseLeft (TDW, TCW);
    }
-
-   public MatrixNdBlock getBilateralBlockB (int numb) {
-      if (myBilateralBlkB == null || myBilateralBlkB.colSize() != numb) {
-         myBilateralBlkB = new MatrixNdBlock (myBodyB.getVelStateSize(), numb);
-      }
-      return myBilateralBlkB;
-   }
-
-   public MatrixNdBlock getUnilateralBlockA (int numb) {
-      if (myUnilateralBlkA == null || myUnilateralBlkA.colSize() != numb) {
-         myUnilateralBlkA = new MatrixNdBlock (myBodyA.getVelStateSize(), numb);
-      }
-      return myUnilateralBlkA;
-   }
-
-   public MatrixNdBlock getUnilateralBlockB (int numb) {
-      if (myUnilateralBlkB == null || myUnilateralBlkB.colSize() != numb) {
-         myUnilateralBlkB = new MatrixNdBlock (myBodyB.getVelStateSize(), numb);
-      }
-      return myUnilateralBlkB;
-   }
-
-   public RigidTransform3d getTCA() {
-      //return myCoupling.getTCA();
-      return myTCA;
-   }
-
-   public void getCurrentTCA (RigidTransform3d TCA) {
-      if (myBodyA instanceof DeformableBody) {
-         ((DeformableBody)myBodyA).computeDeformedFrame (TCA, myTCA);
-      }
-      else {
-         TCA.set (myTCA);
-      }
-   }
-
-   public void setTCA (RigidTransform3d TCA) {
-      myTCA.set (TCA);
-      //myCoupling.setTCA (TCA);
-   }
-
-   public RigidTransform3d getTDB() {
-      // return myCoupling.getTDB();
-      return myTDB;
-   }
-
-   public void getCurrentTDB (RigidTransform3d TDB) {
-      if (myBodyB instanceof DeformableBody) {
-         ((DeformableBody)myBodyB).computeDeformedFrame (TDB, myTDB);
-      }
-      else {
-         TDB.set (myTDB);
-      }
-   }
-
-   public void setTDB (RigidTransform3d TDB) {
-      myTDB.set (TDB);
-      //myCoupling.setTDB (TDB);
-   }
-
-   // protected abstract RigidBodyCouplingX getCoupling();
 
    public int numBilateralConstraints() {
       return myCoupling.numBilaterals();
@@ -468,6 +419,169 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       }
    }
 
+   private double[] adjustBodyPose (DynamicComponent body, double h) {
+      
+      double[] savePos = new double[body.getPosStateSize()];
+      double[] pos = new double[body.getPosStateSize()];
+      double[] vel = new double[body.getVelStateSize()];
+
+      body.getPosState (savePos, 0);
+      body.getPosState (pos, 0);
+      body.getVelState (vel, 0);
+
+      body.addPosImpulse (pos, 0, h, vel, 0);
+      body.setPosState (pos, 0);
+      return savePos;
+   }
+
+   private Twist computeDotXvNumerically (
+      Matrix6dBlock dXAG, double[] velA, Matrix6dBlock dXBG, double[] velB) {
+
+      double[] res = new double[6];
+      if (dXBG != null) {
+         dXBG.mulAdd (res, 0, velB, 0);
+         for (int i=0; i<6; i++) {
+            res[i] = -res[i];
+         }
+      }
+      dXAG.mulAdd (res, 0, velA, 0);
+      Twist dotXv = new Twist();
+      dotXv.set (res);
+      return dotXv;
+   }
+
+   private void computeDotXv (
+      Twist dotXv, Twist velAinC, Twist velBinD, RigidTransform3d TCD,
+      Twist dvelAinC, Twist dvelBinD) {
+
+      dotXv.set (dvelAinC);
+
+      if (myAttachmentB.numMasters() > 0) {
+
+         Twist dvelBinC = new Twist(dvelBinD);
+         dvelBinC.inverseTransform (TCD);
+         dotXv.sub (dvelBinC);
+
+         Twist velBinC = new Twist(velBinD);
+         velBinC.inverseTransform (TCD);
+
+         Twist xprod = new Twist();
+         xprod.cross (velAinC, velBinC);
+         dotXv.add (xprod);
+      }
+   }
+   
+   protected double compare (Matrix M1, Matrix M2) {
+      MatrixNd A1 = new MatrixNd(M1);
+      MatrixNd A2 = new MatrixNd(M2);
+      double norm = A1.frobeniusNorm();
+      A1.sub (A2);
+      return A1.frobeniusNorm()/norm;      
+   }
+
+   private void checkBilateralDerivatives () {
+
+      int nc = myBilaterals.size();
+      if (nc == 0) {
+         return;
+      }
+      if (myAttachmentA.numMasters() == 1 && myAttachmentB.numMasters() <= 1) {
+         DynamicComponent masterA = myAttachmentA.getMasters()[0];
+         DynamicComponent masterB = null;
+         if (myAttachmentB.numMasters() == 1) {
+            masterB = myAttachmentB.getMasters()[0];
+         }
+
+         VectorNd dg = new VectorNd (nc);
+         VectorNd chk = new VectorNd (nc);
+
+         Twist dotXv = new Twist();
+
+         Twist CvelA = new Twist();
+         Twist dgA = new Twist();
+         Twist DvelB = new Twist();
+         Twist CvelB = new Twist();
+         Twist dgB = new Twist();
+
+         myAttachmentA.getCurrentVel (CvelA, dgA);
+         myAttachmentB.getCurrentVel (DvelB, dgB);
+
+         RigidTransform3d TCW = new RigidTransform3d();
+         RigidTransform3d TDW = new RigidTransform3d();
+         RigidTransform3d TCD = new RigidTransform3d();
+         myAttachmentA.getCurrentTFW (TCW);
+         myAttachmentB.getCurrentTFW (TDW);
+         TCD.mulInverseLeft (TDW, TCW);
+
+         computeDotXv (dotXv, CvelA, DvelB, TCD, dgA, dgB);
+         CvelB.inverseTransform (TCD, DvelB);
+         
+         Twist CvelBA = new Twist();
+         CvelBA.sub (CvelB, CvelA);
+
+         double[] cbuf = chk.getBuffer();
+         for (int j=0; j<nc; j++) {
+            RigidBodyConstraint b = myBilaterals.get (j);
+            dg.set (j, -b.getDotWrenchC().dot (CvelBA) + 
+                        b.getWrenchC().dot (dotXv));
+         }
+         double h = 1e-8;
+
+         double[] savePosA = null;
+         double[] savePosB = null;
+
+         MatrixNdBlock blkA0 = null;
+         MatrixNdBlock blkB0 = null;
+         MatrixNdBlock blkA1 = null;
+         MatrixNdBlock blkB1 = null;
+
+         double[] velA = null;
+         double[] velB = null;
+
+         blkA0 = getBilateralBlock (myAttachmentA);
+         velA = new double[masterA.getVelStateSize()];
+         masterA.getVelState (velA, 0);
+         if (masterB != null) {
+            blkB0 = getBilateralBlock (myAttachmentB);
+            velB = new double[masterB.getVelStateSize()];
+            masterB.getVelState (velB, 0);
+         }
+
+         savePosA = adjustBodyPose (masterA, h);
+         if (masterB != null) {
+            savePosB = adjustBodyPose (masterB, h);
+         }
+
+         updateBodyStates (0, false);
+         myBilaterals.clear();
+         getBilateralConstraints (myBilaterals);
+
+         blkA1 = getBilateralBlock (myAttachmentA);
+         blkA1.sub (blkA0);
+         blkA1.scale (1/h);
+         blkA1.mulTransposeAdd (cbuf, 0, velA, 0);
+         if (myAttachmentB.numMasters() > 0) {
+            blkB1 = getBilateralBlock (myAttachmentB);
+            blkB1.sub (blkB0);
+            blkB1.scale (1/h);
+            blkB1.mulTransposeAdd (cbuf, 0, velB, 0);
+         }
+
+         masterA.setPosState (savePosA, 0);
+         if (masterB != null) {
+            masterB.setPosState (savePosB, 0);
+         }
+         updateBodyStates (0, false);
+         myBilaterals.clear();
+         getBilateralConstraints (myBilaterals);
+         
+         System.out.println ("dg= " + dg.toString("%12.8f"));
+         System.out.println ("chk=" + chk.toString ("%12.8f"));
+
+         System.out.println ("");
+      }
+   }
+
    public double updateConstraints (double t, int flags) {
       boolean setEngaged = (flags & MechSystem.UPDATE_CONTACTS) == 0;
 
@@ -480,6 +594,10 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
          }
          myBilaterals.clear();
          getBilateralConstraints (myBilaterals);
+         if (setEngaged) {
+            //checkBilateralDerivatives ();
+            //checkBilateralDerivativesOld ();
+         }
       }
       if (hasUnilateralConstraints()) {
          if (myUnilaterals == null) {
@@ -500,112 +618,171 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       return maxpen;
    }
 
-   static void setBlockCol (
-      MatrixNdBlock blk, int j, Wrench wr,
-      RigidBody body, RigidTransform3d TCtoBod,
-      MatrixNd PiBodToC, boolean negate) {
+   public void addMasterBlocks (
+      SparseBlockMatrix GT, int bj,
+      MatrixNdBlock GC, FrameAttachment attachment) {
+
+      DynamicComponent[] masters = attachment.getMasters();
+      if (masters.length > 0) {
+         MatrixBlock[] masterBlks = attachment.getMasterBlocks();
+         for (int k=0; k<masters.length; k++) {
+            int idx = masters[k].getSolveIndex();
+            if (idx >= 0) {
+               MatrixBlock mblk = masterBlks[k];
+               MatrixBlock blk =
+                  MatrixBlockBase.alloc (mblk.rowSize(), GC.colSize());
+               blk.mulAdd (mblk, GC);
+               GT.addBlock (idx, bj, blk);            
+            }
+         }
+      }
+   }
+
+   private void setMatrixColumn (MatrixNd M, int j, Wrench wr) {
+      double[] buf = M.getBuffer();
+      int w = M.getBufferWidth();
+      buf[0*w+j] = wr.f.x;
+      buf[1*w+j] = wr.f.y;
+      buf[2*w+j] = wr.f.z;
+      buf[3*w+j] = wr.m.x;
+      buf[4*w+j] = wr.m.y;
+      buf[5*w+j] = wr.m.z;
+   }
+
+   protected MatrixNdBlock getConstraintMatrix (
+      ArrayList<RigidBodyConstraint> constraints,
+      RigidTransform3d TXwG, double scale) {
+
+      int nc = constraints.size();
       
-      setBlockCol (blk, j, wr, body, TCtoBod, PiBodToC, negate, /*world=*/false);
-
-   }
-
-   static void setBlockCol (
-      MatrixNdBlock blk, int j, Wrench wr,
-      RigidBody body, RigidTransform3d TCtoBod,
-      MatrixNd PiBodToC, boolean negate, boolean inWorld) {
-
       Wrench wtmp = new Wrench();
-      wtmp.transform (TCtoBod, wr);
-      if (Frame.dynamicVelInWorldCoords && !inWorld) {
-         // transform wrench into world coords
-         wtmp.transform (body.getPose().R, wtmp);
-      }
-      if (negate) {
-         wtmp.negate();
-      }
-      double[] buf = blk.getBuffer();
-      int w = blk.getBufferWidth();
-      int off = blk.getBufferBase() + j;
-      buf[off    ] = wtmp.f.x;
-      buf[w*1+off] = wtmp.f.y;
-      buf[w*2+off] = wtmp.f.z;
-      buf[w*3+off] = wtmp.m.x;
-      buf[w*4+off] = wtmp.m.y;
-      buf[w*5+off] = wtmp.m.z;
-
-      if (body instanceof DeformableBody && PiBodToC != null) {
-         int numc = ((DeformableBody)body).numElasticCoords();
-         double[] pbuf = PiBodToC.getBuffer();
-         wtmp.set (wr);
-         if (negate) {
-            wtmp.negate();
+      MatrixNdBlock GC = new MatrixNdBlock (6, nc);
+      for (int j=0; j<nc; j++) {      
+         RigidBodyConstraint c = constraints.get (j);
+         wtmp.inverseTransform (TXwG, c.getWrenchC());
+         if (scale != 1) {
+            wtmp.scale (scale);
          }
-         // we want to multiply wtmp by the transpose of PiBodToC
-         int k = 6;
-         for (int i=0; i<numc; i++) {
-           buf[w*k+off] = (pbuf[       i]*wtmp.f.x + 
-                           pbuf[numc*1+i]*wtmp.f.y + 
-                           pbuf[numc*2+i]*wtmp.f.z + 
-                           pbuf[numc*3+i]*wtmp.m.x + 
-                           pbuf[numc*4+i]*wtmp.m.y + 
-                           pbuf[numc*5+i]*wtmp.m.z);
-           k++;
-         }
+         setMatrixColumn (GC, j, wtmp);
       }
+      return GC;
    }
 
-   static int getSolveIdx (RigidBody body) {
-      if (body != null && body.getSolveIndex() != -1) {
-         return body.getSolveIndex();
+   protected MatrixNdBlock getFrictionConstraintMatrix (
+      Wrench wr0, Wrench wr1, RigidTransform3d TXwG, double scale) {
+
+      int nc = (wr1 == null ? 1 : 2);
+      
+      Wrench wtmp = new Wrench();
+      MatrixNdBlock GC = new MatrixNdBlock (6, nc);
+      wtmp.inverseTransform (TXwG, wr0);
+      if (scale != 1) {
+         wtmp.scale (scale);
       }
-      else {
-         return -1;
+      setMatrixColumn (GC, 0, wtmp);      
+      if (wr1 != null) {
+         wtmp.inverseTransform (TXwG, wr1);
+         if (scale != 1) {
+            wtmp.scale (scale);
+         }
+         setMatrixColumn (GC, 1, wtmp);      
+      }
+      return GC;
+   }
+
+   protected MatrixNdBlock getBilateralBlock (FrameAttachment attachment) {
+      int nc = myBilaterals.size();
+      DynamicComponent[] masters = attachment.getMasters();
+      MatrixNdBlock blk = null;
+      if (nc > 0 && masters.length > 0) {
+         // this method returns the block in C rather than G since
+         // derivatives are currently computed in C
+         RigidTransform3d TX = new RigidTransform3d();
+         MatrixNdBlock G;
+         if (attachment == myAttachmentA) {
+            TX.mulInverseLeft (myTCG, myTCwG);
+            G = getConstraintMatrix (myBilaterals, TX, 1);
+         }
+         else {
+            TX.mulInverseLeft (myTCG, myTDwG);
+            G = getConstraintMatrix (myBilaterals, TX, -1);
+         }
+         MatrixBlock mblk = attachment.getMasterBlocks()[0];
+         blk = new MatrixNdBlock (mblk.rowSize(), nc);
+         blk.mulAdd (mblk, G);
+      }     
+      return blk;
+   }
+
+   protected void setDerivativeTerm (
+      VectorNd dg, ArrayList<RigidBodyConstraint> constraints,
+      int nc, int idx) {
+
+      double[] dbuf = dg.getBuffer();
+
+      for (int j=0; j<nc; j++) {
+         RigidBodyConstraint c = constraints.get (j);
+         if (RigidBodyCoupling.useNewDerivatives) {
+            dbuf[idx+j] = 
+               -c.getDotWrenchC().dot (myVelBA) + c.getWrenchC().dot(myDotXv);
+         }
+         else {
+            dbuf[idx+j] = c.getDerivative();                  
+         }
       }
    }
 
    public int addBilateralConstraints (
       SparseBlockMatrix GT, VectorNd dg, int numb) {
 
-      double[] dbuf = (dg != null ? dg.getBuffer() : null);
-
       int nc = numBilateralConstraints();
       if (nc > 0) {
+         MatrixNdBlock GC;
          int bj = GT.numBlockCols();
-
-         int idxA = getSolveIdx (getBodyA());
-         MatrixNdBlock blkA = null;
-         if (idxA != -1) {
-            blkA = getBilateralBlockA (nc);
-            GT.addBlock (idxA, bj, blkA);
-         }
-         int idxB = getSolveIdx (getBodyB());
-         MatrixNdBlock blkB = null;
-         if (idxB != -1) {
-            blkB = getBilateralBlockB (nc);
-            GT.addBlock (idxB, bj, blkB);
-         }
-         for (int j=0; j<nc; j++) {
-            RigidBodyConstraint b = myBilaterals.get (j);
-            if (blkA != null) {
-               setBlockCol (
-                  blkA, j, b.getWrenchC(), getBodyA(), myTGA, myPiAC, false);
-            }
-            if (blkB != null) {
-               setBlockCol (
-                  blkB, j, b.getWrenchC(), getBodyB(), myTGB, myPiBC, true);
-            }
-            if (dbuf != null) {
-               dbuf[numb+j] = b.getDerivative();
-            }
+         GC = getConstraintMatrix (myBilaterals, myTCwG, 1);
+         addMasterBlocks (GT, bj, GC, myAttachmentA);
+         GC = getConstraintMatrix (myBilaterals, myTDwG, -1);
+         addMasterBlocks (GT, bj, GC, myAttachmentB);
+         if (dg != null) {
+            setDerivativeTerm (dg, myBilaterals, nc, numb);
          }
       }
       return numb + nc;
+   }
+
+   public int addUnilateralConstraints (
+      SparseBlockMatrix NT, VectorNd dn, int numu) {
+
+      int nc = (myUnilaterals != null ? myUnilaterals.size() : 0);      
+
+      if (nc > 0) {
+         MatrixNdBlock GC;
+         int bj = NT.numBlockCols();
+         GC = getConstraintMatrix (myUnilaterals, myTCwG, 1);
+         addMasterBlocks (NT, bj, GC, myAttachmentA);
+         GC = getConstraintMatrix (myUnilaterals, myTDwG, -1);
+         addMasterBlocks (NT, bj, GC, myAttachmentB);
+         if (dn != null) {
+            setDerivativeTerm (dn, myUnilaterals, nc, numu);
+         }
+      }         
+      if (!MechModel.addConstraintForces) {
+         for (int j=0; j<nc; j++) {
+            RigidBodyConstraint u = myUnilaterals.get(j);
+            u.setContactSpeed (-u.getWrenchC().dot(myVelBA));
+         }
+      }
+      return numu + nc;
    }
 
    public int getBilateralInfo (ConstraintInfo[] ginfo, int idx) {
 
       int nc = numBilateralConstraints();
       if (nc > 0) {
+         if (nc != myBilaterals.size()) {
+            throw new InternalErrorException (
+               "nc=" + nc + " bilaterals.size()=" + myBilaterals.size());
+         }         
          for (int j=0; j<nc; j++) {
             RigidBodyConstraint bc = myBilaterals.get (j);
             ConstraintInfo gi = ginfo[idx++];
@@ -615,83 +792,6 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
          }
       }
       return idx;
-   }
-
-   static void setContactSpeed (
-      RigidBodyConstraint c, RigidBody bodyA, RigidBody bodyB,
-      RigidTransform3d TGA, RigidTransform3d TGB) {
-
-      double speed = 0;
-      Twist bodyVel = new Twist();
-
-      if (bodyA != null) {
-         bodyA.getBodyVelocity (bodyVel);
-         if (TGA != null) {
-            bodyVel.inverseTransform (TGA);
-            speed += c.getWrenchC().dot (bodyVel);
-         }
-         else {
-            speed += c.getWrenchA().dot (bodyVel);
-         }
-      }
-      if (bodyB != null) {
-         bodyB.getBodyVelocity (bodyVel);
-         if (TGB != null) {
-            bodyVel.inverseTransform (TGB);
-            speed -= c.getWrenchC().dot (bodyVel);
-         }
-         else {
-            speed += c.getWrenchB().dot (bodyVel);
-         }         
-      }
-      c.setContactSpeed (speed);
-   }
-
-   public int addUnilateralConstraints (
-      SparseBlockMatrix NT, VectorNd dn, int numu) {
-
-      int nc = (myUnilaterals != null ? myUnilaterals.size() : 0);
-
-      if (nc > 0) {
-
-         double[] dbuf = (dn != null ? dn.getBuffer() : null);
-         int bj = NT.numBlockCols();
-
-         RigidBody bodyA = getBodyA();
-         RigidBody bodyB = getBodyB();
-
-         int idxA = getSolveIdx (bodyA);
-         MatrixNdBlock blkA = null;
-         if (idxA != -1) {
-            blkA = getUnilateralBlockA (nc);
-            NT.addBlock (idxA, bj, blkA);
-         }
-         int idxB = getSolveIdx (bodyB);
-         MatrixNdBlock blkB = null;
-         if (idxB != -1) {
-            blkB = getUnilateralBlockB (nc);
-            NT.addBlock (idxB, bj, blkB);
-         }
-
-         for (int j=0; j<nc; j++) {
-            RigidBodyConstraint u = myUnilaterals.get (j);
-            if (blkA != null) {
-               setBlockCol (
-                  blkA, j, u.getWrenchC(), bodyA, myTGA, myPiAC, false);
-            }
-            if (blkB != null) {
-               setBlockCol (
-                  blkB, j, u.getWrenchC(), bodyB, myTGB, myPiBC, true);
-            }
-            if (dbuf != null) {
-               dbuf[numu+j] = u.getDerivative();
-            }
-            if (!MechModel.addConstraintForces) {
-               setContactSpeed (u, bodyA, bodyB, myTGA, myTGB);
-            }
-         }
-      }
-      return numu + nc;
    }
 
    public int getUnilateralInfo (ConstraintInfo[] ninfo, int idx) {
@@ -720,166 +820,149 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       return (myUnilaterals != null ? myUnilaterals.size() : 0);
    }
 
-   static void getRelativePoseAndVelocity (
-      RigidTransform3d XBA, Twist velRel, RigidBody bodyA, RigidBody bodyB) {
-      
-      Twist bodyVel = new Twist();
-
-      if (bodyA == null) {
-         throw new InternalErrorException (
-            "BodyA is assumed to be non-null here");
-      }
-      if (bodyB != null) {
-         XBA.mulInverseLeft (bodyA.getPose(), bodyB.getPose());
-         bodyB.getBodyVelocity (bodyVel);
-         velRel.transform (XBA, bodyVel);
-         velRel.negate();
-      }
-      else {
-         XBA.invert (bodyA.getPose());
-         velRel.setZero();
-      }
-      bodyA.getBodyVelocity (bodyVel);
-      velRel.add (bodyVel);
-   }
-
-   private static void computeTangentDirection (
-      Vector3d dir, Twist velRel, Vector3d nrm, Point3d pnt) {
-
-      // compute relative velocity at contact point (wrt A)
-      dir.crossAdd (velRel.w, pnt, velRel.v);
-      // then remove normal component
-      dir.scaledAdd (-nrm.dot (dir), nrm, dir);
-            
-      double dirNorm = dir.norm();
-      if (dirNorm > 1e-8) { // XXX should use a better epsilon
-         // align first friction direction along tangential velocity
-         dir.scale (1/dirNorm);
-      }
-      else { // arbitrary first friction direction
-         dir.perpendicular (nrm);
-         dir.normalize();
-      }
-   }
-
    public int addFrictionConstraints (
       SparseBlockMatrix DT, FrictionInfo[] finfo, int numf) {
 
-      return addFrictionConstraints (
-         DT, finfo, numf, myUnilaterals, getBodyA(), getBodyB(), myTGA, false);
+      numf = addFrictionConstraints (DT, finfo, numf, myUnilaterals);
+      return numf;
    }
 
-   public static int addFrictionConstraints (
-      SparseBlockMatrix DT, FrictionInfo[] finfo, int numf,
-      ArrayList<RigidBodyConstraint> unilaterals,
-      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TGA, 
-      boolean inWorld) {      
+   private final double EPS = 1e-10;
 
-      int nu = (unilaterals != null ? unilaterals.size() : 0);
+   protected int accumulateFrictionDir (Vector3d dir, Vector3d vec, int dim) {
 
-      if (nu > 0) {
-
-         Vector3d dir = new Vector3d();
-         RigidTransform3d XBA = new RigidTransform3d();
-         Twist velRel = new Twist();
-         Wrench wr = new Wrench();
-         Wrench wrW = new Wrench();
-
-         int bj = DT.numBlockCols();
-
-         int idxA = getSolveIdx (bodyA);
-         int idxB = getSolveIdx (bodyB);
-
-         getRelativePoseAndVelocity (XBA, velRel, bodyA, bodyB);
-         if (inWorld) {
-            velRel.transform (bodyA.getPose().R);
-            XBA.setIdentity();
-            XBA.p.sub (bodyB.getPosition(), bodyA.getPosition());
+      switch (dim) {
+         case -1: {
+            // no constraints yet observed
+            double mag = vec.norm();
+            if (mag > EPS) {
+               // first constraint oberved; set dir to its direction
+               dir.scale (1/mag, vec);
+               dim = 2;
+            }
+            break;
          }
+         case 2: {
+            // motion is constrained along direction dir
+            Vector3d xvec = new Vector3d();
+            xvec.cross (dir, vec);
+            double mag = xvec.norm();
+            if (mag > EPS) {
+               // second constraint oberved; set dir to the remain free direction
+               dir.scale (1/mag, xvec);
+               dim = 1;
+            }
+            break;
+         }
+         case 1: {
+            // motion is only free along direction dir
+            if (Math.abs(dir.dot(vec)) > EPS) {
+               // third constraint observed; dim = 0 means motion (and hence
+               // friction) is not possible
+               dim = 0;
+            }
+            break;
+         }
+         case 0: {
+            break;
+         }
+         default: {
+            throw new InternalErrorException ("Unknown friction dimension "+dim);
+         }
+      }
+      return dim;
+   }
 
-         Vector3d nrm = new Vector3d();
-         for (int j=0; j<nu; j++) {
-            FrictionInfo info = finfo[numf];
-            RigidBodyConstraint u = unilaterals.get (j);
+   private void computeTangentDirection (
+      Vector3d tdir, Twist velBA, Vector3d nrm) {
 
-            Point3d pnt = u.getContactPoint();
-            if (inWorld && pnt != null) {
-               pnt = new Point3d(pnt);
-            }
-            double mu = u.getFriction();
-            double lam = u.getMultiplier();
-            // Hack here: TGA will be non-null for RigidBodyConnectors,
-            // where we use wrenchC instead of wrenchA
-            if (TGA != null) {
-               nrm.set (u.getWrenchC().f);
-               nrm.transform (TGA.R, nrm);
-            }
-            else {
-               nrm.set (u.getWrenchA().f);
-            }
+      tdir.set (velBA.v);
+      // remove normal component of linear velocity
+      tdir.scaledAdd (-nrm.dot (tdir), nrm, tdir);
+            
+      double dirNorm = tdir.norm();
+      if (dirNorm > EPS) { // XXX should use a better epsilon
+         // align first friction direction along tangential velocity
+         tdir.scale (1/dirNorm);
+      }
+      else { // arbitrary first friction direction
+         tdir.perpendicular (nrm);
+         tdir.normalize();
+      }
+   }
 
-            if (pnt == null || mu * lam < 1e-4) {
-               // no friction, or friction too small to bother with
-               continue;
-            }
-            info.mu = mu;
-            info.contactIdx = u.getSolveIndex();
-            info.flags = 0;
+   protected int addFrictionConstraints (
+      SparseBlockMatrix DT, FrictionInfo[] finfo, int numf,
+      ArrayList<RigidBodyConstraint> constraints) {
 
-            Matrix6x2Block DA = null;
-            if (idxA != -1) {
-               DA = new Matrix6x2Block();
-               DT.addBlock (idxA, bj, DA);
-            }
-            Matrix6x2Block DB = null;
-            if (idxB != -1) {
-               DB = new Matrix6x2Block();
-               DT.addBlock (idxB, bj, DB);
-            }
-
-            if (inWorld) {
-               pnt.sub (bodyA.getPosition());
-            }
-            computeTangentDirection (dir, velRel, nrm, pnt);
-
-            wr.f.set (dir);
-            wr.m.cross (pnt, wr.f);
-            if (DA != null) {
-               wrW.set (wr);
-               if (!inWorld) {
-                  wrW.transform (bodyA.getPose().R);
+      int nc = (constraints != null ? constraints.size() : 0);
+      if (nc > 0) {
+         int fdimv = -1;
+         Vector3d vdir = new Vector3d();
+         int[] idxs = new int[2];
+         double mu = 0;  // friction coefficient
+         double lam = 0; // current normal impulse value
+         for (int j=0; j<nc; j++) {
+            // check each constraint to determine direction(s) along which
+            // frction should be allowed to act. Only examine constraints with
+            // mu != 0
+            RigidBodyConstraint c = constraints.get (j);
+            Wrench g = c.getWrenchC();
+            if (c.getFriction() > 0) {
+               int dim = accumulateFrictionDir (vdir, g.f, fdimv);
+               if (dim != fdimv) {
+                  fdimv = dim;
+                  if (dim == 2) {
+                     idxs[0] = c.getSolveIndex();
+                     mu = c.getFriction();
+                     lam = c.getMultiplier();
+                  }
+                  else if (dim == 1) {
+                     idxs[1] = c.getSolveIndex();
+                     mu = (mu + c.getFriction())/2;
+                     lam = Math.hypot (lam, c.getMultiplier());
+                  }
                }
-               DA.setColumn (0, wrW.f, wrW.m);
             }
-            wr.inverseTransform (XBA);
-            wr.negate();
-            if (DB != null) {
-               wrW.set (wr);
-               if (!inWorld) {
-                  wrW.transform (bodyB.getPose().R);
-               }
-               DB.setColumn (0, wrW.f, wrW.m);     
+         }
+         // only add friction constraint if friction is large enough,
+         // and if the friction dimension is 1 or 2
+         if (mu*lam > 1e-4 && (fdimv == 1 || fdimv == 2)) {
+            Wrench wr0 = null;
+            Wrench wr1 = null;
+
+            if (fdimv == 2) {
+               // friction can act in two directions perpendicular to vdir.
+               // Compute these directions and set them in two wrenches wr0 and
+               // wr1
+               Vector3d tdir = new Vector3d();
+               computeTangentDirection (tdir, myVelBA, vdir);
+               wr0 = new Wrench();
+               wr0.f.set (tdir);
+               wr1 = new Wrench();
+               wr1.f.cross (vdir, tdir);
+               // friction calculation will use impulses from 1 constraint
+               finfo[numf].contactIdx0 = idxs[0];
+               finfo[numf].contactIdx1 = -1;
             }
-            wr.f.cross (nrm, dir);
-            wr.m.cross (pnt, wr.f);
-            if (DA != null) {
-               wrW.set (wr);
-               if (!inWorld) {
-                  wrW.transform (bodyA.getPose().R);
-               }
-               DA.setColumn (1, wrW.f, wrW.m);
+            else { // fdimv == 1
+               // friction can act in only one directions parallel to vdir.
+               // Set this directions in the wrenches wr0.
+               wr0 = new Wrench();
+               wr0.f.set (vdir);
+               // friction calculation will use impulses from 2 constraints
+               finfo[numf].contactIdx0 = idxs[0];
+               finfo[numf].contactIdx1 = idxs[1];
             }
-            wr.inverseTransform (XBA);
-            wr.negate();
-            if (DB != null) {
-               wrW.set (wr);
-               if (!inWorld) {
-                  wrW.transform (bodyB.getPose().R);
-               }
-               DB.setColumn (1, wrW.f, wrW.m);
-            }
+            finfo[numf].mu = mu;
+            finfo[numf].flags = 0;
             numf++;
-            bj++;
+            MatrixNdBlock GC;
+            int bj = DT.numBlockCols();
+            GC = getFrictionConstraintMatrix (wr0, wr1, myTCwG, 1);
+            addMasterBlocks (DT, bj, GC, myAttachmentA);
+            GC = getFrictionConstraintMatrix (wr0, wr1, myTDwG, -1);
+            addMasterBlocks (DT, bj, GC, myAttachmentB); 
          }
       }
       return numf;
@@ -887,38 +970,80 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
 
    // end implement Constrainer
 
+   protected FrameAttachment createAttachmentWithTSM (
+      RigidBody body, RigidTransform3d TSM) {
+      FrameFrameAttachment attachment = new FrameFrameAttachment();
+      attachment.setWithTFM (body, TSM);
+      attachment.updatePosStates();
+      return attachment;
+   }
+
+   protected FrameAttachment createAttachment (
+      ConnectableBody body, RigidTransform3d TSW) {
+      if (body == null) {
+         FrameFrameAttachment attachment = new FrameFrameAttachment();
+         attachment.set (null, TSW);
+         return attachment;
+      }
+      else {
+         FrameAttachment attachment = body.createFrameAttachment (null, TSW);
+         attachment.updatePosStates();
+         return attachment;
+      }
+   }
+
    public void setBodies (
       RigidBody bodyA, RigidTransform3d TCA, RigidBody bodyB,
       RigidTransform3d TDB) {
       myBodyA = bodyA;
-      setTCA (TCA);
+      myAttachmentA = createAttachmentWithTSM (bodyA, TCA);
+      //setTCA (TCA);
       myBodyB = bodyB;
-      setTDB (TDB);
+      myAttachmentB = createAttachmentWithTSM (bodyB, TDB);
+      //setTDB (TDB);
    }
 
    public void setBodies (
-      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TDW) {
+      ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TDW) {
 
-      RigidTransform3d TCA = new RigidTransform3d();
-      RigidTransform3d TDB = new RigidTransform3d();
+      setBodies (bodyA, bodyB, TDW, TDW);
+//      
+//      RigidTransform3d TCA = new RigidTransform3d();
+//      RigidTransform3d TDB = new RigidTransform3d();
+//      
+//      TCA.mulInverseLeft(bodyA.getPose(), TDW);
+//      if (bodyB != null) {
+//         TDB.mulInverseLeft(bodyB.getPose(), TDW);
+//      }
+//      else {
+//         TDB.set (TDW);
+//      }
+//      setBodies(bodyA, TCA, bodyB, TDB);
+   }
+
+   public void setBodies (
+      ConnectableBody bodyA, ConnectableBody bodyB,
+      RigidTransform3d TCW, RigidTransform3d TDW) {
       
-      TCA.mulInverseLeft(bodyA.getPose(), TDW);
-      if (bodyB != null) {
-         TDB.mulInverseLeft(bodyB.getPose(), TDW);
-      }
-      else {
-         TDB.set (TDW);
-      }
-      setBodies(bodyA, TCA, bodyB, TDB);
+      myAttachmentA = createAttachment (bodyA, TCW);
+      myBodyA = bodyA;
+
+      myAttachmentB = createAttachment (bodyB, TDW);
+      myBodyB = bodyB;
    }
 
    public RigidTransform3d getCurrentTDW() {
       RigidTransform3d TDW = new RigidTransform3d();
-      getCurrentTDB (TDW);
-      if (myBodyB != null) {
-         TDW.mul (myBodyB.getPose(), TDW);
-      }
+      getCurrentTDW (TDW);
       return TDW;
+   }
+
+   public void getCurrentTDW (RigidTransform3d TDW) {
+      myAttachmentB.getCurrentTFW (TDW);
+   }
+
+   public void setCurrentTDW (RigidTransform3d TDW) {
+      myAttachmentB.setCurrentTFW (TDW);
    }
 
    public void getPose (RigidTransform3d X) {
@@ -926,10 +1051,29 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
    }
 
    public RigidTransform3d getCurrentTCW() {
-      RigidTransform3d TFW = new RigidTransform3d();
-      getCurrentTCA (TFW);
-      TFW.mul (myBodyA.getPose(), TFW);
-      return TFW;
+      RigidTransform3d TCW = new RigidTransform3d();
+      getCurrentTCW (TCW);
+      return TCW;
+   }
+
+   public void getCurrentTCW (RigidTransform3d TCW) {
+      myAttachmentA.getCurrentTFW (TCW);
+   }
+
+   public void setCurrentTCW (RigidTransform3d TCW) {
+      myAttachmentA.setCurrentTFW (TCW);
+   }
+
+   public RigidTransform3d getCurrentTXW (FrameAttachable body) {
+      if (body == myBodyA) {
+         return getCurrentTCW();
+      }
+      else if (body == myBodyB) {
+         return getCurrentTDW();
+      }
+      else {
+         return null;
+      }
    }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
@@ -942,18 +1086,12 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       else if (scanAndStoreReference (rtok, "bodyB", tokens)) {
          return true;
       }
-      else if (scanAttributeName (rtok, "TCA") ||
-               scanAttributeName (rtok, "TCA")) { // TCA for backward compatible
-         RigidTransform3d TCA = new RigidTransform3d();
-         TCA.scan (rtok);
-         setTCA (TCA);
+      else if (ScanWriteUtils.scanAndStoreComponent (
+                  rtok, "attachmentA", tokens)) {
          return true;
       }
-      else if (scanAttributeName (rtok, "TDB") ||
-               scanAttributeName (rtok, "XDB")) { // XBD for backward compatible
-         RigidTransform3d TDB = new RigidTransform3d();
-         TDB.scan (rtok);
-         setTDB (TDB);
+      else if (ScanWriteUtils.scanAndStoreComponent (
+                  rtok, "attachmentB", tokens)) {
          return true;
       }
       rtok.pushBack();
@@ -965,12 +1103,24 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
 
       if (postscanAttributeName (tokens, "bodyA")) {
          myBodyA = postscanReference (
-            tokens, RigidBody.class, ancestor);
+            tokens, ConnectableBody.class, ancestor);
          return true;
       }
       else if (postscanAttributeName (tokens, "bodyB")) {
          myBodyB = postscanReference (
-            tokens, RigidBody.class, ancestor);
+            tokens, ConnectableBody.class, ancestor);
+         return true;
+      }
+      else if (postscanAttributeName (tokens, "attachmentA")) {
+         myAttachmentA =
+            ScanWriteUtils.postscanComponent (
+               tokens, FrameAttachment.class, ancestor);
+         return true;
+      }
+      else if (postscanAttributeName (tokens, "attachmentB")) {
+         myAttachmentB =
+            ScanWriteUtils.postscanComponent (
+               tokens, FrameAttachment.class, ancestor);
          return true;
       }
       return super.postscanItem (tokens, ancestor);
@@ -980,21 +1130,13 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
-      RigidTransform3d TCA = getTCA();
-      RigidTransform3d TDB = getTDB();
       pw.println ("bodyA="+ComponentUtils.getWritePathName (ancestor, myBodyA));
       pw.println ("bodyB="+ComponentUtils.getWritePathName (ancestor, myBodyB));
-      //printBodyReferences (pw, ancestor);
-      int writeFormat = RigidTransform3d.AXIS_ANGLE_STRING;
-      if (fmt.isFullPrecisionDouble()) {
-         // need to do MATRIX_3X4_STRING since that's the only thing
-         // that gives us full precision save/restore
-         writeFormat = RigidTransform3d.MATRIX_3X4_STRING;
-      }
-      pw.println ("TCA=" + TCA.toString (fmt, writeFormat));
-      pw.println ("TDB=" + TDB.toString (fmt, writeFormat));
+      pw.print ("attachmentA=");
+      ScanWriteUtils.writeComponent (pw, fmt, myAttachmentA, ancestor);
+      pw.print ("attachmentB=");
+      ScanWriteUtils.writeComponent (pw, fmt, myAttachmentB, ancestor);
       super.writeItems (pw, fmt, ancestor);
-      //getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
    }
 
    /**
@@ -1008,149 +1150,179 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       return myCoupling.getConstraint (idx).getMultiplier();
    }
 
+   // public void updateBodyStatesOld (double t, boolean setEngaged) {
+
+   //    RigidTransform3d TCD = new RigidTransform3d();
+   //    RigidTransform3d TGD = new RigidTransform3d();
+   //    RigidTransform3d TCW = new RigidTransform3d();
+   //    RigidTransform3d TDW = new RigidTransform3d();
+   //    RigidTransform3d XERR = new RigidTransform3d(); // same as TCG
+
+   //    Twist err = new Twist();
+   //    Twist CvelA = new Twist();
+   //    Twist DvelB = new Twist();
+   //    Twist velA = new Twist();
+   //    Twist velB = new Twist();
+   //    Twist dgA = new Twist();
+   //    Twist dgB = new Twist();
+      
+   //    myAttachmentA.updatePosStates();
+   //    myAttachmentB.updatePosStates();
+
+   //    //RigidTransform3d TCA = myTCA;
+   //    myAttachmentA.getCurrentTSW (TCW);
+   //    myAttachmentB.getCurrentTSW (TDW);
+
+   //    TCD.mulInverseLeft (TDW, TCW);
+   //    myCoupling.projectToConstraint (TGD, TCD);
+   //    XERR.mulInverseLeft (TGD, TCD);
+   //    myTCG.set (XERR);
+
+   //    // TCwG maps master block velocities associated with C to G
+   //    RigidTransform3d RWC = new RigidTransform3d();
+   //    RWC.R.transpose (TCW.R);
+   //    myTCwG.mul (XERR, RWC);
+
+   //    err.set (XERR);
+
+   //    myAttachmentA.getCurrentVel (CvelA, dgA);
+   //    velA.transform (XERR, CvelA);
+
+   //    if (hasTranslation() && myBodyB.isDeformable()) {
+   //       RigidTransform3d TGW = new RigidTransform3d();
+   //       TGW.mulInverseRight (TCW, XERR);
+   //       if (myAttachmentBG == null) {
+   //          myAttachmentBG = myBodyB.createFrameAttachment (null, TGW);
+   //       }
+   //       else {
+   //          myAttachmentBG.setCurrentTSW (TGW);
+   //       }
+   //       myAttachmentBG.updatePosStates();
+   //       // TODO: make sure dgB is computed correctly!!
+   //       myAttachmentBG.getCurrentVel (velB, dgB);
+   //       DvelB.transform (TGD);
+
+   //       myTDwG.p.setZero();
+   //       myTDwG.R.transpose (TGW.R);
+   //    }
+   //    else {
+   //       myAttachmentB.getCurrentVel (DvelB, dgB);
+   //       velB.inverseTransform (TGD, DvelB);
+
+   //       // TDwG maps master block velocities associated with D to G
+   //       RigidTransform3d RWD = new RigidTransform3d();
+   //       RWD.R.transpose (TDW.R);
+   //       myTDwG.mulInverseLeft (TGD, RWD);
+   //    }
+      
+   //    computeDotXv (myDotXv, CvelA, DvelB, TCD, dgA, dgB);
+   //    myVelBA.sub (velB, velA);
+   //    myCoupling.updateBodyStates (TCD, TGD, XERR, setEngaged);
+   // }
+
    public void updateBodyStates (double t, boolean setEngaged) {
-      RigidTransform3d XAW = myBodyA.getPose();
-      // System.out.println ("XAW=\n" + XAW.toString("%8.3f"));
-      RigidTransform3d XBW =
-         myBodyB != null ? myBodyB.getPose() : RigidTransform3d.IDENTITY;
 
-      RigidTransform3d TGD = new RigidTransform3d();
       RigidTransform3d TCD = new RigidTransform3d();
-      RigidTransform3d XBA = new RigidTransform3d();
-      RigidTransform3d TCG = new RigidTransform3d();
+      RigidTransform3d TGD = new RigidTransform3d();
+      RigidTransform3d TCW = new RigidTransform3d();
+      RigidTransform3d TDW = new RigidTransform3d();
+      RigidTransform3d XERR = new RigidTransform3d(); // same as TCG
 
-      RigidTransform3d XERR = new RigidTransform3d();
+      Twist CvelA = new Twist();
+      Twist DvelB = new Twist();
+      Twist velA = new Twist();
+      Twist velB = new Twist();
+      Twist dgA = new Twist();
+      Twist dgB = new Twist();
       
-      DeformableBody defBodyA = null;
-      DeformableBody defBodyB = null;
+      myAttachmentA.updatePosStates();
+      myAttachmentB.updatePosStates();
 
-      XBA.mulInverseLeft (XAW, XBW);
-      
-      RigidTransform3d TCA = myTCA;
-      if (myBodyA instanceof DeformableBody) {
-         defBodyA = (DeformableBody)myBodyA;
-         if (myPolarCA == null) {
-            myPolarCA = new PolarDecomposition3d();
-         }
-         if (myPiAC == null) {
-            myPiAC = new MatrixNd();
-         }
-         TCA = new RigidTransform3d();
-         getCurrentTCA (TCA);
-      }
-      RigidTransform3d TDB = myTDB;
-      if (myBodyB instanceof DeformableBody) {
-         defBodyB = (DeformableBody)myBodyB;
-         if (myPolarCB == null) {
-            myPolarCB = new PolarDecomposition3d();
-         }
-         if (myPiBC == null) {
-            myPiBC = new MatrixNd();
-         }
-         TDB = new RigidTransform3d();
-         getCurrentTDB (TDB);
-         
-         RigidTransform3d TCB = new RigidTransform3d();
-         RigidTransform3d TCB0 = new RigidTransform3d();
-         TCB.mulInverseLeft (XBA, TCA);
+      //RigidTransform3d TCA = myTCA;
+      myAttachmentA.getCurrentTFW (TCW);
+      myAttachmentB.getCurrentTFW (TDW);
 
-         // use myPolarCB as a temp for polarTF
-         defBodyB.computeUndeformedFrame (TCB0, myPolarCB, TCB);
+      if (hasTranslation() && myBodyB.isDeformable()) {
+
+         TCD.mulInverseLeft (TDW, TCW);
+         if (myAttachmentBG == null) {
+            myAttachmentBG = myBodyB.createFrameAttachment (null, TCW);
+         }
+         else {
+            myAttachmentBG.setCurrentTFW (TCW);
+         }
+         RigidTransform3d TCW0 = new RigidTransform3d();
+         RigidTransform3d TDW0 = new RigidTransform3d();
          RigidTransform3d TCD0 = new RigidTransform3d();
          RigidTransform3d TGD0 = new RigidTransform3d();
-         TCD0.mulInverseLeft (myTDB, TCB0);
-         myCoupling.projectToConstraint (TGD0, TCD0);
+         myAttachmentB.getUndeformedTFW (TDW0);
+         myAttachmentBG.getUndeformedTFW (TCW0);
+         TCD0.mulInverseLeft (TDW0, TCW0);
+         myCoupling.projectToConstraint (TGD0, TCD0);         
 
-         RigidTransform3d TGB0 = new RigidTransform3d();
-         TGB0.mul (myTDB, TGD0);
-         defBodyB.computeDeformedFrame (myTGB, myPolarCB, TGB0);   
+         XERR.mulInverseLeft (TGD0, TCD0);
+         myTCG.set (XERR); // ????
 
-         // compute XERR using C and F
-         XERR.mulInverseBoth (myTGB, XBA);
-         XERR.mul (TCA);
+         // TCwG maps master block velocities associated with C to G
+         RigidTransform3d RWC = new RigidTransform3d();
+         RWC.R.transpose (TCW.R);
+         myTCwG.mul (XERR, RWC);
 
-         // For update constraints, use TGD0 and TCD0 in place of TGD and TCD
+         myAttachmentA.getCurrentVel (CvelA, dgA);
+         velA.transform (XERR, CvelA);
 
-         //System.out.println ("bodyB deformable");
+         myAttachmentBG.updatePosStates();
+         myAttachmentBG.getCurrentVel (velB, dgB);
+         DvelB.transform (TCD, velB);
+         velB.transform (XERR);
+         Twist err = new Twist();
+         err.set (XERR);
+         //System.out.println ("err=" + err.toString("%12.8f"));
 
-         TGD.set (TGD0);
-         TCD.set (TCD0);
+         // TODO: make sure dgB is computed correctly!!
+         dgB.transform (TCD);
+
+         RigidTransform3d TGW = new RigidTransform3d();
+         TGW.mulInverseRight (TCW, XERR);
+
+         // TDwG maps master block velocities associated with D to G
+         TGD.mulInverseRight (TCD, XERR);
+         RigidTransform3d RWD = new RigidTransform3d();
+         RWD.R.transpose (TDW.R);
+         myTDwG.mulInverseLeft (TGD, RWD);
+
+         computeDotXv (myDotXv, CvelA, DvelB, TCD, dgA, dgB);
+         myVelBA.sub (velB, velA);
+         myCoupling.updateBodyStates (TCD0, TGD0, XERR, setEngaged);
       }
       else {
-         TCD.mulInverseBoth (TDB, XBA);
-         TCD.mul (TCA);
+
+         TCD.mulInverseLeft (TDW, TCW);
          myCoupling.projectToConstraint (TGD, TCD);
-         myTGB.mul (myTDB, TGD);
-         //System.out.println ("bodyB fixed");
-
-         // XXX is this true?  I would expect XERR.mulInverseRight(TGD,TCD)
          XERR.mulInverseLeft (TGD, TCD);
+         myTCG.set (XERR);
+
+         // TCwG maps master block velocities associated with C to G
+         RigidTransform3d RWC = new RigidTransform3d();
+         RWC.R.transpose (TCW.R);
+         myTCwG.mul (XERR, RWC);
+
+         myAttachmentA.getCurrentVel (CvelA, dgA);
+         velA.transform (XERR, CvelA);
+
+         myAttachmentB.getCurrentVel (DvelB, dgB);
+         velB.inverseTransform (TGD, DvelB);
+
+         // TDwG maps master block velocities associated with D to G
+         RigidTransform3d RWD = new RigidTransform3d();
+         RWD.R.transpose (TDW.R);
+         myTDwG.mulInverseLeft (TGD, RWD);
+
+         computeDotXv (myDotXv, CvelA, DvelB, TCD, dgA, dgB);
+         myVelBA.sub (velB, velA);
+         myCoupling.updateBodyStates (TCD, TGD, XERR, setEngaged);
       }
-
-      myTGA.mul (XBA, myTGB);
-      if (defBodyA != null) {
-         RigidTransform3d TGA0 = new RigidTransform3d();
-         defBodyA.computeUndeformedFrame (TGA0, myPolarCA, myTGA);
-      }
-
-      Twist err = new Twist();
-      err.set (XERR);
-
-      Twist velA = new Twist();
-      myBodyA.getBodyVelocity (velA);
-      velA.inverseTransform (myTGA);
-      Twist velB = null;
-      if (myBodyB != null) {
-         velB = new Twist();
-         myBodyB.getBodyVelocity (velB);
-         velB.inverseTransform (myTGB);
-      }
-      // System.out.println ("bodyVelA=" + myBodyA.getVelocity().toString("%13.9f"));
-      // if (defBodyA != null) {
-      //    System.out.println (
-      //       "elasVelA=" + defBodyA.getElasticVel().toString("%13.9f"));
-      // }
-
-      //System.out.println ("myTGA=\n" + myTGA.toString ("%13.9f"));
-
-      if (defBodyA != null) {
-         Twist velx = new Twist(); 
-         defBodyA.computeDeformedFrameVel (velx, myPolarCA, myTGA);
-         defBodyA.computeElasticJacobian (myPiAC, myPolarCA, myTGA);
-         //System.out.println ("PiAC=\n" + myPiAC.toString ("%13.8f"));
-         //System.out.println ("vel*=" + velx.toString("%13.9f"));
-         velA.add (velx);         
-      }
-      if (defBodyB != null) {
-         Twist velx = new Twist(); 
-         defBodyB.computeDeformedFrameVel (velx, myPolarCB, myTGB);
-         defBodyB.computeElasticJacobian (myPiBC, myPolarCB, myTGB);
-         velB.add (velx);
-      }
-      //System.out.println ("velC=" + velA.toString("%13.9f"));
-      myCoupling.updateBodyStates (TCD, TGD, XERR, velA, velB, setEngaged);
-   }
-
-   /**
-    * Returns the most recently updated value for TGA. This update is done
-    * whenever <code>updateBodyStates()</code> is called. The returned value
-    * must be treated as read-only and not modified.
-    *
-    * @return current value for TGA.
-    */
-   public RigidTransform3d getTGA() {
-      return myTGA;
-   }
-
-   /**
-    * Returns the most recently updated value for TGB. This update is done
-    * whenever <code>updateBodyStates()</code> is called. The returned value
-    * must be treated as read-only and not modified.
-    *
-    * @return current value for TGB.
-    */
-   public RigidTransform3d getTGB() {
-      return myTGB;
+      
    }
 
    /**
@@ -1160,8 +1332,8 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
    }
 
    public void scaleDistance (double s) {
-      myTCA.p.scale (s);
-      myTDB.p.scale (s);
+      myAttachmentA.scaleDistance (s);
+      myAttachmentB.scaleDistance (s);
       myCoupling.scaleDistance (s);
    }
 
@@ -1172,7 +1344,8 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
    }
 
    public int setBilateralImpulses (VectorNd lam, double h, int idx) {
-      return myCoupling.setBilateralImpulses (lam, h, idx);
+      idx = myCoupling.setBilateralImpulses (lam, h, idx);
+      return idx;
    }
 
    public int getBilateralImpulses (VectorNd lam, int idx) {
@@ -1222,7 +1395,8 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
    }
 
    public int setUnilateralImpulses (VectorNd the, double h, int idx) {
-      return myCoupling.setUnilateralImpulses (the, h, idx);
+      idx = myCoupling.setUnilateralImpulses (the, h, idx);
+      return idx;
    }
 
    public int getUnilateralImpulses (VectorNd the, int idx) {
@@ -1231,22 +1405,19 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
 
    /**
     * Returns true if this RigidBodyConnectorX is enabled and at least one of
-    * it's associated RigidBodies is active.
+    * it's underlying master components is active.
     */
    public boolean isActive() {
       if (!isEnabled()) {
          return false;
       }
-      if (myBodyA.isActive()) {
-         return true;
-      }
-      if (myBodyB != null && myBodyB.isActive()) {
+      if (myAttachmentA.oneMasterActive() ||
+          myAttachmentB.oneMasterActive()) {
          return true;
       }
       else {
          return false;
       }
-
    }
 
    public void transformGeometry (AffineTransform3dBase X) {
@@ -1279,48 +1450,26 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
     */
    public void transformGeometry (
       AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      // Note: in normal operation, myBodyA is not null
-      RigidTransform3d TAW = 
-         myBodyA != null ? myBodyA.getPose() : RigidTransform3d.IDENTITY;
-      RigidTransform3d TBW =
-         myBodyB != null ? myBodyB.getPose() : RigidTransform3d.IDENTITY;
          
       RigidTransform3d TDW = new RigidTransform3d();
-      RigidTransform3d TFW = new RigidTransform3d();
-      RigidTransform3d TDBnew = new RigidTransform3d();
-      RigidTransform3d TCAnew = new RigidTransform3d();
+      RigidTransform3d TCW = new RigidTransform3d();
+      PolarDecomposition3d pd = new PolarDecomposition3d();
+      pd.factor (X.getMatrix());
       
-      RotationMatrix3d Ra = new RotationMatrix3d();
-      SVDecomposition3d SVD = new SVDecomposition3d();
-      SVD.leftPolarDecomposition ((Matrix3d)null, Ra, X.getMatrix());
+      myAttachmentA.getCurrentTFW (TCW);
+      myAttachmentB.getCurrentTFW (TDW);
       
-      TDW.mul (TBW, myTDB);
-      TFW.mul (TAW, myTCA);
+      myCoupling.transformGeometry (X, pd.getR(), TCW, TDW);
       
-      myCoupling.transformGeometry (X, Ra, TFW, TDW);
-      
-      //TDW.mulAffineLeft (X, null);
-      TDW.p.mulAdd (X.getMatrix(), TDW.p, X.getOffset());
-      TDW.R.mul (Ra, TDW.R);
-      TDBnew.mulInverseLeft (TBW, TDW);
-      setTDB (TDBnew);
-
-      //TFW.mulAffineLeft (X, null);
-      TFW.p.mulAdd (X.getMatrix(), TFW.p, X.getOffset());
-      TFW.R.mul (Ra, TFW.R);      
-      TCAnew.mulInverseLeft (TAW, TFW);
-      setTCA (TCAnew);       
-
-      //myCoupling.transformGeometry (X, TAW, TBW);
+      myAttachmentA.transformGeometry (X, TCW);
+      myAttachmentB.transformGeometry (X, TDW);
    }
 
    @Override
    public void getHardReferences (List<ModelComponent> refs) {
       super.getHardReferences (refs);
-      refs.add (myBodyA);
-      if (myBodyB != null) {
-         refs.add (myBodyB);
-      }
+      myAttachmentA.getHardReferences (refs);
+      myAttachmentB.getHardReferences (refs);
    }
 
    @Override
@@ -1328,10 +1477,10 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       super.connectToHierarchy ();
       // Note: in normal operation, bodyA is not null
       if (myBodyA != null) {
-         myBodyA.addDependency (this);
+         myBodyA.addConnector (this);
       }
       if (myBodyB != null) {
-         myBodyB.addDependency (this);
+         myBodyB.addConnector (this);
       }
    }
 
@@ -1340,10 +1489,10 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       super.disconnectFromHierarchy();
       // Note: in normal operation, bodyA is not null
       if (myBodyA != null) {
-         myBodyA.removeDependency (this);
+         myBodyA.removeConnector (this);
       }
       if (myBodyB != null) {
-         myBodyB.removeDependency (this);
+         myBodyB.removeConnector (this);
       }
    }
 
@@ -1353,13 +1502,12 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
 
    public boolean getCopyReferences (
       List<ModelComponent> refs, ModelComponent ancestor) {
-      if (!ComponentUtils.addCopyReferences (refs, myBodyA, ancestor)) {
+
+      if (!myAttachmentA.getCopyReferences(refs, ancestor)) {
          return false;
       }
-      if (myBodyB != null) {
-         if (!ComponentUtils.addCopyReferences (refs, myBodyB, ancestor)) {
-            return false;
-         }
+      if (!myAttachmentB.getCopyReferences(refs, ancestor)) {
+         return false;
       }
       return true;
    }
@@ -1369,18 +1517,51 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       RigidBodyConnector copy = (RigidBodyConnector)super.copy (flags, copyMap);
 
-      copy.myBodyA = copyBody (copyMap, myBodyA, flags);
-      if (myBodyB != null) {
-         copy.myBodyB = copyBody (copyMap, myBodyB, flags);
+      // the following are all allocated on demand so set them to null to
+      // ensure we don't share them with the original :-)
+      copy.myCoupling = null;
+      copy.myBilaterals = null;
+      copy.myUnilaterals = null;
+      copy.myAttachmentBG = null;
+
+      copy.myAttachmentA = myAttachmentA.copy (flags, copyMap);
+      copy.myAttachmentB = myAttachmentB.copy (flags, copyMap);
+
+      if (myBodyA instanceof CopyableComponent) {
+         copy.myBodyA =
+            (ConnectableBody)ComponentUtils.maybeCopy (
+               flags, copyMap, (CopyableComponent)myBodyA);
+      }
+      else {
+         // shouldn't be here since copy shouldn't be called in this case
+         copy.myBodyA = null;
+      }
+      if (myBodyB instanceof CopyableComponent) {
+         copy.myBodyB = 
+            (ConnectableBody)ComponentUtils.maybeCopy (
+               flags, copyMap, (CopyableComponent)myBodyB);
+      }
+      else {
+         // shouldn't be here since copy shouldn't be called in this case
+         copy.myBodyB = null;
       }
       copy.myEnabledP = myEnabledP;
-      return copy;
-   }
 
-   private RigidBody copyBody (
-      Map<ModelComponent,ModelComponent> copyMap, RigidBody body, int flags) {
+      if (myCompliance != null) {
+         copy.myCompliance = new VectorNd (myCompliance);
+      }
+      if (myDamping != null) {
+         copy.myDamping = new VectorNd (myDamping);
+      }
 
-      RigidBody copy = (RigidBody)ComponentUtils.maybeCopy (flags, copyMap, body);
+      // the following working variables need to be duplicated, though probably
+      // without the current values; just being cautious ...
+      copy.myTCG = new RigidTransform3d (myTCG);
+      copy.myTDwG = new RigidTransform3d (myTDwG);
+      copy.myTCwG = new RigidTransform3d (myTCwG);
+      copy.myDotXv = new Twist(myDotXv);
+      copy.myVelBA = new Twist(myVelBA);
+      
       return copy;
    }
 
@@ -1390,67 +1571,71 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
    }
 
    public void updateForBodyPositionChange (
-      RigidBody body, RigidTransform3d XBodyToWorldNew) {
-      RigidTransform3d TBW =
-         (myBodyB != null ? myBodyB.getPose() : RigidTransform3d.IDENTITY);
+      ConnectableBody body, RigidTransform3d TXW) {
 
       if (body == myBodyA) {
-         RigidTransform3d TCA = new RigidTransform3d();
-         TCA.mulInverseLeft (XBodyToWorldNew, myBodyA.getPose());
-         TCA.mul (myTCA);
-         setTCA (TCA);         
-         //myCoupling.updateTCA (XBodyToWorldNew, myBodyA.getPose());
+         myAttachmentA.setCurrentTFW (TXW);
       }
       else if (body == myBodyB) {
-         RigidTransform3d TDB = new RigidTransform3d();
-         TDB.mulInverseLeft (XBodyToWorldNew, TBW);
-         TDB.mul (myTDB);
-         setTDB (TDB);
-         //myCoupling.updateTDB (XBodyToWorldNew, TBW);
+         myAttachmentB.setCurrentTFW (TXW);
       }
       else {
-         throw new InternalErrorException ("body " + body
-         + " not known to this connector");
+         // ignore for now
       }
    }
 
-   protected void setPoses (RigidTransform3d TBA) {
+   private void adjustBodyPoses (
+      ConnectableBody body, ArrayList<ConnectableBody> freeBodies,
+      RigidTransform3d Tnew, RigidTransform3d Told) {
 
-      ArrayList<RigidBody> freeBodiesA = new ArrayList<RigidBody>();
+      RigidTransform3d T = new RigidTransform3d();
+      T.mulInverseRight (Tnew, Told);     
+      freeBodies.remove (body);
+      for (ConnectableBody bod : freeBodies) {
+         bod.transformPose (T);
+      }
+      body.transformPose (T);
+   }
+
+   protected void adjustPoses (RigidTransform3d TGD) {
+
+      RigidTransform3d TCW = new RigidTransform3d();
+      RigidTransform3d TDW = new RigidTransform3d();
+      myAttachmentA.getCurrentTFW (TCW);
+      myAttachmentB.getCurrentTFW (TDW);
+      
+      ArrayList<ConnectableBody> freeBodiesA = new ArrayList<ConnectableBody>();
       if (myBodyB != null) {
          myBodyB.setMarked (true);
       }
-      boolean AIsFree = myBodyA.findFreeAttachedBodies (
+      boolean AIsFree = findFreeAttachedBodies (myBodyA,
          freeBodiesA, /*rejectSelected=*/false);
       if (myBodyB != null) {
          myBodyB.setMarked (false);
       }
       if (!AIsFree) {
          if (myBodyB != null) {
-            ArrayList<RigidBody> freeBodiesB = new ArrayList<RigidBody>();
+            ArrayList<ConnectableBody> freeBodiesB = 
+               new ArrayList<ConnectableBody>();
             myBodyA.setMarked (true);
-            boolean BIsFree = myBodyB.findFreeAttachedBodies (
+            boolean BIsFree = findFreeAttachedBodies (myBodyB, 
                freeBodiesB, /*rejectSelected=*/false);
             myBodyA.setMarked (false);
             if (BIsFree) {
-               RigidTransform3d TBW = new RigidTransform3d();
+               RigidTransform3d TDWnew = new RigidTransform3d();
+               TDWnew.mulInverseRight (TCW, TGD);
                freeBodiesB.remove (myBodyA);
-               ArrayList<RigidTransform3d> relPoses =
-                  myBodyB.getRelativePoses (freeBodiesB);
-               TBW.mul (myBodyA.getPose(), TBA);
-               myBodyB.setPose (TBW);
-               myBodyB.setRelativePoses (freeBodiesB, relPoses);
+               adjustBodyPoses (myBodyB, freeBodiesB, TDWnew, TDW);
+               myAttachmentB.updatePosStates();
                return;
             }
          }
       }
-      RigidTransform3d TAW = new RigidTransform3d();
+      RigidTransform3d TCWnew = new RigidTransform3d();
+      TCWnew.mul (TDW, TGD);
       freeBodiesA.remove (myBodyB);
-      ArrayList<RigidTransform3d> relPoses =
-         myBodyA.getRelativePoses (freeBodiesA);
-      TAW.mulInverseRight (myBodyB.getPose(), TBA);
-      myBodyA.setPose (TAW);
-      myBodyA.setRelativePoses (freeBodiesA, relPoses);      
+      adjustBodyPoses (myBodyA, freeBodiesA, TCWnew, TCW);
+      myAttachmentA.updatePosStates();
    }
 
    public void advanceAuxState (double t0, double t1) {
@@ -1468,6 +1653,8 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
    }
 
    public void setAuxState (DataBuffer data) {
+      myAttachmentA.updatePosStates();
+      myAttachmentB.updatePosStates();
       myCoupling.setAuxState (data);
       if (hasUnilateralConstraints()) {
          if (myUnilaterals == null) {
@@ -1492,4 +1679,71 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       public boolean hasState() {
       return true;
    }
+   
+   private static boolean recursivelyFindFreeAttachedBodies (
+      ConnectableBody body, LinkedList<ConnectableBody> list, 
+      boolean rejectSelected) {
+
+      if (body == null) {
+         return false;
+      }
+      boolean isFree = true;     
+      if (!body.isMarked()) {
+         body.setMarked (true);
+         list.add (body);
+         if (!body.isFreeBody()) {
+            isFree = false;
+         }
+         if (rejectSelected && body.isSelected()) {
+            isFree = false;
+         }
+         if (body.getConnectors() != null) {
+            for (RigidBodyConnector c : body.getConnectors()) {
+               ConnectableBody otherBody = c.getOtherBody (body);
+               if (!recursivelyFindFreeAttachedBodies (
+                      otherBody, list, rejectSelected)) {
+                  isFree = false;
+               }
+            }
+         }
+      }
+      return isFree;
+   }
+  
+   public static boolean findFreeAttachedBodies (
+      ConnectableBody body, List<ConnectableBody> freeBodies, 
+      boolean rejectSelected) {
+      
+      LinkedList<ConnectableBody> nonfreeBodies = 
+         new LinkedList<ConnectableBody>();
+      LinkedList<ConnectableBody> list = 
+         new LinkedList<ConnectableBody>();
+      boolean allFree = true;
+      body.setMarked (true);
+      if (!body.isFreeBody() || (rejectSelected && body.isSelected())) {
+         allFree = false;
+      }
+      if (body.getConnectors() != null) {
+         for (RigidBodyConnector c : body.getConnectors()) {
+            ConnectableBody otherBody = c.getOtherBody (body);
+            list.clear();
+            if (recursivelyFindFreeAttachedBodies (
+               otherBody, list, rejectSelected)) {
+               freeBodies.addAll (list);
+            }
+            else {
+               nonfreeBodies.addAll (list);
+               allFree = false;
+            }
+         }
+      }
+      for (ConnectableBody b : freeBodies) {
+         b.setMarked (false);
+      }
+      for (ConnectableBody b : nonfreeBodies) {
+         b.setMarked (false);
+      }
+      body.setMarked (false);
+      return allFree;
+   }   
 }

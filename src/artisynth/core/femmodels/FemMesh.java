@@ -159,7 +159,7 @@ public class FemMesh extends FemMeshBase
          }
          else if (pa instanceof PointFem3dAttachment) {
             PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
-            for (FemNode node : pfa.getMasters()) {
+            for (FemNode node : pfa.getNodes()) {
                if (myNodeVertexMap.get(node) == null) {
                   myNodeVertexMap.put ((FemNode3d)node, NO_SINGLE_VERTEX);
                }
@@ -397,7 +397,7 @@ public class FemMesh extends FemMeshBase
       }
 
       ArrayList<FemNode> nodes = new ArrayList<FemNode>();
-      ArrayList<Double> weights = new ArrayList<Double>();
+      VectorNd weights = new VectorNd();
 
       Point3d pos = new Point3d();
       for (int i=0; i<elem.numNodes(); i++) {
@@ -405,14 +405,14 @@ public class FemMesh extends FemMeshBase
          if (Math.abs(w) > EPS) {
             FemNode3d n = elem.getNodes()[i];
             nodes.add (n);
-            weights.add (w);
+            weights.append (w);
             pos.scaledAdd (w, n.getPosition());
          }
       }
 
       Vertex3d vtx = new Vertex3d (pos);
       PointFem3dAttachment attacher = new PointFem3dAttachment();
-      attacher.setNodes (nodes, weights);
+      attacher.setFromNodes (nodes, weights);
       myVertexAttachments.add (attacher);
 
       getMesh().addVertex (vtx);
@@ -481,19 +481,19 @@ public class FemMesh extends FemMeshBase
       }
    }
    
-   public void setVertexAttachment (
-      int vidx, double [] weights, FemNode3d[] nodes) {
-      if (weights.length > 1) {
-         PointFem3dAttachment pattacher = new PointFem3dAttachment();
-         pattacher.setNodes (nodes, weights);
-         setVertexAttachment(vidx, pattacher);
-      } else if (weights.length == 1) {
-         PointParticleAttachment attacher = 
-            new PointParticleAttachment(nodes[0], null);
-         setVertexAttachment(vidx, attacher);
-      }
-      
-   }
+//   public void setVertexAttachment (
+//      int vidx, double [] weights, FemNode3d[] nodes) {
+//      if (weights.length > 1) {
+//         PointFem3dAttachment pattacher = new PointFem3dAttachment();
+//         pattacher.setFromNodes (nodes, weights);
+//         setVertexAttachment(vidx, pattacher);
+//      } else if (weights.length == 1) {
+//         PointParticleAttachment attacher = 
+//            new PointParticleAttachment(nodes[0], null);
+//         setVertexAttachment(vidx, attacher);
+//      }
+//      
+//   }
 
    public static FemMesh createEmbedded (
       FemMesh surf, MeshBase mesh, FemModel3d fem) {
@@ -501,7 +501,7 @@ public class FemMesh extends FemMeshBase
       double reduceTol = 1e-8;
 
       ArrayList<FemNode> nodes = new ArrayList<FemNode>();
-      ArrayList<Double> weights = new ArrayList<Double>();
+      VectorNd weights = new VectorNd();
 
       if (surf == null) {
          surf = new FemMesh(fem);
@@ -550,13 +550,13 @@ public class FemMesh extends FemMeshBase
                // weight everything to the nearest node
                nodes.clear();
                nodes.add(nearestNode);
-               weights.clear();
-               weights.add(1.0);
+               weights.setSize(0);
+               weights.append(1.0);
             }
             else {
                Vector3d c3 = new Vector3d();
                boolean converged = 
-                  elem.getNaturalCoordinatesRobust (c3, vtx.pnt, 1000);
+                  elem.getNaturalCoordinates (c3, vtx.pnt, 1000);
                if (!converged) {
                   System.err.println(
                      "Warning: getNaturalCoordinatesRobust() did not converge, "+
@@ -568,11 +568,11 @@ public class FemMesh extends FemMeshBase
                }
 
                nodes.clear();
-               weights.clear();
+               weights.setSize(0);
                for (int k=0; k<coords.size(); k++) {
                   if (Math.abs(coords.get(k)) >= reduceTol) {
                      nodes.add (elem.getNodes()[k]);
-                     weights.add (coords.get(k));                            
+                     weights.append(coords.get(k));                            
                   }
                }
             }
@@ -580,7 +580,7 @@ public class FemMesh extends FemMeshBase
 
          if (weights.size() > 1) {
             PointFem3dAttachment attacher = new PointFem3dAttachment();
-            attacher.setNodes (nodes, weights);
+            attacher.setFromNodes (nodes, weights);
             surf.myVertexAttachments.add (attacher);
          } else if (weights.size() == 1) {
             PointParticleAttachment attacher =
@@ -736,10 +736,10 @@ public class FemMesh extends FemMeshBase
             if (pfa.numMasters() == 2 && pfa.getSlave() instanceof FemNode3d) {
                FemNode3d slaveNode = (FemNode3d)pfa.getSlave();
                if (slaveNode.getGrandParent() == fem &&
-                  FemModel3d.containsNode(n1, pfa.getMasters())) {
+                  FemModel3d.containsNode(n1, pfa.getNodes())) {
                   nodes.add(slaveNode);
                   double w = pfa.getCoordinates().get(0);
-                  if (n0 == pfa.getMasters()[0]) {
+                  if (n0 == pfa.getNodes()[0]) {
                      weights.add(w);
                   }
                   else {
@@ -881,7 +881,7 @@ public class FemMesh extends FemMeshBase
                for (int j = 0; j < 3; j++) {
                   FemNode3d node = tri[j];
                   if ((vtxs[j] = myNodeVertexMap.get(node)) == null) {
-                     Vertex3d vtx = new Vertex3d (node.getPosition());
+                     Vertex3d vtx = new Vertex3d (new Point3d(node.getPosition()));
                      mesh.addVertex (vtx);
                      myVertexAttachments.add (
                         new PointParticleAttachment (node, null));
@@ -923,7 +923,7 @@ public class FemMesh extends FemMeshBase
          sval = 0;
          if (attacher instanceof PointFem3dAttachment) {
             PointFem3dAttachment pfa = (PointFem3dAttachment)attacher;
-            FemNode[] nodes = pfa.getMasters();
+            FemNode[] nodes = pfa.getNodes();
             VectorNd weights = pfa.getCoordinates();
             for (int j=0; j<nodes.length; j++) {
                if (nodes[j] instanceof FemNode3d) { // paranoid!
@@ -946,7 +946,11 @@ public class FemMesh extends FemMeshBase
                sval = node.getVonMisesStress();
             }
          }
-         myColorMap.getRGB(sval/myStressPlotRange.getRange(), colorArray);
+         double smin = myStressPlotRange.getLowerBound();
+         double srng = myStressPlotRange.getRange();
+         double c = (sval-smin)/srng;
+         c = Math.max (0, Math.min (c, 1.0));
+         myColorMap.getRGB(c, colorArray);
          mesh.setVertexColor(i, colorArray[0], colorArray[1], colorArray[2], alpha);
       }
    }
@@ -958,7 +962,7 @@ public class FemMesh extends FemMeshBase
       }
       if (pa instanceof PointFem3dAttachment) {
          PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
-         FemNode[] masters = pfa.getMasters();
+         FemNode[] masters = pfa.getNodes();
          pw.print ("v");
          for (int j=0; j<masters.length; j++) {
             pw.print (
@@ -968,7 +972,7 @@ public class FemMesh extends FemMeshBase
       }
       else if (pa instanceof PointParticleAttachment) {
          PointParticleAttachment ppa = (PointParticleAttachment)pa;
-         FemNode3d n = (FemNode3d)ppa.getMasters()[0];
+         FemNode3d n = (FemNode3d)ppa.getParticle();
          pw.println ("v " + n.getNumber() + " 1.0");
       }      
       else {
@@ -1122,7 +1126,7 @@ public class FemMesh extends FemMeshBase
             FemNode3d node = getNodeFromNumber (rtok, nnum);
             Vertex3d vtx = myNodeVertexMap.get(node);
             if (vtx == null) {
-               vtx = new Vertex3d (node.getPosition());
+               vtx = new Vertex3d (new Point3d(node.getPosition()));
                myNodeVertexMap.put(node, vtx);
                myVertexAttachments.add (
                   new PointParticleAttachment(node, null));
@@ -1145,7 +1149,7 @@ public class FemMesh extends FemMeshBase
       PolygonalMesh mesh = (PolygonalMesh)getMesh();
       ArrayList<Vertex3d> vtxList = new ArrayList<Vertex3d>();
       ArrayList<FemNode> nodes = new ArrayList<FemNode>();
-      ArrayList<Double> weights = new ArrayList<Double>();
+      VectorNd weights = new VectorNd();
       rtok.nextToken();
       while (rtok.tokenIsWord()) {
          if (rtok.sval.equals("v")) {
@@ -1165,16 +1169,16 @@ public class FemMesh extends FemMeshBase
                Vertex3d vtx = new Vertex3d();
                if (rtok.tokenIsInteger()) {
                   nodes.clear();
-                  weights.clear();
+                  weights.setSize(0);
                   nodes.add (getNodeFromNumber (rtok, nnum));
-                  weights.add (w);
+                  weights.append (w);
                   while (rtok.tokenIsInteger()) {
                      nodes.add (getNodeFromNumber (rtok, (int)rtok.lval));
-                     weights.add (rtok.scanNumber());
+                     weights.append (rtok.scanNumber());
                      rtok.nextToken();
                   }
                   PointFem3dAttachment attacher = new PointFem3dAttachment();
-                  attacher.setNodes (nodes, weights);
+                  attacher.setFromNodes (nodes, weights);
                   ax = attacher;
                }
                else {
@@ -1260,7 +1264,7 @@ public class FemMesh extends FemMeshBase
       }
       else if (attacher instanceof PointFem3dAttachment) {
          PointFem3dAttachment pfa = (PointFem3dAttachment)attacher;
-         FemNode[] nodes = pfa.getMasters();
+         FemNode[] nodes = pfa.getNodes();
          VectorNd weights = pfa.getCoordinates();
          for (int i=0; i<nodes.length; i++) {
             pw.print (
@@ -1349,7 +1353,7 @@ public class FemMesh extends FemMeshBase
             else if (va instanceof PointFem3dAttachment) {
                PointFem3dAttachment pfa = (PointFem3dAttachment)va;
                double[] coords = (double[])tokens.poll().value();
-               pfa.setNodes (nodes, coords);
+               pfa.setFromNodes (nodes, coords);
             }
          }
          buildNodeVertexMap();
@@ -1495,21 +1499,23 @@ public class FemMesh extends FemMeshBase
       PointAttachment pa = getAttachment(vtx.getIndex());
       if (pa instanceof PointFem3dAttachment) {
          PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
-         FemNode[] masters = pfa.getMasters();
+         FemNode[] masters = pfa.getNodes();
          for (int j=0; j<masters.length; j++) {
             mlist.add (new ContactMaster (masters[j], pfa.getCoordinate(j)));
          }
       }
       else {
          PointParticleAttachment ppa = (PointParticleAttachment)pa;
-         DynamicComponent[] masters = ppa.getMasters ();
-         mlist.add (new ContactMaster ((FemNode3d)masters[0], 1));
+         mlist.add (new ContactMaster ((FemNode3d)ppa.getParticle(), 1));
       }      
    }
    
    public boolean containsContactMaster (CollidableDynamicComponent comp) {
       if (myNodeVertexMap != null && comp instanceof FemNode3d &&
           myNodeVertexMap.get((FemNode3d)comp) != null) {
+         return true;
+      }
+      else if (myFem.getFrame() == comp) {
          return true;
       }
       else {
@@ -1570,7 +1576,7 @@ public class FemMesh extends FemMeshBase
          else if (va instanceof PointFem3dAttachment) {
             PointFem3dAttachment pfa = (PointFem3dAttachment)va;
             for (int k=0; k<pfa.numMasters(); k++) {
-               FemNode node = pfa.getMasters()[k];
+               FemNode node = pfa.getNodes()[k];
                double w = pfa.getCoordinate(k);
                accumulateNodeWeights (node, w*wgts[i], nodeWeights);
             }
@@ -1579,7 +1585,11 @@ public class FemMesh extends FemMeshBase
       // Create a new PointFem3dAttachment
             
       PointFem3dAttachment ax = new PointFem3dAttachment (pnt);
-      ax.setNodes (nodeWeights.keySet(), nodeWeights.values());
+      VectorNd weightVec = new VectorNd();
+      for (Double d : nodeWeights.values()) {
+         weightVec.append (d);
+      }
+      ax.setFromNodes (nodeWeights.keySet(), weightVec);
       return ax;
    }
 

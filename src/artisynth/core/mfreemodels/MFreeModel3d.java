@@ -1870,4 +1870,46 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
       return true;
    }
 
+   @Override
+   public void getMassMatrixValues (SparseBlockMatrix M, VectorNd f, double t) {
+      int bi;
+
+      for (int i=0; i<myNodes.size(); i++) {
+         FemNode3d n = myNodes.get(i);
+          if ((bi = n.getSolveIndex()) != -1) {
+            n.getEffectiveMass (M.getBlock (bi, bi), t);
+            n.getEffectiveMassForces (f, t, M.getBlockRowOffset (bi));
+          }
+      }
+   }
+
+   @Override
+   public void mulInverseMass (
+      SparseBlockMatrix M, VectorNd a, VectorNd f) {
+
+      double[] abuf = a.getBuffer();
+      double[] fbuf = f.getBuffer();
+      int asize = a.size();
+
+      if (M.getAlignedBlockRow (asize) == -1) {
+         throw new IllegalArgumentException (
+            "size of 'a' not block aligned with 'M'");
+      }
+      if (f.size() < asize) {
+         throw new IllegalArgumentException (
+            "size of 'f' is less than the size of 'a'");
+      }
+      for (int i=0; i<myNodes.size(); i++) {
+         FemNode3d n = myNodes.get(i);
+         int bk = n.getSolveIndex();
+         if (bk != -1) {
+            int idx = M.getBlockRowOffset (bk);
+            if (idx < asize) {
+               n.mulInverseEffectiveMass (
+                  M.getBlock(bk, bk), abuf, fbuf, idx);
+            }
+         }
+      }
+   }
+
 }

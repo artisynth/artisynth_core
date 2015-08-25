@@ -1125,7 +1125,7 @@ public class MFreeFactory {
          
          if (pa instanceof PointFem3dAttachment) {
             PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
-            FemNode[] masters = pfa.getMasters();
+            FemNode[] masters = pfa.getNodes();
             
             ArrayList<MFreeNode3d> deps = new ArrayList<MFreeNode3d>(masters.length);
             VectorNd coords = new VectorNd(masters.length);

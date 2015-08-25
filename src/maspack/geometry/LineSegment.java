@@ -74,5 +74,63 @@ public class LineSegment implements Boundable {
       }
    }
 
+   /**
+    * Computes the projection parameter of a point <code>px</code>
+    * with respect to a line defined by points <code>p0</code> and
+    * <code>p1</code>. This is the value <i>s</i> such that
+    * <pre>
+    * pp = (1-s) p0 + s p1
+    * </pre>
+    * gives the projection of <code>px</code> onto the line. If
+    * <code>p0</code> and <code>p1</code> are identical, the
+    * method returns positive infinity.
+
+    * @param p0 first point defining the line
+    * @param p1 second point defining the libe
+    * @param px point for which the project parameter should be computed
+    * @return parameter s which projects px onto the line
+    */
+   public static double projectionParameter (
+      Point3d p0, Point3d p1, Point3d px) {
+      
+      Vector3d del10 = new Vector3d();      
+      Vector3d delx0 = new Vector3d();      
+
+      del10.sub (p1, p0);
+      delx0.sub (px, p0);
+      double len10Sqr = del10.normSquared();
+      if (len10Sqr == 0) {
+         return Double.POSITIVE_INFINITY;
+      }
+      else {
+         return del10.dot(delx0)/len10Sqr;
+      }      
+   }
+
+   /**
+    * Computes the distance of a point <code>px</code>
+    * to a line segment defined by points <code>p0</code> and
+    * <code>p1</code>.
+
+    * @param p0 first point defining the segment
+    * @param p1 second point defining the segment
+    * @param px point to compute distance to
+    * @return distance of px from the segment
+    */
+   public static double distance (Point3d p0, Point3d p1, Point3d px) {
+
+      double s = projectionParameter (p0, p1, px);
+      if (s >= 1.0) {
+         return px.distance (p1);
+      }
+      else if (s <= 0) {
+         return px.distance (p0);
+      }
+      else {
+         Vector3d ps = new Vector3d();
+         ps.combine (1-s, p0, s, p1);
+         return px.distance (ps);
+      }
+   }
 
 }

@@ -113,7 +113,7 @@ implements TransformableGeometry, ScalableUnits {
          case POINT: {
 
             renderer.setLightingEnabled (false);
-            gl.glPointSize (props.getPointSize());
+            renderer.setPointSize (props.getPointSize());
 
             if (renderer.isSelecting()) {
                // don't worry about color in selection mode
@@ -160,7 +160,7 @@ implements TransformableGeometry, ScalableUnits {
                }
             }
             
-            gl.glPointSize(1);
+            renderer.setPointSize(1);
             renderer.setLightingEnabled(true);
          }
          case SPHERE: {
@@ -233,7 +233,7 @@ implements TransformableGeometry, ScalableUnits {
          case POINT: {
             renderer.setLightingEnabled (false);
             // draw regular points first
-            gl.glPointSize (props.getPointSize());
+            renderer.setPointSize (props.getPointSize());
             if (renderer.isSelecting()) {
                // don't worry about color in selection mode
                int i = 0;
@@ -263,7 +263,7 @@ implements TransformableGeometry, ScalableUnits {
                }
                gl.glEnd();
             }
-            gl.glPointSize (1);
+            renderer.setPointSize (1);
             renderer.setLightingEnabled (true);
             break;
          }

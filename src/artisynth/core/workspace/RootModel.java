@@ -26,6 +26,7 @@ import javax.swing.JMenuItem;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.NumericalException;
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.GLRenderable;
 import maspack.render.GLRenderer;
@@ -724,6 +725,13 @@ public class RootModel extends RenderableModelBase
       }
       else {
          return new Point3d (DEFAULT_VIEWER_EYE);
+      }
+   }
+
+   public void setViewerUp (Vector3d up) {
+      GLViewer viewer = getMainViewer();
+      if (viewer != null) {
+         viewer.setUpVector (up);
       }
    }
 
@@ -1510,7 +1518,7 @@ public class RootModel extends RenderableModelBase
 
    public double getNextAdvanceTime (
       List<Probe> probes, double stepSize, double t0, double t1) {
-      
+
       // nextStepTime is the next time after t0 lying on a step boundary
       double nextStepTime = t0 + (stepSize-TimeBase.modulo(t0,stepSize));
       if (TimeBase.compare (nextStepTime, t1) < 0) {

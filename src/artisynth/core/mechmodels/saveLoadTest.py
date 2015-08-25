@@ -1,9 +1,9 @@
 # ArtisynthScript: "saveLoadTest"
 
-def testSaveLoadDelay (modelName, sec) :
+def testSaveLoadFull (modelName, sec, fmt) :
     loadModel (modelName)
     delay (sec)
-    errorMsg = main.testSaveAndLoad ("test", "%g")
+    errorMsg = main.testSaveAndLoad ("test", fmt)
     if errorMsg != None:
         print 'Error'
         print errorMsg
@@ -11,7 +11,7 @@ def testSaveLoadDelay (modelName, sec) :
         main.maskFocusStealing (False)
 
 def testSaveLoad (modelName) :
-    testSaveLoadDelay (modelName, 0)
+    testSaveLoadFull (modelName, 0, "%g")
 
 main.maskFocusStealing (True)
 
@@ -20,41 +20,40 @@ main.maskFocusStealing (True)
 #testSaveLoad ("Articulator") // Doesn't work
 #testSaveLoad ("JawFemMuscleTongue") // Doesn't work
 
-
-testSaveLoad ("Spring Mesh")
-testSaveLoad ("Rigid Body Spring")
-testSaveLoad ("MechModel Demo")
-testSaveLoad ("artisynth.models.mechdemos.NetDemo")
-testSaveLoad ("artisynth.models.mechdemos.MultiSpringDemo")
-testSaveLoad ("artisynth.models.mechdemos.SegmentedPlaneDemo")
-testSaveLoad ("artisynth.models.femdemos.ArticulatedFem")
-testSaveLoad ("artisynth.models.femdemos.FemMuscleDemo")
-testSaveLoad ("artisynth.models.femdemos.FemSkinDemo")
-testSaveLoad ("artisynth.models.alanMasseter.MasseterM16462John");
-testSaveLoad ("artisynth.models.phuman.SimpleJointedArm");
-testSaveLoad ("artisynth.models.mechdemos.ConstrainedParticle");
-testSaveLoad ("artisynth.models.mechdemos.MeshDemo");
-testSaveLoad ("HexBlock")
-testSaveLoad ("TetBeam3d")
-testSaveLoad ("PlaneConstrainedFem")
-testSaveLoad ("artisynth.models.femdemos.AttachedBeamDemo")
-testSaveLoad ("artisynth.models.femdemos.ViscousBeam")
-testSaveLoad ("artisynth.models.mechdemos.BlockTest")
-testSaveLoad ("artisynth.models.mechdemos.FrameSpringDemo")
-testSaveLoad ("RigidBodyCollision")
-testSaveLoad ("LaymanDemo")
-testSaveLoad ("Fem Collision")
-testSaveLoad ("LineMuscleTongue")
-testSaveLoad ("FemMuscleTongue")
+testSaveLoad ("artisynth.demos.mech.SpringMeshDemo")
+testSaveLoad ("artisynth.demos.mech.RigidBodyDemo")
+testSaveLoad ("artisynth.demos.mech.MechModelDemo")
+testSaveLoad ("artisynth.demos.mech.NetDemo")
+testSaveLoad ("artisynth.demos.mech.MultiSpringDemo")
+testSaveLoad ("artisynth.demos.mech.SegmentedPlaneDemo")
+testSaveLoad ("artisynth.demos.fem.ArticulatedFem")
+testSaveLoad ("artisynth.demos.fem.FemMuscleDemo")
+testSaveLoad ("artisynth.demos.fem.FemSkinDemo")
+testSaveLoad ("artisynth.demos.tutorial.CylinderWrapping")
+testSaveLoad ("artisynth.models.alanMasseter.MasseterM16462John")
+testSaveLoad ("artisynth.models.phuman.SimpleJointedArm")
+testSaveLoad ("artisynth.demos.mech.ConstrainedParticle")
+testSaveLoad ("artisynth.demos.fem.Hex3dBlock")
+testSaveLoadFull ("artisynth.demos.fem.TetBeam3d", 0, "%.10g")
+testSaveLoad ("artisynth.demos.fem.PlaneConstrainedFem")
+testSaveLoad ("artisynth.demos.fem.AttachedBeamDemo")
+testSaveLoad ("artisynth.demos.fem.ViscousBeam")
+testSaveLoad ("artisynth.demos.mech.BlockTest")
+testSaveLoad ("artisynth.demos.mech.FrameSpringDemo")
+testSaveLoad ("artisynth.demos.mech.RigidBodyCollision")
+testSaveLoad ("artisynth.demos.mech.LaymanDemo")
+testSaveLoad ("artisynth.demos.fem.FemCollision")
+testSaveLoad ("artisynth.models.tongue3d.HexTongueDemo")
+testSaveLoad ("artisynth.models.tongue3d.FemMuscleTongueDemo")
 #testSaveLoad ("artisynth.models.inversedemos.TongueInvDemo") // Doesn't work
 #testSaveLoad ("artisynth.models.inversedemos.HydrostatInvDemo") // Doesn't work
 
-testSaveLoadDelay ("JawLarynx", 1)
-testSaveLoad ("artisynth.models.mechdemos.SkinDemo")
-testSaveLoad ("Jaw")
-testSaveLoad ("DangTongue")
-testSaveLoad ("MuscleArm")
-testSaveLoad ("PointForceDemo")
+testSaveLoadFull ("artisynth.models.dynjaw.JawLarynxDemo", 1, "%g")
+testSaveLoad ("artisynth.demos.mech.SkinDemo")
+testSaveLoad ("artisynth.models.dynjaw.JawDemo")
+testSaveLoad ("artisynth.models.dangTongue.FemTongueDemo")
+testSaveLoadFull ("artisynth.demos.fem.FemMuscleArm", 0, "%.12g")
+testSaveLoad ("artisynth.demos.mech.PointForceDemo")
 
 #testSaveLoad ("artisynth.models.inversedemos.PointModel2d")
 #testSaveLoad ("artisynth.models.inversedemos.PointModel3d")

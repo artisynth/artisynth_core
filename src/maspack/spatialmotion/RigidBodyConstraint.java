@@ -16,6 +16,7 @@ public class RigidBodyConstraint {
    Wrench myWrenchA = new Wrench();
    Wrench myWrenchB = new Wrench();
    Wrench myWrenchC = new Wrench();
+   Wrench myDotWrenchC = new Wrench();
    int mySolveIndex;
    double myDistance;
    double myCompliance;
@@ -51,6 +52,14 @@ public class RigidBodyConstraint {
 
    public Wrench getWrenchC() {
       return myWrenchC;
+   }
+
+   public void setDotWrenchC (Wrench wr) {
+      myDotWrenchC.set (wr);
+   }
+
+   public Wrench getDotWrenchC() {
+      return myDotWrenchC;
    }
 
    public RigidBodyConstraint() {

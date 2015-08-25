@@ -228,8 +228,6 @@ public class CubicSolver {
                      // if Newton's method answer not within the interval,
                      // bisect instead
                      if (xx <= xlo || xx >= xhi) {
-                        // System.out.printf (
-                        //    "xlo=%10.6e xhi=%10.6e ylo=%10.6e yhi=%10.6e  xnew=%10.6e dnew=%10.6e  xx=%10.6e\n", xlo, xhi, ylo, yhi, xnew, dnew, xx);
                         bisectionCount++;
                         xnew = (xlo+xhi)/2;
                      }
@@ -239,7 +237,7 @@ public class CubicSolver {
                   }
                   else {
                      if ((iteration%2) != 0) {
-                        // sometimes go with bisection to guarantee we make progress
+                        // sometimes go with bisection to guarantee progress
                         alpha=0.5; 
                      }
                      else {
@@ -248,10 +246,6 @@ public class CubicSolver {
                      }
                      xnew = alpha*xlo+(1-alpha)*xhi;
                   }
-
-//                   System.out.printf (
-// " xlo=%18.15e xhi=%18.15e  ylo=%18.15e yhi=%18.15e  alpha=%18.15e xnew=%18.15e\n",
-// xlo, xhi, ylo, yhi, alpha, xnew);
                   if (xhi-xlo < xtol) {
                      break;                     
                   }

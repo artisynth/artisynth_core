@@ -86,7 +86,7 @@ public class NURBSCurve2dTest implements DrawToolListener {
          gl.glEnd();
 
          renderer.setColor (Color.WHITE);
-         gl.glPointSize (2);
+         renderer.setPointSize (2);
          gl.glBegin (GL2.GL_POINTS);        
          for (int i=0; i<myGrid.length; i++) {
             Vector2d g = myGrid[i];
@@ -97,7 +97,7 @@ public class NURBSCurve2dTest implements DrawToolListener {
          }
          gl.glEnd();
          renderer.setLightingEnabled (true);
-         gl.glPointSize (1);
+         renderer.setPointSize (1);
       }
 
       void update (NURBSCurve2d curve, double maxd) {

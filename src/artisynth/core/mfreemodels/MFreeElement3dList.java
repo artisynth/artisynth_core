@@ -68,7 +68,7 @@ public class MFreeElement3dList extends RenderableComponentList<MFreeElement3d> 
    }
 
    private void dorender (GLRenderer renderer, boolean selected) {
-      GL2 gl = renderer.getGL2().getGL2();
+      //GL2 gl = renderer.getGL2().getGL2();
       if (!addElementsInPrerender) {
          // we render all elements ourselves, taking care to render selected
          // elements first. This provides the maximum visibility for selected

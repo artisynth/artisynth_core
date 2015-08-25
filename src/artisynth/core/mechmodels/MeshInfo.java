@@ -252,6 +252,9 @@ public class MeshInfo {
          rtok.setCharSetting ('.', dotSave);            
       }
       myMesh = mesh;
+      if (myMesh != null) {
+         myMesh.setRenderBuffered (true);
+      }
       myFileName = fileName;
       myFileTransform = X;
    }

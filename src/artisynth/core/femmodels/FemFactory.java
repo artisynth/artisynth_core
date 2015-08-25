@@ -2090,10 +2090,12 @@ public class FemFactory {
    }
 
    /**
-    * Extrudes each face along the normal direction
-    * @param model
-    * @param n number of points
-    * @param d thickness
+    * Extrudes each face along the normal direction to create a shell.
+    * The shell can have multiple layers; the number of layers is n-1.
+    *
+    * @param model (if null, a new model will be created)
+    * @param n n-1 is the number of layers
+    * @param d thickness of each layer
     * @param zOffset offset along normal to begin
     * @param surface PolygonalMesh surface to extrude
     * @return the FEM model
@@ -2107,6 +2109,9 @@ public class FemFactory {
          model = new FemModel3d();
       } else {
          model.clear();
+      }
+      if (n < 2) {
+         throw new IllegalArgumentException ("n must be >= 2");
       }
 
       // compute normals

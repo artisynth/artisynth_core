@@ -8,6 +8,7 @@ package artisynth.core.femmodels;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Collection;
 
 import maspack.matrix.Matrix;
 import maspack.matrix.Point3d;
@@ -547,12 +548,16 @@ public abstract class FemModel extends MechSystemBase
 
    public abstract ComponentList<? extends FemElement> getElements();
 
+   public void addMarker (FemMarker mkr) {
+      myMarkers.add (mkr);
+   }
+   
    public void addMarker (FemMarker mkr, FemElement elem) {
       if (!ModelComponentBase.recursivelyContains (this, elem)) {
          throw new IllegalArgumentException (
             "element not contained within model");
       }
-      mkr.setElement (elem);
+      mkr.setFromElement (elem);
       myMarkers.add (mkr);
    }
    
@@ -561,9 +566,37 @@ public abstract class FemModel extends MechSystemBase
          throw new IllegalArgumentException (
             "element not contained within model");
       }
-      mkr.setElement (elem);
+      mkr.setFromElement (elem);
       myMarkers.addNumbered (mkr, markerId);
    }
+
+   public void addMarker (
+      FemMarker mkr,
+      Collection<? extends FemNode> nodes, VectorNd weights) {
+      mkr.setFromNodes (nodes, weights);
+      myMarkers.add (mkr);
+   }
+
+   public void addMarker (FemMarker mkr, FemNode[] nodes, double[] weights) {
+      mkr.setFromNodes (nodes, weights);
+      myMarkers.add (mkr);
+   }
+
+   public boolean addMarker (FemMarker mkr, Collection<? extends FemNode> nodes) {
+      boolean status = mkr.setFromNodes (nodes);
+      myMarkers.add (mkr);
+      return status;
+   }
+
+   public boolean addMarker (FemMarker mkr, FemNode[] nodes) {
+      boolean status = mkr.setFromNodes (nodes);
+      myMarkers.add (mkr);
+      return status;
+   }
+
+//   public void addMarker (FemMarker mkr) {
+//      myMarkers.add (mkr);
+//   }
 
    public boolean removeMarker (FemMarker mkr) {
       if (myMarkers.remove (mkr)) {
@@ -595,7 +628,8 @@ public abstract class FemModel extends MechSystemBase
                "node not contained within model");
          }
       }
-      PointFem3dAttachment ax = new PointFem3dAttachment (p, nodes, coords);
+      PointFem3dAttachment ax = new PointFem3dAttachment (p);
+      ax.setFromNodes (nodes, coords);
       if (DynamicAttachment.containsLoop (ax, p, null)) {
          throw new IllegalArgumentException (
             "attachment contains loop");
@@ -695,21 +729,24 @@ public abstract class FemModel extends MechSystemBase
       }
    }
 
-   protected void resetMarkerForces() {
-      for (FemMarker mkr : myMarkers) {
-         mkr.setForcesToExternal();
-      }
-   }
+//   protected void resetMarkerForces() {
+//      for (FemMarker mkr : myMarkers) {
+//         mkr.setForcesToExternal();
+//      }
+//   }
 
-   protected void resetNodeForces() {
-      for (FemNode n : getNodes()) {
-         n.setForcesToExternal();
-      }
-   }
+//   protected void resetNodeForces() {
+//      for (FemNode n : getNodes()) {
+//         n.setForcesToExternal();
+//      }
+//   }
 
    public void getAttachments (List<DynamicAttachment> list, int level) {
       list.addAll (myAttachments);
       for (FemMarker mkr : myMarkers) {
+         if (mkr.getAttachment() == null) {
+            System.out.println ("NULL attachment for marker "+mkr.getNumber());
+         }
          list.add (mkr.getAttachment());
       }
    }         
@@ -742,7 +779,9 @@ public abstract class FemModel extends MechSystemBase
       getNodes().scaleDistance (s);
       //myE /= s;
       myMaterial.scaleDistance(s);
-      myGravity.scale (s);
+      if (myGravityMode == PropertyMode.Explicit) {
+         myGravity.scale (s);
+      }
 
       myDensity /= (s * s * s);
       for (FemElement e : getElements()) {

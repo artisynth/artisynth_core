@@ -488,22 +488,22 @@ public class ContactRegion {
       }
 
       renderer.setColor (0f, 1f, 1f);
-      gl.glLineWidth (4);
+      renderer.setLineWidth (4);
       gl.glBegin (GL2.GL_LINE_LOOP);
       for (Point3d p : points)
          gl.glVertex3d (p.x, p.y, p.z); // draw convex hull with a heavier line
       gl.glEnd();
-      gl.glLineWidth (1);
+      renderer.setLineWidth (1);
 
-      gl.glPointSize (10);
+      renderer.setPointSize (10);
       gl.glBegin (GL2.GL_POINTS); // emphasize the convex-hull points in case
                                  // they are same as contour.
       for (Point3d p : points)
          gl.glVertex3d (p.x, p.y, p.z);
       gl.glEnd();
-      gl.glPointSize (1);
+      renderer.setPointSize (1);
 
-      gl.glLineWidth (4);
+      renderer.setLineWidth (4);
       renderer.setColor (0f, 1f, 0f); // draw a line through centroid along the normal
       Point3d n1 = new Point3d();
       gl.glBegin (GL2.GL_LINES);
@@ -514,9 +514,9 @@ public class ContactRegion {
       n1.scaledAdd (0.5, normal);
       gl.glVertex3d (n1.x, n1.y, n1.z);
       gl.glEnd();
-      gl.glLineWidth (1);
+      renderer.setLineWidth (1);
 
-      gl.glPointSize (15);
+      renderer.setPointSize (15);
       gl.glBegin (GL2.GL_POINTS);
       n1.set (centroid);
       gl.glVertex3d (n1.x, n1.y, n1.z);
@@ -534,6 +534,6 @@ public class ContactRegion {
          gl.glVertex3d (n1.x, n1.y, n1.z);
       }
       gl.glEnd();
-      gl.glPointSize (1);
+      renderer.setPointSize (1);
    }
 }

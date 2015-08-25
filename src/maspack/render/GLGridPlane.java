@@ -817,7 +817,7 @@ public class GLGridPlane implements HasProperties {
       //*********************************************************
 
       renderer.setLightingEnabled (false);
-      gl.glLineWidth (myLineWidth);
+      renderer.setLineWidth (myLineWidth);
 
       gl.glPushMatrix();
       renderer.mulTransform (XGridToWorld);
@@ -855,7 +855,7 @@ public class GLGridPlane implements HasProperties {
       }
       gl.glEnd();
       gl.glPopMatrix();
-      gl.glLineWidth (1);
+      renderer.setLineWidth (1);
       renderer.setLightingEnabled (true);
 
       if (myAutoSizedP &&

@@ -428,58 +428,58 @@ public class SelectionManager {
       return cnt;
    }
 
-   private class NavPanelSelectorOld implements TreeSelectionListener {
-      public void valueChanged (TreeSelectionEvent e) {
-         LinkedList<ModelComponent> added = new LinkedList<ModelComponent>();
-         LinkedList<ModelComponent> removed = new LinkedList<ModelComponent>();
+   // private class NavPanelSelectorOld implements TreeSelectionListener {
+   //    public void valueChanged (TreeSelectionEvent e) {
+   //       LinkedList<ModelComponent> added = new LinkedList<ModelComponent>();
+   //       LinkedList<ModelComponent> removed = new LinkedList<ModelComponent>();
 
-         TreePath[] paths = e.getPaths();
-         deselectNavPanelUnknowns (removed);
+   //       TreePath[] paths = e.getPaths();
+   //       deselectNavPanelUnknowns (removed);
 
-         // The nav panel can have multiple paths pointing to the same
-         // component. Therefore, any path that is removed needs to
-         // be checked to see if there are other selection paths that
-         // point to the same component. Only if is this is not the
-         // case will the component be deselected.
-         HashSet<ModelComponent> maybeDeselect = new HashSet<ModelComponent>();
-         for (int i=0; i<paths.length; i++) {
-            ModelComponent c = NavPanelNode.getNodeComponent (
-               paths[i].getLastPathComponent());
+   //       // The nav panel can have multiple paths pointing to the same
+   //       // component. Therefore, any path that is removed needs to
+   //       // be checked to see if there are other selection paths that
+   //       // point to the same component. Only if is this is not the
+   //       // case will the component be deselected.
+   //       HashSet<ModelComponent> maybeDeselect = new HashSet<ModelComponent>();
+   //       for (int i=0; i<paths.length; i++) {
+   //          ModelComponent c = NavPanelNode.getNodeComponent (
+   //             paths[i].getLastPathComponent());
             
-            if (c != null) {
-               if (e.isAddedPath (i)) {
-                  if (!c.isSelected()) {
-                     c.setSelected (true);
-                     added.add (c);
-                  }
-               }
-               else {
-                  // might remove from selection; will check below
-                  maybeDeselect.add (c);
-               }
-            }
-         }
-         if (maybeDeselect.size() > 0) {
-            // check to see if any other navpanel selection paths point to
-            // these components
-            paths = myNavPanel.getTree().getSelectionPaths();
-            if (paths != null) {
-               for (int i=0; i<paths.length; i++) {
-                  ModelComponent c = NavPanelNode.getNodeComponent (
-                     paths[i].getLastPathComponent());              
-                  maybeDeselect.remove (c);
-               }
-            }
-         }
-         for (ModelComponent c : maybeDeselect) {
-            if (c.isSelected()) {
-               c.setSelected (false);
-               removed.add (c);
-            }
-         }
-         finishAddAndRemove (added, removed, /* notifyNavPanel= */false);
-      }
-   }
+   //          if (c != null) {
+   //             if (e.isAddedPath (i)) {
+   //                if (!c.isSelected()) {
+   //                   c.setSelected (true);
+   //                   added.add (c);
+   //                }
+   //             }
+   //             else {
+   //                // might remove from selection; will check below
+   //                maybeDeselect.add (c);
+   //             }
+   //          }
+   //       }
+   //       if (maybeDeselect.size() > 0) {
+   //          // check to see if any other navpanel selection paths point to
+   //          // these components
+   //          paths = myNavPanel.getTree().getSelectionPaths();
+   //          if (paths != null) {
+   //             for (int i=0; i<paths.length; i++) {
+   //                ModelComponent c = NavPanelNode.getNodeComponent (
+   //                   paths[i].getLastPathComponent());              
+   //                maybeDeselect.remove (c);
+   //             }
+   //          }
+   //       }
+   //       for (ModelComponent c : maybeDeselect) {
+   //          if (c.isSelected()) {
+   //             c.setSelected (false);
+   //             removed.add (c);
+   //          }
+   //       }
+   //       finishAddAndRemove (added, removed, /* notifyNavPanel= */false);
+   //    }
+   // }
 
    private class NavPanelSelector implements TreeSelectionListener {
       public void valueChanged (TreeSelectionEvent e) {

@@ -254,8 +254,8 @@ public abstract class SkinMeshBase extends MeshComponent
             PointAttachment a = getAttachment(i);
             if (a != null) {
                Vertex3d vtx = mesh.getVertices().get(i);
-               a.computePosState (pos);
-               vtx.getPosition().set (pos);            
+               a.getCurrentPos (pos);
+               vtx.setPosition(pos);
             }
          }
          mesh.notifyVertexPositionsModified();

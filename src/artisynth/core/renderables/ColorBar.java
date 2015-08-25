@@ -168,9 +168,8 @@ public class ColorBar extends TextComponentBase {
       }
 
       // smooth shading
-      int[] savedShadeModel = new int[1];
-      gl.glGetIntegerv (GL2.GL_SHADE_MODEL, savedShadeModel, 0);
-      gl.glShadeModel( GL2.GL_SMOOTH );
+      RenderProps.Shading savedShadeModel = renderer.getShadeModel();
+      renderer.setShadeModel (RenderProps.Shading.GOURARD);
 
       double x0 = myLoc.x;
       double y0 = myLoc.y;
@@ -229,9 +228,8 @@ public class ColorBar extends TextComponentBase {
       // draw border and ticks
       if (props.getLineWidth() > 0) {
          
-         int[] savedwidth = new int[1];
-         gl.glGetIntegerv(GL2.GL_LINE_WIDTH, savedwidth, 0);
-         gl.glLineWidth(props.getLineWidth());
+         int savedLineWidth = renderer.getLineWidth();
+         renderer.setLineWidth(props.getLineWidth());
          
          props.getLineColor(rgb);
          
@@ -294,7 +292,7 @@ public class ColorBar extends TextComponentBase {
          }
          
          // return line width
-         gl.glLineWidth(savedwidth[0]);
+         renderer.setLineWidth(savedLineWidth);
       }
       
       // labels
@@ -380,7 +378,7 @@ public class ColorBar extends TextComponentBase {
       }
       
       
-      gl.glShadeModel( savedShadeModel[0] );
+      renderer.setShadeModel (savedShadeModel);
 
       if (!saved2d) {
          renderer.end2DRendering();

@@ -102,4 +102,28 @@ public class RenderableUtils {
       max.set (-inf, -inf, -inf);
       r.updateBounds (min, max);
    }
+
+   public static void updateBounds (Vector3d vmin, Vector3d vmax, float[] vals) {
+      double x = vals[0];
+      double y = vals[1];
+      double z = vals[2];
+      if (x > vmax.x) {
+         vmax.x = x;
+      }
+      if (x < vmin.x) {
+         vmin.x = x;
+      }
+      if (y > vmax.y) {
+         vmax.y = y;
+      }
+      if (y < vmin.y) {
+         vmin.y = y;
+      }
+      if (z > vmax.z) {
+         vmax.z = z;
+      }
+      if (z < vmin.z) {
+         vmin.z = z;
+      }
+   }
 }

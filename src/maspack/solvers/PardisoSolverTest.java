@@ -35,6 +35,15 @@ public class PardisoSolverTest implements ActionListener {
       return newIdxs;
    }
 
+   public String getMatrixType (int code) {
+      switch (code) {
+         case Matrix.INDEFINITE: return "INDEFINITE";
+         case Matrix.SYMMETRIC: return "SYMMETRIC";
+         case Matrix.SPD: return "SPD";
+         default: return "Unknown";
+      }
+   }
+
    public void setMatrixType (String typeStr) {
       if (typeStr.equals ("INDEFINITE")) {
          myMatrixType = Matrix.INDEFINITE;
@@ -167,6 +176,8 @@ public class PardisoSolverTest implements ActionListener {
             }
          }
          SparseMatrixCRS M = new SparseMatrixCRS(size, size);
+         System.out.println (
+            "solving "+getMatrixType(myMatrixType)+" matrix");
          M.setCRSValues (vals, colIdxs, rowOffs, nvals, size, myPartition);
          solver.analyze (M, size, myMatrixType);
          System.out.println (

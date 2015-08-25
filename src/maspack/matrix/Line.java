@@ -24,14 +24,12 @@ import java.io.IOException;
 public class Line {
    protected Point3d myP; // origin of the line
    protected Vector3d myU; // direction of the line (normalized)
-   protected Vector3d myTmp;
 
    private static double DOUBLE_PREC = 2.220446049250313e-16;
 
    public Line() {
       myP = new Point3d();
       myU = new Vector3d (1, 0, 0);
-      myTmp = new Vector3d();
    }
 
    public Line (Point3d p, Vector3d u) {
@@ -162,9 +160,10 @@ public class Line {
     * @return distance of the point from this line
     */
    public double distance (Point3d p1) {
-      myTmp.sub (p1, myP); // p1 - origin
-      myTmp.scaledAdd (myTmp.dot (myU), myU, myP);
-      return myTmp.distance (p1);
+      Vector3d tmp = new Vector3d();
+      tmp.sub (p1, myP); // p1 - origin
+      tmp.scaledAdd (tmp.dot (myU), myU, myP);
+      return tmp.distance (p1);
    }
 
    /**
@@ -178,24 +177,25 @@ public class Line {
       Vector3d u1 = myU; // break out u1 and u2 for clarity
       Vector3d u2 = line.myU;
 
-      myTmp.cross (u1, u2);
-      double denom = myTmp.normSquared();
+      Vector3d tmp = new Vector3d();
+      tmp.cross (u1, u2);
+      double denom = tmp.normSquared();
       if (denom < 100 * DOUBLE_PREC) {
          return myP.distance (line.myP);
       }
       else {
-         myTmp.sub (myP, line.myP);
-         double k1 = -u1.dot (myTmp);
-         double k2 = u2.dot (myTmp);
+         tmp.sub (myP, line.myP);
+         double k1 = -u1.dot (tmp);
+         double k2 = u2.dot (tmp);
          double dotU = u1.dot (u2);
          double lam1 = (k1 + dotU * k2) / denom;
          double lam2 = (dotU * k1 + k2) / denom;
          // find the closest point on this line and then subtract
          // the closest point on the other line
-         myTmp.scaledAdd (lam1, u1, myP); // closest point on this line
-         myTmp.sub (line.myP);
-         myTmp.scaledAdd (-lam2, u2, myTmp);
-         return myTmp.norm();
+         tmp.scaledAdd (lam1, u1, myP); // closest point on this line
+         tmp.sub (line.myP);
+         tmp.scaledAdd (-lam2, u2, tmp);
+         return tmp.norm();
       }
    }
 
@@ -210,8 +210,9 @@ public class Line {
     * direction
     */
    public double nearestPoint (Point3d pr, Vector3d p1) {
-      myTmp.sub (p1, myP);
-      double lam = myTmp.dot (myU);
+      Vector3d tmp = new Vector3d();
+      tmp.sub (p1, myP);
+      double lam = tmp.dot (myU);
       pr.scaledAdd (lam, myU, myP);
       return lam;
    }
@@ -231,16 +232,17 @@ public class Line {
       Vector3d u1 = myU; // break out u1 and u2 for clarity
       Vector3d u2 = line.myU;
 
-      myTmp.cross (u1, u2);
-      double denom = myTmp.normSquared();
+      Vector3d tmp = new Vector3d();
+      tmp.cross (u1, u2);
+      double denom = tmp.normSquared();
       if (denom < 100 * DOUBLE_PREC) {
          p.set (myP);
          return 0;
       }
       else {
-         myTmp.sub (myP, line.myP);
-         double k1 = -u1.dot (myTmp);
-         double k2 = u2.dot (myTmp);
+         tmp.sub (myP, line.myP);
+         double k1 = -u1.dot (tmp);
+         double k2 = u2.dot (tmp);
          double dotU = u1.dot (u2);
          double lam1 = (k1 + dotU * k2) / denom;
          // double lam2 = (dotU*k1 + k2)/denom;

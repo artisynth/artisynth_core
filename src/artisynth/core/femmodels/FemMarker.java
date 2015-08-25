@@ -21,7 +21,6 @@ import artisynth.core.util.*;
 import java.util.*;
 
 public class FemMarker extends Marker {
-   protected FemElement myElement;
    protected PointFem3dAttachment myNodeAttachment;
 
    public static PropertyList myProps =
@@ -38,8 +37,8 @@ public class FemMarker extends Marker {
 
    public FemMarker() {
       super();
-      myElement = null;
-      myNodeAttachment = null;
+      myNodeAttachment = new PointFem3dAttachment(this);
+      setAttached (myNodeAttachment);
    }
 
    public FemMarker (Point3d pos) {
@@ -54,14 +53,23 @@ public class FemMarker extends Marker {
 
    public FemMarker (FemElement elem, Point3d pos) {
       this (pos);
-      setElement (elem);
+      setFromElement (elem);
    }
 
    public FemMarker (FemElement elem, double x, double y, double z) {
       this (new Point3d (x, y, z));
-      setElement (elem);
+      setFromElement (elem);
    }
 
+   @Override
+   public void setAttached (DynamicAttachment ax) {
+      if (ax != myNodeAttachment) {
+         throw new IllegalArgumentException (
+            "Changing the attachment for marker is not permitted");
+      }
+      super.setAttached (ax);
+   }
+   
    /** 
     * FemMarkers don't have state that needs to be saved and restored,
     * since their state is derived from nodes to which they are attached.
@@ -75,13 +83,13 @@ public class FemMarker extends Marker {
    }
 
    public FemElement getElement() {
-      return myElement;
+      return myNodeAttachment.getElement();
    }
 
    /** 
     * {@inheritDoc}
     */
-  public int addTargetJacobian (SparseBlockMatrix J, int bi) {
+   public int addTargetJacobian (SparseBlockMatrix J, int bi) {
       if (!isControllable()) {
          throw new IllegalStateException (
             "Target marker is not controllable");
@@ -89,22 +97,58 @@ public class FemMarker extends Marker {
       return myNodeAttachment.addTargetJacobian (J, bi);
    }
 
-   public void setElement (FemElement elem) {
-      if (getParent() != null) {
-         throw new IllegalStateException (
-            "Cannot set element when marker is connected to component hierarchy");
-      }
-      myElement = elem;
-      if (myElement != null) {
-         myNodeAttachment = new PointFem3dAttachment (this, elem);
+   public void setFromElement (FemElement elem) {
+      if (elem != null) {
+         removeBackRefsIfConnected();
+         myNodeAttachment.setFromElement (getPosition(), elem);
          myNodeAttachment.updateAttachment();
-         setAttached (myNodeAttachment);        
+         addBackRefsIfConnected();         
+         notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
       }
       else {
-         myNodeAttachment = null;
-         setAttached (null);        
+         // not sure what to do here ... is elem ever null?
       }
-      // updateState();
+   }
+   
+   private void finishSet() {
+      myNodeAttachment.updateAttachment();
+      addBackRefsIfConnected();
+      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);      
+   }
+
+   public void setFromFem (FemModel3d fem) {
+      removeBackRefsIfConnected();
+      myNodeAttachment.setFromFem (getPosition(), fem);
+      finishSet();
+   }
+
+   public void setFromNodes (
+      Collection<? extends FemNode> nodes, VectorNd weights) {
+      removeBackRefsIfConnected();
+      myNodeAttachment.setFromNodes (nodes, weights);
+      finishSet();
+   }
+
+   public void setFromNodes (
+      FemNode[] nodes, double[] weights) {
+      removeBackRefsIfConnected();
+      myNodeAttachment.setFromNodes (nodes, weights);
+      finishSet();
+   }
+
+   public boolean setFromNodes (
+      Collection<? extends FemNode> nodes) {
+      removeBackRefsIfConnected();
+      boolean status = myNodeAttachment.setFromNodes (getPosition(), nodes);
+      finishSet();
+      return status;
+   }
+
+   public boolean setFromNodes (FemNode[] nodes) {
+      removeBackRefsIfConnected();
+      boolean status = myNodeAttachment.setFromNodes (getPosition(), nodes);
+      finishSet();
+      return status;
    }
 
    public void updateState() {
@@ -120,31 +164,17 @@ public class FemMarker extends Marker {
       myNodeAttachment.updateVelStates();
    }
 
-   public void applyForces() {
-      myNodeAttachment.applyForces();
-   }
+   // public void applyForces() {
+   //    myNodeAttachment.applyForces();
+   // }
 
    public void getRestPosition (Point3d pos) {
       myNodeAttachment.getRestPosition (pos);
    }
 
    public FemModel3d getFemModel() {
-      ModelComponent ancestor;
-      if (myElement == null) {
-         return null;
-      }
-      if ((ancestor = myElement.getParent()) == null) {
-         return null;
-      }
-      if ((ancestor = ancestor.getParent()) == null) {
-         return null;
-      }
-      if (!(ancestor instanceof FemModel3d)) {
-         return null;
-      }
-      return (FemModel3d)ancestor;
+      return myNodeAttachment.getFemModel();
    }
-   
 
    public void updateAttachment() {
       myNodeAttachment.updateAttachment();
@@ -174,15 +204,9 @@ public class FemMarker extends Marker {
             //setPosition(pos); //XXX no need to reposition
          }
       }
-      if (updatedElement != myElement) {
-         if (myElement != null) {
-            // paranoid - expect myElement != null
-            //myElement.removeBackReference (this);
-         }
-         myElement = updatedElement;
-         myNodeAttachment.setFromElement(updatedElement);
+      if (updatedElement != getElement()) {
+         myNodeAttachment.setFromElement(getPosition(), updatedElement);
          myNodeAttachment.updateAttachment();
-         //myElement.addBackReference (this);
          notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
          return true;
       }
@@ -195,11 +219,8 @@ public class FemMarker extends Marker {
    public void transformGeometry (
       AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
       super.transformGeometry (X, topObject, flags);
-      if (myElement != null) {
-         FemModel3d femModel = getFemModel();
-         if (femModel == null || !resetElement (femModel)) {
-            myNodeAttachment.updateAttachment();
-         }
+      if (myNodeAttachment != null) {
+         myNodeAttachment.updateAttachment();
       }
    }
 
@@ -207,7 +228,9 @@ public class FemMarker extends Marker {
       throws IOException {
 
       rtok.nextToken();
-      if (scanAndStoreReference (rtok, "elem", tokens)) {
+      if (scanAttributeName (rtok, "attachment")) {
+         tokens.offer (new StringToken ("attachment", rtok.lineno()));
+         myNodeAttachment.scan (rtok, tokens);
          return true;
       }
       rtok.pushBack();
@@ -217,8 +240,8 @@ public class FemMarker extends Marker {
    protected boolean postscanItem (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
-      if (postscanAttributeName (tokens, "elem")) {
-         setElement (postscanReference (tokens, FemElement3d.class, ancestor));
+      if (postscanAttributeName (tokens, "attachment")) {
+         myNodeAttachment.postscan (tokens, ancestor);
          return true;
       }
       return super.postscanItem (tokens, ancestor);
@@ -228,57 +251,55 @@ public class FemMarker extends Marker {
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
       super.writeItems (pw, fmt, ancestor);
-      pw.println ("elem="+ComponentUtils.getWritePathName (
-                     ancestor, myElement));
+      if (myNodeAttachment != null) {
+         pw.print ("attachment=");
+         myNodeAttachment.write (pw, fmt, ancestor);
+      }
    }
 
    public void scaleDistance (double s) {
+      // no need to scale since attachments are weight-based
    }
 
-   @Override
-   public void getHardReferences (List<ModelComponent> refs) {
-      super.getHardReferences (refs);
-      if (myElement == null) {
-         throw new InternalErrorException ("null element");
-      }
-      refs.add (myElement);
-   }
+//   @Override
+//   public void getHardReferences (List<ModelComponent> refs) {
+//      super.getHardReferences (refs);
+//      if (myNodeAttachment != null) {
+//         myNodeAttachment.getHardReferences (refs);
+//      }
+//   }
 
+//   @Override
+//   public void connectToHierarchy () {
+//      super.connectToHierarchy ();
+//      FemNode nodes[] = myNodeAttachment.getNodes();
+//      if (nodes != null) {
+//         for (FemNode node : nodes) {
+//            node.addMasterAttachment (myNodeAttachment);
+//         }
+//      }
+//   }
+//
+//   @Override
+//   public void disconnectFromHierarchy() {
+//      super.disconnectFromHierarchy();
+//      FemNode nodes[] = myNodeAttachment.getNodes();
+//      if (nodes != null) {
+//         for (FemNode node : nodes) {
+//            node.removeMasterAttachment (myNodeAttachment);
+//         }
+//      }
+//   }
 
-   @Override
-   public void connectToHierarchy () {
-      if (myElement == null) {
-         throw new InternalErrorException ("element is not set");
-      }
-      super.connectToHierarchy ();
-      FemNode nodes[] = myNodeAttachment.getMasters();
-      if (nodes != null) {
-         for (FemNode node : nodes) {
-            node.addMasterAttachment (myNodeAttachment);
-         }
-      }
-   }
-
-   @Override
-   public void disconnectFromHierarchy() {
-      if (myElement == null) {
-         throw new InternalErrorException ("element is not set");
-      }
-      super.disconnectFromHierarchy();
-      FemNode nodes[] = myNodeAttachment.getMasters();
-      if (nodes != null) {
-         for (FemNode node : nodes) {
-            node.removeMasterAttachment (myNodeAttachment);
-         }
-      }
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void getAttachments (List<DynamicAttachment> list) {
-      list.add (getAttachment());
-   }
+//   /**
+//    * {@inheritDoc}
+//    */
+//   public void getAttachments (List<DynamicAttachment> list) {
+//      if (getAttachment() == null) {
+//         System.out.println ("NULL attachment");
+//      }
+//      list.add (getAttachment());
+//   }
 
    /**
     * {@inheritDoc}
@@ -299,9 +320,6 @@ public class FemMarker extends Marker {
    public FemMarker copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       FemMarker m = (FemMarker)super.copy (flags, copyMap);
-
-      m.myElement =
-         (FemElement3d)ComponentUtils.maybeGetCopy (flags, copyMap, myElement);
       
       // bit of a hack: enter the new marker in the copyMap so that
       // PointFem3dAttachment.copy() will be able to find it

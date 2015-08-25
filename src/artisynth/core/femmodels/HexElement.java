@@ -695,11 +695,12 @@ public class HexElement extends FemElement3d {
 //       M.mulTranspose (coords, coords);
 //    }
 
-   public boolean isInsideRobust(Point3d pnt) {
-      // check natural coordinates
-      Vector3d coords = new Vector3d();
-      return getNaturalCoordinates(coords, pnt);
-   }
+//   public boolean isInsideRobust(Point3d pnt) {
+//      // check natural coordinates
+//      Vector3d coords = new Vector3d();
+//      getNaturalCoordinates(coords, pnt);
+//      return coordsAreInside (coords);
+//   }
 
    /**
     * Tests whether or not a point is inside an element.

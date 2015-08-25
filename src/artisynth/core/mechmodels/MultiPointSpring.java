@@ -6,71 +6,939 @@
  */
 package artisynth.core.mechmodels;
 
+import java.awt.Color;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
+import java.util.Map;
 
-import maspack.matrix.Matrix;
-import maspack.matrix.Matrix3d;
-import maspack.matrix.MatrixBlock;
-import maspack.matrix.MatrixBlockBase;
-import maspack.matrix.Point3d;
-import maspack.matrix.SparseBlockMatrix;
-import maspack.matrix.SparseNumberedBlockMatrix;
-import maspack.matrix.Vector3d;
+import maspack.geometry.LineSegment;
+import maspack.matrix.*;
 import maspack.properties.PropertyList;
 import maspack.render.GLRenderer;
+import maspack.render.PointRenderProps;
+import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
+import maspack.util.DataBuffer;
 import maspack.util.IndentingPrintWriter;
-import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.materials.AxialMaterial;
 import artisynth.core.materials.LinearAxialMaterial;
-import artisynth.core.materials.LinearAxialMuscle;
-import artisynth.core.modelbase.ComponentUtils;
-import artisynth.core.modelbase.ScanWriteUtils;
-import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.modelbase.CompositeComponentBase;
-import artisynth.core.modelbase.CopyableComponent;
-import artisynth.core.modelbase.DynamicActivityChangeEvent;
-import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
 public class MultiPointSpring extends PointSpringBase
-   implements ScalableUnits, CopyableComponent, RequiresPrePostAdvance {
+   implements ScalableUnits, TransformableGeometry,
+              CopyableComponent, RequiresPrePostAdvance,
+              HasSlaveObjects, HasAuxState {
 
-   protected ArrayList<PointData> myPnts;
-   protected ArrayList<SegmentData> mySegs;
+   protected ArrayList<Point3d[]> myWrapPaths; // used only for scanning
+   protected ArrayList<Segment> mySegments;
+   protected ArrayList<Wrappable> myWrappables;
+   protected boolean mySubSegsValidP = false;
    protected boolean mySegsValidP = true;
-   protected MatrixBlock[] mySolveBlks;
+   protected int myNumBlks; // set to numPoints()
    protected int[] mySolveBlkNums;
-   // a set of which segments are passive, if any
-   protected HashSet<Integer> myPassiveSegs = null;
 
-   protected class PointData {
-      Point pnt;
-      Vector3d dFdx;
-      Vector3d v;
+   // Composite component structure for storing wrap points
+   //protected ComponentListImpl<ModelComponent> myComponents;
+   //private NavpanelDisplay myDisplayMode = NavpanelDisplay.NORMAL;
+   //protected PointList<Point> myWrapPoints;
 
-      PointData (Point p) {
-         pnt = p;
-         dFdx = new Vector3d();
-         v = new Vector3d();
+   protected RenderProps myPQRenderProps;
+
+   protected static double DEFAULT_WRAP_STIFFNESS = 10;
+   protected static double DEFAULT_WRAP_DAMPING = 0.1;
+   protected static double DEFAULT_CONTACT_STIFFNESS = 100;
+   protected static double DEFAULT_CONTACT_DAMPING = 1.0;
+   protected static int DEFAULT_NUM_WRAP_POINTS = 50;
+   protected static double DEFAULT_LENGTH_CONV_TOL = 1e-4;
+   protected static boolean DEFAULT_DRAW_KNOTS = false;
+   protected static boolean DEFAULT_DRAW_PQ_POINTS = false;
+
+   protected double myWrapStiffness = DEFAULT_WRAP_STIFFNESS;
+   protected double myWrapDamping = DEFAULT_WRAP_DAMPING;
+   protected double myContactStiffness = DEFAULT_CONTACT_STIFFNESS;
+   protected double myContactDamping = DEFAULT_CONTACT_DAMPING;
+   protected double myWrapH = 1;
+   protected double myLengthConvTol = DEFAULT_LENGTH_CONV_TOL;
+   protected int myNumWrapPnts = DEFAULT_NUM_WRAP_POINTS;
+   protected boolean myDrawKnotsP = DEFAULT_DRAW_KNOTS;
+   protected boolean myDrawPQPointsP = DEFAULT_DRAW_PQ_POINTS;
+   
+   protected int myMaxWrapIterations = 10;
+
+   private class WrapKnot {
+      Point3d myPos;
+      Vector3d myForce;
+      Vector3d myNrml;
+      double myDist;
+      Wrappable myWrappable;
+      Matrix3d myBmat;
+      Matrix3d myBinv;
+      Matrix3d myCinv;
+      Vector3d myDvec;
+      float[] myRenderPos;
+
+      WrapKnot () {
+         myPos = new Point3d();
+         myForce = new Vector3d();
+         myNrml = new Vector3d();
+         myBmat = new Matrix3d();
+         myBinv = new Matrix3d();
+         myCinv = new Matrix3d();
+         myDvec = new Vector3d();
+         myRenderPos = new float[3];
+      }
+
+      float[] updateRenderPos() {
+         myRenderPos[0] = (float)myPos.x;
+         myRenderPos[1] = (float)myPos.y;
+         myRenderPos[2] = (float)myPos.z;
+         return myRenderPos;
       }
    }
 
-   protected Vector3d myTmp = new Vector3d();
-   protected Matrix3d myMat = null;
+   private class Segment {
+
+      Point myPntB; // first point in the segment
+      Point myPntA; // second point in the segment
+      Vector3d mydFdxB;
+      Vector3d mydFdxA;
+      boolean myPassiveP = false;
+
+      Matrix3d myP;
+      Vector3d myUvec;
+      double myLength;
+
+      Segment() {
+         myP = new Matrix3d();
+         myUvec = new Vector3d();
+         mydFdxB = new Vector3d();
+         mydFdxA = new Vector3d();
+      }
+
+      // assumes that uvec is up to date
+      void applyForce (double F) {
+         Vector3d f = new Vector3d();
+         f.scale (F, myUvec);
+         myPntB.addForce (f);
+         myPntA.subForce (f);
+      }
+
+      double updateU () {
+         myUvec.sub (myPntA.getPosition(), myPntB.getPosition());
+         myLength = myUvec.norm();
+         if (myLength != 0) {
+            myUvec.scale (1 / myLength);
+         }
+         return myLength;
+      }
+
+      // assumes that uvec is up to date
+      double getLengthDot () {
+         Vector3d velA = myPntA.getVelocity();
+         Vector3d velB = myPntB.getVelocity();
+         double dvx = velA.x-velB.x;
+         double dvy = velA.y-velB.y;
+         double dvz = velA.z-velB.z;
+         return myUvec.x*dvx + myUvec.y*dvy + myUvec.z*dvz;
+      } 
+
+      // assumes that uvec is up to date
+      void updateP () {
+         myP.outerProduct (myUvec, myUvec);
+         myP.negate();
+         myP.m00 += 1;
+         myP.m11 += 1;
+         myP.m22 += 1;
+      }
+
+      // assumes that uvec and P are up to date
+      void updateDfdx (double dFdl, double dFdldot) {
+         if (!myPassiveP) {
+            mydFdxA.scale (dFdl, myUvec);
+            if (!myIgnoreCoriolisInJacobian) {
+               Vector3d y = new Vector3d();
+               y.sub (myPntA.getVelocity(), myPntB.getVelocity());
+               myP.mulTranspose (y, y);
+               y.scale (dFdldot/myLength);
+               mydFdxA.add (y);  
+            }
+            mydFdxB.negate (mydFdxA);
+         }
+         else {
+            mydFdxB.setZero();
+            mydFdxA.setZero();
+         }
+      }
+
+      SubSegment firstSubSegment() {
+         return null;
+      }
+
+      SubSegment lastSubSegment() {
+         return null;
+      }
+
+      boolean hasSubSegments() {
+         return false;
+      }
+
+      boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+         throws IOException {
+
+         rtok.nextToken();
+         if (ScanWriteUtils.scanAttributeName (rtok, "passive")) {
+            myPassiveP = rtok.scanBoolean();
+            return true;
+         }
+         else if (ScanWriteUtils.scanAndStoreReference (rtok, "pntB", tokens)) {
+            return true;
+         }
+         else if (ScanWriteUtils.scanAndStoreReference (rtok, "pntA", tokens)) {
+            return true;
+         }
+         rtok.pushBack();
+         return false;
+      }
+
+      boolean postscanItem (
+         Deque<ScanToken> tokens, CompositeComponent ancestor)
+         throws IOException {
+         if (ScanWriteUtils.postscanAttributeName (tokens, "pntB")) {
+            myPntB = ScanWriteUtils.postscanReference (
+               tokens, Point.class, ancestor);
+            return true;
+         }
+         else if (ScanWriteUtils.postscanAttributeName (tokens, "pntA")) {
+            myPntA = ScanWriteUtils.postscanReference (
+               tokens, Point.class, ancestor);
+            return true;
+         }
+         return false;         
+      }
+
+      void writeItems (
+         PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+         throws IOException {
+         
+         pw.println (
+            "pntB=" + ComponentUtils.getWritePathName (ancestor, myPntB));
+         pw.println (
+            "pntA=" + ComponentUtils.getWritePathName (ancestor, myPntA));
+         pw.println ("passive=" + myPassiveP);
+      }
+
+      void scaleDistance (double s) {
+      }
+
+      public void transformGeometry (AffineTransform3dBase X) {
+      }
+   }
+
+   private class SubSegment extends Segment {
+      PointAttachment myAttachmentB;
+      PointAttachment myAttachmentA;
+
+      Wrappable myWrappableB;
+      Wrappable myWrappableA;
+
+      SubSegment myNext;
+
+      SubSegment() {
+         super();
+      }
+
+      void applyForce (double F) {
+         if (myAttachmentB != null) {
+            myPntB.zeroForces();
+         }
+         if (myAttachmentA != null) {
+            myPntA.zeroForces();
+         }
+         super.applyForce (F);
+         if (myAttachmentB != null) {
+            myAttachmentB.applyForces();
+         }
+         if (myAttachmentA != null) {
+            myAttachmentA.applyForces();
+         }
+      }
+
+      // assumes that uvec is up to date
+      double getLengthDot () {
+         if (myAttachmentB != null) {
+            myAttachmentB.updateVelStates();
+         }
+         if (myAttachmentA != null) {
+            myAttachmentA.updateVelStates();
+         }
+         Vector3d velA = myPntA.getVelocity();
+         Vector3d velB = myPntB.getVelocity();
+         double dvx = velA.x-velB.x;
+         double dvy = velA.y-velB.y;
+         double dvz = velA.z-velB.z;
+         return myUvec.x*dvx + myUvec.y*dvy + myUvec.z*dvz;
+      } 
+
+
+   }
+
+   private class WrapSegment extends Segment {
+      int myNumKnots;
+      WrapKnot[] myKnots;
+      ArrayList<float[]> myRenderPoints;
+      ArrayList<float[]> myRenderPQPoints;
+      Point3d[] myInitialPnts;
+
+      SubSegment mySubSegHead;
+      SubSegment mySubSegTail;
+
+      WrapSegment () {
+         this (0, null);
+      }
+
+      WrapSegment (int numk, Point3d[] initialPnts) {
+         super();
+         myNumKnots = numk;
+         myKnots = new WrapKnot[numk];
+         for (int i=0; i<numk; i++) {
+            myKnots[i] = new WrapKnot();
+         }
+         myRenderPoints = null; // will be created in prerender()
+         myRenderPQPoints = null; // will be created in prerender()
+         myInitialPnts = initialPnts;
+      }
+
+      void clearSubSegs () {
+         mySubSegHead = null;
+         mySubSegTail = null;
+      }
+
+      /**
+       * Remove seg and all SubSegments following it.
+       */
+      void removeSubSegs (SubSegment seg) {
+         SubSegment sg = mySubSegHead;
+         if (sg == seg) {
+            clearSubSegs();
+         }
+         else {
+            while (sg != null) {
+               if (sg.myNext == seg) {
+                  sg.myNext = null;
+                  mySubSegTail = sg;
+                  break;
+               }
+               sg = sg.myNext;
+            }
+         }
+      }
+
+      /**
+       * Append seg to the list of SubSegments
+       */
+      void addSubSeg (SubSegment seg) {
+         if (mySubSegHead == null) {
+            mySubSegHead = seg;
+         }
+         else {
+            mySubSegTail.myNext = seg;         
+         }
+         mySubSegTail = seg;
+         seg.myNext = null;
+      }
+
+      void initializeStrand() {
+         // initialize the knots in the strand so that they are distributed
+         // evenly along the piecewise-linear path specified by the start and
+         // end points and any initialization points that may have been 
+         // specified.
+         
+         // create the piece-wise path
+         ArrayList<Point3d> pnts = new ArrayList<Point3d>();
+         pnts.add (myPntB.getPosition());
+         if (myInitialPnts != null) {
+            for (int i=0; i<myInitialPnts.length; i++) {
+               pnts.add (myInitialPnts[i]);
+            }
+         }
+         pnts.add (myPntA.getPosition());
+         // compute the length of this path
+         double length = 0;
+         for (int i=1; i<pnts.size(); i++) {
+            length += pnts.get(i).distance (pnts.get(i-1));
+         }
+         // distribute knots along the path according to distance
+         
+         double seglen;  // length of each segment
+         double dist0;   // path distance at the beginning of each segment
+         int pidx;       // index of last point on each segment
+         pidx = 1;
+         dist0 = 0;
+         seglen = pnts.get(pidx).distance (pnts.get(pidx-1));
+         for (int k=0; k<myNumKnots; k++) {
+            // interpolate knot position along current segment
+            double dist = (k+1)*length/(myNumKnots+1);
+            double s = (dist-dist0)/seglen;
+            while (s > 1 && pidx < pnts.size()-1) {
+               pidx++;
+               dist0 += seglen;
+               seglen = pnts.get(pidx).distance (pnts.get(pidx-1));
+               s = (dist-dist0)/seglen;
+            }
+            if (s > 1) {               
+               s = 1; // paranoid
+            }
+            myKnots[k].myPos.combine (
+                1-s, pnts.get(pidx-1), s, pnts.get(pidx));
+         }
+         myLength = computeLength();
+      }
+
+      boolean updateContacts() {
+
+         boolean changed = false;
+         for (int k=0; k<myNumKnots; k++) {
+            WrapKnot knot = myKnots[k];
+            double dist = 0;
+            Wrappable lastWrappable = knot.myWrappable;
+            knot.myWrappable = null;
+            knot.myDist = 0;
+            Vector3d nrml = new Vector3d();
+            for (Wrappable wrappable : myWrappables) {
+               double d = wrappable.penetrationDistance (
+                  nrml, knot.myPos);
+               if (d < knot.myDist) {
+                  knot.myWrappable = wrappable;
+                  knot.myDist = d;
+                  knot.myNrml.set (nrml);
+               }
+            }
+            if (knot.myWrappable != lastWrappable) {
+               changed = true;
+            }
+         }
+         return changed;
+      }
+
+      void updateForces() {
+
+         for (int k=0; k<myNumKnots; k++) {
+            WrapKnot knot = myKnots[k];
+            if (knot.myDist < 0) {
+               knot.myForce.scale (
+                  -knot.myDist*myContactStiffness, knot.myNrml);
+            }
+            else {
+               knot.myForce.setZero();
+            }
+         }
+         Vector3d dprev = new Vector3d();
+         Vector3d dnext = new Vector3d();
+         dprev.sub (myKnots[0].myPos, myPntB.getPosition());
+         for (int k=0; k<myNumKnots; k++) {
+            if (k<myNumKnots-1) {
+               dnext.sub (myKnots[k+1].myPos, myKnots[k].myPos);
+            }
+            else {
+               dnext.sub (myPntA.getPosition(), myKnots[k].myPos);
+            }
+            WrapKnot knot = myKnots[k];
+            knot.myForce.scaledAdd (-myWrapStiffness, dprev);
+            knot.myForce.scaledAdd ( myWrapStiffness, dnext);
+            dprev.set (dnext);
+         }
+      }        
+
+      protected void updateStiffness() {
+         double stiffness = myWrapStiffness;
+         double cstiffness = myContactStiffness;
+         for (int k=0; k<myNumKnots; k++) {
+            WrapKnot knot = myKnots[k];
+            // double s = myWrapDamping +2*stiffness;
+            // knot.myBmat.setDiagonal (s, s, s);
+            // if (knot.myDist < 0) {
+            //    knot.myBmat.addScaledOuterProduct (
+            //       cstiffness, knot.myNrml, knot.myNrml);
+            // }
+            double s = myWrapDamping+2*stiffness;
+            knot.myBmat.setDiagonal (s, s, s);
+            if (knot.myDist < 0) {
+               knot.myBmat.addScaledOuterProduct (
+                  myContactDamping+cstiffness, knot.myNrml, knot.myNrml);
+            }
+         }
+      }
+
+      //
+      // Factor and solve the spring system using the block tridiagonal
+      // matrix algorithm:
+      //
+      //         { inv(B_i) C_i                                   i = 1
+      //  C'_i = {
+      //         { inv(B_i - A_i*C'_{i-1}) C_i                    i = 2, 3, ...
+      //
+      //         { inv(B_i) d_i                                   i = 1
+      //  d'_i = {
+      //         { inv(B_i - A_i*C'_{i-1}) (d_i - A_i d'_{i-1})   i > 1
+      //
+      //  x_n  = d'_n
+      //
+      //  x_i  = d'_i - C'_i x_{i+1}    i = n-1, ... 1
+      //
+      // We also exploit the fact that the C_i and A_i matrices are block
+      // diagonal, so their multiplications can be done by simple scaling.
+      //
+      void factorAndSolve () {
+         double c = -myWrapStiffness;
+         WrapKnot knot = myKnots[0];
+         knot.myBinv.invert (knot.myBmat);
+         knot.myCinv.scale (c, knot.myBinv);
+         for (int i=1; i<myNumKnots; i++) {
+            knot = myKnots[i];
+            Matrix3d Binv = knot.myBinv;
+            Binv.scaledAdd (-c, myKnots[i-1].myCinv, knot.myBmat);
+            Binv.invert();
+            if (i<myNumKnots-1) {
+               knot.myCinv.scale (c, Binv);
+            }
+         }
+         Vector3d vec = new Vector3d();
+         Vector3d tmp = new Vector3d();
+         knot = myKnots[0];
+         knot.myBinv.mul (knot.myDvec, knot.myForce);
+         for (int i=1; i<myNumKnots; i++) {
+            knot = myKnots[i];
+            vec.set (knot.myForce);
+            vec.scaledAdd (-c, myKnots[i-1].myDvec);
+            knot.myBinv.mul (knot.myDvec, vec);
+         }
+         int k = myNumKnots-1;
+         vec.set (myKnots[k].myDvec);
+         myKnots[k].myPos.add (vec);
+         while (--k >= 0) {
+            knot = myKnots[k];
+            knot.myCinv.mul (tmp, vec);
+            vec.sub (knot.myDvec, tmp);
+            knot.myPos.add (vec);
+         }
+         myLength = computeLength();
+      }
+
+      double computeLength() {
+         double len = 0;
+         Point3d pos0 = myPntB.getPosition();
+         for (int k=0; k<myNumKnots; k++) {
+            Point3d pos1 = myKnots[k].myPos;
+            len += pos1.distance(pos0);
+            pos0 = pos1;
+         }
+         len += myPntA.getPosition().distance(pos0);
+         return len;
+      }
+
+      void updateWrapStrand (int maxIter) {
+         int icnt = 0;
+         boolean converged = false;
+
+         do {
+            double prevLength = myLength;
+            boolean contactChanged = updateContacts();
+            updateForces();
+            updateStiffness();
+            factorAndSolve();
+            double ltol = myLength*myLengthConvTol;
+            if (!contactChanged && Math.abs(prevLength-myLength) < ltol) {
+               converged = true;
+            }
+         }
+         while (++icnt < maxIter && !converged);
+         if (converged) {
+            //System.out.println ("converged, icnt="+icnt);
+         }
+         else {
+            //System.out.println ("did not converge");
+         }
+      }
+
+      Point3d getKnotPos (int k) {
+         if (k < 0) {
+            if (k == -1) {
+               return myPntB.getPosition();
+            }
+            else {
+               return null;
+            }
+         }
+         else if (k >= myNumKnots) {
+            if (k == myNumKnots) {
+               return myPntA.getPosition();
+            }
+            else {
+               return null;
+            }
+         }
+         else {
+            return myKnots[k].myPos;
+         }
+      }               
+
+      void computeSideNormal (
+         Vector3d sideNrm, Point3d p0, Point3d pk, Point3d p1, 
+         int k1, int kinc) {
+
+         Vector3d delk0 = new Vector3d();
+         Vector3d del10 = new Vector3d();
+
+         delk0.sub (pk, p0);
+         del10.sub (p1, p0);
+         double tol = 1e-8*del10.norm();
+         sideNrm.cross (del10, delk0);
+         double mag = sideNrm.norm();
+         while (mag < tol) {
+            k1 += kinc;
+            p1 = getKnotPos (k1);
+            if (p1 == null) {
+               break;
+            }
+            del10.sub (p1, p0);
+            sideNrm.cross (del10, delk0);
+            mag = sideNrm.norm();
+         }
+         if (mag == 0) {
+            // No apparent side normal. Just pick something perpendicular to
+            // d0x.
+            sideNrm.perpendicular (del10);
+            sideNrm.normalize();
+         }
+         else {
+            sideNrm.scale (1/mag);
+         }
+      }
+
+      private Point createTanPoint (Point3d pos) {
+         Point pnt = new Point (pos);
+         return pnt;
+      }
+
+      SubSegment addOrUpdateSubSegment (int ka, int kb, SubSegment subseg) {
+
+         Wrappable wrappableA = null;
+         if (ka >= 0 && ka < myNumKnots) {
+            wrappableA = myKnots[ka].myWrappable;
+         }
+         Wrappable wrappableB = null;
+         if (kb >= 0 && kb < myNumKnots) {
+            wrappableB = myKnots[kb].myWrappable;
+         }
+
+         Vector3d sideNrm = new Vector3d();
+         Point3d tanA = null;
+         if (wrappableA != null) {
+            tanA = new Point3d();
+            Point3d pb = getKnotPos (kb);
+            Point3d p0 = getKnotPos (ka-1);
+            Point3d pa = getKnotPos (ka);
+            Point3d p1 = getKnotPos (ka+1);
+            computeSideNormal (sideNrm, p0, pa, p1, ka+1, 1);
+            wrappableA.surfaceTangent (
+               tanA, pb, p1,
+               LineSegment.projectionParameter (pb, p1, p0), sideNrm);
+            // if (tanA.epsilonEquals (Vector3d.ZERO, 1e-6)) {
+            //    System.out.println ("TANA=0");
+            // }
+         }
+         Point3d tanB = null;
+         if (wrappableB != null) {
+            tanB = new Point3d();
+            Point3d pa = getKnotPos (ka);
+            Point3d p0 = getKnotPos (kb+1);
+            Point3d pb = getKnotPos (kb);
+            Point3d p1 = getKnotPos (kb-1);
+            computeSideNormal (sideNrm, p0, pb, p1, kb-1, -1);
+            wrappableB.surfaceTangent (
+               tanB, pa, p1,
+               LineSegment.projectionParameter (pa, p1, p0), sideNrm);
+            // if (tanB.epsilonEquals (Vector3d.ZERO, 1e-6)) {
+            //    System.out.println ("TANB=0");
+            // }
+         
+         }
+         
+         if (subseg == null) {
+            subseg = new SubSegment();
+            addSubSeg (subseg);
+         }
+         if (wrappableB == null) {
+            subseg.myPntB = myPntB;
+            subseg.myAttachmentB = null;
+            subseg.myWrappableB = null;
+         }
+         else if (subseg.myWrappableB != wrappableB) {
+            subseg.myPntB = createTanPoint (tanB);
+            subseg.myAttachmentB =
+               wrappableB.createPointAttachment (subseg.myPntB);
+            subseg.myWrappableB = wrappableB;            
+         }
+         else {
+            subseg.myPntB.setPosition (tanB);
+            subseg.myAttachmentB.updateAttachment();
+         }
+
+         if (wrappableA == null) {
+            subseg.myPntA = myPntA;
+            subseg.myAttachmentA = null;
+            subseg.myWrappableA = null;
+         }
+         else if (subseg.myWrappableA != wrappableA) {
+            subseg.myPntA = createTanPoint (tanA);
+            subseg.myAttachmentA =
+               wrappableA.createPointAttachment (subseg.myPntA);
+            subseg.myWrappableA = wrappableA;
+         }
+         else {
+            subseg.myPntA.setPosition (tanA);
+            subseg.myAttachmentA.updateAttachment();
+         }
+         return subseg.myNext;
+      }
+
+      void updateSubSegments() {
+         Wrappable wrappable = null;
+         SubSegment subseg = mySubSegHead;
+         int lastContactK = -1;
+         for (int k=0; k<myNumKnots; k++) {
+            WrapKnot knot = myKnots[k];
+            if (knot.myWrappable != null) {
+               if (knot.myWrappable != wrappable) {
+                  // transitioning to a new wrappable
+                  subseg = addOrUpdateSubSegment (k, lastContactK, subseg);
+                  wrappable = knot.myWrappable;
+               }
+               lastContactK = k;
+            }
+         }
+         if (wrappable != null) {
+            subseg = addOrUpdateSubSegment (myNumKnots, lastContactK, subseg);
+         }
+         if (subseg != null) {
+            removeSubSegs (subseg);
+         }
+      }
+
+      SubSegment firstSubSegment() {
+         return mySubSegHead;
+      }
+
+      SubSegment lastSubSegment() {
+         return mySubSegTail;
+      }
+
+      boolean hasSubSegments() {
+         return mySubSegHead != null;
+      }
+
+      void skipAuxState (DataBuffer data) {
+         data.dskip (3*myNumKnots);
+      }
+
+      void getAuxState (DataBuffer data) {
+         for (int k=0; k<myNumKnots; k++) {
+            Point3d pos = myKnots[k].myPos;
+            data.dput (pos.x);
+            data.dput (pos.y);
+            data.dput (pos.z);
+         }
+      }
+
+      void getInitialAuxState (DataBuffer newData, DataBuffer oldData) {
+         if (oldData == null) {
+            getAuxState (newData);
+         }
+         else {
+            newData.putData (oldData, 3*myNumKnots, 0);
+         }
+      }
+
+      void setAuxState (DataBuffer data) {
+         for (int k=0; k<myNumKnots; k++) {
+            Point3d pos = myKnots[k].myPos;
+            pos.x = data.dget();
+            pos.y = data.dget();
+            pos.z = data.dget();
+         }
+         updateContacts();
+         updateSubSegments();
+      }
+
+      boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+         throws IOException {
+
+         rtok.nextToken();
+         if (ScanWriteUtils.scanAttributeName (rtok, "knots")) {
+            Vector3d[] list = ScanWriteUtils.scanVector3dList (rtok);
+            myNumKnots = list.length;
+            myKnots = new WrapKnot[myNumKnots];
+            for (int i=0; i<list.length; i++) {
+               WrapKnot knot = new WrapKnot();
+               knot.myPos.set (list[i]);
+               myKnots[i] = knot;
+            }
+            return true;
+         }
+         else if (ScanWriteUtils.scanAttributeName (rtok, "initialPoints")) {
+            Vector3d[] list = ScanWriteUtils.scanVector3dList (rtok);
+            myInitialPnts = new Point3d[list.length];
+            for (int i=0; i<list.length; i++) {
+               myInitialPnts[i] = new Point3d (list[i]);
+            }
+            return true;
+         }
+         rtok.pushBack();
+         return super.scanItem (rtok, tokens);
+      }
+
+      void writeItems (
+         PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+         throws IOException {
+
+         super.writeItems (pw, fmt, ancestor);
+         if (myNumKnots > 0) {
+            pw.print ("knots=");
+            Vector3d[] list = new Vector3d[myKnots.length];
+            for (int i=0; i<myKnots.length; i++) {
+               list[i] = myKnots[i].myPos;
+            }
+            ScanWriteUtils.writeVector3dList (pw, fmt, list);
+         }
+         if (myInitialPnts != null) {
+            pw.print ("initialPoints=");
+            ScanWriteUtils.writeVector3dList (pw, fmt, myInitialPnts);
+         }
+      }
+
+      void scaleDistance (double s) {
+         for (int k=0; k<myNumKnots; k++) {
+            myKnots[k].myPos.scale (s);
+         }
+      }
+
+      public void transformGeometry (AffineTransform3dBase X) {
+         for (int k=0; k<myNumKnots; k++) {
+            myKnots[k].myPos.transform (X);
+         }
+      }
+
+   }
+
+   private void updatePQRenderProps() {
+      RenderProps props = new PointRenderProps();
+      props.setPointColor (Color.CYAN);
+      props.setPointStyle (myRenderProps.getPointStyle());
+      props.setPointRadius (myRenderProps.getPointRadius());
+      myPQRenderProps = props;
+   }
+
+   public double getWrapStiffness () {
+      return myWrapStiffness;
+   }
+
+   public void setWrapStiffness (double stiffness) {
+      myWrapStiffness = stiffness;
+
+
+   }
+
+   public double getWrapDamping () {
+      return myWrapDamping;
+   }
+
+   public void setWrapDamping (double damping) {
+      myWrapDamping = damping;
+   }
+
+   public double getContactStiffness () {
+      return myContactStiffness;
+   }
+
+   public void setContactStiffness (double stiffness) {
+      myContactStiffness = stiffness;
+   }
+
+   public double getContactDamping () {
+      return myContactDamping;
+   }
+
+   public void setContactDamping (double damping) {
+      myContactDamping = damping;
+   }
+
+   public double getLengthConvTol () {
+      return myLengthConvTol;
+   }
+
+   public void setLengthConvTol (double h) {
+      myLengthConvTol = h;
+   }
+
+   public int getNumWrapPnts () {
+      return myNumWrapPnts;
+   }
+
+   public void setNumWrapPnts (int num) {
+      myNumWrapPnts = num;
+   }
+
+   public boolean getDrawKnots () {
+      return myDrawKnotsP;
+   }
+
+   public void setDrawKnots (boolean enable) {
+      myDrawKnotsP = enable;
+   }
+
+   public boolean getDrawPQPoints () {
+      return myDrawPQPointsP;
+   }
+
+   public void setDrawPQPoints (boolean enable) {
+      myDrawPQPointsP = enable;
+   }
+
+   protected int maxIters = 50;
+   protected double convTol = 1e-6;
 
    public static boolean myIgnoreCoriolisInJacobian = true;
+   public static boolean myDrawWrapPoints = true;
 
    public static PropertyList myProps =
       new PropertyList (MultiPointSpring.class, PointSpringBase.class);
 
    static {
-      //myProps.addReadOnly ("length *", "current spring length");
+      myProps.add (
+         "wrapStiffness", "stiffness for wrapping strands",
+         DEFAULT_WRAP_STIFFNESS);
+      myProps.add (
+         "wrapDamping", "damping for wrapping strands",
+         DEFAULT_WRAP_DAMPING);
+      myProps.add (
+         "contactStiffness", "contact stiffness for wrapping strands",
+         DEFAULT_CONTACT_STIFFNESS);
+      myProps.add (
+         "contactDamping", "contact damping for wrapping strands",
+         DEFAULT_CONTACT_DAMPING);
+      myProps.add (
+         "drawKnots", "draw wrap strand knots",
+         DEFAULT_DRAW_KNOTS);
+      myProps.add (
+         "drawPQPoints", "draw P and Q points on wrap surfaces",
+         DEFAULT_DRAW_PQ_POINTS);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -83,244 +951,216 @@ public class MultiPointSpring extends PointSpringBase
 
    public MultiPointSpring (String name) {
       super (name);
-      myPnts = new ArrayList<PointData>();
-      mySegs = new ArrayList<SegmentData>();
-      mySolveBlks = new MatrixBlock[0];
+      mySegments = new ArrayList<Segment>();
+      myWrappables = new ArrayList<Wrappable>();
       mySolveBlkNums = new int[0];
+      myNumBlks = 0;
       mySegsValidP = true;
+      // myComponents =
+      //    new ComponentListImpl<ModelComponent>(ModelComponent.class, this);
+      //myWrapPoints = new PointList<Point> (Point.class, "wrapPoints");
+      //addFixed (myWrapPoints);
    }
 
    public MultiPointSpring (String name, double k, double d, double l) {
       this (name);
-//      myStiffness = k;
-//      myDamping = d;
       setRestLength (l);
       setMaterial (new LinearAxialMaterial (k, d));
    }
 
    public MultiPointSpring (double k, double d, double l) {
       this (null);
-      // myGain = 1;
-//      myStiffness = k;
-//      myDamping = d;
       setRestLength (l);
       setMaterial (new LinearAxialMaterial (k, d));
    }
 
-
-   public Point getPoint (int idx) {
-      if (idx < 0 || idx >= myPnts.size()) {
-         throw new IndexOutOfBoundsException (
-            "Point "+idx+" does not exist");
-      }
-      return myPnts.get(idx).pnt;
-   }
-
-   public int numPoints() {
-      return myPnts.size();
-   }
-
-   public boolean containsPoint (Point pnt) {
-      return indexOfPoint (pnt) != -1;
-   }
-
-   public void addPoint (int idx, Point pnt) {
-      if (idx < 0 || idx > myPnts.size()) {
-         throw new IndexOutOfBoundsException (
-            "idx=" + idx + ", numPnts=" + myPnts.size());
-      }
-      myPnts.add (idx, new PointData(pnt));
-//      if (getParent() != null) {
-//         // then change is happening when connected to hierarchy
-//         pnt.addBackReference (this);
-//      }
-      mySegsValidP = false;
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
-   }
-
-   public void addPoint (Point pnt) {
-      addPoint (myPnts.size(), pnt);
-   }
-
-   public int indexOfPoint (Point pnt) {
-      for (int i=0; i<myPnts.size(); i++) {
-         if (myPnts.get(i).pnt == pnt) {
-            return i;
-         }
-      }
-      return -1;
-   }
-
-   public boolean removePoint (Point pnt) {
-      int idx = indexOfPoint (pnt);
-      if (idx != -1) {
-         myPnts.remove (idx);
-//         if (getParent() != null) {
-//            // then change is happening when connected to hierarchy
-//            pnt.removeBackReference (this);
-//         }
-         mySegsValidP = false;
-         notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
-         return true;
-      }
-      else {
-         return false;
-      }
-   }
-   
    /**
     * Sets the rest length of the spring from the current point locations
     * @return the new rest length
     */
    public double setRestLengthFromPoints() {
-      double l = 0;
-      for (int i=0; i<myPnts.size()-1; i++) {
-         l += myPnts.get(i).pnt.distance(myPnts.get(i+1).pnt);
-      }
+      double l = getActiveLength();
       setRestLength(l);
       return l;
    }
 
-   public void clearPoints() {
-      if (myPnts.size() > 0) {
-//         if (getParent() != null) {
-//            // then change is happening when connected to hierarchy
-//            for (int i=0; i<myPnts.size(); i++) {
-//               myPnts.get(i).pnt.removeBackReference (this);
-//            }
-//         }
-         myPnts.clear();
-         mySegsValidP = false;
-         notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
-      }
-   }
-
-   public void setPoint (Point pnt, int idx) {
-      if (idx < 0 || idx > myPnts.size()) {
-         throw new IndexOutOfBoundsException (
-            "idx=" + idx + ", numPnts=" + myPnts.size());
-      }
-      if (idx == myPnts.size()) {
-         addPoint (pnt);
-      }
-      else {
-         PointData data = myPnts.get(idx);
-//         if (getParent() != null) {
-//            // then change is happening when connected to hierarchy
-//            data.pnt.removeBackReference (this);
-//            pnt.addBackReference (this);
-//         }
-         data.pnt = pnt;
-         mySegsValidP = false;
-         notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
-      }
-   }
-
-   public void clearPassiveSegments() {
-      myPassiveSegs = null;
+   protected int numSegments() {
+      // we ignore the last segment because that is used to simply store the
+      // terminating point
+      return mySegments.size()-1;
    }
 
    public void setSegmentPassive (int segIdx, boolean passive) {
-      if (passive) {
-         if (myPassiveSegs == null) {
-            myPassiveSegs = new HashSet<Integer>();
-         }
-         myPassiveSegs.add (segIdx);
+      if (segIdx >= numSegments()) {
+         throw new IndexOutOfBoundsException (
+            "Segment "+segIdx+" is not defined");
       }
-      else {
-         if (myPassiveSegs != null) {
-            myPassiveSegs.remove (segIdx);
-            if (myPassiveSegs.isEmpty()) {
-               myPassiveSegs = null;
-            }
+      Segment seg = mySegments.get(segIdx);
+      if (seg.myPassiveP != passive) {
+         seg.myPassiveP = passive;
+         notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+      }
+   }
+
+   public int numPassiveSegments() {
+      int num = 0;
+      for (int i=0; i<numSegments(); i++) {
+         if (mySegments.get(i).myPassiveP) {
+            num++;
          }
       }
-      mySegsValidP = false;
+      return num;
    }
 
    public boolean isSegmentPassive (int segIdx) {
-      if (myPassiveSegs != null) {
-         return myPassiveSegs.contains (segIdx);
+      if (segIdx >= numSegments()) {
+         throw new IndexOutOfBoundsException (
+            "Segment "+segIdx+" is not defined");
       }
-      else {
-         return false;
-      }
+      return mySegments.get(segIdx).myPassiveP;
    }
 
    protected void updateSegsIfNecessary() {
       if (!mySegsValidP) {
-         int numPnts = myPnts.size();
-         mySegs.clear();
-         if (numPnts > 1) {
-            for (int i=0; i<numPnts-1; i++) {
-               SegmentData seg = 
-                  new SegmentData (
-                     myPnts.get(i).pnt, myPnts.get(i+1).pnt);
-               mySegs.add (seg);
-               if (myPassiveSegs != null && myPassiveSegs.contains (i)) {
-                  seg.isActive = false;
-               }
-            }
-         }
-         mySolveBlks = new MatrixBlock[numPnts*numPnts];
-         mySolveBlkNums = new int[numPnts*numPnts];
+         myNumBlks = numPoints();
+         mySolveBlkNums = new int[myNumBlks*myNumBlks];
          mySegsValidP = true;
       }
    }
 
-   /**
-    * Computes the force acting on point i due to the spring segment between i
-    * and i+1.
-    * 
-    * @param f
-    * computed force acting between i and i+1
-    * @param i
-    * index of the point in the segment
-    * @param F
-    * scalar force in the entire spring
-    */
-   public void computeSegmentForce (Vector3d f, int i, double F) {
-      updateSegsIfNecessary();
-      SegmentData seg = mySegs.get(i);
-      computeU (f, seg.pnt0, seg.pnt1);
-      f.scale (F);
-   }
+   protected void updateWrapSegments (int maxIter) {
+      for (int i=0; i<numSegments(); i++) {
+         Segment seg = mySegments.get(i);
+         if (seg instanceof WrapSegment) {
+            WrapSegment wrapSeg = (WrapSegment)seg;
+            wrapSeg.updateWrapStrand(maxIter);
+            wrapSeg.updateSubSegments();
+         }
+      }
+   }      
+
+   // /**
+   //  * Calculates the sum of distances between the entry and exit points of the
+   //  * two paths.
+   //  * @param p1         first path
+   //  * @param p2         second path
+   //  * @return           "distance" between the two paths
+   //  */
+   // private double pathDistance (WrapPath path1, WrapPath path2) {
+   //    WrapPoint pnt1_0 = path1.getPoint(0);
+   //    WrapPoint pnt1_1 = path1.numPoints() > 1 ? path1.getPoint(1) : pnt1_0;
+   //    WrapPoint pnt2_0 = path2.getPoint(0);
+   //    WrapPoint pnt2_1 = path2.numPoints() > 1 ? path2.getPoint(1) : pnt2_0;
+   //    return (pnt1_0.getPosition().distanceSquared(pnt2_0.getPosition()) +
+   //            pnt1_1.getPosition().distanceSquared(pnt2_1.getPosition()));
+   // }
+
+   // private Point nextDefinedPointA (int idx) {
+   //    WrapData wdata = myWrapData.get(idx++);
+   //    while (wdata.wrappable != null && !wdata.pointsDefined) {
+   //       wdata = myWrapData.get(idx++);
+   //    }
+   //    return wdata.pntA;
+   // }
 
    public void applyForces (double t) {
-      double len = 0;
-      double dldt = 0;
       updateSegsIfNecessary();
-      for (int i=0; i<mySegs.size(); i++) {
-         SegmentData seg = mySegs.get(i);
-         if (seg.isActive) {
-            len += computeU (myTmp, seg.pnt0, seg.pnt1);
-            dldt += myTmp.dot (
-               seg.pnt1.getVelocity())-myTmp.dot(seg.pnt0.getVelocity());
-         }
-      }
+      double len = getActiveLength();
+      double dldt = getActiveLengthDot();
       double F = computeF (len, dldt);
-      for (int i=0; i<mySegs.size(); i++) {
-         SegmentData seg = mySegs.get(i);
-         computeSegmentForce (myTmp, i, F);
-         seg.pnt0.addForce (myTmp);
-         seg.pnt1.subForce (myTmp);
+      for (int i=0; i<numSegments(); i++) {
+         Segment seg = mySegments.get(i);
+         if (seg.hasSubSegments()) {
+            for (SubSegment sg=seg.firstSubSegment(); sg!=null; sg=sg.myNext) {
+               sg.applyForce (F);
+            }
+         }
+         else {
+            seg.applyForce (F);
+         }
       }
    }
 
-   public void printPointReferences (PrintWriter pw, CompositeComponent ancestor)
+   protected void writeSegments (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
       throws IOException {
-      if (myPnts.size() == 0) {
-         pw.println ("points=[ ]");
-      }
-      else {
-         pw.println ("points=[");
-         IndentingPrintWriter.addIndentation (pw, 2);
-         for (int i=0; i<myPnts.size(); i++) {
-            pw.println (ComponentUtils.getWritePathName (
-                           ancestor, myPnts.get(i).pnt));
+      
+      pw.println ("segments=[");
+      IndentingPrintWriter.addIndentation (pw, 2);
+      for (int i=0; i<mySegments.size(); i++) {
+         Segment seg = mySegments.get(i);
+         if (seg instanceof WrapSegment) {
+            pw.println ("WrapSegment [");
          }
+         else {
+            pw.println ("Segment [");
+         }
+         IndentingPrintWriter.addIndentation (pw, 2);
+         seg.writeItems (pw, fmt, ancestor);
          IndentingPrintWriter.addIndentation (pw, -2);
-         pw.println ("]");
+         pw.println ("]");      
+      }
+      IndentingPrintWriter.addIndentation (pw, -2);
+      pw.println ("]");      
+   }
+
+   protected void scanSegments (ReaderTokenizer rtok, Deque<ScanToken> tokens) 
+      throws IOException {
+      tokens.offer (new StringToken ("segments", rtok.lineno()));
+      rtok.scanToken ('[');
+      tokens.offer (ScanToken.BEGIN);
+      while (rtok.nextToken() != ']') {
+         Segment seg;
+         if (rtok.tokenIsWord ("Segment")) {
+            seg = new Segment();
+         }
+         else if (rtok.tokenIsWord ("WrapSegment")) {
+            seg = new WrapSegment();            
+         }
+         else {
+            throw new IOException (
+               "Expecting word token, Segment or WrapSegment, " + rtok); 
+         }
+         rtok.scanToken ('[');
+         tokens.offer (ScanToken.BEGIN);
+         while (rtok.nextToken() != ']') {
+            rtok.pushBack();
+            if (!seg.scanItem (rtok, tokens)) {
+               throw new IOException ("Unexpected token: "+rtok);
+            }
+         }
+         tokens.offer (ScanToken.END); // terminator token
+         mySegments.add (seg);
+      }
+      tokens.offer (ScanToken.END);
+   }
+
+   protected void postscanSegments (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      ScanToken tok = tokens.poll();
+      if (tok != ScanToken.BEGIN) {
+         throw new IOException (
+            "BEGIN token expected for segment list, got " + tok);
+      }
+      for (int i=0; i<mySegments.size(); i++) {
+         Segment seg = mySegments.get(i);
+         tok = tokens.poll();
+         if (tok != ScanToken.BEGIN) {
+            throw new IOException (
+               "BEGIN token expected for segment "+i+", got " + tok);
+         }
+         while (tokens.peek() != ScanToken.END) {
+            if (!seg.postscanItem (tokens, ancestor)) {
+               throw new IOException (
+                  "Unexpected token for segment "+i+": " + tokens.poll());
+            }
+         }
+         tokens.poll(); // eat END token      
+      }
+      tok = tokens.poll();
+      if (tok != ScanToken.END) {
+         throw new IOException (
+            "END token expected for segment list, got " + tok);
       }
    }
 
@@ -328,11 +1168,11 @@ public class MultiPointSpring extends PointSpringBase
       throws IOException {
 
       rtok.nextToken();
-      if (scanAttributeName (rtok, "passiveSegs")) {
-         scanPassiveSegs (rtok);
+      if (scanAttributeName (rtok, "segments")) {
+         scanSegments (rtok, tokens);
          return true;
       }
-      else if (scanAndStoreReferences (rtok, "points", tokens) >= 0) {
+      else if (scanAndStoreReferences (rtok, "wrappables", tokens) != -1) {
          return true;
       }
       rtok.pushBack();
@@ -341,66 +1181,118 @@ public class MultiPointSpring extends PointSpringBase
 
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
       clearPoints();
-      clearPassiveSegments();
+      clearWrappables();
       super.scan (rtok, ref);
    }
 
    protected boolean postscanItem (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
-
-      if (postscanAttributeName (tokens, "points")) {
-         Point[] points = ScanWriteUtils.postscanReferences (
-            tokens, Point.class, ancestor);
-         for (int i=0; i<points.length; i++) {
-            addPoint (points[i]);
-         }
+      if (postscanAttributeName (tokens, "segments")) {
+         postscanSegments (tokens, ancestor);
+         return true;
+      }
+      else if (postscanAttributeName (tokens, "wrappables")) {
+         ScanWriteUtils.postscanReferences (
+            tokens, myWrappables, Wrappable.class, ancestor);
          return true;
       }
       return super.postscanItem (tokens, ancestor);
    }
 
-   protected void scanPassiveSegs (ReaderTokenizer rtok) throws IOException {
-      rtok.scanToken ('[');
-      while (rtok.nextToken() == ReaderTokenizer.TT_NUMBER) {
-         setSegmentPassive ((int)rtok.nval, true);
-      }
-      if (rtok.ttype != ']') {
-         throw new IOException ("']' expected, line " + rtok.lineno());
-      }
-   }
-
-   protected void writePassiveSegs (PrintWriter pw) {
-      if (myPassiveSegs != null) {
-         pw.print ("passiveSegs=[");
-         for (Integer ival : myPassiveSegs) {
-            pw.print (" "+ival);
-         }
-         pw.println (" ]");
-      }
-   }
-
-    protected void writeItems (
+   protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
-      printPointReferences (pw, ancestor);
+
+      pw.print ("wrappables=");
+      ScanWriteUtils.writeBracketedReferences (pw, myWrappables, ancestor);
+      writeSegments (pw, fmt, ancestor);
       super.writeItems (pw, fmt, ancestor);
-      writePassiveSegs (pw);
    }
 
    public void updateBounds (Point3d pmin, Point3d pmax) {
-      for (int i=0; i<myPnts.size(); i++) {
-         myPnts.get(i).pnt.updateBounds (pmin, pmax);
+      // just update bounds for the via points, since the wrap segments will
+      // hug the wrappables, and bounds are updated elsewhere to account for
+      // wrappables.
+      for (int i=0; i<numPoints(); i++) {
+         getPoint(i).updateBounds (pmin, pmax);
+      }
+   }
+
+   private float[] getRenderCoords (Point pnt) {
+      Point3d pos = pnt.getPosition();
+      return new float[] { (float)pos.x, (float)pos.y, (float)pos.z };
+   }
+
+   public void prerender (RenderList list) {
+      if (myPQRenderProps == null) {
+         updatePQRenderProps();
+      }
+      for (int i=0; i<numSegments(); i++) {
+         Segment seg = mySegments.get(i);
+         if (seg instanceof WrapSegment) {
+            WrapSegment wrapSeg = (WrapSegment)seg;
+            ArrayList<float[]> renderPoints =
+               new ArrayList<float[]>(2+wrapSeg.myNumKnots);
+            renderPoints.add (seg.myPntB.getRenderCoords());
+            for (int k=0; k<wrapSeg.myNumKnots; k++) {
+               WrapKnot knot = wrapSeg.myKnots[k];
+               renderPoints.add (knot.updateRenderPos());
+            }
+            renderPoints.add (seg.myPntA.getRenderCoords());
+            wrapSeg.myRenderPoints = renderPoints;
+            renderPoints = null;
+            if (myDrawPQPointsP) {
+               SubSegment sg = wrapSeg.firstSubSegment();
+               if (sg != null) {
+                  renderPoints = new ArrayList<float[]>(10);
+                  while (sg!=null) {
+                     if (sg.myAttachmentB != null) {
+                        renderPoints.add (getRenderCoords (sg.myPntB));
+                     }
+                     if (sg.myAttachmentA != null) {
+                        renderPoints.add (getRenderCoords (sg.myPntA));
+                     }
+                     sg = sg.myNext;
+                  }
+                  
+               }
+            }
+            wrapSeg.myRenderPQPoints = renderPoints;
+         }
       }
    }
 
    void dorender (GLRenderer renderer, RenderProps props) {
-      updateSegsIfNecessary();
-      for (int i=0; i<mySegs.size(); i++) {
-         SegmentData seg = mySegs.get(i);
-         renderer.drawLine (
-            props, seg.pnt0.myRenderCoords,
-            seg.pnt1.myRenderCoords, /*isCapped=*/false,
-            getRenderColor(), isSelected());
+      for (int i=0; i<numSegments(); i++) {
+         Segment seg = mySegments.get(i);
+         if (seg instanceof WrapSegment) {
+            WrapSegment wrapSeg = (WrapSegment)seg;
+            ArrayList<float[]> renderPoints = wrapSeg.myRenderPoints;
+            if (renderPoints != null) {
+               renderer.drawLineStrip (
+                  props, renderPoints,
+                  props.getLineStyle(), isSelected());
+               if (myDrawKnotsP && wrapSeg.myNumKnots > 0) {
+                  for (int k=0; k<wrapSeg.myNumKnots; k++) {
+                     renderer.drawPoint (
+                        props, renderPoints.get(k+1), isSelected());
+                  }
+               }
+            }
+            renderPoints = wrapSeg.myRenderPQPoints;
+            if (renderPoints != null) {
+               for (int k=0; k<renderPoints.size(); k++) {
+                  renderer.drawPoint (
+                     myPQRenderProps, renderPoints.get(k), isSelected());
+               }
+            }
+         }
+         else {
+            renderer.drawLine (
+               props, seg.myPntB.myRenderCoords,
+               seg.myPntA.myRenderCoords, /*isCapped=*/false,
+               getRenderColor(), isSelected());
+         }
       }
    }     
 
@@ -423,6 +1315,9 @@ public class MultiPointSpring extends PointSpringBase
          RenderableUtils.cloneRenderProps (this);
          myRenderProps.scaleDistance (s);
       }
+      for (int i=0; i<numSegments(); i++) {
+         mySegments.get(i).scaleDistance (s);
+      }
    }
 
    public void scaleMass (double s) {
@@ -430,53 +1325,78 @@ public class MultiPointSpring extends PointSpringBase
       if (myMaterial != null) {
          myMaterial.scaleMass (s);
       }
-      //myStiffness *= s;
-      //myDamping *= s;
    }
 
-   public double getLength() {
+   public void transformGeometry (AffineTransform3dBase X) {
+      transformGeometry (X, this, 0);
+   }
+
+   public void transformGeometry (
+      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
+
+      for (int i=0; i<numSegments(); i++) {
+         mySegments.get(i).transformGeometry (X);
+      }
+   }
+
+   public double computeLength (boolean activeOnly) {
       double len = 0;
       updateSegsIfNecessary();
-      for (int i=0; i<mySegs.size(); i++) {
-         len += mySegs.get(i).updateU();
-      }
-      return len;
-   }
-
-   public double getLengthDot() {
-      double lenDot = 0;
-      updateSegsIfNecessary();
-      for (int i = 0; i < mySegs.size(); i++) {
-         lenDot += mySegs.get(i).getLengthDot();
-      }
-      return lenDot;
-   }
-
-   public double getActiveLength() {
-      double len = 0;
-      updateSegsIfNecessary();
-      for (int i=0; i<mySegs.size(); i++) {
-         SegmentData seg = mySegs.get(i);
-         double l = seg.updateU();
-         if (seg.isActive) {
-            len += l;
+      for (int i=0; i<numSegments(); i++) {
+         Segment seg = mySegments.get(i);
+         
+         if (seg.hasSubSegments()) {
+            for (SubSegment sg=seg.firstSubSegment(); sg!=null; sg=sg.myNext) {
+               sg.updateU();
+            }
          }
+         else {
+            seg.updateU();
+         }
+         if (activeOnly && seg.myPassiveP) {
+            continue;
+         }
+         len += seg.myLength;
       }
       return len;
    }
 
    public double getActiveLengthDot() {
-      double lendot = 0;
+      return computeLengthDot (/*activeOnly=*/true);
+   }
+
+   public double getLengthDot() {
+      return computeLengthDot (/*activeOnly=*/false);
+   }
+
+   private double computeLengthDot (boolean activeOnly) {
+      double lenDot = 0;
       updateSegsIfNecessary();
-      for (int i=0; i<mySegs.size(); i++) {
-         SegmentData seg = mySegs.get(i);
-         double ld = seg.getLengthDot();
-         if (seg.isActive) {
-            lendot += ld;
+      for (int i=0; i<numSegments(); i++) {
+         Segment seg = mySegments.get(i);
+         if (activeOnly && seg.myPassiveP) {
+            continue;
+         }
+         // TODO: need to make sure uvec is up to for the segments
+         if (seg.hasSubSegments()) {
+            for (SubSegment sg=seg.firstSubSegment(); sg!=null; sg=sg.myNext) {
+               lenDot += sg.getLengthDot();
+            }
+         }
+         else {
+            lenDot += seg.getLengthDot();         
          }
       }
-      return lendot;
+      return lenDot;
    }
+
+   public double getActiveLength() {
+      return computeLength (/*activeOnly=*/true);
+   }         
+
+   public double getLength() {
+      return computeLength (/*activeOnly=*/false);
+   }         
 
    protected double computeU (Vector3d u, Point p0, Point p1) {
       u.sub (p1.getPosition(), p0.getPosition());
@@ -487,34 +1407,16 @@ public class MultiPointSpring extends PointSpringBase
       return l;
    }
 
-   private MatrixBlock addBlockIfNeeded (
-      SparseBlockMatrix M, int bi, int bj, Class type) {
-      MatrixBlock blk = M.getBlock (bi, bj);
-      if (blk == null) {
-         try {
-            blk = (MatrixBlock)type.newInstance();
-         }
-         catch (Exception e) {
-            throw new InternalErrorException ("Cannot create instance of "
-            + type);
-         }
-         M.addBlock (bi, bj, blk);
-      }
-      else if (!type.isAssignableFrom (blk.getClass())) {
-         throw new InternalErrorException ("bad off-diagonal block type: "
-         + blk.getClass());
-      }
-      return blk;
-   }
-
    public void addSolveBlocks (SparseNumberedBlockMatrix M) {
       updateSegsIfNecessary();
-      int numPnts = myPnts.size();
-      if (numPnts > 1) {
-         for (int i=0; i<numPnts; i++) {
-            int bi = myPnts.get(i).pnt.getSolveIndex();
-            for (int j=0; j<numPnts; j++) {
-               int bj = myPnts.get(j).pnt.getSolveIndex();
+      // TODO: FINISH - currently adds solve blocks only for the
+      // via points
+      int nump = numPoints();
+      if (nump > 1) {
+         for (int i=0; i<nump; i++) {
+            int bi = getPoint(i).getSolveIndex();
+            for (int j=0; j<nump; j++) {
+               int bj = getPoint(j).getSolveIndex();
                MatrixBlock blk = null;
                if (bi != -1 && bj != -1) {
                   blk = M.getBlock (bi, bj);
@@ -523,32 +1425,12 @@ public class MultiPointSpring extends PointSpringBase
                      M.addBlock (bi, bj, blk);
                   }
                }
-               mySolveBlks[i*numPnts+j] = blk;
                if (blk != null) {
-                  mySolveBlkNums[i*numPnts+j] = blk.getBlockNumber();
+                  mySolveBlkNums[i*nump+j] = blk.getBlockNumber();
                }
                else {
-                  mySolveBlkNums[i*numPnts+j] = -1;
+                  mySolveBlkNums[i*nump+j] = -1;
                }
-            }
-         }
-      }
-   }
-
-   // assumes that u vectors for segments are up to date
-   private void updateV () {
-      int numPnts = myPnts.size();
-      if (numPnts > 1) {
-         for (int i=0; i<numPnts; i++) {
-            PointData pdata = myPnts.get(i);
-            if (i == 0) {
-               pdata.v.set (mySegs.get(i).uvec);
-            }
-            else if (i < numPnts-1) {
-               pdata.v.sub (mySegs.get(i).uvec, mySegs.get(i-1).uvec);
-            }
-            else {
-               pdata.v.negate (mySegs.get(i-1).uvec);
             }
          }
       }
@@ -556,118 +1438,161 @@ public class MultiPointSpring extends PointSpringBase
 
    // assume that PointData v vectors and segment P and u is up to date
    private void updateDfdx (double dFdl, double dFdldot) {
-      Vector3d y = new Vector3d();
-      int numPnts = myPnts.size();
-      if (numPnts > 1) {
-         SegmentData segPrev = null;
-         for (int i=0; i<numPnts; i++) {
-            SegmentData segNext = null;
-            if (i < numPnts-1) {
-               segNext = mySegs.get(i);
+      for (int i=0; i<numSegments(); i++) {
+         Segment seg = mySegments.get(i);
+         if (seg.hasSubSegments()) {
+            for (SubSegment sg=seg.firstSubSegment(); sg!=null; sg=sg.myNext) {
+               sg.updateDfdx (dFdl, dFdldot);
             }
-            PointData data = myPnts.get(i);
-            data.dFdx.setZero();
-            if (segPrev != null && segPrev.isActive) {
-               data.dFdx.scaledAdd (dFdl, segPrev.uvec); 
-               data.dFdx.add (y);
-            }
-            if (segNext != null && segNext.isActive) {
-               data.dFdx.scaledAdd (-dFdl, segNext.uvec); 
-               PointData next = myPnts.get(i+1);
-               y.sub (next.pnt.getVelocity(), data.pnt.getVelocity());
-               segNext.P.mulTranspose (y, y);
-               y.scale (dFdldot/segNext.len);
-               data.dFdx.sub (y);
-            }
-            segPrev = segNext;
+         }
+         else {
+            seg.updateDfdx (dFdl, dFdldot);
          }
       }
    }
 
+   private void updateP () {
+      for (int i=0; i<numSegments(); i++) {
+         Segment seg = mySegments.get(i);
+         if (seg.hasSubSegments()) {
+            for (SubSegment sg=seg.firstSubSegment(); sg!=null; sg=sg.myNext) {
+               sg.updateP();
+            }
+         }
+         else {
+            seg.updateP();
+         }
+      }
+   }
+
+   private MatrixBlock getSolveBlock (
+      SparseNumberedBlockMatrix M, int i, int j, int numBlks) {
+      int blkNum = mySolveBlkNums[i*myNumBlks+j];
+      if (blkNum != -1) {
+         return M.getBlockByNumber (blkNum);
+      }
+      else {
+         return null;
+      }
+   }
+
+   private void addToBlock (
+      SparseNumberedBlockMatrix M, int bi, int bj, Matrix3d X, double s) {
+
+      int blkNum = mySolveBlkNums[bi*myNumBlks+bj];
+      if (blkNum != -1) {
+         MatrixBlock blk =  M.getBlockByNumber (blkNum);
+         blk.scaledAdd (s, X);
+      }
+   }
+
    public void addPosJacobian (SparseNumberedBlockMatrix M, double s) {
-      if (myMat == null)
-       { myMat = new Matrix3d();
-       }
-      int numPnts = myPnts.size();
+      // TODO: FINISH. currently computes Jacobian only for via points
+
+      Matrix3d X = new Matrix3d();
+      MatrixBlock blk = null;
+      int numSegs = numSegments();
       updateSegsIfNecessary();
-      if (numPnts > 1) {
+      if (numSegs > 0) {
          double l = getActiveLength();
          double ldot = getActiveLengthDot();
          double F = computeF (l, ldot);
          double dFdl = computeDFdl (l, ldot);
          double dFdldot = computeDFdldot (l, ldot);
-         for (int i=0; i<mySegs.size(); i++) {
-            mySegs.get(i).updateP();
-         }
-         updateV();
+         updateP();
          updateDfdx (dFdl, dFdldot);
-         for (int i=0; i<numPnts; i++) {
-            PointData data_i = myPnts.get(i);
-            for (int j=0; j<numPnts; j++) {
-               int blkNum = mySolveBlkNums[i*numPnts+j];
-               if (blkNum != -1) {
-                  MatrixBlock blk = M.getBlockByNumber (blkNum);
-                  PointData data_j = myPnts.get(j);
-                  myMat.outerProduct (data_i.v, data_j.dFdx);
-                  if (j == i) {
-                     if (i < numPnts-1) {
-                        SegmentData seg_i = mySegs.get(i);
-                        myMat.scaledAdd (-F/seg_i.len, seg_i.P);
-                     }
-                     if (i > 0) {
-                        SegmentData seg_p = mySegs.get(i-1);
-                        myMat.scaledAdd (-F/seg_p.len, seg_p.P);
-                     }
-                  }
-                  else if (j == i+1) {
-                     SegmentData seg_i = mySegs.get(i);
-                     myMat.scaledAdd (F/seg_i.len, seg_i.P);
-                  }
-                  else if (j == i-1) {
-                     SegmentData seg_p = mySegs.get(i-1);
-                     myMat.scaledAdd (F/seg_p.len, seg_p.P);
-                  }
-                  blk.scaledAdd (s, myMat);
+
+         for (int i=0; i<numSegs; i++) {
+            Segment seg_i = mySegments.get(i);
+            Vector3d uvecB_i, uvecA_i;
+            if (seg_i.hasSubSegments()) {
+               Segment sub;
+               sub = seg_i.firstSubSegment();
+               X.scale (F/sub.myLength, sub.myP);
+               addToBlock (M, i, i, X, -s);
+               uvecB_i = sub.myUvec;
+               sub = seg_i.lastSubSegment();
+               X.scale (F/sub.myLength, sub.myP);
+               addToBlock (M, i+1, i+1, X, -s);
+               uvecA_i = sub.myUvec;
+            }
+            else {
+               X.scale (F/seg_i.myLength, seg_i.myP);
+               addToBlock (M, i, i, X, -s);
+               addToBlock (M, i+1, i, X, s);
+               addToBlock (M, i, i+1, X, s);
+               addToBlock (M, i+1, i+1, X, -s);
+               uvecB_i = seg_i.myUvec;
+               uvecA_i = seg_i.myUvec;
+            }
+            for (int j=0; j<numSegs; j++) {
+               Segment seg_j = mySegments.get(j);
+               Vector3d dFdxB_j, dFdxA_j; 
+               if (seg_j.hasSubSegments()) {
+                  dFdxB_j = seg_j.firstSubSegment().mydFdxB;
+                  dFdxA_j = seg_j.lastSubSegment().mydFdxA;
                }
+               else {
+                  dFdxB_j = seg_j.mydFdxB;
+                  dFdxA_j = seg_j.mydFdxA;
+               }
+               X.outerProduct (uvecB_i, dFdxB_j);
+               addToBlock (M, i, j, X, s);
+               addToBlock (M, i+1, j, X, -s);
+               X.outerProduct (uvecA_i, dFdxA_j);
+               addToBlock (M, i, j+1, X, s);
+               addToBlock (M, i+1, j+1, X, -s);
             }
          }
       }
    }
 
    public void addVelJacobian (SparseNumberedBlockMatrix M, double s) {
-      if (myMat == null)
-       { myMat = new Matrix3d();
-       }
+      // TODO: FINISH. currently computes Jacobian only for via points
+      Matrix3d X = new Matrix3d();
       Vector3d tmp = new Vector3d();
       Vector3d dLdot = new Vector3d();
-      int numPnts = myPnts.size();
+      int numSegs = numSegments();
       updateSegsIfNecessary();
-      if (numPnts > 1) {
+      if (numSegs > 0) {
          double l = getActiveLength();
          double ldot = getActiveLengthDot();
          double dFdldot = computeDFdldot (l, ldot);
-         updateV();
-         for (int i=0; i<numPnts; i++) {
-            tmp.scale (dFdldot, myPnts.get(i).v);
-            for (int j=0; j<numPnts; j++) {
-               int blkNum = mySolveBlkNums[i*numPnts+j];
-               if (blkNum != -1) {
-                  MatrixBlock blk = M.getBlockByNumber (blkNum);
-                  dLdot.setZero();
-                  if (j > 0) {
-                     SegmentData segPrev = mySegs.get(j-1);
-                     if (segPrev.isActive) {
-                        dLdot.add (segPrev.uvec);
-                     }
+         for (int i=0; i<numSegs; i++) {
+            Segment seg_i = mySegments.get(i);
+            Vector3d uvecB_i, uvecA_i;
+            if (seg_i.hasSubSegments()) {
+               uvecB_i = seg_i.firstSubSegment().myUvec;
+               uvecA_i = seg_i.lastSubSegment().myUvec;
+            }
+            else {
+               uvecB_i = seg_i.myUvec;
+               uvecA_i = seg_i.myUvec;
+            }
+            for (int j=0; j<numSegs; j++) {
+               Segment seg_j = mySegments.get(j);
+               Vector3d uvecB_j, uvecA_j;
+               if (!seg_j.myPassiveP) {
+                  if (seg_j.hasSubSegments()) {
+                     uvecB_j = seg_j.firstSubSegment().myUvec;
+                     uvecA_j = seg_j.lastSubSegment().myUvec;
                   }
-                  if (j < numPnts-1) {
-                     SegmentData segNext = mySegs.get(j);
-                     if (segNext.isActive) {
-                        dLdot.sub (segNext.uvec);
-                     }
+                  else {
+                     uvecB_j = seg_j.myUvec;
+                     uvecA_j = seg_j.myUvec;
                   }
-                  myMat.outerProduct (tmp, dLdot);
-                  blk.scaledAdd (s, myMat);
+                  X.outerProduct (uvecB_i, uvecB_j);
+                  addToBlock (M, i, j, X, -s*dFdldot);
+                  if (uvecB_j != uvecA_j) {
+                     X.outerProduct (uvecB_i, uvecA_j);
+                  }
+                  addToBlock (M, i, j+1, X, s*dFdldot);                  
+                  X.outerProduct (uvecA_i, uvecB_j);
+                  addToBlock (M, i+1, j, X, s*dFdldot);
+                  if (uvecB_j != uvecA_j) {
+                     X.outerProduct (uvecA_i, uvecA_j);
+                  }
+                  addToBlock (M, i+1, j+1, X, -s*dFdldot);
                }
             }
          }
@@ -676,7 +1601,8 @@ public class MultiPointSpring extends PointSpringBase
 
    public int getJacobianType() {
       AxialMaterial mat = getEffectiveMaterial();
-      if (myIgnoreCoriolisInJacobian || mat.isDFdldotZero()) {
+      if (numPassiveSegments() == 0 &&
+          (myIgnoreCoriolisInJacobian || mat.isDFdldotZero())) {
          return Matrix.SYMMETRIC;
       }
       else {
@@ -696,67 +1622,126 @@ public class MultiPointSpring extends PointSpringBase
     */
    public boolean getCopyReferences (
       List<ModelComponent> refs, ModelComponent ancestor) {
-      for (int i=0; i<myPnts.size(); i++) {
-         if (!ComponentUtils.addCopyReferences (refs, getPoint(i), ancestor)) {
-            return false;
-         }
-      }
-      return true;
+      // copying not currently supported
+      return false;
+//      for (int i=0; i<myWrapData.size(); i++) {
+//         ModelComponent wobj = getWrapObject(i);
+//         if (!(wobj instanceof CopyableComponent) ||
+//             !ComponentUtils.addCopyReferences (refs, wobj, ancestor)) {
+//            return false;
+//         }
+//      }
+//      return true;
    }
 
    public ModelComponent copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       MultiPointSpring comp = (MultiPointSpring)super.copy (flags, copyMap);
 
-      comp.mySegs = new ArrayList<SegmentData>();
-      comp.myPnts = new ArrayList<PointData>();
-      for (int i=0; i<myPnts.size(); i++) {
-         Point pnt = (Point)ComponentUtils.maybeCopy (
-            flags, copyMap, getPoint(i));
-         comp.addPoint (pnt);
-      }
-      comp.setRenderProps (myRenderProps);
-      if (myMaterial != null) {
-         comp.setMaterial (myMaterial.clone());
-      }
-      //comp.setStiffness (myStiffness);
-      //comp.setDamping (myDamping);
-      comp.myTmp = new Vector3d();
-      comp.myMat = null;
-      if (myPassiveSegs != null) {
-         comp.myPassiveSegs = new HashSet<Integer>();
-         for (Integer ival : myPassiveSegs) {
-            comp.myPassiveSegs.add (ival);
-         }
-      }
+      // copying not currently supported. This method must be completed
+      // if that changes.
+//      comp.mySegData = new ArrayList<SegmentData>();
+//      comp.myWrapData = new ArrayList<WrapData>();
+//      for (int i=0; i<myWrapData.size(); i++) {
+//         ModelComponent wobj = (ModelComponent)ComponentUtils.maybeCopy (
+//            flags, copyMap, (CopyableComponent)getWrapObject(i));
+//         if (wobj instanceof Wrappable) {
+//            WrapData wdata = myWrapData.get(i);
+//            comp.addWrappable (
+//               (Wrappable)wobj,
+//               wdata.pntA.getPosition(), wdata.pntA.getPosition());
+//         }
+//         else if (wobj instanceof Point) {
+//            comp.addPoint ((Point)wobj);
+//         }
+//         else {
+//            throw new InternalErrorException (
+//               "Unknown wrap object "+wobj.getClass());
+//         }
+//      }
+//      comp.setRenderProps (myRenderProps);
+//      if (myMaterial != null) {
+//         comp.setMaterial (myMaterial.clone());
+//      }
+      // if (myPassiveSegs != null) {
+      //    comp.myPassiveSegs = new HashSet<Integer>();
+      //    for (Integer ival : myPassiveSegs) {
+      //       comp.myPassiveSegs.add (ival);
+      //    }
+      // }
       return comp;
    }
 
    @Override
    public void getHardReferences (List<ModelComponent> refs) {
       super.getHardReferences (refs);
-      for (int i=0; i<myPnts.size(); i++) {
-         refs.add (myPnts.get(i).pnt);
+      int nump = numPoints();
+      if (nump > 0) {
+         refs.add (getPoint(0));
+      }
+      if (nump > 1) {
+         refs.add (getPoint(nump-1));
       }
    }
 
-//   @Override
-//   public void connectToHierarchy () {
-//      super.connectToHierarchy ();
-//      for (int i=0; i<myPnts.size(); i++) {
-//         myPnts.get(i).pnt.addBackReference (this);
-//      }
-//   }
-//
-//   @Override
-//   public void disconnectFromHierarchy() {
-//      super.disconnectFromHierarchy();
-//      for (int i=0; i<myPnts.size(); i++) {
-//         myPnts.get(i).pnt.removeBackReference (this);
-//      }
-//   }
-   
+   @Override
+   public void getSoftReferences (List<ModelComponent> refs) {
+      super.getSoftReferences (refs);
+      int nump = numPoints();
+      if (nump > 2) {
+         for (int i=1; i<nump-1; i++) {
+            refs.add (getPoint(i));
+         }
+      }
+      refs.addAll (myWrappables);
+   }
+
+   @Override
+   public void updateReferences (boolean undo, Deque<Object> undoInfo) {
+      super.updateReferences (undo, undoInfo);
+      // TODO: FINISH
+      if (undo) {
+//         // undo the update
+//         Object obj;
+//         while ((obj = undoInfo.removeFirst()) != ModelComponentBase.NULL_OBJ) {
+//            WrapData wdata = (WrapData)obj;
+//            int idx = wdata.idx;
+//            if (wdata.wrappable == null) {
+//               addPoint (idx, wdata.pntA);
+//            }
+//            else {
+//               addWrappable (
+//                  idx, wdata.wrappable, 
+//                  wdata.pntA.getPosition(), wdata.pntB.getPosition());
+//            }
+//         }
+      }
+      else {
+//         // remove soft references which aren't in the hierarchy any more:
+//         ArrayList<WrapData> removed = new ArrayList<WrapData>();
+//         for (int i=1; i<myWrapData.size()-1; i++) {
+//            if (!ComponentUtils.isConnected (this, getWrapObject(i))) {
+//               WrapData wdata = myWrapData.get(i);
+//               wdata.idx = i;
+//               removed.add (wdata);
+//            }
+//         }
+//         for (WrapData wdata : removed) {
+//            if (wdata.wrappable != null) {
+//               removeWrappable (wdata.wrappable);
+//            }
+//            else {
+//               removePoint (wdata.pntA);
+//            }
+//            undoInfo.addLast (wdata);
+//         }
+//         undoInfo.addLast (ModelComponentBase.NULL_OBJ);
+      }
+      updateSegsIfNecessary();
+   }
+
    public void preadvance (double t0, double t1, int flags) {
+      updateWrapSegments(myMaxWrapIterations);
    }
    
    public void postadvance (double t0, double t1, int flags) {
@@ -770,4 +1755,342 @@ public class MultiPointSpring extends PointSpringBase
    public void updateStructure() {
    }
 
+   // ///////////////////////////////////////////////////
+   // // Begin Composite component stuff
+   // ///////////////////////////////////////////////////
+
+   // /**
+   //  * {@inheritDoc}
+   //  */
+   // public void updateNameMap (
+   //    String newName, String oldName, ModelComponent comp) {
+   //    myComponents.updateNameMap (newName, oldName, comp);
+   // }
+
+   // /**
+   //  * {@inheritDoc}
+   //  */
+   // public ModelComponent findComponent (String path) {
+   //    return ComponentUtils.findComponent (this, path);
+   // }
+
+   // protected void addFixed (ModelComponent comp) {
+   //    comp.setFixed (true);
+   //    myComponents.add (comp);
+   // }
+ 
+   // /**
+   //  * {@inheritDoc}
+   //  */
+   // public ModelComponent get (String nameOrNumber) {
+   //    return myComponents.get (nameOrNumber);
+   // }
+
+   // /**
+   //  * {@inheritDoc}
+   //  */
+   // public ModelComponent get (int idx) {
+   //    return myComponents.get (idx);
+   // }
+
+   // /**
+   //  * {@inheritDoc}
+   //  */
+   // public ModelComponent getByNumber (int num) {
+   //    return myComponents.getByNumber (num);
+   // }
+
+   // /**
+   //  * {@inheritDoc}
+   //  */
+   // public int getNumberLimit() {
+   //    return myComponents.getNumberLimit();
+   // }
+
+   // /**
+   //  * {@inheritDoc}
+   //  */
+   // public int indexOf (ModelComponent comp) {
+   //    return myComponents.indexOf (comp);
+   // }
+
+   // /**
+   //  * {@inheritDoc}
+   //  */
+   // public int numComponents() {
+   //    return myComponents.size();
+   // }
+
+   // /**
+   //  * {@inheritDoc}
+   //  */
+   // public void componentChanged (ComponentChangeEvent e) {
+   //    myComponents.componentChanged (e);
+   //    notifyParentOfChange (e);
+   // }
+
+   // protected void notifyStructureChanged (Object comp) {
+   //    if (comp instanceof CompositeComponent) {
+   //       notifyParentOfChange (new StructureChangeEvent (
+   //          (CompositeComponent)comp));
+   //    }
+   //    else {
+   //       notifyParentOfChange (StructureChangeEvent.defaultEvent);
+   //    }
+   // }
+
+   // /**
+   //  * {@inheritDoc}
+   //  */
+   // public NavpanelDisplay getNavpanelDisplay() {
+   //    return myDisplayMode;
+   // }
+   
+   // /**
+   //  * Sets the display mode for this component. This controls
+   //  * how the component is displayed in a navigation panel. The default
+   //  * setting is <code>NORMAL</code>.
+   //  *
+   //  * @param mode new display mode
+   //  */
+   // public void setDisplayMode (NavpanelDisplay mode) {
+   //    myDisplayMode = mode;
+   // }
+
+   // /**
+   //  * {@inheritDoc}
+   //  */
+   // public boolean hierarchyContainsReferences() {
+   //    return false;
+   // }
+
+   // ///////////////////////////////////////////////////
+   // // End Composite component stuff
+   // ///////////////////////////////////////////////////
+
+   // public void getAttachments (List<DynamicAttachment> list) {
+   //    for (int i=0; i<myWrapData.size(); i++) {
+   //       WrapData wdata = myWrapData.get(i);
+   //       if (wdata.wrappable != null) {
+   //          list.add (wdata.attachmentA);
+   //          list.add (wdata.attachmentB);
+   //       }
+   //    }
+   // }
+
+   public void updateSlavePos() {
+   }
+
+   public void updateSlaveVel() {
+   }
+
+   @Override
+   public void advanceAuxState (double t0, double t1) {
+      // nothing needed here
+   }
+
+   @Override
+   public void skipAuxState (DataBuffer data) {
+      for (int i=0; i<numSegments(); i++) {
+         Segment seg = mySegments.get(i);
+         if (seg instanceof WrapSegment) {
+            ((WrapSegment)seg).skipAuxState (data);
+         }
+      }
+   }
+
+   @Override
+   public void getAuxState (DataBuffer data) {
+      for (int i=0; i<numSegments(); i++) {
+         Segment seg = mySegments.get(i);
+         if (seg instanceof WrapSegment) {
+            ((WrapSegment)seg).getAuxState (data);
+         }
+      }
+   }
+
+   @Override
+   public void getInitialAuxState (DataBuffer newData, DataBuffer oldData) {
+      for (int i=0; i<numSegments(); i++) {
+         Segment seg = mySegments.get(i);
+         if (seg instanceof WrapSegment) {
+            ((WrapSegment)seg).getInitialAuxState (newData, oldData);
+         }
+      }
+   }
+
+   @Override
+   public void setAuxState (DataBuffer data) {
+      for (int i=0; i<numSegments(); i++) {
+         Segment seg = mySegments.get(i);
+         if (seg instanceof WrapSegment) {
+            ((WrapSegment)seg).setAuxState (data);
+         }
+      }
+   }
+
+   public void addPoint (int idx, Point pnt) {
+      if (idx > mySegments.size()) {
+         throw new ArrayIndexOutOfBoundsException (
+            "specified index "+idx+
+            " exceeds number of points "+mySegments.size());
+      }
+      Segment seg = new Segment();
+      seg.myPntB = pnt;
+      if (idx > 0) {
+         Segment prev = mySegments.get(idx-1);
+         prev.myPntA = pnt;
+         if (idx == numPoints() && prev instanceof WrapSegment) {
+            ((WrapSegment)prev).initializeStrand();
+         }
+      }
+      if (idx < mySegments.size()-1) {
+         seg.myPntA = mySegments.get(idx+1).myPntB;
+      }
+      mySegments.add (idx, seg);
+      mySegsValidP = false;
+      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+   }
+
+   public void addPoint (Point pnt) {
+      addPoint (numPoints(), pnt);
+   }
+
+   public Point getPoint (int idx) {
+      if (idx < 0 || idx >= numPoints()) {
+         throw new IndexOutOfBoundsException (
+            "idx=" + idx + ", number of points=" + numPoints());
+      }
+      return mySegments.get(idx).myPntB;
+   }
+
+   public int numPoints() {
+      return mySegments.size();
+   }
+
+   public int indexOfPoint (Point pnt) {
+      for (int i=0; i<mySegments.size(); i++) {
+         Segment seg = mySegments.get(i);
+         if (seg.myPntB == pnt) {
+            return i;
+         }
+      }
+      return -1;
+   }
+
+   public boolean containsPoint (Point pnt) {
+      return indexOfPoint (pnt) != -1;
+   }
+
+   public void setPoint (Point pnt, int idx) {
+      int nump = numPoints();
+      if (idx < 0 || idx >= nump) {
+         throw new IndexOutOfBoundsException (
+            "idx=" + idx + ", number of points=" + nump);
+      }
+      if (idx == nump) {
+         addPoint (pnt);
+      }
+      else {
+         if (idx > 0) {
+            Segment prev = mySegments.get(idx-1);
+            prev.myPntA = pnt;
+         }
+      }
+      mySegsValidP = false;
+      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+   }
+
+   public boolean removePoint (Point pnt) {
+      int idx = indexOfPoint (pnt);
+      if (idx != -1) {      
+         if (idx > 0) {
+            mySegments.get(idx-1).myPntA = mySegments.get(idx).myPntA;
+         }
+         mySegments.remove (idx);
+         mySegsValidP = false;
+         notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   public void clearPoints() {
+      mySegments.clear();
+      mySegsValidP = false;
+      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+   }
+
+   public void setSegmentWrappable (int numk) {
+      setSegmentWrappable (numk, null);
+   }
+
+   public void setSegmentWrappable (int numk, Point3d[] initialPnts) {
+      if (numPoints() == 0) {
+         throw new IllegalStateException (
+            "setSegmentWrappable() called before first call to addPoint()");
+      }
+      WrapSegment seg = new WrapSegment(numk, initialPnts);
+      seg.myPntB = mySegments.get(mySegments.size()-1).myPntB;
+      mySegments.set (mySegments.size()-1, seg);
+   }
+
+   public void addWrappable (Wrappable wrappable) {
+      if (!myWrappables.contains(wrappable)) {
+         myWrappables.add (wrappable);
+      }        
+   }
+
+   public boolean containsWrappable (Wrappable wrappable) {
+      return indexOfWrappable (wrappable) != -1;
+   }
+
+   public int numWrappables() {
+      return myWrappables.size();
+   }
+
+   public int indexOfWrappable (Wrappable wrappable) {
+      return myWrappables.indexOf (wrappable);
+   }
+
+   public Wrappable getWrappable (int idx) {
+      if (idx < 0 || idx >= myWrappables.size()) {
+         throw new IndexOutOfBoundsException (
+            "idx=" + idx + ", num wrappables=" + numWrappables());
+      }
+      return myWrappables.get(idx);
+   }
+
+   public boolean removeWrappable (Wrappable wrappable) {
+      return myWrappables.remove (wrappable);
+   }
+
+   public void clearWrappables() {
+      myWrappables.clear();
+      mySegsValidP = false;
+      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+   }
+
+   /**
+    * Applies one iteration of the wrap segment updating method.
+    */
+   public void updateWrapSegments() {
+      updateWrapSegments(myMaxWrapIterations);
+   }
+
+   // DONE: add an initialize() method
+   // DONE: computing tangent with just p1 can get the wrong answer if
+   //       knot density is low
+
+   // DONE: notifyStructureChanged() - do we need this?
+   // DONE: what to do with transform geometry?
+   // DONE: what to do with scale distance?
+   // DONE: save and restore state
+   // TODO: FINISH add soft references
+
+   // TODO: FINISH Jacobian stuff
+
 }
+

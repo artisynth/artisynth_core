@@ -536,7 +536,7 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
       copy.setPlaneSize (myPlaneSize);
       copy.setUnilateral (isUnilateral());
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
+      //copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
       ArrayList<Point3d> segPnts = mySegPlaneCoupling.getSegmentPoints();
       double[] segs = new double[segPnts.size() * 2];
       for (int i = 0; i < segPnts.size(); i++) {

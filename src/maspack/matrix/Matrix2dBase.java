@@ -52,8 +52,6 @@ public abstract class Matrix2dBase extends DenseMatrixBase implements Clonable {
       return 2;
    }
 
-   private Matrix2d Tmp;
-
    /**
     * {@inheritDoc}
     */
@@ -549,9 +547,7 @@ public abstract class Matrix2dBase extends DenseMatrixBase implements Clonable {
    protected boolean mulInverseRight (Matrix2dBase M1, Matrix2dBase M2) {
       boolean nonSingular = true;
       if (M1 == this || M1 == this) {
-         if (Tmp == null) {
-            Tmp = new Matrix2d();
-         }
+         Matrix2d Tmp = new Matrix2d();
          nonSingular = Tmp.invert (M2);
          mul (M1, Tmp);
       }
@@ -575,9 +571,7 @@ public abstract class Matrix2dBase extends DenseMatrixBase implements Clonable {
    protected boolean mulInverseLeft (Matrix2dBase M1, Matrix2dBase M2) {
       boolean nonSingular = true;
       if (M1 == this || M1 == this) {
-         if (Tmp == null) {
-            Tmp = new Matrix2d();
-         }
+         Matrix2d Tmp = new Matrix2d();
          nonSingular = Tmp.invert (M1);
          mul (Tmp, M2);
       }
@@ -752,9 +746,7 @@ public abstract class Matrix2dBase extends DenseMatrixBase implements Clonable {
     * @return false if this matrix is singular
     */
    public boolean mulInverse (Vector2d vr, Vector2d v1) {
-      if (Tmp == null) {
-         Tmp = new Matrix2d();
-      }
+      Matrix2d Tmp = new Matrix2d();
       boolean nonSingular = Tmp.invert (this);
       Tmp.mul (vr, v1);
       return nonSingular;
@@ -783,9 +775,7 @@ public abstract class Matrix2dBase extends DenseMatrixBase implements Clonable {
     * @return false if this matrix is singular
     */
    public boolean mulInverseTranspose (Vector2d vr, Vector2d v1) {
-      if (Tmp == null) {
-         Tmp = new Matrix2d();
-      }
+      Matrix2d Tmp = new Matrix2d();
       boolean nonSingular = Tmp.invert (this);
       Tmp.mulTranspose (vr, v1);
       return nonSingular;

@@ -69,7 +69,7 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
       GL2 gl = renderer.getGL2().getGL2();
 
       renderer.setLightingEnabled (false);
-      gl.glLineWidth (myLineWidth);
+      renderer.setLineWidth (myLineWidth);
 
       gl.glPushMatrix();
       gl.glTranslated (

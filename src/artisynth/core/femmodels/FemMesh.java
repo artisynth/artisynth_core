@@ -481,19 +481,19 @@ public class FemMesh extends FemMeshBase
       }
    }
    
-//   public void setVertexAttachment (
-//      int vidx, double [] weights, FemNode3d[] nodes) {
-//      if (weights.length > 1) {
-//         PointFem3dAttachment pattacher = new PointFem3dAttachment();
-//         pattacher.setFromNodes (nodes, weights);
-//         setVertexAttachment(vidx, pattacher);
-//      } else if (weights.length == 1) {
-//         PointParticleAttachment attacher = 
-//            new PointParticleAttachment(nodes[0], null);
-//         setVertexAttachment(vidx, attacher);
-//      }
-//      
-//   }
+   public void setVertexAttachment (
+      int vidx, double [] weights, FemNode3d[] nodes) {
+      if (weights.length > 1) {
+         PointFem3dAttachment pattacher = new PointFem3dAttachment();
+         pattacher.setFromNodes (nodes, weights);
+         setVertexAttachment(vidx, pattacher);
+      } else if (weights.length == 1) {
+         PointParticleAttachment attacher = 
+            new PointParticleAttachment(nodes[0], null);
+         setVertexAttachment(vidx, attacher);
+      }
+      
+   }
 
    public static FemMesh createEmbedded (
       FemMesh surf, MeshBase mesh, FemModel3d fem) {

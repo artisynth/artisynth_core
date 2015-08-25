@@ -66,6 +66,11 @@ public class PointFem3dAttachment extends PointAttachment {
       setFromFem (pnt.getPosition(), fem);
    }
    
+   public PointFem3dAttachment (Point pnt, FemNode[] nodes, double[] coords) {
+      this(pnt);
+      setFromNodes(nodes, coords);
+   }
+   
    protected void collectMasters (List<DynamicComponent> masters) {
       super.collectMasters (masters);
       myFemFrame = null;
@@ -149,7 +154,7 @@ public class PointFem3dAttachment extends PointAttachment {
    public FemElement getElement() {
       return myElement;
    }
-
+   
    /**
     * If the nodes of this attachment correspond to the nodes of a particular
     * element, return that element. Otherwise, return null.

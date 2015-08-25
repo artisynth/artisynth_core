@@ -784,7 +784,7 @@ the appropriate attachments automatically (see Section
 
 Since
 \javaclass[artisynth.core.femmodels]{FemNode3d} is a subclass of
-\javaclass[artisynth.core.femmodels]{Particle}, the same methods
+\javaclass[artisynth.core.mechmodels]{Particle}, the same methods
 described in that section for attaching particles to other particles
 and frames are available. 
 
@@ -1481,7 +1481,7 @@ that creates a joint connecting {\tt bodyA} to {\tt bodyB}, with the
 initial pose of the D frame given (in world coordinates) by {\tt TDW}.
 The same body and transform settings can be made on an existing joint
 using the method \javamethodAlt{%
-artisynth.core.mechmodels.RigidBodyConnector.setBodies(,,)}
+artisynth.core.mechmodels.RigidBodyConnector.setBodies(ConnectableBody,,)}
 {setBodies(bodyA, bodyB, TDW)}.  For these constructors and methods,
 it is possible to specify FEM models for {\tt bodyA} and/or {\tt
 bodyB}. Internally, the joint then creates a {\tt

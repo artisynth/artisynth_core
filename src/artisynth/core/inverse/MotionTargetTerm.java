@@ -7,6 +7,7 @@
 package artisynth.core.inverse;
 
 import java.awt.Color;
+import java.nio.file.attribute.UserPrincipalNotFoundException;
 import java.util.ArrayList;
 
 import maspack.matrix.MatrixNd;
@@ -46,12 +47,16 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    
    public static final boolean DEFAULT_USE_PD_CONTROL = false;
    boolean usePDControl = DEFAULT_USE_PD_CONTROL;
+
+   public static final boolean DEFAULT_DELTA_ACTIVATIONS = false;
+   boolean useDeltaAct = DEFAULT_DELTA_ACTIVATIONS;
+   
    boolean debug = false;
    boolean enabled = true;
 
    protected TrackingController myController;
    protected MechSystemBase myMech;    // mech system, used to compute forces
-   protected MotionTerm myMotionTerm;
+//   protected MotionTerm myMotionTerm;
    protected ArrayList<MotionTargetComponent> mySources;
    protected ArrayList<MotionTargetComponent> myTargets;
    protected ArrayList<Double> myTargetWeights; // one weight per target
@@ -117,7 +122,11 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       super(weight);
       myController = controller;
       myMech = myController.getMech();
-      myMotionTerm = new MotionTerm(myController);
+//      if (useDeltaAct)
+//         myMotionTerm = new MotionTermDeltaAct (controller);
+//      else
+//         myMotionTerm = new MotionTerm(myController);
+         
       mySources = new ArrayList<MotionTargetComponent>();
       myTargets = new ArrayList<MotionTargetComponent>();
       myTargetWeights = new ArrayList<Double>();
@@ -298,11 +307,6 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       prevTargetPos.set (myTargetPos);
    }
 
-   public void dispose() {
-      System.out.println("motion target dispose()");
-      myMotionTerm.dispose();
-   }
-
    public boolean isEnabled() {
       return enabled;
    }
@@ -335,7 +339,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       targetRenderProps.setPointColor(Color.CYAN);
       targetRenderProps.setPointStyle(PointStyle.SPHERE);
       // set target point radius explicitly
-      targetRenderProps.setPointRadius (myMotionTerm.myController.targetsPointRadius);
+      targetRenderProps.setPointRadius (myController.targetsPointRadius);
       
       myController.targetPoints.setRenderProps (targetRenderProps);
       myController.targetFrames.setRenderProps (targetRenderProps);
@@ -724,25 +728,61 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     */
    public int getTerm(
       MatrixNd H, VectorNd b, int rowoff, double t0, double t1) {
+      double h = TimeBase.round(t1 - t0);
+
       updateTarget(t0, t1); // set myTargetVel
       updateModelVelocity(); // set myCurrentVel
 //      fixTargetPositions();   // XXX not sure why this is needed
-      if (myMech instanceof MechModel) {
-         myMotionTerm.useTrapezoidalSolver = ((MechModel)myMech).getIntegrator ()==Integrator.Trapezoidal;
+      
+      VectorNd vbar = new VectorNd (myTargetVelSize);
+      // XXX do useTimestepScaling, useNormalizeH on targetVel
+
+      vbar.sub (myTargetVel, myController.getData ().getV0 ());
+      
+      MatrixNd Hv = new MatrixNd (myTargetVelSize, myController.numExcitations ());
+      Hv.set (myController.getData ().getHv ());
+      
+      if (myController.getData ().normalizeH) {
+         double fn = 1.0 / Hv.frobeniusNorm ();
+         Hv.scale (fn);
+         vbar.scale (fn);
       }
       
-      return myMotionTerm.getTerm(H, b, rowoff, t0, t1,
-         myTargetVel, myCurrentVel, myTargetWgts, getVelocityJacobian());
+      if (myController.getData ().useTimestepScaling) { // makes it independent of the time step
+         Hv.scale(1/h);      
+         vbar.scale(1/h); 
+      }
+      
+   // apply weights
+      if (myTargetWgts != null) {
+         MotionForceInverseData.diagMul(myTargetWgts,Hv,Hv);
+         MotionForceInverseData.pointMul(myTargetWgts,vbar,vbar);
+      }
+      if (myWeight > 0) {
+          Hv.scale(myWeight);
+          vbar.scale(myWeight);
+       }
+
+      H.setSubMatrix(rowoff, 0, Hv);
+      b.setSubVector(rowoff, vbar);
+      
+      return rowoff + Hv.rowSize();
+
+      
+//      return myMotionTerm.getTerm(H, b, rowoff, t0, t1,
+//         myTargetVel, myCurrentVel, myTargetWgts, getVelocityJacobian());
    }
    
+
    /**
     * Fills <code>H</code> and <code>b</code> with this motion term
     * In contrast to <code>getTerm</code>, this method does not
     * recompute the values.
     */
    public void reGetTerm(MatrixNd H, VectorNd b) {
-      myMotionTerm.getJacobian (H);
-      myMotionTerm.getVbar(b);
+      // XXX do useTimestepScaling, useNormalizeH on targetVel
+      b.sub (myTargetVel, myController.getData ().getV0 ());
+      H.set (myController.getData ().getHv ());
    }
    
    
@@ -767,7 +807,6 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    @Override
    public void setWeight(double w) {
       super.setWeight(w);
-      myMotionTerm.setWeight(myWeight);
    }
 
    /**
@@ -915,7 +954,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * @param set
     */
    public void setNormalizeH(boolean set) {
-      myMotionTerm.normalizeH = set;
+      myController.getData().normalizeH = set;
    }
    
    /**
@@ -925,7 +964,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * <code>H</code> and <code>b</code>
     */
    public boolean getNormalizeH() {
-      return myMotionTerm.normalizeH;
+      return myController.getData().normalizeH;
    }
 
    @Override
@@ -940,21 +979,20 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    
    
    public boolean getUseKKTFactorAndSolve () {
-      return myMotionTerm.useKKTFactorAndSolve;
+      return myController.getData().useKKTFactorAndSolve;
    }
 
    public void setUseKKTFactorAndSolve (boolean useKKTFactorAndSolve) {
-      myMotionTerm.useKKTFactorAndSolve = useKKTFactorAndSolve;
+      myController.getData().useKKTFactorAndSolve = useKKTFactorAndSolve;
    }
    
    public boolean getUseTimestepScaling () {
-      return myMotionTerm.useTimestepScaling;
+      return myController.getData().useTimestepScaling;
    }
 
    public void setUseTimestepScaling (boolean useTimestepScaling) {
-      myMotionTerm.useTimestepScaling = useTimestepScaling;
+      myController.getData().useTimestepScaling = useTimestepScaling;
    }
-
 
    public void setUsePDControl(boolean usePD) {
       usePDControl = usePD;

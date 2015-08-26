@@ -17,6 +17,7 @@ import java.util.Iterator;
 import javax.swing.JLabel;
 import javax.swing.JSeparator;
 
+import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyInfo;
 import maspack.properties.PropertyInfoList;
@@ -106,10 +107,14 @@ public class TrackingController extends ControllerBase
 
    protected MechSystemBase myMech;
    protected QPCostFunction myCostFunction;
+   protected MotionForceInverseData myMotionForceData;
 
    protected MotionTargetTerm myMotionTerm = null;  // contains target information
+   protected ForceTargetTerm myForceTerm = null;  // contains target information
+
    protected L2RegularizationTerm myRegularizationTerm = null;
    protected BoundsTerm myBoundsTerm = null;
+   protected NonuniformBoundsTerm myOffsetBoundsTerm = null;
    
    // contains child components and implements CompositeComponent methods
    protected ComponentListImpl<ModelComponent> myComponents;
@@ -123,8 +128,12 @@ public class TrackingController extends ControllerBase
    
    public static boolean isDebugTimestep(double t0, double t1) {
       double EPS = 1e-10;
-//      return (t0 < EPS || (t1 <= 0.4+EPS && t1 >=0.4-EPS));
-      return false;
+      return (t0 < EPS ||
+      (t1 <= 2+EPS && t1 >=2-EPS) ||
+      (t1 <= 4+EPS && t1 >4-EPS) ||
+      (t1 <= 6+EPS && t1 >6-EPS)
+      );
+//      return false;
    }
 
    protected MuscleExciter myExciters;  // list of inputs
@@ -164,10 +173,6 @@ public class TrackingController extends ControllerBase
 
    public PropertyList getAllPropertyInfo() {
       return myProps;
-   }
-
-   public TrackingController () {
-      this(null, null);
    }
 
    /**
@@ -229,6 +234,8 @@ public class TrackingController extends ControllerBase
 //      }
       add (myExciters);
       
+      myMotionForceData = new MotionForceInverseData (this);
+      
       myMotionTerm = new MotionTargetTerm (this);
       if (handleMotionTargetAsConstraint) {
          // add a constraint on the motion target
@@ -243,7 +250,9 @@ public class TrackingController extends ControllerBase
          myCostFunction.addCostTerm (myMotionTerm);
       }
       
-      setExcitationBounds(0d,1d);
+      if (!myMotionTerm.useDeltaAct) {
+         setExcitationBounds(0d, 1d);
+      }
    }
 
    /**
@@ -296,7 +305,22 @@ public class TrackingController extends ControllerBase
       myMech.getForces (savedForces);
 
       prevExcitations.set(myExcitations);
-      myExcitations.set(myCostFunction.solve (t0,t1));
+      
+      SparseBlockMatrix Jc = (myForceTerm==null ? null : myForceTerm.getForceJacobian ());
+      SparseBlockMatrix Jm = (myMotionTerm==null ? null : myMotionTerm.getVelocityJacobian ());
+      myMotionForceData.update(t0, t1, Jm, Jc); // update and store inverse data
+      
+      if (myMotionTerm.useDeltaAct) {
+         VectorNd deltaActivations = myCostFunction.solve (t0, t1);
+         myExcitations.add (deltaActivations);
+         if (isDebugTimestep (t0, t1)) {
+            System.out.println ("da = [" + deltaActivations.toString ("%.4f") + "];");
+         }
+      }
+      else {
+         myExcitations.set (myCostFunction.solve (t0, t1));
+      }
+      
       
       /*
        * limit excitation jumps
@@ -322,6 +346,14 @@ public class TrackingController extends ControllerBase
          myExcitations.set(j, e);
       }
 
+      if (isDebugTimestep (t0, t1)) {
+         System.out.println("ex = ["+myExcitations.toString (f4)+"];");
+         System.out.println("lb = ["+lowerBound.toString (f4)+"];");
+         System.out.println("ub = ["+upperBound.toString (f4)+"];");
+         
+      }
+
+      
       setExcitations(myExcitations, 0);
       myMech.setForces (savedForces);
 
@@ -355,6 +387,11 @@ public class TrackingController extends ControllerBase
       remove (sourceFrames);
       myExciters.removeAllTargets ();
       remove (myExciters);
+   }
+   
+   public void addForceTargetTerm(ForceTargetTerm ft) {
+      myForceTerm = ft;
+      addCostTerm (ft);
    }
 
    /**
@@ -514,6 +551,25 @@ public class TrackingController extends ControllerBase
          myCostFunction.addInequalityConstraint (myBoundsTerm);
       }
       myBoundsTerm.setBounds (lower,upper);
+   }
+
+   VectorNd lowerBound = new VectorNd();
+   VectorNd upperBound = new VectorNd();
+   
+   public void setOffsetBounds(VectorNd ex, double lower, double upper) {
+      if (myOffsetBoundsTerm == null) {
+         myOffsetBoundsTerm = new NonuniformBoundsTerm();
+         myOffsetBoundsTerm.setSize (myExcitations.size ());
+         lowerBound.setSize (ex.size ());
+         upperBound.setSize (ex.size ());
+         myCostFunction.addInequalityConstraint (myOffsetBoundsTerm);
+      }
+
+      for (int i = 0; i < ex.size (); i++) {
+         lowerBound.set (i, lower-ex.get (i));
+         upperBound.set (i, upper-ex.get (i));
+      }
+      myOffsetBoundsTerm.setBounds (lowerBound,upperBound);
    }
    
    /**
@@ -1079,5 +1135,8 @@ public class TrackingController extends ControllerBase
 
    // ========== End CompositeComponent implementation ==========
 
+   public MotionForceInverseData getData() {
+      return myMotionForceData;
+   }
    
 }

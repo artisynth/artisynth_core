@@ -10,32 +10,18 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.MechSystemBase;
+import artisynth.core.mechmodels.MotionTargetComponent;
+import artisynth.core.mechmodels.RigidBodyConnector;
+import artisynth.core.util.TimeBase;
 import maspack.matrix.MatrixNd;
-import maspack.matrix.Point3d;
-import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SparseBlockMatrix;
-import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
 import maspack.render.RenderProps.Faces;
 import maspack.render.RenderProps.PointStyle;
-import maspack.spatialmotion.Twist;
-import artisynth.core.femmodels.FemModel3d;
-import artisynth.core.mechmodels.Constrainer;
-import artisynth.core.mechmodels.Frame;
-import artisynth.core.mechmodels.FrameState;
-import artisynth.core.mechmodels.MechModel;
-import artisynth.core.mechmodels.MechSystemBase;
-import artisynth.core.mechmodels.MotionTarget.TargetActivity;
-import artisynth.core.mechmodels.MotionTargetComponent;
-import artisynth.core.mechmodels.PlanarConnector;
-import artisynth.core.mechmodels.Point;
-import artisynth.core.mechmodels.PointList;
-import artisynth.core.mechmodels.PointState;
-import artisynth.core.mechmodels.RigidBody;
-import artisynth.core.modelbase.RenderableComponentList;
-import artisynth.core.util.TimeBase;
 
 /**
  * Force error term for the TrackingController
@@ -64,7 +50,6 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
  
    protected VectorNd myTargetLam = null;
  
-   protected ForceTerm myForceTerm;
    
    //double[] values={0,1,0,0};                  //////////////////////////////////////////////////////////////////////////
   // protected MatrixNd myForJacobian = new MatrixNd (1, 4, values);   
@@ -118,7 +103,6 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       super();
       myMech = trackingController.getMech();
       myController = trackingController;
-      myForceTerm = new ForceTerm(trackingController);
       myForceTargets = new ArrayList<ForceTarget>();
       
   
@@ -147,7 +131,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
             buf[i] = lambda.get (0);   //work only for planar constraints
         
       }
-   System.out.println(myTargetFor);
+//   System.out.println(myTargetFor);
    /*for (int i=0; i<myForceTargets.size();i++)
       {
          myTargetFor.
@@ -209,7 +193,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       targetRenderProps.setPointColor(Color.CYAN);
       targetRenderProps.setPointStyle(PointStyle.SPHERE);
       // set target point radius explicitly
-      //targetRenderProps.setPointRadius (myForceTerm.myController.targetsPointRadius);
+//      targetRenderProps.setPointRadius (myController.targetsPointRadius);
       
       myController.targetPoints.setRenderProps (targetRenderProps);
       myController.targetFrames.setRenderProps (targetRenderProps);
@@ -331,8 +315,12 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    
    
    */
+   public void addForceTarget(RigidBodyConnector con) {
+      addForceTarget (con, new VectorNd (con.numBilateralConstraints ()));
+   }
 
-   public void addForceTarget(PlanarConnector con, VectorNd lam)
+   
+   public void addForceTarget(RigidBodyConnector con, VectorNd lam)
    {
       myForceTargets.add (new ForceTarget(lam,con));
       double weight=1;
@@ -422,12 +410,65 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
     */
    public int getTerm(
       MatrixNd H, VectorNd b, int rowoff, double t0, double t1) {
+      double h = TimeBase.round(t1 - t0);
+      
+//      System.out.println("using pre-comp data");
+
       updateTarget(t0, t1); // set myTargetVel
       updateModelVelocity(); // set myCurrentVel
 //      fixTargetPositions();   // XXX not sure why this is needed
-      return myForceTerm.getTerm(H, b, rowoff, t0, t1,
-          myCurrentVel, myTargetFor, myForTargetWgts,  getForceJacobian(), normalizeH);
+      
+      VectorNd cbar = new VectorNd (myTargetForSize);
+      // XXX do useTimestepScaling, useNormalizeH on targetVel
+      cbar.sub (myTargetFor, myController.getData ().getC0 ());
+      
+      MatrixNd Hc = new MatrixNd (myTargetForSize, myController.numExcitations ());
+      Hc.set (myController.getData ().getHc ());
+      
+      if (myController.getData ().normalizeH) {
+         double fn = 1.0 / Hc.frobeniusNorm ();
+         Hc.scale (fn);
+         cbar.scale (fn);
+      }
+      
+      if (myController.getData ().useTimestepScaling) { // makes it independent of the time step
+         Hc.scale(1/h);      
+         cbar.scale(1/h); 
+      }
+      
+      // apply weights
+      if (myForTargetWgts != null) {
+         MotionForceInverseData.diagMul(myForTargetWgts,Hc,Hc);
+         MotionForceInverseData.pointMul(myForTargetWgts,cbar,cbar);
+      }
+      if (myWeight > 0) {
+          Hc.scale(myWeight);
+          cbar.scale(myWeight);
+       }
+
+      H.setSubMatrix(rowoff, 0, Hc);
+      b.setSubVector(rowoff, cbar);
+
+      if (myController.isDebugTimestep (t0, t1)) {
+         System.out.println("tcon "+myTargetFor);
+         System.out.println("Jc "+getForceJacobian ());
+         System.out.println("Hc "+Hc);
+         System.out.println("cbar "+cbar);
+      }
+      
+      return rowoff + Hc.rowSize();
+      
+
+      
+      
+      
+//      return myForceTerm.getTerm(H, b, rowoff, t0, t1,
+//          myCurrentVel, myTargetFor, myForTargetWgts,  getForceJacobian(), normalizeH);
+      
+      
    }
+   
+   
   /* public VectorNd getMyTargetForce()
    {
       return myForceTargets.get(0).getMyTargetForce ();
@@ -449,7 +490,6 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    @Override
    public void setWeight(double w) {
       super.setWeight(w);
-      myForceTerm.setWeight(myWeight);
    }
 
    public RenderProps getTargetRenderProps() {
@@ -543,12 +583,6 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
     */
    public boolean getNormalizeH() {
       return normalizeH;
-   }
-
-   @Override
-   public void dispose () {
-      System.out.println("force target dispose()");
-      myForceTerm.dispose();
    }
 
    @Override

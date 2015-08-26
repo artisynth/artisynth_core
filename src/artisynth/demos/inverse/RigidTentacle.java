@@ -192,7 +192,8 @@ public class RigidTentacle extends RootModel {
 
    
    public void addSkinMesh() throws IOException {
-      String dataDir = ArtisynthPath.getSrcRelativePath (Tentacle.class, "data/");
+      String dataDir = ArtisynthPath.getSrcRelativePath (
+         RigidTentacle.class, "data/");
       String meshFilename = dataDir+"/tentacle_t.obj";
       PolygonalMesh tentacle = new PolygonalMesh (new File(meshFilename));
 //      tentacle.write (new PrintWriter (new File("tentacle_quads.obj")), "%g");

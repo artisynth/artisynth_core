@@ -8,6 +8,8 @@ SUBDIRS = \
 	developer \
 	installation \
 	maspack \
+        matlabAndJython \
+	modelguide \
         artisynth \
 	uiguide \
 	updates
@@ -65,6 +67,9 @@ endef
 pdf:
 
 html:
+
+echo_subdirs:
+	@echo $(SUBDIRS)
 
 .PHONY: CLEAN
 CLEAN::	$(SUBDIRS)

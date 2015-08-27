@@ -3307,6 +3307,52 @@ public class FemModel3d extends FemModel
       }
       return ffa;
    }
+   
+   /**
+    * Returns a FrameAttachment that attaches a <code>frame</code> to this
+    * component. Once attached the frame will follow the body around.  The
+    * initial pose of the frame is specified by <code>TFW</code>, which gives
+    * its position and orientation in world coordinates. If <code>TFW</code> is
+    * <code>null</code>, then the current pose of the frame is used. If
+    * <code>frame</code> is <code>null</code>, then a virtual attachment is
+    * created at the initial pose specified by
+    * <code>TFW</code>. <code>frame</code> and <code>TFW</code> cannot both be
+    * <code>null</code>.
+    * 
+    * @param frame frame to be attached
+    * @param TFW transform from (initial) frame coordinates to world
+    * coordinates
+    * @param project if true and if the frame is outside the FEM, then
+    * the frame gets projected to the nearest point on the FEM
+    * @return attachment attaching <code>frame</code> to this component
+    */
+   public FrameFem3dAttachment createFrameAttachment (
+      Frame frame, RigidTransform3d TFW, boolean project) {
+
+      if (frame == null && TFW == null) {
+         throw new IllegalArgumentException (
+            "frame and TFW cannot both be null");
+      }
+      if (frame != null && frame.isAttached()) {
+         throw new IllegalArgumentException ("frame is already attached");
+      }
+      Point3d loc = new Point3d();
+      Point3d pos = new Point3d(TFW != null ? TFW.p : frame.getPose().p);
+      FemElement3d elem = findNearestElement (loc, pos);
+      if (project && !loc.equals (pos)) {
+         TFW = new RigidTransform3d (TFW);
+         TFW.p.set (loc);
+      }
+      FrameFem3dAttachment ffa = new FrameFem3dAttachment (frame);
+      ffa.setFromElement (TFW, elem);
+      if (frame != null) {
+         if (DynamicAttachment.containsLoop (ffa, frame, null)) {
+            throw new IllegalArgumentException (
+               "attachment contains loop");
+         }
+      }
+      return ffa;
+   }
 
    static PointFem3dAttachment getEdgeAttachment(
       FemNode3d n0, FemNode3d n1) {

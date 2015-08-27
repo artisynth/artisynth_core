@@ -7,19 +7,26 @@
 package artisynth.core.mechmodels;
 
 import java.awt.Color;
-import java.util.*;
-import java.io.*;
+import java.io.IOException;
+import java.util.Deque;
+import java.util.Map;
 
-import maspack.matrix.*;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.util.ScanToken;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.render.GLRenderer;
-import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.spatialmotion.RevoluteCoupling;
-import maspack.util.*;
-import artisynth.core.modelbase.*;
-import artisynth.core.util.*;
+import maspack.util.DoubleInterval;
+import maspack.util.ReaderTokenizer;
 
 /**
  * Auxiliary class used to solve constrained rigid body problems.
@@ -153,7 +160,6 @@ public class RevoluteJoint extends JointBase
    public RevoluteJoint (
       ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TCW) {
       this();
-
       setBodies (bodyA, bodyB, TCW);
    }
 
@@ -202,15 +208,17 @@ public class RevoluteJoint extends JointBase
    public void render (GLRenderer renderer, int flags) {
       super.render (renderer, flags);
 
-      Point3d p0 = new Point3d();
-      Point3d p1 = new Point3d();
-      computeAxisEndPoints (p0, p1, myRenderFrame);
-
-      float[] coords0 = new float[] { (float)p0.x, (float)p0.y, (float)p0.z };
-      float[] coords1 = new float[] { (float)p1.x, (float)p1.y, (float)p1.z };
-
-      renderer.drawLine (myRenderProps, coords0, coords1,
-                         /* capped= */true, isSelected());
+      if (myAxisLength > 0) {
+         Point3d p0 = new Point3d();
+         Point3d p1 = new Point3d();
+         computeAxisEndPoints (p0, p1, myRenderFrameD);
+   
+         float[] coords0 = new float[] { (float)p0.x, (float)p0.y, (float)p0.z };
+         float[] coords1 = new float[] { (float)p1.x, (float)p1.y, (float)p1.z };
+   
+         renderer.drawLine (myRenderProps, coords0, coords1,
+                            /* capped= */true, isSelected());
+      }
    }
 
    // Scanning of the following properties must be deferred until after

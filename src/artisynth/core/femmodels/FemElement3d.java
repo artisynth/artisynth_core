@@ -21,9 +21,12 @@ import maspack.render.RenderProps;
 import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.IncompressibleMaterial;
+import artisynth.core.mechmodels.DynamicAttachment;
+import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.PointAttachable;
 import artisynth.core.mechmodels.PointAttachment;
+import artisynth.core.mechmodels.FrameAttachable;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ComponentUtils;
@@ -31,7 +34,7 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.util.*;
 
 public abstract class FemElement3d extends FemElement
-   implements PointAttachable, Boundable {
+   implements Boundable, PointAttachable, FrameAttachable {
    protected FemNode3d[] myNodes;
    protected FemNodeNeighbor[][] myNbrs = null;
    // average shape function gradient; used for incompressibility
@@ -688,17 +691,26 @@ public abstract class FemElement3d extends FemElement
 
    public abstract boolean coordsAreInside (Vector3d coords);
 
-   public boolean getMarkerCoordinates (VectorNd coords, Point3d pnt) {
+   public boolean getMarkerCoordinates (
+      VectorNd coords, Point3d pnt, boolean checkInside) {
       if (coords.size() < numNodes()) {
          throw new IllegalArgumentException (
             "coords size "+coords.size()+" != number of nodes "+numNodes());
       }
       Vector3d ncoords = new Vector3d();
-      getNaturalCoordinates (ncoords, pnt);
+      boolean converged = getNaturalCoordinates (ncoords, pnt);
       for (int i=0; i<numNodes(); i++) {
          coords.set (i, getN (i, ncoords));
       }
-      return coordsAreInside (ncoords);
+      if (!converged) {
+         return false;
+      }
+      else if (checkInside) {
+         return coordsAreInside (ncoords);
+      }
+      else {
+         return true;
+      }
    }
    
    public abstract double[] getNodeCoords ();
@@ -1560,7 +1572,8 @@ public abstract class FemElement3d extends FemElement
       
    }
 
-   public PointAttachment createPointAttachment (Point pnt) {
+   public PointAttachment createPointAttachment (
+      Point pnt) {
       if (pnt.isAttached()) {
          throw new IllegalArgumentException ("point is already attached");
       }
@@ -1575,6 +1588,31 @@ public abstract class FemElement3d extends FemElement
       ax.setFromElement (pnt.getPosition(), this);
       ax.updateAttachment();
       return ax;
+   }
+   /**
+    * {@inheritDoc}
+    */
+   public FrameFem3dAttachment createFrameAttachment (
+      Frame frame, RigidTransform3d TFW) {
+
+      if (frame == null && TFW == null) {
+         throw new IllegalArgumentException (
+            "frame and TFW cannot both be null");
+      }
+      if (frame != null && frame.isAttached()) {
+         throw new IllegalArgumentException ("frame is already attached");
+      }
+      FrameFem3dAttachment ffa = new FrameFem3dAttachment (frame);
+      if (!ffa.setFromElement (TFW, this)) {
+         return null;
+      }
+      if (frame != null) {
+         if (DynamicAttachment.containsLoop (ffa, frame, null)) {
+            throw new IllegalArgumentException (
+               "attachment contains loop");
+         }
+      }
+      return ffa;
    }
 
    // implementation of IndexedPointSet

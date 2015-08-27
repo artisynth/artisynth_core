@@ -1028,7 +1028,9 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
 
    /** 
     * Attaches a particle to a PointAttachable component, using both
-    * component's current position state.
+    * component's current position state. The point may be relocated if
+    * this is necessary to create an attachment.
+    * 
     * @param p1 Point to connect. Must currently be a particle.
     * @param comp Component to attach the particle to.
     */
@@ -1070,7 +1072,9 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
     /** 
     * Attaches a frame to a FrameAttachable component, with the
     * initial pose of the frame described by <code>TFW</code>usin
-    * component's current position state.
+    * component's current position state. The frame may be relocated
+    * if this is necessary to create an attachment.
+    * 
     * @param frame Frame to connect.
     * @param comp component to attach the frame to.
     * @param TFW initial desired pose of the frame, in world coordinates 
@@ -1090,7 +1094,9 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
 
    /** 
     * Attaches a frame to a FrameAttachable component, using each
-    * component's current position state.
+    * component's current position state. The frame may be relocated
+    * if this is necessary to create an attachment.
+    * 
     * @param frame Frame to connect.
     * @param comp component to attach the frame to.
     */

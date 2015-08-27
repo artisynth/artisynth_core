@@ -238,16 +238,16 @@ public class PointFem3dAttachment extends PointAttachment {
       notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
    }
    
-   public void setFromElement (Point3d pos, FemElement elem) {
-      setFromElement (pos, elem, /*reduceTol=*/0);
+   public boolean setFromElement (Point3d pos, FemElement elem) {
+      return setFromElement (pos, elem, /*reduceTol=*/0);
    }
-   
-   
-   public void setFromElement (Point3d pos, FemElement elem, double reduceTol) {
+    
+   public boolean setFromElement (
+      Point3d pos, FemElement elem, double reduceTol) {
       removeBackRefsIfConnected();
       FemNode[] nodes = elem.getNodes();
-      myCoords = new VectorNd (nodes.length);   
-      elem.getMarkerCoordinates (myCoords, pos);
+      myCoords = new VectorNd (nodes.length);  
+      boolean converged = elem.getMarkerCoordinates (myCoords, pos, false);
       int numNodes = 0;
       // reduce any weights below reduceTol to 0 ...
       for (int i=0; i<myCoords.size(); i++) {
@@ -276,15 +276,24 @@ public class PointFem3dAttachment extends PointAttachment {
       invalidateMasters();
       addBackRefsIfConnected();
       notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+      return converged;
    }
    
    public void setFromFem (Point3d pos, FemModel3d fem) {
+      setFromFem (pos, fem, /*project=*/true);
+   }
+
+   public boolean setFromFem (Point3d pos, FemModel3d fem, boolean project) {
       Point3d loc = new Point3d();
       FemElement3d elem = fem.findNearestElement (loc, pos);
       if (!loc.equals (pos)) {
+         if (!project) {
+            return false;
+         }
          pos = new Point3d(loc);
       }
-      setFromElement (pos, elem);      
+      setFromElement (pos, elem);
+      return true;
    }
 
    public VectorNd getCoordinates() {
@@ -347,9 +356,15 @@ public class PointFem3dAttachment extends PointAttachment {
     */
    public void updateAttachment() {
       if (myElement != null) {
-         if (myCoords.size() != myElement.numNodes() ||
-             !myElement.getMarkerCoordinates (
-                myCoords, myPoint.getPosition())) {
+         boolean resetElement = false;
+         if (myCoords.size() != myElement.numNodes()) {
+            resetElement = true;
+         }
+         else if (!myElement.getMarkerCoordinates (
+            myCoords, myPoint.getPosition(), /*checkInside=*/true)) {
+            resetElement = true;
+         }
+         if (resetElement) {
             FemModel3d fem = getFemModel();
             if (fem == null) {
                throw new InternalErrorException (
@@ -692,7 +707,7 @@ public class PointFem3dAttachment extends PointAttachment {
       PointFem3dAttachment ax = null;
       // Figure out the coordinates for the attachment point
       VectorNd coords = new VectorNd (elem.numNodes());
-      elem.getMarkerCoordinates (coords, loc!=null ? loc : pnt.getPosition());
+      elem.getMarkerCoordinates (coords, loc!=null ? loc : pnt.getPosition(), false);
 //      if (reduceTol > 0) {
 //         FemNode3d[] nodes = elem.getNodes();
 //         // Find number of coordinates which are close to zero

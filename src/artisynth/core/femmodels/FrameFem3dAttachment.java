@@ -277,16 +277,16 @@ public class FrameFem3dAttachment extends FrameAttachment {
       return status;
    }
 
-   public void setFromElement (RigidTransform3d T, FemElement3d elem) {
+   public boolean setFromElement (RigidTransform3d T, FemElement3d elem) {
       Vector3d coords = new Vector3d();
-      if (!elem.getNaturalCoordinates (coords, new Point3d(T.p), 1000)) {
-         throw new NumericalException (
-            "Can't find natural coords for "+T.p+" in element "+elem.getNumber());
-      }
+      boolean converged = 
+         elem.getNaturalCoordinates (coords, new Point3d(T.p), 1000);
+
       doSetFromElement (elem, coords);
 
       updateDeformationGradient();
       myRFD.mulInverseLeft (myPolard.getR(), T.R);
+      return converged;
    }
    
    public boolean setFromNodes (
@@ -353,14 +353,23 @@ public class FrameFem3dAttachment extends FrameAttachment {
    }
 
    public void setFromFem (RigidTransform3d TFW, FemModel3d fem) {
+      setFromFem (TFW, fem, /*project=*/true);
+   }
+
+   public boolean setFromFem (
+      RigidTransform3d TFW, FemModel3d fem, boolean project) {
       Point3d loc = new Point3d();
       Point3d pos = new Point3d(TFW.p);
       FemElement3d elem = fem.findNearestElement (loc, pos);
       if (!loc.equals (pos)) {
+         if (!project) {
+            return false;
+         }
          TFW = new RigidTransform3d (TFW);
          TFW.p.set (loc);
       }
-      setFromElement (TFW, elem);      
+      setFromElement (TFW, elem);
+      return true;
    }
 
    /**

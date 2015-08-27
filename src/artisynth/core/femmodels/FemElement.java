@@ -362,7 +362,8 @@ public abstract class FemElement extends RenderableComponentBase
       return myInvertedP;
    }
 
-   public boolean getMarkerCoordinates (VectorNd coords, Point3d pnt) {
+   public boolean getMarkerCoordinates (
+      VectorNd coords, Point3d pnt, boolean checkInside) {
       return false;
    }
 

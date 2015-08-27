@@ -898,13 +898,15 @@ of the form
 First, a {\tt PointFem3dAttachment} is created for the point {\tt
 pnt}. Next, {\tt setFromElement()} is used to determine the nodal
 weights within the element {\tt elem} for the specified position
-(which in this case is simply the point's current position).  To
-do this, it computes the ``natural coordinates'' coordinates of the
+(which in this case is simply the point's current position).  To do
+this, it computes the ``natural coordinates'' coordinates of the
 position within the element. For this to be guaranteed to work, the
-position should be on or inside the element. However, it is often
-possible to add a marker outside a given element as long as the shape
-functions are well-defined. Finally, the attachment is added
-to the model.
+position should be on or inside the element. If natural coordinates
+cannot be found, the method will return {\tt false} and the nearest
+estimates coordinates will be used instead. However, it is
+sometimes possible to find natural coordinates outside a given element
+as long as the shape functions are well-defined. Finally, the
+attachment is added to the model.
 
 More conveniently, the exact same functionality is provided
 by the {\tt attachPoint()} method in {\tt MechModel}:
@@ -913,8 +915,8 @@ by the {\tt attachPoint()} method in {\tt MechModel}:
    mech.attachPoint (pnt, elem);
 \end{lstlisting}
 %
-This creates an attachment identical to that created by the
-previous code fragment.
+This creates an attachment identical to that created by the previous
+code fragment.
 
 Often, one does not want to have to determine the element 
 to which a point should be attached. In that case, one can call
@@ -1234,7 +1236,7 @@ There are a variety of methods available to set the attachment, mirroring
 those available in the underlying base class {\tt PointFem3dAttachment}:
 \begin{lstlisting}[]
   void setFromFem (FemModel3d fem)
-  void setFromElement (FemElement3d elem)
+  boolean setFromElement (FemElement3d elem)
   void setFromNodes (FemNode[] nodes, double[] weights)
   void setFromNodes (Collection<FemNode> nodes, VectorNd weights)
   boolean setFromNodes (FemNode[] nodes)
@@ -1335,8 +1337,12 @@ or, equivalently, the {\tt attachFrame()} method in {\tt MechModel}:
    mech.attachFrame (frame, elem);
 \end{lstlisting}
 %
-This attaches the frame {\tt frame} to the nodes of the FEM element {\tt
-elem}.
+This attaches the frame {\tt frame} to the nodes of the FEM element
+{\tt elem}. As with {\tt PointFem3dAttachment}, if the frame's origin
+is not inside the element, it may not be possible to accurately
+compute the internal nodal weights, in which case {\tt
+setFromElement()} will return {\tt false}.
+
 In order to have the appropriate element located automatically,
 one can instead use
 %
@@ -1370,7 +1376,7 @@ signatures for these include:
 \begin{lstlisting}[]
   void setFromNodes (RigidTransform3d TFW, FemNode[] nodes, double[] weights)
   void setFromNodes (RigidTransform3d TFW, Collection<FemNode> nodes, 
-                     VectorNd weights)
+                        VectorNd weights)
   boolean setFromNodes (RigidTransform3d TFW, FemNode[] nodes)
   boolean setFromNodes (RigidTransform3d TFW, Collection<FemNode> nodes)
 \end{lstlisting}

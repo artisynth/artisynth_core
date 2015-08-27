@@ -27,10 +27,14 @@ public interface FrameAttachable extends PointAttachable {
     * <code>TFW</code>. <code>frame</code> and <code>TFW</code> cannot both be
     * <code>null</code>.
     * 
+    * <p>In some cases, it may not be possible to attach the frame at
+    * the requested location. In that case, the method will relocate the 
+    * frame to the nearest feasible attachment location.
+    * 
     * @param frame frame to be attached
     * @param TFW transform from (initial) frame coordinates to world
     * coordinates
-    * @return attachment attaching <code>frame</code> to this component
+    * @return attachment connecting <code>frame</code> to this component
     */
    public FrameAttachment createFrameAttachment (
       Frame frame, RigidTransform3d TFW);

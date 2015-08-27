@@ -104,6 +104,12 @@ public class SphericalRpyJoint extends SphericalJointBase {
       setBodies(bodyA, TCA, bodyB, XDB);
       
    }
+   
+   public SphericalRpyJoint (ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TFW) {
+      this();
+      setBodies(bodyA, bodyB, TFW);
+      
+   }
 
    public double getRoll () {
       return Math.toDegrees (getRpyRad().z);

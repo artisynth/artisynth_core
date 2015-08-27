@@ -110,6 +110,12 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
       setBodies(bodyA, TCA, bodyB, XDB);
       
    }
+   
+   public RollPitchJoint (ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TFW) {
+      this();
+      setBodies(bodyA, bodyB, TFW);
+      
+   }
 
    public void updateBounds (Point3d pmin, Point3d pmax) {
       RigidTransform3d TFW = getCurrentTCW();
@@ -189,8 +195,8 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
    public void render (GLRenderer renderer, int flags) {
       super.render (renderer, flags);
       float[] coords =
-         new float[] { (float)myRenderFrame.p.x, (float)myRenderFrame.p.y,
-                      (float)myRenderFrame.p.z };
+         new float[] { (float)myRenderFrameD.p.x, (float)myRenderFrameD.p.y,
+                      (float)myRenderFrameD.p.z };
       renderer.drawPoint (myRenderProps, coords, isSelected());
    }
 

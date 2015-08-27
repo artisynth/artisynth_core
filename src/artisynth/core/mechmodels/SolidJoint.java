@@ -8,18 +8,12 @@ package artisynth.core.mechmodels;
 
 import java.util.Map;
 
-import maspack.matrix.Point3d;
-import maspack.matrix.RigidTransform3d;
-import maspack.matrix.Vector3d;
-import maspack.matrix.VectorNd;
-import maspack.properties.HasProperties;
-import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
-import maspack.render.RenderList;
-import maspack.render.RenderProps;
-import maspack.spatialmotion.SolidCoupling;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.VectorNd;
+import maspack.properties.PropertyList;
+import maspack.spatialmotion.SolidCoupling;
 
 /**
  * Auxiliary class used to solve constrained rigid body problems.
@@ -67,6 +61,12 @@ public class SolidJoint extends JointBase implements CopyableComponent {
       XDB.mulInverseLeft(bodyB.getPose(), XWJ);
       
       setBodies(bodyA, TCA, bodyB, XDB);
+      
+   }
+   
+   public SolidJoint (ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TFW) {
+      this();
+      setBodies(bodyA, bodyB, TFW);
       
    }
    

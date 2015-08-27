@@ -1004,8 +1004,8 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
    }
 
    public void setBodies (
-      RigidBody bodyA, FrameAttachment attachmentA, 
-      RigidBody bodyB, FrameAttachment attachmentB) {
+      ConnectableBody bodyA, FrameAttachment attachmentA, 
+      ConnectableBody bodyB, FrameAttachment attachmentB) {
       myBodyA = bodyA;
       myAttachmentA = attachmentA;
       myBodyB = bodyB;

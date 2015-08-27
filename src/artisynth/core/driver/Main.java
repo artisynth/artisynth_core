@@ -1200,6 +1200,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       catch (Exception e) {
          myErrMsg = " class " + demoClass.getName() + " cannot be instantiated";
+         if (e.getMessage() != null) {
+            myErrMsg += ": \n" + e.getMessage();
+         }
          e.printStackTrace();
          return null;
       }

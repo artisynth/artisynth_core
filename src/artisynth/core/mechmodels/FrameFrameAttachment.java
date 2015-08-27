@@ -566,16 +566,16 @@ public class FrameFrameAttachment extends FrameAttachment {
 //      myMaster.removeMasterAttachment (this);
 //   }
 
-   @Override
-   public void getHardReferences (List<ModelComponent> refs) {
-      super.getHardReferences (refs);
-      if (myFrame != null) {
-         refs.add (myFrame);
-      }
-      if (myMaster != null) {
-         refs.add (myMaster);
-      }
-   }   
+//   @Override
+//   public void getHardReferences (List<ModelComponent> refs) {
+//      super.getHardReferences (refs);
+//      if (myFrame != null) {
+//         refs.add (myFrame);
+//      }
+//      if (myMaster != null) {
+//         refs.add (myMaster);
+//      }
+//   }   
 
    /**
     * {@inheritDoc}

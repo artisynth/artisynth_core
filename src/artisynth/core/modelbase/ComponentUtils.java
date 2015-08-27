@@ -182,7 +182,7 @@ public class ComponentUtils {
          throw new IllegalArgumentException (
             "Components do not have a common ancestor");
       }
-      CompositeComponent ancestor = nearestEncapsulatingAncestor(acomp);
+      CompositeComponent ancestor = farthestEncapsulatingAncestor(acomp);
       HashMap<ModelComponent,Dependencies> depMap = 
          buildDependencyMap (ancestor);
       HashSet<ModelComponent> updateSet = new LinkedHashSet<ModelComponent>();
@@ -701,7 +701,7 @@ public class ComponentUtils {
     * within the ancestor's hierarchy. If no such ancestor is found, 
     * <code>null</code> is returned.
     * 
-    * @return closest encapsulated ancestor
+    * @return closest encapsulating ancestor
     */
    public static CompositeComponent nearestEncapsulatingAncestor (
       ModelComponent c) {
@@ -719,6 +719,36 @@ public class ComponentUtils {
          ancestor = ancestor.getParent();
       }
       return null;
+   }
+
+   /**
+    * Returns the farthest ancestor of a component (or the component
+    * itself) for which {@link 
+    * CompositeComponent#hierarchyContainsReferences()
+    * hierarchyContainsDependencies()} returns <code>true</code>.
+    * That means all inter-component references are contained
+    * within the ancestor's hierarchy. If no such ancestor is found, 
+    * <code>null</code> is returned.
+    * 
+    * @return farthest encapsulating ancestor
+    */
+   public static CompositeComponent farthestEncapsulatingAncestor (
+      ModelComponent c) {
+      CompositeComponent ancestor;
+      if (c instanceof CompositeComponent) {
+         ancestor = (CompositeComponent)c;
+      }
+      else {
+         ancestor = c.getParent();
+      }
+      CompositeComponent farthest = null;
+      while (ancestor != null) {
+         if (ancestor.hierarchyContainsReferences()) {
+            farthest = ancestor;
+         }
+         ancestor = ancestor.getParent();
+      }
+      return farthest;
    }
 
    public static void saveComponent (

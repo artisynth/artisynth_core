@@ -879,19 +879,12 @@ public class PointFem3dAttachment extends PointAttachment {
    
   @Override
    public void getHardReferences (List<ModelComponent> refs) {
-      //Point point = getPoint();
-//      FemNode nodes[] = myNodes;
-//      if (point == null || nodes == null) {
-//         throw new InternalErrorException ("null point and/or nodes");
-//      }
       super.getHardReferences (refs);
-      refs.add (getPoint());
-      if (myNodes != null) {
-         for (FemNode node : myNodes) {
-            refs.add (node);
-         }
+      // should probably make this a soft reference instead
+      if (myElement != null) {
+         refs.add (myElement);
       }
-   }   
+  }
    
    public PointFem3dAttachment copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {

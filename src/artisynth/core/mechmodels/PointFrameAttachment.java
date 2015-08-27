@@ -357,18 +357,18 @@ public class PointFrameAttachment extends PointAttachment {
 //      frame.removeMasterAttachment (this);
 //   }
 
-   @Override
-   public void getHardReferences (List<ModelComponent> refs) {
-      super.getHardReferences (refs);
-      Point point = getPoint();
-      Frame frame = getFrame();
-      if (point == null || frame == null) {
-         throw new InternalErrorException ("null point and/or frame");
-      }
-      super.getHardReferences (refs);
-      refs.add (point);
-      refs.add (frame);
-   }
+//   @Override
+//   public void getHardReferences (List<ModelComponent> refs) {
+//      super.getHardReferences (refs);
+//      Point point = getPoint();
+//      Frame frame = getFrame();
+//      if (point == null || frame == null) {
+//         throw new InternalErrorException ("null point and/or frame");
+//      }
+//      super.getHardReferences (refs);
+//      refs.add (point);
+//      refs.add (frame);
+//   }
 
    public PointFrameAttachment copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {

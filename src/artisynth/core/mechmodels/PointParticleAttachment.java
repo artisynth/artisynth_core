@@ -362,18 +362,18 @@ public class PointParticleAttachment extends PointAttachment {
 //      particle.removeMasterAttachment (this);
 //   }
 
-   @Override
-   public void getHardReferences (List<ModelComponent> refs) {
-      super.getHardReferences (refs);
-      Point point = getPoint();
-      Particle particle = getParticle();
-      if (point == null || particle == null) {
-         throw new InternalErrorException ("null point and/or particle");
-      }
-      super.getHardReferences (refs);
-      refs.add (point);
-      refs.add (particle);
-   }
+//   @Override
+//   public void getHardReferences (List<ModelComponent> refs) {
+//      super.getHardReferences (refs);
+//      Point point = getPoint();
+//      Particle particle = getParticle();
+//      if (point == null || particle == null) {
+//         throw new InternalErrorException ("null point and/or particle");
+//      }
+//      super.getHardReferences (refs);
+//      refs.add (point);
+//      refs.add (particle);
+//   }
 
    public PointParticleAttachment copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {

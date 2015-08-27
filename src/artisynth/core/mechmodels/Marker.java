@@ -7,6 +7,7 @@
 package artisynth.core.mechmodels;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import artisynth.core.modelbase.*;
 import maspack.matrix.*;
@@ -44,7 +45,10 @@ public abstract class Marker extends Point implements HasAttachments {
       super.getHardReferences (refs);
       DynamicAttachment ax = getAttachment();
       if (ax != null) {
-         ax.getHardReferences (refs);
+         ArrayList<ModelComponent> allrefs = new ArrayList<ModelComponent>();
+         ax.getHardReferences (allrefs);
+         allrefs.remove (this); // remove this component
+         refs.addAll (allrefs);
       }
    }
 

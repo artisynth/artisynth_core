@@ -1013,16 +1013,9 @@ public class FrameFem3dAttachment extends FrameAttachment {
    @Override
    public void getHardReferences (List<ModelComponent> refs) {
       super.getHardReferences (refs);
-      if (myFrame != null) {
-         refs.add (myFrame);
-      }
+      // should probably make this a soft reference instead
       if (myElement != null) {
          refs.add (myElement);
-      }
-      else if (myNodes != null) {
-         for (FemNode n : myNodes) {
-            refs.add (n);
-         }
       }
    }   
 

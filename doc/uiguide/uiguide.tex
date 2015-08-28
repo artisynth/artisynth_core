@@ -712,22 +712,43 @@ If no components are selected, then the selection display is blank.
 \label{selectionDisplayWidgetFig}
 \end{figure}
 
-\subsection{Selecting Ancestor Components}
+The selection display is useful for disambiguating situations where it
+is not clear what component we have actually selected in the viewer.
+For example, FEM models keep their surface mesh contained within a
+descendant component. Selecting the surface mesh will cause this
+container component to be selected and highlighted, making it {\it
+appear} as though the FEM model itself is selected rather than the
+container. Checking the selection display makes it clear
+what component has actually been selected. If desired,
+one can easily navigate to one of the ancestor components
+using parent selection, as described in the next section.
+
+\subsection{Selecting Parent and Ancestor Components}
 \label{selectionDisplaySec}
 
 Sometimes, when you select a component, you actually want to select
-one of it's ancestor components.
+one of it's ancestor components. 
 
+There are several ways to do this:
 
+\begin{enumerate}
 
-The selection display also allows the selection of a component's
-parent, by clicking on the leftmost ``up'' arrow. This is useful in
-the commonly occurring situation where a composite component is not
-rendered and therefore not selectable in the viewer. For instance,
-suppose we wish to select an FEM model. One can select any renderable
-descendent of the model, such as a node or element, and then use
-the selection display to select successive parents until the model
-itself is selected.
+\item Hit the escape ({\sf ESC}) key within the viewer window. This
+will select the parent of the currently selected component. Hitting
+escape repeatedly is a fast way to proceed up the component hierarchy.
+
+\item Click on the ``up'' arrow located at the left of the selection
+display (Figure \ref{selectionDisplayWidgetFig}). This will also
+select the parent of the currently selected component.
+
+\end{enumerate}
+
+Parent selection is particularly useful in the commonly occurring
+situation where a composite component is not rendered and therefore
+not selectable in the viewer. For instance, suppose we wish to select
+a FEM model. One can select any renderable descendent of the model,
+such as a node, element, or its surface mesh (if displayed), and then
+use repeated parent selection until the model itself is selected.
 
 \subsection{Highlighting Selected Components}
 

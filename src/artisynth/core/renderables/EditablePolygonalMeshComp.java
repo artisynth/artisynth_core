@@ -10,12 +10,12 @@ import maspack.geometry.Face;
 import maspack.geometry.PolygonalMesh;
 import maspack.render.RenderList;
 
-public class EditablePolygonalMesh extends EditableMesh {
+public class EditablePolygonalMeshComp extends EditableMeshComp {
 
    PolygonalMesh pmesh;
    FaceList<FaceComponent> myFaceList = null;
    
-   public EditablePolygonalMesh (PolygonalMesh mesh) {
+   public EditablePolygonalMeshComp (PolygonalMesh mesh) {
       super(mesh);
       pmesh = mesh;
       myFaceList = new FaceList<FaceComponent>(FaceComponent.class, "faces", "f");

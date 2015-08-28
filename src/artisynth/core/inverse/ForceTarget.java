@@ -10,9 +10,9 @@ import maspack.properties.HasProperties;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import artisynth.core.mechmodels.PlanarConnector;
-import artisynth.core.mechmodels.RigidBodyConnector;
+import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.mechmodels.SphericalJoint;
-import artisynth.core.mechmodels.RigidBodyConnector;
+import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.modelbase.ModelComponentBase;
 
 /**
@@ -23,7 +23,7 @@ import artisynth.core.modelbase.ModelComponentBase;
  */
 public class ForceTarget extends ModelComponentBase implements HasProperties {
    protected VectorNd myTargetLambda = null;
-   protected RigidBodyConnector myConstraint;
+   protected BodyConnector myConstraint;
 //   public static double[] lam = { 0 };
 //   public static VectorNd DEFAULT_FORCE_TARGET = new VectorNd (lam);
 
@@ -40,7 +40,7 @@ public class ForceTarget extends ModelComponentBase implements HasProperties {
    public ForceTarget () {
    }
 
-   public ForceTarget (VectorNd lam, RigidBodyConnector con) {
+   public ForceTarget (VectorNd lam, BodyConnector con) {
       myTargetLambda = new VectorNd(lam);
       myConstraint = con;
       setName (con.getName ()+"_target");
@@ -54,11 +54,11 @@ public class ForceTarget extends ModelComponentBase implements HasProperties {
       return myTargetLambda;
    }
 
-   public void setConstraint (RigidBodyConnector cons) {
+   public void setConstraint (BodyConnector cons) {
       myConstraint = cons;
    }
 
-   public RigidBodyConnector getConstraint () {
+   public BodyConnector getConstraint () {
       return myConstraint;
    }
 

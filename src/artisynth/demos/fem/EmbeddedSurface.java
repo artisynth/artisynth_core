@@ -17,7 +17,7 @@ public class EmbeddedSurface extends FemBeam3d {
       
       myMechMod.setGravity(0,0,1e-10);
       //myFemMod.setSurfaceRendering (SurfaceRender.None);
-      RenderProps.setVisible (myFemMod.getMesh("surface"), false);
+      RenderProps.setVisible (myFemMod.getMeshComp("surface"), false);
       RenderProps.setFaceColor (myFemMod, new Color (1f, 153/255f, 153/255f));
          
       MeshBase mesh;

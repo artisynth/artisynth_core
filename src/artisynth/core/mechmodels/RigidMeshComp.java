@@ -26,7 +26,7 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.mechmodels.Collidable.Collidability;
 
-public class RigidMesh extends MeshComponent 
+public class RigidMeshComp extends MeshComponent 
    implements PointAttachable, HasSurfaceMesh, CollidableBody {
 
    public static boolean DEFAULT_PHYSICAL = true;
@@ -38,7 +38,7 @@ public class RigidMesh extends MeshComponent
    protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
 
    public static PropertyList myProps = new PropertyList(
-      RigidMesh.class, MeshComponent.class);
+      RigidMeshComp.class, MeshComponent.class);
 
    static {
       myProps.add("physical isPhysical setPhysical", "", DEFAULT_PHYSICAL);
@@ -47,17 +47,17 @@ public class RigidMesh extends MeshComponent
          "sets the collidability of the mesh", DEFAULT_COLLIDABILITY);
    }
    
-   public RigidMesh() {
+   public RigidMeshComp() {
       super();
       physical = DEFAULT_PHYSICAL;
    }
    
-   public RigidMesh(String name) {
+   public RigidMeshComp(String name) {
       this();
       setName(name);
    }
    
-   public RigidMesh (
+   public RigidMeshComp (
       MeshBase mesh, String fileName, AffineTransform3dBase X) {
       this();
       setMesh (mesh, fileName, X);
@@ -96,10 +96,10 @@ public class RigidMesh extends MeshComponent
    }
    
    @Override
-   public RigidMesh copy(int flags,
+   public RigidMeshComp copy(int flags,
       Map<ModelComponent,ModelComponent> copyMap) {
 
-      RigidMesh rmc = (RigidMesh)super.copy(flags, copyMap);
+      RigidMeshComp rmc = (RigidMeshComp)super.copy(flags, copyMap);
       rmc.physical = physical;
       
       return rmc;
@@ -209,7 +209,7 @@ public class RigidMesh extends MeshComponent
       RigidBody rb = getRigidBody();
       if (rb == null) {
          throw new IllegalStateException (
-            "RigidMesh not associated with a rigid body");
+            "RigidMeshComp not associated with a rigid body");
       }
       return rb.getVelStateSize() > 6;
    }
@@ -218,7 +218,7 @@ public class RigidMesh extends MeshComponent
       RigidBody rb = getRigidBody();
       if (rb == null) {
          throw new IllegalStateException (
-            "RigidMesh not associated with a rigid body");
+            "RigidMeshComp not associated with a rigid body");
       }
       mlist.add (new ContactMaster (rb, 1));
    }

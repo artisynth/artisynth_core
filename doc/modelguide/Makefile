@@ -34,6 +34,10 @@ modelguide.pdf: $(SOURCES)
 	pdflatex modelguide.tex	
 	pdflatex modelguide.tex
 
+multipoint.pdf: multipoint.tex
+	pdflatex multipoint.tex	
+	pdflatex multipoint.tex
+
 modelguide.xml: $(SOURCES)
 	latexml modelguide.tex >modelguide.xml
 

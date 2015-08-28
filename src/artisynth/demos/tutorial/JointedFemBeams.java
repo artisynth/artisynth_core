@@ -52,7 +52,7 @@ public class JointedFemBeams extends RootModel {
       // create a slotted revolute joint that connects the two fem beams
       RigidTransform3d TDW = new RigidTransform3d(0.5, 0, 0, 0, 0, Math.PI/2);
       SlottedRevoluteJoint joint = new SlottedRevoluteJoint (fem2, fem1, TDW);
-      mech.addRigidBodyConnector (joint);
+      mech.addBodyConnector (joint);
       
       // set ranges and rendering properties for the joint
       joint.setAxisLength (0.8);

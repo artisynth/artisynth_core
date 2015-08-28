@@ -13,7 +13,7 @@ import java.util.Arrays;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystemBase;
 import artisynth.core.mechmodels.MotionTargetComponent;
-import artisynth.core.mechmodels.RigidBodyConnector;
+import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.util.TimeBase;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.SparseBlockMatrix;
@@ -243,7 +243,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
   
     int idx=0;
     int cons_ind=0;
-    System.out.println(mechMod.rigidBodyConnectors ().size());
+    System.out.println(mechMod.bodyConnectors ().size());
     SparseBlockMatrix GT=new SparseBlockMatrix ();
     VectorNd dg= new VectorNd();
     mechMod.getBilateralConstraints (GT, dg);
@@ -255,29 +255,29 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
     System.out.println(GT.getBlock (0, 1));
     System.out.println(GT.getBlock (0, 2));
     System.out.println(GT.getBlock (1, 0));
-    int[] constraint_blocksize=new int[mechMod.rigidBodyConnectors ().size()];
+    int[] constraint_blocksize=new int[mechMod.bodyConnectors ().size()];
     for (int i=0; i < myForceTargets.size(); i++)
     {
        cons_ind=0;
        
-       for(int j =0; j<mechMod.rigidBodyConnectors ().size(); j++)
+       for(int j =0; j<mechMod.bodyConnectors ().size(); j++)
        {
-          System.out.println(mechMod.rigidBodyConnectors ().get (j).getName());
-          if(mechMod.rigidBodyConnectors ().get (j).getName()==myForceTargets.get (i).getName())
+          System.out.println(mechMod.bodyConnectors ().get (j).getName());
+          if(mechMod.bodyConnectors ().get (j).getName()==myForceTargets.get (i).getName())
           {
              target_idx[idx]=cons_ind;
              idx++;
                 
           }
-          if(mechMod.rigidBodyConnectors ().get (j).isEnabled ()==true)
+          if(mechMod.bodyConnectors ().get (j).isEnabled ()==true)
           {
-          System.out.println(mechMod.rigidBodyConnectors ().get (j).numBilateralConstraints ());
-          constraint_blocksize[cons_ind]=mechMod.rigidBodyConnectors ().get (j).numBilateralConstraints ();
+          System.out.println(mechMod.bodyConnectors ().get (j).numBilateralConstraints ());
+          constraint_blocksize[cons_ind]=mechMod.bodyConnectors ().get (j).numBilateralConstraints ();
           cons_ind++;
           }
           
        }
-     /*  if(mechMod.rigidBodyConnectors ().get (i).isEnabled ()==true)
+     /*  if(mechMod.bodyConnectors ().get (i).isEnabled ()==true)
        {
          // dynsize[i]=1;
           
@@ -315,12 +315,12 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    
    
    */
-   public void addForceTarget(RigidBodyConnector con) {
+   public void addForceTarget(BodyConnector con) {
       addForceTarget (con, new VectorNd (con.numBilateralConstraints ()));
    }
 
    
-   public void addForceTarget(RigidBodyConnector con, VectorNd lam)
+   public void addForceTarget(BodyConnector con, VectorNd lam)
    {
       myForceTargets.add (new ForceTarget(lam,con));
       double weight=1;

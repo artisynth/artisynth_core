@@ -154,7 +154,7 @@ public class LaymanModel extends MechModel {
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.035);
       joint.setAxisLength (0);
-      addRigidBodyConnector (joint);
+      addBodyConnector (joint);
       if (maxAng < 180) {
          joint.setMaxRotation (maxAng);
       }
@@ -173,7 +173,7 @@ public class LaymanModel extends MechModel {
       RenderProps.setLineColor (joint, Color.BLUE);
       RenderProps.setLineRadius (joint, 0.025);
       joint.setAxisLength (0.05);
-      addRigidBodyConnector (joint);
+      addBodyConnector (joint);
       return joint;
    }
 

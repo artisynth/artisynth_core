@@ -17,7 +17,7 @@ import maspack.render.*;
 
 import artisynth.core.modelbase.*;
 
-public abstract class JointBase extends RigidBodyConnector  {
+public abstract class JointBase extends BodyConnector  {
 
    protected double myAxisLength;
    protected static final double defaultAxisLength = 1;
@@ -28,7 +28,7 @@ public abstract class JointBase extends RigidBodyConnector  {
    protected boolean myDrawFrameC = false;
    
    public static PropertyList myProps =
-      new PropertyList (SolidJoint.class, RigidBodyConnector.class);
+      new PropertyList (SolidJoint.class, BodyConnector.class);
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createPointLineProps (host);

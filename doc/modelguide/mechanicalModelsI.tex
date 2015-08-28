@@ -752,7 +752,7 @@ transforms between related coordinate frames).
 \label{CreatingJoints:sec}
 
 Joint components in ArtiSynth are implemented by subclasses of
-\javaclass[artisynth.core.mechmodels]{RigidBodyConnector}.  Some of
+\javaclass[artisynth.core.mechmodels]{BodyConnector}.  Some of
 the commonly used ones are described in Section
 \ref{CommonJoints:sec}.
 
@@ -779,7 +779,7 @@ where $\T_{AW}$ and $\T_{BW}$ are the poses of A and B.
 The same body and transform settings can be made on an existing
 joint using the method
 \javamethodAlt{%
-artisynth.core.mechmodels.RigidBodyConnector.setBodies(,,)}
+artisynth.core.mechmodels.BodyConnector.setBodies(,,)}
 {setBodies(bodyA, bodyB, TDW)}.
 
 Alternatively, if we prefer to explicitly specify $\T_{CA}$ or $\T_{DB}$, then we
@@ -806,7 +806,7 @@ the following code fragment:
 %
 
 Another method,
-\javamethodAlt{artisynth.core.mechmodels.RigidBodyConnector.setBodies(,,,)}
+\javamethodAlt{artisynth.core.mechmodels.BodyConnector.setBodies(,,,)}
 {setBodies(bodyA, TCA, bodyB, TDB)}, allows us to set both values of
 $\T_{CA}$ or $\T_{BA}$ explicitly. This is useful if the joint
 transform $\T_{CD}$ is known to be some value {\it other} than the
@@ -935,7 +935,7 @@ The build method for this model is given below:
       // add components to the mech model
       mech.addRigidBody (bodyB);
       mech.addRigidBody (bodyA);
-      mech.addRigidBodyConnector (joint);
+      mech.addBodyConnector (joint);
 
       joint.setTheta (35);  // set joint position
 

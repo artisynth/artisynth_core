@@ -18,7 +18,7 @@ import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
 /**
- * Base class for a SkinMesh, which is a type of mesh component in which each
+ * Base class for a SkinMeshBody, which is a type of mesh component in which each
  * vertex is attached to one or more underlying dynamic master components using
  * a {@link PointAttachment}.
  */

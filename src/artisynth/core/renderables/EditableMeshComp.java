@@ -27,7 +27,7 @@ import artisynth.core.modelbase.*;
 import artisynth.core.modelbase.CompositeComponent.NavpanelDisplay;
 import artisynth.core.util.*;
 
-public class EditableMesh extends MeshComponent
+public class EditableMeshComp extends MeshComponent
    implements CompositeComponent {
 
    MeshBase myMesh = null;
@@ -37,7 +37,7 @@ public class EditableMesh extends MeshComponent
       return new RenderProps();
    }
    
-   public EditableMesh(MeshBase mesh) {
+   public EditableMeshComp(MeshBase mesh) {
       myMesh = mesh;
       myVertexList =
          new VertexList<VertexComponent>(VertexComponent.class, "vertices", "v");
@@ -243,11 +243,11 @@ public class EditableMesh extends MeshComponent
       return false;
    }
 
-   public EditableMesh copy (
+   public EditableMeshComp copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
 
-      EditableMesh ccomp =
-         (EditableMesh)super.copy (flags, copyMap);
+      EditableMeshComp ccomp =
+         (EditableMeshComp)super.copy (flags, copyMap);
 
       ccomp.myComponents =
          new ComponentListImpl<ModelComponent>(ModelComponent.class, this);

@@ -132,7 +132,7 @@ public class MuscleArm extends RootModel
 
         j.setBodies (lowerArm, TCA, null, TCW);
         j.setAxisLength(len/3);
-        model.addRigidBodyConnector(j);
+        model.addBodyConnector(j);
         
         upperArm.setDynamic(false);
     }

@@ -25,7 +25,7 @@ import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.femmodels.FemFactory;
 import artisynth.core.femmodels.FemNode3d;
 import artisynth.core.femmodels.FemNodeNeighbor;
-import artisynth.core.femmodels.SkinMesh;
+import artisynth.core.femmodels.SkinMeshBody;
 import artisynth.core.gui.*;
 import artisynth.core.gui.selectionManager.SelectionEvent;
 import artisynth.core.gui.selectionManager.SelectionListener;
@@ -153,7 +153,7 @@ public class FemSkinDemo extends RootModel {
       RevoluteJoint joint = new RevoluteJoint (leftBody, TCW);
       RenderProps.setLineRadius (joint, 0.01);
       joint.setAxisLength (0.4);
-      myMech.addRigidBodyConnector (joint);
+      myMech.addBodyConnector (joint);
 
       RigidBody middleBody = createBlock ("middleBlock", midw, 0.21, 0.21);
 
@@ -165,7 +165,7 @@ public class FemSkinDemo extends RootModel {
       joint = new RevoluteJoint (rightBody, TCW);
       RenderProps.setLineRadius (joint, 0.01);
       joint.setAxisLength (0.4);
-      myMech.addRigidBodyConnector (joint);
+      myMech.addBodyConnector (joint);
 
       femMod1.transformGeometry (new RigidTransform3d (-midw, 0, 0));
       femMod2.transformGeometry (new RigidTransform3d (midw, 0, 0));
@@ -189,7 +189,7 @@ public class FemSkinDemo extends RootModel {
             /*flatbotton=*/false);
       // flip aout y axis
       mesh.transform (new RigidTransform3d (0, 0, 0, 0, Math.PI/2, 0));
-      SkinMesh skinBody = new SkinMesh (mesh);
+      SkinMeshBody skinBody = new SkinMeshBody (mesh);
       skinBody.addFrame (rightBody);
       skinBody.addFrame (middleBody);
       skinBody.addFrame (leftBody);

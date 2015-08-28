@@ -14,6 +14,69 @@
 %\renewcommand{\sectionname}{}
 \begin{document}
 
+\section*{August 27, 2015}
+
+\subsection*{Class and Method Renaming}
+
+Some classes and methods were renamed as described in the following
+charts. The reasons for this were twofold: first, since joints can now
+be applied to deformable as well as rigid bodies, the notion of {\tt
+RigidBodyConnector} not longer made sense. Second, there are a number
+of subclasses of {\tt MeshComponent} that are used to encapsulate
+various mesh objects defined in {\tt maspack.geometry} (such as {\tt
+PointMesh} and {\tt PolygonalMesh}). However, these container classes
+had names like {\tt FixedMesh} and {\tt FemMesh}, leading to confusion
+over whether they were actual mesh classes, or components that simply
+contained meshes.
+
+\subsubsection*{Renamed classes}
+
+\begin{tabular}{ll}
+Old name & New Name \\
+\hline
+\multicolumn{2}{l}{Renamed classes}\\
+\hline
+{\tt mechmodels.RigidBodyConnector} & {\tt mechmodels.BodyConnector} \\
+{\tt mechmodels.RigidBodyConstrainer} & {\tt mechmodels.BodyConstrainer} \\
+{\tt mechmodels.FixedMesh} & {\tt mechmodels.FixedMeshBody} \\
+{\tt mechmodels.RigidMesh} & {\tt mechmodels.RigidMeshComp} \\
+{\tt femmodels.FemMesh} & {\tt femmodels.FemMeshComp} \\
+{\tt femmodels.SkinMesh} & {\tt femmodels.SkinMeshBody} \\
+{\tt renderables.EditableMesh} & {\tt renderables.EditableMeshComp}\\
+{\tt renderables.EditablePolygonalMesh} & {\tt renderables.EditablePolygonalMeshComp}\\
+\hline
+\multicolumn{2}{l}{Renamed methods in MechModel}\\
+\hline
+{\tt addRigidBodyConnector(RigidBodyConnector)} & 
+{\tt addBodyConnector(BodyConnector)} \\
+{\tt removeRigidBodyConnector(RigidBodyConnector)} & 
+{\tt removeBodyConnector(BodyConnector)} \\
+{\tt rigidBodyConnectors()} & 
+{\tt bodyConnectors()}\\
+{\tt clearRigidBodyConnectors()} & 
+{\tt clearBodyConnectors()}\\
+\hline
+\multicolumn{2}{l}{Renamed methods in FemModel3d}\\
+\hline
+{\tt addMesh(FemMesh)} & {\tt addMeshComp(FemMeshComp)} \\
+{\tt getMesh(String)} & {\tt getMeshComp(String)} \\
+{\tt getNumMeshes()} & {\tt numMeshComps()} \\
+{\tt getMeshes()} & {\tt getMeshComps()} \\
+{\tt removeMesh(FemMesh} & {\tt removeMeshComp(FemMeshComp)} \\
+{\tt removeAllMeshes(} & {\tt clearMeshComps()} \\
+{\tt getSurfaceFemMesh()} & {\tt getSurfaceMeshComp()} \\
+\hline
+\multicolumn{2}{l}{Renamed methods in CompositeRigidBody}\\
+\hline
+{\tt addMesh(RigidMesh)} & {\tt addMeshComp(RigidMeshComp)} \\
+{\tt getMesh(String)} & {\tt getMeshComp(String)} \\
+{\tt getNumMeshes()} & {\tt numMeshComps()} \\
+{\tt getMeshes()} & {\tt getMeshComps()} \\
+{\tt containsMesh(RigidMesh} & {\tt containsMeshComp(RigidMeshComp)} \\
+{\tt removeMesh(RigidMesh} & {\tt removeMeshComp(RigidMeshComp)} \\
+{\tt removeMesh(String} & {\tt removeMeshComp(String)} \\
+\end{tabular}
+
 \section*{August 24, 2015}
 
 \subsection*{Method renaming}

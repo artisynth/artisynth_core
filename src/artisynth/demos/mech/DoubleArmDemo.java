@@ -136,7 +136,7 @@ public class DoubleArmDemo extends RootModel {
 
        j.setBodies (lowerArm, TCA, null, TCW);
        j.setAxisLength(len/3);
-       model.addRigidBodyConnector(j);
+       model.addBodyConnector(j);
        upperArm.setDynamic(false);
        
        // add joint between lower and third
@@ -150,7 +150,7 @@ public class DoubleArmDemo extends RootModel {
        TCW.R.setAxisAngle(1,0,0,Math.PI/2);
        j.setBodies(thirdArm, TCA, lowerArm, TCW);
        j.setAxisLength(len/3);
-       model.addRigidBodyConnector(j);
+       model.addBodyConnector(j);
        
    }
    

@@ -49,7 +49,7 @@ public class MultiPointSpring extends PointSpringBase
    //private NavpanelDisplay myDisplayMode = NavpanelDisplay.NORMAL;
    //protected PointList<Point> myWrapPoints;
 
-   protected RenderProps myPQRenderProps;
+   protected RenderProps myABRenderProps;
 
    protected static double DEFAULT_WRAP_STIFFNESS = 10;
    protected static double DEFAULT_WRAP_DAMPING = 0.1;
@@ -58,7 +58,8 @@ public class MultiPointSpring extends PointSpringBase
    protected static int DEFAULT_NUM_WRAP_POINTS = 50;
    protected static double DEFAULT_LENGTH_CONV_TOL = 1e-4;
    protected static boolean DEFAULT_DRAW_KNOTS = false;
-   protected static boolean DEFAULT_DRAW_PQ_POINTS = false;
+   protected static boolean DEFAULT_DRAW_AB_POINTS = false;
+   protected static int DEFAULT_MAX_WRAP_ITERATIONS = 10;
 
    protected double myWrapStiffness = DEFAULT_WRAP_STIFFNESS;
    protected double myWrapDamping = DEFAULT_WRAP_DAMPING;
@@ -66,11 +67,10 @@ public class MultiPointSpring extends PointSpringBase
    protected double myContactDamping = DEFAULT_CONTACT_DAMPING;
    protected double myWrapH = 1;
    protected double myLengthConvTol = DEFAULT_LENGTH_CONV_TOL;
-   protected int myNumWrapPnts = DEFAULT_NUM_WRAP_POINTS;
    protected boolean myDrawKnotsP = DEFAULT_DRAW_KNOTS;
-   protected boolean myDrawPQPointsP = DEFAULT_DRAW_PQ_POINTS;
+   protected boolean myDrawABPointsP = DEFAULT_DRAW_AB_POINTS;
    
-   protected int myMaxWrapIterations = 10;
+   protected int myMaxWrapIterations = DEFAULT_MAX_WRAP_ITERATIONS;
 
    private class WrapKnot {
       Point3d myPos;
@@ -293,7 +293,7 @@ public class MultiPointSpring extends PointSpringBase
       int myNumKnots;
       WrapKnot[] myKnots;
       ArrayList<float[]> myRenderPoints;
-      ArrayList<float[]> myRenderPQPoints;
+      ArrayList<float[]> myRenderABPoints;
       Point3d[] myInitialPnts;
 
       SubSegment mySubSegHead;
@@ -311,7 +311,7 @@ public class MultiPointSpring extends PointSpringBase
             myKnots[i] = new WrapKnot();
          }
          myRenderPoints = null; // will be created in prerender()
-         myRenderPQPoints = null; // will be created in prerender()
+         myRenderABPoints = null; // will be created in prerender()
          myInitialPnts = initialPnts;
       }
 
@@ -837,12 +837,12 @@ public class MultiPointSpring extends PointSpringBase
 
    }
 
-   private void updatePQRenderProps() {
+   private void updateABRenderProps() {
       RenderProps props = new PointRenderProps();
       props.setPointColor (Color.CYAN);
       props.setPointStyle (myRenderProps.getPointStyle());
       props.setPointRadius (myRenderProps.getPointRadius());
-      myPQRenderProps = props;
+      myABRenderProps = props;
    }
 
    public double getWrapStiffness () {
@@ -851,8 +851,14 @@ public class MultiPointSpring extends PointSpringBase
 
    public void setWrapStiffness (double stiffness) {
       myWrapStiffness = stiffness;
+   }
 
+   public int getMaxWrapIterations () {
+      return myMaxWrapIterations;
+   }
 
+   public void setMaxWrapIterations (int num) {
+      myMaxWrapIterations = num;
    }
 
    public double getWrapDamping () {
@@ -887,14 +893,6 @@ public class MultiPointSpring extends PointSpringBase
       myLengthConvTol = h;
    }
 
-   public int getNumWrapPnts () {
-      return myNumWrapPnts;
-   }
-
-   public void setNumWrapPnts (int num) {
-      myNumWrapPnts = num;
-   }
-
    public boolean getDrawKnots () {
       return myDrawKnotsP;
    }
@@ -903,12 +901,12 @@ public class MultiPointSpring extends PointSpringBase
       myDrawKnotsP = enable;
    }
 
-   public boolean getDrawPQPoints () {
-      return myDrawPQPointsP;
+   public boolean getDrawABPoints () {
+      return myDrawABPointsP;
    }
 
-   public void setDrawPQPoints (boolean enable) {
-      myDrawPQPointsP = enable;
+   public void setDrawABPoints (boolean enable) {
+      myDrawABPointsP = enable;
    }
 
    protected int maxIters = 50;
@@ -934,11 +932,14 @@ public class MultiPointSpring extends PointSpringBase
          "contactDamping", "contact damping for wrapping strands",
          DEFAULT_CONTACT_DAMPING);
       myProps.add (
+         "maxWrapIterations", "max number of wrap iterations per step",
+         DEFAULT_MAX_WRAP_ITERATIONS);
+      myProps.add (
          "drawKnots", "draw wrap strand knots",
          DEFAULT_DRAW_KNOTS);
       myProps.add (
-         "drawPQPoints", "draw P and Q points on wrap surfaces",
-         DEFAULT_DRAW_PQ_POINTS);
+         "drawABPoints", "draw A and B points on wrapping obstacles",
+         DEFAULT_DRAW_AB_POINTS);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -1224,8 +1225,8 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    public void prerender (RenderList list) {
-      if (myPQRenderProps == null) {
-         updatePQRenderProps();
+      if (myABRenderProps == null) {
+         updateABRenderProps();
       }
       for (int i=0; i<numSegments(); i++) {
          Segment seg = mySegments.get(i);
@@ -1241,7 +1242,7 @@ public class MultiPointSpring extends PointSpringBase
             renderPoints.add (seg.myPntA.getRenderCoords());
             wrapSeg.myRenderPoints = renderPoints;
             renderPoints = null;
-            if (myDrawPQPointsP) {
+            if (myDrawABPointsP) {
                SubSegment sg = wrapSeg.firstSubSegment();
                if (sg != null) {
                   renderPoints = new ArrayList<float[]>(10);
@@ -1257,7 +1258,7 @@ public class MultiPointSpring extends PointSpringBase
                   
                }
             }
-            wrapSeg.myRenderPQPoints = renderPoints;
+            wrapSeg.myRenderABPoints = renderPoints;
          }
       }
    }
@@ -1279,11 +1280,11 @@ public class MultiPointSpring extends PointSpringBase
                   }
                }
             }
-            renderPoints = wrapSeg.myRenderPQPoints;
+            renderPoints = wrapSeg.myRenderABPoints;
             if (renderPoints != null) {
                for (int k=0; k<renderPoints.size(); k++) {
                   renderer.drawPoint (
-                     myPQRenderProps, renderPoints.get(k), isSelected());
+                     myABRenderProps, renderPoints.get(k), isSelected());
                }
             }
          }

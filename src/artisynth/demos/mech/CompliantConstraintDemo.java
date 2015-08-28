@@ -12,7 +12,7 @@ import artisynth.core.mechmodels.MechSystemSolver;
 import artisynth.core.mechmodels.PlanarConnector;
 import artisynth.core.mechmodels.RevoluteJoint;
 import artisynth.core.mechmodels.RigidBody;
-import artisynth.core.mechmodels.RigidBodyConnector;
+import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.mechmodels.SphericalJoint;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 import artisynth.core.modelbase.*;
@@ -90,7 +90,7 @@ public class CompliantConstraintDemo extends RootModel {
       mechMod.addRigidBody (link1);
 
       // joint 1
-      RigidBodyConnector joint1 = null;
+      BodyConnector joint1 = null;
       RevoluteJoint rjoint = null;
 
       TCA.setIdentity();
@@ -139,7 +139,7 @@ public class CompliantConstraintDemo extends RootModel {
       link2.setMesh (mesh, /* fileName= */null);
       mechMod.addRigidBody (link2);
 
-      RigidBodyConnector joint2 = null;
+      BodyConnector joint2 = null;
 
       // joint 2
       if (useSphericalJoint) {
@@ -168,9 +168,9 @@ public class CompliantConstraintDemo extends RootModel {
          joint2 = rjoint;
       }
 
-      mechMod.addRigidBodyConnector (joint1);
+      mechMod.addBodyConnector (joint1);
       if (joint2 != null) {
-         mechMod.addRigidBodyConnector (joint2);
+         mechMod.addBodyConnector (joint2);
       }
 
       mechMod.transformGeometry (
@@ -188,22 +188,22 @@ public class CompliantConstraintDemo extends RootModel {
       myControlPanel.addWidget (this, "maxStepSize");
       myControlPanel.addLabel (" Joint 1 --");
       myControlPanel.addWidget (
-         mod, "rigidBodyConnectors/0:linearCompliance");
+         mod, "bodyConnectors/0:linearCompliance");
       myControlPanel.addWidget (
-         mod, "rigidBodyConnectors/0:rotaryCompliance");
+         mod, "bodyConnectors/0:rotaryCompliance");
       myControlPanel.addWidget (
-         mod, "rigidBodyConnectors/0:compliance");
+         mod, "bodyConnectors/0:compliance");
       myControlPanel.addWidget (
-         mod, "rigidBodyConnectors/0:damping");
+         mod, "bodyConnectors/0:damping");
       myControlPanel.addLabel (" Joint 2 --");
       myControlPanel.addWidget ( 
-         mod, "rigidBodyConnectors/1:linearCompliance");
+         mod, "bodyConnectors/1:linearCompliance");
       myControlPanel.addWidget (
-         mod, "rigidBodyConnectors/1:rotaryCompliance");
+         mod, "bodyConnectors/1:rotaryCompliance");
       myControlPanel.addWidget (
-         mod, "rigidBodyConnectors/1:compliance");
+         mod, "bodyConnectors/1:compliance");
       myControlPanel.addWidget (
-         mod, "rigidBodyConnectors/1:damping");
+         mod, "bodyConnectors/1:damping");
       addControlPanel (myControlPanel);
       Main.getMain().arrangeControlPanels (this);
    }

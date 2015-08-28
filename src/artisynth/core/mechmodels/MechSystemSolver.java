@@ -425,14 +425,14 @@ public class MechSystemSolver {
       return null;
    }
 
-   RigidBodyConnector getConnector () {
+   BodyConnector getConnector () {
       if (mySys instanceof MechModel) {
          MechModel mech = ((MechModel)mySys);
-         RigidBodyConnector con = mech.rigidBodyConnectors().get ("joint2");
+         BodyConnector con = mech.bodyConnectors().get ("joint2");
          if (con != null) {
             return con;
          }
-         con = mech.rigidBodyConnectors().get ("joint1");
+         con = mech.bodyConnectors().get ("joint1");
          if (con != null) {
             return con;
          }
@@ -755,7 +755,7 @@ public class MechSystemSolver {
 //   private void debugMessagesForArticulatedDeformableBody1() {
 //
 //      RigidBody bod = getBody ();
-//      RigidBodyConnector con = getConnector ();
+//      BodyConnector con = getConnector ();
 //      DeformableBody defbod = null;
 //      if (bod instanceof DeformableBody) {
 //         defbod = (DeformableBody)bod;
@@ -792,7 +792,7 @@ public class MechSystemSolver {
 //   private void debugMessagesForArticulatedDeformableBody2() {
 //
 //      RigidBody bod = getBody ();
-//      RigidBodyConnector con = getConnector ();
+//      BodyConnector con = getConnector ();
 //      DeformableBody defbod = null;
 //      if (bod instanceof DeformableBody) {
 //         defbod = (DeformableBody)bod;

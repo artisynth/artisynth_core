@@ -25,7 +25,7 @@ import javax.media.opengl.*;
 /**
  * Auxiliary class used to solve constrained rigid body problems.
  */
-public class SegmentedPlanarConnector extends RigidBodyConnector 
+public class SegmentedPlanarConnector extends BodyConnector 
    implements CopyableComponent {
    // protected Point3d myPCA;
 
@@ -49,7 +49,7 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
 
    public static PropertyList myProps =
       new PropertyList (
-         SegmentedPlanarConnector.class, RigidBodyConnector.class);
+         SegmentedPlanarConnector.class, BodyConnector.class);
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createPointFaceProps (null);

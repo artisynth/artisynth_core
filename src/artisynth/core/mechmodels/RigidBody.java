@@ -63,7 +63,7 @@ public class RigidBody extends Frame
    protected SpatialInertia myEffectiveInertia;
    
    MeshInfo myMeshInfo = new MeshInfo();
-   protected ArrayList<RigidBodyConnector> myConnectors;
+   protected ArrayList<BodyConnector> myConnectors;
 
    // pre-allocated temporary storage variables
    protected Wrench myCoriolisForce = new Wrench();
@@ -962,7 +962,7 @@ public class RigidBody extends Frame
       if (adjustConnectors) {
          TXWs = new RigidTransform3d[myConnectors.size()];
          int k = 0;
-         for (RigidBodyConnector c : myConnectors) {
+         for (BodyConnector c : myConnectors) {
             TXWs[k++] = c.getCurrentTXW (this);
          }
       }
@@ -973,7 +973,7 @@ public class RigidBody extends Frame
       }
       if (adjustConnectors) {
          int k = 0;
-         for (RigidBodyConnector c : myConnectors) {
+         for (BodyConnector c : myConnectors) {
             c.updateForBodyPositionChange (this, TXWs[k++]);
          }
       }
@@ -1101,14 +1101,14 @@ public class RigidBody extends Frame
       return list.toArray (new FrameMarker[0]);
    }
 
-   public void addConnector (RigidBodyConnector c) {
+   public void addConnector (BodyConnector c) {
       if (myConnectors == null) {
-         myConnectors = new ArrayList<RigidBodyConnector>();
+         myConnectors = new ArrayList<BodyConnector>();
       }
       myConnectors.add (c);
    }
 
-   public void removeConnector (RigidBodyConnector c) {
+   public void removeConnector (BodyConnector c) {
       if (myConnectors == null || !myConnectors.remove (c)) {
          throw new InternalErrorException ("connector not found");
       }
@@ -1117,7 +1117,7 @@ public class RigidBody extends Frame
       }
    }
    
-   public List<RigidBodyConnector> getConnectors() {
+   public List<BodyConnector> getConnectors() {
       return myConnectors;
    }
    
@@ -1300,13 +1300,13 @@ public class RigidBody extends Frame
    //      LinkedHashSet<RigidBody> bodies, RigidBody top) {
    //
    //      if (myConnectors != null) {
-   //         for (RigidBodyConnector c : myConnectors) {
+   //         for (BodyConnector c : myConnectors) {
    //         }
    //      }
    //   }
   
 //   private static RigidBody getOtherBody (
-//      RigidBodyConnector c, RigidBody body) {
+//      BodyConnector c, RigidBody body) {
 //      
 //      if (c.myBodyA == body) {
 //         return c.myBodyB;
@@ -1338,7 +1338,7 @@ public class RigidBody extends Frame
 //            isFree = false;
 //         }
 //         if (body.myConnectors != null) {
-//            for (RigidBodyConnector c : body.myConnectors) {
+//            for (BodyConnector c : body.myConnectors) {
 //               RigidBody obody = getOtherBody (c, body);
 //               if (!recursivelyFindFreeAttachedBodies (
 //                      obody, list, rejectSelected)) {
@@ -1360,7 +1360,7 @@ public class RigidBody extends Frame
 //         allFree = false;
 //      }
 //      if (myConnectors != null) {
-//         for (RigidBodyConnector c : myConnectors) {
+//         for (BodyConnector c : myConnectors) {
 //            RigidBody body = getOtherBody (c, this);
 //            list.clear();
 //            if (recursivelyFindFreeAttachedBodies (body, list, rejectSelected)) {

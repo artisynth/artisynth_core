@@ -61,7 +61,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    protected ComponentList<RigidBody> myRigidBodies;
    protected ComponentList<Frame> myFrames;
    protected ComponentList<MeshComponent> myMeshBodies;
-   protected ComponentList<RigidBodyConnector> myConnectors;
+   protected ComponentList<BodyConnector> myConnectors;
    protected ComponentList<ConstrainerBase> myConstrainers;
    protected PointList<FrameMarker> myFrameMarkers;
    protected CollisionManager myCollisionManager;
@@ -231,8 +231,8 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       myFrameMarkers.setPointDamping (0);
 
       myConnectors =
-         new ComponentList<RigidBodyConnector> (
-            RigidBodyConnector.class, "rigidBodyConnectors", "c");
+         new ComponentList<BodyConnector> (
+            BodyConnector.class, "bodyConnectors", "c");
       myConstrainers =
          new ComponentList<ConstrainerBase> (
             ConstrainerBase.class, "particleConstraints", "pc");
@@ -958,19 +958,19 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
 
    /* ----- Rigid Body Constraints ------ */
 
-   public ComponentListView<RigidBodyConnector> rigidBodyConnectors() {
+   public ComponentListView<BodyConnector> bodyConnectors() {
       return myConnectors;
    }
 
-   public void addRigidBodyConnector (RigidBodyConnector c) {
+   public void addBodyConnector (BodyConnector c) {
       myConnectors.add (c);
    }
 
-   public void removeRigidBodyConnector (RigidBodyConnector c) {
+   public void removeBodyConnector (BodyConnector c) {
       myConnectors.remove (c);
    }
 
-   public void clearRigidBodyConnectors() {
+   public void clearBodyConnectors() {
       myConnectors.removeAll();
    }
 
@@ -1291,8 +1291,8 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       
       for (int i=0; i<comp.numComponents(); i++) {
          ModelComponent c = comp.get (i);
-         if (c instanceof RigidBodyConnector) {
-            RigidBodyConnector rbc = (RigidBodyConnector)c;
+         if (c instanceof BodyConnector) {
+            BodyConnector rbc = (BodyConnector)c;
             if (rbc.isActive()) {
                list.add (rbc);
             }

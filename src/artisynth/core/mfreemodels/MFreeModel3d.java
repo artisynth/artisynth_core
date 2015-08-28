@@ -1842,7 +1842,7 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
    public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
       
       // XXX currently assumed vtx is instance of MFreeVertex3d
-      // This will change once MFreeModel uses FemMesh equivalent
+      // This will change once MFreeModel uses FemMeshComp equivalent
       if (vtx instanceof MFreeVertex3d) {
          MFreeVertex3d mvtx = (MFreeVertex3d)vtx;
          

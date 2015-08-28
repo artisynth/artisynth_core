@@ -17,7 +17,7 @@ public class FemEmbeddedSphere extends RootModel {
    // Internal components
    protected MechModel mech;
    protected FemModel3d fem;
-   protected FemMesh sphere;
+   protected FemMeshComp sphere;
    
    @Override
    public void build(String[] args) throws IOException {
@@ -63,8 +63,8 @@ public class FemEmbeddedSphere extends RootModel {
       RenderProps.setAlpha(fem, 0.2);   // translucent
    }
    
-   // FemMesh render properties
-   protected void setMeshRenderProps ( FemMesh mesh ) {
+   // FemMeshComp render properties
+   protected void setMeshRenderProps ( FemMeshComp mesh ) {
       mesh.setSurfaceRendering( SurfaceRender.Shaded );
       RenderProps.setFaceColor (mesh, new Color (1f, 0.5f, 0.5f));
       RenderProps.setAlpha (mesh, 1.0);   // opaque

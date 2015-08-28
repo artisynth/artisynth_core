@@ -147,14 +147,14 @@ public abstract class FrameAttachment extends DynamicAttachment
 
    /**
     * Returns the average mass of the master components as seen by the attached
-    * frame. This is used by RigidBodyConnector for automatically computing
+    * frame. This is used by BodyConnector for automatically computing
     * critical damping for joint compliance.
     */
    public abstract double getAverageMasterMass();
 
    /**
     * Returns the average rotational inertia of the master components as seen
-    * by the attached frame. This is used by RigidBodyConnector for
+    * by the attached frame. This is used by BodyConnector for
     * automatically computing critical damping for joint compliance.
     */
    public abstract double getAverageMasterInertia();

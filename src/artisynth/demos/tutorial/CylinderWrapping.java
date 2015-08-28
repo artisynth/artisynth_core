@@ -95,7 +95,7 @@ public class CylinderWrapping extends RootModel {
       panel.addWidget (this, "models/mechMod:maxStepSize");
       panel.addWidget (this, "models/mechMod:gravity");
       panel.addWidget (spring, "drawKnots");
-      panel.addWidget (spring, "drawPQPoints");
+      panel.addWidget (spring, "drawABPoints");
       addControlPanel (panel);
       Main.getMain().arrangeControlPanels (this);
    }

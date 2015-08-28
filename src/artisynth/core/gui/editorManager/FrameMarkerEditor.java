@@ -50,7 +50,7 @@ public class FrameMarkerEditor extends EditorBase {
                PlanarConnector pc = new PlanarConnector ();
                pc.set ((RigidBody)mkr.getFrame(), mkr.getLocation (), Vector3d.Z_UNIT);
                pc.setPlaneSize (getDefaultPlaneSize ());
-               ((MechModel)mkr.getGrandParent ()).addRigidBodyConnector (pc);
+               ((MechModel)mkr.getGrandParent ()).addBodyConnector (pc);
             }
             else {
                System.out.println("Unable to create PlanarConnector from selected FrameMarker");

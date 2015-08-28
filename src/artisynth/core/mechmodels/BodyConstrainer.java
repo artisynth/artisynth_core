@@ -14,7 +14,7 @@ import maspack.util.DoubleHolder;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public interface RigidBodyConstrainer extends HasAuxState {
+public interface BodyConstrainer extends HasAuxState {
    /**
     * Updates internal information needed for computing constraints.
     * 
@@ -126,7 +126,7 @@ public interface RigidBodyConstrainer extends HasAuxState {
     * Updates the unilateral constraints associated with this constrainer. The
     * constraints are the same as those returned by the most recent call to
     * {@link
-    * artisynth.core.mechmodels.RigidBodyConstrainer#getUnilateralConstraints
+    * artisynth.core.mechmodels.BodyConstrainer#getUnilateralConstraints
     * getUnilateralConstraints}, located at a specific offset within an array
     * list.
     * 

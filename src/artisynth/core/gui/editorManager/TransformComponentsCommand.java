@@ -92,7 +92,7 @@ public class TransformComponentsCommand implements Command, Clonable {
                   allFreePoses = new ArrayList<ArrayList<RigidTransform3d>>();
                }
                ArrayList<ConnectableBody> freeBods = new ArrayList<ConnectableBody>();
-               RigidBodyConnector.findFreeAttachedBodies (
+               BodyConnector.findFreeAttachedBodies (
                   bod, freeBods, /*rejectSelected*/true);
                ArrayList<RigidTransform3d> freePoses =
                   getRelativePoses (bod, freeBods);

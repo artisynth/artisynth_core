@@ -171,7 +171,7 @@ public class CollisionHandler extends ConstrainerBase
    }
 
    protected boolean isRigid (CollidableBody col) {
-      return (col instanceof RigidBody || col instanceof RigidMesh);
+      return (col instanceof RigidBody || col instanceof RigidMeshComp);
    }
 
    public void setDrawIntersectionContours (boolean set) {

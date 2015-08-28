@@ -16,7 +16,7 @@ import artisynth.core.mechmodels.Muscle;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.PlanarConnector;
 import artisynth.core.mechmodels.RigidBody;
-import artisynth.core.mechmodels.RigidBodyConnector;
+import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.probes.NumericInputProbe;
 import artisynth.core.probes.NumericOutputProbe;
 import artisynth.core.util.ArtisynthPath;
@@ -183,7 +183,7 @@ public class ForceTargetDemo extends RootModel{
       if(two_cons==true)
       {con2.setName("con2");}
       if(cons==true)
-      { mech.addRigidBodyConnector (con);
+      { mech.addBodyConnector (con);
 //      Activation_Renderer rend= new Activation_Renderer(con);
 //      myRenderProps=rend.createRenderProps ();
 //      myRenderProps.setLineStyle(LineStyle.CYLINDER);
@@ -194,7 +194,7 @@ public class ForceTargetDemo extends RootModel{
 //      addMonitor(rend);
       }
       if(two_cons==true)
-      { mech.addRigidBodyConnector (con2);}
+      { mech.addBodyConnector (con2);}
      
       
       
@@ -326,7 +326,7 @@ public class ForceTargetDemo extends RootModel{
    
    public void addConForceProbe(double duration, double interval) {
       ArrayList<Property> props = new ArrayList<Property>();
-      for (RigidBodyConnector rbc : mech.rigidBodyConnectors()) {
+      for (BodyConnector rbc : mech.bodyConnectors()) {
          if (rbc.isEnabled() && rbc.getProperty("activation") != null) {
             props.add(rbc.getProperty("activation"));
          }

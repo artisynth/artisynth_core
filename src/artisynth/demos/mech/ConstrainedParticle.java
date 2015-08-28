@@ -56,7 +56,7 @@ public class ConstrainedParticle extends RootModel {
       //PolygonalMesh mesh = MeshFactory.createTriangularBox (wx, wy, wz);
       //PolygonalMesh mesh = MeshFactory.createTriangularSphere (wx/2, 6);
       //mesh.transform (new RigidTransform3d (0, 0, 0, 0, Math.PI/2, 0));
-      MeshComponent body = new FixedMesh (mesh);
+      MeshComponent body = new FixedMeshBody (mesh);
       mech.addMeshBody (body);
 
       RenderProps.setPointStyle (mech, RenderProps.PointStyle.SPHERE);

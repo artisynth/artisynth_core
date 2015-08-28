@@ -71,19 +71,19 @@ import artisynth.core.util.TransformableGeometry;
  * vertex is controlled by the position of one or more "master" components
  * (such as Frames or FEM nodes). 
  *
- * <p><code>SkinMesh</code> manages this skinning by assigning a
+ * <p><code>SkinMeshBody</code> manages this skinning by assigning a
  * {@link PointSkinAttachment} to each vertex within the mesh, which stores the
  * master components used to control the vertex position and computes that
  * position using the
  * {@link PointSkinAttachment#computePosState computePosState()} method.
  *
  * <p> {@link PointSkinAttachment} is an instance of {@link PointAttachment},
- * and when used by <code>SkinMesh</code> to control vertex positions it does
+ * and when used by <code>SkinMeshBody</code> to control vertex positions it does
  * not connect to any {@link Point} component as a slave (i.e., {@link
  * PointSkinAttachment#getSlave() getSlave()} returns <code>null</code>.
  * However, <code>PointSkinAttachments</code> can also
  * be used to attach a point or a marker to the "skin" of a
- * <code>SkinMesh</code>, and so allow velocities to propagate from the master
+ * <code>SkinMeshBody</code>, and so allow velocities to propagate from the master
  * components to the point, and forces to propagate from the point to the
  * masters.
  *
@@ -106,19 +106,19 @@ import artisynth.core.util.TransformableGeometry;
  * <p> <code>Frames</code> control vertex positions using various skinning
  * techniques known in the literature. These include linear, linear dual
  * quaternion, and iterative dual quaternion skinning. The technique used is
- * controlled by the {@link SkinMesh#getFrameBlending()} and {@link
- * SkinMesh#setFrameBlending setFrameBlending()} methods. Implementing these
- * techniques requires <code>SkinMesh</code> to maintain additional information
+ * controlled by the {@link SkinMeshBody#getFrameBlending()} and {@link
+ * SkinMeshBody#setFrameBlending setFrameBlending()} methods. Implementing these
+ * techniques requires <code>SkinMeshBody</code> to maintain additional information
  * for each Frame.  Therefore it is necessary for all Frames used in skinning to
- * be registered with the SkinMesh using
- * {@link SkinMesh#addFrame addFrame()}.
+ * be registered with the SkinMeshBody using
+ * {@link SkinMeshBody#addFrame addFrame()}.
  *
  * <p>
  * FEM nodes can control vertex positions using linear combinations of
  * either their current position values, or their current displacements from the
  * rest position. It is also recommended that any FemModel used in skinning be
- * registered with the SkinMesh using
- * {@link SkinMesh#addFemModel addFemModel()},
+ * registered with the SkinMeshBody using
+ * {@link SkinMeshBody#addFemModel addFemModel()},
  * although neither of the currently implemented <code>FemNode</code> control
  * methods actually require this.
  *
@@ -128,26 +128,26 @@ import artisynth.core.util.TransformableGeometry;
  * positions are also used for Frame-based skinning. Vertex base
  * positions are set initially when a mesh is assigned to the skin.
  * Base positions can be queried and set using
- * {@link SkinMesh#getBasePosition getBasePosition()} and
- * {@link SkinMesh#setBasePosition setBasePosition()}, and can be reset
- * <i>en mass</i> using {@link SkinMesh#resetBasePositions}.
+ * {@link SkinMeshBody#getBasePosition getBasePosition()} and
+ * {@link SkinMeshBody#setBasePosition setBasePosition()}, and can be reset
+ * <i>en mass</i> using {@link SkinMeshBody#resetBasePositions}.
  *
  * <p>
- * Setting up a <code>SkinMesh</code> involves three basic steps:
+ * Setting up a <code>SkinMeshBody</code> involves three basic steps:
  * <ul>
- * <li>Creating the SkinMesh and assigning it a PolygonalMesh;</li>
+ * <li>Creating the SkinMeshBody and assigning it a PolygonalMesh;</li>
  * <li>Registering all Frames and FemModels that will be used to control it;</li>
  * <li>Creating appropriate attachments for each vertex.
  * </ul>
  * This process can be as simple as follows:
  * <pre>
- *    skinMesh = new SkinMesh (polyMesh);
+ *    skinMesh = new SkinMeshBody (polyMesh);
  *    skinMesh.addFrame (rigidBody1);
  *    skinMesh.addFrame (rigidBody2);
  *    skinMesh.addFemModel (femModel1);
  *    skinMesh.computeDisplacementAttachments();
  * </pre>
- * Here, {@link SkinMesh#computeDisplacementAttachments 
+ * Here, {@link SkinMeshBody#computeDisplacementAttachments 
  * computeDisplacementAttachments()}
  * automatically computes an attachment for each vertex involving
  * all registered Frames and FemModels that contain a polygonal mesh.
@@ -187,10 +187,10 @@ import artisynth.core.util.TransformableGeometry;
  * {@link PointSkinAttachment#addFrameConnection addFrameConnection()}
  * specifies a <code>Frame</code> master, which controls the vertex position
  * using the skinning technique returned by {@link
- * SkinMesh#getFrameBlending()}.  The Frame itself is specified using its
- * <code>FrameInfo</code> structure within <code>SkinMesh</code>, which
+ * SkinMeshBody#getFrameBlending()}.  The Frame itself is specified using its
+ * <code>FrameInfo</code> structure within <code>SkinMeshBody</code>, which
  * can be obtained
- * using {@link SkinMesh#getFrameInfo(Frame) getFrameInfo()}. The method {@link
+ * using {@link SkinMeshBody#getFrameInfo(Frame) getFrameInfo()}. The method {@link
  * PointSkinAttachment#addFemDisplacementConnection
  * addFemDisplacementConnection()} specifies a {@link FemNode3d} as a master,
  * which controls the vertex position using its current displacement from its
@@ -198,14 +198,14 @@ import artisynth.core.util.TransformableGeometry;
  * consult the source code or documentation for {@link PointSkinAttachment}.
  *
  * <p> When calculating attachment weights, an application will likely to need
- * access to the Frames and FemModels that are registered with the SkinMesh
+ * access to the Frames and FemModels that are registered with the SkinMeshBody
  * (for example, to make distance queries on their surface meshes).
  * This can be done using methods such as {@link
- * SkinMesh#numFrames()}, {@link SkinMesh#getFrame}, {@link
- * SkinMesh#numFemModels() numFemModels()}, and {@link
- * SkinMesh#getFemModel getFemModel()}.
+ * SkinMeshBody#numFrames()}, {@link SkinMeshBody#getFrame}, {@link
+ * SkinMeshBody#numFemModels() numFemModels()}, and {@link
+ * SkinMeshBody#getFemModel getFemModel()}.
  */
-public class SkinMesh extends SkinMeshBase 
+public class SkinMeshBody extends SkinMeshBase 
    implements CollidableBody, PointAttachable {
 
    /**
@@ -250,7 +250,7 @@ public class SkinMesh extends SkinMeshBase
    }
 
    /**
-    * Contains information for each frame controlling this SkinMesh.
+    * Contains information for each frame controlling this SkinMeshBody.
     */
    public class FrameInfo extends BodyInfo {
 
@@ -364,7 +364,7 @@ public class SkinMesh extends SkinMeshBase
    }
   
    /**
-    * Contains information for each FemModel controlling this SkinMesh.
+    * Contains information for each FemModel controlling this SkinMeshBody.
     * Doesn't do very much now - can be expanded later as needed.
     */
    public class FemModelInfo extends BodyInfo {
@@ -514,14 +514,14 @@ public class SkinMesh extends SkinMeshBase
    }
   
    public static PropertyList myProps =
-      new PropertyList (SkinMesh.class, SkinMeshBase.class);
+      new PropertyList (SkinMeshBody.class, SkinMeshBase.class);
 
    static {
       myProps.add("frameBlending", "frame blending mechanism",
                   DEFAULT_FRAME_BLENDING);
       myProps.add (
          "collidable", 
-         "sets the collidability of this SkinMesh mesh", DEFAULT_COLLIDABILITY);      
+         "sets the collidability of this SkinMeshBody mesh", DEFAULT_COLLIDABILITY);      
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -529,9 +529,9 @@ public class SkinMesh extends SkinMeshBase
    }
 
    /**
-    * Creates an empty SkinMesh.
+    * Creates an empty SkinMeshBody.
     */
-   public SkinMesh () {
+   public SkinMeshBody () {
       super();
       myVertexAttachments =
          new ComponentList<PointSkinAttachment>(
@@ -542,9 +542,9 @@ public class SkinMesh extends SkinMeshBase
    }
 
    /**
-    * Creates a SkinMesh with a specified mesh.
+    * Creates a SkinMeshBody with a specified mesh.
     */
-   public SkinMesh (MeshBase mesh) {
+   public SkinMeshBody (MeshBase mesh) {
       this();
       setMesh (mesh);
    }
@@ -565,14 +565,14 @@ public class SkinMesh extends SkinMeshBase
    }
 
    /**
-    * Returns the number of attachments currently in this SkinMesh.
+    * Returns the number of attachments currently in this SkinMeshBody.
     */
    public int numAttachments() {
       return myVertexAttachments.size();
    }
 
    /**
-    * Adds an attachment to this SkinMesh. The associated vertex is assumed
+    * Adds an attachment to this SkinMeshBody. The associated vertex is assumed
     * from the index of the new attachment point, and the attachment's base
     * position is set to the current vertex position.  The number of
     * attachments cannot exceed the current number of mesh vertices.
@@ -583,7 +583,7 @@ public class SkinMesh extends SkinMeshBase
 
    // XXX
    /**
-    * Adds an attachment to this SkinMesh. The associated vertex is assumed
+    * Adds an attachment to this SkinMeshBody. The associated vertex is assumed
     * from the index of the new attachment point. If <code>initBase</code> is
     * true, then the attachment's base position is set to the current vertex
     * position. The number of attachments cannot exceed the current number of
@@ -618,14 +618,14 @@ public class SkinMesh extends SkinMeshBase
    }
 
    /**
-    * Clears all the attachments associated with this SkinMesh.
+    * Clears all the attachments associated with this SkinMeshBody.
     */
    public void clearAttachments() {
       myVertexAttachments.clear();
    }
 
    /**
-    * Returns the attachment for the idx-th vertex of this SkinMesh.
+    * Returns the attachment for the idx-th vertex of this SkinMeshBody.
     *
     * @param idx index of the vertex for which the attachment is desired.
     * Must be less that {@link #numAttachments()}.
@@ -650,7 +650,7 @@ public class SkinMesh extends SkinMeshBase
    }
 
    /**
-    * Sets the mesh associated with the this SkinMesh. A new set of attachment
+    * Sets the mesh associated with the this SkinMeshBody. A new set of attachment
     * components will be created for each vertex, each with their base position
     * set to the current vertex position.
     */
@@ -668,7 +668,7 @@ public class SkinMesh extends SkinMeshBase
    }
 
    /**
-    * Registers a Frame with this SkinMesh so that it can be used for skinning
+    * Registers a Frame with this SkinMeshBody so that it can be used for skinning
     * control.
     *
     * @param frame Frame to be registered
@@ -684,7 +684,7 @@ public class SkinMesh extends SkinMeshBase
    }
 
    /**
-    * Removes a Frame from this SkinMesh
+    * Removes a Frame from this SkinMeshBody
     * @param frame Frmae to be removed
     * @return true if frame found aand removed, false otherwise
     */
@@ -719,7 +719,7 @@ public class SkinMesh extends SkinMeshBase
    
    /**
     * Returns true is a specified Frame is currently registered with this
-    * SkinMesh.
+    * SkinMeshBody.
     *
     * @param frame Frame to be queried
     */
@@ -733,7 +733,7 @@ public class SkinMesh extends SkinMeshBase
    }
 
    /**
-    * Returns the number of Frames currently registered with this SkinMesh.
+    * Returns the number of Frames currently registered with this SkinMeshBody.
     */
    public int numFrames() {
       return myFrameInfo.size();
@@ -741,7 +741,7 @@ public class SkinMesh extends SkinMeshBase
 
    /**
     * Returns an information structure for a Frame that is currently registered
-    * with this SkinMesh.
+    * with this SkinMeshBody.
     *
     * @param idx identities the Frame; must be between 0 and
     * the number returned by {@link #numFrames()}.
@@ -752,14 +752,14 @@ public class SkinMesh extends SkinMeshBase
 
    /**
     * Returns the information structures of all Frames that are currently
-    * registered with this SkinMesh.
+    * registered with this SkinMeshBody.
     */
    public List<FrameInfo> getAllFrameInfo() {
       return myFrameInfo;
    }
 
    /**
-    * Returns a Frame that is currently registered with SkinMesh.
+    * Returns a Frame that is currently registered with SkinMeshBody.
     *
     * @param idx identities the Frame; must be between 0 and
     * the number returned by {@link #numFrames()}.
@@ -770,7 +770,7 @@ public class SkinMesh extends SkinMeshBase
 
    /**
     * Returns the FrameInfo for a Frame that is currently registered with this
-    * SkinMesh, or null if the Frame is not registered.
+    * SkinMeshBody, or null if the Frame is not registered.
     * 
     * @param frame Frame whose FrameInfo is desired
     */
@@ -785,7 +785,7 @@ public class SkinMesh extends SkinMeshBase
    }
    
    /**
-    * Registers a FemModel with this SkinMesh so that it can be used for skinning
+    * Registers a FemModel with this SkinMeshBody so that it can be used for skinning
     * control.
     *
     * @param fem FemModel to be registered
@@ -801,7 +801,7 @@ public class SkinMesh extends SkinMeshBase
    
    /**
     * Returns true is a specified FemModel is currently registered with this
-    * SkinMesh.
+    * SkinMeshBody.
     *
     * @param fem FemModel to be queried
     */
@@ -810,7 +810,7 @@ public class SkinMesh extends SkinMeshBase
    }
 
    /**
-    * Returns the number of FemModels currently registered with this SkinMesh.
+    * Returns the number of FemModels currently registered with this SkinMeshBody.
     */
    public int numFemModels() {
       return myFemModelInfo.size();
@@ -818,7 +818,7 @@ public class SkinMesh extends SkinMeshBase
 
    /**
     * Returns an information structure for a FemModel that is currently registered
-    * with this SkinMesh.
+    * with this SkinMeshBody.
     *
     * @param idx identities the FemModel; must be between 0 and
     * the number returned by {@link #numFemModels()}.
@@ -829,14 +829,14 @@ public class SkinMesh extends SkinMeshBase
 
    /**
     * Returns the information structures of all FemModels that are currently
-    * registered with this SkinMesh.
+    * registered with this SkinMeshBody.
     */
    public List<FemModelInfo> getAllFemModelInfo() {
       return myFemModelInfo;
    }
 
    /**
-    * Returns a FemModel that is currently registered with SkinMesh.
+    * Returns a FemModel that is currently registered with SkinMeshBody.
     *
     * @param idx identities the FemModel; must be between 0 and
     * the number returned by {@link #numFemModels()}.
@@ -847,7 +847,7 @@ public class SkinMesh extends SkinMeshBase
 
    /**
     * Returns the index of a FemModelthat is currently registered with t
-    * this SkinMesh, or -1 if the FemModel is not registered.
+    * this SkinMeshBody, or -1 if the FemModel is not registered.
     * 
     * @param fem FemModel whose index is desired
     */
@@ -862,7 +862,7 @@ public class SkinMesh extends SkinMeshBase
    
    /**
     * Returns the base position for a specified vertex attachment in this
-    * SkinMesh.  Base positions are used to calculate vertex positions for
+    * SkinMeshBody.  Base positions are used to calculate vertex positions for
     * skinning strategies that are based on displacement.
     *
     * @param idx index of the attachment. Must be less than
@@ -874,7 +874,7 @@ public class SkinMesh extends SkinMeshBase
 
    /**
     * Sets the base position for a specified vertex attachment in the
-    * SkinMesh.
+    * SkinMeshBody.
     *
     * @param idx index of the attachment. Must be less than
     * {@link #numAttachments}.
@@ -885,7 +885,7 @@ public class SkinMesh extends SkinMeshBase
    }
 
    /**
-    * Resets the base positions for all attachments in this SkinMesh
+    * Resets the base positions for all attachments in this SkinMeshBody
     * to the current vertex position.
     */
    protected void resetBasePositions () {
@@ -900,7 +900,7 @@ public class SkinMesh extends SkinMeshBase
    /**
     * Smooths weights according to a weighting function of distance.  At
     * present, this <i>only</i> smooths the weights associated with Frame
-    * connections. Results when the SkinMesh contains other types of
+    * connections. Results when the SkinMeshBody contains other types of
     * attachment connections are undefined.
     *
     * @param weightFunction single-input single-output function of distance

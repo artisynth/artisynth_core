@@ -28,8 +28,8 @@ import maspack.spatialmotion.Wrench;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import artisynth.core.femmodels.SkinMesh.FrameBlending;
-import artisynth.core.femmodels.SkinMesh.FrameInfo;
+import artisynth.core.femmodels.SkinMeshBody.FrameBlending;
+import artisynth.core.femmodels.SkinMeshBody.FrameInfo;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.Particle;
@@ -47,8 +47,8 @@ import artisynth.core.util.TransformableGeometry;
 /**
  * A special attachment class that is used to update a point's position based on
  * the state of the controlling bodies (such as Frames and FemModels) in a
- * SkinMesh. Instances of this class (without an actual slave Point) are used to
- * control the positions of each vertex in a SkinMesh.
+ * SkinMeshBody. Instances of this class (without an actual slave Point) are used to
+ * control the positions of each vertex in a SkinMeshBody.
  * 
  * <p>
  * The class maintains a list of <code>Connection</code> objects for each
@@ -61,7 +61,7 @@ public class PointSkinAttachment extends PointAttachment
 
    protected Connection[] myConnections = new Connection[0];
    protected int myNumConnections;
-   protected SkinMesh mySkinMesh = null;
+   protected SkinMeshBody mySkinMesh = null;
    protected DynamicComponent[] myMasters = null;
    protected Point3d myBasePos;
 
@@ -70,17 +70,17 @@ public class PointSkinAttachment extends PointAttachment
    }
 
    /**
-    * Returns the SkinMesh associated with this attachment.
+    * Returns the SkinMeshBody associated with this attachment.
     */
-   public SkinMesh getSkinMesh() {
+   public SkinMeshBody getSkinMesh() {
       return mySkinMesh;
    }
 
    /**
-    * Sets the SkinMesh associated with this attachment. Will be called by
+    * Sets the SkinMeshBody associated with this attachment. Will be called by
     * objects utilizing this attachment.
     */
-   public void setSkinMesh(SkinMesh skinMesh) {
+   public void setSkinMesh(SkinMeshBody skinMesh) {
       mySkinMesh = skinMesh;
    }
 
@@ -174,10 +174,10 @@ public class PointSkinAttachment extends PointAttachment
     * Adds a Frame connection to this attachment. The Frame's displacement from
     * it's rest pose will be used to compute a weighted contribution to the
     * point value, using a mechanism determined by the blend type associated
-    * with the SkinMesh (as returned by {@link SkinMesh#getFrameBlending()}).
+    * with the SkinMeshBody (as returned by {@link SkinMeshBody#getFrameBlending()}).
     * 
     * @param frameInfo
-    * FrameInfo structure within the associated SkinMesh.
+    * FrameInfo structure within the associated SkinMeshBody.
     * @param weight
     * connection weight.
     */
@@ -544,7 +544,7 @@ public class PointSkinAttachment extends PointAttachment
       // Note sure if we should require a skinMesh here or not ...
       // if (mySkinMesh == null) {
       // throw new IllegalStateException (
-      // "SkinMesh is not set within this attacher");
+      // "SkinMeshBody is not set within this attacher");
       // }
       ArrayList<DynamicComponent> masters = new ArrayList<DynamicComponent>();
       for (int i = 0; i < myNumConnections; i++) {
@@ -605,7 +605,7 @@ public class PointSkinAttachment extends PointAttachment
     * Creates an empty PointSkinAttachment to associated with a specific
     * skinMesh.
     */
-   public PointSkinAttachment (SkinMesh skinMesh) {
+   public PointSkinAttachment (SkinMeshBody skinMesh) {
       this();
       setSkinMesh(skinMesh);
    }
@@ -614,7 +614,7 @@ public class PointSkinAttachment extends PointAttachment
     * Computes this attachment's point value from all the underlying master
     * components to which it is connected.
     */
-   protected void computePosState(Vector3d pos, SkinMesh skinMesh) {
+   protected void computePosState(Vector3d pos, SkinMeshBody skinMesh) {
 
       DualQuaternion tmpQ = null;
       DualQuaternion[] dualqs = null;
@@ -668,7 +668,7 @@ public class PointSkinAttachment extends PointAttachment
          tmpQ = new DualQuaternion();
          tmpQ.dualQuaternionIterativeBlending(
             weights, dualqs, fidx,
-            SkinMesh.DQ_BLEND_TOLERANCE, SkinMesh.DQ_MAX_BLEND_STEPS);
+            SkinMeshBody.DQ_BLEND_TOLERANCE, SkinMeshBody.DQ_MAX_BLEND_STEPS);
          tmpQ.transform(tmp, myBasePos);
          pos.scaledAdd(dualw, tmp);
       }

@@ -11,7 +11,7 @@ import java.awt.Rectangle;
 import artisynth.core.driver.Main;
 import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.MeshComponent;
-import artisynth.core.mechmodels.FixedMesh;
+import artisynth.core.mechmodels.FixedMeshBody;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.modelbase.*;
 import maspack.geometry.PolygonalMesh;

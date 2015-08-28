@@ -32,11 +32,11 @@ public class SelfCollision extends FemBeam3d {
       build ("hex", 1.0, 0.1, 10, 2, NO_FIXED_NODES);
 
       try {
-         myFemMod.addMesh (
+         myFemMod.addMeshComp (
             myFemMod.scanMesh (
                ArtisynthIO.newReaderTokenizer (
                   new StringReader (rightMeshString))));
-         myFemMod.addMesh (
+         myFemMod.addMeshComp (
             myFemMod.scanMesh (
                ArtisynthIO.newReaderTokenizer (
                   new StringReader (leftMeshString))));

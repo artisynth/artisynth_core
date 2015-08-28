@@ -29,13 +29,13 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.TransformableGeometry;
 
-public class FixedMesh extends MeshComponent {
+public class FixedMeshBody extends MeshComponent {
 
    // use a FrameState to store the position even though we ignore velocity
    FrameState myState = new FrameState();
 
    public static PropertyList myProps =
-      new PropertyList (FixedMesh.class, MeshComponent.class);
+      new PropertyList (FixedMeshBody.class, MeshComponent.class);
 
    static {
       myProps.add ("pose * *", "pose state", null, "NE NW");
@@ -86,21 +86,21 @@ public class FixedMesh extends MeshComponent {
       myState.setRotation (q);
    }
 
-   public FixedMesh () {
+   public FixedMeshBody () {
       super();
    }
    
-   public FixedMesh(String name) {
+   public FixedMeshBody(String name) {
       this();
       setName(name);
    }
 
-   public FixedMesh (MeshBase mesh) {
+   public FixedMeshBody (MeshBase mesh) {
       this();
       setMesh (mesh);
    }
    
-   public FixedMesh(String name, MeshBase mesh) {
+   public FixedMeshBody(String name, MeshBase mesh) {
       this(name);
       setMesh(mesh);
    }

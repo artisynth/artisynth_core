@@ -322,7 +322,7 @@ properties themselves. FEM geometries will be discussed in more detail in
 Section \ref{sec:fem:geometry}.  The list of meshes can be obtained with the 
 method
 \begin{lstlisting}[]
-MeshComponentList<FemMesh> getMeshes();   // return the list of meshes in a FEM
+MeshComponentList<FemMeshComp> getMeshComps();   // return the list of meshes in a FEM
 \end{lstlisting}
 
 \subsubsection{Materials}
@@ -680,7 +680,7 @@ or for interactions such as collisions.  A geometry itself has no
 physical properties; its motion is entirely governed by the FEM model 
 that contains it.  
 
-All FEM geometries are of type \javaclass[artisynth.core.femmodels]{FemMesh}, 
+All FEM geometries are of type \javaclass[artisynth.core.femmodels]{FemMeshComp}, 
 which stores a reference to a mesh object (Section \ref{Meshes:sec}), as well
 as attachment information that links vertices of the mesh to points within
 the FEM.  The attachments enforce the shape function interpolation in Equation
@@ -698,7 +698,7 @@ move, so do the mesh vertices due to the attachment framework.
 The surface mesh can be obtained using one of the following functions in 
 {\tt FemModel3d}:
 \begin{lstlisting}[]
-FemMesh getSurfaceFemMesh ();     // returns the FemMesh surface component
+FemMeshComp getSurfaceMeshComp ();     // returns the FemMeshComp surface component
 PolygonalMesh getSurfaceMesh ();  // returns the underlying polygonal surface mesh
 \end{lstlisting}
 The first returns the surface complete with attachment information.  The latter 
@@ -719,11 +719,11 @@ a {\tt FemModel3d}.  To do so, first position the mesh so that its vertices
 are in the desired locations inside the FEM, then call one of the 
 {\tt FemModel3d} methods:
 \begin{lstlisting}[]
-FemMesh addMesh ( MeshBase mesh );                // creates and returns FemMesh
-FemMesh addMesh ( String name, MeshBase mesh );
+FemMeshComp addMesh ( MeshBase mesh );                // creates and returns FemMeshComp
+FemMeshComp addMesh ( String name, MeshBase mesh );
 \end{lstlisting}
 The latter is a convenience routine that also gives the newly embedded
-{\tt FemMesh} a name.
+{\tt FemMeshComp} a name.
 
 \subsubsection{Example: a beam with an embedded sphere}
 
@@ -744,7 +744,7 @@ The model is very similar to {\tt FemBeam}.  A {\tt MechModel} and
 {\tt FemModel3d} are created and added.  At line 41, a {\tt PolygonalMesh}
 of a sphere is created using a factory method.  The sphere is already
 centered inside the beam, so it does not need to be repositioned.  At Line
-42, the sphere is embedded inside model {\tt fem}, creating a {\tt FemMesh}
+42, the sphere is embedded inside model {\tt fem}, creating a {\tt FemMeshComp}
 with the name ``sphere''.  The full model is shown in Figure 
 \ref{fig:fem:embedded}.
 
@@ -1492,7 +1492,7 @@ that creates a joint connecting {\tt bodyA} to {\tt bodyB}, with the
 initial pose of the D frame given (in world coordinates) by {\tt TDW}.
 The same body and transform settings can be made on an existing joint
 using the method \javamethodAlt{%
-artisynth.core.mechmodels.RigidBodyConnector.setBodies(ConnectableBody,,)}
+artisynth.core.mechmodels.BodyConnector.setBodies(ConnectableBody,,)}
 {setBodies(bodyA, bodyB, TDW)}.  For these constructors and methods,
 it is possible to specify FEM models for {\tt bodyA} and/or {\tt
 bodyB}. Internally, the joint then creates a {\tt
@@ -1546,7 +1546,7 @@ joint. The build method is shown below:
       // create a slotted revolute joint that connects the two fem beams
       RigidTransform3d TDW = new RigidTransform3d(0.5, 0, 0, 0, 0, Math.PI/2);
       SlottedRevoluteJoint joint = new SlottedRevoluteJoint (fem2, fem1, TDW);
-      mech.addRigidBodyConnector (joint);
+      mech.addBodyConnector (joint);
       
       // set ranges and rendering properties for the joint
       joint.setAxisLength (0.8);
@@ -2048,13 +2048,13 @@ As described in Section \ref{sec:mechii:collisions}, collisions can be enabled
 for any class that implements the 
 \javaclass[artisynth.core.mechmodels]{Collidable} interface.  Both 
 \javaclass[artisynth.core.femmodels]{FemModel3d} and 
-\javaclass[artisynth.core.femmodels]{FemMesh} implement 
+\javaclass[artisynth.core.femmodels]{FemMeshComp} implement 
 \javaclass[artisynth.core.mechmodels]{Collidable}.  {\tt FemModel3d}
-will use its surface mesh as the collision surface.  A {\tt FemMesh} will use
+will use its surface mesh as the collision surface.  A {\tt FemMeshComp} will use
 its underlying mesh structure.  At present, only meshes of type 
 \javaclass[maspack.geometry]{PolygonalMesh} are supported.
 
-Since {\tt FemMesh} is also a {\tt Collidable}, this means we can enable 
+Since {\tt FemMeshComp} is also a {\tt Collidable}, this means we can enable 
 collisions with any embedded mesh inside a FEM.  Any forces resulting from
 the collision are then automatically transfered back to the underlying nodes 
 of the model using Equation \eqref{pointFemForces:eqn}.
@@ -2079,7 +2079,7 @@ mech.setCollisionBehavior(ellipsoid, beam, true);   // beam-ellipsoid
 mech.setCollisionBehavior(ellipsoid, table, true);  // ellipsoid-table
 mech.setCollisionBehavior(table, beam, true);       // beam-table
 
-FemMesh embeddedSphere = block.getMesh("embedded");      // get embedded FemMesh
+FemMeshComp embeddedSphere = block.getMeshComp("embedded");      // get embedded FemMeshComp
 mech.setCollisionBehavior(embeddedSphere, table, true);      // sphere-table
 mech.setCollisionBehavior(ellipsoid, embeddedSphere, true);  // sphere-ellipsoid   
 \end{lstlisting}
@@ -2130,7 +2130,7 @@ per point.
 
 The last four properties apply to 
 \javaclass[artisynth.core.femmodels]{FemModel3d} and 
-\javaclass[artisynth.core.femmodels]{FemMesh}.
+\javaclass[artisynth.core.femmodels]{FemMeshComp}.
 They control how the surface is colored.  This can be used to enable stress/strain
 visualizations.  The property {\tt surfaceRendering} sets what to draw:\\
 \medskip

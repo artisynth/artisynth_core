@@ -1031,7 +1031,7 @@ public class CollisionManager extends RenderableCompositeBase
    private boolean isCollidableBody (Collidable c) {
       // XXX Need to call isCollidable() first, because FemModel3d uses that to
       // trigger on-demand surface mesh generation, without which the actual
-      // FemMesh object containing the surface will have a null mesh.
+      // FemMeshComp object containing the surface will have a null mesh.
       if (!isCollidable(c)) {
          return false;
       }

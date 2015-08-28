@@ -179,7 +179,7 @@ public class ArticulatedFem extends RootModel {
          RenderProps.setLineRadius (joint, 0.01);
          RenderProps.setLineColor (joint, new Color (0.15f, 0.15f, 1f));
          joint.setAxisLength (0.5);
-         model.addRigidBodyConnector (joint);
+         model.addBodyConnector (joint);
 
          if (addLastJoint && i == nlinks - 1) {
             TCA.p.set (boxLength / 2, 0, boxHeight / 2);
@@ -189,7 +189,7 @@ public class ArticulatedFem extends RootModel {
             RenderProps.setLineRadius (joint, 0.01);
             RenderProps.setLineColor (joint, new Color (0.15f, 0.15f, 1f));
             joint.setAxisLength (0.5);
-            model.addRigidBodyConnector (joint);
+            model.addBodyConnector (joint);
          }
 
          lastBox = rightBox;

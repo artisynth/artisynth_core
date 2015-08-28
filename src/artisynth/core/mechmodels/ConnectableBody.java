@@ -18,11 +18,11 @@ import artisynth.core.modelbase.ModelComponent;
  */
 public interface ConnectableBody extends ModelComponent, FrameAttachable {
    
-   public void addConnector (RigidBodyConnector c);
+   public void addConnector (BodyConnector c);
 
-   public void removeConnector (RigidBodyConnector c);
+   public void removeConnector (BodyConnector c);
    
-   public List<RigidBodyConnector> getConnectors();
+   public List<BodyConnector> getConnectors();
 
    public void transformPose (RigidTransform3d T);
 

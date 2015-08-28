@@ -12,7 +12,7 @@ import artisynth.core.mechmodels.MechSystemSolver;
 import artisynth.core.mechmodels.PlanarConnector;
 import artisynth.core.mechmodels.RevoluteJoint;
 import artisynth.core.mechmodels.RigidBody;
-import artisynth.core.mechmodels.RigidBodyConnector;
+import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.mechmodels.SphericalJoint;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 import artisynth.core.modelbase.*;
@@ -213,7 +213,7 @@ public class MechModelDemo extends RootModel {
       link2.setMesh (mesh, /* fileName= */null);
       mechMod.addRigidBody (link2);
 
-      RigidBodyConnector joint2 = null;
+      BodyConnector joint2 = null;
 
       // joint 2
       if (useSphericalJoint) {
@@ -260,9 +260,9 @@ public class MechModelDemo extends RootModel {
          joint2 = rjoint;
       }
 
-      // mechMod.addRigidBodyConnector (joint1);
+      // mechMod.addBodyConnector (joint1);
       if (joint2 != null) {
-         mechMod.addRigidBodyConnector (joint2);
+         mechMod.addBodyConnector (joint2);
       }
 
       mechMod.attachAxialSpring (mk0, mk2, spr0);
@@ -285,7 +285,7 @@ public class MechModelDemo extends RootModel {
          contact1.setPlaneSize (20);
          RenderProps.setFaceColor (contact1, new Color (0.5f, 0.5f, 1f));
          RenderProps.setAlpha (contact1, 0.5);
-         mechMod.addRigidBodyConnector (contact1);
+         mechMod.addBodyConnector (contact1);
 
          TCB.R.setIdentity();
          TCB.R.setAxisAngle (0, 0, 1, Math.PI / 2);
@@ -298,7 +298,7 @@ public class MechModelDemo extends RootModel {
          RenderProps.setFaceColor (contact2, new Color (0.5f, 0.5f, 1f));
          RenderProps.setAlpha (contact2, 0.5);
 
-         mechMod.addRigidBodyConnector (contact2);
+         mechMod.addBodyConnector (contact2);
       }
 
       mechMod.setBounds (new Point3d (0, 0, -10), new Point3d (0, 0, 10));

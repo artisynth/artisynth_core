@@ -18,8 +18,8 @@ import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.util.*;
 
-public abstract class RigidBodyConnector extends RenderableComponentBase
-   implements ScalableUnits, TransformableGeometry, RigidBodyConstrainer,
+public abstract class BodyConnector extends RenderableComponentBase
+   implements ScalableUnits, TransformableGeometry, BodyConstrainer,
               Constrainer, HasCoordinateFrame {
               
    protected ConnectableBody myBodyA;
@@ -46,7 +46,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
 
    public static PropertyList myProps =
       new PropertyList (
-         RigidBodyConnector.class, RenderableComponentBase.class);
+         BodyConnector.class, RenderableComponentBase.class);
 
    RigidTransform3d myTCG = new RigidTransform3d();
 
@@ -346,7 +346,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
       return myEnabledP;
    }
 
-   protected RigidBodyConnector() {
+   protected BodyConnector() {
    }
 
    public int numBodies() {
@@ -1524,7 +1524,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
    @Override
    public ModelComponent copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
-      RigidBodyConnector copy = (RigidBodyConnector)super.copy (flags, copyMap);
+      BodyConnector copy = (BodyConnector)super.copy (flags, copyMap);
 
       // the following are all allocated on demand so set them to null to
       // ensure we don't share them with the original :-)
@@ -1707,7 +1707,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
             isFree = false;
          }
          if (body.getConnectors() != null) {
-            for (RigidBodyConnector c : body.getConnectors()) {
+            for (BodyConnector c : body.getConnectors()) {
                ConnectableBody otherBody = c.getOtherBody (body);
                if (!recursivelyFindFreeAttachedBodies (
                       otherBody, list, rejectSelected)) {
@@ -1733,7 +1733,7 @@ public abstract class RigidBodyConnector extends RenderableComponentBase
          allFree = false;
       }
       if (body.getConnectors() != null) {
-         for (RigidBodyConnector c : body.getConnectors()) {
+         for (BodyConnector c : body.getConnectors()) {
             ConnectableBody otherBody = c.getOtherBody (body);
             list.clear();
             if (recursivelyFindFreeAttachedBodies (

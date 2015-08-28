@@ -89,7 +89,7 @@ public class SegmentedPlaneDemo extends RootModel {
       segPlanes.setRenderProps (props);
 
       // mechMod.addRigidBody (box);
-      mechMod.addRigidBodyConnector (segPlanes);
+      mechMod.addBodyConnector (segPlanes);
 
       addModel (mechMod);
       addControlPanel (mechMod);

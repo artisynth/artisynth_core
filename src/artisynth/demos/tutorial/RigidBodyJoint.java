@@ -74,7 +74,7 @@ public class RigidBodyJoint extends RootModel {
       // add components to the mech model
       mech.addRigidBody (bodyB);
       mech.addRigidBody (bodyA);
-      mech.addRigidBodyConnector (joint);
+      mech.addBodyConnector (joint);
 
       joint.setTheta (35);  // set joint position
 

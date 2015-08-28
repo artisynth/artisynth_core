@@ -74,12 +74,12 @@ import artisynth.core.util.ArtisynthIO;
  * Describes a surface mesh that is "skinned" onto an FEM, such that its vertex
  * positions are determined by weighted combinations of FEM node positions.
  **/
-public class FemMesh extends FemMeshBase
+public class FemMeshComp extends FemMeshBase
    implements CollidableBody, PointAttachable {
 
    protected static double EPS = 1e-10;
    protected ArrayList<PointAttachment> myVertexAttachments;
-   // myNodeVertexMap maps each node used by this FemMesh onto either
+   // myNodeVertexMap maps each node used by this FemMeshComp onto either
    // a single vertex which it completely controls, or the dummy variable 
    // NO_SINGLE_VERTEX if there is no such vertex.
    protected HashMap<FemNode3d,Vertex3d> myNodeVertexMap;
@@ -95,7 +95,7 @@ public class FemMesh extends FemMeshBase
    private float[] colorArray = new float[3];
 
    public static PropertyList myProps =
-      new PropertyList (FemMesh.class, FemMeshBase.class);
+      new PropertyList (FemMeshComp.class, FemMeshBase.class);
 
    static {
       myProps.add (
@@ -107,18 +107,18 @@ public class FemMesh extends FemMeshBase
       return myProps;
    }
 
-   public FemMesh () {
+   public FemMeshComp () {
       super();
       myVertexAttachments = new ArrayList<PointAttachment>();
    }
 
-   public FemMesh (FemModel3d fem) {
+   public FemMeshComp (FemModel3d fem) {
       this();
       myFem = fem;
       isSurfaceMesh = false;
    }
 
-   public FemMesh(FemModel3d fem, String name) {
+   public FemMeshComp(FemModel3d fem, String name) {
       this(fem);
       setName(name);
    }
@@ -452,7 +452,7 @@ public class FemMesh extends FemMeshBase
       }
    }
 
-   public static FemMesh createEmbedded(FemMesh surf, MeshBase mesh) {
+   public static FemMeshComp createEmbedded(FemMeshComp surf, MeshBase mesh) {
       if (surf == null || surf.myFem == null) {
          throw new IllegalArgumentException("Cannot determine proper FEM");
       }
@@ -495,8 +495,8 @@ public class FemMesh extends FemMeshBase
       
    }
 
-   public static FemMesh createEmbedded (
-      FemMesh surf, MeshBase mesh, FemModel3d fem) {
+   public static FemMeshComp createEmbedded (
+      FemMeshComp surf, MeshBase mesh, FemModel3d fem) {
 
       double reduceTol = 1e-8;
 
@@ -504,7 +504,7 @@ public class FemMesh extends FemMeshBase
       VectorNd weights = new VectorNd();
 
       if (surf == null) {
-         surf = new FemMesh(fem);
+         surf = new FemMeshComp(fem);
       }
       surf.setMesh (mesh);
       ArrayList<Vertex3d> verts = mesh.getVertices();
@@ -596,19 +596,19 @@ public class FemMesh extends FemMeshBase
       return surf;
    }
 
-   public static FemMesh createEmbedded (FemModel3d fem, MeshBase mesh) {
-      return createEmbedded (new FemMesh(fem), mesh);
+   public static FemMeshComp createEmbedded (FemModel3d fem, MeshBase mesh) {
+      return createEmbedded (new FemMeshComp(fem), mesh);
    }
 
-   public static FemMesh createSurface (
+   public static FemMeshComp createSurface (
       String name, FemModel3d fem, Collection<FemElement3d> elems) {
-      FemMesh femMesh = new FemMesh(fem);
+      FemMeshComp femMesh = new FemMeshComp(fem);
       femMesh.setName (name);
       femMesh.createSurface (elems);
       return femMesh; 
    }
    
-   public static FemMesh createSurface (String name, FemModel3d fem) {
+   public static FemMeshComp createSurface (String name, FemModel3d fem) {
       return createSurface (name, fem, fem.getElements());
    }
    
@@ -708,8 +708,8 @@ public class FemMesh extends FemMeshBase
       finalizeSurfaceBuild();
    }
 
-   //   public static FemMesh createSurface (FemModel3d fem, int resolution) {
-   //      return createSurface (new FemMesh (fem), resolution);
+   //   public static FemMeshComp createSurface (FemModel3d fem, int resolution) {
+   //      return createSurface (new FemMeshComp (fem), resolution);
    //   }
 
    // private static boolean containsNode(FemNode3d n, FemNode[] nodes) {
@@ -981,7 +981,7 @@ public class FemMesh extends FemMeshBase
    }
 
    /**
-    * Writes the mesh for this FemMesh out to a named file,
+    * Writes the mesh for this FemMeshComp out to a named file,
     * using the format described for
     * {@link #writeMesh(PrintWriter)}.
     *
@@ -1007,7 +1007,7 @@ public class FemMesh extends FemMeshBase
    }
 
    /**
-    * Writes the mesh for this FemMesh out to a PrintWriter, using a format
+    * Writes the mesh for this FemMeshComp out to a PrintWriter, using a format
     * of the form
     * <pre>
     * [ v 3 1.0
@@ -1392,8 +1392,8 @@ public class FemMesh extends FemMeshBase
    }
 
    @Override
-   public FemMesh copy(int flags, Map<ModelComponent,ModelComponent> copyMap) {
-      FemMesh fm = (FemMesh)super.copy(flags, copyMap);
+   public FemMeshComp copy(int flags, Map<ModelComponent,ModelComponent> copyMap) {
+      FemMeshComp fm = (FemMeshComp)super.copy(flags, copyMap);
 
       HashMap<Vertex3d,Vertex3d> vertMap = null;
       if (getMesh() != fm.getMesh()) {

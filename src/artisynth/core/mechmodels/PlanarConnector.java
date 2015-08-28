@@ -24,7 +24,7 @@ import javax.media.opengl.*;
 /**
  * Auxiliary class used to solve constrained rigid body problems.
  */
-public class PlanarConnector extends RigidBodyConnector 
+public class PlanarConnector extends BodyConnector 
    implements CopyableComponent {
    private double myPlaneSize;
    private static final double defaultPlaneSize = 1;
@@ -33,7 +33,7 @@ public class PlanarConnector extends RigidBodyConnector
    private float[] myRenderCoords = new float[3];
 
    public static PropertyList myProps =
-      new PropertyList (PlanarConnector.class, RigidBodyConnector.class);
+      new PropertyList (PlanarConnector.class, BodyConnector.class);
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createFaceProps (null);

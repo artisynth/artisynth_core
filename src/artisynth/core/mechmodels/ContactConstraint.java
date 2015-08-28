@@ -244,10 +244,10 @@ public class ContactConstraint {
          myMasters.add (
             new ContactMaster ((RigidBody)collidable, w, cpnt));
       }
-      else if (collidable instanceof RigidMesh) {
+      else if (collidable instanceof RigidMeshComp) {
          myMasters.add (
             new ContactMaster (
-               ((RigidMesh)collidable).getRigidBody(), w, cpnt));        
+               ((RigidMeshComp)collidable).getRigidBody(), w, cpnt));        
       }
       else {
          Vertex3d[] vtxs = cpnt.getVertices();

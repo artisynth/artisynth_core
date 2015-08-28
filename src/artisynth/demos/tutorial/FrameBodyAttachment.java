@@ -65,7 +65,7 @@ public class FrameBodyAttachment extends RootModel {
       // add components to the mech model
       mech.addRigidBody (bodyB);
       mech.addRigidBody (bodyA);
-      mech.addRigidBodyConnector (joint);
+      mech.addBodyConnector (joint);
 
       // set render properties for components
       RenderProps.setLineRadius (joint, 0.2);

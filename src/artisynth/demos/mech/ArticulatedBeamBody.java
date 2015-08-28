@@ -155,8 +155,8 @@ public class ArticulatedBeamBody extends RootModel {
       // mechMod.addFrameMarker (
       //    mk3, link1, new Point3d (-lenx1 / 2, 0, lenz1 / 2));
 
-      RigidBodyConnector joint1 = null;
-      RigidBodyConnector joint2 = null;
+      BodyConnector joint1 = null;
+      BodyConnector joint2 = null;
 
       // joint 1
       if (usePlanarJoint) {
@@ -290,10 +290,10 @@ public class ArticulatedBeamBody extends RootModel {
       // }
       
       if (joint1 != null) {
-         mechMod.addRigidBodyConnector (joint1);
+         mechMod.addBodyConnector (joint1);
       }
       if (useLink2 && joint2 != null) {
-         mechMod.addRigidBodyConnector (joint2);
+         mechMod.addBodyConnector (joint2);
       }
       // mechMod.attachAxialSpring (mk0, mk2, spr0);
       // mechMod.attachAxialSpring (mk1, mk3, spr1);
@@ -315,7 +315,7 @@ public class ArticulatedBeamBody extends RootModel {
          contact1.setPlaneSize (20);
          RenderProps.setFaceColor (contact1, new Color (0.5f, 0.5f, 1f));
          RenderProps.setAlpha (contact1, 0.5);
-         mechMod.addRigidBodyConnector (contact1);
+         mechMod.addBodyConnector (contact1);
 
          TCB.R.setIdentity();
          TCB.R.setAxisAngle (0, 0, 1, Math.PI / 2);
@@ -328,7 +328,7 @@ public class ArticulatedBeamBody extends RootModel {
          RenderProps.setFaceColor (contact2, new Color (0.5f, 0.5f, 1f));
          RenderProps.setAlpha (contact2, 0.5);
 
-         mechMod.addRigidBodyConnector (contact2);
+         mechMod.addBodyConnector (contact2);
       }
 
       //mechMod.setBounds (new Point3d (0, 0, -10), new Point3d (0, 0, 10));

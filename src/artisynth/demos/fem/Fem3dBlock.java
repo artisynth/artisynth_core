@@ -230,7 +230,7 @@ public class Fem3dBlock extends RootModel {
       TCW.mul (X, TCA);
       RevoluteJoint joint = new RevoluteJoint (leftBody, TCA, TCW);
       RenderProps.setLineRadius (joint, 0.01);
-      mechMod.addRigidBodyConnector (joint);
+      mechMod.addBodyConnector (joint);
 
       // right box
       RigidBody rightBody = new RigidBody ("rightBody");

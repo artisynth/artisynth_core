@@ -1402,7 +1402,7 @@ public class ComponentUtils {
       ModelComponent c, List<C> refs, boolean undo, Deque<Object> undoInfo) {
 
       if (undo) {
-         Object obj = undoInfo.getFirst();
+         Object obj = undoInfo.removeFirst();
          if (obj != ModelComponentBase.NULL_OBJ) {
             ((ListRemove<C>)obj).undo();
          }

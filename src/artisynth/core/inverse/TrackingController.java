@@ -127,13 +127,13 @@ public class TrackingController extends ControllerBase
    protected ReferenceList sourceFrames;
    
    public static boolean isDebugTimestep(double t0, double t1) {
-      double EPS = 1e-10;
-      return (t0 < EPS ||
-      (t1 <= 2+EPS && t1 >=2-EPS) ||
-      (t1 <= 4+EPS && t1 >4-EPS) ||
-      (t1 <= 6+EPS && t1 >6-EPS)
-      );
-//      return false;
+//      double EPS = 1e-10;
+//     return (t0 < EPS ||
+//      (t1 <= 2+EPS && t1 >=2-EPS) ||
+//      (t1 <= 4+EPS && t1 >4-EPS) ||
+//      (t1 <= 6+EPS && t1 >6-EPS)
+//      );
+      return false;
    }
 
    protected MuscleExciter myExciters;  // list of inputs

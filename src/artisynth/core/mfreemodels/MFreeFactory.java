@@ -283,6 +283,7 @@ public class MFreeFactory {
       PolygonalMesh surface =
          MeshFactory.createQuadBox(
             size[0], size[1], size[2], Point3d.ZERO, res[0]-1, res[1]-1, res[2]-1);
+      surface.triangulate();
 
       // offset ipnts from border
       dx = size[0] / ipntRes[0];

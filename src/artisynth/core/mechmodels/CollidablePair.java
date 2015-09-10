@@ -33,6 +33,10 @@ public class CollidablePair {
    public Collidable getB() {
       return myCompB;
    }
+   
+   public boolean isExplicit() {
+      return !isGeneric(myCompA) && !isGeneric(myCompB);
+   }
            
    public boolean equals (Object obj) {
       if (!(obj instanceof CollidablePair)){

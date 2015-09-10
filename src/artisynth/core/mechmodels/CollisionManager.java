@@ -877,8 +877,13 @@ public class CollisionManager extends RenderableCompositeBase
 
       Collidable a = pair.myCompA;
       Collidable b = pair.myCompB;
+      
       if (isCollidableBody (a) && isCollidableBody (b)) {
-         if (nearestCommonCollidableAncestor (a, b) != null) {
+         // if explicit, set behaviour, otherwise check defaults
+         if (pair.isExplicit()) {
+            setBehaviorMap(pair, behavior);
+         }
+         else if (nearestCommonCollidableAncestor (a, b) != null) {
             // if a and b have a common ancester, INTERNAL collidability
             // must be enabled
             if (isInternallyCollidable (a) && isInternallyCollidable (b)) {

@@ -13,6 +13,14 @@ import java.util.LinkedList;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 
+import artisynth.core.driver.Main;
+import artisynth.core.gui.Displayable;
+import artisynth.core.gui.selectionManager.SelectionEvent;
+import artisynth.core.gui.selectionManager.SelectionListener;
+import artisynth.core.gui.selectionManager.SelectionManager;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.workspace.RootModel;
 import maspack.properties.CompositeProperty;
 import maspack.properties.HasProperties;
 import maspack.properties.NumericConverter;
@@ -30,14 +38,6 @@ import maspack.widgets.PropertyWidget;
 import maspack.widgets.StringSelector;
 import maspack.widgets.ValueChangeEvent;
 import maspack.widgets.ValueChangeListener;
-import artisynth.core.driver.Main;
-import artisynth.core.gui.Displayable;
-import artisynth.core.gui.selectionManager.SelectionEvent;
-import artisynth.core.gui.selectionManager.SelectionListener;
-import artisynth.core.gui.selectionManager.SelectionManager;
-import artisynth.core.modelbase.ComponentUtils;
-import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.workspace.RootModel;
 
 /**
  * Base class for ComponentField, which selects component paths, and
@@ -124,6 +124,95 @@ SelectionListener {
       if (updateValue (obj)) {
          updateDisplay();
       }
+   }
+   
+   @Override
+   public String getText() {
+      String textFieldText = myTextField.getText();
+      String property = null;
+      if (myPropertySelector != null) {
+         property = (String)(myPropertySelector.getValue());
+         if (property != null) {
+            property = property.trim();
+         }
+      }
+      StringBuilder out = new StringBuilder(textFieldText);
+      if (!textFieldText.contains(":") && property != null && !"".equals(property)) {
+         out.append(':');
+         out.append(property);
+      }
+      return out.toString();
+   }
+   
+   /**
+    * Returns true if two control values are equal, allowing for values to be
+    * null and void, as well as various vector, matrix, and object values. This
+    * method is used by updateInternalValue method of the specific control. Care
+    * should be taken when using this method to verify that its equality checks
+    * are appropriate.
+    */
+   protected boolean valuesEqual (Object obj1, Object obj2) {
+      // return super.valuesEqual(obj1, obj2);
+      if (obj1 == null && obj2 == null) {
+         return true;
+      } else if (obj1 == null || obj2 == null) {
+         return false;
+      } else if (obj1.getClass() != obj2.getClass()) {
+         return false;
+      } else  {
+         return obj1.equals(obj2);
+      }
+   }
+   
+   /**
+    * Override to account for property selector
+    */
+   protected void updateDisplay (boolean forceUpdate) {
+      String [] newText = null;
+      
+      Object value = getInternalValue();
+      BooleanHolder corrected = new BooleanHolder();
+      if (value == Property.VoidValue) {
+         newText = new String[]{"",""};
+      }
+      else {
+
+         Object textValue = textToValue (getText(), corrected, null);
+         if (forceUpdate ||
+             textValue == Property.IllegalValue ||
+             corrected.value ||
+             !valuesEqual (textValue, value)) {
+            
+            // update
+            newText = valueToTextArray(value);
+            
+         }
+      }
+      if (newText != null) {
+         myLastText = newText[0];
+         myTextField.setText (newText[0]);
+         if (myPropertySelector != null) {
+            myLastPropName = newText[1];
+            if ("".equals(newText[1])) {
+                myPropertySelector.setValue(nullString);
+            } else {
+               myPropertySelector.setValue(newText[1]);
+            }
+         } else {
+            if (newText[1] != null && !"".equals(newText[1])) {
+               myLastText = newText[0] + ":" + newText[1];
+               myTextField.setText(myLastText);
+            }
+         }
+      }
+      else {
+         myLastText = myTextField.getText();
+         if (myPropertySelector != null) {
+            String propValue = (String)(myPropertySelector.getValue());
+            myLastPropName = propValue;
+         }
+      }
+      setReverseTextBackground (false);
    }
 
    protected void addParentButton() {
@@ -212,6 +301,7 @@ SelectionListener {
 
    protected Object textToValue (
       String text, BooleanHolder corrected, StringHolder errMsg) {
+      
       corrected.value = false;
       RootModel root = myMain.getRootModel();
       Object compOrProp = null;
@@ -253,6 +343,43 @@ SelectionListener {
       }
       return validValue (compOrProp, errMsg);
    }
+   
+   protected String[] valueToTextArray(Object value) {
+      ModelComponent comp = getComponent (value);
+      RootModel root = myMain.getRootModel();
+      
+      String compStr = "/";
+      String propStr = "";
+      
+      if (root == null || comp == null) {
+         return new String[]{"",""};
+      }
+      if (value instanceof ModelComponent) {
+         compStr = ComponentUtils.getPathName (root, comp);
+      }
+      else if (value instanceof Property) {
+         Property prop = (Property)value;
+         boolean excludeLeaf =
+            (myPropertySelector != null &&
+             !(prop.get() instanceof CompositeProperty));
+         String path = ComponentUtils.getPropertyPathName (prop, root, excludeLeaf);
+         
+         int idx = path.indexOf(':');
+         // default to root
+         propStr = path;
+         if (idx >= 0) {
+            compStr = path.substring(0, idx);
+            if (idx < path.length()-1) {
+               propStr = path.substring(idx+1);
+            }
+         }
+      }
+      else {
+         throw new InternalErrorException ("Unknown value type: "
+         + value.getClass());
+      }
+      return new String[]{compStr, propStr};
+   }
 
    protected String valueToText (Object value) {
       ModelComponent comp = getComponent (value);
@@ -268,7 +395,11 @@ SelectionListener {
          boolean excludeLeaf =
             (myPropertySelector != null &&
              !(prop.get() instanceof CompositeProperty));
-         return ComponentUtils.getPropertyPathName (prop, root, excludeLeaf);
+         String path = ComponentUtils.getPropertyPathName (prop, root, excludeLeaf);
+         if (!path.contains(":")) {
+            path = "/:" + path;  // root component + property
+         }
+         return path;
       }
       else {
          throw new InternalErrorException ("Unknown value type: "

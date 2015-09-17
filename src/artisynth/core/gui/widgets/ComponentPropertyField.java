@@ -12,6 +12,7 @@ import java.util.LinkedList;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JOptionPane;
 
 import artisynth.core.driver.Main;
 import artisynth.core.gui.Displayable;
@@ -47,9 +48,12 @@ import maspack.widgets.ValueChangeListener;
  * class, because of it's tight coupling with the component text field.
  */
 public abstract class ComponentPropertyField extends LabeledTextField implements
-SelectionListener {
+   SelectionListener {
+   
    private static final long serialVersionUID = 1L;
+   
    Object myValue = Property.VoidValue;
+   
    SelectionManager mySelectionManager;
    boolean mySelectionEnabled = true;
    boolean mySelectionListenerInstalled = false;
@@ -66,6 +70,8 @@ SelectionListener {
    protected boolean myNumericOnly = false;
    protected boolean myWidgetableOnly = true;
 
+   protected boolean myPropertyMask = false;
+   
    static ImageIcon myParentButtonIcon =
       GuiUtils.loadIcon (Displayable.class, "icon/upArrow.png");
 
@@ -79,11 +85,13 @@ SelectionListener {
     */
    public ComponentPropertyField (String labelText, int ncols, Main main) {
       super (labelText, ncols);
+      
       myMain = main;
       myAlwaysParseText = true;
       mySelectionManager = main.getSelectionManager();
       mySelectionManager.addSelectionListener (this);
       mySelectionListenerInstalled = true;
+      
       setStretchable (true);
       setGUIVoidEnabled (true);
       setVoidValueEnabled (true);
@@ -144,6 +152,40 @@ SelectionListener {
       return out.toString();
    }
    
+   protected void setValueFromDisplay() {
+      if (myAlwaysParseText || !myLastText.equals (myTextField.getText())
+         || (myPropertySelector != null 
+           && !((String)(myPropertySelector.getValue())).equals(myLastPropName))) {
+         
+         StringHolder errMsg = new StringHolder();
+         // we explicitly call fireValueCheckListeners instead of
+         // checkValue since textToValue may itself throw an error
+         // and we want to handle that in the same way
+         BooleanHolder corrected = new BooleanHolder();
+         Object value = textToValue (getText(), corrected, null);
+         if (value != Property.IllegalValue) {
+            value = validateValue (value, errMsg);
+         }
+         if (value == Property.IllegalValue) {
+            focusListenerMasked = true;
+            JOptionPane.showMessageDialog (
+               this, errMsg.value, "Error",
+               JOptionPane.ERROR_MESSAGE);
+            focusListenerMasked = false;
+            myTextField.setText (myLastText);
+            updateDisplay();
+            myLastEntryAccepted = false;
+            return;
+         }
+         updateValue (value);
+         updateDisplay();
+      }
+      else {
+         setReverseTextBackground (false);
+      }
+      myLastEntryAccepted = true;
+   }
+   
    /**
     * Returns true if two control values are equal, allowing for values to be
     * null and void, as well as various vector, matrix, and object values. This
@@ -191,13 +233,17 @@ SelectionListener {
       if (newText != null) {
          myLastText = newText[0];
          myTextField.setText (newText[0]);
-         if (myPropertySelector != null) {
+         // mask property selector
+         
+         if (myPropertiesAllowed) {
+            myPropertyMask = true;
             myLastPropName = newText[1];
             if ("".equals(newText[1])) {
                 myPropertySelector.setValue(nullString);
             } else {
                myPropertySelector.setValue(newText[1]);
             }
+            myPropertyMask = false;
          } else {
             if (newText[1] != null && !"".equals(newText[1])) {
                myLastText = newText[0] + ":" + newText[1];
@@ -280,23 +326,25 @@ SelectionListener {
    }
 
    private void setValueFromPropertySelector() {
-      String propName = (String)myPropertySelector.getValue();
-      HasProperties host = getHost();
-      if (propName.equals (nullString)) {
-         Object value = getValueForHost();
-         System.out.println ("new value");
-         updateValueAndDisplay (value);
-         return;
+      if (!myPropertyMask) {
+         String propName = (String)myPropertySelector.getValue();
+         HasProperties host = getHost();
+         if (propName.equals (nullString)) {
+            Object value = getValueForHost();
+            System.out.println ("new value");
+            updateValueAndDisplay (value);
+            return;
+         }
+         if (host == null) {
+            throw new InternalErrorException ("Current property host is null");
+         }
+         Property prop = host.getProperty (propName);
+         if (prop == null) {
+            throw new InternalErrorException (
+               "Current property host does not contain property " + propName);
+         }
+         updateValueAndDisplay (prop);
       }
-      if (host == null) {
-         throw new InternalErrorException ("Current property host is null");
-      }
-      Property prop = host.getProperty (propName);
-      if (prop == null) {
-         throw new InternalErrorException (
-            "Current property host does not contain property " + propName);
-      }
-      updateValueAndDisplay (prop);
    }
 
    protected Object textToValue (
@@ -362,7 +410,7 @@ SelectionListener {
          boolean excludeLeaf =
             (myPropertySelector != null &&
              !(prop.get() instanceof CompositeProperty));
-         String path = ComponentUtils.getPropertyPathName (prop, root, excludeLeaf);
+         String path = ComponentUtils.getPropertyPathName (prop, root, false);
          
          int idx = path.indexOf(':');
          // default to root
@@ -395,7 +443,7 @@ SelectionListener {
          boolean excludeLeaf =
             (myPropertySelector != null &&
              !(prop.get() instanceof CompositeProperty));
-         String path = ComponentUtils.getPropertyPathName (prop, root, excludeLeaf);
+         String path = ComponentUtils.getPropertyPathName (prop, root, false);
          if (!path.contains(":")) {
             path = "/:" + path;  // root component + property
          }

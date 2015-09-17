@@ -181,11 +181,11 @@ public abstract class LabeledTextField extends LabeledControl {
       return myTextField.getText();
    }
 
-   private boolean focusListenerMasked = false;
+   protected boolean focusListenerMasked = false;
 
-   private boolean myLastEntryAccepted = false;
+   protected boolean myLastEntryAccepted = false;
 
-   private void setValueFromDisplay() {
+   protected void setValueFromDisplay() {
       if (myAlwaysParseText || !myLastText.equals (myTextField.getText())) {
          StringHolder errMsg = new StringHolder();
          // we explicitly call fireValueCheckListeners instead of

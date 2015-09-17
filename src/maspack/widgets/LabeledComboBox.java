@@ -122,6 +122,22 @@ public abstract class LabeledComboBox extends LabeledControl {
          }
       }
    }
+   
+   public String[] getComboLabels() {
+      String[] out = new String[myNameValueList.size()];
+      for (int i=0; i<myNameValueList.size(); i++) {
+         out[i] = myNameValueList.get(i).name;
+      }
+      return out;
+   }
+   
+   public Object[] getComboValues() {
+      Object[] out = new Object[myNameValueList.size()];
+      for (int i=0; i<myNameValueList.size(); i++) {
+         out[i] = myNameValueList.get(i).value;
+      }
+      return out;
+   }
 
    private void setListHasVoid(boolean hasVoid) {
       if (hasVoid != myListHasVoid) {

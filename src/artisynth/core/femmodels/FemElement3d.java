@@ -839,7 +839,6 @@ public abstract class FemElement3d extends FemElement
          
       }
       //      System.out.println ("coords: " + coords.toString ("%4.3f"));
-
       return false;
    }
    

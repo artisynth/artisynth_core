@@ -329,7 +329,7 @@ public class PointFem3dAttachment extends PointAttachment {
          double[] coords = myCoords.getBuffer();
          vel.setZero();
          for (int i = 0; i < myNodes.length; i++) {
-            vel.scaledAdd (coords[i], myNodes[i].getPosition(), vel);
+            vel.scaledAdd (coords[i], myNodes[i].getVelocity(), vel);
          }
          if (dvel != null) {
            computeVelDerivative (dvel); 

@@ -19,13 +19,13 @@ public interface Wrappable extends PointAttachable {
     * where <code>lam0</code> is a parameter between 0 and 1.
     * 
     * @param pt returns the tangent point
-    * @param p0 first point of the line 
+    * @param pa first point of the line 
     * @param p1 second point of the line
     * @param lam0 parameter defining point p0 as defined above
     * @param sideNrm
     */
    public void surfaceTangent (
-      Point3d pt, Point3d p0, Point3d p1, double lam0, Vector3d sideNrm);
+      Point3d pt, Point3d pa, Point3d p1, double lam0, Vector3d sideNrm);
 
    /**
     * Computes the penetration distance of a point <code>p0</code> into this

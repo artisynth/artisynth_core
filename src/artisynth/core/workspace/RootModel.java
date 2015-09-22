@@ -1231,9 +1231,9 @@ public class RootModel extends RenderableModelBase
       }
       // if called in constructor, myControlPanels might still be null ...
       if (myControlPanels != null) {
-         for (ControlPanel panel : myControlPanels) {
-            panel.removeStalePropertyWidgets();
-         }
+//         for (ControlPanel panel : myControlPanels) {
+//            panel.removeStalePropertyWidgets();
+//         }
          fireComponentChangeListeners (e);
       }
    }

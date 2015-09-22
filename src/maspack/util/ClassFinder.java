@@ -95,7 +95,11 @@ public class ClassFinder {
          } catch (URISyntaxException e) {
             continue;
          }
-         dirs.add(new File(dirName));
+         // dirName ending in "/./" corresponds to a "." in the CLASSPATH,
+         // which we want to ignore.
+         if (!dirName.endsWith ("/./")) {
+            dirs.add(new File(dirName));
+         }
       }
 
       ArrayList<Class<?>> classList = new ArrayList<Class<?>>();
@@ -158,14 +162,12 @@ public class ClassFinder {
                   }
 
                } catch (Exception e) {
-                  //e.printStackTrace(); 
                   System.out.println(
-                     "Class  " + className + "' could not be initialized: " +
+                     "Class " + className + "' could not be initialized: " +
                      e.toString() + ", " + e.getMessage());
                } catch (Error err) {
-                  //err.printStackTrace(); 
                   System.out.println(
-                     "Class  " + className + "' could not be initialized: " +
+                     "Error: Class " + className + "' could not be initialized: " +
                      err.toString() + ", " + err.getMessage());
                }
             }

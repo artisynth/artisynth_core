@@ -9,10 +9,11 @@ import maspack.matrix.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
-public class RigidTorus extends RigidBody {
+public class RigidTorus extends RigidBody implements Wrappable {
    
    double myOuterRadius = 1.0;
    double myInnerRadius = 0.25;
+   private static double MACH_PREC = 1.0e-16;
 
    public RigidTorus() {
       super (null);
@@ -86,39 +87,279 @@ public class RigidTorus extends RigidBody {
       return xprod >= 0 ? 1 : -1;
    }
 
-   public void surfaceTangent (
-      Point3d pr, Point3d p0, Point3d p1, double lam, Vector3d sideNrm) {
+   /**
+    * Computes <code>f(lam) = (ps-pa)^T n<code> for a given value of
+    * <code>lam</code>. All quantities are assumed to be in local coordinates.
+    * The parameter <code>lam</code> determines a point <code>p</code>
+    * along the line segment according to
+    * <pre>
+    * p = pa + lam del
+    * </pre>
+    *
+    * @param n returns the surface normal at the nearest surface point
+    * @param ps if non-<code>null</code>, returns the nearest surface point
+    * @param pa beginning point for the line segment
+    * @param del displacement vector for the line segment
+    * @param lam parameter determining the point along the line segment
+    * @return f value corresponding to <code>lam</code>
+    */
+   private double computeF (
+      Vector3d n, Point3d ps, Point3d pa, Vector3d del, double lam) {
 
-      pr.setZero();
+      Point3d p = new Point3d();
+      p.scaledAdd (lam, del, pa);
+      double d = penetrationDistanceLoc (n, p);
+      p.scaledAdd (-d, n);
+      if (ps != null) {
+         ps.set (p);
+      }
+      p.sub (pa);
+      return p.dot (n);
+   }
+
+   /**
+    * Computes the derivative <code>df(lam)</code> for <code>f(lam) = (ps-pa)^T
+    * n<code> for a given value of <code>lam</code>.. All quantities are
+    * assumed to be in local coordinates. The parameter <code>lam</code>
+    * determines a point <code>p</code> along the line segment according to
+    * <pre>
+    * p = pa + lam del
+    * </pre>
+    * 
+    * @param n surface normal at the nearest surface point
+    * @param ps nearest surface point
+    * @param pa beginning point for the line segment
+    * @param del displacement vector for the line segment
+    * @param lam parameter determining the point along the line segment
+    * @return derivative df corresponding to <code>lam</code>
+    */
+   private double computeDf (
+      Vector3d n, Point3d ps, Point3d pa, Vector3d del, double lam) {
+
+      // 
+      // df(lam) = dps^T n + (ps-pa)^T dn
+      //
+      // where dps and dn are the derivatives of ps and n with respect to lam.
+      //
+      // In turn, ps = pc + r n, where pc is the point on the torus circle
+      // corresponding to p, and r is the inner radius, and so
+      //
+      // dps = dpc + r dn
+      //
+      // To determine dpc and dn, we note that
+      //
+      // ps = [ R p_x / c   R p_y / c    0 ]
+      // 
+      // n = q / ||q||
+      //
+      // where R is the outer radius, c = sqrt(p_x^2 + p_y^2), and q = p - pc,
+      // and then apply the general relationship
+      //
+      // d (q/||q||) = 
+      //
+      //             [ (q_y^2 + q_z^2) dq_x - q_x q_y dq_y - q_x q_z dq_z ]
+      //        1    [                                                    ]
+      //     ------- [ (q_x^2 + q_z^2) dq_y - q_y q_x dq_x - q_y q_z dq_z ]
+      //     ||q||^3 [                                                    ]
+      //             [ (q_x^2 + q_y^2) dq_z - q_z q_x dq_x - q_z q_y dq_y ]
+      //
+      // The above gives a formula for dn directly, while for dpc it yields
+      //
+      //               [ p_y^2 dp_x - p_x p_y dp_y ]
+      //          R    [                           ]
+      // dpx = ------- [ p_x^2 dp_y - p_y p_x dp_x ]
+      //         c^3   [                           ]
+      //               [            0              ]
+      //
+      // where, by definition, dp = del.
+      //
+      double R = myOuterRadius;
+      double r = myInnerRadius;
+      Point3d p = new Point3d();
+      p.scaledAdd (lam, del, pa);
+      double c2 = p.x*p.x + p.y*p.y;
+      double c = Math.sqrt (c2);
+      double c3 = c*c2;
+      Vector3d dpc = new Vector3d();
+      dpc.x = R/c3*(p.y*p.y*del.x - p.x*p.y*del.y);
+      dpc.y = R/c3*(p.x*p.x*del.y - p.x*p.y*del.x);
+      Vector3d dq = new Vector3d(del);
+      dq.sub (dpc);
+      Vector3d q = new Vector3d(p);
+      q.x -= myOuterRadius*p.x/c;
+      q.y -= myOuterRadius*p.y/c;
+      Vector3d dn = new Vector3d();
+      double qmag2 = q.x*q.x + q.y*q.y + q.z*q.z;
+      double qmag3 = qmag2*Math.sqrt (qmag2);
+      dn.x = ((q.y*q.y+q.z*q.z)*dq.x - q.x*q.y*dq.y - q.x*q.z*dq.z)/qmag3;
+      dn.y = ((q.x*q.x+q.z*q.z)*dq.y - q.y*q.x*dq.x - q.y*q.z*dq.z)/qmag3;
+      dn.z = ((q.x*q.x+q.y*q.y)*dq.z - q.z*q.x*dq.x - q.z*q.y*dq.y)/qmag3;
+      p.sub (ps, pa);
+      return dpc.dot(n) + r*dn.dot(n) + dn.dot(p);
+   }
+
+   public void surfaceTangent (
+      Point3d pr, Point3d pa, Point3d p1, double lam0, Vector3d sideNrm) {
+
+      // Surface tangent calculation works as follows. For a given point p on
+      // the line defined by pa-p1, let
+      //
+      // pc = corresponding point on the circle running through the torus
+      // q = p - pc = vector from pc to p
+      // n = q/||q|| = normal vector from p to the surface
+      // ps = nearest point on torus surface
+      //
+      // The tangent point will be p such that (ps-pa)^T n = 0
+      //
+      // We can then set this up as a root finding problem in lam, such that we
+      // find lam that gives us a p for which
+      //
+      // f(lam) = (ps-pa)^T n = 0
+      //
+      // We Newton's method combined with bisection for safety, starting the
+      // search in the interval [lam0, 1], and expanding this interval if
+      // necessary to bracket the root.
+      Vector3d nrm = new Vector3d();
+
+      // start by testing pa to see if it is inside the torus. If it is, just
+      // return the projection to the surface.
+      double d = penetrationDistance (nrm, pa);
+      if (d < 0) {
+         pr.scaledAdd (-d, nrm, pa);
+         return;
+      }
+      // convert pa and p1 to local coordinates
+      Point3d paLoc = new Point3d(pa);
+      Point3d p1Loc = new Point3d(p1);
+      paLoc.inverseTransform (getPose());
+      p1Loc.inverseTransform (getPose());
+      Vector3d del = new Vector3d();
+      del.sub (p1Loc, paLoc);
+
+      Point3d p = new Point3d();
+
+      // set initial root bracket to [lam0, 1]
+      double hi = 1.0;
+      double lo = lam0;
+      double fhi = computeF (nrm, null, paLoc, del, hi);
+      double flo = computeF (nrm, null, paLoc, del, lo);
+      // if f(lam) == 0 is not bracketed, increase the bracket if necessary
+      if (fhi*flo > 0) {
+         double slope = (fhi-flo)/(hi-lo);
+         if (Math.abs(fhi) > Math.abs(flo)) {
+            lo -= 2*flo/slope;
+            flo = computeF (nrm, null, paLoc, del, lo);
+         }
+         else {
+            hi -= 2*fhi/slope;
+            fhi = computeF (nrm, null, paLoc, del, hi);
+         }
+      }
+      double lam;
+      // compute tolerance for finding the root
+      double ftol = 100*MACH_PREC*del.norm();
+      Point3d psLoc = new Point3d();
+      if (fhi*flo < -ftol) {
+         // find root within interval. Start looking with lam at the center
+         lam = (hi+lo)/2;
+
+         int iter;
+         int maxIter = 50;
+         double f = 0;
+         for (iter=0; iter<maxIter; iter++) {
+            f = computeF (nrm, psLoc, paLoc, del, lam);
+
+            if (Math.abs(f) < ftol) {
+               // f is close enough to zero, we are done
+               break;
+            }
+            if((flo<0 && f>0) || (flo>0 && f<0)){
+               // if sign change between lo and mid, move hi
+               hi=lam;
+               fhi=f;
+            }
+            else {
+               // otherwise sign change between hi and mid, move lo
+               lo=lam;
+               flo=f;
+            }
+            if (lo > hi) {
+               throw new InternalErrorException (
+                  "interval exchanged, lo=" + lo + " hi=" + hi);
+            }  
+            // compute df to apply Newton step
+            double df = computeDf (nrm, psLoc, paLoc, del, lam);
+            if (df != 0) {
+               lam = lam - f/df; // Newton step
+            }
+            if (df == 0 || lam <= lo || lam >= hi) {
+               // if df == 0 or Newton step takes us outside interval,
+               // revert to bisection
+               lam = (hi+lo)/2;
+            }
+            if (hi-lo < 1e-10) {
+               // if interval is tight enough, done
+               break;
+            }
+         }
+      }
+      else if (Math.abs(flo) < ftol) {
+         lam = lo;
+      }
+      else if (Math.abs(fhi) < ftol) {
+         lam = hi;
+      }
+      else {
+         // Shouldn't happen
+         System.out.println ("NOT bracketed " + flo + " " + fhi);
+         pr.setZero();
+         return;
+      }
+      pr.scaledAdd (lam, del, paLoc);
+      d = penetrationDistanceLoc (nrm, pr);
+      pr.scaledAdd (-d, nrm);
+      pr.transform (getPose());
+   }
+
+   private double penetrationDistanceLoc (Vector3d nrm, Point3d p0loc) {
+
+      double r = Math.sqrt (p0loc.x*p0loc.x + p0loc.y*p0loc.y);
+      if (r == 0) {
+         return 0;
+      }
+      Vector3d pc = new Vector3d (p0loc.x, p0loc.y, 0);
+      double mag = pc.norm();
+      if (mag == 0) {
+         // leave normal unchanged
+         return 0;
+      }
+      else {
+         pc.scale (myOuterRadius/mag);
+      }
+      nrm.sub (p0loc, pc);
+      mag = nrm.norm();
+      if (mag == 0) {
+         // leave normal unchanged
+         return -myInnerRadius;
+      }
+      else if (mag >= myInnerRadius) {
+         return 0;
+      }
+      else {
+         nrm.scale (1/mag);
+         return mag-myInnerRadius;
+      }
    }
 
    public double penetrationDistance (Vector3d nrm, Point3d p0) {
       Point3d p0loc = new Point3d(p0);
       p0loc.inverseTransform (getPose());
 
-      double r = Math.sqrt (p0loc.x*p0loc.x + p0loc.y*p0loc.y);
-      if (r == 0) {
-         return 0;
+      double d = penetrationDistanceLoc (nrm, p0loc);
+      if (d != 0 && d != -myInnerRadius) {
+         nrm.transform (getPose());
       }
-      Vector3d pmid = new Vector3d (p0loc.x, p0loc.y, 0);
-      double mag = pmid.norm();
-      if (mag == 0) {
-         // leave normal unchanged
-         return Math.hypot (myOuterRadius, p0loc.z) - myInnerRadius;
-      }
-      else {
-         pmid.scale (myOuterRadius/mag);
-      }
-      nrm.sub (p0loc, pmid);
-      mag = nrm.norm();
-      if (mag == 0) {
-         // leave normal unchanged
-         return myInnerRadius;
-      }
-      else {
-         nrm.scale (1/mag);
-         return mag-myInnerRadius;
-      }
+      return d;
    }
 
 }

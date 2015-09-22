@@ -995,51 +995,6 @@ public class MeshViewer extends GLViewerFrame
             }
             infoList.add (new MeshInfo(meshFile.getName(), mesh));
          }
-         // if (meshFile.getName().endsWith (".obj") && pointMesh.value) {
-         //    WavefrontReader reader = new WavefrontReader (meshFile);
-         //    PointMesh mesh = (PointMesh)reader.readMesh (new PointMesh());
-         //    if (printBounds.value) {
-         //       doPrintBounds (mesh);
-         //    }
-         //    infoList.add (new MeshInfo(meshFile.getName(), mesh));
-         // }
-
-         // else if (meshFile.getName().endsWith (".xyzb")) {
-         //    XyzbReader reader = new XyzbReader (meshFile);
-         //    reader.setSkip (skipCount.value);
-         //    PointMesh mesh = reader.readMesh();
-         //    if (printBounds.value) {
-         //       doPrintBounds (mesh);
-         //    }
-         //    infoList.add (new MeshInfo(meshFile.getName(), mesh));
-         // }
-         // else if (meshFile.getName().endsWith (".ply")) {
-         //    PlyReader reader = new PlyReader (meshFile);
-         //    MeshBase mesh;
-         //    if (pointMesh.value) {
-         //       mesh = new PointMesh();
-         //    }
-         //    else {
-         //       mesh = new PolygonalMesh();
-         //    }
-         //    reader.readMesh (mesh);
-         //    if (printBounds.value) {
-         //       doPrintBounds (mesh);
-         //    }
-         //    infoList.add (new MeshInfo(meshFile.getName(), mesh));
-         // }
-         // else if (meshFile.getName().endsWith (".stl")) {
-         //    StlReader reader = new StlReader (meshFile);
-         //    MeshBase mesh = reader.readMesh();
-         //    if (printBounds.value) {
-         //       doPrintBounds (mesh);
-         //    }
-         //    infoList.add (new MeshInfo(meshFile.getName(), mesh));
-         // }
-         // else {
-         //    System.out.println (
-         //       "Extension for "+meshFile.getName()+" not recognized");
-         // }
       }
       catch (Exception e) {
          System.out.println ("Error creating mesh");

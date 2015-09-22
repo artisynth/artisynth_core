@@ -36,6 +36,7 @@ import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyUtils;
 import maspack.properties.EditingProperty;
+import maspack.properties.GenericPropertyHandle;
 import maspack.util.*;
 import maspack.widgets.ButtonMasks;
 import maspack.widgets.GuiUtils;
@@ -836,6 +837,88 @@ public class ControlPanel extends ModelComponentBase
       }
       else {
          throw new InternalErrorException ("Unknown action: " + actionCmd);
+      }
+   }
+
+
+   @Override
+   public void getSoftReferences (List<ModelComponent> refs) {
+      HashSet<ModelComponent> myrefs = new HashSet<ModelComponent>();
+      for (int i=0; i<myPanel.numWidgets(); i++) {
+         if (myPanel.getWidget(i) instanceof LabeledComponentBase) {
+            LabeledComponentBase widget =
+               (LabeledComponentBase)myPanel.getWidget(i);
+            Property prop = myPanel.getWidgetProperty (widget);
+            if (prop instanceof GenericPropertyHandle) {
+               ModelComponent comp =
+                  ComponentUtils.getPropertyComponent (prop);
+               if (comp != null && !ComponentUtils.isAncestorOf (comp, this)) {
+                  myrefs.add (comp);
+               }
+            }
+            else {
+               // TODO - handle other cases
+            }
+         }
+      }
+      refs.addAll (myrefs);
+   }
+
+   private class WidgetRemoveInfo {
+      Property myProp;
+      LabeledComponentBase myComp;
+      int myIdx;
+
+      WidgetRemoveInfo (Property prop, LabeledComponentBase comp, int idx) {
+         myProp = prop;
+         myComp = comp;
+         myIdx = idx;
+      }
+   }         
+
+   @Override
+   public void updateReferences (boolean undo, Deque<Object> undoInfo) {
+      super.updateReferences (undo, undoInfo);
+
+      boolean changed = false;
+      if (undo) {
+         Object obj;
+         while ((obj=undoInfo.removeFirst()) != NULL_OBJ) {
+            WidgetRemoveInfo info = (WidgetRemoveInfo)obj;
+            myPanel.addPropertyWidget (info.myProp, info.myComp, info.myIdx);
+            changed = true;
+         }
+      }
+      else {
+         // remove soft references which aren't in the hierarchy any more:
+         ArrayList<WidgetRemoveInfo> removeList =
+            new ArrayList<WidgetRemoveInfo>();
+         for (int i=0; i<myPanel.numWidgets(); i++) {
+            if (myPanel.getWidget(i) instanceof LabeledComponentBase) {
+               LabeledComponentBase widget =
+                  (LabeledComponentBase)myPanel.getWidget(i);
+               Property prop = myPanel.getWidgetProperty (widget);
+               if (prop instanceof GenericPropertyHandle) {
+                  ModelComponent comp =
+                     ComponentUtils.getPropertyComponent (prop);
+                  if (comp != null && !ComponentUtils.isConnected (this, comp)) {
+                     removeList.add (new WidgetRemoveInfo (prop, widget, i));
+                     changed = true;
+                  }
+               }
+               else {
+                  // TODO - handle other cases
+               }
+            }
+         }
+         for (WidgetRemoveInfo info : removeList) {
+            myPanel.removeWidget (info.myComp);
+         }
+         undoInfo.addAll (removeList);
+         undoInfo.addLast (NULL_OBJ);
+      }
+      if (changed && myFrame != null) {
+         myFrame.pack();
       }
    }
 

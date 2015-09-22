@@ -2134,7 +2134,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       ModelComponent comp = e.getComponent();
       if (comp == root.getWayPoints() ||
           (e instanceof StructureChangeEvent &&
-           ((StructureChangeEvent)e).stateIsChanged())) {
+           !((StructureChangeEvent)e).stateIsChanged())) {
          return false;
       }
       else {

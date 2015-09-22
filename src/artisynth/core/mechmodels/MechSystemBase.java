@@ -968,8 +968,8 @@ public abstract class MechSystemBase extends RenderableModelBase
 
       if (numDynComps != myNumActive+myNumParametric) {
          throw new IllegalArgumentException (
-            "state pos/vel size is "+numDynComps+
-            ", expecting "+(myNumActive+myNumParametric));
+            "state contains "+numDynComps+" active & parametric components, "+
+            "expecting "+(myNumActive+myNumParametric));
       }
       if (numAuxStateComps != myAuxStateComponents.size()) {
          throw new IllegalArgumentException (

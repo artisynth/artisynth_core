@@ -67,18 +67,18 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
    }
 
    public void surfaceTangent (
-      Point3d pr, Point3d p0, Point3d p1, double lam, Vector3d sideNrm) {
+      Point3d pr, Point3d pa, Point3d p1, double lam0, Vector3d sideNrm) {
 
       double a = myAxisLengths.x;
       double b = myAxisLengths.y;
       double c = myAxisLengths.z;
 
-      Point3d loc0 = new Point3d(p0);
+      Point3d loca = new Point3d(pa);
       Point3d loc1 = new Point3d(p1);
-      loc0.inverseTransform (getPose());
+      loca.inverseTransform (getPose());
       loc1.inverseTransform (getPose());
       QuadraticUtils.ellipsoidSurfaceTangent (
-         pr, loc0, loc1, a, b, c);
+         pr, loca, loc1, a, b, c);
       pr.transform (getPose());
       
    }

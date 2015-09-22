@@ -24,6 +24,7 @@ import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
 import maspack.util.DataBuffer;
 import maspack.util.IndentingPrintWriter;
+import maspack.util.ListRemove;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.materials.AxialMaterial;
@@ -354,7 +355,7 @@ public class MultiPointSpring extends PointSpringBase
          seg.myNext = null;
       }
 
-      void initializeStrand() {
+      void initializeStrand (Point3d[] initialPnts) {
          // initialize the knots in the strand so that they are distributed
          // evenly along the piecewise-linear path specified by the start and
          // end points and any initialization points that may have been 
@@ -363,9 +364,9 @@ public class MultiPointSpring extends PointSpringBase
          // create the piece-wise path
          ArrayList<Point3d> pnts = new ArrayList<Point3d>();
          pnts.add (myPntB.getPosition());
-         if (myInitialPnts != null) {
-            for (int i=0; i<myInitialPnts.length; i++) {
-               pnts.add (myInitialPnts[i]);
+         if (initialPnts != null) {
+            for (int i=0; i<initialPnts.length; i++) {
+               pnts.add (initialPnts[i]);
             }
          }
          pnts.add (myPntA.getPosition());
@@ -909,7 +910,6 @@ public class MultiPointSpring extends PointSpringBase
       myDrawABPointsP = enable;
    }
 
-   protected int maxIters = 50;
    protected double convTol = 1e-6;
 
    public static boolean myIgnoreCoriolisInJacobian = true;
@@ -1023,10 +1023,31 @@ public class MultiPointSpring extends PointSpringBase
 
    protected void updateSegsIfNecessary() {
       if (!mySegsValidP) {
-         myNumBlks = numPoints();
-         mySolveBlkNums = new int[myNumBlks*myNumBlks];
-         mySegsValidP = true;
+         updateSegs(/*updateWrapSegs=*/false);
       }
+   }
+
+   protected void updateSegs (boolean updateWrapSegs) {
+      int nump = numPoints();
+      myNumBlks = nump;
+      mySolveBlkNums = new int[myNumBlks*myNumBlks];
+      mySegsValidP = true;
+      // make sure segment pointers are correct
+      for (int i=0; i<nump-1; i++) {
+         Segment seg = mySegments.get(i);
+         Segment segNext = mySegments.get(i+1);
+         if (seg.myPntA != segNext.myPntB) {
+            // then this segment was changed
+            seg.myPntA = segNext.myPntB;
+            if (updateWrapSegs && seg instanceof WrapSegment) {
+               WrapSegment wrapSeg = (WrapSegment)seg;
+               wrapSeg.initializeStrand (/*initialPnts=*/null);
+               wrapSeg.updateWrapStrand(myMaxWrapIterations);
+               wrapSeg.updateSubSegments();
+            }
+         }
+      }
+      mySegments.get(nump-1).myPntA = null;
    }
 
    protected void updateWrapSegments (int maxIter) {
@@ -1700,45 +1721,55 @@ public class MultiPointSpring extends PointSpringBase
    @Override
    public void updateReferences (boolean undo, Deque<Object> undoInfo) {
       super.updateReferences (undo, undoInfo);
-      // TODO: FINISH
+
       if (undo) {
-//         // undo the update
-//         Object obj;
-//         while ((obj = undoInfo.removeFirst()) != ModelComponentBase.NULL_OBJ) {
-//            WrapData wdata = (WrapData)obj;
-//            int idx = wdata.idx;
-//            if (wdata.wrappable == null) {
-//               addPoint (idx, wdata.pntA);
-//            }
-//            else {
-//               addWrappable (
-//                  idx, wdata.wrappable, 
-//                  wdata.pntA.getPosition(), wdata.pntB.getPosition());
-//            }
-//         }
+         Object obj = undoInfo.removeFirst();
+         if (obj != NULL_OBJ) {
+            ((ListRemove<Wrappable>)obj).undo();
+         }
+         obj = undoInfo.removeFirst();
+         if (obj != NULL_OBJ) {
+            ((ListRemove<Segment>)obj).undo();
+            updateSegs(/*updateWrapSegs=*/false);
+         }
       }
       else {
-//         // remove soft references which aren't in the hierarchy any more:
-//         ArrayList<WrapData> removed = new ArrayList<WrapData>();
-//         for (int i=1; i<myWrapData.size()-1; i++) {
-//            if (!ComponentUtils.isConnected (this, getWrapObject(i))) {
-//               WrapData wdata = myWrapData.get(i);
-//               wdata.idx = i;
-//               removed.add (wdata);
-//            }
-//         }
-//         for (WrapData wdata : removed) {
-//            if (wdata.wrappable != null) {
-//               removeWrappable (wdata.wrappable);
-//            }
-//            else {
-//               removePoint (wdata.pntA);
-//            }
-//            undoInfo.addLast (wdata);
-//         }
-//         undoInfo.addLast (ModelComponentBase.NULL_OBJ);
+         // remove soft references which aren't in the hierarchy any more:
+         ListRemove<Wrappable> wrappableRemove = null;
+         for (int i=0; i<myWrappables.size(); i++) {
+            if (!ComponentUtils.isConnected (
+                   this, myWrappables.get(i))) {
+               if (wrappableRemove == null) {
+                  wrappableRemove = new ListRemove<Wrappable>(myWrappables);
+               }
+               wrappableRemove.requestRemove(i);
+            }
+         }
+         if (wrappableRemove != null) {
+            wrappableRemove.remove();
+            undoInfo.addLast (wrappableRemove);
+         }
+         else {
+            undoInfo.addLast (NULL_OBJ);
+         }
+         ListRemove<Segment> segmentRemove = null;
+         for (int i=1; i<mySegments.size(); i++) {
+            if (!ComponentUtils.isConnected (this, mySegments.get(i).myPntB)) {
+               if (segmentRemove == null) {
+                  segmentRemove = new ListRemove<Segment>(mySegments);
+               }
+               segmentRemove.requestRemove(i);
+            }
+         }
+         if (segmentRemove != null) {
+            segmentRemove.remove();
+            undoInfo.addLast (segmentRemove);
+            updateSegs(/*updateWrapSegs=*/true);
+         }
+         else {
+            undoInfo.addLast (NULL_OBJ);
+         }         
       }
-      updateSegsIfNecessary();
    }
 
    public void preadvance (double t0, double t1, int flags) {
@@ -1942,7 +1973,8 @@ public class MultiPointSpring extends PointSpringBase
          Segment prev = mySegments.get(idx-1);
          prev.myPntA = pnt;
          if (idx == numPoints() && prev instanceof WrapSegment) {
-            ((WrapSegment)prev).initializeStrand();
+            WrapSegment wrapSeg = (WrapSegment)prev;
+            wrapSeg.initializeStrand (wrapSeg.myInitialPnts);
          }
       }
       if (idx < mySegments.size()-1) {
@@ -2090,6 +2122,10 @@ public class MultiPointSpring extends PointSpringBase
    // DONE: what to do with scale distance?
    // DONE: save and restore state
    // TODO: FINISH add soft references
+
+   // TODO: finish parameter interface for wrap segments. Do we only need k/d?
+   // What is the optimal ratio for a given number of knots? Do we need
+   // separate stiffnesses for spring and pentration?
 
    // TODO: FINISH Jacobian stuff
 

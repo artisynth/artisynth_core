@@ -561,10 +561,10 @@ public class MultiPointSpring extends PointSpringBase
          }
          while (++icnt < maxIter && !converged);
          if (converged) {
-            //System.out.println ("converged, icnt="+icnt);
+            System.out.println ("converged, icnt="+icnt);
          }
          else {
-            //System.out.println ("did not converge");
+            System.out.println ("did not converge");
          }
       }
 
@@ -2068,6 +2068,13 @@ public class MultiPointSpring extends PointSpringBase
       WrapSegment seg = new WrapSegment(numk, initialPnts);
       seg.myPntB = mySegments.get(mySegments.size()-1).myPntB;
       mySegments.set (mySegments.size()-1, seg);
+   }
+   
+   public void initializeSegment(int idx, Point3d[] initialPnts) {
+      Segment seg = mySegments.get (idx);
+      if (seg instanceof WrapSegment) {
+         ((WrapSegment)seg).initializeStrand (initialPnts);
+      }
    }
 
    public void addWrappable (Wrappable wrappable) {

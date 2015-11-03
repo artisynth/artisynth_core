@@ -191,7 +191,7 @@ public class ContactConstraint {
       SparseBlockMatrix DT, FrictionInfo[] finfo, double mu, int numf) {
 
       Vector3d dir = new Vector3d();
-      if (myMasters.size() > 0 && computeFrictionDir(dir) > 0) {
+      if (myMasters.size() > 0 && computeFrictionDir(dir) > 0 && mu > 0) {
          finfo[numf].mu = mu;
          finfo[numf].contactIdx0 = mySolveIndex;
          finfo[numf].contactIdx1 = -1;

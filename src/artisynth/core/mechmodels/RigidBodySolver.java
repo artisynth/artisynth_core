@@ -270,13 +270,16 @@ public class RigidBodySolver {
       myFlim.setSize (mySizeD);
    }
 
-   public void updateStructure (SparseBlockMatrix M, SparseBlockMatrix GT) {
+   public void updateStructure (
+      SparseBlockMatrix M, SparseBlockMatrix GT, int GTversion) {
       if (mySolver == null) {
          mySolver = new KKTSolver();
       }
-      if (myStructureVersion != mySys.getStructureVersion()) {
+      if (myStructureVersion != mySys.getStructureVersion() ||
+         myBilateralVersion != GTversion) {
          doUpdateStructure(M, GT);
          myStructureVersion = mySys.getStructureVersion();
+         myBilateralVersion = GTversion;
       }
    }
 

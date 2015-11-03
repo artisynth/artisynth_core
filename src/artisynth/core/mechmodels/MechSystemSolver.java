@@ -1773,7 +1773,7 @@ public class MechSystemSolver {
       // BEGIN project friction constraints
       updateFrictionConstraints();
       // assumes that updateMassMatrix() has been called
-      myRBSolver.updateStructure (myMass, myGT);
+      myRBSolver.updateStructure (myMass, myGT, myGTVersion);
 
       myRBSolver.projectFriction (
          myMass, myGT, myNT, myDT,
@@ -2063,7 +2063,7 @@ public class MechSystemSolver {
          myLam.setZero();
          myThe.setZero();
 
-         myRBSolver.updateStructure (myMass, myGT);
+         myRBSolver.updateStructure (myMass, myGT, myGTVersion);
          if (myRBSolver.projectPosition (myMass,
             myGT, myNT, myBg, myBn, myVel, myLam, myThe)) {
             mySys.addActivePosImpulse (pos, 1, myVel);            

@@ -152,14 +152,83 @@ public class ICPRegistration {
       return distSum;
    }
 
-   private void computeAdjustment (
-      AffineTransform3d dX, AffineTransform3d X,
-      PolygonalMesh mesh, int ndists, int n) {
+   /**
+    * Computes an adjustment <code>dX</code> to the current AffineTransform3d
+    * <code>X</code> such that <code>dX</code> moves all the points in such a
+    * way as to minimize their distance to the surface. Specifically, we want
+    * to move each point by a displacement <code>dp_i</code> such that the
+    * projection of this displacement onto the normal <code>n_i</code> arising
+    * from the nearest surface point equals the negative of the offset
+    * <code>o_i</code> from the surface:
+    * <pre>
+    * n_i^T dp_i = -o_i
+    * </pre>
+    * Now, <code>dp_i</code> is determined by <code>dX p_i</code>,
+    * and <code>dX</code> is itself described by <code>n</code> independent
+    * coordinates <code>y</code>, where <code>n</code> is either 3, 6, 7, or 12:
+    * <dl>
+    *    <dt>3</dt>
+    *    <dd>corresponds to translation only, with <code>y0:y2</code>
+    *    describing the translation parameters;</dd>
+    *    <dt>6</dt>
+    *    <dd>corresponds to rotation and translation, with <code>y3:y5</code>
+    *    describing the incremental yaw, pitch and roll angles;</dd>
+    *    <dt>7</dt>
+    *    <dd>corresponds to rotation, translation and scaling, with
+    *    <code>y6</code> 
+    *    describing the incremental scaling;</dd>
+    *    <dt>12</dt>
+    *    <dd>corresponds to a full affine transform, with <code>y0:y2</code>
+    *    describing the translation parameters and <code>y3:y11</code>
+    *    the coefficients of the 3 x 3 affine matrix.</dd>
+    * </dl>
+    * For cases 3, 6, and 7, <code>dX</code> takes the general form
+    * <pre> 
+    *      [  y6  -y5   y4   y0  ]
+    * dX = [  y5   y6  -y3   y1  ]
+    *      [ -y4   y3   y6   y2  ]
+    *      [  0    0    0    1   ]
+    * </pre>
+    * where <code>yi = 0</code> whenever <code>i >= n</code>.
+    *
+    *<p> 
+    * For each of the above cases, the relation
+    * <code>n_i^T dp_i = -o_i</code> can be expressed as
+    * <pre>
+    * a_i^T y = -o_i
+    * </pre>
+    * where <code>a_i</code> is a n-vector formed from <code>n_i</code>
+    * and <code>p_i</code>.
+    *
+    *<p> 
+    * Assembling these into a single matrix equation for all
+    * points, we end up with the linear
+    * least squares problem
+    * <pre>
+    * A y = -o
+    * </pre>
+    * where <code>A</code> is formed from individual rows <code>a_i^T</code>
+    * and <code>o</code> is formed from the aggregate of <code>o_i</code>.
+    * This least squares problem can be solved directly using the normal
+    * equations approach:
+    * <pre>
+    * A^T A y = -A^T o
+    * </pre>
+    * We use this instead of QR decomposition for reasons of speed.
+    * 
+    * @param dX returns the computed adjustment transform
+    * @param ndists number of points being adjusted
+    * @param n number of independent coordinates in dX. 3 corrresponds
+    * to translation only, 6 to a rigid transform, 7 to a rigid
+    * transform plus scaling, and 9 to a general affine transform.
+    */
+   public void computeAdjustment (
+      AffineTransform3d dX, int ndists, int n) {
 
-      MatrixNd M = new MatrixNd(n,n);
-      VectorNd b = new VectorNd(n);
-      VectorNd y = new VectorNd(n);
-      double[] z = new double[n];
+      MatrixNd M = new MatrixNd(n,n); // forms A^T A
+      VectorNd b = new VectorNd(n);   // forms -A^T o
+      VectorNd y = new VectorNd(n);   // computes parameters for dX
+      double[] a = new double[n];     // row a_i of A
       CholeskyDecomposition chol = new CholeskyDecomposition();
 
       Vector3d pxn = new Vector3d();
@@ -170,36 +239,36 @@ public class ICPRegistration {
          double off = info.myOffset;
 
          pxn.cross (pnt, info.myNrm);
-         z[0] = nrm.x;
-         z[1] = nrm.y;
-         z[2] = nrm.z;
+         a[0] = nrm.x;
+         a[1] = nrm.y;
+         a[2] = nrm.z;
          if (n == 12) {
             // full affine transform
-            z[3] = nrm.x*pnt.x;
-            z[4] = nrm.x*pnt.y;
-            z[5] = nrm.x*pnt.z;
-            z[6] = nrm.y*pnt.x;
-            z[7] = nrm.y*pnt.y;
-            z[8] = nrm.y*pnt.z;
-            z[9] = nrm.z*pnt.x;
-            z[10] = nrm.z*pnt.y;
-            z[11] = nrm.z*pnt.z;
+            a[3] = nrm.x*pnt.x;
+            a[4] = nrm.x*pnt.y;
+            a[5] = nrm.x*pnt.z;
+            a[6] = nrm.y*pnt.x;
+            a[7] = nrm.y*pnt.y;
+            a[8] = nrm.y*pnt.z;
+            a[9] = nrm.z*pnt.x;
+            a[10] = nrm.z*pnt.y;
+            a[11] = nrm.z*pnt.z;
          }
          else {
             pxn.cross (pnt, info.myNrm);
             if (n > 3) {
-               z[3] = pxn.x;
-               z[4] = pxn.y;
-               z[5] = pxn.z;
+               a[3] = pxn.x;
+               a[4] = pxn.y;
+               a[5] = pxn.z;
             }
             if (n > 6) {
-               z[6] = pnt.dot(nrm);
+               a[6] = pnt.dot(nrm);
             }
          }
          for (int i=0; i<n; i++) {
-            b.add (i, -z[i]*off);
+            b.add (i, -a[i]*off);
             for (int j=0; j<n; j++) {
-               M.add (i, j, z[i]*z[j]);
+               M.add (i, j, a[i]*a[j]);
             }
          }
       }
@@ -701,7 +770,7 @@ public class ICPRegistration {
             t0 = t1;
          }
 
-         computeAdjustment (dX, X, mesh1, ndists, npar);
+         computeAdjustment (dX, ndists, npar);
          //System.out.println ("dX=\n" + dX);
 
          if (myProfiling) {

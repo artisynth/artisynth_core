@@ -6,8 +6,11 @@
  */
 package artisynth.core.renderables;
 
+import java.util.List;
+
 import maspack.geometry.MeshBase;
 import maspack.geometry.Vertex3d;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
 import maspack.properties.PropertyList;
@@ -18,10 +21,12 @@ import maspack.render.RenderablePoint;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponentBase;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScalableUnits;
-import artisynth.core.util.TransformableGeometry;
 
-public class VertexComponent extends RenderableComponentBase implements RenderablePoint, TransformableGeometry, ScalableUnits {
+public class VertexComponent extends RenderableComponentBase implements 
+   RenderablePoint, TransformableGeometry, ScalableUnits {
    Vertex3d myVertex;
    float[] myRenderCoords = new float[3];
    
@@ -76,22 +81,26 @@ public class VertexComponent extends RenderableComponentBase implements Renderab
    }
    
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
       
       MeshBase m = myVertex.getMesh();
       if (m == null || m.getMeshToWorld().isIdentity()) { 
-         myVertex.pnt.transform(X); 
+         gtr.transformPnt (myVertex.pnt);
       } else {
          //  relative transform
          myVertex.pnt.transform(m.getMeshToWorld());
-         myVertex.pnt.transform(X);
+         gtr.transformPnt (myVertex.pnt);
          myVertex.pnt.inverseTransform(m.getMeshToWorld());  
       }
-
+   }
+   
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      // no dependencies
    }
 
    public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
+      TransformGeometryContext.transform (this, X, 0);
    }
 
    @Override

@@ -236,7 +236,8 @@ public class ControlPanel extends ModelComponentBase
       setName (name);
       myPanel = new AddablePropertyPanel();
       myOptionsString = options;
-      if (Main.getMain().getMainFrame() != null) {
+      Main main = Main.getMain();
+      if (main != null && main.getMainFrame() != null) {
          myFrame =
             new PropertyFrame (
                name==null ? "" : name, options, myPanel);

@@ -7,7 +7,7 @@
 
 \title{ArtiSynth User Interface Guide}
 \author{John Lloyd}
-\setpubdate{July 8, 2014}
+\setpubdate{Last update: Dec 1, 2015}
 \iflatexml
 \date{}
 \fi
@@ -70,8 +70,8 @@ illustrate particular simulation capabilities. More complex
 anatomical models, including those used in various research projects,
 are available in the separate project {\tt artisynth\_models}, which
 must be downloaded separately from ArtiSynth (see
-\href{http://www.artisynth.org/models}
-{www.artisynth.org/models} for instructions).
+\href{http://www.artisynth.org/models}{www.artisynth.org/models} 
+for instructions).
 
 An ArtiSynth model is defined by a subclass of the ArtiSynth {\tt
 RootModel} component, which build the model, serves as the root
@@ -499,11 +499,10 @@ ray with a 3D surface mesh.
 
 \section{Component Navigation and Selection}
 
-\setjavabase{artisynth.core.modelbase}
-
 An ArtiSynth model is composed of a hierarchical arrangement of
 model components (each of which implements the interface 
-\javaclassx{ModelComponent}), some of which may themselves
+\javaclass[artisynth.core.modelbase]{ModelComponent}), 
+some of which may themselves
 be models. The graphical interface allows users to navigate this
 hierarchy and select individual components. Selected components
 can then be edited, or have specific properties modified or attached
@@ -513,14 +512,16 @@ to probes or control panels.
 
 An example component hierarchy is shown in Figure
 \ref{hierarchyFig}. At the top is a {\it root model} (class
-\javaclass[artisynth.core.workspace]{RootModel}), in this case named {\tt Rigid Body Spring}.  The
+\javaclass[artisynth.core.workspace]{RootModel}), 
+in this case named {\tt Rigid Body Spring}.  The
 root model in turn contains a list of models, one of which is a
 mechanical model named {\tt msmod}, which here contains particles and
 rigid bodies.
 
 It is important to node that in the component hierarchy, any collection
 of components is itself a component (usually an instance of
-\javaclassx{ComponentList}). This provides automatic ``grouping'' of
+\javaclass[artisynth.core.modelbase]{ComponentList}). 
+This provides automatic ``grouping'' of
 components of like type, but does introduce additional levels into the
 hierarchy. Hence the particle {\tt red} is a child not of {\tt msmod},
 but rather the component list {\tt particles}.
@@ -724,7 +725,7 @@ one can easily navigate to one of the ancestor components
 using parent selection, as described in the next section.
 
 \subsection{Selecting Parent and Ancestor Components}
-\label{selectionDisplaySec}
+\label{selectingAncestorsSec}
 
 Sometimes, when you select a component, you actually want to select
 one of it's ancestor components. 
@@ -763,8 +764,6 @@ this to be problematic, as the navigation panel and selection display
 provide alternative indicators as to what is currently selected.
 
 \section{Geometric Manipulation}
-
-\setjavabase{artisynth.core.modelbase}
 
 It is possible to modify component locations, orientations, and
 geometry using the transformation tools located at the left side of
@@ -828,7 +827,8 @@ cause the corresponding dragger fixture to appear in the viewer at the
 components' location. If a single component is selected and 
 that component is 
 associated with a coordinate frame (by implementing the
-\javaclassx{HasCoordinateFrame} interface), then the dragger's initial position
+\javaclass[artisynth.core.modelbase]{HasCoordinateFrame} interface), 
+then the dragger's initial position
 and orientation are aligned with this coordinate frame.
 Otherwise, the dragger is initially placed at the center of the
 components' bounding box and its orientation is aligned to world
@@ -1057,16 +1057,16 @@ accordingly.
 \includegraphics[width=0.80\textwidth]{images/inheritedButton}
 \fi
 \end{center}
-\caption{Property panel showing YoungsModulus as inherited (left) and explicitly set (right).}%
+\caption{Property panel showing YoungsModulus as inherited (left) and 
+explicitly set (right).}%
 \label{inheritedButtonFig}
 \end{figure}
 
 \subsection{Render Properties}
 
-\setjavabase{maspack.render}
-
 Render properties are associated with any component that is
-renderable. They are defined in the class \javaclassx{RenderProps}. 
+renderable. They are defined in the class 
+\javaclass[maspack.render]{RenderProps}. 
 Because of their complexity, they are adjusted
 through a separate panel from the standard property panel.
 
@@ -1812,7 +1812,8 @@ probe editor in Figure \ref{OutputProbeEditorAFig}:
 \begin{enumerate}
 
 \item Select a component, either externally through the navigation panel
-(Section \ref{navPanelSec}), the viewer (Section \ref{viewerSelectionSec}), or the selection
+(Section \ref{navPanelSec}), the viewer 
+(Section \ref{viewerSelectionSec}), or the selection
 display (Section \ref{selectionDisplaySec}), or by entering its path name into the
 component/property widget. Once a component is selected,
 the left-most ``up'' arrow can be used to select that
@@ -1833,7 +1834,8 @@ selection box at the right of the component/property widget.
 In general, output probes define a general map from the numeric values
 of n model component properties to a generalized output vector formed by the
 concatenation of m-subvectors formed by m formulae, as shown
-in Figure \ref{OutputProbeMapFig}. In the simple case of Section \ref{simpleOutputProbeSec},
+in Figure \ref{OutputProbeMapFig}. In the simple case of 
+Section \ref{simpleOutputProbeSec},
 there is a single property, one sub-vector equal to the output
 vector, and a formula which is just the property value itself.
 
@@ -2390,9 +2392,7 @@ background is used.
 
 \subsubsection{Composite property widgets}
 
-\setjavabase{maspack.properties}
-
-A \javaclassx{CompositeProperty} is a Property which contains
+A \javaclass[maspack.properties]{CompositeProperty} is a Property which contains
 sub-properties. If a composite property is selected, the control panel
 will create a {\it composite property widget}, three of which are shown in
 Figure \ref{compositePropWidgetsFig}.
@@ -2459,7 +2459,8 @@ the selection of the sub-properties.
 \includegraphics[width=0.66\textwidth]{images/selectingRenderVisible}
 \fi
 \end{center}
-\caption{Selecting property renderProps (top), then one of it's subproperties (bottom).}%
+\caption{Selecting property renderProps (top), then one of it's 
+subproperties (bottom).}%
 \label{selectingRenderPropsFig}
 \end{figure}
 
@@ -2531,13 +2532,10 @@ option panel.
 \section{Component Editing}
 \label{componentEditingSec}
 
-\setjavabase{}
-
 Component editing in ArtiSynth is driven by the current {\it selection
 context}: depending on what items are currently selected, different
 editing options will appear in the context menu. These options may
 allow you to add, edit, or delete components.
-
 
 \subsection{Generic Edit Operations}
 
@@ -2776,11 +2774,13 @@ button which closes the panel without adding a FemModel.
 
 To add a \javaclass[artisynth.core.mechmodels]{RigidBody} to a MechModel,
 select the MechModel and choose {\sf "Add RigidBody ..."} in the context menu to
-open an editing panel for rigid bodies, as shown in Figure \ref{addRigidBodyPanelFig}.
+open an editing panel for rigid bodies, as shown in 
+Figure \ref{addRigidBodyPanelFig}.
 
 As with adding FEM models, default values are provided for most
 information; the user must only specify the body's position, either by
-left-clicking in the viewer (similar to Section \ref{indicatingPositionsSec}), or by entering
+left-clicking in the viewer (similar to Section \ref{indicatingPositionsSec}), 
+or by entering
 coordinates in the {\sf position} field of the {\sf Location} subpanel.  Once
 a position is specified, a wireframe preview of the rigid body appears
 in the viewer (Figure \ref{addFemModelPreviewFig}), showing its geometry and
@@ -3112,7 +3112,8 @@ they are selected.
 
 \item An {\it instruction box} containing directions for the user.
 
-\item An {\it option} panel, containing an {\sf Attach/Stop} button which can be used
+\item An {\it option} panel, containing an {\sf Attach/Stop} 
+button which can be used
 to initiate or stop the attachment process, and a {\sf Done} button which
 the user should click when finished.
 
@@ -3167,7 +3168,8 @@ they are selected.
 
 \item An {\it instruction box} containing directions for the user.
 
-\item An {\it option} panel, containing an {\sf Attach/Stop} button which can be used
+\item An {\it option} panel, containing an {\sf Attach/Stop} button 
+which can be used
 to initiate or stop the attachment process, and a {\sf Done} button which
 the user should click when finished.
 
@@ -3284,7 +3286,8 @@ menu will provide the following options:
 
 \item[Add FrameMarkers ...]\mbox{}
 
-Allows FrameMarkers to be added to the rigid body (see Section \ref{addingFrameMarkersSec}).
+Allows FrameMarkers to be added to the rigid body 
+(see Section \ref{addingFrameMarkersSec}).
 
 \item[Select markers]\mbox{}
 
@@ -3296,7 +3299,8 @@ Allows the surface mesh to be saved as an Alias Wavefront {\tt .obj} file.
 
 \item[Edit geometry and inertia ...]\mbox{}
 
-Change the mesh geometry and/or inertia (see Section \ref{geometryAndInertiaSec}, below).
+Change the mesh geometry and/or inertia 
+(see Section \ref{geometryAndInertiaSec}, below).
 
 \item[Attach particles ...]\mbox{}
 
@@ -3346,7 +3350,8 @@ by fields {\sf radius} and {\sf slices}.
  A mesh read in from an Alias Wavefront {\tt .obj} file, whose name
 is specified by a {\sf file name} field. The read mesh can also be scaled,
 offset, and rotated using information provided by {\sf scale}, {\sf offset},
-and {\sf rotation} fields (see Section \ref{positionOrientationScalingSec}). The {\sf COM}
+and {\sf rotation} fields (see Section \ref{positionOrientationScalingSec}). 
+The {\sf COM}
 button causes the mesh to be offset so that its center of mass
 (assuming unform density) is coincident with the origin of the body's
 coordinate system (also causing the location of the center of mass to
@@ -3455,7 +3460,7 @@ Allows the FEM volumetric mesh to be saved using the ANSYS file format.
 \subsubsection{Adding FEM markers}
 \label{addingFemMarkersSec}
 
-A \javaclass[artisynth.core.femmmodels]{FemMarker} is a massless 
+A \javaclass[artisynth.core.femmodels]{FemMarker} is a massless 
 \javaclass[artisynth.core.mechmodels]{Point} attached to a
 specfic \javaclass[artisynth.core.femmodels]{FemElement3d}. 
 It can be used for tracing motions within that element,
@@ -3470,7 +3475,8 @@ menu. This will open a FemMarker editing panel, as shown in
 Figure \ref{addFemMarkersPanelFig}. While this panel is open, FEM markers can be
 added by left-clicking the mouse in the viewer over the location where
 you want the marker placed, using the {\sf constrain to plane} option if
-necessary (see Section \ref{indicatingPositionsSec}). An FEM marker is then created
+necessary (see Section \ref{indicatingPositionsSec}). 
+An FEM marker is then created
 and attached to the nearest element in the FEM. If the marker position
 is outside the FEM, it is projected onto the closest point on the FEM
 surface.
@@ -3656,7 +3662,8 @@ a widget size of 0.5.
 \includegraphics[width=0.60\textwidth]{images/elementWidgets}
 \fi
 \end{center}
-\caption{Element widgets rendered for both an FEM model (pink) and a muscle bundle (cyan).}%
+\caption{Element widgets rendered for both an FEM model (pink) 
+and a muscle bundle (cyan).}%
 \label{elementWidgetsFig}
 \end{figure}
 
@@ -4036,7 +4043,8 @@ If font information is provided, it is applied to all entries.
 \begin{lstlisting}[][language=XMLMenu]
    <package source="" view="flat" compact="2" fontsize="5"/>
 \end{lstlisting}
-The previous listing adds every single instance of \javaclass[artisynth.core.workspace]{RootModel} found
+The previous listing adds every single instance of 
+\javaclass[artisynth.core.workspace]{RootModel} found
 in the source tree to the menu.  To get the menu to fit on the screen, 
 {\tt compact="2"} was used to strip away all package information from the 
 displayed text, and a tiny font was applied to all entries.

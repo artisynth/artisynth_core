@@ -10,15 +10,18 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Deque;
 import java.util.Map;
-import java.util.Collection;
+import java.util.List;
 
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
+import maspack.matrix.Matrix3d;
 import maspack.matrix.RigidTransform3d;
+import maspack.matrix.PolarDecomposition3d;
 import maspack.properties.PropertyList;
 import maspack.render.GLRenderer;
 import maspack.render.RenderList;
@@ -28,9 +31,10 @@ import maspack.util.ReaderTokenizer;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentBase;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.ScanToken;
-import artisynth.core.util.TransformableGeometry;
 
 /**
  * Contains information about a mesh, including the mesh itself, and it's
@@ -115,11 +119,17 @@ implements TransformableGeometry, ScalableUnits {
          return null;
       }
    }
+   
+   public AffineTransform3d getFileTransform() {
+      return new AffineTransform3d(myMeshInfo.myFileTransform);
+   }
 
-   public boolean transformGeometry(
-      AffineTransform3dBase X, RigidTransform3d Xpose,
-      AffineTransform3d Xlocal) {
-      return myMeshInfo.transformGeometry (X, Xpose, Xlocal);
+   public boolean isFileTransformRigid() {
+      return myMeshInfo.myFileTransformRigidP;
+   }
+
+   public boolean isMeshModfied() {
+      return myMeshInfo.myMeshModifiedP;
    }
 
    public RenderProps createRenderProps() {
@@ -223,19 +233,24 @@ implements TransformableGeometry, ScalableUnits {
    }
 
    public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
+      TransformGeometryContext.transform (this, X, 0);
    }
 
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
 
-      if ((flags & TransformableGeometry.SIMULATING) != 0) {
-         return;
-      }
-      myMeshInfo.transformGeometry (X);
+      // transform the mesh itself. Subclasses that provide local pose 
+      // information may override this method to instead use
+      // myMeshInfo.transformGeometryAndPose(). 
+      myMeshInfo.transformGeometry (gtr);
       if (myRenderProps != null) {
          myRenderProps.clearMeshDisplayList();
       }
+   }   
+   
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      // no dependencies
    }
 
    public void updateSlavePos () {

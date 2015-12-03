@@ -15,15 +15,14 @@ import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.Vertex3d;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.GLRenderer;
 import maspack.render.RenderProps;
-import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.Collidable.Collidability;
 
 public class RigidMeshComp extends MeshComponent 
@@ -264,6 +263,21 @@ public class RigidMeshComp extends MeshComponent
       return MeshComponent.createSurfaceMeshArray (getSurfaceMesh());
    }
 
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      
+      if ((flags & TransformableGeometry.TG_SIMULATING) == 0) {
+         if (myMeshInfo.transformGeometryAndPose (gtr, null)) {
+            if (myRenderProps != null) {
+               myRenderProps.clearMeshDisplayList();
+            }
+         }
+      }
+      else {
+         MeshBase mesh = myMeshInfo.getMesh();
+         mesh.setMeshToWorld (getRigidBody().getPose());
+      }
+   }   
    
 }
 

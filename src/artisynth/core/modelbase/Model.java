@@ -6,6 +6,7 @@
  */
 package artisynth.core.modelbase;
 
+import java.util.List;
 import maspack.util.Disposable;
 
 /**
@@ -82,4 +83,6 @@ public interface Model extends ModelComponent, Disposable, HasState {
     * Called when the model is discarded. Disposes of any resources used. 
     */
    public void dispose();
+
+
 }

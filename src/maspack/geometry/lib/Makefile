@@ -18,14 +18,24 @@ ifeq ($(findstring 64,$(MACHINE)),64)
 else
    ARCH = 32
 endif
+ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
+   # If we are compiling under cygwin, we may need to set ARCH=64
+   # explicitly, because cygwin often runs as 32-bits even on 64 bit
+   # machines. We may also make want to set ARCH=32 if we are cross
+   # compiling for 32-bit Windows from a 64 bit machine
+   ARCH=64
+endif
 
 CC_COMP = g++
 CC_FLAGS = -O2 -DTETLIBRARY -I.
 
 C_COMP = gcc
-C_FLAGS = -O2 -fPIC -std=c99 -mfpmath=sse -msse -I.
+C_FLAGS = -O2 -std=c99 -mfpmath=sse -msse -I.
 #C_FLAGS = -O2 -g -fPIC -std=c99 -mfpmath=sse -msse -I.
 #C_FLAGS = -O0 -g -fPIC -std=c99 -mfpmath=sse -msse -I.
+
+# current version of tetgen. Make sure there is no whitespace at the end.
+TETGEN_VERSION = 1.5.1.0
 
 ifeq ($(SYSTEM),Linux)
 	ifeq ($(ARCH), 64) 
@@ -34,35 +44,36 @@ ifeq ($(SYSTEM),Linux)
 	else
 	   NATIVE_DIR = Linux
 	endif
-	TETGEN_TARGET = libTetgenJNI.so.1.0
+	TETGEN_TARGET = libTetgenJNI.so.$(TETGEN_VERSION)
 	ROBUST_TARGET = libRobustPreds.so.1.0
 	ROBUST_TARGET_OLD = libRobustPreds.so.0.0
 	GETCW_TARGET = libGetCW.so
 	SHEWCHUK_DEF = -DLINUX
 	LIB_FLAGS = -shared
 	X_FLAGS = -fPIC
+	C_FLAGS += -fPIC
 	CC_INCS = -I$(JAVA_HOME)/include/ -I$(JAVA_HOME)/include/linux
 else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 	X_FLAGS = -D_JNI_IMPLEMENTATION_ -DCYGWIN
 	ifeq ($(ARCH), 64) 
 	   NATIVE_DIR = Windows64
-	   C_COMP = x86_64-w64-mingw32-gcc # gcc
+	   C_COMP = x86_64-w64-mingw32-gcc # Mingw-w64, gcc, 64 bit target
 	   C_FLAGS += -static-libgcc
-	   CC_COMP = x86_64-w64-mingw32-g++ # g++
+	   CC_COMP = x86_64-w64-mingw32-g++ # Mingw-w64, g++, 64 bit target 
            CC_FLAGS += -static-libstdc++
 	   X_FLAGS += -m64 -DPTR_EXCEEDS_LONG -DAMD_64
 	else
 	   NATIVE_DIR = Windows
-	   C_COMP = i686-w64-mingw32-gcc
+	   C_COMP = i686-w64-mingw32-gcc # Mingw-w64, gcc, 32 bit target
 	   C_FLAGS += -static-libgcc
-	   CC_COMP = i686-w64-mingw32-g++
+	   CC_COMP = i686-w64-mingw32-g++ # Mingw-w64, g++, 32 bit target
 	   CC_FLAGS += -static-libstdc++
 	endif
 	ifndef JAVA_HOME
 	   JAVA_HOME = C:/Program Files/Java/jdk1.6.0_24
         endif
 	CC_INCS = -I"$(JAVA_HOME)/include" -I"$(JAVA_HOME)/include/win32"
-	TETGEN_TARGET = TetgenJNI.1.0.dll
+	TETGEN_TARGET = TetgenJNI.$(TETGEN_VERSION).dll
 	ROBUST_TARGET = RobustPreds.1.0.dll
 	ROBUST_TARGET_OLD = RobustPreds.0.0.dll
 	SHEWCHUK_DEF = -DCPU86
@@ -76,12 +87,12 @@ else ifeq ($(SYSTEM),Darwin)
         # we only have 64 bit pardiso for MacOS, and Java has a 64 bit
         # configuration, regardless of whether we are booting the 32
         # or 64 bit version of snow leopard
-        NATIVE_DIR = Darwin-x86_64
-        JAVA_HOME=/System/Library/Frameworks/JavaVM.framework/Home
-	CC_INCS = -I$(JAVA_HOME)/include
+        NATIVE_DIR = MacOS64
+        JAVA_INC=/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers
+	CC_INCS = -I$(JAVA_INC)
 	X_FLAGS = -fPIC -DDARWIN -DAMD_64
-	CC_FLAGS += -fpermissive -faltivec
-	TETGEN_TARGET = libTetgenJNI.1.0.dylib
+	CC_FLAGS += -fpermissive -fPIC
+	TETGEN_TARGET = libTetgenJNI.$(TETGEN_VERSION).dylib
 	ROBUST_TARGET = libRobustPreds.1.0.dylib
 	ROBUST_TARGET_OLD = libRobustPreds.0.0.dylib
 	LIB_FLAGS = -bundle -framework JavaVM
@@ -143,7 +154,7 @@ RobustPredsJNI.o: RobustPredsJNI.c $(JNI_H_FILES)
 
 geoPred.o: geoPred.c geoPred.h ahoVectorMacro.h
 	$(C_COMP) $(C_FLAGS) $(CC_INCS) -c $^
-  
+
 geoPredTest: geoPred.o geoPredTest.c
 	$(C_COMP) $(C_FLAGS) $(CC_INCS) -o $@ $^ -lm
 
@@ -179,7 +190,7 @@ libs:	$(LIB_TARGETS)
 #$(LIB_TARGET_DIR)/$(GETCW_TARGET)
 
 install: $(LIB_TARGETS)
-	rsync -Crlgo $(LIB_TARGETS) $(WEB_LIB_URL)/$(NATIVE_DIR)
+	rsync -Ctrlgo $(LIB_TARGETS) $(WEB_LIB_URL)/$(NATIVE_DIR)
 	$(MAKE_HASHES_AND_FIX_PERMISSIONS)
 
 depend:	$(JNI_H_FILES)

@@ -17,7 +17,6 @@ import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.RigidCylinder;
 import artisynth.core.mechmodels.RigidEllipsoid;
 import artisynth.core.mechmodels.RigidSphere;
-import artisynth.core.mechmodels.SoftPlaneCollider;
 import artisynth.core.workspace.RootModel;
 
 public class CylinderWrapping extends RootModel {

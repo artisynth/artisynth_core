@@ -2172,6 +2172,15 @@ java.io.Serializable, Clonable {
       return m00 + m11 + m22;
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public boolean isSymmetric (double tol) {
+      return ((Math.abs (m01-m10) <= tol) && 
+              (Math.abs (m02-m20) <= tol) &&
+              (Math.abs (m12-m21) <= tol));
+   }
+
    public static void main (String[] args) {
       FunctionTimer timer = new FunctionTimer();
 

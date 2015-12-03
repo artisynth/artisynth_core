@@ -29,7 +29,6 @@ import maspack.util.StringHolder;
 import artisynth.core.modelbase.PropertyChangeListener;
 import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.util.ScalableUnits;
-import artisynth.core.util.TransformableGeometry;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.MaterialBase;
@@ -49,6 +48,7 @@ import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponentList;
+import artisynth.core.modelbase.TransformableGeometry;
 
 public abstract class FemModel extends MechSystemBase
    implements TransformableGeometry, ScalableUnits, Constrainer, 
@@ -188,7 +188,7 @@ public abstract class FemModel extends MechSystemBase
       myProps.addReadOnly ("volume *", "volume of the model");
       myProps.addReadOnly ("numInverted", "number of inverted elements");
       myProps.addReadOnly ("mass *", "mass of the model");
-      myProps.addReadOnly ("nodeMass *", "mass of the model");
+//      myProps.addReadOnly ("nodeMass *", "mass of the model");
       myProps.addReadOnly ("energy", "energy of the model");
       myProps.add (
          "material", "model material parameters", createDefaultMaterial(), "CE");
@@ -361,6 +361,7 @@ public abstract class FemModel extends MechSystemBase
             e.invalidateRestData();
          }
       }
+      myRestVolumeValid = false;
    }
    
    protected void invalidateStressAndMaybeStiffness() {
@@ -779,7 +780,9 @@ public abstract class FemModel extends MechSystemBase
       getNodes().scaleDistance (s);
       //myE /= s;
       myMaterial.scaleDistance(s);
-      if (myGravityMode == PropertyMode.Explicit) {
+      
+      if (myGravityMode == PropertyMode.Explicit ||
+          topMechSystem(this) == this) { // XXX hack, calling topMechSystem
          myGravity.scale (s);
       }
 
@@ -979,6 +982,18 @@ public abstract class FemModel extends MechSystemBase
       myRestVolumeValid = true;
       return volume;
    }
+   
+//   protected void computeMasses() {
+//      getRestVolume();
+//      for (int i=0; i<numNodes(); i++) {
+//         getNode(i).setMass(0);
+//      }
+//      for (int i=0; i<numElements(); i++) {
+//         FemElement e = getElement(i);
+//         e.setMass (0);
+//         e.updateElementAndNodeMasses(); 
+//      }
+//   }
 
    public double getVolume() {
       // we don't update the volume in this method, since that might
@@ -1087,6 +1102,9 @@ public abstract class FemModel extends MechSystemBase
    public FemModel copy (int flags, Map<ModelComponent,ModelComponent> copyMap) {
       FemModel fem = (FemModel)super.copy (flags, copyMap);
 
+      for (int i=0; i<fem.numComponents(); i++) {
+         System.out.println (" child " + fem.get(i).getName());
+      }
       fem.initializeChildComponents();
       // need to set markers and attachments in the subclass
 
@@ -1144,7 +1162,10 @@ public abstract class FemModel extends MechSystemBase
    public double updateConstraints (double t, int flags) {
       return 0;
    }
-
+   
+   public void getConstrainedComponents (List<DynamicComponent> list) {
+   }
+   
    // method declarations to implement ForceEffector
 
    public int getJacobianType() {

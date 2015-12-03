@@ -1,5 +1,7 @@
 package artisynth.demos.mech;
 
+import java.awt.event.ActionEvent;
+
 import maspack.geometry.*;
 import maspack.spatialmotion.*;
 import maspack.matrix.*;
@@ -26,10 +28,12 @@ import maspack.render.*;
 
 import java.awt.Color;
 import java.io.*;
+import java.util.List;
 
 import javax.swing.*;
 
 public class MechModelDemo extends RootModel {
+
    public static boolean debug = false;
 
    boolean readDemoFromFile = false;
@@ -42,15 +46,17 @@ public class MechModelDemo extends RootModel {
 
    boolean usePlanarContacts = true;
 
+   public MechModel myMech = null;
+
    public void build (String[] args) {
 
-      MechModel mechMod = new MechModel ("mechMod");
+      myMech = new MechModel ("mechMod");
       // mechMod.setProfiling (true);
-      mechMod.setGravity (0, 0, -50);
-      // mechMod.setRigidBodyDamper (new FrameDamper (1.0, 4.0));
-      mechMod.setFrameDamping (1.0);
-      mechMod.setRotaryDamping (4.0);
-      mechMod.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler);
+      myMech.setGravity (0, 0, -50);
+      // myMech.setRigidBodyDamper (new FrameDamper (1.0, 4.0));
+      myMech.setFrameDamping (1.0);
+      myMech.setRotaryDamping (4.0);
+      myMech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler);
 
       RigidTransform3d XMB = new RigidTransform3d();
       RigidTransform3d XLW = new RigidTransform3d();
@@ -80,7 +86,7 @@ public class MechModelDemo extends RootModel {
       XLW.p.set (0, 0, 22);
       base.setPose (XLW);
       base.setDynamic (false);
-      mechMod.addRigidBody (base);
+      myMech.addRigidBody (base);
 
       RenderProps props;
 
@@ -90,11 +96,11 @@ public class MechModelDemo extends RootModel {
       props.setPointRadius (0.5);
       props.setPointStyle (RenderProps.PointStyle.SPHERE);
       mk0.setRenderProps (props);
-      mechMod.addFrameMarker (mk0, base, new Point3d (lenx0 / 2, leny0 / 2, 0));
+      myMech.addFrameMarker (mk0, base, new Point3d (lenx0 / 2, leny0 / 2, 0));
 
       FrameMarker mk1 = new FrameMarker();
       mk1.setRenderProps (props);
-      mechMod.addFrameMarker (
+      myMech.addFrameMarker (
          mk1, base, new Point3d (-lenx0 / 2, -leny0 / 2, 0));
 
       FrameMarker mk2 = new FrameMarker();
@@ -116,7 +122,7 @@ public class MechModelDemo extends RootModel {
       spr0.setRenderProps (props);
       spr1.setRenderProps (props);
 
-      // mechMod.addRigidBody (base);
+      // myMech.addRigidBody (base);
 
       // first link
       double lenx1 = 10;
@@ -137,11 +143,11 @@ public class MechModelDemo extends RootModel {
       // XLW.R.mulAxisAngle (0, 1, 0, Math.PI/4);
       XLW.p.set (0, 0, 1.5 * lenx1);
       link1.setPose (XLW);
-      mechMod.addRigidBody (link1);
+      myMech.addRigidBody (link1);
 
-      mechMod.addFrameMarker (mk2, link1, new Point3d (
+      myMech.addFrameMarker (mk2, link1, new Point3d (
          -lenx1 / 2, 0, -lenz1 / 2));
-      mechMod.addFrameMarker (
+      myMech.addFrameMarker (
          mk3, link1, new Point3d (-lenx1 / 2, 0, lenz1 / 2));
 
       // // joint 1
@@ -211,7 +217,7 @@ public class MechModelDemo extends RootModel {
       }
       link2.setPose (XLW);
       link2.setMesh (mesh, /* fileName= */null);
-      mechMod.addRigidBody (link2);
+      myMech.addRigidBody (link2);
 
       BodyConnector joint2 = null;
 
@@ -260,13 +266,13 @@ public class MechModelDemo extends RootModel {
          joint2 = rjoint;
       }
 
-      // mechMod.addBodyConnector (joint1);
+      // myMech.addBodyConnector (joint1);
       if (joint2 != null) {
-         mechMod.addBodyConnector (joint2);
+         myMech.addBodyConnector (joint2);
       }
 
-      mechMod.attachAxialSpring (mk0, mk2, spr0);
-      mechMod.attachAxialSpring (mk1, mk3, spr1);
+      myMech.attachAxialSpring (mk0, mk2, spr0);
+      myMech.attachAxialSpring (mk1, mk3, spr1);
 
       if (usePlanarContacts) {
          TCA.setIdentity();
@@ -285,7 +291,7 @@ public class MechModelDemo extends RootModel {
          contact1.setPlaneSize (20);
          RenderProps.setFaceColor (contact1, new Color (0.5f, 0.5f, 1f));
          RenderProps.setAlpha (contact1, 0.5);
-         mechMod.addBodyConnector (contact1);
+         myMech.addBodyConnector (contact1);
 
          TCB.R.setIdentity();
          TCB.R.setAxisAngle (0, 0, 1, Math.PI / 2);
@@ -298,22 +304,23 @@ public class MechModelDemo extends RootModel {
          RenderProps.setFaceColor (contact2, new Color (0.5f, 0.5f, 1f));
          RenderProps.setAlpha (contact2, 0.5);
 
-         mechMod.addBodyConnector (contact2);
+         myMech.addBodyConnector (contact2);
       }
 
-      mechMod.setBounds (new Point3d (0, 0, -10), new Point3d (0, 0, 10));
+      myMech.setBounds (new Point3d (0, 0, -10), new Point3d (0, 0, 10));
 
-      addModel (mechMod);
-      addControlPanel (mechMod);
+      addModel (myMech);
+      addControlPanel (myMech);
 
       // RigidTransform3d X = new RigidTransform3d (link1.getPose());
       // X.R.mulRpy (Math.toRadians(-10), 0, 0);
       // link1.setPose (X);
-      // mechMod.projectRigidBodyPositionConstraints();
+      // myMech.projectRigidBodyPositionConstraints();
 
-      //mechMod.setProfiling (true);
-      //mechMod.setIntegrator (Integrator.ForwardEuler);
+      //myMech.setProfiling (true);
+      //myMech.setIntegrator (Integrator.ForwardEuler);
       //addBreakPoint (0.57);
+
    }
 
    ControlPanel myControlPanel;

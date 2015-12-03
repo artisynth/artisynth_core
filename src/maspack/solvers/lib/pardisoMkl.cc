@@ -43,7 +43,6 @@ Pardiso4::Pardiso4 ()
    myExplicitApplyWeightedMatchings = -1;
    myExplicitUse2x2Pivoting = -1;
    myExplicitReorderMethod = -1;
-   myExplicitNumThreads = -1;
 
    // -1 ensures default value will be set later
    myPivotPerturbation = -1;
@@ -52,7 +51,6 @@ Pardiso4::Pardiso4 ()
    myApplyWeightedMatchings = -1;
    myUse2x2Pivoting = -1;
    myReorderMethod = -1;
-   myNumThreads = -1;
 
    myMaxFact = 1;
    myFactorization = 1;
@@ -109,8 +107,8 @@ Pardiso4::Pardiso4 ()
 
    int solver = 0;
    myInitError = 0;
-   myIParams[2] = getNumThreads();
-   //printf ("max threads=%d\n", myIParams[2]);
+   // this doesn't specifiy number of threads in Intel Pardiso
+   //myIParams[2] = getNumThreads(); 
 
    myX = (double*)0;
    myB = (double*)0;
@@ -415,32 +413,21 @@ int Pardiso4::getMessageLevel () {
    return myMessageLevel;
 }
 
-int Pardiso4::setNumThreads (int num) {
-   int prev = myNumThreads;
-   myExplicitNumThreads = num;
-   myNumThreads = num;
-   return prev;
-}
+// Not supported since MKL doesn't allow per-instance thread setting
+// for Pardiso
+//
+// int Pardiso4::setNumThreads (int num) {
+//    int prev = getNumThreads();
+//    if (num < 0) {
+//       num = 0;
+//    }
+//    mkl_domain_set_num_threads (num, MKL_DOMAIN_PARDISO);
+//    return prev;
+// }
 
-int Pardiso4::getNumThreads () {
-   if (myNumThreads <= 0) {
-     if (myExplicitNumThreads > 0) {
-       myNumThreads = myExplicitNumThreads;
-     }
-     else {
-       // set default value
-       myNumThreads = 1;
-       int num_threads = 1;
-       char *var = getenv("OMP_NUM_THREADS");
-       if (var != NULL) {
-	 if (sscanf( var, "%d", &num_threads) == 1) {
-	   myNumThreads = num_threads;
-	 }
-       }        
-     }
-   }
-   return myNumThreads;
-}
+// int Pardiso4::getNumThreads () {
+//    return mkl_domain_get_max_threads (MKL_DOMAIN_PARDISO);
+// }
 
 int Pardiso4::setMatrix (
    const double* vals, const int* rowIdxs, const int *colIdxs, int size, int numVals, int type)

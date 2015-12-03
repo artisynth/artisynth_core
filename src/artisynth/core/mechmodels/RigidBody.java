@@ -22,6 +22,8 @@ import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
+import maspack.geometry.GeometryTransformer;
+import maspack.geometry.RigidTransformer;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix;
@@ -51,16 +53,18 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.ScanToken;
-import artisynth.core.util.TransformableGeometry;
 
 public class RigidBody extends Frame 
    implements CollidableBody, HasSurfaceMesh, ConnectableBody {
    
    protected SpatialInertia mySpatialInertia;
    protected SpatialInertia myEffectiveInertia;
+   protected GeometryTransformer.Constrainer myTransformConstrainer = null;
    
    MeshInfo myMeshInfo = new MeshInfo();
    protected ArrayList<BodyConnector> myConnectors;
@@ -551,6 +555,18 @@ public class RigidBody extends Frame
       return getSurfaceMesh();
    }
    
+   public AffineTransform3d getFileTransform() {
+      return new AffineTransform3d(myMeshInfo.myFileTransform);
+   }
+
+   public boolean isFileTransformRigid() {
+      return myMeshInfo.myFileTransformRigidP;
+   }
+
+   public boolean isMeshModfied() {
+      return myMeshInfo.myMeshModifiedP;
+   }
+
    public PolygonalMesh getSurfaceMesh() {
       return (PolygonalMesh)myMeshInfo.myMesh;
    }
@@ -938,57 +954,31 @@ public class RigidBody extends Frame
    }
    
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      RigidTransform3d Xpose = new RigidTransform3d();
-      AffineTransform3d Xlocal = new AffineTransform3d();
-
-      // Note: Xpose will be transformed by X in myMeshInfo.transformGeometry()
-      Xpose.set (myState.XFrameToWorld);
-
-      if (myMeshInfo.transformGeometry (X, Xpose, Xlocal)) {
-         // mesh was transformed in addition to having its transform set
-         // so clear the display list (if set)
-         if (myRenderProps != null) {
-            myRenderProps.clearMeshDisplayList();
-         }
-      }
-
-      boolean adjustConnectors = 
-         (myConnectors != null && 
-          (flags & TransformableGeometry.SIMULATING)==0 &&
-          ((flags & TransformableGeometry.ARTICULATED)==0 || topObject!=this));
-
-      RigidTransform3d[] TXWs = null;
-      if (adjustConnectors) {
-         TXWs = new RigidTransform3d[myConnectors.size()];
-         int k = 0;
-         for (BodyConnector c : myConnectors) {
-            TXWs[k++] = c.getCurrentTXW (this);
-         }
-      }
-      myState.setPose (Xpose);
-      updatePosState();
-      if (topObject == this && getAttachment() != null) {
-         getAttachment().updateAttachment();
-      }
-      if (adjustConnectors) {
-         int k = 0;
-         for (BodyConnector c : myConnectors) {
-            c.updateForBodyPositionChange (this, TXWs[k++]);
-         }
-      }
-      if (myMasterAttachments != null) {
-         for (DynamicAttachment a : myMasterAttachments) {
-            if (!ComponentUtils.withinHierarchy (a.getSlave(), topObject)) {
-               a.transformSlaveGeometry (X, topObject, flags);
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      
+      super.transformGeometry (gtr, context, flags);
+      PolygonalMesh mesh = getMesh();
+      if (mesh != null) {
+         // for now, only transform the mesh if we are simulating. Otherwise,
+         // just update the mesh's transform.
+         if ((flags & TransformableGeometry.TG_SIMULATING) == 0) {
+            if (myMeshInfo.transformGeometryAndPose (
+                  gtr, myTransformConstrainer)) {
+               // mesh was transformed in addition to having its transform set
+               // so clear the display list (if set)
+               if (myRenderProps != null) {
+                  myRenderProps.clearMeshDisplayList();
+               }
+               if (myInertiaMethod == InertiaMethod.Density) {
+                  setInertiaFromMesh (myDensity);
+               }
             }
          }
+         else {
+            mesh.setMeshToWorld (myState.XFrameToWorld);
+         }
       }
-   }
-
-   public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
-   }
+   }   
 
    public void scaleDistance (double s) {
       super.scaleDistance (s);

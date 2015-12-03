@@ -105,6 +105,7 @@ public class SegmentedPlanarConnector extends BodyConnector
    }
 
    public SegmentedPlanarConnector() {
+      myTransformDGeometryOnly = true;
       setDefaultValues();
       myRenderVtxs = new Point3d[4];
       for (int i = 0; i < myRenderVtxs.length; i++) {

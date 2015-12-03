@@ -12,7 +12,7 @@ import maspack.matrix.Matrix.Partition;
 import maspack.solvers.PardisoSolver.ReorderMethod;
 
 import java.io.*;
-import java.util.Random;
+import java.util.*;
 
 import java.awt.event.*;
 import javax.swing.*;
@@ -308,8 +308,12 @@ public class PardisoSolverTest implements ActionListener {
    }               
 
    public void dotest () {
-    
+
       PardisoSolver solver = new PardisoSolver();
+      System.out.println ("Pardiso: max threads=" + solver.getNumThreads());
+      solver.setNumThreads (4);
+      System.out.println ("Pardiso: max threads=" + solver.getNumThreads());
+      solver.setNumThreads (0);
       int i;
 
       // set test symmetric matrix:

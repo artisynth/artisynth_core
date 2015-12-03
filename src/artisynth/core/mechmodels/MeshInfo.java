@@ -24,7 +24,11 @@ public class MeshInfo {
 
    MeshBase myMesh;
    String myFileName;
-   AffineTransform3dBase myFileTransform;
+   // meshModifiedP means mesh has been changed such that it can no longer
+   // be recovered from the file information.
+   boolean myMeshModifiedP;
+   AffineTransform3d myFileTransform;
+   boolean myFileTransformRigidP = true;
 
    public String getFileName() {
       return myFileName;
@@ -32,12 +36,15 @@ public class MeshInfo {
 
    public void setFileName (String filename) {
       myFileName = filename;
+      myMeshModifiedP = false;
    }
 
    public MeshInfo() {
       myMesh = null;
       myFileName = null;
-      myFileTransform = null;
+      myMeshModifiedP = false;
+      myFileTransform = new AffineTransform3d();
+      myFileTransformRigidP = true;
    }       
 
    public MeshBase getMesh() {
@@ -51,7 +58,14 @@ public class MeshInfo {
     * @see #setFileTransform
     */
    public AffineTransform3dBase getFileTransform() {
-      return myFileTransform;
+      if (myFileTransformRigidP) {
+         RigidTransform3d T = new RigidTransform3d();
+         T.set (myFileTransform);
+         return T;
+      }
+      else {
+         return myFileTransform.clone();
+      }
    }
 
    /**
@@ -63,10 +77,12 @@ public class MeshInfo {
     */
    public void setFileTransform (AffineTransform3dBase X) {
       if (X != null) {
-         myFileTransform = X.clone();
+         myFileTransform.set (X);
+         myFileTransformRigidP = (X instanceof RigidTransform3d);
       }
       else {
-         myFileTransform = null;
+         myFileTransform.setIdentity();
+         myFileTransformRigidP = true;
       }
    }
 
@@ -105,26 +121,9 @@ public class MeshInfo {
    }        
 
    protected void preMultiplyFileTransform (AffineTransform3dBase X) {
-      if (myFileTransform != null) {
-         if (myFileTransform instanceof RigidTransform3d &&
-             X instanceof RigidTransform3d) {
-            RigidTransform3d fileRigid = (RigidTransform3d)myFileTransform;
-            fileRigid.mul ((RigidTransform3d)X, fileRigid);
-         }
-         else {
-            AffineTransform3d fileAffine;
-            if (!(myFileTransform instanceof AffineTransform3d)) {
-               fileAffine = new AffineTransform3d (myFileTransform);
-               myFileTransform = fileAffine;
-            }
-            else {
-               fileAffine = (AffineTransform3d)myFileTransform;
-            }
-            fileAffine.mul (X, fileAffine);
-         }
-      }
-      else {
-         myFileTransform = X.clone();
+      myFileTransform.mul (X, myFileTransform);
+      if (X instanceof AffineTransform3d) {
+         myFileTransformRigidP = false;
       }
    }
 
@@ -136,27 +135,85 @@ public class MeshInfo {
       }
    }
 
-   public void transformGeometry (AffineTransform3dBase X) {
-      myMesh.transform (X);
-      preMultiplyFileTransform (X);
+   protected void saveOrRestoreModBitsIfNecessary (
+      GeometryTransformer gtr, boolean oldRigidP, boolean oldModifiedP) {
+      if (gtr.isSaving()) {
+         gtr.saveObject (oldRigidP);
+         gtr.saveObject (oldModifiedP);
+      }
+      else if (gtr.isRestoring()) {
+         myFileTransformRigidP = gtr.restoreObject (myFileTransformRigidP);
+         myMeshModifiedP = gtr.restoreObject (myMeshModifiedP);
+      }
    }
-
-   public boolean transformGeometry (
-      AffineTransform3dBase X, RigidTransform3d Xpose, AffineTransform3d Xlocal) {
+   
+   public void transformGeometry (GeometryTransformer gtr) {
+      gtr.transform (myMesh);
+      
+      boolean oldRigidP = myFileTransformRigidP;
+      boolean oldModifiedP = myMeshModifiedP;
+      
+      if (gtr.isAffine()) {
+         gtr.transform (myFileTransform);
+         if (!gtr.isRigid()) {
+            myFileTransformRigidP = false;
+         }
+      }
+      else {
+         myMeshModifiedP = true;
+      }
+      saveOrRestoreModBitsIfNecessary (gtr, oldRigidP, oldModifiedP);
+   }
+   
+   public boolean transformGeometryAndPose (
+      GeometryTransformer gtr, GeometryTransformer.Constrainer constrainer) {
 
       boolean meshWasTransformed = false;
 
-      Xpose.mulAffineLeft (X, Xlocal.A);
       if (myMesh != null) {
-         if (!Xlocal.A.equals (Matrix3d.IDENTITY)) {
-            Xlocal.A.mulTransposeLeft (Xpose.R, Xlocal.A);
-            Xlocal.A.mul (Xpose.R);
-            myMesh.transform (Xlocal);
+         if (!gtr.isRigid()) {
+            boolean oldRigidP = myFileTransformRigidP;
+            boolean oldModifiedP = myMeshModifiedP;
+
+            if (gtr.isAffine() || constrainer != null) {
+               // Update myFileTransform
+               if (gtr.isRestoring()) {
+                  myFileTransform.set (gtr.restoreObject (myFileTransform));
+               }
+               else {
+                  if (gtr.isSaving()) {
+                     gtr.saveObject (new AffineTransform3d(myFileTransform));
+                  }
+                  // Pre-multiply myFileTransform by Y, where
+                  // 
+                  //           -1 
+                  // Y = TMWnew  gtr TMW
+                  //                        
+                  // and TMW and TMWnew are the current and transformed values
+                  // of the mesh-to-world transform
+                  AffineTransform3d XL = 
+                     gtr.computeRightAffineTransform (myMesh.getMeshToWorld());
+                  if (constrainer != null) {
+                     constrainer.apply (XL);
+                  }
+                  preMultiplyFileTransform (XL);
+               }
+            }
+            else {
+               myMeshModifiedP = true;
+            }
+            gtr.transformWorld (myMesh, constrainer);
             meshWasTransformed = true;
-            preMultiplyFileTransform (Xlocal);
+            saveOrRestoreModBitsIfNecessary (gtr, oldRigidP, oldModifiedP);
          }
-         myMesh.setMeshToWorld (Xpose);
+         else {
+            RigidTransform3d XMW = 
+               new RigidTransform3d(myMesh.getMeshToWorld());
+            gtr.transform (XMW);
+            myMesh.setMeshToWorld (XMW);
+         }
       }
+
       return meshWasTransformed;
    }
 
@@ -256,13 +313,14 @@ public class MeshInfo {
          myMesh.setRenderBuffered (true);
       }
       myFileName = fileName;
-      myFileTransform = X;
+      myMeshModifiedP = false;
+      setFileTransform (X);
    }
 
    private void writeTransformIfNecessary (PrintWriter pw, NumberFormat fmt)
       throws IOException {
 
-      AffineTransform3dBase X = myFileTransform;
+      AffineTransform3dBase X = getFileTransform();
       if (X != null && !X.isIdentity()) {
          if (X instanceof RigidTransform3d) {
             pw.println ("transform=RigidTransform3d"
@@ -287,7 +345,7 @@ public class MeshInfo {
       else {
          pw.println ("mesh="+myMesh.getClass().getName()+"[");
          IndentingPrintWriter.addIndentation (pw, 2);
-         if (myFileName != null && myFileName.length() > 0) {
+         if (!myMeshModifiedP  && myFileName != null && myFileName.length() > 0) {
             pw.println (Write.getQuotedString (myFileName));
             writeTransformIfNecessary (pw, fmt);
             if (myMesh instanceof PolygonalMesh &&
@@ -334,6 +392,7 @@ public class MeshInfo {
    public MeshInfo clone() {
       MeshInfo out = new MeshInfo();
       out.myFileName = myFileName;
+      out.myMeshModifiedP = myMeshModifiedP;
       out.myFileTransform = myFileTransform.clone();
       out.myMesh = myMesh.copy();
       return out;

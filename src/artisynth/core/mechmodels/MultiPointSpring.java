@@ -17,6 +17,7 @@ import java.util.Map;
 import maspack.geometry.LineSegment;
 import maspack.geometry.OBB;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.*;
 import maspack.properties.PropertyList;
 import maspack.render.GLRenderer;
@@ -49,6 +50,9 @@ public class MultiPointSpring extends PointSpringBase
    protected int myNumBlks; // set to numPoints()
    protected int[] mySolveBlkNums;
 
+   public double mySor = 1.0;
+   public double myDnrmGain = 0.0;
+
    // Composite component structure for storing wrap points
    //protected ComponentListImpl<ModelComponent> myComponents;
    //private NavpanelDisplay myDisplayMode = NavpanelDisplay.NORMAL;
@@ -79,10 +83,27 @@ public class MultiPointSpring extends PointSpringBase
    protected int myMaxWrapIterations = DEFAULT_MAX_WRAP_ITERATIONS;
    protected double myMaxWrapDisplacement = DEFAULT_MAX_WRAP_DISPLACEMENT;
 
-   private class WrapKnot {
-      Point3d myPos;
-      Vector3d myForce;
+   public double getSor() {
+      return mySor;
+   }
+
+   public void setSor (double sor) {
+      mySor = sor;
+   }
+
+   public double getDnrmGain() {
+      return myDnrmGain;
+   }
+
+   public void setDnrmGain (double dnrmGain) {
+      myDnrmGain = dnrmGain;
+   }
+
+   public class WrapKnot {
+      public Point3d myPos;
+      public Vector3d myForce;
       Vector3d myNrml;
+      Matrix3d myDnrm;
       double myDist;
       Wrappable myWrappable;
       Matrix3d myBmat;
@@ -95,6 +116,7 @@ public class MultiPointSpring extends PointSpringBase
          myPos = new Point3d();
          myForce = new Vector3d();
          myNrml = new Vector3d();
+         myDnrm = new Matrix3d();
          myBmat = new Matrix3d();
          myBinv = new Matrix3d();
          myCinv = new Matrix3d();
@@ -244,7 +266,7 @@ public class MultiPointSpring extends PointSpringBase
       void scaleDistance (double s) {
       }
 
-      public void transformGeometry (AffineTransform3dBase X) {
+      public void transformGeometry (GeometryTransformer gtr) {
       }
    }
 
@@ -413,20 +435,22 @@ public class MultiPointSpring extends PointSpringBase
          int nc = 0;
          boolean changed = false;
          double mind = 0;
+         Vector3d nrml = new Vector3d();
+         Matrix3d dnrm = new Matrix3d();
          for (int k=0; k<myNumKnots; k++) {
             WrapKnot knot = myKnots[k];
             double dist = 0;
             Wrappable lastWrappable = knot.myWrappable;
             knot.myWrappable = null;
             knot.myDist = 0;
-            Vector3d nrml = new Vector3d();
             for (Wrappable wrappable : myWrappables) {
                double d = wrappable.penetrationDistance (
-                  nrml, knot.myPos);
+                  nrml, dnrm, knot.myPos);
                if (d < knot.myDist) {
                   knot.myWrappable = wrappable;
                   knot.myDist = d;
                   knot.myNrml.set (nrml);
+                  knot.myDnrm.set (dnrm);
                   if (d < mind){
                      mind = d;
                   }
@@ -442,7 +466,23 @@ public class MultiPointSpring extends PointSpringBase
          if (numc != null) {
             numc.value = nc;
          }
+         if (nc > 0) {
+            //projectContacts();
+         }
          return changed;
+      }
+
+      void projectContacts () {
+
+         double ptol = myMaxWrapDisplacement/10;
+         for (int k=0; k<myNumKnots; k++) {
+            WrapKnot knot = myKnots[k];
+            if (knot.myDist < -ptol) {
+               double del = -ptol-knot.myDist;
+               knot.myPos.scaledAdd (del, knot.myNrml);
+               knot.myDist += del;
+            }
+         }
       }
 
       void updateForces() {
@@ -474,7 +514,7 @@ public class MultiPointSpring extends PointSpringBase
          }
       }        
 
-      protected void updateStiffness() {
+      protected void updateStiffness (double dnrmGain) {
          double stiffness = myWrapStiffness;
          double cstiffness = myContactStiffness;
          double d = myWrapDamping/(myNumKnots*myNumKnots);
@@ -492,8 +532,71 @@ public class MultiPointSpring extends PointSpringBase
             if (knot.myDist < 0) {
                knot.myBmat.addScaledOuterProduct (
                   cd+cstiffness, knot.myNrml, knot.myNrml);
+               if (dnrmGain != 0) {
+                  knot.myBmat.scaledAdd (
+                     dnrmGain*knot.myDist*cstiffness, knot.myDnrm);
+               }
             }
          }
+      }
+
+      private void getForces (VectorNd f) {
+         for (int k=0; k<myNumKnots; k++) {         
+            f.setSubVector (k*3, myKnots[k].myForce);
+         }
+      }
+
+      private void getPositions (VectorNd q) {
+         for (int k=0; k<myNumKnots; k++) {         
+            q.setSubVector (k*3, myKnots[k].myPos);
+         }
+      }
+
+      private void setPositions (VectorNd q) {
+         for (int k=0; k<myNumKnots; k++) {         
+            q.getSubVector (k*3, myKnots[k].myPos);
+         }
+      }
+
+      protected MatrixNd computeNumericStiffness() {
+
+         int numk = myNumKnots;
+         VectorNd f0 = new VectorNd (3*numk);
+         VectorNd q0 = new VectorNd (3*numk);
+         VectorNd f = new VectorNd (3*numk);
+         VectorNd q = new VectorNd (3*numk);
+         MatrixNd K = new MatrixNd (3*numk, 3*numk);
+
+         updateContacts(null);
+         updateForces();
+
+         boolean changed = false;
+
+         getPositions (q0);
+         getForces (f0);
+         double h = 1e-8;
+         for (int i=0; i<3*numk; i++) {
+            q.set (q0);
+            q.add (i, h);
+            setPositions (q);
+            if (updateContacts(null)) {
+               changed = true;
+            }
+            updateForces();
+            getForces (f);
+            f.sub (f0);
+            f.scale (1/h);
+            K.setColumn (i, f);
+         }
+         setPositions (q0);
+         if (updateContacts(null)) {
+            changed = true;
+         }
+         if (changed) {
+            //System.out.println ("CONTACT STATE CHANGED");
+         }
+         updateForces();
+         return K;
       }
 
       //
@@ -604,6 +707,15 @@ public class MultiPointSpring extends PointSpringBase
          return maxDisp;
       }         
 
+      double computeDecrement() {
+         double dot = 0;
+         for (int i=0; i<myNumKnots; i++) {
+            WrapKnot knot = myKnots[i];
+            dot += knot.myForce.dot (knot.myDvec);
+         }
+         return Math.sqrt(dot);
+      }
+
       double maxContactScaling () {
          double maxs = 0;
          for (int i=0; i<myNumKnots; i++) {
@@ -652,34 +764,88 @@ public class MultiPointSpring extends PointSpringBase
       int totalCalls;
       int totalFails;
 
+      void checkStiffness() {
+         updateContacts(null);
+         updateForces();
+         updateStiffness(1.0);
+         int numk = myNumKnots;
+         MatrixNd K = new MatrixNd(3*numk, 3*numk);
+         double c = myWrapStiffness;
+         Matrix3d C = new Matrix3d();
+         C.setDiagonal (-c, -c, -c);
+
+         for (int k=0; k<numk; k++) {
+            WrapKnot knot = myKnots[k];
+            K.setSubMatrix (3*k, 3*k, knot.myBmat);
+            if (k > 0) {
+               K.setSubMatrix (3*k, 3*(k-1), C);
+            }
+            if (k < numk-1) {
+               K.setSubMatrix (3*k, 3*(k+1), C);
+            }
+         }
+         K.negate();
+         //System.out.println ("K=\n" + K.toString ("%8.4f"));
+         MatrixNd KC = computeNumericStiffness();
+         //System.out.println ("KC=\n" + KC.toString ("%8.4f"));
+
+         MatrixNd E = new MatrixNd (K);
+         E.sub (KC);
+         //System.out.println ("E=\n" + E.toString ("%8.4f"));
+         System.out.println ("Enorm=" + E.frobeniusNorm());
+      }         
+
       void updateWrapStrand (int maxIter) {
          int icnt = 0;
          boolean converged = false;
 
          IntHolder numc = new IntHolder();
+         int noContactChangeCnt = 0;
          boolean contactChanged = updateContacts(numc);
          do {
             double prevLength = myLength;
             updateForces();
-            updateStiffness();
+            double dnrmGain = (noContactChangeCnt >= 2 ? myDnrmGain : 0);
+            updateStiffness(dnrmGain);
             factorAndSolve();
+            double dec = computeDecrement();
+            double alpha = (dec <= 1/4.0 ? 1.0 : 1/(1+dec));
             int oldc = numc.value;
             contactChanged = updateContacts (numc);
+            if (contactChanged) {
+               noContactChangeCnt = 0;
+            }
+            else {
+               //System.out.println ("contact stable");
+               noContactChangeCnt++;
+            }
             //System.out.println (
-            // "numc=" + numc.value+" oldc="+oldc+" changed=" + contactChanged);
+            //"numc=" + numc.value+" oldc="+oldc+" changed=" + contactChanged);
             if (numc.value == 0 && oldc > 0) {
                //System.out.println ("break contact scale");
-               rescaleSolution (-0.1);
-               updateContacts (numc);
-               //System.out.println ("new numc=" + numc.value);
+               if (0.9 < alpha) {
+                  alpha = 0.9;
+               }
             }
             else if (numc.value > 0 && oldc == 0) {
                double s = maxContactScaling();
-               rescaleSolution (-0.9*s);
+               if (1 - 0.9*s < alpha) {
+                  alpha = 1 - 0.9*s;
+               }
                //System.out.println ("make contact scale " + (-0.9*s));
-               updateContacts (numc);
-               //System.out.println ("new numc=" + numc.value);
             }
+            // if (mySor != 1.0) {
+            //    rescaleSolution (mySor-1.0);
+            //    updateContacts (numc);
+            // }
+            if (alpha < 1.0) {
+               //System.out.println (
+               // "rescaling " + alpha + " " + noContactChangeCnt);
+
+               //rescaleSolution (alpha-1.0);
+               //updateContacts (numc);
+            }
+            
             double ltol = myLength*myLengthConvTol;
             if (!contactChanged) {
                double maxDisp = maxLateralDisplacement();
@@ -690,21 +856,22 @@ public class MultiPointSpring extends PointSpringBase
             }
          }
          while (++icnt < maxIter && !converged);
+         //checkStiffness();
          totalIterations += icnt;
          totalCalls++;
          if (converged) {
             if (icnt != 1) {
-               System.out.println ("converged, icnt="+icnt);
+               //System.out.println ("converged, icnt="+icnt);
             }
          }
          else {
-            System.out.println ("did not converge");
+            //System.out.println ("did not converge");
             totalFails++;
          }
-         if ((totalCalls % 50) == 0) {
-            System.out.println (
-               "fails=" + totalFails + "/" + totalCalls + "  avg icnt=" +
-               totalIterations/(double)totalCalls);
+         if ((totalCalls % 100) == 0) {
+            // System.out.println (
+            //    "fails=" + totalFails + "/" + totalCalls + "  avg icnt=" +
+            //    totalIterations/(double)totalCalls);
          }
       }
 
@@ -970,9 +1137,9 @@ public class MultiPointSpring extends PointSpringBase
          }
       }
 
-      public void transformGeometry (AffineTransform3dBase X) {
+      public void transformGeometry (GeometryTransformer gtr) {
          for (int k=0; k<myNumKnots; k++) {
-            myKnots[k].myPos.transform (X);
+            gtr.transformPnt (myKnots[k].myPos);
          }
       }
 
@@ -1122,6 +1289,10 @@ public class MultiPointSpring extends PointSpringBase
       myProps.add (
          "drawABPoints", "draw A and B points on wrapping obstacles",
          DEFAULT_DRAW_AB_POINTS);
+      myProps.add (
+         "sor", "successive overrelaxation parameter", 1.0);
+      myProps.add (
+         "dnrmGain", "gain for dnrm K term", 1.0);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -1201,6 +1372,47 @@ public class MultiPointSpring extends PointSpringBase
             "Segment "+segIdx+" is not defined");
       }
       return mySegments.get(segIdx).myPassiveP;
+   }
+
+   public int numKnots (int segIdx) {
+      if (segIdx >= numSegments()) {
+         throw new IndexOutOfBoundsException (
+            "Segment "+segIdx+" is not defined");
+      }
+      Segment seg = mySegments.get(segIdx);
+      if (seg instanceof WrapSegment) {
+         return ((WrapSegment)seg).myNumKnots;
+      }
+      else {
+         return 0;
+      }
+   }
+
+   public void checkStiffness (int segIdx) {
+      if (segIdx >= numSegments()) {
+         throw new IndexOutOfBoundsException (
+            "Segment "+segIdx+" is not defined");
+      }
+      Segment seg = mySegments.get(segIdx);
+      if (seg instanceof WrapSegment) {
+         WrapSegment wseg = (WrapSegment)seg;
+         wseg.checkStiffness();
+      }
+   }
+
+   public WrapKnot getKnot (int segIdx, int k) {
+      if (segIdx >= numSegments()) {
+         throw new IndexOutOfBoundsException (
+            "Segment "+segIdx+" is not defined");
+      }
+      Segment seg = mySegments.get(segIdx);
+      if (seg instanceof WrapSegment) {
+         WrapSegment wseg = (WrapSegment)seg;
+         if (k >= 0 && k < wseg.myNumKnots) {
+            return wseg.myKnots[k];
+         }
+      }
+      return null;
    }
 
    protected void updateSegsIfNecessary() {
@@ -1532,15 +1744,21 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
+      TransformGeometryContext.transform (this, X, 0);
    }
 
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      // just transform the segments. Via points and wrappables will be
+      // transformed elsewhere      
       for (int i=0; i<numSegments(); i++) {
-         mySegments.get(i).transformGeometry (X);
+         mySegments.get(i).transformGeometry (gtr);
       }
+   }
+   
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      // no dependencies
    }
 
    public double computeLength (boolean activeOnly) {

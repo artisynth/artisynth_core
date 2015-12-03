@@ -54,6 +54,8 @@ public class RigidTorus extends RigidBody implements Wrappable {
       setMesh (mesh, null);
       myOuterRadius = router;
       myInnerRadius = rinner;
+      myTransformConstrainer = 
+         new GeometryTransformer.UniformScalingConstrainer();
    }
 
    protected void writeItems (
@@ -223,7 +225,7 @@ public class RigidTorus extends RigidBody implements Wrappable {
 
       // start by testing pa to see if it is inside the torus. If it is, just
       // return the projection to the surface.
-      double d = penetrationDistance (nrm, pa);
+      double d = penetrationDistance (nrm, null, pa);
       if (d < 0) {
          pr.scaledAdd (-d, nrm, pa);
          return;
@@ -351,15 +353,42 @@ public class RigidTorus extends RigidBody implements Wrappable {
       }
    }
 
-   public double penetrationDistance (Vector3d nrm, Point3d p0) {
+   public double penetrationDistance (Vector3d nrm, Matrix3d dnrm, Point3d p0) {
       Point3d p0loc = new Point3d(p0);
       p0loc.inverseTransform (getPose());
 
       double d = penetrationDistanceLoc (nrm, p0loc);
+      if (dnrm != null) {
+         dnrm.setZero();
+      }
       if (d != 0 && d != -myInnerRadius) {
          nrm.transform (getPose());
       }
       return d;
    }
+
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+
+      // Update the inner and outer radii. The appropriate scaling is 
+      // determined by applying the transform constrainer to the local affine 
+      // transform induced by the transformation. 
+      if (gtr.isRestoring()) {
+         myInnerRadius = gtr.restoreObject (myInnerRadius);
+         myOuterRadius = gtr.restoreObject (myOuterRadius);
+      }
+      else {
+         if (gtr.isSaving()) {
+            gtr.saveObject (myInnerRadius);
+            gtr.saveObject (myOuterRadius);
+         }
+         AffineTransform3d XL = gtr.computeRightAffineTransform (getPose());
+         myTransformConstrainer.apply (XL);
+         myInnerRadius *= XL.A.m00;
+         myOuterRadius *= XL.A.m00;
+      }      
+      super.transformGeometry (gtr, context, flags);
+   }
+
 
 }

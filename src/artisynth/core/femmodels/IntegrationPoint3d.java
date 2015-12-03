@@ -284,7 +284,7 @@ public class IntegrationPoint3d {
    }
    
    /** 
-    * Updates and returnes the gradient dN/dx of the shape functions, given an
+    * Updates and returns the gradient dN/dx of the shape functions, given an
     * inverse Jacobian. The gradient is supplied as an array of 3-vectors, one
     * for each shape function, because this is more convenient for computation.
     *

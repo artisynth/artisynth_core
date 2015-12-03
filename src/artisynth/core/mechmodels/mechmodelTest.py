@@ -17,6 +17,7 @@ MechSystemSolver.myDefaultHybridSolveP = False
 MechSystemBase.setDefaultStabilization (PosStabilization.GlobalMass)
 FemModel3d.noIncompressStiffnessDamping = False
 SurfaceMeshCollider.useAjlCollision = False
+PardisoSolver.setDefaultNumThreads (1)
 
 #main.maskFocusStealing (True)
 dataFileName = "mechmodelTest.out"

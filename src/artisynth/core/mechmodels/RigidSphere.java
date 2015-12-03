@@ -42,6 +42,8 @@ public class RigidSphere extends RigidBody implements Wrappable {
       double mass = 4/3.0*Math.PI*r*r*r*density;
       setInertia (SpatialInertia.createSphereInertia (mass, r));
       myRadius = r;
+      myTransformConstrainer = 
+         new GeometryTransformer.UniformScalingConstrainer();
    }
 
    protected void writeItems (
@@ -119,19 +121,57 @@ public class RigidSphere extends RigidBody implements Wrappable {
       pr.transform (XBW, t0loc);
    }
 
-   public double penetrationDistance (Vector3d nrm, Point3d p0) {
+   public double penetrationDistance (Vector3d nrm, Matrix3d dnrm, Point3d p0) {
       Point3d p0loc = new Point3d(p0);
       p0loc.inverseTransform (getPose());
       nrm.set (p0loc);
       double mag = nrm.norm();
-      if (mag > 0) {
+      if (mag >= myRadius) {
+         return 0;
+      }
+      else if (mag > 0) {
          nrm.scale (1/mag);
       }
       else {
          nrm.set (1, 0, 0);
       }
+      if (dnrm != null) {
+         if (mag >= 0) {
+         // dnrm = (I - nrm nrm^T)/mag
+            dnrm.outerProduct (nrm, nrm);
+            dnrm.m00 -= 1;
+            dnrm.m11 -= 1;
+            dnrm.m22 -= 1;
+            dnrm.scale (-mag/myRadius);
+            dnrm.mul (getPose().R, dnrm);
+         }
+         else {
+            dnrm.setZero();
+         }
+      }
       nrm.transform (getPose());
       return mag - myRadius;
+   }
+
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+
+      // Update the radius. The appropriate scaling is determined by
+      // applying the transform constrainer to the local affine transform
+      // induced by the transformation. 
+      if (gtr.isRestoring()) {
+         myRadius = gtr.restoreObject (myRadius);
+      }
+      else {
+         if (gtr.isSaving()) {
+            gtr.saveObject (myRadius);
+         }
+         AffineTransform3d XL = gtr.computeRightAffineTransform (getPose());
+         myTransformConstrainer.apply (XL);
+         myRadius *= XL.A.m00;
+      }      
+      super.transformGeometry (gtr, context, flags);
+
    }
 
 }

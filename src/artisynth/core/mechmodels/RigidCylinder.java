@@ -14,6 +14,35 @@ public class RigidCylinder extends RigidBody implements Wrappable {
    
    double myRadius = 1.0;
 
+   private static double MACH_PREC = 1e-16;
+   
+   private class TransformConstrainer
+      implements GeometryTransformer.Constrainer {
+    
+      public void apply (AffineTransform3dBase X) {
+
+         // constrain the transform to uniform scaling in the x-y plane
+         if (X instanceof AffineTransform3d && 
+             !X.equals (AffineTransform3d.IDENTITY)) {
+            AffineTransform3d XA = (AffineTransform3d)X;
+
+            PolarDecomposition3d pd = null;
+            Matrix3d P = XA.A;
+            if (!P.isSymmetric (1000*MACH_PREC*P.oneNorm())) {
+               pd = new PolarDecomposition3d();
+               pd.factor (P);
+               P = pd.getP();
+            }
+            double sxy = Math.sqrt (Math.abs(P.m00*P.m11 - P.m01*P.m10));
+            double sz = P.m22;
+            XA.A.setDiagonal (sxy, sxy, sz);
+            if (pd != null) {
+               XA.A.mul (pd.getR(), XA.A);
+            }
+         }
+      }
+   }
+
    public RigidCylinder() {
       super (null);
    }
@@ -42,6 +71,7 @@ public class RigidCylinder extends RigidBody implements Wrappable {
       double mass = Math.PI*r*r*h*density;
       setInertia (SpatialInertia.createCylinderInertia (mass, r, h));
       myRadius = r;
+      myTransformConstrainer = new TransformConstrainer();
    }
 
    protected void writeItems (
@@ -109,20 +139,58 @@ public class RigidCylinder extends RigidBody implements Wrappable {
    }
 
 
-   public double penetrationDistance (Vector3d nrm, Point3d p0) {
+   public double penetrationDistance (Vector3d nrm, Matrix3d dnrm, Point3d p0) {
       Point3d p0loc = new Point3d(p0);
       p0loc.inverseTransform (getPose());
       nrm.set (p0loc);
       nrm.z = 0;
       double mag = nrm.norm();
-      if (mag > 0) {
+      if (mag >= myRadius) {
+         return 0;
+      }
+      else if (mag > 0) {
          nrm.scale (1/mag);
       }
       else {
          nrm.set (1, 0, 0);
       }
+      if (dnrm != null) {
+         if (mag > 0) {
+         // dnrm = (I - nrm nrm^T)/mag, but can be computed faster term by term
+            dnrm.setZero();
+            dnrm.m00 = nrm.y*nrm.y;
+            dnrm.m11 = nrm.x*nrm.x;
+            dnrm.m01 = -nrm.x*nrm.y;
+            dnrm.m10 = dnrm.m01;
+            dnrm.scale (mag/myRadius);
+            dnrm.mul (getPose().R, dnrm);
+         }
+         else {
+            dnrm.setZero();
+         }
+      }
       nrm.transform (getPose());
       return mag-myRadius;
+   }
+
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+
+      // Update the radius. The appropriate scaling is determined by
+      // applying the transform constrainer to the local affine transform
+      // induced by the transformation. 
+      if (gtr.isRestoring()) {
+         myRadius = gtr.restoreObject (myRadius);
+      }
+      else { 
+         if (gtr.isSaving()) {
+            gtr.saveObject (myRadius);
+         }
+         AffineTransform3d XL = gtr.computeRightAffineTransform (getPose());
+         myTransformConstrainer.apply (XL);
+         myRadius *= XL.A.m00;
+      }
+      super.transformGeometry (gtr, context, flags);
    }
 
 }

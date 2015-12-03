@@ -516,7 +516,6 @@ public class NativeLibraryManager {
    }
 
    NativeLibraryManager () {
-      myLibDir = null;
       myFlags = 0;
       mySystemType = determineSystemType();
       if (mySystemType == SystemType.Unknown) {
@@ -525,6 +524,7 @@ public class NativeLibraryManager {
             "cannot load native libraries");
       }
       myVersionStrPattern = Pattern.compile ("([^.]*)((\\.[0-9]+)+)$");
+      setDefaultLibDir();
    }
    
    void setLibDir (File libBaseDir) {
@@ -545,6 +545,19 @@ public class NativeLibraryManager {
             myLibDir+" already exists and is not a directory");
       }
       myExistingLibs = myLibDir.listFiles();
+   }
+
+   void setDefaultLibDir () {
+      // look for a default library directory in ../../../lib
+      String baseDir = PathFinder.expand ("${srcdir NativeLibraryManager}/../../../lib");
+      File libDir = new File (baseDir, getNativeDirectoryName());
+      if (libDir.exists() && libDir.isDirectory()) {
+         myLibDir = libDir;
+         myExistingLibs = myLibDir.listFiles();
+      }
+      else {
+         myLibDir = null;
+      }
    }
 
    String getFileName (LibDesc desc) {

@@ -15,7 +15,6 @@ import javax.swing.event.*;
 
 import artisynth.core.driver.*;
 import artisynth.core.modelbase.*;
-import artisynth.core.util.TransformableGeometry;
 import artisynth.core.gui.selectionManager.*;
 import maspack.matrix.*;
 import maspack.geometry.*;

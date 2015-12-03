@@ -149,18 +149,9 @@ public class Workspace {
       if (myRequestedUpdateAction == null) {
          myRequestedUpdateAction = new UpdateAction();
          Scheduler scheduler = myMain.getScheduler();
-         //JythonFrame jframe = myMain.getMain().getJythonFrame();
          if (scheduler.requestAction (myRequestedUpdateAction)) {
             //System.out.println ("$sched");
          }
-         // The need for this was removed now that all Jython actions
-         // execute in a separate thread, leaving Swing free ...
-         //
-         // else if (jframe != null &&
-         //          jframe.requestAction(myRequestedUpdateAction)) {
-         //    (new Throwable()).printStackTrace(); 
-         //    System.out.println ("$jframe");
-         // }
          else {
             SwingUtilities.invokeLater (myRequestedUpdateAction);
             //System.out.println ("$swing");
@@ -171,6 +162,17 @@ public class Workspace {
    public synchronized void rerender() {
       myRenderRequested = true;
       requestUpdateAction ();
+   }
+   
+   public void waitForRerender() {
+      while (myRenderRequested) {
+         try {
+            Thread.sleep (1);            
+         }
+        catch (Exception e) {
+           // ignore
+        }
+      }
    }
 
    public synchronized void rewidgetUpdate() {

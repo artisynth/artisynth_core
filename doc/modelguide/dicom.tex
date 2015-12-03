@@ -156,7 +156,7 @@ three main properties:
 \item a \emph{value representation} (VR)
 \item a value
 \end{tightemize}
-These properties can be obtained using the corresponding \lstinline{get} function: \lstinline{getTag()}, \lstinline{getVR()}, \lstinline{getValue()}.  The tag refers to the concatenated group/element tag. For example, the \emph{transfer syntax UID} which corresponds to group 0x0002 and element 0x0010 has a numeric tag of 0x00020010. The VR is represented by an enumerated type, \javaclass[maspack.dicom]{DicomElement.VR}.  The `value' is the \emph{raw} value extracted from the DICOM file.  In most cases, this will be a \lstinline{String}.  For raw numeric values (i.e.~stored in the DICOM file in binary form) such as the unsigned short (US), the `value' property is exactly the numeric value.
+These properties can be obtained using the corresponding \lstinline{get} function: \lstinline{getTag()}, \lstinline{getVR()}, \lstinline{getValue()}.  The tag refers to the concatenated group/element tag. For example, the \emph{transfer syntax UID} which corresponds to group 0x0002 and element 0x0010 has a numeric tag of 0x00020010. The VR is represented by an enumerated type, \javaclass[maspack.dicom]{DicomElement\#VR}.  The `value' is the \emph{raw} value extracted from the DICOM file.  In most cases, this will be a \lstinline{String}.  For raw numeric values (i.e.~stored in the DICOM file in binary form) such as the unsigned short (US), the `value' property is exactly the numeric value.
 
 For VRs such as the integer string (IS) or decimal string (DS), the string will still need to be parsed in order to extract the appropriate sequence of numeric values.  There are static utility functions for handling this within \lstinline{DicomElement}.  For a `best-guess' of the desired parsed value based on the VR, one can use the method \lstinline{getParsedValue()}.  Often, however, the desired value is also context-dependent, so the user should know a priori what type of value(s) to expect.  Parsing can also be done automatically by querying for values directly through the \lstinline{DicomHeader} object.  
 
@@ -198,10 +198,18 @@ using \lstinline{getPixel(idx)} to get a single pixel, or \lstinline{getBuffer()
 entire pixel buffer.  Alternatively, a \javaclass[maspack.dicom]{DicomPixelConverter} object
 can be passed in to convert between pixel types via one of the following methods:
 \begin{lstlisting}[]
-public int getPixelsByte(int x, int dx, int nx, byte[] pixels, int offset, DicomPixelConverter interp);
-public int getPixelsShort(int x, int dx, int nx, short[] pixels, int offset, DicomPixelConverter interp);
-public int getPixelsRGB(int x, int dx, int nx, byte[] pixels, int offset, DicomPixelConverter interp);
-public int getPixels(int x, int dx, int nx, DicomPixelBuffer pixels, int offset, DicomPixelConverter interp);
+public int getPixelsByte (
+   int x, int dx, int nx, byte[] pixels, int offset, DicomPixelConverter interp);
+
+public int getPixelsShort (
+   int x, int dx, int nx, short[] pixels, int offset, DicomPixelConverter interp);
+
+public int getPixelsRGB (
+   int x, int dx, int nx, byte[] pixels, int offset, DicomPixelConverter interp);
+
+public int getPixels(
+   int x, int dx, int nx, DicomPixelBuffer pixels, int offset, 
+   DicomPixelConverter interp);
 \end{lstlisting}
 These methods populate an output array or buffer with converted pixel values, which can later
 be passed to a renderer.  For further details on these methods, refer to the Javadoc documentation.
@@ -227,10 +235,21 @@ which keeps track of the spatial and temporal positions.
 The \lstinline{DicomImage} is the main object to query for pixels in 3D(+time).  To access pixels,
 it has the following methods:
 \begin{lstlisting}[]
-public int getPixelsByte (int x, int y, int z, int dx, int dy, int dz, int nx, int ny, int nz, int time, byte[] pixels, DicomPixelConverter interp);
-public int getPixelsShort(int x, int y, int z, int dx, int dy, int dz, int nx, int ny, int nz, int time, short[] pixels, DicomPixelConverter interp);
-public int getPixelsRGB  (int x, int y, int z, int dx, int dy, int dz, int nx, int ny, int nz, int time, byte[] pixels, DicomPixelConverter interp);
-public int getPixels(int x, int y, int z, int dx, int dy, int dz, int nx, int ny, int nz, int time, DicomPixelBuffer pixels, DicomPixelConverter interp);
+public int getPixelsByte (
+   int x, int y, int z, int dx, int dy, int dz, int nx, int ny, int nz, 
+   int time, byte[] pixels, DicomPixelConverter interp);
+
+public int getPixelsShort (
+   int x, int y, int z, int dx, int dy, int dz, int nx, int ny, int nz, 
+   int time, short[] pixels, DicomPixelConverter interp);
+
+public int getPixelsRGB (
+   int x, int y, int z, int dx, int dy, int dz, int nx, int ny, int nz, 
+   int time, byte[] pixels, DicomPixelConverter interp);
+
+public int getPixels (
+   int x, int y, int z, int dx, int dy, int dz, int nx, int ny, int nz, 
+   int time, DicomPixelBuffer pixels, DicomPixelConverter interp);
 \end{lstlisting}
 The inputs \{\lstinline{x, y, z}\} refer to voxel indices, and \lstinline{time} refers to the time instance index, starting at zero.  The four voxel dimensions of the image can be queried with: \lstinline{getNumCols()} \lstinline{getNumRows()}, \lstinline{getNumSlices()}, and \lstinline{getNumTimes()}.
 
@@ -286,7 +305,8 @@ might be stored in a separate DICOM folder.  For this reason, additional read me
 been added that allow manual specification of the time index:
 \begin{lstlisting}[]
 public DicomImage read(DicomImage im, List<File> files, int temporalPosition);
-public DicomImage read(DicomImage im, String directory, Pattern filePattern, boolean checkSubdirectories, int temporalPosition);
+public DicomImage read(DicomImage im, String directory, Pattern filePattern, 
+                       boolean checkSubdirectories, int temporalPosition);
 \end{lstlisting}
 If the supplied \lstinline{temporalPosition} is non-negative, then the temporal
 position of all included files will be manually set to that value.  If negative,
@@ -328,32 +348,96 @@ so that ArtiSynth can locate the \texttt{identify} and \texttt{convert} utilitie
 Once a \lstinline{DicomImage} is loaded, it can be displayed in a model by using the
 \javaclass[artisynth.core.renderables]{DicomViewer} component.  The viewer
 has several key properties:
-\begin{center}
-   \begin{tabular}{|lp{0.7\textwidth}|}
-      \hline
-      Property & Description\\
-      \hline
-      {\tt name} & the name of the viewer component\\
-      {\tt x, y, z} & the \emph{normalized} slice positions, in the range [0,1], at which to display image planes\\
-      {\tt timeIndex} & the temporal position (image stack) to display\\
-      {\tt transform} & an affine transformation to apply to the image (on
-      top of the voxel-to-spatial transform extracted from the DICOM file)\\
-      {\tt drawYZ} & draw the YZ plane, corresponding to position \texttt{x}\\
-      {\tt drawXZ} & draw the XZ plane, corresponding to position \texttt{y}\\
-      {\tt drawXY} & draw the XY plane, corresponding to position \texttt{z}\\
-      {\tt drawBox} & draw the 3D image's bounding box\\
-      {\tt pixelConverter} & the interpolator responsible for converting pixels
-      decoded in the DICOM slices into values appropriate for display.  The converter
-      has additional properties:\\
-      &
-      \begin{tabular}{ll}
-         {\tt window} & name of a preset window for linear interpolation of intensities\\
-         {\tt center} & center intensity\\
-         {\tt width} & width of window
-      \end{tabular}\\
-      \hline
-   \end{tabular}
-\end{center}
+
+% John Lloyd: replaced table with description list, since it looks much neater
+% in the LaTeX ML 
+\begin{description}
+
+\item[name]\mbox{}
+
+the name of the viewer component
+
+\item[x, y, z]\mbox{}
+
+the \emph{normalized} slice positions, in the range [0,1], at which to
+display image planes
+
+\item[timeIndex]\mbox{}
+
+the temporal position (image stack) to display
+
+\item[transform]\mbox{}
+
+an affine transformation to apply to the image (on
+top of the voxel-to-spatial transform extracted from the DICOM file)
+
+\item[drawYZ]\mbox{}
+
+draw the YZ plane, corresponding to position \texttt{x}
+
+\item[drawXZ]\mbox{}
+
+draw the XZ plane, corresponding to position \texttt{y}
+
+\item[drawXY]\mbox{}
+
+draw the XY plane, corresponding to position \texttt{z}
+
+\item[drawBox]\mbox{}
+
+draw the 3D image's bounding box
+
+\item[pixelConverter]\mbox{}
+
+the interpolator responsible for converting pixels
+decoded in the DICOM slices into values appropriate for display.
+The converter has additional properties:
+
+\begin{description}
+
+\item[window]\mbox{}
+
+name of a preset window for linear interpolation of intensities
+
+\item[center]\mbox{}
+
+center intensity
+
+\item[width]\mbox{}
+
+width of window
+
+\end{description}
+
+\end{description}
+
+%\begin{center}
+%   \begin{tabular}{|lp{0.7\textwidth}|}
+%      \hline
+%      Property & Description\\
+%      \hline
+%      {\tt name} & the name of the viewer component\\
+%      {\tt x, y, z} & the \emph{normalized} slice positions, in the range [0,1], at which to display image planes\\
+%      {\tt timeIndex} & the temporal position (image stack) to display\\
+%      {\tt transform} & an affine transformation to apply to the image (on
+%      top of the voxel-to-spatial transform extracted from the DICOM file)\\
+%      {\tt drawYZ} & draw the YZ plane, corresponding to position \texttt{x}\\
+%      {\tt drawXZ} & draw the XZ plane, corresponding to position \texttt{y}\\
+%      {\tt drawXY} & draw the XY plane, corresponding to position \texttt{z}\\
+%      {\tt drawBox} & draw the 3D image's bounding box\\
+%      {\tt pixelConverter} & the interpolator responsible for converting pixels
+%      decoded in the DICOM slices into values appropriate for display.  The converter
+%      has additional properties:\\
+%      &
+%      \begin{tabular}{ll}
+%         {\tt window} & name of a preset window for linear interpolation of intensities\\
+%         {\tt center} & center intensity\\
+%         {\tt width} & width of window
+%      \end{tabular}\\
+%      \hline
+%   \end{tabular}
+%\end{center}
+
 Each property has a corresponding \lstinline{getXxx(...)} and \lstinline{setXxx(...)} method that can
 adjust the settings in code.  They can also be modified directly in the ArtiSynth GUI.  The
 last property, the \lstinline{pixelConverter} allows for shifting and scaling intensity values for display.  

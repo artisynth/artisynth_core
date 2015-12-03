@@ -184,7 +184,19 @@ public class LinearFrameMaterial extends FrameMaterial {
    }
 
    public boolean equals (FrameMaterial mat) {
-      return true;
+      if (!(mat instanceof LinearFrameMaterial)) {
+         return false;
+      }
+      LinearFrameMaterial lm = (LinearFrameMaterial)mat;
+      if (!myK.equals (lm.myK) ||
+          !myD.equals (lm.myD) ||
+          !myRotK.equals (lm.myRotK) ||
+          !myRotD.equals (lm.myRotD)) {
+         return false;
+      }
+      else {
+         return super.equals (mat);
+      }
    }
 
    public LinearFrameMaterial clone() {

@@ -8,6 +8,7 @@ package maspack.spatialmotion;
 
 import java.util.ArrayList;
 
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Plane;
 import maspack.matrix.Point3d;
@@ -236,41 +237,15 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
       makePlanesFromSegments (myPoints);
    }
 
-//   public void transformGeometry (
-//      AffineTransform3dBase X, RigidTransform3d XAW, RigidTransform3d XBW) {
-//
-//      RigidTransform3d TDW = new RigidTransform3d();
-//      TDW.mul (XBW, myXDB);
-//
-//      // first transform points by X TDW
-//      for (int i = 0; i < myPoints.size(); i++) {
-//         myPoints.get(i).transform (TDW);
-//         myPoints.get(i).transform (X);
-//      }
-//      // now apply X to D
-//
-//      super.transformGeometry (X, XAW, XBW);
-//      // reset TDW from new D and transform points back to D
-//      TDW.mul (XBW, myXDB);
-//      for (int i = 0; i < myPoints.size(); i++) {
-//         myPoints.get(i).inverseTransform (TDW);
-//      }
-//      makePlanesFromSegments (myPoints);
-//
-//      //super.transformGeometry (X, XAW, XBW);
-//   }
-   
    public void transformGeometry (
-      AffineTransform3dBase X, RotationMatrix3d Ra, 
-      RigidTransform3d TFW, RigidTransform3d TDW) {
+      GeometryTransformer gt,  RigidTransform3d TFW, RigidTransform3d TDW) {
       
-      // transform points by TDW.R^T Ra^T X.M TDW.R
+      // transform points by inv(TDW) gt TDW
       for (int i = 0; i < myPoints.size(); i++) {
          Point3d pnt = myPoints.get(i);
-         pnt.transform (TDW.R);
-         X.getMatrix().mul (pnt, pnt);
-         pnt.inverseTransform (Ra);
-         pnt.inverseTransform (TDW.R);
+         pnt.transform (TDW);
+         gt.transformPnt (pnt);
+         pnt.inverseTransform (TDW);
       }
       makePlanesFromSegments (myPoints);
    }
@@ -288,3 +263,15 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
    // }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+

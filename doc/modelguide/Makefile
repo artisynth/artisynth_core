@@ -13,6 +13,7 @@ SOURCES = \
 	mechanicalModelsII.tex \
 	simulationControl.tex \
 	femModels.tex \
+        dicom.tex \
 	appendix.tex
 
 .PHONY: html pdf chunked

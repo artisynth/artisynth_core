@@ -25,11 +25,14 @@ import javax.swing.*;
 import maspack.collision.SurfaceMeshCollider;
 import maspack.geometry.ConstrainedTranslator3d;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.GeometryTransformer;
+import maspack.geometry.GeometryTransformer.UndoState;
 import maspack.graph.Tree;
 import maspack.matrix.*;
 import maspack.render.*;
 import maspack.render.GLRenderer.SelectionHighlighting;
 import maspack.util.*;
+import maspack.solvers.PardisoSolver;
 import maspack.widgets.ButtonMasks;
 import maspack.widgets.PropertyWindow;
 import maspack.widgets.RenderPropsDialog;
@@ -53,7 +56,6 @@ import artisynth.core.gui.timeline.TimelineController;
 import artisynth.core.inverse.InverseManager;
 import artisynth.core.mechmodels.MechSystemSolver.PosStabilization;
 import artisynth.core.modelbase.*;
-import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.probes.WayPoint;
 import artisynth.core.probes.Probe;
 import artisynth.core.probes.NumericProbeBase;
@@ -121,6 +123,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    private Vector3d myVec = new Vector3d();
 
+   protected boolean myUndoTransformsWithInverse = false;
+
    public Vector3d getVector() {
       return myVec;
    }
@@ -162,6 +166,14 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    public static boolean isRunningUnderMatlab () {
       return myRunningUnderMatlab;
+   }
+
+   public void setUndoTransformsWithInverse (boolean enable) {
+      myUndoTransformsWithInverse = enable;
+   }
+
+   public boolean getUndoTransformsWithInverse () {
+      return myUndoTransformsWithInverse;
    }
 
    // MovieOptions movieOptions = new MovieOptions();
@@ -429,6 +441,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // need to create selection manager before MainFrame, becuase
       // some things in MainFrame will assume it exists
       mySelectionManager = new SelectionManager();
+
 
       if (width > 0) {
          ToolTipManager.sharedInstance().setLightWeightPopupEnabled (false);
@@ -1049,10 +1062,21 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return null;
    }
 
+   private void updateApplicationMenuPresent (RootModel root) {
+      myMenuBarHandler.setApplicationMenuEnabled (
+            myMenuBarHandler.getApplicationMenuItems (root) != null);
+   }
+
    public void setRootModel (
       RootModel newRoot, String modelName, String[] modelArgs) {
       
       myModelName = modelName;
+      if (modelArgs != null) {
+         myModelArgs = Arrays.copyOf (modelArgs, modelArgs.length);
+      }
+      else {
+         myModelArgs = null;
+      }
       //CompositeUtils.testPaths (newRoot);
 
       double maxStepSize = newRoot.getMaxStepSize();
@@ -1065,9 +1089,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
       // need to explicitly set number since root model doesn't have a parent
       newRoot.setNumber (0);
-      getWorkspace().setRootModel (newRoot);
-      newRoot.addComponentChangeListener (this);
 
+      //newRoot.addComponentChangeListener (this);
+      getWorkspace().setRootModel (newRoot);
       // mainViewer should already be set if constructed with build() method:
       newRoot.setMainViewer (myViewer); 
 
@@ -1106,15 +1130,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
          getWorkspace().setViewerManager (myViewerManager);
       }
 
-      // This may generate render and widget update requests, if attach causes
-      // any structural changes. That's why this is called *after*
-      // timeline.reset(), because that has a window in which widget updates
-      // will crash.
-      newRoot.attach (this);
-
       if (myFrame != null) {
-         myMenuBarHandler.setModelMenuEnabled (
-            newRoot.getModelMenuItems() != null);
+         updateApplicationMenuPresent (newRoot);
 
          // notify the frame root model is loaded
          myFrame.notifyRootModelLoaded();
@@ -1125,9 +1142,18 @@ public class Main implements DriverInterface, ComponentChangeListener {
          if (mySelectionMode == SelectionMode.Pull) {
             myPullController.clear();
             newRoot.addController (
-               myPullController, findMechSystem(getRootModel()));
+               myPullController, findMechSystem(newRoot));
          }
       }
+      //
+      // Add this now since we don't want Main.componentChanged() being called
+      // while the model is being built. 
+      // 
+      newRoot.addComponentChangeListener (this);
+
+      // Component change listener is now active, and so will be called in
+      // response to any change events that are dispatched within attach().
+      newRoot.attach (this);
    }
 
    private class LoadModelRunner implements Runnable {
@@ -1173,6 +1199,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected RootModel createRootModel (
       Class<?> demoClass, String modelName, String[] args) {
 
+      // reset in case previous model set this to false:
+      ModelComponentBase.enforceUniqueNames = true;
       if (args == null) {
          args = new String[0];
       }
@@ -1269,15 +1297,12 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // getWorkspace().getWayPoints().clear();
       int numLoads = 1; // set to a large number for testing memory leaks
       for (int i = 0; i < numLoads; i++) {
-         if (modelArgs != null) {
-            System.out.println ("modelArgs.length=" + modelArgs.length);
-         }
          newRoot = createRootModel (demoClass, modelName, modelArgs);
          if (newRoot == null) {
             // load empty model since some state info from existing model 
             // has been cleared, causing it to crash
             loadModel (
-               "artisynth.core.workspace.RootModel", "ArtiSynth", modelArgs);
+               "artisynth.core.workspace.RootModel", "EmptyModel", modelArgs);
             if (myViewerManager != null) {
                myViewerManager.render();
             }
@@ -1302,6 +1327,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          // text for that selected component remains when a new model is loaded
          myFrame.getSelectCompPanelHandler().clear();
          myFrame.getSelectCompPanelHandler().setComponentFilter (null);
+         myFrame.setBaseTitle ("ArtiSynth " + modelName);
       }
 
       return true;
@@ -1415,7 +1441,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * rerender all viewers and update all widgets
     */
    public void rerender() {
-      if (myWorkspace != null) {
+      if (myFrame != null && myWorkspace != null) {
          myWorkspace.rerender();
       }
    }
@@ -1461,6 +1487,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       new BooleanHolder (false);
    protected static BooleanHolder disableHybridSolves =
       new BooleanHolder (false);
+   protected static IntHolder numSolverThreads =
+      new IntHolder (-1);
    protected static StringHolder posCorrection =
       new StringHolder ("Default");
 
@@ -1551,6 +1579,18 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    /**
+    * On Windows, we have sometimes seen that Pardiso getNumThreads() needs to
+    * be called early, or otherwise the maximum number of threads returned by
+    * mkl_get_max_threads() becomes fixed at 1. In particular, we seem to have
+    * to do this before models are loaded.
+    */
+   private static void fixPardisoThreadCountHack() {
+      PardisoSolver solver = new PardisoSolver();
+      solver.getNumThreads();
+      solver.dispose();
+   }
+
+   /**
     * the main entry point
     * 
     * @param args
@@ -1615,6 +1655,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       parser.addOption (
          "-disableHybridSolves %v #disable hybrid linear solves",
          disableHybridSolves);
+      parser.addOption (
+         "-numSolverThreads %d #number of threads to use for linear solver",
+         numSolverThreads);
       parser.addOption (
          "-posCorrection %s{Default,GlobalMass,GlobalStiffness} "+
             "#position correction mode",
@@ -1740,6 +1783,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
 
       MechSystemSolver.myDefaultHybridSolveP = !disableHybridSolves.value;
+      if (numSolverThreads.value > 0) {
+         PardisoSolver.setDefaultNumThreads (numSolverThreads.value);
+      }
+      
       FemModel3d.abortOnInvertedElems = abortOnInvertedElems.value;
 //      if (posCorrection.value.equals ("Default")) {
 //         MechSystemBase.setDefaultStabilization (PosStabilization.Default);
@@ -1782,6 +1829,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       m.start (
          startWithTimeline.value, timelineRight.value, largeTimeline.value);
 
+      if (System.getProperty ("os.name").contains ("Windows")) {
+         fixPardisoThreadCountHack(); // XXX see function docs
+      }
+      
       m.verifyNativeLibraries (updateLibs.value);
 
       // we put.setOrthographicView *after* start because otherwise it sets up
@@ -1793,27 +1844,44 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
 
       if (modelName.value != null) {
-         String className = m.getDemoClassName (modelName.value);
-         if (className == null) {
-            System.out.println ("No class associated with model name "
-               + modelName.value);
-            m.setRootModel (new RootModel(), null, null);
-         }
-         else {
-            String name = modelName.value;
-            if (name.indexOf ('.') != -1) {
-               name = name.substring (name.lastIndexOf ('.') + 1);
-               if (name.length() == 0) {
-                  name = "Unknown";
-               }
+         // load the specified model. See first if the name corresponds to a file
+         File file = new File (modelName.value);
+         if (file.exists() && file.canRead()) {
+            try {
+               m.loadModelFile (file);
             }
-            // load the model
-            m.loadModel (className, name, modelArgs.toArray(new String[0]));
+            catch (IOException e) {
+               System.out.println (
+                  "Error reading or loading model file " + modelName.value);
+               e.printStackTrace(); 
+               m.setRootModel (new RootModel(), null, null);
+            }
+         }
+         // otherwise, try to determine the model from the class name or alias
+         else {
+            String className = m.getDemoClassName (modelName.value);
+            if (className == null) {
+               System.out.println ("No class associated with model name "
+                                   + modelName.value);
+               m.setRootModel (new RootModel(), null, null);
+            }
+            else {
+               String name = modelName.value;
+               if (name.indexOf ('.') != -1) {
+                  name = name.substring (name.lastIndexOf ('.') + 1);
+                  if (name.length() == 0) {
+                     name = "Unknown";
+                  }
+               }
+               // load the model
+               m.loadModel (className, name, modelArgs.toArray(new String[0]));
+            }
          }
       }
       else {
          m.setRootModel (new RootModel(), null, null);
       }
+
       if (exitOnBreak.value) {
          m.myScheduler.addListener (new QuitOnBreakListener(m));
       }
@@ -1971,7 +2039,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    
    public void reloadModel() throws IOException {
       if (myModelFile != null) {
-         loadModelFile(myModelFile);
+         loadModelFile (myModelFile);
       } else {
          RootModel root = getRootModel();
          if (root != null) {
@@ -2147,13 +2215,18 @@ public class Main implements DriverInterface, ComponentChangeListener {
          e.getCode() == ComponentChangeEvent.Code.DYNAMIC_ACTIVITY_CHANGED) {
          boolean invalidateWaypoints = false;
          RootModel root = getRootModel();
+         ModelComponent c = e.getComponent();
+         if (myFrame != null && c != null &&
+             (c == root || c.getParent() == root)) {
+            updateApplicationMenuPresent (root);
+         }
          if (root != null) {
             invalidateWaypoints = changeAffectsWaypoints(root, e);
             if (invalidateWaypoints) {
                root.getWayPoints().invalidateAfterTime(0);
             }
          }
-         ModelComponent c = e.getComponent();
+
          if (myTimeline != null) {
             if (root != null && c == root.getWayPoints()) {
                myTimeline.requestUpdateWidgets();
@@ -2170,6 +2243,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
                    (c == root.getInputProbes() || c == root.getOutputProbes())) {
                   myTimeline.updateProbes();
                }
+            }
+            if (!getScheduler().isPlaying()) {
+               rerender();
             }
          }
          if (invalidateWaypoints && !myScheduler.isPlaying()) {
@@ -2321,25 +2397,24 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    private class TransformAction implements Runnable {
-      TransformComponentsCommand myTransformCmd;
 
-      TransformAction (TransformComponentsCommand cmd) {
-         try {
-            myTransformCmd = cmd.clone();
-         }
-         catch (Exception e) {
-            throw new InternalErrorException (
-               "Clone not supported for TransformComponentsCommand");
-         }
+      TransformComponentsCommand myTransformCmd;
+      GeometryTransformer myGt;
+
+      TransformAction (GeometryTransformer gtr, TransformComponentsCommand cmd) {
+         myTransformCmd = cmd;
+         myGt = gtr;
       }
 
       public void run() {
-         myTransformCmd.execute();
+         myTransformCmd.transform (myGt);
       }
    }
 
    private class Dragger3dHandler extends Dragger3dAdapter {
+
       TransformComponentsCommand myTransformCmd;
+      GeometryTransformer myGtr;
 
       /**
        * Modify the transform so that it will act with respect to the dragger's
@@ -2399,11 +2474,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
          else if (dragger instanceof Rotator3d) {
             name = "rotation";
          }
-         else if (dragger instanceof Transrotator3d) {
-            name = "transrotation";
-         }
          else if (dragger instanceof RotatableScaler3d) {
             name = "scaling";
+         }
+         else if (dragger instanceof Transrotator3d) {
+            name = "transrotation";
          }
          else {
             throw new InternalErrorException (
@@ -2411,37 +2486,51 @@ public class Main implements DriverInterface, ComponentChangeListener {
          }
          int flags = 0;
          if (myArticulatedTransformsP && name != "scaling") {
-            flags |= TransformableGeometry.ARTICULATED;
+            flags |= TransformableGeometry.TG_ARTICULATED;
          }
          if (isSimulating()) {
-            flags |= TransformableGeometry.SIMULATING;
+            flags |= TransformableGeometry.TG_SIMULATING;
          }
+         myGtr = GeometryTransformer.create (getIncrementalTransform (e)); 
          myTransformCmd =
             new TransformComponentsCommand (
                name, (LinkedList<ModelComponent>)myDraggableComponents.clone(),
-               getIncrementalTransform (e), flags);
+               myGtr, flags);
+         if (!myUndoTransformsWithInverse) {
+            myGtr.setUndoState (UndoState.SAVING);
+            myTransformCmd.setUndoWithInverse (false);
+         }
       }
 
-      private void requestExecution () {
-         if (!myScheduler.requestAction (new TransformAction (myTransformCmd))) {
-            myTransformCmd.execute();
+      private void requestExecution (GeometryTransformer gtr) {
+         if (!myScheduler.requestAction (
+                new TransformAction (gtr, myTransformCmd))) {
+            myTransformCmd.transform (gtr);
          }
       }
 
       public void draggerBegin (Dragger3dEvent e) {
          createTransformCommand (e);
-         requestExecution();
+         requestExecution(myGtr);
       }
 
       public void draggerMove (Dragger3dEvent e) {
-         myTransformCmd.setTransform (getIncrementalTransform (e));
-         requestExecution();
+         GeometryTransformer gtr = 
+            GeometryTransformer.create(getIncrementalTransform (e));
+         requestExecution (gtr);
       }
 
       public void draggerEnd (Dragger3dEvent e) {
-         myTransformCmd.setTransform (getIncrementalTransform (e));
-         requestExecution();
-         myTransformCmd.setTransform (getOverallTransform (e));
+         GeometryTransformer gtr = 
+            GeometryTransformer.create(getIncrementalTransform (e));
+         requestExecution (gtr);
+         if (myUndoTransformsWithInverse) {
+            myTransformCmd.setTransformer (
+               GeometryTransformer.create(getOverallTransform (e)));
+         }
+         else {
+            myTransformCmd.setTransformer (myGtr);
+         }
          myUndoManager.addCommand (myTransformCmd);
       }
    }
@@ -2719,112 +2808,12 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
-   // allows lines of the form "size=[ xxx yyy ]" to match regardless of the
-   // numbers, because the UI can make control panel size hard to repeat
-   // exactly
-   private boolean isSizeLine (String line) {
-      ReaderTokenizer rtok =
-         new ReaderTokenizer (new StringReader (line));
-      try {
-         rtok.scanWord ("size");
-         rtok.scanToken ('=');
-         rtok.scanToken ('[');
-         rtok.scanNumber();
-         rtok.scanNumber();
-         rtok.scanToken (']');
-      }
-      catch (Exception e) {
-         return false;
-      }
-      return true;
-   }
-
-   private boolean linesMatch (String line0, String line1) {
-      if (line0.equals(line1)) {
-         return true;
-      }
-      else if (isSizeLine (line0) && isSizeLine (line1)) {
-         return true;
-      }
-      else {
-         return false;
-      }
-   }
-
-   private String compareFiles (String saveFileName, String checkFileName)
-      throws IOException {
-
-      LineNumberReader reader0 =
-         new LineNumberReader (
-            new BufferedReader (new FileReader (saveFileName)));
-      LineNumberReader reader1 =
-         new LineNumberReader (
-            new BufferedReader (new FileReader (checkFileName)));
-
-      String line0, line1;
-      while ((line0 = reader0.readLine()) != null) {
-         line1 = reader1.readLine();
-         if (line1 == null) {
-            reader0.close();
-            reader1.close();
-            return (
-               "check file '"+checkFileName+
-               "' ends prematurely, line "+reader1.getLineNumber());
-         }
-         else if (!linesMatch(line0, line1)) {
-            reader0.close();
-            reader1.close();
-            return (
-               "save and check files '"+saveFileName+"' and '"+checkFileName+
-               "' differ at line "+reader0.getLineNumber()+
-               ":\n"+line0+"\nvs.\n"+line1);
-         }
-      }
-      closeQuietly(reader0);
-      closeQuietly(reader1);
-      return null;
-   }
-
    private void delay (int msec) {
       try {
          Thread.sleep (1000);
       }
       catch (Exception e) {
       }
-   }
-
-   public String testSaveAndLoad (String baseFileName, String fmtStr) {
-      if (getRootModel() == null) {
-         return ("No root model loaded");
-      }
-      try {
-         System.out.println (
-            "testing saveAndLoad for " + getRootModel().getName() + " ...");
-         String saveFileName = baseFileName + ".art";
-         String checkFileName = baseFileName + ".chk";
-
-         File saveFile = new File (saveFileName);
-         File checkFile = new File (checkFileName);
-         saveModelFile (saveFile, fmtStr);
-         
-         loadModelFile (saveFile);
-         saveModelFile (checkFile, fmtStr);
-
-         String compareError = compareFiles (saveFileName, checkFileName);
-         if (compareError != null) {
-            return compareError;
-         }
-         else {
-            saveFile.delete();
-            checkFile.delete();
-         }
-         System.out.println ("OK");
-      }
-      catch (Exception e) {
-         e.printStackTrace(); 
-         return "IO Exception";
-      }
-      return null;
    }
 
    public void screenShot(String filename) {
@@ -2858,8 +2847,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          // this version of the FGLRX driver has a bug that causes the JVM to
          // crash in XQueryExtension on exit, so instead we exit directly.
          System.out.println ("Fglrx driver detected; exiting directly");
-         maspack.solvers.PardisoSolver solver =
-            new maspack.solvers.PardisoSolver();
+         PardisoSolver solver = new PardisoSolver();
          solver.systemExit (code);
       }
       else if (myRunningUnderMatlab) {

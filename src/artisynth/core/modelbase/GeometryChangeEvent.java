@@ -7,19 +7,20 @@
 package artisynth.core.modelbase;
 
 import maspack.matrix.*;
+import maspack.geometry.GeometryTransformer;
 
 /**
  * Reports changes in component geometry.
  */
 public class GeometryChangeEvent extends ComponentChangeEvent {
-   private AffineTransform3dBase myX;
+   private GeometryTransformer myTransformer;
 
-   public GeometryChangeEvent (ModelComponent comp, AffineTransform3dBase X) {
+   public GeometryChangeEvent (ModelComponent comp, GeometryTransformer gtr) {
       super (Code.GEOMETRY_CHANGED, comp);
-      myX = X.clone();
+      myTransformer = gtr;
    }
 
-   public AffineTransform3dBase getTransform() {
-      return myX;
+   public GeometryTransformer getTransformer() {
+      return myTransformer;
    }
 }

@@ -20,6 +20,7 @@ import maspack.geometry.Boundable;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.DenseMatrix;
 import maspack.matrix.EigenDecomposition;
@@ -76,8 +77,9 @@ import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.modelbase.StepAdjustment;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScalableUnits;
-import artisynth.core.util.TransformableGeometry;
 
 public class MFreeModel3d extends FemModel implements TransformableGeometry,
    ScalableUnits, MechSystemModel,
@@ -1555,13 +1557,23 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
       myBVTreeValid = false;
    }
 
+   private void handleGeometryChange() {
+      
+      myBVTreeValid = false;
+      invalidateStressAndStiffness();
+      updatePosState(); // should this be updateSlavePos()?
+   }
+
    public void componentChanged(ComponentChangeEvent e) {
-      if (e.getComponent() == myElements || e.getComponent() == myNodes) {
-         invalidateSurfaceMesh();
-      }
-      clearCachedData();
       if (e.getCode() == ComponentChangeEvent.Code.STRUCTURE_CHANGED) {
+         if (e.getComponent() == myElements || e.getComponent() == myNodes) {
+            invalidateSurfaceMesh();
+         }
+         clearCachedData();
          // should invalidate elasticity
+      }
+      else if (e.getCode() == ComponentChangeEvent.Code.GEOMETRY_CHANGED) { 
+         handleGeometryChange();
       }
       notifyParentOfChange(e);
    }
@@ -1679,7 +1691,13 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
    public double updateConstraints(double t, int flags) {
       return 0;
    }
-
+   
+   public void getConstrainedComponents (List<DynamicComponent> list) {
+      if (getHardIncompMethod() != IncompMethod.OFF) {
+         list.addAll (myNodes);
+      }
+   }
+   
    public int setBilateralImpulses(VectorNd lam, double h, int idx) {
       return idx;
    }
@@ -1728,32 +1746,36 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
    }
 
    public void transformGeometry(AffineTransform3dBase X) {
-      transformGeometry(X, this, 0);
+      TransformGeometryContext.transform (this, X, 0);
    }
 
-   public void transformGeometry(
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      myNodes.transformGeometry(X, topObject, flags);
-
-      for (MFreeNode3d n : myNodes) {
-         n.getRestPosition().transform(X);
-      }
-      for (MFreeElement3d region : myElements) {
-         region.invalidateRestData();
-      }
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      
+      // This is now handled in the node.transformGeometry():
+//      for (MFreeNode3d n : myNodes) {
+//         n.getRestPosition().transform(gtr);
+//      }
+//      for (MFreeElement3d region : myElements) {
+//         region.invalidateRestData();
+//      }
       updateLocalAttachmentPos();
       invalidateStressAndStiffness();
       updatePosState();
       
       if (myMinBound != null) {
-         myMinBound.transform(X);
+         gtr.transformPnt (myMinBound);
       }
       if (myMaxBound != null) {
-         myMaxBound.transform(X);
+         gtr.transformPnt (myMaxBound);
       }
-      
-   }
+   }   
 
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      context.addAll (myNodes);
+   } 
+   
    public boolean getCopyReferences(List<ModelComponent> refs,
       ModelComponent ancestor) {
       // TODO Auto-generated method stub

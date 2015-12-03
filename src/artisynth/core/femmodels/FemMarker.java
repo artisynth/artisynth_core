@@ -216,14 +216,6 @@ public class FemMarker extends Marker {
       }
    }
 
-   public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      super.transformGeometry (X, topObject, flags);
-      if (myNodeAttachment != null) {
-         myNodeAttachment.updateAttachment();
-      }
-   }
-
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 

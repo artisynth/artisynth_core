@@ -175,7 +175,7 @@ public class PardisoSolver implements DirectSolver {
 
    static int myInitStatus = INIT_UNKNOWN;
    static int myDefaultNumThreads = -1;
-
+   
    /**
     * Returns a message corresponding to a Pardiso error code.
     */
@@ -399,8 +399,9 @@ public class PardisoSolver implements DirectSolver {
    private static void doLoadLibraries() {
       try {
          NativeLibraryManager.setFlags (NativeLibraryManager.VERBOSE);
-         // Using PardisoJNI.1.0 until we get hybrid solves working in MKL 11
-         String pardisoLibrary = "PardisoJNI.1.1";
+         // PardisoJNI.1.0 is an MKL 10 library that is sometimes more reliable
+         //String pardisoLibrary = "PardisoJNI.1.0";
+         String pardisoLibrary = "PardisoJNI.11.1.2.1"; // uses MKL 11.1.2
          switch (NativeLibraryManager.getSystemType()) {
             case Linux32:
             case Linux64: {
@@ -444,15 +445,15 @@ public class PardisoSolver implements DirectSolver {
       myColIdxs = new int[0];
       myRowOffs = new int[0];
       if (myDefaultNumThreads > 0) {
+         // create the handle because earlier JNI implementations of
+         // setNumThreads required this internally
+         myHandle = doInit();
          setNumThreads (myDefaultNumThreads);
       }
    }
 
    void initialize () {
       myHandle = doInit();
-      if (printThreadInfo) {
-         System.out.println ("Pardiso: max threads=" + getNumThreads());
-      }
    }
 
    int checkInitialization() {
@@ -467,6 +468,9 @@ public class PardisoSolver implements DirectSolver {
       else {
          myInitStatus = INIT_OK;
          myErrMsg = null;
+      }
+      if (printThreadInfo){
+         System.out.println ("Pardiso: max threads=" + getNumThreads());
       }
       return err;
    }
@@ -820,21 +824,25 @@ public class PardisoSolver implements DirectSolver {
 
 
    /**
-    * Sets the number of threads that Pardiso is assigned when a
-    * <code>PardisoSolver</code> is created. Once created, this value can be
-    * overriden using {@link #setNumThreads(int)}.  Setting <code>num</code> to
-    * a value <= 0 will cause the number of threads to be determined by the
-    * value stored in the environment variable <code>OMP_NUM_THREADS</code>.
+    * Sets the default number of threads that Pardiso is assigned when a
+    * <code>PardisoSolver</code> is created. The results are undefined if this
+    * number exceeds the maximum number of threads available on the
+    * system. Setting <code>num</code> to a value <= 0 will reset the number of
+    * threads to the default used by OpenMP, which is typically the value
+    * stored in the environment variable <code>OMP_NUM_THREADS</code>.
     *
     * @param num default number of threads to use
     * @see #getDefaultNumThreads
     */
    public static void setDefaultNumThreads (int num) {
-      myDefaultNumThreads = num;
+      if (myDefaultNumThreads != num) {
+         System.out.println ("Pardiso: setting max threads to " + num);
+         myDefaultNumThreads = num;
+      }
    }
 
    /**
-    * Returns the number of threads that Pardiso is assigned when a
+    * Returns the default number of threads that Pardiso is assigned when a
     * <code>PardisoSolver</code> is created.
     *
     * @see #setDefaultNumThreads
@@ -846,9 +854,16 @@ public class PardisoSolver implements DirectSolver {
    /**
     * Sets the number of threads that Pardiso should use. The results are
     * undefined if this number exceeds the maximum number of threads available
-    * on the system. Setting <code>num</code> to a number <= 0 will set the
-    * number of threads to the valuse stored in the environment variable
-    * <code>OMP_NUM_THREADS</code>.
+    * on the system. Setting <code>num</code> to a value <= 0 will reset the
+    * number of threads to the default used by OpenMP, which is typically the
+    * value stored in the environment variable <code>OMP_NUM_THREADS</code>.
+    *
+    * <p><b>Note:</b> under the MKL version of Pardiso, changes to the thread
+    * number are applied globally to all instances of Pardiso running in the
+    * same process. Therefore, this method is of limited utility and does not
+    * allow different numbers of threads to be used by different PardisoSolver
+    * instances. Moreover, the thread number should not be changed in between
+    * the analyze, factor and solve phases.
     *
     * @param num number of threads to use
     * @see #getNumThreads
@@ -862,8 +877,8 @@ public class PardisoSolver implements DirectSolver {
 
    /**
     * Returns the number of threads that Pardiso should use. By default, this
-    * is the value stored in the environment variable
-    * <code>OMP_NUM_THREADS</code>.
+    * is the default number used by OpenMP, which is typically the value stored
+    * in the environment variable <code>OMP_NUM_THREADS</code>.
     *
     * @return number of threads Pardio should use
     * @see #setNumThreads
@@ -1866,4 +1881,3 @@ public class PardisoSolver implements DirectSolver {
       doExit (code);
    }
 }
-

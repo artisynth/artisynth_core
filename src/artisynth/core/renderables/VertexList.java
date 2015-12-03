@@ -8,12 +8,15 @@ package artisynth.core.renderables;
 
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map;
+import java.util.List;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
+import maspack.matrix.PolarDecomposition3d;
 import maspack.properties.PropertyList;
 import maspack.render.DisplayListManager;
 import maspack.render.GLRenderer;
@@ -24,11 +27,11 @@ import maspack.render.RenderProps;
 import maspack.render.RenderablePoint;
 import maspack.render.RenderableUtils;
 import artisynth.core.modelbase.RenderableComponentList;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScalableUnits;
-import artisynth.core.util.TransformableGeometry;
 
 public class VertexList<P extends VertexComponent> extends RenderableComponentList<P>
-implements TransformableGeometry, ScalableUnits {
+implements ScalableUnits {
 
    protected static final long serialVersionUID = 1;
    
@@ -312,17 +315,30 @@ implements TransformableGeometry, ScalableUnits {
       }
    }
 
-   public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
-   }
-
-   public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      for (int i = 0; i < size(); i++) {
-         get (i).transformGeometry (X, topObject, flags);
-      }
-   }
-
+//   public void transformGeometry (AffineTransform3dBase X) {
+//      transformGeometry (X, this, 0);
+//   }
+//
+//   public void transformGeometry (
+//      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
+//      for (int i = 0; i < size(); i++) {
+//         get (i).transformGeometry (X, topObject, flags);
+//      }
+//   }
+//
+//   public void transformGeometry (
+//      AffineTransform3dBase X, PolarDecomposition3d pd,
+//      Map<TransformableGeometry,Boolean> transformSet, int flags) {
+//      for (int i = 0; i < size(); i++) {
+//         get (i).transformGeometry (X, pd, transformSet, flags);
+//      }
+//   }
+//   
+//   public int getTransformableDescendants (
+//      List<TransformableGeometry> list) {
+//      return 0;
+//   }
+   
    public void scaleDistance (double s) {
       for (int i = 0; i < size(); i++) {
          get (i).scaleDistance (s);

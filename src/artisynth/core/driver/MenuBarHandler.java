@@ -85,6 +85,8 @@ import artisynth.core.gui.timeline.GuiStorage;
 import artisynth.core.inverse.InverseManager;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.HasMenuItems;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelmenu.DemoEntry;
 import artisynth.core.modelmenu.LabelEntry;
@@ -128,9 +130,8 @@ public class MenuBarHandler implements
    protected JPanel myToolBar;
    protected JFileChooser myViewerImageFileChooser = null;
    protected final JColorChooser colorChooser = new JColorChooser();
-   protected JMenu myModelMenu;
-   protected static final int MODEL_MENU_INDEX = 5;
-   protected boolean myModelMenuAddedP = false;
+   protected JMenu myApplicationMenu;
+   protected boolean myApplicationMenuAddedP = false;
 
    private boolean isTimelineVisible = false;
    private boolean isToolbarVisible = true;
@@ -175,20 +176,20 @@ public class MenuBarHandler implements
       return false;
    }
 
-   boolean isModelMenuEnabled() {
-      return myModelMenuAddedP;
+   boolean isApplicationMenuEnabled() {
+      return myApplicationMenuAddedP;
    }         
 
-   void setModelMenuEnabled (boolean enable) {
-      if (enable != myModelMenuAddedP) {
+   void setApplicationMenuEnabled (boolean enable) {
+      if (enable != myApplicationMenuAddedP) {
          if (enable) {
-            myMenuBar.add (myModelMenu, MODEL_MENU_INDEX);
+            myMenuBar.add (myApplicationMenu, myMenuBar.getMenuCount()-2);
          }
          else {
-            myMenuBar.remove (myModelMenu);
+            myMenuBar.remove (myApplicationMenu);
          }
          myMenuBar.revalidate();
-         myModelMenuAddedP = enable;
+         myApplicationMenuAddedP = enable;
       }
    }         
 
@@ -314,7 +315,7 @@ public class MenuBarHandler implements
       myMenuBar.add(menu);
 
       // Application menu section
-      menu = new JMenu("Model");
+      menu = new JMenu("Application");
       menu.addMenuListener(new MenuListener() {
          public void menuCanceled(MenuEvent m_evt) {
          }
@@ -325,10 +326,10 @@ public class MenuBarHandler implements
          }
 
          public void menuSelected(MenuEvent m_evt) {
-            createModelMenu((JMenu)m_evt.getSource());
+            createApplicationMenu((JMenu)m_evt.getSource());
          }
       });
-      myModelMenu = menu;
+      myApplicationMenu = menu;
 
       //myFrame.setJMenuBar(myMenuBar);
 
@@ -2079,21 +2080,60 @@ public class MenuBarHandler implements
       }
    }
 
-   private void createModelMenu(JMenu menu) {
+   private boolean addMenuItems (ArrayList<Object> items, HasMenuItems comp) {
+      int size0 = items.size();
+      if (comp.getMenuItems (items)) {
+         if (size0 < items.size()) {
+            items.add (new JSeparator());
+         }
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   ArrayList<Object> getApplicationMenuItems (RootModel root) {
+      ArrayList<Object> items = new ArrayList<Object>();
+      boolean hasItems = false;
+      hasItems |= addMenuItems (items, root);
+      for (int i=0; i<root.numComponents(); i++) {
+         ModelComponent comp0 = root.get(i);
+         if (comp0 instanceof HasMenuItems) {
+            hasItems |= addMenuItems (items, (HasMenuItems)comp0);
+         }
+         if (comp0 instanceof CompositeComponent) {
+            CompositeComponent ccomp = (CompositeComponent)comp0;
+            for (int j=0; j<ccomp.numComponents(); j++) {
+               ModelComponent comp1 = ccomp.get(j);
+               if (comp1 instanceof HasMenuItems) {
+                  hasItems |= addMenuItems (items, (HasMenuItems)comp1);
+               }
+            }
+         }
+      }
+      return hasItems ? items : null;
+   }
+
+   private void createApplicationMenu(JMenu menu) {
       RootModel rootModel = myMain.getRootModel();
 
-      Object[] items = rootModel.getModelMenuItems();
+      ArrayList<Object> items = getApplicationMenuItems (rootModel);
 
       if (items != null) {
-         for (int i=0; i<items.length; i++) {
-            if (items[i] instanceof JMenuItem) {
-               menu.add ((JMenuItem)items[i]);
+         for (int i=0; i<items.size(); i++) {
+            Object item = items.get(i);
+            if (item instanceof JMenuItem) {
+               menu.add ((JMenuItem)item);
             }
-            else if (items[i] instanceof Component) {
-               menu.add ((Component)items[i]);
+            else if (item instanceof JSeparator && i == items.size()-1) {
+               // ignore
             }
-            else if (items[i] instanceof String) {
-               menu.add ((String)items[i]);
+            else if (item instanceof Component) {
+               menu.add ((Component)item);
+            }
+            else if (item instanceof String) {
+               menu.add ((String)item);
             }
             else {
                // ignore

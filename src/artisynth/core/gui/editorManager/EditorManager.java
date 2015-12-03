@@ -50,6 +50,7 @@ public class EditorManager {
       myEditors.add (new RigidBodyEditor (myMain, this));
       myEditors.add (new MeshBodyEditor (myMain, this));
       myEditors.add (new FemModel3dEditor (myMain, this));
+      myEditors.add (new FemMeshCompEditor (myMain, this));
       myEditors.add (new FemMuscleModelEditor (myMain, this));
       myEditors.add (new FrameMarkerEditor (myMain, this));
       myEditors.add (new MuscleEditor (myMain, this));

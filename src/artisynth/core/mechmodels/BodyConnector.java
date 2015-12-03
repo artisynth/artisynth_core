@@ -10,12 +10,14 @@ import java.util.*;
 import java.io.*;
 
 import maspack.matrix.*;
+import maspack.geometry.GeometryTransformer;
 import maspack.properties.*;
 import maspack.util.*;
 import maspack.spatialmotion.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
+import artisynth.core.femmodels.*;
 import artisynth.core.util.*;
 
 public abstract class BodyConnector extends RenderableComponentBase
@@ -54,6 +56,10 @@ public abstract class BodyConnector extends RenderableComponentBase
    RigidTransform3d myTDwG = new RigidTransform3d();
    // transform from C (but with world-aligned orientation) to G. 
    RigidTransform3d myTCwG = new RigidTransform3d();
+
+   // when responding to a transformGeometry request, transform only TDW
+   // (instead of both TDW and TCW)
+   protected boolean myTransformDGeometryOnly = false;
 
    Twist myDotXv = new Twist();
    Twist myVelBA = new Twist();
@@ -617,7 +623,20 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
       return maxpen;
    }
-
+   
+   public void getConstrainedComponents (List<DynamicComponent> list) {
+      if (myAttachmentA != null) {
+         for (DynamicComponent c : myAttachmentA.getMasters()) {
+            list.add (c);
+         }
+      }
+      if (myAttachmentB != null) {
+         for (DynamicComponent c : myAttachmentB.getMasters()) {
+            list.add (c);
+         }
+      }
+   }
+   
    public void addMasterBlocks (
       SparseBlockMatrix GT, int bj,
       MatrixNdBlock GC, FrameAttachment attachment) {
@@ -995,50 +1014,39 @@ public abstract class BodyConnector extends RenderableComponentBase
    public void setBodies (
       RigidBody bodyA, RigidTransform3d TCA, RigidBody bodyB,
       RigidTransform3d TDB) {
-      myBodyA = bodyA;
-      myAttachmentA = createAttachmentWithTSM (bodyA, TCA);
-      //setTCA (TCA);
-      myBodyB = bodyB;
-      myAttachmentB = createAttachmentWithTSM (bodyB, TDB);
-      //setTDB (TDB);
+
+      setBodies (bodyA, createAttachmentWithTSM (bodyA, TCA), 
+                 bodyB, createAttachmentWithTSM (bodyB, TDB));
    }
 
    public void setBodies (
       ConnectableBody bodyA, FrameAttachment attachmentA, 
       ConnectableBody bodyB, FrameAttachment attachmentB) {
+
+      if (isConnectedToHierarchy()) {
+         disconnectBodies();
+      }
       myBodyA = bodyA;
       myAttachmentA = attachmentA;
       myBodyB = bodyB;
       myAttachmentB = attachmentB;
+      if (isConnectedToHierarchy()) {
+         connectBodies();
+      }
    }
 
    public void setBodies (
       ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TDW) {
 
       setBodies (bodyA, bodyB, TDW, TDW);
-//      
-//      RigidTransform3d TCA = new RigidTransform3d();
-//      RigidTransform3d TDB = new RigidTransform3d();
-//      
-//      TCA.mulInverseLeft(bodyA.getPose(), TDW);
-//      if (bodyB != null) {
-//         TDB.mulInverseLeft(bodyB.getPose(), TDW);
-//      }
-//      else {
-//         TDB.set (TDW);
-//      }
-//      setBodies(bodyA, TCA, bodyB, TDB);
    }
 
    public void setBodies (
       ConnectableBody bodyA, ConnectableBody bodyB,
       RigidTransform3d TCW, RigidTransform3d TDW) {
-      
-      myAttachmentA = createAttachment (bodyA, TCW);
-      myBodyA = bodyA;
 
-      myAttachmentB = createAttachment (bodyB, TDW);
-      myBodyB = bodyB;
+      setBodies (bodyA, createAttachment (bodyA, TCW), 
+                 bodyB, createAttachment (bodyB, TDW));
    }
 
    public RigidTransform3d getCurrentTDW() {
@@ -1051,8 +1059,19 @@ public abstract class BodyConnector extends RenderableComponentBase
       myAttachmentB.getCurrentTFW (TDW);
    }
 
+   private void updateAttachment (FrameAttachment a, RigidTransform3d TFW) {
+      DynamicComponent[] oldMasters = 
+         Arrays.copyOf (a.getMasters(), a.numMasters());
+      boolean mastersChanged = a.setCurrentTFW (TFW);
+      if (mastersChanged) {
+         // then masters have changed, so update constrainer back pointers
+         disconnectAttachmentMasters (oldMasters);
+         connectAttachmentMasters (a.getMasters());
+      }
+   }
+   
    public void setCurrentTDW (RigidTransform3d TDW) {
-      myAttachmentB.setCurrentTFW (TDW);
+      updateAttachment (myAttachmentB, TDW);
    }
 
    public void getPose (RigidTransform3d X) {
@@ -1070,7 +1089,7 @@ public abstract class BodyConnector extends RenderableComponentBase
    }
 
    public void setCurrentTCW (RigidTransform3d TCW) {
-      myAttachmentA.setCurrentTFW (TCW);
+      updateAttachment (myAttachmentA, TCW);
    }
 
    public RigidTransform3d getCurrentTXW (FrameAttachable body) {
@@ -1158,76 +1177,6 @@ public abstract class BodyConnector extends RenderableComponentBase
    public double getActivation (int idx) {
       return myCoupling.getConstraint (idx).getMultiplier();
    }
-
-   // public void updateBodyStatesOld (double t, boolean setEngaged) {
-
-   //    RigidTransform3d TCD = new RigidTransform3d();
-   //    RigidTransform3d TGD = new RigidTransform3d();
-   //    RigidTransform3d TCW = new RigidTransform3d();
-   //    RigidTransform3d TDW = new RigidTransform3d();
-   //    RigidTransform3d XERR = new RigidTransform3d(); // same as TCG
-
-   //    Twist err = new Twist();
-   //    Twist CvelA = new Twist();
-   //    Twist DvelB = new Twist();
-   //    Twist velA = new Twist();
-   //    Twist velB = new Twist();
-   //    Twist dgA = new Twist();
-   //    Twist dgB = new Twist();
-      
-   //    myAttachmentA.updatePosStates();
-   //    myAttachmentB.updatePosStates();
-
-   //    //RigidTransform3d TCA = myTCA;
-   //    myAttachmentA.getCurrentTSW (TCW);
-   //    myAttachmentB.getCurrentTSW (TDW);
-
-   //    TCD.mulInverseLeft (TDW, TCW);
-   //    myCoupling.projectToConstraint (TGD, TCD);
-   //    XERR.mulInverseLeft (TGD, TCD);
-   //    myTCG.set (XERR);
-
-   //    // TCwG maps master block velocities associated with C to G
-   //    RigidTransform3d RWC = new RigidTransform3d();
-   //    RWC.R.transpose (TCW.R);
-   //    myTCwG.mul (XERR, RWC);
-
-   //    err.set (XERR);
-
-   //    myAttachmentA.getCurrentVel (CvelA, dgA);
-   //    velA.transform (XERR, CvelA);
-
-   //    if (hasTranslation() && myBodyB.isDeformable()) {
-   //       RigidTransform3d TGW = new RigidTransform3d();
-   //       TGW.mulInverseRight (TCW, XERR);
-   //       if (myAttachmentBG == null) {
-   //          myAttachmentBG = myBodyB.createFrameAttachment (null, TGW);
-   //       }
-   //       else {
-   //          myAttachmentBG.setCurrentTSW (TGW);
-   //       }
-   //       myAttachmentBG.updatePosStates();
-   //       // TODO: make sure dgB is computed correctly!!
-   //       myAttachmentBG.getCurrentVel (velB, dgB);
-   //       DvelB.transform (TGD);
-
-   //       myTDwG.p.setZero();
-   //       myTDwG.R.transpose (TGW.R);
-   //    }
-   //    else {
-   //       myAttachmentB.getCurrentVel (DvelB, dgB);
-   //       velB.inverseTransform (TGD, DvelB);
-
-   //       // TDwG maps master block velocities associated with D to G
-   //       RigidTransform3d RWD = new RigidTransform3d();
-   //       RWD.R.transpose (TDW.R);
-   //       myTDwG.mulInverseLeft (TGD, RWD);
-   //    }
-      
-   //    computeDotXv (myDotXv, CvelA, DvelB, TCD, dgA, dgB);
-   //    myVelBA.sub (velB, velA);
-   //    myCoupling.updateBodyStates (TCD, TGD, XERR, setEngaged);
-   // }
 
    public void updateBodyStates (double t, boolean setEngaged) {
 
@@ -1430,48 +1379,156 @@ public abstract class BodyConnector extends RenderableComponentBase
    }
 
    public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
+      TransformGeometryContext.transform (this, X, 0);
    }
 
-   /**
-    * Adjusts the global location of this constraint, assuming the global
-    * locations of A and B remain unchanged.
-    * 
-    * <p>
-    * If TDW represents frame D in world coordinates, then TDW is adjusted
-    * according to
-    * 
-    * <pre>
-    *    TDW' = X TDW
-    * </pre>
-    * 
-    * This transformation is done using
-    * {@link maspack.matrix.RigidTransform3d#mulAffineLeft mulAffineLeft}, which
-    * removes the stretching and shearing components from X when adjusting the
-    * rotation matrix. The transforms TDB is then updated accordingly. A
-    * similar procedure is used for TCA.
-    * 
-    * @param X
-    * an affine transform applied to frames D and F in world coordinates
-    * @param topObject
-    * top-most object being transformed
-    * @param flags
-    */
+   private class UpdateConnectorAction implements TransformGeometryAction {
+
+      RigidTransform3d myTXW;
+      FrameAttachment myAttachment;
+
+      UpdateConnectorAction (RigidTransform3d TXW, FrameAttachment attachment) {
+         myTXW = new RigidTransform3d (TXW);
+         myAttachment = attachment;
+      }
+
+      public void transformGeometry (
+         GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+
+         if (myAttachment == myAttachmentA) {
+            //System.out.println ("Updating TCW");
+         }
+         else {
+            //System.out.println ("Updating TDW");
+         }
+         updateAttachment (myAttachment, myTXW);
+      }
+   }
+
+   private boolean allMastersTransforming (
+      FrameAttachment a, TransformGeometryContext context) {
+      if (a.numMasters() == 0) {
+         return false;
+      }
+      else {
+         return context.containsAll (a.getMasters());
+      }
+   }
+
+   private boolean anyMastersTransforming (
+      FrameAttachment a, TransformGeometryContext context) {
+      return context.containsAny (a.getMasters());
+   }
+
+   private boolean frameMovingRelativeToMasters (
+      FrameAttachment a, GeometryTransformer gtr, 
+      TransformGeometryContext context, boolean transforming) {
+
+      if (transforming) {
+         return (!gtr.isRigid() || a.numMasters() > 1 ||                 
+                 !allMastersTransforming (a, context));
+      }
+      else {
+         return (anyMastersTransforming (a, context));
+      }
+   }
+   
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-         
-      RigidTransform3d TDW = new RigidTransform3d();
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      
+      // See if this connector is actually being transformed. Even if it
+      // is not, this method may still be called from the transformGeometry 
+      // method of one of the attached master components, in order to
+      // request any needed attachment updates. 
+      boolean transforming = context.contains(this);
+
+      // Get the current values of TCW and TDW. The transformGeometry methods
+      // of the attached dynamic components take care to ensure that this
+      // method is called *before* any of the attached master components are
+      // transformed, so TCW and TDW can be set to their pre-transform values.
       RigidTransform3d TCW = new RigidTransform3d();
-      PolarDecomposition3d pd = new PolarDecomposition3d();
-      pd.factor (X.getMatrix());
-      
       myAttachmentA.getCurrentTFW (TCW);
+      RigidTransform3d TDW = new RigidTransform3d();
       myAttachmentB.getCurrentTFW (TDW);
+
+      if (transforming) {
+         myCoupling.transformGeometry (gtr, TCW, TDW);
+      }
+
+      if ((flags & TG_ARTICULATED) != 0) {
+         MechModel topMech = MechModel.topMechModel (this);
+         if (topMech != null) {
+            context.addAction (topMech.myRequestEnforceArticulationAction);
+         }
+         return;
+      }
       
-      myCoupling.transformGeometry (X, pd.getR(), TCW, TDW);
+      // flags to indicate if attachments A and/or B should be updated
+      boolean updateAttachmentA = false;
+      boolean updateAttachmentB = false;
+
+      if (transforming) {
+         // transform TDW, and transform TCW unless it is not specified to
+         // transform with this connector
+         gtr.transform (TDW);
+         if (!myTransformDGeometryOnly) {
+            gtr.transform (TCW);
+         }
+      }
+
+      if (frameMovingRelativeToMasters (
+             myAttachmentB, gtr, context, transforming)) {
+         // transform induces relative motion between frame D and its masters,
+         // so attachment B needs to be updated
+         updateAttachmentB = true;
+      }
+      if (!myTransformDGeometryOnly) {
+         if (frameMovingRelativeToMasters (
+               myAttachmentA, gtr, context, transforming)) {
+            // transform induces relative motion between frame C and its masters,
+            // so attachment A needs to be updated
+            updateAttachmentA = true;
+         }
+      }
+      else {
+         // request attachmentA update if all of A masters are transforming
+         // non-rigidly
+         if (!gtr.isRigid() && allMastersTransforming (myAttachmentA, context)) {
+            gtr.transform (TCW);
+            updateAttachmentA = true;
+         }
+      }
+
+      if (updateAttachmentA || updateAttachmentB) {
+         boolean correctErrors = numBilateralConstraints() > 0;
+         if (correctErrors) {
+            // modify TCW or TDW to correct any constraint errors
+            RigidTransform3d TCD = new RigidTransform3d();
+            RigidTransform3d TGD = new RigidTransform3d();
+            TCD.mulInverseLeft (TDW, TCW);
+            myCoupling.projectToConstraint (TGD, TCD);
+            if (updateAttachmentA) {
+               // use C to correct the error
+               TCW.mul (TDW, TGD);
+            }
+            else {
+               // use D to correct the error
+               TDW.mulInverseRight (TCW, TGD);
+            }
+         }
+         if (updateAttachmentA) {
+            context.addAction (new UpdateConnectorAction (TCW, myAttachmentA));
+         }
+         if (updateAttachmentB) {
+            context.addAction (new UpdateConnectorAction (TDW, myAttachmentB));
+         }
+      }
       
-      myAttachmentA.transformGeometry (X, TCW);
-      myAttachmentB.transformGeometry (X, TDW);
+   }
+   
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      // no dependencies
    }
 
    @Override
@@ -1481,28 +1538,56 @@ public abstract class BodyConnector extends RenderableComponentBase
       myAttachmentB.getHardReferences (refs);
    }
 
-   @Override
-   public void connectToHierarchy () {
-      super.connectToHierarchy ();
+   private void connectAttachmentMasters (DynamicComponent[] masters) {
+      if (masters != null) {
+         for (DynamicComponent m : masters) {
+            m.addConstrainer (this);
+         }
+      }
+   }
+
+   private void disconnectAttachmentMasters (DynamicComponent[] masters) {
+      if (masters != null) {
+         for (DynamicComponent m : masters) {
+            m.removeConstrainer (this);
+         }
+      }
+   }
+
+   private void connectBodies() {
       // Note: in normal operation, bodyA is not null
       if (myBodyA != null) {
          myBodyA.addConnector (this);
+         connectAttachmentMasters (myAttachmentA.getMasters());
       }
       if (myBodyB != null) {
          myBodyB.addConnector (this);
+         connectAttachmentMasters (myAttachmentB.getMasters());
       }
+   }
+
+   private void disconnectBodies() {
+      // Note: in normal operation, bodyA is not null
+      if (myBodyA != null) {
+         myBodyA.removeConnector (this);
+         disconnectAttachmentMasters (myAttachmentA.getMasters());
+      }
+      if (myBodyB != null) {
+         myBodyB.removeConnector (this);
+         disconnectAttachmentMasters (myAttachmentB.getMasters());
+      }
+   }
+
+   @Override
+   public void connectToHierarchy () {
+      super.connectToHierarchy ();
+      connectBodies();
    }
 
    @Override
    public void disconnectFromHierarchy() {
       super.disconnectFromHierarchy();
-      // Note: in normal operation, bodyA is not null
-      if (myBodyA != null) {
-         myBodyA.removeConnector (this);
-      }
-      if (myBodyB != null) {
-         myBodyB.removeConnector (this);
-      }
+      disconnectBodies();
    }
 
    public boolean isDuplicatable() {
@@ -1613,38 +1698,35 @@ public abstract class BodyConnector extends RenderableComponentBase
       myAttachmentA.getCurrentTFW (TCW);
       myAttachmentB.getCurrentTFW (TDW);
       
-      ArrayList<ConnectableBody> freeBodiesA = new ArrayList<ConnectableBody>();
+      ArrayList<ConnectableBody> bodiesA = new ArrayList<ConnectableBody>();
+      ArrayList<ConnectableBody> bodiesB = new ArrayList<ConnectableBody>();
+
+      boolean AIsFree = findAttachedBodies (myBodyA, myBodyB, bodiesA);
+      boolean BIsFree = false;
+      boolean moveBodyA = true;
       if (myBodyB != null) {
-         myBodyB.setMarked (true);
-      }
-      boolean AIsFree = findFreeAttachedBodies (myBodyA,
-         freeBodiesA, /*rejectSelected=*/false);
-      if (myBodyB != null) {
-         myBodyB.setMarked (false);
-      }
-      if (!AIsFree) {
-         if (myBodyB != null) {
-            ArrayList<ConnectableBody> freeBodiesB = 
-               new ArrayList<ConnectableBody>();
-            myBodyA.setMarked (true);
-            boolean BIsFree = findFreeAttachedBodies (myBodyB, 
-               freeBodiesB, /*rejectSelected=*/false);
-            myBodyA.setMarked (false);
-            if (BIsFree) {
-               RigidTransform3d TDWnew = new RigidTransform3d();
-               TDWnew.mulInverseRight (TCW, TGD);
-               freeBodiesB.remove (myBodyA);
-               adjustBodyPoses (myBodyB, freeBodiesB, TDWnew, TDW);
-               myAttachmentB.updatePosStates();
-               return;
-            }
+         BIsFree = findAttachedBodies (myBodyB, myBodyA, bodiesB);
+         if (AIsFree != BIsFree) {
+            moveBodyA = AIsFree;
+         }
+         else {
+            moveBodyA = bodiesA.size() <= bodiesB.size();
          }
       }
-      RigidTransform3d TCWnew = new RigidTransform3d();
-      TCWnew.mul (TDW, TGD);
-      freeBodiesA.remove (myBodyB);
-      adjustBodyPoses (myBodyA, freeBodiesA, TCWnew, TCW);
-      myAttachmentA.updatePosStates();
+      if (moveBodyA) {
+         RigidTransform3d TCWnew = new RigidTransform3d();
+         TCWnew.mul (TDW, TGD);
+         bodiesA.remove (myBodyB);
+         adjustBodyPoses (myBodyA, bodiesA, TCWnew, TCW);
+         myAttachmentA.updatePosStates();
+      }
+      else {
+         RigidTransform3d TDWnew = new RigidTransform3d();
+         TDWnew.mulInverseRight (TCW, TGD);
+         bodiesB.remove (myBodyA);
+         adjustBodyPoses (myBodyB, bodiesB, TDWnew, TDW);
+         myAttachmentB.updatePosStates();
+      }
    }
 
    public void advanceAuxState (double t0, double t1) {
@@ -1689,70 +1771,117 @@ public abstract class BodyConnector extends RenderableComponentBase
       return true;
    }
    
-   private static boolean recursivelyFindFreeAttachedBodies (
-      ConnectableBody body, LinkedList<ConnectableBody> list, 
-      boolean rejectSelected) {
+   private static boolean recursivelyFindAttachedBodies (
+      ConnectableBody body, List<ConnectableBody> list,
+      HashSet<ConnectableBody> visited) {
 
       if (body == null) {
          return false;
       }
       boolean isFree = true;     
-      if (!body.isMarked()) {
-         body.setMarked (true);
+      if (!visited.contains(body)) {
+         visited.add (body);
          list.add (body);
          if (!body.isFreeBody()) {
-            isFree = false;
-         }
-         if (rejectSelected && body.isSelected()) {
             isFree = false;
          }
          if (body.getConnectors() != null) {
             for (BodyConnector c : body.getConnectors()) {
                ConnectableBody otherBody = c.getOtherBody (body);
-               if (!recursivelyFindFreeAttachedBodies (
-                      otherBody, list, rejectSelected)) {
-                  isFree = false;
+               if (!recursivelyFindAttachedBodies (otherBody, list, visited)) {
+                  if (c.myTransformDGeometryOnly) {
+                     // still OK, just want to curtail list
+                  }
+                  else {
+                     isFree = false;
+                  }
                }
             }
          }
       }
       return isFree;
    }
-  
-   public static boolean findFreeAttachedBodies (
-      ConnectableBody body, List<ConnectableBody> freeBodies, 
-      boolean rejectSelected) {
-      
-      LinkedList<ConnectableBody> nonfreeBodies = 
-         new LinkedList<ConnectableBody>();
-      LinkedList<ConnectableBody> list = 
-         new LinkedList<ConnectableBody>();
-      boolean allFree = true;
-      body.setMarked (true);
-      if (!body.isFreeBody() || (rejectSelected && body.isSelected())) {
-         allFree = false;
+
+   public static boolean findAttachedBodies (
+      ConnectableBody body, ConnectableBody exclude,
+      List<ConnectableBody> bodies) {
+
+      HashSet<ConnectableBody> visited = new HashSet<ConnectableBody>();
+      if (exclude != null) {
+         visited.add (exclude);
       }
-      if (body.getConnectors() != null) {
-         for (BodyConnector c : body.getConnectors()) {
-            ConnectableBody otherBody = c.getOtherBody (body);
-            list.clear();
-            if (recursivelyFindFreeAttachedBodies (
-               otherBody, list, rejectSelected)) {
-               freeBodies.addAll (list);
-            }
-            else {
-               nonfreeBodies.addAll (list);
-               allFree = false;
-            }
-         }
-      }
-      for (ConnectableBody b : freeBodies) {
-         b.setMarked (false);
-      }
-      for (ConnectableBody b : nonfreeBodies) {
-         b.setMarked (false);
-      }
-      body.setMarked (false);
+      boolean allFree = recursivelyFindAttachedBodies (
+         body, bodies, visited);
       return allFree;
    }   
+  
+   // private static boolean isTransforming (
+   //    ConnectableBody body, TransformGeometryContext context) {
+   //    if (context != null && body instanceof TransformableGeometry) {
+   //       return context.contains ((TransformableGeometry)body);
+   //    }
+   //    else {
+   //       return false;
+   //    }
+   // }      
+
+   // private static boolean recursivelyFindFreeAttachedBodies (
+   //    ConnectableBody body,
+   //    List<ConnectableBody> freeBodies,
+   //    List<BodyConnector> connectors, 
+   //    HashSet<ConnectableBody> visited,
+   //    TransformGeometryContext context) {      
+
+   //    ArrayList<ConnectableBody> free = new ArrayList<ConnectableBody>();
+   //    ArrayList<BodyConnector> cons = new ArrayList<BodyConnector>();
+
+   //    if (body.getConnectors() != null) {
+   //       for (BodyConnector c : body.getConnectors()) {
+   //          ConnectableBody otherBody = c.getOtherBody (body);
+            
+   //          if (otherBody == null) {
+   //             if (!c.myTransformDGeometryOnly) {
+   //                return false;
+   //             }
+   //          }
+   //          else if (!visited.contains(otherBody) &&
+   //                   !isTransforming (otherBody, context)) {
+   //             if (!otherBody.isFreeBody()) {
+   //                return false;
+   //             }
+   //             visited.add (otherBody);
+   //             free.clear();
+   //             cons.clear();
+   //             free.add (otherBody);
+   //             cons.add (c);
+   //             if (recursivelyFindFreeAttachedBodies (
+   //                    otherBody, free, cons, visited, context)) {
+   //                if (freeBodies != null) {
+   //                   freeBodies.addAll (free);
+   //                }
+   //                if (connectors != null) {
+   //                   connectors.addAll (cons);
+   //                }
+   //             }
+   //             else {
+   //                return false;
+   //             }
+   //          }
+   //       }
+   //    }
+   //    return true;
+   // }
+  
+   // public static boolean findFreeAttachedBodies (
+   //    ConnectableBody body,
+   //    List<ConnectableBody> freeBodies, 
+   //    List<BodyConnector> connectors,
+   //    TransformGeometryContext context) {
+
+   //    HashSet<ConnectableBody> visited = new HashSet<ConnectableBody>();
+   //    boolean allFree = recursivelyFindFreeAttachedBodies (
+   //       body, freeBodies, connectors, visited, context);
+   //    return allFree;
+   // }   
+
 }

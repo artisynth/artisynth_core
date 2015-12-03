@@ -44,6 +44,8 @@ import java.util.*;
 public class ArticulatedFem extends RootModel {
    public static boolean debug = false;
 
+   protected MechModel myMechMod;
+
    // MechFemConnector myConnector;
    LinkedList<FemNode3d> myLeftNodes = new LinkedList<FemNode3d>();
 
@@ -80,7 +82,7 @@ public class ArticulatedFem extends RootModel {
 
       double linkLength = femLength + 2 * boxLength;
 
-      MechModel model = new MechModel ("mech");
+      myMechMod = new MechModel ("mech");
 
       RigidTransform3d X = new RigidTransform3d();
       RigidBody lastBox = null;
@@ -91,14 +93,14 @@ public class ArticulatedFem extends RootModel {
       X.p.set (linkCenter - (boxLength + femLength) / 2, 0, boxHeight);
       leftAnchorBox.setPose (X);
       leftAnchorBox.setDynamic (false);
-      // model.addRigidBody (leftAnchorBox);
+      // myMechMod.addRigidBody (leftAnchorBox);
 
       RigidBody rightAnchorBox = makeBox();
       linkCenter = linkLength * (-nlinks / 2.0 + (nlinks - 1) + 0.5);
       X.p.set (linkCenter + (boxLength + femLength) / 2, 0, boxHeight);
       rightAnchorBox.setPose (X);
       rightAnchorBox.setDynamic (false);
-      // model.addRigidBody (rightAnchorBox);
+      // myMechMod.addRigidBody (rightAnchorBox);
 
       for (int i = 0; i < nlinks; i++) {
          linkCenter = linkLength * (-nlinks / 2.0 + i + 0.5);
@@ -141,23 +143,23 @@ public class ArticulatedFem extends RootModel {
 
          X.p.set (linkCenter, 0, 0);
          femMod.transformGeometry (X);
-         model.addModel (femMod);
+         myMechMod.addModel (femMod);
 
          RigidBody leftBox = makeBox();
          X.p.set (linkCenter - (boxLength + femLength) / 2, 0, 0);
          leftBox.setPose (X);
-         model.addRigidBody (leftBox);
+         myMechMod.addRigidBody (leftBox);
 
          RigidBody rightBox = makeBox();
          X.p.set (linkCenter + (boxLength + femLength) / 2, 0, 0);
          rightBox.setPose (X);
-         model.addRigidBody (rightBox);
+         myMechMod.addRigidBody (rightBox);
 
          for (FemNode3d n : leftNodes) {
-            model.attachPoint (n, leftBox);
+            myMechMod.attachPoint (n, leftBox);
          }
          for (FemNode3d n : rightNodes) {
-            model.attachPoint (n, rightBox);
+            myMechMod.attachPoint (n, rightBox);
          }
 
          RigidTransform3d TCA = new RigidTransform3d();
@@ -179,7 +181,7 @@ public class ArticulatedFem extends RootModel {
          RenderProps.setLineRadius (joint, 0.01);
          RenderProps.setLineColor (joint, new Color (0.15f, 0.15f, 1f));
          joint.setAxisLength (0.5);
-         model.addBodyConnector (joint);
+         myMechMod.addBodyConnector (joint);
 
          if (addLastJoint && i == nlinks - 1) {
             TCA.p.set (boxLength / 2, 0, boxHeight / 2);
@@ -189,7 +191,7 @@ public class ArticulatedFem extends RootModel {
             RenderProps.setLineRadius (joint, 0.01);
             RenderProps.setLineColor (joint, new Color (0.15f, 0.15f, 1f));
             joint.setAxisLength (0.5);
-            model.addBodyConnector (joint);
+            myMechMod.addBodyConnector (joint);
          }
 
          lastBox = rightBox;
@@ -197,9 +199,9 @@ public class ArticulatedFem extends RootModel {
       if (!addLastJoint) {
          lastBox.setDynamic (false);
       }
-      model.setIntegrator (Integrator.BackwardEuler);
-      addModel (model);
-      addControlPanel (model);
+      myMechMod.setIntegrator (Integrator.BackwardEuler);
+      addModel (myMechMod);
+      addControlPanel (myMechMod);
    }
 
    protected void addControlPanel (MechModel mech) {
@@ -211,7 +213,7 @@ public class ArticulatedFem extends RootModel {
       addControlPanel (myControlPanel);
    }
 
-   ControlPanel myControlPanel;
+   protected ControlPanel myControlPanel;
 
    /**
     * {@inheritDoc}

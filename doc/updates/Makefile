@@ -29,6 +29,6 @@ install_html: html
 	rsync $(HTML_DIR)/updates.html $(WEB_DOC_URL)/html/updates
 
 install_pdf: pdf
-	rsync $(PDF_DIR)/installation.pdf $(WEB_DOC_URL)/pdf
+	rsync $(PDF_DIR)/updates.pdf $(WEB_DOC_URL)/pdf
 
 -include ../Makedefs

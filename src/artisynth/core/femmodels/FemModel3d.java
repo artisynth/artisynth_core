@@ -29,6 +29,7 @@ import maspack.geometry.HalfEdge;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
+import maspack.geometry.GeometryTransformer;
 import maspack.render.*;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.AffineTransform3dBase;
@@ -52,6 +53,8 @@ import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector2d;
+import maspack.matrix.VectorBase;
+import maspack.matrix.MatrixBase;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.matrix.VectorNi;
@@ -91,7 +94,6 @@ import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.util.ArtisynthIO;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.ScanToken;
-import artisynth.core.util.TransformableGeometry;
 
 public class FemModel3d extends FemModel
    implements TransformableGeometry, ScalableUnits, MechSystemModel, Collidable,
@@ -993,8 +995,8 @@ public class FemModel3d extends FemModel
                if (D != null) {
                   double p = 0;
                   double kp = 0;
-                  if (mat.isIncompressible()
-                  && softIncomp != IncompMethod.NODAL) {
+                  if (mat.isIncompressible() &&
+                      softIncomp != IncompMethod.NODAL) {
                      if (softIncomp == IncompMethod.ELEMENT) {
                         FemUtilities.addToIncompressConstraints(
                            constraints[i], H, GNx[i], dv);
@@ -1888,33 +1890,28 @@ public class FemModel3d extends FemModel
    }
 
    public void transformGeometry(AffineTransform3dBase X) {
-      transformGeometry(X, this, 0);
+      TransformGeometryContext.transform (this, X, 0);
    }
 
-   public void transformGeometry(
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      myNodes.transformGeometry(X, topObject, flags);
-      for (FemNode3d n : myNodes) {
-         n.myRest.transform(X);
-      }
-      for (FemElement3d e : myElements) {
-         e.invalidateRestData();
-      }
-      
-      updateLocalAttachmentPos();
-      invalidateStressAndStiffness();
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
 
+      // note that these bounds, if present, are explicitly set by the user, 
+      // so it is appropriate to transform rather then recompute them
       if (myMinBound != null) {
-         myMinBound.transform(X);
+         gtr.transformPnt (myMinBound);
       }
       if (myMaxBound != null) {
-         myMaxBound.transform(X);
+         gtr.transformPnt (myMaxBound);
       }
-
-      // update meshes, attached frame, etc.
-      updateSlavePos();
    }
 
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      context.addAll (myNodes);
+      context.addAll (myMarkers);
+   } 
+  
    public IncompMethod getIncompressible() {
       return getHardIncompMethod();
    }
@@ -2634,6 +2631,10 @@ public class FemModel3d extends FemModel
    }
 
    public void addMeshComp (FemMeshComp surf) {
+      if (surf.getParent() == myMeshList) {
+         throw new IllegalArgumentException (
+            "FemModel alreay contains specified mesh component");
+      }
       if (surf.myFem == this) {
          surf.setCollidable (Collidability.INTERNAL);
          myMeshList.add (surf);
@@ -2715,13 +2716,39 @@ public class FemModel3d extends FemModel
       myNumTetElements = -1; // invalidates all element counts
    }
 
+   // Called when the geometry (but not the toplogy) of one or
+   // more underlying components changes. There is no need to
+   // invalidate element-wise rest data, since that
+   // should have already been done when the nodes themselves
+   // were transformed.
+   private void handleGeometryChange() {
+      
+      myBVTreeValid = false;
+      invalidateStressAndStiffness();
+      invalidateNodalRestVolumes();
+      myRestVolumeValid = false;
+      
+      //computeMasses();
+
+      //updateLocalAttachmentPos();
+      updateSlavePos();
+   }
+   
    public void componentChanged(ComponentChangeEvent e) {
-      if (e.getComponent() == myElements || e.getComponent() == myNodes) {
-         invalidateSurfaceMesh();
-      }
-      clearCachedData();
+
       if (e.getCode() == ComponentChangeEvent.Code.STRUCTURE_CHANGED) {
+         if (e.getComponent() == myElements || e.getComponent() == myNodes) {
+            invalidateSurfaceMesh();
+         }
+         clearCachedData();
          // should invalidate elasticity
+      }
+      else if (e.getCode() == ComponentChangeEvent.Code.GEOMETRY_CHANGED) { 
+         handleGeometryChange();
+      }
+      else if (
+         e.getCode() == ComponentChangeEvent.Code.DYNAMIC_ACTIVITY_CHANGED) { 
+         clearCachedData();
       }
       notifyParentOfChange(e);
    }
@@ -2734,25 +2761,26 @@ public class FemModel3d extends FemModel
 
    public FemElement3d getSurfaceElement (Face face) {
       
-      HashSet<FemElement3d> elems = new HashSet<FemElement3d>();
+      return getSurfaceMeshComp().getFaceElement (face);
+      // HashSet<FemElement3d> elems = new HashSet<FemElement3d>();
 
-      int numv = face.numVertices();
-      for (int i = 0; i < numv; i++) {
-         FemNode3d node = getSurfaceNode (face.getVertex(i));
-         if (node == null) {
-            return null;
-         }
-         if (i == 0) {
-            elems.addAll(node.getElementDependencies());
-         } else {
-            elems.retainAll(node.getElementDependencies());
-         }
-      }
-      if (elems.size() == 1) {
-         return elems.iterator().next();
-      } else {
-         return null;
-      }
+      // int numv = face.numVertices();
+      // for (int i = 0; i < numv; i++) {
+      //    FemNode3d node = getSurfaceNode (face.getVertex(i));
+      //    if (node == null) {
+      //       return null;
+      //    }
+      //    if (i == 0) {
+      //       elems.addAll(node.getElementDependencies());
+      //    } else {
+      //       elems.retainAll(node.getElementDependencies());
+      //    }
+      // }
+      // if (elems.size() == 1) {
+      //    return elems.iterator().next();
+      // } else {
+      //    return null;
+      // }
    }
 
    /**
@@ -2995,6 +3023,12 @@ public class FemModel3d extends FemModel
       return 0;
    }
 
+   public void getConstrainedComponents (List<DynamicComponent> list) {
+      if (getHardIncompMethod() != IncompMethod.OFF) {
+         list.addAll (myNodes);
+      }
+   }
+
    public int setBilateralImpulses(VectorNd lam, double h, int idx) {
 
       if (usingAttachedRelativeFrame()) {
@@ -3207,6 +3241,7 @@ public class FemModel3d extends FemModel
          else if (hardIncomp == IncompMethod.ELEMENT) {
             ci = idx;
             for (FemElement3d e : myElements) {
+               e.getRestVolume(); // makes sure rest volume is updated
                if (e.getIncompressIndex() != -1) {
                   for (int k = 0; k < e.numPressureVals(); k++) {
                      ConstraintInfo gi = ginfo[ci++];
@@ -4155,7 +4190,6 @@ public class FemModel3d extends FemModel
       //    System.out.println ("f=   \n" + f.toString ("%7.3f"));
       //    System.out.println ("fchk=\n" + fchk.toString ("%7.3f"));
       // }
-
    }
 
    private void zero6Vector (double[] vec) {

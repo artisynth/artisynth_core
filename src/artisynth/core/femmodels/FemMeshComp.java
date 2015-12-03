@@ -141,7 +141,7 @@ public class FemMeshComp extends FemMeshBase
     */
    void initializeSurfaceBuild() {
       super.initializeSurfaceBuild();
-      myEdgeVtxs = new HashMap<EdgeDesc,Vertex3d[]>();
+      //myEdgeVtxs = new HashMap<EdgeDesc,Vertex3d[]>();
       myVertexAttachments = new ArrayList<PointAttachment>();
       myNodeVertexMap = null;
    }
@@ -176,7 +176,7 @@ public class FemMeshComp extends FemMeshBase
       if (myNodeVertexMap == null) {
          buildNodeVertexMap();
       }
-      myEdgeVtxs.clear();
+      //myEdgeVtxs.clear();
       
       notifyParentOfChange (
          new ComponentChangeEvent (Code.STRUCTURE_CHANGED, this));
@@ -308,7 +308,7 @@ public class FemMeshComp extends FemMeshBase
    /**
     * Find the FEM element corresponding to a surface face.
     */
-   FemElement3d getFaceElement (Face face) {
+   FemElement3d getFaceElementOld (Face face) {
 
       // Form the intersection of all the element dependencies of all three
       // nodes associated with the face. If the face is on the surface,
@@ -338,6 +338,65 @@ public class FemMeshComp extends FemMeshBase
          // throw new InternalErrorException (
          //    "Face "+face+" associated with "+elems.size()+" elements");
 
+      }
+      return (FemElement3d)elems.toArray()[0];
+   }
+
+   private void addVertexNodes (HashSet<FemNode3d> nodes, Vertex3d vtx) {
+
+      PointAttachment pa = getAttachment(vtx.getIndex());
+      if (pa instanceof PointFem3dAttachment) {
+         PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
+         FemNode[] masters = pfa.getNodes();
+         for (int j=0; j<masters.length; j++) {
+            nodes.add ((FemNode3d)masters[j]);
+         }
+      }
+      else {
+         PointParticleAttachment ppa = (PointParticleAttachment)pa;
+         nodes.add ((FemNode3d)ppa.getParticle());
+      }      
+   }
+
+   public FemElement3d getFaceElement (Face face) {
+
+      // Form the intersection of all the element dependencies of all three
+      // nodes associated with the face. If the face is on the surface,
+      // there should be only one element left.
+      HashSet<FemNode3d> nodes = new HashSet<FemNode3d>();
+      HalfEdge he0 = face.firstHalfEdge();
+      HalfEdge he = he0;
+      do {
+         addVertexNodes (nodes, he.getHead());
+         he = he.getNext();
+      }
+      while (he != he0);
+
+      HashSet<FemElement3d> elems = null;
+      for (FemNode3d node : nodes) {
+         if (elems == null) {
+            elems = new HashSet<FemElement3d>(node.getElementDependencies());
+         }
+         else {
+            elems.retainAll (node.getElementDependencies());
+         }
+      }
+      if (elems.size() != 1) {
+         FemElement3d[] elemArray = elems.toArray(new FemElement3d[0]);
+         int[] idxs = face.getVertexIndices();
+         System.out.print ("Error: couldn't get element for face [ ");
+         for (int i=0; i<idxs.length; i++) {
+            System.out.print ("" + idxs[i]+" ");
+         }
+         System.out.println ("]");
+         System.out.println ("Candidate elements are:");
+         for (int i=0; i<elemArray.length; i++) {
+            System.out.println (" element "+elemArray[i].getNumber());
+         }
+         return null;
+         // ignore for now ...
+         // throw new InternalErrorException (
+         //    "Face "+face+" associated with "+elems.size()+" elements");
       }
       return (FemElement3d)elems.toArray()[0];
    }
@@ -420,13 +479,13 @@ public class FemMeshComp extends FemMeshBase
    }
 
    private Vertex3d[] collectEdgeVertices (
-      Vertex3d v0, Vertex3d v1, 
+      HashMap<EdgeDesc,Vertex3d[]> edgeVtxMap, Vertex3d v0, Vertex3d v1, 
       FemNode3d n0, FemNode3d n1, FemElement3d elem, int res) {
 
       int numv = res+1;
       // numv is total number of vertices along the edge, including
       // the end vertices. The number of intermediate vertices is numv-2
-      Vertex3d[] vtxs = myEdgeVtxs.get (new EdgeDesc (v0, v1));
+      Vertex3d[] vtxs = edgeVtxMap.get (new EdgeDesc (v0, v1));
       if (vtxs == null) {
          vtxs = new Vertex3d[numv];
          vtxs[0] = v0;
@@ -436,7 +495,7 @@ public class FemMeshComp extends FemMeshBase
             double s1 = i/(double)res;
             vtxs[i] = createVertex (1-s1, s1, 0, elem, n0, n1, null);
          }
-         myEdgeVtxs.put (new EdgeDesc (v0, v1), vtxs);
+         edgeVtxMap.put (new EdgeDesc (v0, v1), vtxs);
          return vtxs;
       }
       else if (vtxs[0] == v0) {
@@ -556,7 +615,7 @@ public class FemMeshComp extends FemMeshBase
             else {
                Vector3d c3 = new Vector3d();
                boolean converged = 
-                  elem.getNaturalCoordinates (c3, vtx.pnt, 1000);
+                  elem.getNaturalCoordinates (c3, vtx.pnt, 1000) >= 0;
                if (!converged) {
                   System.err.println(
                      "Warning: getNaturalCoordinatesRobust() did not converge, "+
@@ -608,6 +667,11 @@ public class FemMeshComp extends FemMeshBase
       return femMesh; 
    }
    
+   public static FemMeshComp createSurface (
+      String name, FemModel3d fem, ElementFilter efilter) {
+      return createSurface (name, fem, getFilteredElements (fem, efilter));
+   }
+   
    public static FemMeshComp createSurface (String name, FemModel3d fem) {
       return createSurface (name, fem, fem.getElements());
    }
@@ -632,6 +696,7 @@ public class FemMeshComp extends FemMeshBase
       
       int numv = resolution+1; // num vertices along the edge of each sub face
       initializeSurfaceBuild();
+      HashMap<EdgeDesc,Vertex3d[]> edgeVtxMap = new HashMap<EdgeDesc,Vertex3d[]>();
 
       // get newly empty mesh
       PolygonalMesh surfMesh = (PolygonalMesh)getMesh();
@@ -668,17 +733,17 @@ public class FemMeshComp extends FemMeshBase
          subv.set (numv-1, numv-1, getVertex(v1.getIndex()));
 
          Vertex3d[] vtxs01 = collectEdgeVertices (
-            v0, v1, n0, n1, elem, resolution);
+            edgeVtxMap, v0, v1, n0, n1, elem, resolution);
          for (int i=1; i<numv-1; i++) {
             subv.set (i, i, vtxs01[i]);
          }
          Vertex3d[] vtxs02 = collectEdgeVertices (
-            v0, v2, n0, n2, elem, resolution);
+            edgeVtxMap, v0, v2, n0, n2, elem, resolution);
          for (int j=1; j<numv-1; j++) {
             subv.set (0, j, vtxs02[j]);
          }
          Vertex3d[] vtxs21 = collectEdgeVertices (
-            v2, v1, n2, n1, elem, resolution);
+            edgeVtxMap, v2, v1, n2, n1, elem, resolution);
          for (int i=1; i<numv-1; i++) {
             subv.set (i, numv-1, vtxs21[i]);
          }
@@ -782,21 +847,40 @@ public class FemMeshComp extends FemMeshBase
       face.setAllNodes(allNodes.toArray(new FemNode3d[0]));
    }
 
-   public void createSurface (ElementFilter efilter) {
-
+   private static ArrayList<FemElement3d> getFilteredElements (
+      FemModel3d fem, ElementFilter efilter) {
       ArrayList<FemElement3d> elems = 
-         new ArrayList<FemElement3d>(myFem.numElements());
+         new ArrayList<FemElement3d>(fem.numElements());
       // create a list of all the faces for all the elements, and for
       // each node, create a list of all the faces it is associated with
-      for (FemElement3d e : myFem.getElements()) {
+      for (FemElement3d e : fem.getElements()) {
          if (efilter.elementIsValid(e)) {
             elems.add (e);
          }
       }
-      createSurface (elems);
+      return elems;
    }
 
+   public void createSurface (ElementFilter efilter) {
+
+      createSurface (getFilteredElements (myFem, efilter));
+   }
+
+   //Throwable throwable = null;
+
    public void createSurface (Collection<FemElement3d> elems) {
+
+      // if (throwable != null) {
+      //    System.out.println ("already inside createSurface.");
+      //    System.out.println ("prev:");
+      //    throwable.printStackTrace();
+      //    System.out.println ("now:");
+      //    (new Throwable()).printStackTrace();
+      // }
+      // else {
+      //    throwable = new Throwable();
+      // }
+      
 
       initializeSurfaceBuild();
       // nodeVertexMap is used during the construction of this surface,
@@ -899,6 +983,8 @@ public class FemMeshComp extends FemMeshBase
       }
 
       finalizeSurfaceBuild();
+
+      //throwable = null;
    }
 
    protected void updateVertexColors() {
@@ -1411,24 +1497,24 @@ public class FemMeshComp extends FemMeshBase
       }
       fm.buildNodeVertexMap();
 
-      fm.myEdgeVtxs = new HashMap<EdgeDesc,Vertex3d[]>(myEdgeVtxs.size());
-      for (Entry<EdgeDesc,Vertex3d[]> het : myEdgeVtxs.entrySet()) {
-         het.getKey();
-         Vertex3d[] oldVerts = het.getValue();
-         EdgeDesc newEdge = het.getKey().copy(vertMap);
-         Vertex3d[] newVerts = new Vertex3d[oldVerts.length];
-
-         if (vertMap != null) {
-            for (int i=0; i<newVerts.length; i++) {
-               newVerts[i] = vertMap.get(oldVerts[i]);
-            }
-         } else {
-            for (int i=0; i<newVerts.length; i++) {
-               newVerts[i] = oldVerts[i];
-            }
-         }
-         fm.myEdgeVtxs.put(newEdge, newVerts);
-      }
+//      fm.myEdgeVtxs = new HashMap<EdgeDesc,Vertex3d[]>(myEdgeVtxs.size());
+//      for (Entry<EdgeDesc,Vertex3d[]> het : myEdgeVtxs.entrySet()) {
+//         het.getKey();
+//         Vertex3d[] oldVerts = het.getValue();
+//         EdgeDesc newEdge = het.getKey().copy(vertMap);
+//         Vertex3d[] newVerts = new Vertex3d[oldVerts.length];
+//
+//         if (vertMap != null) {
+//            for (int i=0; i<newVerts.length; i++) {
+//               newVerts[i] = vertMap.get(oldVerts[i]);
+//            }
+//         } else {
+//            for (int i=0; i<newVerts.length; i++) {
+//               newVerts[i] = oldVerts[i];
+//            }
+//         }
+//         fm.myEdgeVtxs.put(newEdge, newVerts);
+//      }
 
       fm.isSurfaceMesh = isSurfaceMesh();
 

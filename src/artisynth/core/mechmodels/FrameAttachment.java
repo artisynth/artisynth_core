@@ -127,8 +127,10 @@ public abstract class FrameAttachment extends DynamicAttachment
     * with the current valued master coordinates.
     *
     * @param TFW new pose for the attached frame, in world coordinates
+    * @return <code>true</code> if the underlying master 
+    * components have changed
     */
-   public abstract void setCurrentTFW (RigidTransform3d TFW);
+   public abstract boolean setCurrentTFW (RigidTransform3d TFW);
 
    /**
     * Returns the current velocity of the attached frame, in frame coordinates.

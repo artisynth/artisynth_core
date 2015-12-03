@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 
 import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.AffineTransform3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
@@ -42,7 +43,6 @@ public abstract class MeshBase implements Renderable {
    protected RenderProps myRenderProps = null;
    public boolean isFixed = true;
    public boolean useVertexColoring = false;
-
    
    // Allow ability to directly control display list
    // even for non-fixed mesh (e.g. when model is paused,
@@ -680,10 +680,7 @@ public abstract class MeshBase implements Renderable {
       for (Vertex3d vertex : myVertices) {
          vertex.pnt.scale (s);
       }
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
-      }
-      clearBoundingInfo();
+      notifyVertexPositionsModified();
    }
    
    /**
@@ -701,10 +698,7 @@ public abstract class MeshBase implements Renderable {
       for (Vertex3d vertex : myVertices) {
          vertex.pnt.scale (sx, sy, sz);
       }
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
-      }
-      clearBoundingInfo();
+      notifyVertexPositionsModified();
    }   
 
    /*
@@ -762,10 +756,7 @@ public abstract class MeshBase implements Renderable {
       for (Vertex3d vertex : myVertices) {
          vertex.pnt.add (off);
       }
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
-      }
-      clearBoundingInfo();
+      notifyVertexPositionsModified();
    }
 
    /**
@@ -779,15 +770,12 @@ public abstract class MeshBase implements Renderable {
       for (Vertex3d vertex : myVertices) {
          vertex.pnt.transform (X);
       }
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
-      }
-      clearBoundingInfo();
+      notifyVertexPositionsModified();
    }
 
    /**
-    * Applies an inverse affine transformation to the vertices of this mesh. The
-    * topology of the mesh remains unchanged.
+    * Applies an inverse affine transformation to the vertices of this mesh, in
+    * local mesh coordinates. The topology of the mesh remains unchanged.
     * 
     * @param X
     * affine transformation
@@ -796,11 +784,54 @@ public abstract class MeshBase implements Renderable {
       for (Vertex3d vertex : myVertices) {
          vertex.pnt.inverseTransform (X);
       }
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
-      }
-      clearBoundingInfo();
+      notifyVertexPositionsModified();
    }
+
+   // /**
+   //  * Applies a geometric transformation to the vertices of this mesh, in local
+   //  * mesh coordinates. The topology of the mesh remains unchanged.
+   //  *
+   //  * @param X transformer
+   //  */
+   // public void transform (GeometryTransformer X) {
+   //    for (Vertex3d vertex : myVertices) {
+   //       X.transformPnt (vertex.pnt);
+   //    }
+   //    notifyVertexPositionsModified();
+   // }
+
+   // /**
+   //  * Applies a geometric transformation to both the vertices of this mesh and
+   //  * the mesh's mesh-to-world transform TMW, in world coordinates. The mesh
+   //  * vertex positions <code>p</code> are modified to accomodate that of part
+   //  * of the transformation not provided by the change to TMW. Specifically,
+   //  * <pre>
+   //  * p' = TMWnew X (TMW p) 
+   //  * </pre>
+   //  * where <code>X( )</code> indicates the
+   //  * transform applied by <code>X</code> and TMWnew is the transformed
+   //  * value of <code>TMW</code>.
+   //  * 
+   //  * @param X transformer
+   //  */
+   // public void transformWorld (GeometryTransformer X) {
+
+   //    RigidTransform3d TMWnew = new RigidTransform3d();
+   //    X.transform (TMWnew, XMeshToWorld);
+
+   //    Point3d p = new Point3d();
+   //    for (Vertex3d vertex : myVertices) {
+   //       // Would be nice to do this in one operation for cases where X is a
+   //       // uniform affine transform. Can't do that though and still get the
+   //       // right answer when X is working in "undo" mode
+   //       p.transform (XMeshToWorld, vertex.pnt);
+   //       X.transformPnt (p);
+   //       p.inverseTransform (TMWnew);
+   //       vertex.pnt.set (p);
+   //    }
+   //    setMeshToWorld (TMWnew);
+   //    notifyVertexPositionsModified();
+   // }
 
    /**
     * {@inheritDoc}
@@ -866,7 +897,9 @@ public abstract class MeshBase implements Renderable {
    }
 
    public void clearDisplayList() {
-      myRenderProps.clearMeshDisplayList();
+      if (myRenderProps != null) {
+         myRenderProps.clearMeshDisplayList();
+      }
       myDisplayListValid = false;
    }
    

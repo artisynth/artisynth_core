@@ -16,6 +16,7 @@ import java.util.Deque;
 
 import maspack.geometry.DelaunayInterpolator;
 import maspack.geometry.PolylineMesh;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.SparseNumberedBlockMatrix;
@@ -56,7 +57,8 @@ import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentBase;
 import artisynth.core.modelbase.RenderableComponentList;
-import artisynth.core.util.TransformableGeometry;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScanToken;
 
 public class MFreeMuscleBundle extends CompositeComponentBase 
@@ -978,17 +980,19 @@ public class MFreeMuscleBundle extends CompositeComponentBase
    }
 
    public void transformGeometry(AffineTransform3dBase X) {
-      transformGeometry(X, this, 0);
+      TransformGeometryContext.transform (this, X, 0);
    }
 
-   public void transformGeometry(AffineTransform3dBase X,
-      TransformableGeometry topObject, int flags) {
-      for (MFreeMuscleElementDesc elemDesc : myElementDescs) {
-         elemDesc.transformGeometry(X, topObject, flags);
-      }
-      
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      // nothing to at the top level
    }
 
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      context.addAll (myElementDescs);
+   } 
+   
    /**
     * {@inheritDoc}
     */

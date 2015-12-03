@@ -14,6 +14,7 @@ import java.io.PrintWriter;
 import java.util.*;
 
 import maspack.geometry.MeshBase;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AxisAngle;
@@ -26,8 +27,9 @@ import maspack.render.RenderList;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScanToken;
-import artisynth.core.util.TransformableGeometry;
 
 public class FixedMeshBody extends MeshComponent {
 
@@ -50,6 +52,7 @@ public class FixedMeshBody extends MeshComponent {
 
    public void setPose (RigidTransform3d XFrameToWorld) {
       myState.setPose (XFrameToWorld);
+      updatePosState();
    }
 
    public RigidTransform3d getPose() {
@@ -66,6 +69,7 @@ public class FixedMeshBody extends MeshComponent {
 
    public void setPosition (Point3d pos) {
       myState.setPosition (pos);
+      updatePosState();
    }
 
    public AxisAngle getOrientation() {
@@ -84,6 +88,7 @@ public class FixedMeshBody extends MeshComponent {
 
    public void setRotation (Quaternion q) {
       myState.setRotation (q);
+      updatePosState();
    }
 
    public FixedMeshBody () {
@@ -144,13 +149,13 @@ public class FixedMeshBody extends MeshComponent {
       }
    }   
 
-   public void updatePosState (int flags) {
+   protected void updatePosState () {
       MeshBase mesh = getMesh();
       if (mesh != null) {
          mesh.setMeshToWorld (myState.XFrameToWorld);
       }         
    }
-
+   
    public void transformMesh (AffineTransform3dBase X) {
       getMesh().transform (X);
       if (myRenderProps != null) {
@@ -159,20 +164,21 @@ public class FixedMeshBody extends MeshComponent {
    }
 
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      
+      // transform the pose
       RigidTransform3d Xpose = new RigidTransform3d();
-      AffineTransform3d Xlocal = new AffineTransform3d();
       Xpose.set (myState.XFrameToWorld);
-      if (myMeshInfo.transformGeometry (X, Xpose, Xlocal)) {
-         // mesh was transformed in addition to having its transform set
+      gtr.transform (Xpose);
+      if (myMeshInfo.transformGeometryAndPose (gtr, null)) {
+         // mesh vertices were transformed in addition to the mesh transform
          // so clear the display list (if set)
          if (myRenderProps != null) {
             myRenderProps.clearMeshDisplayList();
          }
       }
-      setPose (Xpose);
-   }
+      setPose (Xpose);      
+   }   
 
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
       super.scan (rtok, ref);

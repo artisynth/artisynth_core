@@ -204,6 +204,14 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       return 0;
    }
    
+   public void getConstrainedComponents (List<DynamicComponent> list) {
+      if (myElement != null) {
+         for (FemNode n : myElement.getNodes()) {
+            list.add (n);
+         }
+      }
+   }
+   
    // public void setNodes (
    //    Collection<FemNode> nodes, Collection<Double> coords) {
    //    double[] _coords = new double[coords.size()];
@@ -280,7 +288,7 @@ public class FrameFem3dConstraint extends ConstrainerBase {
 
    public void setFromElement (RigidTransform3d T, FemElement3d elem) {
       Vector3d coords = new Vector3d();
-      if (!elem.getNaturalCoordinates (coords, new Point3d(T.p), 1000)) {
+      if (elem.getNaturalCoordinates (coords, new Point3d(T.p), 1000) < 0) {
          throw new NumericalException (
             "Can't find natural coords for "+T.p+" in element "+elem.getNumber());
       }

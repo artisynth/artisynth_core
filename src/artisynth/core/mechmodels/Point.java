@@ -12,6 +12,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3d;
@@ -40,8 +41,9 @@ import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.Traceable;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScalableUnits;
-import artisynth.core.util.TransformableGeometry;
 
 public class Point extends DynamicComponentBase
    implements RenderablePoint, TransformableGeometry, ScalableUnits,
@@ -629,18 +631,15 @@ public class Point extends DynamicComponentBase
    }
 
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      myState.transformGeometry (X, topObject, flags);
-      // if (isAttached())
-      // { getAttachment().updateAttachment();
-      // }
-      if (topObject == this && getAttachment() != null) {
-         getAttachment().updateAttachment();
-      }
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+
+      super.transformGeometry (gtr, context, flags);
+      gtr.transformPnt (myState.pos);
    }
 
-   public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      super.addTransformableDependencies (context, flags);
    }
 
 //   public MatrixBlock getSolveBlock() {
@@ -797,7 +796,6 @@ public class Point extends DynamicComponentBase
          comp.myWorldState = comp.myState;
       }
       comp.myPointFrame = (Frame)ComponentUtils.maybeCopy (flags, copyMap, myPointFrame);
-      System.out.println ("setting frame " + comp.myPointFrame);
       comp.myForce = new Vector3d();
       comp.myExternalForce = new Vector3d();
       comp.myRenderCoords = new float[3];

@@ -16,6 +16,7 @@ import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.Point3d;
 import maspack.matrix.SymmetricMatrix3d;
+import maspack.geometry.GeometryTransformer;
 import maspack.properties.PropertyList;
 import maspack.render.GLRenderer;
 import maspack.render.RenderProps;
@@ -33,6 +34,8 @@ import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentBase;
 import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.*;
 
 /**
@@ -135,7 +138,7 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
    @Override
    public boolean isInvertible() {
       FemMaterial mat = getEffectiveMaterial();
-      return mat != null && mat.isInvertible();
+      return mat == null || mat.isInvertible();
    }
 
    protected FemMaterial getEffectiveMaterial() {
@@ -425,12 +428,17 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
    }
 
    public void transformGeometry(AffineTransform3dBase X) {
-      transformGeometry(X, this, 0);
+      TransformGeometryContext.transform (this, X, 0);      
    }
 
-   public void transformGeometry(
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      // nothing to at the top level
+   }
 
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      // no dependencies
    }
 
    public void scaleDistance (double s) {

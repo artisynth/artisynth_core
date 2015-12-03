@@ -9,7 +9,7 @@ package artisynth.core.mechmodels;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.MotionTarget.TargetActivity;
 import artisynth.core.util.ScalableUnits;
-import artisynth.core.util.TransformableGeometry;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.*;
 import maspack.properties.*;
 import maspack.render.*;
@@ -839,25 +839,22 @@ public class Frame extends DynamicComponentBase
 
    public void getSelection (LinkedList<Object> list, int qid) {
    }
-   
-   public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
-   }
 
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
 
+      super.transformGeometry (gtr, context, flags);
+
+      // transform the pose
       RigidTransform3d Xpose = new RigidTransform3d();
-      AffineTransform3d Xlocal = new AffineTransform3d();
-
       Xpose.set (myState.XFrameToWorld);
-      Xpose.mulAffineLeft (X, Xlocal.A);
-
+      gtr.transform (Xpose);
       myState.setPose (Xpose);
-      updatePosState();
-      if (topObject == this && getAttachment() != null) {
-         getAttachment().updateAttachment();
-      }
+   } 
+   
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      super.addTransformableDependencies (context, flags);
    }
 
    public void scaleDistance (double s) {

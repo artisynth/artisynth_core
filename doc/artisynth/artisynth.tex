@@ -28,17 +28,16 @@ At present, most Artisynth models are created with Java code, using the
 Artisynth API. The programmatic aspects of Artisynth are the focus of
 this manual.
 
-\setjavabase{artisynth.core.modelbase}
-
 \section{Component Hierarchy}
 \label{ComponentHierarchy}
 
 \subsection{Model Components}
 
 Artsynth models are created from a hierarchy of components. Each
-component is an instance of \javaclassx{ModelComponent}, which contains 
-a number of methods used to maintain the component hierarchy.
-These include methods for naming and numbering components:
+component is an instance of
+\javaclass[artisynth.core.modelbase]{ModelComponent}, which contains a
+number of methods used to maintain the component hierarchy.  These
+include methods for naming and numbering components:
 
 \begin{lstlisting}[]
   // get the name for this component
@@ -59,7 +58,8 @@ characters that does not begin with a digit, does not contain the
 characters '{\tt .}', '{\tt /}', '{\tt :}', '{\tt *}', or '{\tt ?}',
 and does not equal the string {\tt "null"}.
 For components which are not assigned a name,
-\javamethodx[ModelComponent]{getName()} will return {\tt null}.
+\javamethod[artisynth.core.modelbase.ModelComponent]{getName()} 
+will return {\tt null}.
 
 Artisynth may also be configured so that components names must be
 unique for all components which are children of the same parent.
@@ -114,21 +114,24 @@ and maintaining hierarchy structure:
   boolean hasState();
 \end{lstlisting}
 
-\javamethodx[ModelComponent]{getParent()} returns the component's
-parent, which is a \javaclassx{CompositeComponent} (Section
+\javamethod[artisynth.core.modelbase.ModelComponent]{getParent()} 
+returns the component's parent, which is a 
+\javaclass[artisynth.core.modelbase]{CompositeComponent} (Section
 \ref{CompositeComponentSec}). Conversely, if {\tt getParent()} returns
 null, the component is not attached to any parent and is not connected
 to the hierarchy unless it is the top-level {\tt RootModel} component
 (Section \ref{RootModelSec}).
 
 When a model component is added to a parent, its method
-\javamethodx[ModelComponent]{connectToHierarchy()} is called, and when
-it is removed from its parent, its method
-\javamethodx[ModelComponent]{disconnectFromHierarchy()} is called.
-When either of these methods are called, the component's parent
-(as returned by \javamethodx[ModelComponent]{getParent()})
-will be valid, and so hierarchy-dependent initialization
-can be performed, like setting (or removing) back pointers to references, etc.:
+\javamethod[artisynth.core.modelbase.ModelComponent]{connectToHierarchy()}
+is called, and when it is removed from its parent, its method
+\javamethod[artisynth.core.modelbase.ModelComponent]{disconnectFromHierarchy()}
+is called.  When either of these methods are called, the component's
+parent (as returned by
+\javamethod[artisynth.core.modelbase.ModelComponent]{getParent()})
+will be valid, and so hierarchy-dependent initialization can be
+performed, like setting (or removing) back pointers to references,
+etc.:
 \begin{lstlisting}[]
   connectToHierarchy () {
      ... perform hierarchy-dependent initialization ...
@@ -146,21 +149,24 @@ It is also necessary to notify components in the hierarchy when there
 are changes in structure or component properties, so that the
 necessary adjustments can be made, including the clearing of cached
 data. Notification is done using the method
-\javamethodx[ModelComponent]{notifyParentOfChange()}, which propagates
-an appropriate change event up the hierarchy. It will typically do
-this by calling the
-\javamethodx[CompositeComponent]{componentChanged()} method of the
-parent (see Section \ref{CompositeComponentSec}).
+\javamethod[artisynth.core.modelbase.ModelComponent]{notifyParentOfChange()},
+which propagates an appropriate change event up the hierarchy. It will
+typically do this by calling the
+\javamethod[artisynth.core.modelbase.CompositeComponent]{componentChanged()}
+method of the parent (see Section \ref{CompositeComponentSec}).
 
-The method \javamethodx[ModelComponent]{hasState()} should return {\tt
-true} if the component contains state information. This is always true
-if the component contains dynamic state information such as positions
-or velocities, but components may sometimes contain additional state
-information (such as contact state). Structural changes
-involving the addtion or removal of state-bearing components should be
-announced to the system by calling {\tt notifyParentOfChange()} with a
-\javaclassx{StructureChangeEvent} for which
-\javamethodx[StructureChangeEvent]{stateIsChanged()} returns {\tt true}.
+The method
+\javamethod[artisynth.core.modelbase.ModelComponent]{hasState()}
+should return {\tt true} if the component contains state
+information. This is always true if the component contains dynamic
+state information such as positions or velocities, but components may
+sometimes contain additional state information (such as contact
+state). Structural changes involving the addtion or removal of
+state-bearing components should be announced to the system by calling
+{\tt notifyParentOfChange()} with a
+\javaclass[artisynth.core.modelbase]{StructureChangeEvent} for which
+\javamethod[artisynth.core.modelbase.StructureChangeEvent]{stateIsChanged()}
+returns {\tt true}.
 
 A {\tt ModelComponent} also maintains a number of flags:
 \begin{lstlisting}[]
@@ -188,10 +194,11 @@ All of these flags are {\tt false} by default.
 \begin{description}
 
 \item [selected] indicates whether or not a component is selected.
-Components can be selected using various selection mechanisms in
-the Artisynth interface, such as the navigation panel or the viewer.
-When selected, its \javamethodx[ModelComponent]{isSelected()} method
-will return {\tt true}. 
+Components can be selected using various selection mechanisms in the
+Artisynth interface, such as the navigation panel or the viewer.  When
+selected, its
+\javamethod[artisynth.core.modelbase.ModelComponent]{isSelected()}
+method will return {\tt true}.
 
 \item [fixed] indicates, if {\tt true}, that a component should
 not be removed from its parent. It is used to fix required child
@@ -207,11 +214,11 @@ used with care to avoid side effects.
 
 \begin{sideblock}
 {\bf Important:}\\
-\javamethodx[ModelComponent]{setSelected()} should only be used by the
-SelectionManager, and should not be called by
-applications. Programmatic component selection should be performed by
-calling the {\tt addSelected()} or {\tt removeSelected()} methods of the
-{\tt SelectionManager}.
+\javamethod[artisynth.core.modelbase.ModelComponent]{setSelected()}
+should only be used by the SelectionManager, and should not be called
+by applications. Programmatic component selection should be performed
+by calling the {\tt addSelected()} or {\tt removeSelected()} methods
+of the {\tt SelectionManager}.
 \end{sideblock}
 
 Finally, all {\tt ModelComponents} implement the interface
@@ -219,8 +226,9 @@ Finally, all {\tt ModelComponents} implement the interface
 writing and scanning to and from persistent storage.  Details are
 given in Section \ref{writingAndScanningSec}.
 
-For convenience, \javaclassx{ModelComponentBase} provides a base
-implementations of all the {\tt ModelComponent} methods.  Most
+For convenience,
+\javaclass[artisynth.core.modelbase]{ModelComponentBase} provides a
+base implementations of all the {\tt ModelComponent} methods.  Most
 ArtiSynth components inherit from {\tt ModelComponentBase}.
 
 \subsection{Component References}
@@ -238,9 +246,10 @@ order for its continued existence to be meaningful. The end-point
 references for a point-to-point spring are usually hard. A {\it soft}
 reference is one that the component can do without, such as the
 excitation source inputs mentioned above. The methods
-\javamethodx[ModelComponent]{getHardReferences()} and
-\javamethodx[ModelComponent]{getSoftReferences()} are used to report
-all hard and soft references held by a component.
+\javamethod[artisynth.core.modelbase.ModelComponent]{getHardReferences()}
+and
+\javamethod[artisynth.core.modelbase.ModelComponent]{getSoftReferences()}
+are used to report all hard and soft references held by a component.
 
 \begin{sideblock}
 {\bf Note:}\\
@@ -253,14 +262,14 @@ The distinction between hard and soft references is used by the system
 when components in the hierarchy are deleted. A component that holds a
 hard reference to a deleted component is generally deleted as well.
 However, when only soft references are deleted, then the
-\javamethodx[ModelComponent]{updateReferences()} method of the
-referring component is called to update the component's internal
-structures. {\tt updateReferences()} should also store information
-about the update, to allow the update to be undone in case the method
-is called later with its {\tt undo} argument set to {\tt
+\javamethod[artisynth.core.modelbase.ModelComponent]{updateReferences()}
+method of the referring component is called to update the component's
+internal structures. {\tt updateReferences()} should also store
+information about the update, to allow the update to be undone in case
+the method is called later with its {\tt undo} argument set to {\tt
 true}. A typical implementation pattern for {\tt updateReferences()}
-is shown by the following example, in which 
-{\tt maspack.util.ListRemove} is used to remove selected items from a list
+is shown by the following example, in which {\tt
+maspack.util.ListRemove} is used to remove selected items from a list
 of soft references, and store information needed to undo this later:
 \begin{lstlisting}[]
    ArrayList<ModelComponent> mySoftRefs;
@@ -297,7 +306,8 @@ of soft references, and store information needed to undo this later:
    }
 \end{lstlisting}
 When updating, the method uses
-\javamethodx{ComponentUtils.isConnected()} to determine which soft
+\javamethod[artisynth.core.modelbase]{ComponentUtils.isConnected()} 
+to determine which soft
 references have been deleted from the hierarchy.  A {\tt ListRemove}
 object is used to assemble the remove requests and then perform the
 remove all at once and store information about what was removed for
@@ -311,7 +321,8 @@ for the super class, to be performed in sequence.
 \subsection{Composite Components}
 \label{CompositeComponentSec}
 
-\javaclassx{CompositeComponent} is a subinterface of \javaclassx{ModelComponent}
+\javaclass[artisynth.core.modelbase]{CompositeComponent} is a
+subinterface of \javaclass[artisynth.core.modelbase]{ModelComponent}
 which can contain children. Its main methods include:
 
 \begin{lstlisting}[]
@@ -350,11 +361,13 @@ property changes. Appropriate actions may include clearing cached
 data, and propogating the event further up the hierarchy (using
 {\tt notifyParentOfChange()}).
 
-\javaclassx{MutableCompositeComponent} is a subinterface of
-\javaclassx{CompositeComponent} which allows child components to be
-added and removed by an ArtiSynth application. It is a generic class
-parameterized by a class type {\tt C} which must be an extension of
-{\tt ModelComponent}. Its definition is:
+\javaclass[artisynth.core.modelbase]{MutableCompositeComponent} is a
+subinterface of
+\javaclass[artisynth.core.modelbase]{CompositeComponent} which allows
+child components to be added and removed by an ArtiSynth
+application. It is a generic class parameterized by a class type {\tt
+C} which must be an extension of {\tt ModelComponent}. Its definition
+is:
 
 \begin{lstlisting}[]
 public interface MutableCompositeComponent<C extends ModelComponent>
@@ -380,17 +393,20 @@ extends CompositeComponent {
 ComponentListImpl}
 \label{CompositeComponentBaseSec}
 
-A default implementation of \javaclassx{CompositeComponent} is provided
-by \javaclassx{CompositeComponentBase}. It is a non-generic class that
-provides a base for composite components whose composition is created
-at construction time and is not intended to change during the
-running of an ArtiSynth application.
+A default implementation of
+\javaclass[artisynth.core.modelbase]{CompositeComponent} is provided
+by \javaclass[artisynth.core.modelbase]{CompositeComponentBase}. It is
+a non-generic class that provides a base for composite components
+whose composition is created at construction time and is not intended
+to change during the running of an ArtiSynth application.
 
-\javaclassx{ComponentList} is a much more flexible class which
-implements \javaclassx{MutableCompositeComponent} and provides for
-collections of components whose composition may be built and changed
-by an application. {\tt ComponentList} is used widely to store the
-many lists of components that comprise a working ArtiSynth model.
+\javaclass[artisynth.core.modelbase]{ComponentList} is a much more
+flexible class which implements
+\javaclass[artisynth.core.modelbase]{MutableCompositeComponent} and
+provides for collections of components whose composition may be built
+and changed by an application. {\tt ComponentList} is used widely to
+store the many lists of components that comprise a working ArtiSynth
+model.
 
 \javabase[]
 
@@ -421,30 +437,31 @@ own component lists to the model itself:
 
 \begin{sideblock}
 By default, child components that belong to a
-\javaclassx{MutableCompositeComponent} (which includes {\tt
-ComponentList}) may be selected by the ArtiSynth application for deletion.
-This may be undesirable, particularly if internal structures
-depend on certain child components.
-Components that should not
-be removed from their parents should
-have their {\it fixed} flag set to {\tt true} in
-the composite component constructor, either by calling
-\javamethodx[ModelComponent]{setFixed()},
-or by adding the component using the 
-\javamethodx[ComponentList]{addFixed()} method of {\tt ComponentList}.
+\javaclass[artisynth.core.modelbase]{MutableCompositeComponent} (which
+includes {\tt ComponentList}) may be selected by the ArtiSynth
+application for deletion.  This may be undesirable, particularly if
+internal structures depend on certain child components.  Components
+that should not be removed from their parents should have their {\it
+fixed} flag set to {\tt true} in the composite component constructor,
+either by calling
+\javamethod[artisynth.core.modelbase.ModelComponent]{setFixed()}, or
+by adding the component using the
+\javamethod[artisynth.core.modelbase.ComponentList]{addFixed()} method
+of {\tt ComponentList}.
 \end{sideblock}
 
-The class \javaclassx{ComponentListImpl} is available as an internal
-implementation class for constructing instances of either
-\javaclassx{CompositeComponent} or
-\javaclassx{MutableCompositeComponent}.  It provides most of the
-implementation methods needed for a mutable component list, which can
-be exposed in the client class using delegate methods.  Components
-implementing only {\tt CompositeComponent} may choose to expose only
-some of these methods. For details, one should consult the source code
-for \javaclassx{CompositeComponentBase} or \javaclassx{ComponentList}.
-
-\setjavabase{artisynth.core.modelbase}
+The class \javaclass[artisynth.core.modelbase]{ComponentListImpl} is
+available as an internal implementation class for constructing
+instances of either
+\javaclass[artisynth.core.modelbase]{CompositeComponent} or
+\javaclass[artisynth.core.modelbase]{MutableCompositeComponent}.  It
+provides most of the implementation methods needed for a mutable
+component list, which can be exposed in the client class using
+delegate methods.  Components implementing only {\tt
+CompositeComponent} may choose to expose only some of these
+methods. For details, one should consult the source code for
+\javaclass[artisynth.core.modelbase]{CompositeComponentBase} or
+\javaclass[artisynth.core.modelbase]{ComponentList}.
 
 \section{Models}
 \label{Models}
@@ -452,8 +469,9 @@ for \javaclassx{CompositeComponentBase} or \javaclassx{ComponentList}.
 \subsection{Models and State}
 \label{ModelsAndStateSec}
 
-A \javaclassx{Model} is a specific \javaclassx{ModelComponent} that can
-contain state and be advanced forward in time.
+A \javaclass[artisynth.core.modelbase]{Model} is a specific
+\javaclass[artisynth.core.modelbase]{ModelComponent} that can contain
+state and be advanced forward in time.
 
 The methods associated with time advancement are:
 \begin{lstlisting}[]
@@ -481,16 +499,17 @@ time {\tt t0} to {\tt t1}. Often this method does nothing; it is
 supplied for situtations where the model needs to perform computation
 {\it before} the application of controllers or input probes (Section
 \ref{ModelAgentsSec}), such as evolving internal state in some way.
-The method can optionally return a \javaclassx{StepAdjustment} object to
-request a change in step size (Section \ref{AdaptiveSteppingSec}).
+The method can optionally return a
+\javaclass[artisynth.core.modelbase]{StepAdjustment} object to request
+a change in step size (Section \ref{AdaptiveSteppingSec}).
 
 {\tt advance()} is called to advance the model from time {\tt t0} to
 {\tt t1}. This is the main driver method for simulation, and typically
 involves solving an ordinary differential equation (ODE) associated
 with an underlying mechanical system, for which the model employs an
 internal physics solver. The method can optionally return a
-\javaclassx{StepAdjustment} object to request a change in step size
-(Section \ref{AdaptiveSteppingSec}).
+\javaclass[artisynth.core.modelbase]{StepAdjustment} object to request
+a change in step size (Section \ref{AdaptiveSteppingSec}).
 
 A very basic simulation might proceed as follows:
 
@@ -566,15 +585,14 @@ the inputs and observe the outputs of the model. These include
 
 \subsubsection{Probes}
 
-\setjavabase{artisynth.core.probes}
-
-A \javaclassx{Probe} is an agent that sets model input data, or records
-model output data, over a specific window of time. Probes that set
-input data are {\it input probes} (\javaclassx{InputProbe}), while those that
-record output data are {\it output probes} (\javaclassx{OutputProbe}). Examples
-of input data include muscle excitation signals or external
-forces. Output data often includes items such as velocities, postions,
-or internal forces.
+A \javaclass[artisynth.core.probes]{Probe} is an agent that sets model
+input data, or records model output data, over a specific window of
+time. Probes that set input data are {\it input probes}
+(\javaclass[artisynth.core.probes]{InputProbe}), while those that
+record output data are {\it output probes}
+(\javaclass[artisynth.core.probes]{OutputProbe}). Examples of input
+data include muscle excitation signals or external forces. Output data
+often includes items such as velocities, postions, or internal forces.
 
 Input probes can be used to perform a function analagous to
 the ``loading curves'' used in FEM analysis.
@@ -624,10 +642,11 @@ observed and controlled via the properties {\tt startTime}, {\tt stopTime},
 and {\tt updateInterval}.
 
 The most common types of probes used in ArtiSynth are
-\javaclassx{NumericInputProbe} and \javaclassx{NumericOutputProbe}, which are
-used to connect model properties to streams of numeric data which can
-be edited and observed on the system's timeline. Numeric probe data
-can also be saved to (or loaded from) external files.
+\javaclass[artisynth.core.probes]{NumericInputProbe} and
+\javaclass[artisynth.core.probes]{NumericOutputProbe}, which are used
+to connect model properties to streams of numeric data which can be
+edited and observed on the system's timeline. Numeric probe data can
+also be saved to (or loaded from) external files.
 
 \subsubsection{Controllers and monitors}
 
@@ -685,8 +704,9 @@ and {\tt setState()} described for models in Section
 
 The base classes for probes, controllers, and monitors define
 stateless version of these methods (i.e., {\tt hasState()} returns
-{\tt false}, and {\tt getState()} and {\tt setState()} do nothing), so that agents
-which actually do contain state must override these methods.
+{\tt false}, and {\tt getState()} and {\tt setState()} do nothing), so
+that agents which actually do contain state must override these
+methods.
 
 In the context of agents, state can be thought of as the internal
 information that is required so that the agent's actions and effect on
@@ -709,9 +729,10 @@ reset to t = 1 (before the probe's window), x will need to be restored
 to 0. This must be done by restoring the probe's
 state, since the {\tt apply()} method will not be called at t = 1.
 
-At present, \javaclassx{NumericInputProbe} defines {\tt getState()} and
-{\tt setState()} to save and restore any model property values that it
-controls. No state is defined for \javaclassx{NumericOutputProbe}.
+At present, \javaclass[artisynth.core.probes]{NumericInputProbe}
+defines {\tt getState()} and {\tt setState()} to save and restore any
+model property values that it controls. No state is defined for
+\javaclass[artisynth.core.probes]{NumericOutputProbe}.
 
 \begin{sideblock}
 If a controller has state, then it is important to implement
@@ -729,14 +750,15 @@ monitor state is not changed during adaptive stepping).
 \label{RootModelSec}
 
 All the models simulated by ArtiSynth at any given time are collected
-together within a root model (\javaclass[artisynth.core.workspace]{RootModel}), which is the
+together within a root model
+(\javaclass[artisynth.core.workspace]{RootModel}), which is the
 top-level model component in the hierarchy. Every system that is
 simulated by ArtiSynth is associated with a specific instance of a
-{\tt RootModel}, and is typically created in code by subclassing
-{\tt RootModel} and then creating and assembling the necessary components
+{\tt RootModel}, and is typically created in code by subclassing {\tt
+RootModel} and then creating and assembling the necessary components
 in the subclass's constructor. Alternately, a {\tt RootModel} can be
-loaded from a file, in which case a generic {\tt RootModel} is created and
-then populated with structures determined from the file.
+loaded from a file, in which case a generic {\tt RootModel} is created
+and then populated with structures determined from the file.
 
 A {\tt RootModel} contains a list of all the system's models, probes,
 controllers, and monitors. Methods to add or remove these include:
@@ -868,8 +890,6 @@ is also done in a loop:
 Note that at present, the {\tt preadvance()} method for a root model
 does nothing and is not called.
 
-\setjavabase{artisynth.core.modelbase}
-
 \subsection{Adaptive Stepping}
 \label{AdaptiveSteppingSec}
 
@@ -877,13 +897,14 @@ It is possible for models to request adaptive time stepping, which may
 be necessary if the model determines that a requested time step is too
 large for stable simulation. The model can indicate this by having
 either its {\tt preadvance()} or {\tt advance()} methods return a
-\javaclassx{StepAdjustment} object, which contains a recommended
-scaling for the step size via its {\tt scaling} attribute.  Then, if
-adaptive stepping is enabled in the root model, it will reduce the
-effective time step for the model and redo the advance.  If {\tt
-preadvance()} or {\tt advance()} return {\tt null}, then it is assumed
-that the step size should remain unchanged (which is equivalent to
-returning a {\tt StepAdjustment} with a scaling of 1).
+\javaclass[artisynth.core.modelbase]{StepAdjustment} object, which
+contains a recommended scaling for the step size via its {\tt scaling}
+attribute.  Then, if adaptive stepping is enabled in the root model,
+it will reduce the effective time step for the model and redo the
+advance.  If {\tt preadvance()} or {\tt advance()} return {\tt null},
+then it is assumed that the step size should remain unchanged (which
+is equivalent to returning a {\tt StepAdjustment} with a scaling of
+1).
 
 Adaptive time stepping can be enabled or disabled using the {\tt adaptiveStepping}
 property of {\tt RootModel}, or by using the {\tt RootModel} methods
@@ -966,8 +987,6 @@ convenient to use the adaptive stepping provided by {\tt RootModel}.
 
 \section{Writing and Scanning Components}
 \label{writingAndScanningSec}
-
-\setjavabase{}
 
 ArtiSynth model components have the ability to save and restore
 themselves from persistent storage. They do this by implementing the
@@ -1709,7 +1728,8 @@ composite component has been implemented internally using an instance
 of \javaclass[artisynth.core.modelbase]{ComponentListImpl} (Section
 \ref{CompositeComponentBaseSec}), then the above can be written more
 succinctly using the latter's
-\javamethod[artisynth.core.modelbase.ComponentListImpl]{scanAndStoreComponentByName()}
+\javamethod[artisynth.core.modelbase.ComponentListImpl]%
+{scanAndStoreComponentByName()}
 method:
 \begin{lstlisting}[]
    ComponentListImpl myComponents; 

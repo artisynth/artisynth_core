@@ -12,6 +12,9 @@ import java.io.FileWriter;
 import java.io.BufferedWriter;
 import java.util.*;
 
+import maspack.geometry.GeometryTransformer;
+import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Matrix;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.MatrixNdBlock;
@@ -28,6 +31,7 @@ import maspack.util.NumberFormat;
 import artisynth.core.mechmodels.MechSystemSolver.PosStabilization;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.ArtisynthIO;
+import artisynth.core.util.TimeBase;
 
 public abstract class MechSystemBase extends RenderableModelBase
    implements MechSystemModel {
@@ -88,6 +92,8 @@ public abstract class MechSystemBase extends RenderableModelBase
 
    String myPrintState = null;
    PrintWriter myPrintStateWriter = null;
+   double myPrintInterval = -1;
+   double myLastPrintTime = 0;
 
    // objects for projecting position constraints
    //KKTSolver myPosSolver = new KKTSolver();
@@ -164,6 +170,25 @@ public abstract class MechSystemBase extends RenderableModelBase
       setUpdateForcesAtStepEnd (DEFAULT_UPDATE_FORCES_AT_STEP_END);
    }
 
+   /**
+    * Returns the topmost MechSystem, if any, that is associated with
+    * a specific component. 
+    * 
+    * @param comp component to start with
+    * @return topmost MechSystem on or above <code>comp</code>, or
+    * <code>null</code> if there is none.
+    */
+   public static MechSystem topMechSystem (ModelComponent comp) {
+      MechSystem mech = null;
+      while (comp != null) {
+         if (comp instanceof MechSystem) {
+            mech = (MechSystem) comp;
+         }
+         comp=comp.getParent();
+      }
+      return mech;
+   }
+   
    public boolean hasParameterizedType() {
       return false;
    }
@@ -215,8 +240,6 @@ public abstract class MechSystemBase extends RenderableModelBase
       if (dn != null) {
          dn.setSize (myUnilateralSizes.sum());
       }
-      
-      IntHolder changeCnt = new IntHolder();
       int idx = 0;
       for (int i=0; i<myConstrainers.size(); i++) {
          idx = myConstrainers.get(i).addUnilateralConstraints (
@@ -734,8 +757,14 @@ public abstract class MechSystemBase extends RenderableModelBase
       return myPrintState;
    }
 
-   public synchronized void setPrintState (String fmt) {
+   public synchronized void setPrintState (String fmt, double interval) {
       myPrintState = fmt;
+      myPrintInterval = interval;
+      myLastPrintTime = 0;
+   }
+
+   public void setPrintState (String fmt) {
+      setPrintState (fmt, -1);
    }
 
    public synchronized PrintWriter openPrintStateFile (String name)
@@ -765,22 +794,35 @@ public abstract class MechSystemBase extends RenderableModelBase
    }
 
    private synchronized void printState (String fmt, double t) {
-      updateDynamicComponentLists();
-      VectorNd x = new VectorNd (myActivePosStateSize);
-      VectorNd v = new VectorNd (myActiveVelStateSize);
-      getActivePosState (x, 0);
-      // Hack: get vel in body coords until data is converted ...
-      getActiveVelState (v, 0, /*bodyCoords=*/false);
-      if (myPrintStateWriter == null) {
-         System.out.println ("t="+t+":");
-         System.out.println ("v: " + v.toString (fmt));
-         System.out.println ("x: " + x.toString (fmt));
+      if (myPrintInterval != -1) {
+         // reset last print time if necessary
+         if (TimeBase.compare (t, myLastPrintTime) < 0) {         
+            myLastPrintTime = ((int)(t/myPrintInterval))*myPrintInterval;
+         }
       }
-      else {
-         myPrintStateWriter.println ("t="+t+":");
-         myPrintStateWriter.println ("v: " + v.toString (fmt));
-         myPrintStateWriter.println ("x: " + x.toString (fmt));
-         myPrintStateWriter.flush();
+      if (myPrintInterval == -1 ||
+          TimeBase.compare (t, myLastPrintTime+myPrintInterval) >= 0) {
+
+         updateDynamicComponentLists();
+         VectorNd x = new VectorNd (myActivePosStateSize);
+         VectorNd v = new VectorNd (myActiveVelStateSize);
+         getActivePosState (x, 0);
+         // Hack: get vel in body coords until data is converted ...
+         getActiveVelState (v, 0, /*bodyCoords=*/false);
+         if (myPrintStateWriter == null) {
+            System.out.println ("t="+t+":");
+            System.out.println ("v: " + v.toString (fmt));
+            System.out.println ("x: " + x.toString (fmt));
+         }
+         else {
+            myPrintStateWriter.println ("t="+t+":");
+            myPrintStateWriter.println ("v: " + v.toString (fmt));
+            myPrintStateWriter.println ("x: " + x.toString (fmt));
+            myPrintStateWriter.flush();
+         }
+         if (myPrintInterval != -1) {
+            myLastPrintTime += myPrintInterval;
+         }
       }
    }
 
@@ -1807,4 +1849,39 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
    }
 
+   private static MechSystemBase getTopMechSystem (ModelComponent comp) {
+      MechSystemBase sys = null;
+      CompositeComponent cc;
+      for (cc=comp.getParent(); cc!=null; cc=cc.getParent()) {
+         if (cc instanceof MechSystemBase) {
+            sys = (MechSystemBase)cc;
+         }
+      }
+      return sys;
+   }
+
+   static class UpdateAttachmentsAction implements TransformGeometryAction {
+
+      public void transformGeometry (
+         GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+
+         // Do an updatePosState() on all top-most MechSystems, if any are
+         // found.
+         HashSet<MechSystemBase> systems = new HashSet<MechSystemBase>();
+         for (TransformableGeometry tg : context.getTransformables()) {
+            if (tg instanceof ModelComponent) {
+               MechSystemBase sys = getTopMechSystem ((ModelComponent)tg);
+               if (sys != null) {
+                  systems.add (sys);
+               }
+            }
+         }
+         for (MechSystemBase sys : systems) {
+            sys.updateAttachmentPos();
+         }
+      }
+   }
+   
+   static UpdateAttachmentsAction myAttachmentsPosAction = 
+      new UpdateAttachmentsAction();
 }

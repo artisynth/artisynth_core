@@ -15,7 +15,6 @@ import java.util.*;
 import maspack.util.*;
 import maspack.matrix.*;
 import artisynth.core.modelbase.*;
-import artisynth.core.util.TransformableGeometry;
 
 /**
  * Component that implements attachment between dynamic components.
@@ -131,9 +130,6 @@ public abstract class DynamicAttachment extends ModelComponentBase {
     * @return solve index of slave DynamicMechComponent, or -1.
     */
    public abstract int getSlaveSolveIndex();
-
-   public abstract void transformSlaveGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags);
 
    public abstract void updatePosStates();
 

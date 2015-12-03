@@ -280,7 +280,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
    public boolean setFromElement (RigidTransform3d T, FemElement3d elem) {
       Vector3d coords = new Vector3d();
       boolean converged = 
-         elem.getNaturalCoordinates (coords, new Point3d(T.p), 1000);
+         elem.getNaturalCoordinates (coords, new Point3d(T.p), 1000) >= 0;
 
       doSetFromElement (elem, coords);
 
@@ -331,18 +331,24 @@ public class FrameFem3dAttachment extends FrameAttachment {
       updateDeformationGradient();
       myRFD.mulInverseLeft (myPolard.getR(), TFW.R);
       return status;
-   }      
+   }    
+
+   public boolean debug = false;
 
    protected boolean resetFromElement (RigidTransform3d T, FemElement3d elem) {
       // first, see if we need to reset the weights ...
 
       Vector3d coords = new Vector3d();
-      if (!elem.getNaturalCoordinates (
-             coords, new Point3d(T.p), 1000)) {
+      if (elem.getNaturalCoordinates (
+             coords, new Point3d(T.p), 50) < 0) {
          throw new NumericalException (
             "Can't find natural coords for "+T.p+
             " in element "+elem.getNumber());
       }
+      // if (debug) {
+      //    System.out.println ("coords=" + coords);
+      // }
+      
       if (!elem.coordsAreInside(coords)) {
          return false;
       }
@@ -535,7 +541,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
    }
    
    @Override
-   public void setCurrentTFW (RigidTransform3d TFW) {
+   public boolean setCurrentTFW (RigidTransform3d TFW) {
       if (myElement != null) {
          if (!resetFromElement (TFW, myElement)) {
             FemModel3d fem = getFemModel (myElement);
@@ -544,11 +550,17 @@ public class FrameFem3dAttachment extends FrameAttachment {
                   "FrameFem3dAttachment has an assigned element but no FEM");
             }
             setFromFem (TFW, fem);
+            updatePosStates();
+            return true;
+         }
+         else {
+            return false;
          }
       }
       else {
          updateDeformationGradient();
          myRFD.mulInverseLeft (myPolard.getR(), TFW.R);
+         return true;
       }
    }
 
@@ -669,12 +681,6 @@ public class FrameFem3dAttachment extends FrameAttachment {
                "addMassToMasters() only supported for rigid bodies");
          }
       }
-   }
-
-   @Override
-   public void transformSlaveGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      updateAttachment();
    }
 
    @Override

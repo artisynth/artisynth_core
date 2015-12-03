@@ -292,5 +292,9 @@ public class EditableMeshComp extends MeshComponent
    public VertexList<VertexComponent> getVertexComponents() {
       return myVertexList;
    }
-
+   
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      context.addAll (myVertexList);
+   } 
 }

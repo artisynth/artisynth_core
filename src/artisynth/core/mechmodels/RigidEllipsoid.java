@@ -15,6 +15,31 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
    Vector3d myAxisLengths;
    private static double MACH_PREC = 1e-16;
 
+   private class TransformConstrainer
+      implements GeometryTransformer.Constrainer {
+
+      public void apply (AffineTransform3dBase X) {
+
+         // constrain the transform to simple scaling along the x, y, z axes
+         if (X instanceof AffineTransform3d && 
+             !X.equals (AffineTransform3d.IDENTITY)) {
+            AffineTransform3d XA = (AffineTransform3d)X;
+
+            PolarDecomposition3d pd = null;
+            Matrix3d P = XA.A;
+            if (!P.isSymmetric (1000*MACH_PREC*P.oneNorm())) {
+               pd = new PolarDecomposition3d();
+               pd.factor (P);
+               P = pd.getP();
+            }
+            XA.A.setDiagonal (P.m00, P.m11, P.m22);
+            if (pd != null) {
+               XA.A.mul (pd.getR(), XA.A);
+            }
+         }
+      }
+   }
+
    public RigidEllipsoid() {
       super (null);
       myAxisLengths = new Vector3d();
@@ -22,6 +47,10 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
 
    public void getAxisLengths (Vector3d lengths) {
       myAxisLengths.get (lengths);
+   }
+
+   public Vector3d getAxisLengths () {
+      return new Vector3d(myAxisLengths);
    }
 
    public void setAxisLengths (Vector3d lengths) {
@@ -44,6 +73,7 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
       setMesh (mesh, null);
       double mass = 4/3.0*Math.PI*a*b*c*density;
       setInertia (SpatialInertia.createEllipsoidInertia (mass, a, b, c));
+      myTransformConstrainer = new TransformConstrainer();
    }
 
    protected void writeItems (
@@ -83,7 +113,7 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
       
    }
 
-   public double penetrationDistance (Vector3d nrm, Point3d p0) {
+   public double penetrationDistance (Vector3d nrm, Matrix3d dnrm, Point3d p0) {
       double a = myAxisLengths.x;
       double b = myAxisLengths.y;
       double c = myAxisLengths.z;
@@ -92,8 +122,33 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
       loc0.inverseTransform (getPose());
       double d = QuadraticUtils.ellipsoidPenetrationDistance (
          nrm, loc0, a, b, c);
+      if (dnrm != null) {
+         dnrm.setZero();
+      }
       nrm.transform (getPose());
       return d;
+   }
+
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+
+      // Update the axis lengths. The appropriate scaling is determined by
+      // applying the transform constrainer to the local affine transform
+      // induced by the transformation. 
+      if (gtr.isRestoring()) {
+         myAxisLengths.set (gtr.restoreObject (myAxisLengths));
+      }
+      else {
+         if (gtr.isSaving()) {
+            gtr.saveObject (new Vector3d(myAxisLengths));
+         }
+         AffineTransform3d XL = gtr.computeRightAffineTransform (getPose());
+         myTransformConstrainer.apply (XL);
+         myAxisLengths.x *= XL.A.m00;
+         myAxisLengths.y *= XL.A.m11;
+         myAxisLengths.z *= XL.A.m22;
+      }   
+      super.transformGeometry (gtr, context, flags);
    }
 
 }

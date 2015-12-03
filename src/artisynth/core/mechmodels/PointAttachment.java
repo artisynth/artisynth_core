@@ -178,9 +178,9 @@ public abstract class PointAttachment extends DynamicAttachment
       a.myMasterBlocks = null;
       // EDIT: for FrameMarker.copy() can eventually lead here with copyMap=null, Sanchez (Nov 30, 2011)
       if (copyMap != null) {
-         if (copyMap.get (myPoint) == null) {
-            System.out.println ("not here: " + myPoint);
-         }
+//         if (copyMap.get (myPoint) == null) {
+//            System.out.println ("not here: " + myPoint);
+//         }
       }
       
       if (myPoint != null) {

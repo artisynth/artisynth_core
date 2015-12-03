@@ -13,7 +13,6 @@ import maspack.matrix.*;
 import maspack.util.*;
 import maspack.geometry.*;
 import maspack.properties.*;
-import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
@@ -26,7 +25,6 @@ public abstract class SkinMeshBase extends MeshComponent
    implements HasSlaveObjects, CompositeComponent, HasSurfaceMesh {
 
    protected ComponentListImpl<ModelComponent> myComponents;
-   protected ComponentList<PointAttachment> myAttachments;
 
    private NavpanelDisplay myNavpanelDisplay = NavpanelDisplay.NORMAL;
 
@@ -283,14 +281,11 @@ public abstract class SkinMeshBase extends MeshComponent
    }
 
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
 
-      if ((flags & TransformableGeometry.SIMULATING) != 0) {
-         return;
-      }
       // shouldn't need to change anything since everything is weight-based
       updateSlavePos();
-   }   
+   }  
    
    @Override
    public SkinMeshBase copy(int flags, Map<ModelComponent,ModelComponent> copyMap) {

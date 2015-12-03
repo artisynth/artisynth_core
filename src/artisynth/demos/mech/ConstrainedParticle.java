@@ -65,22 +65,30 @@ public class ConstrainedParticle extends RootModel {
 
       // setting for cylinder
       //Particle p = new Particle (5, -0.28839441, 0, -0.058345216);
-      double ang = Math.toRadians (15);
       double rad = 0.425;
-      //Particle p = new Particle (5, -rad*Math.cos(ang), 0, -rad*Math.sin(ang));
-      Particle p = new Particle (5, -0.4, -0.3, 0.7);
-      p.setVelocity (0, 1.0, -0.5);
-      ParticleMeshConstraint c = new ParticleMeshConstraint (p, mesh);
+      rad = 0.3;
+      double ang = Math.toRadians (15);
+      Particle p1 = new Particle (5, -rad*Math.cos(ang), -rad*Math.sin(ang), 0);
+      ang = Math.toRadians (-20);
+      Particle p2 = new Particle (5, -rad*Math.cos(ang), -rad*Math.sin(ang), 0);
+      //Particle p = new Particle (5, -0.4, -0.3, 0.7);
+      //p.setVelocity (0, 1.0, -0.5);
+      ParticleMeshConstraint c = new ParticleMeshConstraint (p1, mesh);
+      c.addParticle (p2);
       c.setUnilateral (true);
 
-      mech.addParticle (p);
+      mech.addParticle (p1);
+      mech.addParticle (p2);
       mech.addConstrainer (c);
 
-      mech.setProfiling (true);
+      //mech.setProfiling (true);
       //mech.setGravity (new Vector3d (0, 0, -.01)
       mech.setPointDamping (5);
 
-
       addModel (mech);
+
+      for (int i=0; i<5; i++) {
+         addWayPoint (i*0.5);
+      }
    }
 }

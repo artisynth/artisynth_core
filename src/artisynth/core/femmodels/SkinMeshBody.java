@@ -24,12 +24,14 @@ import maspack.geometry.HalfEdge;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.DualQuaternion;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Matrix3d;
 import maspack.properties.PropertyList;
 import maspack.render.MouseRayEvent;
 import maspack.spatialmotion.Wrench;
@@ -62,9 +64,10 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.StringToken;
-import artisynth.core.util.TransformableGeometry;
 
 /**
  * A MeshComponent that supports "skinning", in which the position of each mesh
@@ -1009,7 +1012,6 @@ public class SkinMeshBody extends SkinMeshBase
       clearAttachments();
       for (int i=0; i<mesh.getNumVertices(); i++) {
          Vertex3d vtx = mesh.getVertices().get(i);
-
          dcalc.computeDistancesAndWeights (vtx.getPosition(), sigma);
          PointSkinAttachment a = dcalc.computeDisplacementAttachment();
          addAttachment (a);
@@ -1034,32 +1036,31 @@ public class SkinMeshBody extends SkinMeshBase
    }
 
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-
-      if ((flags & TransformableGeometry.SIMULATING) != 0) {
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      
+      // if we are simulating, make no changes
+      if ((flags & TransformableGeometry.TG_SIMULATING) != 0) {
          return;
       } 
+      // update base positions for vertices
       for (int i=0; i<myVertexAttachments.size(); i++) {
          Point3d base = myVertexAttachments.get(i).getBasePosition();
-         base.transform (X);
+         gtr.transformPnt (base);
       }
-      // XXX update base poses if entire model is transformed
-      // Sanchez, Jan 2013
-      if (topObject instanceof MechModel) {
-         RigidTransform3d T = new RigidTransform3d();
-         T.mulAffineLeft (X, null);
-         for (FrameInfo finfo : myFrameInfo) {
-            finfo.myBasePose.mul (T, finfo.myBasePose);
+      // update base poses for frames that are being transformed
+      for (FrameInfo finfo : myFrameInfo) {
+         if (context.contains (finfo.myFrame)) {
+            gtr.transform (finfo.myBasePose);
          }         
       }
-      super.transformGeometry (X, topObject, flags);
-   }
+      super.transformGeometry (gtr, context, flags);      
+   }   
 
-   protected void writeAttachments (
-      PrintWriter pw, NumberFormat fmt, Object ref)
-      throws IOException {
-      myVertexAttachments.write (pw, fmt, ref);
-   }
+//   protected void writeAttachments (
+//      PrintWriter pw, NumberFormat fmt, Object ref)
+//      throws IOException {
+//      myVertexAttachments.write (pw, fmt, ref);
+//   }
 
    protected void scanFrameInfo (
       ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {

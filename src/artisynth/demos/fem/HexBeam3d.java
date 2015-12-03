@@ -1,6 +1,7 @@
 package artisynth.demos.fem;
 
 import java.awt.Color;
+import java.io.*;
 
 import artisynth.core.femmodels.*;
 import artisynth.core.femmodels.FemModel.IncompMethod;
@@ -41,6 +42,27 @@ public class HexBeam3d extends FemBeam3d {
                n.setTargetVelocity (vel);
             }
          }
+      }
+   }
+
+   public void printStresses (String fileName) {
+
+      try {
+         PrintWriter pw =
+            new PrintWriter (new BufferedWriter (new FileWriter (fileName)));
+         for (FemNode3d n : myFemMod.getNodes()) {
+            Point3d pos = n.getPosition();
+            SymmetricMatrix3d sig = n.getStress();
+            pw.printf (
+               "%5d %10.6f %10.6f %10.6f ", n.getNumber(), pos.x, pos.y, pos.z);
+            pw.printf (
+               " %11.3f %11.3f %11.3f %11.3f %11.3f %11.3f\n",
+               sig.m00, sig.m11, sig.m22, sig.m01, sig.m02, sig.m12);
+         }
+         pw.close();
+      }
+      catch (IOException e) {
+         System.out.println ("Error opening or writing to file " + fileName);
       }
    }
 
@@ -107,6 +129,7 @@ public class HexBeam3d extends FemBeam3d {
       //myMechMod.setProfiling (true);
 
       // System.out.println ("DGT=\n" + DGT.toString ("%11.8f"));
+      myFemMod.addMarker (new FemMarker(0.4, -0.05, 0.05));
    }
 
    public void build (String string, double d, double e, int i,

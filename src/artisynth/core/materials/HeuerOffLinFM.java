@@ -278,7 +278,19 @@ public class HeuerOffLinFM extends FrameMaterial {
    }
 
    public boolean equals (FrameMaterial mat) {
-      return true;
+      if (!(mat instanceof HeuerOffLinFM)) {
+         return false;
+      }
+      HeuerOffLinFM hom = (HeuerOffLinFM)mat;
+      if (!myK.equals (hom.myK) ||
+          !myD.equals (hom.myD) ||
+          myRotK != hom.myRotK ||
+          myRotD != hom.myRotD) {
+         return false;
+      }
+      else {
+         return super.equals (mat);
+      }
    }
 
    public HeuerOffLinFM clone () {

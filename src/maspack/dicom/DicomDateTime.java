@@ -108,23 +108,22 @@ public class DicomDateTime implements Comparable<DicomDateTime> {
    }
    
    /**
-    * Integer number of MICROseconds since January 1, 1970 UTC
+    * Returns the number of MICROseconds since January 1, 1970 UTC
     */
    public long microseconds() {
       return _val;
    }
    
    /**
-    * Integer number of seconds since January 1, 1970 UTC
-    * @return
+    * Returns the number of seconds since January 1, 1970 UTC
     */
    public long epoch() {
       return (long)_val/1000000; 
    }
    
    /**
-    * Calender representation of the date/time (only includes up to floor(seconds))
-    * @return
+    * Returns a calender representation of the date/time 
+    * (only includes up to floor(seconds)).
     */
    public GregorianCalendar getCalendar() {
       return calendar;

@@ -24,6 +24,18 @@ public class GLHSVShader {
       "}"
    };
 
+   // John Lloyd, Nov 2015 replaced 
+   //
+   //    hIndex = int(hRound) % 6;",
+   //
+   // with
+   //
+   //    hIndex = int(hRound);
+   //    ...
+   //    if (hIndex == 0 || hIndex == 6) 
+   //
+   // since default shader compiler on MacOS does not support '%"
+
    private static String[] hsvProg = new String[] {
       "vec4 HSVtoRGB(vec4 color)",
       "{",
@@ -38,13 +50,13 @@ public class GLHSVShader {
       "    v = color.b;",
       "",
       "    hRound = floor(h * 6.0);",
-      "    hIndex = int(hRound) % 6;",
+      "    hIndex = int(hRound);",
       "    f = (h*6.0) - hRound;",
       "    p = v*(1.0 - s);",
       "    q = v*(1.0 - f*s);",
       "    t = p + v*s*f;",
       "",
-      "    if (hIndex == 0) {",
+      "    if (hIndex == 0 || hIndex == 6) {",
       "        result = vec3(v,t,p);",
       "    }",
       "    else if (hIndex == 1) {",

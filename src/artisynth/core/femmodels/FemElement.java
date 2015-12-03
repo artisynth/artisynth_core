@@ -86,6 +86,12 @@ public abstract class FemElement extends RenderableComponentBase
          nodes[i].addMass (perNodeMass);
       }
    }
+   
+   protected void updateElementAndNodeMasses () {
+      double newMass = myDensity * getRestVolume();
+      updateNodeMasses (newMass - myMass);
+      myMass = newMass;      
+   }
 
    static FemElement firstElement = null;
 
@@ -95,9 +101,7 @@ public abstract class FemElement extends RenderableComponentBase
 
    public void setDensity (double p) {
       myDensity = p;
-      double newMass = myDensity * getRestVolume();
-      updateNodeMasses (newMass - myMass);
-      myMass = newMass;
+      updateElementAndNodeMasses ();
       myDensityMode =
          PropertyUtils.propagateValue (
             this, "density", myDensity, myDensityMode);
@@ -191,6 +195,16 @@ public abstract class FemElement extends RenderableComponentBase
          myRestVolumeValidP = true;
       }
       return myRestVolume;
+   }
+   
+   public void updateRestVolumeAndMass() {
+      if (!myRestVolumeValidP) {
+         double oldVol = myRestVolume;
+         double newVol = computeRestVolumes();
+         updateNodeMasses ((newVol*myDensity)-myMass);
+         myMass = newVol*myDensity;
+         myRestVolume = newVol;
+      }
    }
 
    /** 

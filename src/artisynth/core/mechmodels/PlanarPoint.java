@@ -8,6 +8,7 @@ package artisynth.core.mechmodels;
 
 import artisynth.core.modelbase.*; //import artisynth.core.mechmodels.DynamicMechComponent.Activity;
 import artisynth.core.util.*;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.*;
 import maspack.util.*;
 import maspack.properties.*;
@@ -287,25 +288,14 @@ public class PlanarPoint extends Point implements PlanarComponent {
    }
 
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      myPos3d.transform (X);
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      
+      super.transformGeometry (gtr, context, flags);
+      gtr.transformPnt (myPos3d);
 
       transformToPlane (myState.pos, myPos3d);
-      transformToWorld (myPos3d, myState.pos);
-
-      // should we transform vel as well ???
-
-      if (isAttached()) {
-         getAttachment().updateAttachment();
-      }
-      // if active, notify parent to update positions of
-      // any attached components
-
-      if (topObject == this) {
-         notifyParentOfChange (new GeometryChangeEvent (this, X));
-      }
-
-   }
+      transformToWorld (myPos3d, myState.pos);     
+   }  
 
    // OK
    public int setState (VectorNd x, int idx) {

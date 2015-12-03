@@ -61,6 +61,10 @@ public class PlanarConnector extends BodyConnector
       return myProps;
    }
 
+   public Vector3d getNormal() {
+      return ((PlanarCoupling)myCoupling).getNormal();
+   }
+
    public void setDefaultValues() {
       super.setDefaultValues();
       myPlaneSize = defaultPlaneSize;
@@ -84,9 +88,7 @@ public class PlanarConnector extends BodyConnector
    public double getPlaneNormal (Vector3d nrm) {
       RigidTransform3d TDW = new RigidTransform3d();
       getCurrentTDW (TDW);
-      nrm.x = TDW.R.m02;
-      nrm.y = TDW.R.m12;
-      nrm.z = TDW.R.m22;
+      nrm.transform (TDW, ((PlanarCoupling)myCoupling).getNormal());
       return nrm.dot (TDW.p);
    }
    
@@ -99,7 +101,9 @@ public class PlanarConnector extends BodyConnector
    public RigidBodyConstraint getConstraint() {
       return myCoupling.getConstraint (0); // only one constraint for a PlanarConnector
    }
+
    public PlanarConnector() {
+      myTransformDGeometryOnly = true;
       myRenderVtxs = new Point3d[4];
       for (int i = 0; i < myRenderVtxs.length; i++) {
          myRenderVtxs[i] = new Point3d();
@@ -214,11 +218,14 @@ public class PlanarConnector extends BodyConnector
    }
 
    protected void computeRenderVtxs (RigidTransform3d TDW) {
+      RotationMatrix3d RPD = new RotationMatrix3d();
+      RPD.setZDirection (((PlanarCoupling)myCoupling).getNormal());
       myRenderVtxs[0].set (myPlaneSize / 2, myPlaneSize / 2, 0);
       myRenderVtxs[1].set (-myPlaneSize / 2, myPlaneSize / 2, 0);
       myRenderVtxs[2].set (-myPlaneSize / 2, -myPlaneSize / 2, 0);
       myRenderVtxs[3].set (myPlaneSize / 2, -myPlaneSize / 2, 0);
       for (int i = 0; i < myRenderVtxs.length; i++) {
+         myRenderVtxs[i].transform (RPD);
          myRenderVtxs[i].transform (TDW);
       }
    }

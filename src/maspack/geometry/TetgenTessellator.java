@@ -64,7 +64,7 @@ public class TetgenTessellator {
 
       if (!myNativeSupportLoaded) {
          try {
-            NativeLibraryManager.load ("TetgenJNI.1.0");
+            NativeLibraryManager.load ("TetgenJNI.1.5.1.0");
             myNativeSupportLoaded = true;
          }
          catch (UnsatisfiedLinkError e) {

@@ -104,7 +104,7 @@ public class RotatableScaler3d extends Transrotator3d {
 
    public boolean mousePressed (MouseRayEvent e) {
       if (super.mousePressed (e)) {
-         myLastR.set (myRot0);
+         myLastR.setIdentity();
          return true;
       }
       else {

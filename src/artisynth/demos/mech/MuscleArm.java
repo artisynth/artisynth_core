@@ -257,7 +257,7 @@ public class MuscleArm extends RootModel
         FrameMarker endPoint = new FrameMarker();
         endPoint.setName("endPoint");
         endPoint.setFrame(lowerArm);
-        endPoint.setLocation(new Point3d(0,0,len/2));
+        endPoint.setLocation(new Point3d(0,0,-len/2));
         model.addFrameMarker(endPoint);
         //lowerArm.addMarker(endPoint);
         
@@ -307,7 +307,7 @@ public class MuscleArm extends RootModel
         	 path+"muscleArmActivation.txt");
            ip.setStartStopTimes (0, 10.0);
            ip.setName("Muscle Activation");
-           ip.setActive (false);
+           //ip.setActive (false);
            addInputProbe(ip);
            
            

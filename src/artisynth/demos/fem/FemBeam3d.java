@@ -122,6 +122,7 @@ public class FemBeam3d extends RootModel {
       myMechMod.setIntegrator (Integrator.Trapezoidal);
       myFemMod.setMaterial (new MooneyRivlinMaterial());
       myFemMod.setIncompressible (FemModel.IncompMethod.AUTO);
+      myMechMod.getSolver().profileKKTSolveTime = true;
       //mainMod.setProfiling (true);      
    }
 
@@ -237,7 +238,6 @@ public class FemBeam3d extends RootModel {
          rightBlock.setPose (new RigidTransform3d ((length+wx)/2.0, 0, 0));
          rightBlock.setDynamic (false);
 
-
          myMechMod.addRigidBody (rightBlock);
 
          for (FemNode3d n : myRightNodes) {
@@ -269,10 +269,9 @@ public class FemBeam3d extends RootModel {
       if ((options & CONSTRAIN_RIGHT_NODES) != 0) {
          double rightX = myRightNodes.get(0).getPosition().x;
          Plane plane = new Plane (1, 0, 0, rightX);
-         for (FemNode3d n : myRightNodes) {
-            myMechMod.addConstrainer (
-               new ParticlePlaneConstraint (n, plane));
-         }
+         ParticlePlaneConstraint c = new ParticlePlaneConstraint (plane);
+         c.addParticles (myRightNodes);
+         myMechMod.addConstrainer (c);
       }
 //          NumericOutputProbe output =
 //             new NumericOutputProbe (

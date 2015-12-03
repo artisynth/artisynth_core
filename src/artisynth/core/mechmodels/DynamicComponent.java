@@ -7,7 +7,7 @@
 package artisynth.core.mechmodels;
 
 import artisynth.core.modelbase.ModelComponent;
-
+import artisynth.core.modelbase.TransformableGeometry;
 import maspack.util.DataBuffer;
 import maspack.matrix.Matrix;
 import maspack.matrix.MatrixBlock;
@@ -15,9 +15,11 @@ import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.VectorNd;
 import maspack.matrix.Vector3d;
+
 import java.util.*;
 
-public interface DynamicComponent extends ModelComponent, ForceEffector {
+public interface DynamicComponent extends 
+   ModelComponent, ForceEffector, TransformableGeometry {
 
    /**
     * Returns the slave attachment associated with this component, if any.
@@ -62,7 +64,38 @@ public interface DynamicComponent extends ModelComponent, ForceEffector {
     */
    public void removeMasterAttachment (DynamicAttachment a);
 
+   /**
+    * Returns a list of Constrainers associated with this component. This list
+    * is not necessarily complete; it is up to Constrainer objects themselves
+    * to decide whether to add themselves to this list. Constrainers which are
+    * in the list can be notified when aspects of this component change in a
+    * way that requires the attention of the Constrainer. For example, calling
+    * <code>transformGeometry()</code> on this component may require some of
+    * its contrainers to be updated.
+    * 
+    * @return list of Constrainers associated with this component.
+    */
+   public List<Constrainer> getConstrainers();
+   
+   /**
+    * Adds a Constrainer to the list returned by {@link #getConstrainers()}.
+    * This method is intended for internal use by the Constrainer components
+    * themselves.
+    *
+    * @param c Constrainer to add the constrainer list.
+    */
+   public void addConstrainer (Constrainer c);
 
+   /**
+    * Removes a Constrainer from the list returned by {@link
+    * #getConstrainers()}.  This method is intended for internal use by the
+    * Constrainer components themselves.
+    *
+    * @param c Constrainer to remove from the constrainer list.
+    * @return <code>true</code> if the constrainer was present in the list.
+    */
+   public boolean removeConstrainer (Constrainer c);
+   
    /**
     * Returns true if this component is dynamic. If a component is unattached,
     * then its state is determined by forces if it is dynamic, or

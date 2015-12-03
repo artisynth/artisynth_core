@@ -39,10 +39,10 @@ import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.StringToken;
-import artisynth.core.util.TransformableGeometry;
 
 /**
  * A special attachment class that is used to update a point's position based on
@@ -760,11 +760,6 @@ public class PointSkinAttachment extends PointAttachment
    public void updateAttachment() {
    }
 
-   @Override
-   public void transformSlaveGeometry(
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-   }
-
    public void addMassToMasters() {
    }
    
@@ -827,14 +822,14 @@ public class PointSkinAttachment extends PointAttachment
          String particlePath =
             ComponentUtils.getWritePathName(
                ancestor, c.getMaster());
-         pw.print("P " + particlePath + " " + fmt.format(c.getWeight()));
+         pw.println("P " + particlePath + " " + fmt.format(c.getWeight()));
          return true;
       }
       else if (c instanceof FemDisplacementConnection) {
          String nodePath =
             ComponentUtils.getWritePathName(
                ancestor, c.getMaster());
-         pw.print("D " + nodePath + " " + fmt.format(c.getWeight()));
+         pw.println("D " + nodePath + " " + fmt.format(c.getWeight()));
          return true;
       }
       else if (c instanceof BaseConnection) {

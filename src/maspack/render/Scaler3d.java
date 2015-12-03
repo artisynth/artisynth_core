@@ -329,7 +329,6 @@ public class Scaler3d extends Dragger3dBase {
 
    public boolean mouseDragged (MouseRayEvent e) {
       if (mySelectedComponent != NONE) {
-         // boolean constrained = dragIsConstrained (e);
          boolean constrained = dragIsConstrained ();
          Point3d pnt = new Point3d();
          intersectRayAndFixture (pnt, e.getRay());

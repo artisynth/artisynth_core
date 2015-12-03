@@ -17,6 +17,7 @@ import maspack.geometry.*;
 import maspack.properties.*;
 import maspack.util.InternalErrorException;
 import maspack.render.GLRenderer;
+import maspack.render.RenderableUtils;
 import maspack.render.RenderProps;
 import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.FemMaterial;
@@ -736,7 +737,18 @@ public abstract class FemElement3d extends FemElement
     * @return true if the calculation converged
     */
    public boolean getNaturalCoordinates (Vector3d coords, Point3d pnt) {
-      return getNaturalCoordinates (coords, pnt, /*maxIters=*/1000);
+      return getNaturalCoordinates (coords, pnt, /*maxIters=*/1000) >= 0;
+   }
+
+   private void computeNaturalCoordsResidual (
+      Vector3d res, Vector3d coords, Point3d pnt) {
+
+      res.setZero();
+      for (int k=0; k<numNodes(); k++) {
+         res.scaledAdd (
+            getN (k, coords), myNodes[k].getLocalPosition(), res);
+      }
+      res.sub (pnt);
    }
    
    /**
@@ -754,9 +766,114 @@ public abstract class FemElement3d extends FemElement
     * A given point (in world coords)
     * @param maxIters
     * Maximum number of Newton iterations
-    * @return true if the calculation converged
+    * @return the number of iterations required for convergence, or
+    * -1 if the calculation did not converge.
     */
-   public boolean getNaturalCoordinates (
+   public int getNaturalCoordinates (
+      Vector3d coords, Point3d pnt, int maxIters) {
+
+      if (!coordsAreInside(coords)) {
+         // if not inside, reset coords to 0
+         coords.setZero();
+      }
+
+      // if FEM is frame-relative, transform to local coords
+      Point3d lpnt = new Point3d(pnt);
+      if (getGrandParent() instanceof FemModel3d) {
+         FemModel3d fem = (FemModel3d)getGrandParent();
+         if (fem.isFrameRelative()) {
+            lpnt.inverseTransform (fem.getFrame().getPose());
+         }
+      }
+
+      Vector3d res = new Point3d();
+      int i;
+
+      double tol = RenderableUtils.getRadius (this) * 1e-12;
+      computeNaturalCoordsResidual (res, coords, lpnt);
+      double prn = res.norm();
+      //System.out.println ("res=" + prn);
+      if (prn < tol) {
+         // already have the right answer
+         return 0;
+      }
+
+      LUDecomposition LUD = new LUDecomposition();
+      Vector3d prevCoords = new Vector3d();
+      Vector3d dNds = new Vector3d();
+      Matrix3d dxds = new Matrix3d();
+      Vector3d del = new Point3d();
+
+      /*
+       * solve using Newton's method.
+       */
+      for (i = 0; i < maxIters; i++) {
+
+         // compute the Jacobian dx/ds for the current guess
+         dxds.setZero();
+         for (int k=0; k<numNodes(); k++) {
+            getdNds (dNds, k, coords);
+            dxds.addOuterProduct (myNodes[k].getLocalPosition(), dNds);
+         }
+         LUD.factor (dxds);
+         double cond = LUD.conditionEstimate (dxds);
+         if (cond > 1e10)
+            System.err.println (
+               "Warning: condition number for solving natural coordinates is "
+               + cond);
+         // solve Jacobian to obtain an update for the coords
+         LUD.solve (del, res);
+
+         // if del is very small assume we are close to the root. Assume
+         // natural coordinates are generally around 1 in magnitude, so we can
+         // use an absolute value for a tolerance threshold
+         if (del.norm() < 1e-10) {
+            //System.out.println ("1 res=" + res.norm());
+            return i+1;
+         }
+
+         prevCoords.set (coords);         
+         coords.sub (del);                              
+         computeNaturalCoordsResidual (res, coords, lpnt);
+         double rn = res.norm();
+         //System.out.println ("res=" + rn);
+
+         // If the residual norm is within tolerance, we have converged.
+         if (rn < tol) {
+            //System.out.println ("2 res=" + rn);
+            return i+1;
+         }
+         if (rn > prn) {
+            // it may be that "coords + del" is a worse solution.  Let's make
+            // sure we go the correct way binary search suitable alpha in [0 1]
+
+            double eps = 1e-12;
+            // start by limiting del to a magnitude of 1
+            if (del.norm() > 1) {
+               del.normalize();  
+            }
+            // and keep cutting the step size in half until the residual starts
+            // dropping again
+            double alpha = 0.5;
+            while (alpha > eps && rn > prn) {
+               coords.scaledAdd (-alpha, del, prevCoords);
+               computeNaturalCoordsResidual (res, coords, lpnt);
+               rn = res.norm();
+               alpha *= 0.5;
+               //System.out.println ("  alpha=" + alpha + " rn=" + rn);
+            }
+            //System.out.println (" alpha=" + alpha + " rn=" + rn + " prn=" + prn);
+            if (alpha < eps) {
+               return -1;  // failed
+            }
+         }
+         prn = rn;
+      }
+      return -1; // failed
+   }
+   
+
+   public int getNaturalCoordinatesStd (
       Vector3d coords, Point3d pnt, int maxIters) {
 
       if (!coordsAreInside(coords)) {
@@ -806,7 +923,8 @@ public abstract class FemElement3d extends FemElement
          LUD.solve (del, res);
          // assume that natural coordinates are general around 1 in magnitude
          if (del.norm() < 1e-10) {
-            return true;
+            // System.out.println ("* res=" + res.norm());
+            return i+1;
          }
          
          prevCoords.set(coords);
@@ -834,14 +952,76 @@ public abstract class FemElement3d extends FemElement
             alpha = alpha / 2;
          }         
          if (alpha < eps) {
-            return false;  // failed
+            return -1;  // failed
          }
-         
+         //System.out.println ("res=" + res.norm() + " alpha=" + alpha);
       }
       //      System.out.println ("coords: " + coords.toString ("%4.3f"));
-      return false;
+      return -1;
    }
    
+   public boolean getNaturalCoordinatesOld (
+      Vector3d coords, Point3d pnt, int maxIters) {
+
+      if (!coordsAreInside(coords)) {
+         coords.setZero();
+      }
+
+      // if FEM is frame-relative, transform to local coords
+      Point3d lpnt = new Point3d(pnt);
+      if (getGrandParent() instanceof FemModel3d) {
+         FemModel3d fem = (FemModel3d)getGrandParent();
+         if (fem.isFrameRelative()) {
+            lpnt.inverseTransform (fem.getFrame().getPose());
+         }
+      }
+      LUDecomposition LUD = new LUDecomposition();
+
+      /*
+       * solve using Newton's method: Need a good guess! Just guessed zero here.
+       */
+      Vector3d dNds = new Vector3d();
+      Matrix3d dxds = new Matrix3d();
+      Vector3d res = new Point3d();
+      Vector3d del = new Point3d();
+
+      int i;
+      for (i = 0; i < maxIters; i++) {
+//         double s1 = coords.x;
+//         double s2 = coords.y;
+//         double s3 = coords.z;
+
+         // compute the Jacobian dx/ds for the current guess
+         dxds.setZero();
+         res.setZero();
+         for (int k=0; k<numNodes(); k++) {
+            getdNds (dNds, k, coords);
+            dxds.addOuterProduct (myNodes[k].getLocalPosition(), dNds);
+            res.scaledAdd (getN (k, coords), myNodes[k].getLocalPosition(), res);
+         }
+         res.sub (pnt);
+         System.out.println ("res=" + res.norm());
+         LUD.factor (dxds);
+         double cond = LUD.conditionEstimate (dxds);
+         if (cond > 1e10)
+            System.err.println (
+               "Warning: condition number for solving natural coordinates is "
+               + cond);
+         LUD.solve (del, res);
+         // assume that natural coordinates are general around 1 in magnitude
+         if (del.norm() < 1e-10) {
+            break;
+         }
+         System.out.println ("iter=" + i + " del=" + del.norm());
+         coords.sub (del);
+      }
+      //      System.out.println ("coords: " + coords.toString ("%4.3f"));
+
+      // natural coordinates should all be between -1 and +1 iff the point is
+      // inside it
+      return true;
+   }
+
 //   /**
 //    * Default method to get the element volume. Uses quadrature. Individual
 //    * elements can override this with a more efficient method if needed.
@@ -1052,6 +1232,9 @@ public abstract class FemElement3d extends FemElement
    }
 
    public void computeWarping (Matrix3d F, SymmetricMatrix3d P) {
+      if (myWarpingStiffnessValidP && myWarper == null) {
+         System.out.println ("invalid");
+      }
       if (!myWarpingStiffnessValidP) {
          updateWarpingStiffness();
       }
@@ -1464,7 +1647,7 @@ public abstract class FemElement3d extends FemElement
       e.myNodes = new FemNode3d[numNodes()];
       for (int i=0; i<numNodes(); i++) {
          FemNode3d n = myNodes[i];
-         FemNode3d newn = (FemNode3d)copyMap.get (n);
+         FemNode3d newn = (FemNode3d)ComponentUtils.maybeCopy (flags, copyMap, n);
          if (newn == null) {
             throw new InternalErrorException (
                "No duplicated node found for node number "+n.getNumber());

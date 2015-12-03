@@ -17,6 +17,7 @@ import maspack.geometry.MeshBase;
 import maspack.geometry.PointMesh;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.PolylineMesh;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
@@ -36,8 +37,9 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScanToken;
-import artisynth.core.util.TransformableGeometry;
 /**
  * Allows a rigid body to have multiple geometries, some used for
  * computing mass/inertia, some for display only, some for collisions
@@ -530,22 +532,24 @@ public class RigidCompositeBody extends RigidBody implements
       list.addIfVisible(myMeshList);
    }
    
-   public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      
-      RigidTransform3d Xpose = new RigidTransform3d();
-      AffineTransform3d Xlocal = new AffineTransform3d();
-
-      for (RigidMeshComp mc : myMeshList) {
-         Xpose.set (myState.XFrameToWorld);
-         Xlocal.setIdentity();
-         if (mc.transformGeometry(X, Xpose, Xlocal)) {
-            mc.getRenderProps().clearMeshDisplayList();
-         }
-      }
-      super.transformGeometry(X, topObject, flags);
-      
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      context.addAll (myMeshList);
    }
+   
+//   public void transformGeometry (
+//      GeometryTransformer X, TransformGeometryContext context, int flags) {
+//      
+//      RigidTransform3d Xpose = new RigidTransform3d();
+//      Xpose.set (myState.XFrameToWorld);
+//      X.transform (Xpose);
+//      for (RigidMeshComp mc : myMeshList) {
+//         if (mc.transformGeometry (X, Xpose)) {
+//            mc.getRenderProps().clearMeshDisplayList();
+//         }
+//      }
+//      super.transformGeometry (X, context, flags);
+//   }   
    
    public void scaleDistance(double s) {
       super.scaleDistance(s);

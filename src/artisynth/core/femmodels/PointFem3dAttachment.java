@@ -41,10 +41,10 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ObjectToken;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.StringToken;
-import artisynth.core.util.TransformableGeometry;
 
 public class PointFem3dAttachment extends PointAttachment {
    private FemElement myElement;
@@ -371,6 +371,7 @@ public class PointFem3dAttachment extends PointAttachment {
                   "PointFem3dAttachment has an assigned element but no FEM");
             }
             setFromFem (myPoint.getPosition(), fem);               
+            updatePosStates();
          }
       }
    }
@@ -515,12 +516,6 @@ public class PointFem3dAttachment extends PointAttachment {
       }
       pw.print ("nodes=");
       writeNodes (pw, fmt, myNodes, myCoords.getBuffer(), ancestor);
-   }
-
-   @Override
-   public void transformSlaveGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      updateAttachment();
    }
 
    public int addTargetJacobian (SparseBlockMatrix J, int bi) {
@@ -894,22 +889,16 @@ public class PointFem3dAttachment extends PointAttachment {
       if (myNodes != null) {
          a.myNodes = new FemNode[myNodes.length];
          for (int i=0; i<myNodes.length; i++) {
-            FemNode node;
-            if ((node = (FemNode)copyMap.get(myNodes[i])) == null) {
-               node = myNodes[i];
-            }
-            a.myNodes[i] = node;
+            a.myNodes[i] = 
+            (FemNode)ComponentUtils.maybeCopy (flags, copyMap, myNodes[i]);  
          }
       }
       if (myCoords != null) {
          a.myCoords = new VectorNd(myCoords);
       }
       if (myElement != null) {
-         FemElement elem;
-         if ((elem = (FemElement)copyMap.get(myElement)) == null) {
-            elem = myElement;
-         }
-         a.myElement = elem;
+         a.myElement = 
+            (FemElement)ComponentUtils.maybeCopy (flags, copyMap, myElement);  
       }
       
       return a;

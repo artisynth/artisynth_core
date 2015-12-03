@@ -243,13 +243,6 @@ public class PointParticleAttachment extends PointAttachment {
       // nothing to do here
    }
 
-   @Override
-   public void transformSlaveGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      myPoint.transformGeometry (X, topObject, flags);
-      updateAttachment();
-   }
-
    public void addMassToMasters() {
       double m = myPoint.getEffectiveMass();
       if (m != 0) {

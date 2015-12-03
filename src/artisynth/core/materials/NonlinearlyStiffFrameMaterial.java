@@ -246,7 +246,19 @@ public class NonlinearlyStiffFrameMaterial extends FrameMaterial {
    }
 
    public boolean equals (FrameMaterial mat) {
-      return true;
+      if (!(mat instanceof NonlinearlyStiffFrameMaterial)) {
+         return false;
+      }
+      NonlinearlyStiffFrameMaterial nsm = (NonlinearlyStiffFrameMaterial)mat;
+      if (!myK.equals (nsm.myK) ||
+          !myD.equals (nsm.myD) ||
+          !myRotK.equals (nsm.myRotK) ||
+          !myRotD.equals (nsm.myRotD)) {
+         return false;
+      }
+      else {
+         return super.equals (mat);
+      }
    }
 
    public NonlinearlyStiffFrameMaterial clone () {

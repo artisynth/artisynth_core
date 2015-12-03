@@ -22,11 +22,13 @@ import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
 
 import java.io.*;
+import java.util.*;
 import java.awt.Color;
 
 import javax.media.opengl.*;
 
 import maspack.render.*;
+import maspack.widgets.GuiUtils;
 
 //import artisynth.core.mechmodels.DynamicMechComponent.Activity;
 
@@ -356,4 +358,10 @@ public class SpringMeshDemo extends RootModel {
          ArtisynthPath.getSrcRelativeFile (this, "SpringMeshDemo.txt"));
    }
 
+   // public boolean getMenuItems(List<Object> items) {
+   //    items.add (GuiUtils.createMenuItem (this, "reset", ""));
+   //    items.add (GuiUtils.createMenuItem (this, "add sphere", ""));
+   //    items.add (GuiUtils.createMenuItem (this, "show flow", ""));
+   //    return true;
+   // }
 }

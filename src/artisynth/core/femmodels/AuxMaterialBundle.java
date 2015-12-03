@@ -11,6 +11,7 @@ import java.util.List;
 
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
+import maspack.geometry.GeometryTransformer;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
@@ -28,7 +29,8 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentBase;
-import artisynth.core.util.TransformableGeometry;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 
 public class AuxMaterialBundle extends CompositeComponentBase 
    implements RenderableComponent, TransformableGeometry {
@@ -352,15 +354,19 @@ public class AuxMaterialBundle extends CompositeComponentBase
    }
 
    public void transformGeometry(AffineTransform3dBase X) {
-      transformGeometry(X, this, 0);
+      TransformGeometryContext.transform (this, X, 0);
    }
 
-   public void transformGeometry(AffineTransform3dBase X,
-      TransformableGeometry topObject, int flags) {
-      for (AuxMaterialElementDesc elemDesc : myElementDescs) {
-         elemDesc.transformGeometry(X, topObject, flags);
-      }
-      
+   public void transformGeometry (
+      GeometryTransformer gt, TransformGeometryContext context, int flags) {
+      // nothing to at the top level
    }
+
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      context.addAll (myElementDescs);
+   }   
+
+
 
 }

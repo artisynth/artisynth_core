@@ -7,6 +7,7 @@
 package artisynth.core.mechmodels;
 
 import artisynth.core.modelbase.*; //import artisynth.core.mechmodels.DynamicMechComponent.Activity;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.*;
 import maspack.spatialmotion.Twist;
 import maspack.properties.PropertyList;
@@ -242,10 +243,10 @@ public class FrameMarker extends Marker {
       this.myRefPos.set (referencePosition);
    }
 
-   public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      super.transformGeometry (X, topObject, flags);
-   }
+//   public void transformGeometry (
+//      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+//      super.transformGeometry (gtr, context, flags);
+//   }
 
    public void updateAttachment() {
       Frame frame = myFrameAttachment.getFrame();

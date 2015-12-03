@@ -47,10 +47,8 @@ that used by the properties of Java Beans.
 
 \subsection{Accessing Properties}
 
-\setjavabase{maspack.properties}
-
 Any class can export properties by implementing the
-interface \javaclassx{HasProperties}:
+interface \javaclass[maspack.properties]{HasProperties}:
 
 \begin{lstlisting}[]
 interface HasProperties
@@ -64,15 +62,17 @@ interface HasProperties
 \end{lstlisting}
 
 Each property is associated with a name, which must be a valid Java
-identifier. The \javamethodx[HasProperties]{getProperty()} method returns
-a \javaclassx{Property} handle to the named property, which can in turn be
+identifier. The
+\javamethod[maspack.properties.HasProperties]{getProperty()} method returns
+a \javaclass[maspack.properties]{Property} handle to the named property, 
+which can in turn be
 used to access that property's values or obtain other information
-about it. \javamethodx[HasProperties]{getAllPropertyInfo()}
-returns a \javaclassx{PropertyInfoList}
+about it. \javamethod[maspack.properties.HasProperties]{getAllPropertyInfo()}
+returns a \javaclass[maspack.properties]{PropertyInfoList}
 providing information about all the properties associated with the
 class.
 
-A \javaclassx{Property} handle supplies the following methods:
+A \javaclass[maspack.properties]{Property} handle supplies the following methods:
 \begin{lstlisting}[]
 interface Property
 {
@@ -156,12 +156,10 @@ Each property handle contains a back-pointer to the object containing,
 or {\it hosting}, the property, which can be obtained with the 
 {\tt getHost()} method.
 
-\setjavabase{maspack.util}
-
 \label{rangesSec}
 \subsection{Property Ranges}
 
-A \javaclassx{Range} object supplies information about what values a
+A \javaclass[maspack.util]{Range} object supplies information about what values a
 particular {\tt Property} can be set to. It contains the following
 methods:
 
@@ -224,18 +222,19 @@ Possible usage of a range object is shown below:
    }
 \end{lstlisting}
 
-Two common examples of {\tt Range} objects are \javaclassx{DoubleInterval} and
-\javaclassx{IntegerInterval}, which implement intervals of double and integer
+Two common examples of {\tt Range} objects are 
+\javaclass[maspack.util]{DoubleInterval} and
+\javaclass[maspack.util]{IntegerInterval}, 
+which implement intervals of double and integer
 values, respectively.  Ranges are also {\tt Clonable}, which means that
 they can be duplicated by calling {\tt range.clone()}.
-
-\setjavabase{maspack.properties}
 
 \label{propertyInfoSec}
 \subsection{Obtaining Property Information}
 
 Additional information about a property is available through the
-\javaclassx{PropertyInfo} interface, which can be obtained using the
+\javaclass[maspack.properties]{PropertyInfo} 
+interface, which can be obtained using the
 {\tt getInfo()} method of the property handle.  Information supplied by
 {\tt PropertyInfo} is static with respect to the exporting class and
 does not change (unlike the property values themselves, which do
@@ -314,7 +313,8 @@ interface PropertyInfo
 Property information can also be obtained directly from the exporting
 class, using {\tt getAllPropertyInfo()}, which returns
 information for all the properties exported by that class. This
-information is contained within a \javaclassx{PropertyInfoList}:
+information is contained within a 
+\javaclass[maspack.properties]{PropertyInfoList}:
 \begin{lstlisting}[]
 interface PropertyInfoList
 {
@@ -457,7 +457,8 @@ signatures
 
 If any of the methods are not specified, or are specified by a '{\tt *}'
 character, then the system with look for accessor methods with the
-names {\tt getXxx}, {\tt setXxx}, and {\tt getXxxRange}, where {\tt xxx} is the name
+names {\tt getXxx}, {\tt setXxx}, and {\tt getXxxRange},
+where {\tt xxx} is the name
 of the property. If no {\tt getRangeMethod} is defined (and no numeric
 range is specfied in the {\tt options} argument string, as described
 below), then the property will be assumed to have no range limitations
@@ -580,13 +581,16 @@ six significant characters.
 
 A numeric range interval with a lower bound of {\tt l} and an
 upper bound of {\tt u}. If specified, this defines the value returned by
-\javamethodx{PropertyInfo.getDefaultNumericRange()}; otherwise, that method
+\javamethod[maspack.properties]{PropertyInfo.getDefaultNumericRange()}; 
+otherwise, that method
 returns {\tt null}. If a {\tt getRangeMethod} is not defined for the property,
 and the property has a numeric type, then the default numeric range is
-returned by the property's \javamethodx{Property.getRange()} method. The
+returned by the property's 
+\javamethod[maspack.properties]{Property.getRange()} method. The
 default numeric range is also used to determine bounds on slider
 widgets for manipulating the property's value, in case the upper or
-lower limits returned by the \javamethodx{Property.getRange()} method are
+lower limits returned by the 
+\javamethod[maspack.properties]{Property.getRange()} method are
 unbounded.  The symbol {\tt inf} can be used in an interval range, so that
 {\tt [0,inf]} represents the set of non-negative numbers.
 
@@ -1091,19 +1095,18 @@ the end of Section \ref{compositeSec}.
 
 \section{Rendering}
 
-\setjavabase{maspack.render}
-
 The maspack render package supports the graphical rendering of objects
 using OpenGL and JOGL. An object makes itself renderable by
-implementing the \javaclassx{GLRenderable} interface.  Renderable
-objects can then be displayed by a \javaclassx{GLViewer}, which provides
-features such as viewpoint control, clipping planes, and component
+implementing the \javaclass[maspack.render]{GLRenderable} interface.  Renderable
+objects can then be displayed by a \javaclass[maspack.render]{GLViewer}, 
+which provides features such as viewpoint control, clipping planes, and component
 selection.
 
 \subsection{Renderables and the viewer}
 
-Any object to be rendered by \javaclassx{GLViewer} should implement the
-\javaclassx{GLRenderable} interface. Renderables can be added or removed from a
+Any object to be rendered by \javaclass[maspack.render]{GLViewer} 
+should implement the \javaclass[maspack.render]{GLRenderable} interface. 
+Renderables can be added or removed from a
 viewer using the commands
 \begin{lstlisting}[]
    addRenderable (GLRenderable r);
@@ -1111,7 +1114,8 @@ viewer using the commands
    clearRenderables();
 \end{lstlisting}
 To request the viewer to render, one calls the method
-\javamethodx{GLViewer.rerender()}, which causes the viewer to redraw
+\javamethod[maspack.render]{GLViewer.rerender()}, 
+which causes the viewer to redraw
 itself, using the {\tt render} methods of all its renderables:
 \begin{lstlisting}[]
    render (GLRenderer renderer, int flags);
@@ -1191,7 +1195,7 @@ run in parallel.
 Another option is to give renderables the opportunity to cache their
 current state for use in the rendering code. This is analagous to
 double buffering, and can be effected using the 
-\javamethodx[GLRenderable]{prerender()} method of
+\javamethod[maspack.render.GLRenderable]{prerender()} method of
 GLRenderable:
 
 \begin{lstlisting}[]
@@ -1206,8 +1210,9 @@ rendering information, and then use this later when render is called.
 
 The {\tt prerender} method can also be used to add additional renderables to
 the current renderable list. This is done using the 
-\javamethodx[RenderList]{addIfVisible()} 
-method of \javaclassx{RenderList}. For example, if a renderable has two
+\javamethod[maspack.render.RenderList]{addIfVisible()} 
+method of \javaclass[maspack.render]{RenderList}. 
+For example, if a renderable has two
 subcomponents, A and B, which it would also like to have rendered,
 then it can request them to rendered as follows:
 \begin{lstlisting}[]
@@ -1239,19 +1244,22 @@ thread.
 \subsubsection{Renderable Visibility}
 \label{visibilitySec}
 
-As mentioned above, the \javamethodx{RenderList.addIfVisible()} method
-only adds renderables to the current render list if they are
-``visible''.  Any object implementing \javaclassx{GLRenderable} is
+As mentioned above, the
+\javamethod[maspack.render]{RenderList.addIfVisible()} method only
+adds renderables to the current render list if they are ``visible''.
+Any object implementing \javaclass[maspack.render]{GLRenderable} is
 visible by default.  However, if the object also implements
-\javaclassx{HasRenderProps}, then it is determined to be visible only
-if the \javaclassx{RenderProps} returned by 
-\javamethodx{HasRenderProps.getRenderProps()} is non-null and the
-associated isVisible method returns true.
+\javaclass[maspack.render]{HasRenderProps}, then it is determined to
+be visible only if the \javaclass[maspack.render]{RenderProps}
+returned by
+\javamethod[maspack.render]{HasRenderProps.getRenderProps()} is
+non-null and the associated isVisible method returns true.
 
 \subsection{Object Selection}
 
 GLViewer provides support for the mouse-based selection of renderable
-components which implement \javaclassx{GLSelectable}, a subinterface of
+components which implement \javaclass[maspack.render]{GLSelectable}, 
+a subinterface of
 GLRenderable that implements the following three additional methods
 \begin{lstlisting}[]
    boolean isSelectable();
@@ -1262,12 +1270,14 @@ GLRenderable that implements the following three additional methods
       LinkedList<Object> list, int qid);
 
 \end{lstlisting}
-The method \javamethodx[GLSelectable]{isSelectable()} should return 
+The method \javamethod[maspack.render.GLSelectable]{isSelectable()} 
+should return 
 {\tt true} if the component is in fact selectable.
 Unless the component manages its own selection behavior 
 (as described in Section \ref{managingOwnSelectionSec}), 
-\javamethodx[GLSelectable]{numSelectionQueriesNeeded()} should return -1
-and \javamethodx[GLSelectable]{getSelection()} should do nothing.
+\javamethod[maspack.render.GLSelectable]{numSelectionQueriesNeeded()} 
+should return -1
+and \javamethod[maspack.render.GLSelectable]{getSelection()} should do nothing.
 
 Selection is done by identifying all selectables that are completely
 or partially rendered within a special {\it selection frustum}, which
@@ -1298,7 +1308,8 @@ passed the depth test are desired, then a color-based selection scheme
 is used instead, where each object is rendered with a unique color to
 an off-screen buffer. Finally, selection may be performed using the
 (now deprecated) OpenGL {\tt GL\_SELECT} rendering mode; to enable
-this, use the method \javamethodx{GLViewer.enableGLSelectSelection()}.
+this, use the method 
+\javamethod[maspack.render]{GLViewer.enableGLSelectSelection()}.
 
 \subsubsection{Restrictions when rendering in selection mode}
 
@@ -1310,8 +1321,8 @@ it is important to not:
 
 \begin{enumerate}
 
-\item Enable {\tt GL\_BLEND}, {\tt GL\_LIGHTING}, {\tt GL\_TEXTURE}, {\tt GL\_FOG},
-or {\tt GL\_DITHER};
+\item Enable {\tt GL\_BLEND}, {\tt GL\_LIGHTING}, {\tt GL\_TEXTURE}, 
+{\tt GL\_FOG}, or {\tt GL\_DITHER};
 
 \item Set colors using {\tt glColor};
 
@@ -1369,8 +1380,9 @@ example, suppose we have a component which renders in three stages (A,
 B, and C), and we only want the component to be selected if the
 rendering for stage A or C appears in the selection frustum. Then we
 surround the rendering of stages A and C with selection queries, using
-the GLRenderer methods \javamethodx[GLRenderer]{beginSelectionQuery()}
-and \javamethodx[GLRenderer]{endSelectionQuery()}:
+the GLRenderer methods 
+\javamethod[maspack.render.GLRenderer]{beginSelectionQuery()}
+and \javamethod[maspack.render.GLRenderer]{endSelectionQuery()}:
 \begin{lstlisting}[]
    void render (GLRenderer render, int flags) {
       ...
@@ -1501,10 +1513,10 @@ manage their own selection? This can be detected if a component's {\tt
 numSelectionQueriesNeeded()} method return a non-negative value.  In
 that case, {\tt Foo} can let the component manage its selection by
 calling its {\tt render()} method, surrounded with calls to
-\javamethodx[GLRenderer]{beginSubSelection()} and
-\javamethodx[GLRenderer]{endSubSelection()}, instead of
-\javamethodx[GLRenderer]{beginSelectionQuery(int)} and 
-\javamethodx[GLRenderer]{endSelectionQuery()}, as in
+\javamethod[maspack.render.GLRenderer]{beginSubSelection()} and
+\javamethod[maspack.render.GLRenderer]{endSubSelection()}, instead of
+\javamethod[maspack.render.GLRenderer]{beginSelectionQuery(int)} and 
+\javamethod[maspack.render.GLRenderer]{endSelectionQuery()}, as in
 \begin{lstlisting}[]
    void render (GLRenderer renderer, int flags) {
       int qid = 0; // id for selection query
@@ -1605,7 +1617,7 @@ occlusion queries instead of color-based selection.)
 
 Components selected by the viewer are indicated to the application via a
 {\it selection listener} mechanism, in which the application registers
-instances of \javaclassx{GLSelectionListener} with the GLViewer
+instances of \javaclass[maspack.render]{GLSelectionListener} with the GLViewer
 using the methods
 \begin{lstlisting}[]
    void addSelectionListener (GLSelectionListener l);
@@ -1617,7 +1629,8 @@ The listener implements one method with the signature
    void itemsSelected (GLSelectionEvent e);
 \end{lstlisting}
 from which information about the selection can be obtained via a
-\javaclassx{GLSelectionEvent}. This provides information about all the
+\javaclass[maspack.render]{GLSelectionEvent}. 
+This provides information about all the
 queries for which selection occured the methods
 \begin{lstlisting}[]
    int numSelectedQueries();
@@ -1625,19 +1638,23 @@ queries for which selection occured the methods
    int getModifiersEx();
    LinkedList<Object>[] getSelectedObjects();
 \end{lstlisting}
-\javamethodx[GLSelectionEvent]{numSelectedQueries()} returns the number
+\javamethod[maspack.render.GLSelectionEvent]{numSelectedQueries()} 
+returns the number
 of queries that resulted in a selection,
-\javamethodx[GLSelectionEvent]{getModifiersEx()} returns the extended
+\javamethod[maspack.render.GLSelectionEvent]{getModifiersEx()} 
+returns the extended
 keyboard modifiers that were in play when the selection was requested,
-and \javamethodx[GLSelectionEvent]{getFlags()} returns information
+and \javamethod[maspack.render.GLSelectionEvent]{getFlags()} returns information
 flags about the selection (such as whether it was a {\tt DRAG}
 selection or {\tt MULTIPLE} selection is desired).
 
 Information about the selected components is returned by
-\javamethodx[GLSelectionEvent]{getSelectedObjects()}, which provides an
+\javamethod[maspack.render.GLSelectionEvent]{getSelectedObjects()}, 
+which provides an
 array (of length {\tt numSelectedQueries()}) of object lists for
 each selected query. Each object list is the result of the call to
-\javamethodx[GLSelectable]{getSelection()} for that selection query. As
+\javamethod[maspack.render.GLSelectable]{getSelection()} for that 
+selection query. As
 indicated in Section \ref{managingOwnSelectionSec}, each object list
 typically contains a single selected component, but may contain other
 information if the selection handler is prepared for it.
@@ -1660,7 +1677,7 @@ prerender phase.
 
 To avoid this problem, an application may execute the prerender
 phase itself on a set of renderables, and then pass the
-resulting \javaclassx{RenderList} to the necessary viewers.
+resulting \javaclass[maspack.render]{RenderList} to the necessary viewers.
 
 A code sample for this is:
 \begin{lstlisting}[]
@@ -1682,7 +1699,7 @@ A code sample for this is:
 
 The render list is initialized to include all visible renderables (see
 Section \ref{visibilitySec}, above), and then passed to each viewer 
-by \javamethodx[GLViewer]{setExternalRenderList()}. The contents
+by \javamethod[maspack.render.GLViewer]{setExternalRenderList()}. The contents
 of this render list are then displayed the next time the viewers
 redraw themselves, along with any render lists they have generated
 internally.

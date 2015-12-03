@@ -19,6 +19,7 @@ import maspack.geometry.Boundable;
 import maspack.geometry.LineSegment;
 import maspack.geometry.PolylineMesh;
 import maspack.geometry.Vertex3d;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
@@ -60,7 +61,8 @@ import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
-import artisynth.core.util.TransformableGeometry;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScanToken;
 
 public class MFreeMuscleModel extends MFreeModel3d
@@ -408,7 +410,7 @@ public class MFreeMuscleModel extends MFreeModel3d
 
    @Override
    public boolean isInvertible() {
-      return myMuscleMat != null && myMuscleMat.isInvertible();
+      return myMuscleMat == null || myMuscleMat.isInvertible();
    }
 
    public void setMuscleMaterial(MuscleMaterial mat) {
@@ -702,20 +704,16 @@ public class MFreeMuscleModel extends MFreeModel3d
 //      computeTangent(D, sigma, pt, dt, baseMat);
 //   }
 
-   public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      super.transformGeometry (gtr, context, flags);
    }
 
-   public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      
-      super.transformGeometry(X, topObject, flags);
-      
-      for (MFreeMuscleBundle bundle : myMuscleList) {
-         bundle.transformGeometry(X, topObject, flags);
-      }
-      
-   }
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      context.addTransformableDescendants (myMuscleList, flags);
+      super.addTransformableDependencies (context, flags);
+   } 
    
    public static boolean computeAverageFiberDirection(
       Vector3d dir, Point3d pos, double rad, PolylineMesh mesh) {

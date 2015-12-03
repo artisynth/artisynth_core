@@ -16,7 +16,6 @@ import maspack.spatialmotion.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.util.ScalableUnits;
-import artisynth.core.util.TransformableGeometry;
 
 public abstract class ParticleConstraint extends RenderableComponentBase
    implements ScalableUnits, TransformableGeometry {

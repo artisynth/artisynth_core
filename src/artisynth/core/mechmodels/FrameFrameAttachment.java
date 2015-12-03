@@ -216,7 +216,7 @@ public class FrameFrameAttachment extends FrameAttachment {
    }
    
    @Override
-   public void setCurrentTFW (RigidTransform3d TFW) {
+   public boolean setCurrentTFW (RigidTransform3d TFW) {
       if (myMaster != null) {
          RigidTransform3d TFM = new RigidTransform3d(); 
          TFM.mulInverseLeft (myMaster.getPose(), TFW);
@@ -228,6 +228,7 @@ public class FrameFrameAttachment extends FrameAttachment {
       else {
          doSetTFM (TFW);
       }
+      return false;
    }
    
    @Override
@@ -283,12 +284,6 @@ public class FrameFrameAttachment extends FrameAttachment {
                "addMassToMasters() only supported between rigid bodies");
          }
       }
-   }
-
-   @Override
-   public void transformSlaveGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      updateAttachment();
    }
 
    @Override

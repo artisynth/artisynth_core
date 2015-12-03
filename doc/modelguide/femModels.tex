@@ -385,7 +385,7 @@ incompressibility.
  		\javaclass[artisynth.core.materials]{NeoHookeanMaterial} & $E$ & Young's modulus\\
  		& $\nu$ & Poisson's ratio\\
  		\hline
- 		\javaclass[artisynth.core.materials]{IncompressibleNeoHookeanMaterial} & $G$ & shear modulus\\
+ 		\javaclass[artisynth.core.materials]{IncompNeoHookeanMaterial} & $G$ & shear modulus\\
  		& $\kappa$ & bulk modulus\\
  		\hline
  		\javaclass[artisynth.core.materials]{MooneyRivlinMaterial} & $C_{10},C_{01},C_{20},C_{02}$ & distortional parameters\\
@@ -567,8 +567,8 @@ FEM mesh generator, and by extruding a surface along its normal direction.
 ArtiSynth has the ability to interface directly with the TetGen library 
 (\href{http://tetgen.org}{http://tetgen.org}) to create a tetrahedral 
 volumetric mesh given a closed and manifold surface.  The main Java class for
-calling TetGen directly is \javaclass[maspack.geometry]{TetgenTesselator}.
-The tesselator has several advanced options, allowing for the computation of 
+calling TetGen directly is \javaclass[maspack.geometry]{TetgenTessellator}.
+The tessellator has several advanced options, allowing for the computation of 
 convex hulls, and for adding points to a volumetric mesh.  For simply creating
 a FEM from a surface, there is a convenience routine within 
 \javaclass[artisynth.core.femmodels]{FemFactory} that handles both mesh 
@@ -1949,7 +1949,7 @@ terms to account for muscle-specific properties.  This is a continuous
 representation within the model.  
 
 The basic building block for a material-based muscle bundle is a 
-\javaclass[artisynth.core.femmodels]{MuscleElemDesc}.  This object contains
+\javaclass[artisynth.core.femmodels]{MuscleElementDesc}.  This object contains
 a reference to a {\tt FemElement3d}, a {\tt MuscleMaterial}, and either a
 single direction or set of directions that specify the direction of 
 contraction.  If a single direction is specified, then it is assumed the
@@ -1982,9 +1982,9 @@ Elements can be added to a muscle bundle using one of the methods:
 // Adds a muscle element
 addElement (MuscleElementDesc elem);          
 // Creates and adds a muscle element
-MuscleElemDesc addElement (FemElement3d elem, Vector3d dir);     
+MuscleElementDesc addElement (FemElement3d elem, Vector3d dir);     
 // Sets a direction per integration point
-MuscleElemDesc addElement (FemElement3d elem, Vector3d[] dirs);  
+MuscleElementDesc addElement (FemElement3d elem, Vector3d[] dirs);  
 \end{lstlisting}
 
 The following snippet demonstrates how to create and add a material-based
@@ -2121,7 +2121,7 @@ uses a widget size of 0.8, resulting in a mosaic-like pattern.
 The next two properties in Table \ref{tbl:fem:rendering} apply to the muscle classes 
 \javaclass[artisynth.core.femmodels]{FemMuscleModel}, 
 \javaclass[artisynth.core.femmodels]{MuscleBundle}, and
-\javaclass[artisynth.core.femmodels]{MuscleElemDesc}.
+\javaclass[artisynth.core.femmodels]{MuscleElementDesc}.
 When {\tt directionRenderLen > 0}, lines are drawn inside elements to indicate fibre
 directions.  If {\tt directionRenderType = ELEMENT}, then one line is drawn per
 element indicating the average contraction direction.  If 

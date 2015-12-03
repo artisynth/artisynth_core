@@ -166,20 +166,6 @@ public class PointFrameAttachment extends PointAttachment {
       myFrame.computePointLocation (myLoc, myPoint.getPosition());
    }
 
-   @Override
-   public void transformSlaveGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      myPoint.transformGeometry (X, topObject, flags);
-      if (myPoint instanceof FrameMarker) {
-         // this is a bit of a hack. We call the FrameMarker method
-         // so as to also update its local copy of myLocation and myRefPos
-         ((FrameMarker)myPoint).updateAttachment();
-      }
-      else {
-         updateAttachment();
-      }
-   }
-
    // FIX: use getPointJacobian?
    public int addTargetJacobian (SparseBlockMatrix J, int bi) { // FIX
       if (myMasterBlocks.length != 1) {
@@ -376,10 +362,7 @@ public class PointFrameAttachment extends PointAttachment {
 
       a.myLoc = new Point3d (myLoc);
       if (myFrame != null) {
-         Frame frame;
-         if ((frame = (Frame)copyMap.get(myFrame)) == null) {
-            frame = myFrame;
-         }
+         Frame frame = (Frame)ComponentUtils.maybeCopy (flags, copyMap, myFrame);
          a.setFrame (frame);
       }
       return a;

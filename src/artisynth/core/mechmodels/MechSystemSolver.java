@@ -1299,7 +1299,7 @@ public class MechSystemSolver {
 
    // Setting crsFileName will cause the KKT system matrix and RHS
    // to be logged in CCS format.
-   private String crsFileName = null; // "testData.txt";
+   private String crsFileName = null; // "testData2.txt";
    private PrintWriter crsWriter = null;
    private boolean crsOmitDiag = false;
 
@@ -2179,6 +2179,17 @@ public class MechSystemSolver {
       }
       updateBilateralConstraints ();
       updateUnilateralConstraints ();
+      // if (TimeBase.equals (t, 0.37)) {
+      //    for (int bj=0; bj<myNT.numBlockCols(); bj++) {
+      //       System.out.println ("col " + bj);
+      //       MatrixBlock blk = myNT.firstBlockInCol(bj);
+      //       while (blk != null) {
+      //          System.out.println (" row "+blk.getBlockRow()+"\n" + blk);
+      //          blk = blk.down();
+      //       }
+      //    }
+      // }
+      
       // myVel.setSize (velSize);
       if (myGsize > 0 || myNsize > 0) {
          boolean allConstraintsCompliant = true;

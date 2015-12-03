@@ -6,6 +6,7 @@
  */
 package maspack.spatialmotion;
 
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.*;
 import maspack.util.*;
 
@@ -815,18 +816,15 @@ public abstract class RigidBodyCoupling {
     * applying X, and then transforming back to D using the modified TDW
     * produced by applying X.
     * 
-    * @param X
-    * affine transform applied to the coupling in world coordinates
-    * @param Ra
-    * rotational component of the matrix part of X.
+    * @param gtr
+    * transformer implementing the transformation
     * @param TFW
     * current transform from C to world
     * @param TDW
     * current transform from D to world
     */
    public void transformGeometry (
-      AffineTransform3dBase X, RotationMatrix3d Ra, 
-      RigidTransform3d TFW, RigidTransform3d TDW) {
+      GeometryTransformer gtr, RigidTransform3d TFW, RigidTransform3d TDW) {
    
    }
 

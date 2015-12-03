@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
 
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix;
 import maspack.matrix.Point3d;
@@ -43,6 +44,9 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.modelbase.StepAdjustment;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformGeometryAction;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.*;
 
 public class MechModel extends MechSystemBase implements
@@ -86,9 +90,6 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
 
    protected ComponentList<DynamicAttachment> myAttachments;
    SparseNumberedBlockMatrix mySolveMatrix;
-
-   String myPrintState = null;
-   PrintWriter myPrintStateWriter = null;
 
    // flag to indicate that forces need updating. Since forces are always
    // updated before a call to advance() (within setDefaultInputs()), this
@@ -234,7 +235,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
          new ComponentList<BodyConnector> (
             BodyConnector.class, "bodyConnectors", "c");
       myConstrainers =
-         new ComponentList<ConstrainerBase> (
+         new RenderableComponentList<ConstrainerBase> (
             ConstrainerBase.class, "particleConstraints", "pc");
 
       myAttachments =
@@ -1634,42 +1635,27 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    }
 
    public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
-   }
-
-   protected void recursivelyTransformGeometry (
-      CompositeComponent comp, 
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-
-      for (int i=0; i<comp.numComponents(); i++) {
-         ModelComponent c = comp.get (i);
-         if (c instanceof TransformableGeometry) {
-            ((TransformableGeometry)c).transformGeometry (X, topObject, flags);
-         }
-         else if (c instanceof CompositeComponent) {
-            recursivelyTransformGeometry (
-               (CompositeComponent)c, X, topObject, flags);
-         }
-      }
-
+      TransformGeometryContext.transform (this, X, 0);      
    }
 
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-
-      recursivelyTransformGeometry (this, X, topObject, flags);
-
-      //for (DynamicAttachment a : buildLocalAttachments()) {
-      //   a.updateAttachment();
-      //}
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      
+      // note that these bounds, if present, are explicitly set by the user, 
+      // so it is appropriate to transform rather then recompute them
       if (myMinBound != null) {
-         myMinBound.transform (X);
+         gtr.transformPnt (myMinBound);
       }
       if (myMaxBound != null) {
-         myMaxBound.transform (X);
-      }
-   }
+         gtr.transformPnt (myMaxBound);
+      }     
+   }   
 
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      context.addTransformableDescendants (this, flags);
+   }
+   
    protected void recursivelyScaleDistance (CompositeComponent comp, double s) {
       for (int i=0; i<comp.numComponents(); i++) {
          ModelComponent c = comp.get (i);
@@ -1790,11 +1776,13 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    }
 
    private void handleGeometryChange (GeometryChangeEvent e) {
+      // currently no need to do anything - slave state changes are handled by
+      // lower level components, and attachments are handled by the
+      // UpdateAttachmentAction
    }
 
    public void componentChanged (ComponentChangeEvent e) {
       if (e.getCode() == ComponentChangeEvent.Code.GEOMETRY_CHANGED) { 
-         // just update attachments
          handleGeometryChange ((GeometryChangeEvent)e);
       }
       else { // invalidate everything for now
@@ -1920,4 +1908,46 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       }
    };
 
+   class EnforceArticulationAction implements TransformGeometryAction {
+
+      public void transformGeometry (
+         GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+
+         updateDynamicComponentLists();
+         if (gtr.isRestoring()) {
+            RigidTransform3d TBW = new RigidTransform3d();
+            for (int i=0; i<myNumActive; i++) {
+               DynamicComponent dcomp = myDynamicComponents.get(i);
+               if (dcomp instanceof Frame) {
+                  TBW.set (gtr.restoreObject(TBW));
+                  ((Frame)dcomp).setPose (TBW);
+               }
+            }
+         }
+         else {
+            if (gtr.isSaving()) {
+               for (int i=0; i<myNumActive; i++) {
+                  DynamicComponent dcomp = myDynamicComponents.get(i);
+                  if (dcomp instanceof Frame) {
+                     RigidTransform3d TBW =
+                        new RigidTransform3d(((Frame)dcomp).getPose());
+                     gtr.saveObject (TBW);
+                  }
+               }
+            }
+            projectRigidBodyPositionConstraints();
+         }
+      }
+   }
+
+   class RequestEnforceArticulationAction implements TransformGeometryAction {
+
+      public void transformGeometry (
+         GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+         context.addAction (new EnforceArticulationAction());
+      }
+   }
+
+   RequestEnforceArticulationAction myRequestEnforceArticulationAction =
+      new RequestEnforceArticulationAction();
 }

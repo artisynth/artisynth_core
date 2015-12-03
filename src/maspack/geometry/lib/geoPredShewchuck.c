@@ -513,14 +513,15 @@ int exactPerpendicularDistances(
    //db1.end = expansion_sum_zeroelim1( db2.end, db2.doubles, db->end, db->doubles, db1.doubles);
 
    da->end = compress(da1.end, da1.doubles, da->doubles);
-	if (isNegative(da)) {
+   if (isNegative(da)) {
       negate(da);
    }
 
    db->end = compress(db1.end, db1.doubles, db->doubles);
-	if (isNegative(db)) {
+   if (isNegative(db)) {
       negate(db);
    }
+   return 0; // return value not used
 }
 
 /* Returns 1 if *answer contains sign-accurate estimate of ((dda + ddb) * dca) - ((dca + dcb) * dda)

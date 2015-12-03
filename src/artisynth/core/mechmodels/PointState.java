@@ -8,13 +8,11 @@ package artisynth.core.mechmodels;
 
 import artisynth.core.modelbase.*;
 import artisynth.core.util.ScalableUnits;
-import artisynth.core.util.TransformableGeometry;
 import maspack.matrix.*;
 
 import java.io.*;
 
-public class PointState implements TransformableGeometry,
-ScalableUnits {
+public class PointState implements ScalableUnits {
    Point3d pos;
    Vector3d vel;
 
@@ -119,15 +117,9 @@ ScalableUnits {
    public void scaleMass (double s) {
    }
 
-   public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
-   }
-
-   public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      // should we transform vel too ???
-      pos.transform (X);
-   }
+//   public void transformGeometry (AffineTransform3dBase X) {
+//      transformGeometry (X, this, 0);
+//   }
 
    public boolean equals (ComponentState state) {
       if (state instanceof PointState) {

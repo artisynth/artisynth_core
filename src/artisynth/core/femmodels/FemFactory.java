@@ -3011,6 +3011,17 @@ public class FemFactory {
       }
    }
    
-   
+   public static void setPlanarNodesFixed (
+      FemModel fem, Point3d center, Vector3d normal, boolean fixed) {
+
+      double off = normal.dot(center);
+      double tol = RenderableUtils.getRadius (fem)*1e-12;
+      for (FemNode n : fem.getNodes()) {
+         double d = normal.dot(n.getPosition());
+         if (Math.abs (d-off) <= tol) {
+            n.setDynamic (!fixed);
+         }
+      }
+   }
 
 }

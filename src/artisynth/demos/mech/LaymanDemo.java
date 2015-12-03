@@ -23,7 +23,7 @@ import java.util.*;
 
 public class LaymanDemo extends RootModel {
 
-   MechModel myMechMod;
+   protected MechModel myMechMod;
    RigidBody myBin;
    LaymanModel myLayman;
 

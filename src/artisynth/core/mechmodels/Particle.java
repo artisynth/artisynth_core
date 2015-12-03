@@ -7,6 +7,7 @@
 package artisynth.core.mechmodels;
 
 import artisynth.core.modelbase.*;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.*;
 import maspack.properties.PropertyList;
 import maspack.util.*;
@@ -192,28 +193,10 @@ public class Particle extends Point implements PointAttachable {
       super.setDynamic (dynamic);
    }
 
-   public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
-   }
-
-   public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      super.transformGeometry (X, topObject, flags);
-
-      if (myMasterAttachments != null) {
-         for (DynamicAttachment a : myMasterAttachments) {
-            if (!ComponentUtils.withinHierarchy (a, topObject)) {
-               a.transformSlaveGeometry (X, topObject, flags);
-            }
-         }
-      }
-      // if active, notify parent to update positions of
-      // any attached components
-      // if (topObject == this)
-      // { notifyParentOfChange (
-      // new GeometryChangeEvent (this, X));
-      // }
-   }
+//   public void transformGeometry (
+//      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+//      super.transformGeometry (gtr, context, flags);
+//   }
 
    public void scaleDistance (double s) {
       super.scaleDistance (s);

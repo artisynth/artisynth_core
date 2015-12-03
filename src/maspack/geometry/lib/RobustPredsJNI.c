@@ -112,6 +112,7 @@ JNIEXPORT jint JNICALL Java_maspack_geometry_RobustPreds_jniInit(
    exactinit(); // initialize Shewchuck's predicates
 
    restorePrecision();
+   return 0; // return value not used
 }
 
 JNIEXPORT jint JNICALL Java_maspack_geometry_RobustPreds_jniOrient3d(

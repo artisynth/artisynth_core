@@ -30,8 +30,6 @@ public class MultiSpringDemo extends RootModel {
 
    private double planeZ = -20;
 
-   private SoftPlaneCollider myCollider;
-
    protected static double size = 1.0;
 
    public void build (String[] args) {

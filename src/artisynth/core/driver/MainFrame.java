@@ -117,9 +117,9 @@ public class MainFrame extends JFrame {
    public void updateWorkingDirDisplay() {
       String path = ArtisynthPath.getWorkingDirPath();
       path = ArtisynthPath.convertToUnixSeparators (path);
-      if (path.length() > maxDirDisplayChars) {
-         int cutIdx = path.length() - maxDirDisplayChars + 1;
-         path = "*" + path.substring (cutIdx);
+      if (path.length() > maxDirDisplayChars-2) {
+         int cutIdx = path.length() - maxDirDisplayChars + 3;
+         path = "..." + path.substring (cutIdx);
       }
       setTitle (baseName + " [ " + path + " ] ");
 
@@ -211,7 +211,6 @@ public class MainFrame extends JFrame {
 
       // create menu bar handler to handle the main menu
       myMenuBar = new MenuBarHandler (main, this);
-
       getContentPane().add (splitPane);
 
       myMenuBar.createMenus();
@@ -233,7 +232,7 @@ public class MainFrame extends JFrame {
       divider.addMouseListener (mainFrameMouseListener);
       // end of the splitter on resize bug fix
       setBaseTitle ("Artisynth");
-      
+
       // set icon
       URL iconUrl = ArtisynthPath.findResource("artisynth/core/gui/icon/artisynth.gif");
       try {

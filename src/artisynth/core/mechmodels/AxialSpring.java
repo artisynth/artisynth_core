@@ -189,7 +189,7 @@ public class AxialSpring extends PointSpringBase
       }
       return super.postscanItem (tokens, ancestor);
    }
-   
+
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {

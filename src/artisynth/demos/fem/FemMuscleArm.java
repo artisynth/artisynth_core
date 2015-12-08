@@ -93,7 +93,7 @@ public class FemMuscleArm extends MuscleArm
         AffineTransform3d scaling = new AffineTransform3d();
         scaling.setIdentity();
         scaling.applyScaling(scale, scale, scale);
-        muscle.transformGeometry(scaling);
+        //muscle.transformGeometry(scaling);
         
         Vector3d translate = new Vector3d();
         translate.sub(upper, first.getPosition());
@@ -149,20 +149,21 @@ public class FemMuscleArm extends MuscleArm
         double rate = 0.01;
         try 
         {
-//           ip = new NumericInputProbe(model,
-//        	 "models/muscle:excitation",
-//        	 "activation.txt");
-//           ip.setStartStopTimesSec (0, 10.0);
-//           ip.setName("Muscle Activation");
-//           addInputProbe(ip, this);
+           ip = new NumericInputProbe(
+              model, "models/muscle:excitation", 0, 2.0);
+           ip.addData (new double[] {
+                 0, 0, 
+                 1, 0.5,
+                 2, 0 
+              }, NumericInputProbe.EXPLICIT_TIME);
+           ip.setName("Muscle Activation");
+           addInputProbe (ip);
            
-//           op = new NumericOutputProbe(model,
-//              	 "rigidBodies/lower/markers/endPoint/displacement",
-//              	 "displacement.txt", rate);
-//           op.setName("End Point Displacement");
-//           op.setStartStopTimesSec (0, 10.0);
-//           addOutputProbe(op);
-           
+           op = new NumericOutputProbe(
+              model, "frameMarkers/endPoint:displacement",
+              0, 2, -1);
+           op.setName("End Point Displacement");
+           addOutputProbe(op);
         }
         catch (Exception e)
         {

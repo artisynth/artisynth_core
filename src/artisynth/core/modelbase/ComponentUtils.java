@@ -105,39 +105,8 @@ public class ComponentUtils {
       }
    }
    
-//   static protected void recursivelyAddDependentComponents (
-//      List<ModelComponent> delete,
-//      List<ModelComponent> update, ModelComponent c,
-//      HashMap<ModelComponent,ArrayList<ModelComponent>> depMap) {
-//
-//      ArrayList<ModelComponent> deps = depMap.get(c);
-//      if (deps != null) {
-//         for (ModelComponent rcomp : deps) {
-//            recursivelyAddDependentComponents (delete, update, rcomp, depMap);
-//         }
-//      }
-//      if (!c.isMarked()) {
-//         switch (c.getReferenceUpdateBehavior()) {
-//            case DELETE: {
-//               delete.add (c);
-//               break;
-//            }
-//            case UPDATE: {
-//               update.add (c);
-//               break;
-//            }
-//            default: {
-//               throw new InternalErrorException (
-//                  "Unimplemented reference behavior: " +
-//                  c.getReferenceUpdateBehavior());
-//            }
-//         }
-//         c.setMarked (true);
-//      }
-//   }
-
    protected static void recursivelyAddDependenices (
-      LinkedList<ModelComponent> delete, HashSet<ModelComponent> updateSet,
+      LinkedList<ModelComponent> delete, HashSet<ModelComponent> softDeps,
       ModelComponent comp, HashMap<ModelComponent,Dependencies> depMap) {
       
       if (!comp.isMarked()) {
@@ -145,13 +114,13 @@ public class ComponentUtils {
          if (deps != null) {
             if (deps.myHard != null) {
                for (ModelComponent c : deps.myHard) {
-                  recursivelyAddDependenices (delete, updateSet, c, depMap);
+                  recursivelyAddDependenices (delete, softDeps, c, depMap);
                }
             }
             if (deps.mySoft != null) {
                for (ModelComponent c : deps.mySoft) {
                   if (!c.isMarked()) {
-                     updateSet.add (c);
+                     softDeps.add (c);
                   }
                }
             }
@@ -159,7 +128,7 @@ public class ComponentUtils {
          if (!comp.isMarked()) {
             comp.setMarked (true);
             delete.add (comp);
-            updateSet.remove (comp);
+            softDeps.remove (comp);
          }
          else {
             System.out.println (
@@ -169,9 +138,14 @@ public class ComponentUtils {
       }      
    }
 
-   // Extends a list of components to include all refering components.
-   // The list is returned with refering components placed first,
-   // in the same order that components should be deleted.
+   // Takes a list of components and returns an extension of it that includes
+   // all components which have a hard dependency on one or more components in
+   // the original list. It also adds all components which have soft
+   // dependencies into the list 'update'.
+   //
+   // The returned list is ordered with dependent components placed first, in
+   // the same order that they should be deleted.
+   //
    public static LinkedList<ModelComponent> findDependentComponents (
       List<ModelComponent> update, List<? extends ModelComponent> comps) {
 
@@ -182,22 +156,38 @@ public class ComponentUtils {
          throw new IllegalArgumentException (
             "Components do not have a common ancestor");
       }
-      CompositeComponent ancestor = nearestEncapsulatingAncestor(acomp);
-      HashMap<ModelComponent,Dependencies> depMap = 
-         buildDependencyMap (ancestor);
-      HashSet<ModelComponent> updateSet = new LinkedHashSet<ModelComponent>();
+      CompositeComponent ancestor = farthestEncapsulatingAncestor(acomp);
 
-      // If we are going to prune descendents components from the delete list,
-      // we can do it here.
+      // Now we build a dependency map, which, for every component, provides a
+      // list of both its hard and soft dependencies
+      HashMap<ModelComponent,Dependencies> depMap =
+         buildDependencyMap (ancestor);
+      
+      HashSet<ModelComponent> softDeps = new LinkedHashSet<ModelComponent>();
 
       LinkedList<ModelComponent> delete = new LinkedList<ModelComponent>();
       for (ModelComponent c : comps) {
-         recursivelyAddDependenices (delete, updateSet, c, depMap);
+         recursivelyAddDependenices (delete, softDeps, c, depMap);
+      }
+      // Now prune descendants: remove any component from both 'delete' and 
+      // 'softDeps' which has an ancestor in 'delete'. We use the fact that
+      // all components in 'delete' are marked at this point.
+      for (ModelComponent c : softDeps){
+         if (!ancestorIsMarked(c)) {
+            update.add (c);
+         }
+      }
+      Iterator<ModelComponent> it = delete.iterator();
+      while (it.hasNext()) {
+         ModelComponent c = it.next();
+         if (ancestorIsMarked(c)) {
+            c.setMarked (false);
+            it.remove();
+         }
       }
       for (ModelComponent c : delete) {
          c.setMarked (false);
       }
-      update.addAll (updateSet);
       
       // Need to rearrange the delete list so that all components with the same
       // parents are grouped together. This greatly improves the efficiency of
@@ -701,7 +691,7 @@ public class ComponentUtils {
     * within the ancestor's hierarchy. If no such ancestor is found, 
     * <code>null</code> is returned.
     * 
-    * @return closest encapsulated ancestor
+    * @return closest encapsulating ancestor
     */
    public static CompositeComponent nearestEncapsulatingAncestor (
       ModelComponent c) {
@@ -719,6 +709,36 @@ public class ComponentUtils {
          ancestor = ancestor.getParent();
       }
       return null;
+   }
+
+   /**
+    * Returns the farthest ancestor of a component (or the component
+    * itself) for which {@link 
+    * CompositeComponent#hierarchyContainsReferences()
+    * hierarchyContainsDependencies()} returns <code>true</code>.
+    * That means all inter-component references are contained
+    * within the ancestor's hierarchy. If no such ancestor is found, 
+    * <code>null</code> is returned.
+    * 
+    * @return farthest encapsulating ancestor
+    */
+   public static CompositeComponent farthestEncapsulatingAncestor (
+      ModelComponent c) {
+      CompositeComponent ancestor;
+      if (c instanceof CompositeComponent) {
+         ancestor = (CompositeComponent)c;
+      }
+      else {
+         ancestor = c.getParent();
+      }
+      CompositeComponent farthest = null;
+      while (ancestor != null) {
+         if (ancestor.hierarchyContainsReferences()) {
+            farthest = ancestor;
+         }
+         ancestor = ancestor.getParent();
+      }
+      return farthest;
    }
 
    public static void saveComponent (
@@ -1372,7 +1392,7 @@ public class ComponentUtils {
       ModelComponent c, List<C> refs, boolean undo, Deque<Object> undoInfo) {
 
       if (undo) {
-         Object obj = undoInfo.getFirst();
+         Object obj = undoInfo.removeFirst();
          if (obj != ModelComponentBase.NULL_OBJ) {
             ((ListRemove<C>)obj).undo();
          }

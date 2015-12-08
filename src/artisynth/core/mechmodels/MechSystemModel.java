@@ -8,6 +8,8 @@ package artisynth.core.mechmodels;
 
 import java.util.List;
 
+import maspack.matrix.SparseBlockMatrix;
+import maspack.matrix.VectorNd;
 import artisynth.core.modelbase.Model;
 import artisynth.core.modelbase.StepAdjustment;
 
@@ -29,6 +31,12 @@ public interface MechSystemModel extends Model, MechSystem {
    public void getAuxStateComponents (List<HasAuxState> list, int level);
    
    public void getSlaveObjectComponents (List<HasSlaveObjects> list, int level);
+
+   public void addGeneralMassBlocks (SparseBlockMatrix M);
+
+   public void getMassMatrixValues (SparseBlockMatrix M, VectorNd f, double t);
+
+   public void mulInverseMass (SparseBlockMatrix M, VectorNd a, VectorNd f);
 
    /**
     * Checks the velocity stability of this system. If the velocity of any

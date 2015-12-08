@@ -37,14 +37,29 @@ public class PolarDecomposition3d {
    }
 
    public void factor (Matrix3dBase M) {
-      mySvd.polarDecomposition (myR, myP, M);
-      mySvd.getS (mySig);
+      if (M instanceof RotationMatrix3d) {
+         myR.set ((RotationMatrix3d)M);
+         myP.set (Matrix3d.IDENTITY);
+         mySig.set (1, 1, 1);
+      }
+      else {
+         mySvd.polarDecomposition (myR, myP, M);
+         mySvd.getS (mySig);
+
+      }
       myState = State.RightFactorization;
    }
 
    public void factorLeft (Matrix3dBase M) {
-      mySvd.leftPolarDecomposition (myP, myR, M);
-      mySvd.getS (mySig);
+      if (M instanceof RotationMatrix3d) {
+         myR.set ((RotationMatrix3d)M);
+         myP.set (Matrix3d.IDENTITY);
+         mySig.set (1, 1, 1);
+      }
+      else {
+         mySvd.leftPolarDecomposition (myP, myR, M);
+         mySvd.getS (mySig);
+      }
       myState = State.LeftFactorization;
    }
 

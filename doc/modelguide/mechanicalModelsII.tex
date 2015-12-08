@@ -242,51 +242,6 @@ non-scaled version.
 
 % MultiPointSpring
 
-\subsection{Transforming geometry}
-\label{TransformingGeometry:sec}
-
-Certain ArtiSyth components, including {\tt MechModel}, implement the
-interface \javaclass[artsiynth.core.util]{TransformableGeometry},
-which permits the simultaneous transformation of all a component's
-geometry (i.e., meshes, point and frame loctions, etc.), as well as
-the geometry of it's child components. The interface provides the
-following method
-%
-\begin{lstlisting}[]
-   public void transformGeometry (AffineTransform3dBase X);
-\end{lstlisting}
-%
-where {\tt X} is an \javaclass[maspack.matrix]{AffineTransform3dBase}
-that may be either a \javaclass[maspack.matrix]{RigidTransform3d} or a
-more general \javaclass[maspack.matrix]{AffineTransform3d} (Section
-\ref{RigidTransform3d:sec}).
-
-{\tt tranformGeometry} can be used to translate, rotate, shear or
-scale model components. It can be applied to an entire model or just a
-set of it's components. Unlike
-\javamethod*[artisynth.core.util.ScalableUnits]{scaleDistance()}, it
-actually changes the physical geometry and so will change the
-simulation behaviour. It is often used to either scale or rotate
-components. For example,
-%
-\begin{lstlisting}[]
-   MechModel mech;
-
-   ... build mech model ...
-
-   AffineTransform3d X = new AffineTransform3d();
-   X.applyScaling (1.5, 2, 3);
-   mech.transformGeometry (X);
-   
-   RigidTransform3d T = 
-      new RigidTransform3d (/*x,y,z=*/0, 0, 0, /*r,p,y=*/0, 0, Math.PI));
-   mech.transformGeomerty (T);
-\end{lstlisting}
-%
-first scales a {\tt MechModel} by 1.5, 2, and 3 along the x, y, and z
-axes, and then flips the model upside down using a {\tt
-RigidTransform3d} that rotates it by 180 degrees about the x axis.
-
 \subsection{Render properties}
 \label{RenderProperties:sec}
 
@@ -600,10 +555,10 @@ with a {\tt SimpleAxialMuscle} material:
 \end{lstlisting}
 %
 Also, so that the muscle renders differently, the rendering style
-for lines is set to {\tt ELLIPSOID} instead of {\tt CYLINDER}:
+for lines is set to {\tt ELLIPSOID} using the convenience method
 %
 \begin{lstlisting}[]
-      RenderProps.setLineStyle (r, RenderProps.LineStyle.ELLIPSOID);
+      RenderProps.setEllipsoidalLines (muscle, 0.02, Color.RED);
 \end{lstlisting}
 %
 
@@ -744,6 +699,7 @@ would be forced into a state of permanent collision.
 \end{sideblock}
 
 \subsubsection{Example: Collision with a plane}
+\label{JointedCollide:sec}
 
 \begin{figure}[ht]
 \begin{center}
@@ -923,7 +879,7 @@ which specifically enables or disables the ability of that collidable
 to collide with other collidables.
 
 The {\tt collidable} property value is of the enumerated type
-\javaclass[artisynth.core.mechmodels]{Collidable.Collidability}, which
+\javaclass[artisynth.core.mechmodels]{Collidable\#Collidability}, which
 has four possible settings:
 
 \begin{description}
@@ -1127,6 +1083,435 @@ contours with be draw and shown in Figure \ref{BallPlateCollide:fig}.
 (blue) of the ball colliding with the plate.}
 \label{BallPlateCollide:fig}
 \end{figure}
+
+\subsection{Transforming geometry}
+\label{TransformingGeometry:sec}
+
+Certain ArtiSynth components, including {\tt MechModel}, implement the
+interface \javaclass[artisynth.core.modelbase]{TransformableGeometry},
+which allows the geometric transformation of the component's
+attributes (such as meshes, points, frame locations, etc.), along with
+its descendant components. The interface provides the method
+%
+\begin{lstlisting}[]
+   public void transformGeometry (AffineTransform3dBase X);
+\end{lstlisting}
+%
+where {\tt X} is an \javaclass[maspack.matrix]{AffineTransform3dBase}
+that may be either a \javaclass[maspack.matrix]{RigidTransform3d} or a
+more general \javaclass[maspack.matrix]{AffineTransform3d} (Section
+\ref{RigidTransform3d:sec}).
+
+\javamethodAlt{artisynth.core.modelbase.TransformableGeometry.transformGeometry()}%
+{transformGeometry(X)}
+can be used to translate, rotate, shear or scale components. It
+can be applied to an entire model or individual components. Unlike
+\javamethod*[artisynth.core.util.ScalableUnits]{scaleDistance()}, it
+actually changes the physical geometry and so may change the
+simulation behaviour. For example, applying {\tt transformGeometry()}
+to a \javaclass[artisynth.core.mechmodels]{RigidBody} will cause the
+shape of its mesh to change, which will change its mass if its {\sf
+inertiaDensity} property is set to {\sf Density}.
+Figure \ref{RigidAndAffineTransforms:fig} shows a simplified
+illustration of both rigid and affine transformations being applied to
+a model.
+
+\begin{figure}[ht]
+\begin{center}
+   \begin{tabular}{ccc}
+   \includegraphics[width=0.27\textwidth]{images/tgenModel} &
+   \includegraphics[width=0.34\textwidth]{images/tgenModelRigid} &
+   \includegraphics[width=0.34\textwidth]{images/tgenModelAffine}
+   \end{tabular}
+\end{center}
+\caption{Simple illustration of a model (left) undergoing a rigid
+transformation (middle) and an affine transformation (right).}
+\label{RigidAndAffineTransforms:fig}
+\end{figure}
+
+The example below shows how to apply a transformation to a model in
+code. In it, a {\tt MechModel} is first scaled by the factors 1.5, 2,
+and 3 along the x, y, and z axes, and then flipped upside down using a
+{\tt RigidTransform3d} that rotates it by 180 degrees about the x
+axis:
+%
+\begin{lstlisting}[]
+   MechModel mech;
+
+   ... build mech model ...
+
+   AffineTransform3d X = new AffineTransform3d();
+   X.applyScaling (1.5, 2, 3);
+   mech.transformGeometry (X);
+   
+   RigidTransform3d T = 
+      new RigidTransform3d (/*x,y,z=*/0, 0, 0, /*r,p,y=*/0, 0, Math.PI);
+   mech.transformGeomerty (T);
+\end{lstlisting}
+%
+
+\subsubsection{Nonlinear transformations}
+
+The \javaclass[artisynth.core.modelbase]{TransformableGeometry}
+interface also supports general, non-linear geometric transforms.
+This can be done using a
+\javaclass[maspack.geometry]{GeometryTransformer}, which is an
+abstract class for performing general transformations.  To apply such
+a transformation to a component, one can create and initialize an appropriate
+subclass of {\tt
+GeometryTransformer} to perform the desired transformation, and
+then apply it using the static {\tt transform} method of the utility class 
+\javaclass[artisynth.core.modelbase]{TransformGeometryContext}:
+%
+\begin{lstlisting}[]
+  ModelComponent comp;     // component to be transformed
+  GeometryTransformer gtr; // transformer to do the transforming
+
+  ... instantiate and initialize the transformer ...
+
+  TransformGeometryContext.transform (comp, gtr, /*flags=*/0);
+\end{lstlisting}
+%
+
+At present, the following subclasses of {\tt GeometryTransformer} are
+available:
+
+\begin{description}
+
+\item[\protect{\javaclass[maspack.geometry]{RigidTransformer}}]\mbox{}
+
+Implements rigid 3D transformations.
+
+\item[\protect{\javaclass[maspack.geometry]{AffineTransformer}}]\mbox{}
+
+Implements affine 3D transformations.
+
+\item[\protect{\javaclass[artisynth.core.femmodels]{FemGeometryTransformer}}]\mbox{}
+
+Implements a general transformation, using the deformation field
+induced by a finite element model. 
+
+\end{description}
+
+\javaclass[artisynth.core.modelbase]{TransformGeometryContext} also
+supplies the following convenience methods to apply transformations to
+components or collections of components:
+%
+\begin{lstlisting}[]
+    void transform (Iterable<TransformableGeometry>, GeometryTransformer, int);
+    void transform (TransformableGeometry[], GeometryTransformer, int);
+
+    void transform (TransformableGeometry, AffineTransform3dBase, int);
+    void transform (Iterable<TransformableGeometry>, AffineTransform3dBase, int);
+    void transform (TransformableGeometry[], AffineTransform3dBase, int);
+\end{lstlisting}
+%
+The last three of these methods create an instance of either
+\javaclass[maspack.geometry]{RigidTransformer} or
+\javaclass[maspack.geometry]{AffineTransformer} for the supplied
+\javaclass[maspack.matrix]{AffineTransform3dBase}. In fact, most
+{\tt TransformableGeometry} components implement their
+\javamethodAlt{artisynth.core.modelbase.TransformableGeometry.transformGeometry()}%
+{transformGeometry(X)} method as follows:
+%
+\begin{lstlisting}[]
+   public void transformGeometry (AffineTransform3dBase X) {
+      TransformGeometryContext.transform (this, X, 0);
+   }
+\end{lstlisting}
+%
+
+The \javaclass[artisynth.core.femmodels]{FemGeometryTransformer}
+class is derived from the
+class \javaclass[maspack.geometry]{DeformationTransformer}, which uses
+the single method
+\javaclass[maspack.geometry.DeformationTransformer]{getDeformation()} to
+obtain deformation field information at a specified reference postion:
+%
+\begin{lstlisting}[]
+    void getDeformation (Vector3d p, Matrix3d F, Vector3d r)
+\end{lstlisting}
+%
+If the deformation field is described by $\x' = f(\x)$, then
+for a given reference position $\r$ (in undeformed coordinates),
+this method should return the deformed position $\p = f(\r)$
+and the deformation gradient
+%
+\begin{equation}
+\F \equiv \frac{\partial f}{\partial \x}
+\end{equation}
+%
+evaluated at $\r$. 
+
+\javaclass[artisynth.core.femmodels]{FemGeometryTransformer} obtains
+$f(\x)$ and $\F$ from a
+\javaclass[artisynth.core.femmodels]{FemModel3d} (see Section
+\ref{FEMModels:sec}) whose elemental rest positions enclose the
+components to be transformed, using the fact that a finite element
+model creates an implied piecewise-smooth deformation field as it
+deviates from its rest position. For each reference point $\r$ needed
+by the transformation process, {\tt FemGeometryTransformer} finds the
+FEM element whose rest volume encloses $\r$, and then uses the
+corresponding shape function coordinates to compute $f(\x)$ and $\F$
+from the element's deformation. If the FEM model does {\it not}
+enclose $\r$, the nearest element is used to determine the shape
+function coordinates (however, this calculation becomes less accurate and
+meaningful the farther $\r$ is from the FEM model). Transformations based
+on FEM models are further illustrated in Section
+\ref{FemModelDeformer:sec}, and by Figure
+\ref{JointedCollideDeformation:fig}. Full details on ArtiSynth finite
+element models are given in Section \ref{FEMModels:sec}.
+
+Besides FEM models, there are numerous other ways to create
+deformation fields, such as radial basis functions, thin plate
+splines, etc. Some of these may be more appropriate for a particular
+application and can provide deformations that are globally smooth (as
+opposed to piecewise smooth).  It should be relatively easy for an
+application to create its own subclass of {\tt DeformationTransformer}
+to implement the deformation of choice by overriding the single
+\javaclass[maspack.geometry.DeformationTransformer]{getDeformation()}
+method.
+
+\subsubsection{Example: the FemModelDeformer class}
+\label{FemModelDeformer:sec}
+
+An FEM-based geometric transformation of a {\tt MechModel} is
+facilitated by the class
+\javaclass[artisynth.core.workspace]{FemModelDeformer}, which one can
+add to an existing {\tt RootModel} to transform the geometry of a {\tt
+MechModel} already located within that {\tt RootModel}.  {\tt
+FemModelDeformer} subclasses
+\javaclass[artisynth.core.femmodels]{FemModel3d} to include a
+\javaclass[artisynth.core.femmodels]{FemGeometryTransformer}, and
+provides some utility methods to support the transformation process.
+
+A {\tt FemModelDeformer} can be added to a {\tt RootModel} by adding
+the following code fragment to the end of the {\tt build()} method:
+%
+\begin{lstlisting}[]
+   public void build (String[] args) {
+
+      ... build the model ...
+
+      FemModelDeformer deformer =
+         new FemModelDeformer ("deformer", this, /*maxn=*/10);
+      addModel (deformer);
+      // add a control panel (this is optional)
+      addControlPanel (deformer.createControlPanel());  
+   }
+\end{lstlisting}
+%
+When the deformer is created, its constructor searches the specified
+{\tt RootModel} to locate the first top-level {\tt MechModel}. It then
+creates a hexahedral FEM grid around this model, with {\tt maxn} specifying
+the number of cells along the maximum dimension. Material and
+mass properties of the model are computed automatically from the
+underlying {\tt MechModel} dimensions (but can be altered if necessary after
+construction). When added to the {\tt RootModel},
+the deformer becomes another top-level model that can be deformed
+independently of the {\tt MechModel} to create the required
+deformation field, as described below. It also supplies application-defined
+menu items that appear under the {\sf Application} menu in the ArtiSynth
+menu bar (see Section \ref{MenuItems:sec}). 
+The deformer's {\tt createControlPanel()} can also be used
+to create a {\tt ControlPanel} (Section \ref{ControlPanels:sec}) that
+controls the visiblity of the FEM model and the dynamic behavior of
+both it and the {\tt MechModel}.
+
+An example is defined in 
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.DeformedJointedCollide
+\end{verbatim}
+%
+where the {\tt JointedCollide} example of Section
+\ref{JointedCollide:sec} is extended to include a 
+{\tt FemModelDeformer} using the code described above.
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/DeformedJointedCollide}
+\else
+ \includegraphics[width=5in]{images/DeformedJointedCollide}
+\fi
+\end{center}
+\caption{The DeformedJointedCollide example initially loaded
+into ArtiSynth.}
+\label{DeformedJointedCollide:fig}
+\end{figure}
+
+To load this example in ArtiSynth, select {\sf All demos > tutorial >
+DeformedJointedCollide} from the {\sf Models} menu. The model should load and
+initially appear as in Figure \ref{DeformedJointedCollide:fig}, where
+the control panel appears on the right.
+
+The underlying {\tt MechModel} (or "model") can now be
+transformed by first deforming the FEM model (or "grid") and
+then using the resulting deformation field to effect the
+transformation:
+
+\begin{enumerate}
+
+\item Make the model non-dynamic and the grid dynamic by unchecking
+{\sf model dynamic} and checking {\sf grid dynamic} in the control
+panel. This means that when simulation is run, the model will be inert
+while the grid will respond physically.
+
+\item Deform the grid using simulation. One easy way to do this is to
+fix certain nodes, generally on or near the grid boundary, and then
+move some of these using the translation or transrotator
+tool while simulation is running. To fix a set of nodes, select
+them in the viewer, choose {\sf Edit properties ...} from the
+right-click context menu, and then uncheck their {\sf dynamic} property.
+To easily select a large number of nodes without also selecting
+model components or grid elements, one can specify {\tt FemNode}
+in the selection filter widget. (See the sections
+``Manipulation Tools'' and ``Selection filering'' in the
+\href{../uiguide/uiguide.html}{ArtiSynth User Interface Guide}.)
+
+\item After the grid has been deformed, choose {\sf deform} from the
+{\sf Application} menu in the ArtiSynth toolbar to transform the model.
+Afterwards, the transformation can be undone by choosing {\sf undo},
+and the grid can be reset by choosing {\sf reset grid}.
+
+\item To run the deformed model after the transformation, it should
+again be made dynamic by checking {\sf model dynamic} in the control
+panel.  The itself grid can be made non-dynamic, and it and/or its
+nodes can be made invisible by unchecking {\sf grid visible} and/or
+{\sf grid nodes visible} in the control panel.
+
+\end{enumerate}
+
+The result of a possible deformation is shown in Figure
+\ref{JointedCollideDeformation:fig}.
+
+\begin{figure}[ht]
+\begin{center}
+  \begin{tabular}{cc}
+  \iflatexml
+    \includegraphics[]{images/DeformedJointedCollideBefore}&
+    \includegraphics[]{images/DeformedJointedCollideAfter}
+  \else
+    \includegraphics[width=0.45\textwidth]{images/DeformedJointedCollideBefore}&
+    \includegraphics[width=0.45\textwidth]{images/DeformedJointedCollideAfter}
+  \fi
+  \end{tabular}
+\end{center}
+\caption{Deformation achieved in DeformedJointedCollide,
+showing both the model and grid (using an orthographic view)
+before and after the deformation.}
+\label{JointedCollideDeformation:fig}
+\end{figure}
+
+\begin{sideblock}
+Note: {\tt FemModelDeformer} is not intended to provide a general
+purpose solution to non-linear geometric transformations. Rather, it
+is mainly intended to illustrate the capabilities of
+\javaclass[maspack.geometry]{GeometryTransformer} and the
+\javaclass[artisynth.core.modelbase]{TransformableGeometry} interface.
+\end{sideblock}
+
+\subsubsection{Implementation and behavior}
+
+As indicated above, the management of transforming the geometry for one
+or more components is handled by the
+\javaclass[artisynth.core.modelbase]{TransformGeometryContext} class.
+The transform operations themselves are carried out by this class's
+\javamethod[artisynth.core.modelbase.TransformGeometryContext]{apply()} 
+method, which (a) assembles all the components that need
+to be transformed, (b) performs the actual transform operations,
+(c) invokes any required updating actions on other components,
+and finally (d) notifies parent components of the change using
+a \javaclass[artisynth.core.modelbase]{GeometryChangeEvent}.
+
+To support this, ArtiSynth components which implement
+\javaclass[artisynth.core.modelbase]{TransformableGeometry}
+must also supply the methods
+%
+\begin{lstlisting}[]
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags);
+
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags);
+\end{lstlisting}
+%
+The first method,
+\javamethodAlt{%
+artisynth.core.modelbase.TransformableGeometry.addTransformableDependencies()}%
+{addTransformableDependencies(context,flags)}, 
+is called in step (a) to add to the context any additional components
+which should be transformed along with this component. This includes
+any descendants which should be transformed, since the
+transformation of these should not generally be done within {\tt
+transformGeometry(gtr,context,flags)}.
+
+The second method, 
+\javamethodAlt{%
+artisynth.core.modelbase.TransformableGeometry.transformGeometry(,,)}%
+{transformGeometry(gtr,context,flags)}, is
+called in step (b) to perform the actual transformation on this
+component.  It should use the supplied geometry transformer {\tt gtr}
+to transform its attributes, as well as {\tt context} to query what
+other components are also being transformed and to request
+any needed updating actions to be called in step (c).  The {\tt flags} argument
+specifies conditions associated with the transformation, which at the
+moment may currently include:
+
+\begin{description}
+
+\item[TG\_SIMULATING]\mbox{}
+
+The system is currently simulating, and therefore it may not be
+desirable to transform all attributes;
+
+\item[TG\_ARTICULATED]\mbox{}
+
+Rigid body articulation constraints should
+be enforced as the transform proceeds.
+
+\end{description}
+
+Full details for all this are given in the documentation for
+\javaclass[artisynth.core.modelbase]{TransformGeometryContext}.
+
+The transforming behavior of a component is up to its implementing
+method, but the following rules are generally observed:
+
+\begin{enumerate}
+
+\item Transformable descendents are also transformed, by using {\tt
+addTransformableDependencies()} to add them to the context as described
+above;
+
+\item When the nodes of an FEM model (Section \ref{FEMModels:sec}) are
+transformed, the rest positions are also transformed if the system is
+not simulating (i.e., if the {\tt TG\_SIMULATING} flag is not set).
+This also causes the mass of the adjacent nodes to be recomputed from
+the densities of the adjacent elements;
+
+\item When dynamic components are transformed, any attachments and
+constraints associated with them are updated appropriately, but only
+if the system is not simulating. Non-transforming dynamic components
+that are attached to transforming components as slaves are generally
+updated so as to follow the transforming components to which they are
+attached.
+
+\end{enumerate}
+
+\subsubsection{Use in model registration}
+
+Transforming model geometry can obviously be used as part of the
+process of creating subject-specific biomechanical and anatomical
+models. However, registration will generally require more that
+geometric transformation, since other properties, such as material
+stiffnesses, densities, and maximum forces will generally need to be
+adjusted as well. As a specific example, when applying a geometric
+transform to a model containing {\tt AxialSprings}, the {\tt
+restLength} properties of the springs will be unchanged, whereas the
+intial lengths may be, resulting in a different applied forces and
+physical behaviour.
 
 \subsection{General component arrangements}
 
@@ -1358,8 +1743,8 @@ this example are shown below.
       // set render properties for the components      
       RenderProps.setLineColor (greenSprings, new Color(0f, 0.5f, 0f));
       RenderProps.setLineColor (blueSprings, Color.BLUE);
-      setPointRenderProps (mech);
-      setLineRenderProps (mech);
+      RenderProps.setSphericalPoints (mech, widthx/50.0, Color.RED);
+      RenderProps.setCylindricalLines (mech, widthx/100.0, Color.BLUE);
    }
 \end{lstlisting}
 \lstset{numbers=none}

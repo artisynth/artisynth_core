@@ -6,8 +6,11 @@
  */
 package maspack.properties;
 
-import java.lang.reflect.*;
-import maspack.util.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+import maspack.util.InternalErrorException;
+import maspack.util.Range;
 
 public class GenericPropertyHandle implements Property {
    HasProperties myHost;
@@ -137,5 +140,32 @@ public class GenericPropertyHandle implements Property {
     */
    public PropertyInfo getInfo() {
       return myDesc;
+   }
+   
+   @Override
+   public boolean equals(Object obj) {
+      if (!(obj instanceof Property)) {
+         return false;
+      }
+      
+      Property p = (Property)obj;
+      HasProperties ohost = p.getHost();
+      if (ohost != getHost()) {
+         return false;
+      }
+      
+      String name = p.getName();
+      if (!name.equals(getName())) {
+         return false;
+      }
+      
+      PropertyInfo pdesc = p.getInfo();
+      PropertyInfo desc = getInfo();
+      
+      if (!pdesc.equals(desc)) {
+         return false;
+      }
+      
+      return true;
    }
 }

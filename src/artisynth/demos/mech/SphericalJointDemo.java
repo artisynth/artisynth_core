@@ -73,7 +73,7 @@ public class SphericalJointDemo extends RootModel {
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.025);
       joint.setAxisLength (0.05);
-      myMechMod.addRigidBodyConnector (joint);
+      myMechMod.addBodyConnector (joint);
       return joint;
    }
 
@@ -89,7 +89,7 @@ public class SphericalJointDemo extends RootModel {
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.025);
       joint.setAxisLength (0.05);
-      myMechMod.addRigidBodyConnector (joint);
+      myMechMod.addBodyConnector (joint);
       return joint;
    }
 

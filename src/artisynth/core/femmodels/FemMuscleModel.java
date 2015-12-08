@@ -23,6 +23,7 @@ import maspack.geometry.LineSegment;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.PolylineMesh;
 import maspack.geometry.Vertex3d;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
@@ -55,7 +56,8 @@ import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.RenderableComponentList;
-import artisynth.core.util.TransformableGeometry;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScanToken;
 
 public class FemMuscleModel extends FemModel3d
@@ -396,7 +398,7 @@ public class FemMuscleModel extends FemModel3d
 
    @Override
    public boolean isInvertible() {
-      return myMuscleMat != null && myMuscleMat.isInvertible();
+      return myMuscleMat == null || myMuscleMat.isInvertible();
    }
 
    public void setMuscleMaterial(MuscleMaterial mat) {
@@ -463,20 +465,20 @@ public class FemMuscleModel extends FemModel3d
       myMuscleMat.scaleMass(s);
    }
 
-   private static int addVertex(PolygonalMesh mesh, FemNode3d n) {
-      int index = -1;
-      // for(Vertex3d v:mesh.getVertices())
-      // {
-      //
-      // }
-      index = mesh.getVertices().indexOf(n.getPosition());
-      if (index == -1) {
-         index =
-            mesh.getVertices().indexOf(
-               mesh.addVertex(n.getPosition(), true));
-      }
-      return index;
-   }
+//   private static int addVertex(PolygonalMesh mesh, FemNode3d n) {
+//      int index = -1;
+//      // for(Vertex3d v:mesh.getVertices())
+//      // {
+//      //
+//      // }
+//      index = mesh.getVertices().indexOf(n.getPosition());
+//      if (index == -1) {
+//         index =
+//            mesh.getVertices().indexOf(
+//               mesh.addVertex(n.getPosition(), true));
+//      }
+//      return index;
+//   }
 
    // @Override
    // public void updateForces (double t, StepAdjust stepAdjust) {
@@ -692,37 +694,16 @@ public class FemMuscleModel extends FemModel3d
       }
    }
    
-//   private SymmetricMatrix3d tmpStress = new SymmetricMatrix3d();
-   
-//   @Override
-//   public void addStressAndTangent(SymmetricMatrix3d sigma, Matrix6d D,
-//      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
-//      computeStress(tmpStress, pt, dt, baseMat);
-//      sigma.add(tmpStress);
-//      addTangent(D, tmpStress, pt, dt, baseMat);
-//   }
-   
-//   @Override
-//   public void computeStressAndTangent(SymmetricMatrix3d sigma, Matrix6d D,
-//      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
-//      computeStress(sigma, pt, dt, baseMat);
-//      computeTangent(D, sigma, pt, dt, baseMat);
+//   public void transformGeometry (
+//      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+//      super.transformGeometry (gtr, context, flags);
 //   }
 
-   public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
-   }
-
-   public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      
-      super.transformGeometry(X, topObject, flags);
-      
-      for (MuscleBundle bundle : myMuscleList) {
-         bundle.transformGeometry(X, topObject, flags);
-      }
-      
-   }
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      context.addTransformableDescendants (myMuscleList, flags);
+      super.addTransformableDependencies (context, flags);
+   } 
    
    /**
     * @return the number of fibre segments per sphere

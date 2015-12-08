@@ -8,13 +8,13 @@ package artisynth.core.mechmodels;
 
 import java.io.*;
 
+import maspack.geometry.GeometryTransformer;
 import maspack.render.*;
 import maspack.util.*;
 import maspack.matrix.*;
 import maspack.properties.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.ScalableUnits;
-import artisynth.core.util.TransformableGeometry;
 import maspack.render.*;
 
 import java.util.*;
@@ -22,7 +22,7 @@ import java.util.*;
 import com.jogamp.opengl.*;
 
 public class PointList<P extends Point> extends RenderableComponentList<P>
-implements TransformableGeometry, ScalableUnits {
+implements ScalableUnits {
    protected static final long serialVersionUID = 1;
    private double myPointDamping;
    private PropertyMode myPointDampingMode = PropertyMode.Inherited;
@@ -125,17 +125,6 @@ implements TransformableGeometry, ScalableUnits {
       }
    }
    
-   public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
-   }
-
-   public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      for (int i = 0; i < size(); i++) {
-         get (i).transformGeometry (X, topObject, flags);
-      }
-   }
-
    public void scaleDistance (double s) {
       for (int i = 0; i < size(); i++) {
          get (i).scaleDistance (s);

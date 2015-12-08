@@ -156,6 +156,10 @@ public class CompositeComponentBase extends ModelComponentBase
    protected boolean remove (ModelComponent comp) {
       return myComponents.remove (comp);
    }
+   
+   protected void removeAll() {
+      myComponents.removeAll();
+   }
 
    protected void notifyStructureChanged (Object comp) {
       notifyStructureChanged (comp, /*stateIsChanged=*/true);

@@ -63,7 +63,6 @@ public class MFreeElement3dList extends RenderableComponentList<MFreeElement3d> 
    }
 
    private void dorender (Renderer renderer, boolean selected) {
-
       if (!addElementsInPrerender) {
          // we render all elements ourselves, taking care to render selected
          // elements first. This provides the maximum visibility for selected

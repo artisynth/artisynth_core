@@ -90,7 +90,7 @@ public class SignedDistanceGridCell implements GLSelectable {
          vertex[0], vertex[1], vertex[2]);
       
       gl.glEnable (GL2.GL_POINT_SMOOTH);   // Render the point.
-      gl.glPointSize (3);
+      renderer.setPointSize (3);
       renderer.setColor (pointColour);
       gl.glBegin (GL2.GL_POINTS);
       gl.glVertex3d (meshVertex[0], meshVertex[1], meshVertex[2]);
@@ -99,7 +99,7 @@ public class SignedDistanceGridCell implements GLSelectable {
       Vector3d normal = new Vector3d();
       normal = myGrid.getNormal (vertex[0], vertex[1], vertex[2]);
       
-      gl.glLineWidth (1.0f);  // Render the normal.
+      renderer.setLineWidth (1);  // Render the normal.
       gl.glBegin (GL2.GL_LINES);
       gl.glVertex3d (meshVertex[0], meshVertex[1], meshVertex[2]);
       gl.glVertex3d (meshVertex[0] + normal.x * 0.1,

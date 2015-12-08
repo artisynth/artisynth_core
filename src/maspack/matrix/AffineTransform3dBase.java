@@ -541,6 +541,41 @@ java.io.Serializable, Clonable {
    }
 
    /**
+    * Post-multiplies this transformation by the inverse of the rigid 
+    * transformation T and places the result in this transformation.
+    * 
+    * @param T
+    * right-hand rigid transformation
+    */
+   public void mulInverse (RigidTransform3d T) {
+      mulInverseRight (this, T);
+   }
+
+   /**
+    * Multiplies transformation X1 by the inverse of the rigid transformation 
+    * T2 and places the result in this transformation.
+    * 
+    * @param X1
+    * left-hand transformation
+    * @param T2
+    * right-hand rigid transformation
+    */
+   public void mulInverseRight (
+      AffineTransform3dBase X1, RigidTransform3d T2) {
+      //            
+      // compute M1 inv(M2) and -M1 inv(M2) b2 + b1
+      //
+      M.mulTransposeRight (X1.M, T2.R); // M = M1 R2^T
+      double b1x = X1.b.x; // save b1
+      double b1y = X1.b.y;
+      double b1z = X1.b.z;
+      M.mul (b, T2.p);     // compute M1 R2^T b2
+      b.x = b1x - b.x;     // b = b1 - M1 R2^T b2
+      b.y = b1y - b.y;
+      b.z = b1z - b.z;
+   }
+
+   /**
     * Multiplies the inverse of transformation X1 by transformation X2 and
     * places the result in this transformation.
     * 
@@ -563,6 +598,22 @@ java.io.Serializable, Clonable {
       Mtmp.mul (b); // b = inv(M1) (b2 - b1)
       M.mul (Mtmp, X2.M); // M = inv(M1) M2
       return nonSingular;
+   }
+
+   /**
+    * Multiplies the inverse of the rigid transformation T1 by the 
+    * transformation X2 and places the result in this transformation.
+    * 
+    * @param T1
+    * left-hand rigid transformation
+    * @param X2
+    * right-hand transformation
+    */
+   public void mulInverseLeft (RigidTransform3d T1, AffineTransform3dBase X2) {
+
+      b.sub (X2.b, T1.p);               // compute b2 - b1
+      T1.R.mulTranspose (b, b);         // b = R1^T (b2 - b1)
+      M.mulTransposeLeft (T1.R, X2.M);  // M = R1^T M2
    }
 
    /**
@@ -830,6 +881,8 @@ java.io.Serializable, Clonable {
    public boolean isIdentity() {
       return (M.isIdentity() && b.equals (Vector3d.ZERO));
    }
+
+   public abstract void setRandom();
 
    public AffineTransform3dBase clone() {
       throw new InternalErrorException (

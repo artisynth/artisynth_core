@@ -1,6 +1,15 @@
 package artisynth.core.materials;
 
 public class ConstantAxialMuscle extends AxialMuscleMaterial {
+
+   public ConstantAxialMuscle () {
+      super();
+   }
+   
+   public ConstantAxialMuscle (double fmax) {
+      super();
+      myMaxForce = fmax;
+   }
    
    public double computeF(double l, double ldot, double l0, double ex) {
       return forceScaling * ( myMaxForce * ( ex + myPassiveFraction ) + myDamping * ldot );

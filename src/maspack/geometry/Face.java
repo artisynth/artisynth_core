@@ -596,9 +596,9 @@ public class Face extends Feature implements Boundable {
     * with the first three vertices of this face, and s1 and s2 are
     * the x and y values of <code>coords</code>, then the
     * point is computed from
-    * <verbatim>
+    * <pre>
     * pnt = (1-s1-s2)*p0 + s1*p1 + s2*p2
-    * </verbatim>
+    * </pre>
     * This method is most often used for triangular faces, but that
     * does not have to be the case.
     * @param pnt returns the computed point

@@ -288,7 +288,7 @@ public class ArticulatedDemo extends RootModel {
             TCB.mulInverseLeft (body0.getPose(), TCW);
             joint0 = new SphericalJoint (link, TCA, body0, TCB);
          }
-         mechMod.addRigidBodyConnector (joint0);
+         mechMod.addBodyConnector (joint0);
       }
       if (body1 != null) {
          TCA.setIdentity();
@@ -303,7 +303,7 @@ public class ArticulatedDemo extends RootModel {
             TCB.mulInverseLeft (body1.getPose(), TCW);
             joint1 = new SphericalJoint (link, TCA, body1, TCB);
          }
-         mechMod.addRigidBodyConnector (joint1);
+         mechMod.addBodyConnector (joint1);
       }
       if (usePlanarContacts) { // set up a unilateral constraint at the tip
          TCW.setIdentity();
@@ -312,7 +312,7 @@ public class ArticulatedDemo extends RootModel {
          PlanarConnector contact = new PlanarConnector (link, pCA, TCW);
          contact.setUnilateral (true);
          contact.setPlaneSize (20);
-         mechMod.addRigidBodyConnector (contact);
+         mechMod.addBodyConnector (contact);
       }
 
       return link;

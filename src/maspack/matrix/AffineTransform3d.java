@@ -420,6 +420,11 @@ Clonable {
 
    // }
 
+   public void setRandom() {
+      A.setRandom();
+      p.setRandom();
+   }
+
    public AffineTransform3d clone() {
       return new AffineTransform3d(this.A, this.p);
    }

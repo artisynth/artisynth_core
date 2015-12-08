@@ -285,7 +285,7 @@ public class PropertyDialog extends JDialog implements ActionListener,
       }
       else if (actionCmd.equals ("Cancel")) {
          myReturnValue = OptionPanel.CANCEL_OPTION;
-         System.out.println ("host list=" + myHostList);
+         //System.out.println ("host list=" + myHostList);
          if (myHostList != null) {
             myHostList.restoreBackupValues();
             fireGlobalValueChangeListeners();

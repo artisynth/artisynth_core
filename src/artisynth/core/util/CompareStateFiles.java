@@ -168,7 +168,10 @@ public class CompareStateFiles {
 
          // trim any white space after the comment
          // e.g. '\r', which was interfering with output
-         comment = rtok1.lastCommentLine().trim();
+         comment = rtok1.lastCommentLine();
+         if (comment != null) {
+            comment.trim();
+         }
          
          cnt++;
 
@@ -248,18 +251,68 @@ public class CompareStateFiles {
       return true;
    }
 
-   public void compareFiles (
+   public double getMaxVelErr() {
+      return myMaxVelErr;
+   }
+
+   public double getMaxPosErr() {
+      return myMaxPosErr;
+   }
+   
+   public double getMaxVelErrTime() {
+      return myMaxVelErrTime;
+   }
+
+   public double getMaxPosErrTime() {
+      return myMaxPosErrTime;
+   }
+   
+   public boolean compareFiles (
+      String fileName1, String fileName2, int showLevel)
+      throws IOException {
+
+      ReaderTokenizer rtok1 = ArtisynthIO.newReaderTokenizer (fileName1);
+      ReaderTokenizer rtok2 = ArtisynthIO.newReaderTokenizer (fileName2);
+      rtok1.whitespaceChar('\r');
+      rtok2.whitespaceChar('\r');
+      
+      boolean status = compareFiles (rtok1, rtok2, showLevel);
+      rtok1.close();
+      rtok2.close();
+      return status;
+   }
+
+   public boolean compareFiles (
       ReaderTokenizer rtok1, ReaderTokenizer rtok2, int showLevel)
       throws IOException {
 
+      myMaxVelErr = 0;
+      myMaxVelErrTime = 0;
+      myMaxVelErrComment = null;
+      myMaxPosErr = 0;
+      myMaxPosErrTime = 0;
+      myMaxPosErrComment = null;
+      
       while (compareSections (rtok1, rtok2, showLevel))
          ;
-      System.out.println (
+      if (showLevel > -1) {
+         printMaxErrors ();
+      }
+      return (myMaxVelErr == 0 && myMaxPosErr == 0);
+   }
+   
+   public void printMaxErrors () {
+      printMaxErrors (new PrintWriter (System.out));
+   }
+   
+   public void printMaxErrors (PrintWriter pw) {
+      pw.println (
          "max vel error="+fmt.format(myMaxVelErr)+" at '"+
          myMaxVelErrComment+"', time "+myMaxVelErrTime);
-      System.out.println (
+      pw.println (
          "max pos error="+fmt.format(myMaxPosErr)+" at '"+
-         myMaxPosErrComment+"', time "+myMaxPosErrTime);
+         myMaxPosErrComment+"', time "+myMaxPosErrTime); 
+      pw.flush();
    }
 
    private static void printUsageAndExit () {
@@ -308,12 +361,7 @@ public class CompareStateFiles {
 
       try {
          CompareStateFiles compare = new CompareStateFiles();
-         ReaderTokenizer rtok1 = ArtisynthIO.newReaderTokenizer (fileName1);
-         ReaderTokenizer rtok2 = ArtisynthIO.newReaderTokenizer (fileName2);
-         rtok1.whitespaceChar('\r');
-         rtok2.whitespaceChar('\r');
-         
-         compare.compareFiles (rtok1, rtok2, showLevel);
+         compare.compareFiles (fileName1, fileName2, showLevel);
       }
       catch (Exception e) {
          e.printStackTrace();

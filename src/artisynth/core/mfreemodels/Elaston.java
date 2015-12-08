@@ -18,6 +18,7 @@ public class Elaston extends Point {
    MaterialBase myMaterial;
    
    public Elaston() {
+      super();
       init();
    }
    

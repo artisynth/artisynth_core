@@ -12,8 +12,7 @@ import java.util.Random;
  * A general 3 x 3 matrix with the elements stored as explicit fields.
  */
 public class Matrix2d extends Matrix2dBase {
-   Matrix2d Tmp = null;
-
+   
    /**
     * Global identity matrix. Should not be modified.
     */

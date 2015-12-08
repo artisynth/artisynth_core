@@ -1,4 +1,10 @@
-Feb 11, 2014
+Nov 27, 2015
+------------
+
+Note that when changing builds between 32 and 64 bit systems, the .obj
+files should be cleaned because otherwise they may be incompatible.
+
+Feb 11, 2015
 ------------
 
 MKL 11 1.3 (version 1, update 3) and higher versions contain Pardiso

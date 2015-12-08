@@ -223,7 +223,7 @@ public class BVBoxNodeTester implements BVNodeTester {
     *
     * <p> For details on this algorithm, see pg 338 of Game Physics by David
     * Eberly, or "OBBTree: A Hierarchichal Structure for Rapid Interference
-    * Detection", Gottschalk Lin & Manocha
+    * Detection", Gottschalk Lin &amp; Manocha
     */
    public static final boolean isDisjoint (
       Vector3d hw1, Vector3d hw2, RotationMatrix3d R1, RotationMatrix3d R2,
@@ -365,7 +365,7 @@ public class BVBoxNodeTester implements BVNodeTester {
     *
     * <p> For details on this algorithm, see pg 338 of Game Physics by David
     * Eberly, or "OBBTree: A Hierarchichal Structure for Rapid Interference
-    * Detection", Gottschalk Lin & Manocha
+    * Detection", Gottschalk Lin &amp; Manocha
     */
    public static final boolean isDisjoint (
       Vector3d hw1, Vector3d hw2, RotationMatrix3d R21, Vector3d p21) {

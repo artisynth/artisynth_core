@@ -1,6 +1,6 @@
 \title{ArtiSynth Installation Guide for \SYSTEM}
 \author{John Lloyd and Sebastian Kazenbroot-Guppy}
-\setpubdate{August 20, 2014}
+\setpubdate{October, 2015}
 \iflatexml
 \date{}
 \fi
@@ -384,15 +384,23 @@ is sufficient to do
 \end{verbatim}
 \else\fi
 
-\subsection{Testing the Demo Models}
 
-Once ArtiSynth starts up, you can try out the various demonstration
-models. From the menu bar, Select {\sf Models > Demos}.  This
-will display a submenu of demonstration models. Choosing one will
-cause that model to be loaded and displayed in the viewer.  Simulation
-of the model can then be started, paused, single-stepped, or reset
-using the play controls (Figure \ref{PlayControlsFig})
-located at the upper right of the ArtiSynth window frame.
+\subsection{Loading and Running Models}
+
+Once ArtiSynth starts up, you can use it to load and run
+models. General instructions on how to load and run models are given
+in the section ``Loading and Simulating Models'' of the
+\href{../uiguide/uiguide.html}{ArtiSynth User Interface Guide}. 
+
+By default, ArtiSynth comes with a number of demonstration models,
+which can be loaded and run as follows:
+
+From the menu bar, Select {\sf Models > Demos}.  This will display a
+submenu of demonstration models. Choosing one will cause that model to
+be loaded and displayed in the viewer.  Simulation of the model can
+then be started, paused, single-stepped, or reset using the play
+controls (Figure \ref{PlayControlsFig}) located at the upper right of
+the ArtiSynth window frame.
 
 \begin{figure}
 \begin{center}
@@ -410,8 +418,7 @@ single-step buttons.}%
 
 Comprehensive information on exploring and interacting with models is
 given in the
-\href{http://www.artisynth.org/doc/html/uiguide/uiguide.html}
-{ArtiSynth User Interface Guide}.
+\href{../uiguide/uiguide.html}{ArtiSynth User Interface Guide}.
 
 \section{Installing External Models and Packages}
 \label{AdditionalModelsAndPackages}
@@ -700,7 +707,7 @@ or use the {\tt unzip} utility from the command-line.  For the latter,
 open a terminal window, change to the ArtiSynth install directory,
 and enter the command
 \begin{verbatim}
-  unzip support/eclipse/eclipseSettings.zip
+  unzip eclipseSettings.zip
 \end{verbatim}
 \end{sideblock}
 \fi
@@ -824,7 +831,7 @@ or use the {\tt unzip} utility from the command-line. For the latter,
 open a terminal window, change to the ArtiSynth install directory,
 enter the command
 \begin{verbatim}
-  unzip support/eclipse/eclipseSettings.zip
+  unzip eclipseSettings.zip
 \end{verbatim}
 and respond with {\tt y} when asked if it is OK to replace {\tt .project}.
 \end{sideblock}

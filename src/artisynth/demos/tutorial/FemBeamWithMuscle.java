@@ -28,7 +28,7 @@ public class FemBeamWithMuscle extends FemBeam {
    protected FemMarker createMarker (
       FemModel3d fem, double x, double y, double z) {
       FemMarker mkr = new FemMarker (/*name=*/null, x, y, z);
-      setSphereRendering (mkr, Color.BLUE, 0.02);
+      RenderProps.setSphericalPoints (mkr, 0.02, Color.BLUE);
       fem.addMarker (mkr);
       return mkr;
    }
@@ -42,7 +42,7 @@ public class FemBeamWithMuscle extends FemBeam {
       Particle p1 = new Particle (/*mass=*/0, -length/2, 0, 2*width);
       mech.addParticle (p1);
       p1.setDynamic (false);
-      setSphereRendering (p1, Color.BLUE, 0.02);
+      RenderProps.setSphericalPoints (p1, 0.02, Color.BLUE);
       
       // Add a marker at the end of the model
       FemMarker mkr = createMarker (fem, length/2-0.1, 0, width/2);
@@ -51,13 +51,6 @@ public class FemBeamWithMuscle extends FemBeam {
       Muscle muscle = createMuscle();
       muscle.setPoints (p1, mkr);
       mech.addAxialSpring (muscle);
-   }
-   
-   // Sets points to render as spheres
-   protected void setSphereRendering (Point pnt, Color color, double r) {
-      RenderProps.setPointColor (pnt, color);
-      RenderProps.setPointStyle (pnt, RenderProps.PointStyle.SPHERE);
-      RenderProps.setPointRadius (pnt, r);
    }
 
 }

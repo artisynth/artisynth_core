@@ -306,7 +306,7 @@ public class MeshIntersectionContour extends ArrayList<MeshIntersectionPoint> {
       GL2Viewer viewer = (GL2Viewer)renderer;
       GL2 gl = viewer.getGL2();
       
-      gl.glLineWidth (44);
+      renderer.setLineWidth (44);
       gl.glDisable (GL2.GL_LINE_STIPPLE);
       if (isClosed) {
          renderer.setColor (0f, 0f, 1f);
@@ -330,10 +330,10 @@ public class MeshIntersectionContour extends ArrayList<MeshIntersectionPoint> {
       }
       gl.glEnd();
       // System.out.println("contour end"+" err="+gl.glGetError());
-      gl.glLineWidth (1);
+      renderer.setLineWidth (1);
 
 //       renderer.setColor (0f, 1f, 0f);
-//       gl.glPointSize (10);
+//       renderer.setPointSize (10);
 //       gl.glBegin (GL2.GL_POINTS);
 //       for (Vertex3d v : insideVertices0) {
 //          Point3d p3 = v.getWorldPoint();
@@ -351,7 +351,7 @@ public class MeshIntersectionContour extends ArrayList<MeshIntersectionPoint> {
 //          gl.glVertex3d (p.x, p.y, p.z);
 //       gl.glEnd();
 
-      gl.glPointSize (1);
+      renderer.setPointSize (1);
    }
 
    public double getArea() {

@@ -39,7 +39,7 @@ import artisynth.core.util.ScanToken;
 /**
  * Auxiliary class used to solve constrained rigid body problems.
  */
-public class SegmentedPlanarConnector extends RigidBodyConnector 
+public class SegmentedPlanarConnector extends BodyConnector 
    implements CopyableComponent {
    // protected Point3d myPCA;
 
@@ -63,7 +63,7 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
 
    public static PropertyList myProps =
       new PropertyList (
-         SegmentedPlanarConnector.class, RigidBodyConnector.class);
+         SegmentedPlanarConnector.class, BodyConnector.class);
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createPointFaceProps (null);
@@ -119,6 +119,7 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
    }
 
    public SegmentedPlanarConnector() {
+      myTransformDGeometryOnly = true;
       setDefaultValues();
       myRenderVtxs = new Point3d[4];
       for (int i = 0; i < myRenderVtxs.length; i++) {
@@ -555,7 +556,7 @@ public class SegmentedPlanarConnector extends RigidBodyConnector
       copy.setPlaneSize (myPlaneSize);
       copy.setUnilateral (isUnilateral());
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
+      //copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
       ArrayList<Point3d> segPnts = mySegPlaneCoupling.getSegmentPoints();
       double[] segs = new double[segPnts.size() * 2];
       for (int i = 0; i < segPnts.size(); i++) {

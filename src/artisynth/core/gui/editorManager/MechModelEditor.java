@@ -60,7 +60,7 @@ public class MechModelEditor extends EditorBase {
 
    /**
     * Returns true if the selection list contains a set of components
-    & for which collisions can be set.
+    &amp; for which collisions can be set.
     */
    public boolean containsCollidableSelection (
       LinkedList<ModelComponent> selection) {
@@ -143,7 +143,7 @@ public class MechModelEditor extends EditorBase {
       else if (containsDoubleSelection (selection, RigidBody.class) &&
                MechModel.lowestCommonModel (
                   selection.get (0), selection.get (1)) != null) {
-         actions.add (this, "Add RigidBodyConnector ...", EXCLUSIVE);
+         actions.add (this, "Add BodyConnector ...", EXCLUSIVE);
          actions.add (this, "Add FrameSpring");
       }
       else if (hasAttachedParticles) {
@@ -277,7 +277,7 @@ public class MechModelEditor extends EditorBase {
          }
       }
       else {
-         if (actionCommand == "Add RigidBodyConnector ...") {
+         if (actionCommand == "Add BodyConnector ...") {
             if (myEditManager.acquireEditLock()) {
                RigidBody bodyB = (RigidBody)selection.get (0);
                RigidBody bodyA = (RigidBody)selection.get (1);

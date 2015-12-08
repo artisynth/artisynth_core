@@ -1,15 +1,26 @@
-# C-Files
-# If linking with MKL, for help deciding what libraries to use, check out
+# Makefile for creating native solver libraries. At the moment, the
+# only supported solver is MKL Pardiso. Support for Umfpack has been
+# dropped because the solver is slow.
+#
+# As of November 2015, the first three version numbers of the
+# PardisoJNI library are set to reflect the numbers of the MKL
+# distribution on which it is based. So for example,
+# PardisoJNI.so.11.1.2.x is based on MKL 11.1.2.
+#
+# When linking with MKL, for help deciding what libraries to use, see
 # http://software.intel.com/en-us/articles/intel-mkl-link-line-advisor
 #
-# Pardiso seems to be compiled with 32 bit integers, so we use the
-# lp64 libraries instead of the ilp64 libraries.
+# To use this Makefile on a generic system, the environment variable
+# MKL_HOME should be set to the root folder for the current MKL
+# distribution, which is then used to locate the relevant lib and
+# include directories.  Where these are located exactly depend on the
+# system. If MKL_HOME is not set, it will be set to the current
+# default location(s) on the primary ArtiSynth development machines.
 #
+
 ROOT_DIR = ../../../..
 
 default: libs
-
-# C-Files compile
 
 SYSTEM = $(shell uname)
 MACHINE = $(shell uname -m) # not sure how portable this is ...
@@ -21,23 +32,25 @@ endif
 CC_COMP = g++
 C_COMP = gcc
 
-UMFPACK_DIR = $(ROOT_DIR)/src/maspack/umfpackfiles
 JAVAH = javah
+
+# Currently, we are stuck at MKL 11.1.2, because the way we use hyrid
+# solves breaks for MKL 11.1.3 and higher.
+
+# Pardiso version number based on MKL 11.1.2, with support for setting
+# the maximum number of threads. Make sure there is no whitespace at
+# the end.
+PARDISO_VERSION = 11.1.2.1
 
 ifeq ($(SYSTEM),Linux)
 	ifndef MKL_HOME
-	   MKL_HOME = /scratch/intel/mkl/10.2.4.032
+	   MKL_HOME = /scratch/intel/composer_xe_2013_sp1.2.144
+	   #MKL_HOME = /scratch/intel/composer_xe_2015.2.164
         endif
 	ifeq ($(ARCH), 64)
 	   NATIVE_DIR = Linux64
 	   PARDISO = pardisoX86_64
-	   # currently, hybrid solves works for MKL 11.1.2, but breaks for 11.1.3
-	   # and 11.2.2
-	   MKL_HOME = /scratch/intel/composer_xe_2013_sp1.2.144
-	   #MKL_HOME = /scratch/intel/composer_xe_2015.2.164/mkl
 	   MKL=$(MKL_HOME)/mkl/lib/intel64
-	   #MKL_HOME = /scratch/intel/mkl/10.2.4.032
-	   #MKL=$(MKL_HOME)/mkl/lib/em64t
 	   # At last check, intel MKL blas were about 20% faster
            #
 	   # link with iomp5 because libiomp5 is more compatible when
@@ -51,30 +64,34 @@ ifeq ($(SYSTEM),Linux)
              $(MKL)/libmkl_core.a -Wl,--end-group -ldl -liomp5 -lpthread -lm
 	   CC_FLAGS = -m64 -O2 -fno-strict-aliasing -fPIC -pthread -DLINUX 
 	else
+	   # 32 bit Linux is no longer supported, so this may not work
 	   NATIVE_DIR = Linux
 	   PARDISO = pardisoX86
-	   MKL=$(MKL_HOME)/lib/32
-	   # MKL=$(MKL_HOME)/lib/ia32 -- for MKL 11
+	   MKL=$(MKL_HOME)/mkl/lib/ia32
 	   LDS_PARDISO_MKL = -Wl,--start-group \
              $(MKL)/libmkl_intel.a $(MKL)/libmkl_gnu_thread.a \
              $(MKL)/libmkl_core.a -Wl,--end-group -fopenmp -lm
 	   CC_FLAGS = -O2 -fno-strict-aliasing -fPIC -pthread -DLINUX 
 	endif
 	CC_INCS = -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux \
-		-I$(UMFPACK_DIR)/include -I.
-
-        # need to specify libraries repeatedly to resolve circular dependenices
-	LDS_UMFPACK = -lm -L$(UMFPACK_DIR)/lib/Linux -lumfpack -lamd -lgoto
-
-	UMFPACK_TARGET = libSolversUmfpack.so
-	PARDISO_MKL_TARGET = libPardisoJNI.so.1.1
+		-I$(MKL_HOME)/mkl/include -I.
+	PARDISO_MKL_TARGET = libPardisoJNI.so.$(PARDISO_VERSION)
         # the use of rpath ensures that library dependencies can also be loaded
         # from lib/Linux or lib/Linux64; 
         # see https://github.com/bimargulies/jni-origin-testbed
 	LIB_FLAGS = -shared -Wl,-rpath='$$ORIGIN'
 else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
+        #
+        # NOTE: THIS SECTION IS OBSOLETE since 2014, as Windows dll for
+        # Pardiso are now built using nmake and the Intel compiler. See
+        # INTEL_COMPILATION and NMakefile and NMakefile32 for details.
+        # 
+        # This section uses mingw to compile Pardiso on Windows. It is
+        # included for historical reference only and would need to be
+        # updated to make it work at the present.
+        #
 	ifndef MKL_HOME
-	   MKL_HOME = C:/Program Files/Intel/ComposerXE-2011
+	   MKL_HOME = "C:\Program Files (x86)\Intel\Composer XE 2013 SP1"
         endif
 	ifeq ($(findstring 64,$(SYSTEM)),64)
 	   # 64 bit architecture
@@ -95,16 +112,8 @@ else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 	else
 	   NATIVE_DIR = Windows
 	   LIB_TARGET_DIR = $(ROOT_DIR)/lib/Windows
-	   #MKL=C:/Program Files/Intel/ComposerXE-2011/mkl/lib/ia32
 	   MKL=$(MKL_HOME)/mkl/lib/ia32
 	   MKX=$(MKL_HOME)/compiler/lib/ia32
-	   #LDS_PARDISO_MKL = "$(MKL)"/mkl_intel_c_dll.lib "$(MKL)"/mkl_intel_thread_dll.lib \
-	    "$(MKL)"/mkl_core_dll.lib -L$(LIB_TARGET_DIR) -liomp5md 
-	   #C_COMP = gcc-3
-	   #CC_COMP = g++-3
-	   #CC_FLAGS = -g -fno-strict-aliasing -W -Wall -Wno-unused \
-		-Wno-parentheses -mno-cygwin -D_JNI_IMPLEMENTATION_ -DCYGWI qN
-#                "$(MKL)"/mkl_blas95.lib
 	   LDS_PARDISO_MKL = -Wl,--start-group \
 		"$(MKL)"/mkl_intel_c.lib \
 		"$(MKL)"/mkl_intel_thread.lib \
@@ -118,50 +127,31 @@ else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 	ifndef JAVA_HOME
 	   JAVA_HOME = C:/Program Files/Java/jdk1.6.0_37
         endif
-	CC_INCS = -I"$(JAVA_HOME)/include" -I"$(JAVA_HOME)/include/win32" \
-		-I$(UMFPACK_DIR)/include -I.
-	LDS_UMFPACK = -lm -L$(UMFPACK_DIR)/lib/Windows -lumfpack -lamd -lgoto
-	UMFPACK_TARGET = SolversUmfpack.dll
-	PARDISO_MKL_TARGET = PardisoJNI.1.1.dll
+	CC_INCS = -I"$(JAVA_HOME)/include" -I"$(JAVA_HOME)/include/win32" -I.
+	PARDISO_MKL_TARGET = PardisoJNI.$(PARDISO_VERSION).dll
 	LIB_FLAGS = -shared -Wl,--add-stdcall-alias
 else ifeq ($(SYSTEM),Darwin)
+	ifndef MKL_HOME
+	   MKL_HOME = /opt/intel/composer_xe_2013_sp1
+        endif
 	NATIVE_DIR = MacOS64
         JAVA_INC=/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers
-	CC_INCS = -I$(JAVA_INC) -I$(UMFPACK_DIR)/include -I.
-	CC_FLAGS = -m64 -fno-strict-aliasing -fPIC -DDARWIN -fpermissive
-	#CC_FLAGS = -m64 -g -fno-strict-aliasing -fPIC -W -Wall -Wno-unused \
-	#	-Wno-parentheses -DDARWIN -fpermissive -faltivec
-	LDS_UMFPACK = -lm -L$(UMFPACK_DIR)/lib/Darwin -lumfpack -lamd \
-		-lcrypto -framework vecLib 
-	COMPOSER_LIB=/opt/intel/composer_xe_2013_sp1/lib
-	MKL=/opt/intel/mkl/lib
+	COMPOSER_LIB=$(MKL_HOME)/lib
+	MKL=$(MKL_HOME)/mkl/lib
 	LDS_PARDISO_MKL = -L$(MKL) -L$(COMPOSER_LIB) \
 		$(MKL)/libmkl_intel_lp64.a $(MKL)/libmkl_intel_thread.a \
 		$(MKL)/libmkl_core.a -liomp5 -lpthread     
-	UMFPACK_TARGET = libSolversUmfpack.dylib
-	PARDISO_MKL_TARGET = libPardisoJNI.1.1.dylib
-	LIB_FLAGS = -bundle -framework JavaVM
+	CC_INCS = -I$(JAVA_INC) -I$(MKL_HOME)/mkl/include -I.
+	CC_FLAGS = -m64 -fno-strict-aliasing -fPIC -DDARWIN -fpermissive
+	PARDISO_MKL_TARGET = libPardisoJNI.$(PARDISO_VERSION).dylib
+	LIB_FLAGS = -bundle -framework JavaVM 
 endif
 
 LIB_TARGET_DIR = $(ROOT_DIR)/lib/$(NATIVE_DIR)
+
 LIB_TARGETS = $(LIB_TARGET_DIR)/$(PARDISO_MKL_TARGET)
 
-JNI_H_FILES = maspack_solvers_UmfpackSolver.h maspack_solvers_PardisoSolver.h
-
-# umfpack JNI
-
-maspack_solvers_UmfpackSolver.h: ../UmfpackSolver.java
-	$(JAVAH) $(JAVAHFLAGS) maspack.solvers.UmfpackSolver
-
-UmfpackJNI.o: maspack_solvers_UmfpackSolver.h UmfpackJNI.c
-	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o UmfpackJNI.o UmfpackJNI.c
-
-$(LIB_TARGET_DIR)/$(UMFPACK_TARGET): UmfpackJNI.o
-	$(CC_COMP) $(LIB_FLAGS) $(CC_FLAGS) -static-libgcc -o $@ UmfpackJNI.o \
-		$(LDS_UMFPACK)
-
-.PHONY: umfpack
-umfpack:	$(LIB_TARGET_DIR)/$(UMFPACK_TARGET)
+JNI_H_FILES = maspack_solvers_PardisoSolver.h
 
 # pardiso JNI and test programs
 
@@ -205,15 +195,32 @@ pardisoTestExample: pardisoTestExample.c
 	$(C_COMP) $(CC_FLAGS) -o pardisoTestExample pardisoTestExample.c \
 	$(LDS_PARDISO_MKL)
 
-libs:	$(LIB_TARGET_DIR)/$(PARDISO_MKL_TARGET)
-
 depend:	$(JNI_H_FILES)
 
 clean::
-	rm -rf pardisoTest pardiso*Example
+	rm -rf pardisoTest pardiso*Example *.obj
+
+ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
+# on Cygwin, we don't build the libs; we use the Intel compiler and nmake
+# for that. Instead, we only use the install command to update the
+# 32 and 64 bit dll files on the server.
+libs:	
+	echo "dll files should be built using Intel compiler and nmake"
+
+PARDISO_DLL_64 = $(ROOT_DIR)/lib/Windows64/$(PARDISO_MKL_TARGET)
+PARDISO_DLL_32 = $(ROOT_DIR)/lib/Windows/$(PARDISO_MKL_TARGET)
+
+install:
+	rsync -Ctrlgo $(PARDISO_DLL_64) $(WEB_LIB_URL)/Windows64
+	rsync -Ctrlgo $(PARDISO_DLL_32) $(WEB_LIB_URL)/Windows
+	$(MAKE_HASHES_AND_FIX_PERMISSIONS)
+else
+
+libs:	$(LIB_TARGET_DIR)/$(PARDISO_MKL_TARGET)
 
 install: $(LIB_TARGETS)
-	rsync -Crlgo $(LIB_TARGETS) $(WEB_LIB_URL)/$(NATIVE_DIR)
+	rsync -Ctrlgo $(LIB_TARGETS) $(WEB_LIB_URL)/$(NATIVE_DIR)
 	$(MAKE_HASHES_AND_FIX_PERMISSIONS)
+endif
 
 -include $(ROOT_DIR)/Makefile.base

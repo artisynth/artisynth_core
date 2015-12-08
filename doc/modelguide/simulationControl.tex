@@ -435,7 +435,7 @@ should instead set its {\it target position} and/or {\it target
 velocity}, since this allows the solver to properly interpolate the
 position and velocity during the time step. The methods to set or
 query target positions and velocities for
-\javaclass[artisynth.core.modelbase]{Point}-based components are
+\javaclass[artisynth.core.mechmodels]{Point}-based components are
 %
 \begin{lstlisting}[]
   setTargetPosition (Point3d pos);
@@ -446,7 +446,7 @@ query target positions and velocities for
 \end{lstlisting}
 %
 while for
-\javaclass[artisynth.core.modelbase]{Frame}-based components they are
+\javaclass[artisynth.core.mechmodels]{Frame}-based components they are
 %
 \begin{lstlisting}[]
   setTargetPosition (Point3d pos);
@@ -771,7 +771,7 @@ the simulation has run for about six seconds.
 
 % SimpleMuscleWithProbes
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
 \iflatexml
  \includegraphics[]{images/timelineProbes}
@@ -783,7 +783,7 @@ the simulation has run for about six seconds.
 \label{probes:fig}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
 \iflatexml
  \includegraphics[]{images/timelineProbesExpanded}
@@ -933,4 +933,105 @@ setInterpolationOrder()}, as in, for example:
    probe.setInterpolationOrder (Order.Cubic);
 \end{lstlisting}
 %
+
+\subsection{Application-Defined Menu Items}
+\label{MenuItems:sec}
+
+Application models can define custom {\it menu items} that appear
+under the {\tt Application} menu in the main ArtiSynth menu bar.
+
+This can be done by implementing the interface
+\javaclass[artisynth.core.modelbase]{HasMenuItems} in either the {\tt
+RootModel} or any of its top-level components (e.g., models,
+controllers, probes, etc.). The interface contains a single
+method
+%
+\begin{lstlisting}[]
+   public boolean getMenuItems(List<Object> items);
+\end{lstlisting}
+%
+which, if the component has menu items to add, should append them
+to {\tt items} and return {\tt true}.
+
+The {\tt RootModel} and all models derived from
+\javaclass[artisynth.core.modelbase]{ModelBase} implement {\tt
+HasMenuItems} by default, but with {\tt getMenuItems()} returning {\tt
+false}. Models wishing to add menu items should override this default
+declaration. Other component types, such as controllers, need to
+explicitly implement {\tt HasMenuItems}.
+
+\begin{sideblock}
+Note: the {\sf Application} menu will only appear if {\tt getMenuItems()} returns
+{\tt true} for either the {\tt RootModel} or one or more of its
+top-level components.
+\end{sideblock}
+
+\javamethod*[artisynth.core.modelbase.HasMenuItems]{getMenuItems()}
+will be called each time the {\sf Application} menu is selected, so the
+menu itself is created on demand and can be varied to suite the
+current system state. In general, it should return items that are
+capable of being displayed inside a Swing {\tt JMenu}; other items
+will be ignored. The most typical item is a Swing {\tt JMenuItem}.  The
+convenience method
+\javamethodAlt{maspack.widgets.GuiUtils.createMenuItem()}%
+{createMenuItem(listener,text,toolTip)}
+can be used to quickly create menu items, as in the following
+code segment:
+%
+\begin{lstlisting}[]
+   public boolean getMenuItems(List<Object> items) {
+      items.add (GuiUtils.createMenuItem (this, "reset", ""));
+      items.add (GuiUtils.createMenuItem (this, "add sphere", ""));
+      items.add (GuiUtils.createMenuItem (this, "show flow", ""));
+      return true;
+   }
+\end{lstlisting}
+%
+This creates three menu items, each with {\tt this} specified as an
+{\tt ActionListener} and no tool-tip text, and appends them
+to {\tt items}. They will then appear under the {\sf Application}
+menu as shown in Figure \ref{applicationMenu:fig}.
+
+\begin{figure}[t]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/applicationMenu}
+\else
+ \includegraphics[width=2.5in]{images/applicationMenu}
+\fi
+\end{center}
+\caption{Application-defined menu items appearing under the ArtiSynth
+menu bar.}
+\label{applicationMenu:fig}
+\end{figure}
+
+To actually execute the menu commands, the items returned by {\tt
+getMenuItems()} need to be associated with an {\tt ActionListener}
+(defined in {\tt java.awt.event}), which supplies the method {\tt
+actionPerformed()} which is called when the menu item is
+selected. Typically the {\tt ActionListener} is the component
+implementing {\tt HasMenuItems}, as was assumed in the example
+declaration of {\tt getMenuItems()} shown above. {\tt RootModel} and
+other models derived from {\tt ModelBase} implement {\tt ActionListener} by
+default, with an empty declaration of {\tt actionPerformed()} that
+should be overridden as required.
+A declaration of {\tt actionPerformed()} capable of handling the menu
+example above might look like this:
+%
+\begin{lstlisting}[]
+   public void actionPerformed (ActionEvent event) {
+      String cmd = event.getActionCommand();
+      if (cmd.equals ("reset")) {
+         resetModel();
+      }
+      else if (cmd.equals ("add sphere")) {
+         addSphere();
+      }
+      else if (cmd.equals ("show flow")) {
+         showFlow();
+      }
+   }
+\end{lstlisting}
+%
+
 %

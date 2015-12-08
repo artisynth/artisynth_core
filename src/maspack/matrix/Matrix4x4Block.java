@@ -150,10 +150,12 @@ public class Matrix4x4Block extends Matrix4d implements MatrixBlock {
       double x0 = x[xIdx + 0];
       double x1 = x[xIdx + 1];
       double x2 = x[xIdx + 2];
+      double x3 = x[xIdx + 3];
 
-      y[yIdx + 0] += m00 * x0 + m01 * x1 + m02 * x2;
-      y[yIdx + 1] += m10 * x0 + m11 * x1 + m12 * x2;
-      y[yIdx + 2] += m20 * x0 + m21 * x1 + m22 * x2;
+      y[yIdx + 0] += m00 * x0 + m01 * x1 + m02 * x2 + m03 * x3;
+      y[yIdx + 1] += m10 * x0 + m11 * x1 + m12 * x2 + m13 * x3;
+      y[yIdx + 2] += m20 * x0 + m21 * x1 + m22 * x2 + m23 * x3;
+      y[yIdx + 3] += m30 * x0 + m31 * x1 + m32 * x2 + m33 * x3;
    }
 
    /**
@@ -163,32 +165,44 @@ public class Matrix4x4Block extends Matrix4d implements MatrixBlock {
       double x0 = x[xIdx + 0];
       double x1 = x[xIdx + 1];
       double x2 = x[xIdx + 2];
+      double x3 = x[xIdx + 3];
 
-      y[yIdx + 0] += m00 * x0 + m10 * x1 + m20 * x2;
-      y[yIdx + 1] += m01 * x0 + m11 * x1 + m21 * x2;
-      y[yIdx + 2] += m02 * x0 + m12 * x1 + m22 * x2;
+      y[yIdx + 0] += m00 * x0 + m10 * x1 + m20 * x2 + m30 * x3;
+      y[yIdx + 1] += m01 * x0 + m11 * x1 + m21 * x2 + m31 * x3;
+      y[yIdx + 2] += m02 * x0 + m12 * x1 + m22 * x2 + m32 * x3;
+      y[yIdx + 3] += m03 * x0 + m13 * x1 + m23 * x2 + m33 * x3;
    }
 
    /**
     * {@inheritDoc}
     */
    public void add (Matrix M) {
-      if (M instanceof Matrix3dBase) {
-         add ((Matrix3dBase)M);
+      if (M instanceof Matrix4dBase) {
+         add ((Matrix4dBase)M);
       }
       else {
-         if (M.rowSize() != 3 || M.colSize() != 3) {
+         if (M.rowSize() != 4 || M.colSize() != 4) {
             throw new ImproperSizeException ("matrix sizes do not conform");
          }
          m00 += M.get (0, 0);
          m01 += M.get (0, 1);
          m02 += M.get (0, 2);
+         m03 += M.get (0, 3);
+
          m10 += M.get (1, 0);
          m11 += M.get (1, 1);
          m12 += M.get (1, 2);
+         m13 += M.get (1, 3);
+
          m20 += M.get (2, 0);
          m21 += M.get (2, 1);
          m22 += M.get (2, 2);
+         m23 += M.get (2, 3);
+
+         m30 += M.get (3, 0);
+         m31 += M.get (3, 1);
+         m32 += M.get (3, 2);
+         m33 += M.get (3, 3);
       }
    }
 
@@ -196,22 +210,32 @@ public class Matrix4x4Block extends Matrix4d implements MatrixBlock {
     * {@inheritDoc}
     */
    public void scaledAdd (double s, Matrix M) {
-      if (M instanceof Matrix3dBase) {
-         scaledAdd (s, (Matrix3dBase)M);
+      if (M instanceof Matrix4dBase) {
+         scaledAdd (s, (Matrix4dBase)M);
       }
       else {
-         if (M.rowSize() != 3 || M.colSize() != 3) {
+         if (M.rowSize() != 4 || M.colSize() != 4) {
             throw new ImproperSizeException ("matrix sizes do not conform");
          }
          m00 += s * M.get (0, 0);
          m01 += s * M.get (0, 1);
          m02 += s * M.get (0, 2);
+         m03 += s * M.get (0, 3);
+
          m10 += s * M.get (1, 0);
          m11 += s * M.get (1, 1);
          m12 += s * M.get (1, 2);
+         m13 += s * M.get (1, 3);
+
          m20 += s * M.get (2, 0);
          m21 += s * M.get (2, 1);
          m22 += s * M.get (2, 2);
+         m23 += s * M.get (2, 3);
+
+         m30 += s * M.get (3, 0);
+         m31 += s * M.get (3, 1);
+         m32 += s * M.get (3, 2);
+         m33 += s * M.get (3, 3);
       }
    }
 
@@ -219,22 +243,32 @@ public class Matrix4x4Block extends Matrix4d implements MatrixBlock {
     * {@inheritDoc}
     */
    public void sub (Matrix M) {
-      if (M instanceof Matrix3dBase) {
-         sub ((Matrix3dBase)M);
+      if (M instanceof Matrix4dBase) {
+         sub ((Matrix4dBase)M);
       }
       else {
-         if (M.rowSize() != 3 || M.colSize() != 3) {
+         if (M.rowSize() != 4 || M.colSize() != 4) {
             throw new ImproperSizeException ("matrix sizes do not conform");
          }
          m00 -= M.get (0, 0);
          m01 -= M.get (0, 1);
          m02 -= M.get (0, 2);
+         m03 -= M.get (0, 3);
+
          m10 -= M.get (1, 0);
          m11 -= M.get (1, 1);
          m12 -= M.get (1, 2);
+         m13 -= M.get (1, 3);
+
          m20 -= M.get (2, 0);
          m21 -= M.get (2, 1);
          m22 -= M.get (2, 2);
+         m23 -= M.get (2, 3);
+
+         m30 -= M.get (3, 0);
+         m31 -= M.get (3, 1);
+         m32 -= M.get (3, 2);
+         m33 -= M.get (3, 3);
       }
    }
 
@@ -281,39 +315,56 @@ public class Matrix4x4Block extends Matrix4d implements MatrixBlock {
          vals[off] = m00;
          vals[off + 1] = m01;
          vals[off + 2] = m02;
-         offsets[0] = off + 3;
+         vals[off + 3] = m03;
+         offsets[0] = off + 4;
 
          off = offsets[1];
          vals[off] = m11;
          vals[off + 1] = m12;
-         offsets[1] = off + 2;
+         vals[off + 2] = m13;
+         offsets[1] = off + 3;
 
          off = offsets[2];
          vals[off] = m22;
-         offsets[2] = off + 1;
+         vals[off + 1] = m23;
+         offsets[2] = off + 2;
 
-         return 6;
+         off = offsets[3];
+         vals[off] = m33;
+         offsets[3] = off + 1;
+
+         return 10;
       }
       else {
          off = offsets[0];
          vals[off] = m00;
          vals[off + 1] = m01;
          vals[off + 2] = m02;
-         offsets[0] = off + 3;
+         vals[off + 3] = m03;
+         offsets[0] = off + 4;
 
          off = offsets[1];
          vals[off] = m10;
          vals[off + 1] = m11;
          vals[off + 2] = m12;
-         offsets[1] = off + 3;
+         vals[off + 3] = m13;
+         offsets[1] = off + 4;
 
          off = offsets[2];
          vals[off] = m20;
          vals[off + 1] = m21;
          vals[off + 2] = m22;
-         offsets[2] = off + 3;
+         vals[off + 3] = m23;
+         offsets[2] = off + 4;
 
-         return 9;
+         off = offsets[3];
+         vals[off] = m30;
+         vals[off + 1] = m31;
+         vals[off + 2] = m32;
+         vals[off + 3] = m33;
+         offsets[3] = off + 4;
+
+         return 16;
       }
    }
 
@@ -328,39 +379,56 @@ public class Matrix4x4Block extends Matrix4d implements MatrixBlock {
          vals[off] = m00;
          vals[off + 1] = m10;
          vals[off + 2] = m20;
-         offsets[0] = off + 3;
+         vals[off + 3] = m30;
+         offsets[0] = off + 4;
 
          off = offsets[1];
          vals[off] = m11;
          vals[off + 1] = m21;
-         offsets[1] = off + 2;
+         vals[off + 2] = m31;
+         offsets[1] = off + 3;
 
          off = offsets[2];
          vals[off] = m22;
-         offsets[2] = off + 1;
+         vals[off + 1] = m32;
+         offsets[2] = off + 2;
 
-         return 6;
+         off = offsets[3];
+         vals[off] = m33;
+         offsets[3] = off + 1;
+
+         return 10;
       }
       else {
          off = offsets[0];
          vals[off] = m00;
          vals[off + 1] = m10;
          vals[off + 2] = m20;
-         offsets[0] = off + 3;
+         vals[off + 3] = m30;
+         offsets[0] = off + 4;
 
          off = offsets[1];
          vals[off] = m01;
          vals[off + 1] = m11;
          vals[off + 2] = m21;
-         offsets[1] = off + 3;
+         vals[off + 3] = m31;
+         offsets[1] = off + 4;
 
          off = offsets[2];
          vals[off] = m02;
          vals[off + 1] = m12;
          vals[off + 2] = m22;
-         offsets[2] = off + 3;
+         vals[off + 3] = m32;
+         offsets[2] = off + 4;
 
-         return 9;
+         off = offsets[3];
+         vals[off] = m03;
+         vals[off + 1] = m13;
+         vals[off + 2] = m23;
+         vals[off + 3] = m33;
+         offsets[3] = off + 4;
+
+         return 16;
       }
    }
 

@@ -63,7 +63,9 @@ public abstract class ConstrainerBase
    }
 
    public abstract double updateConstraints (double t, int flags);
-
+   
+   public abstract void getConstrainedComponents (List<DynamicComponent> list);
+   
    public void advanceAuxState (double t0, double t1) {
    }
 

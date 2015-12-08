@@ -8,6 +8,7 @@ package artisynth.core.gui.probeEditor;
 
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -18,12 +19,6 @@ import javax.swing.BoxLayout;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
-import maspack.properties.NumericConverter;
-import maspack.properties.Property;
-import maspack.util.StringHolder;
-import maspack.widgets.ValueChangeEvent;
-import maspack.widgets.ValueCheckListener;
-import artisynth.core.driver.Main;
 import artisynth.core.gui.Displayable;
 import artisynth.core.gui.Timeline;
 import artisynth.core.gui.editorManager.AddComponentsCommand;
@@ -32,15 +27,32 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.probes.NumericInputProbe;
 import artisynth.core.probes.NumericProbeDriver;
 import artisynth.core.probes.NumericProbeVariable;
+import maspack.properties.NumericConverter;
+import maspack.properties.Property;
+import maspack.util.StringHolder;
+import maspack.widgets.ValueChangeEvent;
+import maspack.widgets.ValueCheckListener;
 
 public class InputNumericProbeEditor extends NumericProbeEditor {
    static final long serialVersionUID = 1L;
    private NumericInputProbe oldProbe;
 
-   private boolean attachedInputFileValid (String path) {
+   private boolean attachedInputFileValid (String path, StringHolder errMsg) {
       if (path != null && !path.equals ("")) {
-         if (!filePathExists (getFullPath (path))) {
+         String fullPath = getFullPath (path);
+         if (!filePathExists (fullPath)) {
+            if (errMsg != null) {
+               errMsg.value = "File does not exist or is not readable";
+            }
             return false;
+         } else {
+            File file = new File(fullPath);
+            if (file.isDirectory()) {
+               if (errMsg != null) {
+                  errMsg.value = "The provided file cannot be a directory";
+               }
+               return false;
+            }
          }
       }
       return true;
@@ -48,10 +60,7 @@ public class InputNumericProbeEditor extends NumericProbeEditor {
 
    private class InputFileChecker implements ValueCheckListener {
       public Object validateValue (ValueChangeEvent e, StringHolder errMsg) {
-         if (!attachedInputFileValid ((String)e.getValue())) {
-            if (errMsg != null) {
-               errMsg.value = "File does not exist or is not readable";
-            }
+         if (!attachedInputFileValid ((String)e.getValue(), errMsg)) {
             return Property.IllegalValue;
          }
          if (errMsg != null) {
@@ -226,7 +235,7 @@ public class InputNumericProbeEditor extends NumericProbeEditor {
       String attachedFilePath = attachedFileField.getStringValue();
       if (attachedFilePath != null) {
          if (attachedFilePath.equals ("") ||
-             !attachedInputFileValid (attachedFilePath)) {
+             !attachedInputFileValid (attachedFilePath, null)) {
             attachedFilePath = null;
          }
       }

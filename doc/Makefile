@@ -8,6 +8,8 @@ SUBDIRS = \
 	developer \
 	installation \
 	maspack \
+        matlabAndJython \
+	modelguide \
         artisynth \
 	uiguide \
 	updates
@@ -66,12 +68,17 @@ pdf:
 
 html:
 
+echo_subdirs:
+	@echo $(SUBDIRS)
+
 .PHONY: CLEAN
 CLEAN::	$(SUBDIRS)
 	$(RUN_MAKE_IN_SUBDIRS)
 
 .PHONY: HTML
 HTML::	$(SUBDIRS)
+        # Does not work. Need to call makeHTML instead. See script
+	# itself for details.
 	$(RUN_MAKE_IN_SUBDIRS)
 
 .PHONY: XHTML
@@ -93,17 +100,15 @@ CLEAN_ALL: CLEAN
 #	$(RUN_MAKE_IN_SUBDIRS)
 
 install_html: HTML
-	rsync -Ca --exclude=DONT_DELETE html/* $(WEB_DOC_URL)/html
+	rsync -va --exclude=DONT_DELETE html/* $(WEB_DOC_URL)/html
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html
 
 install_pdf: PDF
-	rsync -Ca --exclude=DONT_DELETE pdf/* $(WEB_DOC_URL)/pdf
+	rsync -va --exclude=DONT_DELETE pdf/* $(WEB_DOC_URL)/pdf
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/pdf
 
 install_javadocs:
-	scp -rp javadocs/* $(WEB_DOC_URL)/javadocs
-	# rsync was not copying all the files for some reason ...
-	#rsync -Ca --exclude=DONT_DELETE javadocs/* $(WEB_DOC_URL)/javadocs
+	rsync -va --exclude=DONT_DELETE javadocs/* $(WEB_DOC_URL)/javadocs
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/javadocs
 
 -include Makedefs

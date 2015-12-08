@@ -19,6 +19,8 @@ public abstract class PointAttachment extends DynamicAttachment
    implements CopyableComponent {
 
    protected Point myPoint;
+   protected DynamicComponent[] myMasters;
+   protected MatrixBlock[] myMasterBlocks;
 
    public Point getSlave() {
       return myPoint;
@@ -36,36 +38,106 @@ public abstract class PointAttachment extends DynamicAttachment
          return -1;
       }
    }
-   
-   
-//   /**
-//    * Distributes an external force applied at a particular point 
-//    * to all masters
-//    * @param pnt point at which to apply the force (to be used to compute a wrench)
-//    * @param s force scale factor
-//    * @param f force vector to apply
-//    */
-//   public abstract void addScaledExternalForce(Point3d pnt, double s, Vector3d f);
 
-   protected double getMassForPoint (Object mass) {
-      double m = 0;
-      if (mass == null) {
-         if (myPoint instanceof Particle) {
-            m = ((Particle)myPoint).getMass();
-         }
+   /**
+    * {@inheritDoc}
+    */
+   public DynamicComponent[] getMasters() {
+      if (myMasters == null) {
+         initializeMasters();
       }
-      else if (mass instanceof Number) {
-         m = ((Number)mass).doubleValue();
-      }
-      else {
-         throw new IllegalArgumentException (
-            "mass type "+mass.getClass()+" inconsitent with particle");
-      }
-      return m;
+      return myMasters;
    }
 
-    public void writeItems (
-       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+   public MatrixBlock[] getMasterBlocks() {
+      return myMasterBlocks;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int numMasters() {
+      if (myMasters == null) {
+         initializeMasters();
+      }
+      return myMasters.length;
+   }
+
+   public void invalidateMasters() {
+      myMasters = null;
+   }
+
+   protected void initializeMasters() {
+      ArrayList<DynamicComponent> masters = new ArrayList<DynamicComponent>();
+      collectMasters (masters);
+      myMasters = masters.toArray (new DynamicComponent[0]);
+      myMasterBlocks = new MatrixBlock[myMasters.length];
+      for (int i=0; i<myMasterBlocks.length; i++) {
+         myMasterBlocks[i] =
+            MatrixBlockBase.alloc (myMasters[i].getVelStateSize(), 3);
+      }
+      updateMasterBlocks();      
+   }
+
+   protected void collectMasters (List<DynamicComponent> masters) {
+      if (myPoint != null && myPoint.getPointFrame() != null) {
+         masters.add (myPoint.getPointFrame());
+      }
+   }
+
+   protected void printMasterBlocks (String fmtStr) {
+      for (int i=0; i<myMasterBlocks.length; i++) {
+         System.out.println ("M"+i+"\n");
+         System.out.println (myMasterBlocks[i].toString(fmtStr));
+      }
+   }
+
+   protected Vector3d computeMasterVelocity() {
+      double[] vel = new double[3];
+
+      for (int i=0; i<myMasterBlocks.length; i++) {
+         DynamicComponent master = myMasters[i];
+         double[] mvel = new double[master.getVelStateSize()];
+         master.getVelState (mvel, 0);
+         myMasterBlocks[i].mulTransposeAdd (vel, 0, mvel, 0);
+      }
+      return new Vector3d (vel[0], vel[1], vel[2]);
+   }
+
+   protected int updateMasterBlocks() {
+      if (myMasters == null) {
+         initializeMasters();
+      }      
+      if (myPoint != null) {
+         Frame frame = myPoint.getPointFrame();
+         if (frame != null) {
+            MatrixBlock blk = myMasterBlocks[0];
+            frame.computeLocalPointForceJacobian (
+               blk, myPoint.getLocalPosition(),frame.getPose().R);
+            blk.scale (-1);
+            return 1;
+         }
+      }
+      return 0;
+   }
+   
+   /**
+    * Indicates that this attachment is <i>flexible</i>. That means that
+    * underlying body to which the point is attached is deformable.
+    *
+    * @return <code>true</code> if this attachment is flexible.
+    */
+   //public abstract boolean isFlexible();
+
+   /**
+    * Returns the current position of the attached point, in world coordinates.
+    *
+    * @param pos used to return current point position
+    */
+   public abstract void getCurrentPos (Vector3d pos);
+   
+   public void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
       
       super.writeItems (pw, fmt, ancestor);
@@ -76,7 +148,7 @@ public abstract class PointAttachment extends DynamicAttachment
       }
    }
 
-  protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 
       rtok.nextToken();      
@@ -102,11 +174,13 @@ public abstract class PointAttachment extends DynamicAttachment
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       PointAttachment a = (PointAttachment)super.copy (flags, copyMap);
 
+      a.myMasters = null;
+      a.myMasterBlocks = null;
       // EDIT: for FrameMarker.copy() can eventually lead here with copyMap=null, Sanchez (Nov 30, 2011)
       if (copyMap != null) {
-         if (copyMap.get (myPoint) == null) {
-            System.out.println ("not here: " + myPoint);
-         }
+//         if (copyMap.get (myPoint) == null) {
+//            System.out.println ("not here: " + myPoint);
+//         }
       }
       
       if (myPoint != null) {
@@ -116,7 +190,12 @@ public abstract class PointAttachment extends DynamicAttachment
       return a;
    }
 
-   public abstract void computePosState (Vector3d pos);
+   public void applyForces() {
+      Frame pframe = myPoint.getPointFrame();
+      if (pframe != null) {
+         pframe.subPointForce (myPoint.getLocalPosition(), myPoint.myForce);
+      }
+   }
 
    /**
     * {@inheritDoc}
@@ -124,7 +203,7 @@ public abstract class PointAttachment extends DynamicAttachment
    public boolean isDuplicatable() {
       return false;
    }
-
+   
    /**
     * {@inheritDoc}
     */

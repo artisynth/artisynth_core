@@ -316,6 +316,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
                 !(parent instanceof MutableCompositeComponent<?>) ||
                 ComponentUtils.isAncestorSelected(c) || 
                 !(c instanceof CopyableComponent)) {
+               System.out.println ("failed here "+c);
                duplicateOK = false;
                break;
             }
@@ -726,43 +727,46 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
 
       if (delete.size() > selection.size()) {
          // first, see if we can actually delete:
+         System.out.println ("delete size=" + delete.size());
          if (!componentsAreDeletable (delete)) {
             JOptionPane.showMessageDialog (
                myParentGUIComponent,
                "Selection refers to additional components that can't be deleted", 
                "selection not deletable", JOptionPane.INFORMATION_MESSAGE);
          }
-
-         boolean needConfirmation = false;
-         for (ModelComponent c : delete) {
-            if (!c.isSelected()) {
-               // XXX Big Hack. Need a more general way to check
-               // if delete confirmation is needed
-               if (!(c instanceof artisynth.core.mechmodels.CollisionHandler)) {
-                  needConfirmation = true;
+         else {
+            boolean needConfirmation = false;
+            for (ModelComponent c : delete) {
+               if (!c.isSelected()) {
+                  // XXX Big Hack. Need a more general way to check
+                  // if delete confirmation is needed
+                  if (!(c instanceof artisynth.core.mechmodels.CollisionHandler)){
+                     needConfirmation = true;
+                  }
+                  mySelectionManager.addSelected (c);
                }
-               mySelectionManager.addSelected (c);
+            }
+            requestViewerUpdate();
+            if (needConfirmation) {
+               JOptionPane confirmDialog =
+                  new JOptionPane (
+                     "Dependent components will be deleted also. Proceed?",
+                     JOptionPane.QUESTION_MESSAGE, JOptionPane.YES_NO_OPTION);
+               JDialog dialog =
+                  confirmDialog.createDialog (
+                     myParentGUIComponent, "confirm deletion");
+               GuiUtils.locateHorizontally (
+                  dialog, myParentGUIComponent, GuiUtils.CENTER);
+               GuiUtils.locateVertically (
+                  dialog, myParentGUIComponent, GuiUtils.BELOW);
+               dialog.setVisible (true);
+               if ((confirmDialog.getValue() == null) ||
+                   (confirmDialog.getValue().equals (JOptionPane.NO_OPTION))) {
+                  return;
+               }
             }
          }
-         requestViewerUpdate();
-         if (needConfirmation) {
-            JOptionPane confirmDialog =
-               new JOptionPane (
-                  "Dependent components will be deleted also. Proceed?",
-                  JOptionPane.QUESTION_MESSAGE, JOptionPane.YES_NO_OPTION);
-            JDialog dialog =
-               confirmDialog.createDialog (
-                  myParentGUIComponent, "confirm deletion");
-            GuiUtils.locateHorizontally (
-               dialog, myParentGUIComponent, GuiUtils.CENTER);
-            GuiUtils.locateVertically (
-               dialog, myParentGUIComponent, GuiUtils.BELOW);
-            dialog.setVisible (true);
-            if ((confirmDialog.getValue() == null) ||
-                (confirmDialog.getValue().equals (JOptionPane.NO_OPTION))) {
-               return;
-            }
-         }
+         
       }
       // components are deselected before they are removed. This
       // will not affect dependentSelection because it is a (possibly

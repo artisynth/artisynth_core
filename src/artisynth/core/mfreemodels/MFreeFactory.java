@@ -41,7 +41,7 @@ import maspack.util.FunctionTimer;
 import maspack.util.IndexedBinaryHeap;
 import maspack.util.Point3dGridUtility;
 import artisynth.core.femmodels.FemElement3d;
-import artisynth.core.femmodels.FemMesh;
+import artisynth.core.femmodels.FemMeshComp;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.femmodels.FemNode;
 import artisynth.core.femmodels.FemNode3d;
@@ -283,6 +283,7 @@ public class MFreeFactory {
       PolygonalMesh surface =
          MeshFactory.createQuadBox(
             size[0], size[1], size[2], Point3d.ZERO, res[0]-1, res[1]-1, res[2]-1);
+      surface.triangulate();
 
       // offset ipnts from border
       dx = size[0] / ipntRes[0];
@@ -1112,7 +1113,7 @@ public class MFreeFactory {
       }
 
       // convert surface mesh
-      FemMesh surfaceFem = fem.getSurfaceFemMesh ();
+      FemMeshComp surfaceFem = fem.getSurfaceMeshComp ();
       PolygonalMesh mesh = (PolygonalMesh)surfaceFem.getMesh ();
       PolygonalMesh surfaceMFree = new PolygonalMesh();
       HashMap<Vertex3d,MFreeVertex3d> vtxMap = new HashMap<Vertex3d,MFreeVertex3d>();
@@ -1125,7 +1126,7 @@ public class MFreeFactory {
          
          if (pa instanceof PointFem3dAttachment) {
             PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
-            FemNode[] masters = pfa.getMasters();
+            FemNode[] masters = pfa.getNodes();
             
             ArrayList<MFreeNode3d> deps = new ArrayList<MFreeNode3d>(masters.length);
             VectorNd coords = new VectorNd(masters.length);

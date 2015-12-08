@@ -22,7 +22,7 @@ public class FullPlanarJointDemo extends LumbarFrameSpring {
       
       // constrain to mid-sagittal plane: medio-lateral direction is in world y-axis
       FullPlanarJoint planarJoint = new FullPlanarJoint (lumbar1, Vector3d.Y_UNIT);
-      mech.addRigidBodyConnector (planarJoint);
+      mech.addBodyConnector (planarJoint);
    }
 
 }

@@ -155,6 +155,16 @@ implements SelectionListener, MouseInputListener {
          myPoint = (Point)comp;
          myAttachment = null;
       }
+      else if (comp instanceof Frame) {
+         Frame frame = (Frame)comp;
+         Point3d pos = new Point3d(frame.getPose().p);
+         Point pnt = new Point(pos);
+         PointAttachment pa = 
+            ((PointAttachable)comp).createPointAttachment (pnt);
+         myComponent = comp;
+         myAttachment = pa;
+         myPoint = pnt;         
+      }
       if (myComponent != null) {
          myPointRenderRadius = getRenderRadius (myComponent);
       }

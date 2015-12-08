@@ -61,8 +61,6 @@ java.io.Serializable, Clonable {
     */
    public double m22;
 
-   private Matrix3d Tmp;
-
    /**
     * Returns the number of rows in this matrix (which is always 3).
     * 
@@ -936,9 +934,7 @@ java.io.Serializable, Clonable {
    protected boolean mulInverseRight (Matrix3dBase M1, Matrix3dBase M2) {
       boolean nonSingular = true;
       if (M1 == this || M1 == this) {
-         if (Tmp == null) {
-            Tmp = new Matrix3d();
-         }
+         Matrix3d Tmp = new Matrix3d();
          nonSingular = Tmp.invert (M2);
          mul (M1, Tmp);
       }
@@ -962,9 +958,7 @@ java.io.Serializable, Clonable {
    protected boolean mulInverseLeft (Matrix3dBase M1, Matrix3dBase M2) {
       boolean nonSingular = true;
       if (M1 == this || M1 == this) {
-         if (Tmp == null) {
-            Tmp = new Matrix3d();
-         }
+         Matrix3d Tmp = new Matrix3d();
          nonSingular = Tmp.invert (M1);
          mul (Tmp, M2);
       }
@@ -1175,9 +1169,7 @@ java.io.Serializable, Clonable {
     * @return false if this matrix is singular
     */
    public boolean mulInverse (Vector3d vr, Vector3d v1) {
-      if (Tmp == null) {
-         Tmp = new Matrix3d();
-      }
+      Matrix3d Tmp = new Matrix3d();
       boolean nonSingular = Tmp.invert (this);
       Tmp.mul (vr, v1);
       return nonSingular;
@@ -1206,9 +1198,7 @@ java.io.Serializable, Clonable {
     * @return false if this matrix is singular
     */
    public boolean mulInverseTranspose (Vector3d vr, Vector3d v1) {
-      if (Tmp == null) {
-         Tmp = new Matrix3d();
-      }
+      Matrix3d Tmp = new Matrix3d();
       boolean nonSingular = Tmp.invert (this);
       Tmp.mulTranspose (vr, v1);
       return nonSingular;
@@ -2180,6 +2170,15 @@ java.io.Serializable, Clonable {
     */
    public double trace() {
       return m00 + m11 + m22;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean isSymmetric (double tol) {
+      return ((Math.abs (m01-m10) <= tol) && 
+              (Math.abs (m02-m20) <= tol) &&
+              (Math.abs (m12-m21) <= tol));
    }
 
    public static void main (String[] args) {

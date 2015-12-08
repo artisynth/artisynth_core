@@ -29,7 +29,7 @@ import artisynth.core.modelbase.StructureChangeEvent;
 /**
  * Auxiliary class used to solve constrained rigid body problems.
  */
-public class PlanarConnector extends RigidBodyConnector 
+public class PlanarConnector extends BodyConnector 
    implements CopyableComponent {
    private double myPlaneSize;
    private static final double defaultPlaneSize = 1;
@@ -38,7 +38,7 @@ public class PlanarConnector extends RigidBodyConnector
    private float[] myRenderCoords = new float[3];
 
    public static PropertyList myProps =
-      new PropertyList (PlanarConnector.class, RigidBodyConnector.class);
+      new PropertyList (PlanarConnector.class, BodyConnector.class);
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createFaceProps (null);
@@ -66,6 +66,10 @@ public class PlanarConnector extends RigidBodyConnector
       return myProps;
    }
 
+   public Vector3d getNormal() {
+      return ((PlanarCoupling)myCoupling).getNormal();
+   }
+
    public void setDefaultValues() {
       super.setDefaultValues();
       myPlaneSize = defaultPlaneSize;
@@ -80,6 +84,19 @@ public class PlanarConnector extends RigidBodyConnector
       myPlaneSize = len;
    }
 
+   /**
+    * Gets the current plane normal, in world coordinates. Also
+    * return the plane offset.
+    * 
+    * @param nrm returns the plane normal
+    */
+   public double getPlaneNormal (Vector3d nrm) {
+      RigidTransform3d TDW = new RigidTransform3d();
+      getCurrentTDW (TDW);
+      nrm.transform (TDW, ((PlanarCoupling)myCoupling).getNormal());
+      return nrm.dot (TDW.p);
+   }
+   
    private void initializeCoupling() {
       myCoupling = new PlanarCoupling ();
       myCoupling.setBreakSpeed (1e-8);
@@ -89,7 +106,9 @@ public class PlanarConnector extends RigidBodyConnector
    public RigidBodyConstraint getConstraint() {
       return myCoupling.getConstraint (0); // only one constraint for a PlanarConnector
    }
+
    public PlanarConnector() {
+      myTransformDGeometryOnly = true;
       myRenderVtxs = new Point3d[4];
       for (int i = 0; i < myRenderVtxs.length; i++) {
          myRenderVtxs[i] = new Point3d();
@@ -193,7 +212,8 @@ public class PlanarConnector extends RigidBodyConnector
       
       RenderProps props = myRenderProps;
 
-      renderer.setMaterialAndShading (props, props.getFaceMaterial(), isSelected());
+      renderer.setMaterialAndShading (
+         props, props.getFaceMaterial(), isSelected());
       renderer.setFaceMode (props.getFaceStyle());
       gl.glBegin (GL2.GL_POLYGON);
       gl.glNormal3d (nrm.x, nrm.y, nrm.z);
@@ -208,11 +228,14 @@ public class PlanarConnector extends RigidBodyConnector
    }
 
    protected void computeRenderVtxs (RigidTransform3d TDW) {
+      RotationMatrix3d RPD = new RotationMatrix3d();
+      RPD.setZDirection (((PlanarCoupling)myCoupling).getNormal());
       myRenderVtxs[0].set (myPlaneSize / 2, myPlaneSize / 2, 0);
       myRenderVtxs[1].set (-myPlaneSize / 2, myPlaneSize / 2, 0);
       myRenderVtxs[2].set (-myPlaneSize / 2, -myPlaneSize / 2, 0);
       myRenderVtxs[3].set (myPlaneSize / 2, -myPlaneSize / 2, 0);
       for (int i = 0; i < myRenderVtxs.length; i++) {
+         myRenderVtxs[i].transform (RPD);
          myRenderVtxs[i].transform (TDW);
       }
    }
@@ -246,7 +269,7 @@ public class PlanarConnector extends RigidBodyConnector
       copy.setPlaneSize (myPlaneSize);
       copy.setUnilateral (isUnilateral());
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
+      //copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
       return copy;
    }
 

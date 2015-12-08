@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.fileutil;
 
 import java.io.File;
@@ -21,7 +28,7 @@ import org.apache.commons.vfs2.UserAuthenticator;
 /**
  * Downloads files from URIs satisfying the generic/zip URI syntax according to
  * specifications RFC 3986 and proposed jar/zip extension.
- * <https://www.iana.org/assignments/uri-schemes/prov/jar><br>
+ * &lt;https://www.iana.org/assignments/uri-schemes/prov/jar&gt;<br>
  * <br>
  * 
  * A typical use will look like this:
@@ -330,7 +337,7 @@ public class FileGrabber {
          String fn = base.getFragment() + extension;
          merged.setFragment(fn);
       } else {
-         String fn = base.getPath() + extension;
+         String fn = base.getPath(false) + extension;
          merged.setPath(fn);
       }
       
@@ -509,7 +516,17 @@ public class FileGrabber {
       // get final part of path
       int idx = fileName.lastIndexOf('/'); // this is the only separator in uri's
       if (idx >= 0) {
-         fileName = fileName.substring(idx+1);
+         if (idx == fileName.length()-1) {
+            int lidx = idx;
+            idx = fileName.lastIndexOf('/', lidx-1);
+            if (idx >= 0) {
+               fileName = fileName.substring(idx, lidx);
+            } else {
+               fileName = fileName.substring(0, lidx);
+            }
+         } else {
+            fileName = fileName.substring(idx+1);
+         }
       }
       
       return fileName;
@@ -563,14 +580,14 @@ public class FileGrabber {
 
       // ensure that source is a file, and not a path
       String srcFile = extractFileName(source);
-      if (srcFile.equals("") || srcFile.endsWith("/")) {
+      if (srcFile.equals("") ) { //|| srcFile.endsWith("/")) {
          throw new IllegalArgumentException("Source URI must refer to a file: <" + source + ">"); 
       }
       
       if (dest == null) {    
          // if source is relative, take that
          if (source.isRelative()) {
-            dest = new File(source.getPath());
+            dest = new File(source.getPath(false));
          } else {
             // otherwise, simply extract the file name from source
             dest = new File(srcFile);
@@ -578,7 +595,7 @@ public class FileGrabber {
       } else if (dest.isDirectory()) {
          
          if (source.isRelative()) {            
-            srcFile = source.getPath();
+            srcFile = source.getPath(false);
          }
          dest = new File(dest,srcFile);
          
@@ -685,7 +702,7 @@ public class FileGrabber {
       // default destination if none provided
       if (dest == null) {
          if (source.isRelative()) {
-            dest = new File(source.getPath());
+            dest = new File(source.getPath(false));
          } else {
             dest = new File(extractFileName(source));
          }
@@ -1178,7 +1195,7 @@ public class FileGrabber {
       // default local copy if none provided
       if (localCopy == null) {
          if (source.isRelative()) {
-            localCopy = new File(source.getPath());
+            localCopy = new File(source.getPath(false));
          } else {
             localCopy = new File(extractFileName(source));
          }

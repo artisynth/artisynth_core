@@ -266,14 +266,22 @@ ScalableUnits, ForceComponent, TransformableGeometry {
    }
 
    public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
+      TransformGeometryContext.transform (this, X, 0);
    }
 
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topComponent, int flags) {
-      myCenter.transform (X);
-      myNormal.transform (X);
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      
+      Plane plane = new Plane (myNormal, myCenter.dot(myNormal));
+      gtr.transform (plane, myCenter);
+      myNormal.set (plane.getNormal());
+      gtr.transformPnt (myCenter);
       // should also update size, based on uniform scaling
+   }
+   
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      // no dependencies
    }
 
    public void scaleDistance (double s) {

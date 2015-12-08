@@ -14,7 +14,7 @@ import maspack.matrix.Vector3d;
 import maspack.properties.Property;
 import maspack.render.RenderProps;
 import artisynth.core.femmodels.FemElement3d;
-import artisynth.core.femmodels.FemMesh;
+import artisynth.core.femmodels.FemMeshComp;
 import artisynth.core.femmodels.FemMuscleModel;
 import artisynth.core.femmodels.MuscleBundle;
 import artisynth.core.femmodels.TetGenReader;
@@ -65,7 +65,7 @@ public class FemMuscleHeart extends RootModel {
       TetGenReader.read(heart, 
          ArtisynthPath.getSrcRelativePath(this,"data/HumanHeartHull.node"),
          ArtisynthPath.getSrcRelativePath(this, "data/HumanHeartHull.ele"));
-      FemMesh embeddedHeart = heart.addMesh(heartMesh); // add real-looking mesh
+      FemMeshComp embeddedHeart = heart.addMesh(heartMesh); // add real-looking mesh
       embeddedHeart.setName("embedded");
       
       // Allow inverted elements (poor quality mesh)

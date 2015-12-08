@@ -8,18 +8,15 @@ package artisynth.core.mechmodels;
 
 import java.util.Map;
 
-import maspack.matrix.Point3d;
+import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.ModelComponent;
 import maspack.matrix.RigidTransform3d;
-import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
-import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.spatialmotion.SolidCoupling;
-import artisynth.core.modelbase.CopyableComponent;
-import artisynth.core.modelbase.ModelComponent;
 
 /**
  * Auxiliary class used to solve constrained rigid body problems.
@@ -70,6 +67,12 @@ public class SolidJoint extends JointBase implements CopyableComponent {
       
    }
    
+   public SolidJoint (ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TFW) {
+      this();
+      setBodies(bodyA, bodyB, TFW);
+      
+   }
+   
    public SolidJoint(RigidBody bodyA, RigidBody bodyB) {
       this();
       RigidTransform3d TCA = new RigidTransform3d();  // identity
@@ -87,7 +90,7 @@ public class SolidJoint extends JointBase implements CopyableComponent {
       // copy.setNumConstraints (5);
       copy.setAxisLength (myAxisLength);
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
+      //copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
       return copy;
    }
 

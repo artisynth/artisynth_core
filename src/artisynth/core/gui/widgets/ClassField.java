@@ -109,7 +109,8 @@ public class ClassField extends LabeledTextField {
    }
 
    protected Object validateValue (Object value, StringHolder errMsg) {
-      return validateBasic (value, Class.class, errMsg);
+      Object obj = validateBasic (value, Class.class, errMsg);
+      return obj;
    }
 
    protected Object getInternalValue() {

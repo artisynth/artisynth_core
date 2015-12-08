@@ -37,7 +37,7 @@ public class CPD {
     * Uses the rigid CPD algorithm to align a set of points
     * @param X reference input points
     * @param Y points to register
-    * @param w weight, accounting to noise (w=0 --> no noise)
+    * @param w weight, accounting to noise (w=0 --&gt; no noise)
     * @param tol will iterative until objective function changes by less than this
     * @param maxIters maximum number of iterations
     * @param allowScaling whether or not to allow scaling
@@ -583,7 +583,7 @@ public class CPD {
     * Uses the rigid CPD algorithm to align a set of points
     * @param X reference input points
     * @param Y points to register
-    * @param w weight, accounting to noise (w=0 --> no noise)
+    * @param w weight, accounting to noise (w=0 --&gt; no noise)
     * @param tol will iterative until objective function changes by less than this
     * @param maxIters maximum number of iterations
     * @param allowScaling whether or not to allow scaling
@@ -599,7 +599,7 @@ public class CPD {
     * Uses the rigid CPD algorithm to align two meshes
     * @param meshRef reference mesh
     * @param meshReg mesh to register
-    * @param w weight, accounting to noise (w=0 --> no noise)
+    * @param w weight, accounting to noise (w=0 --&gt; no noise)
     * @param tol will iterative until objective function changes by less than this
     * @param maxIters maximum number of iterations
     * @param allowScaling whether or not to allow scaling
@@ -634,7 +634,7 @@ public class CPD {
     * Uses the affine CPD algorithm to align a set of points
     * @param X reference input points
     * @param Y points to register
-    * @param w weight, accounting to noise (w=0 --> no noise)
+    * @param w weight, accounting to noise (w=0 --&gt; no noise)
     * @param tol will iterative until objective function changes by less than this
     * @param maxIters maximum number of iterations
     * @param TY transformed points
@@ -756,7 +756,7 @@ public class CPD {
     * Uses the affine CPD algorithm to align a set of points
     * @param X reference input points
     * @param Y points to register
-    * @param w weight, accounting to noise (w=0 --> no noise)
+    * @param w weight, accounting to noise (w=0 --&gt; no noise)
     * @param tol will iterative until objective function changes by less than this
     * @param maxIters maximum number of iterations
     * @param TY transformed points
@@ -771,7 +771,7 @@ public class CPD {
     * Uses the affine CPD algorithm to align two meshes
     * @param meshRef reference mesh
     * @param meshReg mesh to register
-    * @param w weight, accounting to noise (w=0 --> no noise)
+    * @param w weight, accounting to noise (w=0 --&gt; no noise)
     * @param tol will iterative until objective function changes by less than this
     * @param maxIters maximum number of iterations
     * @return the scaled rigid transform for registration
@@ -803,9 +803,9 @@ public class CPD {
     * Uses the coherent CPD algorithm to align a set of points
     * @param X reference input points
     * @param Y points to register
-    * @param lambda weight factor for regularization term (> 0)
-    * @param beta2 coherence factor, beta^2 (> 0)
-    * @param w weight, accounting to noise (w=0 --> no noise)
+    * @param lambda weight factor for regularization term (&gt; 0)
+    * @param beta2 coherence factor, beta^2 (&gt; 0)
+    * @param w weight, accounting to noise (w=0 --&gt; no noise)
     * @param tol will iterative until objective function changes by less than this
     * @param maxIters maximum number of iterations
     * @param TY transformed points
@@ -943,7 +943,7 @@ public class CPD {
    
    /**
     * Compute the Gaussian kernel matrix for the coherent CPD algorithm
-    * @param beta2 beta^2 factor, controlling amount of coherence (> 0)
+    * @param beta2 beta^2 factor, controlling amount of coherence (&gt; 0)
     * @param G Kernel matrix to be filled
     */
    private static void computeG(double beta2, Point3d[] Y, MatrixNd G) {
@@ -961,9 +961,9 @@ public class CPD {
     * Uses the coherent CPD algorithm to align a set of points
     * @param X reference input points
     * @param Y points to register
-    * @param lambda weight factor for regularization term (> 0)
-    * @param beta2 coherence factor, beta^2 (> 0)
-    * @param w weight, accounting to noise (w=0 --> no noise)
+    * @param lambda weight factor for regularization term (&gt; 0)
+    * @param beta2 coherence factor, beta^2 (&gt; 0)
+    * @param w weight, accounting to noise (w=0 --&gt; no noise)
     * @param tol will iterative until objective function changes by less than this
     * @param maxIters maximum number of iterations
     * @return TY transformed points
@@ -980,9 +980,9 @@ public class CPD {
     * Uses the coherent CPD algorithm to align a set of points
     * @param X reference input points
     * @param Y points to register
-    * @param lambda weight factor for regularization term (> 0)
-    * @param beta2 coherence factor, beta^2 (> 0)
-    * @param w weight, accounting to noise (w=0 --> no noise)
+    * @param lambda weight factor for regularization term (&gt; 0)
+    * @param beta2 coherence factor, beta^2 (&gt; 0)
+    * @param w weight, accounting to noise (w=0 --&gt; no noise)
     * @param tol will iterative until objective function changes by less than this
     * @param maxIters maximum number of iterations
     * @param TY transformed points
@@ -999,9 +999,9 @@ public class CPD {
     * Uses the coherent CPD algorithm to align two meshes
     * @param meshRef reference mesh
     * @param meshReg mesh to register
-    * @param lambda weight factor for regularization term (> 0)
-    * @param beta2 coherence factor, beta^2 (> 0)
-    * @param w weight, accounting to noise (w=0 --> no noise)
+    * @param lambda weight factor for regularization term (&gt; 0)
+    * @param beta2 coherence factor, beta^2 (&gt; 0)
+    * @param w weight, accounting to noise (w=0 --&gt; no noise)
     * @param tol will iterative until objective function changes by less than this
     * @param maxIters maximum number of iterations
     * @return out transformed mesh
@@ -1017,9 +1017,9 @@ public class CPD {
     * Uses the coherent CPD algorithm to align two meshes
     * @param meshRef reference mesh
     * @param meshReg mesh to register
-    * @param lambda weight factor for regularization term (> 0)
-    * @param beta2 coherence factor, beta^2 (> 0)
-    * @param w weight, accounting to noise (w=0 --> no noise)
+    * @param lambda weight factor for regularization term (&gt; 0)
+    * @param beta2 coherence factor, beta^2 (&gt; 0)
+    * @param w weight, accounting to noise (w=0 --&gt; no noise)
     * @param tol will iterative until objective function changes by less than this
     * @param maxIters maximum number of iterations
     * @param out transformed mesh

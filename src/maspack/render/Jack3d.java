@@ -53,7 +53,6 @@ public class Jack3d extends Dragger3dBase {
       if (!(renderer instanceof GLViewer)) {
          return;
       }
-
       GLViewer viewer = (GLViewer)renderer;
 
       viewer.pushModelMatrix();
@@ -157,10 +156,7 @@ public class Jack3d extends Dragger3dBase {
          jackr.addLine(v0, v1);
          v0 = v1;
       }
-
-
       return jackr;
-
    }
 
    //   public void handleSelection (LinkedList list, int[] namestack, int idx) {

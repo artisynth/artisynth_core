@@ -63,7 +63,7 @@ classdef ArtisynthHandle
       end         
 
       function [playing] = isPlaying (obj)
-         playing = obj.getMain().isPlaying();
+         playing = obj.getMain().isSimulating();
       end         
 
       function [t] = getTime (obj)

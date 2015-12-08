@@ -270,13 +270,16 @@ public class RigidBodySolver {
       myFlim.setSize (mySizeD);
    }
 
-   public void updateStructure (SparseBlockMatrix M, SparseBlockMatrix GT) {
+   public void updateStructure (
+      SparseBlockMatrix M, SparseBlockMatrix GT, int GTversion) {
       if (mySolver == null) {
          mySolver = new KKTSolver();
       }
-      if (myStructureVersion != mySys.getStructureVersion()) {
+      if (myStructureVersion != mySys.getStructureVersion() ||
+         myBilateralVersion != GTversion) {
          doUpdateStructure(M, GT);
          myStructureVersion = mySys.getStructureVersion();
+         myBilateralVersion = GTversion;
       }
    }
 
@@ -398,10 +401,10 @@ public class RigidBodySolver {
          FrictionInfo info = finfo[myDTMap[bk]];
          double phiMax;
          if ((info.flags & FrictionInfo.BILATERAL) != 0) {
-            phiMax = info.mu*lam.get(info.contactIdx);
+            phiMax = info.getMaxFriction (lam);
          }
          else {
-            phiMax = info.mu*the.get(info.contactIdx);
+            phiMax = info.getMaxFriction (the);
          }         
          //System.out.println ("fm"+bk+" "+phiMax);
          for (int i=0; i<myDT.getBlockColSize(bk); i++) {

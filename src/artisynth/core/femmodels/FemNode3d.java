@@ -6,12 +6,14 @@
  */
 package artisynth.core.femmodels;
 
+import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.PointTarget;
 import artisynth.core.modelbase.*;
 import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.util.*;
 import maspack.matrix.*;
+import maspack.geometry.GeometryTransformer;
 import maspack.properties.PropertyList;
 import maspack.util.*;
 
@@ -39,10 +41,9 @@ public class FemNode3d extends FemNode {
    protected double myPressure;
 
    public static PropertyList myProps =
-      new PropertyList (FemNode3d.class, Particle.class);
+      new PropertyList (FemNode3d.class, FemNode.class);
 
    static {
-      myProps.get ("mass").setAutoWrite (false);
       myProps.add ("restPosition",
          "rest position for the node", Point3d.ZERO, "%.8g");
       myProps.add (
@@ -134,7 +135,7 @@ public class FemNode3d extends FemNode {
 
    public Vector3d getDisplacement () {
       Vector3d del = new Vector3d();
-      del.sub (getPosition(), myRest);
+      del.sub (getLocalPosition(), getRestPosition());
       return del;
    }         
 
@@ -144,7 +145,7 @@ public class FemNode3d extends FemNode {
       }
       else {
          Vector3d del = new Vector3d();
-         del.sub (getTargetPosition(), myRest);
+         del.sub (getTargetPosition(), getRestPosition());
          return del;
       }
    }
@@ -154,7 +155,7 @@ public class FemNode3d extends FemNode {
          myTarget = new PointTarget (myTargetActivity);
       }
       Point3d pos = new Point3d();
-      pos.add (del, myRest);
+      pos.add (del, getRestPosition());
       myTarget.setTargetPos (pos);
    }
 
@@ -354,8 +355,14 @@ public class FemNode3d extends FemNode {
          myNodeNeighbors.remove (nbr);
       }
    }
-
-  @Override
+   
+   protected void invalidateAdjacentNodeMasses() {
+      for (FemNodeNeighbor nbr : myNodeNeighbors) {
+         nbr.myNode.invalidateMassIfNecessary();
+      }
+   }
+   
+   @Override
    public boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 
@@ -378,12 +385,21 @@ public class FemNode3d extends FemNode {
    }
 
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      super.transformGeometry (X, topObject, flags);
-      // rest position should be transformed only if the entire FemModel is
-      // being transformed.
-      // myRest.transform (X);
-   }
+      GeometryTransformer gt, TransformGeometryContext context, int flags) {
+      super.transformGeometry (gt, context, flags);
+      // transform the rest position if we are not simulating. The
+      if ((flags & TransformableGeometry.TG_SIMULATING) == 0) {
+         gt.transformPnt (myRest);
+         // invalidate rest data for adjacent elements
+         for (int i=0; i<myElementDeps.size(); i++) {
+            myElementDeps.get(i).invalidateRestData();
+         }
+         // invalidate masses of the adjacent nodes, so that they
+         // can be recomputed from the new elements volumes
+         invalidateAdjacentNodeMasses();
+      }
+      context.addParentToNotify(getParent());
+   }   
 
    public void scaleDistance (double s) {
       super.scaleDistance (s);
@@ -406,6 +422,15 @@ public class FemNode3d extends FemNode {
    public int numAdjacentElements() {
       return myElementDeps.size();
    }
+   
+   public double computeMassFromDensity() {
+      double mass = 0;
+      for (int i=0; i<myElementDeps.size(); i++) {
+         FemElement3d e = myElementDeps.get(i);
+         mass += e.getRestVolume()*e.getDensity()/e.numNodes();
+      }
+      return mass;
+   }
 
    @Override
    public void connectToHierarchy () {
@@ -413,6 +438,13 @@ public class FemNode3d extends FemNode {
       // paranoid; do this in both connect and disconnect
       myNodeNeighbors.clear();
       clearIndirectNeighbors();
+      ModelComponent gp = getGrandParent();
+      if (gp instanceof FemModel3d) {
+         FemModel3d fem = (FemModel3d)gp;
+         if (fem.isFrameRelative()) {
+            setFrame (fem.getFrame());
+         }
+      }
    }
 
    @Override
@@ -420,14 +452,43 @@ public class FemNode3d extends FemNode {
       super.disconnectFromHierarchy();
       myNodeNeighbors.clear();
       clearIndirectNeighbors();
+      setFrame (null);
+   }
+
+   public void setFrame (Frame frame) {
+      Frame oldFrame = myPointFrame;
+      super.setPointFrame (frame);
+      if (oldFrame != frame) {
+         // need to reset rest position 
+         if (oldFrame != null) {
+            myRest.transform (oldFrame.getPose());
+         }
+         if (frame != null) {
+            myRest.inverseTransform (frame.getPose());
+         }
+      }
+      // no need to invalidate stress, etc. since setFrame() will only be
+      // called by FemModel, which will take care of that
    }
 
    public void resetRestPosition() {
-      myRest.set (getPosition());
+      myRest.set (getLocalPosition());
+      invalidateAdjacentNodeMasses();
       notifyParentOfChange (new ComponentChangeEvent (Code.STRUCTURE_CHANGED));
    }
 
    public Point3d getRestPosition() {
+      if (myPointFrame != null) {
+         Point3d rest = new Point3d(myRest);
+         rest.transform (myPointFrame.getPose());
+         return rest;
+      }
+      else {
+         return myRest;
+      }
+   }
+
+   public Point3d getLocalRestPosition() {
       return myRest;
    }
    
@@ -443,7 +504,10 @@ public class FemNode3d extends FemNode {
 
    public void setRestPosition (Point3d pos) {
       myRest.set (pos);
-
+      if (myPointFrame != null) {
+         myRest.inverseTransform (myPointFrame.getPose());
+      }
+      invalidateAdjacentNodeMasses();
       // invalidate rest data for attached elements
       FemModel3d fem = findFem();
       if (fem != null) {
@@ -453,7 +517,6 @@ public class FemNode3d extends FemNode {
       for (FemElement3d elem : myElementDeps) {
          elem.invalidateRestData();
       }
-      
    }
 
    public FemNode3d copy (

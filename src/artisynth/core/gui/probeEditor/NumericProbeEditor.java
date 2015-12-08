@@ -489,7 +489,7 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
 
    public void actionPerformed (ActionEvent e) {
       String cmd = e.getActionCommand();
-      System.out.println ("Main window received event: " + cmd);
+      System.out.println ("Numeric Probe Editor received event: " + cmd);
 
       if (cmd.equals ("Cancel")) {
          dispose();
@@ -884,6 +884,10 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
     * @return full path
     */
    protected String getFullPath (String relativePath) {
+      File f = new File(relativePath);
+      if (f.isAbsolute()) {
+         return f.getAbsolutePath();
+      }
       return ArtisynthPath.getWorkingDirPath() + File.separator + relativePath;
    }
 

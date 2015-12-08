@@ -38,25 +38,32 @@ ValueChangeListener {
    static final long serialVersionUID = 1L;
    private NumericOutputProbe oldProbe;
 
-   private boolean attachedOutputFileValid (String path) {
+   private boolean attachedOutputFileValid (String path, StringHolder errMsg) {
       if (path != null && !path.equals ("")) {
-         if (!filePathExists (getFullPath (path))) {
-            File file = new File (getFullPath (path));
-            File dir = file.getParentFile();
-            if (dir == null || !dir.isDirectory()) {
+         String fullPath = getFullPath (path);
+         if (!filePathExists (fullPath)) {
+            File file = new File (fullPath);
+            if (file.isDirectory()) {
+               if (errMsg != null) {
+                  errMsg.value = "Cannot save to a directory";
+               }
                return false;
             }
-         }
+            File dir = file.getParentFile();
+            if (dir == null || !dir.isDirectory()) {
+               if (errMsg != null) {
+                  errMsg.value = "File does not exist";
+               }
+               return false;
+            }
+         } 
       }
       return true;
    }
 
    private class OutputFileChecker implements ValueCheckListener {
       public Object validateValue (ValueChangeEvent e, StringHolder errMsg) {
-         if (!attachedOutputFileValid ((String)e.getValue())) {
-            if (errMsg != null) {
-               errMsg.value = "File directory does not exist";
-            }
+         if (!attachedOutputFileValid ((String)e.getValue(), errMsg)) {
             return Property.IllegalValue;
          }
          if (errMsg != null) {
@@ -73,7 +80,10 @@ ValueChangeListener {
       addBlankOutputProperty();
       addPropertyButton.setEnabled (false);
       refreshAddBtn();
+      
       attachedFileField.addValueChangeListener (this);
+      attachedFileField.addValueCheckListener (new OutputFileChecker());
+      
       originalFilePath = null;
       resizeFrame();
    }
@@ -249,12 +259,21 @@ ValueChangeListener {
          if (newPath == originalFilePath) {
             return;
          }
+         File newFile = new File(newPath);
          originalFilePath = newPath;
-         String fullPath =
-            ArtisynthPath.getWorkingDirPath() + File.separator + newPath;
+         
+         String fullPath = newPath;
+         if (!newFile.isAbsolute()) {
+            fullPath =
+               ArtisynthPath.getWorkingDirPath() + File.separator + newPath;   
+         }
+         
          // System.out.println("filepath changed to "+ fullPath);
          File tmpFile = new File (fullPath);
          if (tmpFile.exists()) {
+            if (tmpFile.isDirectory()) {
+               
+            }
             // System.out.println("file exists");
          }
          else {
@@ -274,7 +293,7 @@ ValueChangeListener {
                // JOptionPane pane = new JOptionPane("Create directory for
                // file?", JOptionPane.OK_CANCEL_OPTION);
                if (JOptionPane.showConfirmDialog (
-                  this, "Create Directory for file?", "Non-existant directory",
+                  this, "Create Directory for file?", "Non-existent directory",
                   JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
                   System.out.println ("making directory(s)...");
                   tmpFile.getParentFile().mkdirs();

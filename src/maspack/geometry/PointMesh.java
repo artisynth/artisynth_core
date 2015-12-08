@@ -396,7 +396,6 @@ public class PointMesh extends MeshBase {
       }
       
       myMeshRenderer.render (renderer, this, props, flags);
-      
    }
 
    /** 

@@ -22,6 +22,8 @@ import maspack.util.*;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import artisynth.core.mechmodels.CollisionBehavior.Method;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.util.TimeBase;
 
 public class CollisionHandler extends ConstrainerBase 
    implements HasRenderProps, GLRenderable {
@@ -172,7 +174,7 @@ public class CollisionHandler extends ConstrainerBase
    }
 
    protected boolean isRigid (CollidableBody col) {
-      return (col instanceof RigidBody || col instanceof RigidMesh);
+      return (col instanceof RigidBody || col instanceof RigidMeshComp);
    }
 
    public void setDrawIntersectionContours (boolean set) {
@@ -319,6 +321,11 @@ public class CollisionHandler extends ConstrainerBase
       }
    }
 
+   private boolean isPair (String name0, String name1) {
+      return (myCollidable0.getName().equals (name0) &&
+              myCollidable1.getName().equals (name1));
+   }
+
    public double computeCollisionConstraints (double t) {
 
       clearRenderData();
@@ -327,6 +334,7 @@ public class CollisionHandler extends ConstrainerBase
       myMesh1 = myCollidable1.getCollisionMesh();
 
       boolean needContours = (myMethod==CollisionBehavior.Method.CONTOUR_REGION);
+
       ContactInfo info = myCollider.getContacts (myMesh0, myMesh1, needContours);
       double maxpen;
       switch (myMethod) {
@@ -359,6 +367,20 @@ public class CollisionHandler extends ConstrainerBase
          return myCollidable1;
       }
    }
+
+   public Collidable getCollidable (int idx) {
+      switch (idx) {
+         case 0: {
+            return myCollidable0;
+         }
+         case 1: {
+            return myCollidable1;
+         }
+         default: {
+            throw new ArrayIndexOutOfBoundsException ("Index must be 0 or 1");
+         }
+      }
+   }      
 
    double setVertexFace (
       ContactConstraint cons, ContactPenetratingPoint cpp,
@@ -539,7 +561,7 @@ public class CollisionHandler extends ConstrainerBase
       boolean hashUsingFace = hashContactUsingFace (collidable0, collidable1);
 
       updateAttachedVertices();
-         
+
       for (ContactPenetratingPoint cpp : points) {
 
          ContactPoint pnt0, pnt1;
@@ -676,6 +698,7 @@ public class CollisionHandler extends ConstrainerBase
                   break;
 
                ContactConstraint c = new ContactConstraint(this);
+
                c.setContactPoint0 (p);
                c.equateContactPoints();
                c.setNormal (region.normal);
@@ -765,6 +788,27 @@ public class CollisionHandler extends ConstrainerBase
       }
    }
 
+   private void getConstraintComponents (
+      HashSet<DynamicComponent> set, Collection<ContactConstraint> contacts) {
+      for (ContactConstraint cc : contacts) {
+         for (ContactMaster cm : cc.getMasters()) {
+            set.add (cm.myComp);
+         }
+      }
+   }
+   
+   public void getConstrainedComponents (List<DynamicComponent> list) {
+      HashSet<DynamicComponent> set = new HashSet<DynamicComponent>();
+      getConstrainedComponents (set);
+      list.addAll (set);
+   }
+   
+   public void getConstrainedComponents (HashSet<DynamicComponent> set) {
+      getConstraintComponents (set, myBilaterals0.values());
+      getConstraintComponents (set, myBilaterals1.values());
+      getConstraintComponents (set, myUnilaterals);      
+   }
+   
    @Override
    public void getBilateralSizes (VectorNi sizes) {
       for (int i=0; i<myBilaterals0.size(); i++) {
@@ -1150,7 +1194,6 @@ public class CollisionHandler extends ConstrainerBase
       saveRenderData();
       if (myDrawConstraints) {
          double nrmlLen = getContactNormalLen();
-         //System.out.println ("max=" + getMaxLambda());
          if (nrmlLen > 0) {
             myRenderConstraints = new ArrayList<ConstraintSeg>();
             addConstraintRenderInfo (myBilaterals0.values(), nrmlLen);

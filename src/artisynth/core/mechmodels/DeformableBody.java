@@ -225,15 +225,57 @@ public abstract class DeformableBody extends RigidBody
    }
   
    @Override
-   public int getMassForces (VectorNd f, double t, int idx) {
+   public int getEffectiveMassForces (VectorNd f, double t, int idx) {
       // for now, assume that the rigid and elastic mass matrices are decoupled
       // with a diagonal elastic mass matrix
-      idx = super.getMassForces (f, t, idx);
+      idx = super.getEffectiveMassForces (f, t, idx);
       double[] buf = f.getBuffer();
       for (int i=0; i<numElasticCoords(); i++) {
          buf[idx++] = 0;
       }
       return idx;
+   }
+
+   @Override
+   public void getEffectiveMass (Matrix M, double t) {
+      // for now, assume that the rigid and elastic mass matrices are decoupled
+      // with a diagonal elastic mass matrix
+      checkMassMatrixType ("M", M);
+      int msize = 6 + numElasticCoords();      
+
+      SpatialInertia S = getEffectiveInertia();
+      MatrixNd MN = (MatrixNd)M;
+      Matrix6d MR = new Matrix6d();
+      S.getRotated (MR, getPose().R);
+      double m = S.getMass();
+      MN.setSubMatrix (0, 0, MR);
+      for (int i=6; i<msize; i++) {
+         MN.set (i, i, m);
+      }
+   }
+  
+   public int mulInverseEffectiveMass (
+      Matrix M, double[] a, double[] f, int idx) {
+
+      idx = super.mulInverseEffectiveMass (M, a, f, idx);
+      // for now, assume that the rigid and elastic mass matrices are decoupled
+      // with a diagonal elastic mass matrix
+      SpatialInertia S = getEffectiveInertia();
+      double minv = 1/S.getMass();
+      for (int i=0; i<numElasticCoords(); i++) {
+         a[idx] = minv*f[idx];
+         idx++;
+      }
+      return idx;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void addEffectivePointMass (double m, Vector3d loc) {
+      // for now, just add point mass to spatial inertia and increase mass;
+      // this is done in the superclass method.
+      super.addEffectivePointMass (m, loc);
    }
 
    @Override   
@@ -370,11 +412,11 @@ public abstract class DeformableBody extends RigidBody
       myExternalElasticForce.setZero();
    }
 
-   @Override
-   public void setForcesToExternal() {
-      super.setForcesToExternal();
-      myElasticForce.set (myExternalElasticForce);
-   }
+   // @Override
+   // public void setForcesToExternal() {
+   //    super.setForcesToExternal();
+   //    myElasticForce.set (myExternalElasticForce);
+   // }
 
    @Override
    public void applyExternalForces() {
@@ -494,7 +536,7 @@ public abstract class DeformableBody extends RigidBody
       vel.crossAdd (frameVel.w, myTmpPos, vel);
    }
 
-   @Override public void computePointCoriolis (Vector3d cor, Point3d loc) {
+   @Override public void computePointCoriolis (Vector3d cor, Vector3d loc) {
       RotationMatrix3d R = myState.XFrameToWorld.R;
       Twist tw = getVelocity();
       Vector3d tmp = new Vector3d();
@@ -562,48 +604,131 @@ public abstract class DeformableBody extends RigidBody
 //   }
 
    @Override
-   public void computePointForceJacobian (MatrixBlock GT, Point3d loc) {
-       MatrixNdBlock blk;
-       try {
-          blk = (MatrixNdBlock)GT;
-       }
-       catch (ClassCastException e) {
-          throw new IllegalArgumentException (
-             "GT is not an instance of MatrixNdBlock, is "+GT.getClass());
-       }
-       if (blk.rowSize() != getVelStateSize() ||
-           blk.colSize() != 3) {
-          throw new IllegalArgumentException (
-             "GT has wrong size "+GT.getSize()+
-             ", expecting "+getVelStateSize()+"x3");
-       }
-       RotationMatrix3d R = getPose().R;
-       blk.setZero();
+   public void computeWorldPointForceJacobian (MatrixBlock GT, Point3d loc) {
+      MatrixNdBlock blk;
+      try {
+         blk = (MatrixNdBlock)GT;
+      }
+      catch (ClassCastException e) {
+         throw new IllegalArgumentException (
+            "GT is not an instance of MatrixNdBlock, is "+GT.getClass());
+      }
+      if (blk.rowSize() != getVelStateSize() ||
+          blk.colSize() != 3) {
+         throw new IllegalArgumentException (
+            "GT has wrong size "+GT.getSize()+
+            ", expecting "+getVelStateSize()+"x3");
+      }
+      RotationMatrix3d R = getPose().R;
+      blk.setZero();
 
-       blk.set (0, 0, 1.0);
-       blk.set (1, 1, 1.0);
-       blk.set (2, 2, 1.0);
+      blk.set (0, 0, 1.0);
+      blk.set (1, 1, 1.0);
+      blk.set (2, 2, 1.0);
        
-       computeDeformedPos (myTmpPos, loc);
-       myTmpPos.transform (R);
+      computeDeformedPos (myTmpPos, loc);
+      myTmpPos.transform (R);
 
-       blk.set (4, 0,  myTmpPos.z);
-       blk.set (5, 0, -myTmpPos.y);
-       blk.set (5, 1,  myTmpPos.x);
+      blk.set (4, 0,  myTmpPos.z);
+      blk.set (5, 0, -myTmpPos.y);
+      blk.set (5, 1,  myTmpPos.x);
        
-       blk.set (3, 1, -myTmpPos.z);
-       blk.set (3, 2,  myTmpPos.y);
-       blk.set (4, 2, -myTmpPos.x);
+      blk.set (3, 1, -myTmpPos.z);
+      blk.set (3, 2,  myTmpPos.y);
+      blk.set (4, 2, -myTmpPos.x);
 
-       int numc = numElasticCoords();
-       Vector3d shp = new Vector3d();
-       for (int i=0; i<numc; i++) {
-          getShape (shp, i, loc);
-          shp.transform (R);
-          blk.set (6+i, 0, shp.x);
-          blk.set (6+i, 1, shp.y);
-          blk.set (6+i, 2, shp.z);
-       }
+      int numc = numElasticCoords();
+      Vector3d shp = new Vector3d();
+      for (int i=0; i<numc; i++) {
+         getShape (shp, i, loc);
+         shp.transform (R);
+         blk.set (6+i, 0, shp.x);
+         blk.set (6+i, 1, shp.y);
+         blk.set (6+i, 2, shp.z);
+      }
+   }
+   
+   public void computeLocalPointForceJacobian (
+      MatrixBlock GT, Vector3d loc, RotationMatrix3d R) {
+      
+      MatrixNdBlock blk;
+      try {
+         blk = (MatrixNdBlock)GT;
+      }
+      catch (ClassCastException e) {
+         throw new IllegalArgumentException (
+            "GT is not an instance of MatrixNdBlock, is "+GT.getClass());
+      }
+      if (blk.rowSize() != getVelStateSize() ||
+          blk.colSize() != 3) {
+         throw new IllegalArgumentException (
+            "GT has wrong size "+GT.getSize()+
+            ", expecting "+getVelStateSize()+"x3");
+      }
+
+      RotationMatrix3d RF = getPose().R;
+      computeDeformedPos (myTmpPos, loc);
+      myTmpPos.transform (RF);
+
+      double x = myTmpPos.x;
+      double y = myTmpPos.y;
+      double z = myTmpPos.z;
+
+      if (R == null) {
+         blk.set (0, 0, 1);
+         blk.set (0, 1, 0);
+         blk.set (0, 2, 0);
+         blk.set (1, 0, 0);
+         blk.set (1, 1, 1);
+         blk.set (1, 2, 0);
+         blk.set (2, 0, 0);
+         blk.set (2, 1, 0);
+         blk.set (2, 2, 1);
+
+         blk.set (3, 0, 0);
+         blk.set (3, 1, -z);
+         blk.set (3, 2, y);
+         blk.set (4, 0, z);
+         blk.set (4, 1, 0);
+         blk.set (4, 2, -x);           
+         blk.set (5, 0, -y);
+         blk.set (5, 1, x);
+         blk.set (5, 2, 0);
+      }
+      else {
+         blk.set (0, 0, R.m00);
+         blk.set (0, 1, R.m01);
+         blk.set (0, 2, R.m02);
+         blk.set (1, 0, R.m10);
+         blk.set (1, 1, R.m11);
+         blk.set (1, 2, R.m12);
+         blk.set (2, 0, R.m20);
+         blk.set (2, 1, R.m21);
+         blk.set (2, 2, R.m22);
+
+         blk.set (3, 0, y*R.m20 - z*R.m10);
+         blk.set (3, 1, y*R.m21 - z*R.m11);
+         blk.set (3, 2, y*R.m22 - z*R.m12);
+         blk.set (4, 0, z*R.m00 - x*R.m20);
+         blk.set (4, 1, z*R.m01 - x*R.m21);
+         blk.set (4, 2, z*R.m02 - x*R.m22);
+         blk.set (5, 0, x*R.m10 - y*R.m00);
+         blk.set (5, 1, x*R.m11 - y*R.m01);
+         blk.set (5, 2, x*R.m12 - y*R.m02);
+      }
+
+      int numc = numElasticCoords();
+      Vector3d shp = new Vector3d();
+      for (int i=0; i<numc; i++) {
+         getShape (shp, i, loc);
+         shp.transform (RF);
+         if (R != null) {
+            shp.inverseTransform (R);
+         }
+         blk.set (6+i, 0, shp.x);
+         blk.set (6+i, 1, shp.y);
+         blk.set (6+i, 2, shp.z);
+      }
    }
 
    /**
@@ -650,6 +775,7 @@ public abstract class DeformableBody extends RigidBody
    public void computeDeformedVel (Vector3d vel, Vector3d pos0) {
       int numc = numElasticCoords();
       Vector3d shp = new Vector3d();
+      vel.setZero();
       for (int i=0; i<numc; i++) {
          getShape (shp, i, pos0);
          vel.scaledAdd (myElasticVel.get(i), shp);
@@ -670,7 +796,6 @@ public abstract class DeformableBody extends RigidBody
       RigidTransform3d A, PolarDecomposition3d polarDecomp, 
       RigidTransform3d A0) {
 
-      int numc = numElasticCoords();
       computeDeformedPos (A.p, A0.p);
       Matrix3d F = new Matrix3d();
       computeDeformationGradient (F, A0.p);
@@ -683,7 +808,6 @@ public abstract class DeformableBody extends RigidBody
       RigidTransform3d A0, PolarDecomposition3d polarDecomp, 
       RigidTransform3d A) {
 
-      int numc = numElasticCoords();
       computeUndeformedPos (A0.p, A.p, 1e-8);
       Matrix3d F = new Matrix3d();
       computeDeformationGradient (F, A0.p);
@@ -839,22 +963,37 @@ public abstract class DeformableBody extends RigidBody
 
    /**
     * Compute the transform that maps elastic velocities onto the spatial
-    * velocity of an attached frame A, as represented in the coordinates of A.
+    * velocity of an attached frame A.
+    *
+    * @param Pi stores the elastic Jacobian
+    * @param polarDecomp should be initialized to the polar decomposition
+    * of the deformation gradient at the origin of A
+    * @param A0 rest pose of A (relative to the body frame)
+    * @param worldCoords if <code>true</code>, the spatial velocity is rotated
+    * into world coordinates. Otherwise, it is returned in the coordinates of
+    * A.
     */
    public void computeElasticJacobian (
-      MatrixNd Pi, PolarDecomposition3d polarDecomp, RigidTransform3d A0) {
+      MatrixNd Pi, PolarDecomposition3d polarDecomp, 
+      RigidTransform3d A0, boolean worldCoords) {
 
       int numc = numElasticCoords();   
       Vector3d shp = new Vector3d();
+      RotationMatrix3d RBW = myState.getPose().R;
       
       Pi.setSize (6, numc);
 
       for (int i=0; i<numc; i++) {
          getShape (shp, i, A0.p);
-         // transform from body coords to A coords
-         shp.inverseTransform (polarDecomp.getR());
-         shp.inverseTransform (A0.R);
-
+         if (worldCoords) {
+            // rotate from body coords to world coords
+            shp.transform (RBW);
+         }
+         else {
+            // transform from body coords to A coords
+            shp.inverseTransform (polarDecomp.getR());
+            shp.inverseTransform (A0.R);
+         }
          Pi.set (0, i, shp.x);
          Pi.set (1, i, shp.y);
          Pi.set (2, i, shp.z);
@@ -878,10 +1017,15 @@ public abstract class DeformableBody extends RigidBody
          avec.z =  Dshp.m01 - Dshp.m10;
          Binv.mul (avec, avec);
 
-         avec.inverseTransform (A0.R);
-         // uncomment this if we want Jacobian for velocity in frame coordinates
-         //avec.transform (A0.R);
-         //avec.transform (polarDecomp.getR());
+         if (worldCoords) {
+            // rotate into world coords
+            avec.transform (polarDecomp.getR());
+            avec.transform (RBW);
+         }
+         else {
+            // rotate into A coords
+            avec.inverseTransform (A0.R);
+         }
          
          Pi.set (3, i, avec.x);
          Pi.set (4, i, avec.y);

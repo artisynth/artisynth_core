@@ -145,12 +145,6 @@ public class MuscleElementDescList
       Renderer renderer, double len, DirectionRenderType type,
       boolean selected) {
 
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
-      
       Matrix3d F = new Matrix3d();
       Vector3d dir = new Vector3d();
       float[] coords0 = new float[3];
@@ -181,11 +175,6 @@ public class MuscleElementDescList
       // This code is taken mostly verbatim from FemElement3dList.
       // Should find a way to avoid duplicate code ...
 
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
       boolean selecting = renderer.isSelecting();
 
       if (!addDescsInPrerender) {

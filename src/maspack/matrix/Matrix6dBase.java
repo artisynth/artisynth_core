@@ -195,9 +195,6 @@ public abstract class Matrix6dBase extends DenseMatrixBase implements Clonable {
     */
    public double m55;
 
-   private LUDecomposition lu = null;
-   private Matrix6d Tmp;
-
    /**
     * Returns the number of rows in this matrix (which is always 6).
     * 
@@ -1762,9 +1759,7 @@ public abstract class Matrix6dBase extends DenseMatrixBase implements Clonable {
    protected boolean mulInverseRight (Matrix6dBase M1, Matrix6dBase M2) {
       boolean nonSingular = true;
       if (M1 == this || M1 == this) {
-         if (Tmp == null) {
-            Tmp = new Matrix6d();
-         }
+         Matrix6d Tmp = new Matrix6d();
          nonSingular = Tmp.invert (M2);
          mul (M1, Tmp);
       }
@@ -1788,9 +1783,7 @@ public abstract class Matrix6dBase extends DenseMatrixBase implements Clonable {
    protected boolean mulInverseLeft (Matrix6dBase M1, Matrix6dBase M2) {
       boolean nonSingular = true;
       if (M1 == this || M1 == this) {
-         if (Tmp == null) {
-            Tmp = new Matrix6d();
-         }
+         Matrix6d Tmp = new Matrix6d();
          nonSingular = Tmp.invert (M1);
          mul (Tmp, M2);
       }
@@ -1949,9 +1942,7 @@ public abstract class Matrix6dBase extends DenseMatrixBase implements Clonable {
     * @return false if this matrix is singular
     */
    public boolean mulInverse (VectorNd vr, VectorNd v1) {
-      if (Tmp == null) {
-         Tmp = new Matrix6d();
-      }
+      Matrix6d Tmp = new Matrix6d();
       boolean nonSingular = Tmp.invert (this);
       Tmp.mul (vr, v1);
       return nonSingular;
@@ -1980,9 +1971,7 @@ public abstract class Matrix6dBase extends DenseMatrixBase implements Clonable {
     * @return false if this matrix is singular
     */
    public boolean mulInverseTranspose (VectorNd vr, VectorNd v1) {
-      if (Tmp == null) {
-         Tmp = new Matrix6d();
-      }
+      Matrix6d Tmp = new Matrix6d();
       boolean nonSingular = Tmp.invert (this);
       Tmp.mulTranspose (vr, v1);
       return nonSingular;
@@ -2743,9 +2732,7 @@ public abstract class Matrix6dBase extends DenseMatrixBase implements Clonable {
     * @return false if M is singular
     */
    protected boolean invert (Matrix6dBase M1) {
-      if (lu == null) {
-         lu = new LUDecomposition();
-      }
+      LUDecomposition lu = new LUDecomposition();
       lu.factor (M1);
       boolean singular = false;
       try {
@@ -2783,9 +2770,7 @@ public abstract class Matrix6dBase extends DenseMatrixBase implements Clonable {
     * @return matrix determinant
     */
    public double determinant() throws ImproperSizeException {
-      if (lu == null) {
-         lu = new LUDecomposition();
-      }
+      LUDecomposition lu = new LUDecomposition();
       lu.factor (this);
       return (lu.determinant());
    }

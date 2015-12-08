@@ -8,12 +8,15 @@ package artisynth.core.renderables;
 
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map;
+import java.util.List;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
+import maspack.matrix.PolarDecomposition3d;
 import maspack.properties.PropertyList;
 import maspack.render.Material;
 import maspack.render.PointRenderProps;
@@ -27,11 +30,11 @@ import maspack.render.GL.GL2.DisplayListKey;
 import maspack.render.GL.GL2.DisplayListManager.DisplayListPassport;
 import maspack.render.GL.GL2.GL2Viewer;
 import artisynth.core.modelbase.RenderableComponentList;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScalableUnits;
-import artisynth.core.util.TransformableGeometry;
 
 public class VertexList<P extends VertexComponent> extends RenderableComponentList<P>
-implements TransformableGeometry, ScalableUnits {
+implements ScalableUnits {
 
    protected static final long serialVersionUID = 1;
    
@@ -158,7 +161,7 @@ implements TransformableGeometry, ScalableUnits {
          case POINT: {
 
             renderer.setLightingEnabled (false);
-            gl.glPointSize (props.getPointSize());
+            renderer.setPointSize (props.getPointSize());
 
             if (renderer.isSelecting()) {
                // don't worry about color in selection mode
@@ -217,7 +220,7 @@ implements TransformableGeometry, ScalableUnits {
                }
             }
             
-            gl.glPointSize(1);
+            renderer.setPointSize(1);
             renderer.setLightingEnabled(true);
          }
          case SPHERE: {
@@ -310,7 +313,7 @@ implements TransformableGeometry, ScalableUnits {
          case POINT: {
             renderer.setLightingEnabled (false);
             // draw regular points first
-            gl.glPointSize (props.getPointSize());
+            renderer.setPointSize (props.getPointSize());
             if (renderer.isSelecting()) {
                // don't worry about color in selection mode
                int i = 0;
@@ -340,7 +343,7 @@ implements TransformableGeometry, ScalableUnits {
                }
                gl.glEnd();
             }
-            gl.glPointSize (1);
+            renderer.setPointSize (1);
             renderer.setLightingEnabled (true);
             break;
          }
@@ -389,17 +392,30 @@ implements TransformableGeometry, ScalableUnits {
       }
    }
 
-   public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
-   }
-
-   public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      for (int i = 0; i < size(); i++) {
-         get (i).transformGeometry (X, topObject, flags);
-      }
-   }
-
+//   public void transformGeometry (AffineTransform3dBase X) {
+//      transformGeometry (X, this, 0);
+//   }
+//
+//   public void transformGeometry (
+//      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
+//      for (int i = 0; i < size(); i++) {
+//         get (i).transformGeometry (X, topObject, flags);
+//      }
+//   }
+//
+//   public void transformGeometry (
+//      AffineTransform3dBase X, PolarDecomposition3d pd,
+//      Map<TransformableGeometry,Boolean> transformSet, int flags) {
+//      for (int i = 0; i < size(); i++) {
+//         get (i).transformGeometry (X, pd, transformSet, flags);
+//      }
+//   }
+//   
+//   public int getTransformableDescendants (
+//      List<TransformableGeometry> list) {
+//      return 0;
+//   }
+   
    public void scaleDistance (double s) {
       for (int i = 0; i < size(); i++) {
          get (i).scaleDistance (s);

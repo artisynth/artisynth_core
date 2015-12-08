@@ -8,8 +8,10 @@ package artisynth.core.inverse;
 
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
+import maspack.geometry.GeometryTransformer;
 import artisynth.core.mechmodels.Point;
-import artisynth.core.util.TransformableGeometry;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 
 public class TargetPoint extends Point {
 
@@ -26,21 +28,14 @@ public class TargetPoint extends Point {
       return false;
    }
 
-   @Override
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      super.transformGeometry (X, topObject, flags);
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      super.transformGeometry (gtr, context, flags);
       // XXX should actually transform target pos; here assuming target==actual
       if (myTarget != null) {
-         myTarget.setTargetPos (myState.getPos ());
+         myTarget.setTargetPos (getPosition());
       }
    }
 
-   @Override
-   public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
-   }
-   
-   
 
 }

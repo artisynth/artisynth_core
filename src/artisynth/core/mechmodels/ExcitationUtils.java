@@ -237,15 +237,17 @@ public class ExcitationUtils {
             remove.undo();
          }
       }
-      else if (sources != null) {
+      else {
          ListRemove<ExcitationSource> remove = null;
-         for (int i=0; i<sources.size(); i++) {
-            if (!ComponentUtils.isConnected (
-                   host, sources.get(i).myComp)) {
-               if (remove == null) {
-                  remove = new ListRemove<ExcitationSource>(sources);
+         if (sources != null) {
+            for (int i=0; i<sources.size(); i++) {
+               if (!ComponentUtils.isConnected (
+                      host, sources.get(i).myComp)) {
+                  if (remove == null) {
+                     remove = new ListRemove<ExcitationSource>(sources);
+                  }
+                  remove.requestRemove(i);
                }
-               remove.requestRemove(i);
             }
          }
          if (remove != null) {

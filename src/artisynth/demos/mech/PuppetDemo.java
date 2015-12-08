@@ -53,7 +53,7 @@ public class PuppetDemo extends LaymanDemo {
 
       plate.setDynamic (false);
 
-      myMechMod.setMaxStepSize (0.005);
+      myMechMod.setMaxStepSize (0.002);
       Probe probe = addTracingProbe (myLHandMkr, "position", 0, 10);
       probe.setActive (false);
 

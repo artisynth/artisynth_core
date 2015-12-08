@@ -463,7 +463,8 @@ public class TetElement extends FemElement3d {
       return -d/3.0;
    }
 
-   public void getMarkerCoordinates (VectorNd coords, Point3d pos) {
+   public boolean getMarkerCoordinates (
+      VectorNd coords, Point3d pos, boolean checkInside) {
       if (coords.size() != 4) {
          throw new IllegalArgumentException (
             "coords should have size 4 for tetrahedral elements");
@@ -482,14 +483,23 @@ public class TetElement extends FemElement3d {
       coords.set (1, del.x);
       coords.set (2, del.y);
       coords.set (3, del.z);
+      if (checkInside) {
+         return isInside (coords);
+      }
+      else {
+         return true;
+      }
    }
 
+   private boolean isInside (VectorNd coords) {
+      return (coords.get (0) >= 0 && coords.get (1) >= 0 &&
+              coords.get (2) >= 0 && coords.get (3) >= 0);      
+   }
+   
    public boolean isInside (Point3d pnt) {
       VectorNd v = new VectorNd (4);
-      getMarkerCoordinates (v, pnt);
-
-      return (v.get (0) >= 0 && v.get (1) >= 0 &&
-              v.get (2) >= 0 && v.get (3) >= 0);
+      getMarkerCoordinates (v, pnt, false);
+      return isInside (v);
    }
 
    public static boolean isInside (

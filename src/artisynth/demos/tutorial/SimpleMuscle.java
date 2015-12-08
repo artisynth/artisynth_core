@@ -55,21 +55,9 @@ public class SimpleMuscle extends RootModel
       // increase model bounding box for the viewer
       mech.setBounds (/*min=*/-1, 0, -1, /*max=*/1, 0, 0);  
       // set render properties for the components
-      setPointRenderProps (p1);
-      setPointRenderProps (mkr);
-      setLineRenderProps (muscle);
-   }
-
-   protected void setPointRenderProps (Renderable r) {
-      RenderProps.setPointColor (r, Color.BLUE);
-      RenderProps.setPointStyle (r, RenderProps.PointStyle.SPHERE);
-      RenderProps.setPointRadius (r, 0.06);
-   }
-
-   protected void setLineRenderProps (Renderable r) {
-      RenderProps.setLineColor (r, Color.RED);
-      RenderProps.setLineStyle (r, RenderProps.LineStyle.ELLIPSOID);
-      RenderProps.setLineRadius (r, 0.02);
+      RenderProps.setSphericalPoints (p1, 0.06, Color.BLUE);
+      RenderProps.setSphericalPoints (mkr, 0.06, Color.BLUE);
+      RenderProps.setEllipsoidalLines (muscle, 0.02, Color.RED);
    }
 
 }

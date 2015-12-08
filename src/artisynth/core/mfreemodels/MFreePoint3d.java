@@ -26,7 +26,7 @@ public interface MFreePoint3d {
    
    /**
     * Removes all dependencies with have very low weights
-    * ( |w| <= tol )
+    * ( |w| &lt;= tol )
     * @return true if modified
     */
    public boolean reduceDependencies(double tol);

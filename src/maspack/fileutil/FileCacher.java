@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.fileutil;
 
 import java.io.File;
@@ -10,6 +17,7 @@ import maspack.fileutil.uri.URIx;
 import maspack.fileutil.uri.URIxMatcher;
 import maspack.fileutil.vfs.SimpleIdRepoFactory;
 
+import org.apache.commons.vfs2.AllFileSelector;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemOptions;
@@ -129,10 +137,13 @@ public class FileCacher {
 
       // For atomic operation, first download to temporary directory
       File tmpCacheFile = new File(cacheFile.getAbsolutePath() + TMP_EXTENSION);
+      
+      URIx cacheURI = new URIx(cacheFile.getAbsoluteFile());
+      URIx tmpCacheURI = new URIx(tmpCacheFile.getAbsoluteFile());
       FileObject localTempFile =
-         manager.resolveFile(tmpCacheFile.getAbsolutePath());
+         manager.resolveFile(tmpCacheURI.toString(true));
       FileObject localCacheFile =
-         manager.resolveFile(cacheFile.getAbsolutePath());
+         manager.resolveFile(cacheURI.toString(true));
 
       FileObject remoteFile = null; // will resolve next
 
@@ -164,7 +175,9 @@ public class FileCacher {
          if (remoteFile.isFile()) {
             localTempFile.copyFrom(remoteFile, Selectors.SELECT_SELF);
          } else if (remoteFile.isFolder()) {
-            localTempFile.copyFrom(remoteFile, Selectors.SELECT_SELF_AND_CHILDREN);
+            // final FileObject fileSystem = manager.createFileSystem(remoteFile);
+            localTempFile.copyFrom(remoteFile, new AllFileSelector());
+            // fileSystem.close();
          }
          
          if (monitor != null) {

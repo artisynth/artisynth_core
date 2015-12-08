@@ -24,7 +24,7 @@ import java.io.*;
 /**
  * Auxiliary class used to solve constrained rigid body problems.
  */
-public class FullPlanarJoint extends RigidBodyConnector 
+public class FullPlanarJoint extends BodyConnector 
    implements CopyableComponent {
    private double myAxisLength;
    private static final double defaultAxisLength = 1;
@@ -32,7 +32,7 @@ public class FullPlanarJoint extends RigidBodyConnector
    private RigidTransform3d myRenderFrame = new RigidTransform3d();
 
    public static PropertyList myProps =
-      new PropertyList (FullPlanarJoint.class, RigidBodyConnector.class);
+      new PropertyList (FullPlanarJoint.class, BodyConnector.class);
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createLineProps (host);
@@ -141,7 +141,7 @@ public class FullPlanarJoint extends RigidBodyConnector
       // copy.setNumConstraints (5);
       copy.setAxisLength (myAxisLength);
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
+      //copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
       return copy;
    }
 

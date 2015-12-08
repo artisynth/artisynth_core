@@ -74,8 +74,8 @@ public interface Vector extends Clonable {
     * 
     * @param v1
     * vector object into which values are copied
-    * @throws ImproperSizeExcept
-    * <ion if the vector objects have different sizes
+    * @throws ImproperSizeException
+    * if the vector objects have different sizes
     */
    public void get (Vector v1) throws ImproperSizeException;
 

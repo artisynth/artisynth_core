@@ -103,6 +103,7 @@ public class Scheduler {
    }
 
    private volatile int playerCount = 0;
+
    /**
     * player class
     * 
@@ -114,6 +115,7 @@ public class Scheduler {
       double endTime;
       boolean myStopReq;
       boolean myAlive;
+      boolean myStopping = false;
       boolean myKilled = false;
       double startTime; // simulation time
       double timeScale; // simulationTime = timeScale * real_time
@@ -185,7 +187,6 @@ public class Scheduler {
          }
       }
 
-
       private void processActionRequests () {
          Runnable action;
          do {
@@ -201,6 +202,56 @@ public class Scheduler {
          }
          while (action != null);
       }         
+
+      // public void oldplay() {
+      //    ArrayList<Probe> eventProbes = new ArrayList<Probe>();
+      //    realStartMsec = System.currentTimeMillis();
+      //    startTime = myTime;
+      //    lastYieldMsec = realStartMsec;
+      //    RootModel root = getRootModel();
+
+      //    while (myAlive) {
+      //       double t0 = myTime;
+      //       double t1;
+
+      //       if (t0 == 0) {
+      //          // apply any output probes that need to be applied at t0. 
+      //          // use -1 as current time to get any events at t0
+      //          t1 = nextEvent (root, eventProbes, -1, endTime);
+      //          if (t1 == 0) {
+      //             applyOutputProbes (t1, eventProbes);
+      //             eventProbes.clear();
+      //          }
+      //       }
+      //       if ((t1 = nextEvent (root, eventProbes, t0, endTime)) != -1) {
+      //          try {
+      //             doadvance (t0, t1, 0);
+      //             fireListeners (Action.Advance);
+      //             applyOutputProbes (t1, eventProbes);
+      //          }
+      //          catch (NumericalException e) {
+      //             // stop the scheduler if there is a stop request
+      //             e.printStackTrace();
+      //             myStopReq = true;
+      //          }
+      //       }
+      //       synchronized (Scheduler.this) {
+      //          if (myStopReq || t1 == -1) {
+      //             myStopReq = false;
+      //             myAlive = false;
+      //          }
+      //       }
+      //       if (TimeBase.compare (myTime, endTime) >= 0) {
+      //          //myWorkspace.rerender(); // do a final rerender
+      //          myAlive = false;
+      //       }
+      //       processActionRequests();
+      //    }
+      //    myWorkspace.rerender(); // do a final rerender
+      //    myWorkspace.waitForRerender();
+
+      //    fireListeners (Action.Stopped);
+      // }         
 
       public void play() {
          ArrayList<Probe> eventProbes = new ArrayList<Probe>();
@@ -234,19 +285,27 @@ public class Scheduler {
                   myStopReq = true;
                }
             }
+            if (t1 == -1 || TimeBase.compare (myTime, endTime) >= 0) {
+               myStopReq = true;
+            }
+            if (myStopReq) {
+               // do a final rerender. This will result in an action request
+               // being posted.
+               myWorkspace.rerender(); 
+               // set stopping so that we will accept no more actions requests
+               myStopping = true;
+            }
+            processActionRequests();
+            
             synchronized (Scheduler.this) {
-               if (myStopReq || t1 == -1) {
+               if (myStopping) {
                   myStopReq = false;
+                  myStopping = false;
                   myAlive = false;
                }
             }
-            if (TimeBase.compare (myTime, endTime) >= 0) {
-               myAlive = false;
-            }
-            processActionRequests();
+
          }
-         
-         myWorkspace.rerender(); // do a final rerender
          fireListeners (Action.Stopped);
       }         
 
@@ -484,7 +543,7 @@ public class Scheduler {
    }
 
    public synchronized boolean requestAction (Runnable action) {
-      if (isPlayerAlive()) {
+      if (myPlayer != null && myPlayer.myAlive && !myPlayer.myStopping) {
          return myPlayer.myActions.offer (action);
       }
       else {

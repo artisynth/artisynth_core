@@ -55,19 +55,10 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
    }
    
   public double[] getRollPitchRad() {
-      RigidTransform3d XAW = myBodyA.getPose();
-      RigidTransform3d XBW = 
-         myBodyB != null ? myBodyB.getPose() : RigidTransform3d.IDENTITY;
-      
       // initialize TGD to TCD; it will get projected to TGD within
       // myCoupling.getTheta();
-      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d TGD = new RigidTransform3d();
-      getCurrentTCA (TCA);
-      getCurrentTDB (TGD);
-      TGD.mulInverseBoth (TGD, XBW);
-      TGD.mul (XAW);
-      TGD.mul (TCA);     
+      getCurrentTCD (TGD);
             
       double[] angs = new double[2];
       
@@ -84,12 +75,7 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
       if (getParent() != null) {
          // if we are connected to the hierarchy, adjust the poses of the
          // attached bodies appropriately.         
-         RigidTransform3d XBA = new RigidTransform3d();
-         RigidTransform3d XBW = 
-            myBodyB != null ? myBodyB.getPose() : RigidTransform3d.IDENTITY;
-         XBA.mulInverseBoth (TGD, getTDB());
-         XBA.mul (getTCA(), XBA);
-         setPoses (XBA);
+         adjustPoses (TGD);
       }
    }
 
@@ -122,6 +108,12 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
       XDB.mulInverseLeft(bodyB.getPose(), XJointWorld);
       
       setBodies(bodyA, TCA, bodyB, XDB);
+      
+   }
+   
+   public RollPitchJoint (ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TFW) {
+      this();
+      setBodies(bodyA, bodyB, TFW);
       
    }
 
@@ -203,8 +195,8 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
    public void render (Renderer renderer, int flags) {
       super.render (renderer, flags);
       float[] coords =
-         new float[] { (float)myRenderFrame.p.x, (float)myRenderFrame.p.y,
-                      (float)myRenderFrame.p.z };
+         new float[] { (float)myRenderFrameD.p.x, (float)myRenderFrameD.p.y,
+                      (float)myRenderFrameD.p.z };
       renderer.drawPoint (myRenderProps, coords, isSelected());
    }
 
@@ -215,7 +207,7 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
       copy.myCoupling = new RollPitchCoupling ();
       copy.setAxisLength (myAxisLength);
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
+      //copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
       return copy;
    }
 

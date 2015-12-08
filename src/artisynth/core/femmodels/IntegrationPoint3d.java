@@ -174,7 +174,7 @@ public class IntegrationPoint3d {
    public void computeJacobian (FemNode3d[] nodes) {
       myJ.setZero();
       for (int i=0; i<nodes.length; i++) {
-         Vector3d pos = nodes[i].getPosition();
+         Vector3d pos = nodes[i].getLocalPosition();
          Vector3d dNds = GNs[i];
          myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
       }
@@ -183,7 +183,7 @@ public class IntegrationPoint3d {
    public void computeJacobianAndGradient (FemNode3d[] nodes, Matrix3d invJ0) {
       myJ.setZero();
       for (int i=0; i<nodes.length; i++) {
-         Vector3d pos = nodes[i].getPosition();
+         Vector3d pos = nodes[i].getLocalPosition();
          Vector3d dNds = GNs[i];
          myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
       }
@@ -195,7 +195,7 @@ public class IntegrationPoint3d {
       SolidDeformation def, FemNode3d[] nodes, Matrix3d invJ0) {
       myJ.setZero();
       for (int i=0; i<nodes.length; i++) {
-         Vector3d pos = nodes[i].getPosition();
+         Vector3d pos = nodes[i].getLocalPosition();
          Vector3d dNds = GNs[i];
          myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
       }
@@ -284,7 +284,7 @@ public class IntegrationPoint3d {
    }
    
    /** 
-    * Updates and returnes the gradient dN/dx of the shape functions, given an
+    * Updates and returns the gradient dN/dx of the shape functions, given an
     * inverse Jacobian. The gradient is supplied as an array of 3-vectors, one
     * for each shape function, because this is more convenient for computation.
     *

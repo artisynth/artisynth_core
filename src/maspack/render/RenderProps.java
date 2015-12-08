@@ -430,6 +430,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       float g = color.getGreen() / 255f;
       float b = color.getBlue() / 255f;
 
+
       if (result[0] != r) {
          result[0] = r;
          changed = true;
@@ -2076,12 +2077,14 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myFaceStyleMode = r.myFaceStyleMode;
       if (r.myFaceMaterial == null) {
          doSetColor (myFaceColor, r.myFaceColor);
+         myFaceMaterial = null;
       } else {
          setFaceMaterial(r.myFaceMaterial);
       }
       myFaceColorMode = r.myFaceColorMode;
       if (r.myBackMaterial == null) {
          doSetBackColor (r.myBackColor);  
+         myBackMaterial = null;
       } else {
          setBackMaterial(r.myBackMaterial);
       }
@@ -2104,6 +2107,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myLineStyleMode = r.myLineStyleMode;
       if (r.myLineMaterial == null) {
          doSetColor (myLineColor, r.myLineColor);
+         myLineMaterial = null;
       } else {
          setLineMaterial(r.myLineMaterial);
       }
@@ -2119,6 +2123,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myPointStyleMode = r.myPointStyleMode;
       if (r.myPointMaterial == null) {
          doSetColor (myPointColor, r.myPointColor);
+         myPointMaterial = null;
       } else {
          setPointMaterial(r.myPointMaterial);
       }
@@ -2130,7 +2135,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myPointRadiusMode = r.myPointRadiusMode;
       myPointSlices = r.myPointSlices;
       myPointSlicesMode = r.myPointSlicesMode;
-
    }
 
    public void setFaceMaterial(Material mat) {
@@ -2956,6 +2960,30 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       props.setPointRadius (rad);
       if (color != null) {
          props.setPointColor (color);
+      }
+      r.setRenderProps (props);
+   }
+
+   public static void setCylindricalLines (
+      Renderable r, double rad, Color color) {
+
+      RenderProps props = createAndAssignProps (r);
+      props.setLineStyle (LineStyle.CYLINDER);
+      props.setLineRadius (rad);
+      if (color != null) {
+         props.setLineColor (color);
+      }
+      r.setRenderProps (props);
+   }
+
+   public static void setEllipsoidalLines (
+      Renderable r, double rad, Color color) {
+
+      RenderProps props = createAndAssignProps (r);
+      props.setLineStyle (LineStyle.ELLIPSOID);
+      props.setLineRadius (rad);
+      if (color != null) {
+         props.setLineColor (color);
       }
       r.setRenderProps (props);
    }

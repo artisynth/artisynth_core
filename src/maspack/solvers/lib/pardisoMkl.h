@@ -220,8 +220,10 @@ class DLLEXPORT Pardiso4
 	int setMessageLevel (int level);
 	int getMessageLevel ();
 
-	int setNumThreads (int n);
-	int getNumThreads ();
+        // not supported since MKL doesn't allow per-instance thread
+        // setting for Pardiso
+	//int setNumThreads (int n);
+	//int getNumThreads ();
 
 	int getNumNonZerosInFactors();
 	int getNumNegEigenvalues();

@@ -52,19 +52,10 @@ public class SphericalRpyJoint extends SphericalJointBase {
    }
 
    public Vector3d getRpyRad() {
-      RigidTransform3d XAW = myBodyA.getPose();
-      RigidTransform3d XBW = 
-         myBodyB != null ? myBodyB.getPose() : RigidTransform3d.IDENTITY;
-      
       // initialize TGD to TCD; it will get projected to TGD within
       // myCoupling.getTheta();
-      RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d TGD = new RigidTransform3d();
-      getCurrentTCA (TCA);
-      getCurrentTDB (TGD);
-      TGD.mulInverseBoth (TGD, XBW);
-      TGD.mul (XAW);
-      TGD.mul (TCA);
+      getCurrentTCD (TGD);
       
       Vector3d rpy = new Vector3d();
       ((SphericalCoupling)myCoupling).getRpy (rpy, TGD);
@@ -77,12 +68,7 @@ public class SphericalRpyJoint extends SphericalJointBase {
       if (getParent() != null) {
          // if we are connected to the hierarchy, adjust the poses of the
          // attached bodies appropriately.         
-         RigidTransform3d XBA = new RigidTransform3d();
-         RigidTransform3d XBW = 
-            myBodyB != null ? myBodyB.getPose() : RigidTransform3d.IDENTITY;
-         XBA.mulInverseBoth (TGD, getTDB());
-         XBA.mul (getTCA(), XBA);
-         setPoses (XBA);
+         adjustPoses (TGD);
       }
       
    }
@@ -116,6 +102,12 @@ public class SphericalRpyJoint extends SphericalJointBase {
       XDB.mulInverseLeft(bodyB.getPose(), XWJ);
       
       setBodies(bodyA, TCA, bodyB, XDB);
+      
+   }
+   
+   public SphericalRpyJoint (ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TFW) {
+      this();
+      setBodies(bodyA, bodyB, TFW);
       
    }
 

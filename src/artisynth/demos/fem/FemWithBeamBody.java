@@ -73,7 +73,7 @@ public class FemWithBeamBody extends RootModel {
 
       SolidJoint joint = new SolidJoint ();
       joint.setBodies (body, null, new RigidTransform3d (0.5, 0, 0));
-      //mech.addRigidBodyConnector (joint);
+      //mech.addBodyConnector (joint);
 
       if (addFem) {
          for (FemNode n : fem.getNodes()) {

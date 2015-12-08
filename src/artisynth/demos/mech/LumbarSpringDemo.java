@@ -59,13 +59,14 @@ public class LumbarSpringDemo extends RootModel {
       
       RigidBody rb = new RigidBody (name);
       PolygonalMesh mesh;
+      String meshFileName = rigidBodyPath+name+".obj";
       try {
-         mesh = new PolygonalMesh (new File (rigidBodyPath+name+".obj"));
+         mesh = new PolygonalMesh (new File (meshFileName));
       } catch (IOException e) {
          e.printStackTrace();
          return null;
       }
-      rb.setMesh (mesh, null);
+      rb.setMesh (mesh, meshFileName);
       rb.setDensity(boneDensity);
       myMechMod.addRigidBody (rb);
       return rb;

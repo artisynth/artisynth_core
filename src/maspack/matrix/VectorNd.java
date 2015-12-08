@@ -467,13 +467,22 @@ Clonable {
     * @throws ImproperSizeException
     * if this vector is not large enough to accomodate the specified subvector
     */
-   public void getSubVector (int off, VectorNd v1) {
-      if (size < off + v1.size) {
+   public void getSubVector (int off, Vector v1) {
+      int v1size = v1.size();
+      if (size < off + v1size) {
          throw new ImproperSizeException (
             "vector not large enough for sub-vector");
       }
-      for (int i = 0; i < v1.size; i++) {
-         v1.buf[i] = buf[i + off];
+      if (v1 instanceof VectorNd) {
+         double[] v1buf = ((VectorNd)v1).buf;
+         for (int i = 0; i < v1size; i++) {
+            v1buf[i] = buf[i + off];
+         }
+      }
+      else {
+         for (int i = 0; i < v1size; i++) {
+            v1.set (i, buf[i + off]);
+         }
       }
    }
 
@@ -488,13 +497,22 @@ Clonable {
     * @throws ImproperSizeException
     * if this vector is not large enough to accomodate the specified subvector
     */
-   public void setSubVector (int off, VectorNd v1) {
-      if (size < off + v1.size) {
+   public void setSubVector (int off, Vector v1) {
+      int v1size = v1.size();
+      if (size < off + v1size) {
          throw new ImproperSizeException (
             "vector not large enough for sub-vector");
       }
-      for (int i = 0; i < v1.size; i++) {
-         buf[i + off] = v1.buf[i];
+      if (v1 instanceof VectorNd) {
+         double[] v1buf = ((VectorNd)v1).buf;
+         for (int i = 0; i < v1size; i++) {
+            buf[i + off] = v1buf[i];
+         }
+      }
+      else {
+         for (int i = 0; i < v1size; i++) {
+            buf[i + off] = v1.get(i);
+         }
       }
    }
 
@@ -511,14 +529,23 @@ Clonable {
     * @throws ArrayIndexOutOfBoundsException if any of the indices in
     * <code>idxs</code> are out of bounds
     */
-   public void getSubVector (int[] idxs, VectorNd v1) {
-      if (idxs.length < v1.size) {
+   public void getSubVector (int[] idxs, Vector v1) {
+      int v1size = v1.size();
+      if (idxs.length < v1size) {
          throw new ImproperSizeException (
             "'idxs' not large enough to cover all of 'v1'");
       }
-      for (int i=0; i<v1.size; i++) {
-         v1.buf[i] = buf[idxs[i]];
+      if (v1 instanceof VectorNd) {
+         double[] v1buf = ((VectorNd)v1).buf;
+         for (int i = 0; i < v1size; i++) {
+            v1buf[i] = buf[idxs[i]];
+         }
       }
+      else {
+         for (int i = 0; i < v1size; i++) {
+            v1.set (i, buf[idxs[i]]);
+         }
+      }      
    }
 
    /**
@@ -534,13 +561,22 @@ Clonable {
     * @throws ArrayIndexOutOfBoundsException if any of the indices in
     * <code>idxs</code> are out of bounds
     */
-   public void setSubVector (int[] idxs, VectorNd v1) {
-      if (idxs.length < v1.size) {
+   public void setSubVector (int[] idxs, Vector v1) {
+      int v1size = v1.size();
+      if (idxs.length < v1size) {
          throw new ImproperSizeException (
             "'idxs' not large enough to cover all of 'v1'");
       }
-      for (int i=0; i<v1.size; i++) {
-         buf[idxs[i]] = v1.buf[i];
+      if (v1 instanceof VectorNd) {
+         double[] v1buf = ((VectorNd)v1).buf;
+         for (int i = 0; i < v1size; i++) {
+            buf[idxs[i]] = v1buf[i];
+         }
+      }
+      else {
+         for (int i = 0; i < v1size; i++) {
+            buf[idxs[i]] = v1.get(i);
+         }
       }
    }
 

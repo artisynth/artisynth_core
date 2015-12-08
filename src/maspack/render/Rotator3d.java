@@ -121,7 +121,6 @@ public class Rotator3d extends Dragger3dBase {
 
       viewer.setLineWidth(1);
       viewer.setLightingEnabled (true);
-
    }
    
    private RenderObject createRotatorRenderable() {

@@ -49,5 +49,8 @@ public interface Constrainer {
       SparseBlockMatrix DT, FrictionInfo[] finfo, int idx);
 
    public double updateConstraints (double t, int flags);
-
+   
+   // Currently not used. Could be useful at some point in the future though
+   public void getConstrainedComponents (List<DynamicComponent> list);
+   
 }

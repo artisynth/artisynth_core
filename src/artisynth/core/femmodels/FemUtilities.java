@@ -189,7 +189,7 @@ public class FemUtilities {
     * where gi and gj are the gradients for shape functions i and j,
     * Bi and Bj are the B matrices formed from gi and gj, and
     * D is created from the pressure p according to D_ii = -p
-    * and D_ij = p for i != j and i, j < 3.
+    * and D_ij = p for i != j and i, j &lt; 3.
     */
    public static void addPressureStiffness (
       Matrix3d K, Vector3d gi, double p,

@@ -457,8 +457,11 @@ public class Plane implements java.io.Serializable {
     */
    public void transform (AffineTransform3dBase X, Plane plane) {
       X.getMatrix().mulInverseTranspose (normal, plane.normal);
-      normal.normalize();
       offset = plane.offset + normal.dot (X.getOffset());
+      // normalize:
+      double mag = normal.norm();
+      normal.scale (1/mag);
+      offset /= mag;
    }
 
    /**
@@ -473,7 +476,10 @@ public class Plane implements java.io.Serializable {
    public void inverseTransform (AffineTransform3dBase X, Plane plane) {
       offset = plane.offset - plane.normal.dot (X.getOffset());
       X.getMatrix().mulTranspose (normal, plane.normal);
-      normal.normalize();
+      // normalize:
+      double mag = normal.norm();
+      normal.scale (1/mag);
+      offset /= mag;
    }
 
    /**

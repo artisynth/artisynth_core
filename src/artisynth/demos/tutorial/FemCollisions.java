@@ -14,7 +14,7 @@ import maspack.render.GL.GL2.GL2Viewer;
 import maspack.render.GL.GL2.GL2Viewer.BlendType;
 import artisynth.core.femmodels.FemFactory;
 import artisynth.core.femmodels.FemFactory.FemElementType;
-import artisynth.core.femmodels.FemMesh;
+import artisynth.core.femmodels.FemMeshComp;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.materials.LinearMaterial;
@@ -96,7 +96,7 @@ public class FemCollisions extends RootModel {
       double r = 0.0008;
       int ref = 2;      // level of refinement
       PolygonalMesh sphere = MeshFactory.createOctahedralSphere(r, ref);
-      FemMesh embeddedSphere = block.addMesh("embedded", sphere);
+      FemMeshComp embeddedSphere = block.addMesh("embedded", sphere);
       
       // Transform: rotate 90 degrees about X-Axis
       //            translate left by 0.003
@@ -135,7 +135,7 @@ public class FemCollisions extends RootModel {
       // Make beam blue, and give it a translucent surface
       RenderProps.setFaceColor(beam, Color.BLUE);
       beam.setSurfaceRendering(SurfaceRender.Shaded);
-      RenderProps.setAlpha(beam.getMesh("surface"), 0.4);
+      RenderProps.setAlpha(beam.getMeshComp("surface"), 0.4);
       
       // Make the ellipsoid red
       RenderProps.setFaceColor(ellipsoid, Color.RED);

@@ -88,8 +88,7 @@ public class FaceComponent extends RenderableComponentBase {
       }
 
       if (props.getFaceStyle() != RenderProps.Faces.NONE) {
-         int[] savedShadeModel = new int[1];
-         gl.glGetIntegerv (GL2.GL_SHADE_MODEL, savedShadeModel, 0);
+         RenderProps.Shading savedShadeModel = renderer.getShadeModel();
 
          if (shading == Shading.NONE) {
             renderer.setLightingEnabled (false);
@@ -104,10 +103,10 @@ public class FaceComponent extends RenderableComponentBase {
          }
          else if (((shading != Shading.FLAT) || useVertexColouring) &&
             !renderer.isSelecting()) {
-            gl.glShadeModel (GL2.GL_SMOOTH);
+            renderer.setShadeModel (RenderProps.Shading.GOURARD);
          }
          else { // shading == Shading.FLAT
-            gl.glShadeModel (GL2.GL_FLAT);
+            renderer.setShadeModel (RenderProps.Shading.FLAT);
          }
 
          if (props.getDrawEdges()) {
@@ -129,7 +128,7 @@ public class FaceComponent extends RenderableComponentBase {
          if (shading == Shading.NONE) {
             renderer.setLightingEnabled (true);
          }
-         gl.glShadeModel (savedShadeModel[0]);
+         renderer.setShadeModel (savedShadeModel);
       }
 
       if (!renderer.isSelecting()) {
@@ -141,12 +140,10 @@ public class FaceComponent extends RenderableComponentBase {
       if (props.getDrawEdges()) {
 
          boolean reenableLighting = false;
-         int[] savedLineWidth = new int[1];
-         gl.glGetIntegerv (GL2.GL_LINE_WIDTH, savedLineWidth, 0);
-         int[] savedShadeModel = new int[1];
-         gl.glGetIntegerv (GL2.GL_SHADE_MODEL, savedShadeModel, 0);
+         int savedLineWidth = renderer.getLineWidth();
+         RenderProps.Shading savedShadeModel = renderer.getShadeModel();
 
-         gl.glLineWidth (props.getLineWidth());
+         renderer.setLineWidth (props.getLineWidth());
 
          if (props.getLineColor() != null && !renderer.isSelecting()) {
             reenableLighting = renderer.isLightingEnabled();
@@ -162,10 +159,10 @@ public class FaceComponent extends RenderableComponentBase {
             renderer.setColor (color);
          }
          if (useVertexColouring && !renderer.isSelecting()) {
-            gl.glShadeModel (GL2.GL_SMOOTH);
+            renderer.setShadeModel (RenderProps.Shading.GOURARD);
          }
          else {
-            gl.glShadeModel (GL2.GL_FLAT);
+            renderer.setShadeModel (RenderProps.Shading.FLAT);
          }
 
          drawEdges(gl, props);
@@ -173,8 +170,8 @@ public class FaceComponent extends RenderableComponentBase {
          if (reenableLighting) {
             renderer.setLightingEnabled (true);
          }
-         gl.glLineWidth (savedLineWidth[0]);
-         gl.glShadeModel (savedShadeModel[0]);
+         renderer.setLineWidth (savedLineWidth);
+         renderer.setShadeModel (savedShadeModel);
       }
 
       gl.glPopMatrix();
@@ -182,9 +179,6 @@ public class FaceComponent extends RenderableComponentBase {
    }
 
    private void drawEdges(GL2 gl, RenderProps props) {
-      int[] shadingModel = new int[1];
-
-      gl.glGetIntegerv (GL2.GL_SHADE_MODEL, shadingModel, 0);
 
       gl.glBegin (GL2.GL_LINES);
 
@@ -254,10 +248,6 @@ public class FaceComponent extends RenderableComponentBase {
    }
 
    void drawFacesRaw(Renderer renderer, GL2 gl, RenderProps props, Material faceMaterial) {
-
-      int[] shadingModel = new int[1];
-
-      gl.glGetIntegerv (GL2.GL_SHADE_MODEL, shadingModel, 0);
 
       boolean useVertexColors = useVertexColouring;
       if (renderer.isSelecting()) {

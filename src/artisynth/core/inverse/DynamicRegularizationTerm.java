@@ -64,10 +64,10 @@ public class DynamicRegularizationTerm extends QPTermBase {
       vbar.scale(1/dt);         // makes results independent of the time step
       VectorNd alpha = new VectorNd (Hm.colSize ());
       alpha.mulTranspose (Hm,vbar);
-      System.out.println("\n");
-      System.out.println(alpha.toString ("%8.2f"));
+//      System.out.println("\n");
+//      System.out.println(alpha.toString ("%8.2f"));
       w = applyMapping(alpha); // apply (non-linear) mapping to obtain weights
-      System.out.println(w.toString ("%8.2f"));
+//      System.out.println(w.toString ("%8.2f"));
    }
    
    /*
@@ -82,7 +82,7 @@ public class DynamicRegularizationTerm extends QPTermBase {
       
       switch (mapping) {
          case EXPONENTIAL:
-            System.out.println("Applying exponential mapping");
+//            System.out.println("Applying exponential mapping");
             double min = x.minElement ();
             for (int i=0; i<n; i++) {
                w[i] = x.get(i) - min; // w(i) > 0 for numeric precision of exponential
@@ -91,7 +91,7 @@ public class DynamicRegularizationTerm extends QPTermBase {
             }
             break;
          case MONOMIAL:
-            System.out.println("Applying monomial mapping");
+//            System.out.println("Applying monomial mapping");
             double max = x.maxElement ();
             for (int i=0; i<n; i++) {
                w[i] = Math.pow(-x.get(i) + max, param);
@@ -99,7 +99,7 @@ public class DynamicRegularizationTerm extends QPTermBase {
             }
             break;
          case SIGMOID:
-            System.out.println("Applying sigmoid mapping");
+//            System.out.println("Applying sigmoid mapping");
             VectorNd sorted = new VectorNd();
             sorted.sort (x);
             /*
@@ -184,5 +184,9 @@ public class DynamicRegularizationTerm extends QPTermBase {
          Q.mulDiagonalLeft (w);
       }
       Q.scale(myWeight);
+      
+//      if (TrackingController.isDebugTimestep (t0, t1)) { 
+//         System.out.println("dt = " + dt + "    |Qd| = " + Q.frobeniusNorm());
+//      }
    }
 }

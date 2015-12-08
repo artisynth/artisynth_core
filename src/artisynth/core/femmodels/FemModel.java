@@ -8,6 +8,7 @@ package artisynth.core.femmodels;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Collection;
 
 import maspack.matrix.Matrix;
 import maspack.matrix.Point3d;
@@ -28,7 +29,6 @@ import maspack.util.StringHolder;
 import artisynth.core.modelbase.PropertyChangeListener;
 import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.util.ScalableUnits;
-import artisynth.core.util.TransformableGeometry;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.MaterialBase;
@@ -48,6 +48,7 @@ import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponentList;
+import artisynth.core.modelbase.TransformableGeometry;
 
 public abstract class FemModel extends MechSystemBase
    implements TransformableGeometry, ScalableUnits, Constrainer, 
@@ -187,7 +188,7 @@ public abstract class FemModel extends MechSystemBase
       myProps.addReadOnly ("volume *", "volume of the model");
       myProps.addReadOnly ("numInverted", "number of inverted elements");
       myProps.addReadOnly ("mass *", "mass of the model");
-      myProps.addReadOnly ("nodeMass *", "mass of the model");
+//      myProps.addReadOnly ("nodeMass *", "mass of the model");
       myProps.addReadOnly ("energy", "energy of the model");
       myProps.add (
          "material", "model material parameters", createDefaultMaterial(), "CE");
@@ -360,6 +361,7 @@ public abstract class FemModel extends MechSystemBase
             e.invalidateRestData();
          }
       }
+      myRestVolumeValid = false;
    }
    
    protected void invalidateStressAndMaybeStiffness() {
@@ -547,12 +549,16 @@ public abstract class FemModel extends MechSystemBase
 
    public abstract ComponentList<? extends FemElement> getElements();
 
+   public void addMarker (FemMarker mkr) {
+      myMarkers.add (mkr);
+   }
+   
    public void addMarker (FemMarker mkr, FemElement elem) {
       if (!ModelComponentBase.recursivelyContains (this, elem)) {
          throw new IllegalArgumentException (
             "element not contained within model");
       }
-      mkr.setElement (elem);
+      mkr.setFromElement (elem);
       myMarkers.add (mkr);
    }
    
@@ -561,9 +567,37 @@ public abstract class FemModel extends MechSystemBase
          throw new IllegalArgumentException (
             "element not contained within model");
       }
-      mkr.setElement (elem);
+      mkr.setFromElement (elem);
       myMarkers.addNumbered (mkr, markerId);
    }
+
+   public void addMarker (
+      FemMarker mkr,
+      Collection<? extends FemNode> nodes, VectorNd weights) {
+      mkr.setFromNodes (nodes, weights);
+      myMarkers.add (mkr);
+   }
+
+   public void addMarker (FemMarker mkr, FemNode[] nodes, double[] weights) {
+      mkr.setFromNodes (nodes, weights);
+      myMarkers.add (mkr);
+   }
+
+   public boolean addMarker (FemMarker mkr, Collection<? extends FemNode> nodes) {
+      boolean status = mkr.setFromNodes (nodes);
+      myMarkers.add (mkr);
+      return status;
+   }
+
+   public boolean addMarker (FemMarker mkr, FemNode[] nodes) {
+      boolean status = mkr.setFromNodes (nodes);
+      myMarkers.add (mkr);
+      return status;
+   }
+
+//   public void addMarker (FemMarker mkr) {
+//      myMarkers.add (mkr);
+//   }
 
    public boolean removeMarker (FemMarker mkr) {
       if (myMarkers.remove (mkr)) {
@@ -595,7 +629,8 @@ public abstract class FemModel extends MechSystemBase
                "node not contained within model");
          }
       }
-      PointFem3dAttachment ax = new PointFem3dAttachment (p, nodes, coords);
+      PointFem3dAttachment ax = new PointFem3dAttachment (p);
+      ax.setFromNodes (nodes, coords);
       if (DynamicAttachment.containsLoop (ax, p, null)) {
          throw new IllegalArgumentException (
             "attachment contains loop");
@@ -695,21 +730,24 @@ public abstract class FemModel extends MechSystemBase
       }
    }
 
-   protected void resetMarkerForces() {
-      for (FemMarker mkr : myMarkers) {
-         mkr.setForcesToExternal();
-      }
-   }
+//   protected void resetMarkerForces() {
+//      for (FemMarker mkr : myMarkers) {
+//         mkr.setForcesToExternal();
+//      }
+//   }
 
-   protected void resetNodeForces() {
-      for (FemNode n : getNodes()) {
-         n.setForcesToExternal();
-      }
-   }
+//   protected void resetNodeForces() {
+//      for (FemNode n : getNodes()) {
+//         n.setForcesToExternal();
+//      }
+//   }
 
    public void getAttachments (List<DynamicAttachment> list, int level) {
       list.addAll (myAttachments);
       for (FemMarker mkr : myMarkers) {
+         if (mkr.getAttachment() == null) {
+            System.out.println ("NULL attachment for marker "+mkr.getNumber());
+         }
          list.add (mkr.getAttachment());
       }
    }         
@@ -742,7 +780,11 @@ public abstract class FemModel extends MechSystemBase
       getNodes().scaleDistance (s);
       //myE /= s;
       myMaterial.scaleDistance(s);
-      myGravity.scale (s);
+      
+      if (myGravityMode == PropertyMode.Explicit ||
+          topMechSystem(this) == this) { // XXX hack, calling topMechSystem
+         myGravity.scale (s);
+      }
 
       myDensity /= (s * s * s);
       for (FemElement e : getElements()) {
@@ -940,6 +982,18 @@ public abstract class FemModel extends MechSystemBase
       myRestVolumeValid = true;
       return volume;
    }
+   
+//   protected void computeMasses() {
+//      getRestVolume();
+//      for (int i=0; i<numNodes(); i++) {
+//         getNode(i).setMass(0);
+//      }
+//      for (int i=0; i<numElements(); i++) {
+//         FemElement e = getElement(i);
+//         e.setMass (0);
+//         e.updateElementAndNodeMasses(); 
+//      }
+//   }
 
    public double getVolume() {
       // we don't update the volume in this method, since that might
@@ -1048,6 +1102,9 @@ public abstract class FemModel extends MechSystemBase
    public FemModel copy (int flags, Map<ModelComponent,ModelComponent> copyMap) {
       FemModel fem = (FemModel)super.copy (flags, copyMap);
 
+      for (int i=0; i<fem.numComponents(); i++) {
+         System.out.println (" child " + fem.get(i).getName());
+      }
       fem.initializeChildComponents();
       // need to set markers and attachments in the subclass
 
@@ -1105,7 +1162,10 @@ public abstract class FemModel extends MechSystemBase
    public double updateConstraints (double t, int flags) {
       return 0;
    }
-
+   
+   public void getConstrainedComponents (List<DynamicComponent> list) {
+   }
+   
    // method declarations to implement ForceEffector
 
    public int getJacobianType() {

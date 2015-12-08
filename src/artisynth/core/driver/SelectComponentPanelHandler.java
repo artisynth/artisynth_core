@@ -150,21 +150,9 @@ public class SelectComponentPanelHandler {
       myPanel = new JPanel();
       myPanel.setLayout (new BoxLayout (myPanel, BoxLayout.X_AXIS));
 
-      // JButton selectParent = new JButton("parent");
-      // selectParent.addActionListener(this);
-
-      // ImageIcon parentIcon =
-      // GuiUtils.loadIcon (
-      // "/artisynth/core/gui/timeline/BasicIcon/UpArrow.gif");
-
       ImageIcon comboSelectIcon =
          GuiUtils.loadIcon (
             SelectableComponentPanel.class, "icon/downArrow.png");
-
-      // JButton parentBtn =
-      // ButtonCreator.createIconicButton(
-      // parentIcon, "Select Parent",
-      // "Select component parent", true, false, this);
 
       mySelectFilterButton =
          ButtonCreator.createIconicButton (
@@ -181,6 +169,7 @@ public class SelectComponentPanelHandler {
             }
          }
       });
+
       componentFilter.addValueChangeListener (new ValueChangeListener() {
          public void valueChange (ValueChangeEvent e) {
             doSetComponentFilter ((Class)e.getValue());
@@ -196,9 +185,6 @@ public class SelectComponentPanelHandler {
             }
          }
       });
-
-      // componentName = new StringField("", 30);
-      // componentName.getTextField().addKeyListener(this);
 
       myComponentField = new ComponentField ("", 30, myMain);
 

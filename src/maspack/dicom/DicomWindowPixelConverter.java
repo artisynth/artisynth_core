@@ -1,0 +1,435 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
+package maspack.dicom;
+
+import java.util.Arrays;
+import java.util.HashMap;
+
+import maspack.properties.Property;
+import maspack.properties.PropertyList;
+import maspack.util.StringRange;
+
+/**
+ * Window interpolator, rescales intensities based on a center intensity and width
+ * (as defined in the DICOM file format).  The interpolator allows for multiple named
+ * windows, which can be read directly from a DICOM file.
+ * @author Antonio
+ *
+ */
+public class DicomWindowPixelConverter extends DicomPixelConverter {
+
+   private static final int BYTE_MASK = 0xFF;
+   private static final int SHORT_MASK = 0xFFFF;
+   private static final byte BYTE_MAX = (byte)BYTE_MASK;
+   private static final short SHORT_MAX = (short)SHORT_MASK;
+   
+   public static PropertyList myProps = new PropertyList(DicomWindowPixelConverter.class);   
+   
+   static {
+      myProps.add("window", "window preset", "CUSTOM");
+      myProps.add("windowCenter", "Center intensity value", 0x7FF, "[-Inf,Inf]");
+      myProps.add("windowWidth", "Width of window", 0x7FF, "[1,Inf]");
+   }
+   
+   /**
+    * Preset loaded from DICOM file
+    * @author Antonio
+    *
+    */
+   private static class WindowPreset implements Comparable<WindowPreset>{
+      String name;
+      int width;
+      int center;
+      int idx;
+      public WindowPreset(String name, int center, int width, int idx) {
+         this.center = center;
+         this.width = width;
+         this.name = name;
+         this.idx = idx;
+      }
+      
+      @Override
+      public int compareTo(WindowPreset o) {
+         if (idx < o.idx) {
+            return -1;
+         } else if (idx > o.idx) {
+            return 1;
+         }
+         return 0;
+      }
+   }
+   
+   public Property getProperty (String name) {
+      return PropertyList.getProperty (name, this);
+   }
+   
+   public PropertyList getAllPropertyInfo() {
+      return myProps;
+   }
+   
+   public static final int DEFAULT_WINDOW_CENTER = 0x0007FF;
+   public static final int DEFAULT_WINDOW_WIDTH = 0x0007FF;
+   
+   private HashMap<String,WindowPreset> presetMap;
+   WindowPreset currentPreset;
+   WindowPreset customPreset;
+   int windowCenter;
+   int windowWidth;
+   int nextIdx = 0;
+   
+   /**
+    * Create a default windowed interpolator, centered at intensity 2047 with
+    * width 2*2047.
+    */
+   public DicomWindowPixelConverter() {
+      this(DEFAULT_WINDOW_CENTER, 2*DEFAULT_WINDOW_WIDTH);
+   }
+   
+   /**
+    * Constructs a new interpolator given a center intensity and width
+    * @param center centre intensity
+    * @param width intensity width
+    */
+   public DicomWindowPixelConverter(int center, int width) {
+      presetMap = new HashMap<String, WindowPreset>();
+      customPreset = new WindowPreset("CUSTOM", center, width, Integer.MAX_VALUE);
+      presetMap.put("CUSTOM", customPreset);
+      setWindow("CUSTOM");
+   }
+   
+   /**
+    * @return the name of the currently active preset window
+    */
+   public String getWindow() {
+      return currentPreset.name;
+   }
+   
+   /**
+    * @return list of preset window names
+    */
+   public String[] getWindowNames() {
+      return  presetMap.keySet().toArray(new String[0]);
+   }
+   
+   /**
+    * @return the number of window presets available
+    */
+   public int numWindows() {
+      return presetMap.size();
+   }
+   
+   /**
+    * Adds a window preset to this interpolator
+    * @param preset name of the preset window
+    * @param center center intensity of window
+    * @param width width of window
+    */
+   public void addWindowPreset(String preset, int center, int width) {
+      presetMap.put(preset, new WindowPreset(preset, center, width, nextIdx++));
+   }
+   
+   /**
+    * Sets the currently active preset window
+    * @param preset name of preset
+    */
+   public void setWindow(String preset) {
+      if (preset != null) {
+         WindowPreset window = presetMap.get(preset);
+         if (window != null) {
+            currentPreset = window;
+            setWindowCenter(window.center);
+            setWindowWidth(window.width);
+         }
+      } else {
+         currentPreset = customPreset;
+      }
+   }
+   
+   /**
+    * @return a range of strings representing the various presets available
+    * (mostly for internal use in widgets)
+    */
+   public StringRange getWindowRange() {
+      WindowPreset[] presets = presetMap.values().toArray(new WindowPreset[0]);
+      Arrays.sort(presets);
+      String[] range = new String[presets.length];
+      for (int i=0; i<presets.length; i++) {
+         range[i] = presets[i].name;
+      }
+      return new StringRange(range);
+   }
+   
+   /**
+    * Sets the center of the window.  Note that if this differs from the
+    * value defined in a selected preset, then the window will automatically
+    * be changed to the 'custom' sized window
+    * @param center
+    */
+   public void setWindowCenter(int center) {
+      if (center != windowCenter) {
+         windowCenter = center;
+         
+         if (currentPreset != customPreset) {
+            if (center != currentPreset.center) {
+               currentPreset = customPreset;
+            }
+         }
+         if (currentPreset == customPreset) {
+            customPreset.center = center;
+         }
+         notifyHostOfPropertyChange("windowCenter");
+      }
+   }
+   
+   /**
+    * @return the middle intensity for the window
+    */
+   public int getWindowCenter() {
+      return windowCenter;
+   }
+   
+   /**
+    * Sets the width of the window.  Note that if the width differs
+    * from the currently active preset, then the window will automatically
+    * be switched to the 'custom' sized window
+    * @param width
+    */
+   public void setWindowWidth(int width) {
+      
+      if (width != windowWidth) {
+         if (width < 1) {
+            width = 1;
+         }
+         windowWidth = width;
+         
+         if (currentPreset != customPreset) {
+            if (width != currentPreset.width) {
+               currentPreset = customPreset;
+            }
+         } 
+         if (currentPreset == customPreset) {
+            customPreset.width = width;
+         }
+         
+         notifyHostOfPropertyChange("windowWidth");
+      }
+      
+   }
+   
+   /**
+    * @return the window width
+    */
+   public int getWindowWidth() {
+      return windowWidth;
+   }
+   
+   @Override
+   public int interpByteRGB(byte[] in, int idx, byte[] out, int odx) {
+      
+      byte bval;
+      
+      // 2x-2c-1
+      int val = ( in[idx] << 1 ) - (windowCenter << 1) + 1;
+      if ( val <= -(windowWidth-1) ) {
+         bval = 0;
+      } else if ( val > (windowWidth-1) ) {
+         bval = BYTE_MAX;
+      } else {
+         val = ( ( (val << 8) - val ) / (windowWidth-1) ) >>> 1;
+         bval = (byte)val;
+      }
+      
+      out[odx++] = bval;
+      out[odx++] = bval;
+      out[odx++] = bval;
+      return odx;
+   }
+
+   @Override
+   public int interpByteByte(byte[] in, int idx, byte[] out, int odx) {
+      // 2x-2c-1
+      int val = ( in[idx] << 1 ) - (windowCenter << 1) + 1;
+      if ( val <= -(windowWidth-1) ) {
+         out[odx++] = 0;
+      } else if ( val > (windowWidth-1) ) {
+         out[odx++] = BYTE_MAX;
+      } else {
+         out[odx++] = (byte)( ( ( (val << 8) - val ) / (windowWidth-1) ) >>> 1 );
+      }
+      return odx;
+   }
+
+   @Override
+   public int interpByteShort(byte[] in, int idx, short[] out, int odx) {
+      // 2x-2c-1
+      int val = ( in[idx] << 1 ) - (windowCenter << 1) + 1;
+      if ( val <= -(windowWidth-1) ) {
+         out[odx++] = 0;
+      } else if ( val > (windowWidth-1) ) {
+         out[odx++] = SHORT_MAX;
+      } else {
+         out[odx++] = (byte)( ( ( (val << 16) - val ) / (windowWidth-1) ) >>> 1 );
+      }
+      return odx;
+   }
+   
+   @Override
+   public int interpRGBRGB(byte[] in, int idx, byte[] out, int odx) {
+      
+      for (int i=0; i<3; i++) {
+         int val = ( (in[idx++] & BYTE_MASK) << 1 ) - (windowCenter << 1) + 1;
+         if ( val <= -(windowWidth-1) ) {
+            out[odx++] = 0;
+         } else if ( val > (windowWidth-1) ) {
+            out[odx++] = BYTE_MAX;
+         } else {
+            out[odx++] = (byte)( ( ( (val << 8) - val ) / (windowWidth-1) ) >>> 1 );
+         }
+      }
+      return odx;
+   }
+
+   @Override
+   public int interpRGBByte(byte[] in, int idx, byte[] out, int odx) {
+      int val = (in[idx] & BYTE_MASK) + (in[idx+1] & BYTE_MASK) + (in[idx+2] & BYTE_MASK);
+      val = ( val << 1 ) - 3*(windowCenter << 1) + 3;
+      if (val <= -3*(windowWidth-1)) {
+         out[odx++] = 0;
+      } else if (val > 3*(windowWidth-1)) {
+         out[odx++] = BYTE_MAX;
+      } else {
+         out[odx++] = (byte)( (  ((val << 8) - val) / (3* (windowWidth-1) ) ) >>> 1);
+      }
+      return odx;
+   }
+
+   @Override
+   public int interpRGBShort(byte[] in, int idx, short[] out, int odx) {
+      int val = (in[idx] & BYTE_MASK) + (in[idx+1] & BYTE_MASK) + (in[idx+2] & BYTE_MASK);
+      val = ( val << 1 ) - 3*(windowCenter << 1) + 3;
+      if (val <= -3*(windowWidth-1)) {
+         out[odx++] = 0;
+      } else if (val > 3*(windowWidth-1)) {
+         out[odx++] = SHORT_MAX;
+      } else {
+         out[odx++] = (byte)( (  ((val << 16) - val) / (3* (windowWidth-1) ) ) >>> 1);
+      }
+      return odx;
+   }
+
+   @Override
+   public int interpShortRGB(short[] in, int idx, byte[] out, int odx) {
+      byte bval;
+      // 2x-2c-1
+      int val = ( in[idx] << 1 ) - (windowCenter << 1) + 1;
+      if ( val <= -(windowWidth-1) ) {
+         bval = 0;
+      } else if ( val > (windowWidth-1) ) {
+         bval = BYTE_MAX;
+      } else {
+         val = ( ( (val << 8) - val ) / (windowWidth-1) ) >>> 1;
+         bval = (byte)val;
+      }
+      out[odx++] = bval;
+      out[odx++] = bval;
+      out[odx++] = bval;
+      return odx;
+   }
+
+   @Override
+   public int interpShortByte(short[] in, int idx, byte[] out, int odx) {
+      // 2x-2c-1
+      int val = ( in[idx] << 1 ) - (windowCenter << 1) + 1;
+      if ( val <= -(windowWidth-1) ) {
+         out[odx++] = 0;
+      } else if ( val > (windowWidth-1) ) {
+         out[odx++] = BYTE_MAX;
+      } else {
+         val = val + (windowWidth-1);
+         out[odx++] = (byte)( ( ( (val << 8) - val ) / (windowWidth-1) ) >>> 1 );
+      }
+      return odx;
+   }
+
+   @Override
+   public int interpShortShort(short[] in, int idx, short[] out, int odx) {
+      // 2x-2c-1
+      int val = ( in[idx] << 1 ) - (windowCenter << 1) + 1;
+      if ( val <= -(windowWidth-1) ) {
+         out[odx++] = 0;
+      } else if ( val > (windowWidth-1) ) {
+         out[odx++] = SHORT_MAX;
+      } else {
+         out[odx++] = (byte)( ( ( (val << 16) - val ) / (windowWidth-1) ) >>> 1 );
+      }
+      return odx;
+   }
+
+   @Override
+   public int
+      interp(DicomPixelBuffer in, int idx, DicomPixelBuffer out, int odx) {
+      
+      switch (in.getPixelType()) {
+         case BYTE: {
+            
+            switch (out.getPixelType()) {
+               case BYTE: {
+                  return interpByteByte((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
+               }
+               case RGB: {
+                  return interpByteRGB((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
+               }
+               case SHORT: {
+                  return interpByteShort((byte[])in.getBuffer(), idx, (short[])out.getBuffer(), odx);
+               }
+               default: {
+                  throw new IllegalArgumentException("Unknown type: " + out.getPixelType());
+               }  
+            }
+         }
+         case RGB: {
+            switch (out.getPixelType()) {
+               case BYTE: {
+                  return interpRGBByte((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
+               }
+               case RGB: {
+                  return interpRGBRGB((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
+               }
+               case SHORT: {
+                  return interpRGBShort((byte[])in.getBuffer(), idx, (short[])out.getBuffer(), odx);
+               }
+               default: {
+                  throw new IllegalArgumentException("Unknown type: " + out.getPixelType());
+               }  
+            }
+         }
+         case SHORT: {
+            switch (out.getPixelType()) {
+               case BYTE: {
+                  return interpShortByte((short[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
+               }
+               case RGB: {
+                  return interpShortRGB((short[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
+               }
+               case SHORT: {
+                  return interpShortShort((short[])in.getBuffer(), idx, (short[])out.getBuffer(), odx);
+               }
+               default: {
+                  throw new IllegalArgumentException("Unknown type: " + out.getPixelType());
+               }  
+            }
+         }
+         default: {
+            throw new IllegalArgumentException("Unknown type: " + in.getPixelType());
+         }
+         
+      }
+      
+   }
+   
+}

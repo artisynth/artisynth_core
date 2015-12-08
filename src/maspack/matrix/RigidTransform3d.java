@@ -281,51 +281,51 @@ Clonable {
       R.mul (X1.R, X2.R);
    }
 
-   /**
-    * Post-multiplies this transformation by the inverse of transformation X and
-    * places the result in this transformation.
-    * 
-    * @param X
-    * right-hand transformation
-    */
-   public void mulInverse (RigidTransform3d X) {
-      mulInverseRight (this, X);
-   }
+//   /**
+//    * Post-multiplies this transformation by the inverse of transformation X and
+//    * places the result in this transformation.
+//    * 
+//    * @param X
+//    * right-hand transformation
+//    */
+//   public void mulInverse (RigidTransform3d X) {
+//      mulInverseRight (this, X);
+//   }
+//
+//   /**
+//    * Multiplies transformation X1 by the inverse of transformation X2 and
+//    * places the result in this transformation.
+//    * 
+//    * @param X1
+//    * left-hand transformation
+//    * @param X2
+//    * right-hand transformation
+//    */
+//   public void mulInverseRight (RigidTransform3d X1, RigidTransform3d X2) {
+//      double p1x = X1.p.x;
+//      double p1y = X1.p.y;
+//      double p1z = X1.p.z;
+//      R.mulInverseRight (X1.R, X2.R);
+//      R.mul (p, X2.p);
+//      p.x = p1x - p.x;
+//      p.y = p1y - p.y;
+//      p.z = p1z - p.z;
+//   }
 
-   /**
-    * Multiplies transformation X1 by the inverse of transformation X2 and
-    * places the result in this transformation.
-    * 
-    * @param X1
-    * left-hand transformation
-    * @param X2
-    * right-hand transformation
-    */
-   public void mulInverseRight (RigidTransform3d X1, RigidTransform3d X2) {
-      double p1x = X1.p.x;
-      double p1y = X1.p.y;
-      double p1z = X1.p.z;
-      R.mulInverseRight (X1.R, X2.R);
-      R.mul (p, X2.p);
-      p.x = p1x - p.x;
-      p.y = p1y - p.y;
-      p.z = p1z - p.z;
-   }
-
-   /**
-    * Multiplies the inverse of transformation X1 by transformation X2 and
-    * places the result in this transformation.
-    * 
-    * @param X1
-    * left-hand transformation
-    * @param X2
-    * right-hand transformation
-    */
-   public void mulInverseLeft (RigidTransform3d X1, RigidTransform3d X2) {
-      p.sub (X2.p, X1.p);
-      X1.R.mulTranspose (p, p);
-      R.mulInverseLeft (X1.R, X2.R);
-   }
+//   /**
+//    * Multiplies the inverse of transformation X1 by transformation X2 and
+//    * places the result in this transformation.
+//    * 
+//    * @param X1
+//    * left-hand transformation
+//    * @param X2
+//    * right-hand transformation
+//    */
+//   public void mulInverseLeft (RigidTransform3d X1, RigidTransform3d X2) {
+//      p.sub (X2.p, X1.p);
+//      X1.R.mulTranspose (p, p);
+//      R.mulInverseLeft (X1.R, X2.R);
+//   }
 
    /**
     * Multiplies the inverse of transformation X1 by the inverse of
@@ -742,46 +742,52 @@ Clonable {
       RotationMatrix3d Ra = new RotationMatrix3d();
       SVDecomposition3d SVD = new SVDecomposition3d();
       SVD.leftPolarDecomposition (Sa, Ra, Xa.M);
+      p.mulAdd (Xa.M, p, Xa.b);
+      R.mul (Ra, R);
+   }
 
-      // if (Sa == null) {
-      //    Sa = new Matrix3d();
-      // }
-
-      // SVDecomposition3d SVD = new SVDecomposition3d();
-      // SVD.factor (Xa.M);
-      // Matrix3d U = SVD.getU();
-      // Matrix3d V = SVD.getV();
-      // Vector3d sig = new Vector3d();
-      // SVD.getS (sig);
-
-      // double detU = U.orthogonalDeterminant();
-      // double detV = V.orthogonalDeterminant();
-      // if (detV * detU < 0) { /* then one is negative and the other positive */
-      //    if (detV < 0) { /* negative last column of V */
-      //       V.m02 = -V.m02;
-      //       V.m12 = -V.m12;
-      //       V.m22 = -V.m22;
-      //       sig.z = -sig.z;
-      //    }
-      //    else /* detU < 0 */
-      //    { /* negative last column of U */
-      //       U.m02 = -U.m02;
-      //       U.m12 = -U.m12;
-      //       U.m22 = -U.m22;
-      //       sig.z = -sig.z;
-      //    }
-      // }
-      // // now set Ra = U * V' and Sa = U diag(sig) U'
-      // V.mulTransposeRight (U, V);
-      // Ra.set (V);
-
-      // Sa.set (U);
-      // Sa.mulDiagonalRight (sig);
-      // Sa.mulTransposeRight (Sa, U);
+   /**
+    * Premultiplies this transform by the rigid body component of an
+    * affine transform. More specifically, let this transform be originally
+    * described by
+    * 
+    * <pre>
+    *        [  R0  p0  ]
+    * this = [          ]
+    *        [   0   1  ]
+    * </pre>
+    * 
+    * and the affine transform be described by
+    * 
+    * <pre>
+    *        [  A   pa  ]     [  Sa Ra   pa  ]
+    * Xa =   [          ]  =  [              ]
+    *        [  0    1  ]     [    0      1  ]
+    * </pre>
+    * 
+    * where the A component of Xa is factored into Sa Ra using a left polar
+    * decomposition with sign adjustment to ensure that Ra is right-handed. 
+    * Then we form the product
+    * 
+    * <pre>
+    *           [  Sa Ra R0   Sa Ra p0 + pa  ]
+    * Xa this = [                            ]
+    *           [      0            1        ]
+    * </pre>
+    * 
+    * and then set the rotation and translation of this transform to Ra R0 and
+    * Sa Ra p0 + pa.
+    * 
+    * @param Xa
+    * affine transform to pre-multiply this transform by
+    * @param Ra
+    * Rotational part of the affine transform
+    */
+   public void mulAffineLeft (
+      AffineTransform3dBase Xa, RotationMatrix3d Ra) {
 
       p.mulAdd (Xa.M, p, Xa.b);
       R.mul (Ra, R);
-
    }
 
    /**

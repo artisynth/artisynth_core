@@ -9,6 +9,9 @@ package artisynth.core.mechmodels;
 import java.util.*;
 import java.io.*;
 
+import javax.media.opengl.*;
+
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.*;
 import maspack.properties.*;
 import maspack.util.*;
@@ -18,119 +21,159 @@ import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.util.*;
 
-public class ParticlePlaneConstraint extends ConstrainerBase
+public class ParticlePlaneConstraint extends ParticleConstraintBase
    implements ScalableUnits, TransformableGeometry {
 
-   Matrix3x1Block myBlk;
-   Particle myParticle;
+   Vector3d myNrm;
    double myOff;
-   double myLam;
+   Point3d myCenter;
+
+   private Point3d[] myRenderVtxs;
+   private double myPlaneSize = defaultPlaneSize;
+   private static final double defaultPlaneSize = 1;
+
+   protected static RenderProps defaultRenderProps (HasProperties host) {
+      RenderProps props = RenderProps.createFaceProps (null);
+      props.setFaceStyle (RenderProps.Faces.FRONT_AND_BACK);
+      return props;
+   }
+
+   public static PropertyList myProps =
+      new PropertyList (
+         ParticlePlaneConstraint.class, ParticleConstraintBase.class);
+
+   static {
+      myProps.add ("renderProps", "render properties", defaultRenderProps(null));
+   }
+
+   public PropertyList getAllPropertyInfo() {
+      return myProps;
+   }
 
    public ParticlePlaneConstraint () {
-      myBlk = new Matrix3x1Block ();
+      myNrm = new Vector3d();
+      myCenter = new Point3d();
+      myRenderVtxs = new Point3d[4];
+      for (int i = 0; i < myRenderVtxs.length; i++) {
+         myRenderVtxs[i] = new Point3d();
+      }
+      myRenderProps = createRenderProps();
+      myParticleInfo = new ArrayList<ParticleInfo>();
+   }
+
+   public ParticlePlaneConstraint (Plane plane) {
+      this();
+      myNrm.set (plane.normal);
+      myOff = plane.offset;
+      myCenter.scale (myOff, plane.normal);
+   }
+
+   public ParticlePlaneConstraint (Vector3d nrml, Point3d center) {
+      this();
+      Vector3d n = new Vector3d (nrml);
+      n.normalize();
+      myNrm.set (n);
+      myCenter.set (center);
+      myOff = n.dot (myCenter);
    }
 
    public ParticlePlaneConstraint (Particle p, Plane plane) {
-      myParticle = p;
-      myBlk = new Matrix3x1Block (plane.normal);
-      myOff = plane.offset;
+      this (plane);
+      addParticle (p);
    }
 
-   public Particle getParticle() {
-      return myParticle;
+   public ParticlePlaneConstraint (Particle p, Vector3d nrml, Point3d center) {
+      this (nrml, center);
+      addParticle (p);
    }
 
-   public void getBilateralSizes (VectorNi sizes) {
-      if (myParticle.getSolveIndex() != -1) {
-         sizes.append (1);
-      }
+   public Point3d getCenter() {
+      return new Point3d (myCenter);
    }
 
-   public int addBilateralConstraints (
-      SparseBlockMatrix GT, VectorNd dg, int numb) {
-
-      int idx = myParticle.getSolveIndex();
-      int bj = GT.numBlockCols();
-      if (idx != -1) {
-         GT.addBlock (idx, bj, myBlk);
-         if (dg != null) {
-            dg.set (numb, 0);
-         }
-         numb++;
-      }
-      return numb;
+   public Vector3d getNormal() {
+      return new Vector3d (myNrm);
    }
 
-   public int getBilateralInfo (ConstraintInfo[] ginfo, int idx) {
-      if (myParticle.getSolveIndex() == -1) {
-         return idx;
-      }
-      ConstraintInfo gi = ginfo[idx++];
-      Vector3d pos = myParticle.myState.pos;
-      gi.dist = (myBlk.m00*pos.x + myBlk.m10*pos.y + myBlk.m20*pos.z - myOff);
-      gi.compliance = 0;
-      gi.damping = 0;
-      return idx;
+   public double getPlaneSize() {
+      return myPlaneSize;
    }
 
-   public int setBilateralImpulses (VectorNd lam, double h, int idx) {
-      if (myParticle.getSolveIndex() != -1) {
-         myLam = lam.get(idx++);
-      }
-      return idx;
+   public void setPlaneSize (double len) {
+      myPlaneSize = len;
    }
 
-   public int getBilateralImpulses (VectorNd lam, int idx) {
-      if (myParticle.getSolveIndex() != -1) {
-         lam.set (idx++, myLam);
-      }
-      return idx;
-   }
-   
-   public void zeroImpulses() {
-      myLam = 0;
-   }
-
-   public void getUnilateralSizes (VectorNi sizes) {
-      // nothing to add
-   }
-
-   public int addUnilateralConstraints (
-      SparseBlockMatrix NT, VectorNd dn, int numu, double t) {
-      return numu;
-   }
-
-   public int getUnilateralInfo (ConstraintInfo[] ninfo, int idx) {
-      return idx;
-   }
-
-   public int setUnilateralImpulses (VectorNd the, double h, int idx) {
-      return idx;
+   protected ParticleInfo createParticleInfo (Particle p) {
+      return new ParticleInfo (p);
    }
 
    public double updateConstraints (double t, int flags) {
-      return 0;
+
+      boolean setEngaged = ((flags & MechSystem.UPDATE_CONTACTS) == 0);
+      double maxpen = 0;
+
+      for (int i=0; i<myParticleInfo.size(); i++) {
+         ParticleInfo pi = myParticleInfo.get(i);
+
+         pi.myBlk.set (myNrm);
+         pi.myDist = myNrm.dot (pi.myPart.getPosition()) - myOff;
+
+         if (setEngaged && myUnilateralP) {
+            maxpen = updateEngagement (pi, maxpen);
+         }
+      }
+      return maxpen;
    }
 
-   @Override
-   public void getHardReferences (List<ModelComponent> refs) {
-      super.getHardReferences (refs);
-      refs.add (myParticle);
+   protected void computeRenderVtxs () {
+      RotationMatrix3d RPD = new RotationMatrix3d();
+      RPD.setZDirection (myNrm);
+      myRenderVtxs[0].set (myPlaneSize / 2, myPlaneSize / 2, 0);
+      myRenderVtxs[1].set (-myPlaneSize / 2, myPlaneSize / 2, 0);
+      myRenderVtxs[2].set (-myPlaneSize / 2, -myPlaneSize / 2, 0);
+      myRenderVtxs[3].set (myPlaneSize / 2, -myPlaneSize / 2, 0);
+      for (int i = 0; i < myRenderVtxs.length; i++) {
+         myRenderVtxs[i].transform (RPD);
+         myRenderVtxs[i].add (myCenter);
+      }
    }
 
-//   @Override
-//   public void connectToHierarchy () {
-//      super.connectToHierarchy ();
-//      myParticle.addBackReference (this);
-//   }
-//
-//   @Override
-//   public void disconnectFromHierarchy() {
-//      super.disconnectFromHierarchy();
-//      myParticle.removeBackReference (this);
-//   }
+   public void updateBounds (Point3d pmin, Point3d pmax) {
+      computeRenderVtxs ();
+      for (int i = 0; i < myRenderVtxs.length; i++) {
+         myRenderVtxs[i].updateBounds (pmin, pmax);
+      }
+   }
+
+   public RenderProps createRenderProps() {
+      return defaultRenderProps (this);
+   }
+
+   public void prerender (RenderList list) {
+      super.prerender (list);
+   }
 
    public void render (Renderer renderer, int flags) {
+
+      if (myPlaneSize > 0) {
+         computeRenderVtxs ();
+
+         GL2 gl = renderer.getGL2().getGL2();
+         RenderProps props = myRenderProps;
+
+         renderer.setMaterialAndShading (
+            props, props.getFaceMaterial(), isSelected());
+         renderer.setFaceMode (props.getFaceStyle());
+         gl.glBegin (GL2.GL_POLYGON);
+         gl.glNormal3d (myNrm.x, myNrm.y, myNrm.z);
+         for (int i = 0; i < myRenderVtxs.length; i++) {
+            Point3d p = myRenderVtxs[i];
+            gl.glVertex3d (p.x, p.y, p.z);
+         }
+         gl.glEnd();
+         renderer.restoreShading (props);
+         renderer.setDefaultFaceMode();
+      }
    }
    
    public void scaleMass (double s) {
@@ -141,56 +184,57 @@ public class ParticlePlaneConstraint extends ConstrainerBase
    }
 
    public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
+      TransformGeometryContext.transform (this, X, 0);
    }
 
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
 
-      Plane plane = new Plane (myBlk.m00, myBlk.m10, myBlk.m20, myOff);
-      plane.transform (X, plane);
-      myBlk.set (plane.normal);
-      myOff = plane.offset;
+      // Simply return if this constraint is not being transformed. This
+      // could happen if (a) this class were to register with each particle
+      // using their addConstrainer() methods, and then (b) one of the
+      // particles was transformed, hence invoking a call to this method.
+      if (!context.contains(this)) {
+         return;
+      }
+      
+      Plane plane = new Plane (myNrm, myOff);
+      gtr.transformPnt (myCenter);
+      gtr.transform (plane, myCenter);
+      myNrm.set (plane.normal);
+      myOff = myNrm.dot(myCenter);
+   }  
+   
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      // no dependencies
    }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 
       rtok.nextToken();
-      if (scanAndStoreReference (rtok, "particle", tokens)) {
+      if (scanAttributeName (rtok, "center")) {
+         myCenter.scan (rtok);
+         myOff = myNrm.dot(myCenter);
          return true;
       }
-      else if (scanAttributeName (rtok, "plane")) {
-         Plane plane = new Plane();
-         plane.scan (rtok);
-         myBlk.set (plane.normal);
-         myOff = plane.offset;
+      else if (scanAttributeName (rtok, "normal")) {
+         myNrm.scan (rtok);
+         myOff = myNrm.dot(myCenter);
          return true;
       }
       rtok.pushBack();
       return super.scanItem (rtok, tokens);
    }
 
-   protected boolean postscanItem (
-   Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
-
-      if (postscanAttributeName (tokens, "particle")) {
-         myParticle =
-            postscanReference (tokens, Particle.class, ancestor);
-         return true;
-      }
-      return super.postscanItem (tokens, ancestor);
-   }
-
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
-      
-      Plane plane = new Plane (myBlk.m00, myBlk.m10, myBlk.m20, myOff);
-      pw.println ("particle=" +
-                  ComponentUtils.getWritePathName(ancestor,myParticle));
-      pw.println ("plane=[" + plane.toString (fmt) + "]");
-      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
+
+      super.writeItems (pw, fmt, ancestor);      
+      pw.println ("normal=[" + myNrm.toString (fmt) + "]");
+      pw.println ("center=[" + myCenter.toString (fmt) + "]");
    }
 
 }     

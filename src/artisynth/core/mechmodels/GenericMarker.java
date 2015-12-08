@@ -3,11 +3,13 @@ package artisynth.core.mechmodels;
 import java.util.List;
 import java.util.Map;
 
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.properties.PropertyList;
 import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.util.TransformableGeometry;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 
 public class GenericMarker extends Marker {
 
@@ -68,13 +70,13 @@ public class GenericMarker extends Marker {
       myAttachment.updateAttachment();
    }
    
-   @Override
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      super.transformGeometry (X, topObject, flags);
-      updateAttachment ();
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      super.transformGeometry (gtr, context, flags);
+      // John Lloyd, Oct 2015: don't think we need this
+      //updateAttachment ();
    }
-   
+
    @Override
    public void connectToHierarchy () {
       super.connectToHierarchy ();

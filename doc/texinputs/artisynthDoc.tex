@@ -62,6 +62,11 @@
 \else\if#1.{/}\else{#1}\fi\dottaketherest#2\fi}
 \def\dottaketherest#1\fi{\fi \dodottoslash#1\wholeString}
 
+\def\hashtodot #1{\dohashtodot#1$\wholeString\unskip}
+\def\dohashtodot#1#2\wholeString{\if#1$%
+\else\if#1\#{.}\else{#1}\fi\hashtaketherest#2\fi}
+\def\hashtaketherest#1\fi{\fi \dohashtodot#1\wholeString}
+
 % concatenates up to three class/method names together, adding '.' characters
 % between them. The first and/or second argument may be empty, in which case
 % the '.' is omitted. To check to see if these arguments are empty, we
@@ -80,7 +85,7 @@
 % '\if#1..' will return true, in which case we just output '#2'.
 \href{@JDOCBEGIN/\concatnames{\javabase}{#1}{#2}@JDOCEND}{#2}}
 \newcommand{\javaclass}[2][]{%
-\href{@JDOCBEGIN/\concatnames{}{#1}{#2}@JDOCEND}{#2}}
+\href{@JDOCBEGIN/\concatnames{}{#1}{#2}@JDOCEND}{\hashtodot{#2}}}
 
 \newcommand{\javamethodArgsx}[2][]{%
 \href{@JDOCBEGIN/\concatnames{\javabase}{#1}{#2}@JDOCEND}{#2}}
@@ -101,7 +106,7 @@
 %\href{\javaurl\dottoslash{\concatnames{\javabase}{#1}{#2}}.html}{#2}}
 \newcommand{\javamethodArgsx}[2][]{{\color{darkblue}#2}}
 \newcommand{\javamethodNoArgsx}[2][]{{\color{darkblue}\removeargs{#2}}}
-\newcommand{\javaclass}[2][]{{\color{darkblue}#2}}
+\newcommand{\javaclass}[2][]{{\color{darkblue}\hashtodot{#2}}}
 %\href{\javaurl\dottoslash{\concatnames{\javabase}{#1}{#2}}.html}{#2}}
 \newcommand{\javamethodArgs}[2][]{{\color{darkblue}#2}}
 \newcommand{\javamethodNoArgs}[2][]{{\color{darkblue}\removeargs{#2}}}

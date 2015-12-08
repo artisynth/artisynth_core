@@ -7,34 +7,33 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-
 
 import maspack.matrix.Point3d;
 
 
 /** 
- * Spatial Hash Table for speeding up 3D spatial nearest neighbour searches.
+ * Spatial Hash Table for speeding up 3D spatial nearest neighbour searches.<br><br>
  * 
  * 3D space is partitioned into an orthogonal, equally spaced grid. Each grid 
- * point is the centre of a "cell", which is essentially a List<T>. To search
+ * point is the centre of a "cell", which is essentially a List&lt;T&gt;. To search
  * for elements T near a point P, the cell containing P, AND the cells 
  * that neighbour the cell containing P must be searched. These cells can be 
  * easily found by calling getCellsNear or getCellsIntersecting, which returns
- * an Iterator<List<T>>, where each List<T> represents the elements in a single 
- * cell. 
+ * an Iterator&lt;List&lt;T&gt;&gt;, where each List&lt;T&gt; represents the elements in a single 
+ * cell. <br><br>
  * 
  * Grid spacing is defined upon construction, and construction is performed 
- * by calling setup().
+ * by calling setup().<br><br>
  
- * Example usage:
- * List<T> myElements;
+ * Example usage:<br>
+ * <pre>
+ * List&lt;T&gt; myElements;
  * ...
- * SpatialHashTable<T> table = new SpatialHashTable<>(spacing);
+ * SpatialHashTable&lt;T&gt; table = new SpatialHashTable&lt;&gt;(spacing);
  * 
- * List<Point3d> positions = new ArrayList<Point3d>();
+ * List&lt;Point3d&gt; positions = new ArrayList&lt;Point3d&gt;();
  * for (T el : myElements) {
  *    positions.add(el.getPos());
  * }
@@ -43,22 +42,20 @@ import maspack.matrix.Point3d;
  * 
  * Point3d mySearchPoint = new Point3d(0., 1., 2.);
  * 
- * Iterator<List<T>> it = table.getCellsNear (searchPoint);
+ * Iterator&lt;List&lt;T&gt;&gt; it = table.getCellsNear (searchPoint);
  * while (it.hasNext()) {
- *    List<T> cell = it.next();
+ *    List&lt;T&gt; cell = it.next();
  *    for (T el : cell) {
  *       el.doSomething();
  *    }
  * }
- * 
+ * </pre>
  * @author andrew ho
  */
 public class SpatialHashTable<T> {
-   private double myGridSpacing;
-   private HashMap<Index, List<T>> myGrid = new HashMap<Index, List<T>>();
-//   private ArrayList<Index> myUsedIndexList;
-   private boolean myIndexListInitialized = false;
-   private HashMap<Index, List<List<T>>> myIndexList = new HashMap<Index, List<List<T>>>();
+   private final double myGridSpacing;
+   private HashMap<Index, List<T>> myGrid = new HashMap<>();
+   private HashMap<Index, List<List<T>>> myIndexList = new HashMap<>();
 
    public SpatialHashTable (double gridSpacing) {
       myGridSpacing = gridSpacing;
@@ -75,11 +72,11 @@ public class SpatialHashTable<T> {
     */
    public synchronized void setup (List<? extends Point3d> positions, List<? extends T> elements) {
       myGrid.clear();
-      myIndexListInitialized = false; // This operation invalidates IndexLists
+
       if (positions.size() != elements.size()) {
          throw new IllegalArgumentException ("Non-matching position and element sizes!");
       }
-      Index idx = new Index();
+
       for (int i=0; i<elements.size (); i++) {
          T p = elements.get(i);
          
@@ -91,20 +88,12 @@ public class SpatialHashTable<T> {
          idxY = (int) Math.round((pos.y)/myGridSpacing);
          idxZ = (int) Math.round((pos.z)/myGridSpacing);
 
-         idx.vals[0] = idxX;
-         idx.vals[1] = idxY;
-         idx.vals[2] = idxZ;
-
+         Index idx = new Index(idxX,idxY,idxZ);
          List<T> parList = myGrid.get(idx);
 
          if (parList == null) {
-            Index newIndex = new Index();
-            newIndex.vals[0] = idxX;
-            newIndex.vals[1] = idxY;
-            newIndex.vals[2] = idxZ;
-            
             parList = new ArrayList<T>();
-            myGrid.put(newIndex, parList);
+            myGrid.put(idx, parList);
          }
          
          parList.add(p);
@@ -112,42 +101,11 @@ public class SpatialHashTable<T> {
       setupListsToNeighbours();
    }
    
-//   /**
-//    * Add a single element into the spatial hash table
-//    * @param pos position of the element
-//    * @param el element to be added.
-//    */
-//   public synchronized void addElement (Point3d pos, T el) {
-//      Index idx = new Index();
-//      // This is ok since negative indices are allowed now
-//      idx.vals[0] = (int) Math.round((pos.x)/myGridSpacing);
-//      idx.vals[1] = (int) Math.round((pos.y)/myGridSpacing);
-//      idx.vals[2] = (int) Math.round((pos.z)/myGridSpacing);
-//      
-//      List<T> parList = myGrid.get(idx);
-//
-//      if (parList == null) {
-//         Index newIndex = new Index();
-//         newIndex.vals[0] = idx.vals[0];
-//         newIndex.vals[1] = idx.vals[1];
-//         newIndex.vals[2] = idx.vals[2];
-//         
-//         parList = new ArrayList<T>();
-//         myGrid.put(newIndex, parList);
-//      }
-//      
-//      parList.add(el);
-//      myIndexListInitialized = false;
-//   }
-   
    protected synchronized void setupListsToNeighbours () {
-      if (myIndexListInitialized) {
-         return;
-      }
       myIndexList.clear ();
       for (Index index : myGrid.keySet ()) {
-         List<List<T>> list = new LinkedList<List<T>>();
-         NearCellIter it = new NearCellIter(index.vals[0], index.vals[1], index.vals[2]);
+         List<List<T>> list = new LinkedList<>();
+         NearCellIter it = new NearCellIter(index);
          while (it.hasNext ()) {
             List<T> cells = it.next();
             if (cells == null) {
@@ -158,11 +116,10 @@ public class SpatialHashTable<T> {
 
          myIndexList.put(index,list);
       }
-      myIndexListInitialized = true;
    }
 
    /**
-    * Returns a List of cells (List<T>'s) that might intersect a
+    * Returns a List of cells (List&lt;T&gt;'s) that might intersect a
     * bv tree.
     * 
     * @param bvtree
@@ -181,9 +138,9 @@ public class SpatialHashTable<T> {
       for (Index index : myGrid.keySet ()) {
          ArrayList<BVNode> nodes = new ArrayList<BVNode> ();
          // We need to add all cells which do intersect, and their neighbouring cells.
-         cellCentre.x = index.vals[0] * myGridSpacing;
-         cellCentre.y = index.vals[1] * myGridSpacing;
-         cellCentre.z = index.vals[2] * myGridSpacing;
+         cellCentre.x = index.x * myGridSpacing;
+         cellCentre.y = index.y * myGridSpacing;
+         cellCentre.z = index.z * myGridSpacing;
          
          bvtree.intersectSphere (nodes, cellCentre, sphereRadius);
          if (nodes.size() > 0) {
@@ -204,9 +161,6 @@ public class SpatialHashTable<T> {
     * @return Iterator for 27 bins.
     */
    public Iterator<List<T>> getCellsNear (Point3d pos) {
-      if (!myIndexListInitialized) 
-         setupListsToNeighbours();
-
       int xIdx = (int) Math.round (pos.x/myGridSpacing);
       int yIdx = (int) Math.round (pos.y/myGridSpacing);
       int zIdx = (int) Math.round (pos.z/myGridSpacing);
@@ -253,20 +207,21 @@ public class SpatialHashTable<T> {
       }
    }
 
-   private class Index {
+   private static class Index {
       // give direct access to values for convenience 
-      protected int[] vals;
-      private Index() {
-         vals = new int[] {0,0,0};
-      }
+      private final int x,y,z;
       private Index(int x, int y, int z) {
-         vals = new int[] {x,y,z};
+         this.x = x;
+         this.y = y;
+         this.z = z;
       }
       @Override
       public int hashCode () {
          final int prime = 31;
          int result = 1;
-         result = prime * result + Arrays.hashCode (vals);
+         result = prime * result + x;
+         result = prime * result + y;
+         result = prime * result + z;
          return result;
       }
       @Override
@@ -278,11 +233,15 @@ public class SpatialHashTable<T> {
          if (getClass () != obj.getClass ())
             return false;
          Index other = (Index)obj;
-         if (!Arrays.equals (vals, other.vals))
+         if (x != other.x)
+            return false;
+         if (y != other.y)
+            return false;
+         if (z != other.z)
             return false;
          return true;
       }
-
+      
    }
 
    /** Iterates through all cells adjacent to cell at index (x,y,z)
@@ -298,10 +257,7 @@ public class SpatialHashTable<T> {
       private NearCellIter (int x, int y, int z) {
          super();
          xc = x; yc = y; zc = z;
-         idx = new Index();
-         idx.vals[0] = xc - 2;
-         idx.vals[1] = yc - 1;
-         idx.vals[2] = zc - 1;
+         idx = new Index(xc-2,yc-1,zc-1);
       }
       /**
        * Construct a NearCellIter with the index of the central cell you wish
@@ -311,19 +267,16 @@ public class SpatialHashTable<T> {
        */
       private NearCellIter (Index index) {
          super();
-         xc = index.vals[0];
-         yc = index.vals[1];
-         zc = index.vals[2];
+         xc = index.x;
+         yc = index.y;
+         zc = index.z;
          
-         idx = new Index();
-         idx.vals[0] = xc - 2;
-         idx.vals[1] = yc - 1;
-         idx.vals[2] = zc - 1;
+         idx = new Index(xc-2,yc-1,zc-1);
       }
       
       @Override
       public boolean hasNext() {
-         if (idx.vals[0]-xc == 1 && idx.vals[1]-yc == 1 && idx.vals[2]-zc == 1) {
+         if (idx.x-xc == 1 && idx.y-yc == 1 && idx.z-zc == 1) {
             return false;
          }
          return true;
@@ -331,17 +284,19 @@ public class SpatialHashTable<T> {
 
       @Override
       public List<T> next() {
-         if (idx.vals[0]-xc != 1) {
-            idx.vals[0]++;
+         if (idx.x-xc != 1) {
+            idx = new Index(idx.x+1,idx.y,idx.z);
          }
-         else if (idx.vals[1]-yc != 1) {
-            idx.vals[1]++;
-            idx.vals[0] = xc-1;
+         else if (idx.y-yc != 1) {
+            idx = new Index(xc-1,idx.y+1,idx.z);
+//            idx.vals[1]++;
+//            idx.vals[0] = xc-1;
          }
-         else if (idx.vals[2]-zc != 1) {
-            idx.vals[2]++;
-            idx.vals[0] = xc-1;
-            idx.vals[1] = yc-1;
+         else if (idx.z-zc != 1) {
+            idx = new Index(xc-1,yc-1,idx.z+1);
+//            idx.vals[2]++;
+//            idx.vals[0] = xc-1;
+//            idx.vals[1] = yc-1;
          }
          else {
             throw new NoSuchElementException ("No more adjacent cells!");
@@ -352,7 +307,7 @@ public class SpatialHashTable<T> {
 
       @Override
       public String toString() {
-         return ("( " + idx.vals[0] + ", " + idx.vals[1]+ ", " + idx.vals[2] + " )");
+         return ("( " + idx.x + ", " + idx.y+ ", " + idx.z + " )");
       }
 
       @Override

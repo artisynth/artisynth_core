@@ -9,9 +9,11 @@ package artisynth.core.probes;
 import java.awt.Color;
 import java.io.File;
 import java.util.LinkedList;
+import java.util.List;
 
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
@@ -27,7 +29,8 @@ import maspack.render.TextureProps;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentBase;
-import artisynth.core.util.TransformableGeometry;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 
 public class ImagePlaneProbe extends InputProbe implements RenderableComponent,
 TransformableGeometry {
@@ -121,13 +124,18 @@ TransformableGeometry {
          RenderableComponentBase.updateRenderProps (this, myRenderProps, props);
    }
 
-   public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      transformGeometry (X);
+   public void transformGeometry (AffineTransform3dBase X) {
+      TransformGeometryContext.transform (this, X, 0);
    }
 
-   public void transformGeometry (AffineTransform3dBase X) {
-      planeMesh.transform (X);
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      gtr.transform (planeMesh);
+   }
+   
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      // no dependencies
    }
 
    public boolean isSelectable() {

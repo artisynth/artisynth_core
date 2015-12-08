@@ -6,6 +6,10 @@
  */
 package artisynth.core.mechmodels;
 
+import java.io.PrintWriter;
+import java.io.IOException;
+import java.util.Deque;
+
 import maspack.geometry.PolygonalMesh;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.SymmetricMatrix3d;
@@ -15,10 +19,14 @@ import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
 import maspack.util.InternalErrorException;
+import maspack.util.ReaderTokenizer;
+import maspack.util.NumberFormat;
 import artisynth.core.femmodels.IntegrationData3d;
 import artisynth.core.femmodels.IntegrationPoint3d;
+import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.SolidDeformation;
+import artisynth.core.util.ScanToken;
 
 public class BeamBody extends DeformableBody {
 
@@ -52,6 +60,9 @@ public class BeamBody extends DeformableBody {
    @Override public void setMaterial (FemMaterial mat) {
       super.setMaterial (mat);
       invalidateStiffness();
+   }
+
+   public BeamBody () {
    }
 
    public BeamBody (
@@ -244,9 +255,28 @@ public class BeamBody extends DeformableBody {
       // drawAxes (gl, X, 0.5f);
    }
 
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
 
-   
-         
+      rtok.nextToken();
+      if (scanAttributeName (rtok, "length")) {
+         double len = rtok.scanNumber();
+         myLen = len;
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }   
+
+
+   protected void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+
+      pw.println ("length=" + fmt.format (myLen));
+      super.writeItems (pw, fmt, ancestor);
+   }
+    
 
 }
 

@@ -200,7 +200,7 @@ Clonable {
     * vector into which values are to be copied
     * @param idx
     * starting index for copying values
-    * @throws ArrayIndexOfOutBoundsException
+    * @throws ArrayIndexOutOfBoundsException
     * if idx specifies a region within v1 that exceeds its bounds
     */
    public void get (VectorNd v1, int idx) {
@@ -287,7 +287,7 @@ Clonable {
     * vector from which new values are copied
     * @param idx
     * starting index for new values
-    * @throws ArrayIndexOfOutBoundsException
+    * @throws ArrayIndexOutOfBoundsException
     * if idx specifies a region within v1 that exceeds its bounds
     */
    public void set (VectorNd v1, int idx) {

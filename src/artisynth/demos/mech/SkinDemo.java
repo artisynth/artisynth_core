@@ -16,7 +16,7 @@ import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
 import maspack.spatialmotion.SpatialInertia;
 import artisynth.core.driver.Main;
-import artisynth.core.femmodels.SkinMesh;
+import artisynth.core.femmodels.SkinMeshBody;
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.mechmodels.AxialSpring;
 import artisynth.core.mechmodels.FrameMarker;
@@ -37,8 +37,8 @@ public class SkinDemo extends RootModel {
    double len = 20;
    Vector3d size = new Vector3d(len/10,len/5,len);
    boolean addCompression = true;
-   protected SkinMesh mySkinMesh = null;
-   SkinMesh myFiberMesh = null;
+   protected SkinMeshBody mySkinMesh = null;
+   SkinMeshBody myFiberMesh = null;
    RigidBody myLower = null;
    RigidBody myUpper = null;
 
@@ -162,7 +162,7 @@ public class SkinDemo extends RootModel {
 
       j.setBodies (lowerArm, TCA, null, TCW);
       j.setAxisLength(len/3);
-      model.addRigidBodyConnector(j);
+      model.addBodyConnector(j);
         
       upperArm.setDynamic(false);
    }
@@ -352,7 +352,7 @@ public class SkinDemo extends RootModel {
       mesh = MeshFactory.createSphere (10.0, 12, 12);
       mesh.scale (1, 1, 2.5);
       mesh.transform (new RigidTransform3d (-6, 0, 0, 0, Math.toRadians(22.5),0));
-      SkinMesh skinMesh = new SkinMesh (mesh);
+      SkinMeshBody skinMesh = new SkinMeshBody (mesh);
       skinMesh.addFrame (model.rigidBodies().get(0));
       skinMesh.addFrame (model.rigidBodies().get(1));
       skinMesh.computeWeights();
@@ -368,7 +368,7 @@ public class SkinDemo extends RootModel {
       PolylineMesh mesh = MeshFactory.createSphericalPolyline (8.0, 12, 12);
       mesh.scale (1, 1, 2.5);
       mesh.transform (new RigidTransform3d (-6, 0, 0, 0, Math.toRadians(22.5),0));
-      SkinMesh fiberMesh = new SkinMesh (mesh);
+      SkinMeshBody fiberMesh = new SkinMeshBody (mesh);
       fiberMesh.addFrame (model.rigidBodies().get(0));
       fiberMesh.addFrame (model.rigidBodies().get(1));
       fiberMesh.computeWeights();

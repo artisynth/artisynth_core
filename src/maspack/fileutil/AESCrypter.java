@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.fileutil;
 
 import java.security.MessageDigest;
@@ -13,7 +20,7 @@ import javax.crypto.spec.SecretKeySpec;
  * algorithm.  To enable the 256-bit mode, you must install the JCE Unlimited 
  * Strength policy files:
  * "Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files"
- * <http://www.oracle.com/technetwork/java/javase/downloads/index.html>
+ * &lt;http://www.oracle.com/technetwork/java/javase/downloads/index.html&gt;
  * 
  * @author "Antonio Sanchez"
  * Creation date: 24 Oct 2012

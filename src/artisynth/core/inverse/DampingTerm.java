@@ -37,8 +37,15 @@ public class DampingTerm extends LeastSquaresTermBase {
       if (dt>0) {
          H.setIdentity();
          H.scale(Math.sqrt(myWeight/dt));
+         
+
          myController.getExcitations(f, 0);
          f.scale(Math.sqrt(myWeight/dt));
+
+//         if (TrackingController.isDebugTimestep (t0, t1)) {
+//            System.out.println("dt = " + dt + "    |Hd| = " + H.frobeniusNorm() + "    |f| = " + f.norm ());
+//         }
+
       }
    }
 

@@ -95,14 +95,14 @@ public class ContactInfo {
       }
 
       renderer.setColor (1f, 0f, 0f);
-      gl.glPointSize (30);
+      renderer.setPointSize (30);
       for (ContactPenetratingPoint p : points) {
          Point3d n1 = p.position;
          gl.glBegin (GL2.GL_POINTS);
          gl.glVertex3d (n1.x, n1.y, n1.z);
          gl.glEnd();
       }
-      gl.glPointSize (1);
+      renderer.setPointSize (1);
       renderer.setColor (0f, 1f, 0f);
 
    }

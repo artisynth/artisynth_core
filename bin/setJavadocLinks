@@ -75,20 +75,26 @@ while (<INPUT>) {
 close INPUT;
 
 sub replaceDots {
-    my $str = $_[0];
+    my $className = $_[0];
+    my $str = $className;
     $str =~ s/\./\//g;
+    $str =~ s/\#/\./g;
+    if (!(-e "$jdocDir/$str.html")) {
+       warn "WARNING: class $className not found\n";
+    }
     return "\@JDOCBEGIN/$str.html";
 }
 
-# Returns the substitution string for a matched method reference.
-# The inputs consist of the javadoc filename for the class,
-# the method name itself, and the current argument string
-# for the method (the latter may be null).
+# Returns the substitution string for a matched method reference.  The
+# inputs consist of the javadoc filename for the class, the method
+# name itself, and the current argument string for the method (the
+# latter may be null).
 sub fixMethodRef {
-    my $classFile = $_[0];
+    my $className = $_[0];
     my $methodName = $_[1];
     my $methodArgs = $_[2];
 
+    my $classFile = $className;
     $classFile =~ s/\./\//g;
     $classFile = $classFile . ".html";
     # create an expression for matching the current argument string
@@ -118,8 +124,16 @@ sub fixMethodRef {
 	    }
 	}	    
 	if (!$matched) {
-	    warn "Warning: No match found for $methodName($methodArgs)\n";
+	    warn "WARNING: No argument match found for $methodName($methodArgs)\n";
 	}
+    }
+    else {
+        if (!(-e "$jdocDir/$classFile")) {
+            warn "WARNING: class $className not found for method $methodName\n";
+        }
+        else {
+            warn "WARNING: method $methodName not found for class $className\n";
+        }
     }
     return "\@JDOCBEGIN/$classFile\#$methodName\($methodArgs\)";
 }

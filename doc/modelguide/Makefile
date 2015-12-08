@@ -13,6 +13,7 @@ SOURCES = \
 	mechanicalModelsII.tex \
 	simulationControl.tex \
 	femModels.tex \
+        dicom.tex \
 	appendix.tex
 
 .PHONY: html pdf chunked
@@ -33,6 +34,10 @@ modelguide.pdf: $(SOURCES)
 	bibtex modelguide1
 	pdflatex modelguide.tex	
 	pdflatex modelguide.tex
+
+multipoint.pdf: multipoint.tex
+	pdflatex multipoint.tex	
+	pdflatex multipoint.tex
 
 modelguide.xml: $(SOURCES)
 	latexml modelguide.tex >modelguide.xml

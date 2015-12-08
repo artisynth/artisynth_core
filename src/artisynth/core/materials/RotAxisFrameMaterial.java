@@ -199,7 +199,19 @@ public class RotAxisFrameMaterial extends FrameMaterial {
    }
 
    public boolean equals (FrameMaterial mat) {
-      return true;
+      if (!(mat instanceof RotAxisFrameMaterial)) {
+         return false;
+      }
+      RotAxisFrameMaterial ram = (RotAxisFrameMaterial)mat;
+      if (!myK.equals (ram.myK) ||
+          !myD.equals (ram.myD) ||
+          myRotK != ram.myRotK ||
+          myRotD != ram.myRotD) {
+         return false;
+      }
+      else {
+         return super.equals (mat);
+      }
    }
 
    public RotAxisFrameMaterial clone() {

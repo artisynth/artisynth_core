@@ -7,7 +7,7 @@
 
 \title{Writing Documentation for ArtiSynth}
 \author{John Lloyd}
-\setpubdate{July 24, 2012}
+\setpubdate{Last update: Dec 1, 2015}
 \iflatexml
 \date{}
 \fi
@@ -447,23 +447,42 @@ with only the main argument being used as the anchor text.
 The names provided by the optional argument and the main argument are
 concatenated (with an intervening '{\tt .}' character) to create a
 fully qualified class name that is used to produce the appropriate
-hyperlink to the Javadoc. For additional brevity in the LaTeX source
-file, one can also use the command {\tt \BKS javaclassx}, which
-internally prepends a package name provided by the expansion of {\tt
-\BKS javabase} onto the class name. {\tt \BKS javabase} can be set
-using the command {\tt \BKS setjavabase}, thus removing the need to
-explicly specify the full class name in the arguments to {\tt \BKS
-javaclassx}. For example,
+hyperlink to the Javadoc. 
+
+When referencing an inner class or enumerated type, one should
+separate the subclass name from the main class name with an escaped
+hashtag {\tt \#} instead of a {\tt .} character. This allows {\tt \BKS
+javaclass} to distinguish class name separators from package name
+separators (which need to be converted to file separators). The
+hashtags will be converted to dot characters on output.
+
+For example, the LaTeX source 
 
 \begin{lstlisting}[]
-\setjavabase{maspack.matrix}
-Two important classes are \javaclassx{MatrixNd} and \javaclassx{VectorNd}.
+Use the \javaclass[maspack.matrix]{Matrix\#WriteFormat} to control formatting.
 \end{lstlisting}
 
 will produce the output
 
-\setjavabase{maspack.matrix}
-Two important classes are \javaclassx{MatrixNd} and \javaclassx{VectorNd}.
+Use the \javaclass[maspack.matrix]{Matrix\#WriteFormat} to control formatting.
+
+%For additional brevity in the LaTeX source
+%file, one can also use the command {\tt \BKS javaclassx}, which
+%internally prepends a package name provided by the expansion of {\tt
+%\BKS javabase} onto the class name. {\tt \BKS javabase} can be set
+%using the command {\tt \BKS setjavabase}, thus removing the need to
+%explicly specify the full class name in the arguments to {\tt \BKS
+%javaclassx}. For example,
+%
+%\begin{lstlisting}[]
+%\setjavabase{maspack.matrix}
+%Two important classes are \javaclassx{MatrixNd} and \javaclassx{VectorNd}.
+%\end{lstlisting}
+%
+%will produce the output
+%
+%\setjavabase{maspack.matrix}
+%Two important classes are \javaclassx{MatrixNd} and \javaclassx{VectorNd}.
 
 \subsubsection{Method references}
 
@@ -485,22 +504,22 @@ will produce output of the form
 \javamethod[maspack.matrix]{MatrixNd.mul(MatrixNd)},
 \javamethod[maspack.matrix.MatrixNd]{mul(MatrixNd,MatrixNd)}.
 
-As with {\tt \BKS javaclass}, an alternate method {\tt \BKS
-javamethodx} is available which internally prepends the package name
-provided by the expansion of {\tt \BKS javabase} onto the class name,
-so that
-
-\begin{lstlisting}[]
-\setjavabase{maspack.matrix}
-\javamethodx[MatrixNd]{mul(MatrixNd)} takes one argument,
-while \javamethodx[MatrixNd]{mul(MatrixNd,MatrixNd)} takes two.
-\end{lstlisting}
-
-will produce output of the form
-
-\setjavabase{maspack.matrix}
-\javamethodx[MatrixNd]{mul(MatrixNd)} takes one argument,
-while \javamethodx[MatrixNd]{mul(MatrixNd,MatrixNd)} takes two.
+%As with {\tt \BKS javaclass}, an alternate method {\tt \BKS
+%javamethodx} is available which internally prepends the package name
+%provided by the expansion of {\tt \BKS javabase} onto the class name,
+%so that
+%
+%\begin{lstlisting}[]
+%\setjavabase{maspack.matrix}
+%\javamethodx[MatrixNd]{mul(MatrixNd)} takes one argument,
+%while \javamethodx[MatrixNd]{mul(MatrixNd,MatrixNd)} takes two.
+%\end{lstlisting}
+%
+%will produce output of the form
+%
+%\setjavabase{maspack.matrix}
+%\javamethodx[MatrixNd]{mul(MatrixNd)} takes one argument,
+%while \javamethodx[MatrixNd]{mul(MatrixNd,MatrixNd)} takes two.
 
 The argument signature does not need to contain the fully qualified
 type names of the arguments. In fact, if the method name is unique to
@@ -512,31 +531,47 @@ partly matches the fully qualified type name of each argument.
 For example,
 
 \begin{lstlisting}[]
-\javamethodx{MatrixNd.mul(maspack.matrix.MatrixNd,maspack.matrix.MatrixNd)}, 
-\javamethodx{MatrixNd.mul(matrix.MatrixNd,matrix.MatrixNd)},
-\javamethodx{MatrixNd.mul(MatrixNd,MatrixNd)}.
+\javamethod[maspack.matrix]{MatrixNd.mul(maspack.matrix.MatrixNd,maspack.matrix.MatrixNd)}, 
+\javamethod[maspack.matrix]{MatrixNd.mul(matrix.MatrixNd,matrix.MatrixNd)},
+\javamethod[maspack.matrix]{MatrixNd.mul(MatrixNd,MatrixNd)}.
 \end{lstlisting}
 
 will all produce references to the same method. In fact, if the method
 name and argument count is unique, then a set of commas indicating the
 number of arguments will be sufficient, as in {\tt
-\BKS javamethodx{MatrixNd.mul(,)}}.
+\BKS javamethod{MatrixNd.mul(,)}}.
 
-Finally, to omit the argument signature from
-the anchor text, one can use the commands {\tt \BKS javamethod*}
-or {\tt \BKS javamethodx*} instead, so that
+To omit the argument signature from
+the anchor text, one can use the alternate command {\tt \BKS javamethod*}
+instead, so that
 
 \begin{lstlisting}[]
 Method reference with argument signature:
-\javamethodx{MatrixNd.mul(MatrixNd,MatrixNd)}, and without:
-\javamethodx*{MatrixNd.mul(MatrixNd,MatrixNd)}.
+\javamethod[maspack.matrix]{MatrixNd.mul(MatrixNd,MatrixNd)}, and without:
+\javamethod*[maspack.matrix]{MatrixNd.mul(MatrixNd,MatrixNd)}.
 \end{lstlisting}
 
 will produce the output
 
 Method reference with argument signature:
-\javamethodx{MatrixNd.mul(MatrixNd,MatrixNd)}, and without:
-\javamethodx*{MatrixNd.mul(MatrixNd,MatrixNd)}.
+\javamethod[maspack.matrix]{MatrixNd.mul(MatrixNd,MatrixNd)}, and without:
+\javamethod*[maspack.matrix]{MatrixNd.mul(MatrixNd,MatrixNd)}.
+
+Finally, one may sometimes want complete control over the visible text
+associated with a method reference. For example,
+instead of \javamethod[maspack.matrix]{MatrixNd.mul(MatrixNd,MatrixNd)},
+one may wish to use 
+\javamethodAlt{maspack.matrix.MatrixNd.mul(MatrixNd,MatrixNd)}%
+{MatrixNd.mul(M1,M2)}. One can do this using the command
+{\tt javamethodAlt}, which requires two arguments (and does
+not take an optional argument):
+%
+\begin{lstlisting}[]
+\javamethodAlt{maspack.matrix.MatrixNd.mul(MatrixNd,MatrixNd)}{MatrixNd.mul(M1,M2)}
+\end{lstlisting}
+%
+The first argument specifies the class, method and arguments in enough
+detail to locate the link, and the second specifies the visible text.
 
 \subsubsection{How it works}
 

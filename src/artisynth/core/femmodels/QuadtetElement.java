@@ -345,11 +345,6 @@ public class QuadtetElement extends FemElement3d {
       myWarper.computeWarping (myNodes[0], myNodes[1], myNodes[2], myNodes[3]);
    }
 
-   @Override
-   public boolean isInside (Point3d pnt) {
-      return this.getNaturalCoordinates (new Vector3d(), pnt);
-   }
-
    public FemNode3d[][] triangulateFace (FaceNodes3d face) {
       FemNode3d[] nodes = face.getNodes();
       if (nodes.length != 6) {

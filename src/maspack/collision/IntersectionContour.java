@@ -81,6 +81,10 @@ public class IntersectionContour extends ArrayList<MeshIntersectionPoint> {
       return normalSum.norm() * 0.5;
    }
    
+   public void setOpen(boolean isOpen) {
+      myIsOpen = isOpen;
+   }
+   
    public boolean isOpen() {
       return myIsOpen;
    }

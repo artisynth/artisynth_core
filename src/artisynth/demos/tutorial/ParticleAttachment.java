@@ -58,19 +58,7 @@ public class ParticleAttachment extends RootModel {
       // increase model bounding box for the viewer
       mech.setBounds (/*min=*/-0.5, 0, -0.5, /*max=*/0.5, 0, 0);  
       // set render properties for the components
-      setPointRenderProps (mech);
-      setLineRenderProps (mech);
-   }
-
-   protected void setPointRenderProps (Renderable r) {
-      RenderProps.setPointColor (r, Color.RED);
-      RenderProps.setPointStyle (r, RenderProps.PointStyle.SPHERE);
-      RenderProps.setPointRadius (r, 0.06);
-   }
-
-   protected void setLineRenderProps (Renderable r) {
-      RenderProps.setLineColor (r, Color.BLUE);
-      RenderProps.setLineStyle (r, RenderProps.LineStyle.CYLINDER);
-      RenderProps.setLineRadius (r, 0.02);
+      RenderProps.setSphericalPoints (mech, 0.06, Color.RED);
+      RenderProps.setCylindricalLines (mech, 0.02, Color.BLUE);
    }
 }

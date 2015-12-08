@@ -50,7 +50,7 @@ public class PressureShell extends RootModel {
       }
 
       public void apply (double t0, double t1) {
-         FemMesh meshc = myFem.getSurfaceFemMesh();
+         FemMeshComp meshc = myFem.getSurfaceMeshComp();
          Vector3d f = new Vector3d();
          for (Face face : myInteriorFaces) {
             f.scale (-face.computeArea()*getPressure(), face.getNormal());

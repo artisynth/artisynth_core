@@ -2,6 +2,18 @@ package artisynth.core.materials;
 
 public class LinearAxialMuscle extends AxialMuscleMaterial {
 
+   public LinearAxialMuscle() {
+      super ();
+   }
+   
+   public LinearAxialMuscle(double fmax, double lrest) {
+      super();
+      myMaxForce = fmax;
+      myOptLength = lrest;
+      myMaxLength = lrest*1.5;
+      myPassiveFraction = 1;
+   }
+   
    public double computeF(double l, double ldot, double l0, double ex) {
       double passive = 0, active = 0;
 

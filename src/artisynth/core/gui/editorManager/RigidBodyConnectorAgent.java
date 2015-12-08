@@ -30,7 +30,7 @@ import artisynth.core.workspace.RootModel;
  * Responsible for adding RigidBodyConnectors to a MechModel.
  */
 public class RigidBodyConnectorAgent extends
-AddComponentAgent<RigidBodyConnector> {
+AddComponentAgent<BodyConnector> {
    private MechModel myModel;
    private RigidBody myBodyA;
    private RigidBody myBodyB;
@@ -135,7 +135,7 @@ AddComponentAgent<RigidBodyConnector> {
    public RigidBodyConnectorAgent (Main main, MechModel model) {
 
       super (main,
-             (ComponentList<RigidBodyConnector>)model.rigidBodyConnectors(),
+             (ComponentList<BodyConnector>)model.bodyConnectors(),
              model);
       myModel = model;
    }
@@ -171,7 +171,7 @@ AddComponentAgent<RigidBodyConnector> {
 
       createComponentList (
          "Existing rigid body connectors:",
-         new RigidBodyConnectorList (myModel.rigidBodyConnectors(), myModel));
+         new RigidBodyConnectorList (myModel.bodyConnectors(), myModel));
       createSeparator();
       createNameField();
       createTypeSelector ("Connector type");
@@ -234,7 +234,7 @@ AddComponentAgent<RigidBodyConnector> {
    }
 
    private void createAndAddConnector (Point3d origin) {
-      RigidBodyConnector connector;
+      BodyConnector connector;
 
       RigidTransform3d TCW = new RigidTransform3d();
       TCW.R.set (myBodyA.getPose().R);
@@ -277,9 +277,9 @@ AddComponentAgent<RigidBodyConnector> {
       setProperties (myPrototype, myPrototype);
 
       addComponent (new AddComponentsCommand (
-           "add RigidBodyConnector",
+           "add BodyConnector",
            connector,
-           (MutableCompositeComponent<?>)myModel.rigidBodyConnectors()));
+           (MutableCompositeComponent<?>)myModel.bodyConnectors()));
 
       setState (State.Complete);
       myMain.setSelectionMode (Main.SelectionMode.Translate);
@@ -301,17 +301,17 @@ AddComponentAgent<RigidBodyConnector> {
 
 }
 
-class RigidBodyConnectorList extends ComponentListWidget<RigidBodyConnector> {
-   RigidBodyConnectorList (ComponentListView<RigidBodyConnector> list,
+class RigidBodyConnectorList extends ComponentListWidget<BodyConnector> {
+   RigidBodyConnectorList (ComponentListView<BodyConnector> list,
    CompositeComponent ancestor) {
       super (list, ancestor);
    }
 
    @Override
    protected String getName (
-      RigidBodyConnector comp, CompositeComponent ancestor) {
-      RigidBody bodyA = comp.getBodyA();
-      RigidBody bodyB = comp.getBodyB();
+      BodyConnector comp, CompositeComponent ancestor) {
+      ConnectableBody bodyA = comp.getBodyA();
+      ConnectableBody bodyB = comp.getBodyB();
       if (bodyB != null) {
          return ComponentUtils.getPathName (ancestor, bodyA) + " - "
          + ComponentUtils.getPathName (ancestor, bodyB);

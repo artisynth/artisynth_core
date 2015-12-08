@@ -83,7 +83,7 @@ public class PlanarConnectorDemo extends RootModel {
       connector.setRenderProps (props);
 
       // mechMod.addRigidBody (box);
-      mechMod.addRigidBodyConnector (connector);
+      mechMod.addBodyConnector (connector);
 
       addModel (mechMod);
       addControlPanel (mechMod);
@@ -99,9 +99,9 @@ public class PlanarConnectorDemo extends RootModel {
       myControlPanel = new ControlPanel ("options", "");
       myControlPanel.addWidget (mech, "integrator");
       myControlPanel.addWidget (mech, "maxStepSize");
-      myControlPanel.addWidget (mech, "rigidBodyConnectors/0:unilateral");
-      myControlPanel.addWidget (mech, "rigidBodyConnectors/0:compliance");
-      myControlPanel.addWidget (mech, "rigidBodyConnectors/0:damping");
+      myControlPanel.addWidget (mech, "bodyConnectors/0:unilateral");
+      myControlPanel.addWidget (mech, "bodyConnectors/0:compliance");
+      myControlPanel.addWidget (mech, "bodyConnectors/0:damping");
       addControlPanel (myControlPanel);
    }
 

@@ -12,7 +12,6 @@ import java.util.Random;
  * A general 4 x 4 matrix with the elements stored as explicit fields.
  */
 public class Matrix4d extends Matrix4dBase {
-   Matrix4d Tmp = null;
 
    /**
     * Global identity matrix. Should not be modified.

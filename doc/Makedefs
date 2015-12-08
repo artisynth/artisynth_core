@@ -41,7 +41,7 @@ endef
 
 CLEAN clean::
 	rm -rf *~ *.pdf *.xml *.html
-	rm -rf *.log *.aux *.out *.toc	
+	rm -rf *.log *.aux *.out *.toc *.bbl *.blg
 	rm -rf LaTeXML????* *.cb *.cb2 # files produced by LaTeXML
 	rm -rf *.fdb_latexmk *.synctex.gz # files produced by SublimeText
 

@@ -8,13 +8,11 @@ package artisynth.core.mechmodels;
 
 import artisynth.core.modelbase.*;
 import artisynth.core.util.ScalableUnits;
-import artisynth.core.util.TransformableGeometry;
 import maspack.matrix.*;
 
 import java.io.*;
 
-public class PointState implements TransformableGeometry,
-ScalableUnits {
+public class PointState implements ScalableUnits {
    Point3d pos;
    Vector3d vel;
 
@@ -72,8 +70,12 @@ ScalableUnits {
       return idx;
    }
    
-   public void setPos(Point3d pnt) {
+   public void setPos(Vector3d pnt) {
       pos.set(pnt);
+   }
+
+   public void getPos(Vector3d pnt) {
+      pos.get(pnt);
    }
 
    public int setVel (double[] buf, int idx) {
@@ -87,11 +89,15 @@ ScalableUnits {
       vel.set(v);
    }
    
-   public void addPos(Point3d p) {
+   public void getVel(Vector3d v) {
+      vel.get(v);
+   }
+   
+   public void addPos(Vector3d p) {
       pos.add(p);
    }
    
-   public void scaledAddPos(double s, Point3d p) {
+   public void scaledAddPos(double s, Vector3d p) {
       pos.scaledAdd(s,  p);
    }
    
@@ -111,15 +117,9 @@ ScalableUnits {
    public void scaleMass (double s) {
    }
 
-   public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
-   }
-
-   public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      // should we transform vel too ???
-      pos.transform (X);
-   }
+//   public void transformGeometry (AffineTransform3dBase X) {
+//      transformGeometry (X, this, 0);
+//   }
 
    public boolean equals (ComponentState state) {
       if (state instanceof PointState) {

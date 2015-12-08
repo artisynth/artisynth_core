@@ -386,7 +386,7 @@ public class MeshColliderTest {
 
             if (info != null) {
                renderer.setColor (0, 0, 1);
-               gl.glPointSize (6);
+               renderer.setPointSize (6);
                gl.glBegin (GL2.GL_POINTS);
                for (TriTriIntersection isect : info.intersections)
                   for (Point3d p : isect.points)

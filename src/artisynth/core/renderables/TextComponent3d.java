@@ -8,7 +8,9 @@ package artisynth.core.renderables;
 
 import java.awt.Font;
 import java.awt.geom.Rectangle2D;
+import java.util.List;
 
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AxisAngle;
@@ -20,7 +22,8 @@ import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.GL.GLRenderable;
-import artisynth.core.util.TransformableGeometry;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 
 import com.jogamp.opengl.util.awt.TextRenderer;
 
@@ -285,15 +288,13 @@ public class TextComponent3d extends TextComponentBase implements
    
    @Override
    public void transformGeometry(AffineTransform3dBase X) {
-      transformGeometry(X, this, 0);
+      TransformGeometryContext.transform (this, X, 0);
    }
 
-   @Override
-   public void transformGeometry(AffineTransform3dBase X,
-      TransformableGeometry topObject, int flags) {
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
       
       RigidTransform3d Xpose = new RigidTransform3d();
-      AffineTransform3d Xlocal = new AffineTransform3d();
       
       // read rotation off myTransform to account for viewer rotation
       Xpose.setRotation(myOrientation);
@@ -302,16 +303,20 @@ public class TextComponent3d extends TextComponentBase implements
       }
       Xpose.setTranslation(myPos);
       
-      Xpose.mulAffineLeft (X, Xlocal.A);
+      gtr.transform (Xpose);
       myTransform.set(Xpose);
       if (followEye) {
          myTransform.R.mulInverseLeft(rEye, Xpose.R);
       }
       myOrientation.set(myTransform.R);
       myPos.set(Xpose.p);
-      
    }
    
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      // no dependencies
+   }
+
    @Override
    public boolean isSelectable() {
       return true;

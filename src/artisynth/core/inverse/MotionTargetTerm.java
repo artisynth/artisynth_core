@@ -7,6 +7,7 @@
 package artisynth.core.inverse;
 
 import java.awt.Color;
+import java.nio.file.attribute.UserPrincipalNotFoundException;
 import java.util.ArrayList;
 
 import maspack.matrix.MatrixNd;
@@ -31,6 +32,7 @@ import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointList;
 import artisynth.core.mechmodels.PointState;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.util.TimeBase;
 
@@ -45,12 +47,16 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    
    public static final boolean DEFAULT_USE_PD_CONTROL = false;
    boolean usePDControl = DEFAULT_USE_PD_CONTROL;
+
+   public static final boolean DEFAULT_DELTA_ACTIVATIONS = false;
+   boolean useDeltaAct = DEFAULT_DELTA_ACTIVATIONS;
+   
    boolean debug = false;
    boolean enabled = true;
 
    protected TrackingController myController;
    protected MechSystemBase myMech;    // mech system, used to compute forces
-   protected MotionTerm myMotionTerm;
+//   protected MotionTerm myMotionTerm;
    protected ArrayList<MotionTargetComponent> mySources;
    protected ArrayList<MotionTargetComponent> myTargets;
    protected ArrayList<Double> myTargetWeights; // one weight per target
@@ -63,9 +69,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    protected int myTargetVelSize;
    protected int myTargetPosSize;
    protected VectorNd myTargetWgts = null;   // size of myTargetVelSize, weights for system
-   
-   public static boolean DEFAULT_NORMALIZE_H = false;
-   protected boolean normalizeH = DEFAULT_NORMALIZE_H;
+
    
    public static double DEFAULT_Kd = 1.0;
    protected double Kd = DEFAULT_Kd;
@@ -78,23 +82,32 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    private static final int FRAME_VEL_SIZE = 7;
 
    protected VectorNd myCurrentVel = null;
+   
 
    public static PropertyList myProps =
       new PropertyList(MotionTargetTerm.class, LeastSquaresTermBase.class);
 
    static {
-      myProps.add("targetWeights", "Weights for each target", null);
+      myProps.add("useTimestepScaling", "flag for scaling motion term H and vbar by 1/h", 
+         MotionTerm.DEFAULT_USE_TIMESTEP_SCALING);
+      myProps.add("useKKTFactorAndSolve", "flag for re-factoring at each internal KKT solve", 
+         MotionTerm.DEFAULT_USE_KKT_FACTORANDSOLVE);
+      myProps.add(
+         "usePDControl * *", "use PD controller for motion term",
+         MotionTargetTerm.DEFAULT_USE_PD_CONTROL);
+      myProps.add(
+         "normalizeH", "normalize contribution by frobenius norm",
+         MotionTerm.DEFAULT_NORMALIZE_H);
       myProps.add(
          "Kd", "derivative gain", DEFAULT_Kd);
       myProps.add(
          "Kp", "proportional gain", DEFAULT_Kd);
-      myProps.add(
-         "normalizeH", "normalize contribution by frobenius norm",
-         DEFAULT_NORMALIZE_H);
       myProps.addReadOnly (
          "derr", "derivative error at current timestep");
       myProps.addReadOnly (
          "perr", "proporational error at current timestep");
+      myProps.add("targetWeights", "Weights for each target", null);
+
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -109,7 +122,11 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       super(weight);
       myController = controller;
       myMech = myController.getMech();
-      myMotionTerm = new MotionTerm(myController);
+//      if (useDeltaAct)
+//         myMotionTerm = new MotionTermDeltaAct (controller);
+//      else
+//         myMotionTerm = new MotionTerm(myController);
+         
       mySources = new ArrayList<MotionTargetComponent>();
       myTargets = new ArrayList<MotionTargetComponent>();
       myTargetWeights = new ArrayList<Double>();
@@ -136,7 +153,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
          if (myTargetVel == null || myTargetVel.size() != myTargetVelSize) {
             myTargetVel = new VectorNd(myTargetVelSize);
          }
-         myTargetVel.scale (Kp, postionError);
+         myTargetVel.scale (Kp/h, postionError);
          myTargetVel.scaledAdd (Kd, velocityError);
       }
       else {
@@ -290,11 +307,6 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       prevTargetPos.set (myTargetPos);
    }
 
-   public void dispose() {
-      System.out.println("motion target dispose()");
-      myMotionTerm.dispose();
-   }
-
    public boolean isEnabled() {
       return enabled;
    }
@@ -327,7 +339,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       targetRenderProps.setPointColor(Color.CYAN);
       targetRenderProps.setPointStyle(PointStyle.SPHERE);
       // set target point radius explicitly
-      targetRenderProps.setPointRadius (myMotionTerm.myController.targetsPointRadius);
+      targetRenderProps.setPointRadius (myController.targetsPointRadius);
       
       myController.targetPoints.setRenderProps (targetRenderProps);
       myController.targetFrames.setRenderProps (targetRenderProps);
@@ -716,21 +728,61 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     */
    public int getTerm(
       MatrixNd H, VectorNd b, int rowoff, double t0, double t1) {
+      double h = TimeBase.round(t1 - t0);
+
       updateTarget(t0, t1); // set myTargetVel
       updateModelVelocity(); // set myCurrentVel
 //      fixTargetPositions();   // XXX not sure why this is needed
-      return myMotionTerm.getTerm(H, b, rowoff, t0, t1,
-         myTargetVel, myCurrentVel, myTargetWgts, getVelocityJacobian(), normalizeH);
+      
+      VectorNd vbar = new VectorNd (myTargetVelSize);
+      // XXX do useTimestepScaling, useNormalizeH on targetVel
+
+      vbar.sub (myTargetVel, myController.getData ().getV0 ());
+      
+      MatrixNd Hv = new MatrixNd (myTargetVelSize, myController.numExcitations ());
+      Hv.set (myController.getData ().getHv ());
+      
+      if (myController.getData ().normalizeH) {
+         double fn = 1.0 / Hv.frobeniusNorm ();
+         Hv.scale (fn);
+         vbar.scale (fn);
+      }
+      
+      if (myController.getData ().useTimestepScaling) { // makes it independent of the time step
+         Hv.scale(1/h);      
+         vbar.scale(1/h); 
+      }
+      
+   // apply weights
+      if (myTargetWgts != null) {
+         MotionForceInverseData.diagMul(myTargetWgts,Hv,Hv);
+         MotionForceInverseData.pointMul(myTargetWgts,vbar,vbar);
+      }
+      if (myWeight > 0) {
+          Hv.scale(myWeight);
+          vbar.scale(myWeight);
+       }
+
+      H.setSubMatrix(rowoff, 0, Hv);
+      b.setSubVector(rowoff, vbar);
+      
+      return rowoff + Hv.rowSize();
+
+      
+//      return myMotionTerm.getTerm(H, b, rowoff, t0, t1,
+//         myTargetVel, myCurrentVel, myTargetWgts, getVelocityJacobian());
    }
    
+
    /**
     * Fills <code>H</code> and <code>b</code> with this motion term
     * In contrast to <code>getTerm</code>, this method does not
     * recompute the values.
     */
    public void reGetTerm(MatrixNd H, VectorNd b) {
-      myMotionTerm.getJacobian (H);
-      myMotionTerm.getVbar(b);
+      // XXX do useTimestepScaling, useNormalizeH on targetVel
+      b.sub (myTargetVel, myController.getData ().getV0 ());
+      H.set (myController.getData ().getHv ());
    }
    
    
@@ -755,7 +807,6 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    @Override
    public void setWeight(double w) {
       super.setWeight(w);
-      myMotionTerm.setWeight(myWeight);
    }
 
    /**
@@ -903,7 +954,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * @param set
     */
    public void setNormalizeH(boolean set) {
-      normalizeH = set;
+      myController.getData().normalizeH = set;
    }
    
    /**
@@ -913,7 +964,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * <code>H</code> and <code>b</code>
     */
    public boolean getNormalizeH() {
-      return normalizeH;
+      return myController.getData().normalizeH;
    }
 
    @Override
@@ -925,5 +976,31 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    public int getRowSize() {
       return getTargetVelSize();
    }
+   
+   
+   public boolean getUseKKTFactorAndSolve () {
+      return myController.getData().useKKTFactorAndSolve;
+   }
+
+   public void setUseKKTFactorAndSolve (boolean useKKTFactorAndSolve) {
+      myController.getData().useKKTFactorAndSolve = useKKTFactorAndSolve;
+   }
+   
+   public boolean getUseTimestepScaling () {
+      return myController.getData().useTimestepScaling;
+   }
+
+   public void setUseTimestepScaling (boolean useTimestepScaling) {
+      myController.getData().useTimestepScaling = useTimestepScaling;
+   }
+
+   public void setUsePDControl(boolean usePD) {
+      usePDControl = usePD;
+   }
+
+   public boolean getUsePDControl() {
+      return usePDControl;
+   }
+
 
 }

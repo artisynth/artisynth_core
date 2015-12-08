@@ -1,5 +1,6 @@
 #include <jni.h>
 #include "pardisoMkl.h"
+#include "mkl_service.h"
 #include "maspack_solvers_PardisoSolver.h"
 
 #include <stdlib.h>
@@ -14,7 +15,8 @@
 JNIEXPORT jlong JNICALL Java_maspack_solvers_PardisoSolver_doInit (
    JNIEnv *env, jobject obj)
 {
-	return (jlong)(new Pardiso4());
+   jlong handle = (jlong)(new Pardiso4());
+   return handle;
 }
 
 JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doGetInitError (
@@ -28,16 +30,21 @@ JNIEXPORT jint JNICALL
    Java_maspack_solvers_PardisoSolver_doSetNumThreads (
       JNIEnv *env, jobject obj, jlong handle, jint num)
 {
-	Pardiso4* pardiso = (Pardiso4*)handle;
-	return pardiso->setNumThreads (num);
+   // handle is ignored since setting is global
+   int prev = mkl_domain_get_max_threads (MKL_DOMAIN_PARDISO);
+   if (num < 0) {
+      num = 0;
+   }
+   mkl_domain_set_num_threads (num, MKL_DOMAIN_PARDISO);
+   return prev;
 }
 
 JNIEXPORT jint JNICALL
    Java_maspack_solvers_PardisoSolver_doGetNumThreads (
       JNIEnv *env, jobject obj, jlong handle)
 {
-	Pardiso4* pardiso = (Pardiso4*)handle;
-	return pardiso->getNumThreads ();
+   // handle is ignored since setting is global
+   return mkl_domain_get_max_threads (MKL_DOMAIN_PARDISO);
 }
 
 JNIEXPORT jint JNICALL
@@ -247,7 +254,7 @@ static int doSetMatrix (
 	// if jint and int are not same size, we have problems
 	if (sizeof(int) != sizeof(jint))
 	 { printf(
-	      "PardisoJNI.cc: sizeof(jint)=%d, sizeof(int)=%d, aborting...\n", 
+	      "PardisoJNI.cc: sizeof(jint)=%ld, sizeof(int)=%ld, aborting...\n", 
 	      sizeof(jint), sizeof(int));
 	   return -1;
 	 }

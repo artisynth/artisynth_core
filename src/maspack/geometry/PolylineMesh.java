@@ -431,6 +431,166 @@ public class PolylineMesh extends MeshBase {
    }
 
    /**
+      Xtmp.p.set (coords0[0], coords0[1], coords0[2]);
+      Xtmp.R.setZDirection (utmp);
+      gl.glPushMatrix();
+      GLViewer.mulTransform (gl, Xtmp);
+
+      double h = utmp.norm();
+      
+      // fill angle buffer
+      if (nslices+1 != cosBuff.length) {
+         cosBuff = new double[nslices+1];
+         sinBuff = new double[nslices+1];
+         cosBuff[0] = 1;
+         sinBuff[0] = 0;
+         cosBuff[nslices] = 1;
+         sinBuff[nslices] = 0;
+         for (int i=1; i<nslices; i++) {
+            double ang = i / (double)nslices * 2 * Math.PI;
+            cosBuff[i] = Math.cos(ang);
+            sinBuff[i] = Math.sin(ang);
+         }
+      }
+      
+      // draw sides
+      gl.glBegin(GL2.GL_QUAD_STRIP);
+
+      double c1,s1;
+      for (int i = 0; i <= nslices; i++) {
+         c1 = cosBuff[i];
+         s1 = sinBuff[i];
+         gl.glNormal3d(-c1, -s1, 0);
+         
+         gl.glColor4fv (color0, 0);
+         gl.glVertex3d (base * c1, base * s1, 0);
+         
+         gl.glColor4fv (color1, 0);
+         gl.glVertex3d (top * c1, top * s1, h);
+      }
+      
+      gl.glEnd();
+      
+      
+      if (capped) { // draw top cap first
+         gl.glColor4fv(color1, 0);
+         if (top > 0) {
+            gl.glBegin (GL2.GL_POLYGON);
+            gl.glNormal3d (0, 0, 1);
+            for (int i = 0; i < nslices; i++) {
+               gl.glVertex3d (top * cosBuff[i], top * sinBuff[i], h);
+            }
+            gl.glEnd();
+         }
+         // now draw bottom cap
+         gl.glColor4fv(color0, 0);
+         if (base > 0) {
+            gl.glBegin (GL2.GL_POLYGON);
+            gl.glNormal3d (0, 0, -1);
+            for (int i = 0; i < nslices; i++) {
+               gl.glVertex3d (base * cosBuff[i], base * sinBuff[i], 0);
+            }
+            gl.glEnd();
+         }
+      }
+      gl.glPopMatrix();
+      
+   }
+
+   protected void renderLines(GLRenderer renderer, RenderProps props, int flags ) {
+      
+      GL2 gl = renderer.getGL2().getGL2();
+      
+      boolean reenableLighting = false;
+      int savedLineWidth = renderer.getLineWidth();
+      RenderProps.Shading savedShadeModel = renderer.getShadeModel();
+
+      renderer.setLineWidth (props.getLineWidth());
+
+      if (props.getLineColor() != null && !renderer.isSelecting()) {
+         reenableLighting = renderer.isLightingEnabled();
+         
+         renderer.setLightingEnabled (false);
+         float[] color;
+         if ((flags & GLRenderer.SELECTED) != 0) {
+            color = new float[3];
+            renderer.getSelectionColor().getRGBColorComponents (color);
+         }
+         else {
+            color = props.getLineColorArray();
+         }
+         float alpha = (float)props.getAlpha();
+         renderer.setColor (color[0], color[1], color[2], alpha);
+      }
+
+      boolean useDisplayList = false;
+      int displayList = 0;
+      boolean useVertexColors = (flags & GLRenderer.VERTEX_COLORING) != 0;
+      
+      if (useDisplayListsIfPossible && isUsingDisplayList() && 
+    		  !(renderer.isSelecting() && useVertexColors)) {
+         useDisplayList = true;
+         displayList = props.getMeshDisplayList();
+      }
+         
+      if (!useDisplayList || displayList < 1) {
+         if (useDisplayList) {
+            displayList = props.allocMeshDisplayList (gl);
+            if (displayList > 0) {
+               gl.glNewList (displayList, GL2.GL_COMPILE);
+            }
+         }
+         
+         boolean useHSVInterpolation =
+            (flags & GLRenderer.HSV_COLOR_INTERPOLATION) != 0;
+         useHSVInterpolation =false;
+         if (useVertexColors && useHSVInterpolation) {
+            useHSVInterpolation = setupHSVInterpolation (gl);
+         }
+         
+         boolean useRenderVtxs = isRenderBuffered() && !isFixed();
+         if (useVertexColors) {
+            reenableLighting = renderer.isLightingEnabled();
+            renderer.setLightingEnabled (false);
+            renderer.setShadeModel (RenderProps.Shading.FLAT);
+         }
+         for (int i=0; i<myLines.size(); i=i+1+renderSkip) {
+            Polyline line = myLines.get(i);
+            gl.glBegin (GL2.GL_LINE_STRIP);
+            Vertex3d[] vtxs = line.getVertices();
+            for (int k=0; k<line.numVertices(); k++) {
+               Point3d pnt = useRenderVtxs ? vtxs[k].myRenderPnt : vtxs[k].pnt;
+
+               if (useVertexColors) {
+                  setVertexColor (gl, vtxs[k], useHSVInterpolation);
+               }
+               gl.glVertex3d (pnt.x, pnt.y, pnt.z);
+            }
+            gl.glEnd ();
+            
+            if (useVertexColors && useHSVInterpolation) {
+               // turn off special HSV interpolating shader
+               gl.glUseProgramObjectARB (0);
+            }
+         }
+         if (useDisplayList && displayList > 0) {
+            gl.glEndList();
+            gl.glCallList (displayList);
+         }
+      }
+      else {
+         gl.glCallList (displayList);
+      }
+
+      if (reenableLighting) {
+         renderer.setLightingEnabled (true);
+      }
+      renderer.setLineWidth (savedLineWidth);
+      renderer.setShadeModel (savedShadeModel);
+   }
+   */
+
+   /** 
     * Creates a copy of this mesh.
     */
    public PolylineMesh copy() {

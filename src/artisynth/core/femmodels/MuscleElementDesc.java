@@ -11,6 +11,7 @@ import java.io.PrintWriter;
 import java.util.*;
 
 import maspack.geometry.DelaunayInterpolator;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
@@ -41,6 +42,8 @@ import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentBase;
 import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.*;
 
 /**
@@ -153,7 +156,7 @@ public class MuscleElementDesc
 
    public boolean isInvertible() {
       MuscleMaterial mat = getEffectiveMuscleMaterial();
-      return mat != null && mat.isInvertible();
+      return mat == null || mat.isInvertible();
    }
 
    /**
@@ -663,21 +666,51 @@ public class MuscleElementDesc
    }
    
    public void transformGeometry(AffineTransform3dBase X) {
-      transformGeometry(X, this, 0);
+      TransformGeometryContext.transform (this, X, 0);
    }
 
-   public void transformGeometry(
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      myDir.transform(X);
-      myDir.normalize();
-      if (myDirs != null) {
-         for (int i=0; i<myDirs.length; i++) {
-            if (myDirs[i] != null) {
-               myDirs[i].transform(X);
-               myDirs[i].normalize();
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+
+      // Transform the direction vectors associated with this ElementDesc.
+      Point3d ref = new Point3d();
+      if (gtr.isAffine()) {
+         gtr.transformVec (myDir, ref);
+         myDir.normalize();
+         if (myDirs != null) {
+            for (int i=0; i<myDirs.length; i++) {
+               if (myDirs[i] != null) {
+                  gtr.transformVec (myDirs[i], ref);
+                  myDirs[i].normalize();
+               }
             }
          }
       }
+      else {
+         // need to specify a reference position for each direction, since
+         // vector transformations are position dependent.
+
+         // compute element center as a reference position:
+         myElement.getWarpingPoint().computePosition (ref, myElement);         
+         gtr.transformVec(myDir, ref);
+         myDir.normalize();
+         if (myDirs != null) {
+            IntegrationPoint3d[] ipnts = myElement.getIntegrationPoints();
+            for (int i=0; i<myDirs.length; i++) {
+               if (myDirs[i] != null) {
+                  // compute integration point location as a reference position:
+                  ipnts[i].computePosition (ref, myElement);
+                  gtr.transformVec (myDirs[i], ref);
+                  myDirs[i].normalize();
+               }
+            }
+         }
+      }
+   }
+   
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      // no dependencies
    }
 
    public void scaleDistance (double s) {

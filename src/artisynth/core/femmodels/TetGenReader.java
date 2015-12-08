@@ -195,14 +195,15 @@ public class TetGenReader implements FemReader {
 
          // check to make sure that the tet is defined so that the
          // first three nodes are arranged clockwise about their face
+         TetElement tet;
          if (TetElement.computeVolume (n0, n1, n2, n3) >= 0) {
-            model.addElement (new TetElement (n0, n1, n2, n3)); 
+            tet = new TetElement (n0, n1, n2, n3);
          }
          else {
-            model.addElement (new TetElement (n0, n2, n1, n3)); 
+            tet = new TetElement (n0, n2, n1, n3);
          }
+         model.addElement (tet);
       }
-      
       return model;
    }
 

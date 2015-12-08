@@ -98,6 +98,8 @@ public class CollisionManager extends RenderableCompositeBase
    CollisionHandlerList myCollisionHandlers;
    ArrayList<Constrainer> myConstrainers;
    protected boolean myCollisionHandlersValid = false;
+   // need to disable handler updating during scaning
+   protected boolean myHandlerUpdatingEnabledP = true;
    ComponentList<CollisionComponent> myCollisionComponents;
    // map from CollidablePairs to collision components giving default and
    // override collision behaviors
@@ -145,6 +147,9 @@ public class CollisionManager extends RenderableCompositeBase
          DEFAULT_PENETRATION_TOL);
       myProps.add (
          "collisionPointTol", "closness of collision points", -1);
+      myProps.add (
+         "collisionRegionTol", 
+         "minimum distance between collision regions", -1);
       // myProps.add (
       //    "penetrationLimit", 
       //    "collision penetration limit for step reduction", -1);
@@ -740,6 +745,9 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    protected void updateHandlers() {
+      if (!myHandlerUpdatingEnabledP) {
+         return;
+      }
       updateBehaviorMap();
       if (!myCollisionHandlersValid) {
          myMaskBehaviorMapClearP = true;
@@ -877,8 +885,13 @@ public class CollisionManager extends RenderableCompositeBase
 
       Collidable a = pair.myCompA;
       Collidable b = pair.myCompB;
+      
       if (isCollidableBody (a) && isCollidableBody (b)) {
-         if (nearestCommonCollidableAncestor (a, b) != null) {
+         // if explicit, set behaviour, otherwise check defaults
+         if (pair.isExplicit()) {
+            setBehaviorMap(pair, behavior);
+         }
+         else if (nearestCommonCollidableAncestor (a, b) != null) {
             // if a and b have a common ancester, INTERNAL collidability
             // must be enabled
             if (isInternallyCollidable (a) && isInternallyCollidable (b)) {
@@ -1031,7 +1044,7 @@ public class CollisionManager extends RenderableCompositeBase
    private boolean isCollidableBody (Collidable c) {
       // XXX Need to call isCollidable() first, because FemModel3d uses that to
       // trigger on-demand surface mesh generation, without which the actual
-      // FemMesh object containing the surface will have a null mesh.
+      // FemMeshComp object containing the surface will have a null mesh.
       if (!isCollidable(c)) {
          return false;
       }
@@ -1069,6 +1082,21 @@ public class CollisionManager extends RenderableCompositeBase
       return null;
    }         
 
+   /**
+    * For debugging ...
+    */
+   public void printBehaviorMap() {
+      updateBehaviorMap();
+      for (Map.Entry<CollidablePair,CollisionBehavior> entry :
+              myBehaviorMap.entrySet()) {
+         Collidable a = entry.getKey().myCompA;
+         Collidable b = entry.getKey().myCompB;
+         System.out.println (
+            ComponentUtils.getPathName (a) + "-" +
+            ComponentUtils.getPathName (b) + " : " + entry.getValue());
+      }
+   }
+
    private void updateBehaviorMap() {
       if (myBehaviorMap == null) {
          // mask map clearing since calls to isCollidable() might trigger
@@ -1088,6 +1116,7 @@ public class CollisionManager extends RenderableCompositeBase
 
          // start by setting primary behavior
          for (int i=0; i<collidables.size(); i++) {
+
             Collidable ci = collidables.get(i);
             if (isCollidableBody(ci)) {
                for (int j=i+1; j<collidables.size(); j++) {
@@ -1317,6 +1346,15 @@ public class CollisionManager extends RenderableCompositeBase
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
+      myHandlerUpdatingEnabledP = false;
+      super.scan (rtok, ref);
+      myHandlerUpdatingEnabledP = true;
+   }
+
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
       
@@ -1332,6 +1370,7 @@ public class CollisionManager extends RenderableCompositeBase
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
+      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
       pw.print ("defaultBehaviors=");
       writeDefaultBehaviors (pw, fmt);
       // only write out the collision components
@@ -1611,7 +1650,16 @@ public class CollisionManager extends RenderableCompositeBase
       
       return maxpen;
    }
-
+   
+   public void getConstrainedComponents (List<DynamicComponent> list) {
+      HashSet<DynamicComponent> set = new HashSet<DynamicComponent>();
+      for (int i=0; i<myCollisionHandlers.size(); i++) {
+         CollisionHandler handler = myCollisionHandlers.get(i);
+         handler.getConstrainedComponents (set);
+      }
+      list.addAll (set);      
+   }
+   
    // // ***** Begin HasAuxState *****
 
    // public void advanceAuxState (double t0, double t1) {

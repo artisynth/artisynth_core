@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import maspack.geometry.HalfEdge;
 import maspack.geometry.MeshFactory;
@@ -22,6 +23,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.PolarDecomposition3d;
 import maspack.properties.PropertyList;
 import maspack.render.Dragger3dBase;
 import maspack.render.Dragger3dEvent;
@@ -39,7 +41,7 @@ import maspack.util.InternalErrorException;
 import artisynth.core.driver.Main;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentBase;
-import artisynth.core.util.TransformableGeometry;
+import artisynth.core.modelbase.TransformableGeometry;
 
 /**
  * Basic plane probe that can display information as it cuts through a model
@@ -411,10 +413,16 @@ public abstract class CutPlaneProbe extends OutputProbe
          RenderableComponentBase.updateRenderProps(this, myRenderProps, props);
    }
 
-   public void transformGeometry(
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
+   public void transformGeometry (
+      AffineTransform3dBase X, PolarDecomposition3d pd,
+      Map<TransformableGeometry,Boolean> transformSet, int flags) {
    }
-
+   
+   public int getTransformableDescendents (
+      List<TransformableGeometry> list) {
+      return 0;
+   }
+   
    public void transformGeometry(AffineTransform3dBase X) {
    }
 

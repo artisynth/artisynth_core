@@ -244,7 +244,7 @@ public class LeastSquaresSolver
 
    
    /**
-    * Create inequality constraints A >= b from bounds lb and ub
+    * Create inequality constraints A &gt;= b from bounds lb and ub
     * 
     */
    public void createBoundConstraints(MatrixNd A, VectorNd b, VectorNd lb, VectorNd ub)

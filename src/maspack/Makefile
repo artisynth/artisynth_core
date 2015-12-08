@@ -11,8 +11,7 @@ JAVA_SUBDIRS = \
 	properties \
 	util \
 	matlab \
-	solvers \
-	taucs
+	solvers
 
 default: build
 

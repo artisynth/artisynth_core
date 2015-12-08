@@ -13,7 +13,7 @@ import artisynth.core.mechmodels.MechSystemSolver;
 import artisynth.core.mechmodels.PlanarConnector;
 import artisynth.core.mechmodels.RevoluteJoint;
 import artisynth.core.mechmodels.RigidBody;
-import artisynth.core.mechmodels.RigidBodyConnector;
+import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.mechmodels.SphericalJoint;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 import artisynth.core.modelbase.*;
@@ -130,7 +130,7 @@ public class MechModelCollide extends RootModel {
          RenderProps.setDrawEdges (link2, true);
       }
 
-      RigidBodyConnector joint2 = null;
+      BodyConnector joint2 = null;
 
       // joint 2
       if (useSphericalJoint) {
@@ -143,7 +143,7 @@ public class MechModelCollide extends RootModel {
          sjoint.setName ("joint2");
          // RenderProps.setLineRadius(sjoint, 0.2);
          sjoint.setAxisLength (4);
-         mechMod.addRigidBodyConnector (sjoint);
+         mechMod.addBodyConnector (sjoint);
          joint2 = sjoint;
       }
       else {
@@ -157,7 +157,7 @@ public class MechModelCollide extends RootModel {
          rjoint.setName ("joint2");
          rjoint.setAxisLength (4);
          RenderProps.setLineRadius (rjoint, 0.2);
-         mechMod.addRigidBodyConnector (rjoint);
+         mechMod.addBodyConnector (rjoint);
          rjoint.setTheta (35);
          joint2 = rjoint;
       }

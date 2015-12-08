@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include "tetgenJNI.h"
 
@@ -143,13 +144,33 @@ int main (int argc, char**argv) {
 
    TetgenTessellator *tt = new TetgenTessellator();
 
-   //tt->buildFromMesh (coords, 8, indices, 6, 24, 0.0);
-   //tt->buildFromPoints (coords2, 11);
-   tt->buildFromPoints (coords5, 24);
-
+   tt->buildFromMesh (coords, 8, indices, 6, 24, 0.0);
+   assert (tt->out->numberofpoints == 8);
+   assert (tt->out->numberoftetrahedra == 6);
+   assert (tt->out->numberoftrifaces == 12);
    printf ("number of points=%d\n", tt->out->numberofpoints);
    printf ("number of tets=%d\n", tt->out->numberoftetrahedra);
    printf ("number of hull faces=%d\n", tt->out->numberoftrifaces);
 	   
+   tt->buildFromPoints (coords2, 11);
+   assert (tt->out->numberofpoints == 11);
+   assert (tt->out->numberoftetrahedra == 19);
+   assert (tt->out->numberoftrifaces == 16);
+   printf ("\n");
+   printf ("number of points=%d\n", tt->out->numberofpoints);
+   printf ("number of tets=%d\n", tt->out->numberoftetrahedra);
+   printf ("number of hull faces=%d\n", tt->out->numberoftrifaces);
+
+   tt->buildFromPoints (coords5, 24);
+   assert (tt->out->numberofpoints == 24);
+   assert (tt->out->numberoftetrahedra == 32);
+   assert (tt->out->numberoftrifaces == 44);
+   printf ("\n");
+   printf ("number of points=%d\n", tt->out->numberofpoints);
+   printf ("number of tets=%d\n", tt->out->numberoftetrahedra);
+   printf ("number of hull faces=%d\n", tt->out->numberoftrifaces);
+
+   printf ("\nPASSED\n\n");
+
    return 0;   
 }

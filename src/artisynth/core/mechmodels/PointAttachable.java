@@ -6,12 +6,14 @@
  */
 package artisynth.core.mechmodels;
 
+import artisynth.core.modelbase.*;
+
 /**
  * Defines a component to which a point can be attached.
  * 
  * @author lloyd
  */
-public interface PointAttachable {
+public interface PointAttachable extends ModelComponent {
    
    /**
     * Returns a PointAttachment that attaches <code>pnt</code>
@@ -20,8 +22,12 @@ public interface PointAttachable {
     * should be made to connect the returned attachment to the hierarchy;
     * the latter, if desired, is the responsibility of the caller.
     * 
+    * <p>In some cases, it may not be possible to attach the point at
+    * its present location. In that case, the method will create an attachment
+    * to the nearest feasible location.
+    * 
     * @param pnt point for which an attachment should be created
-    * @return attachment attaching <code>pnt</code> to this component
+    * @return attachment connecting <code>pnt</code> to this component
     */
    public PointAttachment createPointAttachment (Point pnt);
 

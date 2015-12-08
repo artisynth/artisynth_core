@@ -32,6 +32,9 @@ public class L2RegularizationTerm extends LeastSquaresTermBase {
    protected void compute (double t0, double t1) {
       H.setIdentity();
       H.scale(Math.sqrt(myWeight));
+//      if (TrackingController.isDebugTimestep (t0, t1)) {
+//         System.out.println("dt = " + dt + "    |Hl2| = " + H.frobeniusNorm());
+//      }
    }
    
    @Override

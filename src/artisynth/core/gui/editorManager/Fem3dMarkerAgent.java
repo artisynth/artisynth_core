@@ -154,7 +154,7 @@ public class Fem3dMarkerAgent extends AddComponentAgent<FemMarker> {
          pnt.set (newLoc);
       }
       marker.setPosition (pnt);
-      marker.setElement (elem);
+      marker.setFromElement (elem);
       marker.setName (getNameFieldValue());
 
       setProperties (marker, getPrototypeComponent (myComponentType));
@@ -164,7 +164,6 @@ public class Fem3dMarkerAgent extends AddComponentAgent<FemMarker> {
       addComponent (new AddComponentsCommand (
          "add FemMarker", marker, (MutableCompositeComponent<?>)myModel.markers()));
 
-      myMain.rerender(); // XXX shouldn't need this
       setState (State.SelectingLocation);
    }
 

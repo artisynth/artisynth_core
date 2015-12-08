@@ -350,7 +350,9 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
-
+      if (hierarchyContainsReferences()) {
+         ancestor = this;
+      }
       super.writeItems (pw, fmt, ancestor);
       myComponents.writeComponents (pw, fmt, ancestor);
    }
@@ -446,9 +448,10 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
 
       comp.myShortName = null;
 
-      comp.myComponents = (ComponentListImpl)myComponents.clone();
+      comp.myComponents =
+         new ComponentListImpl<C>(myComponents.getTypeParameter(), comp);
+      //comp.myComponents = (ComponentListImpl<C>)myComponents.clone();
       comp.myNavpanelDisplay = myNavpanelDisplay;
-
       return comp;
    }
 

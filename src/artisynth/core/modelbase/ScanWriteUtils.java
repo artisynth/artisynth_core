@@ -11,6 +11,7 @@ import java.lang.reflect.Array;
 import java.net.*;
 
 import maspack.util.*;
+import maspack.matrix.*;
 import maspack.properties.*;
 
 import java.io.*;
@@ -127,6 +128,15 @@ public class ScanWriteUtils {
       return tokens.size() - oldsize - 2;
    }
    
+   public static boolean scanAttributeName (ReaderTokenizer rtok, String name)
+   throws IOException {
+      if (rtok.ttype == ReaderTokenizer.TT_WORD && rtok.sval.equals (name)) {
+         rtok.scanToken ('=');
+         return true;
+      }
+      return false;
+   }
+   
    /**
     * If the next input token is a quoted string or word, then assume that
     * it corresponds to property path, store its value
@@ -216,15 +226,15 @@ public class ScanWriteUtils {
 
    /**
     * Attempts to scan a reference path associated with a given attribute name.
-    * Checks if the current token is a word matching the attribute 
-    * name. If so, scan '=' and the reference path, store the
-    * reference path in the token queue, and return <code>true</code>.
-    * Otherwise, return <code>false</code>.
+    * Checks if the current token is a word matching the attribute name. If so,
+    * scans '=' and the reference path, stores the both the attribute name and
+    * the reference path in the token queue, and returns <code>true</code>.
+    * Otherwise, returns <code>false</code>.
     * 
     * @param rtok input token stream
     * @param name attribute name
     * @param tokens token storage queue for postscan
-    * @return true if the attribute name was matched
+    * @return true if the attribute name was matched and the reference scanned
     * @throws IOException
     */
    public static boolean scanAndStoreReference (
@@ -696,7 +706,6 @@ public class ScanWriteUtils {
       pw.flush();
    }
    
-   // HERE
    /**
     * Attempts to scan and set a property value for a specified host.
     * Checks if the current token is a word matching one of the host's
@@ -853,7 +862,7 @@ public class ScanWriteUtils {
     * @param host host containing the properties
     * @param propNames names of properties to match
     * @param tokens token queue for postscan
-    * @return <core>true</code> if a property value was scanned
+    * @return <code>true</code> if a property value was scanned
     * and stored.
     * @throws IOException
     */
@@ -955,6 +964,139 @@ public class ScanWriteUtils {
       for (ModelComponent c : comps) {
          pw.println (ComponentUtils.getWritePathName (ancestor, c));
       }
+   }
+
+   /**
+    * Attempts to scan a class-qualified component associated with a given
+    * attribute name.  Checks if the current token is a word matching the
+    * attribute name. If so, scans '=' and the component class name,
+    * instantiates the component and scans that, places both the attribute name
+    * and the component in the in the token queue, and returns
+    * <code>true</code>.  Otherwise, returns <code>false</code>.
+    * 
+    * @param rtok input token stream
+    * @param name attribute name
+    * @param tokens token storage queue for postscan
+    * @return true if the attribute name was matched and the component was
+    * scanned
+    * @throws IOException
+    */
+   public static boolean scanAndStoreComponent (
+      ReaderTokenizer rtok, String name, Deque<ScanToken> tokens)
+      throws IOException {
+
+      if (rtok.ttype == TT_WORD && rtok.sval.equals (name)) {
+         rtok.scanToken ('=');
+         tokens.offer (new StringToken (name, rtok.lineno()));
+
+         String className = rtok.scanWord();
+         Class<?> compClass = ClassAliases.resolveClass (className);
+         if (compClass == null) {
+            throw new IOException (
+               "Class name or alias '"+className+"' can't be resolved, "+rtok);
+         }
+         Scannable comp = null;
+         try {
+            comp = (Scannable)compClass.newInstance();
+         }
+         catch (Exception e) {
+            throw new IOException (
+               "Class corresponding to '"+ className+
+               "' cannot be instantiated", e);
+         }
+         tokens.offer (new ObjectToken (comp, rtok.lineno()));
+         comp.scan (rtok, tokens);
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   /**
+    * Calls <code>postscan()</code> for an component stored in the token queue.
+    * Removes the next token from the queue, checks that it is an ObjectToken
+    * containing an component, verifies that the component it is an instance of
+    * <code>clazz</code>, calls <code>postscan()</code> for the component and
+    * returns it.
+    *
+    * @param tokens queue of stored tokens
+    * @param clazz class that the component must be an instance of
+    * @param ancestor ancestor uses for post-scanning the component
+    * @return component that was on the queue
+    * @throws IOException if the next token is not an ObjectToken, the component
+    * is not an instance of <code>clazz</code>, or an error occured within the
+    * component's <code>postscan()</code> call.
+    */
+   public static <C> C postscanComponent (
+      Deque<ScanToken> tokens, Class<C> clazz, CompositeComponent ancestor)
+      throws IOException {
+      
+      ScanToken tok = tokens.poll();
+      if (tok instanceof ObjectToken) {
+         Object obj = ((ObjectToken)tok).value();
+         if (!(clazz.isAssignableFrom (obj.getClass()))) {
+            throw new IOException ("Component "+obj+" not instance of "+clazz);
+         }
+         C comp = (C)obj;
+         if (!(comp instanceof ModelComponent)) {
+            throw new IOException ("Component "+obj+" is not a ModelComponent");
+         }
+         ((ModelComponent)comp).postscan (tokens, ancestor);
+         return comp;
+      }
+      else {
+         throw new IOException ("Token "+tok+" is not an ObjectToken");
+      }
+   }
+   
+   /**
+    * Writes a class-qualified component to a print writer.
+    * 
+    * @param pw PrintWriter to write the component to
+    * @param fmt numeric format for writing the component
+    * @param obj component to be written
+    * @param ref reference object used for writing the component
+    */   
+   public static void writeComponent (
+      PrintWriter pw, NumberFormat fmt, Scannable obj, Object ref)
+      throws IOException {
+
+      pw.print (ClassAliases.getAliasOrName (obj.getClass()));
+      pw.print (" ");
+      obj.write (pw, fmt, ref);
+   }
+
+   public static void writeVector3dList (
+      PrintWriter pw, NumberFormat fmt, Vector3d[] list) throws IOException {
+
+      if (list.length == 0) {
+         pw.println ("[ ]");
+      }
+      else {
+         IndentingPrintWriter.printOpening (pw, "[ ");
+         IndentingPrintWriter.addIndentation (pw, 2);
+         for (int i=0; i<list.length; i++) {
+            list[i].write (pw, fmt);
+            pw.println ("");
+         }
+         IndentingPrintWriter.addIndentation (pw, -2);
+         pw.println ("]");
+      }
+   }
+
+   public static Vector3d[] scanVector3dList (ReaderTokenizer rtok)
+      throws IOException {
+
+      ArrayList<Vector3d> list = new ArrayList<Vector3d>();
+      rtok.scanToken ('[');
+      while (rtok.nextToken() != ']') {
+         rtok.pushBack();
+         Vector3d vec = new Vector3d();
+         vec.scan (rtok);
+         list.add (vec);
+      }
+      return list.toArray (new Vector3d[0]);
    }
 
 }

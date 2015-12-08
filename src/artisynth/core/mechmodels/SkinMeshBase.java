@@ -13,12 +13,11 @@ import maspack.matrix.*;
 import maspack.util.*;
 import maspack.geometry.*;
 import maspack.properties.*;
-import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
 /**
- * Base class for a SkinMesh, which is a type of mesh component in which each
+ * Base class for a SkinMeshBody, which is a type of mesh component in which each
  * vertex is attached to one or more underlying dynamic master components using
  * a {@link PointAttachment}.
  */
@@ -26,7 +25,6 @@ public abstract class SkinMeshBase extends MeshComponent
    implements HasSlaveObjects, CompositeComponent, HasSurfaceMesh {
 
    protected ComponentListImpl<ModelComponent> myComponents;
-   protected ComponentList<PointAttachment> myAttachments;
 
    private NavpanelDisplay myNavpanelDisplay = NavpanelDisplay.NORMAL;
 
@@ -254,8 +252,8 @@ public abstract class SkinMeshBase extends MeshComponent
             PointAttachment a = getAttachment(i);
             if (a != null) {
                Vertex3d vtx = mesh.getVertices().get(i);
-               a.computePosState (pos);
-               vtx.getPosition().set (pos);            
+               a.getCurrentPos (pos);
+               vtx.setPosition(pos);
             }
          }
          mesh.notifyVertexPositionsModified();
@@ -283,14 +281,11 @@ public abstract class SkinMeshBase extends MeshComponent
    }
 
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
 
-      if ((flags & TransformableGeometry.SIMULATING) != 0) {
-         return;
-      }
       // shouldn't need to change anything since everything is weight-based
       updateSlavePos();
-   }   
+   }  
    
    @Override
    public SkinMeshBase copy(int flags, Map<ModelComponent,ModelComponent> copyMap) {

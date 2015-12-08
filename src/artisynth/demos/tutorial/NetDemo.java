@@ -93,20 +93,8 @@ public class NetDemo extends RootModel {
       // set render properties for the components      
       RenderProps.setLineColor (greenSprings, new Color(0f, 0.5f, 0f));
       RenderProps.setLineColor (blueSprings, Color.BLUE);
-      setPointRenderProps (mech);
-      setLineRenderProps (mech);
-   }
-
-  protected void setPointRenderProps (Renderable r) {
-      RenderProps.setPointColor (r, Color.RED);
-      RenderProps.setPointStyle (r, RenderProps.PointStyle.SPHERE);
-      RenderProps.setPointRadius (r, widthx/50.0);
-   }
-
-   protected void setLineRenderProps (Renderable r) {
-      RenderProps.setLineColor (r, Color.BLUE);
-      RenderProps.setLineStyle (r, RenderProps.LineStyle.ELLIPSOID);
-      RenderProps.setLineRadius (r, widthx/100.0);
+      RenderProps.setSphericalPoints (mech, widthx/50.0, Color.RED);
+      RenderProps.setCylindricalLines (mech, widthx/100.0, Color.BLUE);
    }
 
    public void attach (DriverInterface driver) {

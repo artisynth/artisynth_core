@@ -41,7 +41,7 @@ public class CollisionManagerTest extends UnitTest {
       for (int n : nums) {
          elems.add (fem.getElements().getByNumber(n));
       }
-      fem.addMesh (FemMesh.createSurface (name, fem, elems));
+      fem.addMeshComp (FemMeshComp.createSurface (name, fem, elems));
    }
 
    RigidCompositeBody createCompositeBody (String name, double rad) {
@@ -75,14 +75,14 @@ public class CollisionManagerTest extends UnitTest {
       FemModel3d fem1 = FemFactory.createHexGrid (null, 1, 1, 1, 4, 4, 4);
       fem1.setSurfaceRendering (FemModel3d.SurfaceRender.Shaded);
       fem1.setName ("fem1");
-      RenderProps.setVisible (fem1.getSurfaceFemMesh(), false);
+      RenderProps.setVisible (fem1.getSurfaceMeshComp(), false);
       fem1.transformGeometry (new RigidTransform3d (0, 0, 1));
       addSubMesh (fem1, "sub1", new int[] { 5, 6, 9, 10 });
       addSubMesh (fem1, "sub2", new int[] { 53, 54, 57, 58 });
       FemModel3d fem2 = FemFactory.createHexGrid (null, 1, 1, 1, 4, 4, 4);
       fem1.setSurfaceRendering (FemModel3d.SurfaceRender.Shaded);
       fem2.setName ("fem2");
-      RenderProps.setVisible (fem2.getSurfaceFemMesh(), false);
+      RenderProps.setVisible (fem2.getSurfaceMeshComp(), false);
       fem2.transformGeometry (new RigidTransform3d (-2, 0, 1));
       addSubMesh (fem2, "sub1", new int[] { 5, 6, 9, 10 });
       addSubMesh (fem2, "sub2", new int[] { 53, 54, 57, 58 });
@@ -111,7 +111,7 @@ public class CollisionManagerTest extends UnitTest {
       FemModel3d fem3 = FemFactory.createHexGrid (null, 1, 1, 1, 4, 4, 4);
       fem3.setSurfaceRendering (FemModel3d.SurfaceRender.Shaded);
       fem3.setName ("fem3");
-      RenderProps.setVisible (fem3.getSurfaceFemMesh(), false);
+      RenderProps.setVisible (fem3.getSurfaceMeshComp(), false);
       fem3.transformGeometry (new RigidTransform3d (0, 0, 1));
       addSubMesh (fem3, "sub1", new int[] { 5, 6, 9, 10 });
       addSubMesh (fem3, "sub2", new int[] { 53, 54, 57, 58 });
@@ -748,11 +748,11 @@ public class CollisionManagerTest extends UnitTest {
       Collidable comp = findCollidable ("rigidBodies/comp");
 
       Collidable surf1 = findCollidable ("models/fem1/meshes/surface");
-      FemMesh    sub11 = (FemMesh)findCollidable ("models/fem1/meshes/sub1");
-      FemMesh    sub12 = (FemMesh)findCollidable ("models/fem1/meshes/sub2");
+      FemMeshComp    sub11 = (FemMeshComp)findCollidable ("models/fem1/meshes/sub1");
+      FemMeshComp    sub12 = (FemMeshComp)findCollidable ("models/fem1/meshes/sub2");
       Collidable surf2 = findCollidable ("models/fem2/meshes/surface");
-      FemMesh    sub21 = (FemMesh)findCollidable ("models/fem2/meshes/sub1");
-      FemMesh    sub22 = (FemMesh)findCollidable ("models/fem2/meshes/sub2");
+      FemMeshComp    sub21 = (FemMeshComp)findCollidable ("models/fem2/meshes/sub1");
+      FemMeshComp    sub22 = (FemMeshComp)findCollidable ("models/fem2/meshes/sub2");
       Collidable comp0 = findCollidable ("rigidBodies/comp/meshes/0");
       Collidable comp1 = findCollidable ("rigidBodies/comp/meshes/1");
       Collidable comp2 = findCollidable ("rigidBodies/comp/meshes/2");

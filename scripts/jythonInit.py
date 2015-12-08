@@ -51,7 +51,7 @@ def waitForStop () :
     getMain().waitForStop()
 
 def isPlaying() :
-    return getMain().isPlaying()
+    return getMain().isSimulating()
 
 def getTime() :
     return getMain().getTime()

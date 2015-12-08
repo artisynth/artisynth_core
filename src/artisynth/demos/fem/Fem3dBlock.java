@@ -188,7 +188,7 @@ public class Fem3dBlock extends RootModel {
       RenderProps.setLineColor (elements, Color.BLUE);
       Renderable nodes = femMod.getNodes();
       RenderProps.setPointStyle (nodes, RenderProps.PointStyle.SPHERE);
-      RenderProps.setPointRadius (nodes, 0.005);
+      RenderProps.setPointRadius (nodes, 0.01);
       RenderProps.setPointColor (nodes, new Color (153, 0, 204));
 
       // fix the leftmost nodes
@@ -229,8 +229,9 @@ public class Fem3dBlock extends RootModel {
       TCA.R.mulAxisAngle (1, 0, 0, Math.PI / 2);
       TCW.mul (X, TCA);
       RevoluteJoint joint = new RevoluteJoint (leftBody, TCA, TCW);
-      RenderProps.setLineRadius (joint, 0.01);
-      mechMod.addRigidBodyConnector (joint);
+      RenderProps.setCylindricalLines (joint, 0.01, Color.BLUE);
+      joint.setAxisLength (0.5);
+      mechMod.addBodyConnector (joint);
 
       // right box
       RigidBody rightBody = new RigidBody ("rightBody");
@@ -264,7 +265,7 @@ public class Fem3dBlock extends RootModel {
 //       }
 
       // addWayPoint (new WayPoint (TimeBase.secondsToTicks (5)));
-      addBreakPoint(5);
+      //addBreakPoint(5);
 
       // setupOutputProbes();
       addControlPanel (mechMod, femMod);

@@ -701,12 +701,13 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       }
    }
 
-   public Object clone() throws CloneNotSupportedException {
-      ComponentListImpl comp = (ComponentListImpl)super.clone();
+   // public Object clone() throws CloneNotSupportedException {
+   //    ComponentListImpl comp = (ComponentListImpl)super.clone();
 
-      comp.myValidateIndices = -1;
-      comp.myComponentMap = new ComponentMap();
+   //    comp.clear();
+   //    comp.myValidateIndices = -1;
+   //    comp.myComponentMap = new ComponentMap();
 
-      return comp;
-   }
+   //    return comp;
+   // }
 }

@@ -851,7 +851,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
     * @return corresponding aligned block row index, or -1 if the index is not
     * aligned.
     */
-   private int getAlignedBlockRow (int i) {
+   public int getAlignedBlockRow (int i) {
       if (i == myNumRows) {
          return myNumBlockRows;
       }
@@ -886,7 +886,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
     * @return corresponding aligned block column index, or -1 if the index is
     * not aligned.
     */
-   private int getAlignedBlockCol (int j) {
+   public int getAlignedBlockCol (int j) {
       if (j == myNumCols) {
          return myNumBlockCols;
       }
@@ -1358,6 +1358,85 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       // number of non-zeros.
       for (int j = 0; j < numCols; j++) {
          offsets[j + idx] += (myColIndices[j + 1] - myColIndices[j]);
+      }
+   }
+
+   public void add (SparseBlockMatrix M) {
+      scaledAdd (1, M, M.numBlockRows(), M.numBlockCols());
+   }
+
+   public void add (SparseBlockMatrix M, int numBlkRows, int numBlkCols) {
+      scaledAdd (1, M, numBlkRows, numBlkCols);
+   }
+
+   public void sub (SparseBlockMatrix M) {
+      scaledAdd (-1, M, M.numBlockRows(), M.numBlockCols());
+   }
+
+   public void sub (SparseBlockMatrix M, int numBlkRows, int numBlkCols) {
+      scaledAdd (-1, M, numBlkRows, numBlkCols);
+   }
+
+   public void scaledAdd (double s, SparseBlockMatrix M) {
+      scaledAdd (s, M, M.numBlockRows(), M.numBlockCols());
+   }
+   
+   public void scaledAdd (
+      double s, SparseBlockMatrix M, int numBlkRows, int numBlkCols) {
+
+      if (numBlkRows > numBlockRows() || numBlkCols > numBlockCols()) {
+         throw new IllegalArgumentException (
+            "Number of block rows and/or columns in M submatrix exceeds "+
+            "number in result matrix");
+      }
+      if (numBlkRows > M.numBlockRows() || numBlkCols > M.numBlockCols()) {
+         throw new IllegalArgumentException (
+            "Number of block rows and/or columns in M submatrix exceeds "+
+            "number in M itself");
+      }
+      for (int bi=0; bi<numBlkRows; bi++) {
+         if (getBlockRowSize(bi) != M.getBlockRowSize(bi)) {
+            throw new IllegalArgumentException (
+               "Block rows sizes do not conform");
+         }
+      }
+      for (int bj=0; bj<numBlkCols; bj++) {
+         if (getBlockColSize(bj) != M.getBlockColSize(bj)) {
+            throw new IllegalArgumentException (
+               "Block rows sizes do not conform");
+         }
+      }
+      for (int bi=0; bi<numBlkRows; bi++) {
+         MatrixBlock blkM = M.myRows[bi].myHead;
+         MatrixBlock blkR = myRows[bi].myHead;
+         MatrixBlock prevR = null;
+         while (blkM != null && blkM.getBlockCol() < numBlkCols) {
+            int bj = blkM.getBlockCol();
+            while (blkR != null && blkR.getBlockCol() < bj) {
+               prevR = blkR;
+               blkR = blkR.next();
+            }
+            if (blkR == null || blkR.getBlockCol() > bj) {
+               // need to create and add a block
+               blkR = blkM.clone();
+               if (s != 1) {
+                  blkR.scale (s);
+               }
+               addBlock (bi, bj, blkR);
+            }
+            else {
+               if (s == 1) {
+                  blkR.add (blkM);
+               }
+               else if (s == -1) {
+                  blkR.sub (blkM);
+               }
+               else {
+                  blkR.scaledAdd (s, blkM);
+               }
+            }
+            blkM = blkM.next();
+         }
       }
    }
 

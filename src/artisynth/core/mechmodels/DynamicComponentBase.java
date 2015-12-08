@@ -7,17 +7,18 @@
 package artisynth.core.mechmodels;
 
 import artisynth.core.modelbase.*;
-import maspack.matrix.Matrix;
-import maspack.matrix.MatrixBlock;
-import maspack.matrix.SparseBlockMatrix;
-import maspack.matrix.SparseNumberedBlockMatrix;
+import artisynth.core.util.*;
+import maspack.matrix.*;
 import maspack.util.*;
+import maspack.geometry.GeometryTransformer;
+
 import java.util.*;
 
 public abstract class DynamicComponentBase extends RenderableComponentBase
-implements DynamicComponent {
+   implements DynamicComponent {
    DynamicAttachment myAttachment;
    LinkedList<DynamicAttachment> myMasterAttachments;
+   ArrayList<Constrainer> myConstrainers;
 
    boolean myDynamicP;
    // Activity myActivity;
@@ -118,6 +119,30 @@ implements DynamicComponent {
    public LinkedList<DynamicAttachment> getMasterAttachments() {
       return myMasterAttachments;
    }
+   
+   public List<Constrainer> getConstrainers() {
+      return myConstrainers;
+   }
+   
+   public void addConstrainer (Constrainer c) {
+      if (myConstrainers == null) {
+         myConstrainers = new ArrayList<Constrainer>();
+      }
+      if (!myConstrainers.contains(c)) {
+         myConstrainers.add (c);
+      }
+   }
+
+   public boolean removeConstrainer (Constrainer c) {
+      boolean removed = false;
+      if (myConstrainers != null) {
+         removed = myConstrainers.remove (c);
+         if (removed && myConstrainers.size() == 0) {
+            myConstrainers = null;
+         }
+      }
+      return removed;
+   }
 
    public ModelComponent copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
@@ -137,6 +162,137 @@ implements DynamicComponent {
       public boolean hasState() {
       return true;
    }
+
+   private class AttachmentUpdateAction implements TransformGeometryAction {
+
+      DynamicAttachment myAttachment;
+
+      AttachmentUpdateAction (DynamicAttachment a) {
+         myAttachment = a;
+      }
+
+      public void transformGeometry (
+         GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+         myAttachment.updateAttachment();
+      }     
+
+      public int hashCode() {
+         return myAttachment.hashCode();
+      }
+
+      public boolean equals (Object obj) {
+         return (obj instanceof AttachmentUpdateAction &&
+                 ((AttachmentUpdateAction)obj).myAttachment == myAttachment);
+      }
+   }
+
+   private class SlaveUpdateAction extends AttachmentUpdateAction {
+
+      SlaveUpdateAction (DynamicAttachment a) {
+         super (a);
+      }
+
+      public void transformGeometry (
+         GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+         boolean allMastersTransforming =
+            context.containsAll (myAttachment.getMasters());
+
+         DynamicComponent slave = myAttachment.getSlave();
+         if (allMastersTransforming && !gtr.isRigid()) {
+            if (slave != null) {
+               slave.transformGeometry (
+                  gtr, context, flags | TransformableGeometry.TG_SIMULATING);
+            }
+            myAttachment.updateAttachment();
+         }
+         else if (!allMastersTransforming) {
+            myAttachment.updateAttachment();
+         }
+         if (!context.containsAction (MechSystemBase.myAttachmentsPosAction)) {
+            context.addAction (MechSystemBase.myAttachmentsPosAction);
+         }
+         if (slave != null) {
+            context.addParentToNotify (slave.getParent());
+         }
+      } 
+   }
+
+   public void transformGeometry (AffineTransform3dBase X) {
+      TransformGeometryContext.transform (this, X, 0);
+   }
+
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+   }
+
+   private void addAttachmentUpdateIfNeeded (
+      DynamicAttachment a, GeometryTransformer gtr, 
+      TransformGeometryContext context) {
+
+      if (context.contains (a.getSlave())) {
+         // the attachment slave is being transformed, and so request an update
+         // for the attachment if the transform is non-rigid, or if all the
+         // masters are not also being transformed.
+         if (!gtr.isRigid() || !context.containsAll (a.getMasters())) {
+            AttachmentUpdateAction action = new AttachmentUpdateAction (a);
+            if (!context.containsAction (action)) {
+               context.addAction (action);
+            }
+         }
+      }
+      else {
+         // the attachment slave is not being transformed, so request an update
+         // action for the slave if one has not already been added
+         SlaveUpdateAction action = new SlaveUpdateAction (a);
+         if (!context.containsAction (action)) {
+            context.addAction (action);
+         }
+      }
+   }
+
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+
+      // transforming the geometry of this dynamic component will cause any
+      // associated attachments and constraints to be updated if necessary,
+      // *unless* we are simulating
+      if ((flags & TransformableGeometry.TG_SIMULATING) != 0) {
+         return;
+      }
+      DynamicAttachment as = getAttachment();
+      if (as != null) {
+         // this is a slave component; maybe update slave attachment 
+         addAttachmentUpdateIfNeeded (as, gtr, context);
+      }
+      if (myMasterAttachments != null) {
+         // master component for one of more attachments - update if needed
+         for (DynamicAttachment am : myMasterAttachments) {
+            addAttachmentUpdateIfNeeded (am, gtr, context);
+         }
+      }
+      // for all TransformableGeometry constrainers involving this component,
+      // call their transformGeometry() method before any of the constrained
+      // components have been transformed. That will allow the constrainer to
+      // request any update actions that are needed, using pretransform data if
+      // necessary. The constrainer's transformGeometry() method is called even
+      // if the constrainer itself is not being transformed, since it may still
+      // have to request update actions. The constrainer can tell if it is
+      // actually being transformed by calling context.contains() to see if it
+      // is actually contained in the context.
+      if (myConstrainers != null) {
+         for (Constrainer c : myConstrainers) {
+            if (c instanceof TransformableGeometry) {
+               TransformableGeometry tgc = (TransformableGeometry)c;
+               
+               if (!context.isTransformed(tgc)) {
+                  tgc.transformGeometry (gtr, context, flags);
+                  // mark c as being transformed
+                  context.markTransformed (tgc);
+               }
+            }
+         }
+      }
+   }   
 
 //    /**
 //     * {@inheritDoc}

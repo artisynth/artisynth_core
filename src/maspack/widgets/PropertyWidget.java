@@ -831,11 +831,16 @@ public class PropertyWidget {
       return null;
    }
 
-   public static PropertyModeButton addModeButton (
+   public static PropertyModeButton addModeButtonIfNecessary (
       LabeledControl widget, InheritableProperty prop) {
-      PropertyModeButton button = new PropertyModeButton (widget, prop);
-      widget.addMajorComponent (button, 0);
-      widget.addValueChangeListener (new SetHandler (button));
+      // add a property mode button to a widget if it does not already have one
+      Component comp = widget.getMajorComponent(0);
+      PropertyModeButton button = null;
+      if (!(comp instanceof PropertyModeButton)) {
+         button = new PropertyModeButton (widget, prop);
+         widget.addMajorComponent (button, 0);
+         widget.addValueChangeListener (new SetHandler (button));
+      }
       return button;
    }
 
@@ -864,7 +869,7 @@ public class PropertyWidget {
             throw new InternalErrorException (
                "Inheritable property widget is not a LabeledControl");
          }
-         addModeButton ((LabeledControl)widget, (InheritableProperty)prop);
+         addModeButtonIfNecessary ((LabeledControl)widget, (InheritableProperty)prop);
       }
       else {
          addModeButtonSpace (widget);

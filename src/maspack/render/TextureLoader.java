@@ -19,6 +19,7 @@ import java.util.Hashtable;
 import java.util.Map.Entry;
 
 import javax.imageio.ImageIO;
+import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 
 /**
@@ -259,9 +260,14 @@ public class TextureLoader {
          gl.glTexParameteri (target, GL2.GL_TEXTURE_MAG_FILTER, magFilter);
       }
       
-      ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
+      ByteBuffer buffer = ByteBuffer.allocateDirect(bytes.length);
       buffer.put(bytes);
-      buffer.position (0);
+      buffer.rewind();
+      
+      // if pixels don't align to 4 bytes, adjust unpack
+      if (width % 4 != 0) {
+         gl.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1);
+      }
       
       // produce a texture from the byte buffer
       gl.glTexImage2D (
@@ -269,6 +275,11 @@ public class TextureLoader {
          height, 0, srcPixelFormat,
          GL2.GL_UNSIGNED_BYTE, buffer);
 
+      if (width % 4 != 0) {
+         // restore pixel alignment
+         gl.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 4);
+      }
+      
       return texture;
    }
 

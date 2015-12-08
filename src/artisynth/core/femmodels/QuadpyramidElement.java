@@ -369,9 +369,4 @@ public class QuadpyramidElement extends FemElement3d {
       }
    }
 
-
-   public boolean isInside (Point3d pnt) {
-      return this.getNaturalCoordinates (new Vector3d(), pnt);
-   }
-
 }

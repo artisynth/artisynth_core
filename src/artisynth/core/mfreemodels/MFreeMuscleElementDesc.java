@@ -14,6 +14,7 @@ import java.util.LinkedList;
 import java.util.Deque;
 
 import maspack.geometry.DelaunayInterpolator;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
@@ -48,6 +49,8 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponentBase;
 import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.*;
 
 /**
@@ -157,7 +160,7 @@ public class MFreeMuscleElementDesc
    @Override
    public boolean isInvertible() {
       MuscleMaterial mat = getEffectiveMuscleMaterial();
-      return mat != null && mat.isInvertible();
+      return mat == null || mat.isInvertible();
    }
 
    /**
@@ -650,21 +653,47 @@ public class MFreeMuscleElementDesc
    }
    
    public void transformGeometry(AffineTransform3dBase X) {
-      transformGeometry(X, this, 0);
+      TransformGeometryContext.transform (this, X, 0);
    }
 
-   public void transformGeometry(
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-      myDir.transform(X);
-      myDir.normalize();
-      if (myDirs != null) {
-         for (int i=0; i<myDirs.length; i++) {
-            if (myDirs[i] != null) {
-               myDirs[i].transform(X);
-               myDirs[i].normalize();
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+
+      Point3d ref = new Point3d();
+      if (gtr.isAffine()) {
+         gtr.transformVec (myDir, ref);
+         myDir.normalize();
+         if (myDirs != null) {
+            for (int i=0; i<myDirs.length; i++) {
+               if (myDirs[i] != null) {
+                  gtr.transformVec (myDirs[i], ref);
+                  myDirs[i].normalize();
+               }
             }
          }
       }
+      else {
+         // need to specifiy a reference position for each direction, since
+         // vector transformations are position dependent.
+
+         // FINISH - compute ref
+         gtr.transformVec(myDir, ref);
+         myDir.normalize();
+         if (myDirs != null) {
+            for (int i=0; i<myDirs.length; i++) {
+               if (myDirs[i] != null) {
+                  // FINISH - compute ref
+                  gtr.transformVec (myDirs[i], ref);
+                  myDirs[i].normalize();
+               }
+            }
+         }
+      }
+   }
+
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      // no dependencies
    }
 
    public void scaleDistance (double s) {

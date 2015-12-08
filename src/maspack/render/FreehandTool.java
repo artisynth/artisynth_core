@@ -90,7 +90,7 @@ public class FreehandTool extends DrawToolBase {
       renderer.setLightingEnabled (false);
       myLineColor.getRGBColorComponents (rgb);
       renderer.setColor (rgb);
-      gl.glLineWidth (myLineWidth);
+      renderer.setLineWidth (myLineWidth);
 
       if (myClosedP) {
          gl.glBegin (GL2.GL_LINE_LOOP);
@@ -104,7 +104,7 @@ public class FreehandTool extends DrawToolBase {
       }
       gl.glEnd();
 
-      gl.glLineWidth (1);
+      renderer.setLineWidth (1);
       renderer.setLightingEnabled (saveLighting);
 
       gl.glPopMatrix();

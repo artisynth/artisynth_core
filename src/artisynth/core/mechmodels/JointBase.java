@@ -6,6 +6,8 @@
  */
 package artisynth.core.mechmodels;
 
+import java.util.Map;
+
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.RigidTransform3d;
@@ -13,16 +15,20 @@ import maspack.matrix.VectorNd;
 import maspack.properties.*;
 import maspack.render.*;
 
-public abstract class JointBase extends RigidBodyConnector  {
+import artisynth.core.modelbase.*;
+
+public abstract class JointBase extends BodyConnector  {
 
    protected double myAxisLength;
    protected static final double defaultAxisLength = 1;
    protected static final boolean defaultDrawFrame = false;
-   protected RigidTransform3d myRenderFrame = new RigidTransform3d();
-   protected boolean myDrawFrame = defaultDrawFrame;
-
+   protected RigidTransform3d myRenderFrameD = new RigidTransform3d();
+   protected RigidTransform3d myRenderFrameC = new RigidTransform3d();  
+   protected boolean myDrawFrameD = defaultDrawFrame;
+   protected boolean myDrawFrameC = false;
+   
    public static PropertyList myProps =
-      new PropertyList (SolidJoint.class, RigidBodyConnector.class);
+      new PropertyList (SolidJoint.class, BodyConnector.class);
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createPointLineProps (host);
@@ -43,6 +49,8 @@ public abstract class JointBase extends RigidBodyConnector  {
       myProps.add (
          "drawFrame", "if true, draw the D coordinate frame", defaultDrawFrame);
       myProps.add (
+         "drawMovingFrame getDrawFrameC setDrawFrameC", "if true, draw the C coordinate frame", false);
+      myProps.add (
          "renderProps * *", "renderer properties", defaultRenderProps (null));
    }
 
@@ -51,13 +59,31 @@ public abstract class JointBase extends RigidBodyConnector  {
    }
 
    public boolean getDrawFrame() {
-      return myDrawFrame;
+      return getDrawFrameD();
    }
 
    public void setDrawFrame (boolean draw) {
-      myDrawFrame = draw;
+      setDrawFrameD(draw);
    }
 
+
+   public boolean getDrawFrameD() {
+      return myDrawFrameD;
+   }
+
+   public void setDrawFrameD (boolean draw) {
+      myDrawFrameD = draw;
+   }
+
+   
+   public void setDrawFrameC(boolean draw) {
+      myDrawFrameC = draw;
+   }
+   
+   public boolean getDrawFrameC() {
+      return myDrawFrameC;
+   }
+   
    // public RigidTransform3d getCurrentXDW() {
    //    RigidTransform3d TDW = new RigidTransform3d();
    //    TDW.set (getXDB());
@@ -83,18 +109,26 @@ public abstract class JointBase extends RigidBodyConnector  {
 
     public void prerender (RenderList list) {
       RigidTransform3d TDW = getCurrentTDW();
-      myRenderFrame.set (TDW);
+      myRenderFrameD.set (TDW);
+      RigidTransform3d TCW = getCurrentTCW();
+      myRenderFrameC.set (TCW);
    }
 
    public void render (Renderer renderer, int flags) {
-      if (myDrawFrame) {
+      if (myDrawFrameD) {
          renderer.drawAxes (
-            myRenderProps, myRenderFrame, myAxisLength, isSelected());
+            myRenderProps, myRenderFrameD, myAxisLength, isSelected());
+      }
+      
+      if (myDrawFrameC) {
+         // second frame
+         renderer.drawAxes (
+            myRenderProps, myRenderFrameC, myAxisLength, isSelected());
       }
    }
 
    public RigidTransform3d getRenderFrame() {
-      return myRenderFrame;
+      return myRenderFrameD;
    }
    
    public void getPosition(Point3d pos) {
@@ -113,6 +147,14 @@ public abstract class JointBase extends RigidBodyConnector  {
       super.scaleDistance (s);
       myAxisLength *= s;
       myRenderProps.scaleDistance (s);
+   }
+   @Override
+   public ModelComponent copy (
+      int flags, Map<ModelComponent,ModelComponent> copyMap) {
+      JointBase copy = (JointBase)super.copy (flags, copyMap);
+      copy.myRenderFrameD = new RigidTransform3d (myRenderFrameD);
+      copy.myRenderFrameC = new RigidTransform3d (myRenderFrameC);
+      return copy;
    }
    
 

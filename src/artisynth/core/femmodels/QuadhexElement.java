@@ -565,11 +565,6 @@ public class QuadhexElement extends FemElement3d {
       renderWidget (renderer, size, myWidgetFaces, props);
    }
 
-   @Override
-   public boolean isInside (Point3d pnt) {
-      return this.getNaturalCoordinates (new Vector3d(), pnt);
-   }
-
    public FemNode3d[][] triangulateFace (FaceNodes3d face) {
       FemNode3d[] nodes = face.getNodes();
       if (nodes.length != 8) {

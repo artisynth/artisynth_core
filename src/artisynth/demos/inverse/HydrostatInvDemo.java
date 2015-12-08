@@ -17,6 +17,8 @@ import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 import artisynth.core.mechmodels.MotionTargetComponent;
 import artisynth.core.mechmodels.Muscle;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.probes.OutputProbe;
+import artisynth.core.probes.Probe;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.demos.fem.HydrostatDemo;
@@ -36,6 +38,7 @@ public class HydrostatInvDemo extends HydrostatDemo
    protected MechModel mech; 
    double s = 1;
    boolean useBundlesForInverse = true;
+   double stepsize = 0.01;
 
    public void build(String[] args) throws IOException
    {
@@ -43,10 +46,10 @@ public class HydrostatInvDemo extends HydrostatDemo
    }
    
    public void build (Shape shape) throws IOException {
-
       super.build (shape);
-      hydro.setMaxStepSize(0.005);
+      hydro.setMaxStepSize(stepsize);
       hydro.setIntegrator(Integrator.Trapezoidal);
+      this.setMaxStepSize (stepsize);
       
       mech = new MechModel("mech");
       mech.setIntegrator(hydro.getIntegrator());
@@ -109,6 +112,7 @@ public class HydrostatInvDemo extends HydrostatDemo
       
       trackingController.addL2RegularizationTerm(100*100);
       trackingController.setProbeDuration (5.0);
+      trackingController.setProbeUpdateInterval (stepsize);
       trackingController.createProbesAndPanel (this);
       addController(trackingController);
    }

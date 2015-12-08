@@ -13,8 +13,11 @@ import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLViewer;
 import artisynth.core.driver.Main;
 import artisynth.core.femmodels.FemElement;
+import artisynth.core.femmodels.FemModel.ElementFilter;
+import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.femmodels.FemElement3d;
 import artisynth.core.femmodels.FemModel;
+import artisynth.core.femmodels.FemMeshComp;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.femmodels.FemNode;
 import artisynth.core.femmodels.HexElement;
@@ -37,6 +40,7 @@ public class FemModel3dEditor extends EditorBase {
          FemModel3d model = (FemModel3d)selection.get (0);
          actions.add (this, "Add FemMarkers ...", EXCLUSIVE);
          actions.add (this, "Rebuild surface mesh");
+         actions.add (this, "Add new surface mesh");
          actions.add (this, "Save surface mesh ...");
          actions.add (this, "Save mesh as Ansys file...");
          if (model.getGrandParent() instanceof MechModel) {
@@ -48,7 +52,8 @@ public class FemModel3dEditor extends EditorBase {
          actions.add (this, "Subdivide elements");
       }
       if (containsMultipleCommonParentSelection (selection, FemElement3d.class)) {
-         actions.add (this, "Build surface mesh for selected elements");
+         actions.add (this, "Rebuild surface mesh for selected elements");
+         actions.add (this, "Add new surface mesh for selected elements");
       }
    }
 
@@ -65,6 +70,9 @@ public class FemModel3dEditor extends EditorBase {
          }
          else if (actionCommand == "Rebuild surface mesh") {
             rebuildSurfaceMesh (model);
+         }
+         else if (actionCommand == "Add new surface mesh") {
+            addNewSurfaceMesh (model);
          }
          else if (actionCommand == "Save surface mesh ...") {
             EditorUtils.saveMesh (model.getSurfaceMesh(), /*Transform= */null);
@@ -94,10 +102,15 @@ public class FemModel3dEditor extends EditorBase {
             }
          }
       }
-      if (actionCommand == "Build surface mesh for selected elements") {
+      if (actionCommand == "Rebuild surface mesh for selected elements") {
          FemModel3d mod =
                (FemModel3d)ComponentUtils.getGrandParent(selection.get(0));
          rebuildSurfaceMeshForSelectedElements (mod);
+      }
+      else if (actionCommand == "Add new surface mesh for selected elements") {
+         FemModel3d mod =
+               (FemModel3d)ComponentUtils.getGrandParent(selection.get(0));
+         addNewSurfaceMeshForSelectedElements (mod);
       }
    }
 
@@ -111,10 +124,12 @@ public class FemModel3dEditor extends EditorBase {
       public boolean elementIsValid (FemElement e) {
          if (myPlanes != null && myPlanes.length > 0) {
             for (int i=0; i<myPlanes.length; i++) {
-               FemNode[] nodes = e.getNodes();
-               for (int k=0; k<nodes.length; k++) {
-                  if (myPlanes[i].isClipped (nodes[k].getPosition())) {
-                     return false;
+               if (myPlanes[i].isClippingEnabled()) {
+                  FemNode[] nodes = e.getNodes();
+                  for (int k=0; k<nodes.length; k++) {
+                     if (myPlanes[i].isClipped (nodes[k].getPosition())) {
+                        return false;
+                     }
                   }
                }
             }
@@ -128,6 +143,14 @@ public class FemModel3dEditor extends EditorBase {
       model.createSurfaceMesh (new ClippedElementFilter (v.getClipPlanes()));
    }
 
+   private void addNewSurfaceMesh (FemModel3d model) {
+      GLViewer v = myMain.getViewer();
+      ElementFilter efilter = new ClippedElementFilter (v.getClipPlanes());
+      FemMeshComp mcomp = FemMeshComp.createSurface (null, model, efilter);
+      mcomp.setSurfaceRendering (SurfaceRender.Shaded);
+      model.addMeshComp (mcomp);
+   }
+
    private class SelectedElementFilter extends FemModel.ElementFilter {
 
       public boolean elementIsValid (FemElement e) {
@@ -137,6 +160,13 @@ public class FemModel3dEditor extends EditorBase {
 
    private void rebuildSurfaceMeshForSelectedElements (FemModel3d model) {
       model.createSurfaceMesh (new SelectedElementFilter());
+   }
+
+   private void addNewSurfaceMeshForSelectedElements (FemModel3d model) {
+      ElementFilter efilter = new SelectedElementFilter();
+      FemMeshComp mcomp = FemMeshComp.createSurface (null, model, efilter);
+      mcomp.setSurfaceRendering (SurfaceRender.Shaded);
+      model.addMeshComp (mcomp);
    }
 
    public FemModel3dEditor (Main main, EditorManager editManager) {

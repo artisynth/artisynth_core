@@ -14,6 +14,264 @@
 %\renewcommand{\sectionname}{}
 \begin{document}
 
+%\section*{Next}
+
+%\subsection*{Wrapping surfaces}
+
+\section*{December 3, 2015}
+
+\subsection*{New mechanisms for transforming geometry}
+
+The geometry transform mechanism has been completely rewritten, to
+make it both more robust and more general. It is now possible to
+transform components, or collections of components, with a
+\javaclass[maspack.geometry]{GeometryTransformer} object, special
+instances of which can be used to apply a transformation based on a
+nonlinear deformation field.
+
+Full details, and a demonstration example, as given in the section
+``Transforming geometry'' of the
+\href{../modelguide/modelguide.html}{ArtiSynth Modeling Guide}.
+
+\subsection*{Adding application-defined menu items}
+
+The mechanism to add application-defined menu items which can be
+invoked from the ArtiSynth menu bar has been changed and
+generalized. 
+
+First, the menu name under which these items appear has been changed from {\sf
+Model} to {\sf Application}.
+
+Second, application-defined menu items can now be provided not only by
+the {\tt RootModel}, but by any top-level component of the {\tt
+RootModel} (e.g., models, controllers, probes, etc.). Formerly, the
+{\tt RootModel} could provide menu items by overriding the method {\tt
+makeMenuItems()}. Now, instead, menu items can be provided by either the {\tt
+RootModel} or any top-level component that implements the interface
+\javaclass[artisynth.core.modelbase]{HasMenuItems}, which declares
+the method
+%
+\begin{lstlisting}[]
+   public boolean getMenuItems(List<Object> items);
+\end{lstlisting}
+%
+The total of all menu items supplied is used to populate the pull-down
+{\tt Application} menu in the ArtiSynth menu bar.
+
+\begin{sideblock}
+The {\sf Application} menu will only appear if {\tt getMenuItems()} returns
+{\tt true} for one or more of these components.
+\end{sideblock}
+
+For more details, see the section ``Application-Defined Menu Items'', in the
+\href{../modelguide/modelguide.html}{ArtiSynth Modeling Guide}.
+
+\subsection*{Updates to the Pardiso library}
+
+The Pardiso library has been updated to include the ability to
+dynamically set the number of threads used by the solver. From code,
+one can do this by calling
+%
+\begin{lstlisting}[]
+   PardisoSolver.setDefaultNumThreads (num);
+\end{lstlisting}
+%
+which will then set the number of threads to {\tt num} upon creation
+of the next instance of {\tt PardisoSolver}.
+
+\begin{sideblock}
+Note: setting the number of threads globally affects all solver
+instances within the current process. There is no current way to
+specify the thread number for individual solver instances.  Also, the
+specified thread number is only a hint; fewer threads may be employed,
+depending on the machine resources available.
+\end{sideblock}
+
+The named convention for the Pardiso library has also been changed.
+The current library is now {\tt PardisoJNI.11.1.2.1}, where the first
+three numbers correspond to the version numbers of the underlying MKL
+library.  The new library should download automatically from the
+ArtiSynth web server.
+
+\subsection*{Tetgen has been updated to 1.5.1}
+
+The Tetgen library has been updated to Tetgen 1.5.1 (May 2014), with
+the new library named {\tt TetgenJNI.1.5.1.0}. The first three numbers
+correspond to the version numbers of the underlying Tetgen library.
+The new library should download automatically from the ArtiSynth web
+server.
+
+\subsection*{Creating Fem surface meshes}
+
+Support has been added for interactively creating and rebuilding FEM
+surface meshes from the right-click context menu.
+
+\begin{itemize}
+
+\item {\it Adding new surface meshes}. If an FEM model is selected,
+then the context menu command {\sf Add new surface mesh} will create a
+new surface mesh and add it to the set of mesh components contained in the
+list {\tt meshes}. If a clipping plane is active, the mesh
+will include only those elements which are not obscured by the
+clipping plane.
+
+\item {\it Adding new surface meshes from selected elements}. If one
+or more elements of an FEM are selected, then the context menu command
+{\sf Add new surface mesh for selected elements} will create a new
+surface mesh encompassing only the selected elements and add it to the
+set of mesh components contained in the list {\tt meshes}.
+
+\item {\it Rebuilding an existing surface mesh}. If an FEM mesh
+component is selected, and the underlying mesh type is a {\tt PolygonalMesh},
+then the context menu command {\sf Rebuild as surface mesh} will
+rebuild the mesh as a surface mesh for the FEM. If a clipping plane is
+active, the mesh will include only those elements which are not
+obscured by the clipping plane.
+
+\end{itemize}
+
+\subsection*{ControlPanels now support component deletion}
+
+\javaclass[artisynth.core.gui]{ControlPanel}s have been updated to
+take advantage of the
+\javamethod*[artisynth.core.modelbase.ModelComponent]{updateReferences()}
+method in \javaclass[artisynth.core.modelbase]{ModelComponent} to
+update themselves appropriately if any components associated with
+their widgets are deleted.
+
+\subsection*{Changes to the javaclass and javamethod LaTeX commands}
+
+The LaTeX {\tt javaclass} and {\tt javamethod} commands (defined in
+{\tt doc/texinputs/artisynthDoc.tex} to generate links to Javadoc
+class and method documentation from within ArtiSynth docu) have
+been changed as follows:
+
+\begin{itemize}
+
+\item {\tt javamethodx} and {\tt javaclassx}, which prepended
+package information with a string defined by the command {\tt javabase},
+are no longer supported. While this means that {\tt javaclass} and
+{\tt javamethod} must now fully specify their class packages,
+this should result in documentation that is clearer and
+easier to maintain.
+
+\item Antonio has added a new command, {\tt javamethodAlt}, that
+allows one to specify arbitrary visual text for a given method link.
+
+\item When compiling HTML documentation files, the postprocessing step
+will now produce visible {\tt WARNING} messages for class and method
+links that cannot be located.
+
+\end{itemize}
+
+For more details, see the Javadoc References section in
+\href{../documentation/documentation.html}{Writing Documentation for ArtiSynth}.
+
+\section*{August 27, 2015}
+
+\subsection*{ArtiSynth 3.2 released}
+
+ArtiSynth 3.2 has been released and is available on the website.
+
+\subsection*{Class and Method Renaming}
+
+Some classes and methods were renamed as described in the following
+charts. The reasons for this were twofold: first, since joints can now
+be applied to deformable as well as rigid bodies, the notion of {\tt
+RigidBodyConnector} not longer made sense. Second, there are a number
+of subclasses of {\tt MeshComponent} that are used to encapsulate
+various mesh objects defined in {\tt maspack.geometry} (such as {\tt
+PointMesh} and {\tt PolygonalMesh}). However, these container classes
+had names like {\tt FixedMesh} and {\tt FemMesh}, leading to confusion
+over whether they were actual mesh classes, or components that simply
+contained meshes.
+
+\subsubsection*{Renamed classes}
+
+\begin{tabular}{ll}
+Old name & New Name \\
+\hline
+\multicolumn{2}{l}{Renamed classes}\\
+\hline
+{\tt mechmodels.RigidBodyConnector} & {\tt mechmodels.BodyConnector} \\
+{\tt mechmodels.RigidBodyConstrainer} & {\tt mechmodels.BodyConstrainer} \\
+{\tt mechmodels.FixedMesh} & {\tt mechmodels.FixedMeshBody} \\
+{\tt mechmodels.RigidMesh} & {\tt mechmodels.RigidMeshComp} \\
+{\tt femmodels.FemMesh} & {\tt femmodels.FemMeshComp} \\
+{\tt femmodels.SkinMesh} & {\tt femmodels.SkinMeshBody} \\
+{\tt renderables.EditableMesh} & {\tt renderables.EditableMeshComp}\\
+{\tt renderables.EditablePolygonalMesh} & {\tt renderables.EditablePolygonalMeshComp}\\
+\hline
+\multicolumn{2}{l}{Renamed methods in MechModel}\\
+\hline
+{\tt addRigidBodyConnector(RigidBodyConnector)} & 
+{\tt addBodyConnector(BodyConnector)} \\
+{\tt removeRigidBodyConnector(RigidBodyConnector)} & 
+{\tt removeBodyConnector(BodyConnector)} \\
+{\tt rigidBodyConnectors()} & 
+{\tt bodyConnectors()}\\
+{\tt clearRigidBodyConnectors()} & 
+{\tt clearBodyConnectors()}\\
+\hline
+\multicolumn{2}{l}{Renamed methods in FemModel3d}\\
+\hline
+{\tt addMesh(FemMesh)} & {\tt addMeshComp(FemMeshComp)} \\
+{\tt getMesh(String)} & {\tt getMeshComp(String)} \\
+{\tt getNumMeshes()} & {\tt numMeshComps()} \\
+{\tt getMeshes()} & {\tt getMeshComps()} \\
+{\tt removeMesh(FemMesh} & {\tt removeMeshComp(FemMeshComp)} \\
+{\tt removeAllMeshes(} & {\tt clearMeshComps()} \\
+{\tt getSurfaceFemMesh()} & {\tt getSurfaceMeshComp()} \\
+\hline
+\multicolumn{2}{l}{Renamed methods in CompositeRigidBody}\\
+\hline
+{\tt addMesh(RigidMesh)} & {\tt addMeshComp(RigidMeshComp)} \\
+{\tt getMesh(String)} & {\tt getMeshComp(String)} \\
+{\tt getNumMeshes()} & {\tt numMeshComps()} \\
+{\tt getMeshes()} & {\tt getMeshComps()} \\
+{\tt containsMesh(RigidMesh} & {\tt containsMeshComp(RigidMeshComp)} \\
+{\tt removeMesh(RigidMesh} & {\tt removeMeshComp(RigidMeshComp)} \\
+{\tt removeMesh(String} & {\tt removeMeshComp(String)} \\
+\end{tabular}
+
+\section*{August 24, 2015}
+
+\subsection*{Method renaming}
+
+{\tt FemMarker.setElement(e)} has been renamed to {\tt
+FemMarker.setFromElement(e)}
+
+\subsection*{Frame attachments added}
+
+The long-standing ability to attach points to certain types of
+ArtiSynth components is now complemented by the ability to attach
+frames to components, including other frames and FEM models. See
+Sections 4.5.3 and 7.6 in the Modeling Guide, and the examples {\tt
+artisynth.demos.tutorial.FrameBodyAttachment} and {\tt
+artisynth.demos.tutorial.FrameFemAttachment}.
+
+\subsection*{Joints can be connected to FEM models}
+
+The ability to add frames to FEM models allows us to connect joints
+directly to these models. See Section 7.6.2 in the Modeling Guide,
+and the example {\tt artisynth.demos.tutorial.JointedFemBeams}.
+
+\subsection{Point-FEM attachments can involve arbitray nodes}
+
+Point attachments can now be made for arbitrary collections of FEM nodes.
+See Sections 7.4.3 through 7.4.6 in the Modeling Guide, and the
+example {\tt artisynth.demos.tutorial.PointFemAttachment}.  The same
+ability holds for FEM markers; see Section 7.5.
+
+\subsection{Wrapping surface support added}
+
+Support has been added for wrapping surfaces. This is done by
+extending {\tt MultiPointSpring} to make some segments {\it
+wrappable}, allowing them to wrap around any {\tt Wrappable} obstacle
+that is added to the spring. Documentation is being prepared. In the
+meantime, see the example {\tt
+artisynth.demos.tutorial.CylinderWrapping}.
+
 \section*{March 16, 2015}
 
 \subsection*{MATLAB interface revised and documented}
@@ -644,8 +902,8 @@ plus any component which with additional auxiliary state that
 implements \javaclass[artisynth.core.mechmodels]{HasAuxState}.
 
 As before, {\tt HasAuxState} components use
-\javamethod[artisynth.core.mechmodels.HasAuxState]{getState()} and
-\javamethod[artisynth.core.mechmodels.HasAuxState]{setState()} to save
+\javamethod[artisynth.core.mechmodels.HasAuxState]{getAuxState()} and
+\javamethod[artisynth.core.mechmodels.HasAuxState]{setAuxState()} to save
 and restore their state from a
 \javaclass[maspack.util]{DataBuffer}. However, the {\tt DataBuffer}
 has been modified to use {\tt put()} and {\tt get()} type operations
@@ -901,14 +1159,12 @@ they are {\tt Renderable}.
 
 \subsection*{New implementation class for CompositeComponents}
 
-\setjavabase{artisynth.core.modelbase}
-
 Coincident with the above changes, the internal implementation of
 composite components has been streamlined. In particular,
-\javaclassx{ComponentListImpl} is available as an internal
+\javaclass[artisynth.core.modelbase]{ComponentListImpl} is available as an internal
 implementation class for constructing instances of either
-\javaclassx{CompositeComponent} or
-\javaclassx{MutableCompositeComponent} (the latter is a composite
+\javaclass[artisynth.core.modelbase]{CompositeComponent} or
+\javaclass[artisynth.core.modelbase]{MutableCompositeComponent} (the latter is a composite
 component, such as {\tt ComponentList}, that can be modified by the
 application.  {\tt ComponentListImpl} provides most of the
 implementation methods needed for a mutable component list, which can
@@ -997,9 +1253,9 @@ modelbase.ScanWriteUtils.useNewScan} to {\tt false}.
 
 \subsection*{Reference lists implemented}
 
-A special type of component, \javaclassx{ReferenceComponent}, has been
+A special type of component, \javaclass[artisynth.core.modelbase]{ReferenceComponent}, has been
 created, which simply provides a reference to another component.  This
-is used to implement \javaclassx{ReferenceList}, which provides a
+is used to implement \javaclass[artisynth.core.modelbase]{ReferenceList}, which provides a
 collection of references to other components.
 
 Reference lists are intended to allow an application to group together
@@ -2709,7 +2965,7 @@ BlemkerMuscle} FEM material.
 \subsection*{All documentation converted to LaTeX}
 
 All Artisynth documentation that was formerly maintained using
-\href{http://www.methods.co.nz/asciidoc}{\it AsciiDoc} has been
+\href{http://www.methods.co.nz/asciidoc}{AsciiDoc} has been
 converted to \href{http://www.latex-project.org}{LaTeX}, with HTML
 output produced by \href{http://dlmf.nist.gov/LaTeXML}{LaTeXML}.  If
 you update {\tt \$ARTISYNTH\_HOME/doc}, you will see that all the {\tt

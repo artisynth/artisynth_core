@@ -32,8 +32,8 @@ public class SphericalJointBase extends JointBase
    public void render (Renderer renderer, int flags) {
       super.render (renderer, flags);
       float[] coords =
-         new float[] { (float)myRenderFrame.p.x, (float)myRenderFrame.p.y,
-                      (float)myRenderFrame.p.z };
+         new float[] { (float)myRenderFrameD.p.x, (float)myRenderFrameD.p.y,
+                      (float)myRenderFrameD.p.z };
       renderer.drawPoint (myRenderProps, coords, isSelected());
    }
 
@@ -44,7 +44,7 @@ public class SphericalJointBase extends JointBase
       copy.myCoupling = new SphericalCoupling ();
       copy.setAxisLength (myAxisLength);
       copy.setRenderProps (getRenderProps());
-      copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
+      //copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
       return copy;
    }
 

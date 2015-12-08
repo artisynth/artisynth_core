@@ -77,8 +77,6 @@ public class RotationMatrix3d extends Matrix3dBase {
 
    private static double DOUBLE_PREC = 2.220446049250313e-16;
    private static double EPSILON = 10 * DOUBLE_PREC;
-   private RotationMatrix3d Tmp = null;
-
    
    /**
     * Creates a new rotation initialized to the specified entries.
@@ -736,9 +734,7 @@ public class RotationMatrix3d extends Matrix3dBase {
     * angle (radians) for the second rotation
     */
    public void mulRotX (double ang) {
-      if (Tmp == null) {
-         Tmp = new RotationMatrix3d();
-      }
+      RotationMatrix3d Tmp = new RotationMatrix3d();
       Tmp.setRotX (ang);
       mul (Tmp);
    }
@@ -827,9 +823,7 @@ public class RotationMatrix3d extends Matrix3dBase {
     * angle (radians) for the second rotation
     */
    public void mulRotY (double ang) {
-      if (Tmp == null) {
-         Tmp = new RotationMatrix3d();
-      }
+      RotationMatrix3d Tmp = new RotationMatrix3d();
       Tmp.setRotY (ang);
       mul (Tmp);
    }
@@ -918,9 +912,7 @@ public class RotationMatrix3d extends Matrix3dBase {
     * angle (radians) for the second rotation
     */
    public void mulRotZ (double ang) {
-      if (Tmp == null) {
-         Tmp = new RotationMatrix3d();
-      }
+      RotationMatrix3d Tmp = new RotationMatrix3d();
       Tmp.setRotZ (ang);
       mul (Tmp);
    }
@@ -995,9 +987,7 @@ public class RotationMatrix3d extends Matrix3dBase {
     * rotation angle (in radians)
     */
    public void mulAxisAngle (double ux, double uy, double uz, double ang) {
-      if (Tmp == null) {
-         Tmp = new RotationMatrix3d();
-      }
+      RotationMatrix3d Tmp = new RotationMatrix3d();
       Tmp.setAxisAngle (ux, uy, uz, ang);
       mul (Tmp);
    }
@@ -1012,9 +1002,7 @@ public class RotationMatrix3d extends Matrix3dBase {
     * rotation angle (in radians)
     */
    public void mulAxisAngle (Vector3d u, double ang) {
-      if (Tmp == null) {
-         Tmp = new RotationMatrix3d();
-      }
+      RotationMatrix3d Tmp = new RotationMatrix3d();
       Tmp.setAxisAngle (u.x, u.y, u.z, ang);
       mul (Tmp);
    }
@@ -1027,9 +1015,7 @@ public class RotationMatrix3d extends Matrix3dBase {
     * axis-angle representation of the rotation
     */
    public void mulAxisAngle (AxisAngle axisAng) {
-      if (Tmp == null) {
-         Tmp = new RotationMatrix3d();
-      }
+      RotationMatrix3d Tmp = new RotationMatrix3d();
       Tmp.setAxisAngle (axisAng);
       mul (Tmp);
    }
@@ -1115,9 +1101,7 @@ public class RotationMatrix3d extends Matrix3dBase {
     * third angle (radians)
     */
    public void mulRpy (double roll, double pitch, double yaw) {
-      if (Tmp == null) {
-         Tmp = new RotationMatrix3d();
-      }
+      RotationMatrix3d Tmp = new RotationMatrix3d();
       Tmp.setRpy (roll, pitch, yaw);
       mul (Tmp);
    }
@@ -1214,9 +1198,7 @@ public class RotationMatrix3d extends Matrix3dBase {
     * @see #setEuler(double,double,double)
     */
    public void mulEuler (double phi, double theta, double psi) {
-      if (Tmp == null) {
-         Tmp = new RotationMatrix3d();
-      }
+      RotationMatrix3d Tmp = new RotationMatrix3d();
       Tmp.setEuler (phi, theta, psi);
       mul (Tmp);
    }
@@ -1251,11 +1233,10 @@ public class RotationMatrix3d extends Matrix3dBase {
 
    /**
     * Sets this rotation to one in which the z axis points in a specified
-    * direction. This is done by rotating about an axis perpendicular to the
-    * orginal and new z axes.
+    * direction. 
     * 
     * @param dirz
-    * direction for the new z axis
+    * direction for the new z axis. Does not need to be normalized.
     */
    public void setZDirection (Vector3d dirz) {
       double axis_x, axis_y;
@@ -1280,8 +1261,7 @@ public class RotationMatrix3d extends Matrix3dBase {
 
    /**
     * Sets this rotation to one in which the x axis points in a specified
-    * direction. This is done by rotating about an axis perpendicular to the
-    * orginal and new x axes.
+    * direction.
     * 
     * @param dirx
     * direction for the new x axis
@@ -1331,9 +1311,7 @@ public class RotationMatrix3d extends Matrix3dBase {
          axis.set (1, 0, 0);
       }
       if (ang != 0) {
-         if (Tmp == null) {
-            Tmp = new RotationMatrix3d();
-         }
+         RotationMatrix3d Tmp = new RotationMatrix3d();
          // System.out.println ("axis=" + axis.toString("%14.9f"));
          // System.out.println ("ang=" + Math.toDegrees (ang));
          // System.out.println ("cos=" + cos);

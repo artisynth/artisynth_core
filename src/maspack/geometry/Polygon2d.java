@@ -494,8 +494,7 @@ public class Polygon2d implements Renderable {
       GL2 gl = viewer.getGL2();
       renderer.setLightingEnabled (false);
 
-      Point2d pnt = new Point2d();
-      gl.glLineWidth (myRenderProps.getLineWidth());
+      renderer.setLineWidth (myRenderProps.getLineWidth());
       renderer.setColor (props.getLineColorArray(), /*selected=*/false);
       //gl.glBegin (GL2.GL_LINE_STRIP);
       gl.glBegin (GL2.GL_LINE_LOOP);
@@ -508,7 +507,7 @@ public class Polygon2d implements Renderable {
          while (vtx != firstVertex);
       }
       gl.glEnd();
-      gl.glLineWidth (1);
+      renderer.setLineWidth (1);
 
       renderer.setLightingEnabled (true);
    }

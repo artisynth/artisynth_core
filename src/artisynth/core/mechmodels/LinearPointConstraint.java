@@ -7,6 +7,7 @@
 package artisynth.core.mechmodels;
 
 import java.util.Arrays;
+import java.util.List;
 
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import maspack.matrix.Matrix3x3Block;
@@ -186,6 +187,12 @@ public class LinearPointConstraint extends ConstrainerBase {
       return 0;
    }
 
+   public void getConstrainedComponents (List<DynamicComponent> list) {
+      for (int i=0; i<myPoints.length; i++) {
+         list.add (myPoints[i]);
+      }
+   }
+   
    @Override
    public void render(Renderer renderer, int flags) {
    }

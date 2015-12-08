@@ -22,12 +22,13 @@ import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
 
 import java.io.*;
+import java.util.*;
 import java.awt.Color;
 
 import com.jogamp.opengl.*;
 
 import maspack.render.*;
-import maspack.render.GL.GLViewer;
+import maspack.widgets.GuiUtils;
 
 //import artisynth.core.mechmodels.DynamicMechComponent.Activity;
 
@@ -269,14 +270,12 @@ public class SpringMeshDemo extends RootModel {
 
    ControlPanel myControlPanel;
 
-   GLViewer myViewer;
-
    public void addProbes (MechModel mech) {
       try {
          NumericInputProbe inprobe =
             new NumericInputProbe (
                mech, "particles/pnt0:targetPosition",
-               ArtisynthPath.getSrcRelativePath (this, "springMeshIn.txt"));
+               ArtisynthPath.getSrcRelativePath (SpringMeshDemo.class, "springMeshIn.txt"));
          // inprobe.setDefaultDisplayRange (-10, 10);
          inprobe.setStopTime (10);
 
@@ -357,4 +356,10 @@ public class SpringMeshDemo extends RootModel {
          ArtisynthPath.getSrcRelativeFile (this, "SpringMeshDemo.txt"));
    }
 
+   // public boolean getMenuItems(List<Object> items) {
+   //    items.add (GuiUtils.createMenuItem (this, "reset", ""));
+   //    items.add (GuiUtils.createMenuItem (this, "add sphere", ""));
+   //    items.add (GuiUtils.createMenuItem (this, "show flow", ""));
+   //    return true;
+   // }
 }

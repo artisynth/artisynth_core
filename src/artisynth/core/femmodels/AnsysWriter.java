@@ -112,6 +112,16 @@ public class AnsysWriter implements FemWriter {
             firstRow[6] = 0;
             firstRow[7] = 0;
          }
+         else if (e instanceof PyramidElement) {
+             firstRow[0] = nodes[0].getNumber () + nodeOffset;
+             firstRow[1] = nodes[1].getNumber () + nodeOffset;
+             firstRow[2] = nodes[2].getNumber () + nodeOffset;
+             firstRow[3] = nodes[3].getNumber () + nodeOffset;
+             firstRow[4] = nodes[4].getNumber () + nodeOffset;
+             firstRow[5] = nodes[4].getNumber () + nodeOffset;
+             firstRow[6] = nodes[4].getNumber () + nodeOffset;
+             firstRow[7] = nodes[4].getNumber () + nodeOffset;
+         }
          else if (e instanceof WedgeElement) {
             firstRow[0] = nodes[0].getNumber () + nodeOffset;
             firstRow[1] = nodes[1].getNumber () + nodeOffset;

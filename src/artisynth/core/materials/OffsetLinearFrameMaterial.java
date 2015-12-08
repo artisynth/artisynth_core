@@ -187,7 +187,19 @@ public class OffsetLinearFrameMaterial extends FrameMaterial {
    }
 
    public boolean equals (FrameMaterial mat) {
-      return true;
+      if (!(mat instanceof OffsetLinearFrameMaterial)) {
+         return false;
+      }
+      OffsetLinearFrameMaterial olm = (OffsetLinearFrameMaterial)mat;
+      if (!myK.equals (olm.myK) ||
+          !myD.equals (olm.myD) ||
+          !myRotK.equals (olm.myRotK) ||
+          !myRotD.equals (olm.myRotD)) {
+         return false;
+      }
+      else {
+         return super.equals (mat);
+      }
    }
 
    public OffsetLinearFrameMaterial clone() {

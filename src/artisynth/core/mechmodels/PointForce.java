@@ -6,6 +6,7 @@
  */
 package artisynth.core.mechmodels;
 
+import maspack.geometry.GeometryTransformer;
 import maspack.properties.*;
 import maspack.render.*;
 import maspack.util.*;
@@ -14,7 +15,6 @@ import artisynth.core.util.*;
 import artisynth.core.modelbase.*;
 
 import java.io.*;
-
 import java.util.*;
 
 public class PointForce extends ModelComponentBase 
@@ -273,6 +273,10 @@ public class PointForce extends ModelComponentBase
       myU.set (k);
       updateForceVector();
    }
+   
+   public RigidTransform3d getPose() {
+      return new RigidTransform3d (myXPF);
+   }
 
    public Vector3d getForce() {
       ftmp.scale (1 / forceScaling, myForce);
@@ -315,15 +319,21 @@ public class PointForce extends ModelComponentBase
    }
 
    public void transformGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      
       XPFnew.set (myXPF);
-      XPFnew.mulAffineLeft (X, null); // apply X ignoring scale/stretch
+      gtr.transform (XPFnew);
       myXPF.R.set (XPFnew.R); // take only rotational part
-      updateForceVector();
+      updateForceVector();     
+   }
+   
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      // no dependencies
    }
 
    public void transformGeometry (AffineTransform3dBase X) {
-      transformGeometry (X, this, 0);
+      TransformGeometryContext.transform (this, X, 0);
    }
 
    public void addSolveBlocks (SparseNumberedBlockMatrix M) {

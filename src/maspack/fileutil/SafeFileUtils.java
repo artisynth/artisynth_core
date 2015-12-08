@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -65,8 +72,6 @@ public class SafeFileUtils {
     * the destination file
     * @throws NullPointerException
     * if source or destination is {@code null}
-    * @throws FileExistsException
-    * if the destination file exists
     * @throws IOException
     * if source or destination is invalid
     * @throws IOException
@@ -124,8 +129,6 @@ public class SafeFileUtils {
     * the destination file
     * @throws NullPointerException
     * if source or destination is {@code null}
-    * @throws FileExistsException
-    * if the destination file exists
     * @throws IOException
     * if source or destination is invalid
     * @throws IOException

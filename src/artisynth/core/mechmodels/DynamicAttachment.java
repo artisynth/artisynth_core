@@ -15,7 +15,6 @@ import java.util.*;
 import maspack.util.*;
 import maspack.matrix.*;
 import artisynth.core.modelbase.*;
-import artisynth.core.util.TransformableGeometry;
 
 /**
  * Component that implements attachment between dynamic components.
@@ -42,6 +41,8 @@ public abstract class DynamicAttachment extends ModelComponentBase {
    public int numMasters() {
       return getMasters().length;
    }
+   
+   public abstract void invalidateMasters();
 
    public boolean containsMaster (DynamicComponent comp) {
       DynamicComponent[] masters = getMasters();
@@ -53,7 +54,64 @@ public abstract class DynamicAttachment extends ModelComponentBase {
       return false;
    }
 
+   public boolean oneMasterActive() {
+      DynamicComponent[] masters = getMasters();
+      for (int i = 0; i < masters.length; i++) {
+         if (masters[i].isActive()) {
+            return true;
+         }
+      }
+      return false;
+   }
+   
    /**
+    * Every master component should contain a back reference to each
+    * attachment that references it. This method adds the back reference
+    * for this attachment to each of the masters.
+    */
+   public void addBackRefs() {
+      DynamicComponent[] masters = getMasters();
+      if (masters != null) {
+         for (int i = 0; i < masters.length; i++) {
+            masters[i].addMasterAttachment (this);
+         }     
+      }
+   }
+   
+   /**
+    * Removes the back reference to this attachment's slave component
+    * from each of the master component.
+    */
+   public void removeBackRefs() {
+      DynamicComponent[] masters = getMasters();
+      if (masters != null) {
+         for (int i = 0; i < masters.length; i++) {
+            masters[i].removeMasterAttachment (this);
+         }      
+      }
+   }
+ 
+   /**
+    * Calls {@link #addBackRefs} if this attachment is currently
+    * connected to the hierarchy.
+    */
+   protected void addBackRefsIfConnected() {
+      if (isConnectedToHierarchy()) {
+         addBackRefs();
+      }
+   }
+
+   /**
+    * Calls {@link #removeBackRefs} if this attachment is currently
+    * connected to the hierarchy.
+    */
+   protected void removeBackRefsIfConnected() {
+      if (isConnectedToHierarchy()) {
+         removeBackRefs();
+      }
+   }
+
+  /**
     * Returns the slave DynamicMechComponent associated with this attachment.
     * In some cases, the attachment may connect some other entity (such
     * as a mesh vertex) to the master components, in which case this method
@@ -72,9 +130,6 @@ public abstract class DynamicAttachment extends ModelComponentBase {
     * @return solve index of slave DynamicMechComponent, or -1.
     */
    public abstract int getSlaveSolveIndex();
-
-   public abstract void transformSlaveGeometry (
-      AffineTransform3dBase X, TransformableGeometry topObject, int flags);
 
    public abstract void updatePosStates();
 
@@ -105,7 +160,9 @@ public abstract class DynamicAttachment extends ModelComponentBase {
     */
    public void reduceConstraints (SparseBlockMatrix GT, VectorNd dg) {
       DynamicComponent[] masters = getMasters();
-
+      if (masters.length == 0) {
+         return;
+      }
       int bs = getSlaveSolveIndex();
       if (bs == -1) {
          return;
@@ -128,7 +185,9 @@ public abstract class DynamicAttachment extends ModelComponentBase {
                int bm = masters[i].getSolveIndex();
                MatrixBlock depBlk = GT.getBlock (bm, bj);
                if (depBlk == null) {
-                  depBlk = createRowBlock (blk.colSize());
+                  depBlk = MatrixBlockBase.alloc (
+                     GT.getBlockRowSize(bm), blk.colSize());
+                  //depBlk = createRowBlock (blk.colSize());
                   GT.addBlock (bm, bj, depBlk);
                }
                mulSubGT (depBlk, blk, i);               
@@ -178,6 +237,9 @@ public abstract class DynamicAttachment extends ModelComponentBase {
             "Matrix G is not vertically linked");
       }
       DynamicComponent[] masters = getMasters();
+      if (masters.length == 0) {
+         return;
+      }      
       int bs = getSlaveSolveIndex();
       if (bs == -1) {
          return;
@@ -190,7 +252,9 @@ public abstract class DynamicAttachment extends ModelComponentBase {
                int bm = masters[j].getSolveIndex();
                MatrixBlock depBlk = G.getBlock (bi, bm);
                if (depBlk == null) {
-                  depBlk = createColBlock (blk.rowSize());
+                  depBlk = MatrixBlockBase.alloc (
+                     blk.rowSize(), G.getBlockColSize (bm)); 
+                  //depBlk = createColBlock (blk.rowSize());
                   G.addBlock (bi, bm, depBlk);
                }
                mulSubG (depBlk, blk, j);               
@@ -200,8 +264,13 @@ public abstract class DynamicAttachment extends ModelComponentBase {
       }
    }
 
+   public abstract void addMassToMasters();
+   
    public void reduceMass (SparseBlockMatrix M, VectorNd f) {
       DynamicComponent[] masters = getMasters();
+      if (masters.length == 0) {
+         return;
+      }      
       int bs = getSlaveSolveIndex();
       if (bs == -1) {
          return;
@@ -217,7 +286,7 @@ public abstract class DynamicAttachment extends ModelComponentBase {
 
       MatrixBlock sblk = M.getBlock (bs, bs);
       if (fbuf != null && dbuf != null) {
-         // add coriolis term to existing fictitous force term for the slave
+         // add coriolis term to existing fictitious force term for the slave
          sblk.mulAdd (fbuf, soff, dbuf, 0);
       }
       //System.out.println ("f1=" + f.toString ("%7.4f"));
@@ -237,6 +306,10 @@ public abstract class DynamicAttachment extends ModelComponentBase {
 
    public void addSolveBlocks (SparseNumberedBlockMatrix S, boolean[] reduced) {
       DynamicComponent[] masters = getMasters();
+      if (masters.length == 0) {
+         return;
+      }
+      //System.out.println ("add solve blocks");
 
       if (!S.isVerticallyLinked()) {
          throw new IllegalArgumentException (
@@ -254,7 +327,10 @@ public abstract class DynamicAttachment extends ModelComponentBase {
             if (masters[i].getSolveIndex() != -1) {
                int bm = masters[i].getSolveIndex();
                if (S.getBlock (bm, bj) == null) {
-                  S.addBlock (bm, bj, createRowBlock (blk.colSize()));
+                  MatrixBlock newBlk = MatrixBlockBase.alloc (
+                     S.getBlockRowSize(bm), blk.colSize());
+                  //S.addBlock (bm, bj, createRowBlock (blk.colSize()));
+                  S.addBlock (bm, bj, newBlk);
                   // System.out.println ("adding " + bm + " " + bj);
                }
             }
@@ -271,7 +347,10 @@ public abstract class DynamicAttachment extends ModelComponentBase {
                if (masters[i].getSolveIndex() != -1) {
                   int bm = masters[i].getSolveIndex();
                   if (S.getBlock (bi, bm) == null) {
-                     S.addBlock (bi, bm, createColBlock (blk.rowSize()));
+                     MatrixBlock newBlk = MatrixBlockBase.alloc (
+                        blk.rowSize(), S.getBlockColSize(bm));
+                     //S.addBlock (bi, bm, createColBlock (blk.rowSize()));
+                     S.addBlock (bi, bm, newBlk);
                      // System.out.println ("adding " + bi + " " + bm);
                   }
                }
@@ -301,7 +380,11 @@ public abstract class DynamicAttachment extends ModelComponentBase {
       SparseBlockMatrix S, VectorNd f, boolean[] reduced) {
 
       DynamicComponent[] masters = getMasters();
+      if (masters.length == 0) {
+         return;
+      }
       if (myMasterBlks == null || masters.length > myMasterBlks.length) {
+         //System.out.println ("new num master blocks: " + masters.length);
          myMasterBlks = new MatrixBlock[masters.length];
       }
 
@@ -311,6 +394,9 @@ public abstract class DynamicAttachment extends ModelComponentBase {
       if (bs == -1) {
          return;
       }
+
+      // boolean debug =
+      // (this instanceof PointParticleAttachment && getSlave().getNumber() == 0);
 
       double[] dbuf = null;
       double[] fbuf = null;
@@ -403,7 +489,6 @@ public abstract class DynamicAttachment extends ModelComponentBase {
             fbuf[soff+i] = 0;
          }
       }
-      //System.out.println ("fx=" + f.toString ("%8.5f"));
    }
 
    public abstract void addMassToMaster (
@@ -450,15 +535,14 @@ public abstract class DynamicAttachment extends ModelComponentBase {
     * @param yoff offset into ybuf
     * @param xbuf buffer containing right hand side vector
     * @param xoff offset into xbuf
-    * @param B matrix associated with a slave component
     * @param idx master component index
     */
    protected abstract void mulSubGT (
       double[] ybuf, int yoff, double[] xbuf, int xoff, int idx);
 
-   protected abstract MatrixBlock createRowBlock (int colSize);
-
-   protected abstract MatrixBlock createColBlock (int rowSize);
+//   protected abstract MatrixBlock createRowBlock (int colSize);
+//
+//   protected abstract MatrixBlock createColBlock (int rowSize);
 
    public static boolean containsLoops (List<DynamicAttachment> list) {
       HashMap<DynamicComponent,DynamicAttachment> map =
@@ -542,6 +626,17 @@ public abstract class DynamicAttachment extends ModelComponentBase {
       return result;      
    }
 
+   @Override
+   public void getHardReferences (List<ModelComponent> refs) {
+      DynamicComponent s = getSlave();
+      if (s != null) {
+         refs.add (s);
+      }
+      for (DynamicComponent m : getMasters()) {
+         refs.add (m);
+      }
+   }
+
    /**
     * Update the attachment position state whenever we connect to the parent
     * (i.e., plug in to the hierarchy).
@@ -549,6 +644,24 @@ public abstract class DynamicAttachment extends ModelComponentBase {
    public void connectToHierarchy () {
       updatePosStates();
       super.connectToHierarchy ();
+      DynamicComponent slave = getSlave();
+      if (slave != null) {
+         slave.setAttached (this);
+      }
+      addBackRefs();
+   }
+   
+   /**
+    * Update the attachment position state whenever we connect to the parent
+    * (i.e., plug in to the hierarchy).
+    */
+   public void disconnectFromHierarchy () {
+      super.disconnectFromHierarchy ();
+      DynamicComponent slave = getSlave();
+      if (slave != null) {
+         slave.setAttached (null);
+      }
+      removeBackRefs();
    }
 
    public Object clone() throws CloneNotSupportedException {

@@ -12,7 +12,7 @@ import maspack.matrix.Matrix.Partition;
 import maspack.solvers.PardisoSolver.ReorderMethod;
 
 import java.io.*;
-import java.util.Random;
+import java.util.*;
 
 import java.awt.event.*;
 import javax.swing.*;
@@ -33,6 +33,15 @@ public class PardisoSolverTest implements ActionListener {
 	 newIdxs[i] = idxs[i]+1;
       }
       return newIdxs;
+   }
+
+   public String getMatrixType (int code) {
+      switch (code) {
+         case Matrix.INDEFINITE: return "INDEFINITE";
+         case Matrix.SYMMETRIC: return "SYMMETRIC";
+         case Matrix.SPD: return "SPD";
+         default: return "Unknown";
+      }
    }
 
    public void setMatrixType (String typeStr) {
@@ -167,6 +176,8 @@ public class PardisoSolverTest implements ActionListener {
             }
          }
          SparseMatrixCRS M = new SparseMatrixCRS(size, size);
+         System.out.println (
+            "solving "+getMatrixType(myMatrixType)+" matrix");
          M.setCRSValues (vals, colIdxs, rowOffs, nvals, size, myPartition);
          solver.analyze (M, size, myMatrixType);
          System.out.println (
@@ -297,8 +308,12 @@ public class PardisoSolverTest implements ActionListener {
    }               
 
    public void dotest () {
-    
+
       PardisoSolver solver = new PardisoSolver();
+      System.out.println ("Pardiso: max threads=" + solver.getNumThreads());
+      solver.setNumThreads (4);
+      System.out.println ("Pardiso: max threads=" + solver.getNumThreads());
+      solver.setNumThreads (0);
       int i;
 
       // set test symmetric matrix:

@@ -1,12 +1,17 @@
 package artisynth.demos.fem;
 
+import java.awt.Color;
+import java.io.*;
+
 import artisynth.core.femmodels.*;
 import artisynth.core.femmodels.FemModel.IncompMethod;
 import artisynth.core.materials.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.*;
+
 import artisynth.core.probes.*;
 import maspack.matrix.*;
+import maspack.render.*;
 
 import java.util.*;
 
@@ -40,6 +45,27 @@ public class HexBeam3d extends FemBeam3d {
       }
    }
 
+   public void printStresses (String fileName) {
+
+      try {
+         PrintWriter pw =
+            new PrintWriter (new BufferedWriter (new FileWriter (fileName)));
+         for (FemNode3d n : myFemMod.getNodes()) {
+            Point3d pos = n.getPosition();
+            SymmetricMatrix3d sig = n.getStress();
+            pw.printf (
+               "%5d %10.6f %10.6f %10.6f ", n.getNumber(), pos.x, pos.y, pos.z);
+            pw.printf (
+               " %11.3f %11.3f %11.3f %11.3f %11.3f %11.3f\n",
+               sig.m00, sig.m11, sig.m22, sig.m01, sig.m02, sig.m12);
+         }
+         pw.close();
+      }
+      catch (IOException e) {
+         System.out.println ("Error opening or writing to file " + fileName);
+      }
+   }
+
    public void build (String[] args) {
 
       // NORMAL:
@@ -50,6 +76,13 @@ public class HexBeam3d extends FemBeam3d {
 
       LinearMaterial lmat = new LinearMaterial (100000, 0.33);
       myFemMod.setMaterial (lmat);
+
+      // FemMarker mkr = new FemMarker(1, 0, 0);
+      // RenderProps.setSphericalPoints (mkr, 0.05, Color.RED);
+      // mkr.setFromFem (myFemMod);
+      // myMechMod.addPoint (mkr);
+      //myFemMod.addMarker (mkr);
+      
       
       //myFemMod.setMaterial (
       //   new MooneyRivlinMaterial (50000.0, 0, 0, 0, 0, 5000000.0));
@@ -96,6 +129,7 @@ public class HexBeam3d extends FemBeam3d {
       //myMechMod.setProfiling (true);
 
       // System.out.println ("DGT=\n" + DGT.toString ("%11.8f"));
+      myFemMod.addMarker (new FemMarker(0.4, -0.05, 0.05));
    }
 
    public void build (String string, double d, double e, int i,

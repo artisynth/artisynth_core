@@ -411,7 +411,7 @@ public abstract class Probe extends ModelAgentBase {
     * should use this method to keep the track information current.
     * 
     * @param num
-    * new track< number
+    * new track number
     */
    public void setTrack (int num) {
       myTrackNum = num;

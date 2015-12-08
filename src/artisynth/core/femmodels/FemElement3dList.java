@@ -116,13 +116,7 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
    }
 
    private void dorender (Renderer renderer, boolean selected) {
-      
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
-      
+
       boolean selecting = renderer.isSelecting();
       if (!addElementsInPrerender) {
          // we render all elements ourselves, taking care to render selected
@@ -147,15 +141,17 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
          }
       }
 
-      if ( (myRenderProps.getLineWidth() > 0 && myRenderProps.getLineStyle() == LineStyle.LINE) ||
-         (myRenderProps.getLineRadius() > 0 && myRenderProps.getLineStyle() == LineStyle.CYLINDER)) {
+      if ( (myRenderProps.getLineWidth() > 0 &&
+            myRenderProps.getLineStyle() == LineStyle.LINE) ||
+         (myRenderProps.getLineRadius() > 0 &&
+          myRenderProps.getLineStyle() == LineStyle.CYLINDER)) {
          switch (myRenderProps.getLineStyle()) {
             case LINE: {
                if (!selecting) {
                   renderer.setLightingEnabled (false);
                }
                // draw regular points first
-               gl.glLineWidth (myRenderProps.getLineWidth());
+               renderer.setLineWidth (myRenderProps.getLineWidth());
                renderer.setColor (myRenderProps.getLineColorArray(), false);
                for (int i = 0; i < size(); i++) {
                   FemElement3d elem = get (i);
@@ -176,7 +172,7 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
                      }
                   }
                }
-               gl.glLineWidth (1);
+               renderer.setLineWidth (1);
                if (!selecting) {
                   renderer.setLightingEnabled (true);
                }

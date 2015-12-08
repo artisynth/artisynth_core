@@ -2090,10 +2090,12 @@ public class FemFactory {
    }
 
    /**
-    * Extrudes each face along the normal direction
-    * @param model
-    * @param n number of points
-    * @param d thickness
+    * Extrudes each face along the normal direction to create a shell.
+    * The shell can have multiple layers; the number of layers is n-1.
+    *
+    * @param model (if null, a new model will be created)
+    * @param n n-1 is the number of layers
+    * @param d thickness of each layer
     * @param zOffset offset along normal to begin
     * @param surface PolygonalMesh surface to extrude
     * @return the FEM model
@@ -2107,6 +2109,9 @@ public class FemFactory {
          model = new FemModel3d();
       } else {
          model.clear();
+      }
+      if (n < 2) {
+         throw new IllegalArgumentException ("n must be >= 2");
       }
 
       // compute normals
@@ -2421,7 +2426,7 @@ public class FemFactory {
     * @param quality
     * If 0, then only the
     * mesh nodes will be used to form the tessellation. However, this may result
-    * in highly degenerate tetrahedra. Otherwise, if >
+    * in highly degenerate tetrahedra. Otherwise, if &gt;
     * 0, tetgen will add additional nodes to ensure that the minimum edge-radius
     * ratio does not exceed <code>quality</code>. A good default value for
     * <code>quality</code> is 2. If set too small (such as less then 1), then
@@ -2643,7 +2648,7 @@ public class FemFactory {
     * @param fem1
     * FEM model providing components
     * @param nodeMergeDist
-    * If >= 0, causes nearby nodes of <code>fem1</code> and <code>fem0</code> to
+    * If &gt;= 0, causes nearby nodes of <code>fem1</code> and <code>fem0</code> to
     * be merged: any node of <code>fem1</code> that is within
     * <code>nodeMergeDist</code> of a node in <code>fem0</code> is replaced by
     * the nearest node in <code>fem0</code>.
@@ -3006,6 +3011,17 @@ public class FemFactory {
       }
    }
    
-   
+   public static void setPlanarNodesFixed (
+      FemModel fem, Point3d center, Vector3d normal, boolean fixed) {
+
+      double off = normal.dot(center);
+      double tol = RenderableUtils.getRadius (fem)*1e-12;
+      for (FemNode n : fem.getNodes()) {
+         double d = normal.dot(n.getPosition());
+         if (Math.abs (d-off) <= tol) {
+            n.setDynamic (!fixed);
+         }
+      }
+   }
 
 }

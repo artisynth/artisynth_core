@@ -21,12 +21,52 @@ public class SparseBlockMatrixTest extends MatrixTest {
    SparseBlockMatrix MatAll;
    Random randGen;
 
+   SparseBlockMatrix createSum (
+      double s, SparseBlockMatrix M1, SparseBlockMatrix M2, 
+      int numBlkRows, int numBlkCols) {
+
+      SparseBlockMatrix MR = M1.clone();
+      for (int bi=0; bi<numBlkRows; bi++) {
+         for (int bj=0; bj<numBlkCols; bj++) {
+            MatrixBlock blk1 = MR.getBlock (bi, bj);
+            MatrixBlock blk2 = M2.getBlock (bi, bj);
+            if (blk1 == null && blk2 != null) {
+               MatrixBlock blkNew = blk2.clone();
+               blkNew.scale (s);
+               MR.addBlock (bi, bj, blkNew);
+            }
+            else if (blk1 != null && blk2 != null) {
+               blk1.scaledAdd (s, blk2);
+            }
+         }
+      }
+      return MR;
+   }
+
+   SparseBlockMatrix createRandom (
+      int[] rowSizes, int[] colSizes, double density) {
+      SparseBlockMatrix M = new SparseBlockMatrix (rowSizes, colSizes);
+
+      for (int bi=0; bi<rowSizes.length; bi++) {
+         for (int bj=0; bj<colSizes.length; bj++) {
+            double val = randGen.nextDouble();
+            if (val < density) {
+               int nr = rowSizes[bi];
+               int nc = colSizes[bj];
+               MatrixBlock blk = MatrixBlockBase.alloc (nr, nc);
+               MatrixNd MX = new MatrixNd (nr, nc);
+               MX.setRandom();
+               blk.set (MX);
+               M.addBlock (bi, bj, blk);
+            }
+         }
+      }
+      return M;
+   }
+
    /**
     * Create a sparse block matrix from a specially formatted string composed
-    * of single characters giving the block row/col sizes and occupancy:
-    *
-    * "   x x x . 
-    *
+    * of single characters giving the block row/col sizes and occupancy.
     */
    SparseBlockMatrix create (String str) {
 
@@ -47,7 +87,12 @@ public class SparseBlockMatrixTest extends MatrixTest {
          }
       }
       int[] rowSizes = new int[numBlkRows];
-      boolean[][] occupied = new boolean[numBlkRows][numBlkCols];
+      int[][] occupied = new int[numBlkRows][numBlkCols];
+      for (int i=0; i<numBlkRows; i++) {
+         for (int j=0; j<numBlkCols; j++) {
+            occupied[i][j] = -1;
+         }
+      }
       for (int i=0; i<numBlkRows; i++) {
          int c = lines[i+1].charAt(0);
          if (Character.isDigit (c)) {
@@ -60,20 +105,33 @@ public class SparseBlockMatrixTest extends MatrixTest {
          for (int k=1; k<lines[i+1].length() && k-1<numBlkCols; k++) {
             c = lines[i+1].charAt(k);
             if (c == 'x') {
-               occupied[i][k-1] = true;
+               occupied[i][k-1] = 0;
+            }
+            else if (Character.isDigit(c)) {
+               occupied[i][k-1] = c - '0';
             }
             else if (c != '.') {
                throw new IllegalArgumentException (
-                  "line "+(i+1)+": character "+k+" is not 'x' or '.'");
+                  "line "+(i+1)+": character "+k+" is not 'x', '.', "+
+                  "or a digit");
             }
          }
       }
       SparseBlockMatrix M = new SparseBlockMatrix (rowSizes, colSizes);
-      for (int i=0; i<numBlkRows; i++) {
-         for (int j=0; j<numBlkCols; j++) {
-            if (occupied[i][j]) {
-               M.addBlock (
-                  i, j, MatrixBlockBase.alloc (rowSizes[i], colSizes[j]));
+      for (int bi=0; bi<numBlkRows; bi++) {
+         for (int bj=0; bj<numBlkCols; bj++) {
+            int val = occupied[bi][bj];
+            if (val != -1) {
+               MatrixBlock blk =
+                  MatrixBlockBase.alloc (rowSizes[bi], colSizes[bj]);
+               if (val > 0) {
+                  for (int i=0; i<rowSizes[bi]; i++) {
+                     for (int j=0; j<colSizes[bj]; j++) {
+                        blk.set (i, j, val);
+                     }
+                  }
+               }
+               M.addBlock (bi, bj, blk);
             }
          }
       }
@@ -650,6 +708,82 @@ public class SparseBlockMatrixTest extends MatrixTest {
       }
    }
 
+   private void testAdd() {
+      
+      // SparseBlockMatrix M1 =
+      //    create (
+      //       "   3 2 3 4\n" +
+      //       " 3 1 . 1 1\n" +
+      //       " 4 . 1 . 1\n" +
+      //       " 4 1 1 . 1");
+
+      // SparseBlockMatrix Mcheck =
+      //    create (
+      //       "   3 2 3 4\n" +
+      //       " 3 2 . 2 2\n" +
+      //       " 4 . 2 . 2\n" +
+      //       " 4 2 2 . 2");
+
+      
+      // SparseBlockMatrix MR = M1.clone();
+      // MR.add (M1);
+      // checkEqual (MR, Mcheck);
+
+      int rowSizes[] = new int[] {3, 2, 3, 4, 5, 7, 6};
+      int colSizes[] = new int[] {3, 4, 1, 4, 5, 3, 6};
+
+      int cnt = 100;
+
+      for (int i=0; i<cnt; i++) {
+         SparseBlockMatrix M1 = createRandom (rowSizes, colSizes, 0.33);
+         SparseBlockMatrix M2 = createRandom (rowSizes, colSizes, 0.33);
+         SparseBlockMatrix MR, Mcheck;
+
+         double[] scales = new double[] { 1.0, -1.0, 2.3, 0, -6.7 };
+
+         for (int j=0; j<scales.length; j++) {
+            double s = scales[j];
+
+            MR = M1.clone();
+            Mcheck = createSum (s, M1, M2, rowSizes.length, colSizes.length);
+            MR.scaledAdd (s, M2);
+            checkEqual (MR, Mcheck);
+            
+            MR = M1.clone();
+            Mcheck = createSum (s, M1, M2, 3, 4);
+            MR.scaledAdd (s, M2, 3, 4);
+            checkEqual (MR, Mcheck);
+            
+            MR = M1.clone();
+            Mcheck = createSum (s, M1, M2, 2, 5);
+            MR.scaledAdd (s, M2, 2, 5);
+            checkEqual (MR, Mcheck);
+            
+            MR = M1.clone();
+            Mcheck = createSum (s, M1, M2, 6, 2);
+            MR.scaledAdd (s, M2, 6, 2);
+            checkEqual (MR, Mcheck);
+         }
+      }
+   }
+
+   private void checkEqual (SparseBlockMatrix M1, SparseBlockMatrix M2) {
+      if (!M1.blockStructureEquals (M2)) {
+         System.out.println ("Structure of M1:");
+         M1.printBlocks (System.out);
+         System.out.println ("Structure of M2:");
+         M2.printBlocks (System.out);
+         throw new TestException (
+            "Matrix structures are unequal");
+      }
+      if (!M1.equals (M2)) {
+         System.out.println ("M1:\n" + M1);
+         System.out.println ("M2:\n" + M2);
+         throw new TestException (
+            "Matrices are unequal");
+      }
+   }
+
    public void test() {
 
       MatSym.setRandomValues (true);
@@ -716,6 +850,7 @@ public class SparseBlockMatrixTest extends MatrixTest {
       testScanBlocks (MatAll);
 
       testStructureEquals ();
+      testAdd ();
    }
 
    public static void main (String[] args) {

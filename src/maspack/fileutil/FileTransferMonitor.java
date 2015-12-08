@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2015, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.fileutil;
 
 import org.apache.commons.vfs2.FileObject;
@@ -81,7 +88,7 @@ public interface FileTransferMonitor extends Runnable {
     *  
     * @param destFile transfer destination
     * @param srcFile transfer source
-    * @param size the size of the source file (total transfer size).  If <0, then we determine
+    * @param size the size of the source file (total transfer size).  If &lt; 0, then we determine
     *        the transfer size from srcFile
     * @param displayName the name associated with the transfer (may be different than 
     *    destFile if .part is used)

@@ -5,13 +5,16 @@ public abstract class AxialMaterial extends MaterialBase {
 
    static Class<?>[] mySubClasses = new Class[] {
       LinearAxialMaterial.class,
+      ConstantAxialMaterial.class,
       ConstantAxialMuscle.class,
       LinearAxialMuscle.class,
       PeckAxialMuscle.class,
       PaiAxialMuscle.class,
       BlemkerAxialMuscle.class,
       SimpleAxialMuscle.class,
-      LigamentAxialMaterial.class
+      LigamentAxialMaterial.class,
+      MasoudMillardLAM.class,
+      UWLigamentMaterial.class
    };
 
    public static Class<?>[] getSubClasses() {

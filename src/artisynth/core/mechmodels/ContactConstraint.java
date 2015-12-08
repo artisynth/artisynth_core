@@ -191,9 +191,10 @@ public class ContactConstraint {
       SparseBlockMatrix DT, FrictionInfo[] finfo, double mu, int numf) {
 
       Vector3d dir = new Vector3d();
-      if (myMasters.size() > 0 && computeFrictionDir(dir) > 0) {
+      if (myMasters.size() > 0 && computeFrictionDir(dir) > 0 && mu > 0) {
          finfo[numf].mu = mu;
-         finfo[numf].contactIdx = mySolveIndex;
+         finfo[numf].contactIdx0 = mySolveIndex;
+         finfo[numf].contactIdx1 = -1;
          finfo[numf].flags = FrictionInfo.BILATERAL;
          for (int i=0; i<myMasters.size(); i++) {
             ContactMaster cm = myMasters.get(i);
@@ -220,7 +221,8 @@ public class ContactConstraint {
          Vector3d dir2 = new Vector3d();
          computeFrictionDirs (dir1, dir2);
          finfo[numf].mu = mu;
-         finfo[numf].contactIdx = mySolveIndex;
+         finfo[numf].contactIdx0 = mySolveIndex;
+         finfo[numf].contactIdx1 = -1;
          finfo[numf].flags = 0;
          for (int i=0; i<myMasters.size(); i++) {
             ContactMaster cm = myMasters.get(i);
@@ -242,10 +244,10 @@ public class ContactConstraint {
          myMasters.add (
             new ContactMaster ((RigidBody)collidable, w, cpnt));
       }
-      else if (collidable instanceof RigidMesh) {
+      else if (collidable instanceof RigidMeshComp) {
          myMasters.add (
             new ContactMaster (
-               ((RigidMesh)collidable).getRigidBody(), w, cpnt));        
+               ((RigidMeshComp)collidable).getRigidBody(), w, cpnt));        
       }
       else {
          Vertex3d[] vtxs = cpnt.getVertices();

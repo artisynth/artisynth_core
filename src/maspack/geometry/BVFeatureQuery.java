@@ -67,6 +67,8 @@ public class BVFeatureQuery {
       return nearestFaceToPoint (nearPnt, uv, mesh.getBVTree(), pnt);
    }
 
+   public boolean debug = false;
+
    /**
     * Returns the nearest triangular face to a point, using a specified
     * bounding volume hierarchy. The faces contained within the hierarchy are
@@ -90,7 +92,7 @@ public class BVFeatureQuery {
       }
       myPointFaceCalc.setPoint (pnt, bvh.getBvhToWorld());
       Boundable nearest = nearestObject (bvh, myPointFaceCalc);
-      
+
       if (nearest != null) {
          myPointFaceCalc.nearestDistance (nearest);
          if (uv != null) {
@@ -106,8 +108,6 @@ public class BVFeatureQuery {
          return null;
       }
    }
-
-   public boolean debug = false;
 
    /**
     * Returns the nearest triangular mesh face to a point. This method

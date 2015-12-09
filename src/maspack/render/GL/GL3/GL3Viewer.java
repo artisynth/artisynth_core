@@ -1990,6 +1990,66 @@ public class GL3Viewer extends GLViewer {
 
    }
 
+   public void drawLineStrip (
+      RenderProps props, Iterable<float[]> vertexList, 
+      LineStyle style, boolean isSelected) {
+
+      switch (style) {
+         case LINE: {
+            setLightingEnabled (false);
+            // draw regular points first
+            gl.glLineWidth (props.getLineWidth());
+            setColor (props.getLineColorArray(), isSelected);
+            float[] v0 = null;
+            for (float[] v1 : vertexList) {
+               if (v0 != null) {
+                  drawGLLine(gl, v0, v1);
+               }
+               else {
+                  v0 = new float[3];
+               }
+               // don't recall why we don't simply set v0 = v1
+               v0[0] = v1[0];
+               v0[1] = v1[1];
+               v0[2] = v1[2];
+            }
+            gl.glLineWidth (1);
+            setLightingEnabled (true);
+            break;
+         }
+         case ELLIPSOID:
+         case SOLID_ARROW:
+         case CYLINDER: {
+            Shading savedShading = getShadeModel();
+            setMaterialAndShading (
+               props, props.getLineMaterial(), isSelected);
+            float[] v0 = null;
+            for (float[] v1 : vertexList) {
+               if (v0 != null) {
+                  if (style == LineStyle.ELLIPSOID) {
+                     drawTaperedEllipsoid (props, v0, v1);
+                  }
+                  else if (style == LineStyle.SOLID_ARROW) {
+                     drawSolidArrow (props, v0, v1, /*capped=*/true);
+                  }
+                  else {
+                     drawCylinder (props, v0, v1);
+                  }
+               }
+               else {
+                  v0 = new float[3];
+               }
+               // don't recall why we don't simply set v0 = v1
+               v0[0] = v1[0];
+               v0[1] = v1[1];
+               v0[2] = v1[2];
+            }
+            setShadeModel(savedShading);            
+            restoreShading (props);
+         }
+      }
+   }
+
    @Override
    public void drawLines(
       RenderProps props, Iterator<? extends RenderableLine> iterator) {

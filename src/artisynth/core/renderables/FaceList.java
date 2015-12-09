@@ -162,7 +162,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
          }
          else if (((shading != Shading.FLAT) || useVertexColouring) &&
             !renderer.isSelecting()) {
-            renderer.setShadeModel (RenderProps.Shading.GOURARD);
+            renderer.setShadeModel (RenderProps.Shading.GOURAUD);
          }
          else { // shading == Shading.FLAT
             renderer.setShadeModel (RenderProps.Shading.FLAT);
@@ -225,7 +225,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       if (props.getDrawEdges()) {
 
          boolean reenableLighting = false;
-         int savedLineWidth = renderer.getLineWidth();
+         float savedLineWidth = renderer.getLineWidth();
          RenderProps.Shading savedShadeModel = renderer.getShadeModel();
 
          renderer.setLineWidth (props.getLineWidth());
@@ -244,7 +244,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
             renderer.setColor (color);
          }
          if (useVertexColouring && !renderer.isSelecting()) {
-            renderer.setShadeModel (RenderProps.Shading.GOURARD);
+            renderer.setShadeModel (RenderProps.Shading.GOURAUD);
          }
          else {
             renderer.setShadeModel (RenderProps.Shading.FLAT);

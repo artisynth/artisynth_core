@@ -167,7 +167,8 @@ public class PointTracingProbe extends TracingProbe {
          }
       }
       else {
-         GL2Viewer.drawLineStrip (renderer, vi, myRenderProps, myRenderProps.getLineStyle(), isSelected());
+         renderer.drawLineStrip (
+            myRenderProps, vi, myRenderProps.getLineStyle(), isSelected());
       }
    }
 

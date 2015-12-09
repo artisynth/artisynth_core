@@ -175,7 +175,7 @@ public class ColorBar extends TextComponentBase {
 
       // smooth shading
       RenderProps.Shading savedShadeModel = renderer.getShadeModel();
-      renderer.setShadeModel (RenderProps.Shading.GOURARD);
+      renderer.setShadeModel (RenderProps.Shading.GOURAUD);
 
       double x0 = myLoc.x;
       double y0 = myLoc.y;
@@ -231,7 +231,7 @@ public class ColorBar extends TextComponentBase {
       // draw border and ticks
       if (props.getLineWidth() > 0) {
          
-         int savedLineWidth = renderer.getLineWidth();
+         float savedLineWidth = renderer.getLineWidth();
          renderer.setLineWidth(props.getLineWidth());
          
          props.getLineColor(rgb);

@@ -14,6 +14,7 @@ import java.util.Deque;
 
 import javax.media.opengl.GL2;
 
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix;
 import maspack.matrix.Plane;
@@ -28,12 +29,9 @@ import maspack.render.Renderer;
 import maspack.render.GL.GL2.GL2Viewer;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.modelbase.RenderableComponentBase;
-import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.modelbase.*;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.ScanToken;
-import artisynth.core.util.TransformableGeometry;
 
 public class SoftPlaneCollider extends RenderableComponentBase implements
 ScalableUnits, ForceComponent, TransformableGeometry {

@@ -1849,50 +1849,44 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       }
    }
 
-   public static void drawLineStrip (
-      Renderer renderer, Iterable<float[]> vertexList, RenderProps props,
-      LineStyle lineStyle, boolean isSelected) {
+   public void drawLineStrip (
+      RenderProps props, Iterable<float[]> vertexList, 
+      LineStyle style, boolean isSelected) {
 
-      if ( !(renderer instanceof GL2Viewer) ){
-         return;
-      }
+      GL2 gl = getGL2();
+      maybeUpdateMatrices(gl);
 
-      GL2Viewer viewer = (GL2Viewer)renderer;
-
-      GL2 gl = viewer.getGL2();
-      viewer.maybeUpdateMatrices(gl);
-
-      switch (lineStyle) {
+      switch (style) {
          case LINE: {
-            viewer.setLightingEnabled (false);
+            setLightingEnabled (false);
             // draw regular points first
             gl.glLineWidth (props.getLineWidth());
             gl.glBegin (GL2.GL_LINE_STRIP);
-            viewer.setColor (props.getLineColorArray(), isSelected);
+            setColor (props.getLineColorArray(), isSelected);
             for (float[] v : vertexList) {
                gl.glVertex3fv (v, 0);
             }
             gl.glEnd();
             gl.glLineWidth (1);
-            viewer.setLightingEnabled (true);
+            setLightingEnabled (true);
             break;
          }
          case ELLIPSOID:
          case SOLID_ARROW:
          case CYLINDER: {
-            viewer.setMaterialAndShading (
+            setMaterialAndShading (
                props, props.getLineMaterial(), isSelected);
             float[] v0 = null;
             for (float[] v1 : vertexList) {
                if (v0 != null) {
-                  if (lineStyle == LineStyle.ELLIPSOID) {
-                     viewer.drawTaperedEllipsoid (props, v0, v1);
+                  if (style == LineStyle.ELLIPSOID) {
+                     drawTaperedEllipsoid (props, v0, v1);
                   }
-                  else if (lineStyle == LineStyle.SOLID_ARROW) {
-                     viewer.drawSolidArrow (props, v0, v1);
+                  else if (style == LineStyle.SOLID_ARROW) {
+                     drawSolidArrow (props, v0, v1);
                   }
                   else {
-                     viewer.drawCylinder (props, v0, v1);
+                     drawCylinder (props, v0, v1);
                   }
                }
                else {
@@ -1902,10 +1896,68 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                v0[1] = v1[1];
                v0[2] = v1[2];
             }
-            viewer.restoreShading (props);
+            restoreShading (props);
          }
       }
    }
+
+   // public static void drawLineStrip (
+   //    Renderer renderer, Iterable<float[]> vertexList, RenderProps props,
+   //    LineStyle lineStyle, boolean isSelected) {
+
+   //    if ( !(renderer instanceof GL2Viewer) ){
+   //       return;
+   //    }
+
+   //    GL2Viewer viewer = (GL2Viewer)renderer;
+
+   //    GL2 gl = viewer.getGL2();
+   //    viewer.maybeUpdateMatrices(gl);
+
+   //    switch (lineStyle) {
+   //       case LINE: {
+   //          viewer.setLightingEnabled (false);
+   //          // draw regular points first
+   //          gl.glLineWidth (props.getLineWidth());
+   //          gl.glBegin (GL2.GL_LINE_STRIP);
+   //          viewer.setColor (props.getLineColorArray(), isSelected);
+   //          for (float[] v : vertexList) {
+   //             gl.glVertex3fv (v, 0);
+   //          }
+   //          gl.glEnd();
+   //          gl.glLineWidth (1);
+   //          viewer.setLightingEnabled (true);
+   //          break;
+   //       }
+   //       case ELLIPSOID:
+   //       case SOLID_ARROW:
+   //       case CYLINDER: {
+   //          viewer.setMaterialAndShading (
+   //             props, props.getLineMaterial(), isSelected);
+   //          float[] v0 = null;
+   //          for (float[] v1 : vertexList) {
+   //             if (v0 != null) {
+   //                if (lineStyle == LineStyle.ELLIPSOID) {
+   //                   viewer.drawTaperedEllipsoid (props, v0, v1);
+   //                }
+   //                else if (lineStyle == LineStyle.SOLID_ARROW) {
+   //                   viewer.drawSolidArrow (props, v0, v1);
+   //                }
+   //                else {
+   //                   viewer.drawCylinder (props, v0, v1);
+   //                }
+   //             }
+   //             else {
+   //                v0 = new float[3];
+   //             }
+   //             v0[0] = v1[0];
+   //             v0[1] = v1[1];
+   //             v0[2] = v1[2];
+   //          }
+   //          viewer.restoreShading (props);
+   //       }
+   //    }
+   // }
 
    public void drawLines (
       RenderProps props, Iterator<? extends RenderableLine> iterator) {

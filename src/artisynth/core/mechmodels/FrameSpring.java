@@ -223,10 +223,8 @@ public class FrameSpring extends Spring
       myRenderFrame.p.get (myRenderPnt1);
 
       if (myAxisLength > 0) {
-         renderer.setLineWidth (myRenderProps.getLineWidth());
-         Frame.drawAxes (
-            renderer, myRenderFrame, (float)myAxisLength, isSelected());
-         renderer.setLineWidth (1);
+         renderer.drawAxes (
+            myRenderProps, myRenderFrame, myAxisLength, isSelected());
       }
 
       if (myFrameB != null) {
@@ -239,10 +237,8 @@ public class FrameSpring extends Spring
       myRenderFrame.p.get (myRenderPnt2);
          
       if (myAxisLength > 0) {
-         renderer.setLineWidth (myRenderProps.getLineWidth());
-         Frame.drawAxes (
-            renderer, myRenderFrame, (float)myAxisLength, isSelected());
-         renderer.setLineWidth (1);
+         renderer.drawAxes (
+            myRenderProps, myRenderFrame, myAxisLength, isSelected());
       }
 
       renderer.drawLine (

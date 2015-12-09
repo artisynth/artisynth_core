@@ -13,7 +13,7 @@ import java.io.*;
 import maspack.matrix.*;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.GL.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;

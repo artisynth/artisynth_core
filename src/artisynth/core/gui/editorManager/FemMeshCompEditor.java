@@ -9,8 +9,8 @@
 import java.awt.Rectangle;
 import java.util.LinkedList;
 
-import maspack.render.GLClipPlane;
-import maspack.render.GLViewer;
+import maspack.render.GL.GLClipPlane;
+import maspack.render.GL.GLViewer;
 import maspack.geometry.PolygonalMesh;
 import artisynth.core.driver.Main;
 import artisynth.core.femmodels.*;

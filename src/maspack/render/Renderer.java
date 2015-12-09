@@ -44,6 +44,7 @@ public interface Renderer {
       TRIANGLE_STRIP,
       TRIANGLE_FAN
    }
+
    public enum SelectionHighlighting {
       None, Color
    };
@@ -203,6 +204,10 @@ public interface Renderer {
 
    public void drawLines (
       RenderProps props, Iterator<? extends RenderableLine> iterator);
+
+   public void drawLineStrip (
+      RenderProps props, Iterable<float[]> vertexList, 
+      LineStyle style, boolean isSelected);
 
    public void drawPoint (RenderProps props, float[] coords, boolean selected);
    

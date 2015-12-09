@@ -934,9 +934,8 @@ public class RigidBody extends Frame
 
    public void render (Renderer renderer, int flags) {
       if (myAxisLength > 0) {
-         renderer.setLineWidth (myRenderProps.getLineWidth());
-         drawAxes (renderer, myRenderFrame, (float)myAxisLength, isSelected());
-         renderer.setLineWidth (1);
+         renderer.drawAxes (
+            myRenderProps, myRenderFrame, myAxisLength, isSelected());
       }
       if (isSelected()) {
          flags |= Renderer.SELECTED;
@@ -961,11 +960,6 @@ public class RigidBody extends Frame
          if ((flags & TransformableGeometry.TG_SIMULATING) == 0) {
             if (myMeshInfo.transformGeometryAndPose (
                   gtr, myTransformConstrainer)) {
-               // mesh was transformed in addition to having its transform set
-               // so clear the display list (if set)
-               if (myRenderProps != null) {
-                  myRenderProps.clearMeshDisplayList();
-               }
                if (myInertiaMethod == InertiaMethod.Density) {
                   setInertiaFromMesh (myDensity);
                }

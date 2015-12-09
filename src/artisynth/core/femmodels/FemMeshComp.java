@@ -649,9 +649,6 @@ public class FemMeshComp extends FemMeshBase
       }
       surf.buildNodeVertexMap();
 
-      // we manually control display lists, so this should work
-      mesh.setUseDisplayList(true);
-
       return surf;
    }
 

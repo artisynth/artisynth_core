@@ -29,13 +29,16 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
 import maspack.render.LineRenderProps;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.Texture;
 import maspack.render.TextureLoader;
+import maspack.render.GL.GLViewer;
+import maspack.render.GLTexture;
 import maspack.util.IntegerInterval;
+
+import javax.media.opengl.GL;
 
 public class DicomViewer extends RenderableComponentBase 
    implements PropertyChangeListener {
@@ -606,9 +609,14 @@ public class DicomViewer extends RenderableComponentBase
    }
    
    @Override
-   public synchronized void render(GLRenderer renderer, int flags) {
+   public synchronized void render(Renderer renderer, int flags) {
+
+      if (!(renderer instanceof GLViewer)) {
+         return;
+      }
+      GLViewer viewer = (GLViewer)renderer;
       
-      GL2 gl = renderer.getGL2();
+      GL2 gl = viewer.getGL2();
       if (textureLoader == null) {
          textureLoader = new TextureLoader(gl);
       }
@@ -638,9 +646,12 @@ public class DicomViewer extends RenderableComponentBase
          gl.glEnable(GL2.GL_TEXTURE_2D);
          
          //   select modulate to mix texture with color for shading
-         gl.glTexEnvf( GL2.GL_TEXTURE_ENV, GL2.GL_TEXTURE_ENV_MODE, GL2.GL_MODULATE );
-         gl.glTexParameteri (GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_WRAP_S, GL2.GL_CLAMP);
-         gl.glTexParameteri (GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_WRAP_T, GL2.GL_CLAMP);
+         gl.glTexEnvf (
+            GL2.GL_TEXTURE_ENV, GL2.GL_TEXTURE_ENV_MODE, GL2.GL_MODULATE );
+         gl.glTexParameteri (
+            GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_WRAP_S, GL2.GL_CLAMP);
+         gl.glTexParameteri (
+            GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_WRAP_T, GL2.GL_CLAMP);
          gl.glTexParameteri (
             GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_MAG_FILTER, GL2.GL_LINEAR);
          gl.glTexParameteri (
@@ -658,7 +669,7 @@ public class DicomViewer extends RenderableComponentBase
          if (drawSlice[i]) {
             
             if (!renderer.isSelecting()) {
-               Texture tex = textureLoader.getTextureByName(textureIds[i]);
+               GLTexture tex = textureLoader.getTextureByName(textureIds[i]);
                tex.bind(gl);
             }
             

@@ -17,6 +17,7 @@ import maspack.properties.*;
 import maspack.util.*;
 import maspack.spatialmotion.*;
 import maspack.render.*;
+import maspack.render.GL.GLViewer;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.util.*;
@@ -155,10 +156,15 @@ public class ParticlePlaneConstraint extends ParticleConstraintBase
 
    public void render (Renderer renderer, int flags) {
 
+      if (!(renderer instanceof GLViewer)) {
+         return;
+      }
+      GLViewer viewer = (GLViewer)renderer;
+
       if (myPlaneSize > 0) {
          computeRenderVtxs ();
 
-         GL2 gl = renderer.getGL2().getGL2();
+         GL2 gl = viewer.getGL2().getGL2();
          RenderProps props = myRenderProps;
 
          renderer.setMaterialAndShading (

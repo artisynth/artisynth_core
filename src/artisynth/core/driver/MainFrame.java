@@ -158,7 +158,7 @@ public class MainFrame extends JFrame {
 
       myMain = main;
       baseName = name;
-      GLPanel = new GLViewerPanel (width, height);
+      GLPanel = new GLViewerPanel (width, height, GLViewer.Version.GL2);
 
       myNavPanel = new NavigationPanel();
       myNavPanel.setLayout (new FlowLayout (FlowLayout.LEFT));

@@ -388,14 +388,14 @@ run()
 waitForStop()
 reset()
 
-loadModel ("artisynth.models.collision.SkinCollisionTest")
-mech = setModelOpts (2.0, dataFileName)
-pw = mech.reopenPrintStateFile (dataFileName)
-mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#SkinCollisionTest ConstrainedBackwardEuler");
-run()
-waitForStop()
-reset()
+#loadModel ("artisynth.models.collision.SkinCollisionTest")
+#mech = setModelOpts (2.0, dataFileName)
+#pw = mech.reopenPrintStateFile (dataFileName)
+#mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+#pw.println ("#SkinCollisionTest ConstrainedBackwardEuler");
+#run()
+#waitForStop()
+#reset()
 
 loadModel ("artisynth.demos.mech.SkinDemo")
 mech = setModelOpts (2.5, dataFileName)
@@ -445,33 +445,33 @@ run()
 waitForStop()
 reset()
 
-loadModel ("artisynth.models.dynjaw.JawLarynxDemo");
-mech = setModelOpts (2, dataFileName) # there is an earlier breakpoint at 0.575
-pw = mech.reopenPrintStateFile (dataFileName)
-mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
-pw.println ("#JawLarynxDemo SymplecticEuler");
-run()
-waitForStop()
-reset()
-mech.setIntegrator (MechSystemSolver.Integrator.RungeKutta4)
-pw.println ("#JawLarynxDemo RungeKutta");
-run()
-waitForStop()
-reset()
-mech.setIntegrator (MechSystemSolver.Integrator.Trapezoidal)
-pw.println ("#JawLarynxDemo Trapezoidal");
-run()
-waitForStop()
-reset()
+#loadModel ("artisynth.models.dynjaw.JawLarynxDemo");
+#mech = setModelOpts (2, dataFileName) # there is an earlier breakpoint at 0.575
+#pw = mech.reopenPrintStateFile (dataFileName)
+#mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
+#pw.println ("#JawLarynxDemo SymplecticEuler");
+#run()
+#waitForStop()
+#reset()
+#mech.setIntegrator (MechSystemSolver.Integrator.RungeKutta4)
+#pw.println ("#JawLarynxDemo RungeKutta");
+#run()
+#waitForStop()
+#reset()
+#mech.setIntegrator (MechSystemSolver.Integrator.Trapezoidal)
+#pw.println ("#JawLarynxDemo Trapezoidal");
+#run()
+#waitForStop()
+#reset()
 
-loadModel ("artisynth.models.inversedemos.TongueInvDemo")
-mech = setModelOpts (0.1, dataFileName)
-pw = mech.reopenPrintStateFile (dataFileName)
-mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#TongueInvDemo ConstrainedBackwardEuler");
-run()
-waitForStop()
-reset()
+#loadModel ("artisynth.models.inversedemos.TongueInvDemo")
+#mech = setModelOpts (0.1, dataFileName)
+#pw = mech.reopenPrintStateFile (dataFileName)
+#mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+#pw.println ("#TongueInvDemo ConstrainedBackwardEuler");
+#run()
+#waitForStop()
+#reset()
 
 loadModel ("artisynth.demos.inverse.PointModel2d")
 mech = setModelOpts (1, dataFileName)

@@ -66,6 +66,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
    public enum GLMatrixType {
       PROJECTION, VIEW, MODEL
    }
+   
+   public enum Version {
+      GL2, GL3
+   }
 
    protected Matrix4d pickMatrix;
    protected Matrix4d projectionMatrix;

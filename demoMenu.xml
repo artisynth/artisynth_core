@@ -14,14 +14,4 @@
 			format -->
 		<package source="artisynth.demos" view="hierarchical" />
 	</menu>
-	<menu text="Models">
-		<!-- loads models from the .mainModels file and places
-		     models in the current submenu -->
-		<demosFile file=".mainModels" />
-	</menu>
-	<menu text="All models">
-		<!-- loads all RootModels in the root package and displays in compact hierarchical 
-			format -->
-		<package source="artisynth.models" view="hierarchical" />
-	</menu>
 </ModelMenu>

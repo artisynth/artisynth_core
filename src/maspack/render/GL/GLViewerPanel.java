@@ -13,20 +13,39 @@ import javax.swing.BoxLayout;
 import javax.swing.JPanel;
 
 import maspack.render.GL.GL2.GL2Viewer;
+import maspack.render.GL.GL3.GL3Viewer;
 
 public class GLViewerPanel extends JPanel {
    private static final long serialVersionUID = 1L;
-   protected GL2Viewer viewer;
+   protected GLViewer viewer;
    protected String myErrMsg;
 
-   public GL2Viewer getViewer() {
+   protected static GLViewer.Version defaultVersion = GLViewer.Version.GL2;
+   
+   public GLViewer getViewer() {
       return viewer;
    }
 
    public GLViewerPanel (int width, int height) {
+      this (width, height, defaultVersion);
+   }
+   
+   public GLViewerPanel (int width, int height, GLViewer.Version vers) {
       super();
       setLayout (new BoxLayout (this, BoxLayout.X_AXIS));
-      viewer = new GL2Viewer (width, height);
+      switch (vers) {
+         case GL2: {
+            viewer = new GL2Viewer (width, height); 
+            break;
+         }
+         case GL3: {
+            viewer = new GL3Viewer (width, height);                        
+            break;
+         }
+         default:
+            throw new IllegalArgumentException (
+               "Unimplemented viewer type: " + vers);
+      }
       add (viewer.getCanvas());
    }
    

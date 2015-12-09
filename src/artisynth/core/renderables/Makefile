@@ -1,6 +1,6 @@
 
 ROOT_DIR = ../../../..
-PACKAGE_NAME = artisynth.core.renderable
+PACKAGE_NAME = artisynth.core.renderables
 
 JAVA_SUBDIRS =
 

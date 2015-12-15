@@ -1066,7 +1066,7 @@ public class RenderObject {
     * @return the index of the color added
     */
    public int addColor(byte r, byte g, byte b, byte a) {
-      return addColor(new byte[]{r,g,b,a});
+      return addColorInternal(new byte[]{r,g,b,a});
    }
    
    /**
@@ -1078,7 +1078,7 @@ public class RenderObject {
     * @return the index of the color added
     */
    public int addColor(int r, int g, int b, int a) {
-      return addColor(new byte[]{(byte)r,(byte)g,(byte)b,(byte)a});
+      return addColorInternal(new byte[]{(byte)r,(byte)g,(byte)b,(byte)a});
    }
    
    /**
@@ -1090,16 +1090,38 @@ public class RenderObject {
     * @return the index of the color added
     */
    public int addColor(float r, float g, float b, float a) {
-      return addColor(new byte[]{
+      return addColorInternal(new byte[]{
          (byte)(255*r),(byte)(255*g),(byte)(255*b),(byte)(255*a)});
    }
 
+   /**
+    * Adds an indexable color
+    * @param rgba 4-float vector
+    * @return the index of the color added
+    */
+   public int addColor(float[] rgba) {
+      float alpha = 1f;
+      if (rgba.length > 3) {
+         alpha = rgba[3];
+      }
+      return addColorInternal(new byte[]{
+         (byte)(255*rgba[0]),(byte)(255*rgba[1]),(byte)(255*rgba[2]),(byte)(255*alpha)});
+   }
+   
    /**
     * Adds an indexable color
     * @param rgba {red, green, blue, alpha}
     * @return the index of the color added
     */
    public int addColor(byte[] rgba) {
+      byte[] rgbaCopy = Arrays.copyOf(rgba, 4);
+      if (rgba.length < 4) {
+         rgbaCopy[3] = (byte)255;
+      }
+      return addColorInternal (rgbaCopy);
+   }
+   
+   private int addColorInternal(byte[] rgba) {
       if (verticesCommitted) {
          throw new RuntimeException("Cannot add colors after vertices are Committed");
       }

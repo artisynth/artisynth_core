@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
+ * Copyright (c) 2014, by the Authors: John E Lloyd (UBC), Antonio Sanchez (UBC)
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -27,7 +27,7 @@ public class GLSupport {
    /**
     * Java 8 version of float hashcode
     * @param f
-    * @return
+    * @return the computed hashcode
     */
    public static int hashCode(float f) {
       return Float.floatToIntBits (f);
@@ -35,12 +35,37 @@ public class GLSupport {
    
    /**
     * Java 8 version of double hashcode
-    * @param f
-    * @return
+    * @param d
+    * @return the computed hashcode
     */
    public static int hashCode(double d) {
       long bits = Double.doubleToLongBits(d);
       return (int)(bits ^ (bits >>> 32));
+   }
+   
+   /**
+    * Checks if two colors differ within supplied epsilon.  Colors must
+    * have length of at least 3.  If only RGB is supplied, the alpha
+    * component is assumed to be one.
+    * @param rgba1 first color
+    * @param rgba2 second color
+    * @return true if any component differs by more than epsilon
+    */
+   public static boolean RGBAequals(float[] rgba1, float[] rgba2, float eps) {
+      for (int i=0; i<3; ++i) {
+         if (Math.abs (rgba1[i]-rgba2[2])>eps) {
+            return false;
+         }
+      }
+      float a1 = 1;
+      float a2 = 1;
+      if (rgba1.length > 3) {
+         a1 = rgba1[3];
+      }
+      if (rgba2.length > 3) {
+         a2 = rgba2[3];
+      }
+      return ( Math.abs(a1-a2) <= eps); 
    }
    
    public static void transformToGLMatrix (double[] mat, Matrix T) {

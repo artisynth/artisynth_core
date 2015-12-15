@@ -56,10 +56,8 @@ public class GLGridPlane implements HasProperties {
    int myLineWidth = 1;
 
    private static class RenderInfo {
-      RenderObject majorYAxes = new RenderObject();
-      RenderObject minorYAxes = new RenderObject();
-      RenderObject majorXAxes = new RenderObject();
-      RenderObject minorXAxes = new RenderObject();
+      // stores all lines
+      RenderObject lines;
 
       int numDivisions;
       int xcnt;
@@ -72,50 +70,188 @@ public class GLGridPlane implements HasProperties {
       float ymax;
       float minorSize;
 
-      public boolean update(int numDivisions, float minorSize, int xcnt, int ycnt, int x_axis_j, int y_axis_i, float xmin, float xmax, float ymin, float ymax) {
-         boolean changed = false;
+      float[] xColor;
+      float[] yColor;
+      float[] majorColor;
+      float[] minorColor;
+
+      public RenderInfo() {
+         // initialize everything
+         lines = new RenderObject();
+         numDivisions = 0;
+         xcnt = 0;
+         ycnt = 0;
+         x_axis_j = 0;
+         y_axis_i = 0;
+         xmin = 0;
+         xmax = 0;
+         ymin = 0;
+         ymax = 0;
+         minorSize = 0;
+         xColor = new float[]{0,0,0,0};
+         yColor = new float[]{0,0,0,0};
+         majorColor = new float[]{0,0,0,0};
+         minorColor = new float[]{0,0,0,0};
+      }
+
+      private float[] copyColor4(float[] c) {
+         float[] out = new float[4];
+         for (int i=0; i<3; ++i) {
+            out[i] = c[i];
+         }
+         if (c.length > 3) {
+            out[3] = c[3];
+         } else {
+            out[3] = 1;
+         }
+         return out;
+      }
+
+      public boolean update(int numDivisions, float minorSize, int xcnt, int ycnt, int x_axis_j, 
+         int y_axis_i, float xmin, float xmax, float ymin, float ymax,
+         float[] xColor, float[] yColor, float[] majorColor, float[] minorColor) {
+         boolean positionsChanged = false;
 
          if (this.numDivisions != numDivisions) {
-            changed = true;
+            positionsChanged = true;
             this.numDivisions = numDivisions;
          }
          if (this.xcnt != xcnt) {
-            changed = true;
+            positionsChanged = true;
             this.xcnt = xcnt;
          }
          if (this.ycnt != ycnt) {
-            changed = true;
+            positionsChanged = true;
             this.ycnt = ycnt;
          }
          if (this.x_axis_j != x_axis_j) {
-            changed = true;
+            positionsChanged = true;
             this.x_axis_j = x_axis_j;
          }
          if (this.y_axis_i != y_axis_i) {
-            changed = true;
+            positionsChanged = true;
             this.y_axis_i = y_axis_i;
          }
          if (this.xmin != xmin) {
-            changed = true;
+            positionsChanged = true;
             this.xmin = xmin;
          }
          if (this.xmax != xmax) {
-            changed = true;
+            positionsChanged = true;
             this.xmax = xmax;
          }
          if (this.ymin != ymin) {
-            changed = true;
+            positionsChanged = true;
             this.ymin = ymin;
          }
          if (this.ymax != ymax) {
-            changed = true;
+            positionsChanged = true;
             this.ymax = ymax;
          }
          if (this.minorSize != minorSize) {
-            changed = true;
+            positionsChanged = true;
             this.minorSize = minorSize;
          }
-         return changed;
+
+         // deal with changing colors
+         if (majorColor == null) {
+            majorColor = myDefaultMajorColor.getColorComponents (new float[4]);
+         }
+         if (minorColor == null) {
+            minorColor = new float[4];
+            for (int i=0; i<3; ++i) {
+               minorColor[i] = 0.4f*majorColor[i];  // scale down
+            }
+            if (majorColor.length > 3) {
+               minorColor[3] = majorColor[3];
+            } else {
+               minorColor[3] = 1f;
+            }
+         }
+
+         if (xColor == null) {
+            xColor = majorColor;
+         }
+         if (yColor == null) {
+            yColor = majorColor;
+         }
+
+         // check if colors have changed
+         boolean colorsChanged = false;
+         float eps = 0.01f;
+         if (!GLSupport.RGBAequals(xColor, this.xColor, eps)) {
+            this.xColor = copyColor4 (xColor);
+            colorsChanged = true;
+         }
+         if (!GLSupport.RGBAequals(yColor, this.yColor, eps)) {
+            this.yColor = copyColor4 (yColor);
+            colorsChanged = true;
+         }
+         if (!GLSupport.RGBAequals(majorColor, this.majorColor, eps)) {
+            this.majorColor = copyColor4 (majorColor);
+            colorsChanged = true;
+         }
+         if (!GLSupport.RGBAequals(minorColor, this.minorColor, eps)) {
+            this.minorColor = copyColor4 (minorColor);
+            colorsChanged = true;
+         }
+
+         // if this changed, we need to rebuild
+         if (colorsChanged || positionsChanged) {
+
+            lines.reinitialize();
+            lines.setStreaming(true);
+
+            lines.ensurePositionCapacity(2*(xcnt+ycnt));
+            lines.ensureLineCapacity (xcnt+ycnt);
+            lines.ensureColorCapacity (4);
+
+            // add colors
+            int xcidx = lines.addColor(this.xColor);
+            int ycidx = lines.addColor (this.yColor);
+            int majorcidx = lines.addColor (this.majorColor);
+            int minorcidx = lines.addColor (this.minorColor);
+
+            lines.beginBuild(BuildMode.LINES);
+
+            for (int i = 0; i < xcnt; i++) {
+               double x = xmin + i * minorSize;
+               int ii = y_axis_i - i;
+
+               if (ii == 0) {
+                  lines.color (ycidx);
+               } else if (ii%numDivisions == 0) {
+                  lines.color (majorcidx);
+               } else {
+                  lines.color (minorcidx);
+               }
+               lines.vertex((float)x, (float)ymin, 0);
+               lines.vertex((float)x, (float)ymax, 0);
+            }
+
+            for (int j = 0; j < ycnt; j++) {
+               double y = ymin + j * minorSize;
+               int jj = x_axis_j - j;
+
+               if (jj == 0) {
+                  lines.color (xcidx);
+               } else if (jj%numDivisions == 0) {
+                  lines.color (majorcidx);
+               } else {
+                  lines.color (minorcidx);
+               }
+               lines.vertex((float)xmin, (float)y, 0);
+               lines.vertex((float)xmax, (float)y, 0);
+            }   
+            lines.endBuild();
+         }
+
+
+         return (positionsChanged || colorsChanged);
+      }
+
+      public RenderObject getRenderObject () {
+         return lines;
       }
 
    }
@@ -734,13 +870,6 @@ public class GLGridPlane implements HasProperties {
       return zref / near * nearDistPerPixel;
    }
 
-   private int addVertex(float[] buff, int offset, float x, float y, float z) {
-      buff[offset++] = x;
-      buff[offset++] = y;
-      buff[offset++] = z;
-      return offset;
-   }
-
    private void drawGrid (Renderer renderer) {
 
       if (!(renderer instanceof GLViewer)) {
@@ -787,7 +916,6 @@ public class GLGridPlane implements HasProperties {
          }
          majorCellSize = numDivisions*minorSize;
       }
-
 
       minorSize = majorCellSize / numDivisions;
       halfCellCnt = (int)Math.ceil (myMinSize/(2*minorSize));
@@ -889,9 +1017,7 @@ public class GLGridPlane implements HasProperties {
          }
       }
       else {
-         for (int i=0; i<3; i++) {
-            minorRGB[i] = myMinorRGB[i];
-         }
+         minorRGB = myMinorRGB;
       }
       //*********************************************************
       // Old code that adjusted the intensity of the minor axis lines depending
@@ -913,69 +1039,10 @@ public class GLGridPlane implements HasProperties {
       // }
       //*********************************************************
 
-      if (rcacheInfo.update(numDivisions, (float)minorSize, xcnt, ycnt, x_axis_j, y_axis_i, (float)xmin, (float)xmax, (float)ymin, (float)ymax)) {
-         int numYMajor = 1+xcnt/numDivisions;
-         int numXMajor = 1+ycnt/numDivisions;
-
-         rcacheInfo.majorYAxes.reinitialize();
-         rcacheInfo.majorXAxes.reinitialize();
-         rcacheInfo.minorYAxes.reinitialize();
-         rcacheInfo.minorXAxes.reinitialize();
-         
-         rcacheInfo.majorYAxes.setStreaming(true);
-         rcacheInfo.majorXAxes.setStreaming(true);
-         rcacheInfo.minorYAxes.setStreaming(true);
-         rcacheInfo.minorXAxes.setStreaming(true);
-
-         rcacheInfo.majorYAxes.ensurePositionCapacity(2*numYMajor);
-         rcacheInfo.majorYAxes.ensureLineCapacity(numYMajor);
-         rcacheInfo.minorYAxes.ensurePositionCapacity(2*(xcnt-numYMajor));
-         rcacheInfo.minorYAxes.ensureLineCapacity(xcnt-numYMajor);
-         rcacheInfo.majorXAxes.ensurePositionCapacity(2*numXMajor);
-         rcacheInfo.majorXAxes.ensureLineCapacity(numXMajor);
-         rcacheInfo.minorXAxes.ensurePositionCapacity(2*(ycnt-numXMajor));
-         rcacheInfo.minorXAxes.ensureLineCapacity(ycnt-numXMajor);
-
-         rcacheInfo.majorYAxes.beginBuild(BuildMode.LINES);
-         rcacheInfo.minorYAxes.beginBuild(BuildMode.LINES);
-         rcacheInfo.majorXAxes.beginBuild(BuildMode.LINES);
-         rcacheInfo.minorXAxes.beginBuild(BuildMode.LINES);
-
-         for (int i = 0; i < xcnt; i++) {
-            double x = xmin + i * minorSize;
-            int ii = y_axis_i - i;
-
-            if (ii%numDivisions == 0) {
-               rcacheInfo.majorYAxes.vertex((float)x, (float)ymin, 0);
-               rcacheInfo.majorYAxes.vertex((float)x, (float)ymax, 0);
-            }
-            else {
-               rcacheInfo.minorYAxes.vertex((float)x, (float)ymin, 0);
-               rcacheInfo.minorYAxes.vertex((float)x, (float)ymax, 0);
-            }
-         }
-
-         for (int j = 0; j < ycnt; j++) {
-            double y = ymin + j * minorSize;
-            int jj = x_axis_j - j;
-
-            if (jj%numDivisions == 0) {
-               rcacheInfo.majorXAxes.vertex((float)xmin, (float)y, 0);
-               rcacheInfo.majorXAxes.vertex((float)xmax, (float)y, 0);
-            }
-            else {
-               rcacheInfo.minorXAxes.vertex((float)xmin, (float)y, 0);
-               rcacheInfo.minorXAxes.vertex((float)xmax, (float)y, 0);
-            }
-         }   
-
-         rcacheInfo.majorYAxes.endBuild();
-         rcacheInfo.minorYAxes.endBuild();
-         rcacheInfo.majorXAxes.endBuild();
-         rcacheInfo.minorXAxes.endBuild();
-
-      }
-
+      // maybe update info
+      rcacheInfo.update(numDivisions, (float)minorSize, xcnt, ycnt, x_axis_j, y_axis_i, 
+         (float)xmin, (float)xmax, (float)ymin, (float)ymax,
+         myXAxisRGB, myYAxisRGB, myMajorRGB, minorRGB);
 
       renderer.setLightingEnabled (false);
       renderer.setLineWidth(myLineWidth);
@@ -983,29 +1050,7 @@ public class GLGridPlane implements HasProperties {
       viewer.pushModelMatrix();
       viewer.mulModelMatrix(XGridToWorld);
 
-      if (myYAxisRGB != null) {
-         viewer.setColor(myYAxisRGB);
-      } else {
-         viewer.setColor(myMajorRGB);
-      }
-      viewer.drawLines(rcacheInfo.majorYAxes);
-
-      if (myYAxisRGB == null) {
-         viewer.setColor(minorRGB);
-      }
-      viewer.drawLines(rcacheInfo.minorYAxes);
-
-      if (myXAxisRGB != null) {
-         viewer.setColor(myXAxisRGB);
-      } else {
-         viewer.setColor(myMajorRGB);
-      }
-      viewer.drawLines(rcacheInfo.majorXAxes);
-
-      if (myXAxisRGB == null) {
-         viewer.setColor(minorRGB);
-      }
-      viewer.drawLines(rcacheInfo.minorXAxes);
+      viewer.drawLines (rcacheInfo.getRenderObject());
 
       viewer.popModelMatrix();
       viewer.setLineWidth(1);
@@ -1013,7 +1058,7 @@ public class GLGridPlane implements HasProperties {
 
       if (myAutoSizedP &&
       (majorCellSize != myResolution.getMajorCellSize() ||
-         numDivisions != myResolution.getNumDivisions())) {
+      numDivisions != myResolution.getNumDivisions())) {
          myResolution.set (majorCellSize, numDivisions);
       }
    }

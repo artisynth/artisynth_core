@@ -12,6 +12,7 @@ import maspack.render.RenderObject.RenderObjectIdentifier;
 import maspack.render.RenderObject.RenderObjectState;
 import maspack.render.RenderObject.RenderObjectVersion;
 import maspack.render.RenderObject.VertexIndexSet;
+import maspack.render.GL.GLSupport;
 
 /**
  * Allows easy switching between lines as GL_LINES and as cylinders/ellipsoids/etc...
@@ -718,23 +719,23 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
       // line-specific information
       // radius
       lineInfo[0].offset = 0;
-      lineInfo[0].stride = 10*Float.BYTES;
+      lineInfo[0].stride = 10*GLSupport.FLOAT_SIZE;
       lineInfo[0].count = 1;
       lineInfo[0].vboIndex = vboIdx;
       // length/offsets
-      lineInfo[1].offset = 1*Float.BYTES;
-      lineInfo[1].stride = 10*Float.BYTES;
+      lineInfo[1].offset = 1*GLSupport.FLOAT_SIZE;
+      lineInfo[1].stride = 10*GLSupport.FLOAT_SIZE;
       lineInfo[1].count = 1;
       lineInfo[1].vboIndex = vboIdx;
       
       // head radius
-      headInfo[0].offset = 5*Float.BYTES;
-      headInfo[0].stride = 10*Float.BYTES;
+      headInfo[0].offset = 5*GLSupport.FLOAT_SIZE;
+      headInfo[0].stride = 10*GLSupport.FLOAT_SIZE;
       headInfo[0].count = 1;
       headInfo[0].vboIndex = vboIdx;
       // length/offsets
-      headInfo[1].offset = 6*Float.BYTES;
-      headInfo[1].stride = 10*Float.BYTES;
+      headInfo[1].offset = 6*GLSupport.FLOAT_SIZE;
+      headInfo[1].stride = 10*GLSupport.FLOAT_SIZE;
       headInfo[1].count = 1;
       headInfo[1].vboIndex = vboIdx;   
       vboIdx++;
@@ -821,7 +822,7 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
       }
       
       // radius/length_offset
-      buffs[vboIdx] = ByteBuffer.allocateDirect(10*Float.BYTES);
+      buffs[vboIdx] = ByteBuffer.allocateDirect(10*GLSupport.FLOAT_SIZE);
       buffs[vboIdx].order(ByteOrder.nativeOrder());
       // length info
       buffs[vboIdx].putFloat(lineRadius);

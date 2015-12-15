@@ -34,9 +34,9 @@ public class MatricesUBO extends UniformBufferObject {
       super(gl, progId, PVM_NAME, PVM_ATTRIBUTES, GL3.GL_DYNAMIC_DRAW);
       foffsets = new int[offsets.length];
       for (int i=0; i<offsets.length; ++i) {
-         foffsets[i] = offsets[i]/Float.BYTES;
+         foffsets[i] = offsets[i]/GLSupport.FLOAT_SIZE;
       }
-      fsize = getSize()/Float.BYTES;
+      fsize = getSize()/GLSupport.FLOAT_SIZE;
    }
    
    public void updateMatrices(GL3 gl,  Matrix4d proj, RigidTransform3d view, AffineTransform3dBase model) {

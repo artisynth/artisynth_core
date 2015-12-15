@@ -1499,7 +1499,7 @@ public class GL3Viewer extends GLViewer {
    private void drawGLLine(GL3 gl, float[] coords0, float[] coords1) {
 
       if (lineGLO == null) {
-         ByteBuffer buff = ByteBuffer.allocateDirect(6*Float.BYTES);
+         ByteBuffer buff = ByteBuffer.allocateDirect(6*GLSupport.FLOAT_SIZE);
          buff.order(ByteOrder.nativeOrder());
          for (int i=0; i<3; ++i) {
             buff.putFloat(coords0[i]);
@@ -1508,7 +1508,7 @@ public class GL3Viewer extends GLViewer {
             buff.putFloat(coords1[i]);
          }
          buff.rewind();
-         lineGLO = GL3Object.createV(gl, GL.GL_LINES, buff, 2, GL.GL_FLOAT, 3, 3*Float.BYTES, GL.GL_DYNAMIC_DRAW);
+         lineGLO = GL3Object.createV(gl, GL.GL_LINES, buff, 2, GL.GL_FLOAT, 3, 3*GLSupport.FLOAT_SIZE, GL.GL_DYNAMIC_DRAW);
       } else {
          ByteBuffer buff = lineGLO.vbos[0].mapNewBuffer(gl);
          for (int i=0; i<3; ++i) {
@@ -1532,13 +1532,13 @@ public class GL3Viewer extends GLViewer {
    private void drawGLPoint(GL3 gl, float[] coords) {
 
       if (pointGLO == null) {
-         ByteBuffer buff = ByteBuffer.allocateDirect(3*Float.BYTES);
+         ByteBuffer buff = ByteBuffer.allocateDirect(3*GLSupport.FLOAT_SIZE);
          buff.order(ByteOrder.nativeOrder());
          for (int i=0; i<3; ++i) {
             buff.putFloat(coords[i]);
          }
          buff.rewind();
-         pointGLO = GL3Object.createV(gl, GL.GL_POINTS, buff,  1, GL.GL_FLOAT, 3, 3*Float.BYTES, GL.GL_DYNAMIC_DRAW);
+         pointGLO = GL3Object.createV(gl, GL.GL_POINTS, buff,  1, GL.GL_FLOAT, 3, 3*GLSupport.FLOAT_SIZE, GL.GL_DYNAMIC_DRAW);
       } else {
          ByteBuffer buff = pointGLO.vbos[0].mapNewBuffer(gl);
          for (int i=0; i<3; ++i) {

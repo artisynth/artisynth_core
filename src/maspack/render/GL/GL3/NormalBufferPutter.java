@@ -2,6 +2,7 @@ package maspack.render.GL.GL3;
 
 import java.nio.ByteBuffer;
 
+import maspack.render.GL.GLSupport;
 import maspack.render.GL.GL3.BufferStorage.StorageType;
 
 public abstract class NormalBufferPutter {
@@ -100,7 +101,7 @@ public abstract class NormalBufferPutter {
       
       @Override
       public int bytesPerNormal() {
-         return 3*Float.BYTES;
+         return 3*GLSupport.FLOAT_SIZE;
       }
       
       @Override
@@ -127,12 +128,12 @@ public abstract class NormalBufferPutter {
 
       @Override
       public int bytesPerNormal() {
-         return 4*Short.BYTES;
+         return 4*GLSupport.SHORT_SIZE;
       }
       
       @Override
       public BufferStorage storage() {
-         return new BufferStorage(StorageType.SIGNED_SHORT, 3, 4*Short.BYTES, true);
+         return new BufferStorage(StorageType.SIGNED_SHORT, 3, 4*GLSupport.SHORT_SIZE, true);
       }
    }
    

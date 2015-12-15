@@ -17,6 +17,13 @@ import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Vector3d;
 
 public class GLSupport {
+   
+   // sizes of elements in bytes (to circumvent Java 7/8 problems)
+   public static final int BYTE_SIZE = 1;
+   public static final int SHORT_SIZE = 2;
+   public static final int INTEGER_SIZE = 4;
+   public static final int FLOAT_SIZE = 4;
+   
    public static void transformToGLMatrix (double[] mat, Matrix T) {
       mat[0] = T.get (0, 0);
       mat[1] = T.get (1, 0);

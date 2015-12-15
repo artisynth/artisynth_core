@@ -144,7 +144,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       public double bottom = -0.5;
 
       public double zoffset = 0;
-      public double fov = 70;
+      public double fov = 30;         // originally 70
       public double fieldHeight = 10; // originally 10
       public boolean orthographic = false;
       public boolean explicit = false;

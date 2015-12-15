@@ -2,6 +2,8 @@ package maspack.render.GL.GL3;
 
 import java.nio.ByteBuffer;
 
+import maspack.render.GL.GLSupport;
+
 public abstract class PositionBufferPutter {
 
    public abstract void putPosition(ByteBuffer buff, float x, float y, float z);
@@ -98,7 +100,7 @@ public abstract class PositionBufferPutter {
 
       @Override
       public int bytesPerPosition() {
-         return 3*Float.BYTES;
+         return 3*GLSupport.FLOAT_SIZE;
       }
       
       @Override

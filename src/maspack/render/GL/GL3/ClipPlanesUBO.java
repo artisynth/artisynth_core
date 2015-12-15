@@ -8,6 +8,7 @@ import javax.media.opengl.GL3;
 import maspack.matrix.Plane;
 import maspack.matrix.Vector3d;
 import maspack.render.GL.GLClipPlane;
+import maspack.render.GL.GLSupport;
 
 public class ClipPlanesUBO extends UniformBufferObject {
    
@@ -29,10 +30,10 @@ public class ClipPlanesUBO extends UniformBufferObject {
    }
    
    public void updateClipPlanes(GL3 gl,  Plane[] clips) {
-      float[] clipbuff = new float[getSize()/Float.BYTES];
+      float[] clipbuff = new float[getSize()/GLSupport.FLOAT_SIZE];
       
       for (int i=0; i<numClipPlanes; ++i) {
-         int idx = getOffset(i)/Float.BYTES;
+         int idx = getOffset(i)/GLSupport.FLOAT_SIZE;
          Vector3d normal = clips[i].getNormal();
          clipbuff[idx++] = (float)(normal.x);
          clipbuff[idx++] = (float)(normal.y);
@@ -52,12 +53,12 @@ public class ClipPlanesUBO extends UniformBufferObject {
     */
    public int updateClipPlanes(GL3 gl,  GLClipPlane[] clips) {
       
-      float[] clipbuff = new float[getSize()/Float.BYTES];
+      float[] clipbuff = new float[getSize()/GLSupport.FLOAT_SIZE];
       int nclips = 0;
       
       for (GLClipPlane cp : clips) {
          if (cp.isClippingEnabled()) {
-            int idx = getOffset(nclips)/Float.BYTES;
+            int idx = getOffset(nclips)/GLSupport.FLOAT_SIZE;
             cp.getClipPlaneValues (clipbuff, idx, false);
             nclips++;
             if (nclips >= numClipPlanes) {
@@ -65,7 +66,7 @@ public class ClipPlanesUBO extends UniformBufferObject {
             }
 
             if (cp.isSlicingEnabled()) {
-               idx = getOffset(nclips)/Float.BYTES;
+               idx = getOffset(nclips)/GLSupport.FLOAT_SIZE;
                cp.getClipPlaneValues (clipbuff, idx, true);
                nclips++;
                if (nclips >= numClipPlanes) {
@@ -89,12 +90,12 @@ public class ClipPlanesUBO extends UniformBufferObject {
     */
    public int updateClipPlanes(GL3 gl,  List<GLClipPlane> clips) {
       
-      float[] clipbuff = new float[getSize()/Float.BYTES];
+      float[] clipbuff = new float[getSize()/GLSupport.FLOAT_SIZE];
       int nclips = 0;
       
       for (GLClipPlane cp : clips) {
          if (cp.isClippingEnabled()) {
-            int idx = getOffset(nclips)/Float.BYTES;
+            int idx = getOffset(nclips)/GLSupport.FLOAT_SIZE;
             cp.getClipPlaneValues (clipbuff, idx, false);
             nclips++;
             if (nclips >= numClipPlanes) {
@@ -102,7 +103,7 @@ public class ClipPlanesUBO extends UniformBufferObject {
             }
 
             if (cp.isSlicingEnabled()) {
-               idx = getOffset(nclips)/Float.BYTES;
+               idx = getOffset(nclips)/GLSupport.FLOAT_SIZE;
                cp.getClipPlaneValues (clipbuff, idx, true);
                nclips++;
                if (nclips >= numClipPlanes) {

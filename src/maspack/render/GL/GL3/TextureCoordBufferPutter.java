@@ -2,6 +2,8 @@ package maspack.render.GL.GL3;
 
 import java.nio.ByteBuffer;
 
+import maspack.render.GL.GLSupport;
+
 public abstract class TextureCoordBufferPutter {
 
    public abstract void putTextureCoord(ByteBuffer buff, float x, float y);
@@ -97,7 +99,7 @@ public abstract class TextureCoordBufferPutter {
 
       @Override
       public int bytesPerTextureCoord() {
-         return 2*Float.BYTES;
+         return 2*GLSupport.FLOAT_SIZE;
       }
       
       @Override
@@ -117,7 +119,7 @@ public abstract class TextureCoordBufferPutter {
 
       @Override
       public int bytesPerTextureCoord() {
-         return 2*Short.BYTES;
+         return 2*GLSupport.SHORT_SIZE;
       }
       
       @Override

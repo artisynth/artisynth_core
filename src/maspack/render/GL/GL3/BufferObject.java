@@ -8,6 +8,8 @@ import java.nio.ShortBuffer;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
 
+import maspack.render.GL.GLSupport;
+
 /**
  * Generic GL Buffer Object
  */
@@ -72,9 +74,9 @@ public class BufferObject extends GL3ResourceBase {
    }
    
    public void fill(GL3 gl, FloatBuffer buff, int target, int usage) {
-      setInfo(target, buff.limit()*Float.BYTES, usage);
+      setInfo(target, buff.limit()*GLSupport.FLOAT_SIZE, usage);
       gl.glBindBuffer(target, boId);
-      gl.glBufferData(target, buff.limit()*Float.BYTES, buff, usage);
+      gl.glBufferData(target, buff.limit()*GLSupport.FLOAT_SIZE, buff, usage);
    }
    
    public void update(GL3 gl, float[] buff) {
@@ -92,7 +94,7 @@ public class BufferObject extends GL3ResourceBase {
    
    public void update(GL3 gl, FloatBuffer buff, int start) {
       gl.glBindBuffer(target, boId);
-      gl.glBufferSubData(target, start*Float.BYTES, buff.limit()*Float.BYTES, buff);
+      gl.glBufferSubData(target, start*GLSupport.FLOAT_SIZE, buff.limit()*GLSupport.FLOAT_SIZE, buff);
    }
    
    public void fill(GL3 gl, int[] buff, int target, int usage) {
@@ -100,9 +102,9 @@ public class BufferObject extends GL3ResourceBase {
    }
    
    public void fill(GL3 gl, IntBuffer buff, int target, int usage) {
-      setInfo(target, buff.limit()*Integer.BYTES, usage);
+      setInfo(target, buff.limit()*GLSupport.INTEGER_SIZE, usage);
       gl.glBindBuffer(target, boId);
-      gl.glBufferData(target, buff.limit()*Integer.BYTES, buff, usage);
+      gl.glBufferData(target, buff.limit()*GLSupport.INTEGER_SIZE, buff, usage);
    }
    
    public void update(GL3 gl, int[] buff) {
@@ -119,7 +121,7 @@ public class BufferObject extends GL3ResourceBase {
    
    public void update(GL3 gl, IntBuffer buff, int start) {
       gl.glBindBuffer(target, boId);
-      gl.glBufferSubData(target, start*Integer.BYTES, buff.limit()*Integer.BYTES, buff);
+      gl.glBufferSubData(target, start*GLSupport.INTEGER_SIZE, buff.limit()*GLSupport.INTEGER_SIZE, buff);
    }
    
    public void fill(GL3 gl, short[] buff, int target, int usage) {
@@ -127,9 +129,9 @@ public class BufferObject extends GL3ResourceBase {
    }
    
    public void fill(GL3 gl, ShortBuffer buff, int target, int usage) {
-      setInfo(target, buff.limit()*Short.BYTES, usage);
+      setInfo(target, buff.limit()*GLSupport.SHORT_SIZE, usage);
       gl.glBindBuffer(target, boId);
-      gl.glBufferData(target, buff.limit()*Short.BYTES, buff, usage);
+      gl.glBufferData(target, buff.limit()*GLSupport.SHORT_SIZE, buff, usage);
    }
    
    public void update(GL3 gl, short[] buff) {
@@ -146,7 +148,7 @@ public class BufferObject extends GL3ResourceBase {
    
    public void update(GL3 gl, ShortBuffer buff, int start) {
       gl.glBindBuffer(target, boId);
-      gl.glBufferSubData(target, start*Short.BYTES, buff.limit()*Short.BYTES, buff);
+      gl.glBufferSubData(target, start*GLSupport.SHORT_SIZE, buff.limit()*GLSupport.SHORT_SIZE, buff);
    }
    
    public void fill(GL3 gl, byte[] buff, int target, int usage) {
@@ -154,9 +156,9 @@ public class BufferObject extends GL3ResourceBase {
    }
    
    public void fill(GL3 gl, ByteBuffer buff, int target, int usage) {
-      setInfo(target, buff.limit()*Byte.BYTES, usage);
+      setInfo(target, buff.limit()*GLSupport.BYTE_SIZE, usage);
       gl.glBindBuffer(target, boId);
-      gl.glBufferData(target, buff.limit()*Byte.BYTES, buff, usage);
+      gl.glBufferData(target, buff.limit()*GLSupport.BYTE_SIZE, buff, usage);
    }
    
    public void update(GL3 gl, byte[] buff) {
@@ -176,7 +178,7 @@ public class BufferObject extends GL3ResourceBase {
       if (start == 0 && buff.limit() == size) {
          gl.glBufferData(target, size, null, usage); // orphan
       }
-      gl.glBufferSubData(target, start*Byte.BYTES, buff.limit()*Byte.BYTES, buff);
+      gl.glBufferSubData(target, start*GLSupport.BYTE_SIZE, buff.limit()*GLSupport.BYTE_SIZE, buff);
    }
    
    /**

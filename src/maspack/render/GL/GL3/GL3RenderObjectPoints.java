@@ -12,6 +12,7 @@ import maspack.render.RenderObject.RenderObjectIdentifier;
 import maspack.render.RenderObject.RenderObjectState;
 import maspack.render.RenderObject.RenderObjectVersion;
 import maspack.render.RenderObject.VertexIndexSet;
+import maspack.render.GL.GLSupport;
 
 /**
  * Allows easy switching between points as GL_POINT and as spheres
@@ -653,7 +654,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       // point-specific information
       // radius
       pointInfo.offset = 0;
-      pointInfo.stride = 1*Float.BYTES;
+      pointInfo.stride = 1*GLSupport.FLOAT_SIZE;
       pointInfo.count = 1;
       pointInfo.vboIndex = vboIdx;
       vboIdx++;
@@ -738,7 +739,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       }
       
       // radius
-      buffs[vboIdx] = ByteBuffer.allocateDirect(1*Float.BYTES);
+      buffs[vboIdx] = ByteBuffer.allocateDirect(1*GLSupport.FLOAT_SIZE);
       buffs[vboIdx].order(ByteOrder.nativeOrder());
       buffs[vboIdx].putFloat(pointRadius); // radius
       

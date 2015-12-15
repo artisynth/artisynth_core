@@ -2,6 +2,8 @@ package maspack.render.GL.GL3;
 
 import java.nio.ByteBuffer;
 
+import maspack.render.GL.GLSupport;
+
 public abstract class ColorBufferPutter {
 
    public abstract void putColor(ByteBuffer buff, byte r, byte g, byte b, byte a);
@@ -99,7 +101,7 @@ public abstract class ColorBufferPutter {
 
       @Override
       public int bytesPerColor() {
-         return 4*Byte.BYTES;
+         return 4*GLSupport.BYTE_SIZE;
       }
 
       @Override

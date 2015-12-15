@@ -7,6 +7,7 @@ import java.nio.FloatBuffer;
 import javax.media.opengl.GL3;
 
 import maspack.render.Material;
+import maspack.render.GL.GLSupport;
 
 public class MaterialsUBO extends UniformBufferObject {
    
@@ -46,9 +47,9 @@ public class MaterialsUBO extends UniformBufferObject {
       super(gl, progId, BLOCK_NAME, MATERIALS_ATTRIBUTES, GL3.GL_DYNAMIC_DRAW);
       foffsets = new int[offsets.length];
       for (int i=0; i<offsets.length; ++i) {
-         foffsets[i] = offsets[i]/Float.BYTES;
+         foffsets[i] = offsets[i]/GLSupport.FLOAT_SIZE;
       }
-      fsize = getSize()/Float.BYTES;
+      fsize = getSize()/GLSupport.FLOAT_SIZE;
    }
    
    public void updateMaterials(GL3 gl, Material frontMaterial, Material backMaterial) {
@@ -155,7 +156,7 @@ public class MaterialsUBO extends UniformBufferObject {
    }
    
    public void updateColor(GL3 gl, float[] rgba, int cidx) {
-      ByteBuffer buff = ByteBuffer.allocateDirect(4*Float.BYTES);
+      ByteBuffer buff = ByteBuffer.allocateDirect(4*GLSupport.FLOAT_SIZE);
       buff.order(ByteOrder.nativeOrder());
       for (int i=0; i<3; ++i) {
          buff.putFloat(rgba[i]);

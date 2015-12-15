@@ -2,6 +2,8 @@ package maspack.render.GL.GL3;
 
 import java.nio.ByteBuffer;
 
+import maspack.render.GL.GLSupport;
+
 public abstract class IndexBufferPutter {
 
    public abstract void putIndex(ByteBuffer buff, int idx);
@@ -68,7 +70,7 @@ public abstract class IndexBufferPutter {
 
       @Override
       public int bytesPerIndex() {
-         return Byte.BYTES;
+         return GLSupport.BYTE_SIZE;
       }
 
       @Override
@@ -87,7 +89,7 @@ public abstract class IndexBufferPutter {
 
       @Override
       public int bytesPerIndex() {
-         return Short.BYTES;
+         return GLSupport.SHORT_SIZE;
       }
       
       @Override
@@ -106,7 +108,7 @@ public abstract class IndexBufferPutter {
       
       @Override
       public int bytesPerIndex() {
-         return Integer.BYTES;
+         return GLSupport.INTEGER_SIZE;
       }
       
       @Override

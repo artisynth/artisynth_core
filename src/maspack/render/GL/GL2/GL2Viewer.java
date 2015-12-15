@@ -2384,7 +2384,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
       @Override
       public int hashCode() {
-         return (style == null ? 0 : style.ordinal()) + 71*sphereDL + Float.hashCode(r)*51 + 31*rv.hashCode();
+         return (style == null ? 0 : style.ordinal()) + 71*sphereDL + GLSupport.hashCode(r)*51 + 31*rv.hashCode();
       }
 
       @Override
@@ -2419,7 +2419,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
       @Override
       public int hashCode() {
-         return (style == null ? 0 : style.ordinal()) + 71*slices + Float.hashCode(r)*51 + 31*rv.hashCode();
+         return (style == null ? 0 : style.ordinal()) + 71*slices + GLSupport.hashCode(r)*51 + 31*rv.hashCode();
       }
 
       @Override

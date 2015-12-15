@@ -44,7 +44,7 @@ public class PolylineMeshRenderer {
       public int hashCode() {
          return mesh.hashCode() + version + style.hashCode()*17 +
          + slices*3
-         + Double.hashCode(r)*83 + shading.hashCode()*41 
+         + GLSupport.hashCode(r)*83 + shading.hashCode()*41 
          + (useVertexColors? 11 : 17) + (useTextures ? 19 : 23);
       }
 

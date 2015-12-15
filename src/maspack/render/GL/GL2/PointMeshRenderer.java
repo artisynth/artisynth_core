@@ -33,7 +33,7 @@ public class PointMeshRenderer {
 
       @Override
       public int hashCode() {
-         return mesh.hashCode() + version + Double.hashCode(normalLen)*67;
+         return mesh.hashCode() + version + GLSupport.hashCode(normalLen)*67;
       }
 
       @Override
@@ -76,7 +76,7 @@ public class PointMeshRenderer {
       @Override
       public int hashCode() {
          return mesh.hashCode() + version + style.hashCode()*17 + sphereDL*7
-         + Double.hashCode(r)*83 + shading.hashCode()*41 
+         + GLSupport.hashCode(r)*83 + shading.hashCode()*41 
          + (useVertexColors? 11 : 17) + (useTextures ? 19 : 23);
       }
 

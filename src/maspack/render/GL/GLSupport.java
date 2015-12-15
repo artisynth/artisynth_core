@@ -24,6 +24,25 @@ public class GLSupport {
    public static final int INTEGER_SIZE = 4;
    public static final int FLOAT_SIZE = 4;
    
+   /**
+    * Java 8 version of float hashcode
+    * @param f
+    * @return
+    */
+   public static int hashCode(float f) {
+      return Float.floatToIntBits (f);
+   }
+   
+   /**
+    * Java 8 version of double hashcode
+    * @param f
+    * @return
+    */
+   public static int hashCode(double d) {
+      long bits = Double.doubleToLongBits(d);
+      return (int)(bits ^ (bits >>> 32));
+   }
+   
    public static void transformToGLMatrix (double[] mat, Matrix T) {
       mat[0] = T.get (0, 0);
       mat[1] = T.get (1, 0);

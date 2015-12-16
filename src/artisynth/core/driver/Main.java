@@ -32,6 +32,7 @@ import maspack.matrix.*;
 import maspack.render.*;
 import maspack.render.GL.GLMouseAdapter;
 import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewer.GLVersion;
 import maspack.render.GL.GLViewerFrame;
 import maspack.render.Renderer.SelectionHighlighting;
 import maspack.util.*;
@@ -122,6 +123,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected int myFlags = 0;
    protected double myMaxStep = -1;
    protected boolean disposed = false;
+
+   protected GLVersion myGLVersion = GLVersion.GL2;
 
    protected String myModelSaveFormat = "%g"; // "%.8g";
 
@@ -255,6 +258,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return myScripts.getName (alias);
    }
 
+   public GLVersion getGLVersion() {
+      return myGLVersion;
+   }
+
    /**
     * Returns the current model name. This is either the name of the root model,
     * or the command or file name associated with it.
@@ -266,7 +273,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    public Main() {
-      this (PROJECT_NAME, 800, 600);
+      this (PROJECT_NAME, 800, 600, GLVersion.GL2);
    }
 
    /**
@@ -492,8 +499,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * @param height
     */
 
-   public Main (String windowName, int width, int height) {
+   public Main (String windowName, int width, int height, GLVersion glVersion) {
       myMain = this;
+
+      myGLVersion = glVersion;
+
       if (demosFilename.value != null) {
          readDemoNames(demosFilename.value);
       } else {
@@ -1652,6 +1662,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected static BooleanHolder useArticulatedTransforms =
       new BooleanHolder (false);
    protected static BooleanHolder noGui = new BooleanHolder (false);
+   protected static IntHolder glVersion = new IntHolder (2);
 
    protected static IntHolder flags = new IntHolder();
 
@@ -1834,6 +1845,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       parser.addOption (
          "-openMatlabConnection %v " +
          "#open a MATLAB connection if possible", openMatlab);
+      parser.addOption (
+         "-GLVersion %d{2,3} " + "#version of openGL for graphics", glVersion);
 
       Locale.setDefault(Locale.CANADA);
 
@@ -1954,7 +1967,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (noGui.value == true) {
          width.value = -1;
       }
-      Main m = new Main (PROJECT_NAME, width.value, height.value);
+      GLVersion glv = (glVersion.value == 3 ? GLVersion.GL3 : GLVersion.GL2);
+      Main m = new Main (PROJECT_NAME, width.value, height.value, glv);
 
       m.setArticulatedTransformsEnabled (useArticulatedTransforms.value);
 

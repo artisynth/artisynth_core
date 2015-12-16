@@ -20,7 +20,7 @@ public class GLViewerPanel extends JPanel {
    protected GLViewer viewer;
    protected String myErrMsg;
 
-   protected static GLViewer.Version defaultVersion = GLViewer.Version.GL2;
+   protected static GLViewer.GLVersion defaultVersion = GLViewer.GLVersion.GL2;
    
    public GLViewer getViewer() {
       return viewer;
@@ -30,7 +30,7 @@ public class GLViewerPanel extends JPanel {
       this (width, height, defaultVersion);
    }
    
-   public GLViewerPanel (int width, int height, GLViewer.Version vers) {
+   public GLViewerPanel (int width, int height, GLViewer.GLVersion vers) {
       super();
       setLayout (new BoxLayout (this, BoxLayout.X_AXIS));
       switch (vers) {

@@ -139,6 +139,7 @@ public class MainFrame extends JFrame {
     */
 
    public MainFrame (String name, Main main, int width, int height) {
+      
       super (name);
 
       JPopupMenu.setDefaultLightWeightPopupEnabled (false);
@@ -158,7 +159,7 @@ public class MainFrame extends JFrame {
 
       myMain = main;
       baseName = name;
-      GLPanel = new GLViewerPanel (width, height, GLViewer.Version.GL2);
+      GLPanel = new GLViewerPanel (width, height, myMain.getGLVersion());
 
       myNavPanel = new NavigationPanel();
       myNavPanel.setLayout (new FlowLayout (FlowLayout.LEFT));

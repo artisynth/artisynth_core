@@ -10,8 +10,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AxisAngle;
@@ -35,7 +33,6 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
 import maspack.render.Renderer;
-import maspack.render.GL.GL2.GL2Viewer;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
@@ -821,43 +818,6 @@ public class Frame extends DynamicComponentBase
    public void updateBounds (Point3d pmin, Point3d pmax) {
       myState.pos.updateBounds (pmin, pmax);
    }
-
-   // public static void drawAxes (
-   //    Renderer renderer, RigidTransform3d XFrameToWorld, 
-   //    float len, boolean selected) {
-      
-   //    if (!(renderer instanceof GL2Viewer)) {
-   //       return;
-   //    }
-   //    GL2Viewer viewer = (GL2Viewer)renderer;
-   //    GL2 gl = viewer.getGL2();
-      
-   //    gl.glPushMatrix();
-   //    renderer.setLightingEnabled (false);
-   //    GL2Viewer.mulTransform (gl, XFrameToWorld);
-   //    if (selected) {
-   //       renderer.setColor (renderer.getSelectionColor());
-   //    }
-   //    gl.glBegin (GL2.GL_LINES);
-   //    if (!selected) {
-   //       renderer.setColor (1f, 0f, 0f);
-   //    }
-   //    gl.glVertex3f (0f, 0f, 0f);
-   //    gl.glVertex3f (len, 0f, 0f);
-   //    if (!selected) {
-   //       renderer.setColor (0f, 1f, 0f);
-   //    }
-   //    gl.glVertex3f (0f, 0f, 0f);
-   //    gl.glVertex3f (0f, len, 0f);
-   //    if (!selected) {
-   //       renderer.setColor (0f, 0f, 1f);
-   //    }
-   //    gl.glVertex3f (0f, 0f, 0f);
-   //    gl.glVertex3f (0f, 0f, len);
-   //    gl.glEnd();
-   //    renderer.setLightingEnabled (true);
-   //    gl.glPopMatrix();
-   // }
 
    public void render (Renderer renderer, int flags) {
       if (myAxisLength > 0) {

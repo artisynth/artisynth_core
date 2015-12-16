@@ -67,7 +67,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       PROJECTION, VIEW, MODEL
    }
    
-   public enum Version {
+   public enum GLVersion {
       GL2, GL3
    }
 

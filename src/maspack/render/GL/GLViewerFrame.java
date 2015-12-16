@@ -17,7 +17,7 @@ public class GLViewerFrame extends JFrame {
    private static final long serialVersionUID = 1L;
    protected GLViewer viewer;
    
-   protected static GLViewer.Version defaultVersion = GLViewer.Version.GL2;
+   protected static GLViewer.GLVersion defaultVersion = GLViewer.GLVersion.GL2;
 
    public GLViewer getViewer() {
       return viewer;
@@ -28,7 +28,7 @@ public class GLViewerFrame extends JFrame {
    }
 
    public GLViewerFrame (
-      String name, int width, int height, GLViewer.Version vers) {
+      String name, int width, int height, GLViewer.GLVersion vers) {
       super (name);
       switch (vers) {
          case GL2: {

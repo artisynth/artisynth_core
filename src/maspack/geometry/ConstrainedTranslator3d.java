@@ -15,8 +15,8 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.render.Dragger3dBase;
-import maspack.render.Renderer;
 import maspack.render.MouseRayEvent;
+import maspack.render.Renderer;
 //import maspack.render.Dragger3dBase.DragMode;
 import maspack.render.RenderObject;
 import maspack.render.GL.GLViewer;
@@ -208,11 +208,11 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
          myXDraggerToWorld.p.scaledAdd (duv.x, direction, origin);
       }
       else {
-         GLViewer viewer = e.getViewer();
+         Renderer renderer = e.getRenderer();
 
          Point3d location = new Point3d (myXDraggerToWorld.p);
 
-         viewer.getEyeToWorld().R.getColumn (2, planeNormal);
+         renderer.getEyeToWorld().R.getColumn (2, planeNormal);
          plane.set (planeNormal, location);
          plane.intersectRay (planeLocation, direction, origin);
 
@@ -220,7 +220,7 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
             query.nearestFaceToPoint (
                location, coords, mesh, planeLocation);
 
-         duv.x = myXDraggerToWorld.p.distance (viewer.getEyeToWorld().p);
+         duv.x = myXDraggerToWorld.p.distance (renderer.getEyeToWorld().p);
          duv.y = coords.x;
          duv.z = coords.y;
 

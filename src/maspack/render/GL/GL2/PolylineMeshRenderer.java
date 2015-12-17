@@ -1,5 +1,7 @@
 package maspack.render.GL.GL2;
 
+import javax.media.opengl.GL2;
+
 import maspack.geometry.Polyline;
 import maspack.geometry.PolylineMesh;
 import maspack.geometry.Vertex3d;
@@ -12,9 +14,6 @@ import maspack.render.RenderProps.Shading;
 import maspack.render.Renderer;
 import maspack.render.GL.GLHSVShader;
 import maspack.render.GL.GLSupport;
-import maspack.render.GL.GL2.DisplayListManager.DisplayListPassport;
-
-import javax.media.opengl.GL2;
 
 public class PolylineMeshRenderer {
 
@@ -125,30 +124,30 @@ public class PolylineMeshRenderer {
       }
 
       boolean useDisplayList = false;
-      DisplayListPassport linePP = null;
-      PolylineMeshPrint linePrint = null;
+      int displayList = 0;
       boolean compile = true;
       GLSupport.checkAndPrintGLError(gl);
       
       if (!(viewer.isSelecting() && useVertexColors)) {
          useDisplayList = true;
-         linePrint = new PolylineMeshPrint(mesh, LineStyle.CYLINDER,
+         PolylineMeshPrint linePrint = new PolylineMeshPrint(mesh, LineStyle.CYLINDER,
             props.getLineSlices(),
             props.getLineRadius(), shading, useVertexColors, false);
          DisplayListKey lineKey = new DisplayListKey(mesh, 0);
-         linePP = viewer.getDisplayListPassport(gl, lineKey);
-         if (linePP == null) {
-            // allocate new list
-            linePP = viewer.allocateDisplayListPassport(gl, lineKey, linePrint);
+         displayList = viewer.getDisplayList(gl, lineKey, linePrint);
+         if (displayList < 0) {
+            displayList = -displayList;
             compile = true;
+            useDisplayList = true;
          } else {
-            compile = !(linePP.compareExchangeFingerPrint(linePrint));
+            compile = false;
+            useDisplayList = (displayList > 0);
          }
       }
 
       if (!useDisplayList || compile) {
-         if (useDisplayList && linePP != null) {
-            gl.glNewList (linePP.getList(), GL2.GL_COMPILE);
+         if (useDisplayList) {
+            gl.glNewList (displayList, GL2.GL_COMPILE);
          }
 
          // draw all the cylinders
@@ -184,12 +183,12 @@ public class PolylineMeshRenderer {
             }
          }
 
-         if (useDisplayList && linePP != null) {
+         if (useDisplayList) {
             gl.glEndList();
-            gl.glCallList(linePP.getList());
+            gl.glCallList(displayList);
          }
       } else {
-         gl.glCallList(linePP.getList());
+         gl.glCallList(displayList);
       }
 
       if (useVertexColors) {
@@ -369,28 +368,28 @@ public class PolylineMeshRenderer {
       }
 
       boolean useDisplayList = false;
-      DisplayListPassport linePP = null;
-      PolylineMeshPrint linePrint = null;
+      int displayList = 0;
       boolean compile = true;
       
       if (!(viewer.isSelecting() && useVertexColors)) {
          useDisplayList = true;
-         linePrint = new PolylineMeshPrint(mesh, LineStyle.LINE, 0, 0,
+         PolylineMeshPrint linePrint = new PolylineMeshPrint(mesh, LineStyle.LINE, 0, 0,
             shading, useVertexColors, false);
          DisplayListKey lineKey = new DisplayListKey(mesh, 0);
-         linePP = viewer.getDisplayListPassport(gl, lineKey);
-         if (linePP == null) {
-            // allocate new list
-            linePP = viewer.allocateDisplayListPassport(gl, lineKey, linePrint);
+         displayList = viewer.getDisplayList(gl, lineKey, linePrint);
+         if (displayList < 0) {
+            displayList = -displayList;
             compile = true;
+            useDisplayList = true;
          } else {
-            compile = !(linePP.compareExchangeFingerPrint(linePrint));
+            compile = false;
+            useDisplayList = (displayList > 0);
          }
       }
 
       if (!useDisplayList || compile) {
-         if (useDisplayList && linePP != null) {
-            gl.glNewList (linePP.getList(), GL2.GL_COMPILE);
+         if (useDisplayList) {
+            gl.glNewList (displayList, GL2.GL_COMPILE);
          }
 
          boolean useRenderVtxs = mesh.isRenderBuffered() && !mesh.isFixed();
@@ -409,12 +408,12 @@ public class PolylineMeshRenderer {
             gl.glEnd();
          }
          
-         if (useDisplayList && linePP != null) {
+         if (useDisplayList) {
             gl.glEndList();
-            gl.glCallList(linePP.getList());
+            gl.glCallList(displayList);
          }
       } else {
-         gl.glCallList(linePP.getList());
+         gl.glCallList(displayList);
       }
       GLSupport.checkAndPrintGLError(gl);
 

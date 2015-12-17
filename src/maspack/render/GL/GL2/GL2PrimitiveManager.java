@@ -170,10 +170,10 @@ public class GL2PrimitiveManager extends DisplayListManager {
       }
    }
 
-   private ListInfo lastEllipsoid;
-   private ListInfo lastSphere;
-   private ListInfo lastCylinder;
-   private ListInfo lastCone;
+   private DisplayListInfo lastEllipsoid;
+   private DisplayListInfo lastSphere;
+   private DisplayListInfo lastCylinder;
+   private DisplayListInfo lastCone;
 
    private GLU glu;
    private GLUquadric mySphereQuad;
@@ -197,7 +197,7 @@ public class GL2PrimitiveManager extends DisplayListManager {
       }
 
       SphereKey key = new SphereKey(slices, levels);
-      ListInfo li = getListInfo(key);
+      DisplayListInfo li = getListInfo(key);
       if (li == null) {
          li = createSphere(gl, key, slices, levels);
          putListInfo(key, li);
@@ -207,8 +207,8 @@ public class GL2PrimitiveManager extends DisplayListManager {
       return li.getList();
    }
 
-   private ListInfo createSphere(GL2 gl, Object key, int slices, int levels) {
-      ListInfo li = allocDisplayList(gl, key, null);
+   private DisplayListInfo createSphere(GL2 gl, Object key, int slices, int levels) {
+      DisplayListInfo li = allocDisplayList(gl, key, null);
       if (li != null) {
          gl.glNewList (li.getList(), GL2.GL_COMPILE);
          if (mySphereQuad == null) {
@@ -230,7 +230,7 @@ public class GL2PrimitiveManager extends DisplayListManager {
       }
 
       TaperedEllipsoidKey key = new TaperedEllipsoidKey(slices, levels);
-      ListInfo li = getListInfo(key);
+      DisplayListInfo li = getListInfo(key);
       if (li == null) {
          li = createTaperedEllipsoid(gl, key, slices, levels);
          putListInfo(key, li);
@@ -240,8 +240,8 @@ public class GL2PrimitiveManager extends DisplayListManager {
       return li.getList();
    }
    
-   private ListInfo createTaperedEllipsoid(GL2 gl, Object key, int slices, int levels) {
-      ListInfo li = allocDisplayList(gl, key, null);
+   private DisplayListInfo createTaperedEllipsoid(GL2 gl, Object key, int slices, int levels) {
+      DisplayListInfo li = allocDisplayList(gl, key, null);
       if (li != null) {
          gl.glNewList (li.getList(), GL2.GL_COMPILE);
          
@@ -283,7 +283,7 @@ public class GL2PrimitiveManager extends DisplayListManager {
       }
 
       CylinderKey key = new CylinderKey(slices, capped);
-      ListInfo li = getListInfo(key);
+      DisplayListInfo li = getListInfo(key);
       if (li == null) {
          li = createCylinder(gl, key, slices, capped);
          putListInfo(key, li);
@@ -294,8 +294,8 @@ public class GL2PrimitiveManager extends DisplayListManager {
    }
 
    
-   private ListInfo createCylinder(GL2 gl, Object key, int slices, boolean capped) {
-      ListInfo li = allocDisplayList(gl, key, null);
+   private DisplayListInfo createCylinder(GL2 gl, Object key, int slices, boolean capped) {
+      DisplayListInfo li = allocDisplayList(gl, key, null);
       if (li != null) {
          gl.glNewList (li.getList(), GL2.GL_COMPILE);
         
@@ -353,7 +353,7 @@ public class GL2PrimitiveManager extends DisplayListManager {
       }
 
       ConeKey key = new ConeKey(slices, capped);
-      ListInfo li = getListInfo(key);
+      DisplayListInfo li = getListInfo(key);
       if (li == null) {
          li = createCone(gl, key, slices, capped);
          putListInfo(key, li);
@@ -363,8 +363,8 @@ public class GL2PrimitiveManager extends DisplayListManager {
       return li.getList();
    }
    
-   private ListInfo createCone(GL2 gl, Object key, int slices, boolean capped) {
-      ListInfo li = allocDisplayList(gl, key, null);
+   private DisplayListInfo createCone(GL2 gl, Object key, int slices, boolean capped) {
+      DisplayListInfo li = allocDisplayList(gl, key, null);
       if (li != null) {
          gl.glNewList (li.getList(), GL2.GL_COMPILE);
         

@@ -1,4 +1,4 @@
-package maspack.render.GL;
+package maspack.render.GL.test;
 
 import java.awt.Dimension;
 import java.awt.event.WindowAdapter;
@@ -8,18 +8,36 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.media.opengl.GLCapabilities;
+import javax.media.opengl.GLProfile;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
 import maspack.matrix.Point3d;
 import maspack.render.RenderList;
 import maspack.render.Renderer;
+import maspack.render.GL.GLMouseAdapter;
+import maspack.render.GL.GLMouseListener;
+import maspack.render.GL.GLRenderable;
+import maspack.render.GL.GLSelectable;
+import maspack.render.GL.GLSelectionEvent;
+import maspack.render.GL.GLSelectionListener;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GL2.GL2Resources;
 import maspack.render.GL.GL2.GL2Viewer;
+import maspack.render.GL.GL3.GL3Resources;
 import maspack.render.GL.GL3.GL3Viewer;
 
 import com.jogamp.opengl.util.FPSAnimator;
 
-public class MultiViewerTest {
+/**
+ * Class for creating multiple viewers, with potentially shared contexts
+ * between them in order to help debugging viewer-related issues
+ * @author antonio
+ *
+ */
+
+public class MultiViewer {
    
    public static boolean doFPS = false;
    private static final int FPS = 60; // animator's target frames per second
@@ -174,7 +192,7 @@ public class MultiViewerTest {
                   final FPSAnimator animator;
                   final FPSMonitor fpsMonitor;
                   
-                  if (MultiViewerTest.doFPS) {
+                  if (MultiViewer.doFPS) {
                      animator = new FPSAnimator(viewer.getCanvas(), FPS, true);
                      animator.setUpdateFPSFrames(3, null);
                      animator.start();
@@ -187,7 +205,7 @@ public class MultiViewerTest {
                   
                   // Create the top-level container
                   frame = new JFrame(); // Swing's JFrame or AWT's Frame
-                  frame.getContentPane().add(viewer.getCanvas());
+                  frame.add(viewer.getCanvas());
 
                   frame.addWindowListener(new WindowAdapter() {
                      @Override
@@ -204,19 +222,20 @@ public class MultiViewerTest {
                               if (fpsMonitor != null) { 
                                  fpsMonitor.stop();
                               }
-                                                            
-                              // remove JOGL content to prevent crash on exit
+                              
                               try {
-                                 SwingUtilities.invokeAndWait(
-                                    new Runnable() {
-                                       @Override
-                                       public void run() {
-                                          frame.getContentPane().remove(viewer.getCanvas());                                 
-                                       }
-                                    });
-                              } catch (InvocationTargetException | InterruptedException e) {
-                                 e.printStackTrace();
+                                 SwingUtilities.invokeAndWait (new Runnable() {
+                                    @Override
+                                    public void run () {
+                                       viewer.dispose ();
+                                    }
+                                 });
                               }
+                              catch (InvocationTargetException e) {
+                              }
+                              catch (InterruptedException e) {
+                              }
+                              
                               closed = true;
                            }
                         }.start();
@@ -271,7 +290,7 @@ public class MultiViewerTest {
             });
          } catch (InvocationTargetException | InterruptedException e) {
          }
-         System.out.println(frame.getTitle() + ": " + frame.getSize());
+         // System.out.println(frame.getTitle() + ": " + frame.getSize());
       }
       
    }   
@@ -279,7 +298,10 @@ public class MultiViewerTest {
    private ArrayList<SimpleViewerApp> windows;
    private Thread closeThread;
    
-   public MultiViewerTest() {
+   private GL2Resources gl2resources;
+   private GL3Resources gl3resources;
+   
+   public MultiViewer() {
       windows = new ArrayList<>();
       closeThread = null;
    }
@@ -326,6 +348,7 @@ public class MultiViewerTest {
                      closed = false;
                   }
                }
+               unsyncViews ();
                System.exit(0);
             }
          });
@@ -336,31 +359,107 @@ public class MultiViewerTest {
       app.setLocation(x, y, w, h);
    }
 
-   
-   
    public void addGL2Viewer(String title, int x, int y, int w, int h) {
-      GL2Viewer viewer = new GL2Viewer(w, h);
+      if (gl2resources == null) {
+         GLProfile glp3 = GLProfile.get(GLProfile.GL2);
+         GLCapabilities cap = new GLCapabilities(glp3);
+         cap.setSampleBuffers (true);
+         cap.setNumSamples (8);
+         gl2resources = new GL2Resources (cap);
+      }
+      GL2Viewer viewer = new GL2Viewer(null, gl2resources, w, h);
       addViewer(title, viewer, x, y, w, h);
    }
 
    public void addGL3Viewer(String title, int x, int y, int w, int h) {
-      GL3Viewer viewer = new GL3Viewer(w, h);
+      if (gl3resources == null) {
+         GLProfile glp3 = GLProfile.get(GLProfile.GL3);
+         GLCapabilities cap = new GLCapabilities(glp3);
+         cap.setSampleBuffers (true);
+         cap.setNumSamples (8);
+         gl3resources = new GL3Resources (cap);
+      }
+      GL3Viewer viewer = new GL3Viewer(null, gl3resources, w, h);
       addViewer(title, viewer, x, y, w, h);
    }
    
-   public void syncMouseListeners() {
-      ArrayList<GLMouseListener> ml = new ArrayList<GLMouseListener>();
-      for (SimpleViewerApp app : getWindows()) {
-         ml.add(app.viewer.getMouseHandler());
-      }
-      for (SimpleViewerApp app : getWindows()) {
-         for (GLMouseListener glml : ml) {
-            if (glml != app.viewer.getMouseHandler()) {
-               app.viewer.getCanvas().addMouseListener(glml);
-               app.viewer.getCanvas().addMouseMotionListener(glml);
-               app.viewer.getCanvas().addMouseWheelListener(glml);
+   public class ViewSyncThread extends Thread {
+
+      Point3d lastEye = new Point3d();
+      Point3d lastCenter = new Point3d();
+      volatile boolean terminate = false;;
+      
+      @Override
+      public void run () {
+         while(!terminate) {
+            Point3d nextEye = null;
+            Point3d nextCenter = null;
+            for (SimpleViewerApp app : getWindows()) {
+               GLViewer viewer = app.viewer;
+               Point3d eye = viewer.getEye();
+               Point3d center = viewer.getCenter();
+               if (!eye.epsilonEquals (lastEye, eye.norm()*1e-4)) {
+                  nextEye = eye;
+               }
+               if (!center.epsilonEquals (lastCenter, center.norm ()*1e-4)) {
+                  nextCenter = center;
+               }
             }
+            
+            if (nextEye != null) {
+               for (SimpleViewerApp app : getWindows()) {
+                  GLViewer viewer = app.viewer;
+                  viewer.setEye(nextEye);
+               }  
+               lastEye = nextEye;
+            }
+            
+            if (nextCenter != null) {
+               for (SimpleViewerApp app : getWindows()) {
+                  GLViewer viewer = app.viewer;
+                  viewer.setCenter(nextCenter);
+               }  
+               lastCenter = nextCenter;
+            }
+            
+            if (nextCenter != null || nextEye != null) {
+               for (SimpleViewerApp app : getWindows()) {
+                  GLViewer viewer = app.viewer;
+                  viewer.rerender ();
+               }  
+            }
+            
+            try {
+               Thread.sleep (50);
+            }
+            catch (InterruptedException e) {
+            }
+            Thread.yield ();
          }
+      }
+      
+      public void terminate() {
+         this.terminate = true;
+      }
+      
+   }
+   
+   ViewSyncThread viewSync = null;
+   
+   public void syncViews() {
+      if (viewSync == null) {
+         viewSync = new ViewSyncThread ();
+         viewSync.start ();
+      }
+   }
+   
+   public void unsyncViews() {
+      if (viewSync != null) {
+         viewSync.terminate();
+         try {
+            viewSync.join();
+         } catch(Exception e){}
+         viewSync = null;
       }
    }
 

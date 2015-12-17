@@ -8,15 +8,11 @@ package artisynth.core.renderables;
 
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Map;
-import java.util.List;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 
-import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
-import maspack.matrix.PolarDecomposition3d;
 import maspack.properties.PropertyList;
 import maspack.render.Material;
 import maspack.render.PointRenderProps;
@@ -27,10 +23,8 @@ import maspack.render.RenderablePoint;
 import maspack.render.RenderableUtils;
 import maspack.render.Renderer;
 import maspack.render.GL.GL2.DisplayListKey;
-import maspack.render.GL.GL2.DisplayListManager.DisplayListPassport;
 import maspack.render.GL.GL2.GL2Viewer;
 import artisynth.core.modelbase.RenderableComponentList;
-import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScalableUnits;
 
 public class VertexList<P extends VertexComponent> extends RenderableComponentList<P>
@@ -179,20 +173,22 @@ implements ScalableUnits {
             } else {
                renderer.setColor (color, false);
                
-               DisplayListPassport vPP = viewer.getDisplayListPassport(gl, vKey);
                VListPrint vPrint = getFingerPrint(PointStyle.POINT, 0);
+               int displayList = viewer.getDisplayList(gl, vKey, vPrint);
+               boolean useDisplayList = true;
                boolean compile = true;
-               
-               if (vPP == null) {
-                  vPP = viewer.allocateDisplayListPassport(gl, vKey, vPrint);
+               if (displayList < 0) {
+                  displayList = -displayList;
                   compile = true;
+                  useDisplayList = true;
                } else {
-                  compile = !(vPP.compareExchangeFingerPrint(vPrint));
+                  compile = false;
+                  useDisplayList = (displayList > 0);
                }
                
-               if (compile || vPP == null) {
-                  if (vPP != null) {
-                     gl.glNewList(vPP.getList(), GL2.GL_COMPILE);      
+               if (compile || useDisplayList) {
+                  if (displayList != 0) {
+                     gl.glNewList(displayList, GL2.GL_COMPILE);      
                   }
                   
                   gl.glBegin (GL2.GL_POINTS);
@@ -211,12 +207,12 @@ implements ScalableUnits {
                   }
                   gl.glEnd();
                   
-                  if (vPP != null) {
+                  if (useDisplayList) {
                      gl.glEndList();
-                     gl.glCallList(vPP.getList());
+                     gl.glCallList(displayList);
                   }
                } else {
-                 gl.glCallList(vPP.getList());
+                 gl.glCallList(displayList);
                }
             }
             
@@ -226,26 +222,28 @@ implements ScalableUnits {
          case SPHERE: {
             renderer.setMaterialAndShading (props, pointMaterial, false);
 
-            DisplayListPassport vPP = null;
-            VListPrint vPrint = null;
             boolean compile = true;
             boolean useDisplayList = !renderer.isSelecting();
+            int displayList = 0;
             
             if (useDisplayList) {
-               vPP = viewer.getDisplayListPassport(gl, vKey);
+               
                int sphereDisplayList = viewer.getSphereDisplayList(gl, props.getPointSlices());
-               vPrint = getFingerPrint(PointStyle.POINT, sphereDisplayList);
-               if (vPP == null) {
-                  vPP = viewer.allocateDisplayListPassport(gl, vKey, vPrint);
+               VListPrint vPrint = getFingerPrint(PointStyle.POINT, sphereDisplayList);
+               displayList = viewer.getDisplayList(gl, vKey, vPrint);
+               if (displayList < 0) {
+                  displayList = -displayList;
                   compile = true;
+                  useDisplayList = true;
                } else {
-                  compile = !(vPP.compareExchangeFingerPrint(vPrint));
+                  compile = false;
+                  useDisplayList = (displayList > 0);
                }
             }
             
             if (!useDisplayList || compile) {
-               if (vPP != null) {
-                  gl.glNewList(vPP.getList(), GL2.GL_COMPILE);      
+               if (useDisplayList) {
+                  gl.glNewList(displayList, GL2.GL_COMPILE);      
                }
                
                int i=0;
@@ -270,12 +268,12 @@ implements ScalableUnits {
                   i++;
                }
               
-               if (vPP != null) {
+               if (useDisplayList) {
                   gl.glEndList();
-                  gl.glCallList(vPP.getList());
+                  gl.glCallList(displayList);
                }
             } else {
-              gl.glCallList(vPP.getList());
+              gl.glCallList(displayList);
               int err = gl.glGetError();
               if (err != GL.GL_NO_ERROR) {
                  System.err.println("GL Error: " + err);

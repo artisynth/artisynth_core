@@ -17,6 +17,7 @@ public class GLHSVShader {
    private static boolean myInitialized = false;
    private static int myProgram = -1;
 
+   @SuppressWarnings("unused")
    private static String[] testProg = new String[] {
       "void main()",
       "{",

@@ -403,4 +403,9 @@ public interface Renderer {
     */
    public boolean isSelectable (GLSelectable s);
    
+   /**
+    * Re-draw contents of renderer
+    */
+   public void repaint();
+   
 }

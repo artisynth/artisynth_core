@@ -10,8 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import maspack.matrix.AffineTransform3d;
-import maspack.matrix.AffineTransform3dBase;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix6d;
@@ -37,9 +36,14 @@ import maspack.spatialmotion.SpatialInertia;
 import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
 import artisynth.core.mechmodels.MotionTarget.TargetActivity;
-import artisynth.core.modelbase.*;
+import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.HasCoordinateFrame;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.Traceable;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScalableUnits;
-import maspack.geometry.GeometryTransformer;
 
 public class Frame extends DynamicComponentBase
    implements TransformableGeometry, ScalableUnits, DynamicComponent,

@@ -6,42 +6,53 @@
  */
 package maspack.apps;
 
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Point;
+import java.awt.Window;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
 import java.io.File;
-import java.lang.reflect.Constructor;
-import java.util.*;
-import java.awt.*;
-import java.awt.event.*;
 
-import javax.swing.event.*;
-import javax.swing.*;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
+import javax.swing.event.MouseInputAdapter;
 
-import javax.media.opengl.GL2;
-
-import maspack.render.*;
-import maspack.render.GL.GLRenderable;
-import maspack.render.GL.GLViewer;
-import maspack.render.GL.GLViewerFrame;
-import maspack.render.GL.GL2.GL2Viewer;
-import maspack.render.RenderProps.Shading;
-import maspack.render.RenderProps.Faces;
-import maspack.render.Renderer;
-import maspack.widgets.PropertyDialog;
-import maspack.widgets.RenderPropsPanel;
-import maspack.widgets.ValueChangeEvent;
-import maspack.widgets.ValueChangeListener;
-import maspack.matrix.*;
 import maspack.collision.ContactInfo;
 import maspack.collision.ContactPenetratingPoint;
 import maspack.collision.MeshIntersectionContour;
 import maspack.collision.MeshIntersectionPoint;
 import maspack.collision.SurfaceMeshCollider;
 import maspack.geometry.PolygonalMesh;
-import maspack.properties.*;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.properties.PropertyUtils;
+import maspack.render.Dragger3dAdapter;
+import maspack.render.Dragger3dEvent;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.RenderProps.Faces;
+import maspack.render.RenderProps.Shading;
+import maspack.render.RenderableUtils;
+import maspack.render.Renderer;
+import maspack.render.Transrotator3d;
+import maspack.render.GL.GLRenderable;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewerFrame;
+import maspack.render.GL.GL2.GL2Viewer;
+import maspack.widgets.PropertyDialog;
+import maspack.widgets.RenderPropsPanel;
+import maspack.widgets.ValueChangeEvent;
+import maspack.widgets.ValueChangeListener;
 import argparser.ArgParser;
 import argparser.BooleanHolder;
 import argparser.DoubleHolder;
 import argparser.IntHolder;
-import argparser.StringHolder;
+
+import javax.media.opengl.GL2;
 
 public class MeshCollisionViewer extends GLViewerFrame
    implements ActionListener, GLRenderable {

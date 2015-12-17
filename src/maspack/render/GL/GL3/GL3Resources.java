@@ -1,57 +1,36 @@
 package maspack.render.GL.GL3;
 
-import java.util.HashMap;
-
+import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
-import javax.media.opengl.GLContext;
+import javax.media.opengl.GLCapabilities;
 
-import maspack.render.RenderObject;
+import maspack.render.GL.GLResources;
 
-public class GL3Resources {
-
-   private GLContext context;
+public class GL3Resources extends GLResources {
 
    // Shared VBOs/VAOs
    private GL3PrimitiveManager primManager = null;
    private GL3ResourceManager glresManager = null;
-   private HashMap<Object,RenderObject> roMap = null;
-   
-   int version; // used for managing usage between multiple viewers
 
-   public GL3Resources(GLContext context) {
-      this.context = context;
+   public GL3Resources(GLCapabilities cap) {
+      super(cap);
+
       primManager = new GL3PrimitiveManager();
       glresManager = new GL3ResourceManager();
-      roMap = new HashMap<>();
-      version = 1;
-   }
-   
-   public int incrementVersion() {
-      version++;
-      return version;
-   }
-   
-   /**
-    * Used for detecting an appropriate viewer (e.g. first to call display)
-    * If a viewer has previously seen a particular version, then increments
-    * the version, other viewers will know they are not the first.
-    */
-   public int getVersion() {
-      return version;
    }
 
-   public GLContext getContext() {
-      return context;
+   @Override
+   public void init(GL gl) {
    }
 
-   public void init(GL3 gl) {
-   }
+   @Override
+   public void dispose(GL gl) {
 
-   public void dispose(GL3 gl) {
+      GL3 gl3 = gl.getGL3 ();
+
       // clear shared info
-      primManager.dispose(gl);
-      glresManager.dispose(gl);
-      version++;      
+      primManager.dispose(gl3);
+      glresManager.dispose(gl3);
    }
 
    /**
@@ -62,7 +41,6 @@ public class GL3Resources {
       primManager.resetUseCounts();
       glresManager.releaseUnused(gl);
       glresManager.resetUseCounts();
-      version++;
    }
 
    /**
@@ -71,44 +49,20 @@ public class GL3Resources {
    public void clearCached(GL3 gl) {
       primManager.clear(gl);
       glresManager.clear(gl);
-      version++;
    }
 
    public void addResource(GL3 gl, Object key, GL3Resource glres) {
       glresManager.add(gl, key, glres);
    }
-   
+
    public void removeResource(GL3 gl, Object key) {
       glresManager.release(gl, key);
    }
-   
+
    public GL3Resource getResource(Object key) {
       return glresManager.get(key);
    }
-   
-   
-   public void addRenderObject(Object key, RenderObject ro) {
-      synchronized (roMap) {
-         roMap.put(key, ro);  
-      }
-   }
-   
-   public synchronized RenderObject getRenderObject(Object key) {
-      RenderObject robj;
-      synchronized (roMap) {
-         robj = roMap.get(key);
-      }
-      return robj;
-   }
-   
-   public synchronized RenderObject removeRenderObject(Object key) {
-      RenderObject robj;
-      synchronized (roMap) {
-         robj = roMap.remove(key);
-      }
-      return robj;
-   }
-   
+
    public GL3Object getSphere(GL3 gl, int slices, int levels) {
       return primManager.getSphere(gl, slices, levels);
    }
@@ -116,11 +70,11 @@ public class GL3Resources {
    public GL3Object getTaperedEllipsoid(GL3 gl, int slices, int levels) {
       return primManager.getTaperedEllipsoid(gl, slices, levels);
    }
-   
+
    public GL3Object getCylinder(GL3 gl, int slices, boolean capped) {
       return primManager.getCylinder(gl, slices, capped);
    }
-   
+
    public GL3Object getCone(GL3 gl, int slices, boolean capped) {
       return primManager.getCone(gl, slices, capped);
    }

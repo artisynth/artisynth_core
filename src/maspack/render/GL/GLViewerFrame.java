@@ -6,6 +6,9 @@
  */
 package maspack.render.GL;
 
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
 import javax.swing.JFrame;
 
 import maspack.render.GL.GL2.GL2Viewer;
@@ -45,6 +48,13 @@ public class GLViewerFrame extends JFrame {
       }
       getContentPane().add (viewer.getCanvas());
       pack();
+      
+      addWindowListener (new WindowAdapter() {
+         @Override
+         public void windowClosed (WindowEvent e) {
+            viewer.dispose ();  // cleanup
+         }
+      });
    }
 
    public GLViewerFrame (GLViewer shareWith, String name, int width, int height) {
@@ -67,6 +77,13 @@ public class GLViewerFrame extends JFrame {
       setUndecorated (undecorated);
       getContentPane().add (viewer.getCanvas());
       pack();
+      
+      addWindowListener (new WindowAdapter() {
+         @Override
+         public void windowClosed (WindowEvent e) {
+            viewer.dispose ();  // cleanup
+         }
+      });
    }
 
    public void addRenderable (GLRenderable r) {

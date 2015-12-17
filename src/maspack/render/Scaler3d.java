@@ -336,7 +336,7 @@ public class Scaler3d extends Dragger3dBase {
       int comp = checkComponentSelection (e.getRay(), dpp);
       if (comp != mySelectedComponent) {
          mySelectedComponent = comp;
-         e.getViewer().repaint();
+         e.getRenderer().repaint();
          return true;
       }
       return false;

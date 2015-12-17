@@ -183,7 +183,7 @@ public class Translator3d extends Dragger3dBase {
 
       RigidTransform3d draggerToEye = new RigidTransform3d();
       draggerToEye.mulInverseLeft (
-         e.getViewer().getEyeToWorld(), myXDraggerToWorld);
+         e.getRenderer().getEyeToWorld(), myXDraggerToWorld);
 
       // Line resultAxis = new Line (0, 0, 0, 0, 0, 0);
 
@@ -333,32 +333,37 @@ public class Translator3d extends Dragger3dBase {
       del.sub (p1, p0);
       // if (dragIsConstrained(e)) {
       if (dragIsConstrained()) {
-         GLViewer viewer = e.getViewer();
+         Renderer renderer = e.getRenderer();
          boolean constrainedToGrid = false;
-         if (viewer.getGridVisible()) {
-            GLGridPlane grid = viewer.getGrid();
-            RigidTransform3d XDraggerToGrid = new RigidTransform3d();
-            XDraggerToGrid.mulInverseLeft (
-               grid.getGridToWorld(), myXDraggerToWorld);
-            if (XDraggerToGrid.R.isAxisAligned (EPS)) {
-               // if the dragger orientation is axis-aligned with grid
-               // coordinates, then adjust constrained motions so that the
-               // dragger center always lies on a grid point. (Otherwise, this
-               // can't necessarily be done without causing the dragger to move
-               // off the specified line or plane of translation).
-               Point3d pa = new Point3d(del);
-               pa.transform (XDraggerToGrid);
-               grid.alignPoint (pa, pa);
-               pa.inverseTransform (XDraggerToGrid);
-               del.set (pa);
-               constrainToFixture (del);
-               constrainedToGrid = true;
+         
+         if (renderer instanceof GLViewer) {
+            GLViewer viewer = (GLViewer)renderer;
+            if (viewer.getGridVisible()) {
+               GLGridPlane grid = viewer.getGrid();
+               RigidTransform3d XDraggerToGrid = new RigidTransform3d();
+               XDraggerToGrid.mulInverseLeft (
+                  grid.getGridToWorld(), myXDraggerToWorld);
+               if (XDraggerToGrid.R.isAxisAligned (EPS)) {
+                  // if the dragger orientation is axis-aligned with grid
+                  // coordinates, then adjust constrained motions so that the
+                  // dragger center always lies on a grid point. (Otherwise, this
+                  // can't necessarily be done without causing the dragger to move
+                  // off the specified line or plane of translation).
+                  Point3d pa = new Point3d(del);
+                  pa.transform (XDraggerToGrid);
+                  grid.alignPoint (pa, pa);
+                  pa.inverseTransform (XDraggerToGrid);
+                  del.set (pa);
+                  constrainToFixture (del);
+                  constrainedToGrid = true;
+               }
             }
          }
+         
          if (!constrainedToGrid) {
             // if not possible to constrain to grid, just constrain the step
             // size
-            double s = getConstrainedStepSize(viewer);
+            double s = getConstrainedStepSize();
             del.x = s*Math.round(del.x/s);
             del.y = s*Math.round(del.y/s);
             del.z = s*Math.round(del.z/s);
@@ -419,7 +424,7 @@ public class Translator3d extends Dragger3dBase {
       int comp = checkComponentSelection (e);
       if (comp != mySelectedComponent) {
          mySelectedComponent = comp;
-         e.getViewer().repaint();
+         e.getRenderer().repaint();
          return true;
       }
       return false;

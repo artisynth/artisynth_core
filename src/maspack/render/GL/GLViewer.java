@@ -144,7 +144,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       public double bottom = -0.5;
 
       public double zoffset = 0;
-      public double fov = 30;         // originally 70
+      public double fov = 35;         // originally 70
       public double fieldHeight = 10; // originally 10
       public boolean orthographic = false;
       public boolean explicit = false;
@@ -197,6 +197,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
    // Canvas
    protected GLAutoDrawable drawable;
    protected GLCanvas canvas;
+   
    protected RootPaneContainer frame;
    protected int width;
    protected int height;
@@ -283,8 +284,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
    protected LinkedList<MouseWheelListener> myMouseWheelListeners =
    new LinkedList<MouseWheelListener>();
    protected GLMouseListener myMouseHandler;
-   protected ArrayList<GLViewerListener> myViewerListeners =
-      new ArrayList<GLViewerListener>();
    protected ArrayList<RenderListener> myRenderListeners =
       new ArrayList<RenderListener>();
 
@@ -404,89 +403,13 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
    public void setSelected(LinkedList<Object>[] objs) {
       selectionEvent.mySelectedObjects = objs;
    }
-
-   public void addViewerListener (GLViewerListener l) {
-      myViewerListeners.add (l);
-   }
-   
+ 
    public void addRenderListener (RenderListener l) {
       myRenderListeners.add (l);
    }
    
-   protected void fireViewerListenersPreinit(GLAutoDrawable drawable) {
-      if (myViewerListeners.size() > 0) {
-         GLViewerEvent e = new GLViewerEvent (this);
-         for (GLViewerListener l : myViewerListeners) {
-            l.preinit(e, drawable);
-         }
-      }
-   }
-   
-   protected void fireViewerListenersPostinit(GLAutoDrawable drawable) {
-      if (myViewerListeners.size() > 0) {
-         GLViewerEvent e = new GLViewerEvent (this);
-         for (GLViewerListener l : myViewerListeners) {
-            l.postinit(e, drawable);
-         }
-      }
-   }
-
-   protected void fireViewerListenersPredispose(GLAutoDrawable drawable) {
-      if (myViewerListeners.size() > 0) {
-         GLViewerEvent e = new GLViewerEvent (this);
-         for (GLViewerListener l : myViewerListeners) {
-            l.predispose(e, drawable);
-         }
-      }
-   }
-   
-   protected void fireViewerListenersPostdispose(GLAutoDrawable drawable) {
-      if (myViewerListeners.size() > 0) {
-         GLViewerEvent e = new GLViewerEvent (this);
-         for (GLViewerListener l : myViewerListeners) {
-            l.postdispose(e, drawable);
-         }
-      }
-   }
-   
-   protected void fireViewerListenersPredisplay(GLAutoDrawable drawable) {
-      if (myViewerListeners.size() > 0) {
-         GLViewerEvent e = new GLViewerEvent (this);
-         for (GLViewerListener l : myViewerListeners) {
-            l.predisplay(e, drawable);
-         }
-      }
-   }
-   
-   protected void fireViewerListenersPostdisplay(GLAutoDrawable drawable) {
-      if (myViewerListeners.size() > 0) {
-         GLViewerEvent e = new GLViewerEvent (this);
-         for (GLViewerListener l : myViewerListeners) {
-            l.postdisplay(e, drawable);
-         }
-      }
-   }
-   
-   protected void fireViewerListenersPrereshape(GLAutoDrawable drawable, int x, int y, int w, int h) {
-      if (myViewerListeners.size() > 0) {
-         GLViewerEvent e = new GLViewerEvent (this);
-         for (GLViewerListener l : myViewerListeners) {
-            l.prereshape(e, drawable, x, y, w, h);
-         }
-      }
-   }
-   
-   protected void fireViewerListenersPostreshape(GLAutoDrawable drawable, int x, int y, int w, int h) {
-      if (myViewerListeners.size() > 0) {
-         GLViewerEvent e = new GLViewerEvent (this);
-         for (GLViewerListener l : myViewerListeners) {
-            l.postreshape(e, drawable, x, y, w, h);
-         }
-      }
-   }
-   
    protected void fireRerenderListeners() {
-      if (myViewerListeners.size() > 0) {
+      if (myRenderListeners.size() > 0) {
          RendererEvent e = new RendererEvent (this);
          for (RenderListener l : myRenderListeners) {
             l.renderOccurred (e);
@@ -494,14 +417,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       }
    }
 
-   public boolean removeViewerListener (GLViewerListener l) {
-      return myViewerListeners.remove (l);
-   }
-
-   public GLViewerListener[] getViewerListeners() {
-      return myViewerListeners.toArray (new GLViewerListener[0]);
-   }
-   
    public boolean removeRenderListener (RenderListener l) {
       return myRenderListeners.remove (l);
    }
@@ -615,6 +530,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
     */
    public void setVerticalFieldOfView (double fov) {
       myFrustum.fov = fov;
+      invalidateProjectionMatrix ();
    }
 
    protected boolean selectEnabled = false;
@@ -998,8 +914,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
 
          myViewState.myCenter.set (pcenter);
          Vector3d zdir = getZDirection();
-         double d = r / Math.sin (Math.toRadians (myFrustum.fov) / 2);
-         Point3d eye = getEye();
+         double d = r / Math.tan (Math.toRadians (myFrustum.fov) / 2);
+         Point3d eye = new Point3d();
          eye.scaledAdd(d, zdir, myViewState.myCenter);
          setEye(eye);
 
@@ -1037,7 +953,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
 
          myViewState.myCenter.set (pcenter);
          Vector3d zdir = getZDirection();
-         double d = r / Math.sin (Math.toRadians (myFrustum.fov) / 2);
+         double d = r / Math.tan (Math.toRadians (myFrustum.fov) / 2);
          Point3d eye = getEye();
          eye.scaledAdd(d, zdir, myViewState.myCenter);
          setEye(eye);
@@ -1441,7 +1357,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
    }
 
    public void reshape (GLAutoDrawable drawable, int x, int y, int w, int h) {
-      fireViewerListenersPrereshape(drawable, x, y, w, h);
+      GLSupport.checkAndPrintGLError(drawable.getGL());
       width = w;
       height = h;
 
@@ -1450,7 +1366,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
          resetViewVolume();
       }
       repaint();
-      fireViewerListenersPostreshape(drawable, x, y, w, h);
+      GLSupport.checkAndPrintGLError(drawable.getGL());
    }
 
    public double getViewPlaneHeight() {
@@ -1665,12 +1581,13 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
    protected abstract void drawDragBox (GLAutoDrawable drawable);
 
    public void display (GLAutoDrawable drawable) {
-      fireViewerListenersPredisplay(drawable);
+      GLSupport.checkAndPrintGLError(drawable.getGL ());
+      
       int flags = myRenderFlags.get();
       
       // check if gamma property needs to be changed
       if (gammaCorrectionRequested) {
-         GL gl = drawable.getGL();
+         GL gl = drawable.getGL ();
          if (gammaCorrectionEnabled) {
             gl.glEnable(GL2GL3.GL_FRAMEBUFFER_SRGB);
          } else {
@@ -1680,7 +1597,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       }
       
       display(drawable, flags);
-      fireViewerListenersPostdisplay(drawable);
+      
+      GLSupport.checkAndPrintGLError(drawable.getGL ());
    }
 
    private class RenderIterator implements Iterator<GLRenderable> {
@@ -1928,11 +1846,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
 
    public Vector3d getUpVector() {
       return myViewState.myUp;
-   }
-
-   public void displayChanged (
-      GLAutoDrawable drawable, boolean modeChanged, boolean deviceChanged) {
-      System.out.println("Display changed!");
    }
 
    public boolean isSelecting() {
@@ -2448,7 +2361,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       invalidateModelMatrix();
    }
 
-   protected void setViewMatrix(RigidTransform3d v) {
+   public void setViewMatrix(RigidTransform3d v) {
       synchronized(viewMatrix) {
          viewMatrix.set(v);
       }
@@ -2803,6 +2716,15 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
    
    public void drawLines(float[] vertices) {
       drawLines(vertices, 0);
+   }
+   
+   /**
+    * MUST BE CALLED by whatever frame when it is going down, will notify any 
+    * shared resources that they can be cleared.  It is best to add it as a
+    * WindowListener
+    */
+   public void dispose() {
+      canvas.destroy ();
    }
 
 }

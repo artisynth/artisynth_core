@@ -7,20 +7,34 @@
  */
 package artisynth.core.gui.editorManager;
 
-import java.awt.Dimension;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.Rectangle;
-import java.awt.event.*;
-import java.util.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Map;
 
-import javax.swing.*;
-import javax.swing.event.*;
+import javax.swing.Box;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.event.MouseInputAdapter;
 
-import maspack.render.*;
+import maspack.properties.EditingProperty;
+import maspack.properties.HasProperties;
+import maspack.properties.HostList;
+import maspack.properties.PropTreeCell;
+import maspack.properties.Property;
+import maspack.render.MouseRayEvent;
 import maspack.render.GL.GLViewer;
-import maspack.util.*;
+import maspack.util.InternalErrorException;
 import maspack.widgets.ExpandablePropertyPanel;
 import maspack.widgets.GuiUtils;
 import maspack.widgets.PropertyPanel;
@@ -28,11 +42,17 @@ import maspack.widgets.StringField;
 import maspack.widgets.StringSelector;
 import maspack.widgets.ValueChangeEvent;
 import maspack.widgets.ValueChangeListener;
-import maspack.properties.*;
-import artisynth.core.driver.*;
-import artisynth.core.gui.*;
-import artisynth.core.gui.selectionManager.*;
-import artisynth.core.modelbase.*;
+import artisynth.core.driver.Main;
+import artisynth.core.driver.ViewerManager;
+import artisynth.core.gui.selectionManager.SelectionEvent;
+import artisynth.core.gui.selectionManager.SelectionListener;
+import artisynth.core.modelbase.ComponentChangeEvent;
+import artisynth.core.modelbase.ComponentChangeListener;
+import artisynth.core.modelbase.ComponentList;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.StructureChangeEvent;
 
 /**
  * A base class used to create agents for adding components.

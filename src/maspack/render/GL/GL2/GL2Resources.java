@@ -1,57 +1,35 @@
 package maspack.render.GL.GL2;
 
-import java.util.HashMap;
-
+import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
-import javax.media.opengl.GLContext;
+import javax.media.opengl.GLCapabilities;
 
-import maspack.render.RenderObject;
+import maspack.render.GL.GLResources;
+import maspack.render.GL.GL2.DisplayListManager.DisplayListPassport;
 
-public class GL2Resources {
-
-   GLContext context;
+public class GL2Resources extends GLResources {
 
    // Shared VBOs/VAOs
    DisplayListManager dlManager;
    GL2PrimitiveManager primManager;
-   HashMap<Object,RenderObject> roMap = null;
    
-   int version; // used for managing usage between multiple viewers
-   
-   public GL2Resources(GLContext context) {
-      this.context = context;
+   public GL2Resources(GLCapabilities cap) {
+      super(cap);
+      
       dlManager = new DisplayListManager();
       primManager = new GL2PrimitiveManager();
-      roMap = new HashMap<>();
-      version = 1;
-   }
-   
-   public int incrementVersion() {
-      version++;
-      return version;
-   }
-   
-   /**
-    * Used for detecting an appropriate viewer (e.g. first to call display)
-    * If a viewer has previously seen a particular version, then increments
-    * the version, other viewers will know they are not the first.
-    */
-   public int getVersion() {
-      return version;
    }
 
-   public GLContext getContext() {
-      return context;
+   @Override
+   public void init(GL gl) {
    }
 
-   public void init(GL2 gl) {
-   }
-
-   public synchronized void dispose(GL2 gl) {
+   @Override
+   public synchronized void dispose(GL gl) {
       // clear shared info
-      dlManager.dispose(gl);
-      primManager.dispose(gl);
-      version++;
+      GL2 gl2 = gl.getGL2 ();
+      dlManager.dispose(gl2);
+      primManager.dispose(gl2);
    }
 
    /**
@@ -60,7 +38,6 @@ public class GL2Resources {
    public synchronized void releaseUnused(GL2 gl) {
       dlManager.releaseUnused(gl);
       primManager.releaseUnused(gl);
-      version++;
    }
 
    /**
@@ -69,27 +46,53 @@ public class GL2Resources {
    public synchronized void clearCached(GL2 gl) {
       dlManager.clear(gl);
       primManager.clear(gl);
-      version++;
    }
    
-   public GL2PrimitiveManager getPrimitiveManager() {
-      return primManager;
+   //   public GL2PrimitiveManager getPrimitiveManager() {
+   //      return primManager;
+   //   }
+   //   
+   //   public DisplayListManager getDisplayListManager() {
+   //      return dlManager;
+   //   }
+   
+   public int getDisplayList(GL2 gl, Object key) {
+      DisplayListPassport list = dlManager.getDisplayList(gl, key);
+      return list.getList ();
    }
    
-   public DisplayListManager getDisplayListManager() {
-      return dlManager;
+   public int allocateDisplayList(GL2 gl, Object key) {
+      DisplayListPassport list = dlManager.allocateDisplayList(gl, key);
+      return list.getList();
    }
    
-   public synchronized void addRenderObject(Object key, RenderObject ro) {
-      roMap.put(key, ro);
+   public void freeDisplayList(GL2 gl, Object key) {
+      dlManager.freeDisplayList(gl, key);
    }
    
-   public synchronized RenderObject getRenderObject(Object key) {
-      return roMap.get(key);
+   public int getSphereDisplayList(GL2 gl, int slices) {
+      int list = primManager.getSphereDisplayList(gl, slices, slices/2);
+      return list;
    }
-   
-   public synchronized RenderObject removeRenderObject(Object key) {
-      return roMap.remove(key);
+
+   public int getCylinderDisplayList(GL2 gl, int slices, boolean capped) {
+      int list = primManager.getCylinderDisplayList(gl, slices, capped);
+      return list;
    }
-   
+
+   public int getTaperedEllipsoidDisplayList(GL2 gl, int slices) {
+      int list = primManager.getTaperedEllipsoidDisplayList(gl, slices, slices/2);
+      return list;
+   }
+
+   public DisplayListPassport getDisplayListPassport(GL2 gl, Object key) {
+      DisplayListPassport list = dlManager.getDisplayList(gl, key);
+      return list;
+   }
+
+   public DisplayListPassport allocateDisplayListPassport(GL2 gl, Object key, Object fingerPrint) {
+      DisplayListPassport list = dlManager.allocateDisplayList(gl, key, fingerPrint);
+      return list;
+   }
+      
 }

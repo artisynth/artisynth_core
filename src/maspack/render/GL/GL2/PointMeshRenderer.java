@@ -2,6 +2,8 @@ package maspack.render.GL.GL2;
 
 import java.awt.Color;
 
+import javax.media.opengl.GL2;
+
 import maspack.geometry.PointMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
@@ -11,9 +13,6 @@ import maspack.render.RenderProps.PointStyle;
 import maspack.render.RenderProps.Shading;
 import maspack.render.Renderer;
 import maspack.render.GL.GLSupport;
-import maspack.render.GL.GL2.DisplayListManager.DisplayListPassport;
-
-import javax.media.opengl.GL2;
 
 public class PointMeshRenderer {
 
@@ -153,9 +152,9 @@ public class PointMeshRenderer {
          }
 
          boolean useDisplayList = false;
-         PointMeshPrint pointPrint = null;
-         DisplayListPassport pointPP = null;
+         
          DisplayListKey pointKey = new DisplayListKey(mesh, POINT_KEY_ID);
+         int displayList = 0;
          boolean compile = false;
          
          boolean useVertexColors = !selected && (flags & Renderer.VERTEX_COLORING) != 0;
@@ -169,23 +168,22 @@ public class PointMeshRenderer {
                sphereRad = props.getPointRadius();
             }
 
-            pointPrint = new PointMeshPrint(mesh, props.getPointStyle(), sphereRad,
+            PointMeshPrint pointPrint = new PointMeshPrint(mesh, props.getPointStyle(), sphereRad,
                sphereDL, shading, useVertexColors, false);
-            pointPP = viewer.getDisplayListPassport(gl, pointKey);
-            if (pointPP == null) {
-               // allocate new display list
-               pointPP = viewer.allocateDisplayListPassport(gl, pointKey, pointPrint);
+            displayList = viewer.getDisplayList (gl, pointKey, pointPrint);
+            if (displayList < 0) {
+               displayList = -displayList;
                compile = true;
+               useDisplayList = true;
             } else {
-               // check passport
-               compile = !(pointPP.compareExchangeFingerPrint(pointPrint));
+               compile = false;
+               useDisplayList = (displayList > 0);
             }
-            useDisplayList = true;
          }
         
          if (!useDisplayList || compile) {
-            if (useDisplayList && pointPP != null) {
-               gl.glNewList (pointPP.getList(), GL2.GL_COMPILE);
+            if (useDisplayList) {
+               gl.glNewList (displayList, GL2.GL_COMPILE);
             }
 
             boolean useRenderVtxs = mesh.isRenderBuffered() && !mesh.isFixed();
@@ -229,21 +227,18 @@ public class PointMeshRenderer {
                   gl.glEnd ();
             }
 
-            if (useDisplayList && pointPP != null) {
+            if (useDisplayList) {
                gl.glEndList();
-               gl.glCallList (pointPP.getList());
+               gl.glCallList (displayList);
             }
          } else {
-            gl.glCallList (pointPP.getList());
+            gl.glCallList (displayList);
          }
          GLSupport.checkAndPrintGLError(gl);
 
          // render normals
          useDisplayList = false;
-         NormalMeshPrint nrmPrint = null;
-         DisplayListPassport nrmPP = null;
          DisplayListKey nrmKey = new DisplayListKey(mesh, NORMAL_KEY_ID);
-         compile = false;
          
          double normalLen = mesh.getNormalRenderLen();
 
@@ -262,23 +257,22 @@ public class PointMeshRenderer {
             gl.glLineWidth (1);
 
             if ( !(viewer.isSelecting() && useVertexColors) ) {            
-               nrmPrint = new NormalMeshPrint(mesh, normalLen);
-               nrmPP = viewer.getDisplayListPassport(gl, nrmKey);
-               if (nrmPP == null) {
-                  // allocate new display list
-                  nrmPP = viewer.allocateDisplayListPassport(gl, nrmKey, nrmPrint);
+               NormalMeshPrint nrmPrint = new NormalMeshPrint(mesh, normalLen);
+               displayList = viewer.getDisplayList(gl, nrmKey, nrmPrint);
+               if (displayList < 0) {
+                  displayList = -displayList;
                   compile = true;
+                  useDisplayList = true;
                } else {
-                  // check passport
-                  compile = !(nrmPP.compareExchangeFingerPrint(nrmPrint));
+                  compile = false;
+                  useDisplayList = (displayList > 0);
                }
-               useDisplayList = true;
             }
 
             if (!useDisplayList || compile) {
                
-               if (useDisplayList && nrmPP != null) {
-                  gl.glNewList (nrmPP.getList(), GL2.GL_COMPILE);
+               if (useDisplayList) {
+                  gl.glNewList (displayList, GL2.GL_COMPILE);
                }
                
                boolean useRenderVtxs = mesh.isRenderBuffered() && !mesh.isFixed();
@@ -294,12 +288,12 @@ public class PointMeshRenderer {
                }
                gl.glEnd ();
 
-               if (useDisplayList && nrmPP != null) {
+               if (useDisplayList) {
                   gl.glEndList();
-                  gl.glCallList (nrmPP.getList());
+                  gl.glCallList (displayList);
                }
             } else {
-               gl.glCallList (nrmPP.getList());
+               gl.glCallList (displayList);
             }
             GLSupport.checkAndPrintGLError(gl);
 

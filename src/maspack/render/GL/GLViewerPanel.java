@@ -8,6 +8,9 @@ package maspack.render.GL;
 
 import java.awt.Dimension;
 import java.awt.Rectangle;
+import java.awt.event.ContainerAdapter;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 import javax.swing.BoxLayout;
 import javax.swing.JPanel;
@@ -51,7 +54,7 @@ public class GLViewerPanel extends JPanel {
    
    public void dispose() {
       // clean-up
-      remove(viewer.getCanvas());  // safely remove GL canvas
+      viewer.dispose ();
    }
 
    public void setSize (Dimension d) {

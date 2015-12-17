@@ -15,7 +15,6 @@ import javax.media.opengl.GL3;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLProfile;
-import javax.media.opengl.awt.GLCanvas;
 import javax.swing.event.MouseInputListener;
 
 import maspack.matrix.AxisAlignedRotation;
@@ -33,7 +32,6 @@ import maspack.render.RenderProps.PointStyle;
 import maspack.render.RenderProps.Shading;
 import maspack.render.RenderableLine;
 import maspack.render.RenderablePoint;
-import maspack.render.Renderer;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLFrameCapture;
 import maspack.render.GL.GLGridPlane;
@@ -61,7 +59,6 @@ public class GL3Viewer extends GLViewer {
    // Programs
    GL3ProgramManager progManager = null;
    GL3Resources myGLResources = null;    // holds shared context and cache
-   int myGLResourcesVersion = -1;        // used for ensuring single modification across viewers
    
    // Common viewer-specific objects (essentially stream-drawn)
    GL3Object dragBoxGLO = null;
@@ -128,7 +125,7 @@ public class GL3Viewer extends GLViewer {
     * @param height
     * initial height of the viewer
     */
-   public GL3Viewer (GLCapabilities cap, GL3Resources sharedResources, int width,
+   public GL3Viewer (GLCapabilities cap, GL3Resources resources, int width,
       int height) {
       if (cap == null) {
          GLProfile glp3 = GLProfile.get(GLProfile.GL3);
@@ -137,16 +134,16 @@ public class GL3Viewer extends GLViewer {
          cap.setNumSamples (8);
       }
 
-      canvas = new GLCanvas(cap, null, null);
+      if (resources == null) {
+         resources = new GL3Resources(cap);
+      }
+      myGLResources = resources;
+      canvas = myGLResources.createCanvas();
+      myGLResources.registerViewer (this);
+      
       lightManager = new GLLightManager();      
       progManager = new GL3ProgramManager();
-      if (sharedResources != null) {
-         canvas.setSharedContext(sharedResources.getContext());
-         myGLResources = sharedResources;
-      } else {
-         myGLResources = new GL3Resources(canvas.getContext());
-      }
-
+      
       canvas.addGLEventListener (this);
       
       canvas.setPreferredSize(new Dimension(width, height));
@@ -240,8 +237,7 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    public void init(GLAutoDrawable drawable) {
-      
-      fireViewerListenersPreinit(drawable);
+      GLSupport.checkAndPrintGLError(drawable.getGL ());
       
       this.drawable = drawable;
       gl = drawable.getGL().getGL3();
@@ -304,9 +300,7 @@ public class GL3Viewer extends GLViewer {
 
       System.out.println("GL3 initialized");
       
-      GLSupport.checkAndPrintGLError(gl);
-      
-      fireViewerListenersPostinit(drawable);
+      GLSupport.checkAndPrintGLError(drawable.getGL ());
       
    }
 
@@ -326,8 +320,7 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    public void dispose(GLAutoDrawable drawable) {
-      
-      fireViewerListenersPredispose(drawable);
+      GLSupport.checkAndPrintGLError(drawable.getGL ());
       
       progManager.dispose(gl);
       myGLResources.dispose(gl);
@@ -367,8 +360,7 @@ public class GL3Viewer extends GLViewer {
       this.gl = null;
       
       System.out.println("GL3 disposed");
-      fireViewerListenersPostdispose(drawable);
-      
+      GLSupport.checkAndPrintGLError(drawable.getGL ());
    }
 
    @Override
@@ -410,6 +402,8 @@ public class GL3Viewer extends GLViewer {
    @Override
    public void display(GLAutoDrawable drawable, int flags) {
       
+      GLSupport.checkAndPrintGLError(drawable.getGL ());
+      
       if (!myInternalRenderListValid) {
          buildInternalRenderList();
       }
@@ -422,24 +416,21 @@ public class GL3Viewer extends GLViewer {
          selectTrigger = false;
       }
       
-      // potentially clear some cached rendering
-      synchronized(myGLResources) {
-         
-         // only allow first viewer to modify cache
-         int version = myGLResources.getVersion();
-         if (version == myGLResourcesVersion) {
-            // if update render cache, then use this round to
-            // purge unused objects
-            // if clear render cache, then destroy all cached
-            if ((flags & Renderer.CLEAR_RENDER_CACHE) != 0) {
-               myGLResources.clearCached(gl);
-            } else if ((flags & Renderer.UPDATE_RENDER_CACHE) != 0) {
-               myGLResources.releaseUnused(gl);
-            }
-         }
-         myGLResourcesVersion = version;
-
-      }
+      //   XXX need better way to clear resources
+      //      // potentially clear some cached rendering
+      //      synchronized(myGLResources) {
+      //         // only allow first viewer to modify cache
+      //         if (version == myGLResourcesVersion) {
+      //            // if update render cache, then use this round to
+      //            // purge unused objects
+      //            // if clear render cache, then destroy all cached
+      //            if ((flags & Renderer.CLEAR_RENDER_CACHE) != 0) {
+      //               myGLResources.clearCached(gl);
+      //            } else if ((flags & Renderer.UPDATE_RENDER_CACHE) != 0) {
+      //               myGLResources.releaseUnused(gl);
+      //            }
+      //         }
+      //      }
       
       // turn off buffer swapping when doing a selection render because
       // otherwise the previous buffer sometimes gets displayed
@@ -475,7 +466,7 @@ public class GL3Viewer extends GLViewer {
          }
       }
 
-      GLSupport.checkAndPrintGLError(gl);
+      GLSupport.checkAndPrintGLError(drawable.getGL ());
    }
 
    private boolean hasTransparent3d() {
@@ -517,7 +508,8 @@ public class GL3Viewer extends GLViewer {
    }
 
    private void doDisplay(GLAutoDrawable drawable, int flags) {
-
+      GLSupport.checkAndPrintGLError(drawable.getGL ());
+      
       int mclips = Math.min(2*myClipPlanes.size(), maxClipPlanes);
       progManager.reconfigure(gl, lightManager.numLights(), mclips);
       progManager.setLights(gl, lightManager.getLights(), 1.0f/lightManager.getMaxIntensity(), viewMatrix);
@@ -1886,6 +1878,8 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    protected void drawDragBox(GLAutoDrawable drawable) {
+      GLSupport.checkAndPrintGLError(drawable.getGL ());
+      
       begin2DRendering(-1, 1,-1, 1);
 
       float x0 = (float)(2 * myDragBox.x / (double)width - 1);
@@ -1908,9 +1902,9 @@ public class GL3Viewer extends GLViewer {
       
       dragBoxGLO.draw(gl, getBasicProgram(gl));
 
-      GLSupport.checkAndPrintGLError(gl);
-
       end2DRendering();
+      
+      GLSupport.checkAndPrintGLError(drawable.getGL ());
    }
 
    // XXX Maybe cache these?
@@ -2268,41 +2262,51 @@ public class GL3Viewer extends GLViewer {
    
    @Override
    public void drawTriangles(RenderObject robj) {
+      GLSupport.checkAndPrintGLError(gl);
       GL3RenderObject gro = getOrCreateGRO(robj);
       maybeUpdateMatrices(gl);
       gl.glUseProgram(getProgram(gl, gro.getRenderObjectState()));
       gro.drawTriangles(gl);
+      GLSupport.checkAndPrintGLError(gl);
    }
 
    @Override
    public void drawLines(RenderObject robj) {
+      GLSupport.checkAndPrintGLError(gl);
       GL3RenderObject gro = getOrCreateGRO(robj);
       maybeUpdateMatrices(gl);
       gl.glUseProgram(getProgram(gl, gro.getRenderObjectState()));
       gro.drawLines(gl);
+      GLSupport.checkAndPrintGLError(gl);
    }
 
    @Override
    public void drawPoints(RenderObject robj) {
+      GLSupport.checkAndPrintGLError(gl);
       GL3RenderObject gro = getOrCreateGRO(robj);
       maybeUpdateMatrices(gl);
       gl.glUseProgram(getProgram(gl, gro.getRenderObjectState()));
       gro.drawPoints(gl);
+      GLSupport.checkAndPrintGLError(gl);
    }
 
    @Override
    public void drawVertices(RenderObject robj, VertexDrawMode mode) {
+      GLSupport.checkAndPrintGLError(gl);
       GL3RenderObject gro = getOrCreateGRO(robj);
       maybeUpdateMatrices(gl);
       gl.glUseProgram(getProgram(gl, gro.getRenderObjectState()));
       gro.drawVertices(gl, mode);
+      GLSupport.checkAndPrintGLError(gl);
    }
 
    @Override
    public void draw(RenderObject robj) {
+      GLSupport.checkAndPrintGLError(gl);
       drawPoints(robj);
       drawLines(robj);
       drawTriangles(robj);
+      GLSupport.checkAndPrintGLError(gl);
    }
    
    @Override

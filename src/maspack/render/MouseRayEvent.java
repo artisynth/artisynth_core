@@ -6,10 +6,12 @@
  */
 package maspack.render;
 
-import java.awt.*;
+import java.awt.Component;
 import java.awt.event.MouseEvent;
 
-import maspack.matrix.*;
+import maspack.matrix.Line;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
 import maspack.render.GL.GLViewer;
 
 public class MouseRayEvent extends MouseEvent {
@@ -19,7 +21,7 @@ public class MouseRayEvent extends MouseEvent {
    protected int myScreenWidth;
    protected int myScreenHeight;
    protected Line myRay;
-   protected GLViewer myViewer;
+   protected Renderer myViewer;
 
    protected MouseRayEvent (Component source, int id, long when, int modifiers,
    int x, int y, int clickCount, boolean popupTrigger) {
@@ -87,7 +89,7 @@ public class MouseRayEvent extends MouseEvent {
       return myRay;
    }
 
-   public GLViewer getViewer() {
+   public Renderer getRenderer() {
       return myViewer;
    }
 

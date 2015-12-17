@@ -13,10 +13,6 @@ import java.util.regex.Pattern;
 
 import javax.media.opengl.GL2;
 
-import artisynth.core.modelbase.ModelComponentBase;
-import artisynth.core.modelbase.PropertyChangeEvent;
-import artisynth.core.modelbase.PropertyChangeListener;
-import artisynth.core.modelbase.RenderableComponentBase;
 import maspack.dicom.DicomHeader;
 import maspack.dicom.DicomImage;
 import maspack.dicom.DicomPixelConverter;
@@ -29,16 +25,18 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
+import maspack.render.GLTexture;
 import maspack.render.LineRenderProps;
-import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.render.TextureLoader;
 import maspack.render.GL.GLViewer;
-import maspack.render.GLTexture;
 import maspack.util.IntegerInterval;
-
-import javax.media.opengl.GL;
+import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.PropertyChangeEvent;
+import artisynth.core.modelbase.PropertyChangeListener;
+import artisynth.core.modelbase.RenderableComponentBase;
 
 public class DicomViewer extends RenderableComponentBase 
    implements PropertyChangeListener {

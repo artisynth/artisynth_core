@@ -1,9 +1,8 @@
-package maspack.render.GL;
+package maspack.render.GL.test;
 
 import java.awt.Color;
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -31,26 +30,13 @@ import maspack.render.RenderProps.PointStyle;
 import maspack.render.RenderProps.Shading;
 import maspack.render.Renderer;
 import maspack.render.Transrotator3d;
-import maspack.render.GL.MultiViewerTest.SimpleSelectable;
-import maspack.render.GL.MultiViewerTest.SimpleViewerApp;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.test.MultiViewer.SimpleSelectable;
+import maspack.render.GL.test.MultiViewer.SimpleViewerApp;
 
-public class RenderObjectTester {
+public class MultiViewerTesterBase {
 
-   protected static void addRenderObjects(MultiViewerTest tester) {
-
-      addCube(tester);
-      addAxes(tester);
-      addTransRotator(tester);
-      addCylinder(tester);
-
-      PolygonalMesh bunny = loadStanfordBunny();
-      addStanfordBunnies(tester, bunny);
-      addSolidBunny(tester, bunny);
-      addHalfBunny(tester, bunny);
-
-   }
-
-   private static void addCube(MultiViewerTest tester) {
+   protected static void addCube(MultiViewer tester) {
       RenderObject cube = new RenderObject();
       // positions                                 // normals
       int[] pIdxs = new int[8];                    int[] nIdxs = new int[6];
@@ -103,7 +89,7 @@ public class RenderObjectTester {
       tester.addRenderable(cuber);
    }
 
-   private static void addTransRotator(MultiViewerTest tester) {
+   protected static void addTransRotator(MultiViewer tester) {
       for (SimpleViewerApp app : tester.getWindows()) {
          Transrotator3d dragger = new Transrotator3d();
          dragger.setPosition(new Vector3d(1,0,0.2));
@@ -111,7 +97,7 @@ public class RenderObjectTester {
       }
    }
 
-   private static void addAxes(MultiViewerTest tester) {
+   protected static void addAxes(MultiViewer tester) {
       // axes
       RenderObject axes = new RenderObject();
       axes.beginBuild(BuildMode.LINES);
@@ -128,7 +114,7 @@ public class RenderObjectTester {
       tester.addRenderable(new RenderObjectWrapper(axes));
    }
 
-   private static void addCylinder(MultiViewerTest tester) {
+   protected static void addCylinder(MultiViewer tester) {
       // cylinder
       RenderObject cylinderRO = RenderObjectFactory.createCylinder(32, true);
 
@@ -145,20 +131,26 @@ public class RenderObjectTester {
       tester.addRenderable(rcylinder);
    }
 
-   private static PolygonalMesh loadStanfordBunny() {
+   protected static PolygonalMesh loadStanfordBunny() {
       // read Standford bunny directly
       String bunnyURL =
       "http://graphics.stanford.edu/~mdfisher/Data/Meshes/bunny.obj";
       // bunny
+      File bunnyFile = new File("tmp/data/stanford_bunny.obj");
+      
       PolygonalMesh bunny = null;
       try {
-         // read file directly from remote
-         FileCacher cacher = new FileCacher();
-         cacher.initialize();
-         InputStream bunnyStream = cacher.getInputStream(new URIx(bunnyURL));
-         InputStreamReader streamReader = new InputStreamReader(bunnyStream);
+         if (!bunnyFile.exists ()) {
+            bunnyFile.getParentFile().mkdirs ();
+            
+            // read file directly from remote
+            FileCacher cacher = new FileCacher();
+            cacher.initialize();
+            cacher.cache (new URIx(bunnyURL), bunnyFile);  
+            cacher.release ();
+         }
 
-         WavefrontReader reader = new WavefrontReader(streamReader);
+         WavefrontReader reader = new WavefrontReader(bunnyFile);
 
          bunny = new PolygonalMesh();
          reader.readMesh(bunny);
@@ -173,18 +165,17 @@ public class RenderObjectTester {
          bunny.transform(new RigidTransform3d(c, new AxisAngle(
             1, 0, 0, Math.PI / 2)));
          reader.close();
-         cacher.release();
+         
       } catch (IOException e1) {
          e1.printStackTrace();
-         System.out
-         .println("Unable to load stanford bunny... requires internet connection");
+         System.out.println("Unable to load stanford bunny... requires internet connection");
          bunny = null;
       }
 
       return bunny;
    }
 
-   private static void addStanfordBunnies(MultiViewerTest tester, PolygonalMesh bunny) {
+   protected static void addStanfordBunnies(MultiViewer tester, PolygonalMesh bunny) {
 
       RenderProps rprops = new RenderProps();
       rprops.setFaceStyle(Faces.FRONT_AND_BACK);
@@ -230,7 +221,7 @@ public class RenderObjectTester {
       }
    }
 
-   private static void addSolidBunny(MultiViewerTest tester, PolygonalMesh bunny) {
+   protected static void addSolidBunny(MultiViewer tester, PolygonalMesh bunny) {
 
       RenderProps rprops = new RenderProps();
       rprops.setFaceStyle(Faces.FRONT_AND_BACK);
@@ -272,7 +263,7 @@ public class RenderObjectTester {
       }
    }
 
-   private static void addHalfBunny(MultiViewerTest tester, PolygonalMesh bunny) {
+   protected static void addHalfBunny(MultiViewer tester, PolygonalMesh bunny) {
 
       RenderProps rprops = new RenderProps();
       rprops.setFaceStyle(Faces.FRONT_AND_BACK);
@@ -342,7 +333,7 @@ public class RenderObjectTester {
       }
    }
 
-   private static class RenderObjectWrapper implements SimpleSelectable {
+   protected static class RenderObjectWrapper implements SimpleSelectable {
 
       RenderObject myRO;
       private boolean selected;
@@ -490,7 +481,7 @@ public class RenderObjectTester {
       }
    }
    
-   private static class MultiTriangleGroupWrapper extends RenderObjectWrapper {
+   protected static class MultiTriangleGroupWrapper extends RenderObjectWrapper {
 
       private Color[] faceColors;
       
@@ -512,20 +503,5 @@ public class RenderObjectTester {
       }
       
    }
-
-   public static void main(String[] args) {
-
-      MultiViewerTest rot = new MultiViewerTest();
-      rot.addGL2Viewer("GL2 Viewer", 30, 30, 640, 480);
-      rot.addGL3Viewer("GL3 Viewer", 670, 30, 640, 480);
-      rot.syncMouseListeners();
-
-      addRenderObjects(rot);
-
-      // adjust all windows to a specific size
-      rot.setWindowSizes(640, 480);
-      rot.autoFitViewers();
-
-   }
-
+   
 }

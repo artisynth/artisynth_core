@@ -6,21 +6,32 @@
  */
 package artisynth.core.mechmodels;
 
-import java.util.*;
-import java.io.*;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Deque;
 
-import javax.media.opengl.*;
+import javax.media.opengl.GL2;
 
 import maspack.geometry.GeometryTransformer;
-import maspack.matrix.*;
-import maspack.properties.*;
-import maspack.util.*;
-import maspack.spatialmotion.*;
-import maspack.render.*;
+import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.Plane;
+import maspack.matrix.Point3d;
+import maspack.matrix.RotationMatrix3d;
+import maspack.matrix.Vector3d;
+import maspack.properties.HasProperties;
+import maspack.properties.PropertyList;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.render.GL.GLViewer;
-import artisynth.core.modelbase.*;
-import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
-import artisynth.core.util.*;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
+import artisynth.core.util.ScalableUnits;
+import artisynth.core.util.ScanToken;
 
 public class ParticlePlaneConstraint extends ParticleConstraintBase
    implements ScalableUnits, TransformableGeometry {

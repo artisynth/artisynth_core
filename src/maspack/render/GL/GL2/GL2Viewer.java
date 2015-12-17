@@ -7,7 +7,6 @@
  */
 package maspack.render.GL.GL2;
 
-import java.awt.Dimension;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.util.Iterator;
@@ -18,8 +17,8 @@ import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLCapabilities;
+import javax.media.opengl.GLContext;
 import javax.media.opengl.GLProfile;
-import javax.media.opengl.awt.GLCanvas;
 import javax.swing.event.MouseInputListener;
 
 import maspack.matrix.AffineTransform3d;
@@ -60,6 +59,8 @@ import maspack.util.InternalErrorException;
  * @author John E Lloyd and ArtiSynth team members
  */
 public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
+   
+   public static boolean DEBUG = false;
 
    //   public enum AxialView {
    //      POS_X_POS_Z, NEG_X_POS_Z, POS_X_POS_Y, 
@@ -324,9 +325,9 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
     * @param height
     * initial height of the viewer
     */
-   public GL2Viewer (GLCapabilities cap, GL2Resources sharedResources, int width,
+   public GL2Viewer (GLCapabilities cap, GL2Resources resources, int width,
       int height) {
-
+      
       if (cap == null) {
          GLProfile glp2 = GLProfile.get(GLProfile.GL2);
          cap = new GLCapabilities(glp2);
@@ -334,17 +335,16 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          cap.setNumSamples (8);
          
       }
-
-      // canvas = new GLCanvas(cap, sharedContext); //GLCanvas (cap, null, sharedContext, null);
-      canvas = new GLCanvas(cap, null, null);
-      if (sharedResources != null) {
-         canvas.setSharedContext(sharedResources.getContext());
-         myGLResources = sharedResources;
-      } else {
-         myGLResources = new GL2Resources(canvas.getContext());
+      
+      if (resources == null) {
+         resources = new GL2Resources(cap);
       }
+      myGLResources = resources;
+      myGLResources.registerViewer (this);
+      canvas = myGLResources.createCanvas();
+
       canvas.addGLEventListener (this);
-      canvas.setPreferredSize(new Dimension(width, height));
+      // canvas.setPreferredSize(new Dimension(width, height));
       canvas.setSize (width, height);
       
       this.width = width;
@@ -366,6 +366,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
       if (canvas != null) {
          // canvas.addMouseListener(new GLMouseListener());
+         canvas.addMouseListener (myMouseHandler);
          canvas.addMouseListener (myMouseHandler);
          canvas.addMouseWheelListener (myMouseHandler);
          canvas.addMouseMotionListener (myMouseHandler);
@@ -411,11 +412,17 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    @Override
    public void init(GLAutoDrawable drawable) {
 
-      fireViewerListenersPreinit(drawable);
-
       this.drawable = drawable;
       this.gl = drawable.getGL().getGL2();
-
+      
+      if (DEBUG) {
+         System.out.println("GL: " + gl);
+         System.out.println ("Devide : ");
+         GLContext context = drawable.getContext ();
+         String contextHC = Integer.toHexString(System.identityHashCode(context));
+         System.out.println("Context: " + context.getClass ().getName () + "@" + contextHC + " (shared=" + context.isShared () + ")");
+      }
+      
       gl.setSwapInterval (1);
 
       if (gl.isExtensionAvailable("GL_ARB_multisample")) {
@@ -468,24 +475,30 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       // trigger rebuild of renderables
       buildInternalRenderList();
 
-      fireViewerListenersPostinit(drawable);
-      System.out.println("GL2 initialized");
+      if (DEBUG) {
+         System.out.println("GL2 initialized");
+      }
    }
 
    @Override
    public void dispose(GLAutoDrawable drawable) {
 
-      fireViewerListenersPredispose(drawable);
-
-      myGLResources.clearCached(gl);
+      // myGLResources.clearCached(gl);
 
       // nullify stuff
       this.drawable = null;
       this.gl = null;
+      
+      if (DEBUG) {
+         System.out.println("GL2 disposed");
+      }
 
-      fireViewerListenersPostdispose(drawable);
-      System.out.println("GL2 disposed");
-
+   }
+   
+   @Override
+   public void dispose () {
+      myGLResources.deregisterViewer (this);
+      super.dispose ();
    }
 
    public void resetViewVolume(int width, int height) {
@@ -765,7 +778,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    public void doDisplay (GLAutoDrawable drawable, int flags) {
       GL2 gl = drawable.getGL().getGL2();
-
+      
       // updates projection matrix
       if (resetViewVolume && resizeEnabled) {
          resetViewVolume();
@@ -1247,7 +1260,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       gl.glEnable (GL2.GL_NORMALIZE);
 
       int slices = props.getPointSlices();
-      int displayList = myGLResources.getPrimitiveManager().getSphereDisplayList(gl, slices, slices/2);
+      int displayList = myGLResources.getSphereDisplayList(gl, slices);
       gl.glCallList(displayList);
 
       if (!normalizeEnabled) {
@@ -1468,7 +1481,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       gl.glEnable (GL2.GL_NORMALIZE);
 
       int slices = props.getLineSlices();
-      int displayList = myGLResources.getPrimitiveManager().getTaperedEllipsoidDisplayList(gl, slices, slices/2);
+      int displayList = myGLResources.getTaperedEllipsoidDisplayList(gl, slices);
       gl.glCallList(displayList);
 
       if (!normalizeEnabled) {
@@ -2295,9 +2308,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    public void drawTriangles(RenderObject robj) {
       maybeUpdateMatrices(gl);
 
-      List<int[]> tris = robj.getTriangles();
-
-      if (tris != null) {
+      if (robj.hasTriangles()) {
 
          boolean normalizeEnabled = gl.glIsEnabled (GL2.GL_NORMALIZE);
          gl.glEnable (GL2.GL_NORMALIZE);
@@ -2312,50 +2323,65 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
          boolean useDisplayList = !selecting || !useColors;
          DisplayListPassport dlpp = null;
-         RenderObjectKey key = new RenderObjectKey(robj, DrawType.TRIANGLES);
-         RenderObjectVersion fingerprint = robj.getVersionInfo();
-         boolean compile = true;
 
-         if (useDisplayList) {
-            dlpp = getDisplayListPassport(gl, key);
-            if (dlpp == null) {
-               dlpp = allocateDisplayListPassport(gl, key, fingerprint);
-               compile = true;
-            } else {
-               compile = !(dlpp.compareExchangeFingerPrint(fingerprint));
-            }
-         }
-
-         if (compile) {
-            if (dlpp != null) {
-               gl.glNewList(dlpp.getList(), GL2.GL_COMPILE);
-            }
-
-            gl.glBegin(GL.GL_TRIANGLES);
-
-            for (int[] tri : tris) {
-               for (int i=0; i<3; ++i) {
-                  VertexIndexSet v = robj.getVertex(tri[i]);
-                  if (!selecting && useColors) {
-                     gl.glColor4ubv(robj.getColor(v.getColorIndex()), 0);
-                  }
-                  if (robj.hasNormals()) {
-                     gl.glNormal3fv(robj.getNormal(v.getNormalIndex()), 0);
-                  }
-                  gl.glVertex3fv(robj.getPosition(v.getPositionIndex()), 0);
+         synchronized(robj) {
+            RenderObjectKey key = new RenderObjectKey(robj, DrawType.TRIANGLES);
+            RenderObjectVersion fingerprint = robj.getVersionInfo();
+            boolean compile = true;
+   
+            if (useDisplayList) {
+               dlpp = myGLResources.getDisplayListPassport(gl, key);
+               if (dlpp == null) {
+                  dlpp = myGLResources.allocateDisplayListPassport(gl, key, fingerprint);
+                  compile = true;
+               } else {
+                  compile = !(dlpp.compareExchangeFingerPrint(fingerprint));
                }
             }
-
-            gl.glEnd();
-
-            if (dlpp != null) {
-               gl.glEndList();
-               gl.glCallList(dlpp.getList());
+   
+            if (compile) {
+               if (DEBUG) {
+                  System.out.println("Compiling dl:" + dlpp.getList ());
+               }
+               if (dlpp != null) {
+                  gl.glNewList(dlpp.getList(), GL2.GL_COMPILE);
+               }
+   
+               gl.glBegin(GL.GL_TRIANGLES);
+   
+               for (int[] tri : robj.getTriangles()) {
+                  for (int i=0; i<3; ++i) {
+                     VertexIndexSet v = robj.getVertex(tri[i]);
+                     if (!selecting && useColors) {
+                        gl.glColor4ubv(robj.getColor(v.getColorIndex()), 0);
+                     }
+                     if (robj.hasNormals()) {
+                        gl.glNormal3fv(robj.getNormal(v.getNormalIndex()), 0);
+                     }
+                     gl.glVertex3fv(robj.getPosition(v.getPositionIndex()), 0);
+                  }
+               }
+   
+               gl.glEnd();
+   
+               if (dlpp != null) {
+                  gl.glEndList();
+                  gl.glCallList(dlpp.getList());
+               }
+            } else {
+               
+               if (DEBUG) {
+                  boolean islist = gl.glIsList (dlpp.getList ());
+                  if (!islist) {
+                     System.err.println( "LIST " + dlpp.getList () + " is invalid!!" );
+                  } else {
+                     gl.glCallList(dlpp.getList());
+                  }
+               } else {
+                  gl.glCallList(dlpp.getList());
+               }
             }
-         } else {
-            gl.glCallList(dlpp.getList());
          }
-
 
          if (enableLighting) {
             setLightingEnabled(true);
@@ -2495,9 +2521,9 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          boolean compile = true;
 
          if (useDisplayList) {
-            dlpp = getDisplayListPassport(gl, key);
+            dlpp = myGLResources.getDisplayListPassport(gl, key);
             if (dlpp == null) {
-               dlpp = allocateDisplayListPassport(gl, key, fingerprint);
+               dlpp = myGLResources.allocateDisplayListPassport(gl, key, fingerprint);
                compile = true;
             } else {
                compile = !(dlpp.compareExchangeFingerPrint(fingerprint));
@@ -3009,9 +3035,9 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       boolean compile = true;
 
       if (useDisplayList) {
-         dlpp = getDisplayListPassport(gl, key);
+         dlpp = myGLResources.getDisplayListPassport(gl, key);
          if (dlpp == null) {
-            dlpp = allocateDisplayListPassport(gl, key, fingerprint);
+            dlpp = myGLResources.allocateDisplayListPassport(gl, key, fingerprint);
             compile = true;
          } else {
             compile = !(dlpp.compareExchangeFingerPrint(fingerprint));
@@ -3161,9 +3187,9 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          boolean compile = true;
 
          if (useDisplayList) {
-            dlpp = getDisplayListPassport(gl, key);
+            dlpp = myGLResources.getDisplayListPassport(gl, key);
             if (dlpp == null) {
-               dlpp = allocateDisplayListPassport(gl, key, fingerprint);
+               dlpp = myGLResources.allocateDisplayListPassport(gl, key, fingerprint);
                compile = true;
             } else {
                compile = !(dlpp.compareExchangeFingerPrint(fingerprint));
@@ -3216,8 +3242,8 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
       List<int[]> pnts = robj.getPoints();
 
-      int slices = 64; // hard-code for now?
-      int displayList = myGLResources.getPrimitiveManager().getSphereDisplayList(gl, slices, slices/2);
+      int slices = 64; // XXX hard-code for now?
+      int displayList = myGLResources.getSphereDisplayList(gl, slices);
 
       boolean selecting = isSelecting();
       boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
@@ -3228,9 +3254,9 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       boolean compile = true;
 
       if (useDisplayList) {
-         dlpp = getDisplayListPassport(gl, key);
+         dlpp = myGLResources.getDisplayListPassport(gl, key);
          if (dlpp == null) {
-            dlpp = allocateDisplayListPassport(gl, key, fingerprint);
+            dlpp = myGLResources.allocateDisplayListPassport(gl, key, fingerprint);
             compile = true;
          } else {
             compile = !(dlpp.compareExchangeFingerPrint(fingerprint));
@@ -3328,9 +3354,9 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       boolean compile = true;
 
       if (useDisplayList) {
-         dlpp = getDisplayListPassport(gl, key);
+         dlpp = myGLResources.getDisplayListPassport(gl, key);
          if (dlpp == null) {
-            dlpp = allocateDisplayListPassport(gl, key, fingerprint);
+            dlpp = myGLResources.allocateDisplayListPassport(gl, key, fingerprint);
             compile = true;
          } else {
             compile = !(dlpp.compareExchangeFingerPrint(fingerprint));
@@ -3421,52 +3447,54 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       myGLResources.removeRenderObject(key);
    }
 
+   /**
+    * Gets or allocates a display list given a key, and a "fingerprint" used
+    * to determine if the stored displaylist has different content
+    * @param key key for accessing display list
+    * @param fingerPrint identification for detecting if display list needs to be updated
+    * @return the display list, negative if it needs to be re-compiled
+    */
+   public int getDisplayList(GL2 gl, Object key, Object fingerPrint) {
+      DisplayListPassport pass = myGLResources.getDisplayListPassport(gl, key);
+      boolean compile;
+      if (pass == null) {
+         // allocate new display list
+         pass = myGLResources.allocateDisplayListPassport(gl, key, fingerPrint);
+         compile = true;
+      } else {
+         // check passport
+         compile = !(pass.compareExchangeFingerPrint(fingerPrint));
+      }
+      
+      if (compile) {
+         return -pass.getList ();
+      }
+      return pass.getList ();
+   }
+   
+   /**
+    * Frees the display list with associated key
+    * @param gl
+    * @param key
+    */
+   public void freeDisplayList(GL2 gl, Object key) {
+      myGLResources.freeDisplayList (gl, key);
+   }
+   
    public int getSphereDisplayList(GL2 gl, int slices) {
-      GL2PrimitiveManager primManager = myGLResources.getPrimitiveManager();
-      int list = primManager.getSphereDisplayList(gl, slices, slices/2);
+      int list = myGLResources.getSphereDisplayList(gl, slices);
       return list;
    }
 
    public int getCylinderDisplayList(GL2 gl, int slices, boolean capped) {
-      GL2PrimitiveManager primManager = myGLResources.getPrimitiveManager();
-      int list = primManager.getCylinderDisplayList(gl, slices, capped);
+      int list = myGLResources.getCylinderDisplayList(gl, slices, capped);
       return list;
    }
 
    public int getTaperedEllipsoidDisplayList(GL2 gl, int slices) {
-      GL2PrimitiveManager primManager = myGLResources.getPrimitiveManager();
-      int list = primManager.getTaperedEllipsoidDisplayList(gl, slices, slices/2);
+      int list = myGLResources.getTaperedEllipsoidDisplayList(gl, slices);
       return list;
    }
-
-   public DisplayListPassport getDisplayListPassport(GL2 gl, Object key) {
-      DisplayListManager dlMan = myGLResources.getDisplayListManager();
-      DisplayListPassport list = dlMan.getDisplayList(gl, key);
-      return list;
-   }
-
-   public DisplayListPassport allocateDisplayListPassport(GL2 gl, Object key, Object fingerPrint) {
-      DisplayListManager dlMan = myGLResources.getDisplayListManager();
-      DisplayListPassport list = dlMan.allocateDisplayList(gl, key, fingerPrint);
-      return list;
-   }
-
-   public int getDisplayList(GL2 gl, Object key) {
-      DisplayListManager dlMan = myGLResources.getDisplayListManager();
-      DisplayListPassport list = dlMan.getDisplayList(gl, key);
-      return list.getList();
-   }
-
-   public int allocateDisplayList(GL2 gl, Object key) {
-      DisplayListManager dlMan = myGLResources.getDisplayListManager();
-      DisplayListPassport list = dlMan.allocateDisplayList(gl, key);
-      return list.getList();
-   }
-
-   public void freeDisplayList(GL2 gl, Object key) {
-      DisplayListManager dlMan = myGLResources.getDisplayListManager();
-      dlMan.freeDisplayList(gl, key);
-   }
-
+   
 }
 

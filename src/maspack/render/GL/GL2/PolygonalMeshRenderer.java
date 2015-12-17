@@ -8,28 +8,27 @@ package maspack.render.GL.GL2;
 
 import java.util.ArrayList;
 
+import javax.media.opengl.GL2;
+
 import maspack.geometry.Face;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.render.GLTexture;
 import maspack.render.Material;
 import maspack.render.RenderProps;
 import maspack.render.RenderProps.Shading;
 import maspack.render.Renderer;
 import maspack.render.Renderer.SelectionHighlighting;
-import maspack.render.GLTexture;
 import maspack.render.TextureLoader;
 import maspack.render.TextureProps;
 import maspack.render.GL.GLHSVShader;
 import maspack.render.GL.GLRenderer;
 import maspack.render.GL.GLSupport;
-import maspack.render.GL.GL2.DisplayListManager.DisplayListPassport;
 import maspack.util.FunctionTimer;
 import maspack.util.InternalErrorException;
-
-import javax.media.opengl.GL2;
 
 public class PolygonalMeshRenderer {
 
@@ -455,41 +454,41 @@ public class PolygonalMeshRenderer {
       boolean useVertexColors = mesh.hasVertexColoring() && ((flags & Renderer.VERTEX_COLORING) != 0);
 
       boolean useDisplayList = false;
-      DisplayListPassport edgePP = null;
-      PolygonalMeshPrint edgePrint = null;
+      int displayList = 0;
       boolean compile = true;
       
       // timer.start();
 
       if (!(selecting && useVertexColors) ) {
          useDisplayList = true;
-         edgePrint = new PolygonalMeshPrint(mesh, Shading.FLAT, useVertexColors, false, EDGE_DISPLAY_LIST_ID);
+         PolygonalMeshPrint edgePrint = new PolygonalMeshPrint(mesh, Shading.FLAT, useVertexColors, false, EDGE_DISPLAY_LIST_ID);
          DisplayListKey edgeKey = new DisplayListKey(mesh, EDGE_DISPLAY_LIST_ID);
-         edgePP = viewer.getDisplayListPassport(gl, edgeKey);
-         if (edgePP == null) {
-            // allocate new list
-            edgePP = viewer.allocateDisplayListPassport(gl, edgeKey, edgePrint);
+         displayList = viewer.getDisplayList (gl, edgeKey, edgePrint);
+         if (displayList < 0) {
+            displayList = -displayList;
             compile = true;
+            useDisplayList = true;
          } else {
-            compile = !(edgePP.compareExchangeFingerPrint(edgePrint));
+            compile = false;
+            useDisplayList = (displayList > 0);
          }
       }
       
       GLSupport.checkAndPrintGLError(gl);
       
       if (!useDisplayList || compile) {
-         if (useDisplayList && edgePP != null) {
-            gl.glNewList (edgePP.getList(), GL2.GL_COMPILE);
+         if (useDisplayList) {
+            gl.glNewList (displayList, GL2.GL_COMPILE);
          }
          
          drawEdgesRaw (gl,useVertexColors, mesh, flags);
          
-         if (useDisplayList && edgePP != null) {
+         if (useDisplayList) {
             gl.glEndList();
-            gl.glCallList (edgePP.getList());
+            gl.glCallList (displayList);
          }
       } else {
-         gl.glCallList (edgePP.getList());
+         gl.glCallList (displayList);
       }
       
       GLSupport.checkAndPrintGLError(gl);
@@ -602,39 +601,39 @@ public class PolygonalMeshRenderer {
       }
       
       boolean useDisplayList = false;
-      DisplayListPassport facePP = null;
-      PolygonalMeshPrint facePrint = null;
+      int displayList = 0;
       boolean compile = true;
       
       if (!(selecting && useVertexColors)) {
          useDisplayList = true;
-         facePrint = new PolygonalMeshPrint(mesh, shading, useVertexColors, useTextures, FACE_DISPLAY_LIST_ID);
+         PolygonalMeshPrint facePrint = new PolygonalMeshPrint(mesh, shading, useVertexColors, useTextures, FACE_DISPLAY_LIST_ID);
          DisplayListKey faceKey = new DisplayListKey(mesh, FACE_DISPLAY_LIST_ID);
-         facePP = viewer.getDisplayListPassport(gl, faceKey);
-         if (facePP == null) {
-            // allocate new list
-            facePP = viewer.allocateDisplayListPassport(gl, faceKey, facePrint);
+         displayList = viewer.getDisplayList(gl, faceKey, facePrint);
+         if (displayList < 0) {
+            displayList = -displayList;
             compile = true;
+            useDisplayList = true;
          } else {
-            compile = !(facePP.compareExchangeFingerPrint(facePrint));
+            compile = false;
+            useDisplayList = (displayList > 0);
          }
       }
       
       GLSupport.checkAndPrintGLError(gl);
       
       if (!useDisplayList || compile) {
-         if (useDisplayList && facePP != null) {
-            gl.glNewList (facePP.getList(), GL2.GL_COMPILE);
+         if (useDisplayList) {
+            gl.glNewList (displayList, GL2.GL_COMPILE);
          }
 
          drawFacesRaw (gl, mesh, textureProps, flags);
 
-         if (useDisplayList && facePP != null) {
+         if (useDisplayList) {
             gl.glEndList();
-            gl.glCallList (facePP.getList());
+            gl.glCallList (displayList);
          }
       } else {
-         gl.glCallList (facePP.getList());  
+         gl.glCallList (displayList);  
       }
       GLSupport.checkAndPrintGLError(gl);
       

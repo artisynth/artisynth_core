@@ -22,7 +22,6 @@ import maspack.render.RenderProps.Shading;
 import maspack.render.Renderer;
 import maspack.render.GL.GL2.DisplayListKey;
 import maspack.render.GL.GL2.GL2Viewer;
-import maspack.render.GL.GL2.DisplayListManager.DisplayListPassport;
 import artisynth.core.modelbase.RenderableComponentList;
 
 import javax.media.opengl.GL2;
@@ -177,31 +176,33 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
          }
 
          boolean useDisplayList = !renderer.isSelecting();
-         DisplayListPassport facePP = null;
+         int displayList = 0;
          int facePrint = getFaceVersion();
          boolean compile = true;
          
          if (useDisplayList) {
-            facePP = viewer.getDisplayListPassport(gl, faceKey);
-            if (facePP == null) {
-               facePP = viewer.allocateDisplayListPassport(gl, faceKey, facePrint);
+            displayList = viewer.getDisplayList(gl, faceKey, facePrint);
+            if (displayList < 0) {
+               displayList = -displayList;
                compile = true;
+               useDisplayList = true;
             } else {
-               compile = !(facePP.compareExchangeFingerPrint(facePrint));
+               compile = false;
+               useDisplayList = (displayList > 0);
             }
          }
          
          if (!useDisplayList || compile) {
-            if (facePP != null) {
-               gl.glNewList(facePP.getList(), GL2.GL_COMPILE);
+            if (useDisplayList) {
+               gl.glNewList(displayList, GL2.GL_COMPILE);
             }
             drawFaces (gl, renderer, props, faceMat);
-            if (facePP != null) {
+            if (useDisplayList) {
                gl.glEndList();
-               gl.glCallList(facePP.getList());
+               gl.glCallList(displayList);
             }
          } else {
-            gl.glCallList(facePP.getList());
+            gl.glCallList(displayList);
          }
 
          if (useVertexColouring) {
@@ -251,31 +252,33 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
          }
 
          boolean useDisplayList = !renderer.isSelecting();
-         DisplayListPassport edgePP = null;
+         int displayList = 0;
          int edgePrint = getEdgeVersion();
          boolean compile = true;
          
          if (useDisplayList) {
-            edgePP = viewer.getDisplayListPassport(gl, edgeKey);
-            if (edgePP == null) {
-               edgePP = viewer.allocateDisplayListPassport(gl, edgeKey, edgePrint);
+            displayList = viewer.getDisplayList(gl, edgeKey, edgePrint);
+            if (displayList < 0) {
+               displayList = -displayList;
                compile = true;
+               useDisplayList = true;
             } else {
-               compile = !(edgePP.compareExchangeFingerPrint(edgePrint));
+               compile = false;
+               useDisplayList = (displayList > 0);
             }
          }
          
          if (!useDisplayList || compile) {
-            if (edgePP != null) {
-               gl.glNewList(edgePP.getList(), GL2.GL_COMPILE);
+            if (useDisplayList) {
+               gl.glNewList(displayList, GL2.GL_COMPILE);
             }
             drawEdges(gl, props);
-            if (edgePP != null) {
+            if (useDisplayList) {
                gl.glEndList();
-               gl.glCallList(edgePP.getList());
+               gl.glCallList(displayList);
             }
          } else {
-            gl.glCallList(edgePP.getList());
+            gl.glCallList(displayList);
          }
 
          if (reenableLighting) {

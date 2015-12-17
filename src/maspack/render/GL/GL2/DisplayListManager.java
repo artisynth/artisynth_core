@@ -59,22 +59,6 @@ public class DisplayListManager {
          this.fingerPrint = fp;
       }
       
-      //      /**
-      //       * Uses the internal 'finger print' to check if
-      //       * it matches the supplied print
-      //       * @return
-      //       */
-      //      public boolean compareFingerPrint(Object fp) {
-      //         if (fingerPrint == null) {
-      //            if (fp == null) {
-      //               return true;
-      //            } else {
-      //               return false;
-      //            }
-      //         }
-      //         return fingerPrint.equals(fp);
-      //      }
-      
       /**
        * Uses the internal 'finger print' to check if
        * it matches the supplied print.  Replaces
@@ -97,12 +81,12 @@ public class DisplayListManager {
       }
    }
    
-   protected static class ListInfo {
+   protected static class DisplayListInfo {
       Object key;
       int useCnt;
       DisplayListPassport id;
 
-      ListInfo (Object key, int listId, Object fingerPrint) {
+      DisplayListInfo (Object key, int listId, Object fingerPrint) {
          this.key = key;
          this.id = new DisplayListPassport(listId, fingerPrint);
          this.useCnt = 0;
@@ -130,7 +114,7 @@ public class DisplayListManager {
    }
 
    private LinkedList<Integer> myFreeLists;
-   private HashMap<Object,ListInfo> myDisplayLists;
+   private HashMap<Object,DisplayListInfo> myDisplayLists;
    private HashMap<Integer,Object> myKeyMap;
    
    public DisplayListManager() {
@@ -151,15 +135,15 @@ public class DisplayListManager {
       }
    }
 
-   protected ListInfo getListInfo (Object key) {
+   protected DisplayListInfo getListInfo (Object key) {
       synchronized (myDisplayLists) {
          return myDisplayLists.get (key);
       }
    }
 
-   protected void putListInfo (Object key, ListInfo info) {
+   protected void putListInfo (Object key, DisplayListInfo info) {
       synchronized (myDisplayLists) {
-         ListInfo oldInfo = myDisplayLists.put (key, info);
+         DisplayListInfo oldInfo = myDisplayLists.put (key, info);
          if (oldInfo != null && oldInfo.getList() != info.getList()) {
             freeDisplayList(oldInfo.getList());
          }
@@ -169,7 +153,7 @@ public class DisplayListManager {
 
    private  void removeDisplayList (Object key) {
       synchronized (myDisplayLists) {
-         ListInfo info = myDisplayLists.remove(key);
+         DisplayListInfo info = myDisplayLists.remove(key);
          if (info != null) {
             myKeyMap.remove(info.getList());
             freeDisplayList(info.getList());
@@ -179,7 +163,7 @@ public class DisplayListManager {
 
    private  void removeDisplayList (GL2 gl, Object key) {
       synchronized (myDisplayLists) {
-         ListInfo info = myDisplayLists.remove(key);
+         DisplayListInfo info = myDisplayLists.remove(key);
          if (info != null) {
             myKeyMap.remove(info.getList());
             freeDisplayList(gl, info.getList());
@@ -199,7 +183,7 @@ public class DisplayListManager {
 
    private  void clearDisplayLists (GL2 gl) {
       synchronized (myDisplayLists) {
-         for (ListInfo info : myDisplayLists.values()) {
+         for (DisplayListInfo info : myDisplayLists.values()) {
             gl.glDeleteLists (info.getList(), 1);
          }
          myDisplayLists.clear();
@@ -227,21 +211,21 @@ public class DisplayListManager {
       return num;
    }
 
-   protected ListInfo allocDisplayList(GL2 gl, Object key, Object fingerPrint) {
+   protected DisplayListInfo allocDisplayList(GL2 gl, Object key, Object fingerPrint) {
       clearIfNeeded (gl);
       clearFreeLists (gl);
       int listNum = allocDisplayList (gl);
       if (listNum < 0) {
          return null;
       }
-      ListInfo info = new ListInfo (key, listNum, fingerPrint);
+      DisplayListInfo info = new DisplayListInfo (key, listNum, fingerPrint);
       putListInfo (key, info);
       info.useCnt++;
       return info;
    }
    
    public DisplayListPassport allocateDisplayList (GL2 gl, Object key, Object fingerPrint) {
-      ListInfo li = allocDisplayList(gl, key, fingerPrint);
+      DisplayListInfo li = allocDisplayList(gl, key, fingerPrint);
       if (li == null) {
          return null;
       }
@@ -254,7 +238,7 @@ public class DisplayListManager {
 
    public DisplayListPassport getDisplayList (GL2 gl, Object key) {
       clearIfNeeded (gl);
-      ListInfo info = getListInfo (key);
+      DisplayListInfo info = getListInfo (key);
       if (info == null) {
          return null;
       }
@@ -296,8 +280,8 @@ public class DisplayListManager {
    public void releaseUnused(GL2 gl) {
       LinkedList<Object> toRemove = new LinkedList<>();
       synchronized(myDisplayLists) {
-         for (Entry<Object,ListInfo> entry : myDisplayLists.entrySet()) {
-            ListInfo li = entry.getValue();
+         for (Entry<Object,DisplayListInfo> entry : myDisplayLists.entrySet()) {
+            DisplayListInfo li = entry.getValue();
             if (li.getUseCount() <= 0) {
                toRemove.add(entry.getKey());
             }
@@ -311,8 +295,8 @@ public class DisplayListManager {
    
    public void resetUseCounts(GL2 gl) {
       synchronized(myDisplayLists) {
-         for (Entry<Object,ListInfo> entry : myDisplayLists.entrySet()) {
-            ListInfo li = entry.getValue();
+         for (Entry<Object,DisplayListInfo> entry : myDisplayLists.entrySet()) {
+            DisplayListInfo li = entry.getValue();
             li.resetUseCount();
          }
       }

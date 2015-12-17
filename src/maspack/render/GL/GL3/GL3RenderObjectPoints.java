@@ -703,7 +703,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       int vidx = 0;
       for (int pg=0; pg<robj.numPointGroups(); ++pg) {
          List<int[]> pnts = robj.getPoints(pg);
-         
+
          for (int[] pnt : pnts) {
             VertexIndexSet v = robj.getVertex(pnt[0]);
             

@@ -568,6 +568,10 @@ public class RenderObject {
     * @return the index of the position added
     */
    public int addPosition(float x, float y, float z) {
+      return addPosition (new float[]{x,y,z});
+   }
+   
+   public int addPosition (float[] pos) {
       if (verticesCommitted) {
          throw new RuntimeException("Cannot add positions after vertices are Committed");
       }
@@ -575,7 +579,6 @@ public class RenderObject {
       if (stateInfo.numPositionSets == 0) {
          createPositionSet();
       }
-      float[] pos = new float[]{x,y,z};
       int pidx = numPositions;
       for (List<float[]> pset : positions) {
          pset.add(pos);
@@ -583,7 +586,7 @@ public class RenderObject {
       numPositions++;
       positionsModified = true;
       totalModified = true;
-      return pidx;
+      return pidx;      
    }
 
    /**
@@ -689,6 +692,14 @@ public class RenderObject {
       return positionsDynamic;
    }
 
+   /**
+    * Indicate that the positions have been modified.
+    */
+   public void setPositionsModified() {
+      positionsModified = true;
+      totalModified = true;
+   }
+   
    /**
     * Creates a new, alternative set of positions that can be used by vertices.  
     * This allows sharing of other resources, such as normals, colors and 

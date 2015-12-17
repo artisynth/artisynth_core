@@ -10,6 +10,8 @@ import java.io.*;
 
 import maspack.geometry.GeometryTransformer;
 import maspack.render.*;
+import maspack.render.RenderProps.PointStyle;
+import maspack.render.RenderProps.Shading;
 import maspack.util.*;
 import maspack.matrix.*;
 import maspack.properties.*;
@@ -19,13 +21,13 @@ import maspack.render.*;
 
 import java.util.*;
 
-import com.jogamp.opengl.*;
-
 public class PointList<P extends Point> extends RenderableComponentList<P>
 implements ScalableUnits {
    protected static final long serialVersionUID = 1;
    private double myPointDamping;
    private PropertyMode myPointDampingMode = PropertyMode.Inherited;
+
+   private RenderObject myRob = null;
 
    public static PropertyList myProps =
       new PropertyList (PointList.class, RenderableComponentList.class);
@@ -88,7 +90,60 @@ implements ScalableUnits {
       return RenderProps.createPointProps (this);
    }
 
+   private final int REG_GRP = 0;
+   private final int SEL_GRP = 1;
+
+   protected void buildRenderObject() {
+      myRob = new RenderObject();
+      int nump = size();
+      myRob.createPointGroup();
+      myRob.createPointGroup();
+      for (int i=0; i<nump; i++) {
+         Point p = get(i);
+         myRob.addPosition (p.myRenderCoords);
+         myRob.addVertex (i);
+         if (p.getRenderProps() == null) {
+            myRob.pointGroup (p.isSelected() ? SEL_GRP : REG_GRP);
+            myRob.addPoint (i);            
+         }
+      }
+   }
+
+   protected boolean renderObjectValid() {
+      if (myRob == null) {
+         return false;
+      }
+      int nump = size();
+      int idxSel = 0;
+      int idxReg = 0;
+      int numReg = myRob.numPoints(REG_GRP);
+      int numSel = myRob.numPoints(SEL_GRP);
+      for (int i=0; i<nump; i++) {
+         Point p = get(i);
+         if (p.getRenderProps() == null) {
+            if (p.isSelected()) {
+               if (idxSel >= numSel || myRob.getPoint(SEL_GRP,idxSel++)[0] != i) {
+                  return false;
+               }
+            }
+            else {
+               if (idxReg >= numReg || myRob.getPoint(REG_GRP,idxReg++)[0] != i) {
+                  return false;
+               }
+            }
+         }
+      }
+      if (idxSel != numSel || idxReg != numReg) {
+         return false;
+      }
+      return true;
+   }
+
    public void prerender (RenderList list) {
+      if (!renderObjectValid()) {
+         buildRenderObject();
+      }
+      myRob.setPositionsModified();      
       for (int i = 0; i < size(); i++) {
          Point p = get (i);
          if (p.getRenderProps() != null) {
@@ -100,12 +155,103 @@ implements ScalableUnits {
       }
    }
 
-   public boolean rendersSubComponents() {
-      return true;
+   private void drawPoints (
+      Renderer renderer, RenderProps props, boolean selected) {
+   
+      switch (props.getPointStyle()) {
+         case POINT: {
+            int size = props.getPointSize();
+            if (size > 0) {
+               renderer.setLightingEnabled (false);
+               renderer.setColor (props.getPointColorArray(), selected);
+               renderer.drawPoints (myRob, PointStyle.POINT, size);
+               renderer.setLightingEnabled (true);
+            }
+            break;
+         }
+         case SPHERE: {
+            double rad = props.getPointRadius();
+            if (rad > 0) {
+               Shading savedShading = renderer.getShadeModel();
+               renderer.setMaterialAndShading (
+                  props, props.getPointMaterial(), selected);
+               renderer.drawPoints (myRob, PointStyle.SPHERE, rad);
+               renderer.setShadeModel(savedShading);
+            }
+            break;
+         }
+      }
    }
 
    public void render (Renderer renderer, int flags) {
-      renderer.drawPoints (myRenderProps, iterator());
+      RenderProps props = myRenderProps;
+      if (renderer.isSelecting()) {
+         int nump = size();
+         switch (props.getPointStyle()) {
+            case POINT: {
+               int size = props.getPointSize();
+               if (size > 0) {
+                  renderer.setPointSize (size);
+                  for (int i=0; i<nump; i++) {
+                     Point p = get(i);
+                     if (renderer.isSelectable (p)) {
+                        renderer.beginSelectionQuery (i);
+                        renderer.drawPoint (p.getRenderCoords());
+                        renderer.endSelectionQuery ();
+                     }
+                  } 
+                  renderer.setPointSize (1);
+               }
+               break;
+            }
+            case SPHERE: {
+               for (int i=0; i<nump; i++) {
+                  Point p = get(i);
+                  if (renderer.isSelectable (p)) {
+                     renderer.beginSelectionQuery (i);
+                     renderer.drawSphere (props, p.getRenderCoords());
+                     renderer.endSelectionQuery ();
+                  } 
+               }
+               break;
+            }
+         }
+      }
+      else if (myRob != null) {
+         int numReg = myRob.numPoints(REG_GRP);
+         int numSel = myRob.numPoints(SEL_GRP);
+
+         System.out.println ("numReg=" + numReg + " numSel=" + numSel);
+         if (numReg > 0) {
+            myRob.pointGroup (REG_GRP);
+            drawPoints (renderer, props, /*selected=*/false);
+         }
+         if (numSel > 0) {
+            myRob.pointGroup (SEL_GRP);
+            drawPoints (renderer, props, /*selected=*/true);
+         }
+      }
+      //renderer.drawPoints (myRenderProps, iterator());
+   }
+
+   // public void prerender (RenderList list) {
+   //    for (int i = 0; i < size(); i++) {
+   //       Point p = get (i);
+   //       if (p.getRenderProps() != null) {
+   //          list.addIfVisible (p);
+   //       }
+   //       else {
+   //          p.prerender (list);
+   //       }
+   //    }
+   // }
+
+   // public void render (Renderer renderer, int flags) {
+   //    renderer.drawPoints (myRenderProps, iterator());
+   // }
+
+   public boolean rendersSubComponents() {
+      return true;
    }
 
    /**
@@ -140,6 +286,13 @@ implements ScalableUnits {
       for (int i = 0; i < size(); i++) {
          get (i).scaleMass (s);
       }
+   }
+
+   public void notifyParentOfChange (ComponentChangeEvent e) {
+      if (e instanceof StructureChangeEvent) {
+         myRob = null;
+      }
+      super.notifyParentOfChange (e);
    }
 
 }

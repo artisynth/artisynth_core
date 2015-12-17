@@ -1004,9 +1004,9 @@ public class GL3Viewer extends GLViewer {
             db = mb.getDiffuse();
          }
 
-         if (myFrontMaterial != mf || myBackMaterial != mb 
-         || !colorsMatch(myFrontColor, df) || !colorsMatch(myBackColor, db) ) {
-
+         if (myFrontMaterial != mf || myBackMaterial != mb ||
+             !colorsMatch(myFrontColor, df) || !colorsMatch(myBackColor, db) ) {
+            
             progManager.setMaterials(gl, mf, df, mb, db);
             myFrontMaterial = mf;
             myFrontColor = df;

@@ -6,20 +6,23 @@
  */
 package artisynth.core.mechmodels;
 
-import java.io.*;
+import java.util.LinkedList;
 
-import maspack.geometry.GeometryTransformer;
-import maspack.render.*;
+import artisynth.core.modelbase.ComponentChangeEvent;
+import artisynth.core.modelbase.RenderableComponentList;
+import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.util.ScalableUnits;
+import maspack.properties.PropertyList;
+import maspack.properties.PropertyMode;
+import maspack.properties.PropertyUtils;
+import maspack.render.PointRenderProps;
+import maspack.render.RenderList;
+import maspack.render.RenderObject;
+import maspack.render.RenderProps;
 import maspack.render.RenderProps.PointStyle;
 import maspack.render.RenderProps.Shading;
-import maspack.util.*;
-import maspack.matrix.*;
-import maspack.properties.*;
-import artisynth.core.modelbase.*;
-import artisynth.core.util.ScalableUnits;
-import maspack.render.*;
-
-import java.util.*;
+import maspack.render.RenderableUtils;
+import maspack.render.Renderer;
 
 public class PointList<P extends Point> extends RenderableComponentList<P>
 implements ScalableUnits {
@@ -95,6 +98,7 @@ implements ScalableUnits {
 
    protected void buildRenderObject() {
       myRob = new RenderObject();
+      myRob.setPositionsDynamic (true);
       int nump = size();
       myRob.createPointGroup();
       myRob.createPointGroup();
@@ -108,11 +112,29 @@ implements ScalableUnits {
          }
       }
    }
+   
+   protected void updateRenderObject() {
+      int nump = size();
+      
+      // delete old point groups, keep old vertices
+      myRob.clearPrimitives ();
+      myRob.createPointGroup(); // regular
+      myRob.createPointGroup(); // selected
+      for (int i=0; i<nump; i++) {
+         Point p = get(i);
+         if (p.getRenderProps() == null) {
+            myRob.pointGroup (p.isSelected() ? SEL_GRP : REG_GRP);
+            myRob.addPoint (i);            
+         }
+      }
+   }
 
    protected boolean renderObjectValid() {
       if (myRob == null) {
          return false;
       }
+      
+      // checks if selection has changed
       int nump = size();
       int idxSel = 0;
       int idxReg = 0;
@@ -140,10 +162,17 @@ implements ScalableUnits {
    }
 
    public void prerender (RenderList list) {
-      if (!renderObjectValid()) {
-         buildRenderObject();
+      
+      // maybe update render object
+      if (myRob == null || myRob.numVertices () != size ()) {
+         buildRenderObject ();
+      } else if (!renderObjectValid()) {
+         // only update point groups
+         updateRenderObject();
       }
-      myRob.setPositionsModified();      
+      
+      // assume positions have been modified
+      myRob.notifyPositionsModified();      
       for (int i = 0; i < size(); i++) {
          Point p = get (i);
          if (p.getRenderProps() != null) {
@@ -221,6 +250,7 @@ implements ScalableUnits {
          int numReg = myRob.numPoints(REG_GRP);
          int numSel = myRob.numPoints(SEL_GRP);
 
+         
          System.out.println ("numReg=" + numReg + " numSel=" + numSel);
          if (numReg > 0) {
             myRob.pointGroup (REG_GRP);

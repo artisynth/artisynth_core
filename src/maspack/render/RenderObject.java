@@ -468,6 +468,7 @@ public class RenderObject {
    boolean colorsDynamic;
    boolean texturesDynamic;
 
+   // pointers to locations within positions/normals/colors
    ArrayList<float[]> currentPositionSet;
    ArrayList<float[]> currentNormalSet;
    ArrayList<byte[]> currentColorSet;
@@ -490,6 +491,7 @@ public class RenderObject {
    ArrayList<ArrayList<int[]>> lines;
    ArrayList<ArrayList<int[]>> triangles;
 
+   // pointers to positions in points, lines, triangles
    ArrayList<int[]> currentPointGroup;
    ArrayList<int[]> currentLineGroup;
    ArrayList<int[]> currentTriangleGroup;
@@ -571,7 +573,14 @@ public class RenderObject {
       return addPosition (new float[]{x,y,z});
    }
    
-   public int addPosition (float[] pos) {
+   /**
+    * Adds a position by reference.  If the position is modified outside of this render
+    * object, then you must manually flag the change using {@link #notifyPositionsModified()}.
+    * Otherwise, renderers are free to assume the positions have not changed.
+    * @param xyz position vector
+    * @return an index referring to the added position
+    */
+   public int addPosition (float[] xyz) {
       if (verticesCommitted) {
          throw new RuntimeException("Cannot add positions after vertices are Committed");
       }
@@ -581,11 +590,10 @@ public class RenderObject {
       }
       int pidx = numPositions;
       for (List<float[]> pset : positions) {
-         pset.add(pos);
+         pset.add(xyz);
       }
       numPositions++;
-      positionsModified = true;
-      totalModified = true;
+      notifyPositionsModified ();
       return pidx;      
    }
 
@@ -598,7 +606,18 @@ public class RenderObject {
     * is added with the supplied position)
     */
    public int position(float x, float y, float z) {
-      int pidx = addPosition(x, y, z);
+      return position(new float[]{x,y,z});
+   }
+   
+   /**
+    * Sets the current 3D position to be used in following vertices, BY REFERENCE.
+    * @see {@link #addPosition(float[])}, {@link #position(int)}
+    * @param pos
+    * @return The index of the new position (valid only if a vertex
+    * is added with the supplied position)
+    */
+   public int position(float[] pos) {
+      int pidx = addPosition(pos);
       currentPositionIdx = pidx;
       return pidx;
    }
@@ -620,6 +639,17 @@ public class RenderObject {
     * @param z
     */
    public void setPosition(int pidx, float x, float y, float z) {
+      setPosition (pidx, new float[]{x,y,z});
+   }
+   
+   /**
+    * Updates the values of the position with index pidx, to the provide
+    * values by reference.  
+    * 
+    * @param pidx position to modify
+    * @param xyz new position values by reference
+    */
+   public void setPosition(int pidx, float[] xyz) {
       if (verticesCommitted) {
          if (!positionsDynamic) {
             throw new RuntimeException("Cannot modify non-dynamic positions once vertices are Committed");
@@ -627,9 +657,8 @@ public class RenderObject {
             throw new RuntimeException("Cannot modify positions when streaming");
          }
       }
-      currentPositionSet.set(pidx, new float[]{x,y,z}); // need to over-write in case multiple sets
-      positionsModified = true;
-      totalModified = true;
+      currentPositionSet.set(pidx, xyz);
+      notifyPositionsModified ();
    }
 
    /**
@@ -647,8 +676,8 @@ public class RenderObject {
    }
 
    /**
-    * Retrieves the position at the supplied index.  The returned position
-    * should not be modified.
+    * Retrieves the position at the supplied index.  If the returned position
+    * is modified, then {@link #notifyPositionsModified()} must be manually called.
     * @param pidx position index
     * @return position {x,y,z}
     */
@@ -695,7 +724,7 @@ public class RenderObject {
    /**
     * Indicate that the positions have been modified.
     */
-   public void setPositionsModified() {
+   public void notifyPositionsModified() {
       positionsModified = true;
       totalModified = true;
    }
@@ -739,8 +768,7 @@ public class RenderObject {
       currentPositionSet = newPositions;
       stateInfo.positionSetIdx = idx;
       stateInfo.numPositionSets++;
-      positionsModified = true;
-      totalModified = true;
+      notifyPositionsModified ();
       return idx;
    }
 
@@ -772,7 +800,8 @@ public class RenderObject {
 
    /**
     * Retrieves the position at the supplied index in a given set.  
-    * The returned position should not be modified.
+    * If the returned positions are modified, then the render
+    * object must be notified with {@link #notifyPositionsModified()}.
     * @param pset position set index
     * @param pidx position index
     * @return position {x,y,z}
@@ -785,8 +814,9 @@ public class RenderObject {
    }
 
    /**
-    * Retrieves the full list of positions in a given set.  This list should 
-    * not be modified.
+    * Retrieves the full list of positions in a given set.  If entries
+    * in this list are modified, the render object must be notified
+    * with {@link #notifyPositionsModified()}.
     * @param pset position set index
     * @return list of positions.
     */
@@ -827,6 +857,19 @@ public class RenderObject {
     * @return the index of the normal added
     */
    public int addNormal(float x, float y, float z) {
+      return addNormal(new float[]{x,y,z});
+   }
+   
+   /**
+    * Adds an indexable 3D normal by reference.  If the normal
+    * is modified outside of this render object, this object
+    * must be notified with {@link #notifyNormalsModified()}.
+    * Otherwise, renders are free to assume there has been
+    * no change.
+    * @param nrm the normal to add
+    * @return the index of the normal added
+    */
+   public int addNormal(float[] nrm) {
       if (verticesCommitted) {
          throw new RuntimeException("Cannot add normals after vertices are Committed");
       }
@@ -834,14 +877,12 @@ public class RenderObject {
       if (stateInfo.numNormalSets == 0) {
          createNormalSet();
       }
-      float[] nrm = new float[]{x,y,z};
       int nidx = numNormals;
       for (List<float[]> nset : normals) {
          nset.add(nrm);
       }
       numNormals++;
-      normalsModified = true;
-      totalModified = true;
+      notifyNormalsModified();
       return nidx;
    }
 
@@ -855,11 +896,22 @@ public class RenderObject {
     * is added with the supplied normal)
     */
    public int normal(float x, float y, float z) {
-      int nidx = addNormal(x,y,z);
+      return normal(new float[]{x,y,z});
+   }
+
+   /**
+    * Sets the current 3D normal, by reference, to be used in following vertices.
+    * @see {@link #addNormal(float[])}, {@link #normal(int)}
+    * @param nrm
+    * @return The index of the new normal (valid only if a vertex is added
+    * with the supplied normal).
+    */
+   public int normal(float[] nrm) {
+      int nidx = addNormal(nrm);
       currentNormalIdx = nidx;
       return nidx;
    }
-
+   
    /**
     * Sets the current normal to be used in following vertices, 
     * based on normal index. 
@@ -877,6 +929,15 @@ public class RenderObject {
     * @param z
     */
    public void setNormal(int nidx, float x, float y, float z) {
+      setNormal(nidx, new float[]{x,y,z});
+   }
+   
+   /**
+    * Updates the new normal, by reference, with index nidx.
+    * @param nidx normal to modify
+    * @param nrm the new normal
+    */
+   public void setNormal(int nidx, float[] nrm) {
       if (verticesCommitted) {
          if (!normalsDynamic) {
             throw new RuntimeException("Cannot modify non-dynamic normals once vertices are Committed");
@@ -884,9 +945,8 @@ public class RenderObject {
             throw new RuntimeException("Cannot modify normals when streaming");
          }
       }
-      currentNormalSet.set(nidx, new float[]{x,y,z});
-      normalsModified = true;
-      totalModified = true;
+      currentNormalSet.set(nidx, nrm);
+      notifyNormalsModified();
    }
 
    /**
@@ -904,8 +964,9 @@ public class RenderObject {
    }
 
    /**
-    * Retrieves the normal at the supplied index.  The returned normal
-    * should not be modified.
+    * Retrieves the normal at the supplied index.  If the returned
+    * normal is modified, then {@link #notifyNormalsModified()} must
+    * be called.
     * @param nidx normal index
     * @return normal {x,y,z}
     */
@@ -917,8 +978,9 @@ public class RenderObject {
    }
 
    /**
-    * Retrieves the full list of normals.  This list should not
-    * be modified.
+    * Retrieves the full list of normals.  If the contents
+    * of this list are modified, the method {@link #notifyNormalsModified()}
+    * must be called.
     * @return list of normals.
     */
    public List<float[]> getNormals() {
@@ -947,6 +1009,14 @@ public class RenderObject {
     */
    public boolean isNormalsDynamic() {
       return normalsDynamic;
+   }
+   
+   /**
+    * Indicate that the normals have been modified.
+    */
+   public void notifyNormalsModified() {
+      normalsModified = true;
+      totalModified = true;
    }
 
    /**
@@ -988,8 +1058,7 @@ public class RenderObject {
       currentNormalSet = newNormals;
       stateInfo.normalSetIdx = idx;
       stateInfo.numNormalSets++;
-      normalsModified = true;
-      totalModified = true;
+      notifyNormalsModified ();
       return idx;
    }
 
@@ -1021,7 +1090,7 @@ public class RenderObject {
 
    /**
     * Retrieves the normal at the supplied index in a given set.  
-    * The returned normal should not be modified.
+    * If the returned normal is modified, then {@link #notifyNormalsModified()} must be manually called.
     * @param nset normal set index
     * @param nidx normal index
     * @return normal {x,y,z}
@@ -1077,7 +1146,7 @@ public class RenderObject {
     * @return the index of the color added
     */
    public int addColor(byte r, byte g, byte b, byte a) {
-      return addColorInternal(new byte[]{r,g,b,a});
+      return addColor(new byte[]{r,g,b,a});
    }
    
    /**
@@ -1089,7 +1158,7 @@ public class RenderObject {
     * @return the index of the color added
     */
    public int addColor(int r, int g, int b, int a) {
-      return addColorInternal(new byte[]{(byte)r,(byte)g,(byte)b,(byte)a});
+      return addColor(new byte[]{(byte)r,(byte)g,(byte)b,(byte)a});
    }
    
    /**
@@ -1101,12 +1170,12 @@ public class RenderObject {
     * @return the index of the color added
     */
    public int addColor(float r, float g, float b, float a) {
-      return addColorInternal(new byte[]{
+      return addColor(new byte[]{
          (byte)(255*r),(byte)(255*g),(byte)(255*b),(byte)(255*a)});
    }
 
    /**
-    * Adds an indexable color
+    * Adds an indexable color.
     * @param rgba 4-float vector
     * @return the index of the color added
     */
@@ -1115,24 +1184,19 @@ public class RenderObject {
       if (rgba.length > 3) {
          alpha = rgba[3];
       }
-      return addColorInternal(new byte[]{
+      return addColor(new byte[]{
          (byte)(255*rgba[0]),(byte)(255*rgba[1]),(byte)(255*rgba[2]),(byte)(255*alpha)});
    }
    
    /**
-    * Adds an indexable color
+    * Adds an indexable color by reference.  If the color is modified
+    * outside of this object, then {@link #notifyColorsModified()} must
+    * be called.  Otherwise, renderers are free to assume the render object
+    * has not changed.
     * @param rgba {red, green, blue, alpha}
     * @return the index of the color added
     */
    public int addColor(byte[] rgba) {
-      byte[] rgbaCopy = Arrays.copyOf(rgba, 4);
-      if (rgba.length < 4) {
-         rgbaCopy[3] = (byte)255;
-      }
-      return addColorInternal (rgbaCopy);
-   }
-   
-   private int addColorInternal(byte[] rgba) {
       if (verticesCommitted) {
          throw new RuntimeException("Cannot add colors after vertices are Committed");
       }
@@ -1145,9 +1209,13 @@ public class RenderObject {
          cset.add(rgba);
       }
       numColors++;
+      notifyColorsModified ();
+      return cidx;
+   }
+   
+   public void notifyColorsModified() {
       colorsModified = true;
       totalModified = true;
-      return cidx;
    }
    
    /**
@@ -1196,7 +1264,8 @@ public class RenderObject {
    }
 
    /**
-    * Sets the current color to be used in following vertices.
+    * Sets the current color, by reference, to be used in following vertices.
+    * @see {@link #addColor(byte[])}, {@link #color(int)}
     * @param rgba {red, green, blue, alpha}
     * @return The index of the new color (valid only if a vertex
     * is added with the supplied color)
@@ -1253,7 +1322,7 @@ public class RenderObject {
    }
    
    /**
-    * Updates the values of the color with index cidx.
+    * Updates the values of the color, by reference, with index cidx.
     * @param cidx color to modify
     * @param rgba {red, green, blue, alpha}
     */
@@ -1266,8 +1335,7 @@ public class RenderObject {
          }
       }
       currentColorSet.set(cidx, rgba);
-      colorsModified = true;
-      totalModified = true;
+      notifyColorsModified();
    }
 
    /**
@@ -1285,8 +1353,8 @@ public class RenderObject {
    }
 
    /**
-    * Retrieves the color at the supplied index.  The returned color
-    * should not be modified.
+    * Retrieves the color at the supplied index.  If the returned color
+    * is modified, then {@link #notifyColorsModified()} must be manually called.
     * @param cidx color index
     * @return color {red, green, blue, alpha}
     */
@@ -1368,8 +1436,7 @@ public class RenderObject {
       currentColorSet = newColors;
       stateInfo.colorSetIdx = idx;
       stateInfo.numColorSets++;
-      colorsModified = true;
-      totalModified = true;
+      notifyColorsModified();
       return idx;
    }
 
@@ -1401,7 +1468,7 @@ public class RenderObject {
 
    /**
     * Retrieves the color at the supplied index in a given set.  
-    * The returned color should not be modified.
+    * If the returned color is modified, then {@link #notifyColorsModified()} must be manually called.
     * @param cset color set index
     * @param cidx color index
     * @return color {r,g,b,a}
@@ -1455,6 +1522,19 @@ public class RenderObject {
     * @return the index of the texture coordinate added
     */
    public int addTextureCoord(float x, float y) {
+      return addTextureCoord (new float[]{x,y});
+   }
+   
+   /**
+    * Adds an indexable 2D texture coordinate by reference.
+    * If the texture coordinates are modified outside of this object,
+    * then {@link #notifyTextureCoordsModified()} must be called.  Otherwise,
+    * renderers are free to assume the render object has not changed.
+    * @param xy
+    * @return the index of the texture coordinate added
+    */
+   public int addTextureCoord(float[] xy) {
+      
       if (verticesCommitted) {
          throw new RuntimeException("Cannot add texture coordinates after vertices are Committed");
       }
@@ -1462,15 +1542,18 @@ public class RenderObject {
       if (stateInfo.numTextureSets == 0) {
          createTextureCoordSet();
       }
-      float[] tex = new float[]{x,y};
       int tidx = numTextures;
       for (List<float[]> tset : textures) {
-         tset.add(tex);
+         tset.add(xy);
       }
       numTextures++;
+      notifyTextureCoordsModified();
+      return tidx;
+   }
+   
+   public void notifyTextureCoordsModified() {
       texturesModified = true;
       totalModified = true;
-      return tidx;
    }
 
    /**
@@ -1481,7 +1564,18 @@ public class RenderObject {
     * is added with the supplied texture coordinate)
     */
    public int textureCoord(float x, float y) {
-      int tidx = addTextureCoord(x, y);
+     return textureCoord(new float[] {x,y});
+   }
+   
+   /**
+    * Sets the current 2D texture coordinate, by reference, to be used in following vertices.
+    * @see {@link #addTextureCoord(float[])}, {@link #textureCoord(int)}
+    * @param xy the 2D coordinate
+    * @return The index of the new texture coordinate (valid only if a vertex
+    * is added with the supplied texture coordinate)
+    */
+   public int textureCoord(float[] xy) {
+      int tidx = addTextureCoord(xy);
       currentTextureIdx = tidx;
       return tidx;
    }
@@ -1502,6 +1596,16 @@ public class RenderObject {
     * @param y
     */
    public void setTextureCoord(int tidx, float x, float y) {
+      setTextureCoord (tidx, new float[] {x,y});
+   }
+   
+   /**
+    * Updates the values of the texture coordinate with index tidx by reference.
+    * @param tidx
+    * @param xy
+    */
+   public void setTextureCoord(int tidx, float[] xy) {
+      
       if (verticesCommitted) {
          if (!texturesDynamic) {
             throw new RuntimeException("Cannot modify non-dynamic texture coordinates once vertices are Committed");
@@ -1509,9 +1613,8 @@ public class RenderObject {
             throw new RuntimeException("Cannot modify texture coordinates when streaming");
          }
       }
-      currentTextureSet.set(tidx, new float[]{x,y});
-      texturesModified = true;
-      totalModified = true;
+      currentTextureSet.set(tidx, xy);
+      notifyTextureCoordsModified();
    }
 
    /**
@@ -1529,8 +1632,8 @@ public class RenderObject {
    }
 
    /**
-    * Retrieves the texture coordinate at the supplied index.  The returned 
-    * coordinate should not be modified.
+    * Retrieves the texture coordinate at the supplied index.  If the returned texture
+    * coordinate is modified, then {@link #notifyTextureCoordsModified()} must be manually called.
     * @param tidx position index
     * @return texture coordinate {x,y}
     */
@@ -1616,8 +1719,7 @@ public class RenderObject {
       currentTextureSet = newTextures;
       stateInfo.textureSetIdx = idx;
       stateInfo.numTextureSets++;
-      texturesModified = true;
-      totalModified = true;
+      notifyTextureCoordsModified();
       return idx;
    }
 
@@ -1650,7 +1752,8 @@ public class RenderObject {
 
    /**
     * Retrieves the texture coordinate at the supplied index in a given set.  
-    * The returned texture coordinate should not be modified.
+    * If the returned texture coordindate
+    * is modified, then {@link #notifyTextureCoordsModified()} must be manually called.
     * @param tset texture coordinate set index
     * @param tidx texture coordinate index
     * @return texture coordinate {x,y}
@@ -1777,7 +1880,19 @@ public class RenderObject {
     * @return vertex index
     */
    public int vertex(float x, float y, float z) {
-      int pIdx = addPosition(x, y, z);
+      return vertex(new float[] {x,y,z});
+   }
+   
+   /**
+    * Add a vertex at the supplied position using the currently active
+    * normal, color and texture coordinate (if available).  A new position
+    * is created, by reference, to accommodate the vertex.
+    * @see {@link #addPosition(float[])}, {@link #addVertex(int)}
+    * @param xyz
+    * @return vertex index
+    */
+   public int vertex(float[] xyz) {
+      int pIdx = addPosition(xyz);
       return addVertex(pIdx);
    }
    
@@ -1975,6 +2090,14 @@ public class RenderObject {
    //=========================================================================
 
    /**
+    * Informs the render object that points have been modified outside of its control.
+    */
+   public void notifyPointsModified() {
+      pointsModified = true;
+      totalModified = true;
+   }
+   
+   /**
     * Creates a point primitive at the supplied vertex.
     * @param vidx vertex index for point
     */
@@ -1987,8 +2110,7 @@ public class RenderObject {
          createPointGroup();
       }
       currentPointGroup.add(new int[]{vidx});
-      pointsModified = true;
-      totalModified = true;
+      notifyPointsModified();
    }
 
    /**
@@ -2008,7 +2130,7 @@ public class RenderObject {
     * @param v array of length 3 (x,y,z)
     */
    public void addPoint(float[] v) {
-      int vidx = vertex(v[0], v[1], v[2]);
+      int vidx = vertex(v);
       addPoint(vidx);
    }
 
@@ -2074,8 +2196,7 @@ public class RenderObject {
       int idx = stateInfo.numPointGroups;
       stateInfo.pointGroupIdx = idx;
       stateInfo.numPointGroups++;
-      pointsModified = true;
-      totalModified = true;
+      notifyPointsModified ();
       return idx;
    }
 
@@ -2145,6 +2266,14 @@ public class RenderObject {
       }
       return versionInfo.pointsVersion;
    }
+   
+   /**
+    * Informs the render object that lines have been modified outside of its control.
+    */
+   public void notifyLinesModified() {
+      linesModified = true;
+      totalModified = true;
+   }
 
    protected void addLinePair(int[] vidxs) {
       if (primitivesCommitted) {
@@ -2154,8 +2283,7 @@ public class RenderObject {
          createLineGroup();
       }
       currentLineGroup.add(vidxs);
-      linesModified = true;
-      totalModified = true;
+      notifyLinesModified ();
    }
 
    /**
@@ -2324,8 +2452,7 @@ public class RenderObject {
       int idx = stateInfo.numLineGroups;
       stateInfo.lineGroupIdx = idx;
       stateInfo.numLineGroups++;
-      linesModified = true;
-      totalModified = true;
+      notifyLinesModified ();
       return idx;
    }
 
@@ -2396,6 +2523,14 @@ public class RenderObject {
       return versionInfo.linesVersion;
    }
 
+   /**
+    * Informs the render object that triangles have been modified outside of its control.
+    */
+   public void notifyTrianglesModified() {
+      trianglesModified = true;
+      totalModified = true;
+   }
+   
    protected void addTriangleTriple(int[] vidxs) {
       if (primitivesCommitted) {
          throw new RuntimeException("Cannot create a new primitive after primitives have been Committed");
@@ -2404,8 +2539,7 @@ public class RenderObject {
          createTriangleGroup();
       }
       currentTriangleGroup.add(vidxs);
-      trianglesModified = true;
-      totalModified = true;
+      notifyTrianglesModified ();
    }
 
    /**
@@ -2586,8 +2720,7 @@ public class RenderObject {
       int idx = stateInfo.numTriangleGroups;
       stateInfo.triangleGroupIdx = idx;
       stateInfo.numTriangleGroups++;
-      trianglesModified = true;
-      totalModified = true;
+      notifyTrianglesModified ();
       return idx;
    }
 

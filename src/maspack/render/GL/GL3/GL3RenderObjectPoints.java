@@ -492,7 +492,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       normalInfo = createAttributeInfoArrays(robj.numNormalSets());
       colorInfo = createAttributeInfoArrays(robj.numColorSets());
       textureInfo = createAttributeInfoArrays(robj.numTextureCoordSets());
-      pointGroupOffsets = new int[robj.numPointGroups()];
+      pointGroupOffsets = new int[robj.numPointGroups()+1];  // add extra one for total number of points
       pointInfo = new AttributeInfo();
 
       staticVertexSize = 0;
@@ -507,6 +507,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          pointGroupOffsets[pg] = numPointsTotal;
          numPointsTotal += robj.numPoints(pg);
       }
+      pointGroupOffsets[robj.numPointGroups()] = numPointsTotal;
       
       // determine necessary sizes
       if (robj.hasPositions()) {
@@ -932,6 +933,8 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
      
       GL3VertexAttributeArray[] attribs = new GL3VertexAttributeArray[nattribs];
       
+      // number of points in this group
+      int pointCount = pointGroupOffsets[oidx+1] - pointGroupOffsets[oidx];
       
       // position
       int aidx = 0;
@@ -944,7 +947,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          int offset = pinfo.offset + pointGroupOffsets[oidx]*pinfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.VERTEX_POSITION, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), offset, pinfo.stride, pinfo.count);
+            bs.isNormalized(), offset, pinfo.stride, pointCount);
          aidx++;
       }
       
@@ -958,7 +961,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          int offset = ninfo.offset + pointGroupOffsets[oidx]*ninfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.VERTEX_NORMAL, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), offset, ninfo.stride, ninfo.count);
+            bs.isNormalized(), offset, ninfo.stride, pointCount);
          aidx++;
       }
       
@@ -972,7 +975,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          int offset = cinfo.offset + pointGroupOffsets[oidx]*cinfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.VERTEX_COLOR, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), offset, cinfo.stride, cinfo.count);
+            bs.isNormalized(), offset, cinfo.stride, pointCount);
          aidx++;
       }
       
@@ -986,7 +989,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          int offset = tinfo.offset + pointGroupOffsets[oidx]*tinfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.VERTEX_TEXTURE, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), offset, tinfo.stride, tinfo.count);
+            bs.isNormalized(), offset, tinfo.stride, pointCount);
          aidx++;
       }
      
@@ -1028,6 +1031,9 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          GL3VertexAttribute.INSTANCE_SCALE, GL.GL_FLOAT, 1, false, pointInfo.offset,
          pointInfo.stride, pointInfo.count, robj.numPoints(oidx));
       
+
+      // number of points in this group
+      int pointCount = pointGroupOffsets[oidx+1] - pointGroupOffsets[oidx];
       
       // position
       if (pidx >= 0) {
@@ -1038,7 +1044,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          int offset = pinfo.offset + pointGroupOffsets[oidx]*pinfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.INSTANCE_POSITION, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), offset, pinfo.stride, pinfo.count, 1);
+            bs.isNormalized(), offset, pinfo.stride, pointCount, 1);
          aidx++;
       }
       
@@ -1067,7 +1073,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          int offset = cinfo.offset + pointGroupOffsets[oidx]*cinfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.INSTANCE_COLOR, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), offset, cinfo.stride, cinfo.count, 1);
+            bs.isNormalized(), offset, cinfo.stride, pointCount, 1);
          aidx++;
       }
       
@@ -1081,7 +1087,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          int offset = tinfo.offset + pointGroupOffsets[oidx]*tinfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.INSTANCE_TEXTURE, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), offset, tinfo.stride, tinfo.count, 1);
+            bs.isNormalized(), offset, tinfo.stride, pointCount, 1);
          aidx++;
       }
      

@@ -557,7 +557,7 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
       normalInfo = createAttributeInfoArrays(robj.numNormalSets());
       colorInfo = createAttributeInfoArrays(robj.numColorSets());
       textureInfo = createAttributeInfoArrays(robj.numTextureCoordSets());
-      lineGroupOffsets = new int[robj.numLineGroups ()];
+      lineGroupOffsets = new int[robj.numLineGroups ()+1];
       lineInfo = createAttributeInfoArrays(2);
       headInfo = createAttributeInfoArrays(2);
 
@@ -573,6 +573,7 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
     	  lineGroupOffsets[lg] = numLinesTotal;
          numLinesTotal += robj.numLines(lg);
       }
+      lineGroupOffsets[robj.numLineGroups ()] = numLinesTotal;
       
       // determine necessary sizes
       if (robj.hasPositions()) {
@@ -1059,6 +1060,8 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
      
       GL3VertexAttributeArray[] attribs = new GL3VertexAttributeArray[nattribs];
       
+      int lineCount2 = 2*(lineGroupOffsets[oidx+1] - lineGroupOffsets[oidx]);
+      
       // position
       int aidx = 0;
       if (pidx >= 0) {
@@ -1067,10 +1070,10 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
          BufferStorage bs = positionPutter.storage();
          
          // adjust offset based on line group index
-         int offset = pinfo.offset + lineGroupOffsets[oidx]*pinfo.stride;
+         int offset = pinfo.offset + 2*lineGroupOffsets[oidx]*pinfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.VERTEX_POSITION, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), offset, pinfo.stride, pinfo.count);
+            bs.isNormalized(), offset, pinfo.stride, lineCount2);
          aidx++;
       }
       
@@ -1081,10 +1084,10 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
          BufferStorage bs = normalPutter.storage();
          
          // adjust offset based on line group index
-         int offset = ninfo.offset + lineGroupOffsets[oidx]*ninfo.stride;
+         int offset = ninfo.offset + 2*lineGroupOffsets[oidx]*ninfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.VERTEX_NORMAL, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), offset, ninfo.stride, ninfo.count);
+            bs.isNormalized(), offset, ninfo.stride, lineCount2);
          aidx++;
       }
       
@@ -1096,10 +1099,10 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
          BufferStorage bs = colorPutter.storage();
          
          // adjust offset based on line group index
-         int offset = cinfo.offset + lineGroupOffsets[oidx]*cinfo.stride;
+         int offset = cinfo.offset + 2*lineGroupOffsets[oidx]*cinfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.VERTEX_COLOR, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), offset, cinfo.stride, cinfo.count);
+            bs.isNormalized(), offset, cinfo.stride, lineCount2);
          aidx++;
       }
       
@@ -1111,10 +1114,10 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
          BufferStorage bs = texturePutter.storage();
          
          // adjust offset based on line group index
-         int offset = tinfo.offset + lineGroupOffsets[oidx]*tinfo.stride;
+         int offset = tinfo.offset + 2*lineGroupOffsets[oidx]*tinfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.VERTEX_TEXTURE, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), offset, tinfo.stride, tinfo.count);
+            bs.isNormalized(), offset, tinfo.stride, lineCount2);
          aidx++;
       }
      
@@ -1147,6 +1150,9 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
       if (tidx >= 0) {
          tidx+=2;     // line texture
       }
+      
+      // number of lines in this group
+      int lineCount = lineGroupOffsets[oidx+1] - lineGroupOffsets[oidx];
      
       GL3VertexAttributeArray[] attribs = new GL3VertexAttributeArray[nattribs];
       for (int i=0; i<pattribs.length; ++i) {
@@ -1158,13 +1164,13 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
       // radius
       attribs[aidx++] = new GL3VertexAttributeArray(vbos[radiusLengthInfo[0].vboIndex], 
          GL3VertexAttribute.LINE_RADIUS, GL.GL_FLOAT, 1, false, radiusLengthInfo[0].offset,
-            radiusLengthInfo[0].stride, radiusLengthInfo[0].count, robj.numLines(oidx));
+            radiusLengthInfo[0].stride, radiusLengthInfo[0].count, lineCount);
       
       // head length
       if (hasLengthOffset) {
          attribs[aidx++] = new GL3VertexAttributeArray(vbos[radiusLengthInfo[1].vboIndex], 
             GL3VertexAttribute.LINE_LENGTH_OFFSET, GL.GL_FLOAT, 4, false, radiusLengthInfo[1].offset,
-               radiusLengthInfo[1].stride, radiusLengthInfo[1].count, robj.numLines(oidx));
+               radiusLengthInfo[1].stride, radiusLengthInfo[1].count, lineCount);
       }
       
       // position
@@ -1174,13 +1180,13 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
          BufferStorage bs = positionPutter.storage();
          
          // adjust offset based on line group index
-         int offset = pinfo.offset + lineGroupOffsets[oidx]*pinfo.stride;
+         int offset = pinfo.offset + 2*lineGroupOffsets[oidx]*pinfo.stride;
          attribs[aidx++] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.LINE_BOTTOM_POSITION, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), offset, 2*pinfo.stride, pinfo.count/2, 1);
+            bs.isNormalized(), offset, 2*pinfo.stride, lineCount, 1);
          attribs[aidx++] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.LINE_TOP_POSITION, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), offset+pinfo.stride, 2*pinfo.stride, pinfo.count/2, 1);
+            bs.isNormalized(), offset+pinfo.stride, 2*pinfo.stride, lineCount, 1);
       }
       
       // color
@@ -1191,13 +1197,13 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
          BufferStorage bs = colorPutter.storage();
          
          // adjust offset based on line group index
-         int offset = cinfo.offset + lineGroupOffsets[oidx]*cinfo.stride;
+         int offset = cinfo.offset + 2*lineGroupOffsets[oidx]*cinfo.stride;
          attribs[aidx++] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.LINE_BOTTOM_COLOR, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), offset, 2*cinfo.stride, cinfo.count/2, 1);
+            bs.isNormalized(), offset, 2*cinfo.stride, lineCount, 1);
          attribs[aidx++] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.LINE_TOP_COLOR, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), offset+cinfo.stride, 2*cinfo.stride, cinfo.count/2, 1);
+            bs.isNormalized(), offset+cinfo.stride, 2*cinfo.stride, lineCount, 1);
       }
       
       // texture
@@ -1208,18 +1214,18 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
          BufferStorage bs = texturePutter.storage();
          
          // adjust offset based on line group index
-         int offset = tinfo.offset + lineGroupOffsets[oidx]*tinfo.stride;
+         int offset = tinfo.offset + 2*lineGroupOffsets[oidx]*tinfo.stride;
          attribs[aidx++] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.LINE_BOTTOM_TEXTURE, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), offset, 2*tinfo.stride, tinfo.count/2, 1);
+            bs.isNormalized(), offset, 2*tinfo.stride, lineCount, 1);
          attribs[aidx++] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.LINE_TOP_TEXTURE, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), offset+tinfo.stride, 2*tinfo.stride, tinfo.count/2, 1);
+            bs.isNormalized(), offset+tinfo.stride, 2*tinfo.stride, lineCount, 1);
       }
      
       GL3Object glo = new GL3Object(gl, attribs, object.getGL3ElementAttribute());
       glo.setDrawInfo(object.getStart(), object.getCount(), object.getMode(), 
-         robj.numLines(oidx));
+         lineCount);
       
       return glo;
    }

@@ -97,53 +97,49 @@ implements ScalableUnits {
    private final int SEL_GRP = 1;
 
    protected void buildRenderObject() {
+
       myRob = new RenderObject();
       myRob.setPositionsDynamic (true);
-      int nump = size();
       myRob.createPointGroup();
       myRob.createPointGroup();
-      for (int i=0; i<nump; i++) {
-         Point p = get(i);
-         myRob.addPosition (p.myRenderCoords);
+      for (int i=0; i<size(); i++) {
+         Point pnt = get(i);
+         myRob.addPosition (pnt.myRenderCoords);
          myRob.addVertex (i);
-         if (p.getRenderProps() == null) {
-            myRob.pointGroup (p.isSelected() ? SEL_GRP : REG_GRP);
+         if (pnt.getRenderProps() == null) {
+            myRob.pointGroup (pnt.isSelected() ? SEL_GRP : REG_GRP);
             myRob.addPoint (i);            
          }
       }
+      myRob.setPositionsDynamic (true);
+      myRob.commit();
    }
    
    protected void updateRenderObject() {
-      int nump = size();
       
       // delete old point groups, keep old vertices
       myRob.clearPrimitives ();
       myRob.createPointGroup(); // regular
       myRob.createPointGroup(); // selected
-      for (int i=0; i<nump; i++) {
-         Point p = get(i);
-         if (p.getRenderProps() == null) {
-            myRob.pointGroup (p.isSelected() ? SEL_GRP : REG_GRP);
+      for (int i=0; i<size(); i++) {
+         Point pnt = get(i);
+         if (pnt.getRenderProps() == null) {
+            myRob.pointGroup (pnt.isSelected() ? SEL_GRP : REG_GRP);
             myRob.addPoint (i);            
          }
       }
    }
 
    protected boolean renderObjectValid() {
-      if (myRob == null) {
-         return false;
-      }
-      
       // checks if selection has changed
-      int nump = size();
       int idxSel = 0;
       int idxReg = 0;
       int numReg = myRob.numPoints(REG_GRP);
       int numSel = myRob.numPoints(SEL_GRP);
-      for (int i=0; i<nump; i++) {
-         Point p = get(i);
-         if (p.getRenderProps() == null) {
-            if (p.isSelected()) {
+      for (int i=0; i<size(); i++) {
+         Point pnt = get(i);
+         if (pnt.getRenderProps() == null) {
+            if (pnt.isSelected()) {
                if (idxSel >= numSel || myRob.getPoint(SEL_GRP,idxSel++)[0] != i) {
                   return false;
                }
@@ -164,9 +160,10 @@ implements ScalableUnits {
    public void prerender (RenderList list) {
       
       // maybe update render object
-      if (myRob == null || myRob.numVertices () != size ()) {
+      if (myRob == null) {
          buildRenderObject ();
-      } else if (!renderObjectValid()) {
+      }
+      else if (!renderObjectValid()) {
          // only update point groups
          updateRenderObject();
       }
@@ -174,12 +171,12 @@ implements ScalableUnits {
       // assume positions have been modified
       myRob.notifyPositionsModified();      
       for (int i = 0; i < size(); i++) {
-         Point p = get (i);
-         if (p.getRenderProps() != null) {
-            list.addIfVisible (p);
+         Point pnt = get (i);
+         if (pnt.getRenderProps() != null) {
+            list.addIfVisible (pnt);
          }
          else {
-            p.prerender (list);
+            pnt.prerender (list);
          }
       }
    }
@@ -215,43 +212,42 @@ implements ScalableUnits {
    public void render (Renderer renderer, int flags) {
       RenderProps props = myRenderProps;
       if (renderer.isSelecting()) {
-         int nump = size();
-         switch (props.getPointStyle()) {
-            case POINT: {
-               int size = props.getPointSize();
-               if (size > 0) {
-                  renderer.setPointSize (size);
-                  for (int i=0; i<nump; i++) {
-                     Point p = get(i);
-                     if (renderer.isSelectable (p)) {
-                        renderer.beginSelectionQuery (i);
-                        renderer.drawPoint (p.getRenderCoords());
-                        renderer.endSelectionQuery ();
-                     }
-                  } 
-                  renderer.setPointSize (1);
-               }
-               break;
+         PointStyle style = props.getPointStyle();
+         if (style == PointStyle.POINT) {
+            int size = props.getPointSize();
+            if (size > 0) {
+               renderer.setPointSize (size);
             }
-            case SPHERE: {
-               for (int i=0; i<nump; i++) {
-                  Point p = get(i);
-                  if (renderer.isSelectable (p)) {
-                     renderer.beginSelectionQuery (i);
-                     renderer.drawSphere (props, p.getRenderCoords());
-                     renderer.endSelectionQuery ();
-                  } 
-               }
-               break;
+            else {
+               return;
             }
+         }           
+         for (int i=0; i<size(); i++) {
+            Point pnt = get(i);        
+            if (pnt.getRenderProps() == null && renderer.isSelectable (pnt)) {
+               float[] v0 = pnt.myRenderCoords;
+               renderer.beginSelectionQuery (i);
+               switch (style) {
+                  case POINT: {
+                     renderer.drawPoint (v0);
+                     break;
+                  }
+                  case SPHERE: {
+                     renderer.drawSphere (props, v0);
+                     break;
+                  }
+               }
+               renderer.endSelectionQuery ();
+            }
+         }
+         if (style == PointStyle.POINT) {
+            renderer.setPointSize (1);
          }
       }
       else if (myRob != null) {
          int numReg = myRob.numPoints(REG_GRP);
          int numSel = myRob.numPoints(SEL_GRP);
 
-         
-         System.out.println ("numReg=" + numReg + " numSel=" + numSel);
          if (numReg > 0) {
             myRob.pointGroup (REG_GRP);
             drawPoints (renderer, props, /*selected=*/false);
@@ -266,12 +262,12 @@ implements ScalableUnits {
 
    // public void prerender (RenderList list) {
    //    for (int i = 0; i < size(); i++) {
-   //       Point p = get (i);
-   //       if (p.getRenderProps() != null) {
-   //          list.addIfVisible (p);
+   //       Point pnt = get (i);
+   //       if (pnt.getRenderProps() != null) {
+   //          list.addIfVisible (pnt);
    //       }
    //       else {
-   //          p.prerender (list);
+   //          pnt.prerender (list);
    //       }
    //    }
    // }

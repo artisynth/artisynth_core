@@ -336,7 +336,7 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
       int vidx = 0;
       
       for (int lg=0; lg<robj.numLineGroups(); ++lg) {
-         List<int[]> lines = robj.getPoints(lg);
+         List<int[]> lines = robj.getLines(lg);
          
          for (int[] line : lines) {
             for (int j=0; j<2; ++j) {

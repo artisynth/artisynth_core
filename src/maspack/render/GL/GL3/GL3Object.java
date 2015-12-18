@@ -275,9 +275,11 @@ public class GL3Object extends GL3ResourceBase implements GL3Drawable {
             drawElements(gl, mode, start, count, elements.getType());
             break;
          case INSTANCED_ARRAY:
+            // XXX maybe add base vertex here!!!
             drawInstancedArray(gl, mode, start, count, numInstances);
             break;
          case INSTANCED_ELEMENT:
+            // XXX maybe add base vertex here!!!
             drawInstancedElements(gl, mode, start, count, numInstances);
             break;
          default:

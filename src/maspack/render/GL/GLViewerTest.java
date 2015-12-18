@@ -22,6 +22,9 @@ import maspack.render.Rotator3d;
 import maspack.render.Translator3d;
 
 class GLViewerTest extends GLViewerFrame implements ActionListener {
+
+   private static final long serialVersionUID = -5575271706227591496L;
+
    protected JButton myQuitButton;
    protected JMenuItem myJackItem;
    protected JMenuItem myTranslatorItem;

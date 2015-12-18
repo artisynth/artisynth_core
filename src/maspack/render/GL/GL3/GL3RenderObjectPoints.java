@@ -57,6 +57,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       int count;        // number of items
    }
    
+   @SuppressWarnings("unused")
    private static class GLOInfo {
       int positionSet;
       int normalSet;
@@ -77,11 +78,12 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       }
    }
    
-   AttributeInfo[] positionInfo;
-   AttributeInfo[] normalInfo;
-   AttributeInfo[] colorInfo;
-   AttributeInfo[] textureInfo;
-   AttributeInfo   pointInfo;  // radius
+   AttributeInfo[] positionInfo;  // position buffer(s)
+   AttributeInfo[] normalInfo;    // normal buffer(s)
+   AttributeInfo[] colorInfo;     // color buffer(s)
+   AttributeInfo[] textureInfo;   // texture buffer(s)
+   AttributeInfo   pointInfo;     // radius
+   int[] pointGroupOffsets;       // separation between point groups (in # of vertices, for binding correct location)
    
    int staticVertexSize;
    int staticMask;
@@ -116,6 +118,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       normalInfo = null;
       colorInfo = null;
       textureInfo = null;
+      pointGroupOffsets = null;
       
       lastVersionInfo = null;
       lastPointObject = null;
@@ -415,6 +418,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       normalInfo = null;
       colorInfo = null;
       textureInfo = null;
+      pointGroupOffsets = null;
       
       // clear object storage
       if (glos != null) {
@@ -488,6 +492,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       normalInfo = createAttributeInfoArrays(robj.numNormalSets());
       colorInfo = createAttributeInfoArrays(robj.numColorSets());
       textureInfo = createAttributeInfoArrays(robj.numTextureCoordSets());
+      pointGroupOffsets = new int[robj.numPointGroups()];
       pointInfo = new AttributeInfo();
 
       staticVertexSize = 0;
@@ -499,6 +504,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
 
       int numPointsTotal = 0;
       for (int pg = 0; pg < robj.numPointGroups(); ++pg) {
+         pointGroupOffsets[pg] = numPointsTotal;
          numPointsTotal += robj.numPoints(pg);
       }
       
@@ -580,51 +586,51 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       }
 
       // strides and vbo index
-      int vboIdx = 0;
-      if (staticVertexSize > 0) {
-         vboIdx++;
+      int staticVBOIdx = 0;
+      int dynamicVBOIdx = 0;
+      if (staticVertexSize > 0 && dynamicVertexSize > 0) {
+         dynamicVBOIdx = 1;
       }
       if (robj.hasPositions()) {
          if (!streaming && robj.isPositionsDynamic()) {
             positionInfo[0].stride = dynamicVertexSize;
-            positionInfo[0].vboIndex = vboIdx;
+            positionInfo[0].vboIndex = dynamicVBOIdx;
          } else {
             positionInfo[0].stride = staticVertexSize;
-            positionInfo[0].vboIndex = 0;
+            positionInfo[0].vboIndex = staticVBOIdx;
          }
       }
       if (robj.hasNormals()) {
          if (!streaming && robj.isNormalsDynamic()) {
             normalInfo[0].stride = dynamicVertexSize;
-            normalInfo[0].vboIndex = vboIdx;
+            normalInfo[0].vboIndex = dynamicVBOIdx;
          } else {
             normalInfo[0].stride = staticVertexSize;
-            normalInfo[0].vboIndex = 0;
+            normalInfo[0].vboIndex = staticVBOIdx;
          }
       }
       if (robj.hasColors()) {
          if (!streaming && robj.isColorsDynamic()) {
             colorInfo[0].stride = dynamicVertexSize;
-            colorInfo[0].vboIndex = vboIdx;
+            colorInfo[0].vboIndex = dynamicVBOIdx;
          } else {
             colorInfo[0].stride = staticVertexSize;
-            colorInfo[0].vboIndex = 0;
+            colorInfo[0].vboIndex = staticVBOIdx;
          }
       }
       if (robj.hasTextureCoords()) {
          if (!streaming && robj.isTextureCoordsDynamic()) {
             textureInfo[0].stride = dynamicVertexSize;
-            textureInfo[0].vboIndex = vboIdx;
+            textureInfo[0].vboIndex = dynamicVBOIdx;
          } else {
             textureInfo[0].stride = staticVertexSize;
-            textureInfo[0].vboIndex = 0;
+            textureInfo[0].vboIndex = staticVBOIdx;
          }
       }
 
-      // dynamic
-      if (!streaming && robj.isDynamic()) {
-         vboIdx++;
-      }
+      // next index is whatever is after dynamic (which==static if no dynamic info)
+      int vboIdx = dynamicVBOIdx+1;
+      
       // extra attributes
       if (robj.numPositionSets() > 1) {
          for (int i=1; i<positionInfo.length; ++i) {
@@ -703,7 +709,6 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       int vidx = 0;
       for (int pg=0; pg<robj.numPointGroups(); ++pg) {
          List<int[]> pnts = robj.getPoints(pg);
-
          for (int[] pnt : pnts) {
             VertexIndexSet v = robj.getVertex(pnt[0]);
             
@@ -798,7 +803,6 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       buffs[vboIdx].rewind();
       vbos[vboIdx].fill(gl, buffs[vboIdx], GL.GL_ARRAY_BUFFER, GL.GL_DYNAMIC_DRAW);
       vboIdx++;
-      
    }
    
    private int getBufferUsage(boolean dynamic, boolean streaming) {
@@ -928,16 +932,19 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
      
       GL3VertexAttributeArray[] attribs = new GL3VertexAttributeArray[nattribs];
       
+      
       // position
       int aidx = 0;
       if (pidx >= 0) {
          AttributeInfo pinfo = positionInfo[pidx];
          BufferObject vbo = vbos[pinfo.vboIndex];
          BufferStorage bs = positionPutter.storage();
-         
+
+         // adjust offset based on point group index
+         int offset = pinfo.offset + pointGroupOffsets[oidx]*pinfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.VERTEX_POSITION, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), pinfo.offset, pinfo.stride, pinfo.count);
+            bs.isNormalized(), offset, pinfo.stride, pinfo.count);
          aidx++;
       }
       
@@ -946,9 +953,12 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          AttributeInfo ninfo = normalInfo[nidx];
          BufferObject vbo = vbos[ninfo.vboIndex];
          BufferStorage bs = normalPutter.storage();
+         
+         // adjust offset based on point group index
+         int offset = ninfo.offset + pointGroupOffsets[oidx]*ninfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.VERTEX_NORMAL, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), ninfo.offset, ninfo.stride, ninfo.count);
+            bs.isNormalized(), offset, ninfo.stride, ninfo.count);
          aidx++;
       }
       
@@ -958,9 +968,11 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          AttributeInfo cinfo = colorInfo[cidx];
          BufferObject vbo = vbos[cinfo.vboIndex];
          BufferStorage bs = colorPutter.storage();
+         // adjust offset based on point group index
+         int offset = cinfo.offset + pointGroupOffsets[oidx]*cinfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.VERTEX_COLOR, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), cinfo.offset, cinfo.stride, cinfo.count);
+            bs.isNormalized(), offset, cinfo.stride, cinfo.count);
          aidx++;
       }
       
@@ -970,9 +982,11 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          AttributeInfo tinfo = textureInfo[tidx];
          BufferObject vbo = vbos[tinfo.vboIndex];
          BufferStorage bs = texturePutter.storage();
+         // adjust offset based on point group index
+         int offset = tinfo.offset + pointGroupOffsets[oidx]*tinfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.VERTEX_TEXTURE, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), tinfo.offset, tinfo.stride, tinfo.count);
+            bs.isNormalized(), offset, tinfo.stride, tinfo.count);
          aidx++;
       }
      
@@ -1020,10 +1034,11 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          AttributeInfo pinfo = positionInfo[pidx];
          BufferObject vbo = vbos[pinfo.vboIndex];
          BufferStorage bs = positionPutter.storage();
-         
+         // adjust offset based on point group index
+         int offset = pinfo.offset + pointGroupOffsets[oidx]*pinfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.INSTANCE_POSITION, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), pinfo.offset, pinfo.stride, pinfo.count, 1);
+            bs.isNormalized(), offset, pinfo.stride, pinfo.count, 1);
          aidx++;
       }
       
@@ -1034,9 +1049,11 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       //         BufferObject vbo = vbos[ninfo.vboIndex];
       //         BufferStorage bs = colorPutter.storage();
       //         // over-ride vertex normal?
+      //         // adjust offset based on point group index
+      //         int offset = ninfo.offset + pointGroupOffsets[oidx]*ninfo.stride;
       //         attribs[aidx] = new GL3VertexAttributeArray(
       //            vbo, GL3VertexAttribute.VERTEX_NORMAL, GL3Util.getGLType(bs.type()), bs.size(), 
-      //            bs.isNormalized(), ninfo.offset, ninfo.stride, ninfo.count, 1);
+      //            bs.isNormalized(), offset, ninfo.stride, ninfo.count, 1);
       //         aidx++;
       //      }
       
@@ -1046,9 +1063,11 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          AttributeInfo cinfo = colorInfo[cidx];
          BufferObject vbo = vbos[cinfo.vboIndex];
          BufferStorage bs = colorPutter.storage();
+         // adjust offset based on point group index
+         int offset = cinfo.offset + pointGroupOffsets[oidx]*cinfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.INSTANCE_COLOR, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), cinfo.offset, cinfo.stride, cinfo.count, 1);
+            bs.isNormalized(), offset, cinfo.stride, cinfo.count, 1);
          aidx++;
       }
       
@@ -1058,9 +1077,11 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          AttributeInfo tinfo = textureInfo[tidx];
          BufferObject vbo = vbos[tinfo.vboIndex];
          BufferStorage bs = texturePutter.storage();
+         // adjust offset based on point group index
+         int offset = tinfo.offset + pointGroupOffsets[oidx]*tinfo.stride;
          attribs[aidx] = new GL3VertexAttributeArray(
             vbo, GL3VertexAttribute.INSTANCE_TEXTURE, GL3Util.getGLType(bs.type()), bs.size(), 
-            bs.isNormalized(), tinfo.offset, tinfo.stride, tinfo.count, 1);
+            bs.isNormalized(), offset, tinfo.stride, tinfo.count, 1);
          aidx++;
       }
      

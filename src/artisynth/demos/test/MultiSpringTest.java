@@ -22,7 +22,8 @@ public class MultiSpringTest extends RootModel {
       // addSprings(mech);
       // addMixedUpSprings(mech);
       // addSeparatedSprings(mech);
-      addSpringMesh(mech);
+      // addSpringMesh(mech);
+      addVerticalSprings(mech);
 
       // clear render props
       for (AxialSpring s : mech.axialSprings ()) {
@@ -103,7 +104,7 @@ public class MultiSpringTest extends RootModel {
 
       //      mech.attachAxialSpring (p0, p1, springs[0]);
       //      mech.attachAxialSpring (p0, p2, springs[1]);
-      mech.attachAxialSpring (p1, p2, springs[2]);
+      mech.attachAxialSpring (p2, p1, springs[2]);
       //      mech.attachAxialSpring (p1, p3, springs[3]);
       //      mech.attachAxialSpring (p2, p3, springs[4]);
 
@@ -122,6 +123,24 @@ public class MultiSpringTest extends RootModel {
       //      mech.attachAxialSpring (p11, p12, springs[7]);
       //      mech.attachAxialSpring (p11, p13, springs[8]);
       //      mech.attachAxialSpring (p12, p13, springs[9]);
+   }
+   
+   protected void addVerticalSprings(MechModel mech) {
+      
+      for (int i=0; i<5; ++i) {
+         Particle p1 = new Particle (0.1, i*0.1, 0, 0.1);
+         Particle p2 = new Particle (0.1, i*0.1+0.00001*i, 0, 0.0);
+         mech.addParticle (p1);
+         mech.addParticle (p2);
+         AxialSpring as = new AxialSpring ("vertical " + i);
+         if (i%2 == 0) {
+            as.setPoints (p1, p2);
+         } else {
+            as.setPoints (p2, p1);
+         }
+         mech.addAxialSpring (as);
+      }
+      
    }
 
 }

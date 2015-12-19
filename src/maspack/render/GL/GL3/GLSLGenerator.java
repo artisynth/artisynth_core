@@ -217,13 +217,13 @@ public class GLSLGenerator {
                appendln(mb, "   line_length = mix(line_length_offset.x, line_length-line_length_offset.x, line_length_offset.y);");
             }
             appendln(mb, "   position = vec3(line_radius*vertex_position.xy, line_length*vertex_position.z);");
-            appendln(mb, "   position = line_bottom_position + linerot(u, position);");
+            appendln(mb, "   position = line_bottom_position + zrot(u, position);");
             if (info.hasLineLengthOffset()) {
                appendln(mb, "   position += u*line_offset;  // offset along line");
             }
             if (info.hasVertexNormals() && info.getShading() != Shading.NONE) {
                appendln(mb, "   normal = vec3( vertex_normal.xy*line_length, vertex_normal.z*line_radius);");
-               appendln(mb, "   normal = linerot(u, normal);");
+               appendln(mb, "   normal = zrot(u, normal);");
             }
             appendln(mb);
             break;
@@ -737,10 +737,14 @@ public class GLSLGenerator {
    private static void addRodriguesLineRotation(StringBuilder fb) {
       // Rodriguez-based line rotation, rotate pos so that 
       // z-axis maps to u, assuming u is a unit vector
-      appendln(fb, "vec3 linerot(in vec3 u, in vec3 pos) {");
+      appendln(fb, "// z-axis gets rotated to u, v gets transformed accordingly");
+      appendln(fb, "vec3 zrot(in vec3 u, in vec3 v) {");
+      appendln(fb, "   // w = cross(u,z)");
       appendln(fb, "   vec3 w = vec3(u.y, -u.x, 0);");
-      appendln(fb, "   vec3 wx = vec3(-u.x*pos.z, -u.y*pos.z, u.x*pos.x+u.y*pos.y);");
-      appendln(fb, "   w = (u.z*pos - wx + (u.y*pos.x-u.x*pos.y)/(1+u.z)*w);");
+      appendln(fb, "   float sint = sqrt(u.x*u.x+u.y*u.y);");
+      appendln(fb, "   w = (sint == 0 ? vec3(1,0,0) : w/sint);");
+      appendln(fb, "   // rodriguez rotation formula");
+      appendln(fb, "   w = u.z*v - cross(w, v)*sint + dot(w, v)*(1-u.z)*w;");
       appendln(fb, "   return w;");
       appendln(fb, "}");
       appendln(fb);

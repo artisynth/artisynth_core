@@ -120,4 +120,9 @@ public class GL3VertexAttributeArray extends GL3VertexAttribute {
       }
    }
    
+   @Override
+   public boolean isValid () {
+      return vbo.isValid ();
+   }
+   
 }

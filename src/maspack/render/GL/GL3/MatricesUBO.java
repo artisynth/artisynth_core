@@ -96,6 +96,7 @@ public class MatricesUBO extends UniformBufferObject {
 
    }
    
+   @SuppressWarnings("unused")
    private static void printMat(float[] buff, int offset, int nrows, int ncols) {
       
       for (int i=0; i<nrows; ++i) {

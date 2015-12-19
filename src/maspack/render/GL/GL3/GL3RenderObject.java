@@ -55,6 +55,7 @@ public class GL3RenderObject extends GL3ResourceBase implements GL3Drawable {
       int count;        // number of items
    }
 
+   @SuppressWarnings("unused")
    private static class GLOInfo {
       int positionSet;
       int normalSet;
@@ -1144,7 +1145,7 @@ public class GL3RenderObject extends GL3ResourceBase implements GL3Drawable {
             mode = GL.GL_POINTS;
       }
 
-      GL3Object glo = new GL3Object(gl, attribs, elems, mode);
+      GL3Object glo = new GL3Object(attribs, elems, mode);
 
       return glo;
    }

@@ -78,5 +78,12 @@ public abstract class GL3VertexAttribute {
    public String toString() {
       return attr.toString();
    }
+   
+   /**
+    * Check that underlying data is valid
+    * @param gl
+    * @return
+    */
+   public abstract boolean isValid();
   
 }

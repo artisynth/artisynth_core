@@ -69,4 +69,8 @@ public class GL3ElementAttributeArray {
    public void bind(GL3 gl) {
       ibo.bind(gl);
    }
+   
+   public boolean isValid() {
+      return ibo.isValid ();
+   }
 }

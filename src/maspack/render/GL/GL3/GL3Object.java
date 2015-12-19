@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
@@ -23,7 +24,9 @@ public class GL3Object extends GL3ResourceBase implements GL3Drawable {
    static final int VERTEX_FLAG_COLOR = 0x04;
    static final int VERTEX_FLAG_TEXTURE = 0x08;
    
-   int[] vao;
+   ConcurrentHashMap<GL3,int[]> vaoMap;  // holds per-gl vaos? //XXX not currently used
+   
+   // int[] vao; // XXX Shouldn't actually store this here, since cannot be shared between contexts?
    BufferObject[] vbos;
    
    GL3VertexAttributeArray[] attributes;        // list of attributes
@@ -64,30 +67,24 @@ public class GL3Object extends GL3ResourceBase implements GL3Drawable {
       detectDefaultDrawType();
       this.mode = glMode;
       
-   }
-   
-   public GL3Object(GL3 gl, GL3VertexAttributeArray[] attributes, GL3ElementAttributeArray elements) {
-      this(gl, attributes, elements, GL.GL_TRIANGLES);
-   }
-   
-   public GL3Object(GL3 gl, GL3VertexAttributeArray[] attributes, GL3ElementAttributeArray elements, int glMode) {
-      this(attributes, elements, glMode);
-      init(gl);
+      this.vaoMap = new ConcurrentHashMap<>();
    }
 
    @Override
    /**
-    * Sets up the vertex array object
+    * Does nothing.  VAOs need to be created in the viewer per-context.
     */
    public void init(GL3 gl) {
-
-      if (vao == null) {
-         // generate VAO
-         vao = new int[1];
-         gl.glGenVertexArrays(1, vao, 0);
-      }
-      gl.glBindVertexArray(vao[0]);
-     
+   }
+   
+   /**
+    * Binds this object to a vertex array object
+    * @param gl
+    * @param vao
+    */
+   public void init(GL3 gl, int vao) {
+      gl.glBindVertexArray(vao);
+      
       // bind attributes
       for (GL3VertexAttribute ai : attributes) {
          ai.bind(gl);
@@ -99,6 +96,33 @@ public class GL3Object extends GL3ResourceBase implements GL3Drawable {
       }      
       
       gl.glBindVertexArray(0);
+   }
+   
+   @Override
+   public boolean isValid () {
+      // check that all VBOs are valid
+   // bind attributes
+      for (GL3VertexAttribute ai : attributes) {
+         if (!ai.isValid ()) {
+            return false;
+         }
+      }
+      
+      // maybe bind indices
+      if (elements != null) {
+         if (!elements.isValid ()) {
+            return false;
+         }
+      }   
+      return true;
+   }
+
+   public int[] createVAO(GL3 gl) {
+      
+      int[]  vao = new int[1];
+      gl.glGenVertexArrays(1, vao, 0);
+      init(gl, vao[0]);
+      return vao;
    }
    
    /**
@@ -210,11 +234,7 @@ public class GL3Object extends GL3ResourceBase implements GL3Drawable {
       }
    }
    
-   public void dispose(GL3 gl) {
-      // destroy vaos
-      gl.glDeleteVertexArrays(vao.length, vao, 0);
-      vao = null;
-      
+   public void dispose(GL3 gl) {      
       // release vbos
       if (vbos != null) {
          for (BufferObject v : vbos) {
@@ -225,41 +245,81 @@ public class GL3Object extends GL3ResourceBase implements GL3Drawable {
    }
    
    @Override
-   public boolean isValid() {
-      return (vao != null);
-   }
-   
-   @Override
+   /**
+    * Inefficient, generates VAO and destroys it
+    */
    public void draw(GL3 gl) {
       draw(gl, mode, start, count);
-   }
+   }   
    
+   /**
+    * Inefficient, generates VAO and destroys it
+    */
    public void drawArrays(GL3 gl, int mode) {
       drawArrays(gl, mode, start, count);
    }
    
+   /**
+    * Inefficient, generates a VAO, draws it, then destroys the VAO
+    * @param gl
+    * @param mode
+    * @param start
+    * @param count
+    */
    public void drawArrays(GL3 gl, int mode, int start, int count) {
+      int[] vao = createVAO (gl);
       gl.glBindVertexArray(vao[0]);
       gl.glDrawArrays(mode, start, count);
       gl.glBindVertexArray(0);
+      gl.glDeleteVertexArrays (1, vao, 0);
    }
    
+   /**
+    * Inefficient, generates a VAO, draws it, then destroys the VAO
+    * @param gl
+    * @param mode
+    * @param start
+    * @param count
+    * @param indexType
+    */
    public void drawElements(GL3 gl, int mode, int start, int count, int indexType) {
+      int[] vao = createVAO (gl);
       gl.glBindVertexArray(vao[0]);
       gl.glDrawElements(mode, count, indexType, start);
       gl.glBindVertexArray(0);
+      gl.glDeleteVertexArrays (1, vao, 0);
    }
    
+   /**
+    * Inefficient, generates a VAO, draws it, then destroys the VAO
+    * @param gl
+    * @param mode
+    * @param start
+    * @param count
+    * @param instances
+    */
    public void drawInstancedArray(GL3 gl, int mode, int start, int count, int instances) {
+      int[] vao = createVAO (gl);
       gl.glBindVertexArray(vao[0]);
       gl.glDrawArraysInstanced(mode, start, count, instances);
       gl.glBindVertexArray(0);
+      gl.glDeleteVertexArrays (1, vao, 0);
    }
    
+   /**
+    * Inefficient, generates a VAO, draws it, then destroys the VAO
+    * @param gl
+    * @param mode
+    * @param start
+    * @param count
+    * @param instances
+    */
    public void drawInstancedElements(GL3 gl, int mode, int start, int count, int instances) {
+      int[] vao = createVAO (gl);
       gl.glBindVertexArray(vao[0]);
       gl.glDrawElementsInstanced(mode, count, elements.getType(), elements.getOffset(), instances);
       gl.glBindVertexArray(0);
+      gl.glDeleteVertexArrays (1, vao, 0);
    }
    
    public void draw(GL3 gl, int start, int count) {
@@ -275,11 +335,9 @@ public class GL3Object extends GL3ResourceBase implements GL3Drawable {
             drawElements(gl, mode, start, count, elements.getType());
             break;
          case INSTANCED_ARRAY:
-            // XXX maybe add base vertex here!!!
             drawInstancedArray(gl, mode, start, count, numInstances);
             break;
          case INSTANCED_ELEMENT:
-            // XXX maybe add base vertex here!!!
             drawInstancedElements(gl, mode, start, count, numInstances);
             break;
          default:

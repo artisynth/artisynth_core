@@ -1121,7 +1121,7 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
          aidx++;
       }
      
-      GL3Object glo = new GL3Object(gl, attribs, null, GL.GL_LINES);
+      GL3Object glo = new GL3Object(attribs, null, GL.GL_LINES);
       
       return glo;
    }
@@ -1223,7 +1223,7 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
             bs.isNormalized(), offset+tinfo.stride, 2*tinfo.stride, lineCount, 1);
       }
      
-      GL3Object glo = new GL3Object(gl, attribs, object.getGL3ElementAttribute());
+      GL3Object glo = new GL3Object(attribs, object.getGL3ElementAttribute());
       glo.setDrawInfo(object.getStart(), object.getCount(), object.getMode(), 
          lineCount);
       

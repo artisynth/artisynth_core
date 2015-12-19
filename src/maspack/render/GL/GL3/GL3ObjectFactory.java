@@ -47,7 +47,7 @@ public class GL3ObjectFactory {
             elements = new GL3ElementAttributeArray(ibo, einfo);
          }
 
-         return new GL3Object(gl, attributes, elements, mode);
+         return new GL3Object(attributes, elements, mode);
       }
    }
 

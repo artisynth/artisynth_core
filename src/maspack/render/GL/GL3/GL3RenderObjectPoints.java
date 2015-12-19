@@ -993,7 +993,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          aidx++;
       }
      
-      GL3Object glo = new GL3Object(gl, attribs, null, GL.GL_POINTS);
+      GL3Object glo = new GL3Object(attribs, null, GL.GL_POINTS);
       
       return glo;
    }
@@ -1091,7 +1091,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          aidx++;
       }
      
-      GL3Object glo = new GL3Object(gl, attribs, pointObject.getGL3ElementAttribute());
+      GL3Object glo = new GL3Object(attribs, pointObject.getGL3ElementAttribute());
       glo.setDrawInfo(pointObject.getStart(), pointObject.getCount(), pointObject.getMode(), 
          robj.numPoints(oidx));
       

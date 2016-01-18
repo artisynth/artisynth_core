@@ -393,6 +393,22 @@ public class TrackingController extends ControllerBase
       myForceTerm = ft;
       addCostTerm (ft);
    }
+   
+   /**
+    * Add an equality constraint to the optimization
+    * @param term the term to add
+    */
+   public void addEqualityTerm(LeastSquaresTerm term) {
+      myCostFunction.addEqualityConstraint (term);
+   }
+   
+   /**
+    * Add an inequality constraint to the optimization
+    * @param term the term to add
+    */
+   public void addInequalityTerm(LeastSquaresTerm term) {
+      myCostFunction.addInequalityConstraint (term);
+   }
 
    /**
     * Add another term to the optimization, typically 
@@ -414,10 +430,17 @@ public class TrackingController extends ControllerBase
    /**
     * Retrieves a list of all equality constraints
     */
-   public ArrayList<LeastSquaresTerm> getConstraintTerms() {
+   public ArrayList<LeastSquaresTerm> getEqualityConstraints() {
       return myCostFunction.getEqualityConstraints ();
    }
 
+   /**
+    * Retrieves a list of all inequality constraints
+    */
+   public ArrayList<LeastSquaresTerm> getInequalityConstraints() {
+      return myCostFunction.getInequalityConstraints ();
+   }
+   
    /**
     * Returns whether or not the controller is enabled
     */

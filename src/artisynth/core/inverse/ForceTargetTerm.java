@@ -409,7 +409,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
          MotionForceInverseData.diagMul(myForTargetWgts,Hc,Hc);
          MotionForceInverseData.pointMul(myForTargetWgts,cbar,cbar);
       }
-      if (myWeight > 0) {
+      if (myWeight >= 0) {
           Hc.scale(myWeight);
           cbar.scale(myWeight);
        }

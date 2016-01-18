@@ -166,7 +166,7 @@ public class InverseManager {
             return (MotionTargetTerm)term;
          }
       }
-      for (LeastSquaresTerm term : controller.getConstraintTerms()) {
+      for (LeastSquaresTerm term : controller.getEqualityConstraints()) {
          if (term instanceof MotionTargetTerm) {
             return (MotionTargetTerm)term;
          }
@@ -180,7 +180,7 @@ public class InverseManager {
             return (ForceTargetTerm)term;
          }
       }
-      for (LeastSquaresTerm term : controller.getConstraintTerms()) {
+      for (LeastSquaresTerm term : controller.getEqualityConstraints()) {
          if (term instanceof ForceTargetTerm) {
             return (ForceTargetTerm)term;
          }
@@ -457,6 +457,7 @@ public class InverseManager {
          addDefaultWidgets(controller);
          myController = controller;
          myRoot = root;
+         this.setScrollable (true);
       }
       
       private void addButtons() {
@@ -508,18 +509,23 @@ public class InverseManager {
             }
          }
          
-         for (LeastSquaresTerm term : tc.getConstraintTerms()) {
-            if (term instanceof LeastSquaresTermBase) {
-               addWidget(new JSeparator());
-               addWidget(new JLabel(term
-                  .getClass().getSimpleName()));
-               for (PropertyInfo propinfo : ((LeastSquaresTermBase)term)
-                  .getAllPropertyInfo())
-                  addWidget(
-                     (LeastSquaresTermBase)term, propinfo.getName());
-            }
+         for (LeastSquaresTerm term : tc.getEqualityConstraints ()) {
+            addLeastSquaresTermBaseWidgets (term);
+         }
+         for (LeastSquaresTerm term : tc.getInequalityConstraints()) {
+            addLeastSquaresTermBaseWidgets (term);
          }
          setScrollable(false);
+      }
+      
+      private void addLeastSquaresTermBaseWidgets (LeastSquaresTerm term) {
+         if (term instanceof LeastSquaresTermBase) {
+            addWidget (new JSeparator ());
+            addWidget (new JLabel (term.getClass ().getSimpleName ()));
+            for (PropertyInfo propinfo : ((LeastSquaresTermBase)term)
+               .getAllPropertyInfo ())
+               addWidget ((LeastSquaresTermBase)term, propinfo.getName ());
+         }
       }
       
       

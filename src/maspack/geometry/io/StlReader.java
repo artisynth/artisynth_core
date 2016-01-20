@@ -175,11 +175,12 @@ public class StlReader extends MeshReaderBase {
          
          // Find all points within tol of pnt
          List<Point3d> results = new ArrayList<Point3d>(); 
-         Iterator<List<Point3d>> it = table.getCellsNearOld (pnt);
-         while (it.hasNext ()) {
-            List<Point3d> cell = it.next ();
-            if (cell == null) 
-               continue;
+         List<Point3d> cell = table.getElsNear (pnt);//table.getCellsNearOld (pnt);
+         //while (it.hasNext ()) {
+         //   List<Point3d> cell = it.next ();
+         //   if (cell == null) 
+         //      continue;
+         if (cell != null) {
             for (Point3d neighbour : cell) {
                if (neighbour.distanceSquared (pnt) < tolSq) {
                   results.add (neighbour);

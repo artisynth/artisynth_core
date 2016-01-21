@@ -406,7 +406,8 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
                lastType = type;
             }
          }
-         i++;
+         
+         ++i;
       }
       
       if (lastType != -1) {

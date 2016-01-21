@@ -165,6 +165,7 @@ implements ScalableUnits {
             
             renderer.setPointSize(1);
             renderer.setLightingEnabled(true);
+            break;
          }
          case SPHERE: {
             renderer.setMaterialAndShading (props, pointMaterial, false);
@@ -210,6 +211,7 @@ implements ScalableUnits {
                }
             }
             renderer.restoreShading (props);
+            break;
          }
       }
       

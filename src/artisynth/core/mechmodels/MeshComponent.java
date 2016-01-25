@@ -84,9 +84,15 @@ implements TransformableGeometry, ScalableUnits {
       }
    }
 
-   public void setMesh(MeshBase mesh, String fileName, AffineTransform3dBase X) {
+   protected void doSetMesh (
+      MeshBase mesh, String fileName, AffineTransform3dBase X) {
       myMeshInfo.set (mesh, fileName, X);
       setMeshFromInfo ();
+   }
+   
+   public void setMesh (
+      MeshBase mesh, String fileName, AffineTransform3dBase X) {
+      doSetMesh (mesh, fileName, X);
       RenderProps meshProps = mesh.getRenderProps();
       if (meshProps != null) {
          setRenderProps(meshProps);
@@ -110,8 +116,8 @@ implements TransformableGeometry, ScalableUnits {
    }
 
    public MeshBase getMesh() {
-      // myMeshInfo will be null if getMesh() is called via setDefaultValues()
-      // before construction has finished.
+      // Check for null since myMeshInfo will be null if getMesh() is called 
+      // via setDefaultValues() before MeshComponent construction has finished.
       if (myMeshInfo != null) {
          return myMeshInfo.getMesh();
       }
@@ -156,7 +162,7 @@ implements TransformableGeometry, ScalableUnits {
    public void prerender(RenderList list) {
       MeshBase mesh = getMesh();
       if (mesh != null) {
-         mesh.saveRenderInfo();
+         mesh.saveRenderInfo(myRenderProps);
          if (!mesh.isFixed() && mesh.myUseDisplayList) {
             mesh.clearDisplayList(myRenderProps);
          }

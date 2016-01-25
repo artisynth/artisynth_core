@@ -167,7 +167,8 @@ public class FemMuscleBeams extends RootModel {
       RenderProps.setLineColor(topBundle, Color.RED);
       RenderProps.setLineColor(middleBundle, Color.GREEN);
       RenderProps.setLineColor(bottomBundle, Color.BLUE);
-      
+
+      addControlPanel(createControlPanel());
    }
    
    protected void addFibreStrand(FemMuscleModel fem, 
@@ -205,14 +206,7 @@ public class FemMuscleBeams extends RootModel {
     
    }
    
-   @Override
-   public void attach(DriverInterface driver) {
-      super.attach(driver);
-      
-      addControlPanel(createControlPanel());
-      
-   }
-   
+
    protected ControlPanel createControlPanel() {
       MechModel mech = (MechModel)models().get("mech");
       FemMuscleModel beamFibres = (FemMuscleModel)(mech.models().get("Fibre beam"));

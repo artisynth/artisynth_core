@@ -769,7 +769,7 @@ It is possible to modify component locations, orientations, and
 geometry using the transformation tools located at the left side of
 the main ArtiSynth frame.  Tools will only transform those {\it
 transformable} components which implement the
-\javaclass[artisynth.core.util]{TransformableGeometry} interface. The
+\javaclass[artisynth.core.modelbase]{TransformableGeometry} interface. The
 behavior may also vary depending on whether or not simulation is in
 progress.
 
@@ -3006,10 +3006,10 @@ the user should click when finished.
 
 \subsubsection{Adding rigid body connectors}
 
-A \javaclass[artisynth.core.mechmodels]{RigidBodyConnector} is a component
-that implements constraint-based joints between either two rigid
-bodies, or between one rigid body and ground. The GUI currently allows
-two types of joints to be added: {\it spherical} and {\it revolute}.
+A \javaclass[artisynth.core.mechmodels]{BodyConnector} is a component
+that implements constraint-based joints between either two rigid bodies, or
+between one rigid body and ground. The GUI currently allows two types
+of joints to be added: {\it spherical} and {\it revolute}.
 
 To add one or more rigid body connectors to a MechModel, select the
 MechModel in question and choose {\sf "Add RigidBodyConnectors ..."} in the

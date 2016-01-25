@@ -54,7 +54,7 @@ public class OffReader extends MeshReaderBase {
       nEdges = rtok.scanInteger();
       
       if (nEdges != 0) {
-         System.err.println("Separate edges no supported\n");
+         System.err.println("Separate edges not supported\n");
       }
       
       double[] vals =  new double[3];

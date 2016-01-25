@@ -148,7 +148,7 @@ public class TetgenTessellatorTest {
       mesh = MeshFactory.createQuadSphere (1.0, 8);
       myTessellator.buildFromMesh (mesh, 0);
       System.out.println ("Quad Sphere");
-      System.out.println ("Num mesh vertices=" + mesh.getNumVertices());
+      System.out.println ("Num mesh vertices=" + mesh.numVertices());
       
       printHullFaces();
       printTets();

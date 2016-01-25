@@ -729,7 +729,14 @@ public class PropertyList implements PropertyInfoList {
     */
    public boolean writeNonDefaultProps (
       HasProperties host, PrintWriter pw, NumberFormat fmt) throws IOException {
-      return writeNonDefaultProps (host, pw, fmt, /*exclude=*/null);
+      boolean wroteSomething = false;
+      for (PropertyDesc desc : myProps.values()) {
+         if (desc.getAutoWrite()) {
+            boolean wrote = desc.writeIfNonDefault (host, pw, fmt);
+            wroteSomething |= wrote;
+         }
+      }
+      return wroteSomething;
    }
    
    /**
@@ -759,29 +766,32 @@ public class PropertyList implements PropertyInfoList {
       boolean wroteSomething = false;
       for (PropertyDesc desc : myProps.values()) {
          if (desc.getAutoWrite()) {
-            Object value = desc.getValue (host);
-            PropertyMode mode = PropertyMode.Explicit;
-
-            if (desc.isInheritable()) {
-               mode = desc.getMode (host);
-            }
             if (!excluded (desc.myName, exclude)) {
-               if (mode == PropertyMode.Explicit &&
-                   (desc.getDefaultMode() == PropertyMode.Inherited ||
-                    !desc.valueEqualsDefault (value))) {
-                  if (!wroteSomething) {
-                     wroteSomething = true;
-                  }
-                  pw.print (desc.myName + "=");
-                  desc.writeValue (desc.getValue (host), pw, fmt);
-               }
-               else if (mode != desc.getDefaultMode()) {
-                  if (!wroteSomething) {
-                     wroteSomething = true;
-                  }
-                  pw.println (desc.myName + ":" + mode + " ");
-               }
+               wroteSomething |= desc.writeIfNonDefault (host, pw, fmt);
             }
+            // Object value = desc.getValue (host);
+            // PropertyMode mode = PropertyMode.Explicit;
+
+            // if (desc.isInheritable()) {
+            //    mode = desc.getMode (host);
+            // }
+            // if (!excluded (desc.myName, exclude)) {
+            //    if (mode == PropertyMode.Explicit &&
+            //        (desc.getDefaultMode() == PropertyMode.Inherited ||
+            //         !desc.valueEqualsDefault (value))) {
+            //       if (!wroteSomething) {
+            //          wroteSomething = true;
+            //       }
+            //       pw.print (desc.myName + "=");
+            //       desc.writeValue (desc.getValue (host), pw, fmt);
+            //    }
+            //    else if (mode != desc.getDefaultMode()) {
+            //       if (!wroteSomething) {
+            //          wroteSomething = true;
+            //       }
+            //       pw.println (desc.myName + ":" + mode + " ");
+            //    }
+            // }
          }
       }
       return wroteSomething;

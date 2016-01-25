@@ -36,8 +36,8 @@ public class RigidBodyDemo extends RootModel {
          myBody = body;
          PolygonalMesh mesh = body.getMesh();
          // record the initial mesh vertex positions
-         myInitialPos = new Point3d[mesh.getNumVertices()];
-         for (int i=0; i<mesh.getNumVertices(); i++) {
+         myInitialPos = new Point3d[mesh.numVertices()];
+         for (int i=0; i<mesh.numVertices(); i++) {
             Vertex3d vtx = mesh.getVertices().get(i);
             myInitialPos[i] = new Point3d(vtx.pnt);
          }
@@ -50,7 +50,7 @@ public class RigidBodyDemo extends RootModel {
          PolygonalMesh mesh = myBody.getMesh();
          // adjust the mesh vertex positions by applying a scale factor
          // to the initial positions
-         for (int i=0; i<mesh.getNumVertices(); i++) {
+         for (int i=0; i<mesh.numVertices(); i++) {
             Vertex3d vtx = mesh.getVertices().get(i);
             Point3d pos = new Point3d (myInitialPos[i]);
             pos.scale (1 + 0.5*Math.sin (t0));

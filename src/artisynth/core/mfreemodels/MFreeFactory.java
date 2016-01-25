@@ -788,7 +788,7 @@ public class MFreeFactory {
          }
 
          PolygonalMesh mesh = vtx.getData().generateMesh();
-         if (mesh.getNumFaces() > 0) {
+         if (mesh.numFaces() > 0) {
             mesh = (PolygonalMesh)convertToMFreeMesh(mesh, nodeTree, DEFAULT_TOLERANCE);
             elem.setBoundaryMesh(mesh);
          }
@@ -987,7 +987,7 @@ public class MFreeFactory {
          new HashMap<Vertex3d,MFreeVertex3d>();
 
       ArrayList<MFreeVertex3d> vtxs = 
-         new ArrayList<MFreeVertex3d>(orig.getNumVertices());
+         new ArrayList<MFreeVertex3d>(orig.numVertices());
       for (Vertex3d vtx : orig.getVertices()) {
          ArrayList<MFreeNode3d> deps =
             findNodesContaining(vtx.getPosition(), nodeTree, tol);
@@ -996,7 +996,8 @@ public class MFreeFactory {
          vtxMap.put(vtx, nvtx);
          vtxs.add(nvtx);
       }
-      MeshBase out = orig.copyWithVertices(vtxs);
+      MeshBase out = orig.copy();
+      out.replaceVertices (vtxs);
       out.setFixed(false);
       
       // copy other properties

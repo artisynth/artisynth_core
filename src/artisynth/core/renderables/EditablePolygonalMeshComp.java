@@ -30,7 +30,7 @@ public class EditablePolygonalMeshComp extends EditableMeshComp {
       }
       
       for (Face face : pmesh.getFaces()) {
-         myFaceList.add(new FaceComponent(face));
+         myFaceList.add(new FaceComponent(face, pmesh));
       }
       
       

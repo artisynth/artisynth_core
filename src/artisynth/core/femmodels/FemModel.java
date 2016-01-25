@@ -9,6 +9,9 @@ package artisynth.core.femmodels;
 import java.util.List;
 import java.util.Map;
 import java.util.Collection;
+import java.util.Deque;
+import java.io.PrintWriter;
+import java.io.IOException;
 
 import maspack.matrix.Matrix;
 import maspack.matrix.Point3d;
@@ -26,8 +29,13 @@ import maspack.solvers.IterativeSolver.ToleranceType;
 import maspack.util.DoubleInterval;
 import maspack.util.FunctionTimer;
 import maspack.util.StringHolder;
+import maspack.util.ReaderTokenizer;
+import maspack.util.NumberFormat;
 import artisynth.core.modelbase.PropertyChangeListener;
 import artisynth.core.modelbase.PropertyChangeEvent;
+import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.util.ScanToken;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.LinearMaterial;
@@ -159,9 +167,11 @@ public abstract class FemModel extends MechSystemBase
       new PropertyList (FemModel.class, MechSystemBase.class);
 
    static {
-      myProps.addInheritable ("surfaceRendering:Inherited", 
-         "surface rendering mode",
-         DEFAULT_SURFACE_RENDERING);
+      // surfaceRendering must be written out explicitly at the end,
+      // so it is scanned at the end
+      myProps.addInheritable (
+         "surfaceRendering:Inherited", "surface rendering mode",
+         DEFAULT_SURFACE_RENDERING, "NW");
       myProps.addInheritable ("stressPlotRanging:Inherited", 
          "ranging mode for stress plots",
          DEFAULT_STRESS_PLOT_RANGING);         
@@ -274,11 +284,10 @@ public abstract class FemModel extends MechSystemBase
             myStressPlotRange.set (0, 0);
          }
          mySurfaceRendering = mode;
-         
-         mySurfaceRenderingMode =
-            PropertyUtils.propagateValue (
-               this, "surfaceRendering", mode, mySurfaceRenderingMode);
       }
+      mySurfaceRenderingMode =
+         PropertyUtils.propagateValue (
+            this, "surfaceRendering", mode, mySurfaceRenderingMode);
    }
 
    public SurfaceRender getSurfaceRendering() {
@@ -329,10 +338,10 @@ public abstract class FemModel extends MechSystemBase
             resetStressPlotRange();
          }
          myStressPlotRanging = ranging;
-         myStressPlotRangingMode =
-            PropertyUtils.propagateValue (
-               this, "stressPlotRanging", ranging, myStressPlotRangingMode);
       }
+      myStressPlotRangingMode =
+         PropertyUtils.propagateValue (
+            this, "stressPlotRanging", ranging, myStressPlotRangingMode);
    }
 
    public DoubleInterval getStressPlotRange (){
@@ -670,6 +679,38 @@ public abstract class FemModel extends MechSystemBase
    public void clear() {
       doclear();
       notifyStructureChanged (this);
+   }
+
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+
+      rtok.nextToken();
+      if (ScanWriteUtils.scanAndStorePropertyValue (
+                  rtok, this, "surfaceRendering", tokens)) {
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }
+
+   protected boolean postscanItem (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+
+      if (ScanWriteUtils.postscanPropertyValue (
+             tokens, this, "surfaceRendering")) {
+         return true;
+      }
+      return super.postscanItem (tokens, ancestor);
+   } 
+
+   protected void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+
+      super.writeItems (pw, fmt, ancestor); 
+      // surfaceRendering has to be written near the end because it has to be
+      // scanned after the model and mesh structures.
+      myProps.get("surfaceRendering").writeIfNonDefault (this, pw, fmt);
    }
 
    public abstract FemElement getElement (int idx);
@@ -1108,10 +1149,18 @@ public abstract class FemModel extends MechSystemBase
       fem.initializeChildComponents();
       // need to set markers and attachments in the subclass
 
-      fem.setSurfaceRendering (mySurfaceRendering);
-      fem.setStressPlotRanging (myStressPlotRanging);
-      fem.setStressPlotRange (myStressPlotRange);
-
+      fem.setSurfaceRenderingMode (mySurfaceRenderingMode);
+      if (mySurfaceRenderingMode == PropertyMode.Explicit) {
+         fem.setSurfaceRendering (mySurfaceRendering);
+      }
+      fem.setStressPlotRangingMode (myStressPlotRangingMode);
+      if (myStressPlotRangingMode == PropertyMode.Explicit) {
+         fem.setStressPlotRanging (myStressPlotRanging);
+      }
+      fem.setStressPlotRangeMode (myStressPlotRangeMode);
+      if (myStressPlotRangeMode == PropertyMode.Explicit) {
+         fem.setStressPlotRange (myStressPlotRange);
+      }
       fem.setGravityMode (myGravityMode);
       if (myGravityMode == PropertyMode.Explicit) {
          fem.setGravity (myGravity);

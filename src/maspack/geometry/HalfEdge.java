@@ -45,6 +45,8 @@ public class HalfEdge extends Feature implements Boundable {
 
    public void setHard (boolean hard) {
       myHardP = hard;
+      head.hedgesSorted = false;
+      tail.hedgesSorted = false;
    }
 
    public HalfEdge() {

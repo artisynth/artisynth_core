@@ -54,8 +54,11 @@ public class XyzbWriter extends MeshWriterBase {
       throws IOException {
 
       ArrayList<Vertex3d> vertices = mesh.getVertices();
-      ArrayList<Vector3d> normals = mesh.getNormals();
-
+      ArrayList<Vector3d> normals = null;
+      if (getWriteNormals (mesh)) {
+         normals = mesh.getNormals();
+      }
+      
       for (int i=0; i<vertices.size(); i++) {
          Point3d pnt = vertices.get(i).pnt;
 
@@ -63,7 +66,7 @@ public class XyzbWriter extends MeshWriterBase {
          bout.writeFloat ((float)pnt.y);
          bout.writeFloat ((float)pnt.z);
 
-         if (normals != null && i < normals.size()) {
+         if (normals != null) {
             Vector3d nrm = normals.get(i);
             bout.writeFloat ((float)nrm.x);
             bout.writeFloat ((float)nrm.y);

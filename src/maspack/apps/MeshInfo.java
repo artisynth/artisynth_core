@@ -129,8 +129,8 @@ public class MeshInfo {
          PolygonalMesh pmesh = (PolygonalMesh)mesh;
 
          System.out.println ("meshType= " + mesh.getClass());
-         System.out.println ("numVertices= " + pmesh.getNumVertices());
-         System.out.println ("numFaces= " + pmesh.getNumFaces());
+         System.out.println ("numVertices= " + pmesh.numVertices());
+         System.out.println ("numFaces= " + pmesh.numFaces());
          System.out.println ("isClosed= " + pmesh.isClosed());
          System.out.println ("isManifold= " + pmesh.isManifold());
          System.out.println ("volume= " + pmesh.computeVolume());
@@ -141,7 +141,7 @@ public class MeshInfo {
       }
       else if (mesh != null) {
          System.out.println ("meshType= " + mesh.getClass());
-         System.out.println ("numVertices= " + mesh.getNumVertices());
+         System.out.println ("numVertices= " + mesh.numVertices());
          doPrintBounds (mesh);
       }
    }
@@ -218,7 +218,7 @@ public class MeshInfo {
                      MeshBase mesh;
                      if ((mesh = info.getMesh (inputFile)) != null) {
                         if (mesh instanceof PolygonalMesh) {
-                           System.out.println (((PolygonalMesh)mesh).getNumFaces());
+                           System.out.println (((PolygonalMesh)mesh).numFaces());
                         }
                         else {
                            System.out.println ("Mesh is a " + mesh.getClass());
@@ -229,7 +229,7 @@ public class MeshInfo {
                   case PrintVertices: {
                      MeshBase mesh;
                      if ((mesh = info.getMesh (inputFile)) != null) {
-                        System.out.println (mesh.getNumVertices());
+                        System.out.println (mesh.numVertices());
                      }
                      break;
                   }

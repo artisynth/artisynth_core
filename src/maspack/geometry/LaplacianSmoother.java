@@ -27,14 +27,14 @@ public class LaplacianSmoother {
          for (Vertex3d vtx : mesh.getVertices()) {
             sumDsqr += vtx.pnt.distanceSquared (cent);
          }
-         return Math.sqrt (sumDsqr/mesh.getNumVertices());
+         return Math.sqrt (sumDsqr/mesh.numVertices());
       }
    }
 
    private static void addScaledLaplacian (
       PolygonalMesh mesh, double s, Vector3d[] L) {
 
-      for (int i=0; i<mesh.getNumVertices(); i++) {
+      for (int i=0; i<mesh.numVertices(); i++) {
          Vertex3d vtx = mesh.getVertices().get(i);
          Iterator<HalfEdge> it = vtx.getIncidentHalfEdges();
          Vector3d lap = L[i];
@@ -54,7 +54,7 @@ public class LaplacianSmoother {
             lap.setZero();
          }
       }
-      for (int i=0; i<mesh.getNumVertices(); i++) {
+      for (int i=0; i<mesh.numVertices(); i++) {
          Vertex3d vtx = mesh.getVertices().get(i);
          vtx.pnt.add (L[i]);
       }
@@ -66,8 +66,8 @@ public class LaplacianSmoother {
 
       r0 = estimateRadius (mesh);
       // L is used to store the Laplacian
-      Vector3d[] L = new Vector3d[mesh.getNumVertices()];
-      for (int i=0; i<mesh.getNumVertices(); i++) {
+      Vector3d[] L = new Vector3d[mesh.numVertices()];
+      for (int i=0; i<mesh.numVertices(); i++) {
          L[i] = new Vector3d();
       }
       for (int k=0; k<iterations; k++) {

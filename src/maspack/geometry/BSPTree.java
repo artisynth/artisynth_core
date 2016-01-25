@@ -399,11 +399,11 @@ public class BSPTree {
          mesh.triangulate();
       }
       
-      // HashMap<Vertex3d,Vtx> vtxMap = new HashMap<Vertex3d,Vtx>(mesh.getNumVertices());
+      // HashMap<Vertex3d,Vtx> vtxMap = new HashMap<Vertex3d,Vtx>(mesh.numVertices());
       // mesh.computeVertexNormals();
       // ArrayList<Vector3d> nrms = mesh.getNormalList();
       
-      // for (int i=0; i<mesh.getNumVertices(); i++) {
+      // for (int i=0; i<mesh.numVertices(); i++) {
       //   Vertex3d vtx = mesh.getVertex(i);
          // Vector3d nrm = nrms.get(i);
          // Vtx nVtx = new Vtx(vtx.getPosition(), nrm);

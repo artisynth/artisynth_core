@@ -270,8 +270,6 @@ public class SpringMeshDemo extends RootModel {
 
    ControlPanel myControlPanel;
 
-   GLViewer myViewer;
-
    public void addProbes (MechModel mech) {
       try {
          NumericInputProbe inprobe =
@@ -326,8 +324,6 @@ public class SpringMeshDemo extends RootModel {
       // myControlPanel.setVisible(false);
       // myControlPanel = null;
       // }
-
-      System.out.println ("Cleaning up Spring mesh");
    }
 
    // public Property getProperty (String name)

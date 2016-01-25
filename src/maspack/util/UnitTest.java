@@ -6,12 +6,20 @@
  */
 package maspack.util;
 
+import java.io.IOException;
+
 /**
  * Base unit test class
  */
 public class UnitTest {
 
-   public void test() {
+   public void check (String msg, boolean test) {
+      if (!test) {
+         throw new TestException ("Check failed: " + msg);
+      }
+   }
+
+   public void test() throws IOException {
    }
 
    public void runtest() {

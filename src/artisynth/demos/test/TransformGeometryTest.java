@@ -213,14 +213,14 @@ public class TransformGeometryTest {
                MeshBase m1 = (MeshBase)obj1;
                MeshBase m2 = (MeshBase)obj2;
                // just compare the vertices
-               if (m1.getNumVertices() != m2.getNumVertices()) {
+               if (m1.numVertices() != m2.numVertices()) {
                   errMsg.value =
-                     "Expected " + m2.getNumVertices() +
-                     "vertices; got " + m1.getNumVertices();
+                     "Expected " + m2.numVertices() +
+                     "vertices; got " + m1.numVertices();
                   return false;
                }
                else {
-                  for (int i=0; i<m1.getNumVertices(); i++) { 
+                  for (int i=0; i<m1.numVertices(); i++) { 
                      Vertex3d v1 = m1.getVertex(i);
                      Vertex3d v2 = m2.getVertex(i);
                      if (!v1.pnt.epsilonEquals (v2.pnt, eps)) {

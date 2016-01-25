@@ -752,13 +752,12 @@ public class MeshFactory {
       PolygonalMesh mesh = new PolygonalMesh();
       mesh.set(plist, faceIndices);
 
-      mesh.setTextureIndices(faceIndices);
       ArrayList<Vector3d> vt = new ArrayList<Vector3d>();
       vt.add(new Point3d(1, 1, 0));
       vt.add(new Point3d(0, 1, 0));
       vt.add(new Point3d(0, 0, 0));
       vt.add(new Point3d(1, 0, 0));
-      mesh.setTextureVertices(vt);
+      mesh.setTextureCoords (vt, mesh.createVertexIndices());
       return mesh;
    }
    
@@ -810,9 +809,8 @@ public class MeshFactory {
       
       PolygonalMesh mesh = new PolygonalMesh();
       mesh.set(plist, faceIndices);
-
-      mesh.setTextureIndices(faceIndices);
-      mesh.setTextureVertices(vt);
+      
+      mesh.setTextureCoords (vt, mesh.createVertexIndices());
       return mesh;
    }
 
@@ -1352,7 +1350,7 @@ public class MeshFactory {
    
    public static void relax(PolygonalMesh mesh) {
       
-      Point3d [] pnts = new Point3d[mesh.getNumVertices ()];
+      Point3d [] pnts = new Point3d[mesh.numVertices ()];
       
       for (int i=0; i<pnts.length; i++) {
          pnts[i] = new Point3d();
@@ -1361,7 +1359,7 @@ public class MeshFactory {
          
          // get all neighbours
          int nbs = 0;
-         HalfEdgeNode hen = vtx.incidentHedges;
+         HalfEdgeNode hen = vtx.getIncidentHedges();
          while (hen != null) {
             pnts[i].add (hen.he.tail.getPosition ());
             hen = hen.next;
@@ -2326,12 +2324,11 @@ public class MeshFactory {
       // if (!orig.isClosed()) {
       // throw new IllegalArgumentException ("Input mesh must be closed");
       // }
-      ArrayList<Vector3d> nrmls = orig.getNormalList();
-      if (nrmls == null || nrmls.size() == 0) {
-         orig.computeVertexNormals();
-         nrmls = orig.getNormalList();
+      ArrayList<Vector3d> nrmls = orig.getNormals();
+      if (nrmls == null) {
+         throw new IllegalArgumentException("Mesh does not have normals");
       }
-      ArrayList<int[]> nrmlIndices = orig.getNormalIndices();
+      int[] nidxs = orig.getNormalIndices();
       PolygonalMesh mesh = new PolygonalMesh();
       for (Vertex3d vtx : orig.getVertices()) {
          mesh.addVertex(vtx.copy());
@@ -2343,16 +2340,17 @@ public class MeshFactory {
          new HashMap<HalfEdge,Vertex3d[]>();
 
       int k = 0;
-      int fcnt = 0;
       for (Face face : orig.getFaces()) {
 
          // store sub vertices for the face in the upper triangular half of
          // subv.
          MeshFactory.VertexSet subv = new MeshFactory.VertexSet(numv);
 
-         int[] nidxs = nrmlIndices.get(k++);
          interp.setFace(
-            face, nrmls.get(nidxs[0]), nrmls.get(nidxs[1]), nrmls.get(nidxs[2]));
+            face, 
+            nrmls.get(nidxs[k++]), 
+            nrmls.get(nidxs[k++]), 
+            nrmls.get(nidxs[k++]));
 
          HalfEdge he = face.firstHalfEdge();
          Vertex3d v0 = he.getHead();
@@ -2406,7 +2404,6 @@ public class MeshFactory {
                }
             }
          }
-         fcnt++;
       }
       return mesh;
    }
@@ -2735,8 +2732,8 @@ public class MeshFactory {
       
       PolygonalMesh out = new PolygonalMesh();
       
-      Point3d[] pnts = new Point3d[mesh.getNumVertices()];
-      int[][] faces = new int[mesh.getNumFaces()][];
+      Point3d[] pnts = new Point3d[mesh.numVertices()];
+      int[][] faces = new int[mesh.numFaces()][];
       
       for (int i=0; i<pnts.length; i++ ) {
          pnts[i] = new Point3d(mesh.getVertex(i).getPosition());

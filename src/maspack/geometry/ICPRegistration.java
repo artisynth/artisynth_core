@@ -295,7 +295,7 @@ public class ICPRegistration {
    }
 
    private int assignDistVertices (PolygonalMesh mesh, int idx) {
-      int numv = mesh.getNumVertices();
+      int numv = mesh.numVertices();
       int maxv = myDualDistancingEnabled ? myMaxVertices/2 : myMaxVertices;
 
       int numd;
@@ -358,7 +358,7 @@ public class ICPRegistration {
       mesh.computeCentroid (c);
 
       J.setZero();
-      int numv = mesh.getNumVertices();
+      int numv = mesh.numVertices();
       for (int i=0; i<numv; i++) {
          Vertex3d vtx = mesh.getVertices().get(i);
          d.sub (vtx.pnt, c);
@@ -394,7 +394,7 @@ public class ICPRegistration {
 
       mesh.computeCentroid (c);
 
-      int numv = mesh.getNumVertices();
+      int numv = mesh.numVertices();
       for (int i=0; i<numv; i++) {
          Vertex3d vtx = mesh.getVertices().get(i);
          d.sub (vtx.pnt, c);
@@ -417,7 +417,7 @@ public class ICPRegistration {
       Vector3d max = new Vector3d (-huge, -huge, -huge);
       Vector3d min = new Vector3d ( huge,  huge,  huge);
 
-      for (int i=0; i<mesh.getNumVertices(); i++) {
+      for (int i=0; i<mesh.numVertices(); i++) {
          pnt.inverseTransform (R1W, mesh.getVertices().get(i).pnt);
          pnt.updateBounds (min, max);
       }

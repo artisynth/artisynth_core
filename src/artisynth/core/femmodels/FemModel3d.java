@@ -94,6 +94,8 @@ import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.util.ArtisynthIO;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.ScanToken;
+import artisynth.core.util.IntegerToken;
+import artisynth.core.util.StringToken;
 
 public class FemModel3d extends FemModel
    implements TransformableGeometry, ScalableUnits, MechSystemModel, Collidable,
@@ -1562,7 +1564,7 @@ public class FemModel3d extends FemModel
 
    public void setSurfaceRendering(SurfaceRender mode) {
 
-      // SurfaceRender oldMode = mySurfaceRendering;
+      //SurfaceRender oldMode = mySurfaceRendering;
       super.setSurfaceRendering(mode);
 
       updateStressPlotRange();
@@ -1690,16 +1692,31 @@ public class FemModel3d extends FemModel
       }
       else if (scanAttributeName (rtok, "autoGenerateSurface")) {
          myAutoGenerateSurface = rtok.scanBoolean();
-         if (myAutoGenerateSurface) {
-            mySurfaceMeshValid = false;
-         }
          return true;
       }
-      // XXX seems to be a lot of missing properties...
+      else if (scanAttributeName (rtok, "surfaceMeshValid")) {
+         // need to defer setting surfaceMeshValid to the end of postscan
+         // since otherwise it will be cleared as the FEM is built
+         boolean surfaceMeshValid = rtok.scanBoolean();
+         tokens.offer (new StringToken ("surfaceMeshValid", rtok.lineno()));
+         tokens.offer (new IntegerToken (surfaceMeshValid ? 1 : 0));
+         return true;
+      }
 
       rtok.pushBack();
       return super.scanItem (rtok, tokens);
    }
+
+   protected boolean postscanItem (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+
+      if (postscanAttributeName (tokens, "surfaceMeshValid")) {
+         IntegerToken tok = (IntegerToken)tokens.poll();
+         mySurfaceMeshValid = (tok.value() == 0 ? false : true);
+         return true;
+      }
+      return super.postscanItem (tokens, ancestor);
+   } 
 
    public void postscan (
       Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
@@ -1772,7 +1789,7 @@ public class FemModel3d extends FemModel
 //      }
 //      rtok.pushBack();
 //      rtok.scanToken(']');
-//      if (mesh.getNumVertices() == 0) {
+//      if (mesh.numVertices() == 0) {
 //         return null;
 //      }
 //      else {
@@ -1812,6 +1829,7 @@ public class FemModel3d extends FemModel
       surfMesh.scanMesh (rtok);
       myAutoGenerateSurface = false;
       mySurfaceMeshValid = true;
+      System.out.println ("surfaceMeshValid");
       myInternalSurfaceMeshComp = null;
       return surfMesh;
    }
@@ -1839,11 +1857,12 @@ public class FemModel3d extends FemModel
       if (myMaxBound != null) {
          pw.println("maxBound=[" + myMaxBound.toString(fmt) + "]");
       }
-
-      // write other properties?
       pw.println("autoGenerateSurface=" + myAutoGenerateSurface);
 
       super.writeItems(pw, fmt, ancestor);
+      // need to write out surfaceMeshValid at the end because otherwise
+      // it will be set invalid as the FEM is being built 
+      pw.println("surfaceMeshValid=" + mySurfaceMeshValid);
    }
    
    public void addConnector (BodyConnector c) {
@@ -2525,7 +2544,7 @@ public class FemModel3d extends FemModel
             // paranoid: call in case mesh is rendered directly before
             // prerender()
             PolygonalMesh smesh = (PolygonalMesh)mesh;
-            smesh.saveRenderInfo();
+            smesh.saveRenderInfo(myRenderProps);
             return meshc;
          }
          else {
@@ -2681,6 +2700,10 @@ public class FemModel3d extends FemModel
       return myAutoGenerateSurface;
    }
 
+   public boolean isSurfaceMeshValid() {
+      return mySurfaceMeshValid;
+   }
+
 //   private FemMeshVertex addSurfaceVertex(PolygonalMesh mesh, FemNode3d n) {
 //      FemMeshVertex vtx = new FemMeshVertex(n);
 //      mySurfaceNodeMap.put(n, vtx);
@@ -2738,7 +2761,13 @@ public class FemModel3d extends FemModel
 
       if (e.getCode() == ComponentChangeEvent.Code.STRUCTURE_CHANGED) {
          if (e.getComponent() == myElements || e.getComponent() == myNodes) {
-            invalidateSurfaceMesh();
+            // XXX this invalidates the surface mesh even during scanning
+            // which we don't really want. Specifially, the postscan
+            // for nodes and elements issue a change event from 
+            // myComonents.scanEnd(). 
+            if (myAutoGenerateSurface) {
+               invalidateSurfaceMesh();               
+            }
          }
          clearCachedData();
          // should invalidate elasticity
@@ -2821,7 +2850,7 @@ public class FemModel3d extends FemModel
    public FemElement3d findNearestSurfaceElement(Point3d loc, Point3d pnt) {
       Vector2d coords = new Vector2d();
       PolygonalMesh surf = getSurfaceMesh();
-      if (surf == null || surf.getNumFaces() == 0) {
+      if (surf == null || surf.numFaces() == 0) {
          surf = getInternalSurfaceMesh();
       }
       if (surf != null) {

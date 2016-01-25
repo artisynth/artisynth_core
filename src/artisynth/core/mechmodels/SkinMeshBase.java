@@ -214,7 +214,6 @@ public abstract class SkinMeshBase extends MeshComponent
    @Override
       public void scan (
          ReaderTokenizer rtok, Object ref) throws IOException {
-
       myComponents.scanBegin();
       super.scan (rtok, ref);
    }

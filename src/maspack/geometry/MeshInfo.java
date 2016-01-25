@@ -114,14 +114,14 @@ public class MeshInfo {
          PointMesh mesh = new PointMesh();
          ((PointMesh)mesh).readBinary (inputFile);
          System.out.println ("meshType= PointMesh");
-         System.out.println ("numVertices= " + mesh.getNumVertices());
+         System.out.println ("numVertices= " + mesh.numVertices());
          doPrintBounds (mesh);
       }
       else if (suffix.equals ("obj")) {
          PolygonalMesh mesh = new PolygonalMesh (inputFile);
          System.out.println ("meshType= PolygonalMesh");
-         System.out.println ("numVertices= " + mesh.getNumVertices());
-         System.out.println ("numFaces= " + mesh.getNumFaces());
+         System.out.println ("numVertices= " + mesh.numVertices());
+         System.out.println ("numFaces= " + mesh.numFaces());
          System.out.println ("isClosed= " + mesh.isClosed());
          System.out.println ("isManifold= " + mesh.isManifold());
          System.out.println ("volume= " + mesh.computeVolume());
@@ -198,14 +198,14 @@ public class MeshInfo {
                case PrintFaces: {
                   PolygonalMesh mesh;
                   if ((mesh = info.getMesh (inputFile)) != null) {
-                     System.out.println (mesh.getNumFaces());
+                     System.out.println (mesh.numFaces());
                   }
                   break;
                }
                case PrintVertices: {
                   PolygonalMesh mesh;
                   if ((mesh = info.getMesh (inputFile)) != null) {
-                     System.out.println (mesh.getNumVertices());
+                     System.out.println (mesh.numVertices());
                   }
                   break;
                }

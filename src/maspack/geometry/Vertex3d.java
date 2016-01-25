@@ -8,9 +8,10 @@ package maspack.geometry;
 
 import maspack.matrix.*;
 import maspack.util.Clonable;
+import maspack.util.InternalErrorException;
 
 import java.util.*;
-import java.awt.*;
+import java.awt.Color;
 
 /**
  * Vertex for a 3D dimensional polyhedral object.
@@ -20,7 +21,6 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
     * 3D point associated with this vertex.
     */
    public Point3d pnt;
-   private float[] myColor;
    public Point3d myRenderPnt;
 
    // cached value of pnt in world coordinates
@@ -30,14 +30,18 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
    public int uniqueIndex;
    static int nextUniqueIndex = 0;
 
-   HalfEdgeNode incidentHedges;
+   protected HalfEdgeNode incidentHedges;
+   protected boolean hedgesSorted = false; 
+   int hedgesModCount = 0;
    int idx;
 
    private class EdgeIterator implements Iterator<HalfEdge> {
       HalfEdgeNode heNode;
+      int expectedModCount;
 
       EdgeIterator (HalfEdgeNode node) {
          heNode = node;
+         expectedModCount = hedgesModCount;
       }
 
       public boolean hasNext() {
@@ -51,6 +55,10 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
          else {
             HalfEdge he = heNode.he;
             heNode = heNode.next;
+            if (expectedModCount != hedgesModCount) {
+               throw new ConcurrentModificationException(
+                  expectedModCount + " " + hedgesModCount);
+            }
             return he;
          }
       }
@@ -68,6 +76,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
     * @return iterator over incident half-edges
     */
    public Iterator<HalfEdge> getIncidentHalfEdges() {
+      sortHedgesIfNecessary();
       return new EdgeIterator (incidentHedges);
    }
 
@@ -96,6 +105,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       this.pnt = new Point3d();
       // this.faceList = null;
       this.incidentHedges = null;
+      this.hedgesSorted = false;
       uniqueIndex = nextUniqueIndex++;
    }
 
@@ -126,6 +136,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       this.pnt = pnt;
       // this.faceList = null;
       this.incidentHedges = null;
+      this.hedgesSorted = false;
       this.idx = idx;
       uniqueIndex = nextUniqueIndex++;
    }
@@ -182,6 +193,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
     */
    public boolean computeNormal (Vector3d nrm) {
       boolean faceNormalsFound = false;
+      sortHedgesIfNecessary();
       nrm.set (0, 0, 0);
       for (HalfEdgeNode node = incidentHedges; node != null; node = node.next) {
          Face face = node.he.face;
@@ -205,6 +217,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
     * @return false if no incident halt edges are present
     */
    public boolean computeAngleWeightedNormal (Vector3d nrm) {
+      sortHedgesIfNecessary();      
       boolean hasNormal = (incidentHedges != null);
       nrm.set (0, 0, 0);
       for (HalfEdgeNode node = incidentHedges; node != null; node = node.next) {
@@ -217,8 +230,38 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       return hasNormal;
    }
 
+   /**
+    * Compute the normals for all the half-edges indicent on this vertex.
+    * If none of the half-edges are open or hard, then only one normal
+    * is computed, which will be shared by all the half-edges. 
+    * Otherwise, extra normals will be computed for the 
+    * sub-regions delimited by open or hard edges.
+    *   
+    * @param nrms list of normal vectors where the results should be placed
+    * @param idx starting index into <code>nrms</code> for the result
+    * @return advanced index
+    */
+   public int computeAngleWeightedNormals (List<Vector3d> nrms, int idx) {
+      sortHedgesIfNecessary(); 
+      HalfEdgeNode node = incidentHedges;
+      while (node != null) {
+         Vector3d nrm = nrms.get(idx++);
+         nrm.setZero();
+         do {
+            HalfEdge he = node.he;
+            nrm.angleWeightedCrossAdd (
+               he.tail.pnt, he.head.pnt, he.next.head.pnt);
+            node = node.next;
+         }
+         while (node != null && !isNormalBoundary(node.he));
+         nrm.normalize();         
+      }
+      return idx;
+   }
+
    public boolean computeRenderNormal (Vector3d nrm) {
       boolean faceNormalsFound = false;
+      sortHedgesIfNecessary();
       nrm.set (0, 0, 0);
       for (HalfEdgeNode node = incidentHedges; node != null; node = node.next) {
          Face face = node.he.face;
@@ -235,14 +278,144 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
 
    /**
     * Adds a half-edge to the list of half-edges incident onto this vertex.
+    * This is done so that the half-edges are ordered in decreasing face
+    * order.
     * 
     * @param he
     * HalfEdgeNode containing the half edge in question
     */
    public void addIncidentHalfEdge (HalfEdge he) {
       HalfEdgeNode node = new HalfEdgeNode (he);
+      hedgesModCount++;
       node.next = incidentHedges;
       incidentHedges = node;
+      hedgesSorted = false;
+   }
+   
+   private class HalfEdgeFaceComparator implements Comparator<HalfEdge> {
+      public int compare (HalfEdge he0, HalfEdge he1) {
+         if (he0.face.idx == he1.face.idx) {
+            return 0;
+         }
+         else if (he0.face.idx < he1.face.idx) {
+            return -1;
+         }
+         else {
+            return 1;
+         }
+      }
+   }
+
+   /**
+    * Returns true if he is a boundary half-edge for purposes of computing
+    * normals.
+    */
+   public boolean isNormalBoundary (HalfEdge he) {
+      return he.opposite == null || he.isHard();
+   }
+
+   String edgeStr (HalfEdge he) {
+      return he.tail.idx + "->" + he.head.idx;
+   }
+      
+
+   /**
+    * Sort the half edges into contiguous groups, with the starting edges of
+    * each group ordered by increasing face number.  The reason we sort the
+    * starting edges by face number is to make the ordering deterministic for a
+    * given mesh geometry.
+    */
+   // Need to synchronize because this could be called from either the
+   // simulation or rendering thread.
+   protected synchronized void sortHedgesIfNecessary() {
+      if (!hedgesSorted) {
+         if (incidentHedges == null) {
+            // no incident edges, so we are sorted by default
+            hedgesSorted = true;
+            return;
+         }
+
+         // go through all incident edges, and find the ones that start a
+         // contiguous group (either open edges or those which are marked
+         // hard). If there are no such edges, then we select as the (single)
+         // starting edge the one whose face has the lowest index.
+         HashSet<HalfEdge> marked = new HashSet<HalfEdge>();
+         ArrayList<HalfEdge> startingHedges = new ArrayList<HalfEdge>();
+         int cnt = 0;
+         for (HalfEdgeNode node=incidentHedges; node!=null; node=node.next) {
+            HalfEdge he = node.he;
+            if (!marked.contains(he)) {
+               if (isNormalBoundary (he)) {
+                  startingHedges.add (he);
+                  // Traverse through the half-edges contiguous to he, marking
+                  // them. They can be discarded since none of them can be a
+                  // boundary edge.
+                  do {
+                     marked.add (he);
+                     he = he.next.opposite;
+                  }                     
+                  while (he != null && !he.isHard());
+               }
+               else {
+                  // Traverse through the half-edges contiguous to he, marking
+                  // them. They also can be discarded since none of them can be
+                  // a boundary edge. However, they may form a loop, in which
+                  // case we choose the choose the half-edge with the lowest
+                  // face index as a starting edge
+                  HalfEdge he0 = he;
+                  HalfEdge minFaceHe = he;
+                  int minFaceIdx = he0.face.idx;
+                  do {
+                     if (he.face.idx < minFaceIdx) {
+                        minFaceIdx = he.face.idx;
+                        minFaceHe = he;
+                     }
+                     marked.add (he);
+                     he = he.next.opposite;
+                  }                     
+                  while (he != null && he != he0 && !he.isHard());
+                  if (he == he0) {
+                     startingHedges.add (minFaceHe);
+                  }
+               }
+            }
+            cnt++;
+         }
+         if (startingHedges.size() == 0) {
+            throw new InternalErrorException (
+               "No starting edges found for half-edges incident to vertex "+idx);
+         }
+         if (startingHedges.size() > 1) {
+            // sort the starting hedges by face number
+            Collections.sort (startingHedges, new HalfEdgeFaceComparator());
+         }
+         
+         // Now rebuild the list of incident half edges in the prescribed order
+         HalfEdgeNode prev = null;
+         incidentHedges = null;
+         for (HalfEdge start : startingHedges) {
+            HalfEdge he = start;
+            do {
+               HalfEdgeNode node = new HalfEdgeNode (he);
+               if (prev == null) {
+                  incidentHedges = node;
+               }
+               else {
+                  prev.next = node;
+               }
+               prev = node;
+               node.next = null;
+               he = he.next.opposite;
+            }
+            while (he != null && !he.isHard() && he != start);
+         }
+         if (numIncidentHalfEdges() != cnt) {
+            throw new InternalErrorException (
+               "Error sorting incident half-edges: started with " + cnt +
+               ", ended with " + numIncidentHalfEdges());
+         }
+         hedgesSorted = true;
+      }
    }
 
    /**
@@ -256,12 +429,14 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       HalfEdgeNode prevNode = null;
       for (HalfEdgeNode node = incidentHedges; node != null; node = node.next) {
          if (node.he == hedge) { // remove the node and return the node
+            hedgesModCount++;
             if (prevNode == null) {
                incidentHedges = node.next;
             }
             else {
                prevNode.next = node.next;
             }
+            hedgesSorted = false;
             return true;
          }
          prevNode = node;
@@ -276,12 +451,18 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
     * @return first incident half-edge
     */
    public HalfEdge firstIncidentHalfEdge() {
+      sortHedgesIfNecessary();
       if (incidentHedges != null) {
          return incidentHedges.he;
       }
       else {
          return null;
       }
+   }
+   
+   HalfEdgeNode getIncidentHedges() {
+      sortHedgesIfNecessary();
+      return incidentHedges;
    }
 
    /**
@@ -396,132 +577,132 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
    // return ((this.idx == other.idx) && this.pnt.equals(other.pnt));
    // }
 
-   /**
-    * Sets a color for this vertex, or removes the color if null is specified.
-    * 
-    * @param color
-    * color to set for this vertex.
-    */
-   public void setColor (Color color) {
-      if (color != null) {
-         myColor = new float[4];
-         myColor = color.getColorComponents (myColor);
-         myColor[3] = 1;
-      }
-      else {
-         myColor = null;
-      }
-   }
+//   /**
+//    * Sets a color for this vertex, or removes the color if null is specified.
+//    * 
+//    * @param color
+//    * color to set for this vertex.
+//    */
+//   public void setColor (Color color) {
+//      if (color != null) {
+//         myColor = new float[4];
+//         myColor = color.getColorComponents (myColor);
+//         myColor[3] = 1;
+//      }
+//      else {
+//         myColor = null;
+//      }
+//   }
    
-   public void setColor(Color color, float alpha) {
-      if (color != null) {
-         myColor = new float[4];
-         myColor = color.getColorComponents(myColor);
-         myColor[3] = alpha;
-      } else {
-         myColor = null;
-      }
-   }
+//   public void setColor(Color color, float alpha) {
+//      if (color != null) {
+//         myColor = new float[4];
+//         myColor = color.getColorComponents(myColor);
+//         myColor[3] = alpha;
+//      } else {
+//         myColor = null;
+//      }
+//   }
 
-   public void setColor(float r, float g, float b) {
-      setColor(r, g, b, 1);
-   }
+//   public void setColor(float r, float g, float b) {
+//      setColor(r, g, b, 1);
+//   }
    
-   public void setColor (float r, float g, float b, float a) {
-      if (myColor == null) {
-         myColor = new float[4];
-      }
-      myColor[0] = r;
-      myColor[1] = g;
-      myColor[2] = b; 
-      myColor[3] = a;
-   }
+//   public void setColor (float r, float g, float b, float a) {
+//      if (myColor == null) {
+//         myColor = new float[4];
+//      }
+//      myColor[0] = r;
+//      myColor[1] = g;
+//      myColor[2] = b; 
+//      myColor[3] = a;
+//   }
 
-   public void setColor (double r, double g, double b) {
-      setColor( (float)r, (float)g, (float)b, 1);
-   }
+//   public void setColor (double r, double g, double b) {
+//      setColor( (float)r, (float)g, (float)b, 1);
+//   }
    
-   public void setColor(double r, double g, double b, double a) {
-      setColor( (float)r, (float)g, (float)b, (float)a);   
-   }
+//   public void setColor(double r, double g, double b, double a) {
+//      setColor( (float)r, (float)g, (float)b, (float)a);   
+//   }
 
-   /** 
-    * Sets the vertex color based on hue, saturation, and value (brightness).
-    * 
-    * @param h hue (in the range 0-1)
-    * @param s saturation (in the range 0-1)
-    * @param b brightness (in the range 0-1)
-    */
-   public void setColorHSV (double h, double s, double b) {
-      setColorHSV(h,s,b,1);
-   }
+//   /** 
+//    * Sets the vertex color based on hue, saturation, and value (brightness).
+//    * 
+//    * @param h hue (in the range 0-1)
+//    * @param s saturation (in the range 0-1)
+//    * @param b brightness (in the range 0-1)
+//    */
+//   public void setColorHSV (double h, double s, double b) {
+//      setColorHSV(h,s,b,1);
+//   }
    
-   /** 
-    * Sets the vertex color based on hue, saturation, and value (brightness).
-    * 
-    * @param h hue (in the range 0-1)
-    * @param s saturation (in the range 0-1)
-    * @param b brightness (in the range 0-1)
-    * @param a alpha (in the range of 0-1)
-    */
-   public void setColorHSV (double h, double s, double b, double a) {
-      double c = b*s;
-      if (h < 0) {
-         h = 0;
-      }
-      else if (h > 1) {
-         h = 1;
-      }
-      double hp = 6*h;
-      double m = b-c;
-      switch ((int)hp) {
-         case 0: {
-            setColor (c+m, hp+m, m, a);
-            break;
-         }
-         case 1:{
-            setColor (2-hp+m, c+m, m, a);
-            break;
-         }
-         case 2: {
-            setColor (m, c+m, hp-2+m, a);
-            break;
-         }
-         case 3:{
-            setColor (m, 4-hp+m, c+m, a);
-            break;
-         }
-         case 4: {
-            setColor (hp-4+m, m, c+m, a);
-            break;
-         }
-         case 5:
-            // 6 will appear if h == 1
-         case 6: {
-            setColor (c+m, m, 6-hp+m, a);
-            break;
-         }
-      }
-      
-   }
+//   /** 
+//    * Sets the vertex color based on hue, saturation, and value (brightness).
+//    * 
+//    * @param h hue (in the range 0-1)
+//    * @param s saturation (in the range 0-1)
+//    * @param b brightness (in the range 0-1)
+//    * @param a alpha (in the range of 0-1)
+//    */
+//   public void setColorHSV (double h, double s, double b, double a) {
+//      double c = b*s;
+//      if (h < 0) {
+//         h = 0;
+//      }
+//      else if (h > 1) {
+//         h = 1;
+//      }
+//      double hp = 6*h;
+//      double m = b-c;
+//      switch ((int)hp) {
+//         case 0: {
+//            setColor (c+m, hp+m, m, a);
+//            break;
+//         }
+//         case 1:{
+//            setColor (2-hp+m, c+m, m, a);
+//            break;
+//         }
+//         case 2: {
+//            setColor (m, c+m, hp-2+m, a);
+//            break;
+//         }
+//         case 3:{
+//            setColor (m, 4-hp+m, c+m, a);
+//            break;
+//         }
+//         case 4: {
+//            setColor (hp-4+m, m, c+m, a);
+//            break;
+//         }
+//         case 5:
+//            // 6 will appear if h == 1
+//         case 6: {
+//            setColor (c+m, m, 6-hp+m, a);
+//            break;
+//         }
+//      }
+//      
+//   }
 
-   /**
-    * Returns the color of this vertex, or null if no color has been set.
-    * 
-    * @return color for this vertex
-    */
-   public Color getColor() {
-      if (myColor == null) {
-         return null;
-      }
-      else {
-         return new Color (myColor[0], myColor[1], myColor[2], myColor[3]);
-      }
-   }
+//   /**
+//    * Returns the color of this vertex, or null if no color has been set.
+//    * 
+//    * @return color for this vertex
+//    */
+//   public Color getColor() {
+//      if (myColor == null) {
+//         return null;
+//      }
+//      else {
+//         return new Color (myColor[0], myColor[1], myColor[2], myColor[3]);
+//      }
+//   }
 
-   public float[] getColorArray() {
-      return myColor;
-   }
+//   public float[] getColorArray() {
+//      return myColor;
+//   }
 
    public void saveRenderInfo() {
       if (myRenderPnt == null) {
@@ -615,12 +796,9 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
           //vtx.myWorldCoordCnt = -1;
           vtx.uniqueIndex = -1;
           vtx.incidentHedges = null;
+          vtx.hedgesSorted = false;
+          vtx.hedgesModCount = 0;
           vtx.idx = idx;
-          
-          if (myColor != null) {
-             vtx.myColor = new float[myColor.length];
-             System.arraycopy (myColor, 0, vtx.myColor, 0, myColor.length);
-          }        
       } catch (CloneNotSupportedException e) {}
       
       return vtx;

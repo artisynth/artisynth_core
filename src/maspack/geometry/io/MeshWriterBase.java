@@ -12,6 +12,7 @@ public abstract class MeshWriterBase implements MeshWriter {
 
    OutputStream myOstream;
    File myFile;
+   int myWriteNormals = -1;
 
    // XXX stub - get rid of this when refactoring done
    protected MeshWriterBase() {
@@ -53,6 +54,26 @@ public abstract class MeshWriterBase implements MeshWriter {
    
    public NumberFormat getFormat() {
       return myFmt;
+   }
+
+   public void setWriteNormals (int enable) {
+      myWriteNormals = enable;
+   }
+
+   public int getWriteNormals () {
+      return myWriteNormals;
+   }
+
+   protected boolean getWriteNormals (MeshBase mesh) {
+      if (myWriteNormals == 0) {
+         return false;
+      }
+      else if (myWriteNormals == 1) {
+         return true;
+      }
+      else {
+         return mesh.getWriteNormals();
+      }
    }
    
    private void closeQuietly(OutputStream out) {

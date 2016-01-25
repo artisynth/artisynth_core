@@ -70,9 +70,10 @@ public class HexBeam3d extends FemBeam3d {
 
       // NORMAL:
       super.build ("hex", 1.0, 0.2, 4, 2, /*options=*/0);
-      //super (name, "hex", 1.0, 0.2, 2, 1, /*options=*/0);
+      //super.build ("hex", 30.0, 30.0, 10, 10, /*options=*/0);
       //super (name, "hex", 1.0, 0.2, 10, 5, 0);
       myFemMod.setSurfaceRendering (FemModel3d.SurfaceRender.None);
+      System.out.println ("mode=" + myFemMod.getSurfaceRenderingMode());
 
       LinearMaterial lmat = new LinearMaterial (100000, 0.33);
       myFemMod.setMaterial (lmat);

@@ -43,6 +43,7 @@ public class MeshRenderer {
    // these flags are added to the flags defined in GLRenderer, so
    // we start with the high bits to make sure there is no overlap ...
    private static int COMPUTE_VERTEX_NORMALS = 0x8000;
+   public static boolean useNewRenderNormals = true;
    
    FunctionTimer timer = new FunctionTimer();
    // temporary storage, used in drawFacesRaw, for half edges used when
@@ -244,8 +245,7 @@ public class MeshRenderer {
 
    float[] myColorBuf = new float[3];
 
-   private void setVertexColor (GL2 gl, Vertex3d vtx, boolean useHSV) {
-      float[] color = vtx.getColorArray();
+   private void setVertexColor (GL2 gl, float[] color, boolean useHSV) {
       if (color != null) {
          if (useHSV) {
             // convert color to HSV representation
@@ -290,9 +290,9 @@ public class MeshRenderer {
          useVertexColors = false;
       }
       
-      if (computeVertexNormals) {
-         nrms = new Vector3d[mesh.getNumVertices()];
-         for (int v = 0; v < mesh.getNumVertices(); v++) {
+      if (!useNewRenderNormals && computeVertexNormals) {
+         nrms = new Vector3d[mesh.numVertices()];
+         for (int v = 0; v < mesh.numVertices(); v++) {
             nrms[v] = new Vector3d();
             if (useRenderNormals) {
                mesh.getVertices().get (v).computeRenderNormal (nrms[v]);
@@ -311,87 +311,115 @@ public class MeshRenderer {
       ArrayList<Face> faceList = mesh.getFaces();
       int[] faceOrder = mesh.getFaceOrder();
       int faceIdx;
-      
-      for (int i=0; i<faceList.size(); i++) {
 
-         if (faceOrder == null) {
-            faceIdx = i;
-         } else {
-            faceIdx = faceOrder[i];
-         }
-         faceIdx = unpackEdges (faceList, faceIdx, mergeQuadTriangles);
-         Face face = faceList.get (faceIdx);
+      synchronized (mesh) {
+         // synchronize against render normals changing
+
+         int[] indexOffs = mesh.getFeatureIndexOffsets();
+         int[] normalIndices = mesh.getNormalIndices();
+         for (int i=0; i<faceList.size(); i++) {
+
+            if (faceOrder == null) {
+               faceIdx = i;
+            } else {
+               faceIdx = faceOrder[i];
+            }
+            faceIdx = unpackEdges (faceList, faceIdx, mergeQuadTriangles);
+            Face face = faceList.get (faceIdx);
          
-         // set the appropriate glBegin, depending on how many edges we
-         // have. For triangles (or quads), the glBegin stays in force until we
-         // are no longer rendering triangles (or quads).
-         if (myEdgeCnt > 4) {
-            gl.glBegin (GL2.GL_POLYGON);
-         }
-         else if (myLastEdgeCnt != myEdgeCnt) {
-            if (myLastEdgeCnt == 3 || myLastEdgeCnt == 4) {
-               // was rendering triangles or quads, so close previous glBegin.
-               gl.glEnd();
+            // set the appropriate glBegin, depending on how many edges we
+            // have. For triangles (or quads), the glBegin stays in force until we
+            // are no longer rendering triangles (or quads).
+            if (myEdgeCnt > 4) {
+               gl.glBegin (GL2.GL_POLYGON);
             }
-            if (myEdgeCnt == 3) {
-               gl.glBegin (GL2.GL_TRIANGLES);
-            }
-            else {
-               gl.glBegin (GL2.GL_QUADS);
-            }
-         }
-
-         if (!computeVertexNormals) {
-            Vector3d faceNrm;
-            if (useRenderNormals) {
-               faceNrm = face.getRenderNormal();
-            }
-            else {
-               faceNrm = face.getNormal();
-            }
-            gl.glNormal3d (faceNrm.x, faceNrm.y, faceNrm.z);
-         }
-
-         for (int edgeIdx=0; edgeIdx<myEdgeCnt; edgeIdx++) {
-            HalfEdge he = myEdges[edgeIdx];
-
-            Vertex3d vtx = he.head;
-            Point3d pnt = useRenderNormals ? vtx.myRenderPnt : vtx.pnt;
-
-            if (computeVertexNormals) {
-               HalfEdge lastHard = he.lastHardEdge();
-               if (lastHard != null) {
-                  lastHard.computeVertexNormal (vtxNrm, useRenderNormals);
-                  gl.glNormal3d (vtxNrm.x, vtxNrm.y, vtxNrm.z);
+            else if (myLastEdgeCnt != myEdgeCnt) {
+               if (myLastEdgeCnt == 3 || myLastEdgeCnt == 4) {
+                  // was rendering triangles or quads, so close previous glBegin.
+                  gl.glEnd();
+               }
+               if (myEdgeCnt == 3) {
+                  gl.glBegin (GL2.GL_TRIANGLES);
                }
                else {
-                  nrm = nrms[he.head.idx];
-                  gl.glNormal3d (nrm.x, nrm.y, nrm.z);
+                  gl.glBegin (GL2.GL_QUADS);
                }
             }
 
-            if (useTextureCoords) {
-               int iv = mesh.myTextureIndices.get(faceIdx)[edgeIdx];
-               // BUG: can be null. iv is index into texture list
-               Vector3d vtext = (Vector3d)mesh.myTextureVertexList.get (iv);
-               double sss = vtext.x;
-               double ttt = vtext.y;
-               gl.glTexCoord2f ((float)sss, (float)(1 - ttt));
+            if (!computeVertexNormals) {
+               Vector3d faceNrm;
+               if (useRenderNormals) {
+                  faceNrm = face.getRenderNormal();
+               }
+               else {
+                  faceNrm = face.getNormal();
+               }
+               gl.glNormal3d (faceNrm.x, faceNrm.y, faceNrm.z);
             }
-            if (useVertexColors) {
-               setVertexColor (gl, vtx, useHSVInterpolation);
+
+            for (int edgeIdx=0; edgeIdx<myEdgeCnt; edgeIdx++) {
+               HalfEdge he = myEdges[edgeIdx];
+               // vi is the index of vertex with respect to its associated
+               // feature. Normally this is just edgeIdx, except for the
+               // case where edgeIdx == 3, corresponding to a quad
+               int vi = (edgeIdx <= 2 ? edgeIdx : 2);
+               int faceOff = indexOffs[he.face.idx];
+
+               Vertex3d vtx = he.head;
+               Point3d pnt = useRenderNormals ? vtx.myRenderPnt : vtx.pnt;
+
+               if (computeVertexNormals) {
+                  if (useNewRenderNormals) {
+                     int nidx = normalIndices[faceOff+vi];
+                     if (nidx != -1) {
+                        float[] vec = mesh.myRenderNormals[nidx];
+                        gl.glNormal3f (vec[0], vec[1], vec[2]);
+                     }
+                  }
+                  else {
+                     HalfEdge lastHard = he.lastHardEdge();
+                     if (lastHard != null) {
+                        lastHard.computeVertexNormal (vtxNrm, useRenderNormals);
+                        gl.glNormal3d (vtxNrm.x, vtxNrm.y, vtxNrm.z);
+                     }
+                     else {
+                        nrm = nrms[he.head.idx];
+                        gl.glNormal3d (nrm.x, nrm.y, nrm.z);
+                     }
+                  }
+               }
+
+               if (useTextureCoords) {
+                  int iv = mesh.myTextureIndices[faceOff+vi];
+                  // BUG: can be null. iv is index into texture list
+                  Vector3d vtext = mesh.myTextureCoords.get (iv);
+                  double sss = vtext.x;
+                  double ttt = vtext.y;
+                  gl.glTexCoord2f ((float)sss, (float)(1 - ttt));
+               }
+               if (useVertexColors) {
+                  float[] color = null;
+                  int ci = mesh.myColorIndices[faceOff+vi];
+                  if (ci == -1) {
+                     color = null; // XXX should use a default color?
+                  }
+                  else {
+                     color = mesh.myColors.get(ci);
+                  }
+                  setVertexColor (gl, color, useHSVInterpolation);
+               }
+               gl.glVertex3d (pnt.x, pnt.y, pnt.z);
             }
-            gl.glVertex3d (pnt.x, pnt.y, pnt.z);
+            if (myEdgeCnt > 4){
+               // glBegin was set to POLYGON, so we close this now
+               gl.glEnd();
+            }
+            myLastEdgeCnt = myEdgeCnt;
          }
-         if (myEdgeCnt > 4){
-            // glBegin was set to POLYGON, so we close this now
+         if (myLastEdgeCnt == 3 || myLastEdgeCnt == 4) {
+            // was rendering triangles or quads, so close previous glBegin.
             gl.glEnd();
          }
-         myLastEdgeCnt = myEdgeCnt;
-      }
-      if (myLastEdgeCnt == 3 || myLastEdgeCnt == 4) {
-         // was rendering triangles or quads, so close previous glBegin.
-         gl.glEnd();
       }
       
       if (useVertexColors && useHSVInterpolation) {
@@ -465,19 +493,31 @@ public class MeshRenderer {
       if (useVertexColors && useHSVInterpolation) {
          useHSVInterpolation = setupHSVInterpolation (gl);
       }
-      
+      int[] indexOffs = mesh.getFeatureIndexOffsets();
+
       ArrayList<Face> faceList = mesh.getFaces();
       for (int faceIdx=0; faceIdx<faceList.size(); faceIdx++) {
+
          faceIdx = unpackEdges (faceList, faceIdx, mergeQuadTriangles);
+         int faceOff = indexOffs[faceIdx];
+         
          gl.glBegin (GL2.GL_LINE_LOOP);
          for (int edgeIdx=0; edgeIdx<myEdgeCnt; edgeIdx++) {
             HalfEdge he = myEdges[edgeIdx];
+            int vi = (edgeIdx <= 2 ? edgeIdx : 2);
 
             Vertex3d vtx = he.head;
             Point3d pnt = useRenderNormals ? vtx.myRenderPnt : vtx.pnt;
-
             if (useVertexColors) {
-               setVertexColor (gl, vtx, useHSVInterpolation);
+               float[] color = null;
+               int ci = mesh.myColorIndices[faceOff+vi];
+               if (ci == -1) {
+                  color = null; // XXX should use a default color?
+               }
+               else {
+                  color = mesh.myColors.get(ci);
+               }
+               setVertexColor (gl, color, useHSVInterpolation);
             }
             gl.glVertex3d (pnt.x, pnt.y, pnt.z);
          }
@@ -526,9 +566,7 @@ public class MeshRenderer {
          TextureProps textureProps = props.getTextureProps();
          if (!selecting && !useVertexColors && textureProps != null && textureProps.isEnabled()) {
             // if not automatic check that explicit texture indices are okay
-            if (!textureProps.isAutomatic() &&
-                (mesh.myTextureIndices == null ||
-                 mesh.myTextureIndices.size() != mesh.getNumFaces())) {
+            if (!textureProps.isAutomatic() && mesh.myTextureIndices == null) {
                textureProps.setEnabled (false);
                props.setTextureProps (textureProps);
             }
@@ -606,7 +644,7 @@ public class MeshRenderer {
    public void renderEdges (
       GLRenderer renderer, PolygonalMesh mesh, RenderProps props, int flags) {
       
-      if (mesh.getNumVertices() == 0) {
+      if (mesh.numVertices() == 0) {
          return;
       }
       
@@ -673,7 +711,7 @@ public class MeshRenderer {
    public void render (
       GLRenderer renderer, PolygonalMesh mesh, RenderProps props,
       int flags) {
-      if (mesh.getNumVertices() == 0) {
+      if (mesh.numVertices() == 0) {
          return;
       }
       

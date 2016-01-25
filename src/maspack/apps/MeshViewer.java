@@ -433,9 +433,9 @@ public class MeshViewer extends GLViewerFrame
 
    private void setLabelText (String name, MeshBase mesh) {
 
-      System.out.println ("numv=" + mesh.getNumVertices());
+      System.out.println ("numv=" + mesh.numVertices());
       String text = name == null ? " " : name;
-      text += "   numv=" + mesh.getNumVertices();
+      text += "   numv=" + mesh.numVertices();
       if (mesh instanceof PolygonalMesh) {
          PolygonalMesh pmesh = (PolygonalMesh)mesh;
          text += " manifold=" + pmesh.isManifold();
@@ -447,7 +447,7 @@ public class MeshViewer extends GLViewerFrame
    private void addMesh (String name, MeshBase mesh) {
       myMeshes.add (mesh);
       if (mesh instanceof PointMesh &&
-          ((PointMesh)mesh).getNumNormals() == 0) {
+          ((PointMesh)mesh).getNormals() == null) {
          RenderProps.setShading (mesh, RenderProps.Shading.NONE);
       }
       viewer.addRenderable (mesh);     
@@ -917,10 +917,10 @@ public class MeshViewer extends GLViewerFrame
                      doPrintBounds (mesh);
                   }
 
-                  if (mesh.getNumVertices() > 0) {
+                  if (mesh.numVertices() > 0) {
                      System.out.print (
-                        "mesh "+names[i]+": "+mesh.getNumVertices()+" vertices, "+
-                           mesh.getNumFaces()+" faces, ");
+                        "mesh "+names[i]+": "+mesh.numVertices()+" vertices, "+
+                           mesh.numFaces()+" faces, ");
                      if (mesh.isTriangular()) {
                         System.out.println ("triangular");
                      }

@@ -640,6 +640,26 @@ public class ScanWriteUtils {
       comp.postscan (tokens, ancestor);         
    }
 
+   /**
+    * Scans and discards the input associated with a component, which is
+    * assumed to be enclosed within square brackets. This is used in situations
+    * where we want to ignore the input associated with a particular component.
+    *
+    * @param rtok input token stream
+    */
+   public static void scanAndDiscard (ReaderTokenizer rtok) throws IOException {
+      rtok.scanToken ('[');
+      int level = 0;
+      while (rtok.nextToken() != ']' || level > 0) {
+         if (rtok.ttype == '[') {
+            level++;
+         }
+         else if (rtok.ttype == ']') {
+            level--;
+         }
+      }
+   }
+
    protected static ScanToken recursivelyPrintTokens (
       PrintWriter pw, Deque<ScanToken> tokens) {
 
@@ -884,6 +904,40 @@ public class ScanWriteUtils {
    }
 
    /**
+    * Attempts to scan and store a specific property value for a specified
+    * host. Checks if the current token is a word matching the specified
+    * property name.  If so, scan either '=' or ':' and the following property
+    * value, store the property name and value in the token queue using a
+    * <code>StrinToken</code> and an <code>ObjectToken</code>, and return
+    * <code>true</code>.  Otherwise, return <code>false</code>.
+    *
+    * <p> This method is intended for handling property values which must be
+    * set in the <i>post-scan</i> stage after references have been set.
+    * 
+    * @param rtok input token stream
+    * @param host host containing the properties
+    * @param propName name of the property to match
+    * @param tokens token queue for postscan
+    * @return <code>true</code> if z roperty value was scanned
+    * and stored.
+    * @throws IOException
+    */
+   public static boolean scanAndStorePropertyValue (
+      ReaderTokenizer rtok, HasProperties host, String propName,
+      Deque<ScanToken> tokens) throws IOException {
+
+      if (rtok.ttype == TT_WORD) {
+         if (rtok.sval.equals (propName)) {
+            tokens.offer (new StringToken (rtok.sval, rtok.lineno()));
+            Object val = scanPropertyValue (rtok, host, propName);
+            tokens.offer (new ObjectToken (val));
+            return true;
+         }
+      }
+      return false;
+   }
+
+   /**
     * Checks if the next token in the queue is a StringToken
     * containing one of a specified set of property names. If
     * so, consumes that token, along with a following token
@@ -914,6 +968,40 @@ public class ScanWriteUtils {
                else {
                   throw new IOException ("Unexpected token " + tokens.peek());
                }
+            }
+         }
+      }
+      return false;
+   }
+
+   /**
+    * Checks if the next token in the queue is a StringToken containing a
+    * specified property name. If so, consumes that token, along with a
+    * following token giving the property value, sets that property value
+    * within the host, and returns <code>true</code>. Otherwise, returns
+    * <code>false</code>.
+    * 
+    * @param tokens queue of stored tokens
+    * @param host host containing the properties
+    * @param propName names of the property to match
+    * @return <code>true</code> if a property was matched and set
+    * @throws IOException
+    */
+   public static boolean postscanPropertyValue (
+      Deque<ScanToken> tokens, HasProperties host, String propName) 
+      throws IOException {
+
+      if (tokens.peek() instanceof StringToken) {
+         StringToken strtok = (StringToken)tokens.peek();
+         if (strtok.value().equals (propName)) {
+            tokens.poll();
+            if (tokens.peek() instanceof ObjectToken) {
+               postscanSetPropertyValue (
+                  host, propName, tokens.poll().value());
+               return true;
+            }
+            else {
+               throw new IOException ("Unexpected token " + tokens.peek());
             }
          }
       }

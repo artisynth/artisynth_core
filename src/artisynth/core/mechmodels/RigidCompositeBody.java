@@ -86,22 +86,22 @@ public class RigidCompositeBody extends RigidBody implements
       return myMeshList.get (name);
    }
    
-   public PolygonalMesh getCollisionMesh(int idx) {
-      int i = 0;
-      if (idx < 0) {
-         idx = 0;
-      }
-      for (RigidMeshComp mc : myMeshList) {
-         if (mc.getMesh() instanceof PolygonalMesh) {
-            if (idx == i) {
-               return (PolygonalMesh)mc.getMesh();
-            } else {
-               i++;
-            }
-         }
-      }
-      throw new IllegalArgumentException("Failed to determine the desired collision mesh");
-   }
+//   public PolygonalMesh getCollisionMesh(int idx) {
+//      int i = 0;
+//      if (idx < 0) {
+//         idx = 0;
+//      }
+//      for (RigidMeshComp mc : myMeshList) {
+//         if (mc.getMesh() instanceof PolygonalMesh) {
+//            if (idx == i) {
+//               return (PolygonalMesh)mc.getMesh();
+//            } else {
+//               i++;
+//            }
+//         }
+//      }
+//      throw new IllegalArgumentException("Failed to determine the desired collision mesh");
+//   }
       
    /**
     * Adds a mesh to this object.  Can be of any type.
@@ -130,7 +130,10 @@ public class RigidCompositeBody extends RigidBody implements
     * @param physical if true, this mesh is used for computing mass and inertia
     * @return a special "mesh component" object that is created internally 
     */
-   public RigidMeshComp addMesh(MeshBase mesh, String fileName, AffineTransform3dBase Xh, boolean physical) {
+   public RigidMeshComp addMesh (
+      MeshBase mesh, String fileName, AffineTransform3dBase Xh, 
+      boolean physical) {
+      
       RigidMeshComp mc = new RigidMeshComp();
       mc.setMesh(mesh, fileName, Xh);
       if (mesh.getName() != null) {
@@ -185,7 +188,7 @@ public class RigidCompositeBody extends RigidBody implements
          double vol = ((PolygonalMesh)base).computeVolume();
          return density * vol;
       } else if (base instanceof PointMesh) {
-         // return ((PointMesh)base).getNumVertices() * density;
+         // return ((PointMesh)base).numVertices() * density;
          // XXX To implement along with spatial inertia
       } else if (base instanceof PolylineMesh) {
          //         PolylineMesh mesh = (PolylineMesh)base;
@@ -536,7 +539,7 @@ public class RigidCompositeBody extends RigidBody implements
       TransformGeometryContext context, int flags) {
       context.addAll (myMeshList);
    }
-   
+
 //   public void transformGeometry (
 //      GeometryTransformer X, TransformGeometryContext context, int flags) {
 //      

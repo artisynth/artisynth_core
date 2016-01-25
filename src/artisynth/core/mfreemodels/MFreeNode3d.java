@@ -208,7 +208,7 @@ public class MFreeNode3d extends FemNode3d implements MFreePoint3d, Boundable {
          BSPTree mesh1Tree = new BSPTree(mesh1);
          BSPTree mesh2Tree = new BSPTree(mesh2);
          PolygonalMesh meshInt = mesh1Tree.intersect(mesh2Tree).generateMesh();
-         if (meshInt.getNumFaces() > 0) {
+         if (meshInt.numFaces() > 0) {
             return true;
          }
          return false;

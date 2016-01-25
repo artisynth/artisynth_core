@@ -1507,6 +1507,31 @@ public class PropertyDesc implements PropertyInfo {
       return new AxisAngle (x, y, z, Math.toRadians (ang));
    }
 
+   public boolean writeIfNonDefault (
+      HasProperties host, PrintWriter pw, NumberFormat fmt) throws IOException {
+
+      Object value = getValue (host);
+      PropertyMode mode = PropertyMode.Explicit;
+
+      if (isInheritable()) {
+         mode = getMode (host);
+      }
+      if (mode == PropertyMode.Explicit &&
+          (getDefaultMode() == PropertyMode.Inherited ||
+           !valueEqualsDefault (value))) {
+         pw.print (myName + "=");
+         writeValue (getValue (host), pw, fmt);
+         return true;
+      }
+      else if (mode != getDefaultMode()) {
+         pw.println (myName + ":" + mode + " ");
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
    /**
     * {@inheritDoc}
     */

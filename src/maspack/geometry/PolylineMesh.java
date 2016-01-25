@@ -12,6 +12,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.media.opengl.GL2;
 
@@ -61,20 +62,6 @@ public class PolylineMesh extends MeshBase {
    }
 
    /**
-    * {@inheritDoc}
-    */
-   public int getNumNormals() {
-      return 0;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public Vector3d getNormal (int idx) {
-      throw new ArrayIndexOutOfBoundsException ("idx="+idx+", size=0");
-   }
-
-   /**
     * Returns this mesh's lines. The line are contained within an ArrayList,
     * each element of which is an array giving the vertex indices for the line.
     * 
@@ -89,7 +76,7 @@ public class PolylineMesh extends MeshBase {
     * 
     * @return number of lines in this mesh
     */
-   public int getNumLines() {
+   public int numLines() {
       return myLines.size();
    }
 
@@ -225,6 +212,7 @@ public class PolylineMesh extends MeshBase {
       }
       line.set (vtxList, indices.length);
       myLines.add (line);
+      adjustAttributesForNewFeature();
       notifyStructureChanged();
       return line;
    }
@@ -251,6 +239,7 @@ public class PolylineMesh extends MeshBase {
       }
       line.set (vertices, vertices.length);
       myLines.add (line);
+      adjustAttributesForNewFeature();
       notifyStructureChanged();
       return line;
    }
@@ -271,6 +260,7 @@ public class PolylineMesh extends MeshBase {
       }
       line.idx = myLines.size();
       myLines.add (line);
+      adjustAttributesForNewFeature();
       notifyStructureChanged();
       return line;
    }
@@ -284,6 +274,7 @@ public class PolylineMesh extends MeshBase {
     */
    public boolean removeLine (Polyline line) {
       if (myLines.remove (line)) {
+         adjustAttributesForRemovedFeature (line.idx);
          notifyStructureChanged();
          return true;
       }
@@ -474,8 +465,7 @@ public class PolylineMesh extends MeshBase {
    }
    
    float[] myColorBuf = new float[4];
-   private void setVertexColor (GL2 gl, Vertex3d vtx, boolean useHSV) {
-      float[] color = vtx.getColorArray();
+   private void setVertexColor (GL2 gl, float[] color, boolean useHSV) {
       if (color != null) {
          if (useHSV) {
             // convert color to HSV representation
@@ -551,6 +541,10 @@ public class PolylineMesh extends MeshBase {
          float[] postmp = posb;
          int nslices =  props.getLineSlices();
          double r = props.getLineRadius();
+
+         int[] indexOffs = getFeatureIndexOffsets();
+         ArrayList<float[]> colors = getColors();
+         int[] colorIndices = getColorIndices();
          
          for (int i=0; i<myLines.size(); i=i+1+renderSkip) {
             Polyline line = myLines.get(i);
@@ -558,16 +552,17 @@ public class PolylineMesh extends MeshBase {
             Vertex3d[] vtxs = line.getVertices();
             Point3d pnta = useRenderVtxs ? vtxs[0].myRenderPnt : vtxs[0].pnt;
             getFloatPoint(pnta, posa);
-            
+            int lineOff = indexOffs[i];
             
             for (int k=1; k<line.numVertices(); k++) {
                Point3d pntb = useRenderVtxs ? vtxs[k].myRenderPnt : vtxs[k].pnt;
                getFloatPoint(pntb, posb);
                
                if (useVertexColors) {
-                  drawColoredCylinder(gl, nslices, r, r,
-                     posa, vtxs[k-1].getColorArray(), posb, 
-                     vtxs[k].getColorArray(), false);
+                  float[] color0 = colors.get(colorIndices[lineOff+k-1]);
+                  float[] color1 = colors.get(colorIndices[lineOff+k]);
+                  drawColoredCylinder(
+                     gl, nslices, r, r, posa, color0, posb, color1, false);
                   
                } else {
                   renderer.drawCylinder(props, posa, posb, true);
@@ -749,15 +744,24 @@ public class PolylineMesh extends MeshBase {
             renderer.setLightingEnabled (false);
             renderer.setShadeModel (RenderProps.Shading.FLAT);
          }
+         
+         int[] indexOffs = getFeatureIndexOffsets();
+         ArrayList<float[]> colors = getColors();
+         int[] colorIndices = getColorIndices();
+         
          for (int i=0; i<myLines.size(); i=i+1+renderSkip) {
             Polyline line = myLines.get(i);
             gl.glBegin (GL2.GL_LINE_STRIP);
             Vertex3d[] vtxs = line.getVertices();
+            int lineOff = indexOffs[i];
+            
             for (int k=0; k<line.numVertices(); k++) {
                Point3d pnt = useRenderVtxs ? vtxs[k].myRenderPnt : vtxs[k].pnt;
 
                if (useVertexColors) {
-                  setVertexColor (gl, vtxs[k], useHSVInterpolation);
+                  int cidx = colorIndices[lineOff+k];
+                  float[] color = (cidx != -1 ? colors.get(cidx) : null);
+                  setVertexColor (gl, color, useHSVInterpolation);
                }
                gl.glVertex3d (pnt.x, pnt.y, pnt.z);
             }
@@ -793,35 +797,61 @@ public class PolylineMesh extends MeshBase {
       return (PolylineMesh)super.copy();
    }
 
-   /** 
-    * Creates a copy of this mesh using a specific set of vertices.
-    */
-   public PolylineMesh copyWithVertices (ArrayList<? extends Vertex3d> vtxs) {
-      PolylineMesh mesh = new PolylineMesh();
+   public PolylineMesh clone() {
+      PolylineMesh mesh = (PolylineMesh)super.clone();
 
-      if (vtxs.size() < myVertices.size()) {
-         throw new IllegalArgumentException (
-            "Number of supplied vertices="+vtxs.size()+", need "+myVertices.size());
+      mesh.myLines = new ArrayList<Polyline>();
+      for (int i=0; i<numLines(); i++) {
+         mesh.addLine (myLines.get(i).getVertexIndices());
       }
-      for (int i=0; i<vtxs.size(); i++) {
-         mesh.addVertex (vtxs.get(i));
-      }
-      mesh.setMeshToWorld (XMeshToWorld);
-      for (int i = 0; i < getNumLines(); i++) {
-         mesh.addLine (myLines.get (i).getVertexIndices());
-      }
+      mesh.myBVTree = null;
+      mesh.myBVTreeValid = false;
 
-      if (myRenderProps != null) {
-         mesh.setRenderProps (myRenderProps);
-      }
-      else {
-         mesh.myRenderProps = null;
-      }
-      mesh.setFixed (isFixed());
-      mesh.setRenderBuffered (isRenderBuffered());
-      mesh.setName(getName());
       return mesh;
    }
+
+   public void replaceVertices (List<? extends Vertex3d> vtxs) {
+      super.replaceVertices (vtxs);
+      // replace the lines
+      ArrayList<int[]> lineIdxs = new ArrayList<int[]>();
+      for (int i=0; i<numLines(); i++) {
+         lineIdxs.add (myLines.get(i).getVertexIndices());
+      }
+      myLines.clear();
+      for (int i=0; i<lineIdxs.size(); i++) {
+         addLine (lineIdxs.get(i));
+      }
+   }
+
+//   /** 
+//    * Creates a copy of this mesh using a specific set of vertices.
+//    */
+//   public PolylineMesh copyWithVertices (ArrayList<? extends Vertex3d> vtxs) {
+//      PolylineMesh mesh = new PolylineMesh();
+//
+//      if (vtxs.size() < myVertices.size()) {
+//         throw new IllegalArgumentException (
+//            "Number of supplied vertices="+vtxs.size()+", need "+myVertices.size());
+//      }
+//      for (int i=0; i<vtxs.size(); i++) {
+//         mesh.addVertex (vtxs.get(i));
+//      }
+//      mesh.setMeshToWorld (XMeshToWorld);
+//      for (int i = 0; i < numLines(); i++) {
+//         mesh.addLine (myLines.get (i).getVertexIndices());
+//      }
+//
+//      if (myRenderProps != null) {
+//         mesh.setRenderProps (myRenderProps);
+//      }
+//      else {
+//         mesh.myRenderProps = null;
+//      }
+//      mesh.setFixed (isFixed());
+//      mesh.setRenderBuffered (isRenderBuffered());
+//      mesh.setName(getName());
+//      return mesh;
+//   }
 
    /** 
     * Adds copies of the vertices and lines of another mesh to this mesh.
@@ -830,17 +860,9 @@ public class PolylineMesh extends MeshBase {
     */
    public void addMesh (PolylineMesh mesh) {
 
-      //      RigidTransform3d X = new RigidTransform3d();
-      //      X.mulInverseLeft(XMeshToWorld, mesh.XMeshToWorld);
-      
       int voff = myVertices.size();
-      for (int i = 0; i < mesh.getNumVertices(); i++) {
-	 Point3d p = mesh.getVertices().get(i).getPosition();
-         //	 p.transform(X);
-	 addVertex(p);
-      }
-
-      for (int i = 0; i < mesh.getNumLines(); i++) {
+      super.addMesh (mesh);
+      for (int i = 0; i < mesh.numLines(); i++) {
          addLine (copyWithOffset (
                      mesh.getLines().get(i).getVertexIndices(), voff));
       }
@@ -898,6 +920,67 @@ public class PolylineMesh extends MeshBase {
          }
       }
       return true;
+   }
+
+   public int[] createVertexIndices() {
+      int numi = 0;
+      for (int i=0; i<myLines.size(); i++) {
+         numi += myLines.get(i).numVertices();
+      }
+      int[] indices = new int[numi];
+      int k = 0;
+      for (int i=0; i<myLines.size(); i++) {
+         Polyline line = myLines.get(i);
+         for (int j=0; j<line.numVertices(); j++) {
+            indices[k++] = line.getVertex(j).getIndex();
+         }
+      }     
+      return indices;
+   }
+
+   public int numFeatures() {
+      return myLines.size();
+   }
+
+   protected int[] createFeatureIndexOffsets() {
+      int[] offsets = new int[numLines()+1];
+      int k = 0;
+      offsets[0] = 0;
+      for (int i=0; i<myLines.size(); i++) {
+         k += myLines.get(i).numVertices();
+         offsets[i+1] = k;
+      }
+      return offsets;         
+   }
+
+   protected int[] createDefaultIndices() {
+      int[] indexOffs = getFeatureIndexOffsets();
+      int[] indices = new int[indexOffs[indexOffs.length-1]];
+      int k = 0;
+      for (int i=0; i<myLines.size(); i++) {
+         Polyline line = myLines.get(i);
+         for (int j=0; j<line.numVertices(); j++) {
+            indices[k++] = line.getVertex(j).getIndex();
+         }
+      }
+      return indices;
+   }
+
+   public boolean hasAutoNormalCreation() {
+      return false;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean getWriteNormals() {
+      return hasExplicitNormals();
+   }
+
+   protected void autoGenerateNormals() {
+   }
+
+   protected void autoUpdateNormals() {
    }
    
 }

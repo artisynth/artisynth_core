@@ -94,7 +94,7 @@ public class FemFactory {
             }
          }
       }
-      setGridEdgesHard(model, numX, numY, numZ);
+      setGridEdgesHard(model, widthX, widthY, widthZ);
       model.invalidateStressAndStiffness();
       return model;
    }
@@ -146,7 +146,7 @@ public class FemFactory {
             }
          }
       }
-      setGridEdgesHard(model, numX, numY, numZ);
+      setGridEdgesHard(model, widthX, widthY, widthZ);
       model.invalidateStressAndStiffness();
       return model;
    }
@@ -251,7 +251,7 @@ public class FemFactory {
             }
          }
       }
-      setGridEdgesHard(mod, numX, numY, numZ);
+      setGridEdgesHard(mod, widthX, widthY, widthZ);
       mod.invalidateStressAndStiffness();
       return mod;
    }
@@ -289,7 +289,7 @@ public class FemFactory {
             }
          }
       }
-      setGridEdgesHard(mod, numX, numY, numZ);
+      setGridEdgesHard(mod, widthX, widthY, widthZ);
       mod.invalidateStressAndStiffness();
       return mod;
    }
@@ -1140,19 +1140,74 @@ public class FemFactory {
       return mod;
    }
 
-   private static boolean isVertexOnTubeEdge(
-      Vertex3d vtx, double l, double rin, double rout) {
-      double tol = (1e-14) * (Math.abs(l) + Math.abs(rout));
-      int extremalCnt = 0;
-      double radius = Math.sqrt(vtx.pnt.x * vtx.pnt.x + vtx.pnt.y * vtx.pnt.y);
+   private static int X_POS = 0x001;
+   private static int X_NEG = 0x002;
+   private static int Y_POS = 0x004;
+   private static int Y_NEG = 0x008;
+   private static int Z_POS = 0x010;
+   private static int Z_NEG = 0x020;
+   private static int R_INNER = 0x40;
+   private static int R_OUTER = 0x80;
 
-      if (radius >= rout - tol || radius <= rin + tol) {
-         extremalCnt++;
+   private static int gridBoundarySurfaces (
+      Point3d pnt, double widthX, double widthY, double widthZ) {
+      double tol =
+         (1e-14) * (Math.abs(widthX) + Math.abs(widthY) + Math.abs(widthZ));
+
+      int boundarySurfaces = 0;
+      
+      if (pnt.x >= widthX / 2 - tol) {
+         boundarySurfaces |= X_POS;
       }
-      if (vtx.pnt.z >= l / 2 - tol || vtx.pnt.z <= -l / 2 + tol) {
-         extremalCnt++;
+      else if (pnt.x <= -widthX / 2 + tol) {
+         boundarySurfaces |= X_NEG;
       }
-      return extremalCnt > 1;
+      if (pnt.y >= widthY / 2 - tol) {
+         boundarySurfaces |= Y_POS;
+      }
+      else if (pnt.y <= -widthY / 2 + tol) {
+         boundarySurfaces |= Y_NEG;
+      }
+      if (pnt.z >= widthZ / 2 - tol) {
+         boundarySurfaces |= Z_POS;
+      }
+      else if (pnt.z <= -widthZ / 2 + tol) {
+         boundarySurfaces |= Z_NEG;
+      }
+      return boundarySurfaces;
+   }
+
+   private static int bitCount (int val) {
+      int cnt = 0;
+      while (val != 0) {
+         if ((val & 0x1) != 0) {
+            cnt++;
+         }
+         val = (val >>> 1);
+      }
+      return cnt;
+   }
+
+   private static int tubeBoundarySurfaces (
+      Point3d pnt, double l, double rin, double rout) {
+      double tol = (1e-14) * (Math.abs(l) + Math.abs(rout));
+      double radius = Math.sqrt(pnt.x * pnt.x + pnt.y * pnt.y);
+
+      int boundarySurfaces = 0;
+
+      if (radius >= rout - tol) {
+         boundarySurfaces |= R_OUTER;
+      }
+      else if (radius <= rin + tol) {
+         boundarySurfaces |= R_INNER;
+      }
+      if (pnt.z >= l / 2 - tol) {
+         boundarySurfaces |= Z_POS;
+      }
+      else if (pnt.z <= -l / 2 + tol) {
+         boundarySurfaces |= Z_NEG;
+      }
+      return boundarySurfaces;
    }
 
    private static void setTubeEdgesHard(
@@ -1164,11 +1219,12 @@ public class FemFactory {
          Vertex3d vtx = (Vertex3d)face.getVertex(0);
          for (int i = 1; i < face.numVertices(); i++) {
             Vertex3d nextVtx = (Vertex3d)face.getVertex(i);
-            // a vertex resided on an edge if two or more of its
-            // coordinates have extremal values. If both vertices
-            // reside on the edge, set the edge to be hard
-            if (isVertexOnTubeEdge(vtx, l, rin, rout)
-               && isVertexOnTubeEdge(nextVtx, l, rin, rout)) {
+            // a hard edge occurs when both vertices share two
+            // or more boundary surfaces.
+            int mutualSurfaces = 
+               (tubeBoundarySurfaces (vtx.pnt, l, rin, rout) &
+                tubeBoundarySurfaces (nextVtx.pnt, l, rin, rout));
+            if (bitCount (mutualSurfaces) > 1) {
                mesh.setHardEdge(vtx, nextVtx, true);
             }
             vtx = nextVtx;
@@ -1550,23 +1606,6 @@ public class FemFactory {
       return quadMod;
    }
 
-   private static boolean isVertexOnGridEdge(
-      Vertex3d vtx, double widthX, double widthY, double widthZ) {
-      double tol =
-         (1e-14) * (Math.abs(widthX) + Math.abs(widthY) + Math.abs(widthZ));
-      int extremalCnt = 0;
-      if (vtx.pnt.x >= widthX / 2 - tol || vtx.pnt.x <= -widthX / 2 + tol) {
-         extremalCnt++;
-      }
-      if (vtx.pnt.y >= widthY / 2 - tol || vtx.pnt.y <= -widthY / 2 + tol) {
-         extremalCnt++;
-      }
-      if (vtx.pnt.z >= widthZ / 2 - tol || vtx.pnt.z <= -widthZ / 2 + tol) {
-         extremalCnt++;
-      }
-      return extremalCnt > 1;
-   }
-
    public static FemModel3d createQuadtetGrid(
       FemModel3d model, double widthX, double widthY, double widthZ, int numX,
       int numY, int numZ) {
@@ -1579,24 +1618,25 @@ public class FemFactory {
    }
 
    public static FemModel3d createQuadtetTube(
-      FemModel3d model, double widthX, double widthY, double widthZ, int numX,
-      int numY, int numZ) {
-      FemModel3d tetmod = new FemModel3d();
-      createTetTube(tetmod, widthX, widthY, widthZ, numX, numY, numZ);
+      FemModel3d model,
+      double l, double rin, double rout, int nt, int nl, int nr) {
 
-      createQuadraticModel(model, tetmod);
-      setGridEdgesHard(model, widthX, widthY, widthZ);
+      FemModel3d tetmod = new FemModel3d();
+      createTetTube (tetmod, l, rin, rout, nt, nl, nr);
+
+      createQuadraticModel (model, tetmod);
+      setTubeEdgesHard (model, l, rin, rout);
       return model;
    }
 
    public static FemModel3d createQuadtetTorus(
-      FemModel3d model, double widthX, double widthY, double widthZ, int numX,
-      int numY, int numZ) {
+      FemModel3d model, 
+      double R, double rin, double rout, int nt, int nl, int nr) {
+
       FemModel3d tetmod = new FemModel3d();
-      createTetTorus(tetmod, widthX, widthY, widthZ, numX, numY, numZ);
+      createTetTorus (tetmod, R, rin, rout, nt, nl, nr);
 
       createQuadraticModel(model, tetmod);
-      setGridEdgesHard(model, widthX, widthY, widthZ);
       return model;
    }
 
@@ -1606,7 +1646,6 @@ public class FemFactory {
       createTetExtrusion(tetmod, n, d, surface);
 
       createQuadraticModel(model, tetmod);
-      // setGridEdgesHard (model, widthX, widthY, widthZ);
       return model;
    }
 
@@ -1647,13 +1686,14 @@ public class FemFactory {
    }
 
    public static FemModel3d createQuadhexTube(
-      FemModel3d model, double widthX, double widthY, double widthZ, int numX,
-      int numY, int numZ) {
+      FemModel3d model,
+      double l, double rin, double rout, int nt, int nl, int nr) {
+
       FemModel3d hexmod = new FemModel3d();
-      createHexTube(hexmod, widthX, widthY, widthZ, numX, numY, numZ);
+      createHexTube(hexmod, l, rin, rout, nt, nl, nr);
 
       createQuadraticModel(model, hexmod);
-      setGridEdgesHard(model, widthX, widthY, widthZ);
+      setTubeEdgesHard(hexmod, l, rin, rout);
 
       return model;
    }
@@ -1665,7 +1705,6 @@ public class FemFactory {
       createHexTorus(hexmod, widthX, widthY, widthZ, numX, numY, numZ);
 
       createQuadraticModel(model, hexmod);
-      setGridEdgesHard(model, widthX, widthY, widthZ);
 
       return model;
    }
@@ -1676,7 +1715,6 @@ public class FemFactory {
       createHexExtrusion(hexmod, n, d, surface);
 
       createQuadraticModel(model, hexmod);
-      // setGridEdgesHard (model, widthX, widthY, widthZ);
       return model;
    }
 
@@ -1687,20 +1725,20 @@ public class FemFactory {
       PolygonalMesh mesh = model.getSurfaceMesh();
       // iterate through all edges in the surface mesh.
       for (Face face : mesh.getFaces()) {
-         // FemMeshVertex vtx = (FemMeshVertex)face.getVertex (0);
-         Vertex3d vtx = face.getVertex(0);
-         for (int i = 1; i < face.numVertices(); i++) {
-            // FemMeshVertex nextVtx = (FemMeshVertex)face.getVertex (i);
-            Vertex3d nextVtx = face.getVertex(i);
-            // a vertex resided on an edge if two or more of its
-            // coordinates have extremal values. If both vertices
-            // reside on the edge, set the edge to be hard
-            if (isVertexOnGridEdge(vtx, widthX, widthY, widthZ)
-               && isVertexOnGridEdge(nextVtx, widthX, widthY, widthZ)) {
-               mesh.setHardEdge(vtx, nextVtx, true);
+         HalfEdge he0 = face.firstHalfEdge();
+         HalfEdge he = he0;
+         do {
+            Vertex3d tailv = he.getTail();
+            Vertex3d headv = he.getHead();
+            int mutualSurfaces = 
+               (gridBoundarySurfaces (tailv.pnt, widthX, widthY, widthZ) &
+                gridBoundarySurfaces (headv.pnt, widthX, widthY, widthZ));
+            if (bitCount (mutualSurfaces) > 1) {
+               mesh.setHardEdge(tailv, headv, true);
             }
-            vtx = nextVtx;
+            he = he.getNext();
          }
+         while (he != he0);
       }
    }
 
@@ -1752,10 +1790,10 @@ public class FemFactory {
 
             for (Integer idx : f.getVertexIndices()) {
                nodes[cnt++] =
-                  model.getNode(idx + (i + 1) * surface.getNumVertices());
+                  model.getNode(idx + (i + 1) * surface.numVertices());
             }
             for (Integer idx : f.getVertexIndices()) {
-               nodes[cnt++] = model.getNode(idx + i * surface.getNumVertices());
+               nodes[cnt++] = model.getNode(idx + i * surface.numVertices());
             }
 
             HexElement e = new HexElement(nodes);
@@ -1896,7 +1934,7 @@ public class FemFactory {
          model.addNode(node);
       }
 
-      boolean[] marked = new boolean[surface.getNumFaces()];
+      boolean[] marked = new boolean[surface.numFaces()];
 
       Point3d newpnt = new Point3d();
       Vector3d nrm = new Vector3d();
@@ -1910,9 +1948,9 @@ public class FemFactory {
             model.addNode(new FemNode3d(newpnt));
          }
 
-         int numSurfVtxs = surface.getNumVertices();
+         int numSurfVtxs = surface.numVertices();
 
-         for (int i = 0; i < surface.getNumFaces(); i++) {
+         for (int i = 0; i < surface.numFaces(); i++) {
             if (!marked[i]) {
                Face f = surface.getFaces().get(i);
                int numv = f.numVertices();
@@ -2015,7 +2053,7 @@ public class FemFactory {
 
    private static int[] computeTesselationTypes(PolygonalMesh surface) {
 
-      int numFaces = surface.getNumFaces();
+      int numFaces = surface.numFaces();
 
       int[] types = new int[numFaces];
 
@@ -2115,8 +2153,8 @@ public class FemFactory {
       }
 
       // compute normals
-      Vector3d[] normals = new Vector3d[surface.getNumVertices()];
-      for (int i=0; i<surface.getNumVertices(); i++) {
+      Vector3d[] normals = new Vector3d[surface.numVertices()];
+      for (int i=0; i<surface.numVertices(); i++) {
          normals[i] = new Vector3d();
          Vertex3d vtx = surface.getVertex(i);
          vtx.computeNormal(normals[i]);
@@ -2124,7 +2162,7 @@ public class FemFactory {
       
       // add vertices as nodes
       Point3d newpnt = new Point3d();
-      for (int i=0; i<surface.getNumVertices(); i++) {
+      for (int i=0; i<surface.numVertices(); i++) {
          Vertex3d v = surface.getVertex(i);
          newpnt.scaledAdd(d, normals[i], v.pnt);
          model.addNode(new FemNode3d(newpnt));
@@ -2132,7 +2170,7 @@ public class FemFactory {
 
       
       for (int i = 0; i < n; i++) {
-         for (int j=0; j < surface.getNumVertices(); j++) {
+         for (int j=0; j < surface.numVertices(); j++) {
             Vertex3d v = surface.getVertex(j);
             newpnt.scaledAdd((i + 1) * d + zOffset, normals[j], v.pnt);
             model.addNode(new FemNode3d(newpnt));
@@ -2144,10 +2182,10 @@ public class FemFactory {
 
             for (Integer idx : f.getVertexIndices()) {
                nodes[cnt++] =
-                  model.getNode(idx + (i + 1) * surface.getNumVertices());
+                  model.getNode(idx + (i + 1) * surface.numVertices());
             }
             for (Integer idx : f.getVertexIndices()) {
-               nodes[cnt++] = model.getNode(idx + i * surface.getNumVertices());
+               nodes[cnt++] = model.getNode(idx + i * surface.numVertices());
             }
 
             FemElement3d e = FemElement3d.createElement(nodes);
@@ -2213,19 +2251,19 @@ public class FemFactory {
             HalfEdge he = f.firstHalfEdge();
             for (int k = 0; k < numf; k++) {
                int idx = he.tail.getIndex();
-               nodes[k] = model.getNode(idx + i * surface.getNumVertices());
+               nodes[k] = model.getNode(idx + i * surface.numVertices());
                nodes[k + numf] =
-                  model.getNode(idx + (i + 1) * surface.getNumVertices());
+                  model.getNode(idx + (i + 1) * surface.numVertices());
                he = he.getNext();
             }
 
             // for (Integer idx : f.getVertexIndices()) {
             // nodes[cnt++] =
-            // model.getNode (idx + i * surface.getNumVertices());
+            // model.getNode (idx + i * surface.numVertices());
             // }
             // for (Integer idx : f.getVertexIndices()) {
             // nodes[cnt++] =
-            // model.getNode (idx + (i + 1) * surface.getNumVertices());
+            // model.getNode (idx + (i + 1) * surface.numVertices());
             // }
 
             TetElement[] tets;

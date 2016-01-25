@@ -851,7 +851,7 @@ public class BVFeatureQueryTest {
       for (int i=0; i<numcases; i++) {
          
          Random rand = RandomGenerator.get();
-         int vidx = rand.nextInt(mesh.getNumVertices());
+         int vidx = rand.nextInt(mesh.numVertices());
          pnt.setRandom();
          pnt.scale (0.001*diameter);
          pnt.add (mesh.getVertex(vidx).pnt);
@@ -965,7 +965,7 @@ public class BVFeatureQueryTest {
       }
       double avgEdgeLength = mesh.computeAverageEdgeLength();
 
-      int numv = mesh.getNumVertices();
+      int numv = mesh.numVertices();
       for (int i=0; i<numtrials/numv; i++) {
          for (int j=0; j<numv; j++) {
             pnt.setRandom();

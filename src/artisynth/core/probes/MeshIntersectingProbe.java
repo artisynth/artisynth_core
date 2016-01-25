@@ -47,7 +47,7 @@ public class MeshIntersectingProbe extends CutPlaneProbe {
    
    protected PolygonalMesh myIntersectingMesh = null;
    protected HashMap<Vertex3d,Boolean> vtxIndicatorMap = 
-      new HashMap<Vertex3d,Boolean>(myPlaneSurface.getNumVertices());
+      new HashMap<Vertex3d,Boolean>(myPlaneSurface.numVertices());
    protected ArrayList<LinkedList<Point3d>> myIntersections = null;
    
    public static PropertyList myProps =
@@ -166,7 +166,7 @@ public class MeshIntersectingProbe extends CutPlaneProbe {
    protected void updateVertexIndicators() {
       
       BVFeatureQuery query = new BVFeatureQuery();
-      vtxIndicatorMap = new HashMap<Vertex3d,Boolean>(myPlaneSurface.getNumVertices());
+      vtxIndicatorMap = new HashMap<Vertex3d,Boolean>(myPlaneSurface.numVertices());
       if (myIntersectingMesh != null) {
          for (Vertex3d vtx : myPlaneSurface.getVertices()) {
             boolean inside = query.isInsideOrientedMesh (
@@ -233,7 +233,7 @@ public class MeshIntersectingProbe extends CutPlaneProbe {
    protected static PolygonalMesh trimFaces(PolygonalMesh mesh, HashMap<Vertex3d, Boolean> vtxIndicatorMap) {
       
       PolygonalMesh out = new PolygonalMesh();
-      HashMap<Vertex3d, Vertex3d> vtxMap = new HashMap<Vertex3d,Vertex3d>(mesh.getNumVertices());
+      HashMap<Vertex3d, Vertex3d> vtxMap = new HashMap<Vertex3d,Vertex3d>(mesh.numVertices());
       
       for (Vertex3d vtx : mesh.getVertices()) {
          if (vtxIndicatorMap.get(vtx)) {

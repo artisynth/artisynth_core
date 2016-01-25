@@ -78,7 +78,7 @@ public class FemDisplayProbe extends CutPlaneProbe {
    protected ColorMapBase myColorMap = defaultColorMap.copy();
 
    protected HashMap<Vertex3d,Boolean> vtxIndicatorMap =
-      new HashMap<Vertex3d,Boolean>(myPlaneSurface.getNumVertices());
+      new HashMap<Vertex3d,Boolean>(myPlaneSurface.numVertices());
    protected ArrayList<LinkedList<Point3d>> myIntersections = null;
    HashMap<Vertex3d,VtxInfo> clippedVtxMap = null;
    DraggerType lastDraggerType = null;
@@ -198,7 +198,7 @@ public class FemDisplayProbe extends CutPlaneProbe {
    protected void updateVertexIndicators() {
 
       vtxIndicatorMap =
-         new HashMap<Vertex3d,Boolean>(myPlaneSurface.getNumVertices());
+         new HashMap<Vertex3d,Boolean>(myPlaneSurface.numVertices());
       
       TriangleIntersector ti = new TriangleIntersector();
       BVFeatureQuery query = new BVFeatureQuery();
@@ -225,6 +225,16 @@ public class FemDisplayProbe extends CutPlaneProbe {
       } else {
          updateVertexColoringRest();
       }
+   }
+   
+   private void setColor (Vertex3d vtx, Color c, float a){
+      float color[] = c.getRGBComponents (null);
+      color[3] = a;
+      myPlaneSurface.setColor (vtx.getIndex(), color);
+   }
+   
+   private void setColor (Vertex3d vtx, float r, float g, float b, float a){
+      myPlaneSurface.setColor (vtx.getIndex(), r, g, b, a);
    }
    
    /**
@@ -256,23 +266,23 @@ public class FemDisplayProbe extends CutPlaneProbe {
       for (Vertex3d vtx : myPlaneSurface.getVertices()) {
 
          if (!vtxIndicatorMap.containsKey(vtx) || !vtxIndicatorMap.get(vtx)) {
-            vtx.setColor(faceColor, backAlpha);
+            setColor (vtx, faceColor, backAlpha);
          } else {
             
             VtxInfo vtxInfo;
             
             switch (mySurfaceRendering) {
                case None:
-                  vtx.setColor(faceColor, alpha);
+                  setColor (vtx, faceColor, alpha);
                   break;
                case Strain:
                   vtxInfo = clippedVtxMap.get(vtx);
                   if (vtxInfo != null) {
                      stressVal = getStrainValue(vtxInfo);
                      myColorMap.getRGB(stressVal/myStressPlotRange.getRange(), carray);
-                     vtx.setColor(carray[0], carray[1], carray[2], alpha);
+                     setColor (vtx, carray[0], carray[1], carray[2], alpha);
                   } else {
-                     vtx.setColor(femFaceColor, backAlpha);
+                     setColor (vtx, femFaceColor, backAlpha);
                   }
                      
                   
@@ -282,13 +292,13 @@ public class FemDisplayProbe extends CutPlaneProbe {
                   if (vtxInfo != null) {
                      stressVal = getStressValue(clippedVtxMap.get(vtx));
                      myColorMap.getRGB(stressVal/myStressPlotRange.getRange(), carray);
-                     vtx.setColor(carray[0], carray[1], carray[2], alpha);
+                     setColor (vtx, carray[0], carray[1], carray[2], alpha);
                   } else {
-                     vtx.setColor(femFaceColor, backAlpha);
+                     setColor (vtx, femFaceColor, backAlpha);
                   }
                   break;
                default:
-                  vtx.setColor(femFaceColor, alpha);
+                  setColor (vtx, femFaceColor, alpha);
    
             }
          }   
@@ -331,26 +341,26 @@ public class FemDisplayProbe extends CutPlaneProbe {
       try {
          for (Vertex3d vtx : myPlaneSurface.getVertices()) {
             if (!vtxIndicatorMap.containsKey(vtx) || !vtxIndicatorMap.get(vtx)) {
-               vtx.setColor(faceColor, backAlpha);
+               setColor (vtx, faceColor, backAlpha);
             } else {
 
                switch (mySurfaceRendering) {
                   case None:
-                     vtx.setColor(faceColor, alpha);
+                     setColor (vtx, faceColor, alpha);
                      break;
                   case Strain:
                      stressVal = getStrainValue(vtx.getWorldPoint(), myFem);
 
                      myColorMap.getRGB(stressVal/myStressPlotRange.getRange(), carray);
-                     vtx.setColor(carray[0], carray[1], carray[2], alpha);
+                     setColor (vtx, carray[0], carray[1], carray[2], alpha);
                      break;
                   case Stress:
                      stressVal = getStressValue(vtx.getWorldPoint(), myFem);
                      myColorMap.getRGB(stressVal/myStressPlotRange.getRange(), carray);
-                     vtx.setColor(carray[0], carray[1], carray[2], alpha);
+                     setColor (vtx, carray[0], carray[1], carray[2], alpha);
                      break;
                   default:
-                     vtx.setColor(femFaceColor, alpha);
+                     setColor (vtx, femFaceColor, alpha);
 
                }
             }
@@ -429,20 +439,20 @@ public class FemDisplayProbe extends CutPlaneProbe {
 
          switch (mySurfaceRendering) {
             case None:
-               vtx.setColor(faceColor, alpha);
+               setColor (vtx, faceColor, alpha);
                break;
             case Strain:
                stressVal = getStrainValue(clippedVtxMap.get(vtx));
                myColorMap.getRGB(stressVal/myStressPlotRange.getRange(), carray);
-               vtx.setColor(carray[0], carray[1], carray[2], alpha);
+               setColor (vtx, carray[0], carray[1], carray[2], alpha);
                break;
             case Stress:
                stressVal = getStressValue(clippedVtxMap.get(vtx));
                myColorMap.getRGB(stressVal/myStressPlotRange.getRange(), carray);
-               vtx.setColor(carray[0], carray[1], carray[2], alpha);
+               setColor (vtx, carray[0], carray[1], carray[2], alpha);
                break;
             default:
-               vtx.setColor(femFaceColor, alpha);
+               setColor (vtx, femFaceColor, alpha);
 
          }
 
@@ -607,6 +617,7 @@ public class FemDisplayProbe extends CutPlaneProbe {
       createVtxMap();
       lastDraggerType = getDragger();
       myPlaneSurface.setFixed(false);
+      myPlaneSurface.setVertexColoringEnabled();
       super.setDragger(DraggerType.None);
 
       mySurfaceBoundaries = extractBoundaries(myPlaneSurface);
@@ -618,7 +629,7 @@ public class FemDisplayProbe extends CutPlaneProbe {
    
    // map of vertices to coordinates inside FEM
    private void createVtxMap() {
-      clippedVtxMap = new HashMap<Vertex3d,VtxInfo>(myPlaneSurface.getNumVertices());
+      clippedVtxMap = new HashMap<Vertex3d,VtxInfo>(myPlaneSurface.numVertices());
       
       Point3d loc = new Point3d();
       Vector3d ncoords = new Vector3d();

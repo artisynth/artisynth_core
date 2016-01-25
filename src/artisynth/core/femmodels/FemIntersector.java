@@ -72,7 +72,7 @@ public class FemIntersector {
          Boundable[] elems = node.getElements();
          for (int i=0; i<node.getNumElements(); i++){
             FemElement3d elem = (FemElement3d)elems[i];
-            FaceNodes3d[] faceNodes = elem.getTriFaces();
+            FaceNodes3d[] faceNodes = elem.getFaces();
             for (FaceNodes3d fn : faceNodes) {
                FemNode3d[][] faces = fn.triangulate();
 

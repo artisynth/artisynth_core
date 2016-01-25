@@ -46,22 +46,16 @@ public class FlipMeshNormals {
          mesh = new PointMesh();
       }
       mesh = reader.readMesh(mesh);
-      ArrayList<Vector3d> normals = null;      
-      if (mesh instanceof PointMesh) {
-         PointMesh pmesh = (PointMesh)mesh;
-         normals = pmesh.getNormals();
-      }
-      else if (mesh instanceof PolygonalMesh) {
-         PolygonalMesh pmesh = (PolygonalMesh)mesh;
-         normals = pmesh.getNormalList();
-      }
-      if (normals == null || normals.size() == 0) {
-         System.out.println (
+      if (mesh.hasExplicitNormals()) {
+         ArrayList<Vector3d> normals = mesh.getNormals();      
+         if (normals == null || normals.size() == 0) {
+            System.out.println (
             "Warning: mesh does not have normals; no conversion performed");
-         System.exit(0);
-      }
-      for (int i=0; i<normals.size(); i++) {
-         normals.get(i).negate();
+            System.exit(0);
+         }
+         for (int i=0; i<normals.size(); i++) {
+            normals.get(i).negate();
+         }
       }
       GenericMeshWriter writer = new GenericMeshWriter(myOutputName.value);
       writer.setFormat (reader);

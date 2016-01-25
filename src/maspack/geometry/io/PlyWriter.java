@@ -124,15 +124,16 @@ public class PlyWriter extends MeshWriterBase {
          new BufferedWriter (new OutputStreamWriter (myOstream)));
 
       ArrayList<Vertex3d> vertices = mesh.getVertices();
-      ArrayList<Vector3d> normals = mesh.getNormalList();
-      if (normals.size() == 0) {
-         normals = null;
+      ArrayList<Vector3d> normals = null;
+      if (getWriteNormals (mesh)) {
+         normals = mesh.getNormals();
       }
+
       String dsize = getFloatType().toString().toLowerCase();
 
       pw.println("ply");
       pw.println("format " + myDataFormat.toString().toLowerCase() + " 1.0");
-      pw.println("element vertex " + mesh.getNumVertices());
+      pw.println("element vertex " + mesh.numVertices());
       
       pw.println("property "+dsize+" x");
       pw.println("property "+dsize+" y");
@@ -142,12 +143,12 @@ public class PlyWriter extends MeshWriterBase {
          pw.println("property "+dsize+" ny");
          pw.println("property "+dsize+" nz");
       }
-      pw.println("element face " + mesh.getNumFaces());
+      pw.println("element face " + mesh.numFaces());
       pw.println("property list uchar int vertex_indices");
       pw.println("end_header");
       pw.flush();
 
-      int[] oldIdxs = new int[mesh.getNumVertices()];
+      int[] oldIdxs = new int[mesh.numVertices()];
       int idx = 0;
       for (Vertex3d vtx : mesh.getVertices()) {
           // protect vertex indices numbers
@@ -200,15 +201,15 @@ public class PlyWriter extends MeshWriterBase {
          new BufferedWriter (new OutputStreamWriter (myOstream)));
 
       ArrayList<Vertex3d> vertices = mesh.getVertices();
-      ArrayList<Vector3d> normals = mesh.getNormals();
-      if (normals.size() == 0) {
-         normals = null;
+      ArrayList<Vector3d> normals = null;
+      if (getWriteNormals(mesh)) {
+         normals = mesh.getNormals();
       }
       String dsize = getFloatType().toString().toLowerCase();
 
       pw.println("ply");
       pw.println("format " + myDataFormat.toString().toLowerCase() + " 1.0");
-      pw.println("element vertex " + mesh.getNumVertices());
+      pw.println("element vertex " + mesh.numVertices());
       
       pw.println("property "+dsize+" x");
       pw.println("property "+dsize+" y");

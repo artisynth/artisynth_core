@@ -93,7 +93,7 @@ public class MeshSeparator {
          double numv[] = new double[meshes.length];
          int idxs[] = new int[meshes.length];
          for (int i=0; i<meshes.length; i++) {
-            numv[i] = meshes[i].getNumVertices();
+            numv[i] = meshes[i].numVertices();
             idxs[i] = i;
          }
          ArraySort.quickSort (numv, idxs);

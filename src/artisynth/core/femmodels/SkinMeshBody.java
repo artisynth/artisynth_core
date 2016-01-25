@@ -665,7 +665,7 @@ public class SkinMeshBody extends SkinMeshBase
 
    private void initializeAttachments() {
       MeshBase mesh = getMesh();
-      int numVtxs = mesh.getNumVertices();
+      int numVtxs = mesh.numVertices();
       myVertexAttachments.removeAll();
       myVertexAttachments.ensureCapacity (numVtxs);
    }
@@ -1010,7 +1010,7 @@ public class SkinMeshBody extends SkinMeshBase
       MeshDistCalc dcalc = new MeshDistCalc();
 
       clearAttachments();
-      for (int i=0; i<mesh.getNumVertices(); i++) {
+      for (int i=0; i<mesh.numVertices(); i++) {
          Vertex3d vtx = mesh.getVertices().get(i);
          dcalc.computeDistancesAndWeights (vtx.getPosition(), sigma);
          PointSkinAttachment a = dcalc.computeDisplacementAttachment();

@@ -14,7 +14,105 @@ import maspack.util.*;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.geometry.Vertex3d;
 
-public class PolygonalMeshTest {
+public class PolygonalMeshTest extends UnitTest {
+
+   private ArrayList<Vector3d> createNormals (double[] coords) {
+      ArrayList<Vector3d> normals = new ArrayList<Vector3d>();
+      for (int i=0; i<coords.length-2; i+=3) {
+         Vector3d n = new Vector3d (coords[i], coords[i+1], coords[i+2]);
+         n.normalize();
+         normals.add (n);
+      }
+      return normals;
+   }
+
+   private ArrayList<float[]> createColors (float[][] rgbaVals) {
+      ArrayList<float[]> colors = new ArrayList<float[]>();
+      for (int i=0; i<rgbaVals.length; i++) {
+         colors.add (rgbaVals[i]);
+      }
+      return colors;
+   }
+
+   private void checkNormals (
+      ArrayList<Vector3d> nrmls, ArrayList<Vector3d> check) {
+      if ((nrmls==null) != (check==null)) {
+          throw new TestException (
+             "Normals unequal. nrmls=" + nrmls + ", check=" + check);
+      }
+      if (nrmls != null) {
+         if (nrmls.size() != check.size()) {
+            throw new TestException (
+               "Normals unequal. Expected "+check.size()+", got "+nrmls.size());
+         }
+         for (int i=0; i<nrmls.size(); i++) {
+            if (!nrmls.get(i).epsilonEquals (check.get(i), 1e-8)) {
+               throw new TestException (
+                  "Normal "+i+" unequal. Expected:\n"+check.get(i)+
+                  "\nGot:\n"+nrmls.get(i));
+            }
+         }
+      }
+   }
+
+   private void checkColors (
+      ArrayList<float[]> colors, ArrayList<float[]> check) {
+      if ((colors==null) != (check==null)) {
+          throw new TestException (
+             "Colors unequal. colors=" + colors + ", check=" + check);
+      }
+      if (colors != null) {
+         if (colors.size() != check.size()) {
+            throw new TestException (
+               "Colors unequal. Expected "+check.size()+", got "+colors.size());
+         }
+         for (int i=0; i<colors.size(); i++) {
+            if (!Arrays.equals (colors.get(i), check.get(i))) {
+               throw new TestException (
+                  "Color "+i+" unequal. Expected:\n"+toStr(check.get(i))+
+                  "\nGot:\n"+toStr(colors.get(i)));
+            }
+         }
+      }
+   }
+
+   private String toStr (int[] indices) {
+      if (indices == null) {
+         return "null";
+      }
+      else {
+         StringBuilder sb = new StringBuilder();
+         sb.append ("[");
+         for (int i=0; i<indices.length; i++) {
+            sb.append (" "+indices[i]);
+         }
+         sb.append (" ]");
+         return sb.toString();
+      }
+   }
+
+   private String toStr (float[] colors) {
+      if (colors == null) {
+         return "null";
+      }
+      else {
+         StringBuilder sb = new StringBuilder();
+         sb.append ("[");
+         for (int i=0; i<colors.length; i++) {
+            sb.append (" "+colors[i]);
+         }
+         sb.append (" ]");
+         return sb.toString();
+      }
+   }
+
+   private void checkIndices (int[] indices, int[] check) {
+      if (!Arrays.equals (indices, check)) {
+         throw new TestException (
+            "Indices unequal. Expected:\n" + toStr(check) +
+            "\nGot:\n" + toStr(indices));
+      }
+   }      
 
    private String idxsToStr (int[] idxs) {
       String str = "[";
@@ -49,12 +147,12 @@ public class PolygonalMeshTest {
    }
 
    private void compareMeshes (PolygonalMesh mesh, PolygonalMesh comp) {
-      if (mesh.getNumVertices() != mesh.getNumVertices()) {
+      if (mesh.numVertices() != mesh.numVertices()) {
          throw new TestException (
-            "mesh has "+mesh.getNumVertices()+
-            " vertices, expecting "+comp.getNumVertices());
+            "mesh has "+mesh.numVertices()+
+            " vertices, expecting "+comp.numVertices());
       }
-      for (int i=0; i<mesh.getNumVertices(); i++) {
+      for (int i=0; i<mesh.numVertices(); i++) {
          Vertex3d vr = mesh.getVertices().get(i);
          Vertex3d vc = comp.getVertices().get(i);
          if (!vr.pnt.epsilonEquals (vc.pnt, 1e-10)) {
@@ -62,12 +160,12 @@ public class PolygonalMeshTest {
                "mesh vertex "+i+" is "+vr.pnt+", expecting "+vc.pnt);
          }
       }
-      if (mesh.getNumFaces() != mesh.getNumFaces()) {
+      if (mesh.numFaces() != mesh.numFaces()) {
          throw new TestException (
-            "mesh has "+mesh.getNumFaces()+
-            " faces, expecting "+comp.getNumFaces());
+            "mesh has "+mesh.numFaces()+
+            " faces, expecting "+comp.numFaces());
       }
-      for (int i=0; i<mesh.getNumFaces(); i++) {
+      for (int i=0; i<mesh.numFaces(); i++) {
          Face fr = mesh.getFaces().get(i);
          Face fc = comp.getFaces().get(i);
          int[] ridxs = fr.getVertexIndices();
@@ -80,9 +178,16 @@ public class PolygonalMeshTest {
       }
    }
 
-   PolygonalMesh createMesh (String str) throws IOException {
+   PolygonalMesh createMesh (String str, boolean zeroIndexed) {
       PolygonalMesh mesh = new PolygonalMesh();
-      mesh.read (new StringReader (str));
+      try {
+         mesh.read (new StringReader (str), zeroIndexed);
+      }
+      catch (IOException e) {
+         System.out.println ("ERROR: can't create mesh from string:\n" + str);
+         e.printStackTrace(); 
+         System.exit(1); 
+      }
       return mesh;
    }         
 
@@ -242,8 +347,8 @@ public class PolygonalMeshTest {
 
    private void checkMerge (String result, String check) throws IOException {
 
-      PolygonalMesh mesh = createMesh (result);
-      PolygonalMesh comp = createMesh (check);
+      PolygonalMesh mesh = createMesh (result, false);
+      PolygonalMesh comp = createMesh (check, false);
 
       mesh.mergeCloseVertices (0.1);
       mesh.checkConsistency();
@@ -309,21 +414,437 @@ public class PolygonalMeshTest {
       checkTranslatedInertia (torus, M, density, 1, 2, 3, tol);
    }
 
-   public void test() throws TestException {
+
+   String cubeObj = new String (
+      "v 1 0 1\n" +
+      "v 1 1 1\n" + 
+      "v 0 1 1\n" +
+      "v 0 0 1\n" + 
+      "v 1 0 0\n" + 
+      "v 1 1 0\n" + 
+      "v 0 1 0\n" + 
+      "v 0 0 0\n" + 
+      "f 1 2 3\n" +
+      "f 0 1 3\n" +
+      "f 0 4 1\n" +
+      "f 1 4 5\n" +
+      "f 4 7 6 5\n" +
+      "f 2 6 7 3\n" +
+      "f 1 5 6 2\n" +
+      "f 0 3 7 4\n");
+
+   double[] cubeNormals = new double[] {
+      1, -1, 1, 
+      1, 1, 1,
+      -1, 1, 1,
+      -1, -1, 1,
+      1, -1, -1, 
+      1, 1, -1,
+      -1, 1, -1,
+      -1, -1, -1 };
+
+   int[] indicesCheck = new int[] {
+      1, 2, 3,  0, 1, 3,  0, 4, 1,  1, 4, 5,  4, 7, 6, 5,  
+      2, 6, 7, 3,   1, 5, 6, 2,   0, 3, 7, 4 };         
+
+   double[] hardNormals = new double[] {
+      1, -1, 1,  // v0
+      1, 0, 1,   // v1
+      0, 1, 0,
+      -1, 0, 1,  // v2
+      0, 1, 0,
+      -1, -1, 1, // v3
+      1, -1, -1, // v4
+      1, 0, -1,  // v5
+      0, 1, 0,  
+      -1, 0, -1, // v6
+      0, 1, 0,
+      -1, -1, -1 // v7
+   };
+
+   int[] hardIndicesCheck = new int[] {
+      1, 3, 5,  0, 1, 5,  0, 6, 1,  1, 6, 7,  6, 11, 9, 7,  
+      3, 9, 11, 5,   2, 8, 10, 4,   0, 5, 11, 6 };         
+
+   double[] openNormals = new double[] {
+      1, -1, 1,  // v0
+      1, 0, 1,   // v1
+      0, 1, 0,
+      -1, 0, 0,  // v2
+      0, 1, 0,   //
+      -1, -1, 0.5, // v3
+      0.5, -1, -1, // v4
+      0, 0, -1,  // v5
+      0, 1, 0,
+      -1, 0, -1, // v6
+      0, 1, 0,
+      -1, -1, -1 // v7
+   };
+
+   int[] openIndicesCheck = new int[] {
+      0, 1, 5,  0, 6, 1,   6, 11, 9, 7,  
+      3, 9, 11, 5,   2, 8, 10, 4,   0, 5, 11, 6 };         
+
+   public void hardEdgeNormalTest() throws IOException {
+
+      PolygonalMesh mesh = createMesh (cubeObj, true);
+      
+      ArrayList<Vector3d> nrmls = mesh.getNormals();
+      int[] indices = mesh.getNormalIndices();
+
+      // check the regular, auto-created normals
+      checkNormals (mesh.getNormals(), createNormals (cubeNormals));
+      checkIndices (mesh.getNormalIndices(), indicesCheck);
+      checkIndices (indices, mesh.createVertexIndices());
+
+      check ("hasAutoNormalCreation=true", mesh.hasAutoNormalCreation());
+      check ("getMultipleAutoNormals=true", mesh.getMultipleAutoNormals());
+      check ("hasExplicitNormals=false", !mesh.hasExplicitNormals());
+      check ("numHardEdges=0", mesh.numHardEdges()==0);
+
+      // try explicitly setting normals to null:
+      mesh.setNormals (null, null);
+      checkNormals (mesh.getNormals(), null);
+      checkIndices (mesh.getNormalIndices(), null);
+      check ("hasExplicitNormals=true", mesh.hasExplicitNormals());
+
+      mesh.clearNormals();
+      // should be back to normal
+      checkNormals (mesh.getNormals(), createNormals (cubeNormals));
+      checkIndices (mesh.getNormalIndices(), indicesCheck);
+
+      // now set two hard edges - that shouldn't affect anything
+      // since vertices will have no more than one
+      mesh.setHardEdge (1, 2, true);
+      mesh.setHardEdge (6, 5, true);
+      check ("numHardEdges=2", mesh.numHardEdges()==2);
+      checkNormals (mesh.getNormals(), createNormals (cubeNormals));
+      checkIndices (mesh.getNormalIndices(), indicesCheck);
+
+      // now set redunant hard edges - that shouldn't affect anything
+      mesh.setHardEdge (2, 1, true);
+      mesh.setHardEdge (2, 1, true);
+      mesh.setHardEdge (5, 6, true);
+      check ("numHardEdges=2", mesh.numHardEdges()==2);
+
+      // remove the hard edges
+      mesh.setHardEdge (2, 1, false);
+      mesh.setHardEdge (5, 6, false);
+      check ("numHardEdges=0", mesh.numHardEdges()==0);
+
+      check ("getWriteNormals=false", !mesh.getWriteNormals());
+
+      // now set hard edges all around the top
+      mesh.setHardEdge (2, 1, true);
+      mesh.setHardEdge (5, 6, true);
+      mesh.setHardEdge (5, 1, true);
+      mesh.setHardEdge (2, 6, true);
+      check ("numHardEdges=4", mesh.numHardEdges()==4);
+      // this should result in different normals
+
+      checkNormals (mesh.getNormals(), createNormals (hardNormals));
+      checkIndices (mesh.getNormalIndices(), hardIndicesCheck);
+      // check that updating normals gives the same answer
+      mesh.autoUpdateNormals();
+      checkNormals (mesh.getNormals(), createNormals (hardNormals));
+
+      check ("getWriteNormals=true", mesh.getWriteNormals());
+
+      // write out the file with edges, read it back, and see
+      // that the normals and edge counts are the same
+      StringWriter sw = new StringWriter();
+
+      mesh.write (new PrintWriter(sw), new NumberFormat("%g"), false);
+      PolygonalMesh readmesh = createMesh (sw.toString(), false);
+
+      check ("readmesh.numHardEdges=4", readmesh.numHardEdges()==4);
+      check ("readmesh.hasExplicitNormals=false",
+                   !readmesh.hasExplicitNormals());
+      check ("hasHardEdge (2,1)", readmesh.hasHardEdge (2, 1));
+      check ("hasHardEdge (5,6)", readmesh.hasHardEdge (5, 6));
+      check ("hasHardEdge (5,1)", readmesh.hasHardEdge (5, 1));
+      check ("hasHardEdge (2,6)", readmesh.hasHardEdge (2, 6));
+
+      checkNormals (readmesh.getNormals(), createNormals (hardNormals));
+      checkIndices (readmesh.getNormalIndices(), hardIndicesCheck);
+
+      mesh.setMultipleAutoNormals (false);
+      // should now ignore hard edges when computing normals
+      checkNormals (mesh.getNormals(), createNormals (cubeNormals));
+      checkIndices (mesh.getNormalIndices(), indicesCheck);
+
+      // check that updating normals gives the same answer
+      mesh.autoUpdateNormals(); 
+      checkNormals (mesh.getNormals(), createNormals (cubeNormals));
+
+      // remove a face with a hard edge and check the count
+      mesh.removeFace (mesh.getFace(0));
+
+      check ("numHardEdges=3", mesh.numHardEdges()==3);
+      mesh.removeFace (mesh.getFace(2));
+      check ("numHardEdges=3", mesh.numHardEdges()==2);
+
+      // check normals with face2 removed
+      mesh.setMultipleAutoNormals (true);
+      checkNormals (mesh.getNormals(), createNormals (openNormals));
+      checkIndices (mesh.getNormalIndices(), openIndicesCheck);
+   }
+
+   float[] red = new float[] { 1f, 0f, 0f, 1f };
+   float[] green = new float[] { 0f, 1f, 0f, 1f };
+   float[] blue = new float[] { 0f, 0f, 1f, 1f };
+   float[] cyan = new float[] { 0f, 1f, 1f, 1f };
+   float[] yellow = new float[] { 1f, 1f, 0f, 1f };
+   float[] magenta = new float[] { 1f, 0f, 1f, 1f };
+   float[] pink = new float[] { 1f, 0.5f, 0.5f, 1f };
+   float[] grey = new float[] { 0.5f, 0.5f, 0.5f, 1f };
+   float[] black = new float[] { 0f, 0f, 0f, 1f };
+   float[] white = new float[] { 1f, 1f, 1f, 1f };
+
+   float[][] cubeColors = new float[][] {
+      red, green, blue, cyan, yellow, magenta, pink, grey };
+
+   public void setColorsTest() throws IOException {
+
+      PolygonalMesh mesh = createMesh (cubeObj, true);
+
+      // test vertex-based coloring
+      mesh.setVertexColoringEnabled();
+      check ("numColors=8", mesh.numColors()==8);
+      check ("vertexColoringEnabled=true", mesh.getVertexColoringEnabled());
+      checkIndices (mesh.getColorIndices(), mesh.createVertexIndices());
+      check ("numIndices=28", mesh.getColorIndices().length==28);
+
+      for (int i=0; i<mesh.numColors(); i++) {
+         mesh.setColor (i, cubeColors[i]);
+      }
+
+      Face f0 = mesh.getFace(0);
+      Face f3 = mesh.getFace(3);
+      Face f6 = mesh.getFace(6);
+      Face f4 = mesh.getFace(4);
+
+      mesh.removeFace (f0);
+      mesh.removeFace (f3);
+      check ("numColors=8", mesh.numColors()==8);
+      checkIndices (mesh.getColorIndices(), mesh.createVertexIndices());
+      check ("numIndices=22", mesh.getColorIndices().length==22);
+
+      mesh.removeFace (f6);
+      mesh.removeFace (f4);
+      mesh.removeVertex (mesh.getVertex(5));
+      check ("numColors=7", mesh.numColors()==7);
+      checkColors (
+         mesh.getColors(),
+         createColors (
+            new float[][] {red, green, blue, cyan, yellow, pink, grey}));
+
+      mesh.addVertex (4, 4, 4);
+      checkColors (
+         mesh.getColors(),
+         createColors (
+            new float[][] {red, green, blue, cyan, yellow, pink, grey, grey}));
+
+      checkIndices (mesh.getColorIndices(), mesh.createVertexIndices());
+      check ("numIndices=14", mesh.getColorIndices().length==14);
+
+      mesh.clearColors();
+      checkColors (mesh.getColors(), null);
+
+
+      mesh = createMesh (cubeObj, true);
+
+      mesh.setFeatureColoringEnabled();
+      check ("featureColoringEnabled=true", mesh.getFeatureColoringEnabled());
+      check ("vertexColoringEnabled=false", !mesh.getVertexColoringEnabled());
+      check ("numColors=8", mesh.numColors()==8);
+      checkIndices (mesh.getColorIndices(), mesh.createFeatureIndices());
+      check ("numIndices=28", mesh.getColorIndices().length==28);
+
+      for (int i=0; i<mesh.numColors(); i++) {
+         mesh.setColor (i, cubeColors[i]);
+      }
+
+      f0 = mesh.getFace(0);
+      f3 = mesh.getFace(3);
+      f6 = mesh.getFace(6);
+      f4 = mesh.getFace(4);
+
+      mesh.removeFace (f0);
+      mesh.removeFace (f3);
+      check ("numColors=6", mesh.numColors()==6);
+      checkIndices (mesh.getColorIndices(), mesh.createFeatureIndices());
+      check ("numIndices=22", mesh.getColorIndices().length==22);
+
+      mesh.removeFace (f6);
+      mesh.removeFace (f4);
+      mesh.removeVertex (mesh.getVertex(5));
+      check ("numColors=4", mesh.numColors()==4);
+      checkColors (
+         mesh.getColors(),
+         createColors (
+            new float[][] {green, blue, magenta, grey}));
+
+      mesh.addFace (new int[] { 3, 4, 1 });
+      checkColors (
+         mesh.getColors(),
+         createColors (
+            new float[][] {green, blue, magenta, grey, grey}));
+
+      checkIndices (mesh.getColorIndices(), mesh.createFeatureIndices());
+      check ("numIndices=17", mesh.getColorIndices().length==17);
+   }
+
+   String triangleStar = new String (
+      "v 2.0 0.0 0.0\n" +
+      "v 2.0 1.0 0.0\n" +
+      "v 0.0 1.0 0.0\n" +
+      "v -2.0 1.0 0.0\n" +
+      "v -2.0 0.0 0.0\n" +
+      "v -2.0 -1.0 0.0\n" +
+      "v 0.0 -1.0 0.0\n" +
+      "v 2.0 -1.0 0.0\n" +
+      "v 0.0 0.0 1.0\n" +
+      "f 8 0 1\n" +
+      "f 8 1 2\n" +
+      "f 8 2 3\n" +
+      "f 8 3 4\n" +
+      "f 8 4 5\n" +
+      "f 8 5 6\n" +
+      "f 8 6 7\n" +
+      "f 8 7 0\n");
+
+   private void checkHedges (Vertex3d vtx, int[] idxs) {
+      VectorNi check = new VectorNi (idxs);
+      VectorNi taili = new VectorNi ();
+      HalfEdgeNode node;
+      for (node=vtx.getIncidentHedges(); node!=null; node=node.next) {
+         taili.append (node.he.tail.idx);
+      }
+      if (check.size() != taili.size() || !check.equals (taili)) {
+         throw new TestException (
+            "hedges incorrectly sorted. Expected:\n" + check +
+            "\nGot:\n" + taili);
+      }
+   }
+
+   private void testIncidentHedgeSorting() {
+
+      PolygonalMesh mesh = createMesh (triangleStar, /*zeroIndexed=*/true);
+      
+      checkHedges (mesh.getVertex(8), new int[] { 1, 0, 7, 6, 5, 4, 3, 2 });
+
+      mesh.setHardEdge (8, 0, true);
+      mesh.setHardEdge (8, 3, true);
+      checkHedges (mesh.getVertex(8), new int[] { 3, 2, 1, 0, 7, 6, 5, 4 });
+
+      mesh.setHardEdge (8, 0, false);
+      mesh.setHardEdge (8, 3, false);
+      mesh.setHardEdge (8, 5, true);
+      checkHedges (mesh.getVertex(8), new int[] { 5, 4, 3, 2, 1, 0, 7, 6 });
+
+      Face f5 = mesh.getFace(5);
+      Face f2 = mesh.getFace(2);
+      Face f1 = mesh.getFace(1);
+      Face f0 = mesh.getFace(0);
+
+      mesh.removeFace (f5);
+      checkHedges (mesh.getVertex(8), new int[] { 5, 4, 3, 2, 1, 0, 7 });
+
+      mesh.removeFace (f2);
+      mesh.removeFace (f1);
+      checkHedges (mesh.getVertex(8), new int[] { 1, 0, 7, 5, 4 });
+
+      mesh.removeFace (f0);
+      checkHedges (mesh.getVertex(8), new int[] { 5, 4, 0, 7 });
+
+      mesh.addFace (new int[] { 8, 1, 2});
+      checkHedges (mesh.getVertex(8), new int[] { 5, 4, 0, 7, 2 });
+      
+      mesh.addFace (new int[] { 8, 0, 1});
+      checkHedges (mesh.getVertex(8), new int[] { 5, 4, 2, 1, 0, 7 });
+
+      // start again, this time adding an extra non-manifold face
+      mesh = createMesh (triangleStar, /*zeroIndexed=*/true);
+      mesh.addVertex (2, 2, 0);
+      mesh.addFace (new int[] { 8, 1, 9 });
+
+      checkHedges (mesh.getVertex(8), new int[] { 1, 0, 7, 6, 5, 4, 3, 2, 9 });
+   }
+
+   private void checkUniqueness (
+      PolygonalMesh mesh0, PolygonalMesh mesh1) {
+      // make sure all the components of two meshes are unique. This is
+      // to ensure that copying worked properly
+      for (int i=0; i<mesh0.numVertices(); i++) {
+         if (mesh0.getVertex (i) == mesh1.getVertex (i)) {
+            throw new TestException (
+               "vertex " + i + " is shared");
+         }
+      }
+      for (int i=0; i<mesh0.numNormals(); i++) {
+         if (mesh0.getNormal (i) == mesh1.getNormal (i)) {
+            throw new TestException (
+               "normal " + i + " is shared");
+         }
+      }
+      for (int i=0; i<mesh0.numColors(); i++) {
+         if (mesh0.getColor (i) == mesh1.getColor (i)) {
+            throw new TestException (
+               "color " + i + " is shared");
+         }
+      }
+      for (int i=0; i<mesh0.numTextureCoords(); i++) {
+         if (mesh0.getTextureCoords (i) == mesh1.getTextureCoords (i)) {
+            throw new TestException (
+               "textureCoord " + i + " is shared");
+         }
+      }
+      for (int i=0; i<mesh0.numFaces(); i++) {
+         if (mesh0.getFace (i) == mesh1.getFace (i)) {
+            throw new TestException (
+               "face " + i + " is shared");
+         }
+      }
+   }
+
+   private void testCopy() {
+      PolygonalMesh mesh = createMesh (cubeObj, /*zeroIndexed=*/true);
+
+      PolygonalMesh copy = mesh.copy();
+
+      check ("cube copy", mesh.epsilonEquals (copy, 0));
+      checkUniqueness (mesh, copy);
+
+      mesh.setVertexColoringEnabled();
+      for (int i=0; i<mesh.numColors(); i++) {
+         mesh.setColor (i, cubeColors[i]);
+      }
+      mesh.setHardEdge (1, 2, true);
+      mesh.setHardEdge (2, 6, true);
+      mesh.setHardEdge (1, 5, true);
+      mesh.setHardEdge (5, 6, true);
+      mesh.getNormals(); // make sure normals are created
+
+      copy = mesh.copy();
+
+      check ("cube copy with hard edges & colors", mesh.epsilonEquals (copy, 0));
+      checkUniqueness (mesh, copy);
+   }
+
+   public void test() throws TestException, IOException {
       squareTest();
       mergeTest();      
       inertiaTest();
+      hardEdgeNormalTest();
+      setColorsTest();
+      testIncidentHedgeSorting();
+      testCopy();
    }
 
    public static void main (String[] args) {
       PolygonalMeshTest tester = new PolygonalMeshTest();
-      try {
-         tester.test();
-      }
-      catch (Exception e) {
-         e.printStackTrace();
-         System.exit (1);
-      }
-      System.out.println ("\nPassed\n");
+
+      tester.runtest();
    }
 }

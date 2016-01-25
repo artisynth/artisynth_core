@@ -182,7 +182,7 @@ public class FemMeshComp extends FemMeshBase
          new ComponentChangeEvent (Code.STRUCTURE_CHANGED, this));
       
       // save render info in case render gets called immediately
-      myMeshInfo.getMesh ().saveRenderInfo ();
+      myMeshInfo.getMesh ().saveRenderInfo (myRenderProps);
    }
 
    private static class EdgeDesc {
@@ -251,7 +251,7 @@ public class FemMeshComp extends FemMeshBase
     * a single node
     */
    public boolean isSingleNodeMapped() {
-      return myNumSingleAttachments == getMesh().getNumVertices();
+      return myNumSingleAttachments == getMesh().numVertices();
    }
    
    /**
@@ -696,7 +696,8 @@ public class FemMeshComp extends FemMeshBase
       
       int numv = resolution+1; // num vertices along the edge of each sub face
       initializeSurfaceBuild();
-      HashMap<EdgeDesc,Vertex3d[]> edgeVtxMap = new HashMap<EdgeDesc,Vertex3d[]>();
+      HashMap<EdgeDesc,Vertex3d[]> edgeVtxMap =
+         new HashMap<EdgeDesc,Vertex3d[]>();
 
       // get newly empty mesh
       PolygonalMesh surfMesh = (PolygonalMesh)getMesh();
@@ -880,7 +881,6 @@ public class FemMeshComp extends FemMeshBase
       // else {
       //    throwable = new Throwable();
       // }
-      
 
       initializeSurfaceBuild();
       // nodeVertexMap is used during the construction of this surface,
@@ -903,7 +903,7 @@ public class FemMeshComp extends FemMeshBase
       // create a list of all the faces for all the elements, and for
       // each node, create a list of all the faces it is associated with
       for (FemElement3d e : elems) {
-         FaceNodes3d[] faces = e.getTriFaces();
+         FaceNodes3d[] faces = e.getFaces();
          for (FaceNodes3d f : faces) {
             addEdgeNodesToFace(f, myFem);
             for (FemNode3d n : f.getAllNodes()) {
@@ -949,6 +949,14 @@ public class FemMeshComp extends FemMeshBase
             }
          }
       }
+      int num = 0;
+      for (FaceNodes3d f : allFaces) {
+         if (!f.isOverlapping() &&
+             !f.isSelfAttachedToFace()) {
+            
+            num++;
+         }
+      }
 
       // form the surface mesh from the non-overlapping faces
       PolygonalMesh mesh = (PolygonalMesh)getMesh();
@@ -965,7 +973,8 @@ public class FemMeshComp extends FemMeshBase
                for (int j = 0; j < 3; j++) {
                   FemNode3d node = tri[j];
                   if ((vtxs[j] = myNodeVertexMap.get(node)) == null) {
-                     Vertex3d vtx = new Vertex3d (new Point3d(node.getPosition()));
+                     Vertex3d vtx =
+                        new Vertex3d (new Point3d(node.getPosition()));
                      mesh.addVertex (vtx);
                      myVertexAttachments.add (
                         new PointParticleAttachment (node, null));
@@ -983,7 +992,6 @@ public class FemMeshComp extends FemMeshBase
       }
 
       finalizeSurfaceBuild();
-
       //throwable = null;
    }
 
@@ -1037,7 +1045,8 @@ public class FemMeshComp extends FemMeshBase
          double c = (sval-smin)/srng;
          c = Math.max (0, Math.min (c, 1.0));
          myColorMap.getRGB(c, colorArray);
-         mesh.setVertexColor(i, colorArray[0], colorArray[1], colorArray[2], alpha);
+         mesh.setColor (
+            i, colorArray[0], colorArray[1], colorArray[2], alpha);           
       }
    }
 
@@ -1280,7 +1289,7 @@ public class FemMeshComp extends FemMeshBase
             rtok.nextToken();
             while (rtok.tokenIsInteger()) {
                int vnum = (int)rtok.lval;
-               if (vnum > mesh.getNumVertices()) {
+               if (vnum > mesh.numVertices()) {
                   throw new IOException(
                      "Vertex number "+vnum+" not found, "+rtok);
                }
@@ -1390,20 +1399,19 @@ public class FemMeshComp extends FemMeshBase
       }
    }
 
-   @Override
-   public void scan(ReaderTokenizer rtok, Object ref) throws IOException {
-      SurfaceRender shad1 = mySurfaceRendering;
-      super.scan(rtok, ref);
-      SurfaceRender shad2 = mySurfaceRendering;
-      if (shad1 != shad2) {
-         System.out.println("Different shading");
-      }
-      if (mySurfaceRenderingMode == PropertyMode.Inherited) {
-         System.out.println("Why isn't it explicit?");
-      }
-      
-   }
-
+//   @Override
+//   public void scan(ReaderTokenizer rtok, Object ref) throws IOException {
+//      SurfaceRender shad1 = mySurfaceRendering;
+//      super.scan(rtok, ref);
+//      SurfaceRender shad2 = mySurfaceRendering;
+//      if (shad1 != shad2) {
+//         System.out.println("Different shading");
+//      }
+//      if (mySurfaceRenderingMode == PropertyMode.Inherited) {
+//         System.out.println("Why isn't it explicit?");
+//      }
+//   }
+   
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 
@@ -1411,7 +1419,8 @@ public class FemMeshComp extends FemMeshBase
       if (scanAttributeName(rtok, "surfaceMesh")) {
          isSurfaceMesh = rtok.scanBoolean();
          return true;
-      } else if (scanAttributeName (rtok, "attachments")) {
+      }
+      else if (scanAttributeName (rtok, "attachments")) {
          tokens.offer (new StringToken ("attachments", rtok.lineno()));
          rtok.scanToken ('[');
          while (rtok.nextToken() != ']') {
@@ -1452,7 +1461,6 @@ public class FemMeshComp extends FemMeshBase
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
          throws IOException {
 
-      super.writeItems (pw, fmt, ancestor);
       pw.println("surfaceMesh=" + isSurfaceMesh());
       pw.println ("attachments=["); 
       IndentingPrintWriter.addIndentation (pw, 2);
@@ -1461,6 +1469,9 @@ public class FemMeshComp extends FemMeshBase
       }
       IndentingPrintWriter.addIndentation (pw, -2); 
       pw.println ("]");
+      // have to write attachments before calling super.writeItems() because
+      // they have to be written *before* the surfaceRender property
+      super.writeItems (pw, fmt, ancestor);
    }
 
    @Override

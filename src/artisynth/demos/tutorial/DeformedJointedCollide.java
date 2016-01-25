@@ -11,7 +11,7 @@ public class DeformedJointedCollide extends JointedCollide {
 
       super.build (args);
       FemModelDeformer deformer =
-         new FemModelDeformer ("deformer", this, 10);
+         new FemModelDeformer ("deformer", this, 2);
       addModel (deformer);
       addControlPanel (deformer.createControlPanel());
    }

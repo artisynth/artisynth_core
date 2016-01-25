@@ -148,7 +148,6 @@ public class MDLMeshIO {
          }
          vn.add (vec);
       }
-      mesh.setNormalList (vn);
 
       // read faces header information
       try {
@@ -167,7 +166,8 @@ public class MDLMeshIO {
       int numFaces = rtok.scanInteger ();
       int[] vi = new int[3];
       boolean faceIdxWarningGiven = false;
-      int[][] normalIdxs = new int[numFaces][3];
+      int[] normalIdxs = new int[numFaces*3];
+      int k = 0;
       for (int i = 0; i < numFaces; i++) {
          int[] ni = new int[3];
          vi[0] = rtok.scanInteger ();
@@ -176,15 +176,18 @@ public class MDLMeshIO {
          ni[0] = rtok.scanInteger ();
          ni[1] = rtok.scanInteger ();
          ni[2] = rtok.scanInteger ();
-         if (!faceIdxWarningGiven && (vi[0] != ni[0] || vi[0] != ni[0] || vi[0] != ni[0])) {
+         if (!faceIdxWarningGiven && 
+             (vi[0] != ni[0] || vi[0] != ni[0] || vi[0] != ni[0])) {
             System.out.println (
                "Warning: MDL face idxs don't match normal idxs; ignoring");
             faceIdxWarningGiven = true;
          }
          mesh.addFace (vi);
-         normalIdxs[i] = ni;
+         normalIdxs[k++] = ni[0];
+         normalIdxs[k++] = ni[1];
+         normalIdxs[k++] = ni[2];
       }
-      mesh.setNormalIndices (normalIdxs);
+      mesh.setNormals (vn, normalIdxs);
       return mesh;
 
    }
@@ -261,10 +264,6 @@ public class MDLMeshIO {
     */
    public static void write (PolygonalMesh mesh, String filename, PrintWriter pw, NumberFormat fmt) {
       
-      boolean writeNormals = 
-         mesh.getNormalIndices () != null && 
-         mesh.getNormalIndices ().size() == mesh.getFaces().size();
-      
       pw.println (defaultTopHeader);
       pw.println (filename);
       pw.println ("\n" + defaultVerticesHeader);
@@ -277,40 +276,29 @@ public class MDLMeshIO {
       }
       
       pw.println ("\n" + defaultNormalsHeader);
-      if (writeNormals) {
-         pw.println (mesh.getNormalList ().size ());
-         for (Iterator<?> it = mesh.getNormalList ().iterator (); it.hasNext ();) {
-            Vector3d vn = (Vector3d)it.next ();
-            pw.println (fmt.format (vn.x) + " " + 
-               fmt.format (vn.y) + " " +
-               fmt.format (vn.z));
-         }
+      ArrayList<Vector3d> normals = mesh.getNormals();
+      int[] indexOffs = mesh.getFeatureIndexOffsets();
+      int[] nidxs = mesh.getNormalIndices();      
+      if (normals == null) {
+         // no normals specified; need to compute them
+         normals = new ArrayList<Vector3d>();
+         nidxs = mesh.computeVertexNormals (normals, /*multi=*/false);
       }
-      else { // compute normal for each vertex
-         pw.println (mesh.getVertices ().size());
-         Vector3d vn = new Vector3d ();
-         for (Iterator<?> it = mesh.getVertices ().iterator (); it.hasNext ();) {
-            ((Vertex3d)it.next ()).computeNormal (vn);
-            if (vn.containsNaN ())
-               vn.set (0,0,1);
-            pw.println (fmt.format (vn.x) + " " + 
-               fmt.format (vn.y) + " " +
-               fmt.format (vn.z));
-         }
+      pw.println (normals.size());
+      for (Vector3d vn : normals) {
+         pw.println (fmt.format (vn.x) + " " + 
+         fmt.format (vn.y) + " " +
+         fmt.format (vn.z));
       }
       
       pw.println ("\n" + defaultFacesHeader);
       pw.println(mesh.getFaces ().size ());
+
       for (int i = 0; i < mesh.getFaces ().size (); i++) {
-         int[] vi = mesh.getFaces ().get (i).getVertexIndices ();
+         int[] vi = mesh.getFaces().get (i).getVertexIndices ();
          pw.print (vi[0]+" "+vi[1]+" "+vi[2]+" ");
-         if (writeNormals) {
-            int[] vni = mesh.getNormalIndices ().get(i);
-            pw.println (vni[0]+" "+vni[1]+" "+vni[2]);
-         }
-         else {
-            pw.println (vi[0]+" "+vi[1]+" "+vi[2]);
-         }
+         int foff = indexOffs[i];
+         pw.println (nidxs[foff]+" "+nidxs[foff+1]+" "+nidxs[foff+2]);
       }
       
    }

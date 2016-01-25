@@ -296,9 +296,13 @@ public class ScannableList<C extends Scannable> // extends AbstractList<C>
 
    /**
     * Used for scanning: calls createComponent() and throws an appropriate
-    * IOException if anything goes wrong.
+    * IOException if anything goes wrong. If <code>warnOnly</code> is
+    * <code>true</code> and <code>classInfo</code> is non-<code>null</code>,
+    * then if the class can't be instantiated, the method prints a warning
+    * and returns <code>null</code>.
     */
-   protected C newComponent (ReaderTokenizer rtok, ClassInfo classInfo) 
+   protected C newComponent (
+      ReaderTokenizer rtok, ClassInfo classInfo, boolean warnOnly) 
       throws IOException {
       C comp = null;
       try {
@@ -311,6 +315,11 @@ public class ScannableList<C extends Scannable> // extends AbstractList<C>
          }
          else {
             errMsg = "Could not instantiate type " + classInfo.toString();
+            if (warnOnly) {
+               System.out.println (
+                  "WARNING: " + errMsg + ": " + e.getMessage());
+               return null;
+            }
          }
          throw new IOException (
             errMsg + ", line " + rtok.lineno(), e);
@@ -397,7 +406,7 @@ public class ScannableList<C extends Scannable> // extends AbstractList<C>
    protected C scanComponent (
       ReaderTokenizer rtok, ClassInfo classInfo, Object ref)
       throws IOException {
-      C comp = newComponent(rtok, classInfo);
+      C comp = newComponent(rtok, classInfo, /*warnOnly=*/false);
       comp.scan (rtok, ref);
       return comp;
    }

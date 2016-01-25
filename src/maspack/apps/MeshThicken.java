@@ -739,10 +739,10 @@ public class MeshThicken extends ViewerFrame
          viewer.addRenderable (myMesh);
          viewer.repaint();
          myMeshFile = file;
-         System.out.println ("num vertices: " + mesh.getNumVertices());
+         System.out.println ("num vertices: " + mesh.numVertices());
          if (mesh instanceof PolygonalMesh) {
             PolygonalMesh pmesh = (PolygonalMesh)mesh;
-            System.out.println ("num faces: " + pmesh.getNumFaces());
+            System.out.println ("num faces: " + pmesh.numFaces());
          }
          setTitle ("MeshThicken " + file.getName());
       }
@@ -828,26 +828,11 @@ public class MeshThicken extends ViewerFrame
       Vector3d nrm = new Vector3d();
       Vector2d p2d = new Vector2d();
       ArrayList<Vertex3d> verts = myMesh.getVertices();
-      ArrayList<Vector3d> nrmls = null;
-      if (myMesh instanceof PolygonalMesh) {
-         PolygonalMesh pmesh = (PolygonalMesh)myMesh;
-         nrmls = pmesh.getNormalList();         
-         if (nrmls == null || nrmls.size() != pmesh.getNumVertices()) {
-            System.out.println ("computing vertex normals ...");
-            pmesh.computeVertexNormals();
-            System.out.println ("done");
-            nrmls = pmesh.getNormalList();         
-         }
-      }
-      else if (myMesh instanceof PointMesh) {
-         PointMesh pmesh = (PointMesh)myMesh;
-         nrmls = pmesh.getNormals();
-      }
-      else {
-         throw new InternalErrorException (
-            "Unsupported mesh type " + myMesh.getClass());
-      }
+      ArrayList<Vector3d> nrmls = mesh.getNormals();
 
+      if (nrmls == null) {
+         System.out.println ("Mesh does not have normals; thickening ignored");
+      }
       int cnt = 0;
       Vector3d regionNrm = new Vector3d();
       // region normal in mesh coordinates

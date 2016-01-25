@@ -82,8 +82,8 @@ public class VtkInputOutput
         ArrayList<String> cellData_vector_names, ArrayList<ArrayList<double[]>> cellData_vector_data)
     {
         // this writes a surface geometry
-        int nPoints = mesh.getNumVertices();
-        int nCells = mesh.getNumFaces();
+        int nPoints = mesh.numVertices();
+        int nCells = mesh.numFaces();
 
         try
         {

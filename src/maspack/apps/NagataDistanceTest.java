@@ -94,8 +94,7 @@ public class NagataDistanceTest implements GLRenderable, HasRenderProps {
       normals.add (n1);
       normals.add (n2);
 
-      myBaseMesh.setNormalIndices (new int[][] {{0, 1, 2}});
-      myBaseMesh.setNormalList (normals);
+      myBaseMesh.setNormals (normals, new int[] {0, 1, 2});
    }
 
    public void createTetMesh() {
@@ -110,9 +109,7 @@ public class NagataDistanceTest implements GLRenderable, HasRenderProps {
       myBaseMesh.addFace (new int[] { 0, 3, 1 });
       myBaseMesh.addFace (new int[] { 3, 2, 1 });
 
-      myBaseMesh.computeVertexNormals();
-
-      ArrayList<Vector3d> normals = myBaseMesh.getNormalList();
+      ArrayList<Vector3d> normals = myBaseMesh.getNormals();
 
       System.out.println ("normals 0: "+normals.get(0));
       System.out.println ("normals 1: "+normals.get(1));

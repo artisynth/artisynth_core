@@ -40,7 +40,7 @@ import maspack.render.GL.GLLightManager;
 import maspack.render.GL.GLMouseAdapter;
 import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLViewer;
-import maspack.render.GL.GL3.GLSLInfo.ColorInterpolation;
+//import maspack.render.GL.GL3.GLSLInfo.ColorInterpolation;
 import maspack.render.GL.GL3.GLSLInfo.InstancedRendering;
 import maspack.util.InternalErrorException;
 
@@ -1913,7 +1913,6 @@ public class GL3Viewer extends GLViewer {
    //             selection queries need to be separate
    //             - if selecting, resort to inefficient individual rendering
 
-   @Override
    public void drawPoints(
       RenderProps props, Iterator<? extends RenderablePoint> iterator) {
 

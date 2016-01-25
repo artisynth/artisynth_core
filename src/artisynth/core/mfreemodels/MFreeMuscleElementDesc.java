@@ -673,7 +673,7 @@ public class MFreeMuscleElementDesc
          }
       }
       else {
-         // need to specifiy a reference position for each direction, since
+         // need to specify a reference position for each direction, since
          // vector transformations are position dependent.
 
          // FINISH - compute ref

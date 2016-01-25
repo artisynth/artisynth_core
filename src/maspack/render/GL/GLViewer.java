@@ -60,7 +60,8 @@ import maspack.util.InternalErrorException;
 /**
  * @author John E Lloyd and ArtiSynth team members
  */
-public abstract class GLViewer implements GLEventListener, GLRenderer, HasProperties {
+public abstract class GLViewer implements GLEventListener, GLRenderer, 
+  HasProperties {
 
    // Matrices
    public enum GLMatrixType {
@@ -1737,6 +1738,19 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
    
    public boolean isHSVColorInterpolationEnabled() {
       return myViewerState.hsvInterpolationEnabled;
+   }
+   
+   public ColorInterpolation getColorInterpolation() {
+      if (myViewerState.hsvInterpolationEnabled) {
+         return ColorInterpolation.HSV;
+      }
+      else {
+         return ColorInterpolation.RGB;
+      }
+   }
+   
+   public void setColorInterpolation (ColorInterpolation interp) {
+      myViewerState.hsvInterpolationEnabled = (interp==ColorInterpolation.HSV);
    }
    
    public void setHSVCColorInterpolationEnabled(boolean set) {

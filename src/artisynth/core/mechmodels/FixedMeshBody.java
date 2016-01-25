@@ -138,7 +138,8 @@ public class FixedMeshBody extends MeshComponent {
    /**
     * Sets a mesh for this body.
     */
-   public void setMesh (MeshBase mesh, String fileName, AffineTransform3dBase X) {
+   public void setMesh (
+      MeshBase mesh, String fileName, AffineTransform3dBase X) {
       super.setMesh (mesh, fileName, X);
       if (mesh != null) {
          mesh.setFixed (true);

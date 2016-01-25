@@ -100,7 +100,6 @@ public class FemModelDeformer extends FemModel3d implements ActionListener {
 
       setName (name);
       FemFactory.createHexGrid (this, widths.x, widths.y, widths.z, nx, ny, nz);
-
       transformGeometry (new RigidTransform3d (center.x, center.y, center.z));
 
       double maxw = widths.maxElement();
@@ -213,9 +212,6 @@ public class FemModelDeformer extends FemModel3d implements ActionListener {
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
-      System.out.println ("writeAncestor=" + ancestor);
-      pw.println (
-         "model=" + ComponentUtils.getWritePathName (ancestor, myMechMod));
       super.writeItems (pw, fmt, ancestor);
    }
 
@@ -232,8 +228,6 @@ public class FemModelDeformer extends FemModel3d implements ActionListener {
 
    protected boolean postscanItem (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
-
-      System.out.println ("ancestor=" + ComponentUtils.getPathName(ancestor));
 
       if (postscanAttributeName (tokens, "model")) {
          myMechMod = postscanReference (tokens, MechModel.class, ancestor);

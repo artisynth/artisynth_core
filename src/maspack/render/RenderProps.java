@@ -2619,7 +2619,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       buf.append ("PointColor=" + colorString (myPointColor) + " " +
          myPointColorMode + ", ");
       buf.append("PointMaterial=" + myPointMaterial + " " +
-         myPointColorMode);
+         myPointColorMode + ", ");
       buf.append ("PointSize=" + myPointSize + " " + myPointSizeMode + ", ");
       buf.append ("PointRadius=" + myPointRadius + " " + myPointRadiusMode +
          ", ");

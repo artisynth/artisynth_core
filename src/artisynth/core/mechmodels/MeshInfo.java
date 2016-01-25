@@ -113,7 +113,7 @@ public class MeshInfo {
 
    public int numVertices() {
       if (myMesh != null) {
-         return myMesh.getNumVertices();
+         return myMesh.numVertices();
       }
       else {
          return 0;
@@ -362,9 +362,9 @@ public class MeshInfo {
       }
    }
  
-   public void prerender () {
+   public void prerender (RenderProps props) {
       if (myMesh != null) {
-         myMesh.saveRenderInfo();
+         myMesh.saveRenderInfo(props);
       }
    }
 

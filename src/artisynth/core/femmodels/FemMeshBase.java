@@ -9,6 +9,7 @@ package artisynth.core.femmodels;
 import java.awt.Color;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.Map;
@@ -35,6 +36,7 @@ import artisynth.core.mechmodels.SkinMeshBase;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.util.ScanToken;
 
 /**
@@ -48,7 +50,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
       new DoubleInterval(0,1);
    protected static ColorMapBase defaultColorMap =  new HueColorMap(2.0/3, 0);
    
-   protected SurfaceRender mySurfaceRendering =  defaultSurfaceRendering;   
+   protected SurfaceRender mySurfaceRendering =  defaultSurfaceRendering;
    protected Ranging myStressPlotRanging = defaultStressPlotRanging;
    protected DoubleInterval myStressPlotRange =  new DoubleInterval(defaultStressPlotRange);
 
@@ -56,7 +58,8 @@ public abstract class FemMeshBase extends SkinMeshBase {
    protected PropertyMode myStressPlotRangingMode = PropertyMode.Inherited;
    protected PropertyMode mySurfaceRenderingMode = PropertyMode.Inherited;
    
-   protected Color[] savedVertexColors;
+   protected ArrayList<float[]> mySavedColors;
+   protected int[] mySavedColorIndices;
    
    protected ColorMapBase myColorMap = defaultColorMap.copy();
    protected PropertyMode myColorMapMode = PropertyMode.Inherited;
@@ -67,15 +70,16 @@ public abstract class FemMeshBase extends SkinMeshBase {
    public static PropertyList myProps =
    new PropertyList (FemMeshBase.class, MeshComponent.class);
 
-static {
-   myProps.addInheritable(
-      "surfaceRendering:Inherited", "either shaded, stress or strain", defaultSurfaceRendering);
+   static {
+      myProps.addInheritable(
+         "surfaceRendering:Inherited", 
+         "either shaded, stress or strain", defaultSurfaceRendering, "NW");
       myProps.addInheritable (
          "stressPlotRanging:Inherited", "ranging mode for stress plots",
          defaultStressPlotRanging);         
       myProps.addInheritable (
-         "stressPlotRange:Inherited", "stress value range for color stress plots",
-         defaultStressPlotRange);
+         "stressPlotRange:Inherited", 
+         "stress value range for color stress plots", defaultStressPlotRange);
       myProps.addInheritable(
          "colorMap:Inherited", "color map for stress/strain", 
          defaultColorMap, "CE");
@@ -86,7 +90,6 @@ static {
 
    public FemMeshBase () {
       super();
-      savedVertexColors = null;
    }
 
    public FemMeshBase (FemModel3d fem) {
@@ -104,7 +107,7 @@ static {
     */
    void initializeSurfaceBuild() {
       PolygonalMesh mesh = new PolygonalMesh();
-      setMesh (mesh);
+      doSetMesh (mesh, null, null);
       mesh.setFixed (false);
    }
 
@@ -125,34 +128,40 @@ static {
    }
 
    public void setMesh (MeshBase mesh) {
+      MeshBase oldMesh = getMesh();
+      if (oldMesh != null) {
+         updateMeshColoring (oldMesh, null, mySurfaceRendering);
+      }
       super.setMesh (mesh);
+      updateMeshColoring (mesh, mySurfaceRendering, null);
    }    
    
-   protected void saveVertexColors() {
-      MeshBase mesh = getMesh();
-      if (mesh.hasVertexColoring()) {
-         savedVertexColors = new Color[mesh.getNumVertices()];
-         for (int i=0; i<mesh.getNumVertices(); i++) {
-            savedVertexColors[i] = mesh.getVertexColor(i);
+   protected void updateMeshColoring (
+      MeshBase mesh, SurfaceRender newMode, SurfaceRender oldMode) {
+      
+      boolean wasRenderingStressOrStrain =
+         (oldMode == SurfaceRender.Strain || oldMode == SurfaceRender.Stress);
+      boolean newRenderingStressOrStrain =
+         (newMode == SurfaceRender.Strain || newMode == SurfaceRender.Stress);
+      
+      if (newRenderingStressOrStrain != wasRenderingStressOrStrain) {
+         if (newRenderingStressOrStrain) {
+            mySavedColors = mesh.getColors();
+            mySavedColorIndices = mesh.getColorIndices();
+            mesh.setVertexColoringEnabled();
+            updateVertexColors();
+         }
+         else {
+            if (mySavedColors == null) {
+               mesh.clearColors();
+            }
+            else {
+               mesh.setColors (mySavedColors, mySavedColorIndices);
+            }
          }
       }
    }
    
-   protected void restoreVertexColors() {
-      MeshBase mesh = getMesh();
-      if (savedVertexColors != null && mesh.hasVertexColoring()) {
-         for (int i=0; i<mesh.getNumVertices(); i++) {
-            mesh.setVertexColor(i, savedVertexColors[i]);
-         }
-      } else if (!mesh.hasVertexColoring()) {
-         // clear colors
-         for (int i=0; i<mesh.getNumVertices(); i++) {
-            mesh.setVertexColor(i, null);
-         }
-      }
-      savedVertexColors = null;
-   }
-
    public void setSurfaceRendering (SurfaceRender mode) {
       if (mySurfaceRendering != mode) {
          if (myStressPlotRanging == Ranging.Auto) {
@@ -161,41 +170,33 @@ static {
          SurfaceRender oldMode = mySurfaceRendering;
          mySurfaceRendering = mode;
          
-         // save/restore original vertex colors
-         MeshBase mesh = getMesh();
-         if ( mesh != null && mesh.hasVertexColoring()) {
-            if ( (oldMode == SurfaceRender.Strain || oldMode == SurfaceRender.Stress)
-               && (mode != SurfaceRender.Strain && mode != SurfaceRender.Stress) ) {
-               restoreVertexColors();
-            } else if ( (oldMode != SurfaceRender.Strain && oldMode != SurfaceRender.Stress)
-               &&  (mode == SurfaceRender.Strain || mode == SurfaceRender.Stress)) {
-               saveVertexColors();
-            }
-         }
-         
-         if (myFem != null) {
+         if (myFem != null) { // paranoid: myFem should always be non-null here
             switch (mode) {
                case Strain:
                   myFem.setComputeNodalStrain(true);
                   myFem.updateStressAndStiffness();
-                  updateVertexColors();
                   break;
                case Stress:
                   myFem.setComputeNodalStress(true);
                   myFem.updateStressAndStiffness();
-                  updateVertexColors();
                   break;
                default: {
+                  myFem.setComputeNodalStrain(false);
+                  myFem.setComputeNodalStress(false);
+                  break;
                }
             }
          }
-         
+         // save/restore original vertex colors
+         MeshBase mesh = getMesh();         
+         if (mesh != null) {
+            updateMeshColoring (mesh, mode, oldMode);
+         }
       }
       // propagate to make mode explicit
       mySurfaceRenderingMode =
          PropertyUtils.propagateValue (
             this, "surfaceRendering", mode, mySurfaceRenderingMode);
-        
    }
 
    public SurfaceRender getSurfaceRendering() {
@@ -223,10 +224,10 @@ static {
             resetStressPlotRange();
          }
          myStressPlotRanging = ranging;
-         myStressPlotRangingMode =
-            PropertyUtils.propagateValue (
-               this, "stressPlotRanging", ranging, myStressPlotRangingMode);
       }
+      myStressPlotRangingMode =
+         PropertyUtils.propagateValue (
+            this, "stressPlotRanging", ranging, myStressPlotRangingMode);
    }
    
    public PropertyMode getStressPlotRangingMode() {
@@ -351,25 +352,15 @@ static {
    //    }
    // }
 
-   
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 
       rtok.nextToken();
       if (scanAndStoreReference (rtok, "fem", tokens)) {
          return true;
-      } else if (scanAttributeName (rtok, "savedVertexColors")) {
-         rtok.scanToken ('[');
-         int nv = getMesh().getNumVertices();
-         savedVertexColors = new Color[nv];
-         for (int i=0; i<nv; i++) {
-            int r = rtok.scanInteger();
-            int g = rtok.scanInteger();
-            int b = rtok.scanInteger();
-            int a = rtok.scanInteger();
-            savedVertexColors[i] = new Color(r,g,b,a);
-         }
-         rtok.scanToken(']');
+      }
+      else if (ScanWriteUtils.scanAndStorePropertyValue (
+                  rtok, this, "surfaceRendering", tokens)) {
          return true;
       }
       rtok.pushBack();
@@ -383,30 +374,36 @@ static {
          myFem = postscanReference (tokens, FemModel3d.class, ancestor);
          return true;
       }
+      else if (ScanWriteUtils.postscanPropertyValue (
+                  tokens, this, "surfaceRendering")) {
+         return true;
+      }
       return super.postscanItem (tokens, ancestor);
    }
 
+   // @Override
+   // public void postscan (
+   // Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+   //    super.postscan (tokens, ancestor);
+   //    if (myScannedSurfaceRendering != null) {
+   //       setSurfaceRendering (myScannedSurfaceRendering);
+   //       myScannedSurfaceRendering = null;
+   //    }
+   // }
  
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
       super.writeItems (pw, fmt, ancestor);
-      
-      if (savedVertexColors != null) {
-         pw.println("savedVertexColors=[");
-         IndentingPrintWriter.addIndentation(pw, 1);
-         for (int i=0; i<savedVertexColors.length; i++) {
-            Color c = savedVertexColors[i];
-            pw.println(c.getRed() + " " + c.getGreen() + " " + c.getBlue() + " " + c.getAlpha());
-         }
-         IndentingPrintWriter.addIndentation(pw, -1);
-         pw.println("]");
-      }
+
       if (myFem != null) {
          pw.print ("fem=");
          pw.println (ComponentUtils.getWritePathName (ancestor, myFem));
       }
+      // surfaceRendering has to be written near the end because it has to be
+      // scanned after the model and mesh structures.
+      myProps.get("surfaceRendering").writeIfNonDefault (this, pw, fmt);      
    }
 
    @Override
@@ -423,10 +420,6 @@ static {
       super.disconnectFromHierarchy();
    }
    
-   public void setFem(FemModel3d fem) {
-      myFem = fem;
-   }
-   
    public FemModel3d getFem() {
       return myFem;
    }
@@ -435,8 +428,9 @@ static {
    public FemMeshBase copy(int flags, Map<ModelComponent,ModelComponent> copyMap) {
       FemMeshBase fmb = (FemMeshBase)super.copy(flags, copyMap);
       
-      fmb.mySurfaceRendering =  mySurfaceRendering;
-      
+      if (mySurfaceRenderingMode == PropertyMode.Explicit) {
+         fmb.setSurfaceRendering (mySurfaceRendering);
+      }      
       if (myStressPlotRangingMode == PropertyMode.Explicit) {
          fmb.setStressPlotRanging(myStressPlotRanging);
       }
@@ -448,20 +442,12 @@ static {
          fmb.setColorMap(myColorMap);
       }
       
-      if (savedVertexColors == null) {
-         fmb.savedVertexColors = null;
-      } else {
-         fmb.savedVertexColors = new Color[savedVertexColors.length];
-         for (int i=0; i<savedVertexColors.length; i++) {
-            fmb.savedVertexColors[i] = savedVertexColors[i];   // shallow copy is fine for immutable
-         }
-      }
-
       FemModel3d newFem = (FemModel3d)copyMap.get(myFem);
       if (newFem != null) {
-         fmb.setFem(newFem);
-      } else {
-         fmb.setFem(myFem);
+         fmb.myFem = newFem;
+      } 
+      else {
+         fmb.myFem = myFem;
       }
       
       return fmb;

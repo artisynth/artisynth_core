@@ -15,7 +15,7 @@ import maspack.render.Material;
 import maspack.render.RenderProps.Shading;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLLight;
-import maspack.render.GL.GL3.GLSLInfo.ColorInterpolation;
+import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.GL.GL3.GLSLInfo.InstancedRendering;
 
 public class GL3ProgramManager {

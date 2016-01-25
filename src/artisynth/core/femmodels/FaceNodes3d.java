@@ -203,7 +203,7 @@ public class FaceNodes3d {
       // contained in the master attachment list of the first node.
       LinkedList<DynamicAttachment> masters = 
          nodes[0].getMasterAttachments();
-      ModelComponent fem = nodes[0].getGrandParent();
+      ModelComponent nodeList = nodes[0].getParent();
       if (masters == null) {
          return false;
       }
@@ -211,7 +211,7 @@ public class FaceNodes3d {
          if (a instanceof PointFem3dAttachment) {
             PointFem3dAttachment attach = (PointFem3dAttachment)a;
             if (attach.numMasters() == nodes.length &&
-                attach.getSlave().getGrandParent() == fem) {
+                attach.getSlave().getParent() == nodeList) {
                boolean attachmentIsThisFace = true;
                for (DynamicComponent c : a.getMasters()) {
                   if (!containsNode (c)) {

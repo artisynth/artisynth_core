@@ -381,7 +381,7 @@ public class BVTreeTest {
    public void testContainment (MeshBase mesh) {
 
       double radius = RenderableUtils.getRadius (mesh);
-      double noiseAmplitude = radius/Math.pow (mesh.getNumVertices(), 1/3.0);
+      double noiseAmplitude = radius/Math.pow (mesh.numVertices(), 1/3.0);
       
       int numtrials = 50;
       Vector3d del = new Vector3d();
@@ -411,7 +411,7 @@ public class BVTreeTest {
    public void testUpdating (MeshBase mesh) {
 
       double radius = RenderableUtils.getRadius (mesh);
-      double noiseAmplitude = radius/Math.pow (mesh.getNumVertices(), 1/3.0);
+      double noiseAmplitude = radius/Math.pow (mesh.numVertices(), 1/3.0);
 
       AABBTree aabbTree = new AABBTree (mesh);
       OBBTree obbTree = new OBBTree (mesh);

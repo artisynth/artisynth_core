@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import artisynth.core.inverse.ConnectorForceRenderer;
 import artisynth.core.inverse.ForceTargetTerm;
 import artisynth.core.inverse.TargetPoint;
 import artisynth.core.inverse.TrackingController;
@@ -184,14 +185,14 @@ public class ForceTargetDemo extends RootModel{
       {con2.setName("con2");}
       if(cons==true)
       { mech.addBodyConnector (con);
-//      Activation_Renderer rend= new Activation_Renderer(con);
-//      myRenderProps=rend.createRenderProps ();
-//      myRenderProps.setLineStyle(LineStyle.CYLINDER);
-//      myRenderProps.setLineRadius(0.175);
-//      myRenderProps.setLineColor (Color.BLUE);
-//      rend.setRenderProps(myRenderProps);
-//      rend.setscale(10);
-//      addMonitor(rend);
+      ConnectorForceRenderer rend= new ConnectorForceRenderer(con);
+      myRenderProps=rend.createRenderProps ();
+      myRenderProps.setLineStyle(LineStyle.CYLINDER);
+      myRenderProps.setLineRadius(0.175);
+      myRenderProps.setLineColor (Color.BLUE);
+      rend.setRenderProps(myRenderProps);
+      rend.setArrowSize (0.1);
+      addMonitor(rend);
       }
       if(two_cons==true)
       { mech.addBodyConnector (con2);}
@@ -277,7 +278,7 @@ public class ForceTargetDemo extends RootModel{
 //      myTrackingController.getSolver().setBounds(0.01, 0.99);
       //setWorkingDir();
       
-      loadForceInputProbe(mft);
+//      loadForceInputProbe(mft);
       myTrackingController.setProbeDuration (10.0);
       myTrackingController.createProbesAndPanel (this);
       addController(myTrackingController);
@@ -290,13 +291,15 @@ public class ForceTargetDemo extends RootModel{
       ArtisynthPath.setWorkingDir (new File(
          ArtisynthPath.getSrcRelativePath (this, "data/ForceTargetDemo")));
       
-      NumericInputProbe forceTargetProbe = (NumericInputProbe)getInputProbes ().get (0);
+      NumericInputProbe forceTargetProbe = (NumericInputProbe)getInputProbes ().get ("target forces");
       forceTargetProbe.setAttachedFileName ("force_target.txt");
       forceTargetProbe.load ();
+      forceTargetProbe.setActive (true);
       
-      NumericInputProbe motionTargetProbe = (NumericInputProbe)getInputProbes ().get (1);
+      NumericInputProbe motionTargetProbe = (NumericInputProbe)getInputProbes ().get ("target positions");
       motionTargetProbe.setAttachedFileName ("motion_target.txt");
       motionTargetProbe.load ();
+      motionTargetProbe.setActive (true);
    }
    
    public void loadForceInputProbe(ForceTargetTerm mft) throws IOException
@@ -308,7 +311,7 @@ public class ForceTargetDemo extends RootModel{
       for(int i=0;i<mft.getForceTargets ().size();i++)
       {
       System.out.println(mft.getForceTargets ().get(i).getConstraintName());
-       proparr[i]=mft.getForceTargets().get(i).getProperty ("MyTargetForce");
+       proparr[i]=mft.getForceTargets().get(i).getProperty ("targetLambda");
       }
       NumericInputProbe forprobe = new NumericInputProbe();
       forprobe.setModel(mech);

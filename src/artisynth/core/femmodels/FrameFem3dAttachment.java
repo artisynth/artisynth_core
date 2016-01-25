@@ -30,7 +30,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
    private boolean myMasterBlockInWorldCoords = true;
    private boolean myUseProcrustes = true;
 
-   // myCoords is only used when scanning this attachment from a ReaderTokenizer
+   // myCoords is used when frame is associate with an element
    private Vector3d myCoords = new Vector3d(); 
    private FemElement3d myElement;
    private FemNode3d[] myNodes;
@@ -282,6 +282,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
       boolean converged = 
          elem.getNaturalCoordinates (coords, new Point3d(T.p), 1000) >= 0;
 
+      myCoords.set (coords);
       doSetFromElement (elem, coords);
 
       updateDeformationGradient();
@@ -352,6 +353,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
       if (!elem.coordsAreInside(coords)) {
          return false;
       }
+      myCoords.set (coords);
       doSetFromElement (elem, coords);
       updateDeformationGradient();
       myRFD.mulInverseLeft (myPolard.getR(), T.R);

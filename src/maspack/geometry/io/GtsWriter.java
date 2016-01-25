@@ -37,7 +37,7 @@ public class GtsWriter extends MeshWriterBase {
          new PrintWriter (
             new BufferedWriter (new OutputStreamWriter (myOstream)));
       
-      int[] oldIdxs = new int[mesh.getNumVertices()];
+      int[] oldIdxs = new int[mesh.numVertices()];
       int vidx = 0;
       for (Vertex3d vtx : mesh.getVertices()) {
           // protect vertex indices numbers
@@ -62,7 +62,7 @@ public class GtsWriter extends MeshWriterBase {
          while (he != he0);
       }
       pw.println (
-         mesh.getNumVertices()+" "+edgeList.size()+" "+mesh.getNumFaces());
+         mesh.numVertices()+" "+edgeList.size()+" "+mesh.numFaces());
       for (Vertex3d vtx : mesh.getVertices()) {
          vtx.pnt.write (pw, myFmt);
          pw.println ("");

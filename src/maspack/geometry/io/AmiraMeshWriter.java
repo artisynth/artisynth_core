@@ -97,7 +97,7 @@ public class AmiraMeshWriter extends MeshWriterBase {
          }
       }
       
-      int nVerts = mesh.getNumVertices();
+      int nVerts = mesh.numVertices();
       
       pw.println(FILE_HEADER);
       // mesh name
@@ -162,8 +162,8 @@ public class AmiraMeshWriter extends MeshWriterBase {
          throw new IllegalArgumentException("Mesh must be triangular");
       }
       
-      int nVerts = mesh.getNumVertices();
-      int nFaces = mesh.getNumFaces();
+      int nVerts = mesh.numVertices();
+      int nFaces = mesh.numFaces();
       
       pw.println(FILE_HEADER);
       // mesh name

@@ -6,7 +6,6 @@
  */
 package artisynth.core.femmodels;
 
-import javax.media.opengl.GL2;
 import java.util.*;
 
 import artisynth.core.mechmodels.*;

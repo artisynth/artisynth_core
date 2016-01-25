@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.PointMesh;
 import maspack.geometry.MeshBase;
+import maspack.geometry.Face;
 import maspack.geometry.io.PlyWriter.DataType;
 import maspack.geometry.io.MeshWriter.DataFormat;
 import maspack.geometry.io.MeshWriter.FloatType;
@@ -546,21 +547,27 @@ public class PlyReader extends MeshReaderBase {
       
       if (mesh instanceof PolygonalMesh) {
          PolygonalMesh pmesh = (PolygonalMesh)mesh;
+         int icnt = 0;
          for (Point3d pnt : verts) {
             pmesh.addVertex (pnt);
          }
          for (int[] idxs : faces) {
             pmesh.addFace (idxs);
+            icnt += idxs.length;
          }
          if (nrmls.size() > 0) {
-            pmesh.setNormalList (nrmls);
             // we have to assume here the there is one normal per vertex,
-            // and assign the normal indices accordingly
-            int[][] normalIndices = new int[faces.size()][];
+            // and assign the normal indices accordingly]
+            int k = 0;
+            int[] normalIndices = new int[icnt];
             for (int i=0; i<faces.size(); i++) {
-               normalIndices[i] = pmesh.getFaces().get(i).getVertexIndices();
+               int[] idxs = pmesh.getFaces().get(i).getVertexIndices();
+               for (int j=0; j<idxs.length; j++) {
+                  normalIndices[k++] = idxs[j];
+               }
             }
-            pmesh.setNormalIndices (normalIndices);
+            pmesh.setNormals (nrmls, normalIndices);
+            pmesh.setHardEdgesFromNormals();
          }
       }
       else if (mesh instanceof PointMesh) {

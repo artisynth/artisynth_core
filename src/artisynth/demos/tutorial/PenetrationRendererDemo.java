@@ -63,8 +63,8 @@ public class PenetrationRendererDemo extends RootModel {
       super.attach (driver);     
       
       // set the default camera view to show the intersection
-      Main.getMain ().getViewer ().setEye (new Point3d(-1.64363, -3.53706, 3.008));
-      Main.getMain ().getViewer ().setCenter (new Point3d());
+      setViewerEye (new Point3d(-1.64363, -3.53706, 3.008));
+      setViewerCenter (new Point3d());
    }
    
 }

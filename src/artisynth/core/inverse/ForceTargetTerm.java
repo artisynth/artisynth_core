@@ -126,7 +126,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       int idx = 0;
       for (int i = 0; i < myForceTargets.size(); i++) {
          ForceTarget target = myForceTargets.get(i);
-         VectorNd lambda = target.getMyTargetForce ();
+         VectorNd lambda = target.getTargetLambda ();
        
             buf[i] = lambda.get (0);   //work only for planar constraints
         
@@ -213,22 +213,6 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    }
 
    
-   /**
-    * Adds a target to the term for trajectory error
-    * @param source
-    * @param weight
-    * @return the created target body or point
-    */
-   
-   private ForceTarget doAddForceTarget(ForceTarget source,double weight)
-      {
-       myTargetForceWeights.add(weight);
-       myForceTargets.add(source);
-       myTargetForSize += CONSTR_FOR_SIZE;
-     //  myController.targetForces.add (source);
-      // updateforWeightsVector();  //To be created
-      return source;
-      }
    
    public SparseBlockMatrix getForceJacobian() {
       if (myForJacobian == null) {
@@ -325,9 +309,8 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       myForceTargets.add (new ForceTarget(lam,con));
       double weight=1;
       myTargetForceWeights.add(weight);
-      myTargetForSize += CONSTR_FOR_SIZE;
-   }
-   
+      myTargetForSize += con.numBilateralConstraints ();
+   }  
    
    private void updateWeightsVector() {
       
@@ -384,21 +367,6 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    }
 
 
-
-
- 
-   
-   public int getTargetForSize() {
-      return myForceTargets.size ();
-   }
-
-  
-   public int getTargetSize() {
-      int size=getTargetForSize();
-      return size;
-    
-   }
-
    /**
     * Fills <code>H</code> and <code>b</code> with this motion term
     * @param H LHS matrix to fill
@@ -441,7 +409,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
          MotionForceInverseData.diagMul(myForTargetWgts,Hc,Hc);
          MotionForceInverseData.pointMul(myForTargetWgts,cbar,cbar);
       }
-      if (myWeight > 0) {
+      if (myWeight >= 0) {
           Hc.scale(myWeight);
           cbar.scale(myWeight);
        }
@@ -587,7 +555,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
 
    @Override
    public int getRowSize () {
-      return getTargetForSize();
+      return myTargetForSize;
    }
 
    @Override

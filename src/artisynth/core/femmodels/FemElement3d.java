@@ -402,15 +402,15 @@ public abstract class FemElement3d extends FemElement
    }
 
    /**
-    * Returns an array of FaceNodes3d describing a set of triangular faces
+    * Returns an array of FaceNodes3d describing a set of faces
     * associated with this element. If adjoining elements have matching
-    * triangular faces, then the elimination of repeated faces can be used to
+    * faces, then the elimination of repeated faces can be used to
     * generate an external mesh for the FEM. If the returned list has zero
     * length, then this method is not supported for the element in question.
     * 
-    * @return list of triangular faces for this element
+    * @return list of faces for this element
     */
-   public FaceNodes3d[] getTriFaces() {
+   public FaceNodes3d[] getFaces() {
       FaceNodes3d[] faces = new FaceNodes3d[getNumFaces()];
       int[] idxs = getFaceIndices();
       int k = 0;

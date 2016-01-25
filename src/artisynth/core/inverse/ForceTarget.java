@@ -30,7 +30,7 @@ public class ForceTarget extends ModelComponentBase implements HasProperties {
    public static PropertyList myProps = new PropertyList (ForceTarget.class);
 
    static {
-      myProps.add ("MyTargetForce", "force targets", null);
+      myProps.add ("targetLambda", "force targets", null);
    }
    
    public PropertyList getAllPropertyInfo () {
@@ -46,11 +46,11 @@ public class ForceTarget extends ModelComponentBase implements HasProperties {
       setName (con.getName ()+"_target");
    }
 
-   public void setMyTargetForce (VectorNd lam) {
+   public void setTargetLambda (VectorNd lam) {
       myTargetLambda = lam;
    }
 
-   public VectorNd getMyTargetForce () {
+   public VectorNd getTargetLambda () {
       return myTargetLambda;
    }
 

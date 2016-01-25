@@ -618,37 +618,48 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       if (myScanCnt < size()) {
          // use or replace existing component
          comp = get(myScanCnt);
+         C newcomp = null;         
          if (!comp.isFixed() ||
              !scannedCompMatches (comp, classInfo, compNumber)) {
-            // replace component
-            if (comp != null) {
-               comp.disconnectFromHierarchy();
-               clearComponent (comp);
-               if (compNumber == -1) {
-                  compNumber = comp.getNumber();
-               }
+            // try creating a new component to replace the existing one
+            newcomp = newComponent(rtok, classInfo, /*warnOnly=*/true);
+         }
+         if (newcomp != null) {
+            // was able to create a new component. Use this to replace the
+            // old component
+            comp.disconnectFromHierarchy();
+            clearComponent (comp);
+            if (compNumber == -1) {
+               compNumber = comp.getNumber();
             }
-            comp = newComponent (rtok, classInfo);
+            comp = newcomp;
             tokens.offer (new ObjectToken (comp, rtok.lineno()));
             comp.scan (rtok, tokens);
             initComponent (comp, compNumber, myScanCnt);
             super.set (myScanCnt, comp);
          }
          else {
+            // want to keep the old component, or new component could
+            // not be created
             tokens.offer (new ObjectToken (comp, rtok.lineno()));
             comp.scan (rtok, tokens);
          }
+         myScanCnt++;
       }
       else {
          // scan new component
-         comp = newComponent(rtok, classInfo);
-         tokens.offer (new ObjectToken (comp, rtok.lineno()));
-         comp.scan (rtok, tokens);
-         initComponent (comp, compNumber, size());
-         super.add (comp);
-         //doAdd (comp, compNumber);
+         comp = newComponent(rtok, classInfo, /*warnOnly=*/true);
+         if (comp != null) {
+            tokens.offer (new ObjectToken (comp, rtok.lineno()));
+            comp.scan (rtok, tokens);
+            initComponent (comp, compNumber, size());
+            super.add (comp);
+            myScanCnt++;
+         }
+         else {
+            ScanWriteUtils.scanAndDiscard (rtok);
+         }
       }
-      myScanCnt++;
       return true;
    }
 

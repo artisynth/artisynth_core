@@ -1297,7 +1297,7 @@ public class WavefrontReader extends MeshReaderBase {
       return s;
    }
 
-   private int[] reindex(int[] indices, int[] indexMap) {
+   private int[] reindex (int[] indices, int[] indexMap) {
       if (indices == null) {
          return null;
       }
@@ -1389,7 +1389,7 @@ public class WavefrontReader extends MeshReaderBase {
       return indexList;
    }
 
-   public int[][] getLocalNormalIndicesAndVertices(
+   public int[] getLocalNormalIndicesAndVertices(
       ArrayList<Vector3d> nrmList) throws IOException {
 
       if (normalList.size() == 0) {
@@ -1409,15 +1409,24 @@ public class WavefrontReader extends MeshReaderBase {
       if (idx == 0) {
          return null;
       }
-      int[][] indexList = new int[myCurrentGroup.faceList.size()][];
-      int i = 0;
+      ArrayList<Integer> indexList = new ArrayList<Integer>();
       for (Face face : myCurrentGroup.faceList) {
-         indexList[i++] = reindex(face.normalIndices, indexMap);
+         int[] idxs = reindex(face.normalIndices, indexMap);
+         if (idxs != null) {
+            for (int j=0; j<idxs.length; j++) {
+               indexList.add (idxs[j]);
+            }
+         }
+         else {
+            for (int j=0; j<face.indices.length; j++) {
+               indexList.add (-1);
+            }
+         }
       }
-      return indexList;
+      return ArraySupport.toIntArray (indexList);
    }
 
-   public int[][] getLocalTextureIndicesAndVertices(
+   public int[] getLocalTextureIndicesAndVertices(
       ArrayList<Vector3d> vtxList) throws IOException {
 
       if (textureVertexList.size() == 0) {
@@ -1437,12 +1446,21 @@ public class WavefrontReader extends MeshReaderBase {
       if (idx == 0) {
          return null;
       }
-      int[][] indexList = new int[myCurrentGroup.faceList.size()][];
-      int i = 0;
+      ArrayList<Integer> indexList = new ArrayList<Integer>();
       for (Face face : myCurrentGroup.faceList) {
-         indexList[i++] = reindex(face.textureIndices, indexMap);
+         int[] idxs = reindex(face.textureIndices, indexMap);
+         if (idxs != null) {
+            for (int j=0; j<idxs.length; j++) {
+               indexList.add (idxs[j]);
+            }     
+         }
+         else {
+            for (int j=0; j<face.indices.length; j++) {
+               indexList.add (-1);
+            }     
+         }
       }
-      return indexList;
+      return ArraySupport.toIntArray (indexList);
    }
 
    public Point3d[] getVertexPoints() {
@@ -1599,13 +1617,17 @@ public class WavefrontReader extends MeshReaderBase {
             mesh.addFace (indices[k]);
          }
       }
-      ArrayList<Vector3d> textureVertexList = new ArrayList<Vector3d>();
-      mesh.setTextureIndicesArray (
-         getLocalTextureIndicesAndVertices (textureVertexList));
-      mesh.setTextureVertices (textureVertexList);
-      ArrayList<Vector3d> normalList = new ArrayList<Vector3d>();
-      mesh.setNormalIndices (getLocalNormalIndicesAndVertices (normalList));
-      mesh.setNormalList (normalList);
+      ArrayList<Vector3d> textureCoords = new ArrayList<Vector3d>();
+      int[] tindices = getLocalTextureIndicesAndVertices (textureCoords);
+      if (tindices != null) {
+         mesh.setTextureCoords (textureCoords, tindices);
+      }
+      ArrayList<Vector3d> normals = new ArrayList<Vector3d>();
+      int[] nindices = getLocalNormalIndicesAndVertices (normals);
+      if (nindices != null) {
+         mesh.setNormals (normals, nindices);
+         mesh.setHardEdgesFromNormals();
+      }      
       setNameAndRenderProps (mesh, groupName);
    }
 
@@ -1664,7 +1686,7 @@ public class WavefrontReader extends MeshReaderBase {
       Vector3d[] nrms = getVertexNormals ();
       if (nrms != null) {
          List<Vector3d> normalList = Arrays.asList(getVertexNormals());
-         mesh.setNormals (new ArrayList<Vector3d>(normalList));
+         mesh.setNormals (new ArrayList<Vector3d>(normalList), null);
       } else {
          mesh.clearNormals ();
       }

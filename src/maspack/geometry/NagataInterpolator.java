@@ -61,8 +61,8 @@ public class NagataInterpolator {
       if (!mesh.isTriangular()) {
          throw new IllegalArgumentException ("Mesh is not triangular");
       }
-      if (mesh.getNormalList() == null) {
-         throw new IllegalArgumentException ("Mesh does not have normals set");
+      if (mesh.getNormals() == null) {
+         throw new IllegalArgumentException ("Mesh does not have normals");
       }
    }
 
@@ -562,11 +562,16 @@ public class NagataInterpolator {
       Point3d nearest, Vector3d nrm, Face face, PolygonalMesh mesh,
       Vector2d svec, Point3d pos, double posTol) {
 
-      ArrayList<Vector3d> nrmls = mesh.getNormalList();
-      int[] nidxs = mesh.getNormalIndices().get(face.idx);
-      Vector3d n0 = nrmls.get (nidxs[0]);
-      Vector3d n1 = nrmls.get (nidxs[1]);
-      Vector3d n2 = nrmls.get (nidxs[2]);
+      ArrayList<Vector3d> nrmls = mesh.getNormals();
+      if (nrmls == null) {
+         throw new IllegalArgumentException ("Mesh does not have normals");
+      }
+      int[] nidxs = mesh.getNormalIndices();
+      int foff = mesh.getFeatureIndexOffsets()[face.idx];
+
+      Vector3d n0 = nrmls.get (nidxs[foff  ]);
+      Vector3d n1 = nrmls.get (nidxs[foff+1]);
+      Vector3d n2 = nrmls.get (nidxs[foff+2]);
 
       setFace (face, n0, n1, n2);
       return nearestPoint (nearest, nrm, svec, pos, posTol);
@@ -612,7 +617,8 @@ public class NagataInterpolator {
       LinkedList<FaceRequest> requests, Vertex3d vtx, Vector2d svec,
       HashSet<Face> faceSet) {
 
-      for (HalfEdgeNode node=vtx.incidentHedges; node != null; node=node.next) {
+      HalfEdgeNode node;
+      for (node=vtx.getIncidentHedges(); node!=null; node=node.next) {
          Face reqFace = node.he.face;
          if (reqFace != null && !faceSet.contains (reqFace)) {
             FaceRequest req = new FaceRequest (reqFace);

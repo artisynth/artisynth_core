@@ -6,8 +6,6 @@
  */
 package artisynth.core.femmodels;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.*;
 import maspack.render.*;
 

@@ -13,8 +13,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.Point3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
@@ -24,7 +22,6 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
 import maspack.render.Renderer;
-import maspack.render.GL.GL2.GL2Viewer;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;

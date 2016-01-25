@@ -18,6 +18,91 @@
 
 %\subsection*{Wrapping surfaces}
 
+\section*{January 24, 2016}
+
+\subsection*{New mesh interface for normals, colors, and texture coordinates}
+
+The interface for setting normals, colors, and texture coordinates in
+meshes has been redesigned. Full documentation can be found in Section
+3.5 (``Meshes'') of the \href{../modelguide/modelguide.html}{ArtiSynth
+Modeling Guide}. These changes have been made partly in preparation
+for switching to the upcoming new rendering interface.  Some of the
+main changes are:
+
+\begin{itemize}
+
+\item Normal, color and texture information is now stored in the mesh
+base class {\tt MeshBase}. Colors are no longer stored in mesh vertices.
+
+\item Index information can also be specified, which maps normals,
+colors and texture coordinates onto the vertices of individual
+features such as faces or lines.
+
+\item Normal information for {\tt PolygonalMesh} can be created
+automatically.
+
+\item Vertex or feature coloring modes can be enabled, under which a
+mesh will automatically maintain colors for each vertex or feature.
+
+\end{itemize}
+%
+For normals, some of the main methods are:
+%
+\begin{lstlisting}[]
+  setNormals (
+     List<Vector3d> nrmls, int[] indices);  // set all normals and indices
+
+  ArrayList<Vector3d> getNormals();         // get all normals
+  int[] getNormalIndices();                 // get all normal indices
+  int numNormals();                         // return the number of normals
+  Vector3d getNormal (int idx);             // get the normal at index idx
+
+  setNormal (int idx, Vector3d nrml);       // set the normal at index idx
+  clearNormals();                           // clear all normals and indices
+\end{lstlisting}
+%
+
+Similar methods exist for colors and texture coordinates. If automatic
+normal creation is available, the method
+%
+\begin{lstlisting}[]
+  hasAutoNormalCreation();
+\end{lstlisting}
+%
+returns {\tt true} and normals are created automatically whenever {\tt
+getNormals()} is called. Vertex and feature coloring can be enabled
+and queried using
+%
+\begin{lstlisting}[]
+  setVertexColoringEnabled();
+  getVertexColoringEnabled();
+  setFeatureColoringEnabled();
+  getFeatureColoringEnabled();
+\end{lstlisting}
+%
+
+\begin{sideblock}
+Note: textures may not behave correctly at the moment, as other
+aspects of the texture interface are being redesigned. When the new
+render interface is installed, texture properties will move from {\tt
+RenderProps} into {\tt MeshBase}.
+\end{sideblock}
+
+
+\subsection*{Renamed methods in mesh classes}
+
+In order to provide greater API uniformity, the following methods for
+querying the number of vertices, faces, and lines in various mesh
+subclasses have been renamed:
+
+\begin{tabular}{lll}
+Base class & Old name & New Name \\
+\hline
+{\tt MashBase} & {\tt getNumVertices()} & {\tt numVertices()}\\
+{\tt PolygonalMesh} & {\tt getNumFaces()} & {\tt numFaces()}\\
+{\tt PolylineMesh} & {\tt getNumLines()} & {\tt numLines()}\\
+\end{tabular}
+
 \section*{December 3, 2015}
 
 \subsection*{New mechanisms for transforming geometry}

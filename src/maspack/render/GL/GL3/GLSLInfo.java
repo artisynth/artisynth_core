@@ -1,6 +1,7 @@
 package maspack.render.GL.GL3;
 
 import maspack.render.RenderProps.Shading;
+import maspack.render.Renderer.ColorInterpolation;
 
 public class GLSLInfo {
 
@@ -12,11 +13,11 @@ public class GLSLInfo {
       AFFINES
    }
    
-   public enum ColorInterpolation {
-      NONE,
-      RGB,
-      HSV
-   }
+   // public enum ColorInterpolation {
+   //    NONE,
+   //    RGB,
+   //    HSV
+   // }
    
    private int numLights;
    private int numClipPlanes;

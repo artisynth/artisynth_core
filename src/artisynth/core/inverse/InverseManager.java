@@ -42,11 +42,12 @@ public class InverseManager {
    private Main myMain;
    public ControlPanel inverseControlPanel = null;
 
-   private NumericInputProbe refTargetPosInProbe;
+   private NumericInputProbe refTargetMotionInProbe;
+   private NumericInputProbe refTargetForceInProbe;
    private NumericInputProbe excitationInput = null;
    private NumericOutputProbe excitationOutProbe;
-   private NumericOutputProbe modelTargetPosOutProbe;
-   private NumericOutputProbe refTargetPosOutProbe;
+   private NumericOutputProbe modelTargetMotionOutProbe;
+   private NumericOutputProbe refTargetMotionOutProbe;
 
    public InverseManager (Main main) {
       myMain = main;
@@ -105,10 +106,17 @@ public class InverseManager {
    private void findOrCreateProbes(RootModel root, TrackingController controller) {
       // root.clearInputProbes();
       // root.clearOutputProbes();
-
-      refTargetPosInProbe = findOrCreateInputProbe(root, "target positions");
-      refTargetPosOutProbe = findOrCreateOutputProbe(root, "target positions");
-      modelTargetPosOutProbe = findOrCreateOutputProbe(root, "model positions");
+      
+      if (findForceTargetTerm (controller) != null) {
+         refTargetForceInProbe = findOrCreateInputProbe(root, "target forces");
+      }
+      
+      if (findMotionTargetTerm (controller) != null) {
+         refTargetMotionInProbe = findOrCreateInputProbe(root, "target positions");
+         refTargetMotionOutProbe = findOrCreateOutputProbe(root, "target positions");
+         modelTargetMotionOutProbe = findOrCreateOutputProbe(root, "model positions");
+      }
+      
       excitationOutProbe =
          findOrCreateOutputProbe(root, "computed excitations");
       excitationInput = findOrCreateInputProbe(root, "input excitations");
@@ -151,33 +159,55 @@ public class InverseManager {
       }
       return inProbe;
    }
+   
+   private MotionTargetTerm findMotionTargetTerm(TrackingController controller) {
+      for (QPTerm term : controller.getCostTerms()) {
+         if (term instanceof MotionTargetTerm) {
+            return (MotionTargetTerm)term;
+         }
+      }
+      for (LeastSquaresTerm term : controller.getEqualityConstraints()) {
+         if (term instanceof MotionTargetTerm) {
+            return (MotionTargetTerm)term;
+         }
+      }
+      return null;
+   }
+   
+   private ForceTargetTerm findForceTargetTerm(TrackingController controller) {
+      for (QPTerm term : controller.getCostTerms()) {
+         if (term instanceof ForceTargetTerm) {
+            return (ForceTargetTerm)term;
+         }
+      }
+      for (LeastSquaresTerm term : controller.getEqualityConstraints()) {
+         if (term instanceof ForceTargetTerm) {
+            return (ForceTargetTerm)term;
+         }
+      }
+      return null;
+   }
 
    private void configureProbes(TrackingController controller) {
       configureExcitationProbe(controller);
    
-      MotionTargetTerm moterm = null;
-      for (QPTerm term : controller.getCostTerms()) {
-         if (term instanceof MotionTargetTerm) {
-            moterm = (MotionTargetTerm)term;
-            break;
-         }
-      }
-      for (LeastSquaresTerm term : controller.getConstraintTerms()) {
-         if (term instanceof MotionTargetTerm) {
-            moterm = (MotionTargetTerm)term;
-            break;
-         }
-      }
+      ForceTargetTerm foterm = findForceTargetTerm (controller);
+      MotionTargetTerm moterm = findMotionTargetTerm (controller);
+
       if (moterm != null) {
-         configureTargetProbes(
-            refTargetPosInProbe, moterm.getTargets(),
+         configureTargetMotionProbe(
+            refTargetMotionInProbe, moterm.getTargets(),
             "ref_targetPos_input.txt");
-         configureTargetProbes(
-            modelTargetPosOutProbe, moterm.getSources(),
+         configureTargetMotionProbe(
+            modelTargetMotionOutProbe, moterm.getSources(),
             "model_target_position.txt");
-         configureTargetProbes(
-            refTargetPosOutProbe, moterm.getTargets(),
+         configureTargetMotionProbe(
+            refTargetMotionOutProbe, moterm.getTargets(),
             "ref_target_position.txt");
+      }
+      if (foterm != null) {
+         configureTargetForceProbe (
+            refTargetForceInProbe, foterm.getForceTargets (), "ref_targetForce_input.txt");
       }
       
    }
@@ -200,8 +230,9 @@ public class InverseManager {
       }
    }
 
-   private void configureTargetProbes(NumericProbeBase probe,
+   private void configureTargetMotionProbe(NumericProbeBase probe,
       ArrayList<MotionTargetComponent> targets, String filename) {
+      System.out.println ("configuring motion probe");
       ArrayList<Property> props = new ArrayList<Property>();
       for (ModelComponent target : targets) {
          if (target instanceof Point) {
@@ -246,6 +277,43 @@ public class InverseManager {
       }
    }
 
+   private void configureTargetForceProbe(NumericProbeBase probe,
+      ArrayList<ForceTarget> targets, String filename) {
+      System.out.println ("configuring force probe");
+      ArrayList<Property> props = new ArrayList<Property>();
+      for (ForceTarget target : targets) {
+         props.add(target.getProperty("targetLambda"));
+      }
+
+      //      probe.setModel(myController.getMech());
+      probe.setAttachedFileName(filename);
+
+      if (probe instanceof NumericInputProbe) {
+         ((NumericInputProbe)probe).setInputProperties(props
+            .toArray(new Property[props.size()]));
+      }
+      else if (probe instanceof NumericOutputProbe) {
+         ((NumericOutputProbe)probe).setOutputProperties(props
+            .toArray(new Property[props.size()]));
+      }
+
+      if (probe instanceof NumericInputProbe) {
+         File file = probe.getAttachedFile ();
+         if (file == null || !file.exists ()) {
+            ((NumericInputProbe)probe).loadEmpty ();
+            probe.setActive (false);
+         }
+         else {
+            try {
+               probe.load ();
+               probe.setActive (true);
+            }
+            catch (IOException e) {
+               e.printStackTrace ();
+            }
+         }
+      }
+   }
 //   public class SyncTargetListener implements ActionListener {
 //
 //      @Override
@@ -257,7 +325,7 @@ public class InverseManager {
 //   }
    
    private void syncTargetProbes() {
-         syncProbes(refTargetPosInProbe, modelTargetPosOutProbe);
+         syncProbes(refTargetMotionInProbe, modelTargetMotionOutProbe);
    }
 
    private void syncExcitationProbes() {
@@ -298,11 +366,16 @@ public class InverseManager {
    }
    
    private void setProbeDuration(double t) {
-      refTargetPosInProbe.setStopTime (t);
+      if (refTargetForceInProbe != null) {
+         refTargetForceInProbe.setStopTime (t);
+      }
+      if (refTargetMotionInProbe != null) {
+         refTargetMotionInProbe.setStopTime (t);
+         modelTargetMotionOutProbe.setStopTime (t);
+         refTargetMotionOutProbe.setStopTime (t);         
+      }
       excitationInput.setStopTime (t);
       excitationOutProbe.setStopTime (t);
-      modelTargetPosOutProbe.setStopTime (t);
-      refTargetPosOutProbe.setStopTime (t);
    }
    
    
@@ -316,11 +389,16 @@ public class InverseManager {
    }
    
    private void setProbeUpdateInterval(double h) {
-      refTargetPosInProbe.setUpdateInterval (h);
+      if (refTargetForceInProbe != null) {
+         refTargetForceInProbe.setUpdateInterval (h);
+      }
+      if (refTargetMotionInProbe != null) {
+         refTargetMotionInProbe.setUpdateInterval (h);
+         modelTargetMotionOutProbe.setUpdateInterval (h);
+         refTargetMotionOutProbe.setUpdateInterval (h);
+      }
       excitationInput.setUpdateInterval (h);
       excitationOutProbe.setUpdateInterval (h);
-      modelTargetPosOutProbe.setUpdateInterval (h);
-      refTargetPosOutProbe.setUpdateInterval (h);
    }
    
    public static void replaceBreakpoint(RootModel root, double oldt, double newt) {
@@ -379,6 +457,7 @@ public class InverseManager {
          addDefaultWidgets(controller);
          myController = controller;
          myRoot = root;
+         this.setScrollable (true);
       }
       
       private void addButtons() {
@@ -430,18 +509,23 @@ public class InverseManager {
             }
          }
          
-         for (LeastSquaresTerm term : tc.getConstraintTerms()) {
-            if (term instanceof LeastSquaresTermBase) {
-               addWidget(new JSeparator());
-               addWidget(new JLabel(term
-                  .getClass().getSimpleName()));
-               for (PropertyInfo propinfo : ((LeastSquaresTermBase)term)
-                  .getAllPropertyInfo())
-                  addWidget(
-                     (LeastSquaresTermBase)term, propinfo.getName());
-            }
+         for (LeastSquaresTerm term : tc.getEqualityConstraints ()) {
+            addLeastSquaresTermBaseWidgets (term);
+         }
+         for (LeastSquaresTerm term : tc.getInequalityConstraints()) {
+            addLeastSquaresTermBaseWidgets (term);
          }
          setScrollable(false);
+      }
+      
+      private void addLeastSquaresTermBaseWidgets (LeastSquaresTerm term) {
+         if (term instanceof LeastSquaresTermBase) {
+            addWidget (new JSeparator ());
+            addWidget (new JLabel (term.getClass ().getSimpleName ()));
+            for (PropertyInfo propinfo : ((LeastSquaresTermBase)term)
+               .getAllPropertyInfo ())
+               addWidget ((LeastSquaresTermBase)term, propinfo.getName ());
+         }
       }
       
       

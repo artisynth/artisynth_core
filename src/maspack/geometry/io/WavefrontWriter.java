@@ -114,17 +114,18 @@ public class WavefrontWriter extends MeshWriterBase {
     public void writeMesh (PrintWriter pw, PolygonalMesh mesh) throws IOException {
 
       ArrayList<Vertex3d> vertices = mesh.getVertices();
-      ArrayList<Vector3d> normals = mesh.getNormalList();
-      ArrayList<int[]> normalIndices = mesh.getNormalIndices();
-      ArrayList<Vector3d> textureVertices = mesh.getTextureVertices();
-      ArrayList<int[]> textureIndices = mesh.getTextureIndices();
+      ArrayList<Vector3d> normals = null;
+      int[] normalIndices = mesh.getNormalIndices();
+      int[] indexOffs = mesh.getFeatureIndexOffsets();
+      ArrayList<Vector3d> textureCoords = mesh.getTextureCoords();
+      int[] textureIndices = mesh.getTextureIndices();
       ArrayList<Face> faces = mesh.getFaces();
 
-      boolean writeTextureInfo =
-         textureVertices.size() > 0 && textureIndices != null;
-      boolean writeNormals =
-         normals.size() > 0 && normalIndices != null;
-         
+      boolean writeTextureInfo = textureCoords != null;
+      if (getWriteNormals (mesh)) {
+         normals = mesh.getNormals();
+      }
+
       int[] oldIdxs = new int[vertices.size()];
       int idx = 0;
       for (Vertex3d vertex : vertices) {
@@ -138,7 +139,7 @@ public class WavefrontWriter extends MeshWriterBase {
          vertex.setIndex(idx);
          idx++;
       }
-      if (writeNormals) {
+      if (normals != null) {
          for (Vector3d vn : normals) {
             pw.println (
                "vn " + myFmt.format (vn.x) + " " + myFmt.format (vn.y) +
@@ -146,7 +147,7 @@ public class WavefrontWriter extends MeshWriterBase {
          }
       }
       if (writeTextureInfo) {
-         for (Vector3d vt : textureVertices) {
+         for (Vector3d vt : textureCoords) {
             pw.println (
                "vt " + myFmt.format (vt.x) + " " + myFmt.format (vt.y) +
                " " + myFmt.format (vt.z));
@@ -154,7 +155,6 @@ public class WavefrontWriter extends MeshWriterBase {
       }
       int faceCnt = 0;
       for (Face face : faces) {
-         int idxCnt = 0;
          pw.print ("f");
          Vertex3d[] vtxList = new Vertex3d[face.numEdges()];
          int k = 0;
@@ -174,33 +174,33 @@ public class WavefrontWriter extends MeshWriterBase {
                vtxList[k] = tmp;
             }
          }
+         int foff = indexOffs[faceCnt];
          for (k=0; k<vtxList.length; k++) {
             Vertex3d vtx = vtxList[k];
             if (myZeroIndexed) {
                pw.print (" " + (vtx.getIndex()));
                if (writeTextureInfo) {
-                  pw.print ("/" + (textureIndices.get(faceCnt)[idxCnt]));
+                  pw.print ("/" + textureIndices[foff+k]);
                }
-               if (writeNormals) {
+               if (normals != null) {
                   if (!writeTextureInfo) {
                      pw.print ("/");
                   }
-                  pw.print ("/" + (normalIndices.get(faceCnt)[idxCnt]));
+                  pw.print ("/" + normalIndices[foff+k]);
                }
             }
             else {
                pw.print (" " + (vtx.getIndex() + 1));
                if (writeTextureInfo) {
-                  pw.print ("/" + (textureIndices.get(faceCnt)[idxCnt] + 1));
+                  pw.print ("/" + (textureIndices[foff+k]+1));
                }
-               if (writeNormals) {
+               if (normals != null) {
                   if (!writeTextureInfo) {
                      pw.print ("/");
                   }
-                  pw.print ("/" + (normalIndices.get(faceCnt)[idxCnt] + 1));
+                  pw.print ("/" + (normalIndices[foff+k]+1));
                }
             }
-            idxCnt++;
          }
          pw.println ("");
          faceCnt++;
@@ -294,8 +294,11 @@ public class WavefrontWriter extends MeshWriterBase {
    public void writeMesh (PrintWriter pw, PointMesh mesh) throws IOException {
 
       ArrayList<Vertex3d> vertices = mesh.getVertices();
-      ArrayList<Vector3d> normals = mesh.getNormals();
-
+      ArrayList<Vector3d> normals = null;
+      if (getWriteNormals (mesh)) {
+         normals = mesh.getNormals();
+      }      
+      
       for (Vertex3d vertex : vertices) {
          Point3d pnt = vertex.pnt;
          pw.println (

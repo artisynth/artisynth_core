@@ -18,6 +18,9 @@ public interface MeshWriter {
    public void setFormat(String fmtStr);
    public void setFormat(NumberFormat fmt);
    public NumberFormat getFormat();
+
+   public void setWriteNormals (int enable);
+   public int getWriteNormals ();
    
    //public void write(File file, MeshBase mesh) throws IOException;
    //public void write(String filename, MeshBase mesh) throws IOException;

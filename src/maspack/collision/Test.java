@@ -91,7 +91,7 @@ public class Test {
       Vector3d pert = new Vector3d (0.00003, 0, 0);
       for (int i = 0; i < 4e5; i++) {
          // if (info != null) vw.removeRenderable(info);
-         if (mesh1.isFixed) {
+         if (mesh1.isFixed()) {
             mesh1.getMeshToWorld().p.add (pert);
          }
          else {
@@ -155,7 +155,7 @@ public class Test {
    }
 
    static void positionFemMesh (PolygonalMesh mesh, Point3d meshPosition) {
-      mesh.isFixed = false;
+      mesh.setFixed (false);
       for (Vertex3d v : mesh.getVertices()) {
          v.pnt.add (meshPosition);
       }

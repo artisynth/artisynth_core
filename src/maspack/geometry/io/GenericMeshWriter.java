@@ -110,6 +110,14 @@ public class GenericMeshWriter implements MeshWriter {
       return myWriter.getFormat();
    }
 
+   public void setWriteNormals (int enable) {
+      myWriter.setWriteNormals (enable);
+   }
+
+   public int getWriteNormals () {
+      return myWriter.getWriteNormals();
+   }
+   
    public void writeMesh (MeshBase mesh) throws IOException {
       myWriter.writeMesh (mesh);
    }

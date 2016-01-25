@@ -20,7 +20,8 @@ public class PlyReaderWriterTest extends UnitTest {
    public PlyReaderWriterTest() {
    }
 
-   void test (MeshBase mesh, DataFormat dataFmt, DataType floatType)
+   void test (
+      MeshBase mesh, DataFormat dataFmt, DataType floatType, boolean writeNrms)
       throws IOException {
 
 
@@ -29,7 +30,11 @@ public class PlyReaderWriterTest extends UnitTest {
       
       writer.setDataFormat (dataFmt);
       writer.setFloatType (floatType);
+      if (writeNrms) {
+         writer.setWriteNormals (1);
+      }      
       writer.writeMesh (mesh);
+
       byte[] bytes = os.toByteArray();
       //System.out.println (new String(os.toByteArray()));
       ByteArrayInputStream is = new ByteArrayInputStream (bytes);
@@ -53,14 +58,14 @@ public class PlyReaderWriterTest extends UnitTest {
       }
    }
 
-   void test (MeshBase mesh) throws IOException {
+   void test (MeshBase mesh, boolean writeNrms) throws IOException {
 
-      test (mesh, DataFormat.ASCII, DataType.FLOAT);
-      test (mesh, DataFormat.BINARY_LITTLE_ENDIAN, DataType.FLOAT);
-      test (mesh, DataFormat.BINARY_BIG_ENDIAN, DataType.FLOAT);
-      test (mesh, DataFormat.ASCII, DataType.DOUBLE);
-      test (mesh, DataFormat.BINARY_LITTLE_ENDIAN, DataType.DOUBLE);
-      test (mesh, DataFormat.BINARY_BIG_ENDIAN, DataType.DOUBLE);
+      test (mesh, DataFormat.ASCII, DataType.FLOAT, writeNrms);
+      test (mesh, DataFormat.BINARY_LITTLE_ENDIAN, DataType.FLOAT, writeNrms);
+      test (mesh, DataFormat.BINARY_BIG_ENDIAN, DataType.FLOAT, writeNrms);
+      test (mesh, DataFormat.ASCII, DataType.DOUBLE, writeNrms);
+      test (mesh, DataFormat.BINARY_LITTLE_ENDIAN, DataType.DOUBLE, writeNrms);
+      test (mesh, DataFormat.BINARY_BIG_ENDIAN, DataType.DOUBLE, writeNrms);
    }
 
    public void test() {
@@ -69,25 +74,22 @@ public class PlyReaderWriterTest extends UnitTest {
             MeshFactory.createQuadBox (1, 2, 3, Point3d.ZERO, 1, 1, 1);
          PolygonalMesh sphere =
             MeshFactory.createSphere (3.0, 12);
-         sphere.computeVertexNormals();
 
-         test (box);
-         box.computeVertexNormals();
-         test (box);
-         test (sphere);
+         test (box, false);
+         test (box, true);
+         test (sphere, true);
 
          PointMesh pmesh = MeshFactory.createRandomPointMesh (10, 12.0);
-         test (pmesh);
+         test (pmesh, false);
 
          // add normals to the point mesh
          ArrayList<Vector3d> nrms = new ArrayList<Vector3d>();
-         for (int i=0; i<pmesh.getNumVertices(); i++) {
+         for (int i=0; i<pmesh.numVertices(); i++) {
             Vector3d nrm = new Vector3d();
             nrm.setRandom();
             nrms.add (nrm);
          }
-         pmesh.setNormals (nrms);
-         test (pmesh);
+         test (pmesh, true);
       }
       catch (IOException e) {
          throw new TestException ("Unexpected IOException: " + e);

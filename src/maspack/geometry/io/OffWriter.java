@@ -46,10 +46,10 @@ public class OffWriter extends MeshWriterBase {
          new BufferedWriter (new OutputStreamWriter (myOstream)));
 
       pw.println("OFF");
-      pw.printf("%d %d %d\n", mesh.getNumVertices(), mesh.getNumFaces(), 0);
+      pw.printf("%d %d %d\n", mesh.numVertices(), mesh.numFaces(), 0);
       pw.flush();
 
-      int[] oldIdxs = new int[mesh.getNumVertices()];
+      int[] oldIdxs = new int[mesh.numVertices()];
       int idx = 0;
       for (Vertex3d vtx : mesh.getVertices()) {
          Point3d pnt = vtx.getPosition();

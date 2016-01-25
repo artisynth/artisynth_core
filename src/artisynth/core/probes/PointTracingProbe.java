@@ -19,7 +19,6 @@ import maspack.properties.PropertyMode;
 import maspack.render.HasRenderProps;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.GL.GL2.GL2Viewer;
 import artisynth.core.modelbase.ModelComponent;
 
 public class PointTracingProbe extends TracingProbe {

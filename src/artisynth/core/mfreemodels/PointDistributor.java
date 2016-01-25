@@ -282,9 +282,9 @@ public class PointDistributor {
    }
    
    public static Point3d[] getTightBox(PolygonalMesh mesh, RigidTransform3d principal) {
-      Point3d[] pnts = new Point3d[mesh.getNumVertices()];
+      Point3d[] pnts = new Point3d[mesh.numVertices()];
       
-      for (int i=0; i<mesh.getNumVertices(); i++) {
+      for (int i=0; i<mesh.numVertices(); i++) {
          pnts[i] = mesh.getVertex(i).getPosition();
       }
       if (principal == null) {
@@ -295,9 +295,9 @@ public class PointDistributor {
    
    public static OBB getTightOBB (
       PolygonalMesh mesh, RigidTransform3d principal) {
-      Point3d[] pnts = new Point3d[mesh.getNumVertices()];
+      Point3d[] pnts = new Point3d[mesh.numVertices()];
       
-      for (int i=0; i<mesh.getNumVertices(); i++) {
+      for (int i=0; i<mesh.numVertices(); i++) {
          pnts[i] = mesh.getVertex(i).getPosition();
       }
       if (principal == null) {

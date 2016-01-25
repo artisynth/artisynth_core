@@ -609,8 +609,8 @@ public class CPD {
       PolygonalMesh meshReg, double w, double tol, 
       int maxIters, boolean allowScaling) {
       
-      int N = meshRef.getNumVertices();
-      int M = meshReg.getNumVertices();
+      int N = meshRef.numVertices();
+      int M = meshReg.numVertices();
       
       Point3d[] x = new Point3d[N];
       Point3d[] y = new Point3d[M];
@@ -779,8 +779,8 @@ public class CPD {
    public static AffineTransform3d affine(PolygonalMesh meshRef, PolygonalMesh meshReg, 
       double w, double tol, int maxIters) {
       
-      int N = meshRef.getNumVertices();
-      int M = meshReg.getNumVertices();
+      int N = meshRef.numVertices();
+      int M = meshReg.numVertices();
       
       Point3d[] x = new Point3d[N];
       Point3d[] y = new Point3d[M];
@@ -1027,16 +1027,16 @@ public class CPD {
    public static PolygonalMesh coherent(PolygonalMesh meshRef, PolygonalMesh meshReg, 
       double lambda, double beta2, double w, double tol, int maxIters, PolygonalMesh out) {
       
-      int N = meshRef.getNumVertices();
-      int M = meshReg.getNumVertices();
+      int N = meshRef.numVertices();
+      int M = meshReg.numVertices();
       
       Point3d[] x = new Point3d[N];
       Point3d[] y = new Point3d[M];
       Point3d[] match = new Point3d[M];
       
-      int[][] faceIndices = new int[meshReg.getNumFaces()][];
+      int[][] faceIndices = new int[meshReg.numFaces()][];
       ArrayList<Face> faces = meshReg.getFaces();
-      for (int i=0; i<meshReg.getNumFaces(); i++) {
+      for (int i=0; i<meshReg.numFaces(); i++) {
          faceIndices[i] = faces.get(i).getVertexIndices();
       }
       

@@ -19,4 +19,11 @@ public interface LeastSquaresTerm extends QPTerm
     * @return number of rows of the least squares problem
     */
    public int getRowSize();
+   
+   /**
+    * Returns that enabled status of this term, for use if term is 
+    * an inequality / equality constraint
+    * @return is this term enabled
+    */
+   public boolean isEnabled();
 }

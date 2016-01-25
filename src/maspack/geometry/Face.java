@@ -262,6 +262,10 @@ public class Face extends Feature implements Boundable {
          HalfEdge heOpp = he.opposite;
          if (heOpp != null) {
             heOpp.opposite = null;
+            if (heOpp.isHard()) {
+               // single edges not allowed to be hard
+               heOpp.setHard(false);
+            }
             if (heOpp.uOppositeP) {
                // move directon vector over
                //heOpp.u.negate();

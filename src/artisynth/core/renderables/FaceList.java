@@ -7,10 +7,12 @@
 package artisynth.core.renderables;
 
 import java.util.LinkedList;
+import java.util.ArrayList;
 
 import maspack.geometry.Face;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.Vertex3d;
+import maspack.geometry.MeshBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
@@ -295,6 +297,16 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
    private void drawEdges(GL2 gl, RenderProps props) {
       //RenderProps.Shading savedShadeModel = renderer.getShadeModel();
 
+      ArrayList<float[]> colors = null;
+      int[] colorIndices = null;
+      int[] indexOffs = null;
+      if (useVertexColouring && size() > 0) {
+         MeshBase mesh = get(0).myMesh;
+         colors = mesh.getColors();
+         colorIndices = mesh.getColorIndices();
+         indexOffs = mesh.getFeatureIndexOffsets();
+      }
+      
       gl.glBegin (GL2.GL_LINES);
       for (FaceComponent fc : this) {
 
@@ -302,10 +314,15 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
             Face face = fc.getFace();
             HalfEdge he = face.firstHalfEdge();
 
+            int k = 0;
+            int faceOff = indexOffs[face.getIndex()];
             do {
                if (useVertexColouring) {
-                  float[] color = he.head.getColorArray();
-                  gl.glColor4f (color[0], color[1], color[2], color[3]);
+                  int cidx = colorIndices[faceOff+k];
+                  if (cidx != -1) {
+                     float[] color = colors.get(cidx);
+                     gl.glColor4f (color[0], color[1], color[2], color[3]);
+                  }
                }
                Point3d pnt = he.head.myRenderPnt;
                gl.glVertex3d (pnt.x, pnt.y, pnt.z);
@@ -313,6 +330,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
                gl.glVertex3d (pnt.x, pnt.y, pnt.z);
 
                he = he.getNext();
+               k++;
             } while (he != face.firstHalfEdge());
 
          }
@@ -382,7 +400,16 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       // 2 for polygon
       
       boolean lastSelected = false;
-      
+
+      ArrayList<float[]> colors = null;
+      int[] colorIndices = null;
+      int[] indexOffs = null;
+      if (useVertexColors && size() > 0) {
+         MeshBase mesh = get(0).myMesh;
+         colors = mesh.getColors();
+         colorIndices = mesh.getColorIndices();
+         indexOffs = mesh.getFeatureIndexOffsets();
+      }      
       
       int i = 0;
       for (FaceComponent fc : this) {
@@ -436,18 +463,24 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
             Vector3d faceNrm = face.getNormal();
             gl.glNormal3d (faceNrm.x, faceNrm.y, faceNrm.z);
 
+            int k = 0;
             HalfEdge he = face.firstHalfEdge();
+            int faceOff = indexOffs[i];
             do {
                Vertex3d vtx = he.head;
                Point3d pnt = vtx.myRenderPnt;
 
                if (useVertexColors) {
-                  float[] color = he.head.getColorArray();
-                  gl.glColor4f (color[0], color[1], color[2], color[3]);
+                  int cidx = colorIndices[faceOff+k];
+                  if (cidx != -1) {
+                     float[] color = colors.get(cidx);
+                     gl.glColor4f (color[0], color[1], color[2], color[3]);
+                  }
                }
                gl.glVertex3d (pnt.x, pnt.y, pnt.z);
 
                he = he.getNext();
+               k++;
             } while (he != face.firstHalfEdge());
 
             if (renderer.isSelecting()) {
@@ -458,7 +491,8 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
                lastType = type;
             }
          }
-         i++;
+         
+         ++i;
       }
       
       if (lastType != -1) {

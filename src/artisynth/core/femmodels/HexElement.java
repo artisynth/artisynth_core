@@ -425,16 +425,6 @@ public class HexElement extends FemElement3d {
          3, 2, 6, 7
       };
 
-//    public void renderEdges (GLRenderer renderer, RenderProps props) {
-//       GL2 gl = renderer.getGL2().getGL2();
-//       gl.glBegin (GL2.GL_LINES);
-//       for (int i=0; i<24; i+=2) {
-//          gl.glVertex3fv (myNodes[edgeIdxs[i  ]].myRenderCoords, 0);
-//          gl.glVertex3fv (myNodes[edgeIdxs[i+1]].myRenderCoords, 0);
-//       }
-//       gl.glEnd();
-//    }
-
 //    public void computeWarping() {
 //       if (!myStiffnessValidP) {
 //          updateStiffness();

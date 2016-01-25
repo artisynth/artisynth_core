@@ -20,6 +20,12 @@ import maspack.render.GL.GLSelectionFilter;
 
 public interface Renderer {
 
+   public enum ColorInterpolation {
+      NONE,
+      RGB,
+      HSV
+   };
+
    /** 
     * Flag requesting that an object be rendered as though it is selected.
     */   
@@ -80,6 +86,10 @@ public interface Renderer {
    public void rerender();
 
    public RigidTransform3d getEyeToWorld();
+
+   public ColorInterpolation getColorInterpolation();
+
+   public void setColorInterpolation (ColorInterpolation interp);
 
    /**
     * Returns whether or not lighting is enabled.

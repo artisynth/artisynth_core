@@ -6,22 +6,29 @@
  */
 package maspack.geometry;
 
+import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
+import javax.media.opengl.GL2;
+
+import jogamp.opengl.glu.error.Error;
 import maspack.geometry.io.WavefrontReader;
 import maspack.geometry.io.XyzbReader;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
+import maspack.render.GLRenderer;
 import maspack.render.RenderProps;
-import maspack.render.Renderer;
-import maspack.render.GL.GL2.PointMeshRenderer;
+import maspack.render.RenderProps.PointStyle;
+import maspack.render.RenderProps.Shading;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
@@ -30,53 +37,12 @@ import maspack.util.ReaderTokenizer;
  */
 public class PointMesh extends MeshBase {
 
-   PointMeshRenderer myMeshRenderer = null;
-   
+   public static boolean useDisplayListsIfPossible = true;
    protected AABBTree myBVTree = null;
    protected boolean myBVTreeValid = false;
    // if > 0, causes normals to be rendered
    protected double myNormalRenderLen = 0;
 
-   /**
-    * {@inheritDoc}
-    */
-   public int getNumNormals() {
-      if (myNormalList == null) {
-         return 0;
-      }
-      else {
-         return myNormalList.size();
-      }
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public Vector3d getNormal (int idx) {
-      if (myNormalList == null) {
-         throw new ArrayIndexOutOfBoundsException ("idx="+idx+", size=0");
-      }
-      else {
-         return myNormalList.get(idx);
-      }
-   }
-
-   public ArrayList<Vector3d> getNormals() {
-      return myNormalList;
-   }
-
-   public void setNormals (ArrayList<Vector3d> normals) {
-      myNormalList.clear();
-      for (int i=0; i<normals.size(); i++) {
-         Vector3d nrm = new Vector3d(normals.get(i));
-         double mag = nrm.norm();
-         if (mag != 0) {
-            nrm.scale (1/mag);
-         }
-         myNormalList.add (nrm);
-      }
-   }
-   
    /**
     * {@inheritDoc}
     */
@@ -103,17 +69,6 @@ public class PointMesh extends MeshBase {
       this();
       read (new BufferedReader (new FileReader (file)));
    }
-   
-   public PointMesh (PointMesh old) {
-      super();
-      for (Vertex3d v : old.myVertices) {
-         addVertex (new Vertex3d (new Point3d (v.pnt), v.idx));
-      }
-      copyNormals (old);
-      copyColors (old);
-      
-      setMeshToWorld (old.XMeshToWorld);
-   }
 
    public double getNormalRenderLen() {
       return myNormalRenderLen;
@@ -122,39 +77,10 @@ public class PointMesh extends MeshBase {
    public void setNormalRenderLen (double len) {
       if (myNormalRenderLen != len) {
          myNormalRenderLen = len;
-         notifyModified();  // XXX maybe this should be tracked separately
+         clearDisplayList();
       }
    }
 
-   /**
-    * Applies an affine transformation to the vertices of this mesh. The
-    * topology of the mesh remains unchanged.
-    * 
-    * @param X
-    * affine transformation
-    */
-   public void transform (AffineTransform3dBase X) {
-      super.transform (X);
-      for (Vector3d vn : myNormalList) {
-         vn.transform (X);
-         vn.normalize();
-      }
-   }
-
-   /**
-    * Applies an inverse affine transformation to the vertices of this mesh. The
-    * topology of the mesh remains unchanged.
-    * 
-    * @param X
-    * affine transformation
-    */
-   public void inverseTransform (AffineTransform3dBase X) {
-      super.inverseTransform (X);
-      for (Vector3d vn : myNormalList) {
-         vn.transform (X);
-         vn.normalize();
-      }
-   }
 
 
    public void readBinary (File file) throws IOException {
@@ -168,79 +94,6 @@ public class PointMesh extends MeshBase {
       reader.setLittleEndian (true);
       reader.readMesh (this);
    }
-
-   // private double readFloat (BinaryInputStream in) throws IOException {
-   //    int bytes = Integer.reverseBytes (in.readInt());
-   //    return (double)Float.intBitsToFloat (bytes);
-   // }
-
-   // public void readBinary (BinaryInputStream in) throws IOException {
-   //    XyzbReader reader = new XyzbReader();
-   //    reader.read (this, in);
-
-   //    // clear();
-   //    // myNormals = new ArrayList<Vector3d>();
-   //    // boolean done = false;
-   //    // while (!done) {
-   //    //    try {
-   //    //       double px = readFloat(in);
-   //    //       double py = readFloat(in);
-   //    //       double pz = readFloat(in);
-   //    //       double nx = readFloat(in);
-   //    //       double ny = readFloat(in);
-   //    //       double nz = readFloat(in);
-   //    //       //System.out.println ("pnt " + px + " "+py+" "+pz);
-   //    //       //System.out.println ("nrm " + nx + " "+ny+" "+nz);
-   //    //       addVertex (new Point3d (px, py, pz), /*byReference=*/false);
-   //    //       myNormals.add (new Vector3d (nx, ny, nz));
-   //    //    }
-   //    //    catch (EOFException e) {
-   //    //       done = true;
-   //    //    }
-   //    // }
-   // }
-
-//   public void setFromWavefrontReader (WavefrontReader wfr) throws IOException {
-//      setFromWavefrontReader (wfr, null);
-//   }
-
-//   public void setFromWavefrontReader (WavefrontReader wfr, String groupName)
-//      throws IOException {
-//
-//      if (groupName == null) {
-//         String[] nameList = wfr.getGroupNames();
-//         if (nameList.length > 0) {
-//            groupName = nameList[0];
-//         }
-//         else {
-//            groupName = "default";
-//         }
-//      }
-//      if (!wfr.hasGroup (groupName)) {
-//         throw new IllegalArgumentException ("Group '"+groupName+"' unknown");
-//      }
-//      wfr.setGroup (groupName);
-//
-//      List<Point3d> vtxList = Arrays.asList(wfr.getVertexPoints());
-//      
-//      for (int i=0; i<vtxList.size(); i++) {
-//         // add by reference since points have already been copied 
-//         addVertex (vtxList.get(i), /* byReference= */true);
-//      }
-//      
-//      Vector3d[] nrms = wfr.getVertexNormals ();
-//      if (nrms != null) {
-//         List<Vector3d> normalList = Arrays.asList(wfr.getVertexNormals());
-//         myNormals = new ArrayList<Vector3d>(normalList);
-//      } else {
-//         myNormals.clear();
-//      }
-//
-//      setName (groupName.equals ("default") ? null : groupName);
-//      if (wfr.getRenderProps() != null) {
-//         setRenderProps (wfr.getRenderProps());
-//      }
-//   }
 
    /**
     * Reads the contents of this mesh from a ReaderTokenizer. The input is
@@ -274,24 +127,6 @@ public class PointMesh extends MeshBase {
     * same size as pnts.
     */
    public void set (Point3d[] pnts, Vector3d[] nrms) {
-      set (pnts, nrms, /* byReference= */false);
-   }
-
-   /**
-    * Sets the vertex points and line associated with this mesh.
-    * 
-    * @param pnts
-    * points from which the vertices are formed
-    * @param nrms
-    * (optional) if non-null, gives vectors from which the normals are formed.
-    * @param byReference
-    * if true, then the supplied points and normals are not copied but instead referred to
-    * directly by the vertex structures. The mesh will track any changes to the
-    * points and {@link #isFixed isFixed} will return false.
-    * @throws IllegalArgumentException if nrms is non-null and does not have the
-    * same size as pnts.
-    */
-   protected void set (Point3d[] pnts, Vector3d[] nrms, boolean byReference) {
       clear();
       if (nrms != null && nrms.length == 0) {
          nrms = null;
@@ -300,22 +135,15 @@ public class PointMesh extends MeshBase {
          throw new IllegalArgumentException ("If non-null, nrm must have the same size as pnts");
       }
       for (int i=0; i<pnts.length; i++) {
-         addVertex (pnts[i], byReference);
+         addVertex (pnts[i]);
       }
       if (nrms != null) {
-         myNormalList = new ArrayList<Vector3d>(pnts.length);
-         myNormalIndices = new ArrayList<int[]>(pnts.length);
-         for (int i=0; i<pnts.length; i++) {
-            if (byReference) {
-               myNormalList.add (nrms[i]);
-            }
-            else {
-               myNormalList.add (new Vector3d(nrms[i]));
-            }
-            myNormalIndices.add(new int[]{i});
+         ArrayList<Vector3d> nlist = new ArrayList<Vector3d>(nrms.length);
+         for (int i=0; i<nrms.length; i++) {
+            nlist.add (nrms[i]);
          }
+         setNormals (nlist, /*indices=*/null);
       }
-      notifyModified();
    }
 
    /**
@@ -368,8 +196,8 @@ public class PointMesh extends MeshBase {
          pw.println ("v " + fmt.format (pnt.x) + " " + fmt.format (pnt.y) + " " +
                      fmt.format (pnt.z));
       }
-      if (myNormalList != null) {
-         for (Vector3d nrm : myNormalList) {
+      if (myNormals != null) {
+         for (Vector3d nrm : myNormals) {
             pw.println ("vn " + fmt.format (nrm.x) + " " + fmt.format (nrm.y) + " " +
                         fmt.format (nrm.z));
          }
@@ -377,25 +205,164 @@ public class PointMesh extends MeshBase {
       pw.flush();
    }
 
-   /**
-    * Clears this mesh (makes it empty).
-    */
-   public void clear() {
-      // verts = null;
-      super.clear();
-      clearNormals();
-   }
+   public void render (GLRenderer renderer, RenderProps props, int flags) {
+      GL2 gl = renderer.getGL2().getGL2();
 
-   public void render (Renderer renderer, RenderProps props, int flags) {
-      if (myMeshRenderer == null) {
-         myMeshRenderer = new PointMeshRenderer();
+      gl.glPushMatrix();
+      if (isRenderBuffered()) {
+         renderer.mulTransform (myXMeshToWorldRender);
       }
-      if (hasVertexColoring () && ((flags & Renderer.SELECTED) == 0)) {
-         flags |= Renderer.VERTEX_COLORING;
-         flags |= Renderer.HSV_COLOR_INTERPOLATION;
-      }
+      else {
+         renderer.mulTransform (XMeshToWorld);
+      } 
+
+      boolean reenableLighting = false;
+      int savedPointSize = renderer.getPointSize();
+      int savedLineWidth = renderer.getLineWidth();
+      RenderProps.Shading savedShadeModel = renderer.getShadeModel();
+
+      renderer.setPointSize( props.getPointSize());
       
-      myMeshRenderer.render (renderer, this, props, flags);
+      Shading shading = props.getShading();
+      boolean selected = ((flags & GLRenderer.SELECTED) != 0);
+      
+      if (props.getPointColor() != null && !renderer.isSelecting()) {
+         if (shading != Shading.NONE) {
+            renderer.setMaterial(
+               props.getPointMaterial(), selected);
+         }
+         else {
+            reenableLighting = renderer.isLightingEnabled();
+            renderer.setLightingEnabled (false);
+            float[] color;
+            if ((flags & GLRenderer.SELECTED) != 0) {
+               color = new float[3];
+               renderer.getSelectionColor().getRGBColorComponents (color);
+            }
+            else {
+               color = props.getPointColorArray();
+            }
+            float alpha = (float)props.getAlpha();
+            renderer.setColor (color[0], color[1], color[2], alpha);
+         }
+      }
+
+      boolean useDisplayList = false;
+      int displayList = 0;
+      boolean useVertexColors = (flags & GLRenderer.VERTEX_COLORING) != 0;
+      
+      if (useDisplayListsIfPossible && isUsingDisplayList() 
+    		  && !(renderer.isSelecting() && useVertexColors) ) {
+    		    //&& !(props.getPointStyle()==PointStyle.SPHERE)) {
+         useDisplayList = true;
+         displayList = props.getMeshDisplayList();
+      }
+         
+      if (props.getPointStyle() == PointStyle.SPHERE) {
+         useDisplayList = false;
+      }
+
+      if (!useDisplayList || displayList < 1) {
+         if (useDisplayList) {
+            renderer.validateInternalDisplayLists(props);
+            displayList = props.allocMeshDisplayList (gl);
+            if (displayList > 0) {
+               gl.glNewList (displayList, GL2.GL_COMPILE);
+            }
+         }
+         
+         boolean useRenderVtxs = isRenderBuffered() && !isFixed();
+         float[] coords = new float[3];
+         int[] colorIndices = getColorIndices();
+         ArrayList<float[]> colors = getColors();
+         switch (props.getPointStyle()) {
+            case SPHERE: {
+               for (int i=0; i<myVertices.size(); i++) {
+                  Vertex3d vtx = myVertices.get(i);
+                  Point3d pnt = useRenderVtxs ? vtx.myRenderPnt : vtx.pnt;
+                  pnt.get(coords);
+                  
+                  if (useVertexColors) {
+                     float[] pointColor = colors.get(colorIndices[i]);
+                     renderer.updateMaterial(props, props.getPointMaterial(),
+                        pointColor, selected);
+                  }
+                  renderer.checkAndPrintGLError();
+                  renderer.drawSphere(props, coords);
+                  renderer.checkAndPrintGLError();
+               }
+               break;
+            }
+            case POINT:
+               gl.glBegin (GL2.GL_POINTS);
+               ArrayList<Vector3d> normals = getNormals();
+               int numn = normals != null ? normals.size() : 0;
+               Vector3d zDir = renderer.getZDirection();
+               for (int i=0; i<myVertices.size(); i++) {
+                  Vertex3d vtx = myVertices.get(i);
+                  Point3d pnt = useRenderVtxs ? vtx.myRenderPnt : vtx.pnt;
+                  
+                  if (shading != Shading.NONE) {
+                     if (i < numn) {
+                        Vector3d nrm = myNormals.get(i);
+                        gl.glNormal3d (nrm.x, nrm.y, nrm.z);
+                     } else {
+                        gl.glNormal3d(zDir.x, zDir.y, zDir.z);
+                     }
+                  }
+                  gl.glVertex3d (pnt.x, pnt.y, pnt.z);
+               }
+               gl.glEnd ();
+         }
+         
+
+         // render normals
+         if (myNormals != null && myNormalRenderLen > 0) {
+            if (props.getLineColor() != null && !renderer.isSelecting()) {
+               if (shading != Shading.NONE) {
+                  renderer.setMaterial(
+                     props.getLineMaterial(), (flags & GLRenderer.SELECTED) != 0);
+               }
+               else {
+                  float[] color = props.getLineColorArray();
+                  float alpha = (float)props.getAlpha();
+                  renderer.setColor (color[0], color[1], color[2], alpha);
+               }
+            }
+            renderer.setLineWidth (1);
+            gl.glBegin (GL2.GL_LINES);
+            for (int i=0; i<myVertices.size(); i++) {
+               Vertex3d vtx = myVertices.get(i);
+               Point3d pnt = useRenderVtxs ? vtx.myRenderPnt : vtx.pnt;
+               Vector3d nrm = myNormals.get(i);
+               double s = myNormalRenderLen;
+               gl.glVertex3d (pnt.x, pnt.y, pnt.z);
+               gl.glVertex3d (pnt.x+s*nrm.x, pnt.y+s*nrm.y, pnt.z+s*nrm.z);
+            }
+            gl.glEnd ();
+         }
+         if (useDisplayList && displayList > 0) {
+            gl.glEndList();
+            renderer.checkAndPrintGLError();
+            gl.glCallList (displayList);
+            renderer.checkAndPrintGLError();
+         }
+      }
+      else {
+         gl.glCallList (displayList);
+      }
+
+      if (reenableLighting) {
+         renderer.setLightingEnabled (true);
+      }
+      renderer.setPointSize (savedPointSize);
+      renderer.setLineWidth (savedLineWidth);
+      renderer.setShadeModel (savedShadeModel);
+
+      gl.glPopMatrix();
+      
+      renderer.checkAndPrintGLError();
+      
    }
 
    /** 
@@ -407,33 +374,10 @@ public class PointMesh extends MeshBase {
       return (PointMesh)super.copy();
    }
 
-   /** 
-    * Creates a copy of this mesh using a specific set of vertices.
-    */
-   public PointMesh copyWithVertices (ArrayList<? extends Vertex3d> vtxs) {
-      PointMesh mesh = new PointMesh();
-
-      if (vtxs.size() < myVertices.size()) {
-         throw new IllegalArgumentException (
-            "Number of supplied vertices="+vtxs.size()+", need "+myVertices.size());
-      }
-      for (int i=0; i<vtxs.size(); i++) {
-         mesh.addVertex (vtxs.get(i));
-      }
-      mesh.setMeshToWorld (XMeshToWorld);
-      
-      mesh.copyNormals (this);
-      copyColors(this);
-      
-      if (myRenderProps != null) {
-         mesh.setRenderProps (myRenderProps);
-      }
-      else {
-         mesh.myRenderProps = null;
-      }
-      mesh.setFixed (isFixed());
-      mesh.setRenderBuffered (isRenderBuffered());
-      mesh.setName(getName());
+   public PointMesh clone() {
+      PointMesh mesh = (PointMesh)super.clone();
+      mesh.myBVTree = null;
+      mesh.myBVTreeValid = false;
       return mesh;
    }
 
@@ -446,50 +390,14 @@ public class PointMesh extends MeshBase {
     * @param mesh Mesh to be added to this mesh
     */
    public void addMesh (PointMesh mesh) {
-
-      for (int i = 0; i < mesh.getNumVertices(); i++) {
-         Point3d p = mesh.getVertices().get(i).getPosition();
-         //	 p.transform(X);
-         addVertex(p);
-      }
-
-      boolean iHasNormals = (hasNormals() && myNormalIndices.size() == getNumVertices());
-      boolean sheHasNormals = (mesh.hasNormals() && mesh.myNormalIndices.size() == mesh.getNumVertices());
-      if (sheHasNormals && iHasNormals) {
-         int vnoff = myNormalList.size();
-         for (int i=0; i<mesh.myNormalList.size(); i++) {
-            Vector3d vn = new Vector3d (mesh.myNormalList.get (i));
-            myNormalList.add (vn);
-         }
-         for (int i=0; i<mesh.myNormalIndices.size(); i++) {
-            myNormalIndices.add(new int[]{mesh.myNormalIndices.get(i)[0]+vnoff});
-         }
-      }
-      else {
-         clearNormals();
-      }
-      
-      boolean iHasColors = (hasColors() && myColorIndices.size() == getNumVertices());
-      boolean sheHasColors = (mesh.hasColors() && mesh.myColorIndices.size() == mesh.getNumVertices());
-      if (sheHasColors && iHasColors) {
-         int vcoff = myColorList.size();
-         for (int i=0; i<mesh.myColorList.size(); i++) {
-            myColorList.add(mesh.myColorList.get(i));
-         }
-         for (int i=0; i<mesh.myColorIndices.size(); i++) {
-            myColorIndices.add(new int[]{mesh.myColorIndices.get(i)[0]+vcoff});
-         }
-      }
-      else {
-         clearColors();
-      }
+      super.addMesh (mesh);
    }
 
    public AABBTree getBVTree() {
        if (myBVTree == null || !myBVTreeValid) {
           myBVTree = new AABBTree();
           myBVTree.setMaxLeafElements (8);
-          int numElems = getNumVertices();
+          int numElems = numVertices();
           Boundable[] elements = 
              myVertices.toArray(new Boundable[numElems]);
           
@@ -513,71 +421,80 @@ public class PointMesh extends MeshBase {
       }
       return true;
    }
-   
-   @Override
-   public void setNormalIndices(int[][] indices) {
-      if (indices != null) {
-         if (indices.length < myVertices.size()) {
-            throw new IllegalArgumentException (
-               "indices length " + indices.length +
-               " less than number of vertices " + myVertices.size());
-         }
-         for (int i=0; i<myVertices.size(); i++) {
-            if (indices[i] == null) {
-               System.out.println (
-                  "Warning: some vertices have normals, others don't; " +
-                  "ignoring normals");               
-               indices = null;
-               break;
-            }
-         }
+
+   public int[] createVertexIndices() {
+      int[] indices = new int[numVertices()];
+      for (int i=0; i<indices.length; i++) {
+         indices[i] = i;
       }
-      if (indices != null) {
-         ArrayList<int[]> newNormalIndices =
-            new ArrayList<int[]>(myVertices.size());
-            for (int i=0; i<myVertices.size(); i++) {
-               newNormalIndices.add (new int[]{indices[i][0]});
-            }
-            this.myNormalIndices = newNormalIndices;
-      }
-      else {
-         this.myNormalIndices = null;
-         this.myNormalList.clear();
-      }
-      notifyModified();
+      return indices;
    }
    
-   @Override
-   public void setColorIndices(int[][] indices) {
-      if (indices != null) {
-         if (indices.length < myVertices.size()) {
-            throw new IllegalArgumentException (
-               "indices length " + indices.length +
-               " less than number of vertices " + myVertices.size());
-         }
-         for (int i=0; i<myVertices.size(); i++) {
-            if (indices[i] == null) {
-               System.out.println (
-                  "Warning: some vertices have colors, others don't; " +
-                  "ignoring colors");               
-               indices = null;
-               break;
-            }
-         }
+   public int numFeatures() {
+      return numVertices();
+   }
+
+   protected int[] createFeatureIndexOffsets() {
+      int[] offsets = new int[numVertices()+1];
+      for (int i=0; i<offsets.length; i++) {
+         offsets[i] = i;
       }
-      if (indices != null) {
-         ArrayList<int[]> newColorIndices =
-            new ArrayList<int[]>(myVertices.size());
-            for (int i=0; i<myVertices.size(); i++) {
-               newColorIndices.add (new int[]{indices[i][0]});
-            }
-            this.myColorIndices = newColorIndices;
+      return offsets;         
+   }
+
+   protected int[] createDefaultIndices() {
+      int[] indexOffs = getFeatureIndexOffsets();
+      int[] indices = new int[indexOffs[indexOffs.length-1]];
+      for (int i=0; i<numVertices(); i++) {
+         indices[i] = getVertex(i).getIndex();
       }
-      else {
-         this.myColorIndices = null;
-         this.myColorList.clear();
+      return indices;
+   }
+
+   public boolean hasAutoNormalCreation() {
+      return false;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean getWriteNormals() {
+      return hasExplicitNormals();
+   }
+
+   protected void autoGenerateNormals() {
+   }
+
+   protected void autoUpdateNormals() {
+   }
+
+   public void addVertex (Vertex3d vtx) {
+      super.addVertex (vtx);
+      adjustAttributesForNewFeature();
+   }
+
+   public boolean removeVertex (Vertex3d vtx) {
+      boolean removed = super.removeVertex (vtx);
+      if (removed) {
+         adjustAttributesForRemovedFeature (vtx.idx);
       }
-      notifyModified();
+      return removed;
+   }
+
+   public boolean removeVertexFast (Vertex3d vtx) {
+      boolean removed = super.removeVertexFast (vtx);
+      if (removed) {
+         adjustAttributesForRemovedFeature (vtx.idx);
+      }
+      return removed;
+   }
+
+   public ArrayList<Integer> removeVertices (Collection<Vertex3d> vertices) {
+      ArrayList<Integer> removed = super.removeVertices (vertices);
+      if (removed != null) {
+         adjustAttributesForRemovedFeatures (removed);
+      }
+      return removed;
    }
 
 }

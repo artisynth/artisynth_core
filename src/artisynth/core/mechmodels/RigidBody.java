@@ -939,7 +939,7 @@ public class RigidBody extends Frame
    public void prerender (RenderList list) {
       myRenderFrame.set (myState.XFrameToWorld);
       // list.addIfVisible (myMarkers);
-      myMeshInfo.prerender();      
+      myMeshInfo.prerender (myRenderProps);      
    }
    
    public void transformGeometry (

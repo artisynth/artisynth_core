@@ -292,41 +292,6 @@ public class TetElement extends FemElement3d {
                         myNodes[2].myRenderCoords, myNodes[3].myRenderCoords);
    }
 
-//    protected void renderEdges (GLRenderer renderer, RenderProps props) {
-//       GL2 gl = renderer.getGL2().getGL2();
-//       float[] coords0 = myNodes[0].myRenderCoords;
-//       float[] coords1 = myNodes[1].myRenderCoords;
-//       float[] coords2 = myNodes[2].myRenderCoords;
-//       float[] coords3 = myNodes[3].myRenderCoords;
-
-//       // renderer.setColor (0f, 0f, 1f);
-
-//       if (props.getLineStyle() == RenderProps.LineStyle.LINE) {
-//          gl.glBegin (GL2.GL_LINES);
-//          gl.glVertex3fv (coords0, 0);
-//          gl.glVertex3fv (coords1, 0);
-//          gl.glVertex3fv (coords0, 0);
-//          gl.glVertex3fv (coords2, 0);
-//          gl.glVertex3fv (coords0, 0);
-//          gl.glVertex3fv (coords3, 0);
-//          gl.glVertex3fv (coords1, 0);
-//          gl.glVertex3fv (coords2, 0);
-//          gl.glVertex3fv (coords2, 0);
-//          gl.glVertex3fv (coords3, 0);
-//          gl.glVertex3fv (coords3, 0);
-//          gl.glVertex3fv (coords1, 0);
-//          gl.glEnd();
-//       }
-//       else {
-//          renderer.drawCylinder (props, coords0, coords1);
-//          renderer.drawCylinder (props, coords0, coords2);
-//          renderer.drawCylinder (props, coords0, coords3);
-//          renderer.drawCylinder (props, coords1, coords2);
-//          renderer.drawCylinder (props, coords2, coords3);
-//          renderer.drawCylinder (props, coords3, coords1);
-//       }
-//    }
-
    /**
     * {@inheritDoc}
     */

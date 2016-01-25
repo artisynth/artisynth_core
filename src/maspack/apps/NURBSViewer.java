@@ -200,7 +200,7 @@ public class NURBSViewer extends GLViewerFrame {
          Color gold = new Color (0.93f, 0.8f, 0.063f);
          RenderProps.setFaceColor (mesh, gold);
          meshTable.put (nurbs, mesh);
-         System.out.println ("mesh.numVerts=" + mesh.getNumVertices());
+         System.out.println ("mesh.numVerts=" + mesh.numVertices());
          viewer.addRenderable (mesh);
       }
 

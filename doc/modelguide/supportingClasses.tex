@@ -255,7 +255,7 @@ Through {\tt MeshBase}, all meshes provide methods for
 adding and accessing vertices. Some of these include:
 %
 \begin{lstlisting}[]
-  int getNumVertices();              // return the number of vertices
+  int numVertices();                 // return the number of vertices
   Vertex3d getVertex (int idx);      // return the idx-th vertex
   void addVertex (Vertex3d vtx);     // add vertex vtx to the mesh
   Vertex3d addVertex (Point3d p);    // create and return a vertex at position p
@@ -298,9 +298,9 @@ no topological connectivity.
 and provides a number of methods for implementing faces, including:
 %
 \begin{lstlisting}[]
-  int getNumFaces();              // return the number of faces
+  int numFaces();                 // return the number of faces
   Face getFace (int idx);         // return the idx-th face
-  Face addFace (int[] vidxs);     // create and add a face from specified vertex indices
+  Face addFace (int[] vidxs);     // create and add a face using vertex indices
   void removeFace (Face f);       // remove the face f
   ArrayList<Face> getFaces();     // return the list of faces
 \end{lstlisting}
@@ -399,6 +399,371 @@ new meshes by performing boolean operations on existing ones:
 \end{lstlisting}
 %
 
+\subsubsection{Setting normals, colors, and textures}
+
+Meshes provide support for adding normal, color, and texture
+information, with the exact interpretation of these quantities
+depending upon the particular mesh subclass. Most commonly this
+information is used simply for rendering, but in some cases normal
+information might also be used for physical simulation.
+
+\begin{sideblock}
+For polygonal meshes, the normal information described here is used
+only for smooth shading. When flat shading is requested, normals are
+determined directly from the faces themselves.
+\end{sideblock}
+
+Normal information can be set and queried using
+the following methods:
+%
+\begin{lstlisting}[]
+  setNormals (
+     List<Vector3d> nrmls, int[] indices);  // set all normals and indices
+
+  ArrayList<Vector3d> getNormals();         // get all normals
+  int[] getNormalIndices();                 // get all normal indices
+  int numNormals();                         // return the number of normals
+  Vector3d getNormal (int idx);             // get the normal at index idx
+
+  setNormal (int idx, Vector3d nrml);       // set the normal at index idx
+  clearNormals();                           // clear all normals and indices
+\end{lstlisting}
+%
+The method \javamethod[maspack.geometry.MeshBase]{setNormals()} takes
+two arguments: a set of normal vectors ({\tt nrmls}), along with a set
+of index values ({\tt indices}) that map these normals onto the
+vertices of each of the mesh's geometric features. Often, there will
+be one unique normal per vertex, in which case {\tt nrmls} will have a
+size equal to the number of vertices, but this is not always the case,
+as described below.  Features for the different mesh subclasses are:
+faces for {\tt PolygonalMesh}, polylines for {\tt PolylineMesh}, and
+vertices for {\tt PointMesh}.  If {\tt indices} is specified as {\tt
+null}, then {\tt normals} is assumed to have a size equal to the
+number of vertices, and an appropriate index set is created
+automatically using
+\javamethod[maspack.geometry.MeshBase]{createVertexIndices()}
+(described below). Otherwise, {\tt indices} should have a size of
+equal to the number of features times the number of vertices per
+feature. For example, consider a {\tt PolygonalMesh} consisting of two
+triangles formed from vertex indices (0, 1, 2) and (2, 1, 3),
+respectively. If normals are specified and there is one unique normal
+per vertex, then the normal indices are likely to be
+%
+\begin{verbatim}
+   [ 0 1 2  2 1 3 ]
+\end{verbatim}
+%
+As mentioned above, sometimes there may be {\it more} than one normal
+per vertex. This happens in cases when the same vertex uses different
+normals for different faces. In such situations, the size of the {\tt
+nrmls} argument will exceed the number of vertices.
+
+The method {\tt setNormals()} makes internal copies of the specified
+normal and index information, and this information can be
+later read back using 
+\javamethod[maspack.geometry.MeshBase]{getNormals()} 
+and
+\javamethod[maspack.geometry.MeshBase]{getNormalIndices()}.
+The number of normals can be queried using
+\javamethod[maspack.geometry.MeshBase]{numNormals()},
+and individual normals can be queried or set using
+\javamethodAlt{maspack.geometry.MeshBase.getNormal(int)}{getNormal(idx)}
+and
+\javamethodAlt{maspack.geometry.MeshBase.setNormal(,)}{setNormal(idx,nrml)}.
+All normals and indices can be explicitly cleared using 
+\javamethod[maspack.geometry.MeshBase]{clearNormals()}.
+
+Color and texture information can be set using analagous methods.
+For colors, we have
+%
+\begin{lstlisting}[]
+  setColors (
+     List<float[]> colors, int[] indices);  // set all colors and indices
+
+  ArrayList<float[]> getColors();           // get all colors
+  int[] getColorIndices();                  // get all color indices
+  int numColors();                          // return the number of colors
+  float[] getColor (int idx);               // get the color at index idx
+
+  setColor (int idx, float[] color);        // set the color at index idx
+  setColor (int idx, Color color);          // set the color at index idx
+  setColor (
+     int idx, float r, float g, float b, float a); // set the color at index idx
+  clearColors();                            // clear all colors and indices
+\end{lstlisting}
+%
+When specified as {\tt float[]}, colors are given as RGB or
+RGBA values, in the range $[0,1]$, with array lengths of 3 and 4,
+respectively.  The colors returned by
+\javamethod[maspack.geometry.MeshBase]{getColors()} are always RGBA
+values.
+
+%
+With colors, there may often be {\it fewer} colors than the number of
+vertices. For instance, we may have only two colors, indexed by 0 and
+1, and want to use these to alternately color the mesh faces. Using
+the two-triangle example above, the color indices might then look like
+this:
+%
+\begin{verbatim}
+   [ 0 0 0 1 1 1 ]
+\end{verbatim}
+%
+
+Finally, for texture coordinates, we have
+%
+\begin{lstlisting}[]
+  setTextureCoords (
+     List<Vector3d> coords, int[] indices); // set all texture coords and indices
+
+  ArrayList<Vector3d> getTextureCoords();   // get all texture coords
+  int[] getTextureIndices();                // get all texture indices
+  int numTextureCoords();                   // return the number of texture coords
+  Vector3d getTextureCoords (int idx);      // get texture coords at index idx
+
+  setTextureCoords (int idx, Vector3d coords);// set texture coords at index idx
+  clearTextureCoords();                     // clear all texture coords and indices
+\end{lstlisting}
+
+When specifying indices using 
+\javamethodAlt{maspack.geometry.MeshBase.setNormals(,)}{setNormals},
+\javamethodAlt{maspack.geometry.MeshBase.setColors(,)}{setColors}, or
+\javamethodAlt{maspack.geometry.MeshBase.setTextureCoords(,)}{setTextureCoords},
+it is common to use the same index set as that which
+associates vertices with features. For convenience,
+this index set can be created automatically using
+%
+\begin{lstlisting}[]
+   int[] createVertexIndices();
+\end{lstlisting}
+%
+Alternatively, we may sometimes want to create a index set
+that assigns the same attribute to each feature vertex. If
+there is one attribute per feature, the resulting
+index set is called a {\it feature index} set, and
+can be created using
+%
+\begin{lstlisting}[]
+   int[] createFeatureIndices();
+\end{lstlisting}
+%
+If we have a mesh with three triangles and one color per
+triangle, the resulting feature index set would be
+%
+\begin{verbatim}
+   [ 0 0 0 1 1 1 2 2 2 ]
+\end{verbatim}
+%
+
+\begin{sideblock}
+Note: when a mesh is modified by the {\it addition} of new features
+(such as faces for \javaclass[maspack.geometry]{PolygonalMesh}), all
+normal, color and texture information is cleared by default (with
+normal information being automatically recomputed on demand if
+automatic normal creation is enabled; see Section \ref{AutoNormalCreation:sec}).
+When a mesh is modified by the {\it removal} of
+features, the index sets for normals, colors and textures are adjusted
+to account for the removal.
+
+For colors, it is possible to request that a mesh explicitly maintain
+colors for either its vertices or features (Section
+\ref{vertexAndFeatureColoring:sec}). When this is done, colors will
+persist when vertices or features are added or removed, with default
+colors being automatically created as necessary.
+\end{sideblock}
+
+Once normals, colors, or textures have been set, 
+one may want to know which of these attributes are
+associated with the vertices of a specific feature. To know this,
+it is necessary to find that feature's offset into the 
+attribute's index set. This offset information can
+be found using the array returned by
+%
+\begin{lstlisting}[]
+  int[] getFeatureIndexOffsets()
+\end{lstlisting}
+%
+For example, the three normals associated with a triangle at index
+{\tt ti} can be obtained using
+%
+\begin{lstlisting}[]
+   int[] indexOffs = mesh.getFeatureIndexOffsets();
+   ArrayList<Vector3d> nrmls = mesh.getNormals();
+   // get the three normals associated with the triangle at index ti:
+   Vector3d n0 = nrmls.get (indexOffs[ti]);
+   Vector3d n1 = nrmls.get (indexOffs[ti]+1);
+   Vector3d n2 = nrmls.get (indexOffs[ti]+2);
+\end{lstlisting}
+%
+Alternatively, one may use the convenience methods
+%
+\begin{lstlisting}[]
+   Vector3d getFeatureNormal (int fidx, int k);
+   float[] getFeatureColor (int fidx, int k);
+   Vector3d getFeatureTextureCoords (int fidx, int k);
+\end{lstlisting}
+%
+which return the attribute values for the $k$-th vertex of
+the feature indexed by {\tt fidx}.
+
+In general, the various {\tt get} methods return references to
+internal storage information and so should
+{\bf not} be modified. However, specific values within the lists
+returned by 
+\javamethod[maspack.geometry.MeshBase]{getNormals()}, 
+\javamethod[maspack.geometry.MeshBase]{getColors()}, or
+\javamethod[maspack.geometry.MeshBase]{getTextureCoords()}
+may be modified by the application.  This may be
+necessary when attribute information changes as the simultion
+proceeds. Alternatively, one may use methods such
+as 
+\javamethodAlt{maspack.geometry.MeshBase.setNormal(,)}{setNormal(idx,nrml)}
+\javamethodAlt{maspack.geometry.MeshBase.setColor(int,float[])}%
+{setColor(idx,color)}, or
+\javamethodAlt{maspack.geometry.MeshBase.setTextureCoords(int,)}%
+{setTextureCoords(idx,coords)}.
+
+Also, in some situations, particularly with colors and textures, it
+may be desirable to {\it not} have color or texture information
+defined for certain features. In such cases, the corresponding index
+information can be specified as -1, and the {\tt getNormal()}, {\tt
+getColor()} and {\tt getTexture()} methods will return {\tt null} for
+the features in question.
+
+\subsubsection{Automatic creation of normals and hard edges}
+\label{AutoNormalCreation:sec}
+
+For some mesh subclasses, if normals are not explicitly set, they are
+computed automatically whenever {\tt getNormals()} or {\tt
+getNormalIndices()} is called. Whether or not this is true
+for a particular mesh can be queried by the method
+%
+\begin{lstlisting}[]
+   boolean hasAutoNormalCreation();
+\end{lstlisting}
+%
+Setting normals explicitly, using a call to {\tt
+setNormals(nrmls,indices)}, will overwrite any existing normal information,
+automatically computed or otherwise. The method
+%
+\begin{lstlisting}[]
+   boolean hasExplicitNormals();
+\end{lstlisting}
+%
+will return {\tt true} if normals have been explicitly set, and {\tt
+false} if they have been automatically computed or if there is
+currently no normal information. To explicitly remove normals from a
+mesh which has automatic normal generation, one may call {\tt
+setNormals()} with the {\tt nrmls} argument set to {\tt null}.
+
+More detailed control over how normals are automatically created may
+be available for specific mesh subclasses. For example, {\tt
+PolygonalMesh} allows normals to be created with multiple normals per
+vertex, for vertices that are associated with either open or hard
+edges. This ability can be controlled using the methods
+%
+\begin{lstlisting}[]
+   boolean getMultipleAutoNormals();
+   setMultipleAutoNormals (boolean enable);
+\end{lstlisting}
+%
+Having multiple normals means that even with smooth shading, open or
+hard edges will still appear sharp. To make an edge hard within
+a {\tt PolygonalMesh}, one may use the methods
+%
+\begin{lstlisting}[]
+   boolean setHardEdge (Vertex3d v0, Vertex3d v1);
+   boolean setHardEdge (int vidx0, int vidx1);
+   boolean hasHardEdge (Vertex3d v0, Vertex3d v1);
+   boolean hasHardEdge (int vidx0, int vidx1);
+   int numHardEdges();
+   int clearHardEdges();
+\end{lstlisting}
+%
+which control the hardness of edges between individual vertices,
+specified either directly or using their indices.
+
+\subsubsection{Vertex and feature coloring}
+\label{vertexAndFeatureColoring:sec}
+
+The method \javamethod[maspack.geometry.MeshBase]{setColors()} makes
+it possible to assign any desired coloring scheme to a mesh. However,
+it does require that the user explicity reset the color information
+whenever new features are added.
+
+For convenience, an application can also request that a mesh
+explicitly maintain colors for either its vertices or features.  These
+colors will then be maintained when vertices or features are added or
+removed, with default colors being automatically created as necessary.
+
+Vertex-based coloring can be requested with the method
+%
+\begin{lstlisting}[]
+   setVertexColoringEnabled();
+\end{lstlisting}
+%
+This will create a separate (default) color for each of the mesh's
+vertices, and set the color indices to be equal to the vertex indices,
+which is equivalent to the call
+%
+\begin{lstlisting}[]
+   setColors (colors, createVertexIndices());
+\end{lstlisting}
+%
+where {\tt colors} contains a default color for each
+vertex. However, once vertex coloring is enabled, the color and index
+sets will be updated whenever vertices or features are added or
+removed. Meanwhile, applications can query or set the colors
+for any vertex using {\tt getColor(idx)}, or any of the
+various {\tt setColor} methods.
+Whether or not vertex coloring
+is enabled can be queried using
+%
+\begin{lstlisting}[]
+   getVertexColoringEnabled();
+\end{lstlisting}
+%
+Once vertex coloring is established, the application will typically
+want to set the colors for all vertices, perhaps using a code fragment
+like this:
+%
+\begin{lstlisting}[]
+   mesh.setVertexColoringEnabled();
+   for (int i=0; i<mesh.numVertices(); i++) {
+      ... compute color for the vertex ...
+      mesh.setColor (i, color);
+   }
+\end{lstlisting}
+%
+
+Similarly, feature-based coloring can be requested using the method
+%
+\begin{lstlisting}[]
+   setFeatureColoringEnabled();
+\end{lstlisting}
+%
+This will create a separate (default) color for each of the mesh's
+features (faces for 
+\javaclass[maspack.geometry]{PolygonalMesh}, polylines for
+\javaclass[maspack.geometry]{PolylineMesh}, etc.),
+and set the color indices to equal the feature 
+index set, which is equivalent to the call
+%
+\begin{lstlisting}[]
+   setColors (colors, createFeatureIndices());
+\end{lstlisting}
+%
+where {\tt colors} contains a default color for each feature.
+Applications can query or set the colors
+for any vertex using {\tt getColor(idx)}, or any of the
+various {\tt setColor} methods. Whether or not feature coloring
+is enabled can be queried using
+%
+\begin{lstlisting}[]
+   getFeatureColoringEnabled();
+\end{lstlisting}
+%
+
 \subsubsection{Reading and writing mesh files}
 \label{MeshFileIO:sec}
 
@@ -467,3 +832,47 @@ readMesh()} is explicitly cast to {\tt PolygonalMesh}.  This is
 because {\tt readMesh()} returns the superclass {\tt MeshBase}, since
 the default mesh created for some file formats may be different from
 {\tt PolygonalMesh}.
+
+\subsubsection{Reading and writing normal and texture information}
+
+When writing a mesh out to a file, normal and texture information are
+also written if they have been explicitly set and the file format
+supports it. In addition, by default, automatically generated normal
+information will also be written if it relies on information (such as
+hard edges) that can't be reconstructed from the stored file
+information.
+
+Whether or not normal information will be written is returned by the
+method
+%
+\begin{lstlisting}[]
+   boolean getWriteNormals();
+\end{lstlisting}
+%
+This will always return {\tt true} if any of the conditions described
+above have been met.  So for example, if a {\tt PolygonalMesh}
+contains hard edges, and multiple automatic normals are enabled (i.e.,
+{\tt getMultipleAutoNormals()} returns {\tt true}), then {\tt
+getWriteNormals()} will return {\tt true}.
+
+Default normal writing behavior can be overridden within 
+the \javaclass[maspack.geometry.io]{MeshWriter} classes
+using the following methods:
+%
+\begin{lstlisting}[]
+   int getWriteNormals()
+   setWriteNormals (enable)
+\end{lstlisting}
+%
+where {\tt enable} should be one of the following values:
+\begin{description}
+\item[ 0] normals will {\it never} be written;
+\item[ 1] normals will {\it always} be written;
+\item[-1] normals will written according to the default behavior 
+described above.
+\end{description}
+
+When reading a {\tt PolygonalMesh} from a file, if the file contains
+normal information with multiple normals per vertex that suggests the
+existence of hard edges, then the corresponding edges are set to be
+hard within the mesh.

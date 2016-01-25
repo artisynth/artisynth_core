@@ -55,7 +55,7 @@ import maspack.matrix.Point3d;
 public class SpatialHashTable<T> {
    private final double myGridSpacing;
    private HashMap<Index, List<T>> myGrid = new HashMap<>();
-   private HashMap<Index, List<List<T>>> myIndexList = new HashMap<>();
+   private HashMap<Index, List<T>> myIndexList = new HashMap<>();
 
    public SpatialHashTable (double gridSpacing) {
       myGridSpacing = gridSpacing;
@@ -72,23 +72,22 @@ public class SpatialHashTable<T> {
     */
    public synchronized void setup (List<? extends Point3d> positions, List<? extends T> elements) {
       myGrid.clear();
+      myIndexList.clear ();
 
       if (positions.size() != elements.size()) {
          throw new IllegalArgumentException ("Non-matching position and element sizes!");
       }
 
-      for (int i=0; i<elements.size (); i++) {
-         T p = elements.get(i);
-         
-         int idxX, idxY, idxZ;
+      for (int cnt=0; cnt<elements.size (); cnt++) {
+         T p = elements.get(cnt);
          
          // This is ok since negative indices are allowed now
-         Point3d pos = positions.get(i);
-         idxX = (int) Math.round((pos.x)/myGridSpacing);
-         idxY = (int) Math.round((pos.y)/myGridSpacing);
-         idxZ = (int) Math.round((pos.z)/myGridSpacing);
+         Point3d pos = positions.get(cnt);
+         int ix = (int) Math.round((pos.x)/myGridSpacing);
+         int iy = (int) Math.round((pos.y)/myGridSpacing);
+         int iz = (int) Math.round((pos.z)/myGridSpacing);
+         Index idx = new Index(ix,iy,iz);
 
-         Index idx = new Index(idxX,idxY,idxZ);
          List<T> parList = myGrid.get(idx);
 
          if (parList == null) {
@@ -97,59 +96,57 @@ public class SpatialHashTable<T> {
          }
          
          parList.add(p);
+
+         // Put into indexlist
+         for (int i=-1; i<=1; i++) {
+            for (int j=-1; j<=1; j++) {
+               for (int k=-1; k<=1; k++) {
+                  idx = new Index(ix+i,iy+j,iz+k);
+
+                  parList = myIndexList.get(idx);
+                  if (parList == null) {
+                     parList = new ArrayList<T>();
+                     myIndexList.put(idx, parList);
+                  }
+                  parList.add (p);
+               }
+            }
+         }
       }
-      setupListsToNeighbours();
    }
    
-   protected synchronized void setupListsToNeighbours () {
-      myIndexList.clear ();
-      for (Index index : myGrid.keySet ()) {
-         List<List<T>> list = new LinkedList<>();
-         NearCellIter it = new NearCellIter(index);
-         while (it.hasNext ()) {
-            List<T> cells = it.next();
-            if (cells == null) {
-               continue;
-            }
-            list.add (cells);
-         }
-
-         myIndexList.put(index,list);
-      }
-   }
-
    /**
     * Returns a List of cells (List&lt;T&gt;'s) that might intersect a
     * bv tree.
     * 
     * @param bvtree
     */
-   public Map<List<T>,ArrayList<BVNode>> getCellsIntersecting (BVTree bvtree) {
-      Map<List<T>,ArrayList<BVNode>> potentials = new HashMap<List<T>,ArrayList<BVNode>>();
-      
-      // Do this naively and just intersect sphere of each cell with the bvtree.
-      Point3d cellCentre = new Point3d();
-      // 2D pythagorean
-      double searchRad = myGridSpacing * Math.sqrt(0.5);
-      // 3D
-      searchRad = Math.sqrt (searchRad*searchRad + myGridSpacing*myGridSpacing/4);
-      searchRad += myGridSpacing;
-      double sphereRadius = Math.sqrt(2*searchRad*searchRad);
-      for (Index index : myGrid.keySet ()) {
-         ArrayList<BVNode> nodes = new ArrayList<BVNode> ();
-         // We need to add all cells which do intersect, and their neighbouring cells.
-         cellCentre.x = index.x * myGridSpacing;
-         cellCentre.y = index.y * myGridSpacing;
-         cellCentre.z = index.z * myGridSpacing;
-         
-         bvtree.intersectSphere (nodes, cellCentre, sphereRadius);
-         if (nodes.size() > 0) {
-            potentials.put (myGrid.get (index), nodes);
-         }
-      }
-      
-      return potentials;
-   }
+   //public Map<List<T>,ArrayList<BVNode>> getCellsIntersecting (BVTree bvtree) {
+   //   Map<List<T>,ArrayList<BVNode>> potentials = new HashMap<List<T>,ArrayList<BVNode>>();
+   //   
+   //   // Do this naively and just intersect sphere of each cell with the bvtree.
+   //   Point3d cellCentre = new Point3d();
+   //   // 2D pythagorean
+   //   double searchRad = myGridSpacing * Math.sqrt(0.5);
+   //   // 3D
+   //   searchRad = Math.sqrt (searchRad*searchRad + myGridSpacing*myGridSpacing/4);
+   //   searchRad += myGridSpacing;
+   //   double sphereRadius = Math.sqrt(2*searchRad*searchRad);
+   //   for (Index idx : myGrid.keySet ()) {
+   //      ArrayList<BVNode> nodes = new ArrayList<BVNode> ();
+   //      // We need to add all cells which do intersect, and their neighbouring cells.
+   //      cellCentre.x = idx.x * myGridSpacing;
+   //      cellCentre.y = idx.y * myGridSpacing;
+   //      cellCentre.z = idx.z * myGridSpacing;
+   //      
+   //      bvtree.intersectSphere (nodes, cellCentre, sphereRadius);
+   //      if (nodes.size() > 0) {
+   //         potentials.put (myGrid.get (idx), nodes);
+   //      }
+   //   }
+   //   
+   //   return potentials;
+   //}
 
    /** 
     * Return an iterator which iterates through 27 cells.
@@ -160,69 +157,39 @@ public class SpatialHashTable<T> {
     * @param pos A position in the centre bin.
     * @return Iterator for 27 bins.
     */
-   public Iterator<List<T>> getCellsNear (Point3d pos) {
+   public List<T> getElsNear (Point3d pos) {
       int xIdx = (int) Math.round (pos.x/myGridSpacing);
       int yIdx = (int) Math.round (pos.y/myGridSpacing);
       int zIdx = (int) Math.round (pos.z/myGridSpacing);
-
-      //Iterator<List<T>> it = myIndexList.get (new Index(xIdx, yIdx, zIdx)).listIterator ();
-      List<List<T>> list = myIndexList.get(new Index(xIdx, yIdx, zIdx));
-      if (list == null) {
-         return getCellsNearOld(pos);
-      }
-      Iterator<List<T>> it = list.listIterator ();
-      return it;
+      //int[] idx = new int[]{xIdx, yIdx, zIdx};
+      Index idx = new Index(xIdx,yIdx,zIdx);
+      return myIndexList.get(idx);
    }
 
    /**
-    * This is the old method that for sure works, but might be slower.
-    * It requires lots of hashmap lookups. Iterator may iterate through
-    * some null cells.
-    * 
-    * @param pos
+    * Immutable inner key class for hash function
+    * @author andrew
+    *
     */
-   public Iterator<List<T>> getCellsNearOld (Point3d pos) {
-      int xIdx = (int) Math.round (pos.x/myGridSpacing);
-      int yIdx = (int) Math.round (pos.y/myGridSpacing);
-      int zIdx = (int) Math.round (pos.z/myGridSpacing);
-
-      NearCellIter it = new NearCellIter (xIdx, yIdx, zIdx);
-      return it;
-   }
-
-   public void testIter (int a, int b, int c) {
-      NearCellIter it = new NearCellIter (a, b, c);
-      System.out.println ("Iterator test:");
-      boolean caught = false;
-      for (int i=0; i<28; i++) {
-         System.out.println (i + ": " + it);
-         try {
-            it.next();
-         } catch (NoSuchElementException e) {
-            caught = true;
-         }
-      }
-      if (!caught) {
-         throw new RuntimeException("Test failed, didn't catch exception!");
-      }
-   }
-
    private static class Index {
       // give direct access to values for convenience 
-      private final int x,y,z;
+      public final int x,y,z;
       private Index(int x, int y, int z) {
          this.x = x;
          this.y = y;
          this.z = z;
       }
+      
       @Override
       public int hashCode () {
-         final int prime = 31;
-         int result = 1;
-         result = prime * result + x;
-         result = prime * result + y;
-         result = prime * result + z;
-         return result;
+         final int p1 = 73856093;
+         final int p2 = 19349663;
+         final int p3 = 83492791;
+         
+         //int M = SpatialHashTable.this.myGrid.size();
+         //M = M==0?1:M;
+       
+         return (x*p1 ^ y*p2 ^ z*p3);//% M;
       }
       @Override
       public boolean equals (Object obj) {
@@ -243,76 +210,5 @@ public class SpatialHashTable<T> {
       }
       
    }
-
-   /** Iterates through all cells adjacent to cell at index (x,y,z)
-    *
-    * The private constructor ensures it can only be instantiated by a call to getCellsNear();
-    */
-   private class NearCellIter implements Iterator<List<T>> {
-      private final int xc, yc, zc;
-      private Index idx;
-      
-      /** Construct by passing the indices you want to iterate around.
-       */
-      private NearCellIter (int x, int y, int z) {
-         super();
-         xc = x; yc = y; zc = z;
-         idx = new Index(xc-2,yc-1,zc-1);
-      }
-      /**
-       * Construct a NearCellIter with the index of the central cell you wish
-       * to iterate around. 
-       * 
-       * @param index
-       */
-      private NearCellIter (Index index) {
-         super();
-         xc = index.x;
-         yc = index.y;
-         zc = index.z;
-         
-         idx = new Index(xc-2,yc-1,zc-1);
-      }
-      
-      @Override
-      public boolean hasNext() {
-         if (idx.x-xc == 1 && idx.y-yc == 1 && idx.z-zc == 1) {
-            return false;
-         }
-         return true;
-      }
-
-      @Override
-      public List<T> next() {
-         if (idx.x-xc != 1) {
-            idx = new Index(idx.x+1,idx.y,idx.z);
-         }
-         else if (idx.y-yc != 1) {
-            idx = new Index(xc-1,idx.y+1,idx.z);
-//            idx.vals[1]++;
-//            idx.vals[0] = xc-1;
-         }
-         else if (idx.z-zc != 1) {
-            idx = new Index(xc-1,yc-1,idx.z+1);
-//            idx.vals[2]++;
-//            idx.vals[0] = xc-1;
-//            idx.vals[1] = yc-1;
-         }
-         else {
-            throw new NoSuchElementException ("No more adjacent cells!");
-         }
-
-         return myGrid.get(idx);
-      }
-
-      @Override
-      public String toString() {
-         return ("( " + idx.x + ", " + idx.y+ ", " + idx.z + " )");
-      }
-
-      @Override
-      public void remove() {
-         throw new UnsupportedOperationException ("This iterator doesn't support remove()!!");
-      }
-   }
+   
 }

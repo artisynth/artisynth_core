@@ -94,11 +94,13 @@ public class QPCostFunction {
       }
       int rowoff = 0;
       for (LeastSquaresTerm term : myInequalityTerms) {
-         term.getTerm (A,b,rowoff,t0,t1);
+         if (term.isEnabled ())
+            term.getTerm (A,b,rowoff,t0,t1);
       }
       rowoff = 0;
       for (LeastSquaresTerm term : myEqualityTerms) {
-         term.getTerm (Aeq,beq,rowoff,t0,t1);
+         if (term.isEnabled ())
+            term.getTerm (Aeq,beq,rowoff,t0,t1);
       }    
       
       /*

@@ -266,7 +266,7 @@ public class EditableMeshComp extends MeshComponent
 
    @Override
    public void prerender(RenderList list) {
-      myMesh.saveRenderInfo();
+      myMesh.saveRenderInfo (myRenderProps);
       list.addIfVisible(myVertexList);
    }
    

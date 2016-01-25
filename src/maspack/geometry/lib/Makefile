@@ -91,7 +91,7 @@ else ifeq ($(SYSTEM),Darwin)
         JAVA_INC=/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers
 	CC_INCS = -I$(JAVA_INC)
 	X_FLAGS = -fPIC -DDARWIN -DAMD_64
-	CC_FLAGS += -fpermissive -fPIC
+	CC_FLAGS += -fpermissive
 	TETGEN_TARGET = libTetgenJNI.$(TETGEN_VERSION).dylib
 	ROBUST_TARGET = libRobustPreds.1.0.dylib
 	ROBUST_TARGET_OLD = libRobustPreds.0.0.dylib

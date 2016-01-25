@@ -324,8 +324,6 @@ public class SpringMeshDemo extends RootModel {
       // myControlPanel.setVisible(false);
       // myControlPanel = null;
       // }
-
-      System.out.println ("Cleaning up Spring mesh");
    }
 
    // public Property getProperty (String name)

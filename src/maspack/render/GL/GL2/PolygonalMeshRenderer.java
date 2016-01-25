@@ -338,8 +338,8 @@ public class PolygonalMeshRenderer {
       }
       
       if (computeVertexNormals) {
-         nrms = new Vector3d[mesh.getNumVertices()];
-         for (int v = 0; v < mesh.getNumVertices(); v++) {
+         nrms = new Vector3d[mesh.numVertices()];
+         for (int v = 0; v < mesh.numVertices(); v++) {
             nrms[v] = new Vector3d();
             if (useRenderNormals) {
                mesh.getVertices().get (v).computeRenderNormal (nrms[v]);
@@ -554,7 +554,7 @@ public class PolygonalMeshRenderer {
          // if not automatic check that explicit texture indices are okay
          if (!textureProps.isAutomatic() &&
              (mesh.getTextureIndices() == null ||
-              mesh.getTextureIndices().size() != mesh.getNumFaces())) {
+              mesh.getTextureIndices().size() != mesh.numFaces())) {
             textureProps.setEnabled (false);
             props.setTextureProps (textureProps);
          }
@@ -664,7 +664,7 @@ public class PolygonalMeshRenderer {
    public void renderEdges (
       Renderer renderer, PolygonalMesh mesh, RenderProps props, int flags) {
       
-      if (mesh.getNumVertices() == 0) {
+      if (mesh.numVertices() == 0) {
          return;
       }
       
@@ -738,7 +738,7 @@ public class PolygonalMeshRenderer {
    public void render (
       Renderer renderer, PolygonalMesh mesh, RenderProps props,
       int flags) {
-      if (mesh.getNumVertices() == 0) {
+      if (mesh.numVertices() == 0) {
          return;
       }
       

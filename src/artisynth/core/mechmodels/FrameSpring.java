@@ -13,8 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Deque;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3d;
@@ -29,7 +27,6 @@ import maspack.properties.PropertyList;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.GL.GLRenderable;
 import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
 import maspack.util.*;

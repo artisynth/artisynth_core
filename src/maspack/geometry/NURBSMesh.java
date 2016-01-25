@@ -175,7 +175,7 @@ public class NURBSMesh extends PolygonalMesh {
       double vstart = startEnd[0];
       double vend = startEnd[1];
 
-      for (int k = 0; k < getNumVertices(); k++) {
+      for (int k = 0; k < numVertices(); k++) {
          Vertex3d vtx = (Vertex3d)myVertices.get (k);
          int i = NURBSIdxToGrid[k] / numVertsV;
          int j = NURBSIdxToGrid[k] % numVertsV;

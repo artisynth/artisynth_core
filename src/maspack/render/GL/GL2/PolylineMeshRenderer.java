@@ -158,7 +158,7 @@ public class PolylineMeshRenderer {
          int nslices = props.getLineSlices();
          double r = props.getLineRadius();
 
-         for (int i = 0; i < mesh.getNumLines(); i = i + 1 + mesh.getRenderSkip()) {
+         for (int i = 0; i < mesh.numLines(); i = i + 1 + mesh.getRenderSkip()) {
             Polyline line = mesh.getPolyLine(i);
 
             Vertex3d[] vtxs = line.getVertices();
@@ -393,7 +393,7 @@ public class PolylineMeshRenderer {
          }
 
          boolean useRenderVtxs = mesh.isRenderBuffered() && !mesh.isFixed();
-         for (int i = 0; i < mesh.getNumLines(); i = i + 1 + mesh.getRenderSkip()) {
+         for (int i = 0; i < mesh.numLines(); i = i + 1 + mesh.getRenderSkip()) {
             Polyline line = mesh.getPolyLine(i);
             gl.glBegin(GL2.GL_LINE_STRIP);
             Vertex3d[] vtxs = line.getVertices();

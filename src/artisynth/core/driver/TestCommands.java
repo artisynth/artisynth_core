@@ -131,7 +131,7 @@ public class TestCommands {
       }
       try {
          System.out.println (
-            "testing saveAndLoad for " + rootModel.getName() + " ...");
+            "TESTING saveAndLoad for " + rootModel.getName() + " ...");
          String saveFileName = baseFileName + ".art";
          String checkFileName = baseFileName + ".chk";
          String stateFile0Name = rootModel.getName()+"_testdata0.txt";
@@ -139,11 +139,14 @@ public class TestCommands {
 
          File saveFile = new File (saveFileName);
          File checkFile = new File (checkFileName);
+         
+         System.out.println ("saving model to "+saveFileName+" ...");
          myMain.saveModelFile (saveFile, fmtStr);
 
          if (tsim > 0) {
             MechModel mech = findMechModel (rootModel);
             if (mech != null) {
+               System.out.println ("running model for "+tsim+" seconds ...");
                mech.setPrintState ("%g", hsim);
                mech.openPrintStateFile (stateFile0Name);
                myMain.play (tsim);
@@ -151,12 +154,17 @@ public class TestCommands {
             }
          }
 
+         System.out.println ("loading model from "+saveFileName+" ...");
          myMain.loadModelFile (saveFile);
          rootModel = myMain.getRootModel();
+         System.out.println ("saving model from "+checkFileName+" ...");
          myMain.saveModelFile (checkFile, fmtStr);
 
+         System.out.println (
+            "comparing files "+saveFileName+ " and " +checkFileName+" ...");
          String compareError = compareFiles (saveFileName, checkFileName, true);
          if (compareError != null) {
+            System.out.println ("FAILED");
             return compareError;
          }
          else {
@@ -167,16 +175,22 @@ public class TestCommands {
          if (tsim > 0) {
             MechModel mech = findMechModel (rootModel);
             if (mech != null) {
+               System.out.println (
+                  "running restored model for "+tsim+" seconds ...");
                mech.setPrintState ("%g", hsim);
                mech.openPrintStateFile (stateFile1Name);
                myMain.play (tsim);
                myMain.waitForStop();
 
                CompareStateFiles comparator = new CompareStateFiles();
+               System.out.println (
+                  "comparing run state files "+stateFile0Name+
+                  " and " +stateFile1Name+" ...");
                if (!comparator.compareFiles (
                       stateFile0Name, stateFile1Name, -1)) {
                   StringWriter sw = new StringWriter();
                   comparator.printMaxErrors(new PrintWriter(sw));
+                  System.out.println ("FAILED");
                   return sw.toString();
                }
                else {

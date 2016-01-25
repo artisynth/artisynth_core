@@ -111,4 +111,7 @@ install_javadocs:
 	rsync -va --exclude=DONT_DELETE javadocs/* $(WEB_DOC_URL)/javadocs
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/javadocs
 
+test:
+	(cd documentation; make html)
+
 -include Makedefs

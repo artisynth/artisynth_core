@@ -421,7 +421,7 @@ public class CollisionHandler extends ConstrainerBase
       PolygonalMesh mesh0 = collidable0.getCollisionMesh();
       PolygonalMesh mesh1 = collidable1.getCollisionMesh();
       return (hasLowDOF (collidable0) &&
-              mesh0.getNumVertices() > mesh1.getNumVertices());
+              mesh0.numVertices() > mesh1.numVertices());
    }
 
    protected boolean isCompletelyAttached (

@@ -191,7 +191,7 @@ public class PointMeshRenderer {
             switch (props.getPointStyle()) {
                case SPHERE: {
                   float [] pointColor = new float[4];
-                  for (int i=0; i<mesh.getNumVertices(); i++) {
+                  for (int i=0; i<mesh.numVertices(); i++) {
                      Vertex3d vtx = mesh.getVertex(i);
                      Point3d pnt = useRenderVtxs ? vtx.myRenderPnt : vtx.pnt;
                      pnt.get(coords);
@@ -210,7 +210,7 @@ public class PointMeshRenderer {
                   gl.glBegin (GL2.GL_POINTS);
                   int numn = mesh.getNumNormals();
                   Vector3d zDir = viewer.getZDirection();
-                  for (int i=0; i<mesh.getNumVertices(); i++) {
+                  for (int i=0; i<mesh.numVertices(); i++) {
                      Vertex3d vtx = mesh.getVertex(i);
                      Point3d pnt = useRenderVtxs ? vtx.myRenderPnt : vtx.pnt;
 
@@ -278,7 +278,7 @@ public class PointMeshRenderer {
                boolean useRenderVtxs = mesh.isRenderBuffered() && !mesh.isFixed();
 
                gl.glBegin (GL2.GL_LINES);
-               for (int i=0; i<mesh.getNumVertices(); i++) {
+               for (int i=0; i<mesh.numVertices(); i++) {
                   Vertex3d vtx = mesh.getVertex(i);
                   Point3d pnt = useRenderVtxs ? vtx.myRenderPnt : vtx.pnt;
                   Vector3d nrm = mesh.getNormal(i);

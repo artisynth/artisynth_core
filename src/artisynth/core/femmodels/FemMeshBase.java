@@ -60,10 +60,8 @@ public abstract class FemMeshBase extends SkinMeshBase {
    protected PropertyMode myStressPlotRangingMode = PropertyMode.Inherited;
    protected PropertyMode mySurfaceRenderingMode = PropertyMode.Inherited;
    
-   protected Color[] savedVertexColors;
-   
-   protected ArrayList<float[]> savedColors;
-   protected int[] savedColorIndices;
+   protected ArrayList<float[]> mySavedColors;
+   protected int[] mySavedColorIndices;
    
    protected ColorMapBase myColorMap = defaultColorMap.copy();
    protected PropertyMode myColorMapMode = PropertyMode.Inherited;
@@ -96,7 +94,6 @@ public abstract class FemMeshBase extends SkinMeshBase {
 
    public FemMeshBase () {
       super();
-      savedVertexColors = null;
    }
 
    public FemMeshBase (FemModel3d fem) {
@@ -140,25 +137,40 @@ public abstract class FemMeshBase extends SkinMeshBase {
    }
 
    public void setMesh (MeshBase mesh) {
+      MeshBase oldMesh = getMesh();
+      if (oldMesh != null) {
+         updateMeshColoring (oldMesh, null, mySurfaceRendering);
+      }
       super.setMesh (mesh);
+      updateMeshColoring (mesh, mySurfaceRendering, null);
    }    
    
-   protected void saveVertexColors() {
-      MeshBase mesh = getMesh();
-      savedColors = mesh.getColors();
-      savedColorIndices = mesh.getColorIndices();
+   protected void updateMeshColoring (
+      MeshBase mesh, SurfaceRender newMode, SurfaceRender oldMode) {
+      
+      boolean wasRenderingStressOrStrain =
+         (oldMode == SurfaceRender.Strain || oldMode == SurfaceRender.Stress);
+      boolean newRenderingStressOrStrain =
+         (newMode == SurfaceRender.Strain || newMode == SurfaceRender.Stress);
+      
+      if (newRenderingStressOrStrain != wasRenderingStressOrStrain) {
+         if (newRenderingStressOrStrain) {
+            mySavedColors = mesh.getColors();
+            mySavedColorIndices = mesh.getColorIndices();
+            mesh.setVertexColoringEnabled();
+            updateVertexColors();
+         }
+         else {
+            if (mySavedColors == null) {
+               mesh.clearColors();
+            }
+            else {
+               mesh.setColors (mySavedColors, mySavedColorIndices);
+            }
+         }
+      }
    }
    
-   protected void restoreVertexColors() {
-      MeshBase mesh = getMesh();
-      if (savedColors == null) {
-         mesh.clearColors();
-      }
-      else {
-         mesh.setColors (savedColors, savedColorIndices);
-      }
-   }
-
    public void setSurfaceRendering (SurfaceRender mode) {
       if (mySurfaceRendering != mode) {
          if (myStressPlotRanging == Ranging.Auto) {
@@ -167,35 +179,27 @@ public abstract class FemMeshBase extends SkinMeshBase {
          SurfaceRender oldMode = mySurfaceRendering;
          mySurfaceRendering = mode;
          
-         // save/restore original vertex colors
-         MeshBase mesh = getMesh();
-         if ( mesh != null && mesh.getColors() != null) {
-            if ( (oldMode == SurfaceRender.Strain || oldMode == SurfaceRender.Stress)
-               && (mode != SurfaceRender.Strain && mode != SurfaceRender.Stress) ) {
-               restoreVertexColors();
-            } else if ( (oldMode != SurfaceRender.Strain && oldMode != SurfaceRender.Stress)
-               &&  (mode == SurfaceRender.Strain || mode == SurfaceRender.Stress)) {
-               saveVertexColors();
-            }
-         }
-         
-         if (myFem != null) {
+         if (myFem != null) { // paranoid: myFem should always be non-null here
             switch (mode) {
                case Strain:
                   myFem.setComputeNodalStrain(true);
                   myFem.updateStressAndStiffness();
-                  mesh.setVertexColoringEnabled();
-                  updateVertexColors();
                   break;
                case Stress:
                   myFem.setComputeNodalStress(true);
                   myFem.updateStressAndStiffness();
-                  mesh.setVertexColoringEnabled();
-                  updateVertexColors();
                   break;
                default: {
+                  myFem.setComputeNodalStrain(false);
+                  myFem.setComputeNodalStress(false);
+                  break;
                }
             }
+         }
+         // save/restore original vertex colors
+         MeshBase mesh = getMesh();         
+         if (mesh != null) {
+            updateMeshColoring (mesh, mode, oldMode);
          }
       }
       // propagate to make mode explicit
@@ -368,20 +372,6 @@ public abstract class FemMeshBase extends SkinMeshBase {
       if (scanAndStoreReference (rtok, "fem", tokens)) {
          return true;
       }
-      else if (scanAttributeName (rtok, "savedVertexColors")) {
-         rtok.scanToken ('[');
-         int nv = getMesh().numVertices();
-         savedVertexColors = new Color[nv];
-         for (int i=0; i<nv; i++) {
-            int r = rtok.scanInteger();
-            int g = rtok.scanInteger();
-            int b = rtok.scanInteger();
-            int a = rtok.scanInteger();
-            savedVertexColors[i] = new Color(r,g,b,a);
-         }
-         rtok.scanToken(']');
-         return true;
-      }
       else if (ScanWriteUtils.scanAndStorePropertyValue (
                   rtok, this, "surfaceRendering", tokens)) {
          return true;
@@ -419,17 +409,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
       throws IOException {
 
       super.writeItems (pw, fmt, ancestor);
-      
-      if (savedVertexColors != null) {
-         pw.println("savedVertexColors=[");
-         IndentingPrintWriter.addIndentation(pw, 1);
-         for (int i=0; i<savedVertexColors.length; i++) {
-            Color c = savedVertexColors[i];
-            pw.println(c.getRed() + " " + c.getGreen() + " " + c.getBlue() + " " + c.getAlpha());
-         }
-         IndentingPrintWriter.addIndentation(pw, -1);
-         pw.println("]");
-      }
+
       if (myFem != null) {
          pw.print ("fem=");
          pw.println (ComponentUtils.getWritePathName (ancestor, myFem));
@@ -451,10 +431,6 @@ public abstract class FemMeshBase extends SkinMeshBase {
    public void disconnectFromHierarchy() {
       // XXX not sure what to do here ... see comment in connectToParent()
       super.disconnectFromHierarchy();
-   }
-   
-   public void setFem(FemModel3d fem) {
-      myFem = fem;
    }
    
    public FemModel3d getFem() {
@@ -479,20 +455,12 @@ public abstract class FemMeshBase extends SkinMeshBase {
          fmb.setColorMap(myColorMap);
       }
       
-      if (savedVertexColors == null) {
-         fmb.savedVertexColors = null;
-      } else {
-         fmb.savedVertexColors = new Color[savedVertexColors.length];
-         for (int i=0; i<savedVertexColors.length; i++) {
-            fmb.savedVertexColors[i] = savedVertexColors[i];   // shallow copy is fine for immutable
-         }
-      }
-
       FemModel3d newFem = (FemModel3d)copyMap.get(myFem);
       if (newFem != null) {
-         fmb.setFem(newFem);
-      } else {
-         fmb.setFem(myFem);
+         fmb.myFem = newFem;
+      } 
+      else {
+         fmb.myFem = myFem;
       }
       
       return fmb;

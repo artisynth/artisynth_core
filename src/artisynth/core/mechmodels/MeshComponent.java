@@ -86,6 +86,9 @@ implements TransformableGeometry, ScalableUnits {
 
    protected void doSetMesh (
       MeshBase mesh, String fileName, AffineTransform3dBase X) {
+      if (mesh == null) {
+         throw new IllegalArgumentException ("mesh cannot be null");
+      }
       myMeshInfo.set (mesh, fileName, X);
       setMeshFromInfo ();
    }

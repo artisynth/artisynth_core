@@ -2029,8 +2029,8 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * Sets the color corresponding to index <code>idx</code>.
     *
     * @param idx color index
-    * @param color new color value. Array must have a length >= 4 and
-    * gives the RGBA values in the range [0, 1].
+    * @param color new color value. Array must have a length >= 3 and give the
+    * RGB (or RGBA values for length >= 4) in the range [0, 1].
     * @throws IndexOutOfBoundsException if colors are not defined or
     * if the index is out of range.
     */
@@ -2038,11 +2038,20 @@ public abstract class MeshBase implements Renderable, Cloneable {
       if (myColors == null) {
          throw new IndexOutOfBoundsException ("No colors defined for this mesh");
       }
+      if (color.length < 3) {
+         throw new IllegalArgumentException ("Color value has < 3 entries");
+      }
       float[] mycolor = myColors.get(idx);
       mycolor[0] = color[0];
       mycolor[1] = color[1];
       mycolor[2] = color[2];
-      mycolor[3] = color[3];
+      if (color.length > 3) {
+         mycolor[3] = color[3];
+      }
+      else {
+         mycolor[3] = 1f;
+      }
+      
    }
 
    /**
@@ -2154,14 +2163,18 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * information supplied by <code>colors</code> and <code>indices</code> is
     * copied to internal structures that are subsequently returned by {@link
     * #getColors} and {@link #getColorIndices}, respectively.  
-
-    * The argument <code>indices</code> specifies an index values into
+    *
+    * <p> Colors should be specified as <code>float[]</code> objects with a
+    * length >= 3, indicating RGG values (or RGBA values for length >= 4) in
+    * the range [0,1].
+    *
+    * <p>The argument <code>indices</code> specifies an index values into
     * <code>colors</code> for each vertex of each feature, as described for
     * {@link #getNormalIndices()}. If a feature vertex has no color value, the
-    * index should be specified as <code>-1</code>.
-    * If <code>indices</code> is <code>null</code>, then <code>colors</code>
-    * should contain one color per vertex and a default index set will be
-    * created, appropriate to the mesh subclass.
+    * index should be specified as <code>-1</code>.  If <code>indices</code> is
+    * <code>null</code>, then <code>colors</code> should contain one color per
+    * vertex and a default index set will be created, appropriate to the mesh
+    * subclass.
     * 
     * <p>If <code>colors</code> is <code>null</code>, then
     * colors are explicitly removed and subsequent calls to {@link
@@ -2189,9 +2202,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
                throw new IllegalArgumentException (
                   "Null color value at index "+i);
             }
-            if (c.length != 3 && c.length != 4) {
+            if (c.length < 3) {
                throw new IllegalArgumentException (
-                  "Color value at index "+i+" has "+c.length+" entries");
+                  "Color value at index "+i+" has < 3 entries");
             }
             newColors.add (copyColor (c));
          }

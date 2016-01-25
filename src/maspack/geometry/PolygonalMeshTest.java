@@ -55,6 +55,14 @@ public class PolygonalMeshTest extends UnitTest {
       }
    }
 
+   private void checkColor (float[] color, float[] check) {
+      if (!Arrays.equals (color, check)) {
+         throw new TestException (
+            "Expected color:\n"+toStr(check)+
+            "\nGot:\n"+toStr(color));
+      }
+   }                                                 
+
    private void checkColors (
       ArrayList<float[]> colors, ArrayList<float[]> check) {
       if ((colors==null) != (check==null)) {
@@ -651,7 +659,6 @@ public class PolygonalMeshTest extends UnitTest {
       mesh.clearColors();
       checkColors (mesh.getColors(), null);
 
-
       mesh = createMesh (cubeObj, true);
 
       mesh.setFeatureColoringEnabled();
@@ -693,6 +700,11 @@ public class PolygonalMeshTest extends UnitTest {
 
       checkIndices (mesh.getColorIndices(), mesh.createFeatureIndices());
       check ("numIndices=17", mesh.getColorIndices().length==17);
+
+      mesh.setColor (2, new float[] {1f, 0f, 0f, 0.5f});
+      checkColor (mesh.getColor (2), new float[] {1f, 0f, 0f, 0.5f});
+      mesh.setColor (2, new float[] {1f, 0f, 0f});
+      checkColor (mesh.getColor (2), new float[] {1f, 0f, 0f, 1f});
    }
 
    String triangleStar = new String (

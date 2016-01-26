@@ -197,10 +197,9 @@ public class PointMeshRenderer {
                      pnt.get(coords);
 
                      if (useVertexColors) {
-                        Color c = mesh.getVertexColor(i);
-                        c.getColorComponents(pointColor);
+                        float[] color = mesh.getColor(i);
                         viewer.updateMaterial(props, props.getPointMaterial(),
-                           pointColor, selected);
+                           color, selected);
                      }
                      viewer.drawSphere(props, coords);
                   }
@@ -208,13 +207,13 @@ public class PointMeshRenderer {
                }
                case POINT:
                   gl.glBegin (GL2.GL_POINTS);
-                  int numn = mesh.getNumNormals();
+                  int numn = mesh.numNormals();
                   Vector3d zDir = viewer.getZDirection();
                   for (int i=0; i<mesh.numVertices(); i++) {
                      Vertex3d vtx = mesh.getVertex(i);
                      Point3d pnt = useRenderVtxs ? vtx.myRenderPnt : vtx.pnt;
 
-                     if (shading != Shading.NONE && mesh.hasNormals()) {
+                     if (shading != Shading.NONE && mesh.getNormals() != null) {
                         if (i < numn) {
                            Vector3d nrm = mesh.getNormal(i);
                            gl.glNormal3d (nrm.x, nrm.y, nrm.z);
@@ -242,7 +241,7 @@ public class PointMeshRenderer {
          
          double normalLen = mesh.getNormalRenderLen();
 
-         if (mesh.hasNormals() && normalLen > 0) {
+         if (mesh.getNormals() != null && normalLen > 0) {
             if (props.getLineColor() != null && !viewer.isSelecting()) {
                if (shading != Shading.NONE) {
                   viewer.setMaterial(

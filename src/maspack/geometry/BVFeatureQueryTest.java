@@ -392,7 +392,7 @@ public class BVFeatureQueryTest {
       }
       else if (mesh instanceof PolylineMesh) {
          int numEdges = 0;
-         ArrayList<Polyline> lines = ((PolylineMesh)mesh).getPolyLines();
+         ArrayList<Polyline> lines = ((PolylineMesh)mesh).getLines();
          for (Polyline line : lines) {
             numEdges += line.numVertices()-1;
          }

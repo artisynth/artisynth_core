@@ -90,7 +90,7 @@ public class AmiraMeshWriter extends MeshWriterBase {
          new BufferedWriter (new OutputStreamWriter (myOstream)));
       
       int nLineSize = 0;
-      for (Polyline line : mesh.getPolyLines()) {
+      for (Polyline line : mesh.getLines()) {
          int nlineVerts = line.numVertices();
          if (nlineVerts > 0) {
             nLineSize += nlineVerts + 1;
@@ -128,7 +128,7 @@ public class AmiraMeshWriter extends MeshWriterBase {
       pw.println();
       
       pw.println("@2 # line indices, terminating with -1");
-      for (Polyline line : mesh.getPolyLines()) {
+      for (Polyline line : mesh.getLines()) {
          idx = 0;
          Vertex3d[] vtxs = line.getVertices();
          

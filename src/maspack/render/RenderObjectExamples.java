@@ -87,56 +87,52 @@ public class RenderObjectExamples {
       
       RenderObject r = new RenderObject();
       
+      int[] nidxs = null;
+      int[] cidxs = null;
+      int[] tidxs = null;
+
       // add all appropriate info
       for (Vertex3d vtx : mesh.getVertices()) {
          Point3d pos = vtx.getPosition();
          r.addPosition((float)pos.x, (float)pos.y, (float)pos.z);
       }
-      if (mesh.hasNormals()) {
-         for (Vector3d nrm : mesh.getNormalList()) {
+      if (mesh.getNormals() != null) {
+         for (Vector3d nrm : mesh.getNormals()) {
             r.addNormal((float)nrm.x, (float)nrm.y, (float)nrm.z);
          }
+         nidxs = mesh.getNormalIndices();
       }
-      if (mesh.hasColors()) {
-         for (byte[] color : mesh.getColorList()) {
+      if (mesh.getColors() != null) {
+         for (float[] color : mesh.getColors()) {
             r.addColor(color);
          }
+         cidxs = mesh.getColorIndices();
       }
-      if (mesh.hasTextureCoords()) {
-         for (Vector3d texCoord : mesh.getTextureCoordList()) {
+      if (mesh.getTextureCoords() != null) {
+         for (Vector3d texCoord : mesh.getTextureCoords()) {
             // according to existing MeshRenderer, we need to flip y
             r.addTextureCoord((float)texCoord.x, (float)(1-texCoord.y));
          }
+         tidxs = mesh.getTextureIndices();
       }
       
       // build faces
+      int[] indexOffs = mesh.getFeatureIndexOffsets();
       List<Face> faces = mesh.getFaces();
       final int[] invalid = new int[] {-1}; 
       for (int i=0; i<faces.size(); i++) {
          Face f = faces.get(i);
+         int foff = indexOffs[f.idx];
          
          int[] pidxs = f.getVertexIndices();
-         int[] nidxs = invalid;
-         int[] cidxs = invalid;
-         int[] tidxs = invalid;
-         
-         if (mesh.hasNormals()) {
-            nidxs = mesh.getNormalIndices().get(i);
-         }
-         if (mesh.hasColors()) {
-            cidxs = mesh.getColorIndices().get(i);
-         }
-         if (mesh.hasTextureCoords()) {
-            tidxs = mesh.getTextureIndices().get(i);
-         }
          
          int[] vidxs = new int[pidxs.length]; // vertex indices
          for (int j=0; j<pidxs.length; j++) {
             vidxs[j] = r.addVertex(
                pidxs[j], 
-               nidxs[j%nidxs.length], // account for invalid
-               cidxs[j%cidxs.length], 
-               tidxs[j%tidxs.length]);
+               nidxs != null ? nidxs[foff+j] : -1,
+               cidxs != null ? cidxs[foff+j] : -1,
+               tidxs != null ? tidxs[foff+j] : -1);
          }
          
          // triangle fan for faces, line loop for edges

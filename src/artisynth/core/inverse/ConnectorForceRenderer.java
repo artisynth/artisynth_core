@@ -7,7 +7,7 @@ import artisynth.core.modelbase.MonitorBase;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 
@@ -78,7 +78,7 @@ public class ConnectorForceRenderer extends MonitorBase {
    }
 
    @Override
-   public void render (GLRenderer gl, int flags) {
+   public void render (Renderer gl, int flags) {
       super.render (gl, flags);
 //      System.out.println ("CFR-ren");
       gl.drawArrow (getRenderProps (), end, start, true, isSelected ());

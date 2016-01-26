@@ -246,7 +246,7 @@ public class WavefrontWriter extends MeshWriterBase {
    public void writeMesh (PrintWriter pw, PolylineMesh mesh) throws IOException {
 
       ArrayList<Vertex3d> vertices = mesh.getVertices();
-      ArrayList<Polyline> lines = mesh.getPolyLines();
+      ArrayList<Polyline> lines = mesh.getLines();
 
       for (Vertex3d vertex : vertices) {
          Point3d pnt = vertex.pnt;

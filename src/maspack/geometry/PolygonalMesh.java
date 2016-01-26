@@ -45,9 +45,10 @@ import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.properties.HasProperties;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.Material;
 import maspack.render.RenderProps;
+import maspack.render.GL.GL2.PolygonalMeshRenderer;
 import maspack.util.InternalErrorException;
 import maspack.util.ListIndexComparator;
 import maspack.util.NumberFormat;
@@ -62,18 +63,6 @@ public class PolygonalMesh extends MeshBase {
    protected ArrayList<Face> myFaces = new ArrayList<Face>();
    protected int[] myFaceOrder;  // used for sorting/drawing faces
 
-   // begin texture mapping stuff
-   //protected ArrayList<Vector3d> myTextureVertexList = new ArrayList<Vector3d>();
-   //protected ArrayList<int[]> myTextureIndices = null;
-
-//   /*
-//    * vertex normals saved if mesh is read in from a file with explicit vertex
-//    * normals. If vertex normals are defined they will be used in write(), but
-//    * explicit normals are not currently used in MeshRenderer (see
-//    * Vertex3d.computeNormal())
-//    */
-//   protected ArrayList<Vector3d> myNormalList = new ArrayList<Vector3d>();
-//   protected ArrayList<int[]> myNormalIndices = null;
    protected boolean myMultiAutoNormalsP = true;
 
    private Material myFaceMaterial = null;
@@ -99,7 +88,7 @@ public class PolygonalMesh extends MeshBase {
    private boolean myFaceNormalsValid = false;
    private boolean myRenderNormalsValid = false;
 
-   protected MeshRenderer myMeshRenderer = null;
+   protected PolygonalMeshRenderer myMeshRenderer = null;
 
    /*
     * Set to true if this mesh may be subject to self intersections. If set, it
@@ -179,6 +168,7 @@ public class PolygonalMesh extends MeshBase {
             myFaces.get (i).computeRenderNormal();
          }
          myRenderNormalsValid = true;
+         notifyModified();
       }
    }
 
@@ -615,52 +605,25 @@ public class PolygonalMesh extends MeshBase {
     */
    public boolean removeFace (Face face) {
       
-      if (isFastRemoval()) {
-         
+      if (myFaces.remove (face)) {
+         face.disconnect();
          int idx = face.getIndex();
-         int last = myFaces.size()-1;
-         if (idx >= 0 && idx <= last) {
-            myFaces.set(idx, myFaces.get(last));
-            myFaces.get(idx).setIndex(idx);
-            myFaces.remove(last);
-            
-            int nv = face.numVertices ();
-            if (nv == 3) {
-               myNumTriangles--;
-            } else if (nv == 4) {
-               myNumQuads--;
-            }
-            //myTriQuadCountsValid = false;
-            face.disconnect();
-            face.setIndex(-1);
-            adjustAttributesForRemovedFeature (idx);
-            notifyStructureChanged();
-            return true;
-         } else {
-            return false;
+         // reindex faces which occur after this one
+         for (int i=idx; i<myFaces.size(); i++) {
+            myFaces.get(i).setIndex (i);
          }
-         
+         //myTriQuadCountsValid = false;
+         int nv = face.numVertices ();
+         if (nv == 3) {
+            myNumTriangles--;
+         } else if (nv == 4) {
+            myNumQuads--;
+         }
+         adjustAttributesForRemovedFeature (idx);
+         notifyStructureChanged();
+         return true;
       } else {
-         if (myFaces.remove (face)) {
-            face.disconnect();
-            int idx = face.getIndex();
-            // reindex faces which occur after this one
-            for (int i=idx; i<myFaces.size(); i++) {
-               myFaces.get(i).setIndex (i);
-            }
-            //myTriQuadCountsValid = false;
-            int nv = face.numVertices ();
-            if (nv == 3) {
-               myNumTriangles--;
-            } else if (nv == 4) {
-               myNumQuads--;
-            }
-            adjustAttributesForRemovedFeature (idx);
-            notifyStructureChanged();
-            return true;
-         } else {
-            return false;
-         }
+         return false;
       }
    }
    
@@ -1502,13 +1465,13 @@ public class PolygonalMesh extends MeshBase {
       myTriQuadCountsValid = true;
    }
 
-   public void render (GLRenderer renderer, RenderProps props, int flags) {
+   public void render (Renderer renderer, RenderProps props, int flags) {
       if (myMeshRenderer == null) {
-         myMeshRenderer = new MeshRenderer();
+         myMeshRenderer = new PolygonalMeshRenderer();
       }
-      if (getColors() != null && ((flags & GLRenderer.SELECTED) == 0)) {
-         flags |= GLRenderer.VERTEX_COLORING;
-         flags |= GLRenderer.HSV_COLOR_INTERPOLATION;
+      if (getColors() != null && ((flags & Renderer.SELECTED) == 0)) {
+         flags |= Renderer.VERTEX_COLORING;
+         flags |= Renderer.HSV_COLOR_INTERPOLATION;
       }
       myMeshRenderer.render (renderer, this, props, flags);
    }
@@ -2354,6 +2317,7 @@ public class PolygonalMesh extends MeshBase {
          myFaces.get (i).computeNormal();
       }
       myFaceNormalsValid = true;
+      notifyModified();              
    }
 
    public double checkFaceNormals() {
@@ -2529,7 +2493,6 @@ public class PolygonalMesh extends MeshBase {
    public double computeAverageEdgeLength() {
       double len = 0;
       int nume =0;
-      Vector3d del = new Vector3d();
       for (Face face : getFaces()) {
          HalfEdge he = face.he0;
          do {

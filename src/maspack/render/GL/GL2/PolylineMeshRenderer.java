@@ -1,5 +1,6 @@
 package maspack.render.GL.GL2;
 
+import java.util.ArrayList;
 import javax.media.opengl.GL2;
 
 import maspack.geometry.Polyline;
@@ -73,6 +74,12 @@ public class PolylineMeshRenderer {
       if (renderer instanceof GL2Viewer) {
          renderCylinders((GL2Viewer)renderer, mesh, props, flags);
       }
+   }
+
+   public void getFloatPoint(Point3d pnt, float[] flt) {
+      flt[0] = (float)pnt.x;
+      flt[1] = (float)pnt.y;
+      flt[2] = (float)pnt.z;
    }
 
    public void renderCylinders(
@@ -150,6 +157,9 @@ public class PolylineMeshRenderer {
             gl.glNewList (displayList, GL2.GL_COMPILE);
          }
 
+         int[] cidxs = useVertexColors ? mesh.getColorIndices() : null;
+         ArrayList<float[]> colors = useVertexColors ? mesh.getColors() : null;
+
          // draw all the cylinders
          boolean useRenderVtxs = mesh.isRenderBuffered() && !mesh.isFixed();
          float[] posa = new float[3];
@@ -157,22 +167,31 @@ public class PolylineMeshRenderer {
          float[] postmp = posb;
          int nslices = props.getLineSlices();
          double r = props.getLineRadius();
+         int[] indexOffs = mesh.getFeatureIndexOffsets();         
 
          for (int i = 0; i < mesh.numLines(); i = i + 1 + mesh.getRenderSkip()) {
-            Polyline line = mesh.getPolyLine(i);
+            Polyline line = mesh.getLine(i);
+            int lineOff = indexOffs[i];
 
             Vertex3d[] vtxs = line.getVertices();
             Point3d pnta = useRenderVtxs ? vtxs[0].myRenderPnt : vtxs[0].pnt;
-            mesh.getFloatPoint(pnta, posa);
+            getFloatPoint(pnta, posa);
 
+            float[] colora = null;
+            if (useVertexColors) {
+               colora = colors.get (cidxs[lineOff]);
+            }
             for (int k = 1; k < line.numVertices(); k++) {
                Point3d pntb = useRenderVtxs ? vtxs[k].myRenderPnt : vtxs[k].pnt;
-               mesh.getFloatPoint(pntb, posb);
+               getFloatPoint(pntb, posb);
 
                if (useVertexColors) {
+                  float[] colorb = colors.get(cidxs[lineOff+k]);
                   drawColoredCylinder(
-                     gl, nslices, r, r, posa, vtxs[k - 1].getColorArray(),
-                     posb, vtxs[k].getColorArray(), false);
+                     gl, nslices, r, r,
+                     posa, colora, 
+                     posb, colorb, false);
+                  colora = colorb;
 
                } else {
                   viewer.drawCylinder(props, posa, posb, true);
@@ -392,16 +411,22 @@ public class PolylineMeshRenderer {
             gl.glNewList (displayList, GL2.GL_COMPILE);
          }
 
+         int[] cidxs = useVertexColors ? mesh.getColorIndices() : null;
+         ArrayList<float[]> colors = useVertexColors ? mesh.getColors() : null;
+
          boolean useRenderVtxs = mesh.isRenderBuffered() && !mesh.isFixed();
+         int[] indexOffs = mesh.getFeatureIndexOffsets();
          for (int i = 0; i < mesh.numLines(); i = i + 1 + mesh.getRenderSkip()) {
-            Polyline line = mesh.getPolyLine(i);
+            Polyline line = mesh.getLine(i);
+            int lineOff = indexOffs[i];
             gl.glBegin(GL2.GL_LINE_STRIP);
             Vertex3d[] vtxs = line.getVertices();
             for (int k = 0; k < line.numVertices(); k++) {
                Point3d pnt = useRenderVtxs ? vtxs[k].myRenderPnt : vtxs[k].pnt;
 
                if (useVertexColors) {
-                  setVertexColor(gl, vtxs[k], useHSVInterpolation);
+                  float[] color = colors.get(cidxs[lineOff+k]);
+                  setVertexColor(gl, color, useHSVInterpolation);
                }
                gl.glVertex3d(pnt.x, pnt.y, pnt.z);
             }
@@ -432,8 +457,7 @@ public class PolylineMeshRenderer {
    }
 
    float[] myColorBuf = new float[4];
-   private void setVertexColor (GL2 gl, Vertex3d vtx, boolean useHSV) {
-      float[] color = vtx.getColorArray();
+   private void setVertexColor (GL2 gl, float[] color, boolean useHSV) {
       if (color != null) {
          if (useHSV) {
             // convert color to HSV representation

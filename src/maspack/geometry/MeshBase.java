@@ -306,6 +306,16 @@ public abstract class MeshBase implements Renderable, Cloneable {
       X.set (XMeshToWorld);
    }
 
+   // XXX may want to remove, once mesh renderers move into geometry
+   public RigidTransform3d getXMeshToWorldRender() {
+      return myXMeshToWorldRender;
+   }
+
+   // XXX may want to remove, once mesh renderers move into geometry
+   public float[] getRenderNormal (int idx) {
+      return myRenderNormals[idx];
+   }
+
    /**
     * Returns true if the mesh to world transform is the identity.
     * 
@@ -1721,11 +1731,13 @@ public abstract class MeshBase implements Renderable, Cloneable {
          if (myNormalIndices == null) {
             autoGenerateNormals();
             myRenderNormalsValidP = false;
-            myAutoNormalsValidP = true;               
+            myAutoNormalsValidP = true; 
+            notifyModified();              
          }
          else if (!myAutoNormalsValidP) {
             autoUpdateNormals();
-            myAutoNormalsValidP = true;               
+            myAutoNormalsValidP = true;    
+            notifyModified();                         
          }
       }
       return myNormals;         
@@ -1780,6 +1792,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
          throw new IndexOutOfBoundsException ("No normals defined for this mesh");
       }
       normals.get(idx).set(nrml);
+      notifyModified();              
    }
 
    /**
@@ -1892,6 +1905,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       }
       myRenderNormalsValidP = false;
       myNormalsExplicitP = true;
+      notifyModified();
    }
 
    /**
@@ -1919,6 +1933,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       myNormalIndices = null;
       myNormalsExplicitP = false;
       myRenderNormalsValidP = false;      
+      notifyModified();
    }
 
    private int[] createIndices (int[] indices) {
@@ -2018,7 +2033,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       else {
          mycolor[3] = 1f;
       }
-      
+      notifyModified();                    
    }
 
    /**
@@ -2035,6 +2050,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       }
       float[] mycolor = myColors.get(idx);
       color.getRGBComponents (mycolor);
+      notifyModified();              
    }
 
    /**
@@ -2057,6 +2073,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       mycolor[1] = g;
       mycolor[2] = b;
       mycolor[3] = a;
+      notifyModified();              
    }
 
    /**
@@ -2079,6 +2096,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       mycolor[1] = (float)g;
       mycolor[2] = (float)b;
       mycolor[3] = (float)a;
+      notifyModified();              
    }
    
    /**
@@ -2187,6 +2205,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       }
       myVertexColoringP = false;
       myFeatureColoringP = false;
+      notifyModified();      
    }
 
    /**
@@ -2199,6 +2218,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       myColorIndices = null;
       myVertexColoringP = false;
       myFeatureColoringP = false;
+      notifyModified();
    }
 
    /**
@@ -2277,6 +2297,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
             "No texture coordinate defined for this mesh");
       }
       myTextureCoords.get(idx).set(coords);
+      notifyModified();              
    }
 
    /**
@@ -2359,6 +2380,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
          myTextureCoords = newCoords;      
          myTextureIndices = newIndices;
       }
+      notifyModified();              
    }
 
    /**
@@ -2369,6 +2391,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
    public void clearTextureCoords() {
       myTextureCoords = null;
       myTextureIndices = null;
+      notifyModified();              
    }
 
 }

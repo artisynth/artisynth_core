@@ -154,7 +154,7 @@ public class MultiViewerTesterBase {
 
          bunny = new PolygonalMesh();
          reader.readMesh(bunny);
-         bunny.computeVertexNormals();
+         //bunny.computeVertexNormals();
          // normalize bunny
          double r = bunny.computeRadius();
          Vector3d c = new Vector3d();
@@ -281,24 +281,24 @@ public class MultiViewerTesterBase {
             Point3d pos = vtx.getPosition();
             r.addPosition((float)pos.x, (float)pos.y, (float)pos.z);
          }
-         for (Vector3d nrm : bunny.getNormalList()) {
+         for (Vector3d nrm : bunny.getNormals()) {
             r.addNormal((float)nrm.x, (float)nrm.y, (float)nrm.z);
          }
+         int nidxs[] = bunny.getNormalIndices();
 
          r.createTriangleGroup();  // left
          r.createTriangleGroup();  // right
 
          // build faces
          List<Face> faces = bunny.getFaces();
+         int[] indexOffs = bunny.getFeatureIndexOffsets();
          Vector3d centroid = new Vector3d();
          final int[] invalid = new int[] {-1}; 
          for (int i=0; i<faces.size(); i++) {
             Face f = faces.get(i);
+            int foff = indexOffs[f.idx];
 
             int[] pidxs = f.getVertexIndices();
-            int[] nidxs = bunny.getNormalIndices().get(i);
-            int[] cidxs = invalid;
-            int[] tidxs = invalid;
 
             int[] vidxs = new int[pidxs.length]; // vertex indices
             for (int j=0; j<pidxs.length; j++) {
@@ -306,9 +306,9 @@ public class MultiViewerTesterBase {
                // only add if unique combination
                RenderObject.VertexIndexSet v = new RenderObject.VertexIndexSet(
                   pidxs[j], 
-                  nidxs[j%nidxs.length], // account for invalid
-                  cidxs[j%cidxs.length], 
-                  tidxs[j%tidxs.length]);
+                  nidxs[foff + j],
+                  -1,
+                  -1);
                vidxs[j] = r.addVertex(v.getPositionIndex(), v.getNormalIndex(), -1, -1);
             }
             // triangle fan for faces

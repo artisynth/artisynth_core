@@ -1206,7 +1206,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       getWorkspace().setRootModel (newRoot);
       // mainViewer should already be set if constructed with build() method:
       newRoot.setMainViewer (myViewer); 
-      myViewer.clearClipPlanes();
+      if (myViewer != null) {
+         myViewer.clearClipPlanes();
+      }
 
       if (myFrame != null) {
          myMenuBarHandler.enableShowPlay();

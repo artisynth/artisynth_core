@@ -249,12 +249,12 @@ public abstract class BVTree implements GLRenderable {
          PolylineMesh pmesh = (PolylineMesh)mesh;
          
          int numElems = 0;
-         for (Polyline line : pmesh.getPolyLines()) {
+         for (Polyline line : pmesh.getLines()) {
             numElems += line.numVertices()-1;
          }
          ArrayList<Boundable> elist =
             new ArrayList<Boundable>(numElems);
-         for (Polyline line : pmesh.getPolyLines()) {
+         for (Polyline line : pmesh.getLines()) {
             Vertex3d[] vtxs = line.getVertices();
             for (int i=0; i<line.numVertices()-1; i++) {
                elist.add (new LineSegment (vtxs[i], vtxs[i+1]));

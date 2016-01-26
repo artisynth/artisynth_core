@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 import javax.media.opengl.GL2;
+import maspack.render.GL.GL2.GL2Viewer;
 
 import artisynth.core.modelbase.MonitorBase;
 import maspack.matrix.Point3d;
@@ -12,7 +13,7 @@ import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.LineRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
@@ -186,15 +187,15 @@ public class ConnectorBoundsRenderer extends MonitorBase {
    }
 
    @Override
-   public void render (GLRenderer gl, int flags) {
-      super.render (gl, flags);
+   public void render (Renderer renderer, int flags) {
+      super.render (renderer, flags);
 //      System.out.println ("CBR-ren");
       for (LineInfo line : lines) {
-         gl.drawLine (line.props, line.p0, line.p1, isSelected ());
+         renderer.drawLine (line.props, line.p0, line.p1, isSelected ());
       }
 
       for (TriInfo tri : planes) {
-         drawTriangle (gl, tri);
+         drawTriangle (renderer, tri);
       }
    }
 
@@ -211,8 +212,12 @@ public class ConnectorBoundsRenderer extends MonitorBase {
    private double myPlaneSize = 1d;
    private Point3d[] myRenderVtxs;
 
-   public void drawTriangle (GLRenderer renderer, TriInfo tri) {
-      GL2 gl = renderer.getGL2 ().getGL2 ();
+   public void drawTriangle (Renderer renderer, TriInfo tri) {
+      
+      if (!(renderer instanceof GL2Viewer)) {
+         return;
+      }
+      GL2 gl = ((GL2Viewer)renderer).getGL2();
       RenderProps props = tri.props;
 
       renderer.setMaterialAndShading (

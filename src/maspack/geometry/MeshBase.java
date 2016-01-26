@@ -168,6 +168,17 @@ public abstract class MeshBase implements Renderable, Cloneable {
    public boolean isFixed() {
       return isFixed;
    }
+
+
+   private void augmentColors (int numc) {
+      if (myColors == null) {
+         myColors = new ArrayList<float[]>(numVertices());
+      }
+      float[] defaultColor = new float[] {0.5f, 0.5f, 0.5f, 1.0f};
+      while (myColors.size() < numc) {
+         myColors.add (copyColor (defaultColor));
+      }
+   }
    
    protected boolean myVertexColoringP = false;
    protected boolean myFeatureColoringP = false;
@@ -185,18 +196,17 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * Vertex coloring is disabled by any call to {@link #setColors} or {@link
     * #clearColors}.
     */
-   public void setVertexColoringEnabled () {
+   public void setVertexColoringEnabled () { 
       if (!myVertexColoringP) {
-         float[] defaultColor = new float[] {0.5f, 0.5f, 0.5f, 1.0f};
-         ArrayList<float[]> colors = new ArrayList<float[]>(numVertices());
-         for (int i=0; i<numVertices(); i++) {
-            colors.add (defaultColor);
+         augmentColors (numVertices());
+         int[] idxs = createVertexIndices();
+         if (!Arrays.equals (idxs, myColorIndices)) {
+            myColorIndices = idxs;
          }
-         setColors (colors, createVertexIndices());
          myVertexColoringP = true;
          myFeatureColoringP = false;
       }
-   }
+  }
 
    /**
     * Returns <code>true</code> if vertex coloring is enabled for this
@@ -223,12 +233,11 @@ public abstract class MeshBase implements Renderable, Cloneable {
     */
    public void setFeatureColoringEnabled () {
       if (!myFeatureColoringP) {
-         float[] defaultColor = new float[] {0.5f, 0.5f, 0.5f, 1.0f};
-         ArrayList<float[]> colors = new ArrayList<float[]>(numFeatures());
-         for (int i=0; i<numFeatures(); i++) {
-            colors.add (defaultColor);
+         augmentColors (numFeatures());
+         int[] idxs = createFeatureIndices();
+         if (!Arrays.equals (idxs, myColorIndices)) {
+            myColorIndices = idxs;
          }
-         setColors (colors, createFeatureIndices());
          myVertexColoringP = false;
          myFeatureColoringP = true;
       }

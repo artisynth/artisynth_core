@@ -187,6 +187,16 @@ public abstract class MeshBase implements Renderable, Cloneable {
       return isFixed;
    }
    
+   private void augmentColors (int numc) {
+      if (myColors == null) {
+         myColors = new ArrayList<float[]>(numVertices());
+      }
+      float[] defaultColor = new float[] {0.5f, 0.5f, 0.5f, 1.0f};
+      while (myColors.size() < numc) {
+         myColors.add (copyColor (defaultColor));
+      }
+   }
+
    /**
     * Enables vertex coloring for this mesh. This creates a default color for
     * each existing vertex, and sets the color indices to the same as those
@@ -202,14 +212,14 @@ public abstract class MeshBase implements Renderable, Cloneable {
     */
    public void setVertexColoringEnabled () {
       if (!myVertexColoringP) {
-         float[] defaultColor = new float[] {0.5f, 0.5f, 0.5f, 1.0f};
-         ArrayList<float[]> colors = new ArrayList<float[]>(numVertices());
-         for (int i=0; i<numVertices(); i++) {
-            colors.add (defaultColor);
+         augmentColors (numVertices());
+         int[] idxs = createVertexIndices();
+         if (!Arrays.equals (idxs, myColorIndices)) {
+            myColorIndices = idxs;
          }
-         setColors (colors, createVertexIndices());
          myVertexColoringP = true;
          myFeatureColoringP = false;
+         notifyModified();
       }
    }
 
@@ -238,14 +248,14 @@ public abstract class MeshBase implements Renderable, Cloneable {
     */
    public void setFeatureColoringEnabled () {
       if (!myFeatureColoringP) {
-         float[] defaultColor = new float[] {0.5f, 0.5f, 0.5f, 1.0f};
-         ArrayList<float[]> colors = new ArrayList<float[]>(numFeatures());
-         for (int i=0; i<numFeatures(); i++) {
-            colors.add (defaultColor);
+         augmentColors (numFeatures());
+         int[] idxs = createFeatureIndices();
+         if (!Arrays.equals (idxs, myColorIndices)) {
+            myColorIndices = idxs;
          }
-         setColors (colors, createFeatureIndices());
          myVertexColoringP = false;
          myFeatureColoringP = true;
+         notifyModified(); 
       }
    }
 

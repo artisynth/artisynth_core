@@ -60,6 +60,8 @@ public abstract class FemMeshBase extends SkinMeshBase {
    
    protected ArrayList<float[]> mySavedColors;
    protected int[] mySavedColorIndices;
+   protected boolean mySavedVertexColoring;
+   protected boolean mySavedFeatureColoring;
    
    protected ColorMapBase myColorMap = defaultColorMap.copy();
    protected PropertyMode myColorMapMode = PropertyMode.Inherited;
@@ -127,39 +129,43 @@ public abstract class FemMeshBase extends SkinMeshBase {
       }
    }
 
+   private boolean isStressOrStrainRendering (SurfaceRender mode) {
+      return (mode == SurfaceRender.Strain || mode == SurfaceRender.Stress);
+   }
+   
    public void setMesh (MeshBase mesh) {
       MeshBase oldMesh = getMesh();
-      if (oldMesh != null) {
-         updateMeshColoring (oldMesh, null, mySurfaceRendering);
+      if (oldMesh != null && isStressOrStrainRendering (mySurfaceRendering)) {
+         restoreMeshColoring (oldMesh);
       }
       super.setMesh (mesh);
-      updateMeshColoring (mesh, mySurfaceRendering, null);
-   }    
+      if (isStressOrStrainRendering (mySurfaceRendering)) {
+         saveMeshColoring (mesh);
+         mesh.setVertexColoringEnabled();
+         updateVertexColors(); // not sure we need this here
+      }
+   }
    
-   protected void updateMeshColoring (
-      MeshBase mesh, SurfaceRender newMode, SurfaceRender oldMode) {
-      
-      boolean wasRenderingStressOrStrain =
-         (oldMode == SurfaceRender.Strain || oldMode == SurfaceRender.Stress);
-      boolean newRenderingStressOrStrain =
-         (newMode == SurfaceRender.Strain || newMode == SurfaceRender.Stress);
-      
-      if (newRenderingStressOrStrain != wasRenderingStressOrStrain) {
-         if (newRenderingStressOrStrain) {
-            mySavedColors = mesh.getColors();
-            mySavedColorIndices = mesh.getColorIndices();
+   protected void restoreMeshColoring (MeshBase mesh) {
+      if (mySavedColors == null) {
+         mesh.clearColors();
+      }
+      else {
+         mesh.setColors (mySavedColors, mySavedColorIndices);
+         if (mySavedVertexColoring) {
             mesh.setVertexColoringEnabled();
-            updateVertexColors();
          }
-         else {
-            if (mySavedColors == null) {
-               mesh.clearColors();
-            }
-            else {
-               mesh.setColors (mySavedColors, mySavedColorIndices);
-            }
+         else if (mySavedFeatureColoring) {
+            mesh.setFeatureColoringEnabled();
          }
       }
+   }
+   
+   protected void saveMeshColoring (MeshBase mesh) {
+      mySavedColors = mesh.getColors();
+      mySavedColorIndices = mesh.getColorIndices();
+      mySavedVertexColoring = mesh.getVertexColoringEnabled();
+      mySavedFeatureColoring = mesh.getFeatureColoringEnabled();
    }
    
    public void setSurfaceRendering (SurfaceRender mode) {
@@ -190,8 +196,25 @@ public abstract class FemMeshBase extends SkinMeshBase {
          // save/restore original vertex colors
          MeshBase mesh = getMesh();         
          if (mesh != null) {
-            updateMeshColoring (mesh, mode, oldMode);
+            boolean oldStressOrStrain = isStressOrStrainRendering (oldMode);
+            boolean newStressOrStrain = isStressOrStrainRendering (mode);
+            
+            if (newStressOrStrain != oldStressOrStrain) {
+               if (newStressOrStrain) {
+                  saveMeshColoring (mesh);
+                  mesh.setVertexColoringEnabled();
+                  // enable stress/strain rendering *after* vertex coloring set
+                  mySurfaceRendering = mode; 
+                  updateVertexColors(); // not sure we need this here
+               }
+               else {
+                  // disable stress/strain rendering *before* restoring colors
+                  mySurfaceRendering = mode;                  
+                  restoreMeshColoring (mesh);
+               }
+            }
          }
+         mySurfaceRendering = mode; // set now if not already set
       }
       // propagate to make mode explicit
       mySurfaceRenderingMode =
@@ -273,8 +296,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
    public void prerender(RenderList list) {
       super.prerender(list);
       
-      if (mySurfaceRendering == SurfaceRender.Strain || 
-         mySurfaceRendering == SurfaceRender.Stress) {
+      if (isStressOrStrainRendering (mySurfaceRendering)) {
          updateVertexColors();
       }
    }
@@ -287,9 +309,8 @@ public abstract class FemMeshBase extends SkinMeshBase {
       if (isSelected() || (myFem != null && myFem.isSelected() )) {
          flags |= Renderer.SELECTED;
       }
-      
-      if (mySurfaceRendering == SurfaceRender.Stress || 
-         mySurfaceRendering == SurfaceRender.Strain) {
+
+      if (isStressOrStrainRendering (mySurfaceRendering)) {
          
          if ( (flags & Renderer.UPDATE_RENDER_CACHE) != 0) {
             updateVertexColors();

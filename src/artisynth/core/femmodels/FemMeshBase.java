@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
+import maspack.matrix.AffineTransform3dBase;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
@@ -142,12 +143,13 @@ public abstract class FemMeshBase extends SkinMeshBase {
       return (mode == SurfaceRender.Strain || mode == SurfaceRender.Stress);
    }
    
-   public void setMesh (MeshBase mesh) {
+   protected void doSetMesh (
+      MeshBase mesh, String fileName, AffineTransform3dBase X) {
       MeshBase oldMesh = getMesh();
       if (oldMesh != null && isStressOrStrainRendering (mySurfaceRendering)) {
          restoreMeshColoring (oldMesh);
-      }
-      super.setMesh (mesh);
+      }      
+      super.doSetMesh (mesh, fileName, X);
       if (isStressOrStrainRendering (mySurfaceRendering)) {
          saveMeshColoring (mesh);
          mesh.setVertexColoringEnabled();
@@ -202,7 +204,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
             }
          }
          // save/restore original vertex colors
-         MeshBase mesh = getMesh();         
+         MeshBase mesh = getMesh();   
          if (mesh != null) {
             boolean oldStressOrStrain = isStressOrStrainRendering (oldMode);
             boolean newStressOrStrain = isStressOrStrainRendering (mode);

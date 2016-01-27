@@ -264,7 +264,6 @@ public class MeshRenderer {
       GLRenderer renderer, PolygonalMesh mesh, 
       TextureProps textureProps, int flags) {
       // need to use begin/end polygon
-      Vector3d nrm;
       Vector3d[] nrms = null;
       Vector3d vtxNrm = new Vector3d();
       RenderProps.Shading savedShadeModel = renderer.getShadeModel();
@@ -317,6 +316,9 @@ public class MeshRenderer {
 
          int[] indexOffs = mesh.getFeatureIndexOffsets();
          int[] normalIndices = mesh.getNormalIndices();
+         
+         int[] cidxs = useVertexColors ? mesh.getColorIndices() : null;
+         ArrayList<float[]> colors = useVertexColors ? mesh.getColors() : null;
          for (int i=0; i<faceList.size(); i++) {
 
             if (faceOrder == null) {
@@ -372,8 +374,8 @@ public class MeshRenderer {
                   if (useNewRenderNormals) {
                      int nidx = normalIndices[faceOff+vi];
                      if (nidx != -1) {
-                        float[] vec = mesh.myRenderNormals[nidx];
-                        gl.glNormal3f (vec[0], vec[1], vec[2]);
+                        float[] nrm = mesh.myRenderNormals[nidx];
+                        gl.glNormal3f (nrm[0], nrm[1], nrm[2]);
                      }
                   }
                   else {
@@ -383,7 +385,7 @@ public class MeshRenderer {
                         gl.glNormal3d (vtxNrm.x, vtxNrm.y, vtxNrm.z);
                      }
                      else {
-                        nrm = nrms[he.head.idx];
+                        Vector3d nrm = nrms[he.head.idx];
                         gl.glNormal3d (nrm.x, nrm.y, nrm.z);
                      }
                   }
@@ -399,12 +401,12 @@ public class MeshRenderer {
                }
                if (useVertexColors) {
                   float[] color = null;
-                  int ci = mesh.myColorIndices[faceOff+vi];
+                  int ci = cidxs[faceOff+vi];
                   if (ci == -1) {
                      color = null; // XXX should use a default color?
                   }
                   else {
-                     color = mesh.myColors.get(ci);
+                     color = colors.get(ci);
                   }
                   setVertexColor (gl, color, useHSVInterpolation);
                }
@@ -494,7 +496,9 @@ public class MeshRenderer {
          useHSVInterpolation = setupHSVInterpolation (gl);
       }
       int[] indexOffs = mesh.getFeatureIndexOffsets();
-
+      int[] cidxs = useVertexColors ? mesh.getColorIndices() : null;
+      ArrayList<float[]> colors = useVertexColors ? mesh.getColors() : null;
+      
       ArrayList<Face> faceList = mesh.getFaces();
       for (int faceIdx=0; faceIdx<faceList.size(); faceIdx++) {
 
@@ -510,12 +514,12 @@ public class MeshRenderer {
             Point3d pnt = useRenderNormals ? vtx.myRenderPnt : vtx.pnt;
             if (useVertexColors) {
                float[] color = null;
-               int ci = mesh.myColorIndices[faceOff+vi];
+               int ci = cidxs[faceOff+vi];
                if (ci == -1) {
                   color = null; // XXX should use a default color?
                }
                else {
-                  color = mesh.myColors.get(ci);
+                  color = colors.get(ci);
                }
                setVertexColor (gl, color, useHSVInterpolation);
             }

@@ -1789,6 +1789,21 @@ public abstract class MeshBase implements Renderable, Cloneable {
    }
 
    /**
+    * Returns <code>true</code> if there are normals associated with
+    * this mesh (or if they will be generated automatically).
+    *
+    * @return <code>true</code> if this mesh has normals
+    */
+   public boolean hasNormals() {
+      if (myNormals != null) {
+         return true;
+      }
+      else {
+         return (hasAutoNormalCreation() && !myNormalsExplicitP);
+      }
+   }
+
+   /**
     * Returns the normal corresponding to index <code>idx</code>. The returned
     * value is a reference that can be modified by the application. If normals
     * are automatically generated, then modifying the value may lead to
@@ -2016,6 +2031,16 @@ public abstract class MeshBase implements Renderable, Cloneable {
     */
    public int numColors() {
       return myColors != null ? myColors.size() : 0;
+   }
+
+   /**
+    * Returns <code>true</code> if there are colors associated
+    * with this mesh.
+    *
+    * @return <code>true</code> if this mesh has colors
+    */
+   public boolean hasColors() {
+      return myColors != null;
    }
 
    /**
@@ -2267,6 +2292,16 @@ public abstract class MeshBase implements Renderable, Cloneable {
     */
    public int numTextureCoords() {
       return myTextureCoords != null ? myTextureCoords.size() : 0;
+   }
+
+   /**
+    * Returns <code>true</code> if there are texture coordinates associated
+    * with this mesh.
+    *
+    * @return <code>true</code> if this mesh has texture coordiates
+    */
+   public boolean hasTextureCoords() {
+      return myTextureCoords != null;
    }
 
    /**

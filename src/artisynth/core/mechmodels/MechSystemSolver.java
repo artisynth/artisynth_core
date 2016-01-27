@@ -1313,9 +1313,16 @@ public class MechSystemSolver {
          for (int i=0; i<myGsize; i++) {
             ConstraintInfo gi = myGInfo[i];
             if (gi.compliance > 0) {
-               double s = 1/(0.5*h+gi.damping*gi.compliance);
-               Rbuf[i] = s*gi.compliance/h;
-               gbuf[i] -= s*gi.dist;
+               if (gi.force != 0) {
+                  double alpha = 1/(0.5*h/gi.compliance + gi.damping);
+                  Rbuf[i] = alpha/h;
+                  gbuf[i] -= alpha*gi.force;
+               }
+               else {
+                  double s = 1/(0.5*h+gi.damping*gi.compliance);
+                  Rbuf[i] = s*gi.compliance/h;
+                  gbuf[i] -= s*gi.dist;
+               }
             }
             gbuf[i] -= dotscale*gdot[i];
             //System.out.println ("gbuf=" + gbuf[i]);
@@ -1333,9 +1340,16 @@ public class MechSystemSolver {
          for (int i=0; i<myNsize; i++) {
             ConstraintInfo ni = myNInfo[i];
             if (ni.compliance > 0) {
-               double s = 1/(0.5*h+ni.damping*ni.compliance);
-               Rbuf[i] = s*ni.compliance/h;
-               nbuf[i] -= s*ni.dist;
+               if (ni.force != 0) {
+                  double alpha = 1/(0.5*h/ni.compliance + ni.damping);
+                  Rbuf[i] = alpha/h;
+                  nbuf[i] -= alpha*ni.force;
+               }
+               else {
+                  double s = 1/(0.5*h+ni.damping*ni.compliance);
+                  Rbuf[i] = s*ni.compliance/h;
+                  nbuf[i] -= s*ni.dist;
+               }
             }
             nbuf[i] -= dotscale*ndot[i];
          }

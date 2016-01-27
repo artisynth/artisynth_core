@@ -106,6 +106,7 @@ public class CollisionManager extends RenderableCompositeBase
    CollisionComponent[] myDefaultBehaviors;
    HashMap<CollidablePair,CollisionBehavior> myBehaviorMap;
    boolean myMaskBehaviorMapClearP = false;
+   HashMap<CollidablePair,ContactForceBehavior> myForceBehaviorMap;
 
    protected static boolean myAllowSelfIntersections = true;
 
@@ -365,6 +366,8 @@ public class CollisionManager extends RenderableCompositeBase
       add (myCollisionComponents);
 
       initializeDefaultBehaviors();
+      myForceBehaviorMap =
+         new HashMap<CollidablePair,ContactForceBehavior>();
    }
 
    public void clear() {
@@ -690,6 +693,11 @@ public class CollisionManager extends RenderableCompositeBase
       else {
          handler.setCompliance (getCollisionCompliance());
          handler.setDamping (getCollisionDamping());
+      }
+      CollidablePair pair = new CollidablePair (c0, c1);
+      ContactForceBehavior fb = myForceBehaviorMap.get (pair);
+      if (fb != null) {
+         handler.setForceBehavior (fb);
       }
       return handler;
    }
@@ -1660,6 +1668,16 @@ public class CollisionManager extends RenderableCompositeBase
       list.addAll (set);      
    }
    
+   public void setForceBehavior (
+      Collidable a, Collidable b, ContactForceBehavior fb) {
+      CollidablePair pair = new CollidablePair (a, b);
+      if (fb == null) {
+         myForceBehaviorMap.remove (pair);
+      }
+      else {
+         myForceBehaviorMap.put (pair, fb);
+      }
+   }
    // // ***** Begin HasAuxState *****
 
    // public void advanceAuxState (double t0, double t1) {

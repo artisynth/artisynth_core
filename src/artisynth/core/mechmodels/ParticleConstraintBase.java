@@ -189,6 +189,7 @@ public abstract class ParticleConstraintBase extends ConstrainerBase
                gi.dist = pi.myDist;
                gi.compliance = myCompliance;
                gi.damping = myDamping;
+               gi.force = 0;
             }
          }
       }
@@ -263,6 +264,7 @@ public abstract class ParticleConstraintBase extends ConstrainerBase
                gi.dist = pi.myDist;
                gi.compliance = myCompliance;
                gi.damping = myDamping;
+               gi.force = 0;
             }
          }
       }

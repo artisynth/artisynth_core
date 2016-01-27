@@ -64,6 +64,7 @@ public class CollisionHandler extends ConstrainerBase
    public static boolean computeTimings = false;
    
    public boolean reduceConstraints = false;
+   private ContactForceBehavior myForceBehavior = null;
 
    public static PropertyList myProps =
       new PropertyList (CollisionHandler.class, ConstrainerBase.class);
@@ -208,6 +209,14 @@ public class CollisionHandler extends ConstrainerBase
       reduceConstraints = set;
    }
 
+   public void setForceBehavior (ContactForceBehavior behavior) {
+      myForceBehavior = behavior;
+   }
+   
+   public ContactForceBehavior getForceBehavior() {
+      return myForceBehavior;
+   }
+   
    public CollisionHandler (CollisionManager manager) {
       myBilaterals0 = new LinkedHashMap<ContactPoint,ContactConstraint>();
       myBilaterals1 = new LinkedHashMap<ContactPoint,ContactConstraint>();
@@ -856,6 +865,9 @@ public class CollisionHandler extends ConstrainerBase
 
    @Override
    public int getBilateralInfo(ConstraintInfo[] ginfo, int idx) {
+      
+      double[] fres = new double[] { 0, getCompliance(), getDamping() };
+      
       for (ContactConstraint c : myBilaterals0.values()) {
          c.setSolveIndex (idx);
          ConstraintInfo gi = ginfo[idx++];
@@ -865,8 +877,13 @@ public class CollisionHandler extends ConstrainerBase
          else {
             gi.dist = 0;
          }
-         gi.compliance = getCompliance();
-         gi.damping = getDamping();
+         if (myForceBehavior != null) {
+            myForceBehavior.computeResponse (
+               fres, c.myDistance, c.myCpnt0, c.myCpnt1, c.myNormal);
+         }
+         gi.force =      fres[0];
+         gi.compliance = fres[1];
+         gi.damping =    fres[2];
       }
       for (ContactConstraint c : myBilaterals1.values()) {
          c.setSolveIndex (idx);
@@ -877,8 +894,13 @@ public class CollisionHandler extends ConstrainerBase
          else {
             gi.dist = 0;
          }
-         gi.compliance = getCompliance();
-         gi.damping = getDamping();
+         if (myForceBehavior != null) {
+            myForceBehavior.computeResponse (
+               fres, c.myDistance, c.myCpnt0, c.myCpnt1, c.myNormal);
+         }
+         gi.force =      fres[0];
+         gi.compliance = fres[1];
+         gi.damping =    fres[2];
       }
       return idx;
    }
@@ -938,7 +960,9 @@ public class CollisionHandler extends ConstrainerBase
    @Override
    public int getUnilateralInfo (ConstraintInfo[] ninfo, int idx) {
 
-     for (int i=0; i<myUnilaterals.size(); i++) {
+      double[] fres = new double[] { 0, getCompliance(), getDamping() };
+      
+      for (int i=0; i<myUnilaterals.size(); i++) {
          ContactConstraint c = myUnilaterals.get(i);
          c.setSolveIndex (idx);
          ConstraintInfo ni = ninfo[idx++];
@@ -948,8 +972,13 @@ public class CollisionHandler extends ConstrainerBase
          else {
             ni.dist = 0;
          }
-         ni.compliance = getCompliance();
-         ni.damping = getDamping();
+         if (myForceBehavior != null) {
+            myForceBehavior.computeResponse (
+               fres, c.myDistance, c.myCpnt0, c.myCpnt1, c.myNormal);
+         }
+         ni.force =      fres[0];
+         ni.compliance = fres[1];
+         ni.damping =    fres[2];
       }
       return idx;
    }

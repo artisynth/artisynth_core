@@ -3237,6 +3237,7 @@ public class FemModel3d extends FemModel
                gi.dist = 0; // values will be accumulated below
                gi.compliance = myIncompCompliance;
                gi.damping = damping;
+               gi.force = 0;
             }
 
             for (FemElement3d elem : myElements) {
@@ -3277,6 +3278,7 @@ public class FemModel3d extends FemModel
                      gi.dist = e.myVolumes[k] - e.myRestVolumes[k];
                      gi.compliance = myIncompCompliance;
                      gi.damping = damping;
+                     gi.force = 0;
                   }
                }
             }

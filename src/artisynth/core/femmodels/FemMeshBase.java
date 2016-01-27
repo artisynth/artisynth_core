@@ -174,7 +174,6 @@ public abstract class FemMeshBase extends SkinMeshBase {
             myStressPlotRange.set (0, 0);
          }
          SurfaceRender oldMode = mySurfaceRendering;
-         mySurfaceRendering = mode;
          
          if (myFem != null) { // paranoid: myFem should always be non-null here
             switch (mode) {

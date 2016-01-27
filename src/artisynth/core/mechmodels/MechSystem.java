@@ -43,6 +43,7 @@ public interface MechSystem {
       public double dist;      // distance to the constraint surface.
       public double compliance;// inverse stiffness; 0 implies rigid constraint
       public double damping;   // damping; only used if compliance > 0
+      public double force;     // used for computing non-linear compliance
    };
 
    /**

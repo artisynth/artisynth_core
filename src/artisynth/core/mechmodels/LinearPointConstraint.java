@@ -133,18 +133,21 @@ public class LinearPointConstraint extends ConstrainerBase {
       gi.dist = sumPos.x;
       gi.compliance = 0;
       gi.damping = 0;
+      gi.force = 0;
 
       // y
       gi = ginfo[idx++];
       gi.dist = sumPos.y;
       gi.compliance = 0;
       gi.damping = 0;
+      gi.force = 0;
 
       // z
       gi = ginfo[idx++];
       gi.dist = sumPos.z;
       gi.compliance = 0;
       gi.damping = 0;
+      gi.force = 0;
 
       return idx;
    }

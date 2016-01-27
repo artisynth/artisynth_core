@@ -52,6 +52,10 @@ public class ContactPoint {
       this();
       set (pnt, he, w1);
    }
+   
+   public Point3d getPoint() {
+      return myPoint;
+   }
 
    public Vertex3d[] getVertices() {
       return myVtxs;

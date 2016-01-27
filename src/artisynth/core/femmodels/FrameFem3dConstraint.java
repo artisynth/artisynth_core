@@ -120,6 +120,7 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       for (int i=0; i<6; i++) {
          ginfo[idx+i].compliance = 0;
          ginfo[idx+i].damping = 0;
+         ginfo[idx+i].force = 0;
       }
       ginfo[idx++].dist = myErr.v.x;
       ginfo[idx++].dist = myErr.v.y;

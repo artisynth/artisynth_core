@@ -808,6 +808,7 @@ public abstract class BodyConnector extends RenderableComponentBase
             gi.dist = bc.getDistance();
             gi.compliance = bc.getCompliance();
             gi.damping = bc.getDamping();
+            gi.force = 0;
          }
       }
       return idx;
@@ -830,6 +831,7 @@ public abstract class BodyConnector extends RenderableComponentBase
             }
             ni.compliance = uc.getCompliance();
             ni.damping = uc.getDamping();
+            ni.force = 0;
          }
       }
       return idx;

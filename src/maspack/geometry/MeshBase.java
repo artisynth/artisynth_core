@@ -186,6 +186,17 @@ public abstract class MeshBase implements Renderable, Cloneable {
    public boolean isFixed() {
       return isFixed;
    }
+
+
+   private void augmentColors (int numc) {
+      if (myColors == null) {
+         myColors = new ArrayList<float[]>(numVertices());
+      }
+      float[] defaultColor = new float[] {0.5f, 0.5f, 0.5f, 1.0f};
+      while (myColors.size() < numc) {
+         myColors.add (copyColor (defaultColor));
+      }
+   }
    
    private void augmentColors (int numc) {
       if (myColors == null) {
@@ -210,7 +221,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * Vertex coloring is disabled by any call to {@link #setColors} or {@link
     * #clearColors}.
     */
-   public void setVertexColoringEnabled () {
+   public void setVertexColoringEnabled () { 
       if (!myVertexColoringP) {
          augmentColors (numVertices());
          int[] idxs = createVertexIndices();
@@ -221,7 +232,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
          myFeatureColoringP = false;
          notifyModified();
       }
-   }
+  }
 
    /**
     * Returns <code>true</code> if vertex coloring is enabled for this

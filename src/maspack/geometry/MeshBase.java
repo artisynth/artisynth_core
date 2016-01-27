@@ -198,16 +198,6 @@ public abstract class MeshBase implements Renderable, Cloneable {
       }
    }
    
-   private void augmentColors (int numc) {
-      if (myColors == null) {
-         myColors = new ArrayList<float[]>(numVertices());
-      }
-      float[] defaultColor = new float[] {0.5f, 0.5f, 0.5f, 1.0f};
-      while (myColors.size() < numc) {
-         myColors.add (copyColor (defaultColor));
-      }
-   }
-
    /**
     * Enables vertex coloring for this mesh. This creates a default color for
     * each existing vertex, and sets the color indices to the same as those

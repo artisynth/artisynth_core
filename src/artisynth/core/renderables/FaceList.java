@@ -263,9 +263,9 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
             HalfEdge he = face.firstHalfEdge();
 
             int k = 0;
-            int faceOff = indexOffs[face.getIndex()];
             do {
                if (useVertexColouring) {
+                  int faceOff = indexOffs[face.getIndex()];
                   int cidx = colorIndices[faceOff+k];
                   if (cidx != -1) {
                      float[] color = colors.get(cidx);
@@ -413,12 +413,12 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
 
             int k = 0;
             HalfEdge he = face.firstHalfEdge();
-            int faceOff = indexOffs[i];
             do {
                Vertex3d vtx = he.head;
                Point3d pnt = vtx.myRenderPnt;
 
                if (useVertexColors) {
+                  int faceOff = indexOffs[i];
                   int cidx = colorIndices[faceOff+k];
                   if (cidx != -1) {
                      float[] color = colors.get(cidx);

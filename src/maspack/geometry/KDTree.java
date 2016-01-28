@@ -209,7 +209,7 @@ public class KDTree<T> {
     * @param pnt point to find neighbors of.
     * @param K Number of neighbors to retrieve. Can return more than K, 
     * if last nodes are equal distances.
-    * @param tol tolerence for located neighbors
+    * @param tol tolerance for located neighbors
     * @return collection of T neighbors.
     */
    public ArrayList<T> nearestNeighbourSearch(T pnt, int K, double tol) {
@@ -262,6 +262,58 @@ public class KDTree<T> {
       }
       return collection;
    }
+   
+   /**
+    * Nearest Neighbour search
+    *
+    * @param pnt point to find neighbors of.
+    * @return nearest point
+    */
+   public T nearestNeighbourSearch(T pnt, double tol) {
+      
+      if (pnt == null) {
+         return null;
+      }
+
+      //Map used for results
+      TreeSet<KDNode<T>> results = new TreeSet<KDNode<T>>(
+         new KDistanceComparator<T>(comparator, pnt));
+
+      //Find the closest leaf node
+      KDNode<T> prev = null;
+      KDNode<T> node = root;
+      while ( node != null) {
+         if (node.compareTo(pnt, comparator) <= 0) {
+            // right
+            prev = node;
+            node = node.right;
+         } else {
+            // left
+            prev = node;
+            node = node.left;
+         }
+      }
+      KDNode<T> leaf = prev; // last non-null
+      prev = null;
+
+      if (leaf != null) {
+         
+         //prevent re-examining nodes
+         HashSet<KDNode<T>> examined = new HashSet<KDNode<T>>();
+
+         //Travel up the tree, looking for better solutions
+         node = leaf;
+         while (node != null) {
+            
+            //Search node
+            searchNode(pnt, node, prev, 1, results, examined, tol);
+            prev = node;
+            node = node.parent;
+         }
+      }
+
+      return results.pollFirst().element;
+   }
 
    private void searchNode(T value, KDNode<T> node, KDNode<T> prev, int K, 
       TreeSet<KDNode<T>> results, HashSet<KDNode<T>> examined, double tol) {
@@ -278,7 +330,7 @@ public class KDTree<T> {
       double nodeDistance = comparator.distance(node.element, value);
       node.distance = nodeDistance; // store distance instead of recomputing
       
-      if (nodeDistance - lastDistance < - tol) {
+      if (lastDistance - nodeDistance > tol) {
          
          results.add(node);
          // we may need to remove a whole bunch of stuff

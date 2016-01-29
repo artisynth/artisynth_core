@@ -11,9 +11,6 @@ import java.awt.Rectangle;
 import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
-import java.awt.event.MouseWheelListener;
-
-import javax.swing.event.MouseInputListener;
 
 import maspack.render.Dragger3d.DragMode;
 
@@ -42,6 +39,9 @@ public class GLMouseAdapter implements GLMouseListener {
    private int dragStartX;
    private int dragStartY;
 
+   private static boolean defaultVisibleSelectionOnly = false;
+   private boolean visibleSelectionOnly = defaultVisibleSelectionOnly;
+   
    double myWheelZoomScale = 10.0;
    
    private int multipleSelectionMask = (InputEvent.CTRL_DOWN_MASK);
@@ -82,7 +82,7 @@ public class GLMouseAdapter implements GLMouseListener {
       viewer.selectionEvent = selEvent;
 
       double x, y, w, h; // delimits the pick region (with x, y at the center)
-      boolean ignoreDepthTest;
+      boolean ignoreDepthTest = false;
       Rectangle dragBox = viewer.getDragBox();
       if (dragBox != null) {
          x = dragBox.x + dragBox.width/2.0;
@@ -90,7 +90,9 @@ public class GLMouseAdapter implements GLMouseListener {
          w = dragBox.width;
          h = dragBox.height;
          mode |= GLSelectionEvent.DRAG;
-         ignoreDepthTest = true;
+         if (!visibleSelectionOnly) {
+            ignoreDepthTest = true;
+         }
       }
       else {
          x = e.getX();
@@ -636,6 +638,16 @@ public class GLMouseAdapter implements GLMouseListener {
    
    public int getDraggerDragMask() {
       return draggerDragMask;
+   }
+
+   @Override
+   public void setSelectVisibleOnly(boolean set) {
+      visibleSelectionOnly = set;
+   }
+
+   @Override
+   public boolean isSelectVisibleOnly() {
+      return visibleSelectionOnly;
    }
 
 }

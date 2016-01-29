@@ -622,6 +622,7 @@ public class FemDisplayProbe extends CutPlaneProbe {
       createVtxMap();
       lastDraggerType = getDragger();
       myPlaneSurface.setFixed(false);
+      myPlaneSurface.setColorsFixed(false);
       myPlaneSurface.setVertexColoringEnabled();
       super.setDragger(DraggerType.None);
 

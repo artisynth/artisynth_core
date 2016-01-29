@@ -226,6 +226,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
    protected Material myFaceMaterial = null;
    protected Material myBackMaterial = null;
+   protected Material myEdgeMaterial = null;
    protected Material myLineMaterial = null;
    protected Material myPointMaterial = null;
 
@@ -797,6 +798,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          myAlpha = a;
          updateMaterial(myFaceMaterial, myFaceColor, a, myShininess, myAmbience);
          updateMaterial(myBackMaterial, myBackColor, a, myShininess, myAmbience);
+         updateMaterial(myEdgeMaterial, myEdgeColor, a, myShininess, myAmbience);
          updateMaterial(myLineMaterial, myLineColor, a, myShininess, myAmbience);
          updateMaterial(myPointMaterial, myPointColor, a, myShininess, myAmbience);
          return true;
@@ -876,6 +878,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          myShininess = s;
          updateMaterial(myFaceMaterial, myFaceColor, myAlpha, myShininess, myAmbience);
          updateMaterial(myBackMaterial, myBackColor, myAlpha, myShininess, myAmbience);
+         updateMaterial(myEdgeMaterial, myEdgeColor, myAlpha, myShininess, myAmbience);
          updateMaterial(myLineMaterial, myLineColor, myAlpha, myShininess, myAmbience);
          updateMaterial(myPointMaterial, myPointColor, myAlpha, myShininess, myAmbience);
          return true;
@@ -912,6 +915,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          myAmbience = a;
          updateMaterial(myFaceMaterial, myFaceColor, myAlpha, myShininess, myAmbience);
          updateMaterial(myBackMaterial, myBackColor, myAlpha, myShininess, myAmbience);
+         updateMaterial(myEdgeMaterial, myEdgeColor, myAlpha, myShininess, myAmbience);
          updateMaterial(myLineMaterial, myLineColor, myAlpha, myShininess, myAmbience);
          updateMaterial(myPointMaterial, myPointColor, myAlpha, myShininess, myAmbience);
          return true;
@@ -1161,29 +1165,76 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       return myEdgeColor;
    }
 
-   private void doSetEdgeColor (Color color) {
+   protected boolean doSetEdgeColor (Color color) {
+      boolean changed = false;
       if (color == null) {
-         myEdgeColor = null;
-      }
-      else {
-         myEdgeColor = color.getRGBColorComponents (null);
-      }
-   }
-
-   private void doSetEdgeColor (float[] rgb) {
-      if (rgb == null) {
-         myEdgeColor = null;
+         if (myEdgeColor != null) {
+            myEdgeColor = null;
+            changed = true;
+         }
       }
       else {
          if (myEdgeColor == null) {
             myEdgeColor = new float[3];
+            doSetColor (myEdgeColor, color);
+            changed = true;
          }
-         doSetColor (myEdgeColor, rgb);
+         else {
+            changed = doSetColor (myEdgeColor, color);
+         }
       }
+      return changed;
    }
 
+   protected boolean doSetEdgeColor (float[] color) {
+      boolean changed = false;
+      if (color == null) {
+         if (myEdgeColor != null) {
+            myEdgeColor = null;
+            changed = true;
+         }
+      }
+      else {
+         if (myEdgeColor == null) {
+            myEdgeColor = new float[3];
+            doSetColor (myEdgeColor, color);
+            changed = true;
+         }
+         else {
+            changed = doSetColor (myEdgeColor, color);
+         }
+      }
+      return changed;
+   }
+
+   // private void doSetEdgeColor (Color color) {
+   //    if (color == null) {
+   //       myEdgeColor = null;
+   //    }
+   //    else {
+   //       myEdgeColor = color.getRGBColorComponents (null);
+   //    }
+   // }
+
+   // private void doSetEdgeColor (float[] rgb) {
+   //    if (rgb == null) {
+   //       myEdgeColor = null;
+   //    }
+   //    else {
+   //       if (myEdgeColor == null) {
+   //          myEdgeColor = new float[3];
+   //       }
+   //       doSetColor (myEdgeColor, rgb);
+   //    }
+   // }
+
    public void setEdgeColor (Color color) {
-      doSetEdgeColor (color);
+      if (doSetEdgeColor (color)) {
+         if (color != null) {
+            updateMaterial (
+               myEdgeMaterial, color, myAlpha, myShininess, myAmbience);
+         }
+      }
       myEdgeColorMode =
          PropertyUtils.propagateValue (
             this, "edgeColor", color, myEdgeColorMode);
@@ -1298,7 +1349,8 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    public void setBackColor (Color color) {
       if (doSetBackColor (color)) {
          if (color != null) {
-            updateMaterial(myBackMaterial, color, myAlpha, myShininess, myAmbience);
+            updateMaterial (
+               myBackMaterial, color, myAlpha, myShininess, myAmbience);
          }
       }
       myBackColorMode =
@@ -1939,6 +1991,17 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       return myBackMaterial;
    }
 
+   public Material getEdgeMaterial() {
+      if (myEdgeMaterial == null && myEdgeColor != null) {
+         myEdgeMaterial =
+            Material.createDiffuse (myEdgeColor, myAlpha, myShininess);
+         myEdgeMaterial.setAmbienceCoefficient(myAmbience);
+      } else if (myEdgeColor == null) {
+         return null;
+      }
+      return myEdgeMaterial;
+   }
+
    public Material getLineMaterial() {
       if (myLineMaterial == null) {
          myLineMaterial =
@@ -2035,12 +2098,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myLineSlices = defaultLineSlices;
       myDrawEdgesP = defaultDrawEdgesP;
       myEdgeWidth = defaultEdgeWidth;
-      if (defaultEdgeColor == null) {
-         myEdgeColor = null;
-      }
-      else {
-         doSetEdgeColor (defaultEdgeColor);
-      }
+      doSetEdgeColor (defaultEdgeColor);
       myFaceStyle = defaultFaceStyle;
       if (myLineColor == null) {
          myLineColor = new float[3];
@@ -2055,6 +2113,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
       myFaceMaterial = null;
       myBackMaterial = null;
+      myEdgeMaterial = null;
       myLineMaterial = null;
       myPointMaterial = null;
    }
@@ -2093,11 +2152,11 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myDrawEdgesMode = r.myDrawEdgesMode;
       myEdgeWidth = r.myEdgeWidth;
       myEdgeWidthMode = r.myEdgeWidthMode;
-      if (r.myEdgeColor == null) {
-         myEdgeColor = null;
-      }
-      else {
-         doSetEdgeColor (r.myEdgeColor);
+      if (r.myEdgeMaterial == null) {
+         doSetEdgeColor (r.myEdgeColor);  
+         myEdgeMaterial = null;
+      } else {
+         setEdgeMaterial(r.myEdgeMaterial);
       }
       myEdgeColorMode = r.myEdgeColorMode;
       myTexturePropsInactive = r.myTexturePropsInactive;
@@ -2160,6 +2219,19 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
             myBackMaterial = new Material(mat);
          }
          doSetBackColor(myBackMaterial.getDiffuse());
+      }
+   }
+
+   public void setEdgeMaterial(Material mat) {
+      if (mat == null) {
+         myEdgeMaterial = null;
+      } else {
+         if (myEdgeMaterial != null) {
+            myEdgeMaterial.set(mat);
+         } else {
+            myEdgeMaterial = new Material(mat);
+         }
+         doSetEdgeColor(myEdgeMaterial.getDiffuse());
       }
    }
 
@@ -2323,6 +2395,9 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          }
          else if (myEdgeColor != null &&
                   !ArraySupport.equals (myEdgeColor, r.myEdgeColor)) {
+            return false;
+         }
+         else if (!materialsEqual (myEdgeMaterial, r.myEdgeMaterial)) {
             return false;
          }
       }
@@ -2594,21 +2669,23 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       buf.append ("FaceStyle=" + myFaceStyle + " " + myFaceStyleMode + ", ");
       buf.append ("FaceColor=" + colorString (myFaceColor) + " " +
          myFaceColorMode + ", ");
-      buf.append("FaceMaterial=" + myFaceMaterial + " " +
+      buf.append ("FaceMaterial=" + myFaceMaterial + " " +
          myFaceColorMode);
       buf.append ("BackColor=" + colorString (myBackColor) + " " +
          myBackColorMode + ", ");
-      buf.append("BackMaterial=" + myBackMaterial + " " +
+      buf.append ("BackMaterial=" + myBackMaterial + " " +
          myBackColorMode);
       buf.append ("DrawEdges=" + myDrawEdgesP + " " + myDrawEdgesMode + ", ");
       buf.append ("EdgeWidth=" + myEdgeWidth + " " + myEdgeWidthMode + ", ");
       buf.append ("EdgeColor=" + colorString (myEdgeColor) + " " +
          myEdgeColorMode + ", ");
+      buf.append ("EdgeMaterial=" + myEdgeMaterial + " " +
+         myEdgeColorMode);
       buf.append ("TextureProps=" + myTextureProps + ", ");
       buf.append ("LineStyle=" + myLineStyle + " " + myLineStyleMode + ", ");
       buf.append ("LineColor=" + colorString (myLineColor) + " " +
          myLineColorMode + ", ");
-      buf.append("LineMaterial=" + myLineMaterial + " " +
+      buf.append ("LineMaterial=" + myLineMaterial + " " +
          myLineColorMode);
       buf.append ("LineWidth=" + myLineWidth + " " + myLineWidthMode + ", ");
       buf.append ("LineRadius=" + myLineRadius + " " +
@@ -2652,6 +2729,9 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       }
       if (props.myEdgeColor != null) {
          props.myEdgeColor = new float[3];
+      }
+      if (props.myEdgeMaterial != null) {
+         props.myEdgeMaterial = new Material();
       }
       
       props.myFaceColor = new float[3];

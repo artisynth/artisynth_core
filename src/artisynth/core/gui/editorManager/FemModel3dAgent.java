@@ -1298,6 +1298,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
          mesh.setRenderProps (mesh.createRenderProps());
          mesh.setMeshToWorld (RigidTransform3d.IDENTITY);
          mesh.setFixed (false);
+         mesh.setColorsFixed (false);
          
          
          RigidTransform3d rigidX = new RigidTransform3d();

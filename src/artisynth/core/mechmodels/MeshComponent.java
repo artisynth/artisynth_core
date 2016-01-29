@@ -162,10 +162,10 @@ public class MeshComponent extends RenderableComponentBase
    public void prerender(RenderList list) {
       MeshBase mesh = getMesh();
       if (mesh != null) {
-         mesh.saveRenderInfo(myRenderProps);
          if (!mesh.isFixed()) {
             mesh.notifyVertexPositionsModified();
          }
+         mesh.prerender (myRenderProps);
       }
    }
 

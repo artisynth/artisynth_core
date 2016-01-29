@@ -133,7 +133,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
     */
    public void notifyVertexPositionsModified() {
       invalidateBoundingInfo();
-      notifyModified();
+      if (isFixed()) {
+         notifyModified();
+      }
       myAutoNormalsValidP = false;
    }
    
@@ -1143,7 +1145,11 @@ public abstract class MeshBase implements Renderable, Cloneable {
    }
 
    public void prerender (RenderList list) {
-      saveRenderInfo (myRenderProps);
+      prerender (myRenderProps);
+   }
+   
+   public void prerender (RenderProps props) {
+      saveRenderInfo (myRenderProps);      
    }
 
    protected int[] copyWithOffset (int[] idxs, int off) {
@@ -1299,6 +1305,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
          mesh.myRenderProps = null;
       }
       mesh.setFixed (isFixed());
+      mesh.setColorsFixed (isColorsFixed());
       mesh.setRenderBuffered (isRenderBuffered());
 
       mesh.myLocalMinCoords = new Point3d();
@@ -1747,8 +1754,10 @@ public abstract class MeshBase implements Renderable, Cloneable {
          }
          else if (!myAutoNormalsValidP) {
             autoUpdateNormals();
-            myAutoNormalsValidP = true;    
-            notifyModified();                         
+            myAutoNormalsValidP = true; 
+            if (isFixed()) {
+               notifyModified();                         
+            }
          }
       }
       return myNormals;         
@@ -1818,7 +1827,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
          throw new IndexOutOfBoundsException ("No normals defined for this mesh");
       }
       normals.get(idx).set(nrml);
-      notifyModified();              
+      if (isFixed()) {
+         notifyModified();              
+      }
    }
 
    /**
@@ -2069,7 +2080,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
       else {
          mycolor[3] = 1f;
       }
-      notifyModified();                    
+      if (isColorsFixed()) {
+         notifyModified();                    
+      }
    }
 
    /**
@@ -2086,7 +2099,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
       }
       float[] mycolor = myColors.get(idx);
       color.getRGBComponents (mycolor);
-      notifyModified();              
+      if (isColorsFixed()) {
+         notifyModified();                    
+      }
    }
 
    /**
@@ -2109,7 +2124,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
       mycolor[1] = g;
       mycolor[2] = b;
       mycolor[3] = a;
-      notifyModified();              
+      if (isColorsFixed()) {
+         notifyModified();                    
+      }
    }
 
    /**
@@ -2132,7 +2149,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
       mycolor[1] = (float)g;
       mycolor[2] = (float)b;
       mycolor[3] = (float)a;
-      notifyModified();              
+      if (isColorsFixed()) {
+         notifyModified();                    
+      }
    }
    
    /**

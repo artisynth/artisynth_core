@@ -48,7 +48,7 @@ import maspack.properties.HasProperties;
 import maspack.render.Renderer;
 import maspack.render.Material;
 import maspack.render.RenderProps;
-import maspack.render.GL.GL2.PolygonalMeshRenderer;
+//import maspack.render.GL.GL2.PolygonalMeshRenderer;
 import maspack.util.InternalErrorException;
 import maspack.util.ListIndexComparator;
 import maspack.util.NumberFormat;
@@ -168,7 +168,9 @@ public class PolygonalMesh extends MeshBase {
             myFaces.get (i).computeRenderNormal();
          }
          myRenderNormalsValid = true;
-         notifyModified();
+         if (isFixed()) {
+            notifyModified();
+         }
       }
    }
 
@@ -1463,6 +1465,14 @@ public class PolygonalMesh extends MeshBase {
       myFaces.clear();
       myNumTriangles = myNumQuads = 0;
       myTriQuadCountsValid = true;
+   }
+   
+   public void prerender (RenderProps props) {
+      super.prerender (props);
+      if (myMeshRenderer == null) {
+         myMeshRenderer = new PolygonalMeshRenderer();
+      }
+      myMeshRenderer.prerender (this, props);
    }
 
    public void render (Renderer renderer, RenderProps props, int flags) {

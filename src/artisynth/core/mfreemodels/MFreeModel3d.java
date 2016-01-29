@@ -1046,6 +1046,7 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
       //         }
       //      }
       mesh.setFixed(false);
+      mesh.setColorsFixed(false);
       
       return mc;
    }

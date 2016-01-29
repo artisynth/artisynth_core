@@ -20,7 +20,6 @@ import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
 import maspack.render.Renderer;
 import maspack.render.RenderProps;
-import maspack.render.GL.GL2.PolylineMeshRenderer;
 import maspack.util.ArraySupport;
 import maspack.util.FunctionTimer;
 import maspack.util.NumberFormat;
@@ -359,24 +358,21 @@ public class PolylineMesh extends MeshBase {
    }
 
    FunctionTimer timer = new FunctionTimer();
+   
+   public void prerender (RenderProps props) {
+      super.prerender (props);
+      if (myMeshRenderer == null) {
+         myMeshRenderer = new PolylineMeshRenderer();
+      }
+      myMeshRenderer.prerender (this, props);
+   }
 
    public void render(Renderer renderer, RenderProps props, int flags) {
 
       if (myMeshRenderer == null) {
          myMeshRenderer = new PolylineMeshRenderer();
       }
-      
-      switch (props.getLineStyle()) {
-         case CYLINDER:
-            myMeshRenderer.renderCylinders(renderer, this, props, flags);
-            break;
-         case LINE:
-         case ELLIPSOID:
-         case SOLID_ARROW:
-            myMeshRenderer.renderLines(renderer, this, props, flags);
-            break;
-      }
-
+      myMeshRenderer.render (renderer, this, props, flags);      
    }
    
    /** 

@@ -364,7 +364,7 @@ public class MeshInfo {
  
    public void prerender (RenderProps props) {
       if (myMesh != null) {
-         myMesh.saveRenderInfo(props);
+         myMesh.prerender (props);
       }
    }
 

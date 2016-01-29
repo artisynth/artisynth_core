@@ -2016,6 +2016,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
 
+   @Override
+   public Faces getFaceMode () {
+      return myViewerState.faceMode;
+   }
+
    public abstract void setDefaultFaceMode();
 
    public void setSelectionEnabled (boolean selection) {

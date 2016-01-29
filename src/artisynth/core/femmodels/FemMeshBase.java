@@ -112,6 +112,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
       PolygonalMesh mesh = new PolygonalMesh();
       doSetMesh (mesh, null, null);
       mesh.setFixed (false);
+      mesh.setColorsFixed (false);
    }
 
    /** 
@@ -127,6 +128,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
       MeshBase mesh = getMesh();
       if (mesh != null) {
          mesh.setFixed (false);
+         mesh.setColorsFixed (false);
       }
    }
 

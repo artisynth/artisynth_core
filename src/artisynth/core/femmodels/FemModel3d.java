@@ -2630,6 +2630,7 @@ public class FemModel3d extends FemModel
    
    public FemMeshComp addMesh(String name, MeshBase mesh) {
       mesh.setFixed(false);
+      mesh.setColorsFixed(false);
       FemMeshComp surf = FemMeshComp.createEmbedded(this, mesh);
       surf.setName(name);
       surf.setCollidable (Collidability.INTERNAL);

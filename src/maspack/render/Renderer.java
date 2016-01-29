@@ -242,6 +242,8 @@ public interface Renderer {
 
    public void setFaceMode (RenderProps.Faces mode);
 
+   public RenderProps.Faces getFaceMode ();
+
    public void setDefaultFaceMode();
 
    public void mulTransform (AffineTransform3d X);

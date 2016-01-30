@@ -198,6 +198,29 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       return mat;
    }
 
+   /**
+    * Draws the edges associated with this mesh. Edge drawing is done using
+    * edgeWidth and edgeColor (or LineColor if edgeColor is undefined), according
+    * to the following rules:
+    *
+    * <p>If faces <i>are not</i> also being drawn and there <i>is no</i> vertex
+    * coloring, then edges should be rendered with whatever shading is
+    * selected, and should highlight when selected;
+    *
+    * <p>If faces <i>are</i> also being drawn and there <i>is no</i> vertex
+    * coloring, then (a) edges should not highlight when selected (the faces
+    * will instead), and (b) edges should be rendered with whatever shading is
+    * selected, <i>unless</i> the edge color is the same as the face color, in
+    * which case shading is turned off so that the edges can be seen.
+    *
+    * <p>If faces <i>are not</i> also being drawn and there <i>is</i> vertex
+    * coloring, then edges should render using the vertex coloring, with
+    * whatever shading is selected, and not highlight when selected.
+    *
+    * <p>If faces <i>are</i> also being drawn and there <i>is</i> vertex
+    * coloring, then edges should render using the edge color, with whatever
+    * shading is selected, and should highlight when selected.
+    */
    private void drawEdges (
       Renderer renderer, PolygonalMesh mesh,
       RenderProps props, int flags, boolean drawingFaces) {
@@ -325,7 +348,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
 
       //int i = 0; // i is index of face
       if (useHSV) {
-         //renderer.setColorInterpolation (ColorInterpolation.HSV);
+         renderer.setColorInterpolation (ColorInterpolation.HSV);
       }
 
 

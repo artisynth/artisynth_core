@@ -947,15 +947,15 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    }
 
 
-   public void mulTransform (RigidTransform3d X) {
-      GLSupport.transformToGLMatrix (GLMatrix, X);
-      getGL2().glMultMatrixd (GLMatrix, 0);
-   }
-
-   public void mulTransform (AffineTransform3d X) {
-      GLSupport.transformToGLMatrix (GLMatrix, X);
-      getGL2().glMultMatrixd (GLMatrix, 0);
-   }
+   //   public void mulTransform (RigidTransform3d X) {
+   //      GLSupport.transformToGLMatrix (GLMatrix, X);
+   //      getGL2().glMultMatrixd (GLMatrix, 0);
+   //   }
+   //
+   //   public void mulTransform (AffineTransform3d X) {
+   //      GLSupport.transformToGLMatrix (GLMatrix, X);
+   //      getGL2().glMultMatrixd (GLMatrix, 0);
+   //   }
 
    //   public void getModelViewMatrix (Matrix4d X) {
    //      getGL2().glGetDoublev (GL2.GL_MODELVIEW_MATRIX, GLMatrix, 0);

@@ -101,6 +101,10 @@ public class CollisionHandler extends ConstrainerBase
       myLastContactInfo = info;
    }
 
+   public ContactInfo getLastContactInfo() {
+      return myLastContactInfo;
+   }
+
    /**
     * Returns the coefficient of friction for this collision pair.
     */

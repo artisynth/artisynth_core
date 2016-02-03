@@ -76,6 +76,8 @@ public class HexBeam3d extends FemBeam3d {
 
       LinearMaterial lmat = new LinearMaterial (100000, 0.33);
       myFemMod.setMaterial (lmat);
+      
+      RenderProps.setLineColor (myFemMod.getElements().get(12), Color.RED);
 
       // FemMarker mkr = new FemMarker(1, 0, 0);
       // RenderProps.setSphericalPoints (mkr, 0.05, Color.RED);

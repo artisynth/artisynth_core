@@ -19,6 +19,7 @@ public class QuadhexElement extends FemElement3d {
 
    private static IntegrationPoint3d[] myDefaultIntegrationPoints = null;
    private static IntegrationPoint3d myWarpingPoint;
+   private static FemElementRenderer myRenderer;
    private static Matrix4d myPressureWeightMatrix;
 
    public IntegrationPoint3d[] getIntegrationPoints() {
@@ -556,6 +557,13 @@ public class QuadhexElement extends FemElement3d {
 
    public int[] getFaceIndices() {
       return myFaceIdxs;
+   }
+
+   public void render(Renderer renderer, RenderProps props, int flags) {
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.render (renderer, this, props);
    }
 
    public void renderWidget (

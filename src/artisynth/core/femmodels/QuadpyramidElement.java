@@ -17,6 +17,7 @@ public class QuadpyramidElement extends FemElement3d {
 
    private static IntegrationPoint3d[] myDefaultIntegrationPoints;
    private static IntegrationPoint3d myWarpingPoint;
+   private static FemElementRenderer myRenderer;
 
    static final int NUM_NODES = 13;
 
@@ -315,6 +316,13 @@ public class QuadpyramidElement extends FemElement3d {
 
    public int[] getFaceIndices() {
       return myFaceIdxs;
+   }
+
+   public void render(Renderer renderer, RenderProps props, int flags) {
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.render (renderer, this, props);
    }
 
    public void renderWidget (

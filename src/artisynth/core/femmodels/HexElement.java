@@ -35,6 +35,7 @@ public class HexElement extends FemElement3d {
    private static double[] myDefaultIntegrationCoords;
    
    private static IntegrationPoint3d myWarpingPoint;
+   private static FemElementRenderer myRenderer;
    
    private IntegrationPoint3d[] myIntegrationPoints = null;
    private boolean myIPointsMapToNodes = true;
@@ -398,6 +399,38 @@ public class HexElement extends FemElement3d {
 //          nodesRestPos[i] = new Vector3d (myNodes[i].getPosition());
 //       }
    }
+
+   public void render(Renderer renderer, RenderProps props, int flags) {
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.render (renderer, this, props);
+
+      // if (props.getLineWidth() > 0) {
+      //    switch (rprops.getLineStyle()) {
+      //       case LINE: {
+      //          renderer.setLightingEnabled (false);
+      //          renderer.setLineWidth (rprops.getLineWidth());
+      //          renderer.setColor (
+      //             rprops.getLineColorArray(), isSelected());
+      //          renderEdges (renderer, rprops);
+      //          renderer.setLineWidth (1);
+      //          renderer.setLightingEnabled (true);
+      //          break;
+      //       }
+      //       case CYLINDER: {
+      //          renderer.setMaterialAndShading (
+      //             rprops, myRenderProps.getLineMaterial(), isSelected());
+      //          renderEdges (renderer,rprops);
+      //          renderer.restoreShading (rprops);
+      //          break;
+      //       }
+      //       default:
+      //          break;
+      //    }
+      // }
+   }
+
 
    public void renderWidget (
       Renderer renderer, double size, RenderProps props) {

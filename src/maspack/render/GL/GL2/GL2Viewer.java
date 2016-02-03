@@ -2152,57 +2152,57 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    }
 
-   public void setFaceMode (RenderProps.Faces mode) {
-      switch (mode) {
-         case FRONT_AND_BACK: {
-            gl.glDisable (GL2.GL_CULL_FACE);
-            break;
-         }
-         case FRONT: {
-            gl.glEnable (GL2.GL_CULL_FACE);
-            gl.glCullFace (GL2.GL_BACK);
-            break;
-         }
-         case BACK: {
-            gl.glEnable (GL2.GL_CULL_FACE);
-            gl.glCullFace (GL2.GL_FRONT);
-            break;
-         }
-         case NONE: {
-            gl.glEnable (GL2.GL_CULL_FACE);
-            gl.glCullFace (GL2.GL_FRONT_AND_BACK);
-            break;
-         }
-      }
-   }
-
-   public RenderProps.Faces getFaceMode() {
-
-      byte[] cullFaceEnabled = new byte[1];
-      int[] cullFaceMode = new int[1];
-
-      gl.glGetBooleanv (GL2.GL_CULL_FACE, cullFaceEnabled, 0);
-      gl.glGetIntegerv (GL2.GL_CULL_FACE_MODE, cullFaceMode, 0);
-      if (cullFaceEnabled[0] == 0) {
-         return RenderProps.Faces.FRONT_AND_BACK;
-      }
-      else {
-         switch (cullFaceMode[0]) {
-            case GL2.GL_BACK: {
-               return RenderProps.Faces.BACK;
-            }
-            case GL2.GL_FRONT: {
-               return RenderProps.Faces.FRONT;
-            }
-            case GL2.GL_FRONT_AND_BACK: {
-               return RenderProps.Faces.FRONT_AND_BACK;
-            }
-            default:
-               throw new InternalErrorException (
-                  "Unknown cullFaceMode: " + cullFaceMode[0]);
-         }
-      }
-   }
+//   public void setFaceMode (RenderProps.Faces mode) {
+//      switch (mode) {
+//         case FRONT_AND_BACK: {
+//            gl.glDisable (GL2.GL_CULL_FACE);
+//            break;
+//         }
+//         case FRONT: {
+//            gl.glEnable (GL2.GL_CULL_FACE);
+//            gl.glCullFace (GL2.GL_BACK);
+//            break;
+//         }
+//         case BACK: {
+//            gl.glEnable (GL2.GL_CULL_FACE);
+//            gl.glCullFace (GL2.GL_FRONT);
+//            break;
+//         }
+//         case NONE: {
+//            gl.glEnable (GL2.GL_CULL_FACE);
+//            gl.glCullFace (GL2.GL_FRONT_AND_BACK);
+//            break;
+//         }
+//      }
+//   }
+//
+//   public RenderProps.Faces getFaceMode() {
+//
+//      byte[] cullFaceEnabled = new byte[1];
+//      int[] cullFaceMode = new int[1];
+//
+//      gl.glGetBooleanv (GL2.GL_CULL_FACE, cullFaceEnabled, 0);
+//      gl.glGetIntegerv (GL2.GL_CULL_FACE_MODE, cullFaceMode, 0);
+//      if (cullFaceEnabled[0] == 0) {
+//         return RenderProps.Faces.FRONT_AND_BACK;
+//      }
+//      else {
+//         switch (cullFaceMode[0]) {
+//            case GL2.GL_BACK: {
+//               return RenderProps.Faces.BACK;
+//            }
+//            case GL2.GL_FRONT: {
+//               return RenderProps.Faces.FRONT;
+//            }
+//            case GL2.GL_FRONT_AND_BACK: {
+//               return RenderProps.Faces.FRONT_AND_BACK;
+//            }
+//            default:
+//               throw new InternalErrorException (
+//                  "Unknown cullFaceMode: " + cullFaceMode[0]);
+//         }
+//      }
+//   }
 
    public void setDefaultFaceMode() {
       gl.glEnable (GL2.GL_CULL_FACE);

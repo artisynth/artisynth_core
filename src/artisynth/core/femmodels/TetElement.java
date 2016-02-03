@@ -23,11 +23,10 @@ import java.io.*;
  */
 public class TetElement extends FemElement3d {
 
-   
-
    //   private StiffnessWarper3d myWarper = null;
 
    private static IntegrationPoint3d[] myDefaultIntegrationPoints;
+   private static FemElementRenderer myRenderer;
 
    public IntegrationPoint3d[] getIntegrationPoints() {
       if (myDefaultIntegrationPoints == null) {
@@ -283,6 +282,13 @@ public class TetElement extends FemElement3d {
 
    public int[] getFaceIndices() {
       return myFaceIdxs;
+   }
+
+   public void render(Renderer renderer, RenderProps props, int flags) {
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.render (renderer, this, props);
    }
 
    public void renderWidget (

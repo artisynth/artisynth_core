@@ -1341,7 +1341,8 @@ public abstract class FemElement3d extends FemElement
       ipnt.computeCoordsForRender (coords, getNodes());
    }
 
-   public void render(Renderer renderer, RenderProps rprops, int flags) {
+   public void render (Renderer renderer, RenderProps rprops, int flags) {
+      System.out.println ("render " + getNumber());
       super.render (renderer, rprops, flags);
       if (myElementWidgetSize > 0) {         
          maspack.render.Material mat = rprops.getFaceMaterial();
@@ -1417,7 +1418,7 @@ public abstract class FemElement3d extends FemElement
    static int numEdgeSegs = 10;
 
    /**
-    * Draw the edge of a quadrayic element by interpolating the shape functions
+    * Draw the edge of a quadratic element by interpolating the shape functions
     * of three nodes (indicated by the indices <code>i0</code>,
     * <code>i1</code>, and <code>i2</code>) between the set of natural
     * coordinates indicated by <code>ncoords</code> and <code>ncoords1</code>.

@@ -59,8 +59,18 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       return new PolygonalRobSignature ((PolygonalMesh)mesh, props);
    }
 
+   protected void updateFaceNormals (PolygonalMesh mesh) {
+      if (mesh.isRenderBuffered() && !mesh.isFixed()) {
+         mesh.updateRenderNormals();
+      }
+      else {
+         mesh.updateFaceNormals();
+      }
+   }
+
    protected void addFaceNormals (RenderObject r, PolygonalMesh mesh) {
       boolean useRenderData = mesh.isRenderBuffered() && !mesh.isFixed();
+      updateFaceNormals (mesh);
       ArrayList<Face> faces = mesh.getFaces();
       for (int i=0; i<faces.size(); i++) {
          Vector3d nrm;
@@ -79,6 +89,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
 
    protected void updateFaceNormals (RenderObject r, PolygonalMesh mesh) {
       boolean useRenderData = mesh.isRenderBuffered() && !mesh.isFixed();
+      updateFaceNormals (mesh);
       ArrayList<Face> faces = mesh.getFaces();
       for (int i=0; i<faces.size(); i++) {
          Vector3d nrm;
@@ -368,7 +379,6 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          // turn off special HSV interpolating shader
          renderer.setColorInterpolation (ColorInterpolation.RGB);
       }
-
       renderer.setFaceMode (savedFaceMode);
       renderer.setShadeModel (savedShadeModel);
       renderer.setLightingEnabled (savedLighting);
@@ -433,7 +443,6 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       //       //renderer.setTransparencyEnabled (saveTransparencyEnabled);
       //    }
       // }
-
       renderer.popModelMatrix();
    }
    

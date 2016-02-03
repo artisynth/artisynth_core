@@ -186,11 +186,14 @@ public interface Renderer {
    public void drawCylinder (
       RenderProps props, float[] coords0, float[] coords1, boolean capped);
    
+   // not used
    public void drawCone (RenderProps props, float[] coords0, float[] coords1);
 
+   // not used
    public void drawCone (
       RenderProps props, float[] coords0, float[] coords1, boolean capped);
 
+   
    public void drawLine (
       RenderProps props, float[] coords0, float[] coords1, boolean selected);
 
@@ -208,6 +211,7 @@ public interface Renderer {
    public void drawSolidArrow (
       RenderProps props, float[] coords0, float[] coords1);
 
+   // should probably remove
    public void drawArrow (
       RenderProps props, float[] coords0, float[] coords1, boolean capped,
       boolean selected);
@@ -297,6 +301,10 @@ public interface Renderer {
    public void removeSharedObject(Object key);
    
    public void pushModelMatrix();
+   
+   public void translateModelMatrix (double tx, double ty, double tz);
+   
+   public void scaleModelMatrix (double s);
    
    public boolean popModelMatrix();
    

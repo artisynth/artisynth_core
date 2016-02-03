@@ -25,6 +25,7 @@ public class WedgeElement extends FemElement3d {
 
    private static IntegrationPoint3d[] myDefaultIntegrationPoints;
    private static IntegrationPoint3d myWarpingPoint;
+   private static FemElementRenderer myRenderer;
 
    /**
     * {@inheritDoc}
@@ -198,6 +199,13 @@ public class WedgeElement extends FemElement3d {
          throw new IllegalArgumentException ("nodes must have length 6");
       }
       myNodes = nodes.clone();
+   }
+
+   public void render(Renderer renderer, RenderProps props, int flags) {
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.render (renderer, this, props);
    }
 
    public void renderWidget (

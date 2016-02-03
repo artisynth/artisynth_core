@@ -3,6 +3,7 @@ package artisynth.core.femmodels;
 import maspack.util.*;
 import maspack.matrix.*;
 import maspack.render.*;
+import maspack.render.RenderProps.Shading;
 
 public class FemElementRenderer {
 
@@ -94,6 +95,7 @@ public class FemElementRenderer {
          nrm[1] = ny;
          nrm[2] = nz;
       }
+      r.notifyNormalsModified();
    }
 
    void updateNormals (RenderObject r, FemElement3d elem) {
@@ -113,6 +115,13 @@ public class FemElementRenderer {
       renderer.drawLines (r);
       renderer.setLineWidth (1);
       renderer.setLightingEnabled (true);
+      
+      Shading shading = props.getShading ();
+      boolean restoreLighting = false;
+      if (shading == Shading.NONE) {
+         renderer.setLightingEnabled (false);
+         restoreLighting = true;
+      }
 
       double s = elem.getElementWidgetSize();
       if (s > 0) {
@@ -152,6 +161,10 @@ public class FemElementRenderer {
          else {
             renderer.drawTriangles (r);
          }
+      }
+      
+      if (restoreLighting) {
+         renderer.setLightingEnabled (true);
       }
    }
 

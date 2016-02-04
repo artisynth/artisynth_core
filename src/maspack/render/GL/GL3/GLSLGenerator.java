@@ -260,12 +260,14 @@ public class GLSLGenerator {
                   } else {
                      appendln(mb, "   fragmentColorOut.color = instance_color;");
                   }
+                  appendln(mb);
                } else if (info.hasVertexColors()) {
                   if (cinterp == ColorInterpolation.HSV) {
                      appendln(mb, "   fragmentColorOut.color = rgba2hsva(vertex_color);");
                   } else {
                      appendln(mb, "   fragmentColorOut.color = vertex_color;");
                   }
+                  appendln(mb);
                }
                break;
             case LINES:
@@ -276,12 +278,14 @@ public class GLSLGenerator {
                   } else {
                      appendln(mb, "   fragmentColorOut.color = instance_color;");
                   }
+                  appendln(mb);
                } else if (info.hasVertexColors()) {
                   if (cinterp == ColorInterpolation.HSV) {
                      appendln(mb, "   fragmentColorOut.color = rgba2hsva(vertex_color);");
                   } else {
                      appendln(mb, "   fragmentColorOut.color = vertex_color;");
                   }
+                  appendln(mb);
                }
                break;
             case NONE:
@@ -291,6 +295,7 @@ public class GLSLGenerator {
                   } else {
                      appendln(mb, "   fragmentColorOut.color = vertex_color;");
                   }
+                  appendln(mb);
                }
                break;
          }
@@ -762,7 +767,7 @@ public class GLSLGenerator {
       //      appendln(fb, "}");
       //      appendln(fb);
       appendln(fb, "// rgba to hsva conversion");
-      appendln(fb, "vec3 rgba2hsva( in vec4 c ) {");
+      appendln(fb, "vec4 rgba2hsva( in vec4 c ) {");
       appendln(fb, "   vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);");
       appendln(fb, "   vec4 p = c.g < c.b ? vec4(c.bg, K.wz) : vec4(c.gb, K.xy);");
       appendln(fb, "   vec4 q = c.r < p.x ? vec4(p.xyw, c.r) : vec4(c.r, p.yzx);");
@@ -782,7 +787,7 @@ public class GLSLGenerator {
       //      appendln(fb, "}");
       //      appendln(fb);
       appendln(fb, "// hsva to rgba conversion");
-      appendln(fb, "vec3 hsva2rgba( in vec4 c ) {");
+      appendln(fb, "vec4 hsva2rgba( in vec4 c ) {");
       appendln(fb, "   vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);");
       appendln(fb, "   vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);");
       appendln(fb, "   return vec4(c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y), c.a);");
@@ -1082,6 +1087,7 @@ public class GLSLGenerator {
          appendln(mb, "   ambient  = mix(material.ambient.rgb, diffuse_color.rgb, material.ambient.a)*ambient;");
          appendln(mb, "   emission = material.emission.rgb;");
          appendln(mb, "   color = vec4(max(diffuse+specular+emission, ambient), diffuse_color.a);");
+         //appendln(mb, "   color = vec4(max(diffuse,specular), diffuse_color.a);");
       }
       
       if (hasTextures) {
@@ -1092,7 +1098,7 @@ public class GLSLGenerator {
       //      appendln(mb, "   // gamma correction");
       //      appendln(mb, "   vec3 gamma = vec3(1.0/2.2);");
       //      appendln(mb, "   color = vec4(pow(color.rgb, gamma), color.a);");
-      appendln(mb, "   fragment_color = clamp(color, 0, 1);");
+      appendln(mb, "   fragment_color = clamp(color, 0, 2);");
 
       appendln(mb, "}");
 

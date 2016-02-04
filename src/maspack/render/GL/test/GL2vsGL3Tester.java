@@ -4,32 +4,35 @@ import maspack.geometry.PolygonalMesh;
 
 public class GL2vsGL3Tester extends MultiViewerTesterBase {
 
-   protected static void addRenderObjects(MultiViewer tester) {
-
-      addCube(tester);
-      addAxes(tester);
-      addTransRotator(tester);
-      addCylinder(tester);
-
-      PolygonalMesh bunny = loadStanfordBunny();
-      addStanfordBunnies(tester, bunny);
-      addSolidBunny(tester, bunny);
-      addHalfBunny(tester, bunny);
-
-   }
-
-   public static void main(String[] args) {
-
-      MultiViewer rot = new MultiViewer();
-      rot.addGL2Viewer("GL2 Viewer", 30, 30, 640, 480);
-      rot.addGL3Viewer("GL3 Viewer", 670, 30, 640, 480);
-      rot.syncViews();
-
-      addRenderObjects(rot);
+   @Override
+   protected void createViewers (MultiViewer mv) {
+      mv.addGL2Viewer("GL2 Viewer", 30, 30, 640, 480);
+      mv.addGL3Viewer("GL3 Viewer", 670, 30, 640, 480);
+      mv.syncViews();
 
       // adjust all windows to a specific size
-      rot.setWindowSizes(640, 480);
-      rot.autoFitViewers();
+      mv.setWindowSizes(640, 480);
+   }
+
+   @Override
+   protected void addContent (MultiViewer mv) {
+      addCube(mv);
+      addAxes(mv);
+      addTransRotator(mv);
+      addCylinder(mv);
+
+      PolygonalMesh bunny = loadStanfordBunny();
+      addStanfordBunnies(mv, bunny);
+      addSolidBunny(mv, bunny);
+      addHalfBunny(mv, bunny);
+      
+      mv.autoFitViewers ();
+   }
+   
+   public static void main(String[] args) {
+
+      GL2vsGL3Tester tester = new GL2vsGL3Tester();
+      tester.run();
 
    }
 

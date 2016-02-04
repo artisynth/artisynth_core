@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
+import artisynth.core.mechmodels.MotionTargetComponent;
+import artisynth.core.mechmodels.PointTarget;
 import maspack.fileutil.FileCacher;
 import maspack.fileutil.uri.URIx;
 import maspack.geometry.Face;
@@ -501,7 +503,23 @@ public class MultiViewerTesterBase {
       public void setFaceColors(Color... colors) {
          faceColors = colors;
       }
-      
+   }
+   
+   
+   MultiViewer rot;
+   public MultiViewerTesterBase() {
+      rot = new MultiViewer ();
+      createViewers(rot);
+      addContent(rot);
+   }
+   
+   protected void createViewers(MultiViewer mv) {
+   }
+   
+   protected void addContent(MultiViewer mv) {
+   }
+   
+   protected void run() {
    }
    
 }

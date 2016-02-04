@@ -1124,10 +1124,38 @@ public class WavefrontReader extends MeshReaderBase {
             // set texture properties
             props.setFaceStyle(RenderProps.Faces.FRONT_AND_BACK);
             props.setShading(RenderProps.Shading.GOURAUD);
-            TextureProps tprops = new TextureProps();
-            tprops.setFileName(currPath + "/" + map);
-            tprops.setEnabled(true);
-            tprops.setMode(TextureProps.Mode.MODULATE);
+            TextureProps tprops = props.getTextureProps ();
+            if (tprops == null) {
+               tprops = new TextureProps();
+            }
+            tprops.setTextureFileName(currPath + "/" + map);
+            tprops.setTextureEnabled(true);
+            tprops.setTextureMode(TextureProps.TextureMode.MODULATE);
+            props.setTextureProps(tprops);
+         }
+
+         // restore period state
+         rtok.setCharSetting('.', savePeriod);
+      }
+      // eg map_Kd lenna.tga # the diffuse texture map
+      else if (rtok.sval.equals("bump") || rtok.sval.equals("map_bump")) {
+
+         // we need period
+         int savePeriod = rtok.getCharSetting('.');
+         rtok.wordChar('.');
+
+         String map = rtok.scanWord();
+         if (map != null) {
+            // set texture properties
+            props.setFaceStyle(RenderProps.Faces.FRONT_AND_BACK);
+            props.setShading(RenderProps.Shading.GOURAUD);
+            TextureProps tprops = props.getTextureProps ();
+            if (tprops == null) {
+               tprops = new TextureProps();
+            }
+            tprops.setNormalFileName(currPath + "/" + map);
+            tprops.setNormalEnabled(true);
+            tprops.setNormalMode(TextureProps.NormalMode.BUMP);
             props.setTextureProps(tprops);
          }
 

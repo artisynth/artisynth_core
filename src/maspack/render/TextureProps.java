@@ -17,20 +17,23 @@ import maspack.properties.PropertyInfo;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.util.ArraySupport;
+import maspack.util.Clonable;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.util.Scannable;
-import maspack.util.Clonable;
 
 public class TextureProps implements CompositeProperty, Scannable, Clonable {
    private static final PropertyMode INHERITED = PropertyMode.Inherited;
 
-   public enum Mode {
+   public enum TextureMode {
       DECAL, REPLACE, MODULATE, BLEND
    };
+
+   public enum NormalMode {
+      BUMP, NORMAL
+   }
 
    private PropertyInfo myInfo;
    private HasProperties myHost;
@@ -64,42 +67,39 @@ public class TextureProps implements CompositeProperty, Scannable, Clonable {
    }
 
    // Enabled
+   // Normal Map enabled
    // Mode
-   // FileName
-   // SphereMapping
-   // Automatic
-   // SCoords
-   // TCoords
+   // Texture FileName
+   // Normal map FileName
 
-   protected boolean myEnabledP;
-   protected static boolean defaultEnabledP = false;
-   protected PropertyMode myEnabledMode;
+   protected boolean myTextureEnabledP;
+   protected static boolean defaultTextureEnabledP = false;
+   protected PropertyMode myTextureEnabledMode;
 
-   protected Mode myMode;
-   protected static Mode defaultMode = Mode.MODULATE;
-   protected PropertyMode myModeMode;
+   // normal map
+   protected boolean myNormalEnabledP;
+   protected static boolean defaultNormalEnabledP = false;
+   protected PropertyMode myNormalEnabledMode;
 
-   protected String myFileName;
-   protected static String defaultFileName = "";
-   protected PropertyMode myFileNameMode;
+   protected TextureMode myTextureMode;
+   protected static TextureMode defaultTextureMode = TextureMode.MODULATE;
+   protected PropertyMode myTextureModeMode;
 
-   protected boolean mySphereMappingP;
-   protected static boolean defaultSphereMappingP = false;
-   protected PropertyMode mySphereMappingMode;
+   protected String myTextureFileName;
+   protected static String defaultTextureFileName = "";
+   protected PropertyMode myTextureFileNameMode;
 
-   protected boolean myAutomaticP;
-   protected static boolean defaultAutomaticP = false;
-   protected PropertyMode myAutomaticMode;
+   protected String myNormalFileName;
+   protected static String defaultNormalFileName = "";
+   protected PropertyMode myNormalFileNameMode;
 
-   protected double[] mySCoords;
-   protected static double[] defaultSCoords = new double[] { 0.01, 0, 0, 0 };
-   protected PropertyMode mySCoordsMode;
+   protected float myNormalScale;
+   protected PropertyMode myNormalScaleMode;
+   protected static float defaultNormalScale = 1;
 
-   protected double[] myTCoords;
-   protected static double[] defaultTCoords = new double[] { 0, 0.01, 0, 0 };
-   protected PropertyMode myTCoordsMode;
-
-   protected GLTexture myTexture = null;
+   protected NormalMode myNormalMode;
+   protected PropertyMode myNormalModeMode;
+   protected static NormalMode defaultNormalMode = NormalMode.NORMAL;
 
    public TextureProps() {
       setDefaultModes();
@@ -115,28 +115,23 @@ public class TextureProps implements CompositeProperty, Scannable, Clonable {
 
    static {
       myProps.addInheritable (
-         "enabled:Inherited isEnabled *", "texturing is enabled",defaultEnabledP);
+         "textureEnabled:Inherited isTextureEnabled *", "texturing is enabled", defaultTextureEnabledP);
       myProps.addInheritable (
-         "mode:Inherited * *", "texturing mode", defaultMode);
+         "textureMode:Inherited * *", "texturing coloring mode", defaultTextureMode);
       myProps.addInheritable (
-         "fileName * *", "name of the texture file", defaultFileName);
+         "textureFileName * *", "name of the texture file", defaultTextureFileName);
       myProps.addInheritable (
-         "sphereMapping:Inherited isSphereMappingEnabled setSphereMappingEnabled",
-         "use spherical mapping for automatic texturing",
-         defaultSphereMappingP);
+         "normalEnabled:Inherited isNormalEnabled *", "normal map is enabled", defaultNormalEnabledP);
       myProps.addInheritable (
-         "automatic:Inherited isAutomatic *", "automatic texturing enabled",
-         defaultAutomaticP);
+         "normalMode:Inherited * *", "bump/normal mode", defaultNormalMode);
       myProps.addInheritable (
-         "sCoords:Inherited * *", "s coordinates for automatic texturing",
-         defaultSCoords);
+         "normalFileName * *", "name of the normal map file", defaultNormalFileName);
       myProps.addInheritable (
-         "tCoords:Inherited * *", "t coordinates for automatic texturing",
-         defaultTCoords);
+         "normalScale * *", "scale for x and y components (bump) of the normal map", defaultNormalScale);
    }
 
    public Property getProperty (String name) {
-      return getAllPropertyInfo().getProperty (name, this);
+      return PropertyList.getProperty (name, this);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -144,250 +139,240 @@ public class TextureProps implements CompositeProperty, Scannable, Clonable {
    }
 
    protected void setDefaultModes() {
-      myEnabledMode = INHERITED;
-      myModeMode = INHERITED;
-      myFileNameMode = INHERITED;
-      mySphereMappingMode = INHERITED;
-      myAutomaticMode = INHERITED;
-      mySCoordsMode = INHERITED;
-      myTCoordsMode = INHERITED;
+      myTextureEnabledMode = INHERITED;
+      myNormalEnabledMode = INHERITED;
+      myTextureModeMode = INHERITED;
+      myTextureFileNameMode = INHERITED;
+      myNormalFileNameMode = INHERITED;
    }
 
    protected void setDefaultValues() {
-      myEnabledP = defaultEnabledP;
-      myMode = defaultMode;
-      myFileName = defaultFileName;
-      mySphereMappingP = defaultSphereMappingP;
-      myAutomaticP = defaultAutomaticP;
-      mySCoords = defaultSCoords;
-      myTCoords = defaultTCoords;
+      myTextureEnabledP = defaultTextureEnabledP;
+      myTextureMode = defaultTextureMode;
+      myTextureFileName = defaultTextureFileName;
+      myNormalEnabledP = defaultNormalEnabledP;
+      myNormalMode = defaultNormalMode;
+      myNormalFileName = defaultNormalFileName;
+      myNormalScale = defaultNormalScale;
    }
 
-   public void clearTextureData() {
-      myTexture = null;
+   // XXX update this
+   protected void clearTextureData() {
+
    }
 
    // enabled
 
-   public boolean isEnabled() {
-      return myEnabledP;
+   public boolean isTextureEnabled() {
+      return myTextureEnabledP;
    }
 
-   public void setEnabled (boolean enabled) {
-      if (myEnabledP != enabled) {
-         myEnabledP = enabled;
+   public void setTextureEnabled (boolean enabled) {
+      if (myTextureEnabledP != enabled) {
+         myTextureEnabledP = enabled;
          clearTextureData();
       }
-      myEnabledMode =
-         PropertyUtils.propagateValue (this, "enabled", enabled, myEnabledMode);
+      myTextureEnabledMode =
+      PropertyUtils.propagateValue (this, "textureEnabled", enabled, myTextureEnabledMode);
    }
 
-   public PropertyMode getEnabledMode() {
-      return myEnabledMode;
+   public PropertyMode getTextureEnabledMode() {
+      return myTextureEnabledMode;
    }
 
-   public void setEnabledMode (PropertyMode mode) {
-      myEnabledMode =
-         PropertyUtils.setModeAndUpdate (this, "enabled", myEnabledMode, mode);
+   public void setTextureEnabledMode (PropertyMode mode) {
+      myTextureEnabledMode =
+      PropertyUtils.setModeAndUpdate (this, "textureEnabled", myTextureEnabledMode, mode);
    }
 
    // mode
 
-   public Mode getMode() {
-      return myMode;
+   public TextureMode getTextureMode() {
+      return myTextureMode;
    }
 
-   public void setMode (Mode m) {
-      if (myMode != m) {
-         myMode = m;
+   public void setTextureMode (TextureMode m) {
+      if (myTextureMode != m) {
+         myTextureMode = m;
          clearTextureData();
       }
-      myModeMode = PropertyUtils.propagateValue (this, "mode", m, myModeMode);
+      myTextureModeMode = PropertyUtils.propagateValue (this, "textureMode", m, myTextureModeMode);
    }
 
-   public PropertyMode getModeMode() {
-      return myModeMode;
+   public PropertyMode getTextureModeMode() {
+      return myTextureModeMode;
    }
 
-   public void setModeMode (PropertyMode mode) {
-      myModeMode =
-         PropertyUtils.setModeAndUpdate (this, "mode", myModeMode, mode);
+   public void setTextureModeMode (PropertyMode mode) {
+      myTextureModeMode =
+      PropertyUtils.setModeAndUpdate (this, "textureMode", myTextureModeMode, mode);
    }
 
-   // fileName
+   // texture fileName
 
-   public String getFileName() {
-      return myFileName;
+   public String getTextureFileName() {
+      return myTextureFileName;
    }
 
-   public void setFileName (String name) {
-      if (!name.equals (myFileName)) {
-         myFileName = name;
+   public void setTextureFileName (String name) {
+      if (!name.equals (myTextureFileName)) {
+         myTextureFileName = name;
          clearTextureData();
       }
-      myFileNameMode =
-         PropertyUtils.propagateValue (this, "fileName", name, myFileNameMode);
+      myTextureFileNameMode =
+      PropertyUtils.propagateValue (this, "textureFileName", name, myTextureFileNameMode);
    }
 
    public boolean textureFileExists() {
-      return ((new File (myFileName)).isFile());
+      return ((new File (myTextureFileName)).isFile());
    }
 
-   public GLTexture getTexture() {
-      return myTexture;
+   public PropertyMode getTextureFileNameMode() {
+      return myTextureFileNameMode;
    }
 
-   public void setTexture (GLTexture texture) {
-      myTexture = texture;
+   public void setTextureFileNameMode (PropertyMode mode) {
+      myTextureFileNameMode =
+      PropertyUtils.setModeAndUpdate (this, "textureFileName", myTextureFileNameMode, mode);
    }
 
-   public PropertyMode getFileNameMode() {
-      return myFileNameMode;
+   // normal enabled
+
+   public boolean isNormalEnabled() {
+      return myNormalEnabledP;
    }
 
-   public void setFileNameMode (PropertyMode mode) {
-      myFileNameMode =
-         PropertyUtils.setModeAndUpdate (this, "fileName", myFileNameMode, mode);
-   }
-
-   // sphereMapping
-
-   public boolean isSphereMappingEnabled() {
-      return mySphereMappingP;
-   }
-
-   public void setSphereMappingEnabled (boolean enabled) {
-      if (mySphereMappingP != enabled) {
-         mySphereMappingP = enabled;
+   public void setNormalEnabled (boolean enabled) {
+      if (myNormalEnabledP != enabled) {
+         myNormalEnabledP = enabled;
          clearTextureData();
       }
-      mySphereMappingMode =
-         PropertyUtils.propagateValue (
-            this, "sphereMapping", enabled, mySphereMappingMode);
+      myNormalEnabledMode =
+      PropertyUtils.propagateValue (this, "normalEnabled", enabled, myNormalEnabledMode);
    }
 
-   public PropertyMode getSphereMappingMode() {
-      return mySphereMappingMode;
+   public PropertyMode getNormalEnabledMode() {
+      return myNormalEnabledMode;
    }
 
-   public void setSphereMappingMode (PropertyMode mode) {
-      mySphereMappingMode =
-         PropertyUtils.setModeAndUpdate (
-            this, "sphereMapping", mySphereMappingMode, mode);
+   public void setNormalEnabledMode (PropertyMode mode) {
+      myNormalEnabledMode =
+      PropertyUtils.setModeAndUpdate (this, "normalEnabled", myNormalEnabledMode, mode);
    }
 
-   // automatic
+   // normal mode
 
-   public boolean isAutomatic() {
-      return myAutomaticP;
+   public NormalMode getNormalMode() {
+      return myNormalMode;
    }
 
-   public void setAutomatic (boolean enabled) {
-      if (myAutomaticP != enabled) {
-         myAutomaticP = enabled;
+   public void setNormalMode (NormalMode m) {
+      if (myNormalMode != m) {
+         myNormalMode = m;
          clearTextureData();
       }
-      myAutomaticMode =
-         PropertyUtils.propagateValue (
-            this, "automatic", enabled, myAutomaticMode);
+      myNormalModeMode = PropertyUtils.propagateValue (this, "normalMode", m, myNormalModeMode);
    }
 
-   public PropertyMode getAutomaticMode() {
-      return myAutomaticMode;
+   public PropertyMode getNormalModeMode() {
+      return myNormalModeMode;
    }
 
-   public void setAutomaticMode (PropertyMode mode) {
-      myAutomaticMode =
-         PropertyUtils.setModeAndUpdate (
-            this, "automatic", myAutomaticMode, mode);
+   public void setNormalModeMode (PropertyMode mode) {
+      myNormalModeMode =
+      PropertyUtils.setModeAndUpdate (this, "normalMode", myNormalModeMode, mode);
    }
 
-   // SCoords
+   // normal map fileName
 
-   public void setSCoords (double[] s) {
-      if (!ArraySupport.equals (mySCoords, s)) {
-         mySCoords = ArraySupport.copy (s);
+   public String getNormalFileName() {
+      return myNormalFileName;
+   }
+
+   public void setNormalFileName (String name) {
+      if (!name.equals (myNormalFileName)) {
+         myNormalFileName = name;
          clearTextureData();
       }
-      mySCoordsMode =
-         PropertyUtils.propagateValue (this, "SCoords", s, mySCoordsMode);
+      myNormalFileNameMode =
+      PropertyUtils.propagateValue (this, "normalFileName", name, myNormalFileNameMode);
    }
 
-   public double[] getSCoords() {
-      return mySCoords;
+   public boolean normalFileExists() {
+      return ((new File (myNormalFileName)).isFile());
    }
 
-   public PropertyMode getSCoordsMode() {
-      return mySCoordsMode;
+   public PropertyMode getNormalFileNameMode() {
+      return myNormalFileNameMode;
    }
 
-   public void setSCoordsMode (PropertyMode mode) {
-      mySCoordsMode =
-         PropertyUtils.setModeAndUpdate (this, "SCoords", mySCoordsMode, mode);
+   public void setNormalFileNameMode (PropertyMode mode) {
+      myNormalFileNameMode =
+      PropertyUtils.setModeAndUpdate (this, "normalFileName", myNormalFileNameMode, mode);
    }
 
-   // TCoords
+   // bump scale
 
-   public void setTCoords (double[] t) {
-      if (!ArraySupport.equals (myTCoords, t)) {
-         myTCoords = ArraySupport.copy (t);
+   public float getNormalScale() {
+      return myNormalScale;
+   }
+
+   public void setNormalScale (float m) {
+      if (m != myNormalScale) {
+         myNormalScale = m;
          clearTextureData();
       }
-      myTCoordsMode =
-         PropertyUtils.propagateValue (this, "TCoords", t, myTCoordsMode);
+      myNormalScaleMode =
+      PropertyUtils.propagateValue (this, "normalScale", m, myNormalScaleMode);
    }
 
-   public double[] getTCoords() {
-      return myTCoords;
+   public PropertyMode getNormalScaleMode() {
+      return myNormalScaleMode;
    }
 
-   public PropertyMode getTCoordsMode() {
-      return myTCoordsMode;
-   }
-
-   public void setTCoordsMode (PropertyMode mode) {
-      myTCoordsMode =
-         PropertyUtils.setModeAndUpdate (this, "TCoords", myTCoordsMode, mode);
+   public void setNormalScaleMode (PropertyMode mode) {
+      myNormalScaleMode =
+      PropertyUtils.setModeAndUpdate (this, "normalScale", myNormalScaleMode, mode);
    }
 
    public void set (TextureProps props) {
-      myEnabledP = props.myEnabledP;
-      myEnabledMode = props.myEnabledMode;
+      myTextureEnabledP = props.myTextureEnabledP;
+      myTextureEnabledMode = props.myTextureEnabledMode;
 
-      myMode = props.myMode;
-      myModeMode = props.myModeMode;
+      myTextureMode = props.myTextureMode;
+      myTextureModeMode = props.myTextureModeMode;
 
-      myFileName = new String (props.myFileName);
-      myFileNameMode = props.myFileNameMode;
+      myTextureFileName = props.myTextureFileName;
+      myTextureFileNameMode = props.myTextureFileNameMode;
 
-      mySphereMappingP = props.mySphereMappingP;
-      mySphereMappingMode = props.mySphereMappingMode;
+      myNormalEnabledP = props.myNormalEnabledP;
+      myNormalEnabledMode = props.myNormalEnabledMode;
 
-      myAutomaticP = props.myAutomaticP;
-      myAutomaticMode = props.myAutomaticMode;
+      myNormalMode = props.myNormalMode;
+      myNormalModeMode = props.myNormalModeMode;
 
-      mySCoords = ArraySupport.copy (props.mySCoords);
-      mySCoordsMode = props.mySCoordsMode;
+      myNormalFileName = props.myNormalFileName;
+      myNormalFileNameMode = props.myNormalFileNameMode;
 
-      myTCoords = ArraySupport.copy (props.myTCoords);
-      myTCoordsMode = props.myTCoordsMode;
+      myNormalScale = props.myNormalScale;
+      myNormalScaleMode = props.myNormalScaleMode;
    }
 
    public boolean equals (TextureProps props) {
-      return (myEnabledP == props.myEnabledP &&
-              myEnabledMode == props.myEnabledMode && 
-              myMode == props.myMode &&
-              myModeMode == props.myModeMode &&
-              myFileName.equals (props.myFileName) &&
-              myFileNameMode == props.myFileNameMode &&
-              mySphereMappingP == props.mySphereMappingP &&
-              mySphereMappingMode == props.mySphereMappingMode &&
-              myAutomaticP == props.myAutomaticP &&
-              myAutomaticMode == props.myAutomaticMode &&
-              ArraySupport.equals (mySCoords, props.mySCoords) &&
-              mySCoordsMode == props.mySCoordsMode &&
-              ArraySupport.equals (myTCoords, props.myTCoords) &&
-              myTCoordsMode == props.myTCoordsMode);
+      return (myTextureEnabledP == props.myTextureEnabledP &&
+         myTextureEnabledMode == props.myTextureEnabledMode && 
+         myTextureMode == props.myTextureMode &&
+         myTextureModeMode == props.myTextureModeMode &&
+         myTextureFileName.equals (props.myTextureFileName) &&
+         myTextureFileNameMode == props.myTextureFileNameMode &&
+         myNormalEnabledP == props.myNormalEnabledP &&
+         myNormalEnabledMode == props.myNormalEnabledMode &&
+         myNormalMode == props.myNormalMode &&
+         myNormalModeMode == props.myNormalModeMode &&
+         myNormalFileName.equals (props.myNormalFileName) &&
+         myNormalFileNameMode == props.myNormalFileNameMode) &&
+         myNormalScale == props.myNormalScale &&
+         myNormalScaleMode == props.myNormalScaleMode;
    }
 
    public boolean equals (Object obj) {
@@ -405,9 +390,9 @@ public class TextureProps implements CompositeProperty, Scannable, Clonable {
    public boolean isWritable() {
       return true;
    }
-   
+
    public void write (PrintWriter pw, NumberFormat fmt, Object ref)
-      throws IOException {
+   throws IOException {
       IndentingPrintWriter.printOpening (pw, "[ ");
       IndentingPrintWriter.addIndentation (pw, 2);
       myProps.writeNonDefaultProps (this, pw, fmt);
@@ -426,67 +411,14 @@ public class TextureProps implements CompositeProperty, Scannable, Clonable {
       }
    }
 
-   // /**
-   // * Pass this set of texture properties into the specified mesh.
-   // *
-   // * @param mesh Mesh on which to set texture properties.
-   // */
-   // public void setMeshTexture (PolygonalMesh mesh)
-   // {
-   // PolygonalMeshRenderer renderer = mesh.getRenderer();
-
-   // if (myEnabledP && myFileName != null)
-   // { renderer.setEnableTextureMapping (true, myFileName);
-   // switch (myMode)
-   // { case DECAL:
-   // { renderer.setTextureMode (PolygonalMeshRenderer.GL_DECAL);
-   // break;
-   // }
-   // case REPLACE:
-   // { renderer.setTextureMode (PolygonalMeshRenderer.GL_REPLACE);
-   // break;
-   // }
-   // case MODULATE:
-   // { renderer.setTextureMode (PolygonalMeshRenderer.GL_MODULATE);
-   // break;
-   // }
-   // case BLEND:
-   // { renderer.setTextureMode (PolygonalMeshRenderer.GL_BLEND);
-   // break;
-   // }
-   // default:
-   // { throw new InternalErrorException (
-   // "unknown texture mode " + myMode);
-   // }
-   // }
-   // if (myAutomaticP)
-   // {
-   // if (renderer.getSphereMapTextureMapping() != mySphereMappingP)
-   // { renderer.setSphereMapTextureMapping(mySphereMappingP);
-   // }
-   // if (!renderer.getAutomaticTextureMapping())
-   // { renderer.setAutomaticTextureMappingParmameters (
-   // mySCoords, myTCoords);
-   // }
-   // }
-   // else
-   // { renderer.setAutomaticTextureMapping(false);
-   // }
-   // }
-   // else
-   // { renderer.setEnableTextureMapping (false);
-   // }
-   // }
-
    public String toString() {
-      return ("enabled=" + myEnabledP + ", " + "mode=" + myMode + ", " +
-              "fileName=" + myFileName + ", " +
-              "sphereMapping=" + mySphereMappingP +
-              ", " + "automatic=" + myAutomaticP + ", " +
-              "sCoords=" + mySCoords[0] + " " + mySCoords[1] +
-              " " + mySCoords[2] + " " + mySCoords[3] + ", " +
-              "tCoords=" + myTCoords[0] + " " + myTCoords[1] +
-              " " + myTCoords[2] + " " + myTCoords[3]);
+      return ("textureEnabled=" + myTextureEnabledP
+      + ", textureMode=" + myTextureMode 
+      + ", textureFileName=" + myTextureFileName
+      + ", normalEnabled=" + myNormalEnabledP
+      + ", normalMode=" + myNormalMode
+      + ", normalFileName=" + myNormalFileName
+      + ", normalScale=" + myNormalScale);
    }
 
    public TextureProps clone() {
@@ -498,22 +430,12 @@ public class TextureProps implements CompositeProperty, Scannable, Clonable {
          throw new InternalErrorException ("Cannot clone super in TextureProps");
       }
 
-      // myEnabledMode = new ModeObject(myEnabledMode);
-      // myModeMode = new ModeObject(myModeMode);
-      // myFileNameMode = new ModeObject(myFileNameMode);
-      // mySphereMappingMode = new ModeObject(mySphereMappingMode);
-      // myAutomaticMode = new ModeObject(myAutomaticMode);
-      // mySCoordsMode = new ModeObject(mySCoordsMode);
-      // myTCoordsMode = new ModeObject(myTCoordsMode);
-
-      props.mySCoords = ArraySupport.copy (props.mySCoords);
-      props.myTCoords = ArraySupport.copy (props.myTCoords);
       return props;
    }
 
    public static void main (String[] args) {
       TextureProps props = new TextureProps();
-      props.setFileName ("C:\\here\\we\\go");
+      props.setTextureFileName ("C:\\here\\we\\go");
       IndentingPrintWriter pw = new IndentingPrintWriter (System.out);
       try {
          props.write (pw, new NumberFormat ("%g"), null);

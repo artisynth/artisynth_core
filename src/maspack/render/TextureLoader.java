@@ -22,6 +22,8 @@ import javax.imageio.ImageIO;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 
+import maspack.render.GL.GLTexture;
+
 /**
  * A utility class to load textures for JOGL. This source is based on a texture
  * that can be found in the Java Gaming (www.javagaming.org) Wiki. It has been

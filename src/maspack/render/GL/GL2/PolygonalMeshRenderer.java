@@ -16,7 +16,6 @@ import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-import maspack.render.GLTexture;
 import maspack.render.Material;
 import maspack.render.RenderProps;
 import maspack.render.RenderProps.Shading;
@@ -24,9 +23,9 @@ import maspack.render.Renderer;
 import maspack.render.Renderer.SelectionHighlighting;
 import maspack.render.TextureLoader;
 import maspack.render.TextureProps;
-import maspack.render.GL.GLHSVShader;
 import maspack.render.GL.GLRenderer;
 import maspack.render.GL.GLSupport;
+import maspack.render.GL.GLTexture;
 import maspack.util.FunctionTimer;
 import maspack.util.InternalErrorException;
 
@@ -155,7 +154,7 @@ public class PolygonalMeshRenderer {
    }
 
    private int getTextureMode (TextureProps tprops) {
-      switch (tprops.getMode()) {
+      switch (tprops.getTextureMode()) {
          case DECAL:
             return GL2.GL_DECAL;
          case REPLACE:
@@ -166,25 +165,25 @@ public class PolygonalMeshRenderer {
             return GL2.GL_BLEND;
          default: {
             throw new InternalErrorException (
-               "unimplement texture mode " + tprops.getMode());
+               "unimplement texture mode " + tprops.getTextureMode());
          }
       }
    }
 
    private void loadTexture (GL2 gl, TextureProps tprops) {
-      if (tprops.getFileName() == null) {
-         tprops.setTexture (null);
+      if (tprops.getTextureFileName() == null) {
+         // XXX tprops.setTexture (null);
          return;
       }
 
       TextureLoader loader = new TextureLoader (gl);
       try {
-         GLTexture texture = loader.getTexture (tprops.getFileName());
-         tprops.setTexture (texture);
+         GLTexture texture = loader.getTexture (tprops.getTextureFileName());
+         // XXX tprops.setTexture (texture);
       }
       catch (java.io.IOException e) {
          System.out.println (
-            "Texture image file not found: " + tprops.getFileName() + " " + e);
+            "Texture image file not found: " + tprops.getTextureFileName() + " " + e);
          return;
       }
 
@@ -200,7 +199,7 @@ public class PolygonalMeshRenderer {
    // mapping this is all you need to do. If not, the texture coordinates
    // are set in drawFaces.
    private void bindFaceTextures (GL2 gl, TextureProps tprops) {
-      GLTexture texture = tprops.getTexture();
+      // XXX GLTexture texture = tprops.getTexture();
       int[] vals = new int[2];
       gl.glGetIntegerv (GL2.GL_POLYGON_MODE, vals, 0);
       // vals[0] has values GL_FILL or GL_LINE.
@@ -213,25 +212,9 @@ public class PolygonalMeshRenderer {
          gl.glEnable (GL2.GL_TEXTURE_2D);
       }
 
-      if (tprops.isAutomatic()) {
-         gl.glEnable (GL2.GL_TEXTURE_GEN_S);
-         gl.glEnable (GL2.GL_TEXTURE_GEN_T);
-         if (tprops.isSphereMappingEnabled()) {
-            gl.glTexGeni (GL2.GL_S, GL2.GL_TEXTURE_GEN_MODE, GL2.GL_SPHERE_MAP);
-            gl.glTexGeni (GL2.GL_T, GL2.GL_TEXTURE_GEN_MODE, GL2.GL_SPHERE_MAP);
-         }
-         else {
-            gl.glTexGeni (GL2.GL_S, GL2.GL_TEXTURE_GEN_MODE, GL2.GL_OBJECT_LINEAR);
-            gl.glTexGeni (GL2.GL_T, GL2.GL_TEXTURE_GEN_MODE, GL2.GL_OBJECT_LINEAR);
-         }
-
-         gl.glTexGendv (GL2.GL_S, GL2.GL_OBJECT_PLANE, tprops.getSCoords(), 0);
-         gl.glTexGendv (GL2.GL_T, GL2.GL_OBJECT_PLANE, tprops.getTCoords(), 0);
-      }
-
       gl.glTexEnvi (
          GL2.GL_TEXTURE_ENV, GL2.GL_TEXTURE_ENV_MODE, getTextureMode (tprops));
-      texture.bind (gl);
+      // XXX texture.bind (gl);
    }
 
    // private HalfEdge lastHardEdge (HalfEdge he0) {
@@ -324,8 +307,7 @@ public class PolygonalMeshRenderer {
       //useHSVInterpolation =false;
 
       boolean useTextureCoords =
-         (textureProps != null && textureProps.isEnabled() &&
-          !textureProps.isAutomatic() && mesh.getTextureIndices() != null);
+         (textureProps != null && textureProps.isTextureEnabled() && mesh.getTextureIndices() != null);
       // merge quad triangles if we are using smooth shading
       
       boolean mergeQuadTriangles = (shadingModel[0] == GL2.GL_SMOOTH);
@@ -593,23 +575,23 @@ public class PolygonalMeshRenderer {
       
       TextureProps textureProps = props.getTextureProps();
       boolean useTextures = false;
-      if (!selecting && !useVertexColors && textureProps != null && textureProps.isEnabled()) {
+      if (!selecting && !useVertexColors && textureProps != null && textureProps.isTextureEnabled()) {
          // if not automatic check that explicit texture indices are okay
-         if (!textureProps.isAutomatic() &&
-             (mesh.getTextureIndices() == null)) {
-            textureProps.setEnabled (false);
+         if ((mesh.getTextureIndices() == null)) {
+            textureProps.setTextureEnabled (false);
             props.setTextureProps (textureProps);
          }
          else {
-            if (textureProps.getTexture() == null &&
-                textureProps.textureFileExists()) {
-               loadTexture (gl, textureProps);
-            }
-
-            if (textureProps.getTexture() != null) {
-               bindFaceTextures (gl, textureProps);
-               useTextures = true;
-            }
+            //            if (textureProps.getTexture() == null &&
+            //                textureProps.textureFileExists()) {
+            //               loadTexture (gl, textureProps);
+            //            }
+            //
+            //            if (textureProps.getTexture() != null) {
+            //               bindFaceTextures (gl, textureProps);
+            //               useTextures = true;
+            //            }
+            useTextures = false;
          }
       }
       
@@ -690,10 +672,6 @@ public class PolygonalMeshRenderer {
 
       if (useTextures) {
          gl.glDisable (GL2.GL_TEXTURE_2D);
-         if (textureProps.isAutomatic()) {
-            gl.glDisable (GL2.GL_TEXTURE_GEN_S);
-            gl.glDisable (GL2.GL_TEXTURE_GEN_T);
-         }
       }
       
       // timer.stop();

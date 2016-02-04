@@ -1,6 +1,6 @@
-package maspack.render;
+package maspack.render.GL;
 
-import javax.media.opengl.GL2;
+import javax.media.opengl.GL;
 
 /**
  * A texture to be bound within JOGL. This object is responsible for keeping
@@ -57,14 +57,14 @@ public class GLTexture {
     * @param gl
     * The GL context to bind to
     */
-   public void bind (GL2 gl) {
+   public void bind (GL gl) {
       gl.glBindTexture (target, textureID);
    }
 
    /**
     * Delete the current texture in a context
     */
-   public void delete(GL2 gl) {
+   public void delete(GL gl) {
       if (textureID > 0) {
          gl.glDeleteTextures(1, new int[] {textureID}, 0);
       }

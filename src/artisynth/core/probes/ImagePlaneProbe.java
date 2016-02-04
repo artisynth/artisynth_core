@@ -70,7 +70,7 @@ TransformableGeometry {
       TextureProps tprops = props.getTextureProps();
       if (tprops == null)
          tprops = new TextureProps();
-      tprops.setEnabled (true);
+      tprops.setTextureEnabled (true);
       props.setTextureProps (tprops);
       setRenderProps (props);
 
@@ -106,8 +106,7 @@ TransformableGeometry {
       String filename =
          String.format (fileNameFormat, imageBasename, frameNum, imageFileExt);
       TextureProps tprops = myRenderProps.getTextureProps();
-      tprops.setFileName (imageDirectory.getAbsolutePath() + "/" + filename);
-      tprops.setTexture (null);
+      tprops.setTextureFileName (imageDirectory.getAbsolutePath() + "/" + filename);
       myRenderProps.setTextureProps (tprops);
    }
 

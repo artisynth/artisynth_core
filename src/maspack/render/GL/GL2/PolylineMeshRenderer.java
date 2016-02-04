@@ -13,7 +13,6 @@ import maspack.render.RenderProps;
 import maspack.render.RenderProps.LineStyle;
 import maspack.render.RenderProps.Shading;
 import maspack.render.Renderer;
-import maspack.render.GL.GLHSVShader;
 import maspack.render.GL.GLSupport;
 
 public class PolylineMeshRenderer {

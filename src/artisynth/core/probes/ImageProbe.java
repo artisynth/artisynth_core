@@ -8,11 +8,10 @@ package artisynth.core.probes;
 
 import java.io.File;
 
-import maspack.render.RenderProps;
-import maspack.render.TextureProps;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.util.TimeBase;
+import maspack.render.RenderProps;
+import maspack.render.TextureProps;
 
 public class ImageProbe extends InputProbe {
    protected RigidBody imagePlane;
@@ -51,7 +50,7 @@ public class ImageProbe extends InputProbe {
       TextureProps tprops = props.getTextureProps();
       if (tprops == null)
          tprops = new TextureProps();
-      tprops.setEnabled (true);
+      tprops.setTextureEnabled (true);
       props.setTextureProps (tprops);
       imagePlane.setRenderProps (props);
 
@@ -77,8 +76,7 @@ public class ImageProbe extends InputProbe {
       String filename =
          String.format (fileNameFormat, imageBasename, frameNum, imageFileExt);
       TextureProps tprops = imagePlane.getRenderProps().getTextureProps();
-      tprops.setFileName (imageDirectory.getAbsolutePath() + "/" + filename);
-      tprops.setTexture (null);
+      tprops.setTextureFileName (imageDirectory.getAbsolutePath() + "/" + filename);
       imagePlane.getRenderProps().setTextureProps (tprops);
    }
 

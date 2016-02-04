@@ -19,6 +19,7 @@ import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLContext;
 import javax.media.opengl.GLProfile;
+import javax.media.opengl.fixedfunc.GLLightingFunc;
 import javax.swing.event.MouseInputListener;
 
 import maspack.matrix.AffineTransform3d;
@@ -385,20 +386,20 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    private void setDefaultLights() {
 
       float light0_ambient[] = { 0.1f, 0.1f, 0.1f, 1f };
-      float light0_diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-      float light0_position[] = { -0.8660254f, 0.5f, 1f, 0f };
+      float light0_diffuse[] = { 0.8f, 0.8f, 0.8f, 1.0f };
       float light0_specular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-
+      float light0_position[] = { -0.8660254f, 0.5f, 1f, 0f };
+      
       float light1_ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
       float light1_diffuse[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-      float light1_position[] = { 0.8660254f, 0.5f, 1f, 0f };
       float light1_specular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-
+      float light1_position[] = { 0.8660254f, 0.5f, 1f, 0f };
+      
       float light2_ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
       float light2_diffuse[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-      float light2_position[] = { 0f, -10f, 1f, 0f };
       float light2_specular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-
+      float light2_position[] = { 0f, -10f, 1f, 0f };
+      
       lightManager.clearLights();
       lightManager.addLight(new GLLight (
          light0_position, light0_ambient, light0_diffuse, light0_specular));
@@ -417,7 +418,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       
       if (DEBUG) {
          System.out.println("GL: " + gl);
-         System.out.println ("Devide : ");
+         System.out.println ("Dev id : ");
          GLContext context = drawable.getContext ();
          String contextHC = Integer.toHexString(System.identityHashCode(context));
          System.out.println("Context: " + context.getClass ().getName () + "@" + contextHC + " (shared=" + context.isShared () + ")");
@@ -463,7 +464,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       if (!isSelecting()) {
          gl.glClearColor (bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
       }
-
+      
       // initialize viewport
       resetViewVolume();
       invalidateModelMatrix();
@@ -1183,6 +1184,26 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       else if (shading != Shading.FLAT) {
          gl.glShadeModel (GL2.GL_FLAT);
       }      
+   }
+   
+   @Override
+   public void setShadeModel (Shading shading) {
+      
+      if (selectEnabled) {
+         return;
+      }
+      
+      super.setShadeModel (shading);
+      if (shading == Shading.NONE) {
+         setLightingEnabled (false);
+      } else {
+         setLightingEnabled(true);
+         if (shading == Shading.FLAT) {
+            gl.glShadeModel (GLLightingFunc.GL_FLAT);
+         } else {
+            gl.glShadeModel (GLLightingFunc.GL_SMOOTH);
+         }
+      }
    }
 
    public void updateMaterial (
@@ -2331,11 +2352,44 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    public GL2 getGL2() {
       return drawable.getGL().getGL2();
    }
+   
+   private boolean setupHSVInterpolation (GL2 gl) {
+      // create special HSV shader to interpolate colors in HSV space
+      int prog = GLHSVShader.getShaderProgram(gl);
+      if (prog > 0) {
+         gl.glUseProgramObjectARB (prog);
+         return true;
+      }
+      else {
+         // HSV interpolaation not supported on this system
+         return false;
+      }
+   }
+   
+   private void setVertexColor (GL2 gl, byte[] color, boolean useHSV) {
+      if (color != null) {
+         if (useHSV) {
+            float[] myColorBuf = new float[4];
+            for (int i=0; i<4; ++i) {
+               myColorBuf[i] = (float)(color[i] & 0xFF)/255.0f;
+            }
+            
+            // convert color to HSV representation
+            GLSupport.RGBtoHSV (myColorBuf, myColorBuf);
+            gl.glColor4f (
+               myColorBuf[0], myColorBuf[1], myColorBuf[2], color[3]);
+         }
+         else {
+            gl.glColor4ub (
+               color[0], color[1], color[2], color[3]);
+         }
+      }
+   }
 
    @Override
    public void drawTriangles(RenderObject robj) {
       maybeUpdateMatrices(gl);
-
+      
       if (robj.hasTriangles()) {
 
          boolean normalizeEnabled = gl.glIsEnabled (GL2.GL_NORMALIZE);
@@ -2349,6 +2403,17 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
          boolean selecting = isSelecting();
          boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
+         boolean useHSV = isHSVColorInterpolationEnabled ();
+         
+         // if use vertex colors, get them to track glColor
+         if (useColors) {
+            gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
+            gl.glEnable (GL2.GL_COLOR_MATERIAL);
+            if (useHSV) {
+               useHSV = setupHSVInterpolation(gl);
+            }
+         }
+         
          boolean useDisplayList = !selecting || !useColors;
          DisplayListPassport dlpp = null;
 
@@ -2356,7 +2421,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             RenderObjectKey key = new RenderObjectKey(robj, DrawType.TRIANGLES);
             RenderObjectVersion fingerprint = robj.getVersionInfo();
             boolean compile = true;
-   
+            
             if (useDisplayList) {
                dlpp = myGLResources.getDisplayListPassport(gl, key);
                if (dlpp == null) {
@@ -2381,7 +2446,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                   for (int i=0; i<3; ++i) {
                      VertexIndexSet v = robj.getVertex(tri[i]);
                      if (!selecting && useColors) {
-                        gl.glColor4ubv(robj.getColor(v.getColorIndex()), 0);
+                        setVertexColor (gl, robj.getColor (v.getColorIndex ()), useHSV);
                      }
                      if (robj.hasNormals()) {
                         gl.glNormal3fv(robj.getNormal(v.getNormalIndex()), 0);
@@ -2408,6 +2473,14 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                } else {
                   gl.glCallList(dlpp.getList());
                }
+            }
+         }
+         
+         // disable color tracking
+         if (useColors) {
+            gl.glDisable (GL2.GL_COLOR_MATERIAL);
+            if (useHSV) {
+               gl.glUseProgramObjectARB (0);
             }
          }
 
@@ -2542,6 +2615,17 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
          boolean selecting = isSelecting();
          boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
+         boolean useHSV = isHSVColorInterpolationEnabled ();
+         
+         // if use vertex colors, get them to track glColor
+         if (useColors) {
+            gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
+            gl.glEnable (GL2.GL_COLOR_MATERIAL);
+            if (useHSV) {
+               useHSV = setupHSVInterpolation(gl);
+            }
+         }
+         
          boolean useDisplayList = !selecting || !useColors;
          DisplayListPassport dlpp = null;
          RenderObjectKey key = new RenderObjectKey(robj, DrawType.LINES);
@@ -2569,7 +2653,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                for (int i=0; i<2; ++i) {
                   VertexIndexSet v = robj.getVertex(line[i]);
                   if (!selecting && useColors) {
-                     gl.glColor4ubv(robj.getColor(v.getColorIndex()), 0);
+                     setVertexColor (gl, robj.getColor (v.getColorIndex ()), useHSV);
                   }
                   if (robj.hasNormals()) {
                      gl.glNormal3fv(robj.getNormal(v.getNormalIndex()), 0);
@@ -2586,6 +2670,14 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          } else {
             gl.glCallList(dlpp.getList());
          }
+         
+         // disable color tracking
+         if (useColors) {
+            gl.glDisable (GL2.GL_COLOR_MATERIAL);
+            if (useHSV) {
+               gl.glUseProgramObjectARB (0);
+            }
+         }
 
          if (enableLighting) {
             setLightingEnabled(true);
@@ -2599,7 +2691,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    private void drawColoredCylinder (GL2 gl, int nslices, double base,
       double top, float[] coords0, byte[] color0, float[] coords1, 
-      byte[] color1, boolean capped) {
+      byte[] color1, boolean capped, boolean useHSV) {
 
       utmp.set (coords1[0] - coords0[0], coords1[1] - coords0[1], coords1[2]
       - coords0[2]);
@@ -2633,10 +2725,12 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          c1 = cosBuff[i];
          s1 = sinBuff[i];
          gl.glNormal3d(c1, s1, (base-top)/h);
+         
+         setVertexColor (gl, color0, useHSV);
          gl.glColor4ubv (color0, 0);
          gl.glVertex3d (base * c1, base * s1, 0);
 
-         gl.glColor4ubv (color1, 0);
+        setVertexColor (gl, color1, useHSV);
          gl.glVertex3d (top * c1, top * s1, h);
       }
 
@@ -3056,6 +3150,17 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       int slices = 64;
       boolean selecting = isSelecting();
       boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
+      boolean useHSV = isHSVColorInterpolationEnabled ();
+      
+      // if use vertex colors, get them to track glColor
+      if (useColors) {
+         gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
+         gl.glEnable (GL2.GL_COLOR_MATERIAL);
+         if (useHSV) {
+            useHSV = setupHSVInterpolation(gl);
+         }
+      }
+      
       boolean useDisplayList = !selecting || !useColors;
       DisplayListPassport dlpp = null;
       RenderObjectKey key = new RenderObjectKey(robj, DrawType.LINES);
@@ -3087,7 +3192,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                      byte[] c0 = robj.getColor(v0.getColorIndex());
                      float[] p1 = robj.getPosition(v1.getPositionIndex());
                      byte[] c1 = robj.getColor(v1.getColorIndex());
-                     drawColoredCylinder(gl, slices, rad, rad, p0, c0, p1, c1, true);
+                     drawColoredCylinder(gl, slices, rad, rad, p0, c0, p1, c1, true, useHSV);
                   }
                } else {
                   for (int[] line : lines) {
@@ -3158,6 +3263,14 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          gl.glCallList(dlpp.getList());
       }
       
+      // disable color tracking
+      if (useColors) {
+         gl.glDisable (GL2.GL_COLOR_MATERIAL);
+         if (useHSV) {
+            gl.glUseProgramObjectARB (0);
+         }
+      }
+      
       if (!normalizeEnabled) {
          gl.glDisable (GL2.GL_NORMALIZE);
       }
@@ -3208,6 +3321,17 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
          boolean selecting = isSelecting();
          boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
+         boolean useHSV = isHSVColorInterpolationEnabled ();
+         
+         // if use vertex colors, get them to track glColor
+         if (useColors) {
+            gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
+            gl.glEnable (GL2.GL_COLOR_MATERIAL);
+            if (useHSV) {
+               useHSV = setupHSVInterpolation(gl);
+            }
+         }
+         
          boolean useDisplayList = !selecting || !useColors;
          DisplayListPassport dlpp = null;
          RenderObjectKey key = new RenderObjectKey(robj, DrawType.POINTS);
@@ -3234,7 +3358,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             for (int[] pnt : pnts) {
                VertexIndexSet v = robj.getVertex(pnt[0]);
                if (!selecting && robj.hasColors() && isVertexColoringEnabled()) {
-                  gl.glColor4ubv(robj.getColor(v.getColorIndex()),0);
+                  setVertexColor (gl, robj.getColor (v.getColorIndex ()), useHSV);
                }
                if (robj.hasNormals()) {
                   gl.glNormal3fv(robj.getNormal(v.getNormalIndex()),0);
@@ -3252,6 +3376,14 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             gl.glCallList(dlpp.getList());
          }
 
+         // disable color tracking
+         if (useColors) {
+            gl.glDisable (GL2.GL_COLOR_MATERIAL);
+            if (useHSV) {
+               gl.glUseProgramObjectARB (0);
+            }
+         }
+         
          if (enableLighting) {
             setLightingEnabled(true);
          }
@@ -3275,12 +3407,23 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
       boolean selecting = isSelecting();
       boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
+      boolean useHSV = isHSVColorInterpolationEnabled ();
+      
+      // if use vertex colors, get them to track glColor
+      if (useColors) {
+         gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
+         gl.glEnable (GL2.GL_COLOR_MATERIAL);
+         if (useHSV) {
+            useHSV = setupHSVInterpolation(gl);
+         }
+      }
+      
       boolean useDisplayList = !selecting || !useColors;
       DisplayListPassport dlpp = null;
       RenderObjectKey key = new RenderObjectKey(robj, DrawType.POINTS);
       PointFingerPrint fingerprint = new PointFingerPrint(robj.getVersionInfo(), PointStyle.SPHERE, displayList, (float)rad);
       boolean compile = true;
-
+      
       if (useDisplayList) {
          dlpp = myGLResources.getDisplayListPassport(gl, key);
          if (dlpp == null) {
@@ -3300,9 +3443,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             VertexIndexSet v = robj.getVertex(pnt[0]);
             // maybe color or XXX texture
             if (!selecting && useColors) {
-               byte[] c = robj.getColor(v.getColorIndex());
-               float[] fc = new float[]{(float)c[0]/255f, (float)c[1]/255f, (float)c[2]/255f, (float)c[3]/255f}; 
-               updateColor(fc, false); // XXX update material?
+               setVertexColor (gl, robj.getColor (v.getColorIndex ()), useHSV);
             }
             // position
             float [] p = robj.getPosition(v.getPositionIndex());
@@ -3324,6 +3465,14 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          }
       } else {
          gl.glCallList(dlpp.getList());
+      }
+      
+      // disable color tracking
+      if (useColors) {
+         gl.glDisable (GL2.GL_COLOR_MATERIAL);
+         if (useHSV) {
+            gl.glUseProgramObjectARB (0);
+         }
       }
 
       if (!normalizeEnabled) {
@@ -3375,12 +3524,23 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
       boolean selecting = isSelecting();
       boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
+      boolean useHSV = isHSVColorInterpolationEnabled ();
+      
+      // if use vertex colors, get them to track glColor
+      if (useColors) {
+         gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
+         gl.glEnable (GL2.GL_COLOR_MATERIAL);
+         if (useHSV) {
+            useHSV = setupHSVInterpolation(gl);
+         }
+      }
+      
       boolean useDisplayList = !selecting || !useColors;
       DisplayListPassport dlpp = null;
       RenderObjectKey key = new RenderObjectKey(robj, DrawType.VERTICES);
       VertexFingerPrint fingerprint = new VertexFingerPrint(robj.getVersionInfo(), mode);
       boolean compile = true;
-
+      
       if (useDisplayList) {
          dlpp = myGLResources.getDisplayListPassport(gl, key);
          if (dlpp == null) {
@@ -3425,7 +3585,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
          for (VertexIndexSet v : robj.getVertices()) {
             if (!selecting && useColors) {
-               gl.glColor4ubv(robj.getColor(v.getColorIndex()),0);
+               setVertexColor (gl, robj.getColor (v.getColorIndex ()), useHSV);
             }
             if (robj.hasNormals()) {
                gl.glNormal3fv(robj.getNormal(v.getNormalIndex()),0);
@@ -3442,6 +3602,14 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          }
       } else {
          gl.glCallList(dlpp.getList());
+      }
+      
+      // disable color tracking
+      if (useColors) {
+         gl.glDisable (GL2.GL_COLOR_MATERIAL);
+         if (useHSV) {
+            gl.glUseProgramObjectARB (0);
+         }
       }
 
       if (enableLighting) {

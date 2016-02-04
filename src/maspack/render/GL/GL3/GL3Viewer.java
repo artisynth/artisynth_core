@@ -210,18 +210,18 @@ public class GL3Viewer extends GLViewer {
 
    public void setDefaultLights() {
 
-      float light0_diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
       float light0_ambient[] = { 0.1f, 0.1f, 0.1f, 1f };
+      float light0_diffuse[] = { 0.8f, 0.8f, 0.8f, 1.0f };
       float light0_specular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
       float light0_position[] = { -0.8660254f, 0.5f, 1f, 0f };
 
-      float light1_diffuse[] = { 0.5f, 0.5f, 0.5f, 1.0f };
       float light1_ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+      float light1_diffuse[] = { 0.5f, 0.5f, 0.5f, 1.0f };
       float light1_specular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
       float light1_position[] = { 0.8660254f, 0.5f, 1f, 0f };
 
-      float light2_diffuse[] = { 0.5f, 0.5f, 0.5f, 1.0f };
       float light2_ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+      float light2_diffuse[] = { 0.5f, 0.5f, 0.5f, 1.0f };
       float light2_specular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
       float light2_position[] = { 0f, -10f, 1f, 0f };
 
@@ -307,15 +307,11 @@ public class GL3Viewer extends GLViewer {
    private void createMaterials() {
 
       myFrontMaterial = Material.createDiffuse(Color.YELLOW, 0);
-      myFrontMaterial.setAmbient(Color.BLACK);
       myFrontMaterial.setSpecular(Color.WHITE);
       myFrontMaterial.setShininess(5000f);
-      myFrontMaterial.setAmbienceCoefficient(0.1f);
 
       myBackMaterial = Material.createDiffuse(Color.BLUE, 0);
-      myBackMaterial.setAmbient(Color.BLACK);
       myBackMaterial.setSpecular(Color.BLACK);
-      myBackMaterial.setAmbienceCoefficient(0.1f);
    }
 
    @Override

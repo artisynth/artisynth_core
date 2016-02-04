@@ -4,7 +4,7 @@
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
-package maspack.render.GL;
+package maspack.render.GL.GL2;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
@@ -14,7 +14,9 @@ import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderList;
 import maspack.render.Renderer;
-import maspack.render.GL.GL2.GL2Viewer;
+import maspack.render.GL.GLRenderable;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewerFrame;
 
 public class GLHSVShaderTest implements GLRenderable {
    

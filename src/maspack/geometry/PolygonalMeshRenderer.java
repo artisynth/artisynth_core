@@ -341,9 +341,11 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       Shading shading = props.getShading();
       if (mesh.hasColors()) {
          // smooth shading is needed to get line colors to interpolate
-         renderer.setShadeModel (Shading.GOURAUD);
+         // XXX renderer.setShadeModel (Shading.PHONG);
          if (shading == Shading.NONE) {
             renderer.setLightingEnabled (false);
+         } else {
+            setFaceMaterialAndShading (renderer, mesh, props, selected);
          }
       }
       else {

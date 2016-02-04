@@ -22,7 +22,6 @@ public class GLSLGenerator {
    // // material properties
    // struct Material {
    //    vec4 diffuse;   // alpha is diffuse.a
-   //    vec4 ambient;   // diffuse-mixing factor is ambient.a
    //    vec4 specular;  // shininess is specular.a
    //    vec4 emission;  
    // };
@@ -669,7 +668,6 @@ public class GLSLGenerator {
       appendln(hb, "// material properties");
       appendln(hb, "struct Material {");
       appendln(hb, "   vec4 diffuse;   // alpha is diffuse.a");
-      appendln(hb, "   vec4 ambient;   // diffuse-mixing factor is ambient.a");
       appendln(hb, "   vec4 specular;  // shininess is specular.a");
       appendln(hb, "   vec4 emission;  ");
       appendln(hb, "};");
@@ -724,7 +722,7 @@ public class GLSLGenerator {
       appendln(fb, "   if (intensity > 0) {");
       appendln(fb, "      // compute the half vector");
       appendln(fb, "      vec3 h = normalize(ldir + edir);");
-      appendln(fb, "      return vec2(intensity,  pow(max(dot(h,ndir), 0.0),specPower));");
+      appendln(fb, "      return vec2(intensity,  pow(min(max(dot(h,ndir), 0.0),1.0), specPower));");
       appendln(fb, "   }");
       appendln(fb, "   return vec2(0.0);");
       appendln(fb, "}");
@@ -1083,8 +1081,8 @@ public class GLSLGenerator {
          }
          appendln(mb, "   diffuse  = diffuse_color.rgb*diffuse;");
          appendln(mb, "   specular = material.specular.rgb*specular;");
-         appendln(mb, "   // mix ambient and diffuse based on ambient weighting");
-         appendln(mb, "   ambient  = mix(material.ambient.rgb, diffuse_color.rgb, material.ambient.a)*ambient;");
+         appendln(mb, "   // ambient color is diffuse times ambient light");
+         appendln(mb, "   ambient  = material.diffuse.rgb*ambient;");
          appendln(mb, "   emission = material.emission.rgb;");
          appendln(mb, "   color = vec4(max(diffuse+specular+emission, ambient), diffuse_color.a);");
          //appendln(mb, "   color = vec4(max(diffuse,specular), diffuse_color.a);");

@@ -123,12 +123,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected float[] myFaceColor = new float[3];
    protected PropertyMode myFaceColorMode;
    protected static Color defaultFaceColor = new Color (0.5f, 0.5f, 0.5f);
-   protected static final Color defaultColorAmbient = 
-      new Color(
-         Material.default_ambient[0],
-         Material.default_ambient[1],
-         Material.default_ambient[2],
-         Material.default_ambient[3]);
 
    protected static final Color defaultColorDiffuse = 
       new Color(
@@ -164,10 +158,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected float myShininess;
    protected PropertyMode myShininessMode;
    protected static float defaultShininess = 32f;
-   
-   protected float myAmbience;
-   protected PropertyMode myAmbienceMode;
-   protected static float defaultAmbience = 0f;
 
    protected PointStyle myPointStyle;
    protected PropertyMode myPointStyleMode;
@@ -249,8 +239,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          "shading:Inherited", "shading style", defaultShading);
       myProps.addInheritable (
          "shininess:Inherited", "specular shininess", defaultShininess, "[0,Inf]");
-      myProps.addInheritable (
-         "ambience:Inherited", "ambience factor (scaled diffuse)", defaultAmbience, "[0,1]");
       myProps.addInheritable (
          "faceStyle:Inherited", "draw front/back of faces", defaultFaceStyle);
       myProps.addInheritable (
@@ -465,23 +453,21 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       return changed;
    }
 
-   protected void updateMaterial(Material mat, Color c, float alpha, float shine, float ambience) {
+   protected void updateMaterial(Material mat, Color c, float alpha, float shine) {
       if (mat != null) {
          mat.setDiffuse(c);
          mat.setAlpha(alpha);
          mat.setShininess(shine);
-         mat.setAmbienceCoefficient(ambience);
       }
    }
 
-   private void updateMaterial(Material mat, float[] c, float alpha, float shine, float ambience) {
+   private void updateMaterial(Material mat, float[] c, float alpha, float shine) {
       if (mat != null) {
          if (c != null) {
             mat.setDiffuse(c);
          }
          mat.setAlpha(alpha);
          mat.setShininess(shine);
-         mat.setAmbienceCoefficient(ambience);
       }
    }
 
@@ -497,7 +483,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
    public void setFaceColor (Color color) {
       if (doSetColor (myFaceColor, color)) {
-         updateMaterial(myFaceMaterial, color, myAlpha, myShininess, myAmbience);
+         updateMaterial(myFaceMaterial, color, myAlpha, myShininess);
       }
       if (myBackColor == null && myBackMaterial != null) {
          myBackMaterial.setDiffuse(myFaceColor);
@@ -561,34 +547,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       setFaceColorMode(mode);
    }
 
-
-   private static Color getColorAmbient(Material mat, boolean createIfNotExist) {
-      float color[];
-      if (mat != null) {
-         color  = mat.getAmbient();
-         return new Color (color[0], color[1], color[2]);
-      } else if (createIfNotExist) {
-         color = Material.default_ambient;
-         return new Color (color[0], color[1], color[2]);
-      }
-      return null;
-   }
-
-   private static  void getColorAmbient (Material mat, float[] color) {
-      float[] fc;
-      if (mat != null) {
-         fc = mat.getAmbient();
-      } else {
-         fc = Material.default_ambient;
-      }
-      color[0] = fc[0];
-      color[1] = fc[1];
-      color[2] = fc[2];
-      if (color.length > 3) {
-         color[3] = fc[3];
-      }
-   }
-
    private static Color getColorSpecular(Material mat, boolean createIfNotExist) {
       float color[];
       if (mat != null) {
@@ -644,23 +602,12 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       }
    }
 
-   private Material createAmbientMaterial(Color ambient, float[] diffuse) {
-      Material mat = new Material();
-      mat.setAmbient(ambient);
-      mat.setDiffuse(diffuse);
-      mat.setAlpha(myAlpha);
-      mat.setShininess(myShininess);
-      mat.setAmbienceCoefficient(myAmbience);
-      return mat;
-   }
-
    private Material createSpecularMaterial(Color spec, float[] diffuse) {
       Material mat = new Material();
       mat.setSpecular(spec);
       mat.setDiffuse(diffuse);
       mat.setAlpha(myAlpha);
       mat.setShininess(myShininess);
-      mat.setAmbienceCoefficient(myAmbience);
       return mat;
    }
 
@@ -670,48 +617,9 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       mat.setDiffuse(diffuse);
       mat.setAlpha(myAlpha);
       mat.setShininess(myShininess);
-      mat.setAmbienceCoefficient(myAmbience);
       return mat;
    }
 
-   // property faceColorAmbient
-   public Color getFaceColorAmbient() {
-      return getColorAmbient(myFaceMaterial, true);
-   }
-
-   public float[] getFaceColorAmbientArray() {
-      if (myFaceMaterial != null) {
-         return myFaceMaterial.getAmbient();
-      } else {
-         return Arrays.copyOf(Material.default_ambient, 4);
-      }
-   }
-
-   public void setFaceColorAmbient (Color color) {
-      if (myFaceMaterial == null) {
-         myFaceMaterial = createAmbientMaterial(color, myFaceColor);
-      } else {
-         myFaceMaterial.setAmbient(color);
-      }
-      myFaceColorMode =
-         PropertyUtils.propagateValue (
-            this, "faceColorAmbient", color, myFaceColorMode);
-   }
-
-   public void getFaceColorAmbient (float[] color) {
-      getColorAmbient(myFaceMaterial, color);
-   }
-
-   public PropertyMode getFaceColorAmbientMode() {
-      return getFaceColorMode();
-   }
-
-   public void setFaceColorAmbientMode (PropertyMode mode) {
-      if (mode != myFaceColorMode) {
-         myFaceColorMode = PropertyUtils.setModeAndUpdate (
-            this, "faceColorAmbient", myFaceColorMode, mode);
-      }
-   }
 
    // property faceColorSpecular
    public Color getFaceColorSpecular() {
@@ -796,11 +704,11 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected boolean doSetAlpha (float a) {
       if (myAlpha != a) {
          myAlpha = a;
-         updateMaterial(myFaceMaterial, myFaceColor, a, myShininess, myAmbience);
-         updateMaterial(myBackMaterial, myBackColor, a, myShininess, myAmbience);
-         updateMaterial(myEdgeMaterial, myEdgeColor, a, myShininess, myAmbience);
-         updateMaterial(myLineMaterial, myLineColor, a, myShininess, myAmbience);
-         updateMaterial(myPointMaterial, myPointColor, a, myShininess, myAmbience);
+         updateMaterial(myFaceMaterial, myFaceColor, a, myShininess);
+         updateMaterial(myBackMaterial, myBackColor, a, myShininess);
+         updateMaterial(myEdgeMaterial, myEdgeColor, a, myShininess);
+         updateMaterial(myLineMaterial, myLineColor, a, myShininess);
+         updateMaterial(myPointMaterial, myPointColor, a, myShininess);
          return true;
       }
       else {
@@ -876,11 +784,11 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected boolean doSetShininess (float s) {
       if (myShininess != s) {
          myShininess = s;
-         updateMaterial(myFaceMaterial, myFaceColor, myAlpha, myShininess, myAmbience);
-         updateMaterial(myBackMaterial, myBackColor, myAlpha, myShininess, myAmbience);
-         updateMaterial(myEdgeMaterial, myEdgeColor, myAlpha, myShininess, myAmbience);
-         updateMaterial(myLineMaterial, myLineColor, myAlpha, myShininess, myAmbience);
-         updateMaterial(myPointMaterial, myPointColor, myAlpha, myShininess, myAmbience);
+         updateMaterial(myFaceMaterial, myFaceColor, myAlpha, myShininess);
+         updateMaterial(myBackMaterial, myBackColor, myAlpha, myShininess);
+         updateMaterial(myEdgeMaterial, myEdgeColor, myAlpha, myShininess);
+         updateMaterial(myLineMaterial, myLineColor, myAlpha, myShininess);
+         updateMaterial(myPointMaterial, myPointColor, myAlpha, myShininess);
          return true;
       }
       else {
@@ -909,49 +817,12 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          PropertyUtils.setModeAndUpdate (
             this, "shininess", myShininessMode, mode);
    }
-   
-   protected boolean doSetAmbience (float a) {
-      if (myAmbience != a) {
-         myAmbience = a;
-         updateMaterial(myFaceMaterial, myFaceColor, myAlpha, myShininess, myAmbience);
-         updateMaterial(myBackMaterial, myBackColor, myAlpha, myShininess, myAmbience);
-         updateMaterial(myEdgeMaterial, myEdgeColor, myAlpha, myShininess, myAmbience);
-         updateMaterial(myLineMaterial, myLineColor, myAlpha, myShininess, myAmbience);
-         updateMaterial(myPointMaterial, myPointColor, myAlpha, myShininess, myAmbience);
-         return true;
-      }
-      else {
-         return false;
-      }
-   }
 
-   // property ambience
-
-   public float getAmbience() {
-      return myAmbience;
-   }
-
-   public void setAmbience (float a) {
-      doSetAmbience (a);
-      myAmbienceMode =
-         PropertyUtils.propagateValue (this, "ambience", a, myAmbienceMode);
-   }
-
-   public PropertyMode getAmbienceMode() {
-      return myAmbienceMode;
-   }
-
-   public void setAmbienceMode (PropertyMode mode) {
-      myAmbienceMode =
-         PropertyUtils.setModeAndUpdate (
-            this, "ambience", myAmbienceMode, mode);
-   }
 
    public Material getFaceMaterial() {
       if (myFaceMaterial == null) {
          myFaceMaterial =
             Material.createDiffuse (myFaceColor, myAlpha, myShininess);
-         myFaceMaterial.setAmbienceCoefficient(myAmbience);
       }
       return myFaceMaterial;
    }
@@ -1232,7 +1103,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       if (doSetEdgeColor (color)) {
          if (color != null) {
             updateMaterial (
-               myEdgeMaterial, color, myAlpha, myShininess, myAmbience);
+               myEdgeMaterial, color, myAlpha, myShininess);
          }
       }
       myEdgeColorMode =
@@ -1350,7 +1221,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       if (doSetBackColor (color)) {
          if (color != null) {
             updateMaterial (
-               myBackMaterial, color, myAlpha, myShininess, myAmbience);
+               myBackMaterial, color, myAlpha, myShininess);
          }
       }
       myBackColorMode =
@@ -1422,63 +1293,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       setBackColorMode(mode);
    }
 
-   // property backColorAmbient
-   public Color getBackColorAmbient() {
-      if (myBackColor != null) {
-         return getColorAmbient(myBackMaterial, false);
-      }
-      return null;
-   }
-
-   public float[] getBackColorAmbientArray() {
-      if (myBackColor == null) {
-         return null;
-      } else if (myBackMaterial != null) {
-         return myBackMaterial.getAmbient();
-      } else {
-         return null;
-      }
-   }
-
-   public void setBackColorAmbient (Color color) {
-      if (color == null) {
-         // set default
-         if (myBackMaterial != null) {
-            myBackMaterial.setAmbient(defaultColorAmbient);
-         }
-      } else if (myBackMaterial == null) {
-         if (myBackColor != null) {
-            myBackMaterial = createAmbientMaterial(color, myBackColor);
-         } else {
-            myBackMaterial = createAmbientMaterial(color, myFaceColor);
-         }
-      } else {
-         myBackMaterial.setAmbient(color);
-      }
-      myBackColorMode =
-         PropertyUtils.propagateValue (
-            this, "backColorAmbient", color, myBackColorMode);
-   }
-
-   public void getBackColorAmbient (float[] color) {
-      if (myBackColor != null) {
-         getColorAmbient(myBackMaterial, color);
-      } else {
-         getColorAmbient(myFaceMaterial, color);
-      }
-   }
-
-   public PropertyMode getBackColorAmbientMode() {
-      return getBackColorMode();
-   }
-
-   public void setBackColorAmbientMode (PropertyMode mode) {
-      if (mode != myBackColorMode) {
-         myBackColorMode = PropertyUtils.setModeAndUpdate (
-            this, "backColorAmbient", myBackColorMode, mode);
-      }
-   }
-
    // property backColorSpecular
    public Color getBackColorSpecular() {
       if (myBackColor != null) {
@@ -1500,7 +1314,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       if (color == null) {
          // set default
          if (myBackMaterial != null) {
-            myBackMaterial.setSpecular(defaultColorAmbient);
+            myBackMaterial.setSpecular(defaultColorSpecular);
          }
       } else if (myBackMaterial == null) {
          if (myBackColor != null) {
@@ -1555,7 +1369,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       if (color == null) {
          // set default
          if (myBackMaterial != null) {
-            myBackMaterial.setEmission(defaultColorAmbient);
+            myBackMaterial.setEmission(defaultColorEmission);
          }
       } else if (myBackMaterial == null) {
          if (myBackColor != null) {
@@ -1602,7 +1416,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
    public void setLineColor (Color color) {
       if (doSetColor (myLineColor, color)) {
-         updateMaterial(myLineMaterial, color, myAlpha, myShininess, myAmbience);
+         updateMaterial(myLineMaterial, color, myAlpha, myShininess);
       }
       myLineColorMode =
          PropertyUtils.propagateValue (
@@ -1659,45 +1473,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
    public void setLineColorDiffuseMode (PropertyMode mode) {
       setLineColorMode(mode);
-   }
-
-   // property lineColorAmbient
-   public Color getLineColorAmbient() {
-      return getColorAmbient(myLineMaterial, true);
-   }
-
-   public float[] getLineColorAmbientArray() {
-      if (myLineMaterial != null) {
-         return myLineMaterial.getAmbient();
-      } else {
-         return Arrays.copyOf(Material.default_ambient, 4);
-      }
-   }
-
-   public void setLineColorAmbient (Color color) {
-      if (myLineMaterial == null) {
-         myLineMaterial = createAmbientMaterial(color, myLineColor);
-      } else {
-         myLineMaterial.setAmbient(color);
-      }
-      myLineColorMode =
-         PropertyUtils.propagateValue (
-            this, "lineColorAmbient", color, myLineColorMode);
-   }
-
-   public void getLineColorAmbient (float[] color) {
-      getColorAmbient(myLineMaterial, color);
-   }
-
-   public PropertyMode getLineColorAmbientMode() {
-      return getLineColorMode();
-   }
-
-   public void setLineColorAmbientMode (PropertyMode mode) {
-      if (mode != myLineColorMode) {
-         myLineColorMode = PropertyUtils.setModeAndUpdate (
-            this, "lineColorAmbient", myLineColorMode, mode);
-      }
    }
 
    // property lineColorSpecular
@@ -1857,47 +1632,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
    public void setPointColorDiffuseMode (PropertyMode mode) {
       setPointColorMode(mode);
-   }
-
-   // property pointColorAmbient
-   public Color getPointColorAmbient() {
-      return getColorAmbient(myPointMaterial, true);
-   }
-
-   public float[] getPointColorAmbientArray() {
-      if (myPointMaterial != null) {
-         return myPointMaterial.getAmbient();
-      } else {
-         return Arrays.copyOf(Material.default_ambient, 4);
-      }
-   }
-
-   public void setPointColorAmbient (Color color) {
-      if (myPointMaterial == null) {
-         myPointMaterial = createAmbientMaterial(color, myPointColor);
-      } else {
-         myPointMaterial.setAmbient(color);
-      }
-      myPointColorMode =
-         PropertyUtils.propagateValue (
-            this, "pointColorAmbient", color, myPointColorMode);
-   }
-
-   public void getPointColorAmbient (float[] color) {
-      getColorAmbient(myPointMaterial, color);
-   }
-
-   public PropertyMode getPointColorAmbientMode() {
-      return getPointColorMode();
-   }
-
-   public void setPointColorAmbientMode (PropertyMode mode) {
-      if (mode != myPointColorMode) {
-         myPointColorMode =
-            PropertyUtils.setModeAndUpdate (
-               this, "pointColorAmbient", myPointColorMode, mode);
-      }
-   }
+   }  
 
    // property pointColorSpecular
    public Color getPointColorSpecular() {
@@ -1984,7 +1719,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       if (myBackMaterial == null && myBackColor != null) {
          myBackMaterial =
             Material.createDiffuse (myBackColor, myAlpha, myShininess);
-         myBackMaterial.setAmbienceCoefficient(myAmbience);
       } else if (myBackColor == null) {
          return null;
       }
@@ -1995,7 +1729,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       if (myEdgeMaterial == null && myEdgeColor != null) {
          myEdgeMaterial =
             Material.createDiffuse (myEdgeColor, myAlpha, myShininess);
-         myEdgeMaterial.setAmbienceCoefficient(myAmbience);
       } else if (myEdgeColor == null) {
          return null;
       }
@@ -2006,7 +1739,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       if (myLineMaterial == null) {
          myLineMaterial =
             Material.createDiffuse (myLineColor, myAlpha, myShininess);
-         myLineMaterial.setAmbienceCoefficient(myAmbience);
       }
       return myLineMaterial;
    }
@@ -2015,7 +1747,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       if (myPointMaterial == null) {
          myPointMaterial =
             Material.createDiffuse (myPointColor, myAlpha, myShininess);
-         myPointMaterial.setAmbienceCoefficient(myAmbience);
       }
       return myPointMaterial;
    }
@@ -2064,7 +1795,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myZOrderMode = INHERITED;
       myShadingMode = INHERITED;
       myShininessMode = INHERITED;
-      myAmbienceMode = INHERITED;
       myPointStyleMode = INHERITED;
       myPointRadiusMode = INHERITED;
       myPointSlicesMode = INHERITED;
@@ -2089,7 +1819,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myZOrder = defaultZOrder;
       myShading = defaultShading;
       myShininess = defaultShininess;
-      myAmbience = defaultAmbience;
       myPointStyle = defaultPointStyle;
       myPointRadius = defaultPointRadius;
       myPointSlices = defaultPointSlices;
@@ -2129,8 +1858,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myShadingMode = r.myShadingMode;
       myShininess = r.myShininess;
       myShininessMode = r.myShininessMode;
-      myAmbience = r.myAmbience;
-      myAmbienceMode = r.myAmbienceMode;
 
       myFaceStyle = r.myFaceStyle;
       myFaceStyleMode = r.myFaceStyleMode;
@@ -2326,12 +2053,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          return false;
       }
       else if (myShininessMode == EXPLICIT && myShininess != r.myShininess) {
-         return false;
-      }
-      if (myAmbience != r.myAmbience) {
-         return false;
-      } 
-      else if (myAmbienceMode == EXPLICIT && myAmbience != r.myAmbience) {
          return false;
       }
       if (myPointStyleMode != r.myPointStyleMode) {
@@ -2665,7 +2386,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       buf.append ("ZOrder=" + myZOrder + " " + myZOrderMode + ", ");
       buf.append ("Shading=" + myShading + " " + myShadingMode + ", ");
       buf.append ("Shininess=" + myShininess + " " + myShininessMode + ", ");
-      buf.append ("Ambience=" + myAmbience + " " + myAmbienceMode + ", ");
       buf.append ("FaceStyle=" + myFaceStyle + " " + myFaceStyleMode + ", ");
       buf.append ("FaceColor=" + colorString (myFaceColor) + " " +
          myFaceColorMode + ", ");
@@ -2830,18 +2550,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       r.setRenderProps (props);
    }
 
-   public static void setAmbience (Renderable r, double ambience) {
-      RenderProps props = createAndAssignProps (r);
-      props.setAmbience ((float)ambience);
-      r.setRenderProps (props);
-   }
-
-   public static void setAmbienceMode (Renderable r, PropertyMode mode) {
-      RenderProps props = createAndAssignProps (r);
-      props.setAmbienceMode (mode);
-      r.setRenderProps (props);
-   }
-   
    public static void setFaceStyle (Renderable r, Faces style) {
       RenderProps props = createAndAssignProps (r);
       props.setFaceStyle (style);
@@ -3075,100 +2783,42 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          tprops = new TextureProps();
          props.setTextureProps (tprops);
       }
-      tprops.setEnabled (enabled);
+      tprops.setTextureEnabled (enabled);
       r.setRenderProps (props);
    }
 
    public static void setTextureEnabledMode (Renderable r, PropertyMode mode) {
       RenderProps props = createAndAssignProps (r);
       TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setEnabledMode (mode);
+      tprops.setTextureEnabledMode (mode);
       r.setRenderProps (props);
    }
 
-   public static void setTextureMode (Renderable r, TextureProps.Mode mode) {
+   public static void setTextureMode (Renderable r, TextureProps.TextureMode mode) {
       RenderProps props = createAndAssignProps (r);
       TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setMode (mode);
+      tprops.setTextureMode (mode);
       r.setRenderProps (props);
    }
 
    public static void setTextureModeMode (Renderable r, PropertyMode mode) {
       RenderProps props = createAndAssignProps (r);
       TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setModeMode (mode);
+      tprops.setTextureModeMode (mode);
       r.setRenderProps (props);
    }
 
    public static void setTextureFileName (Renderable r, String fileName) {
       RenderProps props = createAndAssignProps (r);
       TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setFileName (fileName);
+      tprops.setTextureFileName (fileName);
       r.setRenderProps (props);
    }
 
    public static void setTextureFileNameMode (Renderable r, PropertyMode mode) {
       RenderProps props = createAndAssignProps (r);
       TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setFileNameMode (mode);
-      r.setRenderProps (props);
-   }
-
-   public static void setTextureSphereMappingEnabled (
-      Renderable r, boolean enabled) {
-      RenderProps props = createAndAssignProps (r);
-      TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setSphereMappingEnabled (enabled);
-      r.setRenderProps (props);
-   }
-
-   public static void setTextureSphereMappingMode (
-      Renderable r, PropertyMode mode) {
-      RenderProps props = createAndAssignProps (r);
-      TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setSphereMappingMode (mode);
-      r.setRenderProps (props);
-   }
-
-   public static void setTextureAutomatic (Renderable r, boolean enabled) {
-      RenderProps props = createAndAssignProps (r);
-      TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setAutomatic (enabled);
-      r.setRenderProps (props);
-   }
-
-   public static void setTextureAutomaticMode (Renderable r, PropertyMode mode) {
-      RenderProps props = createAndAssignProps (r);
-      TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setAutomaticMode (mode);
-      r.setRenderProps (props);
-   }
-
-   public static void setTextureSCoords (Renderable r, double[] scoords) {
-      RenderProps props = createAndAssignProps (r);
-      TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setSCoords (scoords);
-      r.setRenderProps (props);
-   }
-
-   public static void setTextureSCoordsMode (Renderable r, PropertyMode mode) {
-      RenderProps props = createAndAssignProps (r);
-      TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setSCoordsMode (mode);
-      r.setRenderProps (props);
-   }
-
-   public static void setTextureTCoords (Renderable r, double[] tcoords) {
-      RenderProps props = createAndAssignProps (r);
-      TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setSCoords (tcoords);
-      r.setRenderProps (props);
-   }
-
-   public static void setTextureTCoordsMode (Renderable r, PropertyMode mode) {
-      RenderProps props = createAndAssignProps (r);
-      TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setSCoordsMode (mode);
+      tprops.setTextureFileNameMode (mode);
       r.setRenderProps (props);
    }
    

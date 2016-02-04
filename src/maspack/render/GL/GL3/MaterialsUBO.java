@@ -14,31 +14,26 @@ public class MaterialsUBO extends UniformBufferObject {
    // // material properties
    // struct Material {
    //    vec4 diffuse;   // alpha is diffuse.a
-   //    vec4 ambient;   // diffuse-mixing factor is ambient.a
    //    vec4 specular;  // shininess is specular.a
    //    vec4 emission;  
    // };
    
    static final String[] MATERIALS_ATTRIBUTES = { 
       "front_material.diffuse",
-      "front_material.ambient",
       "front_material.specular",
       "front_material.emission",
       "back_material.diffuse",
-      "back_material.ambient",
       "back_material.specular",
       "back_material.emission"
    };
    
    static final String BLOCK_NAME = "Materials";
    static final int FRONT_DIFFUSE = 0;
-   static final int FRONT_AMBIENT = 1;
-   static final int FRONT_SPECULAR = 2;
-   static final int FRONT_EMISSION = 3;
-   static final int BACK_DIFFUSE = 4;
-   static final int BACK_AMBIENT = 5;
-   static final int BACK_SPECULAR = 6;
-   static final int BACK_EMISSION = 7;
+   static final int FRONT_SPECULAR = 1;
+   static final int FRONT_EMISSION = 2;
+   static final int BACK_DIFFUSE = 3;
+   static final int BACK_SPECULAR = 4;
+   static final int BACK_EMISSION = 5;
    
    int foffsets[];
    int fsize;
@@ -65,9 +60,6 @@ public class MaterialsUBO extends UniformBufferObject {
       
       offset = foffsets[FRONT_DIFFUSE];
       copy(materialbuff, offset, frontMaterial.getDiffuse(), 4); // alpha already stored in diffuse
-      offset = foffsets[FRONT_AMBIENT];
-      copy(materialbuff, offset, frontMaterial.getAmbient(), 3);
-      materialbuff[offset+3] = frontMaterial.getAmbienceCoefficient();
       offset = foffsets[FRONT_SPECULAR];
       copy(materialbuff, offset, frontMaterial.getSpecular(), 3);
       materialbuff[offset+3] = frontMaterial.getShininess();
@@ -76,9 +68,6 @@ public class MaterialsUBO extends UniformBufferObject {
       
       offset = foffsets[BACK_DIFFUSE];
       copy(materialbuff, offset, backMaterial.getDiffuse(), 4); // alpha already stored in diffuse
-      offset = foffsets[BACK_AMBIENT];
-      copy(materialbuff, offset, backMaterial.getAmbient(), 3);
-      materialbuff[offset+3] = backMaterial.getAmbienceCoefficient();
       offset = foffsets[BACK_SPECULAR];
       copy(materialbuff, offset, backMaterial.getSpecular(), 3);
       materialbuff[offset+3] = backMaterial.getShininess();
@@ -126,9 +115,6 @@ public class MaterialsUBO extends UniformBufferObject {
       
       offset = foffsets[FRONT_DIFFUSE];
       copy(materialbuff, offset, frontDiffuse, 4); // alpha already stored in diffuse
-      offset = foffsets[FRONT_AMBIENT];
-      copy(materialbuff, offset, frontMaterial.getAmbient(), 3);
-      materialbuff[offset+3] = frontMaterial.getAmbienceCoefficient();
       offset = foffsets[FRONT_SPECULAR];
       copy(materialbuff, offset, frontMaterial.getSpecular(), 3);
       materialbuff[offset+3] = frontMaterial.getShininess();
@@ -137,9 +123,6 @@ public class MaterialsUBO extends UniformBufferObject {
       
       offset = foffsets[BACK_DIFFUSE];
       copy(materialbuff, offset, backDiffuse, 4); // alpha already stored in diffuse
-      offset = foffsets[BACK_AMBIENT];
-      copy(materialbuff, offset, backMaterial.getAmbient(), 3);
-      materialbuff[offset+3] = backMaterial.getAmbienceCoefficient();
       offset = foffsets[BACK_SPECULAR];
       copy(materialbuff, offset, backMaterial.getSpecular(), 3);
       materialbuff[offset+3] = backMaterial.getShininess();

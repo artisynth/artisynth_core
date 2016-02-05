@@ -677,7 +677,6 @@ public class MFreeElement3d extends FemElement implements Boundable {
       renderMeshValid = false;
    }
    
-   @Override
    protected void renderEdges(Renderer renderer, RenderProps props) {
       if (myBoundaryMesh != null) {
          myMeshRenderer.renderEdges(renderer, myBoundaryMesh, props, 0);
@@ -800,5 +799,32 @@ public class MFreeElement3d extends FemElement implements Boundable {
       return myNodes[idx].getPosition();
    }
    
+   public void render(
+      Renderer renderer, RenderProps rprops, int flags) {
+      
+      if (rprops.getLineWidth() > 0) {
+         switch (rprops.getLineStyle()) {
+            case LINE: {
+               renderer.setLightingEnabled (false);
+               renderer.setLineWidth (rprops.getLineWidth());
+               renderer.setColor (
+                  rprops.getLineColorArray(), isSelected());
+               renderEdges (renderer, rprops);
+               renderer.setLineWidth (1);
+               renderer.setLightingEnabled (true);
+               break;
+            }
+            case CYLINDER: {
+               renderer.setMaterialAndShading (
+                  rprops, myRenderProps.getLineMaterial(), isSelected());
+               renderEdges (renderer,rprops);
+               renderer.restoreShading (rprops);
+               break;
+            }
+            default:
+               break;
+         }
+      }
+   }   
    
 }

@@ -19,7 +19,6 @@ import maspack.properties.PropertyList;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.GL.GLRenderable;
 import artisynth.core.materials.AxialMaterial;
 import artisynth.core.materials.AxialMuscleMaterial;
 import artisynth.core.materials.LinearAxialMaterial;

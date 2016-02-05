@@ -54,6 +54,7 @@ public class PenetrationRendererDemo extends RootModel {
       cm.setContactNormalLen (0.5);
       cm.setDrawIntersectionContours (true);
       cm.setDrawIntersectionFaces (true);
+      cm.setDrawIntersectionPoints (true);
       
       addMonitor (new PenetrationRenderer (cm.collisionHandlers ().get (0)));
    }

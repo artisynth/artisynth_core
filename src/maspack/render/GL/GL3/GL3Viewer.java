@@ -862,6 +862,10 @@ public class GL3Viewer extends GLViewer {
          }
       }
    }
+   
+   private void printColor (String msg, float[] color) {
+      System.out.printf ("%s %g %g %g\n", msg, color[0], color[1], color[2]);
+   }
 
    @Override
    public void setMaterial(
@@ -871,10 +875,10 @@ public class GL3Viewer extends GLViewer {
 
       if (selected && myHighlighting == SelectionHighlighting.Color) {
          myFrontMaterial = mySelectedMaterial;
-         myFrontColor = frontMaterial.getDiffuse();
+         myFrontColor = mySelectedMaterial.getDiffuse();
          myBackMaterial = mySelectedMaterial;
-         myBackColor = backMaterial.getDiffuse();
-         progManager.setMaterials(gl, frontMaterial, backMaterial);
+         myBackColor = mySelectedMaterial.getDiffuse();
+         progManager.setMaterials(gl, myFrontMaterial, myBackMaterial);
       }
       else {
          if (frontDiffuse == null) {

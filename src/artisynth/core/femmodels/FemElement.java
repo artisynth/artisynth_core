@@ -214,7 +214,6 @@ public abstract class FemElement extends RenderableComponentBase
    
    public void updateRestVolumeAndMass() {
       if (!myRestVolumeValidP) {
-         double oldVol = myRestVolume;
          double newVol = computeRestVolumes();
          updateNodeMasses ((newVol*myDensity)-myMass);
          myMass = newVol*myDensity;
@@ -298,34 +297,36 @@ public abstract class FemElement extends RenderableComponentBase
       // nothing to do
    }
 
-   protected abstract void renderEdges (Renderer renderer, RenderProps props);
+   //protected abstract void renderEdges (Renderer renderer, RenderProps props);
 
-   public void render(Renderer renderer, RenderProps rprops, int flags) {
-      
-      if (rprops.getLineWidth() > 0) {
-         switch (rprops.getLineStyle()) {
-            case LINE: {
-               renderer.setLightingEnabled (false);
-               renderer.setLineWidth (rprops.getLineWidth());
-               renderer.setColor (
-                  rprops.getLineColorArray(), isSelected());
-               renderEdges (renderer, rprops);
-               renderer.setLineWidth (1);
-               renderer.setLightingEnabled (true);
-               break;
-            }
-            case CYLINDER: {
-               renderer.setMaterialAndShading (
-                  rprops, myRenderProps.getLineMaterial(), isSelected());
-               renderEdges (renderer,rprops);
-               renderer.restoreShading (rprops);
-               break;
-            }
-            default:
-               break;
-         }
-      }
-   }
+   public abstract void render(
+      Renderer renderer, RenderProps rprops, int flags);
+//   
+//      
+//      if (rprops.getLineWidth() > 0) {
+//         switch (rprops.getLineStyle()) {
+//            case LINE: {
+//               renderer.setLightingEnabled (false);
+//               renderer.setLineWidth (rprops.getLineWidth());
+//               renderer.setColor (
+//                  rprops.getLineColorArray(), isSelected());
+//               renderEdges (renderer, rprops);
+//               renderer.setLineWidth (1);
+//               renderer.setLightingEnabled (true);
+//               break;
+//            }
+//            case CYLINDER: {
+//               renderer.setMaterialAndShading (
+//                  rprops, myRenderProps.getLineMaterial(), isSelected());
+//               renderEdges (renderer,rprops);
+//               renderer.restoreShading (rprops);
+//               break;
+//            }
+//            default:
+//               break;
+//         }
+//      }
+//   }
    
    public void render (Renderer renderer, int flags) {
       render(renderer, myRenderProps, flags);

@@ -210,10 +210,10 @@ public class WedgeElement extends FemElement3d {
 
    public void renderWidget (
       Renderer renderer, double size, RenderProps props) {
-      renderer.drawWedge (props, size,
-                          myNodes[0].myRenderCoords, myNodes[1].myRenderCoords, 
-                          myNodes[2].myRenderCoords, myNodes[3].myRenderCoords,
-                          myNodes[4].myRenderCoords, myNodes[5].myRenderCoords);
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.renderWidget (renderer, this, size, props);
    }
 
    static int[] myEdgeIdxs = new int[] 

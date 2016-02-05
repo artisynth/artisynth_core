@@ -341,7 +341,10 @@ public class QuadwedgeElement extends FemElement3d {
 
    public void renderWidget (
       Renderer renderer, double size, RenderProps props) {
-      renderWidget (renderer, size, myWidgetFaces, props);
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.renderWidget (renderer, this, size, props);
    }
 
    public FemNode3d[][] triangulateFace (FaceNodes3d face) {

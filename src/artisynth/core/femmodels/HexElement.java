@@ -405,40 +405,14 @@ public class HexElement extends FemElement3d {
          myRenderer= new FemElementRenderer (this);
       }
       myRenderer.render (renderer, this, props);
-
-      // if (props.getLineWidth() > 0) {
-      //    switch (rprops.getLineStyle()) {
-      //       case LINE: {
-      //          renderer.setLightingEnabled (false);
-      //          renderer.setLineWidth (rprops.getLineWidth());
-      //          renderer.setColor (
-      //             rprops.getLineColorArray(), isSelected());
-      //          renderEdges (renderer, rprops);
-      //          renderer.setLineWidth (1);
-      //          renderer.setLightingEnabled (true);
-      //          break;
-      //       }
-      //       case CYLINDER: {
-      //          renderer.setMaterialAndShading (
-      //             rprops, myRenderProps.getLineMaterial(), isSelected());
-      //          renderEdges (renderer,rprops);
-      //          renderer.restoreShading (rprops);
-      //          break;
-      //       }
-      //       default:
-      //          break;
-      //    }
-      // }
    }
-
 
    public void renderWidget (
       Renderer renderer, double size, RenderProps props) {
-      renderer.drawHex (props, size,
-                        myNodes[0].myRenderCoords, myNodes[1].myRenderCoords, 
-                        myNodes[2].myRenderCoords, myNodes[3].myRenderCoords,
-                        myNodes[4].myRenderCoords, myNodes[5].myRenderCoords, 
-                        myNodes[6].myRenderCoords, myNodes[7].myRenderCoords);
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.renderWidget (renderer, this, size, props);
    }
 
    static int[] edgeIdxs = new int[] 

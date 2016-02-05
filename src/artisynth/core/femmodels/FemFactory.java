@@ -1594,7 +1594,7 @@ public class FemFactory {
       // linModPerElementMass /= quadMod.getElements().size();
 
       for (FemNode3d n : quadNodes) {
-         n.setMass(0);
+         n.clearMass();
       }
 
       double density = linMod.getDensity();

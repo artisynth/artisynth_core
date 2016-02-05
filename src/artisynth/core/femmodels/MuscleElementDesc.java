@@ -433,8 +433,11 @@ public class MuscleElementDesc
       
    }
       
-
    public void render (Renderer renderer, int flags) {
+      render (renderer, myRenderProps, flags);
+   }   
+
+   public void render (Renderer renderer, RenderProps props, int flags) {
       double widgetSize = 0;
       double directionLength = 0;
       ModelComponent gparent = getGrandParent();
@@ -447,11 +450,11 @@ public class MuscleElementDesc
          renderType = bundle.getDirectionRenderType();
       }      
       if (widgetSize != 0) {
-         maspack.render.Material mat = myRenderProps.getFaceMaterial();
+         maspack.render.Material mat = props.getFaceMaterial();
          renderer.setMaterialAndShading (
-            myRenderProps, mat, myWidgetColor, isSelected());
-         myElement.renderWidget (renderer, widgetSize, myRenderProps);
-         renderer.restoreShading (myRenderProps);
+            props, mat, myWidgetColor, isSelected());
+         myElement.renderWidget (renderer, widgetSize, props);
+         renderer.restoreShading (props);
       }
       if (directionLength > 0) {
          Matrix3d F = new Matrix3d();
@@ -460,7 +463,8 @@ public class MuscleElementDesc
          float[] coords1 = new float[3]; 
 
          renderDirection (
-            renderer, myRenderProps, coords0, coords1, F, dir, directionLength, renderType);
+            renderer, props, coords0, coords1, F, dir,
+            directionLength, renderType);
       }
    }
 

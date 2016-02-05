@@ -1,113 +1,268 @@
 package artisynth.core.femmodels;
 
+import java.util.ArrayList;
 import maspack.util.*;
 import maspack.matrix.*;
 import maspack.render.*;
-import maspack.render.RenderProps.Shading;
 
 public class FemElementRenderer {
 
    private RenderObject myRob;
-   private AffineTransform3d myX;
+   private int myNumEdgePos; // number of positions used for edges
+
+   // number of edge segments (between any two nodes) that should to be used to
+   // render the edges of a quadratic element.
+   static final int numQuadEdgeSegs = 5;
+   ArrayList<QuadEdge> myQuadEdges = new ArrayList<QuadEdge>();
 
    public FemElementRenderer (FemElement3d elem) {
       buildRenderObject (elem);
-      myX = new AffineTransform3d();
    }
 
-   static void addPositions (RenderObject r, int n) {
+   // Utility functions that are also used elsewhere ...
 
-      for (int i=0; i<n; i++) {
+   public static int addQuadEdge (
+      RenderObject r, int vidx0, int vidxm, int vidx1) {
+
+      int nsegs = numQuadEdgeSegs;
+      
+      int pidx0 = (nsegs > 1 ? r.numPositions() : -1);
+      int[] vidxs = new int[2*nsegs+1];
+      vidxs[0] = vidx0;
+      for (int i=1; i<nsegs; i++) {
+         vidxs[i] = r.vertex (0f, 0f, 0f);
+      }
+      vidxs[nsegs] = vidxm;
+      for (int i=nsegs+1; i<2*nsegs; i++) {
+         vidxs[i] = r.vertex (0f, 0f, 0f);
+      }
+      vidxs[2*nsegs] = vidx1;
+      r.addLineStrip (vidxs);
+      return pidx0;
+   }
+
+   public static void updateQuadEdge (
+      RenderObject r, int vidx0, int vidxm, int vidx1, int pidx0) {
+
+      int nsegs = numQuadEdgeSegs;
+      if (nsegs > 1) {
+         float[] pos0 = r.getPosition (vidx0);
+         float[] posm = r.getPosition (vidxm);
+         float[] pos1 = r.getPosition (vidx1);
+         int k = pidx0;
+         for (int i=1; i<2*nsegs; i++) {
+            if (i != nsegs) {
+               float[] pos = r.getPosition (k++);
+               float s = (i-nsegs)/(float)nsegs;
+               float w0 = 0.5f*(s-1f)*s;
+               float wm = (1f-s*s);
+               float w1 = 0.5f*(s+1f)*s;
+               pos[0] = w0*pos0[0] + wm*posm[0] + w1*pos1[0];
+               pos[1] = w0*pos0[1] + wm*posm[1] + w1*pos1[1];
+               pos[2] = w0*pos0[2] + wm*posm[2] + w1*pos1[2];
+            }
+         }
+      }
+   }
+
+   // public static void addWidgetFaces (RenderObject r, FemElement3d elem) {
+   //    FemNode[] enodes = elem.getNodes();
+   //    int p0idx = r.numPositions();
+   //    for (int j=0; j<enodes.length; j++) {
+   //       r.addPosition (0, 0, 0);
+   //    }
+   //    int[] fidxs = FemUtilities.triangulateFaceIndices (
+   //       elem.getFaceIndices());
+   //    int nidx = r.numNormals(); // normal index
+   //    for (int i=0; i<fidxs.length; i += 3) {
+   //       r.addNormal (0, 0, 0);
+   //       int v0idx = r.addVertex (p0idx+fidxs[i  ], nidx);
+   //       int v1idx = r.addVertex (p0idx+fidxs[i+1], nidx);
+   //       int v2idx = r.addVertex (p0idx+fidxs[i+2], nidx);
+   //       r.addTriangle (v0idx, v1idx, v2idx);
+   //       nidx++;
+   //    }      
+   //    double size = elem.getElementWidgetSize();
+   // }
+
+   public static void addWidgetFaces (RenderObject r, FemElement3d elem) {
+      int p0idx = r.numPositions();
+      // add positions for storing widget vertices
+      for (int j=0; j<elem.numNodes(); j++) {
          r.addPosition (0, 0, 0);
+      }
+      // get the triangle indices for the faces associated with the element
+      int[] fidxs = FemUtilities.triangulateFaceIndices (
+         elem.getFaceIndices());
+      int nidx = r.numNormals(); // normal index
+      for (int i=0; i<fidxs.length; i += 3) {
+         r.addNormal (0, 0, 0); // add face normal
+         int v0idx = r.addVertex (p0idx+fidxs[i  ], nidx);
+         int v1idx = r.addVertex (p0idx+fidxs[i+1], nidx);
+         int v2idx = r.addVertex (p0idx+fidxs[i+2], nidx);
+         r.addTriangle (v0idx, v1idx, v2idx);
+         nidx++;
+      }      
+      double size = elem.getElementWidgetSize();
+      FemElementRenderer.updateWidgetPositions (r, elem, size, p0idx);
+   }
+
+
+   public static int updateWidgetPositions (
+      RenderObject r, FemElement3d elem, double size, int idx) {
+
+      FemNode[] enodes = elem.getNodes();
+
+      // compute center point
+      float cx = 0;
+      float cy = 0;
+      float cz = 0;
+      for (int j=0; j<enodes.length; j++) {
+         float[] coords = enodes[j].myRenderCoords;
+         cx += coords[0];
+         cy += coords[1];
+         cz += coords[2];
+      }
+      cx /= enodes.length;
+      cy /= enodes.length;
+      cz /= enodes.length;
+
+      float s = (float)size;
+      for (int j=0; j<enodes.length; j++) {
+         float[] coords = enodes[j].myRenderCoords;
+         float dx = coords[0]-cx;
+         float dy = coords[1]-cy;
+         float dz = coords[2]-cz;
+         r.setPosition (idx++, cx+s*dx, cy+s*dy, cz+s*dz);
+      }
+      return idx;
+   }
+
+   public static void updateWidgetNormals (RenderObject r, int tgrp) {
+      int numt = r.numTriangles(tgrp);
+      if (numt > 0) {
+         for (int i=0; i<numt; i++) {
+            int[] idxs = r.getTriangle (tgrp, i);
+            float[] p0 = r.getVertexPosition (idxs[0]);
+            float[] p1 = r.getVertexPosition (idxs[1]);
+            float[] p2 = r.getVertexPosition (idxs[2]);
+            float[] nrm = r.getVertexNormal (idxs[0]);
+
+            float ax = p1[0]-p0[0];
+            float ay = p1[1]-p0[1];
+            float az = p1[2]-p0[2];
+            float bx = p2[0]-p0[0];
+            float by = p2[1]-p0[1];
+            float bz = p2[2]-p0[2];
+            float nx = ay*bz-az*by;
+            float ny = az*bx-ax*bz;
+            float nz = ax*by-ay*bx;
+            // Note: no need to normalize normals ....
+            nrm[0] = nx;
+            nrm[1] = ny;
+            nrm[2] = nz;
+         }
+         r.notifyNormalsModified();
+      }
+   }
+
+   private class QuadEdge {
+      
+      int myVidx0;
+      int myVidx1;    
+      int myVidxm;
+      int myPidx0;
+
+      public QuadEdge (int vidx0, int vidxm, int vidx1) {
+         myVidx0 = vidx0;
+         myVidxm = vidxm;
+         myVidx1 = vidx1;
+      }
+
+      public void addCurve (RenderObject r) {
+         myPidx0 = addQuadEdge (r, myVidx0, myVidxm, myVidx1);
+      }
+
+      public void updateCurve (RenderObject r) {
+         updateQuadEdge (r, myVidx0, myVidxm, myVidx1, myPidx0);
       }
    }
 
    void buildRenderObject (FemElement3d elem) {
 
       RenderObject r = new RenderObject();
+      
+      r.normal (1, 0, 0); // dummy normal for lines
       for (int i=0; i<elem.numNodes(); i++) {
-         r.addPosition (0, 0, 0);
+         r.vertex (0, 0, 0);
       }
-      int[] fidxs = FemUtilities.triangulateFaceIndices (
-         elem.getFaceIndices());
          
-      r.addNormal (1, 0, 0); // dummy normal for lines
-      r.setPositionsDynamic (true);
-      r.setNormalsDynamic (true);
-
       int[] eidxs = elem.getEdgeIndices();
       int numv = 0;
       for (int i=0; i<eidxs.length; i+=(numv+1)) {
          numv = eidxs[i];
-         int[] vidxs = new int[numv];
-         int k = i+1;
-         for (int j=0; j<numv; j++) {
-            vidxs[j] = r.addVertex (eidxs[k++], 0);
+         if (numv == 2) {
+            int vidx0 = eidxs[i+1];
+            int vidx1 = eidxs[i+2];
+            r.addLine (vidx0, vidx1);
          }
-         r.addLineStrip (vidxs);
+         else if (numv == 3) {
+            int vidx0 = eidxs[i+1];
+            int vidxm = eidxs[i+2];
+            int vidx1 = eidxs[i+3];
+            // r.addLine (vidx0, vidxm);
+            // r.addLine (vidxm, vidx1);
+            QuadEdge quad = new QuadEdge (vidx0, vidxm, vidx1);
+            quad.addCurve (r);
+            myQuadEdges.add (quad);
+         }
       }
-      int nidx = r.numNormals(); // normal index
-      for (int i=0; i<fidxs.length; i += 3) {
-         r.addNormal (0, 0, 0);
-         int v0idx = r.addVertex (fidxs[i  ], nidx);
-         int v1idx = r.addVertex (fidxs[i+1], nidx);
-         int v2idx = r.addVertex (fidxs[i+2], nidx);
-         r.addTriangle (v0idx, v1idx, v2idx);
-         nidx++;
-      }
+      myNumEdgePos = r.numPositions();
+      addWidgetFaces (r, elem);
+
+      r.setPositionsDynamic (true);
+      r.setNormalsDynamic (true);
       r.commit();
       myRob = r;
    }
 
-   void updatePositions (RenderObject r, FemElement3d elem) {
+   void updateEdgePositions (RenderObject r, FemElement3d elem) {
 
       FemNode[] nodes = elem.getNodes();
       for (int i=0; i<nodes.length; i++) {
          r.setPosition (i, nodes[i].myRenderCoords);
       }
-   }
-
-   public static void computeTriangleNormals (RenderObject r, int tgrp) {
-      int numt = r.numTriangles(tgrp);
-      for (int i=0; i<numt; i++) {
-         int[] idxs = r.getTriangle (tgrp, i);
-         float[] p0 = r.getVertexPosition (idxs[0]);
-         float[] p1 = r.getVertexPosition (idxs[1]);
-         float[] p2 = r.getVertexPosition (idxs[2]);
-         float[] nrm = r.getVertexNormal (idxs[0]);
-
-         float ax = p1[0]-p0[0];
-         float ay = p1[1]-p0[1];
-         float az = p1[2]-p0[2];
-         float bx = p2[0]-p0[0];
-         float by = p2[1]-p0[1];
-         float bz = p2[2]-p0[2];
-         float nx = ay*bz-az*by;
-         float ny = az*bx-ax*bz;
-         float nz = ax*by-ay*bx;
-         float mag = (float)Math.sqrt (nx*nx + ny*ny + nz*nz);
-         if (mag > 0) {
-            nx /= mag;
-            ny /= mag;
-            nz /= mag;
+      if (myQuadEdges.size() > 0) {
+         for (int i=0; i<myQuadEdges.size(); i++) {
+            myQuadEdges.get(i).updateCurve (r);
          }
-         nrm[0] = nx;
-         nrm[1] = ny;
-         nrm[2] = nz;
       }
-      r.notifyNormalsModified();
+      r.notifyPositionsModified();
    }
 
-   void updateNormals (RenderObject r, FemElement3d elem) {
+   void renderWidget (
+      Renderer renderer, FemElement3d elem, double size, RenderProps props) {
 
-      computeTriangleNormals (r, /*triangle group=*/0);
+      RenderObject r = myRob;      
+
+      updateWidgetPositions (r, elem, size, myNumEdgePos);
+      updateWidgetNormals (r, /*group=*/0);
+
+      if (!renderer.isSelecting()) {
+         Material mat = props.getFaceMaterial();
+         if (elem.isInverted()) {
+            mat = FemModel3d.myInvertedMaterial;
+         }
+         renderer.setMaterial (mat, elem.isSelected());
+      }
+      renderer.drawTriangles (r);
    }
 
    void render (
       Renderer renderer, FemElement3d elem, RenderProps props) {
 
       RenderObject r = myRob;      
-      updatePositions (r, elem);
+      updateEdgePositions (r, elem);
 
       renderer.setLightingEnabled (false);
       renderer.setLineWidth (props.getLineWidth());
@@ -115,58 +270,11 @@ public class FemElementRenderer {
       renderer.drawLines (r);
       renderer.setLineWidth (1);
       renderer.setLightingEnabled (true);
-      
-      Shading shading = props.getShading ();
-      boolean restoreLighting = false;
-      if (shading == Shading.NONE) {
-         renderer.setLightingEnabled (false);
-         restoreLighting = true;
-      }
 
-      double s = elem.getElementWidgetSize();
-      if (s > 0) {
-         updateNormals (r, elem);
-
-         if (!renderer.isSelecting()) {
-            Material mat = props.getFaceMaterial();
-            if (elem.isInverted()) {
-               mat = FemModel3d.myInvertedMaterial;
-            }
-            renderer.setMaterial (mat, elem.isSelected());
-         }
-         if (s != 1.0) {
-            float cx = 0;
-            float cy = 0;
-            float cz = 0;
-
-            // compute the centroid of the nodes
-            FemNode[] nodes = elem.getNodes();
-            int nnodes = nodes.length;
-            for (int i=0; i<nnodes; i++) {
-               FemNode n = nodes[i];
-               cx += n.myRenderCoords[0];
-               cy += n.myRenderCoords[1];
-               cz += n.myRenderCoords[2];
-            }
-            cx /= nnodes;
-            cy /= nnodes;
-            cz /= nnodes;  
-
-            renderer.pushModelMatrix();
-            renderer.translateModelMatrix (cx*(1-s), cy*(1-s), cz*(1-s));
-            renderer.scaleModelMatrix (s);
-            renderer.drawTriangles (r);
-            renderer.popModelMatrix();
-         }
-         else {
-            renderer.drawTriangles (r);
-         }
-      }
-      
-      if (restoreLighting) {
-         renderer.setLightingEnabled (true);
+      double wsize = elem.getElementWidgetSize();
+      if (wsize > 0) {
+         renderWidget (renderer, elem, wsize, props);
       }
    }
-
 }
 

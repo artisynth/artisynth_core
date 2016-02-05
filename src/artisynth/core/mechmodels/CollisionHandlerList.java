@@ -42,7 +42,7 @@ public class CollisionHandlerList
             list.addIfVisible (ch);
          }
          else {
-            ch.prerender (null);
+            ch.prerender (myRenderProps);
          }
       }
    }

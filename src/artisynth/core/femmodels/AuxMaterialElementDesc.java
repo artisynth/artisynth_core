@@ -526,8 +526,13 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
       pw.println ("]");
    }
 
+
    @Override
    public void render(Renderer renderer, int flags) {
+      render (renderer, myRenderProps, flags);
+   }
+
+   public void render(Renderer renderer, RenderProps props, int flags) {
       
       double widgetSize = 0;
       double rad = 0;
@@ -543,19 +548,19 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
       }  
       
       if (widgetSize != 0) {
-         maspack.render.Material mat = myRenderProps.getFaceMaterial();
+         maspack.render.Material mat = props.getFaceMaterial();
          renderer.setMaterialAndShading (
-            myRenderProps, mat, myWidgetColor, isSelected());
-         myElement.renderWidget (renderer, widgetSize, myRenderProps);
-         renderer.restoreShading (myRenderProps);
+            props, mat, myWidgetColor, isSelected());
+         myElement.renderWidget (renderer, widgetSize, props);
+         renderer.restoreShading (props);
       }
       
       if (rad > 0) {
-         maspack.render.Material mat = myRenderProps.getPointMaterial();
+         maspack.render.Material mat = props.getPointMaterial();
          renderer.setMaterialAndShading (
-            myRenderProps, mat, myWidgetColor, isSelected());
+            props, mat, myWidgetColor, isSelected());
          renderFraction (
-            renderer, myRenderProps, rad, renderType);
+            renderer, props, rad, renderType);
       }
    }
    

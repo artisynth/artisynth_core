@@ -13,7 +13,6 @@ import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
-import maspack.render.GL.GLRenderable;
 import artisynth.core.materials.AxialMaterial;
 import artisynth.core.materials.MaterialBase;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;

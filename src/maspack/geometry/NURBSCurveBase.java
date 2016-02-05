@@ -835,7 +835,7 @@ public abstract class NURBSCurveBase extends NURBSObject {
          return;
       }
 
-      gl.glPushMatrix();
+      renderer.pushModelMatrix();
       if (myXObjToWorld != RigidTransform3d.IDENTITY) {
          renderer.mulTransform (myXObjToWorld);
       }
@@ -890,7 +890,7 @@ public abstract class NURBSCurveBase extends NURBSObject {
 
       renderer.setLightingEnabled (true);
 
-      gl.glPopMatrix();
+      renderer.popModelMatrix();
    }
 
    /**

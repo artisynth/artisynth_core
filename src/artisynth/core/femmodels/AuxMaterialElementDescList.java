@@ -8,20 +8,24 @@ package artisynth.core.femmodels;
 
 import java.util.LinkedList;
 
-import javax.media.opengl.GL2;
-
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.RenderObject;
 import artisynth.core.femmodels.AuxMaterialBundle.FractionRenderType;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ComponentChangeEvent;
+import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.RenderableComponentList;
 
 public class AuxMaterialElementDescList
    extends RenderableComponentList<AuxMaterialElementDesc> {
 
    protected static final long serialVersionUID = 1;
+
+   private RenderObject myWidgetRob = null;   
+   private byte[] myRobFlags = null;
 
    public AuxMaterialElementDescList () {
       this (null, null);
@@ -38,35 +42,131 @@ public class AuxMaterialElementDescList
    
    protected float[] myElementColor; // render color for elements
  
-   public static PropertyList myProps =
-      new PropertyList (AuxMaterialElementDescList.class,
-                        RenderableComponentList.class);
-
+   /* ======== Renderable implementation ======= */
 
    public RenderProps createRenderProps() {
       return RenderProps.createRenderProps(this);
    }
 
-   boolean addDescsInPrerender = true;
+   private static final int REG_GRP = 0;
+   private static final int SEL_GRP = 1;
+   private static final int GRP_MASK = 0x1;
+   private static final int IS_LIST_RENDERED = 0x40;
 
-   public void prerender (RenderList list) {
-      if (addDescsInPrerender) {
-         // add desc with their own renderProps inside prerender, as
-         // usual. We add the selected elements first, so that they
-         // will render first and be more visible.
-         for (int i = 0; i < size(); i++) {
-            AuxMaterialElementDesc desc = get(i);
-            if (desc.isSelected() && desc.getRenderProps() != null) {
-               list.addIfVisible (desc);
+   private byte getRobFlags (AuxMaterialElementDesc desc) {
+      if (desc.getRenderProps() != null) {
+         return (byte)0;
+      }
+      else {
+         byte flags = IS_LIST_RENDERED;
+         if (desc.isSelected()) {
+            flags |= SEL_GRP;
+         }
+         return flags;
+      }
+   }
+
+   private static final int BUILD = 1;   
+
+   private double getWidgetSize() {
+      ModelComponent parent = getParent();
+      if (parent instanceof AuxMaterialBundle) {
+         AuxMaterialBundle bundle = (AuxMaterialBundle)parent;
+         return bundle.getElementWidgetSize();
+      }
+      else {
+         return 0;
+      }
+   }
+
+   private int renderObjectsNeedUpdating () {
+      if (myRobFlags == null) {
+         return BUILD;
+      }
+      if ((getWidgetSize() != 0) != (myWidgetRob != null)) {
+         return BUILD;
+      }
+      for (int i = 0; i < size(); i++) {
+         byte flags = getRobFlags(get(i));
+         if (flags != myRobFlags[i]) {
+            return BUILD;
+         }
+      }
+      return 0;      
+   }
+
+   protected void buildRenderObjects() {
+
+      // allocate per-element flag storage that will be used to determine when
+      // the render object needs to be rebuilt
+      myRobFlags = new byte[size()];      
+      for (int i=0; i<size(); i++) {
+         AuxMaterialElementDesc desc = get (i);
+         // note: flags default to 0 if elem.getRenderProps() != null
+         if (desc.getRenderProps() == null) {
+            myRobFlags[i] = getRobFlags(desc); 
+         }
+      }
+
+      double wsize = getWidgetSize();
+      if (wsize > 0) {
+         RenderObject r = new RenderObject();
+         r.createTriangleGroup();
+         r.createTriangleGroup();
+         for (int i=0; i<size(); i++) {
+            AuxMaterialElementDesc desc = get (i);
+            if (desc.getRenderProps() == null) {
+               int group = desc.isSelected() ? SEL_GRP : REG_GRP;
+               r.triangleGroup (group);
+               FemElementRenderer.addWidgetFaces (r, desc.myElement);
             }
          }
-         for (int i = 0; i < size(); i++) {
-            AuxMaterialElementDesc desc = get(i);
-            if (!desc.isSelected() && desc.getRenderProps() != null) {
-               list.addIfVisible (desc);
-            }
-         }         
+         r.setPositionsDynamic (true);
+         r.setNormalsDynamic (true);
+         r.commit();
+         myWidgetRob = r;
       }
+      else {
+         myWidgetRob = null;
+      }
+   }
+
+   public void prerender (RenderList list) {
+      // add desc with their own renderProps inside prerender, as
+      // usual. We add the selected elements first, so that they
+      // will render first and be more visible.
+      for (int i = 0; i < size(); i++) {
+         AuxMaterialElementDesc desc = get(i);
+         if (desc.isSelected() && desc.getRenderProps() != null) {
+            list.addIfVisible (desc);
+         }
+      }
+      for (int i = 0; i < size(); i++) {
+         AuxMaterialElementDesc desc = get(i);
+         if (!desc.isSelected() && desc.getRenderProps() != null) {
+            list.addIfVisible (desc);
+         }
+      }
+
+      if (renderObjectsNeedUpdating () != 0) {
+         buildRenderObjects();
+      }
+      if (myWidgetRob != null) {
+         double wsize = getWidgetSize();
+         RenderObject r = myWidgetRob;
+         int pidx = 0;
+         for (int i=0; i<size(); i++) {
+            AuxMaterialElementDesc desc = get(i);
+            if (desc.getRenderProps() == null) {
+               pidx = FemElementRenderer.updateWidgetPositions (
+                  r, desc.myElement, wsize, pidx);
+            }
+         }
+         FemElementRenderer.updateWidgetNormals (r, REG_GRP);
+         FemElementRenderer.updateWidgetNormals (r, SEL_GRP);
+         r.notifyPositionsModified();      
+      }      
+      
    }
 
    public boolean rendersSubComponents() {
@@ -79,70 +179,22 @@ public class AuxMaterialElementDescList
 
       boolean selecting = renderer.isSelecting();
 
-      if (!addDescsInPrerender) {
-         // we render all descs ourselves, taking care to render selected descs
-         // first. This provides the maximum visibility for selected descs,
-         // but means the transparency won't work properly.
-         for (int i = 0; i < size(); i++) {
-            AuxMaterialElementDesc desc = get (i);
-            if (desc.isSelected() == selected &&
-                desc.getRenderProps() != null &&
-                desc.getRenderProps().isVisible()) {
-               if (selecting) {
-                  if (renderer.isSelectable(desc)) {
-                     renderer.beginSelectionQuery (i);
-                     desc.render (renderer, flags);
-                     renderer.endSelectionQuery ();
-                  }
-               }
-               else {
-                  desc.render (renderer, flags);
-               }
-            }
-         }
-      }
-      double widgetSize = 0;
       double fractionRenderRadius = 0;
-      FractionRenderType fractionRenderType = AuxMaterialBundle.DEFAULT_FRACTION_RENDER_TYPE;
+      FractionRenderType fractionRenderType =
+         AuxMaterialBundle.DEFAULT_FRACTION_RENDER_TYPE;
       ModelComponent parent = getParent();
       if (parent instanceof AuxMaterialBundle) {
-         fractionRenderRadius = ((AuxMaterialBundle)parent).getFractionRenderRadius();
-         fractionRenderType = ((AuxMaterialBundle)parent).getFractionRenderType();
+         fractionRenderRadius =
+            ((AuxMaterialBundle)parent).getFractionRenderRadius();
+         fractionRenderType =
+            ((AuxMaterialBundle)parent).getFractionRenderType();
       }
       
-      //renderer.setMaterial (myRenderProps.getFaceMaterial(), false);
-      if (widgetSize > 0) {
-         renderer.setMaterialAndShading (
-            myRenderProps, myRenderProps.getFaceMaterial(), false);
-         for (int i = 0; i < size(); i++) {
-            AuxMaterialElementDesc desc = get (i);
-            if (desc.getRenderProps() == null &&
-                desc.isSelected() == selected) {
-               if (selecting) {
-                  if (renderer.isSelectable(desc)) {
-                     renderer.beginSelectionQuery (i);
-                     desc.myElement.renderWidget (
-                        renderer, widgetSize, myRenderProps);
-                     renderer.endSelectionQuery ();
-                  }
-               }
-               else {
-                  maspack.render.Material mat = myRenderProps.getFaceMaterial();
-                  renderer.updateMaterial (
-                     myRenderProps, mat, desc.myWidgetColor, desc.isSelected());
-                  desc.myElement.renderWidget (renderer, widgetSize, myRenderProps);               
-               }
-            }
-         }
-         renderer.restoreShading (myRenderProps);
-      }
       if (fractionRenderRadius > 0) {
          renderer.setMaterialAndShading (
             myRenderProps, myRenderProps.getPointMaterial(), false);
          renderFractions(renderer, fractionRenderRadius, fractionRenderType, false);
       }
-      
-     
    }
    
    private void renderFractions (
@@ -167,9 +219,38 @@ public class AuxMaterialElementDescList
       }
    }
 
+   protected void drawWidgets (
+      Renderer renderer, RenderObject r, RenderProps props, int group) {
+
+      if (r.numTriangles(group) > 0) {
+         r.triangleGroup (group);
+         renderer.setMaterial (props.getFaceMaterial(), group == SEL_GRP);
+         renderer.drawTriangles (r);
+      }
+   }
+
    public void render (Renderer renderer, int flags) {
-      dorender (renderer, flags, /*selected=*/true);
-      dorender (renderer, flags, /*selected=*/false);
+      RenderProps props = myRenderProps;
+      if (renderer.isSelecting()) {
+         for (int i=0; i<size(); i++) {
+            AuxMaterialElementDesc desc = get(i);        
+            if (desc.getRenderProps() == null && renderer.isSelectable (desc)) {
+               renderer.beginSelectionQuery (i);
+               desc.render (renderer, myRenderProps, flags);
+               renderer.endSelectionQuery ();
+            }
+         }
+      }
+      else {
+         dorender (renderer, flags, /*selected=*/true);
+         dorender (renderer, flags, /*selected=*/false);
+
+         RenderObject r = myWidgetRob;
+         if (r != null) {
+            drawWidgets (renderer, r, props, SEL_GRP);
+            drawWidgets (renderer, r, props, REG_GRP);
+         }
+      }
    }
 
    /**

@@ -221,16 +221,7 @@ public interface Renderer {
 
    public void drawLineStrip (
       RenderProps props, Iterable<float[]> vertexList, 
-      LineStyle style, boolean isSelected);
-
-   public void drawPoint (RenderProps props, float[] coords, boolean selected);
-   
-   public void drawPoint(float[] coords);
-   
-   public void drawLine(float[] coords0, float[] coords1);
-
-   public void drawPoints (
-      RenderProps props, Iterator<? extends RenderablePoint> iterator);
+      LineStyle style, boolean isSelected);   
 
    public void drawAxes (
       RenderProps props, RigidTransform3d X, double len, boolean selected);
@@ -280,6 +271,52 @@ public interface Renderer {
     */
    public boolean is2DRendering();
 
+   //===============================================================================
+   // BASIC PRIMITIVE DRAWING
+   //===============================================================================
+   
+   // XXX maybe phase this out?  Might need some way to set point size though
+   public void drawPoint (RenderProps props, float[] coords, boolean selected);
+   
+   public void drawPoint(float[] coords);
+   
+   public void drawPoint(float[] coords, float[] normal);
+   
+   /**
+    * Draw a set of points (the plural version of drawPoint(float[])).
+    */
+   public void drawPoints (Iterable<float[]> points);
+   
+   public void drawPoints(Iterable<float[]> points, Iterable<float[]> normals);
+   
+   public void drawLine(float[] coords0, float[] coords1);
+   
+   public void drawLine(float[] coords0, float[] normal0, float[] coords1, float[] normal1);
+   
+   public void drawLines(Iterable<float[]> coords);
+   
+   public void drawLines(Iterable<float[]> coords, Iterable<float[]> normals);
+   
+   public void drawLineStrip(Iterable<float[]> coords, Iterable<float[]> normals);
+   
+   /**
+    * Draw triangular faces, using the current Shading, lighting and
+    * material, and computing a single "face" normal from the coordinates
+    * (so the current "shading" really matters only if it is
+    * Shading.NONE).
+    */
+   void drawTriangle (float[] p0, float[] p1, float[] p2);
+   
+   void drawTriangle (float[] p0, float[] n0, float[] p1, float[] n1, float[] p2, float[] n2);
+
+   void drawTriangles (Iterable<float[]> points);
+   
+   void drawTriangles (Iterable<float[]> points, Iterable<float[]> normals);
+   
+   //==========================================================================
+   // RENDER OBJECTS
+   //==========================================================================
+   
    public void drawTriangles(RenderObject robj);
    
    public void drawLines(RenderObject robj);
@@ -300,6 +337,8 @@ public interface Renderer {
 
    public void removeSharedObject(Object key);
    
+   // MATRICES
+   
    public void pushModelMatrix();
    
    public void translateModelMatrix (double tx, double ty, double tz);
@@ -316,9 +355,6 @@ public interface Renderer {
    
    public boolean popProjectionMatrix();
    
-   //===============================================================
-   // THINGS TO MOVE OUT OF RENDERER
-   //===============================================================
    
    /**
     * Flag requesting that all display lists be cleared

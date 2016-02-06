@@ -89,7 +89,7 @@ public class SignedDistanceGridCell implements GLSelectable {
       meshVertex = myGrid.getMeshCoordinatesFromGrid (
          vertex[0], vertex[1], vertex[2]);
       
-      gl.glEnable (GL2.GL_POINT_SMOOTH);   // Render the point.
+      // gl.glEnable (GL2.GL_POINT_SMOOTH);   // Render the point.
       renderer.setPointSize (3);
       renderer.setColor (pointColour);
       gl.glBegin (GL2.GL_POINTS);

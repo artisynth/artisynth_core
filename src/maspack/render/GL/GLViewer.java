@@ -90,6 +90,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected static final float DEFAULT_DEPTH_OFFSET_INTERVAL = 1e-5f; // prevent z-fighting
    private static final Point3d DEFAULT_VIEWER_CENTER = new Point3d();
    private static final Point3d DEFAULT_VIEWER_EYE = new Point3d (0, -1, 0);
+   
+   protected static int DEFAULT_POINT_SLICES = 64;
+   protected static int DEFAULT_LINE_SLICES = 64;
+   
+   protected int myPointSlices = DEFAULT_POINT_SLICES;
+   protected int myLineSlices = DEFAULT_LINE_SLICES;
   
    protected static class ViewState {
       protected Point3d myCenter = new Point3d (DEFAULT_VIEWER_CENTER);
@@ -2735,6 +2741,16 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    
    public void drawLines(float[] vertices) {
       drawLines(vertices, 0);
+   }
+   
+   protected void computeNormal(float[] p0, float[] p1, float[] p2, float[] normal) {
+      float[] u = new float[3];
+      float[] v = new float[3];
+      u[0] = p1[0]-p0[0]; u[1] = p1[1]-p0[1]; u[2] = p1[2]-p0[2];
+      v[0] = p2[0]-p0[0]; v[1] = p2[1]-p0[1]; u[2] = p2[2]-p0[2];
+      normal[0] = u[1]*v[2]-u[2]*v[1];
+      normal[1] = u[2]*v[0]-u[0]*v[2];
+      normal[2] = u[0]*v[1]-u[1]*v[0];
    }
    
    /**

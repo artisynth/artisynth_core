@@ -451,7 +451,7 @@ public class SignedDistanceGridTest {
          GL2Viewer viewer = (GL2Viewer)renderer;
          GL2 gl = viewer.getGL2();
          
-         gl.glEnable (GL2.GL_POINT_SMOOTH);
+         // gl.glEnable (GL2.GL_POINT_SMOOTH);
          renderer.setPointSize (3);
          renderer.setColor (pointColour[0], pointColour[1], pointColour[2]);
          

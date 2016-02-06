@@ -38,7 +38,6 @@ import maspack.render.RenderProps.LineStyle;
 import maspack.render.RenderProps.PointStyle;
 import maspack.render.RenderProps.Shading;
 import maspack.render.RenderableLine;
-import maspack.render.RenderablePoint;
 import maspack.render.Renderer;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLColorSelector;
@@ -60,7 +59,7 @@ import maspack.util.InternalErrorException;
  * @author John E Lloyd and ArtiSynth team members
  */
 public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
-   
+
    public static boolean DEBUG = false;
 
    //   public enum AxialView {
@@ -148,7 +147,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       out[3] = c[3]*s;
       return out;
    }
-   
+
    private void setupLight (GL2 gl, GLLight light, float intensityScale) {
 
       int lightId = light.getId() + GL2.GL_LIGHT0;
@@ -328,15 +327,15 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
     */
    public GL2Viewer (GLCapabilities cap, GL2Resources resources, int width,
       int height) {
-      
+
       if (cap == null) {
          GLProfile glp2 = GLProfile.get(GLProfile.GL2);
          cap = new GLCapabilities(glp2);
          cap.setSampleBuffers (true);
          cap.setNumSamples (8);
-         
+
       }
-      
+
       if (resources == null) {
          resources = new GL2Resources(cap);
       }
@@ -347,7 +346,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       canvas.addGLEventListener (this);
       // canvas.setPreferredSize(new Dimension(width, height));
       canvas.setSize (width, height);
-      
+
       this.width = width;
       this.height = height;
       myDraggers = new LinkedList<Dragger3d>();
@@ -389,17 +388,17 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       float light0_diffuse[] = { 0.8f, 0.8f, 0.8f, 1.0f };
       float light0_specular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
       float light0_position[] = { -0.8660254f, 0.5f, 1f, 0f };
-      
+
       float light1_ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
       float light1_diffuse[] = { 0.5f, 0.5f, 0.5f, 1.0f };
       float light1_specular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
       float light1_position[] = { 0.8660254f, 0.5f, 1f, 0f };
-      
+
       float light2_ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
       float light2_diffuse[] = { 0.5f, 0.5f, 0.5f, 1.0f };
       float light2_specular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
       float light2_position[] = { 0f, -10f, 1f, 0f };
-      
+
       lightManager.clearLights();
       lightManager.addLight(new GLLight (
          light0_position, light0_ambient, light0_diffuse, light0_specular));
@@ -415,7 +414,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
       this.drawable = drawable;
       this.gl = drawable.getGL().getGL2();
-      
+
       if (DEBUG) {
          System.out.println("GL: " + gl);
          System.out.println ("Dev id : ");
@@ -423,7 +422,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          String contextHC = Integer.toHexString(System.identityHashCode(context));
          System.out.println("Context: " + context.getClass ().getName () + "@" + contextHC + " (shared=" + context.isShared () + ")");
       }
-      
+
       gl.setSwapInterval (1);
 
       if (gl.isExtensionAvailable("GL_ARB_multisample")) {
@@ -445,7 +444,12 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       gl.glLightModelfv (GL2.GL_LIGHT_MODEL_AMBIENT, lmodel_ambient, 0);
       gl.glLightModelf (GL2.GL_LIGHT_MODEL_TWO_SIDE, 1);
       gl.glEnable (GL2.GL_LIGHTING);
-
+      
+      gl.glEnable (GL2.GL_NORMALIZE);  // normalize normals
+      
+      gl.glHint(GL2.GL_POINT_SMOOTH_HINT, GL2.GL_FASTEST);
+      gl.glDisable (GL2.GL_POINT_SMOOTH);  // disable smooth points
+      
       setLightingEnabled(true);
       setDepthEnabled(true);
       setColorEnabled(true);
@@ -464,7 +468,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       if (!isSelecting()) {
          gl.glClearColor (bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
       }
-      
+
       // initialize viewport
       resetViewVolume();
       invalidateModelMatrix();
@@ -489,13 +493,13 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       // nullify stuff
       this.drawable = null;
       this.gl = null;
-      
+
       if (DEBUG) {
          System.out.println("GL2 disposed");
       }
 
    }
-   
+
    @Override
    public void dispose () {
       myGLResources.deregisterViewer (this);
@@ -779,7 +783,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    public void doDisplay (GLAutoDrawable drawable, int flags) {
       GL2 gl = drawable.getGL().getGL2();
-      
+
       // updates projection matrix
       if (resetViewVolume && resizeEnabled) {
          resetViewVolume();
@@ -1185,14 +1189,14 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          gl.glShadeModel (GL2.GL_FLAT);
       }      
    }
-   
+
    @Override
    public void setShadeModel (Shading shading) {
-      
+
       if (selectEnabled) {
          return;
       }
-      
+
       super.setShadeModel (shading);
       if (shading == Shading.NONE) {
          setLightingEnabled (false);
@@ -1277,16 +1281,10 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       gl.glTranslatef (coords[0], coords[1], coords[2]);
       gl.glScaled (r, r, r);
 
-      boolean normalizeEnabled = gl.glIsEnabled (GL2.GL_NORMALIZE);
-      gl.glEnable (GL2.GL_NORMALIZE);
-
       int slices = props.getPointSlices();
       int displayList = myGLResources.getSphereDisplayList(gl, slices);
       gl.glCallList(displayList);
 
-      if (!normalizeEnabled) {
-         gl.glDisable (GL2.GL_NORMALIZE);
-      }
       gl.glPopMatrix();
    }
 
@@ -1348,11 +1346,6 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
       gl.glScalef (s, s, s);
 
-      boolean normalizeEnabled = gl.glIsEnabled (GL2.GL_NORMALIZE);
-      if (!normalizeEnabled) {
-         gl.glEnable (GL2.GL_NORMALIZE);
-      }
-
       gl.glBegin (GL2.GL_QUADS);
       setQuad (gl, v0, v1, v2, v3);
       setQuad (gl, v1, v5, v6, v2);
@@ -1362,9 +1355,6 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       setQuad (gl, v0, v4, v5, v1);
       gl.glEnd ();
 
-      if (!normalizeEnabled) {
-         gl.glDisable (GL2.GL_NORMALIZE);
-      }
       gl.glPopMatrix();
    }
 
@@ -1385,11 +1375,6 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
       gl.glScalef (s, s, s);
 
-      boolean normalizeEnabled = gl.glIsEnabled (GL2.GL_NORMALIZE);
-      if (!normalizeEnabled) {
-         gl.glEnable (GL2.GL_NORMALIZE);
-      }
-
       gl.glBegin (GL2.GL_QUADS);
       setQuad (gl, v0, v1, v4, v3);
       setQuad (gl, v1, v2, v5, v4);
@@ -1400,10 +1385,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       setTriangle (gl, v0, v2, v1);
       setTriangle (gl, v3, v4, v5);
       gl.glEnd ();
-
-      if (!normalizeEnabled) {
-         gl.glDisable (GL2.GL_NORMALIZE);
-      }
+      
       gl.glPopMatrix();
 
    }
@@ -1425,11 +1407,6 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
       gl.glScalef (s, s, s);
 
-      boolean normalizeEnabled = gl.glIsEnabled (GL2.GL_NORMALIZE);
-      if (!normalizeEnabled) {
-         gl.glEnable (GL2.GL_NORMALIZE);
-      }
-
       gl.glBegin (GL2.GL_QUADS);
       setQuad (gl, v0, v3, v2, v1);
       gl.glEnd ();
@@ -1440,10 +1417,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       setTriangle (gl, v2, v3, v4);
       setTriangle (gl, v3, v0, v4);
       gl.glEnd ();
-
-      if (!normalizeEnabled) {
-         gl.glDisable (GL2.GL_NORMALIZE);
-      }
+      
       gl.glPopMatrix();
 
    }
@@ -1464,11 +1438,6 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
       gl.glScalef (s, s, s);
 
-      boolean normalizeEnabled = gl.glIsEnabled (GL2.GL_NORMALIZE);
-      if (!normalizeEnabled) {
-         gl.glEnable (GL2.GL_NORMALIZE);
-      }
-
       gl.glBegin (GL2.GL_TRIANGLES);
       setTriangle (gl, v0, v2, v1);
       setTriangle (gl, v2, v3, v1);
@@ -1476,9 +1445,6 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       setTriangle (gl, v0, v3, v2);
       gl.glEnd ();
 
-      if (!normalizeEnabled) {
-         gl.glDisable (GL2.GL_NORMALIZE);
-      }
       gl.glPopMatrix();
    }
 
@@ -1498,16 +1464,10 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
       gl.glScaled (props.getLineRadius(), props.getLineRadius(), len);
 
-      boolean normalizeEnabled = gl.glIsEnabled (GL2.GL_NORMALIZE);
-      gl.glEnable (GL2.GL_NORMALIZE);
-
       int slices = props.getLineSlices();
       int displayList = myGLResources.getTaperedEllipsoidDisplayList(gl, slices);
       gl.glCallList(displayList);
 
-      if (!normalizeEnabled) {
-         gl.glDisable (GL2.GL_NORMALIZE);
-      }
       gl.glPopMatrix();
    }
 
@@ -1552,14 +1512,14 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       // drawing manually like this is 10x faster that gluCylinder, but has
       // no texture coordinates
       int nslices = props.getLineSlices();
-      
+
       drawCylinder(gl,  nslices, (float)base, (float)top, coords0, coords1, capped);
 
    }
 
    private void drawCylinder(GL2 gl, int nslices, float base, float top,
       float[] coords0, float[] coords1, boolean capped) {
-      
+
       utmp.set (coords1[0] - coords0[0], coords1[1] - coords0[1], coords1[2]
       - coords0[2]);
       Xtmp.p.set (coords0[0], coords0[1], coords0[2]);
@@ -1583,7 +1543,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             sinBuff[i] = Math.sin(ang);
          }
       }
-      
+
       double nz = (base-top)/h;
       double nscale = 1.0/Math.sqrt(1+nz*nz);
 
@@ -1755,44 +1715,66 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       }
    }
 
-   public void drawPoint (RenderProps props, float[] coords, boolean selected) {
+   //=============================================================================
+   // PRIMITIVES
+   //=============================================================================
+
+   private void drawPrimitives(Iterable<float[]> coords, int glPrimitiveType) {
+      GL2 gl = getGL2();
+      maybeUpdateMatrices(gl);
+      
+      gl.glBegin (glPrimitiveType);
+      for (float[] p : coords) {
+         gl.glVertex3fv (p, 0);
+      }
+      gl.glEnd();
+   }
+   
+   private void drawPrimitives(Iterable<float[]> coords, Iterable<float[]> normals, int glPrimitiveType) {
+      GL2 gl = getGL2();
+      maybeUpdateMatrices(gl);
+      gl.glBegin (glPrimitiveType);
+      Iterator<float[]> nit = normals.iterator ();
+      for (float[] p : coords) {
+         float[] n = nit.next ();
+         gl.glNormal3fv (n, 0);
+         gl.glVertex3fv (p, 0);
+      }
+      gl.glEnd();
+
+   }
+   
+   @Override
+   public void drawPoint (float[] coords) {
 
       GL2 gl = getGL2();
       maybeUpdateMatrices(gl);
+      gl.glBegin (GL2.GL_POINTS);
+      gl.glVertex3fv (coords, 0);
+      gl.glEnd();
 
-      switch (props.getPointStyle()) {
-         case POINT: {
-            int size = props.getPointSize();
-            if (size > 0) {
-               setLightingEnabled (false);
-               gl.glPointSize (size);
-               setColor (props.getPointColorArray(), selected);
-               gl.glBegin (GL2.GL_POINTS);
-               gl.glVertex3fv (coords, 0);
-               gl.glEnd();
-               gl.glPointSize (1);
-               setLightingEnabled (true);
-            }
-            break;
-         }
-         case SPHERE: {
-            setMaterialAndShading (props, props.getPointMaterial(), selected);
-            drawSphere (props, coords);
-            restoreShading (props);
-            break;
-         }
-      }
    }
 
-   public void drawPoint (float[] coords) {
+   public void drawPoint(float[] coords, float[] normal) {
 
       GL2 gl = getGL2();
       maybeUpdateMatrices(gl);
 
       gl.glBegin (GL2.GL_POINTS);
+      gl.glNormal3fv (normal, 0);
       gl.glVertex3fv (coords, 0);
       gl.glEnd();
 
+   }
+
+   @Override
+   public void drawPoints (Iterable<float[]> points) {
+      drawPrimitives (points, GL2.GL_POINTS);
+   }
+
+   @Override
+   public void drawPoints (Iterable<float[]> points, Iterable<float[]> normals) {
+      drawPrimitives (points, normals, GL2.GL_POINTS);
    }
 
    @Override
@@ -1808,9 +1790,104 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    }
 
-   @Override
-   public void drawPoints (
-      RenderProps props, Iterator<? extends RenderablePoint> iterator) {
+   public void drawLine(float[] coords0, float[] normal0, float[] coords1, float[] normal1) {
+
+      GL2 gl = getGL2();
+      maybeUpdateMatrices(gl);
+
+      gl.glBegin (GL2.GL_LINES);
+      gl.glNormal3fv (normal0, 0);
+      gl.glVertex3fv (coords0, 0);
+      gl.glNormal3fv (normal1, 0);
+      gl.glVertex3fv (coords1, 0);
+      gl.glEnd();
+
+   }
+
+   public void drawLines(Iterable<float[]> coords) {
+      drawPrimitives (coords, GL2.GL_LINES);
+   }
+
+   public void drawLines(Iterable<float[]> coords, Iterable<float[]> normals) {
+      drawPrimitives (coords, normals, GL2.GL_LINES);
+   }
+
+   public void drawLineStrip(Iterable<float[]> coords, Iterable<float[]> normals) {
+      drawPrimitives (coords,  normals, GL2.GL_LINE_STRIP);
+   }
+   
+   /**
+    * Draw triangular faces, using the current Shading, lighting and
+    * material, and computing a single "face" normal from the coordinates
+    * (so the current "shading" really matters only if it is
+    * Shading.NONE).
+    */
+   public void drawTriangle (float[] p0, float[] p1, float[] p2) {
+      
+      GL2 gl = getGL2();
+      maybeUpdateMatrices(gl);
+      
+      float[] normal = new float[3];
+      computeNormal (p0, p1, p2, normal);
+      
+      gl.glBegin (GL2.GL_TRIANGLES);
+      gl.glNormal3fv (normal, 0);
+      gl.glVertex3fv (p0, 0);
+      gl.glVertex3fv (p1, 0);
+      gl.glVertex3fv (p2, 0);
+      gl.glEnd ();
+      
+   }
+
+   public void drawTriangle (float[] p0, float[] n0, float[] p1, float[] n1, float[] p2, float[] n2) {
+      GL2 gl = getGL2();
+      maybeUpdateMatrices(gl);
+
+      gl.glBegin (GL2.GL_TRIANGLES);
+      gl.glNormal3fv (n0, 0);
+      gl.glVertex3fv (p0, 0);
+      gl.glNormal3fv (n1, 0);
+      gl.glVertex3fv (p1, 0);
+      gl.glNormal3fv (n2, 0);
+      gl.glVertex3fv (p2, 0);
+      gl.glEnd ();
+      
+   }
+
+   public void drawTriangles (Iterable<float[]> points) {
+    
+      GL2 gl = getGL2();
+      maybeUpdateMatrices(gl);
+
+      Iterator<float[]> pit = points.iterator ();
+      float[] normal = new float[3];
+      
+      gl.glBegin (GL2.GL_TRIANGLES);
+      while (pit.hasNext ()) {
+         float[] p0 = pit.next ();
+         float[] p1 = pit.next ();
+         float[] p2 = pit.next ();
+         computeNormal (p0, p1, p2, normal);
+         
+         gl.glNormal3fv (normal, 0);
+         gl.glVertex3fv (p0, 0);
+         gl.glVertex3fv (p1, 0);
+         gl.glVertex3fv (p2, 0);
+      }
+      gl.glEnd ();
+      
+   }
+
+   public void drawTriangles (Iterable<float[]> points, Iterable<float[]> normals) {
+      drawPrimitives (points, normals, GL2.GL_TRIANGLES);
+   }
+
+
+   //=============================================================================
+   // OTHER
+   //=============================================================================
+
+   public void drawPoint (RenderProps props, float[] coords, boolean selected) {
 
       GL2 gl = getGL2();
       maybeUpdateMatrices(gl);
@@ -1819,68 +1896,58 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          case POINT: {
             int size = props.getPointSize();
             if (size > 0) {
-               // draw regular points first
                setLightingEnabled (false);
                gl.glPointSize (size);
-               if (isSelecting()) {
-                  // don't worry about color in selection mode
-                  int i = 0;
-                  while (iterator.hasNext()) {
-                     RenderablePoint pnt = iterator.next();
-                     if (pnt.getRenderProps() == null) {
-                        if (isSelectable (pnt)) {
-                           beginSelectionQuery (i);
-                           gl.glBegin (GL2.GL_POINTS);
-                           gl.glVertex3fv (pnt.getRenderCoords(), 0);
-                           gl.glEnd();
-                           endSelectionQuery ();
-                        }
-                     }
-                     i++;
-                  }
-               }
-               else {
-                  gl.glBegin (GL2.GL_POINTS);
-                  setColor (props.getPointColorArray(), false);
-                  while (iterator.hasNext()) {
-                     RenderablePoint pnt = iterator.next();
-                     if (pnt.getRenderProps() == null) {
-                        updateColor (
-                           props.getPointColorArray(), pnt.isSelected());
-                        gl.glVertex3fv (pnt.getRenderCoords(), 0);
-                     }
-                  }
-                  gl.glEnd();
-               }
+               setColor (props.getPointColorArray(), selected);
+               drawPoint(coords);
                gl.glPointSize (1);
                setLightingEnabled (true);
             }
             break;
          }
          case SPHERE: {
-            setMaterialAndShading (props, props.getPointMaterial(), false);
-            int i = 0;
-            while (iterator.hasNext()) {
-               RenderablePoint pnt = iterator.next();
-               if (pnt.getRenderProps() == null) {
-                  if (isSelecting()) {
-                     if (isSelectable (pnt)) {
-                        beginSelectionQuery (i);
-                        drawSphere (props, pnt.getRenderCoords());
-                        endSelectionQuery ();      
-                     }
-                  }
-                  else {
-                     updateMaterial (
-                        props, props.getPointMaterial(), pnt.isSelected());
-                     drawSphere (props, pnt.getRenderCoords());
-                  }
-               }
-               i++;
-            }
+            setMaterialAndShading (props, props.getPointMaterial(), selected);
+            drawSphere (props, coords);
             restoreShading (props);
+            break;
          }
       }
+   }
+
+   public void drawSphere (float[] centre, float r) {
+
+      GL2 gl = getGL2();
+      maybeUpdateMatrices(gl);
+
+      // get sphere display list
+      int displayList = myGLResources.getSphereDisplayList(gl, myPointSlices);
+
+      // transform unit sphere
+      gl.glPushMatrix();
+      gl.glTranslatef (centre[0], centre[1], centre[2]);
+      gl.glScalef (r, r, r);
+
+      gl.glCallList(displayList);
+
+      gl.glPopMatrix();
+   }
+
+   public void drawSpheres (Iterable<float[]> centres, float r) {
+
+      GL2 gl = getGL2();
+      maybeUpdateMatrices(gl);
+
+      int displayList = myGLResources.getSphereDisplayList(gl, myPointSlices);
+
+      // draw collection of spheres
+      for (float[] p : centres) {
+         gl.glPushMatrix();
+         gl.glTranslatef (p[0], p[1], p[2]);
+         gl.glScalef (r, r, r);
+         gl.glCallList(displayList);
+         gl.glPopMatrix();
+      }
+
    }
 
    public void drawLineStrip (
@@ -2173,57 +2240,57 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    }
 
-//   public void setFaceMode (RenderProps.Faces mode) {
-//      switch (mode) {
-//         case FRONT_AND_BACK: {
-//            gl.glDisable (GL2.GL_CULL_FACE);
-//            break;
-//         }
-//         case FRONT: {
-//            gl.glEnable (GL2.GL_CULL_FACE);
-//            gl.glCullFace (GL2.GL_BACK);
-//            break;
-//         }
-//         case BACK: {
-//            gl.glEnable (GL2.GL_CULL_FACE);
-//            gl.glCullFace (GL2.GL_FRONT);
-//            break;
-//         }
-//         case NONE: {
-//            gl.glEnable (GL2.GL_CULL_FACE);
-//            gl.glCullFace (GL2.GL_FRONT_AND_BACK);
-//            break;
-//         }
-//      }
-//   }
-//
-//   public RenderProps.Faces getFaceMode() {
-//
-//      byte[] cullFaceEnabled = new byte[1];
-//      int[] cullFaceMode = new int[1];
-//
-//      gl.glGetBooleanv (GL2.GL_CULL_FACE, cullFaceEnabled, 0);
-//      gl.glGetIntegerv (GL2.GL_CULL_FACE_MODE, cullFaceMode, 0);
-//      if (cullFaceEnabled[0] == 0) {
-//         return RenderProps.Faces.FRONT_AND_BACK;
-//      }
-//      else {
-//         switch (cullFaceMode[0]) {
-//            case GL2.GL_BACK: {
-//               return RenderProps.Faces.BACK;
-//            }
-//            case GL2.GL_FRONT: {
-//               return RenderProps.Faces.FRONT;
-//            }
-//            case GL2.GL_FRONT_AND_BACK: {
-//               return RenderProps.Faces.FRONT_AND_BACK;
-//            }
-//            default:
-//               throw new InternalErrorException (
-//                  "Unknown cullFaceMode: " + cullFaceMode[0]);
-//         }
-//      }
-//   }
+   //   public void setFaceMode (RenderProps.Faces mode) {
+   //      switch (mode) {
+   //         case FRONT_AND_BACK: {
+   //            gl.glDisable (GL2.GL_CULL_FACE);
+   //            break;
+   //         }
+   //         case FRONT: {
+   //            gl.glEnable (GL2.GL_CULL_FACE);
+   //            gl.glCullFace (GL2.GL_BACK);
+   //            break;
+   //         }
+   //         case BACK: {
+   //            gl.glEnable (GL2.GL_CULL_FACE);
+   //            gl.glCullFace (GL2.GL_FRONT);
+   //            break;
+   //         }
+   //         case NONE: {
+   //            gl.glEnable (GL2.GL_CULL_FACE);
+   //            gl.glCullFace (GL2.GL_FRONT_AND_BACK);
+   //            break;
+   //         }
+   //      }
+   //   }
+   //
+   //   public RenderProps.Faces getFaceMode() {
+   //
+   //      byte[] cullFaceEnabled = new byte[1];
+   //      int[] cullFaceMode = new int[1];
+   //
+   //      gl.glGetBooleanv (GL2.GL_CULL_FACE, cullFaceEnabled, 0);
+   //      gl.glGetIntegerv (GL2.GL_CULL_FACE_MODE, cullFaceMode, 0);
+   //      if (cullFaceEnabled[0] == 0) {
+   //         return RenderProps.Faces.FRONT_AND_BACK;
+   //      }
+   //      else {
+   //         switch (cullFaceMode[0]) {
+   //            case GL2.GL_BACK: {
+   //               return RenderProps.Faces.BACK;
+   //            }
+   //            case GL2.GL_FRONT: {
+   //               return RenderProps.Faces.FRONT;
+   //            }
+   //            case GL2.GL_FRONT_AND_BACK: {
+   //               return RenderProps.Faces.FRONT_AND_BACK;
+   //            }
+   //            default:
+   //               throw new InternalErrorException (
+   //                  "Unknown cullFaceMode: " + cullFaceMode[0]);
+   //         }
+   //      }
+   //   }
 
    public void setDefaultFaceMode() {
       gl.glEnable (GL2.GL_CULL_FACE);
@@ -2352,7 +2419,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    public GL2 getGL2() {
       return drawable.getGL().getGL2();
    }
-   
+
    private boolean setupHSVInterpolation (GL2 gl) {
       // create special HSV shader to interpolate colors in HSV space
       int prog = GLHSVShader.getShaderProgram(gl);
@@ -2365,7 +2432,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          return false;
       }
    }
-   
+
    private void setVertexColor (GL2 gl, byte[] color, boolean useHSV) {
       if (color != null) {
          if (useHSV) {
@@ -2373,7 +2440,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             for (int i=0; i<4; ++i) {
                myColorBuf[i] = (float)(color[i] & 0xFF)/255.0f;
             }
-            
+
             // convert color to HSV representation
             GLSupport.RGBtoHSV (myColorBuf, myColorBuf);
             gl.glColor4f (
@@ -2389,12 +2456,8 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    @Override
    public void drawTriangles(RenderObject robj) {
       maybeUpdateMatrices(gl);
-      
+
       if (robj.hasTriangles()) {
-
-         boolean normalizeEnabled = gl.glIsEnabled (GL2.GL_NORMALIZE);
-         gl.glEnable (GL2.GL_NORMALIZE);
-
          boolean enableLighting = false;
          if (isLightingEnabled() && !robj.hasNormals()) {
             enableLighting = true;
@@ -2403,8 +2466,8 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
          boolean selecting = isSelecting();
          boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
-         boolean useHSV = isHSVColorInterpolationEnabled ();
-         
+         boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
+
          // if use vertex colors, get them to track glColor
          if (useColors) {
             gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
@@ -2413,7 +2476,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                useHSV = setupHSVInterpolation(gl);
             }
          }
-         
+
          boolean useDisplayList = !selecting || !useColors;
          DisplayListPassport dlpp = null;
 
@@ -2421,7 +2484,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             RenderObjectKey key = new RenderObjectKey(robj, DrawType.TRIANGLES);
             RenderObjectVersion fingerprint = robj.getVersionInfo();
             boolean compile = true;
-            
+
             if (useDisplayList) {
                dlpp = myGLResources.getDisplayListPassport(gl, key);
                if (dlpp == null) {
@@ -2431,7 +2494,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                   compile = !(dlpp.compareExchangeFingerPrint(fingerprint));
                }
             }
-   
+
             if (compile) {
                if (DEBUG) {
                   System.out.println("Compiling dl:" + dlpp.getList ());
@@ -2439,9 +2502,9 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                if (dlpp != null) {
                   gl.glNewList(dlpp.getList(), GL2.GL_COMPILE);
                }
-   
+
                gl.glBegin(GL.GL_TRIANGLES);
-   
+
                for (int[] tri : robj.getTriangles()) {
                   for (int i=0; i<3; ++i) {
                      VertexIndexSet v = robj.getVertex(tri[i]);
@@ -2454,15 +2517,15 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                      gl.glVertex3fv(robj.getPosition(v.getPositionIndex()), 0);
                   }
                }
-   
+
                gl.glEnd();
-   
+
                if (dlpp != null) {
                   gl.glEndList();
                   gl.glCallList(dlpp.getList());
                }
             } else {
-               
+
                if (DEBUG) {
                   boolean islist = gl.glIsList (dlpp.getList ());
                   if (!islist) {
@@ -2475,7 +2538,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                }
             }
          }
-         
+
          // disable color tracking
          if (useColors) {
             gl.glDisable (GL2.GL_COLOR_MATERIAL);
@@ -2488,9 +2551,6 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             setLightingEnabled(true);
          }
 
-         if (!normalizeEnabled) {
-            gl.glDisable (GL2.GL_NORMALIZE);
-         }
       }
 
    }
@@ -2501,7 +2561,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       private int sphereDL;
       private float r;
       private RenderObjectVersion rv;
-      
+
       public PointFingerPrint(RenderObjectVersion rv, PointStyle style, int sphereDL, float r) {
          this.rv = rv;
          this.style = style;
@@ -2567,10 +2627,10 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    }
 
    private static class VertexFingerPrint {
-      
+
       private RenderObjectVersion rv;
       private VertexDrawMode mode;
-      
+
       public VertexFingerPrint(RenderObjectVersion rv,VertexDrawMode mode) {
          this.rv = rv;
          this.mode = mode;
@@ -2597,16 +2657,13 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       }
 
    }
-   
+
    @Override
    public void drawLines(RenderObject robj) {
       maybeUpdateMatrices(gl);
       List<int[]> lines = robj.getLines();
 
       if (lines != null) {
-         boolean normalizeEnabled = gl.glIsEnabled (GL2.GL_NORMALIZE);
-         gl.glEnable (GL2.GL_NORMALIZE);
-
          boolean enableLighting = false;
          if (isLightingEnabled() && !robj.hasNormals()) {
             enableLighting = true;
@@ -2615,8 +2672,8 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
          boolean selecting = isSelecting();
          boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
-         boolean useHSV = isHSVColorInterpolationEnabled ();
-         
+         boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
+
          // if use vertex colors, get them to track glColor
          if (useColors) {
             gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
@@ -2625,7 +2682,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                useHSV = setupHSVInterpolation(gl);
             }
          }
-         
+
          boolean useDisplayList = !selecting || !useColors;
          DisplayListPassport dlpp = null;
          RenderObjectKey key = new RenderObjectKey(robj, DrawType.LINES);
@@ -2670,7 +2727,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          } else {
             gl.glCallList(dlpp.getList());
          }
-         
+
          // disable color tracking
          if (useColors) {
             gl.glDisable (GL2.GL_COLOR_MATERIAL);
@@ -2683,9 +2740,6 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             setLightingEnabled(true);
          }
 
-         if (!normalizeEnabled) {
-            gl.glDisable (GL2.GL_NORMALIZE);
-         }
       }
    }
 
@@ -2725,12 +2779,12 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          c1 = cosBuff[i];
          s1 = sinBuff[i];
          gl.glNormal3d(c1, s1, (base-top)/h);
-         
+
          setVertexColor (gl, color0, useHSV);
          gl.glColor4ubv (color0, 0);
          gl.glVertex3d (base * c1, base * s1, 0);
 
-        setVertexColor (gl, color1, useHSV);
+         setVertexColor (gl, color1, useHSV);
          gl.glVertex3d (top * c1, top * s1, h);
       }
 
@@ -3045,7 +3099,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       double s0 = 0;
       double c0 = 1;
       double len = utmp.norm();
-      
+
       // gl.glScaled(rad, rad, len);
 
       for (int slice = 0; slice < slices; slice++) {
@@ -3109,7 +3163,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       double len = utmp.norm();
 
       // gl.glScaled(rad, rad, len);
-      
+
       byte[] cm = new byte[4];
 
       for (int slice = 0; slice < slices; slice++) {
@@ -3141,17 +3195,11 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    private void drawSolidLines(RenderObject robj, LineStyle style, float rad) {
       List<int[]> lines = robj.getLines();
-
-      boolean normalizeEnabled = gl.glIsEnabled (GL2.GL_NORMALIZE);
-      if (!normalizeEnabled) {
-         gl.glEnable (GL2.GL_NORMALIZE);
-      }
       
-      int slices = 64;
       boolean selecting = isSelecting();
       boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
-      boolean useHSV = isHSVColorInterpolationEnabled ();
-      
+      boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
+
       // if use vertex colors, get them to track glColor
       if (useColors) {
          gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
@@ -3160,11 +3208,11 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             useHSV = setupHSVInterpolation(gl);
          }
       }
-      
+
       boolean useDisplayList = !selecting || !useColors;
       DisplayListPassport dlpp = null;
       RenderObjectKey key = new RenderObjectKey(robj, DrawType.LINES);
-      LineFingerPrint fingerprint = new LineFingerPrint(robj.getVersionInfo(), style, slices, rad);
+      LineFingerPrint fingerprint = new LineFingerPrint(robj.getVersionInfo(), style, myLineSlices, rad);
       boolean compile = true;
 
       if (useDisplayList) {
@@ -3192,7 +3240,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                      byte[] c0 = robj.getColor(v0.getColorIndex());
                      float[] p1 = robj.getPosition(v1.getPositionIndex());
                      byte[] c1 = robj.getColor(v1.getColorIndex());
-                     drawColoredCylinder(gl, slices, rad, rad, p0, c0, p1, c1, true, useHSV);
+                     drawColoredCylinder(gl, myLineSlices, rad, rad, p0, c0, p1, c1, true, useHSV);
                   }
                } else {
                   for (int[] line : lines) {
@@ -3200,7 +3248,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                      VertexIndexSet v1 = robj.getVertex(line[1]);
                      float[] p0 = robj.getPosition(v0.getPositionIndex());
                      float[] p1 = robj.getPosition(v1.getPositionIndex());
-                     drawCylinder(gl, slices, rad, rad, p0, p1, true);
+                     drawCylinder(gl, myLineSlices, rad, rad, p0, p1, true);
                   }
                }
                break;
@@ -3214,7 +3262,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                      byte[] c0 = robj.getColor(v0.getColorIndex());
                      float[] p1 = robj.getPosition(v1.getPositionIndex());
                      byte[] c1 = robj.getColor(v1.getColorIndex());
-                     drawColoredEllipsoid(gl, slices, rad, p0, c0, p1, c1,
+                     drawColoredEllipsoid(gl, myLineSlices, rad, p0, c0, p1, c1,
                         isHSVColorInterpolationEnabled());
                   }
                } else {
@@ -3223,7 +3271,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                      VertexIndexSet v1 = robj.getVertex(line[1]);
                      float[] p0 = robj.getPosition(v0.getPositionIndex());
                      float[] p1 = robj.getPosition(v1.getPositionIndex());
-                     drawEllipsoid(gl, slices, rad, p0, p1);
+                     drawEllipsoid(gl, myLineSlices, rad, p0, p1);
                   }
                }
                break;
@@ -3238,7 +3286,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                      byte[] c0 = robj.getColor(v0.getColorIndex());
                      float[] p1 = robj.getPosition(v1.getPositionIndex());
                      byte[] c1 = robj.getColor(v1.getColorIndex());
-                     drawColoredArrow(gl, slices, rad, arad, aheight, p0, c0, p1, c1, 
+                     drawColoredArrow(gl, myLineSlices, rad, arad, aheight, p0, c0, p1, c1, 
                         isHSVColorInterpolationEnabled(), true);
                   }
                } else {
@@ -3247,7 +3295,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                      VertexIndexSet v1 = robj.getVertex(line[1]);
                      float[] p0 = robj.getPosition(v0.getPositionIndex());
                      float[] p1 = robj.getPosition(v1.getPositionIndex());
-                     drawArrow(gl, slices, rad, arad, aheight, p0, p1, true);
+                     drawArrow(gl, myLineSlices, rad, arad, aheight, p0, p1, true);
                   }
                }
                break;
@@ -3262,7 +3310,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       } else {
          gl.glCallList(dlpp.getList());
       }
-      
+
       // disable color tracking
       if (useColors) {
          gl.glDisable (GL2.GL_COLOR_MATERIAL);
@@ -3270,10 +3318,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             gl.glUseProgramObjectARB (0);
          }
       }
-      
-      if (!normalizeEnabled) {
-         gl.glDisable (GL2.GL_NORMALIZE);
-      }
+
    }
 
    @Override
@@ -3310,9 +3355,6 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       List<int[]> pnts = robj.getPoints();
 
       if (pnts != null) {
-         boolean normalizeEnabled = gl.glIsEnabled (GL2.GL_NORMALIZE);
-         gl.glEnable (GL2.GL_NORMALIZE);
-
          boolean enableLighting = false;
          if (isLightingEnabled() && !robj.hasNormals()) {
             enableLighting = true;
@@ -3321,8 +3363,8 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
          boolean selecting = isSelecting();
          boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
-         boolean useHSV = isHSVColorInterpolationEnabled ();
-         
+         boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
+
          // if use vertex colors, get them to track glColor
          if (useColors) {
             gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
@@ -3331,7 +3373,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                useHSV = setupHSVInterpolation(gl);
             }
          }
-         
+
          boolean useDisplayList = !selecting || !useColors;
          DisplayListPassport dlpp = null;
          RenderObjectKey key = new RenderObjectKey(robj, DrawType.POINTS);
@@ -3383,12 +3425,9 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                gl.glUseProgramObjectARB (0);
             }
          }
-         
+
          if (enableLighting) {
             setLightingEnabled(true);
-         }
-         if (!normalizeEnabled) {
-            gl.glDisable (GL2.GL_NORMALIZE);
          }
       }
    }
@@ -3397,18 +3436,14 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       GL2 gl = getGL2();
       maybeUpdateMatrices(gl);
 
-      boolean normalizeEnabled = gl.glIsEnabled (GL2.GL_NORMALIZE);
-      gl.glEnable (GL2.GL_NORMALIZE);
-
       List<int[]> pnts = robj.getPoints();
 
-      int slices = 64; // XXX hard-code for now?
-      int displayList = myGLResources.getSphereDisplayList(gl, slices);
+      int displayList = myGLResources.getSphereDisplayList(gl, myPointSlices);
 
       boolean selecting = isSelecting();
       boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
-      boolean useHSV = isHSVColorInterpolationEnabled ();
-      
+      boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
+
       // if use vertex colors, get them to track glColor
       if (useColors) {
          gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
@@ -3417,13 +3452,13 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             useHSV = setupHSVInterpolation(gl);
          }
       }
-      
+
       boolean useDisplayList = !selecting || !useColors;
       DisplayListPassport dlpp = null;
       RenderObjectKey key = new RenderObjectKey(robj, DrawType.POINTS);
       PointFingerPrint fingerprint = new PointFingerPrint(robj.getVersionInfo(), PointStyle.SPHERE, displayList, (float)rad);
       boolean compile = true;
-      
+
       if (useDisplayList) {
          dlpp = myGLResources.getDisplayListPassport(gl, key);
          if (dlpp == null) {
@@ -3466,7 +3501,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       } else {
          gl.glCallList(dlpp.getList());
       }
-      
+
       // disable color tracking
       if (useColors) {
          gl.glDisable (GL2.GL_COLOR_MATERIAL);
@@ -3475,9 +3510,6 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          }
       }
 
-      if (!normalizeEnabled) {
-         gl.glDisable (GL2.GL_NORMALIZE);
-      }
    }
 
    @Override
@@ -3513,9 +3545,6 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
       maybeUpdateMatrices(gl);
 
-      boolean normalizeEnabled = gl.glIsEnabled (GL2.GL_NORMALIZE);
-      gl.glEnable (GL2.GL_NORMALIZE);
-
       boolean enableLighting = false;
       if (isLightingEnabled() && !robj.hasNormals()) {
          enableLighting = true;
@@ -3524,8 +3553,8 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
       boolean selecting = isSelecting();
       boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
-      boolean useHSV = isHSVColorInterpolationEnabled ();
-      
+      boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
+
       // if use vertex colors, get them to track glColor
       if (useColors) {
          gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
@@ -3534,13 +3563,13 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             useHSV = setupHSVInterpolation(gl);
          }
       }
-      
+
       boolean useDisplayList = !selecting || !useColors;
       DisplayListPassport dlpp = null;
       RenderObjectKey key = new RenderObjectKey(robj, DrawType.VERTICES);
       VertexFingerPrint fingerprint = new VertexFingerPrint(robj.getVersionInfo(), mode);
       boolean compile = true;
-      
+
       if (useDisplayList) {
          dlpp = myGLResources.getDisplayListPassport(gl, key);
          if (dlpp == null) {
@@ -3603,7 +3632,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       } else {
          gl.glCallList(dlpp.getList());
       }
-      
+
       // disable color tracking
       if (useColors) {
          gl.glDisable (GL2.GL_COLOR_MATERIAL);
@@ -3614,9 +3643,6 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
       if (enableLighting) {
          setLightingEnabled(true);
-      }
-      if (!normalizeEnabled) {
-         gl.glDisable (GL2.GL_NORMALIZE);
       }
 
    }
@@ -3661,13 +3687,13 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          // check passport
          compile = !(pass.compareExchangeFingerPrint(fingerPrint));
       }
-      
+
       if (compile) {
          return -pass.getList ();
       }
       return pass.getList ();
    }
-   
+
    /**
     * Frees the display list with associated key
     * @param gl
@@ -3676,7 +3702,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    public void freeDisplayList(GL2 gl, Object key) {
       myGLResources.freeDisplayList (gl, key);
    }
-   
+
    public int getSphereDisplayList(GL2 gl, int slices) {
       int list = myGLResources.getSphereDisplayList(gl, slices);
       return list;
@@ -3691,6 +3717,6 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       int list = myGLResources.getTaperedEllipsoidDisplayList(gl, slices);
       return list;
    }
-   
+
 }
 

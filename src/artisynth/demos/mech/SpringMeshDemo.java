@@ -25,8 +25,6 @@ import java.io.*;
 import java.util.*;
 import java.awt.Color;
 
-import com.jogamp.opengl.*;
-
 import maspack.render.*;
 import maspack.widgets.GuiUtils;
 

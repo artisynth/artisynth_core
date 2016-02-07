@@ -4,9 +4,6 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import javax.media.opengl.GL2;
-import maspack.render.GL.GL2.GL2Viewer;
-
 import artisynth.core.modelbase.MonitorBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.RotationMatrix3d;
@@ -14,6 +11,7 @@ import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
 import maspack.render.Renderer;
+import maspack.render.Renderer.VertexDrawMode;
 import maspack.render.LineRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
@@ -214,22 +212,17 @@ public class ConnectorBoundsRenderer extends MonitorBase {
 
    public void drawTriangle (Renderer renderer, TriInfo tri) {
       
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2 gl = ((GL2Viewer)renderer).getGL2();
       RenderProps props = tri.props;
 
       renderer.setMaterialAndShading (
          props, props.getFaceMaterial (), isSelected ());
       renderer.setFaceMode (props.getFaceStyle ());
-      gl.glBegin (GL2.GL_POLYGON);
-      gl.glNormal3d (tri.nrm.x, tri.nrm.y, tri.nrm.z);
+      renderer.beginDraw (VertexDrawMode.TRIANGLES);
+      renderer.setNormal (tri.nrm);
       for (int i = 0; i < tri.pts.length; i++) {
-         Point3d p = tri.pts[i];
-         gl.glVertex3d (p.x, p.y, p.z);
+         renderer.addVertex (tri.pts[i]);
       }
-      gl.glEnd ();
+      renderer.endDraw();
       renderer.restoreShading (props);
       renderer.setDefaultFaceMode ();
    }

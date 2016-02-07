@@ -825,9 +825,9 @@ public class Frame extends DynamicComponentBase
 
    public void render (Renderer renderer, int flags) {
       if (myAxisLength > 0) {
-         //renderer.setLineWidth (myRenderProps.getLineWidth());
+         int lineWidth = myRenderProps.getLineWidth();
          renderer.drawAxes (
-            myRenderProps, myRenderFrame, myAxisLength, isSelected());
+            myRenderFrame, myAxisLength, lineWidth, isSelected());
          //renderer.setLineWidth (1);
       }
    }

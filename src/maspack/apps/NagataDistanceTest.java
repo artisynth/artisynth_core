@@ -9,8 +9,6 @@ package maspack.apps;
 import java.awt.Color;
 import java.util.ArrayList;
 
-import javax.media.opengl.GL2;
-
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.NagataInterpolator;
@@ -22,10 +20,9 @@ import maspack.render.HasRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.render.Renderer.VertexDrawMode;
 import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLViewer;
-import maspack.render.GL.GL2.GL2Viewer;
-
 
 public class NagataDistanceTest implements GLRenderable, HasRenderProps {
 
@@ -193,12 +190,6 @@ public class NagataDistanceTest implements GLRenderable, HasRenderProps {
 
    public void render (Renderer renderer, int flags) {
 
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
-
       float[] coords0 = new float[3];
       float[] coords1 = new float[3];
 
@@ -218,15 +209,15 @@ public class NagataDistanceTest implements GLRenderable, HasRenderProps {
       myInterp.interpolateVertex (pos0, myCurvePos.x, myCurvePos.y);
       myInterp.interpolateCurve (pos, xi0, pos0, myCurvePos, myCurveDir);
       renderer.setLightingEnabled (false);      
-      gl.glBegin (GL2.GL_LINE_STRIP);
+      renderer.beginDraw (VertexDrawMode.LINE_STRIP);
       renderer.setColor (1f, 1f, 0f);
-      gl.glVertex3d (pos.x, pos.y, pos.z);
+      renderer.addVertex (pos);
       for (int i=0; i<nsegs; i++) {
          double xi = xi0 + (i+1)*(xi1-xi0)/(double)nsegs;
          myInterp.interpolateCurve (pos, xi, pos0, myCurvePos, myCurveDir);
-         gl.glVertex3d (pos.x, pos.y, pos.z);         
+         renderer.addVertex (pos);
       }
-      gl.glEnd();
+      renderer.endDraw();
       renderer.setLightingEnabled (true);      
    }
 

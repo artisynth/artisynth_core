@@ -12,8 +12,6 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Map;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.Plane;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
@@ -24,7 +22,7 @@ import maspack.properties.PropertyList;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.GL.GL2.GL2Viewer;
+import maspack.render.Renderer.VertexDrawMode;
 import maspack.spatialmotion.SegmentedPlanarCoupling;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
@@ -317,12 +315,6 @@ public class SegmentedPlanarConnector extends BodyConnector
       Vector3d nrm = new Vector3d (0, 0, 1);
       RigidTransform3d TDW = getCurrentTDW();
 
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
-      
       RenderProps props = myRenderProps;
 
       renderer.setMaterialAndShading (props, props.getFaceMaterial(), isSelected());
@@ -333,18 +325,19 @@ public class SegmentedPlanarConnector extends BodyConnector
          Plane plane = planes.get (i);
          nrm.set (plane.getNormal());
          computeRenderVtxs (i, TDW);
-         gl.glBegin (GL2.GL_POLYGON);
+
+         renderer.beginDraw (VertexDrawMode.TRIANGLE_STRIP);
          if (myRenderNormalReversedP) {
-            gl.glNormal3d (-nrm.x, -nrm.y, -nrm.z);
+            renderer.setNormal (-nrm.x, -nrm.y, -nrm.z);
          }
          else {
-            gl.glNormal3d (nrm.x, nrm.y, nrm.z);
+            renderer.setNormal (nrm.x, nrm.y, nrm.z);
          }
-         for (int k = 0; k < myRenderVtxs.length; k++) {
-            Point3d p = myRenderVtxs[k];
-            gl.glVertex3d (p.x, p.y, p.z);
-         }
-         gl.glEnd();
+         renderer.addVertex (myRenderVtxs[3]);
+         renderer.addVertex (myRenderVtxs[0]);
+         renderer.addVertex (myRenderVtxs[2]);
+         renderer.addVertex (myRenderVtxs[1]);
+         renderer.endDraw();
       }
       renderer.restoreShading (props);
       renderer.setDefaultFaceMode();

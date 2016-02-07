@@ -115,15 +115,16 @@ public abstract class JointBase extends BodyConnector  {
    }
 
    public void render (Renderer renderer, int flags) {
+      int lineWidth = myRenderProps.getLineWidth();
       if (myDrawFrameD) {
          renderer.drawAxes (
-            myRenderProps, myRenderFrameD, myAxisLength, isSelected());
+            myRenderFrameD, myAxisLength, lineWidth, isSelected());
       }
       
       if (myDrawFrameC) {
          // second frame
          renderer.drawAxes (
-            myRenderProps, myRenderFrameC, myAxisLength, isSelected());
+            myRenderFrameC, myAxisLength, lineWidth, isSelected());
       }
    }
 

@@ -15,8 +15,6 @@ import artisynth.core.util.*;
 
 import java.util.*;
 
-import com.jogamp.opengl.*;
-
 public class ForceEffectorList extends ComponentList<ForceComponent> implements
 ScalableUnits {
    protected static final long serialVersionUID = 1;

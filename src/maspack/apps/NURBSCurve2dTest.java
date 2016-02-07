@@ -13,7 +13,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 
-import javax.media.opengl.GL2;
 import javax.swing.JToolBar;
 
 import maspack.geometry.MeshFactory;
@@ -29,9 +28,9 @@ import maspack.render.DrawToolEvent;
 import maspack.render.DrawToolListener;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.render.Renderer.VertexDrawMode;
 import maspack.render.GL.GLRenderableBase;
 import maspack.render.GL.GLViewer;
-import maspack.render.GL.GL2.GL2Viewer;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.ReaderTokenizer;
 import maspack.widgets.DraggerToolBar;
@@ -82,15 +81,10 @@ public class NURBSCurve2dTest implements DrawToolListener {
       }
       
       public void render (Renderer renderer, int flags) {
-         if (!(renderer instanceof GL2Viewer)) {
-            return;
-         }
-         GL2Viewer viewer = (GL2Viewer)renderer;
-         GL2 gl = viewer.getGL2();
 
          renderer.setLightingEnabled (false);
 
-         gl.glBegin (GL2.GL_LINES);        
+         renderer.beginDraw (VertexDrawMode.LINES);        
          for (int i=0; i<myGrid.length; i++) {
             Vector2d g = myGrid[i];
             Vector2d n = myNear[i];
@@ -101,23 +95,23 @@ public class NURBSCurve2dTest implements DrawToolListener {
                renderer.setColor (0f, 1f, 1f);
             }
             if (!g.equals(n)) {
-               gl.glVertex3d (g.x, g.y, 0);
-               gl.glVertex3d (n.x, n.y, 0);
+               renderer.addVertex (g.x, g.y, 0);
+               renderer.addVertex (n.x, n.y, 0);
             }
          }
-         gl.glEnd();
+         renderer.endDraw();
 
          renderer.setColor (Color.WHITE);
          renderer.setPointSize (2);
-         gl.glBegin (GL2.GL_POINTS);        
+         renderer.beginDraw (VertexDrawMode.POINTS);        
          for (int i=0; i<myGrid.length; i++) {
             Vector2d g = myGrid[i];
             Vector2d n = myNear[i];
             if (g.equals(n)) {
-               gl.glVertex3d (g.x, g.y, 0);
+               renderer.addVertex (g.x, g.y, 0);
             }
          }
-         gl.glEnd();
+         renderer.endDraw();
          renderer.setLightingEnabled (true);
          renderer.setPointSize (1);
       }

@@ -8,8 +8,6 @@ package artisynth.core.mfreemodels;
 
 import java.util.ArrayList;
 
-import javax.media.opengl.GL2;
-
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.Boundable;
 import maspack.geometry.PolygonalMesh;
@@ -32,7 +30,6 @@ import maspack.properties.PropertyUtils;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-//import maspack.render.GL.GL2.PolygonalMeshRenderer;
 import maspack.util.InternalErrorException;
 import artisynth.core.femmodels.AuxiliaryMaterial;
 import artisynth.core.femmodels.FemElement;

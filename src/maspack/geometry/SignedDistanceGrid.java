@@ -8,13 +8,10 @@ package maspack.geometry;
 
 import java.util.*;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.*;
 import maspack.render.*;
+import maspack.render.Renderer.VertexDrawMode;
 import maspack.render.GL.GLRenderable;
-import maspack.render.GL.GLSupport;
-import maspack.render.GL.GL2.GL2Viewer;
 import maspack.geometry.SignedDistanceGridCell;
 //TODO: Include reference to Bridson's code.
 /**
@@ -23,7 +20,7 @@ import maspack.geometry.SignedDistanceGridCell;
  *
  * @author Bruce Haines, bruce DOT a DOT haines AT gmail.com
  */
-public class SignedDistanceGrid implements GLRenderable{
+public class SignedDistanceGrid implements GLRenderable {
 
    private PolygonalMesh mesh;
    private Vector3d gridCellSize;
@@ -783,41 +780,35 @@ public class SignedDistanceGrid implements GLRenderable{
    }
 
    public void render (Renderer renderer, int flags) {
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
+
       boolean lighting = renderer.isLightingEnabled();
       if (lighting)
          renderer.setLightingEnabled (false);
-      gl.glPushMatrix();
+      renderer.pushModelMatrix();
       if (mesh != null) {
-         double[] glMatrix = new double[16];
-         GLSupport.transformToGLMatrix (glMatrix, mesh.XMeshToWorld);
-         gl.glMultMatrixd (glMatrix, 0);
+         renderer.mulTransform (mesh.XMeshToWorld);
       }
-      gl.glPopMatrix();
+      renderer.popModelMatrix();
       renderer.setColor (0, 0, 1);
 
       Vector3d maxGrid = new Vector3d();
       maxGrid.x = min.x + (gridSize[0]-1) * gridCellSize.x;
-      maxGrid.y = min.y + (gridSize[1]-1) * gridCellSize.y;                            
+      maxGrid.y = min.y + (gridSize[1]-1) * gridCellSize.y; 
       maxGrid.z = min.z + (gridSize[2]-1) * gridCellSize.z;
 
-      gl.glBegin (GL2.GL_LINES); // Draw 4 vertical lines.
-      gl.glVertex3d (maxGrid.x, maxGrid.y, maxGrid.z);
-      gl.glVertex3d (maxGrid.x, maxGrid.y, min.z);
-      gl.glVertex3d (min.x, maxGrid.y, maxGrid.z);
-      gl.glVertex3d (min.x, maxGrid.y, min.z);
-      gl.glVertex3d (min.x, min.y, maxGrid.z);
-      gl.glVertex3d (min.x, min.y, min.z);
-      gl.glVertex3d (maxGrid.x, min.y, maxGrid.z);
-      gl.glVertex3d (maxGrid.x, min.y, min.z);
+      renderer.beginDraw (VertexDrawMode.LINES); // Draw 4 vertical lines.
+      renderer.addVertex (maxGrid.x, maxGrid.y, maxGrid.z);
+      renderer.addVertex (maxGrid.x, maxGrid.y, min.z);
+      renderer.addVertex (min.x, maxGrid.y, maxGrid.z);
+      renderer.addVertex (min.x, maxGrid.y, min.z);
+      renderer.addVertex (min.x, min.y, maxGrid.z);
+      renderer.addVertex (min.x, min.y, min.z);
+      renderer.addVertex (maxGrid.x, min.y, maxGrid.z);
+      renderer.addVertex (maxGrid.x, min.y, min.z);
       // Draw a diagonal line from max to min.
-      gl.glVertex3d (min.x, min.y, min.z);
-      gl.glVertex3d (maxGrid.x, maxGrid.y, maxGrid.z);
-      gl.glEnd();
+      renderer.addVertex (min.x, min.y, min.z);
+      renderer.addVertex (maxGrid.x, maxGrid.y, maxGrid.z);
+      renderer.endDraw();
 
       // Draw the vertices on the grid.
       for (int i = 0; i < phi.length; i++) {

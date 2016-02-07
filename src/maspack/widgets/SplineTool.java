@@ -14,8 +14,6 @@ import maspack.render.*;
 import maspack.render.GL.GLViewer;
 import maspack.geometry.*;
 
-import com.jogamp.opengl.*;
-
 public class SplineTool extends DrawToolBase {
 
    protected NURBSCurve2d myCurve;

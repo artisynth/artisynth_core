@@ -19,8 +19,6 @@ import java.io.*;
 
 import maspack.render.*;
 
-import com.jogamp.opengl.*;
-
 import java.util.*;
 
 public class AxialSpring extends PointSpringBase

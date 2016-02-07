@@ -12,6 +12,7 @@ import java.io.File;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Arrays;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
@@ -126,6 +127,15 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    //overrides diffuse color in myCurrentMaterial:
    protected float[] myCurrentFrontDiffuse;
    protected float[] myCurrentBackDiffuse;
+
+   // data for "drawMode"
+   protected VertexDrawMode myDrawMode = null;
+   protected boolean myHasNormalData = false;
+   protected int myVertexIdx = 0;
+   protected float[] myCurrentNormal = new float[3];
+   protected int myDrawDataDataCap = 0;
+   protected float[] myVertexData = null;
+   protected float[] myNormalData = null;
 
    public static PropertyList myProps = new PropertyList (GL2Viewer.class, GLViewer.class);
 
@@ -999,8 +1009,9 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    //      gl.glLoadMatrixd (GLMatrix, 0);
    //      gl.glMatrixMode (GL2.GL_MODELVIEW);
    //   }
-
-   private void maybeUpdateMatrices(GL2 gl) {
+ 
+   // Made public for debugging purposes
+   public void maybeUpdateMatrices(GL2 gl) {
 
       if (!viewMatrixValidP || !modelMatrixValidP) {
          // create modelview matrix:
@@ -2163,44 +2174,14 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    }
 
    public void drawAxes (
-      RenderProps props, RigidTransform3d X, double len, boolean selected) {
-
-      GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
-
-      if (X == null) {
-         X = RigidTransform3d.IDENTITY;
-      }
-
-      Vector3d u = new Vector3d();
-      setLightingEnabled (false);
-      gl.glLineWidth (props.getLineWidth());
-      if (selected) {
-         setColor (null, selected);
-      }
-      gl.glBegin (GL2.GL_LINES);
-      for (int i = 0; i < 3; i++) {
-         if (!selected && !selectEnabled) {
-            gl.glColor3f (i == 0 ? 1f : 0f, i == 1 ? 1f : 0f, i == 2 ? 1f : 0f);
-         }
-         gl.glVertex3d (X.p.x, X.p.y, X.p.z);
-         X.R.getColumn (i, u);
-         gl.glVertex3d (X.p.x + len * u.x, X.p.y + len * u.y, X.p.z + len * u.z);
-      }
-      gl.glEnd();
-      gl.glLineWidth (1);
-      setLightingEnabled (true);
-   }
-
-   public void drawAxes (
-      RenderProps props, RigidTransform3d X, double [] len, boolean selected) {
+      RigidTransform3d X, double[] len, int lineWidth, boolean selected) {
 
       GL2 gl = getGL2();
       maybeUpdateMatrices(gl);
 
       Vector3d u = new Vector3d();
       setLightingEnabled (false);
-      gl.glLineWidth (props.getLineWidth());
+      gl.glLineWidth (lineWidth);
 
       if (X == null) {
          X = RigidTransform3d.IDENTITY;
@@ -2292,10 +2273,10 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    //      }
    //   }
 
-   public void setDefaultFaceMode() {
-      gl.glEnable (GL2.GL_CULL_FACE);
-      gl.glCullFace (GL2.GL_BACK);
-   }
+   // public void setDefaultFaceMode() {
+   //    gl.glEnable (GL2.GL_CULL_FACE);
+   //    gl.glCullFace (GL2.GL_BACK);
+   // }
 
    //   private int glClipPlaneToIndex (int glClipPlane) {
    //      return glClipPlane - GL2.GL_CLIP_PLANE0;
@@ -3716,6 +3697,86 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    public int getTaperedEllipsoidDisplayList(GL2 gl, int slices) {
       int list = myGLResources.getTaperedEllipsoidDisplayList(gl, slices);
       return list;
+   }
+
+   protected void ensureDrawDataCapacity () {
+      if (myVertexIdx == myDrawDataDataCap) {
+         // equality test works because cap is a multiple of 3
+         int cap = myDrawDataDataCap;
+         if (cap == 0) {
+            cap = 3000;
+            myVertexData = new float[cap];
+            myNormalData = new float[cap];
+         }
+         else {
+            cap = 3*(cap/2); // make sure cap is a multiple of 3
+            myVertexData = Arrays.copyOf (myVertexData, cap);
+            myNormalData = Arrays.copyOf (myNormalData, cap);
+         }
+         myDrawDataDataCap = cap;
+      }
+   }      
+
+   @Override
+   public void beginDraw (VertexDrawMode mode) {
+      if (myDrawMode != null) {
+         throw new IllegalStateException (
+            "beginDraw() called while inside beginDraw() block");
+      }
+      myDrawMode = mode;
+      myVertexIdx = 0;
+      myHasNormalData = false;
+   }
+
+   @Override
+   public void addVertex (float x, float y, float z) {
+      ensureDrawDataCapacity();
+      if (myHasNormalData) {
+         myNormalData[myVertexIdx  ] = myCurrentNormal[0];
+         myNormalData[myVertexIdx+1] = myCurrentNormal[1];
+         myNormalData[myVertexIdx+2] = myCurrentNormal[2];
+      }
+      myVertexData[myVertexIdx++] = x;
+      myVertexData[myVertexIdx++] = y;
+      myVertexData[myVertexIdx++] = z;
+   }
+
+   @Override
+   public void setNormal (float x, float y, float z) {
+      myCurrentNormal[0] = x;
+      myCurrentNormal[1] = y;
+      myCurrentNormal[2] = z;
+      if (!myHasNormalData) {
+         // back-fill previous normal data
+         for (int i=0; i<myVertexIdx; i++) {
+            myNormalData[i] = 0f;
+         }
+         myHasNormalData = true;
+      }
+   }
+
+   @Override
+   public void endDraw() {
+      if (myDrawMode == null) {
+         throw new IllegalStateException (
+            "endDraw() called before call to beginDraw()");
+      }
+      GL2 gl = getGL2();
+      maybeUpdateMatrices(gl);
+      gl.glBegin (getDrawPrimitive (myDrawMode));
+      if (myHasNormalData) {
+         for (int i=0; i<myVertexIdx; i += 3) {
+            gl.glNormal3fv (myNormalData, i);
+            gl.glVertex3fv (myVertexData, i);
+         }
+      }
+      else {
+         for (int i=0; i<myVertexIdx; i += 3) {
+            gl.glVertex3fv (myVertexData, i);
+         }
+      }
+      gl.glEnd();
+      myDrawMode = null;
    }
 
 }

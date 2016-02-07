@@ -38,11 +38,11 @@ import maspack.render.RenderProps.Faces;
 import maspack.render.RenderProps.Shading;
 import maspack.render.RenderableUtils;
 import maspack.render.Renderer;
+import maspack.render.Renderer.VertexDrawMode;
 import maspack.render.Transrotator3d;
 import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewerFrame;
-import maspack.render.GL.GL2.GL2Viewer;
 import maspack.widgets.PropertyDialog;
 import maspack.widgets.RenderPropsPanel;
 import maspack.widgets.ValueChangeEvent;
@@ -51,8 +51,6 @@ import argparser.ArgParser;
 import argparser.BooleanHolder;
 import argparser.DoubleHolder;
 import argparser.IntHolder;
-
-import javax.media.opengl.GL2;
 
 public class MeshCollisionViewer extends GLViewerFrame
    implements ActionListener, GLRenderable {
@@ -225,14 +223,8 @@ public class MeshCollisionViewer extends GLViewerFrame
    private float[] contourColor = new float [] { 1f, 1f, 0 };
 
    public void render (Renderer renderer, int flags) {
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
 
-      if (contourWidth > 0 &&
-          myContactInfo != null) {
+      if (contourWidth > 0 && myContactInfo != null) {
          renderer.setLightingEnabled (false);
          renderer.setLineWidth (contourWidth);
          renderer.setPointSize (contourWidth);
@@ -240,26 +232,26 @@ public class MeshCollisionViewer extends GLViewerFrame
 
          if (myContactInfo.contours != null) {
             for (MeshIntersectionContour contour : myContactInfo.contours) {
-               gl.glBegin (GL2.GL_LINE_LOOP);
+               renderer.beginDraw (VertexDrawMode.LINE_LOOP);
                for (MeshIntersectionPoint p : contour) {
-                  gl.glVertex3d (p.x, p.y, p.z);
+                  renderer.addVertex (p);
                }
-               gl.glEnd();
+               renderer.endDraw();
             }
          }
          Point3d pnt = new Point3d();
-         gl.glBegin (GL2.GL_POINTS);
+         renderer.beginDraw (VertexDrawMode.POINTS);
          for (ContactPenetratingPoint p : myContactInfo.points0) {
             pnt.set (p.vertex.pnt);
             pnt.transform (myMesh1.getMeshToWorld());
-            gl.glVertex3d (pnt.x, pnt.y, pnt.z);
+            renderer.addVertex (pnt);
          }
          for (ContactPenetratingPoint p : myContactInfo.points1) {
             pnt.set (p.vertex.pnt);
             pnt.transform (myMesh2.getMeshToWorld());
-            gl.glVertex3d (pnt.x, pnt.y, pnt.z);
+            renderer.addVertex (pnt);
          }
-         gl.glEnd();
+         renderer.endDraw();
 
          renderer.setLightingEnabled (true);
          renderer.setLineWidth (1);
@@ -270,7 +262,6 @@ public class MeshCollisionViewer extends GLViewerFrame
    public void actionPerformed (ActionEvent e) {
       String cmd = e.getActionCommand();
 
-      System.out.println ("cmd="+ cmd);
       if (cmd.equals ("Hide dragger1")) {
          myDragger1.setVisible (false);
       }

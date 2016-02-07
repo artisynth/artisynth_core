@@ -48,7 +48,6 @@ import maspack.properties.HasProperties;
 import maspack.render.Renderer;
 import maspack.render.Material;
 import maspack.render.RenderProps;
-//import maspack.render.GL.GL2.PolygonalMeshRenderer;
 import maspack.util.InternalErrorException;
 import maspack.util.ListIndexComparator;
 import maspack.util.NumberFormat;

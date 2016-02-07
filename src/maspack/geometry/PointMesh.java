@@ -23,8 +23,6 @@ import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-//import maspack.render.GL.GL2.PointMeshRenderer;
-//import maspack.render.GL.GL2.PolylineMeshRenderer;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 

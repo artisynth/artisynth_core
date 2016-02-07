@@ -18,7 +18,6 @@ import maspack.render.*;
 import maspack.properties.*;
 import artisynth.core.util.*;
 import java.util.*;
-import com.jogamp.opengl.*;
 
 public class MultiPointSpringList<S extends MultiPointSpring>
    extends PointSpringList<S> {

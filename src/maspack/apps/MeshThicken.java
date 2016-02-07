@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-import javax.media.opengl.GL2;
 import javax.swing.JFileChooser;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -59,9 +58,9 @@ import maspack.render.RenderListener;
 import maspack.render.RenderProps;
 import maspack.render.RenderableBase;
 import maspack.render.Renderer;
+import maspack.render.Renderer.VertexDrawMode;
 import maspack.render.GL.GLSelectionEvent;
 import maspack.render.GL.GLSelectionListener;
-import maspack.render.GL.GL2.GL2Viewer;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
@@ -382,13 +381,8 @@ public class MeshThicken extends ViewerFrame
          if (myCurve != null) {
             myCurve.render (renderer, flags);
          }
-         if (!(renderer instanceof GL2Viewer)) {
-            return;
-         }
-         GL2Viewer viewer = (GL2Viewer)renderer;
-         GL2 gl = viewer.getGL2();
          
-         gl.glPushMatrix();
+         renderer.pushModelMatrix();
          RigidTransform3d X = new RigidTransform3d (myFrame);
          X.mulXyz (0, 0, myHeight);
          renderer.mulTransform (X);
@@ -402,19 +396,21 @@ public class MeshThicken extends ViewerFrame
 
          Point3d pnt0 = new Point3d();
          Point3d pnt1 = new Point3d();
+         Point3d pnt2 = new Point3d();
+         Point3d pnt3 = new Point3d();
          Vector3d nrm = new Vector3d();
          Vector3d zdir = new Vector3d(0, 0, 1);
          //myFrame.R.getColumn (2, zdir);
 
          renderer.setFaceMode (props.getFaceStyle());
 
-         gl.glBegin (GL2.GL_QUADS);
+         renderer.beginDraw (VertexDrawMode.TRIANGLES);
          double[] urange = new double[2];
          myCurve.getRange (urange);
          myCurve.eval (pnt0, urange[0]);
          double depth = myHeight+myBackHeight;
          for (int i=1; i<=nsegs; i++) {
-            myCurve.eval (pnt1, urange[0] + (urange[1]-urange[0])*i/nsegs);
+            myCurve.eval (pnt3, urange[0] + (urange[1]-urange[0])*i/nsegs);
             if (myOrientation < 0) {
                nrm.sub (pnt1, pnt0);
             }
@@ -424,21 +420,23 @@ public class MeshThicken extends ViewerFrame
             nrm.cross (zdir);
             nrm.normalize();
             //nrm.negate();
-            gl.glNormal3d (nrm.x, nrm.y, nrm.z);
-            gl.glVertex3d (pnt0.x, pnt0.y, pnt0.z);
-            pnt0.scaledAdd (-depth, zdir);
-            gl.glVertex3d (pnt0.x, pnt0.y, pnt0.z);
-            pnt1.scaledAdd (-depth, zdir);
-            gl.glVertex3d (pnt1.x, pnt1.y, pnt1.z);
-            pnt1.scaledAdd (depth, zdir);
-            gl.glVertex3d (pnt1.x, pnt1.y, pnt1.z);
-            pnt0.set (pnt1);
+
+            pnt1.scaledAdd (-depth, zdir, pnt0);
+            pnt2.scaledAdd (-depth, zdir, pnt3);
+            renderer.setNormal (nrm.x, nrm.y, nrm.z);
+            renderer.addVertex (pnt0); // first triangle
+            renderer.addVertex (pnt1);
+            renderer.addVertex (pnt2); 
+            renderer.addVertex (pnt0); // second triangle
+            renderer.addVertex (pnt2);
+            renderer.addVertex (pnt3);
+            pnt0.set (pnt3);
          }
-         gl.glEnd();         
+         renderer.endDraw();         
          
          renderer.setDefaultFaceMode();
 
-         gl.glPopMatrix();
+         renderer.popModelMatrix();
       }
 
       public boolean isSelectable() {

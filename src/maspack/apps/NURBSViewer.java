@@ -38,6 +38,7 @@ import maspack.render.RenderProps;
 import maspack.render.GL.GLSelectionEvent;
 import maspack.render.GL.GLSelectionListener;
 import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewer.GLVersion;
 import maspack.render.GL.GLViewerFrame;
 import argparser.ArgParser;
 import argparser.BooleanHolder;
@@ -179,6 +180,11 @@ public class NURBSViewer extends GLViewerFrame {
       init();
    }
 
+   public NURBSViewer (int w, int h, GLVersion version) {
+      super ("NURBSViewer", w, h, version);
+      init();
+   }
+
    private void init() {
       MouseHandler mouseHandler = new MouseHandler();
       viewer.getCanvas().addMouseListener (mouseHandler);
@@ -252,7 +258,7 @@ public class NURBSViewer extends GLViewerFrame {
       IntHolder width = new IntHolder (400);
       IntHolder height = new IntHolder (400);
 
-      ArgParser parser = new ArgParser ("java maspack.geometry.NURBSCurveTest");
+      ArgParser parser = new ArgParser ("java maspack.geometry.NURBSViewer");
       parser.addOption ("-width %d #width (pixels)", width);
       parser.addOption ("-height %d #height (pixels)", height);
       parser.addOption ("-drawAxes %v #draw coordinate axes", drawAxes);
@@ -268,7 +274,7 @@ public class NURBSViewer extends GLViewerFrame {
 
       NURBSViewer viewFrame = null;
       try {
-         viewFrame = new NURBSViewer (width.value, height.value);
+         viewFrame = new NURBSViewer (width.value, height.value, GLVersion.GL3);
          GLViewer viewer = viewFrame.getViewer();
          if (fileName.value != null) {
             viewFrame.addNURBS (new File (fileName.value));

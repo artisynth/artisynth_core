@@ -8,8 +8,6 @@ package maspack.geometry;
 
 import java.util.ArrayList;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
@@ -17,8 +15,8 @@ import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer;
+import maspack.render.Renderer.VertexDrawMode;
 import maspack.render.RenderList;
-import maspack.render.GL.GL2.GL2Viewer;
 import maspack.util.InternalErrorException;
 import quickhull3d.QuickHull3D;
 
@@ -1196,48 +1194,42 @@ public class OBB extends BVNode {
 
    public void render (Renderer renderer, int flags) {
 
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
-
       renderer.setLightingEnabled (false);
 
       Vector3d hw = myHalfWidths;
-      gl.glPushMatrix();
-      GL2Viewer.mulTransform (gl, myX);
+      renderer.pushModelMatrix();
+      renderer.mulTransform (myX);
 
       renderer.setColor (0, 0, 1);
-      gl.glBegin (GL2.GL_LINE_STRIP);
-      gl.glVertex3d (hw.x, hw.y, hw.z);
-      gl.glVertex3d (-hw.x, hw.y, hw.z);
-      gl.glVertex3d (-hw.x, -hw.y, hw.z);
-      gl.glVertex3d (hw.x, -hw.y, hw.z);
-      gl.glVertex3d (hw.x, hw.y, hw.z);
-      gl.glEnd();
+      renderer.beginDraw (VertexDrawMode.LINE_STRIP);
+      renderer.addVertex (hw.x, hw.y, hw.z);
+      renderer.addVertex (-hw.x, hw.y, hw.z);
+      renderer.addVertex (-hw.x, -hw.y, hw.z);
+      renderer.addVertex (hw.x, -hw.y, hw.z);
+      renderer.addVertex (hw.x, hw.y, hw.z);
+      renderer.endDraw();
 
-      gl.glBegin (GL2.GL_LINE_STRIP);
-      gl.glVertex3d (hw.x, hw.y, -hw.z);
-      gl.glVertex3d (-hw.x, hw.y, -hw.z);
-      gl.glVertex3d (-hw.x, -hw.y, -hw.z);
-      gl.glVertex3d (hw.x, -hw.y, -hw.z);
-      gl.glVertex3d (hw.x, hw.y, -hw.z);
-      gl.glEnd();
+      renderer.beginDraw (VertexDrawMode.LINE_STRIP);
+      renderer.addVertex (hw.x, hw.y, -hw.z);
+      renderer.addVertex (-hw.x, hw.y, -hw.z);
+      renderer.addVertex (-hw.x, -hw.y, -hw.z);
+      renderer.addVertex (hw.x, -hw.y, -hw.z);
+      renderer.addVertex (hw.x, hw.y, -hw.z);
+      renderer.endDraw();
 
       renderer.setColor (0, 0, 1);
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (hw.x, hw.y, hw.z);
-      gl.glVertex3d (hw.x, hw.y, -hw.z);
-      gl.glVertex3d (-hw.x, hw.y, hw.z);
-      gl.glVertex3d (-hw.x, hw.y, -hw.z);
-      gl.glVertex3d (-hw.x, -hw.y, hw.z);
-      gl.glVertex3d (-hw.x, -hw.y, -hw.z);
-      gl.glVertex3d (hw.x, -hw.y, hw.z);
-      gl.glVertex3d (hw.x, -hw.y, -hw.z);
-      gl.glEnd();
+      renderer.beginDraw (VertexDrawMode.LINES);
+      renderer.addVertex (hw.x, hw.y, hw.z);
+      renderer.addVertex (hw.x, hw.y, -hw.z);
+      renderer.addVertex (-hw.x, hw.y, hw.z);
+      renderer.addVertex (-hw.x, hw.y, -hw.z);
+      renderer.addVertex (-hw.x, -hw.y, hw.z);
+      renderer.addVertex (-hw.x, -hw.y, -hw.z);
+      renderer.addVertex (hw.x, -hw.y, hw.z);
+      renderer.addVertex (hw.x, -hw.y, -hw.z);
+      renderer.endDraw();
 
-      gl.glPopMatrix();
+      renderer.popModelMatrix();
 
       renderer.setLightingEnabled (true);
    }

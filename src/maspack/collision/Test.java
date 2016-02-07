@@ -5,8 +5,6 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.Random;
 
-import javax.media.opengl.GL2;
-
 import javax.swing.JFrame;
 
 import maspack.collision.ContactInfo;
@@ -22,7 +20,6 @@ import maspack.render.RenderProps;
 import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewerFrame;
-import maspack.render.GL.GL2.GL2Viewer;
 
 public class Test {
    PolygonalMesh mesh1, mesh2;
@@ -193,31 +190,10 @@ public class Test {
    class RenderableAxes implements GLRenderable {
 
       public void render (Renderer renderer, int flags) {
-         if (!(renderer instanceof GL2Viewer)) {
-            return;
-         }
-         GL2Viewer viewer = (GL2Viewer)renderer;
-         GL2 gl = viewer.getGL2();
-         
-         renderer.setLightingEnabled (false);
 
          double axisSize = 1000.0;
-         renderer.setColor (1, 0, 0);
-         gl.glBegin (GL2.GL_LINES);
-         gl.glVertex3d (0, 0, 0);
-         gl.glVertex3d (axisSize, 0, 0);
-         gl.glEnd();
-         renderer.setColor (0, 1, 0);
-         gl.glBegin (GL2.GL_LINES);
-         gl.glVertex3d (0, 0, 0);
-         gl.glVertex3d (0, axisSize, 0);
-         gl.glEnd();
-         renderer.setColor (0, 0, 1);
-         gl.glBegin (GL2.GL_LINES);
-         gl.glVertex3d (0, 0, 0);
-         gl.glVertex3d (0, 0, axisSize);
-         gl.glEnd();
-         renderer.setLightingEnabled (true);
+         renderer.drawAxes (
+            RigidTransform3d.IDENTITY, axisSize, 1, /*selected=*/false);
       }
 
       public int getRenderHints() {

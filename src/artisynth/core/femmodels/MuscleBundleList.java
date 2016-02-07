@@ -17,8 +17,6 @@ import artisynth.core.util.*;
 
 import java.util.*;
 
-import com.jogamp.opengl.*;
-
 public class MuscleBundleList
    extends RenderableComponentList<MuscleBundle> implements ScalableUnits {
 

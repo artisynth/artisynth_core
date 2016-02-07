@@ -87,6 +87,13 @@ public class GL3Viewer extends GLViewer {
    private boolean grabWaitComplete = false; // wait
    private boolean grabClose = false;        // clean up
 
+   // data for "drawMode"
+   int myVertexCap;
+   int myNumVertices;
+   VertexDrawMode myDrawMode;
+   ByteBuffer myDrawBuffer;
+   protected float[] myCurrentNormal = new float[3];
+
    /**
     * Creates a new GLViewer with default capabilities.
     * 
@@ -684,10 +691,6 @@ public class GL3Viewer extends GLViewer {
          }
       }
    }        
-
-   public void setDefaultFaceMode() {
-      setFaceMode(Faces.FRONT);
-   }
 
    // Screen-shot
 
@@ -1785,42 +1788,7 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    public void drawAxes(
-      RenderProps props, RigidTransform3d X, double len, boolean selected) {
-      GLSupport.checkAndPrintGLError(gl);
-
-      if (len == 0) {
-         return;
-      }
-      if (X == null) {
-         X = RigidTransform3d.IDENTITY;
-      }
-
-      pushModelMatrix();
-
-      mulModelMatrix(X);
-      scaleModelMatrix(len);
-      updateMatrices(gl);
-
-      gl.glLineWidth (props.getLineWidth());
-
-      GL3Object axes = myGLResources.getAxes(gl, true, true, true);
-      if (selectEnabled || selected) {
-         axes.draw(gl, getBasicProgram(gl));
-      } else {
-         axes.draw(gl, getColorProgram(gl, Shading.NONE, ColorInterpolation.RGB));
-      }
-      // gloManager.releaseObject(axes);
-
-      gl.glLineWidth(1);
-
-      // signal to revert matrix transform
-      popModelMatrix();
-
-   }
-
-   @Override
-   public void drawAxes(
-      RenderProps props, RigidTransform3d X, double[] len, boolean selected) {
+      RigidTransform3d X, double[] len, int lineWidth, boolean selected) {
 
       GLSupport.checkAndPrintGLError(gl);
 
@@ -1854,7 +1822,7 @@ public class GL3Viewer extends GLViewer {
       scaleModelMatrix(lx, ly, lz);
       updateMatrices(gl);
 
-      gl.glLineWidth (props.getLineWidth());
+      gl.glLineWidth (lineWidth);
 
       GL3Object axes = myGLResources.getAxes(gl, drawx, drawy, drawz);
       if (selectEnabled || selected) {
@@ -2721,5 +2689,80 @@ public class GL3Viewer extends GLViewer {
    public void removeSharedObject(Object key) {
       myGLResources.removeRenderObject(key);
    }      
+
+   protected void ensureDrawDataCapacity () {
+      if (myNumVertices == myVertexCap) {
+         if (myVertexCap == 0) {
+            myVertexCap = 1000;
+            myDrawBuffer =
+               ByteBuffer.allocateDirect(myVertexCap*6*GLSupport.FLOAT_SIZE);
+            myDrawBuffer.order(ByteOrder.nativeOrder());
+         }
+         else {
+            myVertexCap = (int)(1.5*myVertexCap);
+            ByteBuffer newBuffer =
+               ByteBuffer.allocateDirect(myVertexCap*6*GLSupport.FLOAT_SIZE);
+            newBuffer.order(ByteOrder.nativeOrder());
+            myDrawBuffer.rewind();
+            newBuffer.put (myDrawBuffer);
+            myDrawBuffer = newBuffer;
+         }
+      }
+   }      
+
+   @Override
+   public void beginDraw (VertexDrawMode mode) {
+      if (myDrawMode != null) {
+         throw new IllegalStateException (
+            "beginDraw() called while inside beginDraw() block");
+      }
+      myNumVertices = 0;
+      ensureDrawDataCapacity();
+      myDrawBuffer.rewind();
+      myDrawMode = mode;
+      setNormal (0, 0, 0);
+   }
+
+   @Override
+   public void addVertex (float x, float y, float z) {
+      ensureDrawDataCapacity();
+      myDrawBuffer.putFloat (x);
+      myDrawBuffer.putFloat (y);
+      myDrawBuffer.putFloat (z);
+      myDrawBuffer.putFloat (myCurrentNormal[0]);
+      myDrawBuffer.putFloat (myCurrentNormal[1]);
+      myDrawBuffer.putFloat (myCurrentNormal[2]);
+      myNumVertices++;
+   }
+
+   @Override
+   public void setNormal (float x, float y, float z) {
+      myCurrentNormal[0] = x;
+      myCurrentNormal[1] = y;
+      myCurrentNormal[2] = z;
+   }
+
+   @Override
+   public void endDraw() {
+      if (myDrawMode == null) {
+         throw new IllegalStateException (
+            "endDraw() called before call to beginDraw()");
+      }
+      if (myNumVertices > 0) {
+         myDrawBuffer.rewind();
+         GL3Object glo = GL3Object.createVN(
+            gl, getDrawPrimitive(myDrawMode), myDrawBuffer, myNumVertices,
+            BufferStorage.FLOAT_3, 0, 6*GLSupport.FLOAT_SIZE,
+            BufferStorage.FLOAT_3, 3*GLSupport.FLOAT_SIZE,
+            6*GLSupport.FLOAT_SIZE, GL3.GL_STREAM_DRAW);
+
+         maybeUpdateMatrices(gl);
+         glo.draw(gl, getRegularProgram(gl));
+
+         glo.dispose (gl);  // immediately dispose
+      }
+      myDrawMode = null;
+   }
+
 
 }

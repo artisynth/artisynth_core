@@ -12,8 +12,6 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.util.ArrayList;
 
-import javax.media.opengl.GL2;
-
 import maspack.geometry.io.WavefrontReader;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
@@ -21,7 +19,7 @@ import maspack.matrix.Vector4d;
 import maspack.render.PointEdgeRenderProps;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.GL.GL2.GL2Viewer;
+import maspack.render.Renderer.VertexDrawMode;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
@@ -824,11 +822,6 @@ public abstract class NURBSCurveBase extends NURBSObject {
     */
    public void render (Renderer renderer, RenderProps props, int flags) {
       boolean selecting = renderer.isSelecting();
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
       
       int numc = numControlPoints();
       if (numc == 0) {
@@ -850,16 +843,16 @@ public abstract class NURBSCurveBase extends NURBSObject {
                renderer.setColor (props.getEdgeOrLineColorArray());
             }
             if (myClosedP) {
-               gl.glBegin (GL2.GL_LINE_LOOP);
+               renderer.beginDraw (VertexDrawMode.LINE_LOOP);
             }
             else {
-               gl.glBegin (GL2.GL_LINE_STRIP);
+               renderer.beginDraw (VertexDrawMode.LINE_STRIP);
             }
             for (int i = 0; i < numc; i++) {
                Vector4d cpnt = myCtrlPnts.get(i);
-               gl.glVertex3d (cpnt.x, cpnt.y, cpnt.z);
+               renderer.addVertex (cpnt.x, cpnt.y, cpnt.z);
             }
-            gl.glEnd();
+            renderer.endDraw();
          }
 
          // draw the control points
@@ -877,14 +870,14 @@ public abstract class NURBSCurveBase extends NURBSObject {
 
       Point3d pnt = new Point3d();
       renderer.setLineWidth (props.getLineWidth());
-      gl.glBegin (GL2.GL_LINE_STRIP);
+      renderer.beginDraw (VertexDrawMode.LINE_LOOP);
       double[] urange = new double[2];
       getRange (urange);
       for (int i = 0; i < nsegs + 1; i++) {
          eval (pnt, urange[0] + (urange[1]-urange[0])*i/nsegs);
-         gl.glVertex3d (pnt.x, pnt.y, pnt.z);
+         renderer.addVertex (pnt);
       }
-      gl.glEnd();
+      renderer.endDraw();
 
       renderer.setLineWidth (1);
 

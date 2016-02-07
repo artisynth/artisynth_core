@@ -8,8 +8,6 @@ package artisynth.core.mfreemodels;
 
 import java.util.LinkedList;
 
-import javax.media.opengl.GL2;
-
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
 import maspack.render.RenderList;

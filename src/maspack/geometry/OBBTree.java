@@ -11,8 +11,6 @@ import java.util.Iterator;
 import java.util.Random;
 import java.util.Collection;
 
-import javax.media.opengl.GL2;
-
 import maspack.geometry.OBB.Method;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
@@ -21,7 +19,6 @@ import maspack.matrix.Vector3d;
 import maspack.render.Renderer;
 import maspack.render.RenderableUtils;
 import maspack.render.GL.GLSupport;
-import maspack.render.GL.GL2.GL2Viewer;
 import maspack.util.InternalErrorException;
 //import maspack.util.ScanSupport;
 import maspack.util.RandomGenerator;
@@ -232,15 +229,10 @@ public class OBBTree extends BVTree {
 
    public void render (Renderer renderer, int flags) {
       if (root != null) {
-         if (!(renderer instanceof GL2Viewer)) {
-            return;
-         }
-         GL2Viewer viewer = (GL2Viewer)renderer;
-         GL2 gl = viewer.getGL2();
-         gl.glPushMatrix();
+         renderer.pushModelMatrix();
          renderer.mulTransform (myBvhToWorld);
          recursiveRender (renderer, flags, root, 0);
-         gl.glPopMatrix();
+         renderer.popModelMatrix();
       }
    }
 

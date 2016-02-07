@@ -8,8 +8,6 @@ package maspack.geometry;
 
 import java.util.ArrayList;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.Matrix4d;
 import maspack.matrix.Vector3d;
 import maspack.render.Material;
@@ -20,7 +18,6 @@ import maspack.render.Renderer;
 import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLViewer;
-import maspack.render.GL.GL2.GL2Viewer;
 
 public class PolygonalMeshRenderer extends MeshRendererBase {
 

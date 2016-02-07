@@ -78,10 +78,10 @@ public class ConnectorForceRenderer extends MonitorBase {
    }
 
    @Override
-   public void render (Renderer gl, int flags) {
-      super.render (gl, flags);
+   public void render (Renderer renderer, int flags) {
+      super.render (renderer, flags);
 //      System.out.println ("CFR-ren");
-      gl.drawArrow (getRenderProps (), end, start, true, isSelected ());
+      renderer.drawArrow (getRenderProps (), end, start, true, isSelected ());
    }
 
    public void prerender (SphericalJoint myConnector) {

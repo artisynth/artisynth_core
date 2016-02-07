@@ -11,15 +11,13 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.util.ArrayList;
 
-import javax.media.opengl.GL2;
-
 import maspack.geometry.io.WavefrontReader;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector4d;
-import maspack.render.MeshRenderProps;
+import maspack.render.PointLineRenderProps;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.GL.GL2.GL2Viewer;
+import maspack.render.Renderer.VertexDrawMode;
 import maspack.util.NumberFormat;
 
 /**
@@ -415,24 +413,13 @@ public class NURBSSurface extends NURBSObject {
       
       boolean selecting = renderer.isSelecting();
       
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
-      
       if (numControlPoints() == 0) {
          return;
       }
-      // if (selectionId != -1)
-      // { gl.glLoadName (selectionId);
-      // gl.glPushName (-1);
-      // }
 
       evalRenderVertices();
 
       renderer.setLightingEnabled (false);
-      gl.glDisable (GL2.GL_CULL_FACE);
 
       // draw the control points
       if (myDrawControlShapeP) {
@@ -443,23 +430,24 @@ public class NURBSSurface extends NURBSObject {
       if (!selecting) {
          renderer.setColor (contourColor);
       }
-      gl.glPolygonMode (GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
-      gl.glBegin (GL2.GL_QUADS);
+      renderer.beginDraw (VertexDrawMode.LINES);
       for (int i = 0; i < urenderSize - 1; i++) {
          for (int j = 0; j < vrenderSize - 1; j++) {
-            Point3d p;
-            p = renderVertices[i * vrenderSize + j];
-            gl.glVertex3d (p.x, p.y, p.z);
-            p = renderVertices[(i + 1) * vrenderSize + j];
-            gl.glVertex3d (p.x, p.y, p.z);
-            p = renderVertices[(i + 1) * vrenderSize + (j + 1)];
-            gl.glVertex3d (p.x, p.y, p.z);
-            p = renderVertices[i * vrenderSize + (j + 1)];
-            gl.glVertex3d (p.x, p.y, p.z);
+            Point3d p0 = renderVertices[i * vrenderSize + j];
+            Point3d p1 = renderVertices[(i + 1) * vrenderSize + j];
+            Point3d p2 = renderVertices[(i + 1) * vrenderSize + (j + 1)];
+            Point3d p3 = renderVertices[i * vrenderSize + (j + 1)];
+            renderer.addVertex (p0);
+            renderer.addVertex (p1);
+            renderer.addVertex (p1);
+            renderer.addVertex (p2);
+            renderer.addVertex (p2);
+            renderer.addVertex (p3);
+            renderer.addVertex (p3);
+            renderer.addVertex (p0);
          }
       }
-      gl.glEnd();
-      gl.glPolygonMode (GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
+      renderer.endDraw();
 
       // draw the control polygon
       if (myDrawControlShapeP) {
@@ -468,39 +456,34 @@ public class NURBSSurface extends NURBSObject {
          }
          for (int i = 0; i < numCtrlPntsU; i++) {
             if (vcurve.isClosed()) {
-               gl.glBegin (GL2.GL_LINE_LOOP);
+               renderer.beginDraw (VertexDrawMode.LINE_LOOP);
             }
             else {
-               gl.glBegin (GL2.GL_LINE_STRIP);
+               renderer.beginDraw (VertexDrawMode.LINE_STRIP);
             }
             for (int j = 0; j < numCtrlPntsV; j++) { // pnt.setFromHomogeneous
                // (ctrlPnts[i*numCtrlPntsV+j]);
                Vector4d cpnt = myCtrlPnts.get(i * numCtrlPntsV + j);
-               gl.glVertex3d (cpnt.x, cpnt.y, cpnt.z);
+               renderer.addVertex (cpnt.x, cpnt.y, cpnt.z);
             }
-            gl.glEnd();
+            renderer.endDraw();
          }
          for (int j = 0; j < numCtrlPntsV; j++) {
             if (ucurve.isClosed()) {
-               gl.glBegin (GL2.GL_LINE_LOOP);
+               renderer.beginDraw (VertexDrawMode.LINE_LOOP);
             }
             else {
-               gl.glBegin (GL2.GL_LINE_STRIP);
+               renderer.beginDraw (VertexDrawMode.LINE_STRIP);
             }
             for (int i = 0; i < numCtrlPntsU; i++) {
                Vector4d cpnt = myCtrlPnts.get(i * numCtrlPntsV + j);
-               gl.glVertex3d (cpnt.x, cpnt.y, cpnt.z);
+               renderer.addVertex (cpnt.x, cpnt.y, cpnt.z);
             }
-            gl.glEnd();
+            renderer.endDraw();
          }
       }
 
-      gl.glEnable (GL2.GL_CULL_FACE);
       renderer.setLightingEnabled (true);
-
-      // if (selectionId != -1)
-      // { gl.glPopName();
-      // }
    }
 
    /**
@@ -631,13 +614,27 @@ public class NURBSSurface extends NURBSObject {
     * As an example, here are the statements that define a simple bezier surface
     * patch: 
     * <pre>
-    * v -10.0 0.0 10.0 1.0 v -5.0 5.0 10.0 1.0 v 5.0 5.0 10.0 1.0 v 10.0
-    * 0.0 10.0 1.0 v -10.0 0.0 5.0 1.0 v -5.0 5.0 5.0 1.0 v 5.0 5.0 5.0 1.0 v
-    * 10.0 0.0 5.0 1.0 v -10.0 0.0 -5.0 1.0 v -5.0 5.0 -5.0 1.0 v 5.0 5.0 -5.0
-    * 1.0 v 10.0 0.0 -5.0 1.0 v -10.0 0.0 -10.0 1.0 v -5.0 5.0 -10.0 1.0 v 5.0
-    * 5.0 -10.0 1.0 v 10.0 0.0 -10.0 1.0 deg 3 3 surf 0.0 1.0 0.0 1.0 \ 1 2 3 4
-    * 5 6 7 8 9 10 \ 11 12 13 14 15 16 parm u 0.0 0.0 0.0 1.0 1.0 1.0 parm v 0.0
-    * 0.0 0.0 1.0 1.0 1.0 end
+    * v -10.0 0.0 10.0 1.0
+    * v -5.0 5.0 10.0 1.0
+    * v 5.0 5.0 10.0 1.0
+    * v 10.0 0.0 10.0 1.0
+    * v -10.0 0.0 5.0 1.0
+    * v -5.0 5.0 5.0 1.0
+    * v 5.0 5.0 5.0 1.0
+    * v 10.0 0.0 5.0 1.0
+    * v -10.0 0.0 -5.0 1.0
+    * v -5.0 5.0 -5.0 1.0
+    * v 5.0 5.0 -5.0 1.0
+    * v 10.0 0.0 -5.0 1.0
+    * v -10.0 0.0 -10.0 1.0
+    * v -5.0 5.0 -10.0 1.0
+    * v 5.0 5.0 -10.0 1.0
+    * v 10.0 0.0 -10.0 1.0
+    * deg 3 3
+    * surf 0.0 1.0 0.0 1.0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+    * parm u 0.0 0.0 0.0 1.0 1.0 1.0
+    * parm v 0.0 0.0 0.0 1.0 1.0 1.0
+    * end
     * </pre>
     * 
     * @param reader
@@ -804,7 +801,7 @@ public class NURBSSurface extends NURBSObject {
     * {@inheritDoc}
     */
    public RenderProps createRenderProps() {
-      return new MeshRenderProps();
+      return new PointLineRenderProps();
    }
 
 }

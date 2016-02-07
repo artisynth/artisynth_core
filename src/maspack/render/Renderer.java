@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
+ * Copyright c) 2014, by the Authors: John E Lloyd (UBC)
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -224,10 +224,10 @@ public interface Renderer {
       LineStyle style, boolean isSelected);   
 
    public void drawAxes (
-      RenderProps props, RigidTransform3d X, double len, boolean selected);
+      RigidTransform3d X, double len, int lineWidth, boolean selected);
 
    public void drawAxes (
-      RenderProps props, RigidTransform3d X, double[] len, boolean selected);
+      RigidTransform3d X, double[] len, int lineWidth, boolean selected);
 
    public boolean isTransparencyEnabled();
 
@@ -278,6 +278,12 @@ public interface Renderer {
    // XXX maybe phase this out?  Might need some way to set point size though
    public void drawPoint (RenderProps props, float[] coords, boolean selected);
    
+   public void drawPoint (Vector3d p);
+   
+   public void drawPoint (double x, double y, double z);
+   
+   public void drawPoint (float x, float y, float z);
+   
    public void drawPoint(float[] coords);
    
    public void drawPoint(float[] coords, float[] normal);
@@ -288,6 +294,14 @@ public interface Renderer {
    public void drawPoints (Iterable<float[]> points);
    
    public void drawPoints(Iterable<float[]> points, Iterable<float[]> normals);
+   
+   public void drawLine (Vector3d p0, Vector3d p1);
+   
+   public void drawLine (
+      double x0, double y0, double z0, double x1, double y1, double z1);
+   
+   public void drawLine (
+      float x0, float y0, float z0, float x1, float y1, float z1);
    
    public void drawLine(float[] coords0, float[] coords1);
    
@@ -463,5 +477,20 @@ public interface Renderer {
     * Re-draw contents of renderer
     */
    public void repaint();
-   
+
+   public void beginDraw (VertexDrawMode mode);
+
+   public void addVertex (float x, float y, float z);
+
+   public void addVertex (double x, double y, double z);
+
+   public void addVertex (Vector3d pnt);
+
+   public void setNormal (float x, float y, float z);
+
+   public void setNormal (double x, double y, double z);
+
+   public void setNormal (Vector3d nrm);
+
+   public void endDraw();
 }

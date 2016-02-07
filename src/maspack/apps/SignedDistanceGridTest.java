@@ -15,15 +15,13 @@ import maspack.geometry.PolygonalMesh;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.SignedDistanceGrid;
 import maspack.render.*;
+import maspack.render.Renderer.VertexDrawMode;
 import maspack.render.GL.GLSelectable;
 import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLViewer;
-import maspack.render.GL.GL2.GL2Viewer;
 import maspack.util.*;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-
-import javax.media.opengl.GL2;
 
 /**
  * This is a test class for SignedDistanceGrid.
@@ -445,28 +443,18 @@ public class SignedDistanceGridTest {
          
       }
       public void render (Renderer renderer, int flags) {
-         if (!(renderer instanceof GL2Viewer)) {
-            return;
-         }
-         GL2Viewer viewer = (GL2Viewer)renderer;
-         GL2 gl = viewer.getGL2();
          
          // gl.glEnable (GL2.GL_POINT_SMOOTH);
          renderer.setPointSize (3);
          renderer.setColor (pointColour[0], pointColour[1], pointColour[2]);
          
-         gl.glBegin (GL2.GL_POINTS);
-         gl.glVertex3d (myVertex.x, myVertex.y, myVertex.z);
-         gl.glEnd();
+         renderer.drawPoint (myVertex);
+         Vector3d offset = new Vector3d();
+         offset.scaledAdd (0.1, normal, myVertex);
          // Get the normal to the surface and render it.
          //Vector3d normal = new Vector3d();
          renderer.setLineWidth (1);
-         gl.glBegin (GL2.GL_LINES);
-         gl.glVertex3d (myVertex.x, myVertex.y, myVertex.z);
-         gl.glVertex3d (myVertex.x + normal.x * 0.1,
-                        myVertex.y + normal.y * 0.1,
-                        myVertex.z + normal.z * 0.1 );
-         gl.glEnd ();
+         renderer.drawLine (myVertex, offset);
       }
       
       public void getSelection (LinkedList<Object> list, int qid) {

@@ -357,11 +357,6 @@ public class QuadpyramidElement extends FemElement3d {
 //    * coordinates correspond to a cube).
 //    */   
 //   public void renderEdges (Renderer renderer, RenderProps props) {
-//      if (!(renderer instanceof GL2Viewer)) {
-//         return;
-//      }
-//      GL2Viewer viewer = (GL2Viewer)renderer;
-//      GL2 gl = viewer.getGL2();
 //      
 //      int[] idxs = getEdgeIndices();
 //
@@ -379,7 +374,7 @@ public class QuadpyramidElement extends FemElement3d {
 //            getNodeCoords (ncoords1, idxs[i+3]);            
 //         }
 //         drawQuadEdge (
-//            gl, ncoords0, ncoords1, idxs[i+1], idxs[i+2], idxs[i+3]);
+//            renderer, ncoords0, ncoords1, idxs[i+1], idxs[i+2], idxs[i+3]);
 //      }
 //   }
 

@@ -927,8 +927,9 @@ public class RigidBody extends Frame
 
    public void render (Renderer renderer, int flags) {
       if (myAxisLength > 0) {
+         int lineWidth = myRenderProps.getLineWidth();
          renderer.drawAxes (
-            myRenderProps, myRenderFrame, myAxisLength, isSelected());
+            myRenderFrame, myAxisLength, lineWidth, isSelected());
       }
       if (isSelected()) {
          flags |= Renderer.SELECTED;

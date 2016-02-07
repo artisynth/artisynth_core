@@ -1,10 +1,6 @@
 package maspack.collision;
 
-import javax.media.opengl.GL2;
-
 import javax.swing.JFrame;
-
-import com.jogamp.opengl.util.gl2.GLUT;
 
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
@@ -15,10 +11,10 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer;
+import maspack.render.Renderer.VertexDrawMode;
 import maspack.render.RenderList;
 import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLViewerFrame;
-import maspack.render.GL.GL2.GL2Viewer;
 
 public class MeshColliderTest {
    static double epsilon = 1e-8;
@@ -376,25 +372,20 @@ public class MeshColliderTest {
          }
 
          public void render (Renderer renderer, int flags) {
-            if (!(renderer instanceof GL2Viewer)) {
-               return;
-            }
-            GL2Viewer viewer = (GL2Viewer)renderer;
-            GL2 gl = viewer.getGL2();
-            
+
             renderer.setLightingEnabled (false);
 
             if (info != null) {
                renderer.setColor (0, 0, 1);
                renderer.setPointSize (6);
-               gl.glBegin (GL2.GL_POINTS);
+               renderer.beginDraw (VertexDrawMode.POINTS);
                for (TriTriIntersection isect : info.intersections)
                   for (Point3d p : isect.points)
-                     gl.glVertex3d (p.x, p.y, p.z);
-               gl.glEnd();
+                     renderer.addVertex (p);
+               renderer.endDraw();
 
                renderer.setColor (1, 0, 0);
-               gl.glBegin (GL2.GL_LINES);
+               renderer.beginDraw (VertexDrawMode.LINES);
                for (ContactRegion region : info.regions) {
                   Point3d avg = new Point3d();
                   int np = 0;
@@ -403,11 +394,11 @@ public class MeshColliderTest {
                      np++;
                   }
                   avg.scale (1.0 / np);
-                  gl.glVertex3d (avg.x, avg.y, avg.z);
+                  renderer.addVertex (avg);
                   avg.add (region.normal);
-                  gl.glVertex3d (avg.x, avg.y, avg.z);
+                  renderer.addVertex (avg);
                }
-               gl.glEnd();
+               renderer.endDraw();
             }
             ;
 
@@ -429,14 +420,14 @@ public class MeshColliderTest {
             avg1.scale (1.0 / mesh1.getVertices().size());
             avg1.add (mesh1.getMeshToWorld().p);
 
-            GLUT glut = new GLUT();
+            //GLUT glut = new GLUT();
             renderer.setColor (1, 1, 1);
 
-            gl.glRasterPos3d (avg0.x, avg0.y, avg0.z);
-            glut.glutBitmapString (GLUT.BITMAP_HELVETICA_18, "0");
+            //gl.glRasterPos3d (avg0.x, avg0.y, avg0.z);
+            //glut.glutBitmapString (GLUT.BITMAP_HELVETICA_18, "0");
 
-            gl.glRasterPos3d (avg1.x, avg1.y, avg1.z);
-            glut.glutBitmapString (GLUT.BITMAP_HELVETICA_18, "1");
+            //gl.glRasterPos3d (avg1.x, avg1.y, avg1.z);
+            //glut.glutBitmapString (GLUT.BITMAP_HELVETICA_18, "1");
 
             // draw mesh normals
             // //////////////////////////////

@@ -11,8 +11,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
@@ -21,7 +19,6 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
 import maspack.render.Renderer;
-import maspack.render.GL.GL2.GL2Viewer;
 
 /**
  * Base class for a NURBS curve or surface.
@@ -45,6 +42,7 @@ public abstract class NURBSObject implements Renderable {
    
    protected NURBSObject() {
       myRenderProps = createRenderProps();
+      myRenderProps.setPointSize (3);
       myCtrlPnts = new ArrayList<Vector4d>();
       myCtrlPntSelected = new ArrayList<Boolean>();
    }
@@ -175,41 +173,15 @@ public abstract class NURBSObject implements Renderable {
       }
    }
 
-//   private void drawControlPoint (GLRenderer renderer, int i, Point3d tmp) {
-//      GL2 gl = renderer.getGL2();
-//      renderer.setPointSize (
-//         myCtrlPntSelected.get(i) ? myPointSize + 1 : myPointSize);
-//      gl.glBegin (GL2.GL_POINTS);
-//      Vector4d cpnt = myCtrlPnts.get(i);
-//      tmp.set (cpnt.x, cpnt.y, cpnt.z);
-//      // if (myXObjToWorld != RigidTransform3d.IDENTITY) {
-//      //    tmp.transform (myXObjToWorld);
-//      // }
-//      gl.glVertex3d (tmp.x, tmp.y, tmp.z);
-//      gl.glEnd();
-//   } 
-
    private void drawControlPoint (
       Renderer renderer, RenderProps props, int i, Point3d tmp) {
 
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
-      
       int psize = props.getPointSize();
       boolean selected = myCtrlPntSelected.get(i); 
       renderer.setPointSize (selected ? psize+1 : psize);
       renderer.setColor (props.getPointColorArray(), selected);
-      gl.glBegin (GL2.GL_POINTS);
       Vector4d cpnt = myCtrlPnts.get(i);
-      tmp.set (cpnt.x, cpnt.y, cpnt.z);
-      // if (myXObjToWorld != RigidTransform3d.IDENTITY) {
-      //    tmp.transform (myXObjToWorld);
-      // }
-      gl.glVertex3d (tmp.x, tmp.y, tmp.z);
-      gl.glEnd();
+      renderer.drawPoint (cpnt.x, cpnt.y, cpnt.z);
    } 
 
    protected void drawControlPoints (

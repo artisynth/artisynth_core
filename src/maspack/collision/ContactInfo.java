@@ -2,13 +2,11 @@ package maspack.collision;
 
 import java.util.ArrayList;
 
-import javax.media.opengl.GL2;
-
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.TriTriIntersection;
 import maspack.matrix.Point3d;
 import maspack.render.Renderer;
-import maspack.render.GL.GL2.GL2Viewer;
+import maspack.render.Renderer.VertexDrawMode;
 
 public class ContactInfo {
    /*
@@ -79,29 +77,24 @@ public class ContactInfo {
 
    void renderCPPoints (
       Renderer renderer, ArrayList<ContactPenetratingPoint> points) {
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
       
       renderer.setColor (0.9f, 0.6f, 0.8f);
-      gl.glBegin (GL2.GL_LINES);
+      renderer.beginDraw (VertexDrawMode.LINES);
       for (ContactPenetratingPoint p : points) {
          Point3d n1 = p.position;
-         gl.glVertex3d (n1.x, n1.y, n1.z);
+         renderer.addVertex (n1);
          n1 = p.vertex.getWorldPoint();
-         gl.glVertex3d (n1.x, n1.y, n1.z);
+         renderer.addVertex (n1);
       }
+      renderer.endDraw();
 
       renderer.setColor (1f, 0f, 0f);
       renderer.setPointSize (30);
+      renderer.beginDraw (VertexDrawMode.POINTS);
       for (ContactPenetratingPoint p : points) {
-         Point3d n1 = p.position;
-         gl.glBegin (GL2.GL_POINTS);
-         gl.glVertex3d (n1.x, n1.y, n1.z);
-         gl.glEnd();
+         renderer.addVertex (p.position);
       }
+      renderer.endDraw();
       renderer.setPointSize (1);
       renderer.setColor (0f, 1f, 0f);
 

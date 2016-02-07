@@ -14,8 +14,6 @@ import maspack.render.*;
 import maspack.util.*;
 
 import java.util.*;
-import com.jogamp.opengl.*;
-
 import java.io.*;
 
 /**

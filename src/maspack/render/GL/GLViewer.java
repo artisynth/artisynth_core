@@ -2027,7 +2027,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return myViewerState.faceMode;
    }
 
-   public abstract void setDefaultFaceMode();
+   public void setDefaultFaceMode() {
+      setFaceMode (Faces.FRONT);
+   }
 
    public void setSelectionEnabled (boolean selection) {
       selectionEnabled = selection;
@@ -2737,6 +2739,36 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       drawCone(props, coords0, coords1, false);
    }
 
+   public void drawPoint (Vector3d p) {
+      drawPoint (new float[] {(float)p.x, (float)p.y, (float)p.z});
+   }
+
+   public void drawPoint (double x, double y, double z) {
+      drawPoint (new float[] {(float)x, (float)y, (float)z});
+   }
+
+   public void drawPoint (float x, float y, float z) {
+      drawPoint (new float[] {x, y, z});
+   }
+
+   public void drawLine (Vector3d p0, Vector3d p1) {
+      drawLine (
+         new float[] {(float)p0.x, (float)p0.y, (float)p0.z}, 
+         new float[] {(float)p1.x, (float)p1.y, (float)p1.z}); 
+   }
+
+   public void drawLine (
+      double x0, double y0, double z0, double x1, double y1, double z1) {
+      drawLine (
+         new float[] {(float)x0, (float)y0, (float)z0}, 
+         new float[] {(float)x1, (float)y1, (float)z1}); 
+   }
+
+   public void drawLine (
+      float x0, float y0, float z0, float x1, float y1, float z1) {
+      drawLine (new float[] {x0, y0, z0}, new float[] {x1, y1, z1});
+   }
+
    public abstract void drawLines(float[] vertices, int flags);
    
    public void drawLines(float[] vertices) {
@@ -2753,6 +2785,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       normal[2] = u[0]*v[1]-u[1]*v[0];
    }
    
+   @Override
+   public void drawAxes(
+      RigidTransform3d X, double len, int lineWidth, boolean selected) {
+      drawAxes (X, new double[] {len, len, len}, lineWidth, selected);
+   }
+   
    /**
     * MUST BE CALLED by whatever frame when it is going down, will notify any 
     * shared resources that they can be cleared.  It is best to add it as a
@@ -2761,6 +2799,49 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public void dispose() {
       canvas.destroy ();
    }
+
+   @Override
+   public void addVertex (double x, double y, double z) {
+      addVertex ((float)x, (float)y, (float)z);
+   }
+
+   @Override
+   public void addVertex (Vector3d pnt) {
+      addVertex ((float)pnt.x, (float)pnt.y, (float)pnt.z);
+   }
+
+   @Override
+   public void setNormal (double x, double y, double z) {
+      setNormal ((float)x, (float)y, (float)z);
+   }
+
+   @Override
+   public void setNormal (Vector3d nrm) {
+      setNormal ((float)nrm.x, (float)nrm.y, (float)nrm.z);
+   }
+
+   protected int getDrawPrimitive (VertexDrawMode mode) {
+      switch (mode) {
+         case POINTS:
+            return GL.GL_POINTS;
+         case LINES:
+            return GL.GL_LINES;
+         case LINE_LOOP:
+            return GL.GL_LINE_LOOP;
+         case LINE_STRIP:
+            return GL.GL_LINE_STRIP;
+         case TRIANGLES:
+            return GL.GL_TRIANGLES;
+         case TRIANGLE_FAN:
+            return GL.GL_TRIANGLE_FAN;
+         case TRIANGLE_STRIP:
+            return GL.GL_TRIANGLE_STRIP;
+         default:
+            throw new IllegalArgumentException (
+               "Unknown VertexDrawMode: " + mode);
+      }
+   }
+
 
 }
 

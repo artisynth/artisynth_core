@@ -8,8 +8,6 @@ package artisynth.core.mechmodels;
 
 import java.util.Map;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
@@ -20,7 +18,7 @@ import maspack.properties.PropertyList;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.GL.GL2.GL2Viewer;
+import maspack.render.Renderer.VertexDrawMode;
 import maspack.spatialmotion.PlanarCoupling;
 import maspack.spatialmotion.RigidBodyConstraint;
 import artisynth.core.modelbase.CopyableComponent;
@@ -204,25 +202,21 @@ public class PlanarConnector extends BodyConnector
 
       computeRenderVtxs (TDW);
       nrm.transform (TDW);
-
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
       
       RenderProps props = myRenderProps;
 
       renderer.setMaterialAndShading (
          props, props.getFaceMaterial(), isSelected());
       renderer.setFaceMode (props.getFaceStyle());
-      gl.glBegin (GL2.GL_POLYGON);
-      gl.glNormal3d (nrm.x, nrm.y, nrm.z);
-      for (int i = 0; i < myRenderVtxs.length; i++) {
-         Point3d p = myRenderVtxs[i];
-         gl.glVertex3d (p.x, p.y, p.z);
-      }
-      gl.glEnd();
+
+      renderer.beginDraw (VertexDrawMode.TRIANGLE_STRIP);
+      renderer.setNormal (nrm.x, nrm.y, nrm.z);
+      renderer.addVertex (myRenderVtxs[3]);
+      renderer.addVertex (myRenderVtxs[0]);
+      renderer.addVertex (myRenderVtxs[2]);
+      renderer.addVertex (myRenderVtxs[1]);
+      renderer.endDraw();
+
       renderer.restoreShading (props);
       renderer.setDefaultFaceMode();
       renderer.drawPoint (myRenderProps, myRenderCoords, isSelected());

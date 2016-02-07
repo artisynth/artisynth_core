@@ -21,8 +21,6 @@ import artisynth.core.workspace.RootModel;
 import java.io.*;
 import java.awt.Color;
 
-import com.jogamp.opengl.*;
-
 import maspack.render.*;
 
 public class NetDemo extends RootModel {

@@ -11,8 +11,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Deque;
 
-import javax.media.opengl.GL2;
-
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Plane;
@@ -24,7 +22,7 @@ import maspack.properties.PropertyList;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.GL.GLViewer;
+import maspack.render.Renderer.VertexDrawMode;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.modelbase.CompositeComponent;
@@ -167,27 +165,23 @@ public class ParticlePlaneConstraint extends ParticleConstraintBase
 
    public void render (Renderer renderer, int flags) {
 
-      if (!(renderer instanceof GLViewer)) {
-         return;
-      }
-      GLViewer viewer = (GLViewer)renderer;
-
       if (myPlaneSize > 0) {
          computeRenderVtxs ();
 
-         GL2 gl = viewer.getGL2().getGL2();
          RenderProps props = myRenderProps;
 
          renderer.setMaterialAndShading (
             props, props.getFaceMaterial(), isSelected());
          renderer.setFaceMode (props.getFaceStyle());
-         gl.glBegin (GL2.GL_POLYGON);
-         gl.glNormal3d (myNrm.x, myNrm.y, myNrm.z);
-         for (int i = 0; i < myRenderVtxs.length; i++) {
-            Point3d p = myRenderVtxs[i];
-            gl.glVertex3d (p.x, p.y, p.z);
-         }
-         gl.glEnd();
+
+         renderer.beginDraw (VertexDrawMode.TRIANGLE_STRIP);
+         renderer.setNormal (myNrm.x, myNrm.y, myNrm.z);
+         renderer.addVertex (myRenderVtxs[3]);
+         renderer.addVertex (myRenderVtxs[0]);
+         renderer.addVertex (myRenderVtxs[2]);
+         renderer.addVertex (myRenderVtxs[1]);
+         renderer.endDraw();
+
          renderer.restoreShading (props);
          renderer.setDefaultFaceMode();
       }

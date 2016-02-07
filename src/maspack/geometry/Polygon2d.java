@@ -11,8 +11,6 @@ import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.AffineTransform2dBase;
 import maspack.matrix.Point2d;
 import maspack.matrix.Point3d;
@@ -21,7 +19,7 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
 import maspack.render.Renderer;
-import maspack.render.GL.GL2.GL2Viewer;
+import maspack.render.Renderer.VertexDrawMode;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
@@ -487,26 +485,21 @@ public class Polygon2d implements Renderable {
 
    public void render (Renderer renderer, RenderProps props, int flags) {
 
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
       renderer.setLightingEnabled (false);
 
       renderer.setLineWidth (myRenderProps.getLineWidth());
       renderer.setColor (props.getLineColorArray(), /*selected=*/false);
-      //gl.glBegin (GL2.GL_LINE_STRIP);
-      gl.glBegin (GL2.GL_LINE_LOOP);
+      //renderer.beginDraw (VertexDrawMode.LINE_STRIP);
+      renderer.beginDraw (VertexDrawMode.LINE_LOOP);
       Vertex2d vtx = firstVertex;
       if (vtx != null) {
          do {
-            gl.glVertex3d (vtx.pnt.x, vtx.pnt.y, 0);
+            renderer.addVertex (vtx.pnt.x, vtx.pnt.y, 0);
             vtx = vtx.next;
          }
          while (vtx != firstVertex);
       }
-      gl.glEnd();
+      renderer.endDraw();
       renderer.setLineWidth (1);
 
       renderer.setLightingEnabled (true);

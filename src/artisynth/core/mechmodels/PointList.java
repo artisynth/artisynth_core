@@ -199,8 +199,7 @@ implements ScalableUnits {
             double rad = props.getPointRadius();
             if (rad > 0) {
                Shading savedShading = renderer.getShadeModel();
-               renderer.setMaterialAndShading (
-                  props, props.getPointMaterial(), selected);
+               renderer.setPointLighting (props, selected);
                renderer.drawPoints (myRob, PointStyle.SPHERE, rad);
                renderer.setShadeModel(savedShading);
             }

@@ -227,8 +227,7 @@ ScalableUnits, ForceComponent, TransformableGeometry {
       renderer.pushModelMatrix();
       renderer.mulTransform (X);
 
-      renderer.setMaterialAndShading (
-         myRenderProps, myRenderProps.getFaceMaterial(), isSelected());
+      renderer.setFaceLighting (myRenderProps, isSelected());
       renderer.setFaceMode (myRenderProps.getFaceStyle());
 
       renderer.beginDraw (Renderer.VertexDrawMode.TRIANGLE_STRIP);

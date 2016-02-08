@@ -103,8 +103,7 @@ public class MFreeAuxMaterialElementDescList
       
       //renderer.setMaterial (myRenderProps.getFaceMaterial(), false);
       if (widgetSize > 0) {
-         renderer.setMaterialAndShading (
-            myRenderProps, myRenderProps.getFaceMaterial(), false);
+         renderer.setFaceLighting (myRenderProps, false);
          for (int i = 0; i < size(); i++) {
             MFreeAuxMaterialElementDesc desc = get (i);
             if (desc.getRenderProps() == null &&

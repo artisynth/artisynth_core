@@ -177,8 +177,6 @@ public class AuxMaterialElementDescList
       // This code is taken mostly verbatim from FemElement3dList.
       // Should find a way to avoid duplicate code ...
 
-      boolean selecting = renderer.isSelecting();
-
       double fractionRenderRadius = 0;
       FractionRenderType fractionRenderType =
          AuxMaterialBundle.DEFAULT_FRACTION_RENDER_TYPE;
@@ -191,8 +189,7 @@ public class AuxMaterialElementDescList
       }
       
       if (fractionRenderRadius > 0) {
-         renderer.setMaterialAndShading (
-            myRenderProps, myRenderProps.getPointMaterial(), false);
+         renderer.setPointLighting (myRenderProps, false);
          renderFractions(renderer, fractionRenderRadius, fractionRenderType, false);
       }
    }

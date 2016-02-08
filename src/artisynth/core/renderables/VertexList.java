@@ -348,7 +348,7 @@ implements ScalableUnits {
             break;
          }
          case SPHERE: {
-            renderer.setMaterialAndShading (props, props.getPointMaterial(), false);
+            renderer.setPointLighting (props, /*selected=*/false);
             int i = 0;
             while (iterator.hasNext()) {
                RenderablePoint pnt = iterator.next();

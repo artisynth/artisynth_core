@@ -160,8 +160,7 @@ public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
             double rad = props.getLineRadius();
             if (rad > 0) {
                Shading savedShading = renderer.getShadeModel();
-               renderer.setMaterialAndShading (
-                  props, props.getLineMaterial(), selected);
+               renderer.setLineLighting (props, selected);
                renderer.drawLines (myRob, style, rad);
                renderer.setShadeModel(savedShading);
             }

@@ -91,8 +91,7 @@ public class MFreeElement3dList extends RenderableComponentList<MFreeElement3d> 
       dorender (renderer, /*selected=*/true);
       dorender (renderer, /*selected=*/false);
       
-      renderer.setMaterialAndShading (
-         myRenderProps, myRenderProps.getFaceMaterial(), false);
+      renderer.setFaceLighting (myRenderProps, false);
       for (int i = 0; i < size(); i++) {
          double widgetSize;
          MFreeElement3d elem = get (i);

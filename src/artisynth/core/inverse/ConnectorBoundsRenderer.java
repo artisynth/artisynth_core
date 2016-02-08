@@ -214,8 +214,7 @@ public class ConnectorBoundsRenderer extends MonitorBase {
       
       RenderProps props = tri.props;
 
-      renderer.setMaterialAndShading (
-         props, props.getFaceMaterial (), isSelected ());
+      renderer.setFaceLighting (props, isSelected());
       renderer.setFaceMode (props.getFaceStyle ());
       renderer.beginDraw (VertexDrawMode.TRIANGLES);
       renderer.setNormal (tri.nrm);

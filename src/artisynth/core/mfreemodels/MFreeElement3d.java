@@ -812,8 +812,7 @@ public class MFreeElement3d extends FemElement implements Boundable {
                break;
             }
             case CYLINDER: {
-               renderer.setMaterialAndShading (
-                  rprops, myRenderProps.getLineMaterial(), isSelected());
+               renderer.setLineLighting (rprops, isSelected());
                renderEdges (renderer,rprops);
                renderer.restoreShading (rprops);
                break;

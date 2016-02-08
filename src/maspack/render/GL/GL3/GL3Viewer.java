@@ -1676,7 +1676,7 @@ public class GL3Viewer extends GLViewer {
       switch (props.getLineStyle()) {
          case LINE: {
             Shading savedShading = getShadeModel();
-            setMaterialAndShading (props, props.getLineMaterial(), selected);
+            setLineLighting (props, selected);
             if (len <= arrowheadSize) {
                drawCone ( props, ctmp, coords0, len, capped);
             }
@@ -1696,7 +1696,7 @@ public class GL3Viewer extends GLViewer {
          }
          case CYLINDER: {
             Shading savedShading = getShadeModel();
-            setMaterialAndShading (props, props.getLineMaterial(), selected);
+            setLineLighting (props, selected);
             if (len <= arrowheadSize) {
                drawCone (props, coords1, coords0, len, capped);
             }
@@ -1710,7 +1710,7 @@ public class GL3Viewer extends GLViewer {
          }
          case ELLIPSOID: {
             Shading savedShading = getShadeModel();
-            setMaterialAndShading (props, props.getLineMaterial(), selected);
+            setLineLighting (props, selected);
             if (len <= arrowheadSize) {
                drawCone (props, coords1, coords0, len, capped);
             }
@@ -1751,7 +1751,7 @@ public class GL3Viewer extends GLViewer {
          }
          case SPHERE: {
             Shading savedShading = getShadeModel();
-            setMaterialAndShading (props, props.getPointMaterial(), selected);
+            setPointLighting (props, selected);
             drawSphere (props, coords);
             setShadeModel(savedShading);
             break;
@@ -1920,7 +1920,7 @@ public class GL3Viewer extends GLViewer {
          }
          case SPHERE: {
             Shading savedShading = getShadeModel();
-            setMaterialAndShading (props, props.getPointMaterial(), false);
+            setPointLighting (props, false);
             int i = 0;
             while (iterator.hasNext()) {
                RenderablePoint pnt = iterator.next();
@@ -1977,8 +1977,7 @@ public class GL3Viewer extends GLViewer {
          case SOLID_ARROW:
          case CYLINDER: {
             Shading savedShading = getShadeModel();
-            setMaterialAndShading (
-               props, props.getLineMaterial(), isSelected);
+            setLineLighting (props, isSelected);
             float[] v0 = null;
             for (float[] v1 : vertexList) {
                if (v0 != null) {
@@ -2054,8 +2053,7 @@ public class GL3Viewer extends GLViewer {
          case SOLID_ARROW:
          case CYLINDER: {
             Shading savedShading = getShadeModel();
-            setMaterialAndShading (
-               props, props.getLineMaterial(), /*selected=*/false);
+            setLineLighting (props, /*selected=*/false);
             int i = 0;
             while (iterator.hasNext()) {
                RenderableLine line = iterator.next();

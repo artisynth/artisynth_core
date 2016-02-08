@@ -135,8 +135,7 @@ public class PointMeshRenderer extends MeshRendererBase {
                   renderer.setColor (props.getPointColorArray(), selected);
                }
                else {
-                  renderer.setMaterialAndShading (
-                     props, props.getPointMaterial(), selected);
+                  renderer.setPointLighting (props, selected);
                }
                renderer.drawPoints (myRob, PointStyle.POINT, size);
                if (!mesh.hasNormals()) {
@@ -148,8 +147,7 @@ public class PointMeshRenderer extends MeshRendererBase {
          case SPHERE: {
             double rad = props.getPointRadius();
             if (rad > 0) {
-               renderer.setMaterialAndShading (
-                  props, props.getPointMaterial(), selected);
+               renderer.setPointLighting (props, selected);
                renderer.drawPoints (myRob, PointStyle.SPHERE, rad);
             }
             break;

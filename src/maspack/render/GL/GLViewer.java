@@ -2841,7 +2841,72 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
                "Unknown VertexDrawMode: " + mode);
       }
    }
+   
+   private float myDefaultAmbience = 0.2f;
+   private float myDefaultShininess = 32f;
+   private Material myFrontMat = new Material();
+   private Material myBackMat = new Material();
 
+   public void setMaterial (float[] diffuse) {
+      setMaterial (diffuse, myDefaultAmbience);
+   }
+   
+   public void setMaterial (float[] diffuse, float ambience) {
+      myFrontMat.setDiffuse (diffuse);
+      myFrontMat.setShininess (myDefaultShininess);
+      // ambience not implemented yet
+      setMaterial (myFrontMat, /*selected=*/false);
+   }      
+   
+   public void setMaterial (
+      float[] diffuse, float[] back, 
+      float ambience, float shininess, boolean selected) {
+      myFrontMat.setDiffuse (diffuse);
+      myFrontMat.setShininess (shininess);
+      // ambience not implemented yet
+      if (back == null) {
+         setMaterial (myFrontMat, /*selected=*/false);
+      }
+      else {
+         myBackMat.setDiffuse (back);
+         myBackMat.setShininess (shininess);
+         // ambience not implemented yet         
+         setMaterial (myFrontMat, /*frontDiffuse=*/null, 
+                      myBackMat, /*backDiffuse=*/null, /*selected=*/false);
+      }
+   }
+   
+   public void setLineLighting (RenderProps props, boolean selected) {
+      float[] diffuse = props.getLineColorArray();
+      setMaterial (
+         diffuse, null, myDefaultAmbience, props.getShininess(), selected);
+      setShadeModel (props.getShading());
+   }
+   
+   public void setPointLighting (RenderProps props, boolean selected) {
+      float[] diffuse = props.getPointColorArray();
+      setMaterial (
+         diffuse, null, myDefaultAmbience, props.getShininess(), selected);
+      setShadeModel (props.getShading());
+   }
+   
+   public void setEdgeLighting (RenderProps props, boolean selected) {
+      float[] diffuse = props.getEdgeColorArray();
+      if (diffuse == null) {
+         diffuse = props.getLineColorArray();
+      }
+      setMaterial (
+         diffuse, null, myDefaultAmbience, props.getShininess(), selected);
+      setShadeModel (props.getShading());
+   }
+   
+   public void setFaceLighting (RenderProps props, boolean selected) {
+      float[] diffuse = props.getFaceColorArray();
+      float[] back = props.getBackColorArray();
+      setMaterial (
+         diffuse, back, myDefaultAmbience, props.getShininess(), selected);
+      setShadeModel (props.getShading());
+   }
 
 }
 

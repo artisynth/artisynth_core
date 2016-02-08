@@ -126,8 +126,7 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
                   renderer.setColor (props.getLineColorArray(), selected);
                }
                else {
-                  renderer.setMaterialAndShading (
-                     props, props.getLineMaterial(), selected);
+                  renderer.setLineLighting (props, selected);
                }
                renderer.drawLines (myRob, LineStyle.LINE, width);
                if (!mesh.hasNormals()) {
@@ -141,8 +140,7 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
          case CYLINDER: {
             double rad = props.getLineRadius();
             if (rad > 0) {
-               renderer.setMaterialAndShading (
-                  props, props.getLineMaterial(), selected);
+               renderer.setLineLighting (props, selected);
                renderer.drawLines (myRob, props.getLineStyle(), rad);
             }
             break;

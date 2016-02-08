@@ -222,8 +222,7 @@ public class CollisionRenderer {
             double rad = props.getLineRadius();
             if (rad > 0) {
                Shading savedShading = renderer.getShadeModel();
-               renderer.setMaterialAndShading (
-                  props, props.getLineMaterial(), /*selected=*/false);
+               renderer.setLineLighting (props, /*selected=*/false);
                renderer.drawLines (r, style, rad);
                renderer.setShadeModel(savedShading);
             }

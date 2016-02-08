@@ -1173,7 +1173,8 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       if (shading == Shading.NONE) {
          setLightingEnabled (false);
          myCurrentColor = null; // ensure color gets set in updateMaterial
-         updateMaterial (props, frontMaterial, frontDiffuse, backMaterial, backDiffuse, selected);
+         updateMaterial (props, frontMaterial, frontDiffuse, 
+            backMaterial, backDiffuse, selected);
       }
       else {
          if (shading != Shading.FLAT) {
@@ -1673,7 +1674,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
       switch (props.getLineStyle()) {
          case LINE: {
-            setMaterialAndShading (props, props.getLineMaterial(), selected);
+            setLineLighting (props, selected);
             if (len <= arrowLen) {
                drawCylinder (props, coords1, coords0, capped, len, 0.0);
             }
@@ -1694,7 +1695,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             break;
          }
          case CYLINDER: {
-            setMaterialAndShading (props, props.getLineMaterial(), selected);
+            setLineLighting (props, selected);
             if (len <= arrowLen) {
                drawCylinder (props, coords1, coords0, capped, len, 0.0);
             }
@@ -1707,7 +1708,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             break;
          }
          case ELLIPSOID: {
-            setMaterialAndShading (props, props.getLineMaterial(), selected);
+            setLineLighting (props, selected);
             if (len <= arrowLen) {
                drawCylinder (props, coords1, coords0, capped, len, 0.0);
             }
@@ -1917,7 +1918,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             break;
          }
          case SPHERE: {
-            setMaterialAndShading (props, props.getPointMaterial(), selected);
+            setPointLighting (props, selected);
             drawSphere (props, coords);
             restoreShading (props);
             break;
@@ -1986,8 +1987,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          case ELLIPSOID:
          case SOLID_ARROW:
          case CYLINDER: {
-            setMaterialAndShading (
-               props, props.getLineMaterial(), isSelected);
+            setLineLighting (props, isSelected);
             float[] v0 = null;
             for (float[] v1 : vertexList) {
                if (v0 != null) {
@@ -2127,8 +2127,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          case SOLID_ARROW:
          case CYLINDER: {
             // GLU glu = getGLU();
-            setMaterialAndShading (
-               props, props.getLineMaterial(), /*selected=*/false);
+            setLineLighting (props, /*selected=*/false);
             int i = 0;
             while (iterator.hasNext()) {
                RenderableLine line = iterator.next();
@@ -3778,6 +3777,30 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       gl.glEnd();
       myDrawMode = null;
    }
-
+   
+   public void setMaterial (float[] diffuse, float ambience) {
+      super.setMaterial (diffuse, ambience);
+      if (diffuse.length < 4) {
+         gl.glColor3fv (diffuse, 0);
+      }
+      else {
+         gl.glColor4fv (diffuse, 0);
+      }
+   }      
+   
+   public void setMaterial (
+      float[] diffuse, float[] back, 
+      float ambience, float shininess, boolean selected) {
+      super.setMaterial (diffuse, back, ambience, shininess, selected);
+      if (selected && myHighlighting == SelectionHighlighting.Color) {
+         diffuse = mySelectedColor;
+      }
+      if (diffuse.length < 4) {
+         gl.glColor3fv (diffuse, 0);
+      }
+      else {
+         gl.glColor4fv (diffuse, 0);
+      }     
+   }
 }
 

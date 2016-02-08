@@ -101,8 +101,7 @@ public class PolylineMeshRenderer {
       boolean selected = (flags & Renderer.SELECTED) != 0;
 
       if (props.getLineColor() != null && !viewer.isSelecting()) {
-         viewer.setMaterialAndShading(
-            props, props.getLineMaterial(), selected);
+         viewer.setLineLighting (props, selected);
       }
       boolean cull = gl.glIsEnabled(GL2.GL_CULL_FACE);
       if (cull) {

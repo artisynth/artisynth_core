@@ -205,8 +205,7 @@ public class PlanarConnector extends BodyConnector
       
       RenderProps props = myRenderProps;
 
-      renderer.setMaterialAndShading (
-         props, props.getFaceMaterial(), isSelected());
+      renderer.setFaceLighting (props, isSelected());
       renderer.setFaceMode (props.getFaceStyle());
 
       renderer.beginDraw (VertexDrawMode.TRIANGLE_STRIP);

@@ -163,33 +163,40 @@ public interface Renderer {
    
    public void drawSphere (RenderProps props, float[] coords, double r);
 
+   // REMOVE
    public void drawTet (RenderProps props, double scale,
                         float[] v0, float[] v1, float[] v2, float[] v3);
 
+   // REMOVE
    public void drawHex (RenderProps props, double scale,
                         float[] v0, float[] v1, float[] v2, float[] v3,
                         float[] v4, float[] v5, float[] v6, float[] v7);
 
+   // REMOVE
    public void drawWedge (RenderProps props, double scale,
                           float[] v0, float[] v1, float[] v2, 
                           float[] v3, float[] v4, float[] v5);
 
+   // REMOVE
    public void drawPyramid (RenderProps props, double scale,
                           float[] v0, float[] v1, float[] v2, 
                           float[] v3, float[] v4);
 
+   // REPLACE with drawLine (style)?
    public void drawTaperedEllipsoid (
       RenderProps props, float[] coords0, float[] coords1);
 
+   // REPLACE with drawLine (style)?
    public void drawCylinder (RenderProps props, float[] coords0, float[] coords1);
 
+   // MOVE TO INTERNAL?
    public void drawCylinder (
       RenderProps props, float[] coords0, float[] coords1, boolean capped);
    
-   // not used
+   // REMOVE
    public void drawCone (RenderProps props, float[] coords0, float[] coords1);
 
-   // not used
+   // REMOVE
    public void drawCone (
       RenderProps props, float[] coords0, float[] coords1, boolean capped);
 
@@ -216,6 +223,7 @@ public interface Renderer {
       RenderProps props, float[] coords0, float[] coords1, boolean capped,
       boolean selected);
 
+   // REMOVE
    public void drawLines (
       RenderProps props, Iterator<? extends RenderableLine> iterator);
 
@@ -493,4 +501,20 @@ public interface Renderer {
    public void setNormal (Vector3d nrm);
 
    public void endDraw();
+   
+   public void setMaterial (float[] diffuse);
+   
+   public void setMaterial (float[] diffuse, float ambience);
+   
+   public void setMaterial (
+      float[] diffuse, float[] back, 
+      float ambience, float shininess, boolean selected); 
+   
+   public void setLineLighting (RenderProps props, boolean selected);
+   
+   public void setPointLighting (RenderProps props, boolean selected);
+   
+   public void setEdgeLighting (RenderProps props, boolean selected);
+   
+   public void setFaceLighting (RenderProps props, boolean selected);
 }

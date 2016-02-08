@@ -317,7 +317,7 @@ public class SegmentedPlanarConnector extends BodyConnector
 
       RenderProps props = myRenderProps;
 
-      renderer.setMaterialAndShading (props, props.getFaceMaterial(), isSelected());
+      renderer.setFaceLighting (props, isSelected());
       renderer.setFaceMode (props.getFaceStyle());
       ArrayList<Plane> planes = mySegPlaneCoupling.getPlanes();
 

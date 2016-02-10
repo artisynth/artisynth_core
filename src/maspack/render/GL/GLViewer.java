@@ -267,6 +267,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected LinkedList<Dragger3d> myUserDraggers;
    protected MouseRayEvent myDraggerSelectionEvent;
    protected Dragger3d myDrawTool;
+   protected Object myDrawToolSyncObject = new Integer(0);
    protected Rectangle myDragBox;
    protected GLGridPlane myGrid;
 
@@ -451,7 +452,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    public void setDrawTool (Dragger3d d) {
-      synchronized(myDrawTool) {
+      synchronized(myDrawToolSyncObject) {
          if (myDrawTool != d) {
             if (myDrawTool instanceof DrawToolBase) {
                ((DrawToolBase)myDrawTool).setViewer (null);

@@ -337,7 +337,7 @@ implements ScalableUnits {
                while (iterator.hasNext()) {
                   RenderablePoint pnt = iterator.next();
                   if (pnt.getRenderProps() == null) {
-                     renderer.updateColor (props.getPointColorArray(), pnt.isSelected());
+                     renderer.setColor (props.getPointColorArray(), pnt.isSelected());
                      gl.glVertex3fv (pnt.getRenderCoords(), 0);
                   }
                }

@@ -1,6 +1,5 @@
 package maspack.render.GL.GL3;
 
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
@@ -74,12 +73,6 @@ public class GL3Viewer extends GLViewer {
 
    // state
    boolean rendering2d = false;
-
-   // color history
-   protected float[] myFrontColor;
-   protected float[] myBackColor;
-   protected Material myFrontMaterial = null;
-   protected Material myBackMaterial = null;
 
    // screenshot
    private GLFrameCapture frameCapture = null;
@@ -173,7 +166,6 @@ public class GL3Viewer extends GLViewer {
 
       setDefaultLights();
       setDefaultMatrices();
-      createMaterials();
 
       if (canvas != null) {
          // canvas.addMouseListener(new GLMouseListener());
@@ -303,7 +295,7 @@ public class GL3Viewer extends GLViewer {
       progManager.init(gl, lightManager.numLights(), 0);
       progManager.setMatrices(gl, projectionMatrix, viewMatrix, modelMatrix, modelNormalMatrix);
       progManager.setLights(gl, lightManager.getLights(), 1.0f/lightManager.getMaxIntensity(), viewMatrix);
-      progManager.setMaterials(gl, myFrontMaterial, myBackMaterial);
+      myCurrentMaterialModified = true;  // trigger update of materials
 
       // trigger rebuild of renderables
       buildInternalRenderList();
@@ -312,16 +304,6 @@ public class GL3Viewer extends GLViewer {
 
       GLSupport.checkAndPrintGLError(drawable.getGL ());
 
-   }
-
-   private void createMaterials() {
-
-      myFrontMaterial = Material.createDiffuse(Color.YELLOW, 0);
-      myFrontMaterial.setSpecular(Color.WHITE);
-      myFrontMaterial.setShininess(5000f);
-
-      myBackMaterial = Material.createDiffuse(Color.BLUE, 0);
-      myBackMaterial.setSpecular(Color.BLACK);
    }
 
    @Override
@@ -521,7 +503,7 @@ public class GL3Viewer extends GLViewer {
       progManager.setLights(gl, lightManager.getLights(), 1.0f/lightManager.getMaxIntensity(), viewMatrix);
 
       // update matrices
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       // clear background/depth
       GL3 gl3 = drawable.getGL().getGL3();
@@ -775,162 +757,42 @@ public class GL3Viewer extends GLViewer {
       return rendering2d;
    }
 
-   //==========================================================================
-   //  Colours and Materials
-   //==========================================================================
-
-   @Override
-   public void setColor(float[] frontRgba, float[] backRgba) {
-      if (!selectEnabled) {
-         if (frontRgba != null) {
-            if (frontRgba.length == 3) {
-               frontRgba = new float[]{frontRgba[0],frontRgba[1],frontRgba[2], 1.0f};
-            }
-         } else {
-            frontRgba = myFrontColor;
-         }
-         if (backRgba != null) {
-            if (backRgba.length == 3) {
-               backRgba = new float[]{backRgba[0],backRgba[1],backRgba[2], 1.0f};
-            }
-         } else {
-            backRgba = myBackColor;
-         }
-         progManager.setMaterialDiffuse(gl, frontRgba, backRgba);
-         myFrontColor = frontRgba;
-         myBackColor = backRgba;
-      }
-   }
+   //   //==========================================================================
+   //   //  Colours and Materials
+   //   //==========================================================================
+   //
+   //   @Override
+   //   public void setColor(float[] frontRgba, float[] backRgba) {
+   //      if (!selectEnabled) {
+   //         if (frontRgba != null) {
+   //            if (frontRgba.length == 3) {
+   //               frontRgba = new float[]{frontRgba[0],frontRgba[1],frontRgba[2], 1.0f};
+   //            }
+   //         } else {
+   //            frontRgba = myFrontColor;
+   //         }
+   //         if (backRgba != null) {
+   //            if (backRgba.length == 3) {
+   //               backRgba = new float[]{backRgba[0],backRgba[1],backRgba[2], 1.0f};
+   //            }
+   //         } else {
+   //            backRgba = myBackColor;
+   //         }
+   //         progManager.setMaterialDiffuse(gl, frontRgba, backRgba);
+   //         myFrontColor = frontRgba;
+   //         myBackColor = backRgba;
+   //      }
+   //   }
 
    @Override
    public void forceColor(float r, float g, float b, float a) {
       float[] rgba = new float[]{r,g,b,a};
+      setFrontColor (rgba);
+      setBackColor (rgba);
+      // force immediate update of color
       progManager.setMaterialDiffuse(gl, rgba, rgba);
-      myFrontColor = rgba;
-      myBackColor = rgba;
    }
-
-   private float[] makeColor4f(float[] c) {
-      if (c.length == 3) {
-         c = new float[] {c[0], c[1], c[2], 1.0f};
-      }
-      return c;
-   }
-
-   @Override
-   public void setColor(float[] frontRgba, float[] backRgba, boolean selected) {
-      if (!selectEnabled) {
-         if (selected && myHighlighting == SelectionHighlighting.Color) {
-            frontRgba = mySelectedColor;
-            backRgba = mySelectedColor;
-         }
-         if (frontRgba.length == 3) {
-            frontRgba = makeColor4f(frontRgba);
-         }
-         if (backRgba.length == 3) {
-            backRgba = makeColor4f(backRgba);
-         }
-         progManager.setMaterialDiffuse(gl, frontRgba, backRgba);
-         myFrontColor = frontRgba;
-         myBackColor = backRgba;
-      }
-   }
-
-   private boolean colorsMatch(float[] c0, float[] c1) {
-      if (c0 == c1) {
-         return true;
-      }
-      if ((c0 == null) || (c1 == null)){
-         return false;
-      }
-      if (c0.length != c1.length) {
-         return false;
-      }
-
-      // XXX overkill?
-      for (int i=0; i<c0.length; ++i) {
-         if (Math.abs(c0[i]-c1[i]) > 1e-3) {
-            return false;
-         }
-      }
-      return true;
-   }
-
-   @Override
-   public void updateColor(float[] frontRgba, float[] backRgba, boolean selected) {
-      if (!selectEnabled) {
-         if (selected && myHighlighting == SelectionHighlighting.Color) {
-            frontRgba = mySelectedColor;
-            backRgba = mySelectedColor;
-         }
-         if (!colorsMatch(frontRgba, myFrontColor) || !colorsMatch(backRgba, myBackColor)) {
-            setColor(frontRgba, backRgba);
-         }
-      }
-   }
-
-   private void printColor (String msg, float[] color) {
-      System.out.printf ("%s %g %g %g\n", msg, color[0], color[1], color[2]);
-   }
-
-   @Override
-   public void setMaterial(
-      Material frontMaterial, float[] frontDiffuse,
-      Material backMaterial, float[] backDiffuse, 
-      boolean selected) {
-
-      if (selected && myHighlighting == SelectionHighlighting.Color) {
-         myFrontMaterial = mySelectedMaterial;
-         myFrontColor = mySelectedMaterial.getDiffuse();
-         myBackMaterial = mySelectedMaterial;
-         myBackColor = mySelectedMaterial.getDiffuse();
-         progManager.setMaterials(gl, myFrontMaterial, myBackMaterial);
-      }
-      else {
-         if (frontDiffuse == null) {
-            frontDiffuse = frontMaterial.getDiffuse();
-         }
-         if (backDiffuse == null) {
-            backDiffuse = backMaterial.getDiffuse();
-         }
-         myFrontMaterial = frontMaterial;
-         myFrontColor = frontDiffuse;
-         myBackMaterial = backMaterial;
-         myBackColor = backDiffuse;
-         progManager.setMaterials(gl, frontMaterial, frontDiffuse,
-            backMaterial, backDiffuse);
-      }
-
-   }
-
-   @Override
-   public void setMaterialAndShading(
-      RenderProps props, Material frontMaterial, float[] frontDiffuse,
-      Material backMaterial, float[] backDiffuse,
-      boolean selected) {
-
-      if (selectEnabled) {
-         return;
-      }
-
-      Shading shading = props.getShading();
-      if (shading == Shading.NONE) {
-         setLightingEnabled (false);
-         myFrontColor = null; // ensure color gets set in updateMaterial
-         myBackColor = null;
-         updateMaterial (props, frontMaterial, frontDiffuse, 
-            backMaterial, backDiffuse, selected);
-      }
-      else {
-         myFrontMaterial = null; // ensure material gets set in updateMaterial
-         myBackMaterial = null;
-         updateMaterial (props, frontMaterial, frontDiffuse, 
-            backMaterial, backDiffuse, selected);
-      }
-      setShadeModel(shading);
-
-   }
-
+   
    public void saveShading() {
       if (selectEnabled) {
          return;
@@ -941,86 +803,6 @@ public class GL3Viewer extends GLViewer {
    @Override
    public void restoreShading(RenderProps props) {
       // nothing
-   }
-
-   @Override
-   public void updateMaterial(
-      RenderProps props, Material frontMaterial, float[] frontDiffuse, 
-      Material backMaterial, float[] backDiffuse, 
-      boolean selected) {
-
-      if (selectEnabled) {
-         return;
-      }
-
-      if (props.getShading() == Shading.NONE) {
-         // get overriding diffuse color
-         float[] cf;
-         float[] cb;
-         if (frontDiffuse != null) {
-            if (frontDiffuse.length == 3) {
-               frontDiffuse = new float[]{frontDiffuse[0], frontDiffuse[1], 
-                                          frontDiffuse[2], (float)props.getAlpha()};
-            }
-            cf = frontDiffuse;
-         } else {
-            cf = frontMaterial.getDiffuse();
-         }
-         if (backDiffuse != null) {
-            if (backDiffuse.length == 3) {
-               backDiffuse = new float[]{backDiffuse[0], backDiffuse[1], 
-                                         backDiffuse[2], (float)props.getAlpha()};
-            }
-            cb = backDiffuse;
-         } else {
-            cb = backMaterial.getDiffuse();
-         }
-         updateColor(cf, cb, selected);
-
-      } else {
-         Material mf;
-         float[] df;
-         Material mb;
-         float[] db;
-         if (selected && myHighlighting == SelectionHighlighting.Color) {
-            mf = mySelectedMaterial;
-            mb = mySelectedMaterial;
-            df = null;
-            db = null;
-         } else {
-            mf = frontMaterial;
-            mb = backMaterial;
-
-            if (frontDiffuse != null && frontDiffuse.length == 3) {
-               frontDiffuse = new float[]{frontDiffuse[0], frontDiffuse[1], 
-                                          frontDiffuse[2], (float)props.getAlpha()};
-            }
-            df = frontDiffuse;
-            if (backDiffuse != null && backDiffuse.length == 3) {
-               backDiffuse = new float[]{backDiffuse[0], backDiffuse[1], 
-                                         backDiffuse[2], (float)props.getAlpha()};
-            }
-            db = backDiffuse;
-         }
-
-         if (df == null) {
-            df = mf.getDiffuse();
-         }
-         if (db == null) {
-            db = mb.getDiffuse();
-         }
-
-         if (myFrontMaterial != mf || myBackMaterial != mb ||
-         !colorsMatch(myFrontColor, df) || !colorsMatch(myBackColor, db) ) {
-
-            progManager.setMaterials(gl, mf, df, mb, db);
-            myFrontMaterial = mf;
-            myFrontColor = df;
-            myBackMaterial = mb;
-            myBackColor = db;
-         }
-      }
-
    }
 
    //==========================================================================
@@ -1034,6 +816,23 @@ public class GL3Viewer extends GLViewer {
       viewMatrixValidP = true;
    }
 
+   protected void maybeUpdateState(GL3 gl) {
+      maybeUpdateMatrices (gl);
+      maybeUpdateMaterials (gl);
+   }
+   
+   protected void maybeUpdateMaterials(GL3 gl) {
+      if (myCurrentMaterialModified &&!selectEnabled) {
+         // set all colors
+         if (mySelectedColorActive) {
+            progManager.setMaterials (gl, myCurrentMaterial, mySelectedColor, myCurrentMaterial, mySelectedColor);
+         } else {
+            progManager.setMaterials (gl, myCurrentMaterial, myCurrentMaterial.getDiffuse(), myCurrentMaterial, myBackColor);
+         }
+         myCurrentMaterialModified = false; // reset flag since state is now updated
+      }
+   }
+   
    protected void maybeUpdateMatrices(GL3 gl) {
       if (!modelMatrixValidP || !projectionMatrixValidP || !viewMatrixValidP) {
          updateMatrices(gl);
@@ -1157,9 +956,8 @@ public class GL3Viewer extends GLViewer {
          scaleModelMatrix(s);
          updateMatrices(gl); // guarantee update uniforms
          scaled = true;
-      } else {
-         maybeUpdateMatrices(gl);
       }
+      maybeUpdateState(gl);
 
       // vertex/normal for each vertex, repeated per triangle
       final PositionBufferPutter posPutter = PositionBufferPutter.createDefault();
@@ -1207,9 +1005,8 @@ public class GL3Viewer extends GLViewer {
          scaleModelMatrix(s);
          updateMatrices(gl); // guarantee update uniforms
          scaled = true;
-      } else {
-         maybeUpdateMatrices(gl);
       }
+      maybeUpdateState (gl);
 
       // vertex/normal for each vertex, 6 verts per face (repeated on corners), 6 faces
       final PositionBufferPutter posPutter = PositionBufferPutter.createDefault();
@@ -1258,11 +1055,9 @@ public class GL3Viewer extends GLViewer {
          translateModelMatrix(cx*(1-s), cy*(1-s), cz*(1-s));
          scaleModelMatrix(s);
          updateMatrices(gl); // guarantee update uniforms
-
          scaled = true;
-      } else {
-         maybeUpdateMatrices(gl);
       }
+      maybeUpdateState (gl);
 
       // vertex/normal for each vertex, 6 verts per quad, 3 per tri
       final PositionBufferPutter posPutter = PositionBufferPutter.createDefault();
@@ -1310,11 +1105,9 @@ public class GL3Viewer extends GLViewer {
          translateModelMatrix(cx*(1-s), cy*(1-s), cz*(1-s));
          scaleModelMatrix(s);
          updateMatrices(gl); // guarantee update uniforms
-
          scaled = true;
-      } else {
-         maybeUpdateMatrices(gl);
       }
+      maybeUpdateState(gl);
 
       // vertex/normal for each vertex, 6 verts per quad, 3 per tri
       final PositionBufferPutter posPutter = PositionBufferPutter.createDefault();
@@ -1518,7 +1311,7 @@ public class GL3Viewer extends GLViewer {
          lineGLO.vbos[0].unmapBuffer(gl);
       }
 
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       lineGLO.draw(gl, getBasicProgram(gl));
       GLSupport.checkAndPrintGLError(gl);
    }
@@ -1541,7 +1334,7 @@ public class GL3Viewer extends GLViewer {
          pointGLO.vbos[0].unmapBuffer(gl);
       }
 
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       pointGLO.draw(gl, getBasicProgram(gl));
       GLSupport.checkAndPrintGLError(gl);
    }
@@ -1859,7 +1652,7 @@ public class GL3Viewer extends GLViewer {
          dragBoxGLO.vbos[0].update(gl, coords);   
       }
 
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       gl.glLineWidth (1);
       setColor(0.5f, 0.5f, 0.5f, 1.0f);
 
@@ -1907,7 +1700,7 @@ public class GL3Viewer extends GLViewer {
                   while (iterator.hasNext()) {
                      RenderablePoint pnt = iterator.next();
                      if (pnt.getRenderProps() == null) {
-                        updateColor (
+                        setColor (
                            props.getPointColorArray(), pnt.isSelected());
                         drawGLPoint(gl, pnt.getRenderCoords());
                      }
@@ -1933,8 +1726,7 @@ public class GL3Viewer extends GLViewer {
                      }
                   }
                   else {
-                     updateMaterial (
-                        props, props.getPointMaterial(), pnt.isSelected());
+                     setMaterial (props.getPointMaterial(), pnt.isSelected());
                      drawSphere (props, pnt.getRenderCoords());
                   }
                }
@@ -2036,10 +1828,10 @@ public class GL3Viewer extends GLViewer {
                   RenderableLine line = iterator.next();
                   if (line.getRenderProps() == null) {
                      if (line.getRenderColor() == null) {
-                        updateColor (props.getLineColorArray(),line.isSelected());
+                        setColor (props.getLineColorArray(),line.isSelected());
                      }
                      else {
-                        updateColor (line.getRenderColor(),line.isSelected());
+                        setColor (line.getRenderColor(),line.isSelected());
                      }
                      drawGLLine(gl, line.getRenderCoords0(), line.getRenderCoords1());
                   }
@@ -2076,9 +1868,8 @@ public class GL3Viewer extends GLViewer {
                      }
                   }
                   else {
-                     maspack.render.Material mat = props.getLineMaterial();
-                     updateMaterial (
-                        props, mat, line.getRenderColor(), line.isSelected());
+                     Material mat = props.getLineMaterial();
+                     setMaterial(mat, line.getRenderColor (), line.isSelected ());
                      if (lineStyle == LineStyle.ELLIPSOID) {
                         drawTaperedEllipsoid (props, v0, v1);
                      }
@@ -2101,7 +1892,7 @@ public class GL3Viewer extends GLViewer {
    @Override
    public void drawLines(float[] vertices, int flags) {
 
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       // create streaming object
       GL3Object glo = GL3Object.createV(gl, GL.GL_LINES, vertices, GL3.GL_STREAM_DRAW);
       // draw
@@ -2151,7 +1942,7 @@ public class GL3Viewer extends GLViewer {
       GL3Object glo = GL3Object.createV(gl, glPrimitiveType, 
          buff, size, GL.GL_FLOAT, 3, 3*GLSupport.FLOAT_SIZE, GL3.GL_STREAM_DRAW);
 
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       glo.draw(gl, getBasicProgram(gl));
 
       glo.dispose (gl);  // immediately dispose
@@ -2182,7 +1973,7 @@ public class GL3Viewer extends GLViewer {
          buff, size, BufferStorage.FLOAT_3, 0, 6*GLSupport.FLOAT_SIZE, BufferStorage.FLOAT_3, 
          3*GLSupport.FLOAT_SIZE, 6*GLSupport.FLOAT_SIZE, GL3.GL_STREAM_DRAW);
 
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       glo.draw(gl, getRegularProgram(gl));
 
       glo.dispose (gl);  // immediately dispose
@@ -2254,7 +2045,7 @@ public class GL3Viewer extends GLViewer {
 
    public void drawTriangles (Iterable<float[]> points) {
 
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       // determine required buffer size
       int size = findSize(points);
@@ -2298,7 +2089,7 @@ public class GL3Viewer extends GLViewer {
          buff, 3, BufferStorage.FLOAT_3, 0, 6*GLSupport.FLOAT_SIZE, BufferStorage.FLOAT_3, 
          3*GLSupport.FLOAT_SIZE, 6*GLSupport.FLOAT_SIZE, GL3.GL_STREAM_DRAW);
 
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       glo.draw(gl, getRegularProgram(gl));
 
       glo.dispose (gl);  // immediately dispose
@@ -2429,7 +2220,7 @@ public class GL3Viewer extends GLViewer {
    public void drawTriangles(RenderObject robj) {
       GLSupport.checkAndPrintGLError(gl);
       GL3RenderObject gro = getOrCreateGRO(robj);
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       gl.glUseProgram(getProgram(gl, gro.getRenderObjectState()));
       gro.drawTriangles(gl);
       GLSupport.checkAndPrintGLError(gl);
@@ -2439,7 +2230,7 @@ public class GL3Viewer extends GLViewer {
    public void drawLines(RenderObject robj) {
       GLSupport.checkAndPrintGLError(gl);
       GL3RenderObject gro = getOrCreateGRO(robj);
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       gl.glUseProgram(getProgram(gl, gro.getRenderObjectState()));
       gro.drawLines(gl);
       GLSupport.checkAndPrintGLError(gl);
@@ -2449,7 +2240,7 @@ public class GL3Viewer extends GLViewer {
    public void drawPoints(RenderObject robj) {
       GLSupport.checkAndPrintGLError(gl);
       GL3RenderObject gro = getOrCreateGRO(robj);
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       gl.glUseProgram(getProgram(gl, gro.getRenderObjectState()));
       gro.drawPoints(gl);
       GLSupport.checkAndPrintGLError(gl);
@@ -2459,7 +2250,7 @@ public class GL3Viewer extends GLViewer {
    public void drawVertices(RenderObject robj, VertexDrawMode mode) {
       GLSupport.checkAndPrintGLError(gl);
       GL3RenderObject gro = getOrCreateGRO(robj);
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       gl.glUseProgram(getProgram(gl, gro.getRenderObjectState()));
       gro.drawVertices(gl, mode);
       GLSupport.checkAndPrintGLError(gl);
@@ -2476,7 +2267,7 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    public void drawLines(RenderObject robj, LineStyle style, double rad) {
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       switch (style) {
          case LINE: {
@@ -2640,7 +2431,7 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    public void drawPoints(RenderObject robj, PointStyle style, double rad) {
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       switch (style) {
          case POINT: {
@@ -2754,7 +2545,7 @@ public class GL3Viewer extends GLViewer {
             BufferStorage.FLOAT_3, 3*GLSupport.FLOAT_SIZE,
             6*GLSupport.FLOAT_SIZE, GL3.GL_STREAM_DRAW);
 
-         maybeUpdateMatrices(gl);
+         maybeUpdateState(gl);
          glo.draw(gl, getRegularProgram(gl));
 
          glo.dispose (gl);  // immediately dispose

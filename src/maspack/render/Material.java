@@ -15,7 +15,6 @@ public class Material {
    private float[] diffuse;  // ambient color will always track diffuse
    private float[] specular;
    private float[] emission;
-   private float[] temp;
    private float shininess;
 
    public static final float[] default_specular = {0.1f, 0.1f, 0.1f, 1f};
@@ -35,10 +34,9 @@ public class Material {
    public static final int SILVER = 10;
 
    public Material() {
-      specular = new float[4];
       diffuse = new float[4];
+      specular = new float[4];
       emission = new float[4];
-      temp = new float[4];
       setDefaults();
    }
    
@@ -95,11 +93,11 @@ public class Material {
       return shininess;
    }
 
-   public void setSpecular (float r, float g, float b, float a) {
+   public void setSpecular (float r, float g, float b) {
       specular[0] = r;
       specular[1] = g;
       specular[2] = b;
-      specular[3] = a;
+      specular[3] = 1.0f;
    }
    
    public void setSpecular(Color c) {
@@ -110,9 +108,7 @@ public class Material {
       specular[0] = spec[0];
       specular[1] = spec[1];
       specular[2] = spec[2];
-      if (spec.length > 3) {
-         specular[3] = spec[3];
-      }
+      specular[3] = 1.0f;
    }
 
    public float[] getSpecular() {
@@ -149,11 +145,11 @@ public class Material {
       return diffuse;
    }
 
-   public void setEmission(float r, float g, float b, float a) {
+   public void setEmission(float r, float g, float b) {
       emission[0] = r;
       emission[1] = g;
       emission[2] = b;
-      emission[3] = a;
+      emission[3] = 1.0f;
    }
    
    public void setEmission (Color c) {
@@ -164,9 +160,7 @@ public class Material {
       emission[0] = em[0];
       emission[1] = em[1];
       emission[2] = em[2];
-      if (em.length > 3) {
-         emission[3] = em[3];
-      }
+      emission[3] = 1.0f;
    }
    
    public float[] getEmission() {
@@ -193,6 +187,7 @@ public class Material {
       gl.glMaterialf (sides, GL2.GL_SHININESS, shininess);
       gl.glMaterialfv (sides, GL2.GL_SPECULAR, specular, 0);
       if (diffuseOverride != null) {
+         float[] temp = new float[4];
          temp[0] = diffuseOverride[0];
          temp[1] = diffuseOverride[1];
          temp[2] = diffuseOverride[2];
@@ -222,6 +217,10 @@ public class Material {
       // According to OpenGL reference, only diffuse alpha
       // is used in light model equation
       diffuse[3] = (float)a;
+   }
+   
+   public float getAlpha() {
+      return diffuse[3];
    }
 
    public boolean isTranslucent() {

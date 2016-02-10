@@ -13,6 +13,7 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
@@ -61,13 +62,13 @@ import maspack.util.InternalErrorException;
  * @author John E Lloyd and ArtiSynth team members
  */
 public abstract class GLViewer implements GLEventListener, GLRenderer, 
-  HasProperties {
+HasProperties {
 
    // Matrices
    public enum GLMatrixType {
       PROJECTION, VIEW, MODEL
    }
-   
+
    public enum GLVersion {
       GL2, GL3
    }
@@ -90,17 +91,17 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected static final float DEFAULT_DEPTH_OFFSET_INTERVAL = 1e-5f; // prevent z-fighting
    private static final Point3d DEFAULT_VIEWER_CENTER = new Point3d();
    private static final Point3d DEFAULT_VIEWER_EYE = new Point3d (0, -1, 0);
-   
+
    protected static int DEFAULT_POINT_SLICES = 64;
    protected static int DEFAULT_LINE_SLICES = 64;
-   
+
    protected int myPointSlices = DEFAULT_POINT_SLICES;
    protected int myLineSlices = DEFAULT_LINE_SLICES;
-  
+
    protected static class ViewState {
       protected Point3d myCenter = new Point3d (DEFAULT_VIEWER_CENTER);
       protected Point3d myUp = new Point3d (0, 0, 1);
-      
+
       public ViewState clone() {
          ViewState vs = new ViewState();
          vs.myCenter.set(myCenter);
@@ -110,7 +111,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
    protected ViewState myViewState = null;
    protected LinkedList<ViewState> viewStateStack = null;
-   
+
    protected static class ViewerState {
       boolean lightingEnabled;  // light equations
       boolean depthEnabled;     // depth buffer
@@ -120,7 +121,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       Faces faceMode;
       Shading shading;
       boolean hsvInterpolationEnabled;  
-      
+
       public ViewerState clone() {
          ViewerState c = new ViewerState();
          c.lightingEnabled = lightingEnabled;
@@ -136,7 +137,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
    protected ViewerState myViewerState;
    protected LinkedList<ViewerState> viewerStateStack;
-   
+
    // state requests in case glContext not current
    boolean gammaCorrectionRequested = false;
    boolean gammaCorrectionEnabled = false;
@@ -155,7 +156,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       public double fieldHeight = 10; // originally 10
       public boolean orthographic = false;
       public boolean explicit = false;
-      
+
       public ProjectionFrustrum clone() {
          ProjectionFrustrum c = new ProjectionFrustrum();
          c.near = near;
@@ -174,7 +175,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
    protected ProjectionFrustrum myFrustum = null;
    LinkedList<ProjectionFrustrum> frustrumStack = null;
-   
+
    protected boolean resetViewVolume = false;
 
    public static final double AUTO_FIT = -1.0; // generic value to trigger an auto-fit
@@ -196,15 +197,25 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected boolean resizeEnabled = true;
 
    // Colors
-   protected float[] mySelectedColor = new float[] { 1f, 1f, 0 };
-   protected Material mySelectedMaterial =
-   Material.createDiffuse (mySelectedColor, 1.0f, 32f);
+   protected float[] mySelectedColor = new float[] { 1f, 1f, 0, 1f };
+   protected Material mySelectedMaterial = Material.createDiffuse (mySelectedColor, 1.0f, 32f);
    protected SelectionHighlighting myHighlighting = SelectionHighlighting.Color;
+
+   // XXX Color history
+   protected float[] DEFAULT_MATERIAL_COLOR = new float[]{0.8f, 0.8f, 0.8f, 1.0f};
+   protected float[] DEFAULT_MATERIAL_EMISSION = new float[]{0.0f, 0.0f, 0.0f, 1.0f};
+   protected float[] DEFAULT_MATERIAL_SPECULAR = new float[]{0.1f, 0.1f, 0.1f, 1.0f};
+
+   protected float DEFAULT_MATERIAL_SHININESS = 32f;
+   protected Material myCurrentMaterial = Material.createDiffuse(DEFAULT_MATERIAL_COLOR, 32f);
+   protected float[] myBackColor = null;
+   protected boolean mySelectedColorActive = false;
+   protected boolean myCurrentMaterialModified = true;  // trigger for detecting when material is updated
 
    // Canvas
    protected GLAutoDrawable drawable;
    protected GLCanvas canvas;
-   
+
    protected RootPaneContainer frame;
    protected int width;
    protected int height;
@@ -261,13 +272,13 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected RenderList myInternalRenderList = new RenderList();
    protected RenderList myExternalRenderList;
    protected Object renderablesLock = new Object();
-   
+
    // Renderable Objects and Tools
    protected LinkedList<Dragger3d> myDraggers;
    protected LinkedList<Dragger3d> myUserDraggers;
    protected MouseRayEvent myDraggerSelectionEvent;
    protected Dragger3d myDrawTool;
-   protected Object myDrawToolSyncObject = new Integer(0);
+   protected Object myDrawToolSyncObject = new Object();
    protected Rectangle myDragBox;
    protected GLGridPlane myGrid;
 
@@ -293,7 +304,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    new LinkedList<MouseWheelListener>();
    protected GLMouseListener myMouseHandler;
    protected ArrayList<RenderListener> myRenderListeners =
-      new ArrayList<RenderListener>();
+   new ArrayList<RenderListener>();
 
    // Selection
    protected GLSelector mySelector;
@@ -411,11 +422,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public void setSelected(LinkedList<Object>[] objs) {
       selectionEvent.mySelectedObjects = objs;
    }
- 
+
    public void addRenderListener (RenderListener l) {
       myRenderListeners.add (l);
    }
-   
+
    protected void fireRerenderListeners() {
       if (myRenderListeners.size() > 0) {
          RendererEvent e = new RendererEvent (this);
@@ -587,7 +598,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public void paint() {
       canvas.paint (canvas.getGraphics());
    }
-   
+
    public void detachFromCanvas() {
       canvas.removeGLEventListener(this);
    }
@@ -1020,19 +1031,19 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * @param yang
     * amount of vertical rotation (in radians)
     */
-    protected void rotateContinuous (double xang, double yang) {
+   protected void rotateContinuous (double xang, double yang) {
 
       Vector3d reye = new Vector3d();
       reye.sub (getEye(), myViewState.myCenter);
-      
+
       Vector3d yCam = new Vector3d();     // up-facing vector
       Vector3d xCam = new Vector3d();     // right-facing vector
-      
+
       synchronized(viewMatrix) {
          viewMatrix.R.getRow(1, yCam);
          viewMatrix.R.getRow(0, xCam);
       }
-      
+
       //System.out.println("Transform: " + XEyeToWorld.R);
       if (yang != 0) {
          RotationMatrix3d R = new RotationMatrix3d(new AxisAngle(xCam, yang));
@@ -1065,7 +1076,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
       if (yang != 0) {
          Vector3d xCam = new Vector3d(); // right-facing vector
-         
+
          synchronized(viewMatrix) {
             viewMatrix.R.getRow (0, xCam);
          }
@@ -1121,7 +1132,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     */
    protected void translate (double delx, double dely) {
       Vector3d xCam = new Vector3d(), yCam = new Vector3d();
-      
+
       synchronized (viewMatrix) {
          viewMatrix.R.getRow (0, xCam);
          viewMatrix.R.getRow (1, yCam);  
@@ -1149,7 +1160,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * @param s
     * scale factor
     */
-    public void zoom (double s) {
+   public void zoom (double s) {
       if (myFrustum.orthographic) {
          myFrustum.fieldHeight *= s;
          resetViewVolume = true;
@@ -1276,16 +1287,16 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    // end of the rotation code
 
    public GLViewer () {   
-      
+
       myFrustum = new ProjectionFrustrum();
       frustrumStack = new LinkedList<>();
-      
+
       myViewState = new ViewState();
       viewStateStack = new LinkedList<>();
-      
+
       myViewerState = new ViewerState();
       viewerStateStack = new LinkedList<>();
-      
+
       // initialize matrices
       projectionMatrix = new Matrix4d();
       viewMatrix = new RigidTransform3d();
@@ -1312,7 +1323,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * Called any time GL context is switched! e.g. moving window to new display
     */
    public abstract void init (GLAutoDrawable drawable);
-   
+
    /**
     * Called any time GL context is switched! e.g. moving window to new display
     */
@@ -1553,15 +1564,15 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
       synchronized(viewMatrix) {
          viewMatrix.set(new double[]{
-                                  xaxis.x, xaxis.y, xaxis.z, -xaxis.dot(eye),
-                                  yaxis.x, yaxis.y, yaxis.z, -yaxis.dot(eye),
-                                  zaxis.x, zaxis.y, zaxis.z, -zaxis.dot(eye),
+                                     xaxis.x, xaxis.y, xaxis.z, -xaxis.dot(eye),
+                                     yaxis.x, yaxis.y, yaxis.z, -yaxis.dot(eye),
+                                     zaxis.x, zaxis.y, zaxis.z, -zaxis.dot(eye),
          });
       }
-      
+
       invalidateViewMatrix();
    }
-   
+
    /**
     * Add a depth offset to the projection matrix, in normalized
     * coordinates
@@ -1571,7 +1582,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myFrustum.zoffset += zOffset;
       updateProjectionMatrix();
    }
-   
+
    /**
     * Set a depth offset to the projection matrix, in normalized
     * coordinates
@@ -1581,7 +1592,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myFrustum.zoffset = zOffset;
       updateProjectionMatrix();
    }
-     
+
    public float getDepthOffset() {
       return (float)(myFrustum.zoffset);
    }
@@ -1590,9 +1601,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    public void display (GLAutoDrawable drawable) {
       GLSupport.checkAndPrintGLError(drawable.getGL ());
-      
+
       int flags = myRenderFlags.get();
-      
+
       // check if gamma property needs to be changed
       if (gammaCorrectionRequested) {
          GL gl = drawable.getGL ();
@@ -1603,9 +1614,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          }
          gammaCorrectionRequested = false;
       }
-      
+
       display(drawable, flags);
-      
+
       GLSupport.checkAndPrintGLError(drawable.getGL ());
    }
 
@@ -1734,7 +1745,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public boolean isLightingEnabled() {
       return myViewerState.lightingEnabled;
    }
-   
+
    public void setVertexColoringEnabled (boolean enable) {
       myViewerState.vertexColorsEnabled = enable;
    }
@@ -1742,11 +1753,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public boolean isVertexColoringEnabled() {
       return myViewerState.vertexColorsEnabled;
    }
-   
+
    public boolean isHSVColorInterpolationEnabled() {
       return myViewerState.hsvInterpolationEnabled;
    }
-   
+
    public ColorInterpolation getColorInterpolation() {
       if (myViewerState.hsvInterpolationEnabled) {
          return ColorInterpolation.HSV;
@@ -1755,15 +1766,15 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          return ColorInterpolation.RGB;
       }
    }
-   
+
    public void setColorInterpolation (ColorInterpolation interp) {
       myViewerState.hsvInterpolationEnabled = (interp==ColorInterpolation.HSV);
    }
-   
+
    public void setHSVCColorInterpolationEnabled(boolean set) {
       myViewerState.hsvInterpolationEnabled = set;
    }
-   
+
    public void setTextureMappingEnabled (boolean enable) {
       if (!selectEnabled) {
          myViewerState.textureMappingEnabled = enable;
@@ -1773,11 +1784,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public boolean isTextureMappingEnabled() {
       return myViewerState.textureMappingEnabled;
    }
-   
+
    public boolean isGammaCorrectionEnabled() {
       return gammaCorrectionEnabled;
    }
-   
+
    public void setGammaCorrectionEnabled(boolean set) {
       gammaCorrectionRequested = true;
       repaint();
@@ -1810,11 +1821,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public void setShadeModel(Shading shading) {
       myViewerState.shading = shading;
    }
-   
+
    public Shading getShadeModel() {
       return  myViewerState.shading;
    }
-   
+
    protected void pushViewerState() {
       viewerStateStack.push(myViewerState.clone());
    }
@@ -1848,9 +1859,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       if (myViewerState.textureMappingEnabled != state.textureMappingEnabled) {
          setTextureMappingEnabled(state.textureMappingEnabled);
       }
-      
+
    }
-   
+
    public boolean isTransparencyEnabled() {
       return myTransparencyEnabledP;
    }
@@ -1894,105 +1905,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public Material getSelectionMaterial() {
       return mySelectedMaterial;
    }
-
-
-
-   @Override
-   public abstract void setColor(float[] frontRgba, float[] backRgba, boolean selected);
-
-   /**
-    * Forces setting color, regardless of selection mode (used by
-    * color selector)
-    */
-   public abstract void forceColor(float r, float g, float b, float a);
-
-   @Override
-   public abstract void setColor(float[] frontRgba, float[] backRgba);
-
-   @Override
-   public void setColor(Color frontColor, Color backColor) {
-      float[] frontRgba = frontColor.getColorComponents(new float[4]);
-      float[] backRgba = backColor.getColorComponents(new float[4]);
-      setColor(frontRgba, backRgba);
-   }
-
-   public void setColor (float[] rgba, boolean selected) {
-      setColor(rgba, rgba, selected);
-   }
-
-   public void setColor (float[] rgba) {
-      setColor(rgba, rgba);
-   }
-
-   public void setColor(Color c) {
-      float[] rgba = c.getColorComponents(new float[4]);
-      setColor(rgba, rgba);
-   }
-
-   public void setColor (float r, float g, float b) {
-      float[] rgba = new float[]{r,g,b,1.0f};
-      setColor(rgba, rgba);
-   }
-
-   public void setColor (float r, float g, float b, float a) {
-      float[] rgba = new float[]{r,g,b,a};
-      setColor(rgba,rgba);
-   }
-
-   @Override
-   public abstract void updateColor(float[] frontRgba, float[] backRgba, boolean selected);
-
-   public void updateColor (float[] rgba, boolean selected) {
-      updateColor(rgba, rgba, selected);
-   }
-
-   @Override
-   public void setMaterial(
-      Material material, boolean selected) {
-      setMaterial(material, null, material, null, selected);
-   }
-
-   public void setMaterial (
-      Material material, float[] diffuseColor, boolean selected) {
-      setMaterial(material, diffuseColor, material, diffuseColor, selected);
-   }
-
-   @Override
-   public abstract void setMaterial(
-      Material frontMaterial, float[] frontDiffuse, Material backMaterial,
-      float[] backDiffuse, boolean selected);
-
-   @Override
-   public abstract void updateMaterial(
-      RenderProps props, Material frontMaterial, float[] frontDiffuse,
-      Material backMaterial, float[] backDiffuse, boolean selected);
-
-   public void updateMaterial (
-      RenderProps props, Material material, boolean selected) {
-      updateMaterial (props, material, null, material, null, selected);
-   }
-
-   public void updateMaterial (
-      RenderProps props, Material mat, float[] diffuseColor, boolean selected) {
-      updateMaterial(props, mat, diffuseColor, mat, diffuseColor, selected);
-   }
-
-   @Override
-   public abstract void setMaterialAndShading(
-      RenderProps props, Material frontMaterial, float[] frontDiffuse,
-      Material backMaterial, float[] backDiffuse, boolean selected);
-
-   public void setMaterialAndShading (
-      RenderProps props, Material mat, boolean selected) {
-      setMaterialAndShading (props, mat, null, mat, null, selected);
-   }
-
-   public void setMaterialAndShading (RenderProps props, Material mat, 
-      float[] diffuseColor, boolean selected) {
-      setMaterialAndShading(props, mat,  diffuseColor,  mat, diffuseColor, selected);
-   }
-
-   public abstract void restoreShading (RenderProps props);
 
    @Override
    public void setFaceMode(Faces mode) {
@@ -2278,7 +2190,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          return false;
       }
    }
-   
+
    public GLMouseListener getMouseHandler() {
       return myMouseHandler;
    }
@@ -2298,7 +2210,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       canvas.addMouseMotionListener (myMouseHandler);
 
    }
-  
+
    public abstract void cleanupScreenShots();
 
    protected void updateProjectionMatrix() {
@@ -2587,7 +2499,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       invalidateProjectionMatrix();
       return true;
    }
-   
+
    //==========================================================================
    //  Clip Planes
    //==========================================================================
@@ -2607,11 +2519,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
       return maxClipPlanes-c;
    }
-   
+
    public int getMaxGLClipPlanes() {
       return maxClipPlanes;
    }
-   
+
    public GLClipPlane addClipPlane () {
       return addClipPlane (null, 0);
    }
@@ -2668,7 +2580,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          return false;
       }
    }
-   
+
    public void clearClipPlanes() {
       for (GLClipPlane clip : myClipPlanes) {
          clip.setViewer(null);
@@ -2678,7 +2590,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          rerender();
       }
    }
-   
+
    //==========================================================================
    //  Drawing
    //==========================================================================
@@ -2771,11 +2683,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    public abstract void drawLines(float[] vertices, int flags);
-   
+
    public void drawLines(float[] vertices) {
       drawLines(vertices, 0);
    }
-   
+
    protected void computeNormal(float[] p0, float[] p1, float[] p2, float[] normal) {
       float[] u = new float[3];
       float[] v = new float[3];
@@ -2785,13 +2697,13 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       normal[1] = u[2]*v[0]-u[0]*v[2];
       normal[2] = u[0]*v[1]-u[1]*v[0];
    }
-   
+
    @Override
    public void drawAxes(
       RigidTransform3d X, double len, int lineWidth, boolean selected) {
       drawAxes (X, new double[] {len, len, len}, lineWidth, selected);
    }
-   
+
    /**
     * MUST BE CALLED by whatever frame when it is going down, will notify any 
     * shared resources that they can be cleared.  It is best to add it as a
@@ -2842,87 +2754,229 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
                "Unknown VertexDrawMode: " + mode);
       }
    }
-   
-   private float myDefaultAmbience = 0.2f;
-   private float myDefaultShininess = 32f;
-   private Material myFrontMat = new Material();
-   private Material myBackMat = new Material();
 
-   public void setMaterial (float[] diffuse) {
-      setMaterial (diffuse, myDefaultAmbience);
+   //======================================================
+   // COLORS and MATERIALS
+   //======================================================
+
+   /**
+    * Activates or deactivates the use of the "selection color" if myHighlighting is on
+    * @param selected
+    */
+   protected void setMaterialSelected(boolean selected) {
+      if (selected != mySelectedColorActive) {
+         if (!selected || myHighlighting == SelectionHighlighting.Color) {
+            mySelectedColorActive = selected;
+            myCurrentMaterialModified = true; // indicate that we may need to update color state
+         }
+      }
    }
-   
-   public void setMaterial (float[] diffuse, float ambience) {
-      myFrontMat.setDiffuse (diffuse);
-      myFrontMat.setShininess (myDefaultShininess);
-      // ambience not implemented yet
-      setMaterial (myFrontMat, /*selected=*/false);
-   }      
-   
+
+   @Override
+   public void setFrontColor (float[] rgba) {
+      myCurrentMaterial.setDiffuse (rgba);
+      myCurrentMaterialModified = true;
+   }
+
+   @Override
+   public void setBackColor (float[] rgba) {
+      if (rgba == null) {
+         if (myBackColor != null) {
+            myBackColor = null;
+            myCurrentMaterialModified = true;
+         }
+      } else {
+         myBackColor = Arrays.copyOf (rgba, rgba.length);
+         myCurrentMaterialModified = true;
+      }
+
+   }
+
+   @Override
+   public void setEmission(float[] rgb) {
+      myCurrentMaterial.setEmission (rgb);
+      myCurrentMaterialModified = true;
+   }
+
+   @Override
+   public void setSpecular(float[] rgb) {
+      myCurrentMaterial.setSpecular (rgb);
+      myCurrentMaterialModified = true;
+   }
+
+   @Override
+   public void setShininess(float s) {
+      myCurrentMaterial.setShininess(s);
+      myCurrentMaterialModified = true;
+   }
+
+   @Override
+   public void setAlpha (float a) {
+      myCurrentMaterial.setAlpha(a);
+      myCurrentMaterialModified = true;
+   }
+
+   @Override
+   public void setColor (float[] rgba, boolean selected) {
+      setColor(rgba, rgba, selected);
+   }
+
+   @Override
+   public void setColor (float[] rgba) {
+      setColor(rgba, false);
+   }
+
+   @Override
+   public void setColor (float r, float g, float b) {
+      setColor(new float[]{r,g,b,1.0f});
+   }
+
+   @Override
+   public void setColor (float r, float g, float b, float a) {
+      setColor(new float[]{r,g,b,a});
+   }
+
+   public void setColor (Color color) {
+      setColor(color.getColorComponents (new float[4]));
+   }
+
+   public void setColor (float[] frontRgba, float[] backRgba) {
+      setColor(frontRgba, backRgba, false);
+   }
+
+   public void setColor (Color frontColor, Color backColor) {
+      float[] frontRgba = frontColor.getColorComponents(new float[4]);
+      float[] backRgba = backColor.getColorComponents(new float[4]);
+      setColor(frontRgba, backRgba);
+   }
+
+   @Override
+   public void setColor (float[] frontRgba, float[] backRgba, boolean selected) {
+      setFrontColor (frontRgba);
+      setBackColor (backRgba);
+      setMaterialSelected (selected);
+   }
+
+   @Override
    public void setMaterial (
-      float[] diffuse, float[] back, 
-      float ambience, float shininess, boolean selected) {
-      myFrontMat.setDiffuse (diffuse);
-      myFrontMat.setShininess (shininess);
-      // ambience not implemented yet
-      if (back == null) {
-         setMaterial (myFrontMat, /*selected=*/false);
-      }
-      else {
-         myBackMat.setDiffuse (back);
-         myBackMat.setShininess (shininess);
-         // ambience not implemented yet         
-         setMaterial (myFrontMat, /*frontDiffuse=*/null, 
-                      myBackMat, /*backDiffuse=*/null, /*selected=*/false);
-      }
+      float[] frontRgba, float[] backRgba, float shininess, boolean selected) {
+      setFrontColor (frontRgba);
+      setBackColor (backRgba);
+      setShininess (shininess);
+      setMaterialSelected (selected);
+      setEmission (DEFAULT_MATERIAL_EMISSION);
+      setSpecular(DEFAULT_MATERIAL_SPECULAR);
    }
-   
+
+   @Override
+   public void setMaterial (float[] rgba) {
+      setMaterial(rgba, rgba, DEFAULT_MATERIAL_SHININESS, false);
+   }
+
    public void setLineLighting (RenderProps props, boolean selected) {
       setMaterialAndShading (props, props.getLineMaterial(), selected);
-//      float[] diffuse = props.getLineColorArray();
-//      setMaterial (
-//         diffuse, null, myDefaultAmbience, props.getShininess(), selected);
-//      setShadeModel (props.getShading());
    }
-   
+
    public void setPointLighting (RenderProps props, boolean selected) {
       setMaterialAndShading (props, props.getPointMaterial(), selected);
-//      float[] diffuse = props.getPointColorArray();
-//      setMaterial (
-//         diffuse, null, myDefaultAmbience, props.getShininess(), selected);
-//      setShadeModel (props.getShading());
    }
-   
+
    public void setEdgeLighting (RenderProps props, boolean selected) {
       Material mat = props.getEdgeMaterial();
       if (mat == null) {
          mat = props.getLineMaterial();
       }
       setMaterialAndShading (props, mat, selected);
-//      float[] diffuse = props.getEdgeColorArray();
-//      if (diffuse == null) {
-//         diffuse = props.getLineColorArray();
-//      }
-//      setMaterial (
-//         diffuse, null, myDefaultAmbience, props.getShininess(), selected);
-//      setShadeModel (props.getShading());
+   }
+
+   public void setFaceLighting (RenderProps props, boolean selected) {
+      float[] diffuse = props.getFaceColorArray();
+      float[] back = props.getBackColorArray();
+      if (back == null) {
+          setMaterialAndShading (props, props.getFaceMaterial(), selected);
+       }
+       else {
+          setMaterialAndShading (
+             props, props.getFaceMaterial(), diffuse, 
+             props.getBackMaterial(), back, selected);         
+       }
+   }
+
+   /**
+    * Forces setting color, regardless of selection mode (used by
+    * color selector)
+    */
+   public abstract void forceColor(float r, float g, float b, float a);
+
+
+   // XXX To remove?
+
+   @Override
+   public void setMaterial(
+      Material material, boolean selected) {
+      setMaterial (material, material.getDiffuse (), selected);
+   }
+
+   public void setMaterial (
+      Material material, float[] diffuseColor, boolean selected) {
+      if (diffuseColor == null) {
+         diffuseColor = material.getDiffuse ();
+      }
+      setMaterial(diffuseColor, null, material.getShininess(), selected);
+      setSpecular (material.getSpecular ());
+      setEmission (material.getEmission ());
+   }
+
+   @Override
+   public void setMaterial(
+      Material frontMaterial, float[] frontDiffuse, Material backMaterial,
+      float[] backDiffuse, boolean selected) {
+      setMaterial(frontMaterial, frontDiffuse, selected);
+      if (backDiffuse == null) {
+         backDiffuse = backMaterial.getDiffuse ();
+      }
+      setBackColor (backDiffuse);
+      setSpecular (frontMaterial.getSpecular ());
+      setEmission (frontMaterial.getEmission ());
    }
    
-   public void setFaceLighting (RenderProps props, boolean selected) {
-      if (props.getBackColor() == null) {
-         setMaterialAndShading (props, props.getFaceMaterial(), selected);
-      }
-      else {
-         setMaterialAndShading (
-            props, props.getFaceMaterial(), null, 
-            props.getBackMaterial(), null, selected);         
-      }
-//      float[] diffuse = props.getFaceColorArray();
-//      float[] back = props.getBackColorArray();
-//      setMaterial (
-//         diffuse, back, myDefaultAmbience, props.getShininess(), selected);
-//      setShadeModel (props.getShading());
+   @Override
+   public void setMaterialAndShading(
+      RenderProps props, Material frontMaterial, float[] frontDiffuse,
+      Material backMaterial, float[] backDiffuse, boolean selected) {
+      setMaterial (frontMaterial, frontDiffuse, backMaterial, backDiffuse, selected);
+      setShadeModel (props.getShading ());
    }
+
+   public void setMaterialAndShading (
+      RenderProps props, Material mat, boolean selected) {
+      setMaterialAndShading (props, mat, null, mat, null, selected);
+   }
+
+   public void setMaterialAndShading (RenderProps props, Material mat, 
+      float[] diffuseColor, boolean selected) {
+      setMaterialAndShading(props, mat,  diffuseColor,  mat, diffuseColor, selected);
+   }
+
+   public abstract void restoreShading (RenderProps props);
+
+   @Override
+   public void updateMaterial(
+      RenderProps props, Material frontMaterial, float[] frontDiffuse,
+      Material backMaterial, float[] backDiffuse, boolean selected) {
+      setMaterial(frontMaterial, frontDiffuse, backMaterial, backDiffuse, selected);
+   }
+
+   public void updateMaterial (
+      RenderProps props, Material material, boolean selected) {
+      updateMaterial (props, material, null, material, null, selected);
+   }
+
+   public void updateMaterial (
+      RenderProps props, Material mat, float[] diffuseColor, boolean selected) {
+      updateMaterial(props, mat, diffuseColor, mat, diffuseColor, selected);
+   }
+
 
 }
 

@@ -9,10 +9,10 @@ package maspack.render.GL.GL2;
 
 import java.awt.event.MouseWheelListener;
 import java.io.File;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Arrays;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
@@ -20,7 +20,6 @@ import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLContext;
 import javax.media.opengl.GLProfile;
-import javax.media.opengl.fixedfunc.GLLightingFunc;
 import javax.swing.event.MouseInputListener;
 
 import maspack.matrix.AffineTransform3d;
@@ -120,22 +119,17 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    protected float lmodel_twoside[] = { 0.0f, 0.0f, 0.0f, 0.0f };
    protected float lmodel_local[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-   // Color history
-   protected float[] myCurrentColor;
-   protected Material myCurrentFrontMaterial;
-   protected Material myCurrentBackMaterial;
-   //overrides diffuse color in myCurrentMaterial:
-   protected float[] myCurrentFrontDiffuse;
-   protected float[] myCurrentBackDiffuse;
-
    // data for "drawMode"
    protected VertexDrawMode myDrawMode = null;
-   protected boolean myHasNormalData = false;
-   protected int myVertexIdx = 0;
-   protected float[] myCurrentNormal = new float[3];
-   protected int myDrawDataDataCap = 0;
-   protected float[] myVertexData = null;
-   protected float[] myNormalData = null;
+   protected boolean myDrawHasNormalData = false;
+   protected boolean myDrawHasColorData = false;
+   protected int myDrawVertexIdx = 0;
+   protected float[] myDrawCurrentNormal = new float[3];
+   protected float[] myDrawCurrentColor = new float[4];
+   protected int myDrawDataCap = 0;
+   protected float[] myDrawVertexData = null;
+   protected float[] myDrawNormalData = null;
+   protected float[] myDrawColorData = null;
 
    public static PropertyList myProps = new PropertyList (GL2Viewer.class, GLViewer.class);
 
@@ -624,7 +618,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          buildInternalRenderList();
       }
 
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       gl.glPushMatrix();
       if (selectTrigger) {
@@ -846,7 +840,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          }
       }
 
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       // enable clip planes
       int nclips = 0;
@@ -1010,6 +1004,34 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    //      gl.glMatrixMode (GL2.GL_MODELVIEW);
    //   }
  
+   /**
+    * Potentially update GL state (matrices, lights, materials, etc...)
+    * @param gl
+    */
+   protected void maybeUpdateState(GL2 gl) {
+      maybeUpdateMatrices (gl);
+      maybeUpdateMaterials(gl);
+   }
+   
+   public void maybeUpdateMaterials(GL2 gl) {
+      
+      // only update if not selecting
+      if (myCurrentMaterialModified && !isSelecting()) {
+         // set all colors
+         if (mySelectedColorActive) {
+            gl.glColor3fv (mySelectedColor, 0);
+            mySelectedMaterial.apply(gl);
+         } else {
+            gl.glColor3fv (myCurrentMaterial.getDiffuse(), 0);
+            myCurrentMaterial.apply (gl);
+            if (myBackColor != null) {
+               gl.glMaterialfv (GL2.GL_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, myBackColor, 0); // apply back color
+            }
+         }
+         myCurrentMaterialModified = false; // reset flag since state is now updated
+      }
+   }
+   
    // Made public for debugging purposes
    public void maybeUpdateMatrices(GL2 gl) {
 
@@ -1086,109 +1108,108 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    @Override
    public void forceColor(float r, float g, float b, float a) {
       float[] rgba = new float[]{r,g,b,a};
-      myCurrentColor = rgba;
       gl.glColor4fv (rgba, 0);
    }
 
-   public void setColor (float[] frontRgba, float[] backRgba, boolean selected) {
-      if (!selectEnabled) {
-         if (selected && myHighlighting == SelectionHighlighting.Color) {
-            myCurrentColor = mySelectedColor;
-         }
-         else if (frontRgba != null) {
-            myCurrentColor = frontRgba;
-         }
-         if (myCurrentColor.length == 3) {
-            gl.glColor3fv (myCurrentColor, 0);
-         }
-         else {
-            gl.glColor4fv (myCurrentColor, 0);
-         }
-      }
-   }
-
-   public void setColor (float[] frontRgba, float[] backRgba) {
-      if (!selectEnabled) {
-         if (frontRgba != null) {
-            myCurrentColor = frontRgba;
-         }
-         if (myCurrentColor.length == 3) {
-            gl.glColor3fv (myCurrentColor, 0);
-         }
-         else {
-            gl.glColor4fv (myCurrentColor, 0);
-         }
-      }
-   }
-
-   public void updateColor (float[] frontRgba, float[] backRgba, boolean selected) {
-      if (!selectEnabled) {
-         float[] c;
-         if (selected && myHighlighting == SelectionHighlighting.Color) {
-            c = mySelectedColor;
-         }
-         else {
-            c = frontRgba;
-         }
-         if (myCurrentColor != c) {
-            myCurrentColor = c;
-            if (myCurrentColor.length == 3) {
-               gl.glColor3fv (myCurrentColor, 0);
-            }
-            else {
-               gl.glColor4fv (myCurrentColor, 0);
-            }
-         }
-      }
-   }
-
-   public void setMaterial (
-      Material frontMaterial, float[] frontDiffuse,
-      Material backMaterial, float[] backDiffuse, boolean selected) {
-      if (selected && myHighlighting == SelectionHighlighting.Color) {
-         myCurrentFrontMaterial = mySelectedMaterial;
-         myCurrentBackMaterial = mySelectedMaterial;
-         myCurrentFrontDiffuse = null;
-         myCurrentBackDiffuse = null;
-         myCurrentFrontMaterial.apply (gl, GL.GL_FRONT_AND_BACK);
-      }
-      else {
-         myCurrentFrontMaterial = frontMaterial;
-         myCurrentFrontDiffuse = frontDiffuse;
-         myCurrentBackMaterial = backMaterial;
-         myCurrentBackDiffuse = backDiffuse;
-         myCurrentFrontMaterial.apply (gl, GL.GL_FRONT, frontDiffuse);
-         myCurrentBackMaterial.apply (gl, GL.GL_BACK, backDiffuse);
-      }
-   }
-
-   public void setMaterialAndShading (
-      RenderProps props, Material frontMaterial, float[] frontDiffuse,
-      Material backMaterial, float[] backDiffuse, boolean selected) {
-
-      if (selectEnabled) {
-         return;
-      }
-      Shading shading = props.getShading();
-      if (shading == Shading.NONE) {
-         setLightingEnabled (false);
-         myCurrentColor = null; // ensure color gets set in updateMaterial
-         updateMaterial (props, frontMaterial, frontDiffuse, 
-            backMaterial, backDiffuse, selected);
-      }
-      else {
-         if (shading != Shading.FLAT) {
-            gl.glShadeModel (GL2.GL_SMOOTH);
-         }
-         myCurrentFrontMaterial = null; // ensure material gets set in updateMaterial
-         myCurrentBackMaterial = null;
-         myCurrentFrontDiffuse = null;
-         myCurrentBackDiffuse = null;
-         updateMaterial (props, frontMaterial, frontDiffuse, 
-            backMaterial, backDiffuse, selected);
-      }
-   }
-
+   //   public void setColor (float[] frontRgba, float[] backRgba, boolean selected) {
+   //      if (!selectEnabled) {
+   //         if (selected && myHighlighting == SelectionHighlighting.Color) {
+   //            myDrawCurrentColor = mySelectedColor;
+   //         }
+   //         else if (frontRgba != null) {
+   //            myDrawCurrentColor = frontRgba;
+   //         }
+   //         if (myDrawCurrentColor.length == 3) {
+   //            gl.glColor3fv (myDrawCurrentColor, 0);
+   //         }
+   //         else {
+   //            gl.glColor4fv (myDrawCurrentColor, 0);
+   //         }
+   //      }
+   //   }
+   //
+   //   public void setColor (float[] frontRgba, float[] backRgba) {
+   //      if (!selectEnabled) {
+   //         if (frontRgba != null) {
+   //            myDrawCurrentColor = frontRgba;
+   //         }
+   //         if (myDrawCurrentColor.length == 3) {
+   //            gl.glColor3fv (myDrawCurrentColor, 0);
+   //         }
+   //         else {
+   //            gl.glColor4fv (myDrawCurrentColor, 0);
+   //         }
+   //      }
+   //   }
+   //
+   //   public void updateColor (float[] frontRgba, float[] backRgba, boolean selected) {
+   //      if (!selectEnabled) {
+   //         float[] c;
+   //         if (selected && myHighlighting == SelectionHighlighting.Color) {
+   //            c = mySelectedColor;
+   //         }
+   //         else {
+   //            c = frontRgba;
+   //         }
+   //         if (myDrawCurrentColor != c) {
+   //            myDrawCurrentColor = c;
+   //            if (myDrawCurrentColor.length == 3) {
+   //               gl.glColor3fv (myDrawCurrentColor, 0);
+   //            }
+   //            else {
+   //               gl.glColor4fv (myDrawCurrentColor, 0);
+   //            }
+   //         }
+   //      }
+   //   }
+   //
+   //   public void setMaterial (
+   //      Material frontMaterial, float[] frontDiffuse,
+   //      Material backMaterial, float[] backDiffuse, boolean selected) {
+   //      if (selected && myHighlighting == SelectionHighlighting.Color) {
+   //         myCurrentFrontMaterial = mySelectedMaterial;
+   //         myCurrentBackMaterial = mySelectedMaterial;
+   //         myCurrentFrontDiffuse = null;
+   //         myCurrentBackDiffuse = null;
+   //         myCurrentFrontMaterial.apply (gl, GL.GL_FRONT_AND_BACK);
+   //      }
+   //      else {
+   //         myCurrentFrontMaterial = frontMaterial;
+   //         myCurrentFrontDiffuse = frontDiffuse;
+   //         myCurrentBackMaterial = backMaterial;
+   //         myCurrentBackDiffuse = backDiffuse;
+   //         myCurrentFrontMaterial.apply (gl, GL.GL_FRONT, frontDiffuse);
+   //         myCurrentBackMaterial.apply (gl, GL.GL_BACK, backDiffuse);
+   //      }
+   //   }
+   //
+   //   public void setMaterialAndShading (
+   //      RenderProps props, Material frontMaterial, float[] frontDiffuse,
+   //      Material backMaterial, float[] backDiffuse, boolean selected) {
+   //
+   //      if (selectEnabled) {
+   //         return;
+   //      }
+   //      Shading shading = props.getShading();
+   //      if (shading == Shading.NONE) {
+   //         setLightingEnabled (false);
+   //         myDrawCurrentColor = null; // ensure color gets set in updateMaterial
+   //         updateMaterial (props, frontMaterial, frontDiffuse, 
+   //            backMaterial, backDiffuse, selected);
+   //      }
+   //      else {
+   //         if (shading != Shading.FLAT) {
+   //            gl.glShadeModel (GL2.GL_SMOOTH);
+   //         }
+   //         myCurrentFrontMaterial = null; // ensure material gets set in updateMaterial
+   //         myCurrentBackMaterial = null;
+   //         myCurrentFrontDiffuse = null;
+   //         myCurrentBackDiffuse = null;
+   //         updateMaterial (props, frontMaterial, frontDiffuse, 
+   //            backMaterial, backDiffuse, selected);
+   //      }
+   //   }
+   //
    public void restoreShading (RenderProps props) {
       if (selectEnabled) {
          return;
@@ -1201,93 +1222,93 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          gl.glShadeModel (GL2.GL_FLAT);
       }      
    }
-
-   @Override
-   public void setShadeModel (Shading shading) {
-
-      if (selectEnabled) {
-         return;
-      }
-
-      super.setShadeModel (shading);
-      if (shading == Shading.NONE) {
-         setLightingEnabled (false);
-      } else {
-         setLightingEnabled(true);
-         if (shading == Shading.FLAT) {
-            gl.glShadeModel (GLLightingFunc.GL_FLAT);
-         } else {
-            gl.glShadeModel (GLLightingFunc.GL_SMOOTH);
-         }
-      }
-   }
-
-   public void updateMaterial (
-      RenderProps props, Material frontMaterial, float[] frontDiffuse, 
-      Material backMaterial, float[] backDiffuse, boolean selected) {
-
-      if (selectEnabled) {
-         return;
-      }
-      if (props.getShading() == Shading.NONE) {
-         float[] cf;
-         if (selected && myHighlighting == SelectionHighlighting.Color) {
-            cf = mySelectedColor;
-         }
-         else if (frontDiffuse != null) {
-            cf = new float[4];
-            cf[0] = frontDiffuse[0];
-            cf[1] = frontDiffuse[1];
-            cf[2] = frontDiffuse[2];
-            cf[3] = (float)props.getAlpha();
-         }
-         else {
-            cf = frontMaterial.getDiffuse();
-         }
-         if (cf != myCurrentColor) {
-            myCurrentColor = cf;
-            if (myCurrentColor.length == 3) {
-               gl.glColor3fv (myCurrentColor, 0);
-            }
-            else {
-               gl.glColor4fv (myCurrentColor, 0);
-            }
-         }
-      }
-      else {
-         Material mf;
-         float[] df;
-         Material mb;
-         float[] db;
-         if (selected && myHighlighting == SelectionHighlighting.Color) {
-            mf = mySelectedMaterial;
-            df = null;
-            mb = mySelectedMaterial;
-            db = null;
-         }
-         else {
-            mf = frontMaterial;
-            df = frontDiffuse;
-            mb = backMaterial;
-            db = backDiffuse;
-         }
-         if (myCurrentFrontMaterial != mf || myCurrentFrontDiffuse != df) {
-            myCurrentFrontMaterial = mf;
-            myCurrentFrontDiffuse = df;
-            myCurrentFrontMaterial.apply (gl, GL.GL_FRONT, df);
-         }
-         if (myCurrentBackMaterial != mb || myCurrentBackDiffuse != db) {
-            myCurrentBackMaterial = mb;
-            myCurrentBackDiffuse = db;
-            myCurrentBackMaterial.apply (gl, GL.GL_BACK, db);
-         }
-      }
-   }
+   //
+   //   @Override
+   //   public void setShadeModel (Shading shading) {
+   //
+   //      if (selectEnabled) {
+   //         return;
+   //      }
+   //
+   //      super.setShadeModel (shading);
+   //      if (shading == Shading.NONE) {
+   //         setLightingEnabled (false);
+   //      } else {
+   //         setLightingEnabled(true);
+   //         if (shading == Shading.FLAT) {
+   //            gl.glShadeModel (GLLightingFunc.GL_FLAT);
+   //         } else {
+   //            gl.glShadeModel (GLLightingFunc.GL_SMOOTH);
+   //         }
+   //      }
+   //   }
+   //
+   //   public void updateMaterial (
+   //      RenderProps props, Material frontMaterial, float[] frontDiffuse, 
+   //      Material backMaterial, float[] backDiffuse, boolean selected) {
+   //
+   //      if (selectEnabled) {
+   //         return;
+   //      }
+   //      if (props.getShading() == Shading.NONE) {
+   //         float[] cf;
+   //         if (selected && myHighlighting == SelectionHighlighting.Color) {
+   //            cf = mySelectedColor;
+   //         }
+   //         else if (frontDiffuse != null) {
+   //            cf = new float[4];
+   //            cf[0] = frontDiffuse[0];
+   //            cf[1] = frontDiffuse[1];
+   //            cf[2] = frontDiffuse[2];
+   //            cf[3] = (float)props.getAlpha();
+   //         }
+   //         else {
+   //            cf = frontMaterial.getDiffuse();
+   //         }
+   //         if (cf != myDrawCurrentColor) {
+   //            myDrawCurrentColor = cf;
+   //            if (myDrawCurrentColor.length == 3) {
+   //               gl.glColor3fv (myDrawCurrentColor, 0);
+   //            }
+   //            else {
+   //               gl.glColor4fv (myDrawCurrentColor, 0);
+   //            }
+   //         }
+   //      }
+   //      else {
+   //         Material mf;
+   //         float[] df;
+   //         Material mb;
+   //         float[] db;
+   //         if (selected && myHighlighting == SelectionHighlighting.Color) {
+   //            mf = mySelectedMaterial;
+   //            df = null;
+   //            mb = mySelectedMaterial;
+   //            db = null;
+   //         }
+   //         else {
+   //            mf = frontMaterial;
+   //            df = frontDiffuse;
+   //            mb = backMaterial;
+   //            db = backDiffuse;
+   //         }
+   //         if (myCurrentFrontMaterial != mf || myCurrentFrontDiffuse != df) {
+   //            myCurrentFrontMaterial = mf;
+   //            myCurrentFrontDiffuse = df;
+   //            myCurrentFrontMaterial.apply (gl, GL.GL_FRONT, df);
+   //         }
+   //         if (myCurrentBackMaterial != mb || myCurrentBackDiffuse != db) {
+   //            myCurrentBackMaterial = mb;
+   //            myCurrentBackDiffuse = db;
+   //            myCurrentBackMaterial.apply (gl, GL.GL_BACK, db);
+   //         }
+   //      }
+   //   }
 
    public void drawSphere (RenderProps props, float[] coords, double r) {
 
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       gl.glPushMatrix();
       gl.glTranslatef (coords[0], coords[1], coords[2]);
@@ -1352,7 +1373,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
       float s = (float)scale;
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       gl.glPushMatrix();
       gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
@@ -1381,7 +1402,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
       float s = (float)scale;
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       gl.glPushMatrix();
       gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
@@ -1413,7 +1434,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
       float s = (float)scale;
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       gl.glPushMatrix();
       gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
@@ -1444,7 +1465,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
       float s = (float)scale;
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       gl.glPushMatrix();
       gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
@@ -1463,7 +1484,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    public void drawTaperedEllipsoid (
       RenderProps props, float[] coords0, float[] coords1) {
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       utmp.set (coords1[0] - coords0[0], coords1[1] - coords0[1], coords1[2]
       - coords0[2]);
@@ -1519,7 +1540,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       double base, double top) {
 
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       // drawing manually like this is 10x faster that gluCylinder, but has
       // no texture coordinates
@@ -1606,7 +1627,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       float[] color, boolean selected) {
 
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       switch (props.getLineStyle()) {
          case LINE: {
@@ -1657,7 +1678,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       boolean selected) {
 
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       utmp.set (coords1[0] - coords0[0], coords1[1] - coords0[1], coords1[2]
       - coords0[2]);
@@ -1733,7 +1754,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    private void drawPrimitives(Iterable<float[]> coords, int glPrimitiveType) {
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       
       gl.glBegin (glPrimitiveType);
       for (float[] p : coords) {
@@ -1744,7 +1765,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    
    private void drawPrimitives(Iterable<float[]> coords, Iterable<float[]> normals, int glPrimitiveType) {
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       gl.glBegin (glPrimitiveType);
       Iterator<float[]> nit = normals.iterator ();
       for (float[] p : coords) {
@@ -1760,7 +1781,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    public void drawPoint (float[] coords) {
 
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       gl.glBegin (GL2.GL_POINTS);
       gl.glVertex3fv (coords, 0);
       gl.glEnd();
@@ -1770,7 +1791,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    public void drawPoint(float[] coords, float[] normal) {
 
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       gl.glBegin (GL2.GL_POINTS);
       gl.glNormal3fv (normal, 0);
@@ -1793,7 +1814,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    public void drawLine(float[] coords0, float[] coords1) {
 
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       gl.glBegin (GL2.GL_LINES);
       gl.glVertex3fv (coords0, 0);
@@ -1805,7 +1826,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    public void drawLine(float[] coords0, float[] normal0, float[] coords1, float[] normal1) {
 
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       gl.glBegin (GL2.GL_LINES);
       gl.glNormal3fv (normal0, 0);
@@ -1837,7 +1858,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    public void drawTriangle (float[] p0, float[] p1, float[] p2) {
       
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       
       float[] normal = new float[3];
       computeNormal (p0, p1, p2, normal);
@@ -1853,7 +1874,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    public void drawTriangle (float[] p0, float[] n0, float[] p1, float[] n1, float[] p2, float[] n2) {
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       gl.glBegin (GL2.GL_TRIANGLES);
       gl.glNormal3fv (n0, 0);
@@ -1869,7 +1890,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    public void drawTriangles (Iterable<float[]> points) {
     
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       Iterator<float[]> pit = points.iterator ();
       float[] normal = new float[3];
@@ -1902,7 +1923,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    public void drawPoint (RenderProps props, float[] coords, boolean selected) {
 
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       switch (props.getPointStyle()) {
          case POINT: {
@@ -1929,7 +1950,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    public void drawSphere (float[] centre, float r) {
 
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       // get sphere display list
       int displayList = myGLResources.getSphereDisplayList(gl, myPointSlices);
@@ -1947,7 +1968,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    public void drawSpheres (Iterable<float[]> centres, float r) {
 
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       int displayList = myGLResources.getSphereDisplayList(gl, myPointSlices);
 
@@ -1967,7 +1988,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       LineStyle style, boolean isSelected) {
 
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       switch (style) {
          case LINE: {
@@ -2024,7 +2045,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    //    GL2Viewer viewer = (GL2Viewer)renderer;
 
    //    GL2 gl = viewer.getGL2();
-   //    viewer.maybeUpdateMatrices(gl);
+   //    viewer.maybeUpdateState(gl);
 
    //    switch (lineStyle) {
    //       case LINE: {
@@ -2075,7 +2096,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       RenderProps props, Iterator<? extends RenderableLine> iterator) {
 
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       LineStyle lineStyle = props.getLineStyle();
       switch (lineStyle) {
@@ -2108,10 +2129,12 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                   RenderableLine line = iterator.next();
                   if (line.getRenderProps() == null) {
                      if (line.getRenderColor() == null) {
-                        updateColor (props.getLineColorArray(),line.isSelected());
+                        float[] c = (line.isSelected () ? mySelectedColor : props.getLineColorArray());
+                        setGLColor (gl, c, 0);
                      }
                      else {
-                        updateColor (line.getRenderColor(),line.isSelected());
+                        float[] c = (line.isSelected () ? mySelectedColor : line.getRenderColor());
+                        setGLColor (gl, c, 0);
                      }
                      gl.glVertex3fv (line.getRenderCoords0(), 0);
                      gl.glVertex3fv (line.getRenderCoords1(), 0);
@@ -2150,9 +2173,8 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
                      }
                   }
                   else {
-                     maspack.render.Material mat = props.getLineMaterial();
-                     updateMaterial (
-                        props, mat, line.getRenderColor(), line.isSelected());
+                     Material mat = props.getLineMaterial();
+                     setMaterial (mat, line.getRenderColor(), line.isSelected());
                      if (lineStyle == LineStyle.ELLIPSOID) {
                         drawTaperedEllipsoid (props, v0, v1);
                      }
@@ -2176,7 +2198,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       RigidTransform3d X, double[] len, int lineWidth, boolean selected) {
 
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       Vector3d u = new Vector3d();
       setLightingEnabled (false);
@@ -2211,7 +2233,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    @Override
    public void drawLines(float[] vertices, int flags) {
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       gl.glBegin(GL2.GL_LINES);
       for (int i=0; i<vertices.length/3; i++) {
          gl.glVertex3fv(vertices, 3*i);
@@ -2397,7 +2419,9 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    @Override
    public GL2 getGL2() {
-      return drawable.getGL().getGL2();
+      GL2 gl = drawable.getGL().getGL2();
+      maybeUpdateState (gl);  // update state for GL
+      return gl;
    }
 
    private boolean setupHSVInterpolation (GL2 gl) {
@@ -2414,7 +2438,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    }
 
    private void setVertexColor (GL2 gl, byte[] color, boolean useHSV) {
-      if (color != null) {
+      if (!isSelecting() && color != null) {
          if (useHSV) {
             float[] myColorBuf = new float[4];
             for (int i=0; i<4; ++i) {
@@ -2435,7 +2459,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    @Override
    public void drawTriangles(RenderObject robj) {
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       if (robj.hasTriangles()) {
          boolean enableLighting = false;
@@ -2445,7 +2469,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          }
 
          boolean selecting = isSelecting();
-         boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
+         boolean useColors = (robj.hasColors() && isVertexColoringEnabled() && !selecting);
          boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
          // if use vertex colors, get them to track glColor
@@ -2640,7 +2664,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    @Override
    public void drawLines(RenderObject robj) {
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       List<int[]> lines = robj.getLines();
 
       if (lines != null) {
@@ -2651,7 +2675,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          }
 
          boolean selecting = isSelecting();
-         boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
+         boolean useColors = (robj.hasColors() && isVertexColoringEnabled() && !selecting);
          boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
          // if use vertex colors, get them to track glColor
@@ -3177,7 +3201,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       List<int[]> lines = robj.getLines();
       
       boolean selecting = isSelecting();
-      boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
+      boolean useColors = (robj.hasColors() && isVertexColoringEnabled() && !selecting);
       boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor
@@ -3303,7 +3327,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    @Override
    public void drawLines(RenderObject robj, LineStyle style, double rad) {
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       switch (style) {
          case LINE: {
@@ -3331,7 +3355,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    @Override
    public void drawPoints(RenderObject robj) {
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       List<int[]> pnts = robj.getPoints();
 
       if (pnts != null) {
@@ -3342,7 +3366,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          }
 
          boolean selecting = isSelecting();
-         boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
+         boolean useColors = (robj.hasColors() && isVertexColoringEnabled() && !selecting);
          boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
          // if use vertex colors, get them to track glColor
@@ -3414,14 +3438,14 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    private void drawSpheres(RenderObject robj, double rad) {
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       List<int[]> pnts = robj.getPoints();
 
       int displayList = myGLResources.getSphereDisplayList(gl, myPointSlices);
 
       boolean selecting = isSelecting();
-      boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
+      boolean useColors = (robj.hasColors() && isVertexColoringEnabled() && !selecting);
       boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor
@@ -3494,7 +3518,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    @Override
    public void drawPoints(RenderObject robj, PointStyle style, double rad) {
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       switch (style) { 
          case POINT: {
@@ -3523,7 +3547,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    @Override
    public void drawVertices(RenderObject robj, VertexDrawMode mode) {
 
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
 
       boolean enableLighting = false;
       if (isLightingEnabled() && !robj.hasNormals()) {
@@ -3532,7 +3556,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       }
 
       boolean selecting = isSelecting();
-      boolean useColors = (robj.hasColors() && isVertexColoringEnabled());
+      boolean useColors = (robj.hasColors() && isVertexColoringEnabled() && !selecting);
       boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor
@@ -3699,58 +3723,123 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    }
 
    protected void ensureDrawDataCapacity () {
-      if (myVertexIdx == myDrawDataDataCap) {
+      if (myDrawVertexIdx == myDrawDataCap) {
          // equality test works because cap is a multiple of 3
-         int cap = myDrawDataDataCap;
+         int cap = myDrawDataCap;
          if (cap == 0) {
-            cap = 3000;
-            myVertexData = new float[cap];
-            myNormalData = new float[cap];
+            cap = 1000;
+            myDrawVertexData = new float[3*cap];
+            if (myDrawHasNormalData) {
+               myDrawNormalData = new float[3*cap];
+            }
+            if (myDrawHasColorData) {
+               myDrawColorData = new float[4*cap];
+            }
          }
          else {
-            cap = 3*(cap/2); // make sure cap is a multiple of 3
-            myVertexData = Arrays.copyOf (myVertexData, cap);
-            myNormalData = Arrays.copyOf (myNormalData, cap);
+            cap = (int)(cap*1.5); // make sure cap is a multiple of 3
+            myDrawVertexData = Arrays.copyOf (myDrawVertexData, 3*cap);
+            if (myDrawHasNormalData) {
+               myDrawNormalData = Arrays.copyOf (myDrawNormalData, 3*cap);
+            }
+            if (myDrawHasColorData) {
+               myDrawColorData = Arrays.copyOf (myDrawColorData, 4*cap);
+            }
          }
-         myDrawDataDataCap = cap;
+         myDrawDataCap = cap;
       }
    }      
 
+   /**
+    * Returns either Selected (if selected color is currently active)
+    * or the current material's diffuse color otherwise
+    * @return
+    */
+   private float[] getCurrentColor() {
+      if (mySelectedColorActive) {
+         return mySelectedColor;
+      } else {
+         return myCurrentMaterial.getDiffuse();
+      }
+   }
+   
    @Override
    public void beginDraw (VertexDrawMode mode) {
+      GL2 gl = getGL2();
+      maybeUpdateState (gl);
       if (myDrawMode != null) {
          throw new IllegalStateException (
             "beginDraw() called while inside beginDraw() block");
       }
       myDrawMode = mode;
-      myVertexIdx = 0;
-      myHasNormalData = false;
+      myDrawVertexIdx = 0;
+      myDrawHasNormalData = false;
+      myDrawHasColorData = false;
+      
+      myDrawCurrentColor = Arrays.copyOf (getCurrentColor(), 4);
    }
 
+   // call gl.glColor(...) only if not in selection mode
+   private void setGLColor(GL2 gl, float[] c, int offset) {
+      if (!isSelecting ()) {
+         if (c.length == 4) {
+            gl.glColor4fv (c, offset);
+         } else {
+            gl.glColor3fv (c, offset);
+         }
+      }
+   }
+   
    @Override
    public void addVertex (float x, float y, float z) {
       ensureDrawDataCapacity();
-      if (myHasNormalData) {
-         myNormalData[myVertexIdx  ] = myCurrentNormal[0];
-         myNormalData[myVertexIdx+1] = myCurrentNormal[1];
-         myNormalData[myVertexIdx+2] = myCurrentNormal[2];
+      
+      // check if we need colors
+      if (!myDrawHasColorData && myCurrentMaterialModified) {
+         // we need to store colors
+         myDrawHasColorData = true;
+         myDrawColorData = new float[4*myDrawDataCap];
+         int cidx = 0;
+         // back-fill colors
+         for (int i=0; i<myDrawVertexIdx; ++i) {
+            myDrawColorData[cidx++] = myDrawCurrentColor[0];
+            myDrawColorData[cidx++] = myDrawCurrentColor[1];
+            myDrawColorData[cidx++] = myDrawCurrentColor[2];
+            myDrawColorData[cidx++] = myDrawCurrentColor[3];
+         }
       }
-      myVertexData[myVertexIdx++] = x;
-      myVertexData[myVertexIdx++] = y;
-      myVertexData[myVertexIdx++] = z;
+      
+      int vbase = 3*myDrawVertexIdx;
+      if (myDrawHasNormalData) {
+         myDrawNormalData[vbase  ] = myDrawCurrentNormal[0];
+         myDrawNormalData[vbase+1] = myDrawCurrentNormal[1];
+         myDrawNormalData[vbase+2] = myDrawCurrentNormal[2];
+      }
+      if (myDrawHasColorData) {
+         int cbase = 4*myDrawVertexIdx;
+         myDrawCurrentColor = getCurrentColor ();
+         myDrawColorData[cbase  ] = myDrawCurrentColor[0];
+         myDrawColorData[cbase+1] = myDrawCurrentColor[1];
+         myDrawColorData[cbase+2] = myDrawCurrentColor[2];
+         myDrawColorData[cbase+2] = myDrawCurrentColor[3];
+      }
+      myDrawVertexData[vbase] = x;
+      myDrawVertexData[++vbase] = y;
+      myDrawVertexData[++vbase] = z;
+      ++myDrawVertexIdx;
    }
 
    @Override
    public void setNormal (float x, float y, float z) {
-      myCurrentNormal[0] = x;
-      myCurrentNormal[1] = y;
-      myCurrentNormal[2] = z;
-      if (!myHasNormalData) {
+      myDrawCurrentNormal[0] = x;
+      myDrawCurrentNormal[1] = y;
+      myDrawCurrentNormal[2] = z;
+      if (!myDrawHasNormalData) {
          // back-fill previous normal data
-         for (int i=0; i<myVertexIdx; i++) {
-            myNormalData[i] = 0f;
+         for (int i=0; i<myDrawVertexIdx; i++) {
+            myDrawNormalData[i] = 0f;
          }
-         myHasNormalData = true;
+         myDrawHasNormalData = true;
       }
    }
 
@@ -3761,46 +3850,50 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             "endDraw() called before call to beginDraw()");
       }
       GL2 gl = getGL2();
-      maybeUpdateMatrices(gl);
+      maybeUpdateState(gl);
       gl.glBegin (getDrawPrimitive (myDrawMode));
-      if (myHasNormalData) {
-         for (int i=0; i<myVertexIdx; i += 3) {
-            gl.glNormal3fv (myNormalData, i);
-            gl.glVertex3fv (myVertexData, i);
+      
+      if (myDrawHasColorData && myDrawHasNormalData) {
+         int cidx = 0;
+         int vidx = 0;
+         for (int i=0; i<myDrawVertexIdx; ++i) {
+            setGLColor(gl, myDrawColorData, cidx);
+            gl.glNormal3fv (myDrawNormalData, vidx);
+            gl.glVertex3fv (myDrawVertexData, vidx);
+            cidx += 4;
+            vidx += 3;
          }
-      }
-      else {
-         for (int i=0; i<myVertexIdx; i += 3) {
-            gl.glVertex3fv (myVertexData, i);
+      } else if (myDrawHasColorData){
+         int cidx = 0;
+         int vidx = 0;
+         for (int i=0; i<myDrawVertexIdx; ++i) {
+            setGLColor(gl, myDrawColorData, cidx);
+            gl.glVertex3fv (myDrawVertexData, vidx);
+            cidx += 4;
+            vidx += 3;
+         }
+      } else if (myDrawHasNormalData) {
+         int vidx = 0;
+         for (int i=0; i<myDrawVertexIdx; ++i) {
+            gl.glNormal3fv (myDrawNormalData, vidx);
+            gl.glVertex3fv (myDrawVertexData, vidx);
+            vidx += 3;
+         }
+      } else {
+         int vidx = 0;
+         for (int i=0; i<myDrawVertexIdx; ++i) {
+            gl.glVertex3fv (myDrawVertexData, vidx);
+            vidx += 3;
          }
       }
       gl.glEnd();
       myDrawMode = null;
+      
+      myDrawDataCap = 0;
+      myDrawVertexData = null;
+      myDrawNormalData = null;
+      myDrawColorData = null;
    }
    
-   public void setMaterial (float[] diffuse, float ambience) {
-      super.setMaterial (diffuse, ambience);
-      if (diffuse.length < 4) {
-         gl.glColor3fv (diffuse, 0);
-      }
-      else {
-         gl.glColor4fv (diffuse, 0);
-      }
-   }      
-   
-   public void setMaterial (
-      float[] diffuse, float[] back, 
-      float ambience, float shininess, boolean selected) {
-      super.setMaterial (diffuse, back, ambience, shininess, selected);
-      if (selected && myHighlighting == SelectionHighlighting.Color) {
-         diffuse = mySelectedColor;
-      }
-      if (diffuse.length < 4) {
-         gl.glColor3fv (diffuse, 0);
-      }
-      else {
-         gl.glColor4fv (diffuse, 0);
-      }     
-   }
 }
 

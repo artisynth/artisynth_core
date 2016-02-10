@@ -101,63 +101,7 @@ public interface Renderer {
     * renderer, rather than calling GL directly, is so that the renderer can
     * discard the request when performing a selection render.
     */
-   public void setLightingEnabled (boolean enable);
-
-   public void setColor (float[] rgb, boolean selected);
-   
-   public void setColor (float[] frontRgba, float[] backRgba, boolean selected);
-
-   public void setColor (float[] rgb);
-   
-   public void setColor (float[] frontRgba, float[] backRgba);
-
-   public void setColor (Color color);
-   
-   public void setColor (Color frontColor, Color backColor);
-
-   public void updateColor (float[] rgba, boolean selected);
-   
-   public void updateColor (float[] frontRgba, float[] backRgba, boolean selected);
-
-   public void setColor (float r, float g, float b);
-
-   public void setColor (float r, float g, float b, float a);
-
-   public void setMaterial (Material material, boolean selected);
-   
-   public void setMaterial (Material material, float[] diffuseColor,
-      boolean selected);
-   
-   public void setMaterial (Material frontMaterial, float[] frontDiffuse,
-      Material backMaterial, float[] backDiffuse, 
-      boolean selected);
-
-   public void setMaterialAndShading (
-      RenderProps props, Material mat, boolean selected);
-   
-   public void setMaterialAndShading (
-      RenderProps props, Material mat, float[] diffuseColor, boolean selected);
-   
-   public void setMaterialAndShading (
-      RenderProps props, Material frontMaterial, float[] frontDiffuse,
-      Material backMaterial, float[] backDiffuse, 
-      boolean selected);
-   
-   public void restoreShading (RenderProps props);
-   
-   public Shading getShadeModel();
-   
-   public void setShadeModel(Shading shading);
-
-   public void updateMaterial (
-      RenderProps props, Material material, boolean selected);
-   
-   public void updateMaterial (
-      RenderProps props, Material mat, float[] diffuseColor, boolean selected);
-   
-   public void updateMaterial (
-      RenderProps props, Material frontMaterial, float[] frontDiffuse, 
-      Material backMaterial, float[] backDiffuse, boolean selected);
+   public void setLightingEnabled (boolean enable);   
 
    public void drawSphere (RenderProps props, float[] coords);
    
@@ -279,6 +223,121 @@ public interface Renderer {
     */
    public boolean is2DRendering();
 
+   //===============================================================================
+   // COLORS and Materials
+   //===============================================================================
+   
+   /**
+    * Main material color (diffuse/ambient)
+    * @param rgba
+    * @param rgba
+    * @param selected
+    */
+   public void setColor (float[] rgba, boolean selected);
+   
+   /**
+    * Main material color (diffuse/ambient)
+    * @param frontRgba
+    * @param backRgba
+    * @param selected
+    */
+   public void setColor (float[] frontRgba, float[] backRgba, boolean selected);
+
+   /**
+    * Main material color (diffuse/ambient), assumes not selected
+    * @param rgb
+    */
+   public void setColor (float[] rgba);
+   public void setColor (float r, float g, float b);
+   public void setColor (float r, float g, float b, float a);
+   public void setColor (Color color);
+   public void setColor (float[] frontRgba, float[] backRgba);
+   public void setColor (Color frontColor, Color backColor);
+
+   public void setFrontColor(float[] rgba);
+   public void setBackColor(float[] rgba);
+   public void setEmission(float[] rgb);
+   public void setSpecular(float[] rgb);
+   public void setShininess(float s);
+   public void setAlpha(float a);
+   
+   /**
+    * Set material using just a single color, according to
+    *   diffuse/ambient = color
+    *   shininess = default value
+    *   emission = default value
+    *   specular = default value
+    *   backColor = null
+    *
+    * For now, let's call these methods setMaterial() to disambiguate
+    * from the various setColor() methods that are already present.
+    */
+   void setMaterial (float[] rgba);
+   
+   public void setMaterial (
+      float[] frontRgba, float[] backRgba, float shininess, boolean selected); 
+   
+   /**
+    * Set current material to correspond to the indicated RenderProps
+    * color, *or* to the selection material if selected is true and color
+    * selection is enabled. The following formula is used:
+    *
+    *   diffuse/ambient = props.color
+    *   shininess = props.shininess;
+    *   emission = default value
+    *   specular = default value
+    *   backColor = null (except for setFaceMaterial())
+    * setEdgeMaterial() will use lineColor if edgeColor == null
+    * setFaceMaterial() will set backColor, either to
+    * null or to backColor, depending on whether backColor == null.
+    */
+   public void setPointLighting (RenderProps props, boolean selected);
+   
+   public void setLineLighting (RenderProps props, boolean selected);
+   
+   public void setEdgeLighting (RenderProps props, boolean selected);
+   
+   public void setFaceLighting (RenderProps props, boolean selected);
+      
+   
+   
+   // XXX will these be in use?
+   public void setMaterial (Material material, boolean selected);
+   
+   public void setMaterial (Material material, float[] diffuseColor,
+      boolean selected);
+   
+   public void setMaterial (Material frontMaterial, float[] frontDiffuse,
+      Material backMaterial, float[] backDiffuse, 
+      boolean selected);
+
+   public void setMaterialAndShading (
+      RenderProps props, Material mat, boolean selected);
+   
+   public void setMaterialAndShading (
+      RenderProps props, Material mat, float[] diffuseColor, boolean selected);
+   
+   public void setMaterialAndShading (
+      RenderProps props, Material frontMaterial, float[] frontDiffuse,
+      Material backMaterial, float[] backDiffuse, 
+      boolean selected);
+   
+   public void restoreShading (RenderProps props);
+   
+   public Shading getShadeModel();
+   
+   public void setShadeModel(Shading shading);
+
+   public void updateMaterial (
+      RenderProps props, Material material, boolean selected);
+   
+   public void updateMaterial (
+      RenderProps props, Material mat, float[] diffuseColor, boolean selected);
+   
+   public void updateMaterial (
+      RenderProps props, Material frontMaterial, float[] frontDiffuse, 
+      Material backMaterial, float[] backDiffuse, boolean selected);
+   
    //===============================================================================
    // BASIC PRIMITIVE DRAWING
    //===============================================================================
@@ -502,19 +561,4 @@ public interface Renderer {
 
    public void endDraw();
    
-   public void setMaterial (float[] diffuse);
-   
-   public void setMaterial (float[] diffuse, float ambience);
-   
-   public void setMaterial (
-      float[] diffuse, float[] back, 
-      float ambience, float shininess, boolean selected); 
-   
-   public void setLineLighting (RenderProps props, boolean selected);
-   
-   public void setPointLighting (RenderProps props, boolean selected);
-   
-   public void setEdgeLighting (RenderProps props, boolean selected);
-   
-   public void setFaceLighting (RenderProps props, boolean selected);
 }

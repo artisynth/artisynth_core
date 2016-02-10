@@ -855,7 +855,7 @@ public class GL3Viewer extends GLViewer {
       translateModelMatrix(coords[0], coords[1], coords[2]);
       scaleModelMatrix(r);
 
-      updateMatrices(gl);
+      maybeUpdateState (gl);
 
       int nslices = props.getPointSlices();
       GL3Object sphere = myGLResources.getSphere(gl, nslices, (int)Math.ceil(nslices/2));
@@ -1107,7 +1107,7 @@ public class GL3Viewer extends GLViewer {
          updateMatrices(gl); // guarantee update uniforms
          scaled = true;
       }
-      maybeUpdateState(gl);
+      maybeUpdateState (gl);
 
       // vertex/normal for each vertex, 6 verts per quad, 3 per tri
       final PositionBufferPutter posPutter = PositionBufferPutter.createDefault();
@@ -1172,7 +1172,7 @@ public class GL3Viewer extends GLViewer {
       mulModelMatrix(lineRot);
       scaleModelMatrix(r, r, len);
 
-      updateMatrices(gl);
+      maybeUpdateState(gl);
 
       int nslices = props.getPointSlices();
       GL3Object ellipsoid = myGLResources.getTaperedEllipsoid(gl, nslices, (int)Math.ceil(nslices/2));
@@ -1200,7 +1200,7 @@ public class GL3Viewer extends GLViewer {
       double len = Math.sqrt(dx*dx+dy*dy+dz*dz);
       scaleModelMatrix(r,r,len);
 
-      updateMatrices(gl);
+      maybeUpdateState(gl);
 
       int nslices = props.getPointSlices();
       GL3Object cylinder = myGLResources.getCylinder(gl, nslices, capped);
@@ -1230,7 +1230,7 @@ public class GL3Viewer extends GLViewer {
       mulModelMatrix(lineRot);
       scaleModelMatrix(r,r,len);
 
-      updateMatrices(gl);
+      maybeUpdateState(gl);
 
       int nslices = props.getPointSlices();
       GL3Object cone = myGLResources.getCone(gl, nslices, capped);
@@ -1423,7 +1423,7 @@ public class GL3Viewer extends GLViewer {
       // scale and translate model matrix
       mulModelMatrix(lineRot);
       scaleModelMatrix(r, r, len-arrowLen);
-      updateMatrices(gl);
+      maybeUpdateState(gl);
 
       GL3Object cylinder = myGLResources.getCylinder(gl, nslices, capped);
       cylinder.draw(gl, getRegularProgram(gl));
@@ -1435,7 +1435,7 @@ public class GL3Viewer extends GLViewer {
       lineRot.setTranslation(coordsMid[0], coordsMid[1], coordsMid[2]);
       mulModelMatrix(lineRot);
       scaleModelMatrix(arrowRad, arrowRad, arrowLen);
-      updateMatrices(gl);
+      maybeUpdateState(gl);
 
       GL3Object cone = myGLResources.getCone(gl, nslices, capped);
       cone.draw(gl, getRegularProgram(gl));
@@ -1565,7 +1565,7 @@ public class GL3Viewer extends GLViewer {
       pushModelMatrix();
 
       scaleModelMatrix(len);
-      updateMatrices(gl);
+      maybeUpdateState(gl);
 
       GL3Object axes = myGLResources.getAxes(gl, true, true, true);
       if (selectEnabled) {
@@ -1613,7 +1613,7 @@ public class GL3Viewer extends GLViewer {
 
       mulModelMatrix(X);
       scaleModelMatrix(lx, ly, lz);
-      updateMatrices(gl);
+      maybeUpdateState(gl);
 
       gl.glLineWidth (lineWidth);
 

@@ -15,7 +15,7 @@ import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLViewer;
 import maspack.util.*;
 
-public abstract class DrawToolBase extends DragToolBase implements Dragger3d {
+public abstract class DrawToolBase extends DragToolBase {
 
    protected boolean myVisibleP;
    protected GLViewer myViewer;

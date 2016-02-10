@@ -12,7 +12,7 @@ import maspack.util.Round;
 
 import java.util.LinkedList;
 
-public abstract class Dragger3dBase extends DragToolBase implements Dragger3d {
+public abstract class Dragger3dBase extends DragToolBase {
    protected RigidTransform3d myXDraggerToWorld;
    //protected boolean mySelectedP;
    protected boolean myVisibleP;

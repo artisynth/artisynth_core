@@ -9,7 +9,6 @@ package maspack.render.GL.GL2;
 
 import java.awt.event.MouseWheelListener;
 import java.io.File;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -118,18 +117,6 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    protected float lmodel_ambient[] = { 0.0f, 0.0f, 0.0f, 0.0f };
    protected float lmodel_twoside[] = { 0.0f, 0.0f, 0.0f, 0.0f };
    protected float lmodel_local[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-   // data for "drawMode"
-   protected VertexDrawMode myDrawMode = null;
-   protected boolean myDrawHasNormalData = false;
-   protected boolean myDrawHasColorData = false;
-   protected int myDrawVertexIdx = 0;
-   protected float[] myDrawCurrentNormal = new float[3];
-   protected float[] myDrawCurrentColor = new float[4];
-   protected int myDrawDataCap = 0;
-   protected float[] myDrawVertexData = null;
-   protected float[] myDrawNormalData = null;
-   protected float[] myDrawColorData = null;
 
    public static PropertyList myProps = new PropertyList (GL2Viewer.class, GLViewer.class);
 
@@ -448,12 +435,12 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       gl.glLightModelfv (GL2.GL_LIGHT_MODEL_AMBIENT, lmodel_ambient, 0);
       gl.glLightModelf (GL2.GL_LIGHT_MODEL_TWO_SIDE, 1);
       gl.glEnable (GL2.GL_LIGHTING);
-      
+
       gl.glEnable (GL2.GL_NORMALIZE);  // normalize normals
-      
+
       gl.glHint(GL2.GL_POINT_SMOOTH_HINT, GL2.GL_FASTEST);
       gl.glDisable (GL2.GL_POINT_SMOOTH);  // disable smooth points
-      
+
       setLightingEnabled(true);
       setDepthEnabled(true);
       setColorEnabled(true);
@@ -1003,7 +990,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    //      gl.glLoadMatrixd (GLMatrix, 0);
    //      gl.glMatrixMode (GL2.GL_MODELVIEW);
    //   }
- 
+
    /**
     * Potentially update GL state (matrices, lights, materials, etc...)
     * @param gl
@@ -1012,9 +999,9 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       maybeUpdateMatrices (gl);
       maybeUpdateMaterials(gl);
    }
-   
+
    public void maybeUpdateMaterials(GL2 gl) {
-      
+
       // only update if not selecting
       if (myCurrentMaterialModified && !isSelecting()) {
          // set all colors
@@ -1031,7 +1018,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          myCurrentMaterialModified = false; // reset flag since state is now updated
       }
    }
-   
+
    // Made public for debugging purposes
    public void maybeUpdateMatrices(GL2 gl) {
 
@@ -1418,7 +1405,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       setTriangle (gl, v0, v2, v1);
       setTriangle (gl, v3, v4, v5);
       gl.glEnd ();
-      
+
       gl.glPopMatrix();
 
    }
@@ -1450,7 +1437,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       setTriangle (gl, v2, v3, v4);
       setTriangle (gl, v3, v0, v4);
       gl.glEnd ();
-      
+
       gl.glPopMatrix();
 
    }
@@ -1755,14 +1742,14 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    private void drawPrimitives(Iterable<float[]> coords, int glPrimitiveType) {
       GL2 gl = getGL2();
       maybeUpdateState(gl);
-      
+
       gl.glBegin (glPrimitiveType);
       for (float[] p : coords) {
          gl.glVertex3fv (p, 0);
       }
       gl.glEnd();
    }
-   
+
    private void drawPrimitives(Iterable<float[]> coords, Iterable<float[]> normals, int glPrimitiveType) {
       GL2 gl = getGL2();
       maybeUpdateState(gl);
@@ -1776,7 +1763,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       gl.glEnd();
 
    }
-   
+
    @Override
    public void drawPoint (float[] coords) {
 
@@ -1848,7 +1835,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    public void drawLineStrip(Iterable<float[]> coords, Iterable<float[]> normals) {
       drawPrimitives (coords,  normals, GL2.GL_LINE_STRIP);
    }
-   
+
    /**
     * Draw triangular faces, using the current Shading, lighting and
     * material, and computing a single "face" normal from the coordinates
@@ -1856,20 +1843,20 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
     * Shading.NONE).
     */
    public void drawTriangle (float[] p0, float[] p1, float[] p2) {
-      
+
       GL2 gl = getGL2();
       maybeUpdateState(gl);
-      
+
       float[] normal = new float[3];
       computeNormal (p0, p1, p2, normal);
-      
+
       gl.glBegin (GL2.GL_TRIANGLES);
       gl.glNormal3fv (normal, 0);
       gl.glVertex3fv (p0, 0);
       gl.glVertex3fv (p1, 0);
       gl.glVertex3fv (p2, 0);
       gl.glEnd ();
-      
+
    }
 
    public void drawTriangle (float[] p0, float[] n0, float[] p1, float[] n1, float[] p2, float[] n2) {
@@ -1884,31 +1871,31 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       gl.glNormal3fv (n2, 0);
       gl.glVertex3fv (p2, 0);
       gl.glEnd ();
-      
+
    }
 
    public void drawTriangles (Iterable<float[]> points) {
-    
+
       GL2 gl = getGL2();
       maybeUpdateState(gl);
 
       Iterator<float[]> pit = points.iterator ();
       float[] normal = new float[3];
-      
+
       gl.glBegin (GL2.GL_TRIANGLES);
       while (pit.hasNext ()) {
          float[] p0 = pit.next ();
          float[] p1 = pit.next ();
          float[] p2 = pit.next ();
          computeNormal (p0, p1, p2, normal);
-         
+
          gl.glNormal3fv (normal, 0);
          gl.glVertex3fv (p0, 0);
          gl.glVertex3fv (p1, 0);
          gl.glVertex3fv (p2, 0);
       }
       gl.glEnd ();
-      
+
    }
 
    public void drawTriangles (Iterable<float[]> points, Iterable<float[]> normals) {
@@ -2453,6 +2440,17 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          else {
             gl.glColor4ub (
                color[0], color[1], color[2], color[3]);
+         }
+      }
+   }
+
+   // call gl.glColor(...) only if not in selection mode
+   private void setGLColor(GL2 gl, float[] c, int offset) {
+      if (!isSelecting ()) {
+         if (c.length == 4) {
+            gl.glColor4fv (c, offset);
+         } else {
+            gl.glColor3fv (c, offset);
          }
       }
    }
@@ -3199,7 +3197,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    private void drawSolidLines(RenderObject robj, LineStyle style, float rad) {
       List<int[]> lines = robj.getLines();
-      
+
       boolean selecting = isSelecting();
       boolean useColors = (robj.hasColors() && isVertexColoringEnabled() && !selecting);
       boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
@@ -3722,178 +3720,46 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       return list;
    }
 
-   protected void ensureDrawDataCapacity () {
-      if (myDrawVertexIdx == myDrawDataCap) {
-         // equality test works because cap is a multiple of 3
-         int cap = myDrawDataCap;
-         if (cap == 0) {
-            cap = 1000;
-            myDrawVertexData = new float[3*cap];
-            if (myDrawHasNormalData) {
-               myDrawNormalData = new float[3*cap];
-            }
-            if (myDrawHasColorData) {
-               myDrawColorData = new float[4*cap];
-            }
-         }
-         else {
-            cap = (int)(cap*1.5); // make sure cap is a multiple of 3
-            myDrawVertexData = Arrays.copyOf (myDrawVertexData, 3*cap);
-            if (myDrawHasNormalData) {
-               myDrawNormalData = Arrays.copyOf (myDrawNormalData, 3*cap);
-            }
-            if (myDrawHasColorData) {
-               myDrawColorData = Arrays.copyOf (myDrawColorData, 4*cap);
-            }
-         }
-         myDrawDataCap = cap;
-      }
-   }      
-
-   /**
-    * Returns either Selected (if selected color is currently active)
-    * or the current material's diffuse color otherwise
-    * @return
-    */
-   private float[] getCurrentColor() {
-      if (mySelectedColorActive) {
-         return mySelectedColor;
-      } else {
-         return myCurrentMaterial.getDiffuse();
-      }
-   }
-   
-   @Override
-   public void beginDraw (VertexDrawMode mode) {
-      GL2 gl = getGL2();
-      maybeUpdateState (gl);
-      if (myDrawMode != null) {
-         throw new IllegalStateException (
-            "beginDraw() called while inside beginDraw() block");
-      }
-      myDrawMode = mode;
-      myDrawVertexIdx = 0;
-      myDrawHasNormalData = false;
-      myDrawHasColorData = false;
-      
-      myDrawCurrentColor = Arrays.copyOf (getCurrentColor(), 4);
-   }
-
-   // call gl.glColor(...) only if not in selection mode
-   private void setGLColor(GL2 gl, float[] c, int offset) {
-      if (!isSelecting ()) {
-         if (c.length == 4) {
-            gl.glColor4fv (c, offset);
-         } else {
-            gl.glColor3fv (c, offset);
-         }
-      }
-   }
-   
-   @Override
-   public void addVertex (float x, float y, float z) {
-      ensureDrawDataCapacity();
-      
-      // check if we need colors
-      if (!myDrawHasColorData && myCurrentMaterialModified) {
-         // we need to store colors
-         myDrawHasColorData = true;
-         myDrawColorData = new float[4*myDrawDataCap];
-         int cidx = 0;
-         // back-fill colors
-         for (int i=0; i<myDrawVertexIdx; ++i) {
-            myDrawColorData[cidx++] = myDrawCurrentColor[0];
-            myDrawColorData[cidx++] = myDrawCurrentColor[1];
-            myDrawColorData[cidx++] = myDrawCurrentColor[2];
-            myDrawColorData[cidx++] = myDrawCurrentColor[3];
-         }
-      }
-      
-      int vbase = 3*myDrawVertexIdx;
-      if (myDrawHasNormalData) {
-         myDrawNormalData[vbase  ] = myDrawCurrentNormal[0];
-         myDrawNormalData[vbase+1] = myDrawCurrentNormal[1];
-         myDrawNormalData[vbase+2] = myDrawCurrentNormal[2];
-      }
-      if (myDrawHasColorData) {
-         int cbase = 4*myDrawVertexIdx;
-         myDrawCurrentColor = getCurrentColor ();
-         myDrawColorData[cbase  ] = myDrawCurrentColor[0];
-         myDrawColorData[cbase+1] = myDrawCurrentColor[1];
-         myDrawColorData[cbase+2] = myDrawCurrentColor[2];
-         myDrawColorData[cbase+2] = myDrawCurrentColor[3];
-      }
-      myDrawVertexData[vbase] = x;
-      myDrawVertexData[++vbase] = y;
-      myDrawVertexData[++vbase] = z;
-      ++myDrawVertexIdx;
-   }
-
-   @Override
-   public void setNormal (float x, float y, float z) {
-      myDrawCurrentNormal[0] = x;
-      myDrawCurrentNormal[1] = y;
-      myDrawCurrentNormal[2] = z;
-      if (!myDrawHasNormalData) {
-         // back-fill previous normal data
-         for (int i=0; i<myDrawVertexIdx; i++) {
-            myDrawNormalData[i] = 0f;
-         }
-         myDrawHasNormalData = true;
-      }
-   }
-
-   @Override
-   public void endDraw() {
-      if (myDrawMode == null) {
-         throw new IllegalStateException (
-            "endDraw() called before call to beginDraw()");
-      }
+   protected void doDraw(VertexDrawMode drawMode, int numVertices, float[] vertexData, boolean hasNormalData, float[] normalData, boolean hasColorData, float[] colorData) {
       GL2 gl = getGL2();
       maybeUpdateState(gl);
-      gl.glBegin (getDrawPrimitive (myDrawMode));
-      
-      if (myDrawHasColorData && myDrawHasNormalData) {
+      gl.glBegin (getDrawPrimitive(drawMode));
+
+      if (hasNormalData && hasColorData) {
          int cidx = 0;
          int vidx = 0;
-         for (int i=0; i<myDrawVertexIdx; ++i) {
-            setGLColor(gl, myDrawColorData, cidx);
-            gl.glNormal3fv (myDrawNormalData, vidx);
-            gl.glVertex3fv (myDrawVertexData, vidx);
+         for (int i=0; i<numVertices; ++i) {
+            setGLColor(gl, colorData, cidx);
+            gl.glNormal3fv (normalData, vidx);
+            gl.glVertex3fv (vertexData, vidx);
             cidx += 4;
             vidx += 3;
          }
-      } else if (myDrawHasColorData){
+      } else if (hasColorData){
          int cidx = 0;
          int vidx = 0;
-         for (int i=0; i<myDrawVertexIdx; ++i) {
-            setGLColor(gl, myDrawColorData, cidx);
-            gl.glVertex3fv (myDrawVertexData, vidx);
+         for (int i=0; i<numVertices; ++i) {
+            setGLColor(gl, colorData, cidx);
+            gl.glVertex3fv (vertexData, vidx);
             cidx += 4;
             vidx += 3;
          }
-      } else if (myDrawHasNormalData) {
+      } else if (hasNormalData) {
          int vidx = 0;
-         for (int i=0; i<myDrawVertexIdx; ++i) {
-            gl.glNormal3fv (myDrawNormalData, vidx);
-            gl.glVertex3fv (myDrawVertexData, vidx);
+         for (int i=0; i<numVertices; ++i) {
+            gl.glNormal3fv (normalData, vidx);
+            gl.glVertex3fv (vertexData, vidx);
             vidx += 3;
          }
       } else {
          int vidx = 0;
-         for (int i=0; i<myDrawVertexIdx; ++i) {
-            gl.glVertex3fv (myDrawVertexData, vidx);
+         for (int i=0; i<numVertices; ++i) {
+            gl.glVertex3fv (vertexData, vidx);
             vidx += 3;
          }
       }
       gl.glEnd();
-      myDrawMode = null;
-      
-      myDrawDataCap = 0;
-      myDrawVertexData = null;
-      myDrawNormalData = null;
-      myDrawColorData = null;
    }
-   
+
 }
 

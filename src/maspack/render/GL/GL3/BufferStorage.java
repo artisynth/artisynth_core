@@ -76,6 +76,7 @@ public class BufferStorage {
    static BufferStorage FLOAT = new BufferStorage(StorageType.FLOAT, 1, 1*GLSupport.FLOAT_SIZE, false);
    static BufferStorage FLOAT_2 = new BufferStorage(StorageType.FLOAT, 2, 2*GLSupport.FLOAT_SIZE, false);
    static BufferStorage FLOAT_3 = new BufferStorage(StorageType.FLOAT, 3, 3*GLSupport.FLOAT_SIZE, false);
+   static BufferStorage FLOAT_3_N = new BufferStorage(StorageType.FLOAT, 3, 3*GLSupport.FLOAT_SIZE, true);
    static BufferStorage FLOAT_4 = new BufferStorage(StorageType.FLOAT, 4, 4*GLSupport.FLOAT_SIZE, false);
    
    // packed formats

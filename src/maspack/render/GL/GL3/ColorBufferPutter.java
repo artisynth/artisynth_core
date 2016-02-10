@@ -18,6 +18,14 @@ public abstract class ColorBufferPutter {
       putColor(buff, color[offset], color[offset+1], color[offset+2], color[offset+3]);
    }
    
+   public void putColor(ByteBuffer buff, float[] color, int offset) {
+      byte r = (byte)(color[offset++]*255);
+      byte g = (byte)(color[offset++]*255);
+      byte b = (byte)(color[offset++]*255);
+      byte a = (byte)(color[offset]*255);
+      putColor(buff, r,g,b,a);
+   }
+   
    public void putColors(ByteBuffer buff, byte[] colors) {
       for (int i=0; i<colors.length-2; i+=3) {
          putColor(buff, colors, i);

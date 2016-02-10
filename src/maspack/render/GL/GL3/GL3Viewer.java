@@ -80,13 +80,11 @@ public class GL3Viewer extends GLViewer {
    private boolean grabWaitComplete = false; // wait
    private boolean grabClose = false;        // clean up
 
-   // data for "drawMode"
-   int myVertexCap;
-   int myNumVertices;
-   VertexDrawMode myDrawMode;
-   ByteBuffer myDrawBuffer;
-   protected float[] myCurrentNormal = new float[3];
-
+   // buffer filling
+   PositionBufferPutter DEFAULT_POSITON_PUTTER = PositionBufferPutter.createDefault ();
+   NormalBufferPutter DEFAULT_NORMAL_PUTTER = NormalBufferPutter.createDefault ();
+   ColorBufferPutter DEFAULT_COLOR_PUTTER = ColorBufferPutter.createDefault ();
+  
    /**
     * Creates a new GLViewer with default capabilities.
     * 
@@ -866,7 +864,8 @@ public class GL3Viewer extends GLViewer {
       popModelMatrix();
    }
 
-   private void addVertex(float[] v, float nx, float ny, float nz, ByteBuffer buff, PositionBufferPutter posPutter,
+   private void addVertex(float[] v, float nx, float ny, float nz, ByteBuffer buff, 
+      PositionBufferPutter posPutter,
       NormalBufferPutter nrmPutter) {
       posPutter.putPosition(buff,  v);
       nrmPutter.putNormal(buff, nx, ny, nz);
@@ -960,8 +959,8 @@ public class GL3Viewer extends GLViewer {
       maybeUpdateState(gl);
 
       // vertex/normal for each vertex, repeated per triangle
-      final PositionBufferPutter posPutter = PositionBufferPutter.createDefault();
-      final NormalBufferPutter nrmPutter = NormalBufferPutter.createDefault();
+      final PositionBufferPutter posPutter = DEFAULT_POSITON_PUTTER;
+      final NormalBufferPutter nrmPutter = DEFAULT_NORMAL_PUTTER;
       int nverts = 12;
       int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
       ByteBuffer buff = ByteBuffer.allocateDirect(nverts*stride);
@@ -1009,8 +1008,8 @@ public class GL3Viewer extends GLViewer {
       maybeUpdateState (gl);
 
       // vertex/normal for each vertex, 6 verts per face (repeated on corners), 6 faces
-      final PositionBufferPutter posPutter = PositionBufferPutter.createDefault();
-      final NormalBufferPutter nrmPutter = NormalBufferPutter.createDefault();
+      final PositionBufferPutter posPutter = DEFAULT_POSITON_PUTTER;
+      final NormalBufferPutter nrmPutter = DEFAULT_NORMAL_PUTTER;
       int nverts = 36;
       int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
       ByteBuffer buff = ByteBuffer.allocateDirect(nverts*stride);
@@ -1060,8 +1059,8 @@ public class GL3Viewer extends GLViewer {
       maybeUpdateState (gl);
 
       // vertex/normal for each vertex, 6 verts per quad, 3 per tri
-      final PositionBufferPutter posPutter = PositionBufferPutter.createDefault();
-      final NormalBufferPutter nrmPutter = NormalBufferPutter.createDefault();
+      final PositionBufferPutter posPutter = DEFAULT_POSITON_PUTTER;
+      final NormalBufferPutter nrmPutter = DEFAULT_NORMAL_PUTTER;
       int nverts = 24;
       int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
       ByteBuffer buff = ByteBuffer.allocateDirect(nverts*stride);
@@ -1110,8 +1109,8 @@ public class GL3Viewer extends GLViewer {
       maybeUpdateState (gl);
 
       // vertex/normal for each vertex, 6 verts per quad, 3 per tri
-      final PositionBufferPutter posPutter = PositionBufferPutter.createDefault();
-      final NormalBufferPutter nrmPutter = NormalBufferPutter.createDefault();
+      final PositionBufferPutter posPutter = DEFAULT_POSITON_PUTTER;
+      final NormalBufferPutter nrmPutter = DEFAULT_NORMAL_PUTTER;
       int nverts = 18;
       int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
       ByteBuffer buff = ByteBuffer.allocateDirect(nverts*stride);
@@ -1256,7 +1255,16 @@ public class GL3Viewer extends GLViewer {
       return progManager.getProgram(gl, key);
    }
 
-   protected int getColorProgram(GL3 gl, Shading shading, ColorInterpolation cinterp) {
+   protected int getColorProgram(GL3 gl, boolean hasNormals) {
+      Shading shading = getShadeModel ();
+      ColorInterpolation cinterp = ColorInterpolation.RGB;
+      if (isHSVColorInterpolationEnabled ()) {
+         cinterp = ColorInterpolation.HSV;
+      }
+      return getColorProgram (gl, shading, hasNormals, cinterp);
+   }
+   
+   protected int getColorProgram(GL3 gl, Shading shading, boolean hasNormals, ColorInterpolation cinterp) {
       GLSLInfo key = null;
       if (isSelecting()) {
          key = new GLSLInfo(progManager.numLights(), progManager.numClipPlanes(), 
@@ -1571,7 +1579,7 @@ public class GL3Viewer extends GLViewer {
       if (selectEnabled) {
          axes.draw(gl, getBasicProgram(gl));
       } else {
-         axes.draw(gl, getColorProgram(gl, Shading.NONE, ColorInterpolation.RGB));
+         axes.draw(gl, getColorProgram(gl, Shading.NONE, false, ColorInterpolation.RGB));
       }
       // gloManager.releaseObject(axes);
 
@@ -1621,7 +1629,7 @@ public class GL3Viewer extends GLViewer {
       if (selectEnabled || selected) {
          axes.draw(gl, getBasicProgram(gl));
       } else {
-         axes.draw(gl, getColorProgram(gl, Shading.NONE, ColorInterpolation.RGB));
+         axes.draw(gl, getColorProgram(gl, Shading.NONE, false, ColorInterpolation.RGB));
       }
       // gloManager.releaseObject(axes);
 
@@ -1934,13 +1942,15 @@ public class GL3Viewer extends GLViewer {
       buff.order(ByteOrder.nativeOrder());
 
       for (float[] p : coords) {
-         buff.putFloat (p[0]);
-         buff.putFloat (p[1]);
-         buff.putFloat (p[2]);
+         DEFAULT_POSITON_PUTTER.putPosition (buff, p);
       }
+      
+      int width = DEFAULT_POSITON_PUTTER.bytesPerPosition();
+      BufferStorage storage = DEFAULT_POSITON_PUTTER.storage ();
+      
       buff.rewind();
       GL3Object glo = GL3Object.createV(gl, glPrimitiveType, 
-         buff, size, GL.GL_FLOAT, 3, 3*GLSupport.FLOAT_SIZE, GL3.GL_STREAM_DRAW);
+         buff, size, storage, width, GL3.GL_STREAM_DRAW);
 
       maybeUpdateState(gl);
       glo.draw(gl, getBasicProgram(gl));
@@ -1953,25 +1963,27 @@ public class GL3Viewer extends GLViewer {
       if (size <= 0) {
          size = findSize(coords);
       }
+      
+      int pwidth = DEFAULT_POSITON_PUTTER.bytesPerPosition ();
+      BufferStorage pstorage = DEFAULT_POSITON_PUTTER.storage ();
+      int nwidth = DEFAULT_NORMAL_PUTTER.bytesPerNormal ();
+      BufferStorage nstorage = DEFAULT_NORMAL_PUTTER.storage ();
+      int stride = pwidth+nwidth;
 
-      ByteBuffer buff = ByteBuffer.allocateDirect(6*size*GLSupport.FLOAT_SIZE);
+      ByteBuffer buff = ByteBuffer.allocateDirect(size*stride);
       buff.order(ByteOrder.nativeOrder());
 
       Iterator<float[]> nit = normals.iterator ();
       for (float[] p : coords) {
          float[] n = nit.next ();
-         buff.putFloat (p[0]);
-         buff.putFloat (p[1]);
-         buff.putFloat (p[2]);
-         buff.putFloat (n[0]);
-         buff.putFloat (n[1]);
-         buff.putFloat (n[2]);
+         DEFAULT_POSITON_PUTTER.putPosition (buff, p);
+         DEFAULT_NORMAL_PUTTER.putNormal (buff, n);
       }
 
       buff.rewind();
       GL3Object glo = GL3Object.createVN(gl, glPrimitiveType, 
-         buff, size, BufferStorage.FLOAT_3, 0, 6*GLSupport.FLOAT_SIZE, BufferStorage.FLOAT_3, 
-         3*GLSupport.FLOAT_SIZE, 6*GLSupport.FLOAT_SIZE, GL3.GL_STREAM_DRAW);
+         buff, size, pstorage, 0, stride, nstorage, 
+         pwidth, stride, GL3.GL_STREAM_DRAW);
 
       maybeUpdateState(gl);
       glo.draw(gl, getRegularProgram(gl));
@@ -1989,8 +2001,6 @@ public class GL3Viewer extends GLViewer {
       List<float[]> c = Arrays.asList (coords);
       List<float[]> n = Arrays.asList (normal);
       drawPrimitives (c, n,  2, GL.GL_POINTS);
-      
-
    }
 
    @Override
@@ -2049,8 +2059,13 @@ public class GL3Viewer extends GLViewer {
 
       // determine required buffer size
       int size = findSize(points);
-
-      ByteBuffer buff = ByteBuffer.allocateDirect(size*6*GLSupport.FLOAT_SIZE);
+      int pwidth = DEFAULT_POSITON_PUTTER.bytesPerPosition ();
+      BufferStorage pstorage = DEFAULT_POSITON_PUTTER.storage ();
+      int nwidth = DEFAULT_NORMAL_PUTTER.bytesPerNormal ();
+      BufferStorage nstorage = DEFAULT_NORMAL_PUTTER.storage ();
+      int stride = pwidth+nwidth;
+      
+      ByteBuffer buff = ByteBuffer.allocateDirect(size*stride);
       buff.order(ByteOrder.nativeOrder());
 
       Iterator<float[]> pit = points.iterator ();
@@ -2062,32 +2077,18 @@ public class GL3Viewer extends GLViewer {
          float[] p2 = pit.next ();
          computeNormal (p0, p1, p2, normal);
 
-         buff.putFloat (p0[0]);
-         buff.putFloat (p0[1]);
-         buff.putFloat (p0[2]);
-         buff.putFloat (normal[0]);
-         buff.putFloat (normal[1]);
-         buff.putFloat (normal[2]);
-
-         buff.putFloat (p1[0]);
-         buff.putFloat (p1[1]);
-         buff.putFloat (p1[2]);
-         buff.putFloat (normal[0]);
-         buff.putFloat (normal[1]);
-         buff.putFloat (normal[2]);
-
-         buff.putFloat (p2[0]);
-         buff.putFloat (p2[1]);
-         buff.putFloat (p2[2]);
-         buff.putFloat (normal[0]);
-         buff.putFloat (normal[1]);
-         buff.putFloat (normal[2]);
+         DEFAULT_POSITON_PUTTER.putPosition (buff, p0);
+         DEFAULT_NORMAL_PUTTER.putNormal (buff, normal);
+         DEFAULT_POSITON_PUTTER.putPosition (buff, p1);
+         DEFAULT_NORMAL_PUTTER.putNormal (buff, normal);
+         DEFAULT_POSITON_PUTTER.putPosition (buff, p2);
+         DEFAULT_NORMAL_PUTTER.putNormal (buff, normal);
       }
       
       buff.rewind();
       GL3Object glo = GL3Object.createVN(gl, GL.GL_TRIANGLES, 
-         buff, 3, BufferStorage.FLOAT_3, 0, 6*GLSupport.FLOAT_SIZE, BufferStorage.FLOAT_3, 
-         3*GLSupport.FLOAT_SIZE, 6*GLSupport.FLOAT_SIZE, GL3.GL_STREAM_DRAW);
+         buff, 3, pstorage, 0, stride, nstorage, 
+         pwidth, stride, GL3.GL_STREAM_DRAW);
 
       maybeUpdateState(gl);
       glo.draw(gl, getRegularProgram(gl));
@@ -2479,79 +2480,129 @@ public class GL3Viewer extends GLViewer {
       myGLResources.removeRenderObject(key);
    }      
 
-   protected void ensureDrawDataCapacity () {
-      if (myNumVertices == myVertexCap) {
-         if (myVertexCap == 0) {
-            myVertexCap = 1000;
-            myDrawBuffer =
-               ByteBuffer.allocateDirect(myVertexCap*6*GLSupport.FLOAT_SIZE);
-            myDrawBuffer.order(ByteOrder.nativeOrder());
+   @Override
+   protected void doDraw (
+      VertexDrawMode drawMode, int numVertices, float[] vertexData,
+      boolean hasNormalData, float[] normalData, boolean hasColorData,
+      float[] colorData) {
+    
+      if (numVertices > 0) {
+         GL3Object glo = null;
+         int mode = getDrawPrimitive(drawMode);
+         int progId = 0;
+         
+         if (hasNormalData && hasColorData) {
+            int cidx = 0;
+            int vidx = 0;
+            
+            int pwidth = DEFAULT_POSITON_PUTTER.bytesPerPosition ();
+            int nwidth = DEFAULT_NORMAL_PUTTER.bytesPerNormal ();
+            int cwidth = DEFAULT_COLOR_PUTTER.bytesPerColor ();
+            int poffset = 0;
+            int noffset = pwidth;
+            int coffset = pwidth+nwidth;
+            int stride = coffset+cwidth;
+            BufferStorage pstorage = DEFAULT_POSITON_PUTTER.storage ();
+            BufferStorage nstorage = DEFAULT_NORMAL_PUTTER.storage ();
+            BufferStorage cstorage = DEFAULT_COLOR_PUTTER.storage ();
+            
+            ByteBuffer buff = ByteBuffer.allocateDirect (numVertices*stride);
+            
+            for (int i=0; i<numVertices; ++i) {
+               DEFAULT_POSITON_PUTTER.putPosition (buff, vertexData, vidx);
+               DEFAULT_NORMAL_PUTTER.putNormal (buff, normalData, vidx);
+               DEFAULT_COLOR_PUTTER.putColor (buff, colorData, cidx);
+               cidx += 4;
+               vidx += 3;
+            }
+            buff.rewind ();
+            
+            glo = GL3Object.createVNC (gl, mode, 
+               numVertices, buff, pstorage, poffset, stride, 
+               nstorage, noffset, stride, 
+               cstorage, coffset, stride, GL3.GL_STREAM_DRAW);
+            
+            progId = getColorProgram(gl, true);
+            
+         } else if (hasColorData){
+            int cidx = 0;
+            int vidx = 0;
+            
+            int pwidth = DEFAULT_POSITON_PUTTER.bytesPerPosition ();
+            int cwidth = DEFAULT_COLOR_PUTTER.bytesPerColor ();
+            int poffset = 0;
+            int coffset = pwidth;
+            int stride = coffset+cwidth;
+            BufferStorage pstorage = DEFAULT_POSITON_PUTTER.storage ();
+            BufferStorage cstorage = DEFAULT_COLOR_PUTTER.storage ();
+            
+            ByteBuffer buff = ByteBuffer.allocateDirect (numVertices*stride);
+            
+            for (int i=0; i<numVertices; ++i) {
+               DEFAULT_POSITON_PUTTER.putPosition (buff, vertexData, vidx);
+               DEFAULT_COLOR_PUTTER.putColor (buff, colorData, cidx);
+               cidx += 4;
+               vidx += 3;
+            }
+            buff.rewind ();
+            
+            glo = GL3Object.createVC (gl, mode, 
+               numVertices, buff, pstorage, poffset, stride, 
+               cstorage, coffset, stride, GL3.GL_STREAM_DRAW);
+            
+            progId = getColorProgram(gl, false);
+            
+         } else if (hasNormalData) {
+            int vidx = 0;
+            
+            int pwidth = DEFAULT_POSITON_PUTTER.bytesPerPosition ();
+            int nwidth = DEFAULT_NORMAL_PUTTER.bytesPerNormal ();
+            int poffset = 0;
+            int noffset = pwidth;
+            int stride = noffset+nwidth;
+            BufferStorage pstorage = DEFAULT_POSITON_PUTTER.storage ();
+            BufferStorage nstorage = DEFAULT_NORMAL_PUTTER.storage ();
+            
+            ByteBuffer buff = ByteBuffer.allocateDirect (numVertices*stride);
+            
+            for (int i=0; i<numVertices; ++i) {
+               DEFAULT_POSITON_PUTTER.putPosition (buff, vertexData, vidx);
+               DEFAULT_NORMAL_PUTTER.putNormal (buff, normalData, vidx);
+               vidx += 3;
+            }
+            buff.rewind ();
+            
+            glo = GL3Object.createVN (gl, mode, 
+               buff, numVertices, pstorage, poffset, stride, 
+               nstorage, noffset, stride, GL3.GL_STREAM_DRAW);
+            progId = getRegularProgram(gl);
+            
+         } else {
+            int vidx = 0;
+            
+            int pwidth = DEFAULT_POSITON_PUTTER.bytesPerPosition ();
+            BufferStorage pstorage = DEFAULT_POSITON_PUTTER.storage ();
+            
+            ByteBuffer buff = ByteBuffer.allocateDirect (numVertices*pwidth);
+            
+            for (int i=0; i<numVertices; ++i) {
+               DEFAULT_POSITON_PUTTER.putPosition (buff, vertexData, vidx);
+               vidx += 3;
+            }
+            buff.rewind ();
+            
+            glo = GL3Object.createV (gl, mode, 
+               buff, numVertices, pstorage, pwidth, GL3.GL_STREAM_DRAW);
+            
+            progId = getBasicProgram(gl);
          }
-         else {
-            myVertexCap = (int)(1.5*myVertexCap);
-            ByteBuffer newBuffer =
-               ByteBuffer.allocateDirect(myVertexCap*6*GLSupport.FLOAT_SIZE);
-            newBuffer.order(ByteOrder.nativeOrder());
-            myDrawBuffer.rewind();
-            newBuffer.put (myDrawBuffer);
-            myDrawBuffer = newBuffer;
-         }
-      }
-   }      
-
-   @Override
-   public void beginDraw (VertexDrawMode mode) {
-      if (myDrawMode != null) {
-         throw new IllegalStateException (
-            "beginDraw() called while inside beginDraw() block");
-      }
-      myNumVertices = 0;
-      ensureDrawDataCapacity();
-      myDrawBuffer.rewind();
-      myDrawMode = mode;
-      setNormal (0, 0, 0);
-   }
-
-   @Override
-   public void addVertex (float x, float y, float z) {
-      ensureDrawDataCapacity();
-      myDrawBuffer.putFloat (x);
-      myDrawBuffer.putFloat (y);
-      myDrawBuffer.putFloat (z);
-      myDrawBuffer.putFloat (myCurrentNormal[0]);
-      myDrawBuffer.putFloat (myCurrentNormal[1]);
-      myDrawBuffer.putFloat (myCurrentNormal[2]);
-      myNumVertices++;
-   }
-
-   @Override
-   public void setNormal (float x, float y, float z) {
-      myCurrentNormal[0] = x;
-      myCurrentNormal[1] = y;
-      myCurrentNormal[2] = z;
-   }
-
-   @Override
-   public void endDraw() {
-      if (myDrawMode == null) {
-         throw new IllegalStateException (
-            "endDraw() called before call to beginDraw()");
-      }
-      if (myNumVertices > 0) {
-         myDrawBuffer.rewind();
-         GL3Object glo = GL3Object.createVN(
-            gl, getDrawPrimitive(myDrawMode), myDrawBuffer, myNumVertices,
-            BufferStorage.FLOAT_3, 0, 6*GLSupport.FLOAT_SIZE,
-            BufferStorage.FLOAT_3, 3*GLSupport.FLOAT_SIZE,
-            6*GLSupport.FLOAT_SIZE, GL3.GL_STREAM_DRAW);
-
+         
          maybeUpdateState(gl);
-         glo.draw(gl, getRegularProgram(gl));
-
+         glo.draw(gl, progId);
          glo.dispose (gl);  // immediately dispose
+         
       }
-      myDrawMode = null;
+      
    }
-
 
 }

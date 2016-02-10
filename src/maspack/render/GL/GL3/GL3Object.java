@@ -572,7 +572,141 @@ public class GL3Object extends GL3ResourceBase implements GL3Drawable {
       glo.init(gl);
  
       return glo;
+   }
+   
+   /**
+    * Separate vertex and normal
+    */
+   public static GL3Object createVN(GL3 gl, int mode, int nverts,
+      ByteBuffer vbuff, BufferStorage vstorage, int voffset, int vstride,
+      ByteBuffer nbuff, BufferStorage nstorage, int noffset, int nstride, int vnUsage) {
       
+      // generate VBOs
+      BufferObject vbov = new BufferObject(gl);
+      vbov.fill(gl, vbuff, GL.GL_ARRAY_BUFFER, vnUsage);
+      
+      BufferObject vbon = new BufferObject(gl);
+      vbon.fill (gl,  nbuff, GL.GL_ARRAY_BUFFER, vnUsage);
+      
+      GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[2];
+      attributes[0] = new GL3VertexAttributeArray(vbov, 
+         GL3VertexAttribute.VERTEX_POSITION, GL3Util.getGLType(vstorage.type()), 
+         vstorage.size(), vstorage.isNormalized(), voffset, 
+         vstride, nverts, 0 /*divisor*/);
+      
+      attributes[1] = new GL3VertexAttributeArray(vbon, 
+         GL3VertexAttribute.VERTEX_NORMAL, GL3Util.getGLType(nstorage.type()), 
+         nstorage.size(), nstorage.isNormalized(), noffset, 
+         nstride, nverts, 0 /*divisor*/);
+      
+      GL3Object glo = new GL3Object(attributes, null, mode);
+      glo.init(gl);
+ 
+      return glo;
+   }
+   
+   /**
+    * Separate vertex, normal, color
+    */
+   public static GL3Object createVNC(GL3 gl, int mode, int nverts,
+      ByteBuffer vbuff, BufferStorage vstorage, int voffset, int vstride,
+      ByteBuffer nbuff, BufferStorage nstorage, int noffset, int nstride, 
+      ByteBuffer cbuff, BufferStorage cstorage, int coffset, int cstride, int vncUsage) {
+      
+      // generate VBOs
+      BufferObject vbov = new BufferObject(gl);
+      vbov.fill(gl, vbuff, GL.GL_ARRAY_BUFFER, vncUsage);
+      
+      BufferObject vbon = new BufferObject(gl);
+      vbon.fill(gl, nbuff, GL.GL_ARRAY_BUFFER, vncUsage);
+      
+      BufferObject vboc = new BufferObject(gl);
+      vboc.fill(gl, cbuff, GL.GL_ARRAY_BUFFER, vncUsage);
+      
+      GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[3];
+      attributes[0] = new GL3VertexAttributeArray(vbov, 
+         GL3VertexAttribute.VERTEX_POSITION, GL3Util.getGLType(vstorage.type()), 
+         vstorage.size(), vstorage.isNormalized(), voffset, 
+         vstride, nverts, 0 /*divisor*/);
+      
+      attributes[1] = new GL3VertexAttributeArray(vbon, 
+         GL3VertexAttribute.VERTEX_NORMAL, GL3Util.getGLType(nstorage.type()), 
+         nstorage.size(), nstorage.isNormalized(), noffset, 
+         nstride, nverts, 0 /*divisor*/);
+      
+      attributes[2] = new GL3VertexAttributeArray(vboc, 
+         GL3VertexAttribute.VERTEX_COLOR, GL3Util.getGLType(cstorage.type()), 
+         cstorage.size(), cstorage.isNormalized(), coffset, 
+         cstride, nverts, 0 /*divisor*/);
+      
+      GL3Object glo = new GL3Object(attributes, null, mode);
+      glo.init(gl);
+ 
+      return glo;
+   }
+   
+   /**
+    * Interleaved vertex, color
+    */
+   public static GL3Object createVC(GL3 gl, int mode, int nverts,
+      ByteBuffer vcbuff, 
+      BufferStorage vstorage, int voffset, int vstride, 
+      BufferStorage cstorage, int coffset, int cstride, int vcUsage) {
+      
+      // generate VBOs
+      BufferObject vbo = new BufferObject(gl);
+      vbo.fill(gl, vcbuff, GL.GL_ARRAY_BUFFER, vcUsage);
+      
+      GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[2];
+      attributes[0] = new GL3VertexAttributeArray(vbo, 
+         GL3VertexAttribute.VERTEX_POSITION, GL3Util.getGLType(vstorage.type()), 
+         vstorage.size(), vstorage.isNormalized(), voffset, 
+         vstride, nverts, 0 /*divisor*/);
+      
+      attributes[1] = new GL3VertexAttributeArray(vbo, 
+         GL3VertexAttribute.VERTEX_COLOR, GL3Util.getGLType(cstorage.type()), 
+         cstorage.size(), cstorage.isNormalized(), coffset, 
+         cstride, nverts, 0 /*divisor*/);
+      
+      GL3Object glo = new GL3Object(attributes, null, mode);
+      glo.init(gl);
+ 
+      return glo;
+   }
+   
+   /**
+    * Interleaved vertex, normal, color
+    */
+   public static GL3Object createVNC(GL3 gl, int mode, int nverts,
+      ByteBuffer vncbuff, 
+      BufferStorage vstorage, int voffset, int vstride,
+      BufferStorage nstorage, int noffset, int nstride, 
+      BufferStorage cstorage, int coffset, int cstride, int vncUsage) {
+      
+      // generate VBOs
+      BufferObject vbo = new BufferObject(gl);
+      vbo.fill(gl, vncbuff, GL.GL_ARRAY_BUFFER, vncUsage);
+      
+      GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[3];
+      attributes[0] = new GL3VertexAttributeArray(vbo, 
+         GL3VertexAttribute.VERTEX_POSITION, GL3Util.getGLType(vstorage.type()), 
+         vstorage.size(), vstorage.isNormalized(), voffset, 
+         vstride, nverts, 0 /*divisor*/);
+      
+      attributes[1] = new GL3VertexAttributeArray(vbo, 
+         GL3VertexAttribute.VERTEX_NORMAL, GL3Util.getGLType(nstorage.type()), 
+         nstorage.size(), nstorage.isNormalized(), noffset, 
+         nstride, nverts, 0 /*divisor*/);
+      
+      attributes[2] = new GL3VertexAttributeArray(vbo, 
+         GL3VertexAttribute.VERTEX_COLOR, GL3Util.getGLType(cstorage.type()), 
+         cstorage.size(), cstorage.isNormalized(), coffset, 
+         cstride, nverts, 0 /*divisor*/);
+      
+      GL3Object glo = new GL3Object(attributes, null, mode);
+      glo.init(gl);
+ 
+      return glo;
    }
    
    /**

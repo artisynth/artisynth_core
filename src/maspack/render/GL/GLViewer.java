@@ -19,6 +19,7 @@ import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
 import javax.media.opengl.GL;
+import javax.media.opengl.GL2;
 import javax.media.opengl.GL2GL3;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLContext;
@@ -54,6 +55,7 @@ import maspack.render.RenderListener;
 import maspack.render.RenderProps;
 import maspack.render.RenderProps.Faces;
 import maspack.render.RenderProps.Shading;
+import maspack.render.Renderer.VertexDrawMode;
 import maspack.render.RendererEvent;
 import maspack.render.SortedRenderableList;
 import maspack.util.InternalErrorException;
@@ -2893,13 +2895,13 @@ HasProperties {
       float[] diffuse = props.getFaceColorArray();
       float[] back = props.getBackColorArray();
       if (back == null) {
-          setMaterialAndShading (props, props.getFaceMaterial(), selected);
-       }
-       else {
-          setMaterialAndShading (
-             props, props.getFaceMaterial(), diffuse, 
-             props.getBackMaterial(), back, selected);         
-       }
+         setMaterialAndShading (props, props.getFaceMaterial(), selected);
+      }
+      else {
+         setMaterialAndShading (
+            props, props.getFaceMaterial(), diffuse, 
+            props.getBackMaterial(), back, selected);         
+      }
    }
 
    /**
@@ -2939,7 +2941,7 @@ HasProperties {
       setSpecular (frontMaterial.getSpecular ());
       setEmission (frontMaterial.getEmission ());
    }
-   
+
    @Override
    public void setMaterialAndShading(
       RenderProps props, Material frontMaterial, float[] frontDiffuse,
@@ -2977,6 +2979,154 @@ HasProperties {
       updateMaterial(props, mat, diffuseColor, mat, diffuseColor, selected);
    }
 
+
+   //=======================================================
+   // IMMEDIATE DRAW
+   //=======================================================
+
+   // data for "drawMode"
+   protected VertexDrawMode myDrawMode = null;
+   protected boolean myDrawHasNormalData = false;
+   protected boolean myDrawHasColorData = false;
+   protected int myDrawVertexIdx = 0;
+   protected float[] myDrawCurrentNormal = new float[3];
+   protected float[] myDrawCurrentColor = new float[4];
+   protected int myDrawDataCap = 0;
+   protected float[] myDrawVertexData = null;
+   protected float[] myDrawNormalData = null;
+   protected float[] myDrawColorData = null;
+
+   protected void ensureDrawDataCapacity () {
+      if (myDrawVertexIdx == myDrawDataCap) {
+         // equality test works because cap is a multiple of 3
+         int cap = myDrawDataCap;
+         if (cap == 0) {
+            cap = 1000;
+            myDrawVertexData = new float[3*cap];
+            if (myDrawHasNormalData) {
+               myDrawNormalData = new float[3*cap];
+            }
+            if (myDrawHasColorData) {
+               myDrawColorData = new float[4*cap];
+            }
+         }
+         else {
+            cap = (int)(cap*1.5); // make sure cap is a multiple of 3
+            myDrawVertexData = Arrays.copyOf (myDrawVertexData, 3*cap);
+            if (myDrawHasNormalData) {
+               myDrawNormalData = Arrays.copyOf (myDrawNormalData, 3*cap);
+            }
+            if (myDrawHasColorData) {
+               myDrawColorData = Arrays.copyOf (myDrawColorData, 4*cap);
+            }
+         }
+         myDrawDataCap = cap;
+      }
+   }      
+
+   /**
+    * Returns either Selected (if selected color is currently active)
+    * or the current material's diffuse color otherwise
+    * @return
+    */
+   private float[] getCurrentColor() {
+      if (mySelectedColorActive) {
+         return mySelectedColor;
+      } else {
+         return myCurrentMaterial.getDiffuse();
+      }
+   }
+
+   @Override
+   public void beginDraw (VertexDrawMode mode) {
+      if (myDrawMode != null) {
+         throw new IllegalStateException (
+         "beginDraw() called while inside beginDraw() block");
+      }
+      myDrawMode = mode;
+      myDrawVertexIdx = 0;
+      myDrawHasNormalData = false;
+      myDrawHasColorData = false;
+
+      myDrawCurrentColor = Arrays.copyOf (getCurrentColor(), 4);
+   }
+
+   @Override
+   public void addVertex (float x, float y, float z) {
+      ensureDrawDataCapacity();
+
+      // check if we need colors
+      if (!myDrawHasColorData && myCurrentMaterialModified) {
+         // we need to store colors
+         myDrawHasColorData = true;
+         myDrawColorData = new float[4*myDrawDataCap];
+         int cidx = 0;
+         // back-fill colors
+         for (int i=0; i<myDrawVertexIdx; ++i) {
+            myDrawColorData[cidx++] = myDrawCurrentColor[0];
+            myDrawColorData[cidx++] = myDrawCurrentColor[1];
+            myDrawColorData[cidx++] = myDrawCurrentColor[2];
+            myDrawColorData[cidx++] = myDrawCurrentColor[3];
+         }
+      }
+
+      int vbase = 3*myDrawVertexIdx;
+      if (myDrawHasNormalData) {
+         myDrawNormalData[vbase  ] = myDrawCurrentNormal[0];
+         myDrawNormalData[vbase+1] = myDrawCurrentNormal[1];
+         myDrawNormalData[vbase+2] = myDrawCurrentNormal[2];
+      }
+      if (myDrawHasColorData) {
+         int cbase = 4*myDrawVertexIdx;
+         myDrawCurrentColor = getCurrentColor ();
+         myDrawColorData[cbase  ] = myDrawCurrentColor[0];
+         myDrawColorData[cbase+1] = myDrawCurrentColor[1];
+         myDrawColorData[cbase+2] = myDrawCurrentColor[2];
+         myDrawColorData[cbase+2] = myDrawCurrentColor[3];
+      }
+      myDrawVertexData[vbase] = x;
+      myDrawVertexData[++vbase] = y;
+      myDrawVertexData[++vbase] = z;
+      ++myDrawVertexIdx;
+   }
+
+   @Override
+   public void setNormal (float x, float y, float z) {
+      myDrawCurrentNormal[0] = x;
+      myDrawCurrentNormal[1] = y;
+      myDrawCurrentNormal[2] = z;
+      if (!myDrawHasNormalData) {
+         // back-fill previous normal data
+         for (int i=0; i<myDrawVertexIdx; i++) {
+            myDrawNormalData[i] = 0f;
+         }
+         myDrawHasNormalData = true;
+      }
+   }
+
+   protected abstract void doDraw(VertexDrawMode drawMode,
+      int numVertices, float[] vertexData, 
+      boolean hasNormalData, float[] normalData, 
+      boolean hasColorData, float[] colorData);
+
+   @Override
+   public void endDraw() {
+      if (myDrawMode == null) {
+         throw new IllegalStateException (
+            "endDraw() called before call to beginDraw()");
+      }
+
+      doDraw(myDrawMode, myDrawVertexIdx, myDrawVertexData, 
+         myDrawHasNormalData, myDrawNormalData, 
+         myDrawHasColorData, myDrawColorData);
+
+      myDrawMode = null;
+
+      myDrawDataCap = 0;
+      myDrawVertexData = null;
+      myDrawNormalData = null;
+      myDrawColorData = null;
+   }
 
 }
 

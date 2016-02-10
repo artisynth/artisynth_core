@@ -15,7 +15,7 @@ import maspack.matrix.*;
 import maspack.util.*;
 import maspack.util.Round;
 
-public abstract class DrawToolBase extends DragToolBase implements Dragger3d {
+public abstract class DrawToolBase extends DragToolBase {
 
    protected boolean myVisibleP;
    protected GLViewer myViewer;

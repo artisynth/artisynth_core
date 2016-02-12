@@ -369,10 +369,11 @@ public class KKTSolver {
     * @param Mdiag vector defining the diagonal entries of M
     * @param sizeM size of M 
     * @param GT Sparse matrix defining the transpose of G
+    * @param Rg if non-null, supplies the diagonal regularization matrix R
     */
    public void analyze (
-      VectorNd Mdiag, int sizeM, SparseBlockMatrix GT) {
-      analyzeMG (Mdiag, sizeM, GT, null, Matrix.SYMMETRIC);
+      VectorNd Mdiag, int sizeM, SparseBlockMatrix GT, VectorNd Rg) {
+      analyzeMG (Mdiag, sizeM, GT, Rg, Matrix.SYMMETRIC);
    }
 
    /**
@@ -383,14 +384,16 @@ public class KKTSolver {
     * @param M Sparse matrix defining M
     * @param sizeM size of M 
     * @param GT Sparse matrix defining the transpose of G
+    * @param Rg if non-null, supplies the diagonal regularization matrix R
     * @param typeM describes the type of M, to be used in determining 
     * how the resulting KKT system should be factored. Should be
     * either {@link Matrix#INDEFINITE}, {@link Matrix#SYMMETRIC}, or
     * {@link Matrix#SPD}. 
     */
    public void analyze (
-      SparseBlockMatrix M, int sizeM, SparseBlockMatrix GT, int typeM) {
-      analyzeMG (M, sizeM, GT, null, typeM);
+      SparseBlockMatrix M, int sizeM,
+      SparseBlockMatrix GT, VectorNd Rg, int typeM) {
+      analyzeMG (M, sizeM, GT, Rg, typeM);
    }
 
    private void checkMGStructure (Object M, int sizeM, SparseBlockMatrix GT) {
@@ -1183,6 +1186,9 @@ public class KKTSolver {
       int nnz = myNumVals;
       if (omitLowerRightDiagonal) {
          nnz -= myNumG;
+      }
+      if (myPartitionM == Matrix.Partition.UpperTriangular) {
+         pw.print ("SYMMETRIC ");
       }
       pw.println (size);
       for (int i=0; i<size+1; i++) {

@@ -155,7 +155,7 @@ public class RigidBodySolver {
          myBg.setSize (mySizeG);
          myRg.setSize (mySizeG); // leave at zero for now
          
-         mySolver.analyze (myMass, mySizeM, myGT, Matrix.SPD);
+         mySolver.analyze (myMass, mySizeM, myGT, myRg, Matrix.SPD);
       }
    }
 

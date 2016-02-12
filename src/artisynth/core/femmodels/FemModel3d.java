@@ -525,7 +525,7 @@ public class FemModel3d extends FemModel
    public void clearElements() {
       myElements.removeAll();
       for (int i = 0; i < myNodes.size(); i++) {
-         myNodes.get(i).setMass(0);
+         myNodes.get(i).clearMass();
       }
       if (myAutoGenerateSurface) {
          mySurfaceMeshValid = false;

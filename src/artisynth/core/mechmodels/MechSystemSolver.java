@@ -1515,7 +1515,8 @@ public class MechSystemSolver {
             vel.set (vel0);
          }
          if (analyze) {
-            myKKTSolver.analyze (S, velSize, myGT, mySys.getSolveMatrixType());
+            myKKTSolver.analyze (
+               S, velSize, myGT, myRg, mySys.getSolveMatrixType());
          }
          if (myHybridSolveP && !analyze && myNT.colSize() == 0) {
             if (profileKKTSolveTime) {
@@ -1888,7 +1889,7 @@ public class MechSystemSolver {
       // TODO: need to add fictitous forces
       myMass.mul (myBf, vel, velSize, velSize);
       if (myConMassVersion != myMassVersion || myConGTVersion != myGTVersion) {
-         myConSolver.analyze (myMass, velSize, myGT, Matrix.SPD);
+         myConSolver.analyze (myMass, velSize, myGT, myRg, Matrix.SPD);
          myConMassVersion = myMassVersion;
          myConGTVersion = myGTVersion;
       }
@@ -1988,7 +1989,7 @@ public class MechSystemSolver {
 
       myMass.mulAdd (myBf, vel, velSize, velSize);
       if (myConMassVersion != myMassVersion || myConGTVersion != myGTVersion) {
-         myConSolver.analyze (myMass, velSize, myGT, Matrix.SPD);
+         myConSolver.analyze (myMass, velSize, myGT, myRg, Matrix.SPD);
          myConMassVersion = myMassVersion;
          myConGTVersion = myGTVersion;
       }
@@ -2089,7 +2090,7 @@ public class MechSystemSolver {
 
    protected void computeMassPosCorrection (VectorNd vel, int velSize) {
       if (myConMassVersion != myMassVersion || myConGTVersion != myGTVersion) {
-         myConSolver.analyze (myMass, velSize, myGT, Matrix.SPD);
+         myConSolver.analyze (myMass, velSize, myGT, myRg, Matrix.SPD);
          myConMassVersion = myMassVersion;
          myConGTVersion = myGTVersion;
       }
@@ -2126,7 +2127,8 @@ public class MechSystemSolver {
          myKKTGTVersion = myGTVersion;
       }
       if (analyze) {
-         myKKTSolver.analyze (S, velSize, myGT, mySys.getSolveMatrixType());
+         myKKTSolver.analyze (
+            S, velSize, myGT, myRg, mySys.getSolveMatrixType());
       }
       if (myHybridSolveP && !analyze && myNT.colSize() == 0) {
          myKKTSolver.factorAndSolve (

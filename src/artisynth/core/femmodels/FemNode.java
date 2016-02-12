@@ -52,6 +52,11 @@ public abstract class FemNode extends Particle {
       //myMassExplicitP = true;
    }
    
+   public void clearMass() {
+      myMass = 0;
+      myMassValidP = false;
+   }
+   
    protected void invalidateMassIfNecessary() {
       if (!myMassExplicitP) {
          myMassValidP = false;

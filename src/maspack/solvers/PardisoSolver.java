@@ -1355,7 +1355,6 @@ public class PardisoSolver implements DirectSolver {
          initialize();
       }
       int numVals = rowOffs[size]-1;
-      //System.out.println ("setSymmetric "+Thread.currentThread());
       checkSetArgs (vals, rowOffs, colIdxs, size, numVals);
  
       myType = type;

@@ -126,10 +126,10 @@ public class KKTSolverTest {
 
       KKTSolver solver = new KKTSolver();
       if (M instanceof SparseBlockMatrix) {
-         solver.analyze ((SparseBlockMatrix)M, sizeM, GT, typeM);
+         solver.analyze ((SparseBlockMatrix)M, sizeM, GT, Rg, typeM);
       }
       else {
-         solver.analyze ((VectorNd)M, sizeM, GT);
+         solver.analyze ((VectorNd)M, sizeM, GT, Rg);
       }
       Status status;
       if (numN == 0) {
@@ -352,7 +352,7 @@ public class KKTSolverTest {
       VectorNd phi = new VectorNd(sizeD);
       Status status;
 
-      solver.analyze (mlcp.M, sizeM, mlcp.GT, Mtype);
+      solver.analyze (mlcp.M, sizeM, mlcp.GT, Rg, Mtype);
 
       if (sizeN == 0) {
          solver.factor (mlcp.M, sizeM, mlcp.GT, Rg);

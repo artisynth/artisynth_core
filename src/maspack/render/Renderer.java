@@ -249,9 +249,13 @@ public interface Renderer {
     */
    public void setColor (float[] rgba);
    public void setColor (float r, float g, float b);
+   // only used interal to the viewers
    public void setColor (float r, float g, float b, float a);
+   // only used twice
    public void setColor (Color color);
+   // not used
    public void setColor (float[] frontRgba, float[] backRgba);
+   // not used
    public void setColor (Color frontColor, Color backColor);
 
    public void setFrontColor(float[] rgba);

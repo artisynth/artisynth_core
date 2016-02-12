@@ -6,12 +6,12 @@
  */
 package maspack.matrix;
 
-import java.io.*;
-import java.util.ArrayList;
+import java.io.IOException;
+import java.util.List;
 
+import maspack.util.Clonable;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import maspack.util.Clonable;
 
 /**
  * A specialized 4 x 4 matrix that implements a three-dimensional rigid body
@@ -1029,7 +1029,7 @@ Clonable {
     * @return scale best fit scaling factor
     */
    public double fit (
-      ArrayList<Point3d> p, ArrayList<Point3d> q)
+      List<Point3d> p, List<Point3d> q)
       throws ImproperSizeException {
       assert p.size() == q.size();
       int n = p.size();
@@ -1046,22 +1046,31 @@ Clonable {
       Vector3d pmean = new Vector3d();
       SVDecomposition svd = new SVDecomposition();
 
-      for (int i = 0; i < n; i++) {
-         qmean.add (q.get (i));
-         pmean.add (p.get (i));
+      for (Point3d pi : p) {
+         pmean.add(pi);
+      }
+      for (Point3d qi : q) {
+         qmean.add(qi);
       }
       qmean.scale (1.0 / n);
       pmean.scale (1.0 / n);
 
       double sq = 0;
-      for (int i = 0; i < n; i++) {
-         vec.sub (q.get (i), qmean);
-         Q.setRow (i, vec);
+      int r = 0;
+      for (Point3d qi : q) {
+         vec.sub (qi, qmean);
+         Q.setRow (r, vec);
          sq += vec.normSquared();
-
-         vec.sub (p.get (i), pmean);
-         P.setRow (i, vec);
+         ++r;
       }
+      
+      r = 0;
+      for (Point3d pi : p) {
+         vec.sub (pi, pmean);
+         P.setRow (r, vec);
+         ++r;
+      }
+      
       sq /= n;
 
       A.mulTransposeLeft (P, Q);

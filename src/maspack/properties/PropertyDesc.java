@@ -633,7 +633,7 @@ public class PropertyDesc implements PropertyInfo {
          return myHostClass.getMethod (methodName, parameterTypes);
       }
       catch (Exception e) {
-         e.printStackTrace();
+         // e.printStackTrace();
          throw new IllegalArgumentException ("method '" + methodName
          + "' for property '" + myName + "'\nin " + myHostClass
          + " not found or inaccessible");

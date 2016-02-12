@@ -141,6 +141,10 @@ public class CollisionHandler extends ConstrainerBase
       return myDamping;
    }
 
+   public boolean isCompliant() {
+      return myCompliance != 0 || myForceBehavior != null;
+   }
+
    public void setRigidPointTolerance (double tol) {
       // XXX should we always set this?
       if (myMethod == CollisionBehavior.Method.CONTOUR_REGION) {
@@ -295,7 +299,7 @@ public class CollisionHandler extends ConstrainerBase
          contacts.put (cons.myCpnt0, cons);
       }
    }
-   
+
    public ContactConstraint getContact (
       HashMap<ContactPoint,ContactConstraint> contacts,
       ContactPoint cpnt0, ContactPoint cpnt1, 
@@ -430,7 +434,7 @@ public class CollisionHandler extends ConstrainerBase
       // collidable since that is more likely to persist.
       PolygonalMesh mesh0 = collidable0.getCollisionMesh();
       PolygonalMesh mesh1 = collidable1.getCollisionMesh();
-      return (hasLowDOF (collidable0) &&
+      return (!isCompliant() && hasLowDOF (collidable0) &&
               mesh0.numVertices() > mesh1.numVertices());
    }
 
@@ -573,7 +577,6 @@ public class CollisionHandler extends ConstrainerBase
       updateAttachedVertices();
 
       for (ContactPenetratingPoint cpp : points) {
-
          ContactPoint pnt0, pnt1;
          pnt0 = new ContactPoint (cpp.vertex);
          pnt1 = new ContactPoint (cpp.position, cpp.face, cpp.coords);
@@ -614,7 +617,6 @@ public class CollisionHandler extends ConstrainerBase
                continue;
             }
             cons.setDistance (dist);
-
             if (nrmlLen != 0) {
                // compute normal from scratch because previous contacts
                // may have caused it to change
@@ -738,9 +740,11 @@ public class CollisionHandler extends ConstrainerBase
    public void clearContactActivity() {
       for (ContactConstraint c : myBilaterals0.values()) {
          c.setActive (false);
+         c.setDistance (0);
       }
       for (ContactConstraint c : myBilaterals1.values()) {
          c.setActive (false);
+         c.setDistance (0);
       }
    }
 

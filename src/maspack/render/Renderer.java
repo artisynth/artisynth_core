@@ -107,24 +107,24 @@ public interface Renderer {
    
    public void drawSphere (RenderProps props, float[] coords, double r);
 
-   // REMOVE
-   public void drawTet (RenderProps props, double scale,
-                        float[] v0, float[] v1, float[] v2, float[] v3);
+//   // REMOVE
+//   public void drawTet (RenderProps props, double scale,
+//                        float[] v0, float[] v1, float[] v2, float[] v3);
 
-   // REMOVE
-   public void drawHex (RenderProps props, double scale,
-                        float[] v0, float[] v1, float[] v2, float[] v3,
-                        float[] v4, float[] v5, float[] v6, float[] v7);
+//   // REMOVE
+//   public void drawHex (RenderProps props, double scale,
+//                        float[] v0, float[] v1, float[] v2, float[] v3,
+//                        float[] v4, float[] v5, float[] v6, float[] v7);
 
-   // REMOVE
-   public void drawWedge (RenderProps props, double scale,
-                          float[] v0, float[] v1, float[] v2, 
-                          float[] v3, float[] v4, float[] v5);
+//   // REMOVE
+//   public void drawWedge (RenderProps props, double scale,
+//                          float[] v0, float[] v1, float[] v2, 
+//                          float[] v3, float[] v4, float[] v5);
 
-   // REMOVE
-   public void drawPyramid (RenderProps props, double scale,
-                          float[] v0, float[] v1, float[] v2, 
-                          float[] v3, float[] v4);
+//   // REMOVE
+//   public void drawPyramid (RenderProps props, double scale,
+//                          float[] v0, float[] v1, float[] v2, 
+//                          float[] v3, float[] v4);
 
    // REPLACE with drawLine (style)?
    public void drawTaperedEllipsoid (
@@ -254,9 +254,9 @@ public interface Renderer {
    // only used twice
    public void setColor (Color color);
    // not used
-   public void setColor (float[] frontRgba, float[] backRgba);
+//   public void setColor (float[] frontRgba, float[] backRgba);
    // not used
-   public void setColor (Color frontColor, Color backColor);
+//   public void setColor (Color frontColor, Color backColor);
 
    public void setFrontColor(float[] rgba);
    public void setBackColor(float[] rgba);
@@ -276,8 +276,10 @@ public interface Renderer {
     * For now, let's call these methods setMaterial() to disambiguate
     * from the various setColor() methods that are already present.
     */
+   // NOT USED
    void setMaterial (float[] rgba);
    
+   // USED ONLY IN GLVIEWER
    public void setMaterial (
       float[] frontRgba, float[] backRgba, float shininess, boolean selected); 
    
@@ -301,30 +303,37 @@ public interface Renderer {
    
    public void setEdgeLighting (RenderProps props, boolean selected);
    
-   public void setFaceLighting (RenderProps props, boolean selected);
-      
+   public void setPropsMaterial (
+      RenderProps props, float[] diffuse, boolean selected);
    
+   public void setFaceLighting (RenderProps props, boolean selected);
+   
+   public void setFaceLighting (
+      RenderProps props, float[] frontRgba, boolean selected);
+         
    
    // XXX will these be in use?
    public void setMaterial (Material material, boolean selected);
    
+   // USED ONLY IN GLViewer and GLXViewer
    public void setMaterial (Material material, float[] diffuseColor,
       boolean selected);
    
-   public void setMaterial (Material frontMaterial, float[] frontDiffuse,
-      Material backMaterial, float[] backDiffuse, 
-      boolean selected);
+//   // NOT USED
+//   public void setMaterial (Material frontMaterial, float[] frontDiffuse,
+//      Material backMaterial, float[] backDiffuse, 
+//      boolean selected);
 
-   public void setMaterialAndShading (
-      RenderProps props, Material mat, boolean selected);
+//   public void setMaterialAndShading (
+//      RenderProps props, Material mat, boolean selected);
    
-   public void setMaterialAndShading (
-      RenderProps props, Material mat, float[] diffuseColor, boolean selected);
+//   public void setMaterialAndShading (
+//      RenderProps props, Material mat, float[] diffuseColor, boolean selected);
    
-   public void setMaterialAndShading (
-      RenderProps props, Material frontMaterial, float[] frontDiffuse,
-      Material backMaterial, float[] backDiffuse, 
-      boolean selected);
+//   public void setMaterialAndShading (
+//      RenderProps props, Material frontMaterial, float[] frontDiffuse,
+//      Material backMaterial, float[] backDiffuse, 
+//      boolean selected);
    
    public void restoreShading (RenderProps props);
    
@@ -332,15 +341,15 @@ public interface Renderer {
    
    public void setShadeModel(Shading shading);
 
-   public void updateMaterial (
-      RenderProps props, Material material, boolean selected);
+//   public void updateMaterial (
+//      RenderProps props, Material material, boolean selected);
    
-   public void updateMaterial (
-      RenderProps props, Material mat, float[] diffuseColor, boolean selected);
+//   public void updateMaterial (
+//      RenderProps props, Material mat, float[] diffuseColor, boolean selected);
    
-   public void updateMaterial (
-      RenderProps props, Material frontMaterial, float[] frontDiffuse, 
-      Material backMaterial, float[] backDiffuse, boolean selected);
+//   public void updateMaterial (
+//      RenderProps props, Material frontMaterial, float[] frontDiffuse, 
+//      Material backMaterial, float[] backDiffuse, boolean selected);
    
    //===============================================================================
    // BASIC PRIMITIVE DRAWING

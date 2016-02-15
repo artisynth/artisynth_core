@@ -302,26 +302,26 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       renderer.setLightingEnabled (savedLighting);
    }
 
-   private void setFaceMaterialAndShading (
-      Renderer renderer, PolygonalMesh mesh, RenderProps props, boolean selected) {
-      
-      Shading shading = props.getShading();
-      if (shading != Shading.NONE) {
-         Material faceMat = mesh.getFaceMaterial();
-         if (faceMat == null) {
-            faceMat = props.getFaceMaterial();
-         }
-         Material backMat = mesh.getBackMaterial();
-         if (backMat == null) {
-            backMat = props.getBackMaterial();
-         }
-         if (backMat == null) {
-            backMat = faceMat;
-         }
-         renderer.setMaterialAndShading (
-            props, faceMat, null, backMat, null, selected);
-      }     
-   }      
+//   private void setFaceMaterialAndShading (
+//      Renderer renderer, PolygonalMesh mesh, RenderProps props, boolean selected) {
+//      
+//      Shading shading = props.getShading();
+//      if (shading != Shading.NONE) {
+//         Material faceMat = mesh.getFaceMaterial();
+//         if (faceMat == null) {
+//            faceMat = props.getFaceMaterial();
+//         }
+//         Material backMat = mesh.getBackMaterial();
+//         if (backMat == null) {
+//            backMat = props.getBackMaterial();
+//         }
+//         if (backMat == null) {
+//            backMat = faceMat;
+//         }
+//         renderer.setMaterialAndShading (
+//            props, faceMat, null, backMat, null, selected);
+//      }     
+//   }      
 
    private void drawFaces (
       Renderer renderer, PolygonalMesh mesh, RenderProps props, int flags) {
@@ -342,7 +342,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          if (shading == Shading.NONE) {
             renderer.setLightingEnabled (false);
          } else {
-            setFaceMaterialAndShading (renderer, mesh, props, selected);
+            renderer.setFaceLighting (props, selected);
          }
       }
       else {
@@ -352,7 +352,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
             renderer.setColor (props.getFaceColorArray(), selected);
          }
          else {
-            setFaceMaterialAndShading (renderer, mesh, props, selected);
+            renderer.setFaceLighting (props, selected);
          }
       }
 

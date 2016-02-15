@@ -383,14 +383,7 @@ public class MultiViewerTesterBase {
          GLViewer viewer = (GLViewer)renderer;
 
          renderer.setFaceMode(props.getFaceStyle());
-         Material frontMaterial = props.getFaceMaterial();
-         Material backMaterial = props.getBackMaterial();
-         if (backMaterial == null) {
-            backMaterial = frontMaterial;
-         }
-
-         renderer.setMaterialAndShading(
-            props, frontMaterial, null, backMaterial, null, selected);
+         renderer.setFaceLighting (props, selected);
 
          if (trans != null) {
             viewer.pushModelMatrix();
@@ -413,9 +406,7 @@ public class MultiViewerTesterBase {
          float depthOffInc = -1e-4f;
 
          if (myRO.hasLines()) {
-            renderer.updateMaterial(
-               props, frontMaterial, props.getEdgeOrLineColorArray(),
-               backMaterial, null, selected);
+            renderer.setEdgeLighting (props, selected);
             LineStyle lstyle = props.getLineStyle();
             if (lstyle == LineStyle.LINE) {
                if (didFlatDraw) {
@@ -431,7 +422,7 @@ public class MultiViewerTesterBase {
          }
 
          if (myRO.hasPoints()) {
-            renderer.updateMaterial(props, props.getPointMaterial(), selected);
+            renderer.setPointLighting (props, selected);
             PointStyle pstyle = props.getPointStyle();
             if (pstyle == PointStyle.POINT) {
                if (didFlatDraw) {

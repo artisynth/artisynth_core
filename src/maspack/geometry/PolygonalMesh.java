@@ -64,9 +64,6 @@ public class PolygonalMesh extends MeshBase {
 
    protected boolean myMultiAutoNormalsP = true;
 
-   private Material myFaceMaterial = null;
-   private Material myBackMaterial = null;
-
    protected boolean myTriQuadCountsValid = false;
    protected int myNumTriangles;
    protected int myNumQuads;
@@ -1724,26 +1721,6 @@ public class PolygonalMesh extends MeshBase {
       }
    }
 
-   public Material getFaceMaterial() {
-      return myFaceMaterial;
-   }
-
-   public void setFaceMaterial (Material mat) {
-      if (myFaceMaterial != mat) {
-         myFaceMaterial = mat;
-      }
-   }
-
-   public Material getBackMaterial() {
-      return myBackMaterial;
-   }
-
-   public void setBackMaterial (Material mat) {
-      if (myBackMaterial != mat) {
-         myBackMaterial = mat;
-      }
-   }
-
    /**
     * Returns the maximum cosine of the triangle formed from a set of three
     * vertices (specified by index values).
@@ -2388,12 +2365,6 @@ public class PolygonalMesh extends MeshBase {
       }
       if (myFaceOrder != null) {
          mesh.myFaceOrder = Arrays.copyOf (myFaceOrder, myFaceOrder.length);
-      }
-      if (myFaceMaterial != null) {
-         myFaceMaterial = new Material (myFaceMaterial);
-      }
-      if (myBackMaterial != null) {
-         myBackMaterial = new Material (myBackMaterial);
       }
       mesh.myBVTree = null;
       mesh.myBVTreeUpdated = false;

@@ -122,10 +122,6 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
    public void render (Renderer renderer, int flags) {
       
       RenderProps props = getRenderProps();
-      Material faceMat = props.getFaceMaterial();
-      if (isSelected()) {
-         faceMat = renderer.getSelectionMaterial();
-      }
 
       if (!(renderer instanceof GL2Viewer)) {
          return;
@@ -138,12 +134,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       Shading shading = props.getShading();
       if (!renderer.isSelecting()) {
          if (shading != Shading.NONE) {
-            if (isSelected()) {
-               renderer.getSelectionMaterial().apply (gl, GL2.GL_FRONT_AND_BACK);
-            } else {
-               faceMat.apply (gl, GL2.GL_FRONT_AND_BACK);
-               gl.glLightModelf (GL2.GL_LIGHT_MODEL_TWO_SIDE, 1);
-            }
+            renderer.setFaceLighting (props, isSelected());
          }
       }
 
@@ -198,7 +189,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
             if (useDisplayList) {
                gl.glNewList(displayList, GL2.GL_COMPILE);
             }
-            drawFaces (gl, renderer, props, faceMat);
+            drawFaces (gl, renderer, props);
             if (useDisplayList) {
                gl.glEndList();
                gl.glCallList(displayList);
@@ -338,7 +329,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       gl.glEnd();
    }
 
-   private void drawFaces(GL2 gl, Renderer renderer, RenderProps props, Material faceMat) {
+   private void drawFaces(GL2 gl, Renderer renderer, RenderProps props) {
 
       byte[] savedCullFaceEnabled = new byte[1];
       int[] savedCullFaceMode = new int[1];
@@ -372,7 +363,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
          gl.glDisable (GL2.GL_CULL_FACE);
       }
 
-      drawFacesRaw (renderer, gl, props, faceMat);
+      drawFacesRaw (renderer, gl, props);
 
       if (savedCullFaceEnabled[0] != 0) {
          gl.glEnable (GL2.GL_CULL_FACE);
@@ -384,7 +375,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
 
    }
 
-   void drawFacesRaw(Renderer renderer, GL2 gl, RenderProps props, Material faceMaterial) {
+   void drawFacesRaw(Renderer renderer, GL2 gl, RenderProps props) {
 
       //RenderProps.Shading savedShadeModel = renderer.getShadeModel();
 
@@ -428,12 +419,12 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
             if (renderer.isSelecting()) {
                renderer.beginSelectionQuery(i);
             } else {
-               if (fc.isSelected() && !lastSelected) {
-                  renderer.updateMaterial(props, renderer.getSelectionMaterial(), true);
-                  lastSelected = true;
-               } else if (!fc.isSelected() && lastSelected){
-                  renderer.updateMaterial(props, faceMaterial, false);
-                  lastSelected = false;
+               if (!isSelected()) {
+                  // set selection color for individual faces as needed
+                  if (fc.isSelected() != lastSelected) {
+                     renderer.setFaceLighting (props, fc.isSelected());
+                     lastSelected = fc.isSelected();
+                  }
                }
             }
             

@@ -450,9 +450,7 @@ public class MuscleElementDesc
          renderType = bundle.getDirectionRenderType();
       }      
       if (widgetSize != 0) {
-         maspack.render.Material mat = props.getFaceMaterial();
-         renderer.setMaterialAndShading (
-            props, mat, myWidgetColor, isSelected());
+         renderer.setFaceLighting (props, myWidgetColor, isSelected());
          myElement.renderWidget (renderer, widgetSize, props);
          renderer.restoreShading (props);
       }

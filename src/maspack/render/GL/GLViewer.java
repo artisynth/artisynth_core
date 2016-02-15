@@ -2842,15 +2842,15 @@ HasProperties {
       setColor(color.getColorComponents (new float[4]));
    }
 
-   public void setColor (float[] frontRgba, float[] backRgba) {
-      setColor(frontRgba, backRgba, false);
-   }
+//   public void setColor (float[] frontRgba, float[] backRgba) {
+//      setColor(frontRgba, backRgba, false);
+//   }
 
-   public void setColor (Color frontColor, Color backColor) {
-      float[] frontRgba = frontColor.getColorComponents(new float[4]);
-      float[] backRgba = backColor.getColorComponents(new float[4]);
-      setColor(frontRgba, backRgba);
-   }
+//   public void setColor (Color frontColor, Color backColor) {
+//      float[] frontRgba = frontColor.getColorComponents(new float[4]);
+//      float[] backRgba = backColor.getColorComponents(new float[4]);
+//      setColor(frontRgba, backRgba);
+//   }
 
    @Override
    public void setColor (float[] frontRgba, float[] backRgba, boolean selected) {
@@ -2875,33 +2875,50 @@ HasProperties {
       setMaterial(rgba, rgba, DEFAULT_MATERIAL_SHININESS, false);
    }
 
+   public void setPropsMaterial (
+      RenderProps props, float[] rgba, boolean selected) {
+
+      setMaterialSelected (selected);         
+      setFrontColor (rgba);
+      setBackColor (null);
+      setShininess (props.getShininess());
+      setEmission (DEFAULT_MATERIAL_EMISSION);
+      setSpecular(DEFAULT_MATERIAL_SPECULAR);
+   }
+   
    public void setLineLighting (RenderProps props, boolean selected) {
-      setMaterialAndShading (props, props.getLineMaterial(), selected);
+      setPropsMaterial (props, props.getLineColorArray(), selected);
+      setShadeModel (props.getShading());
    }
 
    public void setPointLighting (RenderProps props, boolean selected) {
-      setMaterialAndShading (props, props.getPointMaterial(), selected);
+      setPropsMaterial (props, props.getPointColorArray(), selected);
+      setShadeModel (props.getShading());
    }
 
    public void setEdgeLighting (RenderProps props, boolean selected) {
-      Material mat = props.getEdgeMaterial();
-      if (mat == null) {
-         mat = props.getLineMaterial();
+      float[] rgba = props.getEdgeColorArray();
+      if (rgba == null) {
+         rgba = props.getLineColorArray();
       }
-      setMaterialAndShading (props, mat, selected);
+      setPropsMaterial (props, rgba, selected);
+      setShadeModel (props.getShading());
    }
 
    public void setFaceLighting (RenderProps props, boolean selected) {
-      float[] diffuse = props.getFaceColorArray();
-      float[] back = props.getBackColorArray();
-      if (back == null) {
-         setMaterialAndShading (props, props.getFaceMaterial(), selected);
-      }
-      else {
-         setMaterialAndShading (
-            props, props.getFaceMaterial(), diffuse, 
-            props.getBackMaterial(), back, selected);         
-      }
+      setFaceLighting (props, props.getFaceColorArray(), selected);
+   }
+
+   public void setFaceLighting (
+      RenderProps props, float[] frontRgba, boolean selected) {
+
+      setFrontColor (frontRgba);
+      setBackColor (props.getBackColorArray());
+      setShininess (props.getShininess());
+      setEmission (DEFAULT_MATERIAL_EMISSION);
+      setSpecular(DEFAULT_MATERIAL_SPECULAR);
+      setMaterialSelected (selected);         
+      setShadeModel (props.getShading());
    }
 
    /**
@@ -2921,6 +2938,7 @@ HasProperties {
 
    public void setMaterial (
       Material material, float[] diffuseColor, boolean selected) {
+
       if (diffuseColor == null) {
          diffuseColor = material.getDiffuse ();
       }
@@ -2929,55 +2947,55 @@ HasProperties {
       setEmission (material.getEmission ());
    }
 
-   @Override
-   public void setMaterial(
-      Material frontMaterial, float[] frontDiffuse, Material backMaterial,
-      float[] backDiffuse, boolean selected) {
-      setMaterial(frontMaterial, frontDiffuse, selected);
-      if (backDiffuse == null) {
-         backDiffuse = backMaterial.getDiffuse ();
-      }
-      setBackColor (backDiffuse);
-      setSpecular (frontMaterial.getSpecular ());
-      setEmission (frontMaterial.getEmission ());
-   }
-
-   @Override
-   public void setMaterialAndShading(
-      RenderProps props, Material frontMaterial, float[] frontDiffuse,
-      Material backMaterial, float[] backDiffuse, boolean selected) {
-      setMaterial (frontMaterial, frontDiffuse, backMaterial, backDiffuse, selected);
-      setShadeModel (props.getShading ());
-   }
-
-   public void setMaterialAndShading (
-      RenderProps props, Material mat, boolean selected) {
-      setMaterialAndShading (props, mat, null, mat, null, selected);
-   }
-
-   public void setMaterialAndShading (RenderProps props, Material mat, 
-      float[] diffuseColor, boolean selected) {
-      setMaterialAndShading(props, mat,  diffuseColor,  mat, diffuseColor, selected);
-   }
+//   // remove ....
+//   public void setMaterial(
+//      Material frontMaterial, float[] frontDiffuse, Material backMaterial,
+//      float[] backDiffuse, boolean selected) {
+//      setMaterial(frontMaterial, frontDiffuse, selected);
+//      if (backDiffuse == null) {
+//         backDiffuse = backMaterial.getDiffuse ();
+//      }
+//      setBackColor (backDiffuse);
+//      setSpecular (frontMaterial.getSpecular ());
+//      setEmission (frontMaterial.getEmission ());
+//   }
+//
+//   public void setMaterialAndShading(
+//      RenderProps props, Material frontMaterial, float[] frontDiffuse,
+//      Material backMaterial, float[] backDiffuse, boolean selected) {
+//      setMaterial (frontMaterial, frontDiffuse, backMaterial, backDiffuse, selected);
+//      setShadeModel (props.getShading ());
+//   }
+//
+//   public void setMaterialAndShading (
+//      RenderProps props, Material mat, boolean selected) {
+//      setMaterialAndShading (props, mat, null, mat, null, selected);
+//   }
+//
+//   public void setMaterialAndShading (RenderProps props, Material mat, 
+//      float[] diffuseColor, boolean selected) {
+//      setMaterialAndShading(
+//         props, mat, diffuseColor, mat, null, selected);
+//   }
 
    public abstract void restoreShading (RenderProps props);
 
-   @Override
-   public void updateMaterial(
-      RenderProps props, Material frontMaterial, float[] frontDiffuse,
-      Material backMaterial, float[] backDiffuse, boolean selected) {
-      setMaterial(frontMaterial, frontDiffuse, backMaterial, backDiffuse, selected);
-   }
+//   @Override
+//   public void updateMaterial(
+//      RenderProps props, Material frontMaterial, float[] frontDiffuse,
+//      Material backMaterial, float[] backDiffuse, boolean selected) {
+//      setMaterial(frontMaterial, frontDiffuse, backMaterial, backDiffuse, selected);
+//   }
 
-   public void updateMaterial (
-      RenderProps props, Material material, boolean selected) {
-      updateMaterial (props, material, null, material, null, selected);
-   }
+//   public void updateMaterial (
+//      RenderProps props, Material material, boolean selected) {
+//      setMaterial (material, null, material, null, selected);
+//   }
 
-   public void updateMaterial (
-      RenderProps props, Material mat, float[] diffuseColor, boolean selected) {
-      updateMaterial(props, mat, diffuseColor, mat, diffuseColor, selected);
-   }
+//   public void updateMaterial (
+//      RenderProps props, Material mat, float[] diffuseColor, boolean selected) {
+//      setMaterial (mat, diffuseColor, mat, diffuseColor, selected);
+//   }
 
 
    //=======================================================

@@ -938,205 +938,205 @@ public class GL3Viewer extends GLViewer {
 
    }
 
-   @Override
-   public void drawTet(
-      RenderProps props, double scale, float[] v0, float[] v1, float[] v2,
-      float[] v3) {
+//   @Override
+//   public void drawTet(
+//      RenderProps props, double scale, float[] v0, float[] v1, float[] v2,
+//      float[] v3) {
+//
+//      boolean scaled = false;
+//      if (Math.abs(1-scale) > Double.MIN_NORMAL) {
+//         // center, for scaling widget
+//         float cx = (v0[0]+v1[0]+v2[0]+v3[0])/4;
+//         float cy = (v0[1]+v1[1]+v2[1]+v3[1])/4;
+//         float cz = (v0[2]+v1[2]+v2[2]+v3[2])/4;
+//         float s = (float)scale;
+//         pushModelMatrix();
+//         translateModelMatrix(cx*(1-s), cy*(1-s), cz*(1-s));
+//         scaleModelMatrix(s);
+//         updateMatrices(gl); // guarantee update uniforms
+//         scaled = true;
+//      }
+//      maybeUpdateState(gl);
+//
+//      // vertex/normal for each vertex, repeated per triangle
+//      final PositionBufferPutter posPutter = DEFAULT_POSITON_PUTTER;
+//      final NormalBufferPutter nrmPutter = DEFAULT_NORMAL_PUTTER;
+//      int nverts = 12;
+//      int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
+//      ByteBuffer buff = ByteBuffer.allocateDirect(nverts*stride);
+//      buff.order(ByteOrder.nativeOrder());
+//
+//      addTri(v0, v2, v1, buff, posPutter, nrmPutter);
+//      addTri(v2, v3, v1, buff, posPutter, nrmPutter);
+//      addTri(v3, v0, v1, buff, posPutter, nrmPutter);
+//      addTri(v0, v3, v2, buff, posPutter, nrmPutter);
+//      buff.rewind();
+//
+//      if (tetGLO == null) {
+//         tetGLO = GL3Object.createVN(gl, GL.GL_TRIANGLES, buff, nverts, posPutter.storage(),
+//            0, stride, nrmPutter.storage(), posPutter.bytesPerPosition(), stride, GL.GL_DYNAMIC_DRAW);
+//      } else {
+//         tetGLO.vbos[0].update(gl, buff);
+//      }
+//
+//      tetGLO.draw(gl, getRegularProgram(gl));
+//
+//      if (scaled) {
+//         popModelMatrix();
+//      }
+//
+//   }
 
-      boolean scaled = false;
-      if (Math.abs(1-scale) > Double.MIN_NORMAL) {
-         // center, for scaling widget
-         float cx = (v0[0]+v1[0]+v2[0]+v3[0])/4;
-         float cy = (v0[1]+v1[1]+v2[1]+v3[1])/4;
-         float cz = (v0[2]+v1[2]+v2[2]+v3[2])/4;
-         float s = (float)scale;
-         pushModelMatrix();
-         translateModelMatrix(cx*(1-s), cy*(1-s), cz*(1-s));
-         scaleModelMatrix(s);
-         updateMatrices(gl); // guarantee update uniforms
-         scaled = true;
-      }
-      maybeUpdateState(gl);
+//   @Override
+//   public void drawHex(
+//      RenderProps props, double scale, float[] v0, float[] v1, float[] v2,
+//      float[] v3, float[] v4, float[] v5, float[] v6, float[] v7) {
+//
+//      boolean scaled = false;
+//      if (Math.abs(1-scale) > Double.MIN_NORMAL) {
+//         float cx = (v0[0]+v1[0]+v2[0]+v3[0]+v4[0]+v5[0]+v6[0]+v7[0])/8;
+//         float cy = (v0[1]+v1[1]+v2[1]+v3[1]+v4[1]+v5[1]+v6[1]+v7[1])/8;
+//         float cz = (v0[2]+v1[2]+v2[2]+v3[2]+v4[2]+v5[2]+v6[2]+v7[2])/8;
+//
+//         float s = (float)scale;
+//         pushModelMatrix();
+//         translateModelMatrix(cx*(1-s), cy*(1-s), cz*(1-s));
+//         scaleModelMatrix(s);
+//         updateMatrices(gl); // guarantee update uniforms
+//         scaled = true;
+//      }
+//      maybeUpdateState (gl);
+//
+//      // vertex/normal for each vertex, 6 verts per face (repeated on corners), 6 faces
+//      final PositionBufferPutter posPutter = DEFAULT_POSITON_PUTTER;
+//      final NormalBufferPutter nrmPutter = DEFAULT_NORMAL_PUTTER;
+//      int nverts = 36;
+//      int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
+//      ByteBuffer buff = ByteBuffer.allocateDirect(nverts*stride);
+//      buff.order(ByteOrder.nativeOrder());
+//
+//      addQuad(v0, v1, v2, v3, buff, posPutter, nrmPutter);
+//      addQuad(v1, v5, v6, v2, buff, posPutter, nrmPutter);
+//      addQuad(v5, v4, v7, v6, buff, posPutter, nrmPutter);
+//      addQuad(v4, v0, v3, v7, buff, posPutter, nrmPutter);
+//      addQuad(v3, v2, v6, v7, buff, posPutter, nrmPutter);
+//      addQuad(v0, v4, v5, v1, buff, posPutter, nrmPutter);
+//      buff.rewind();
+//
+//      if (hexGLO == null) {
+//         hexGLO = GL3Object.createVN(gl, GL.GL_TRIANGLES, buff, nverts, posPutter.storage(),
+//            0, stride, nrmPutter.storage(), posPutter.bytesPerPosition(), stride, GL.GL_DYNAMIC_DRAW);
+//      } else {
+//         hexGLO.vbos[0].update(gl, buff);
+//      }
+//
+//      hexGLO.draw(gl, getRegularProgram(gl));
+//
+//      if (scaled) {
+//         popModelMatrix();
+//      }
+//
+//   }
 
-      // vertex/normal for each vertex, repeated per triangle
-      final PositionBufferPutter posPutter = DEFAULT_POSITON_PUTTER;
-      final NormalBufferPutter nrmPutter = DEFAULT_NORMAL_PUTTER;
-      int nverts = 12;
-      int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
-      ByteBuffer buff = ByteBuffer.allocateDirect(nverts*stride);
-      buff.order(ByteOrder.nativeOrder());
+//   @Override
+//   public void drawWedge(
+//      RenderProps props, double scale, float[] v0, float[] v1, float[] v2,
+//      float[] v3, float[] v4, float[] v5) {
+//
+//      boolean scaled = false;
+//      if (Math.abs(1-scale) > Double.MIN_NORMAL) {
+//         float cx = (v0[0]+v1[0]+v2[0]+v3[0]+v4[0]+v5[0])/8;
+//         float cy = (v0[1]+v1[1]+v2[1]+v3[1]+v4[1]+v5[1])/8;
+//         float cz = (v0[2]+v1[2]+v2[2]+v3[2]+v4[2]+v5[2])/8;
+//
+//         float s = (float)scale;
+//         pushModelMatrix();
+//         translateModelMatrix(cx*(1-s), cy*(1-s), cz*(1-s));
+//         scaleModelMatrix(s);
+//         updateMatrices(gl); // guarantee update uniforms
+//         scaled = true;
+//      }
+//      maybeUpdateState (gl);
+//
+//      // vertex/normal for each vertex, 6 verts per quad, 3 per tri
+//      final PositionBufferPutter posPutter = DEFAULT_POSITON_PUTTER;
+//      final NormalBufferPutter nrmPutter = DEFAULT_NORMAL_PUTTER;
+//      int nverts = 24;
+//      int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
+//      ByteBuffer buff = ByteBuffer.allocateDirect(nverts*stride);
+//      buff.order(ByteOrder.nativeOrder());
+//
+//      addQuad(v0, v1, v4, v3, buff, posPutter, nrmPutter);
+//      addQuad(v1, v2, v5, v4, buff, posPutter, nrmPutter);
+//      addQuad(v2, v0, v3, v5, buff, posPutter, nrmPutter);
+//      addTri(v0, v2, v1, buff, posPutter, nrmPutter);
+//      addTri(v3, v4, v5, buff, posPutter, nrmPutter);
+//      buff.rewind();
+//
+//      if (wedgeGLO == null) {
+//         wedgeGLO = GL3Object.createVN(gl, GL.GL_TRIANGLES, buff, nverts, posPutter.storage(),
+//            0, stride, nrmPutter.storage(), posPutter.bytesPerPosition(), stride,GL.GL_DYNAMIC_DRAW);
+//      } else {
+//         wedgeGLO.vbos[0].update(gl, buff);
+//      }
+//
+//      wedgeGLO.draw(gl, getRegularProgram(gl));
+//
+//      if (scaled) {
+//         popModelMatrix();
+//      }
+//
+//   }
 
-      addTri(v0, v2, v1, buff, posPutter, nrmPutter);
-      addTri(v2, v3, v1, buff, posPutter, nrmPutter);
-      addTri(v3, v0, v1, buff, posPutter, nrmPutter);
-      addTri(v0, v3, v2, buff, posPutter, nrmPutter);
-      buff.rewind();
-
-      if (tetGLO == null) {
-         tetGLO = GL3Object.createVN(gl, GL.GL_TRIANGLES, buff, nverts, posPutter.storage(),
-            0, stride, nrmPutter.storage(), posPutter.bytesPerPosition(), stride, GL.GL_DYNAMIC_DRAW);
-      } else {
-         tetGLO.vbos[0].update(gl, buff);
-      }
-
-      tetGLO.draw(gl, getRegularProgram(gl));
-
-      if (scaled) {
-         popModelMatrix();
-      }
-
-   }
-
-   @Override
-   public void drawHex(
-      RenderProps props, double scale, float[] v0, float[] v1, float[] v2,
-      float[] v3, float[] v4, float[] v5, float[] v6, float[] v7) {
-
-      boolean scaled = false;
-      if (Math.abs(1-scale) > Double.MIN_NORMAL) {
-         float cx = (v0[0]+v1[0]+v2[0]+v3[0]+v4[0]+v5[0]+v6[0]+v7[0])/8;
-         float cy = (v0[1]+v1[1]+v2[1]+v3[1]+v4[1]+v5[1]+v6[1]+v7[1])/8;
-         float cz = (v0[2]+v1[2]+v2[2]+v3[2]+v4[2]+v5[2]+v6[2]+v7[2])/8;
-
-         float s = (float)scale;
-         pushModelMatrix();
-         translateModelMatrix(cx*(1-s), cy*(1-s), cz*(1-s));
-         scaleModelMatrix(s);
-         updateMatrices(gl); // guarantee update uniforms
-         scaled = true;
-      }
-      maybeUpdateState (gl);
-
-      // vertex/normal for each vertex, 6 verts per face (repeated on corners), 6 faces
-      final PositionBufferPutter posPutter = DEFAULT_POSITON_PUTTER;
-      final NormalBufferPutter nrmPutter = DEFAULT_NORMAL_PUTTER;
-      int nverts = 36;
-      int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
-      ByteBuffer buff = ByteBuffer.allocateDirect(nverts*stride);
-      buff.order(ByteOrder.nativeOrder());
-
-      addQuad(v0, v1, v2, v3, buff, posPutter, nrmPutter);
-      addQuad(v1, v5, v6, v2, buff, posPutter, nrmPutter);
-      addQuad(v5, v4, v7, v6, buff, posPutter, nrmPutter);
-      addQuad(v4, v0, v3, v7, buff, posPutter, nrmPutter);
-      addQuad(v3, v2, v6, v7, buff, posPutter, nrmPutter);
-      addQuad(v0, v4, v5, v1, buff, posPutter, nrmPutter);
-      buff.rewind();
-
-      if (hexGLO == null) {
-         hexGLO = GL3Object.createVN(gl, GL.GL_TRIANGLES, buff, nverts, posPutter.storage(),
-            0, stride, nrmPutter.storage(), posPutter.bytesPerPosition(), stride, GL.GL_DYNAMIC_DRAW);
-      } else {
-         hexGLO.vbos[0].update(gl, buff);
-      }
-
-      hexGLO.draw(gl, getRegularProgram(gl));
-
-      if (scaled) {
-         popModelMatrix();
-      }
-
-   }
-
-   @Override
-   public void drawWedge(
-      RenderProps props, double scale, float[] v0, float[] v1, float[] v2,
-      float[] v3, float[] v4, float[] v5) {
-
-      boolean scaled = false;
-      if (Math.abs(1-scale) > Double.MIN_NORMAL) {
-         float cx = (v0[0]+v1[0]+v2[0]+v3[0]+v4[0]+v5[0])/8;
-         float cy = (v0[1]+v1[1]+v2[1]+v3[1]+v4[1]+v5[1])/8;
-         float cz = (v0[2]+v1[2]+v2[2]+v3[2]+v4[2]+v5[2])/8;
-
-         float s = (float)scale;
-         pushModelMatrix();
-         translateModelMatrix(cx*(1-s), cy*(1-s), cz*(1-s));
-         scaleModelMatrix(s);
-         updateMatrices(gl); // guarantee update uniforms
-         scaled = true;
-      }
-      maybeUpdateState (gl);
-
-      // vertex/normal for each vertex, 6 verts per quad, 3 per tri
-      final PositionBufferPutter posPutter = DEFAULT_POSITON_PUTTER;
-      final NormalBufferPutter nrmPutter = DEFAULT_NORMAL_PUTTER;
-      int nverts = 24;
-      int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
-      ByteBuffer buff = ByteBuffer.allocateDirect(nverts*stride);
-      buff.order(ByteOrder.nativeOrder());
-
-      addQuad(v0, v1, v4, v3, buff, posPutter, nrmPutter);
-      addQuad(v1, v2, v5, v4, buff, posPutter, nrmPutter);
-      addQuad(v2, v0, v3, v5, buff, posPutter, nrmPutter);
-      addTri(v0, v2, v1, buff, posPutter, nrmPutter);
-      addTri(v3, v4, v5, buff, posPutter, nrmPutter);
-      buff.rewind();
-
-      if (wedgeGLO == null) {
-         wedgeGLO = GL3Object.createVN(gl, GL.GL_TRIANGLES, buff, nverts, posPutter.storage(),
-            0, stride, nrmPutter.storage(), posPutter.bytesPerPosition(), stride,GL.GL_DYNAMIC_DRAW);
-      } else {
-         wedgeGLO.vbos[0].update(gl, buff);
-      }
-
-      wedgeGLO.draw(gl, getRegularProgram(gl));
-
-      if (scaled) {
-         popModelMatrix();
-      }
-
-   }
-
-   @Override
-   public void drawPyramid(
-      RenderProps props, double scale, float[] v0, float[] v1, float[] v2,
-      float[] v3, float[] v4) {
-
-      boolean scaled = false;
-      if (Math.abs(1-scale) > Double.MIN_NORMAL) {
-         float cx = (v0[0]+v1[0]+v2[0]+v3[0]+v4[0])/8;
-         float cy = (v0[1]+v1[1]+v2[1]+v3[1]+v4[1])/8;
-         float cz = (v0[2]+v1[2]+v2[2]+v3[2]+v4[2])/8;
-
-         float s = (float)scale;
-         pushModelMatrix();
-         translateModelMatrix(cx*(1-s), cy*(1-s), cz*(1-s));
-         scaleModelMatrix(s);
-         updateMatrices(gl); // guarantee update uniforms
-         scaled = true;
-      }
-      maybeUpdateState (gl);
-
-      // vertex/normal for each vertex, 6 verts per quad, 3 per tri
-      final PositionBufferPutter posPutter = DEFAULT_POSITON_PUTTER;
-      final NormalBufferPutter nrmPutter = DEFAULT_NORMAL_PUTTER;
-      int nverts = 18;
-      int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
-      ByteBuffer buff = ByteBuffer.allocateDirect(nverts*stride);
-      buff.order(ByteOrder.nativeOrder());
-
-      addQuad(v0, v3, v2, v1, buff, posPutter, nrmPutter);
-      addTri(v0, v1, v4, buff, posPutter, nrmPutter);
-      addTri(v1, v2, v4, buff, posPutter, nrmPutter);
-      addTri(v2, v3, v4, buff, posPutter, nrmPutter);
-      addTri(v3, v0, v4, buff, posPutter, nrmPutter);
-      buff.rewind();
-
-      if (pyrGLO == null) {
-         pyrGLO = GL3Object.createVN(gl, GL.GL_TRIANGLES, buff, nverts, posPutter.storage(),
-            0, stride, nrmPutter.storage(), posPutter.bytesPerPosition(), stride, GL.GL_DYNAMIC_DRAW);
-      } else {
-         pyrGLO.vbos[0].update(gl, buff);
-      }
-
-      pyrGLO.draw(gl, getRegularProgram(gl));
-
-      if (scaled) {
-         popModelMatrix();
-      }
-
-   }
+//   @Override
+//   public void drawPyramid(
+//      RenderProps props, double scale, float[] v0, float[] v1, float[] v2,
+//      float[] v3, float[] v4) {
+//
+//      boolean scaled = false;
+//      if (Math.abs(1-scale) > Double.MIN_NORMAL) {
+//         float cx = (v0[0]+v1[0]+v2[0]+v3[0]+v4[0])/8;
+//         float cy = (v0[1]+v1[1]+v2[1]+v3[1]+v4[1])/8;
+//         float cz = (v0[2]+v1[2]+v2[2]+v3[2]+v4[2])/8;
+//
+//         float s = (float)scale;
+//         pushModelMatrix();
+//         translateModelMatrix(cx*(1-s), cy*(1-s), cz*(1-s));
+//         scaleModelMatrix(s);
+//         updateMatrices(gl); // guarantee update uniforms
+//         scaled = true;
+//      }
+//      maybeUpdateState (gl);
+//
+//      // vertex/normal for each vertex, 6 verts per quad, 3 per tri
+//      final PositionBufferPutter posPutter = DEFAULT_POSITON_PUTTER;
+//      final NormalBufferPutter nrmPutter = DEFAULT_NORMAL_PUTTER;
+//      int nverts = 18;
+//      int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
+//      ByteBuffer buff = ByteBuffer.allocateDirect(nverts*stride);
+//      buff.order(ByteOrder.nativeOrder());
+//
+//      addQuad(v0, v3, v2, v1, buff, posPutter, nrmPutter);
+//      addTri(v0, v1, v4, buff, posPutter, nrmPutter);
+//      addTri(v1, v2, v4, buff, posPutter, nrmPutter);
+//      addTri(v2, v3, v4, buff, posPutter, nrmPutter);
+//      addTri(v3, v0, v4, buff, posPutter, nrmPutter);
+//      buff.rewind();
+//
+//      if (pyrGLO == null) {
+//         pyrGLO = GL3Object.createVN(gl, GL.GL_TRIANGLES, buff, nverts, posPutter.storage(),
+//            0, stride, nrmPutter.storage(), posPutter.bytesPerPosition(), stride, GL.GL_DYNAMIC_DRAW);
+//      } else {
+//         pyrGLO.vbos[0].update(gl, buff);
+//      }
+//
+//      pyrGLO.draw(gl, getRegularProgram(gl));
+//
+//      if (scaled) {
+//         popModelMatrix();
+//      }
+//
+//   }
 
    private RigidTransform3d getLineTransform(float[] p0, float[] p1) {
       RigidTransform3d X = new RigidTransform3d();
@@ -1352,15 +1352,16 @@ public class GL3Viewer extends GLViewer {
       RenderProps props, float[] coords0, float[] coords1, boolean capped,
       float[] color, boolean selected) {
 
+      if (color == null) {
+         color = props.getLineColorArray ();
+      }
       switch (props.getLineStyle()) {
          case LINE: {
             boolean savedLighting = isLightingEnabled();
             setLightingEnabled (false);
             gl.glLineWidth (props.getLineWidth());
-            if (color == null) {
-               color = props.getLineColorArray ();
-            }
-            if (props.getAlpha () < 1) {
+
+            if (color.length == 3 && props.getAlpha () < 1) {
                color = new float[]{color[0], color[1], color[2], (float)props.getAlpha ()};
             }
             setColor (color, selected);
@@ -1373,21 +1374,24 @@ public class GL3Viewer extends GLViewer {
          }
          case CYLINDER: {
             Shading savedShading = getShadeModel();
-            setMaterialAndShading (props, props.getLineMaterial(), color, selected);
+            setShadeModel (props.getShading());
+            setPropsMaterial (props, color, selected);
             drawCylinder (props, coords0, coords1, capped);
             setShadeModel(savedShading);
             break;
          }
          case SOLID_ARROW: {
             Shading savedShading = getShadeModel();
-            setMaterialAndShading (props, props.getLineMaterial(), color, selected);
+            setShadeModel (props.getShading());
+            setPropsMaterial (props, color, selected);
             drawSolidArrow (props, coords0, coords1, capped);
             setShadeModel(savedShading);
             break;
          }
          case ELLIPSOID: {
             Shading savedShading = getShadeModel();
-            setMaterialAndShading (props, props.getLineMaterial(), color, selected);
+            setShadeModel (props.getShading());
+            setPropsMaterial (props, color, selected);
             drawTaperedEllipsoid (props, coords0, coords1);
             setShadeModel(savedShading);
             break;

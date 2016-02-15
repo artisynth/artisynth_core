@@ -548,17 +548,13 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
       }  
       
       if (widgetSize != 0) {
-         maspack.render.Material mat = props.getFaceMaterial();
-         renderer.setMaterialAndShading (
-            props, mat, myWidgetColor, isSelected());
+         renderer.setFaceLighting (props, myWidgetColor, isSelected());
          myElement.renderWidget (renderer, widgetSize, props);
          renderer.restoreShading (props);
       }
       
       if (rad > 0) {
-         maspack.render.Material mat = props.getPointMaterial();
-         renderer.setMaterialAndShading (
-            props, mat, myWidgetColor, isSelected());
+         renderer.setFaceLighting (props, myWidgetColor, isSelected());
          renderFraction (
             renderer, props, rad, renderType);
       }

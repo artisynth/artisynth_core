@@ -1349,124 +1349,124 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       gl.glVertex3fv (v3, 0);
    }
 
-   public void drawHex (
-      RenderProps props, double scale,
-      float[] v0, float[] v1, float[] v2, float[] v3,
-      float[] v4, float[] v5, float[] v6, float[] v7) {
+//   public void drawHex (
+//      RenderProps props, double scale,
+//      float[] v0, float[] v1, float[] v2, float[] v3,
+//      float[] v4, float[] v5, float[] v6, float[] v7) {
+//
+//      float cx = (v0[0]+v1[0]+v2[0]+v3[0]+v4[0]+v5[0]+v6[0]+v7[0])/8;
+//      float cy = (v0[1]+v1[1]+v2[1]+v3[1]+v4[1]+v5[1]+v6[1]+v7[1])/8;
+//      float cz = (v0[2]+v1[2]+v2[2]+v3[2]+v4[2]+v5[2]+v6[2]+v7[2])/8;
+//
+//      float s = (float)scale;
+//      GL2 gl = getGL2();
+//      maybeUpdateState(gl);
+//
+//      gl.glPushMatrix();
+//      gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
+//      gl.glScalef (s, s, s);
+//
+//      gl.glBegin (GL2.GL_QUADS);
+//      setQuad (gl, v0, v1, v2, v3);
+//      setQuad (gl, v1, v5, v6, v2);
+//      setQuad (gl, v5, v4, v7, v6);
+//      setQuad (gl, v4, v0, v3, v7);
+//      setQuad (gl, v3, v2, v6, v7);
+//      setQuad (gl, v0, v4, v5, v1);
+//      gl.glEnd ();
+//
+//      gl.glPopMatrix();
+//   }
 
-      float cx = (v0[0]+v1[0]+v2[0]+v3[0]+v4[0]+v5[0]+v6[0]+v7[0])/8;
-      float cy = (v0[1]+v1[1]+v2[1]+v3[1]+v4[1]+v5[1]+v6[1]+v7[1])/8;
-      float cz = (v0[2]+v1[2]+v2[2]+v3[2]+v4[2]+v5[2]+v6[2]+v7[2])/8;
+//   public void drawWedge (
+//      RenderProps props, double scale,
+//      float[] v0, float[] v1, float[] v2,
+//      float[] v3, float[] v4, float[] v5) {
+//
+//      float cx = (v0[0]+v1[0]+v2[0]+v3[0]+v4[0]+v5[0])/6;
+//      float cy = (v0[1]+v1[1]+v2[1]+v3[1]+v4[1]+v5[1])/6;
+//      float cz = (v0[2]+v1[2]+v2[2]+v3[2]+v4[2]+v5[2])/6;
+//
+//      float s = (float)scale;
+//      GL2 gl = getGL2();
+//      maybeUpdateState(gl);
+//
+//      gl.glPushMatrix();
+//      gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
+//      gl.glScalef (s, s, s);
+//
+//      gl.glBegin (GL2.GL_QUADS);
+//      setQuad (gl, v0, v1, v4, v3);
+//      setQuad (gl, v1, v2, v5, v4);
+//      setQuad (gl, v2, v0, v3, v5);
+//      gl.glEnd ();
+//
+//      gl.glBegin (GL2.GL_TRIANGLES);
+//      setTriangle (gl, v0, v2, v1);
+//      setTriangle (gl, v3, v4, v5);
+//      gl.glEnd ();
+//
+//      gl.glPopMatrix();
+//
+//   }
+//
+//   public void drawPyramid (
+//      RenderProps props, double scale,
+//      float[] v0, float[] v1, float[] v2,
+//      float[] v3, float[] v4) {
+//
+//      float cx = (v0[0]+v1[0]+v2[0]+v3[0]+v4[0])/5;
+//      float cy = (v0[1]+v1[1]+v2[1]+v3[1]+v4[1])/5;
+//      float cz = (v0[2]+v1[2]+v2[2]+v3[2]+v4[2])/5;
+//
+//      float s = (float)scale;
+//      GL2 gl = getGL2();
+//      maybeUpdateState(gl);
+//
+//      gl.glPushMatrix();
+//      gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
+//      gl.glScalef (s, s, s);
+//
+//      gl.glBegin (GL2.GL_QUADS);
+//      setQuad (gl, v0, v3, v2, v1);
+//      gl.glEnd ();
+//
+//      gl.glBegin (GL2.GL_TRIANGLES);
+//      setTriangle (gl, v0, v1, v4);
+//      setTriangle (gl, v1, v2, v4);
+//      setTriangle (gl, v2, v3, v4);
+//      setTriangle (gl, v3, v0, v4);
+//      gl.glEnd ();
+//
+//      gl.glPopMatrix();
+//
+//   }
 
-      float s = (float)scale;
-      GL2 gl = getGL2();
-      maybeUpdateState(gl);
-
-      gl.glPushMatrix();
-      gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
-      gl.glScalef (s, s, s);
-
-      gl.glBegin (GL2.GL_QUADS);
-      setQuad (gl, v0, v1, v2, v3);
-      setQuad (gl, v1, v5, v6, v2);
-      setQuad (gl, v5, v4, v7, v6);
-      setQuad (gl, v4, v0, v3, v7);
-      setQuad (gl, v3, v2, v6, v7);
-      setQuad (gl, v0, v4, v5, v1);
-      gl.glEnd ();
-
-      gl.glPopMatrix();
-   }
-
-   public void drawWedge (
-      RenderProps props, double scale,
-      float[] v0, float[] v1, float[] v2,
-      float[] v3, float[] v4, float[] v5) {
-
-      float cx = (v0[0]+v1[0]+v2[0]+v3[0]+v4[0]+v5[0])/6;
-      float cy = (v0[1]+v1[1]+v2[1]+v3[1]+v4[1]+v5[1])/6;
-      float cz = (v0[2]+v1[2]+v2[2]+v3[2]+v4[2]+v5[2])/6;
-
-      float s = (float)scale;
-      GL2 gl = getGL2();
-      maybeUpdateState(gl);
-
-      gl.glPushMatrix();
-      gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
-      gl.glScalef (s, s, s);
-
-      gl.glBegin (GL2.GL_QUADS);
-      setQuad (gl, v0, v1, v4, v3);
-      setQuad (gl, v1, v2, v5, v4);
-      setQuad (gl, v2, v0, v3, v5);
-      gl.glEnd ();
-
-      gl.glBegin (GL2.GL_TRIANGLES);
-      setTriangle (gl, v0, v2, v1);
-      setTriangle (gl, v3, v4, v5);
-      gl.glEnd ();
-
-      gl.glPopMatrix();
-
-   }
-
-   public void drawPyramid (
-      RenderProps props, double scale,
-      float[] v0, float[] v1, float[] v2,
-      float[] v3, float[] v4) {
-
-      float cx = (v0[0]+v1[0]+v2[0]+v3[0]+v4[0])/5;
-      float cy = (v0[1]+v1[1]+v2[1]+v3[1]+v4[1])/5;
-      float cz = (v0[2]+v1[2]+v2[2]+v3[2]+v4[2])/5;
-
-      float s = (float)scale;
-      GL2 gl = getGL2();
-      maybeUpdateState(gl);
-
-      gl.glPushMatrix();
-      gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
-      gl.glScalef (s, s, s);
-
-      gl.glBegin (GL2.GL_QUADS);
-      setQuad (gl, v0, v3, v2, v1);
-      gl.glEnd ();
-
-      gl.glBegin (GL2.GL_TRIANGLES);
-      setTriangle (gl, v0, v1, v4);
-      setTriangle (gl, v1, v2, v4);
-      setTriangle (gl, v2, v3, v4);
-      setTriangle (gl, v3, v0, v4);
-      gl.glEnd ();
-
-      gl.glPopMatrix();
-
-   }
-
-   public void drawTet (
-      RenderProps props, double scale,
-      float[] v0, float[] v1, float[] v2, float[] v3) {
-
-      float cx = (v0[0]+v1[0]+v2[0]+v3[0])/4;
-      float cy = (v0[1]+v1[1]+v2[1]+v3[1])/4;
-      float cz = (v0[2]+v1[2]+v2[2]+v3[2])/4;
-
-      float s = (float)scale;
-      GL2 gl = getGL2();
-      maybeUpdateState(gl);
-
-      gl.glPushMatrix();
-      gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
-      gl.glScalef (s, s, s);
-
-      gl.glBegin (GL2.GL_TRIANGLES);
-      setTriangle (gl, v0, v2, v1);
-      setTriangle (gl, v2, v3, v1);
-      setTriangle (gl, v3, v0, v1);
-      setTriangle (gl, v0, v3, v2);
-      gl.glEnd ();
-
-      gl.glPopMatrix();
-   }
+//   public void drawTet (
+//      RenderProps props, double scale,
+//      float[] v0, float[] v1, float[] v2, float[] v3) {
+//
+//      float cx = (v0[0]+v1[0]+v2[0]+v3[0])/4;
+//      float cy = (v0[1]+v1[1]+v2[1]+v3[1])/4;
+//      float cz = (v0[2]+v1[2]+v2[2]+v3[2])/4;
+//
+//      float s = (float)scale;
+//      GL2 gl = getGL2();
+//      maybeUpdateState(gl);
+//
+//      gl.glPushMatrix();
+//      gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
+//      gl.glScalef (s, s, s);
+//
+//      gl.glBegin (GL2.GL_TRIANGLES);
+//      setTriangle (gl, v0, v2, v1);
+//      setTriangle (gl, v2, v3, v1);
+//      setTriangle (gl, v3, v0, v1);
+//      setTriangle (gl, v0, v3, v2);
+//      gl.glEnd ();
+//
+//      gl.glPopMatrix();
+//   }
 
    public void drawTaperedEllipsoid (
       RenderProps props, float[] coords0, float[] coords1) {
@@ -1616,14 +1616,14 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       GL2 gl = getGL2();
       maybeUpdateState(gl);
 
+      if (color == null) {
+         color = props.getLineColorArray ();
+      }      
       switch (props.getLineStyle()) {
          case LINE: {
             setLightingEnabled (false);
             gl.glLineWidth (props.getLineWidth());
-            if (color == null) {
-               color = props.getLineColorArray ();
-            }
-            if (props.getAlpha () < 1) {
+            if (color.length == 3 && props.getAlpha () < 1) {
                color = new float[]{color[0], color[1], color[2], (float)props.getAlpha ()};
             }
             setColor (color, selected);
@@ -1636,19 +1636,22 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             break;
          }
          case CYLINDER: {
-            setMaterialAndShading (props, props.getLineMaterial(), color, selected);
+            setShadeModel (props.getShading());
+            setPropsMaterial (props, color, selected);
             drawCylinder (props, coords0, coords1, capped);
             restoreShading (props);
             break;
          }
          case SOLID_ARROW: {
-            setMaterialAndShading (props, props.getLineMaterial(), color, selected);
+            setShadeModel (props.getShading());
+            setPropsMaterial (props, color, selected);
             drawSolidArrow (props, coords0, coords1, capped);
             restoreShading (props);
             break;
          }
          case ELLIPSOID: {
-            setMaterialAndShading (props, props.getLineMaterial(), color, selected);
+            setShadeModel (props.getShading());
+            setPropsMaterial (props, color, selected);
             drawTaperedEllipsoid (props, coords0, coords1);
             restoreShading (props);
             break;

@@ -142,11 +142,9 @@ implements ScalableUnits {
       RenderProps props = getRenderProps();
       float[] color = props.getPointColorArray();
       float[] selColor = renderer.getSelectionColor().getColorComponents(new float[4]);
-      Material pointMaterial = props.getPointMaterial();
 
       if (isSelected()) {
          color = selColor;
-         pointMaterial = renderer.getSelectionMaterial();
       }
       
       boolean lastSelected = false;
@@ -221,7 +219,7 @@ implements ScalableUnits {
             break;
          }
          case SPHERE: {
-            renderer.setMaterialAndShading (props, pointMaterial, false);
+            renderer.setPointLighting (props, isSelected());
 
             boolean compile = true;
             boolean useDisplayList = !renderer.isSelecting();
@@ -256,12 +254,13 @@ implements ScalableUnits {
                         renderer.drawSphere (props, vc.getRenderCoords());
                         renderer.endSelectionQuery ();      
                      }  else {
-                        if (vc.isSelected() && !lastSelected) {
-                           renderer.updateMaterial(props, renderer.getSelectionMaterial(), false);
-                           lastSelected = true;
-                        } else if (!vc.isSelected() && lastSelected){
-                           renderer.updateMaterial(props, pointMaterial, false);
-                           lastSelected = false;
+                        if (!isSelected()) {
+                           // set selection color for individual vertices as needed
+                           if (vc.isSelected() != lastSelected) {
+                              renderer.setPropsMaterial (
+                                 props, props.getPointColorArray(), vc.isSelected());
+                              lastSelected = vc.isSelected();
+                           }
                         }
                         renderer.drawSphere (props, vc.getRenderCoords());
                      }
@@ -361,8 +360,7 @@ implements ScalableUnits {
                      }
                   }
                   else {
-                     renderer.updateMaterial (
-                        props, props.getPointMaterial(), pnt.isSelected());
+                     renderer.setPointLighting (props, pnt.isSelected());
                      renderer.drawSphere (props, pnt.getRenderCoords());
                   }
                }

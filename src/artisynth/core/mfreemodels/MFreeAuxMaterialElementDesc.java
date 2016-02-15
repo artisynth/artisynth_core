@@ -515,9 +515,8 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
    public void render(Renderer renderer, int flags) {
       // this is just stub code for now
       if (false) {
-         maspack.render.Material mat = myRenderProps.getFaceMaterial();
-         renderer.setMaterialAndShading (
-            myRenderProps, mat, myWidgetColor, isSelected());
+         renderer.setFaceLighting (
+            myRenderProps, myWidgetColor, isSelected());
          myElement.renderWidget (renderer, myRenderProps, 0);
          renderer.restoreShading (myRenderProps);
       }      

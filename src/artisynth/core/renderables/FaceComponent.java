@@ -297,7 +297,8 @@ public class FaceComponent extends RenderableComponentBase {
       }
 
       if (isSelected()) {
-         renderer.updateMaterial(props, renderer.getSelectionMaterial(), false);
+         // John Lloyd: wasn't this set in the caller?
+         renderer.setFaceLighting (props, /*selected=*/true);
       } 
 
       if (type == 0 && lastType != 0) {

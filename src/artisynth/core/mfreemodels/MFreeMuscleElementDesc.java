@@ -443,9 +443,8 @@ public class MFreeMuscleElementDesc
          renderType = bundle.getDirectionRenderType();
       }      
       if (widgetSize != 0) {
-         maspack.render.Material mat = myRenderProps.getFaceMaterial();
-         renderer.setMaterialAndShading (
-            myRenderProps, mat, myWidgetColor, isSelected());
+         renderer.setFaceLighting (
+            myRenderProps, myWidgetColor, isSelected());
          myElement.renderWidget (renderer, widgetSize, myRenderProps, 0);
          renderer.restoreShading (myRenderProps);
       }

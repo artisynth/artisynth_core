@@ -106,8 +106,7 @@ public class MFreeElement3dList extends RenderableComponentList<MFreeElement3d> 
                }
             }
             else {
-               maspack.render.Material mat = myRenderProps.getFaceMaterial();
-               renderer.updateMaterial (myRenderProps, mat, elem.isSelected());
+               renderer.setFaceLighting (myRenderProps, elem.isSelected());
                elem.renderWidget (renderer, myRenderProps, 0);
             }
          }

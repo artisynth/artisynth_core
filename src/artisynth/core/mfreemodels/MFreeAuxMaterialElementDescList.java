@@ -116,9 +116,8 @@ public class MFreeAuxMaterialElementDescList
                   }
                }
                else {
-                  maspack.render.Material mat = myRenderProps.getFaceMaterial();
-                  renderer.updateMaterial (
-                     myRenderProps, mat, desc.myWidgetColor, desc.isSelected());
+                  renderer.setFaceLighting (
+                     myRenderProps, desc.myWidgetColor, desc.isSelected());
                   desc.myElement.renderWidget (renderer, myRenderProps, 0);
                }
             }

@@ -25,6 +25,13 @@ public interface Renderer {
       RGB,
       HSV
    };
+   
+   public enum ColorMixing {
+      NONE,  // ignore
+      REPLACE,
+      MODULATE,
+      DECAL
+   }
 
    /** 
     * Flag requesting that an object be rendered as though it is selected.
@@ -90,6 +97,22 @@ public interface Renderer {
    public ColorInterpolation getColorInterpolation();
 
    public void setColorInterpolation (ColorInterpolation interp);
+   
+   /**
+    * Specify method for combining material color and vertex color
+    * @param cmix
+    */
+   public void setColorMixing(ColorMixing cmix);  
+   
+   public ColorMixing getColorMixing();
+   
+   /**
+    * Specify method for combining texture color with underlying material color
+    * @param tmix
+    */
+   public void setTextureMixing(ColorMixing tmix);
+   
+   public ColorMixing getTextureMixing();
 
    /**
     * Returns whether or not lighting is enabled.

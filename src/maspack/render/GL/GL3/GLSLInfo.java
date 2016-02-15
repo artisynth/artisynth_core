@@ -2,6 +2,7 @@ package maspack.render.GL.GL3;
 
 import maspack.render.RenderProps.Shading;
 import maspack.render.Renderer.ColorInterpolation;
+import maspack.render.Renderer.ColorMixing;
 
 public class GLSLInfo {
 
@@ -13,11 +14,8 @@ public class GLSLInfo {
       AFFINES
    }
    
-   // public enum ColorInterpolation {
-   //    NONE,
-   //    RGB,
-   //    HSV
-   // }
+   public static final ColorMixing DEFAULT_COLOR_MIXING = ColorMixing.REPLACE;
+   public static final ColorMixing DEFAULT_TEXTURE_MIXING = ColorMixing.MODULATE;
    
    private int numLights;
    private int numClipPlanes;
@@ -38,6 +36,9 @@ public class GLSLInfo {
    private Shading shading;
    private ColorInterpolation colorInterp;
    private InstancedRendering instanced;
+   
+   private ColorMixing colorMixing;
+   private ColorMixing textureMixing;
    
    public GLSLInfo() {
       numLights = 0;
@@ -61,13 +62,17 @@ public class GLSLInfo {
       hasLineColors = false;
       hasLineTextures = false;
       
+      colorMixing = DEFAULT_COLOR_MIXING;
+      textureMixing = DEFAULT_TEXTURE_MIXING;
+      
    }
    
    public GLSLInfo(int numLights, int numClipPlanes, Shading shading,
       ColorInterpolation colorInterp, boolean hasVertexNormals,
       boolean hasVertexColors, boolean hasVertexTextures, InstancedRendering instanced,
       boolean hasInstanceColors, boolean hasInstanceTextures, boolean hasLineLengthOffset,
-      boolean hasLineColors, boolean hasLineTextures) {
+      boolean hasLineColors, boolean hasLineTextures,
+      ColorMixing colorMixing, ColorMixing textureMixing) {
       
       this.numClipPlanes = numClipPlanes;
       
@@ -132,11 +137,16 @@ public class GLSLInfo {
             this.hasLineTextures = false;
             break;
       }
+      
+      this.colorMixing = colorMixing;
+      this.textureMixing = textureMixing;
+      
    }
    
    public GLSLInfo(int numLights, int numClipPlanes, Shading shading,
       ColorInterpolation colorInterp, boolean hasVertexNormals,
-      boolean hasVertexColors, boolean hasVertexTextures) {
+      boolean hasVertexColors, boolean hasVertexTextures,
+      ColorMixing colorMixing, ColorMixing textureMixing) {
       
       this.numClipPlanes = numClipPlanes;
       
@@ -161,11 +171,14 @@ public class GLSLInfo {
       this.hasLineLengthOffset = false;
       this.hasLineColors = false;
       this.hasLineTextures = false;
+      
+      this.colorMixing = colorMixing;
+      this.textureMixing = textureMixing;
    }
    
    public GLSLInfo create(int numClipPlanes) {
       return new GLSLInfo(0, numClipPlanes, Shading.NONE, ColorInterpolation.NONE, false, false, false,
-         InstancedRendering.NONE, false, false, false, false, false);
+         InstancedRendering.NONE, false, false, false, false, false, DEFAULT_COLOR_MIXING, DEFAULT_TEXTURE_MIXING);
    }
    
 
@@ -185,11 +198,13 @@ public class GLSLInfo {
       result = prime * result + (hasVertexColors ? 1231 : 1237);
       result = prime * result + (hasVertexNormals ? 1231 : 1237);
       result = prime * result + (hasVertexTextures ? 1231 : 1237);
-      result =
-         prime * result + ((instanced == null) ? 0 : instanced.hashCode());
+      result = prime * result + ((instanced == null) ? 0 : instanced.hashCode());
       result = prime * result + numClipPlanes;
       result = prime * result + numLights;
       result = prime * result + ((shading == null) ? 0 : shading.hashCode());
+      result = prime * result + ((colorMixing == null) ? 0 : colorMixing.hashCode());
+      result = prime * result + ((textureMixing == null) ? 0 : textureMixing.hashCode());
+      
       return result;
    }
 
@@ -248,6 +263,12 @@ public class GLSLInfo {
          return false;
       }
       if (shading != other.shading) {
+         return false;
+      }
+      if (colorMixing != other.colorMixing) {
+         return false;
+      }
+      if (textureMixing != other.textureMixing) {
          return false;
       }
       return true;
@@ -311,6 +332,20 @@ public class GLSLInfo {
 
    public InstancedRendering getInstancedRendering() {
       return instanced;
+   }
+   
+   public ColorMixing getColorMixing() {
+      if (colorMixing == null) {
+         return DEFAULT_COLOR_MIXING;
+      }
+      return colorMixing;
+   }
+   
+   public ColorMixing getTextureMixing() {
+      if (textureMixing == null) {
+         return DEFAULT_TEXTURE_MIXING;
+      }
+      return textureMixing;
    }
    
 }

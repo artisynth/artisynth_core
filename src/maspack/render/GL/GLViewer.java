@@ -123,6 +123,8 @@ HasProperties {
       Faces faceMode;
       Shading shading;
       boolean hsvInterpolationEnabled;  
+      ColorMixing colorMixing;  // method for combining material/vertex colors
+      ColorMixing textureMixing;// method for combining material/texture colors
 
       public ViewerState clone() {
          ViewerState c = new ViewerState();
@@ -134,6 +136,8 @@ HasProperties {
          c.vertexColorsEnabled = vertexColorsEnabled;
          c.hsvInterpolationEnabled = hsvInterpolationEnabled;
          c.textureMappingEnabled = textureMappingEnabled;
+         c.colorMixing = colorMixing;
+         c.textureMixing = textureMixing;
          return c;
       }
    }
@@ -207,6 +211,8 @@ HasProperties {
    protected float[] DEFAULT_MATERIAL_COLOR = new float[]{0.8f, 0.8f, 0.8f, 1.0f};
    protected float[] DEFAULT_MATERIAL_EMISSION = new float[]{0.0f, 0.0f, 0.0f, 1.0f};
    protected float[] DEFAULT_MATERIAL_SPECULAR = new float[]{0.1f, 0.1f, 0.1f, 1.0f};
+
+   protected Shading DEFAULT_SHADING = Shading.GOURAUD;
 
    protected float DEFAULT_MATERIAL_SHININESS = 32f;
    protected Material myCurrentMaterial = Material.createDiffuse(DEFAULT_MATERIAL_COLOR, 32f);
@@ -1786,6 +1792,26 @@ HasProperties {
    public boolean isTextureMappingEnabled() {
       return myViewerState.textureMappingEnabled;
    }
+   
+   @Override
+   public void setColorMixing (ColorMixing cmix) {
+      myViewerState.colorMixing = cmix;
+   }
+   
+   @Override
+   public ColorMixing getColorMixing () {
+      return myViewerState.colorMixing;
+   }
+   
+   @Override
+   public void setTextureMixing (ColorMixing tmix) {
+      myViewerState.textureMixing = tmix;
+   }
+   
+   @Override
+   public ColorMixing getTextureMixing () {
+      return myViewerState.textureMixing;
+   }
 
    public boolean isGammaCorrectionEnabled() {
       return gammaCorrectionEnabled;
@@ -1860,6 +1886,12 @@ HasProperties {
       }
       if (myViewerState.textureMappingEnabled != state.textureMappingEnabled) {
          setTextureMappingEnabled(state.textureMappingEnabled);
+      }
+      if (myViewerState.colorMixing != state.colorMixing) {
+         setColorMixing (state.colorMixing);
+      }
+      if (myViewerState.textureMixing != state.textureMixing) {
+         setTextureMixing (state.textureMixing);
       }
 
    }

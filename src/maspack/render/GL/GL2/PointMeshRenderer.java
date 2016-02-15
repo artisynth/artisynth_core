@@ -1,7 +1,5 @@
 package maspack.render.GL.GL2;
 
-import java.awt.Color;
-
 import javax.media.opengl.GL2;
 
 import maspack.geometry.PointMesh;
@@ -132,8 +130,7 @@ public class PointMeshRenderer {
 
          if (props.getPointColor() != null && !viewer.isSelecting()) {
             if (shading != Shading.NONE) {
-               viewer.updateMaterial(props,
-                  props.getPointMaterial(), selected);
+               viewer.setMaterial(props.getPointMaterial(), selected);
             }
             else {
                reenableLighting = viewer.isLightingEnabled();
@@ -198,7 +195,7 @@ public class PointMeshRenderer {
 
                      if (useVertexColors) {
                         float[] color = mesh.getColor(i);
-                        viewer.updateMaterial(props, props.getPointMaterial(),
+                        viewer.setMaterial(props.getPointMaterial(),
                            color, selected);
                      }
                      viewer.drawSphere(props, coords);

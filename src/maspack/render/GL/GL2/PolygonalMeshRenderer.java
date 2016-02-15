@@ -805,11 +805,11 @@ public class PolygonalMeshRenderer {
          // }
 
          if (shading != Shading.NONE) {
-            Material faceMat = mesh.getFaceMaterial();
+            Material faceMat = null; // XXX mesh.getFaceMaterial();
             if (faceMat == null) {
                faceMat = props.getFaceMaterial();
             }
-            Material backMat = mesh.getBackMaterial();
+            Material backMat = null; // XXX mesh.getBackMaterial();
             if (backMat == null) {
                backMat = props.getBackMaterial();
             }

@@ -65,6 +65,8 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    //      POS_X_POS_Z, NEG_X_POS_Z, POS_X_POS_Y, 
    //      POS_X_NEG_Y, POS_Y_POS_Z, NEG_Y_POS_Z
    //   }
+   
+   protected boolean myShadingModified = true;
 
    protected static boolean myUseGLSelectSelection = false;
 
@@ -990,6 +992,18 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    //      gl.glLoadMatrixd (GLMatrix, 0);
    //      gl.glMatrixMode (GL2.GL_MODELVIEW);
    //   }
+   
+   private int getGLShadingModel(Shading shading) {
+      switch (shading) {
+         case FLAT:
+            return GL2.GL_FLAT;
+         case GOURAUD:
+         case PHONG:
+         case NONE:
+            return GL2.GL_SMOOTH;
+      }
+      return 0;
+   }
 
    /**
     * Potentially update GL state (matrices, lights, materials, etc...)
@@ -998,8 +1012,32 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    protected void maybeUpdateState(GL2 gl) {
       maybeUpdateMatrices (gl);
       maybeUpdateMaterials(gl);
+      maybeUpdateShading(gl);      
+   }
+   
+   protected void maybeUpdateShading(GL2 gl) {
+      // maybe update shading
+      if (myShadingModified && !isSelecting()) {
+         Shading shading = getShadeModel();
+         if (shading == Shading.NONE) {
+            setLightingEnabled (false);
+         } else {
+            setLightingEnabled (true);
+            gl.glShadeModel(getGLShadingModel(shading));
+         }
+         myShadingModified = false;  // changes committed
+      }
+
    }
 
+   @Override
+   public void setShadeModel (Shading shading) {
+      if (shading != getShadeModel ()) {
+         super.setShadeModel (shading);
+         myShadingModified = true;
+      }
+   }
+   
    public void maybeUpdateMaterials(GL2 gl) {
 
       // only update if not selecting
@@ -1203,10 +1241,10 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       }
       Shading shading = props.getShading();
       if (shading == Shading.NONE) {
-         setLightingEnabled (true);
+         setShadeModel (DEFAULT_SHADING);
       }
       else if (shading != Shading.FLAT) {
-         gl.glShadeModel (GL2.GL_FLAT);
+         setShadeModel (Shading.FLAT);
       }      
    }
    //
@@ -2470,19 +2508,23 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          }
 
          boolean selecting = isSelecting();
-         boolean useColors = (robj.hasColors() && isVertexColoringEnabled() && !selecting);
+         boolean hasColors = (robj.hasColors() && isVertexColoringEnabled());
+         boolean useColors = hasColors && !selecting;
          boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
          // if use vertex colors, get them to track glColor
          if (useColors) {
             gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
-            gl.glEnable (GL2.GL_COLOR_MATERIAL);
+            // if selection color is active, ignore material color
+            if (!mySelectedColorActive) {
+               gl.glEnable (GL2.GL_COLOR_MATERIAL);
+            }
             if (useHSV) {
                useHSV = setupHSVInterpolation(gl);
             }
          }
 
-         boolean useDisplayList = !selecting || !useColors;
+         boolean useDisplayList = !selecting || !hasColors;
          DisplayListPassport dlpp = null;
 
          synchronized(robj) {
@@ -2676,7 +2718,8 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          }
 
          boolean selecting = isSelecting();
-         boolean useColors = (robj.hasColors() && isVertexColoringEnabled() && !selecting);
+         boolean hasColors = (robj.hasColors() && isVertexColoringEnabled());
+         boolean useColors = hasColors && !selecting;
          boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
          // if use vertex colors, get them to track glColor
@@ -2688,7 +2731,8 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             }
          }
 
-         boolean useDisplayList = !selecting || !useColors;
+         boolean useDisplayList = !selecting || !hasColors;
+         
          DisplayListPassport dlpp = null;
          RenderObjectKey key = new RenderObjectKey(robj, DrawType.LINES);
          LineFingerPrint fingerprint = new LineFingerPrint(robj.getVersionInfo(), LineStyle.LINE, 0, 0);
@@ -3202,7 +3246,8 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       List<int[]> lines = robj.getLines();
 
       boolean selecting = isSelecting();
-      boolean useColors = (robj.hasColors() && isVertexColoringEnabled() && !selecting);
+      boolean hasColors = (robj.hasColors() && isVertexColoringEnabled());
+      boolean useColors = hasColors && !selecting;
       boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor
@@ -3214,7 +3259,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          }
       }
 
-      boolean useDisplayList = !selecting || !useColors;
+      boolean useDisplayList = !selecting || !hasColors;
       DisplayListPassport dlpp = null;
       RenderObjectKey key = new RenderObjectKey(robj, DrawType.LINES);
       LineFingerPrint fingerprint = new LineFingerPrint(robj.getVersionInfo(), style, myLineSlices, rad);
@@ -3367,7 +3412,8 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          }
 
          boolean selecting = isSelecting();
-         boolean useColors = (robj.hasColors() && isVertexColoringEnabled() && !selecting);
+         boolean hasColors = (robj.hasColors() && isVertexColoringEnabled());
+         boolean useColors = hasColors && !selecting;
          boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
          // if use vertex colors, get them to track glColor
@@ -3379,7 +3425,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             }
          }
 
-         boolean useDisplayList = !selecting || !useColors;
+         boolean useDisplayList = !selecting || !hasColors;
          DisplayListPassport dlpp = null;
          RenderObjectKey key = new RenderObjectKey(robj, DrawType.POINTS);
          PointFingerPrint fingerprint = new PointFingerPrint(robj.getVersionInfo(), PointStyle.POINT, 0, 0);
@@ -3446,7 +3492,8 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       int displayList = myGLResources.getSphereDisplayList(gl, myPointSlices);
 
       boolean selecting = isSelecting();
-      boolean useColors = (robj.hasColors() && isVertexColoringEnabled() && !selecting);
+      boolean hasColors = (robj.hasColors() && isVertexColoringEnabled());
+      boolean useColors = hasColors && !selecting;
       boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor
@@ -3458,7 +3505,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          }
       }
 
-      boolean useDisplayList = !selecting || !useColors;
+      boolean useDisplayList = !selecting || !hasColors;
       DisplayListPassport dlpp = null;
       RenderObjectKey key = new RenderObjectKey(robj, DrawType.POINTS);
       PointFingerPrint fingerprint = new PointFingerPrint(robj.getVersionInfo(), PointStyle.SPHERE, displayList, (float)rad);
@@ -3557,7 +3604,8 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       }
 
       boolean selecting = isSelecting();
-      boolean useColors = (robj.hasColors() && isVertexColoringEnabled() && !selecting);
+      boolean hasColors = (robj.hasColors() && isVertexColoringEnabled());
+      boolean useColors = hasColors && !selecting;
       boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor
@@ -3569,7 +3617,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          }
       }
 
-      boolean useDisplayList = !selecting || !useColors;
+      boolean useDisplayList = !selecting || !hasColors;
       DisplayListPassport dlpp = null;
       RenderObjectKey key = new RenderObjectKey(robj, DrawType.VERTICES);
       VertexFingerPrint fingerprint = new VertexFingerPrint(robj.getVersionInfo(), mode);

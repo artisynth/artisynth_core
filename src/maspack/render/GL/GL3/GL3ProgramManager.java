@@ -16,6 +16,7 @@ import maspack.render.RenderProps.Shading;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLLight;
 import maspack.render.Renderer.ColorInterpolation;
+import maspack.render.Renderer.ColorMixing;
 import maspack.render.GL.GL3.GLSLInfo.InstancedRendering;
 
 public class GL3ProgramManager {
@@ -285,7 +286,8 @@ public class GL3ProgramManager {
    protected void createDefaultProgram(GL3 gl) {
       GLSLInfo key = new GLSLInfo(numLights, numClipPlanes, Shading.PHONG, 
          ColorInterpolation.NONE, true, false, false, 
-         InstancedRendering.NONE, false, false, false, false, false);
+         InstancedRendering.NONE, false, false, false, false, false,
+         ColorMixing.REPLACE, ColorMixing.MODULATE);
       createAndBindProgram(gl, key);
    }
 

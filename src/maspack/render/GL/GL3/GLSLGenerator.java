@@ -3,6 +3,7 @@ package maspack.render.GL.GL3;
 import maspack.render.RenderProps.Shading;
 import maspack.render.GL.GL3.GLSLInfo.InstancedRendering;
 import maspack.render.Renderer.ColorInterpolation;
+import maspack.render.Renderer.ColorMixing;
 
 
 public class GLSLGenerator {
@@ -935,13 +936,15 @@ public class GLSLGenerator {
       appendln(mb, "");
       
       // do lighting computations
-      if (info.getShading() != Shading.NONE) {
+      boolean lights = false;
+      if (info.getShading() != Shading.NONE && info.numLights() > 0) {
+         
+         lights = true;
          appendln(mb, "   vec3 diffuse, ambient, specular, emission;");
          appendln(mb, "   Material material;");
          switch (info.getShading()) {
             case FLAT:
             case GOURAUD:
-               if (info.numLights() > 0) {
                   appendln(mb, "   // imported per-vertex lighting");
                   appendln(mb, "   if( gl_FrontFacing ) {");
                   appendln(mb, "      diffuse  = fragmentLightIn.front_diffuse;");
@@ -955,20 +958,7 @@ public class GLSLGenerator {
                   appendln(mb, "      material = back_material;");
                   appendln(mb, "   }");
                   appendln(mb);
-               } else {
-                  appendln(mb, "   if( gl_FrontFacing ) {");
-                  appendln(mb, "      material = front_material;");
-                  appendln(mb, "   } else {");
-                  appendln(mb, "      material = back_material;");
-                  appendln(mb, "   }");
-                  appendln(mb, "   diffuse  = vec3(0.0);");
-                  appendln(mb, "   ambient  = vec3(0.0);");
-                  appendln(mb, "   specular = vec3(0.0);");
-                  appendln(mb);
-               }
-               break;
             case PHONG:
-               if ( info.numLights() > 0) {
                   appendln(mb, "   // fragment normal and eye location for lighting");
                   appendln(mb, "   vec3 n = normalize(fragmentDirIn.normal);");
                   appendln(mb, "   vec3 e = normalize(fragmentDirIn.to_eye);");
@@ -1018,21 +1008,19 @@ public class GLSLGenerator {
                   appendln(mb, "      ");
                   appendln(mb, "   }");
                   appendln(mb, "   ");
-               } else {
-                  appendln(mb, "   if( gl_FrontFacing ) {");
-                  appendln(mb, "      material = front_material;");
-                  appendln(mb, "   } else {");
-                  appendln(mb, "      material = back_material;");
-                  appendln(mb, "   }");
-                  appendln(mb, "   diffuse  = vec3(0.0);");
-                  appendln(mb, "   ambient  = vec3(0.0);");
-                  appendln(mb, "   specular = vec3(0.0);");
-                  appendln(mb);
-               }
                break;
             case NONE:
+               // never here
                break;
          }
+      } else {
+         appendln(mb, "   // material to use;");
+         appendln(mb, "   Material material;");
+         appendln(mb, "   if( gl_FrontFacing ) {");
+         appendln(mb, "      material = front_material;");
+         appendln(mb, "   } else {");
+         appendln(mb, "      material = back_material;");
+         appendln(mb, "   }");
       }
       
       // combine colors
@@ -1051,48 +1039,64 @@ public class GLSLGenerator {
                     || instanced == InstancedRendering.AFFINES) && info.hasInstanceTextures())
               || (instanced == InstancedRendering.LINES && info.hasLineTextures() );
 
-      appendln(mb, "   // combine colors");
-      appendln(mb, "   vec4 color;");
-      if (info.getShading() == Shading.NONE) {
-         // use material color directly
-         if (hasColors) {
-            if (cinterp == ColorInterpolation.HSV) {
-               appendln(mb, "   color = hsva2rgba(fragmentColorIn.color);");
-            } else {
-               appendln(mb, "   color = fragmentColorIn.color;");
-            }
+      appendln(mb, "   // compute final color");
+      appendln(mb, "   vec4 color = material.diffuse;  // start with material");
+      
+      if (hasColors) {
+         // mix colors
+         appendln(mb, "   // incoming fragment color");
+         if (cinterp == ColorInterpolation.HSV) {
+            appendln(mb, "   vec4 fcolor = hsva2rgba(fragmentColorIn.color);");
          } else {
-            appendln(mb, "   if( gl_FrontFacing ) {");
-            appendln(mb, "      color = front_material.diffuse;");
-            appendln(mb, "   } else {");
-            appendln(mb, "      color = back_material.diffuse;");
-            appendln(mb, "   }");
+            appendln(mb, "   vec4 fcolor = fragmentColorIn.color;");
          }
-      } else {
-         if (hasColors) {
-            // replace diffuse
-            if (cinterp == ColorInterpolation.HSV) {
-               appendln(mb, "   vec4 diffuse_color = hsva2rgba(fragmentColorIn.color);");
-            } else {
-               appendln(mb, "   vec4 diffuse_color = fragmentColorIn.color;");
-            }
-         } else {
-            appendln(mb, "   vec4 diffuse_color = material.diffuse;");
+         appendln(mb, "   // mix");
+         ColorMixing cmix = info.getColorMixing();
+         switch (cmix) {
+            case DECAL:
+               appendln(mb, "   color = vec4(mix(color,fcolor,fcolor.a).rgb, color.a); // decal");
+               break;
+            case MODULATE:
+               appendln(mb, "   color = fcolor*color; // modulate");
+               break;
+            case REPLACE:
+               appendln(mb, "   color = fcolor; // replace");
+               break;
+            case NONE:
+               appendln(mb, "   // fcolor ignored");
+            default:
          }
-         appendln(mb, "   diffuse  = diffuse_color.rgb*diffuse;");
-         appendln(mb, "   specular = material.specular.rgb*specular;");
-         appendln(mb, "   // ambient color is diffuse times ambient light");
-         appendln(mb, "   ambient  = material.diffuse.rgb*ambient;");
-         appendln(mb, "   emission = material.emission.rgb;");
-         appendln(mb, "   color = vec4(max(diffuse+specular+emission, ambient), diffuse_color.a);");
-         //appendln(mb, "   color = vec4(max(diffuse,specular), diffuse_color.a);");
+      }
+
+      if (hasTextures) {
+         appendln(mb, "   // grab texture color and mix");
+         appendln(mb, "   vec4 texture_color = texture( texture0, textureIn.texcoord );");
+         ColorMixing cmix = info.getColorMixing();
+         switch (cmix) {
+            case DECAL:
+               appendln(mb, "   color = vec4(mix(color,texture_color,texture_color.a).rgb, color.a); // decal");
+               break;
+            case MODULATE:
+               appendln(mb, "   color = color*texture_color; // modulate");
+               break;
+            case REPLACE:
+               appendln(mb, "   color = texture_0color; // replace");
+            case NONE:
+               appendln(mb, "   // texture_color ignored");
+            default:
+         }
       }
       
-      if (hasTextures) {
-         appendln(mb, "   // grab texture color and modulate");
-         appendln(mb, "   vec4 texture_color = texture( texture0, textureIn.texcoord );");
-         appendln(mb, "   color *= texture_color;");
+      // lighting
+      if (lights) {
+         appendln(mb, "   // apply lighting");
+         appendln(mb, "   diffuse  = color.rgb*diffuse;");
+         appendln(mb, "   ambient  = color.rgb*ambient;");
+         appendln(mb, "   specular = material.specular.rgb*specular;");
+         appendln(mb, "   emission = material.emission.rgb;");
+         appendln(mb, "   color = vec4(max(diffuse+specular+emission, ambient), color.a);");
       }
+      
       //      appendln(mb, "   // gamma correction");
       //      appendln(mb, "   vec3 gamma = vec3(1.0/2.2);");
       //      appendln(mb, "   color = vec4(pow(color.rgb, gamma), color.a);");
@@ -1106,7 +1110,7 @@ public class GLSLGenerator {
 
       GLSLInfo proginfo = new GLSLInfo(1, 0, Shading.NONE, ColorInterpolation.RGB, 
          false, false, false, InstancedRendering.LINES,
-            false, false, false, false, false);
+            false, false, false, false, false, null, null);
       String[] shaders = getShaderScripts(proginfo);
 
       System.out.println("Vertex Shader: ");

@@ -1245,12 +1245,13 @@ public class GL3Viewer extends GLViewer {
       if (isSelecting()) {
          key = new GLSLInfo(progManager.numLights(), progManager.numClipPlanes(), 
             Shading.NONE, ColorInterpolation.NONE,
-            false, false, false);
+            false, false, false, getColorMixing(), getTextureMixing());
       } else {
          boolean lighting = isLightingEnabled();
          Shading shading = lighting ? getShadeModel() : Shading.NONE;
          key = new GLSLInfo(progManager.numLights(), progManager.numClipPlanes(), 
-            shading, ColorInterpolation.NONE, shading != Shading.NONE, false, false);
+            shading, ColorInterpolation.NONE, shading != Shading.NONE, false, false,
+            getColorMixing(), getTextureMixing());
       }
       return progManager.getProgram(gl, key);
    }
@@ -1268,7 +1269,7 @@ public class GL3Viewer extends GLViewer {
       GLSLInfo key = null;
       if (isSelecting()) {
          key = new GLSLInfo(progManager.numLights(), progManager.numClipPlanes(), 
-            Shading.NONE, ColorInterpolation.NONE, false, false, false);
+            Shading.NONE, ColorInterpolation.NONE, false, false, false, getColorMixing(), getTextureMixing());
       } else {
          boolean hasColors = isVertexColoringEnabled();
          if (!isLightingEnabled()) {
@@ -1278,7 +1279,8 @@ public class GL3Viewer extends GLViewer {
             cinterp = ColorInterpolation.NONE;
          }
          key = new GLSLInfo(progManager.numLights(), progManager.numClipPlanes(), 
-            shading, cinterp, shading != Shading.NONE, hasColors, false);
+            shading, cinterp, shading != Shading.NONE, hasColors, false,
+            getColorMixing(), getTextureMixing());
       }
       return progManager.getProgram(gl, key);
    }
@@ -1292,7 +1294,7 @@ public class GL3Viewer extends GLViewer {
       return progManager.getProgram(gl, 
          new GLSLInfo(progManager.numLights(), progManager.numClipPlanes(), 
             Shading.NONE, ColorInterpolation.NONE,
-            false, false, false));
+            false, false, false, getColorMixing(), getTextureMixing()));
    }
 
    private void drawGLLine(GL3 gl, float[] coords0, float[] coords1) {
@@ -2147,12 +2149,21 @@ public class GL3Viewer extends GLViewer {
          } else if (isHSVColorInterpolationEnabled()) {
             cinterp = ColorInterpolation.HSV;
          }
+         
+         ColorMixing cmix = getColorMixing();
+         ColorMixing tmix = getTextureMixing();
+         if (mySelectedColorActive) {
+            cmix = ColorMixing.NONE;  // ignore colors when selecting
+            tmix = ColorMixing.NONE;
+         }
+         
          GLSLInfo key = new GLSLInfo(progManager.numLights(),
             progManager.numClipPlanes(), 
             shading, cinterp, 
             isLightingEnabled() && robj.hasNormals(), 
             isVertexColoringEnabled() && robj.hasColors(),
-            isTextureMappingEnabled() && robj.hasTextureCoords());
+            isTextureMappingEnabled() && robj.hasTextureCoords(),
+            cmix, tmix);
 
          return progManager.getProgram(gl,key);
       }
@@ -2166,7 +2177,8 @@ public class GL3Viewer extends GLViewer {
             false, false, false, 
             InstancedRendering.POINTS, 
             false, false, 
-            false, false, false);
+            false, false, false, 
+            getColorMixing(), getTextureMixing());
       } else {
          Shading shading = getShadeModel();
          if (!isLightingEnabled()) {
@@ -2184,7 +2196,8 @@ public class GL3Viewer extends GLViewer {
             InstancedRendering.POINTS, 
             isVertexColoringEnabled() && robj.hasColors(),
             isTextureMappingEnabled() && robj.hasTextureCoords(),
-            false, false, false);
+            false, false, false, 
+            getColorMixing(), getTextureMixing());
       }
       return progManager.getProgram(gl,key);
    }
@@ -2197,7 +2210,8 @@ public class GL3Viewer extends GLViewer {
             false, false, false, 
             InstancedRendering.LINES, 
             false, false, 
-            false, false, false);
+            false, false, false, 
+            getColorMixing(), getTextureMixing());
       } else {
          Shading shading = getShadeModel();
          if (!isLightingEnabled()) {
@@ -2216,7 +2230,8 @@ public class GL3Viewer extends GLViewer {
             false, false,
             style == LineStyle.SOLID_ARROW,
             isVertexColoringEnabled() && robj.hasColors(),
-            isTextureMappingEnabled() && robj.hasTextureCoords());
+            isTextureMappingEnabled() && robj.hasTextureCoords(),
+            getColorMixing(), getTextureMixing());
       }
       return progManager.getProgram(gl,key);
    }

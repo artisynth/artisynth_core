@@ -1023,7 +1023,8 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             setLightingEnabled (false);
          } else {
             setLightingEnabled (true);
-            gl.glShadeModel(getGLShadingModel(shading));
+            int glShading = getGLShadingModel (shading);
+            gl.glShadeModel(glShading);
          }
          myShadingModified = false;  // changes committed
       }
@@ -2460,7 +2461,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          return true;
       }
       else {
-         // HSV interpolaation not supported on this system
+         // HSV interpolation not supported on this system
          return false;
       }
    }
@@ -2725,7 +2726,10 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          // if use vertex colors, get them to track glColor
          if (useColors) {
             gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
-            gl.glEnable (GL2.GL_COLOR_MATERIAL);
+            // if selection color is active, ignore material color
+            if (!mySelectedColorActive) {
+               gl.glEnable (GL2.GL_COLOR_MATERIAL);
+            }
             if (useHSV) {
                useHSV = setupHSVInterpolation(gl);
             }
@@ -2800,13 +2804,12 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       - coords0[2]);
       Xtmp.p.set (coords0[0], coords0[1], coords0[2]);
       Xtmp.R.setZDirection (utmp);
-
       gl.glPushMatrix();
       GL2Viewer.mulTransform (gl, Xtmp);
 
       double h = utmp.norm();
 
-      // maybe re-fill angle buffer
+      // fill angle buffer
       if (nslices+1 != cosBuff.length) {
          cosBuff = new double[nslices+1];
          sinBuff = new double[nslices+1];
@@ -2821,28 +2824,28 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          }
       }
 
+      double nz = (base-top)/h;
+      double nscale = 1.0/Math.sqrt(1+nz*nz);
+
       // draw sides
       gl.glBegin(GL2.GL_QUAD_STRIP);
       double c1,s1;
       for (int i = 0; i <= nslices; i++) {
          c1 = cosBuff[i];
          s1 = sinBuff[i];
-         gl.glNormal3d(c1, s1, (base-top)/h);
-
-         setVertexColor (gl, color0, useHSV);
-         gl.glColor4ubv (color0, 0);
-         gl.glVertex3d (base * c1, base * s1, 0);
+         gl.glNormal3d(nscale*c1, nscale*s1, nscale*nz);
 
          setVertexColor (gl, color1, useHSV);
          gl.glVertex3d (top * c1, top * s1, h);
-      }
 
+         setVertexColor (gl, color0, useHSV);
+         gl.glVertex3d (base * c1, base * s1, 0);
+      }
       gl.glEnd();
 
-
       if (capped) { // draw top cap first
-         gl.glColor4ubv(color1, 0);
          if (top > 0) {
+            setVertexColor(gl, color1, useHSV);
             gl.glBegin (GL2.GL_POLYGON);
             gl.glNormal3d (0, 0, 1);
             for (int i = 0; i < nslices; i++) {
@@ -2851,11 +2854,11 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
             gl.glEnd();
          }
          // now draw bottom cap
-         gl.glColor4ubv(color0, 0);
          if (base > 0) {
+         setVertexColor(gl, color0, useHSV);
             gl.glBegin (GL2.GL_POLYGON);
             gl.glNormal3d (0, 0, -1);
-            for (int i = 0; i < nslices; i++) {
+            for (int i = nslices-1; i >=0; i--) {
                gl.glVertex3d (base * cosBuff[i], base * sinBuff[i], 0);
             }
             gl.glEnd();
@@ -3082,12 +3085,11 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          c1 = cosBuff[i];
          s1 = sinBuff[i];
          gl.glNormal3d(c1, s1, 0);
+         setVertexColor(gl, colorM, hsv);
+         gl.glVertex3d (rad * c1, rad * s1, h);  
 
-         gl.glColor4ubv (colorM, 0);
-         gl.glVertex3d (rad * c1, rad * s1, h);   
-
-         gl.glColor4ubv (color0, 0);
-         gl.glVertex3d (rad * c1, rad * s1, 0);      
+         setVertexColor(gl, color0, hsv);
+         gl.glVertex3d (rad * c1, rad * s1, 0);
       }
       gl.glEnd();
 
@@ -3098,32 +3100,31 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          s1 = sinBuff[i];
          gl.glNormal3d(c1, s1, 1);
 
-         gl.glColor4ubv (color1, 0);
-         gl.glVertex3d (0, 0, h2);   
-
-         gl.glColor4ubv (colorM, 0);
-         gl.glVertex3d (rad * c1, rad * s1, h);
+         setVertexColor(gl, color1, hsv);
+         gl.glVertex3d (0, 0, h2); 
+         setVertexColor(gl, colorM, hsv);
+         gl.glVertex3d (arrowRad * c1, arrowRad * s1, h);   
 
       }
       gl.glEnd();
 
       if (capped) { 
          // bottom cap
-         gl.glColor4ubv(color0, 0);
+         setVertexColor(gl, color0, hsv);
          gl.glBegin (GL2.GL_POLYGON);
          gl.glNormal3d (0, 0, -1);
          for (int i = 0; i < nslices; i++) {
-            gl.glVertex3d (rad * cosBuff[i], rad * sinBuff[i], 0);
+            gl.glVertex3d (-rad * cosBuff[i], rad * sinBuff[i], 0);
          }
          gl.glEnd();
 
          // connection
-         gl.glColor4ubv(colorM, 0);
+         setVertexColor(gl, colorM, hsv);
          gl.glBegin (GL2.GL_QUAD_STRIP);
          gl.glNormal3d (0, 0, -1);
-         for (int i = 0; i < nslices; i++) {
-            gl.glVertex3d (rad * cosBuff[i], rad * sinBuff[i], h);
+         for (int i = 0; i <= nslices; i++) {
             gl.glVertex3d (arrowRad * cosBuff[i], arrowRad * sinBuff[i], h);
+            gl.glVertex3d (rad * cosBuff[i], rad * sinBuff[i], h);
          }
          gl.glEnd();
       }
@@ -3183,12 +3184,12 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          RGBtoHSV(c1, out);
          out[3] = c1[3];
          for (int i=0; i<4; ++i) {
-            out[i] = (byte)((1-t)*tmp[i] + t*out[i]);
+            out[i] = (byte)((1-t)*(tmp[i]&0xFF) + t*(out[i]&0xFF));
          }
          HSVtoRGB(out, out);
       } else {
          for (int i=0; i<4; ++i) {
-            out[i] = (byte)((1-t)*c0[i] + t*c1[i]);
+            out[i] = (byte)((1-t)*(c0[i]&0xFF) + t*(c1[i]&0xFF));
          }
       }
    }
@@ -3223,15 +3224,15 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          gl.glBegin (GL2.GL_TRIANGLE_STRIP);
          for (int j = 0; j <= levels; j++) {
             double h = j * 1.0 / levels;
-            double r = 1 * Math.sin (h * Math.PI / 1.0);
-            double drdh = Math.PI / 1.0 * 1.0 * Math.cos (h * Math.PI / 1.0);
+            double r = 1 * Math.sin (h * Math.PI);
+            double drdh = Math.PI * Math.cos (h * Math.PI);
 
             interpColor4ub(c0, h, c1, cm, hsv);
-            gl.glColor4ubv(cm, 0);
+            setVertexColor(gl, cm, hsv);
             gl.glNormal3d (cos0, sin0, -drdh*rad/len);
-            gl.glVertex3d (cos0 * r * rad, sin0 * r * rad, h*len);
+            gl.glVertex3d (cos0 * r * rad, sin0 * r * rad, h * len);
             gl.glNormal3d (cos1, sin1, -drdh*rad/len);
-            gl.glVertex3d (cos1 * r * rad, sin1 * r * rad, h*len);
+            gl.glVertex3d (cos1 * r * rad, sin1 * r * rad, h * len);
          }
          gl.glEnd();
 
@@ -3253,7 +3254,10 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       // if use vertex colors, get them to track glColor
       if (useColors) {
          gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
-         gl.glEnable (GL2.GL_COLOR_MATERIAL);
+         // if selection color is active, ignore material color
+         if (!mySelectedColorActive) {
+            gl.glEnable (GL2.GL_COLOR_MATERIAL);
+         }
          if (useHSV) {
             useHSV = setupHSVInterpolation(gl);
          }
@@ -3403,7 +3407,7 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
    public void drawPoints(RenderObject robj) {
       maybeUpdateState(gl);
       List<int[]> pnts = robj.getPoints();
-
+      
       if (pnts != null) {
          boolean enableLighting = false;
          if (isLightingEnabled() && !robj.hasNormals()) {
@@ -3419,7 +3423,10 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          // if use vertex colors, get them to track glColor
          if (useColors) {
             gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
-            gl.glEnable (GL2.GL_COLOR_MATERIAL);
+            // if selection color is active, ignore material color
+            if (!mySelectedColorActive) {
+               gl.glEnable (GL2.GL_COLOR_MATERIAL);
+            }
             if (useHSV) {
                useHSV = setupHSVInterpolation(gl);
             }
@@ -3499,7 +3506,10 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       // if use vertex colors, get them to track glColor
       if (useColors) {
          gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
-         gl.glEnable (GL2.GL_COLOR_MATERIAL);
+         // if selection color is active, ignore material color
+         if (!mySelectedColorActive) {
+            gl.glEnable (GL2.GL_COLOR_MATERIAL);
+         }
          if (useHSV) {
             useHSV = setupHSVInterpolation(gl);
          }
@@ -3566,8 +3576,6 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
 
    @Override
    public void drawPoints(RenderObject robj, PointStyle style, double rad) {
-      maybeUpdateState(gl);
-
       switch (style) { 
          case POINT: {
             // maybe change point size and draw points
@@ -3611,7 +3619,10 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
       // if use vertex colors, get them to track glColor
       if (useColors) {
          gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
-         gl.glEnable (GL2.GL_COLOR_MATERIAL);
+         // if selection color is active, ignore material color
+         if (!mySelectedColorActive) {
+            gl.glEnable (GL2.GL_COLOR_MATERIAL);
+         }
          if (useHSV) {
             useHSV = setupHSVInterpolation(gl);
          }

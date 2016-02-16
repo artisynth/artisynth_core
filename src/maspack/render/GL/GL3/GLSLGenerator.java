@@ -272,11 +272,15 @@ public class GLSLGenerator {
                break;
             case LINES:
                if (info.hasLineColors()) {
+                  appendln(mb, "   // interpolate color based on line");
+                  appendln(mb, "   float cz = vertex_position.z;");
+                  if (info.hasLineLengthOffset()) {
+                     appendln(mb, "   cz = (cz*line_length+line_offset)/(line_length+line_offset);");
+                  }
                   if (cinterp == ColorInterpolation.HSV) {
-                     appendln(mb, "   // interpolate color based on line");
-                     appendln(mb, "   fragmentColorOut.color  = mix(rgba2hsva(line_bottom_color), rgba2hsva(line_top_color), vertex_position.z);");
+                     appendln(mb, "   fragmentColorOut.color  = mix(rgba2hsva(line_bottom_color), rgba2hsva(line_top_color), cz);");
                   } else {
-                     appendln(mb, "   fragmentColorOut.color = instance_color;");
+                     appendln(mb, "   fragmentColorOut.color = mix(line_bottom_color, line_top_color, cz);");
                   }
                   appendln(mb);
                } else if (info.hasVertexColors()) {
@@ -284,6 +288,13 @@ public class GLSLGenerator {
                      appendln(mb, "   fragmentColorOut.color = rgba2hsva(vertex_color);");
                   } else {
                      appendln(mb, "   fragmentColorOut.color = vertex_color;");
+                  }
+                  appendln(mb);
+               } else if (info.hasInstanceColors ()) {
+                  if (cinterp == ColorInterpolation.HSV) {
+                     appendln(mb, "   fragmentColorOut.color = rgba2hsva(instance_color);");
+                  } else {
+                     appendln(mb, "   fragmentColorOut.color = instance_color;");
                   }
                   appendln(mb);
                }
@@ -419,6 +430,10 @@ public class GLSLGenerator {
                appendln(mb, "   // forward vertex texture coordinates");
                appendln(mb, "   textureOut.texcoord = vertex_texture;");
                appendln(mb);
+            } else if (info.hasInstanceTextures()) {
+               appendln(mb, "   // forward vertex texture coordinates");
+               appendln(mb, "   textureOut.texcoord = instance_texture;");
+               appendln(mb);
             }
             break;
          case NONE:
@@ -530,13 +545,19 @@ public class GLSLGenerator {
             if (info.hasLineLengthOffset()) {
                appendln(hb, "in vec4  line_length_offset;");
             }
-            if (info.hasInstanceColors() && info.getColorInterpolation() != ColorInterpolation.NONE) {
+            if (info.hasLineColors() && info.getColorInterpolation() != ColorInterpolation.NONE) {
                appendln(hb, "in vec4  line_bottom_color;");
                appendln(hb, "in vec4  line_top_color;");
             }
-            if (info.hasInstanceTextures()) {
+            if (info.hasInstanceColors() && info.getColorInterpolation() != ColorInterpolation.NONE) {
+               appendln(hb, "in vec4  instance_color;");
+            }
+            if (info.hasLineTextures()) {
                appendln(hb, "in vec2  line_bottom_texture;");
                appendln(hb, "in vec2  line_top_texture;");
+            }
+            if (info.hasInstanceTextures()) {
+               appendln(hb, "in vec2  instance_texture;");
             }
             break;
          case NONE:
@@ -958,6 +979,7 @@ public class GLSLGenerator {
                   appendln(mb, "      material = back_material;");
                   appendln(mb, "   }");
                   appendln(mb);
+                  break;
             case PHONG:
                   appendln(mb, "   // fragment normal and eye location for lighting");
                   appendln(mb, "   vec3 n = normalize(fragmentDirIn.normal);");

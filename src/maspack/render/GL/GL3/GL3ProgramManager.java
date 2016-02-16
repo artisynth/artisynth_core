@@ -124,6 +124,9 @@ public class GL3ProgramManager {
       gl.glCompileShader(fs);
       success =  glCheckShaderCompilation(gl, fs);
       if (!success) {
+         System.out.println ("Vertex:\n" + shaders[0]);
+         System.out.println ("Fragment:\n" + shaders[1]);
+         shaders = GLSLGenerator.getShaderScripts(key);
          throw new RuntimeException("Fragment shader compilation failed.\n" + shaders[1]);
       }
 

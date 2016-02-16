@@ -19,7 +19,6 @@ import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
 import javax.media.opengl.GL;
-import javax.media.opengl.GL2;
 import javax.media.opengl.GL2GL3;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLContext;
@@ -55,7 +54,6 @@ import maspack.render.RenderListener;
 import maspack.render.RenderProps;
 import maspack.render.RenderProps.Faces;
 import maspack.render.RenderProps.Shading;
-import maspack.render.Renderer.VertexDrawMode;
 import maspack.render.RendererEvent;
 import maspack.render.SortedRenderableList;
 import maspack.util.InternalErrorException;

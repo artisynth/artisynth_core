@@ -1,4 +1,4 @@
-package maspack.render;
+package maspack.render.GL.GL2;
 
 import java.awt.Color;
 import java.awt.Graphics;
@@ -11,6 +11,7 @@ import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferByte;
 import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -34,13 +35,14 @@ import maspack.render.GL.GLTexture;
  * which the source image is copied into. In turn, this image is used as source
  * for the OpenGL texture.
  * 
- * @author Kevin Glass (Modified by Kees van den Doel)
+ * @author Kevin Glass, Kees van den Doel, Antonio Sanchez
  */
-public class TextureLoader {
+public class GL2TextureLoader {
    /** The table of textures that have been loaded in this loader */
    private HashMap<String,GLTexture> table = new HashMap<String,GLTexture>();
    /** The GL context used to load textures */
    private GL2 gl;
+   
    /** The colour model including alpha for the GL image */
    private ColorModel glAlphaColorModel;
    /** The colour model for the GL image */
@@ -52,7 +54,7 @@ public class TextureLoader {
     * @param gl
     * The GL content in which the textures should be loaded
     */
-   public TextureLoader (GL2 gl) {
+   public GL2TextureLoader (GL2 gl) {
       this.gl = gl;
 
       glAlphaColorModel =
@@ -89,18 +91,15 @@ public class TextureLoader {
     * Indicates a failure to access the resource
     */
    public GLTexture getTexture (String resourceName) throws IOException {
+      
       GLTexture tex = (GLTexture)table.get (resourceName);
-
       if (tex != null) {
          return tex;
       }
 
       tex = getTexture (resourceName, GL2.GL_TEXTURE_2D, // target
-
-      GL2.GL_RGBA, // dst pixel format
-
-         GL2.GL_LINEAR, // min filter (unused)
-
+         GL2.GL_RGBA,    // dst pixel format
+         GL2.GL_LINEAR,  // min filter (unused)
          GL2.GL_LINEAR);
 
       table.put (resourceName, tex);
@@ -126,57 +125,36 @@ public class TextureLoader {
     * Indicates a failure to access the resource
     */
    public GLTexture getTexture (
-      String resourceName, int target, int dstPixelFormat, int minFilter,
-      int magFilter) throws IOException {
+      String resourceName, int target, int dstPixelFormat, 
+      int minFilter, int magFilter) throws IOException {
       int srcPixelFormat = 0;
 
-      // create the texture ID for this texture
-
-      int textureID = createTextureID();
-      GLTexture texture = new GLTexture (target, textureID);
-
-      // bind this texture
-
-      gl.glBindTexture (target, textureID);
-
-      BufferedImage bufferedImage = loadImage (resourceName);
-      int biw = bufferedImage.getWidth();
-      int bih = bufferedImage.getHeight();
-      
-      if (biw != get2Fold(biw) || bih != get2Fold(bih)) {
-         // rescale to be power of two
-         Image sampled = bufferedImage.getScaledInstance(
-            get2Fold(bufferedImage.getWidth()), 
-            get2Fold(bufferedImage.getHeight()), 
-            Image.SCALE_SMOOTH);
-         bufferedImage = new BufferedImage(get2Fold(biw), get2Fold(bih), BufferedImage.TYPE_INT_ARGB);
-         bufferedImage.getGraphics().drawImage(sampled, 0, 0 , null);
-      }
-      texture.setWidth (bufferedImage.getWidth());
-      texture.setHeight (bufferedImage.getHeight());
-
+      // load image
+      BufferedImage bufferedImage = loadImagePow2 (resourceName);
+      // convert that image into a byte buffer of texture data
+      ByteBuffer textureBuffer = convertImageData (bufferedImage);
       if (bufferedImage.getColorModel().hasAlpha()) {
          srcPixelFormat = GL2.GL_RGBA;
-      }
-      else {
+      } else {
          srcPixelFormat = GL2.GL_RGB;
       }
 
-      // convert that image into a byte buffer of texture data
-
-      ByteBuffer textureBuffer = convertImageData (bufferedImage, texture);
-
+      // create the texture ID for this texture
+      int textureID = createTextureID();
+      GLTexture texture = new GLTexture (target, textureID);
+      texture.setWidth (bufferedImage.getWidth());
+      texture.setHeight (bufferedImage.getHeight());
+      
+      // bind this texture
+      gl.glBindTexture (target, textureID);
       if (target == GL2.GL_TEXTURE_2D) {
          gl.glTexParameteri (target, GL2.GL_TEXTURE_MIN_FILTER, minFilter);
          gl.glTexParameteri (target, GL2.GL_TEXTURE_MAG_FILTER, magFilter);
       }
-      // required for new version of JOGL: reset the buffer postion
-      textureBuffer.position (0);
-
+      
       // produce a texture from the byte buffer
       gl.glTexImage2D (
-         target, 0, dstPixelFormat, get2Fold (bufferedImage.getWidth()),
-         get2Fold (bufferedImage.getHeight()), 0, srcPixelFormat,
+         target, 0, dstPixelFormat, bufferedImage.getWidth(), bufferedImage.getHeight(), 0, srcPixelFormat,
          GL2.GL_UNSIGNED_BYTE, textureBuffer);
 
       return texture;
@@ -195,8 +173,8 @@ public class TextureLoader {
          width, height,
          srcPixelFormat, 
          GL2.GL_TEXTURE_2D, // target
-         dstPixelFormat, // dst pixel format
-         GL2.GL_LINEAR,  // min filter (unused)
+         dstPixelFormat,    // dst pixel format
+         GL2.GL_LINEAR,     // min filter (unused)
          GL2.GL_LINEAR);
 
       table.put (resourceName, tex);
@@ -209,15 +187,6 @@ public class TextureLoader {
       byte[] bytes, int width, int height, int srcPixelFormat,
       int target, int dstPixelFormat, int minFilter,
       int magFilter) {
-
-      // create the texture ID for this texture
-
-      int textureID = createTextureID();
-      GLTexture texture = new GLTexture (target, textureID);
-
-      // bind this texture
-      gl.glBindTexture (target, textureID);
-
       
          //    if (width != get2Fold(width) || height != get2Fold(height)) {
          // rescale to be power of two?
@@ -253,9 +222,15 @@ public class TextureLoader {
          //         bufferedImage = new BufferedImage(get2Fold(biw), get2Fold(bih), BufferedImage.TYPE_INT_ARGB);
          //         bufferedImage.getGraphics().drawImage(sampled, 0, 0 , null);
          //      }
+      
+      // create the texture ID for this texture
+      int textureID = createTextureID();
+      GLTexture texture = new GLTexture (target, textureID);
+
+      // bind this texture
+      gl.glBindTexture (target, textureID);
       texture.setWidth (width);
       texture.setHeight (height);
-
 
       if (target == GL2.GL_TEXTURE_2D) {
          gl.glTexParameteri (target, GL2.GL_TEXTURE_MIN_FILTER, minFilter);
@@ -277,8 +252,8 @@ public class TextureLoader {
          height, 0, srcPixelFormat,
          GL2.GL_UNSIGNED_BYTE, buffer);
 
+      // restore pixel alignment
       if (width % 4 != 0) {
-         // restore pixel alignment
          gl.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 4);
       }
       
@@ -309,66 +284,42 @@ public class TextureLoader {
     * The texture to store the data into
     * @return A buffer containing the data
     */
-   private ByteBuffer convertImageData (
-      BufferedImage bufferedImage, GLTexture texture) {
+   private ByteBuffer convertImageData (BufferedImage bufferedImage) {
+      
       ByteBuffer imageBuffer = null;
       WritableRaster raster;
       BufferedImage texImage;
-
-      int texWidth = 2;
-      int texHeight = 2;
-
-      // find the closest power of 2 for the width and height
-
-      // of the produced texture
-
-      while (texWidth < bufferedImage.getWidth()) {
-         texWidth *= 2;
-      }
-      while (texHeight < bufferedImage.getHeight()) {
-         texHeight *= 2;
-      }
-
-      texture.setTextureHeight (texHeight);
-      texture.setTextureWidth (texWidth);
-
+      int texWidth = bufferedImage.getWidth();
+      int texHeight = bufferedImage.getHeight();
+      
       // create a raster that can be used by OpenGL as a source
-
       // for a texture
-
+      // XXX maybe check other color spaces?
       if (bufferedImage.getColorModel().hasAlpha()) {
-         raster =
-            Raster.createInterleavedRaster (
+         raster = Raster.createInterleavedRaster (
                DataBuffer.TYPE_BYTE, texWidth, texHeight, 4, null);
-         texImage =
-            new BufferedImage (
-               glAlphaColorModel, raster, false, new Hashtable());
-      }
-      else {
-         raster =
-            Raster.createInterleavedRaster (
+         texImage = new BufferedImage (
+               glAlphaColorModel, raster, false, new Hashtable<String,Object>());
+      } else {
+         raster = Raster.createInterleavedRaster (
                DataBuffer.TYPE_BYTE, texWidth, texHeight, 3, null);
-         texImage =
-            new BufferedImage (glColorModel, raster, false, new Hashtable());
+         texImage = new BufferedImage (glColorModel, raster, false, new Hashtable<String,Object>());
       }
 
       // copy the source image into the produced image
-
       Graphics g = texImage.getGraphics();
       g.setColor (new Color (0f, 0f, 0f, 0f));
       g.fillRect (0, 0, texWidth, texHeight);
       g.drawImage (bufferedImage, 0, 0, null);
 
       // build a byte buffer from the temporary image
-
       // that be used by OpenGL to produce a texture.
-
-      byte[] data =
-         ((DataBufferByte)texImage.getRaster().getDataBuffer()).getData();
+      byte[] data = ((DataBufferByte)texImage.getRaster().getDataBuffer()).getData();
 
       imageBuffer = ByteBuffer.allocateDirect (data.length);
       imageBuffer.order (ByteOrder.nativeOrder());
       imageBuffer.put (data, 0, data.length);
+      imageBuffer.reset();
 
       return imageBuffer;
    }
@@ -382,9 +333,23 @@ public class TextureLoader {
     * @throws IOException
     * Indicates a failure to find a resource
     */
-   private BufferedImage loadImage (String ref) throws IOException {
-      BufferedImage bufferedImage = ImageIO.read (new java.io.File (ref));
-
+   private BufferedImage loadImagePow2 (String ref) throws IOException {
+      
+      BufferedImage bufferedImage = ImageIO.read (new File (ref));
+      
+      // rescale to power-of-two width/height
+      int biw = bufferedImage.getWidth();
+      int bih = bufferedImage.getHeight();
+      int biwp2 = get2Fold (biw);
+      int bihp2 = get2Fold (bih);
+      
+      // scale to power-of-two
+      if (biw != biwp2 || bih != bihp2) {
+         // rescale to be power of two
+         Image sampled = bufferedImage.getScaledInstance(biwp2, bihp2, Image.SCALE_SMOOTH);
+         bufferedImage = new BufferedImage(biwp2, bihp2, bufferedImage.getType());
+         bufferedImage.getGraphics().drawImage(sampled, 0, 0 , null);
+      }
       return bufferedImage;
    }
    

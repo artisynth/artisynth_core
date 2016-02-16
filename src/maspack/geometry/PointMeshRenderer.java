@@ -17,7 +17,7 @@ import maspack.render.RenderProps.Shading;
 import maspack.render.RenderProps.PointStyle;
 import maspack.render.Renderer;
 import maspack.render.Renderer.ColorInterpolation;
-import maspack.render.TextureProps;
+import maspack.render.DiffuseTextureProps;
 import maspack.render.GL.GLRenderer;
 import maspack.util.FunctionTimer;
 

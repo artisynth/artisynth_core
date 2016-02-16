@@ -12,7 +12,8 @@ public class MeshRenderProps extends RenderProps {
    public static PropertyList myProps =
       new PropertyList (MeshRenderProps.class, RenderProps.class);
 
-   protected static TextureProps defaultTextureProps = new TextureProps();
+   protected static DiffuseTextureProps defaultDiffuseTextureProps = new DiffuseTextureProps ();
+   protected static NormalTextureProps defaultNormalTextureProps = new NormalTextureProps ();
 
    static {
       myProps.remove ("lineStyle");
@@ -23,13 +24,14 @@ public class MeshRenderProps extends RenderProps {
       myProps.remove ("pointRadius");
       myProps.remove ("pointSlices");
 
-      myProps.get ("textureProps").setDefaultValue (defaultTextureProps);
+      myProps.get ("diffuseTextureProps").setDefaultValue (defaultDiffuseTextureProps);
+      myProps.get ("normalTextureProps").setDefaultValue (defaultNormalTextureProps);
    }
 
    protected void setDefaultValues() {
       super.setDefaultValues();
-      setTextureProps (new TextureProps());
-      //setTextureProps (null);
+      setDiffuseTextureProps (new DiffuseTextureProps ());
+      setNormalTextureProps (new NormalTextureProps ());
    }
 
    public PropertyList getAllPropertyInfo() {

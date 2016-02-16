@@ -1,14 +1,33 @@
 package maspack.geometry.io;
 
 import java.awt.Color;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
 
-import maspack.util.*;
-import maspack.matrix.*;
-import maspack.render.*;
-import maspack.geometry.*;
-
-import java.util.*;
+import maspack.geometry.MeshBase;
+import maspack.geometry.PointMesh;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.PolylineMesh;
+import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.Vector4d;
+import maspack.render.DiffuseTextureProps;
+import maspack.render.NormalTextureProps;
+import maspack.render.NormalTextureProps.NormalMode;
+import maspack.render.RenderProps;
+import maspack.render.Renderer.ColorMixing;
+import maspack.util.ArraySupport;
+import maspack.util.ReaderTokenizer;
+import maspack.util.TestSupport;
 
 /**
  * Interprets a subset of the Alias-Wavefront OBJ file format. Groups are
@@ -1124,14 +1143,14 @@ public class WavefrontReader extends MeshReaderBase {
             // set texture properties
             props.setFaceStyle(RenderProps.Faces.FRONT_AND_BACK);
             props.setShading(RenderProps.Shading.GOURAUD);
-            TextureProps tprops = props.getTextureProps ();
+            DiffuseTextureProps tprops = props.getDiffuseTextureProps ();
             if (tprops == null) {
-               tprops = new TextureProps();
+               tprops = new DiffuseTextureProps();
             }
-            tprops.setTextureFileName(currPath + "/" + map);
-            tprops.setTextureEnabled(true);
-            tprops.setTextureMode(TextureProps.TextureMode.MODULATE);
-            props.setTextureProps(tprops);
+            tprops.setFileName(currPath + "/" + map);
+            tprops.setEnabled(true);
+            tprops.setTextureMixing(ColorMixing.MODULATE);
+            props.setDiffuseTextureProps(tprops);
          }
 
          // restore period state
@@ -1149,14 +1168,14 @@ public class WavefrontReader extends MeshReaderBase {
             // set texture properties
             props.setFaceStyle(RenderProps.Faces.FRONT_AND_BACK);
             props.setShading(RenderProps.Shading.GOURAUD);
-            TextureProps tprops = props.getTextureProps ();
+            NormalTextureProps tprops = props.getNormalTextureProps ();
             if (tprops == null) {
-               tprops = new TextureProps();
+               tprops = new NormalTextureProps();
             }
-            tprops.setNormalFileName(currPath + "/" + map);
-            tprops.setNormalEnabled(true);
-            tprops.setNormalMode(TextureProps.NormalMode.BUMP);
-            props.setTextureProps(tprops);
+            tprops.setFileName(currPath + "/" + map);
+            tprops.setEnabled(true);
+            tprops.setNormalMode(NormalMode.BUMP);
+            props.setNormalTextureProps(tprops);
          }
 
          // restore period state

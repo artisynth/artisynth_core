@@ -9,28 +9,27 @@ package artisynth.core.probes;
 import java.awt.Color;
 import java.io.File;
 import java.util.LinkedList;
-import java.util.List;
 
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.RenderableComponent;
+import artisynth.core.modelbase.RenderableComponentBase;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
+import maspack.geometry.GeometryTransformer;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
-import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.Renderer;
+import maspack.render.DiffuseTextureProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.GL.GLRenderable;
 import maspack.render.RenderProps.Faces;
-import maspack.render.TextureProps;
-import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.modelbase.RenderableComponent;
-import artisynth.core.modelbase.RenderableComponentBase;
-import artisynth.core.modelbase.TransformGeometryContext;
-import artisynth.core.modelbase.TransformableGeometry;
+import maspack.render.Renderer;
+import maspack.render.GL.GLRenderable;
 
 public class ImagePlaneProbe extends InputProbe implements RenderableComponent,
 TransformableGeometry {
@@ -67,11 +66,11 @@ TransformableGeometry {
       RenderProps props = createRenderProps();
       props.setFaceColor (Color.white);
       props.setFaceStyle (Faces.FRONT_AND_BACK);
-      TextureProps tprops = props.getTextureProps();
+      DiffuseTextureProps tprops = props.getDiffuseTextureProps();
       if (tprops == null)
-         tprops = new TextureProps();
-      tprops.setTextureEnabled (true);
-      props.setTextureProps (tprops);
+         tprops = new DiffuseTextureProps();
+      tprops.setEnabled (true);
+      props.setDiffuseTextureProps (tprops);
       setRenderProps (props);
 
       setImage (0);
@@ -105,9 +104,9 @@ TransformableGeometry {
       int frameNum = (int)(t * frameRate) + 1;
       String filename =
          String.format (fileNameFormat, imageBasename, frameNum, imageFileExt);
-      TextureProps tprops = myRenderProps.getTextureProps();
-      tprops.setTextureFileName (imageDirectory.getAbsolutePath() + "/" + filename);
-      myRenderProps.setTextureProps (tprops);
+      DiffuseTextureProps tprops = myRenderProps.getDiffuseTextureProps();
+      tprops.setFileName (imageDirectory.getAbsolutePath() + "/" + filename);
+      myRenderProps.setDiffuseTextureProps (tprops);
    }
 
    public RenderProps createRenderProps() {

@@ -65,7 +65,8 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       DrawEdges,
       EdgeColor,
       EdgeWidth,
-      TextureProps,
+      DiffuseTextureProps,
+      NormalTextureProps,
       LineStyle,
       LineColor,
       LineColorDiffuse,
@@ -211,8 +212,11 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected PropertyMode myPointColorMode;
    protected static Color defaultPointColor = new Color (0.5f, 0.5f, 0.5f);
 
-   protected TextureProps myTextureProps;
-   protected static TextureProps defaultTextureProps = null;
+   protected DiffuseTextureProps myDiffuseTextureProps;
+   protected static DiffuseTextureProps defaultDiffuseTextureProps = null;
+   
+   protected NormalTextureProps myNormalTextureProps;
+   protected static NormalTextureProps defaultNormalTextureProps = null;
 
    protected Material myFaceMaterial = null;
    protected Material myBackMaterial = null;
@@ -226,7 +230,8 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected static PropertyMode INACTIVE = PropertyMode.Inactive;
    protected static PropertyMode EXPLICIT = PropertyMode.Explicit;
 
-   protected boolean myTexturePropsInactive = true;
+   protected boolean myDiffuseTexturePropsInactive = true;
+   protected boolean myNormalTexturePropsInactive = true;
 
    static {
       myProps.addInheritable (
@@ -248,8 +253,9 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myProps.addInheritable (
          "drawEdges:Inherited", "draw mesh edges", defaultDrawEdgesP);
       myProps.add (
-         "textureProps", "texture mapping properties", defaultTextureProps);
-      
+         "diffuseTextureProps", "diffuse texture mapping properties", defaultDiffuseTextureProps);
+      myProps.add (
+         "normalTextureProps", "normal texture mapping properties", defaultNormalTextureProps);
       myProps.addInheritable (
          "edgeColor:Inherited", "edge color (mainly for meshes)", 
          defaultEdgeColor);     
@@ -1751,29 +1757,56 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       return myPointMaterial;
    }
 
-   public TextureProps getTextureProps() {
-      return myTextureProps;
+   public DiffuseTextureProps getDiffuseTextureProps() {
+      return myDiffuseTextureProps;
    }
 
-   public void setTextureProps (TextureProps props) {
-      if (getAllPropertyInfo().get ("textureProps") == null) {
+   public void setDiffuseTextureProps (DiffuseTextureProps props) {
+      if (getAllPropertyInfo().get ("diffuseTextureProps") == null) {
          return;
       }
       if (props == null) {
          PropertyUtils.updateCompositeProperty (
-            this, "textureProps", myTextureProps, null);
-         myTextureProps = null;
+            this, "diffuseTextureProps", myDiffuseTextureProps, null);
+         myDiffuseTextureProps = null;
       }
       else {
-         if (myTextureProps == null) {
-            myTextureProps = new TextureProps();
-            myTextureProps.set (props);
+         if (myDiffuseTextureProps == null) {
+            myDiffuseTextureProps = new DiffuseTextureProps();
+            myDiffuseTextureProps.set (props);
             PropertyUtils.updateCompositeProperty (
-               this, "textureProps", null, myTextureProps);
+               this, "diffuseTextureProps", null, myDiffuseTextureProps);
          }
          else {
-            myTextureProps.set (props);
-            PropertyUtils.updateCompositeProperty (myTextureProps);
+            myDiffuseTextureProps.set (props);
+            PropertyUtils.updateCompositeProperty (myDiffuseTextureProps);
+         }
+      }
+   }
+   
+   public NormalTextureProps getNormalTextureProps() {
+      return myNormalTextureProps;
+   }
+
+   public void setNormalTextureProps (NormalTextureProps props) {
+      if (getAllPropertyInfo().get ("normalTextureProps") == null) {
+         return;
+      }
+      if (props == null) {
+         PropertyUtils.updateCompositeProperty (
+            this, "normalTextureProps", myNormalTextureProps, null);
+         myNormalTextureProps = null;
+      }
+      else {
+         if (myNormalTextureProps == null) {
+            myNormalTextureProps = new NormalTextureProps();
+            myNormalTextureProps.set (props);
+            PropertyUtils.updateCompositeProperty (
+               this, "normalTextureProps", null, myNormalTextureProps);
+         }
+         else {
+            myNormalTextureProps.set (props);
+            PropertyUtils.updateCompositeProperty (myNormalTextureProps);
          }
       }
    }
@@ -1838,7 +1871,8 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       }
       doSetColor (myPointColor, defaultPointColor);
       doSetBackColor (defaultBackColor);
-      myTextureProps = defaultTextureProps;
+      myDiffuseTextureProps = defaultDiffuseTextureProps;
+      myNormalTextureProps = defaultNormalTextureProps;
 
       myFaceMaterial = null;
       myBackMaterial = null;
@@ -1886,9 +1920,12 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          setEdgeMaterial(r.myEdgeMaterial);
       }
       myEdgeColorMode = r.myEdgeColorMode;
-      myTexturePropsInactive = r.myTexturePropsInactive;
-      setTextureProps (r.myTextureProps);
-
+      
+      myDiffuseTexturePropsInactive = r.myDiffuseTexturePropsInactive;
+      setDiffuseTextureProps (r.myDiffuseTextureProps);
+      myNormalTexturePropsInactive = r.myNormalTexturePropsInactive;
+      setNormalTextureProps (r.myNormalTextureProps);
+      
       myLineStyle = r.myLineStyle;
       myLineStyleMode = r.myLineStyleMode;
       if (r.myLineMaterial == null) {
@@ -1988,16 +2025,27 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       }
    }
 
-   protected boolean texturePropsEqual (TextureProps props) {
-
+   protected boolean diffuseTexturePropsEqual (DiffuseTextureProps props) {
       if (props == null) {
-         return myTextureProps == null;
+         return myDiffuseTextureProps == null;
       }
-      else if (myTextureProps == null) {
+      else if (myDiffuseTextureProps == null) {
          return false;
       }
       else {
-         return myTextureProps.equals (props);
+         return myDiffuseTextureProps.equals (props);
+      }
+   }
+   
+   protected boolean normalTexturePropsEqual (NormalTextureProps props) {
+      if (props == null) {
+         return myNormalTextureProps == null;
+      }
+      else if (myNormalTextureProps == null) {
+         return false;
+      }
+      else {
+         return myNormalTextureProps.equals (props);
       }
    }
 
@@ -2165,10 +2213,16 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
             return false;
          }
       }
-      if (myTexturePropsInactive != r.myTexturePropsInactive) {
+      if (myDiffuseTexturePropsInactive != r.myDiffuseTexturePropsInactive) {
          return false;
       }
-      else if (!myTexturePropsInactive && !texturePropsEqual (r.myTextureProps)) {
+      else if (!myDiffuseTexturePropsInactive && !diffuseTexturePropsEqual (r.myDiffuseTextureProps)) {
+         return false;
+      }
+      if (myNormalTexturePropsInactive != r.myNormalTexturePropsInactive) {
+         return false;
+      }
+      else if (!myNormalTexturePropsInactive && !normalTexturePropsEqual (r.myNormalTextureProps)) {
          return false;
       }
       return true;
@@ -2401,7 +2455,8 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          myEdgeColorMode + ", ");
       buf.append ("EdgeMaterial=" + myEdgeMaterial + " " +
          myEdgeColorMode);
-      buf.append ("TextureProps=" + myTextureProps + ", ");
+      buf.append ("DiffuseTextureProps=" + myDiffuseTextureProps + ", ");
+      buf.append ("NormalTextureProps=" + myNormalTextureProps + ", ");
       buf.append ("LineStyle=" + myLineStyle + " " + myLineStyleMode + ", ");
       buf.append ("LineColor=" + colorString (myLineColor) + " " +
          myLineColorMode + ", ");
@@ -2481,11 +2536,20 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       return props;
    }
 
-   private static TextureProps createAndAssignTextureProps (RenderProps props) {
-      TextureProps tprops = props.getTextureProps();
+   private static DiffuseTextureProps createAndAssignDiffuseTextureProps (RenderProps props) {
+      DiffuseTextureProps tprops = props.getDiffuseTextureProps();
       if (tprops == null) {
-         tprops = new TextureProps();
-         props.setTextureProps (tprops);
+         tprops = new DiffuseTextureProps();
+         props.setDiffuseTextureProps (tprops);
+      }
+      return tprops;
+   }
+   
+   private static NormalTextureProps createAndAssignNormalTextureProps (RenderProps props) {
+      NormalTextureProps tprops = props.getNormalTextureProps();
+      if (tprops == null) {
+         tprops = new NormalTextureProps();
+         props.setNormalTextureProps (tprops);
       }
       return tprops;
    }
@@ -2776,49 +2840,59 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       r.setRenderProps (props);
    }
 
-   public static void setTextureEnabled (Renderable r, boolean enabled) {
+   public static void setDiffuseTextureEnabled (Renderable r, boolean enabled) {
       RenderProps props = createAndAssignProps (r);
-      TextureProps tprops = props.getTextureProps();
-      if (tprops == null) {
-         tprops = new TextureProps();
-         props.setTextureProps (tprops);
-      }
-      tprops.setTextureEnabled (enabled);
+      DiffuseTextureProps tprops = createAndAssignDiffuseTextureProps(props);
+      tprops.setEnabled (enabled);
       r.setRenderProps (props);
    }
 
-   public static void setTextureEnabledMode (Renderable r, PropertyMode mode) {
+   public static void setDiffuseTextureEnabledMode (Renderable r, PropertyMode mode) {
       RenderProps props = createAndAssignProps (r);
-      TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setTextureEnabledMode (mode);
+      DiffuseTextureProps tprops = createAndAssignDiffuseTextureProps (props);
+      tprops.setEnabledMode (mode);
       r.setRenderProps (props);
    }
 
-   public static void setTextureMode (Renderable r, TextureProps.TextureMode mode) {
+   public static void setDiffuseTextureFileName (Renderable r, String fileName) {
       RenderProps props = createAndAssignProps (r);
-      TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setTextureMode (mode);
+      DiffuseTextureProps tprops = createAndAssignDiffuseTextureProps (props);
+      tprops.setFileName (fileName);
       r.setRenderProps (props);
    }
 
-   public static void setTextureModeMode (Renderable r, PropertyMode mode) {
+   public static void setDiffuseTextureFileNameMode (Renderable r, PropertyMode mode) {
       RenderProps props = createAndAssignProps (r);
-      TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setTextureModeMode (mode);
+      DiffuseTextureProps tprops = createAndAssignDiffuseTextureProps (props);
+      tprops.setFileNameMode (mode);
+      r.setRenderProps (props);
+   }
+   
+   public static void setNormalTextureEnabled (Renderable r, boolean enabled) {
+      RenderProps props = createAndAssignProps (r);
+      NormalTextureProps tprops = createAndAssignNormalTextureProps(props);
+      tprops.setEnabled (enabled);
       r.setRenderProps (props);
    }
 
-   public static void setTextureFileName (Renderable r, String fileName) {
+   public static void setNormalTextureEnabledMode (Renderable r, PropertyMode mode) {
       RenderProps props = createAndAssignProps (r);
-      TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setTextureFileName (fileName);
+      NormalTextureProps tprops = createAndAssignNormalTextureProps (props);
+      tprops.setEnabledMode (mode);
       r.setRenderProps (props);
    }
 
-   public static void setTextureFileNameMode (Renderable r, PropertyMode mode) {
+   public static void setNormalTextureFileName (Renderable r, String fileName) {
       RenderProps props = createAndAssignProps (r);
-      TextureProps tprops = createAndAssignTextureProps (props);
-      tprops.setTextureFileNameMode (mode);
+      NormalTextureProps tprops = createAndAssignNormalTextureProps (props);
+      tprops.setFileName (fileName);
+      r.setRenderProps (props);
+   }
+
+   public static void setNormalTextureFileNameMode (Renderable r, PropertyMode mode) {
+      RenderProps props = createAndAssignProps (r);
+      NormalTextureProps tprops = createAndAssignNormalTextureProps (props);
+      tprops.setFileNameMode (mode);
       r.setRenderProps (props);
    }
    

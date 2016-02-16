@@ -29,9 +29,9 @@ import maspack.render.LineRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.TextureLoader;
 import maspack.render.GL.GLTexture;
 import maspack.render.GL.GLViewer;
+import maspack.render.GL.GL2.GL2TextureLoader;
 import maspack.util.IntegerInterval;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.PropertyChangeEvent;
@@ -84,7 +84,7 @@ public class DicomViewer extends RenderableComponentBase
    boolean drawBox;
    boolean drawSlice[];
    
-   TextureLoader textureLoader = null;
+   GL2TextureLoader textureLoader = null;
    
    AffineTransform3d renderTransform;
    Point3d[] boxRenderCoords;
@@ -616,7 +616,7 @@ public class DicomViewer extends RenderableComponentBase
       
       GL2 gl = viewer.getGL2();
       if (textureLoader == null) {
-         textureLoader = new TextureLoader(gl);
+         textureLoader = new GL2TextureLoader(gl);
       }
       refreshTextures();
       

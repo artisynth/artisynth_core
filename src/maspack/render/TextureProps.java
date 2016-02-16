@@ -25,18 +25,26 @@ import maspack.util.ReaderTokenizer;
 import maspack.util.Scannable;
 
 public class TextureProps implements CompositeProperty, Scannable, Clonable {
-   private static final PropertyMode INHERITED = PropertyMode.Inherited;
-
-   public enum TextureMode {
-      DECAL, REPLACE, MODULATE, BLEND
-   };
-
-   public enum NormalMode {
-      BUMP, NORMAL
-   }
+   protected static final PropertyMode INHERITED = PropertyMode.Inherited;
 
    private PropertyInfo myInfo;
    private HasProperties myHost;
+
+   public enum TextureFilter {
+      NEAREST, 
+      LINEAR,
+      NEAREST_MIPMAP_NEAREST, 
+      LINEAR_MIPMAP_NEAREST, 
+      NEAREST_MIPMAP_LINEAR, 
+      LINEAR_MIPMAP_LINEAR
+   }
+
+   public enum TextureWrapping {
+      REPEAT,
+      MIRRORED_REPEAT,
+      CLAMP_TO_EDGE,
+      CLAMP_TO_BORDER
+   }
 
    /**
     * {@inheritDoc}
@@ -67,39 +75,30 @@ public class TextureProps implements CompositeProperty, Scannable, Clonable {
    }
 
    // Enabled
-   // Normal Map enabled
-   // Mode
-   // Texture FileName
-   // Normal map FileName
+   // FileName
+   protected boolean myEnabledP;
+   protected static boolean defaultEnabledP = false;
+   protected PropertyMode myEnabledMode;
 
-   protected boolean myTextureEnabledP;
-   protected static boolean defaultTextureEnabledP = false;
-   protected PropertyMode myTextureEnabledMode;
+   protected String myFileName;
+   protected static String defaultFileName = "";
+   protected PropertyMode myFileNameMode;
 
-   // normal map
-   protected boolean myNormalEnabledP;
-   protected static boolean defaultNormalEnabledP = false;
-   protected PropertyMode myNormalEnabledMode;
+   protected TextureWrapping mySWrapping;
+   protected static TextureWrapping defaultSWrapping = TextureWrapping.REPEAT;
+   protected PropertyMode mySWrappingMode;
 
-   protected TextureMode myTextureMode;
-   protected static TextureMode defaultTextureMode = TextureMode.MODULATE;
-   protected PropertyMode myTextureModeMode;
+   protected TextureWrapping myTWrapping;
+   protected static TextureWrapping defaultTWrapping = TextureWrapping.REPEAT;
+   protected PropertyMode myTWrappingMode;
 
-   protected String myTextureFileName;
-   protected static String defaultTextureFileName = "";
-   protected PropertyMode myTextureFileNameMode;
+   protected TextureFilter myMinFilter;
+   protected static TextureFilter defaultMinFilter = TextureFilter.NEAREST_MIPMAP_LINEAR;
+   protected PropertyMode myMinFilterMode;
 
-   protected String myNormalFileName;
-   protected static String defaultNormalFileName = "";
-   protected PropertyMode myNormalFileNameMode;
-
-   protected float myNormalScale;
-   protected PropertyMode myNormalScaleMode;
-   protected static float defaultNormalScale = 1;
-
-   protected NormalMode myNormalMode;
-   protected PropertyMode myNormalModeMode;
-   protected static NormalMode defaultNormalMode = NormalMode.NORMAL;
+   protected TextureFilter myMagFilter;
+   protected static TextureFilter defaultMagFilter = TextureFilter.LINEAR;
+   protected PropertyMode myMagFilterMode;
 
    public TextureProps() {
       setDefaultModes();
@@ -115,19 +114,17 @@ public class TextureProps implements CompositeProperty, Scannable, Clonable {
 
    static {
       myProps.addInheritable (
-         "textureEnabled:Inherited isTextureEnabled *", "texturing is enabled", defaultTextureEnabledP);
+         "enabled:Inherited isEnabled *", "texturing is enabled", defaultEnabledP);
       myProps.addInheritable (
-         "textureMode:Inherited * *", "texturing coloring mode", defaultTextureMode);
+         "fileName * *", "name of the texture file", defaultFileName);
       myProps.addInheritable (
-         "textureFileName * *", "name of the texture file", defaultTextureFileName);
+         "sWrapping * *", "wrapping of s texture coordinate", defaultSWrapping);
       myProps.addInheritable (
-         "normalEnabled:Inherited isNormalEnabled *", "normal map is enabled", defaultNormalEnabledP);
+         "tWrapping * *", "wrapping of t texture coordinate", defaultTWrapping);
       myProps.addInheritable (
-         "normalMode:Inherited * *", "bump/normal mode", defaultNormalMode);
+         "minFilter * *", "minifying filter", defaultMinFilter);
       myProps.addInheritable (
-         "normalFileName * *", "name of the normal map file", defaultNormalFileName);
-      myProps.addInheritable (
-         "normalScale * *", "scale for x and y components (bump) of the normal map", defaultNormalScale);
+         "magFilter * *", "magnifying filter", defaultMagFilter);
    }
 
    public Property getProperty (String name) {
@@ -139,240 +136,194 @@ public class TextureProps implements CompositeProperty, Scannable, Clonable {
    }
 
    protected void setDefaultModes() {
-      myTextureEnabledMode = INHERITED;
-      myNormalEnabledMode = INHERITED;
-      myTextureModeMode = INHERITED;
-      myTextureFileNameMode = INHERITED;
-      myNormalFileNameMode = INHERITED;
+      myEnabledMode = INHERITED;
+      myFileNameMode = INHERITED;
+      mySWrappingMode = INHERITED;
+      myTWrappingMode = INHERITED;
+      myMinFilterMode = INHERITED;
+      myMagFilterMode = INHERITED;
    }
 
    protected void setDefaultValues() {
-      myTextureEnabledP = defaultTextureEnabledP;
-      myTextureMode = defaultTextureMode;
-      myTextureFileName = defaultTextureFileName;
-      myNormalEnabledP = defaultNormalEnabledP;
-      myNormalMode = defaultNormalMode;
-      myNormalFileName = defaultNormalFileName;
-      myNormalScale = defaultNormalScale;
-   }
-
-   // XXX update this
-   protected void clearTextureData() {
-
+      myEnabledP = defaultEnabledP;
+      myFileName = defaultFileName;
+      mySWrapping = defaultSWrapping;
+      myTWrapping = defaultTWrapping;
+      myMinFilter = defaultMinFilter;
+      myMagFilter = defaultMagFilter;
    }
 
    // enabled
-
-   public boolean isTextureEnabled() {
-      return myTextureEnabledP;
+   public boolean isEnabled() {
+      return myEnabledP;
    }
 
-   public void setTextureEnabled (boolean enabled) {
-      if (myTextureEnabledP != enabled) {
-         myTextureEnabledP = enabled;
-         clearTextureData();
+   public void setEnabled (boolean enabled) {
+      if (myEnabledP != enabled) {
+         myEnabledP = enabled;
       }
-      myTextureEnabledMode =
-      PropertyUtils.propagateValue (this, "textureEnabled", enabled, myTextureEnabledMode);
+      myEnabledMode =
+      PropertyUtils.propagateValue (this, "enabled", enabled, myEnabledMode);
    }
 
-   public PropertyMode getTextureEnabledMode() {
-      return myTextureEnabledMode;
+   public PropertyMode getEnabledMode() {
+      return myEnabledMode;
    }
 
-   public void setTextureEnabledMode (PropertyMode mode) {
-      myTextureEnabledMode =
-      PropertyUtils.setModeAndUpdate (this, "textureEnabled", myTextureEnabledMode, mode);
-   }
-
-   // mode
-
-   public TextureMode getTextureMode() {
-      return myTextureMode;
-   }
-
-   public void setTextureMode (TextureMode m) {
-      if (myTextureMode != m) {
-         myTextureMode = m;
-         clearTextureData();
-      }
-      myTextureModeMode = PropertyUtils.propagateValue (this, "textureMode", m, myTextureModeMode);
-   }
-
-   public PropertyMode getTextureModeMode() {
-      return myTextureModeMode;
-   }
-
-   public void setTextureModeMode (PropertyMode mode) {
-      myTextureModeMode =
-      PropertyUtils.setModeAndUpdate (this, "textureMode", myTextureModeMode, mode);
+   public void setEnabledMode (PropertyMode mode) {
+      myEnabledMode = PropertyUtils.setModeAndUpdate (this, "enabled", myEnabledMode, mode);
    }
 
    // texture fileName
-
-   public String getTextureFileName() {
-      return myTextureFileName;
+   public String getFileName() {
+      return myFileName;
    }
 
-   public void setTextureFileName (String name) {
-      if (!name.equals (myTextureFileName)) {
-         myTextureFileName = name;
-         clearTextureData();
+   public void setFileName (String name) {
+      if (!name.equals (myFileName)) {
+         myFileName = name;
       }
-      myTextureFileNameMode =
-      PropertyUtils.propagateValue (this, "textureFileName", name, myTextureFileNameMode);
+      myFileNameMode = PropertyUtils.propagateValue (this, "fileName", name, myFileNameMode);
    }
 
    public boolean textureFileExists() {
-      return ((new File (myTextureFileName)).isFile());
+      return ((new File (myFileName)).isFile());
    }
 
-   public PropertyMode getTextureFileNameMode() {
-      return myTextureFileNameMode;
+   public PropertyMode getFileNameMode() {
+      return myFileNameMode;
    }
 
-   public void setTextureFileNameMode (PropertyMode mode) {
-      myTextureFileNameMode =
-      PropertyUtils.setModeAndUpdate (this, "textureFileName", myTextureFileNameMode, mode);
+   public void setFileNameMode (PropertyMode mode) {
+      myFileNameMode =
+      PropertyUtils.setModeAndUpdate (this, "fileName", myFileNameMode, mode);
+   }
+   
+   // s-wrapping
+   public TextureWrapping getSWrapping() {
+      return mySWrapping;
    }
 
-   // normal enabled
-
-   public boolean isNormalEnabled() {
-      return myNormalEnabledP;
-   }
-
-   public void setNormalEnabled (boolean enabled) {
-      if (myNormalEnabledP != enabled) {
-         myNormalEnabledP = enabled;
-         clearTextureData();
+   public void setSWrapping (TextureWrapping wrapping) {
+      if (mySWrapping != wrapping) {
+         mySWrapping = wrapping;
       }
-      myNormalEnabledMode =
-      PropertyUtils.propagateValue (this, "normalEnabled", enabled, myNormalEnabledMode);
+      mySWrappingMode = PropertyUtils.propagateValue (this, "sWrapping", wrapping, mySWrappingMode);
    }
 
-   public PropertyMode getNormalEnabledMode() {
-      return myNormalEnabledMode;
+   public PropertyMode getSWrappingMode() {
+      return mySWrappingMode;
    }
 
-   public void setNormalEnabledMode (PropertyMode mode) {
-      myNormalEnabledMode =
-      PropertyUtils.setModeAndUpdate (this, "normalEnabled", myNormalEnabledMode, mode);
+   public void setSWrappingMode (PropertyMode mode) {
+      mySWrappingMode = PropertyUtils.setModeAndUpdate (this, "sWrapping", mySWrappingMode, mode);
+   }
+   
+   // t-wrapping
+   public TextureWrapping getTWrapping() {
+      return myTWrapping;
    }
 
-   // normal mode
-
-   public NormalMode getNormalMode() {
-      return myNormalMode;
-   }
-
-   public void setNormalMode (NormalMode m) {
-      if (myNormalMode != m) {
-         myNormalMode = m;
-         clearTextureData();
+   public void setTWrapping (TextureWrapping wrapping) {
+      if (myTWrapping != wrapping) {
+         myTWrapping = wrapping;
       }
-      myNormalModeMode = PropertyUtils.propagateValue (this, "normalMode", m, myNormalModeMode);
+      myTWrappingMode = PropertyUtils.propagateValue (this, "tWrapping", wrapping, myTWrappingMode);
    }
 
-   public PropertyMode getNormalModeMode() {
-      return myNormalModeMode;
+   public PropertyMode getTWrappingMode() {
+      return myTWrappingMode;
    }
 
-   public void setNormalModeMode (PropertyMode mode) {
-      myNormalModeMode =
-      PropertyUtils.setModeAndUpdate (this, "normalMode", myNormalModeMode, mode);
+   public void setTWrappingMode (PropertyMode mode) {
+      myTWrappingMode = PropertyUtils.setModeAndUpdate (this, "tWrapping", myTWrappingMode, mode);
+   }   
+   
+   // minifying-filter
+   public TextureFilter getMinFilter() {
+      return myMinFilter;
    }
 
-   // normal map fileName
-
-   public String getNormalFileName() {
-      return myNormalFileName;
-   }
-
-   public void setNormalFileName (String name) {
-      if (!name.equals (myNormalFileName)) {
-         myNormalFileName = name;
-         clearTextureData();
+   public void setMinFilter (TextureFilter filter) {
+      if (myMinFilter != filter) {
+         myMinFilter = filter;
       }
-      myNormalFileNameMode =
-      PropertyUtils.propagateValue (this, "normalFileName", name, myNormalFileNameMode);
+      myMinFilterMode = PropertyUtils.propagateValue (this, "minFilter", filter, myMinFilterMode);
    }
 
-   public boolean normalFileExists() {
-      return ((new File (myNormalFileName)).isFile());
+   public PropertyMode getMinFilterMode() {
+      return myMinFilterMode;
    }
 
-   public PropertyMode getNormalFileNameMode() {
-      return myNormalFileNameMode;
+   public void setMinFilterMode (PropertyMode mode) {
+      myMinFilterMode = PropertyUtils.setModeAndUpdate (this, "minFilter", myMinFilterMode, mode);
    }
 
-   public void setNormalFileNameMode (PropertyMode mode) {
-      myNormalFileNameMode =
-      PropertyUtils.setModeAndUpdate (this, "normalFileName", myNormalFileNameMode, mode);
+   // magnifying-filter
+   public TextureFilter getMagFilter() {
+      return myMagFilter;
    }
 
-   // bump scale
-
-   public float getNormalScale() {
-      return myNormalScale;
-   }
-
-   public void setNormalScale (float m) {
-      if (m != myNormalScale) {
-         myNormalScale = m;
-         clearTextureData();
+   public void setMagFilter (TextureFilter filter) {
+      // remove mipmap for magnifying filter
+      switch (filter) {
+         case LINEAR:
+         case LINEAR_MIPMAP_LINEAR:
+         case NEAREST_MIPMAP_LINEAR:
+            filter = TextureFilter.LINEAR;
+            break;
+         case NEAREST:
+         case LINEAR_MIPMAP_NEAREST:
+         case NEAREST_MIPMAP_NEAREST:
+            filter = TextureFilter.NEAREST;
+            break;
       }
-      myNormalScaleMode =
-      PropertyUtils.propagateValue (this, "normalScale", m, myNormalScaleMode);
+      
+      if (myMagFilter != filter) {
+         myMagFilter = filter;
+      }
+      myMagFilterMode = PropertyUtils.propagateValue (this, "magFilter", filter, myMagFilterMode);
    }
 
-   public PropertyMode getNormalScaleMode() {
-      return myNormalScaleMode;
+   public PropertyMode getMagFilterMode() {
+      return myMagFilterMode;
    }
 
-   public void setNormalScaleMode (PropertyMode mode) {
-      myNormalScaleMode =
-      PropertyUtils.setModeAndUpdate (this, "normalScale", myNormalScaleMode, mode);
+   public void setMagFilterMode (PropertyMode mode) {
+      myMagFilterMode = PropertyUtils.setModeAndUpdate (this, "magFilter", myMagFilterMode, mode);
    }
-
+   
    public void set (TextureProps props) {
-      myTextureEnabledP = props.myTextureEnabledP;
-      myTextureEnabledMode = props.myTextureEnabledMode;
+      myEnabledP = props.myEnabledP;
+      myEnabledMode = props.myEnabledMode;
 
-      myTextureMode = props.myTextureMode;
-      myTextureModeMode = props.myTextureModeMode;
-
-      myTextureFileName = props.myTextureFileName;
-      myTextureFileNameMode = props.myTextureFileNameMode;
-
-      myNormalEnabledP = props.myNormalEnabledP;
-      myNormalEnabledMode = props.myNormalEnabledMode;
-
-      myNormalMode = props.myNormalMode;
-      myNormalModeMode = props.myNormalModeMode;
-
-      myNormalFileName = props.myNormalFileName;
-      myNormalFileNameMode = props.myNormalFileNameMode;
-
-      myNormalScale = props.myNormalScale;
-      myNormalScaleMode = props.myNormalScaleMode;
+      myFileName = props.myFileName;
+      myFileNameMode = props.myFileNameMode;
+      
+      mySWrapping = props.mySWrapping;
+      mySWrappingMode = props.mySWrappingMode;
+      myTWrapping = props.myTWrapping;
+      myTWrappingMode = props.myTWrappingMode;
+      
+      myMinFilter = props.myMinFilter;
+      myMinFilterMode = props.myMinFilterMode;
+      myMagFilter = props.myMagFilter;
+      myMagFilterMode = props.myMagFilterMode;
    }
 
    public boolean equals (TextureProps props) {
-      return (myTextureEnabledP == props.myTextureEnabledP &&
-         myTextureEnabledMode == props.myTextureEnabledMode && 
-         myTextureMode == props.myTextureMode &&
-         myTextureModeMode == props.myTextureModeMode &&
-         myTextureFileName.equals (props.myTextureFileName) &&
-         myTextureFileNameMode == props.myTextureFileNameMode &&
-         myNormalEnabledP == props.myNormalEnabledP &&
-         myNormalEnabledMode == props.myNormalEnabledMode &&
-         myNormalMode == props.myNormalMode &&
-         myNormalModeMode == props.myNormalModeMode &&
-         myNormalFileName.equals (props.myNormalFileName) &&
-         myNormalFileNameMode == props.myNormalFileNameMode) &&
-         myNormalScale == props.myNormalScale &&
-         myNormalScaleMode == props.myNormalScaleMode;
+      return (myEnabledP == props.myEnabledP &&
+      myEnabledMode == props.myEnabledMode && 
+      myFileName.equals (props.myFileName) &&
+      myFileNameMode == props.myFileNameMode &&
+      mySWrapping == props.mySWrapping &&
+      mySWrappingMode == props.mySWrappingMode &&
+      myTWrapping == props.myTWrapping &&
+      myTWrappingMode == props.myTWrappingMode &&
+      myMinFilter == props.myMinFilter &&
+      myMinFilterMode == props.myMinFilterMode &&
+      myMagFilter == props.myMagFilter &&
+      myMagFilterMode == props.myMagFilterMode);
    }
 
    public boolean equals (Object obj) {
@@ -412,13 +363,12 @@ public class TextureProps implements CompositeProperty, Scannable, Clonable {
    }
 
    public String toString() {
-      return ("textureEnabled=" + myTextureEnabledP
-      + ", textureMode=" + myTextureMode 
-      + ", textureFileName=" + myTextureFileName
-      + ", normalEnabled=" + myNormalEnabledP
-      + ", normalMode=" + myNormalMode
-      + ", normalFileName=" + myNormalFileName
-      + ", normalScale=" + myNormalScale);
+      return ("enabled=" + myEnabledP
+      + ", fileName=" + myFileName
+      + ", sWrapping=" + mySWrapping
+      + ", tWrapping=" + myTWrapping
+      + ", minFilter=" + myMinFilter
+      + ", magFilter=" + myMagFilter);
    }
 
    public TextureProps clone() {
@@ -429,13 +379,13 @@ public class TextureProps implements CompositeProperty, Scannable, Clonable {
       catch (CloneNotSupportedException e) {
          throw new InternalErrorException ("Cannot clone super in TextureProps");
       }
-
+      set(props);
       return props;
    }
 
    public static void main (String[] args) {
       TextureProps props = new TextureProps();
-      props.setTextureFileName ("C:\\here\\we\\go");
+      props.setFileName ("C:\\here\\we\\go");
       IndentingPrintWriter pw = new IndentingPrintWriter (System.out);
       try {
          props.write (pw, new NumberFormat ("%g"), null);

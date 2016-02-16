@@ -16,7 +16,7 @@ import maspack.render.RenderProps;
 import maspack.render.RenderProps.Shading;
 import maspack.render.Renderer;
 import maspack.render.Renderer.ColorInterpolation;
-import maspack.render.TextureProps;
+import maspack.render.DiffuseTextureProps;
 
 public abstract class MeshRendererBase {
 

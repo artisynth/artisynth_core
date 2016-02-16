@@ -21,8 +21,7 @@ import maspack.render.RenderProps;
 import maspack.render.RenderProps.Shading;
 import maspack.render.Renderer;
 import maspack.render.Renderer.SelectionHighlighting;
-import maspack.render.TextureLoader;
-import maspack.render.TextureProps;
+import maspack.render.DiffuseTextureProps;
 import maspack.render.GL.GLRenderer;
 import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLTexture;
@@ -153,37 +152,37 @@ public class PolygonalMeshRenderer {
    public PolygonalMeshRenderer() {
    }
 
-   private int getTextureMode (TextureProps tprops) {
-      switch (tprops.getTextureMode()) {
+   private int getTextureMode (DiffuseTextureProps tprops) {
+      switch (tprops.getTextureMixing()) {
          case DECAL:
             return GL2.GL_DECAL;
          case REPLACE:
             return GL2.GL_REPLACE;
          case MODULATE:
             return GL2.GL_MODULATE;
-         case BLEND:
-            return GL2.GL_BLEND;
+            //         case BLEND:
+            //            return GL2.GL_BLEND;
          default: {
             throw new InternalErrorException (
-               "unimplement texture mode " + tprops.getTextureMode());
+               "unimplement texture mode " + tprops.getTextureMixing());
          }
       }
    }
 
-   private void loadTexture (GL2 gl, TextureProps tprops) {
-      if (tprops.getTextureFileName() == null) {
+   private void loadTexture (GL2 gl, DiffuseTextureProps tprops) {
+      if (tprops.getFileName() == null) {
          // XXX tprops.setTexture (null);
          return;
       }
 
-      TextureLoader loader = new TextureLoader (gl);
+      GL2TextureLoader loader = new GL2TextureLoader (gl);
       try {
-         GLTexture texture = loader.getTexture (tprops.getTextureFileName());
+         GLTexture texture = loader.getTexture (tprops.getFileName());
          // XXX tprops.setTexture (texture);
       }
       catch (java.io.IOException e) {
          System.out.println (
-            "Texture image file not found: " + tprops.getTextureFileName() + " " + e);
+            "Texture image file not found: " + tprops.getFileName() + " " + e);
          return;
       }
 
@@ -198,7 +197,7 @@ public class PolygonalMeshRenderer {
    // Take care of inits for texture mapping. If doing automatic texture
    // mapping this is all you need to do. If not, the texture coordinates
    // are set in drawFaces.
-   private void bindFaceTextures (GL2 gl, TextureProps tprops) {
+   private void bindFaceTextures (GL2 gl, DiffuseTextureProps tprops) {
       // XXX GLTexture texture = tprops.getTexture();
       int[] vals = new int[2];
       gl.glGetIntegerv (GL2.GL_POLYGON_MODE, vals, 0);
@@ -289,7 +288,7 @@ public class PolygonalMeshRenderer {
    }
 
    private void drawFacesRaw (
-      GL2 gl, PolygonalMesh mesh, TextureProps textureProps, int flags) {
+      GL2 gl, PolygonalMesh mesh, DiffuseTextureProps textureProps, int flags) {
       // need to use begin/end polygon
       Vector3d[] nrms = null;
       Vector3d vtxNrm = new Vector3d();
@@ -307,7 +306,7 @@ public class PolygonalMeshRenderer {
       //useHSVInterpolation =false;
 
       boolean useTextureCoords =
-         (textureProps != null && textureProps.isTextureEnabled() && mesh.getTextureIndices() != null);
+         (textureProps != null && textureProps.isEnabled() && mesh.getTextureIndices() != null);
       // merge quad triangles if we are using smooth shading
       
       boolean mergeQuadTriangles = (shadingModel[0] == GL2.GL_SMOOTH);
@@ -573,13 +572,13 @@ public class PolygonalMeshRenderer {
          shading = Shading.NONE;
       }
       
-      TextureProps textureProps = props.getTextureProps();
+      DiffuseTextureProps textureProps = props.getDiffuseTextureProps();
       boolean useTextures = false;
-      if (!selecting && !useVertexColors && textureProps != null && textureProps.isTextureEnabled()) {
+      if (!selecting && !useVertexColors && textureProps != null && textureProps.isEnabled()) {
          // if not automatic check that explicit texture indices are okay
          if ((mesh.getTextureIndices() == null)) {
-            textureProps.setTextureEnabled (false);
-            props.setTextureProps (textureProps);
+            textureProps.setEnabled (false);
+            props.setDiffuseTextureProps (textureProps);
          }
          else {
             //            if (textureProps.getTexture() == null &&

@@ -495,8 +495,6 @@ public interface Renderer {
    public SelectionHighlighting getSelectionHighlighting();
 
    public Color getSelectionColor();
-
-   public Material getSelectionMaterial();
    
    /**
     * Begins a selection query with the {\it query identifier}

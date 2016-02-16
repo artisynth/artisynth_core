@@ -824,7 +824,7 @@ public class PolygonalMeshRenderer {
             if ((flags & Renderer.SELECTED) != 0 &&
                 (renderer.getSelectionHighlighting() ==
                  SelectionHighlighting.Color)) {
-               renderer.getSelectionMaterial().apply (gl, GL2.GL_FRONT_AND_BACK);
+               //renderer.getSelectionMaterial().apply (gl, GL2.GL_FRONT_AND_BACK);
             }
             else if (faceMat == backMat) {
                faceMat.apply (gl, GL2.GL_FRONT_AND_BACK);

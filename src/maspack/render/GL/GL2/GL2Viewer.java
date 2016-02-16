@@ -1046,7 +1046,8 @@ public class GL2Viewer extends GLViewer implements Renderer, HasProperties {
          // set all colors
          if (mySelectedColorActive) {
             gl.glColor3fv (mySelectedColor, 0);
-            mySelectedMaterial.apply(gl);
+            myCurrentMaterial.apply (gl);
+            gl.glMaterialfv (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, mySelectedColor, 0); // apply back color
          } else {
             gl.glColor3fv (myCurrentMaterial.getDiffuse(), 0);
             myCurrentMaterial.apply (gl);

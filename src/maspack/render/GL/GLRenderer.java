@@ -11,7 +11,6 @@ import java.awt.Color;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 
-import maspack.render.Material;
 import maspack.render.Renderer;
 
 
@@ -34,8 +33,6 @@ public interface GLRenderer extends Renderer {
    public SelectionHighlighting getSelectionHighlighting();
 
    public Color getSelectionColor();
-
-   public Material getSelectionMaterial();
    
    /**
     * Begins a selection query with the {\it query identifier}

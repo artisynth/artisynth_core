@@ -67,9 +67,6 @@ public class FaceComponent extends RenderableComponentBase {
       }
       
       Material faceMat = props.getFaceMaterial();
-      if (isSelected()) {
-         faceMat = renderer.getSelectionMaterial();
-      }
 
       if (!(renderer instanceof GL2Viewer)) {
          return;
@@ -83,7 +80,7 @@ public class FaceComponent extends RenderableComponentBase {
       if (!renderer.isSelecting()) {
          if (shading != Shading.NONE) {
             if (isSelected()) {
-               renderer.getSelectionMaterial().apply (gl, GL2.GL_FRONT_AND_BACK);
+               renderer.setColor (renderer.getSelectionColor ());
             } else {
                faceMat.apply (gl, GL2.GL_FRONT_AND_BACK);
                gl.glLightModelf (GL2.GL_LIGHT_MODEL_TWO_SIDE, 1);

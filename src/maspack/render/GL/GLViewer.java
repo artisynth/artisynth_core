@@ -202,7 +202,6 @@ HasProperties {
 
    // Colors
    protected float[] mySelectedColor = new float[] { 1f, 1f, 0, 1f };
-   protected Material mySelectedMaterial = Material.createDiffuse (mySelectedColor, 1.0f, 32f);
    protected SelectionHighlighting myHighlighting = SelectionHighlighting.Color;
 
    // XXX Color history
@@ -1926,16 +1925,11 @@ HasProperties {
 
    public void setSelectionColor (Color color) {
       color.getRGBComponents (mySelectedColor);
-      mySelectedMaterial = Material.createDiffuse (mySelectedColor, 1.0f, 32f);
    }
 
    public Color getSelectionColor() {
       return new Color (
          mySelectedColor[0], mySelectedColor[1], mySelectedColor[2]);
-   }
-
-   public Material getSelectionMaterial() {
-      return mySelectedMaterial;
    }
 
    @Override

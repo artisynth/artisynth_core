@@ -140,12 +140,6 @@ implements ScalableUnits {
       gl.glPushMatrix();
 
       RenderProps props = getRenderProps();
-      float[] color = props.getPointColorArray();
-      float[] selColor = renderer.getSelectionColor().getColorComponents(new float[4]);
-
-      if (isSelected()) {
-         color = selColor;
-      }
       
       boolean lastSelected = false;
 
@@ -169,7 +163,7 @@ implements ScalableUnits {
                   i++;
                }
             } else {
-               renderer.setColor (color, false);
+               renderer.setColor (props.getPointColorArray(), isSelected());
                
                VListPrint vPrint = getFingerPrint(PointStyle.POINT, 0);
                int displayList = viewer.getDisplayList(gl, vKey, vPrint);
@@ -193,11 +187,13 @@ implements ScalableUnits {
                   for (VertexComponent vc : this) {
                      if (vc.getRenderProps() == null) {
    
-                        if (vc.isSelected() && !lastSelected) {
-                           renderer.setColor(selColor);
-                           lastSelected = true;
-                        } else if (!vc.isSelected() && lastSelected){
-                           renderer.setColor(color);
+                        if (!isSelected()) {
+                           // set selection color for vertices as needed
+                           if (vc.isSelected() != lastSelected) {
+                              renderer.setColor(
+                                  props.getPointColorArray(), vc.isSelected());
+                              lastSelected = vc.isSelected();
+                           }
                         }
                         
                         gl.glVertex3fv (vc.getRenderCoords(), 0);
@@ -248,10 +244,10 @@ implements ScalableUnits {
                int i=0;
                for (VertexComponent vc : this) {
                   if (vc.getRenderProps() == null) {
-   
+                     double rad = props.getPointRadius();
                      if (renderer.isSelecting()) {
                         renderer.beginSelectionQuery (i);
-                        renderer.drawSphere (props, vc.getRenderCoords());
+                        renderer.drawSphere (vc.getRenderCoords(), rad);
                         renderer.endSelectionQuery ();      
                      }  else {
                         if (!isSelected()) {
@@ -262,7 +258,7 @@ implements ScalableUnits {
                               lastSelected = vc.isSelected();
                            }
                         }
-                        renderer.drawSphere (props, vc.getRenderCoords());
+                        renderer.drawSphere (vc.getRenderCoords(), rad);
                      }
                   }
                   i++;
@@ -351,17 +347,18 @@ implements ScalableUnits {
             int i = 0;
             while (iterator.hasNext()) {
                RenderablePoint pnt = iterator.next();
+               double rad = props.getPointRadius();
                if (pnt.getRenderProps() == null) {
                   if (renderer.isSelecting()) {
                      if (renderer.isSelectable (pnt)) {
                         renderer.beginSelectionQuery (i);
-                        renderer.drawSphere (props, pnt.getRenderCoords());
+                        renderer.drawSphere (pnt.getRenderCoords(), rad);
                         renderer.endSelectionQuery ();      
                      }
                   }
                   else {
                      renderer.setPointLighting (props, pnt.isSelected());
-                     renderer.drawSphere (props, pnt.getRenderCoords());
+                     renderer.drawSphere (pnt.getRenderCoords(), rad);
                   }
                }
                i++;

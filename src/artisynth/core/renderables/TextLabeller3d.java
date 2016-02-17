@@ -188,7 +188,7 @@ public class TextLabeller3d extends TextComponentBase {
          myTransform.p.set(renderPos);
          
          renderer.pushModelMatrix();
-         renderer.mulTransform(myTransform);
+         renderer.mulModelMatrix(myTransform);
          
          myTextRenderer.draw3D(label.text, 0,0,0, fTextSize);
          myTextRenderer.flush();

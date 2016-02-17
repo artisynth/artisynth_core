@@ -262,7 +262,7 @@ public class TextComponent2d extends TextComponentBase {
       myTransform.p.set(renderPos.x, renderPos.y, 0);
 
       if (isSelected()) {
-         renderer.getSelectionColor().getRGBColorComponents(rgb);
+         renderer.getSelectionColor(rgb);
       } else {
          rprops.getFaceColor(rgb);
       }
@@ -274,7 +274,7 @@ public class TextComponent2d extends TextComponentBase {
 
       renderer.pushModelMatrix();
       GLSupport.transformToGLMatrix (GLMatrix, myTransform);
-      renderer.mulTransform(myTransform);
+      renderer.mulModelMatrix(myTransform);
       
       myTextRenderer.begin3DRendering();
       myTextRenderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());

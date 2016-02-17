@@ -1036,8 +1036,8 @@ public class MFreeMuscleModel extends MFreeModel3d
 
          props.getLineColor(myDirectionColor);
          renderer.drawLine(
-            props, coords0, coords1, /* capped= */false,
-            myDirectionColor, /* selected= */false);
+            props, coords0, coords1, myDirectionColor,
+            /*capped=*/false, /*selected=*/false);
       }
       
    }
@@ -1071,8 +1071,8 @@ public class MFreeMuscleModel extends MFreeModel3d
             
             props.getLineColor(myDirectionColor);
             renderer.drawLine(
-               props, coords0, coords1, /* capped= */false,
-               myDirectionColor, /* selected= */false);
+               props, coords0, coords1, myDirectionColor,
+               /*capped=*/false, /*selected=*/false);
          }
       }
       

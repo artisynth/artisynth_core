@@ -230,7 +230,7 @@ public class OBBTree extends BVTree {
    public void render (Renderer renderer, int flags) {
       if (root != null) {
          renderer.pushModelMatrix();
-         renderer.mulTransform (myBvhToWorld);
+         renderer.mulModelMatrix (myBvhToWorld);
          recursiveRender (renderer, flags, root, 0);
          renderer.popModelMatrix();
       }

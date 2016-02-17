@@ -1706,8 +1706,8 @@ public class MultiPointSpring extends PointSpringBase
          else {
             renderer.drawLine (
                props, seg.myPntB.myRenderCoords,
-               seg.myPntA.myRenderCoords, /*isCapped=*/false,
-               getRenderColor(), isSelected());
+               seg.myPntA.myRenderCoords, getRenderColor(),
+               /*isCapped=*/false, isSelected());
          }
       }
    }     

@@ -225,7 +225,7 @@ ScalableUnits, ForceComponent, TransformableGeometry {
       X.R.setZDirection (nrml);
       X.p.set (renderCenter);
       renderer.pushModelMatrix();
-      renderer.mulTransform (X);
+      renderer.mulModelMatrix (X);
 
       renderer.setFaceLighting (myRenderProps, isSelected());
       renderer.setFaceMode (myRenderProps.getFaceStyle());

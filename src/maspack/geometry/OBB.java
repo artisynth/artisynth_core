@@ -1198,7 +1198,7 @@ public class OBB extends BVNode {
 
       Vector3d hw = myHalfWidths;
       renderer.pushModelMatrix();
-      renderer.mulTransform (myX);
+      renderer.mulModelMatrix (myX);
 
       renderer.setColor (0, 0, 1);
       renderer.beginDraw (VertexDrawMode.LINE_STRIP);

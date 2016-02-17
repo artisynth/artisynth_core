@@ -853,7 +853,7 @@ public class MeshViewer extends GLViewerFrame
          for (MeshBase mesh : myMeshes) {
 
             if (mesh instanceof PolygonalMesh) {
-               ((PolygonalMesh)mesh).sortFaces(viewer.getZDirection());
+               ((PolygonalMesh)mesh).sortFaces(viewer.getEyeZDirection());
             }
          }
          viewer.rerender();

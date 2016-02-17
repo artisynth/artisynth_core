@@ -84,7 +84,7 @@ public class FreehandTool extends DrawToolBase {
       gl.glPushMatrix();
       RigidTransform3d X = new RigidTransform3d();
       getToolToWorld (X);
-      renderer.mulTransform (X);
+      renderer.mulModelMatrix (X);
 
       boolean saveLighting = renderer.isLightingEnabled ();
       renderer.setLightingEnabled (false);

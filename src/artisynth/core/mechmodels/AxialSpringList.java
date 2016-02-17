@@ -182,6 +182,7 @@ public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
                return;
             }
          }
+         double rad = props.getLineRadius();
          for (int i=0; i<size(); i++) {
             AxialSpring spr = get(i);        
             if (spr.getRenderProps() == null && renderer.isSelectable (spr)) {
@@ -194,15 +195,16 @@ public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
                      break;
                   }
                   case ELLIPSOID: {
-                     renderer.drawTaperedEllipsoid (props, v0, v1);
+                     renderer.drawTaperedEllipsoid (v0, v1, rad);
                      break;
                   }
                   case SOLID_ARROW: {
-                     renderer.drawSolidArrow (props, v0, v1, /*capped=*/true);
+                     renderer.drawSolidArrow (
+                        v0, v1, rad, /*capped=*/true);
                      break;
                   }
                   case CYLINDER: {
-                     renderer.drawCylinder (props, v0, v1);
+                     renderer.drawCylinder (v0, v1, rad, /*capped=*/false);
                      break;
                   }
                }

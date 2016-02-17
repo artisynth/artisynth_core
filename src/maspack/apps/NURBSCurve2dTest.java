@@ -101,7 +101,7 @@ public class NURBSCurve2dTest implements DrawToolListener {
          }
          renderer.endDraw();
 
-         renderer.setColor (Color.WHITE);
+         renderer.setColor (1f, 1f, 1f);
          renderer.setPointSize (2);
          renderer.beginDraw (VertexDrawMode.POINTS);        
          for (int i=0; i<myGrid.length; i++) {

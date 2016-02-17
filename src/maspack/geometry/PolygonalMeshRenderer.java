@@ -394,10 +394,10 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
 
       renderer.pushModelMatrix();
       if (mesh.isRenderBuffered()) {
-         renderer.mulTransform (mesh.getXMeshToWorldRender());
+         renderer.mulModelMatrix (mesh.getXMeshToWorldRender());
       }
       else {
-         renderer.mulTransform (mesh.XMeshToWorld);
+         renderer.mulModelMatrix (mesh.XMeshToWorld);
       }
 
       drawEdges (renderer, mesh, props, flags, false);
@@ -414,10 +414,10 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       
       renderer.pushModelMatrix();
       if (mesh.isRenderBuffered()) {
-         renderer.mulTransform (mesh.getXMeshToWorldRender());
+         renderer.mulModelMatrix (mesh.getXMeshToWorldRender());
       }
       else {
-         renderer.mulTransform (mesh.XMeshToWorld);
+         renderer.mulModelMatrix (mesh.XMeshToWorld);
       }
 
       boolean translucent = false;

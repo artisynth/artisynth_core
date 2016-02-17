@@ -108,10 +108,10 @@ public class PointMeshRenderer extends MeshRendererBase {
 
       renderer.pushModelMatrix();
       if (mesh.isRenderBuffered()) {
-         renderer.mulTransform (mesh.getXMeshToWorldRender());
+         renderer.mulModelMatrix (mesh.getXMeshToWorldRender());
       }
       else {
-         renderer.mulTransform (mesh.XMeshToWorld);
+         renderer.mulModelMatrix (mesh.XMeshToWorld);
       }
 
       float savedLineWidth = renderer.getLineWidth();

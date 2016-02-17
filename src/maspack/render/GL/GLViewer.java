@@ -52,6 +52,8 @@ import maspack.render.MouseRayEvent;
 import maspack.render.RenderList;
 import maspack.render.RenderListener;
 import maspack.render.RenderProps;
+import maspack.render.RenderProps.PointStyle;
+import maspack.render.RenderProps.LineStyle;
 import maspack.render.RenderProps.Faces;
 import maspack.render.RenderProps.Shading;
 import maspack.render.RendererEvent;
@@ -94,9 +96,11 @@ HasProperties {
 
    protected static int DEFAULT_POINT_SLICES = 64;
    protected static int DEFAULT_LINE_SLICES = 64;
+   protected static int DEFAULT_MESH_RESOLUTION = 32;
 
    protected int myPointSlices = DEFAULT_POINT_SLICES;
    protected int myLineSlices = DEFAULT_LINE_SLICES;
+   protected int myCurvedMeshResolution = DEFAULT_MESH_RESOLUTION; 
 
    protected static class ViewState {
       protected Point3d myCenter = new Point3d (DEFAULT_VIEWER_CENTER);
@@ -363,6 +367,14 @@ HasProperties {
       return PropertyList.getProperty (name, this);
    }
 
+   public int getCurvedMeshResolution () {
+      return myCurvedMeshResolution;
+   }
+   
+   public void setCurvedMeshResolution (int nres) {
+      myCurvedMeshResolution = nres;
+   }
+   
    public void setAxisLength (double len) {
       if (len == AUTO_FIT) {
          Point3d pmin = new Point3d();
@@ -937,7 +949,7 @@ HasProperties {
          double near = far / 1000;
 
          myViewState.myCenter.set (pcenter);
-         Vector3d zdir = getZDirection();
+         Vector3d zdir = getEyeZDirection();
          double d = r / Math.tan (Math.toRadians (myFrustum.fov) / 2);
          Point3d eye = new Point3d();
          eye.scaledAdd(d, zdir, myViewState.myCenter);
@@ -976,7 +988,7 @@ HasProperties {
          }
 
          myViewState.myCenter.set (pcenter);
-         Vector3d zdir = getZDirection();
+         Vector3d zdir = getEyeZDirection();
          double d = r / Math.tan (Math.toRadians (myFrustum.fov) / 2);
          Point3d eye = getEye();
          eye.scaledAdd(d, zdir, myViewState.myCenter);
@@ -1452,7 +1464,7 @@ HasProperties {
       getBounds(pmin, pmax);
 
       // find max z depth
-      Vector3d zdir = getZDirection();
+      Vector3d zdir = getEyeZDirection();
       double worldDist = Math.abs(getEye().dot(zdir));
       double [] x = {pmin.x, pmax.x};
       double [] y = {pmin.y, pmax.y};
@@ -1848,9 +1860,21 @@ HasProperties {
    }
 
    public Shading getShadeModel() {
-      return  myViewerState.shading;
+      return myViewerState.shading;
+   }
+   
+   public void setDefaultShadeModel() {
+      setShadeModel (Shading.FLAT);
    }
 
+   public void setDefaultLineWidth() {
+      setLineWidth (1);
+   }
+   
+   public void setDefaultPointSize() {
+      setPointSize (1);
+   }
+   
    protected void pushViewerState() {
       viewerStateStack.push(myViewerState.clone());
    }
@@ -1927,9 +1951,17 @@ HasProperties {
       color.getRGBComponents (mySelectedColor);
    }
 
-   public Color getSelectionColor() {
-      return new Color (
-         mySelectedColor[0], mySelectedColor[1], mySelectedColor[2]);
+   public void getSelectionColor (float[] rgba) {
+      if (rgba.length < 3) {
+         throw new IllegalArgumentException (
+            "Argument rgba must have length of at least 3");
+      }
+      rgba[0] = mySelectedColor[0];
+      rgba[1] = mySelectedColor[1];
+      rgba[2] = mySelectedColor[2];
+      if (rgba.length > 3) {
+         rgba[3] = mySelectedColor[3];
+      }
    }
 
    @Override
@@ -2135,9 +2167,10 @@ HasProperties {
       return alphaFaceCulling;
    }
 
-   public Vector3d getZDirection() {
-      viewMatrix.R.getRow(2, zDir);
-      return zDir;
+   public Vector3d getEyeZDirection() {
+      Vector3d zdir = new Vector3d();
+      viewMatrix.R.getRow(2, zdir);
+      return zdir;
    }
 
    public void setGlobalRenderFlags(int flags) {
@@ -2350,20 +2383,6 @@ HasProperties {
       return (modelMatrix instanceof RigidTransform3d);
    }
 
-   /**
-    * Multiplies the Model matrix by X
-    */
-   public void mulTransform (AffineTransform3d X) {
-      mulModelMatrix(X);
-   }
-
-   /**
-    * Multiplies the Model matrix by X
-    */
-   public void mulTransform (RigidTransform3d X) {
-      mulModelMatrix(X);
-   }
-
    public void translateModelMatrix(Vector3d t) {
       synchronized (modelMatrix) {
          modelMatrix.addTranslation(t); // normal matrix is unchanged  
@@ -2414,20 +2433,27 @@ HasProperties {
       invalidateModelMatrix();
    }
 
-   public void mulModelMatrix(RigidTransform3d trans) {
-      synchronized (modelMatrix) {
-         modelMatrix.mul(trans);
-         modelNormalMatrix.mul(trans.R);  
-      }
-      invalidateModelMatrix();
-   }
-
-   public void mulModelMatrix(AffineTransform3dBase trans) {
+//   public void mulModelMatrix(RigidTransform3d trans) {
+//      synchronized (modelMatrix) {
+//         modelMatrix.mul(trans);
+//         modelNormalMatrix.mul(trans.R);  
+//      }
+//      invalidateModelMatrix();
+//   }
+//
+   public void mulModelMatrix (AffineTransform3dBase trans) {
       synchronized(modelMatrix) {
-         AffineTransform3d aff = new AffineTransform3d(modelMatrix);
-         aff.mul(trans);
-         modelMatrix = aff;
-         modelNormalMatrix = computeInverseTranspose(aff.getMatrix());
+         if (trans instanceof RigidTransform3d) {
+            RigidTransform3d rigid = (RigidTransform3d)trans;
+            modelMatrix.mul(rigid);
+            modelNormalMatrix.mul(rigid.R);  
+         }
+         else {
+            AffineTransform3d aff = new AffineTransform3d(modelMatrix);
+            aff.mul(trans);
+            modelMatrix = aff;
+            modelNormalMatrix = computeInverseTranspose(aff.getMatrix());
+         }
       }
       invalidateModelMatrix();
    }
@@ -2617,6 +2643,10 @@ HasProperties {
       }
    }
 
+   private float[] toFloat (Vector3d vec) {
+      return new float[] {(float)vec.x, (float)vec.y, (float)vec.z};
+   }
+   
    //==========================================================================
    //  Drawing
    //==========================================================================
@@ -2624,88 +2654,72 @@ HasProperties {
    // forwarded draw commands
    public void drawSphere (RenderProps props, float[] coords) {
       double r = props.getPointRadius();
-      drawSphere(props, coords, r);
+      drawSphere(coords, r);
+   }
+   
+   public void drawSphere (Vector3d pnt, double rad) {
+      drawSphere (toFloat(pnt), rad);
    }
 
-   public void drawCylinder (
-      RenderProps props, float[] coords0, float[] coords1) {
-      drawCylinder (props, coords0, coords1, /* capped= */false);
-   }
-
-   public void drawSolidArrow (
-      RenderProps props, float[] coords0, float[] coords1) {
-      drawSolidArrow (props, coords0, coords1, /* capped= */true);
-   }
+//   public void drawCylinder (
+//      float[] pnt0, float[] pnt1, double rad) {
+//      drawCylinder (pnt0, pnt1, rad, /* capped= */false);
+//   }
+//
+//   public void drawSolidArrow (
+//      RenderProps props, float[] coords0, float[] coords1) {
+//      drawSolidArrow (props, coords0, coords1, 0, /* capped= */true);
+//   }
 
    public void drawLine (
-      RenderProps props, float[] coords0, float[] coords1, boolean selected) {
-      drawLine (props, coords0, coords1, /* capped= */true, selected);
+      RenderProps props, float[] pnt0, float[] pnt1, boolean selected) {
+      drawLine (props, pnt0, pnt1, /*color=*/null, /*capped=*/true, selected);
    }
 
-   public void drawLine (
-      RenderProps props, float[] coords0, float[] coords1, boolean capped,
-      boolean selected) {
-      drawLine (props, coords0, coords1, capped, null, selected);
+//   public void drawLine (
+//      RenderProps props, float[] coords0, float[] coords1, boolean capped,
+//      boolean selected) {
+//      drawLine (props, coords0, coords1, capped, null, selected);
+//   }
+
+//   public abstract void drawCone (
+//      float[] pnt0, float[] pnt1, double rad0, double rad1, boolean capped);
+
+//   public void drawCone(
+//      RenderProps props, float[] coords0, float[] coords1) {
+//      drawCone(props, coords0, coords1, false);
+//   }
+
+   public void drawPoint (Vector3d pnt) {
+      drawPoint (new float[] {(float)pnt.x, (float)pnt.y, (float)pnt.z});
    }
 
-   public abstract void drawCylinder(
-      RenderProps props, float[] coords0, float[] coords1, double r, boolean capped);
-
-   @Override
-   public void drawCylinder(
-      RenderProps props, float[] coords0, float[] coords1, boolean capped) {
-      double r = props.getLineRadius();
-      if (r < Double.MIN_NORMAL) {
-         return;
-      }
-      drawCylinder(props, coords0, coords1, r, capped);
-   }
-
-   public abstract void drawCone( RenderProps props, float[] coords0, float[] coords1, double r, boolean capped);
-
-   public void drawCone(
-      RenderProps props, float[] coords0, float[] coords1, boolean capped) {
-
-      double r = props.getLineRadius();
-      if (r < Double.MIN_NORMAL) {
-         return;
-      }
-      drawCone(props, coords0, coords1, r, capped);
-   }
-
-   public void drawCone(
-      RenderProps props, float[] coords0, float[] coords1) {
-      drawCone(props, coords0, coords1, false);
-   }
-
-   public void drawPoint (Vector3d p) {
-      drawPoint (new float[] {(float)p.x, (float)p.y, (float)p.z});
-   }
-
-   public void drawPoint (double x, double y, double z) {
-      drawPoint (new float[] {(float)x, (float)y, (float)z});
+   public void drawPoint (double px, double py, double pz) {
+      drawPoint (new float[] {(float)px, (float)py, (float)pz});
    }
 
    public void drawPoint (float x, float y, float z) {
       drawPoint (new float[] {x, y, z});
    }
 
-   public void drawLine (Vector3d p0, Vector3d p1) {
-      drawLine (
-         new float[] {(float)p0.x, (float)p0.y, (float)p0.z}, 
-         new float[] {(float)p1.x, (float)p1.y, (float)p1.z}); 
+   public void drawLine (Vector3d pnt0, Vector3d pnt1) {
+      drawLine (toFloat (pnt0), toFloat (pnt1));
    }
 
    public void drawLine (
-      double x0, double y0, double z0, double x1, double y1, double z1) {
+      double px0, double py0, double pz0, double px1, double py1, double pz1) {
       drawLine (
-         new float[] {(float)x0, (float)y0, (float)z0}, 
-         new float[] {(float)x1, (float)y1, (float)z1}); 
+         new float[] {(float)px0, (float)py0, (float)pz0}, 
+         new float[] {(float)px1, (float)py1, (float)pz1}); 
    }
 
    public void drawLine (
       float x0, float y0, float z0, float x1, float y1, float z1) {
       drawLine (new float[] {x0, y0, z0}, new float[] {x1, y1, z1});
+   }
+   
+   public void drawTriangle (Vector3d pnt0, Vector3d pnt1, Vector3d pnt2) {
+      drawTriangle (toFloat(pnt0), toFloat(pnt1), toFloat(pnt2));
    }
 
    public abstract void drawLines(float[] vertices, int flags);
@@ -2726,8 +2740,8 @@ HasProperties {
 
    @Override
    public void drawAxes(
-      RigidTransform3d X, double len, int lineWidth, boolean selected) {
-      drawAxes (X, new double[] {len, len, len}, lineWidth, selected);
+      RigidTransform3d X, double len, int width, boolean selected) {
+      drawAxes (X, new double[] {len, len, len}, width, selected);
    }
 
    /**
@@ -2844,7 +2858,16 @@ HasProperties {
 
    @Override
    public void setColor (float[] rgba, boolean selected) {
-      setColor(rgba, rgba, selected);
+      setFrontColor (rgba);
+      setBackColor (null);
+      setMaterialSelected (selected);      
+   }
+   
+   public void setColorSelected() {
+      // do we need to set front color?
+      setFrontColor (mySelectedColor);
+      setBackColor (null);
+      setMaterialSelected (true);         
    }
 
    @Override
@@ -2862,9 +2885,9 @@ HasProperties {
       setColor(new float[]{r,g,b,a});
    }
 
-   public void setColor (Color color) {
-      setColor(color.getColorComponents (new float[4]));
-   }
+//   public void setColor (Color color) {
+//      setColor(color.getColorComponents (new float[4]));
+//   }
 
 //   public void setColor (float[] frontRgba, float[] backRgba) {
 //      setColor(frontRgba, backRgba, false);
@@ -2876,12 +2899,12 @@ HasProperties {
 //      setColor(frontRgba, backRgba);
 //   }
 
-   @Override
-   public void setColor (float[] frontRgba, float[] backRgba, boolean selected) {
-      setFrontColor (frontRgba);
-      setBackColor (backRgba);
-      setMaterialSelected (selected);
-   }
+//   @Override
+//   public void setColor (float[] frontRgba, float[] backRgba, boolean selected) {
+//      setFrontColor (frontRgba);
+//      setBackColor (backRgba);
+//      setMaterialSelected (selected);
+//   }
 
    @Override
    public void setMaterial (
@@ -2900,10 +2923,13 @@ HasProperties {
    }
 
    public void setPropsMaterial (
-      RenderProps props, float[] rgba, boolean selected) {
+      RenderProps props, float[] frontRgba, boolean selected) {
 
       setMaterialSelected (selected);         
-      setFrontColor (rgba);
+      setFrontColor (frontRgba);
+      if (frontRgba.length == 3) {
+         setAlpha ((float)props.getAlpha());
+      }
       setBackColor (null);
       setShininess (props.getShininess());
       setEmission (DEFAULT_MATERIAL_EMISSION);
@@ -2937,6 +2963,9 @@ HasProperties {
       RenderProps props, float[] frontRgba, boolean selected) {
 
       setFrontColor (frontRgba);
+      if (frontRgba.length == 3) {
+         setAlpha ((float)props.getAlpha());
+      }
       setBackColor (props.getBackColorArray());
       setShininess (props.getShininess());
       setEmission (DEFAULT_MATERIAL_EMISSION);
@@ -2945,6 +2974,34 @@ HasProperties {
       setShadeModel (props.getShading());
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public void setPointShading (RenderProps props) {
+      Shading shading;
+      if (props.getPointStyle() == PointStyle.POINT) {
+         shading = Shading.NONE;
+      }
+      else {
+         shading = props.getShading();
+      }
+      setShadeModel (shading);
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public void setLineShading (RenderProps props) {
+      Shading shading;
+      if (props.getLineStyle() == LineStyle.LINE) {
+         shading = Shading.NONE;
+      }
+      else {
+         shading = props.getShading();
+      }
+      setShadeModel (shading);      
+   }
+   
    /**
     * Forces setting color, regardless of selection mode (used by
     * color selector)
@@ -3083,7 +3140,7 @@ HasProperties {
    public void beginDraw (VertexDrawMode mode) {
       if (myDrawMode != null) {
          throw new IllegalStateException (
-         "beginDraw() called while inside beginDraw() block");
+         "Currently in draw mode (i.e., beginDraw() has already been called)");
       }
       myDrawMode = mode;
       myDrawVertexIdx = 0;
@@ -3095,6 +3152,10 @@ HasProperties {
 
    @Override
    public void addVertex (float x, float y, float z) {
+      if (myDrawMode == null) {
+         throw new IllegalStateException (
+            "Not in draw mode (i.e., beginDraw() has not been called)");
+      }
       ensureDrawDataCapacity();
 
       // check if we need colors
@@ -3134,6 +3195,10 @@ HasProperties {
 
    @Override
    public void setNormal (float x, float y, float z) {
+      if (myDrawMode == null) {
+         throw new IllegalStateException (
+            "Not in draw mode (i.e., beginDraw() has not been called)");
+      }
       myDrawCurrentNormal[0] = x;
       myDrawCurrentNormal[1] = y;
       myDrawCurrentNormal[2] = z;
@@ -3155,9 +3220,8 @@ HasProperties {
    public void endDraw() {
       if (myDrawMode == null) {
          throw new IllegalStateException (
-            "endDraw() called before call to beginDraw()");
+            "Not in draw mode (i.e., beginDraw() has not been called)");
       }
-
       doDraw(myDrawMode, myDrawVertexIdx, myDrawVertexData, 
          myDrawHasNormalData, myDrawNormalData, 
          myDrawHasColorData, myDrawColorData);

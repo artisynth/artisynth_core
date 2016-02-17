@@ -34,7 +34,7 @@ public class PrimitivesTest extends GL2vsGL3Tester {
             
             props.setFaceColor (Color.CYAN);
             renderer.setMaterial (props.getFaceMaterial(), false);
-            renderer.setColor (props.getFaceColor ());
+            renderer.setColor (props.getFaceColorArray());
             
             renderer.setLightingEnabled (false);
             renderer.setPointSize(20f);

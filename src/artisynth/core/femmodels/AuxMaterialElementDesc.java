@@ -594,7 +594,7 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
          }
       }
       
-      renderer.drawSphere(props, rcoords, r);
+      renderer.drawSphere(rcoords, r);
    }
    
    private void renderINodeFraction(  Renderer renderer, RenderProps props, double rad, boolean scaled) {
@@ -615,7 +615,7 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
          
          if (drawSphere) {
             ipnt[i].computeCoordsForRender(rcoords, myElement.getNodes());
-            renderer.drawSphere(props, rcoords, r);  
+            renderer.drawSphere(rcoords, r);  
          }
          
          

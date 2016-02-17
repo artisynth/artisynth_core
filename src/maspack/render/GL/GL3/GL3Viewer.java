@@ -842,21 +842,22 @@ public class GL3Viewer extends GLViewer {
    //==========================================================================
 
    @Override
-   public void drawSphere(RenderProps props, float[] coords, double r) {
+   public void drawSphere(float[] pnt, double rad) {
 
-      if (r < Double.MIN_NORMAL) {
+      if (rad < Double.MIN_NORMAL) {
          return;
       }
 
       // scale and translate model matrix
       pushModelMatrix();
-      translateModelMatrix(coords[0], coords[1], coords[2]);
-      scaleModelMatrix(r);
+      translateModelMatrix(pnt[0], pnt[1], pnt[2]);
+      scaleModelMatrix(rad);
 
       maybeUpdateState (gl);
 
-      int nslices = props.getPointSlices();
-      GL3Object sphere = myGLResources.getSphere(gl, nslices, (int)Math.ceil(nslices/2));
+      int nslices = getCurvedMeshResolution();
+      GL3Object sphere = 
+         myGLResources.getSphere(gl, nslices, (int)Math.ceil(nslices/2));
       sphere.draw(gl, getRegularProgram(gl));
       // gloManager.releaseObject(sphere);
 
@@ -1151,29 +1152,28 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    public void drawTaperedEllipsoid(
-      RenderProps props, float[] coords0, float[] coords1) {
+      float[] pnt0, float[] pnt1, double rad) {
 
-      double r = props.getLineRadius();
-      if (r < Double.MIN_NORMAL) {
+      if (rad < Double.MIN_NORMAL) {
          return;
       }
 
       pushModelMatrix();
 
-      double dx = coords1[0]-coords0[0];
-      double dy = coords1[1]-coords0[1];
-      double dz = coords1[2]-coords0[2];
+      double dx = pnt1[0]-pnt0[0];
+      double dy = pnt1[1]-pnt0[1];
+      double dz = pnt1[2]-pnt0[2];
       double len = Math.sqrt(dx*dx+dy*dy+dz*dz);
 
       // compute required rotation
-      RigidTransform3d lineRot = getLineTransform(coords0, coords1);
+      RigidTransform3d lineRot = getLineTransform(pnt0, pnt1);
       // scale and translate model matrix
       mulModelMatrix(lineRot);
-      scaleModelMatrix(r, r, len);
+      scaleModelMatrix(rad, rad, len);
 
       maybeUpdateState(gl);
 
-      int nslices = props.getPointSlices();
+      int nslices = getCurvedMeshResolution();
       GL3Object ellipsoid = myGLResources.getTaperedEllipsoid(gl, nslices, (int)Math.ceil(nslices/2));
       ellipsoid.draw(gl, getRegularProgram(gl));
 
@@ -1184,8 +1184,11 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    public void drawCylinder(
-      RenderProps props, float[] coords0, float[] coords1, double r, boolean capped) {
-
+      float[] coords0, float[] coords1, double r, boolean capped) {
+      
+      if (r < Double.MIN_NORMAL) {
+         return;
+      }
       pushModelMatrix();
 
       // compute required rotation
@@ -1201,7 +1204,7 @@ public class GL3Viewer extends GLViewer {
 
       maybeUpdateState(gl);
 
-      int nslices = props.getPointSlices();
+      int nslices = getCurvedMeshResolution();
       GL3Object cylinder = myGLResources.getCylinder(gl, nslices, capped);
       cylinder.draw(gl, getRegularProgram(gl));
       // gloManager.releaseObject(sphere);
@@ -1212,26 +1215,29 @@ public class GL3Viewer extends GLViewer {
    }
 
    // @Override
-   public void drawCone(
-      RenderProps props, float[] coords0, float[] coords1, double r, boolean capped) {
+   public void drawCone (
+      float[] pnt0, float[] pnt1, double rad0, double rad1, boolean capped) {
 
+      if (rad0 < Double.MIN_NORMAL && rad1 < Double.MIN_NORMAL) {
+         return;
+      }
       pushModelMatrix();
 
       // compute required rotation
-      RigidTransform3d lineRot = getLineTransform(coords0, coords1);
+      RigidTransform3d lineRot = getLineTransform(pnt0, pnt1);
 
       // scale and translate model matrix
-      double dx = coords1[0]-coords0[0];
-      double dy = coords1[1]-coords0[1];
-      double dz = coords1[2]-coords0[2];
+      double dx = pnt1[0]-pnt0[0];
+      double dy = pnt1[1]-pnt0[1];
+      double dz = pnt1[2]-pnt0[2];
 
       double len = Math.sqrt(dx*dx+dy*dy+dz*dz);
       mulModelMatrix(lineRot);
-      scaleModelMatrix(r,r,len);
+      scaleModelMatrix(rad0,rad0,len);
 
       maybeUpdateState(gl);
 
-      int nslices = props.getPointSlices();
+      int nslices = getCurvedMeshResolution();
       GL3Object cone = myGLResources.getCone(gl, nslices, capped);
       cone.draw(gl, getRegularProgram(gl));
       // gloManager.releaseObject(cone);
@@ -1351,8 +1357,8 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    public void drawLine(
-      RenderProps props, float[] coords0, float[] coords1, boolean capped,
-      float[] color, boolean selected) {
+      RenderProps props, float[] pnt0, float[] pnt1, float[] color,
+      boolean capped, boolean selected) {
 
       if (color == null) {
          color = props.getLineColorArray ();
@@ -1368,7 +1374,7 @@ public class GL3Viewer extends GLViewer {
             }
             setColor (color, selected);
 
-            drawGLLine(gl, coords0, coords1);
+            drawGLLine(gl, pnt0, pnt1);
 
             gl.glLineWidth (1);
             setLightingEnabled (savedLighting);
@@ -1378,7 +1384,7 @@ public class GL3Viewer extends GLViewer {
             Shading savedShading = getShadeModel();
             setShadeModel (props.getShading());
             setPropsMaterial (props, color, selected);
-            drawCylinder (props, coords0, coords1, capped);
+            drawCylinder (pnt0, pnt1, props.getLineRadius(), capped);
             setShadeModel(savedShading);
             break;
          }
@@ -1386,7 +1392,7 @@ public class GL3Viewer extends GLViewer {
             Shading savedShading = getShadeModel();
             setShadeModel (props.getShading());
             setPropsMaterial (props, color, selected);
-            drawSolidArrow (props, coords0, coords1, capped);
+            drawSolidArrow (pnt0, pnt1, props.getLineRadius(), capped);
             setShadeModel(savedShading);
             break;
          }
@@ -1394,7 +1400,7 @@ public class GL3Viewer extends GLViewer {
             Shading savedShading = getShadeModel();
             setShadeModel (props.getShading());
             setPropsMaterial (props, color, selected);
-            drawTaperedEllipsoid (props, coords0, coords1);
+            drawTaperedEllipsoid (pnt0, pnt1, props.getLineRadius());
             setShadeModel(savedShading);
             break;
          }
@@ -1407,36 +1413,35 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    public void drawSolidArrow(
-      RenderProps props, float[] coords0, float[] coords1, boolean capped) {
+      float[] pnt0, float[] pnt1, double rad, boolean capped) {
 
-      double r = props.getLineRadius();
-      if (r < Double.MIN_NORMAL) {
+      if (rad < Double.MIN_NORMAL) {
          return;
       }
 
-      int nslices = props.getPointSlices();
+      int nslices = getCurvedMeshResolution();
 
-      double dx = coords1[0]-coords0[0];
-      double dy = coords1[1]-coords0[1];
-      double dz = coords1[2]-coords0[2];
+      double dx = pnt1[0]-pnt0[0];
+      double dy = pnt1[1]-pnt0[1];
+      double dz = pnt1[2]-pnt0[2];
 
       double len = Math.sqrt(dx*dx+dy*dy+dz*dz);
 
-      double arrowRad = 3*props.getLineRadius();
+      double arrowRad = 3*rad;
       double arrowLen = Math.min(2*arrowRad,len/2);
       double lenFrac = 1-arrowLen/len;
-      float[] coordsMid = new float[]{coords0[0] + (float)(lenFrac*dx),
-                                      coords0[1] + (float)(lenFrac*dy), 
-                                      coords0[2] + (float)(lenFrac*dz)};
+      float[] coordsMid = new float[]{pnt0[0] + (float)(lenFrac*dx),
+                                      pnt0[1] + (float)(lenFrac*dy), 
+                                      pnt0[2] + (float)(lenFrac*dz)};
 
       pushModelMatrix();
 
       // compute required rotation
-      RigidTransform3d lineRot = getLineTransform(coords0, coords1);
+      RigidTransform3d lineRot = getLineTransform(pnt0, pnt1);
 
       // scale and translate model matrix
       mulModelMatrix(lineRot);
-      scaleModelMatrix(r, r, len-arrowLen);
+      scaleModelMatrix(rad, rad, len-arrowLen);
       maybeUpdateState(gl);
 
       GL3Object cylinder = myGLResources.getCylinder(gl, nslices, capped);
@@ -1485,7 +1490,7 @@ public class GL3Viewer extends GLViewer {
             Shading savedShading = getShadeModel();
             setLineLighting (props, selected);
             if (len <= arrowheadSize) {
-               drawCone ( props, ctmp, coords0, len, capped);
+               drawCone ( ctmp, coords0, len, 0, capped);
             }
             else {
                boolean savedLighting = isLightingEnabled();
@@ -1496,21 +1501,21 @@ public class GL3Viewer extends GLViewer {
                gl.glLineWidth (1);
                setLightingEnabled (savedLighting);
                drawCone (
-                  props, ctmp, coords0, arrowheadSize, capped);
+                  ctmp, coords0, arrowheadSize, 0, capped);
             }
             setShadeModel(savedShading);
             break;
          }
-         case CYLINDER: {
+         case CYLINDER: 
+         case SOLID_ARROW: {
             Shading savedShading = getShadeModel();
             setLineLighting (props, selected);
             if (len <= arrowheadSize) {
-               drawCone (props, coords1, coords0, len, capped);
+               drawCone (coords1, coords0, len, 0, capped);
             }
             else {
-               drawCylinder (props, ctmp, coords1, capped);
-               drawCone (
-                  props, ctmp, coords0, arrowheadSize, capped);
+               drawCylinder (ctmp, coords1, props.getLineRadius(), capped);
+               drawCone (ctmp, coords0, arrowheadSize, 0, capped);
             }
             setShadeModel(savedShading);
             break;
@@ -1519,12 +1524,11 @@ public class GL3Viewer extends GLViewer {
             Shading savedShading = getShadeModel();
             setLineLighting (props, selected);
             if (len <= arrowheadSize) {
-               drawCone (props, coords1, coords0, len, capped);
+               drawCone (coords1, coords0, len, 0, capped);
             }
             else {
-               drawTaperedEllipsoid (props, coords0, coords1);
-               drawCone (
-                  props, ctmp, coords0, arrowheadSize, capped);
+               drawTaperedEllipsoid (coords0, coords1, props.getLineRadius());
+               drawCone (ctmp, coords0, arrowheadSize, 0, capped);
             }
             setShadeModel(savedShading);
             break;
@@ -1538,7 +1542,7 @@ public class GL3Viewer extends GLViewer {
    }
 
    @Override
-   public void drawPoint(RenderProps props, float[] coords, boolean selected) {
+   public void drawPoint(RenderProps props, float[] pnt, boolean selected) {
 
       switch (props.getPointStyle()) {
          case POINT: {
@@ -1549,7 +1553,7 @@ public class GL3Viewer extends GLViewer {
                gl.glPointSize (size);
                setColor (props.getPointColorArray(), selected);
 
-               drawGLPoint(gl, coords);
+               drawGLPoint(gl, pnt);
 
                gl.glPointSize (1);
                setLightingEnabled (savedLighting);
@@ -1559,7 +1563,7 @@ public class GL3Viewer extends GLViewer {
          case SPHERE: {
             Shading savedShading = getShadeModel();
             setPointLighting (props, selected);
-            drawSphere (props, coords);
+            drawSphere (pnt, props.getPointRadius());
             setShadeModel(savedShading);
             break;
          }
@@ -1595,14 +1599,14 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    public void drawAxes(
-      RigidTransform3d X, double[] len, int lineWidth, boolean selected) {
+      RigidTransform3d X, double[] lens, int width, boolean selected) {
 
       GLSupport.checkAndPrintGLError(gl);
 
       // deal with transform and len
-      double lx = len[0];
-      double ly = len[1];
-      double lz = len[2];
+      double lx = lens[0];
+      double ly = lens[1];
+      double lz = lens[2];
       boolean drawx = true;
       boolean drawy = true;
       boolean drawz = true;
@@ -1629,7 +1633,7 @@ public class GL3Viewer extends GLViewer {
       scaleModelMatrix(lx, ly, lz);
       maybeUpdateState(gl);
 
-      gl.glLineWidth (lineWidth);
+      gl.glLineWidth (width);
 
       GL3Object axes = myGLResources.getAxes(gl, drawx, drawy, drawz);
       if (selectEnabled || selected) {
@@ -1729,19 +1733,20 @@ public class GL3Viewer extends GLViewer {
             Shading savedShading = getShadeModel();
             setPointLighting (props, false);
             int i = 0;
+            double rad = props.getPointRadius();
             while (iterator.hasNext()) {
                RenderablePoint pnt = iterator.next();
                if (pnt.getRenderProps() == null) {
                   if (isSelecting()) {
                      if (isSelectable (pnt)) {
                         beginSelectionQuery (i);
-                        drawSphere (props, pnt.getRenderCoords());
+                        drawSphere (pnt.getRenderCoords(), rad);
                         endSelectionQuery ();      
                      }
                   }
                   else {
                      setMaterial (props.getPointMaterial(), pnt.isSelected());
-                     drawSphere (props, pnt.getRenderCoords());
+                     drawSphere (pnt.getRenderCoords(), rad);
                   }
                }
                i++;
@@ -1753,7 +1758,7 @@ public class GL3Viewer extends GLViewer {
    }
 
    public void drawLineStrip (
-      RenderProps props, Iterable<float[]> vertexList, 
+      RenderProps props, Iterable<float[]> pntList, 
       LineStyle style, boolean isSelected) {
 
       switch (style) {
@@ -1763,7 +1768,7 @@ public class GL3Viewer extends GLViewer {
             gl.glLineWidth (props.getLineWidth());
             setColor (props.getLineColorArray(), isSelected);
             float[] v0 = null;
-            for (float[] v1 : vertexList) {
+            for (float[] v1 : pntList) {
                if (v0 != null) {
                   drawGLLine(gl, v0, v1);
                }
@@ -1784,17 +1789,18 @@ public class GL3Viewer extends GLViewer {
          case CYLINDER: {
             Shading savedShading = getShadeModel();
             setLineLighting (props, isSelected);
+            double rad = props.getLineRadius();
             float[] v0 = null;
-            for (float[] v1 : vertexList) {
+            for (float[] v1 : pntList) {
                if (v0 != null) {
                   if (style == LineStyle.ELLIPSOID) {
-                     drawTaperedEllipsoid (props, v0, v1);
+                     drawTaperedEllipsoid (v0, v1, props.getLineRadius());
                   }
                   else if (style == LineStyle.SOLID_ARROW) {
-                     drawSolidArrow (props, v0, v1, /*capped=*/true);
+                     drawSolidArrow (v0, v1, rad, /*capped=*/true);
                   }
                   else {
-                     drawCylinder (props, v0, v1);
+                     drawCylinder (v0, v1, rad, /*capped=*/false);
                   }
                }
                else {
@@ -1811,97 +1817,98 @@ public class GL3Viewer extends GLViewer {
       }
    }
 
-   @Override
-   public void drawLines(
-      RenderProps props, Iterator<? extends RenderableLine> iterator) {
-
-      LineStyle lineStyle = props.getLineStyle();
-      switch (lineStyle) {
-         case LINE: {
-            setLightingEnabled (false);
-            // draw regular points first
-            gl.glLineWidth (props.getLineWidth());
-            if (isSelecting()) {
-               // don't worry about color in selection mode
-               int i = 0;
-               while (iterator.hasNext()) {
-                  RenderableLine line = iterator.next();
-                  if (line.getRenderProps() == null) {
-                     if (isSelectable (line)) {
-                        beginSelectionQuery (i);
-                        drawGLLine(gl, line.getRenderCoords0(), line.getRenderCoords1());
-                        endSelectionQuery ();
-                     }
-                  }
-                  i++;
-               }
-            }
-            else {
-               setColor (props.getLineColorArray(), false);
-               while (iterator.hasNext()) {
-                  RenderableLine line = iterator.next();
-                  if (line.getRenderProps() == null) {
-                     if (line.getRenderColor() == null) {
-                        setColor (props.getLineColorArray(),line.isSelected());
-                     }
-                     else {
-                        setColor (line.getRenderColor(),line.isSelected());
-                     }
-                     drawGLLine(gl, line.getRenderCoords0(), line.getRenderCoords1());
-                  }
-               }
-            }
-            gl.glLineWidth (1);
-            setLightingEnabled (true);
-            break;
-         }
-         case ELLIPSOID:
-         case SOLID_ARROW:
-         case CYLINDER: {
-            Shading savedShading = getShadeModel();
-            setLineLighting (props, /*selected=*/false);
-            int i = 0;
-            while (iterator.hasNext()) {
-               RenderableLine line = iterator.next();
-               float[] v0 = line.getRenderCoords0();
-               float[] v1 = line.getRenderCoords1();
-               if (line.getRenderProps() == null) {
-                  if (isSelecting()) {
-                     if (isSelectable (line)) {
-                        beginSelectionQuery (i);
-                        if (lineStyle == LineStyle.ELLIPSOID) {
-                           drawTaperedEllipsoid (props, v0, v1);
-                        }
-                        else if (lineStyle == LineStyle.SOLID_ARROW) {
-                           drawSolidArrow (props, v0, v1, /*capped=*/true);
-                        }
-                        else {
-                           drawCylinder (props, v0, v1);
-                        }
-                        endSelectionQuery ();
-                     }
-                  }
-                  else {
-                     Material mat = props.getLineMaterial();
-                     setMaterial(mat, line.getRenderColor (), line.isSelected ());
-                     if (lineStyle == LineStyle.ELLIPSOID) {
-                        drawTaperedEllipsoid (props, v0, v1);
-                     }
-                     else if (lineStyle == LineStyle.SOLID_ARROW) {
-                        drawSolidArrow (props, v0, v1, /*capped=*/true);
-                     }
-                     else {
-                        drawCylinder (props, v0, v1);
-                     }
-                  }
-               }
-               i++;
-            }
-            setShadeModel(savedShading);
-            break;
-         }
-      }
-   }
+//   @Override
+//   public void drawLines(
+//      RenderProps props, Iterator<? extends RenderableLine> iterator) {
+//
+//      LineStyle lineStyle = props.getLineStyle();
+//      switch (lineStyle) {
+//         case LINE: {
+//            setLightingEnabled (false);
+//            // draw regular points first
+//            gl.glLineWidth (props.getLineWidth());
+//            if (isSelecting()) {
+//               // don't worry about color in selection mode
+//               int i = 0;
+//               while (iterator.hasNext()) {
+//                  RenderableLine line = iterator.next();
+//                  if (line.getRenderProps() == null) {
+//                     if (isSelectable (line)) {
+//                        beginSelectionQuery (i);
+//                        drawGLLine(gl, line.getRenderCoords0(), line.getRenderCoords1());
+//                        endSelectionQuery ();
+//                     }
+//                  }
+//                  i++;
+//               }
+//            }
+//            else {
+//               setColor (props.getLineColorArray(), false);
+//               while (iterator.hasNext()) {
+//                  RenderableLine line = iterator.next();
+//                  if (line.getRenderProps() == null) {
+//                     if (line.getRenderColor() == null) {
+//                        setColor (props.getLineColorArray(),line.isSelected());
+//                     }
+//                     else {
+//                        setColor (line.getRenderColor(),line.isSelected());
+//                     }
+//                     drawGLLine(gl, line.getRenderCoords0(), line.getRenderCoords1());
+//                  }
+//               }
+//            }
+//            gl.glLineWidth (1);
+//            setLightingEnabled (true);
+//            break;
+//         }
+//         case ELLIPSOID:
+//         case SOLID_ARROW:
+//         case CYLINDER: {
+//            Shading savedShading = getShadeModel();
+//            setLineLighting (props, /*selected=*/false);
+//            int i = 0;
+//            double rad = props.getLineRadius();
+//            while (iterator.hasNext()) {
+//               RenderableLine line = iterator.next();
+//               float[] v0 = line.getRenderCoords0();
+//               float[] v1 = line.getRenderCoords1();
+//               if (line.getRenderProps() == null) {
+//                  if (isSelecting()) {
+//                     if (isSelectable (line)) {
+//                        beginSelectionQuery (i);
+//                        if (lineStyle == LineStyle.ELLIPSOID) {
+//                           drawTaperedEllipsoid (v0, v1, props.getLineRadius());
+//                        }
+//                        else if (lineStyle == LineStyle.SOLID_ARROW) {
+//                           drawSolidArrow (v0, v1, rad, /*capped=*/true);
+//                        }
+//                        else {
+//                           drawCylinder (v0, v1, rad, /*capped=*/false);
+//                        }
+//                        endSelectionQuery ();
+//                     }
+//                  }
+//                  else {
+//                     Material mat = props.getLineMaterial();
+//                     setMaterial(mat, line.getRenderColor (), line.isSelected ());
+//                     if (lineStyle == LineStyle.ELLIPSOID) {
+//                        drawTaperedEllipsoid (v0, v1, props.getLineRadius());
+//                     }
+//                     else if (lineStyle == LineStyle.SOLID_ARROW) {
+//                        drawSolidArrow (v0, v1, rad, /*capped=*/true);
+//                     }
+//                     else {
+//                        drawCylinder (v0, v1, rad, /*capped=*/false);
+//                     }
+//                  }
+//               }
+//               i++;
+//            }
+//            setShadeModel(savedShading);
+//            break;
+//         }
+//      }
+//   }
 
    @Override
    public void drawLines(float[] vertices, int flags) {
@@ -1999,14 +2006,14 @@ public class GL3Viewer extends GLViewer {
    }
 
    @Override
-   public void drawPoint (float[] coords) {
-      drawGLPoint (gl, coords);
+   public void drawPoint (float[] pnt) {
+      drawGLPoint (gl, pnt);
    }
 
-   public void drawPoint(float[] coords, float[] normal) {
-      List<float[]> c = Arrays.asList (coords);
-      List<float[]> n = Arrays.asList (normal);
-      drawPrimitives (c, n,  2, GL.GL_POINTS);
+   public void drawPoint(float[] pnt, float[] nrm) {
+      List<float[]> pnts = Arrays.asList (pnt);
+      List<float[]> nrms = Arrays.asList (nrm);
+      drawPrimitives (pnts, nrms,  2, GL.GL_POINTS);
    }
 
    @Override
@@ -2020,14 +2027,15 @@ public class GL3Viewer extends GLViewer {
    }
 
    @Override
-   public void drawLine(float[] coords0, float[] coords1) {
-      drawGLLine (gl, coords0, coords1);
+   public void drawLine(float[] pnt0, float[] pnt1) {
+      drawGLLine (gl, pnt0, pnt1);
    }
 
-   public void drawLine(float[] coords0, float[] normal0, float[] coords1, float[] normal1) {
-      List<float[]> coords = Arrays.asList (coords0, coords1);
-      List<float[]> normals = Arrays.asList (normal0, normal1);
-      drawPrimitives (coords, normals,  2, GL.GL_LINES);
+   public void drawLine (
+      float[] pnt0, float[] nrm0, float[] pnt1, float[] nrm1) {
+      List<float[]> pnts = Arrays.asList (pnt0, pnt1);
+      List<float[]> nrms = Arrays.asList (nrm0, nrm1);
+      drawPrimitives (pnts, nrms,  2, GL.GL_LINES);
    }
 
    public void drawLines(Iterable<float[]> coords) {
@@ -2048,8 +2056,8 @@ public class GL3Viewer extends GLViewer {
     * (so the current "shading" really matters only if it is
     * Shading.NONE).
     */
-   public void drawTriangle (float[] p0, float[] p1, float[] p2) {
-      List<float[]> coords = Arrays.asList (p0, p1, p2);
+   public void drawTriangle (float[] pnt0, float[] pnt1, float[] pnt2) {
+      List<float[]> coords = Arrays.asList (pnt0, pnt1, pnt2);
       drawTriangles (coords);
    }
 

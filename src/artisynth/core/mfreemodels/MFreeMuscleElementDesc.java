@@ -369,8 +369,8 @@ public class MFreeMuscleElementDesc
             coords1[2] = coords0[2] + (float)dir.z;
             
             renderer.drawLine(
-               props, coords0, coords1, /* capped= */false,
-               myDirectionColor, /* selected= */false);   
+               props, coords0, coords1, myDirectionColor,
+               /*capped=*/false, /*selected=*/false);   
          }
       }
       
@@ -408,8 +408,8 @@ public class MFreeMuscleElementDesc
       coords1[2] = coords0[2] + (float)dir.z;
             
       renderer.drawLine (
-         props, coords0, coords1, /*capped=*/false,
-         myDirectionColor, isSelected());
+         props, coords0, coords1, myDirectionColor,
+         /*capped=*/false, isSelected());
       
    }
    

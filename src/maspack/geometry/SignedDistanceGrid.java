@@ -786,7 +786,7 @@ public class SignedDistanceGrid implements GLRenderable {
          renderer.setLightingEnabled (false);
       renderer.pushModelMatrix();
       if (mesh != null) {
-         renderer.mulTransform (mesh.XMeshToWorld);
+         renderer.mulModelMatrix (mesh.XMeshToWorld);
       }
       renderer.popModelMatrix();
       renderer.setColor (0, 0, 1);

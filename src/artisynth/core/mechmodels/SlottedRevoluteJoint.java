@@ -375,7 +375,7 @@ public class SlottedRevoluteJoint extends JointBase
       super.render (renderer, flags);
 
       renderer.drawLine (myRenderProps, myAxisPnt0, myAxisPnt1,
-                         /* capped= */true, isSelected());
+                         /*color=*/null, /*capped=*/true, isSelected());
       renderer.drawLineStrip (
          myRenderProps, mySlotEdge0, LineStyle.LINE, isSelected());
       renderer.drawLineStrip (

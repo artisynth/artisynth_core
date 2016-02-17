@@ -143,14 +143,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
 
          if (shading == Shading.NONE) {
             renderer.setLightingEnabled (false);
-
-            if (isSelected()) {
-               renderer.getSelectionColor().getColorComponents(myColorBuf);
-               renderer.setColor(myColorBuf, false);
-            } else {
-               renderer.setColor (
-                  props.getFaceColorArray(), false);
-            }
+            renderer.setColor (props.getFaceColorArray(), isSelected());
          }
          else if (((shading != Shading.FLAT) || useVertexColouring) &&
             !renderer.isSelecting()) {
@@ -227,15 +220,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
          if (props.getLineColor() != null && !renderer.isSelecting()) {
             reenableLighting = renderer.isLightingEnabled();
             renderer.setLightingEnabled (false);
-            float[] color;
-            if (isSelected()) {
-               color = myColorBuf;
-               renderer.getSelectionColor().getRGBColorComponents (color);
-            }
-            else {
-               color = props.getLineColorArray();
-            }
-            renderer.setColor (color);
+            renderer.setColor (props.getLineColorArray(), isSelected()); 
          }
          if (useVertexColouring && !renderer.isSelecting()) {
             renderer.setShadeModel (RenderProps.Shading.GOURAUD);

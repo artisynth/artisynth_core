@@ -32,7 +32,7 @@ public interface GLRenderer extends Renderer {
    
    public SelectionHighlighting getSelectionHighlighting();
 
-   public Color getSelectionColor();
+   public void getSelectionColor(float[] rgba);
    
    /**
     * Begins a selection query with the {\it query identifier}

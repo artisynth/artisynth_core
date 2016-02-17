@@ -704,7 +704,7 @@ public class MFreeElement3d extends FemElement implements Boundable {
          trans.applyScaling(size, size, size);
          
          renderer.pushModelMatrix();
-         renderer.mulTransform(trans);
+         renderer.mulModelMatrix (trans);
          //renderer.drawMesh(props, myBoundaryMesh, 0);
          myBoundaryMesh.render (renderer, props, 0);
          renderer.popModelMatrix();

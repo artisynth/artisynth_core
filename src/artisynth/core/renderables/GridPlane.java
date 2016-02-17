@@ -52,7 +52,7 @@ public class GridPlane extends RenderableComponentBase {
       RenderProps props = getRenderProps();
       
       renderer.pushModelMatrix();
-      renderer.mulTransform(XGridToWorld);
+      renderer.mulModelMatrix(XGridToWorld);
       
       float [] coords0 = new float[3];
       float[] coords1 = new float[3];

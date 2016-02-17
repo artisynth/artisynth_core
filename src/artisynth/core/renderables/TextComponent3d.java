@@ -194,7 +194,7 @@ public class TextComponent3d extends TextComponentBase implements
       rprops.getFaceColor(rgb);
       
       if (isSelected()) {
-         renderer.getSelectionColor().getRGBColorComponents(rgb);   
+         renderer.getSelectionColor(rgb);
       }
       
       float fTextSize = (float)(myTextSize/getFontSize());
@@ -251,7 +251,7 @@ public class TextComponent3d extends TextComponentBase implements
       myTransform.p.set(renderPos);
       
       renderer.pushModelMatrix();
-      renderer.mulTransform(myTransform);
+      renderer.mulModelMatrix(myTransform);
       
       myTextRenderer.begin3DRendering();            
       myTextRenderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());

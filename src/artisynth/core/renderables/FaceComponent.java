@@ -80,7 +80,7 @@ public class FaceComponent extends RenderableComponentBase {
       if (!renderer.isSelecting()) {
          if (shading != Shading.NONE) {
             if (isSelected()) {
-               renderer.setColor (renderer.getSelectionColor ());
+               renderer.setColorSelected();
             } else {
                faceMat.apply (gl, GL2.GL_FRONT_AND_BACK);
                gl.glLightModelf (GL2.GL_LIGHT_MODEL_TWO_SIDE, 1);
@@ -93,14 +93,7 @@ public class FaceComponent extends RenderableComponentBase {
 
          if (shading == Shading.NONE) {
             renderer.setLightingEnabled (false);
-
-            if (isSelected()) {
-               renderer.getSelectionColor().getColorComponents(myColorBuf);
-               renderer.setColor(myColorBuf, false);
-            } else {
-               renderer.setColor (
-                  props.getFaceColorArray(), false);
-            }
+            renderer.setColor (props.getFaceColorArray(), isSelected());
          }
          else if (((shading != Shading.FLAT) || useVertexColouring) &&
             !renderer.isSelecting()) {
@@ -149,15 +142,7 @@ public class FaceComponent extends RenderableComponentBase {
          if (props.getLineColor() != null && !renderer.isSelecting()) {
             reenableLighting = renderer.isLightingEnabled();
             renderer.setLightingEnabled (false);
-            float[] color;
-            if (isSelected()) {
-               color = myColorBuf;
-               renderer.getSelectionColor().getRGBColorComponents (color);
-            }
-            else {
-               color = props.getLineColorArray();
-            }
-            renderer.setColor (color);
+            renderer.setColor (props.getLineColorArray(), isSelected());
          }
          if (useVertexColouring && !renderer.isSelecting()) {
             renderer.setShadeModel (RenderProps.Shading.GOURAUD);

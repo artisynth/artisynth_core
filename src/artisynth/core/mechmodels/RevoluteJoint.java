@@ -217,7 +217,7 @@ public class RevoluteJoint extends JointBase
          float[] coords1 = new float[] { (float)p1.x, (float)p1.y, (float)p1.z };
    
          renderer.drawLine (myRenderProps, coords0, coords1,
-                            /* capped= */true, isSelected());
+                            /*color=*/null, /*capped=*/true, isSelected());
       }
    }
 

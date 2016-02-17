@@ -348,7 +348,7 @@ public class Muscle extends AxialSpring implements ExcitationComponent {
    public void render (Renderer renderer, int flags) {
       renderer.drawLine (
          myRenderProps, myPnt0.myRenderCoords, myPnt1.myRenderCoords,
-         /*capped=*/false, myRenderColor, isSelected());
+         myRenderColor, /*capped=*/false, isSelected());
    }
 
    /**

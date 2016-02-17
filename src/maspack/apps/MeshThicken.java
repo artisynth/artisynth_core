@@ -385,7 +385,7 @@ public class MeshThicken extends ViewerFrame
          renderer.pushModelMatrix();
          RigidTransform3d X = new RigidTransform3d (myFrame);
          X.mulXyz (0, 0, myHeight);
-         renderer.mulTransform (X);
+         renderer.mulModelMatrix (X);
 
          //draw the curve itself
          renderer.setMaterial (props.getFaceMaterial(), mySelectedP);

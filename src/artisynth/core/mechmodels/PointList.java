@@ -232,7 +232,7 @@ implements ScalableUnits {
                      break;
                   }
                   case SPHERE: {
-                     renderer.drawSphere (props, v0);
+                     renderer.drawSphere (v0, props.getPointRadius());
                      break;
                   }
                }

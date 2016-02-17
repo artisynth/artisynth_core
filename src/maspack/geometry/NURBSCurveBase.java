@@ -830,7 +830,7 @@ public abstract class NURBSCurveBase extends NURBSObject {
 
       renderer.pushModelMatrix();
       if (myXObjToWorld != RigidTransform3d.IDENTITY) {
-         renderer.mulTransform (myXObjToWorld);
+         renderer.mulModelMatrix (myXObjToWorld);
       }
 
       renderer.setLightingEnabled (false);

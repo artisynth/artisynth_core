@@ -206,7 +206,7 @@ HasProperties {
 
    // Colors
    protected float[] mySelectedColor = new float[] { 1f, 1f, 0, 1f };
-   protected SelectionHighlighting myHighlighting = SelectionHighlighting.Color;
+   protected SelectionHighlighting myHighlighting = SelectionHighlighting.COLOR;
 
    // XXX Color history
    protected float[] DEFAULT_MATERIAL_COLOR = new float[]{0.8f, 0.8f, 0.8f, 1.0f};
@@ -1005,11 +1005,11 @@ HasProperties {
       }
    }
 
-   public int getWidth() {
+   public int getScreenWidth() {
       return width;
    }
 
-   public int getHeight() {
+   public int getScreenHeight() {
       return height;
    }
 
@@ -2583,7 +2583,7 @@ HasProperties {
    public GLClipPlane addClipPlane (RigidTransform3d X, double size) {
       GLClipPlane clipPlane = new GLClipPlane();
       if (size <= 0) {
-         size = centerDistancePerPixel()*getWidth()/2;
+         size = centerDistancePerPixel()*getScreenWidth()/2;
       }
       if (X == null) {
          X = getCenterToWorld();
@@ -2805,7 +2805,7 @@ HasProperties {
     */
    protected void setMaterialSelected(boolean selected) {
       if (selected != mySelectedColorActive) {
-         if (!selected || myHighlighting == SelectionHighlighting.Color) {
+         if (!selected || myHighlighting == SelectionHighlighting.COLOR) {
             mySelectedColorActive = selected;
             myCurrentMaterialModified = true; // indicate that we may need to update color state
          }
@@ -2917,10 +2917,10 @@ HasProperties {
       setSpecular(DEFAULT_MATERIAL_SPECULAR);
    }
 
-   @Override
-   public void setMaterial (float[] rgba) {
-      setMaterial(rgba, rgba, DEFAULT_MATERIAL_SHININESS, false);
-   }
+//   @Override
+//   public void setMaterial (float[] rgba) {
+//      setMaterial(rgba, rgba, DEFAULT_MATERIAL_SHININESS, false);
+//   }
 
    public void setPropsMaterial (
       RenderProps props, float[] frontRgba, boolean selected) {

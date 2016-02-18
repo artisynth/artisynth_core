@@ -35,8 +35,8 @@ public class MouseRayEvent extends MouseEvent {
             e.getModifiersEx(), e.getX(), e.getY(), e.getClickCount(),
             e.isPopupTrigger());
 
-      de.myScreenWidth = viewer.getWidth();
-      de.myScreenHeight = viewer.getHeight();
+      de.myScreenWidth = viewer.getScreenWidth();
+      de.myScreenHeight = viewer.getScreenHeight();
 
       double vph = viewer.getViewPlaneHeight();
       double vpw = viewer.getViewPlaneWidth();

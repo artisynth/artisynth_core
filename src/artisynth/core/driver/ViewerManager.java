@@ -215,7 +215,7 @@ public class ViewerManager {
          return myViewers.get(0).getSelectionHighlighting();
       }
       else {
-         return SelectionHighlighting.None;
+         return SelectionHighlighting.NONE;
       }
    }
 

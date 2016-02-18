@@ -117,8 +117,8 @@ public class HudPrintStream extends TextComponentBase {
       FaceRenderProps rprops = (FaceRenderProps)getRenderProps();
 
       // Position is assumed to be ([0,1], [0,1])
-      int sw = renderer.getWidth();
-      int sh = renderer.getHeight();
+      int sw = renderer.getScreenWidth();
+      int sh = renderer.getScreenHeight();
       renderPos.set(myPos.x * sw, myPos.y * sh);
 
       // print from top to bottom

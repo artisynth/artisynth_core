@@ -836,7 +836,7 @@ public class GLGridPlane implements HasProperties {
          Plane plane = new Plane();
          plane.set (XGridToEye);
          computeFocalPoint (focus, plane, 0, 0, 1);
-         return renderer.getViewPlaneWidth() / renderer.getWidth();
+         return renderer.getViewPlaneWidth() / renderer.getScreenWidth();
       }
       double near = renderer.getNearClipPlaneZ();
       double far = renderer.getFarClipPlaneZ();
@@ -844,7 +844,7 @@ public class GLGridPlane implements HasProperties {
       double vh = renderer.getViewPlaneHeight();
       // double fov = renderer.getFieldOfViewY();
 
-      int height = renderer.getHeight();
+      int height = renderer.getScreenHeight();
       double nearDistPerPixel = renderer.getViewPlaneHeight() / height;
 
       GridCentroidComputer newComp =

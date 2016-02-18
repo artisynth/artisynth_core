@@ -6,27 +6,43 @@
  */
 package maspack.render;
 
-import java.awt.Color;
-import java.util.Iterator;
-
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Matrix4d;
 import maspack.render.RenderProps.LineStyle;
 import maspack.render.RenderProps.PointStyle;
 import maspack.render.RenderProps.Shading;
+import maspack.render.RenderProps.Faces;
 import maspack.render.GL.GLSelectable;
 import maspack.render.GL.GLSelectionFilter;
 
 public interface Renderer {
 
+   /**
+    * Indicates the space in which color interpolation is performed 
+    * by this Renderer.
+    */
    public enum ColorInterpolation {
+      /**
+       * Color interpolation is disabled.
+       */
       NONE,
+      
+      /**
+       * Color interpolation is performed in RGB space.
+       */
       RGB,
+      
+      /**
+       * Color interpolation is performed in HSV space. This is often
+       * appropriate for doing pure color-based plotting.
+       */
       HSV
    };
    
+   // FINISH
    public enum ColorMixing {
       NONE,  // ignore
       REPLACE,
@@ -34,6 +50,7 @@ public interface Renderer {
       DECAL
    }
 
+   // Render flags. FINISH
    /** 
     * Flag requesting that an object be rendered as though it is selected.
     */   
@@ -49,18 +66,67 @@ public interface Renderer {
     */
    public static int HSV_COLOR_INTERPOLATION = 0x4;
    
+   /**
+    * Defines various vertex-based primitives
+    */
    public enum VertexDrawMode {
+      /**
+       * A collection of points, one per vertex
+       */
       POINTS,
+      
+      /**
+       * A collection of line segments, with every two vertices
+       * defining a single segment
+       */
       LINES,
+      
+      /**
+       * A continuous line strip formed from a sequence of vertices
+       */
       LINE_STRIP,
+      
+      /**
+       * A continuous line loop formed from a sequence of vertices
+       */
       LINE_LOOP,
+      
+      /**
+       * A collection of triangles, with each three successive vertices
+       * defining a single triangle
+       */
       TRIANGLES,
+      
+      /**
+       * A triangle strip. The first three vertices form the initial
+       * triangle {0, 1, 2}. Then subsequent vertices form the triangles
+       * {2, 1, 3}, {2, 3, 4}, {4, 3, 5}, etc.
+       */
       TRIANGLE_STRIP,
+      
+      /**
+       * A triangle fan. The first three vertices form the initial
+       * triangle {0, 1, 2}. Then each additional vertex i defines a new 
+       * triangle formed from the vertices {0, i-1, i}.
+       */
       TRIANGLE_FAN
    }
 
+   /**
+    * Specifies how selected items are highlighted by this renderer.
+    */
    public enum SelectionHighlighting {
-      None, Color
+      /**
+       * Selection highlighting is not supported or is disabled
+       */
+      NONE, 
+      
+      /**
+       * Selection highlighting is performed by rendering selected
+       * objects using a special <i>selection color</i>, as returned
+       * by {@link #getSelectionColor(float[])}. 
+       */
+      COLOR
    };
 
    /**
@@ -68,14 +134,14 @@ public interface Renderer {
     * 
     * @return screen height
     */
-   public int getHeight();
+   public int getScreenHeight();
 
    /**
     * Returns the screen width, in pixels
     * 
     * @return screen width
     */
-   public int getWidth();
+   public int getScreenWidth();
 
    /**
     * Returns the height of the view plane, in model coordinates. The
@@ -200,7 +266,7 @@ public interface Renderer {
     * @see #setDefaultFaceMode
     * @see #setFaceMode
     */
-   public RenderProps.Faces getFaceMode ();
+   public Faces getFaceMode ();
 
    /**
     * Sets the mode for rendering faces. This determines whether
@@ -211,7 +277,7 @@ public interface Renderer {
     * @see #setDefaultFaceMode
     * @see #getFaceMode
     */
-   public void setFaceMode (RenderProps.Faces mode);
+   public void setFaceMode (Faces mode);
 
    /**
     * Sets the mode for rendering faces to its default value, which is
@@ -222,20 +288,31 @@ public interface Renderer {
     */
    public void setDefaultFaceMode();
 
-   public void rerender();
-
-   public RigidTransform3d getEyeToWorld();
-
+   /**
+    * Returns the color interpolation currently being used by this Renderer.
+    * 
+    * @return current color interpolation
+    */
    public ColorInterpolation getColorInterpolation();
 
+   /**
+    * Sets the color interpolation to be used by this renderer. The default
+    * value is {@link ColorInterpolation#RGB}, but 
+    * {@link ColorInterpolation#HSV} is often more appropriate for
+    * displaying information that is purely color-based. 
+    * 
+    * @param interp new color interpolation mode
+    */
    public void setColorInterpolation (ColorInterpolation interp);
    
+   // FINISH
    /**
     * Specify method for combining material color and vertex color
     * @param cmix
     */
    public void setColorMixing(ColorMixing cmix);  
    
+   // FINISH
    public ColorMixing getColorMixing();
    
    /**
@@ -246,6 +323,7 @@ public interface Renderer {
    
    public ColorMixing getTextureMixing();
 
+   // FINISH: remove this, replace with setDefaultShading()
    public void restoreShading (RenderProps props);
 
    /**
@@ -887,19 +965,8 @@ public interface Renderer {
     */
    public void setAlpha (float a);
    
-   /**
-    * Set material using just a single color, according to
-    *   diffuse/ambient = color
-    *   shininess = default value
-    *   emission = default value
-    *   specular = default value
-    *   backColor = null
-    *
-    * For now, let's call these methods setMaterial() to disambiguate
-    * from the various setColor() methods that are already present.
-    */
-   // NOT USED
-   void setMaterial (float[] rgba);
+//   NOT USED
+//   void setMaterial (float[] rgba);
    
    // USED ONLY IN GLVIEWER
    public void setMaterial (
@@ -1206,6 +1273,7 @@ public interface Renderer {
     */
    public void drawPoints (RenderObject robj, PointStyle style, double rad);
    
+   // FINISH
    /**
     * 
     * @param robj render object
@@ -1221,6 +1289,7 @@ public interface Renderer {
     */
    public void draw (RenderObject robj);
    
+   // FINISH
    /**
     * 
     * @param key
@@ -1228,6 +1297,7 @@ public interface Renderer {
     */
    public RenderObject getSharedObject(Object key);
    
+   // FINISH
    /**
     * 
     * @param key
@@ -1235,6 +1305,7 @@ public interface Renderer {
     */
    public void addSharedObject(Object key, RenderObject r);
 
+   // FINISH
    /**
     * 
     * @param key
@@ -1250,7 +1321,21 @@ public interface Renderer {
    
    /**
     * Translates the current model matrix by applying a translation
-    * in the current model coordinate frame.
+    * in the current model coordinate frame. If the model matrix is described
+    * by the affine transform
+    * <pre>
+    *  [  M   p  ]
+    *  [         ]
+    *  [  0   1  ]
+    * </pre>
+    * where <code>M</code> is a 3 X 3 matrix and <code>p</code> is a 3 X 1
+    * translation vector, and if <code>t</code> is the translation vector,
+    * then this method sets the model matrix to
+    * <pre>
+    *  [  M   M t + p ]
+    *  [              ]
+    *  [  0      1    ]
+    * </pre> 
     * 
     * @param tx translation along x
     * @param ty translation along y
@@ -1259,7 +1344,7 @@ public interface Renderer {
    public void translateModelMatrix (double tx, double ty, double tz);
    
    /**
-    * Scales the current model matrix. If the model matrix is decsribed
+    * Scales the current model matrix. If the model matrix is described
     * by the affine transform
     * <pre>
     *  [  M   p  ]
@@ -1267,9 +1352,14 @@ public interface Renderer {
     *  [  0   1  ]
     * </pre>
     * where <code>M</code> is a 3 X 3 matrix and <code>p</code> is a 3 X 1
-    * translation vector,
-    * then this method scales <code>M</code> by <code>s</code>.
-    * 
+    * translation vector, and <code>s</code> is the scale factor, then
+    * this method sets the model matrix to 
+    * <pre>
+    *  [ s M  p  ]
+    *  [         ]
+    *  [  0   1  ]
+    * </pre> 
+    *  
     * @param s scale factor
     */
    public void scaleModelMatrix (double s);
@@ -1277,7 +1367,26 @@ public interface Renderer {
    /**
     * Post-multiplies the model matrix by the specified transform X,
     * which may be either a {@link RigidTransform3d} or an
-    * {@link AffineTransform3d}.
+    * {@link AffineTransform3d}. If the model matrix is described
+    * by the affine transform
+    * <pre>
+    *  [  M   p  ]
+    *  [         ]
+    *  [  0   1  ]
+    * </pre>
+    * where <code>M</code> is a 3 X 3 matrix and <code>p</code> is a 3 X 1
+    * translation vector, and the transform X is described by
+    * <pre>
+    *  [  A   b  ]
+    *  [         ]
+    *  [  0   1  ]
+    * </pre>
+    * then this method sets the model matrix to
+    * <pre>
+    *  [ M A   M b + p ]
+    *  [               ]
+    *  [  0       1    ]
+    * </pre>
     *  
     * @param X transform to multiply the model matrix by
     */  
@@ -1289,12 +1398,17 @@ public interface Renderer {
     * @return <code>false</code> if the model matrix stack is empty
     */
    public boolean popModelMatrix();
+
+   // FINISH
+   public RigidTransform3d getEyeToWorld();
    
+   // FINISH: do we need?
    /**
     * Saves the view matrix by pushing it onto the view matrix stack.
     */
    public void pushViewMatrix();
    
+   // FINISH: do we need?
    /**
     * Restores the view matrix by popping it off the view matrix stack
     * 
@@ -1302,12 +1416,14 @@ public interface Renderer {
     */
    public boolean popViewMatrix();
    
+   // FINISH: do we need this?
    /**
     * Saves the projection matrix by pushing it onto the projection matrix 
     * stack.
     */
    public void pushProjectionMatrix();
    
+   // FINISH: do we need this?
    /**
     * Restores the projection matrix by popping it off the projection 
     * matrix stack
@@ -1433,6 +1549,10 @@ public interface Renderer {
     */
    public boolean isSelectable (GLSelectable s);
    
+   // FINISH
+   public void rerender();
+
+   // FINISH
    /**
     * Re-draw contents of renderer
     */

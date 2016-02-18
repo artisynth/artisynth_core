@@ -166,8 +166,8 @@ public class ColorBar extends TextComponentBase {
       GL2Viewer viewer = (GL2Viewer)renderer;
       GL2 gl = viewer.getGL2();
       
-      int screenWidth = renderer.getWidth();
-      int screenHeight = renderer.getHeight();
+      int screenWidth = renderer.getScreenWidth();
+      int screenHeight = renderer.getScreenHeight();
       boolean saved2d = renderer.is2DRendering();
       if (!saved2d) {
          renderer.begin2DRendering(screenWidth, screenHeight);

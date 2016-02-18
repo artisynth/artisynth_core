@@ -853,7 +853,7 @@ public class MenuBarHandler implements
          if (confirmation == JOptionPane.YES_OPTION) {
             GLViewer viewer = myMain.getViewer();
             viewer.setupScreenShot(
-               viewer.getWidth(), viewer.getHeight(), file, ext);
+               viewer.getScreenWidth(), viewer.getScreenHeight(), file, ext);
             viewer.repaint();
 
             // while (viewer.grabPending()) {

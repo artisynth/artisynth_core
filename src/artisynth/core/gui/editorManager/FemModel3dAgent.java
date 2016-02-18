@@ -466,7 +466,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
       GLViewer viewer = myMain.getMain().getViewer();
       rotator.setDraggerToWorld (X);
       rotator.setSize (
-         viewer.distancePerPixel (viewer.getCenter()) * viewer.getWidth() / 6);
+         viewer.distancePerPixel (viewer.getCenter()) * viewer.getScreenWidth() / 6);
       rotator.addListener (new FemModelDraggerListener());
       myMain.getWorkspace().getViewerManager().addDragger (rotator);
       
@@ -748,7 +748,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
       
       GLViewer viewer = myMain.getMain().getViewer();      
       double width = viewer.distancePerPixel (viewer.getCenter()) * 
-         viewer.getWidth() / 6;
+         viewer.getScreenWidth() / 6;
       
       // Grid fields
       double gridWidth = DEFAULT_GRID_DIM.x;
@@ -1212,8 +1212,8 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
 
       GLViewer viewer = myMain.getMain().getViewer();  
       double distancePerPixel = viewer.distancePerPixel (viewer.getCenter());
-      double width = distancePerPixel * viewer.getWidth() / 4;
-      double height = distancePerPixel * viewer.getHeight() / 4;
+      double width = distancePerPixel * viewer.getScreenWidth() / 4;
+      double height = distancePerPixel * viewer.getScreenHeight() / 4;
       
       double meshScale = 1;
       if (meshScale * meshWidth > width || meshScale * meshHeight > height) {

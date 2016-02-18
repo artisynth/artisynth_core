@@ -34,7 +34,7 @@ public class FreehandTool extends DrawToolBase {
          DragMode mode = getDragMode ();
          if (mode != DragMode.OFF) {
             Vector3d isect = new Vector3d();
-            int height = myViewer.getHeight();
+            int height = myViewer.getScreenHeight();
             myDragMode = mode;
             myPoints.clear();
             intersectRay (isect, e.getRay());
@@ -60,7 +60,7 @@ public class FreehandTool extends DrawToolBase {
    public boolean mouseDragged (MouseRayEvent e) {
       if (myDragMode !=  DragMode.OFF) {      
          Vector3d isect = new Vector3d();
-         int height = myViewer.getHeight();
+         int height = myViewer.getScreenHeight();
          intersectRay (isect, e.getRay());
          myPoints.add (new Point2d(isect.x, isect.y));
          return true;

@@ -2804,7 +2804,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             radius =
                Math.max (radius,
                   myViewer.distancePerPixel (myViewer.getCenter())
-                  * myViewer.getWidth() / 6);
+                  * myViewer.getScreenWidth() / 6);
 
             if (mySelectionMode == SelectionMode.Translate) {
                translator3d.setVisible (true);
@@ -2865,7 +2865,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    private class RestoreSelectionHighlightingHandler extends WindowAdapter {
       public void windowClosed (WindowEvent e) {
          myViewerManager.setSelectionHighlighting (
-            SelectionHighlighting.Color);
+            SelectionHighlighting.COLOR);
          myViewerManager.render();
       }
    }
@@ -2891,8 +2891,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (w instanceof RenderPropsDialog) {
          // disable selection highlighting while the window is active
          if (myViewerManager.getSelectionHighlighting() ==
-             SelectionHighlighting.Color) {
-            myViewerManager.setSelectionHighlighting (SelectionHighlighting.None);
+             SelectionHighlighting.COLOR) {
+            myViewerManager.setSelectionHighlighting (SelectionHighlighting.NONE);
             myViewerManager.render();
             ((RenderPropsDialog)w).addWindowListener (
                myRestoreSelectionHighlightingHandler);

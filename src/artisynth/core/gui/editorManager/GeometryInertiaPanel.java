@@ -207,7 +207,7 @@ ActionListener, ValueChangeListener {
       else {
          GLViewer viewer = Main.getMain().getViewer();
          double w =
-            (viewer.distancePerPixel (viewer.getCenter()) * viewer.getWidth());
+            (viewer.distancePerPixel (viewer.getCenter()) * viewer.getScreenWidth());
          settings.pointRadius = w / 8;
          settings.boxWidths.set (w / 8, w / 8, w / 8);
       }
@@ -905,7 +905,7 @@ ActionListener, ValueChangeListener {
       
       GLViewer viewer = Main.getMain().getViewer();
       double width = viewer.distancePerPixel (viewer.getCenter()) * 
-         viewer.getWidth() / 6;
+         viewer.getScreenWidth() / 6;
       
       double scale = 1;
       if (width > scale) {

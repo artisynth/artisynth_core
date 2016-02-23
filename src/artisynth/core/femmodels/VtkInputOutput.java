@@ -191,8 +191,9 @@ public class VtkInputOutput
             {
                 FemNode3d[] femNodes = fem.getElement(a).getNodes();
                 //System.out.printf ("Elem number %d,\t nNodes=%d, type=%s\n", a, numNodes[a], fem.getElement(a).toString() );
+                // XXX: quad elements are reduced to linear with this output.
                 
-                if      (fem.getElement(a) instanceof TetElement)
+                if      ( (fem.getElement(a) instanceof TetElement) || (fem.getElement(a) instanceof QuadtetElement) )
                 {    
                     // VTK and Artisynth agree in node order
                     file.printf("%d %d %d %d %d\n", numNodes[a],
@@ -203,7 +204,7 @@ public class VtkInputOutput
                         //femNodes[0].myNumber-iAdj, femNodes[1].myNumber-iAdj, femNodes[2].myNumber-iAdj, femNodes[3].myNumber-iAdj);
                     
                 }
-                else if (fem.getElement(a) instanceof HexElement)
+                else if ( (fem.getElement(a) instanceof HexElement) || (fem.getElement(a) instanceof QuadhexElement) )
                 {
                     // VTK and Artisynth differ in node order
                     file.printf("%d %d %d %d %d %d %d %d %d\n", numNodes[a], 
@@ -218,7 +219,7 @@ public class VtkInputOutput
 //                        femNodes[0].myNumber-iAdj, femNodes[3].myNumber-iAdj, femNodes[2].myNumber-iAdj, femNodes[1].myNumber-iAdj, 
 //                        femNodes[4].myNumber-iAdj, femNodes[7].myNumber-iAdj, femNodes[6].myNumber-iAdj, femNodes[5].myNumber-iAdj);
                 }
-                else if (fem.getElement(a) instanceof WedgeElement)
+                else if ( (fem.getElement(a) instanceof WedgeElement) || (fem.getElement(a) instanceof QuadwedgeElement) )
                 {
                     // VTK and Artisynth differ in node order
                     file.printf("%d %d %d %d %d %d %d\n", numNodes[a], 
@@ -231,7 +232,7 @@ public class VtkInputOutput
 //                        femNodes[0].myNumber-iAdj, femNodes[2].myNumber-iAdj, femNodes[1].myNumber-iAdj, 
 //                        femNodes[3].myNumber-iAdj, femNodes[5].myNumber-iAdj, femNodes[4].myNumber-iAdj);
                 }
-                else if (fem.getElement(a) instanceof PyramidElement)
+                else if ( (fem.getElement(a) instanceof PyramidElement) || (fem.getElement(a) instanceof QuadpyramidElement) )
                 {
                     // VTK and Artisynth agree in node order
                     file.printf("%d %d %d %d %d %d\n", numNodes[a],
@@ -422,12 +423,12 @@ public class VtkInputOutput
     }
     //*/
     
-    public static FemModel3d readUnstructuredMesh_volume(String filename)
+    public static PolygonalMesh readUnstructuredMesh_surface(String filename)
     {
         try 
         {
-            FemModel3d fem = new FemModel3d();
-            return readUnstructuredMesh_volume (fem, filename);
+            VtkData data = readVTKUnstructuredGrid(filename);
+            return buildUnstructuredMesh_surface(data);
         }
         catch (IOException e) 
         {
@@ -436,114 +437,140 @@ public class VtkInputOutput
         }
     }
     
-    public static FemModel3d readUnstructuredMesh_volume(FemModel3d fem, String filename) throws IOException
+    public static FemModel3d readUnstructuredMesh_volume(String filename)
     {
-        class Cell
+        try 
         {
-            int nPoints;
-            int[] indices;
-            int vtkType;
+            FemModel3d fem = new FemModel3d();
+            VtkData data = readVTKUnstructuredGrid(filename);
+            buildUnstructuredMesh_volume(fem, data);
+            return fem;
         }
-        
-        BufferedReader input = new BufferedReader(new FileReader(filename));
-        String inLine = null;
-        String[] inSplit = null;
-
-        int nPoints = 0;
-        int nCells = 0;
-        ArrayList<Point3d> points = null;
-        ArrayList<Cell> cells = null;
-
-        inLine = input.readLine();          // 1st line: version info, etc...
-        String title = input.readLine();    // 2nd line: title
-        fem.setName(title);
-        inLine = input.readLine();          // 3rd line: ASCII or Binary --> better be ASCII!
-        inLine = input.readLine();          // 4th line: DATASET <type> --> this only reads unstructured grid
-        inSplit = inLine.split(" ");
-        if (inSplit[1].equalsIgnoreCase("UNSTRUCTURED_GRID") == false)
+        catch (IOException e) 
         {
-            System.out.println("Unrecognized VTK dataset: " + inSplit[1]);
+            e.printStackTrace();
             return null;
         }
-
-        while (input.ready() == true)
+    }
+    
+    public static void readUnstructuredMesh_volume(FemModel3d fem, String filename)
+    {
+        try 
         {
-            inLine = input.readLine();
-            inLine = inLine.trim();
-            if (inLine.isEmpty () == true)
-                continue;   // blank lines can be ignored...
-
-            inSplit = inLine.split(" ");
-
-            if       (inSplit[0].equalsIgnoreCase("POINTS") == true)
-            {
-                nPoints = Integer.parseInt (inSplit[1]);
-                points = new ArrayList<Point3d>(nPoints);
-
-                double[] nums = new double[nPoints*3];
-                int nNum = 0;
-                while (nNum < nPoints*3)
-                {
-                    inLine = input.readLine();
-                    inSplit = inLine.split(" ");
-                    for (int i=0; i<inSplit.length; i++)
-                    {
-                        nums[nNum] = Double.parseDouble( inSplit[i] );
-                        nNum++;
-                    }
-                }
-
-                for (int n=0; n<nPoints; n++)
-                {
-                    points.add( new Point3d(nums[n*3+0],nums[n*3+1],nums[n*3+2]) );
-                    //fem.addNode( new FemNode3d(nums[n*3+0],nums[n*3+1],nums[n*3+2]) );
-                }
-            }
-            else if (inSplit[0].equalsIgnoreCase("CELLS") == true)
-            {
-                nCells = Integer.parseInt (inSplit[1]);
-                cells = new ArrayList<Cell>(nCells);
-
-                for (int n=0; n<nCells; n++)
-                {
-                    Cell cell = new Cell();
-                    cells.add(cell);
-
-                    inLine = input.readLine();
-                    while (inLine.contains("  ") )
-                        inLine = inLine.replaceAll("  ", " "); // some writers use multiple spaces...
-                    inSplit = inLine.split(" ");
-                    cell.nPoints = Integer.parseInt(inSplit[0]);
-                    cell.indices = new int[cell.nPoints];
-                    for (int i=0; i<cell.nPoints; i++)
-                        cell.indices[i] = Integer.parseInt(inSplit[i+1]);
-                }
-            }
-            else if (inSplit[0].equalsIgnoreCase("CELL_TYPES") == true)
-            {
-                // I'm assuming "CELLS" comes before "CELL_TYPES"...
-                for (int n=0; n<nCells; n++)
-                {
-                    inLine = input.readLine();
-
-                    Cell cell = cells.get(n);
-                    cell.vtkType = Integer.parseInt(inLine);
-                }
-            }
-
-            // I do not see much point in implementing cell,point,field data reading (we are just getting the geometry)
-            else if (inSplit[0].equalsIgnoreCase("CELL_DATA") == true)
-            {
-            }
-            else if (inSplit[0].equalsIgnoreCase("POINT_DATA") == true)
-            {
-            }
-            else if (inSplit[0].equalsIgnoreCase("FIELD_DATA") == true)
-            {
-            }
-
+            VtkData data = readVTKUnstructuredGrid(filename);
+            buildUnstructuredMesh_volume(fem, data);
         }
-        input.close();
+        catch (IOException e) 
+        {
+            e.printStackTrace();
+        }
+    }
+    
+    public static void buildUnstructuredMesh_volume(FemModel3d fem, VtkData vtkData) throws IOException
+    {
+//        BufferedReader input = new BufferedReader(new FileReader(filename));
+//        String inLine = null;
+//        String[] inSplit = null;
+//
+//        int nPoints = 0;
+//        int nCells = 0;
+//        ArrayList<Point3d> points = null;
+//        ArrayList<Cell> cells = null;
+//
+//        inLine = input.readLine();          // 1st line: version info, etc...
+//        String title = input.readLine();    // 2nd line: title
+//        fem.setName(title);
+//        inLine = input.readLine();          // 3rd line: ASCII or Binary --> better be ASCII!
+//        inLine = input.readLine();          // 4th line: DATASET <type> --> this only reads unstructured grid
+//        inSplit = inLine.split(" ");
+//        if (inSplit[1].equalsIgnoreCase("UNSTRUCTURED_GRID") == false)
+//        {
+//            System.out.println("Unrecognized VTK dataset: " + inSplit[1]);
+//            return null;
+//        }
+//
+//        while (input.ready() == true)
+//        {
+//            inLine = input.readLine();
+//            inLine = inLine.trim();
+//            if (inLine.isEmpty () == true)
+//                continue;   // blank lines can be ignored...
+//
+//            inSplit = inLine.split(" ");
+//
+//            if       (inSplit[0].equalsIgnoreCase("POINTS") == true)
+//            {
+//                nPoints = Integer.parseInt (inSplit[1]);
+//                points = new ArrayList<Point3d>(nPoints);
+//
+//                double[] nums = new double[nPoints*3];
+//                int nNum = 0;
+//                while (nNum < nPoints*3)
+//                {
+//                    inLine = input.readLine();
+//                    inSplit = inLine.split(" ");
+//                    for (int i=0; i<inSplit.length; i++)
+//                    {
+//                        nums[nNum] = Double.parseDouble( inSplit[i] );
+//                        nNum++;
+//                    }
+//                }
+//
+//                for (int n=0; n<nPoints; n++)
+//                {
+//                    points.add( new Point3d(nums[n*3+0],nums[n*3+1],nums[n*3+2]) );
+//                    //fem.addNode( new FemNode3d(nums[n*3+0],nums[n*3+1],nums[n*3+2]) );
+//                }
+//            }
+//            else if (inSplit[0].equalsIgnoreCase("CELLS") == true)
+//            {
+//                nCells = Integer.parseInt (inSplit[1]);
+//                cells = new ArrayList<Cell>(nCells);
+//
+//                for (int n=0; n<nCells; n++)
+//                {
+//                    Cell cell = new Cell();
+//                    cells.add(cell);
+//
+//                    inLine = input.readLine();
+//                    while (inLine.contains("  ") )
+//                        inLine = inLine.replaceAll("  ", " "); // some writers use multiple spaces...
+//                    inSplit = inLine.split(" ");
+//                    cell.nPoints = Integer.parseInt(inSplit[0]);
+//                    cell.indices = new int[cell.nPoints];
+//                    for (int i=0; i<cell.nPoints; i++)
+//                        cell.indices[i] = Integer.parseInt(inSplit[i+1]);
+//                }
+//            }
+//            else if (inSplit[0].equalsIgnoreCase("CELL_TYPES") == true)
+//            {
+//                // I'm assuming "CELLS" comes before "CELL_TYPES"...
+//                for (int n=0; n<nCells; n++)
+//                {
+//                    inLine = input.readLine();
+//
+//                    Cell cell = cells.get(n);
+//                    cell.vtkType = Integer.parseInt(inLine);
+//                }
+//            }
+//
+//            // I do not see much point in implementing cell,point,field data reading (we are just getting the geometry)
+//            else if (inSplit[0].equalsIgnoreCase("CELL_DATA") == true)
+//            {
+//            }
+//            else if (inSplit[0].equalsIgnoreCase("POINT_DATA") == true)
+//            {
+//            }
+//            else if (inSplit[0].equalsIgnoreCase("FIELD_DATA") == true)
+//            {
+//            }
+//
+//        }
+//        input.close();
+        
+        ArrayList<Point3d> points = vtkData.points;
+        ArrayList<Cell> cells = vtkData.cells;
+        fem.setName(vtkData.name);
 
         // now, compile the FEM
         for (Point3d p : points)
@@ -633,8 +660,169 @@ public class VtkInputOutput
 
             }
         }
+    }
+    
+    static PolygonalMesh buildUnstructuredMesh_surface(VtkData vtkData) throws IOException
+    {        
+        PolygonalMesh mesh = new PolygonalMesh();
+        mesh.setName(vtkData.name);
+        
+        ArrayList<Point3d> points = vtkData.points;
+        ArrayList<Cell> cells = vtkData.cells;
 
-        return fem;
+        // now, compile the FEM
+        for (Point3d p : points)
+            mesh.addVertex(p);
+        //for (Cell c : cells)
+        for (int a=0; a<cells.size(); a++)
+        {
+            Cell c = cells.get(a);
+
+            if      (c.vtkType == 1)    // vertex
+                ;
+            else if (c.vtkType == 3)    // line
+                ;
+            else if (c.vtkType == 4)    // polyline
+                ;
+            else if (c.vtkType == 5)    // triangle
+                mesh.addFace(c.indices);
+            else if (c.vtkType == 7)    // polygon
+                mesh.addFace(c.indices);
+            else if (c.vtkType == 9)    // quad
+                mesh.addFace(c.indices);
+
+            else if (c.vtkType == 10)    // tet (vtk and artisynth agree)
+                ;
+            else if (c.vtkType == 12)    // hex  (vtk and artisynth disagree)
+                ;
+            else if (c.vtkType == 13)    // wedge (vtk and artisynth disagree)
+                ;
+            else if (c.vtkType == 14)    // pyramid  (vtk and artisynth agree)
+                ;
+        }
+        return mesh;
+    }
+    
+    static VtkData readVTKUnstructuredGrid(String filename) throws IOException
+    {
+        BufferedReader input = new BufferedReader(new FileReader(filename));
+        String inLine = null;
+        String[] inSplit = null;
+
+        int nPoints = 0;
+        int nCells = 0;
+        ArrayList<Point3d> points = null;
+        ArrayList<Cell> cells = null;
+
+        inLine = input.readLine();          // 1st line: version info, etc...
+        String title = input.readLine();    // 2nd line: title
+        inLine = input.readLine();          // 3rd line: ASCII or Binary --> better be ASCII!
+        inLine = input.readLine();          // 4th line: DATASET <type> --> this only reads unstructured grid
+        inSplit = inLine.split(" ");
+        if (inSplit[1].equalsIgnoreCase("UNSTRUCTURED_GRID") == false)
+        {
+            System.out.println("Unrecognized VTK dataset: " + inSplit[1]);
+            return null;
+        }
+
+        while (input.ready() == true)
+        {
+            inLine = input.readLine();
+            inLine = inLine.trim();
+            if (inLine.isEmpty () == true)
+                continue;   // blank lines can be ignored...
+
+            inSplit = inLine.split(" ");
+
+            if       (inSplit[0].equalsIgnoreCase("POINTS") == true)
+            {
+                nPoints = Integer.parseInt (inSplit[1]);
+                points = new ArrayList<Point3d>(nPoints);
+
+                double[] nums = new double[nPoints*3];
+                int nNum = 0;
+                while (nNum < nPoints*3)
+                {
+                    inLine = input.readLine();
+                    inSplit = inLine.split(" ");
+                    for (int i=0; i<inSplit.length; i++)
+                    {
+                        nums[nNum] = Double.parseDouble( inSplit[i] );
+                        nNum++;
+                    }
+                }
+
+                for (int n=0; n<nPoints; n++)
+                {
+                    points.add( new Point3d(nums[n*3+0],nums[n*3+1],nums[n*3+2]) );
+                    //fem.addNode( new FemNode3d(nums[n*3+0],nums[n*3+1],nums[n*3+2]) );
+                }
+            }
+            else if (inSplit[0].equalsIgnoreCase("CELLS") == true)
+            {
+                nCells = Integer.parseInt (inSplit[1]);
+                cells = new ArrayList<Cell>(nCells);
+
+                for (int n=0; n<nCells; n++)
+                {
+                    Cell cell = new Cell();
+                    cells.add(cell);
+
+                    inLine = input.readLine();
+                    while (inLine.contains("  ") )
+                        inLine = inLine.replaceAll("  ", " "); // some writers use multiple spaces...
+                    inSplit = inLine.split(" ");
+                    cell.nPoints = Integer.parseInt(inSplit[0]);
+                    cell.indices = new int[cell.nPoints];
+                    for (int i=0; i<cell.nPoints; i++)
+                        cell.indices[i] = Integer.parseInt(inSplit[i+1]);
+                }
+            }
+            else if (inSplit[0].equalsIgnoreCase("CELL_TYPES") == true)
+            {
+                // I'm assuming "CELLS" comes before "CELL_TYPES"...
+                for (int n=0; n<nCells; n++)
+                {
+                    inLine = input.readLine();
+
+                    Cell cell = cells.get(n);
+                    cell.vtkType = Integer.parseInt(inLine);
+                }
+            }
+
+            // I do not see much point in implementing cell,point,field data reading (we are just getting the geometry)
+            else if (inSplit[0].equalsIgnoreCase("CELL_DATA") == true)
+            {
+            }
+            else if (inSplit[0].equalsIgnoreCase("POINT_DATA") == true)
+            {
+            }
+            else if (inSplit[0].equalsIgnoreCase("FIELD_DATA") == true)
+            {
+            }
+
+        }
+        input.close();
+        
+        VtkData vtkData = new VtkData();
+        vtkData.points = points;
+        vtkData.cells = cells;
+        vtkData.name = title;
+        return vtkData;
     }
 
+}
+
+class VtkData
+{
+    String name;
+    ArrayList<Cell> cells;
+    ArrayList<Point3d> points;
+}
+
+class Cell
+{
+    int nPoints;
+    int[] indices;
+    int vtkType;
 }

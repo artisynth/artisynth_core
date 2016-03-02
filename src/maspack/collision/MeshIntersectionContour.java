@@ -13,7 +13,7 @@ import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 
 public class MeshIntersectionContour extends ArrayList<MeshIntersectionPoint> {
    private static final long serialVersionUID = 1L;
@@ -307,7 +307,7 @@ public class MeshIntersectionContour extends ArrayList<MeshIntersectionPoint> {
          renderer.setColor (1f, 0f, 1f);
       }
 
-      renderer.beginDraw (VertexDrawMode.LINE_LOOP);
+      renderer.beginDraw (DrawMode.LINE_LOOP);
 
       for (MeshIntersectionPoint p : this) {
          renderer.addVertex (p);

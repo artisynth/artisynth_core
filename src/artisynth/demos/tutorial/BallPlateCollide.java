@@ -1,6 +1,7 @@
 package artisynth.demos.tutorial;
 
 import java.awt.Color;
+
 import maspack.matrix.*;
 import maspack.render.*;
 import artisynth.core.workspace.*;
@@ -26,7 +27,7 @@ public class BallPlateCollide extends RootModel {
       mech.setDefaultCollisionBehavior (true, 0.20);
 
       // make ball transparent so that contacts can be seen more clearly
-      RenderProps.setFaceStyle (ball, RenderProps.Faces.NONE);
+      RenderProps.setFaceStyle (ball, Renderer.Faces.NONE);
       RenderProps.setDrawEdges (ball, true);
       RenderProps.setEdgeColor (ball, Color.WHITE);
 

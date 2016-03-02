@@ -27,8 +27,8 @@ import maspack.properties.PropertyList;
 import maspack.render.DiffuseTextureProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Faces;
 import maspack.render.Renderer;
+import maspack.render.Renderer.Faces;
 import maspack.render.GL.GLRenderable;
 
 public class ImagePlaneProbe extends InputProbe implements RenderableComponent,

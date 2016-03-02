@@ -20,6 +20,7 @@ import maspack.geometry.GeometryTransformer;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
 import maspack.render.RenderProps;
+import maspack.render.Renderer.Shading;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -547,16 +548,17 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
          renderType = bundle.getFractionRenderType();
       }  
       
-      if (widgetSize != 0) {
-         renderer.setFaceLighting (props, myWidgetColor, isSelected());
-         myElement.renderWidget (renderer, widgetSize, props);
-         renderer.restoreShading (props);
-      }
-      
-      if (rad > 0) {
-         renderer.setFaceLighting (props, myWidgetColor, isSelected());
-         renderFraction (
-            renderer, props, rad, renderType);
+      if (widgetSize != 0 || rad > 0) {
+         Shading savedShading = renderer.setPropsShading (props);
+         renderer.setFaceColoring (props, myWidgetColor, isSelected());
+         if (widgetSize != 0) {
+            myElement.renderWidget (renderer, widgetSize, props);
+         }
+         if (rad > 0) {
+            renderFraction (
+               renderer, props, rad, renderType);
+         }
+         renderer.setShading (savedShading);
       }
    }
    

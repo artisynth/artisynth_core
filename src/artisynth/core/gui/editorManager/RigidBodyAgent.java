@@ -33,6 +33,7 @@ import maspack.render.Dragger3dAdapter;
 import maspack.render.Dragger3dEvent;
 import maspack.render.MouseRayEvent;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.render.Transrotator3d;
 import maspack.render.GL.GLViewer;
 import maspack.util.InternalErrorException;
@@ -202,7 +203,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
       body.setPose (X);
       
       RenderProps props = body.createRenderProps();
-      props.setFaceStyle (RenderProps.Faces.NONE);
+      props.setFaceStyle (Renderer.Faces.NONE);
       props.setDrawEdges (true);
       props.setLineColor (Color.LIGHT_GRAY);
       body.setRenderProps (props);

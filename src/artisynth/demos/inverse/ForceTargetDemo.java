@@ -28,8 +28,9 @@ import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.Property;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.LineStyle;
 import maspack.render.Renderable;
+import maspack.render.Renderer;
+import maspack.render.Renderer.LineStyle;
 
 public class ForceTargetDemo extends RootModel{
    MechModel mech;
@@ -120,7 +121,7 @@ public class ForceTargetDemo extends RootModel{
       
       RenderProps props = con.createRenderProps();
       props.setPointColor (Color.blue);
-      props.setPointStyle (RenderProps.PointStyle.SPHERE);
+      props.setPointStyle (Renderer.PointStyle.SPHERE);
       props.setPointRadius (0.06);
       con.setRenderProps (props);
     //  con = new ParticlePlaneConstraint(p5, pl);
@@ -151,7 +152,7 @@ public class ForceTargetDemo extends RootModel{
       
          RenderProps props = con.createRenderProps();
          props.setPointColor (Color.blue);
-         props.setPointStyle (RenderProps.PointStyle.SPHERE);
+         props.setPointStyle (Renderer.PointStyle.SPHERE);
          props.setPointRadius (0.06);
          con.setRenderProps (props);
       }
@@ -231,13 +232,13 @@ public class ForceTargetDemo extends RootModel{
 
    protected void setPointRenderProps (Renderable r) {
       RenderProps.setPointColor (r, Color.BLUE);
-      RenderProps.setPointStyle (r, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (r, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (r, 0.06);
    }
 
    protected void setLineRenderProps (Renderable r) {
       RenderProps.setLineColor (r, Color.RED);
-      RenderProps.setLineStyle (r, RenderProps.LineStyle.ELLIPSOID);
+      RenderProps.setLineStyle (r, LineStyle.ELLIPSOID);
       RenderProps.setLineRadius (r, 0.2);
    }
    

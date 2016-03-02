@@ -22,11 +22,11 @@ public class FallingSkull extends RootModel {
       MechModel mech = new MechModel ("mech");
       mech.setGravity (0, 0, -9.8);
 
-      RenderProps.setPointStyle (mech, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (mech, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (mech, 0.005);
       RenderProps.setPointColor (mech, Color.GRAY);
 
-      RenderProps.setLineStyle (mech, RenderProps.LineStyle.ELLIPSOID);
+      RenderProps.setLineStyle (mech, Renderer.LineStyle.ELLIPSOID);
       RenderProps.setLineRadius (mech, 0.003);
       RenderProps.setLineColor (mech, Color.BLUE);
 

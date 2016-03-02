@@ -19,10 +19,10 @@ import maspack.render.PointRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.PointStyle;
-import maspack.render.RenderProps.Shading;
 import maspack.render.RenderableUtils;
 import maspack.render.Renderer;
+import maspack.render.Renderer.PointStyle;
+import maspack.render.Renderer.Shading;
 
 public class PointList<P extends Point> extends RenderableComponentList<P>
 implements ScalableUnits {
@@ -184,28 +184,31 @@ implements ScalableUnits {
    private void drawPoints (
       Renderer renderer, RenderProps props, boolean selected) {
    
+      Shading savedShading = renderer.setPointShading (props);
+      renderer.setPointColoring (props, selected);
       switch (props.getPointStyle()) {
          case POINT: {
             int size = props.getPointSize();
             if (size > 0) {
-               renderer.setLightingEnabled (false);
-               renderer.setColor (props.getPointColorArray(), selected);
+               //renderer.setLightingEnabled (false);
+               //renderer.setColor (props.getPointColorArray(), selected);
                renderer.drawPoints (myRob, PointStyle.POINT, size);
-               renderer.setLightingEnabled (true);
+               //renderer.setLightingEnabled (true);
             }
             break;
          }
          case SPHERE: {
             double rad = props.getPointRadius();
             if (rad > 0) {
-               Shading savedShading = renderer.getShadeModel();
-               renderer.setPointLighting (props, selected);
+               //Shading savedShading = renderer.getShadeModel();
+               //renderer.setPointLighting (props, selected);
                renderer.drawPoints (myRob, PointStyle.SPHERE, rad);
-               renderer.setShadeModel(savedShading);
+               //renderer.setShadeModel(savedShading);
             }
             break;
          }
       }
+      renderer.setShading(savedShading);
    }
 
    public void render (Renderer renderer, int flags) {

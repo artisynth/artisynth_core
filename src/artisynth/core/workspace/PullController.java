@@ -22,6 +22,8 @@ import artisynth.core.gui.editorManager.EditorUtils;
 import maspack.matrix.*;
 import maspack.geometry.*;
 import maspack.render.*;
+import maspack.render.Renderer.PointStyle;
+import maspack.render.Renderer.LineStyle;
 import maspack.render.GL.GLViewer;
 import maspack.properties.*;
 import maspack.util.*;
@@ -94,7 +96,7 @@ implements SelectionListener, MouseInputListener {
             }
          }
          if (props != null) {
-            if (props.getPointStyle() == RenderProps.PointStyle.SPHERE) {
+            if (props.getPointStyle() == PointStyle.SPHERE) {
                return props.getPointRadius();
             }
          }
@@ -332,7 +334,7 @@ implements SelectionListener, MouseInputListener {
       RenderProps props = new PointLineRenderProps();
       props.setLineWidth (2);
       props.setLineColor (Color.BLUE);
-      props.setPointStyle (RenderProps.PointStyle.POINT);
+      props.setPointStyle (PointStyle.POINT);
       props.setPointSize (2);
       props.setPointColor (Color.BLUE);
       return props;
@@ -390,10 +392,10 @@ implements SelectionListener, MouseInputListener {
          setStiffness (10.0);
       }
       if (radius > 0) {
-         myRenderProps.setPointStyle (RenderProps.PointStyle.SPHERE);
+         myRenderProps.setPointStyle (PointStyle.SPHERE);
          myRenderProps.setPointRadius (0.02*radius);
          myRenderProps.setLineRadius (0.01*radius);
-         myRenderProps.setLineStyle (RenderProps.LineStyle.SOLID_ARROW);
+         myRenderProps.setLineStyle (LineStyle.SOLID_ARROW);
       }
    }
 

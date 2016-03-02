@@ -25,6 +25,7 @@ import maspack.properties.PropertyList;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLSupport;
 import maspack.util.ArraySort;
 import maspack.util.IndentingPrintWriter;
@@ -443,10 +444,11 @@ public class MFreeMuscleElementDesc
          renderType = bundle.getDirectionRenderType();
       }      
       if (widgetSize != 0) {
-         renderer.setFaceLighting (
+         Shading savedShading = renderer.setPropsShading (myRenderProps);
+         renderer.setFaceColoring (
             myRenderProps, myWidgetColor, isSelected());
          myElement.renderWidget (renderer, widgetSize, myRenderProps, 0);
-         renderer.restoreShading (myRenderProps);
+         renderer.setShading (savedShading);
       }
       if (directionLength > 0) {
          Matrix3d F = new Matrix3d();

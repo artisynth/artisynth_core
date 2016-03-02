@@ -11,6 +11,7 @@ import java.util.LinkedList;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.util.ClassAliases;
 
@@ -91,7 +92,8 @@ public class MFreeElement3dList extends RenderableComponentList<MFreeElement3d> 
       dorender (renderer, /*selected=*/true);
       dorender (renderer, /*selected=*/false);
       
-      renderer.setFaceLighting (myRenderProps, false);
+      Shading savedShading = renderer.setPropsShading (myRenderProps);
+      renderer.setFaceColoring (myRenderProps, false);
       for (int i = 0; i < size(); i++) {
          double widgetSize;
          MFreeElement3d elem = get (i);
@@ -106,12 +108,12 @@ public class MFreeElement3dList extends RenderableComponentList<MFreeElement3d> 
                }
             }
             else {
-               renderer.setFaceLighting (myRenderProps, elem.isSelected());
+               renderer.setFaceColoring (myRenderProps, elem.isSelected());
                elem.renderWidget (renderer, myRenderProps, 0);
             }
          }
       }
-      renderer.restoreShading (myRenderProps);
+      renderer.setShading (savedShading);
       
    }
 

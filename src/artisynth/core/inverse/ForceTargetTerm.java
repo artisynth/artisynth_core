@@ -20,8 +20,9 @@ import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Faces;
-import maspack.render.RenderProps.PointStyle;
+import maspack.render.Renderer;
+import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.PointStyle;
 
 /**
  * Force error term for the TrackingController

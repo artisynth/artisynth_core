@@ -11,7 +11,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.RenderList;
 import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLViewerFrame;
@@ -378,14 +378,14 @@ public class MeshColliderTest {
             if (info != null) {
                renderer.setColor (0, 0, 1);
                renderer.setPointSize (6);
-               renderer.beginDraw (VertexDrawMode.POINTS);
+               renderer.beginDraw (DrawMode.POINTS);
                for (TriTriIntersection isect : info.intersections)
                   for (Point3d p : isect.points)
                      renderer.addVertex (p);
                renderer.endDraw();
 
                renderer.setColor (1, 0, 0);
-               renderer.beginDraw (VertexDrawMode.LINES);
+               renderer.beginDraw (DrawMode.LINES);
                for (ContactRegion region : info.regions) {
                   Point3d avg = new Point3d();
                   int np = 0;

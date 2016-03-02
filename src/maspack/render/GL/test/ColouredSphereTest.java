@@ -8,8 +8,9 @@ import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
 import maspack.render.GL.test.MultiViewer.SimpleSelectable;
-import maspack.render.RenderProps.Shading;
 import maspack.render.color.HueColorMap;
 
 public class ColouredSphereTest extends GL2vsGL3Tester {
@@ -33,7 +34,7 @@ public class ColouredSphereTest extends GL2vsGL3Tester {
       RenderProps rprops = new RenderProps();
       rprops.setShading (Shading.PHONG);
       rprops.setShininess (128);
-      rprops.setFaceColorSpecular (Color.WHITE);
+      rprops.setSpecular (Color.WHITE);
       mesh.setRenderProps(rprops);
       
       // FixedMeshBody fm = new FixedMeshBody (mesh);

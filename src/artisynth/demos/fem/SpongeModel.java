@@ -8,7 +8,8 @@ import java.util.Random;
 import maspack.geometry.PolygonalMesh;
 import maspack.matrix.Point3d;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer;
+import maspack.render.Renderer.LineStyle;
 import artisynth.core.femmodels.FemElement3d;
 import artisynth.core.femmodels.FemNode3d;
 import artisynth.core.femmodels.HexElement;
@@ -140,7 +141,7 @@ public class SpongeModel extends FemMuscleModel {
       RenderProps props = createRenderProps();
       props.setLineWidth (2);
       props.setLineColor (Color.GRAY);
-      props.setPointStyle (RenderProps.PointStyle.SPHERE);
+      props.setPointStyle (Renderer.PointStyle.SPHERE);
       props.setAlpha (1);
       props.setPointRadius (len / 20);
       props.setPointColor (Color.GREEN);
@@ -220,8 +221,8 @@ public class SpongeModel extends FemMuscleModel {
       // mesh.setFixed(false);
       // setSurfaceMesh(mesh);
 
-      RenderProps.setShading (this, RenderProps.Shading.GOURAUD);
-      RenderProps.setFaceStyle (this, RenderProps.Faces.FRONT_AND_BACK);
+      RenderProps.setShading (this, Renderer.Shading.GOURAUD);
+      RenderProps.setFaceStyle (this, Renderer.Faces.FRONT_AND_BACK);
       RenderProps.setFaceColor (this, Color.BLUE);
       RenderProps.setAlpha (this, 0.9);
       RenderProps.setVisible (this, true);

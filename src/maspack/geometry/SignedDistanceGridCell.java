@@ -11,7 +11,7 @@ import java.util.LinkedList;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.RenderList;
 import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLSelectable;

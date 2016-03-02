@@ -19,7 +19,7 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
@@ -490,7 +490,7 @@ public class Polygon2d implements Renderable {
       renderer.setLineWidth (myRenderProps.getLineWidth());
       renderer.setColor (props.getLineColorArray(), /*selected=*/false);
       //renderer.beginDraw (VertexDrawMode.LINE_STRIP);
-      renderer.beginDraw (VertexDrawMode.LINE_LOOP);
+      renderer.beginDraw (DrawMode.LINE_LOOP);
       Vertex2d vtx = firstVertex;
       if (vtx != null) {
          do {

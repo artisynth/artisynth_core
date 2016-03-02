@@ -1934,13 +1934,13 @@ public class FemFactory {
          model.addNode(node);
       }
 
-      boolean[] marked = new boolean[surface.numFaces()];
-
       Point3d newpnt = new Point3d();
       Vector3d nrm = new Vector3d();
       for (int l = 0; l < n; l++) {
          // surface.transform (new RigidTransform3d (avgNormal,
          // new RotationMatrix3d()));
+
+         boolean[] marked = new boolean[surface.numFaces()];
 
          for (Vertex3d v : surface.getVertices()) {
             v.computeAngleWeightedNormal(nrm);

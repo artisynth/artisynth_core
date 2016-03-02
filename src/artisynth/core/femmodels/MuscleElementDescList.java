@@ -259,7 +259,7 @@ public class MuscleElementDescList
 
       if (r.numTriangles(group) > 0) {
          r.triangleGroup (group);
-         renderer.setMaterial (props.getFaceMaterial(), group == SEL_GRP);
+         renderer.setFaceColoring (props, group == SEL_GRP);
          renderer.drawTriangles (r);
       }
    }

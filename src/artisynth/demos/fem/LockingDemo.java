@@ -15,6 +15,7 @@ import maspack.spatialmotion.*;
 import maspack.matrix.*;
 import maspack.properties.PropertyList;
 import maspack.render.*;
+import maspack.render.Renderer;
 import maspack.util.*;
 import maspack.widgets.DoubleFieldSlider;
 import maspack.interpolation.Interpolation;
@@ -96,12 +97,12 @@ public class LockingDemo extends RootModel {
    public void setRenderProperties (FemModel3d mod, double length) {
       
       mod.setSurfaceRendering (SurfaceRender.Shaded);
-      RenderProps.setShading (mod, RenderProps.Shading.FLAT);
+      RenderProps.setShading (mod, Renderer.Shading.FLAT);
       RenderProps.setFaceColor (mod, new Color (0.7f, 0.7f, 0.9f));
       RenderProps.setLineWidth (mod.getElements(), 3);
       RenderProps.setLineColor (mod.getElements(), Color.blue);
       RenderProps.setPointRadius (mod, 0.02*length);
-      RenderProps.setPointStyle (mod, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (mod, Renderer.PointStyle.SPHERE);
       RenderProps.setPointColor (mod.getNodes(), Color.GREEN);
    }
 

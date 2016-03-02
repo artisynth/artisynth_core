@@ -7,7 +7,8 @@ import javax.swing.JSeparator;
 
 import maspack.matrix.*;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer;
+import maspack.render.Renderer.LineStyle;
 import maspack.widgets.LabeledComponentBase;
 import artisynth.core.femmodels.*;
 import artisynth.core.gui.ControlPanel;

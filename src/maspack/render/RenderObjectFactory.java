@@ -8,7 +8,7 @@ import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-import maspack.render.RenderObject.BuildMode;
+import maspack.render.Renderer.DrawMode;
 
 public class RenderObjectFactory {
 
@@ -131,7 +131,7 @@ public class RenderObjectFactory {
       }
       
       // sides
-      cylinder.beginBuild(BuildMode.TRIANGLE_STRIP);
+      cylinder.beginBuild(DrawMode.TRIANGLE_STRIP);
       for (int i=0; i<nSlices; ++i) {
          double angle = 2*Math.PI/nSlices*i;
          float x = (float)Math.cos(angle);
@@ -148,7 +148,7 @@ public class RenderObjectFactory {
       // caps
       if (capped) {
          // top
-         cylinder.beginBuild(BuildMode.TRIANGLE_FAN);
+         cylinder.beginBuild(DrawMode.TRIANGLE_FAN);
          int nidx = cylinder.addNormal(0,0,1);
          for (int i=0; i<nSlices; ++i) {
             cylinder.addVertex(2*i, nidx); // even positions (top)
@@ -156,7 +156,7 @@ public class RenderObjectFactory {
          cylinder.endBuild();
          
          // bottom
-         cylinder.beginBuild(BuildMode.TRIANGLE_FAN);
+         cylinder.beginBuild(DrawMode.TRIANGLE_FAN);
          nidx = cylinder.addNormal(0,0,-1);
          cylinder.addVertex(1, nidx);
          for (int i=1; i<nSlices; ++i) {
@@ -207,7 +207,7 @@ public class RenderObjectFactory {
       int ptop = cone.addPosition(0,0,1);
       
       // sides
-      cone.beginBuild(BuildMode.TRIANGLE_STRIP);
+      cone.beginBuild(DrawMode.TRIANGLE_STRIP);
       for (int i=0; i<nSlices; ++i) {
          cone.addVertex(ptop, i);
          cone.addVertex(i, i);
@@ -219,7 +219,7 @@ public class RenderObjectFactory {
       // cap
       if (capped) {
          // bottom
-         cone.beginBuild(BuildMode.TRIANGLE_FAN);
+         cone.beginBuild(DrawMode.TRIANGLE_FAN);
          int nidx = cone.addNormal(0,0,-1);
          cone.addVertex(0, nidx);
          for (int i=1; i<nSlices; ++i) {
@@ -387,7 +387,7 @@ public class RenderObjectFactory {
       
       RenderObject axes = new RenderObject();
       
-      axes.beginBuild(BuildMode.LINES);
+      axes.beginBuild(DrawMode.LINES);
       if (x) {
          axes.color(1f, 0, 0, 1f);
          axes.vertex(0, 0, 0);

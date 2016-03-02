@@ -13,6 +13,7 @@ import artisynth.core.gui.FemControlPanel;
 //import artisynth.core.gui.widgets.MaterialPanel;
 
 
+
 import java.awt.Color;
 import java.awt.Point;
 
@@ -69,11 +70,11 @@ public class SingleQuadhex extends RootModel {
 
       mod.setSurfaceRendering (SurfaceRender.Shaded);
 
-      RenderProps.setShading (mod, RenderProps.Shading.FLAT);
+      RenderProps.setShading (mod, Renderer.Shading.FLAT);
       RenderProps.setFaceColor (mod, Color.PINK);
       RenderProps.setShininess (mod, mod.getRenderProps().getShininess() * 10);
       RenderProps.setVisible (mod, true);
-      RenderProps.setFaceStyle (mod, RenderProps.Faces.FRONT);
+      RenderProps.setFaceStyle (mod, Renderer.Faces.FRONT);
 
 //       MechModel mechMod = new MechModel ("mech");
 //       mechMod.addModel (mod);
@@ -82,7 +83,7 @@ public class SingleQuadhex extends RootModel {
 
       addModel (mod);
 
-      RenderProps.setPointStyle (mod, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (mod, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (mod, 0.05);
 
       mod.setGravity (0, 0, -9.8);

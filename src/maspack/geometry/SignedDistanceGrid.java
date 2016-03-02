@@ -10,7 +10,7 @@ import java.util.*;
 
 import maspack.matrix.*;
 import maspack.render.*;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.GL.GLRenderable;
 import maspack.geometry.SignedDistanceGridCell;
 //TODO: Include reference to Bridson's code.
@@ -796,7 +796,7 @@ public class SignedDistanceGrid implements GLRenderable {
       maxGrid.y = min.y + (gridSize[1]-1) * gridCellSize.y; 
       maxGrid.z = min.z + (gridSize[2]-1) * gridCellSize.z;
 
-      renderer.beginDraw (VertexDrawMode.LINES); // Draw 4 vertical lines.
+      renderer.beginDraw (DrawMode.LINES); // Draw 4 vertical lines.
       renderer.addVertex (maxGrid.x, maxGrid.y, maxGrid.z);
       renderer.addVertex (maxGrid.x, maxGrid.y, min.z);
       renderer.addVertex (min.x, maxGrid.y, maxGrid.z);

@@ -10,7 +10,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderList;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 
 public class AABB extends BVNode {
 
@@ -544,19 +544,19 @@ public class AABB extends BVNode {
       
       renderer.setLightingEnabled (false);
       renderer.setColor (0, 1f, 0);
-      renderer.beginDraw (VertexDrawMode.LINE_LOOP);
+      renderer.beginDraw (DrawMode.LINE_LOOP);
       renderer.addVertex (myMin.x, myMin.y, myMin.z);
       renderer.addVertex (myMax.x, myMin.y, myMin.z);
       renderer.addVertex (myMax.x, myMax.y, myMin.z);
       renderer.addVertex (myMin.x, myMax.y, myMin.z);
       renderer.endDraw();
-      renderer.beginDraw (VertexDrawMode.LINE_LOOP);
+      renderer.beginDraw (DrawMode.LINE_LOOP);
       renderer.addVertex (myMin.x, myMin.y, myMax.z);
       renderer.addVertex (myMax.x, myMin.y, myMax.z);
       renderer.addVertex (myMax.x, myMax.y, myMax.z);
       renderer.addVertex (myMin.x, myMax.y, myMax.z);
       renderer.endDraw();
-      renderer.beginDraw (VertexDrawMode.LINES);
+      renderer.beginDraw (DrawMode.LINES);
       renderer.addVertex (myMin.x, myMin.y, myMin.z);
       renderer.addVertex (myMin.x, myMin.y, myMax.z);
       renderer.addVertex (myMax.x, myMin.y, myMin.z);

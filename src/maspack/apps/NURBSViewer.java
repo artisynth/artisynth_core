@@ -33,7 +33,6 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
-import maspack.render.Material;
 import maspack.render.RenderProps;
 import maspack.render.GL.GLSelectionEvent;
 import maspack.render.GL.GLSelectionListener;
@@ -252,6 +251,7 @@ public class NURBSViewer extends GLViewerFrame {
    static BooleanHolder addCircle = new BooleanHolder (false);
    static BooleanHolder addMesh = new BooleanHolder (false);
    static BooleanHolder collider = new BooleanHolder (false);
+   static IntHolder glVersion = new IntHolder (2);
 
    public static void main (String[] args) {
       StringHolder fileName = new StringHolder();
@@ -269,12 +269,15 @@ public class NURBSViewer extends GLViewerFrame {
       parser.addOption (
          "-collider %v #create a colliding object for meshes", collider);
       parser.addOption ("-axisLength %f #coordinate axis length", axisLength);
+      parser.addOption (
+         "-GLVersion %d{2,3} " + "#version of openGL for graphics", glVersion);
 
       parser.matchAllArgs (args);
 
       NURBSViewer viewFrame = null;
       try {
-         viewFrame = new NURBSViewer (width.value, height.value, GLVersion.GL3);
+         GLVersion glv = (glVersion.value == 3 ? GLVersion.GL3 : GLVersion.GL2);
+         viewFrame = new NURBSViewer (width.value, height.value, glv);
          GLViewer viewer = viewFrame.getViewer();
          if (fileName.value != null) {
             viewFrame.addNURBS (new File (fileName.value));

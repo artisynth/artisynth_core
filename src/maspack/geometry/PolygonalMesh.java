@@ -46,7 +46,6 @@ import maspack.matrix.Vector4d;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.properties.HasProperties;
 import maspack.render.Renderer;
-import maspack.render.Material;
 import maspack.render.RenderProps;
 import maspack.util.InternalErrorException;
 import maspack.util.ListIndexComparator;

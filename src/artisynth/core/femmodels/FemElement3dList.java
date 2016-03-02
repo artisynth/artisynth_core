@@ -13,11 +13,10 @@ import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 import maspack.render.RenderList;
-import maspack.render.Material;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.LineStyle;
 import maspack.render.Renderer;
 import maspack.render.RenderObject;
+import maspack.render.Renderer.LineStyle;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.ClassAliases;
 
@@ -456,12 +455,12 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
 
       if (r.numTriangles(group) > 0) {
          r.triangleGroup (group);
-         Material mat = props.getFaceMaterial();
+         float[] color = props.getFaceColorArray();
          boolean selected = (group == SEL_GRP);
          if (group == INV_GRP) {
-            mat = FemModel3d.myInvertedMaterial;
+            color = FemModel3d.myInvertedColor;
          }
-         renderer.setMaterial (mat, selected);
+         renderer.setFaceColoring (props, color, selected);
          renderer.drawTriangles (r);
       }
    }

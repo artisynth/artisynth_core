@@ -9,7 +9,6 @@ import maspack.geometry.*;
 import maspack.widgets.*;
 import maspack.properties.*;
 import maspack.render.*;
-
 import artisynth.core.mechmodels.*;
 import artisynth.core.materials.*;
 import artisynth.core.modelbase.*;
@@ -123,7 +122,7 @@ public class PressureShell extends RootModel {
 
       // Set render properties so that FEM nodes are rendered as
       // small green spheres and the shell surface is cyan
-      RenderProps.setPointStyle (fem, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (fem, Renderer.PointStyle.SPHERE);
       RenderProps.setPointColor (fem, Color.GREEN);
       RenderProps.setPointRadius (fem, 0.005);
       RenderProps.setFaceColor (fem, Color.CYAN);

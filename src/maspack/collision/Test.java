@@ -173,7 +173,7 @@ public class Test {
       PolygonalMesh mesh, GLViewerFrame frame, Color col) {
       RenderProps rp = mesh.getRenderProps();
       rp.setDrawEdges (true);
-      rp.setFaceStyle (RenderProps.Faces.NONE);
+      rp.setFaceStyle (Renderer.Faces.NONE);
       rp.setLineColor (col);
       mesh.setRenderProps (rp);
       frame.getViewer().addRenderable (mesh);

@@ -9,8 +9,11 @@ package maspack.render;
 import java.awt.Color;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Arrays;
 
+import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.PointStyle;
+import maspack.render.Renderer.LineStyle;
 import maspack.properties.CompositeProperty;
 import maspack.properties.HasProperties;
 import maspack.properties.Property;
@@ -28,22 +31,6 @@ import maspack.util.Scannable;
 
 public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
-   public enum Shading {
-      FLAT, GOURAUD, PHONG, NONE
-   };
-
-   public enum PointStyle {
-      SPHERE, POINT
-   };
-
-   public enum LineStyle {
-      LINE, CYLINDER, SOLID_ARROW, ELLIPSOID
-   };
-
-   public enum Faces {
-      BACK, FRONT, FRONT_AND_BACK, NONE
-   };
-
    public enum Props {
       Visible,
       Alpha,
@@ -53,15 +40,15 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       Ambience,
       FaceStyle,
       FaceColor,
-      FaceColorDiffuse,
-      FaceColorAmbient,
-      FaceColorSpecular,
-      FaceColorEmission,
+//      FaceColorDiffuse,
+//      FaceColorAmbient,
+//      FaceColorSpecular,
+//      FaceColorEmission,
       BackColor,
-      BackColorDiffuse,
-      BackColorAmbient,
-      BackColorSpecular,
-      BackColorEmission,
+//      BackColorDiffuse,
+//      BackColorAmbient,
+//      BackColorSpecular,
+//      BackColorEmission,
       DrawEdges,
       EdgeColor,
       EdgeWidth,
@@ -69,19 +56,19 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       NormalTextureProps,
       LineStyle,
       LineColor,
-      LineColorDiffuse,
-      LineColorAmbient,
-      LineColorSpecular,
-      LineColorEmission,
+//      LineColorDiffuse,
+//      LineColorAmbient,
+//      LineColorSpecular,
+//      LineColorEmission,
       LineWidth,
       LineRadius,
       LineSlices,
       PointStyle,
       PointColor,
-      PointColorDiffuse,
-      PointColorAmbient,
-      PointColorSpecular,
-      PointColorEmission,
+//      PointColorDiffuse,
+//      PointColorAmbient,
+//      PointColorSpecular,
+//      PointColorEmission,
       PointSize,
       PointRadius,
       PointSlices
@@ -125,24 +112,24 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected PropertyMode myFaceColorMode;
    protected static Color defaultFaceColor = new Color (0.5f, 0.5f, 0.5f);
 
-   protected static final Color defaultColorDiffuse = 
-      new Color(
-         Material.default_diffuse[0],
-         Material.default_diffuse[1],
-         Material.default_diffuse[2],
-         Material.default_diffuse[3]);
-   protected static final Color defaultColorSpecular = 
-      new Color(
-         Material.default_specular[0],
-         Material.default_specular[1],
-         Material.default_specular[2],
-         Material.default_specular[3]);
-   protected static final Color defaultColorEmission = 
-      new Color(
-         Material.default_emission[0],
-         Material.default_emission[1],
-         Material.default_emission[2],
-         Material.default_emission[3]);
+//   protected static final Color defaultColorDiffuse = 
+//      new Color(
+//         Material.default_diffuse[0],
+//         Material.default_diffuse[1],
+//         Material.default_diffuse[2],
+//         Material.default_diffuse[3]);
+//   protected static final Color defaultColorSpecular = 
+//      new Color(
+//         Material.default_specular[0],
+//         Material.default_specular[1],
+//         Material.default_specular[2],
+//         Material.default_specular[3]);
+//   protected static final Color defaultColorEmission = 
+//      new Color(
+//         Material.default_emission[0],
+//         Material.default_emission[1],
+//         Material.default_emission[2],
+//         Material.default_emission[3]);
 
    protected float myAlpha;
    protected PropertyMode myAlphaMode;
@@ -159,7 +146,11 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected float myShininess;
    protected PropertyMode myShininessMode;
    protected static float defaultShininess = 32f;
-
+   
+   protected float[] mySpecular = null;
+   protected PropertyMode mySpecularMode;
+   protected static Color defaultSpecular = null;
+   
    protected PointStyle myPointStyle;
    protected PropertyMode myPointStyleMode;
    protected static PointStyle defaultPointStyle = PointStyle.POINT;
@@ -218,11 +209,11 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected NormalTextureProps myNormalTextureProps;
    protected static NormalTextureProps defaultNormalTextureProps = null;
 
-   protected Material myFaceMaterial = null;
-   protected Material myBackMaterial = null;
-   protected Material myEdgeMaterial = null;
-   protected Material myLineMaterial = null;
-   protected Material myPointMaterial = null;
+//   protected Material myFaceMaterial = null;
+//   protected Material myBackMaterial = null;
+//   protected Material myEdgeMaterial = null;
+//   protected Material myLineMaterial = null;
+//   protected Material myPointMaterial = null;
 
    public static PropertyList myProps = new PropertyList (RenderProps.class);
 
@@ -244,6 +235,8 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          "shading:Inherited", "shading style", defaultShading);
       myProps.addInheritable (
          "shininess:Inherited", "specular shininess", defaultShininess, "[0,Inf]");
+      myProps.addInheritable (
+         "specular:Inherited", "specular color", defaultSpecular);
       myProps.addInheritable (
          "faceStyle:Inherited", "draw front/back of faces", defaultFaceStyle);
       myProps.addInheritable (
@@ -382,64 +375,64 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
             this, "pointSize", myPointSizeMode, mode);
    }
 
-   protected boolean colorsEqual (float[] vals, Color color) {
-      if (color == null) {
-         return vals == null;
-      }
-      else {
-         if (vals == null) {
-            return false;
-         }
-         float r = color.getRed() / 255f;
-         float g = color.getGreen() / 255f;
-         float b = color.getBlue() / 255f;
+//   protected boolean colorsEqual (float[] vals, Color color) {
+//      if (color == null) {
+//         return vals == null;
+//      }
+//      else {
+//         if (vals == null) {
+//            return false;
+//         }
+//         float r = color.getRed() / 255f;
+//         float g = color.getGreen() / 255f;
+//         float b = color.getBlue() / 255f;
+//
+//         return (r == vals[0] && g == vals[1] && b == vals[2]);
+//      }
+//   }
 
-         return (r == vals[0] && g == vals[1] && b == vals[2]);
-      }
-   }
+//   protected boolean colorsEqual (float[] vals, float[] color) {
+//      if (color == null) {
+//         return vals == null;
+//      }
+//      else {
+//         if (vals == null) {
+//            return false;
+//         }
+//         return (color[0]==vals[0] && color[1]==vals[1] && color[2]==vals[2]);
+//      }
+//   }
 
-   protected boolean colorsEqual (float[] vals, float[] color) {
-      if (color == null) {
-         return vals == null;
-      }
-      else {
-         if (vals == null) {
-            return false;
-         }
-         return (color[0]==vals[0] && color[1]==vals[1] && color[2]==vals[2]);
-      }
-   }
+//   /**
+//    * Since materials are allocated on demand, assume they are unequal
+//    * only if both are non-null and also unequal internally.
+//    */
+//   protected boolean materialsEqual (Material mat0, Material mat1) {
+//      return (mat0 == null || mat1 == null || mat0.equals (mat1));
+//   }
 
-   /**
-    * Since materials are allocated on demand, assume they are unequal
-    * only if both are non-null and also unequal internally.
-    */
-   protected boolean materialsEqual (Material mat0, Material mat1) {
-      return (mat0 == null || mat1 == null || mat0.equals (mat1));
-   }
-
-   protected boolean doSetColor (float[] result, Color color) {
-      boolean changed = false;
-
-      float r = color.getRed() / 255f;
-      float g = color.getGreen() / 255f;
-      float b = color.getBlue() / 255f;
-
-
-      if (result[0] != r) {
-         result[0] = r;
-         changed = true;
-      }
-      if (result[1] != g) {
-         result[1] = g;
-         changed = true;
-      }
-      if (result[2] != b) {
-         result[2] = b;
-         changed = true;
-      }
-      return changed;
-   }
+//   protected boolean doSetColor (float[] result, Color color) {
+//      boolean changed = false;
+//
+//      float r = color.getRed() / 255f;
+//      float g = color.getGreen() / 255f;
+//      float b = color.getBlue() / 255f;
+//
+//
+//      if (result[0] != r) {
+//         result[0] = r;
+//         changed = true;
+//      }
+//      if (result[1] != g) {
+//         result[1] = g;
+//         changed = true;
+//      }
+//      if (result[2] != b) {
+//         result[2] = b;
+//         changed = true;
+//      }
+//      return changed;
+//   }
 
    protected boolean doSetColor (float[] result, float[] color) {
       boolean changed = false;
@@ -459,23 +452,23 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       return changed;
    }
 
-   protected void updateMaterial(Material mat, Color c, float alpha, float shine) {
-      if (mat != null) {
-         mat.setDiffuse(c);
-         mat.setAlpha(alpha);
-         mat.setShininess(shine);
-      }
-   }
+//   protected void updateMaterial(Material mat, Color c, float alpha, float shine) {
+//      if (mat != null) {
+//         mat.setDiffuse(c);
+//         mat.setAlpha(alpha);
+//         mat.setShininess(shine);
+//      }
+//   }
 
-   private void updateMaterial(Material mat, float[] c, float alpha, float shine) {
-      if (mat != null) {
-         if (c != null) {
-            mat.setDiffuse(c);
-         }
-         mat.setAlpha(alpha);
-         mat.setShininess(shine);
-      }
-   }
+//   private void updateMaterial(Material mat, float[] c, float alpha, float shine) {
+//      if (mat != null) {
+//         if (c != null) {
+//            mat.setDiffuse(c);
+//         }
+//         mat.setAlpha(alpha);
+//         mat.setShininess(shine);
+//      }
+//   }
 
    // property faceColor
 
@@ -488,12 +481,17 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    }
 
    public void setFaceColor (Color color) {
-      if (doSetColor (myFaceColor, color)) {
-         updateMaterial(myFaceMaterial, color, myAlpha, myShininess);
-      }
-      if (myBackColor == null && myBackMaterial != null) {
-         myBackMaterial.setDiffuse(myFaceColor);
-      }
+       setFaceColor (toFloat(color));
+   }
+   
+   public void setFaceColor (float[] color) {
+      doSetColor (myFaceColor, color);
+//      if (doSetColor (myFaceColor, color)) {
+//         updateMaterial(myFaceMaterial, color, myAlpha, myShininess);
+//      }
+//      if (myBackColor == null && myBackMaterial != null) {
+//         myBackMaterial.setDiffuse(myFaceColor);
+//      }
       myFaceColorMode =
          PropertyUtils.propagateValue (
             this, "faceColor", color, myFaceColorMode);
@@ -520,201 +518,201 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
    // property faceColorDiffuse
 
-   public Color getFaceColorDiffuse() {
-      return getFaceColor();
-   }
+//   public Color getFaceColorDiffuse() {
+//      return getFaceColor();
+//   }
+//
+//   public float[] getFaceColorDiffuseArray() {
+//      if (myFaceMaterial != null) {
+//         return myFaceMaterial.getDiffuse();
+//      } 
+//
+//      float[] out = Arrays.copyOf(myFaceColor, 4);
+//      out[3] = myAlpha;
+//      return out;
+//   }
+//
+//   public void setFaceColorDiffuse (Color color) {
+//      setFaceColor(color);
+//   }
+//
+//   public void getFaceColorDiffuse (float[] color) {
+//      getFaceColor(color);
+//      if (color.length > 3) {
+//         color[3] = myAlpha;
+//      }
+//   }
+//
+//   public PropertyMode getFaceColorDiffuseMode() {
+//      return getFaceColorMode();
+//   }
+//
+//   public void setFaceColorDiffuseMode (PropertyMode mode) {
+//      setFaceColorMode(mode);
+//   }
 
-   public float[] getFaceColorDiffuseArray() {
-      if (myFaceMaterial != null) {
-         return myFaceMaterial.getDiffuse();
-      } 
-
-      float[] out = Arrays.copyOf(myFaceColor, 4);
-      out[3] = myAlpha;
-      return out;
-   }
-
-   public void setFaceColorDiffuse (Color color) {
-      setFaceColor(color);
-   }
-
-   public void getFaceColorDiffuse (float[] color) {
-      getFaceColor(color);
-      if (color.length > 3) {
-         color[3] = myAlpha;
-      }
-   }
-
-   public PropertyMode getFaceColorDiffuseMode() {
-      return getFaceColorMode();
-   }
-
-   public void setFaceColorDiffuseMode (PropertyMode mode) {
-      setFaceColorMode(mode);
-   }
-
-   private static Color getColorSpecular(Material mat, boolean createIfNotExist) {
-      float color[];
-      if (mat != null) {
-         color  = mat.getSpecular();
-         return new Color (color[0], color[1], color[2]);
-      } else if (createIfNotExist){
-         color = Material.default_specular;
-         return new Color (color[0], color[1], color[2]);
-      }
-      return null;
-      
-   }
-
-   private static void getColorSpecular (Material mat, float[] color) {
-      float[] fc;
-      if (mat != null) {
-         fc = mat.getSpecular();
-      } else {
-         fc = Material.default_specular;
-      }
-      color[0] = fc[0];
-      color[1] = fc[1];
-      color[2] = fc[2];
-      if (color.length > 3) {
-         color[3] = fc[3];
-      }
-   }
-
-   private static Color getColorEmission(Material mat, boolean createIfNotExist) {
-      float color[];
-      if (mat != null) {
-         color  = mat.getEmission();
-         return new Color (color[0], color[1], color[2]);
-      } else if (createIfNotExist){
-         color = Material.default_emission;
-         return new Color (color[0], color[1], color[2]);
-      }
-      return null;
-   }
-
-   private static void getColorEmission (Material mat, float[] color) {
-      float[] fc;
-      if (mat != null) {
-         fc = mat.getEmission();
-      } else {
-         fc = Material.default_emission;
-      }
-      color[0] = fc[0];
-      color[1] = fc[1];
-      color[2] = fc[2];
-      if (color.length > 3) {
-         color[3] = fc[3];
-      }
-   }
-
-   private Material createSpecularMaterial(Color spec, float[] diffuse) {
-      Material mat = new Material();
-      mat.setSpecular(spec);
-      mat.setDiffuse(diffuse);
-      mat.setAlpha(myAlpha);
-      mat.setShininess(myShininess);
-      return mat;
-   }
-
-   private Material createEmissionMaterial(Color emission, float[] diffuse) {
-      Material mat = new Material();
-      mat.setEmission(emission);
-      mat.setDiffuse(diffuse);
-      mat.setAlpha(myAlpha);
-      mat.setShininess(myShininess);
-      return mat;
-   }
+//   private static Color getColorSpecular(Material mat, boolean createIfNotExist) {
+//      float color[];
+//      if (mat != null) {
+//         color  = mat.getSpecular();
+//         return new Color (color[0], color[1], color[2]);
+//      } else if (createIfNotExist){
+//         color = Material.default_specular;
+//         return new Color (color[0], color[1], color[2]);
+//      }
+//      return null;
+//      
+//   }
+//
+//   private static void getColorSpecular (Material mat, float[] color) {
+//      float[] fc;
+//      if (mat != null) {
+//         fc = mat.getSpecular();
+//      } else {
+//         fc = Material.default_specular;
+//      }
+//      color[0] = fc[0];
+//      color[1] = fc[1];
+//      color[2] = fc[2];
+//      if (color.length > 3) {
+//         color[3] = fc[3];
+//      }
+//   }
+//
+//   private static Color getColorEmission(Material mat, boolean createIfNotExist) {
+//      float color[];
+//      if (mat != null) {
+//         color  = mat.getEmission();
+//         return new Color (color[0], color[1], color[2]);
+//      } else if (createIfNotExist){
+//         color = Material.default_emission;
+//         return new Color (color[0], color[1], color[2]);
+//      }
+//      return null;
+//   }
+//
+//   private static void getColorEmission (Material mat, float[] color) {
+//      float[] fc;
+//      if (mat != null) {
+//         fc = mat.getEmission();
+//      } else {
+//         fc = Material.default_emission;
+//      }
+//      color[0] = fc[0];
+//      color[1] = fc[1];
+//      color[2] = fc[2];
+//      if (color.length > 3) {
+//         color[3] = fc[3];
+//      }
+//   }
+//
+//   private Material createSpecularMaterial(Color spec, float[] diffuse) {
+//      Material mat = new Material();
+//      mat.setSpecular(spec);
+//      mat.setDiffuse(diffuse);
+//      mat.setAlpha(myAlpha);
+//      mat.setShininess(myShininess);
+//      return mat;
+//   }
+//
+//   private Material createEmissionMaterial(Color emission, float[] diffuse) {
+//      Material mat = new Material();
+//      mat.setEmission(emission);
+//      mat.setDiffuse(diffuse);
+//      mat.setAlpha(myAlpha);
+//      mat.setShininess(myShininess);
+//      return mat;
+//   }
 
 
    // property faceColorSpecular
-   public Color getFaceColorSpecular() {
-      return getColorSpecular(myFaceMaterial, true);
-   }
-
-   public float[] getFaceColorSpecularArray() {
-      if (myFaceMaterial != null) {
-         return myFaceMaterial.getSpecular();
-      } else {
-         return Arrays.copyOf(Material.default_specular, 4);
-      }
-   }
-
-   public void setFaceColorSpecular (Color color) {
-      if (myFaceMaterial == null) {
-         myFaceMaterial = createSpecularMaterial(color, myFaceColor);
-      } else {
-         myFaceMaterial.setSpecular(color);
-      }
-      myFaceColorMode =
-         PropertyUtils.propagateValue (
-            this, "faceColorSpecular", color, myFaceColorMode);
-   }
-
-   public void getFaceColorSpecular (float[] color) {
-      getColorSpecular(myFaceMaterial, color);
-   }
-
-   public PropertyMode getFaceColorSpecularMode() {
-      return getFaceColorMode();
-   }
-
-   public void setFaceColorSpecularMode (PropertyMode mode) {
-      if (mode != myFaceColorMode) {
-         myFaceColorMode = PropertyUtils.setModeAndUpdate (
-            this, "faceColorSpecular", myFaceColorMode, mode);
-      }
-   }
-
-   // property faceColorEmission
-   public Color getFaceColorEmission() {
-      return getColorEmission(myFaceMaterial, true);
-   }
-
-   public float[] getFaceColorEmissionArray() {
-      if (myFaceMaterial != null) {
-         return myFaceMaterial.getEmission();
-      } else {
-         return Arrays.copyOf(Material.default_emission, 4);
-      }
-   }
-
-   public void setFaceColorEmission (Color color) {
-      if (myFaceMaterial == null) {
-         myFaceMaterial = createEmissionMaterial(color, myFaceColor);
-      } else {
-         myFaceMaterial.setEmission(color);
-      }
-      myFaceColorMode =
-         PropertyUtils.propagateValue (
-            this, "faceColorEmission", color, myFaceColorMode);
-   }
-
-   public void getFaceColorEmission (float[] color) {
-      getColorEmission(myFaceMaterial, color);
-   }
-
-   public PropertyMode getFaceColorEmissionMode() {
-      return getFaceColorMode();
-   }
-
-   public void setFaceColorEmissionMode (PropertyMode mode) {
-      if (mode != myFaceColorMode) {
-         myFaceColorMode = PropertyUtils.setModeAndUpdate (
-            this, "faceColorEmission", myFaceColorMode, mode);
-      }
-   }
+//   public Color getFaceColorSpecular() {
+//      return getColorSpecular(myFaceMaterial, true);
+//   }
+//
+//   public float[] getFaceColorSpecularArray() {
+//      if (myFaceMaterial != null) {
+//         return myFaceMaterial.getSpecular();
+//      } else {
+//         return Arrays.copyOf(Material.default_specular, 4);
+//      }
+//   }
+//
+//   public void setFaceColorSpecular (Color color) {
+//      if (myFaceMaterial == null) {
+//         myFaceMaterial = createSpecularMaterial(color, myFaceColor);
+//      } else {
+//         myFaceMaterial.setSpecular(color);
+//      }
+//      myFaceColorMode =
+//         PropertyUtils.propagateValue (
+//            this, "faceColorSpecular", color, myFaceColorMode);
+//   }
+//
+//   public void getFaceColorSpecular (float[] color) {
+//      getColorSpecular(myFaceMaterial, color);
+//   }
+//
+//   public PropertyMode getFaceColorSpecularMode() {
+//      return getFaceColorMode();
+//   }
+//
+//   public void setFaceColorSpecularMode (PropertyMode mode) {
+//      if (mode != myFaceColorMode) {
+//         myFaceColorMode = PropertyUtils.setModeAndUpdate (
+//            this, "faceColorSpecular", myFaceColorMode, mode);
+//      }
+//   }
+//
+//   // property faceColorEmission
+//   public Color getFaceColorEmission() {
+//      return getColorEmission(myFaceMaterial, true);
+//   }
+//
+//   public float[] getFaceColorEmissionArray() {
+//      if (myFaceMaterial != null) {
+//         return myFaceMaterial.getEmission();
+//      } else {
+//         return Arrays.copyOf(Material.default_emission, 4);
+//      }
+//   }
+//
+//   public void setFaceColorEmission (Color color) {
+//      if (myFaceMaterial == null) {
+//         myFaceMaterial = createEmissionMaterial(color, myFaceColor);
+//      } else {
+//         myFaceMaterial.setEmission(color);
+//      }
+//      myFaceColorMode =
+//         PropertyUtils.propagateValue (
+//            this, "faceColorEmission", color, myFaceColorMode);
+//   }
+//
+//   public void getFaceColorEmission (float[] color) {
+//      getColorEmission(myFaceMaterial, color);
+//   }
+//
+//   public PropertyMode getFaceColorEmissionMode() {
+//      return getFaceColorMode();
+//   }
+//
+//   public void setFaceColorEmissionMode (PropertyMode mode) {
+//      if (mode != myFaceColorMode) {
+//         myFaceColorMode = PropertyUtils.setModeAndUpdate (
+//            this, "faceColorEmission", myFaceColorMode, mode);
+//      }
+//   }
 
    // property alpha
 
    protected boolean doSetAlpha (float a) {
       if (myAlpha != a) {
          myAlpha = a;
-         updateMaterial(myFaceMaterial, myFaceColor, a, myShininess);
-         updateMaterial(myBackMaterial, myBackColor, a, myShininess);
-         updateMaterial(myEdgeMaterial, myEdgeColor, a, myShininess);
-         updateMaterial(myLineMaterial, myLineColor, a, myShininess);
-         updateMaterial(myPointMaterial, myPointColor, a, myShininess);
+//         updateMaterial(myFaceMaterial, myFaceColor, a, myShininess);
+//         updateMaterial(myBackMaterial, myBackColor, a, myShininess);
+//         updateMaterial(myEdgeMaterial, myEdgeColor, a, myShininess);
+//         updateMaterial(myLineMaterial, myLineColor, a, myShininess);
+//         updateMaterial(myPointMaterial, myPointColor, a, myShininess);
          return true;
       }
       else {
@@ -790,11 +788,11 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected boolean doSetShininess (float s) {
       if (myShininess != s) {
          myShininess = s;
-         updateMaterial(myFaceMaterial, myFaceColor, myAlpha, myShininess);
-         updateMaterial(myBackMaterial, myBackColor, myAlpha, myShininess);
-         updateMaterial(myEdgeMaterial, myEdgeColor, myAlpha, myShininess);
-         updateMaterial(myLineMaterial, myLineColor, myAlpha, myShininess);
-         updateMaterial(myPointMaterial, myPointColor, myAlpha, myShininess);
+//         updateMaterial(myFaceMaterial, myFaceColor, myAlpha, myShininess);
+//         updateMaterial(myBackMaterial, myBackColor, myAlpha, myShininess);
+//         updateMaterial(myEdgeMaterial, myEdgeColor, myAlpha, myShininess);
+//         updateMaterial(myLineMaterial, myLineColor, myAlpha, myShininess);
+//         updateMaterial(myPointMaterial, myPointColor, myAlpha, myShininess);
          return true;
       }
       else {
@@ -824,14 +822,87 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
             this, "shininess", myShininessMode, mode);
    }
 
-
-   public Material getFaceMaterial() {
-      if (myFaceMaterial == null) {
-         myFaceMaterial =
-            Material.createDiffuse (myFaceColor, myAlpha, myShininess);
+   // property specular color
+   
+   public Color getSpecular() {
+      if (mySpecular != null) {
+         return new Color (
+            mySpecular[0], mySpecular[1], mySpecular[2]);
       }
-      return myFaceMaterial;
+      else {
+         return null;
+      }
    }
+
+   public float[] getSpecularArray() {
+      return mySpecular;
+   }
+
+   protected boolean doSetSpecular (Color color) {
+      return doSetSpecular (toFloat(color));
+   }
+
+   protected boolean doSetSpecular (float[] color) {
+      boolean changed = false;
+      if (color == null) {
+         if (mySpecular != null) {
+            mySpecular = null;
+            changed = true;
+         }
+      }
+      else {
+         if (mySpecular == null) {
+            mySpecular = new float[3];
+            doSetColor (mySpecular, color);
+            changed = true;
+         }
+         else {
+            changed = doSetColor (mySpecular, color);
+         }
+      }
+      return changed;
+   }
+
+   public void setSpecular (Color color) {
+      doSetSpecular (color);
+      mySpecularMode =
+         PropertyUtils.propagateValue (
+            this, "edgeColor", color, mySpecularMode);
+   }
+
+   public void getSpecular (float[] color) {
+      if (mySpecular == null) {
+         color[0] = mySpecular[0];
+         color[1] = mySpecular[1];
+         color[2] = mySpecular[2];
+      }
+      else {
+         color[0] = 0.1f;
+         color[1] = 0.1f;
+         color[2] = 0.1f;
+      }
+   }
+
+   public PropertyMode getSpecularMode() {
+      return mySpecularMode;
+   }
+
+   public void setSpecularMode (PropertyMode mode) {
+      if (mode != mySpecularMode) {
+         mySpecularMode =
+            PropertyUtils.setModeAndUpdate (
+               this, "edgeColor", mySpecularMode, mode);
+      }
+   }
+
+   
+//   public Material getFaceMaterial() {
+//      if (myFaceMaterial == null) {
+//         myFaceMaterial =
+//            Material.createDiffuse (myFaceColor, myAlpha, myShininess);
+//      }
+//      return myFaceMaterial;
+//   }
 
    // property pointStyle
 
@@ -1043,24 +1114,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    }
 
    protected boolean doSetEdgeColor (Color color) {
-      boolean changed = false;
-      if (color == null) {
-         if (myEdgeColor != null) {
-            myEdgeColor = null;
-            changed = true;
-         }
-      }
-      else {
-         if (myEdgeColor == null) {
-            myEdgeColor = new float[3];
-            doSetColor (myEdgeColor, color);
-            changed = true;
-         }
-         else {
-            changed = doSetColor (myEdgeColor, color);
-         }
-      }
-      return changed;
+      return doSetEdgeColor (toFloat(color));
    }
 
    protected boolean doSetEdgeColor (float[] color) {
@@ -1084,34 +1138,18 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       return changed;
    }
 
-   // private void doSetEdgeColor (Color color) {
-   //    if (color == null) {
-   //       myEdgeColor = null;
-   //    }
-   //    else {
-   //       myEdgeColor = color.getRGBColorComponents (null);
-   //    }
-   // }
-
-   // private void doSetEdgeColor (float[] rgb) {
-   //    if (rgb == null) {
-   //       myEdgeColor = null;
-   //    }
-   //    else {
-   //       if (myEdgeColor == null) {
-   //          myEdgeColor = new float[3];
-   //       }
-   //       doSetColor (myEdgeColor, rgb);
-   //    }
-   // }
-
    public void setEdgeColor (Color color) {
-      if (doSetEdgeColor (color)) {
-         if (color != null) {
-            updateMaterial (
-               myEdgeMaterial, color, myAlpha, myShininess);
-         }
-      }
+      setEdgeColor (toFloat(color));
+   }
+
+   public void setEdgeColor (float[] color) {
+      doSetEdgeColor (color);
+//      if (doSetEdgeColor (color)) {
+//         if (color != null) {
+//            updateMaterial (
+//               myEdgeMaterial, color, myAlpha, myShininess);
+//         }
+//      }
       myEdgeColorMode =
          PropertyUtils.propagateValue (
             this, "edgeColor", color, myEdgeColorMode);
@@ -1165,26 +1203,13 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          PropertyUtils.setModeAndUpdate (
             this, "faceStyle", myFaceStyleMode, mode);
    }
+   
+   private float[] toFloat (Color color) {
+      return color != null ? color.getRGBColorComponents(null) : null;
+   }
 
    protected boolean doSetBackColor (Color color) {
-      boolean changed = false;
-      if (color == null) {
-         if (myBackColor != null) {
-            myBackColor = null;
-            changed = true;
-         }
-      }
-      else {
-         if (myBackColor == null) {
-            myBackColor = new float[3];
-            doSetColor (myBackColor, color);
-            changed = true;
-         }
-         else {
-            changed = doSetColor (myBackColor, color);
-         }
-      }
-      return changed;
+      return doSetBackColor (toFloat(color));
    }
 
    protected boolean doSetBackColor (float[] color) {
@@ -1224,12 +1249,17 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    }
 
    public void setBackColor (Color color) {
-      if (doSetBackColor (color)) {
-         if (color != null) {
-            updateMaterial (
-               myBackMaterial, color, myAlpha, myShininess);
-         }
-      }
+      setBackColor (toFloat(color));
+   }
+
+   public void setBackColor (float[] color) {
+      doSetBackColor (color);
+//      if (doSetBackColor (color)) {
+//         if (color != null) {
+//            updateMaterial (
+//               myBackMaterial, color, myAlpha, myShininess);
+//         }
+//      }
       myBackColorMode =
          PropertyUtils.propagateValue (
             this, "backColor", color, myBackColorMode);
@@ -1263,152 +1293,152 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
    // property backColorDiffuse
 
-   public Color getBackColorDiffuse() {
-      return getBackColor();
-   }
-
-   public float[] getBackColorDiffuseArray() {
-      if (myBackColor == null) {
-         return null;
-      } else if (myBackMaterial != null) {
-         return myBackMaterial.getDiffuse();
-      } else if (myBackColor != null) {
-         float[] out = Arrays.copyOf(myBackColor, 4);
-         out[3] = myAlpha;
-         return out;
-      }
-      return null;
-   }
-
-   public void setBackColorDiffuse (Color color) {
-      setBackColor(color);
-   }
-
-   public void getBackColorDiffuse (float[] color) {
-      getBackColor(color);
-      if (color.length > 3) {
-         color[3] = myAlpha;
-      }
-   }
-
-   public PropertyMode getBackColorDiffuseMode() {
-      return getBackColorMode();
-   }
-
-   public void setBackColorDiffuseMode (PropertyMode mode) {
-      setBackColorMode(mode);
-   }
+//   public Color getBackColorDiffuse() {
+//      return getBackColor();
+//   }
+//
+//   public float[] getBackColorDiffuseArray() {
+//      if (myBackColor == null) {
+//         return null;
+//      } else if (myBackMaterial != null) {
+//         return myBackMaterial.getDiffuse();
+//      } else if (myBackColor != null) {
+//         float[] out = Arrays.copyOf(myBackColor, 4);
+//         out[3] = myAlpha;
+//         return out;
+//      }
+//      return null;
+//   }
+//
+//   public void setBackColorDiffuse (Color color) {
+//      setBackColor(color);
+//   }
+//
+//   public void getBackColorDiffuse (float[] color) {
+//      getBackColor(color);
+//      if (color.length > 3) {
+//         color[3] = myAlpha;
+//      }
+//   }
+//
+//   public PropertyMode getBackColorDiffuseMode() {
+//      return getBackColorMode();
+//   }
+//
+//   public void setBackColorDiffuseMode (PropertyMode mode) {
+//      setBackColorMode(mode);
+//   }
 
    // property backColorSpecular
-   public Color getBackColorSpecular() {
-      if (myBackColor != null) {
-         return getColorSpecular(myBackMaterial, true);
-      }
-      return null;
-   }
-
-   public float[] getBackColorSpecularArray() {
-      if (myBackMaterial != null) {
-         return myBackMaterial.getSpecular();
-      } else if (myBackColor != null){
-         return Arrays.copyOf(Material.default_specular, 4);
-      }
-      return null;
-   }
-
-   public void setBackColorSpecular (Color color) {
-      if (color == null) {
-         // set default
-         if (myBackMaterial != null) {
-            myBackMaterial.setSpecular(defaultColorSpecular);
-         }
-      } else if (myBackMaterial == null) {
-         if (myBackColor != null) {
-            myBackMaterial = createSpecularMaterial(color, myBackColor);
-         } else {
-            myBackMaterial = createSpecularMaterial(color, myFaceColor);
-         }
-      } else {
-         myBackMaterial.setSpecular(color);
-      }
-      myBackColorMode =
-         PropertyUtils.propagateValue (
-            this, "backColorSpecular", color, myBackColorMode);
-   }
-
-   public void getBackColorSpecular (float[] color) {
-      if (myBackColor != null) {
-         getColorSpecular(myBackMaterial, color);
-      } else {
-         getColorSpecular(myFaceMaterial, color);
-      }
-   }
-
-   public PropertyMode getBackColorSpecularMode() {
-      return getBackColorMode();
-   }
-
-   public void setBackColorSpecularMode (PropertyMode mode) {
-      if (mode != myBackColorMode) {
-         myBackColorMode = PropertyUtils.setModeAndUpdate (
-            this, "backColorSpecular", myBackColorMode, mode);
-      }
-   }
-
-   // property backColorEmission
-   public Color getBackColorEmission() {
-      if (myBackColor != null) {
-         return getColorEmission(myBackMaterial, true);
-      }
-      return null;
-   }
-
-   public float[] getBackColorEmissionArray() {
-      if (myBackMaterial != null) {
-         return myBackMaterial.getEmission();
-      } else {
-         return null;
-      }
-   }
-
-   public void setBackColorEmission (Color color) {
-      if (color == null) {
-         // set default
-         if (myBackMaterial != null) {
-            myBackMaterial.setEmission(defaultColorEmission);
-         }
-      } else if (myBackMaterial == null) {
-         if (myBackColor != null) {
-            myBackMaterial = createEmissionMaterial(color, myBackColor);
-         } else {
-            myBackMaterial = createEmissionMaterial(color, myFaceColor);
-         }
-      } else {
-         myBackMaterial.setEmission(color);
-      }
-      myBackColorMode =
-         PropertyUtils.propagateValue (
-            this, "backColorEmission", color, myBackColorMode);
-   }
-
-   public void getBackColorEmission (float[] color) {
-      if (myBackColor != null) {
-         getColorEmission(myBackMaterial, color);
-      } else {
-         getColorEmission(myFaceMaterial, color);
-      }
-   }
-
-   public PropertyMode getBackColorEmissionMode() {
-      return getBackColorMode();
-   }
-
-   public void setBackColorEmissionMode (PropertyMode mode) {
-      if (mode != myBackColorMode) {
-         myBackColorMode = PropertyUtils.setModeAndUpdate (
-            this, "backColorEmission", myBackColorMode, mode);
-      }
-   }
+//   public Color getBackColorSpecular() {
+//      if (myBackColor != null) {
+//         return getColorSpecular(myBackMaterial, true);
+//      }
+//      return null;
+//   }
+//
+//   public float[] getBackColorSpecularArray() {
+//      if (myBackMaterial != null) {
+//         return myBackMaterial.getSpecular();
+//      } else if (myBackColor != null){
+//         return Arrays.copyOf(Material.default_specular, 4);
+//      }
+//      return null;
+//   }
+//
+//   public void setBackColorSpecular (Color color) {
+//      if (color == null) {
+//         // set default
+//         if (myBackMaterial != null) {
+//            myBackMaterial.setSpecular(defaultColorSpecular);
+//         }
+//      } else if (myBackMaterial == null) {
+//         if (myBackColor != null) {
+//            myBackMaterial = createSpecularMaterial(color, myBackColor);
+//         } else {
+//            myBackMaterial = createSpecularMaterial(color, myFaceColor);
+//         }
+//      } else {
+//         myBackMaterial.setSpecular(color);
+//      }
+//      myBackColorMode =
+//         PropertyUtils.propagateValue (
+//            this, "backColorSpecular", color, myBackColorMode);
+//   }
+//
+//   public void getBackColorSpecular (float[] color) {
+//      if (myBackColor != null) {
+//         getColorSpecular(myBackMaterial, color);
+//      } else {
+//         getColorSpecular(myFaceMaterial, color);
+//      }
+//   }
+//
+//   public PropertyMode getBackColorSpecularMode() {
+//      return getBackColorMode();
+//   }
+//
+//   public void setBackColorSpecularMode (PropertyMode mode) {
+//      if (mode != myBackColorMode) {
+//         myBackColorMode = PropertyUtils.setModeAndUpdate (
+//            this, "backColorSpecular", myBackColorMode, mode);
+//      }
+//   }
+//
+//   // property backColorEmission
+//   public Color getBackColorEmission() {
+//      if (myBackColor != null) {
+//         return getColorEmission(myBackMaterial, true);
+//      }
+//      return null;
+//   }
+//
+//   public float[] getBackColorEmissionArray() {
+//      if (myBackMaterial != null) {
+//         return myBackMaterial.getEmission();
+//      } else {
+//         return null;
+//      }
+//   }
+//
+//   public void setBackColorEmission (Color color) {
+//      if (color == null) {
+//         // set default
+//         if (myBackMaterial != null) {
+//            myBackMaterial.setEmission(defaultColorEmission);
+//         }
+//      } else if (myBackMaterial == null) {
+//         if (myBackColor != null) {
+//            myBackMaterial = createEmissionMaterial(color, myBackColor);
+//         } else {
+//            myBackMaterial = createEmissionMaterial(color, myFaceColor);
+//         }
+//      } else {
+//         myBackMaterial.setEmission(color);
+//      }
+//      myBackColorMode =
+//         PropertyUtils.propagateValue (
+//            this, "backColorEmission", color, myBackColorMode);
+//   }
+//
+//   public void getBackColorEmission (float[] color) {
+//      if (myBackColor != null) {
+//         getColorEmission(myBackMaterial, color);
+//      } else {
+//         getColorEmission(myFaceMaterial, color);
+//      }
+//   }
+//
+//   public PropertyMode getBackColorEmissionMode() {
+//      return getBackColorMode();
+//   }
+//
+//   public void setBackColorEmissionMode (PropertyMode mode) {
+//      if (mode != myBackColorMode) {
+//         myBackColorMode = PropertyUtils.setModeAndUpdate (
+//            this, "backColorEmission", myBackColorMode, mode);
+//      }
+//   }
 
    // property lineColor
 
@@ -1421,9 +1451,20 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    }
 
    public void setLineColor (Color color) {
-      if (doSetColor (myLineColor, color)) {
-         updateMaterial(myLineMaterial, color, myAlpha, myShininess);
-      }
+      setLineColor (toFloat(color));
+//      if (doSetColor (myLineColor, color)) {
+//         updateMaterial(myLineMaterial, color, myAlpha, myShininess);
+//      }
+//      myLineColorMode =
+//         PropertyUtils.propagateValue (
+//            this, "lineColor", color, myLineColorMode);
+   }
+
+   public void setLineColor (float[] color) {
+      doSetColor (myLineColor, color);
+//      if (doSetColor (myLineColor, color)) {
+//         updateMaterial(myLineMaterial, color, myAlpha, myShininess);
+//      }
       myLineColorMode =
          PropertyUtils.propagateValue (
             this, "lineColor", color, myLineColorMode);
@@ -1448,116 +1489,116 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
    // property lineColorDiffuse
 
-   public Color getLineColorDiffuse() {
-      return getLineColor();
-   }
-
-   public float[] getLineColorDiffuseArray() {
-      if (myLineMaterial != null) {
-         return myLineMaterial.getDiffuse();
-      } 
-
-      float[] out = Arrays.copyOf(myLineColor, 4);
-      out[3] = myAlpha;
-      return out;
-   }
-
-   public void setLineColorDiffuse (Color color) {
-      setLineColor(color);
-   }
-
-   public void getLineColorDiffuse (float[] color) {
-      getLineColor(color);
-      if (color.length > 3) {
-         color[3] = myAlpha;
-      }
-   }
-
-   public PropertyMode getLineColorDiffuseMode() {
-      return getLineColorMode();
-   }
-
-   public void setLineColorDiffuseMode (PropertyMode mode) {
-      setLineColorMode(mode);
-   }
-
-   // property lineColorSpecular
-   public Color getLineColorSpecular() {
-      return getColorSpecular(myLineMaterial, true);
-   }
-
-   public float[] getLineColorSpecularArray() {
-      if (myLineMaterial != null) {
-         return myLineMaterial.getSpecular();
-      } else {
-         return Arrays.copyOf(Material.default_specular, 4);
-      }
-   }
-
-   public void setLineColorSpecular (Color color) {
-      if (myLineMaterial == null) {
-         myLineMaterial = createSpecularMaterial(color, myLineColor);
-      } else {
-         myLineMaterial.setSpecular(color);
-      }
-      myLineColorMode =
-         PropertyUtils.propagateValue (
-            this, "lineColorSpecular", color, myLineColorMode);
-   }
-
-   public void getLineColorSpecular (float[] color) {
-      getColorSpecular(myLineMaterial, true);
-   }
-
-   public PropertyMode getLineColorSpecularMode() {
-      return getLineColorMode();
-   }
-
-   public void setLineColorSpecularMode (PropertyMode mode) {
-      if (mode != myLineColorMode) {
-         myLineColorMode = PropertyUtils.setModeAndUpdate (
-            this, "lineColorSpecular", myLineColorMode, mode);
-      }
-   }
-
-   // property lineColorEmission
-   public Color getLineColorEmission() {
-      return getColorEmission(myLineMaterial, true);
-   }
-
-   public float[] getLineColorEmissionArray() {
-      if (myLineMaterial != null) {
-         return myLineMaterial.getEmission();
-      } else {
-         return Arrays.copyOf(Material.default_emission, 4);
-      }
-   }
-
-   public void setLineColorEmission (Color color) {
-      if (myLineMaterial == null) {
-         myLineMaterial = createEmissionMaterial(color, myLineColor);
-      } else {
-         myLineMaterial.setEmission(color);
-      }
-      myLineColorMode =
-         PropertyUtils.propagateValue (
-            this, "lineColorEmission", color, myLineColorMode);
-   }
-
-   public void getLineColorEmission (float[] color) {
-      getColorEmission(myLineMaterial, color);
-   }
-
-   public PropertyMode getLineColorEmissionMode() {
-      return getLineColorMode();
-   }
-
-   public void setLineColorEmissionMode (PropertyMode mode) {
-      if (mode != myLineColorMode) {
-         myLineColorMode = PropertyUtils.setModeAndUpdate (
-            this, "lineColorEmission", myLineColorMode, mode);
-      }
-   }
+//   public Color getLineColorDiffuse() {
+//      return getLineColor();
+//   }
+//
+//   public float[] getLineColorDiffuseArray() {
+//      if (myLineMaterial != null) {
+//         return myLineMaterial.getDiffuse();
+//      } 
+//
+//      float[] out = Arrays.copyOf(myLineColor, 4);
+//      out[3] = myAlpha;
+//      return out;
+//   }
+//
+//   public void setLineColorDiffuse (Color color) {
+//      setLineColor(color);
+//   }
+//
+//   public void getLineColorDiffuse (float[] color) {
+//      getLineColor(color);
+//      if (color.length > 3) {
+//         color[3] = myAlpha;
+//      }
+//   }
+//
+//   public PropertyMode getLineColorDiffuseMode() {
+//      return getLineColorMode();
+//   }
+//
+//   public void setLineColorDiffuseMode (PropertyMode mode) {
+//      setLineColorMode(mode);
+//   }
+//
+//   // property lineColorSpecular
+//   public Color getLineColorSpecular() {
+//      return getColorSpecular(myLineMaterial, true);
+//   }
+//
+//   public float[] getLineColorSpecularArray() {
+//      if (myLineMaterial != null) {
+//         return myLineMaterial.getSpecular();
+//      } else {
+//         return Arrays.copyOf(Material.default_specular, 4);
+//      }
+//   }
+//
+//   public void setLineColorSpecular (Color color) {
+//      if (myLineMaterial == null) {
+//         myLineMaterial = createSpecularMaterial(color, myLineColor);
+//      } else {
+//         myLineMaterial.setSpecular(color);
+//      }
+//      myLineColorMode =
+//         PropertyUtils.propagateValue (
+//            this, "lineColorSpecular", color, myLineColorMode);
+//   }
+//
+//   public void getLineColorSpecular (float[] color) {
+//      getColorSpecular(myLineMaterial, true);
+//   }
+//
+//   public PropertyMode getLineColorSpecularMode() {
+//      return getLineColorMode();
+//   }
+//
+//   public void setLineColorSpecularMode (PropertyMode mode) {
+//      if (mode != myLineColorMode) {
+//         myLineColorMode = PropertyUtils.setModeAndUpdate (
+//            this, "lineColorSpecular", myLineColorMode, mode);
+//      }
+//   }
+//
+//   // property lineColorEmission
+//   public Color getLineColorEmission() {
+//      return getColorEmission(myLineMaterial, true);
+//   }
+//
+//   public float[] getLineColorEmissionArray() {
+//      if (myLineMaterial != null) {
+//         return myLineMaterial.getEmission();
+//      } else {
+//         return Arrays.copyOf(Material.default_emission, 4);
+//      }
+//   }
+//
+//   public void setLineColorEmission (Color color) {
+//      if (myLineMaterial == null) {
+//         myLineMaterial = createEmissionMaterial(color, myLineColor);
+//      } else {
+//         myLineMaterial.setEmission(color);
+//      }
+//      myLineColorMode =
+//         PropertyUtils.propagateValue (
+//            this, "lineColorEmission", color, myLineColorMode);
+//   }
+//
+//   public void getLineColorEmission (float[] color) {
+//      getColorEmission(myLineMaterial, color);
+//   }
+//
+//   public PropertyMode getLineColorEmissionMode() {
+//      return getLineColorMode();
+//   }
+//
+//   public void setLineColorEmissionMode (PropertyMode mode) {
+//      if (mode != myLineColorMode) {
+//         myLineColorMode = PropertyUtils.setModeAndUpdate (
+//            this, "lineColorEmission", myLineColorMode, mode);
+//      }
+//   }
 
    // property pointColor
 
@@ -1570,12 +1611,13 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    }
 
    public void setPointColor (Color color) {
-      if (doSetColor (myPointColor, color)) {
-         myPointMaterial = null;
-      }
-      myPointColorMode =
-         PropertyUtils.propagateValue (
-            this, "pointColor", color, myPointColorMode);
+      setPointColor (toFloat(color));
+//      if (doSetColor (myPointColor, color)) {
+//         myPointMaterial = null;
+//      }
+//      myPointColorMode =
+//         PropertyUtils.propagateValue (
+//            this, "pointColor", color, myPointColorMode);
    }
 
    public void getPointColor (float[] color) {
@@ -1585,9 +1627,10 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    }
 
    public void setPointColor (float[] color) {
-      if (doSetColor (myPointColor, color)) {
-         myPointMaterial = null;
-      }
+      doSetColor (myPointColor, color);
+//      if (doSetColor (myPointColor, color)) {
+//         myPointMaterial = null;
+//      }
       myPointColorMode =
          PropertyUtils.propagateValue (
             this, "pointColor", color, myPointColorMode);
@@ -1607,156 +1650,156 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
    // property pointColorDiffuse
 
-   public Color getPointColorDiffuse() {
-      return getPointColor();
-   }
+//   public Color getPointColorDiffuse() {
+//      return getPointColor();
+//   }
+//
+////   public float[] getPointColorDiffuseArray() {
+////      if (myPointMaterial != null) {
+////         return myPointMaterial.getDiffuse();
+////      } 
+////
+////      float[] out = Arrays.copyOf(myPointColor, 4);
+////      out[3] = myAlpha;
+////      return out;
+////   }
+//
+//   public void setPointColorDiffuse (Color color) {
+//      setPointColor(color);
+//   }
+//
+//   public void getPointColorDiffuse (float[] color) {
+//      getPointColor(color);
+//      if (color.length > 3) {
+//         color[3] = myAlpha;
+//      }
+//   }
+//
+//   public PropertyMode getPointColorDiffuseMode() {
+//      return getPointColorMode();
+//   }
+//
+//   public void setPointColorDiffuseMode (PropertyMode mode) {
+//      setPointColorMode(mode);
+//   }  
+//
+//   // property pointColorSpecular
+//   public Color getPointColorSpecular() {
+//      return getColorSpecular(myPointMaterial, true);
+//   }
+//
+//   public float[] getPointColorSpecularArray() {
+//      if (myPointMaterial != null) {
+//         return myPointMaterial.getSpecular();
+//      } else {
+//         return Arrays.copyOf(Material.default_specular, 4);
+//      }
+//   }
+//
+//   public void setPointColorSpecular (Color color) {
+//      if (myPointMaterial == null) {
+//         myPointMaterial = createSpecularMaterial(color, myPointColor);
+//      } else {
+//         myPointMaterial.setSpecular(color);
+//      }
+//      myPointColorMode =
+//         PropertyUtils.propagateValue (
+//            this, "pointColorSpecular", color, myPointColorMode);
+//   }
+//
+//   public void getPointColorSpecular (float[] color) {
+//      getColorSpecular(myPointMaterial, color);
+//   }
+//
+//   public PropertyMode getPointColorSpecularMode() {
+//      return getPointColorMode();
+//   }
+//
+//   public void setPointColorSpecularMode (PropertyMode mode) {
+//      if (mode != myPointColorMode) {
+//         myPointColorMode =
+//            PropertyUtils.setModeAndUpdate (
+//               this, "pointColorSpecular", myPointColorMode, mode);
+//      }
+//   }
+//
+//   // property pointColorEmission
+//   public Color getPointColorEmission() {
+//      return getColorEmission(myPointMaterial, true);
+//   }
+//
+//   public float[] getPointColorEmissionArray() {
+//      if (myPointMaterial != null) {
+//         return myPointMaterial.getEmission();
+//      } else {
+//         return Arrays.copyOf(Material.default_emission, 4);
+//      }
+//   }
+//
+//   public void setPointColorEmission (Color color) {
+//      if (myPointMaterial == null) {
+//         myPointMaterial = createEmissionMaterial(color, myPointColor);
+//      } else {
+//         myPointMaterial.setEmission(color);
+//      }
+//      myPointColorMode =
+//         PropertyUtils.propagateValue (
+//            this, "pointColorEmission", color, myPointColorMode);
+//   }
+//
+//   public void getPointColorEmission (float[] color) {
+//      getColorEmission(myPointMaterial, color);
+//   }
+//
+//   public PropertyMode getPointColorEmissionMode() {
+//      return getPointColorMode();
+//   }
+//
+//   public void setPointColorEmissionMode (PropertyMode mode) {
+//      if (mode != myPointColorMode) {
+//         myPointColorMode =
+//            PropertyUtils.setModeAndUpdate (
+//               this, "pointColorEmission", myPointColorMode, mode);
+//      }
+//   }
 
-   public float[] getPointColorDiffuseArray() {
-      if (myPointMaterial != null) {
-         return myPointMaterial.getDiffuse();
-      } 
 
-      float[] out = Arrays.copyOf(myPointColor, 4);
-      out[3] = myAlpha;
-      return out;
-   }
+//   public Material getBackMaterial() {
+//      if (myBackMaterial == null && myBackColor != null) {
+//         myBackMaterial =
+//            Material.createDiffuse (myBackColor, myAlpha, myShininess);
+//      } else if (myBackColor == null) {
+//         return null;
+//      }
+//      return myBackMaterial;
+//   }
 
-   public void setPointColorDiffuse (Color color) {
-      setPointColor(color);
-   }
+//   public Material getEdgeMaterial() {
+//      if (myEdgeMaterial == null && myEdgeColor != null) {
+//         myEdgeMaterial =
+//            Material.createDiffuse (myEdgeColor, myAlpha, myShininess);
+//      } else if (myEdgeColor == null) {
+//         return null;
+//      }
+//      return myEdgeMaterial;
+//   }
 
-   public void getPointColorDiffuse (float[] color) {
-      getPointColor(color);
-      if (color.length > 3) {
-         color[3] = myAlpha;
-      }
-   }
+//   public Material getLineMaterial() {
+//      if (myLineMaterial == null) {
+//         myLineMaterial =
+//            Material.createDiffuse (myLineColor, myAlpha, myShininess);
+//      }
+//      return myLineMaterial;
+//   }
 
-   public PropertyMode getPointColorDiffuseMode() {
-      return getPointColorMode();
-   }
-
-   public void setPointColorDiffuseMode (PropertyMode mode) {
-      setPointColorMode(mode);
-   }  
-
-   // property pointColorSpecular
-   public Color getPointColorSpecular() {
-      return getColorSpecular(myPointMaterial, true);
-   }
-
-   public float[] getPointColorSpecularArray() {
-      if (myPointMaterial != null) {
-         return myPointMaterial.getSpecular();
-      } else {
-         return Arrays.copyOf(Material.default_specular, 4);
-      }
-   }
-
-   public void setPointColorSpecular (Color color) {
-      if (myPointMaterial == null) {
-         myPointMaterial = createSpecularMaterial(color, myPointColor);
-      } else {
-         myPointMaterial.setSpecular(color);
-      }
-      myPointColorMode =
-         PropertyUtils.propagateValue (
-            this, "pointColorSpecular", color, myPointColorMode);
-   }
-
-   public void getPointColorSpecular (float[] color) {
-      getColorSpecular(myPointMaterial, color);
-   }
-
-   public PropertyMode getPointColorSpecularMode() {
-      return getPointColorMode();
-   }
-
-   public void setPointColorSpecularMode (PropertyMode mode) {
-      if (mode != myPointColorMode) {
-         myPointColorMode =
-            PropertyUtils.setModeAndUpdate (
-               this, "pointColorSpecular", myPointColorMode, mode);
-      }
-   }
-
-   // property pointColorEmission
-   public Color getPointColorEmission() {
-      return getColorEmission(myPointMaterial, true);
-   }
-
-   public float[] getPointColorEmissionArray() {
-      if (myPointMaterial != null) {
-         return myPointMaterial.getEmission();
-      } else {
-         return Arrays.copyOf(Material.default_emission, 4);
-      }
-   }
-
-   public void setPointColorEmission (Color color) {
-      if (myPointMaterial == null) {
-         myPointMaterial = createEmissionMaterial(color, myPointColor);
-      } else {
-         myPointMaterial.setEmission(color);
-      }
-      myPointColorMode =
-         PropertyUtils.propagateValue (
-            this, "pointColorEmission", color, myPointColorMode);
-   }
-
-   public void getPointColorEmission (float[] color) {
-      getColorEmission(myPointMaterial, color);
-   }
-
-   public PropertyMode getPointColorEmissionMode() {
-      return getPointColorMode();
-   }
-
-   public void setPointColorEmissionMode (PropertyMode mode) {
-      if (mode != myPointColorMode) {
-         myPointColorMode =
-            PropertyUtils.setModeAndUpdate (
-               this, "pointColorEmission", myPointColorMode, mode);
-      }
-   }
-
-
-   public Material getBackMaterial() {
-      if (myBackMaterial == null && myBackColor != null) {
-         myBackMaterial =
-            Material.createDiffuse (myBackColor, myAlpha, myShininess);
-      } else if (myBackColor == null) {
-         return null;
-      }
-      return myBackMaterial;
-   }
-
-   public Material getEdgeMaterial() {
-      if (myEdgeMaterial == null && myEdgeColor != null) {
-         myEdgeMaterial =
-            Material.createDiffuse (myEdgeColor, myAlpha, myShininess);
-      } else if (myEdgeColor == null) {
-         return null;
-      }
-      return myEdgeMaterial;
-   }
-
-   public Material getLineMaterial() {
-      if (myLineMaterial == null) {
-         myLineMaterial =
-            Material.createDiffuse (myLineColor, myAlpha, myShininess);
-      }
-      return myLineMaterial;
-   }
-
-   public Material getPointMaterial() {
-      if (myPointMaterial == null) {
-         myPointMaterial =
-            Material.createDiffuse (myPointColor, myAlpha, myShininess);
-      }
-      return myPointMaterial;
-   }
-
+//   public Material getPointMaterial() {
+//      if (myPointMaterial == null) {
+//         myPointMaterial =
+//            Material.createDiffuse (myPointColor, myAlpha, myShininess);
+//      }
+//      return myPointMaterial;
+//   }
+//
    public DiffuseTextureProps getDiffuseTextureProps() {
       return myDiffuseTextureProps;
    }
@@ -1841,17 +1884,19 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myLineColorMode = INHERITED;
       myPointColorMode = INHERITED;
       myBackColorMode = INHERITED;
+      mySpecularMode = INHERITED;
    }
 
    protected void setDefaultValues() {
       myVisibleP = defaultVisibleP;
       myLineWidth = defaultLineWidth;
       myPointSize = defaultPointSize;
-      doSetColor (myFaceColor, defaultFaceColor);
+      doSetColor (myFaceColor, toFloat(defaultFaceColor));
       myAlpha = defaultAlpha;
       myZOrder = defaultZOrder;
       myShading = defaultShading;
       myShininess = defaultShininess;
+      doSetSpecular (defaultSpecular);
       myPointStyle = defaultPointStyle;
       myPointRadius = defaultPointRadius;
       myPointSlices = defaultPointSlices;
@@ -1865,20 +1910,20 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       if (myLineColor == null) {
          myLineColor = new float[3];
       }
-      doSetColor (myLineColor, defaultLineColor);
+      doSetColor (myLineColor, toFloat(defaultLineColor));
       if (myPointColor == null) {
          myPointColor = new float[3];
       }
-      doSetColor (myPointColor, defaultPointColor);
+      doSetColor (myPointColor, toFloat(defaultPointColor));
       doSetBackColor (defaultBackColor);
       myDiffuseTextureProps = defaultDiffuseTextureProps;
       myNormalTextureProps = defaultNormalTextureProps;
 
-      myFaceMaterial = null;
-      myBackMaterial = null;
-      myEdgeMaterial = null;
-      myLineMaterial = null;
-      myPointMaterial = null;
+//      myFaceMaterial = null;
+//      myBackMaterial = null;
+//      myEdgeMaterial = null;
+//      myLineMaterial = null;
+//      myPointMaterial = null;
    }
 
    public void set (RenderProps r) {
@@ -1892,33 +1937,38 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myShadingMode = r.myShadingMode;
       myShininess = r.myShininess;
       myShininessMode = r.myShininessMode;
+      doSetSpecular (r.mySpecular);
+      mySpecularMode = r.mySpecularMode;
 
       myFaceStyle = r.myFaceStyle;
       myFaceStyleMode = r.myFaceStyleMode;
-      if (r.myFaceMaterial == null) {
-         doSetColor (myFaceColor, r.myFaceColor);
-         myFaceMaterial = null;
-      } else {
-         setFaceMaterial(r.myFaceMaterial);
-      }
+      doSetColor (myFaceColor, r.myFaceColor);
+//      if (r.myFaceMaterial == null) {
+//         doSetColor (myFaceColor, r.myFaceColor);
+//         myFaceMaterial = null;
+//      } else {
+//         setFaceMaterial(r.myFaceMaterial);
+//      }
       myFaceColorMode = r.myFaceColorMode;
-      if (r.myBackMaterial == null) {
-         doSetBackColor (r.myBackColor);  
-         myBackMaterial = null;
-      } else {
-         setBackMaterial(r.myBackMaterial);
-      }
+      doSetBackColor (r.myBackColor);  
+//      if (r.myBackMaterial == null) {
+//         doSetBackColor (r.myBackColor);           
+//         myBackMaterial = null;
+//      } else {
+//         setBackMaterial(r.myBackMaterial);
+//      }
       myBackColorMode = r.myBackColorMode;
       myDrawEdgesP = r.myDrawEdgesP;
       myDrawEdgesMode = r.myDrawEdgesMode;
       myEdgeWidth = r.myEdgeWidth;
       myEdgeWidthMode = r.myEdgeWidthMode;
-      if (r.myEdgeMaterial == null) {
-         doSetEdgeColor (r.myEdgeColor);  
-         myEdgeMaterial = null;
-      } else {
-         setEdgeMaterial(r.myEdgeMaterial);
-      }
+      doSetEdgeColor (r.myEdgeColor);  
+//      if (r.myEdgeMaterial == null) {
+//         doSetEdgeColor (r.myEdgeColor);  
+//         myEdgeMaterial = null;
+//      } else {
+//         setEdgeMaterial(r.myEdgeMaterial);
+//      }
       myEdgeColorMode = r.myEdgeColorMode;
       
       myDiffuseTexturePropsInactive = r.myDiffuseTexturePropsInactive;
@@ -1928,12 +1978,13 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       
       myLineStyle = r.myLineStyle;
       myLineStyleMode = r.myLineStyleMode;
-      if (r.myLineMaterial == null) {
-         doSetColor (myLineColor, r.myLineColor);
-         myLineMaterial = null;
-      } else {
-         setLineMaterial(r.myLineMaterial);
-      }
+      doSetColor (myLineColor, r.myLineColor);
+//      if (r.myLineMaterial == null) {
+//         doSetColor (myLineColor, r.myLineColor);
+//         myLineMaterial = null;
+//      } else {
+//         setLineMaterial(r.myLineMaterial);
+//      }
       myLineColorMode = r.myLineColorMode;
       myLineWidth = r.myLineWidth;
       myLineWidthMode = r.myLineWidthMode;
@@ -1944,12 +1995,13 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
       myPointStyle = r.myPointStyle;
       myPointStyleMode = r.myPointStyleMode;
-      if (r.myPointMaterial == null) {
-         doSetColor (myPointColor, r.myPointColor);
-         myPointMaterial = null;
-      } else {
-         setPointMaterial(r.myPointMaterial);
-      }
+      doSetColor (myPointColor, r.myPointColor);
+//      if (r.myPointMaterial == null) {
+//         doSetColor (myPointColor, r.myPointColor);
+//         myPointMaterial = null;
+//      } else {
+//         setPointMaterial(r.myPointMaterial);
+//      }
 
       myPointColorMode = r.myPointColorMode;
       myPointSize = r.myPointSize;
@@ -1960,70 +2012,70 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myPointSlicesMode = r.myPointSlicesMode;
    }
 
-   public void setFaceMaterial(Material mat) {
-      if (mat == null) {
-         myFaceMaterial = null;
-      } else {
-         if (myFaceMaterial != null) {
-            myFaceMaterial.set(mat);
-         } else {
-            myFaceMaterial = new Material(mat);
-         }
-         doSetColor(myFaceColor, myFaceMaterial.getDiffuse());
-      }
-   }
-
-   public void setBackMaterial(Material mat) {
-      if (mat == null) {
-         myBackMaterial = null;
-      } else {
-         if (myBackMaterial != null) {
-            myBackMaterial.set(mat);
-         } else {
-            myBackMaterial = new Material(mat);
-         }
-         doSetBackColor(myBackMaterial.getDiffuse());
-      }
-   }
-
-   public void setEdgeMaterial(Material mat) {
-      if (mat == null) {
-         myEdgeMaterial = null;
-      } else {
-         if (myEdgeMaterial != null) {
-            myEdgeMaterial.set(mat);
-         } else {
-            myEdgeMaterial = new Material(mat);
-         }
-         doSetEdgeColor(myEdgeMaterial.getDiffuse());
-      }
-   }
-
-   public void setPointMaterial(Material mat) {
-      if (mat == null) {
-         myPointMaterial = null;
-      } else {
-         if (myPointMaterial != null) {
-            myPointMaterial.set(mat);
-         } else {
-            myPointMaterial = new Material(mat);
-         }
-         doSetColor(myPointColor, myPointMaterial.getDiffuse());
-      }
-   }
-
-   public void setLineMaterial(Material mat) {
-      if (mat == null) {
-         myLineMaterial = null;
-      } else {
-         if (myLineMaterial != null) {
-            myLineMaterial.set(mat);
-         } else {
-            myLineMaterial = new Material(mat);
-         }
-         doSetColor(myLineColor, myLineMaterial.getDiffuse());
-      }
-   }
+//   public void setFaceMaterial(Material mat) {
+//      if (mat == null) {
+//         myFaceMaterial = null;
+//      } else {
+//         if (myFaceMaterial != null) {
+//            myFaceMaterial.set(mat);
+//         } else {
+//            myFaceMaterial = new Material(mat);
+//         }
+//         doSetColor(myFaceColor, myFaceMaterial.getDiffuse());
+//      }
+//   }
+//
+//   public void setBackMaterial(Material mat) {
+//      if (mat == null) {
+//         myBackMaterial = null;
+//      } else {
+//         if (myBackMaterial != null) {
+//            myBackMaterial.set(mat);
+//         } else {
+//            myBackMaterial = new Material(mat);
+//         }
+//         doSetBackColor(myBackMaterial.getDiffuse());
+//      }
+//   }
+//
+//   public void setEdgeMaterial(Material mat) {
+//      if (mat == null) {
+//         myEdgeMaterial = null;
+//      } else {
+//         if (myEdgeMaterial != null) {
+//            myEdgeMaterial.set(mat);
+//         } else {
+//            myEdgeMaterial = new Material(mat);
+//         }
+//         doSetEdgeColor(myEdgeMaterial.getDiffuse());
+//      }
+//   }
+//
+//   public void setPointMaterial(Material mat) {
+//      if (mat == null) {
+//         myPointMaterial = null;
+//      } else {
+//         if (myPointMaterial != null) {
+//            myPointMaterial.set(mat);
+//         } else {
+//            myPointMaterial = new Material(mat);
+//         }
+//         doSetColor(myPointColor, myPointMaterial.getDiffuse());
+//      }
+//   }
+//
+//   public void setLineMaterial(Material mat) {
+//      if (mat == null) {
+//         myLineMaterial = null;
+//      } else {
+//         if (myLineMaterial != null) {
+//            myLineMaterial.set(mat);
+//         } else {
+//            myLineMaterial = new Material(mat);
+//         }
+//         doSetColor(myLineColor, myLineMaterial.getDiffuse());
+//      }
+//   }
 
    protected boolean diffuseTexturePropsEqual (DiffuseTextureProps props) {
       if (props == null) {
@@ -2075,9 +2127,9 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          if (!ArraySupport.equals (myFaceColor, r.myFaceColor)) {
             return false;
          }
-         else if (!materialsEqual (myFaceMaterial, r.myFaceMaterial)) {
-            return false;
-         }
+//         else if (!materialsEqual (myFaceMaterial, r.myFaceMaterial)) {
+//            return false;
+//         }
       }
       if (myAlphaMode != r.myAlphaMode) {
          return false;
@@ -2102,6 +2154,18 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       }
       else if (myShininessMode == EXPLICIT && myShininess != r.myShininess) {
          return false;
+      }
+      if (mySpecularMode != r.mySpecularMode) {
+         return false;
+      }
+      else if (mySpecularMode == EXPLICIT) {
+         if ((mySpecular == null) != (r.mySpecular == null)) {
+            return false;
+         }
+         else if (mySpecular != null &&
+                  !ArraySupport.equals (mySpecular, r.mySpecular)) {
+            return false;
+         }
       }
       if (myPointStyleMode != r.myPointStyleMode) {
          return false;
@@ -2166,9 +2230,9 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
                   !ArraySupport.equals (myEdgeColor, r.myEdgeColor)) {
             return false;
          }
-         else if (!materialsEqual (myEdgeMaterial, r.myEdgeMaterial)) {
-            return false;
-         }
+//         else if (!materialsEqual (myEdgeMaterial, r.myEdgeMaterial)) {
+//            return false;
+//         }
       }
       if (myFaceStyleMode != r.myFaceStyleMode) {
          return false;
@@ -2183,9 +2247,9 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          if (!ArraySupport.equals (myLineColor, r.myLineColor)) {
             return false;
          }
-         else if (!materialsEqual (myLineMaterial, r.myLineMaterial)) {
-            return false;
-         }
+//         else if (!materialsEqual (myLineMaterial, r.myLineMaterial)) {
+//            return false;
+//         }
       }
       if (myPointColorMode != r.myPointColorMode) {
          return false;
@@ -2194,9 +2258,9 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
          if (!ArraySupport.equals (myPointColor, r.myPointColor)) {
             return false;
          }
-         else if (!materialsEqual (myPointMaterial, r.myPointMaterial)) {
-            return false;
-         }
+//         else if (!materialsEqual (myPointMaterial, r.myPointMaterial)) {
+//            return false;
+//         }
       }
       if (myBackColorMode != r.myBackColorMode) {
          return false;
@@ -2209,9 +2273,9 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
                   !ArraySupport.equals (myBackColor, r.myBackColor)) {
             return false;
          }
-         else if (!materialsEqual (myBackMaterial, r.myBackMaterial)) {
-            return false;
-         }
+//         else if (!materialsEqual (myBackMaterial, r.myBackMaterial)) {
+//            return false;
+//         }
       }
       if (myDiffuseTexturePropsInactive != r.myDiffuseTexturePropsInactive) {
          return false;
@@ -2440,28 +2504,30 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       buf.append ("ZOrder=" + myZOrder + " " + myZOrderMode + ", ");
       buf.append ("Shading=" + myShading + " " + myShadingMode + ", ");
       buf.append ("Shininess=" + myShininess + " " + myShininessMode + ", ");
+      buf.append ("Specular=" + colorString (mySpecular) + " " +
+         mySpecularMode + ", ");
       buf.append ("FaceStyle=" + myFaceStyle + " " + myFaceStyleMode + ", ");
       buf.append ("FaceColor=" + colorString (myFaceColor) + " " +
          myFaceColorMode + ", ");
-      buf.append ("FaceMaterial=" + myFaceMaterial + " " +
-         myFaceColorMode);
+//      buf.append ("FaceMaterial=" + myFaceMaterial + " " +
+//         myFaceColorMode);
       buf.append ("BackColor=" + colorString (myBackColor) + " " +
-         myBackColorMode + ", ");
-      buf.append ("BackMaterial=" + myBackMaterial + " " +
-         myBackColorMode);
+      myBackColorMode + ", ");
+//      buf.append ("BackMaterial=" + myBackMaterial + " " +
+//         myBackColorMode);
       buf.append ("DrawEdges=" + myDrawEdgesP + " " + myDrawEdgesMode + ", ");
       buf.append ("EdgeWidth=" + myEdgeWidth + " " + myEdgeWidthMode + ", ");
       buf.append ("EdgeColor=" + colorString (myEdgeColor) + " " +
          myEdgeColorMode + ", ");
-      buf.append ("EdgeMaterial=" + myEdgeMaterial + " " +
-         myEdgeColorMode);
+//      buf.append ("EdgeMaterial=" + myEdgeMaterial + " " +
+//         myEdgeColorMode);
       buf.append ("DiffuseTextureProps=" + myDiffuseTextureProps + ", ");
       buf.append ("NormalTextureProps=" + myNormalTextureProps + ", ");
       buf.append ("LineStyle=" + myLineStyle + " " + myLineStyleMode + ", ");
       buf.append ("LineColor=" + colorString (myLineColor) + " " +
          myLineColorMode + ", ");
-      buf.append ("LineMaterial=" + myLineMaterial + " " +
-         myLineColorMode);
+//      buf.append ("LineMaterial=" + myLineMaterial + " " +
+//         myLineColorMode);
       buf.append ("LineWidth=" + myLineWidth + " " + myLineWidthMode + ", ");
       buf.append ("LineRadius=" + myLineRadius + " " +
          myLineRadiusMode + ", ");
@@ -2470,8 +2536,8 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       buf.append ("PointStyle=" + myPointStyle + " " + myPointStyleMode + ", ");
       buf.append ("PointColor=" + colorString (myPointColor) + " " +
          myPointColorMode + ", ");
-      buf.append("PointMaterial=" + myPointMaterial + " " +
-         myPointColorMode + ", ");
+//      buf.append("PointMaterial=" + myPointMaterial + " " +
+//         myPointColorMode + ", ");
       buf.append ("PointSize=" + myPointSize + " " + myPointSizeMode + ", ");
       buf.append ("PointRadius=" + myPointRadius + " " + myPointRadiusMode +
          ", ");
@@ -2496,33 +2562,36 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       props.myPropHost = null;
 
       // create new objects
+      if (props.mySpecular != null) {
+         props.mySpecular = new float[3];
+      }
       if (props.myBackColor != null) {
          props.myBackColor = new float[3];
       }
-      if (props.myBackMaterial != null) {
-         props.myBackMaterial = new Material();
-      }
+//      if (props.myBackMaterial != null) {
+//         props.myBackMaterial = new Material();
+//      }
       if (props.myEdgeColor != null) {
          props.myEdgeColor = new float[3];
       }
-      if (props.myEdgeMaterial != null) {
-         props.myEdgeMaterial = new Material();
-      }
+//      if (props.myEdgeMaterial != null) {
+//         props.myEdgeMaterial = new Material();
+//      }
       
       props.myFaceColor = new float[3];
-      if (props.myFaceMaterial != null) {
-         props.myFaceMaterial = new Material();
-      }
+//      if (props.myFaceMaterial != null) {
+//         props.myFaceMaterial = new Material();
+//      }
       
       props.myLineColor = new float[3];
-      if (props.myLineMaterial != null) {
-         props.myLineMaterial = new Material();
-      }
+//      if (props.myLineMaterial != null) {
+//         props.myLineMaterial = new Material();
+//      }
       
       props.myPointColor = new float[3];
-      if (props.myPointMaterial != null) {
-         props.myPointMaterial = new Material();
-      }
+//      if (props.myPointMaterial != null) {
+//         props.myPointMaterial = new Material();
+//      }
       
       props.set(this);
       return props;

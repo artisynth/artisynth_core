@@ -30,6 +30,7 @@ import maspack.properties.PropertyUtils;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer.Shading;
 import maspack.util.InternalErrorException;
 import artisynth.core.femmodels.AuxiliaryMaterial;
 import artisynth.core.femmodels.FemElement;
@@ -799,28 +800,25 @@ public class MFreeElement3d extends FemElement implements Boundable {
    public void render(
       Renderer renderer, RenderProps rprops, int flags) {
       
+      Shading savedShading = renderer.setLineShading (rprops);
+      renderer.setLineColoring (rprops, isSelected());
       if (rprops.getLineWidth() > 0) {
          switch (rprops.getLineStyle()) {
             case LINE: {
-               renderer.setLightingEnabled (false);
                renderer.setLineWidth (rprops.getLineWidth());
-               renderer.setColor (
-                  rprops.getLineColorArray(), isSelected());
                renderEdges (renderer, rprops);
                renderer.setLineWidth (1);
-               renderer.setLightingEnabled (true);
                break;
             }
             case CYLINDER: {
-               renderer.setLineLighting (rprops, isSelected());
                renderEdges (renderer,rprops);
-               renderer.restoreShading (rprops);
                break;
             }
             default:
                break;
          }
       }
+      renderer.setShading (savedShading);
    }   
    
 }

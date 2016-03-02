@@ -29,7 +29,7 @@ import maspack.render.Translator3d;
 import maspack.render.Transrotator3d;
 import maspack.render.ConvexPoly2d.Vertex2d;
 import maspack.render.Dragger3d.DraggerType;
-import maspack.render.RenderObject.BuildMode;
+import maspack.render.Renderer.DrawMode;
 import maspack.util.InternalErrorException;
 import maspack.util.Round;
 
@@ -212,7 +212,7 @@ public class GLGridPlane implements HasProperties {
             int majorcidx = lines.addColor (this.majorColor);
             int minorcidx = lines.addColor (this.minorColor);
 
-            lines.beginBuild(BuildMode.LINES);
+            lines.beginBuild(DrawMode.LINES);
 
             for (int i = 0; i < xcnt; i++) {
                double x = xmin + i * minorSize;
@@ -838,8 +838,8 @@ public class GLGridPlane implements HasProperties {
          computeFocalPoint (focus, plane, 0, 0, 1);
          return renderer.getViewPlaneWidth() / renderer.getScreenWidth();
       }
-      double near = renderer.getNearClipPlaneZ();
-      double far = renderer.getFarClipPlaneZ();
+      double near = renderer.getViewPlaneDistance();
+      double far = renderer.getFarPlaneDistance();
       double vw = renderer.getViewPlaneWidth();
       double vh = renderer.getViewPlaneHeight();
       // double fov = renderer.getFieldOfViewY();

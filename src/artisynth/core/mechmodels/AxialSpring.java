@@ -22,8 +22,7 @@ import maspack.render.*;
 import java.util.*;
 
 public class AxialSpring extends PointSpringBase
-   implements RenderableLine, ScalableUnits,
-              CopyableComponent {
+   implements ScalableUnits, CopyableComponent {
    protected Point myPnt0;
    protected Point myPnt1;
    protected SegmentData mySeg = new SegmentData (null, null);
@@ -201,14 +200,14 @@ public class AxialSpring extends PointSpringBase
       dowrite (pw, fmt, ref);
    }
 
-   public float[] getRenderCoords0() {
-      return myPnt0.myRenderCoords;
-   }
-
-   public float[] getRenderCoords1() {
-      return myPnt1.myRenderCoords;
-   }
-
+//   public float[] getRenderCoords0() {
+//      return myPnt0.myRenderCoords;
+//   }
+//
+//   public float[] getRenderCoords1() {
+//      return myPnt1.myRenderCoords;
+//   }
+//
    public void updateBounds (Point3d pmin, Point3d pmax) {
       myPnt0.updateBounds (pmin, pmax);
       myPnt1.updateBounds (pmin, pmax);

@@ -6,7 +6,7 @@ import maspack.geometry.PolygonalMesh;
 import maspack.geometry.TriTriIntersection;
 import maspack.matrix.Point3d;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 
 public class ContactInfo {
    /*
@@ -79,7 +79,7 @@ public class ContactInfo {
       Renderer renderer, ArrayList<ContactPenetratingPoint> points) {
       
       renderer.setColor (0.9f, 0.6f, 0.8f);
-      renderer.beginDraw (VertexDrawMode.LINES);
+      renderer.beginDraw (DrawMode.LINES);
       for (ContactPenetratingPoint p : points) {
          Point3d n1 = p.position;
          renderer.addVertex (n1);
@@ -90,7 +90,7 @@ public class ContactInfo {
 
       renderer.setColor (1f, 0f, 0f);
       renderer.setPointSize (30);
-      renderer.beginDraw (VertexDrawMode.POINTS);
+      renderer.beginDraw (DrawMode.POINTS);
       for (ContactPenetratingPoint p : points) {
          renderer.addVertex (p.position);
       }

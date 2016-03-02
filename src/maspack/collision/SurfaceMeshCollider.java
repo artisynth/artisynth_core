@@ -14,7 +14,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.RenderList;
 import maspack.render.GL.GLRenderable;
 import maspack.util.InternalErrorException;
@@ -525,7 +525,7 @@ public class SurfaceMeshCollider implements AbstractCollider {
       void renderFace (Renderer renderer, Face aFace) {
          
          renderer.setLineWidth (26);
-         renderer.beginDraw (VertexDrawMode.LINE_LOOP);
+         renderer.beginDraw (DrawMode.LINE_LOOP);
          Point3d p = aFace.getEdge (0).tail.getWorldPoint();
          renderer.addVertex (p);
          p = aFace.getEdge (0).head.getWorldPoint();
@@ -539,7 +539,7 @@ public class SurfaceMeshCollider implements AbstractCollider {
          
          Point3d p = new Point3d();
          renderer.setLineWidth (20);
-         renderer.beginDraw (VertexDrawMode.LINES);
+         renderer.beginDraw (DrawMode.LINES);
          for (Face f : mesh.getFaces()) {
             renderer.setColor (1, 1, 0.5f);
             f.computeWorldCentroid (p);

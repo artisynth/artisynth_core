@@ -122,13 +122,13 @@ public class NetDemo extends RootModel {
 
   protected void setPointRenderProps (Renderable r) {
       RenderProps.setPointColor (r, Color.RED);
-      RenderProps.setPointStyle (r, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (r, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (r, widthx/50.0);
    }
 
    protected void setLineRenderProps (Renderable r) {
       RenderProps.setLineColor (r, Color.BLUE);
-      RenderProps.setLineStyle (r, RenderProps.LineStyle.ELLIPSOID);
+      RenderProps.setLineStyle (r, Renderer.LineStyle.ELLIPSOID);
       RenderProps.setLineRadius (r, widthx/100.0);
    }
 

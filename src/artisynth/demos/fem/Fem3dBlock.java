@@ -15,6 +15,7 @@ import maspack.matrix.*;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.render.*;
+import maspack.render.Renderer;
 import maspack.util.*;
 import maspack.widgets.DoubleFieldSlider;
 import maspack.spatialmotion.*;
@@ -187,7 +188,7 @@ public class Fem3dBlock extends RootModel {
       RenderProps.setLineWidth (elements, 2);
       RenderProps.setLineColor (elements, Color.BLUE);
       Renderable nodes = femMod.getNodes();
-      RenderProps.setPointStyle (nodes, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (nodes, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (nodes, 0.01);
       RenderProps.setPointColor (nodes, new Color (153, 0, 204));
 
@@ -221,7 +222,7 @@ public class Fem3dBlock extends RootModel {
       leftBody.setDynamic (true);
       mechMod.addRigidBody (leftBody);
 
-      RenderProps.setPointStyle (mechMod, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (mechMod, Renderer.PointStyle.SPHERE);
 
       RigidTransform3d TCW = new RigidTransform3d();
       RigidTransform3d TCA = new RigidTransform3d();

@@ -17,7 +17,7 @@ import maspack.matrix.Vector4d;
 import maspack.render.PointLineRenderProps;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 import maspack.util.NumberFormat;
 
 /**
@@ -430,7 +430,7 @@ public class NURBSSurface extends NURBSObject {
       if (!selecting) {
          renderer.setColor (contourColor);
       }
-      renderer.beginDraw (VertexDrawMode.LINES);
+      renderer.beginDraw (DrawMode.LINES);
       for (int i = 0; i < urenderSize - 1; i++) {
          for (int j = 0; j < vrenderSize - 1; j++) {
             Point3d p0 = renderVertices[i * vrenderSize + j];
@@ -456,10 +456,10 @@ public class NURBSSurface extends NURBSObject {
          }
          for (int i = 0; i < numCtrlPntsU; i++) {
             if (vcurve.isClosed()) {
-               renderer.beginDraw (VertexDrawMode.LINE_LOOP);
+               renderer.beginDraw (DrawMode.LINE_LOOP);
             }
             else {
-               renderer.beginDraw (VertexDrawMode.LINE_STRIP);
+               renderer.beginDraw (DrawMode.LINE_STRIP);
             }
             for (int j = 0; j < numCtrlPntsV; j++) { // pnt.setFromHomogeneous
                // (ctrlPnts[i*numCtrlPntsV+j]);
@@ -470,10 +470,10 @@ public class NURBSSurface extends NURBSObject {
          }
          for (int j = 0; j < numCtrlPntsV; j++) {
             if (ucurve.isClosed()) {
-               renderer.beginDraw (VertexDrawMode.LINE_LOOP);
+               renderer.beginDraw (DrawMode.LINE_LOOP);
             }
             else {
-               renderer.beginDraw (VertexDrawMode.LINE_STRIP);
+               renderer.beginDraw (DrawMode.LINE_STRIP);
             }
             for (int i = 0; i < numCtrlPntsU; i++) {
                Vector4d cpnt = myCtrlPnts.get(i * numCtrlPntsV + j);

@@ -1,9 +1,10 @@
 package maspack.render.GL.GL3;
 
-import maspack.render.RenderProps.Shading;
 import maspack.render.GL.GL3.GLSLInfo.InstancedRendering;
+import maspack.render.Renderer;
 import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Renderer.ColorMixing;
+import maspack.render.Renderer.Shading;
 
 
 public class GLSLGenerator {

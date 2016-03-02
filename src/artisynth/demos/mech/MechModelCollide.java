@@ -4,6 +4,7 @@ import maspack.geometry.*;
 import maspack.spatialmotion.*;
 import maspack.matrix.*;
 import maspack.render.*;
+import maspack.render.Renderer;
 import maspack.util.*;
 import artisynth.core.mechmodels.CollisionManager;
 import artisynth.core.mechmodels.AxialSpring;
@@ -124,9 +125,9 @@ public class MechModelCollide extends RootModel {
       mechMod.addRigidBody (link2);
       
       if (transparentLinks) {
-         RenderProps.setFaceStyle (link1, RenderProps.Faces.NONE);
+         RenderProps.setFaceStyle (link1, Renderer.Faces.NONE);
          RenderProps.setDrawEdges (link1, true);
-         RenderProps.setFaceStyle (link2, RenderProps.Faces.NONE);
+         RenderProps.setFaceStyle (link2, Renderer.Faces.NONE);
          RenderProps.setDrawEdges (link2, true);
       }
 

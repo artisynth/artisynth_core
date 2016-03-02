@@ -69,7 +69,7 @@ public class SphericalJointDemo extends RootModel {
       XDB.mulInverseLeft (bodyB.getPose(), TDW);
       TCA.mulInverseLeft (bodyA.getPose(), TDW);
       SphericalJoint joint = new SphericalJoint (bodyA, TCA, bodyB, XDB);
-      RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (joint, Renderer.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.025);
       joint.setAxisLength (0.05);
@@ -85,7 +85,7 @@ public class SphericalJointDemo extends RootModel {
       XDB.mulInverseLeft (bodyB.getPose(), TDW);
       TCA.mulInverseLeft (bodyA.getPose(), TDW);
       SphericalRpyJoint joint = new SphericalRpyJoint (bodyA, TCA, bodyB, XDB);
-      RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (joint, Renderer.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.025);
       joint.setAxisLength (0.05);
@@ -98,7 +98,7 @@ public class SphericalJointDemo extends RootModel {
       myMechMod.addFrameMarker (
          mkr, tip, new Point3d (0, 0, -getHeight(tip)/2));
 
-      RenderProps.setPointStyle (mkr, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (mkr, Renderer.PointStyle.SPHERE);
       RenderProps.setPointColor (mkr, Color.BLUE);
       RenderProps.setPointRadius (mkr, 0.01);
       return mkr;

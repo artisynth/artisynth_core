@@ -11,7 +11,7 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer.LineStyle;
 import maspack.spatialmotion.SpatialInertia;
 import artisynth.core.driver.Main;
 import artisynth.core.femmodels.MuscleBundle;

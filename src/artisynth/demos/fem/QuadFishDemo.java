@@ -20,6 +20,7 @@ import artisynth.core.workspace.RootModel;
 import maspack.properties.PropertyDesc;
 import maspack.properties.PropertyList;
 import maspack.render.*;
+import maspack.render.Renderer;
 import maspack.spatialmotion.SpatialInertia;
 import artisynth.core.driver.*;
 import artisynth.core.mechmodels.*;
@@ -118,7 +119,7 @@ public class QuadFishDemo extends RootModel {
       RenderProps.setFaceColor (collisionbody2, Color.RED);
       RenderProps.setLineColor (collisionbody2, Color.WHITE);
       RenderProps.setLineWidth (collisionbody2, 1);
-      RenderProps.setShading (collisionbody2, RenderProps.Shading.GOURAUD);
+      RenderProps.setShading (collisionbody2, Renderer.Shading.GOURAUD);
       if (tet) {
          RenderProps.setDrawEdges (collisionbody2, true);
          RenderProps.setVisible (collisionbody2.getElements(), false);

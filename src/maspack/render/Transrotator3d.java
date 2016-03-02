@@ -17,7 +17,7 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.render.GL.GLViewer;
-import maspack.render.RenderObject.BuildMode;
+import maspack.render.Renderer.DrawMode;
 import maspack.util.InternalErrorException;
 
 public class Transrotator3d extends Dragger3dBase {
@@ -167,7 +167,7 @@ public class Transrotator3d extends Dragger3dBase {
          transrotr.setColor(i, 1.0f, 1.0f, 0.0f, 1.0f);  // replace ith color with yellow
       }
       
-      transrotr.beginBuild(BuildMode.LINES);
+      transrotr.beginBuild(DrawMode.LINES);
       // x-axis
       transrotr.color(xcolor);
       transrotr.vertex(0, 0, 0);
@@ -205,7 +205,7 @@ public class Transrotator3d extends Dragger3dBase {
       transrotr.addLineStrip(v0, v1, v2);
       
       // x-rotation
-      transrotr.beginBuild(BuildMode.LINE_STRIP);
+      transrotr.beginBuild(DrawMode.LINE_STRIP);
       transrotr.color(xrcolor);
       for (int i = 0; i <= QUARTER_CIRCLE_RESOLUTION; i++) {
          double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
@@ -215,7 +215,7 @@ public class Transrotator3d extends Dragger3dBase {
       transrotr.endBuild();
             
       // y-rotation
-      transrotr.beginBuild(BuildMode.LINE_STRIP);
+      transrotr.beginBuild(DrawMode.LINE_STRIP);
       transrotr.color(yrcolor);
       for (int i = 0; i <= QUARTER_CIRCLE_RESOLUTION; i++) {
          double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
@@ -225,7 +225,7 @@ public class Transrotator3d extends Dragger3dBase {
       transrotr.endBuild();
             
       // z-rotation
-      transrotr.beginBuild(BuildMode.LINE_STRIP);
+      transrotr.beginBuild(DrawMode.LINE_STRIP);
       transrotr.color(zrcolor);
       for (int i = 0; i <= QUARTER_CIRCLE_RESOLUTION; i++) {
          double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);

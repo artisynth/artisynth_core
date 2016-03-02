@@ -13,7 +13,7 @@ import maspack.geometry.*;
 import maspack.matrix.*;
 import maspack.properties.*;
 import maspack.render.*;
-import maspack.render.RenderProps.Shading;
+import maspack.render.Renderer.Shading;
 import maspack.util.*;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;

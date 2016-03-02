@@ -41,7 +41,6 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import maspack.properties.Property;
-import maspack.render.GL.GLViewer;
 import maspack.util.InternalErrorException;
 import maspack.util.StringHolder;
 import maspack.widgets.BooleanSelector;
@@ -135,7 +134,6 @@ public class TimelineController extends Timeline
    
    private Line2D myWayShadow;
    private JSplitPane mainSplitPane;
-   private GLViewer myViewer;
    private JPopupMenu myPopup;
    private WayPointTrackListener wayTrackListener;
 
@@ -157,9 +155,7 @@ public class TimelineController extends Timeline
    /**
     * Creates the timeline
     */
-   public TimelineController (
-      String title, Main main, GLViewer glViewer) {
-      myViewer = glViewer;
+   public TimelineController (String title, Main main) {
       myMain = main;
       myScheduler = main.getScheduler();
       

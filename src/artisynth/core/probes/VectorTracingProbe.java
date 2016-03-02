@@ -20,7 +20,7 @@ import maspack.properties.PropertyMode;
 import maspack.render.Renderer;
 import maspack.render.HasRenderProps;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer.LineStyle;
 import maspack.util.*;
 import artisynth.core.driver.Main;
 import artisynth.core.modelbase.ComponentUtils;
@@ -159,7 +159,7 @@ public class VectorTracingProbe extends TracingProbe {
       set (endCoords, endpt);
 
       renderer.drawArrow (
-         myRenderProps, endCoords, startCoords, true/* capped */, isSelected());
+         myRenderProps, startCoords, endCoords, true/* capped */, isSelected());
       // renderer.drawLine (myRenderProps, endCoords, startCoords,
       // true/*capped*/, isSelected());
    }

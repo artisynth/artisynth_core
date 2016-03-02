@@ -73,8 +73,9 @@ import maspack.render.RenderProps;
 import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewerFrame;
-import maspack.render.RenderProps.Faces;
-import maspack.render.RenderProps.Shading;
+import maspack.render.Renderer;
+import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.Shading;
 import maspack.render.RendererEvent;
 import maspack.widgets.GridDisplay;
 import maspack.widgets.GuiUtils;
@@ -487,7 +488,7 @@ public class MeshViewer extends GLViewerFrame
       myMeshes.add (mesh);
       if (mesh instanceof PointMesh &&
           ((PointMesh)mesh).getNormals() == null) {
-         RenderProps.setShading (mesh, RenderProps.Shading.NONE);
+         RenderProps.setShading (mesh, Shading.NONE);
       }
       viewer.addRenderable (mesh);     
       myLastMeshName = name;

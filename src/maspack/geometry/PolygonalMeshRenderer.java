@@ -8,16 +8,12 @@ package maspack.geometry;
 
 import java.util.ArrayList;
 
-import maspack.matrix.Matrix4d;
 import maspack.matrix.Vector3d;
-import maspack.render.Material;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Shading;
 import maspack.render.Renderer;
 import maspack.render.Renderer.ColorInterpolation;
-import maspack.render.GL.GLSupport;
-import maspack.render.GL.GLViewer;
+import maspack.render.Renderer.Shading;
 
 public class PolygonalMeshRenderer extends MeshRendererBase {
 
@@ -33,7 +29,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          super (mesh, props);
          this.shading = props.getShading();
          this.drawEdges = props.getDrawEdges();
-         this.drawFaces = (props.getFaceStyle() != RenderProps.Faces.NONE);
+         this.drawFaces = (props.getFaceStyle() != Renderer.Faces.NONE);
       }
 
       public boolean equals (RobSignature other) {
@@ -200,13 +196,13 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       return color;
    }
 
-   private Material getEffectiveEdgeMaterial (RenderProps props) {
-      Material mat = props.getEdgeMaterial();
-      if (mat == null) {
-         mat = props.getLineMaterial();
-      }
-      return mat;
-   }
+//   private Material getEffectiveEdgeMaterial (RenderProps props) {
+//      Material mat = props.getEdgeMaterial();
+//      if (mat == null) {
+//         mat = props.getLineMaterial();
+//      }
+//      return mat;
+//   }
 
    /**
     * Draws the edges associated with this mesh. Edge drawing is done using
@@ -240,7 +236,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
 
       boolean savedLighting = renderer.isLightingEnabled ();
       float savedLineWidth = renderer.getLineWidth();
-      Shading savedShadeModel = renderer.getShadeModel();
+      Shading savedShadeModel = renderer.getShading();
 
       boolean selected = ((flags & Renderer.SELECTED) != 0);
       boolean disableColors = false;
@@ -278,12 +274,12 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
             renderer.setColor (edgeColor, selected);
          }
          else {
-            renderer.setMaterial (getEffectiveEdgeMaterial(props), selected);
-            renderer.setShadeModel (shading);
+            renderer.setEdgeColoring (props, selected);
+            renderer.setShading (shading);
          }
       }
       else {
-         renderer.setShadeModel (shading);
+         renderer.setShading (shading);
       }
 
       if (useHSV) {
@@ -298,7 +294,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       }
 
       renderer.setLineWidth (savedLineWidth);
-      renderer.setShadeModel (savedShadeModel);
+      renderer.setShading (savedShadeModel);
       renderer.setLightingEnabled (savedLighting);
    }
 
@@ -332,8 +328,8 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       boolean selected = ((flags & Renderer.SELECTED) != 0);
 
       boolean savedLighting = renderer.isLightingEnabled ();
-      RenderProps.Faces savedFaceMode = renderer.getFaceMode();
-      Shading savedShadeModel = renderer.getShadeModel();
+      Renderer.Faces savedFaceMode = renderer.getFaceMode();
+      Shading savedShadeModel = renderer.getShading();
 
       Shading shading = props.getShading();
       if (mesh.hasColors()) {
@@ -342,17 +338,19 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          if (shading == Shading.NONE) {
             renderer.setLightingEnabled (false);
          } else {
-            renderer.setFaceLighting (props, selected);
+            renderer.setShading (shading);
+            renderer.setFaceColoring (props, selected);
          }
       }
       else {
          if (shading == Shading.NONE ||
              (!mesh.hasNormals() && shading != Shading.FLAT)) {
             renderer.setLightingEnabled (false);
-            renderer.setColor (props.getFaceColorArray(), selected);
+            renderer.setFaceColoring (props, selected);
          }
          else {
-            renderer.setFaceLighting (props, selected);
+            renderer.setShading (shading);
+            renderer.setFaceColoring (props, selected);
          }
       }
 
@@ -381,7 +379,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          renderer.setColorInterpolation (ColorInterpolation.RGB);
       }
       renderer.setFaceMode (savedFaceMode);
-      renderer.setShadeModel (savedShadeModel);
+      renderer.setShading (savedShadeModel);
       renderer.setLightingEnabled (savedLighting);
    }
 
@@ -425,7 +423,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
 
       Shading shading = props.getShading();
 
-      boolean drawFaces = (props.getFaceStyle() != RenderProps.Faces.NONE);
+      boolean drawFaces = (props.getFaceStyle() != Renderer.Faces.NONE);
 
       if (props.getDrawEdges()) {
          drawEdges (renderer, mesh, props, flags, drawFaces);
@@ -450,8 +448,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
    
    
    public boolean isTranslucent (RenderProps props) {
-      Material mat = props.getFaceMaterial();
-      return mat.isTranslucent();
+      return props.getAlpha() < 1.0;
       // return (myFrontMaterial.isTranslucent() ||
       // myBackMaterial.isTranslucent());
    }

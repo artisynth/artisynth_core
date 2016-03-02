@@ -8,18 +8,11 @@ package maspack.geometry;
 
 import java.util.ArrayList;
 
-import maspack.matrix.Point3d;
-import maspack.matrix.Vector3d;
-import maspack.render.Material;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Shading;
-import maspack.render.RenderProps.LineStyle;
 import maspack.render.Renderer;
-import maspack.render.Renderer.ColorInterpolation;
-import maspack.render.DiffuseTextureProps;
-import maspack.render.GL.GLRenderer;
-import maspack.util.FunctionTimer;
+import maspack.render.Renderer.LineStyle;
+import maspack.render.Renderer.Shading;
 
 public class PolylineMeshRenderer  extends MeshRendererBase {
 
@@ -108,7 +101,7 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
       }
 
       float savedLineWidth = renderer.getLineWidth();
-      Shading savedShadeModel = renderer.getShadeModel();
+      Shading savedShadeModel = renderer.getShading();
       boolean savedLightingEnabled = renderer.isLightingEnabled();
 
       Shading shading = props.getShading();
@@ -117,21 +110,20 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
       }
       boolean selected = ((flags & Renderer.SELECTED) != 0);
 
-      switch (props.getLineStyle()) {
+      LineStyle lineStyle = props.getLineStyle();
+      Shading savedShading = renderer.getShading();
+      if (lineStyle == LineStyle.LINE && !mesh.hasNormals()) {
+         renderer.setShading (Shading.NONE);
+      }
+      else {
+         renderer.setShading (props.getShading());
+      }
+      renderer.setLineColoring (props, selected);
+      switch (lineStyle) {
          case LINE: {
             int width = props.getLineWidth();
             if (width > 0) {
-               if (!mesh.hasNormals()) {
-                  renderer.setLightingEnabled (false);               
-                  renderer.setColor (props.getLineColorArray(), selected);
-               }
-               else {
-                  renderer.setLineLighting (props, selected);
-               }
                renderer.drawLines (myRob, LineStyle.LINE, width);
-               if (!mesh.hasNormals()) {
-                  renderer.setLightingEnabled (true);
-               }
             }
             break;
          }
@@ -140,15 +132,15 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
          case CYLINDER: {
             double rad = props.getLineRadius();
             if (rad > 0) {
-               renderer.setLineLighting (props, selected);
                renderer.drawLines (myRob, props.getLineStyle(), rad);
             }
             break;
          }
       }
+      renderer.setShading (savedShading);
 
       renderer.setLineWidth (savedLineWidth);
-      renderer.setShadeModel (savedShadeModel);
+      renderer.setShading (savedShadeModel);
       renderer.setLightingEnabled (savedLightingEnabled);
 
       renderer.popModelMatrix();

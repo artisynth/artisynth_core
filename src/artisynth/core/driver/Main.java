@@ -917,8 +917,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          waitForStop();
       }
       
-      TimelineController timeline = 
-         new TimelineController ("Timeline", this, myViewer);
+      TimelineController timeline = new TimelineController ("Timeline", this);
       
       
       mySelectionManager.addSelectionListener(timeline);

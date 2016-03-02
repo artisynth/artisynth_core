@@ -13,7 +13,7 @@ import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 
 public class ContactRegion {
    // triangle triangle intersections
@@ -487,14 +487,14 @@ public class ContactRegion {
 
       renderer.setColor (0f, 1f, 1f);
       renderer.setLineWidth (4);
-      renderer.beginDraw (VertexDrawMode.LINE_LOOP);
+      renderer.beginDraw (DrawMode.LINE_LOOP);
       for (Point3d p : points)
          renderer.addVertex (p); // draw convex hull with a heavier line
       renderer.endDraw();
       renderer.setLineWidth (1);
 
       renderer.setPointSize (10);
-      renderer.beginDraw (VertexDrawMode.POINTS); // emphasize the convex-hull points in case
+      renderer.beginDraw (DrawMode.POINTS); // emphasize the convex-hull points in case
                                  // they are same as contour.
       for (Point3d p : points)
          renderer.addVertex (p);
@@ -513,7 +513,7 @@ public class ContactRegion {
       renderer.setLineWidth (1);
 
       renderer.setPointSize (15);
-      renderer.beginDraw (VertexDrawMode.POINTS);
+      renderer.beginDraw (DrawMode.POINTS);
       n1.set (centroid);
       renderer.addVertex (n1);
       n1.scaledAdd (0.5, normal);

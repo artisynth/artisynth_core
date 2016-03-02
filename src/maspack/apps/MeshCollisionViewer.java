@@ -34,11 +34,11 @@ import maspack.render.Dragger3dAdapter;
 import maspack.render.Dragger3dEvent;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Faces;
-import maspack.render.RenderProps.Shading;
 import maspack.render.RenderableUtils;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.Transrotator3d;
 import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLViewer;
@@ -232,7 +232,7 @@ public class MeshCollisionViewer extends GLViewerFrame
 
          if (myContactInfo.contours != null) {
             for (MeshIntersectionContour contour : myContactInfo.contours) {
-               renderer.beginDraw (VertexDrawMode.LINE_LOOP);
+               renderer.beginDraw (DrawMode.LINE_LOOP);
                for (MeshIntersectionPoint p : contour) {
                   renderer.addVertex (p);
                }
@@ -240,7 +240,7 @@ public class MeshCollisionViewer extends GLViewerFrame
             }
          }
          Point3d pnt = new Point3d();
-         renderer.beginDraw (VertexDrawMode.POINTS);
+         renderer.beginDraw (DrawMode.POINTS);
          for (ContactPenetratingPoint p : myContactInfo.points0) {
             pnt.set (p.vertex.pnt);
             pnt.transform (myMesh1.getMeshToWorld());

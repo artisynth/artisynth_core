@@ -35,7 +35,7 @@ import maspack.properties.PropertyUtils;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer.LineStyle;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.widgets.LabeledComponentBase;

@@ -4,7 +4,8 @@ import java.awt.Color;
 
 import maspack.matrix.Point3d;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer;
+import maspack.render.Renderer.LineStyle;
 import artisynth.core.materials.LinearAxialMuscle;
 import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.MechModel;

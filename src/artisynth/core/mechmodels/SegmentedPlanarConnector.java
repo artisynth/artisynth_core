@@ -22,7 +22,8 @@ import maspack.properties.PropertyList;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.DrawMode;
 import maspack.spatialmotion.SegmentedPlanarCoupling;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
@@ -65,7 +66,7 @@ public class SegmentedPlanarConnector extends BodyConnector
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createPointFaceProps (null);
-      props.setFaceStyle (RenderProps.Faces.FRONT_AND_BACK);
+      props.setFaceStyle (Renderer.Faces.FRONT_AND_BACK);
       return props;
    }
 
@@ -317,7 +318,8 @@ public class SegmentedPlanarConnector extends BodyConnector
 
       RenderProps props = myRenderProps;
 
-      renderer.setFaceLighting (props, isSelected());
+      Shading savedShading = renderer.setPropsShading (props);
+      renderer.setFaceColoring (props, isSelected());
       renderer.setFaceMode (props.getFaceStyle());
       ArrayList<Plane> planes = mySegPlaneCoupling.getPlanes();
 
@@ -326,7 +328,7 @@ public class SegmentedPlanarConnector extends BodyConnector
          nrm.set (plane.getNormal());
          computeRenderVtxs (i, TDW);
 
-         renderer.beginDraw (VertexDrawMode.TRIANGLE_STRIP);
+         renderer.beginDraw (DrawMode.TRIANGLE_STRIP);
          if (myRenderNormalReversedP) {
             renderer.setNormal (-nrm.x, -nrm.y, -nrm.z);
          }
@@ -339,7 +341,7 @@ public class SegmentedPlanarConnector extends BodyConnector
          renderer.addVertex (myRenderVtxs[1]);
          renderer.endDraw();
       }
-      renderer.restoreShading (props);
+      renderer.setShading (savedShading);
       renderer.setDefaultFaceMode();
       renderer.drawPoint (myRenderProps, myRenderCoords, isSelected());
    }

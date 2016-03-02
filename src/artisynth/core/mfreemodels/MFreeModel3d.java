@@ -108,8 +108,8 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
    public static boolean abortOnInvertedElems = false;
 
    private int myNumInverted = 0; // counts number of inverted elements
-   static maspack.render.Material myInvertedMaterial =
-      maspack.render.Material.createDiffuse(1f, 0f, 0f, 0f, 32f);
+//   static maspack.render.Material myInvertedMaterial =
+//      maspack.render.Material.createDiffuse(1f, 0f, 0f, 0f, 32f);
    // private boolean myIncompressibleP = false;
    private double myIncompCompliance = 0;
    public static IncompMethod DEFAULT_HARD_INCOMP = IncompMethod.OFF;

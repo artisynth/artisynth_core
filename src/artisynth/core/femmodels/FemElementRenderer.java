@@ -249,11 +249,11 @@ public class FemElementRenderer {
       updateWidgetNormals (r, /*group=*/0);
 
       if (!renderer.isSelecting()) {
-         Material mat = props.getFaceMaterial();
+         float[] color = props.getFaceColorArray();
          if (elem.isInverted()) {
-            mat = FemModel3d.myInvertedMaterial;
+            color = FemModel3d.myInvertedColor;
          }
-         renderer.setMaterial (mat, elem.isSelected());
+         renderer.setFaceColoring (props, color, elem.isSelected());
       }
       renderer.drawTriangles (r);
    }

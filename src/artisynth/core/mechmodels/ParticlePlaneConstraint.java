@@ -22,7 +22,8 @@ import maspack.properties.PropertyList;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.DrawMode;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.modelbase.CompositeComponent;
@@ -44,7 +45,7 @@ public class ParticlePlaneConstraint extends ParticleConstraintBase
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createFaceProps (null);
-      props.setFaceStyle (RenderProps.Faces.FRONT_AND_BACK);
+      props.setFaceStyle (Renderer.Faces.FRONT_AND_BACK);
       return props;
    }
 
@@ -170,10 +171,11 @@ public class ParticlePlaneConstraint extends ParticleConstraintBase
 
          RenderProps props = myRenderProps;
 
-         renderer.setFaceLighting (props, isSelected());
+         Shading savedShading = renderer.setPropsShading (props);
+         renderer.setFaceColoring (props, isSelected());
          renderer.setFaceMode (props.getFaceStyle());
 
-         renderer.beginDraw (VertexDrawMode.TRIANGLE_STRIP);
+         renderer.beginDraw (DrawMode.TRIANGLE_STRIP);
          renderer.setNormal (myNrm.x, myNrm.y, myNrm.z);
          renderer.addVertex (myRenderVtxs[3]);
          renderer.addVertex (myRenderVtxs[0]);
@@ -181,7 +183,7 @@ public class ParticlePlaneConstraint extends ParticleConstraintBase
          renderer.addVertex (myRenderVtxs[1]);
          renderer.endDraw();
 
-         renderer.restoreShading (props);
+         renderer.setShading (savedShading);
          renderer.setDefaultFaceMode();
       }
    }

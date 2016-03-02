@@ -7,7 +7,6 @@
 package maspack.geometry;
 
 import maspack.matrix.*;
-import maspack.render.Material;
 import maspack.render.RenderProps;
 import maspack.render.GL.GLViewerFrame;
 

@@ -7,7 +7,7 @@ import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 
 public class RenderObjectExamples {
 
@@ -157,7 +157,7 @@ public class RenderObjectExamples {
          // Rather than set up a set of point primitives, which would result
          // in an extra index array in corresponding VBOs, draw the vertex
          // array directly with an appropriate mode.
-         renderer.drawVertices(r, VertexDrawMode.POINTS);  // draw all vertices as points
+         renderer.drawVertices(r, DrawMode.POINTS);  // draw all vertices as points
          
          // less-efficient alternative:
          // for (int i=0; i<r.numVertices(); i++) {

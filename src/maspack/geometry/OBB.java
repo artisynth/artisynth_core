@@ -15,7 +15,7 @@ import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.RenderList;
 import maspack.util.InternalErrorException;
 import quickhull3d.QuickHull3D;
@@ -1201,7 +1201,7 @@ public class OBB extends BVNode {
       renderer.mulModelMatrix (myX);
 
       renderer.setColor (0, 0, 1);
-      renderer.beginDraw (VertexDrawMode.LINE_STRIP);
+      renderer.beginDraw (DrawMode.LINE_STRIP);
       renderer.addVertex (hw.x, hw.y, hw.z);
       renderer.addVertex (-hw.x, hw.y, hw.z);
       renderer.addVertex (-hw.x, -hw.y, hw.z);
@@ -1209,7 +1209,7 @@ public class OBB extends BVNode {
       renderer.addVertex (hw.x, hw.y, hw.z);
       renderer.endDraw();
 
-      renderer.beginDraw (VertexDrawMode.LINE_STRIP);
+      renderer.beginDraw (DrawMode.LINE_STRIP);
       renderer.addVertex (hw.x, hw.y, -hw.z);
       renderer.addVertex (-hw.x, hw.y, -hw.z);
       renderer.addVertex (-hw.x, -hw.y, -hw.z);
@@ -1218,7 +1218,7 @@ public class OBB extends BVNode {
       renderer.endDraw();
 
       renderer.setColor (0, 0, 1);
-      renderer.beginDraw (VertexDrawMode.LINES);
+      renderer.beginDraw (DrawMode.LINES);
       renderer.addVertex (hw.x, hw.y, hw.z);
       renderer.addVertex (hw.x, hw.y, -hw.z);
       renderer.addVertex (-hw.x, hw.y, hw.z);

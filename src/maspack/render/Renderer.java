@@ -11,10 +11,6 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Matrix4d;
-import maspack.render.RenderProps.LineStyle;
-import maspack.render.RenderProps.PointStyle;
-import maspack.render.RenderProps.Shading;
-import maspack.render.RenderProps.Faces;
 import maspack.render.GL.GLSelectable;
 import maspack.render.GL.GLSelectionFilter;
 
@@ -42,11 +38,32 @@ public interface Renderer {
       HSV
    };
    
-   // FINISH
+   /**
+    * Specifies how vertex coloring or textures are combined with material
+    * coloring
+    */
    public enum ColorMixing {
-      NONE,  // ignore
+
+      /**
+       * Vertex coloring or textures are ignored
+       */
+      NONE,  
+
+      /**
+       * Vertex coloring or textures replace the material coloring
+       */
       REPLACE,
+
+      /**
+       * Vertex coloring or textures are multiplicatively combined
+       * with the material coloring
+       */
       MODULATE,
+
+      /**
+       * Vertex coloring or textures are combined based on the material
+       * color's alpha value
+       */
       DECAL
    }
 
@@ -69,7 +86,7 @@ public interface Renderer {
    /**
     * Defines various vertex-based primitives
     */
-   public enum VertexDrawMode {
+   public enum DrawMode {
       /**
        * A collection of points, one per vertex
        */
@@ -128,6 +145,22 @@ public interface Renderer {
        */
       COLOR
    };
+
+   public static enum Shading {
+      FLAT, GOURAUD, PHONG, NONE
+   }
+
+   public static enum PointStyle {
+      SPHERE, POINT
+   }
+
+   public static enum LineStyle {
+      LINE, CYLINDER, SOLID_ARROW, ELLIPSOID
+   }
+
+   public static enum Faces {
+      BACK, FRONT, FRONT_AND_BACK, NONE
+   }
 
    /**
     * Returns the screen height, in pixels
@@ -190,13 +223,13 @@ public interface Renderer {
    public boolean isOrthogonal();
 
    /**
-    * Returns the distance, in model coordinates, from the eye to tne near clip
-    * plane. This is a positive number.
+    * Returns the distance, in model coordinates, from the eye to view plane
+    * (which corresponds to the far clip plane). This is a positive number.
     *
     * @return distance to the near clip plane
     * @see #getFarClipPlaneZ
     */
-   public double getNearClipPlaneZ();
+   public double getViewPlaneDistance();
 
    /**
     * Returns the distance, in model coordinates, from the eye to the far clip
@@ -205,7 +238,7 @@ public interface Renderer {
     * @return distance to the far clip plane
     * @see #getNearClipPlaneZ
     */
-   public double getFarClipPlaneZ();
+   public double getFarPlaneDistance();
    
    /**
     * Returns the current size for rendering points, in pixels.
@@ -271,7 +304,7 @@ public interface Renderer {
    /**
     * Sets the mode for rendering faces. This determines whether
     * the front and/or back of each face is rendered. The default value
-    * is {@link Faces.FRONT}.
+    * is {@link Faces#FRONT}.
     * 
     * @param mode new face rendering mode
     * @see #setDefaultFaceMode
@@ -281,7 +314,7 @@ public interface Renderer {
 
    /**
     * Sets the mode for rendering faces to its default value, which is
-    * {@link Faces.FRONT}.
+    * {@link Faces#FRONT}.
     * 
     * @see #setFaceMode
     * @see #getFaceMode
@@ -305,51 +338,81 @@ public interface Renderer {
     */
    public void setColorInterpolation (ColorInterpolation interp);
    
-   // FINISH
    /**
-    * Specify method for combining material color and vertex color
-    * @param cmix
+    * Queries whether or not a specified method for combining vertex coloring
+    * and material coloring is supported by this Renderer.
+    *
+    * @return <code>true</code> if the color mixing method is supported
     */
-   public void setColorMixing(ColorMixing cmix);  
-   
-   // FINISH
-   public ColorMixing getColorMixing();
-   
-   /**
-    * Specify method for combining texture color with underlying material color
-    * @param tmix
-    */
-   public void setTextureMixing(ColorMixing tmix);
-   
-   public ColorMixing getTextureMixing();
+   public boolean hasColorMixing (ColorMixing cmix);
 
-   // FINISH: remove this, replace with setDefaultShading()
-   public void restoreShading (RenderProps props);
+   /**
+    * Returns the method used for combining vertex coloring and material
+    * coloring.
+    *
+    * @return current color mixing method
+    */
+   public ColorMixing getColorMixing();
+
+   /**
+    * Sets the method used for combining vertex coloring and material coloring.
+    * This Renderer may not support all methods. If a method is not supported,
+    * then the color mixing method will remain unchanged.  Applications can use
+    * {@link #hasColorMixing} to test whether a method is suuported.
+    *
+    * @param cmix new color mixing method
+    */
+   public void setColorMixing (ColorMixing cmix); 
+   
+   /**
+    * Queries whether or not a specified method for combining textures
+    * and material coloring is supported by this Renderer.
+    *
+    * @return <code>true</code> if the texture mixing method is supported
+    */
+   public boolean hasTextureMixing (ColorMixing cmix);
+
+   /**
+    * Returns the method used for combining textures and material coloring.
+    *
+    * @return current texture mixing method
+    */
+    public ColorMixing getTextureMixing();
+
+   /**
+    * Sets the method used for combining textures and material coloring.
+    * This Renderer may not support all methods. If a method is not supported,
+    * then the texture mixing method will remain unchanged.  Applications can 
+    * use {@link #hasTextureMixing} to test whether a method is suuported.
+    *
+    * @param tmix new texture mixing method
+    */
+   public void setTextureMixing (ColorMixing tmix);
 
    /**
     * Returns the current shading model used by this renderer. A shading model
-    * of {@link Shading.NONE} turns off lighting and causes primitives to be
+    * of {@link Shading#NONE} turns off lighting and causes primitives to be
     * rendered in solid colors, using the current diffuse color.
     *
     * @return current shading model
     */
-   public Shading getShadeModel();
+   public Shading getShading();
 
    /**
     * Sets the shading model used by this renderer. The default value is {@link
     * Shading#FLAT}, in which one normal is used per primitive.  A shading
-    * model of {@link Shading.NONE} turns off lighting and causes primitives to
+    * model of {@link Shading#NONE} turns off lighting and causes primitives to
     * be rendered in solid colors, using the current diffuse color.
     *
     * @param shading new shading model to be used
     */
-   public void setShadeModel (Shading shading);
+   public void setShading (Shading shading);
 
    /**
     * Sets the default shading model for this renderer, which is
     * {@link Shading#FLAT}.
     */
-   public void setDefaultShadeModel ();
+   public void setDefaultShading ();
 
    /**
     * Returns <code>true</code> if lighting is currently enabled.
@@ -362,7 +425,7 @@ public interface Renderer {
 
    /**
     * Enables or disables lighting. Disabling lighting is equivalent
-    * in effect to setting shading to {@link Shading.NONE}. However,
+    * in effect to setting shading to {@link Shading#NONE}. However,
     * disabling the lighting does not affect the current shading
     * value, which takes effect again as soon as lighting is re-enabled.
     *
@@ -376,7 +439,7 @@ public interface Renderer {
     * Draws a single point located at <code>pnt</code> in model coordinates,
     * using the current point size, material, and shading. Since no normal is
     * specified, this method should generally be called with either lighting
-    * disabled or with shading set to {@link Shading.NONE}.
+    * disabled or with shading set to {@link Shading#NONE}.
     *
     * @param pnt location of the point
     */
@@ -421,7 +484,7 @@ public interface Renderer {
     * Draws a single line between two points in model coordinates,
     * using the current line width, material, and shading. Since no normal are
     * specified, this method should generally be called with either lighting
-    * disabled or with shading set to {@link Shading.NONE}.
+    * disabled or with shading set to {@link Shading#NONE}.
     * 
     * @param pnt0 first point
     * @param pnt1 second point
@@ -774,8 +837,10 @@ public interface Renderer {
       RenderProps props, Iterable<float[]> pntList, 
       LineStyle style, boolean isSelected);   
 
+   // FINISH: remove??
    public boolean isTransparencyEnabled();
 
+   //FINISH: remove??
    public void setTransparencyEnabled (boolean enable);
 
    // public void drawXYGrid (double size, int numcells);
@@ -994,7 +1059,7 @@ public interface Renderer {
     * is enabled, causes the diffuse and ambient colors to be set to the
     * selection color.
     */
-   public void setPointLighting (RenderProps props, boolean selected);
+   public void setPointColoring (RenderProps props, boolean selected);
    
    /**
     * Sets the front diffuse and ambient colors to the line color in
@@ -1018,8 +1083,9 @@ public interface Renderer {
     * is enabled, causes the diffuse and ambient colors to be set to the
     * selection color.
     */
-   public void setLineLighting (RenderProps props, boolean selected);
+   public void setLineColoring (RenderProps props, boolean selected);
    
+   // FINISH: remove?
    /**
     * Sets the front diffuse and ambient colors to the edge color in
     * <code>props</code>, or to the selection color if <code>selected</code> is
@@ -1043,7 +1109,7 @@ public interface Renderer {
     * is enabled, causes the diffuse and ambient colors to be set to the
     * selection color.
     */
-   public void setEdgeLighting (RenderProps props, boolean selected);
+   public void setEdgeColoring (RenderProps props, boolean selected);
 
    /**
     * Sets the front and back diffuse and ambient colors to the face color
@@ -1068,7 +1134,7 @@ public interface Renderer {
     * is enabled, causes the diffuse and ambient colors to be set to the
     * selection color.
     */
-   public void setFaceLighting (RenderProps props, boolean selected);
+   public void setFaceColoring (RenderProps props, boolean selected);
    
    /**
     * Sets the front and back diffuse and ambient colors to
@@ -1096,7 +1162,7 @@ public interface Renderer {
     * is enabled, causes the diffuse and ambient colors to be set to the
     * selection color.
     */
-   public void setFaceLighting (
+   public void setFaceColoring (
       RenderProps props, float[] frontRgba, boolean selected);
       
    /**
@@ -1124,7 +1190,7 @@ public interface Renderer {
     * is enabled, causes the diffuse and ambient colors to be set to the
     * selection color.
     */
-   public void setPropsMaterial (
+   public void setPropsColoring (
       RenderProps props, float[] frontRgba, boolean selected);
 
    /**
@@ -1134,8 +1200,9 @@ public interface Renderer {
     * otherwise, it is set to <code>props.getShading()</code>.
     * 
     * @param props properties giving the shading and point style
+    * @return the previous shading setting
     */
-   public void setPointShading (RenderProps props);
+   public Shading setPointShading (RenderProps props);
    
    /**
     * Sets the shading appropriate to the line style specified in
@@ -1144,15 +1211,25 @@ public interface Renderer {
     * otherwise, it is set to <code>props.getShading()</code>.
     * 
     * @param props properties giving the shading and line style
+    * @return the previous shading setting
     */
-   public void setLineShading (RenderProps props);
+   public Shading setLineShading (RenderProps props);
    
-   // XXX will these be in use?
-   public void setMaterial (Material material, boolean selected);
+   /**
+    * Sets the shading to that shading specified by
+    * <code>props.getShading()</code>.
+    * 
+    * @param props properties giving the shading
+    * @return the previous shading setting
+    */
+   public Shading setPropsShading (RenderProps props);
    
-   // USED ONLY IN GLViewer and GLXViewer
-   public void setMaterial (Material material, float[] diffuseColor,
-      boolean selected);
+//   // XXX will these be in use?
+//   public void setMaterial (Material material, boolean selected);
+   
+//   // USED ONLY IN GLViewer and GLXViewer
+//   public void setMaterial (Material material, float[] diffuseColor,
+//      boolean selected);
    
 //   // NOT USED
 //   public void setMaterial (Material frontMaterial, float[] frontDiffuse,
@@ -1279,7 +1356,7 @@ public interface Renderer {
     * @param robj render object
     * @param mode
     */
-   public void drawVertices (RenderObject robj, VertexDrawMode mode);
+   public void drawVertices (RenderObject robj, DrawMode mode);
    
    /**
     * Draw all currently active groups of points, lines, and triangles in the
@@ -1479,9 +1556,10 @@ public interface Renderer {
     * generated for <code>qid</code>.
     *
     * If called within the <code>render</code> method for a {@link
-    * maspack.render.GL.GLSelectable}, then <code>qid</code> must lie in the range
-    * 0 to <code>numq</code>-1, where <code>numq</code> is the value returned
-    * by {@link maspack.render.GL.GLSelectable#numSelectionQueriesNeeded
+    * maspack.render.GL.GLSelectable}, then <code>qid</code> must lie in the 
+    * range 0 to <code>numq</code>-1, where <code>numq</code> is the value 
+    * returned by 
+    * {@link maspack.render.GL.GLSelectable#numSelectionQueriesNeeded
     * GLSelectable.numSelectionQueriesNeeded()}.  Selection queries cannot be
     * nested, and a given query identifier should be used only once.
     *
@@ -1567,7 +1645,7 @@ public interface Renderer {
     * @param mode specifies the primitive to be built while in draw mode.
     * @throws IllegalStateException if the renderer is currently in draw mode
     */
-   public void beginDraw (VertexDrawMode mode);
+   public void beginDraw (DrawMode mode);
 
    /**
     * Adds a vertex to a primitive being drawn while in draw mode. 

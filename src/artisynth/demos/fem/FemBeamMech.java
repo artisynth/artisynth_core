@@ -15,6 +15,7 @@ import maspack.matrix.*;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.render.*;
+import maspack.render.Renderer;
 import maspack.util.*;
 import maspack.widgets.DoubleFieldSlider;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
@@ -90,7 +91,7 @@ public class FemBeamMech extends RootModel {
       RenderProps.setLineWidth (elems, 2);
       RenderProps.setLineColor (elems, Color.BLUE);
       Renderable nodes = myFemMod.getNodes();
-      RenderProps.setPointStyle (nodes, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (nodes, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (nodes, 0.005);
       RenderProps.setPointColor (nodes, Color.GREEN);
       // fix the leftmost nodes
@@ -143,19 +144,19 @@ public class FemBeamMech extends RootModel {
       if (cornerElem != null) {
          FemMarker mkr = new FemMarker (0.3, -0.07, -0.03);
          myFemMod.addMarker (mkr, cornerElem);
-         RenderProps.setPointStyle (mkr, RenderProps.PointStyle.SPHERE);
+         RenderProps.setPointStyle (mkr, Renderer.PointStyle.SPHERE);
          RenderProps.setPointRadius (mkr, 0.01);
          RenderProps.setPointColor (mkr, Color.WHITE);
 
          Particle part = new Particle (1, 0.5, -0.07, -0.03);
-         RenderProps.setPointStyle (part, RenderProps.PointStyle.SPHERE);
+         RenderProps.setPointStyle (part, Renderer.PointStyle.SPHERE);
          RenderProps.setPointRadius (part, 0.01);
          part.setDynamic (false);
          myMechMod.addParticle (part);
 
          AxialSpring spr = new AxialSpring (1000, 0, 0);
          myMechMod.attachAxialSpring (part, mkr, spr);
-         RenderProps.setLineStyle (spr, RenderProps.LineStyle.ELLIPSOID);
+         RenderProps.setLineStyle (spr, Renderer.LineStyle.ELLIPSOID);
          RenderProps.setLineRadius (spr, 0.01);
          RenderProps.setLineColor (spr, Color.GREEN);
          

@@ -4,6 +4,7 @@ import maspack.geometry.*;
 import maspack.spatialmotion.*;
 import maspack.matrix.*;
 import maspack.render.*;
+import maspack.render.Renderer;
 import maspack.util.*;
 import artisynth.core.mechmodels.*;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
@@ -78,7 +79,7 @@ public class ArticulatedBeamBody extends RootModel {
       props = mk0.createRenderProps();
       // props.setColor (Color.GREEN);
       props.setPointRadius (0.1);
-      props.setPointStyle (RenderProps.PointStyle.SPHERE);
+      props.setPointStyle (Renderer.PointStyle.SPHERE);
       mk0.setRenderProps (props);
       //mechMod.addFrameMarker (mk0, myBase, new Point3d (lenx0 / 2, leny0 / 2, 0));
 
@@ -274,7 +275,7 @@ public class ArticulatedBeamBody extends RootModel {
 
 
       RenderProps.setPointColor (mechMod, Color.BLUE);
-      RenderProps.setPointStyle (mechMod, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (mechMod, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (mechMod, 0.05);
 
       if (!useLink2) {

@@ -42,6 +42,7 @@ import maspack.render.Dragger3dAdapter;
 import maspack.render.Dragger3dEvent;
 import maspack.render.MouseRayEvent;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.render.Transrotator3d;
 import maspack.render.GL.GLViewer;
 import maspack.util.InternalErrorException;
@@ -445,7 +446,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
       
       PolygonalMesh mesh = fem.getSurfaceMesh();      
       RenderProps props = mesh.createRenderProps();
-      props.setFaceStyle (RenderProps.Faces.NONE);
+      props.setFaceStyle (Renderer.Faces.NONE);
       props.setDrawEdges (true);
       props.setLineColor (Color.LIGHT_GRAY);
       mesh.setRenderProps (props);

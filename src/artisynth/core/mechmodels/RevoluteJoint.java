@@ -23,6 +23,7 @@ import maspack.matrix.VectorNd;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
+import maspack.render.Renderer.LineStyle;
 import maspack.render.RenderProps;
 import maspack.spatialmotion.RevoluteCoupling;
 import maspack.util.DoubleInterval;
@@ -44,7 +45,7 @@ public class RevoluteJoint extends JointBase
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createPointLineProps (host);
       props.setLineColor (Color.BLUE);
-      props.setLineStyle (RenderProps.LineStyle.CYLINDER);
+      props.setLineStyle (LineStyle.CYLINDER);
       return props;
    }
 

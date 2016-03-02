@@ -17,7 +17,6 @@ import maspack.properties.PropertyList;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.RenderablePoint;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponentBase;
@@ -26,7 +25,7 @@ import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScalableUnits;
 
 public class VertexComponent extends RenderableComponentBase implements 
-   RenderablePoint, TransformableGeometry, ScalableUnits {
+   TransformableGeometry, ScalableUnits {
    Vertex3d myVertex;
    float[] myRenderCoords = new float[3];
    
@@ -113,7 +112,6 @@ public class VertexComponent extends RenderableComponentBase implements
       // nothing
    }
 
-   @Override
    public float[] getRenderCoords() {
       return myRenderCoords;
    }

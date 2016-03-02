@@ -24,7 +24,9 @@ import maspack.render.DiffuseTextureProps;
 import maspack.render.NormalTextureProps;
 import maspack.render.NormalTextureProps.NormalMode;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.render.Renderer.ColorMixing;
+import maspack.render.Renderer.Shading;
 import maspack.util.ArraySupport;
 import maspack.util.ReaderTokenizer;
 import maspack.util.TestSupport;
@@ -1141,8 +1143,8 @@ public class WavefrontReader extends MeshReaderBase {
          String map = rtok.scanWord();
          if (map != null) {
             // set texture properties
-            props.setFaceStyle(RenderProps.Faces.FRONT_AND_BACK);
-            props.setShading(RenderProps.Shading.GOURAUD);
+            props.setFaceStyle(Renderer.Faces.FRONT_AND_BACK);
+            props.setShading(Shading.GOURAUD);
             DiffuseTextureProps tprops = props.getDiffuseTextureProps ();
             if (tprops == null) {
                tprops = new DiffuseTextureProps();
@@ -1166,8 +1168,8 @@ public class WavefrontReader extends MeshReaderBase {
          String map = rtok.scanWord();
          if (map != null) {
             // set texture properties
-            props.setFaceStyle(RenderProps.Faces.FRONT_AND_BACK);
-            props.setShading(RenderProps.Shading.GOURAUD);
+            props.setFaceStyle(Renderer.Faces.FRONT_AND_BACK);
+            props.setShading(Shading.GOURAUD);
             NormalTextureProps tprops = props.getNormalTextureProps ();
             if (tprops == null) {
                tprops = new NormalTextureProps();

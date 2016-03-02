@@ -28,7 +28,7 @@ import maspack.render.DrawToolEvent;
 import maspack.render.DrawToolListener;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.GL.GLRenderableBase;
 import maspack.render.GL.GLViewer;
 import maspack.util.IndentingPrintWriter;
@@ -84,7 +84,7 @@ public class NURBSCurve2dTest implements DrawToolListener {
 
          renderer.setLightingEnabled (false);
 
-         renderer.beginDraw (VertexDrawMode.LINES);        
+         renderer.beginDraw (DrawMode.LINES);        
          for (int i=0; i<myGrid.length; i++) {
             Vector2d g = myGrid[i];
             Vector2d n = myNear[i];
@@ -103,7 +103,7 @@ public class NURBSCurve2dTest implements DrawToolListener {
 
          renderer.setColor (1f, 1f, 1f);
          renderer.setPointSize (2);
-         renderer.beginDraw (VertexDrawMode.POINTS);        
+         renderer.beginDraw (DrawMode.POINTS);        
          for (int i=0; i<myGrid.length; i++) {
             Vector2d g = myGrid[i];
             Vector2d n = myNear[i];

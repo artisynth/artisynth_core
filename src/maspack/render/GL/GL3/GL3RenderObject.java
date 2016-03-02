@@ -13,7 +13,7 @@ import maspack.render.RenderObject.RenderObjectIdentifier;
 import maspack.render.RenderObject.RenderObjectState;
 import maspack.render.RenderObject.RenderObjectVersion;
 import maspack.render.RenderObject.VertexIndexSet;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.GL.GL3.GL3Object.DrawType;
 
 //=====================================================================================================================
@@ -194,7 +194,7 @@ public class GL3RenderObject extends GL3ResourceBase implements GL3Drawable {
       glos[gloIndex].draw(gl); 
    }
 
-   private int getGLMode(VertexDrawMode mode) {
+   private int getGLMode(DrawMode mode) {
       switch (mode) {
          case LINES:
             return GL.GL_LINES;
@@ -215,7 +215,7 @@ public class GL3RenderObject extends GL3ResourceBase implements GL3Drawable {
       throw new RuntimeException("Unknown mode: " + mode);
    }
 
-   public void drawVertices(GL3 gl, VertexDrawMode mode) {
+   public void drawVertices(GL3 gl, DrawMode mode) {
       if (!isValid() || nVertices == 0) {
          return;
       }

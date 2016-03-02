@@ -25,6 +25,7 @@ import maspack.matrix.Vector3d;
 import maspack.matrix.Matrix3d;
 import maspack.properties.HasProperties;
 import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
@@ -1227,7 +1228,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
             myVertices.get (i).saveRenderInfo();
          }
       }
-      if (props.getShading() != RenderProps.Shading.FLAT) {
+      if (props.getShading() != Shading.FLAT) {
          if (maybeRebuildVertexRenderNormals() || !isFixed()) {
             updateVertexRenderNormals();
          }

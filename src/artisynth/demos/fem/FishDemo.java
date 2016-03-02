@@ -21,6 +21,7 @@ import artisynth.core.workspace.RootModel;
 import maspack.properties.PropertyDesc;
 import maspack.properties.PropertyList;
 import maspack.render.*;
+import maspack.render.Renderer;
 import maspack.spatialmotion.SpatialInertia;
 import artisynth.core.driver.*;
 
@@ -71,7 +72,7 @@ public class FishDemo extends RootModel {
       RigidBody collisionbody0 = new RigidBody();
       collisionbody0.setDynamic (false);
       RenderProps.setFaceStyle (
-         collisionbody0, RenderProps.Faces.FRONT_AND_BACK);
+         collisionbody0, Renderer.Faces.FRONT_AND_BACK);
 
       try {
          collisionbody0.setMesh (new PolygonalMesh (new File (rbpath
@@ -91,11 +92,11 @@ public class FishDemo extends RootModel {
          new PointToPointMuscle ("fem1", myDensity, 0.2, "muscle", true);
 
       RenderProps.setPointStyle (
-         collisionbody2.markers(), RenderProps.PointStyle.SPHERE);
+         collisionbody2.markers(), Renderer.PointStyle.SPHERE);
       RenderProps.setPointColor (collisionbody2.markers(), new Color (
          0.5f, 0.5f, 1f));
       RenderProps.setLineStyle (
-         collisionbody2.getMuscleBundles(), RenderProps.LineStyle.ELLIPSOID);
+         collisionbody2.getMuscleBundles(), Renderer.LineStyle.ELLIPSOID);
       RenderProps.setLineRadius (collisionbody2.getMuscleBundles(), 0.05);
 
       collisionbody2.clearMuscleBundles();
@@ -110,7 +111,7 @@ public class FishDemo extends RootModel {
       p.setFaceColor (Color.RED);
       p.setLineColor (Color.WHITE);
       p.setLineWidth (1);
-      p.setFaceStyle (RenderProps.Faces.FRONT_AND_BACK);
+      p.setFaceStyle (Renderer.Faces.FRONT_AND_BACK);
       // myMechMod.addModel(collisionbody1);
       myMechMod.addModel (collisionbody2);
       collisionbody2.setRenderProps (p);

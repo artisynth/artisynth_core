@@ -17,6 +17,7 @@ import maspack.matrix.Vector3d;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
+import maspack.render.Renderer;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.femmodels.FemFactory;
 import artisynth.core.femmodels.FemModel3d;
@@ -85,7 +86,7 @@ public class FemCollision extends RootModel {
                new Vector3d (1, 0, 0.8077474533228615),
                new AxisAngle (1, 0, 0, Math.toRadians (mu == 0 ? 0.0 : 1.5))));
          if (wireFrame) {
-            RenderProps.setFaceStyle (table, RenderProps.Faces.NONE);
+            RenderProps.setFaceStyle (table, Renderer.Faces.NONE);
             RenderProps.setDrawEdges (table, true);
          }
          mechmod.addRigidBody (table);
@@ -103,7 +104,7 @@ public class FemCollision extends RootModel {
                new Vector3d (-0.5, 0, 3.5), new AxisAngle()));
             RenderProps.setFaceColor (box0, Color.GREEN.darker());
             if (wireFrame) {
-               RenderProps.setFaceStyle (box0, RenderProps.Faces.NONE);
+               RenderProps.setFaceStyle (box0, Renderer.Faces.NONE);
                RenderProps.setDrawEdges (box0, true);
             }
             mechmod.addRigidBody (box0);
@@ -224,7 +225,7 @@ public class FemCollision extends RootModel {
 //      fem.setPoissonsRatio (myPoissonsRatio);
 //      fem.setYoungsModulus (myYoungsModulus);
       fem.setLinearMaterial (myYoungsModulus, myPoissonsRatio, true);
-      RenderProps.setPointStyle (fem, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (fem, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (fem, mySize / 50);
       return fem;
    }

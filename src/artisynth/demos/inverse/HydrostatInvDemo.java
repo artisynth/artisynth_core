@@ -7,7 +7,8 @@ import java.util.ArrayList;
 
 import maspack.properties.PropertyMode;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Faces;
+import maspack.render.Renderer;
+import maspack.render.Renderer.Faces;
 import artisynth.core.femmodels.MuscleBundle;
 import artisynth.core.gui.FemControlPanel;
 import artisynth.core.inverse.TrackingController;

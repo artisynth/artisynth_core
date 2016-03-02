@@ -6,8 +6,6 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
-import artisynth.core.mechmodels.MotionTargetComponent;
-import artisynth.core.mechmodels.PointTarget;
 import maspack.fileutil.FileCacher;
 import maspack.fileutil.uri.URIx;
 import maspack.geometry.Face;
@@ -20,17 +18,16 @@ import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
-import maspack.render.Material;
 import maspack.render.RenderList;
 import maspack.render.RenderObject;
-import maspack.render.RenderObject.BuildMode;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.RenderObjectFactory;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Faces;
-import maspack.render.RenderProps.LineStyle;
-import maspack.render.RenderProps.PointStyle;
-import maspack.render.RenderProps.Shading;
 import maspack.render.Renderer;
+import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.LineStyle;
+import maspack.render.Renderer.PointStyle;
+import maspack.render.Renderer.Shading;
 import maspack.render.Transrotator3d;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.test.MultiViewer.SimpleSelectable;
@@ -102,7 +99,7 @@ public class MultiViewerTesterBase {
    protected static void addAxes(MultiViewer tester) {
       // axes
       RenderObject axes = new RenderObject();
-      axes.beginBuild(BuildMode.LINES);
+      axes.beginBuild(DrawMode.LINES);
       axes.color(255, 0, 0, 255);
       axes.vertex(0, 0, 0);
       axes.vertex(1, 0, 0);
@@ -185,7 +182,7 @@ public class MultiViewerTesterBase {
       rprops.setFaceColor(Color.WHITE.darker());
       rprops.setBackColor(Color.BLUE);
       rprops.setLineColor(Color.ORANGE);
-      rprops.setFaceColorSpecular(Color.WHITE);
+      rprops.setSpecular(Color.WHITE);
       rprops.setShininess(1000);
       rprops.setPointSlices(24);
       rprops.setLineSlices(24);
@@ -232,7 +229,7 @@ public class MultiViewerTesterBase {
       rprops.setBackColor(Color.MAGENTA.darker());
       rprops.setLineColor(Color.ORANGE);
       rprops.setPointColor(Color.PINK);
-      rprops.setFaceColorSpecular(Color.WHITE);
+      rprops.setSpecular(Color.WHITE);
       rprops.setShininess(1000);
       rprops.setPointSlices(24);
       rprops.setLineSlices(24);
@@ -271,7 +268,7 @@ public class MultiViewerTesterBase {
       rprops.setFaceStyle(Faces.FRONT_AND_BACK);
       rprops.setShading(Shading.PHONG);
       rprops.setBackColor(Color.MAGENTA.darker());
-      rprops.setFaceColorSpecular(Color.WHITE);
+      rprops.setSpecular(Color.WHITE);
       rprops.setShininess(1000);
 
       if (bunny != null) {
@@ -383,7 +380,8 @@ public class MultiViewerTesterBase {
          GLViewer viewer = (GLViewer)renderer;
 
          renderer.setFaceMode(props.getFaceStyle());
-         renderer.setFaceLighting (props, selected);
+         renderer.setPropsShading (props);
+         renderer.setFaceColoring (props, selected);
 
          if (trans != null) {
             viewer.pushModelMatrix();
@@ -406,7 +404,8 @@ public class MultiViewerTesterBase {
          float depthOffInc = -1e-4f;
 
          if (myRO.hasLines()) {
-            renderer.setEdgeLighting (props, selected);
+            renderer.setLineShading (props);
+            renderer.setLineColoring (props, selected);
             LineStyle lstyle = props.getLineStyle();
             if (lstyle == LineStyle.LINE) {
                if (didFlatDraw) {
@@ -422,7 +421,8 @@ public class MultiViewerTesterBase {
          }
 
          if (myRO.hasPoints()) {
-            renderer.setPointLighting (props, selected);
+            renderer.setPointShading (props);
+            renderer.setPointColoring (props, selected);
             PointStyle pstyle = props.getPointStyle();
             if (pstyle == PointStyle.POINT) {
                if (didFlatDraw) {

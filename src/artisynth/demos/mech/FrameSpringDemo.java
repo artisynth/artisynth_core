@@ -94,7 +94,7 @@ public class FrameSpringDemo extends RootModel {
       XDB.mulInverseLeft (bodyB.getPose(), TDW);
       TCA.mulInverseLeft (bodyA.getPose(), TDW);
       RevoluteJoint joint = new RevoluteJoint (bodyA, TCA, bodyB, XDB);
-      RenderProps.setLineStyle (joint, RenderProps.LineStyle.CYLINDER);
+      RenderProps.setLineStyle (joint, Renderer.LineStyle.CYLINDER);
       RenderProps.setLineColor (joint, Color.BLUE);
       RenderProps.setLineRadius (joint, 0.025);
       joint.setAxisLength (0.05);
@@ -112,7 +112,7 @@ public class FrameSpringDemo extends RootModel {
       XDB.mulInverseLeft (bodyB.getPose(), TDW);
       TCA.mulInverseLeft (bodyA.getPose(), TDW);
       SphericalJoint joint = new SphericalJoint (bodyA, TCA, bodyB, XDB);
-      RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (joint, Renderer.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.025);
       joint.setAxisLength (0.05);
@@ -128,7 +128,7 @@ public class FrameSpringDemo extends RootModel {
       XDB.mulInverseLeft (bodyB.getPose(), TDW);
       TCA.mulInverseLeft (bodyA.getPose(), TDW);
       SphericalJoint joint = new SphericalJoint (bodyA, TCA, bodyB, XDB);
-      RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (joint, Renderer.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.025);
       joint.setAxisLength (0.05);

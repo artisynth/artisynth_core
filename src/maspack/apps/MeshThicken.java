@@ -58,7 +58,7 @@ import maspack.render.RenderListener;
 import maspack.render.RenderProps;
 import maspack.render.RenderableBase;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.GL.GLSelectionEvent;
 import maspack.render.GL.GLSelectionListener;
 import maspack.util.IndentingPrintWriter;
@@ -134,7 +134,7 @@ public class MeshThicken extends ViewerFrame
       public RenderProps createRenderProps() {
          RenderProps props = new RenderProps();
          props.setFaceColor (new Color(0.5f, 0.5f, 1f));
-         props.setFaceStyle (RenderProps.Faces.FRONT_AND_BACK);
+         props.setFaceStyle (Renderer.Faces.FRONT_AND_BACK);
          return props;
       }
 
@@ -388,7 +388,7 @@ public class MeshThicken extends ViewerFrame
          renderer.mulModelMatrix (X);
 
          //draw the curve itself
-         renderer.setMaterial (props.getFaceMaterial(), mySelectedP);
+         renderer.setFaceColoring (props, mySelectedP);
 
          double len = myCurve.computeControlPolygonLength();
          double res = myResolution*renderer.distancePerPixel (X.p);
@@ -404,7 +404,7 @@ public class MeshThicken extends ViewerFrame
 
          renderer.setFaceMode (props.getFaceStyle());
 
-         renderer.beginDraw (VertexDrawMode.TRIANGLES);
+         renderer.beginDraw (DrawMode.TRIANGLES);
          double[] urange = new double[2];
          myCurve.getRange (urange);
          myCurve.eval (pnt0, urange[0]);
@@ -732,7 +732,7 @@ public class MeshThicken extends ViewerFrame
          }
          removeMesh();
          myMesh = mesh;
-         RenderProps.setFaceStyle (mesh, RenderProps.Faces.FRONT_AND_BACK);
+         RenderProps.setFaceStyle (mesh, Renderer.Faces.FRONT_AND_BACK);
          RenderProps.setBackColor (mesh, new Color (1f, 204/255f, 51/355f));
          viewer.addRenderable (myMesh);
          viewer.repaint();

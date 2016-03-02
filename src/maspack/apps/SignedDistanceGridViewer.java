@@ -7,35 +7,18 @@
 package maspack.apps;
 
 import java.awt.event.MouseEvent;
-import java.awt.Color;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.Reader;
-import java.util.Enumeration;
-import java.util.Hashtable;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.ArrayList;
 
 import javax.swing.event.MouseInputAdapter;
 
-import argparser.ArgParser;
-import argparser.BooleanHolder;
-import argparser.DoubleHolder;
-import argparser.IntHolder;
-import argparser.StringHolder;
 import maspack.geometry.SignedDistanceGridCell;
-import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
-import maspack.render.Material;
-import maspack.render.RenderProps;
 import maspack.render.GL.GLSelectionEvent;
 import maspack.render.GL.GLSelectionListener;
-import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewerFrame;
 
 public class SignedDistanceGridViewer extends GLViewerFrame {

@@ -2,20 +2,22 @@ package maspack.render;
 
 import java.util.List;
 
+import maspack.render.Renderer.DrawMode;
+
 public interface RenderObjectInterface {
 
-   /**
-    * During construction, allows automatic generation of primitives
-    */
-   public enum BuildMode {
-      POINTS,
-      LINES,
-      LINE_STRIP,
-      LINE_LOOP,
-      TRIANGLES,
-      TRIANGLE_STRIP,
-      TRIANGLE_FAN
-   }
+//   /**
+//    * During construction, allows automatic generation of primitives
+//    */
+//   public enum BuildMode {
+//      POINTS,
+//      LINES,
+//      LINE_STRIP,
+//      LINE_LOOP,
+//      TRIANGLES,
+//      TRIANGLE_STRIP,
+//      TRIANGLE_FAN
+//   }
    
    /**
     * Used for uniquely identifying a RenderObject, and checking
@@ -899,14 +901,14 @@ public interface RenderObjectInterface {
     * complete after a call to {@link #endBuild()}.
     * @param mode mode for adding consecutive primitives
     */
-   public abstract void beginBuild(BuildMode mode);
+   public abstract void beginBuild(DrawMode mode);
 
    /**
     * End automatically building primitives.
     */
    public abstract void endBuild();
 
-   public abstract BuildMode getBuildMode();
+   public abstract DrawMode getBuildMode();
 
    /**
     * Creates a point primitive at the supplied vertex.

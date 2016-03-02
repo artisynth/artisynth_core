@@ -4,6 +4,7 @@ import maspack.geometry.*;
 import maspack.spatialmotion.*;
 import maspack.matrix.*;
 import maspack.render.*;
+import maspack.render.Renderer;
 import maspack.util.*;
 import artisynth.core.mechmodels.*;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
@@ -94,7 +95,7 @@ public class BeamBodyCollide extends RootModel {
       props = mk0.createRenderProps();
       // props.setColor (Color.GREEN);
       props.setPointRadius (0.1);
-      props.setPointStyle (RenderProps.PointStyle.SPHERE);
+      props.setPointStyle (Renderer.PointStyle.SPHERE);
       mk0.setRenderProps (props);
 
       double ks = 10;
@@ -115,7 +116,7 @@ public class BeamBodyCollide extends RootModel {
       myMech.addRigidBody (base);
 
       RenderProps.setPointColor (myMech, Color.BLUE);
-      RenderProps.setPointStyle (myMech, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (myMech, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (myMech, 0.05);
 
       addControlPanel (myMech);

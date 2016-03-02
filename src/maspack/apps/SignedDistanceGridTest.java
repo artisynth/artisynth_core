@@ -15,7 +15,7 @@ import maspack.geometry.PolygonalMesh;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.SignedDistanceGrid;
 import maspack.render.*;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.GL.GLSelectable;
 import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLViewer;
@@ -66,7 +66,7 @@ public class SignedDistanceGridTest {
       Vector3d cellDivisions = new Vector3d (25.0, 25.0, 25.0);
       
       RenderProps meshRenderProps = new RenderProps();
-      meshRenderProps.setFaceStyle (RenderProps.Faces.BACK);
+      meshRenderProps.setFaceStyle (Renderer.Faces.BACK);
       boxMesh.setRenderProps (meshRenderProps);
       
 //      SignedDistanceGrid boxGrid = 

@@ -16,12 +16,11 @@ import maspack.geometry.MeshBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.Material;
 import maspack.render.PointRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Shading;
 import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
 import maspack.render.GL.GL2.DisplayListKey;
 import maspack.render.GL.GL2.GL2Viewer;
 import artisynth.core.modelbase.RenderableComponentList;
@@ -134,12 +133,12 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       Shading shading = props.getShading();
       if (!renderer.isSelecting()) {
          if (shading != Shading.NONE) {
-            renderer.setFaceLighting (props, isSelected());
+            renderer.setFaceColoring (props, isSelected());
          }
       }
 
-      if (props.getFaceStyle() != RenderProps.Faces.NONE) {
-         RenderProps.Shading savedShadeModel = renderer.getShadeModel();
+      if (props.getFaceStyle() != Renderer.Faces.NONE) {
+         Shading savedShadeModel = renderer.getShading();
 
          if (shading == Shading.NONE) {
             renderer.setLightingEnabled (false);
@@ -147,10 +146,10 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
          }
          else if (((shading != Shading.FLAT) || useVertexColouring) &&
             !renderer.isSelecting()) {
-            renderer.setShadeModel (RenderProps.Shading.GOURAUD);
+            renderer.setShading (Shading.GOURAUD);
          }
          else { // shading == Shading.FLAT
-            renderer.setShadeModel (RenderProps.Shading.FLAT);
+            renderer.setShading (Shading.FLAT);
          }
 
          if (props.getDrawEdges()) {
@@ -200,11 +199,11 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
          if (shading == Shading.NONE) {
             renderer.setLightingEnabled (true);
          }
-         renderer.setShadeModel (savedShadeModel);
+         renderer.setShading (savedShadeModel);
       }
 
       if (!renderer.isSelecting()) {
-         if (props.getBackMaterial() != null) {
+         if (props.getBackColorArray() != null) {
             gl.glLightModelf (GL2.GL_LIGHT_MODEL_TWO_SIDE, 1f);
          }
       }
@@ -213,7 +212,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
 
          boolean reenableLighting = false;
          float savedLineWidth = renderer.getLineWidth();
-         RenderProps.Shading savedShadeModel = renderer.getShadeModel();
+         Shading savedShadeModel = renderer.getShading();
 
          renderer.setLineWidth (props.getLineWidth());
 
@@ -223,10 +222,10 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
             renderer.setColor (props.getLineColorArray(), isSelected()); 
          }
          if (useVertexColouring && !renderer.isSelecting()) {
-            renderer.setShadeModel (RenderProps.Shading.GOURAUD);
+            renderer.setShading (Shading.GOURAUD);
          }
          else {
-            renderer.setShadeModel (RenderProps.Shading.FLAT);
+            renderer.setShading (Shading.FLAT);
          }
 
          boolean useDisplayList = !renderer.isSelecting();
@@ -263,7 +262,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
             renderer.setLightingEnabled (true);
          }
          renderer.setLineWidth (savedLineWidth);
-         renderer.setShadeModel (savedShadeModel);
+         renderer.setShading (savedShadeModel);
       }
       
       gl.glPopMatrix();
@@ -322,9 +321,9 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       gl.glGetBooleanv (GL2.GL_CULL_FACE, savedCullFaceEnabled, 0);
       gl.glGetIntegerv (GL2.GL_CULL_FACE_MODE, savedCullFaceMode, 0);
 
-      RenderProps.Faces faces = props.getFaceStyle();
-      if (props.getDrawEdges() && faces == RenderProps.Faces.NONE) {
-         faces = RenderProps.Faces.FRONT_AND_BACK;
+      Renderer.Faces faces = props.getFaceStyle();
+      if (props.getDrawEdges() && faces == Renderer.Faces.NONE) {
+         faces = Renderer.Faces.FRONT_AND_BACK;
       }
       switch (faces) {
          case FRONT_AND_BACK: {
@@ -407,7 +406,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
                if (!isSelected()) {
                   // set selection color for individual faces as needed
                   if (fc.isSelected() != lastSelected) {
-                     renderer.setFaceLighting (props, fc.isSelected());
+                     renderer.setFaceColoring (props, fc.isSelected());
                      lastSelected = fc.isSelected();
                   }
                }

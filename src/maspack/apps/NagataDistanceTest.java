@@ -20,7 +20,7 @@ import maspack.render.HasRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLViewer;
 
@@ -164,7 +164,7 @@ public class NagataDistanceTest implements GLRenderable, HasRenderProps {
             }
          }
       }
-      RenderProps.setFaceStyle (myFineMesh, RenderProps.Faces.FRONT_AND_BACK);
+      RenderProps.setFaceStyle (myFineMesh, Renderer.Faces.FRONT_AND_BACK);
 
       myInterp.setBoundsForCurve (myCurveBounds, myCurvePos, myCurveDir);
    }
@@ -209,7 +209,7 @@ public class NagataDistanceTest implements GLRenderable, HasRenderProps {
       myInterp.interpolateVertex (pos0, myCurvePos.x, myCurvePos.y);
       myInterp.interpolateCurve (pos, xi0, pos0, myCurvePos, myCurveDir);
       renderer.setLightingEnabled (false);      
-      renderer.beginDraw (VertexDrawMode.LINE_STRIP);
+      renderer.beginDraw (DrawMode.LINE_STRIP);
       renderer.setColor (1f, 1f, 0f);
       renderer.addVertex (pos);
       for (int i=0; i<nsegs; i++) {

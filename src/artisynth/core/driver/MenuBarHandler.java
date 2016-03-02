@@ -1335,12 +1335,12 @@ public class MenuBarHandler implements
       else if (cmd.equals("Disable articulated transforms")) {
          myMain.setArticulatedTransformsEnabled(false);
       }
-      else if (cmd.equals("Enable GL_SELECT selection")) {
-         GL2Viewer.enableGLSelectSelection (true);
-      }
-      else if (cmd.equals("Disable GL_SELECT selection")) {
-         GL2Viewer.enableGLSelectSelection (false);
-      }
+//      else if (cmd.equals("Enable GL_SELECT selection")) {
+//         GL2Viewer.enableGLSelectSelection (true);
+//      }
+//      else if (cmd.equals("Disable GL_SELECT selection")) {
+//         GL2Viewer.enableGLSelectSelection (false);
+//      }
       else if (cmd.equals("PullController properties ...")) {
          showPullControllerPropertyDialog();
       }
@@ -1846,12 +1846,12 @@ public class MenuBarHandler implements
          addMenuItem(menu, "Enable articulated transforms");
       }
 
-      if (GL2Viewer.isGLSelectSelectionEnabled()) {
-         addMenuItem(menu, "Disable GL_SELECT selection");
-      }
-      else {
-         addMenuItem(menu, "Enable GL_SELECT selection");
-      }
+//      if (GL2Viewer.isGLSelectSelectionEnabled()) {
+//         addMenuItem(menu, "Disable GL_SELECT selection");
+//      }
+//      else {
+//         addMenuItem(menu, "Enable GL_SELECT selection");
+//      }
 
       JMenu submenu = new JMenu("Mouse Preferences");
       menu.add(submenu);

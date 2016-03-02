@@ -31,7 +31,6 @@ import maspack.properties.PropertyUtils;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.RenderablePoint;
 import maspack.render.RenderableUtils;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
@@ -46,7 +45,7 @@ import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScalableUnits;
 
 public class Point extends DynamicComponentBase
-   implements RenderablePoint, TransformableGeometry, ScalableUnits,
+   implements TransformableGeometry, ScalableUnits,
               DynamicComponent, Traceable, MotionTargetComponent, 
               CopyableComponent, CollidableDynamicComponent {
 

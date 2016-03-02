@@ -12,6 +12,7 @@ import maspack.properties.PropertyList;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLRenderable;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
@@ -103,7 +104,8 @@ public class MFreeAuxMaterialElementDescList
       
       //renderer.setMaterial (myRenderProps.getFaceMaterial(), false);
       if (widgetSize > 0) {
-         renderer.setFaceLighting (myRenderProps, false);
+         Shading savedShading = renderer.setPropsShading (myRenderProps);
+         renderer.setFaceColoring (myRenderProps, false);
          for (int i = 0; i < size(); i++) {
             MFreeAuxMaterialElementDesc desc = get (i);
             if (desc.getRenderProps() == null &&
@@ -116,13 +118,13 @@ public class MFreeAuxMaterialElementDescList
                   }
                }
                else {
-                  renderer.setFaceLighting (
+                  renderer.setFaceColoring (
                      myRenderProps, desc.myWidgetColor, desc.isSelected());
                   desc.myElement.renderWidget (renderer, myRenderProps, 0);
                }
             }
          }
-         renderer.restoreShading (myRenderProps);
+         renderer.setShading (savedShading);
       }
      
    }

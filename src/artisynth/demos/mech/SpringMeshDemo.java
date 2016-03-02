@@ -141,11 +141,11 @@ public class SpringMeshDemo extends RootModel {
       // X.R.setAxisAngle (1, 0, 0, -Math.PI/2);
       // viewer.setTransform (X);
 
-      RenderProps.setPointStyle (msmod, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (msmod, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (msmod, 2);
       RenderProps.setPointColor (msmod, Color.RED);
       RenderProps.setLineRadius (msmod, 0.5);
-      RenderProps.setLineStyle (msmod, RenderProps.LineStyle.CYLINDER);
+      RenderProps.setLineStyle (msmod, Renderer.LineStyle.CYLINDER);
 
       // PlaneCollider collider =
       // new PlaneCollider("plane",
@@ -153,13 +153,9 @@ public class SpringMeshDemo extends RootModel {
       // collider.setRenderPosition (new Point3d(0, 0, 0), 25);
       // collider.addMechModel (msmod);
 
-      Material gray = Material.createSpecial (Material.GRAY);
-      Material green = Material.createSpecial (Material.GREEN);
-      Material red = Material.createSpecial (Material.RED);
-
       RenderProps props = (new Particle()).createRenderProps();
       props.setPointRadius (2);
-      props.setPointStyle (RenderProps.PointStyle.SPHERE);
+      props.setPointStyle (Renderer.PointStyle.SPHERE);
       props.setPointColor (Color.GREEN);
 
       Particle p0 = new Particle (5, -10, 0, 20);

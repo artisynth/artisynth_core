@@ -8,6 +8,7 @@ package artisynth.core.renderables;
 
 import java.awt.Font;
 import java.awt.geom.Rectangle2D;
+import java.awt.*;
 import java.util.ArrayList;
 
 import javax.media.opengl.GL2;
@@ -174,8 +175,8 @@ public class ColorBar extends TextComponentBase {
       }
 
       // smooth shading
-      RenderProps.Shading savedShadeModel = renderer.getShadeModel();
-      renderer.setShadeModel (RenderProps.Shading.GOURAUD);
+      Renderer.Shading savedShadeModel = renderer.getShading();
+      renderer.setShading (Renderer.Shading.GOURAUD);
 
       double x0 = myLoc.x;
       double y0 = myLoc.y;
@@ -381,7 +382,7 @@ public class ColorBar extends TextComponentBase {
       }
       
       
-      renderer.setShadeModel (savedShadeModel);
+      renderer.setShading (savedShadeModel);
 
       if (!saved2d) {
          renderer.end2DRendering();

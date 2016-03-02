@@ -19,6 +19,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -515,10 +516,11 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
    public void render(Renderer renderer, int flags) {
       // this is just stub code for now
       if (false) {
-         renderer.setFaceLighting (
+         Shading savedShading = renderer.setPropsShading (myRenderProps);
+         renderer.setFaceColoring (
             myRenderProps, myWidgetColor, isSelected());
          myElement.renderWidget (renderer, myRenderProps, 0);
-         renderer.restoreShading (myRenderProps);
+         renderer.setShading (savedShading);
       }      
    }
 

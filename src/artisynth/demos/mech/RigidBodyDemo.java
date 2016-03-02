@@ -136,7 +136,7 @@ public class RigidBodyDemo extends RootModel {
       msmod.addFrameMarker (at1, topBox, null);
 
       RenderProps.setPointRadius (msmod, 0.5);
-      RenderProps.setPointStyle (msmod, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (msmod, Renderer.PointStyle.SPHERE);
 
       FrameMarker at2 = new FrameMarker (2.5, -2, 1);
       FrameMarker at3 = new FrameMarker (2.5, 2, 1);
@@ -153,7 +153,7 @@ public class RigidBodyDemo extends RootModel {
 
       RenderProps.setLineRadius (msmod, 0.1);
       RenderProps.setLineColor (msmod, new Color (0.93f, 0.8f, 0.063f));
-      RenderProps.setLineStyle (msmod, RenderProps.LineStyle.CYLINDER);
+      RenderProps.setLineStyle (msmod, Renderer.LineStyle.CYLINDER);
 
       AxialSpring spring1 = new AxialSpring (6, 5, 0);
       AxialSpring spring2 = new AxialSpring (4, 2, 0);

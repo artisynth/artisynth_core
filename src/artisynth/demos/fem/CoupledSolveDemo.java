@@ -20,7 +20,7 @@ import javax.swing.event.MouseInputAdapter;
 import maspack.interpolation.Interpolation;
 import maspack.matrix.*;
 import maspack.render.RenderProps;
-import maspack.render.GL.GLViewer;
+import maspack.render.Renderer;
 import maspack.util.*;
 import maspack.widgets.DoubleFieldSlider;
 import maspack.widgets.LabeledControl;
@@ -53,8 +53,6 @@ public class CoupledSolveDemo extends RootModel {
    public RigidBody collider;
 
    protected ControlPanel myControlPanel;
-
-   protected GLViewer myViewer;
 
    static boolean debug = false;
 
@@ -90,7 +88,7 @@ public class CoupledSolveDemo extends RootModel {
       }
       femMod.setSurfaceRendering (SurfaceRender.Shaded);
       RenderProps.setVisible (femMod.getElements(), true);
-      RenderProps.setPointStyle (femMod, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (femMod, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (femMod, 0.0005);
 //       for (FemNode3d n : femMod.getNodes()) {
 //          if (femMod.isSurfaceNode (n)) {
@@ -132,13 +130,13 @@ public class CoupledSolveDemo extends RootModel {
       collider.setInertiaFromDensity (10000);
       collider.setDynamic (false);
 
-      RenderProps.setShading (collider, RenderProps.Shading.GOURAUD);
+      RenderProps.setShading (collider, Renderer.Shading.GOURAUD);
       RenderProps.setVisible (collider, true);
-      RenderProps.setFaceStyle (collider, RenderProps.Faces.FRONT_AND_BACK);
+      RenderProps.setFaceStyle (collider, Renderer.Faces.FRONT_AND_BACK);
       RenderProps.setFaceColor (collider, new Color(0.7f,0f,0f));
 
       RenderProps.setAlpha (collider, 1);
-      RenderProps.setShading (collider, RenderProps.Shading.FLAT);
+      RenderProps.setShading (collider, Renderer.Shading.FLAT);
 
       mod.addRigidBody (collider);
       FemModel3d femMod = (FemModel3d)mod.models().get ("FemMod");

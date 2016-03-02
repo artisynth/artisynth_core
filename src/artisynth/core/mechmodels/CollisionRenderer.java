@@ -7,10 +7,10 @@ import maspack.geometry.*;
 import maspack.matrix.*;
 import maspack.properties.*;
 import maspack.render.*;
-import maspack.render.RenderProps.Shading;
-import maspack.render.RenderProps.LineStyle;
-import maspack.render.RenderProps.PointStyle;
-import maspack.render.RenderProps.Faces;
+import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.LineStyle;
+import maspack.render.Renderer.PointStyle;
+import maspack.render.Renderer.Shading;
 import maspack.util.*;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
@@ -204,14 +204,16 @@ public class CollisionRenderer {
       Renderer renderer, RenderObject r, RenderProps props) {
    
       LineStyle style = props.getLineStyle();
+      Shading savedShading = renderer.setLineShading (props);
+      renderer.setLineColoring (props, /*selected=*/false);
       switch (style) {
          case LINE: {
             int width = props.getLineWidth();
             if (width > 0) {
-               renderer.setLightingEnabled (false);
-               renderer.setColor (props.getLineColorArray(), /*selected=*/false);
+               //renderer.setLightingEnabled (false);
+               //renderer.setColor (props.getLineColorArray(), /*selected=*/false);
                renderer.drawLines (r, LineStyle.LINE, width);
-               renderer.setLightingEnabled (true);
+               //renderer.setLightingEnabled (true);
             }
             break;
          }
@@ -221,14 +223,15 @@ public class CollisionRenderer {
          case CYLINDER: {
             double rad = props.getLineRadius();
             if (rad > 0) {
-               Shading savedShading = renderer.getShadeModel();
-               renderer.setLineLighting (props, /*selected=*/false);
+               //Shading savedShading = renderer.getShadeModel();
+               //renderer.setLineLighting (props, /*selected=*/false);
                renderer.drawLines (r, style, rad);
-               renderer.setShadeModel(savedShading);
+               //renderer.setShadeModel(savedShading);
             }
             break;
          }
       }
+      renderer.setShading(savedShading);
    }
 
    public void render (
@@ -276,7 +279,7 @@ public class CollisionRenderer {
          }
          else {
             width = props.getPointRadius();
-            renderer.setMaterial (props.getPointMaterial(), false);
+            renderer.setPointColoring (props, /*selected=*/false);
          }
          renderer.drawPoints (r, style, width);
          if (style == PointStyle.POINT) {
@@ -285,17 +288,17 @@ public class CollisionRenderer {
       }
       
       if (r.numTriangles() > 0) {
-         Shading savedShadeModel = renderer.getShadeModel();
+         Shading savedShadeModel = renderer.getShading();
          Faces savedFaceMode = renderer.getFaceMode();
 
-         renderer.setMaterial (props.getFaceMaterial(), /*selected=*/false);
+         renderer.setFaceColoring (props, /*selected=*/false);
          renderer.setFaceMode (props.getFaceStyle());
-         renderer.setShadeModel (props.getShading());
+         renderer.setShading (props.getShading());
 
          renderer.drawTriangles (r);
 
          renderer.setFaceMode (savedFaceMode);
-         renderer.setShadeModel (savedShadeModel);
+         renderer.setShading (savedShadeModel);
       }
    }
 

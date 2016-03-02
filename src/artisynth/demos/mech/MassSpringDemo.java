@@ -54,14 +54,11 @@ public class MassSpringDemo extends RootModel {
       msmod.setGravity (0, 0, 0);
       msmod.setPointDamping (0);
 
-      RenderProps.setPointStyle (msmod, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (msmod, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (msmod, 2);
       RenderProps.setPointColor (msmod, Color.GREEN);
       RenderProps.setLineRadius (msmod, 0.5);
-      RenderProps.setLineStyle (msmod, RenderProps.LineStyle.CYLINDER);
-
-      Material gray = Material.createSpecial (Material.GRAY);
-      Material green = Material.createSpecial (Material.GREEN);
+      RenderProps.setLineStyle (msmod, Renderer.LineStyle.CYLINDER);
 
       Particle p0 = new Particle (5, -10, 0, 0);
       Particle p1 = new Particle (5, 10, 0, 0);

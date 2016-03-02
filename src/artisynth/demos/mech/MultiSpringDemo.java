@@ -68,9 +68,9 @@ public class MultiSpringDemo extends RootModel {
 
       addModel (mechMod);
 
-      RenderProps.setPointStyle (mechMod, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (mechMod, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (mechMod, size / 10);
-      RenderProps.setLineStyle (mechMod, RenderProps.LineStyle.CYLINDER);
+      RenderProps.setLineStyle (mechMod, Renderer.LineStyle.CYLINDER);
       RenderProps.setLineRadius (mechMod, size / 30);
       RenderProps.setLineColor (mechMod, Color.red);
 

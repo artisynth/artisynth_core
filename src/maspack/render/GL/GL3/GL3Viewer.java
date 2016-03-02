@@ -28,12 +28,11 @@ import maspack.render.RenderObject;
 import maspack.render.RenderObject.RenderObjectIdentifier;
 import maspack.render.RenderObject.RenderObjectState;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Faces;
-import maspack.render.RenderProps.LineStyle;
-import maspack.render.RenderProps.PointStyle;
-import maspack.render.RenderProps.Shading;
-import maspack.render.RenderableLine;
-import maspack.render.RenderablePoint;
+import maspack.render.Renderer;
+import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.LineStyle;
+import maspack.render.Renderer.PointStyle;
+import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLFrameCapture;
 import maspack.render.GL.GLGridPlane;
@@ -268,7 +267,7 @@ public class GL3Viewer extends GLViewer {
       setVertexColoringEnabled(true);
       setTextureMappingEnabled(true);
       setFaceMode(Faces.FRONT);
-      setShadeModel(Shading.PHONG);
+      setShading(Shading.PHONG);
       setGammaCorrectionEnabled(true);
 
       // gl.glClearDepth (1.0);
@@ -379,7 +378,7 @@ public class GL3Viewer extends GLViewer {
       gl.glViewport(x, y, width, height);
    }
 
-   public int[] getViewport() {
+   protected int[] getViewport() {
       int[] buff = new int[4];
       gl.glGetIntegerv(GL.GL_VIEWPORT, buff, 0);
       return buff;
@@ -783,7 +782,7 @@ public class GL3Viewer extends GLViewer {
    //   }
 
    @Override
-   public void forceColor(float r, float g, float b, float a) {
+   protected void forceColor(float r, float g, float b, float a) {
       float[] rgba = new float[]{r,g,b,a};
       setFrontColor (rgba);
       setBackColor (rgba);
@@ -798,10 +797,10 @@ public class GL3Viewer extends GLViewer {
       pushViewerState();
    }
 
-   @Override
-   public void restoreShading(RenderProps props) {
-      // nothing
-   }
+//   @Override
+//   public void restoreShading(RenderProps props) {
+//      // nothing
+//   }
 
    //==========================================================================
    //  Matrices
@@ -1254,7 +1253,7 @@ public class GL3Viewer extends GLViewer {
             false, false, false, getColorMixing(), getTextureMixing());
       } else {
          boolean lighting = isLightingEnabled();
-         Shading shading = lighting ? getShadeModel() : Shading.NONE;
+         Shading shading = lighting ? getShading() : Shading.NONE;
          key = new GLSLInfo(progManager.numLights(), progManager.numClipPlanes(), 
             shading, ColorInterpolation.NONE, shading != Shading.NONE, false, false,
             getColorMixing(), getTextureMixing());
@@ -1263,7 +1262,7 @@ public class GL3Viewer extends GLViewer {
    }
 
    protected int getColorProgram(GL3 gl, boolean hasNormals) {
-      Shading shading = getShadeModel ();
+      Shading shading = getShading ();
       ColorInterpolation cinterp = ColorInterpolation.RGB;
       if (isHSVColorInterpolationEnabled ()) {
          cinterp = ColorInterpolation.HSV;
@@ -1363,45 +1362,47 @@ public class GL3Viewer extends GLViewer {
       if (color == null) {
          color = props.getLineColorArray ();
       }
+      Shading savedShading = setLineShading (props);
+      setPropsColoring (props, color, selected);
       switch (props.getLineStyle()) {
          case LINE: {
-            boolean savedLighting = isLightingEnabled();
-            setLightingEnabled (false);
+            //boolean savedLighting = isLightingEnabled();
+            //setLightingEnabled (false);
             gl.glLineWidth (props.getLineWidth());
 
-            if (color.length == 3 && props.getAlpha () < 1) {
-               color = new float[]{color[0], color[1], color[2], (float)props.getAlpha ()};
-            }
-            setColor (color, selected);
+//            if (color.length == 3 && props.getAlpha () < 1) {
+//               color = new float[]{color[0], color[1], color[2], (float)props.getAlpha ()};
+//            }
+//            setColor (color, selected);
 
             drawGLLine(gl, pnt0, pnt1);
 
             gl.glLineWidth (1);
-            setLightingEnabled (savedLighting);
+            //setLightingEnabled (savedLighting);
             break;
          }
          case CYLINDER: {
-            Shading savedShading = getShadeModel();
-            setShadeModel (props.getShading());
-            setPropsMaterial (props, color, selected);
+            //Shading savedShading = getShadeModel();
+            //setShadeModel (props.getShading());
+            //setPropsMaterial (props, color, selected);
             drawCylinder (pnt0, pnt1, props.getLineRadius(), capped);
-            setShadeModel(savedShading);
+            //setShadeModel(savedShading);
             break;
          }
          case SOLID_ARROW: {
-            Shading savedShading = getShadeModel();
-            setShadeModel (props.getShading());
-            setPropsMaterial (props, color, selected);
+            //Shading savedShading = getShadeModel();
+            //setShadeModel (props.getShading());
+            //setPropsMaterial (props, color, selected);
             drawSolidArrow (pnt0, pnt1, props.getLineRadius(), capped);
-            setShadeModel(savedShading);
+            //setShadeModel(savedShading);
             break;
          }
          case ELLIPSOID: {
-            Shading savedShading = getShadeModel();
-            setShadeModel (props.getShading());
-            setPropsMaterial (props, color, selected);
+            //Shading savedShading = getShadeModel();
+            //setShadeModel (props.getShading());
+            //setPropsMaterial (props, color, selected);
             drawTaperedEllipsoid (pnt0, pnt1, props.getLineRadius());
-            setShadeModel(savedShading);
+            //setShadeModel(savedShading);
             break;
          }
          default: {
@@ -1409,6 +1410,7 @@ public class GL3Viewer extends GLViewer {
                "Unimplemented line style " + props.getLineStyle());
          }
       }
+      setShading(savedShading);
    }
 
    @Override
@@ -1472,102 +1474,91 @@ public class GL3Viewer extends GLViewer {
       RenderProps props, float[] coords0, float[] coords1, boolean capped,
       boolean selected) {
 
-      Vector3d utmp = new Vector3d(coords1[0] - coords0[0], coords1[1] - coords0[1], coords1[2]
-      - coords0[2]);
+      Vector3d utmp = 
+         new Vector3d(coords1[0]-coords0[0],
+                      coords1[1]-coords0[1], 
+                      coords1[2]-coords0[2]);
       double len = utmp.norm();
       utmp.scale(1.0/len);
 
-      Vector3d vtmp = new Vector3d(coords1[0], coords1[1], coords1[2]);
-      double arrowheadSize = 3 * props.getLineRadius();
-      vtmp.scaledAdd (-len + arrowheadSize, utmp);
+      Vector3d vtmp = new Vector3d(coords0[0], coords0[1], coords0[2]);
+      double arrowRad = 3 * props.getLineRadius();
+      double arrowLen = 2*arrowRad;
+      vtmp.scaledAdd (len-arrowLen, utmp);
       float[] ctmp = new float[3];
       ctmp[0] = (float)vtmp.x;
       ctmp[1] = (float)vtmp.y;
       ctmp[2] = (float)vtmp.z;
 
-      switch (props.getLineStyle()) {
-         case LINE: {
-            Shading savedShading = getShadeModel();
-            setLineLighting (props, selected);
-            if (len <= arrowheadSize) {
-               drawCone ( ctmp, coords0, len, 0, capped);
-            }
-            else {
-               boolean savedLighting = isLightingEnabled();
-               setLightingEnabled (false);
+      Shading savedShading = setLineShading (props);
+      setLineColoring (props, selected);
+      if (len > arrowLen) {
+         switch (props.getLineStyle()) {
+            case LINE: {
                gl.glLineWidth (props.getLineWidth());
-               setColor (props.getLineColorArray(), selected);
-               drawGLLine(gl, coords1, ctmp);
+               drawGLLine(gl, coords0, ctmp);
                gl.glLineWidth (1);
-               setLightingEnabled (savedLighting);
-               drawCone (
-                  ctmp, coords0, arrowheadSize, 0, capped);
+               break;
             }
-            setShadeModel(savedShading);
-            break;
-         }
-         case CYLINDER: 
-         case SOLID_ARROW: {
-            Shading savedShading = getShadeModel();
-            setLineLighting (props, selected);
-            if (len <= arrowheadSize) {
-               drawCone (coords1, coords0, len, 0, capped);
+            case CYLINDER: 
+            case SOLID_ARROW: {
+               drawCylinder (coords0, ctmp, props.getLineRadius(), capped);
+               break;
             }
-            else {
-               drawCylinder (ctmp, coords1, props.getLineRadius(), capped);
-               drawCone (ctmp, coords0, arrowheadSize, 0, capped);
-            }
-            setShadeModel(savedShading);
-            break;
-         }
-         case ELLIPSOID: {
-            Shading savedShading = getShadeModel();
-            setLineLighting (props, selected);
-            if (len <= arrowheadSize) {
-               drawCone (coords1, coords0, len, 0, capped);
-            }
-            else {
+            case ELLIPSOID: {
                drawTaperedEllipsoid (coords0, coords1, props.getLineRadius());
-               drawCone (ctmp, coords0, arrowheadSize, 0, capped);
+               break;
             }
-            setShadeModel(savedShading);
-            break;
-         }
-         default: {
-            throw new InternalErrorException (
-               "Unimplemented line style " + props.getLineStyle());
+            default: {
+               throw new InternalErrorException (
+                  "Unimplemented line style " + props.getLineStyle());
+            }
          }
       }
-
+      if (props.getLineStyle() == LineStyle.LINE) {
+         // reset shading from NONE to props value
+         setShading (props.getShading());
+      }
+      if (len <= arrowLen) {
+         drawCone (coords0, coords1, len/2, 0, capped);
+      }
+      else {
+         drawCone (ctmp, coords1, arrowRad, 0, capped);
+      }
+      setShading(savedShading);
+      
    }
 
    @Override
    public void drawPoint(RenderProps props, float[] pnt, boolean selected) {
 
+      Shading savedShading = setPointShading (props);
+      setPointColoring (props, selected);
       switch (props.getPointStyle()) {
          case POINT: {
             int size = props.getPointSize();
             if (size > 0) {
-               boolean savedLighting = isLightingEnabled();
-               setLightingEnabled (false);
+               //boolean savedLighting = isLightingEnabled();
+               //setLightingEnabled (false);
                gl.glPointSize (size);
-               setColor (props.getPointColorArray(), selected);
+               //setColor (props.getPointColorArray(), selected);
 
                drawGLPoint(gl, pnt);
 
                gl.glPointSize (1);
-               setLightingEnabled (savedLighting);
+               //setLightingEnabled (savedLighting);
             }
             break;
          }
          case SPHERE: {
-            Shading savedShading = getShadeModel();
-            setPointLighting (props, selected);
+            //Shading savedShading = getShadeModel();
+            //setPointLighting (props, selected);
             drawSphere (pnt, props.getPointRadius());
-            setShadeModel(savedShading);
+            //setShadeModel(savedShading);
             break;
          }
       }
+      setShading(savedShading);
 
    }
 
@@ -1687,86 +1678,84 @@ public class GL3Viewer extends GLViewer {
    //             selection queries need to be separate
    //             - if selecting, resort to inefficient individual rendering
 
-   public void drawPoints(
-      RenderProps props, Iterator<? extends RenderablePoint> iterator) {
-
-      switch (props.getPointStyle()) {
-         case POINT: {
-            int size = props.getPointSize();
-            if (size > 0) {
-
-               // draw regular points first
-               setLightingEnabled (false);
-               gl.glPointSize (size);
-               if (isSelecting()) {
-                  // don't worry about color in selection mode
-                  int i = 0;
-                  while (iterator.hasNext()) {
-                     RenderablePoint pnt = iterator.next();
-                     if (pnt.getRenderProps() == null) {
-                        if (isSelectable (pnt)) {
-                           beginSelectionQuery (i);
-                           drawGLPoint(gl, pnt.getRenderCoords());
-                           endSelectionQuery ();
-                        }
-                     }
-                     i++;
-                  }
-               }
-               else {
-                  setColor (props.getPointColorArray(), false);
-                  while (iterator.hasNext()) {
-                     RenderablePoint pnt = iterator.next();
-                     if (pnt.getRenderProps() == null) {
-                        setColor (
-                           props.getPointColorArray(), pnt.isSelected());
-                        drawGLPoint(gl, pnt.getRenderCoords());
-                     }
-                  }
-               }
-               gl.glPointSize (1);
-               setLightingEnabled (true);
-            }
-            break;
-         }
-         case SPHERE: {
-            Shading savedShading = getShadeModel();
-            setPointLighting (props, false);
-            int i = 0;
-            double rad = props.getPointRadius();
-            while (iterator.hasNext()) {
-               RenderablePoint pnt = iterator.next();
-               if (pnt.getRenderProps() == null) {
-                  if (isSelecting()) {
-                     if (isSelectable (pnt)) {
-                        beginSelectionQuery (i);
-                        drawSphere (pnt.getRenderCoords(), rad);
-                        endSelectionQuery ();      
-                     }
-                  }
-                  else {
-                     setMaterial (props.getPointMaterial(), pnt.isSelected());
-                     drawSphere (pnt.getRenderCoords(), rad);
-                  }
-               }
-               i++;
-            }
-            setShadeModel(savedShading);
-         }
-      }
-
-   }
+//   public void drawPoints(
+//      RenderProps props, Iterator<? extends RenderablePoint> iterator) {
+//
+//      Shading savedShading = setPointShading (props);
+//      setPointColoring (props, false);
+//      switch (props.getPointStyle()) {
+//         case POINT: {
+//            int size = props.getPointSize();
+//            if (size > 0) {
+//
+//               // draw regular points first
+//               gl.glPointSize (size);
+//               if (isSelecting()) {
+//                  // don't worry about color in selection mode
+//                  int i = 0;
+//                  while (iterator.hasNext()) {
+//                     RenderablePoint pnt = iterator.next();
+//                     if (pnt.getRenderProps() == null) {
+//                        if (isSelectable (pnt)) {
+//                           beginSelectionQuery (i);
+//                           drawGLPoint(gl, pnt.getRenderCoords());
+//                           endSelectionQuery ();
+//                        }
+//                     }
+//                     i++;
+//                  }
+//               }
+//               else {
+//                  while (iterator.hasNext()) {
+//                     RenderablePoint pnt = iterator.next();
+//                     if (pnt.getRenderProps() == null) {
+//                        setColor (
+//                           props.getPointColorArray(), pnt.isSelected());
+//                        drawGLPoint(gl, pnt.getRenderCoords());
+//                     }
+//                  }
+//               }
+//               gl.glPointSize (1);
+//            }
+//            break;
+//         }
+//         case SPHERE: {
+//            int i = 0;
+//            double rad = props.getPointRadius();
+//            while (iterator.hasNext()) {
+//               RenderablePoint pnt = iterator.next();
+//               if (pnt.getRenderProps() == null) {
+//                  if (isSelecting()) {
+//                     if (isSelectable (pnt)) {
+//                        beginSelectionQuery (i);
+//                        drawSphere (pnt.getRenderCoords(), rad);
+//                        endSelectionQuery ();      
+//                     }
+//                  }
+//                  else {
+//                     setPointColoring (props, pnt.isSelected());
+//                     drawSphere (pnt.getRenderCoords(), rad);
+//                  }
+//               }
+//               i++;
+//            }
+//         }
+//      }
+//      setShadeModel(savedShading);
+//   }
 
    public void drawLineStrip (
       RenderProps props, Iterable<float[]> pntList, 
       LineStyle style, boolean isSelected) {
 
+      Shading savedShading = setLineShading (props);
+      setLineColoring (props, isSelected);
       switch (style) {
          case LINE: {
-            setLightingEnabled (false);
+            //setLightingEnabled (false);
             // draw regular points first
             gl.glLineWidth (props.getLineWidth());
-            setColor (props.getLineColorArray(), isSelected);
+            //setColor (props.getLineColorArray(), isSelected);
             float[] v0 = null;
             for (float[] v1 : pntList) {
                if (v0 != null) {
@@ -1781,14 +1770,14 @@ public class GL3Viewer extends GLViewer {
                v0[2] = v1[2];
             }
             gl.glLineWidth (1);
-            setLightingEnabled (true);
+            //setLightingEnabled (true);
             break;
          }
          case ELLIPSOID:
          case SOLID_ARROW:
          case CYLINDER: {
-            Shading savedShading = getShadeModel();
-            setLineLighting (props, isSelected);
+//            Shading savedShading = getShadeModel();
+//            setLineLighting (props, isSelected);
             double rad = props.getLineRadius();
             float[] v0 = null;
             for (float[] v1 : pntList) {
@@ -1811,10 +1800,11 @@ public class GL3Viewer extends GLViewer {
                v0[1] = v1[1];
                v0[2] = v1[2];
             }
-            setShadeModel(savedShading);            
-            restoreShading (props);
+//            setShadeModel(savedShading);            
+//            restoreShading (props);
          }
       }
+      setShading(savedShading);            
    }
 
 //   @Override
@@ -1910,19 +1900,19 @@ public class GL3Viewer extends GLViewer {
 //      }
 //   }
 
-   @Override
-   public void drawLines(float[] vertices, int flags) {
-
-      maybeUpdateState(gl);
-      // create streaming object
-      GL3Object glo = GL3Object.createV(gl, GL.GL_LINES, vertices, GL3.GL_STREAM_DRAW);
-      // draw
-      glo.draw(gl, getRegularProgram(gl));
-      glo.dispose(gl);  // dispose
-
-      GLSupport.checkAndPrintGLError(gl);
-
-   }
+//   @Override
+//   public void drawLines(float[] vertices, int flags) {
+//
+//      maybeUpdateState(gl);
+//      // create streaming object
+//      GL3Object glo = GL3Object.createV(gl, GL.GL_LINES, vertices, GL3.GL_STREAM_DRAW);
+//      // draw
+//      glo.draw(gl, getRegularProgram(gl));
+//      glo.dispose(gl);  // dispose
+//
+//      GLSupport.checkAndPrintGLError(gl);
+//
+//   }
 
    //=============================================================================
    // PRIMITIVES
@@ -2147,7 +2137,7 @@ public class GL3Viewer extends GLViewer {
       if (isSelecting()) {
          return getBasicProgram(gl);
       } else {
-         Shading shading = getShadeModel();
+         Shading shading = getShading();
          if (!isLightingEnabled()) {
             shading = Shading.NONE;
          }
@@ -2188,7 +2178,7 @@ public class GL3Viewer extends GLViewer {
             false, false, false, 
             getColorMixing(), getTextureMixing());
       } else {
-         Shading shading = getShadeModel();
+         Shading shading = getShading();
          if (!isLightingEnabled()) {
             shading = Shading.NONE;
          }
@@ -2221,7 +2211,7 @@ public class GL3Viewer extends GLViewer {
             false, false, false, 
             getColorMixing(), getTextureMixing());
       } else {
-         Shading shading = getShadeModel();
+         Shading shading = getShading();
          if (!isLightingEnabled()) {
             shading = Shading.NONE;
          }
@@ -2275,7 +2265,7 @@ public class GL3Viewer extends GLViewer {
    }
 
    @Override
-   public void drawVertices(RenderObject robj, VertexDrawMode mode) {
+   public void drawVertices(RenderObject robj, DrawMode mode) {
       GLSupport.checkAndPrintGLError(gl);
       GL3RenderObject gro = getOrCreateGRO(robj);
       maybeUpdateState(gl);
@@ -2509,7 +2499,7 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    protected void doDraw (
-      VertexDrawMode drawMode, int numVertices, float[] vertexData,
+      DrawMode drawMode, int numVertices, float[] vertexData,
       boolean hasNormalData, float[] normalData, boolean hasColorData,
       float[] colorData) {
     
@@ -2631,5 +2621,12 @@ public class GL3Viewer extends GLViewer {
       }
       
    }
-
+   
+   public boolean hasColorMixing (ColorMixing cmix) {
+      return true;
+   }
+   
+   public boolean hasTextureMixing (ColorMixing tmix) {
+      return true;
+   }
 }

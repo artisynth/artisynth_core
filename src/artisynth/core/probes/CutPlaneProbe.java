@@ -33,7 +33,7 @@ import maspack.render.Dragger3d.DraggerType;
 import maspack.render.GL.GLViewer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Faces;
+import maspack.render.Renderer.Faces;
 import maspack.render.Rotator3d;
 import maspack.render.Translator3d;
 import maspack.render.Transrotator3d;

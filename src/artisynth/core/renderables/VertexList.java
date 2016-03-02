@@ -14,14 +14,13 @@ import javax.media.opengl.GL2;
 
 import maspack.matrix.Point3d;
 import maspack.properties.PropertyList;
-import maspack.render.Material;
 import maspack.render.PointRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.PointStyle;
-import maspack.render.RenderablePoint;
 import maspack.render.RenderableUtils;
 import maspack.render.Renderer;
+import maspack.render.Renderer.PointStyle;
+import maspack.render.Renderer.Shading;
 import maspack.render.GL.GL2.DisplayListKey;
 import maspack.render.GL.GL2.GL2Viewer;
 import artisynth.core.modelbase.RenderableComponentList;
@@ -143,10 +142,12 @@ implements ScalableUnits {
       
       boolean lastSelected = false;
 
+      Shading savedShading = renderer.setPointShading (props);
+      renderer.setPointColoring (props, isSelected());
       switch (props.getPointStyle()) {
          case POINT: {
 
-            renderer.setLightingEnabled (false);
+            //renderer.setLightingEnabled (false);
             renderer.setPointSize (props.getPointSize());
 
             if (renderer.isSelecting()) {
@@ -163,7 +164,6 @@ implements ScalableUnits {
                   i++;
                }
             } else {
-               renderer.setColor (props.getPointColorArray(), isSelected());
                
                VListPrint vPrint = getFingerPrint(PointStyle.POINT, 0);
                int displayList = viewer.getDisplayList(gl, vKey, vPrint);
@@ -211,11 +211,10 @@ implements ScalableUnits {
             }
             
             renderer.setPointSize(1);
-            renderer.setLightingEnabled(true);
+            //renderer.setLightingEnabled(true);
             break;
          }
          case SPHERE: {
-            renderer.setPointLighting (props, isSelected());
 
             boolean compile = true;
             boolean useDisplayList = !renderer.isSelecting();
@@ -253,8 +252,8 @@ implements ScalableUnits {
                         if (!isSelected()) {
                            // set selection color for individual vertices as needed
                            if (vc.isSelected() != lastSelected) {
-                              renderer.setPropsMaterial (
-                                 props, props.getPointColorArray(), vc.isSelected());
+                              renderer.setPointColoring (
+                                 props, vc.isSelected());
                               lastSelected = vc.isSelected();
                            }
                         }
@@ -276,11 +275,11 @@ implements ScalableUnits {
               }
             }
                
-            renderer.restoreShading (props);
+            
             break;
          }
       }
-      
+      renderer.setShading (savedShading);
       
 
       //         gl.glEndList();
@@ -294,7 +293,7 @@ implements ScalableUnits {
    }
 
    public void drawPoints (Renderer renderer,
-      RenderProps props, Iterator<? extends RenderablePoint> iterator) {
+      RenderProps props, Iterator<? extends VertexComponent> iterator) {
 
       if (!(renderer instanceof GL2Viewer)) {
          return;
@@ -304,16 +303,17 @@ implements ScalableUnits {
       
       gl.glPushMatrix();
 
+      Shading savedShading = renderer.setPointShading(props);
+      renderer.setPointColoring (props, /*selected=*/false);
       switch (props.getPointStyle()) {
          case POINT: {
-            renderer.setLightingEnabled (false);
             // draw regular points first
             renderer.setPointSize (props.getPointSize());
             if (renderer.isSelecting()) {
                // don't worry about color in selection mode
                int i = 0;
                while (iterator.hasNext()) {
-                  RenderablePoint pnt = iterator.next();
+                  VertexComponent pnt = iterator.next();
                   if (pnt.getRenderProps() == null) {
                      if (renderer.isSelectable (pnt)) {
                         renderer.beginSelectionQuery (i);
@@ -328,9 +328,8 @@ implements ScalableUnits {
             }
             else {
                gl.glBegin (GL2.GL_POINTS);
-               renderer.setColor (props.getPointColorArray(), false);
                while (iterator.hasNext()) {
-                  RenderablePoint pnt = iterator.next();
+                  VertexComponent pnt = iterator.next();
                   if (pnt.getRenderProps() == null) {
                      renderer.setColor (props.getPointColorArray(), pnt.isSelected());
                      gl.glVertex3fv (pnt.getRenderCoords(), 0);
@@ -339,14 +338,12 @@ implements ScalableUnits {
                gl.glEnd();
             }
             renderer.setPointSize (1);
-            renderer.setLightingEnabled (true);
             break;
          }
          case SPHERE: {
-            renderer.setPointLighting (props, /*selected=*/false);
             int i = 0;
             while (iterator.hasNext()) {
-               RenderablePoint pnt = iterator.next();
+               VertexComponent pnt = iterator.next();
                double rad = props.getPointRadius();
                if (pnt.getRenderProps() == null) {
                   if (renderer.isSelecting()) {
@@ -357,15 +354,15 @@ implements ScalableUnits {
                      }
                   }
                   else {
-                     renderer.setPointLighting (props, pnt.isSelected());
+                     renderer.setPointColoring (props, pnt.isSelected());
                      renderer.drawSphere (pnt.getRenderCoords(), rad);
                   }
                }
                i++;
             }
-            renderer.restoreShading (props);
          }
       }
+      renderer.setShading (savedShading);
 
       gl.glPopMatrix();
    }

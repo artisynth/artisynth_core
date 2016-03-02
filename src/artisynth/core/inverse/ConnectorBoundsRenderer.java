@@ -11,11 +11,12 @@ import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.LineRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Faces;
 
 public class ConnectorBoundsRenderer extends MonitorBase {
 
@@ -214,15 +215,16 @@ public class ConnectorBoundsRenderer extends MonitorBase {
       
       RenderProps props = tri.props;
 
-      renderer.setFaceLighting (props, isSelected());
+      Shading savedShading = renderer.setPropsShading (props);
+      renderer.setFaceColoring (props, isSelected());
       renderer.setFaceMode (props.getFaceStyle ());
-      renderer.beginDraw (VertexDrawMode.TRIANGLES);
+      renderer.beginDraw (DrawMode.TRIANGLES);
       renderer.setNormal (tri.nrm);
       for (int i = 0; i < tri.pts.length; i++) {
          renderer.addVertex (tri.pts[i]);
       }
       renderer.endDraw();
-      renderer.restoreShading (props);
+      renderer.setShading (savedShading);
       renderer.setDefaultFaceMode ();
    }
 

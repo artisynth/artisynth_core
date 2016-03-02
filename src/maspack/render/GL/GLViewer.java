@@ -52,10 +52,11 @@ import maspack.render.MouseRayEvent;
 import maspack.render.RenderList;
 import maspack.render.RenderListener;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.PointStyle;
-import maspack.render.RenderProps.LineStyle;
-import maspack.render.RenderProps.Faces;
-import maspack.render.RenderProps.Shading;
+import maspack.render.Renderer;
+import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.LineStyle;
+import maspack.render.Renderer.PointStyle;
+import maspack.render.Renderer.Shading;
 import maspack.render.RendererEvent;
 import maspack.render.SortedRenderableList;
 import maspack.util.InternalErrorException;
@@ -127,6 +128,19 @@ HasProperties {
       boolean hsvInterpolationEnabled;  
       ColorMixing colorMixing;  // method for combining material/vertex colors
       ColorMixing textureMixing;// method for combining material/texture colors
+      
+      public ViewerState() {
+      }
+
+      public ViewerState (GLViewer viewer) {
+         colorMixing = ColorMixing.REPLACE;
+         if (viewer.hasTextureMixing (ColorMixing.MODULATE)) {
+            textureMixing = ColorMixing.MODULATE;
+         }
+         else {
+            textureMixing = ColorMixing.REPLACE;
+         }
+      }
 
       public ViewerState clone() {
          ViewerState c = new ViewerState();
@@ -436,7 +450,7 @@ HasProperties {
       return selectionEvent;
    }
 
-   public void setSelected(LinkedList<Object>[] objs) {
+   protected void setSelected(LinkedList<Object>[] objs) {
       selectionEvent.mySelectedObjects = objs;
    }
 
@@ -531,11 +545,11 @@ HasProperties {
       myInternalRenderListValid = false;
    }
 
-   public double getNearClipPlaneZ() {
+   public double getViewPlaneDistance() {
       return myFrustum.near;
    }
 
-   public double getFarClipPlaneZ() {
+   public double getFarPlaneDistance() {
       return myFrustum.far;
    }
 
@@ -587,7 +601,7 @@ HasProperties {
     * select all objects in the pick frustum, not just those which are
     * visible through the viewport
     */
-   public void setPick (
+   protected void setPick (
       double x, double y, double w, double h,
       boolean ignoreDepthTest) {
 
@@ -616,7 +630,8 @@ HasProperties {
       canvas.paint (canvas.getGraphics());
    }
 
-   public void detachFromCanvas() {
+   // not currently used
+   protected void detachFromCanvas() {
       canvas.removeGLEventListener(this);
    }
 
@@ -661,7 +676,7 @@ HasProperties {
       repaint();
    }
 
-   public boolean isVisible() {
+   protected boolean isVisible() {
       return canvas.isVisible();
    }
 
@@ -707,14 +722,14 @@ HasProperties {
     * far clipping plane position (along the -z axis; must be a positive number)
     */
    public void setPerspective (
-      double left, double right, double bottom, double top, double near,
-      double far) {
+      double left, double right, double bottom, double top, 
+      double near, double far) {
       setPerspective(left,  right, bottom, top, near, far, true);
    }
 
    public void setPerspective (
-      double left, double right, double bottom, double top, double near,
-      double far, boolean setExplicit) {
+      double left, double right, double bottom, double top, 
+      double near, double far, boolean setExplicit) {
       this.myFrustum.left = left;
       this.myFrustum.right = right;
       this.myFrustum.bottom = bottom;
@@ -799,23 +814,15 @@ HasProperties {
     * @param far
     * far clipping plane position (along the -z axis; must be a positive number)
     */
-   public void setOrthogonal2d (double left, double right, double bottom, double top) {
+   protected void setOrthogonal2d (
+      double left, double right, double bottom, double top) {
 
-      this.myFrustum.top = top;
-      this.myFrustum.bottom = bottom;
-      this.myFrustum.left = left;
-      this.myFrustum.right = right;
-      this.myFrustum.near = -1;
-      this.myFrustum.far = 1;
-      this.myFrustum.fieldHeight = top-bottom;
-      this.myFrustum.orthographic = true;
-      resetViewVolume = true;
-
-      updateProjectionMatrix();
+      setOrthogonal (left, right, bottom, top, -1, 1);
    }
-
-   public void setOrthogonal(double left, double right, 
-      double bottom, double top, double near, double far) {
+ 
+   public void setOrthogonal (
+      double left, double right, double bottom, double top, 
+      double near, double far) {
 
       this.myFrustum.top = top;
       this.myFrustum.bottom = bottom;
@@ -1029,7 +1036,7 @@ HasProperties {
       return drawable.getContext();
    }
 
-   public void swapBuffers() {
+   protected void swapBuffers() {
       drawable.swapBuffers();
    }
 
@@ -1311,7 +1318,7 @@ HasProperties {
       myViewState = new ViewState();
       viewStateStack = new LinkedList<>();
 
-      myViewerState = new ViewerState();
+      myViewerState = new ViewerState(this);
       viewerStateStack = new LinkedList<>();
 
       // initialize matrices
@@ -1418,31 +1425,31 @@ HasProperties {
       return (width / (double)height) * getViewPlaneHeight();
    }
 
-   public double getViewPlaneDistance() {
-      return myFrustum.near;
-   }
-
    public abstract void setViewport(int x, int y, int width, int height);
 
-   public abstract int[] getViewport();
+   protected abstract int[] getViewport();
 
    protected void resetViewVolume() {
       resetViewVolume(width, height);
    }
 
-   public void resetViewVolume(int width, int height) {
+   protected void resetViewVolume(int width, int height) {
       if (myFrustum.orthographic) {
          setOrthogonal(myFrustum.fieldHeight, myFrustum.near, myFrustum.far);
       }
       else {
          if (myFrustum.explicit) {
-            setPerspective(myFrustum.left, myFrustum.right, myFrustum.bottom, myFrustum.top, myFrustum.near, myFrustum.far);
+            setPerspective (
+               myFrustum.left, myFrustum.right, myFrustum.bottom, myFrustum.top, 
+               myFrustum.near, myFrustum.far);
          }
          else {
             double aspect = width / (double)height;
             myFrustum.left = -aspect * myFrustum.top;
             myFrustum.right = -myFrustum.left;
-            setPerspective (myFrustum.left, myFrustum.right, myFrustum.bottom, myFrustum.top, myFrustum.near, myFrustum.far, myFrustum.explicit);
+            setPerspective (
+               myFrustum.left, myFrustum.right, myFrustum.bottom, myFrustum.top, 
+               myFrustum.near, myFrustum.far, myFrustum.explicit);
          }
       }
       setViewport(0, 0, width, height);
@@ -1451,7 +1458,7 @@ HasProperties {
    // Sanchez, July 2013:
    // used to adjust selection volume, or else the orthogonal
    // view scale sometimes too large to properly detect selections
-   public void getZRange(Vector2d zRange) {
+   protected void getZRange(Vector2d zRange) {
 
       if (!isOrthogonal()) {
          zRange.x = myFrustum.near;
@@ -1720,7 +1727,7 @@ HasProperties {
       }
    }
 
-   public Iterator<GLRenderable> renderIterator() {
+   protected Iterator<GLRenderable> renderIterator() {
       return new RenderIterator();
    }
 
@@ -1730,7 +1737,7 @@ HasProperties {
       setBackgroundColor(r, g, b, 1.0f);
    }
 
-   public void setBackgroundColor(float r, float g, float b, float a) {
+   protected void setBackgroundColor(float r, float g, float b, float a) {
       bgColor[0] = r;
       bgColor[1] = g;
       bgColor[2] = b;
@@ -1771,7 +1778,7 @@ HasProperties {
       return myViewerState.vertexColorsEnabled;
    }
 
-   public boolean isHSVColorInterpolationEnabled() {
+   protected boolean isHSVColorInterpolationEnabled() {
       return myViewerState.hsvInterpolationEnabled;
    }
 
@@ -1788,7 +1795,7 @@ HasProperties {
       myViewerState.hsvInterpolationEnabled = (interp==ColorInterpolation.HSV);
    }
 
-   public void setHSVCColorInterpolationEnabled(boolean set) {
+   protected void setHSVCColorInterpolationEnabled(boolean set) {
       myViewerState.hsvInterpolationEnabled = set;
    }
 
@@ -1802,9 +1809,13 @@ HasProperties {
       return myViewerState.textureMappingEnabled;
    }
    
+   public abstract boolean hasColorMixing (ColorMixing cmix);
+   
    @Override
    public void setColorMixing (ColorMixing cmix) {
-      myViewerState.colorMixing = cmix;
+      if (hasColorMixing(cmix)) {
+         myViewerState.colorMixing = cmix;
+      }
    }
    
    @Override
@@ -1812,9 +1823,13 @@ HasProperties {
       return myViewerState.colorMixing;
    }
    
+   public abstract boolean hasTextureMixing (ColorMixing tmix);
+   
    @Override
    public void setTextureMixing (ColorMixing tmix) {
-      myViewerState.textureMixing = tmix;
+      if (hasTextureMixing (tmix)) {
+         myViewerState.textureMixing = tmix;
+      }
    }
    
    @Override
@@ -1822,16 +1837,16 @@ HasProperties {
       return myViewerState.textureMixing;
    }
 
-   public boolean isGammaCorrectionEnabled() {
+   protected boolean isGammaCorrectionEnabled() {
       return gammaCorrectionEnabled;
    }
 
-   public void setGammaCorrectionEnabled(boolean set) {
+   protected void setGammaCorrectionEnabled(boolean set) {
       gammaCorrectionRequested = true;
       repaint();
    }
 
-   public void setDepthEnabled(boolean set) {
+   protected void setDepthEnabled(boolean set) {
       GL gl = getGL();
       if (set) {
          gl.glEnable(GL.GL_DEPTH_TEST);
@@ -1841,30 +1856,30 @@ HasProperties {
       myViewerState.depthEnabled = set;
    }
 
-   public boolean isDepthEnabled() {
+   protected boolean isDepthEnabled() {
       return myViewerState.depthEnabled;
    }
 
-   public boolean isColorEnabled() {
+   protected boolean isColorEnabled() {
       return myViewerState.colorEnabled;
    }
 
-   public void setColorEnabled(boolean enable) {
+   protected void setColorEnabled(boolean enable) {
       GL gl = getGL();
       gl.glColorMask(enable, enable, enable, enable);
       myViewerState.colorEnabled = enable;
    }
 
-   public void setShadeModel(Shading shading) {
+   public void setShading(Shading shading) {
       myViewerState.shading = shading;
    }
 
-   public Shading getShadeModel() {
+   public Shading getShading() {
       return myViewerState.shading;
    }
    
-   public void setDefaultShadeModel() {
-      setShadeModel (Shading.FLAT);
+   public void setDefaultShading() {
+      setShading (Shading.FLAT);
    }
 
    public void setDefaultLineWidth() {
@@ -1897,7 +1912,7 @@ HasProperties {
          setFaceMode(state.faceMode);
       }
       if (myViewerState.shading != state.shading) {
-         setShadeModel(state.shading);
+         setShading(state.shading);
       }
       if (myViewerState.vertexColorsEnabled != state.vertexColorsEnabled) {
          setVertexColoringEnabled(state.vertexColorsEnabled);
@@ -2151,7 +2166,7 @@ HasProperties {
 
    public abstract boolean grabPending();
 
-   public void setRotationMode(RotationMode mode) {
+   public void setRotationMode (RotationMode mode) {
       myRotationMode = mode;
    }
 
@@ -2198,7 +2213,7 @@ HasProperties {
    @Override
    public abstract boolean is2DRendering();
 
-   public int numSelectionQueriesNeeded() {
+   protected int numSelectionQueriesNeeded() {
       int num = myInternalRenderList.numSelectionQueriesNeeded();
       if (myExternalRenderList != null) {
          num += myExternalRenderList.numSelectionQueriesNeeded();
@@ -2316,7 +2331,7 @@ HasProperties {
     * Alternative to gluPickMatrix, pre-multiplies by appropriate matrix to
     * reduce size
     */
-   public void setPickMatrix(float x, float y, float deltax, float deltay, int[] viewport) {
+   protected void setPickMatrix(float x, float y, float deltax, float deltay, int[] viewport) {
       // pre-multiply by pick
       if (deltax <= 0 || deltay <= 0) { 
          return;
@@ -2343,6 +2358,7 @@ HasProperties {
 
    }
 
+   // used internally for selection
    public void clearPickMatrix() {
       pickMatrix = null;
       updateProjectionMatrix(); // recompute projection
@@ -2371,7 +2387,7 @@ HasProperties {
       m.set(modelMatrix);
    }
 
-   public void resetModelMatrix() {
+   protected void resetModelMatrix() {
       synchronized (modelMatrix) {
          modelMatrix = new RigidTransform3d(); // reset to identity
          modelNormalMatrix = new Matrix3d(modelMatrix.getMatrix());   
@@ -2379,7 +2395,7 @@ HasProperties {
       invalidateModelMatrix();
    }
 
-   public boolean isModelMatrixRigid() {
+   protected boolean isModelMatrixRigid() {
       return (modelMatrix instanceof RigidTransform3d);
    }
 
@@ -2651,12 +2667,12 @@ HasProperties {
    //  Drawing
    //==========================================================================
 
-   // forwarded draw commands
-   public void drawSphere (RenderProps props, float[] coords) {
-      double r = props.getPointRadius();
-      drawSphere(coords, r);
-   }
-   
+//   // forwarded draw commands
+//   public void drawSphere (RenderProps props, float[] coords) {
+//      double r = props.getPointRadius();
+//      drawSphere(coords, r);
+//   }
+//   
    public void drawSphere (Vector3d pnt, double rad) {
       drawSphere (toFloat(pnt), rad);
    }
@@ -2722,12 +2738,12 @@ HasProperties {
       drawTriangle (toFloat(pnt0), toFloat(pnt1), toFloat(pnt2));
    }
 
-   public abstract void drawLines(float[] vertices, int flags);
+//   public abstract void drawLines(float[] vertices, int flags);
 
-   public void drawLines(float[] vertices) {
-      drawLines(vertices, 0);
-   }
-
+//   public void drawLines(float[] vertices) {
+//      drawLines(vertices, 0);
+//   }
+//
    protected void computeNormal(float[] p0, float[] p1, float[] p2, float[] normal) {
       float[] u = new float[3];
       float[] v = new float[3];
@@ -2773,7 +2789,7 @@ HasProperties {
       setNormal ((float)nrm.x, (float)nrm.y, (float)nrm.z);
    }
 
-   protected int getDrawPrimitive (VertexDrawMode mode) {
+   protected int getDrawPrimitive (DrawMode mode) {
       switch (mode) {
          case POINTS:
             return GL.GL_POINTS;
@@ -2914,7 +2930,7 @@ HasProperties {
       setShininess (shininess);
       setMaterialSelected (selected);
       setEmission (DEFAULT_MATERIAL_EMISSION);
-      setSpecular(DEFAULT_MATERIAL_SPECULAR);
+      setSpecular (DEFAULT_MATERIAL_SPECULAR);
    }
 
 //   @Override
@@ -2922,7 +2938,7 @@ HasProperties {
 //      setMaterial(rgba, rgba, DEFAULT_MATERIAL_SHININESS, false);
 //   }
 
-   public void setPropsMaterial (
+   public void setPropsColoring (
       RenderProps props, float[] frontRgba, boolean selected) {
 
       setMaterialSelected (selected);         
@@ -2933,33 +2949,32 @@ HasProperties {
       setBackColor (null);
       setShininess (props.getShininess());
       setEmission (DEFAULT_MATERIAL_EMISSION);
-      setSpecular(DEFAULT_MATERIAL_SPECULAR);
+      float[] specular = props.getSpecularArray();
+      setSpecular (specular != null ? specular : DEFAULT_MATERIAL_SPECULAR);
    }
    
-   public void setLineLighting (RenderProps props, boolean selected) {
-      setPropsMaterial (props, props.getLineColorArray(), selected);
-      setShadeModel (props.getShading());
+   public void setLineColoring (RenderProps props, boolean selected) {
+      setPropsColoring (props, props.getLineColorArray(), selected);
    }
 
-   public void setPointLighting (RenderProps props, boolean selected) {
-      setPropsMaterial (props, props.getPointColorArray(), selected);
-      setShadeModel (props.getShading());
+   public void setPointColoring (RenderProps props, boolean selected) {
+      setPropsColoring (props, props.getPointColorArray(), selected);
    }
 
-   public void setEdgeLighting (RenderProps props, boolean selected) {
+   public void setEdgeColoring (RenderProps props, boolean selected) {
       float[] rgba = props.getEdgeColorArray();
       if (rgba == null) {
          rgba = props.getLineColorArray();
       }
-      setPropsMaterial (props, rgba, selected);
-      setShadeModel (props.getShading());
+      setPropsColoring (props, rgba, selected);
+      setShading (props.getShading());
    }
 
-   public void setFaceLighting (RenderProps props, boolean selected) {
-      setFaceLighting (props, props.getFaceColorArray(), selected);
+   public void setFaceColoring (RenderProps props, boolean selected) {
+      setFaceColoring (props, props.getFaceColorArray(), selected);
    }
 
-   public void setFaceLighting (
+   public void setFaceColoring (
       RenderProps props, float[] frontRgba, boolean selected) {
 
       setFrontColor (frontRgba);
@@ -2969,15 +2984,16 @@ HasProperties {
       setBackColor (props.getBackColorArray());
       setShininess (props.getShininess());
       setEmission (DEFAULT_MATERIAL_EMISSION);
-      setSpecular(DEFAULT_MATERIAL_SPECULAR);
+      float[] specular = props.getSpecularArray();
+      setSpecular (specular != null ? specular : DEFAULT_MATERIAL_SPECULAR);
       setMaterialSelected (selected);         
-      setShadeModel (props.getShading());
    }
 
    /**
     * {@inheritDoc}
     */
-   public void setPointShading (RenderProps props) {
+   public Shading setPointShading (RenderProps props) {
+      Shading prevShading = getShading();
       Shading shading;
       if (props.getPointStyle() == PointStyle.POINT) {
          shading = Shading.NONE;
@@ -2985,13 +3001,15 @@ HasProperties {
       else {
          shading = props.getShading();
       }
-      setShadeModel (shading);
+      setShading (shading);
+      return prevShading;
    }
    
    /**
     * {@inheritDoc}
     */
-   public void setLineShading (RenderProps props) {
+   public Shading setLineShading (RenderProps props) {
+      Shading prevShading = getShading();
       Shading shading;
       if (props.getLineStyle() == LineStyle.LINE) {
          shading = Shading.NONE;
@@ -2999,34 +3017,44 @@ HasProperties {
       else {
          shading = props.getShading();
       }
-      setShadeModel (shading);      
+      setShading (shading);      
+      return prevShading;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public Shading setPropsShading (RenderProps props) {
+      Shading prevShading = getShading();
+      setShading (props.getShading());      
+      return prevShading;
    }
    
    /**
     * Forces setting color, regardless of selection mode (used by
     * color selector)
     */
-   public abstract void forceColor(float r, float g, float b, float a);
+   protected abstract void forceColor(float r, float g, float b, float a);
 
 
    // XXX To remove?
 
-   @Override
-   public void setMaterial(
-      Material material, boolean selected) {
-      setMaterial (material, material.getDiffuse (), selected);
-   }
-
-   public void setMaterial (
-      Material material, float[] diffuseColor, boolean selected) {
-
-      if (diffuseColor == null) {
-         diffuseColor = material.getDiffuse ();
-      }
-      setMaterial(diffuseColor, null, material.getShininess(), selected);
-      setSpecular (material.getSpecular ());
-      setEmission (material.getEmission ());
-   }
+//   @Override
+//   public void setMaterial(
+//      Material material, boolean selected) {
+//      setMaterial (material, material.getDiffuse (), selected);
+//   }
+//
+//   public void setMaterial (
+//      Material material, float[] diffuseColor, boolean selected) {
+//
+//      if (diffuseColor == null) {
+//         diffuseColor = material.getDiffuse ();
+//      }
+//      setMaterial(diffuseColor, null, material.getShininess(), selected);
+//      setSpecular (material.getSpecular ());
+//      setEmission (material.getEmission ());
+//   }
 
 //   // remove ....
 //   public void setMaterial(
@@ -3059,8 +3087,6 @@ HasProperties {
 //         props, mat, diffuseColor, mat, null, selected);
 //   }
 
-   public abstract void restoreShading (RenderProps props);
-
 //   @Override
 //   public void updateMaterial(
 //      RenderProps props, Material frontMaterial, float[] frontDiffuse,
@@ -3084,7 +3110,7 @@ HasProperties {
    //=======================================================
 
    // data for "drawMode"
-   protected VertexDrawMode myDrawMode = null;
+   protected DrawMode myDrawMode = null;
    protected boolean myDrawHasNormalData = false;
    protected boolean myDrawHasColorData = false;
    protected int myDrawVertexIdx = 0;
@@ -3137,7 +3163,7 @@ HasProperties {
    }
 
    @Override
-   public void beginDraw (VertexDrawMode mode) {
+   public void beginDraw (DrawMode mode) {
       if (myDrawMode != null) {
          throw new IllegalStateException (
          "Currently in draw mode (i.e., beginDraw() has already been called)");
@@ -3211,7 +3237,7 @@ HasProperties {
       }
    }
 
-   protected abstract void doDraw(VertexDrawMode drawMode,
+   protected abstract void doDraw(DrawMode drawMode,
       int numVertices, float[] vertexData, 
       boolean hasNormalData, float[] normalData, 
       boolean hasColorData, float[] colorData);

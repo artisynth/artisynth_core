@@ -10,16 +10,11 @@ import java.util.ArrayList;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-import maspack.render.Material;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Shading;
-import maspack.render.RenderProps.PointStyle;
 import maspack.render.Renderer;
-import maspack.render.Renderer.ColorInterpolation;
-import maspack.render.DiffuseTextureProps;
-import maspack.render.GL.GLRenderer;
-import maspack.util.FunctionTimer;
+import maspack.render.Renderer.PointStyle;
+import maspack.render.Renderer.Shading;
 
 public class PointMeshRenderer extends MeshRendererBase {
 
@@ -115,7 +110,7 @@ public class PointMeshRenderer extends MeshRendererBase {
       }
 
       float savedLineWidth = renderer.getLineWidth();
-      Shading savedShadeModel = renderer.getShadeModel();
+      Shading savedShadeModel = renderer.getShading();
       boolean savedLightingEnabled = renderer.isLightingEnabled();
 
       Shading shading = props.getShading();
@@ -126,28 +121,25 @@ public class PointMeshRenderer extends MeshRendererBase {
 
       boolean selected = ((flags & Renderer.SELECTED) != 0);
 
-      switch (props.getPointStyle()) {
+      PointStyle pointStyle = props.getPointStyle();
+      if (pointStyle == PointStyle.POINT && !mesh.hasNormals()) {
+         renderer.setShading (Shading.NONE);
+      }
+      else {
+         renderer.setShading (props.getShading());
+      }
+      renderer.setPointColoring (props, selected);
+      switch (pointStyle) {
          case POINT: {
             int size = props.getPointSize();
             if (size > 0) {
-               if (!mesh.hasNormals()) {
-                  renderer.setLightingEnabled (false);               
-                  renderer.setColor (props.getPointColorArray(), selected);
-               }
-               else {
-                  renderer.setPointLighting (props, selected);
-               }
                renderer.drawPoints (myRob, PointStyle.POINT, size);
-               if (!mesh.hasNormals()) {
-                  renderer.setLightingEnabled (true);
-               }
             }
             break;
          }
          case SPHERE: {
             double rad = props.getPointRadius();
             if (rad > 0) {
-               renderer.setPointLighting (props, selected);
                renderer.drawPoints (myRob, PointStyle.SPHERE, rad);
             }
             break;
@@ -156,17 +148,12 @@ public class PointMeshRenderer extends MeshRendererBase {
 
       if (mesh.getNormalRenderLen() > 0) {
          renderer.setLineWidth (props.getLineWidth());
-         if (shading == Shading.NONE) {
-            renderer.setColor (props.getLineColorArray(), selected);
-         }
-         else {
-            renderer.setMaterial (props.getLineMaterial(), selected);
-         }
+         renderer.setLineColoring (props, selected);
          renderer.drawLines (myRob);
       }
       
       renderer.setLineWidth (savedLineWidth);
-      renderer.setShadeModel (savedShadeModel);
+      renderer.setShading (savedShadeModel);
       renderer.setLightingEnabled (savedLightingEnabled);
 
       renderer.popModelMatrix();

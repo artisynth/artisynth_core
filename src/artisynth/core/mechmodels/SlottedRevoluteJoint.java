@@ -17,10 +17,10 @@ import maspack.render.GL.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer;
+import maspack.render.Renderer.LineStyle;
 import maspack.spatialmotion.SlottedRevoluteCoupling;
 import maspack.util.*;
-
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
@@ -60,7 +60,7 @@ public class SlottedRevoluteJoint extends JointBase
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createPointLineProps (host);
       props.setLineColor (Color.BLUE);
-      props.setLineStyle (RenderProps.LineStyle.CYLINDER);
+      props.setLineStyle (LineStyle.CYLINDER);
       return props;
    }
 

@@ -14,6 +14,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.widgets.LabeledComponentBase;
 import artisynth.core.gui.ControlPanel;
@@ -110,7 +111,7 @@ public class DoubleArmDemo extends RootModel {
        
        RenderProps rp = new RenderProps(model.getRenderProps());
        rp.setFaceColor(Color.GRAY);
-       rp.setShading(RenderProps.Shading.FLAT);
+       rp.setShading(Renderer.Shading.FLAT);
        rb.setRenderProps(rp);
 
        rb.setFrameDamping (10);
@@ -195,10 +196,10 @@ public class DoubleArmDemo extends RootModel {
        muscle2.setSecondPoint(tl);
        
        RenderProps rp = new RenderProps(model.getRenderProps());
-       rp.setLineStyle(RenderProps.LineStyle.ELLIPSOID);
+       rp.setLineStyle(Renderer.LineStyle.ELLIPSOID);
        rp.setLineRadius(len/20);
        rp.setLineSlices(10);
-       rp.setShading(RenderProps.Shading.GOURAUD);
+       rp.setShading(Renderer.Shading.GOURAUD);
        rp.setLineColor(Color.RED);
        muscle.setRenderProps(rp);
        muscle2.setRenderProps(rp);
@@ -219,7 +220,7 @@ public class DoubleArmDemo extends RootModel {
           s.setSecondPoint(l2);
           model.addAxialSpring(s);
           RenderProps props = new RenderProps();
-          props.setLineStyle(RenderProps.LineStyle.CYLINDER);
+          props.setLineStyle(Renderer.LineStyle.CYLINDER);
           props.setLineRadius(0.0);
           s.setRenderProps(props);
           
@@ -251,7 +252,7 @@ public class DoubleArmDemo extends RootModel {
        //lowerArm.addMarker(endPoint);
        
        RenderProps rp = new RenderProps(model.getRenderProps());
-       rp.setShading(RenderProps.Shading.GOURAUD);
+       rp.setShading(Renderer.Shading.GOURAUD);
        rp.setPointColor(Color.ORANGE);
        rp.setPointRadius(len/20);
        endPoint.setRenderProps(rp);
@@ -262,10 +263,10 @@ public class DoubleArmDemo extends RootModel {
       // set render properties for model
       
       RenderProps rp = new RenderProps();
-      rp.setPointStyle(RenderProps.PointStyle.SPHERE);
+      rp.setPointStyle(Renderer.PointStyle.SPHERE);
       rp.setPointColor(Color.LIGHT_GRAY);
       rp.setPointRadius(0.0);
-      rp.setLineStyle(RenderProps.LineStyle.ELLIPSOID);
+      rp.setLineStyle(Renderer.LineStyle.ELLIPSOID);
       rp.setLineColor(Color.WHITE);
       rp.setLineRadius(0.4);
       model.setRenderProps(rp);

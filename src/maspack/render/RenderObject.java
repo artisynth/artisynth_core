@@ -5,22 +5,24 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import maspack.render.Renderer.DrawMode;
+
 public class RenderObject {
 
    private static int nextIdNumber = 0;
    
-   /**
-    * During construction, allows automatic generation of primitives
-    */
-   public enum BuildMode {
-      POINTS,
-      LINES,
-      LINE_STRIP,
-      LINE_LOOP,
-      TRIANGLES,
-      TRIANGLE_STRIP,
-      TRIANGLE_FAN
-   }
+//   /**
+//    * During construction, allows automatic generation of primitives
+//    */
+//   public enum BuildMode {
+//      POINTS,
+//      LINES,
+//      LINE_STRIP,
+//      LINE_LOOP,
+//      TRIANGLES,
+//      TRIANGLE_STRIP,
+//      TRIANGLE_FAN
+//   }
    
    /**
     * Used for uniquely identifying a RenderObject, and checking
@@ -480,7 +482,7 @@ public class RenderObject {
    boolean colorsModified;
    boolean texturesModified;
    
-   BuildMode buildMode;
+   DrawMode buildMode;
    int buildModeStart;  // starting number of vertices when build mode began
 
    ArrayList<VertexIndexSet> vertices;
@@ -2030,7 +2032,7 @@ public class RenderObject {
     * complete after a call to {@link #endBuild()}.
     * @param mode mode for adding consecutive primitives
     */
-   public void beginBuild(BuildMode mode) {
+   public void beginBuild(DrawMode mode) {
       if (buildMode != null) {
          endBuild();
       }
@@ -2081,7 +2083,7 @@ public class RenderObject {
       buildMode = null;
    }
    
-   public BuildMode getBuildMode() {
+   public DrawMode getBuildMode() {
       return buildMode;
    }
 

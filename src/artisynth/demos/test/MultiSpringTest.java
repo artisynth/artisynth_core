@@ -8,7 +8,8 @@ import artisynth.core.mechmodels.Particle;
 import artisynth.core.workspace.RootModel;
 import maspack.matrix.Point3d;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer;
+import maspack.render.Renderer.LineStyle;
 
 public class MultiSpringTest extends RootModel {
 

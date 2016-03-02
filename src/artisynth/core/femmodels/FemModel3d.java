@@ -221,8 +221,7 @@ public class FemModel3d extends FemModel
    protected ColorMapBase myColorMap;
    protected PropertyMode myColorMapMode = PropertyMode.Inherited;
 
-   static maspack.render.Material myInvertedMaterial =
-   maspack.render.Material.createDiffuse(1f, 0f, 0f, 0f, 32f);
+   static float[] myInvertedColor = new float[] { 1f, 0f, 0f};
 
    public static PropertyList myProps =
    new PropertyList(FemModel3d.class, FemModel.class);

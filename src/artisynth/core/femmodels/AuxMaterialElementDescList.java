@@ -13,6 +13,7 @@ import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderObject;
+import maspack.render.Renderer.Shading;
 import artisynth.core.femmodels.AuxMaterialBundle.FractionRenderType;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ComponentChangeEvent;
@@ -189,8 +190,11 @@ public class AuxMaterialElementDescList
       }
       
       if (fractionRenderRadius > 0) {
-         renderer.setPointLighting (myRenderProps, false);
+         Shading savedShading = renderer.getShading ();
+         renderer.setShading (myRenderProps.getShading());
+         renderer.setPointColoring (myRenderProps, false);
          renderFractions(renderer, fractionRenderRadius, fractionRenderType, false);
+         renderer.setShading (savedShading);
       }
    }
    
@@ -221,7 +225,7 @@ public class AuxMaterialElementDescList
 
       if (r.numTriangles(group) > 0) {
          r.triangleGroup (group);
-         renderer.setMaterial (props.getFaceMaterial(), group == SEL_GRP);
+         renderer.setFaceColoring (props, group == SEL_GRP);
          renderer.drawTriangles (r);
       }
    }

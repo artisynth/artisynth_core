@@ -9,16 +9,15 @@ package artisynth.core.mechmodels;
 import java.awt.Color;
 import java.io.*;
 
-import maspack.render.RenderList;
 import maspack.render.*;
-import maspack.render.Renderable;
-import maspack.render.RenderProps.LineStyle;
-import maspack.render.RenderProps.Shading;
+import maspack.render.Renderer.LineStyle;
+import maspack.render.Renderer.Shading;
 import maspack.util.*;
 import artisynth.core.modelbase.*;
 import maspack.render.*;
 import maspack.properties.*;
 import artisynth.core.util.*;
+
 import java.util.*;
 
 public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
@@ -143,14 +142,16 @@ public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
       Renderer renderer, RenderProps props, boolean selected) {
    
       LineStyle style = props.getLineStyle();
+      Shading savedShading = renderer.setLineShading(props);
+      renderer.setLineColoring (props, selected);
       switch (style) {
          case LINE: {
             int width = props.getLineWidth();
             if (width > 0) {
-               renderer.setLightingEnabled (false);
-               renderer.setColor (props.getLineColorArray(), selected);
+               //renderer.setLightingEnabled (false);
+               //renderer.setColor (props.getLineColorArray(), selected);
                renderer.drawLines (myRob, LineStyle.LINE, width);
-               renderer.setLightingEnabled (true);
+               //renderer.setLightingEnabled (true);
             }
             break;
          }
@@ -159,14 +160,15 @@ public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
          case CYLINDER: {
             double rad = props.getLineRadius();
             if (rad > 0) {
-               Shading savedShading = renderer.getShadeModel();
-               renderer.setLineLighting (props, selected);
+               //Shading savedShading = renderer.getShadeModel();
+               //renderer.setLineLighting (props, selected);
                renderer.drawLines (myRob, style, rad);
-               renderer.setShadeModel(savedShading);
+               //renderer.setShadeModel(savedShading);
             }
             break;
          }
       }
+      renderer.setShading(savedShading);
    }
 
    public void render (Renderer renderer, int flags) {

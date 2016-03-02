@@ -19,7 +19,7 @@ import maspack.matrix.Vector4d;
 import maspack.render.PointEdgeRenderProps;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.Renderer.VertexDrawMode;
+import maspack.render.Renderer.DrawMode;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
@@ -843,10 +843,10 @@ public abstract class NURBSCurveBase extends NURBSObject {
                renderer.setColor (props.getEdgeOrLineColorArray());
             }
             if (myClosedP) {
-               renderer.beginDraw (VertexDrawMode.LINE_LOOP);
+               renderer.beginDraw (DrawMode.LINE_LOOP);
             }
             else {
-               renderer.beginDraw (VertexDrawMode.LINE_STRIP);
+               renderer.beginDraw (DrawMode.LINE_STRIP);
             }
             for (int i = 0; i < numc; i++) {
                Vector4d cpnt = myCtrlPnts.get(i);
@@ -870,7 +870,7 @@ public abstract class NURBSCurveBase extends NURBSObject {
 
       Point3d pnt = new Point3d();
       renderer.setLineWidth (props.getLineWidth());
-      renderer.beginDraw (VertexDrawMode.LINE_LOOP);
+      renderer.beginDraw (DrawMode.LINE_LOOP);
       double[] urange = new double[2];
       getRange (urange);
       for (int i = 0; i < nsegs + 1; i++) {

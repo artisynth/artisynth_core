@@ -10,13 +10,8 @@ import java.util.ArrayList;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-import maspack.render.Material;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Shading;
-import maspack.render.Renderer;
-import maspack.render.Renderer.ColorInterpolation;
-import maspack.render.DiffuseTextureProps;
 
 public abstract class MeshRendererBase {
 

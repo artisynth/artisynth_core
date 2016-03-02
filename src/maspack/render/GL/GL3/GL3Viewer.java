@@ -563,7 +563,9 @@ public class GL3Viewer extends GLViewer {
                qid = myExternalRenderList.renderTransparent (this, qid, flags);
             }
          }
-         disableTransparency (gl);
+         if (!isSelecting()) {
+            disableTransparency (gl);
+         }
       }
       GLSupport.checkAndPrintGLError(gl);
 
@@ -643,6 +645,7 @@ public class GL3Viewer extends GLViewer {
          setDepthEnabled(false);
          setFaceMode(Faces.FRONT_AND_BACK);
       }
+      
       // XXX maybe set configurable?
       gl.glEnable (GL3.GL_BLEND);
       gl.glBlendFunc (GL3.GL_SRC_ALPHA, GL3.GL_ONE_MINUS_SRC_ALPHA);

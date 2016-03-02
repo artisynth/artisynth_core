@@ -1054,7 +1054,7 @@ public class GL3RenderObject extends GL3ResourceBase implements GL3Drawable {
          nattribs++;
       }
       if (tidx >= 0) {
-         tidx++;
+         nattribs++;
       }
 
       GL3VertexAttributeArray[] attribs = new GL3VertexAttributeArray[nattribs];

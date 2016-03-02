@@ -1103,7 +1103,7 @@ public class GLSLGenerator {
                appendln(mb, "   color = color*texture_color; // modulate");
                break;
             case REPLACE:
-               appendln(mb, "   color = texture_0color; // replace");
+               appendln(mb, "   color = texture_color; // replace");
             case NONE:
                appendln(mb, "   // texture_color ignored");
             default:

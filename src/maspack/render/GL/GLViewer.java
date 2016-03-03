@@ -3152,7 +3152,8 @@ HasProperties {
    /**
     * Returns either Selected (if selected color is currently active)
     * or the current material's diffuse color otherwise
-    * @return
+    * 
+    * @return current color being used by this viewer
     */
    private float[] getCurrentColor() {
       if (mySelectedColorActive) {

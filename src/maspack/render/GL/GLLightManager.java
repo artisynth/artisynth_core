@@ -87,7 +87,8 @@ public class GLLightManager {
    
    /**
     * Intensity for scaling light parameters for HDR->LDR
-    * @return
+    * 
+    * @return maximum intensity
     */
    public float getMaxIntensity() {
       return maxIntensity;

@@ -17,11 +17,6 @@ import maspack.render.Renderer;
 public interface GLRenderer extends Renderer {
 
    /**
-    * Flag requesting that faces of a mesh be sorted before rendering
-    */
-   public static int SORT_FACES = 0x8;
-   
-   /**
     * Returns true if the renderer is currently performing a selection
     * render. When this is the case, the application should avoid calls
     * affecting color and lighting.

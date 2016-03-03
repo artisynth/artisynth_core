@@ -117,9 +117,9 @@ public class GL3Viewer extends GLViewer {
     * @param cap
     * Desired GL capabilities. Can be specified as null, which will create
     * default capabilities.
-    * @param sharedContext
-    * a GL context with which to share resources (e.g., display
-    * lists and textures). Can be specified as null.
+    * @param resources Resources to be used by the viewer.
+    * Can be specified as null, which will create
+    * default resources.
     * @param width
     * initial width of the viewer
     * @param height
@@ -1296,7 +1296,6 @@ public class GL3Viewer extends GLViewer {
    /**
     * No lighting, colors, textures
     * @param gl
-    * @return
     */
    protected int getBasicProgram(GL3 gl) {
       return progManager.getProgram(gl, 
@@ -1474,17 +1473,17 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    public void drawArrow(
-      RenderProps props, float[] coords0, float[] coords1, boolean capped,
+      RenderProps props, float[] pnt0, float[] pnt1, boolean capped,
       boolean selected) {
 
       Vector3d utmp = 
-         new Vector3d(coords1[0]-coords0[0],
-                      coords1[1]-coords0[1], 
-                      coords1[2]-coords0[2]);
+         new Vector3d(pnt1[0]-pnt0[0],
+                      pnt1[1]-pnt0[1], 
+                      pnt1[2]-pnt0[2]);
       double len = utmp.norm();
       utmp.scale(1.0/len);
 
-      Vector3d vtmp = new Vector3d(coords0[0], coords0[1], coords0[2]);
+      Vector3d vtmp = new Vector3d(pnt0[0], pnt0[1], pnt0[2]);
       double arrowRad = 3 * props.getLineRadius();
       double arrowLen = 2*arrowRad;
       vtmp.scaledAdd (len-arrowLen, utmp);
@@ -1499,17 +1498,17 @@ public class GL3Viewer extends GLViewer {
          switch (props.getLineStyle()) {
             case LINE: {
                gl.glLineWidth (props.getLineWidth());
-               drawGLLine(gl, coords0, ctmp);
+               drawGLLine(gl, pnt0, ctmp);
                gl.glLineWidth (1);
                break;
             }
             case CYLINDER: 
             case SOLID_ARROW: {
-               drawCylinder (coords0, ctmp, props.getLineRadius(), capped);
+               drawCylinder (pnt0, ctmp, props.getLineRadius(), capped);
                break;
             }
             case ELLIPSOID: {
-               drawTaperedEllipsoid (coords0, coords1, props.getLineRadius());
+               drawTaperedEllipsoid (pnt0, pnt1, props.getLineRadius());
                break;
             }
             default: {
@@ -1523,10 +1522,10 @@ public class GL3Viewer extends GLViewer {
          setShading (props.getShading());
       }
       if (len <= arrowLen) {
-         drawCone (coords0, coords1, len/2, 0, capped);
+         drawCone (pnt0, pnt1, len/2, 0, capped);
       }
       else {
-         drawCone (ctmp, coords1, arrowRad, 0, capped);
+         drawCone (ctmp, pnt1, arrowRad, 0, capped);
       }
       setShading(savedShading);
       

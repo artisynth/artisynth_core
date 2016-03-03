@@ -98,7 +98,6 @@ public class UniformBufferObject extends GL3ResourceBase {
    /**
     * First orphans the original buffer, potentially causing a re-allocation,
     * then returns a mapped buffer ready for writing.
-    * @return
     */
    public ByteBuffer mapNewBuffer(GL3 gl) {
       gl.glBindBuffer(GL3.GL_UNIFORM_BUFFER, ubo);

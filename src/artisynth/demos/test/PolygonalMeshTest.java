@@ -8,12 +8,17 @@ import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.*;
 import artisynth.core.workspace.RootModel;
 import artisynth.core.gui.*;
+import artisynth.core.util.*;
 import maspack.geometry.*;
 import maspack.matrix.*;
 import maspack.render.*;
 import maspack.properties.*;
 
 public class PolygonalMeshTest extends MeshTestBase {
+
+   public static String rbpath =
+      ArtisynthPath.getHomeRelativePath (
+         "src/maspack/geometry/sampleData/", ".");
 
    public static PropertyList myProps =
       new PropertyList (PolygonalMeshTest.class, MeshTestBase.class);
@@ -43,18 +48,31 @@ public class PolygonalMeshTest extends MeshTestBase {
       addControlPanel (panel);
    }
 
+   PolygonalMesh readBoxMesh() {
+      PolygonalMesh mesh = null;
+      try {
+         mesh = new PolygonalMesh (new File (rbpath + "box.obj"));
+      }
+      catch (Exception e) {
+         System.out.println ("Can't read 'box.obj':");
+         e.printStackTrace(); 
+         System.exit(1); 
+      }
+      return mesh;
+   }
+
    public void build (String[] args) {
 
       MechModel msmod = new MechModel ("msmod");
-      PolygonalMesh polyMesh;
+      PolygonalMesh mesh;
 
       // PolygonalMesh mesh = MeshFactory.createTube (2, 4, 6, 20, 2, 6);
-      polyMesh = 
-         //MeshFactory.createIcosahedralSphere (/*radius=*/2.0, /*divisions=*/2);
-         MeshFactory.createSphere (/*radius=*/2.0, /*nsegs=*/24);
-      myMesh = polyMesh;
+      //mesh = MeshFactory.createIcosahedralSphere (/*radius=*/2.0, /*divs=*/2);
+      //mesh = MeshFactory.createSphere (/*radius=*/2.0, /*nsegs=*/24);
+      mesh = readBoxMesh();
+      myMesh = mesh;
 
-      FixedMeshBody meshBody = new FixedMeshBody (polyMesh);
+      FixedMeshBody meshBody = new FixedMeshBody (mesh);
       msmod.addMeshBody (meshBody);
       addModel (msmod);
       addControlPanel (meshBody);

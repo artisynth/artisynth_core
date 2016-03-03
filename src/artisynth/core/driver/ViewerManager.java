@@ -53,7 +53,7 @@ public class ViewerManager {
    public static final int DEFAULT_REFRESH_FLAGS = 
       (Renderer.UPDATE_RENDER_CACHE |
        Renderer.CLEAR_RENDER_CACHE | 
-       GLRenderer.SORT_FACES);
+       Renderer.SORT_FACES);
    private int myRefreshRenderFlags = DEFAULT_REFRESH_FLAGS;
 
    boolean myDefaultDrawAxes = false;

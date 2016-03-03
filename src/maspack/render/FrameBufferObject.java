@@ -423,8 +423,6 @@ public class FrameBufferObject {
     * and the Java AWT at the top left.
     * 
     * @param gl      the current GL object.
-    * @param width   the width of the canvas.
-    * @param height  the height of the canvas.
     * @return  The ARGB pixels as integers.
     */
    public int[] getPixelsARGB (GL2GL3 gl) {

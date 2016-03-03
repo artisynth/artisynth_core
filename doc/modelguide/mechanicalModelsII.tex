@@ -283,10 +283,13 @@ the color, size, style, and resolution of the three primary rendering
 primitives: faces, lines, and points. Table \ref{RenderProps:tab}
 contains a complete list. Values for the {\tt shading}, {\tt
 faceStyle}, {\tt lineStyle} and {\tt pointStyle} properties are
-defined using the enumerated types {\tt RenderProps.Shading}, {\tt
-RenderProps.Faces}, {\tt RenderProps.LineStyle}, and {\tt
-RenderProps.PointStyle}.  Colors are specified using {\tt
-java.awt.Color}.
+defined using the following enumerated types:
+\javaclass[maspack.render]{Renderer\#Shading}, 
+\javaclass[maspack.render]{Renderer\#Faces}, 
+\javaclass[maspack.render]{Renderer\#PointStyle}, 
+and 
+\javaclass[maspack.render]{Renderer\#LineStyle}.
+Colors are specified using {\tt java.awt.Color}.
 
 \begin{table}
 \begin{center}

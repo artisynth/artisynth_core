@@ -87,10 +87,15 @@ public class CollisionRenderer {
 
    private double maxlam = 0.20;
 
+   private Vector3d getVec(float[] coords) {
+      return new Vector3d (coords[0], coords[1], coords[2]);
+   }
+
    public void prerender (CollisionHandler handler, RenderProps props) {
       RenderObject r = new RenderObject();
 
       r.reinitialize();
+
 
       r.createLineGroup();     // constraints
       r.createLineGroup();     // segments
@@ -197,6 +202,9 @@ public class CollisionRenderer {
             r.addTriangle (v0idx, v1idx, v2idx);     
          }
       }
+      if (myRob != null) {
+         myRob.dispose();
+      }
       myRob = r;
    }
 
@@ -263,9 +271,10 @@ public class CollisionRenderer {
                rgb = props.getLineColorArray();
             }
             renderer.setColor (rgb, false);
-            renderer.setLightingEnabled (false);
+            Shading save = renderer.getShading();
+            renderer.setShading (Shading.NONE);
             renderer.drawLines (r, LineStyle.LINE, width);
-            renderer.setLightingEnabled (true);
+            renderer.setShading (save);
          }
       }
       

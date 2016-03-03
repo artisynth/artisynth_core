@@ -1,7 +1,6 @@
 package artisynth.demos.tutorial;
 
 import java.awt.Color;
-
 import maspack.matrix.*;
 import maspack.render.*;
 import artisynth.core.workspace.*;

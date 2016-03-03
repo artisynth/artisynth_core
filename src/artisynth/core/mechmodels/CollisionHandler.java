@@ -46,7 +46,7 @@ public class CollisionHandler extends ConstrainerBase
    boolean myDrawIntersectionContours = false;
    boolean myDrawIntersectionFaces = false;
    boolean myDrawIntersectionPoints = false;
-   boolean myDrawConstraints = true;
+   boolean myDrawConstraints = false;
 
    ContactInfo myLastContactInfo; // last contact info produced by this handler
    ContactInfo myRenderContactInfo; // contact info to be used for rendering

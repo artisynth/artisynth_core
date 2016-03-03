@@ -112,11 +112,12 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          addFaceNormals (r, pmesh);
       }
       addColors (r, pmesh);
-      addTextureCoords (r, pmesh);     
+      //addTextureCoords (r, pmesh);     
 
       int[] nidxs = useVertexNormals ? pmesh.getNormalIndices() : null;
       int[] cidxs = pmesh.hasColors() ? pmesh.getColorIndices() : null;
-      int[] tidxs = pmesh.hasTextureCoords() ? pmesh.getTextureIndices() : null;
+      //int[] tidxs = pmesh.hasTextureCoords() ? pmesh.getTextureIndices() : null;
+      int[] tidxs = null;
       
       int[] indexOffs = pmesh.getFeatureIndexOffsets();      
       int[] pidxs = pmesh.createVertexIndices();

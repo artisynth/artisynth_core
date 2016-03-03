@@ -18,9 +18,10 @@ public class RenderObjectFactory {
     * @param mesh 
     * @param flatNormals use "flat" shading normals
     * @param addEdges add edge primitives
-    * @return
+    * @return created RenderObject
     */
-   public static RenderObject createFromMesh(PolygonalMesh mesh, boolean flatNormals, boolean addEdges) {
+   public static RenderObject createFromMesh (
+      PolygonalMesh mesh, boolean flatNormals, boolean addEdges) {
 
       RenderObject r = new RenderObject();
 
@@ -110,9 +111,10 @@ public class RenderObjectFactory {
 
    /**
     * Creates a unit cylinder along the z-axis
+    * 
     * @param nSlices angular resolution
     * @param capped include top/bottom caps
-    * @return
+    * @return RenderObject for rendering a unit cylinder
     */
    public static RenderObject createCylinder(int nSlices, boolean capped) {
 
@@ -175,7 +177,7 @@ public class RenderObjectFactory {
     * Creates a unit cone along the z-axis
     * @param nSlices angular resolution
     * @param capped include top/bottom caps
-    * @return
+    * @return RenderObject for rendering a cone
     */
    public static RenderObject createCone(int nSlices, boolean capped) {
 
@@ -237,7 +239,7 @@ public class RenderObjectFactory {
     * Creates a unit tapered ellipsoid along the z-axis
     * @param nSlices angular resolution (longitude)
     * @param nLevels vertical resolution (latitude)
-    * @return
+    * @return RenderObject for rendering a tapered ellipsoid
     */
    public static RenderObject createTaperedEllipsoid(int nSlices, int nLevels) {
 
@@ -309,7 +311,7 @@ public class RenderObjectFactory {
     * Creates a unit sphere centered at the origin
     * @param nSlices angular resolution (longitude)
     * @param nLevels vertical resolution (latitude)
-    * @return
+    * @return RenderObject for rendering a sphere
     */
    public static RenderObject createSphere(int nSlices, int nLevels) {
 
@@ -381,7 +383,7 @@ public class RenderObjectFactory {
     * @param x to include x?
     * @param y to include y?
     * @param z to include z?
-    * @return
+    * @return Render object for rendering axes
     */
    public RenderObject createAxes(boolean x, boolean y, boolean z) {
       

@@ -27,8 +27,8 @@ public interface ContactForceBehavior {
     * contact distance.
     * @param dist contact interpentration distance. This value is usually
     * negative, with greater negativity indicating greater interpenetration.
-    * @param cpnt0 first contact point
-    * @param cpnt1 second contact point
+    * @param cpnt1 first contact point
+    * @param cpnt2 second contact point
     * @param normal contact normal, facing outward from the surface
     */
    public void computeResponse (

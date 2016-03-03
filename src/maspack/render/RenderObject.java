@@ -613,7 +613,8 @@ public class RenderObject {
    
    /**
     * Sets the current 3D position to be used in following vertices, BY REFERENCE.
-    * @see {@link #addPosition(float[])}, {@link #position(int)}
+    * @see #addPosition(float[])
+    * @see #position(int)
     * @param pos
     * @return The index of the new position (valid only if a vertex
     * is added with the supplied position)
@@ -903,7 +904,8 @@ public class RenderObject {
 
    /**
     * Sets the current 3D normal, by reference, to be used in following vertices.
-    * @see {@link #addNormal(float[])}, {@link #normal(int)}
+    * @see #addNormal(float[])
+    * @see #normal(int)
     * @param nrm
     * @return The index of the new normal (valid only if a vertex is added
     * with the supplied normal).
@@ -1267,7 +1269,8 @@ public class RenderObject {
 
    /**
     * Sets the current color, by reference, to be used in following vertices.
-    * @see {@link #addColor(byte[])}, {@link #color(int)}
+    * @see #addColor(byte[])
+    * @see #color(int)
     * @param rgba {red, green, blue, alpha}
     * @return The index of the new color (valid only if a vertex
     * is added with the supplied color)
@@ -1571,7 +1574,8 @@ public class RenderObject {
    
    /**
     * Sets the current 2D texture coordinate, by reference, to be used in following vertices.
-    * @see {@link #addTextureCoord(float[])}, {@link #textureCoord(int)}
+    * @see #addTextureCoord(float[])
+    * @see #textureCoord(int)
     * @param xy the 2D coordinate
     * @return The index of the new texture coordinate (valid only if a vertex
     * is added with the supplied texture coordinate)
@@ -1746,7 +1750,7 @@ public class RenderObject {
 
    /**
     * The number of texture coordinate sets available.
-    * @return 
+    * @return number of texture coordinate sets
     */
    public int numTextureCoordSets() {
       return stateInfo.numTextureSets;
@@ -1889,7 +1893,8 @@ public class RenderObject {
     * Add a vertex at the supplied position using the currently active
     * normal, color and texture coordinate (if available).  A new position
     * is created, by reference, to accommodate the vertex.
-    * @see {@link #addPosition(float[])}, {@link #addVertex(int)}
+    * @see #addPosition(float[])
+    * @see #addVertex(int)
     * @param xyz
     * @return vertex index
     */
@@ -2986,10 +2991,10 @@ public class RenderObject {
    }
 
    /**
-    * Returns whether or not the renderable object is valid.  If valid,
+    * Returns whether or not this RenderObject is valid.  If valid,
     * this object can be safely passed to a renderer for drawing.  
     * If not, it needs to be discarded.
-    * @return 
+    * @return <code>true</code> if this RenderObject is valid
     */
    public boolean isValid() {
       return idInfo.isValid();

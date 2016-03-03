@@ -754,7 +754,7 @@ public interface RenderObjectInterface {
 
    /**
     * The number of texture coordinate sets available.
-    * @return 
+    * @return number of available texture coordinate sets
     */
    public abstract int numTextureCoordSets();
 
@@ -1344,10 +1344,10 @@ public interface RenderObjectInterface {
    public abstract void invalidate();
 
    /**
-    * Returns whether or not the renderable object is valid.  If valid,
+    * Returns whether or not this RenderObject is valid.  If valid,
     * this object can be safely passed to a renderer for drawing.  
     * If not, it needs to be discarded.
-    * @return 
+    * @return <code>true</code> if this RenderObject is valid
     */
    public abstract boolean isValid();
 

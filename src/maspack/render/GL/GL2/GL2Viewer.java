@@ -24,6 +24,7 @@ import javax.swing.event.MouseInputListener;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.render.Dragger3d;
@@ -310,9 +311,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
     * @param cap
     * Desired GL capabilities. Can be specified as null, which will create
     * default capabilities.
-    * @param shareWith
-    * a GL drawable with which the GLCanvas is to share resources (e.g., display
-    * lists and textures). Can be specified as null.
+    * @param resources Resources to be used by the viewer.
+    * Can be specified as null, which will create
+    * default resources.
     * @param width
     * initial width of the viewer
     * @param height
@@ -1707,19 +1708,19 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    }
 
    public void drawArrow (
-      RenderProps props, float[] coords0, float[] coords1, boolean capped,
+      RenderProps props, float[] pnt0, float[] pnt1, boolean capped,
       boolean selected) {
 
       GL2 gl = getGL2();
       maybeUpdateState(gl);
 
-      utmp.set (coords1[0]-coords0[0], 
-                coords1[1]-coords0[1], 
-                coords1[2]-coords0[2]);
+      utmp.set (pnt1[0]-pnt0[0], 
+                pnt1[1]-pnt0[1], 
+                pnt1[2]-pnt0[2]);
       double len = utmp.norm();
 
       utmp.normalize();
-      vtmp.set (coords0[0], coords0[1], coords0[2]);
+      vtmp.set (pnt0[0], pnt0[1], pnt0[2]);
       double arrowRad = 3 * props.getLineRadius();
       double arrowLen = 2*arrowRad;
       vtmp.scaledAdd (len-arrowLen, utmp);
@@ -1734,7 +1735,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             case LINE: {
                gl.glLineWidth (props.getLineWidth());
                gl.glBegin (GL2.GL_LINES);
-               gl.glVertex3fv (coords0, 0);
+               gl.glVertex3fv (pnt0, 0);
                gl.glVertex3fv (ctmp, 0);
                gl.glEnd();
                gl.glLineWidth (1);
@@ -1742,11 +1743,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             }
             case CYLINDER:
             case SOLID_ARROW: {
-               drawCylinder (coords0, ctmp, props.getLineRadius(), capped);
+               drawCylinder (pnt0, ctmp, props.getLineRadius(), capped);
                break;
             }
             case ELLIPSOID: {
-               drawTaperedEllipsoid (coords0, coords1, props.getLineRadius());
+               drawTaperedEllipsoid (pnt0, pnt1, props.getLineRadius());
                break;
             }
             default: {
@@ -1760,10 +1761,10 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          setShading (props.getShading());
       }
       if (len <= arrowLen) {
-         doDrawCylinder (coords0, coords1, capped, len/2, 0.0);
+         doDrawCylinder (pnt0, pnt1, capped, len/2, 0.0);
       }
       else {
-         doDrawCylinder (ctmp, coords1, capped, arrowRad, 0.0);
+         doDrawCylinder (ctmp, pnt1, capped, arrowRad, 0.0);
       }
       setShading(savedShading);
    }
@@ -2703,7 +2704,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          }
          return rv.equals(other.rv);
       }
-
    }
 
    @Override
@@ -2744,7 +2744,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
          if (useDisplayList) {
             dlpp = myGLResources.getDisplayListPassport(gl, key);
-            if (dlpp == null) {
+             if (dlpp == null) {
                dlpp = myGLResources.allocateDisplayListPassport(gl, key, fingerprint);
                compile = true;
             } else {
@@ -2759,8 +2759,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
             gl.glBegin(GL.GL_LINES);
 
+            int k=0;
             for (int[] line : lines) {
-               for (int i=0; i<2; ++i) {
+               VectorNd pos0 = null;
+               VectorNd pos1 = null;
+               for (int i=0; i<2; i++) {
                   VertexIndexSet v = robj.getVertex(line[i]);
                   if (!selecting && useColors) {
                      setVertexColor (gl, robj.getColor (v.getColorIndex ()), useHSV);

@@ -26,7 +26,7 @@ public class RenderableUtils {
    /**
     * Sets the RenderProps of a Renderable object to a copy of its existing
     * RenderProps. If the object does not currently have any RenderProps, (i.e.,
-    * {@link GLRenderable#getRenderProps getRenderProps} returns <code>null</code>),
+    * {@link Renderable#getRenderProps getRenderProps} returns <code>null</code>),
     * then this method does nothing.
     * 
     * <p>

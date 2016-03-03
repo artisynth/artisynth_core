@@ -9,6 +9,7 @@ import java.util.Random;
 import maspack.geometry.Face;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.MeshFactory;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
@@ -76,7 +77,7 @@ public class FemCollision extends RootModel {
          
          RigidBody table = new RigidBody("table");
          table.setDynamic (false);
-         table.setMesh (new PolygonalMesh (new File (rbpath + "box.obj")), null);
+         table.setMesh (MeshFactory.createBox (2, 2, 2));
          AffineTransform3d trans = new AffineTransform3d();
          trans.setIdentity();
          trans.applyScaling (4, 2, 0.5);
@@ -93,8 +94,7 @@ public class FemCollision extends RootModel {
 
          if (incBox0) {
             box0 = new RigidBody("box0");
-            box0.setMesh (
-               new PolygonalMesh (new File (rbpath + "box.obj")), null);
+            box0.setMesh (MeshFactory.createBox (2, 2, 2));
             trans.setIdentity();
             trans.applyScaling (1.5, 1.5, 0.5);
             box0.transformGeometry (trans);

@@ -64,7 +64,6 @@ public class DisplayListManager {
        * it matches the supplied print.  Replaces
        * internal finger print with fp to allow for
        * atomic compare/exchange.
-       * @return
        */
       public synchronized boolean compareExchangeFingerPrint(Object fp) {
          if (fingerPrint == null) {

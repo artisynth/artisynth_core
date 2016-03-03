@@ -2909,6 +2909,52 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       r.setRenderProps (props);
    }
 
+   /**
+    * Sets the render properties for a renderable to be consistent with either
+    * wireframe or solid face rendering. For wireframe rendering, the
+    * <code>faces</code>, <code>drawEdges</code> and <code>shading</code>
+    * properties are set to <code>Faces.NONE</code>, <code>true</code>, and
+    * <code>Shading.NONE</code>, respectively. For solid frame rendering, they
+    * are set to <code>Faces.FRONT</code>, <code>false</code>, and
+    * <code>Shading.FLAT</code>.
+    *
+    * @param r Renderable whose properties are to be set
+    * @param enable if <code>true</code>, enable wireframe rendering.
+    */
+   public static void setWireFrame (Renderable r, boolean enable) {
+      Shading shading = enable ?  Shading.NONE : Shading.FLAT;
+      setWireFrame (r, enable, shading);
+   }
+
+   /**
+    * Sets the render properties for a renderable to be consistent with either
+    * wireframe or solid face rendering. For wireframe rendering, the
+    * <code>faces</code> and <code>drawEdges</code> properties are set to
+    * <code>Faces.NONE</code> and <code>true</code>, respectively. For solid
+    * frame rendering, they are set to <code>Faces.FRONT</code> and
+    * <code>false</code>.  The <code>shading</code> property is set to the
+    * value of the <code>shading</code> argument.
+    *
+    * @param r Renderable whose properties are to be set
+    * @param enable if <code>true</code>, enable wireframe rendering.
+    * @param shading new value for the <code>shading</code> property
+    */
+   public static void setWireFrame (
+      Renderable r, boolean enable, Shading shading) {
+
+      RenderProps props = createAndAssignProps (r);
+      if (enable) {
+         props.setFaceStyle (Faces.NONE);
+         props.setDrawEdges (true);
+      }
+      else {
+         props.setFaceStyle (Faces.FRONT);
+         props.setDrawEdges (false);
+      }
+      props.setShading (shading);
+      r.setRenderProps (props);      
+   }      
+
    public static void setDiffuseTextureEnabled (Renderable r, boolean enabled) {
       RenderProps props = createAndAssignProps (r);
       DiffuseTextureProps tprops = createAndAssignDiffuseTextureProps(props);

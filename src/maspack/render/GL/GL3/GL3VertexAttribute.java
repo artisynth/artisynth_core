@@ -81,8 +81,6 @@ public abstract class GL3VertexAttribute {
    
    /**
     * Check that underlying data is valid
-    * @param gl
-    * @return
     */
    public abstract boolean isValid();
   

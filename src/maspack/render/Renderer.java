@@ -82,6 +82,11 @@ public interface Renderer {
     * Flag requesting color interpolation in HSV space, if possible.
     */
    public static int HSV_COLOR_INTERPOLATION = 0x4;
+
+   /**
+    * Flag requesting that faces of a mesh be sorted before rendering
+    */
+   public static int SORT_FACES = 0x8;
    
    /**
     * Defines various vertex-based primitives
@@ -227,7 +232,7 @@ public interface Renderer {
     * (which corresponds to the far clip plane). This is a positive number.
     *
     * @return distance to the near clip plane
-    * @see #getFarClipPlaneZ
+    * @see #getFarPlaneDistance
     */
    public double getViewPlaneDistance();
 
@@ -236,7 +241,7 @@ public interface Renderer {
     * plane. This is a positive number.
     *
     * @return distance to the far clip plane
-    * @see #getNearClipPlaneZ
+    * @see #getViewPlaneDistance
     */
    public double getFarPlaneDistance();
    
@@ -575,7 +580,7 @@ public interface Renderer {
     * its principal circumference. It is understood to
     * be only a lower bound, and the actual resolution may be higher.
     * 
-    * @param resolution for curved surfaces
+    * @param nsegs resolution for curved surfaces
     */
    public void setCurvedMeshResolution (int nsegs);
    
@@ -583,7 +588,7 @@ public interface Renderer {
     * Draws a sphere with a specified radius centered at a point
     * in model coordinates, using the current shading and material.
     * The point is located in model coordinates. The resolution
-    * of the sphere is specified by {@link #getCurvedMeshResoltion}.
+    * of the sphere is specified by {@link #getCurvedMeshResolution}.
     * 
     * @param pnt center of the sphere
     * @param rad radius of the sphere
@@ -804,7 +809,7 @@ public interface Renderer {
     * highlighting, if enabled, should be applied to the arrow
     */
    public void drawArrow (
-      RenderProps props, float[] coords0, float[] coords1, boolean capped,
+      RenderProps props, float[] pnt0, float[] pnt1, boolean capped,
       boolean selected);
 
 //   // REMOVE
@@ -830,18 +835,18 @@ public interface Renderer {
     * @param props render properties used for drawing the strip
     * @param pntList list of points used for drawing the strip
     * @param style line style to be used for the strip
-    * @param selected if <code>true</code>, indicates that selection
+    * @param isSelected if <code>true</code>, indicates that selection
     * highlighting, if enabled, should be applied to the strip
     */
    public void drawLineStrip (
       RenderProps props, Iterable<float[]> pntList, 
       LineStyle style, boolean isSelected);   
 
-   // FINISH: remove??
-   public boolean isTransparencyEnabled();
-
-   //FINISH: remove??
-   public void setTransparencyEnabled (boolean enable);
+//   // FINISH: remove??
+//   public boolean isTransparencyEnabled();
+//
+//   //FINISH: remove??
+//   public void setTransparencyEnabled (boolean enable);
 
    // public void drawXYGrid (double size, int numcells);
 
@@ -882,7 +887,7 @@ public interface Renderer {
    /**
     * Sets the diffuse and ambient colors to the value specified by 
     * <code>rgba</code>, unless <code>selected</code> is <code>true</code>
-    * and selection highlighting equals {@link SelectionHighligthing#COLOR},
+    * and selection highlighting equals {@link SelectionHighlighting#COLOR},
     * in which case the renderer's selection color is used.
     * 
     * <p>This method also clears any back color that may be present.
@@ -1319,7 +1324,7 @@ public interface Renderer {
     * the specified line style. For lines drawn using the style {@link
     * LineStyle#LINE}, the argument <code>rad</code> gives the line width,
     * whereas for solid primitives ({@link LineStyle#CYLINDER}, {@link
-    * LineStyle#SOLID_ARROW}, {@link LineStyle#TAPPERD_ELLIPSOID}), it gives
+    * LineStyle#SOLID_ARROW}, {@link LineStyle#ELLIPSOID}), it gives
     * the nominal radius.
     * 
     * @param robj render object
@@ -1370,7 +1375,7 @@ public interface Renderer {
    /**
     * 
     * @param key
-    * @return
+    * @return specified shared object
     */
    public RenderObject getSharedObject(Object key);
    

@@ -112,12 +112,13 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          addFaceNormals (r, pmesh);
       }
       addColors (r, pmesh);
+      // Texture coordinates currently break GL3 rendering:
       //addTextureCoords (r, pmesh);     
 
       int[] nidxs = useVertexNormals ? pmesh.getNormalIndices() : null;
       int[] cidxs = pmesh.hasColors() ? pmesh.getColorIndices() : null;
       //int[] tidxs = pmesh.hasTextureCoords() ? pmesh.getTextureIndices() : null;
-      int[] tidxs = null;
+      int[] tidxs = null; // Texture coordinates currently break GL3 rendering
       
       int[] indexOffs = pmesh.getFeatureIndexOffsets();      
       int[] pidxs = pmesh.createVertexIndices();

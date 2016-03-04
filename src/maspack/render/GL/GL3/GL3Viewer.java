@@ -825,6 +825,7 @@ public class GL3Viewer extends GLViewer {
       if (myCurrentMaterialModified &&!selectEnabled) {
          // set all colors
          if (mySelectedColorActive) {
+            mySelectedColor[3] = myCurrentMaterial.getAlpha();
             progManager.setMaterials (gl, myCurrentMaterial, mySelectedColor, myCurrentMaterial, mySelectedColor);
          } else {
             progManager.setMaterials (gl, myCurrentMaterial, myCurrentMaterial.getDiffuse(), myCurrentMaterial, myBackColor);

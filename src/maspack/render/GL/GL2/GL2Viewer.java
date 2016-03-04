@@ -694,7 +694,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       setLightingEnabled (false);
 
       // draw axis
-
+      maybeUpdateState (gl);
       gl.glDepthFunc (GL2.GL_ALWAYS);
 
       if (!selectEnabled) {
@@ -1046,11 +1046,12 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (myCurrentMaterialModified && !isSelecting()) {
          // set all colors
          if (mySelectedColorActive) {
-            gl.glColor3fv (mySelectedColor, 0);
+            mySelectedColor[3] = myCurrentMaterial.getAlpha ();
+            gl.glColor4fv (mySelectedColor, 0);
             myCurrentMaterial.apply (gl);
             gl.glMaterialfv (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, mySelectedColor, 0); // apply back color
          } else {
-            gl.glColor3fv (myCurrentMaterial.getDiffuse(), 0);
+            gl.glColor4fv (myCurrentMaterial.getDiffuse(), 0);
             myCurrentMaterial.apply (gl);
             if (myBackColor != null) {
                gl.glMaterialfv (GL2.GL_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, myBackColor, 0); // apply back color

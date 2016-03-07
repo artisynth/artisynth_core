@@ -34,7 +34,7 @@ import maspack.render.RenderObject.RenderObjectVersion;
 import maspack.render.RenderObject.VertexIndexSet;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.PointStyle;
 import maspack.render.Renderer.Shading;
@@ -112,8 +112,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    private boolean grab = false;
    private boolean grabWaitComplete = false; // wait
    private boolean grabClose = false;
-
-   private boolean rendering2d;
 
    // Lighting parameters
    protected float lmodel_ambient[] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -449,7 +447,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       setColorEnabled(true);
       setVertexColoringEnabled(true);
       setTextureMappingEnabled(true);
-      setFaceMode(Faces.FRONT);
+      setFaceStyle(FaceStyle.FRONT);
       setShading(Shading.PHONG);
       setGammaCorrectionEnabled(false);
 
@@ -1810,27 +1808,27 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    }
 
-   public void drawPoint(float[] pnt, float[] nrm) {
+//   public void drawPoint(float[] pnt, float[] nrm) {
+//
+//      GL2 gl = getGL2();
+//      maybeUpdateState(gl);
+//
+//      gl.glBegin (GL2.GL_POINTS);
+//      gl.glNormal3fv (nrm, 0);
+//      gl.glVertex3fv (pnt, 0);
+//      gl.glEnd();
+//
+//   }
 
-      GL2 gl = getGL2();
-      maybeUpdateState(gl);
+//   @Override
+//   public void drawPoints (Iterable<float[]> points) {
+//      drawPrimitives (points, GL2.GL_POINTS);
+//   }
 
-      gl.glBegin (GL2.GL_POINTS);
-      gl.glNormal3fv (nrm, 0);
-      gl.glVertex3fv (pnt, 0);
-      gl.glEnd();
-
-   }
-
-   @Override
-   public void drawPoints (Iterable<float[]> points) {
-      drawPrimitives (points, GL2.GL_POINTS);
-   }
-
-   @Override
-   public void drawPoints (Iterable<float[]> points, Iterable<float[]> normals) {
-      drawPrimitives (points, normals, GL2.GL_POINTS);
-   }
+//   @Override
+//   public void drawPoints (Iterable<float[]> points, Iterable<float[]> normals) {
+//      drawPrimitives (points, normals, GL2.GL_POINTS);
+//   }
 
    @Override
    public void drawLine(float[] pnt0, float[] pnt1) {
@@ -1845,32 +1843,32 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    }
 
-   public void drawLine (
-      float[] pnt0, float[] nrm0, float[] pnt1, float[] nrm1) {
-
-      GL2 gl = getGL2();
-      maybeUpdateState(gl);
-
-      gl.glBegin (GL2.GL_LINES);
-      gl.glNormal3fv (nrm0, 0);
-      gl.glVertex3fv (pnt0, 0);
-      gl.glNormal3fv (nrm1, 0);
-      gl.glVertex3fv (pnt1, 0);
-      gl.glEnd();
-
-   }
-
-   public void drawLines(Iterable<float[]> coords) {
-      drawPrimitives (coords, GL2.GL_LINES);
-   }
-
-   public void drawLines(Iterable<float[]> coords, Iterable<float[]> normals) {
-      drawPrimitives (coords, normals, GL2.GL_LINES);
-   }
-
-   public void drawLineStrip(Iterable<float[]> coords, Iterable<float[]> normals) {
-      drawPrimitives (coords,  normals, GL2.GL_LINE_STRIP);
-   }
+//   public void drawLine (
+//      float[] pnt0, float[] nrm0, float[] pnt1, float[] nrm1) {
+//
+//      GL2 gl = getGL2();
+//      maybeUpdateState(gl);
+//
+//      gl.glBegin (GL2.GL_LINES);
+//      gl.glNormal3fv (nrm0, 0);
+//      gl.glVertex3fv (pnt0, 0);
+//      gl.glNormal3fv (nrm1, 0);
+//      gl.glVertex3fv (pnt1, 0);
+//      gl.glEnd();
+//
+//   }
+//
+//   public void drawLines(Iterable<float[]> coords) {
+//      drawPrimitives (coords, GL2.GL_LINES);
+//   }
+//
+//   public void drawLines(Iterable<float[]> coords, Iterable<float[]> normals) {
+//      drawPrimitives (coords, normals, GL2.GL_LINES);
+//   }
+//
+//   public void drawLineStrip(Iterable<float[]> coords, Iterable<float[]> normals) {
+//      drawPrimitives (coords,  normals, GL2.GL_LINE_STRIP);
+//   }
 
    /**
     * Draw triangular faces, using the current Shading, lighting and
@@ -1895,48 +1893,48 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    }
 
-   public void drawTriangle (float[] p0, float[] n0, float[] p1, float[] n1, float[] p2, float[] n2) {
-      GL2 gl = getGL2();
-      maybeUpdateState(gl);
-
-      gl.glBegin (GL2.GL_TRIANGLES);
-      gl.glNormal3fv (n0, 0);
-      gl.glVertex3fv (p0, 0);
-      gl.glNormal3fv (n1, 0);
-      gl.glVertex3fv (p1, 0);
-      gl.glNormal3fv (n2, 0);
-      gl.glVertex3fv (p2, 0);
-      gl.glEnd ();
-
-   }
-
-   public void drawTriangles (Iterable<float[]> points) {
-
-      GL2 gl = getGL2();
-      maybeUpdateState(gl);
-
-      Iterator<float[]> pit = points.iterator ();
-      float[] normal = new float[3];
-
-      gl.glBegin (GL2.GL_TRIANGLES);
-      while (pit.hasNext ()) {
-         float[] p0 = pit.next ();
-         float[] p1 = pit.next ();
-         float[] p2 = pit.next ();
-         computeNormal (p0, p1, p2, normal);
-
-         gl.glNormal3fv (normal, 0);
-         gl.glVertex3fv (p0, 0);
-         gl.glVertex3fv (p1, 0);
-         gl.glVertex3fv (p2, 0);
-      }
-      gl.glEnd ();
-
-   }
-
-   public void drawTriangles (Iterable<float[]> points, Iterable<float[]> normals) {
-      drawPrimitives (points, normals, GL2.GL_TRIANGLES);
-   }
+//   public void drawTriangle (float[] p0, float[] n0, float[] p1, float[] n1, float[] p2, float[] n2) {
+//      GL2 gl = getGL2();
+//      maybeUpdateState(gl);
+//
+//      gl.glBegin (GL2.GL_TRIANGLES);
+//      gl.glNormal3fv (n0, 0);
+//      gl.glVertex3fv (p0, 0);
+//      gl.glNormal3fv (n1, 0);
+//      gl.glVertex3fv (p1, 0);
+//      gl.glNormal3fv (n2, 0);
+//      gl.glVertex3fv (p2, 0);
+//      gl.glEnd ();
+//
+//   }
+//
+//   public void drawTriangles (Iterable<float[]> points) {
+//
+//      GL2 gl = getGL2();
+//      maybeUpdateState(gl);
+//
+//      Iterator<float[]> pit = points.iterator ();
+//      float[] normal = new float[3];
+//
+//      gl.glBegin (GL2.GL_TRIANGLES);
+//      while (pit.hasNext ()) {
+//         float[] p0 = pit.next ();
+//         float[] p1 = pit.next ();
+//         float[] p2 = pit.next ();
+//         computeNormal (p0, p1, p2, normal);
+//
+//         gl.glNormal3fv (normal, 0);
+//         gl.glVertex3fv (p0, 0);
+//         gl.glVertex3fv (p1, 0);
+//         gl.glVertex3fv (p2, 0);
+//      }
+//      gl.glEnd ();
+//
+//   }
+//
+//   public void drawTriangles (Iterable<float[]> points, Iterable<float[]> normals) {
+//      drawPrimitives (points, normals, GL2.GL_TRIANGLES);
+//   }
 
 
    //=============================================================================
@@ -2431,7 +2429,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    }
 
    @Override
-   public void end2DRendering() {
+   public void finish2DRendering() {
 
       gl.glMatrixMode(GL2.GL_TEXTURE);
       gl.glPopMatrix();
@@ -3733,8 +3731,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    }
 
    @Override
-   public void removeSharedObject(Object key) {
-      myGLResources.removeRenderObject(key);
+   public boolean removeSharedObject(Object key) {
+      return myGLResources.removeRenderObject(key) != null;
    }
 
    /**
@@ -3840,5 +3838,31 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    public boolean hasTextureMixing (ColorMixing tmix) {
       return true;      
    }
+   
+   /**
+    * Begin application-defined GL rendering, using GL primitives based
+    * on handles returned by {@link #getGL()}, etc. Save the current
+    * graphics state.
+    */
+   public void beginGL() {
+      pushViewerState();
+      pushProjectionMatrix();
+      pushModelMatrix();
+      pushViewMatrix();
+      // FINISH    
+   }
+   
+   /**
+    * Ends application-defined GL rendering. Restores the graphics state
+    * to what it was when {@link #beginGL()} was called.
+    */
+   public void endGL() {
+      // FINISH    
+      popViewMatrix();
+      popModelMatrix();
+      popProjectionMatrix();
+      popViewerState();
+   }
+  
 }
 

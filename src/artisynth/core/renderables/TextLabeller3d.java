@@ -130,7 +130,7 @@ public class TextLabeller3d extends TextComponentBase {
       double t = myTextSize*0.75;
       double vc = myTextSize* 0.25;
       
-      rEye.set(renderer.getEyeToWorld().R);
+      rEye.invert(renderer.getViewMatrix().R);
       rEye.getColumn(0, xdir);
       rEye.getColumn(1, ydir);
       myTransform.R.set(rEye);

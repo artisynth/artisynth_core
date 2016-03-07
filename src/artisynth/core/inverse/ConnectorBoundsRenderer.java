@@ -11,7 +11,7 @@ import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
 import maspack.render.Renderer;
-import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.LineRenderProps;
@@ -217,7 +217,7 @@ public class ConnectorBoundsRenderer extends MonitorBase {
 
       Shading savedShading = renderer.setPropsShading (props);
       renderer.setFaceColoring (props, isSelected());
-      renderer.setFaceMode (props.getFaceStyle ());
+      renderer.setFaceStyle (props.getFaceStyle ());
       renderer.beginDraw (DrawMode.TRIANGLES);
       renderer.setNormal (tri.nrm);
       for (int i = 0; i < tri.pts.length; i++) {
@@ -225,7 +225,7 @@ public class ConnectorBoundsRenderer extends MonitorBase {
       }
       renderer.endDraw();
       renderer.setShading (savedShading);
-      renderer.setDefaultFaceMode ();
+      renderer.setFaceStyle (FaceStyle.FRONT);
    }
 
    public class TriInfo {
@@ -244,7 +244,7 @@ public class ConnectorBoundsRenderer extends MonitorBase {
          nrm.cross (v1, v2);
          nrm.normalize ();
          props.setFaceColor (color);
-         props.setFaceStyle (Faces.FRONT_AND_BACK);
+         props.setFaceStyle (FaceStyle.FRONT_AND_BACK);
          props.setAlpha (0.4);
       }
 

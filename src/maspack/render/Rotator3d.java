@@ -325,7 +325,7 @@ public class Rotator3d extends Dragger3dBase {
       int comp = checkComponentSelection (e);
       if (comp != mySelectedComponent) {
          mySelectedComponent = comp;
-         e.getRenderer().repaint();
+         e.getViewer().repaint();
          return true;
       }
       return false;

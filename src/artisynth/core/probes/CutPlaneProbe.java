@@ -33,7 +33,7 @@ import maspack.render.Dragger3d.DraggerType;
 import maspack.render.GL.GLViewer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.Rotator3d;
 import maspack.render.Translator3d;
 import maspack.render.Transrotator3d;
@@ -399,7 +399,7 @@ public abstract class CutPlaneProbe extends OutputProbe
 
    public RenderProps createRenderProps() {
       RenderProps props = RenderProps.createLineFaceProps(this);
-      props.setFaceStyle(Faces.FRONT_AND_BACK);
+      props.setFaceStyle(FaceStyle.FRONT_AND_BACK);
       props.setVisible(true);
       return props;
    }

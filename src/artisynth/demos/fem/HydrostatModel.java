@@ -12,7 +12,7 @@ import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.LineStyle;
 import maspack.widgets.LabeledComponentBase;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
@@ -214,7 +214,7 @@ public class HydrostatModel extends FemMuscleModel {
    public void setupRenderProps() {
       setSurfaceRendering (SurfaceRender.Shaded);
       // RenderProps.setAlpha (this, 0.5);
-      RenderProps.setFaceStyle (this, Renderer.Faces.NONE);
+      RenderProps.setFaceStyle (this, Renderer.FaceStyle.NONE);
       RenderProps.setLineWidth (this, 1);
 
       RenderProps.setPointSize (getNodes(), 4);

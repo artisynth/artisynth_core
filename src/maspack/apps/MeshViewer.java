@@ -74,7 +74,7 @@ import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewerFrame;
 import maspack.render.Renderer;
-import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
 import maspack.render.RendererEvent;
 import maspack.widgets.GridDisplay;
@@ -365,13 +365,13 @@ public class MeshViewer extends GLViewerFrame
 
       props.setShading (smooth.value ? Shading.GOURAUD : Shading.FLAT);
       if (noDrawFaces.value) {
-         props.setFaceStyle (Faces.NONE);
+         props.setFaceStyle (FaceStyle.NONE);
       }
       else if (oneSided.value) {
-         props.setFaceStyle (Faces.FRONT);
+         props.setFaceStyle (FaceStyle.FRONT);
       }
       else {
-         props.setFaceStyle (Faces.FRONT_AND_BACK);
+         props.setFaceStyle (FaceStyle.FRONT_AND_BACK);
       }
       props.setDrawEdges (drawEdges.value);
       if (edgeColor[0] != -1) {

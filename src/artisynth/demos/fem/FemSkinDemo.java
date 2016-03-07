@@ -200,7 +200,7 @@ public class FemSkinDemo extends RootModel {
       skinBody.setName("skin");
       
       RenderProps.setDrawEdges (skinBody, true);
-      RenderProps.setFaceStyle (skinBody, Renderer.Faces.NONE);
+      RenderProps.setFaceStyle (skinBody, Renderer.FaceStyle.NONE);
       
       myMech.addMeshBody (skinBody);
 

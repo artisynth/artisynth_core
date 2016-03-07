@@ -23,6 +23,7 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.DrawMode;
 import maspack.spatialmotion.SegmentedPlanarCoupling;
 import maspack.util.InternalErrorException;
@@ -66,7 +67,7 @@ public class SegmentedPlanarConnector extends BodyConnector
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createPointFaceProps (null);
-      props.setFaceStyle (Renderer.Faces.FRONT_AND_BACK);
+      props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
       return props;
    }
 
@@ -320,7 +321,7 @@ public class SegmentedPlanarConnector extends BodyConnector
 
       Shading savedShading = renderer.setPropsShading (props);
       renderer.setFaceColoring (props, isSelected());
-      renderer.setFaceMode (props.getFaceStyle());
+      renderer.setFaceStyle (props.getFaceStyle());
       ArrayList<Plane> planes = mySegPlaneCoupling.getPlanes();
 
       for (int i = 0; i < planes.size(); i++) {
@@ -342,7 +343,7 @@ public class SegmentedPlanarConnector extends BodyConnector
          renderer.endDraw();
       }
       renderer.setShading (savedShading);
-      renderer.setDefaultFaceMode();
+      renderer.setFaceStyle (FaceStyle.FRONT);
       renderer.drawPoint (myRenderProps, myRenderCoords, isSelected());
    }
 

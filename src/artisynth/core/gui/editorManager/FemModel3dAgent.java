@@ -446,7 +446,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
       
       PolygonalMesh mesh = fem.getSurfaceMesh();      
       RenderProps props = mesh.createRenderProps();
-      props.setFaceStyle (Renderer.Faces.NONE);
+      props.setFaceStyle (Renderer.FaceStyle.NONE);
       props.setDrawEdges (true);
       props.setLineColor (Color.LIGHT_GRAY);
       mesh.setRenderProps (props);

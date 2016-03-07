@@ -164,7 +164,7 @@ public class NagataDistanceTest implements GLRenderable, HasRenderProps {
             }
          }
       }
-      RenderProps.setFaceStyle (myFineMesh, Renderer.Faces.FRONT_AND_BACK);
+      RenderProps.setFaceStyle (myFineMesh, Renderer.FaceStyle.FRONT_AND_BACK);
 
       myInterp.setBoundsForCurve (myCurveBounds, myCurvePos, myCurveDir);
    }

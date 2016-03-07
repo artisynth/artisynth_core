@@ -125,9 +125,9 @@ public class MechModelCollide extends RootModel {
       mechMod.addRigidBody (link2);
       
       if (transparentLinks) {
-         RenderProps.setFaceStyle (link1, Renderer.Faces.NONE);
+         RenderProps.setFaceStyle (link1, Renderer.FaceStyle.NONE);
          RenderProps.setDrawEdges (link1, true);
-         RenderProps.setFaceStyle (link2, Renderer.Faces.NONE);
+         RenderProps.setFaceStyle (link2, Renderer.FaceStyle.NONE);
          RenderProps.setDrawEdges (link2, true);
       }
 

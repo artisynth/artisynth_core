@@ -21,7 +21,7 @@ import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.PointStyle;
 
 /**
@@ -188,7 +188,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    public void initTargetRenderProps() {
       targetRenderProps = new RenderProps();
       targetRenderProps.setDrawEdges(true);
-      targetRenderProps.setFaceStyle(Faces.NONE);
+      targetRenderProps.setFaceStyle(FaceStyle.NONE);
       targetRenderProps.setLineColor(Color.CYAN);
       targetRenderProps.setLineWidth(2);
       targetRenderProps.setPointColor(Color.CYAN);
@@ -205,7 +205,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    public void initSourceRenderProps() {
       sourceRenderProps = new RenderProps();
       sourceRenderProps.setDrawEdges(true);
-      sourceRenderProps.setFaceStyle(Faces.NONE);
+      sourceRenderProps.setFaceStyle(FaceStyle.NONE);
       sourceRenderProps.setLineColor(Color.CYAN);
       sourceRenderProps.setLineWidth(2);
       sourceRenderProps.setPointColor(Color.CYAN);

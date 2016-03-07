@@ -882,12 +882,12 @@ public class GLGridPlane implements HasProperties {
       }
 
       //Plane plane = getPlane();
-      RigidTransform3d XEyeToWorld = renderer.getEyeToWorld();
+      RigidTransform3d TWorldToEye = renderer.getViewMatrix();
       //plane.inverseTransform (XEyeToWorld);
 
       Point3d focus = new Point3d();
       RigidTransform3d XGridToEye = new RigidTransform3d();
-      XGridToEye.mulInverseLeft (XEyeToWorld, XGridToWorld);
+      XGridToEye.mul (TWorldToEye, XGridToWorld);
       double distPerPixel = computeFocalPoint (XGridToEye, focus, renderer);
       //focus.inverseTransform (XGridToEye);
 

@@ -201,8 +201,7 @@ public class Jack3d extends Dragger3dBase {
       int resultAxisOrPlane = NONE;
 
       RigidTransform3d draggerToEye = new RigidTransform3d();
-      draggerToEye.mulInverseLeft (
-         e.getRenderer().getEyeToWorld(), myXDraggerToWorld);
+      draggerToEye.mul (e.getViewer().getViewMatrix(), myXDraggerToWorld);
 
       // Line resultAxis = new Line (0, 0, 0, 0, 0, 0);
 
@@ -354,7 +353,7 @@ public class Jack3d extends Dragger3dBase {
       int comp = checkComponentSelection (e);
       if (comp != mySelectedComponent) {
          mySelectedComponent = comp;
-         e.getRenderer().repaint();
+         e.getViewer().repaint();
          return true;
       }
       return false;

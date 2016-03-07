@@ -379,7 +379,7 @@ public class MultiViewer {
          cap.setNumSamples (8);
          gl3resources = new GL3Resources (cap);
       }
-      GL3Viewer viewer = new GL3Viewer(null, gl3resources, w, h);
+      GLViewer viewer = new GL3Viewer(null, gl3resources, w, h);
       addViewer(title, viewer, x, y, w, h);
    }
    

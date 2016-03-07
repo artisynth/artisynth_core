@@ -1143,7 +1143,7 @@ public class WavefrontReader extends MeshReaderBase {
          String map = rtok.scanWord();
          if (map != null) {
             // set texture properties
-            props.setFaceStyle(Renderer.Faces.FRONT_AND_BACK);
+            props.setFaceStyle(Renderer.FaceStyle.FRONT_AND_BACK);
             props.setShading(Shading.GOURAUD);
             DiffuseTextureProps tprops = props.getDiffuseTextureProps ();
             if (tprops == null) {
@@ -1168,7 +1168,7 @@ public class WavefrontReader extends MeshReaderBase {
          String map = rtok.scanWord();
          if (map != null) {
             // set texture properties
-            props.setFaceStyle(Renderer.Faces.FRONT_AND_BACK);
+            props.setFaceStyle(Renderer.FaceStyle.FRONT_AND_BACK);
             props.setShading(Shading.GOURAUD);
             NormalTextureProps tprops = props.getNormalTextureProps ();
             if (tprops == null) {

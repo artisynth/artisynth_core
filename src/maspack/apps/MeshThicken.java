@@ -59,6 +59,7 @@ import maspack.render.RenderProps;
 import maspack.render.RenderableBase;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.GL.GLSelectionEvent;
 import maspack.render.GL.GLSelectionListener;
 import maspack.util.IndentingPrintWriter;
@@ -134,7 +135,7 @@ public class MeshThicken extends ViewerFrame
       public RenderProps createRenderProps() {
          RenderProps props = new RenderProps();
          props.setFaceColor (new Color(0.5f, 0.5f, 1f));
-         props.setFaceStyle (Renderer.Faces.FRONT_AND_BACK);
+         props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
          return props;
       }
 
@@ -402,7 +403,7 @@ public class MeshThicken extends ViewerFrame
          Vector3d zdir = new Vector3d(0, 0, 1);
          //myFrame.R.getColumn (2, zdir);
 
-         renderer.setFaceMode (props.getFaceStyle());
+         renderer.setFaceStyle (props.getFaceStyle());
 
          renderer.beginDraw (DrawMode.TRIANGLES);
          double[] urange = new double[2];
@@ -434,7 +435,7 @@ public class MeshThicken extends ViewerFrame
          }
          renderer.endDraw();         
          
-         renderer.setDefaultFaceMode();
+         renderer.setFaceStyle (FaceStyle.FRONT); // set default
 
          renderer.popModelMatrix();
       }
@@ -732,7 +733,7 @@ public class MeshThicken extends ViewerFrame
          }
          removeMesh();
          myMesh = mesh;
-         RenderProps.setFaceStyle (mesh, Renderer.Faces.FRONT_AND_BACK);
+         RenderProps.setFaceStyle (mesh, Renderer.FaceStyle.FRONT_AND_BACK);
          RenderProps.setBackColor (mesh, new Color (1f, 204/255f, 51/355f));
          viewer.addRenderable (myMesh);
          viewer.repaint();

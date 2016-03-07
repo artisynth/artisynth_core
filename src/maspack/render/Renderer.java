@@ -6,6 +6,8 @@
  */
 package maspack.render;
 
+import java.awt.Color;
+
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.AffineTransform3dBase;
@@ -151,20 +153,98 @@ public interface Renderer {
       COLOR
    };
 
+   /**
+    * Specifies the current shading style.
+    */
    public static enum Shading {
-      FLAT, GOURAUD, PHONG, NONE
+      /**
+       * Flat shading, whereby a single normal is used for each
+       * primitive
+       */
+      FLAT,
+
+      /**
+       * Smoothing shading based on the Gouraud shading model
+       */
+      GOURAUD,
+
+      /**
+       * Smooth shading based on the Phong shading model
+       */
+      PHONG,
+
+      /**
+       * No shading. This is equivalent to disabling lighting
+       */
+      NONE
    }
 
+   /**
+    * For some drawing primitives, specifies the rendering style for points.
+    */
    public static enum PointStyle {
-      SPHERE, POINT
+      /**
+       * Draw points as solid spheres
+       */
+      SPHERE,
+
+      /**
+       * Draw points using pixel-based primitives
+       */
+      POINT
    }
 
+   /**
+    * For some drawing primitives, specifies the rendering style for line
+    * segments.
+    */
    public static enum LineStyle {
-      LINE, CYLINDER, SOLID_ARROW, ELLIPSOID
+      /**
+       * Draw lines using pixel-based primitives
+       */
+      LINE,
+
+      /**
+       * Draw lines as solid cylinders
+       */
+      CYLINDER,
+
+      /**
+       * Draw lines as solid arrows
+       */
+      SOLID_ARROW,
+
+      /**
+       * Draw lines as solid spindles
+       */
+      ELLIPSOID
    }
 
-   public static enum Faces {
-      BACK, FRONT, FRONT_AND_BACK, NONE
+   /**
+    * When rendering triangles, specifies which sides are drawn, where
+    * <i>front</i> and <i>back</i> correspond to the sides associated with
+    * counter-clockwise and clockwise vertex ordering, respectively.
+    */
+   public static enum FaceStyle {
+      /**
+       * Draw the back side
+       */
+      BACK,
+
+      /**
+       * Draw the front side
+       */
+      FRONT,
+
+      /**
+       * Draw both sides
+       */
+      FRONT_AND_BACK, 
+
+      /**
+       * Draw neither side
+       */
+      NONE
    }
 
    /**
@@ -249,7 +329,6 @@ public interface Renderer {
     * Returns the current size for rendering points, in pixels.
     * 
     * @return current point size (in pixels).
-    * @see #setDefaultPointSize
     * @see #setPointSize
     */
    public float getPointSize();
@@ -258,24 +337,22 @@ public interface Renderer {
     * Sets the size for rendering points, in pixels. The default size is 1.
     * 
     * @param size new point size (in pixels).
-    * @see #setDefaultPointSize
     * @see #getPointSize
     */
    public void setPointSize(float size);
    
-   /**
-    * Sets the size for rendering points to its default value, which is 1.
-    * 
-    * @see #setPointSize
-    * @see #getPointSize
-    */
-   public void setDefaultPointSize();
+//   /**
+//    * Sets the size for rendering points to its default value, which is 1.
+//    * 
+//    * @see #setPointSize
+//    * @see #getPointSize
+//    */
+//   public void setDefaultPointSize();
    
    /**
     * Returns the current width for rendering lines, in pixels.
     * 
     * @return current line width (in pixels).
-    * @see #setDefaultLineWidth
     * @see #setLineWidth
     */
    public float getLineWidth();
@@ -284,47 +361,44 @@ public interface Renderer {
     * Sets the width for rendering lines, in pixels. The default size is 1.
     * 
     * @param width new line width (in pixels).
-    * @see #setDefaultLineWidth
     * @see #getLineWidth
     */
    public void setLineWidth (float width);
    
-   /**
-    * Sets the width for rendering points to its default value, which is 1.
-    * 
-    * @see #setLineWidth
-    * @see #getLineWidth
-    */
-   public void setDefaultLineWidth();
+//   /**
+//    * Sets the width for rendering points to its default value, which is 1.
+//    * 
+//    * @see #setLineWidth
+//    * @see #getLineWidth
+//    */
+//   public void setDefaultLineWidth();
 
    /**
     * Returns the current mode for rendering faces.
     * 
     * @return current face rendering mode
-    * @see #setDefaultFaceMode
-    * @see #setFaceMode
+    * @see #setFaceStyle
     */
-   public Faces getFaceMode ();
+   public FaceStyle getFaceStyle ();
 
    /**
     * Sets the mode for rendering faces. This determines whether
     * the front and/or back of each face is rendered. The default value
-    * is {@link Faces#FRONT}.
+    * is {@link FaceStyle#FRONT}.
     * 
-    * @param mode new face rendering mode
-    * @see #setDefaultFaceMode
-    * @see #getFaceMode
+    * @param style new face rendering mode
+    * @see #getFaceStyle
     */
-   public void setFaceMode (Faces mode);
+   public void setFaceStyle (FaceStyle style);
 
-   /**
-    * Sets the mode for rendering faces to its default value, which is
-    * {@link Faces#FRONT}.
-    * 
-    * @see #setFaceMode
-    * @see #getFaceMode
-    */
-   public void setDefaultFaceMode();
+//   /**
+//    * Sets the mode for rendering faces to its default value, which is
+//    * {@link Faces#FRONT}.
+//    * 
+//    * @see #setFaceStyle
+//    * @see #getFaceStyle
+//    */
+//   public void setDefaultFaceStyle();
 
    /**
     * Returns the color interpolation currently being used by this Renderer.
@@ -413,11 +487,11 @@ public interface Renderer {
     */
    public void setShading (Shading shading);
 
-   /**
-    * Sets the default shading model for this renderer, which is
-    * {@link Shading#FLAT}.
-    */
-   public void setDefaultShading ();
+//   /**
+//    * Sets the default shading model for this renderer, which is
+//    * {@link Shading#FLAT}.
+//    */
+//   public void setDefaultShading ();
 
    /**
     * Returns <code>true</code> if lighting is currently enabled.
@@ -471,19 +545,19 @@ public interface Renderer {
     */
    public void drawPoint (float[] pnt);
    
-   // REMOVE
-   /**
-    * Draws a single point located at <code>pnt</code>, and with a normal
-    * <code>nrm</code>, in model coordinates, using the current point size,
-    * material, and shading. 
-    *
-    * @param pnt array (of length 3) giving the point location
-    * @param nrm array (of length 3) giving the point normal
-    */
-   public void drawPoint (float[] pnt, float[] nrm);
+//   // REMOVE
+//   /**
+//    * Draws a single point located at <code>pnt</code>, and with a normal
+//    * <code>nrm</code>, in model coordinates, using the current point size,
+//    * material, and shading. 
+//    *
+//    * @param pnt array (of length 3) giving the point location
+//    * @param nrm array (of length 3) giving the point normal
+//    */
+//   public void drawPoint (float[] pnt, float[] nrm);
    
-   // REMOVE
-   public void drawPoint (float x, float y, float z);
+//   // REMOVE
+//   public void drawPoint (float x, float y, float z);
 
    /**
     * Draws a single line between two points in model coordinates,
@@ -511,9 +585,9 @@ public interface Renderer {
    public void drawLine (
       double px0, double py0, double pz0, double px1, double py1, double pz1);
    
-   // REMOVE
-   public void drawLine (
-      float x0, float y0, float z0, float x1, float y1, float z1);
+//   // REMOVE
+//   public void drawLine (
+//      float x0, float y0, float z0, float x1, float y1, float z1);
    
    /**
     * Draws a single line between two points in model coordinates,
@@ -525,18 +599,18 @@ public interface Renderer {
     */
    public void drawLine (float[] pnt0, float[] pnt1);
 
-   // REMOVE
-   /**
-    * Draws a single line between two points, with specified normals, in model
-    * coordinates, using the current line width, material, and shading.
-    * 
-    * @param pnt0 array (of length 3) giving the first point
-    * @param nrm0 array (of length 3) giving the first normal
-    * @param pnt1 array (of length 3) giving the second point
-    * @param nrm1 array (of length 3) giving the second normal
-    */
-   public void drawLine (
-      float[] pnt0, float[] nrm0, float[] pnt1, float[] nrm1);
+//   // REMOVE
+//   /**
+//    * Draws a single line between two points, with specified normals, in model
+//    * coordinates, using the current line width, material, and shading.
+//    * 
+//    * @param pnt0 array (of length 3) giving the first point
+//    * @param nrm0 array (of length 3) giving the first normal
+//    * @param pnt1 array (of length 3) giving the second point
+//    * @param nrm1 array (of length 3) giving the second normal
+//    */
+//   public void drawLine (
+//      float[] pnt0, float[] nrm0, float[] pnt1, float[] nrm1);
 
    /**
     * Draws a single triangular face specified by three points, using the
@@ -842,14 +916,6 @@ public interface Renderer {
       RenderProps props, Iterable<float[]> pntList, 
       LineStyle style, boolean isSelected);   
 
-//   // FINISH: remove??
-//   public boolean isTransparencyEnabled();
-//
-//   //FINISH: remove??
-//   public void setTransparencyEnabled (boolean enable);
-
-   // public void drawXYGrid (double size, int numcells);
-
    /**
     * Gives the direction, in model coordinates, of a vector that
     * is perpendicular to the screen and points towards the viewer.
@@ -860,23 +926,63 @@ public interface Renderer {
    public Vector3d getEyeZDirection();
    
    /**
-    * Start displaying 2D objects, dimensions given by pixels
+    * Puts this Renderer into 2D rendering mode, or returns <code>false</code>
+    * if 2D rendering is not supported. This method behaves identically
+    * to {@link #begin2DRendering(double,double)}, only with the existing
+    * screen width and height used for <code>w</code> and <code>h</code>.
+    *
+    * @return <code>true</code> if 2D rendering is supported
+    * @see #getScreenWidth
+    * @see #getScreenHeight
+    * @see #has2DRendering
+    * @throws IllegalStateException if this Renderer is currently in 2D
+    * rendering mode.
     */
-   public void begin2DRendering();
+   public boolean begin2DRendering();
    
    /**
-    * Start displaying 2D objects, dimensions governed by 
-    * supplied width/height
+    * Puts this Renderer into 2D rendering mode, or returns <code>false</code>
+    * if 2D rendering is not supported. If 2D rendering is supported, then the
+    * depth buffer is disabled, the model matrix is set to the identity, and
+    * the projection matrix is redefined to an orthogonal transformation where
+    * world coordinates map directly to screen coordinates defined by an x and
+    * y range of (0, w) and (0, h), respectively. If 2D rendering is not
+    * supported, then no changes are made to any of the matrices and this
+    * method will have no effect.
+    *
+    * @param w width of the screen coordinates
+    * @param h height of the screen coordinates
+    * @return <code>true</code> if 2D rendering is supported
+    * @see #has2DRendering
+    * @throws IllegalStateException if this Renderer is currently in 2D
+    * rendering mode.
     */
-   public void begin2DRendering(double w, double h);
+   public boolean begin2DRendering (double w, double h);
+
+   /**
+    * Returns <code>true</code> if this Renderer supports 2D rendering mode.
+    *
+    * @return <code>true</code> if 2D rendering is supported
+    * @see #begin2DRendering()
+    * @see #begin2DRendering(double,double)
+    * @see #end2DRendering
+    */
+   public boolean has2DRendering();
    
    /**
-    * Finalize 2D rendering, returning to default 3D mode
+    * Take this Renderer out of 2D rendering mode, by reenabling the depth
+    * buffer and restoring the model and projection matrices to the values they
+    * had when 2D rendering mode was first entered.
+    *
+    * @throws IllegalStateException if this Renderer is not currently in 2D
+    * rendering mode.
     */
    public void end2DRendering();
    
    /**
-    * Check whether renderer is currently in 2D mode
+    * Check whether the Renderer is currently in 2D rendering mode.
+    * 
+    * @return <code>true</code> if in 2D rendering mode.
     */
    public boolean is2DRendering();
 
@@ -944,7 +1050,17 @@ public interface Renderer {
    
    /**
     * Sets the diffuse and ambient colors to be used for subsequent rendering
-    * of primitives. The method is functionaly equivalent to
+    * of primitives. The method is functionally equivalent to
+    * {@link #setColor(float[])}, with the RGBA values being obtained
+    * from the color components of <code>color</code>.
+    * 
+    * @param color specifies RGBA color values.
+    */
+   public void setColor (Color color);
+   
+   /**
+    * Sets the diffuse and ambient colors to be used for subsequent rendering
+    * of primitives. The method is functionally equivalent to
     * {@link #setColor(float[])}, only with alpha assumed to be 1.
     * 
     * @param r red value
@@ -953,10 +1069,9 @@ public interface Renderer {
     */
    public void setColor (float r, float g, float b);
 
-
    /**
     * Sets the diffuse and ambient colors to be used for subsequent rendering
-    * of primitives. The method is functionaly equivalent to
+    * of primitives. The method is functionally equivalent to
     * {@link #setColor(float[])}.
     * 
     * @param r red value
@@ -1038,9 +1153,9 @@ public interface Renderer {
 //   NOT USED
 //   void setMaterial (float[] rgba);
    
-   // USED ONLY IN GLVIEWER
-   public void setMaterial (
-      float[] frontRgba, float[] backRgba, float shininess, boolean selected); 
+//   // USED ONLY IN GLVIEWER
+//   public void setMaterial (
+//      float[] frontRgba, float[] backRgba, float shininess, boolean selected); 
 
    /**
     * Sets the front diffuse and ambient colors to the point color in
@@ -1090,7 +1205,6 @@ public interface Renderer {
     */
    public void setLineColoring (RenderProps props, boolean selected);
    
-   // FINISH: remove?
    /**
     * Sets the front diffuse and ambient colors to the edge color in
     * <code>props</code>, or to the selection color if <code>selected</code> is
@@ -1270,32 +1384,32 @@ public interface Renderer {
 
    
    
-   /**
-    * Draw a set of points (the plural version of drawPoint(float[])).
-    */
-   // REMOVE
-   public void drawPoints (Iterable<float[]> points);
+//   /**
+//    * Draw a set of points (the plural version of drawPoint(float[])).
+//    */
+//   // REMOVE
+//   public void drawPoints (Iterable<float[]> points);
    
-   // REMOVE
-   public void drawPoints(Iterable<float[]> points, Iterable<float[]> normals);
+//   // REMOVE
+//   public void drawPoints(Iterable<float[]> points, Iterable<float[]> normals);
    
-   // REMOVE
-   public void drawLines(Iterable<float[]> coords);
+//   // REMOVE
+//   public void drawLines(Iterable<float[]> coords);
+//   
+//   // REMOVE
+//   public void drawLines(Iterable<float[]> coords, Iterable<float[]> normals);
+//   
+//   // REMOVE
+//   public void drawLineStrip(Iterable<float[]> coords, Iterable<float[]> normals);
    
-   // REMOVE
-   public void drawLines(Iterable<float[]> coords, Iterable<float[]> normals);
-   
-   // REMOVE
-   public void drawLineStrip(Iterable<float[]> coords, Iterable<float[]> normals);
-   
-   // REMOVE
-   void drawTriangle (float[] p0, float[] n0, float[] p1, float[] n1, float[] p2, float[] n2);
-
-   // REMOVE
-   void drawTriangles (Iterable<float[]> points);
-   
-   // REMOVE
-   void drawTriangles (Iterable<float[]> points, Iterable<float[]> normals);
+//   // REMOVE
+//   void drawTriangle (float[] p0, float[] n0, float[] p1, float[] n1, float[] p2, float[] n2);
+//
+//   // REMOVE
+//   void drawTriangles (Iterable<float[]> points);
+//   
+//   // REMOVE
+//   void drawTriangles (Iterable<float[]> points, Iterable<float[]> normals);
    
    //==========================================================================
    // RENDER OBJECTS
@@ -1355,11 +1469,12 @@ public interface Renderer {
     */
    public void drawPoints (RenderObject robj, PointStyle style, double rad);
    
-   // FINISH
    /**
+    * Draws all the vertices associated with the specified RenderObject,
+    * using a specified drawing mode and the current material and shading.
     * 
     * @param robj render object
-    * @param mode
+    * @param mode drawing mode to be used for drawing the vertices
     */
    public void drawVertices (RenderObject robj, DrawMode mode);
    
@@ -1371,28 +1486,31 @@ public interface Renderer {
     */
    public void draw (RenderObject robj);
    
-   // FINISH
    /**
+    * Locates a RenderObject that has been registered with this Renderer.
     * 
-    * @param key
+    * @param key key used to address the RenderObject
     * @return specified shared object
     */
    public RenderObject getSharedObject(Object key);
    
-   // FINISH
    /**
-    * 
-    * @param key
-    * @param r
+    * Registers a RenderObject with this Renderer so that it can be
+    * shared by different parts of the application.
+    *  
+    * @param key key used to address the RenderObject
+    * @param r RenderObject to be shared
     */
-   public void addSharedObject(Object key, RenderObject r);
+   public void addSharedObject (Object key, RenderObject r);
 
-   // FINISH
    /**
+    * Removes a RenderObject that has been registered with this Renderer.
     * 
-    * @param key
+    * @param key key used to address the RenderObject
+    * @return <code>false</code> if the specified object was not
+    * registered with this Renderer
     */
-   public void removeSharedObject(Object key);
+   public boolean removeSharedObject(Object key);
    
    // MATRICES
    
@@ -1400,6 +1518,24 @@ public interface Renderer {
     * Saves the model matrix by pushing it onto the model matrix stack.
     */
    public void pushModelMatrix();
+   
+   /**
+    * Gets the current model matrix. The model matrix is the transformation
+    * from model coordinates to world coordinates. If the matrix is a rigid
+    * transformation, the returned value is a {@link RigidTransform3d};
+    * otherwise, it is a more general {@link AffineTransform3d}.
+    * 
+    * @return model matrix value (may be modified by the user)
+    */
+   public AffineTransform3dBase getModelMatrix();
+   
+   /**
+    * Gets the current model matrix. The model matrix is the transformation
+    * from model coordinates to world coordinates. 
+    * 
+    * @param X returns the current model matrix value
+    */
+   public void getModelMatrix (AffineTransform3d X);
    
    /**
     * Translates the current model matrix by applying a translation
@@ -1475,44 +1611,68 @@ public interface Renderer {
    public void mulModelMatrix (AffineTransform3dBase X);
    
    /**
+    * Sets the model matrix to the specified transform. The model matrix
+    * is the transformation from model coordinates to world coordinates. 
+    * 
+    * @param X new model matrix value
+    */
+   public void setModelMatrix (AffineTransform3dBase X);
+   
+   /**
     * Restores the model matrix by popping it off the model matrix stack
     * 
     * @return <code>false</code> if the model matrix stack is empty
     */
    public boolean popModelMatrix();
-
-   // FINISH
-   public RigidTransform3d getEyeToWorld();
    
-   // FINISH: do we need?
    /**
-    * Saves the view matrix by pushing it onto the view matrix stack.
-    */
-   public void pushViewMatrix();
-   
-   // FINISH: do we need?
-   /**
-    * Restores the view matrix by popping it off the view matrix stack
+    * Gets the current view matrix. The view matrix is the transformation
+    * from world coordinates to eye coordinates.
     * 
-    * @return <code>false</code> if the view matrix stack is empty
+    * @return view matrix value (may be modified by the user)
     */
-   public boolean popViewMatrix();
+   public RigidTransform3d getViewMatrix();
    
-   // FINISH: do we need this?
    /**
-    * Saves the projection matrix by pushing it onto the projection matrix 
-    * stack.
-    */
-   public void pushProjectionMatrix();
-   
-   // FINISH: do we need this?
-   /**
-    * Restores the projection matrix by popping it off the projection 
-    * matrix stack
+    * Gets the current view matrix. The view matrix is the transformation
+    * from world coordinates to eye coordinates. 
     * 
-    * @return <code>false</code> if the projection matrix stack is empty
+    * @param TWE returns the current transform from world to eye coordinates
     */
-   public boolean popProjectionMatrix();
+   public void getViewMatrix (RigidTransform3d TWE);
+   
+//   // FINISH
+//   public RigidTransform3d getEyeToWorld();
+   
+//   // FINISH: do we need?
+//   /**
+//    * Saves the view matrix by pushing it onto the view matrix stack.
+//    */
+//   public void pushViewMatrix();
+//   
+//   // FINISH: do we need?
+//   /**
+//    * Restores the view matrix by popping it off the view matrix stack
+//    * 
+//    * @return <code>false</code> if the view matrix stack is empty
+//    */
+//   public boolean popViewMatrix();
+//   
+//   // FINISH: do we need this?
+//   /**
+//    * Saves the projection matrix by pushing it onto the projection matrix 
+//    * stack.
+//    */
+//   public void pushProjectionMatrix();
+//   
+//   // FINISH: do we need this?
+//   /**
+//    * Restores the projection matrix by popping it off the projection 
+//    * matrix stack
+//    * 
+//    * @return <code>false</code> if the projection matrix stack is empty
+//    */
+//   public boolean popProjectionMatrix();
    
    /**
     * Flag requesting that all display lists be cleared
@@ -1632,14 +1792,14 @@ public interface Renderer {
     */
    public boolean isSelectable (GLSelectable s);
    
-   // FINISH
-   public void rerender();
+   // FINISH: do we need?
+   //public void rerender();
 
-   // FINISH
-   /**
-    * Re-draw contents of renderer
-    */
-   public void repaint();
+//   // FINISH: do we need?
+//   /**
+//    * Re-draw contents of renderer
+//    */
+//   public void repaint();
 
    /**
     * Begins draw mode. This is analogous to <code>glBegin()</code> in the
@@ -1727,5 +1887,4 @@ public interface Renderer {
     * @throws IllegalStateException if the renderer is not in draw mode
     */
    public void endDraw();
-   
 }

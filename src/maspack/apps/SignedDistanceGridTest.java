@@ -66,7 +66,7 @@ public class SignedDistanceGridTest {
       Vector3d cellDivisions = new Vector3d (25.0, 25.0, 25.0);
       
       RenderProps meshRenderProps = new RenderProps();
-      meshRenderProps.setFaceStyle (Renderer.Faces.BACK);
+      meshRenderProps.setFaceStyle (Renderer.FaceStyle.BACK);
       boxMesh.setRenderProps (meshRenderProps);
       
 //      SignedDistanceGrid boxGrid = 

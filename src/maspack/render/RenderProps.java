@@ -10,7 +10,7 @@ import java.awt.Color;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
 import maspack.render.Renderer.PointStyle;
 import maspack.render.Renderer.LineStyle;
@@ -187,9 +187,9 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected PropertyMode myEdgeColorMode;
    protected static Color defaultEdgeColor = null;
 
-   protected Faces myFaceStyle;
+   protected FaceStyle myFaceStyle;
    protected PropertyMode myFaceStyleMode;
-   protected static Faces defaultFaceStyle = Faces.FRONT;
+   protected static FaceStyle defaultFaceStyle = FaceStyle.FRONT;
 
    protected float[] myBackColor = null;
    protected PropertyMode myBackColorMode;
@@ -1182,11 +1182,11 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
    // property faceStyle
 
-   public Faces getFaceStyle() {
+   public FaceStyle getFaceStyle() {
       return myFaceStyle;
    }
 
-   public void setFaceStyle (Faces mode) {
+   public void setFaceStyle (FaceStyle mode) {
       if (myFaceStyle != mode) {
          myFaceStyle = mode;
       }
@@ -2683,7 +2683,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       r.setRenderProps (props);
    }
 
-   public static void setFaceStyle (Renderable r, Faces style) {
+   public static void setFaceStyle (Renderable r, FaceStyle style) {
       RenderProps props = createAndAssignProps (r);
       props.setFaceStyle (style);
       r.setRenderProps (props);
@@ -2944,11 +2944,11 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
       RenderProps props = createAndAssignProps (r);
       if (enable) {
-         props.setFaceStyle (Faces.NONE);
+         props.setFaceStyle (FaceStyle.NONE);
          props.setDrawEdges (true);
       }
       else {
-         props.setFaceStyle (Faces.FRONT);
+         props.setFaceStyle (FaceStyle.FRONT);
          props.setDrawEdges (false);
       }
       props.setShading (shading);

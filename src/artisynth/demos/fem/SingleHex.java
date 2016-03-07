@@ -66,7 +66,7 @@ public class SingleHex extends RootModel {
       RenderProps.setFaceColor (mod, Color.PINK);
       RenderProps.setShininess (mod, mod.getRenderProps().getShininess() * 10);
       RenderProps.setVisible (mod, true);
-      RenderProps.setFaceStyle (mod, Renderer.Faces.FRONT);
+      RenderProps.setFaceStyle (mod, Renderer.FaceStyle.FRONT);
 
       mechMod = new MechModel ("mech");
       mechMod.addModel (mod);

@@ -203,7 +203,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
       body.setPose (X);
       
       RenderProps props = body.createRenderProps();
-      props.setFaceStyle (Renderer.Faces.NONE);
+      props.setFaceStyle (Renderer.FaceStyle.NONE);
       props.setDrawEdges (true);
       props.setLineColor (Color.LIGHT_GRAY);
       body.setRenderProps (props);

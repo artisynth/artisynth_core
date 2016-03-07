@@ -21,7 +21,7 @@ public class MouseRayEvent extends MouseEvent {
    protected int myScreenWidth;
    protected int myScreenHeight;
    protected Line myRay;
-   protected Renderer myViewer;
+   protected GLViewer myViewer;
 
    protected MouseRayEvent (Component source, int id, long when, int modifiers,
    int x, int y, int clickCount, boolean popupTrigger) {
@@ -57,7 +57,7 @@ public class MouseRayEvent extends MouseEvent {
          de.myRay = new Line (0, 0, 0, vx, vy, -de.myViewPlaneDistance);
       }
       RigidTransform3d XWorldToBase = new RigidTransform3d();
-      viewer.getWorldToEye (XWorldToBase);
+      viewer.getViewMatrix (XWorldToBase);
       de.myRay.inverseTransform (XWorldToBase);
 
       de.myViewer = viewer;
@@ -89,7 +89,7 @@ public class MouseRayEvent extends MouseEvent {
       return myRay;
    }
 
-   public Renderer getRenderer() {
+   public GLViewer getViewer() {
       return myViewer;
    }
 

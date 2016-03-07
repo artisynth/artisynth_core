@@ -72,7 +72,7 @@ public class FishDemo extends RootModel {
       RigidBody collisionbody0 = new RigidBody();
       collisionbody0.setDynamic (false);
       RenderProps.setFaceStyle (
-         collisionbody0, Renderer.Faces.FRONT_AND_BACK);
+         collisionbody0, Renderer.FaceStyle.FRONT_AND_BACK);
 
       try {
          collisionbody0.setMesh (new PolygonalMesh (new File (rbpath
@@ -111,7 +111,7 @@ public class FishDemo extends RootModel {
       p.setFaceColor (Color.RED);
       p.setLineColor (Color.WHITE);
       p.setLineWidth (1);
-      p.setFaceStyle (Renderer.Faces.FRONT_AND_BACK);
+      p.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
       // myMechMod.addModel(collisionbody1);
       myMechMod.addModel (collisionbody2);
       collisionbody2.setRenderProps (p);

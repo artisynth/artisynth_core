@@ -19,6 +19,7 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.DrawMode;
 import maspack.spatialmotion.PlanarCoupling;
 import maspack.spatialmotion.RigidBodyConstraint;
@@ -42,7 +43,7 @@ public class PlanarConnector extends BodyConnector
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createFaceProps (null);
-      props.setFaceStyle (Renderer.Faces.FRONT_AND_BACK);
+      props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
       return props;
    }
 
@@ -208,7 +209,7 @@ public class PlanarConnector extends BodyConnector
 
       Shading savedShading = renderer.setPropsShading (props);
       renderer.setFaceColoring (props, isSelected());
-      renderer.setFaceMode (props.getFaceStyle());
+      renderer.setFaceStyle (props.getFaceStyle());
 
       renderer.beginDraw (DrawMode.TRIANGLE_STRIP);
       renderer.setNormal (nrm.x, nrm.y, nrm.z);
@@ -219,7 +220,7 @@ public class PlanarConnector extends BodyConnector
       renderer.endDraw();
 
       renderer.setShading (savedShading);
-      renderer.setDefaultFaceMode();
+      renderer.setFaceStyle (FaceStyle.FRONT); // set default
       renderer.drawPoint (myRenderProps, myRenderCoords, isSelected());
    }
 

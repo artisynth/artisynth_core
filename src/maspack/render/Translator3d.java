@@ -182,8 +182,7 @@ public class Translator3d extends Dragger3dBase {
       int resultAxisOrPlane = NONE;
 
       RigidTransform3d draggerToEye = new RigidTransform3d();
-      draggerToEye.mulInverseLeft (
-         e.getRenderer().getEyeToWorld(), myXDraggerToWorld);
+      draggerToEye.mul (e.getViewer().getViewMatrix(), myXDraggerToWorld);
 
       // Line resultAxis = new Line (0, 0, 0, 0, 0, 0);
 
@@ -333,7 +332,7 @@ public class Translator3d extends Dragger3dBase {
       del.sub (p1, p0);
       // if (dragIsConstrained(e)) {
       if (dragIsConstrained()) {
-         Renderer renderer = e.getRenderer();
+         Renderer renderer = e.getViewer();
          boolean constrainedToGrid = false;
          
          if (renderer instanceof GLViewer) {
@@ -424,7 +423,7 @@ public class Translator3d extends Dragger3dBase {
       int comp = checkComponentSelection (e);
       if (comp != mySelectedComponent) {
          mySelectedComponent = comp;
-         e.getRenderer().repaint();
+         e.getViewer().repaint();
          return true;
       }
       return false;

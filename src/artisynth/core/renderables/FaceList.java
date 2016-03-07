@@ -137,7 +137,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
          }
       }
 
-      if (props.getFaceStyle() != Renderer.Faces.NONE) {
+      if (props.getFaceStyle() != Renderer.FaceStyle.NONE) {
          Shading savedShadeModel = renderer.getShading();
 
          if (shading == Shading.NONE) {
@@ -321,9 +321,9 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       gl.glGetBooleanv (GL2.GL_CULL_FACE, savedCullFaceEnabled, 0);
       gl.glGetIntegerv (GL2.GL_CULL_FACE_MODE, savedCullFaceMode, 0);
 
-      Renderer.Faces faces = props.getFaceStyle();
-      if (props.getDrawEdges() && faces == Renderer.Faces.NONE) {
-         faces = Renderer.Faces.FRONT_AND_BACK;
+      Renderer.FaceStyle faces = props.getFaceStyle();
+      if (props.getDrawEdges() && faces == Renderer.FaceStyle.NONE) {
+         faces = Renderer.FaceStyle.FRONT_AND_BACK;
       }
       switch (faces) {
          case FRONT_AND_BACK: {

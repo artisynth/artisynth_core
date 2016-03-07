@@ -28,7 +28,7 @@ import maspack.render.DiffuseTextureProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.GL.GLRenderable;
 
 public class ImagePlaneProbe extends InputProbe implements RenderableComponent,
@@ -65,7 +65,7 @@ TransformableGeometry {
 
       RenderProps props = createRenderProps();
       props.setFaceColor (Color.white);
-      props.setFaceStyle (Faces.FRONT_AND_BACK);
+      props.setFaceStyle (FaceStyle.FRONT_AND_BACK);
       DiffuseTextureProps tprops = props.getDiffuseTextureProps();
       if (tprops == null)
          tprops = new DiffuseTextureProps();

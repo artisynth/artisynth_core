@@ -62,7 +62,7 @@ public class SingleTet extends RootModel {
       RenderProps.setFaceColor (mod, Color.PINK);
       RenderProps.setShininess (mod, mod.getRenderProps().getShininess() * 10);
       RenderProps.setVisible (mod, true);
-      RenderProps.setFaceStyle (mod, Renderer.Faces.FRONT);
+      RenderProps.setFaceStyle (mod, Renderer.FaceStyle.FRONT);
 
       MooneyRivlinMaterial monMat = new MooneyRivlinMaterial();
       monMat.setBulkModulus (15000000);

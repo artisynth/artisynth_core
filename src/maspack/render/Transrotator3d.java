@@ -257,8 +257,7 @@ public class Transrotator3d extends Dragger3dBase {
       double l, d, tempDist;
       int resultAxisOrPlane = NONE;
       RigidTransform3d draggerToEye = new RigidTransform3d();
-      draggerToEye.mulInverseLeft (
-         e.getRenderer().getEyeToWorld(), myXDraggerToWorld);
+      draggerToEye.mul (e.getViewer().getViewMatrix(), myXDraggerToWorld);
 
       Point3d p = new Point3d();
 
@@ -537,7 +536,7 @@ public class Transrotator3d extends Dragger3dBase {
       int comp = checkComponentSelection (e);
       if (comp != mySelectedComponent) {
          mySelectedComponent = comp;
-         e.getRenderer().repaint();
+         e.getViewer().repaint();
          return true;
       }
       return false;

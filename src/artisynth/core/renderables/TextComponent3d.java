@@ -206,7 +206,7 @@ public class TextComponent3d extends TextComponentBase implements
       double t = myTextSize*0.75;
       double vc = myTextSize* 0.25;
       
-      rEye.set(renderer.getEyeToWorld().R);
+      rEye.invert(renderer.getViewMatrix().R);
       if (followEye) {
          rEye.getColumn(0, xdir);
       } else {

@@ -67,7 +67,7 @@ public abstract class DrawToolBase extends DragToolBase {
    }
 
    private void getTransformFromNearPlane(RigidTransform3d X) {
-      X.set (myViewer.getEyeToWorld());
+      X.invert (myViewer.getViewMatrix());
       // multiply by 1.01 to make sure we are slightly inside the view
       // plane, so that we don't get clipped.
       X.mulXyz (0, 0, -1.01*myViewer.getViewPlaneDistance());

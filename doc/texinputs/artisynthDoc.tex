@@ -86,6 +86,8 @@
 \href{@JDOCBEGIN/\concatnames{\javabase}{#1}{#2}@JDOCEND}{#2}}
 \newcommand{\javaclass}[2][]{%
 \href{@JDOCBEGIN/\concatnames{}{#1}{#2}@JDOCEND}{\hashtodot{#2}}}
+\newcommand{\javaclassAlt}[2]{%
+\href{@JDOCBEGIN/\concatnames{}{}{#1}@JDOCEND}{\hashtodot{#2}}}
 
 \newcommand{\javamethodArgsx}[2][]{%
 \href{@JDOCBEGIN/\concatnames{\javabase}{#1}{#2}@JDOCEND}{#2}}
@@ -107,6 +109,7 @@
 \newcommand{\javamethodArgsx}[2][]{{\color{darkblue}#2}}
 \newcommand{\javamethodNoArgsx}[2][]{{\color{darkblue}\removeargs{#2}}}
 \newcommand{\javaclass}[2][]{{\color{darkblue}\hashtodot{#2}}}
+\newcommand{\javaclassAlt}[2]{{\color{darkblue}\hashtodot{#2}}}
 %\href{\javaurl\dottoslash{\concatnames{\javabase}{#1}{#2}}.html}{#2}}
 \newcommand{\javamethodArgs}[2][]{{\color{darkblue}#2}}
 \newcommand{\javamethodNoArgs}[2][]{{\color{darkblue}\removeargs{#2}}}

@@ -132,7 +132,7 @@ public class CoupledSolveDemo extends RootModel {
 
       RenderProps.setShading (collider, Renderer.Shading.GOURAUD);
       RenderProps.setVisible (collider, true);
-      RenderProps.setFaceStyle (collider, Renderer.Faces.FRONT_AND_BACK);
+      RenderProps.setFaceStyle (collider, Renderer.FaceStyle.FRONT_AND_BACK);
       RenderProps.setFaceColor (collider, new Color(0.7f,0f,0f));
 
       RenderProps.setAlpha (collider, 1);

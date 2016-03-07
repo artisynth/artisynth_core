@@ -247,14 +247,14 @@ public class MainFrame extends JFrame {
       GLPanel.setSize (w, h);
       pack();
       // hack! pack() seems to increase the x size a bit, so
-      // if the size is not what we want, we adust for the difference
-      // and resize
+      // if the size is not what we want, reset the size of the
+      // whole window to compensate
       Dimension dim = GLPanel.getSize();
       if (dim.width != w || dim.height != h) {
-         w -= (dim.width - w);
-         h -= (dim.height - h);
-         GLPanel.setSize (w, h);
-         pack();
+         Dimension windim = getSize();
+         windim.width -= (dim.width - w);
+         windim.height -= (dim.height - h);
+         setSize (windim);
       }
    }
 

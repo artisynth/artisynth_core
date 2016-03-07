@@ -7,7 +7,7 @@ import maspack.geometry.*;
 import maspack.matrix.*;
 import maspack.properties.*;
 import maspack.render.*;
-import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.PointStyle;
 import maspack.render.Renderer.Shading;
@@ -298,15 +298,15 @@ public class CollisionRenderer {
       
       if (r.numTriangles() > 0) {
          Shading savedShadeModel = renderer.getShading();
-         Faces savedFaceMode = renderer.getFaceMode();
+         FaceStyle savedFaceStyle = renderer.getFaceStyle();
 
          renderer.setFaceColoring (props, /*selected=*/false);
-         renderer.setFaceMode (props.getFaceStyle());
+         renderer.setFaceStyle (props.getFaceStyle());
          renderer.setShading (props.getShading());
 
          renderer.drawTriangles (r);
 
-         renderer.setFaceMode (savedFaceMode);
+         renderer.setFaceStyle (savedFaceStyle);
          renderer.setShading (savedShadeModel);
       }
    }

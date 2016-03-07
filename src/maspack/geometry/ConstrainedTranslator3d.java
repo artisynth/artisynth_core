@@ -208,11 +208,13 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
          myXDraggerToWorld.p.scaledAdd (duv.x, direction, origin);
       }
       else {
-         Renderer renderer = e.getRenderer();
+         Renderer renderer = e.getViewer();
 
          Point3d location = new Point3d (myXDraggerToWorld.p);
+         RigidTransform3d EyeToWorld = renderer.getViewMatrix();
+         EyeToWorld.invert();
 
-         renderer.getEyeToWorld().R.getColumn (2, planeNormal);
+         EyeToWorld.R.getColumn (2, planeNormal);
          plane.set (planeNormal, location);
          plane.intersectRay (planeLocation, direction, origin);
 
@@ -220,7 +222,7 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
             query.nearestFaceToPoint (
                location, coords, mesh, planeLocation);
 
-         duv.x = myXDraggerToWorld.p.distance (renderer.getEyeToWorld().p);
+         duv.x = myXDraggerToWorld.p.distance (EyeToWorld.p);
          duv.y = coords.x;
          duv.z = coords.y;
 

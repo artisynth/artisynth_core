@@ -30,7 +30,7 @@ public class HudKeyListener implements KeyListener {
       new KeyCombo(0, '`', 0);
 
    HudPrintStream myHud;
-   Renderer myRenderer;
+   GLViewer myViewer;
    KeyCombo myScrollUpKeys = defaultScrollUpKeys;
    KeyCombo myScrollDownKeys = defaultScrollDownKeys;
    KeyCombo myFullscreenKeys = defaultFullscreenKeys;
@@ -65,7 +65,7 @@ public class HudKeyListener implements KeyListener {
     */
    public HudKeyListener (HudPrintStream hud) {
       myHud = hud;
-      myRenderer = null;
+      myViewer = null;
    }
 
    /**
@@ -76,9 +76,9 @@ public class HudKeyListener implements KeyListener {
     * @param renderer
     * (optional) a renderer use to trigger re-render events after changes
     */
-   public HudKeyListener (HudPrintStream hud, Renderer renderer) {
+   public HudKeyListener (HudPrintStream hud, GLViewer viewer) {
       myHud = hud;
-      myRenderer = renderer;
+      myViewer = viewer;
    }
 
    @Override
@@ -108,8 +108,8 @@ public class HudKeyListener implements KeyListener {
    }
    
    private void rerender() {
-	   if (myRenderer != null) {
-		   myRenderer.rerender();
+	   if (myViewer != null) {
+		   myViewer.rerender();
 	   }
    }
 
@@ -179,25 +179,25 @@ public class HudKeyListener implements KeyListener {
       return kl;
    }
 
-   /**
-    * Creates and registers a HudKeyListener object
-    * 
-    * @param hud
-    * the HudPrintStream to control
-    * @param comp
-    * the component on which to listen for key events
-    * @param renderer
-    * renderer object for triggering rerender events
-    * @return the created HudKeyListener
-    */
-   public static HudKeyListener createListener(HudPrintStream hud,
-      Component comp, Renderer renderer) {
-      HudKeyListener kl = new HudKeyListener(hud, renderer);
-      if (comp != null) {
-         comp.addKeyListener(kl);
-      }
-      return kl;
-   }
+//   /**
+//    * Creates and registers a HudKeyListener object
+//    * 
+//    * @param hud
+//    * the HudPrintStream to control
+//    * @param comp
+//    * the component on which to listen for key events
+//    * @param renderer
+//    * renderer object for triggering rerender events
+//    * @return the created HudKeyListener
+//    */
+//   public static HudKeyListener createListener(HudPrintStream hud,
+//      Component comp, Renderer renderer) {
+//      HudKeyListener kl = new HudKeyListener(hud, renderer);
+//      if (comp != null) {
+//         comp.addKeyListener(kl);
+//      }
+//      return kl;
+//   }
 
    /**
     * Creates and registers a HudKeyListener object

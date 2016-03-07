@@ -36,7 +36,7 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
 import maspack.render.Renderer;
-import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Transrotator3d;
@@ -88,13 +88,13 @@ public class MeshCollisionViewer extends GLViewerFrame
 
       props.setShading (smooth.value ? Shading.GOURAUD : Shading.FLAT);
       if (noDrawFaces.value) {
-         props.setFaceStyle (Faces.NONE);
+         props.setFaceStyle (FaceStyle.NONE);
       }
       else if (oneSided.value) {
-         props.setFaceStyle (Faces.FRONT);
+         props.setFaceStyle (FaceStyle.FRONT);
       }
       else {
-         props.setFaceStyle (Faces.FRONT_AND_BACK);
+         props.setFaceStyle (FaceStyle.FRONT_AND_BACK);
       }
       props.setDrawEdges (drawEdges.value);
       if (edgeColor[0] != -1) {

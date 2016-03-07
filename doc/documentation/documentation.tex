@@ -466,6 +466,21 @@ will produce the output
 
 Use the \javaclass[maspack.matrix]{Matrix\#WriteFormat} to control formatting.
 
+Finally, one may sometimes want complete control over the visible text
+associated with a class. This can be done using the {\tt \BKS javaclassAlt}
+macro, which takes two arguments: the class reference, and the visible
+text. So for example, the LaTeX source 
+
+\begin{lstlisting}[]
+Use the \javaclassAlt[maspack.matrix.Matrix\#WriteFormat}{WriteFormat}
+to control formatting.
+\end{lstlisting}
+
+will produce the output:
+
+Use the \javaclassAlt[maspack.matrix.Matrix\#WriteFormat}{WriteFormat}
+to control formatting.
+
 %For additional brevity in the LaTeX source
 %file, one can also use the command {\tt \BKS javaclassx}, which
 %internally prepends a package name provided by the expansion of {\tt

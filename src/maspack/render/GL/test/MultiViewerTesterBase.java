@@ -24,7 +24,7 @@ import maspack.render.Renderer.DrawMode;
 import maspack.render.RenderObjectFactory;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.PointStyle;
 import maspack.render.Renderer.Shading;
@@ -177,7 +177,7 @@ public class MultiViewerTesterBase {
    protected static void addStanfordBunnies(MultiViewer tester, PolygonalMesh bunny) {
 
       RenderProps rprops = new RenderProps();
-      rprops.setFaceStyle(Faces.FRONT_AND_BACK);
+      rprops.setFaceStyle(FaceStyle.FRONT_AND_BACK);
       rprops.setShading(Shading.PHONG);
       rprops.setFaceColor(Color.WHITE.darker());
       rprops.setBackColor(Color.BLUE);
@@ -223,7 +223,7 @@ public class MultiViewerTesterBase {
    protected static void addSolidBunny(MultiViewer tester, PolygonalMesh bunny) {
 
       RenderProps rprops = new RenderProps();
-      rprops.setFaceStyle(Faces.FRONT_AND_BACK);
+      rprops.setFaceStyle(FaceStyle.FRONT_AND_BACK);
       rprops.setShading(Shading.PHONG);
       rprops.setFaceColor(new Color(20, 20, 20));
       rprops.setBackColor(Color.MAGENTA.darker());
@@ -265,7 +265,7 @@ public class MultiViewerTesterBase {
    protected static void addHalfBunny(MultiViewer tester, PolygonalMesh bunny) {
 
       RenderProps rprops = new RenderProps();
-      rprops.setFaceStyle(Faces.FRONT_AND_BACK);
+      rprops.setFaceStyle(FaceStyle.FRONT_AND_BACK);
       rprops.setShading(Shading.PHONG);
       rprops.setBackColor(Color.MAGENTA.darker());
       rprops.setSpecular(Color.WHITE);
@@ -379,7 +379,7 @@ public class MultiViewerTesterBase {
          }
          GLViewer viewer = (GLViewer)renderer;
 
-         renderer.setFaceMode(props.getFaceStyle());
+         renderer.setFaceStyle(props.getFaceStyle());
          renderer.setPropsShading (props);
          renderer.setFaceColoring (props, selected);
 

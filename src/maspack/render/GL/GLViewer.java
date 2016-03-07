@@ -40,6 +40,7 @@ import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SVDecomposition3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 import maspack.properties.HasProperties;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
@@ -53,7 +54,7 @@ import maspack.render.RenderList;
 import maspack.render.RenderListener;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.PointStyle;
 import maspack.render.Renderer.Shading;
@@ -123,7 +124,7 @@ HasProperties {
       boolean colorEnabled;     // color buffer
       boolean vertexColorsEnabled;   // use per-vertex colors
       boolean textureMappingEnabled; // use texture maps
-      Faces faceMode;
+      FaceStyle faceMode;
       Shading shading;
       boolean hsvInterpolationEnabled;  
       ColorMixing colorMixing;  // method for combining material/vertex colors
@@ -1517,17 +1518,21 @@ HasProperties {
          }
       }
    }
-
-   public void getWorldToEye (RigidTransform3d X) {
-      X.set(viewMatrix);
+   
+   public void getViewMatrix (RigidTransform3d TWE) {
+      TWE.set(viewMatrix);
+   }
+   
+   public RigidTransform3d getViewMatrix () {
+      return viewMatrix.clone();
    }
 
-   public RigidTransform3d getEyeToWorld() {
-      RigidTransform3d X = new RigidTransform3d();
-      X.invert(viewMatrix);
-      return X;
-   }
-
+//   public RigidTransform3d getEyeToWorld() {
+//      RigidTransform3d X = new RigidTransform3d();
+//      X.invert(viewMatrix);
+//      return X;
+//   }
+//
    public void getEyeToWorld (RigidTransform3d X) {
       X.invert(viewMatrix);
    }
@@ -1878,17 +1883,17 @@ HasProperties {
       return myViewerState.shading;
    }
    
-   public void setDefaultShading() {
-      setShading (Shading.FLAT);
-   }
+//   public void setDefaultShading() {
+//      setShading (Shading.FLAT);
+//   }
 
-   public void setDefaultLineWidth() {
-      setLineWidth (1);
-   }
-   
-   public void setDefaultPointSize() {
-      setPointSize (1);
-   }
+//   public void setDefaultLineWidth() {
+//      setLineWidth (1);
+//   }
+//   
+//   public void setDefaultPointSize() {
+//      setPointSize (1);
+//   }
    
    protected void pushViewerState() {
       viewerStateStack.push(myViewerState.clone());
@@ -1909,7 +1914,7 @@ HasProperties {
          setColorEnabled(state.colorEnabled);
       }
       if (myViewerState.faceMode != state.faceMode) {
-         setFaceMode(state.faceMode);
+         setFaceStyle(state.faceMode);
       }
       if (myViewerState.shading != state.shading) {
          setShading(state.shading);
@@ -1980,10 +1985,10 @@ HasProperties {
    }
 
    @Override
-   public void setFaceMode(Faces mode) {
+   public void setFaceStyle(FaceStyle style) {
       GL gl = getGL();
-      if (myViewerState.faceMode != mode) {
-         switch (mode) {
+      if (myViewerState.faceMode != style) {
+         switch (style) {
             case FRONT_AND_BACK: {
                gl.glDisable (GL.GL_CULL_FACE);
                break;
@@ -2004,18 +2009,18 @@ HasProperties {
                break;
             }
          }
-         myViewerState.faceMode = mode;
+         myViewerState.faceMode = style;
       }
    }
 
    @Override
-   public Faces getFaceMode () {
+   public FaceStyle getFaceStyle () {
       return myViewerState.faceMode;
    }
 
-   public void setDefaultFaceMode() {
-      setFaceMode (Faces.FRONT);
-   }
+//   public void setDefaultFaceMode() {
+//      setFaceMode (Faces.FRONT);
+//   }
 
    public void setSelectionEnabled (boolean selection) {
       selectionEnabled = selection;
@@ -2196,22 +2201,49 @@ HasProperties {
       return myRenderFlags.get(); 
    }
 
-   public void begin2DRendering() {
-      begin2DRendering(0,width,0,height);
+   public boolean begin2DRendering() {
+      return begin2DRendering (getScreenWidth(), getScreenHeight());
+   }
+   
+   public boolean has2DRendering() {
+      return true;
    }
 
-   public abstract void begin2DRendering(double left, double right, double bottom, double top);
+   public abstract void begin2DRendering (
+      double left, double right, double bottom, double top);
 
    @Override
-   public void begin2DRendering(double w, double h) {
-      begin2DRendering(0, w, 0, h);
+   public boolean begin2DRendering (double w, double h) {
+      if (rendering2d) {
+         throw new IllegalStateException ("Already in 2D rendering mode");
+      }     
+      if (has2DRendering()) {
+         begin2DRendering(0, w, 0, h);
+         rendering2d = true;
+         return true;
+      }
+      else {
+         return false;
+      }
    }
 
    @Override
-   public abstract void end2DRendering();
+   public void end2DRendering() {
+      if (!rendering2d) {
+         throw new IllegalStateException ("Not in 2D rendering mode");
+      }     
+      if (has2DRendering()) {
+         finish2DRendering();
+         rendering2d = false;
+      }
+   }
+
+   public abstract void finish2DRendering();
 
    @Override
-   public abstract boolean is2DRendering();
+   public boolean is2DRendering() {
+      return rendering2d;
+   }
 
    protected int numSelectionQueriesNeeded() {
       int num = myInternalRenderList.numSelectionQueriesNeeded();
@@ -2385,6 +2417,10 @@ HasProperties {
 
    public void getModelMatrix(AffineTransform3d m) {
       m.set(modelMatrix);
+   }
+   
+   public AffineTransform3dBase getModelMatrix() {
+      return modelMatrix.clone();
    }
 
    protected void resetModelMatrix() {
@@ -2714,10 +2750,10 @@ HasProperties {
       drawPoint (new float[] {(float)px, (float)py, (float)pz});
    }
 
-   public void drawPoint (float x, float y, float z) {
-      drawPoint (new float[] {x, y, z});
-   }
-
+//   public void drawPoint (float x, float y, float z) {
+//      drawPoint (new float[] {x, y, z});
+//   }
+//
    public void drawLine (Vector3d pnt0, Vector3d pnt1) {
       drawLine (toFloat (pnt0), toFloat (pnt1));
    }
@@ -2729,11 +2765,11 @@ HasProperties {
          new float[] {(float)px1, (float)py1, (float)pz1}); 
    }
 
-   public void drawLine (
-      float x0, float y0, float z0, float x1, float y1, float z1) {
-      drawLine (new float[] {x0, y0, z0}, new float[] {x1, y1, z1});
-   }
-   
+//   public void drawLine (
+//      float x0, float y0, float z0, float x1, float y1, float z1) {
+//      drawLine (new float[] {x0, y0, z0}, new float[] {x1, y1, z1});
+//   }
+//   
    public void drawTriangle (Vector3d pnt0, Vector3d pnt1, Vector3d pnt2) {
       drawTriangle (toFloat(pnt0), toFloat(pnt1), toFloat(pnt2));
    }
@@ -2748,7 +2784,7 @@ HasProperties {
       float[] u = new float[3];
       float[] v = new float[3];
       u[0] = p1[0]-p0[0]; u[1] = p1[1]-p0[1]; u[2] = p1[2]-p0[2];
-      v[0] = p2[0]-p0[0]; v[1] = p2[1]-p0[1]; u[2] = p2[2]-p0[2];
+      v[0] = p2[0]-p0[0]; v[1] = p2[1]-p0[1]; v[2] = p2[2]-p0[2];
       normal[0] = u[1]*v[2]-u[2]*v[1];
       normal[1] = u[2]*v[0]-u[0]*v[2];
       normal[2] = u[0]*v[1]-u[1]*v[0];
@@ -2901,6 +2937,10 @@ HasProperties {
       setColor(new float[]{r,g,b,a});
    }
 
+   public void setColor (Color color) {
+      setColor (color.getColorComponents(null));
+   }
+   
 //   public void setColor (Color color) {
 //      setColor(color.getColorComponents (new float[4]));
 //   }
@@ -2922,7 +2962,6 @@ HasProperties {
 //      setMaterialSelected (selected);
 //   }
 
-   @Override
    public void setMaterial (
       float[] frontRgba, float[] backRgba, float shininess, boolean selected) {
       setFrontColor (frontRgba);
@@ -3120,6 +3159,9 @@ HasProperties {
    protected float[] myDrawVertexData = null;
    protected float[] myDrawNormalData = null;
    protected float[] myDrawColorData = null;
+   
+   // Doing 2D rendering
+   protected boolean rendering2d = false;
 
    protected void ensureDrawDataCapacity () {
       if (myDrawVertexIdx == myDrawDataCap) {

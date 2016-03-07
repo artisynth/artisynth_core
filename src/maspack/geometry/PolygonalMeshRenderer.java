@@ -29,7 +29,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          super (mesh, props);
          this.shading = props.getShading();
          this.drawEdges = props.getDrawEdges();
-         this.drawFaces = (props.getFaceStyle() != Renderer.Faces.NONE);
+         this.drawFaces = (props.getFaceStyle() != Renderer.FaceStyle.NONE);
       }
 
       public boolean equals (RobSignature other) {
@@ -330,7 +330,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       boolean selected = ((flags & Renderer.SELECTED) != 0);
 
       boolean savedLighting = renderer.isLightingEnabled ();
-      Renderer.Faces savedFaceMode = renderer.getFaceMode();
+      Renderer.FaceStyle savedFaceStyle = renderer.getFaceStyle();
       Shading savedShadeModel = renderer.getShading();
 
       Shading shading = props.getShading();
@@ -356,7 +356,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          }
       }
 
-      renderer.setFaceMode (props.getFaceStyle());
+      renderer.setFaceStyle (props.getFaceStyle());
 
       //int i = 0; // i is index of face
       if (useHSV) {
@@ -380,7 +380,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          // turn off special HSV interpolating shader
          renderer.setColorInterpolation (ColorInterpolation.RGB);
       }
-      renderer.setFaceMode (savedFaceMode);
+      renderer.setFaceStyle (savedFaceStyle);
       renderer.setShading (savedShadeModel);
       renderer.setLightingEnabled (savedLighting);
    }
@@ -425,7 +425,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
 
       Shading shading = props.getShading();
 
-      boolean drawFaces = (props.getFaceStyle() != Renderer.Faces.NONE);
+      boolean drawFaces = (props.getFaceStyle() != Renderer.FaceStyle.NONE);
 
       if (props.getDrawEdges()) {
          drawEdges (renderer, mesh, props, flags, drawFaces);

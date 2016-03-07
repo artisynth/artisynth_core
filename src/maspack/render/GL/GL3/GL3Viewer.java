@@ -29,7 +29,7 @@ import maspack.render.RenderObject.RenderObjectIdentifier;
 import maspack.render.RenderObject.RenderObjectState;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.Renderer.Faces;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.PointStyle;
 import maspack.render.Renderer.Shading;
@@ -69,9 +69,6 @@ public class GL3Viewer extends GLViewer {
    GL3Object pyrGLO = null;
    GL3Object wedgeGLO = null;
    GL3Object hexGLO = null;
-
-   // state
-   boolean rendering2d = false;
 
    // screenshot
    private GLFrameCapture frameCapture = null;
@@ -266,7 +263,7 @@ public class GL3Viewer extends GLViewer {
       setColorEnabled(true);
       setVertexColoringEnabled(true);
       setTextureMappingEnabled(true);
-      setFaceMode(Faces.FRONT);
+      setFaceStyle(FaceStyle.FRONT);
       setShading(Shading.PHONG);
       setGammaCorrectionEnabled(true);
 
@@ -643,7 +640,7 @@ public class GL3Viewer extends GLViewer {
       if (!alphaFaceCulling) {
          pushViewerState();
          setDepthEnabled(false);
-         setFaceMode(Faces.FRONT_AND_BACK);
+         setFaceStyle(FaceStyle.FRONT_AND_BACK);
       }
       
       // XXX maybe set configurable?
@@ -734,12 +731,7 @@ public class GL3Viewer extends GLViewer {
    }
 
    @Override
-   public void begin2DRendering(double w, double h) {
-      begin2DRendering(0, w, 0, h);
-   }
-
-   @Override
-   public void end2DRendering() {
+   public void finish2DRendering() {
 
       popProjectionMatrix();
       popViewMatrix();
@@ -2003,45 +1995,45 @@ public class GL3Viewer extends GLViewer {
       drawGLPoint (gl, pnt);
    }
 
-   public void drawPoint(float[] pnt, float[] nrm) {
-      List<float[]> pnts = Arrays.asList (pnt);
-      List<float[]> nrms = Arrays.asList (nrm);
-      drawPrimitives (pnts, nrms,  2, GL.GL_POINTS);
-   }
+//   public void drawPoint(float[] pnt, float[] nrm) {
+//      List<float[]> pnts = Arrays.asList (pnt);
+//      List<float[]> nrms = Arrays.asList (nrm);
+//      drawPrimitives (pnts, nrms,  2, GL.GL_POINTS);
+//   }
 
-   @Override
-   public void drawPoints (Iterable<float[]> points) {
-      drawPrimitives (points, -1, GL2.GL_POINTS);
-   }
+//   @Override
+//   public void drawPoints (Iterable<float[]> points) {
+//      drawPrimitives (points, -1, GL2.GL_POINTS);
+//   }
 
-   @Override
-   public void drawPoints (Iterable<float[]> points, Iterable<float[]> normals) {
-      drawPrimitives (points, normals, -1, GL2.GL_POINTS);
-   }
+//   @Override
+//   public void drawPoints (Iterable<float[]> points, Iterable<float[]> normals) {
+//      drawPrimitives (points, normals, -1, GL2.GL_POINTS);
+//   }
 
    @Override
    public void drawLine(float[] pnt0, float[] pnt1) {
       drawGLLine (gl, pnt0, pnt1);
    }
 
-   public void drawLine (
-      float[] pnt0, float[] nrm0, float[] pnt1, float[] nrm1) {
-      List<float[]> pnts = Arrays.asList (pnt0, pnt1);
-      List<float[]> nrms = Arrays.asList (nrm0, nrm1);
-      drawPrimitives (pnts, nrms,  2, GL.GL_LINES);
-   }
+//   public void drawLine (
+//      float[] pnt0, float[] nrm0, float[] pnt1, float[] nrm1) {
+//      List<float[]> pnts = Arrays.asList (pnt0, pnt1);
+//      List<float[]> nrms = Arrays.asList (nrm0, nrm1);
+//      drawPrimitives (pnts, nrms,  2, GL.GL_LINES);
+//   }
 
-   public void drawLines(Iterable<float[]> coords) {
-      drawPrimitives (coords, -1, GL2.GL_LINES);
-   }
-
-   public void drawLines(Iterable<float[]> coords, Iterable<float[]> normals) {
-      drawPrimitives (coords, normals, -1, GL2.GL_LINES);
-   }
-
-   public void drawLineStrip(Iterable<float[]> coords, Iterable<float[]> normals) {
-      drawPrimitives (coords,  normals, -1, GL2.GL_LINE_STRIP);
-   }
+//   public void drawLines(Iterable<float[]> coords) {
+//      drawPrimitives (coords, -1, GL2.GL_LINES);
+//   }
+//
+//   public void drawLines(Iterable<float[]> coords, Iterable<float[]> normals) {
+//      drawPrimitives (coords, normals, -1, GL2.GL_LINES);
+//   }
+//
+//   public void drawLineStrip(Iterable<float[]> coords, Iterable<float[]> normals) {
+//      drawPrimitives (coords,  normals, -1, GL2.GL_LINE_STRIP);
+//   }
 
    /**
     * Draw triangular faces, using the current Shading, lighting and
@@ -2054,11 +2046,11 @@ public class GL3Viewer extends GLViewer {
       drawTriangles (coords);
    }
 
-   public void drawTriangle (float[] p0, float[] n0, float[] p1, float[] n1, float[] p2, float[] n2) {
-      List<float[]> coords = Arrays.asList (p0, p1, p2);
-      List<float[]> normals = Arrays.asList (n0, n1, n2);
-      drawPrimitives (coords, normals,  3, GL.GL_TRIANGLES);
-   }
+//   public void drawTriangle (float[] p0, float[] n0, float[] p1, float[] n1, float[] p2, float[] n2) {
+//      List<float[]> coords = Arrays.asList (p0, p1, p2);
+//      List<float[]> normals = Arrays.asList (n0, n1, n2);
+//      drawPrimitives (coords, normals,  3, GL.GL_TRIANGLES);
+//   }
 
    public void drawTriangles (Iterable<float[]> points) {
 
@@ -2105,12 +2097,12 @@ public class GL3Viewer extends GLViewer {
 
    }
 
-   /**
-    * Assumed per-vertex normal
-    */
-   public void drawTriangles (Iterable<float[]> points, Iterable<float[]> normals) {
-      drawPrimitives (points, normals, -1, GL2.GL_TRIANGLES);
-   }
+//   /**
+//    * Assumed per-vertex normal
+//    */
+//   public void drawTriangles (Iterable<float[]> points, Iterable<float[]> normals) {
+//      drawPrimitives (points, normals, -1, GL2.GL_TRIANGLES);
+//   }
 
    //======================================================================
    // RENDER OBJECT STUFF
@@ -2496,8 +2488,8 @@ public class GL3Viewer extends GLViewer {
    }
 
    @Override
-   public void removeSharedObject(Object key) {
-      myGLResources.removeRenderObject(key);
+   public boolean removeSharedObject(Object key) {
+      return myGLResources.removeRenderObject(key) != null;
    }      
 
    @Override

@@ -25,6 +25,7 @@ import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.FaceStyle;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.modelbase.*;
@@ -44,7 +45,7 @@ ScalableUnits, ForceComponent, TransformableGeometry {
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createMeshProps (host);
       props.setFaceColor (new Color (0.5f, 0.5f, 0.5f));
-      props.setFaceStyle (Renderer.Faces.FRONT_AND_BACK);
+      props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
       props.setAlpha (0.8);
       props.setShininess (32);
       return props;
@@ -230,7 +231,7 @@ ScalableUnits, ForceComponent, TransformableGeometry {
 
       Shading savedShading = renderer.setPropsShading (myRenderProps);
       renderer.setFaceColoring (myRenderProps, isSelected());
-      renderer.setFaceMode (myRenderProps.getFaceStyle());
+      renderer.setFaceStyle (myRenderProps.getFaceStyle());
 
       renderer.beginDraw (Renderer.DrawMode.TRIANGLE_STRIP);
       renderer.setNormal (nrml.x, nrml.y, nrml.z);
@@ -241,7 +242,7 @@ ScalableUnits, ForceComponent, TransformableGeometry {
       renderer.endDraw();
 
       renderer.setShading (savedShading);
-      renderer.setDefaultFaceMode();
+      renderer.setFaceStyle (FaceStyle.FRONT); // set default
 
       renderer.popModelMatrix();
    }

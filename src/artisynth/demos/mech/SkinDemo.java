@@ -358,7 +358,7 @@ public class SkinDemo extends RootModel {
       skinMesh.addFrame (model.rigidBodies().get(1));
       skinMesh.computeWeights();
       model.addMeshBody (skinMesh);
-      RenderProps.setFaceStyle (skinMesh, Renderer.Faces.NONE);
+      RenderProps.setFaceStyle (skinMesh, Renderer.FaceStyle.NONE);
       RenderProps.setDrawEdges (skinMesh, true);
       RenderProps.setLineColor (skinMesh, Color.GRAY);
       mySkinMesh = skinMesh;

@@ -87,7 +87,7 @@ public class FemCollision extends RootModel {
                new Vector3d (1, 0, 0.8077474533228615),
                new AxisAngle (1, 0, 0, Math.toRadians (mu == 0 ? 0.0 : 1.5))));
          if (wireFrame) {
-            RenderProps.setFaceStyle (table, Renderer.Faces.NONE);
+            RenderProps.setFaceStyle (table, Renderer.FaceStyle.NONE);
             RenderProps.setDrawEdges (table, true);
          }
          mechmod.addRigidBody (table);
@@ -104,7 +104,7 @@ public class FemCollision extends RootModel {
                new Vector3d (-0.5, 0, 3.5), new AxisAngle()));
             RenderProps.setFaceColor (box0, Color.GREEN.darker());
             if (wireFrame) {
-               RenderProps.setFaceStyle (box0, Renderer.Faces.NONE);
+               RenderProps.setFaceStyle (box0, Renderer.FaceStyle.NONE);
                RenderProps.setDrawEdges (box0, true);
             }
             mechmod.addRigidBody (box0);

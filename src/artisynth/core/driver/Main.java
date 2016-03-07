@@ -490,6 +490,15 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myFrame.setViewerSize (myWidth, myHeight);
       };
    }
+
+   protected void setViewerSize (int w, int h) {
+      // execute in AWT thread to prevent deadlock
+      try {
+         SwingUtilities.invokeAndWait(new ViewerResizer(myFrame, w, h));
+      } catch (InvocationTargetException | InterruptedException e) {
+         e.printStackTrace();
+      }
+   }
    
    /**
     * to create the new window frame
@@ -574,13 +583,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myViewerManager.addDragger (transrotator3d);
          myViewerManager.addDragger (constrainedTranslator3d);
          
-         // execute in AWT thread to prevent deadlock
-         try {
-            SwingUtilities.invokeAndWait(new ViewerResizer(myFrame, width, height));
-         } catch (InvocationTargetException | InterruptedException e) {
-            e.printStackTrace();
-         }
-         
+         setViewerSize (width, height);
+
          myPullController = new PullController (mySelectionManager);
       }
       createWorkspace();
@@ -1978,7 +1982,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
          // XXX this should be done in the Main constructor, but needs
          // to be done here instead because of sizing effects
          m.myMenuBarHandler.initToolbar();
-         m.myFrame.setViewerSize (width.value, height.value);
+         // need to set viewer size here, after it has become visible,
+         // because setting it earlier can cause incorrect results
+         m.setViewerSize (width.value, height.value);
       }
 
       if (mousePrefs.value != null && m.myViewer != null) {

@@ -125,7 +125,7 @@ public class NURBSViewer extends GLViewerFrame {
       public void mouseDragged (MouseEvent e) {
          if (dragging) {
             RigidTransform3d XV = new RigidTransform3d();
-            viewer.getWorldToEye (XV);
+            viewer.getViewMatrix (XV);
             Vector3d del =
                new Vector3d (e.getX() - lastX, lastY - e.getY(), 0);
             del.inverseTransform (XV);

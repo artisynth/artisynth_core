@@ -65,6 +65,10 @@ public abstract class LabeledComponentBase extends JPanel
       }
    }
 
+   public void setLabelFontColor (float[] color) {
+      setLabelFontColor (new Color (color[0], color[1], color[2]));
+   }
+
    public Color getBackgroundColor() {
       Component comp = getMainComponent();
       if (mySelectedP) {

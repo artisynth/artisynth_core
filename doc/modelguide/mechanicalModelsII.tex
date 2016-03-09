@@ -300,40 +300,37 @@ visible & whether or not the component is visible & {\tt true} \\
 alpha & transparency for polygonal faces (range 0 to 1) & 1 (opaque) \\
 shading & polygon shading: ({\tt FLAT}, {\tt GOURARD}, {\tt PHONG}) & {\tt FLAT}\\
 shininess & shininess parameter for polygons (range 0 to 32) & 32 \\
+specular & specular color components & {\tt null} \\
 %Face related properties &
 \hline
 faceStyle &
 which polygonal faces are drawn ({\tt FRONT}, {\tt BACK},
 {\tt FRONT\_AND\_BACK}, {\tt NONE}) & {\tt FRONT} \\
 faceColor &
-color used for drawing faces & {\tt GREY} \\
+color used for drawing faces & {\tt GRAY} \\
 backColor &
 color used for drawing backs of faces. If {\tt null}, {\tt faceColor} is used. &
 {\tt null} \\
 drawEdges & if true, polygon edges are drawn explicitly & {\tt false} \\
 % Edge related properties &
 \hline
-edgeColor & color for edges & {\tt GREY} \\
+edgeColor & color for edges & {\tt null} \\
 edgeWidth & edge width in pixels & 1 \\
 % Line related properties &
 \hline
 lineStyle: &
 how lines are drawn ({\tt CYLINDER}, {\tt LINE}, or {\tt ELLIPSOID}) & 
 {\tt LINE} \\
-lineColor & color for lines & {\tt GREY} \\
+lineColor & color for lines & {\tt GRAY} \\
 lineWidth & width in pixels when {\tt LINE} style is selected & 1 \\
 lineRadius & radius when {\tt CYLINDER} or {\tt ELLIPSOID} style is selected &
 1 \\
-lineSlices &
-number of slices used to render {\tt CYLINDER} or {\tt ELLIPSOID} style lines &
-32 \\
 % Point related properties &
 \hline
 pointStyle & how points are drawn ({\tt SPHERE} or {\tt POINT}) & {\tt POINT} \\
-pointColor & color for points & {\tt GREY} \\
+pointColor & color for points & {\tt GRAY} \\
 pointSize & point size in pixels when {\tt POINT} style is selected & 1 \\
 pointRadius & sphere radius when {\tt SPHERE} style is selected & 1 \\
-pointSlices & number of slices used to render {\tt SPHERE} style spheres & 32 \\
 \hline
 \end{tabular}
 \end{center}
@@ -409,6 +406,36 @@ setting a large number of properties at once:
 
    particle.setRenderProps (props);
 \end{lstlisting}
+
+For setting each of the color properties within {\tt RenderProps},
+one can use either {\tt Color} objects or {\tt float[]} arrays
+of length 3 giving the RGB values. Specifically, there
+are methods of the form
+%
+\begin{lstlisting}
+   props.setXXXColor (Color color)
+   props.setXXXColor (float[] rgb)
+\end{lstlisting}
+%
+as well as the static methods
+%
+\begin{lstlisting}
+   RenderProps.setXXXColor (Renderable r, Color color)
+   RenderProps.setXXXColor (Renderable r, float[] rgb)
+\end{lstlisting}
+%
+where {\tt XXX} corresponds to {\tt Point}, {\tt Line}, {\tt Face},
+{\tt Edge}, and {\tt Back}. For {\tt Edge} and {\tt Back}, both {\tt
+color} and {\tt rgb} can be given as {\tt null} to clear the indicated
+color. For the specular color, the associated methods are
+%
+\begin{lstlisting}
+   props.setSpecular (Color color)
+   props.setSpecular (float[] rgb)
+   RenderProps.setSpecular (Renderable r, Color color)
+   RenderProps.setSpecular (Renderable r, float[] rgb)
+\end{lstlisting}
+%
 
 \begin{sideblock}
 Note that even though components may use a subclass of {\tt
@@ -800,7 +827,7 @@ it need only be a descendent of A.
 \caption{A collection of collidable components, where A possesses
 sub-collidables A1, A2, and A3, B is solitary, and C possesses
 sub-collidables C1 and C2. Internal collisions are enabled among those
-sub-collidables which are shaded grey.}
+sub-collidables which are shaded gray.}
 \label{CollidableGroups:fig}
 \end{figure}
 
@@ -846,7 +873,7 @@ collidable} property enables the collision.
 This is best illustrated with some examples. Refer to Figure
 \ref{CollidableGroups:fig}, assume that components A, B and C are
 deformable, and that self-collision is allowed among those
-sub-collidables which are shaded grey (A1 and A2 for A, B1 and B2 for
+sub-collidables which are shaded gray (A1 and A2 for A, B1 and B2 for
 B). Then:
 %
 \begin{lstlisting}[]
@@ -1021,9 +1048,6 @@ Width (in pixels) of the contact normal if the {\tt Line} line style is used
 
 \item[lineRadius] \mbox{}
 Radius of the contact normal if a solid line style is used
-
-\item[lineSlices] \mbox{}
-Number of slices in the contact normal for a solid line style
 
 \item[lineColor] \mbox{}
 Color of the contact normal

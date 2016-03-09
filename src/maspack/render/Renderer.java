@@ -12,7 +12,6 @@ import maspack.matrix.AffineTransform3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Vector3d;
-import maspack.matrix.Matrix4d;
 import maspack.render.GL.GLSelectable;
 import maspack.render.GL.GLSelectionFilter;
 
@@ -139,7 +138,7 @@ public interface Renderer {
    /**
     * Specifies how selected items are highlighted by this renderer.
     */
-   public enum SelectionHighlighting {
+   public enum HighlightStyle {
       /**
        * Selection highlighting is not supported or is disabled
        */
@@ -382,23 +381,15 @@ public interface Renderer {
    public FaceStyle getFaceStyle ();
 
    /**
-    * Sets the mode for rendering faces. This determines whether
+    * Sets the style for rendering faces. This determines whether
     * the front and/or back of each face is rendered. The default value
     * is {@link FaceStyle#FRONT}.
     * 
-    * @param style new face rendering mode
+    * @param style new face style
+    * @return previous face style
     * @see #getFaceStyle
     */
-   public void setFaceStyle (FaceStyle style);
-
-//   /**
-//    * Sets the mode for rendering faces to its default value, which is
-//    * {@link Faces#FRONT}.
-//    * 
-//    * @see #setFaceStyle
-//    * @see #getFaceStyle
-//    */
-//   public void setDefaultFaceStyle();
+   public FaceStyle setFaceStyle (FaceStyle style);
 
    /**
     * Returns the color interpolation currently being used by this Renderer.
@@ -414,8 +405,9 @@ public interface Renderer {
     * displaying information that is purely color-based. 
     * 
     * @param interp new color interpolation mode
+    * @return previous color interpolation mode
     */
-   public void setColorInterpolation (ColorInterpolation interp);
+   public ColorInterpolation setColorInterpolation (ColorInterpolation interp);
    
    /**
     * Queries whether or not a specified method for combining vertex coloring
@@ -440,8 +432,9 @@ public interface Renderer {
     * {@link #hasColorMixing} to test whether a method is suuported.
     *
     * @param cmix new color mixing method
+    * @return previous color mixing method
     */
-   public void setColorMixing (ColorMixing cmix); 
+   public ColorMixing setColorMixing (ColorMixing cmix); 
    
    /**
     * Queries whether or not a specified method for combining textures
@@ -462,11 +455,12 @@ public interface Renderer {
     * Sets the method used for combining textures and material coloring.
     * This Renderer may not support all methods. If a method is not supported,
     * then the texture mixing method will remain unchanged.  Applications can 
-    * use {@link #hasTextureMixing} to test whether a method is suuported.
+    * use {@link #hasTextureMixing} to test whether a method is supported.
     *
     * @param tmix new texture mixing method
+    * @return previous texture mixing method
     */
-   public void setTextureMixing (ColorMixing tmix);
+   public ColorMixing setTextureMixing (ColorMixing tmix);
 
    /**
     * Returns the current shading model used by this renderer. A shading model
@@ -484,8 +478,9 @@ public interface Renderer {
     * be rendered in solid colors, using the current diffuse color.
     *
     * @param shading new shading model to be used
+    * @return previous shading model
     */
-   public void setShading (Shading shading);
+   public Shading setShading (Shading shading);
 
 //   /**
 //    * Sets the default shading model for this renderer, which is
@@ -509,8 +504,9 @@ public interface Renderer {
     * value, which takes effect again as soon as lighting is re-enabled.
     *
     * @param enable specifies whether to enable or disable lighting.
+    * @return previous lighting enabled setting
     */
-   public void setLightingEnabled (boolean enable);   
+   public boolean setLightingEnabled (boolean enable);   
 
    // Drawing primitives
 
@@ -643,26 +639,26 @@ public interface Renderer {
     * of curved solids. 
     * 
     * @return resolution for approximating curved surfaces
-    * @see #setCurvedMeshResolution
+    * @see #setSurfaceResolution
     */
-   public int getCurvedMeshResolution();
+   public int getSurfaceResolution();
    
    /**
     * Sets the resolution used for creating mesh representations
-    * of curved solids. The number is approximately the
-    * number of linear segments used to approximate the solid about
-    * its principal circumference. It is understood to
-    * be only a lower bound, and the actual resolution may be higher.
+    * of curved solids. The number represents the number of line
+    * segments that would be used to approximate a circle. This
+    * level of resolution is then employed to create the mesh.
     * 
     * @param nsegs resolution for curved surfaces
+    * @return previous resolution
     */
-   public void setCurvedMeshResolution (int nsegs);
+   public int setSurfaceResolution (int nsegs);
    
    /**
     * Draws a sphere with a specified radius centered at a point
     * in model coordinates, using the current shading and material.
     * The point is located in model coordinates. The resolution
-    * of the sphere is specified by {@link #getCurvedMeshResolution}.
+    * of the sphere is specified by {@link #getSurfaceResolution}.
     * 
     * @param pnt center of the sphere
     * @param rad radius of the sphere
@@ -681,15 +677,15 @@ public interface Renderer {
    public void drawSphere (float[] pnt, double rad);   
 
    /**
-    * Draws a tapered ellipsoid between two points in model coordinates, 
+    * Draws a spindle between two points in model coordinates, 
     * using the current shading and material. The resolution
-    * is specified by {@link #getCurvedMeshResolution}.
+    * is specified by {@link #getSurfaceResolution}.
     * 
     * @param pnt0 first end point
     * @param pnt1 second end point
     * @param rad radius of the ellipsoid 
     */
-   public void drawTaperedEllipsoid (float[] pnt0, float[] pnt1, double rad);
+   public void drawSpindle (float[] pnt0, float[] pnt1, double rad);
 
 //   // REPLACE with drawLine (style)?
 //   public void drawCylinder (float[] pnt0, float[] pnt1, double rad);
@@ -697,7 +693,7 @@ public interface Renderer {
    /**
     * Draws a cylinder between two points in model coordinates, 
     * using the current shading and material. The resolution
-    * is specified by {@link #getCurvedMeshResolution}.
+    * is specified by {@link #getSurfaceResolution}.
     * 
     * @param pnt0 first end point
     * @param pnt1 second end point
@@ -715,7 +711,7 @@ public interface Renderer {
     * Draws a cone between two points in model coordinates, 
     * using the current shading and material. A cone is like a cylinder,
     * except that it can have different radii at the end points. The resolution
-    * is specified by {@link #getCurvedMeshResolution}.
+    * is specified by {@link #getSurfaceResolution}.
     * 
     * @param pnt0 first end point
     * @param pnt1 second end point
@@ -737,7 +733,7 @@ public interface Renderer {
     * min (6*rad, len/2)
     * </p>
     * where <code>len</code> is the distance between the two end points.
-    * The resolution is specified by {@link #getCurvedMeshResolution}.
+    * The resolution is specified by {@link #getSurfaceResolution}.
     * 
     * @param pnt0 first end point
     * @param pnt1 second end point
@@ -759,7 +755,7 @@ public interface Renderer {
     * length <code>len</code> and a width <code>width</code>. By default,
     * the x, y, and z axes are drawn using the colors red, green, and blue,
     * unless <code>selected</code> is <code>true</code> and selection
-    * highlighting is {@link SelectionHighlighting#COLOR}, in which case
+    * highlighting is {@link HighlightStyle#COLOR}, in which case
     * all axes are drawn using the renderer's selection color.
     *  
     * @param X coordinate frame defining the axes
@@ -801,7 +797,7 @@ public interface Renderer {
     * point is drawn as a solid sphere with a radius given by
     * <code>props.getPointRadius()</code>. If <code>selected</code>
     * is <code>true</code> and selection highlighting is
-    * {@link SelectionHighlighting#COLOR}, then the point will
+    * {@link HighlightStyle#COLOR}, then the point will
     * be drawn using the selection color rather than the point color
     * specified in <code>props</code>.
     * 
@@ -824,7 +820,7 @@ public interface Renderer {
     * the line is drawn as a solid with a nominal radius given by 
     * <code>props.getLineRadius()</code>. If <code>selected</code>
     * is <code>true</code> and selection highlighting is
-    * {@link SelectionHighlighting#COLOR}, then the line will
+    * {@link HighlightStyle#COLOR}, then the line will
     * be drawn using the selection color rather than the line color
     * specified in <code>props</code>.
     * 
@@ -860,10 +856,6 @@ public interface Renderer {
    public void drawLine (
       RenderProps props, float[] pnt0, float[] pnt1, float[] color,
       boolean capped, boolean selected);
-
-//   public void drawLine (
-//      RenderProps props, float[] coords0, float[] coords1, boolean capped,
-//      boolean selected);
 
    /**
     * Draws an arrow between two points in model coordinates,
@@ -902,19 +894,19 @@ public interface Renderer {
     * the strip is drawn as solids with a nominal radius given by 
     * <code>props.getLineRadius()</code>. If <code>selected</code>
     * is <code>true</code> and selection highlighting is
-    * {@link SelectionHighlighting#COLOR}, then the strip will
+    * {@link HighlightStyle#COLOR}, then the strip will
     * be drawn using the selection color rather than the line color
     * specified in <code>props</code>.
     * 
     * @param props render properties used for drawing the strip
-    * @param pntList list of points used for drawing the strip
+    * @param pnts list of points used for drawing the strip
     * @param style line style to be used for the strip
-    * @param isSelected if <code>true</code>, indicates that selection
+    * @param selected if <code>true</code>, indicates that selection
     * highlighting, if enabled, should be applied to the strip
     */
    public void drawLineStrip (
-      RenderProps props, Iterable<float[]> pntList, 
-      LineStyle style, boolean isSelected);   
+      RenderProps props, Iterable<float[]> pnts, 
+      LineStyle style, boolean selected);   
 
    /**
     * Gives the direction, in model coordinates, of a vector that
@@ -991,37 +983,27 @@ public interface Renderer {
    //===============================================================================
    
    /**
-    * Sets the diffuse and ambient colors to the value specified by 
-    * <code>rgba</code>, unless <code>selected</code> is <code>true</code>
-    * and selection highlighting equals {@link SelectionHighlighting#COLOR},
-    * in which case the renderer's selection color is used.
-    * 
-    * <p>This method also clears any back color that may be present.
-    * It is therefore equivalent to calling
+    * Sets the diffuse and ambient colors to the value specified by
+    * <code>rgba</code>, and enables or disables selection highlighting
+    * according to the value of <code>selected</code>.
+    * If selection highlighting is enabled and the highlighting method
+    * equals {@link HighlightStyle#COLOR}, the selection color will override
+    * the diffuse/ambient color settings. This method also clears any 
+    * back color that may be present. It is therefore equivalent to calling
     * <pre>
-    *    setFrontColor (color);
+    *    setFrontColor (rgba);
     *    setBackColor (null);
+    *    setSelectionHighlighting (selected);
     * </pre>
-    * where <code>color</code> is either <code>rgba</code> or the selection
-    * color, as described above.
     * 
     * @param rgba array of length 3 or 4 specifying RGB or RGBA values in
     * the range [0,1]. Alpha is only applied to the diffuse color
     * and is assumed to be 1.0 if not specified.
-    * @param selected if <code>true</code> and if color selection highlighting
-    * is enabled, the color is set to the selection color instead of
+    * @param selected if <code>true</code>, enables selection highlighting
     * <code>rgba</code>
     */
    public void setColor (float[] rgba, boolean selected);
    
-//   /**
-//    * Main material color (diffuse/ambient)
-//    * @param frontRgba
-//    * @param backRgba
-//    * @param selected
-//    */
-//   public void setColor (float[] frontRgba, float[] backRgba, boolean selected);
-
    /**
     * Sets the diffuse and ambient colors to the value specified by 
     * <code>rgba</code>. This method also clears any back color that may be 
@@ -1036,17 +1018,6 @@ public interface Renderer {
     * and is assumed to be 1.0 if not specified.
     */
    public void setColor (float[] rgba);
-   
-   /**
-    * Sets the diffuse and ambient colors to the renderer's selection color.
-    * This method also clears any back color that may be present, and so
-    * is therefore equivalent to calling
-    * <pre>
-    *    setColor (color, true);
-    * </pre>
-    * where <code>color</code> is ignored.
-    */
-   public void setColorSelected ();   
    
    /**
     * Sets the diffuse and ambient colors to be used for subsequent rendering
@@ -1080,12 +1051,6 @@ public interface Renderer {
     * @param a alpha value
     */
    public void setColor (float r, float g, float b, float a);
-   // not used
-//   public void setColor (Color color);
-   // not used
-//   public void setColor (float[] frontRgba, float[] backRgba);
-   // not used
-//   public void setColor (Color frontColor, Color backColor);
 
    /**
     * Sets the diffuse and ambient colors to be used for subsequent rendering
@@ -1102,17 +1067,47 @@ public interface Renderer {
    public void setFrontColor (float[] rgba);
    
    /**
-    * Optionally sets the diffuse and ambient colors used for the 
-    * subsequent of the back faces of triangles. If <code>rgba</code>
-    * is set to <code>null</code>, then back coloring is disabled 
-    * and the front color is used instead.
+    * Returns the RGB or RGBA values for the front color as a float array.  The
+    * application may supply the array via the argument
+    * <code>rgba</code>. Otherwise, Otherwise, if <code>rgba</code> is
+    * <code>null</code>, an array of length 4 will be allocated for returning
+    * the RGBA values. The default RGBA values for the front color are
+    * <code>(1, 1, 1, 1)</code>.
+    *    
+    * @param rgba optional storage of length 3 or 4 for returning either
+    * the RGB or RGBA values.
+    * @return RGB or RGBA values for the front color
+    */
+   public float[] getFrontColor (float[] rgba);
+   
+   /**
+    * Optionally sets the diffuse and ambient colors used for the subsequent
+    * rendering of the back faces of triangles. If <code>rgba</code> is set to
+    * <code>null</code>, then the back color is cleared and back faces
+    * will be rendered using the front color. By default, the back color is
+    * <code>null</code>.
     * 
-    * @param rgba <code>null</code> to disable back coloring, or
+    * @param rgba <code>null</code> to clear back coloring, or
     * an array of length 3 or 4 specifying RGB or RGBA values in
     * the range [0,1]. Alpha is only applied to the diffuse color
     * and is assumed to be 1.0 if not specified.
     */
    public void setBackColor (float[] rgba);
+   
+   /**
+    * Returns the RGB or RGBA values for the back color as a float array,
+    * or <code>null</code> if no back color is set. 
+    * The application may supply the array via the argument <code>rgba</code>. Otherwise, 
+    * Otherwise, if <code>rgba</code> is <code>null</code>
+    * and the back color is set, 
+    * an array of length 4 will be allocated for returning the RGBA values.
+    *    
+    * @param rgba optional storage of length 3 or 4 for returning either
+    * the RGB or RGBA values.
+    * @return RGB or RGBA values for the back color, or <code>null</code>
+    * if no back color is set.
+    */
+   public float[] getBackColor (float[] rgba);
    
    /**
     * Sets the emission color to be used for subsequent rendering
@@ -1125,6 +1120,17 @@ public interface Renderer {
    public void setEmission (float[] rgb);
    
    /**
+    * Returns the RGB values for the emission color as a float array.
+    * The application may supply the array via the argument <code>rgb</code>.
+    * Otherwise, if <code>rgb</code> is <code>null</code>, 
+    * an array will be allocated for returning the RGB values.
+    *    
+    * @param rgb optional storage for returning the RGB values.
+    * @return RGB values for the emission color
+    */
+   public float[] getEmission (float[] rgba);
+   
+   /**
     * Sets the specular color to be used for subsequent rendering
     * of primitives. The default specular color has a value
     * of <code>(0.1, 0.1, 0.1)</code>.
@@ -1135,182 +1141,177 @@ public interface Renderer {
    public void setSpecular (float[] rgb);
    
    /**
+    * Returns the RGB values for the specular color as a float array.
+    * The application may supply the array via the argument <code>rgb</code>.
+    * Otherwise, if <code>rgb</code> is <code>null</code>, 
+    * an array will be allocated for returning the RGB values.
+    *    
+    * @param rgb optional storage for returning the RGB values.
+    * @return RGB values for the specular color
+    */
+   public float[] getSpecular (float[] rgba);
+   
+   /**
     * Sets the shininess parameter to be used for subsequent rendering
-    * of primitives. The value should be in the range [0,128], and
-    * the default value is 32.
+    * of primitives (see {@link #getShininess}. This should be in the 
+    * range [0,128], and the default value is 32.
     * 
     * @param s shininess parameter
     */
    public void setShininess (float s);
    
    /**
-    * Sets the alpha value for the existing diffuse color.
+    * Returns the current shininess parameter. This is the specular exponent 
+    * of the lighting equation, and is in the range [0,128],
+    * 
+    * @return shininess parameter
+    */
+   public float getShininess();
+   
+   /**
+    * Sets the alpha value for the front material.
     * 
     * @param a alpha value, in the range [0,1].
     */
-   public void setAlpha (float a);
-   
-//   NOT USED
-//   void setMaterial (float[] rgba);
-   
-//   // USED ONLY IN GLVIEWER
-//   public void setMaterial (
-//      float[] frontRgba, float[] backRgba, float shininess, boolean selected); 
+   public void setFrontAlpha (float a);
 
    /**
-    * Sets the front diffuse and ambient colors to the point color in
-    * <code>props</code>, or to the selection color if <code>selected</code> is
-    * <code>true</code> and selection highlighting equals {@link
-    * SelectionHighlighting#COLOR}. The
-    * shininess is set to <code>props.getShininess()</code>, while
-    * the back color is set to <code>null</code> and 
-    * the emission and specular colors are set to their default values.
-    * Summarizing:
-    * <pre>
-    *   frontColor = props point color or selection color
-    *   backColor = null
-    *   shininess = props shininess
-    *   emission = default value
-    *   specular = default value
-    * </pre>
+    * Sets the diffuse and ambient colors to the point color in
+    * <code>props</code>, and enables or disables selection highlighting
+    * according to the value of <code>selected</code>.  The back color is set
+    * to <code>null</code>, and the emission, shininess, and specular values
+    * are set either from <code>props</code> or from default values.
+    * 
+    * <p>The resulting behavior is equivalent to {@link #setPropsColoring} with
+    * <code>props.getPointColor()</code> supplying the <code>rgba</code> value.
+    * If selection highlighting is enabled and the highlighting method equals
+    * {@link HighlightStyle#COLOR}, the selection color will override the
+    * diffuse/ambient color settings.
     *
     * @param props supplies the shininess and point color values
-    * @param selected if <code>true</code> and if color selection highlighting
-    * is enabled, causes the diffuse and ambient colors to be set to the
-    * selection color.
+    * @param selected if <code>true</code>, enables selection highlighting
     */
    public void setPointColoring (RenderProps props, boolean selected);
    
    /**
-    * Sets the front diffuse and ambient colors to the line color in
-    * <code>props</code>, or to the selection color if <code>selected</code> is
-    * <code>true</code> and selection highlighting equals {@link
-    * SelectionHighlighting#COLOR}. The
-    * shininess is set to <code>props.getShininess()</code>, while
-    * the back color is set to <code>null</code> and 
-    * the emission and specular colors are set to their default values.
-    * Summarizing:
-    * <pre>
-    *   frontColor = props line or selection color
-    *   backColor = null
-    *   shininess = props shininess
-    *   emission = default value
-    *   specular = default value
-    * </pre>
+    * Sets the diffuse and ambient colors to the line color in
+    * <code>props</code>, and enables or disables selection highlighting
+    * according to the value of <code>selected</code>. The back color is set
+    * to <code>null</code>, and the emission, shininess, and specular values
+    * are set either from <code>props</code> or from default values.
+    *
+    * <p>The resulting behavior is equivalent to {@link #setPropsColoring} with
+    * <code>props.getLineColor()</code> supplying the <code>rgba</code> value.
+    * If selection highlighting is enabled and the highlighting method equals
+    * {@link HighlightStyle#COLOR}, the selection color will override the
+    * diffuse/ambient color settings.
     *
     * @param props supplies the shininess and line color values
-    * @param selected if <code>true</code> and if color selection highlighting
-    * is enabled, causes the diffuse and ambient colors to be set to the
-    * selection color.
+    * @param selected if <code>true</code>, enables selection highlighting
     */
    public void setLineColoring (RenderProps props, boolean selected);
    
    /**
-    * Sets the front diffuse and ambient colors to the edge color in
-    * <code>props</code>, or to the selection color if <code>selected</code> is
-    * <code>true</code> and selection highlighting equals {@link
-    * SelectionHighlighting#COLOR}. If the edge color is <code>null</code>
-    * then the line color in <code>props</code> is used instead. The
-    * shininess is set to <code>props.getShininess()</code>, while
-    * the back color is set to <code>null</code> and 
-    * the emission and specular colors are set to their default values.
-    * Summarizing:
-    * <pre>
-    *   frontColor = props edge (or line) color or selection color
-    *   backColor = null
-    *   shininess = props shininess
-    *   emission = default value
-    *   specular = default value
-    * </pre>
+    * Sets the diffuse and ambient colors to the edge color in
+    * <code>props</code>, and enables or disables selection highlighting
+    * according to the value of <code>selected</code>. If the edge color is
+    * <code>null</code> then the line color in <code>props</code> is used
+    * instead. The back color is set to <code>null</code>, and the emission,
+    * shininess, and specular values are set either from <code>props</code> or
+    * from default values.
+    *
+    * <p>The resulting behavior is equivalent to {@link #setPropsColoring} with
+    * <code>props.getEdgeColor()</code> or <code>props.getLineColor()</code>
+    * supplying the <code>rgba</code> value.  If selection highlighting is
+    * enabled and the highlighting method equals {@link HighlightStyle#COLOR},
+    * the selection color will override the diffuse/ambient color settings.
     *
     * @param props supplies the shininess and edge (or line) color values
-    * @param selected if <code>true</code> and if color selection highlighting
-    * is enabled, causes the diffuse and ambient colors to be set to the
-    * selection color.
+    * @param selected if <code>true</code>, enables selection highlighting
     */
    public void setEdgeColoring (RenderProps props, boolean selected);
 
    /**
-    * Sets the front and back diffuse and ambient colors to the face color
-    * and back color in <code>props</code>, or to the selection color if
-    * <code>selected</code> is <code>true</code> and selection highlighting
-    * equals {@link SelectionHighlighting#COLOR}. If the back color of
-    * <code>props</code> is <code>null</code>, this will just cause the
-    * renderer's back color to also be set to <code>null</code>.
-    * The shininess is set to <code>props.getShininess()</code>, while
-    * the emission and specular colors are set to their
-    * default values.  Summarizing:
-    * <pre>
-    *   frontColor = props face color or selection color
-    *   backColor = props back color or selection color
-    *   shininess = props shininess
-    *   emission = default value
-    *   specular = default value
-    * </pre>
+    * Sets the diffuse and ambient colors to the face color in
+    * <code>props</code>, and enables or disables selection highlighting
+    * according to the value of <code>selected</code>. The back color will also
+    * be set to the (possibly <code>null</code>) value of the back color in
+    * <code>props</code>. If the back color is not <code>null</code>, then this
+    * will be used to provide the coloring for back faces when they are
+    * visible. The emission, shininess, and specular values are set either from
+    * <code>props</code> or from default values.
+    *
+    * <p>The resulting behavior is equivalent to {@link #setPropsColoring} with
+    * <code>props.getFaceColor()</code> supplying the <code>rgba</code> value,
+    * except that the back color is set from <code>props.getBackColor()</code>
+    * instead of being set to <code>null</code>. If selection highlighting is
+    * enabled and the highlighting method equals {@link HighlightStyle#COLOR},
+    * the selection color will override the diffuse/ambient color settings.
     *
     * @param props supplies the shininess and front and back color values
-    * @param selected if <code>true</code> and if color selection highlighting
-    * is enabled, causes the diffuse and ambient colors to be set to the
-    * selection color.
+    * @param selected if <code>true</code>, enables selection highlighting
     */
    public void setFaceColoring (RenderProps props, boolean selected);
    
    /**
-    * Sets the front and back diffuse and ambient colors to
-    * <code>frontRgba</code> and the back color in <code>props</code>
-    * (respectively), or to the selection color if <code>selected</code> is
-    * <code>true</code> and selection highlighting equals {@link
-    * SelectionHighlighting#COLOR}. If the back color of <code>props</code> is
-    * <code>null</code>, this will just cause the renderer's back color to also
-    * be set to <code>null</code>.  The shininess is set to
-    * <code>props.getShininess()</code>, while the emission and specular colors
-    * are set to their default values.  Summarizing:
-    * <pre>
-    *   frontColor = frontRgba or selection color
-    *   backColor = props back color or selection color
-    *   shininess = props shininess
-    *   emission = default value
-    *   specular = default value
-    * </pre>
+    * Sets the diffuse and ambient colors to <code>rgba</code>, and enables or
+    * disables selection highlighting according to the value of
+    * <code>selected</code>. The back color will also be set to the (possibly
+    * <code>null</code>) value of the back color in <code>props</code>. If the
+    * back color is not <code>null</code>, then this will be used to provide
+    * the coloring for back faces when they are visible. The emission,
+    * shininess, and specular values are set either from <code>props</code> or
+    * from default values.
+    *
+    * <p>The resulting behavior is equivalent to {@link #setPropsColoring},
+    * except that the back color is set from <code>props.getBackColor()</code>
+    * instead of being set to <code>null</code>. If selection highlighting is
+    * enabled and the highlighting method equals {@link HighlightStyle#COLOR},
+    * the selection color will override the diffuse/ambient color settings.
     *
     * @param props supplies the shininess and back color values
-    * @param frontRgba an array of length 3 or 4 specifying RGB or RGBA values
-    * for the front color the range [0,1]. Alpha is only applied to the diffuse
+    * @param rgba an array of length 3 or 4 specifying RGB or RGBA values
+    * for the color the range [0,1]. Alpha is only applied to the diffuse
     * color and is set to <code>props.getAlpha()</code> if not specified.
-    * @param selected if <code>true</code> and if color selection highlighting
-    * is enabled, causes the diffuse and ambient colors to be set to the
-    * selection color.
+    * @param selected if <code>true</code>, enables selection highlighting
     */
    public void setFaceColoring (
-      RenderProps props, float[] frontRgba, boolean selected);
+      RenderProps props, float[] rgba, boolean selected);
       
    /**
-    * Sets the front diffuse and ambient colors to <code>frontRgba</code>, or
-    * to the selection color if <code>selected</code> is <code>true</code> and
-    * selection highlighting equals {@link SelectionHighlighting#COLOR}. If the
-    * back color of <code>props</code> is <code>null</code>, this will just
-    * cause the renderer's back color to also be set to <code>null</code>.  The
+    * Sets the diffuse and ambient colors to <code>rgba</code>, and enables or
+    * disables selection highlighting according to the value of
+    * <code>selected</code>. If <code>rgba</code> only has a length of 3 then
+    * the front alpha value is supplied by <code>props.getAlpha()</code>.  The
     * shininess is set to <code>props.getShininess()</code>, while the back
-    * color is set to <code>null</code> and the emission
-    * and specular colors are set to their default values.  Summarizing:
+    * color is set to <code>null</code>, the emission color is set to its
+    * default value, and the specular color is set to either
+    * <code>props.getSpecular()</code>, or to its default value if the former
+    * is <code>null</code>. This behavior is equivalent to the following:
     * <pre>
-    *   frontColor = frontRgba or selection color
-    *   backColor = null
-    *   shininess = props shininess
-    *   emission = default value
-    *   specular = default value
+    *   setFrontColor (rgba);
+    *   if (rgba.length == 3) {
+    *      setFrontAlpha (props.getAlpha());
+    *   }
+    *   setBackColor (null);
+    *   setShininess (props.getShininess());
+    *   setEmission (DEFAULT_EMISSION_VALUE);
+    *   specular = props.getSpecular();
+    *   setSpecular (specular != null ? specular : DEFAULT_SPECULAR_VALUE);
+    *   setSelectionHighlighting (selected)
     * </pre>
+    * If selection highlighting is enabled and the
+    * highlighting method equals {@link HighlightStyle#COLOR}, the selection
+    * color will override the diffuse/ambient color settings.
     *
     * @param props supplies the shininess value
-    * @param frontRgba an array of length 3 or 4 specifying RGB or RGBA values
-    * for the front color the range [0,1]. Alpha is only applied to the diffuse
-    * color and is set to <code>props.getAlpha()</code> if not specified.
-    * @param selected if <code>true</code> and if color selection highlighting
-    * is enabled, causes the diffuse and ambient colors to be set to the
-    * selection color.
+    * @param rgba an array of length 3 or 4 specifying RGB or RGBA values for
+    * the color the range [0,1]. Alpha is only applied to the diffuse color and
+    * is set to <code>props.getAlpha()</code> if not specified.
+    * @param selected if <code>true</code>, enables selection highlighting
     */
    public void setPropsColoring (
-      RenderProps props, float[] frontRgba, boolean selected);
+      RenderProps props, float[] rgba, boolean selected);
 
    /**
     * Sets the shading appropriate to the point style specified in
@@ -1342,74 +1343,6 @@ public interface Renderer {
     * @return the previous shading setting
     */
    public Shading setPropsShading (RenderProps props);
-   
-//   // XXX will these be in use?
-//   public void setMaterial (Material material, boolean selected);
-   
-//   // USED ONLY IN GLViewer and GLXViewer
-//   public void setMaterial (Material material, float[] diffuseColor,
-//      boolean selected);
-   
-//   // NOT USED
-//   public void setMaterial (Material frontMaterial, float[] frontDiffuse,
-//      Material backMaterial, float[] backDiffuse, 
-//      boolean selected);
-
-//   public void setMaterialAndShading (
-//      RenderProps props, Material mat, boolean selected);
-   
-//   public void setMaterialAndShading (
-//      RenderProps props, Material mat, float[] diffuseColor, boolean selected);
-   
-//   public void setMaterialAndShading (
-//      RenderProps props, Material frontMaterial, float[] frontDiffuse,
-//      Material backMaterial, float[] backDiffuse, 
-//      boolean selected);
-   
-//   public void updateMaterial (
-//      RenderProps props, Material material, boolean selected);
-   
-//   public void updateMaterial (
-//      RenderProps props, Material mat, float[] diffuseColor, boolean selected);
-   
-//   public void updateMaterial (
-//      RenderProps props, Material frontMaterial, float[] frontDiffuse, 
-//      Material backMaterial, float[] backDiffuse, boolean selected);
-   
-   //===============================================================================
-   // BASIC PRIMITIVE DRAWING
-   //===============================================================================
-   
-   // XXX maybe phase this out?  Might need some way to set point size though
-
-   
-   
-//   /**
-//    * Draw a set of points (the plural version of drawPoint(float[])).
-//    */
-//   // REMOVE
-//   public void drawPoints (Iterable<float[]> points);
-   
-//   // REMOVE
-//   public void drawPoints(Iterable<float[]> points, Iterable<float[]> normals);
-   
-//   // REMOVE
-//   public void drawLines(Iterable<float[]> coords);
-//   
-//   // REMOVE
-//   public void drawLines(Iterable<float[]> coords, Iterable<float[]> normals);
-//   
-//   // REMOVE
-//   public void drawLineStrip(Iterable<float[]> coords, Iterable<float[]> normals);
-   
-//   // REMOVE
-//   void drawTriangle (float[] p0, float[] n0, float[] p1, float[] n1, float[] p2, float[] n2);
-//
-//   // REMOVE
-//   void drawTriangles (Iterable<float[]> points);
-//   
-//   // REMOVE
-//   void drawTriangles (Iterable<float[]> points, Iterable<float[]> normals);
    
    //==========================================================================
    // RENDER OBJECTS
@@ -1697,21 +1630,41 @@ public interface Renderer {
     * Returns the selection highlighting method used by this renderer.
     * This specifies how objects which are indicated to be <i>selected</i>
     * are drawn by the renderer in a way so that they stand out. A
-    * value of {@link SelectionHighlighting#NONE} indicates that
+    * value of {@link HighlightStyle#NONE} indicates that
     * no selection highlighting is enabled.
     * 
     * @return current selection highlighting method.
     */
-   public SelectionHighlighting getSelectionHighlighting();
+   public HighlightStyle getSelectionHighlightStyle();
 
    /**
     * Returns the color that is used to highlight selected objects when
-    * the selection highlighting method is {@link SelectionHighlighting#COLOR}.
+    * the selection highlighting method is {@link HighlightStyle#COLOR}.
     * 
     * @param rgba array of length 3 or 4 in which the RGB or RGBA components
     * of the selection color are returned.
     */
    public void getSelectionColor (float[] rgba);
+
+   /**
+    * Enables or disables selection highlighting, so that
+    * subsequent primitives will be rendered in a highlighted fashion
+    * to visually indicate that they are selected. 
+    * When selection highlighting equals {@link HighlightStyle#COLOR}, 
+    * this is done by setting the effective color to the selection color.
+    *
+    * @param enable if <code>true</code>, enable selection highlighting.
+    * @return previous selection highlighting value
+    * @see #getSelectionColor
+    */
+   public boolean setSelectionHighlighting (boolean selected);
+   
+   /**
+    * Queries whether or not selection highlighting is enabled.
+    * 
+    * @return <code>true</code> if selection highlighting is enabled
+    */
+   public boolean getSelectionHighlighting();   
    
    /**
     * Begins a selection query with the {\it query identifier}
@@ -1815,24 +1768,24 @@ public interface Renderer {
    /**
     * Adds a vertex to a primitive being drawn while in draw mode. 
     * 
-    * @param x vertex x coordinate
-    * @param y vertex y coordinate
-    * @param z vertex z coordinate
+    * @param px vertex x coordinate
+    * @param py vertex y coordinate
+    * @param pz vertex z coordinate
     * @see #beginDraw
     * @throws IllegalStateException if the renderer is not in draw mode
     */
-   public void addVertex (float x, float y, float z);
+   public void addVertex (float px, float py, float pz);
 
    /**
     * Adds a vertex to a primitive being drawn while in draw mode. 
     * 
-    * @param x vertex x coordinate
-    * @param y vertex y coordinate
-    * @param z vertex z coordinate
+    * @param px vertex x coordinate
+    * @param py vertex y coordinate
+    * @param pz vertex z coordinate
     * @see #beginDraw
     * @throws IllegalStateException if the renderer is not in draw mode
     */
-   public void addVertex (double x, double y, double z);
+   public void addVertex (double px, double py, double pz);
 
    /**
     * Adds a vertex to a primitive being drawn while in draw mode. 
@@ -1849,26 +1802,26 @@ public interface Renderer {
     * a subsequent <code>setNormal</code> call. The normal does not
     * need to be normalized.
     * 
-    * @param x normal x coordinate
-    * @param y normal y coordinate
-    * @param z normal z coordinate
+    * @param nx normal x coordinate
+    * @param ny normal y coordinate
+    * @param nz normal z coordinate
     * @see #beginDraw
     * @throws IllegalStateException if the renderer is not in draw mode
     */
-   public void setNormal (float x, float y, float z);
+   public void setNormal (float nx, float ny, float nz);
 
    /**
     * Sets the normal to be associated with the next vertex to be
     * added while in draw mode. This method is functionally equivalent to
     * {@link #setNormal(float,float,float)}. 
     * 
-    * @param x normal x coordinate
-    * @param y normal y coordinate
-    * @param z normal z coordinate
+    * @param nx normal x coordinate
+    * @param ny normal y coordinate
+    * @param nz normal z coordinate
     * @see #beginDraw
     * @throws IllegalStateException if the renderer is not in draw mode
     */
-   public void setNormal (double x, double y, double z);
+   public void setNormal (double nx, double ny, double nz);
 
    /**
     * Sets the normal to be associated with the next vertex to be

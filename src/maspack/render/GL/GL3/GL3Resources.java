@@ -67,8 +67,8 @@ public class GL3Resources extends GLResources {
       return primManager.getSphere(gl, slices, levels);
    }
 
-   public GL3Object getTaperedEllipsoid(GL3 gl, int slices, int levels) {
-      return primManager.getTaperedEllipsoid(gl, slices, levels);
+   public GL3Object getSpindle(GL3 gl, int slices, int levels) {
+      return primManager.getSpindle(gl, slices, levels);
    }
 
    public GL3Object getCylinder(GL3 gl, int slices, boolean capped) {

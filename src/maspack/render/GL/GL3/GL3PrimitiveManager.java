@@ -98,10 +98,10 @@ public class GL3PrimitiveManager {
       }
    }
    
-   public static class TaperedEllipsoidKey {
+   public static class SpindleKey {
       private int slices;
       private int levels;
-      public TaperedEllipsoidKey(int slices, int levels) {
+      public SpindleKey(int slices, int levels) {
          this.slices = slices;
          this.levels = levels;
       }
@@ -127,7 +127,7 @@ public class GL3PrimitiveManager {
          if ( (obj == null) || (getClass() != obj.getClass())) {
             return false;
          }
-         TaperedEllipsoidKey other = (TaperedEllipsoidKey)obj;
+         SpindleKey other = (SpindleKey)obj;
          return equals(other.slices, other.levels);
       }
       
@@ -444,13 +444,13 @@ public class GL3PrimitiveManager {
       return gli.glo;
    }
 
-   public GL3Object getTaperedEllipsoid(GL3 gl, int nSlices, int nLevels) {
+   public GL3Object getSpindle(GL3 gl, int nSlices, int nLevels) {
       freeReleasedGLOs(gl);
       
-      TaperedEllipsoidKey key = new TaperedEllipsoidKey(nSlices, nLevels);
+      SpindleKey key = new SpindleKey(nSlices, nLevels);
       GLObjectInfo gli = getGLI(key);
       if (gli == null) {
-         GL3Object glo = GL3ObjectFactory.createTaperedEllipsoid(gl, nSlices, nLevels);
+         GL3Object glo = GL3ObjectFactory.createSpindle(gl, nSlices, nLevels);
          gli = new GLObjectInfo(glo, key);
          addGLI(gl, key, gli);
       }

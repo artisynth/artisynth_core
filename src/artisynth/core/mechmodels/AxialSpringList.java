@@ -197,7 +197,7 @@ public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
                      break;
                   }
                   case ELLIPSOID: {
-                     renderer.drawTaperedEllipsoid (v0, v1, rad);
+                     renderer.drawSpindle (v0, v1, rad);
                      break;
                   }
                   case SOLID_ARROW: {

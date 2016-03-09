@@ -308,13 +308,13 @@ public class MuscleElementDesc
                myDirectionColor = new float[4];
             }
             myDirectionColor[3] = (float)props.getAlpha ();
-            baseColor = props.getLineColorArray();
+            baseColor = props.getLineColorF();
             GLSupport.interpolateColor (
                myDirectionColor, baseColor, excitationColor, s);
             if (myWidgetColor == null) {
                myWidgetColor = new float[4];
             }
-            baseColor = props.getFaceColorArray();
+            baseColor = props.getFaceColorF();
             GLSupport.interpolateColor (
                myWidgetColor, baseColor, excitationColor, s);
             myWidgetColor[3] = (float)props.getAlpha ();

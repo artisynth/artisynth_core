@@ -311,13 +311,13 @@ public class MFreeMuscleElementDesc
             if (myDirectionColor == null) {
                myDirectionColor = new float[3];
             }
-            baseColor = props.getLineColorArray();
+            baseColor = props.getLineColorF();
             GLSupport.interpolateColor (
                myDirectionColor, baseColor, excitationColor, s);
             if (myWidgetColor == null) {
                myWidgetColor = new float[3];
             }
-            baseColor = props.getFaceColorArray();
+            baseColor = props.getFaceColorF();
             GLSupport.interpolateColor (
                myWidgetColor, baseColor, excitationColor, s);
          }

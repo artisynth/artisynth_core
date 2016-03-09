@@ -96,13 +96,13 @@ HasProperties {
    private static final Point3d DEFAULT_VIEWER_CENTER = new Point3d();
    private static final Point3d DEFAULT_VIEWER_EYE = new Point3d (0, -1, 0);
 
-   protected static int DEFAULT_POINT_SLICES = 64;
-   protected static int DEFAULT_LINE_SLICES = 64;
-   protected static int DEFAULT_MESH_RESOLUTION = 32;
+   //protected static int DEFAULT_POINT_SLICES = 64;
+   //protected static int DEFAULT_LINE_SLICES = 64;
+   protected static int DEFAULT_SURFACE_RESOLUTION = 64;
 
-   protected int myPointSlices = DEFAULT_POINT_SLICES;
-   protected int myLineSlices = DEFAULT_LINE_SLICES;
-   protected int myCurvedMeshResolution = DEFAULT_MESH_RESOLUTION; 
+   //protected int myPointSlices = DEFAULT_POINT_SLICES;
+   //protected int myLineSlices = DEFAULT_LINE_SLICES;
+   protected int mySurfaceResolution = DEFAULT_SURFACE_RESOLUTION; 
 
    protected static class ViewState {
       protected Point3d myCenter = new Point3d (DEFAULT_VIEWER_CENTER);
@@ -221,7 +221,7 @@ HasProperties {
 
    // Colors
    protected float[] mySelectedColor = new float[] { 1f, 1f, 0, 1f };
-   protected SelectionHighlighting myHighlighting = SelectionHighlighting.COLOR;
+   protected HighlightStyle myHighlightStyle = HighlightStyle.COLOR;
 
    // XXX Color history
    protected float[] DEFAULT_MATERIAL_COLOR = new float[]{0.8f, 0.8f, 0.8f, 1.0f};
@@ -382,12 +382,14 @@ HasProperties {
       return PropertyList.getProperty (name, this);
    }
 
-   public int getCurvedMeshResolution () {
-      return myCurvedMeshResolution;
+   public int getSurfaceResolution () {
+      return mySurfaceResolution;
    }
    
-   public void setCurvedMeshResolution (int nres) {
-      myCurvedMeshResolution = nres;
+   public int setSurfaceResolution (int nres) {
+      int prev = mySurfaceResolution;
+      mySurfaceResolution = nres;
+      return prev;
    }
    
    public void setAxisLength (double len) {
@@ -1765,10 +1767,12 @@ HasProperties {
       }
    }
 
-   public void setLightingEnabled (boolean enable) {
+   public boolean setLightingEnabled (boolean enable) {
+      boolean prev = myViewerState.lightingEnabled;
       if (!selectEnabled) {
          myViewerState.lightingEnabled = enable;
       }
+      return prev;
    }
 
    public boolean isLightingEnabled() {
@@ -1796,8 +1800,11 @@ HasProperties {
       }
    }
 
-   public void setColorInterpolation (ColorInterpolation interp) {
+   public ColorInterpolation setColorInterpolation (
+      ColorInterpolation interp) {
+      ColorInterpolation prev = getColorInterpolation();
       myViewerState.hsvInterpolationEnabled = (interp==ColorInterpolation.HSV);
+      return prev;
    }
 
    protected void setHSVCColorInterpolationEnabled(boolean set) {
@@ -1817,10 +1824,12 @@ HasProperties {
    public abstract boolean hasColorMixing (ColorMixing cmix);
    
    @Override
-   public void setColorMixing (ColorMixing cmix) {
+   public ColorMixing setColorMixing (ColorMixing cmix) {
+      ColorMixing prev = myViewerState.colorMixing;
       if (hasColorMixing(cmix)) {
          myViewerState.colorMixing = cmix;
       }
+      return prev;
    }
    
    @Override
@@ -1831,10 +1840,12 @@ HasProperties {
    public abstract boolean hasTextureMixing (ColorMixing tmix);
    
    @Override
-   public void setTextureMixing (ColorMixing tmix) {
+   public ColorMixing setTextureMixing (ColorMixing tmix) {
+      ColorMixing prev = myViewerState.textureMixing;
       if (hasTextureMixing (tmix)) {
          myViewerState.textureMixing = tmix;
       }
+      return prev;
    }
    
    @Override
@@ -1875,8 +1886,10 @@ HasProperties {
       myViewerState.colorEnabled = enable;
    }
 
-   public void setShading(Shading shading) {
+   public Shading setShading(Shading shading) {
+      Shading prev = myViewerState.shading;
       myViewerState.shading = shading;
+      return prev;
    }
 
    public Shading getShading() {
@@ -1959,12 +1972,20 @@ HasProperties {
       return selectEnabled;
    }
 
-   public void setSelectionHighlighting (SelectionHighlighting mode) {
-      myHighlighting = mode;
+   public void setSelectionHighlightStyle (HighlightStyle style) {
+      if (style == HighlightStyle.NONE) {
+         // turn off highlighting if currently selected
+         if (mySelectedColorActive) {
+            mySelectedColorActive = false;
+            // indicate that we may need to update color state
+            myCurrentMaterialModified = true;
+         }
+      }
+      myHighlightStyle = style;
    }
 
-   public SelectionHighlighting getSelectionHighlighting() {
-      return myHighlighting;
+   public HighlightStyle getSelectionHighlightStyle() {
+      return myHighlightStyle;
    }
 
    public void setSelectionColor (Color color) {
@@ -1985,9 +2006,10 @@ HasProperties {
    }
 
    @Override
-   public void setFaceStyle(FaceStyle style) {
-      GL gl = getGL();
-      if (myViewerState.faceMode != style) {
+   public FaceStyle setFaceStyle(FaceStyle style) {
+      FaceStyle prev = myViewerState.faceMode;
+      if (style != prev) {
+         GL gl = getGL();
          switch (style) {
             case FRONT_AND_BACK: {
                gl.glDisable (GL.GL_CULL_FACE);
@@ -2011,6 +2033,7 @@ HasProperties {
          }
          myViewerState.faceMode = style;
       }
+      return prev;
    }
 
    @Override
@@ -2806,8 +2829,8 @@ HasProperties {
    }
 
    @Override
-   public void addVertex (double x, double y, double z) {
-      addVertex ((float)x, (float)y, (float)z);
+   public void addVertex (double px, double py, double pz) {
+      addVertex ((float)px, (float)py, (float)pz);
    }
 
    @Override
@@ -2816,8 +2839,8 @@ HasProperties {
    }
 
    @Override
-   public void setNormal (double x, double y, double z) {
-      setNormal ((float)x, (float)y, (float)z);
+   public void setNormal (double nx, double ny, double nz) {
+      setNormal ((float)nx, (float)ny, (float)nz);
    }
 
    @Override
@@ -2852,22 +2875,46 @@ HasProperties {
    //======================================================
 
    /**
-    * Activates or deactivates the use of the "selection color" if myHighlighting is on
-    * @param selected
+    * {@inheritDoc}
     */
-   protected void setMaterialSelected(boolean selected) {
-      if (selected != mySelectedColorActive) {
-         if (!selected || myHighlighting == SelectionHighlighting.COLOR) {
+   public boolean setSelectionHighlighting (boolean selected) {
+      boolean prev = mySelectedColorActive;
+      if (myHighlightStyle == HighlightStyle.COLOR) {
+         if (selected != mySelectedColorActive) {
             mySelectedColorActive = selected;
-            myCurrentMaterialModified = true; // indicate that we may need to update color state
+            // indicate that we may need to update color state
+            myCurrentMaterialModified = true; 
          }
       }
+      else if (myHighlightStyle == HighlightStyle.NONE) {
+         // don't do anything ...
+      }
+      else {
+         throw new UnsupportedOperationException (
+            "Unsupported highlighting: " + myHighlightStyle);
+      }
+      return prev;
+   }
+   
+   @Override
+   public boolean getSelectionHighlighting() {
+      // for now, only color highlighting is implemented
+      return mySelectedColorActive;
    }
 
    @Override
    public void setFrontColor (float[] rgba) {
       myCurrentMaterial.setDiffuse (rgba);
       myCurrentMaterialModified = true;
+   }
+
+   @Override
+   public float[] getFrontColor (float[] rgba) {
+      if (rgba == null) {
+         rgba = new float[4];
+      }
+      myCurrentMaterial.getDiffuse (rgba);
+      return rgba;
    }
 
    @Override
@@ -2878,16 +2925,46 @@ HasProperties {
             myCurrentMaterialModified = true;
          }
       } else {
-         myBackColor = Arrays.copyOf (rgba, rgba.length);
+         if (myBackColor == null) {
+            myBackColor = new float[4];
+         }
+         myBackColor[0] = rgba[0];
+         myBackColor[1] = rgba[1];
+         myBackColor[2] = rgba[2];
+         myBackColor[3] = (rgba.length > 3 ? rgba[3] : 1.0f);
          myCurrentMaterialModified = true;
       }
-
    }
 
+   public float[] getBackColor (float[] rgba) {
+      if (myBackColor == null) {
+         return null;
+      }
+      if (rgba == null) {
+         rgba = new float[4];
+      }
+      rgba[0] = myBackColor[0];
+      rgba[1] = myBackColor[1];
+      rgba[2] = myBackColor[2];
+      if (rgba.length > 3) {
+         rgba[3] = myBackColor[3];         
+      }
+      return rgba;
+   }
+   
    @Override
    public void setEmission(float[] rgb) {
       myCurrentMaterial.setEmission (rgb);
       myCurrentMaterialModified = true;
+   }
+
+   @Override
+   public float[] getEmission(float[] rgb) {
+      if (rgb == null) {
+         rgb = new float[3];
+      }
+      myCurrentMaterial.getEmission (rgb);
+      return rgb;
    }
 
    @Override
@@ -2897,13 +2974,27 @@ HasProperties {
    }
 
    @Override
+   public float[] getSpecular(float[] rgb) {
+      if (rgb == null) {
+         rgb = new float[3];
+      }
+      myCurrentMaterial.getSpecular (rgb);
+      return rgb;
+   }
+
+   @Override
    public void setShininess(float s) {
       myCurrentMaterial.setShininess(s);
       myCurrentMaterialModified = true;
    }
 
    @Override
-   public void setAlpha (float a) {
+   public float getShininess () {
+      return myCurrentMaterial.getShininess();
+   }
+
+   @Override
+   public void setFrontAlpha (float a) {
       myCurrentMaterial.setAlpha(a);
       myCurrentMaterialModified = true;
    }
@@ -2912,19 +3003,20 @@ HasProperties {
    public void setColor (float[] rgba, boolean selected) {
       setFrontColor (rgba);
       setBackColor (null);
-      setMaterialSelected (selected);      
+      setSelectionHighlighting (selected);      
    }
    
-   public void setColorSelected() {
-      // do we need to set front color?
-      setFrontColor (mySelectedColor);
-      setBackColor (null);
-      setMaterialSelected (true);         
-   }
+//   public void setColorSelected() {
+//      // do we need to set front color?
+//      setFrontColor (mySelectedColor);
+//      setBackColor (null);
+//      setSelectionHighlighting (true);         
+//   }
 
    @Override
    public void setColor (float[] rgba) {
-      setColor(rgba, false);
+      setFrontColor (rgba);
+      setBackColor (null);
    }
 
    @Override
@@ -2967,7 +3059,7 @@ HasProperties {
       setFrontColor (frontRgba);
       setBackColor (backRgba);
       setShininess (shininess);
-      setMaterialSelected (selected);
+      setSelectionHighlighting (selected);
       setEmission (DEFAULT_MATERIAL_EMISSION);
       setSpecular (DEFAULT_MATERIAL_SPECULAR);
    }
@@ -2978,54 +3070,54 @@ HasProperties {
 //   }
 
    public void setPropsColoring (
-      RenderProps props, float[] frontRgba, boolean selected) {
+      RenderProps props, float[] rgba, boolean selected) {
 
-      setMaterialSelected (selected);         
-      setFrontColor (frontRgba);
-      if (frontRgba.length == 3) {
-         setAlpha ((float)props.getAlpha());
+      setSelectionHighlighting (selected);         
+      setFrontColor (rgba);
+      if (rgba.length == 3) {
+         setFrontAlpha ((float)props.getAlpha());
       }
       setBackColor (null);
       setShininess (props.getShininess());
       setEmission (DEFAULT_MATERIAL_EMISSION);
-      float[] specular = props.getSpecularArray();
+      float[] specular = props.getSpecularF();
       setSpecular (specular != null ? specular : DEFAULT_MATERIAL_SPECULAR);
    }
    
    public void setLineColoring (RenderProps props, boolean selected) {
-      setPropsColoring (props, props.getLineColorArray(), selected);
+      setPropsColoring (props, props.getLineColorF(), selected);
    }
 
    public void setPointColoring (RenderProps props, boolean selected) {
-      setPropsColoring (props, props.getPointColorArray(), selected);
+      setPropsColoring (props, props.getPointColorF(), selected);
    }
 
    public void setEdgeColoring (RenderProps props, boolean selected) {
-      float[] rgba = props.getEdgeColorArray();
+      float[] rgba = props.getEdgeColorF();
       if (rgba == null) {
-         rgba = props.getLineColorArray();
+         rgba = props.getLineColorF();
       }
       setPropsColoring (props, rgba, selected);
       setShading (props.getShading());
    }
 
    public void setFaceColoring (RenderProps props, boolean selected) {
-      setFaceColoring (props, props.getFaceColorArray(), selected);
+      setFaceColoring (props, props.getFaceColorF(), selected);
    }
 
    public void setFaceColoring (
-      RenderProps props, float[] frontRgba, boolean selected) {
+      RenderProps props, float[] rgba, boolean selected) {
 
-      setFrontColor (frontRgba);
-      if (frontRgba.length == 3) {
-         setAlpha ((float)props.getAlpha());
+      setFrontColor (rgba);
+      if (rgba.length == 3) {
+         setFrontAlpha ((float)props.getAlpha());
       }
-      setBackColor (props.getBackColorArray());
+      setBackColor (props.getBackColorF());
       setShininess (props.getShininess());
       setEmission (DEFAULT_MATERIAL_EMISSION);
-      float[] specular = props.getSpecularArray();
+      float[] specular = props.getSpecularF();
       setSpecular (specular != null ? specular : DEFAULT_MATERIAL_SPECULAR);
-      setMaterialSelected (selected);         
+      setSelectionHighlighting (selected);         
    }
 
    /**
@@ -3217,10 +3309,13 @@ HasProperties {
       myDrawHasColorData = false;
 
       myDrawCurrentColor = Arrays.copyOf (getCurrentColor(), 4);
+      // update materials, because we are going to use 
+      // myCurrentMaterialModified to trigger vertex-based coloring
+      maybeUpdateMaterials();
    }
 
    @Override
-   public void addVertex (float x, float y, float z) {
+   public void addVertex (float px, float py, float pz) {
       if (myDrawMode == null) {
          throw new IllegalStateException (
             "Not in draw mode (i.e., beginDraw() has not been called)");
@@ -3254,23 +3349,23 @@ HasProperties {
          myDrawColorData[cbase  ] = myDrawCurrentColor[0];
          myDrawColorData[cbase+1] = myDrawCurrentColor[1];
          myDrawColorData[cbase+2] = myDrawCurrentColor[2];
-         myDrawColorData[cbase+2] = myDrawCurrentColor[3];
+         myDrawColorData[cbase+3] = myDrawCurrentColor[3];
       }
-      myDrawVertexData[vbase] = x;
-      myDrawVertexData[++vbase] = y;
-      myDrawVertexData[++vbase] = z;
+      myDrawVertexData[vbase] = px;
+      myDrawVertexData[++vbase] = py;
+      myDrawVertexData[++vbase] = pz;
       ++myDrawVertexIdx;
    }
 
    @Override
-   public void setNormal (float x, float y, float z) {
+   public void setNormal (float nx, float ny, float nz) {
       if (myDrawMode == null) {
          throw new IllegalStateException (
             "Not in draw mode (i.e., beginDraw() has not been called)");
       }
-      myDrawCurrentNormal[0] = x;
-      myDrawCurrentNormal[1] = y;
-      myDrawCurrentNormal[2] = z;
+      myDrawCurrentNormal[0] = nx;
+      myDrawCurrentNormal[1] = ny;
+      myDrawCurrentNormal[2] = nz;
       if (!myDrawHasNormalData) {
          // back-fill previous normal data
          for (int i=0; i<myDrawVertexIdx; i++) {
@@ -3303,5 +3398,7 @@ HasProperties {
       myDrawColorData = null;
    }
 
+   public abstract void maybeUpdateMaterials();
+   
 }
 

@@ -403,8 +403,8 @@ public class GL3ObjectFactory {
       return pglo.generate(gl);
    }
 
-   // tapered ellipsoid (along zaxis)
-   private static GL3PreObject createTaperedEllipsoid(int nSlices, int nLevels) {
+   // spindle (along zaxis)
+   private static GL3PreObject createSpindle(int nSlices, int nLevels) {
 
       if (nLevels < 2) {
          nLevels = 2;
@@ -507,9 +507,9 @@ public class GL3ObjectFactory {
       return ellipsoid;
    }
 
-   // tapered ellipsoid (along zaxis)
-   public static GL3Object createTaperedEllipsoid(GL3 gl, int nSlices, int nLevels) {
-      GL3PreObject pglo = createTaperedEllipsoid(nSlices, nLevels);
+   // spindle (along zaxis)
+   public static GL3Object createSpindle(GL3 gl, int nSlices, int nLevels) {
+      GL3PreObject pglo = createSpindle(nSlices, nLevels);
       return pglo.generate(gl);
    }
 

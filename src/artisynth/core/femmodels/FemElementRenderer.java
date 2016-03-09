@@ -249,7 +249,7 @@ public class FemElementRenderer {
       updateWidgetNormals (r, /*group=*/0);
 
       if (!renderer.isSelecting()) {
-         float[] color = props.getFaceColorArray();
+         float[] color = props.getFaceColorF();
          if (elem.isInverted()) {
             color = FemModel3d.myInvertedColor;
          }
@@ -266,7 +266,7 @@ public class FemElementRenderer {
 
       renderer.setLightingEnabled (false);
       renderer.setLineWidth (props.getLineWidth());
-      renderer.setColor (props.getLineColorArray(), elem.isSelected());
+      renderer.setLineColoring (props, elem.isSelected());
       renderer.drawLines (r);
       renderer.setLineWidth (1);
       renderer.setLightingEnabled (true);

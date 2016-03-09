@@ -808,6 +808,10 @@ public class GL3Viewer extends GLViewer {
       viewMatrixValidP = true;
    }
 
+   public void maybeUpdateMaterials() {
+      maybeUpdateMaterials(gl);
+   }
+
    protected void maybeUpdateState(GL3 gl) {
       maybeUpdateMatrices (gl);
       maybeUpdateMaterials (gl);
@@ -850,7 +854,7 @@ public class GL3Viewer extends GLViewer {
 
       maybeUpdateState (gl);
 
-      int nslices = getCurvedMeshResolution();
+      int nslices = getSurfaceResolution();
       GL3Object sphere = 
          myGLResources.getSphere(gl, nslices, (int)Math.ceil(nslices/2));
       sphere.draw(gl, getRegularProgram(gl));
@@ -1146,7 +1150,7 @@ public class GL3Viewer extends GLViewer {
    }
 
    @Override
-   public void drawTaperedEllipsoid(
+   public void drawSpindle(
       float[] pnt0, float[] pnt1, double rad) {
 
       if (rad < Double.MIN_NORMAL) {
@@ -1168,8 +1172,8 @@ public class GL3Viewer extends GLViewer {
 
       maybeUpdateState(gl);
 
-      int nslices = getCurvedMeshResolution();
-      GL3Object ellipsoid = myGLResources.getTaperedEllipsoid(gl, nslices, (int)Math.ceil(nslices/2));
+      int nslices = getSurfaceResolution();
+      GL3Object ellipsoid = myGLResources.getSpindle(gl, nslices, (int)Math.ceil(nslices/2));
       ellipsoid.draw(gl, getRegularProgram(gl));
 
       // revert matrix transform
@@ -1199,7 +1203,7 @@ public class GL3Viewer extends GLViewer {
 
       maybeUpdateState(gl);
 
-      int nslices = getCurvedMeshResolution();
+      int nslices = getSurfaceResolution();
       GL3Object cylinder = myGLResources.getCylinder(gl, nslices, capped);
       cylinder.draw(gl, getRegularProgram(gl));
       // gloManager.releaseObject(sphere);
@@ -1232,7 +1236,7 @@ public class GL3Viewer extends GLViewer {
 
       maybeUpdateState(gl);
 
-      int nslices = getCurvedMeshResolution();
+      int nslices = getSurfaceResolution();
       GL3Object cone = myGLResources.getCone(gl, nslices, capped);
       cone.draw(gl, getRegularProgram(gl));
       // gloManager.releaseObject(cone);
@@ -1354,10 +1358,11 @@ public class GL3Viewer extends GLViewer {
       RenderProps props, float[] pnt0, float[] pnt1, float[] color,
       boolean capped, boolean selected) {
 
-      if (color == null) {
-         color = props.getLineColorArray ();
-      }
+      boolean savedHighlighting = getSelectionHighlighting();
       Shading savedShading = setLineShading (props);
+      if (color == null) {
+         color = props.getLineColorF ();
+      }
       setPropsColoring (props, color, selected);
       switch (props.getLineStyle()) {
          case LINE: {
@@ -1396,7 +1401,7 @@ public class GL3Viewer extends GLViewer {
             //Shading savedShading = getShadeModel();
             //setShadeModel (props.getShading());
             //setPropsMaterial (props, color, selected);
-            drawTaperedEllipsoid (pnt0, pnt1, props.getLineRadius());
+            drawSpindle (pnt0, pnt1, props.getLineRadius());
             //setShadeModel(savedShading);
             break;
          }
@@ -1406,6 +1411,7 @@ public class GL3Viewer extends GLViewer {
          }
       }
       setShading(savedShading);
+      setSelectionHighlighting (savedHighlighting);
    }
 
    @Override
@@ -1416,7 +1422,7 @@ public class GL3Viewer extends GLViewer {
          return;
       }
 
-      int nslices = getCurvedMeshResolution();
+      int nslices = getSurfaceResolution();
 
       double dx = pnt1[0]-pnt0[0];
       double dy = pnt1[1]-pnt0[1];
@@ -1469,6 +1475,10 @@ public class GL3Viewer extends GLViewer {
       RenderProps props, float[] pnt0, float[] pnt1, boolean capped,
       boolean selected) {
 
+      boolean savedHighlighting = getSelectionHighlighting();
+      Shading savedShading = setLineShading (props);
+      setLineColoring (props, selected);
+      
       Vector3d utmp = 
          new Vector3d(pnt1[0]-pnt0[0],
                       pnt1[1]-pnt0[1], 
@@ -1485,8 +1495,7 @@ public class GL3Viewer extends GLViewer {
       ctmp[1] = (float)vtmp.y;
       ctmp[2] = (float)vtmp.z;
 
-      Shading savedShading = setLineShading (props);
-      setLineColoring (props, selected);
+
       if (len > arrowLen) {
          switch (props.getLineStyle()) {
             case LINE: {
@@ -1501,7 +1510,7 @@ public class GL3Viewer extends GLViewer {
                break;
             }
             case ELLIPSOID: {
-               drawTaperedEllipsoid (pnt0, pnt1, props.getLineRadius());
+               drawSpindle (pnt0, pnt1, props.getLineRadius());
                break;
             }
             default: {
@@ -1521,12 +1530,13 @@ public class GL3Viewer extends GLViewer {
          drawCone (ctmp, pnt1, arrowRad, 0, capped);
       }
       setShading(savedShading);
-      
+      setSelectionHighlighting (savedHighlighting);      
    }
 
    @Override
    public void drawPoint(RenderProps props, float[] pnt, boolean selected) {
 
+      boolean savedHighlighting = getSelectionHighlighting();
       Shading savedShading = setPointShading (props);
       setPointColoring (props, selected);
       switch (props.getPointStyle()) {
@@ -1554,7 +1564,7 @@ public class GL3Viewer extends GLViewer {
          }
       }
       setShading(savedShading);
-
+      setSelectionHighlighting (savedHighlighting);
    }
 
    public void drawAxes(GL3 gl, double len) {
@@ -1588,7 +1598,8 @@ public class GL3Viewer extends GLViewer {
       RigidTransform3d X, double[] lens, int width, boolean selected) {
 
       GLSupport.checkAndPrintGLError(gl);
-
+      
+      boolean savedHighlighting = setSelectionHighlighting(selected);
       // deal with transform and len
       double lx = lens[0];
       double ly = lens[1];
@@ -1619,6 +1630,7 @@ public class GL3Viewer extends GLViewer {
       scaleModelMatrix(lx, ly, lz);
       maybeUpdateState(gl);
 
+      
       gl.glLineWidth (width);
 
       GL3Object axes = myGLResources.getAxes(gl, drawx, drawy, drawz);
@@ -1633,6 +1645,8 @@ public class GL3Viewer extends GLViewer {
 
       // revert matrix transform
       popModelMatrix();
+      
+      setSelectionHighlighting(savedHighlighting);
 
    }
 
@@ -1740,11 +1754,13 @@ public class GL3Viewer extends GLViewer {
 //   }
 
    public void drawLineStrip (
-      RenderProps props, Iterable<float[]> pntList, 
-      LineStyle style, boolean isSelected) {
+      RenderProps props, Iterable<float[]> pnts, 
+      LineStyle style, boolean selected) {
 
-      Shading savedShading = setLineShading (props);
-      setLineColoring (props, isSelected);
+      boolean savedHighlighting = getSelectionHighlighting();
+      Shading savedShading = getShading();
+      setShading (style==LineStyle.LINE ? Shading.NONE : props.getShading());
+      setLineColoring (props, selected);
       switch (style) {
          case LINE: {
             //setLightingEnabled (false);
@@ -1752,7 +1768,7 @@ public class GL3Viewer extends GLViewer {
             gl.glLineWidth (props.getLineWidth());
             //setColor (props.getLineColorArray(), isSelected);
             float[] v0 = null;
-            for (float[] v1 : pntList) {
+            for (float[] v1 : pnts) {
                if (v0 != null) {
                   drawGLLine(gl, v0, v1);
                }
@@ -1775,10 +1791,10 @@ public class GL3Viewer extends GLViewer {
 //            setLineLighting (props, isSelected);
             double rad = props.getLineRadius();
             float[] v0 = null;
-            for (float[] v1 : pntList) {
+            for (float[] v1 : pnts) {
                if (v0 != null) {
                   if (style == LineStyle.ELLIPSOID) {
-                     drawTaperedEllipsoid (v0, v1, props.getLineRadius());
+                     drawSpindle (v0, v1, props.getLineRadius());
                   }
                   else if (style == LineStyle.SOLID_ARROW) {
                      drawSolidArrow (v0, v1, rad, /*capped=*/true);
@@ -1799,7 +1815,8 @@ public class GL3Viewer extends GLViewer {
 //            restoreShading (props);
          }
       }
-      setShading(savedShading);            
+      setShading(savedShading); 
+      setSelectionHighlighting (savedHighlighting);
    }
 
 //   @Override
@@ -1862,7 +1879,7 @@ public class GL3Viewer extends GLViewer {
 //                     if (isSelectable (line)) {
 //                        beginSelectionQuery (i);
 //                        if (lineStyle == LineStyle.ELLIPSOID) {
-//                           drawTaperedEllipsoid (v0, v1, props.getLineRadius());
+//                           drawSpindle (v0, v1, props.getLineRadius());
 //                        }
 //                        else if (lineStyle == LineStyle.SOLID_ARROW) {
 //                           drawSolidArrow (v0, v1, rad, /*capped=*/true);
@@ -1877,7 +1894,7 @@ public class GL3Viewer extends GLViewer {
 //                     Material mat = props.getLineMaterial();
 //                     setMaterial(mat, line.getRenderColor (), line.isSelected ());
 //                     if (lineStyle == LineStyle.ELLIPSOID) {
-//                        drawTaperedEllipsoid (v0, v1, props.getLineRadius());
+//                        drawSpindle (v0, v1, props.getLineRadius());
 //                     }
 //                     else if (lineStyle == LineStyle.SOLID_ARROW) {
 //                        drawSolidArrow (v0, v1, rad, /*capped=*/true);
@@ -2415,7 +2432,7 @@ public class GL3Viewer extends GLViewer {
             lineObject = myGLResources.getCylinder(gl, slices, capped);
             break;
          case ELLIPSOID:
-            lineObject = myGLResources.getTaperedEllipsoid(gl, slices, slices/2);
+            lineObject = myGLResources.getSpindle(gl, slices, slices/2);
             break;
          case SOLID_ARROW:
             lineObject = myGLResources.getCylinder(gl, slices, capped);

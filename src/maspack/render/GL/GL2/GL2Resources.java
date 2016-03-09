@@ -80,8 +80,8 @@ public class GL2Resources extends GLResources {
       return list;
    }
 
-   public int getTaperedEllipsoidDisplayList(GL2 gl, int slices) {
-      int list = primManager.getTaperedEllipsoidDisplayList(gl, slices, slices/2);
+   public int getSpindleDisplayList(GL2 gl, int slices) {
+      int list = primManager.getSpindleDisplayList(gl, slices, slices/2);
       return list;
    }
 

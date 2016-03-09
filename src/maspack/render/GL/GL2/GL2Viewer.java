@@ -577,6 +577,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glPushMatrix();
       gl.glLoadIdentity();
 
+      boolean savedLighting = isLightingOn();
       gl.glDisable (GL2.GL_LIGHTING);
       gl.glColor3f (0.5f, 0.5f, 0.5f);
 
@@ -592,8 +593,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glVertex3d (x0, y1, 0);
       gl.glEnd();
 
-      gl.glEnable (GL2.GL_LIGHTING);
-
+      if (savedLighting) {
+         gl.glEnable (GL2.GL_LIGHTING);
+      }
       gl.glPopMatrix();
       gl.glMatrixMode (GL2.GL_PROJECTION);
       gl.glPopMatrix();
@@ -724,20 +726,54 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       setLightingEnabled (true);
    }
 
-   public void setLightingEnabled(boolean set) {
+   public boolean setLightingEnabled(boolean set) {
+      boolean prev;
       if (!selectEnabled) {
-         super.setLightingEnabled(set);
-         if (set) {
-            gl.glEnable(GL2.GL_LIGHTING);
-         } else {
-            gl.glDisable(GL2.GL_LIGHTING);
+         prev = super.setLightingEnabled (set);
+         if (prev != set) {
+            myShadingModified = true;
          }
       }
+      else {
+         prev = super.isLightingEnabled();
+      }
+//      boolean prev = myViewerState.lightingEnabled;
+//      if (!selectEnabled) {
+//         super.setLightingEnabled(set);
+//         if (set) {
+//            gl.glEnable(GL2.GL_LIGHTING);
+//         } else {
+//            gl.glDisable(GL2.GL_LIGHTING);
+//         }
+//      }
+      return prev;
    }
 
-   public boolean isLightingEnabled() {
+   // should be protected, not public;; this is for debugging
+   public boolean isLightingOn() {
       return gl.glIsEnabled (GL2.GL_LIGHTING);
    }
+   
+   // should be protected, not public;; this is for debugging
+   public int getGLShadeModel() {
+      int[] buff = new int[1];
+      gl.glGetIntegerv(GL2.GL_SHADE_MODEL, buff, 0);
+      return buff[0];
+   }
+   
+   protected void setLightingOn (boolean set) {
+      if (!selectEnabled) {
+         if (set) {
+            gl.glEnable(GL2.GL_LIGHTING);
+         } 
+         else {
+            gl.glDisable(GL2.GL_LIGHTING);
+         }      
+      }
+   }
+//   public boolean isLightingEnabled() {
+//      return gl.glIsEnabled (GL2.GL_LIGHTING);
+//   }
 
    private void enableTransparency (GL2 gl) {
       gl.glEnable (GL2.GL_BLEND);
@@ -1016,26 +1052,43 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    
    protected void maybeUpdateShading(GL2 gl) {
       // maybe update shading
-      if (myShadingModified && !isSelecting()) {
-         Shading shading = getShading();
-         if (shading == Shading.NONE) {
-            setLightingEnabled (false);
-         } else {
-            setLightingEnabled (true);
-            int glShading = getGLShadingModel (shading);
-            gl.glShadeModel(glShading);
+      if (myShadingModified) {
+         if (!isSelecting()) {
+            Shading shading = getShading();
+            if (shading == Shading.NONE || isLightingEnabled() == false) {
+               gl.glDisable (GL2.GL_LIGHTING);
+               //setLightingEnabled (false);
+            } else {
+               gl.glEnable (GL2.GL_LIGHTING);
+               //setLightingEnabled (true);
+               int glShading = getGLShadingModel (shading);
+               gl.glShadeModel(glShading);
+            }
+         }
+         else {
+            // bit of a hack here: is we are selecting, we allow the
+            // application to turn lighting OFF. The color selector
+            // relies on this ...
+            if (isLightingEnabled() == false) {
+               gl.glDisable (GL2.GL_LIGHTING);
+            }
          }
          myShadingModified = false;  // changes committed
       }
-
    }
 
    @Override
-   public void setShading (Shading shading) {
-      if (shading != getShading ()) {
+   public Shading setShading (Shading shading) {
+      Shading prev = getShading();
+      if (shading != prev) {
          super.setShading (shading);
          myShadingModified = true;
       }
+      return prev;
+   }
+   
+   public void maybeUpdateMaterials() {
+      maybeUpdateMaterials(gl);
    }
    
    public void maybeUpdateMaterials(GL2 gl) {
@@ -1341,7 +1394,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glTranslatef (pnt[0], pnt[1], pnt[2]);
       gl.glScaled (rad, rad, rad);
 
-      int slices = getCurvedMeshResolution();
+      int slices = getSurfaceResolution();
       int displayList = myGLResources.getSphereDisplayList(gl, slices);
       gl.glCallList(displayList);
 
@@ -1508,7 +1561,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 //      gl.glPopMatrix();
 //   }
 
-   public void drawTaperedEllipsoid (
+   public void drawSpindle (
       float[] pnt0, float[] pnt1, double rad) {
       GL2 gl = getGL2();
       maybeUpdateState(gl);
@@ -1524,8 +1577,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       gl.glScaled (rad, rad, len);
 
-      int slices = getCurvedMeshResolution();
-      int displayList = myGLResources.getTaperedEllipsoidDisplayList(gl, slices);
+      int slices = getSurfaceResolution();
+      int displayList = myGLResources.getSpindleDisplayList(gl, slices);
       gl.glCallList(displayList);
 
       gl.glPopMatrix();
@@ -1568,7 +1621,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       // drawing manually like this is 10x faster that gluCylinder, but has
       // no texture coordinates
-      int nslices = getCurvedMeshResolution();
+      int nslices = getSurfaceResolution();
 
       drawCylinder(gl,  nslices, (float)base, (float)top, pnt0, pnt1, capped);
 
@@ -1653,14 +1706,19 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       RenderProps props, float[] pnt0, float[] pnt1, float[] color,
       boolean capped, boolean selected) {
 
+      boolean savedHighlighting = getSelectionHighlighting();
+      Shading savedShading = setLineShading (props);
+      if (color == null) {
+         color = props.getLineColorF ();
+      }      
+      setPropsColoring (props, color, selected);
+      
       GL2 gl = getGL2();
       maybeUpdateState(gl);
 
       if (color == null) {
-         color = props.getLineColorArray ();
+         color = props.getLineColorF ();
       }  
-      Shading savedShading = setLineShading (props);
-      setPropsColoring (props, color, selected);
       switch (props.getLineStyle()) {
          case LINE: {
             //setLightingEnabled (false);
@@ -1694,7 +1752,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          case ELLIPSOID: {
             //setShadeModel (props.getShading());
             //setPropsMaterial (props, color, selected);
-            drawTaperedEllipsoid (pnt0, pnt1, props.getLineRadius());
+            drawSpindle (pnt0, pnt1, props.getLineRadius());
             //restoreShading (props);
             break;
          }
@@ -1704,12 +1762,17 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          }
       }
       setShading (savedShading);
+      setSelectionHighlighting (savedHighlighting);
    }
 
    public void drawArrow (
       RenderProps props, float[] pnt0, float[] pnt1, boolean capped,
       boolean selected) {
 
+      boolean savedHighlighting = getSelectionHighlighting();
+      Shading savedShading = setLineShading (props);
+      setLineColoring (props, selected);
+      
       GL2 gl = getGL2();
       maybeUpdateState(gl);
 
@@ -1727,8 +1790,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       ctmp[1] = (float)vtmp.y;
       ctmp[2] = (float)vtmp.z;
 
-      Shading savedShading = setLineShading (props);
-      setLineColoring (props, selected);
       if (len > arrowLen) {
          switch (props.getLineStyle()) {
             case LINE: {
@@ -1746,7 +1807,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                break;
             }
             case ELLIPSOID: {
-               drawTaperedEllipsoid (pnt0, pnt1, props.getLineRadius());
+               drawSpindle (pnt0, pnt1, props.getLineRadius());
                break;
             }
             default: {
@@ -1766,6 +1827,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          doDrawCylinder (ctmp, pnt1, capped, arrowRad, 0.0);
       }
       setShading(savedShading);
+      setSelectionHighlighting (savedHighlighting);
    }
 
    //=============================================================================
@@ -1943,11 +2005,12 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    public void drawPoint (RenderProps props, float[] pnt, boolean selected) {
 
-      GL2 gl = getGL2();
-      maybeUpdateState(gl);
-
+      boolean savedHighlighting = getSelectionHighlighting();
       Shading savedShading = setPointShading (props);
       setPointColoring (props, selected);
+      
+      GL2 gl = getGL2();
+      maybeUpdateState(gl);
       switch (props.getPointStyle()) {
          case POINT: {
             int size = props.getPointSize();
@@ -1969,6 +2032,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          }
       }
       setShading (savedShading);
+      setSelectionHighlighting (savedHighlighting);
    }
 
    public void drawSphere (float[] centre, float r) {
@@ -1977,7 +2041,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       maybeUpdateState(gl);
 
       // get sphere display list
-      int displayList = myGLResources.getSphereDisplayList(gl, myPointSlices);
+      int displayList = 
+         myGLResources.getSphereDisplayList(gl, mySurfaceResolution);
 
       // transform unit sphere
       gl.glPushMatrix();
@@ -1994,7 +2059,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       GL2 gl = getGL2();
       maybeUpdateState(gl);
 
-      int displayList = myGLResources.getSphereDisplayList(gl, myPointSlices);
+      int displayList = 
+         myGLResources.getSphereDisplayList(gl, mySurfaceResolution);
 
       // draw collection of spheres
       for (float[] p : centres) {
@@ -2008,14 +2074,17 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    }
 
    public void drawLineStrip (
-      RenderProps props, Iterable<float[]> pntList, 
-      LineStyle style, boolean isSelected) {
+      RenderProps props, Iterable<float[]> pnts, 
+      LineStyle style, boolean selected) {
 
+      boolean savedHighlighting = getSelectionHighlighting();
+      Shading savedShading = getShading();
+      setShading (style==LineStyle.LINE ? Shading.NONE : props.getShading());
+      setLineColoring (props, selected);
+      
       GL2 gl = getGL2();
       maybeUpdateState(gl);
 
-      Shading savedShading = setLineShading (props);
-      setLineColoring (props, isSelected);
       switch (style) {
          case LINE: {
             //setLightingEnabled (false);
@@ -2023,7 +2092,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             gl.glLineWidth (props.getLineWidth());
             gl.glBegin (GL2.GL_LINE_STRIP);
             //setColor (props.getLineColorArray(), isSelected);
-            for (float[] v : pntList) {
+            for (float[] v : pnts) {
                gl.glVertex3fv (v, 0);
             }
             gl.glEnd();
@@ -2037,10 +2106,10 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             //setLineLighting (props, isSelected);
             float[] v0 = null;
             double rad = props.getLineRadius();
-            for (float[] v1 : pntList) {
+            for (float[] v1 : pnts) {
                if (v0 != null) {
                   if (style == LineStyle.ELLIPSOID) {
-                     drawTaperedEllipsoid (v0, v1, rad);
+                     drawSpindle (v0, v1, rad);
                   }
                   else if (style == LineStyle.SOLID_ARROW) {
                      drawSolidArrow (v0, v1, rad, /*capped=*/true);
@@ -2060,6 +2129,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          }
       }
       setShading (savedShading);
+      setSelectionHighlighting (savedHighlighting);
    }
 
    // public static void drawLineStrip (
@@ -2099,7 +2169,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    //          for (float[] v1 : vertexList) {
    //             if (v0 != null) {
    //                if (lineStyle == LineStyle.ELLIPSOID) {
-   //                   viewer.drawTaperedEllipsoid (props, v0, v1);
+   //                   viewer.drawSpindle (props, v0, v1);
    //                }
    //                else if (lineStyle == LineStyle.SOLID_ARROW) {
    //                   viewer.drawSolidArrow (props, v0, v1);
@@ -2190,7 +2260,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 //                     if (isSelectable (line)) {
 //                        beginSelectionQuery (i);
 //                        if (lineStyle == LineStyle.ELLIPSOID) {
-//                           drawTaperedEllipsoid (v0, v1, props.getLineRadius());
+//                           drawSpindle (v0, v1, props.getLineRadius());
 //                        }
 //                        else if (lineStyle == LineStyle.SOLID_ARROW) {
 //                           drawSolidArrow (v0, v1, rad, /*capped=*/true);
@@ -2205,7 +2275,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 //                     Material mat = props.getLineMaterial();
 //                     setMaterial (mat, line.getRenderColor(), line.isSelected());
 //                     if (lineStyle == LineStyle.ELLIPSOID) {
-//                        drawTaperedEllipsoid (v0, v1, props.getLineRadius());
+//                        drawSpindle (v0, v1, props.getLineRadius());
 //                     }
 //                     else if (lineStyle == LineStyle.SOLID_ARROW) {
 //                        drawSolidArrow (v0, v1, rad, /*capped=*/true);
@@ -2226,20 +2296,25 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    public void drawAxes (
       RigidTransform3d X, double[] lens, int width, boolean selected) {
 
+      boolean savedHighlighting = setSelectionHighlighting(selected);
+      setLightingEnabled (false);
+      
       GL2 gl = getGL2();
       maybeUpdateState(gl);
 
       Vector3d u = new Vector3d();
-      setLightingEnabled (false);
+      
       gl.glLineWidth (width);
 
       if (X == null) {
          X = RigidTransform3d.IDENTITY;
       }
-
-      if (selected) {
-         setColor (null, selected);
-      }
+      
+//      boolean wasSelected = false;
+//      if (selected) {
+//         wasSelected = getSelectionHighlighting();
+//         setSelectionHighlighting (true);
+//      }
 
       gl.glBegin (GL2.GL_LINES);
       for (int i = 0; i < 3; i++) {
@@ -2257,7 +2332,12 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       gl.glEnd();
       gl.glLineWidth (1);
+      
+//      if (selected && !wasSelected) {
+//         setSelectionHighlighting (wasSelected);
+//      }
       setLightingEnabled (true);
+      setSelectionHighlighting (savedHighlighting);
    }
 
 //   @Override
@@ -2409,7 +2489,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       |GL2.GL_DEPTH_BUFFER_BIT | GL2.GL_TRANSFORM_BIT;
       gl.glPushAttrib(attribBits);
 
-      setLightingEnabled (false);
+      setLightingOn (false);
       gl.glDisable(GL2.GL_DEPTH_TEST);
       gl.glDisable(GL2.GL_CULL_FACE);
 
@@ -2487,19 +2567,15 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    }
 
    // call gl.glColor(...) only if not in selection mode
+   // assumes the c specifies RGBA colors
    private void setGLColor(GL2 gl, float[] c, int offset) {
       if (!isSelecting ()) {
-         if (c.length == 4) {
-            gl.glColor4fv (c, offset);
-         } else {
-            gl.glColor3fv (c, offset);
-         }
+         gl.glColor4fv (c, offset);
       }
    }
 
    @Override
    public void drawTriangles(RenderObject robj) {
-      maybeUpdateState(gl);
 
       if (robj.hasTriangles()) {
          boolean enableLighting = false;
@@ -2507,7 +2583,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             enableLighting = true;
             setLightingEnabled(false);
          }
-
+         maybeUpdateState(gl);
+         
          boolean selecting = isSelecting();
          boolean hasColors = (robj.hasColors() && isVertexColoringEnabled());
          boolean useColors = hasColors && !selecting;
@@ -2707,7 +2784,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    @Override
    public void drawLines(RenderObject robj) {
-      maybeUpdateState(gl);
       List<int[]> lines = robj.getLines();
 
       if (lines != null) {
@@ -2716,7 +2792,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             enableLighting = true;
             setLightingEnabled(false);
          }
-
+         maybeUpdateState(gl);
+         
          boolean selecting = isSelecting();
          boolean hasColors = (robj.hasColors() && isVertexColoringEnabled());
          boolean useColors = hasColors && !selecting;
@@ -3268,7 +3345,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean useDisplayList = !selecting || !hasColors;
       DisplayListPassport dlpp = null;
       RenderObjectKey key = new RenderObjectKey(robj, DrawType.LINES);
-      LineFingerPrint fingerprint = new LineFingerPrint(robj.getVersionInfo(), style, myLineSlices, rad);
+      LineFingerPrint fingerprint = 
+         new LineFingerPrint(
+            robj.getVersionInfo(), style, mySurfaceResolution, rad);
       boolean compile = true;
 
       if (useDisplayList) {
@@ -3296,7 +3375,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                      byte[] c0 = robj.getColor(v0.getColorIndex());
                      float[] p1 = robj.getPosition(v1.getPositionIndex());
                      byte[] c1 = robj.getColor(v1.getColorIndex());
-                     drawColoredCylinder(gl, myLineSlices, rad, rad, p0, c0, p1, c1, true, useHSV);
+                     drawColoredCylinder(
+                        gl, mySurfaceResolution, rad, rad, 
+                        p0, c0, p1, c1, true, useHSV);
                   }
                } else {
                   for (int[] line : lines) {
@@ -3304,7 +3385,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                      VertexIndexSet v1 = robj.getVertex(line[1]);
                      float[] p0 = robj.getPosition(v0.getPositionIndex());
                      float[] p1 = robj.getPosition(v1.getPositionIndex());
-                     drawCylinder(gl, myLineSlices, rad, rad, p0, p1, true);
+                     drawCylinder(
+                        gl, mySurfaceResolution, rad, rad, p0, p1, true);
                   }
                }
                break;
@@ -3318,8 +3400,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                      byte[] c0 = robj.getColor(v0.getColorIndex());
                      float[] p1 = robj.getPosition(v1.getPositionIndex());
                      byte[] c1 = robj.getColor(v1.getColorIndex());
-                     drawColoredEllipsoid(gl, myLineSlices, rad, p0, c0, p1, c1,
-                        isHSVColorInterpolationEnabled());
+                     drawColoredEllipsoid(
+                        gl, mySurfaceResolution, rad, 
+                        p0, c0, p1, c1, isHSVColorInterpolationEnabled());
                   }
                } else {
                   for (int[] line : lines) {
@@ -3327,7 +3410,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                      VertexIndexSet v1 = robj.getVertex(line[1]);
                      float[] p0 = robj.getPosition(v0.getPositionIndex());
                      float[] p1 = robj.getPosition(v1.getPositionIndex());
-                     drawEllipsoid(gl, myLineSlices, rad, p0, p1);
+                     drawEllipsoid(gl, mySurfaceResolution, rad, p0, p1);
                   }
                }
                break;
@@ -3342,8 +3425,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                      byte[] c0 = robj.getColor(v0.getColorIndex());
                      float[] p1 = robj.getPosition(v1.getPositionIndex());
                      byte[] c1 = robj.getColor(v1.getColorIndex());
-                     drawColoredArrow(gl, myLineSlices, rad, arad, aheight, p0, c0, p1, c1, 
-                        isHSVColorInterpolationEnabled(), true);
+                     drawColoredArrow(
+                        gl, mySurfaceResolution, rad, arad, aheight, 
+                        p0, c0, p1, c1, isHSVColorInterpolationEnabled(), true);
                   }
                } else {
                   for (int[] line : lines) {
@@ -3351,7 +3435,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                      VertexIndexSet v1 = robj.getVertex(line[1]);
                      float[] p0 = robj.getPosition(v0.getPositionIndex());
                      float[] p1 = robj.getPosition(v1.getPositionIndex());
-                     drawArrow(gl, myLineSlices, rad, arad, aheight, p0, p1, true);
+                     drawArrow(
+                        gl, mySurfaceResolution, rad, arad, aheight, 
+                        p0, p1, true);
                   }
                }
                break;
@@ -3407,7 +3493,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    @Override
    public void drawPoints(RenderObject robj) {
-      maybeUpdateState(gl);
       List<int[]> pnts = robj.getPoints();
       
       if (pnts != null) {
@@ -3416,6 +3501,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             enableLighting = true;
             setLightingEnabled(false);
          }
+         maybeUpdateState(gl);
 
          boolean selecting = isSelecting();
          boolean hasColors = (robj.hasColors() && isVertexColoringEnabled());
@@ -3498,7 +3584,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       List<int[]> pnts = robj.getPoints();
 
-      int displayList = myGLResources.getSphereDisplayList(gl, myPointSlices);
+      int displayList = 
+         myGLResources.getSphereDisplayList(gl, mySurfaceResolution);
 
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && isVertexColoringEnabled());
@@ -3605,14 +3692,13 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    @Override
    public void drawVertices(RenderObject robj, DrawMode mode) {
 
-      maybeUpdateState(gl);
-
       boolean enableLighting = false;
       if (isLightingEnabled() && !robj.hasNormals()) {
          enableLighting = true;
          setLightingEnabled(false);
       }
-
+      maybeUpdateState(gl);
+      
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && isVertexColoringEnabled());
       boolean useColors = hasColors && !selecting;
@@ -3779,14 +3865,32 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       return list;
    }
 
-   public int getTaperedEllipsoidDisplayList(GL2 gl, int slices) {
-      int list = myGLResources.getTaperedEllipsoidDisplayList(gl, slices);
+   public int getSpindleDisplayList(GL2 gl, int slices) {
+      int list = myGLResources.getSpindleDisplayList(gl, slices);
       return list;
    }
 
-   protected void doDraw(DrawMode drawMode, int numVertices, float[] vertexData, boolean hasNormalData, float[] normalData, boolean hasColorData, float[] colorData) {
+   protected void doDraw (
+      DrawMode drawMode, int numVertices, float[] vertexData, 
+      boolean hasNormalData, float[] normalData, 
+      boolean hasColorData, float[] colorData) {
       GL2 gl = getGL2();
       maybeUpdateState(gl);
+
+      if (getColorMixing() != ColorMixing.REPLACE) {
+         // only REPLACE color mixing is supported
+         hasColorData = false;
+      }
+      // If the draw has color data, we need to disable lighting and set
+      // smooth shading, in order for vertex color interpolation to work
+      // properly.
+      boolean savedLighting = isLightingOn();
+      int savedShading = getGLShadeModel();
+      if (hasColorData) {
+         gl.glDisable (GL2.GL_LIGHTING);
+         gl.glShadeModel (GL2.GL_SMOOTH);
+      }
+
       gl.glBegin (getDrawPrimitive(drawMode));
 
       if (hasNormalData && hasColorData) {
@@ -3823,6 +3927,14 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          }
       }
       gl.glEnd();
+      if (hasColorData) {
+         if (savedLighting) {
+            gl.glEnable (GL2.GL_LIGHTING);
+         }
+         if (savedShading != GL2.GL_SMOOTH) {
+            gl.glShadeModel (savedShading);
+         }
+      }
    }
 
    public boolean hasColorMixing (ColorMixing cmix) {

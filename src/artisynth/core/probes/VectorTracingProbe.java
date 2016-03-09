@@ -90,7 +90,7 @@ public class VectorTracingProbe extends TracingProbe {
          // if component point color is explicitly set, set the
          // line and point colors of render props to match
          if (compProps.getPointColorMode() == PropertyMode.Explicit) {
-            float[] pointColor = compProps.getPointColorArray();
+            float[] pointColor = compProps.getPointColorF();
             newProps.setPointColor (pointColor);
             newProps.setLineColor (pointColor);
          }

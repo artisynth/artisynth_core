@@ -236,12 +236,12 @@ public class RenderObjectFactory {
    }
    
    /**
-    * Creates a unit tapered ellipsoid along the z-axis
+    * Creates a unit spindle along the z-axis
     * @param nSlices angular resolution (longitude)
     * @param nLevels vertical resolution (latitude)
-    * @return RenderObject for rendering a tapered ellipsoid
+    * @return RenderObject for rendering a spindle
     */
-   public static RenderObject createTaperedEllipsoid(int nSlices, int nLevels) {
+   public static RenderObject createSpindle(int nSlices, int nLevels) {
 
       if (nLevels < 2) {
          nLevels = 2;

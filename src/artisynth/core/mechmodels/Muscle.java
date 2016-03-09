@@ -328,7 +328,7 @@ public class Muscle extends AxialSpring implements ExcitationComponent {
          if (myRenderColor == null) {
             myRenderColor = new float[3];
          }
-         float[] baseColor = props.getLineColorArray();
+         float[] baseColor = props.getLineColorF();
 //          float[] tmp = new float[3];
 //          GLSupport.RGBtoHSV (myRenderColor, baseColor);
 //          GLSupport.RGBtoHSV (tmp, myExcitationColor);

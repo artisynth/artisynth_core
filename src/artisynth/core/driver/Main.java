@@ -34,7 +34,7 @@ import maspack.render.GL.GLMouseAdapter;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewer.GLVersion;
 import maspack.render.GL.GLViewerFrame;
-import maspack.render.Renderer.SelectionHighlighting;
+import maspack.render.Renderer.HighlightStyle;
 import maspack.util.*;
 import maspack.solvers.PardisoSolver;
 import maspack.widgets.ButtonMasks;
@@ -2869,8 +2869,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    private class RestoreSelectionHighlightingHandler extends WindowAdapter {
       public void windowClosed (WindowEvent e) {
-         myViewerManager.setSelectionHighlighting (
-            SelectionHighlighting.COLOR);
+         myViewerManager.setSelectionHighlightStyle (
+            HighlightStyle.COLOR);
          myViewerManager.render();
       }
    }
@@ -2895,9 +2895,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       if (w instanceof RenderPropsDialog) {
          // disable selection highlighting while the window is active
-         if (myViewerManager.getSelectionHighlighting() ==
-             SelectionHighlighting.COLOR) {
-            myViewerManager.setSelectionHighlighting (SelectionHighlighting.NONE);
+         if (myViewerManager.getSelectionHighlightStyle() ==
+             HighlightStyle.COLOR) {
+            myViewerManager.setSelectionHighlightStyle (HighlightStyle.NONE);
             myViewerManager.render();
             ((RenderPropsDialog)w).addWindowListener (
                myRestoreSelectionHighlightingHandler);

@@ -17,7 +17,7 @@ public class PointFaceRenderProps extends RenderProps {
       myProps.remove ("lineColor");
       myProps.remove ("lineWidth");
       myProps.remove ("lineRadius");
-      myProps.remove ("lineSlices");
+      //myProps.remove ("lineSlices");
 
       myProps.remove ("edgeWidth");
       myProps.remove ("edgeColor");

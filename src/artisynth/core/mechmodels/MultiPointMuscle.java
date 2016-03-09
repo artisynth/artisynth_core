@@ -346,7 +346,7 @@ public class MultiPointMuscle extends MultiPointSpring implements ExcitationComp
          if (myRenderColor == null) {
             myRenderColor = new float[3];
          }
-         float[] baseColor = props.getLineColorArray();
+         float[] baseColor = props.getLineColorF();
 //          float[] tmp = new float[3];
 //          GLSupport.RGBtoHSV (myRenderColor, baseColor);
 //          GLSupport.RGBtoHSV (tmp, myExcitationColor);

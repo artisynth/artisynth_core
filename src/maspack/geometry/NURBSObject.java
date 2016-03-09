@@ -179,7 +179,7 @@ public abstract class NURBSObject implements Renderable {
       int psize = props.getPointSize();
       boolean selected = myCtrlPntSelected.get(i); 
       renderer.setPointSize (selected ? psize+1 : psize);
-      renderer.setColor (props.getPointColorArray(), selected);
+      renderer.setPointColoring (props, selected);
       Vector4d cpnt = myCtrlPnts.get(i);
       renderer.drawPoint (cpnt.x, cpnt.y, cpnt.z);
    } 

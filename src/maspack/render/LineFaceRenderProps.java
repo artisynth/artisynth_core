@@ -19,7 +19,7 @@ public class LineFaceRenderProps extends RenderProps {
       myProps.remove ("pointColor");
       myProps.remove ("pointSize");
       myProps.remove ("pointRadius");
-      myProps.remove ("pointSlices");
+      //myProps.remove ("pointSlices");
    }
 
    public PropertyList getAllPropertyInfo() {

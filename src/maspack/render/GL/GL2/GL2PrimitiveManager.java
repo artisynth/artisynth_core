@@ -47,10 +47,10 @@ public class GL2PrimitiveManager extends DisplayListManager {
       }
    }
 
-   public static class TaperedEllipsoidKey {
+   public static class SpindleKey {
       private int slices;
       private int levels;
-      public TaperedEllipsoidKey(int slices, int levels) {
+      public SpindleKey(int slices, int levels) {
          this.slices = slices;
          this.levels = levels;
       }
@@ -76,7 +76,7 @@ public class GL2PrimitiveManager extends DisplayListManager {
          if ( (obj == null) || (getClass() != obj.getClass())) {
             return false;
          }
-         TaperedEllipsoidKey other = (TaperedEllipsoidKey)obj;
+         SpindleKey other = (SpindleKey)obj;
          return equals(other.slices, other.levels);
       }
 
@@ -220,19 +220,19 @@ public class GL2PrimitiveManager extends DisplayListManager {
       return li;
    }
 
-   public int getTaperedEllipsoidDisplayList (GL2 gl, int slices, int levels) {
+   public int getSpindleDisplayList (GL2 gl, int slices, int levels) {
       if (lastEllipsoid != null) {
-         TaperedEllipsoidKey key = (TaperedEllipsoidKey)(lastEllipsoid.key);
+         SpindleKey key = (SpindleKey)(lastEllipsoid.key);
          if (key.equals(slices, levels)) {
             lastEllipsoid.incrementUseCount();
             return lastEllipsoid.getList();
          }
       }
 
-      TaperedEllipsoidKey key = new TaperedEllipsoidKey(slices, levels);
+      SpindleKey key = new SpindleKey(slices, levels);
       DisplayListInfo li = getListInfo(key);
       if (li == null) {
-         li = createTaperedEllipsoid(gl, key, slices, levels);
+         li = createSpindle(gl, key, slices, levels);
          putListInfo(key, li);
       }
       li.incrementUseCount();
@@ -240,7 +240,7 @@ public class GL2PrimitiveManager extends DisplayListManager {
       return li.getList();
    }
    
-   private DisplayListInfo createTaperedEllipsoid(GL2 gl, Object key, int slices, int levels) {
+   private DisplayListInfo createSpindle(GL2 gl, Object key, int slices, int levels) {
       DisplayListInfo li = allocDisplayList(gl, key, null);
       if (li != null) {
          gl.glNewList (li.getList(), GL2.GL_COMPILE);

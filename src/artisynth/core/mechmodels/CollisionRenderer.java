@@ -266,9 +266,9 @@ public class CollisionRenderer {
          int width = props.getEdgeWidth();
          if (width > 0) {
             r.lineGroup (CONTOUR_GRP);
-            float[] rgb = props.getEdgeColorArray();
+            float[] rgb = props.getEdgeColorF();
             if (rgb == null) {
-               rgb = props.getLineColorArray();
+               rgb = props.getLineColorF();
             }
             renderer.setColor (rgb, false);
             Shading save = renderer.getShading();
@@ -281,14 +281,13 @@ public class CollisionRenderer {
       if (r.numPoints() > 0) {
          PointStyle style = props.getPointStyle();
          double width = 0;
+         renderer.setPointColoring (props, /*selected=*/false);
          if (style == PointStyle.POINT) {
             width = props.getPointSize();
-            renderer.setColor (props.getPointColorArray(), false);
             renderer.setLightingEnabled (false);
          }
          else {
             width = props.getPointRadius();
-            renderer.setPointColoring (props, /*selected=*/false);
          }
          renderer.drawPoints (r, style, width);
          if (style == PointStyle.POINT) {

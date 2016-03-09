@@ -17,13 +17,13 @@ public class FaceRenderProps extends RenderProps {
       myProps.remove ("lineColor");
       myProps.remove ("lineWidth");
       myProps.remove ("lineRadius");
-      myProps.remove ("lineSlices");
+      //myProps.remove ("lineSlices");
 
       myProps.remove ("pointStyle");
       myProps.remove ("pointColor");
       myProps.remove ("pointSize");
       myProps.remove ("pointRadius");
-      myProps.remove ("pointSlices");
+      //myProps.remove ("pointSlices");
 
       myProps.remove ("drawEdges");
 

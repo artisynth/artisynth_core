@@ -164,7 +164,7 @@ public class MuscleArm extends RootModel
         RenderProps rp = new RenderProps(model.getRenderProps());
         rp.setLineStyle(Renderer.LineStyle.ELLIPSOID);
         rp.setLineRadius(len/20);
-        rp.setLineSlices(10);
+        //rp.setLineSlices(10);
         rp.setShading(Renderer.Shading.GOURAUD);
         rp.setLineColor(Color.RED);
         muscle.setRenderProps(rp);

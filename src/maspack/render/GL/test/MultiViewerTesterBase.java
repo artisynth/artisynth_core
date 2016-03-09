@@ -184,8 +184,8 @@ public class MultiViewerTesterBase {
       rprops.setLineColor(Color.ORANGE);
       rprops.setSpecular(Color.WHITE);
       rprops.setShininess(1000);
-      rprops.setPointSlices(24);
-      rprops.setLineSlices(24);
+      //rprops.setPointSlices(24);
+      //rprops.setLineSlices(24);
       rprops.setShading(Shading.PHONG);
 
       if (bunny != null) {
@@ -231,8 +231,8 @@ public class MultiViewerTesterBase {
       rprops.setPointColor(Color.PINK);
       rprops.setSpecular(Color.WHITE);
       rprops.setShininess(1000);
-      rprops.setPointSlices(24);
-      rprops.setLineSlices(24);
+      //rprops.setPointSlices(24);
+      //rprops.setLineSlices(24);
       rprops.setShading(Shading.PHONG);
       rprops.setPointStyle(PointStyle.SPHERE);
       rprops.setLineStyle(LineStyle.SOLID_ARROW);

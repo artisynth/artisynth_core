@@ -29,7 +29,7 @@ import maspack.render.GL.GLRenderer;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewerFrame;
 import maspack.render.GL.GLViewerPanel;
-import maspack.render.Renderer.SelectionHighlighting;
+import maspack.render.Renderer.HighlightStyle;
 import maspack.render.RenderList;
 import maspack.widgets.ButtonMasks;
 import maspack.widgets.GuiUtils;
@@ -204,18 +204,18 @@ public class ViewerManager {
       }
    }
 
-   public void setSelectionHighlighting (SelectionHighlighting mode) {
+   public void setSelectionHighlightStyle (HighlightStyle mode) {
       for (GLViewer v : myViewers) {
-         v.setSelectionHighlighting (mode);
+         v.setSelectionHighlightStyle (mode);
       }
    }
 
-   public SelectionHighlighting getSelectionHighlighting () {
+   public HighlightStyle getSelectionHighlightStyle() {
       if (myViewers.size() > 0) {
-         return myViewers.get(0).getSelectionHighlighting();
+         return myViewers.get(0).getSelectionHighlightStyle();
       }
       else {
-         return SelectionHighlighting.NONE;
+         return HighlightStyle.NONE;
       }
    }
 

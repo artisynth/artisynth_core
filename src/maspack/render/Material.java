@@ -110,6 +110,15 @@ public class Material {
       specular[2] = spec[2];
       specular[3] = 1.0f;
    }
+   
+   public void getSpecular (float[] spec) {
+      spec[0] = specular[0];
+      spec[1] = specular[1];
+      spec[2] = specular[2];
+      if (spec.length > 3) {
+         spec[3] = 1.0f;
+      }
+   }
 
    public float[] getSpecular() {
       return specular;
@@ -141,6 +150,15 @@ public class Material {
       }
    }
 
+   public void getDiffuse (float[] diff) {
+      diff[0] = diffuse[0];
+      diff[1] = diffuse[1];
+      diff[2] = diffuse[2];
+      if (diff.length > 3) {
+         diff[3] = diffuse[3];
+      }
+   }
+
    public float[] getDiffuse() {
       return diffuse;
    }
@@ -161,6 +179,15 @@ public class Material {
       emission[1] = em[1];
       emission[2] = em[2];
       emission[3] = 1.0f;
+   }
+   
+   public void getEmission(float[] em) {
+      em[0] = emission[0];
+      em[1] = emission[1];
+      em[2] = emission[2];
+      if (em.length > 3) {
+         em[3] = 1.0f;
+      }
    }
    
    public float[] getEmission() {

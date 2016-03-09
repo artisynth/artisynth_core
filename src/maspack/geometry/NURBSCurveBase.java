@@ -840,7 +840,7 @@ public abstract class NURBSCurveBase extends NURBSObject {
          if (props.getDrawEdges()) {
             renderer.setLineWidth (props.getEdgeWidth());
             if (!selecting) {
-               renderer.setColor (props.getEdgeOrLineColorArray());
+               renderer.setColor (props.getEdgeOrLineColorF());
             }
             if (myClosedP) {
                renderer.beginDraw (DrawMode.LINE_LOOP);
@@ -861,7 +861,7 @@ public abstract class NURBSCurveBase extends NURBSObject {
 
       //draw the curve itself
       if (!selecting) {
-         renderer.setColor (props.getLineColorArray());
+         renderer.setColor (props.getLineColorF());
       }
 
       double len = computeControlPolygonLength();

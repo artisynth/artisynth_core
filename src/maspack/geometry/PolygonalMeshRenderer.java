@@ -191,9 +191,9 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
    }
 
    private float[] getEffectiveEdgeColor (RenderProps props) {
-      float[] color = props.getEdgeColorArray();
+      float[] color = props.getEdgeColorF();
       if (color == null) {
-         color = props.getLineColorArray();
+         color = props.getLineColorF();
       }
       return color;
    }
@@ -262,7 +262,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       else {
          if (drawingFaces) {
             selected = false;
-            if (colorsEqual (edgeColor, props.getFaceColorArray())) {
+            if (colorsEqual (edgeColor, props.getFaceColorF())) {
                // turn off shading so we can see edges
                shading = Shading.NONE;
             }

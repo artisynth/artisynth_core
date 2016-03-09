@@ -190,8 +190,8 @@ implements ScalableUnits {
                         if (!isSelected()) {
                            // set selection color for vertices as needed
                            if (vc.isSelected() != lastSelected) {
-                              renderer.setColor(
-                                  props.getPointColorArray(), vc.isSelected());
+                              renderer.setPointColoring (
+                                 props, vc.isSelected());
                               lastSelected = vc.isSelected();
                            }
                         }
@@ -222,7 +222,8 @@ implements ScalableUnits {
             
             if (useDisplayList) {
                
-               int sphereDisplayList = viewer.getSphereDisplayList(gl, props.getPointSlices());
+               int sphereDisplayList = viewer.getSphereDisplayList(
+                  gl, renderer.getSurfaceResolution());
                VListPrint vPrint = getFingerPrint(PointStyle.POINT, sphereDisplayList);
                displayList = viewer.getDisplayList(gl, vKey, vPrint);
                if (displayList < 0) {
@@ -331,7 +332,7 @@ implements ScalableUnits {
                while (iterator.hasNext()) {
                   VertexComponent pnt = iterator.next();
                   if (pnt.getRenderProps() == null) {
-                     renderer.setColor (props.getPointColorArray(), pnt.isSelected());
+                     renderer.setPointColoring (props, pnt.isSelected());
                      gl.glVertex3fv (pnt.getRenderCoords(), 0);
                   }
                }

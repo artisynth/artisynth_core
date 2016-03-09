@@ -443,7 +443,7 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
          if (width > 0) {
             boolean selected = (group == SEL_GRP);
             renderer.setLightingEnabled (false);
-            renderer.setColor (props.getLineColorArray(), selected);
+            renderer.setLineColoring (props, selected);
             renderer.drawLines (r, LineStyle.LINE, width);
             renderer.setLightingEnabled (true);
          }
@@ -455,7 +455,7 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
 
       if (r.numTriangles(group) > 0) {
          r.triangleGroup (group);
-         float[] color = props.getFaceColorArray();
+         float[] color = props.getFaceColorF();
          boolean selected = (group == SEL_GRP);
          if (group == INV_GRP) {
             color = FemModel3d.myInvertedColor;

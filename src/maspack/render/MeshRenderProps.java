@@ -18,11 +18,11 @@ public class MeshRenderProps extends RenderProps {
    static {
       myProps.remove ("lineStyle");
       myProps.remove ("lineRadius");
-      myProps.remove ("lineSlices");
+      //myProps.remove ("lineSlices");
 
       myProps.remove ("pointStyle");
       myProps.remove ("pointRadius");
-      myProps.remove ("pointSlices");
+      //myProps.remove ("pointSlices");
 
       myProps.get ("diffuseTextureProps").setDefaultValue (defaultDiffuseTextureProps);
       myProps.get ("normalTextureProps").setDefaultValue (defaultNormalTextureProps);

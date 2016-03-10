@@ -1173,8 +1173,8 @@ public class GL3Viewer extends GLViewer {
       maybeUpdateState(gl);
 
       int nslices = getSurfaceResolution();
-      GL3Object ellipsoid = myGLResources.getSpindle(gl, nslices, (int)Math.ceil(nslices/2));
-      ellipsoid.draw(gl, getRegularProgram(gl));
+      GL3Object spindle = myGLResources.getSpindle(gl, nslices, (int)Math.ceil(nslices/2));
+      spindle.draw(gl, getRegularProgram(gl));
 
       // revert matrix transform
       popModelMatrix();
@@ -1397,7 +1397,7 @@ public class GL3Viewer extends GLViewer {
             //setShadeModel(savedShading);
             break;
          }
-         case ELLIPSOID: {
+         case SPINDLE: {
             //Shading savedShading = getShadeModel();
             //setShadeModel (props.getShading());
             //setPropsMaterial (props, color, selected);
@@ -1509,7 +1509,7 @@ public class GL3Viewer extends GLViewer {
                drawCylinder (pnt0, ctmp, props.getLineRadius(), capped);
                break;
             }
-            case ELLIPSOID: {
+            case SPINDLE: {
                drawSpindle (pnt0, pnt1, props.getLineRadius());
                break;
             }
@@ -1784,7 +1784,7 @@ public class GL3Viewer extends GLViewer {
             //setLightingEnabled (true);
             break;
          }
-         case ELLIPSOID:
+         case SPINDLE:
          case SOLID_ARROW:
          case CYLINDER: {
 //            Shading savedShading = getShadeModel();
@@ -1793,7 +1793,7 @@ public class GL3Viewer extends GLViewer {
             float[] v0 = null;
             for (float[] v1 : pnts) {
                if (v0 != null) {
-                  if (style == LineStyle.ELLIPSOID) {
+                  if (style == LineStyle.SPINDLE) {
                      drawSpindle (v0, v1, props.getLineRadius());
                   }
                   else if (style == LineStyle.SOLID_ARROW) {
@@ -2431,7 +2431,7 @@ public class GL3Viewer extends GLViewer {
          case CYLINDER:
             lineObject = myGLResources.getCylinder(gl, slices, capped);
             break;
-         case ELLIPSOID:
+         case SPINDLE:
             lineObject = myGLResources.getSpindle(gl, slices, slices/2);
             break;
          case SOLID_ARROW:

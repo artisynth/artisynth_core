@@ -170,7 +170,7 @@ public class GL2PrimitiveManager extends DisplayListManager {
       }
    }
 
-   private DisplayListInfo lastEllipsoid;
+   private DisplayListInfo lastSpindle;
    private DisplayListInfo lastSphere;
    private DisplayListInfo lastCylinder;
    private DisplayListInfo lastCone;
@@ -180,7 +180,7 @@ public class GL2PrimitiveManager extends DisplayListManager {
 
    public GL2PrimitiveManager() {
       super();
-      lastEllipsoid = null;
+      lastSpindle = null;
       lastSphere = null;
       lastCylinder = null;
       lastCone = null;
@@ -221,11 +221,11 @@ public class GL2PrimitiveManager extends DisplayListManager {
    }
 
    public int getSpindleDisplayList (GL2 gl, int slices, int levels) {
-      if (lastEllipsoid != null) {
-         SpindleKey key = (SpindleKey)(lastEllipsoid.key);
+      if (lastSpindle != null) {
+         SpindleKey key = (SpindleKey)(lastSpindle.key);
          if (key.equals(slices, levels)) {
-            lastEllipsoid.incrementUseCount();
-            return lastEllipsoid.getList();
+            lastSpindle.incrementUseCount();
+            return lastSpindle.getList();
          }
       }
 
@@ -236,7 +236,7 @@ public class GL2PrimitiveManager extends DisplayListManager {
          putListInfo(key, li);
       }
       li.incrementUseCount();
-      lastEllipsoid = li;
+      lastSpindle = li;
       return li.getList();
    }
    

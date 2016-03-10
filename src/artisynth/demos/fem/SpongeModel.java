@@ -81,7 +81,7 @@ public class SpongeModel extends FemMuscleModel {
          (getMuscleBundles().size() - 1) % NumericProbePanel.colorList.length;
       props.setLineColor (NumericProbePanel.colorList[idx]);
       props.setLineRadius (len / 20);
-      props.setLineStyle (LineStyle.ELLIPSOID);
+      props.setLineStyle (LineStyle.SPINDLE);
       return props;
    }
 
@@ -121,7 +121,7 @@ public class SpongeModel extends FemMuscleModel {
       RenderProps props = createRenderProps();
       props.setLineColor (NumericProbePanel.colorList[getMuscleBundles().size()]);
       props.setLineRadius (len / 20);
-      props.setLineStyle (LineStyle.ELLIPSOID);
+      props.setLineStyle (LineStyle.SPINDLE);
       m.setRenderProps (props);
    }
 

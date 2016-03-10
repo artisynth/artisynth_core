@@ -216,7 +216,7 @@ public interface Renderer {
       /**
        * Draw lines as solid spindles
        */
-      ELLIPSOID
+      SPINDLE
    }
 
    /**
@@ -683,7 +683,7 @@ public interface Renderer {
     * 
     * @param pnt0 first end point
     * @param pnt1 second end point
-    * @param rad radius of the ellipsoid 
+    * @param rad radius of the spindle
     */
    public void drawSpindle (float[] pnt0, float[] pnt1, double rad);
 
@@ -909,11 +909,11 @@ public interface Renderer {
       LineStyle style, boolean selected);   
 
    /**
-    * Gives the direction, in model coordinates, of a vector that
+    * Gives the direction, in world coordinates, of a vector that
     * is perpendicular to the screen and points towards the viewer.
     * The corresponds to the Z direction in eye coordinates.
     * 
-    * @return current z direction in eye coordinates (can be modified)
+    * @return current z direction of the eye frame
     */
    public Vector3d getEyeZDirection();
    
@@ -1371,7 +1371,7 @@ public interface Renderer {
     * the specified line style. For lines drawn using the style {@link
     * LineStyle#LINE}, the argument <code>rad</code> gives the line width,
     * whereas for solid primitives ({@link LineStyle#CYLINDER}, {@link
-    * LineStyle#SOLID_ARROW}, {@link LineStyle#ELLIPSOID}), it gives
+    * LineStyle#SOLID_ARROW}, {@link LineStyle#SPINDLE}), it gives
     * the nominal radius.
     * 
     * @param robj render object

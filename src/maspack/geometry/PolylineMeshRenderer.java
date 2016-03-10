@@ -127,7 +127,7 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
             }
             break;
          }
-         case ELLIPSOID:
+         case SPINDLE:
          case SOLID_ARROW:
          case CYLINDER: {
             double rad = props.getLineRadius();

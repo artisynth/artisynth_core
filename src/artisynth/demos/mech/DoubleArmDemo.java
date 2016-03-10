@@ -196,7 +196,7 @@ public class DoubleArmDemo extends RootModel {
        muscle2.setSecondPoint(tl);
        
        RenderProps rp = new RenderProps(model.getRenderProps());
-       rp.setLineStyle(Renderer.LineStyle.ELLIPSOID);
+       rp.setLineStyle(Renderer.LineStyle.SPINDLE);
        rp.setLineRadius(len/20);
        //rp.setLineSlices(10);
        rp.setShading(Renderer.Shading.GOURAUD);
@@ -266,7 +266,7 @@ public class DoubleArmDemo extends RootModel {
       rp.setPointStyle(Renderer.PointStyle.SPHERE);
       rp.setPointColor(Color.LIGHT_GRAY);
       rp.setPointRadius(0.0);
-      rp.setLineStyle(Renderer.LineStyle.ELLIPSOID);
+      rp.setLineStyle(Renderer.LineStyle.SPINDLE);
       rp.setLineColor(Color.WHITE);
       rp.setLineRadius(0.4);
       model.setRenderProps(rp);

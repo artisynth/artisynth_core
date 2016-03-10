@@ -96,7 +96,7 @@ public class FishDemo extends RootModel {
       RenderProps.setPointColor (collisionbody2.markers(), new Color (
          0.5f, 0.5f, 1f));
       RenderProps.setLineStyle (
-         collisionbody2.getMuscleBundles(), Renderer.LineStyle.ELLIPSOID);
+         collisionbody2.getMuscleBundles(), Renderer.LineStyle.SPINDLE);
       RenderProps.setLineRadius (collisionbody2.getMuscleBundles(), 0.05);
 
       collisionbody2.clearMuscleBundles();

@@ -155,7 +155,7 @@ public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
             }
             break;
          }
-         case ELLIPSOID:
+         case SPINDLE:
          case SOLID_ARROW:
          case CYLINDER: {
             double rad = props.getLineRadius();
@@ -196,7 +196,7 @@ public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
                      renderer.drawLine (v0, v1);
                      break;
                   }
-                  case ELLIPSOID: {
+                  case SPINDLE: {
                      renderer.drawSpindle (v0, v1, rad);
                      break;
                   }

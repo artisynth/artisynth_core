@@ -276,7 +276,7 @@ public class AttachedBeamBody extends RootModel {
       AxialSpring spr0 = new AxialSpring (10, 1, 0); // 50, 10, 0);
 
       props = spr0.createRenderProps();
-      props.setLineStyle (Renderer.LineStyle.ELLIPSOID);
+      props.setLineStyle (Renderer.LineStyle.SPINDLE);
       props.setLineRadius (0.05);
       props.setLineColor (Color.RED);
       spr0.setRenderProps (props);

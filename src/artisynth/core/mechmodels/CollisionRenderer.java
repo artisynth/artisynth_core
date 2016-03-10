@@ -226,7 +226,7 @@ public class CollisionRenderer {
             break;
          }
             // do we need to handle the solid line case?
-         case ELLIPSOID:
+         case SPINDLE:
          case SOLID_ARROW:
          case CYLINDER: {
             double rad = props.getLineRadius();

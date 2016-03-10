@@ -177,7 +177,7 @@ public class PointModel extends RootModel
       rp.setPointStyle(Renderer.PointStyle.SPHERE);
       rp.setPointColor(Color.LIGHT_GRAY);
       rp.setPointRadius(len/30);
-      rp.setLineStyle(LineStyle.ELLIPSOID);
+      rp.setLineStyle(LineStyle.SPINDLE);
       rp.setLineColor(Color.RED);
       rp.setLineRadius(len/25);
       model.setRenderProps(rp);

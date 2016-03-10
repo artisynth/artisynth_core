@@ -247,16 +247,16 @@ public class RenderObjectFactory {
          nLevels = 2;
       }
       
-      RenderObject ellipsoid = new RenderObject();
+      RenderObject spindle = new RenderObject();
       
       // reserve memory
-      ellipsoid.ensurePositionCapacity(2+nSlices*(nLevels-1));
-      ellipsoid.ensureNormalCapacity(2+nSlices*(nLevels-1));
-      ellipsoid.ensureTriangleCapacity(2*nSlices*(nLevels-1));
+      spindle.ensurePositionCapacity(2+nSlices*(nLevels-1));
+      spindle.ensureNormalCapacity(2+nSlices*(nLevels-1));
+      spindle.ensureTriangleCapacity(2*nSlices*(nLevels-1));
       
       // bottom
-      ellipsoid.normal(0, 0, -1);
-      ellipsoid.vertex(0, 0, 0);
+      spindle.normal(0, 0, -1);
+      spindle.vertex(0, 0, 0);
       
       for (int j=1; j < nLevels; ++j) {
          float h = j * 1.0f / nLevels;
@@ -269,20 +269,20 @@ public class RenderObjectFactory {
             float r = (float)Math.sin (h * Math.PI);
             float drdh = (float)(Math.PI * Math.cos (h * Math.PI));
 
-            ellipsoid.normal(c0, s0, -drdh);
-            ellipsoid.vertex(c0*r, s0*r, h);
+            spindle.normal(c0, s0, -drdh);
+            spindle.vertex(c0*r, s0*r, h);
          }
       }
 
       // top
-      ellipsoid.normal(0, 0, 1);
-      ellipsoid.vertex(0, 0, 1);
+      spindle.normal(0, 0, 1);
+      spindle.vertex(0, 0, 1);
 
       // triangles
       // bottom
       for (int i=0; i<nSlices; ++i) {
          int j = (i + 1) % nSlices;
-         ellipsoid.addTriangle(0, j+1, i+1);
+         spindle.addTriangle(0, j+1, i+1);
       }
 
       // middle
@@ -290,8 +290,8 @@ public class RenderObjectFactory {
          int boff = 1+l*nSlices;
          for (int i=0; i<nSlices; ++i) {
             int j = (i + 1) % nSlices;
-            ellipsoid.addTriangle(boff+j+nSlices, boff+i+nSlices, boff+i);
-            ellipsoid.addTriangle(boff+j, boff+j+nSlices, boff+i);
+            spindle.addTriangle(boff+j+nSlices, boff+i+nSlices, boff+i);
+            spindle.addTriangle(boff+j, boff+j+nSlices, boff+i);
          }
       }
 
@@ -300,11 +300,11 @@ public class RenderObjectFactory {
       int toff = boff+nSlices;
       for (int i=0; i<nSlices; ++i) {
          int j = (i + 1) % nSlices;
-         ellipsoid.addTriangle( boff+j, toff, boff+i);
+         spindle.addTriangle( boff+j, toff, boff+i);
       }
 
       // ellipsoid.commit();
-      return ellipsoid;
+      return spindle;
    }
    
    /**

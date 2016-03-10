@@ -1749,7 +1749,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             //restoreShading (props);
             break;
          }
-         case ELLIPSOID: {
+         case SPINDLE: {
             //setShadeModel (props.getShading());
             //setPropsMaterial (props, color, selected);
             drawSpindle (pnt0, pnt1, props.getLineRadius());
@@ -1806,7 +1806,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                drawCylinder (pnt0, ctmp, props.getLineRadius(), capped);
                break;
             }
-            case ELLIPSOID: {
+            case SPINDLE: {
                drawSpindle (pnt0, pnt1, props.getLineRadius());
                break;
             }
@@ -2100,7 +2100,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             //setLightingEnabled (true);
             break;
          }
-         case ELLIPSOID:
+         case SPINDLE:
          case SOLID_ARROW:
          case CYLINDER: {
             //setLineLighting (props, isSelected);
@@ -2108,7 +2108,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             double rad = props.getLineRadius();
             for (float[] v1 : pnts) {
                if (v0 != null) {
-                  if (style == LineStyle.ELLIPSOID) {
+                  if (style == LineStyle.SPINDLE) {
                      drawSpindle (v0, v1, rad);
                   }
                   else if (style == LineStyle.SOLID_ARROW) {
@@ -3212,7 +3212,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    }
 
-   private void drawEllipsoid(GL2 gl, int slices, float rad, float[] p0, float[] p1) {
+   private void drawSpindle(GL2 gl, int slices, float rad, float[] p0, float[] p1) {
 
       utmp.set (p1[0] - p0[0], p1[1] - p0[1], p1[2]
       - p0[2]);
@@ -3273,7 +3273,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
    }
 
-   private void drawColoredEllipsoid(GL2 gl, int slices, float rad, float[] p0, byte[] c0,
+   private void drawColoredSpindle(GL2 gl, int slices, float rad, float[] p0, byte[] c0,
       float[] p1, byte[] c1, boolean hsv) {
 
       utmp.set (p1[0] - p0[0], p1[1] - p0[1], p1[2]
@@ -3391,7 +3391,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                }
                break;
             }
-            case ELLIPSOID:
+            case SPINDLE:
                if (!selecting && useColors) {
                   for (int[] line : lines) {
                      VertexIndexSet v0 = robj.getVertex(line[0]);
@@ -3400,7 +3400,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                      byte[] c0 = robj.getColor(v0.getColorIndex());
                      float[] p1 = robj.getPosition(v1.getPositionIndex());
                      byte[] c1 = robj.getColor(v1.getColorIndex());
-                     drawColoredEllipsoid(
+                     drawColoredSpindle(
                         gl, mySurfaceResolution, rad, 
                         p0, c0, p1, c1, isHSVColorInterpolationEnabled());
                   }
@@ -3410,7 +3410,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                      VertexIndexSet v1 = robj.getVertex(line[1]);
                      float[] p0 = robj.getPosition(v0.getPositionIndex());
                      float[] p1 = robj.getPosition(v1.getPositionIndex());
-                     drawEllipsoid(gl, mySurfaceResolution, rad, p0, p1);
+                     drawSpindle(gl, mySurfaceResolution, rad, p0, p1);
                   }
                }
                break;
@@ -3484,7 +3484,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             break;
          }
          case CYLINDER:
-         case ELLIPSOID:
+         case SPINDLE:
          case SOLID_ARROW:
             drawSolidLines(robj, style, (float)rad);
             break;

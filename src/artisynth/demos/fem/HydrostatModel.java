@@ -222,7 +222,7 @@ public class HydrostatModel extends FemMuscleModel {
       // RenderProps.setFaceStyle (getNodes(), Faces.BACK);
 
       for (MuscleBundle b : getMuscleBundles()) {
-         RenderProps.setLineStyle (b, Renderer.LineStyle.ELLIPSOID);
+         RenderProps.setLineStyle (b, Renderer.LineStyle.SPINDLE);
          RenderProps.setLineRadius (b, 0.5);
       }
 
@@ -348,7 +348,7 @@ public class HydrostatModel extends FemMuscleModel {
 	    }
 	 }
 	 addMuscleBundle(b);
-	 RenderProps.setLineStyle(b, Renderer.LineStyle.ELLIPSOID);
+	 RenderProps.setLineStyle(b, Renderer.LineStyle.SPINDLE);
 	 RenderProps.setLineColor(b, PlotTraceInfo.getPaletteColors()[b
 	       .getNumber()]);
 

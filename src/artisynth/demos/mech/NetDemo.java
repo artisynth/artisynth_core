@@ -128,7 +128,7 @@ public class NetDemo extends RootModel {
 
    protected void setLineRenderProps (Renderable r) {
       RenderProps.setLineColor (r, Color.BLUE);
-      RenderProps.setLineStyle (r, Renderer.LineStyle.ELLIPSOID);
+      RenderProps.setLineStyle (r, Renderer.LineStyle.SPINDLE);
       RenderProps.setLineRadius (r, widthx/100.0);
    }
 

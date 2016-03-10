@@ -56,7 +56,7 @@ public class AttachedBeamDemo extends RootModel {
 
    private AxialSpring createSpring (String name) {
       AxialSpring spring = new AxialSpring (name, 1000.0, 200, 0);
-      RenderProps.setLineStyle (spring, Renderer.LineStyle.ELLIPSOID);
+      RenderProps.setLineStyle (spring, Renderer.LineStyle.SPINDLE);
       RenderProps.setLineRadius (spring, 0.04);
       RenderProps.setLineColor (spring, Color.RED);
       return spring;

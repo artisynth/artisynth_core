@@ -410,8 +410,8 @@ public class GL3ObjectFactory {
          nLevels = 2;
       }
 
-      GL3PreObject ellipsoid = new GL3PreObject();
-      ellipsoid.mode = GL.GL_TRIANGLES;
+      GL3PreObject spindle = new GL3PreObject();
+      spindle.mode = GL.GL_TRIANGLES;
 
       int nverts = 2+nSlices*(nLevels-1);
       int nelems = 6*nSlices*(nLevels-1);
@@ -426,30 +426,30 @@ public class GL3ObjectFactory {
 
       int vstride = posStorage.bytes() + nrmStorage.bytes();
 
-      ellipsoid.ainfo = new GL3VertexAttribute.AttributeInfo[2];
-      ellipsoid.vinfo = new GL3VertexAttributeArray.VBOInfo[2];
+      spindle.ainfo = new GL3VertexAttribute.AttributeInfo[2];
+      spindle.vinfo = new GL3VertexAttributeArray.VBOInfo[2];
       
-      ellipsoid.ainfo[0] = GL3VertexAttribute.VERTEX_POSITION;
-      ellipsoid.vinfo[0] = new GL3VertexAttributeArray.VBOInfo(
+      spindle.ainfo[0] = GL3VertexAttribute.VERTEX_POSITION;
+      spindle.vinfo[0] = new GL3VertexAttributeArray.VBOInfo(
          GL3Util.getGLType(posStorage.type()), 
          posStorage.size(), posStorage.isNormalized(), 0, vstride, nverts);
-      ellipsoid.ainfo[1] = GL3VertexAttribute.VERTEX_NORMAL;
-      ellipsoid.vinfo[1] = new GL3VertexAttributeArray.VBOInfo(
+      spindle.ainfo[1] = GL3VertexAttribute.VERTEX_NORMAL;
+      spindle.vinfo[1] = new GL3VertexAttributeArray.VBOInfo(
          GL3Util.getGLType(nrmStorage.type()), 
          nrmStorage.size(), nrmStorage.isNormalized(), posStorage.bytes(), vstride, nverts);
-      ellipsoid.vbuffIdxs = new int[] {0, 0};
+      spindle.vbuffIdxs = new int[] {0, 0};
 
-      ellipsoid.vbuffs = new ByteBuffer[1];
-      ellipsoid.vbuffs[0] = ByteBuffer.allocateDirect(nverts*vstride);
-      ellipsoid.vbuffs[0].order(ByteOrder.nativeOrder());
-      ellipsoid.vbuffUsage = new int[] {GL.GL_STATIC_DRAW};
+      spindle.vbuffs = new ByteBuffer[1];
+      spindle.vbuffs[0] = ByteBuffer.allocateDirect(nverts*vstride);
+      spindle.vbuffs[0].order(ByteOrder.nativeOrder());
+      spindle.vbuffUsage = new int[] {GL.GL_STATIC_DRAW};
 
-      ellipsoid.einfo = new GL3ElementAttributeArray.ElementInfo(GL3Util.getGLType(idxStorage.type()), 0, idxStorage.bytes(), nelems);
-      ellipsoid.ebuff = ByteBuffer.allocateDirect(nelems*idxStorage.bytes());
-      ellipsoid.ebuff.order(ByteOrder.nativeOrder());
-      ellipsoid.ebuffUsage = GL.GL_STATIC_DRAW;
+      spindle.einfo = new GL3ElementAttributeArray.ElementInfo(GL3Util.getGLType(idxStorage.type()), 0, idxStorage.bytes(), nelems);
+      spindle.ebuff = ByteBuffer.allocateDirect(nelems*idxStorage.bytes());
+      spindle.ebuff.order(ByteOrder.nativeOrder());
+      spindle.ebuffUsage = GL.GL_STATIC_DRAW;
 
-      ByteBuffer pnbuff = ellipsoid.vbuffs[0];
+      ByteBuffer pnbuff = spindle.vbuffs[0];
 
       // bottom
       posPutter.putPosition(pnbuff, 0,0,0);
@@ -479,7 +479,7 @@ public class GL3ObjectFactory {
       // bottom
       for (int i=0; i<nSlices; ++i) {
          int j = (i + 1) % nSlices;
-         idxPutter.putIndices(ellipsoid.ebuff, 0, j+1, i+1);
+         idxPutter.putIndices(spindle.ebuff, 0, j+1, i+1);
       }
 
       // middle
@@ -487,7 +487,7 @@ public class GL3ObjectFactory {
          int boff = 1+l*nSlices;
          for (int i=0; i<nSlices; ++i) {
             int j = (i + 1) % nSlices;
-            idxPutter.putIndices(ellipsoid.ebuff,
+            idxPutter.putIndices(spindle.ebuff,
                boff+j+nSlices, boff+i+nSlices, boff+i,
                boff+j, boff+j+nSlices, boff+i);
          }
@@ -498,13 +498,13 @@ public class GL3ObjectFactory {
       int toff = boff+nSlices;
       for (int i=0; i<nSlices; ++i) {
          int j = (i + 1) % nSlices;
-         idxPutter.putIndices(ellipsoid.ebuff, boff+j, toff, boff+i);
+         idxPutter.putIndices(spindle.ebuff, boff+j, toff, boff+i);
       }
       
       pnbuff.rewind();
-      ellipsoid.ebuff.rewind();
+      spindle.ebuff.rewind();
 
-      return ellipsoid;
+      return spindle;
    }
 
    // spindle (along zaxis)

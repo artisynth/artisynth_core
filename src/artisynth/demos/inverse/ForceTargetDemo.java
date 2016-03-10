@@ -238,7 +238,7 @@ public class ForceTargetDemo extends RootModel{
 
    protected void setLineRenderProps (Renderable r) {
       RenderProps.setLineColor (r, Color.RED);
-      RenderProps.setLineStyle (r, LineStyle.ELLIPSOID);
+      RenderProps.setLineStyle (r, LineStyle.SPINDLE);
       RenderProps.setLineRadius (r, 0.2);
    }
    

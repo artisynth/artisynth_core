@@ -360,7 +360,7 @@ public class FemBeam3d extends RootModel {
             muscle.setFirstPoint (lastMkr);
             muscle.setSecondPoint (mkr);
             RenderProps.setLineRadius (muscle, 0.01);
-            RenderProps.setLineStyle (muscle, Renderer.LineStyle.ELLIPSOID);
+            RenderProps.setLineStyle (muscle, Renderer.LineStyle.SPINDLE);
             RenderProps.setLineColor (muscle, color);
             if (useFemMuscleModel) {
                bundle.addFibre (muscle);

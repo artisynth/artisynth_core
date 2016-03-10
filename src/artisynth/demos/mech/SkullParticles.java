@@ -26,7 +26,7 @@ public class SkullParticles extends RootModel {
       RenderProps.setPointRadius (mech, 0.01);
       RenderProps.setPointColor (mech, Color.GRAY);
 
-      RenderProps.setLineStyle (mech, Renderer.LineStyle.ELLIPSOID);
+      RenderProps.setLineStyle (mech, Renderer.LineStyle.SPINDLE);
       RenderProps.setLineRadius (mech, 0.003);
       RenderProps.setLineColor (mech, Color.BLUE);
 

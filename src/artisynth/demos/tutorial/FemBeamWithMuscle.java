@@ -19,7 +19,7 @@ public class FemBeamWithMuscle extends FemBeam {
       Muscle mus = new Muscle (/*name=*/null, /*restLength=*/0);
       mus.setMaterial (
          new SimpleAxialMuscle (/*stiffness=*/20, /*damping=*/10, /*maxf=*/10));
-      RenderProps.setLineStyle (mus, Renderer.LineStyle.ELLIPSOID);
+      RenderProps.setLineStyle (mus, Renderer.LineStyle.SPINDLE);
       RenderProps.setLineColor (mus, Color.RED);
       RenderProps.setLineRadius (mus, 0.03);
       return mus;

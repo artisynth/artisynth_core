@@ -192,7 +192,7 @@ public class SkinDemo extends RootModel {
       muscle.setSecondPoint(l);
         
       RenderProps rp = new RenderProps(model.getRenderProps());
-      rp.setLineStyle(Renderer.LineStyle.ELLIPSOID);
+      rp.setLineStyle(Renderer.LineStyle.SPINDLE);
       rp.setLineRadius(len/20);
       //rp.setLineSlices(10);
       rp.setShading(Renderer.Shading.GOURAUD);
@@ -240,7 +240,7 @@ public class SkinDemo extends RootModel {
       spring.setSecondPoint(fixed);
         
       RenderProps rp = new RenderProps(model.getRenderProps());
-      rp.setLineStyle(Renderer.LineStyle.ELLIPSOID);
+      rp.setLineStyle(Renderer.LineStyle.SPINDLE);
       rp.setShading(Renderer.Shading.FLAT);
       rp.setLineColor(Color.WHITE);
       spring.setRenderProps(rp);

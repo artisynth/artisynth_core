@@ -270,7 +270,7 @@ public class FemMuscleDemo extends RootModel {
 
    protected void setBundleRenderProps(MuscleBundle bundle, Color color) {
       RenderProps.setLineColor(bundle, color);
-      RenderProps.setLineStyle(bundle, Renderer.LineStyle.ELLIPSOID);
+      RenderProps.setLineStyle(bundle, Renderer.LineStyle.SPINDLE);
       RenderProps.setLineRadius(bundle, 0.001);
       RenderProps
          .setLineStyle(bundle.getElements(), Renderer.LineStyle.LINE);

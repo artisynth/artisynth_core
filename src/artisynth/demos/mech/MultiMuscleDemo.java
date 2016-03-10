@@ -49,7 +49,7 @@ public class MultiMuscleDemo extends MultiSpringDemo {
       mechMod.addMultiPointSpring (muscle);
 
       RenderProps.setLineColor (mechMod, Color.BLUE);
-      RenderProps.setLineStyle (muscle, LineStyle.ELLIPSOID);
+      RenderProps.setLineStyle (muscle, LineStyle.SPINDLE);
       RenderProps.setLineRadius (muscle, 0.1);      
       RenderProps.setLineColor (muscle, Color.RED);
    }

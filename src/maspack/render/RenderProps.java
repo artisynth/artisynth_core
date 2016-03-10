@@ -2078,11 +2078,11 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       r.setRenderProps (props);
    }
 
-   public static void setEllipsoidalLines (
+   public static void setSpindleLines (
       Renderable r, double rad, Color color) {
 
       RenderProps props = createAndAssignProps (r);
-      props.setLineStyle (LineStyle.ELLIPSOID);
+      props.setLineStyle (LineStyle.SPINDLE);
       props.setLineRadius (rad);
       if (color != null) {
          props.setLineColor (color);

@@ -156,7 +156,7 @@ public class FemBeamMech extends RootModel {
 
          AxialSpring spr = new AxialSpring (1000, 0, 0);
          myMechMod.attachAxialSpring (part, mkr, spr);
-         RenderProps.setLineStyle (spr, Renderer.LineStyle.ELLIPSOID);
+         RenderProps.setLineStyle (spr, Renderer.LineStyle.SPINDLE);
          RenderProps.setLineRadius (spr, 0.01);
          RenderProps.setLineColor (spr, Color.GREEN);
          

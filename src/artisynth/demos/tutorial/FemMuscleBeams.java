@@ -103,7 +103,7 @@ public class FemMuscleBeams extends RootModel {
       beamFibres.addMuscleExciter(allFibres);
       
       // Render properties
-      RenderProps.setLineStyle(beamFibres.getMuscleBundles(), LineStyle.ELLIPSOID);
+      RenderProps.setLineStyle(beamFibres.getMuscleBundles(), LineStyle.SPINDLE);
       RenderProps.setLineRadius(beamFibres.getMuscleBundles(), 0.0002);
       RenderProps.setLineColor(topFibres, Color.RED);
       RenderProps.setLineColor(middleFibres, Color.GREEN);

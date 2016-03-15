@@ -1115,9 +1115,7 @@ public class WavefrontReader extends MeshReaderBase {
          double r = rtok.scanNumber();
          double g = rtok.scanNumber();
          double b = rtok.scanNumber();
-         // ignore for now
-         System.out.println("Ignorning specular info: (r,g,b) = ("
-            + r + "," + b + "," + g + ")");
+         props.setSpecular (new Color((float)r, (float)g, (float)b));
       }
       else if (rtok.sval.equals("d") || rtok.sval.equals("Tr")) {
          double alpha = rtok.scanNumber();
@@ -1139,6 +1137,8 @@ public class WavefrontReader extends MeshReaderBase {
          // we need period
          int savePeriod = rtok.getCharSetting('.');
          rtok.wordChar('.');
+         int saveDash = rtok.getCharSetting ('-');
+         rtok.wordChar ('-');
 
          String map = rtok.scanWord();
          if (map != null) {
@@ -1157,6 +1157,7 @@ public class WavefrontReader extends MeshReaderBase {
 
          // restore period state
          rtok.setCharSetting('.', savePeriod);
+         rtok.setCharSetting ('-', saveDash);
       }
       // eg map_Kd lenna.tga # the diffuse texture map
       else if (rtok.sval.equals("bump") || rtok.sval.equals("map_bump")) {
@@ -1164,12 +1165,14 @@ public class WavefrontReader extends MeshReaderBase {
          // we need period
          int savePeriod = rtok.getCharSetting('.');
          rtok.wordChar('.');
-
+         int saveDash = rtok.getCharSetting ('-');
+         rtok.wordChar ('-');
+         
          String map = rtok.scanWord();
          if (map != null) {
             // set texture properties
             props.setFaceStyle(Renderer.FaceStyle.FRONT_AND_BACK);
-            props.setShading(Shading.GOURAUD);
+            props.setShading(Shading.PHONG);
             NormalTextureProps tprops = props.getNormalTextureProps ();
             if (tprops == null) {
                tprops = new NormalTextureProps();
@@ -1182,6 +1185,7 @@ public class WavefrontReader extends MeshReaderBase {
 
          // restore period state
          rtok.setCharSetting('.', savePeriod);
+         rtok.setCharSetting ('-', saveDash);
       }
       else {
          return false;

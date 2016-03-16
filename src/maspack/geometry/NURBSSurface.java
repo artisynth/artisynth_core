@@ -18,6 +18,7 @@ import maspack.render.PointLineRenderProps;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
 import maspack.util.NumberFormat;
 
 /**
@@ -419,7 +420,7 @@ public class NURBSSurface extends NURBSObject {
 
       evalRenderVertices();
 
-      renderer.setLightingEnabled (false);
+      renderer.setShading (Shading.NONE);
 
       // draw the control points
       if (myDrawControlShapeP) {
@@ -483,7 +484,7 @@ public class NURBSSurface extends NURBSObject {
          }
       }
 
-      renderer.setLightingEnabled (true);
+      renderer.setShading (Shading.FLAT);
    }
 
    /**

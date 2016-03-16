@@ -16,6 +16,7 @@ import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
 import maspack.render.RenderList;
 import maspack.util.InternalErrorException;
 import quickhull3d.QuickHull3D;
@@ -1194,7 +1195,7 @@ public class OBB extends BVNode {
 
    public void render (Renderer renderer, int flags) {
 
-      renderer.setLightingEnabled (false);
+      renderer.setShading (Shading.NONE);
 
       Vector3d hw = myHalfWidths;
       renderer.pushModelMatrix();
@@ -1231,7 +1232,7 @@ public class OBB extends BVNode {
 
       renderer.popModelMatrix();
 
-      renderer.setLightingEnabled (true);
+      renderer.setShading (Shading.FLAT);
    }
 
    public void prerender (RenderList list) {

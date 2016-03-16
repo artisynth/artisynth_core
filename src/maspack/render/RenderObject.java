@@ -1,5 +1,9 @@
 package maspack.render;
 
+import java.awt.Color;
+import maspack.matrix.Vector2d;
+import maspack.matrix.Vector3d;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -566,13 +570,13 @@ public class RenderObject {
 
    /**
     * Adds an indexable 3D position
-    * @param x 
-    * @param y
-    * @param z
+    * @param px 
+    * @param py
+    * @param pz
     * @return the index of the position added
     */
-   public int addPosition(float x, float y, float z) {
-      return addPosition (new float[]{x,y,z});
+   public int addPosition(float px, float py, float pz) {
+      return addPosition (new float[]{px,py,pz});
    }
    
    /**
@@ -600,15 +604,36 @@ public class RenderObject {
    }
 
    /**
+    * Adds an indexable 3D position
+    * @param pos coordinates of the position
+    * @return the index of the position added
+    */
+   public int addPosition(Vector3d pos) {
+      return addPosition (
+         new float[]{(float)pos.x, (float)pos.y, (float)pos.z});
+   }   
+   
+   /**
     * Sets the current 3D position to be used in following vertices.
-    * @param x 
-    * @param y
-    * @param z
+    * @param pos position coordinates
     * @return The index of the new position (valid only if a vertex
     * is added with the supplied position)
     */
-   public int position(float x, float y, float z) {
-      return position(new float[]{x,y,z});
+   public int position(Vector3d pos) {
+      return position(
+         new float[] {(float)pos.x, (float)pos.y, (float)pos.z});
+   }
+   
+   /**
+    * Sets the current 3D position to be used in following vertices.
+    * @param px 
+    * @param py
+    * @param pz
+    * @return The index of the new position (valid only if a vertex
+    * is added with the supplied position)
+    */
+   public int position(float px, float py, float pz) {
+      return position(new float[]{px,py,pz});
    }
    
    /**
@@ -854,13 +879,13 @@ public class RenderObject {
 
    /**
     * Adds an indexable 3D normal.
-    * @param x
-    * @param y
-    * @param z
+    * @param nx
+    * @param ny
+    * @param nz
     * @return the index of the normal added
     */
-   public int addNormal(float x, float y, float z) {
-      return addNormal(new float[]{x,y,z});
+   public int addNormal(float nx, float ny, float nz) {
+      return addNormal(new float[]{nx,ny,nz});
    }
    
    /**
@@ -890,19 +915,40 @@ public class RenderObject {
    }
 
    /**
+    * Adds an indexable 3D normal
+    * @param nrm coordinates of the normal
+    * @return the index of the normal added
+    */
+   public int addNormal(Vector3d nrm) {
+      return addNormal (
+         new float[]{(float)nrm.x, (float)nrm.y, (float)nrm.z});
+   }   
+   
+   /**
     * Sets the current 3D normal to be used in following
     * vertices.
-    * @param x 
-    * @param y
-    * @param z
+    * @param nx 
+    * @param ny
+    * @param nz
     * @return The index of the new normal (valid only if a vertex
     * is added with the supplied normal)
     */
-   public int normal(float x, float y, float z) {
-      return normal(new float[]{x,y,z});
+   public int normal(float nx, float ny, float nz) {
+      return normal(new float[]{nx,ny,nz});
    }
 
    /**
+    * Sets the current 3D normal to be used in following vertices.
+    * @param  nrm normal coordinates
+    * @return The index of the new normal (valid only if a vertex
+    * is added with the supplied normal)
+    */
+   public int normal(Vector3d nrm) {
+      return normal(
+         new float[] {(float)nrm.x, (float)nrm.y, (float)nrm.z});
+   }
+   
+    /**
     * Sets the current 3D normal, by reference, to be used in following vertices.
     * @see #addNormal(float[])
     * @see #normal(int)
@@ -1193,6 +1239,17 @@ public class RenderObject {
    }
    
    /**
+    * Adds an indexable color
+    * @param color color from which RGBA values are determines
+    */
+   public int addColor(Color color) {
+      return addColor(
+         new byte[]{
+            (byte)color.getRed(), (byte)color.getGreen(), 
+            (byte)color.getBlue(), (byte)color.getAlpha()});
+   }
+   
+   /**
     * Adds an indexable color by reference.  If the color is modified
     * outside of this object, then {@link #notifyColorsModified()} must
     * be called.  Otherwise, renderers are free to assume the render object
@@ -1254,19 +1311,16 @@ public class RenderObject {
 
    /**
     * Sets the current color to be used in following vertices.
-    * @param r red
-    * @param g green
-    * @param b blue
-    * @param a alpha
+    * @param color color from which RGBA values are determined
     * @return The index of the new color (valid only if a vertex
     * is added with the supplied color)
     */
-   public int color(byte r, byte g, byte b, byte a) {
-      int cidx = addColor(r, g, b, a);
+   public int color(Color color) {
+      int cidx = addColor(color);
       currentColorIdx = cidx;
       return cidx;
    }
-
+   
    /**
     * Sets the current color, by reference, to be used in following vertices.
     * @see #addColor(byte[])
@@ -1522,13 +1576,23 @@ public class RenderObject {
 
    /**
     * Adds an indexable 2D texture coordinate
-    * @param x
-    * @param y
+    * @param tx
+    * @param ty
     * @return the index of the texture coordinate added
     */
-   public int addTextureCoord(float x, float y) {
-      return addTextureCoord (new float[]{x,y});
+   public int addTextureCoord(float tx, float ty) {
+      return addTextureCoord (new float[]{tx,ty});
    }
+   
+   /**
+    * Adds an indexable 2D texture coordinate
+    * @param xy texture coordinates
+    * @return the index of the texture coordinates added
+    */
+   public int addTextureCoord(Vector2d xy) {
+      return addTextureCoord (
+         new float[]{(float)xy.x, (float)xy.y});
+   }   
    
    /**
     * Adds an indexable 2D texture coordinate by reference.
@@ -1573,6 +1637,16 @@ public class RenderObject {
    }
    
    /**
+    * Sets the current 2D texture coordinate to be used in following vertices.
+    * @param xy the 2D coordinate
+    * @return The index of the new texture coordinate (valid only if a vertex
+    * is added with the supplied texture coordinate)
+    */
+   public int textureCoord(Vector2d xy) {
+     return textureCoord(new float[] {(float)xy.x,(float)xy.y});
+   }
+   
+/**
     * Sets the current 2D texture coordinate, by reference, to be used in following vertices.
     * @see #addTextureCoord(float[])
     * @see #textureCoord(int)
@@ -1880,13 +1954,24 @@ public class RenderObject {
     * Add a vertex at the supplied position, using the currently active
     * normal, color and texture coordinate (if available).  A new position
     * is created to accommodate the vertex.
-    * @param x
-    * @param y
-    * @param z
+    * @param px
+    * @param py
+    * @param pz
     * @return vertex index
     */
-   public int vertex(float x, float y, float z) {
-      return vertex(new float[] {x,y,z});
+   public int vertex(float px, float py, float pz) {
+      return vertex(new float[] {px,py,pz});
+   }
+   
+   /**
+    * Add a vertex at the supplied position, using the currently active
+    * normal, color and texture coordinate (if available).  A new position
+    * is created to accommodate the vertex.
+    * @param pos position coordinates
+    * @return vertex index
+    */
+   public int vertex(Vector3d pos) {
+      return vertex(new float[] {(float)pos.x, (float)pos.y, (float)pos.z});
    }
    
    /**
@@ -2184,7 +2269,7 @@ public class RenderObject {
       if (stateInfo.numPointGroups == 0) {
          createPointGroup();
       }
-      currentTriangleGroup.ensureCapacity(cap);
+      currentPointGroup.ensureCapacity(cap);
    }
    
    /**

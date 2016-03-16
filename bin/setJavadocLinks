@@ -65,7 +65,7 @@ if (!defined $fileName) {
     printUsageAndExit();
 }
 
-open (INPUT, $fileName) or warn "Can't open $inFileName: $!\n";
+open (INPUT, $fileName) or warn "Can't open $fileName: $!\n";
 while (<INPUT>) { 
 	s/\@JDOCBEGIN\/([^\s()]*)\@JDOCEND/replaceDots($1)/eg;
 	s/\@JDOCBEGIN\/([^\s()]*)\.([^.(]*)\(([^)]*)\)\@JDOCEND/fixMethodRef($1,$2,$3)/eg;
@@ -76,13 +76,26 @@ close INPUT;
 
 sub replaceDots {
     my $className = $_[0];
-    my $str = $className;
-    $str =~ s/\./\//g;
-    $str =~ s/\#/\./g;
-    if (!(-e "$jdocDir/$str.html")) {
+    # sometime $ might have been turned into %24; if so, set it back:
+    $className =~ s/\%24/\$/g;
+    my $classFile = $className;
+    $classFile =~ s/\./\//g;
+    $classFile =~ s/\$/\./g;
+    my $classLink; # this will be the filename, plus any '#' tag
+    # see if classFile has a '#' tag at the end. If so, remove it and place
+    # it at the end, after the ".html"
+    if ( $classFile =~ m/(^.*)(\#[^#]*$)/ ) {
+        $classFile = "$1.html";
+        $classLink = "$1.html$2";
+    }
+    else {
+        $classFile = "$classFile.html";
+        $classLink = $classFile;
+    }
+    if (!(-e "$jdocDir/$classFile")) {
        warn "WARNING: class $className not found\n";
     }
-    return "\@JDOCBEGIN/$str.html";
+    return "\@JDOCBEGIN/$classLink";
 }
 
 # Returns the substitution string for a matched method reference.  The

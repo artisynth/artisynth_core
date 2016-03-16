@@ -21,6 +21,7 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLViewer;
 
@@ -208,7 +209,7 @@ public class NagataDistanceTest implements GLRenderable, HasRenderProps {
       double xi1 = myCurveBounds[1];
       myInterp.interpolateVertex (pos0, myCurvePos.x, myCurvePos.y);
       myInterp.interpolateCurve (pos, xi0, pos0, myCurvePos, myCurveDir);
-      renderer.setLightingEnabled (false);      
+      renderer.setShading (Shading.NONE);
       renderer.beginDraw (DrawMode.LINE_STRIP);
       renderer.setColor (1f, 1f, 0f);
       renderer.addVertex (pos);
@@ -218,7 +219,7 @@ public class NagataDistanceTest implements GLRenderable, HasRenderProps {
          renderer.addVertex (pos);
       }
       renderer.endDraw();
-      renderer.setLightingEnabled (true);      
+      renderer.setShading (Shading.FLAT);
    }
 
    public void updateBounds (Point3d pmin, Point3d pmax) {

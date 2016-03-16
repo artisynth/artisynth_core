@@ -11,6 +11,7 @@ import maspack.matrix.Vector3d;
 import maspack.render.RenderList;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
 
 public class AABB extends BVNode {
 
@@ -542,7 +543,7 @@ public class AABB extends BVNode {
    
    public void render (Renderer renderer, int flags) {
       
-      renderer.setLightingEnabled (false);
+      renderer.setShading (Shading.NONE);
       renderer.setColor (0, 1f, 0);
       renderer.beginDraw (DrawMode.LINE_LOOP);
       renderer.addVertex (myMin.x, myMin.y, myMin.z);
@@ -566,7 +567,7 @@ public class AABB extends BVNode {
       renderer.addVertex (myMin.x, myMax.y, myMin.z);
       renderer.addVertex (myMin.x, myMax.y, myMax.z);
       renderer.endDraw();
-      renderer.setLightingEnabled (true);
+      renderer.setShading (Shading.FLAT);
    }
 
 }

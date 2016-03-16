@@ -90,7 +90,7 @@ is a concern, a rendering cache should be constructed in the form of a
 
 The \javaclass{Renderer} interface provides functions for drawing simple
 primitives and structures, including: points, lines, spheres, cylinders,
-cones, tapered ellipsoids, arrows, tetrahedrons, pyramids, wedges, hexahedrons,
+cones, spindles, arrows, tetrahedrons, pyramids, wedges, hexahedrons,
 and axes.  \ldots
 
 \section{Custom Render Objects}
@@ -529,7 +529,7 @@ drawing exist:
    active point group using a particular style (point, sphere) and radius (pixel width, sphere radius)
    \item[Renderer.drawLines(RenderObject robj)] draws the current active line group
    \item[Renderer.drawLines(RenderObject robj, LineStyle style, float r)] draws the current 
-   active line group using a particular style (line, cylinder, tapered ellipsoid, arrow) and radius
+   active line group using a particular style (line, cylinder, spindle, arrow) and radius
    (pixel width, cylinder/ellipsoid/arrow radius)
    \item[Renderer.drawTriangles(RenderObject robj)] draws the current active triangle group
    \item[Renderer.drawVertices(RenderObject robj, VertexDrawMode mode)] draws the complete

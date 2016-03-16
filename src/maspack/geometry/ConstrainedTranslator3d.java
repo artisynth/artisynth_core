@@ -17,6 +17,7 @@ import maspack.matrix.Vector3d;
 import maspack.render.Dragger3dBase;
 import maspack.render.MouseRayEvent;
 import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
 //import maspack.render.Dragger3dBase.DragMode;
 import maspack.render.RenderObject;
 import maspack.render.GL.GLViewer;
@@ -70,8 +71,8 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
       }
       
       GLViewer viewer = (GLViewer)renderer;
-
-      viewer.setLightingEnabled (false);
+      
+      Shading savedShading = viewer.setShading (Shading.NONE);
       viewer.setLineWidth(myLineWidth);
       
       viewer.pushModelMatrix();
@@ -92,7 +93,7 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
       viewer.drawLines(ro);
       
       viewer.popModelMatrix();
-      viewer.setLightingEnabled (true);
+      viewer.setShading (savedShading);
    }
    
    private RenderObject createRenderable() {

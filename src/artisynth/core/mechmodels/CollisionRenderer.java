@@ -281,17 +281,18 @@ public class CollisionRenderer {
       if (r.numPoints() > 0) {
          PointStyle style = props.getPointStyle();
          double width = 0;
+         Shading savedShading = null;
          renderer.setPointColoring (props, /*selected=*/false);
          if (style == PointStyle.POINT) {
             width = props.getPointSize();
-            renderer.setLightingEnabled (false);
+            savedShading = renderer.setShading (Shading.NONE);
          }
          else {
             width = props.getPointRadius();
          }
          renderer.drawPoints (r, style, width);
          if (style == PointStyle.POINT) {
-            renderer.setLightingEnabled (true);
+            renderer.setShading (savedShading);
          }
       }
       

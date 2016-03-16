@@ -20,6 +20,7 @@ import maspack.render.PointEdgeRenderProps;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
@@ -833,7 +834,7 @@ public abstract class NURBSCurveBase extends NURBSObject {
          renderer.mulModelMatrix (myXObjToWorld);
       }
 
-      renderer.setLightingEnabled (false);
+      renderer.setShading (Shading.NONE);
 
       if (myDrawControlShapeP) {
          // draw the control polygon
@@ -881,7 +882,7 @@ public abstract class NURBSCurveBase extends NURBSObject {
 
       renderer.setLineWidth (1);
 
-      renderer.setLightingEnabled (true);
+      renderer.setShading (Shading.FLAT);
 
       renderer.popModelMatrix();
    }

@@ -102,12 +102,11 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
 
       float savedLineWidth = renderer.getLineWidth();
       Shading savedShadeModel = renderer.getShading();
-      boolean savedLightingEnabled = renderer.isLightingEnabled();
 
-      Shading shading = props.getShading();
-      if (renderer.isSelecting()) {
-         shading = Shading.NONE;
-      }
+//      Shading shading = props.getShading();
+//      if (renderer.isSelecting()) {
+//         shading = Shading.NONE;
+//      }
       boolean selected = ((flags & Renderer.SELECTED) != 0);
 
       LineStyle lineStyle = props.getLineStyle();
@@ -141,7 +140,6 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
 
       renderer.setLineWidth (savedLineWidth);
       renderer.setShading (savedShadeModel);
-      renderer.setLightingEnabled (savedLightingEnabled);
 
       renderer.popModelMatrix();
    }

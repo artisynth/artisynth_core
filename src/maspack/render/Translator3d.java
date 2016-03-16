@@ -13,6 +13,7 @@ import maspack.matrix.Plane;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLViewer;
 import maspack.util.InternalErrorException;
@@ -67,7 +68,7 @@ public class Translator3d extends Dragger3dBase {
       }
       GLViewer viewer = (GLViewer)renderer;
 
-      viewer.setLightingEnabled (false);
+      Shading savedShading = viewer.setShading (Shading.NONE);
       viewer.setLineWidth(myLineWidth);
       
       viewer.pushModelMatrix();
@@ -97,7 +98,7 @@ public class Translator3d extends Dragger3dBase {
       viewer.popModelMatrix();
       
       viewer.setLineWidth(1);
-      viewer.setLightingEnabled (true);
+      viewer.setShading (savedShading);
    }
    
    private static RenderObject createTranslatorRenderable() {

@@ -111,13 +111,10 @@ public class PointMeshRenderer extends MeshRendererBase {
 
       float savedLineWidth = renderer.getLineWidth();
       Shading savedShadeModel = renderer.getShading();
-      boolean savedLightingEnabled = renderer.isLightingEnabled();
 
-      Shading shading = props.getShading();
-
-      if (renderer.isSelecting()) {
-         shading = Shading.NONE;
-      }
+//      if (renderer.isSelecting()) {
+//         shading = Shading.NONE;
+//      }
 
       boolean selected = ((flags & Renderer.SELECTED) != 0);
 
@@ -154,7 +151,6 @@ public class PointMeshRenderer extends MeshRendererBase {
       
       renderer.setLineWidth (savedLineWidth);
       renderer.setShading (savedShadeModel);
-      renderer.setLightingEnabled (savedLightingEnabled);
 
       renderer.popModelMatrix();
    }

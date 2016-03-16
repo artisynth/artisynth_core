@@ -711,43 +711,43 @@ public class GL3Viewer extends GLViewer {
 
    // XXX Things that should be handled in GLViewer
 
-   @Override
-   public void begin2DRendering(double left, double right, double bottom, double top) {
+//   @Override
+//   public void begin2DRendering(double left, double right, double bottom, double top) {
+//
+//      // save depth, lighting, face culling information
+//      pushViewerState();
+//      setLightingEnabled (false);
+//      setDepthEnabled(false);
+//
+//      pushModelMatrix();
+//      pushViewMatrix();
+//      pushProjectionMatrix();
+//
+//      setModelMatrix(RigidTransform3d.IDENTITY);
+//      setViewMatrix(RigidTransform3d.IDENTITY);
+//      setOrthogonal2d(left, right, bottom, top);
+//
+//      rendering2d = true;
+//   }
+//
+//   @Override
+//   public void finish2DRendering() {
+//
+//      popProjectionMatrix();
+//      popViewMatrix();
+//      popModelMatrix();
+//      popViewerState();
+//
+//      setLightingEnabled (true);
+//      setDepthEnabled(true);
+//
+//      rendering2d = false;
+//   }
 
-      // save depth, lighting, face culling information
-      pushViewerState();
-      setLightingEnabled (false);
-      setDepthEnabled(false);
-
-      pushModelMatrix();
-      pushViewMatrix();
-      pushProjectionMatrix();
-
-      setModelMatrix(RigidTransform3d.IDENTITY);
-      setViewMatrix(RigidTransform3d.IDENTITY);
-      setOrthogonal2d(left, right, bottom, top);
-
-      rendering2d = true;
-   }
-
-   @Override
-   public void finish2DRendering() {
-
-      popProjectionMatrix();
-      popViewMatrix();
-      popModelMatrix();
-      popViewerState();
-
-      setLightingEnabled (true);
-      setDepthEnabled(true);
-
-      rendering2d = false;
-   }
-
-   @Override
-   public boolean is2DRendering() {
-      return rendering2d;
-   }
+//   @Override
+//   public boolean is2DRendering() {
+//      return rendering2d;
+//   }
 
    //   //==========================================================================
    //   //  Colours and Materials
@@ -1276,7 +1276,7 @@ public class GL3Viewer extends GLViewer {
          key = new GLSLInfo(progManager.numLights(), progManager.numClipPlanes(), 
             Shading.NONE, ColorInterpolation.NONE, false, false, false, getColorMixing(), getTextureMixing());
       } else {
-         boolean hasColors = isVertexColoringEnabled();
+         boolean hasColors = hasVertexColoring();
          if (!isLightingEnabled()) {
             shading = Shading.NONE;
          }
@@ -2154,7 +2154,7 @@ public class GL3Viewer extends GLViewer {
             shading = Shading.NONE;
          }
          ColorInterpolation cinterp = ColorInterpolation.RGB;
-         if (!robj.hasColors() || !isVertexColoringEnabled()) {
+         if (!robj.hasColors() || !hasVertexColoring()) {
             cinterp = ColorInterpolation.NONE;
          } else if (isHSVColorInterpolationEnabled()) {
             cinterp = ColorInterpolation.HSV;
@@ -2171,7 +2171,7 @@ public class GL3Viewer extends GLViewer {
             progManager.numClipPlanes(), 
             shading, cinterp, 
             isLightingEnabled() && robj.hasNormals(), 
-            isVertexColoringEnabled() && robj.hasColors(),
+            hasVertexColoring() && robj.hasColors(),
             isTextureMappingEnabled() && robj.hasTextureCoords(),
             cmix, tmix);
 
@@ -2195,7 +2195,7 @@ public class GL3Viewer extends GLViewer {
             shading = Shading.NONE;
          }
          ColorInterpolation cinterp = ColorInterpolation.RGB;
-         if (!robj.hasColors() || !isVertexColoringEnabled()) {
+         if (!robj.hasColors() || !hasVertexColoring()) {
             cinterp = ColorInterpolation.NONE;
          } else if (isHSVColorInterpolationEnabled()) {
             cinterp = ColorInterpolation.HSV;
@@ -2204,7 +2204,7 @@ public class GL3Viewer extends GLViewer {
             progManager.numClipPlanes(), 
             shading, cinterp, isLightingEnabled(), false, false,
             InstancedRendering.POINTS, 
-            isVertexColoringEnabled() && robj.hasColors(),
+            hasVertexColoring() && robj.hasColors(),
             isTextureMappingEnabled() && robj.hasTextureCoords(),
             false, false, false, 
             getColorMixing(), getTextureMixing());
@@ -2228,7 +2228,7 @@ public class GL3Viewer extends GLViewer {
             shading = Shading.NONE;
          }
          ColorInterpolation cinterp = ColorInterpolation.RGB;
-         if (!robj.hasColors() || !isVertexColoringEnabled()) {
+         if (!robj.hasColors() || !hasVertexColoring()) {
             cinterp = ColorInterpolation.NONE;
          } else if (isHSVColorInterpolationEnabled()) {
             cinterp = ColorInterpolation.HSV;
@@ -2239,7 +2239,7 @@ public class GL3Viewer extends GLViewer {
             InstancedRendering.LINES,
             false, false,
             style == LineStyle.SOLID_ARROW,
-            isVertexColoringEnabled() && robj.hasColors(),
+            hasVertexColoring() && robj.hasColors(),
             isTextureMappingEnabled() && robj.hasTextureCoords(),
             getColorMixing(), getTextureMixing());
       }

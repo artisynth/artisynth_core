@@ -13,6 +13,8 @@ import maspack.properties.*;
 import maspack.matrix.*;
 import maspack.util.*;
 import maspack.render.*;
+import maspack.render.Renderer.ColorMixing;
+import maspack.render.Renderer.ColorInterpolation;
 
 public class MeshTestBase extends RootModel {
 
@@ -25,6 +27,9 @@ public class MeshTestBase extends RootModel {
       myProps.add ("hasNormals", "mesh has normals defined", false);
       myProps.add ("hasVertexColoring", "vertex coloring enabled", false);
       myProps.add ("hasFeatureColoring", "feature coloring enabled", false);
+      myProps.add ("colorMixing", "color coloring mix", ColorMixing.REPLACE);
+      myProps.add (
+         "colorInterpolation", "color interpolation", ColorInterpolation.RGB);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -95,12 +100,30 @@ public class MeshTestBase extends RootModel {
       }
    }
 
+   public ColorMixing getColorMixing() {
+      return getMainViewer().getColorMixing ();
+   }
+
+   public void setColorMixing (ColorMixing cmix) {
+      getMainViewer().setColorMixing (cmix);
+   }
+
+   public ColorInterpolation getColorInterpolation() {
+      return getMainViewer().getColorInterpolation ();
+   }
+
+   public void setColorInterpolation (ColorInterpolation cmix) {
+      getMainViewer().setColorInterpolation (cmix);
+   }
+
    ControlPanel createControlPanel (MeshComponent meshBody) {
       ControlPanel panel = new ControlPanel();
       panel.addWidget (this, "hasNormals");
       panel.addWidget (this, "hasVertexColoring");
       panel.addWidget (this, "hasFeatureColoring");
       panel.addWidget (meshBody, "renderProps.shading");
+      panel.addWidget (this, "colorMixing");
+      panel.addWidget (this, "colorInterpolation");
       return panel;
    }
 

@@ -13,6 +13,7 @@ import javax.media.opengl.GL2;
 import maspack.matrix.Point2d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.render.Renderer.Shading;
 import maspack.render.GL.GL2.GL2Viewer;
 
 public class FreehandTool extends DrawToolBase {
@@ -86,8 +87,7 @@ public class FreehandTool extends DrawToolBase {
       getToolToWorld (X);
       renderer.mulModelMatrix (X);
 
-      boolean saveLighting = renderer.isLightingEnabled ();
-      renderer.setLightingEnabled (false);
+      Shading savedShading = renderer.setShading (Shading.NONE);
       myLineColor.getRGBColorComponents (rgb);
       renderer.setColor (rgb);
       renderer.setLineWidth (myLineWidth);
@@ -105,7 +105,7 @@ public class FreehandTool extends DrawToolBase {
       gl.glEnd();
 
       renderer.setLineWidth (1);
-      renderer.setLightingEnabled (saveLighting);
+      renderer.setShading (savedShading);
 
       gl.glPopMatrix();
    }

@@ -131,34 +131,25 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       gl.glPushMatrix();
 
       Shading shading = props.getShading();
-      if (!renderer.isSelecting()) {
-         if (shading != Shading.NONE) {
-            renderer.setFaceColoring (props, isSelected());
-         }
+      if (shading != Shading.NONE) {
+         renderer.setFaceColoring (props, isSelected());
       }
 
       if (props.getFaceStyle() != Renderer.FaceStyle.NONE) {
          Shading savedShadeModel = renderer.getShading();
 
          if (shading == Shading.NONE) {
-            renderer.setLightingEnabled (false);
             renderer.setColor (props.getFaceColorF(), isSelected());
          }
-         else if (((shading != Shading.FLAT) || useVertexColouring) &&
-            !renderer.isSelecting()) {
-            renderer.setShading (Shading.GOURAUD);
-         }
-         else { // shading == Shading.FLAT
-            renderer.setShading (Shading.FLAT);
-         }
+         renderer.setShading (shading);
 
          if (props.getDrawEdges()) {
             gl.glEnable (GL2.GL_POLYGON_OFFSET_FILL);
             gl.glPolygonOffset (1f, 1f);
          }
-         if (useVertexColouring) {
-            renderer.setLightingEnabled (false);
-         }
+//         if (useVertexColouring) {
+//            renderer.setLightingEnabled (false);
+//         }
 
          boolean useDisplayList = !renderer.isSelecting();
          int displayList = 0;
@@ -190,14 +181,11 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
             gl.glCallList(displayList);
          }
 
-         if (useVertexColouring) {
-            renderer.setLightingEnabled (true);
-         }
+//         if (useVertexColouring) {
+//            renderer.setLightingEnabled (true);
+//         }
          if (props.getDrawEdges()) {
             gl.glDisable (GL2.GL_POLYGON_OFFSET_FILL);
-         }
-         if (shading == Shading.NONE) {
-            renderer.setLightingEnabled (true);
          }
          renderer.setShading (savedShadeModel);
       }
@@ -210,15 +198,13 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
 
       if (props.getDrawEdges()) {
 
-         boolean reenableLighting = false;
          float savedLineWidth = renderer.getLineWidth();
          Shading savedShadeModel = renderer.getShading();
 
          renderer.setLineWidth (props.getLineWidth());
 
          if (props.getLineColor() != null && !renderer.isSelecting()) {
-            reenableLighting = renderer.isLightingEnabled();
-            renderer.setLightingEnabled (false);
+            renderer.setShading (Shading.NONE);
             renderer.setLineColoring (props, isSelected()); 
          }
          if (useVertexColouring && !renderer.isSelecting()) {
@@ -258,9 +244,6 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
             gl.glCallList(displayList);
          }
 
-         if (reenableLighting) {
-            renderer.setLightingEnabled (true);
-         }
          renderer.setLineWidth (savedLineWidth);
          renderer.setShading (savedShadeModel);
       }

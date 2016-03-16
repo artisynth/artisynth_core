@@ -279,16 +279,16 @@ components.
 \subsubsection{Render property taxonomy}
 
 In general, the properties in {\tt RenderProps} are used to control
-the color, size, style, and resolution of the three primary rendering
+the color, size, and style of the three primary rendering
 primitives: faces, lines, and points. Table \ref{RenderProps:tab}
 contains a complete list. Values for the {\tt shading}, {\tt
 faceStyle}, {\tt lineStyle} and {\tt pointStyle} properties are
 defined using the following enumerated types:
-\javaclass[maspack.render]{Renderer\#Shading}, 
-\javaclass[maspack.render]{Renderer\#Faces}, 
-\javaclass[maspack.render]{Renderer\#PointStyle}, 
+\javaclass[maspack.render]{Renderer\$Shading}, 
+\javaclass[maspack.render]{Renderer\$Faces}, 
+\javaclass[maspack.render]{Renderer\$PointStyle}, 
 and 
-\javaclass[maspack.render]{Renderer\#LineStyle}.
+\javaclass[maspack.render]{Renderer\$LineStyle}.
 Colors are specified using {\tt java.awt.Color}.
 
 \begin{table}
@@ -297,9 +297,9 @@ Colors are specified using {\tt java.awt.Color}.
 \hline property & purpose & usual default value \\ \hline
 %Generic properties:
 visible & whether or not the component is visible & {\tt true} \\
-alpha & transparency for polygonal faces (range 0 to 1) & 1 (opaque) \\
-shading & polygon shading: ({\tt FLAT}, {\tt GOURARD}, {\tt PHONG}) & {\tt FLAT}\\
-shininess & shininess parameter for polygons (range 0 to 32) & 32 \\
+alpha & transparency for diffuse colors (range 0 to 1) & 1 (opaque) \\
+lighting & lighting style: ({\tt FLAT}, {\tt GOURARD}, {\tt PHONG}) & {\tt FLAT}\\
+shininess & shininess parameter (range 0 to 128) & 32 \\
 specular & specular color components & {\tt null} \\
 %Face related properties &
 \hline
@@ -307,28 +307,28 @@ faceStyle &
 which polygonal faces are drawn ({\tt FRONT}, {\tt BACK},
 {\tt FRONT\_AND\_BACK}, {\tt NONE}) & {\tt FRONT} \\
 faceColor &
-color used for drawing faces & {\tt GRAY} \\
+diffuse color for drawing faces & {\tt GRAY} \\
 backColor &
-color used for drawing backs of faces. If {\tt null}, {\tt faceColor} is used. &
-{\tt null} \\
-drawEdges & if true, polygon edges are drawn explicitly & {\tt false} \\
+diffuse color used for the backs of faces. 
+If {\tt null}, {\tt faceColor} is used. & {\tt null} \\
+drawEdges & hint that polygon edges should be drawn explicitly & {\tt false} \\
 % Edge related properties &
 \hline
-edgeColor & color for edges & {\tt null} \\
+edgeColor & diffuse color for edges & {\tt null} \\
 edgeWidth & edge width in pixels & 1 \\
 % Line related properties &
 \hline
 lineStyle: &
-how lines are drawn ({\tt CYLINDER}, {\tt LINE}, or {\tt ELLIPSOID}) & 
+how lines are drawn ({\tt CYLINDER}, {\tt LINE}, or {\tt SPINDLE}) & 
 {\tt LINE} \\
-lineColor & color for lines & {\tt GRAY} \\
+lineColor & diffuse color for lines & {\tt GRAY} \\
 lineWidth & width in pixels when {\tt LINE} style is selected & 1 \\
-lineRadius & radius when {\tt CYLINDER} or {\tt ELLIPSOID} style is selected &
+lineRadius & radius when {\tt CYLINDER} or {\tt SPINDLE} style is selected &
 1 \\
 % Point related properties &
 \hline
 pointStyle & how points are drawn ({\tt SPHERE} or {\tt POINT}) & {\tt POINT} \\
-pointColor & color for points & {\tt GRAY} \\
+pointColor & diffuse color for points & {\tt GRAY} \\
 pointSize & point size in pixels when {\tt POINT} style is selected & 1 \\
 pointRadius & sphere radius when {\tt SPHERE} style is selected & 1 \\
 \hline
@@ -340,7 +340,7 @@ pointRadius & sphere radius when {\tt SPHERE} style is selected & 1 \\
 
 To increase and improve their visibility, both the line and point
 primitives are associated with styles ({\tt CYLINDER}, {\tt
-ELLIPSOID}, and {\tt SPHERE}) that allow them to be rendered using 3D
+SPINDLE}, and {\tt SPHERE}) that allow them to be rendered using 3D
 surface geometry.
 
 Exactly how a component interprets its render properties is up to the
@@ -585,10 +585,10 @@ with a {\tt SimpleAxialMuscle} material:
 \end{lstlisting}
 %
 Also, so that the muscle renders differently, the rendering style
-for lines is set to {\tt ELLIPSOID} using the convenience method
+for lines is set to {\tt SPINDLE} using the convenience method
 %
 \begin{lstlisting}[]
-      RenderProps.setEllipsoidalLines (muscle, 0.02, Color.RED);
+      RenderProps.setSpindleLines (muscle, 0.02, Color.RED);
 \end{lstlisting}
 %
 
@@ -909,7 +909,7 @@ which specifically enables or disables the ability of that collidable
 to collide with other collidables.
 
 The {\tt collidable} property value is of the enumerated type
-\javaclass[artisynth.core.mechmodels]{Collidable\#Collidability}, which
+\javaclass[artisynth.core.mechmodels]{Collidable\$Collidability}, which
 has four possible settings:
 
 \begin{description}

@@ -475,6 +475,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (DEBUG) {
          System.out.println("GL2 initialized");
       }
+      
    }
 
    @Override
@@ -817,7 +818,13 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          resetViewVolume();
          resetViewVolume = false;
       }
-
+      if (isSelecting()) {
+         // XXX if we don't do this, selection breaks. This is since
+         // begin/finish 2D rendering was redone to push/pop the
+         // matrices in GLViewer.
+         invalidateProjectionMatrix();
+      }
+      
       gl.glPushMatrix();
 
       if (isSelecting()) {
@@ -1124,7 +1131,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          int[] mmode = new int[1]; 
          gl.glGetIntegerv(GL2.GL_MATRIX_MODE, mmode, 0);
          GLSupport.transformToGLMatrix(GLMatrix, mvmatrix);
-
 
          gl.glMatrixMode(GL2.GL_MODELVIEW);
          gl.glLoadMatrixd(GLMatrix,0);
@@ -2480,51 +2486,54 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    public void setDBlending(BlendType glBlendValue) {
       dBlending = glBlendValue;
    }
-
+   
    @Override
    public void begin2DRendering(double left, double right, double bottom, double top) {
-
+      // XXX should be able to just use the GLViewer version of this
+      // method, but GL2 seems to require extra things to be saved
+      // and restored.
+      
       int attribBits = 
-      GL2.GL_ENABLE_BIT | GL2.GL_TEXTURE_BIT | GL2.GL_COLOR_BUFFER_BIT 
-      |GL2.GL_DEPTH_BUFFER_BIT | GL2.GL_TRANSFORM_BIT;
+         (GL2.GL_ENABLE_BIT | GL2.GL_TEXTURE_BIT | GL2.GL_COLOR_BUFFER_BIT |
+          GL2.GL_DEPTH_BUFFER_BIT | GL2.GL_TRANSFORM_BIT);
       gl.glPushAttrib(attribBits);
 
       setLightingOn (false);
       gl.glDisable(GL2.GL_DEPTH_TEST);
       gl.glDisable(GL2.GL_CULL_FACE);
 
-      // XXX modify global projection, model and view matrices?
       gl.glMatrixMode(GL2.GL_TEXTURE);
       gl.glPushMatrix();
       gl.glLoadIdentity();
-      gl.glMatrixMode(GL2.GL_PROJECTION);
-      gl.glPushMatrix();
-      gl.glLoadIdentity();
-      gl.glOrtho(left, right, bottom, top, -1, 1);
-      gl.glMatrixMode(GL2.GL_MODELVIEW);
-      gl.glPushMatrix();
-      gl.glLoadIdentity();
-      rendering2d = true;
+      pushModelMatrix();
+      pushViewMatrix();
+      super.pushProjectionMatrix();
+      
+      setModelMatrix(RigidTransform3d.IDENTITY);
+      setViewMatrix(RigidTransform3d.IDENTITY);
+      setOrthogonal2d(left, right, bottom, top);
 
+      rendering2d = true;
    }
 
    @Override
    public void finish2DRendering() {
-
+      
+      rendering2d = false;
+      super.popProjectionMatrix();
+      popViewMatrix();
+      popModelMatrix();
+            
       gl.glMatrixMode(GL2.GL_TEXTURE);
       gl.glPopMatrix();
-      gl.glMatrixMode(GL2.GL_PROJECTION);
-      gl.glPopMatrix();
-      gl.glMatrixMode(GL2.GL_MODELVIEW);
-      gl.glPopMatrix();
       gl.glPopAttrib();
-      rendering2d = false;
    }
 
-   @Override
-   public boolean is2DRendering() {
-      return rendering2d;
-   }
+
+//   @Override
+//   public boolean is2DRendering() {
+//      return rendering2d;
+//   }
 
    @Override
    public GL2 getGL2() {
@@ -2568,9 +2577,18 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    // call gl.glColor(...) only if not in selection mode
    // assumes the c specifies RGBA colors
-   private void setGLColor(GL2 gl, float[] c, int offset) {
+   private void setGLColor(GL2 gl, float[] c, int offset, boolean useHSV) {
       if (!isSelecting ()) {
-         gl.glColor4fv (c, offset);
+         if (useHSV) {
+            float[] cbuf = new float[] {
+               c[offset], c[offset+1], c[offset+2], c[offset+3]};
+
+            GLSupport.RGBtoHSV (cbuf, cbuf);
+            gl.glColor4fv (cbuf, 0);
+         }
+         else {
+            gl.glColor4fv (c, offset);
+         }
       }
    }
 
@@ -2586,7 +2604,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          maybeUpdateState(gl);
          
          boolean selecting = isSelecting();
-         boolean hasColors = (robj.hasColors() && isVertexColoringEnabled());
+         boolean hasColors = (robj.hasColors() && hasVertexColoring());
          boolean useColors = hasColors && !selecting;
          boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
@@ -2795,7 +2813,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          maybeUpdateState(gl);
          
          boolean selecting = isSelecting();
-         boolean hasColors = (robj.hasColors() && isVertexColoringEnabled());
+         boolean hasColors = (robj.hasColors() && hasVertexColoring());
          boolean useColors = hasColors && !selecting;
          boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
@@ -3326,7 +3344,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       List<int[]> lines = robj.getLines();
 
       boolean selecting = isSelecting();
-      boolean hasColors = (robj.hasColors() && isVertexColoringEnabled());
+      boolean hasColors = (robj.hasColors() && hasVertexColoring());
       boolean useColors = hasColors && !selecting;
       boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
@@ -3504,7 +3522,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          maybeUpdateState(gl);
 
          boolean selecting = isSelecting();
-         boolean hasColors = (robj.hasColors() && isVertexColoringEnabled());
+         boolean hasColors = (robj.hasColors() && hasVertexColoring());
          boolean useColors = hasColors && !selecting;
          boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
@@ -3545,7 +3563,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
             for (int[] pnt : pnts) {
                VertexIndexSet v = robj.getVertex(pnt[0]);
-               if (!selecting && robj.hasColors() && isVertexColoringEnabled()) {
+               if (!selecting && robj.hasColors() && hasVertexColoring()) {
                   setVertexColor (gl, robj.getColor (v.getColorIndex ()), useHSV);
                }
                if (robj.hasNormals()) {
@@ -3588,7 +3606,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          myGLResources.getSphereDisplayList(gl, mySurfaceResolution);
 
       boolean selecting = isSelecting();
-      boolean hasColors = (robj.hasColors() && isVertexColoringEnabled());
+      boolean hasColors = (robj.hasColors() && hasVertexColoring());
       boolean useColors = hasColors && !selecting;
       boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
@@ -3700,7 +3718,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       maybeUpdateState(gl);
       
       boolean selecting = isSelecting();
-      boolean hasColors = (robj.hasColors() && isVertexColoringEnabled());
+      boolean hasColors = (robj.hasColors() && hasVertexColoring());
       boolean useColors = hasColors && !selecting;
       boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
 
@@ -3885,10 +3903,15 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       // smooth shading, in order for vertex color interpolation to work
       // properly.
       boolean savedLighting = isLightingOn();
+      boolean useHSV = false;
       int savedShading = getGLShadeModel();
       if (hasColorData) {
          gl.glDisable (GL2.GL_LIGHTING);
          gl.glShadeModel (GL2.GL_SMOOTH);
+         useHSV = isHSVColorInterpolationEnabled();
+         if (useHSV) {
+            useHSV = setupHSVInterpolation(gl);
+         }         
       }
 
       gl.glBegin (getDrawPrimitive(drawMode));
@@ -3897,7 +3920,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          int cidx = 0;
          int vidx = 0;
          for (int i=0; i<numVertices; ++i) {
-            setGLColor(gl, colorData, cidx);
+            setGLColor(gl, colorData, cidx, useHSV);
             gl.glNormal3fv (normalData, vidx);
             gl.glVertex3fv (vertexData, vidx);
             cidx += 4;
@@ -3907,7 +3930,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          int cidx = 0;
          int vidx = 0;
          for (int i=0; i<numVertices; ++i) {
-            setGLColor(gl, colorData, cidx);
+            setGLColor(gl, colorData, cidx, useHSV);
             gl.glVertex3fv (vertexData, vidx);
             cidx += 4;
             vidx += 3;
@@ -3934,11 +3957,14 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          if (savedShading != GL2.GL_SMOOTH) {
             gl.glShadeModel (savedShading);
          }
+         if (useHSV) {
+            gl.glUseProgramObjectARB (0);
+         }
       }
    }
 
    public boolean hasColorMixing (ColorMixing cmix) {
-      if (cmix == ColorMixing.REPLACE) {
+      if (cmix == ColorMixing.REPLACE || cmix == ColorMixing.NONE) {
          return true;
       }
       else {

@@ -73,8 +73,8 @@ public class HudKeyListener implements KeyListener {
     * 
     * @param hud
     * the HudPrintStream object to control
-    * @param renderer
-    * (optional) a renderer use to trigger re-render events after changes
+    * @param viewer
+    * (optional) a viewer used to trigger re-render events after changes
     */
    public HudKeyListener (HudPrintStream hud, GLViewer viewer) {
       myHud = hud;

@@ -17,6 +17,7 @@ import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.RenderObject;
 import maspack.render.Renderer.LineStyle;
+import maspack.render.Renderer.Shading;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.ClassAliases;
 
@@ -442,10 +443,10 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
          int width = props.getLineWidth();
          if (width > 0) {
             boolean selected = (group == SEL_GRP);
-            renderer.setLightingEnabled (false);
+            Shading savedShading = renderer.setShading (Shading.NONE);
             renderer.setLineColoring (props, selected);
             renderer.drawLines (r, LineStyle.LINE, width);
-            renderer.setLightingEnabled (true);
+            renderer.setShading (savedShading);
          }
       }
    }

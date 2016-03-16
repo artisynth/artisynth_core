@@ -30,6 +30,7 @@ import maspack.render.Transrotator3d;
 import maspack.render.ConvexPoly2d.Vertex2d;
 import maspack.render.Dragger3d.DraggerType;
 import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
 import maspack.util.InternalErrorException;
 import maspack.util.Round;
 
@@ -1044,8 +1045,8 @@ public class GLGridPlane implements HasProperties {
          (float)xmin, (float)xmax, (float)ymin, (float)ymax,
          myXAxisRGB, myYAxisRGB, myMajorRGB, minorRGB);
 
-      renderer.setLightingEnabled (false);
-      renderer.setLineWidth(myLineWidth);
+      Shading savedShading = viewer.setShading (Shading.NONE);
+      viewer.setLineWidth(myLineWidth);
 
       viewer.pushModelMatrix();
       viewer.mulModelMatrix(XGridToWorld);
@@ -1054,7 +1055,7 @@ public class GLGridPlane implements HasProperties {
 
       viewer.popModelMatrix();
       viewer.setLineWidth(1);
-      viewer.setLightingEnabled (true);
+      viewer.setShading (savedShading);
 
       if (myAutoSizedP &&
       (majorCellSize != myResolution.getMajorCellSize() ||

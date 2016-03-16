@@ -12,6 +12,7 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
 import maspack.render.RenderList;
 import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLViewerFrame;
@@ -373,7 +374,7 @@ public class MeshColliderTest {
 
          public void render (Renderer renderer, int flags) {
 
-            renderer.setLightingEnabled (false);
+            renderer.setShading (Shading.NONE);
 
             if (info != null) {
                renderer.setColor (0, 0, 1);
@@ -432,7 +433,7 @@ public class MeshColliderTest {
             // draw mesh normals
             // //////////////////////////////
 
-            renderer.setLightingEnabled (true);
+            renderer.setShading (Shading.FLAT);
          }
 
          public void updateBounds (Point3d pmin, Point3d pmax) {

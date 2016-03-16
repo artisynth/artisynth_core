@@ -15,6 +15,7 @@ import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
 import maspack.render.RenderList;
 import maspack.render.GL.GLRenderable;
 import maspack.util.InternalErrorException;
@@ -481,7 +482,7 @@ public class SurfaceMeshCollider implements AbstractCollider {
 
       public void render (Renderer renderer, int flags) {
          
-         renderer.setLightingEnabled (false);
+         renderer.setShading (Shading.NONE);
          //gl.glDisable (GL2.GL_LINE_STIPPLE);
          //gl.glEnable (GL2.GL_LINE_SMOOTH);
          renderer.setLineWidth (6);
@@ -519,7 +520,7 @@ public class SurfaceMeshCollider implements AbstractCollider {
             renderer.setPointSize (1);
          }
          renderer.setLineWidth (1);
-         renderer.setLightingEnabled (true);
+         renderer.setShading (Shading.FLAT);
       }
 
       void renderFace (Renderer renderer, Face aFace) {

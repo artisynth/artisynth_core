@@ -451,7 +451,7 @@ hyperlink to the Javadoc.
 
 When referencing an inner class or enumerated type, one should
 separate the subclass name from the main class name with an escaped
-hashtag {\tt \#} instead of a {\tt .} character. This allows {\tt \BKS
+dollarsign {\tt \$} instead of a {\tt .} character. This allows {\tt \BKS
 javaclass} to distinguish class name separators from package name
 separators (which need to be converted to file separators). The
 hashtags will be converted to dot characters on output.
@@ -459,27 +459,42 @@ hashtags will be converted to dot characters on output.
 For example, the LaTeX source 
 
 \begin{lstlisting}[]
-Use the \javaclass[maspack.matrix]{Matrix\#WriteFormat} to control formatting.
+Use the \javaclass[maspack.matrix]{Matrix\$WriteFormat} to control formatting.
 \end{lstlisting}
 
-will produce the output
+will produce the output:
 
-Use the \javaclass[maspack.matrix]{Matrix\#WriteFormat} to control formatting.
+Use the \javaclass[maspack.matrix]{Matrix\$WriteFormat} to control formatting.
 
-Finally, one may sometimes want complete control over the visible text
-associated with a class. This can be done using the {\tt \BKS javaclassAlt}
-macro, which takes two arguments: the class reference, and the visible
-text. So for example, the LaTeX source 
+Complete control over the anchor test can be
+achieved using the {\tt \BKS javaclassAlt} macro, which takes two
+arguments: the class reference, and the visible text. So for example,
+the LaTeX source
 
 \begin{lstlisting}[]
-Use the \javaclassAlt[maspack.matrix.Matrix\#WriteFormat}{WriteFormat}
+Use the \javaclassAlt{maspack.matrix.Matrix\$WriteFormat}{WriteFormat}
 to control formatting.
 \end{lstlisting}
 
 will produce the output:
 
-Use the \javaclassAlt[maspack.matrix.Matrix\#WriteFormat}{WriteFormat}
+Use the \javaclassAlt{maspack.matrix.Matrix\$WriteFormat}{WriteFormat}
 to control formatting.
+
+{\tt \BKS javaclassAlt} is also useful in cases where one needs to
+embed a {\tt \#} tag in the class reference, such as when refering to
+fields of an enumerated type. The {\tt \#} tag can be placed
+in the first argument, as in this example,
+
+\begin{lstlisting}[]
+\javaclassAlt{maspack.matrix.Matrix\$WriteFormat\#CRS}{WriteFormat.CRS} causes
+the matrix to be written using the compressed row storage format.
+\end{lstlisting}
+
+which produces the output:
+
+\javaclassAlt{maspack.matrix.Matrix\$WriteFormat\#CRS}{WriteFormat.CRS} causes
+the matrix to be written using the compressed row storage format.
 
 %For additional brevity in the LaTeX source
 %file, one can also use the command {\tt \BKS javaclassx}, which

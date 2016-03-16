@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import maspack.util.*;
 import maspack.matrix.*;
 import maspack.render.*;
+import maspack.render.Renderer.Shading;
 
 public class FemElementRenderer {
 
@@ -264,12 +265,12 @@ public class FemElementRenderer {
       RenderObject r = myRob;      
       updateEdgePositions (r, elem);
 
-      renderer.setLightingEnabled (false);
+      Shading savedShading = renderer.setShading (Shading.NONE);
       renderer.setLineWidth (props.getLineWidth());
       renderer.setLineColoring (props, elem.isSelected());
       renderer.drawLines (r);
       renderer.setLineWidth (1);
-      renderer.setLightingEnabled (true);
+      renderer.setShading (savedShading);
 
       double wsize = elem.getElementWidgetSize();
       if (wsize > 0) {

@@ -14,6 +14,7 @@ import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.ColorMixing;
 
 public class PolygonalMeshRenderer extends MeshRendererBase {
 
@@ -211,10 +212,10 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
     * edgeWidth and edgeColor (or LineColor if edgeColor is undefined), according
     * to the following rules:
     *
-    * <p>If faces <i>are not</i> also being drawn and there <i>is no</i> vertex
-    * coloring, then edges should be rendered with whatever shading is
-    * selected, and should highlight when selected;
-    *
+    * <p>If faces <i>are</i> also being drawn and there <i>is</i> vertex
+    * coloring, then edges should render using the edge color, with whatever
+    * shading is selected, and should not highlight when selected.
+    * 
     * <p>If faces <i>are</i> also being drawn and there <i>is no</i> vertex
     * coloring, then (a) edges should not highlight when selected (the faces
     * will instead), and (b) edges should be rendered with whatever shading is
@@ -223,20 +224,20 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
     *
     * <p>If faces <i>are not</i> also being drawn and there <i>is</i> vertex
     * coloring, then edges should render using the vertex coloring, with
-    * whatever shading is selected, and not highlight when selected.
+    * whatever shading is selected, unless the mesh is selected, in which case
+    * it should they should be rendered with the selection color.
     *
-    * <p>If faces <i>are</i> also being drawn and there <i>is</i> vertex
-    * coloring, then edges should render using the edge color, with whatever
-    * shading is selected, and should highlight when selected.
+    * <p>If faces <i>are not</i> also being drawn and there <i>is no</i> vertex
+    * coloring, then edges should be rendered with whatever shading is
+    * selected, and should highlight when selected;
     */
    private void drawEdges (
       Renderer renderer, PolygonalMesh mesh,
-      RenderProps props, int flags, boolean drawingFaces) {
+      RenderProps props, int flags, boolean alsoDrawingFaces) {
 
       boolean useHSV =
          mesh.hasColors() && ((flags & Renderer.HSV_COLOR_INTERPOLATION) != 0);
 
-      boolean savedLighting = renderer.isLightingEnabled ();
       float savedLineWidth = renderer.getLineWidth();
       Shading savedShadeModel = renderer.getShading();
 
@@ -246,58 +247,51 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       renderer.setLineWidth (props.getEdgeWidth());
 
       Shading shading = props.getShading();
+      if (!mesh.hasNormals() && shading != Shading.FLAT) {
+         shading = Shading.NONE;
+      }
+
       float[] edgeColor = getEffectiveEdgeColor(props);
 
-      if (mesh.hasColors()) {
-         if (drawingFaces) {
+      if (alsoDrawingFaces) {
+         selected = false;
+         if (mesh.hasColors()) {
             disableColors = true;
          }
          else {
-            // or do we want to disable colors if selected?
-            shading = Shading.GOURAUD;
-            // smooth shading is needed to get line colors to interpolate
-            renderer.setLightingEnabled (false);
-         }
-      }
-      else {
-         if (drawingFaces) {
-            selected = false;
             if (colorsEqual (edgeColor, props.getFaceColorF())) {
                // turn off shading so we can see edges
                shading = Shading.NONE;
             }
          }
       }
-      
-      if (!mesh.hasColors() || disableColors) {
-         if (shading == Shading.NONE ||
-             (!mesh.hasNormals() && shading != Shading.FLAT)) {
-            renderer.setLightingEnabled (false);
-            renderer.setColor (edgeColor, selected);
-         }
-         else {
-            renderer.setEdgeColoring (props, selected);
-            renderer.setShading (shading);
-         }
-      }
       else {
-         renderer.setShading (shading);
+         if (mesh.hasColors()) {
+            if (selected) {
+               disableColors = true;
+            }
+         }
       }
+      renderer.setEdgeColoring (props, selected);
+      renderer.setShading (shading);
 
       if (useHSV) {
-         //renderer.setColorInterpolation (ColorInterpolation.HSV);
+         renderer.setColorInterpolation (ColorInterpolation.HSV);
       }
+      ColorMixing savedColorMixing = null;
       if (disableColors) {
-         //FINISH - implement
+         savedColorMixing = renderer.getColorMixing();
+         renderer.setColorMixing (ColorMixing.NONE);
       }
       renderer.drawLines (myRob);
       if (useHSV) {
          renderer.setColorInterpolation (ColorInterpolation.RGB);
       }
-
+      if (disableColors) {
+         renderer.setColorMixing (savedColorMixing);
+      }
       renderer.setLineWidth (savedLineWidth);
       renderer.setShading (savedShadeModel);
-      renderer.setLightingEnabled (savedLighting);
    }
 
 //   private void setFaceMaterialAndShading (
@@ -329,33 +323,16 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
 
       boolean selected = ((flags & Renderer.SELECTED) != 0);
 
-      boolean savedLighting = renderer.isLightingEnabled ();
       Renderer.FaceStyle savedFaceStyle = renderer.getFaceStyle();
       Shading savedShadeModel = renderer.getShading();
 
       Shading shading = props.getShading();
-      if (mesh.hasColors()) {
-         // smooth shading is needed to get line colors to interpolate
-         // XXX renderer.setShadeModel (Shading.PHONG);
-         if (shading == Shading.NONE) {
-            renderer.setLightingEnabled (false);
-         } else {
-            renderer.setShading (shading);
-            renderer.setFaceColoring (props, selected);
-         }
-      }
-      else {
-         if (shading == Shading.NONE ||
-             (!mesh.hasNormals() && shading != Shading.FLAT)) {
-            renderer.setLightingEnabled (false);
-            renderer.setFaceColoring (props, selected);
-         }
-         else {
-            renderer.setShading (shading);
-            renderer.setFaceColoring (props, selected);
-         }
+      if (!mesh.hasNormals() && shading != Shading.FLAT) {
+         shading = Shading.NONE;
       }
 
+      renderer.setShading (shading);
+      renderer.setFaceColoring (props, selected);
       renderer.setFaceStyle (props.getFaceStyle());
 
       //int i = 0; // i is index of face
@@ -382,7 +359,6 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       }
       renderer.setFaceStyle (savedFaceStyle);
       renderer.setShading (savedShadeModel);
-      renderer.setLightingEnabled (savedLighting);
    }
 
    public void renderEdges (

@@ -11,6 +11,7 @@ import java.util.*;
 import maspack.matrix.*;
 import maspack.render.*;
 import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLRenderable;
 import maspack.geometry.SignedDistanceGridCell;
 //TODO: Include reference to Bridson's code.
@@ -781,9 +782,8 @@ public class SignedDistanceGrid implements GLRenderable {
 
    public void render (Renderer renderer, int flags) {
 
-      boolean lighting = renderer.isLightingEnabled();
-      if (lighting)
-         renderer.setLightingEnabled (false);
+      Shading savedShading = renderer.getShading();
+      renderer.setShading (Shading.NONE);
       renderer.pushModelMatrix();
       if (mesh != null) {
          renderer.mulModelMatrix (mesh.XMeshToWorld);
@@ -819,8 +819,7 @@ public class SignedDistanceGrid implements GLRenderable {
          myVertex = getMeshCoordinatesFromGrid (x, y, z);   
          gridCellArray[i].render (renderer, flags);
       }
-      if (lighting)
-         renderer.setLightingEnabled (true);
+      renderer.setShading (savedShading);
    }
 
    public void updateBounds (Point3d pmin, Point3d pmax) {

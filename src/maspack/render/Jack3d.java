@@ -13,6 +13,7 @@ import maspack.matrix.Plane;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLViewer;
 import maspack.util.InternalErrorException;
 
@@ -58,7 +59,7 @@ public class Jack3d extends Dragger3dBase {
       viewer.pushModelMatrix();
       viewer.mulModelMatrix(myXDraggerToWorld);
 
-      viewer.setLightingEnabled (false);
+      Shading savedShading = viewer.setShading (Shading.NONE);
       viewer.setLineWidth(myLineWidth);
       viewer.setPointSize(3);
 
@@ -80,7 +81,7 @@ public class Jack3d extends Dragger3dBase {
 
 
       viewer.setLineWidth(1);
-      viewer.setLightingEnabled (true);
+      viewer.setShading (savedShading);
       viewer.popModelMatrix();
 
    }

@@ -16,6 +16,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
+import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLViewer;
 import maspack.render.Renderer.DrawMode;
 import maspack.util.InternalErrorException;
@@ -80,7 +81,7 @@ public class Transrotator3d extends Dragger3dBase {
       }
       GLViewer viewer = (GLViewer)renderer;
       
-      viewer.setLightingEnabled (false);
+      Shading savedShading = viewer.setShading (Shading.NONE);
       viewer.setLineWidth(myLineWidth);
 
       viewer.pushModelMatrix();
@@ -134,7 +135,7 @@ public class Transrotator3d extends Dragger3dBase {
       }
 
       viewer.setLineWidth(1);
-      viewer.setLightingEnabled (true);
+      viewer.setShading (savedShading);
 
    }
    

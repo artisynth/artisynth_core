@@ -51,18 +51,18 @@ public interface Renderer {
       NONE,  
 
       /**
-       * Vertex coloring or textures replace the material coloring
+       * Vertex coloring or textures replace the diffuse coloring
        */
       REPLACE,
 
       /**
        * Vertex coloring or textures are multiplicatively combined
-       * with the material coloring
+       * with the diffuse coloring
        */
       MODULATE,
 
       /**
-       * Vertex coloring or textures are combined based on the material
+       * Vertex coloring or textures are combined based on the diffuse
        * color's alpha value
        */
       DECAL
@@ -279,22 +279,22 @@ public interface Renderer {
    // public double getFieldOfViewY();
 
    /**
-    * Returns the approximate magnitude of the displacement of the viewing
-    * center point that corresponds to a screen displacement of one pixel.
-    * The displacement is given with respect to model coordinates.
+    * Returns the displacement distance of the center point, in a plane
+    * parallel to the view plane, that corresponds to a screen displacement of
+    * one pixel.  The displacement is given with respect to model coordinates.
     *
-    * @return approximate displacement magnitude
+    * @return displacement distance corresponding to one pixel
     */
    public double centerDistancePerPixel ();
    
    /**
-    * Returns the approximate magnitude of the displacement of a point
-    * <code>p</code> that corresponds to a screen displacement of one pixel.
-    * Both <code>p</code> and the displacement are given with respect to model
-    * coordinates.
+    * Returns the displacement distance of a point <code>p</code>, in a plane
+    * parallel to the view plane, that corresponds to a screen displacement
+    * of one pixel.  Both <code>p</code> and the displacement are given with
+    * respect to model coordinates.
     *
     * @param p point undergoing the displacement 
-    * @return approximate displacement magnitude
+    * @return displacement distance corresponding to one pixel
     */
    public double distancePerPixel (Vector3d p);
 
@@ -488,25 +488,25 @@ public interface Renderer {
 //    */
 //   public void setDefaultShading ();
 
-   /**
-    * Returns <code>true</code> if lighting is currently enabled.
-    * Lighting is enabled by default.
-    * 
-    * @return <code>true</code> if lighting is enabled.
-    * @see #setLightingEnabled
-    */
-   public boolean isLightingEnabled();
-
-   /**
-    * Enables or disables lighting. Disabling lighting is equivalent
-    * in effect to setting shading to {@link Shading#NONE}. However,
-    * disabling the lighting does not affect the current shading
-    * value, which takes effect again as soon as lighting is re-enabled.
-    *
-    * @param enable specifies whether to enable or disable lighting.
-    * @return previous lighting enabled setting
-    */
-   public boolean setLightingEnabled (boolean enable);   
+//   /**
+//    * Returns <code>true</code> if lighting is currently enabled.
+//    * Lighting is enabled by default.
+//    * 
+//    * @return <code>true</code> if lighting is enabled.
+//    * @see #setLightingEnabled
+//    */
+//   public boolean isLightingEnabled();
+//
+//   /**
+//    * Enables or disables lighting. Disabling lighting is equivalent
+//    * in effect to setting shading to {@link Shading#NONE}. However,
+//    * disabling the lighting does not affect the current shading
+//    * value, which takes effect again as soon as lighting is re-enabled.
+//    *
+//    * @param enable specifies whether to enable or disable lighting.
+//    * @return previous lighting enabled setting
+//    */
+//   public boolean setLightingEnabled (boolean enable);   
 
    // Drawing primitives
 
@@ -935,10 +935,13 @@ public interface Renderer {
    /**
     * Puts this Renderer into 2D rendering mode, or returns <code>false</code>
     * if 2D rendering is not supported. If 2D rendering is supported, then the
-    * depth buffer is disabled, the model matrix is set to the identity, and
-    * the projection matrix is redefined to an orthogonal transformation where
-    * world coordinates map directly to screen coordinates defined by an x and
-    * y range of (0, w) and (0, h), respectively. If 2D rendering is not
+    * depth buffer is disabled, the model and view matrices are set to the 
+    * identity, and the projection matrix is redefined to provide an 
+    * orthographic projection with the world frame located at the bottom
+    * left corner of the screen with the x axis horizontal and
+    * pointing to the right, and the y axis vertical. The scaling is
+    * set so that the width and height of the screen map to 
+    * the ranges (0, w) and (0, h), respectively. If 2D rendering is not
     * supported, then no changes are made to any of the matrices and this
     * method will have no effect.
     *
@@ -1128,7 +1131,7 @@ public interface Renderer {
     * @param rgb optional storage for returning the RGB values.
     * @return RGB values for the emission color
     */
-   public float[] getEmission (float[] rgba);
+   public float[] getEmission (float[] rgb);
    
    /**
     * Sets the specular color to be used for subsequent rendering
@@ -1149,7 +1152,7 @@ public interface Renderer {
     * @param rgb optional storage for returning the RGB values.
     * @return RGB values for the specular color
     */
-   public float[] getSpecular (float[] rgba);
+   public float[] getSpecular (float[] rgb);
    
    /**
     * Sets the shininess parameter to be used for subsequent rendering
@@ -1471,8 +1474,8 @@ public interface Renderer {
    public void getModelMatrix (AffineTransform3d X);
    
    /**
-    * Translates the current model matrix by applying a translation
-    * in the current model coordinate frame. If the model matrix is described
+    * Translates the model frame. This is done post-multiplying the current
+    * model matrix by a translation matrix. If the model matrix is described
     * by the affine transform
     * <pre>
     *  [  M   p  ]
@@ -1493,6 +1496,33 @@ public interface Renderer {
     * @param tz translation along z
     */
    public void translateModelMatrix (double tx, double ty, double tz);
+   
+   /**
+    * Rotates the model frame. This is done post-multiplying the current
+    * model matrix by a rotation matrix formed from three successive 
+    * rotations: a rotation of <code>zdeg</code> degrees about the z
+    * axis, followed by a rotation of <code>ydeg</code> degrees about the
+    * new y axis, and finally a rotation of <code>xdeg</code> degrees about
+    * the new x axis. If the model matrix is described by the affine transform
+    * <pre>
+    *  [  M   p  ]
+    *  [         ]
+    *  [  0   1  ]
+    * </pre>
+    * where <code>M</code> is a 3 X 3 matrix and <code>p</code> is a 3 X 1
+    * translation vector, and if <code>R</code> is the rotation matrix,
+    * then this method sets the model matrix to
+    * <pre>
+    *  [  M R   p ]
+    *  [          ]
+    *  [   0    1 ]
+    * </pre> 
+    * 
+    * @param zdeg rotation about z axis (degrees)
+    * @param ydeg rotation about new y axis (degrees)
+    * @param xdeg rotation about new x axis (degrees)
+    */
+   public void rotateModelMatrix(double zdeg, double ydeg, double xdeg);
    
    /**
     * Scales the current model matrix. If the model matrix is described
@@ -1657,7 +1687,7 @@ public interface Renderer {
     * @return previous selection highlighting value
     * @see #getSelectionColor
     */
-   public boolean setSelectionHighlighting (boolean selected);
+   public boolean setSelectionHighlighting (boolean enable);
    
    /**
     * Queries whether or not selection highlighting is enabled.

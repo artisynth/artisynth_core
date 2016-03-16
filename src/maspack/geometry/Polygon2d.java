@@ -20,6 +20,7 @@ import maspack.render.RenderProps;
 import maspack.render.Renderable;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
@@ -485,7 +486,7 @@ public class Polygon2d implements Renderable {
 
    public void render (Renderer renderer, RenderProps props, int flags) {
 
-      renderer.setLightingEnabled (false);
+      renderer.setShading (Shading.NONE);
 
       renderer.setLineWidth (myRenderProps.getLineWidth());
       renderer.setLineColoring (props, /*selected=*/false);
@@ -502,7 +503,7 @@ public class Polygon2d implements Renderable {
       renderer.endDraw();
       renderer.setLineWidth (1);
 
-      renderer.setLightingEnabled (true);
+      renderer.setShading (Shading.FLAT);
    }
 
    public int getRenderHints() {

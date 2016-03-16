@@ -7,6 +7,7 @@ import maspack.matrix.Point3d;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
 import maspack.render.GL.test.MultiViewer.SimpleSelectable;
 
 public class PrimitivesTest extends GL2vsGL3Tester {
@@ -36,14 +37,14 @@ public class PrimitivesTest extends GL2vsGL3Tester {
             renderer.setFaceColoring (props, false);
             renderer.setColor (props.getFaceColorF());
             
-            renderer.setLightingEnabled (false);
+            Shading savedShading = renderer.setShading (Shading.NONE);
             renderer.setPointSize(20f);
             renderer.drawPoint (new float[] {0.1f,0.2f,0.3f});
             
             renderer.setLineWidth (20f);
             renderer.drawLine (new float[]{-0.1f,-0.2f,-0.3f}, new float[]{-0.3f,-0.2f,-0.1f});
             
-            renderer.setLightingEnabled (true);
+            renderer.setShading (savedShading);
             renderer.drawTriangle (new float[]{0.1f,0.1f,-0.1f}, new float[]{0.3f,0.1f,-0.1f}, new float[]{0.1f,0.3f,-0.1f});
          }
          

@@ -29,6 +29,7 @@ import maspack.render.DrawToolListener;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLRenderableBase;
 import maspack.render.GL.GLViewer;
 import maspack.util.IndentingPrintWriter;
@@ -82,7 +83,7 @@ public class NURBSCurve2dTest implements DrawToolListener {
       
       public void render (Renderer renderer, int flags) {
 
-         renderer.setLightingEnabled (false);
+         renderer.setShading (Shading.NONE);
 
          renderer.beginDraw (DrawMode.LINES);        
          for (int i=0; i<myGrid.length; i++) {
@@ -112,7 +113,7 @@ public class NURBSCurve2dTest implements DrawToolListener {
             }
          }
          renderer.endDraw();
-         renderer.setLightingEnabled (true);
+         renderer.setShading (Shading.FLAT);
          renderer.setPointSize (1);
       }
 

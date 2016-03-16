@@ -1786,6 +1786,11 @@ HasProperties {
    public boolean isVertexColoringEnabled() {
       return myViewerState.vertexColorsEnabled;
    }
+   
+   public boolean hasVertexColoring(){
+      return (myViewerState.vertexColorsEnabled && 
+              myViewerState.colorMixing != ColorMixing.NONE); 
+   }
 
    protected boolean isHSVColorInterpolationEnabled() {
       return myViewerState.hsvInterpolationEnabled;
@@ -2231,9 +2236,41 @@ HasProperties {
    public boolean has2DRendering() {
       return true;
    }
+   
+   public void begin2DRendering (
+      double left, double right, double bottom, double top) {
 
-   public abstract void begin2DRendering (
-      double left, double right, double bottom, double top);
+      // save depth, lighting, face culling information
+      pushViewerState();
+      setLightingEnabled (false);
+      setDepthEnabled(false);
+
+      pushModelMatrix();
+      pushViewMatrix();
+      pushProjectionMatrix();
+
+      setModelMatrix(RigidTransform3d.IDENTITY);
+      setViewMatrix(RigidTransform3d.IDENTITY);
+      setOrthogonal2d(left, right, bottom, top);
+
+      rendering2d = true;
+   }
+
+   public void finish2DRendering() {
+
+      popProjectionMatrix();
+      popViewMatrix();
+      popModelMatrix();
+      popViewerState();
+
+      setLightingEnabled (true);
+      setDepthEnabled(true);
+
+      rendering2d = false;
+   }
+
+//   public abstract void begin2DRendering (
+//      double left, double right, double bottom, double top);
 
    @Override
    public boolean begin2DRendering (double w, double h) {
@@ -2261,7 +2298,7 @@ HasProperties {
       }
    }
 
-   public abstract void finish2DRendering();
+   //public abstract void finish2DRendering();
 
    @Override
    public boolean is2DRendering() {
@@ -2470,6 +2507,13 @@ HasProperties {
          modelMatrix.addTranslation(tx, ty, tz); // normal matrix is unchanged
       }
       invalidateModelMatrix();
+   }
+
+   public void rotateModelMatrix(double zdeg, double ydeg, double xdeg) {
+      RigidTransform3d TR = new RigidTransform3d (
+         0, 0, 0, 
+         Math.toRadians(zdeg), Math.toRadians(ydeg), Math.toRadians(xdeg)); 
+      mulModelMatrix (TR);
    }
 
    public void scaleModelMatrix(double s) {
@@ -2877,11 +2921,11 @@ HasProperties {
    /**
     * {@inheritDoc}
     */
-   public boolean setSelectionHighlighting (boolean selected) {
+   public boolean setSelectionHighlighting (boolean enable) {
       boolean prev = mySelectedColorActive;
       if (myHighlightStyle == HighlightStyle.COLOR) {
-         if (selected != mySelectedColorActive) {
-            mySelectedColorActive = selected;
+         if (enable != mySelectedColorActive) {
+            mySelectedColorActive = enable;
             // indicate that we may need to update color state
             myCurrentMaterialModified = true; 
          }

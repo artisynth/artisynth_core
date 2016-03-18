@@ -468,7 +468,7 @@ public class RenderObject {
    int currentTextureIdx;
 
    // whether or not attributes can be updated once the object is
-   // Committed
+   // committed
    boolean positionsDynamic;
    boolean normalsDynamic;
    boolean colorsDynamic;
@@ -514,7 +514,7 @@ public class RenderObject {
    boolean totalModified;
 
 
-   boolean streaming;
+   boolean isTransient;
 
    public RenderObject() {
 
@@ -588,7 +588,8 @@ public class RenderObject {
     */
    public int addPosition (float[] xyz) {
       if (verticesCommitted) {
-         throw new RuntimeException("Cannot add positions after vertices are Committed");
+         throw new IllegalStateException(
+            "Cannot add positions once vertices are committed");
       }
       // create first position set
       if (stateInfo.numPositionSets == 0) {
@@ -600,6 +601,7 @@ public class RenderObject {
       }
       numPositions++;
       notifyPositionsModified ();
+      currentPositionIdx = pidx;
       return pidx;      
    }
 
@@ -613,61 +615,89 @@ public class RenderObject {
          new float[]{(float)pos.x, (float)pos.y, (float)pos.z});
    }   
    
-   /**
-    * Sets the current 3D position to be used in following vertices.
-    * @param pos position coordinates
-    * @return The index of the new position (valid only if a vertex
-    * is added with the supplied position)
-    */
-   public int position(Vector3d pos) {
-      return position(
-         new float[] {(float)pos.x, (float)pos.y, (float)pos.z});
-   }
-   
-   /**
-    * Sets the current 3D position to be used in following vertices.
-    * @param px 
-    * @param py
-    * @param pz
-    * @return The index of the new position (valid only if a vertex
-    * is added with the supplied position)
-    */
-   public int position(float px, float py, float pz) {
-      return position(new float[]{px,py,pz});
-   }
-   
-   /**
-    * Sets the current 3D position to be used in following vertices, BY REFERENCE.
-    * @see #addPosition(float[])
-    * @see #position(int)
-    * @param pos
-    * @return The index of the new position (valid only if a vertex
-    * is added with the supplied position)
-    */
-   public int position(float[] pos) {
-      int pidx = addPosition(pos);
-      currentPositionIdx = pidx;
-      return pidx;
-   }
+//   /**
+//    * Sets the current 3D position to be used in following vertices.
+//    * @param pos position coordinates
+//    * @return The index of the new position (valid only if a vertex
+//    * is added with the supplied position)
+//    */
+//   public int position(Vector3d pos) {
+//      return position(
+//         new float[] {(float)pos.x, (float)pos.y, (float)pos.z});
+//   }
+//   
+//   /**
+//    * Sets the current 3D position to be used in following vertices.
+//    * @param px 
+//    * @param py
+//    * @param pz
+//    * @return The index of the new position (valid only if a vertex
+//    * is added with the supplied position)
+//    */
+//   public int position(float px, float py, float pz) {
+//      return position(new float[]{px,py,pz});
+//   }
+//   
+//   /**
+//    * Sets the current 3D position to be used in following vertices, BY REFERENCE.
+//    * @see #addPosition(float[])
+//    * @see #setCurrentPosition(int)
+//    * @param pos
+//    * @return The index of the new position (valid only if a vertex
+//    * is added with the supplied position)
+//    */
+//   public int position(float[] pos) {
+//      int pidx = addPosition(pos);
+//      currentPositionIdx = pidx;
+//      return pidx;
+//   }
 
    /**
     * Sets the current position to be used in following vertices, 
     * based on position index. 
     * @param pidx index of a previously added position
     */
-   public void position(int pidx) {
-      currentPositionIdx = pidx;
+   public void setCurrentPosition(int pidx) {
+      if (pidx >= 0) {
+         if (pidx >= currentPositionSet.size()) {
+            throw new IllegalArgumentException (
+               "Position "+pidx+" is not defined");
+         }
+         currentPositionIdx = pidx;
+      }
+      else {
+         currentPositionIdx = -1;         
+      }
+   }
+
+   /**
+    * Returns the index associated with the current position, or -1
+    * if there is no current position.
+    * 
+    * @return current position index
+    */
+   public int getCurrentPosition() {
+      return currentPositionIdx;
    }
 
    /**
     * Updates the values of the position with index pidx.
     * @param pidx position to modify
-    * @param x
-    * @param y
-    * @param z
+    * @param px
+    * @param py
+    * @param pz
     */
-   public void setPosition(int pidx, float x, float y, float z) {
-      setPosition (pidx, new float[]{x,y,z});
+   public void setPosition(int pidx, float px, float py, float pz) {
+      setPosition (pidx, new float[]{px,py,pz});
+   }
+   
+   /**
+    * Updates the values of the position with index pidx.
+    * @param pidx position to modify
+    * @param pos new position coordinates
+    */
+   public void setPosition(int pidx, Vector3d pos) {
+      setPosition (pidx, new float[]{(float)pos.x, (float)pos.y, (float)pos.z});
    }
    
    /**
@@ -675,17 +705,16 @@ public class RenderObject {
     * values by reference.  
     * 
     * @param pidx position to modify
-    * @param xyz new position values by reference
+    * @param pos new position values by reference
     */
-   public void setPosition(int pidx, float[] xyz) {
+   public void setPosition(int pidx, float[] pos) {
       if (verticesCommitted) {
          if (!positionsDynamic) {
-            throw new RuntimeException("Cannot modify non-dynamic positions once vertices are Committed");
-         } else if (streaming) {
-            throw new RuntimeException("Cannot modify positions when streaming");
+            throw new IllegalStateException(
+               "Cannot modify non-dynamic positions once vertices are committed");
          }
       }
-      currentPositionSet.set(pidx, xyz);
+      currentPositionSet.set(pidx, pos);
       notifyPositionsModified ();
    }
 
@@ -732,14 +761,21 @@ public class RenderObject {
     * Sets whether or not positions should be considered dynamic.  If true,
     * positions can be updated.  Otherwise, positions are 
     * considered fixed for all time.  The dynamic property can only be 
-    * modified before vertices are Committed.
+    * modified before the vertices are committed.
     * @see #commit()
     */
    public void setPositionsDynamic(boolean set) {
-      if (verticesCommitted && set != positionsDynamic) {
-         throw new RuntimeException("Cannot modify dynamic property after vertices are Committed");
+      if (set != positionsDynamic) {
+         if (verticesCommitted) {
+            throw new IllegalStateException(
+               "Cannot modify dynamic property once vertices are committed");
+         }
+         else if (set && isTransient()) {
+            throw new IllegalStateException(
+               "Cannot make transient object dynamic");
+         }
+         positionsDynamic = set;
       }
-      positionsDynamic = set;
    }
 
    /**
@@ -780,7 +816,8 @@ public class RenderObject {
     */
    public int createPositionSetFrom(int copyIdx) {
       if (verticesCommitted) {
-         throw new RuntimeException("Cannot add a new set of positions once vertices are Committed");
+         throw new IllegalStateException(
+            "Cannot add a new set of positions once vertices are committed");
       }
       ArrayList<float[]> newPositions;
       if (stateInfo.numPositionSets == 0) {
@@ -899,7 +936,8 @@ public class RenderObject {
     */
    public int addNormal(float[] nrm) {
       if (verticesCommitted) {
-         throw new RuntimeException("Cannot add normals after vertices are Committed");
+         throw new IllegalStateException(
+            "Cannot add normals once vertices are committed");
       }
       // create first normal set
       if (stateInfo.numNormalSets == 0) {
@@ -911,6 +949,7 @@ public class RenderObject {
       }
       numNormals++;
       notifyNormalsModified();
+      currentNormalIdx = nidx;
       return nidx;
    }
 
@@ -924,62 +963,90 @@ public class RenderObject {
          new float[]{(float)nrm.x, (float)nrm.y, (float)nrm.z});
    }   
    
-   /**
-    * Sets the current 3D normal to be used in following
-    * vertices.
-    * @param nx 
-    * @param ny
-    * @param nz
-    * @return The index of the new normal (valid only if a vertex
-    * is added with the supplied normal)
-    */
-   public int normal(float nx, float ny, float nz) {
-      return normal(new float[]{nx,ny,nz});
-   }
-
-   /**
-    * Sets the current 3D normal to be used in following vertices.
-    * @param  nrm normal coordinates
-    * @return The index of the new normal (valid only if a vertex
-    * is added with the supplied normal)
-    */
-   public int normal(Vector3d nrm) {
-      return normal(
-         new float[] {(float)nrm.x, (float)nrm.y, (float)nrm.z});
-   }
+//   /**
+//    * Sets the current 3D normal to be used in following
+//    * vertices.
+//    * @param nx 
+//    * @param ny
+//    * @param nz
+//    * @return The index of the new normal (valid only if a vertex
+//    * is added with the supplied normal)
+//    */
+//   public int normal(float nx, float ny, float nz) {
+//      return normal(new float[]{nx,ny,nz});
+//   }
+//
+//   /**
+//    * Sets the current 3D normal to be used in following vertices.
+//    * @param  nrm normal coordinates
+//    * @return The index of the new normal (valid only if a vertex
+//    * is added with the supplied normal)
+//    */
+//   public int normal(Vector3d nrm) {
+//      return normal(
+//         new float[] {(float)nrm.x, (float)nrm.y, (float)nrm.z});
+//   }
    
-    /**
-    * Sets the current 3D normal, by reference, to be used in following vertices.
-    * @see #addNormal(float[])
-    * @see #normal(int)
-    * @param nrm
-    * @return The index of the new normal (valid only if a vertex is added
-    * with the supplied normal).
-    */
-   public int normal(float[] nrm) {
-      int nidx = addNormal(nrm);
-      currentNormalIdx = nidx;
-      return nidx;
-   }
+//    /**
+//    * Sets the current 3D normal, by reference, to be used in following vertices.
+//    * @see #addNormal(float[])
+//    * @see #normal(int)
+//    * @param nrm
+//    * @return The index of the new normal (valid only if a vertex is added
+//    * with the supplied normal).
+//    */
+//   public int normal(float[] nrm) {
+//      int nidx = addNormal(nrm);
+//      //currentNormalIdx = nidx;
+//      return nidx;
+//   }
    
    /**
     * Sets the current normal to be used in following vertices, 
     * based on normal index. 
     * @param nidx index of a previously added normal
     */
-   public void normal(int nidx) {
-      currentNormalIdx = nidx;
+   public void setCurrentNormal(int nidx) {
+      if (nidx >= 0) {
+         if (nidx >= currentNormalSet.size()) {
+            throw new IllegalArgumentException (
+               "Normal "+nidx+" is not defined");
+         }
+         currentNormalIdx = nidx;
+      }
+      else {
+         currentNormalIdx = -1;
+      }
+   }
+
+   /**
+    * Returns the index associated with the current normal, or -1
+    * if there is no current normal.
+    * 
+    * @return current normal index
+    */
+   public int getCurrentNormal() {
+      return currentNormalIdx;
    }
 
    /**
     * Updates the values of the normal with index nidx.
     * @param nidx normal to modify
-    * @param x
-    * @param y
-    * @param z
+    * @param nx
+    * @param ny
+    * @param nz
     */
-   public void setNormal(int nidx, float x, float y, float z) {
-      setNormal(nidx, new float[]{x,y,z});
+   public void setNormal(int nidx, float nx, float ny, float nz) {
+      setNormal(nidx, new float[]{nx,ny,nz});
+   }
+   
+   /**
+    * Updates the values of the normal with index nidx.
+    * @param nidx normal to modify
+    * @param nrm new normal coordinates
+    */
+   public void setNormal(int nidx, Vector3d nrm) {
+      setNormal(nidx, new float[]{(float)nrm.x, (float)nrm.y, (float)nrm.z});
    }
    
    /**
@@ -990,9 +1057,8 @@ public class RenderObject {
    public void setNormal(int nidx, float[] nrm) {
       if (verticesCommitted) {
          if (!normalsDynamic) {
-            throw new RuntimeException("Cannot modify non-dynamic normals once vertices are Committed");
-         } else if (streaming) {
-            throw new RuntimeException("Cannot modify normals when streaming");
+            throw new IllegalStateException(
+               "Cannot modify non-dynamic normals once vertices are committed");
          }
       }
       currentNormalSet.set(nidx, nrm);
@@ -1044,14 +1110,21 @@ public class RenderObject {
     * Sets whether or not normals should be considered dynamic.  If true,
     * normals can be updated.  Otherwise, normals are considered fixed for 
     * all time.  The dynamic property can only be modified 
-    * before vertices are Committed.
+    * before the vertices are committed.
     * @see #commit()
     */
    public void setNormalsDynamic(boolean set) {
-      if (verticesCommitted && set != normalsDynamic) {
-         throw new RuntimeException("Cannot modify dynamic property after vertices are Committed");
+      if (set != normalsDynamic) {
+         if (verticesCommitted) {
+            throw new IllegalStateException(
+               "Cannot modify dynamic property once vertices are committed");
+         }
+         else if (set && isTransient()) {
+            throw new IllegalStateException(
+               "Cannot make transient object dynamic");
+         }
+         normalsDynamic = set;
       }
-      normalsDynamic = set;
    }
 
    /**
@@ -1092,7 +1165,8 @@ public class RenderObject {
     */
    public int createNormalSetFrom(int copyIdx) {
       if (verticesCommitted) {
-         throw new RuntimeException("Cannot add a new set of normals once vertices are Committed");
+         throw new IllegalStateException(
+            "Cannot add a new set of normals once vertices are committed");
       }
       ArrayList<float[]> newNormals;
       if (stateInfo.numNormalSets == 0) {
@@ -1245,8 +1319,8 @@ public class RenderObject {
    public int addColor(Color color) {
       return addColor(
          new byte[]{
-            (byte)color.getRed(), (byte)color.getGreen(), 
-            (byte)color.getBlue(), (byte)color.getAlpha()});
+                    (byte)color.getRed(), (byte)color.getGreen(), 
+                    (byte)color.getBlue(), (byte)color.getAlpha()});
    }
    
    /**
@@ -1259,7 +1333,8 @@ public class RenderObject {
     */
    public int addColor(byte[] rgba) {
       if (verticesCommitted) {
-         throw new RuntimeException("Cannot add colors after vertices are Committed");
+         throw new IllegalStateException(
+            "Cannot add colors once vertices are committed");
       }
       // create first color set
       if (stateInfo.numColorSets == 0) {
@@ -1271,6 +1346,7 @@ public class RenderObject {
       }
       numColors++;
       notifyColorsModified ();
+      currentColorIdx = cidx;
       return cidx;
    }
    
@@ -1279,69 +1355,88 @@ public class RenderObject {
       totalModified = true;
    }
    
-   /**
-    * Sets the current color to be used in following vertices.
-    * @param r red [0-255]
-    * @param g green [0-255]
-    * @param b blue [0-255]
-    * @param a alpha [0-255]
-    * @return The index of the new color (valid only if a vertex
-    * is added with the supplied color)
-    */
-   public int color(int r, int g, int b, int a) {
-      int cidx = addColor(r, g, b, a);
-      currentColorIdx = cidx;
-      return cidx;
-   }
-   
-   /**
-    * Sets the current color to be used in following vertices.
-    * @param r red [0-1]
-    * @param g green [0-1]
-    * @param b blue [0-1]
-    * @param a alpha [0-1]
-    * @return The index of the new color (valid only if a vertex
-    * is added with the supplied color)
-    */
-   public int color(float r, float g, float b, float a) {
-      int cidx = addColor(r, g, b, a);
-      currentColorIdx = cidx;
-      return cidx;
-   }
+//   /**
+//    * Sets the current color to be used in following vertices.
+//    * @param r red [0-255]
+//    * @param g green [0-255]
+//    * @param b blue [0-255]
+//    * @param a alpha [0-255]
+//    * @return The index of the new color (valid only if a vertex
+//    * is added with the supplied color)
+//    */
+//   public int color(int r, int g, int b, int a) {
+//      int cidx = addColor(r, g, b, a);
+//      currentColorIdx = cidx;
+//      return cidx;
+//   }
+//   
+//   /**
+//    * Sets the current color to be used in following vertices.
+//    * @param r red [0-1]
+//    * @param g green [0-1]
+//    * @param b blue [0-1]
+//    * @param a alpha [0-1]
+//    * @return The index of the new color (valid only if a vertex
+//    * is added with the supplied color)
+//    */
+//   public int color(float r, float g, float b, float a) {
+//      int cidx = addColor(r, g, b, a);
+//      currentColorIdx = cidx;
+//      return cidx;
+//   }
 
-   /**
-    * Sets the current color to be used in following vertices.
-    * @param color color from which RGBA values are determined
-    * @return The index of the new color (valid only if a vertex
-    * is added with the supplied color)
-    */
-   public int color(Color color) {
-      int cidx = addColor(color);
-      currentColorIdx = cidx;
-      return cidx;
-   }
-   
-   /**
-    * Sets the current color, by reference, to be used in following vertices.
-    * @see #addColor(byte[])
-    * @see #color(int)
-    * @param rgba {red, green, blue, alpha}
-    * @return The index of the new color (valid only if a vertex
-    * is added with the supplied color)
-    */
-   public int color(byte[] rgba) {
-      int cidx = addColor(rgba);
-      currentColorIdx = cidx;
-      return cidx;
-   }
-
+//   /**
+//    * Sets the current color to be used in following vertices.
+//    * @param color color from which RGBA values are determined
+//    * @return The index of the new color (valid only if a vertex
+//    * is added with the supplied color)
+//    */
+//   public int color(Color color) {
+//      int cidx = addColor(color);
+//      currentColorIdx = cidx;
+//      return cidx;
+//   }
+//   
+//   /**
+//    * Sets the current color, by reference, to be used in following vertices.
+//    * @see #addColor(byte[])
+//    * @see #setCurrentColor(int)
+//    * @param rgba {red, green, blue, alpha}
+//    * @return The index of the new color (valid only if a vertex
+//    * is added with the supplied color)
+//    */
+//   public int color(byte[] rgba) {
+//      int cidx = addColor(rgba);
+//      currentColorIdx = cidx;
+//      return cidx;
+//   }
+//
    /**
     * Sets the current color to be used in following vertices
     * based on color index.
     * @param cidx index of a previously added color
     */
-   public void color(int cidx) {
-      currentColorIdx = cidx;
+   public void setCurrentColor(int cidx) {
+      if (cidx >= 0) {
+         if (cidx >= currentColorSet.size()) {
+            throw new IllegalArgumentException (
+               "Color "+cidx+" is not defined");
+         }
+         currentColorIdx = cidx;
+      }
+      else {
+         currentColorIdx = -1;
+      }
+   }
+   
+   /**
+    * Returns the index associated with the current color, or -1
+    * if there is no current color.
+    * 
+    * @return current color index
+    */
+   public int getCurrentColor() {
+      return currentColorIdx;
    }
 
    /**
@@ -1381,6 +1476,18 @@ public class RenderObject {
    }
    
    /**
+    * Updates the values of the color with index cidx.
+    * @param cidx color to modify
+    * @param color new color values
+    */
+   public void setColor(int cidx, Color color) {
+      setColor(cidx, 
+         new byte[]{
+                    (byte)color.getRed(), (byte)color.getGreen(), 
+                    (byte)color.getBlue(), (byte)color.getAlpha()});
+   }
+   
+   /**
     * Updates the values of the color, by reference, with index cidx.
     * @param cidx color to modify
     * @param rgba {red, green, blue, alpha}
@@ -1388,9 +1495,8 @@ public class RenderObject {
    public void setColor(int cidx, byte[] rgba) {
       if (verticesCommitted) {
          if (!colorsDynamic) {
-            throw new RuntimeException("Cannot modify non-dynamic colors once vertices are Committed");
-         } else if (streaming) {
-            throw new RuntimeException("Cannot modify colors when streaming");
+            throw new IllegalStateException(
+               "Cannot modify non-dynamic colors once vertices are committed");
          }
       }
       currentColorSet.set(cidx, rgba);
@@ -1405,7 +1511,7 @@ public class RenderObject {
    }
 
    /**
-    * Number of positions defined
+    * Number of colors defined
     */
    public int numColors() {
       return numColors;
@@ -1436,15 +1542,22 @@ public class RenderObject {
    /**
     * Sets whether or not colors should be considered dynamic.  If true,
     * colors can be updated.  Otherwise, colors are considered fixed for 
-    * all time.  The dynamic property can only be modified before vertices 
-    * are Committed.
+    * all time.  The dynamic property can only be modified before the
+    * vertices are committed.
     * @see #commit()
     */
    public void setColorsDynamic(boolean set) {
-      if (verticesCommitted && set != colorsDynamic) {
-         throw new RuntimeException("Cannot modify dynamic property after vertices are Committed");
+      if (set != colorsDynamic) {
+         if (verticesCommitted) {
+            throw new IllegalStateException(
+               "Cannot modify dynamic property once vertices are committed");
+         }
+         else if (set && isTransient()) {
+            throw new IllegalStateException(
+               "Cannot make transient object dynamic");
+         }
+         colorsDynamic = set;
       }
-      colorsDynamic = set;
    }
 
    /**
@@ -1477,7 +1590,8 @@ public class RenderObject {
     */
    public int createColorSetFrom(int copyIdx) {
       if (verticesCommitted) {
-         throw new RuntimeException("Cannot add a new set of colors once vertices are Committed");
+         throw new IllegalStateException(
+            "Cannot add a new set of colors once vertices are committed");
       }
       ArrayList<byte[]> newColors;
       if (stateInfo.numColorSets == 0) {
@@ -1605,7 +1719,8 @@ public class RenderObject {
    public int addTextureCoord(float[] xy) {
       
       if (verticesCommitted) {
-         throw new RuntimeException("Cannot add texture coordinates after vertices are Committed");
+         throw new IllegalStateException(
+            "Cannot add texture coordinates once vertices are committed");
       }
       // create first texture set
       if (stateInfo.numTextureSets == 0) {
@@ -1617,6 +1732,7 @@ public class RenderObject {
       }
       numTextures++;
       notifyTextureCoordsModified();
+      currentTextureIdx = tidx;
       return tidx;
    }
    
@@ -1625,58 +1741,86 @@ public class RenderObject {
       totalModified = true;
    }
 
-   /**
-    * Sets the current 2D texture coordinate to be used in following vertices.
-    * @param x
-    * @param y
-    * @return The index of the new texture coordinate (valid only if a vertex
-    * is added with the supplied texture coordinate)
-    */
-   public int textureCoord(float x, float y) {
-     return textureCoord(new float[] {x,y});
-   }
-   
-   /**
-    * Sets the current 2D texture coordinate to be used in following vertices.
-    * @param xy the 2D coordinate
-    * @return The index of the new texture coordinate (valid only if a vertex
-    * is added with the supplied texture coordinate)
-    */
-   public int textureCoord(Vector2d xy) {
-     return textureCoord(new float[] {(float)xy.x,(float)xy.y});
-   }
-   
-/**
-    * Sets the current 2D texture coordinate, by reference, to be used in following vertices.
-    * @see #addTextureCoord(float[])
-    * @see #textureCoord(int)
-    * @param xy the 2D coordinate
-    * @return The index of the new texture coordinate (valid only if a vertex
-    * is added with the supplied texture coordinate)
-    */
-   public int textureCoord(float[] xy) {
-      int tidx = addTextureCoord(xy);
-      currentTextureIdx = tidx;
-      return tidx;
-   }
-
+//   /**
+//    * Sets the current 2D texture coordinate to be used in following vertices.
+//    * @param x
+//    * @param y
+//    * @return The index of the new texture coordinate (valid only if a vertex
+//    * is added with the supplied texture coordinate)
+//    */
+//   public int textureCoord(float x, float y) {
+//     return textureCoord(new float[] {x,y});
+//   }
+//   
+//   /**
+//    * Sets the current 2D texture coordinate to be used in following vertices.
+//    * @param xy the 2D coordinate
+//    * @return The index of the new texture coordinate (valid only if a vertex
+//    * is added with the supplied texture coordinate)
+//    */
+//   public int textureCoord(Vector2d xy) {
+//     return textureCoord(new float[] {(float)xy.x,(float)xy.y});
+//   }
+//   
+///**
+//    * Sets the current 2D texture coordinate, by reference, to be used in following vertices.
+//    * @see #addTextureCoord(float[])
+//    * @see #setCurrentTextureCoord(int)
+//    * @param xy the 2D coordinate
+//    * @return The index of the new texture coordinate (valid only if a vertex
+//    * is added with the supplied texture coordinate)
+//    */
+//   public int textureCoord(float[] xy) {
+//      int tidx = addTextureCoord(xy);
+//      currentTextureIdx = tidx;
+//      return tidx;
+//   }
+//
    /**
     * Sets the current texture coordinates to be used in following vertices,
     * based on texture coordinate index.
     * @param tidx index of a previously added texture coordinate
     */
-   public void textureCoord(int tidx) {
-      currentTextureIdx = tidx;
+   public void setCurrentTextureCoord(int tidx) {
+      if (tidx >= 0) {
+         if (tidx >= currentTextureSet.size()) {
+            throw new IllegalArgumentException (
+               "Texture coordinate "+tidx+" is not defined");
+         }
+         currentTextureIdx = tidx;
+      }
+      else {
+         currentTextureIdx = -1;
+      }
+   }
+
+   /**
+    * Returns the index associated with the current texture coordinate, or -1
+    * if there is no current texture coordinate.
+    * 
+    * @return current texture coordinate index
+    */
+   public int getCurrentTextureCoord() {
+      return currentTextureIdx;
    }
 
    /**
     * Updates the values of the texture coordinate with index tidx.
     * @param tidx
-    * @param x
-    * @param y
+    * @param tx
+    * @param ty
     */
-   public void setTextureCoord(int tidx, float x, float y) {
-      setTextureCoord (tidx, new float[] {x,y});
+   public void setTextureCoord(int tidx, float tx, float ty) {
+      setTextureCoord (tidx, new float[] {tx,ty});
+   }
+   
+   /**
+    * Updates the values of the texture coordinate with index tidx.
+    * @param tidx
+    * @param xy new texture coordinates
+    */
+   public void setTextureCoord(int tidx, Vector2d xy) {
+      setTextureCoord (tidx, new float[] {(float)xy.x,(float)xy.y});
    }
    
    /**
@@ -1688,9 +1832,8 @@ public class RenderObject {
       
       if (verticesCommitted) {
          if (!texturesDynamic) {
-            throw new RuntimeException("Cannot modify non-dynamic texture coordinates once vertices are Committed");
-         } else if (streaming) {
-            throw new RuntimeException("Cannot modify texture coordinates when streaming");
+            throw new IllegalStateException(
+               "Cannot modify non-dynamic texture coordinates once vertices are committed");
          }
       }
       currentTextureSet.set(tidx, xy);
@@ -1740,14 +1883,21 @@ public class RenderObject {
     * Sets whether or not texture coordinates should be considered dynamic.  
     * If true, texture coordinates can be updated.  Otherwise, texture 
     * coordinates are considered fixed for all time.  The dynamic property 
-    * can only be modified before vertices are Committed.
+    * can only be modified before the vertices are committed.
     * @see #commit() 
     */
    public void setTextureCoordsDynamic(boolean set) {
-      if (verticesCommitted && set != texturesDynamic) {
-         throw new RuntimeException("Cannot modify dynamic property after vertices are Committed");
+      if (set != texturesDynamic) {
+         if (verticesCommitted) {
+            throw new IllegalStateException(
+               "Cannot modify dynamic property once vertices are committed");
+         }
+         else if (set && isTransient()) {
+            throw new IllegalStateException(
+               "Cannot make transient object dynamic");
+         }
+         texturesDynamic = set;
       }
-      texturesDynamic = set;
    }
 
    /**
@@ -1781,7 +1931,8 @@ public class RenderObject {
     */
    public int createTextureCoordSetFrom(int copyIdx) {
       if (verticesCommitted) {
-         throw new RuntimeException("Cannot add a new set of texture coordinates once vertices are Committed");
+         throw new IllegalStateException(
+            "Cannot add a new set of texture coordinates once vertices are committed");
       }
       // create first texture set
 
@@ -1939,7 +2090,8 @@ public class RenderObject {
    public int addVertex(int pidx, int nidx, int cidx, int tidx) {
 
       if (verticesCommitted) {
-         throw new RuntimeException("Cannot create a new vertex once vertices are Committed");
+         throw new IllegalStateException(
+            "Cannot create a new vertex once vertices are committed");
       }
       VertexIndexSet idxs = new VertexIndexSet(pidx,nidx,cidx,tidx);
       int vidx = numVertices;
@@ -1998,7 +2150,8 @@ public class RenderObject {
     */
    public void setVertex(int vidx, int pidx, int nidx, int cidx, int tidx) {
       if (verticesCommitted) {
-         throw new RuntimeException("Cannot create a new vertex once vertices are Committed");
+         throw new IllegalStateException(
+            "Cannot create a new vertex once vertices are committed");
       }
       VertexIndexSet v = new VertexIndexSet(pidx, nidx, cidx, tidx);
       vertices.set(vidx, v);
@@ -2195,7 +2348,8 @@ public class RenderObject {
     */
    public void addPoint(int vidx) {
       if (primitivesCommitted) {
-         throw new RuntimeException("Cannot add a new primitive after primitives have been Committed");
+         throw new IllegalStateException(
+            "Cannot add a new primitive once primitives are committed");
       }
       // start first point group
       if (stateInfo.numPointGroups == 0) {
@@ -2280,7 +2434,8 @@ public class RenderObject {
     */
    public int createPointGroup() {
       if (primitivesCommitted) {
-         throw new RuntimeException("Cannot create a new point group after primitives have been Committed");
+         throw new IllegalStateException(
+            "Cannot create a new point group once primitives are committed");
       }
       ArrayList<int[]> newPoints = new ArrayList<>();
       points.add(newPoints);
@@ -2369,7 +2524,8 @@ public class RenderObject {
 
    protected void addLinePair(int[] vidxs) {
       if (primitivesCommitted) {
-         throw new RuntimeException("Cannot add a new primitive after primitives have been Committed");
+         throw new IllegalStateException(
+            "Cannot add a new primitive once primitives are committed");
       }
       if (stateInfo.numLineGroups == 0)  {
          createLineGroup();
@@ -2536,7 +2692,8 @@ public class RenderObject {
     */
    public int createLineGroup() {
       if (primitivesCommitted) {
-         throw new RuntimeException("Cannot create a new line group after primitives have been Committed");
+         throw new IllegalStateException(
+            "Cannot create a new line group once primitives are committed");
       }
       ArrayList<int[]> newLines = new ArrayList<>();
       lines.add(newLines);
@@ -2625,7 +2782,8 @@ public class RenderObject {
    
    protected void addTriangleTriple(int[] vidxs) {
       if (primitivesCommitted) {
-         throw new RuntimeException("Cannot create a new primitive after primitives have been Committed");
+         throw new IllegalStateException(
+            "Cannot create a new primitive once primitives are committed");
       }
       if (stateInfo.numTriangleGroups == 0) {
          createTriangleGroup();
@@ -2804,7 +2962,8 @@ public class RenderObject {
     */
    public int createTriangleGroup() {
       if (primitivesCommitted) {
-         throw new RuntimeException("Cannot create a new triangle group after primitives have been Committed");
+         throw new IllegalStateException(
+            "Cannot create a new triangle group once primitives are committed");
       }
       ArrayList<int[]> newTriangles = new ArrayList<>();
       triangles.add(newTriangles);
@@ -2973,7 +3132,7 @@ public class RenderObject {
       normalsDynamic = false;
       colorsDynamic = false;
       texturesDynamic = false;
-      streaming = false;
+      isTransient = false;
 
       currentPositionSet = null;
       currentNormalSet = null;
@@ -3093,22 +3252,29 @@ public class RenderObject {
    }
 
    /**
-    * A streaming object has a short life-span, and cannot be modified once committed.
+    * A transient object has a short life-span, and cannot be modified once
+    * committed.
     */
-   public void setStreaming(boolean set) {
-      if (set != streaming) {
+   public void setTransient(boolean set) {
+      if (set != isTransient) {
          if (verticesCommitted || primitivesCommitted) {
-            throw new RuntimeException("Cannot modify stream property of content has been committed.");
+            throw new IllegalStateException(
+               "Cannot modify transient property once vertices are committed.");
          }
-         streaming = set;
+         else if (set && isDynamic()) {
+            throw new IllegalStateException (
+               "Cannot make a dynamic object transient");
+         }
+         isTransient = set;
       }
    }
 
    /**
-    * A streaming object has a short life-span, and cannot be modified once committed.
+    * A transient object has a short life-span, and cannot be 
+    * modified once committed.
     */
-   public boolean isStreaming() {
-      return streaming;
+   public boolean isTransient() {
+      return isTransient;
    }
 
    /**
@@ -3284,7 +3450,7 @@ public class RenderObject {
 
       r.totalModified = totalModified;
 
-      r.streaming = streaming;
+      r.isTransient = isTransient;
       
       r.buildMode = buildMode;
       r.buildModeStart = buildModeStart;

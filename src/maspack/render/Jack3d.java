@@ -111,25 +111,25 @@ public class Jack3d extends Dragger3dBase {
       int v0, v1;
 
       // x-axis
-      jackr.color(xcolor);
+      jackr.setCurrentColor(xcolor);
       v0 = jackr.vertex(1, 0, 0);
       v1 = jackr.vertex(-1, 0, 0);
       jackr.addLine(v0, v1);
 
       // y-axis
-      jackr.color(ycolor);
+      jackr.setCurrentColor(ycolor);
       v0 = jackr.vertex(0, -1, 0);
       v1 = jackr.vertex(0, 1, 0);
       jackr.addLine(v0, v1);
 
       // z-axis
-      jackr.color(zcolor);
+      jackr.setCurrentColor(zcolor);
       v0 = jackr.vertex(0, 0, -1);
       v1 = jackr.vertex(0, 0, 1);
       jackr.addLine(v0, v1);
 
       // circle in x-y plane
-      jackr.color(zrcolor);
+      jackr.setCurrentColor(zrcolor);
       v0 = jackr.vertex(1f, 0f, 0f);
       for (int i = 1; i <= FULL_CIRCLE_RESOLUTION; i++) {
          double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
@@ -139,7 +139,7 @@ public class Jack3d extends Dragger3dBase {
       }
 
       // circle in y-z plane
-      jackr.color(xrcolor);
+      jackr.setCurrentColor(xrcolor);
       v0 = jackr.vertex(0f, 1f, 0f);
       for (int i = 1; i <= FULL_CIRCLE_RESOLUTION; i++) {
          double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
@@ -149,7 +149,7 @@ public class Jack3d extends Dragger3dBase {
       }
 
       // circle in z-x plane
-      jackr.color(yrcolor);
+      jackr.setCurrentColor(yrcolor);
       v0 = jackr.vertex(1f, 0f, 0f);
       for (int i = 1; i <= FULL_CIRCLE_RESOLUTION; i++) {
          double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);

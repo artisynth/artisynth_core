@@ -125,39 +125,39 @@ public class Translator3d extends Dragger3dBase {
       int v0, v1, v2;
       
       // x-axis
-      scalerr.color(xcolor);
+      scalerr.setCurrentColor(xcolor);
       v0 = scalerr.vertex(0, 0, 0);
       v1 = scalerr.vertex(1, 0, 0);
       scalerr.addLine(v0, v1);
       
       // y-axis
-      scalerr.color(ycolor);
+      scalerr.setCurrentColor(ycolor);
       v0 = scalerr.vertex(0, 0, 0);
       v1 = scalerr.vertex(0, 1, 0);
       scalerr.addLine(v0, v1);
       
       // z-axis
-      scalerr.color(zcolor);
+      scalerr.setCurrentColor(zcolor);
       v0 = scalerr.vertex(0, 0, 0);
       v1 = scalerr.vertex(0, 0, 1);
       scalerr.addLine(v0, v1);
       
       // yz-plane
-      scalerr.color(yzcolor);
+      scalerr.setCurrentColor(yzcolor);
       v0 = scalerr.vertex(0, TRANS_BOX_SIZE, 0);
       v1 = scalerr.vertex(0, TRANS_BOX_SIZE, TRANS_BOX_SIZE);
       v2 = scalerr.vertex(0, 0, TRANS_BOX_SIZE);
       scalerr.addLineStrip(v0, v1, v2);
 
       // zx-plane
-      scalerr.color(zxcolor);
+      scalerr.setCurrentColor(zxcolor);
       v0 = scalerr.vertex(0, 0, TRANS_BOX_SIZE);
       v1 = scalerr.vertex(TRANS_BOX_SIZE, 0, TRANS_BOX_SIZE);
       v2 = scalerr.vertex(TRANS_BOX_SIZE, 0, 0);
       scalerr.addLineStrip(v0, v1, v2);
       
       // xy-plane
-      scalerr.color(xycolor);
+      scalerr.setCurrentColor(xycolor);
       v0 = scalerr.vertex(TRANS_BOX_SIZE, 0, 0);
       v1 = scalerr.vertex(TRANS_BOX_SIZE, TRANS_BOX_SIZE, 0);
       v2 = scalerr.vertex(0, TRANS_BOX_SIZE, 0);

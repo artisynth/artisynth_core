@@ -245,7 +245,7 @@ public class GL3RenderObject extends GL3ResourceBase implements GL3Drawable {
          } else if (robj.getVersion() != lastVersionInfo.getVersion()) {
 
             // find what has changed, see if we can update it
-            boolean streaming = robj.isStreaming();
+            boolean streaming = robj.isTransient();
             if (!robj.isDynamic() || streaming) {
                clearAndRebuild(gl, robj);
                return true;
@@ -588,7 +588,7 @@ public class GL3RenderObject extends GL3ResourceBase implements GL3Drawable {
       staticMask = 0;
       dynamicVertexSize = 0;
       dynamicMask = 0;
-      boolean streaming = robj.isStreaming();
+      boolean streaming = robj.isTransient();
       nVertices = robj.numVertices();
 
       // determine necessary sizes

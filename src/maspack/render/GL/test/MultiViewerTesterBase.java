@@ -100,13 +100,13 @@ public class MultiViewerTesterBase {
       // axes
       RenderObject axes = new RenderObject();
       axes.beginBuild(DrawMode.LINES);
-      axes.color(255, 0, 0, 255);
+      axes.addColor(255, 0, 0, 255);
       axes.vertex(0, 0, 0);
       axes.vertex(1, 0, 0);
-      axes.color(0, 255, 0, 255);
+      axes.addColor(0, 255, 0, 255);
       axes.vertex(0, 0, 0);
       axes.vertex(0, 1, 0);
-      axes.color(0, 0, 255, 255);
+      axes.addColor(0, 0, 255, 255);
       axes.vertex(0, 0, 0);
       axes.vertex(0, 0, 1);
       axes.endBuild();

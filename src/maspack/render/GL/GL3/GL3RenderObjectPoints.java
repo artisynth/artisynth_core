@@ -192,7 +192,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          } else if (robj.getVersion() != lastVersionInfo.getVersion()) {
             
             // find what has changed, see if we can update it
-            boolean streaming = robj.isStreaming();
+            boolean streaming = robj.isTransient();
             if (!robj.isDynamic() || streaming) {
                // static or streaming
                clearAndRebuild(gl, robj, pointObject, pointRadius);
@@ -499,7 +499,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       staticMask = 0;
       dynamicVertexSize = 0;
       dynamicMask = 0;
-      boolean streaming = robj.isStreaming();
+      boolean streaming = robj.isTransient();
       nVertices = robj.numVertices();
 
       int numPointsTotal = 0;

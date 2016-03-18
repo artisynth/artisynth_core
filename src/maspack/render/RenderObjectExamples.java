@@ -38,11 +38,11 @@ public class RenderObjectExamples {
          int cz = axes.addColor(blue);
          
          // regular axes
-         axes.color(cx);
+         axes.setCurrentColor(cx);
          axes.addLine(origin, xunit);
-         axes.color(cy);
+         axes.setCurrentColor(cy);
          axes.addLine(origin, yunit);
-         axes.color(cz);
+         axes.setCurrentColor(cz);
          axes.addLine(origin, zunit);
          
          // selected axes

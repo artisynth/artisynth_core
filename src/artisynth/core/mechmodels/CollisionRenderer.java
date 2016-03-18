@@ -103,7 +103,7 @@ public class CollisionRenderer {
       r.createPointGroup();    // contact info
       r.createTriangleGroup(); // intersection faces
 
-      r.normal (0, 0, 0);      // create default dummy normal
+      r.addNormal (0, 0, 0);   // create default dummy normal
 
       if (handler.myDrawConstraints) {
          r.lineGroup (CONSTRAINT_GRP);
@@ -192,7 +192,7 @@ public class CollisionRenderer {
           handler.myFaceSegments != null) {
 
          for (FaceSeg seg : handler.myFaceSegments) {
-            r.normal ((float)seg.nrm.x, (float)seg.nrm.y, (float)seg.nrm.z);
+            r.addNormal ((float)seg.nrm.x, (float)seg.nrm.y, (float)seg.nrm.z);
             Point3d p0 = seg.p0;
             Point3d p1 = seg.p1;
             Point3d p2 = seg.p2;

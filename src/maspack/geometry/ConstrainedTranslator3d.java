@@ -109,11 +109,11 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
       ro.setColor(1, 1.0f, 1.0f, 0f, 1.0f);
       ro.setColor(2, 1.0f, 1.0f, 0f, 1.0f);
       
-      ro.color(xcolor);
+      ro.setCurrentColor(xcolor);
       ro.addLine(new float[]{-1,0,0}, new float[]{1,0,0}); // x-axis
-      ro.color(ycolor);
+      ro.setCurrentColor(ycolor);
       ro.addLine(new float[]{0,-1,0}, new float[]{0,1,0}); // y-axis
-      ro.color(zcolor);
+      ro.setCurrentColor(zcolor);
       ro.addLine(new float[]{0,0,-1}, new float[]{0,0,1}); // z-axis
             
       return ro;

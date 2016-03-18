@@ -201,7 +201,7 @@ public class GLGridPlane implements HasProperties {
          if (colorsChanged || positionsChanged) {
 
             lines.reinitialize();
-            lines.setStreaming(true);
+            lines.setTransient(true);
 
             lines.ensurePositionCapacity(2*(xcnt+ycnt));
             lines.ensureLineCapacity (xcnt+ycnt);
@@ -220,11 +220,11 @@ public class GLGridPlane implements HasProperties {
                int ii = y_axis_i - i;
 
                if (ii == 0) {
-                  lines.color (ycidx);
+                  lines.setCurrentColor (ycidx);
                } else if (ii%numDivisions == 0) {
-                  lines.color (majorcidx);
+                  lines.setCurrentColor (majorcidx);
                } else {
-                  lines.color (minorcidx);
+                  lines.setCurrentColor (minorcidx);
                }
                lines.vertex((float)x, (float)ymin, 0);
                lines.vertex((float)x, (float)ymax, 0);
@@ -235,11 +235,11 @@ public class GLGridPlane implements HasProperties {
                int jj = x_axis_j - j;
 
                if (jj == 0) {
-                  lines.color (xcidx);
+                  lines.setCurrentColor (xcidx);
                } else if (jj%numDivisions == 0) {
-                  lines.color (majorcidx);
+                  lines.setCurrentColor (majorcidx);
                } else {
-                  lines.color (minorcidx);
+                  lines.setCurrentColor (minorcidx);
                }
                lines.vertex((float)xmin, (float)y, 0);
                lines.vertex((float)xmax, (float)y, 0);

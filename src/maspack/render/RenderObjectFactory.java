@@ -138,7 +138,7 @@ public class RenderObjectFactory {
          double angle = 2*Math.PI/nSlices*i;
          float x = (float)Math.cos(angle);
          float y = (float)Math.sin(angle);
-         cylinder.normal(x, y, 0);
+         cylinder.addNormal(x, y, 0);
          cylinder.vertex(x, y, 1);  // top
          cylinder.vertex(x, y, 0);  // bottom
       }
@@ -255,7 +255,7 @@ public class RenderObjectFactory {
       spindle.ensureTriangleCapacity(2*nSlices*(nLevels-1));
       
       // bottom
-      spindle.normal(0, 0, -1);
+      spindle.addNormal(0, 0, -1);
       spindle.vertex(0, 0, 0);
       
       for (int j=1; j < nLevels; ++j) {
@@ -269,13 +269,13 @@ public class RenderObjectFactory {
             float r = (float)Math.sin (h * Math.PI);
             float drdh = (float)(Math.PI * Math.cos (h * Math.PI));
 
-            spindle.normal(c0, s0, -drdh);
+            spindle.addNormal(c0, s0, -drdh);
             spindle.vertex(c0*r, s0*r, h);
          }
       }
 
       // top
-      spindle.normal(0, 0, 1);
+      spindle.addNormal(0, 0, 1);
       spindle.vertex(0, 0, 1);
 
       // triangles
@@ -327,7 +327,7 @@ public class RenderObjectFactory {
       sphere.ensureTriangleCapacity(2*nSlices*(nLevels-1));
       
       // bottom
-      sphere.normal(0, 0, -1);
+      sphere.addNormal(0, 0, -1);
       sphere.vertex(0, 0, -1);
       
       for (int j=1; j < nLevels; ++j) {
@@ -340,13 +340,13 @@ public class RenderObjectFactory {
             float c0 = (float)Math.cos (ang);
             float s0 = (float)Math.sin (ang);
 
-            sphere.normal(c0*r, s0*r, h);
+            sphere.addNormal(c0*r, s0*r, h);
             sphere.vertex(c0*r, s0*r, h);
          }
       }
 
       // top
-      sphere.normal(0, 0, 1);
+      sphere.addNormal(0, 0, 1);
       sphere.vertex(0, 0, 1);
 
       // triangles
@@ -391,17 +391,17 @@ public class RenderObjectFactory {
       
       axes.beginBuild(DrawMode.LINES);
       if (x) {
-         axes.color(1f, 0, 0, 1f);
+         axes.addColor(1f, 0, 0, 1f);
          axes.vertex(0, 0, 0);
          axes.vertex(1, 0, 0);
       }
       if (y) {
-         axes.color(0, 1f, 0, 1f);
+         axes.addColor(0, 1f, 0, 1f);
          axes.vertex(0, 0, 0);
          axes.vertex(0, 1, 0);
       }
       if (z) {
-         axes.color(0, 0, 1f, 1f);
+         axes.addColor(0, 0, 1f, 1f);
          axes.vertex(0, 0, 0);
          axes.vertex(0, 0, 1);
       }

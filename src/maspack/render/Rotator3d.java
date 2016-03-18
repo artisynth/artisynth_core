@@ -145,7 +145,7 @@ public class Rotator3d extends Dragger3dBase {
       int v0, v1;
 
       // circle around x-axis
-      rotr.color(xcolor);
+      rotr.setCurrentColor(xcolor);
       v0 = rotr.vertex(0f, 1f, 0f);
       for (int i = 1; i <= FULL_CIRCLE_RESOLUTION; i++) {
          double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
@@ -155,7 +155,7 @@ public class Rotator3d extends Dragger3dBase {
       }
       
       // y-axis
-      rotr.color(ycolor);
+      rotr.setCurrentColor(ycolor);
       v0 = rotr.vertex(1f, 0f, 0f);
       for (int i = 1; i <= FULL_CIRCLE_RESOLUTION; i++) {
          double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
@@ -165,7 +165,7 @@ public class Rotator3d extends Dragger3dBase {
       }
       
       // z-axis
-      rotr.color(zcolor);
+      rotr.setCurrentColor(zcolor);
       v0 = rotr.vertex(1f, 0f, 0f);
       for (int i = 1; i <= FULL_CIRCLE_RESOLUTION; i++) {
          double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);

@@ -170,36 +170,36 @@ public class Transrotator3d extends Dragger3dBase {
       
       transrotr.beginBuild(DrawMode.LINES);
       // x-axis
-      transrotr.color(xcolor);
+      transrotr.setCurrentColor(xcolor);
       transrotr.vertex(0, 0, 0);
       transrotr.vertex(1, 0, 0);
       // y-axis
-      transrotr.color(ycolor);
+      transrotr.setCurrentColor(ycolor);
       transrotr.vertex(0, 0, 0);
       transrotr.vertex(0, 1, 0);
       // z-axis
-      transrotr.color(zcolor);
+      transrotr.setCurrentColor(zcolor);
       transrotr.vertex(0, 0, 0);
       transrotr.vertex(0, 0, 1);
       transrotr.endBuild();
       
       // yz-plane
       int v0, v1, v2;
-      transrotr.color(yzcolor);
+      transrotr.setCurrentColor(yzcolor);
       v0 = transrotr.vertex(0, TRANS_BOX_SIZE, 0);
       v1 = transrotr.vertex(0, TRANS_BOX_SIZE, TRANS_BOX_SIZE);
       v2 = transrotr.vertex(0, 0, TRANS_BOX_SIZE);
       transrotr.addLineStrip(v0, v1, v2);
 
       // zx-plane
-      transrotr.color(zxcolor);
+      transrotr.setCurrentColor(zxcolor);
       v0 = transrotr.vertex(0, 0, TRANS_BOX_SIZE);
       v1 = transrotr.vertex(TRANS_BOX_SIZE, 0, TRANS_BOX_SIZE);
       v2 = transrotr.vertex(TRANS_BOX_SIZE, 0, 0);
       transrotr.addLineStrip(v0, v1, v2);
       
       // xy-plane
-      transrotr.color(xycolor);
+      transrotr.setCurrentColor(xycolor);
       v0 = transrotr.vertex(TRANS_BOX_SIZE, 0, 0);
       v1 = transrotr.vertex(TRANS_BOX_SIZE, TRANS_BOX_SIZE, 0);
       v2 = transrotr.vertex(0, TRANS_BOX_SIZE, 0);
@@ -207,7 +207,7 @@ public class Transrotator3d extends Dragger3dBase {
       
       // x-rotation
       transrotr.beginBuild(DrawMode.LINE_STRIP);
-      transrotr.color(xrcolor);
+      transrotr.setCurrentColor(xrcolor);
       for (int i = 0; i <= QUARTER_CIRCLE_RESOLUTION; i++) {
          double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
          transrotr.vertex(
@@ -217,7 +217,7 @@ public class Transrotator3d extends Dragger3dBase {
             
       // y-rotation
       transrotr.beginBuild(DrawMode.LINE_STRIP);
-      transrotr.color(yrcolor);
+      transrotr.setCurrentColor(yrcolor);
       for (int i = 0; i <= QUARTER_CIRCLE_RESOLUTION; i++) {
          double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
          transrotr.vertex(
@@ -227,7 +227,7 @@ public class Transrotator3d extends Dragger3dBase {
             
       // z-rotation
       transrotr.beginBuild(DrawMode.LINE_STRIP);
-      transrotr.color(zrcolor);
+      transrotr.setCurrentColor(zrcolor);
       for (int i = 0; i <= QUARTER_CIRCLE_RESOLUTION; i++) {
          double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
          transrotr.vertex( 

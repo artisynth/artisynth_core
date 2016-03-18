@@ -193,7 +193,7 @@ public class FemElementRenderer {
 
       RenderObject r = new RenderObject();
       
-      r.normal (1, 0, 0); // dummy normal for lines
+      r.addNormal (1, 0, 0); // dummy normal for lines
       for (int i=0; i<elem.numNodes(); i++) {
          r.vertex (0, 0, 0);
       }

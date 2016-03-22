@@ -2185,6 +2185,19 @@ public class RenderObject {
       }
       return null;
    }
+   
+   /**
+    * Returns a list of vertex indices of all point primitives defined
+    * @return
+    */
+   public int[] getPointArray() {
+      if (hasPoints()) {
+         currentPointGroup.trimToSize();
+         return currentPointGroup.getData ();
+      }
+      return null;
+   }
+   
 
    /**
     * Hint for ensuring sufficient storage for points
@@ -2286,10 +2299,18 @@ public class RenderObject {
    @Deprecated
    public List<int[]> getPoints(int pgroup) {
       if (hasPoints()) {
-         
          DynamicIntArray pg = points.get (pgroup);
          List<int[]> out = getList(pg,POINT_STRIDE);
          return out;
+      }
+      return null;
+   }
+   
+   public int[] getPointArray(int pgroup) {
+      if (hasPoints()) {
+         DynamicIntArray pg = points.get (pgroup);
+         pg.trimToSize ();
+         return pg.getData ();
       }
       return null;
    }
@@ -2466,6 +2487,14 @@ public class RenderObject {
       return null;
    }
    
+   public int[] getLineArray() {
+      if (hasLines()) {
+         currentLineGroup.trimToSize ();
+         return currentLineGroup.getData ();
+      }
+      return null;
+   }
+   
    /**
     * Hint for ensuring sufficient storage for lines
     * @param cap capacity
@@ -2553,7 +2582,19 @@ public class RenderObject {
     */
    @Deprecated
    public List<int[]> getLines(int lgroup) {
-      return getList(lines.get(lgroup), LINE_STRIDE);
+      if (hasLines()) {
+         return getList(lines.get(lgroup), LINE_STRIDE);
+      }
+      return null;
+   }
+   
+   public int[] getLineArray(int lgroup) {
+      if (hasLines()) {
+         DynamicIntArray ll = lines.get (lgroup);
+         ll.trimToSize ();
+         return ll.getData ();
+      } 
+      return null;
    }
 
    /**
@@ -2739,6 +2780,14 @@ public class RenderObject {
       } 
       return null;
    }
+   
+   public int[] getTriangleArray() {
+      if (hasTriangles()) {
+         currentTriangleGroup.trimToSize ();
+         return currentTriangleGroup.getData ();
+      } 
+      return null;
+   }
 
    /**
     * Hint for ensuring sufficient storage for triangles
@@ -2829,7 +2878,19 @@ public class RenderObject {
     */
    @Deprecated
    public List<int[]> getTriangles(int tgroup) {
-      return getList(triangles.get(tgroup), TRIANGLE_STRIDE);
+      if (hasTriangles ()) {
+         return getList(triangles.get(tgroup), TRIANGLE_STRIDE);
+      }
+      return null;
+   }
+   
+   public int[] getTriangleArray(int tgroup) {
+      if (hasTriangles ()) {
+         DynamicIntArray tris = triangles.get (tgroup);
+         tris.trimToSize ();
+         return tris.getData ();
+      }
+      return null;
    }
 
    /**

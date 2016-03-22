@@ -1610,9 +1610,9 @@ public class RenderObject {
    private void maybeGrowAdjustVertices(int cap) {
       // maintain capacity      
       boolean vHasPositions = ((vertexBufferMask & VERTEX_POSITIONS) != 0);
-      boolean vHasNormals = ((vertexBufferMask & VERTEX_POSITIONS) != 0);
-      boolean vHasColors = ((vertexBufferMask & VERTEX_POSITIONS) != 0);
-      boolean vHasTexcoords = ((vertexBufferMask & VERTEX_POSITIONS) != 0);
+      boolean vHasNormals = ((vertexBufferMask & VERTEX_NORMALS) != 0);
+      boolean vHasColors = ((vertexBufferMask & VERTEX_COLORS) != 0);
+      boolean vHasTexcoords = ((vertexBufferMask & VERTEX_TEXCOORDS) != 0);
       
       boolean rHasPositions = hasPositions();
       boolean rHasNormals = hasNormals();
@@ -1620,14 +1620,16 @@ public class RenderObject {
       boolean rHasTexcoords = hasTextureCoords ();
       
       // need to expand?
-      if (cap - vertexCapacity > 0) { // overflow-conscious
-         cap = vertexCapacity + (vertexCapacity >> 1);  // grow by 1.5
+      int ncap = vertexCapacity;      // start with old capacity
+      if (ncap - cap < 0) { // overflow-conscious
+         ncap = vertexCapacity + (vertexCapacity >> 1);  // grow by 1.5
       }
-      if (cap - vertexCapacity < 0) {
-         cap = vertexCapacity;  // at least keep old capacity
+      // if still less
+      if (ncap - cap < 0) {
+         ncap = cap;  // at least hold minimum requested
       }
       
-      int vcap = cap*vertexStride;
+      int vcap = ncap*vertexStride;
       
       // if new vertex array will contain new information, we need to shift some of the data
       if (vHasPositions != rHasPositions || vHasNormals != rHasNormals || vHasColors != rHasColors || vHasTexcoords != rHasTexcoords) {
@@ -1657,7 +1659,7 @@ public class RenderObject {
          }
          
          // resize and adjust
-         int[] newVerts = new int[cap*newVertexStride];
+         int[] newVerts = new int[ncap*newVertexStride];
          Arrays.fill (newVerts, -1);  // indicative of missing value
          
          if (vHasPositions) {
@@ -3286,6 +3288,84 @@ public class RenderObject {
       r.buildModeStart = buildModeStart;
 
       return r;
+   }
+   
+   @Deprecated
+   public float[] getPosition(int gidx, int idx) {
+      return getPosition(idx);
+   }
+   
+   @Deprecated
+   public float[] getNormal(int gidx, int idx) {
+      return getNormal(idx);
+   }
+   
+   @Deprecated
+   public byte[] getColor(int gidx, int idx) {
+      return getColor(idx);
+   }
+   
+   @Deprecated
+   public float[] getTextureCoord(int gidx, int idx) {
+      return getTextureCoord(idx);
+   }
+   
+   @Deprecated
+   public int getPositionSetIdx() {
+      return 0;
+   }
+   
+   @Deprecated
+   public int getNormalSetIdx() {
+      return 0;
+   }
+   
+   @Deprecated
+   public int getColorSetIdx() {
+      return 0;
+   }
+   
+   @Deprecated
+   public int numPositionSets() {
+      if (hasPositions()) {
+         return 1;
+      }
+      return 0;
+   }
+   
+   @Deprecated
+   public int numNormalSets() {
+      if (hasNormals()) {
+         return 1;
+      }
+      return 0;
+   }
+   
+   @Deprecated
+   public int numColorSets() {
+      if (hasColors ()) {
+         return 1;
+      }
+      return 0;
+   }
+   
+   @Deprecated
+   public int numTextureCoordSets() {
+      if (hasTextureCoords ()) {
+         return 1;
+      }
+      return 0;
+   }
+   
+   @Deprecated
+   public int getTextureCoordSetIdx() {
+      return 0;
+   }
+   
+   @Deprecated
+   public int createColorSet() {
+      // nothing
+      return 0;
    }
 
    @Deprecated

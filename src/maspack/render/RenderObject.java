@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 
 import maspack.render.Renderer.DrawMode;
+import maspack.util.DynamicIntArray;
 
 public class RenderObject {
 
@@ -34,7 +35,7 @@ public class RenderObject {
     */
    public static class RenderObjectIdentifier {
       private int id;
-      private boolean valid;
+      private volatile boolean valid;
       private RenderObjectIdentifier(int id, boolean valid) {
          this.id = id;
          this.valid = valid;
@@ -188,9 +189,7 @@ public class RenderObject {
    
    /**
     * Stores exposable state of the object, tracking the 
-    * current attribute set indices and primitive group indices.
-    * Can be cloned so renderers can keep track of the latest state
-    * they have observed.
+    * current primitive group indices.
     * 
     */
    public static class RenderObjectState {
@@ -212,35 +211,39 @@ public class RenderObject {
       private int triangleGroupIdx; 
       
       private RenderObjectState() {
-         numPositionSets = 0;
-         numNormalSets = 0;
-         numColorSets = 0;
-         numTextureSets = 0;
+         numPositionSets = 1;
+         numNormalSets = 1;
+         numColorSets = 1;
+         numTextureSets = 1;
          numPointGroups = 0;
          numLineGroups = 0;
          numTriangleGroups = 0;
          
-         positionSetIdx = -1;
-         normalSetIdx = -1;
-         colorSetIdx = -1;
-         textureSetIdx = -1;
+         positionSetIdx = 0;
+         normalSetIdx = 0;
+         colorSetIdx = 0;
+         textureSetIdx = 0;
          pointGroupIdx = -1;
          lineGroupIdx = -1;
          triangleGroupIdx = -1;
       }
 
+      @Deprecated
       public int numPositionSets() {
          return numPositionSets;
       }
 
+      @Deprecated
       public int numNormalSets() {
          return numNormalSets;
       }
 
+      @Deprecated
       public int numColorSets() {
          return numColorSets;
       }
 
+      @Deprecated
       public int numTextureCoordSets() {
          return numTextureSets;
       }
@@ -257,18 +260,22 @@ public class RenderObject {
          return numTriangleGroups;
       }
 
+      @Deprecated
       public int getPositionSetIdx() {
          return positionSetIdx;
       }
 
+      @Deprecated
       public int getNormalSetIdx() {
          return normalSetIdx;
       }
 
+      @Deprecated
       public int getColorSetIdx() {
          return colorSetIdx;
       }
 
+      @Deprecated
       public int getTextureCoordSetIdx() {
          return textureSetIdx;
       }
@@ -289,39 +296,23 @@ public class RenderObject {
       public int hashCode() {
          final int prime = 31;
          int result = 1;
-         result = prime * result + colorSetIdx;
          result = prime * result + lineGroupIdx;
-         result = prime * result + normalSetIdx;
-         result = prime * result + numColorSets;
          result = prime * result + numLineGroups;
-         result = prime * result + numNormalSets;
          result = prime * result + numPointGroups;
-         result = prime * result + numPositionSets;
-         result = prime * result + numTextureSets;
          result = prime * result + numTriangleGroups;
          result = prime * result + pointGroupIdx;
-         result = prime * result + positionSetIdx;
-         result = prime * result + textureSetIdx;
          result = prime * result + triangleGroupIdx;
          return result;
       }
 
       public boolean equals(RenderObjectState other) {
-         if (  positionSetIdx != other.positionSetIdx 
-            || normalSetIdx != other.normalSetIdx
-            || colorSetIdx != other.colorSetIdx
-            || textureSetIdx != other.textureSetIdx
-            || pointGroupIdx != other.pointGroupIdx
+         if ( pointGroupIdx != other.pointGroupIdx
             || lineGroupIdx != other.lineGroupIdx
             || triangleGroupIdx != other.triangleGroupIdx) {
             return false;
          }
          
-         if (  numPositionSets != other.numPositionSets
-            || numNormalSets != other.numNormalSets
-            || numColorSets != other.numColorSets
-            || numTextureSets != other.numTextureSets
-            || numPointGroups != other.numPointGroups
+         if ( numPointGroups != other.numPointGroups
             || numLineGroups != other.numLineGroups
             || numTriangleGroups != other.numTriangleGroups) {
             return false;
@@ -344,35 +335,31 @@ public class RenderObject {
       
       public RenderObjectState clone() {
          RenderObjectState c = new RenderObjectState();
-         c.numPositionSets = numPositionSets;
-         c.numNormalSets = numNormalSets;
-         c.numColorSets = numColorSets;
-         c.numTextureSets = numTextureSets;
          c.numPointGroups = numPointGroups;
          c.numLineGroups = numLineGroups;
          c.numTriangleGroups = numTriangleGroups;
-         c.positionSetIdx = positionSetIdx;
-         c.normalSetIdx = normalSetIdx;
-         c.colorSetIdx = colorSetIdx;
-         c.textureSetIdx = textureSetIdx;
          c.pointGroupIdx = pointGroupIdx;
          c.lineGroupIdx = lineGroupIdx;
          c.triangleGroupIdx = triangleGroupIdx;
          return c;
       }
 
+      @Deprecated
       public boolean hasPositions() {
-         return numPositionSets > 0;
+         return true;
       }
       
+      @Deprecated
       public boolean hasNormals() {
          return numNormalSets > 0;
       }
       
+      @Deprecated
       public boolean hasColors() {
          return numColorSets > 0;
       }
       
+      @Deprecated
       public boolean hasTextureCoords() {
          return numTextureSets > 0;
       }
@@ -444,41 +431,34 @@ public class RenderObject {
       protected VertexIndexSet clone() {
          return new VertexIndexSet(pidx, nidx, cidx, tidx);
       }
-
    }
    
    RenderObjectIdentifier idInfo;
    RenderObjectVersion versionInfo;
    RenderObjectState stateInfo;
-   
-   ArrayList<ArrayList<float[]>> positions;
-   ArrayList<ArrayList<float[]>> normals;
-   ArrayList<ArrayList<byte[]>> colors;
-   ArrayList<ArrayList<float[]>> textures;
+     
+   ArrayList<float[]> positions;
+   ArrayList<float[]> normals;
+   ArrayList<byte[]> colors;
+   ArrayList<float[]> texcoords;
    
    // number of each attribute
    int numPositions;
    int numNormals;
    int numColors;
-   int numTextures;
+   int numTexcoords;
 
    int currentPositionIdx;
    int currentNormalIdx;
    int currentColorIdx;
    int currentTextureIdx;
-
+   
    // whether or not attributes can be updated once the object is
    // committed
    boolean positionsDynamic;
    boolean normalsDynamic;
    boolean colorsDynamic;
-   boolean texturesDynamic;
-
-   // pointers to locations within positions/normals/colors
-   ArrayList<float[]> currentPositionSet;
-   ArrayList<float[]> currentNormalSet;
-   ArrayList<byte[]> currentColorSet;
-   ArrayList<float[]> currentTextureSet;
+   boolean texcoordsDynamic;
 
    // indicators that attributes have been modified
    boolean positionsModified;
@@ -489,18 +469,33 @@ public class RenderObject {
    DrawMode buildMode;
    int buildModeStart;  // starting number of vertices when build mode began
 
-   ArrayList<VertexIndexSet> vertices;
+   // stride and offset for particular attributes
+   int vertexCapacity = 0;
+   int vertexStride = 0;
+   int vertexPositionOffset = -1;
+   int vertexNormalOffset = -1;
+   int vertexColorOffset = -1;
+   int vertexTexcoordOffset = -1;
+   int[] vertices;      // position/normal/color/texture (if available)
+   int vertexBufferMask = 0;
+   static final byte VERTEX_POSITIONS = 0x1;
+   static final byte VERTEX_NORMALS = 0x2;
+   static final byte VERTEX_COLORS = 0x4;
+   static final byte VERTEX_TEXCOORDS = 0x8;
    int numVertices;
    boolean verticesModified;
 
-   ArrayList<ArrayList<int[]>> points;
-   ArrayList<ArrayList<int[]>> lines;
-   ArrayList<ArrayList<int[]>> triangles;
+   static final int POINT_STRIDE = 1;
+   static final int LINE_STRIDE = 2;
+   static final int TRIANGLE_STRIDE = 3;
+   ArrayList<DynamicIntArray> points;
+   ArrayList<DynamicIntArray> lines;
+   ArrayList<DynamicIntArray> triangles;
 
    // pointers to positions in points, lines, triangles
-   ArrayList<int[]> currentPointGroup;
-   ArrayList<int[]> currentLineGroup;
-   ArrayList<int[]> currentTriangleGroup;
+   DynamicIntArray currentPointGroup;
+   DynamicIntArray currentLineGroup;
+   DynamicIntArray currentTriangleGroup;
 
    boolean pointsModified;
    boolean linesModified;
@@ -508,12 +503,8 @@ public class RenderObject {
 
    boolean verticesCommitted;
    boolean primitivesCommitted;
-   
-   // boolean storageValid;
 
    boolean totalModified;
-
-
    boolean isTransient;
 
    public RenderObject() {
@@ -560,12 +551,7 @@ public class RenderObject {
     * @param cap capacity
     */
    public void ensurePositionCapacity(int cap) {
-      if (stateInfo.numPositionSets == 0) {
-         createPositionSet();
-      }
-      for (ArrayList<float[]> pset : positions) {
-         pset.ensureCapacity(cap);
-      }
+      positions.ensureCapacity (cap);
    }
 
    /**
@@ -591,14 +577,9 @@ public class RenderObject {
          throw new IllegalStateException(
             "Cannot add positions once vertices are committed");
       }
-      // create first position set
-      if (stateInfo.numPositionSets == 0) {
-         createPositionSet();
-      }
+    
       int pidx = numPositions;
-      for (List<float[]> pset : positions) {
-         pset.add(xyz);
-      }
+      positions.add (xyz);
       numPositions++;
       notifyPositionsModified ();
       currentPositionIdx = pidx;
@@ -659,7 +640,7 @@ public class RenderObject {
     */
    public void setCurrentPosition(int pidx) {
       if (pidx >= 0) {
-         if (pidx >= currentPositionSet.size()) {
+         if (pidx >= positions.size()) {
             throw new IllegalArgumentException (
                "Position "+pidx+" is not defined");
          }
@@ -714,7 +695,7 @@ public class RenderObject {
                "Cannot modify non-dynamic positions once vertices are committed");
          }
       }
-      currentPositionSet.set(pidx, pos);
+      positions.set(pidx, pos);
       notifyPositionsModified ();
    }
 
@@ -722,7 +703,7 @@ public class RenderObject {
     * Whether or not any positions have been defined.
     */
    public boolean hasPositions() {
-      return (numPositionSets() > 0);
+      return (positions.size () > 0);
    }
 
    /**
@@ -742,7 +723,7 @@ public class RenderObject {
       if (pidx < 0) {
          return null;
       }
-      return currentPositionSet.get(pidx);
+      return positions.get(pidx);
    }
 
    /**
@@ -752,7 +733,7 @@ public class RenderObject {
     */
    public List<float[]> getPositions() {
       if (hasPositions()) {
-         return Collections.unmodifiableList(currentPositionSet);
+         return Collections.unmodifiableList(positions);
       }
       return null;
    }
@@ -792,102 +773,6 @@ public class RenderObject {
       positionsModified = true;
       totalModified = true;
    }
-   
-   /**
-    * Creates a new, alternative set of positions that can be used by vertices.  
-    * This allows sharing of other resources, such as normals, colors and 
-    * textures.  The new set of positions immediately becomes active, and
-    * is initialized from the previously active position set.
-    * @return the index of the newly created position set
-    * @see #positionSet(int)
-    */
-   public int createPositionSet() {
-      return createPositionSetFrom(stateInfo.positionSetIdx);
-   }
-
-   /**
-    * Creates a new, alternative set of positions that can be used by vertices.  
-    * This allows sharing of other resources, such as normals, colors and 
-    * textures.  The new set of positions immediately becomes active, and 
-    * is initialized from the position set identified by the supplied index.
-    * @param copyIdx index of position set to duplicate
-    * @return the index of the newly created position set
-    * @see #positionSet(int)
-    */
-   public int createPositionSetFrom(int copyIdx) {
-      if (verticesCommitted) {
-         throw new IllegalStateException(
-            "Cannot add a new set of positions once vertices are committed");
-      }
-      ArrayList<float[]> newPositions;
-      if (stateInfo.numPositionSets == 0) {
-         newPositions = new ArrayList<>();
-      } else {
-         if (copyIdx < 0) {
-            copyIdx = 0;
-         }
-         newPositions = new ArrayList<>(positions.get(copyIdx));
-      }
-      int idx = stateInfo.numPositionSets;
-      positions.add(newPositions);
-      currentPositionSet = newPositions;
-      stateInfo.positionSetIdx = idx;
-      stateInfo.numPositionSets++;
-      notifyPositionsModified ();
-      return idx;
-   }
-
-   /**
-    * Sets the current active position set to be used/modified.  Vertices
-    * will use the current active set of positions when rendering.
-    * @param setIdx index of active position set
-    */
-   public void positionSet(int setIdx) {
-      stateInfo.positionSetIdx = setIdx;
-      if (positions != null) {
-         currentPositionSet = positions.get(stateInfo.positionSetIdx);
-      }
-   }
-
-   /**
-    * Returns the index of the currently active position set.
-    */
-   public int getPositionSetIdx() {
-      return stateInfo.positionSetIdx;
-   }
-
-   /**
-    * The number of position sets available.
-    */
-   public int numPositionSets() {
-      return stateInfo.numPositionSets;
-   }
-
-   /**
-    * Retrieves the position at the supplied index in a given set.  
-    * If the returned positions are modified, then the render
-    * object must be notified with {@link #notifyPositionsModified()}.
-    * @param pset position set index
-    * @param pidx position index
-    * @return position {x,y,z}
-    */
-   public float[] getPosition(int pset, int pidx) {
-      if (pidx < 0) {
-         return null;
-      }
-      return positions.get(pset).get(pidx);
-   }
-
-   /**
-    * Retrieves the full list of positions in a given set.  If entries
-    * in this list are modified, the render object must be notified
-    * with {@link #notifyPositionsModified()}.
-    * @param pset position set index
-    * @return list of positions.
-    */
-   public List<float[]> getPositions(int pset) {
-      return Collections.unmodifiableList(positions.get(pset));
-   }
 
    /**
     * Returns the latest committed positions version number,
@@ -906,12 +791,7 @@ public class RenderObject {
     * @param cap capacity
     */
    public void ensureNormalCapacity(int cap) {
-      if (stateInfo.numNormalSets == 0) {
-         createNormalSet();
-      }
-      for (ArrayList<float[]> nset : normals) {
-         nset.ensureCapacity(cap);
-      }
+      normals.ensureCapacity (cap);
    }
 
    /**
@@ -939,14 +819,9 @@ public class RenderObject {
          throw new IllegalStateException(
             "Cannot add normals once vertices are committed");
       }
-      // create first normal set
-      if (stateInfo.numNormalSets == 0) {
-         createNormalSet();
-      }
+    
       int nidx = numNormals;
-      for (List<float[]> nset : normals) {
-         nset.add(nrm);
-      }
+      normals.add (nrm);
       numNormals++;
       notifyNormalsModified();
       currentNormalIdx = nidx;
@@ -1008,7 +883,7 @@ public class RenderObject {
     */
    public void setCurrentNormal(int nidx) {
       if (nidx >= 0) {
-         if (nidx >= currentNormalSet.size()) {
+         if (nidx >= normals.size()) {
             throw new IllegalArgumentException (
                "Normal "+nidx+" is not defined");
          }
@@ -1061,7 +936,7 @@ public class RenderObject {
                "Cannot modify non-dynamic normals once vertices are committed");
          }
       }
-      currentNormalSet.set(nidx, nrm);
+      normals.set(nidx, nrm);
       notifyNormalsModified();
    }
 
@@ -1069,7 +944,7 @@ public class RenderObject {
     * Whether or not any normals have been defined.
     */
    public boolean hasNormals() {
-      return (numNormalSets() > 0);
+      return (normals.size () > 0);
    }
 
    /**
@@ -1090,7 +965,7 @@ public class RenderObject {
       if (nidx < 0) {
          return null;
       }
-      return currentNormalSet.get(nidx);
+      return normals.get(nidx);
    }
 
    /**
@@ -1101,7 +976,7 @@ public class RenderObject {
     */
    public List<float[]> getNormals() {
       if (hasNormals()) {
-         return Collections.unmodifiableList(currentNormalSet);
+         return Collections.unmodifiableList(normals);
       }
       return null;
    }
@@ -1142,100 +1017,7 @@ public class RenderObject {
       totalModified = true;
    }
 
-   /**
-    * Creates a new, alternative set of normals that can be used by vertices.  
-    * This allows sharing of other resources, such as positions, colors and 
-    * textures.  The new set of normals immediately becomes active, and is
-    * initialized from the previously active normal set.
-    * @return the index of the newly created normal set
-    * @see #normalSet(int)
-    */
-   public int createNormalSet() {
-      return createNormalSetFrom(stateInfo.normalSetIdx);
-   }
-
-   /**
-    * Creates a new, alternative set of normals that can be used by vertices.  
-    * This allows sharing of other resources, such as positions, colors and 
-    * textures.  The new set of normals will be initialized from the
-    * normal set identified by the supplied index.
-    * @param copyIdx index of normal set to duplicate
-    * @return the index of the newly created normal set
-    * @see #normalSet(int)
-    */
-   public int createNormalSetFrom(int copyIdx) {
-      if (verticesCommitted) {
-         throw new IllegalStateException(
-            "Cannot add a new set of normals once vertices are committed");
-      }
-      ArrayList<float[]> newNormals;
-      if (stateInfo.numNormalSets == 0) {
-         newNormals = new ArrayList<>();
-      } else {
-         if (copyIdx < 0) {
-            copyIdx = 0;
-         }
-         newNormals = new ArrayList<>(normals.get(copyIdx));
-      }
-      int idx = stateInfo.numNormalSets;
-      normals.add(newNormals);
-      currentNormalSet = newNormals;
-      stateInfo.normalSetIdx = idx;
-      stateInfo.numNormalSets++;
-      notifyNormalsModified ();
-      return idx;
-   }
-
-   /**
-    * Sets the current active normal set to be used/modified.  Vertices
-    * will use the current active set of normals when rendering.
-    * @param setIdx index of active normal set
-    */
-   public void normalSet(int setIdx) {
-      stateInfo.normalSetIdx = setIdx;
-      if (normals != null) {
-         currentNormalSet = normals.get(stateInfo.normalSetIdx);
-      }
-   }
-
-   /**
-    * Returns the index of the currently active normal set.
-    */
-   public int getNormalSetIdx() {
-      return stateInfo.normalSetIdx;
-   }
-
-   /**
-    * The number of normal sets available.
-    */
-   public int numNormalSets() {
-      return stateInfo.numNormalSets;
-   }
-
-   /**
-    * Retrieves the normal at the supplied index in a given set.  
-    * If the returned normal is modified, then {@link #notifyNormalsModified()} must be manually called.
-    * @param nset normal set index
-    * @param nidx normal index
-    * @return normal {x,y,z}
-    */
-   public float[] getNormal(int nset, int nidx) {
-      if (nidx < 0) {
-         return null;
-      }
-      return normals.get(nset).get(nidx);
-   }
-
-   /**
-    * Retrieves the full list of normals in a given set.  This list should 
-    * not be modified.
-    * @param nset normal set index
-    * @return list of normals.
-    */
-   public List<float[]> getNormals(int nset) {
-      return Collections.unmodifiableList(positions.get(nset));
-   }
-
+ 
    /**
     * Returns the latest committed triangles version number,
     * for use in detecting if changes are present.
@@ -1253,12 +1035,7 @@ public class RenderObject {
     * @param cap capacity
     */
    public void ensureColorCapacity(int cap) {
-      if (stateInfo.numColorSets == 0) {
-         createColorSet();
-      }
-      for (ArrayList<byte[]> cset : colors) {
-         cset.ensureCapacity(cap);
-      }
+      colors.ensureCapacity (cap);
    }
 
    /**
@@ -1336,14 +1113,9 @@ public class RenderObject {
          throw new IllegalStateException(
             "Cannot add colors once vertices are committed");
       }
-      // create first color set
-      if (stateInfo.numColorSets == 0) {
-         createColorSet();
-      }
+      
       int cidx = numColors;
-      for (List<byte[]> cset : colors) {
-         cset.add(rgba);
-      }
+      colors.add (rgba);
       numColors++;
       notifyColorsModified ();
       currentColorIdx = cidx;
@@ -1418,7 +1190,7 @@ public class RenderObject {
     */
    public void setCurrentColor(int cidx) {
       if (cidx >= 0) {
-         if (cidx >= currentColorSet.size()) {
+         if (cidx >= colors.size()) {
             throw new IllegalArgumentException (
                "Color "+cidx+" is not defined");
          }
@@ -1499,7 +1271,7 @@ public class RenderObject {
                "Cannot modify non-dynamic colors once vertices are committed");
          }
       }
-      currentColorSet.set(cidx, rgba);
+      colors.set(cidx, rgba);
       notifyColorsModified();
    }
 
@@ -1507,7 +1279,7 @@ public class RenderObject {
     * Whether or not any colors have been defined.
     */
    public boolean hasColors() {
-      return (numColorSets() > 0);
+      return (colors.size () > 0);
    }
 
    /**
@@ -1527,7 +1299,7 @@ public class RenderObject {
       if (cidx < 0) {
          return null;
       }
-      return currentColorSet.get(cidx);
+      return colors.get(cidx);
    }
 
    /**
@@ -1536,7 +1308,7 @@ public class RenderObject {
     * @return list of colors.
     */
    public List<byte[]> getColors() {
-      return Collections.unmodifiableList(currentColorSet);
+      return Collections.unmodifiableList(colors);
    }
 
    /**
@@ -1568,102 +1340,6 @@ public class RenderObject {
    }
 
    /**
-    * Creates a new, alternative set of colors that can be used by vertices.  
-    * This allows sharing of other resources, such as positions, normals, 
-    * and textures.  The new set of colors immediately becomes active, and 
-    * is initialized from the previously active color set.
-    * @return the index of the newly created color set
-    * @see #colorSet(int)
-    */
-   public int createColorSet() {
-      return createColorSetFrom(stateInfo.colorSetIdx);
-   }
-
-   /**
-    * Creates a new, alternative set of colors that can be used by vertices.  
-    * This allows sharing of other resources, such as positions, normals and 
-    * textures.  The new set of colors immediately becomes active, and 
-    * is initialized from the color set identified by the supplied index.
-    * @param copyIdx index of color set to duplicate
-    * @return the index of the newly created color set
-    * @see #colorSet(int)
-    */
-   public int createColorSetFrom(int copyIdx) {
-      if (verticesCommitted) {
-         throw new IllegalStateException(
-            "Cannot add a new set of colors once vertices are committed");
-      }
-      ArrayList<byte[]> newColors;
-      if (stateInfo.numColorSets == 0) {
-         newColors = new ArrayList<>();
-         stateInfo.colorSetIdx = 0;
-      } else {
-         if (copyIdx < 0) {
-            copyIdx = 0;
-         }
-         newColors = new ArrayList<>(colors.get(copyIdx));
-      }
-
-      int idx = stateInfo.numColorSets;
-      colors.add(newColors);
-      currentColorSet = newColors;
-      stateInfo.colorSetIdx = idx;
-      stateInfo.numColorSets++;
-      notifyColorsModified();
-      return idx;
-   }
-
-   /**
-    * Sets the current active color set to be used/modified.  Vertices
-    * will use the current active set of colors when rendering.
-    * @param setIdx index of active color set
-    */
-   public void colorSet(int setIdx) {
-      stateInfo.colorSetIdx = setIdx;
-      if (colors != null) {
-         currentColorSet = colors.get(stateInfo.colorSetIdx);
-      }
-   }
-
-   /**
-    * Returns the index of the currently active color set.
-    */
-   public int getColorSetIdx() {
-      return stateInfo.colorSetIdx;
-   }
-
-   /**
-    * The number of color sets available.
-    */
-   public int numColorSets() {
-      return stateInfo.numColorSets;
-   }
-
-   /**
-    * Retrieves the color at the supplied index in a given set.  
-    * If the returned color is modified, then {@link #notifyColorsModified()} must be manually called.
-    * @param cset color set index
-    * @param cidx color index
-    * @return color {r,g,b,a}
-    */
-   public byte[] getColor(int cset, int cidx) {
-      if (cidx < 0) {
-         return null;
-      }
-      return colors.get(cset).get(cidx);
-   }
-
-   /**
-    * Retrieves the full list of colors in a given set.  This list should 
-    * not be modified.
-    * @param cset color set index
-    * @return list of colors.
-    */
-   public List<byte[]> getColors(int cset) {
-      return Collections.unmodifiableList(colors.get(cset));
-   }
-
-   /**
     * Returns the latest committed colors version number,
     * for use in detecting if changes are present.
     */
@@ -1680,12 +1356,7 @@ public class RenderObject {
     * @param cap capacity
     */
    public void ensureTextureCoordCapacity(int cap) {
-      if (stateInfo.numTextureSets == 0) {
-         createTextureCoordSet();
-      }
-      for (ArrayList<float[]> tset : textures) {
-         tset.ensureCapacity(cap);
-      }
+      texcoords.ensureCapacity (cap);
    }
 
    /**
@@ -1722,15 +1393,9 @@ public class RenderObject {
          throw new IllegalStateException(
             "Cannot add texture coordinates once vertices are committed");
       }
-      // create first texture set
-      if (stateInfo.numTextureSets == 0) {
-         createTextureCoordSet();
-      }
-      int tidx = numTextures;
-      for (List<float[]> tset : textures) {
-         tset.add(xy);
-      }
-      numTextures++;
+      int tidx = numTexcoords;
+      texcoords.add (xy);
+      numTexcoords++;
       notifyTextureCoordsModified();
       currentTextureIdx = tidx;
       return tidx;
@@ -1783,7 +1448,7 @@ public class RenderObject {
     */
    public void setCurrentTextureCoord(int tidx) {
       if (tidx >= 0) {
-         if (tidx >= currentTextureSet.size()) {
+         if (tidx >= texcoords.size()) {
             throw new IllegalArgumentException (
                "Texture coordinate "+tidx+" is not defined");
          }
@@ -1831,12 +1496,12 @@ public class RenderObject {
    public void setTextureCoord(int tidx, float[] xy) {
       
       if (verticesCommitted) {
-         if (!texturesDynamic) {
+         if (!texcoordsDynamic) {
             throw new IllegalStateException(
                "Cannot modify non-dynamic texture coordinates once vertices are committed");
          }
       }
-      currentTextureSet.set(tidx, xy);
+      texcoords.set(tidx, xy);
       notifyTextureCoordsModified();
    }
 
@@ -1844,14 +1509,14 @@ public class RenderObject {
     * Whether or not any texture coordinates have been defined.
     */
    public boolean hasTextureCoords() {
-      return (numTextureCoordSets() > 0);
+      return (texcoords.size () > 0);
    }
 
    /**
     * Number of texture coordinates defined.
     */
    public int numTextureCoords() {
-      return numTextures;
+      return numTexcoords;
    }
 
    /**
@@ -1864,7 +1529,7 @@ public class RenderObject {
       if (tidx < 0) {
          return null;
       }
-      return currentTextureSet.get(tidx);
+      return texcoords.get(tidx);
    }
 
    /**
@@ -1874,7 +1539,7 @@ public class RenderObject {
     */
    public List<float[]> getTextureCoords() {
       if (hasTextureCoords()) {
-         return Collections.unmodifiableList(currentTextureSet);
+         return Collections.unmodifiableList(texcoords);
       }
       return null;
    }
@@ -1887,7 +1552,7 @@ public class RenderObject {
     * @see #commit() 
     */
    public void setTextureCoordsDynamic(boolean set) {
-      if (set != texturesDynamic) {
+      if (set != texcoordsDynamic) {
          if (verticesCommitted) {
             throw new IllegalStateException(
                "Cannot modify dynamic property once vertices are committed");
@@ -1896,7 +1561,7 @@ public class RenderObject {
             throw new IllegalStateException(
                "Cannot make transient object dynamic");
          }
-         texturesDynamic = set;
+         texcoordsDynamic = set;
       }
    }
 
@@ -1904,106 +1569,7 @@ public class RenderObject {
     * Returns whether or not texture coordinates are considered dynamic.
     */
    public boolean isTextureCoordsDynamic() {
-      return texturesDynamic;
-   }
-
-   /**
-    * Creates a new, alternative set of texture coordinates that can be used by vertices.  
-    * This allows sharing of other resources, such as positions, normals, 
-    * and colors.  The new set of texture coordinates immediately becomes active,
-    * and is initialized from the previously active texture coordinate set.
-    * @return the index of the newly create texture coordinate set
-    * @see #textureCoordSet(int)
-    */
-   public int createTextureCoordSet() {
-      return createTextureCoordSetFrom(stateInfo.textureSetIdx);
-   }
-
-   /**
-    * Creates a new, alternative set of texture coordinates that can be used by vertices.  
-    * This allows sharing of other resources, such as positions, normals, and
-    * colors.  The new set of texture coordinates immediately becomes active,
-    * and is initialized from the texture coordinate set identified by the 
-    * supplied index.
-    * @param copyIdx index of texture coordinate set to duplicate
-    * @return the index of the newly created texture coordinate set
-    * @see #textureCoordSet(int)
-    */
-   public int createTextureCoordSetFrom(int copyIdx) {
-      if (verticesCommitted) {
-         throw new IllegalStateException(
-            "Cannot add a new set of texture coordinates once vertices are committed");
-      }
-      // create first texture set
-
-      ArrayList<float[]> newTextures;
-      if (stateInfo.numTextureSets == 0) {
-         newTextures = new ArrayList<>();
-      } else {
-         if (copyIdx < 0) {
-            copyIdx = 0;
-         }
-         newTextures = new ArrayList<>(textures.get(copyIdx));
-      }
-      int idx = stateInfo.numTextureSets;
-      textures.add(newTextures);
-      currentTextureSet = newTextures;
-      stateInfo.textureSetIdx = idx;
-      stateInfo.numTextureSets++;
-      notifyTextureCoordsModified();
-      return idx;
-   }
-
-   /**
-    * Sets the current active texture coordinate set to be used/modified.  Vertices
-    * will use the current active set of texture coordinates when rendering.
-    * @param setIdx index of active position set
-    */
-   public void textureCoordSet(int setIdx) {
-      stateInfo.textureSetIdx = setIdx;
-      if (textures != null) {
-         currentTextureSet = textures.get(stateInfo.textureSetIdx);
-      }
-   }
-
-   /**
-    * Returns the index of the currently active texture coordinate set.
-    */
-   public int getTextureCoordSetIdx() {
-      return stateInfo.textureSetIdx;
-   }
-
-   /**
-    * The number of texture coordinate sets available.
-    * @return number of texture coordinate sets
-    */
-   public int numTextureCoordSets() {
-      return stateInfo.numTextureSets;
-   }
-
-   /**
-    * Retrieves the texture coordinate at the supplied index in a given set.  
-    * If the returned texture coordindate
-    * is modified, then {@link #notifyTextureCoordsModified()} must be manually called.
-    * @param tset texture coordinate set index
-    * @param tidx texture coordinate index
-    * @return texture coordinate {x,y}
-    */
-   public float[] getTextureCoord(int tset, int tidx) {
-      if (tidx < 0) {
-         return null;
-      }
-      return textures.get(tset).get(tidx);
-   }
-
-   /**
-    * Retrieves the full list of texture coordinates in a given set.  This list should 
-    * not be modified.
-    * @param tset texture coordinate set index
-    * @return list of texture coordinates.
-    */
-   public List<float[]> getTextureCoords(int tset) {
-      return Collections.unmodifiableList(textures.get(tset));
+      return texcoordsDynamic;
    }
 
    /**
@@ -2041,12 +1607,130 @@ public class RenderObject {
    // Vertices
    //=========================================================================
 
+   private void maybeGrowAdjustVertices(int cap) {
+      // maintain capacity      
+      boolean vHasPositions = ((vertexBufferMask & VERTEX_POSITIONS) != 0);
+      boolean vHasNormals = ((vertexBufferMask & VERTEX_POSITIONS) != 0);
+      boolean vHasColors = ((vertexBufferMask & VERTEX_POSITIONS) != 0);
+      boolean vHasTexcoords = ((vertexBufferMask & VERTEX_POSITIONS) != 0);
+      
+      boolean rHasPositions = hasPositions();
+      boolean rHasNormals = hasNormals();
+      boolean rHasColors = hasColors();
+      boolean rHasTexcoords = hasTextureCoords ();
+      
+      // need to expand?
+      if (cap - vertexCapacity > 0) { // overflow-conscious
+         cap = vertexCapacity + (vertexCapacity >> 1);  // grow by 1.5
+      }
+      if (cap - vertexCapacity < 0) {
+         cap = vertexCapacity;  // at least keep old capacity
+      }
+      
+      int vcap = cap*vertexStride;
+      
+      // if new vertex array will contain new information, we need to shift some of the data
+      if (vHasPositions != rHasPositions || vHasNormals != rHasNormals || vHasColors != rHasColors || vHasTexcoords != rHasTexcoords) {
+         
+         int newVertexStride = 0;
+         int newPositionOffset = -1;
+         int newNormalOffset = -1;
+         int newColorOffset = -1;
+         int newTexcoordOffset = -1;
+         byte newVertexBufferMask = 0;
+         
+         if (rHasPositions) {
+            newPositionOffset = newVertexStride++;
+            newVertexBufferMask |= VERTEX_POSITIONS;
+         }
+         if (rHasNormals) {
+            newNormalOffset = newVertexStride++;
+            newVertexBufferMask |= VERTEX_NORMALS;
+         }
+         if (rHasColors) {
+            newColorOffset = newVertexStride++;
+            newVertexBufferMask |= VERTEX_COLORS;
+         }
+         if (rHasTexcoords) {
+            newTexcoordOffset = newVertexStride++;
+            newVertexBufferMask |= VERTEX_TEXCOORDS;
+         }
+         
+         // resize and adjust
+         int[] newVerts = new int[cap*newVertexStride];
+         Arrays.fill (newVerts, -1);  // indicative of missing value
+         
+         if (vHasPositions) {
+            int nidx = newPositionOffset;
+            int oidx = vertexPositionOffset;
+            for (int i=0; i<numVertices; ++i) {
+               newVerts[nidx] = vertices[oidx];
+               nidx += newVertexStride;
+               oidx += vertexStride;
+            }
+         }
+         
+         if (vHasNormals) {
+            int nidx = newNormalOffset;
+            int oidx = vertexNormalOffset;
+            for (int i=0; i<numVertices; ++i) {
+               newVerts[nidx] = vertices[oidx];
+               nidx += newVertexStride;
+               oidx += vertexStride;
+            }
+         }
+         
+         if (vHasColors) {
+            int nidx = newColorOffset;
+            int oidx = vertexColorOffset;
+            for (int i=0; i<numVertices; ++i) {
+               newVerts[nidx] = vertices[oidx];
+               nidx += newVertexStride;
+               oidx += vertexStride;
+            }
+         }
+         
+         if (vHasNormals) {
+            int nidx = newTexcoordOffset;
+            int oidx = vertexTexcoordOffset;
+            for (int i=0; i<numVertices; ++i) {
+               newVerts[nidx] = vertices[oidx];
+               nidx += newVertexStride;
+               oidx += vertexStride;
+            }
+         }
+         
+         vertexStride = newVertexStride;
+         vertexBufferMask = newVertexBufferMask;
+         vertexPositionOffset = newPositionOffset;
+         vertexNormalOffset = newNormalOffset;
+         vertexColorOffset = newColorOffset;
+         vertexTexcoordOffset = newTexcoordOffset;
+         vertices = newVerts;
+         
+      } 
+      
+      // otherwise, we may need to grow array
+      else if (vcap > vertices.length) {
+         vertices = Arrays.copyOf (vertices, vcap);
+         
+         int vstart = numVertices*vertexStride;
+         // fill extra with -1
+         for (int i=vstart; i<vcap; ++i) {
+            vertices[i] = -1;
+         }
+      }
+      
+      vertexCapacity = cap;
+      
+   }
+   
    /**
     * Hint for ensuring sufficient storage for vertices
     * @param cap capacity
     */
    public void ensureVertexCapacity(int cap) {
-      vertices.ensureCapacity(cap);
+      maybeGrowAdjustVertices (cap);
    }
    
    /**
@@ -2093,10 +1777,24 @@ public class RenderObject {
          throw new IllegalStateException(
             "Cannot create a new vertex once vertices are committed");
       }
-      VertexIndexSet idxs = new VertexIndexSet(pidx,nidx,cidx,tidx);
-      int vidx = numVertices;
-      vertices.add(idxs);
-      numVertices++;
+      // VertexIndexSet idxs = new VertexIndexSet(pidx,nidx,cidx,tidx);
+      int vidx = numVertices++;
+      
+      maybeGrowAdjustVertices (numVertices);
+      int baseIdx = vidx*vertexStride;
+      if (vertexPositionOffset >= 0) {
+         vertices[baseIdx+vertexPositionOffset] = pidx;
+      }
+      if (vertexNormalOffset >= 0) {
+         vertices[baseIdx+vertexNormalOffset] = nidx;
+      }
+      if (vertexColorOffset >= 0) {
+         vertices[baseIdx+vertexColorOffset] = cidx;
+      }
+      if (vertexTexcoordOffset >= 0) {
+         vertices[baseIdx+vertexTexcoordOffset] = tidx;
+      }
+      
       verticesModified = true;
       totalModified = true;
       return vidx;
@@ -2153,8 +1851,22 @@ public class RenderObject {
          throw new IllegalStateException(
             "Cannot create a new vertex once vertices are committed");
       }
-      VertexIndexSet v = new VertexIndexSet(pidx, nidx, cidx, tidx);
-      vertices.set(vidx, v);
+      maybeGrowAdjustVertices (numVertices);
+      
+      int baseIdx = vidx*vertexStride;
+      if (vertexPositionOffset >= 0) {
+         vertices[baseIdx+vertexPositionOffset] = pidx;
+      }
+      if (vertexNormalOffset >= 0) {
+         vertices[baseIdx+vertexNormalOffset] = nidx;
+      }
+      if (vertexColorOffset >= 0) {
+         vertices[baseIdx+vertexColorOffset] = cidx;
+      }
+      if (vertexTexcoordOffset >= 0) {
+         vertices[baseIdx+vertexTexcoordOffset] = tidx;
+      }
+      
       verticesModified = true;
       totalModified = true;
    }
@@ -2171,32 +1883,44 @@ public class RenderObject {
     * Returns the position of the supplied vertex
     */
    public float[] getVertexPosition(int vidx) {
-      VertexIndexSet idxs = vertices.get(vidx);
-      return getPosition(idxs.pidx);
+      if (vertexPositionOffset < 0) {
+         return null;
+      }
+      int idx = vertices[vidx*vertexStride+vertexPositionOffset];
+      return getPosition(idx);
    }
 
    /**
     * Returns the normal of the supplied vertex
     */
    public float[] getVertexNormal(int vidx) {
-      VertexIndexSet idxs = vertices.get(vidx);
-      return getNormal(idxs.nidx);
+      if (vertexNormalOffset < 0) {
+         return null;
+      }
+      int idx = vertices[vidx*vertexStride+vertexNormalOffset];
+      return getNormal(idx);
    }
 
    /**
     * Returns the color of the supplied vertex
     */
    public byte[] getVertexColor(int vidx) {
-      VertexIndexSet idxs = vertices.get(vidx);
-      return getColor(idxs.cidx);
+      if (vertexColorOffset < 0) {
+         return null;
+      }
+      int idx = vertices[vidx*vertexStride+vertexColorOffset];
+      return getColor(idx);
    }
 
    /**
     * Returns the texture coordinate of the supplied vertex
     */
    public float[] getVertexTextureCoord(int vidx) {
-      VertexIndexSet idxs = vertices.get(vidx);
-      return getTextureCoord(idxs.tidx);
+      if (vertexTexcoordOffset < 0) {
+         return null;
+      }
+      int idx = vertices[vidx*vertexStride+vertexTexcoordOffset];
+      return getTextureCoord(idx);
    }
 
    /**
@@ -2206,16 +1930,70 @@ public class RenderObject {
     * texture coordinate indices
     */
    public VertexIndexSet getVertex(int vidx) {
-      return vertices.get(vidx);
+      
+      int p=-1;
+      int n=-1;
+      int c=-1;
+      int t=-1;
+      
+      int base = vidx*vertexStride;
+      if (vertexPositionOffset >= 0) {
+         p = vertices[base+vertexPositionOffset];
+      }
+      if (vertexNormalOffset >= 0) {
+         n = vertices[base+vertexNormalOffset];
+      }
+      if (vertexColorOffset >= 0) {
+         c = vertices[base+vertexColorOffset];
+      }
+      if (vertexTexcoordOffset >= 0) {
+         t = vertices[base+vertexTexcoordOffset];
+      }
+      
+      VertexIndexSet idxs = new VertexIndexSet (p, n, c, t);
+      return idxs;
    }
 
    /**
     * Returns the full set of vertex identifiers
     */
+   @Deprecated
    public List<VertexIndexSet> getVertices() {
-      return Collections.unmodifiableList(vertices);
+      ArrayList<VertexIndexSet> set = new ArrayList<> (numVertices);
+      for (int i=0; i<numVertices; ++i) {
+         set.add (getVertex(i));
+      }
+      return set;
    }
 
+   /**
+    * Raw pointer to vertex data, should only be used by renderers
+    * @return
+    */
+   public int[] getVertexBuffer() {
+      return vertices;
+   }
+   
+   public int getVertexStride() {
+      return vertexStride;
+   }
+   
+   public int getVertexPositionOffset() {
+      return vertexPositionOffset;
+   }
+   
+   public int getVertexNormalOffset() {
+      return vertexNormalOffset;
+   }
+   
+   public int getVertexColorOffset() {
+      return vertexColorOffset;
+   }
+   
+   public int getVertexTexcoordOffset() {
+      return vertexTexcoordOffset;
+   }
+   
    /**
     * Prevent further modification of vertex information.
     */
@@ -2230,21 +2008,13 @@ public class RenderObject {
       positions.trimToSize();
       normals.trimToSize();
       colors.trimToSize();
-      textures.trimToSize();
+      texcoords.trimToSize();
 
-      for (ArrayList<float[]> pset : positions) {
-         pset.trimToSize();
-      }
-      for (ArrayList<float[]> nset : normals) {
-         nset.trimToSize();
-      }
-      for (ArrayList<byte[]> cset : colors) {
-         cset.trimToSize();
-      }
-      for (ArrayList<float[]> tset : textures) {
-         tset.trimToSize();
-      }
-      vertices.trimToSize();
+      positions.trimToSize ();
+      normals.trimToSize ();
+      colors.trimToSize ();
+      texcoords.trimToSize ();
+      // vertices.trimToSize();
 
       verticesCommitted = true;
 
@@ -2355,7 +2125,7 @@ public class RenderObject {
       if (stateInfo.numPointGroups == 0) {
          createPointGroup();
       }
-      currentPointGroup.add(new int[]{vidx});
+      currentPointGroup.add(vidx);
       notifyPointsModified();
    }
 
@@ -2408,9 +2178,10 @@ public class RenderObject {
    /**
     * Returns a list of vertex indices of all point primitives defined.
     */
+   @Deprecated
    public List<int[]> getPoints() {
       if (hasPoints()) {
-         return Collections.unmodifiableList(currentPointGroup);
+         return getList (currentPointGroup, POINT_STRIDE);
       }
       return null;
    }
@@ -2437,7 +2208,7 @@ public class RenderObject {
          throw new IllegalStateException(
             "Cannot create a new point group once primitives are committed");
       }
-      ArrayList<int[]> newPoints = new ArrayList<>();
+      DynamicIntArray newPoints = new DynamicIntArray();
       points.add(newPoints);
       currentPointGroup = newPoints;
       int idx = stateInfo.numPointGroups;
@@ -2486,11 +2257,25 @@ public class RenderObject {
     * @param pidx point index
     * @return vertex index of point
     */
+   @Deprecated
    public int[] getPoint(int pgroup, int pidx) {
       if (pidx < 0) {
          return null;
       }
-      return points.get(pgroup).get(pidx);
+      return new int[] {points.get(pgroup).get(pidx)};
+   }
+   
+   private List<int[]> getList(DynamicIntArray array, int stride) {
+      int l = array.size ();
+      ArrayList<int[]> out = new ArrayList<>(l/stride);
+      for (int i=0; i<l; i+=stride) {
+         int[] e = new int[stride];
+         for (int j=0; j<stride; ++j) {
+            e[j] = array.get (i+j);
+         }
+         out.add (e);
+      }
+      return out;
    }
 
    /**
@@ -2498,8 +2283,15 @@ public class RenderObject {
     * @param pgroup point group index
     * @return vertex indices for point group
     */
+   @Deprecated
    public List<int[]> getPoints(int pgroup) {
-      return Collections.unmodifiableList(points.get(pgroup));
+      if (hasPoints()) {
+         
+         DynamicIntArray pg = points.get (pgroup);
+         List<int[]> out = getList(pg,POINT_STRIDE);
+         return out;
+      }
+      return null;
    }
 
    /**
@@ -2530,7 +2322,7 @@ public class RenderObject {
       if (stateInfo.numLineGroups == 0)  {
          createLineGroup();
       }
-      currentLineGroup.add(vidxs);
+      currentLineGroup.addAll(vidxs);
       notifyLinesModified ();
    }
 
@@ -2666,9 +2458,10 @@ public class RenderObject {
    /**
     * Returns a list of line primitives, identified by vertex index pairs.
     */
+   @Deprecated
    public List<int[]> getLines() {
       if (hasLines()) {
-         return Collections.unmodifiableList(currentLineGroup);
+         return getList(currentLineGroup, LINE_STRIDE);
       }
       return null;
    }
@@ -2695,7 +2488,7 @@ public class RenderObject {
          throw new IllegalStateException(
             "Cannot create a new line group once primitives are committed");
       }
-      ArrayList<int[]> newLines = new ArrayList<>();
+      DynamicIntArray newLines = new DynamicIntArray();
       lines.add(newLines);
       currentLineGroup = newLines;
       int idx = stateInfo.numLineGroups;
@@ -2744,11 +2537,13 @@ public class RenderObject {
     * @param lidx line index
     * @return vertex indices making up line
     */
+   @Deprecated
    public int[] getLine(int lgroup, int lidx) {
       if (lidx < 0) {
          return null;
       }
-      return lines.get(lgroup).get(lidx);
+      
+      return new int[] {lines.get(lgroup).get(LINE_STRIDE*lidx), lines.get(lgroup).get(LINE_STRIDE*lidx+1)};
    }
 
    /**
@@ -2756,8 +2551,9 @@ public class RenderObject {
     * @param lgroup line group index
     * @return vertex indices for line group
     */
+   @Deprecated
    public List<int[]> getLines(int lgroup) {
-      return Collections.unmodifiableList(lines.get(lgroup));
+      return getList(lines.get(lgroup), LINE_STRIDE);
    }
 
    /**
@@ -2788,7 +2584,7 @@ public class RenderObject {
       if (stateInfo.numTriangleGroups == 0) {
          createTriangleGroup();
       }
-      currentTriangleGroup.add(vidxs);
+      currentTriangleGroup.addAll(vidxs);
       notifyTrianglesModified ();
    }
 
@@ -2936,9 +2732,10 @@ public class RenderObject {
    /**
     * Returns a list of triangle primitives, identified by vertex index triples.
     */
+   @Deprecated
    public List<int[]> getTriangles() {
       if (hasTriangles()) {
-         return Collections.unmodifiableList(currentTriangleGroup);
+         return getList (currentTriangleGroup, TRIANGLE_STRIDE);
       } 
       return null;
    }
@@ -2965,7 +2762,7 @@ public class RenderObject {
          throw new IllegalStateException(
             "Cannot create a new triangle group once primitives are committed");
       }
-      ArrayList<int[]> newTriangles = new ArrayList<>();
+      DynamicIntArray newTriangles = new DynamicIntArray();
       triangles.add(newTriangles);
       currentTriangleGroup = newTriangles;
       int idx = stateInfo.numTriangleGroups;
@@ -3014,11 +2811,15 @@ public class RenderObject {
     * @param tidx triangle index
     * @return vertex indices of triangle
     */
+   @Deprecated
    public int[] getTriangle(int tgroup, int tidx) {
       if (tidx < 0) {
          return null;
       }
-      return triangles.get(tgroup).get(tidx);
+      
+      DynamicIntArray t = triangles.get (tgroup);
+      int baseIdx = TRIANGLE_STRIDE*tidx;
+      return new int[] {t.get (baseIdx), t.get (baseIdx+1), t.get (baseIdx+2)};
    }
 
    /**
@@ -3026,8 +2827,9 @@ public class RenderObject {
     * @param tgroup point group index
     * @return vertex indices for triangle group
     */
+   @Deprecated
    public List<int[]> getTriangles(int tgroup) {
-      return Collections.unmodifiableList(triangles.get(tgroup));
+      return getList(triangles.get(tgroup), TRIANGLE_STRIDE);
    }
 
    /**
@@ -3050,13 +2852,13 @@ public class RenderObject {
       points.trimToSize();
       lines.trimToSize();
       triangles.trimToSize();
-      for (ArrayList<int[]> pnts : points) {
+      for (DynamicIntArray pnts : points) {
          pnts.trimToSize();
       }
-      for (ArrayList<int[]> lns : lines) {
+      for (DynamicIntArray lns : lines) {
          lns.trimToSize();
       }
-      for (ArrayList<int[]> tris : triangles) {
+      for (DynamicIntArray tris : triangles) {
          tris.trimToSize();
       }
       primitivesCommitted = true;
@@ -3107,7 +2909,7 @@ public class RenderObject {
       positions = new ArrayList<>(1);
       normals = new ArrayList<>(1);
       colors = new ArrayList<>(1);
-      textures = new ArrayList<>(1);
+      texcoords = new ArrayList<>(1);
 
       stateInfo.positionSetIdx = -1;
       stateInfo.normalSetIdx = -1;
@@ -3126,18 +2928,18 @@ public class RenderObject {
       numPositions = 0;
       numNormals = 0;
       numColors = 0;
-      numTextures = 0;
+      numTexcoords = 0;
 
       positionsDynamic = false;
       normalsDynamic = false;
       colorsDynamic = false;
-      texturesDynamic = false;
+      texcoordsDynamic = false;
       isTransient = false;
 
-      currentPositionSet = null;
-      currentNormalSet = null;
-      currentColorSet = null;
-      currentTextureSet = null;
+      positions = new ArrayList<> ();
+      normals = new ArrayList<> ();
+      colors = new ArrayList<> ();
+      texcoords = new ArrayList<> ();
 
       positionsModified = true;
       normalsModified = true;
@@ -3145,8 +2947,16 @@ public class RenderObject {
       texturesModified = true;
       totalModified = true;
 
-      vertices = new ArrayList<>();
+      vertices = new int[0];
       numVertices = 0;
+      vertexBufferMask = 0;
+      vertexCapacity = 0;
+      vertexPositionOffset = -1;
+      vertexNormalOffset = -1;
+      vertexColorOffset = -1;
+      vertexTexcoordOffset = -1;
+      vertexStride = 0;
+      
       verticesModified = true;
 
       verticesCommitted = false;
@@ -3218,13 +3028,15 @@ public class RenderObject {
       positions = null;
       normals = null;
       colors = null;
-      textures = null;
+      texcoords = null;
 
-      currentPositionSet = null;
-      currentNormalSet = null;
-      currentColorSet = null;
-      currentTextureSet = null;
+      positions = null;
+      normals = null;
+      colors = null;
+      texcoords = null;
 
+      vertices = null;
+      
       points = null;
       lines = null;
       triangles = null;
@@ -3291,55 +3103,31 @@ public class RenderObject {
       RenderObject r = new RenderObject();
 
       if (positions != null) {
-         r.positions = new ArrayList<>(positions.size());
-         for (ArrayList<float[]> poss : positions) {
-            ArrayList<float[]> nposs = new ArrayList<float[]>(poss.size());
-            for (float[] pos : poss) {
-               nposs.add(Arrays.copyOf(pos, pos.length));
-            }
-            r.positions.add(nposs);
-         }
+         r.positions = new ArrayList<float[]>(positions.size ());
+         r.positions.addAll (positions);
       } else {
          r.positions = null;
       }
 
       if (normals != null) {
          r.normals = new ArrayList<>(normals.size());
-         for (ArrayList<float[]> nrms : normals) {
-            ArrayList<float[]> npos = new ArrayList<float[]>(nrms.size());
-            for (float[] nrm : nrms) {
-               npos.add(Arrays.copyOf(nrm, nrm.length));
-            }
-            r.normals.add(npos);
-         }
+         r.normals.addAll (normals);
       } else {
          r.normals = null;
       }
 
       if (colors != null) {
          r.colors = new ArrayList<>(colors.size());
-         for (ArrayList<byte[]> cols : colors) {
-            ArrayList<byte[]> ncols = new ArrayList<byte[]>(cols.size());
-            for (byte[] col : cols) {
-               ncols.add(Arrays.copyOf(col, col.length));
-            }
-            r.colors.add(ncols);
-         }
+         r.colors.addAll (colors);
       } else {
          r.colors = null;
       }
 
-      if (textures != null) {
-         r.textures = new ArrayList<>(textures.size());
-         for (ArrayList<float[]> texs : textures) {
-            ArrayList<float[]> ntexs = new ArrayList<float[]>(texs.size());
-            for (float[] tex : texs) {
-               ntexs.add(Arrays.copyOf(tex, tex.length));
-            }
-            r.textures.add(ntexs);
-         }
+      if (texcoords != null) {
+         r.texcoords = new ArrayList<>(texcoords.size());
+         r.texcoords.addAll (texcoords);
       } else {
-         r.textures = null;
+         r.texcoords = null;
       }
 
       r.stateInfo = stateInfo.clone();
@@ -3353,27 +3141,14 @@ public class RenderObject {
       r.numPositions = numPositions;
       r.numNormals = numNormals;
       r.numColors = numColors;
-      r.numTextures = numTextures;
+      r.numTexcoords = numTexcoords;
 
       // whether or not attributes can be updated once the object is
       // Committed
       r.positionsDynamic = positionsDynamic;
       r.normalsDynamic = normalsDynamic;
       r.colorsDynamic = colorsDynamic;
-      r.texturesDynamic = texturesDynamic;
-
-      if (stateInfo.positionSetIdx >= 0) {
-         r.positionSet(stateInfo.positionSetIdx);
-      }
-      if (stateInfo.normalSetIdx >= 0) {
-         r.normalSet(stateInfo.normalSetIdx);
-      }
-      if (stateInfo.colorSetIdx >= 0) {
-         r.colorSet(stateInfo.colorSetIdx);
-      }
-      if (stateInfo.textureSetIdx >= 0) {
-         r.textureCoordSet(stateInfo.textureSetIdx);
-      }
+      r.texcoordsDynamic = texcoordsDynamic;
 
       // indicators that attributes have been modified
       r.positionsModified = positionsModified;
@@ -3383,20 +3158,22 @@ public class RenderObject {
 
       r.versionInfo = versionInfo.clone();
 
-      r.vertices = new ArrayList<>(vertices.size());
-      for (VertexIndexSet v : vertices) {
-         r.vertices.add(v.clone());
-      }
+      r.vertices = Arrays.copyOf (vertices, vertices.length);
       r.numVertices = numVertices;
+      r.vertexBufferMask = vertexBufferMask;
+      r.vertexCapacity = vertexCapacity;
+      r.vertexPositionOffset = vertexPositionOffset;
+      r.vertexNormalOffset = vertexNormalOffset;
+      r.vertexColorOffset = vertexColorOffset;
+      r.vertexTexcoordOffset = vertexTexcoordOffset;
+      r.vertexStride = vertexStride;
+      
       r.verticesModified = verticesModified;
 
       if (points != null) {
          r.points = new ArrayList<>(points.size());
-         for (ArrayList<int[]> pnts : points) {
-            ArrayList<int[]> npnts = new ArrayList<>(pnts.size());
-            for (int[] pnt : pnts) {
-               npnts.add(Arrays.copyOf(pnt, pnt.length));
-            }
+         for (DynamicIntArray pnts : points) {
+            DynamicIntArray npnts = pnts.clone();
             r.points.add(npnts);
          }
       } else {
@@ -3405,12 +3182,8 @@ public class RenderObject {
 
       if (lines != null) {
          r.lines = new ArrayList<>(lines.size());
-         for (ArrayList<int[]> lns : lines) {
-            ArrayList<int[]> nlns = new ArrayList<>(lns.size());
-            for (int[] ln : lns) {
-               nlns.add(Arrays.copyOf(ln, ln.length));
-            }
-            r.lines.add(nlns);
+         for (DynamicIntArray lns : lines) {
+            r.lines.add(lns.clone ());
          }
       } else {
          r.lines = null;
@@ -3418,12 +3191,8 @@ public class RenderObject {
 
       if (triangles != null) {
          r.triangles = new ArrayList<>(triangles.size());
-         for (ArrayList<int[]> tris : triangles) {
-            ArrayList<int[]> ntris = new ArrayList<>(tris.size());
-            for (int[] tri : tris) {
-               ntris.add(Arrays.copyOf(tri, tri.length));
-            }
-            r.triangles.add(ntris);
+         for (DynamicIntArray tris : triangles) {
+            r.triangles.add(tris.clone());
          }
       } else {
          r.triangles = null;
@@ -3458,6 +3227,17 @@ public class RenderObject {
       return r;
    }
 
+   @Deprecated
+   public int createColorSetFrom(int idx) {
+      // nothing
+      return 0;
+   }
+   
+   @Deprecated
+   public void colorSet (int mySelectedComponent) {
+        // nothing
+   }
+
    // XXX I don't think we can ever actually clear the internal storage and have
    // the object remain valid.  For GL2 renderers, whenever a dynamic attribute
    // is updated, we need to reconstruct all display lists completely.  For
@@ -3476,21 +3256,21 @@ public class RenderObject {
    //      // clear all static memory
    //      if (!positionsDynamic) {
    //         positions = null;
-   //         currentPositionSet = null;
+   //         positions = null;
    //      }
    //      if (!normalsDynamic) {
    //         normals = null;   
-   //         currentNormalSet = null;
+   //         normals = null;
    //      }
    //
    //      if (!colorsDynamic) {
    //         colors = null;
-   //         currentColorSet = null;
+   //         colors = null;
    //      }
    //
    //      if (!texturesDynamic) {
    //         textures = null;
-   //         currentTextureSet = null;
+   //         texcoords = null;
    //      }
    //
    //      if (!positionsDynamic && !normalsDynamic && !colorsDynamic 

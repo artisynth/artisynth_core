@@ -45,34 +45,34 @@ public class RenderObjectExamples {
          axes.setCurrentColor(cz);
          axes.addLine(origin, zunit);
          
-         // selected axes
-         axes.createColorSetFrom(0);    // copy original colors
-         axes.setColor(cx, yellow);     // replace x-axis color
-         
-         axes.createColorSetFrom(0);
-         axes.setColor(cy, yellow);
-         
-         axes.createColorSetFrom(0);
-         axes.setColor(cz, yellow);
+         //         // selected axes
+         //         axes.createColorSetFrom(0);    // copy original colors
+         //         axes.setColor(cx, yellow);     // replace x-axis color
+         //         
+         //         axes.createColorSetFrom(0);
+         //         axes.setColor(cy, yellow);
+         //         
+         //         axes.createColorSetFrom(0);
+         //         axes.setColor(cz, yellow);
          
          renderer.addSharedObject("axes", axes); // share with others
       }
       
-      // draw axes
-      // select appropriate color set
-      switch (selectedAxis) {
-         case 0:  // x-axis 
-            axes.colorSet(1);
-            break;
-         case 1:  // y-axis
-            axes.colorSet(2);
-            break;
-         case 2:  // z-axis
-            axes.colorSet(3);
-            break;
-         default: // no axis
-            axes.colorSet(0); // default
-      }
+      //      // draw axes
+      //      // select appropriate color set
+      //      switch (selectedAxis) {
+      //         case 0:  // x-axis 
+      //            axes.colorSet(1);
+      //            break;
+      //         case 1:  // y-axis
+      //            axes.colorSet(2);
+      //            break;
+      //         case 2:  // z-axis
+      //            axes.colorSet(3);
+      //            break;
+      //         default: // no axis
+      //            axes.colorSet(0); // default
+      //      }
       
       // <apply transform>
       // draw axes

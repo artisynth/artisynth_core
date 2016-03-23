@@ -7,9 +7,16 @@
 package maspack.render.GL;
 
 import maspack.matrix.Point3d;
+
 import maspack.render.RenderList;
 import maspack.render.Renderer;
 
+/**
+ * Specifies objects that can be rendered by a Viewer implementing
+ * the {@link Renderable} interface.
+ *  
+ * @author lloyd
+ */
 public interface GLRenderable {
    
    /**
@@ -31,26 +38,29 @@ public interface GLRenderable {
    public static final int DYNAMIC_DRAW = 0x4;
    
    /**
-    * Prepare for rendering, and potentially add itself to a list to be drawn
-    * by a GLRenderer.
-    * @param list
+    * Called prior to rendering to allow this object to update the internal
+    * state required for rendering (such as by caching rendering coordinates).
+    * The object may add internal objects to the list of objects being
+    * rendered, by calling
+    * <p>
+    *    list.addIfVisible (obj);
+    * </p>
+    * for each of the objects in question.
+    * @param list list of objects to be rendered
     */
    public void prerender (RenderList list);
 
    /**
-    * Render this object using Open GL via the JOGL.
+    * Render this object using the functionality of the supplied
+    * {@link Renderer}.
     * 
     * @param renderer
-    * renderer object which is used to perform the rendering. Provides pointers
-    * to GL and GLU, along with helper functions.
-    * @param flags supplies flags that may be used to control different 
+    * provides the functionality used to perform the rendering.
+    * @param flags flags that may be used to control different 
     * aspects of the rendering. Flags are defined in {@link Renderer}
     * and currently include
-    * {@link Renderer#SELECTED}, 
-    * {@link Renderer#VERTEX_COLORING}, 
-    * {@link Renderer#HSV_COLOR_INTERPOLATION}, 
-    * {@link Renderer#SORT_FACES}, and
-    * {@link Renderer#CLEAR_RENDER_CACHE}.
+    * {@link Renderer#SELECTED} and
+    * {@link Renderer#SORT_FACES}.
     */
    public void render (Renderer renderer, int flags);
 
@@ -72,8 +82,8 @@ public interface GLRenderable {
 
    /**
     * Returns a bit code giving rendering hints about this renderable. Current
-    * bit codes include {@link #TRANSLUCENT TRANSLUCENT},
-    * {@link #TWO_DIMENSIONAL TWO_DIMENSIONAL}, {@link #DYNAMIC_DRAW DYNAMIC_DRAW}.
+    * bit codes include {@link #TRANSLUCENT TRANSLUCENT} and
+    * {@link #TWO_DIMENSIONAL TWO_DIMENSIONAL}.
     * 
     * @return bit code of rendering hints.
     */

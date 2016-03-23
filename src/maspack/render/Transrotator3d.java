@@ -104,7 +104,11 @@ public class Transrotator3d extends Dragger3dBase {
       }
       
       // select appropriate color buffer
-      ro.colorSet(mySelectedComponent);  
+      if (mySelectedComponent != 0) {
+         ro.lineGroup(mySelectedComponent);  
+         viewer.drawLines(ro);
+      }
+      ro.lineGroup(0);
       viewer.drawLines(ro);
       
       viewer.popModelMatrix();
@@ -139,6 +143,20 @@ public class Transrotator3d extends Dragger3dBase {
 
    }
    
+   private static void addLineStrip (RenderObject robj, int pidx0, int numv) {
+      robj.beginBuild (DrawMode.LINE_STRIP);
+      for (int i=0; i<numv; i++) {
+         robj.addVertex (pidx0+i);
+      }
+      robj.endBuild();
+   }
+
+   private static void addLine (RenderObject robj, int pidx0, int pidx1) {
+      int vidx0 = robj.addVertex (pidx0);
+      int vidx1 = robj.addVertex (pidx1);
+      robj.addLine (vidx0, vidx1);
+   }
+
    private static RenderObject createTransrotatorRenderable() {
       
       final int QUARTER_CIRCLE_RESOLUTION = 32;
@@ -146,96 +164,108 @@ public class Transrotator3d extends Dragger3dBase {
       final float TRANS_BOX_SIZE = 0.4f;
       final float TRANS_ROT_SIZE = 0.8f;
       
-      RenderObject transrotr = new RenderObject();
-      
-      // 3 axis, 3 plane boxes
-      int xcolor  = transrotr.addColor(1.0f, 0.0f, 0.0f, 1.0f);
-      int ycolor  = transrotr.addColor(0.0f, 1.0f, 0.0f, 1.0f);
-      int zcolor  = transrotr.addColor(0.0f, 0.0f, 1.0f, 1.0f);
-      int yzcolor = transrotr.addColor(0.5f, 0.5f, 0.5f, 1.0f);
-      int zxcolor = transrotr.addColor(0.5f, 0.5f, 0.5f, 1.0f);
-      int xycolor = transrotr.addColor(0.5f, 0.5f, 0.5f, 1.0f);
-      int xrcolor = transrotr.addColor(1.0f, 0.0f, 0.0f, 1.0f);
-      int yrcolor = transrotr.addColor(0.0f, 1.0f, 0.0f, 1.0f);
-      int zrcolor = transrotr.addColor(0.0f, 0.0f, 1.0f, 1.0f);
-      
-      // 9 more color sets, one each with a component highlighted yellow
-      int[] colors = new int[]{xcolor,  ycolor,  zcolor,
-                               yzcolor, zxcolor, xycolor,
-                               xrcolor, yrcolor, zrcolor};
-      for (int i=0; i<colors.length; ++i) {
-         transrotr.createColorSetFrom(0);                // duplicate original color set
-         transrotr.setColor(i, 1.0f, 1.0f, 0.0f, 1.0f);  // replace ith color with yellow
-      }
-      
-      transrotr.beginBuild(DrawMode.LINES);
-      // x-axis
-      transrotr.setCurrentColor(xcolor);
-      transrotr.vertex(0, 0, 0);
-      transrotr.vertex(1, 0, 0);
-      // y-axis
-      transrotr.setCurrentColor(ycolor);
-      transrotr.vertex(0, 0, 0);
-      transrotr.vertex(0, 1, 0);
-      // z-axis
-      transrotr.setCurrentColor(zcolor);
-      transrotr.vertex(0, 0, 0);
-      transrotr.vertex(0, 0, 1);
-      transrotr.endBuild();
-      
-      // yz-plane
-      int v0, v1, v2;
-      transrotr.setCurrentColor(yzcolor);
-      v0 = transrotr.vertex(0, TRANS_BOX_SIZE, 0);
-      v1 = transrotr.vertex(0, TRANS_BOX_SIZE, TRANS_BOX_SIZE);
-      v2 = transrotr.vertex(0, 0, TRANS_BOX_SIZE);
-      transrotr.addLineStrip(v0, v1, v2);
+      RenderObject robj = new RenderObject();
 
-      // zx-plane
-      transrotr.setCurrentColor(zxcolor);
-      v0 = transrotr.vertex(0, 0, TRANS_BOX_SIZE);
-      v1 = transrotr.vertex(TRANS_BOX_SIZE, 0, TRANS_BOX_SIZE);
-      v2 = transrotr.vertex(TRANS_BOX_SIZE, 0, 0);
-      transrotr.addLineStrip(v0, v1, v2);
+      int RED    = robj.addColor (1.0f, 0.0f, 0.0f, 1.0f);
+      int GREEN  = robj.addColor (0.0f, 1.0f, 0.0f, 1.0f);
+      int BLUE   = robj.addColor (0.0f, 0.0f, 1.0f, 1.0f);
+      int GRAY   = robj.addColor (0.5f, 0.5f, 0.5f, 1.0f);
+      int YELLOW = robj.addColor (1.0f, 1.0f, 0.0f, 1.0f);
+
+      int p0     = robj.addPosition (0.0f, 0.0f, 0.0f);
+      int px     = robj.addPosition (1.0f, 0.0f, 0.0f);
+      int py     = robj.addPosition (0.0f, 1.0f, 0.0f);
+      int pz     = robj.addPosition (0.0f, 0.0f, 1.0f);
+
+      float size = TRANS_BOX_SIZE;
       
-      // xy-plane
-      transrotr.setCurrentColor(xycolor);
-      v0 = transrotr.vertex(TRANS_BOX_SIZE, 0, 0);
-      v1 = transrotr.vertex(TRANS_BOX_SIZE, TRANS_BOX_SIZE, 0);
-      v2 = transrotr.vertex(0, TRANS_BOX_SIZE, 0);
-      transrotr.addLineStrip(v0, v1, v2);
+      robj.addPosition (0.0f, size, 0.0f);
+      robj.addPosition (0.0f, size, size);
+      robj.addPosition (0.0f, 0.0f, size);
+      robj.addPosition (size, 0.0f, size);
+      robj.addPosition (size, 0.0f, 0.0f);
+      robj.addPosition (size, size, 0.0f);
+      robj.addPosition (0.0f, size, 0.0f);
+
+      int pbox = pz+1;
+
+      size = TRANS_ROT_SIZE;
+
+      // x rotation
+      for (int i = 0; i <= QUARTER_CIRCLE_RESOLUTION; i++) {
+         double ang = 2*Math.PI*i/(FULL_CIRCLE_RESOLUTION);
+         robj.addPosition (
+            0f, size*(float)Math.cos (ang), size*(float)Math.sin(ang));
+      }
+      int protx  = pbox+7;
+
+      // y rotation
+      for (int i = 0; i <= QUARTER_CIRCLE_RESOLUTION; i++) {
+         double ang = 2*Math.PI*i/(FULL_CIRCLE_RESOLUTION);
+         robj.addPosition (
+            size*(float)Math.cos (ang), 0f, size*(float)Math.sin(ang));
+      }
+      int proty  = protx+QUARTER_CIRCLE_RESOLUTION+1;
+
+      // z rotation
+      for (int i = 0; i <= QUARTER_CIRCLE_RESOLUTION; i++) {
+         double ang = 2*Math.PI*i/(FULL_CIRCLE_RESOLUTION);
+         robj.addPosition (
+            size*(float)Math.cos (ang), size*(float)Math.sin(ang), 0f);
+      }
+      int protz  = proty+QUARTER_CIRCLE_RESOLUTION+1;
+
+      for (int i=0; i<10; i++) {
+         robj.createLineGroup();
+      }
+
+      robj.lineGroup (0);
+
+      robj.setCurrentColor (RED);
+      addLine (robj, p0, px);
+      robj.setCurrentColor (GREEN);
+      addLine (robj, p0, py);
+      robj.setCurrentColor (BLUE);
+      addLine (robj, p0, pz);
+
+      robj.setCurrentColor (GRAY);
+      addLineStrip (robj, pbox, 7);
+
+      robj.setCurrentColor (RED);
+      addLineStrip (robj, protx, QUARTER_CIRCLE_RESOLUTION+1);
+
+      robj.setCurrentColor (GREEN);
+      addLineStrip (robj, proty, QUARTER_CIRCLE_RESOLUTION+1);
+
+      robj.setCurrentColor (BLUE);
+      addLineStrip (robj, protz, QUARTER_CIRCLE_RESOLUTION+1);
+
+      robj.setCurrentColor (YELLOW);
       
-      // x-rotation
-      transrotr.beginBuild(DrawMode.LINE_STRIP);
-      transrotr.setCurrentColor(xrcolor);
-      for (int i = 0; i <= QUARTER_CIRCLE_RESOLUTION; i++) {
-         double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
-         transrotr.vertex(
-            0f, TRANS_ROT_SIZE*(float)Math.cos (ang), TRANS_ROT_SIZE*(float)Math.sin (ang));
-      }
-      transrotr.endBuild();
-            
-      // y-rotation
-      transrotr.beginBuild(DrawMode.LINE_STRIP);
-      transrotr.setCurrentColor(yrcolor);
-      for (int i = 0; i <= QUARTER_CIRCLE_RESOLUTION; i++) {
-         double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
-         transrotr.vertex(
-            TRANS_ROT_SIZE*(float)Math.cos (ang), 0f, TRANS_ROT_SIZE*(float)Math.sin (ang));
-      }
-      transrotr.endBuild();
-            
-      // z-rotation
-      transrotr.beginBuild(DrawMode.LINE_STRIP);
-      transrotr.setCurrentColor(zrcolor);
-      for (int i = 0; i <= QUARTER_CIRCLE_RESOLUTION; i++) {
-         double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
-         transrotr.vertex( 
-            TRANS_ROT_SIZE*(float)Math.cos (ang), TRANS_ROT_SIZE*(float)Math.sin (ang), 0f);
-      }
-      transrotr.endBuild();
+      robj.lineGroup (X_AXIS);
+      addLine (robj, p0, px);
+      robj.lineGroup (Y_AXIS);
+      addLine (robj, p0, py);
+      robj.lineGroup (Z_AXIS);
+      addLine (robj, p0, pz);
+
+      robj.lineGroup (YZ_PLANE);
+      addLineStrip (robj, pbox, 3);
+      robj.lineGroup (ZX_PLANE);
+      addLineStrip (robj, pbox+2, 3);
+      robj.lineGroup (XY_PLANE);
+      addLineStrip (robj, pbox+4, 3);
+
+      robj.lineGroup (X_ROTATE);
+      addLineStrip (robj, protx, QUARTER_CIRCLE_RESOLUTION+1);
+
+      robj.lineGroup (Y_ROTATE);
+      addLineStrip (robj, proty, QUARTER_CIRCLE_RESOLUTION+1);
+
+      robj.lineGroup (Z_ROTATE);
+      addLineStrip (robj, protz, QUARTER_CIRCLE_RESOLUTION+1);
    
-      return transrotr;
+      return robj;
    }
 
    public void getSelection (LinkedList<Object> list, int qid) {

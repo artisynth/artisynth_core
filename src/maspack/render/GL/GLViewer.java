@@ -2780,6 +2780,11 @@ HasProperties {
       drawSphere (toFloat(pnt), rad);
    }
 
+   public void drawCylinder (
+      Vector3d pnt0, Vector3d pnt1, double rad, boolean capped) {
+      drawCylinder (toFloat(pnt0), toFloat(pnt1), rad, capped);
+   }
+
 //   public void drawCylinder (
 //      float[] pnt0, float[] pnt1, double rad) {
 //      drawCylinder (pnt0, pnt1, rad, /* capped= */false);

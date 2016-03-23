@@ -704,6 +704,20 @@ public interface Renderer {
    public void drawCylinder (
       float[] pnt0, float[] pnt1, double rad, boolean capped);
    
+   /**
+    * Draws a cylinder between two points in model coordinates, 
+    * using the current shading and material. The resolution
+    * is specified by {@link #getSurfaceResolution}.
+    * 
+    * @param pnt0 first end point
+    * @param pnt1 second end point
+    * @param rad radius of the cylinder
+    * @param capped if <code>true</code>, indicates that the cylinder
+    * should have a solid cap on each end
+    */
+   public void drawCylinder (
+      Vector3d pnt0, Vector3d pnt1, double rad, boolean capped);
+   
 //   // REMOVE
 //   public void drawCone (RenderProps props, float[] coords0, float[] coords1);
 

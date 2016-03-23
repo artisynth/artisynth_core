@@ -2265,20 +2265,20 @@ public class RenderObject {
       return points.get(pgroup).size();
    }
 
-   /**
-    * Retrieves the point at the supplied index in a given group.  
-    * The returned point should not be modified.
-    * @param pgroup point group index
-    * @param pidx point index
-    * @return vertex index of point
-    */
-   @Deprecated
-   public int[] getPoint(int pgroup, int pidx) {
-      if (pidx < 0) {
-         return null;
-      }
-      return new int[] {points.get(pgroup).get(pidx)};
-   }
+//   /**
+//    * Retrieves the point at the supplied index in a given group.  
+//    * The returned point should not be modified.
+//    * @param pgroup point group index
+//    * @param pidx point index
+//    * @return vertex index of point
+//    */
+//   @Deprecated
+//   public int[] getPoint(int pgroup, int pidx) {
+//      if (pidx < 0) {
+//         return null;
+//      }
+//      return new int[] {points.get(pgroup).get(pidx)};
+//   }
    
    private List<int[]> getList(DynamicIntArray array, int stride) {
       int l = array.size ();
@@ -2561,21 +2561,21 @@ public class RenderObject {
       return lines.get(lgroup).size();
    }
 
-   /**
-    * Retrieves the line at the supplied index in a given group.  
-    * The returned line should not be modified.
-    * @param lgroup line group index
-    * @param lidx line index
-    * @return vertex indices making up line
-    */
-   @Deprecated
-   public int[] getLine(int lgroup, int lidx) {
-      if (lidx < 0) {
-         return null;
-      }
-      
-      return new int[] {lines.get(lgroup).get(LINE_STRIDE*lidx), lines.get(lgroup).get(LINE_STRIDE*lidx+1)};
-   }
+//   /**
+//    * Retrieves the line at the supplied index in a given group.  
+//    * The returned line should not be modified.
+//    * @param lgroup line group index
+//    * @param lidx line index
+//    * @return vertex indices making up line
+//    */
+//   @Deprecated
+//   public int[] getLine(int lgroup, int lidx) {
+//      if (lidx < 0) {
+//         return null;
+//      }
+//      
+//      return new int[] {lines.get(lgroup).get(LINE_STRIDE*lidx), lines.get(lgroup).get(LINE_STRIDE*lidx+1)};
+//   }
 
    /**
     * Returns the list of lines (vertex indices) for a given group
@@ -2855,23 +2855,23 @@ public class RenderObject {
       return triangles.get(tgroup).size();
    }
 
-   /**
-    * Retrieves the triangle at the supplied index in a given group.  
-    * The returned triangle should not be modified.
-    * @param tgroup triangle group index
-    * @param tidx triangle index
-    * @return vertex indices of triangle
-    */
-   @Deprecated
-   public int[] getTriangle(int tgroup, int tidx) {
-      if (tidx < 0) {
-         return null;
-      }
-      
-      DynamicIntArray t = triangles.get (tgroup);
-      int baseIdx = TRIANGLE_STRIDE*tidx;
-      return new int[] {t.get (baseIdx), t.get (baseIdx+1), t.get (baseIdx+2)};
-   }
+//   /**
+//    * Retrieves the triangle at the supplied index in a given group.  
+//    * The returned triangle should not be modified.
+//    * @param tgroup triangle group index
+//    * @param tidx triangle index
+//    * @return vertex indices of triangle
+//    */
+//   @Deprecated
+//   public int[] getTriangle(int tgroup, int tidx) {
+//      if (tidx < 0) {
+//         return null;
+//      }
+//      
+//      DynamicIntArray t = triangles.get (tgroup);
+//      int baseIdx = TRIANGLE_STRIDE*tidx;
+//      return new int[] {t.get (baseIdx), t.get (baseIdx+1), t.get (baseIdx+2)};
+//   }
 
    /**
     * Returns the list of triangles (vertex indices) for a given group

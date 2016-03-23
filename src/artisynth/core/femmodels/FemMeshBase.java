@@ -23,6 +23,7 @@ import maspack.properties.PropertyUtils;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
 import maspack.util.DoubleInterval;
@@ -93,6 +94,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
 
    public FemMeshBase () {
       super();
+      setColorInterpolation (ColorInterpolation.HSV);
    }
 
    public FemMeshBase (FemModel3d fem) {
@@ -122,13 +124,14 @@ public abstract class FemMeshBase extends SkinMeshBase {
    }
 
    public void setMeshFromInfo () {
-      // Overloaded from super class. Is called by super.setMesh() and by scan
+      // Overridden from super class. Is called by super.setMesh() and by scan
       // (whenever a mesh is scanned) to set mesh properties and auxiliary
       // data structures specific to the class.
       MeshBase mesh = getMesh();
       if (mesh != null) {
          mesh.setFixed (false);
          mesh.setColorsFixed (false);
+         mesh.setColorInterpolation (getColorInterpolation());
       }
    }
 
@@ -318,15 +321,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
          if ( (flags & Renderer.UPDATE_RENDER_CACHE) != 0) {
             updateVertexColors();
          }
-         
-         // only enable vertex colors if not selecting
-         // During selection, requires VERTEX_COLORING in order to
-         //    skip using display list
-         if (renderer.isSelecting() || !((flags & Renderer.SELECTED) != 0)) {
-            flags |= (Renderer.VERTEX_COLORING |
-                      Renderer.HSV_COLOR_INTERPOLATION);
-         }
-         
+
       } else if (mySurfaceRendering == SurfaceRender.None) {
          return;
       }

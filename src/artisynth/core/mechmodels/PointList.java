@@ -132,26 +132,28 @@ implements ScalableUnits {
 
    protected boolean renderObjectValid() {
       // checks if selection has changed
-      int idxSel = 0;
-      int idxReg = 0;
+      int kSel = 0;
+      int kReg = 0;
       int numReg = myRob.numPoints(REG_GRP);
       int numSel = myRob.numPoints(SEL_GRP);
+      int[] viReg = myRob.getPointArray(REG_GRP);
+      int[] viSel = myRob.getPointArray(SEL_GRP);
       for (int i=0; i<size(); i++) {
          Point pnt = get(i);
          if (pnt.getRenderProps() == null) {
             if (pnt.isSelected()) {
-               if (idxSel >= numSel || myRob.getPoint(SEL_GRP,idxSel++)[0] != i) {
+               if (kSel >= numSel || viSel[kSel++] != i) {
                   return false;
                }
             }
             else {
-               if (idxReg >= numReg || myRob.getPoint(REG_GRP,idxReg++)[0] != i) {
+               if (kReg >= numReg || viReg[kReg++] != i) {
                   return false;
                }
             }
          }
       }
-      if (idxSel != numSel || idxReg != numReg) {
+      if (kSel != numSel || kReg != numReg) {
          return false;
       }
       return true;

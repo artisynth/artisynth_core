@@ -14,6 +14,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLViewer;
 import maspack.util.InternalErrorException;
@@ -91,8 +92,12 @@ public class Translator3d extends Dragger3dBase {
          viewer.addSharedObject(Translator3d.class, ro);
       }
       
-      // select appropriate color buffer
-      ro.colorSet(mySelectedComponent);  
+      // draw selected component first
+      if (mySelectedComponent != 0) {
+         ro.lineGroup(mySelectedComponent);  
+         viewer.drawLines(ro);
+      }
+      ro.lineGroup(0);  
       viewer.drawLines(ro);
       
       viewer.popModelMatrix();
@@ -101,69 +106,82 @@ public class Translator3d extends Dragger3dBase {
       viewer.setShading (savedShading);
    }
    
+   private static void addLineStrip (RenderObject robj, int pidx0, int numv) {
+      robj.beginBuild (DrawMode.LINE_STRIP);
+      for (int i=0; i<numv; i++) {
+         robj.addVertex (pidx0+i);
+      }
+      robj.endBuild();
+   }
+
+   private static void addLine (RenderObject robj, int pidx0, int pidx1) {
+      int vidx0 = robj.addVertex (pidx0);
+      int vidx1 = robj.addVertex (pidx1);
+      robj.addLine (vidx0, vidx1);
+   }
+
    private static RenderObject createTranslatorRenderable() {
       
       final float TRANS_BOX_SIZE = 0.4f;
       
-      RenderObject scalerr = new RenderObject();
+      RenderObject robj = new RenderObject();
       
-      // 3 axis, 3 plane boxes
-      int xcolor = scalerr.addColor(1.0f, 0.0f, 0.0f, 1.0f);
-      int ycolor = scalerr.addColor(0.0f, 1.0f, 0.0f, 1.0f);
-      int zcolor = scalerr.addColor(0.0f, 0.0f, 1.0f, 1.0f);
-      int yzcolor = scalerr.addColor(0.5f, 0.5f, 0.5f, 1.0f);
-      int zxcolor = scalerr.addColor(0.5f, 0.5f, 0.5f, 1.0f);
-      int xycolor = scalerr.addColor(0.5f, 0.5f, 0.5f, 1.0f);
+      int RED    = robj.addColor (1.0f, 0.0f, 0.0f, 1.0f);
+      int GREEN  = robj.addColor (0.0f, 1.0f, 0.0f, 1.0f);
+      int BLUE   = robj.addColor (0.0f, 0.0f, 1.0f, 1.0f);
+      int GRAY   = robj.addColor (0.5f, 0.5f, 0.5f, 1.0f);
+      int YELLOW = robj.addColor (1.0f, 1.0f, 0.0f, 1.0f);
       
-      // 6 more color sets, one each with a component highlighted yellow
-      int[] colors = new int[]{xcolor,ycolor,zcolor,yzcolor,zxcolor,xycolor};
-      for (int i=0; i<colors.length; ++i) {
-         scalerr.createColorSetFrom(0);
-         scalerr.setColor(i, 1.0f, 1.0f, 0.0f, 1.0f);
-      }
-      
-      int v0, v1, v2;
-      
-      // x-axis
-      scalerr.setCurrentColor(xcolor);
-      v0 = scalerr.vertex(0, 0, 0);
-      v1 = scalerr.vertex(1, 0, 0);
-      scalerr.addLine(v0, v1);
-      
-      // y-axis
-      scalerr.setCurrentColor(ycolor);
-      v0 = scalerr.vertex(0, 0, 0);
-      v1 = scalerr.vertex(0, 1, 0);
-      scalerr.addLine(v0, v1);
-      
-      // z-axis
-      scalerr.setCurrentColor(zcolor);
-      v0 = scalerr.vertex(0, 0, 0);
-      v1 = scalerr.vertex(0, 0, 1);
-      scalerr.addLine(v0, v1);
-      
-      // yz-plane
-      scalerr.setCurrentColor(yzcolor);
-      v0 = scalerr.vertex(0, TRANS_BOX_SIZE, 0);
-      v1 = scalerr.vertex(0, TRANS_BOX_SIZE, TRANS_BOX_SIZE);
-      v2 = scalerr.vertex(0, 0, TRANS_BOX_SIZE);
-      scalerr.addLineStrip(v0, v1, v2);
+      int p0     = robj.addPosition (0.0f, 0.0f, 0.0f);
+      int px     = robj.addPosition (1.0f, 0.0f, 0.0f);
+      int py     = robj.addPosition (0.0f, 1.0f, 0.0f);
+      int pz     = robj.addPosition (0.0f, 0.0f, 1.0f);
 
-      // zx-plane
-      scalerr.setCurrentColor(zxcolor);
-      v0 = scalerr.vertex(0, 0, TRANS_BOX_SIZE);
-      v1 = scalerr.vertex(TRANS_BOX_SIZE, 0, TRANS_BOX_SIZE);
-      v2 = scalerr.vertex(TRANS_BOX_SIZE, 0, 0);
-      scalerr.addLineStrip(v0, v1, v2);
+      float size = TRANS_BOX_SIZE;
       
-      // xy-plane
-      scalerr.setCurrentColor(xycolor);
-      v0 = scalerr.vertex(TRANS_BOX_SIZE, 0, 0);
-      v1 = scalerr.vertex(TRANS_BOX_SIZE, TRANS_BOX_SIZE, 0);
-      v2 = scalerr.vertex(0, TRANS_BOX_SIZE, 0);
-      scalerr.addLineStrip(v0, v1, v2);
+      robj.addPosition (0.0f, size, 0.0f);
+      robj.addPosition (0.0f, size, size);
+      robj.addPosition (0.0f, 0.0f, size);
+      robj.addPosition (size, 0.0f, size);
+      robj.addPosition (size, 0.0f, 0.0f);
+      robj.addPosition (size, size, 0.0f);
+      robj.addPosition (0.0f, size, 0.0f);
+
+      int pbox = pz+1;      
+
+      for (int i=0; i<7; i++) {
+         robj.createLineGroup();
+      }
+
+      robj.lineGroup (0);
+
+      robj.setCurrentColor (RED);
+      addLine (robj, p0, px);
+      robj.setCurrentColor (GREEN);
+      addLine (robj, p0, py);
+      robj.setCurrentColor (BLUE);
+      addLine (robj, p0, pz);
+
+      robj.setCurrentColor (GRAY);
+      addLineStrip (robj, pbox, 7);
+
+      robj.setCurrentColor (YELLOW);
+      
+      robj.lineGroup (X_AXIS);
+      addLine (robj, p0, px);
+      robj.lineGroup (Y_AXIS);
+      addLine (robj, p0, py);
+      robj.lineGroup (Z_AXIS);
+      addLine (robj, p0, pz);
+
+      robj.lineGroup (YZ_PLANE);
+      addLineStrip (robj, pbox, 3);
+      robj.lineGroup (ZX_PLANE);
+      addLineStrip (robj, pbox+2, 3);
+      robj.lineGroup (XY_PLANE);
+      addLineStrip (robj, pbox+4, 3);
    
-      return scalerr;
+      return robj;
    }
 
    public void getSelection (LinkedList<Object> list, int qid) {

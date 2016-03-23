@@ -14,6 +14,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.GL.GLViewer;
 import maspack.util.InternalErrorException;
 
@@ -76,9 +77,13 @@ public class Jack3d extends Dragger3dBase {
          viewer.addSharedObject(Jack3d.class, ro);
       }
 
-      ro.colorSet(mySelectedComponent);
+      // draw selected component first
+      if (mySelectedComponent != 0) {
+         ro.lineGroup(mySelectedComponent);  
+         viewer.drawLines(ro);
+      }
+      ro.lineGroup(0);  
       viewer.drawLines(ro);
-
 
       viewer.setLineWidth(1);
       viewer.setShading (savedShading);
@@ -86,78 +91,100 @@ public class Jack3d extends Dragger3dBase {
 
    }
 
+   private static void addLineLoop (RenderObject robj, int pidx0, int numv) {
+      robj.beginBuild (DrawMode.LINE_LOOP);
+      for (int i=0; i<numv; i++) {
+         robj.addVertex (pidx0+i);
+      }
+      robj.endBuild();
+   }
+
+   private static void addLine (RenderObject robj, int pidx0, int pidx1) {
+      int vidx0 = robj.addVertex (pidx0);
+      int vidx1 = robj.addVertex (pidx1);
+      robj.addLine (vidx0, vidx1);
+   }
+
    private RenderObject createJackRenderable() {
 
       final int QUARTER_CIRCLE_RESOLUTION = 32;
       final int FULL_CIRCLE_RESOLUTION = 4*QUARTER_CIRCLE_RESOLUTION;
 
-      RenderObject jackr = new RenderObject();
+      RenderObject robj = new RenderObject();
 
-      // repeated so we can have separate selected colors later
-      int xcolor = jackr.addColor(0f, 0f, 1f, 1f);
-      int ycolor = jackr.addColor(0f, 0f, 1f, 1f);  
-      int zcolor = jackr.addColor(0f, 0f, 1f, 1f);
-      int xrcolor = jackr.addColor(0f, 1f, 0f, 1f);
-      int yrcolor = jackr.addColor(0f, 1f, 0f, 1f);
-      int zrcolor = jackr.addColor(0f, 1f, 0f, 1f);
+      int RED    = robj.addColor (1.0f, 0.0f, 0.0f, 1.0f);
+      int GREEN  = robj.addColor (0.0f, 1.0f, 0.0f, 1.0f);
+      int BLUE   = robj.addColor (0.0f, 0.0f, 1.0f, 1.0f);
+      int GRAY   = robj.addColor (0.5f, 0.5f, 0.5f, 1.0f);
+      int YELLOW = robj.addColor (1.0f, 1.0f, 0.0f, 1.0f);
+      
+      int px     = robj.addPosition (1.0f, 0.0f, 0.0f);
+      int py     = robj.addPosition (0.0f, 1.0f, 0.0f);
+      int pz     = robj.addPosition (0.0f, 0.0f, 1.0f);
+      int nx     = robj.addPosition (-1.0f, 0.0f, 0.0f);
+      int ny     = robj.addPosition (0.0f, -1.0f, 0.0f);
+      int nz     = robj.addPosition (0.0f, 0.0f, -1.0f);
 
-      // create a set of 6 other color sets, with each axis colored yellow
-      int[] colors = new int[] {xcolor, ycolor, zcolor, zrcolor, xrcolor, yrcolor};
-      for (int i=0; i<colors.length; ++i) {
-         jackr.createColorSetFrom(0);       // copy a color set from original
-         jackr.setColor(i, 1f, 1f, 0f, 1f);
+      // circle around x-axis
+      for (int i = 0; i <= FULL_CIRCLE_RESOLUTION; i++) {
+         double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
+         robj.addPosition (0f, (float)Math.cos(ang), (float)Math.sin(ang));
       }
-
-      int v0, v1;
-
-      // x-axis
-      jackr.setCurrentColor(xcolor);
-      v0 = jackr.vertex(1, 0, 0);
-      v1 = jackr.vertex(-1, 0, 0);
-      jackr.addLine(v0, v1);
-
+      int protx = nz+1;
+      
       // y-axis
-      jackr.setCurrentColor(ycolor);
-      v0 = jackr.vertex(0, -1, 0);
-      v1 = jackr.vertex(0, 1, 0);
-      jackr.addLine(v0, v1);
-
+      for (int i = 0; i <= FULL_CIRCLE_RESOLUTION; i++) {
+         double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
+         robj.addPosition ((float)Math.cos(ang), 0f, -(float)Math.sin(ang));
+      }
+      int proty = protx+FULL_CIRCLE_RESOLUTION+1;
+      
       // z-axis
-      jackr.setCurrentColor(zcolor);
-      v0 = jackr.vertex(0, 0, -1);
-      v1 = jackr.vertex(0, 0, 1);
-      jackr.addLine(v0, v1);
-
-      // circle in x-y plane
-      jackr.setCurrentColor(zrcolor);
-      v0 = jackr.vertex(1f, 0f, 0f);
-      for (int i = 1; i <= FULL_CIRCLE_RESOLUTION; i++) {
+      for (int i = 0; i <= FULL_CIRCLE_RESOLUTION; i++) {
          double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
-         v1 = jackr.vertex( (float)Math.cos (ang), (float)Math.sin (ang), 0f);
-         jackr.addLine(v0, v1);
-         v0 = v1;
+         robj.addPosition ((float)Math.cos(ang), (float)Math.sin (ang), 0f);
+      }
+      int protz = proty+FULL_CIRCLE_RESOLUTION+1;
+
+      for (int i=0; i<7; i++) {
+         robj.createLineGroup();
       }
 
-      // circle in y-z plane
-      jackr.setCurrentColor(xrcolor);
-      v0 = jackr.vertex(0f, 1f, 0f);
-      for (int i = 1; i <= FULL_CIRCLE_RESOLUTION; i++) {
-         double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
-         v1 = jackr.vertex(0f, (float)Math.cos (ang), (float)Math.sin (ang));
-         jackr.addLine(v0, v1);
-         v0 = v1;
-      }
+      robj.lineGroup (0);
 
-      // circle in z-x plane
-      jackr.setCurrentColor(yrcolor);
-      v0 = jackr.vertex(1f, 0f, 0f);
-      for (int i = 1; i <= FULL_CIRCLE_RESOLUTION; i++) {
-         double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
-         v1 = jackr.vertex((float)Math.cos (ang), 0f, -(float)Math.sin (ang));
-         jackr.addLine(v0, v1);
-         v0 = v1;
-      }
-      return jackr;
+      robj.setCurrentColor (RED);
+      addLine (robj, nx, px);
+      robj.setCurrentColor (GREEN);
+      addLine (robj, ny, py);
+      robj.setCurrentColor (BLUE);
+      addLine (robj, nz, pz);
+      
+      robj.setCurrentColor (RED);
+      addLineLoop (robj, protx, FULL_CIRCLE_RESOLUTION+1);
+
+      robj.setCurrentColor (GREEN);
+      addLineLoop (robj, proty, FULL_CIRCLE_RESOLUTION+1);
+
+      robj.setCurrentColor (BLUE);
+      addLineLoop (robj, protz, FULL_CIRCLE_RESOLUTION+1);
+
+      robj.setCurrentColor (YELLOW);
+
+      robj.lineGroup (X_AXIS);
+      addLine (robj, nx, px);
+      robj.lineGroup (Y_AXIS);
+      addLine (robj, ny, py);
+      robj.lineGroup (Z_AXIS);
+      addLine (robj, nz, pz);
+
+      robj.lineGroup (X_ROTATE);
+      addLineLoop (robj, protx, FULL_CIRCLE_RESOLUTION+1);
+      robj.lineGroup (Y_ROTATE);
+      addLineLoop (robj, proty, FULL_CIRCLE_RESOLUTION+1);
+      robj.lineGroup (Z_ROTATE);
+      addLineLoop (robj, protz, FULL_CIRCLE_RESOLUTION+1);
+
+      return robj;
    }
 
    //   public void handleSelection (LinkedList list, int[] namestack, int idx) {

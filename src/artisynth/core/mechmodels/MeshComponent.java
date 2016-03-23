@@ -24,6 +24,7 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.PolarDecomposition3d;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
+import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.util.NumberFormat;
@@ -48,11 +49,18 @@ public class MeshComponent extends RenderableComponentBase
 
    public static PropertyList myProps = new PropertyList(
       MeshComponent.class, RenderableComponentBase.class);
+   
+   static final public ColorInterpolation 
+      DEFAULT_COLOR_INTERPOLATION = ColorInterpolation.RGB;
+   protected ColorInterpolation myColorInterp = DEFAULT_COLOR_INTERPOLATION;
 
    static {
       myProps.add(
          "renderProps * *", "render properties for this component",
          createDefaultRenderProps());
+      myProps.add (
+         "colorInterpolation", "interpolation for vertex coloring", 
+         DEFAULT_COLOR_INTERPOLATION);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -78,6 +86,7 @@ public class MeshComponent extends RenderableComponentBase
       MeshBase mesh = getMesh();
       if (mesh != null) {
          mesh.setFixed (true);
+         mesh.setColorInterpolation (getColorInterpolation());
       }
    }
 
@@ -105,6 +114,20 @@ public class MeshComponent extends RenderableComponentBase
 
    public void setMesh(MeshBase mesh) {
       setMesh (mesh, null, null);
+   }
+   
+   public ColorInterpolation getColorInterpolation() {
+      return myColorInterp;
+   }
+   
+   public void setColorInterpolation (ColorInterpolation interp) {
+      if (interp != myColorInterp) {
+         MeshBase mesh = getMesh();
+         if (mesh != null) {
+            mesh.setColorInterpolation (interp);
+         }
+         myColorInterp = interp;
+      }
    }
 
    public Vertex3d getVertex (int idx) {

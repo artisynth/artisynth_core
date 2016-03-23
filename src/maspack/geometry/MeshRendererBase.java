@@ -12,6 +12,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
+import maspack.render.Renderer.ColorInterpolation;
 
 public abstract class MeshRendererBase {
 
@@ -36,7 +37,12 @@ public abstract class MeshRendererBase {
 
    protected RobSignature myRobSignature;
    protected RenderObject myRob;
-
+   
+   protected boolean usingHSV (MeshBase mesh) {
+      return (mesh.hasColors() && 
+              mesh.getColorInterpolation() == ColorInterpolation.HSV);
+   }
+   
    protected abstract RobSignature createSignature (
       MeshBase mesh, RenderProps props);
 
@@ -130,7 +136,7 @@ public abstract class MeshRendererBase {
       }
    }
 
-   public void buildRenderObject (MeshBase mesh, RenderProps props) {
+   protected void buildRenderObject (MeshBase mesh, RenderProps props) {
 
       RenderObject r = new RenderObject();
       addPositions (r, mesh);
@@ -141,7 +147,7 @@ public abstract class MeshRendererBase {
       myRob = r;
    }
 
-   public void updateRenderObject (MeshBase mesh, RenderProps props) {
+   protected void updateRenderObject (MeshBase mesh, RenderProps props) {
 
       RenderObject r = myRob;
 

@@ -1472,13 +1472,11 @@ public class PolygonalMesh extends MeshBase {
 
    public void render (Renderer renderer, RenderProps props, int flags) {
       if (myMeshRenderer == null) {
-         myMeshRenderer = new PolygonalMeshRenderer();
+         throw new IllegalStateException (
+            "render() called before prerender()");
       }
-      if (getColors() != null && ((flags & Renderer.SELECTED) == 0)) {
-         flags |= Renderer.VERTEX_COLORING;
-         flags |= Renderer.HSV_COLOR_INTERPOLATION;
-      }
-      myMeshRenderer.render (renderer, this, props, flags);
+      boolean selected = ((flags & Renderer.SELECTED) != 0);
+      myMeshRenderer.render (renderer, this, props, selected);
    }
 
    /**

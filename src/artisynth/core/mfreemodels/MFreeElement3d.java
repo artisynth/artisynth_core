@@ -677,7 +677,8 @@ public class MFreeElement3d extends FemElement implements Boundable {
    
    protected void renderEdges(Renderer renderer, RenderProps props) {
       if (myBoundaryMesh != null) {
-         myMeshRenderer.renderEdges(renderer, myBoundaryMesh, props, 0);
+         myMeshRenderer.renderEdges(
+            renderer, myBoundaryMesh, props, /*selected=*/false);
       }
    }
 

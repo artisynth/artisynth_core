@@ -13,9 +13,13 @@ import maspack.matrix.Vector3d;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Renderer.PointStyle;
 import maspack.render.Renderer.Shading;
 
+/**
+ * Utility class for rendering {@link PointMesh} objects.
+ */
 public class PointMeshRenderer extends MeshRendererBase {
 
    // with and without normals
@@ -54,7 +58,7 @@ public class PointMeshRenderer extends MeshRendererBase {
       return new PointRobSignature ((PointMesh)mesh, props);
    }
 
-   public void buildRenderObject (MeshBase mesh, RenderProps props) {
+   protected void buildRenderObject (MeshBase mesh, RenderProps props) {
       super.buildRenderObject (mesh, props);
       PointMesh pmesh = (PointMesh)mesh;
 
@@ -86,7 +90,7 @@ public class PointMeshRenderer extends MeshRendererBase {
       r.commit();
    }
 
-   public void updateRenderObject (MeshBase mesh, RenderProps props) {
+   protected void updateRenderObject (MeshBase mesh, RenderProps props) {
       super.updateRenderObject (mesh, props);
    }
 
@@ -95,7 +99,8 @@ public class PointMeshRenderer extends MeshRendererBase {
    }
 
    public void render (
-      Renderer renderer, PointMesh mesh, RenderProps props, int flags) {
+      Renderer renderer, PointMesh mesh, RenderProps props, 
+      boolean selected) {
 
       if (mesh.numVertices() == 0) {
          return;
@@ -116,14 +121,17 @@ public class PointMeshRenderer extends MeshRendererBase {
 //         shading = Shading.NONE;
 //      }
 
-      boolean selected = ((flags & Renderer.SELECTED) != 0);
-
       PointStyle pointStyle = props.getPointStyle();
       if (pointStyle == PointStyle.POINT && !mesh.hasNormals()) {
          renderer.setShading (Shading.NONE);
       }
       else {
          renderer.setShading (props.getShading());
+      }
+      ColorInterpolation savedColorInterp = null;
+      if (usingHSV(mesh)) {
+         savedColorInterp =
+             renderer.setColorInterpolation (ColorInterpolation.HSV);
       }
       renderer.setPointColoring (props, selected);
       switch (pointStyle) {
@@ -142,7 +150,9 @@ public class PointMeshRenderer extends MeshRendererBase {
             break;
          }
       }
-
+      if (savedColorInterp != null) {
+         renderer.setColorInterpolation (savedColorInterp);
+      }
       if (mesh.getNormalRenderLen() > 0) {
          renderer.setLineWidth (props.getLineWidth());
          renderer.setLineColoring (props, selected);

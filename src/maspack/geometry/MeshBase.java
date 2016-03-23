@@ -26,6 +26,7 @@ import maspack.matrix.Matrix3d;
 import maspack.properties.HasProperties;
 import maspack.render.Renderer;
 import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
@@ -79,6 +80,8 @@ public abstract class MeshBase implements Renderable, Cloneable {
    protected Point3d myWorldMaxCoords = new Point3d();
    protected boolean myWorldBoundsValid = false;
 
+   protected ColorInterpolation myColorInterp = ColorInterpolation.RGB;
+
    //protected int myWorldCoordCounter = 0;
 
    protected String myName;
@@ -91,6 +94,27 @@ public abstract class MeshBase implements Renderable, Cloneable {
       return myName;
    }
 
+   /**
+    * Returns the interpolation method to be used for vertex-based coloring.
+    * 
+    * @return color interpolation method.
+    */
+   public ColorInterpolation getColorInterpolation() {
+      return myColorInterp;
+   }
+   
+   /**
+    * Sets the interpolation method to be used for vertex-based coloring.
+    * 
+    * @param interp new color interpolation method
+    * @return previous color interpolation method
+    */
+   public ColorInterpolation setColorInterpolation(ColorInterpolation interp) {
+      ColorInterpolation prev = myColorInterp;
+      myColorInterp = interp;
+      return prev;
+   }
+   
    /** 
     * Invalidates bounding box information. Can also be overriden to
     * mark any bounding volume hierarchies as invalid and in need of
@@ -1307,6 +1331,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       }
       mesh.setFixed (isFixed());
       mesh.setColorsFixed (isColorsFixed());
+      mesh.setColorInterpolation (getColorInterpolation());
       mesh.setRenderBuffered (isRenderBuffered());
 
       mesh.myLocalMinCoords = new Point3d();

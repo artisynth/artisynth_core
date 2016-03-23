@@ -15,6 +15,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.GL.GLViewer;
 import maspack.util.InternalErrorException;
 
@@ -83,9 +84,13 @@ public class Rotator3d extends Dragger3dBase {
       }
       
       // highlight appropriate axis
-      ro.colorSet(mySelectedComponent);
+      if (mySelectedComponent != 0) {
+         ro.lineGroup (mySelectedComponent);
+         viewer.drawLines(ro);
+      }
+      ro.lineGroup (0);
       viewer.drawLines(ro);
-      
+         
       viewer.popModelMatrix();
       
       if (myDragMode != DragMode.OFF) {
@@ -123,6 +128,14 @@ public class Rotator3d extends Dragger3dBase {
       viewer.setLineWidth(1);
       viewer.setShading (savedShading);
    }
+
+   private static void addLineLoop (RenderObject robj, int pidx0, int numv) {
+      robj.beginBuild (DrawMode.LINE_LOOP);
+      for (int i=0; i<numv; i++) {
+         robj.addVertex (pidx0+i);
+      }
+      robj.endBuild();
+   }
    
    private RenderObject createRotatorRenderable() {
       
@@ -134,45 +147,49 @@ public class Rotator3d extends Dragger3dBase {
       int xcolor = rotr.addColor(1f, 0f, 0f, 1f);
       int ycolor = rotr.addColor(0f, 1f, 0f, 1f);  
       int zcolor = rotr.addColor(0f, 0f, 1f, 1f);
-
-      // create a set of 6 other color sets, with each axis colored yellow
-      int[] colors = new int[] {xcolor, ycolor, zcolor};
-      for (int i=0; i<colors.length; ++i) {
-         rotr.createColorSetFrom(0);       // copy a color set from original
-         rotr.setColor(i, 1f, 1f, 0f, 1f);
-      }
-
-      int v0, v1;
+      int YELLOW = rotr.addColor(1f, 1f, 0f, 1f);
 
       // circle around x-axis
-      rotr.setCurrentColor(xcolor);
-      v0 = rotr.vertex(0f, 1f, 0f);
-      for (int i = 1; i <= FULL_CIRCLE_RESOLUTION; i++) {
+      for (int i = 0; i <= FULL_CIRCLE_RESOLUTION; i++) {
          double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
-         v1 = rotr.vertex(0f, (float)Math.cos (ang), (float)Math.sin (ang));
-         rotr.addLine(v0, v1);
-         v0 = v1;
+         rotr.addPosition (0f, (float)Math.cos(ang), (float)Math.sin(ang));
       }
+      int protx = 0;
       
       // y-axis
-      rotr.setCurrentColor(ycolor);
-      v0 = rotr.vertex(1f, 0f, 0f);
-      for (int i = 1; i <= FULL_CIRCLE_RESOLUTION; i++) {
+      for (int i = 0; i <= FULL_CIRCLE_RESOLUTION; i++) {
          double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
-         v1 = rotr.vertex((float)Math.cos (ang), 0f, -(float)Math.sin (ang));
-         rotr.addLine(v0, v1);
-         v0 = v1;
+         rotr.addPosition ((float)Math.cos(ang), 0f, -(float)Math.sin(ang));
       }
+      int proty = protx+FULL_CIRCLE_RESOLUTION+1;
       
       // z-axis
-      rotr.setCurrentColor(zcolor);
-      v0 = rotr.vertex(1f, 0f, 0f);
-      for (int i = 1; i <= FULL_CIRCLE_RESOLUTION; i++) {
+      for (int i = 0; i <= FULL_CIRCLE_RESOLUTION; i++) {
          double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
-         v1 = rotr.vertex( (float)Math.cos (ang), (float)Math.sin (ang), 0f);
-         rotr.addLine(v0, v1);
-         v0 = v1;
+         rotr.addPosition ((float)Math.cos(ang), (float)Math.sin (ang), 0f);
       }
+      int protz = proty+FULL_CIRCLE_RESOLUTION+1;
+
+      for (int i=0; i<4; i++) {
+         rotr.createLineGroup();
+      }     
+
+      rotr.lineGroup (0);
+      rotr.setCurrentColor(xcolor);
+      addLineLoop (rotr, protx, FULL_CIRCLE_RESOLUTION+1);
+      rotr.setCurrentColor(ycolor);
+      addLineLoop (rotr, proty, FULL_CIRCLE_RESOLUTION+1);
+      rotr.setCurrentColor(zcolor);
+      addLineLoop (rotr, protz, FULL_CIRCLE_RESOLUTION+1);
+
+      rotr.setCurrentColor(YELLOW);
+
+      rotr.lineGroup (X_AXIS);
+      addLineLoop (rotr, protx, FULL_CIRCLE_RESOLUTION+1);
+      rotr.lineGroup (Y_AXIS);
+      addLineLoop (rotr, proty, FULL_CIRCLE_RESOLUTION+1);
+      rotr.lineGroup (Z_AXIS);
+      addLineLoop (rotr, protz, FULL_CIRCLE_RESOLUTION+1);
 
       return rotr;
    }

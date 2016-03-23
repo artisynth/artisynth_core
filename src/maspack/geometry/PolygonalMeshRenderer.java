@@ -16,6 +16,9 @@ import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Renderer.Shading;
 import maspack.render.Renderer.ColorMixing;
 
+/**
+ * Utility class for rendering {@link PolygonalMesh} objects.
+ */
 public class PolygonalMeshRenderer extends MeshRendererBase {
 
    // Use to determine if/when the render object needs to be rebuilt
@@ -99,7 +102,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       }
    }
 
-   public void buildRenderObject (MeshBase mesh, RenderProps props) {
+   protected void buildRenderObject (MeshBase mesh, RenderProps props) {
 
       PolygonalMesh pmesh = (PolygonalMesh)mesh;
       boolean useVertexNormals = props.getShading() != Shading.FLAT;
@@ -152,7 +155,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       myRob = r;
    }
 
-   public void updateRenderObject (MeshBase mesh, RenderProps props) {
+   protected void updateRenderObject (MeshBase mesh, RenderProps props) {
 
       PolygonalMesh pmesh = (PolygonalMesh)mesh;
 
@@ -233,15 +236,11 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
     */
    private void drawEdges (
       Renderer renderer, PolygonalMesh mesh,
-      RenderProps props, int flags, boolean alsoDrawingFaces) {
-
-      boolean useHSV =
-         mesh.hasColors() && ((flags & Renderer.HSV_COLOR_INTERPOLATION) != 0);
+      RenderProps props, boolean selected, boolean alsoDrawingFaces) {
 
       float savedLineWidth = renderer.getLineWidth();
       Shading savedShadeModel = renderer.getShading();
 
-      boolean selected = ((flags & Renderer.SELECTED) != 0);
       boolean disableColors = false;
 
       renderer.setLineWidth (props.getEdgeWidth());
@@ -275,8 +274,10 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       renderer.setEdgeColoring (props, selected);
       renderer.setShading (shading);
 
-      if (useHSV) {
-         renderer.setColorInterpolation (ColorInterpolation.HSV);
+      ColorInterpolation savedColorInterp = null;
+      if (usingHSV(mesh)) {
+         savedColorInterp =
+            renderer.setColorInterpolation (ColorInterpolation.HSV);
       }
       ColorMixing savedColorMixing = null;
       if (disableColors) {
@@ -284,8 +285,8 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          renderer.setColorMixing (ColorMixing.NONE);
       }
       renderer.drawLines (myRob);
-      if (useHSV) {
-         renderer.setColorInterpolation (ColorInterpolation.RGB);
+      if (savedColorInterp != null) {
+         renderer.setColorInterpolation (savedColorInterp);
       }
       if (disableColors) {
          renderer.setColorMixing (savedColorMixing);
@@ -316,12 +317,8 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
 //   }      
 
    private void drawFaces (
-      Renderer renderer, PolygonalMesh mesh, RenderProps props, int flags) {
-      
-      boolean useHSV =
-         mesh.hasColors() && ((flags & Renderer.HSV_COLOR_INTERPOLATION) != 0);
-
-      boolean selected = ((flags & Renderer.SELECTED) != 0);
+      Renderer renderer, PolygonalMesh mesh, RenderProps props, 
+      boolean selected) {
 
       Renderer.FaceStyle savedFaceStyle = renderer.getFaceStyle();
       Shading savedShadeModel = renderer.getShading();
@@ -336,10 +333,11 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       renderer.setFaceStyle (props.getFaceStyle());
 
       //int i = 0; // i is index of face
-      if (useHSV) {
-         renderer.setColorInterpolation (ColorInterpolation.HSV);
+      ColorInterpolation savedColorInterp = null;
+      if (usingHSV(mesh)) {
+         savedColorInterp =
+            renderer.setColorInterpolation (ColorInterpolation.HSV);
       }
-
 
       if (props.getDrawEdges()) { 
          // FINISH: add setPolygonalOffset() to renderer
@@ -353,16 +351,16 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          ////gl.glDisable (GL2.GL_POLYGON_OFFSET_FILL);
       }
       
-      if (useHSV) {
-         // turn off special HSV interpolating shader
-         renderer.setColorInterpolation (ColorInterpolation.RGB);
+      if (savedColorInterp != null) {
+         renderer.setColorInterpolation (savedColorInterp);
       }
       renderer.setFaceStyle (savedFaceStyle);
       renderer.setShading (savedShadeModel);
    }
 
    public void renderEdges (
-      Renderer renderer, PolygonalMesh mesh, RenderProps props, int flags) {
+      Renderer renderer, PolygonalMesh mesh, RenderProps props, 
+      boolean selected) {
       
       if (mesh.numVertices() == 0) {
          return;
@@ -376,14 +374,15 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          renderer.mulModelMatrix (mesh.XMeshToWorld);
       }
 
-      drawEdges (renderer, mesh, props, flags, false);
+      drawEdges (renderer, mesh, props, selected, false);
 
       renderer.popModelMatrix();
    }
    
    public void render (
-      Renderer renderer, PolygonalMesh mesh, RenderProps props,
-      int flags) {
+      Renderer renderer, PolygonalMesh mesh, RenderProps props, 
+      boolean selected) {
+      
       if (mesh.numVertices() == 0) {
          return;
       }
@@ -404,11 +403,11 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       boolean drawFaces = (props.getFaceStyle() != Renderer.FaceStyle.NONE);
 
       if (props.getDrawEdges()) {
-         drawEdges (renderer, mesh, props, flags, drawFaces);
+         drawEdges (renderer, mesh, props, selected, drawFaces);
       }
       
       if (drawFaces) {
-         drawFaces (renderer, mesh, props, flags);
+         drawFaces (renderer, mesh, props, selected);
       }
 
       // if (!renderer.isSelecting()) {

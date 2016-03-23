@@ -82,36 +82,36 @@ public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
    }
 
    protected boolean renderObjectValid() {
-      int idxSel = 0;
-      int idxReg = 0;
-      int numReg = myRob.numLines(REG_GRP);
-      int numSel = myRob.numLines(SEL_GRP);
+      int kSel = 0;
+      int kReg = 0;
+      int numReg = 2*myRob.numLines(REG_GRP);
+      int numSel = 2*myRob.numLines(SEL_GRP);
+      int[] viReg = myRob.getLineArray (REG_GRP);
+      int[] viSel = myRob.getLineArray (SEL_GRP);
       int vidx = 0;
       for (int i=0; i<size(); i++) {
          AxialSpring spr = get(i);
          if (spr.getRenderProps() == null) {
             if (spr.isSelected()) {
-               if (idxSel >= numSel) {
+               if (kSel >= numSel) {
                   return false;
                }
-               int[] line = myRob.getLine(SEL_GRP,idxSel++);
-               if (line[0] != vidx || line[1] != vidx+1) {
+               if (viSel[kSel++] != vidx || viSel[kSel++] != vidx+1) {
                   return false;
                }
             }
             else {
-               if (idxReg >= numReg) {
+               if (kReg >= numReg) {
                   return false;
                }
-               int[] line = myRob.getLine(REG_GRP,idxReg++);
-               if (line[0] != vidx || line[1] != vidx+1) {
+               if (viReg[kReg++] != vidx || viReg[kReg++] != vidx+1) {
                   return false;
                }
             }
          }
          vidx += 2;
       }
-      if (idxSel != numSel || idxReg != numReg) {
+      if (kSel != numSel || kReg != numReg) {
          return false;
       }
       return true;

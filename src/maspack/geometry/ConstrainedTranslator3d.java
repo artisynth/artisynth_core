@@ -86,9 +86,9 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
       }
       
       if (selected) {
-         ro.colorSet(1);
+         ro.lineGroup(1);
       } else {
-         ro.colorSet(0);
+         ro.lineGroup(0);
       }
       viewer.drawLines(ro);
       
@@ -99,21 +99,28 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
    private RenderObject createRenderable() {
       RenderObject ro = new RenderObject();
       
-      int xcolor = ro.addColor(1.0f, 0f, 0f, 1.0f);
-      int ycolor = ro.addColor(0f, 1.0f, 0f, 1.0f);
-      int zcolor = ro.addColor(0f, 0f, 1.0f, 1.0f);
+      int xcolor = ro.addColor(1.0f,   0f,   0f, 1.0f);
+      int ycolor = ro.addColor(  0f, 1.0f,   0f, 1.0f);
+      int zcolor = ro.addColor(  0f,   0f, 1.0f, 1.0f);
+      int YELLOW = ro.addColor(1.0f, 1.0f,   0f, 1.0f);
       
-      // selected color set
-      ro.createColorSet();
-      ro.setColor(0, 1.0f, 1.0f, 0f, 1.0f);
-      ro.setColor(1, 1.0f, 1.0f, 0f, 1.0f);
-      ro.setColor(2, 1.0f, 1.0f, 0f, 1.0f);
+      ro.createLineGroup();
+      ro.createLineGroup();
+
+      ro.lineGroup(0);
       
       ro.setCurrentColor(xcolor);
       ro.addLine(new float[]{-1,0,0}, new float[]{1,0,0}); // x-axis
       ro.setCurrentColor(ycolor);
       ro.addLine(new float[]{0,-1,0}, new float[]{0,1,0}); // y-axis
       ro.setCurrentColor(zcolor);
+      ro.addLine(new float[]{0,0,-1}, new float[]{0,0,1}); // z-axis
+
+      ro.setCurrentColor(YELLOW);
+
+      ro.lineGroup(1);
+      ro.addLine(new float[]{-1,0,0}, new float[]{1,0,0}); // x-axis
+      ro.addLine(new float[]{0,-1,0}, new float[]{0,1,0}); // y-axis
       ro.addLine(new float[]{0,0,-1}, new float[]{0,0,1}); // z-axis
             
       return ro;

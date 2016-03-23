@@ -25,6 +25,7 @@ import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
+import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Dragger3d.DraggerType;
 import maspack.render.GL.GLRenderable;
 import maspack.render.RenderProps;
@@ -559,10 +560,7 @@ public class FemDisplayProbe extends CutPlaneProbe {
          }
          
          if (mySurfaceRendering != SurfaceRender.None) {
-            int rflags = 
-               (flags | Renderer.VERTEX_COLORING | 
-               Renderer.HSV_COLOR_INTERPOLATION);
-            myPlaneSurface.render (renderer, rprops, rflags);
+            myPlaneSurface.render (renderer, rprops, 0);
             //renderer.drawMesh(rprops, myPlaneSurface,
             //   flags | GLRenderer.VERTEX_COLORING | GLRenderer.HSV_COLOR_INTERPOLATION);
          }
@@ -623,6 +621,7 @@ public class FemDisplayProbe extends CutPlaneProbe {
       lastDraggerType = getDragger();
       myPlaneSurface.setFixed(false);
       myPlaneSurface.setColorsFixed(false);
+      myPlaneSurface.setColorInterpolation (ColorInterpolation.HSV);
       myPlaneSurface.setVertexColoringEnabled();
       super.setDragger(DraggerType.None);
 

@@ -11,9 +11,13 @@ import java.util.ArrayList;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.Shading;
 
+/**
+ * Utility class for rendering {@link PolylineMesh} objects.
+ */
 public class PolylineMeshRenderer  extends MeshRendererBase {
 
 
@@ -46,7 +50,7 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
       return new PolylineRobSignature ((PolylineMesh)mesh, props);
    }
 
-   public void buildRenderObject (MeshBase mesh, RenderProps props) {
+   protected void buildRenderObject (MeshBase mesh, RenderProps props) {
       super.buildRenderObject (mesh, props);
       PolylineMesh pmesh = (PolylineMesh)mesh;
 
@@ -77,7 +81,7 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
       r.commit();
    }
 
-   public void updateRenderObject (MeshBase mesh, RenderProps props) {
+   protected void updateRenderObject (MeshBase mesh, RenderProps props) {
       super.updateRenderObject (mesh, props);
    }
 
@@ -86,7 +90,8 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
    }
 
    public void render (
-      Renderer renderer, PolylineMesh mesh, RenderProps props, int flags) {
+      Renderer renderer, PolylineMesh mesh, RenderProps props, 
+      boolean selected) {
 
       if (mesh.numVertices() == 0) {
          return;
@@ -107,7 +112,6 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
 //      if (renderer.isSelecting()) {
 //         shading = Shading.NONE;
 //      }
-      boolean selected = ((flags & Renderer.SELECTED) != 0);
 
       LineStyle lineStyle = props.getLineStyle();
       Shading savedShading = renderer.getShading();
@@ -116,6 +120,11 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
       }
       else {
          renderer.setShading (props.getShading());
+      }
+      ColorInterpolation savedColorInterp = null;
+      if (usingHSV(mesh)) {
+         savedColorInterp =
+            renderer.setColorInterpolation (ColorInterpolation.HSV);
       }
       renderer.setLineColoring (props, selected);
       switch (lineStyle) {
@@ -136,8 +145,10 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
             break;
          }
       }
+      if (savedColorInterp != null) {
+         renderer.setColorInterpolation (savedColorInterp);
+      }
       renderer.setShading (savedShading);
-
       renderer.setLineWidth (savedLineWidth);
       renderer.setShading (savedShadeModel);
 

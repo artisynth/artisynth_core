@@ -141,13 +141,16 @@ public class FemElementRenderer {
 
    public static void updateWidgetNormals (RenderObject r, int tgrp) {
       int numt = r.numTriangles(tgrp);
+
       if (numt > 0) {
+         int[] vidxs = r.getTriangleArray(tgrp);
+         int k = 0;
          for (int i=0; i<numt; i++) {
-            int[] idxs = r.getTriangle (tgrp, i);
-            float[] p0 = r.getVertexPosition (idxs[0]);
-            float[] p1 = r.getVertexPosition (idxs[1]);
-            float[] p2 = r.getVertexPosition (idxs[2]);
-            float[] nrm = r.getVertexNormal (idxs[0]);
+            float[] nrm = r.getVertexNormal (vidxs[k]);
+            float[] p0 = r.getVertexPosition (vidxs[k++]);
+            float[] p1 = r.getVertexPosition (vidxs[k++]);
+            float[] p2 = r.getVertexPosition (vidxs[k++]);
+
 
             float ax = p1[0]-p0[0];
             float ay = p1[1]-p0[1];

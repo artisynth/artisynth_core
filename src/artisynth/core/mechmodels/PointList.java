@@ -112,7 +112,6 @@ implements ScalableUnits {
          }
       }
       myRob.setPositionsDynamic (true);
-      myRob.commit();
    }
    
    protected void updateRenderObject() {
@@ -136,8 +135,8 @@ implements ScalableUnits {
       int kReg = 0;
       int numReg = myRob.numPoints(REG_GRP);
       int numSel = myRob.numPoints(SEL_GRP);
-      int[] viReg = myRob.getPointArray(REG_GRP);
-      int[] viSel = myRob.getPointArray(SEL_GRP);
+      int[] viReg = myRob.getPoints(REG_GRP);
+      int[] viSel = myRob.getPoints(SEL_GRP);
       for (int i=0; i<size(); i++) {
          Point pnt = get(i);
          if (pnt.getRenderProps() == null) {

@@ -6,12 +6,20 @@
  */
 package maspack.geometry;
 
-import maspack.matrix.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.ConcurrentModificationException;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+
+import maspack.matrix.Matrix3d;
+import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.util.Clonable;
 import maspack.util.InternalErrorException;
-
-import java.util.*;
-import java.awt.Color;
 
 /**
  * Vertex for a 3D dimensional polyhedral object.
@@ -244,9 +252,20 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
    public int computeAngleWeightedNormals (List<Vector3d> nrms, int idx) {
       sortHedgesIfNecessary(); 
       HalfEdgeNode node = incidentHedges;
+      int nrmSize = nrms.size ();
       while (node != null) {
-         Vector3d nrm = nrms.get(idx++);
-         nrm.setZero();
+         // XXX chance for index-out-of-bounds here
+         Vector3d nrm = null;
+         if (idx < nrmSize) {
+            nrm = nrms.get(idx++);
+            nrm.setZero();
+         } else {
+            System.err.println ("Vertex3d.computeAngleWeightedNormals(...): hack to prevent out of bounds index");
+            nrm = new Vector3d();
+            nrms.add (nrm);
+            ++nrmSize;
+         }
+         
          do {
             HalfEdge he = node.he;
             nrm.angleWeightedCrossAdd (

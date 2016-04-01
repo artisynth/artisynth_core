@@ -4,7 +4,6 @@ import java.awt.Dimension;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -23,24 +22,21 @@ import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Dragger3d;
-import maspack.render.Material;
 import maspack.render.RenderObject;
-import maspack.render.RenderObject.RenderObjectIdentifier;
 import maspack.render.RenderObject.RenderObjectState;
 import maspack.render.RenderProps;
-import maspack.render.Renderer;
-import maspack.render.Renderer.FaceStyle;
-import maspack.render.Renderer.LineStyle;
-import maspack.render.Renderer.PointStyle;
-import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLFrameCapture;
 import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLLight;
 import maspack.render.GL.GLLightManager;
 import maspack.render.GL.GLMouseAdapter;
+import maspack.render.GL.GLShaderProgram;
 import maspack.render.GL.GLSupport;
+import maspack.render.GL.GLTexture;
 import maspack.render.GL.GLViewer;
+import maspack.render.GL.GL3.GLSLGenerator.StringIntPair;
+import maspack.render.GL.GL3.GLSLInfo.GLSLInfoBuilder;
 //import maspack.render.GL.GL3.GLSLInfo.ColorInterpolation;
 import maspack.render.GL.GL3.GLSLInfo.InstancedRendering;
 import maspack.util.InternalErrorException;
@@ -58,17 +54,17 @@ public class GL3Viewer extends GLViewer {
    //=====================================
 
    // Programs
-   GL3ProgramManager progManager = null;
-   GL3Resources myGLResources = null;    // holds shared context and cache
+   GL3ProgramManager myProgManager = null;
 
-   // Common viewer-specific objects (essentially stream-drawn)
-   GL3Object dragBoxGLO = null;
-   GL3Object lineGLO = null;
-   GL3Object pointGLO = null;
-   GL3Object tetGLO = null;
-   GL3Object pyrGLO = null;
-   GL3Object wedgeGLO = null;
-   GL3Object hexGLO = null;
+   GL3SharedResources myGLResources = null;    // holds shared context and cache
+   
+   // Resources that stick with this viewer
+   GL3RenderObjectManager myRenderObjectManager = null;
+   GL3PrimitiveManager myPrimitiveManager = null;
+
+   // Updateable object for various primitives (essentially stream-drawn)
+   // like single lines, etc...
+   GL3FlexObject gloFlex = null;
 
    // screenshot
    private GLFrameCapture frameCapture = null;
@@ -77,10 +73,10 @@ public class GL3Viewer extends GLViewer {
    private boolean grabClose = false;        // clean up
 
    // buffer filling
-   PositionBufferPutter DEFAULT_POSITON_PUTTER = PositionBufferPutter.createDefault ();
-   NormalBufferPutter DEFAULT_NORMAL_PUTTER = NormalBufferPutter.createDefault ();
-   ColorBufferPutter DEFAULT_COLOR_PUTTER = ColorBufferPutter.createDefault ();
-  
+   static final PositionBufferPutter DEFAULT_POSITON_PUTTER = PositionBufferPutter.createDefault ();
+   static final NormalBufferPutter DEFAULT_NORMAL_PUTTER = NormalBufferPutter.createDefault ();
+   static final ColorBufferPutter DEFAULT_COLOR_PUTTER = ColorBufferPutter.createDefault ();
+
    /**
     * Creates a new GLViewer with default capabilities.
     * 
@@ -122,7 +118,7 @@ public class GL3Viewer extends GLViewer {
     * @param height
     * initial height of the viewer
     */
-   public GL3Viewer (GLCapabilities cap, GL3Resources resources, int width,
+   public GL3Viewer (GLCapabilities cap, GL3SharedResources resources, int width,
       int height) {
       if (cap == null) {
          GLProfile glp3 = GLProfile.get(GLProfile.GL3);
@@ -132,14 +128,26 @@ public class GL3Viewer extends GLViewer {
       }
 
       if (resources == null) {
-         resources = new GL3Resources(cap);
+         // get attribute map from GLSL generator
+         StringIntPair[] attributes = GLSLGenerator.ATTRIBUTES;
+         GL3VertexAttributeMap attributeMap = new GL3VertexAttributeMap (
+            new GL3VertexAttributeInfo (attributes[0].getString (), attributes[0].getInt ()), 
+            new GL3VertexAttributeInfo (attributes[1].getString (), attributes[1].getInt ()),
+            new GL3VertexAttributeInfo (attributes[2].getString (), attributes[2].getInt ()),
+            new GL3VertexAttributeInfo (attributes[3].getString (), attributes[3].getInt ()));
+         for (int i=4; i<attributes.length; ++i) {
+            attributeMap.add (new GL3VertexAttributeInfo (attributes[i].getString (), attributes[i].getInt ()));
+         }
+         resources = new GL3SharedResources(cap, attributeMap);
       }
       myGLResources = resources;
       canvas = myGLResources.createCanvas();
       myGLResources.registerViewer (this);
-
+      myPrimitiveManager = new GL3PrimitiveManager (resources.getSharedPrimitiveManager());
+      myRenderObjectManager = new GL3RenderObjectManager (resources.getSharedRenderObjectManager());
+      
       lightManager = new GLLightManager();      
-      progManager = new GL3ProgramManager();
+      myProgManager = new GL3ProgramManager();
 
       canvas.addGLEventListener (this);
 
@@ -174,34 +182,20 @@ public class GL3Viewer extends GLViewer {
             canvas.addMouseWheelListener (l);
          }
       }
+
    }
 
    private void setDefaultMatrices() {
+
       RigidTransform3d EyeToWorld = new RigidTransform3d (0, -3, 0, 1, 0, 0, Math.PI / 2);
       setEyeToWorld(EyeToWorld);
 
-      //      myUp.set(0,1,0);
-      //      XEyeToWorld = new RigidTransform3d (0, 0, 1, 1, 0, 0, 0);
-      //      updateViewMatrix();
-
-      // setCenter(new Point3d(0,0,0));
-      // setEye(new Point3d(0,-3, 0));
       setAxialView (AxisAlignedRotation.X_Z);
-
-      // XEyeToWorld = new RigidTransform3d (0, -5, 1, 1, 0, 0, Math.PI / 2);
-      // setAxialView(myAxialView);
-
-
       setModelMatrix(RigidTransform3d.IDENTITY);
-      // setOrthogonal(5, -10, 10);
-      // setPerspective(70, 0.01, 10);
 
       //      System.out.println(projectionMatrix);
       //      System.out.println(viewMatrix);
       //      System.out.println(modelMatrix);
-
-
-
    }
 
    public void setDefaultLights() {
@@ -286,11 +280,17 @@ public class GL3Viewer extends GLViewer {
       invalidateProjectionMatrix();
       invalidateViewMatrix();
 
-      progManager.init(gl, lightManager.numLights(), 0);
-      progManager.setMatrices(gl, projectionMatrix, viewMatrix, modelMatrix, modelNormalMatrix);
-      progManager.setLights(gl, lightManager.getLights(), 1.0f/lightManager.getMaxIntensity(), viewMatrix);
+      myProgManager.init(gl, lightManager.numLights(), 0);
+      myProgManager.setMatrices(gl, projectionMatrix, viewMatrix, modelMatrix, modelNormalMatrix);
+      myProgManager.setLights(gl, lightManager.getLights(), 1.0f/lightManager.getMaxIntensity(), viewMatrix);
+      myProgManager.setMaterials (gl, myCurrentMaterial, myCurrentMaterial);
       myCurrentMaterialModified = true;  // trigger update of materials
-
+      
+      // create a basic position-based flexible object
+      gloFlex = GL3FlexObject.generate (gl, 
+         myGLResources.getVertexPositionAttribute (), myGLResources.getVertexNormalAttribute(), 
+         myGLResources.getVertexColorAttribute(), myGLResources.getVertexTexcoordAttribute());
+      
       // trigger rebuild of renderables
       buildInternalRenderList();
 
@@ -304,38 +304,13 @@ public class GL3Viewer extends GLViewer {
    public void dispose(GLAutoDrawable drawable) {
       GLSupport.checkAndPrintGLError(drawable.getGL ());
 
-      progManager.dispose(gl);
-      myGLResources.dispose(gl);
-
+      myProgManager.dispose(gl);
+      myRenderObjectManager.dispose (gl);
+      myPrimitiveManager.dispose (gl);
+      
       // clear temporaries
-      if (dragBoxGLO != null) {
-         dragBoxGLO.dispose(gl);
-         dragBoxGLO = null;
-      }
-      if (lineGLO != null) {
-         lineGLO.dispose(gl);
-         lineGLO = null;
-      }
-      if (pointGLO != null) {
-         pointGLO.dispose(gl);
-         pointGLO = null;
-      }
-      if (hexGLO != null) {
-         hexGLO.dispose(gl);
-         hexGLO = null;
-      }
-      if (wedgeGLO != null) {
-         wedgeGLO.dispose(gl);
-         wedgeGLO = null;
-      }
-      if (pyrGLO != null) {
-         pyrGLO.dispose(gl);
-         pyrGLO = null;
-      }
-      if (tetGLO != null) {
-         tetGLO.dispose(gl);
-         tetGLO = null;
-      }
+      gloFlex.dispose (gl);
+      gloFlex = null;
 
       // nullify stuff
       this.drawable = null;
@@ -397,22 +372,6 @@ public class GL3Viewer extends GLViewer {
          selectEnabled = true;
          selectTrigger = false;
       }
-
-      //   XXX need better way to clear resources
-      //      // potentially clear some cached rendering
-      //      synchronized(myGLResources) {
-      //         // only allow first viewer to modify cache
-      //         if (version == myGLResourcesVersion) {
-      //            // if update render cache, then use this round to
-      //            // purge unused objects
-      //            // if clear render cache, then destroy all cached
-      //            if ((flags & Renderer.CLEAR_RENDER_CACHE) != 0) {
-      //               myGLResources.clearCached(gl);
-      //            } else if ((flags & Renderer.UPDATE_RENDER_CACHE) != 0) {
-      //               myGLResources.releaseUnused(gl);
-      //            }
-      //         }
-      //      }
 
       // turn off buffer swapping when doing a selection render because
       // otherwise the previous buffer sometimes gets displayed
@@ -493,8 +452,8 @@ public class GL3Viewer extends GLViewer {
       GLSupport.checkAndPrintGLError(drawable.getGL ());
 
       int mclips = Math.min(2*myClipPlanes.size(), maxClipPlanes);
-      progManager.reconfigure(gl, lightManager.numLights(), mclips);
-      progManager.setLights(gl, lightManager.getLights(), 1.0f/lightManager.getMaxIntensity(), viewMatrix);
+      myProgManager.reconfigure(gl, lightManager.numLights(), mclips);
+      myProgManager.setLights(gl, lightManager.getLights(), 1.0f/lightManager.getMaxIntensity(), viewMatrix);
 
       // update matrices
       maybeUpdateState(gl);
@@ -533,7 +492,7 @@ public class GL3Viewer extends GLViewer {
       // enable clip planes
       int nclips = 0;
       if (myClipPlanes.size() > 0) {
-         nclips = progManager.setClipPlanes(gl3, myClipPlanes);
+         nclips = myProgManager.setClipPlanes(gl3, myClipPlanes);
          for (int i=0; i<nclips; ++i) {
             gl.glEnable(GL3.GL_CLIP_DISTANCE0+i);
          }
@@ -642,7 +601,7 @@ public class GL3Viewer extends GLViewer {
          setDepthEnabled(false);
          setFaceStyle(FaceStyle.FRONT_AND_BACK);
       }
-      
+
       // XXX maybe set configurable?
       gl.glEnable (GL3.GL_BLEND);
       gl.glBlendFunc (GL3.GL_SRC_ALPHA, GL3.GL_ONE_MINUS_SRC_ALPHA);
@@ -782,9 +741,9 @@ public class GL3Viewer extends GLViewer {
       setFrontColor (rgba);
       setBackColor (rgba);
       // force immediate update of color
-      progManager.setMaterialDiffuse(gl, rgba, rgba);
+      myProgManager.setMaterialDiffuse(gl, rgba, rgba);
    }
-   
+
    public void saveShading() {
       if (selectEnabled) {
          return;
@@ -792,17 +751,17 @@ public class GL3Viewer extends GLViewer {
       pushViewerState();
    }
 
-//   @Override
-//   public void restoreShading(RenderProps props) {
-//      // nothing
-//   }
+   //   @Override
+   //   public void restoreShading(RenderProps props) {
+   //      // nothing
+   //   }
 
    //==========================================================================
    //  Matrices
    //==========================================================================
 
    protected void updateMatrices(GL3 gl) {
-      progManager.setMatrices(gl, projectionMatrix, viewMatrix, modelMatrix, modelNormalMatrix);
+      myProgManager.setMatrices(gl, projectionMatrix, viewMatrix, modelMatrix, modelNormalMatrix);
       modelMatrixValidP = true;
       projectionMatrixValidP = true;
       viewMatrixValidP = true;
@@ -816,20 +775,20 @@ public class GL3Viewer extends GLViewer {
       maybeUpdateMatrices (gl);
       maybeUpdateMaterials (gl);
    }
-   
+
    protected void maybeUpdateMaterials(GL3 gl) {
       if (myCurrentMaterialModified &&!selectEnabled) {
          // set all colors
          if (mySelectedColorActive) {
             mySelectedColor[3] = myCurrentMaterial.getAlpha();
-            progManager.setMaterials (gl, myCurrentMaterial, mySelectedColor, myCurrentMaterial, mySelectedColor);
+            myProgManager.setMaterials (gl, myCurrentMaterial, mySelectedColor, myCurrentMaterial, mySelectedColor);
          } else {
-            progManager.setMaterials (gl, myCurrentMaterial, myCurrentMaterial.getDiffuse(), myCurrentMaterial, myBackColor);
+            myProgManager.setMaterials (gl, myCurrentMaterial, myCurrentMaterial.getDiffuse(), myCurrentMaterial, myBackColor);
          }
          myCurrentMaterialModified = false; // reset flag since state is now updated
       }
    }
-   
+
    protected void maybeUpdateMatrices(GL3 gl) {
       if (!modelMatrixValidP || !projectionMatrixValidP || !viewMatrixValidP) {
          updateMatrices(gl);
@@ -855,10 +814,10 @@ public class GL3Viewer extends GLViewer {
       maybeUpdateState (gl);
 
       int nslices = getSurfaceResolution();
-      GL3Object sphere = 
-         myGLResources.getSphere(gl, nslices, (int)Math.ceil(nslices/2));
-      sphere.draw(gl, getRegularProgram(gl));
-      // gloManager.releaseObject(sphere);
+      GL3Object sphere = myPrimitiveManager.getSphere(gl, nslices, (int)Math.ceil(nslices/2));
+      GLShaderProgram prog = getProgram (gl);
+      prog.use (gl);
+      sphere.draw(gl);
 
       // revert matrix transform
       popModelMatrix();
@@ -938,206 +897,6 @@ public class GL3Viewer extends GLViewer {
 
    }
 
-//   @Override
-//   public void drawTet(
-//      RenderProps props, double scale, float[] v0, float[] v1, float[] v2,
-//      float[] v3) {
-//
-//      boolean scaled = false;
-//      if (Math.abs(1-scale) > Double.MIN_NORMAL) {
-//         // center, for scaling widget
-//         float cx = (v0[0]+v1[0]+v2[0]+v3[0])/4;
-//         float cy = (v0[1]+v1[1]+v2[1]+v3[1])/4;
-//         float cz = (v0[2]+v1[2]+v2[2]+v3[2])/4;
-//         float s = (float)scale;
-//         pushModelMatrix();
-//         translateModelMatrix(cx*(1-s), cy*(1-s), cz*(1-s));
-//         scaleModelMatrix(s);
-//         updateMatrices(gl); // guarantee update uniforms
-//         scaled = true;
-//      }
-//      maybeUpdateState(gl);
-//
-//      // vertex/normal for each vertex, repeated per triangle
-//      final PositionBufferPutter posPutter = DEFAULT_POSITON_PUTTER;
-//      final NormalBufferPutter nrmPutter = DEFAULT_NORMAL_PUTTER;
-//      int nverts = 12;
-//      int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
-//      ByteBuffer buff = ByteBuffer.allocateDirect(nverts*stride);
-//      buff.order(ByteOrder.nativeOrder());
-//
-//      addTri(v0, v2, v1, buff, posPutter, nrmPutter);
-//      addTri(v2, v3, v1, buff, posPutter, nrmPutter);
-//      addTri(v3, v0, v1, buff, posPutter, nrmPutter);
-//      addTri(v0, v3, v2, buff, posPutter, nrmPutter);
-//      buff.rewind();
-//
-//      if (tetGLO == null) {
-//         tetGLO = GL3Object.createVN(gl, GL.GL_TRIANGLES, buff, nverts, posPutter.storage(),
-//            0, stride, nrmPutter.storage(), posPutter.bytesPerPosition(), stride, GL.GL_DYNAMIC_DRAW);
-//      } else {
-//         tetGLO.vbos[0].update(gl, buff);
-//      }
-//
-//      tetGLO.draw(gl, getRegularProgram(gl));
-//
-//      if (scaled) {
-//         popModelMatrix();
-//      }
-//
-//   }
-
-//   @Override
-//   public void drawHex(
-//      RenderProps props, double scale, float[] v0, float[] v1, float[] v2,
-//      float[] v3, float[] v4, float[] v5, float[] v6, float[] v7) {
-//
-//      boolean scaled = false;
-//      if (Math.abs(1-scale) > Double.MIN_NORMAL) {
-//         float cx = (v0[0]+v1[0]+v2[0]+v3[0]+v4[0]+v5[0]+v6[0]+v7[0])/8;
-//         float cy = (v0[1]+v1[1]+v2[1]+v3[1]+v4[1]+v5[1]+v6[1]+v7[1])/8;
-//         float cz = (v0[2]+v1[2]+v2[2]+v3[2]+v4[2]+v5[2]+v6[2]+v7[2])/8;
-//
-//         float s = (float)scale;
-//         pushModelMatrix();
-//         translateModelMatrix(cx*(1-s), cy*(1-s), cz*(1-s));
-//         scaleModelMatrix(s);
-//         updateMatrices(gl); // guarantee update uniforms
-//         scaled = true;
-//      }
-//      maybeUpdateState (gl);
-//
-//      // vertex/normal for each vertex, 6 verts per face (repeated on corners), 6 faces
-//      final PositionBufferPutter posPutter = DEFAULT_POSITON_PUTTER;
-//      final NormalBufferPutter nrmPutter = DEFAULT_NORMAL_PUTTER;
-//      int nverts = 36;
-//      int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
-//      ByteBuffer buff = ByteBuffer.allocateDirect(nverts*stride);
-//      buff.order(ByteOrder.nativeOrder());
-//
-//      addQuad(v0, v1, v2, v3, buff, posPutter, nrmPutter);
-//      addQuad(v1, v5, v6, v2, buff, posPutter, nrmPutter);
-//      addQuad(v5, v4, v7, v6, buff, posPutter, nrmPutter);
-//      addQuad(v4, v0, v3, v7, buff, posPutter, nrmPutter);
-//      addQuad(v3, v2, v6, v7, buff, posPutter, nrmPutter);
-//      addQuad(v0, v4, v5, v1, buff, posPutter, nrmPutter);
-//      buff.rewind();
-//
-//      if (hexGLO == null) {
-//         hexGLO = GL3Object.createVN(gl, GL.GL_TRIANGLES, buff, nverts, posPutter.storage(),
-//            0, stride, nrmPutter.storage(), posPutter.bytesPerPosition(), stride, GL.GL_DYNAMIC_DRAW);
-//      } else {
-//         hexGLO.vbos[0].update(gl, buff);
-//      }
-//
-//      hexGLO.draw(gl, getRegularProgram(gl));
-//
-//      if (scaled) {
-//         popModelMatrix();
-//      }
-//
-//   }
-
-//   @Override
-//   public void drawWedge(
-//      RenderProps props, double scale, float[] v0, float[] v1, float[] v2,
-//      float[] v3, float[] v4, float[] v5) {
-//
-//      boolean scaled = false;
-//      if (Math.abs(1-scale) > Double.MIN_NORMAL) {
-//         float cx = (v0[0]+v1[0]+v2[0]+v3[0]+v4[0]+v5[0])/8;
-//         float cy = (v0[1]+v1[1]+v2[1]+v3[1]+v4[1]+v5[1])/8;
-//         float cz = (v0[2]+v1[2]+v2[2]+v3[2]+v4[2]+v5[2])/8;
-//
-//         float s = (float)scale;
-//         pushModelMatrix();
-//         translateModelMatrix(cx*(1-s), cy*(1-s), cz*(1-s));
-//         scaleModelMatrix(s);
-//         updateMatrices(gl); // guarantee update uniforms
-//         scaled = true;
-//      }
-//      maybeUpdateState (gl);
-//
-//      // vertex/normal for each vertex, 6 verts per quad, 3 per tri
-//      final PositionBufferPutter posPutter = DEFAULT_POSITON_PUTTER;
-//      final NormalBufferPutter nrmPutter = DEFAULT_NORMAL_PUTTER;
-//      int nverts = 24;
-//      int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
-//      ByteBuffer buff = ByteBuffer.allocateDirect(nverts*stride);
-//      buff.order(ByteOrder.nativeOrder());
-//
-//      addQuad(v0, v1, v4, v3, buff, posPutter, nrmPutter);
-//      addQuad(v1, v2, v5, v4, buff, posPutter, nrmPutter);
-//      addQuad(v2, v0, v3, v5, buff, posPutter, nrmPutter);
-//      addTri(v0, v2, v1, buff, posPutter, nrmPutter);
-//      addTri(v3, v4, v5, buff, posPutter, nrmPutter);
-//      buff.rewind();
-//
-//      if (wedgeGLO == null) {
-//         wedgeGLO = GL3Object.createVN(gl, GL.GL_TRIANGLES, buff, nverts, posPutter.storage(),
-//            0, stride, nrmPutter.storage(), posPutter.bytesPerPosition(), stride,GL.GL_DYNAMIC_DRAW);
-//      } else {
-//         wedgeGLO.vbos[0].update(gl, buff);
-//      }
-//
-//      wedgeGLO.draw(gl, getRegularProgram(gl));
-//
-//      if (scaled) {
-//         popModelMatrix();
-//      }
-//
-//   }
-
-//   @Override
-//   public void drawPyramid(
-//      RenderProps props, double scale, float[] v0, float[] v1, float[] v2,
-//      float[] v3, float[] v4) {
-//
-//      boolean scaled = false;
-//      if (Math.abs(1-scale) > Double.MIN_NORMAL) {
-//         float cx = (v0[0]+v1[0]+v2[0]+v3[0]+v4[0])/8;
-//         float cy = (v0[1]+v1[1]+v2[1]+v3[1]+v4[1])/8;
-//         float cz = (v0[2]+v1[2]+v2[2]+v3[2]+v4[2])/8;
-//
-//         float s = (float)scale;
-//         pushModelMatrix();
-//         translateModelMatrix(cx*(1-s), cy*(1-s), cz*(1-s));
-//         scaleModelMatrix(s);
-//         updateMatrices(gl); // guarantee update uniforms
-//         scaled = true;
-//      }
-//      maybeUpdateState (gl);
-//
-//      // vertex/normal for each vertex, 6 verts per quad, 3 per tri
-//      final PositionBufferPutter posPutter = DEFAULT_POSITON_PUTTER;
-//      final NormalBufferPutter nrmPutter = DEFAULT_NORMAL_PUTTER;
-//      int nverts = 18;
-//      int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
-//      ByteBuffer buff = ByteBuffer.allocateDirect(nverts*stride);
-//      buff.order(ByteOrder.nativeOrder());
-//
-//      addQuad(v0, v3, v2, v1, buff, posPutter, nrmPutter);
-//      addTri(v0, v1, v4, buff, posPutter, nrmPutter);
-//      addTri(v1, v2, v4, buff, posPutter, nrmPutter);
-//      addTri(v2, v3, v4, buff, posPutter, nrmPutter);
-//      addTri(v3, v0, v4, buff, posPutter, nrmPutter);
-//      buff.rewind();
-//
-//      if (pyrGLO == null) {
-//         pyrGLO = GL3Object.createVN(gl, GL.GL_TRIANGLES, buff, nverts, posPutter.storage(),
-//            0, stride, nrmPutter.storage(), posPutter.bytesPerPosition(), stride, GL.GL_DYNAMIC_DRAW);
-//      } else {
-//         pyrGLO.vbos[0].update(gl, buff);
-//      }
-//
-//      pyrGLO.draw(gl, getRegularProgram(gl));
-//
-//      if (scaled) {
-//         popModelMatrix();
-//      }
-//
-//   }
-
    private RigidTransform3d getLineTransform(float[] p0, float[] p1) {
       RigidTransform3d X = new RigidTransform3d();
 
@@ -1173,8 +932,10 @@ public class GL3Viewer extends GLViewer {
       maybeUpdateState(gl);
 
       int nslices = getSurfaceResolution();
-      GL3Object spindle = myGLResources.getSpindle(gl, nslices, (int)Math.ceil(nslices/2));
-      spindle.draw(gl, getRegularProgram(gl));
+      GL3Object spindle = myPrimitiveManager.getSpindle(gl, nslices, (int)Math.ceil(nslices/2));
+      GLShaderProgram prog = getProgram(gl);
+      prog.use (gl);
+      spindle.draw(gl);
 
       // revert matrix transform
       popModelMatrix();
@@ -1184,7 +945,7 @@ public class GL3Viewer extends GLViewer {
    @Override
    public void drawCylinder(
       float[] coords0, float[] coords1, double r, boolean capped) {
-      
+
       if (r < Double.MIN_NORMAL) {
          return;
       }
@@ -1204,9 +965,13 @@ public class GL3Viewer extends GLViewer {
       maybeUpdateState(gl);
 
       int nslices = getSurfaceResolution();
-      GL3Object cylinder = myGLResources.getCylinder(gl, nslices, capped);
-      cylinder.draw(gl, getRegularProgram(gl));
-      // gloManager.releaseObject(sphere);
+      
+      GL3Object cylinder = myPrimitiveManager.getCylinder(gl, nslices, capped);
+      
+      GLShaderProgram prog = getProgram(gl);
+      prog.use (gl);
+      cylinder.draw(gl);
+      
 
       // revert matrix transform
       popModelMatrix();
@@ -1237,31 +1002,80 @@ public class GL3Viewer extends GLViewer {
       maybeUpdateState(gl);
 
       int nslices = getSurfaceResolution();
-      GL3Object cone = myGLResources.getCone(gl, nslices, capped);
-      cone.draw(gl, getRegularProgram(gl));
+      GL3Object cone = myPrimitiveManager.getCone(gl, nslices, capped);
+      GLShaderProgram prog = getProgram(gl);
+      prog.use (gl);
+      cone.draw(gl);
       // gloManager.releaseObject(cone);
 
       // revert matrix transform
       popModelMatrix();
    }
+    
 
-   protected int getRegularProgram(GL3 gl) {
-      GLSLInfo key = null;
-      if (isSelecting()) {
-         key = new GLSLInfo(progManager.numLights(), progManager.numClipPlanes(), 
-            Shading.NONE, ColorInterpolation.NONE,
-            false, false, false, getColorMixing(), getTextureMixing());
-      } else {
-         boolean lighting = isLightingEnabled();
-         Shading shading = lighting ? getShading() : Shading.NONE;
-         key = new GLSLInfo(progManager.numLights(), progManager.numClipPlanes(), 
-            shading, ColorInterpolation.NONE, shading != Shading.NONE, false, false,
-            getColorMixing(), getTextureMixing());
+   protected GLShaderProgram getBasicProgram(GL3 gl) {
+      GLSLInfoBuilder builder = new GLSLInfoBuilder();
+      builder.setNumLights (myProgManager.numLights ());
+      builder.setNumClipPlanes (myProgManager.numClipPlanes ());
+
+      if (!isSelecting()) {
+         Shading shading = Shading.NONE;
+         builder.setLighting ( shading );
+         if (shading != Shading.NONE) {
+            builder.setVertexNormals(true);
+         }
+         if (isTextureMappingEnabled()) {
+            if (myCurrentColorMapProps != null && myCurrentColorMapProps.isEnabled()) {
+               builder.enableColorMap (true);
+               builder.setVertexTextures (true);
+               builder.setTextureColorMixing (myCurrentColorMapProps.getTextureColorMixing ());
+               builder.mixTextureColorDiffuse (myCurrentColorMapProps.getDiffuseColoring ());
+               builder.mixTextureColorSpecular (myCurrentColorMapProps.getSpecularColoring ());
+               builder.mixTextureColorEmission (myCurrentColorMapProps.getDiffuseColoring ());
+            }  
+         }
       }
-      return progManager.getProgram(gl, key);
+
+      return myProgManager.getProgram(gl, builder.build ());
+   }
+   
+   protected GLShaderProgram getProgram(GL3 gl) {
+
+      GLSLInfoBuilder builder = new GLSLInfoBuilder();
+      builder.setNumLights (myProgManager.numLights ());
+      builder.setNumClipPlanes (myProgManager.numClipPlanes ());
+
+      if (!isSelecting()) {
+         Shading shading = isLightingEnabled() ? getShading() : Shading.NONE;
+         builder.setLighting ( shading );
+         if (shading != Shading.NONE) {
+            builder.setVertexNormals(true);
+         }
+         if (isTextureMappingEnabled()) {
+            if (myCurrentColorMapProps != null && myCurrentColorMapProps.isEnabled()) {
+               builder.enableColorMap (true);
+               builder.setVertexTextures (true);
+               builder.setTextureColorMixing (myCurrentColorMapProps.getTextureColorMixing ());
+               builder.mixTextureColorDiffuse (myCurrentColorMapProps.getDiffuseColoring ());
+               builder.mixTextureColorSpecular (myCurrentColorMapProps.getSpecularColoring ());
+               builder.mixTextureColorEmission (myCurrentColorMapProps.getDiffuseColoring ());
+            }
+            if (myCurrentNormalMapProps != null && myCurrentNormalMapProps.isEnabled()) {
+               builder.enableNormalMap (true);
+               builder.setVertexTextures (true);
+            }
+            if (myCurrentBumpMapProps != null && myCurrentBumpMapProps.isEnabled()) {
+               builder.enableBumpMap (true);
+               builder.setVertexTextures (true);
+            }  
+         }
+      }
+
+      return myProgManager.getProgram(gl, builder.build ());
+
    }
 
-   protected int getColorProgram(GL3 gl, boolean hasNormals) {
+   protected GLShaderProgram getColorProgram(GL3 gl, boolean hasNormals) {
       Shading shading = getShading ();
       ColorInterpolation cinterp = ColorInterpolation.RGB;
       if (isHSVColorInterpolationEnabled ()) {
@@ -1269,87 +1083,80 @@ public class GL3Viewer extends GLViewer {
       }
       return getColorProgram (gl, shading, hasNormals, cinterp);
    }
-   
-   protected int getColorProgram(GL3 gl, Shading shading, boolean hasNormals, ColorInterpolation cinterp) {
-      GLSLInfo key = null;
-      if (isSelecting()) {
-         key = new GLSLInfo(progManager.numLights(), progManager.numClipPlanes(), 
-            Shading.NONE, ColorInterpolation.NONE, false, false, false, getColorMixing(), getTextureMixing());
-      } else {
-         boolean hasColors = hasVertexColoring();
-         if (!isLightingEnabled()) {
+
+   protected GLShaderProgram getColorProgram(GL3 gl, Shading shading, boolean hasNormals, ColorInterpolation cinterp) {
+      GLSLInfoBuilder builder = new GLSLInfoBuilder();
+      builder.setNumLights (myProgManager.numLights ());
+      builder.setNumClipPlanes (myProgManager.numClipPlanes ());
+
+      if (!isSelecting()) {
+         if (!isLightingEnabled ()) {
             shading = Shading.NONE;
          }
-         if (!hasColors) {
-            cinterp = ColorInterpolation.NONE;
+         builder.setLighting ( shading );
+         if (shading != Shading.NONE) {
+            builder.setVertexNormals(true);
          }
-         key = new GLSLInfo(progManager.numLights(), progManager.numClipPlanes(), 
-            shading, cinterp, shading != Shading.NONE, hasColors, false,
-            getColorMixing(), getTextureMixing());
-      }
-      return progManager.getProgram(gl, key);
-   }
 
-   /**
-    * No lighting, colors, textures
-    * @param gl
-    */
-   protected int getBasicProgram(GL3 gl) {
-      return progManager.getProgram(gl, 
-         new GLSLInfo(progManager.numLights(), progManager.numClipPlanes(), 
-            Shading.NONE, ColorInterpolation.NONE,
-            false, false, false, getColorMixing(), getTextureMixing()));
+         if (isTextureMappingEnabled()) {
+            if (myCurrentColorMapProps != null && myCurrentColorMapProps.isEnabled()) {
+               builder.enableColorMap (true);
+               builder.setVertexTextures (true);
+               builder.setTextureColorMixing (myCurrentColorMapProps.getTextureColorMixing ());
+               builder.mixTextureColorDiffuse (myCurrentColorMapProps.getDiffuseColoring ());
+               builder.mixTextureColorSpecular (myCurrentColorMapProps.getSpecularColoring ());
+               builder.mixTextureColorEmission (myCurrentColorMapProps.getDiffuseColoring ());
+            }
+            if (myCurrentNormalMapProps != null && myCurrentNormalMapProps.isEnabled()) {
+               builder.enableNormalMap (true);
+               builder.setVertexTextures (true);
+            }
+            if (myCurrentBumpMapProps != null && myCurrentBumpMapProps.isEnabled()) {
+               builder.enableBumpMap (true);
+               builder.setVertexTextures (true);
+            }  
+         }
+
+         if (isVertexColoringEnabled()) {
+            builder.setVertexColorMixing (getVertexColorMixing());
+            builder.setColorInterpolation (cinterp);
+            builder.setVertexColors (true);
+            // XXX property to set this
+            builder.mixVertexColorDiffuse (true);
+            builder.mixVertexColorSpecular (true);
+            builder.mixVertexColorEmission (true);
+         }
+      }
+
+      return myProgManager.getProgram(gl, builder.build ());
    }
 
    private void drawGLLine(GL3 gl, float[] coords0, float[] coords1) {
 
-      if (lineGLO == null) {
-         ByteBuffer buff = ByteBuffer.allocateDirect(6*GLSupport.FLOAT_SIZE);
-         buff.order(ByteOrder.nativeOrder());
-         for (int i=0; i<3; ++i) {
-            buff.putFloat(coords0[i]);
-         }
-         for (int i=0; i<3; ++i) {
-            buff.putFloat(coords1[i]);
-         }
-         buff.rewind();
-         lineGLO = GL3Object.createV(gl, GL.GL_LINES, buff, 2, GL.GL_FLOAT, 3, 3*GLSupport.FLOAT_SIZE, GL.GL_DYNAMIC_DRAW);
-      } else {
-         ByteBuffer buff = lineGLO.vbos[0].mapNewBuffer(gl);
-         for (int i=0; i<3; ++i) {
-            buff.putFloat(coords0[i]);
-         }
-         for (int i=0; i<3; ++i) {
-            buff.putFloat(coords1[i]);
-         }
-         lineGLO.vbos[0].unmapBuffer(gl);
-      }
-
+      gloFlex.begin (gl, 2);
+      gloFlex.vertex (coords0);
+      gloFlex.vertex (coords1);
+      gloFlex.end (gl);
+      
       maybeUpdateState(gl);
-      lineGLO.draw(gl, getBasicProgram(gl));
+      GLShaderProgram prog = getBasicProgram(gl);
+      prog.use (gl);
+      gloFlex.drawVertices (gl, GL.GL_LINES);
+      
       GLSupport.checkAndPrintGLError(gl);
    }
 
    private void drawGLPoint(GL3 gl, float[] coords) {
 
-      if (pointGLO == null) {
-         ByteBuffer buff = ByteBuffer.allocateDirect(3*GLSupport.FLOAT_SIZE);
-         buff.order(ByteOrder.nativeOrder());
-         for (int i=0; i<3; ++i) {
-            buff.putFloat(coords[i]);
-         }
-         buff.rewind();
-         pointGLO = GL3Object.createV(gl, GL.GL_POINTS, buff,  1, GL.GL_FLOAT, 3, 3*GLSupport.FLOAT_SIZE, GL.GL_DYNAMIC_DRAW);
-      } else {
-         ByteBuffer buff = pointGLO.vbos[0].mapNewBuffer(gl);
-         for (int i=0; i<3; ++i) {
-            buff.putFloat(coords[i]);
-         }
-         pointGLO.vbos[0].unmapBuffer(gl);
-      }
-
+      gloFlex.begin (gl, 1);
+      gloFlex.vertex (coords);
+      gloFlex.end (gl);
+      
       maybeUpdateState(gl);
-      pointGLO.draw(gl, getBasicProgram(gl));
+      
+      getBasicProgram(gl).use (gl);
+      gloFlex.drawVertices(gl, GL.GL_POINTS);
+      
       GLSupport.checkAndPrintGLError(gl);
    }
 
@@ -1370,10 +1177,10 @@ public class GL3Viewer extends GLViewer {
             //setLightingEnabled (false);
             gl.glLineWidth (props.getLineWidth());
 
-//            if (color.length == 3 && props.getAlpha () < 1) {
-//               color = new float[]{color[0], color[1], color[2], (float)props.getAlpha ()};
-//            }
-//            setColor (color, selected);
+            //            if (color.length == 3 && props.getAlpha () < 1) {
+            //               color = new float[]{color[0], color[1], color[2], (float)props.getAlpha ()};
+            //            }
+            //            setColor (color, selected);
 
             drawGLLine(gl, pnt0, pnt1);
 
@@ -1446,10 +1253,11 @@ public class GL3Viewer extends GLViewer {
       mulModelMatrix(lineRot);
       scaleModelMatrix(rad, rad, len-arrowLen);
       maybeUpdateState(gl);
-
-      GL3Object cylinder = myGLResources.getCylinder(gl, nslices, capped);
-      cylinder.draw(gl, getRegularProgram(gl));
-      // gloManager.releaseObject(cylinder);
+      GLShaderProgram prog = getProgram(gl);
+      prog.use (gl);
+      
+      GL3Object cylinder = myPrimitiveManager.getCylinder(gl, nslices, capped);
+      cylinder.draw(gl);
 
       popModelMatrix();
       pushModelMatrix();
@@ -1459,9 +1267,8 @@ public class GL3Viewer extends GLViewer {
       scaleModelMatrix(arrowRad, arrowRad, arrowLen);
       maybeUpdateState(gl);
 
-      GL3Object cone = myGLResources.getCone(gl, nslices, capped);
-      cone.draw(gl, getRegularProgram(gl));
-      // gloManager.releaseObject(cone);
+      GL3Object cone = myPrimitiveManager.getCone(gl, nslices, capped);
+      cone.draw(gl);
 
       gl.glUseProgram(0);
 
@@ -1478,11 +1285,11 @@ public class GL3Viewer extends GLViewer {
       boolean savedHighlighting = getSelectionHighlighting();
       Shading savedShading = setLineShading (props);
       setLineColoring (props, selected);
-      
+
       Vector3d utmp = 
-         new Vector3d(pnt1[0]-pnt0[0],
-                      pnt1[1]-pnt0[1], 
-                      pnt1[2]-pnt0[2]);
+      new Vector3d(pnt1[0]-pnt0[0],
+         pnt1[1]-pnt0[1], 
+         pnt1[2]-pnt0[2]);
       double len = utmp.norm();
       utmp.scale(1.0/len);
 
@@ -1581,11 +1388,15 @@ public class GL3Viewer extends GLViewer {
       scaleModelMatrix(len);
       maybeUpdateState(gl);
 
-      GL3Object axes = myGLResources.getAxes(gl, true, true, true);
+      GL3Object axes = myPrimitiveManager.getAxes(gl, true, true, true);
       if (selectEnabled) {
-         axes.draw(gl, getBasicProgram(gl));
+         GLShaderProgram prog = getBasicProgram(gl);
+         prog.use (gl);
+         axes.draw(gl);
       } else {
-         axes.draw(gl, getColorProgram(gl, Shading.NONE, false, ColorInterpolation.RGB));
+         GLShaderProgram prog =  getColorProgram(gl, Shading.NONE, false, ColorInterpolation.RGB);
+         prog.use (gl);
+         axes.draw(gl);
       }
       // gloManager.releaseObject(axes);
 
@@ -1598,7 +1409,7 @@ public class GL3Viewer extends GLViewer {
       RigidTransform3d X, double[] lens, int width, boolean selected) {
 
       GLSupport.checkAndPrintGLError(gl);
-      
+
       boolean savedHighlighting = setSelectionHighlighting(selected);
       // deal with transform and len
       double lx = lens[0];
@@ -1630,14 +1441,18 @@ public class GL3Viewer extends GLViewer {
       scaleModelMatrix(lx, ly, lz);
       maybeUpdateState(gl);
 
-      
+
       gl.glLineWidth (width);
 
-      GL3Object axes = myGLResources.getAxes(gl, drawx, drawy, drawz);
+      GL3Object axes = myPrimitiveManager.getAxes(gl, drawx, drawy, drawz);
       if (selectEnabled || selected) {
-         axes.draw(gl, getBasicProgram(gl));
+         GLShaderProgram prog = getBasicProgram(gl);
+         prog.use (gl);
+         axes.draw(gl);
       } else {
-         axes.draw(gl, getColorProgram(gl, Shading.NONE, false, ColorInterpolation.RGB));
+         GLShaderProgram prog = getColorProgram(gl, Shading.NONE, false, ColorInterpolation.RGB);
+         prog.use (gl);
+         axes.draw(gl);
       }
       // gloManager.releaseObject(axes);
 
@@ -1645,7 +1460,7 @@ public class GL3Viewer extends GLViewer {
 
       // revert matrix transform
       popModelMatrix();
-      
+
       setSelectionHighlighting(savedHighlighting);
 
    }
@@ -1660,98 +1475,26 @@ public class GL3Viewer extends GLViewer {
       float x1 = (float)(x0 + 2 * myDragBox.width / (double)width);
       float y0 = (float)(1 - 2 * myDragBox.y / (double)height);
       float y1 = (float)(y0 - 2 * myDragBox.height / (double)height);
-      float[] coords = {x0, y0, 0, x1, y0, 0, x1, y1, 0, x0, y1, 0};
 
       // System.out.println(x0 + " " + y0 + " " + x1 + " " + y1);
-
-      if (dragBoxGLO == null) {
-         dragBoxGLO = GL3Object.createV(gl, GL.GL_LINE_LOOP, coords, GL.GL_DYNAMIC_DRAW);
-      } else {
-         dragBoxGLO.vbos[0].update(gl, coords);   
-      }
-
+      gloFlex.begin (gl, 4);
+      gloFlex.vertex (x0, y0, 0);
+      gloFlex.vertex (x1, y0, 0);
+      gloFlex.vertex (x1, y1, 0);
+      gloFlex.vertex (x0, y1, 0);
+      gloFlex.end (gl);
+      
       maybeUpdateState(gl);
       gl.glLineWidth (1);
       setColor(0.5f, 0.5f, 0.5f, 1.0f);
 
-      dragBoxGLO.draw(gl, getBasicProgram(gl));
+      getBasicProgram(gl).use (gl);
+      gloFlex.drawVertices(gl, GL.GL_LINE_LOOP);
 
       end2DRendering();
 
       GLSupport.checkAndPrintGLError(drawable.getGL ());
    }
-
-   // XXX Maybe cache these?
-   // Challenges: separate colors, selected vs not
-   //             - group them into selected vs not?
-   //             selection queries need to be separate
-   //             - if selecting, resort to inefficient individual rendering
-
-//   public void drawPoints(
-//      RenderProps props, Iterator<? extends RenderablePoint> iterator) {
-//
-//      Shading savedShading = setPointShading (props);
-//      setPointColoring (props, false);
-//      switch (props.getPointStyle()) {
-//         case POINT: {
-//            int size = props.getPointSize();
-//            if (size > 0) {
-//
-//               // draw regular points first
-//               gl.glPointSize (size);
-//               if (isSelecting()) {
-//                  // don't worry about color in selection mode
-//                  int i = 0;
-//                  while (iterator.hasNext()) {
-//                     RenderablePoint pnt = iterator.next();
-//                     if (pnt.getRenderProps() == null) {
-//                        if (isSelectable (pnt)) {
-//                           beginSelectionQuery (i);
-//                           drawGLPoint(gl, pnt.getRenderCoords());
-//                           endSelectionQuery ();
-//                        }
-//                     }
-//                     i++;
-//                  }
-//               }
-//               else {
-//                  while (iterator.hasNext()) {
-//                     RenderablePoint pnt = iterator.next();
-//                     if (pnt.getRenderProps() == null) {
-//                        setColor (
-//                           props.getPointColorArray(), pnt.isSelected());
-//                        drawGLPoint(gl, pnt.getRenderCoords());
-//                     }
-//                  }
-//               }
-//               gl.glPointSize (1);
-//            }
-//            break;
-//         }
-//         case SPHERE: {
-//            int i = 0;
-//            double rad = props.getPointRadius();
-//            while (iterator.hasNext()) {
-//               RenderablePoint pnt = iterator.next();
-//               if (pnt.getRenderProps() == null) {
-//                  if (isSelecting()) {
-//                     if (isSelectable (pnt)) {
-//                        beginSelectionQuery (i);
-//                        drawSphere (pnt.getRenderCoords(), rad);
-//                        endSelectionQuery ();      
-//                     }
-//                  }
-//                  else {
-//                     setPointColoring (props, pnt.isSelected());
-//                     drawSphere (pnt.getRenderCoords(), rad);
-//                  }
-//               }
-//               i++;
-//            }
-//         }
-//      }
-//      setShadeModel(savedShading);
-//   }
 
    public void drawLineStrip (
       RenderProps props, Iterable<float[]> pnts, 
@@ -1787,8 +1530,8 @@ public class GL3Viewer extends GLViewer {
          case SPINDLE:
          case SOLID_ARROW:
          case CYLINDER: {
-//            Shading savedShading = getShadeModel();
-//            setLineLighting (props, isSelected);
+            //            Shading savedShading = getShadeModel();
+            //            setLineLighting (props, isSelected);
             double rad = props.getLineRadius();
             float[] v0 = null;
             for (float[] v1 : pnts) {
@@ -1811,120 +1554,13 @@ public class GL3Viewer extends GLViewer {
                v0[1] = v1[1];
                v0[2] = v1[2];
             }
-//            setShadeModel(savedShading);            
-//            restoreShading (props);
+            //            setShadeModel(savedShading);            
+            //            restoreShading (props);
          }
       }
       setShading(savedShading); 
       setSelectionHighlighting (savedHighlighting);
    }
-
-//   @Override
-//   public void drawLines(
-//      RenderProps props, Iterator<? extends RenderableLine> iterator) {
-//
-//      LineStyle lineStyle = props.getLineStyle();
-//      switch (lineStyle) {
-//         case LINE: {
-//            setLightingEnabled (false);
-//            // draw regular points first
-//            gl.glLineWidth (props.getLineWidth());
-//            if (isSelecting()) {
-//               // don't worry about color in selection mode
-//               int i = 0;
-//               while (iterator.hasNext()) {
-//                  RenderableLine line = iterator.next();
-//                  if (line.getRenderProps() == null) {
-//                     if (isSelectable (line)) {
-//                        beginSelectionQuery (i);
-//                        drawGLLine(gl, line.getRenderCoords0(), line.getRenderCoords1());
-//                        endSelectionQuery ();
-//                     }
-//                  }
-//                  i++;
-//               }
-//            }
-//            else {
-//               setColor (props.getLineColorArray(), false);
-//               while (iterator.hasNext()) {
-//                  RenderableLine line = iterator.next();
-//                  if (line.getRenderProps() == null) {
-//                     if (line.getRenderColor() == null) {
-//                        setColor (props.getLineColorArray(),line.isSelected());
-//                     }
-//                     else {
-//                        setColor (line.getRenderColor(),line.isSelected());
-//                     }
-//                     drawGLLine(gl, line.getRenderCoords0(), line.getRenderCoords1());
-//                  }
-//               }
-//            }
-//            gl.glLineWidth (1);
-//            setLightingEnabled (true);
-//            break;
-//         }
-//         case ELLIPSOID:
-//         case SOLID_ARROW:
-//         case CYLINDER: {
-//            Shading savedShading = getShadeModel();
-//            setLineLighting (props, /*selected=*/false);
-//            int i = 0;
-//            double rad = props.getLineRadius();
-//            while (iterator.hasNext()) {
-//               RenderableLine line = iterator.next();
-//               float[] v0 = line.getRenderCoords0();
-//               float[] v1 = line.getRenderCoords1();
-//               if (line.getRenderProps() == null) {
-//                  if (isSelecting()) {
-//                     if (isSelectable (line)) {
-//                        beginSelectionQuery (i);
-//                        if (lineStyle == LineStyle.ELLIPSOID) {
-//                           drawSpindle (v0, v1, props.getLineRadius());
-//                        }
-//                        else if (lineStyle == LineStyle.SOLID_ARROW) {
-//                           drawSolidArrow (v0, v1, rad, /*capped=*/true);
-//                        }
-//                        else {
-//                           drawCylinder (v0, v1, rad, /*capped=*/false);
-//                        }
-//                        endSelectionQuery ();
-//                     }
-//                  }
-//                  else {
-//                     Material mat = props.getLineMaterial();
-//                     setMaterial(mat, line.getRenderColor (), line.isSelected ());
-//                     if (lineStyle == LineStyle.ELLIPSOID) {
-//                        drawSpindle (v0, v1, props.getLineRadius());
-//                     }
-//                     else if (lineStyle == LineStyle.SOLID_ARROW) {
-//                        drawSolidArrow (v0, v1, rad, /*capped=*/true);
-//                     }
-//                     else {
-//                        drawCylinder (v0, v1, rad, /*capped=*/false);
-//                     }
-//                  }
-//               }
-//               i++;
-//            }
-//            setShadeModel(savedShading);
-//            break;
-//         }
-//      }
-//   }
-
-//   @Override
-//   public void drawLines(float[] vertices, int flags) {
-//
-//      maybeUpdateState(gl);
-//      // create streaming object
-//      GL3Object glo = GL3Object.createV(gl, GL.GL_LINES, vertices, GL3.GL_STREAM_DRAW);
-//      // draw
-//      glo.draw(gl, getRegularProgram(gl));
-//      glo.dispose(gl);  // dispose
-//
-//      GLSupport.checkAndPrintGLError(gl);
-//
-//   }
 
    //=============================================================================
    // PRIMITIVES
@@ -1943,67 +1579,46 @@ public class GL3Viewer extends GLViewer {
             ++size;
          }
       }
-      
+
       return size;
    }
 
-   private void drawPrimitives(Iterable<float[]> coords, int size, int glPrimitiveType) {
+   private void drawPrimitives(GL3 gl, Iterable<float[]> coords, int size, int glPrimitiveType) {
 
       if (size <= 0) {
          size = findSize (coords);
       }
 
-      ByteBuffer buff = ByteBuffer.allocateDirect(3*size*GLSupport.FLOAT_SIZE);
-      buff.order(ByteOrder.nativeOrder());
-
-      for (float[] p : coords) {
-         DEFAULT_POSITON_PUTTER.putPosition (buff, p);
+      gloFlex.begin (gl, size);
+      for (float[] pos : coords) {
+         gloFlex.vertex (pos);
       }
-      
-      int width = DEFAULT_POSITON_PUTTER.bytesPerPosition();
-      BufferStorage storage = DEFAULT_POSITON_PUTTER.storage ();
-      
-      buff.rewind();
-      GL3Object glo = GL3Object.createV(gl, glPrimitiveType, 
-         buff, size, storage, width, GL3.GL_STREAM_DRAW);
-
+      gloFlex.end (gl);
+            
       maybeUpdateState(gl);
-      glo.draw(gl, getBasicProgram(gl));
+      getProgram(gl).use (gl);
+      gloFlex.drawVertices(gl, glPrimitiveType);
 
-      glo.dispose (gl);  // immediately dispose
    }
 
-   private void drawPrimitives(Iterable<float[]> coords, Iterable<float[]> normals, int size, int glPrimitiveType) {
+   private void drawPrimitives(GL3 gl, Iterable<float[]> coords, Iterable<float[]> normals, int size, int glPrimitiveType) {
 
       if (size <= 0) {
          size = findSize(coords);
       }
-      
-      int pwidth = DEFAULT_POSITON_PUTTER.bytesPerPosition ();
-      BufferStorage pstorage = DEFAULT_POSITON_PUTTER.storage ();
-      int nwidth = DEFAULT_NORMAL_PUTTER.bytesPerNormal ();
-      BufferStorage nstorage = DEFAULT_NORMAL_PUTTER.storage ();
-      int stride = pwidth+nwidth;
-
-      ByteBuffer buff = ByteBuffer.allocateDirect(size*stride);
-      buff.order(ByteOrder.nativeOrder());
-
+     
+      gloFlex.begin (gl, true, false, false, size);
       Iterator<float[]> nit = normals.iterator ();
       for (float[] p : coords) {
          float[] n = nit.next ();
-         DEFAULT_POSITON_PUTTER.putPosition (buff, p);
-         DEFAULT_NORMAL_PUTTER.putNormal (buff, n);
+         gloFlex.normal (n);
+         gloFlex.vertex (p);
       }
-
-      buff.rewind();
-      GL3Object glo = GL3Object.createVN(gl, glPrimitiveType, 
-         buff, size, pstorage, 0, stride, nstorage, 
-         pwidth, stride, GL3.GL_STREAM_DRAW);
-
+      gloFlex.end (gl);
+      
       maybeUpdateState(gl);
-      glo.draw(gl, getRegularProgram(gl));
-
-      glo.dispose (gl);  // immediately dispose
+      getProgram(gl).use (gl);
+      gloFlex.drawVertices (gl, glPrimitiveType);
 
    }
 
@@ -2012,45 +1627,45 @@ public class GL3Viewer extends GLViewer {
       drawGLPoint (gl, pnt);
    }
 
-//   public void drawPoint(float[] pnt, float[] nrm) {
-//      List<float[]> pnts = Arrays.asList (pnt);
-//      List<float[]> nrms = Arrays.asList (nrm);
-//      drawPrimitives (pnts, nrms,  2, GL.GL_POINTS);
-//   }
+   //   public void drawPoint(float[] pnt, float[] nrm) {
+   //      List<float[]> pnts = Arrays.asList (pnt);
+   //      List<float[]> nrms = Arrays.asList (nrm);
+   //      drawPrimitives (pnts, nrms,  2, GL.GL_POINTS);
+   //   }
 
-//   @Override
-//   public void drawPoints (Iterable<float[]> points) {
-//      drawPrimitives (points, -1, GL2.GL_POINTS);
-//   }
+   //   @Override
+   //   public void drawPoints (Iterable<float[]> points) {
+   //      drawPrimitives (points, -1, GL2.GL_POINTS);
+   //   }
 
-//   @Override
-//   public void drawPoints (Iterable<float[]> points, Iterable<float[]> normals) {
-//      drawPrimitives (points, normals, -1, GL2.GL_POINTS);
-//   }
+   //   @Override
+   //   public void drawPoints (Iterable<float[]> points, Iterable<float[]> normals) {
+   //      drawPrimitives (points, normals, -1, GL2.GL_POINTS);
+   //   }
 
    @Override
    public void drawLine(float[] pnt0, float[] pnt1) {
       drawGLLine (gl, pnt0, pnt1);
    }
 
-//   public void drawLine (
-//      float[] pnt0, float[] nrm0, float[] pnt1, float[] nrm1) {
-//      List<float[]> pnts = Arrays.asList (pnt0, pnt1);
-//      List<float[]> nrms = Arrays.asList (nrm0, nrm1);
-//      drawPrimitives (pnts, nrms,  2, GL.GL_LINES);
-//   }
+   //   public void drawLine (
+   //      float[] pnt0, float[] nrm0, float[] pnt1, float[] nrm1) {
+   //      List<float[]> pnts = Arrays.asList (pnt0, pnt1);
+   //      List<float[]> nrms = Arrays.asList (nrm0, nrm1);
+   //      drawPrimitives (pnts, nrms,  2, GL.GL_LINES);
+   //   }
 
-//   public void drawLines(Iterable<float[]> coords) {
-//      drawPrimitives (coords, -1, GL2.GL_LINES);
-//   }
-//
-//   public void drawLines(Iterable<float[]> coords, Iterable<float[]> normals) {
-//      drawPrimitives (coords, normals, -1, GL2.GL_LINES);
-//   }
-//
-//   public void drawLineStrip(Iterable<float[]> coords, Iterable<float[]> normals) {
-//      drawPrimitives (coords,  normals, -1, GL2.GL_LINE_STRIP);
-//   }
+   //   public void drawLines(Iterable<float[]> coords) {
+   //      drawPrimitives (coords, -1, GL2.GL_LINES);
+   //   }
+   //
+   //   public void drawLines(Iterable<float[]> coords, Iterable<float[]> normals) {
+   //      drawPrimitives (coords, normals, -1, GL2.GL_LINES);
+   //   }
+   //
+   //   public void drawLineStrip(Iterable<float[]> coords, Iterable<float[]> normals) {
+   //      drawPrimitives (coords,  normals, -1, GL2.GL_LINE_STRIP);
+   //   }
 
    /**
     * Draw triangular faces, using the current Shading, lighting and
@@ -2063,11 +1678,11 @@ public class GL3Viewer extends GLViewer {
       drawTriangles (coords);
    }
 
-//   public void drawTriangle (float[] p0, float[] n0, float[] p1, float[] n1, float[] p2, float[] n2) {
-//      List<float[]> coords = Arrays.asList (p0, p1, p2);
-//      List<float[]> normals = Arrays.asList (n0, n1, n2);
-//      drawPrimitives (coords, normals,  3, GL.GL_TRIANGLES);
-//   }
+   //   public void drawTriangle (float[] p0, float[] n0, float[] p1, float[] n1, float[] p2, float[] n2) {
+   //      List<float[]> coords = Arrays.asList (p0, p1, p2);
+   //      List<float[]> normals = Arrays.asList (n0, n1, n2);
+   //      drawPrimitives (coords, normals,  3, GL.GL_TRIANGLES);
+   //   }
 
    public void drawTriangles (Iterable<float[]> points) {
 
@@ -2075,228 +1690,332 @@ public class GL3Viewer extends GLViewer {
 
       // determine required buffer size
       int size = findSize(points);
-      int pwidth = DEFAULT_POSITON_PUTTER.bytesPerPosition ();
-      BufferStorage pstorage = DEFAULT_POSITON_PUTTER.storage ();
-      int nwidth = DEFAULT_NORMAL_PUTTER.bytesPerNormal ();
-      BufferStorage nstorage = DEFAULT_NORMAL_PUTTER.storage ();
-      int stride = pwidth+nwidth;
       
-      ByteBuffer buff = ByteBuffer.allocateDirect(size*stride);
-      buff.order(ByteOrder.nativeOrder());
-
-      Iterator<float[]> pit = points.iterator ();
       float[] normal = new float[3];
-      
+      Iterator<float[]> pit = points.iterator ();
+         
+      gloFlex.begin (gl, true, false, false, size);
       while (pit.hasNext ()) {
          float[] p0 = pit.next ();
          float[] p1 = pit.next ();
          float[] p2 = pit.next ();
          computeNormal (p0, p1, p2, normal);
 
-         DEFAULT_POSITON_PUTTER.putPosition (buff, p0);
-         DEFAULT_NORMAL_PUTTER.putNormal (buff, normal);
-         DEFAULT_POSITON_PUTTER.putPosition (buff, p1);
-         DEFAULT_NORMAL_PUTTER.putNormal (buff, normal);
-         DEFAULT_POSITON_PUTTER.putPosition (buff, p2);
-         DEFAULT_NORMAL_PUTTER.putNormal (buff, normal);
+         gloFlex.normal (normal);
+         gloFlex.vertex (p0);
+         gloFlex.vertex (p1);
+         gloFlex.vertex (p2);
       }
-      
-      buff.rewind();
-      GL3Object glo = GL3Object.createVN(gl, GL.GL_TRIANGLES, 
-         buff, 3, pstorage, 0, stride, nstorage, 
-         pwidth, stride, GL3.GL_STREAM_DRAW);
+      gloFlex.end (gl);
 
       maybeUpdateState(gl);
-      glo.draw(gl, getRegularProgram(gl));
-
-      glo.dispose (gl);  // immediately dispose
-
+      getProgram(gl).use (gl);
+      gloFlex.drawVertices (gl, GL.GL_TRIANGLES);
 
    }
 
-//   /**
-//    * Assumed per-vertex normal
-//    */
-//   public void drawTriangles (Iterable<float[]> points, Iterable<float[]> normals) {
-//      drawPrimitives (points, normals, -1, GL2.GL_TRIANGLES);
-//   }
+   //   /**
+   //    * Assumed per-vertex normal
+   //    */
+   //   public void drawTriangles (Iterable<float[]> points, Iterable<float[]> normals) {
+   //      drawPrimitives (points, normals, -1, GL2.GL_TRIANGLES);
+   //   }
 
    //======================================================================
    // RENDER OBJECT STUFF
    //======================================================================
 
-   private GL3RenderObject getOrCreateGRO(RenderObject robj) {
-      GL3Resource res;
-      GL3RenderObject gro;
-      RenderObjectIdentifier key = robj.getIdentifier();
+   //   private GL3SharedRenderObjectIndexed getOrCreateGRO(RenderObject robj) {
+   //      GL3Resource res;
+   //      GL3SharedRenderObjectIndexed gro;
+   //      RenderObjectIdentifier key = robj.getIdentifier();
+   //
+   //      synchronized(myGLResources) {
+   //         res = myGLResources.getResource(key);
+   //         if (res == null) {
+   //            gro = new GL3SharedRenderObjectIndexed(robj);
+   //            gro.init(gl, robj);
+   //            myGLResources.addResource(gl, key, gro);
+   //
+   //         } else {
+   //            gro = (GL3SharedRenderObjectIndexed)res;
+   //            gro.maybeUpdate(gl, robj);
+   //         }
+   //      }
+   //      return gro;
+   //   }
 
-      synchronized(myGLResources) {
-         res = myGLResources.getResource(key);
-         if (res == null) {
-            gro = new GL3RenderObject(robj);
-            gro.init(gl, robj);
-            myGLResources.addResource(gl, key, gro);
+   protected GLShaderProgram getProgram(GL3 gl, RenderObjectState robj) {
 
+      if (isSelecting()) {
+         return getProgram(gl);
+      }
+
+      GLSLInfoBuilder builder = new GLSLInfoBuilder();
+      builder.setNumLights (myProgManager.numLights ());
+      builder.setNumClipPlanes (myProgManager.numClipPlanes ());
+
+      Shading shading = isLightingEnabled() ? getShading() : Shading.NONE;
+      builder.setLighting ( shading );
+      if (shading != Shading.NONE) {
+         builder.setVertexNormals(true);
+      }
+      if (isTextureMappingEnabled()) {
+         if (myCurrentColorMapProps != null && myCurrentColorMapProps.isEnabled() && !mySelectedColorActive) {
+            builder.enableColorMap (true);
+            builder.setVertexTextures (true);
+            builder.setTextureColorMixing (myCurrentColorMapProps.getTextureColorMixing ());
+            builder.mixTextureColorDiffuse (myCurrentColorMapProps.getDiffuseColoring ());
+            builder.mixTextureColorSpecular (myCurrentColorMapProps.getSpecularColoring ());
+            builder.mixTextureColorEmission (myCurrentColorMapProps.getDiffuseColoring ());
+         }
+
+         if (myCurrentNormalMapProps != null && myCurrentNormalMapProps.isEnabled()) {
+            builder.enableNormalMap (true);
+            builder.setVertexTextures (true);
+         }
+         if (myCurrentBumpMapProps != null && myCurrentBumpMapProps.isEnabled()) {
+            builder.enableBumpMap (true);
+            builder.setVertexTextures (true);
+         }  
+      }
+
+      if (!robj.hasColors() || !isVertexColoringEnabled() || mySelectedColorActive) {
+         builder.setColorInterpolation (ColorInterpolation.NONE);
+         builder.setVertexColors (false);
+      } else { 
+         if (isHSVColorInterpolationEnabled()) {
+            builder.setColorInterpolation (ColorInterpolation.HSV);   
          } else {
-            gro = (GL3RenderObject)res;
-            gro.maybeUpdate(gl, robj);
+            builder.setColorInterpolation (ColorInterpolation.RGB);
          }
+         builder.setVertexColorMixing (getVertexColorMixing());
+         builder.setVertexColors (true);
       }
-      return gro;
+       
+      return myProgManager.getProgram(gl, builder.build ());
+
    }
 
-   protected int getProgram(GL3 gl, RenderObjectState robj) {
-      if (isSelecting()) {
-         return getBasicProgram(gl);
-      } else {
-         Shading shading = getShading();
-         if (!isLightingEnabled()) {
-            shading = Shading.NONE;
-         }
-         ColorInterpolation cinterp = ColorInterpolation.RGB;
-         if (!robj.hasColors() || !hasVertexColoring()) {
-            cinterp = ColorInterpolation.NONE;
-         } else if (isHSVColorInterpolationEnabled()) {
-            cinterp = ColorInterpolation.HSV;
-         }
-         
-         ColorMixing cmix = getColorMixing();
-         ColorMixing tmix = getTextureMixing();
-         if (mySelectedColorActive) {
-            cmix = ColorMixing.NONE;  // ignore colors when selecting
-            tmix = ColorMixing.NONE;
-         }
-         
-         GLSLInfo key = new GLSLInfo(progManager.numLights(),
-            progManager.numClipPlanes(), 
-            shading, cinterp, 
-            isLightingEnabled() && robj.hasNormals(), 
-            hasVertexColoring() && robj.hasColors(),
-            isTextureMappingEnabled() && robj.hasTextureCoords(),
-            cmix, tmix);
+   protected GLShaderProgram getPointsProgram(GL3 gl, RenderObjectState robj) {
 
-         return progManager.getProgram(gl,key);
+      GLSLInfoBuilder builder = new GLSLInfoBuilder();
+      builder.setNumLights (myProgManager.numLights ());
+      builder.setNumClipPlanes (myProgManager.numClipPlanes ());
+      builder.setInstancedRendering (InstancedRendering.POINTS);
+
+      if (!isSelecting ()) {
+         Shading shading = isLightingEnabled() ? getShading() : Shading.NONE;
+         builder.setLighting ( shading );
+         if (shading != Shading.NONE) {
+            builder.setVertexNormals(true);
+         }
+
+         if (isTextureMappingEnabled()) {
+            if (myCurrentColorMapProps != null && myCurrentColorMapProps.isEnabled() && !mySelectedColorActive) {
+               builder.enableColorMap (true);
+               builder.setTextureColorMixing (myCurrentColorMapProps.getTextureColorMixing ());
+               builder.setVertexTextures (true);
+               builder.mixTextureColorDiffuse (myCurrentColorMapProps.getDiffuseColoring ());
+               builder.mixTextureColorSpecular (myCurrentColorMapProps.getSpecularColoring ());
+               builder.mixTextureColorEmission (myCurrentColorMapProps.getDiffuseColoring ());
+            }
+            if (myCurrentNormalMapProps != null && myCurrentNormalMapProps.isEnabled()) {
+               builder.enableNormalMap (true);
+               builder.setVertexTextures (true);
+            }
+            if (myCurrentBumpMapProps != null && myCurrentBumpMapProps.isEnabled()) {
+               builder.enableBumpMap (true);
+               builder.setVertexTextures (true);
+            }  
+
+         }
+
+         if (!robj.hasColors() || !isVertexColoringEnabled() || mySelectedColorActive) {
+            builder.setColorInterpolation (ColorInterpolation.NONE);
+            builder.setVertexColors (false);
+         } else { 
+            if (isHSVColorInterpolationEnabled()) {
+               builder.setColorInterpolation (ColorInterpolation.HSV);   
+            } else {
+               builder.setColorInterpolation (ColorInterpolation.RGB);
+            }
+            builder.setVertexColorMixing (getVertexColorMixing());
+            builder.setVertexColors (true);
+         }
       }
+      return myProgManager.getProgram(gl, builder.build ());
    }
 
-   protected int getPointsProgram(GL3 gl, RenderObjectState robj) {
-      GLSLInfo key = null;
-      if (isSelecting()) {
-         key = new GLSLInfo(progManager.numLights(), progManager.numClipPlanes(), 
-            Shading.NONE, ColorInterpolation.NONE,
-            false, false, false, 
-            InstancedRendering.POINTS, 
-            false, false, 
-            false, false, false, 
-            getColorMixing(), getTextureMixing());
-      } else {
-         Shading shading = getShading();
-         if (!isLightingEnabled()) {
-            shading = Shading.NONE;
-         }
-         ColorInterpolation cinterp = ColorInterpolation.RGB;
-         if (!robj.hasColors() || !hasVertexColoring()) {
-            cinterp = ColorInterpolation.NONE;
-         } else if (isHSVColorInterpolationEnabled()) {
-            cinterp = ColorInterpolation.HSV;
-         }
-         key = new GLSLInfo(progManager.numLights(),
-            progManager.numClipPlanes(), 
-            shading, cinterp, isLightingEnabled(), false, false,
-            InstancedRendering.POINTS, 
-            hasVertexColoring() && robj.hasColors(),
-            isTextureMappingEnabled() && robj.hasTextureCoords(),
-            false, false, false, 
-            getColorMixing(), getTextureMixing());
+   protected GLShaderProgram getLinesProgram(GL3 gl, RenderObjectState robj, LineStyle style) {
+      GLSLInfoBuilder builder = new GLSLInfoBuilder();
+      builder.setNumLights (myProgManager.numLights ());
+      builder.setNumClipPlanes (myProgManager.numClipPlanes ());
+      builder.setInstancedRendering (InstancedRendering.LINES);
+      if (style == LineStyle.SOLID_ARROW) {
+         builder.setLineScaleOffset (true);
       }
-      return progManager.getProgram(gl,key);
-   }
 
-   protected int getLinesProgram(GL3 gl, RenderObjectState robj, LineStyle style) {
-      GLSLInfo key = null;
-      if (isSelecting()) {
-         key = new GLSLInfo(progManager.numLights(), progManager.numClipPlanes(), 
-            Shading.NONE, ColorInterpolation.NONE,
-            false, false, false, 
-            InstancedRendering.LINES, 
-            false, false, 
-            false, false, false, 
-            getColorMixing(), getTextureMixing());
-      } else {
-         Shading shading = getShading();
-         if (!isLightingEnabled()) {
-            shading = Shading.NONE;
+      if (!isSelecting ()) {
+         Shading shading = isLightingEnabled() ? getShading() : Shading.NONE;
+         builder.setLighting ( shading );
+         if (shading != Shading.NONE) {
+            builder.setVertexNormals(true);
          }
-         ColorInterpolation cinterp = ColorInterpolation.RGB;
-         if (!robj.hasColors() || !hasVertexColoring()) {
-            cinterp = ColorInterpolation.NONE;
-         } else if (isHSVColorInterpolationEnabled()) {
-            cinterp = ColorInterpolation.HSV;
+
+         if (isTextureMappingEnabled()) {
+            if (myCurrentColorMapProps != null && myCurrentColorMapProps.isEnabled() && !mySelectedColorActive) {
+               builder.enableColorMap (true);
+               builder.setTextureColorMixing (myCurrentColorMapProps.getTextureColorMixing ());
+               builder.setVertexTextures (true);
+               builder.mixTextureColorDiffuse (myCurrentColorMapProps.getDiffuseColoring ());
+               builder.mixTextureColorSpecular (myCurrentColorMapProps.getSpecularColoring ());
+               builder.mixTextureColorEmission (myCurrentColorMapProps.getDiffuseColoring ());
+            }
+            if (myCurrentNormalMapProps != null && myCurrentNormalMapProps.isEnabled()) {
+               builder.enableNormalMap (true);
+               builder.setVertexTextures (true);
+            }
+            if (myCurrentBumpMapProps != null && myCurrentBumpMapProps.isEnabled()) {
+               builder.enableBumpMap (true);
+               builder.setVertexTextures (true);
+            }  
+
          }
-         key = new GLSLInfo(progManager.numLights(),
-            progManager.numClipPlanes(), 
-            shading, cinterp, isLightingEnabled(), false, false,
-            InstancedRendering.LINES,
-            false, false,
-            style == LineStyle.SOLID_ARROW,
-            hasVertexColoring() && robj.hasColors(),
-            isTextureMappingEnabled() && robj.hasTextureCoords(),
-            getColorMixing(), getTextureMixing());
+
+         if (!robj.hasColors() || !isVertexColoringEnabled() || mySelectedColorActive) {
+            builder.setColorInterpolation (ColorInterpolation.NONE);
+            builder.setVertexColors (false);
+         } else { 
+            if (isHSVColorInterpolationEnabled()) {
+               builder.setColorInterpolation (ColorInterpolation.HSV);   
+            } else {
+               builder.setColorInterpolation (ColorInterpolation.RGB);
+            }
+            builder.setVertexColorMixing (getVertexColorMixing());
+            builder.setVertexColors (true);
+         }
       }
-      return progManager.getProgram(gl,key);
+      return myProgManager.getProgram(gl, builder.build ());
    }
 
    @Override
    public void drawTriangles(RenderObject robj) {
+      drawTriangles(robj, robj.getTriangleGroupIdx ());
+   }
+   
+   @Override
+   public void drawTriangles(RenderObject robj, int gidx) {
       GLSupport.checkAndPrintGLError(gl);
-      GL3RenderObject gro = getOrCreateGRO(robj);
+      
+      GL3RenderObjectIndexed gro = myRenderObjectManager.getIndexed (gl, robj);
+      
       maybeUpdateState(gl);
-      gl.glUseProgram(getProgram(gl, gro.getRenderObjectState()));
-      gro.drawTriangles(gl);
+
+      // maybe use texture?
+      GLTexture colortex = null;
+      GLTexture normtex = null;
+      GLTexture bumptex = null;
+      
+      if (robj.hasTextureCoords ()) {
+         if (myCurrentColorMapProps != null && myCurrentColorMapProps.isEnabled ()) {
+            colortex = myGLResources.getOrLoadTexture (gl, myCurrentColorMapProps.getContent ());   
+         }
+         if (myCurrentNormalMapProps != null && myCurrentNormalMapProps.isEnabled ()) {
+            normtex = myGLResources.getOrLoadTexture (gl, myCurrentNormalMapProps.getContent ());
+         }
+         if (myCurrentBumpMapProps != null && robj.hasTextureCoords ()) {
+            bumptex = myGLResources.getOrLoadTexture (gl, myCurrentBumpMapProps.getContent ());
+         }
+      }
+      GLSupport.checkAndPrintGLError(gl);
+
+      GLShaderProgram prog = getProgram(gl, robj.getStateInfo ());
+      
+      prog.use (gl);
+      GLSupport.checkAndPrintGLError(gl);
+      
+      if (colortex != null) {
+         myProgManager.bindTexture (gl, "color_map", colortex);
+      }
+      if (normtex != null) {
+         myProgManager.bindTexture (gl, "normal_map", normtex);
+         myProgManager.setUniform (gl, prog, "normal_scale", myCurrentNormalMapProps.getNormalScale());
+      }
+      if (bumptex != null) {
+         myProgManager.bindTexture (gl, "bump_map", bumptex);
+         myProgManager.setUniform (gl, prog, "bump_scale", myCurrentBumpMapProps.getBumpScale());
+      }
+
+      gro.drawTriangleGroup (gl, GL.GL_TRIANGLES, robj.getTriangleGroupIdx ());
+      
+      GLSupport.checkAndPrintGLError(gl);
+
+      if (bumptex != null) {
+         myProgManager.unbindTexture (gl, "bump_map", bumptex);
+      }
+      if (normtex != null) {
+         myProgManager.unbindTexture (gl, "normal_map", normtex);
+      }
+      if (colortex != null) {
+         myProgManager.unbindTexture (gl, "color_map", colortex);
+      }
+
       GLSupport.checkAndPrintGLError(gl);
    }
 
    @Override
    public void drawLines(RenderObject robj) {
+      drawLines(robj, robj.getLineGroupIdx ());
+   }
+   
+   @Override
+   public void drawLines(RenderObject robj, int gidx) {
       GLSupport.checkAndPrintGLError(gl);
-      GL3RenderObject gro = getOrCreateGRO(robj);
+      
+      GL3RenderObjectIndexed gro = myRenderObjectManager.getIndexed (gl, robj);
       maybeUpdateState(gl);
-      gl.glUseProgram(getProgram(gl, gro.getRenderObjectState()));
-      gro.drawLines(gl);
+      getProgram(gl, robj.getStateInfo ()).use(gl);
+      
+      gro.drawLineGroup (gl, GL.GL_LINES, gidx);
       GLSupport.checkAndPrintGLError(gl);
    }
 
    @Override
    public void drawPoints(RenderObject robj) {
+      drawPoints(robj, robj.getPointGroupIdx ());
+   }
+   
+   @Override
+   public void drawPoints(RenderObject robj, int gidx) {
       GLSupport.checkAndPrintGLError(gl);
-      GL3RenderObject gro = getOrCreateGRO(robj);
+      GL3RenderObjectIndexed gro = myRenderObjectManager.getIndexed (gl, robj);
       maybeUpdateState(gl);
-      gl.glUseProgram(getProgram(gl, gro.getRenderObjectState()));
-      gro.drawPoints(gl);
+      getProgram(gl, robj.getStateInfo ()).use(gl);
+      gro.drawPointGroup (gl, GL.GL_POINTS, gidx);
       GLSupport.checkAndPrintGLError(gl);
    }
 
    @Override
    public void drawVertices(RenderObject robj, DrawMode mode) {
       GLSupport.checkAndPrintGLError(gl);
-      GL3RenderObject gro = getOrCreateGRO(robj);
+      GL3RenderObjectIndexed gro = myRenderObjectManager.getIndexed (gl, robj);
       maybeUpdateState(gl);
-      gl.glUseProgram(getProgram(gl, gro.getRenderObjectState()));
-      gro.drawVertices(gl, mode);
-      GLSupport.checkAndPrintGLError(gl);
+      getProgram(gl, robj.getStateInfo ()).use(gl);
+      gro.drawVertices (gl, getDrawPrimitive (mode));
    }
 
+  
    @Override
-   public void draw(RenderObject robj) {
-      GLSupport.checkAndPrintGLError(gl);
-      drawPoints(robj);
-      drawLines(robj);
-      drawTriangles(robj);
-      GLSupport.checkAndPrintGLError(gl);
+   public void drawLines(RenderObject robj,LineStyle style, double rad) {
+      drawLines(robj, robj.getLineGroupIdx (), style, rad);
    }
-
+   
    @Override
-   public void drawLines(RenderObject robj, LineStyle style, double rad) {
+   public void drawLines(RenderObject robj, int gidx, LineStyle style, double rad) {
+      
+      GL3RenderObjectLines gro = myRenderObjectManager.getLines (gl, robj);
+      
       maybeUpdateState(gl);
 
       switch (style) {
@@ -2310,9 +2029,8 @@ public class GL3Viewer extends GLViewer {
                changed = true;
             }
 
-            GL3RenderObjectLines gro = getOrCreateLineGRO(robj,LineStyle.LINE, 0);
-            gl.glUseProgram(getProgram(gl, gro.getRenderObjectState()));
-            gro.drawLines(gl);
+            getProgram(gl, robj.getStateInfo ()).use (gl);
+            gro.drawLineGroup (gl, GL.GL_LINES, gidx);
 
             if (changed) {
                setLineWidth(fold);
@@ -2320,147 +2038,57 @@ public class GL3Viewer extends GLViewer {
             break;
          }
          default: {
-            GL3RenderObjectLines gro = getOrCreateLineGRO(robj, style, (float)rad);
-            gl.glUseProgram(getLinesProgram(gl, gro.getRenderObjectState(), style));
-            gro.drawLines(gl);  
+
+            getLinesProgram(gl, robj.getStateInfo (), style).use (gl);
+            
+            switch (style) {
+               case CYLINDER: {
+                  GL3Object primitive = myPrimitiveManager.getCylinder (gl, mySurfaceResolution, true);
+                  gro.setRadius (gl, (float)rad);
+                  gro.drawInstancedLineGroup (gl, primitive, gidx);
+                  break;
+               }
+               case SOLID_ARROW: {
+                  gro.setRadius (gl, (float)rad);
+                  GL3Object cylinder = myPrimitiveManager.getCylinder (gl, mySurfaceResolution, true);
+                  GL3Object cone = myPrimitiveManager.getCone (gl, mySurfaceResolution, true);
+                  
+                  float arrowRad = 3*(float)rad;
+                  float arrowLen = 2*arrowRad;
+                  
+                  float[] coneBoundary = {1, 0, -arrowLen, 1};
+                  gro.setRadiusOffsets (gl, (float)rad, null, coneBoundary);
+                  gro.drawInstancedLineGroup (gl, cylinder, gidx);
+                  gro.setRadiusOffsets (gl, arrowRad, coneBoundary, null);
+                  gro.drawInstancedLineGroup (gl, cone, gidx);
+                  break;
+               }
+               case SPINDLE: {
+                  gro.setRadius (gl, (float)rad);
+                  GL3Object spindle = myPrimitiveManager.getSpindle (gl, mySurfaceResolution, mySurfaceResolution/2);
+                  gro.drawInstancedLineGroup (gl, spindle, gidx);
+                  break;
+               }
+               default:
+                  break;
+               
+            }
+            
             break;
          }
       }
-   }
-
-   private static class RenderObjectPointKey {
-      RenderObjectIdentifier roId;
-
-      RenderObjectPointKey(RenderObjectIdentifier roId) {
-         this.roId = roId;
-      }
-
-      @Override
-      public int hashCode() {
-         return roId.hashCode();
-      }
-
-      public boolean equals(RenderObjectPointKey other) {
-         return roId.equals(other.roId);
-      }
-
-      @Override
-      public boolean equals(Object obj) {
-         if (obj == this) {
-            return true;
-         }
-         if (obj == null || obj.getClass() != getClass()) {
-            return false;
-         }
-         RenderObjectPointKey other = (RenderObjectPointKey)obj;
-         return equals(other);
-      }
-   }
-
-   private static class RenderObjectLineKey {
-      RenderObjectIdentifier roId;
-
-      RenderObjectLineKey(RenderObjectIdentifier roId) {
-         this.roId = roId;
-      }
-
-      @Override
-      public int hashCode() {
-         return roId.hashCode();
-      }
-
-      public boolean equals(RenderObjectLineKey other) {
-         return roId.equals(other.roId);
-      }
-
-      @Override
-      public boolean equals(Object obj) {
-         if (obj == this) {
-            return true;
-         }
-         if (obj == null || obj.getClass() != getClass()) {
-            return false;
-         }
-         RenderObjectLineKey other = (RenderObjectLineKey)obj;
-         return equals(other);
-      }
-   }
-
-   private GL3RenderObjectPoints getOrCreatePointGRO(RenderObject robj, 
-      PointStyle style, float rad) {
-
-      GL3Resource res;
-      GL3RenderObjectPoints gro;
-      RenderObjectPointKey key = new RenderObjectPointKey(robj.getIdentifier());
-
-      GL3Object pointObject = null;
-      if (style == PointStyle.SPHERE) {
-         pointObject = myGLResources.getSphere(gl, 64, 32);
-      }
-
-      synchronized(myGLResources) {
-
-         res = myGLResources.getResource(key);
-         if (res == null) {
-            gro = new GL3RenderObjectPoints(robj);
-            gro.init(gl, robj, pointObject, rad);
-            myGLResources.addResource(gl, key, gro);
-
-         } else {
-            gro = (GL3RenderObjectPoints)res;
-            gro.maybeUpdate(gl, robj, pointObject, rad);
-         }
-      }
-      return gro;
-   }
-
-   private GL3RenderObjectLines getOrCreateLineGRO(
-      RenderObject robj, LineStyle style, float rad) {
-
-      GL3Resource res;
-      GL3RenderObjectLines gro;
-      RenderObjectLineKey key = new RenderObjectLineKey(robj.getIdentifier());
-
-      GL3Object lineObject = null;
-      GL3Object headObject = null;
-      float headLength = 0;
-      float headRadius = 0;
-      int slices = 64;
-      boolean capped = true;
-      switch(style) {
-         case CYLINDER:
-            lineObject = myGLResources.getCylinder(gl, slices, capped);
-            break;
-         case SPINDLE:
-            lineObject = myGLResources.getSpindle(gl, slices, slices/2);
-            break;
-         case SOLID_ARROW:
-            lineObject = myGLResources.getCylinder(gl, slices, capped);
-            headRadius = 3*rad;
-            headLength = 2*headRadius;
-            headObject = myGLResources.getCone(gl, slices, capped);
-            break;
-         case LINE:
-            break;
-      }
-
-      synchronized(myGLResources) {
-         res = myGLResources.getResource(key);
-         if (res == null) {
-            gro = new GL3RenderObjectLines(robj);
-            gro.init(gl, robj, lineObject, rad, headObject, headRadius, headLength);
-            myGLResources.addResource(gl, key, gro);
-
-         } else {
-            gro = (GL3RenderObjectLines)res;
-            gro.maybeUpdate(gl, robj, lineObject, rad, headObject, headRadius, headLength);
-         }
-      }
-      return gro;
    }
 
    @Override
    public void drawPoints(RenderObject robj, PointStyle style, double rad) {
+      drawPoints(robj, robj.getPointGroupIdx (), style, rad);
+   }
+
+   @Override
+   public void drawPoints(RenderObject robj, int gidx, PointStyle style, double rad) {
+      
+      GL3RenderObjectPoints gro = myRenderObjectManager.getPoints (gl, robj);
+      
       maybeUpdateState(gl);
 
       switch (style) {
@@ -2474,10 +2102,8 @@ public class GL3Viewer extends GLViewer {
                changed = true;
             }
 
-            GL3RenderObjectPoints gro = getOrCreatePointGRO(
-               robj, PointStyle.POINT, 0);
-            gl.glUseProgram(getProgram(gl, gro.getRenderObjectState()));
-            gro.drawPoints(gl);
+            getProgram(gl, robj.getStateInfo ()).use(gl);
+            gro.drawPointGroup (gl, GL.GL_POINTS, gidx);
 
             if (changed) {
                setPointSize(fold);
@@ -2485,159 +2111,74 @@ public class GL3Viewer extends GLViewer {
             break;
          }
          case SPHERE: {
-            GL3RenderObjectPoints gro = getOrCreatePointGRO(
-               robj, PointStyle.SPHERE, (float)rad);
-            gl.glUseProgram(getPointsProgram(gl, gro.getRenderObjectState()));
-            gro.drawPoints(gl);  
+            
+            GL3Object sphere = myPrimitiveManager.getSphere (gl, mySurfaceResolution, mySurfaceResolution/2);
+            
+            getPointsProgram(gl, robj.getStateInfo ()).use (gl);
+            gro.setRadius(gl, (float)rad);
+            gro.drawInstancedPointGroup (gl, sphere, gidx);
+            
             break;
          }
       }
    }
 
-   @Override
-   public RenderObject getSharedObject(Object key) {
-      return myGLResources.getRenderObject(key);
-   }
-
-   @Override
-   public void addSharedObject(Object key, RenderObject robj) {
-      myGLResources.addRenderObject(key, robj);
-   }
-
-   @Override
-   public boolean removeSharedObject(Object key) {
-      return myGLResources.removeRenderObject(key) != null;
-   }      
+  /*==============================================================================
+   *  IMMEDIATE MODE
+   =============================================================================*/
 
    @Override
    protected void doDraw (
       DrawMode drawMode, int numVertices, float[] vertexData,
       boolean hasNormalData, float[] normalData, boolean hasColorData,
-      float[] colorData) {
-    
+      float[] colorData, boolean hasTexData, float[] texData) {
+
       if (numVertices > 0) {
-         GL3Object glo = null;
-         int mode = getDrawPrimitive(drawMode);
-         int progId = 0;
+
+         int glmode = getDrawPrimitive(drawMode);
+
+         gloFlex.begin (gl, hasNormalData, hasColorData, hasTexData, numVertices);
          
-         if (hasNormalData && hasColorData) {
-            int cidx = 0;
-            int vidx = 0;
-            
-            int pwidth = DEFAULT_POSITON_PUTTER.bytesPerPosition ();
-            int nwidth = DEFAULT_NORMAL_PUTTER.bytesPerNormal ();
-            int cwidth = DEFAULT_COLOR_PUTTER.bytesPerColor ();
-            int poffset = 0;
-            int noffset = pwidth;
-            int coffset = pwidth+nwidth;
-            int stride = coffset+cwidth;
-            BufferStorage pstorage = DEFAULT_POSITON_PUTTER.storage ();
-            BufferStorage nstorage = DEFAULT_NORMAL_PUTTER.storage ();
-            BufferStorage cstorage = DEFAULT_COLOR_PUTTER.storage ();
-            
-            ByteBuffer buff = ByteBuffer.allocateDirect (numVertices*stride);
-            
-            for (int i=0; i<numVertices; ++i) {
-               DEFAULT_POSITON_PUTTER.putPosition (buff, vertexData, vidx);
-               DEFAULT_NORMAL_PUTTER.putNormal (buff, normalData, vidx);
-               DEFAULT_COLOR_PUTTER.putColor (buff, colorData, cidx);
-               cidx += 4;
-               vidx += 3;
+         int cidx = 0;
+         int vidx = 0;
+         int tidx = 0;
+         for (int i=0; i<numVertices; ++i) {
+            if (hasColorData) {
+               gloFlex.color (colorData, cidx);
             }
-            buff.rewind ();
-            
-            glo = GL3Object.createVNC (gl, mode, 
-               numVertices, buff, pstorage, poffset, stride, 
-               nstorage, noffset, stride, 
-               cstorage, coffset, stride, GL3.GL_STREAM_DRAW);
-            
-            progId = getColorProgram(gl, true);
-            
-         } else if (hasColorData){
-            int cidx = 0;
-            int vidx = 0;
-            
-            int pwidth = DEFAULT_POSITON_PUTTER.bytesPerPosition ();
-            int cwidth = DEFAULT_COLOR_PUTTER.bytesPerColor ();
-            int poffset = 0;
-            int coffset = pwidth;
-            int stride = coffset+cwidth;
-            BufferStorage pstorage = DEFAULT_POSITON_PUTTER.storage ();
-            BufferStorage cstorage = DEFAULT_COLOR_PUTTER.storage ();
-            
-            ByteBuffer buff = ByteBuffer.allocateDirect (numVertices*stride);
-            
-            for (int i=0; i<numVertices; ++i) {
-               DEFAULT_POSITON_PUTTER.putPosition (buff, vertexData, vidx);
-               DEFAULT_COLOR_PUTTER.putColor (buff, colorData, cidx);
-               cidx += 4;
-               vidx += 3;
+            if (hasNormalData) {
+               gloFlex.normal (normalData, vidx);
             }
-            buff.rewind ();
-            
-            glo = GL3Object.createVC (gl, mode, 
-               numVertices, buff, pstorage, poffset, stride, 
-               cstorage, coffset, stride, GL3.GL_STREAM_DRAW);
-            
-            progId = getColorProgram(gl, false);
-            
-         } else if (hasNormalData) {
-            int vidx = 0;
-            
-            int pwidth = DEFAULT_POSITON_PUTTER.bytesPerPosition ();
-            int nwidth = DEFAULT_NORMAL_PUTTER.bytesPerNormal ();
-            int poffset = 0;
-            int noffset = pwidth;
-            int stride = noffset+nwidth;
-            BufferStorage pstorage = DEFAULT_POSITON_PUTTER.storage ();
-            BufferStorage nstorage = DEFAULT_NORMAL_PUTTER.storage ();
-            
-            ByteBuffer buff = ByteBuffer.allocateDirect (numVertices*stride);
-            
-            for (int i=0; i<numVertices; ++i) {
-               DEFAULT_POSITON_PUTTER.putPosition (buff, vertexData, vidx);
-               DEFAULT_NORMAL_PUTTER.putNormal (buff, normalData, vidx);
-               vidx += 3;
+            if (hasTexData) {
+               gloFlex.texcoord (texData, tidx);
             }
-            buff.rewind ();
-            
-            glo = GL3Object.createVN (gl, mode, 
-               buff, numVertices, pstorage, poffset, stride, 
-               nstorage, noffset, stride, GL3.GL_STREAM_DRAW);
-            progId = getRegularProgram(gl);
-            
+            gloFlex.vertex (vertexData, vidx);
+            cidx += 4;
+            vidx += 3;
+            tidx += 2;
+         }
+         gloFlex.end (gl);
+         
+
+         GLShaderProgram prog = null;
+         if (hasColorData) {
+            prog = getColorProgram(gl, hasNormalData);
          } else {
-            int vidx = 0;
-            
-            int pwidth = DEFAULT_POSITON_PUTTER.bytesPerPosition ();
-            BufferStorage pstorage = DEFAULT_POSITON_PUTTER.storage ();
-            
-            ByteBuffer buff = ByteBuffer.allocateDirect (numVertices*pwidth);
-            
-            for (int i=0; i<numVertices; ++i) {
-               DEFAULT_POSITON_PUTTER.putPosition (buff, vertexData, vidx);
-               vidx += 3;
-            }
-            buff.rewind ();
-            
-            glo = GL3Object.createV (gl, mode, 
-               buff, numVertices, pstorage, pwidth, GL3.GL_STREAM_DRAW);
-            
-            progId = getBasicProgram(gl);
+            prog = getProgram(gl);
          }
          
          maybeUpdateState(gl);
-         glo.draw(gl, progId);
-         glo.dispose (gl);  // immediately dispose
-         
+         prog.use (gl);
+         gloFlex.drawVertices (gl, glmode);
+
       }
-      
+
    }
-   
-   public boolean hasColorMixing (ColorMixing cmix) {
+
+   public boolean hasVertexColorMixing (ColorMixing cmix) {
       return true;
    }
-   
+
    public boolean hasTextureMixing (ColorMixing tmix) {
       return true;
    }

@@ -6,19 +6,16 @@ import java.nio.ByteOrder;
 
 import com.jogamp.common.nio.Buffers;
 
-import sun.misc.Cleaner;
-import sun.nio.ch.DirectBuffer;
-
 public class BufferUtilities {
 
-   public static void cleanDirectBuffer(Buffer buff) {
+   public static void freeDirectBuffer(Buffer buff) {
       if(buff == null) { 
          return;
       }
-
-      if (buff instanceof DirectBuffer) {
-         Cleaner cleaner = ((DirectBuffer) buff).cleaner();
-         if (cleaner != null) cleaner.clean();   
+      
+      buff.clear ();
+      if (buff.isDirect ()) {
+         // XXX maybe do something in the future to clear the buffer
       }
    }
 

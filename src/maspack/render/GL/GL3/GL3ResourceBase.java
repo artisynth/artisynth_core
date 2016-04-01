@@ -1,35 +1,35 @@
 package maspack.render.GL.GL3;
 
+import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
 
-public abstract class GL3ResourceBase implements GL3Resource {
+import maspack.render.GL.GLResourceBase;
 
-   private int refCount;
-   
+public abstract class GL3ResourceBase extends GLResourceBase implements GL3Resource {
+
    protected GL3ResourceBase() {
-      refCount = 0;
+      super();
    }
    
    @Override
-   public abstract void init(GL3 gl);
+   protected void internalDispose (GL gl) {
+      dispose((GL3)gl);
+   }
    
-   @Override
-   public void acquire() {
-      ++refCount;
-   }
-
-   @Override
-   public void release(GL3 gl) {
-      --refCount;
-      if (refCount <= 0) {
-         dispose(gl);
-      }
-   }
-
-   @Override
    public abstract void dispose(GL3 gl);
-
+   
    @Override
-   public abstract boolean isValid();
+   public boolean disposeInvalid (GL3 gl) {
+      if (!isValid ()) {
+         dispose(gl);
+         return false;
+      }
+      return true;
+   }
+   
+   @Override
+   public GL3ResourceBase acquire () {
+      return (GL3ResourceBase)super.acquire ();
+   }
 
 }

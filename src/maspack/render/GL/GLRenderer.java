@@ -6,8 +6,6 @@
  */
 package maspack.render.GL;
 
-import java.awt.Color;
-
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 

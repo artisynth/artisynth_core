@@ -1,405 +1,228 @@
 package maspack.render.GL.GL2;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map.Entry;
+
+import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
-import javax.media.opengl.glu.GLU;
-import javax.media.opengl.glu.GLUquadric;
 
-public class GL2PrimitiveManager extends DisplayListManager {
+import maspack.render.GL.GLGarbageSource;
+import maspack.render.GL.GL2.GL2Primitive.PrimitiveKey;
+import maspack.render.GL.GL2.GL2Primitive.PrimitiveType;
 
-   public static class SphereKey {
-      private int slices;
-      private int levels;
-      public SphereKey(int slices, int levels) {
-         this.slices = slices;
-         this.levels = levels;
+public class GL2PrimitiveManager implements GLGarbageSource {
+   
+   /**
+    * Primitive that doesn't hold on to the display list
+    * @author Antonio
+    *
+    */
+   private static class GL2WeakPrimitive {
+      PrimitiveKey key;
+      GL2DisplayList displayList;
+      GL2WeakPrimitive(PrimitiveKey key, GL2DisplayList list) {
+         this.key = key;
+         this.displayList = list;
       }
-      public int getSlices() {
-         return slices;
+      
+      public int getResolution() {
+         return key.getResolution ();
       }
-      public int getLevels() {
-         return levels;
-      }
-      @Override
-      public int hashCode() {
-         final int prime = 31;
-         int result = 1;
-         result = prime * result + levels;
-         result = prime * result + slices;
-         return result;
-      }
-      @Override
-      public boolean equals(Object obj) {
-         if (this == obj) {
-            return true;
-         }
-         if ( (obj == null) || (getClass() != obj.getClass())) {
-            return false;
-         }
-         SphereKey other = (SphereKey)obj;
-         return equals(other.slices, other.levels);
-      }
-
-      public boolean equals(int slices, int levels) {
-         if ((this.levels != levels) || (this.slices != slices)) {
-            return false;
-         }
-         return true;
-      }
-   }
-
-   public static class SpindleKey {
-      private int slices;
-      private int levels;
-      public SpindleKey(int slices, int levels) {
-         this.slices = slices;
-         this.levels = levels;
-      }
-      public int getSlices() {
-         return slices;
-      }
-      public int getLevels() {
-         return levels;
-      }
-      @Override
-      public int hashCode() {
-         final int prime = 31;
-         int result = 1;
-         result = prime * result + levels;
-         result = prime * result + slices;
-         return result;
-      }
-      @Override
-      public boolean equals(Object obj) {
-         if (this == obj) {
-            return true;
-         }
-         if ( (obj == null) || (getClass() != obj.getClass())) {
-            return false;
-         }
-         SpindleKey other = (SpindleKey)obj;
-         return equals(other.slices, other.levels);
-      }
-
-      public boolean equals(int slices, int levels) {
-         if ((this.levels != levels) || (this.slices != slices)) {
-            return false;
-         }
-         return true;
-      }
-   }
-
-   public static class CylinderKey {
-      private int slices;
-      boolean capped;
-      public CylinderKey(int slices, boolean capped) {
-         this.slices = slices;
-         this.capped = capped;
-      }
-      public int getSlices() {
-         return slices;
-      }
+      
       public boolean isCapped() {
-         return capped;
+         return key.isCapped ();
       }
-      @Override
-      public int hashCode() {
-         final int prime = 31;
-         int result = 1;
-         result = prime * result + (capped ? 1231 : 1237);
-         result = prime * result + slices;
-         return result;
+      
+      public GL2Primitive createPrimitive() {
+         return new GL2Primitive (key, displayList);
       }
-      @Override
-      public boolean equals(Object obj) {
-         if (this == obj) {
+      
+      public boolean isValid() {
+         return displayList.isValid ();
+      }
+      
+      public boolean disposeInvalid(GL2 gl) {
+         if (!isValid()) {
+            dispose(gl);
             return true;
          }
-         if ( (obj == null) ||  (getClass() != obj.getClass())) {
-            return false;
-         }
-         CylinderKey other = (CylinderKey)obj;
-         return equals(other.slices, other.capped);
+         return false;
       }
-
-      public boolean equals(int slices, boolean capped) {
-         if ((this.capped != capped) || (this.slices != slices)) {
-            return false;
+      
+      public void dispose(GL2 gl) {
+         if (displayList != null) {
+            displayList.dispose (gl);
+            displayList = null;
          }
-         return true;
       }
    }
-
-   public static class ConeKey {
-      private int slices;
-      boolean capped;
-      public ConeKey(int slices, boolean capped) {
-         this.slices = slices;
-         this.capped = capped;
-      }
-      public int getSlices() {
-         return slices;
-      }
-      public boolean isCapped() {
-         return capped;
-      }
-      @Override
-      public int hashCode() {
-         final int prime = 31;
-         int result = 1;
-         result = prime * result + (capped ? 1231 : 1237);
-         result = prime * result + slices;
-         return result;
-      }
-      @Override
-      public boolean equals(Object obj) {
-         if (this == obj) {
-            return true;
-         }
-         if ( (obj == null) ||  (getClass() != obj.getClass())) {
-            return false;
-         }
-         CylinderKey other = (CylinderKey)obj;
-         return equals(other.slices, other.capped);
-      }
-
-      public boolean equals(int slices, boolean capped) {
-         if ((this.capped != capped) || (this.slices != slices)) {
-            return false;
-         }
-         return true;
-      }
-   }
-
-   private DisplayListInfo lastSpindle;
-   private DisplayListInfo lastSphere;
-   private DisplayListInfo lastCylinder;
-   private DisplayListInfo lastCone;
-
-   private GLU glu;
-   private GLUquadric mySphereQuad;
-
+   
+   HashMap<PrimitiveKey, GL2WeakPrimitive> primitiveMap;
+   
+   // track last obtained primitives to improve efficiency (avoiding hashmap lookup)
+   GL2WeakPrimitive lastCone = null;
+   GL2WeakPrimitive lastCylinder = null;
+   GL2WeakPrimitive lastSphere = null;
+   GL2WeakPrimitive lastSpindle = null;
+   
    public GL2PrimitiveManager() {
-      super();
-      lastSpindle = null;
-      lastSphere = null;
-      lastCylinder = null;
-      lastCone = null;
-      glu = new GLU();
-   }
-
-   public int getSphereDisplayList (GL2 gl, int slices, int levels) {
-      if (lastSphere != null) {
-         SphereKey key = (SphereKey)(lastSphere.key);
-         if (key.equals(slices, levels)) {
-            lastSphere.incrementUseCount();
-            return lastSphere.getList();
-         }
-      }
-
-      SphereKey key = new SphereKey(slices, levels);
-      DisplayListInfo li = getListInfo(key);
-      if (li == null) {
-         li = createSphere(gl, key, slices, levels);
-         putListInfo(key, li);
-      }
-      li.incrementUseCount();
-      lastSphere = li;
-      return li.getList();
-   }
-
-   private DisplayListInfo createSphere(GL2 gl, Object key, int slices, int levels) {
-      DisplayListInfo li = allocDisplayList(gl, key, null);
-      if (li != null) {
-         gl.glNewList (li.getList(), GL2.GL_COMPILE);
-         if (mySphereQuad == null) {
-            mySphereQuad = glu.gluNewQuadric();
-         }
-         glu.gluSphere (mySphereQuad, 1.0, slices, levels);
-         gl.glEndList();
-      }
-      return li;
-   }
-
-   public int getSpindleDisplayList (GL2 gl, int slices, int levels) {
-      if (lastSpindle != null) {
-         SpindleKey key = (SpindleKey)(lastSpindle.key);
-         if (key.equals(slices, levels)) {
-            lastSpindle.incrementUseCount();
-            return lastSpindle.getList();
-         }
-      }
-
-      SpindleKey key = new SpindleKey(slices, levels);
-      DisplayListInfo li = getListInfo(key);
-      if (li == null) {
-         li = createSpindle(gl, key, slices, levels);
-         putListInfo(key, li);
-      }
-      li.incrementUseCount();
-      lastSpindle = li;
-      return li.getList();
+      primitiveMap = new HashMap<>();
    }
    
-   private DisplayListInfo createSpindle(GL2 gl, Object key, int slices, int levels) {
-      DisplayListInfo li = allocDisplayList(gl, key, null);
-      if (li != null) {
-         gl.glNewList (li.getList(), GL2.GL_COMPILE);
-         
-         double s0 = 0;
-         double c0 = 1;
-         for (int slice = 0; slice < slices; slice++) {
-            double ang = (slice + 1) * 2 * Math.PI / slices;
-            double c1 = Math.cos (ang);
-            double s1 = Math.sin (ang);
-
-            gl.glBegin (GL2.GL_TRIANGLE_STRIP);
-            for (int j = 0; j <= levels; j++) {
-               double h = j * 1.0 / levels;
-               double r = 1 * Math.sin (h * Math.PI / 1.0);
-               double drdh = Math.PI * Math.cos (h * Math.PI / 1.0);
-               gl.glNormal3d (c0, s0, -drdh);
-               gl.glVertex3d (c0 * r, s0 * r, h);
-               gl.glNormal3d (c1, s1, -drdh);
-               gl.glVertex3d (c1 * r, s1 * r, h);
-            }
-            gl.glEnd();
-
-            s0 = s1;
-            c0 = c1;
-         }
-         
-         gl.glEndList();
+   public GL2Primitive getSphere (GL2 gl, int resolution) {
+      
+      // if last acquired sphere is correct resolution and is valid, use that
+      if (lastSphere != null && lastSphere.isValid () && 
+         lastSphere.getResolution () == resolution) {
+         return lastSphere.createPrimitive ();
       }
-      return li;
+
+      GL2WeakPrimitive weak = null;
+      PrimitiveKey key = new PrimitiveKey (PrimitiveType.SPHERE, resolution, false);
+      
+      // look in map to see if there
+      synchronized (primitiveMap) {
+         weak = primitiveMap.get (key);
+
+         // if doesn't exist, create it. 
+         if (weak == null || weak.disposeInvalid (gl)) {
+            GL2DisplayList list = GL2PrimitiveFactory.createSphere (gl, resolution, resolution);
+            weak = new GL2WeakPrimitive(key, list);
+            primitiveMap.put (key, weak);
+         } 
+      }
+      
+      lastSphere = weak;
+      return weak.createPrimitive ();      
    }
-
-   public int getCylinderDisplayList (GL2 gl, int slices, boolean capped) {
-      if (lastCylinder != null) {
-         CylinderKey key = (CylinderKey)(lastCylinder.key);
-         if (key.equals(slices, capped)) {
-            lastCylinder.incrementUseCount();
-            return lastCylinder.getList();
-         }
-      }
-
-      CylinderKey key = new CylinderKey(slices, capped);
-      DisplayListInfo li = getListInfo(key);
-      if (li == null) {
-         li = createCylinder(gl, key, slices, capped);
-         putListInfo(key, li);
-      }
-      li.incrementUseCount();
-      lastCylinder = li;
-      return li.getList();
-   }
-
    
-   private DisplayListInfo createCylinder(GL2 gl, Object key, int slices, boolean capped) {
-      DisplayListInfo li = allocDisplayList(gl, key, null);
-      if (li != null) {
-         gl.glNewList (li.getList(), GL2.GL_COMPILE);
-        
-         // draw sides
-         gl.glBegin(GL2.GL_TRIANGLE_STRIP);
-
-         double c1,s1;
-         for (int i = 0; i <= slices; i++) {
-            double ang = i / (double)slices * 2 * Math.PI;
-            c1 = Math.cos(ang);
-            s1 = Math.sin(ang);
-            gl.glNormal3d(c1, s1, 0);
-            gl.glVertex3d (c1, s1, 1);
-            gl.glVertex3d (c1, s1, 0);
-         }
-
-         gl.glEnd();
-
-         if (capped) { // draw top cap first
-            gl.glBegin (GL2.GL_TRIANGLE_FAN);
-            gl.glNormal3d (0, 0, 1);
-            for (int i = 0; i < slices; i++) {
-               double ang = i / (double)slices * 2 * Math.PI;
-               c1 = Math.cos(ang);
-               s1 = Math.sin(ang);
-               gl.glVertex3d (c1, s1, 1);
-            }
-            gl.glEnd();
-            
-            // now draw bottom cap
-            gl.glBegin (GL2.GL_TRIANGLE_FAN);
-            gl.glNormal3d (0, 0, -1);
-            for (int i = 0; i < slices; i++) {
-               double ang = i / (double)slices * 2 * Math.PI;
-               c1 = Math.cos(ang);
-               s1 = Math.sin(ang);
-               gl.glVertex3d (c1, -s1, 0);
-            }
-            gl.glEnd();
-         } // end caps
-         
-         gl.glEndList();
+   public GL2Primitive getSpindle (GL2 gl, int resolution) {
+      
+      // if last acquired Spindle is correct resolution and is valid, use that
+      if (lastSpindle != null && lastSpindle.getResolution () == resolution 
+         && lastSpindle.isValid ()) {
+         return lastSpindle.createPrimitive ();
       }
-      return li;
+
+      GL2WeakPrimitive weak = null;
+      PrimitiveKey key = new PrimitiveKey (PrimitiveType.SPINDLE, resolution, false);
+      
+      // look in map to see if there
+      synchronized (primitiveMap) {
+         weak = primitiveMap.get (key);
+
+         // if doesn't exist, create it. 
+         if (weak == null || weak.disposeInvalid (gl)) {
+            GL2DisplayList list = GL2PrimitiveFactory.createSpindle (gl, resolution, resolution);
+            weak = new GL2WeakPrimitive(key, list);
+            primitiveMap.put (key, weak);
+         } 
+      }
+      
+      lastSpindle = weak;
+      return weak.createPrimitive ();      
+   }
+   
+   public GL2Primitive getCone (GL2 gl, int resolution, boolean capped) {
+      
+      // if last acquired Cone is correct resolution and is valid, use that
+      if (lastCone != null && lastCone.getResolution () == resolution && 
+          lastCone.isCapped () == capped && lastCone.isValid ()) {
+         return lastCone.createPrimitive ();
+      }
+
+      GL2WeakPrimitive weak = null;
+      PrimitiveKey key = new PrimitiveKey (PrimitiveType.CONE, resolution, capped);
+      
+      // look in map to see if there
+      synchronized (primitiveMap) {
+         weak = primitiveMap.get (key);
+
+         // if doesn't exist, create it. 
+         if (weak == null || weak.disposeInvalid (gl)) {
+            GL2DisplayList list = GL2PrimitiveFactory.createCone (gl, resolution, capped);
+            weak = new GL2WeakPrimitive(key, list);
+            primitiveMap.put (key, weak);
+         } 
+      }
+      
+      lastCone = weak;
+      return weak.createPrimitive ();      
+   }
+   
+   public GL2Primitive getCylinder (GL2 gl, int resolution, boolean capped) {
+      
+      // if last acquired Cylinder is correct resolution and is valid, use that
+      if (lastCylinder != null && lastCylinder.getResolution () == resolution && 
+         lastCylinder.isCapped () == capped && lastCylinder.isValid ()) {
+         return lastCylinder.createPrimitive ();
+      }
+
+      GL2WeakPrimitive weak = null;
+      PrimitiveKey key = new PrimitiveKey (PrimitiveType.CYLINDER, resolution, capped);
+      
+      // look in map to see if there
+      synchronized (primitiveMap) {
+         weak = primitiveMap.get (key);
+
+         // if doesn't exist, create it. 
+         if (weak == null || weak.disposeInvalid (gl)) {
+            GL2DisplayList list = GL2PrimitiveFactory.createCylinder (gl, resolution, capped);
+            weak = new GL2WeakPrimitive(key, list);
+            primitiveMap.put (key, weak);
+         } 
+      }
+      
+      lastCylinder = weak;
+      return weak.createPrimitive ();      
    }
 
+   @Override
+   public void garbage (GL gl) {      
+      // loop through resources
+      synchronized(primitiveMap) {
+         Iterator<Entry<PrimitiveKey,GL2WeakPrimitive>> it = primitiveMap.entrySet ().iterator ();
+         while (it.hasNext ()) {
+            Entry<PrimitiveKey,GL2WeakPrimitive> entry = it.next ();
+            GL2DisplayList list = entry.getValue ().displayList;
+            if (list.disposeInvalid (gl) || list.disposeUnreferenced (gl)) {
+               it.remove ();
+            }
+         }
+      }
+   }
+
+   /**
+    * Destroy all stored resources
+    * @param gl
+    */
+   public void disposeResources(GL gl) {
+      // destroy all stored displaylist
+      synchronized(primitiveMap) {
+         for (Entry<PrimitiveKey,GL2WeakPrimitive> entry : primitiveMap.entrySet ()) {
+            entry.getValue ().displayList.dispose (gl);
+         }
+         primitiveMap.clear ();
+      }
+   }
   
-   public int getConeDisplayList (GL2 gl, int slices, boolean capped) {
-      if (lastCone != null) {
-         ConeKey key = (ConeKey)(lastCone.key);
-         if (key.equals(slices, capped)) {
-            lastCone.incrementUseCount();
-            return lastCone.getList();
+   @Override
+   public void dispose (GL gl) {
+      
+      GL2 gl2 = (GL2)gl;
+      synchronized(primitiveMap) {
+         for (GL2WeakPrimitive prim : primitiveMap.values ()) {
+            prim.dispose (gl2);
          }
+         primitiveMap.clear ();
       }
-
-      ConeKey key = new ConeKey(slices, capped);
-      DisplayListInfo li = getListInfo(key);
-      if (li == null) {
-         li = createCone(gl, key, slices, capped);
-         putListInfo(key, li);
-      }
-      li.incrementUseCount();
-      lastCone = li;
-      return li.getList();
-   }
-   
-   private DisplayListInfo createCone(GL2 gl, Object key, int slices, boolean capped) {
-      DisplayListInfo li = allocDisplayList(gl, key, null);
-      if (li != null) {
-         gl.glNewList (li.getList(), GL2.GL_COMPILE);
-        
-         // draw sides
-         gl.glBegin(GL2.GL_TRIANGLE_STRIP);
-
-         double c1,s1;
-         double r2 = 1.0/Math.sqrt(2);
-         for (int i = 0; i <= slices; i++) {
-            double ang = i / (double)slices * 2 * Math.PI;
-            c1 = Math.cos(ang);
-            s1 = Math.sin(ang);
-            gl.glNormal3d(c1*r2, s1*r2, r2);
-            gl.glVertex3d (c1, s1, 1);
-            gl.glVertex3d (c1, s1, 0);
-         }
-
-         gl.glEnd();
-
-         if (capped) { 
-            // bottom cap
-            gl.glBegin (GL2.GL_TRIANGLE_FAN);
-            gl.glNormal3d (0, 0, -1);
-            for (int i = 0; i < slices; i++) {
-               double ang = i / (double)slices * 2 * Math.PI;
-               c1 = Math.cos(ang);
-               s1 = Math.sin(ang);
-               gl.glVertex3d (c1, -s1, 0);
-            }
-            gl.glEnd();
-         } // end caps
-         
-         gl.glEndList();
-      }
-      return li;
+      
+      lastCone = null;
+      lastCylinder = null;
+      lastSphere = null;
+      lastSpindle = null;
+      
    }
 
 }

@@ -16,10 +16,10 @@ import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.render.Dragger3dBase;
 import maspack.render.MouseRayEvent;
-import maspack.render.Renderer;
-import maspack.render.Renderer.Shading;
 //import maspack.render.Dragger3dBase.DragMode;
 import maspack.render.RenderObject;
+import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLViewer;
 
 /**
@@ -53,6 +53,7 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
    private static Line xAxis = new Line (0, 0, 0, 1, 0, 0);
    private static Line yAxis = new Line (0, 0, 0, 0, 1, 0);
    private static Line zAxis = new Line (0, 0, 0, 0, 0, 1);
+   private static RenderObject renderObject = null;
 
    public ConstrainedTranslator3d() {
       super();
@@ -79,18 +80,12 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
       viewer.translateModelMatrix(myXDraggerToWorld.p);
       viewer.scaleModelMatrix(mySize);
       
-      RenderObject ro = viewer.getSharedObject(ConstrainedTranslator3d.class);
-      if (ro == null || !ro.isValid()) {
-         ro = createRenderable();
-         viewer.addSharedObject(ConstrainedTranslator3d.class, ro);
+      if (renderObject == null) {
+         renderObject = createRenderable(); 
       }
       
-      if (selected) {
-         ro.lineGroup(1);
-      } else {
-         ro.lineGroup(0);
-      }
-      viewer.drawLines(ro);
+      int gidx = selected ? 1 : 0;
+      viewer.drawLines(renderObject, gidx);
       
       viewer.popModelMatrix();
       viewer.setShading (savedShading);
@@ -108,7 +103,6 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
       ro.createLineGroup();
 
       ro.lineGroup(0);
-      
       ro.setCurrentColor(xcolor);
       ro.addLine(new float[]{-1,0,0}, new float[]{1,0,0}); // x-axis
       ro.setCurrentColor(ycolor);

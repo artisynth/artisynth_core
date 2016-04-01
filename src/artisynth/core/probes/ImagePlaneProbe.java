@@ -24,7 +24,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.DiffuseTextureProps;
+import maspack.render.TextureMapProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
@@ -66,11 +66,11 @@ TransformableGeometry {
       RenderProps props = createRenderProps();
       props.setFaceColor (Color.white);
       props.setFaceStyle (FaceStyle.FRONT_AND_BACK);
-      DiffuseTextureProps tprops = props.getDiffuseTextureProps();
+      TextureMapProps tprops = props.getTextureMapProps();
       if (tprops == null)
-         tprops = new DiffuseTextureProps();
+         tprops = new TextureMapProps();
       tprops.setEnabled (true);
-      props.setDiffuseTextureProps (tprops);
+      props.setTextureMapProps (tprops);
       setRenderProps (props);
 
       setImage (0);
@@ -104,9 +104,9 @@ TransformableGeometry {
       int frameNum = (int)(t * frameRate) + 1;
       String filename =
          String.format (fileNameFormat, imageBasename, frameNum, imageFileExt);
-      DiffuseTextureProps tprops = myRenderProps.getDiffuseTextureProps();
+      TextureMapProps tprops = myRenderProps.getTextureMapProps();
       tprops.setFileName (imageDirectory.getAbsolutePath() + "/" + filename);
-      myRenderProps.setDiffuseTextureProps (tprops);
+      myRenderProps.setTextureMapProps (tprops);
    }
 
    public RenderProps createRenderProps() {

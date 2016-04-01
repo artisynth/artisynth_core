@@ -22,7 +22,7 @@ import java.util.LinkedHashMap;
 
 import javax.imageio.ImageIO;
 
-import maspack.render.FrameBufferObject;
+import maspack.render.GL.FrameBufferObject;
 import maspack.render.GL.GLViewer;
 import maspack.util.NumberFormat;
 import maspack.util.StreamGobbler;

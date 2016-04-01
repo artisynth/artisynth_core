@@ -44,8 +44,9 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       DrawEdges,
       EdgeColor,
       EdgeWidth,
-      DiffuseTextureProps,
-      NormalTextureProps,
+      TextureMapProps,
+      NormalMapProps,
+      BumpMapProps,
       LineStyle,
       LineColor,
       LineWidth,
@@ -165,20 +166,24 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected PropertyMode myPointColorMode;
    protected static Color defaultPointColor = new Color (0.5f, 0.5f, 0.5f);
 
-   protected DiffuseTextureProps myDiffuseTextureProps;
-   protected static DiffuseTextureProps defaultDiffuseTextureProps = null;
+   protected TextureMapProps myTextureMapProps;
+   protected static TextureMapProps defaultTextureMapProps = null;
    
-   protected NormalTextureProps myNormalTextureProps;
-   protected static NormalTextureProps defaultNormalTextureProps = null;
+   protected NormalMapProps myNormalMapProps;
+   protected static NormalMapProps defaultNormalMapProps = null;
 
+   protected BumpMapProps myBumpMapProps;
+   protected static BumpMapProps defaultBumpMapProps = null;
+   
    public static PropertyList myProps = new PropertyList (RenderProps.class);
 
    protected static PropertyMode INHERITED = PropertyMode.Inherited;
    protected static PropertyMode INACTIVE = PropertyMode.Inactive;
    protected static PropertyMode EXPLICIT = PropertyMode.Explicit;
 
-   protected boolean myDiffuseTexturePropsInactive = true;
-   protected boolean myNormalTexturePropsInactive = true;
+   protected boolean myTextureMapPropsInactive = true;
+   protected boolean myNormalMapPropsInactive = true;
+   protected boolean myBumpMapPropsInactive = true;
 
    static {
       myProps.addInheritable (
@@ -202,9 +207,11 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myProps.addInheritable (
          "drawEdges:Inherited", "draw mesh edges", defaultDrawEdgesP);
       myProps.add (
-         "diffuseTextureProps", "diffuse texture mapping properties", defaultDiffuseTextureProps);
+         "textureMapProps", "diffuse texture mapping properties", defaultTextureMapProps);
       myProps.add (
-         "normalTextureProps", "normal texture mapping properties", defaultNormalTextureProps);
+         "normalMapProps", "normal texture mapping properties", defaultNormalMapProps);
+      myProps.add (
+         "bumpMapProps", "bump texture mapping properties", defaultBumpMapProps);
       myProps.addInheritable (
          "edgeColor:Inherited", "edge color (mainly for meshes)", 
          defaultEdgeColor);     
@@ -1062,56 +1069,83 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       }
    }
 
-   public DiffuseTextureProps getDiffuseTextureProps() {
-      return myDiffuseTextureProps;
+   public TextureMapProps getTextureMapProps() {
+      return myTextureMapProps;
    }
 
-   public void setDiffuseTextureProps (DiffuseTextureProps props) {
-      if (getAllPropertyInfo().get ("diffuseTextureProps") == null) {
+   public void setTextureMapProps (TextureMapProps props) {
+      if (getAllPropertyInfo().get ("textureMapProps") == null) {
          return;
       }
       if (props == null) {
          PropertyUtils.updateCompositeProperty (
-            this, "diffuseTextureProps", myDiffuseTextureProps, null);
-         myDiffuseTextureProps = null;
+            this, "textureMapProps", myTextureMapProps, null);
+         myTextureMapProps = null;
       }
       else {
-         if (myDiffuseTextureProps == null) {
-            myDiffuseTextureProps = new DiffuseTextureProps();
-            myDiffuseTextureProps.set (props);
+         if (myTextureMapProps == null) {
+            myTextureMapProps = new TextureMapProps();
+            myTextureMapProps.set (props);
             PropertyUtils.updateCompositeProperty (
-               this, "diffuseTextureProps", null, myDiffuseTextureProps);
+               this, "textureMapProps", null, myTextureMapProps);
          }
          else {
-            myDiffuseTextureProps.set (props);
-            PropertyUtils.updateCompositeProperty (myDiffuseTextureProps);
+            myTextureMapProps.set (props);
+            PropertyUtils.updateCompositeProperty (myTextureMapProps);
          }
       }
    }
    
-   public NormalTextureProps getNormalTextureProps() {
-      return myNormalTextureProps;
+   public NormalMapProps getNormalMapProps() {
+      return myNormalMapProps;
    }
 
-   public void setNormalTextureProps (NormalTextureProps props) {
-      if (getAllPropertyInfo().get ("normalTextureProps") == null) {
+   public void setNormalMapProps (NormalMapProps props) {
+      if (getAllPropertyInfo().get ("normalMapProps") == null) {
          return;
       }
       if (props == null) {
          PropertyUtils.updateCompositeProperty (
-            this, "normalTextureProps", myNormalTextureProps, null);
-         myNormalTextureProps = null;
+            this, "normalMapProps", myNormalMapProps, null);
+         myNormalMapProps = null;
       }
       else {
-         if (myNormalTextureProps == null) {
-            myNormalTextureProps = new NormalTextureProps();
-            myNormalTextureProps.set (props);
+         if (myNormalMapProps == null) {
+            myNormalMapProps = new NormalMapProps();
+            myNormalMapProps.set (props);
             PropertyUtils.updateCompositeProperty (
-               this, "normalTextureProps", null, myNormalTextureProps);
+               this, "normalMapProps", null, myNormalMapProps);
          }
          else {
-            myNormalTextureProps.set (props);
-            PropertyUtils.updateCompositeProperty (myNormalTextureProps);
+            myNormalMapProps.set (props);
+            PropertyUtils.updateCompositeProperty (myNormalMapProps);
+         }
+      }
+   }
+   
+   public BumpMapProps getBumpMapProps() {
+      return myBumpMapProps;
+   }
+
+   public void setBumpMapProps (BumpMapProps props) {
+      if (getAllPropertyInfo().get ("bumpMapProps") == null) {
+         return;
+      }
+      if (props == null) {
+         PropertyUtils.updateCompositeProperty (
+            this, "bumpMapProps", myBumpMapProps, null);
+         myNormalMapProps = null;
+      }
+      else {
+         if (myBumpMapProps == null) {
+            myBumpMapProps = new BumpMapProps();
+            myBumpMapProps.set (props);
+            PropertyUtils.updateCompositeProperty (
+               this, "bumpMapProps", null, myBumpMapProps);
+         }
+         else {
+            myBumpMapProps.set (props);
+            PropertyUtils.updateCompositeProperty (myBumpMapProps);
          }
       }
    }
@@ -1178,8 +1212,9 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       }
       doSetColor (myPointColor, defaultPointColor);
       doSetBackColor (defaultBackColor);
-      myDiffuseTextureProps = defaultDiffuseTextureProps;
-      myNormalTextureProps = defaultNormalTextureProps;
+      myTextureMapProps = defaultTextureMapProps;
+      myNormalMapProps = defaultNormalMapProps;
+      myBumpMapProps = defaultBumpMapProps;
    }
 
    public void set (RenderProps r) {
@@ -1224,10 +1259,12 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       }
       myEdgeColorMode = r.myEdgeColorMode;
       
-      myDiffuseTexturePropsInactive = r.myDiffuseTexturePropsInactive;
-      setDiffuseTextureProps (r.myDiffuseTextureProps);
-      myNormalTexturePropsInactive = r.myNormalTexturePropsInactive;
-      setNormalTextureProps (r.myNormalTextureProps);
+      myTextureMapPropsInactive = r.myTextureMapPropsInactive;
+      setTextureMapProps (r.myTextureMapProps);
+      myNormalMapPropsInactive = r.myNormalMapPropsInactive;
+      setNormalMapProps (r.myNormalMapProps);
+      myBumpMapPropsInactive = r.myBumpMapPropsInactive;
+      setBumpMapProps (r.myBumpMapProps);
       
       myLineStyle = r.myLineStyle;
       myLineStyleMode = r.myLineStyleMode;
@@ -1252,30 +1289,15 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 //      myPointSlicesMode = r.myPointSlicesMode;
    }
 
-   protected boolean diffuseTexturePropsEqual (DiffuseTextureProps props) {
-      if (props == null) {
-         return myDiffuseTextureProps == null;
-      }
-      else if (myDiffuseTextureProps == null) {
+   protected boolean equalsOrBothNull(Object a, Object b) {
+      if (a == b) {
+         return true;
+      } else if (a == null || b == null) {
          return false;
       }
-      else {
-         return myDiffuseTextureProps.equals (props);
-      }
+      return a.equals (b);
    }
    
-   protected boolean normalTexturePropsEqual (NormalTextureProps props) {
-      if (props == null) {
-         return myNormalTextureProps == null;
-      }
-      else if (myNormalTextureProps == null) {
-         return false;
-      }
-      else {
-         return myNormalTextureProps.equals (props);
-      }
-   }
-
    public boolean equals (RenderProps r) {
       if (myVisibleMode != r.myVisibleMode) {
          return false;
@@ -1437,16 +1459,22 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
             return false;
          }
       }
-      if (myDiffuseTexturePropsInactive != r.myDiffuseTexturePropsInactive) {
+      if (myTextureMapPropsInactive != r.myTextureMapPropsInactive) {
          return false;
       }
-      else if (!myDiffuseTexturePropsInactive && !diffuseTexturePropsEqual (r.myDiffuseTextureProps)) {
+      else if (!myTextureMapPropsInactive && !equalsOrBothNull (r.myTextureMapProps, myTextureMapProps)) {
          return false;
       }
-      if (myNormalTexturePropsInactive != r.myNormalTexturePropsInactive) {
+      if (myNormalMapPropsInactive != r.myNormalMapPropsInactive) {
          return false;
       }
-      else if (!myNormalTexturePropsInactive && !normalTexturePropsEqual (r.myNormalTextureProps)) {
+      else if (!myNormalMapPropsInactive && !equalsOrBothNull(myNormalMapProps, r.myNormalMapProps)) {
+         return false;
+      }
+      if (myBumpMapPropsInactive != r.myBumpMapPropsInactive) {
+         return false;
+      }
+      else if (!myBumpMapPropsInactive && !equalsOrBothNull(myBumpMapProps, r.myBumpMapProps)) {
          return false;
       }
       return true;
@@ -1675,8 +1703,9 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       buf.append ("EdgeWidth=" + myEdgeWidth + " " + myEdgeWidthMode + ", ");
       buf.append ("EdgeColor=" + colorString (myEdgeColor) + " " +
          myEdgeColorMode + ", ");
-      buf.append ("DiffuseTextureProps=" + myDiffuseTextureProps + ", ");
-      buf.append ("NormalTextureProps=" + myNormalTextureProps + ", ");
+      buf.append ("TextureMapProps=" + myTextureMapProps + ", ");
+      buf.append ("NormalMapProps=" + myNormalMapProps + ", ");
+      buf.append ("BumpMapProps=" + myBumpMapProps + ", ");
       buf.append ("LineStyle=" + myLineStyle + " " + myLineStyleMode + ", ");
       buf.append ("LineColor=" + colorString (myLineColor) + " " +
          myLineColorMode + ", ");
@@ -1738,24 +1767,33 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       return props;
    }
 
-   private static DiffuseTextureProps createAndAssignDiffuseTextureProps (RenderProps props) {
-      DiffuseTextureProps tprops = props.getDiffuseTextureProps();
+   private static TextureMapProps createAndAssignTextureMapProps (RenderProps props) {
+      TextureMapProps tprops = props.getTextureMapProps();
       if (tprops == null) {
-         tprops = new DiffuseTextureProps();
-         props.setDiffuseTextureProps (tprops);
+         tprops = new TextureMapProps();
+         props.setTextureMapProps (tprops);
       }
       return tprops;
    }
    
-   private static NormalTextureProps createAndAssignNormalTextureProps (RenderProps props) {
-      NormalTextureProps tprops = props.getNormalTextureProps();
+   private static NormalMapProps createAndAssignNormalMapProps (RenderProps props) {
+      NormalMapProps tprops = props.getNormalMapProps();
       if (tprops == null) {
-         tprops = new NormalTextureProps();
-         props.setNormalTextureProps (tprops);
+         tprops = new NormalMapProps();
+         props.setNormalMapProps (tprops);
       }
       return tprops;
    }
 
+   private static BumpMapProps createAndAssignBumpMapProps (RenderProps props) {
+      BumpMapProps tprops = props.getBumpMapProps();
+      if (tprops == null) {
+         tprops = new BumpMapProps();
+         props.setBumpMapProps (tprops);
+      }
+      return tprops;
+   }
+   
    public static void setVisible (Renderable r, boolean visible) {
       RenderProps props = createAndAssignProps (r);
       props.setVisible (visible);
@@ -2136,58 +2174,86 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       r.setRenderProps (props);      
    }      
 
-   public static void setDiffuseTextureEnabled (Renderable r, boolean enabled) {
+   public static void setTextureEnabled (Renderable r, boolean enabled) {
       RenderProps props = createAndAssignProps (r);
-      DiffuseTextureProps tprops = createAndAssignDiffuseTextureProps(props);
+      TextureMapProps tprops = createAndAssignTextureMapProps(props);
       tprops.setEnabled (enabled);
       r.setRenderProps (props);
    }
 
-   public static void setDiffuseTextureEnabledMode (Renderable r, PropertyMode mode) {
+   public static void setTextureEnabledMode (Renderable r, PropertyMode mode) {
       RenderProps props = createAndAssignProps (r);
-      DiffuseTextureProps tprops = createAndAssignDiffuseTextureProps (props);
+      TextureMapProps tprops = createAndAssignTextureMapProps (props);
       tprops.setEnabledMode (mode);
       r.setRenderProps (props);
    }
 
-   public static void setDiffuseTextureFileName (Renderable r, String fileName) {
+   public static void setTextureFileName (Renderable r, String fileName) {
       RenderProps props = createAndAssignProps (r);
-      DiffuseTextureProps tprops = createAndAssignDiffuseTextureProps (props);
+      TextureMapProps tprops = createAndAssignTextureMapProps (props);
       tprops.setFileName (fileName);
       r.setRenderProps (props);
    }
 
-   public static void setDiffuseTextureFileNameMode (Renderable r, PropertyMode mode) {
+   public static void setTextureFileNameMode (Renderable r, PropertyMode mode) {
       RenderProps props = createAndAssignProps (r);
-      DiffuseTextureProps tprops = createAndAssignDiffuseTextureProps (props);
+      TextureMapProps tprops = createAndAssignTextureMapProps (props);
       tprops.setFileNameMode (mode);
       r.setRenderProps (props);
    }
    
-   public static void setNormalTextureEnabled (Renderable r, boolean enabled) {
+   public static void setNormalMapEnabled (Renderable r, boolean enabled) {
       RenderProps props = createAndAssignProps (r);
-      NormalTextureProps tprops = createAndAssignNormalTextureProps(props);
+      NormalMapProps tprops = createAndAssignNormalMapProps(props);
       tprops.setEnabled (enabled);
       r.setRenderProps (props);
    }
 
-   public static void setNormalTextureEnabledMode (Renderable r, PropertyMode mode) {
+   public static void setNormalMapEnabledMode (Renderable r, PropertyMode mode) {
       RenderProps props = createAndAssignProps (r);
-      NormalTextureProps tprops = createAndAssignNormalTextureProps (props);
+      NormalMapProps tprops = createAndAssignNormalMapProps (props);
       tprops.setEnabledMode (mode);
       r.setRenderProps (props);
    }
 
-   public static void setNormalTextureFileName (Renderable r, String fileName) {
+   public static void setNormalMapFileName (Renderable r, String fileName) {
       RenderProps props = createAndAssignProps (r);
-      NormalTextureProps tprops = createAndAssignNormalTextureProps (props);
+      NormalMapProps tprops = createAndAssignNormalMapProps (props);
       tprops.setFileName (fileName);
       r.setRenderProps (props);
    }
 
-   public static void setNormalTextureFileNameMode (Renderable r, PropertyMode mode) {
+   public static void setNormalMapFileNameMode (Renderable r, PropertyMode mode) {
       RenderProps props = createAndAssignProps (r);
-      NormalTextureProps tprops = createAndAssignNormalTextureProps (props);
+      NormalMapProps tprops = createAndAssignNormalMapProps (props);
+      tprops.setFileNameMode (mode);
+      r.setRenderProps (props);
+   }
+   
+   public static void setBumpMapEnabled (Renderable r, boolean enabled) {
+      RenderProps props = createAndAssignProps (r);
+      BumpMapProps tprops = createAndAssignBumpMapProps(props);
+      tprops.setEnabled (enabled);
+      r.setRenderProps (props);
+   }
+
+   public static void setBumpMapEnabledMode (Renderable r, PropertyMode mode) {
+      RenderProps props = createAndAssignProps (r);
+      BumpMapProps tprops = createAndAssignBumpMapProps (props);
+      tprops.setEnabledMode (mode);
+      r.setRenderProps (props);
+   }
+
+   public static void setBumpMapFileName (Renderable r, String fileName) {
+      RenderProps props = createAndAssignProps (r);
+      BumpMapProps tprops = createAndAssignBumpMapProps (props);
+      tprops.setFileName (fileName);
+      r.setRenderProps (props);
+   }
+
+   public static void setBumpMapFileNameMode (Renderable r, PropertyMode mode) {
+      RenderProps props = createAndAssignProps (r);
+      BumpMapProps tprops = createAndAssignBumpMapProps (props);
       tprops.setFileNameMode (mode);
       r.setRenderProps (props);
    }

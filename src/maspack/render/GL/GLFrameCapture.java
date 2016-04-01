@@ -9,7 +9,6 @@ import java.util.concurrent.Future;
 import javax.imageio.ImageIO;
 import javax.media.opengl.GL2GL3;
 
-import maspack.render.FrameBufferObject;
 import maspack.threads.SimpleThreadManager;
 
 public class GLFrameCapture {

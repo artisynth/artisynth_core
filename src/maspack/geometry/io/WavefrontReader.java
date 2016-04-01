@@ -20,9 +20,8 @@ import maspack.geometry.PolylineMesh;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
-import maspack.render.DiffuseTextureProps;
-import maspack.render.NormalTextureProps;
-import maspack.render.NormalTextureProps.NormalMode;
+import maspack.render.BumpMapProps;
+import maspack.render.TextureMapProps;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.ColorMixing;
@@ -1145,14 +1144,14 @@ public class WavefrontReader extends MeshReaderBase {
             // set texture properties
             props.setFaceStyle(Renderer.FaceStyle.FRONT_AND_BACK);
             props.setShading(Shading.GOURAUD);
-            DiffuseTextureProps tprops = props.getDiffuseTextureProps ();
+            TextureMapProps tprops = props.getTextureMapProps ();
             if (tprops == null) {
-               tprops = new DiffuseTextureProps();
+               tprops = new TextureMapProps();
             }
             tprops.setFileName(currPath + "/" + map);
             tprops.setEnabled(true);
-            tprops.setTextureMixing(ColorMixing.MODULATE);
-            props.setDiffuseTextureProps(tprops);
+            tprops.setTextureColorMixing(ColorMixing.MODULATE);
+            props.setTextureMapProps(tprops);
          }
 
          // restore period state
@@ -1173,14 +1172,13 @@ public class WavefrontReader extends MeshReaderBase {
             // set texture properties
             props.setFaceStyle(Renderer.FaceStyle.FRONT_AND_BACK);
             props.setShading(Shading.PHONG);
-            NormalTextureProps tprops = props.getNormalTextureProps ();
+            BumpMapProps tprops = props.getBumpMapProps ();
             if (tprops == null) {
-               tprops = new NormalTextureProps();
+               tprops = new BumpMapProps();
             }
             tprops.setFileName(currPath + "/" + map);
             tprops.setEnabled(true);
-            tprops.setNormalMode(NormalMode.BUMP);
-            props.setNormalTextureProps(tprops);
+            props.setBumpMapProps(tprops);
          }
 
          // restore period state

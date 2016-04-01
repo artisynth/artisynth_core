@@ -15,11 +15,13 @@ public class Material {
    private float[] diffuse;  // ambient color will always track diffuse
    private float[] specular;
    private float[] emission;
+   private float[] power;
    private float shininess;
 
    public static final float[] default_specular = {0.1f, 0.1f, 0.1f, 1f};
    public static final float[] default_diffuse = {0.8f, 0.8f, 0.8f, 1f};
    public static final float[] default_emission = {0f, 0f, 0f, 1f};
+   public static final float[] default_power = {1f, 1f, 1f, 1f};
 
    public static final int BLACK = 0;
    public static final int WHITE = 1;
@@ -37,6 +39,7 @@ public class Material {
       diffuse = new float[4];
       specular = new float[4];
       emission = new float[4];
+      power = new float[4];
       setDefaults();
    }
    
@@ -44,6 +47,7 @@ public class Material {
       setSpecular(default_specular);
       setDiffuse(default_diffuse);
       setEmission(default_emission);
+      setPower(default_power);
    }
 
    public Material (Material mat) {
@@ -194,6 +198,56 @@ public class Material {
       return emission;
    }
    
+   public void setPower(float[] p) {
+      power[0] = p[0];
+      power[1] = p[1];
+      power[2] = p[2];
+      power[3] = p[3];
+   }
+   
+   public void getPower(float[] p) {
+      p[0] = power[0];
+      p[1] = power[1];
+      p[2] = power[2];
+      p[3] = power[3];
+   }
+   
+   public float[] getPower() {
+      return power;
+   }
+   
+   public void setAmbientPower(float a) {
+      power[0] = a;
+   }
+   
+   public float getAmbientPower() {
+      return power[0];
+   }
+   
+   public void setDiffusePower(float d) {
+      power[1] = d;
+   }
+   
+   public float getDiffusePower() {
+      return power[1];
+   }
+   
+   public void setSpecularPower(float s) {
+      power[2] = s;
+   }
+   
+   public float getSpecularPower() {
+      return power[2];
+   }
+   
+   public void setEmissionPower(float e) {
+      power[3] = e;
+   }
+   
+   public float getEmissionPower() {
+      return power[3];
+   }
+   
    public void apply (GL2 gl) {
       apply (gl, GL2.GL_FRONT_AND_BACK, null);
    }
@@ -206,13 +260,22 @@ public class Material {
       apply (gl, sides, null);
    }
 
+   private void applyMat(GL2 gl, int sides, int target, float[] v, float scale) {
+      float[] m = new float[4];
+      for (int i=0; i<3; ++i) {
+         m[i] = v[i]*scale;
+      }
+      m[3] = v[3];
+      gl.glMaterialfv(sides, target, m, 0);
+   }
+   
    public void apply (GL2 gl, int sides, float[] diffuseOverride) {
       
       float[] diff = diffuse;
       
-      gl.glMaterialfv(sides, GL2.GL_EMISSION, emission, 0);
+      applyMat(gl, sides, GL2.GL_EMISSION, emission, power[3]);
+      applyMat(gl, sides, GL2.GL_SPECULAR, specular, power[2]);
       gl.glMaterialf (sides, GL2.GL_SHININESS, shininess);
-      gl.glMaterialfv (sides, GL2.GL_SPECULAR, specular, 0);
       if (diffuseOverride != null) {
          float[] temp = new float[4];
          temp[0] = diffuseOverride[0];
@@ -221,7 +284,8 @@ public class Material {
          temp[3] = diffuse[3];
          diff = temp;
       }
-      gl.glMaterialfv (sides, GL2.GL_AMBIENT_AND_DIFFUSE, diff, 0);
+      applyMat(gl, sides, GL2.GL_DIFFUSE, diff, power[1]);
+      applyMat(gl, sides, GL2.GL_AMBIENT, diff, power[0]);
    }
 
    private String floatArrayToString (float[] array) {
@@ -233,7 +297,8 @@ public class Material {
       s += floatArrayToString (specular) + "\n";
       s += floatArrayToString (diffuse) + "\n";
       s += floatArrayToString (emission) + "\n";
-      s += shininess;
+      s += shininess + "\n";
+      s += floatArrayToString (power);
       return s;
    }
 
@@ -267,6 +332,7 @@ public class Material {
       mat.setEmission(default_emission);
       mat.setDiffuse (r, g, b, 1f);
       mat.setAlpha (a);
+      mat.setPower (default_power);
       return mat;
    }
 
@@ -349,12 +415,19 @@ public class Material {
          if (emission[i] != mat.emission[i]) {
             return false;
          }
+         if (power[i] != mat.power[i]) {
+            return false;
+         }
       }
       if (shininess != mat.shininess) {
          return false;
       }
       // alpha value
       if (diffuse[3] != mat.diffuse[3]) {
+         return false;
+      }
+      
+      if (power[3] != mat.power[3]) {
          return false;
       }
       return true;

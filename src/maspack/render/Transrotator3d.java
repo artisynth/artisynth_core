@@ -51,13 +51,15 @@ public class Transrotator3d extends Dragger3dBase {
    static final int Y_ROTATE = 8;
    static final int Z_ROTATE = 9;
 
-   private static Line xAxis = new Line (0, 0, 0, 1, 0, 0);
-   private static Line yAxis = new Line (0, 0, 0, 0, 1, 0);
-   private static Line zAxis = new Line (0, 0, 0, 0, 0, 1);
+   private static final Line xAxis = new Line (0, 0, 0, 1, 0, 0);
+   private static final Line yAxis = new Line (0, 0, 0, 0, 1, 0);
+   private static final Line zAxis = new Line (0, 0, 0, 0, 0, 1);
 
-   private static Plane xyPlane = new Plane (0, 0, 1, 0);
-   private static Plane yzPlane = new Plane (1, 0, 0, 0);
-   private static Plane zxPlane = new Plane (0, 1, 0, 0);
+   private static final Plane xyPlane = new Plane (0, 0, 1, 0);
+   private static final Plane yzPlane = new Plane (1, 0, 0, 0);
+   private static final Plane zxPlane = new Plane (0, 1, 0, 0);
+   
+   private static RenderObject renderObject = null;
 
    public Transrotator3d() {
       super();
@@ -97,22 +99,17 @@ public class Transrotator3d extends Dragger3dBase {
       }
       viewer.scaleModelMatrix(mySize);
       
-      RenderObject ro = viewer.getSharedObject(Transrotator3d.class);
-      if (ro == null || !ro.isValid()) {
-         ro = createTransrotatorRenderable();
-         viewer.addSharedObject(Transrotator3d.class, ro);
+      if (renderObject == null) {
+         renderObject = createTransrotatorRenderable();
       }
       
       // select appropriate color buffer
       if (mySelectedComponent != 0) {
-         ro.lineGroup(mySelectedComponent);  
-         viewer.drawLines(ro);
+         viewer.drawLines(renderObject, mySelectedComponent);
       }
-      ro.lineGroup(0);
-      viewer.drawLines(ro);
+      viewer.drawLines(renderObject, 0);
       
       viewer.popModelMatrix();
-
 
       if (myDragMode != DragMode.OFF && 
          (mySelectedComponent == X_ROTATE

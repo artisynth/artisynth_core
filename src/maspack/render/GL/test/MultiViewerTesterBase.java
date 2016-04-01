@@ -20,10 +20,10 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderList;
 import maspack.render.RenderObject;
-import maspack.render.Renderer.DrawMode;
 import maspack.render.RenderObjectFactory;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.PointStyle;
@@ -292,7 +292,7 @@ public class MultiViewerTesterBase {
          List<Face> faces = bunny.getFaces();
          int[] indexOffs = bunny.getFeatureIndexOffsets();
          Vector3d centroid = new Vector3d();
-         final int[] invalid = new int[] {-1}; 
+
          for (int i=0; i<faces.size(); i++) {
             Face f = faces.get(i);
             int foff = indexOffs[f.idx];
@@ -303,12 +303,7 @@ public class MultiViewerTesterBase {
             for (int j=0; j<pidxs.length; j++) {
 
                // only add if unique combination
-               RenderObject.VertexIndexSet v = new RenderObject.VertexIndexSet(
-                  pidxs[j], 
-                  nidxs[foff + j],
-                  -1,
-                  -1);
-               vidxs[j] = r.addVertex(v.getPositionIndex(), v.getNormalIndex(), -1, -1);
+               vidxs[j] = r.addVertex(pidxs[j], nidxs[foff+j], -1, -1);
             }
             // triangle fan for faces
             f.computeCentroid(centroid);

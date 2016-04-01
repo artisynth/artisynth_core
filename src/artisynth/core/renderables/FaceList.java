@@ -6,32 +6,34 @@
  */
 package artisynth.core.renderables;
 
-import java.util.LinkedList;
 import java.util.ArrayList;
+import java.util.LinkedList;
 
+import javax.media.opengl.GL2;
+
+import artisynth.core.modelbase.RenderableComponentList;
 import maspack.geometry.Face;
 import maspack.geometry.HalfEdge;
-import maspack.geometry.Vertex3d;
 import maspack.geometry.MeshBase;
+import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.PointRenderProps;
+import maspack.render.RenderKeyImpl;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.Shading;
-import maspack.render.GL.GL2.DisplayListKey;
+import maspack.render.GL.GL2.GL2VersionedObject;
 import maspack.render.GL.GL2.GL2Viewer;
-import artisynth.core.modelbase.RenderableComponentList;
-
-import javax.media.opengl.GL2;
+import maspack.util.BooleanHolder;
 
 public class FaceList<P extends FaceComponent> extends RenderableComponentList<P> {
-
+   
    protected static final long serialVersionUID = 1;
-   DisplayListKey faceKey;
-   DisplayListKey edgeKey;
+   RenderKeyImpl faceKey;
+   RenderKeyImpl edgeKey;
    int faceListVersion;
    int edgeListVersion;
    boolean facesChanged;
@@ -87,8 +89,8 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       super (type, name, shortName);
       setRenderProps (createRenderProps());
       
-      faceKey = new DisplayListKey(this, 0);
-      edgeKey = new DisplayListKey(this, 1);
+      faceKey = new RenderKeyImpl ();
+      edgeKey = new RenderKeyImpl ();
       faceListVersion = 0;
       edgeListVersion = 0;
       facesChanged = true;
@@ -152,33 +154,25 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
 //         }
 
          boolean useDisplayList = !renderer.isSelecting();
-         int displayList = 0;
+         GL2VersionedObject gvo = null;
          int facePrint = getFaceVersion();
-         boolean compile = true;
+         BooleanHolder compile = new BooleanHolder(true);
          
          if (useDisplayList) {
-            displayList = viewer.getDisplayList(gl, faceKey, facePrint);
-            if (displayList < 0) {
-               displayList = -displayList;
-               compile = true;
-               useDisplayList = true;
-            } else {
-               compile = false;
-               useDisplayList = (displayList > 0);
-            }
+            gvo = viewer.getVersionedObject(gl, faceKey, facePrint, compile);
          }
          
-         if (!useDisplayList || compile) {
+         if (!useDisplayList || compile.value) {
             if (useDisplayList) {
-               gl.glNewList(displayList, GL2.GL_COMPILE);
+               gvo.beginCompile (gl);
             }
             drawFaces (gl, renderer, props);
             if (useDisplayList) {
-               gl.glEndList();
-               gl.glCallList(displayList);
+               gvo.endCompile (gl);
+               gvo.draw (gl);
             }
          } else {
-            gl.glCallList(displayList);
+            gvo.draw (gl);
          }
 
 //         if (useVertexColouring) {
@@ -215,33 +209,25 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
          }
 
          boolean useDisplayList = !renderer.isSelecting();
-         int displayList = 0;
+         GL2VersionedObject gvo = null;
          int edgePrint = getEdgeVersion();
-         boolean compile = true;
+         BooleanHolder compile = new BooleanHolder(true);
          
          if (useDisplayList) {
-            displayList = viewer.getDisplayList(gl, edgeKey, edgePrint);
-            if (displayList < 0) {
-               displayList = -displayList;
-               compile = true;
-               useDisplayList = true;
-            } else {
-               compile = false;
-               useDisplayList = (displayList > 0);
-            }
+            gvo = viewer.getVersionedObject(gl, edgeKey, edgePrint, compile);
          }
          
-         if (!useDisplayList || compile) {
+         if (!useDisplayList || compile.value) {
             if (useDisplayList) {
-               gl.glNewList(displayList, GL2.GL_COMPILE);
+               gvo.beginCompile (gl);
             }
             drawEdges(gl, props);
             if (useDisplayList) {
-               gl.glEndList();
-               gl.glCallList(displayList);
+               gvo.endCompile (gl);
+               gvo.draw (gl);
             }
          } else {
-            gl.glCallList(displayList);
+            gvo.draw (gl);
          }
 
          renderer.setLineWidth (savedLineWidth);
@@ -478,4 +464,18 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       }
    }
 
+   @Override
+   protected void finalize () throws Throwable {
+      super.finalize ();
+      
+      if (faceKey != null) {
+         faceKey.invalidate ();
+         faceKey = null;
+      }
+      if (edgeKey != null) {
+         edgeKey.invalidate ();
+         edgeKey = null;
+      }
+   }
+   
 }

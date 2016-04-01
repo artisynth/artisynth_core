@@ -8,7 +8,7 @@ public abstract class TextureCoordBufferPutter {
 
    public abstract void putTextureCoord(ByteBuffer buff, float x, float y);
    public abstract int bytesPerTextureCoord();
-   public abstract BufferStorage storage();
+   public abstract GL3AttributeStorage storage();
    
    public void putTextureCoord(ByteBuffer buff, float[] tex) {
       putTextureCoord(buff, tex[0], tex[1]);
@@ -103,8 +103,8 @@ public abstract class TextureCoordBufferPutter {
       }
       
       @Override
-      public BufferStorage storage() {
-         return BufferStorage.FLOAT_2;
+      public GL3AttributeStorage storage() {
+         return GL3AttributeStorage.FLOAT_2;
       }
       
    }
@@ -123,8 +123,8 @@ public abstract class TextureCoordBufferPutter {
       }
       
       @Override
-      public BufferStorage storage() {
-         return BufferStorage.SHORT_N_2;
+      public GL3AttributeStorage storage() {
+         return GL3AttributeStorage.SHORT_N_2;
       }
       
    }

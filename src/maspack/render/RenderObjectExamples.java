@@ -1,5 +1,6 @@
 package maspack.render;
 
+import java.util.HashMap;
 import java.util.List;
 
 import maspack.geometry.Face;
@@ -10,6 +11,8 @@ import maspack.matrix.Vector3d;
 import maspack.render.Renderer.DrawMode;
 
 public class RenderObjectExamples {
+   
+   private static HashMap<Object,RenderObject> shared = new HashMap<> ();
 
    /**
     * Example showing basic construction, but advanced usage in the form
@@ -17,8 +20,7 @@ public class RenderObjectExamples {
     */
    public static void example1(Renderer renderer, int selectedAxis) {
       
-      // get shared object (so we only have one instance per viewer)
-      RenderObject axes = renderer.getSharedObject("axes");
+      RenderObject axes = shared.get("axes");
       
       // create if doesn't exist
       if (axes == null) {
@@ -27,7 +29,7 @@ public class RenderObjectExamples {
          byte[] red    = new byte[]{(byte)255,(byte)0,  (byte)0,  (byte)255};
          byte[] green  = new byte[]{(byte)0,  (byte)255,(byte)0,  (byte)255};
          byte[] blue   = new byte[]{(byte)0,  (byte)0,  (byte)255,(byte)255};
-         byte[] yellow = new byte[]{(byte)255,(byte)255,(byte)0,  (byte)255};
+         // byte[] yellow = new byte[]{(byte)255,(byte)255,(byte)0,  (byte)255};
          float[] origin = new float[]{0,0,0};
          float[] xunit = new float[]{1,0,0};
          float[] yunit = new float[]{0,1,0};
@@ -45,35 +47,9 @@ public class RenderObjectExamples {
          axes.setCurrentColor(cz);
          axes.addLine(origin, zunit);
          
-         //         // selected axes
-         //         axes.createColorSetFrom(0);    // copy original colors
-         //         axes.setColor(cx, yellow);     // replace x-axis color
-         //         
-         //         axes.createColorSetFrom(0);
-         //         axes.setColor(cy, yellow);
-         //         
-         //         axes.createColorSetFrom(0);
-         //         axes.setColor(cz, yellow);
-         
-         renderer.addSharedObject("axes", axes); // share with others
+         shared.put ("axes", axes);
       }
-      
-      //      // draw axes
-      //      // select appropriate color set
-      //      switch (selectedAxis) {
-      //         case 0:  // x-axis 
-      //            axes.colorSet(1);
-      //            break;
-      //         case 1:  // y-axis
-      //            axes.colorSet(2);
-      //            break;
-      //         case 2:  // z-axis
-      //            axes.colorSet(3);
-      //            break;
-      //         default: // no axis
-      //            axes.colorSet(0); // default
-      //      }
-      
+            
       // <apply transform>
       // draw axes
       renderer.draw(axes);
@@ -119,7 +95,6 @@ public class RenderObjectExamples {
       // build faces
       int[] indexOffs = mesh.getFeatureIndexOffsets();
       List<Face> faces = mesh.getFaces();
-      final int[] invalid = new int[] {-1}; 
       for (int i=0; i<faces.size(); i++) {
          Face f = faces.get(i);
          int foff = indexOffs[f.idx];

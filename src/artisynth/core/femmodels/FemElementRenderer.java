@@ -143,7 +143,7 @@ public class FemElementRenderer {
       int numt = r.numTriangles(tgrp);
 
       if (numt > 0) {
-         int[] vidxs = r.getTriangleArray(tgrp);
+         int[] vidxs = r.getTriangles(tgrp);
          int k = 0;
          for (int i=0; i<numt; i++) {
             float[] nrm = r.getVertexNormal (vidxs[k]);
@@ -226,7 +226,6 @@ public class FemElementRenderer {
 
       r.setPositionsDynamic (true);
       r.setNormalsDynamic (true);
-      r.commit();
       myRob = r;
    }
 

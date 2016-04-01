@@ -9,12 +9,15 @@ package maspack.geometry;
 import java.util.ArrayList;
 
 import maspack.matrix.Vector3d;
+import maspack.render.BumpMapProps;
+import maspack.render.NormalMapProps;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.ColorInterpolation;
-import maspack.render.Renderer.Shading;
 import maspack.render.Renderer.ColorMixing;
+import maspack.render.Renderer.Shading;
+import maspack.render.TextureMapProps;
 
 /**
  * Utility class for rendering {@link PolygonalMesh} objects.
@@ -116,13 +119,11 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          addFaceNormals (r, pmesh);
       }
       addColors (r, pmesh);
-      // Texture coordinates currently break GL3 rendering:
-      //addTextureCoords (r, pmesh);     
+      addTextureCoords (r, pmesh);     
 
       int[] nidxs = useVertexNormals ? pmesh.getNormalIndices() : null;
       int[] cidxs = pmesh.hasColors() ? pmesh.getColorIndices() : null;
-      //int[] tidxs = pmesh.hasTextureCoords() ? pmesh.getTextureIndices() : null;
-      int[] tidxs = null; // Texture coordinates currently break GL3 rendering
+      int[] tidxs = pmesh.hasTextureCoords() ? pmesh.getTextureIndices() : null;
       
       int[] indexOffs = pmesh.getFeatureIndexOffsets();      
       int[] pidxs = pmesh.createVertexIndices();
@@ -151,7 +152,6 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
             r.addLineLoop(vidxs);
          }
       } 
-      r.commit();
       myRob = r;
    }
 
@@ -281,15 +281,15 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       }
       ColorMixing savedColorMixing = null;
       if (disableColors) {
-         savedColorMixing = renderer.getColorMixing();
-         renderer.setColorMixing (ColorMixing.NONE);
+         savedColorMixing = renderer.getVertexColorMixing();
+         renderer.setVertexColorMixing (ColorMixing.NONE);
       }
       renderer.drawLines (myRob);
       if (savedColorInterp != null) {
          renderer.setColorInterpolation (savedColorInterp);
       }
       if (disableColors) {
-         renderer.setColorMixing (savedColorMixing);
+         renderer.setVertexColorMixing (savedColorMixing);
       }
       renderer.setLineWidth (savedLineWidth);
       renderer.setShading (savedShadeModel);
@@ -319,6 +319,8 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
    private void drawFaces (
       Renderer renderer, PolygonalMesh mesh, RenderProps props, 
       boolean selected) {
+      
+      boolean useTextures = mesh.hasTextureCoords ();
 
       Renderer.FaceStyle savedFaceStyle = renderer.getFaceStyle();
       Shading savedShadeModel = renderer.getShading();
@@ -344,7 +346,28 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          ////gl.glEnable (GL2.GL_POLYGON_OFFSET_FILL);
          ////gl.glPolygonOffset (1f, 1f);
       }
+      
+      TextureMapProps oldtprops = null;
+      NormalMapProps oldnprops = null;
+      BumpMapProps oldbprops = null;
+      if (useTextures) {
+         TextureMapProps dtprops = props.getTextureMapProps ();
+         oldtprops = renderer.setTextureMapProps(dtprops);
+         
+         NormalMapProps ntprops = props.getNormalMapProps ();
+         oldnprops = renderer.setNormalMapProps (ntprops);
+         
+         BumpMapProps btprops = props.getBumpMapProps ();
+         oldbprops = renderer.setBumpMapProps (btprops);
+      }
       renderer.drawTriangles (myRob);
+      if (useTextures) {
+         // restore diffuse texture properties
+         renderer.setTextureMapProps (oldtprops);
+         renderer.setNormalMapProps (oldnprops);
+         renderer.setBumpMapProps (oldbprops);
+      }
+      
       if (props.getDrawEdges()) {
          // FINISH: add setPolygonalOffset() to renderer
          //rendererer.setPolygonalOffset (0f);

@@ -40,6 +40,8 @@ public class Jack3d extends Dragger3dBase {
    private static Plane xyPlane = new Plane (0, 0, 1, 0);
    private static Plane yzPlane = new Plane (1, 0, 0, 0);
    private static Plane zxPlane = new Plane (0, 1, 0, 0);
+   
+   private static RenderObject renderObject = null;
 
    public Jack3d (double size) {
       super();
@@ -71,19 +73,15 @@ public class Jack3d extends Dragger3dBase {
 
       viewer.scaleModelMatrix(mySize);
 
-      RenderObject ro = viewer.getSharedObject(Jack3d.class);
-      if (ro == null || !ro.isValid()) {
-         ro = createJackRenderable();
-         viewer.addSharedObject(Jack3d.class, ro);
+      if (renderObject == null) {
+         renderObject = createJackRenderable();
       }
 
       // draw selected component first
       if (mySelectedComponent != 0) {
-         ro.lineGroup(mySelectedComponent);  
-         viewer.drawLines(ro);
+         viewer.drawLines(renderObject, mySelectedComponent);
       }
-      ro.lineGroup(0);  
-      viewer.drawLines(ro);
+      viewer.drawLines(renderObject, 0);
 
       viewer.setLineWidth(1);
       viewer.setShading (savedShading);

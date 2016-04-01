@@ -17,7 +17,7 @@ import javax.media.opengl.GL;
 import javax.media.opengl.GL2GL3;
 import javax.media.opengl.GLAutoDrawable;
 
-import maspack.render.FrameBufferObject;
+import maspack.util.BufferUtilities;
 
 /**
  * GLSelector that works using the traditional GL_SELECT mechanism (now
@@ -212,6 +212,7 @@ public class GLColorSelector extends GLSelector {
             }
          }
       }
+      BufferUtilities.freeDirectBuffer (pixels);
      
       myViewer.selectionEvent.mySelectedObjects = new LinkedList[0];
 
@@ -283,6 +284,7 @@ public class GLColorSelector extends GLSelector {
       int a = 0xff & colorId;
       // a = 255;
 
+      // XXX perhaps better to let viewer decide color?
       myViewer.forceColor(r/255f, g/255f, b/255f, a/255f);
       myCurrentIdx = idx;
    }

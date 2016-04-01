@@ -87,7 +87,6 @@ public class PointMeshRenderer extends MeshRendererBase {
             r.addLine (i, numv+i);
          }
       }
-      r.commit();
    }
 
    protected void updateRenderObject (MeshBase mesh, RenderProps props) {

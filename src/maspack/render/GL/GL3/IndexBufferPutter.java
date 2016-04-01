@@ -8,7 +8,7 @@ public abstract class IndexBufferPutter {
 
    public abstract void putIndex(ByteBuffer buff, int idx);
    public abstract int bytesPerIndex();
-   public abstract BufferStorage storage();
+   public abstract GL3AttributeStorage storage();
    
    public void putIndices(ByteBuffer buff, int... idxs) {
       for (int i=0; i<idxs.length; ++i) {
@@ -74,8 +74,8 @@ public abstract class IndexBufferPutter {
       }
 
       @Override
-      public BufferStorage storage() {
-         return BufferStorage.UBYTE;
+      public GL3AttributeStorage storage() {
+         return GL3AttributeStorage.UBYTE;
       }
       
    }
@@ -93,8 +93,8 @@ public abstract class IndexBufferPutter {
       }
       
       @Override
-      public BufferStorage storage() {
-         return BufferStorage.USHORT;
+      public GL3AttributeStorage storage() {
+         return GL3AttributeStorage.USHORT;
       }
       
    }
@@ -112,8 +112,8 @@ public abstract class IndexBufferPutter {
       }
       
       @Override
-      public BufferStorage storage() {
-         return BufferStorage.UINT;
+      public GL3AttributeStorage storage() {
+         return GL3AttributeStorage.UINT;
       }
    }
    

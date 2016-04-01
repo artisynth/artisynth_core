@@ -8,7 +8,7 @@ public abstract class ColorBufferPutter {
 
    public abstract void putColor(ByteBuffer buff, byte r, byte g, byte b, byte a);
    public abstract int bytesPerColor();
-   public abstract BufferStorage storage();
+   public abstract GL3AttributeStorage storage();
    
    public void putColor(ByteBuffer buff, byte[] color) {
       putColor(buff, color[0], color[1], color[2], color[3]);
@@ -113,8 +113,8 @@ public abstract class ColorBufferPutter {
       }
 
       @Override
-      public BufferStorage storage() {
-         return BufferStorage.UBYTE_N_4;
+      public GL3AttributeStorage storage() {
+         return GL3AttributeStorage.UBYTE_N_4;
       }
       
    }

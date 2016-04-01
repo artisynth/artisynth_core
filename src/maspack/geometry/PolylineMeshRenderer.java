@@ -78,7 +78,6 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
          // triangle fan for faces, line loop for edges
          r.addLineStrip(vidxs);
       }
-      r.commit();
    }
 
    protected void updateRenderObject (MeshBase mesh, RenderProps props) {

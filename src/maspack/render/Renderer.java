@@ -9,8 +9,9 @@ package maspack.render;
 import java.awt.Color;
 
 import maspack.matrix.AffineTransform3d;
-import maspack.matrix.RigidTransform3d;
 import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.render.GL.GLSelectable;
 import maspack.render.GL.GLSelectionFilter;
@@ -415,7 +416,7 @@ public interface Renderer {
     *
     * @return <code>true</code> if the color mixing method is supported
     */
-   public boolean hasColorMixing (ColorMixing cmix);
+   public boolean hasVertexColorMixing (ColorMixing cmix);
 
    /**
     * Returns the method used for combining vertex coloring and material
@@ -423,7 +424,7 @@ public interface Renderer {
     *
     * @return current color mixing method
     */
-   public ColorMixing getColorMixing();
+   public ColorMixing getVertexColorMixing();
 
    /**
     * Sets the method used for combining vertex coloring and material coloring.
@@ -434,33 +435,7 @@ public interface Renderer {
     * @param cmix new color mixing method
     * @return previous color mixing method
     */
-   public ColorMixing setColorMixing (ColorMixing cmix); 
-   
-   /**
-    * Queries whether or not a specified method for combining textures
-    * and material coloring is supported by this Renderer.
-    *
-    * @return <code>true</code> if the texture mixing method is supported
-    */
-   public boolean hasTextureMixing (ColorMixing cmix);
-
-   /**
-    * Returns the method used for combining textures and material coloring.
-    *
-    * @return current texture mixing method
-    */
-    public ColorMixing getTextureMixing();
-
-   /**
-    * Sets the method used for combining textures and material coloring.
-    * This Renderer may not support all methods. If a method is not supported,
-    * then the texture mixing method will remain unchanged.  Applications can 
-    * use {@link #hasTextureMixing} to test whether a method is supported.
-    *
-    * @param tmix new texture mixing method
-    * @return previous texture mixing method
-    */
-   public ColorMixing setTextureMixing (ColorMixing tmix);
+   public ColorMixing setVertexColorMixing (ColorMixing cmix); 
 
    /**
     * Returns the current shading model used by this renderer. A shading model
@@ -1361,12 +1336,39 @@ public interface Renderer {
     */
    public Shading setPropsShading (RenderProps props);
    
+   /**
+    * Sets the color-map texture properties specified by
+    * <code>props</code>
+    * @param props properties giving texture information, null
+    * to disable texture
+    * @return the previous color map texture properties
+    */
+   public TextureMapProps setTextureMapProps(TextureMapProps props);
+   
+   /**
+    * Sets the normal-mapping texture properties specified by
+    * <code>props</code>
+    * @param props properties giving texture information, null
+    * to disable texture
+    * @return the previous normal texture properties
+    */
+   public NormalMapProps setNormalMapProps(NormalMapProps props);
+   
+   /**
+    * Sets the bump-mapping texture properties specified by
+    * <code>props</code>
+    * @param props properties giving texture information, null
+    * to disable texture
+    * @return the previous normal texture properties
+    */
+   public BumpMapProps setBumpMapProps(BumpMapProps props);
+   
    //==========================================================================
    // RENDER OBJECTS
    //==========================================================================
    
    /**
-    * Draws all the triangles in the currently active triangle group of the
+    * Draws all the triangles in the active triangle group of the
     * specified render object, using the current material and shading.
     *
     * @param robj render object
@@ -1374,7 +1376,16 @@ public interface Renderer {
    public void drawTriangles (RenderObject robj);
    
    /**
-    * Draws all the lines in the currently active line group of the
+    * Draws all the triangles in the specified triangle group of the
+    * render object, using the current material and shading.
+    *
+    * @param robj render object
+    * @param gidx triangle group index
+    */
+   public void drawTriangles (RenderObject robj, int gidx);
+   
+   /**
+    * Draws all the lines in the active line group of the
     * specified render object, using the current material and shading.
     * 
     * @param robj render object
@@ -1382,7 +1393,16 @@ public interface Renderer {
    public void drawLines (RenderObject robj);
    
    /**
-    * Draws all the lines in the currently active line group of the specified
+    * Draws all the lines in the specified line group of the
+    * render object, using the current material and shading.
+    * 
+    * @param robj render object
+    * @param gidx line group index
+    */
+   public void drawLines (RenderObject robj, int gidx);
+   
+   /**
+    * Draws all the lines in the active line group of the specified
     * render object, using the current material and shading.  The lines are
     * drawn either as pixel-based lines or as solid primitives, according to
     * the specified line style. For lines drawn using the style {@link
@@ -1398,7 +1418,24 @@ public interface Renderer {
    public void drawLines (RenderObject robj, LineStyle style, double rad);
    
    /**
-    * Draws all the points in the currently active point group of the
+    * Draws all the lines in the specified line group of the supplied
+    * render object, using the current material and shading.  The lines are
+    * drawn either as pixel-based lines or as solid primitives, according to
+    * the specified line style. For lines drawn using the style {@link
+    * LineStyle#LINE}, the argument <code>rad</code> gives the line width,
+    * whereas for solid primitives ({@link LineStyle#CYLINDER}, {@link
+    * LineStyle#SOLID_ARROW}, {@link LineStyle#SPINDLE}), it gives
+    * the nominal radius.
+    * 
+    * @param robj render object
+    * @param gidx line group index
+    * @param style line style to use for drawing
+    * @param rad radius for solid lines or width for pixel-based lines
+    */
+   public void drawLines (RenderObject robj, int gidx, LineStyle style, double rad);
+   
+   /**
+    * Draws all the points in the active point group of the
     * specified render object, using the current material and shading.
     * 
     * @param robj render object
@@ -1406,7 +1443,16 @@ public interface Renderer {
    public void drawPoints (RenderObject robj);
    
    /**
-    * Draws all the points in the currently active point group of the specified
+    * Draws all the points in the specified point group of the
+    * supplied render object, using the current material and shading.
+    * 
+    * @param robj render object
+    * @param gidx point group index
+    */
+   public void drawPoints (RenderObject robj, int gidx);
+   
+   /**
+    * Draws all the points in the active point group of the specified
     * render object, using the current material and shading. The points are
     * drawn either as pixel-based points or as solid spheres, according to the
     * specified points style. For lines drawn using the style {@link
@@ -1420,6 +1466,20 @@ public interface Renderer {
    public void drawPoints (RenderObject robj, PointStyle style, double rad);
    
    /**
+    * Draws all the points in the specified point group of the supplied
+    * render object, using the current material and shading. The points are
+    * drawn either as pixel-based points or as solid spheres, according to the
+    * specified points style. For lines drawn using the style {@link
+    * PointStyle#POINT}, the argument <code>rad</code> gives the point size,
+    * whereas for {@link PointStyle#SPHERE} it gives the sphere radius.
+    * 
+    * @param robj render object
+    * @param style point style to use for drawing
+    * @param rad radius for spheres or width for pixel-based points
+    */
+   public void drawPoints (RenderObject robj, int gidx, PointStyle style, double rad);
+   
+   /**
     * Draws all the vertices associated with the specified RenderObject,
     * using a specified drawing mode and the current material and shading.
     * 
@@ -1429,39 +1489,11 @@ public interface Renderer {
    public void drawVertices (RenderObject robj, DrawMode mode);
    
    /**
-    * Draw all currently active groups of points, lines, and triangles in the
-    * specified render object, using the current material and shading.
-    * 
-    * @param robj render object
+    * Draws the current point group, line group, and triangle group.
+    * @param robj
     */
-   public void draw (RenderObject robj);
-   
-   /**
-    * Locates a RenderObject that has been registered with this Renderer.
-    * 
-    * @param key key used to address the RenderObject
-    * @return specified shared object
-    */
-   public RenderObject getSharedObject(Object key);
-   
-   /**
-    * Registers a RenderObject with this Renderer so that it can be
-    * shared by different parts of the application.
-    *  
-    * @param key key used to address the RenderObject
-    * @param r RenderObject to be shared
-    */
-   public void addSharedObject (Object key, RenderObject r);
-
-   /**
-    * Removes a RenderObject that has been registered with this Renderer.
-    * 
-    * @param key key used to address the RenderObject
-    * @return <code>false</code> if the specified object was not
-    * registered with this Renderer
-    */
-   public boolean removeSharedObject(Object key);
-   
+   public void draw(RenderObject robj);
+     
    // MATRICES
    
    /**
@@ -1866,7 +1898,7 @@ public interface Renderer {
     * @throws IllegalStateException if the renderer is not in draw mode
     */
    public void setNormal (double nx, double ny, double nz);
-
+   
    /**
     * Sets the normal to be associated with the next vertex to be
     * added while in draw mode. This method is functionally equivalent to
@@ -1877,6 +1909,42 @@ public interface Renderer {
     * @throws IllegalStateException if the renderer is not in draw mode
     */
    public void setNormal (Vector3d nrm);
+   
+   /**
+    * Sets the texture coordinate to be associated with the next vertex to be
+    * added while in draw mode. This texture coordinate will remain in effect until
+    * a subsequent <code>setTexcoord</code> call. The coordinate should be
+    * within the range [0, 1]
+    * 
+    * @param tx texture x coordinate
+    * @param ty texture y coordinate
+    * @see #beginDraw
+    * @throws IllegalStateException if the renderer is not in draw mode
+    */
+   public void setTexcoord (float tx, float ty);
+
+   /**
+    * Sets the texture coordinate to be associated with the next vertex to be
+    * added while in draw mode. This method is functionally equivalent to
+    * {@link #setTexcoord(float,float,float)}. 
+    * 
+    * @param tx texture x coordinate
+    * @param ty texture y coordinate
+    * @see #beginDraw
+    * @throws IllegalStateException if the renderer is not in draw mode
+    */
+   public void setTexcoord (double tx, double ty);
+   
+   /**
+    * Sets the texture coordinate to be associated with the next vertex to be
+    * added while in draw mode. This method is functionally equivalent to
+    * to {@link #setTexcoord(float,float,float)}. 
+    * 
+    * @param tex texture coordinates
+    * @see #beginDraw
+    * @throws IllegalStateException if the renderer is not in draw mode
+    */
+   public void setTexcoord (Vector2d tex);
 
    /**
     * Ends draw mode. This is analogous to <code>glEnd()</code> in the old

@@ -40,24 +40,22 @@ import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SVDecomposition3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
-import maspack.matrix.VectorNd;
 import maspack.properties.HasProperties;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
+import maspack.render.BumpMapProps;
+import maspack.render.TextureMapProps;
 import maspack.render.Dragger3d;
 import maspack.render.Dragger3d.DraggerType;
 import maspack.render.Dragger3dBase;
 import maspack.render.DrawToolBase;
 import maspack.render.Material;
 import maspack.render.MouseRayEvent;
+import maspack.render.NormalMapProps;
 import maspack.render.RenderList;
 import maspack.render.RenderListener;
+import maspack.render.RenderObject;
 import maspack.render.RenderProps;
-import maspack.render.Renderer;
-import maspack.render.Renderer.FaceStyle;
-import maspack.render.Renderer.LineStyle;
-import maspack.render.Renderer.PointStyle;
-import maspack.render.Renderer.Shading;
 import maspack.render.RendererEvent;
 import maspack.render.SortedRenderableList;
 import maspack.util.InternalErrorException;
@@ -128,19 +126,12 @@ HasProperties {
       Shading shading;
       boolean hsvInterpolationEnabled;  
       ColorMixing colorMixing;  // method for combining material/vertex colors
-      ColorMixing textureMixing;// method for combining material/texture colors
       
       public ViewerState() {
       }
 
       public ViewerState (GLViewer viewer) {
          colorMixing = ColorMixing.REPLACE;
-         if (viewer.hasTextureMixing (ColorMixing.MODULATE)) {
-            textureMixing = ColorMixing.MODULATE;
-         }
-         else {
-            textureMixing = ColorMixing.REPLACE;
-         }
       }
 
       public ViewerState clone() {
@@ -154,7 +145,6 @@ HasProperties {
          c.hsvInterpolationEnabled = hsvInterpolationEnabled;
          c.textureMappingEnabled = textureMappingEnabled;
          c.colorMixing = colorMixing;
-         c.textureMixing = textureMixing;
          return c;
       }
    }
@@ -236,6 +226,10 @@ HasProperties {
    protected boolean mySelectedColorActive = false;
    protected boolean myCurrentMaterialModified = true;  // trigger for detecting when material is updated
 
+   protected TextureMapProps myCurrentColorMapProps = null;
+   protected NormalMapProps myCurrentNormalMapProps = null;
+   protected BumpMapProps myCurrentBumpMapProps = null;
+   
    // Canvas
    protected GLAutoDrawable drawable;
    protected GLCanvas canvas;
@@ -1826,36 +1820,55 @@ HasProperties {
       return myViewerState.textureMappingEnabled;
    }
    
-   public abstract boolean hasColorMixing (ColorMixing cmix);
+   public abstract boolean hasVertexColorMixing (ColorMixing cmix);
    
    @Override
-   public ColorMixing setColorMixing (ColorMixing cmix) {
+   public ColorMixing setVertexColorMixing (ColorMixing cmix) {
       ColorMixing prev = myViewerState.colorMixing;
-      if (hasColorMixing(cmix)) {
+      if (hasVertexColorMixing(cmix)) {
          myViewerState.colorMixing = cmix;
       }
       return prev;
    }
    
    @Override
-   public ColorMixing getColorMixing () {
+   public ColorMixing getVertexColorMixing () {
       return myViewerState.colorMixing;
    }
    
    public abstract boolean hasTextureMixing (ColorMixing tmix);
    
    @Override
-   public ColorMixing setTextureMixing (ColorMixing tmix) {
-      ColorMixing prev = myViewerState.textureMixing;
-      if (hasTextureMixing (tmix)) {
-         myViewerState.textureMixing = tmix;
+   public TextureMapProps setTextureMapProps (TextureMapProps props) {
+      TextureMapProps old = myCurrentColorMapProps;
+      if (props != null) {
+         myCurrentColorMapProps = props.clone();
+      } else {
+         myCurrentColorMapProps = null;
       }
-      return prev;
+      return old;
    }
    
    @Override
-   public ColorMixing getTextureMixing () {
-      return myViewerState.textureMixing;
+   public NormalMapProps setNormalMapProps (NormalMapProps props) {
+      NormalMapProps old = myCurrentNormalMapProps;
+      if (props != null) {
+         myCurrentNormalMapProps = props.clone();
+      } else {
+         myCurrentNormalMapProps = null;
+      }
+      return old;
+   }
+   
+   @Override
+   public BumpMapProps setBumpMapProps (BumpMapProps props) {
+      BumpMapProps old = myCurrentBumpMapProps;
+      if (props != null) {
+         myCurrentBumpMapProps = props.clone();
+      } else {
+         myCurrentBumpMapProps = null;
+      }
+      return old;
    }
 
    protected boolean isGammaCorrectionEnabled() {
@@ -1947,10 +1960,7 @@ HasProperties {
          setTextureMappingEnabled(state.textureMappingEnabled);
       }
       if (myViewerState.colorMixing != state.colorMixing) {
-         setColorMixing (state.colorMixing);
-      }
-      if (myViewerState.textureMixing != state.textureMixing) {
-         setTextureMixing (state.textureMixing);
+         setVertexColorMixing (state.colorMixing);
       }
 
    }
@@ -2877,48 +2887,6 @@ HasProperties {
       canvas.destroy ();
    }
 
-   @Override
-   public void addVertex (double px, double py, double pz) {
-      addVertex ((float)px, (float)py, (float)pz);
-   }
-
-   @Override
-   public void addVertex (Vector3d pnt) {
-      addVertex ((float)pnt.x, (float)pnt.y, (float)pnt.z);
-   }
-
-   @Override
-   public void setNormal (double nx, double ny, double nz) {
-      setNormal ((float)nx, (float)ny, (float)nz);
-   }
-
-   @Override
-   public void setNormal (Vector3d nrm) {
-      setNormal ((float)nrm.x, (float)nrm.y, (float)nrm.z);
-   }
-
-   protected int getDrawPrimitive (DrawMode mode) {
-      switch (mode) {
-         case POINTS:
-            return GL.GL_POINTS;
-         case LINES:
-            return GL.GL_LINES;
-         case LINE_LOOP:
-            return GL.GL_LINE_LOOP;
-         case LINE_STRIP:
-            return GL.GL_LINE_STRIP;
-         case TRIANGLES:
-            return GL.GL_TRIANGLES;
-         case TRIANGLE_FAN:
-            return GL.GL_TRIANGLE_FAN;
-         case TRIANGLE_STRIP:
-            return GL.GL_TRIANGLE_STRIP;
-         default:
-            throw new IllegalArgumentException (
-               "Unknown VertexDrawMode: " + mode);
-      }
-   }
-
    //======================================================
    // COLORS and MATERIALS
    //======================================================
@@ -3284,6 +3252,17 @@ HasProperties {
 //      setMaterial (mat, diffuseColor, mat, diffuseColor, selected);
 //   }
 
+   //=======================================================
+   // RENDEROBJECT
+   //=======================================================
+   
+   @Override
+   public void draw (RenderObject robj) {
+      drawPoints (robj);
+      drawLines (robj);
+      drawTriangles (robj);
+   }
+   
 
    //=======================================================
    // IMMEDIATE DRAW
@@ -3293,20 +3272,22 @@ HasProperties {
    protected DrawMode myDrawMode = null;
    protected boolean myDrawHasNormalData = false;
    protected boolean myDrawHasColorData = false;
+   protected boolean myDrawHasTexcoordData = false;
    protected int myDrawVertexIdx = 0;
    protected float[] myDrawCurrentNormal = new float[3];
    protected float[] myDrawCurrentColor = new float[4];
+   protected float[] myDrawCurrentTexcoord = new float[2];
    protected int myDrawDataCap = 0;
    protected float[] myDrawVertexData = null;
    protected float[] myDrawNormalData = null;
    protected float[] myDrawColorData = null;
+   protected float[] myDrawTexcoordData = null;
    
    // Doing 2D rendering
    protected boolean rendering2d = false;
 
    protected void ensureDrawDataCapacity () {
-      if (myDrawVertexIdx == myDrawDataCap) {
-         // equality test works because cap is a multiple of 3
+      if (myDrawVertexIdx >= myDrawDataCap) {
          int cap = myDrawDataCap;
          if (cap == 0) {
             cap = 1000;
@@ -3317,6 +3298,9 @@ HasProperties {
             if (myDrawHasColorData) {
                myDrawColorData = new float[4*cap];
             }
+            if (myDrawHasTexcoordData) {
+               myDrawTexcoordData = new float[2*cap];
+            }
          }
          else {
             cap = (int)(cap*1.5); // make sure cap is a multiple of 3
@@ -3326,6 +3310,9 @@ HasProperties {
             }
             if (myDrawHasColorData) {
                myDrawColorData = Arrays.copyOf (myDrawColorData, 4*cap);
+            }
+            if (myDrawHasTexcoordData) {
+               myDrawTexcoordData = Arrays.copyOf(myDrawTexcoordData, 2*cap);
             }
          }
          myDrawDataCap = cap;
@@ -3356,6 +3343,7 @@ HasProperties {
       myDrawVertexIdx = 0;
       myDrawHasNormalData = false;
       myDrawHasColorData = false;
+      myDrawHasTexcoordData = false;
 
       myDrawCurrentColor = Arrays.copyOf (getCurrentColor(), 4);
       // update materials, because we are going to use 
@@ -3400,6 +3388,11 @@ HasProperties {
          myDrawColorData[cbase+2] = myDrawCurrentColor[2];
          myDrawColorData[cbase+3] = myDrawCurrentColor[3];
       }
+      if (myDrawHasTexcoordData) {
+         int tbase = 2*myDrawVertexIdx;
+         myDrawTexcoordData[tbase ] = myDrawCurrentTexcoord[0];
+         myDrawTexcoordData[tbase+1] = myDrawCurrentTexcoord[1];
+      }
       myDrawVertexData[vbase] = px;
       myDrawVertexData[++vbase] = py;
       myDrawVertexData[++vbase] = pz;
@@ -3423,11 +3416,81 @@ HasProperties {
          myDrawHasNormalData = true;
       }
    }
+   
+   @Override
+   public void setTexcoord(float x, float y) {
+      if (myDrawMode == null) {
+         throw new IllegalStateException (
+            "Not in draw mode (i.e., beginDraw() has not been called)");
+      }
+      myDrawCurrentTexcoord[0] = x;
+      myDrawCurrentTexcoord[1] = y;
+      if (!myDrawHasTexcoordData) {
+         // back-fill previous normal data
+         for (int i=0; i<myDrawVertexIdx; i++) {
+            myDrawTexcoordData[i] = 0f;
+         }
+         myDrawHasTexcoordData = true;
+      }
+   }
+   
+   @Override
+   public void addVertex (double px, double py, double pz) {
+      addVertex ((float)px, (float)py, (float)pz);
+   }
+
+   @Override
+   public void addVertex (Vector3d pnt) {
+      addVertex ((float)pnt.x, (float)pnt.y, (float)pnt.z);
+   }
+
+   @Override
+   public void setNormal (double nx, double ny, double nz) {
+      setNormal ((float)nx, (float)ny, (float)nz);
+   }
+
+   @Override
+   public void setNormal (Vector3d nrm) {
+      setNormal ((float)nrm.x, (float)nrm.y, (float)nrm.z);
+   }
+
+   @Override
+   public void setTexcoord (double tx, double ty) {
+      setTexcoord((float)tx, (float)ty);
+   }
+   
+   @Override
+   public void setTexcoord (Vector2d tex) {
+      setTexcoord ((float)tex.x, (float)tex.y);
+   }
+   
+   protected int getDrawPrimitive (DrawMode mode) {
+      switch (mode) {
+         case POINTS:
+            return GL.GL_POINTS;
+         case LINES:
+            return GL.GL_LINES;
+         case LINE_LOOP:
+            return GL.GL_LINE_LOOP;
+         case LINE_STRIP:
+            return GL.GL_LINE_STRIP;
+         case TRIANGLES:
+            return GL.GL_TRIANGLES;
+         case TRIANGLE_FAN:
+            return GL.GL_TRIANGLE_FAN;
+         case TRIANGLE_STRIP:
+            return GL.GL_TRIANGLE_STRIP;
+         default:
+            throw new IllegalArgumentException (
+               "Unknown VertexDrawMode: " + mode);
+      }
+   }
 
    protected abstract void doDraw(DrawMode drawMode,
       int numVertices, float[] vertexData, 
       boolean hasNormalData, float[] normalData, 
-      boolean hasColorData, float[] colorData);
+      boolean hasColorData, float[] colorData,
+      boolean hasTexcoordData, float[] texcoordData);
 
    @Override
    public void endDraw() {
@@ -3437,7 +3500,8 @@ HasProperties {
       }
       doDraw(myDrawMode, myDrawVertexIdx, myDrawVertexData, 
          myDrawHasNormalData, myDrawNormalData, 
-         myDrawHasColorData, myDrawColorData);
+         myDrawHasColorData, myDrawColorData,
+         myDrawHasTexcoordData, myDrawTexcoordData);
 
       myDrawMode = null;
 
@@ -3445,6 +3509,12 @@ HasProperties {
       myDrawVertexData = null;
       myDrawNormalData = null;
       myDrawColorData = null;
+      myDrawTexcoordData = null;
+      
+      myDrawVertexIdx = 0;
+      myDrawHasNormalData = false;
+      myDrawHasColorData = false;
+      myDrawHasTexcoordData = false;
    }
 
    public abstract void maybeUpdateMaterials();

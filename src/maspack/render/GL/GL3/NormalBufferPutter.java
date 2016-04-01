@@ -3,13 +3,13 @@ package maspack.render.GL.GL3;
 import java.nio.ByteBuffer;
 
 import maspack.render.GL.GLSupport;
-import maspack.render.GL.GL3.BufferStorage.StorageType;
+import maspack.render.GL.GL3.GL3AttributeStorage.StorageType;
 
 public abstract class NormalBufferPutter {
 
    public abstract void putNormal(ByteBuffer buff, float nx, float ny, float nz);
    public abstract int bytesPerNormal();
-   public abstract BufferStorage storage();
+   public abstract GL3AttributeStorage storage();
    
    public void putNormal(ByteBuffer buff, float[] nrm) {
       putNormal(buff, nrm[0], nrm[1], nrm[2]);
@@ -105,8 +105,8 @@ public abstract class NormalBufferPutter {
       }
       
       @Override
-      public BufferStorage storage() {
-         return BufferStorage.FLOAT_3;
+      public GL3AttributeStorage storage() {
+         return GL3AttributeStorage.FLOAT_3;
       }
       
    }
@@ -132,8 +132,8 @@ public abstract class NormalBufferPutter {
       }
       
       @Override
-      public BufferStorage storage() {
-         return new BufferStorage(StorageType.SIGNED_SHORT, 3, 4*GLSupport.SHORT_SIZE, true);
+      public GL3AttributeStorage storage() {
+         return new GL3AttributeStorage(StorageType.SIGNED_SHORT, 3, 4*GLSupport.SHORT_SIZE, true);
       }
    }
    

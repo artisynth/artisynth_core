@@ -11,7 +11,7 @@ import java.io.File;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.modelbase.ModelComponent;
 import maspack.render.RenderProps;
-import maspack.render.DiffuseTextureProps;
+import maspack.render.TextureMapProps;
 
 public class ImageProbe extends InputProbe {
    protected RigidBody imagePlane;
@@ -47,11 +47,11 @@ public class ImageProbe extends InputProbe {
       RenderProps props = imagePlane.getRenderProps();
       // props.setFaceColor (Color.white);
       // props.setFaceStyle(Faces.FRONT_AND_BACK);
-      DiffuseTextureProps tprops = props.getDiffuseTextureProps();
+      TextureMapProps tprops = props.getTextureMapProps();
       if (tprops == null)
-         tprops = new DiffuseTextureProps();
+         tprops = new TextureMapProps();
       tprops.setEnabled (true);
-      props.setDiffuseTextureProps (tprops);
+      props.setTextureMapProps (tprops);
       imagePlane.setRenderProps (props);
 
       setImage (0);
@@ -75,9 +75,9 @@ public class ImageProbe extends InputProbe {
       int frameNum = (int)(t * frameRate) + 1;
       String filename =
          String.format (fileNameFormat, imageBasename, frameNum, imageFileExt);
-      DiffuseTextureProps tprops = imagePlane.getRenderProps().getDiffuseTextureProps();
+      TextureMapProps tprops = imagePlane.getRenderProps().getTextureMapProps();
       tprops.setFileName (imageDirectory.getAbsolutePath() + "/" + filename);
-      imagePlane.getRenderProps().setDiffuseTextureProps (tprops);
+      imagePlane.getRenderProps().setTextureMapProps (tprops);
    }
 
    private String createFileNameFormat (double rate, double duration) {

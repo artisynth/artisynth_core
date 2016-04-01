@@ -101,11 +101,11 @@ public class MeshTestBase extends RootModel {
    }
 
    public ColorMixing getColorMixing() {
-      return getMainViewer().getColorMixing ();
+      return getMainViewer().getVertexColorMixing ();
    }
 
    public void setColorMixing (ColorMixing cmix) {
-      getMainViewer().setColorMixing (cmix);
+      getMainViewer().setVertexColorMixing (cmix);
    }
 
    public ColorInterpolation getColorInterpolation() {

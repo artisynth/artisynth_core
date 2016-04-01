@@ -1,10 +1,10 @@
 package maspack.render.GL.GL3;
 
-import maspack.render.GL.GL3.GLSLInfo.InstancedRendering;
-import maspack.render.Renderer;
 import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.Shading;
+import maspack.render.GL.GL3.GLSLInfo.GLSLInfoBuilder;
+import maspack.render.GL.GL3.GLSLInfo.InstancedRendering;
 
 
 public class GLSLGenerator {
@@ -12,6 +12,66 @@ public class GLSLGenerator {
    static String VERSION_STRING = "#version 330";
    static String UNIFORM_LAYOUT = "std140";  // std140 or "shared"
 
+   public static class StringIntPair {
+      String str;
+      int i;
+      public StringIntPair(String str, int i) {
+         this.str = str;
+         this.i = i;
+      }
+      public String getString() {
+         return str;
+      }
+      public int getInt() {
+         return i;
+      }
+   }
+   
+   /**
+    * Set of built-in attributes, with a hint for binding locations 
+    */
+   public static StringIntPair[] ATTRIBUTES = {
+      // vertices
+      new StringIntPair ("vertex_position", 0),
+      new StringIntPair ("vertex_normal", 1),
+      new StringIntPair ("vertex_color", 2),
+      new StringIntPair ("vertex_texcoord", 3),
+      // instance (point, rigid, affine)
+      new StringIntPair ("instance_scale", 4),
+      new StringIntPair ("instance_color", 5),
+      // instance (point, rigid)
+      new StringIntPair ("instance_position", 6),
+      // instance (rigid)
+      new StringIntPair ("instance_orientiation", 7),
+      // instance (affine)
+      new StringIntPair ("instance_affine_matrix", 6),
+      new StringIntPair ("instance_normal_matrix", 7),
+      // instance (line)
+      new StringIntPair ("line_radius", 4),
+      new StringIntPair ("line_bottom_position", 5),
+      new StringIntPair ("line_top_position", 6),
+      new StringIntPair ("line_bottom_color", 7),
+      new StringIntPair ("line_top_color", 8),
+      new StringIntPair ("line_bottom_scale_offset", 9),
+      new StringIntPair ("line_top_scale_offset", 10)
+   };
+   
+   /**
+    * Set of built-in textures, with a hint for binding locations 
+    */
+   public static final StringIntPair[] TEXTURES = {
+      new StringIntPair("color_map", 0),
+      new StringIntPair("normal_map", 1),
+      new StringIntPair("bump_map", 2)
+   };
+   
+   public static final StringIntPair[] UNIFORM_BLOCKS = {
+       new StringIntPair("Materials", 0),
+       new StringIntPair("Matrices", 1),
+       new StringIntPair("Lights", 2),
+       new StringIntPair("ClipPlanes", 3)
+   };
+   
    private static final int VERTEX_SHADER = 0;
    private static final int FRAGMENT_SHADER = 1;
    private static final int SHADER_GLOBALS = 0;
@@ -26,6 +86,7 @@ public class GLSLGenerator {
    //    vec4 diffuse;   // alpha is diffuse.a
    //    vec4 specular;  // shininess is specular.a
    //    vec4 emission;  
+   //    vec4 power;     // scale factor for ambient/diffuse/specular/emission
    // };
    //
    // // light source info, in camera space
@@ -33,8 +94,8 @@ public class GLSLGenerator {
    //    vec4 diffuse;
    //    vec4 ambient;
    //    vec4 specular;
-   //    vec4 position;     
-   //    vec4 direction;    // (dir, spot cutoff)
+   //    vec4 position;     // position.w indicates point vs directional 
+   //    vec4 direction;    // (dir, spot cutoff[>-1 -> spotlight])
    //    vec4 attenuation;  // (spot exponent, constant, linear, quadratic)
    // };
    //
@@ -70,7 +131,11 @@ public class GLSLGenerator {
    // Per-object
    //----------------------------------------------------------
    // // texture info
-   // uniform sampler2D texture0;
+   // uniform sampler2D color_map;
+   // uniform sampler2D normal_map;
+   // uniform normal_scale normal_map; // normal perturbation scale
+   // uniform sampler2D bump_map;
+   // uniform bump_scale;  // bump scale
    //
    // // per-object materials
    // layout (std140) uniform Materials {
@@ -87,28 +152,28 @@ public class GLSLGenerator {
    // in vec4 vertex_color;
    // 
    // // texture info
-   // in vec2 vertex_texture;
+   // in vec2 vertex_texcoord;
+   // 
+   // // normal info
    // 
    // // point instance information
-   // in float instance_scale;
    // in vec3  instance_position;
-   // in vec4  instance_orientation;  // quaternion
    // in vec4  instance_color;
-   // in vec2  instance_texture;
+   // in float instance_scale;
+   // in vec4  instance_orientation;   // quaternion
    // 
    // // affine instance information
    // in mat4 instance_affine_matrix;
    // in mat4 instance_normal_matrix;  // inverse transpose
    //
    // // line instance information
-   // in float line_radius;
-   // in vec4  line_length_offset;     // (length, length_flag, offset, offset_flag), flag specifies distance subtracted from segment length  
+   // in float line_radius
    // in vec3  line_bottom_position;
    // in vec3  line_top_position;
    // in vec4  line_bottom_color;
    // in vec4  line_top_color;
-   // in vec2  line_bottom_texture;
-   // in vec2  line_top_texture;
+   // in vec4  line_bottom_scale_offset; // (radius, boff, toff, w): scales s.t. v=normalize(line_top_position-line_bottom_position)
+   // in vec4  line_top_scale_offset;    //     pos = (bottom + boff*v)*(1-w) + (top + toff*v)*w
 
    public static String[] getShaderScripts(GLSLInfo info) {
 
@@ -132,7 +197,7 @@ public class GLSLGenerator {
          + shaders[i][SHADER_FUNCTIONS].toString()
          + shaders[i][SHADER_MAIN].toString();
       }
-
+      
       return out;
 
    }
@@ -160,7 +225,7 @@ public class GLSLGenerator {
 
       switch (info.getInstancedRendering()) {
          case LINES: {
-            addRodriguesLineRotation(fb);
+            addRodriguesRotation(fb);
             break;
          }
          case FRAMES: {
@@ -181,9 +246,9 @@ public class GLSLGenerator {
       appendln(mb, "// main vertex shader");
       appendln(mb, "void main() {");
       appendln(mb);
-      appendln(mb, "   vec3 position;");
+      appendln(mb, "   vec3 position;  // transformed vertex position");
       if (info.hasVertexNormals() && info.getShading() != Shading.NONE) {
-         appendln(mb, "   vec3 normal;");
+         appendln(mb, "   vec3 normal;  // transformed vertex normal");
       }
       appendln(mb);
 
@@ -210,21 +275,35 @@ public class GLSLGenerator {
          case LINES:
             appendln(mb, "   // instance vertex, scale radially, rotate/translate");
             appendln(mb, "   vec3  u = line_top_position-line_bottom_position;");
-            appendln(mb, "   float line_length = length(u);");
-            appendln(mb, "   u = normalize(u);");
-            if (info.hasLineLengthOffset()) {
-               appendln(mb, "   // scale and offet line");
-               appendln(mb, "   float line_offset = mix(line_length_offset.z, line_length-line_length_offset.z, line_length_offset.w);");
-               appendln(mb, "   line_length = mix(line_length_offset.x, line_length-line_length_offset.x, line_length_offset.y);");
+            appendln(mb, "   float line_length = length(u);  // target length");
+            appendln(mb, "   u = u/line_length;              // target direction vector");           
+            if (info.hasLineScaleOffset()) {
+               appendln(mb, "   float line_rad = line_radius*mix(line_bottom_scale_offset.r, line_top_scale_offset.r, position.z);  // adjust radius");
+               appendln(mb, "   float line_offset = mix(line_bottom_scale_offset.y, line_length+line_bottom_scale_offset.z, line_bottom_scale_offset.w);");
+               appendln(mb, "   float line_top = mix(line_top_scale_offset.y, line_length+line_top_scale_offset.z, line_top_scale_offset.w);");
+               appendln(mb, "   line_length = line_top-line_offset;");
+            } else {
+               appendln(mb, "   float line_rad = line_radius;  // radius length");   
             }
-            appendln(mb, "   position = vec3(line_radius*vertex_position.xy, line_length*vertex_position.z);");
+            appendln(mb);
+            appendln(mb, "   // transform position");
+            appendln(mb, "   position = vec3(line_rad*vertex_position.xy, line_length*vertex_position.z);");
             appendln(mb, "   position = line_bottom_position + zrot(u, position);");
-            if (info.hasLineLengthOffset()) {
-               appendln(mb, "   position += u*line_offset;  // offset along line");
+            if (info.hasLineScaleOffset ()) {
+               appendln(mb, "   position = position + line_offset*u;");
             }
+            
             if (info.hasVertexNormals() && info.getShading() != Shading.NONE) {
+               appendln(mb, "   // transform normal");
                appendln(mb, "   normal = vec3( vertex_normal.xy*line_length, vertex_normal.z*line_radius);");
                appendln(mb, "   normal = zrot(u, normal);");
+               if (info.hasLineScaleOffset ()) {
+                  appendln(mb, "   float rdiff = line_bottom_scale_offset.r-line_top_scale_offset.r;");
+                  appendln(mb, "   float cost = 1.0/sqrt(rdiff*rdiff+1);");
+                  appendln(mb, "   float sint = rdiff*cost;");
+                  appendln(mb, "   vec3 trot = vec3(vertex_position.y, -vertex_position.x, 0);");
+                  appendln(mb, "   normal = rodrigues(normal, trot, sint, cost);");
+               }
             }
             appendln(mb);
             break;
@@ -257,16 +336,16 @@ public class GLSLGenerator {
             case AFFINES:
                if (info.hasInstanceColors()) {
                   if (cinterp == ColorInterpolation.HSV) {
-                     appendln(mb, "   fragmentColorOut.color = rgba2hsva(instance_color);");
+                     appendln(mb, "   colorOut.diffuse = rgba2hsva(instance_color);");
                   } else {
-                     appendln(mb, "   fragmentColorOut.color = instance_color;");
+                     appendln(mb, "   colorOut.diffuse = instance_color;");
                   }
                   appendln(mb);
                } else if (info.hasVertexColors()) {
                   if (cinterp == ColorInterpolation.HSV) {
-                     appendln(mb, "   fragmentColorOut.color = rgba2hsva(vertex_color);");
+                     appendln(mb, "   colorOut.diffuse = rgba2hsva(vertex_color);");
                   } else {
-                     appendln(mb, "   fragmentColorOut.color = vertex_color;");
+                     appendln(mb, "   colorOut.diffuse = vertex_color;");
                   }
                   appendln(mb);
                }
@@ -275,27 +354,21 @@ public class GLSLGenerator {
                if (info.hasLineColors()) {
                   appendln(mb, "   // interpolate color based on line");
                   appendln(mb, "   float cz = vertex_position.z;");
-                  if (info.hasLineLengthOffset()) {
+                  if (info.hasLineScaleOffset()) {
+                     appendln(mb, "   // interpolate as fraction of bottom-to-top");
                      appendln(mb, "   cz = (cz*line_length+line_offset)/(line_length+line_offset);");
                   }
                   if (cinterp == ColorInterpolation.HSV) {
-                     appendln(mb, "   fragmentColorOut.color  = mix(rgba2hsva(line_bottom_color), rgba2hsva(line_top_color), cz);");
+                     appendln(mb, "   colorOut.diffuse = mix(rgba2hsva(line_bottom_color), rgba2hsva(line_top_color), cz);");
                   } else {
-                     appendln(mb, "   fragmentColorOut.color = mix(line_bottom_color, line_top_color, cz);");
+                     appendln(mb, "   colorOut.diffuse = mix(line_bottom_color, line_top_color, cz);");
                   }
                   appendln(mb);
                } else if (info.hasVertexColors()) {
                   if (cinterp == ColorInterpolation.HSV) {
-                     appendln(mb, "   fragmentColorOut.color = rgba2hsva(vertex_color);");
+                     appendln(mb, "   colorOut.diffuse = rgba2hsva(vertex_color);");
                   } else {
-                     appendln(mb, "   fragmentColorOut.color = vertex_color;");
-                  }
-                  appendln(mb);
-               } else if (info.hasInstanceColors ()) {
-                  if (cinterp == ColorInterpolation.HSV) {
-                     appendln(mb, "   fragmentColorOut.color = rgba2hsva(instance_color);");
-                  } else {
-                     appendln(mb, "   fragmentColorOut.color = instance_color;");
+                     appendln(mb, "   colorOut.diffuse = vertex_color;");
                   }
                   appendln(mb);
                }
@@ -303,9 +376,9 @@ public class GLSLGenerator {
             case NONE:
                if (info.hasVertexColors()) {
                   if (cinterp == ColorInterpolation.HSV) {
-                     appendln(mb, "   fragmentColorOut.color = rgba2hsva(vertex_color);");
+                     appendln(mb, "   colorOut.diffuse = rgba2hsva(vertex_color);");
                   } else {
-                     appendln(mb, "   fragmentColorOut.color = vertex_color;");
+                     appendln(mb, "   colorOut.diffuse = vertex_color;");
                   }
                   appendln(mb);
                }
@@ -324,11 +397,11 @@ public class GLSLGenerator {
                if (info.hasVertexNormals()) {
                   appendln(mb, "   vec4 camera_normal = normal_matrix * vec4(normal, 0.0);");
                } else {
-                  appendln(mb, "   vec4 camera_normal = -camera_position;");
+                  appendln(mb, "   vec4 camera_normal = -camera_position;  // assume pointed at camera");
                }
                appendln(mb, "   vec3 nfront = normalize(camera_normal.xyz);");
                appendln(mb, "   vec3 nback = -nfront;");
-               appendln(mb, "   vec3 e = normalize(-camera_position.xyz);");
+               appendln(mb, "   vec3 eye = normalize(-camera_position.xyz);");
                appendln(mb, "   ");
                appendln(mb, "   // accumulated light colors");
                appendln(mb, "   vec3 fldiff = vec3(0.0);  // front");
@@ -342,13 +415,13 @@ public class GLSLGenerator {
                appendln(mb, "   for (int i=0; i<" + info.numLights() + "; ++i) {");
                appendln(mb, "      vec3  light_to_vertex = vec3(camera_position-light[i].position);");
                appendln(mb, "      float lightdist = length(light_to_vertex);");
-               appendln(mb, "      light_to_vertex = normalize(light_to_vertex);");                  
+               appendln(mb, "      light_to_vertex = light_to_vertex/lightdist;");                  
                appendln(mb, "      // determine direction either from point or direction using direction indicator");
                appendln(mb, "      vec3 light_direction = mix(light[i].direction.xyz, light_to_vertex, light[i].position.w);");
                appendln(mb, "      ");
-               appendln(mb, "      float spotatt = 1.0;  // spot attentuation initially zero");
+               appendln(mb, "      float spotatt = 1.0;  // spot attentuation initially zero if non-spotlight");
                appendln(mb, "      float coslimit = light[i].direction.w;");
-               appendln(mb, "      if (coslimit > -1) {");
+               appendln(mb, "      if (coslimit >= -1) {");
                appendln(mb, "         // check angle");
                appendln(mb, "         float coslight = dot(light_direction, light_to_vertex);");
                appendln(mb, "         // cosine range, rescaled to [0,1)");
@@ -365,24 +438,24 @@ public class GLSLGenerator {
                appendln(mb, "         light[i].attenuation.z*lightdist*lightdist), light[i].position.w);");
                appendln(mb, "      att *= spotatt;  // combine into a single attenuation parameter");
                appendln(mb, "      ");
-               appendln(mb, "      vec2 ds = blinnPhongCoeffs( nfront, -light_direction, e, front_material.specular.a);");
+               appendln(mb, "      vec2 ds = blinnPhongCoeffs( nfront, -light_direction, eye, front_material.specular.a);");
+               appendln(mb, "      flambi += intensity_scale*light[i].ambient.rgb;");
                appendln(mb, "      fldiff += intensity_scale*att*ds.x*light[i].diffuse.rgb;");
                appendln(mb, "      flspec += intensity_scale*att*ds.y*light[i].specular.rgb;");
-               appendln(mb, "      flambi += intensity_scale*light[i].ambient.rgb;");
                appendln(mb);
-               appendln(mb, "      ds = blinnPhongCoeffs( nback, -light_direction, e, back_material.specular.a);");
+               appendln(mb, "      ds = blinnPhongCoeffs( nback, -light_direction, eye, back_material.specular.a);");
+               appendln(mb, "      blambi += intensity_scale*light[i].ambient.rgb;");
                appendln(mb, "      bldiff += intensity_scale*att*ds.x*light[i].diffuse.rgb;");
                appendln(mb, "      blspec += intensity_scale*att*ds.y*light[i].specular.rgb;");
-               appendln(mb, "      blambi += intensity_scale*light[i].ambient.rgb;");
                appendln(mb, "   }");
                appendln(mb, "   ");
                appendln(mb, "   // accumulate");
-               appendln(mb, "   fragmentLightOut.front_diffuse  = fldiff;");
-               appendln(mb, "   fragmentLightOut.front_ambient  = flambi;");
-               appendln(mb, "   fragmentLightOut.front_specular = flspec;");
-               appendln(mb, "   fragmentLightOut.back_diffuse   = bldiff;");
-               appendln(mb, "   fragmentLightOut.back_ambient   = blambi;");
-               appendln(mb, "   fragmentLightOut.back_specular  = blspec;");
+               appendln(mb, "   lightOut.front_ambient  = flambi;");
+               appendln(mb, "   lightOut.front_diffuse  = fldiff;");
+               appendln(mb, "   lightOut.front_specular = flspec;");
+               appendln(mb, "   lightOut.back_ambient   = blambi;");
+               appendln(mb, "   lightOut.back_diffuse   = bldiff;");
+               appendln(mb, "   lightOut.back_specular  = blspec;");
                appendln(mb);
             }
             break;
@@ -396,8 +469,8 @@ public class GLSLGenerator {
                } else {
                   appendln(mb, "   vec4 camera_normal = -camera_position;");
                }
-               appendln(mb, "   fragmentDirOut.normal = camera_normal.xyz;");
-               appendln(mb, "   fragmentDirOut.to_eye = -camera_position.xyz;");
+               appendln(mb, "   dirOut.normal = normalize(camera_normal.xyz);");
+               appendln(mb, "   dirOut.to_eye = -camera_position.xyz;");
                appendln(mb, "");
             }
             break;
@@ -411,36 +484,23 @@ public class GLSLGenerator {
          case POINTS:
          case FRAMES:
          case AFFINES:
-            // replace texture with instance texture
-            if (info.hasInstanceTextures()) {
-               appendln(mb, "   // use instance texture coordinates");
-               appendln(mb, "   textureOut.texcoord = instance_texture;");
-               appendln(mb);
-            } else  if (info.hasVertexTextures()) {
+            if (info.hasVertexTextures()) {
                appendln(mb, "   // forward vertex texture coordinates");
-               appendln(mb, "   textureOut.texcoord = vertex_texture;");
+               appendln(mb, "   textureOut.texcoord = vertex_texcoord;");
                appendln(mb);
             }
             break;
          case LINES:
-            if (info.hasLineTextures()) {
-               appendln(mb, "   // compute line-based texture coordinate");
-               appendln(mb, "   textureOut.texcoord = mix(line_bottom_texture, line_top_texture, vertex_position.z);");
-               appendln(mb);
-            } else if (info.hasVertexTextures()) {
+            if (info.hasVertexTextures()) {
                appendln(mb, "   // forward vertex texture coordinates");
-               appendln(mb, "   textureOut.texcoord = vertex_texture;");
-               appendln(mb);
-            } else if (info.hasInstanceTextures()) {
-               appendln(mb, "   // forward vertex texture coordinates");
-               appendln(mb, "   textureOut.texcoord = instance_texture;");
+               appendln(mb, "   textureOut.texcoord = vertex_texcoord;");
                appendln(mb);
             }
             break;
          case NONE:
             if (info.hasVertexTextures()) {
                appendln(mb, "   // forward vertex texture coordinates");
-               appendln(mb, "   textureOut.texcoord = vertex_texture;");
+               appendln(mb, "   textureOut.texcoord = vertex_texcoord;");
                appendln(mb);
             }
             break;
@@ -495,7 +555,7 @@ public class GLSLGenerator {
          appendln(hb, "in vec4 vertex_color;");
       }
       if (info.hasVertexTextures()) {
-         appendln(hb, "in vec2 vertex_texture;");
+         appendln(hb, "in vec2 vertex_texcoord;");
       }
       
       switch (info.getInstancedRendering()) {
@@ -507,34 +567,25 @@ public class GLSLGenerator {
             if (info.hasInstanceColors() && info.getColorInterpolation() != ColorInterpolation.NONE) {
                appendln(hb, "in vec4  instance_color;");
             }
-            if (info.hasInstanceTextures()) {
-               appendln(hb, "in vec2  instance_texture;");
-            }
             break;
          case FRAMES:
             appendln(hb);
             appendln(hb, "// instance inputs");
-            appendln(hb, "in float instance_scale;");
             appendln(hb, "in vec3  instance_position;");
-            appendln(hb, "in vec4  instance_orientation;"); 
             if (info.hasInstanceColors() && info.getColorInterpolation() != ColorInterpolation.NONE) {
                appendln(hb, "in vec4  instance_color;");
             }
-            if (info.hasInstanceTextures()) {
-               appendln(hb, "in vec2  instance_texture;");
-            }
+            appendln(hb, "in float instance_scale;");
+            appendln(hb, "in vec4  instance_orientation;");
             break;
          case AFFINES:
             appendln(hb);
             appendln(hb, "// instance inputs");
             appendln(hb, "in float instance_scale;");
-            appendln(hb, "in vec3  instance_affine_matrix;");
-            appendln(hb, "in vec4  instance_orientation;"); 
+            appendln(hb, "in mat4  instance_affine_matrix;");
+            appendln(hb, "in vec4  instance_normal_matrix;"); 
             if (info.hasInstanceColors() && info.getColorInterpolation() != ColorInterpolation.NONE) {
                appendln(hb, "in vec4  instance_color;");
-            }
-            if (info.hasInstanceTextures()) {
-               appendln(hb, "in vec2  instance_texture;");
             }
             break;
          case LINES:
@@ -543,22 +594,13 @@ public class GLSLGenerator {
             appendln(hb, "in float line_radius;");
             appendln(hb, "in vec3  line_bottom_position;");
             appendln(hb, "in vec3  line_top_position;"); 
-            if (info.hasLineLengthOffset()) {
-               appendln(hb, "in vec4  line_length_offset;");
+            if (info.hasLineScaleOffset()) {
+               appendln(hb, "in vec4  line_bottom_scale_offset;");
+               appendln(hb, "in vec4  line_top_scale_offset;");
             }
             if (info.hasLineColors() && info.getColorInterpolation() != ColorInterpolation.NONE) {
                appendln(hb, "in vec4  line_bottom_color;");
                appendln(hb, "in vec4  line_top_color;");
-            }
-            if (info.hasInstanceColors() && info.getColorInterpolation() != ColorInterpolation.NONE) {
-               appendln(hb, "in vec4  instance_color;");
-            }
-            if (info.hasLineTextures()) {
-               appendln(hb, "in vec2  line_bottom_texture;");
-               appendln(hb, "in vec2  line_top_texture;");
-            }
-            if (info.hasInstanceTextures()) {
-               appendln(hb, "in vec2  instance_texture;");
             }
             break;
          case NONE:
@@ -577,17 +619,13 @@ public class GLSLGenerator {
                                   || instanced == InstancedRendering.AFFINES) && info.hasInstanceColors())
                              || (instanced == InstancedRendering.LINES && info.hasLineColors() ) );
       
-      boolean hasTextures = info.hasVertexTextures()
-                            || ((instanced == InstancedRendering.POINTS 
-                                  || instanced == InstancedRendering.FRAMES
-                                  || instanced == InstancedRendering.AFFINES) && info.hasInstanceTextures())
-                            || (instanced == InstancedRendering.LINES && info.hasLineTextures() );
+      boolean hasTextures = info.hasVertexTextures();
       
       if (hasColors) {
-         appendln(hb, "// per-fragment color info");
-         appendln(hb, "out FragmentColorData {");
-         appendln(hb, "   vec4 color;");
-         appendln(hb, "} fragmentColorOut;");
+         appendln(hb, "// per-vertex color info");
+         appendln(hb, "out ColorData {");
+         appendln(hb, "   vec4 diffuse;");
+         appendln(hb, "} colorOut;");
          appendln(hb);
       }
       
@@ -640,34 +678,34 @@ public class GLSLGenerator {
                appendln(hb,"// light colors");
                appendln(hb,"// required for modulation with vertex colors or texture");
                appendln(hb,"out LightColorData {");
-               appendln(hb,"   flat vec3 front_diffuse;  ");
                appendln(hb,"   flat vec3 front_ambient;  ");
+               appendln(hb,"   flat vec3 front_diffuse;  ");
                appendln(hb,"   flat vec3 front_specular;  ");
-               appendln(hb,"   flat vec3 back_diffuse;  ");
                appendln(hb,"   flat vec3 back_ambient;  ");
+               appendln(hb,"   flat vec3 back_diffuse;  ");
                appendln(hb,"   flat vec3 back_specular;  ");
-               appendln(hb,"} fragmentLightOut;");
+               appendln(hb,"} lightOut;");
                appendln(hb);
                break;
             case GOURAUD:
                appendln(hb,"// light colors");
                appendln(hb,"// required for modulation with vertex colors or texture");
                appendln(hb,"out LightColorData {");
-               appendln(hb,"   vec3 front_diffuse;  ");
                appendln(hb,"   vec3 front_ambient;  ");
+               appendln(hb,"   vec3 front_diffuse;  ");
                appendln(hb,"   vec3 front_specular;  ");
-               appendln(hb,"   vec3 back_diffuse;  ");
                appendln(hb,"   vec3 back_ambient;  ");
+               appendln(hb,"   vec3 back_diffuse;  ");
                appendln(hb,"   vec3 back_specular;  ");
-               appendln(hb,"} fragmentLightOut;");
+               appendln(hb,"} lightOut;");
                appendln(hb);
                break;
             case PHONG:
                   appendln(hb,"// directions for per-fragment lighting");
-                  appendln(hb,"out FragmentDirData {");
+                  appendln(hb,"out DirectionData {");
                   appendln(hb, "   vec3 normal;");
                   appendln(hb, "   vec3 to_eye;");               
-                  appendln(hb,"} fragmentDirOut;");
+                  appendln(hb,"} dirOut;");
                   appendln(hb);
                break;
             case NONE:
@@ -693,17 +731,18 @@ public class GLSLGenerator {
       appendln(hb, "   vec4 diffuse;   // alpha is diffuse.a");
       appendln(hb, "   vec4 specular;  // shininess is specular.a");
       appendln(hb, "   vec4 emission;  ");
+      appendln(hb, "   vec4 power;     // scales for ambient/diffuse/specular/emission");
       appendln(hb, "};");
    }
 
    private static void appendLightSourceStruct(StringBuilder hb) {
       appendln(hb, "// light source info, in camera space");
       appendln(hb, "struct LightSource {");
-      appendln(hb, "   vec4 diffuse;");
       appendln(hb, "   vec4 ambient;");
+      appendln(hb, "   vec4 diffuse;");
       appendln(hb, "   vec4 specular;");
       appendln(hb, "   vec4 position;        // (pos, point indicator)");
-      appendln(hb, "   vec4 direction;       // (dir, spot cutoff), cutoff==0 -> point");
+      appendln(hb, "   vec4 direction;       // (dir, spot cutoff), cutoff < -1 -> point");
       appendln(hb, "   vec4 attenuation;     // (exponent, constant, linear, quadratic)");
       appendln(hb, "};");
    }
@@ -716,36 +755,16 @@ public class GLSLGenerator {
    }
 
    private static void addBlinnPhong(StringBuilder fb) {
-      //      appendln(fb, "// Blinn-Phong lighting equation");
-      //      appendln(fb, "void blinnPhong(in vec3 ndir, in vec3 ldir, in vec3 edir, ");
-      //      appendln(fb, "   in vec4 ldiff, in vec4 lambi, in vec4 lspec,");
-      //      appendln(fb, "   in vec4 mdiff, in vec4 mambi, in vec4 mspec,");
-      //      appendln(fb, "   out vec3 diff, out vec3 ambi, out vec3 spec) {");
-      //      appendln(fb, "   ");
-      //      appendln(fb, "   float intensity = max(dot(ndir,ldir), 0.0);");
-      //      appendln(fb, "   ");
-      //      appendln(fb, "   spec = vec3(0.0);");
-      //      appendln(fb, "   diff = vec3(0.0);");
-      //      appendln(fb, "   if (intensity > 0) {");
-      //      appendln(fb, "      // compute the half vector");
-      //      appendln(fb, "      vec3 h = normalize(ldir + edir);");
-      //      appendln(fb, "      float intSpec = max(dot(h,ndir), 0.0);");
-      //      appendln(fb, "      spec = mspec.rgb * lspec.rgb * pow(intSpec, mspec.a);");
-      //      appendln(fb, "      diff = mdiff.rgb * ldiff.rgb * intensity;");
-      //      appendln(fb, "   }");
-      //      appendln(fb, "   // ambient color or fraction of diffuse");
-      //      appendln(fb, "   ambi = mix(mambi.rgb * lambi.rgb, mdiff.rgb * lambi.rgb, mambi.a);");
-      //      appendln(fb, "}");
-      //      appendln(fb);
       appendln(fb, "// Blinn-Phong lighting equation coefficients, (diffuse, specular)");
-      appendln(fb, "vec2 blinnPhongCoeffs(in vec3 ndir, in vec3 ldir, in vec3 edir, in float specPower) {");
+      appendln(fb, "vec2 blinnPhongCoeffs(in vec3 ndir, in vec3 ldir, in vec3 edir, in float specExponent) {");
       appendln(fb, "   ");
       appendln(fb, "   float intensity = max(dot(ndir,ldir), 0.0);");
       appendln(fb, "   ");
       appendln(fb, "   if (intensity > 0) {");
       appendln(fb, "      // compute the half vector");
       appendln(fb, "      vec3 h = normalize(ldir + edir);");
-      appendln(fb, "      return vec2(intensity,  pow(min(max(dot(h,ndir), 0.0),1.0), specPower));");
+      appendln(fb, "      float shine = (specExponent == 0 ? 1 :pow(max(dot(h,ndir), 0.0), specExponent));");
+      appendln(fb, "      return vec2(intensity, shine);");
       appendln(fb, "   }");
       appendln(fb, "   return vec2(0.0);");
       appendln(fb, "}");
@@ -760,7 +779,7 @@ public class GLSLGenerator {
       appendln(fb);
    }
 
-   private static void addRodriguesLineRotation(StringBuilder fb) {
+   private static void addRodriguesRotation(StringBuilder fb) {
       // Rodriguez-based line rotation, rotate pos so that 
       // z-axis maps to u, assuming u is a unit vector
       appendln(fb, "// z-axis gets rotated to u, v gets transformed accordingly");
@@ -771,6 +790,13 @@ public class GLSLGenerator {
       appendln(fb, "   w = (sint == 0 ? vec3(1,0,0) : w/sint);");
       appendln(fb, "   // rodriguez rotation formula");
       appendln(fb, "   w = u.z*v - cross(w, v)*sint + dot(w, v)*(1-u.z)*w;");
+      appendln(fb, "   return w;");
+      appendln(fb, "}");
+      appendln(fb);
+      appendln(fb, "// rotate u about vector v, with provided sin/cosine of angle");
+      appendln(fb, "vec3 rodrigues(in vec3 u, in vec3 v, in float sint, in float cost) {");
+      appendln(fb, "   float d = length(v);");
+      appendln(fb, "   vec3 w = (d == 0 ? u : u*cost + cross(v, u)*sint/d + dot(v, u)*(1-cost)/(d*d)*v);");
       appendln(fb, "   return w;");
       appendln(fb, "}");
       appendln(fb);
@@ -841,29 +867,39 @@ public class GLSLGenerator {
                  || instanced == InstancedRendering.AFFINES) && info.hasInstanceColors())
             || (instanced == InstancedRendering.LINES && info.hasLineColors() ) );
 
-      boolean hasTextures = info.hasVertexTextures()
-           || ((instanced == InstancedRendering.POINTS 
-                 || instanced == InstancedRendering.FRAMES
-                 || instanced == InstancedRendering.AFFINES) && info.hasInstanceTextures())
-           || (instanced == InstancedRendering.LINES && info.hasLineTextures() );
+      boolean hasTextures = info.hasVertexTextures();
       
       if (hasColors) {
-         appendln(hb, "// fragment colors from vertex shader");
-         appendln(hb, "in FragmentColorData {");
-         appendln(hb, "   vec4 color;");
-         appendln(hb, "} fragmentColorIn;");
+         appendln(hb, "// fragment colors from previous shader");
+         appendln(hb, "in ColorData {");
+         appendln(hb, "   vec4 diffuse;");
+         appendln(hb, "} colorIn;");
          appendln(hb);
       }
       
       if (hasTextures) {
          appendln(hb, "// texture info");
-         appendln(hb, "uniform sampler2D texture0;");
          appendln(hb, "in TextureData {");
          appendln(hb, "   vec2 texcoord;");
          appendln(hb, "} textureIn;");
-         appendln(hb);
-      }  
-      
+         
+         if (info.hasColorMap ()) {
+            appendln(hb, "uniform sampler2D color_map;");
+         }
+         
+         // only allow normal/bump mapping in per fragment lighting
+         if (info.getShading () == Shading.PHONG) {
+            if (info.hasNormalMap ()) {
+               appendln(hb, "uniform sampler2D normal_map;");
+               appendln(hb, "uniform float normal_scale;");
+            }
+            if (info.hasBumpMap ()) {
+               appendln(hb, "uniform sampler2D bump_map;");
+               appendln(hb, "uniform float bump_scale;");
+            }
+            appendln(hb);
+         }
+      }      
    }
 
    private static void addFragmentLighting(StringBuilder hb, 
@@ -908,7 +944,7 @@ public class GLSLGenerator {
             appendln(hb,"   flat vec3 back_diffuse;  ");
             appendln(hb,"   flat vec3 back_ambient;  ");
             appendln(hb,"   flat vec3 back_specular;  ");
-            appendln(hb,"} fragmentLightIn;");
+            appendln(hb,"} lightIn;");
             appendln(hb);
             break;
          case GOURAUD:
@@ -921,16 +957,16 @@ public class GLSLGenerator {
             appendln(hb,"   vec3 back_diffuse;  ");
             appendln(hb,"   vec3 back_ambient;  ");
             appendln(hb,"   vec3 back_specular;  ");
-            appendln(hb,"} fragmentLightIn;");
+            appendln(hb,"} lightIn;");
             appendln(hb);
             break;
          case PHONG:
             if (nLights > 0) {
                appendln(hb,"// directions for per-fragment lighting");
-               appendln(hb,"in FragmentDirData {");
+               appendln(hb,"in DirectionData {");
                appendln(hb, "   vec3 normal;");
                appendln(hb, "   vec3 to_eye;");               
-               appendln(hb,"} fragmentDirIn;");
+               appendln(hb,"} dirIn;");
                appendln(hb);
             }
             break;
@@ -938,7 +974,59 @@ public class GLSLGenerator {
             break;
       }
    }
+   
+   private static void addBumpPerturbation(StringBuilder fb) {
+      appendln(fb, "// Bump mapping");
+      appendln(fb, "// Derivative of height w.r.t. screen using forward-differences");
+      appendln(fb, "vec2 computedHdxy() {");
+      appendln(fb, "   vec2 tdx = dFdx(textureIn.texcoord);");
+      appendln(fb, "   vec2 tdy = dFdy(textureIn.texcoord);");
+      appendln(fb, "   float hll = bump_scale*texture(bump_map, textureIn.texcoord).x;");
+      appendln(fb, "   float dBx = bump_scale*texture(bump_map, textureIn.texcoord+tdx).x-hll;");
+      appendln(fb, "   float dBy = bump_scale*texture(bump_map, textureIn.texcoord+tdy).x-hll;");
+      appendln(fb, "   return vec2(dBx, dBy);");
+      appendln(fb, "}");
+      appendln(fb, "vec3 perturbNormalBump(in vec3 pos, in vec3 nrm, in vec2 dB) {");
+      appendln(fb, "   vec3 dx = dFdx(pos);");
+      appendln(fb, "   vec3 dy = dFdy(pos);");
+      appendln(fb, "   vec3 r1 = cross(dy, nrm);");
+      appendln(fb, "   vec3 r2 = cross(nrm, dx);");
+      appendln(fb, "   float fdet = dot(dx, r1);");
+      appendln(fb, "   vec3 grad = sign(fdet)*(dB.x*r1 + dB.y*r2);");
+      appendln(fb, "   return normalize( abs(fdet)*nrm - grad);");
+      appendln(fb, "}");
+      appendln(fb);
+   }
 
+   private static void addNormalPerturbation(StringBuilder fb) {
+      appendln(fb, "// Normal mapping");
+      appendln(fb, "mat3 cotangent_frame( in vec3 N, in vec3 p, in vec2 uv ) {");
+      appendln(fb, "    // get edge vectors of the pixel triangle");
+      appendln(fb, "    vec3 dp1 = dFdx( p );");
+      appendln(fb, "    vec3 dp2 = dFdy( p );");
+      appendln(fb, "    vec2 duv1 = dFdx( uv );");
+      appendln(fb, "    vec2 duv2 = dFdy( uv );");
+      appendln(fb); 
+      appendln(fb, "    // solve the linear system");
+      appendln(fb, "    vec3 dp2perp = cross( dp2, N );");
+      appendln(fb, "    vec3 dp1perp = cross( N, dp1 );");
+      appendln(fb, "    vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;");
+      appendln(fb, "    vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;");
+      appendln(fb); 
+      appendln(fb, "    // construct a scale-invariant frame ");
+      appendln(fb, "    float invmax = inversesqrt( max( dot(T,T), dot(B,B) ) );");
+      appendln(fb, "    return mat3( T * invmax, B * invmax, N );");
+      appendln(fb, "}");
+      appendln(fb, "vec3 perturbNormal(in vec3 eye, in vec3 nrm ) {");
+      appendln(fb, "   vec3 map = texture(normal_map, textureIn.texcoord).xyz;");
+      appendln(fb, "   map.xy = normal_scale*map.xy;");
+      appendln(fb, "   mat3 TBN = cotangent_frame(nrm, -eye, textureIn.texcoord);");
+      appendln(fb, "   return normalize(TBN*map);");
+      appendln(fb, "}");
+      appendln(fb);
+      
+   }
+   
    private static void buildFragmentShaderFunctions(StringBuilder fb, GLSLInfo info) {
 
       if (info.getShading() == Shading.PHONG) {
@@ -948,55 +1036,96 @@ public class GLSLGenerator {
       if (info.getColorInterpolation() == ColorInterpolation.HSV) {
          addHSVtoRGB(fb);
       }
+      
+      if (info.getShading () == Shading.PHONG && info.hasNormalMap ()) {
+         addNormalPerturbation(fb);
+      }
+      
+      if (info.getShading () == Shading.PHONG && info.hasBumpMap ()) {
+         addBumpPerturbation(fb);
+      }
 
    }
 
    private static void buildFragmentShaderMain(StringBuilder mb, GLSLInfo info) {
 
+      InstancedRendering instanced = info.getInstancedRendering();
+      ColorInterpolation cinterp = info.getColorInterpolation();
+      boolean hasTextures = info.hasVertexTextures();
+      
       appendln(mb, "// main fragment shader");
       appendln(mb, "void main() {");
       appendln(mb, "");
+      
+      // points
+      if (info.isUsingRoundPoints()) {
+         appendln(mb, "   vec2 point_texcoord = 2.0*gl_PointCoord-1.0;");
+         appendln(mb, "   if (dot(point_texcoord, point_texcoord) > 1.0) {");
+         appendln(mb, "      discard;");
+         appendln(mb, "   }");
+      }
       
       // do lighting computations
       boolean lights = false;
       if (info.getShading() != Shading.NONE && info.numLights() > 0) {
          
          lights = true;
-         appendln(mb, "   vec3 diffuse, ambient, specular, emission;");
+         appendln(mb, "   vec3 ambient, diffuse, specular, emission;");
          appendln(mb, "   Material material;");
          switch (info.getShading()) {
             case FLAT:
             case GOURAUD:
                   appendln(mb, "   // imported per-vertex lighting");
                   appendln(mb, "   if( gl_FrontFacing ) {");
-                  appendln(mb, "      diffuse  = fragmentLightIn.front_diffuse;");
-                  appendln(mb, "      ambient  = fragmentLightIn.front_ambient;");
-                  appendln(mb, "      specular = fragmentLightIn.front_specular;");
+                  appendln(mb, "      ambient  = lightIn.front_ambient;");
+                  appendln(mb, "      diffuse  = lightIn.front_diffuse;");
+                  appendln(mb, "      specular = lightIn.front_specular;");
                   appendln(mb, "      material = front_material;");
                   appendln(mb, "   } else {");
-                  appendln(mb, "      diffuse  = fragmentLightIn.back_diffuse;");
-                  appendln(mb, "      ambient  = fragmentLightIn.back_ambient;");
-                  appendln(mb, "      specular = fragmentLightIn.back_specular;");
+                  appendln(mb, "      diffuse  = lightIn.back_diffuse;");
+                  appendln(mb, "      ambient  = lightIn.back_ambient;");
+                  appendln(mb, "      specular = lightIn.back_specular;");
                   appendln(mb, "      material = back_material;");
                   appendln(mb, "   }");
                   appendln(mb);
                   break;
             case PHONG:
                   appendln(mb, "   // fragment normal and eye location for lighting");
-                  appendln(mb, "   vec3 n = normalize(fragmentDirIn.normal);");
-                  appendln(mb, "   vec3 e = normalize(fragmentDirIn.to_eye);");
+                  
+                  if (!info.hasVertexNormals ()) {
+                     appendln(mb, "   // compute normal using derivatives");
+                     appendln(mb, "   vec3 deyedx = dFdx(dirIn.to_eye);");
+                     appendln(mb, "   vec3 deyedy = dFdy(dirIn.to_eye);");
+                     appendln(mb, "   vec3 normal = normalize( cross( deyedx, deyedy ) );");
+                  } else {
+                     appendln(mb, "   vec3 normal = normalize(dirIn.normal);");
+                  }
+                  appendln(mb, "   vec3 eye = normalize(dirIn.to_eye);");
                   appendln(mb, "   ");
+                  if (hasTextures) {
+                     if (info.hasNormalMap()) {
+                        appendln(mb, "   // normal-map purturbation");
+                        appendln(mb, "   normal = perturbNormal(-dirIn.to_eye, normal);");
+                        appendln(mb, "   ");
+                     }
+                     if (info.hasBumpMap()) {
+                        appendln(mb, "   // bump-map normal purturbation");
+                        appendln(mb, "   normal = perturbNormalBump(-dirIn.to_eye, normal, computedHdxy());");
+                        appendln(mb, "   ");
+                     }
+                  }
                   appendln(mb, "   // choose material based on face orientation");
                   appendln(mb, "   if (gl_FrontFacing) {");
                   appendln(mb, "      material = front_material;");
                   appendln(mb, "   } else {");
                   appendln(mb, "      material = back_material;");
-                  appendln(mb, "      n = -n;  // flip fragment normal");
+                  appendln(mb, "      normal = -normal;  // flip fragment normal");
                   appendln(mb, "   }");
                   appendln(mb, "   ");
+                  
                   appendln(mb, "   // per-fragment lighting computations");
                   appendln(mb, "   for (int i=0; i<" + info.numLights() + "; ++i) {");
-                  appendln(mb, "      vec3 light_to_vertex = -fragmentDirIn.to_eye-light[i].position.xyz;");
+                  appendln(mb, "      vec3 light_to_vertex = -dirIn.to_eye-light[i].position.xyz;");
                   appendln(mb, "      float lightdist = length(light_to_vertex);");
                   appendln(mb, "      light_to_vertex = normalize(light_to_vertex);");                  
                   appendln(mb, "      // determine direction either from point or direction using direction indicator");
@@ -1021,13 +1150,10 @@ public class GLSLGenerator {
                   appendln(mb, "         light[i].attenuation.z*lightdist*lightdist), light[i].position.w);");
                   appendln(mb, "      att *= spotatt;  // combine into a single attenuation parameter");
                   appendln(mb, "      ");
-                  appendln(mb, "      vec2 ds = blinnPhongCoeffs( n, -light_direction, e, material.specular.a);");
+                  appendln(mb, "      vec2 ds = blinnPhongCoeffs( normal, -light_direction, eye, material.specular.a);");
+                  appendln(mb, "      ambient  += intensity_scale*light[i].ambient.rgb;");
                   appendln(mb, "      diffuse  += intensity_scale*att*ds.x*light[i].diffuse.rgb;");
                   appendln(mb, "      specular += intensity_scale*att*ds.y*light[i].specular.rgb;");
-                  appendln(mb, "      ambient  += intensity_scale*light[i].ambient.rgb;");
-                  //                  appendln(mb, "      diffuse  = max(att*ds.x*light[i].diffuse.rgb, diffuse);");
-                  //                  appendln(mb, "      specular = max(att*ds.y*light[i].specular.rgb, specular);");
-                  //                  appendln(mb, "      ambient  = max(light[i].ambient.rgb, ambient);");
                   appendln(mb, "      ");
                   appendln(mb, "   }");
                   appendln(mb, "   ");
@@ -1047,93 +1173,143 @@ public class GLSLGenerator {
       }
       
       // combine colors
-      InstancedRendering instanced = info.getInstancedRendering();
-      ColorInterpolation cinterp = info.getColorInterpolation();
-      boolean hasColors = (cinterp != ColorInterpolation.NONE)
+      boolean hasVertexColors = (cinterp != ColorInterpolation.NONE)
          && (info.hasVertexColors()
             || ((instanced == InstancedRendering.POINTS 
                  || instanced == InstancedRendering.FRAMES
                  || instanced == InstancedRendering.AFFINES) && info.hasInstanceColors())
             || (instanced == InstancedRendering.LINES && info.hasLineColors() ) );
 
-      boolean hasTextures = info.hasVertexTextures()
-              || ((instanced == InstancedRendering.POINTS 
-                    || instanced == InstancedRendering.FRAMES
-                    || instanced == InstancedRendering.AFFINES) && info.hasInstanceTextures())
-              || (instanced == InstancedRendering.LINES && info.hasLineTextures() );
-
-      appendln(mb, "   // compute final color");
-      appendln(mb, "   vec4 color = material.diffuse;  // start with material");
+      appendln(mb, "   // compute final color, starting with material");
+      appendln(mb, "   vec4 fdiffuse = material.diffuse;");
+      appendln(mb, "   vec3 fspecular = material.specular.rgb;");
+      appendln(mb, "   vec3 femission = material.emission.rgb;");
       
-      if (hasColors) {
+      if (hasVertexColors) {
          // mix colors
-         appendln(mb, "   // incoming fragment color");
+         appendln(mb, "   // incoming vertex color");
          if (cinterp == ColorInterpolation.HSV) {
-            appendln(mb, "   vec4 fcolor = hsva2rgba(fragmentColorIn.color);");
+            appendln(mb, "   vec4 vcolor = hsva2rgba(colorIn.diffuse);");
          } else {
-            appendln(mb, "   vec4 fcolor = fragmentColorIn.color;");
+            appendln(mb, "   vec4 vcolor = colorIn.diffuse;");
          }
          appendln(mb, "   // mix");
-         ColorMixing cmix = info.getColorMixing();
+         ColorMixing cmix = info.getVertexColorMixing();
          switch (cmix) {
             case DECAL:
-               appendln(mb, "   color = vec4(mix(color,fcolor,fcolor.a).rgb, color.a); // decal");
+               if (info.mixVertexColorDiffuse ()) {
+                  appendln(mb, "   fdiffuse  = mix(fdiffuse,vcolor,vcolor.a), fdiffuse.a); // decal");
+               }
+               if (info.mixVertexColorSpecular ()) {
+                  appendln(mb, "   fspecular = mix(fspecular,vcolor,vcolor.a); // decal");
+               }
+               if (info.mixVertexColorEmission ()) {
+                  appendln(mb, "   femission = mix(femission,vcolor,vcolor.a); // decal");
+               }
                break;
             case MODULATE:
-               appendln(mb, "   color = fcolor*color; // modulate");
+               if (info.mixVertexColorDiffuse ()) {
+                  appendln(mb, "   fdiffuse  = fdiffuse*vcolor;      // modulate");
+               }
+               if (info.mixVertexColorSpecular ()) {
+                  appendln(mb, "   fspecular = fspecular*vcolor.rgb; // modulate");
+               }
+               if (info.mixVertexColorEmission ()) {
+                  appendln(mb, "   femission = femission*vcolor.rgb; // modulate");
+               }
                break;
             case REPLACE:
-               appendln(mb, "   color = fcolor; // replace");
+               if (info.mixVertexColorDiffuse ()) {
+                  appendln(mb, "   fdiffuse  = vcolor;     // replace");
+               }
+               if (info.mixVertexColorSpecular ()) {
+                  appendln(mb, "   fspecular = vcolor.rgb; // replace");
+               }
+               if (info.mixVertexColorEmission ()) {
+                  appendln(mb, "   femission = vcolor.rgb; // replace");
+               }
                break;
             case NONE:
-               appendln(mb, "   // fcolor ignored");
+               appendln(mb, "   // vcolor ignored");
             default:
          }
       }
 
       if (hasTextures) {
          appendln(mb, "   // grab texture color and mix");
-         appendln(mb, "   vec4 texture_color = texture( texture0, textureIn.texcoord );");
-         ColorMixing cmix = info.getColorMixing();
-         switch (cmix) {
-            case DECAL:
-               appendln(mb, "   color = vec4(mix(color,texture_color,texture_color.a).rgb, color.a); // decal");
-               break;
-            case MODULATE:
-               appendln(mb, "   color = color*texture_color; // modulate");
-               break;
-            case REPLACE:
-               appendln(mb, "   color = texture_color; // replace");
-            case NONE:
-               appendln(mb, "   // texture_color ignored");
-            default:
+         if (info.hasColorMap ()) {
+            appendln(mb, "   vec4 texture_color = texture( color_map, textureIn.texcoord );");
+            ColorMixing cmix = info.getTextureColorMixing();
+            switch (cmix) {
+               case DECAL:
+                  if (info.mixTextureColorDiffuse ()) {
+                     appendln(mb, "   fdiffuse  = vec4(mix(fdiffuse,texture_color,texture_color.a).rgb, fdiffuse.a); // decal");
+                  }
+                  if (info.mixTextureColorSpecular ()) {
+                     appendln(mb, "   fspecular = mix(fspecular,texture_color,texture_color.a); // decal");
+                  }
+                  if (info.mixTextureColorEmission ()) {
+                     appendln(mb, "   femission = mix(femission,texture_color,texture_color.a); // decal");
+                  }
+                  break;
+               case MODULATE:
+                  if (info.mixTextureColorDiffuse ()) {
+                     appendln(mb, "   fdiffuse  = fdiffuse*texture_color;      // modulate");
+                  }
+                  if (info.mixTextureColorSpecular ()) {
+                     appendln(mb, "   fspecular = fspecular*texture_color.rgb; // modulate");
+                  }
+                  if (info.mixTextureColorDiffuse ()) {
+                     appendln(mb, "   femission = femission*texture_color.rgb; // modulate");
+                  }
+                  break;
+               case REPLACE:
+                  if (info.mixTextureColorDiffuse ()) {
+                     appendln(mb, "   fdiffuse  = texture_color;     // replace");
+                  }
+                  if (info.mixTextureColorSpecular ()) {
+                     appendln(mb, "   fspecular = texture_color.rgb; // replace");
+                  }
+                  if (info.mixTextureColorDiffuse ()) {
+                     appendln(mb, "   femission = texture_color.rgb; // replace");
+                  }
+                  break;
+               case NONE:
+                  appendln(mb, "   // texture_color ignored");
+                  break;
+               default:
+            }
          }
+         
       }
       
       // lighting
       if (lights) {
          appendln(mb, "   // apply lighting");
-         appendln(mb, "   diffuse  = color.rgb*diffuse;");
-         appendln(mb, "   ambient  = color.rgb*ambient;");
-         appendln(mb, "   specular = material.specular.rgb*specular;");
-         appendln(mb, "   emission = material.emission.rgb;");
-         appendln(mb, "   color = vec4(max(diffuse+specular+emission, ambient), color.a);");
+         appendln(mb, "   ambient  = fdiffuse.rgb*ambient*material.power.x;");
+         appendln(mb, "   diffuse  = fdiffuse.rgb*diffuse*material.power.y;");
+         appendln(mb, "   specular = fspecular*specular*material.power.z;");
+         appendln(mb, "   emission = femission*emission*material.power.w;");
+         appendln(mb, "   fragment_color = vec4(max(diffuse+specular+emission, ambient), fdiffuse.a);");
+      } else {
+         appendln(mb, "   fragment_color = fdiffuse;");
       }
       
       //      appendln(mb, "   // gamma correction");
       //      appendln(mb, "   vec3 gamma = vec3(1.0/2.2);");
-      //      appendln(mb, "   color = vec4(pow(color.rgb, gamma), color.a);");
-      appendln(mb, "   fragment_color = clamp(color, 0, 2);");
+      //      appendln(mb, "   fragment_color = vec4(pow(fragment_color.rgb, gamma), fragment_color.a);");
 
       appendln(mb, "}");
 
    }
 
    public static void main(String[] args) {
-
-      GLSLInfo proginfo = new GLSLInfo(1, 0, Shading.NONE, ColorInterpolation.RGB, 
-         false, false, false, InstancedRendering.LINES,
-            false, false, false, false, false, null, null);
+      
+      GLSLInfoBuilder infoBuilder = new GLSLInfoBuilder ();
+      infoBuilder.setNumLights(1);
+      infoBuilder.setLighting (Shading.PHONG);
+      GLSLInfo proginfo = infoBuilder.build ();
+      
       String[] shaders = getShaderScripts(proginfo);
 
       System.out.println("Vertex Shader: ");
@@ -1142,6 +1318,5 @@ public class GLSLGenerator {
       System.out.println("Fragment Shader: ");
       System.out.println(shaders[FRAGMENT_SHADER]);
    }
-
 
 }

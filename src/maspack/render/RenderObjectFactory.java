@@ -11,6 +11,48 @@ import maspack.matrix.Vector3d;
 import maspack.render.Renderer.DrawMode;
 
 public class RenderObjectFactory {
+   
+   private static class VertexIndexSet {
+      int pidx;
+      int nidx;
+      int cidx;
+      int tidx;
+      public VertexIndexSet(int pidx, int nidx, int cidx, int tidx) {
+         this.pidx = pidx;
+         this.nidx = nidx;
+         this.cidx = cidx;
+         this.tidx = tidx;
+      }
+      @Override
+      public int hashCode () {
+         final int prime = 31;
+         int result = 1;
+         result = prime * result + cidx;
+         result = prime * result + nidx;
+         result = prime * result + pidx;
+         result = prime * result + tidx;
+         return result;
+      }
+      @Override
+      public boolean equals (Object obj) {
+         if (this == obj)
+            return true;
+         if (obj == null)
+            return false;
+         if (getClass () != obj.getClass ())
+            return false;
+         VertexIndexSet other = (VertexIndexSet)obj;
+         if (cidx != other.cidx)
+            return false;
+         if (nidx != other.nidx)
+            return false;
+         if (pidx != other.pidx)
+            return false;
+         if (tidx != other.tidx)
+            return false;
+         return true;
+      }
+   }
 
    /**
     * Creates a RenderObject from a PolygonalMesh, with one group of triangle primitives for faces.
@@ -63,12 +105,11 @@ public class RenderObjectFactory {
       }
 
       // keep a map of unique vertices to reduce storage requirements
-      HashMap<RenderObject.VertexIndexSet,Integer> uniqueVerts = new HashMap<>(); 
+      HashMap<VertexIndexSet,Integer> uniqueVerts = new HashMap<>(); 
 
       // build faces
       int[] indexOffs = mesh.getFeatureIndexOffsets();
       List<Face> faces = mesh.getFaces();
-      final int[] invalid = new int[] {-1}; 
       for (int i=0; i<faces.size(); i++) {
          Face f = faces.get(i);
          int foff = indexOffs[f.idx];
@@ -83,7 +124,7 @@ public class RenderObjectFactory {
                nidx = nidxs != null ? nidxs[foff+j] : -1;
             }
             // only add if unique combination
-            RenderObject.VertexIndexSet v = new RenderObject.VertexIndexSet(
+            VertexIndexSet v = new VertexIndexSet(
                pidxs[j], 
                nidx,
                cidxs != null ? cidxs[foff+j] : -1,

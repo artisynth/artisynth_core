@@ -61,7 +61,6 @@ public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
          vidx += 2;
       }
       myRob.setPositionsDynamic (true);
-      myRob.commit();
    }
 
    protected void updateRenderObject() {
@@ -86,8 +85,8 @@ public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
       int kReg = 0;
       int numReg = 2*myRob.numLines(REG_GRP);
       int numSel = 2*myRob.numLines(SEL_GRP);
-      int[] viReg = myRob.getLineArray (REG_GRP);
-      int[] viSel = myRob.getLineArray (SEL_GRP);
+      int[] viReg = myRob.getLines (REG_GRP);
+      int[] viSel = myRob.getLines (SEL_GRP);
       int vidx = 0;
       for (int i=0; i<size(); i++) {
          AxialSpring spr = get(i);

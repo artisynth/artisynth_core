@@ -4,13 +4,13 @@ import javax.media.opengl.GL3;
 
 public class GL3ElementAttributeArray {
    
-   public static class ElementInfo {
+   public static class IBOInfo {
       int type;
       int offset;
       int stride;
       int count;
       
-      public ElementInfo(int type, int offset, int stride, int count) {
+      public IBOInfo(int type, int offset, int stride, int count) {
          this.type = type;
          this.offset = offset;
          this.stride = stride;
@@ -34,19 +34,19 @@ public class GL3ElementAttributeArray {
       }
    }
    
-   BufferObject ibo;  // pointer to buffer object
-   ElementInfo info;
+   IndexBufferObject ibo;  // pointer to buffer object
+   IBOInfo info;
    
-   public GL3ElementAttributeArray(BufferObject ibo, ElementInfo info) {
+   public GL3ElementAttributeArray(IndexBufferObject ibo, IBOInfo info) {
       this.ibo = ibo;
       this.info = info;
    }
    
-   public GL3ElementAttributeArray(BufferObject ibo, int type, int offset, int stride, int count) {
-      this(ibo, new ElementInfo(type, offset, stride, count));
+   public GL3ElementAttributeArray(IndexBufferObject ibo, int type, int offset, int stride, int count) {
+      this(ibo, new IBOInfo(type, offset, stride, count));
    }
    
-   public BufferObject getIBO() {
+   public IndexBufferObject getIBO() {
       return ibo;
    }
    

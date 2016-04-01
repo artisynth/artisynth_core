@@ -12,34 +12,38 @@ import java.util.LinkedList;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 
+import artisynth.core.modelbase.RenderableComponentList;
+import artisynth.core.util.ScalableUnits;
 import maspack.matrix.Point3d;
 import maspack.properties.PropertyList;
 import maspack.render.PointRenderProps;
+import maspack.render.RenderKeyImpl;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
 import maspack.render.Renderer;
 import maspack.render.Renderer.PointStyle;
 import maspack.render.Renderer.Shading;
-import maspack.render.GL.GL2.DisplayListKey;
+import maspack.render.GL.GL2.GL2Object;
+import maspack.render.GL.GL2.GL2Primitive.PrimitiveType;
+import maspack.render.GL.GL2.GL2VersionedObject;
 import maspack.render.GL.GL2.GL2Viewer;
-import artisynth.core.modelbase.RenderableComponentList;
-import artisynth.core.util.ScalableUnits;
+import maspack.util.BooleanHolder;
 
 public class VertexList<P extends VertexComponent> extends RenderableComponentList<P>
 implements ScalableUnits {
 
    protected static final long serialVersionUID = 1;
-   
-   DisplayListKey vKey;
+
+   RenderKeyImpl vKey;
    int version;
    boolean vchanged;
-   
+
    private static class VListPrint {
       int version;
       PointStyle style;
       int pList;
-      
+
       public VListPrint(PointStyle style, int pointDisplayList, int version) {
          this.version = version;
          this.style = style;
@@ -65,11 +69,11 @@ implements ScalableUnits {
          }
          return true;
       }
-      
+
    }
 
    public static PropertyList myProps =
-      new PropertyList (VertexList.class, RenderableComponentList.class);
+   new PropertyList (VertexList.class, RenderableComponentList.class);
 
    static {
       myProps.get ("renderProps").setDefaultValue (new PointRenderProps());
@@ -82,15 +86,15 @@ implements ScalableUnits {
    public VertexList (Class<P> type) {
       this (type, null, null);
    }
-   
+
    public VertexList (Class<P> type, String name, String shortName) {
       super (type, name, shortName);
       setRenderProps (createRenderProps());
       vchanged = true;
       version = 0;
-      vKey = new DisplayListKey(this, 0);
+      vKey = new RenderKeyImpl ();
    }
-   
+
    @Override
    protected void notifyStructureChanged(Object comp, boolean stateIsChanged) {
       super.notifyStructureChanged(comp, stateIsChanged);
@@ -104,7 +108,7 @@ implements ScalableUnits {
       }
       return new VListPrint(style, pointDisplayList, version);
    }
-   
+
    /* ======== Renderable implementation ======= */
 
    public RenderProps createRenderProps() {
@@ -129,17 +133,17 @@ implements ScalableUnits {
    }
 
    public void render (Renderer renderer, int flags) {
-      
+
       if (!(renderer instanceof GL2Viewer)) {
          return;
       }
       GL2Viewer viewer = (GL2Viewer)renderer;
       GL2 gl = viewer.getGL2();
-      
+
       gl.glPushMatrix();
 
       RenderProps props = getRenderProps();
-      
+
       boolean lastSelected = false;
 
       Shading savedShading = renderer.setPointShading (props);
@@ -164,29 +168,21 @@ implements ScalableUnits {
                   i++;
                }
             } else {
-               
+
                VListPrint vPrint = getFingerPrint(PointStyle.POINT, 0);
-               int displayList = viewer.getDisplayList(gl, vKey, vPrint);
-               boolean useDisplayList = true;
-               boolean compile = true;
-               if (displayList < 0) {
-                  displayList = -displayList;
-                  compile = true;
-                  useDisplayList = true;
-               } else {
-                  compile = false;
-                  useDisplayList = (displayList > 0);
-               }
-               
-               if (compile || useDisplayList) {
-                  if (displayList != 0) {
-                     gl.glNewList(displayList, GL2.GL_COMPILE);      
+               BooleanHolder compile = new BooleanHolder(true);
+               GL2VersionedObject gvo = viewer.getVersionedObject(gl, vKey, vPrint, compile);
+               boolean useDisplayList = !renderer.isSelecting ();
+
+               if (compile.value || useDisplayList) {
+                  if (useDisplayList && compile.value) {
+                     gvo.beginCompile (gl);      
                   }
-                  
+
                   gl.glBegin (GL2.GL_POINTS);
                   for (VertexComponent vc : this) {
                      if (vc.getRenderProps() == null) {
-   
+
                         if (!isSelected()) {
                            // set selection color for vertices as needed
                            if (vc.isSelected() != lastSelected) {
@@ -195,52 +191,42 @@ implements ScalableUnits {
                               lastSelected = vc.isSelected();
                            }
                         }
-                        
+
                         gl.glVertex3fv (vc.getRenderCoords(), 0);
                      }
                   }
                   gl.glEnd();
-                  
+
                   if (useDisplayList) {
-                     gl.glEndList();
-                     gl.glCallList(displayList);
+                     gvo.endCompile (gl);
+                     gvo.draw (gl);
                   }
                } else {
-                 gl.glCallList(displayList);
+                  gvo.draw (gl);
                }
             }
-            
+
             renderer.setPointSize(1);
             //renderer.setLightingEnabled(true);
             break;
          }
          case SPHERE: {
 
-            boolean compile = true;
+            BooleanHolder compile = new BooleanHolder(true);
             boolean useDisplayList = !renderer.isSelecting();
-            int displayList = 0;
-            
+            GL2VersionedObject gvo = null;
+
             if (useDisplayList) {
-               
-               int sphereDisplayList = viewer.getSphereDisplayList(
-                  gl, renderer.getSurfaceResolution());
-               VListPrint vPrint = getFingerPrint(PointStyle.POINT, sphereDisplayList);
-               displayList = viewer.getDisplayList(gl, vKey, vPrint);
-               if (displayList < 0) {
-                  displayList = -displayList;
-                  compile = true;
-                  useDisplayList = true;
-               } else {
-                  compile = false;
-                  useDisplayList = (displayList > 0);
-               }
+               GL2Object sphere = viewer.getPrimitive (gl, PrimitiveType.SPHERE); 
+               VListPrint vPrint = getFingerPrint(PointStyle.POINT, sphere.hashCode());
+               gvo = viewer.getVersionedObject(gl, vKey, vPrint, compile);
             }
-            
-            if (!useDisplayList || compile) {
+
+            if (!useDisplayList || compile.value) {
                if (useDisplayList) {
-                  gl.glNewList(displayList, GL2.GL_COMPILE);      
+                  gvo.beginCompile (gl);      
                }
-               
+
                int i=0;
                for (VertexComponent vc : this) {
                   if (vc.getRenderProps() == null) {
@@ -263,32 +249,22 @@ implements ScalableUnits {
                   }
                   i++;
                }
-              
+
                if (useDisplayList) {
-                  gl.glEndList();
-                  gl.glCallList(displayList);
+                  gvo.endCompile (gl);
+                  gvo.draw (gl);
                }
             } else {
-              gl.glCallList(displayList);
-              int err = gl.glGetError();
-              if (err != GL.GL_NO_ERROR) {
-                 System.err.println("GL Error: " + err);
-              }
+               gvo.draw (gl);
+               int err = gl.glGetError();
+               if (err != GL.GL_NO_ERROR) {
+                  System.err.println("GL Error: " + err);
+               }
             }
-               
-            
             break;
          }
       }
       renderer.setShading (savedShading);
-      
-
-      //         gl.glEndList();
-      //         displayListValid = true;
-      //      } 
-      //
-      //      gl.glCallList(displayList);
-
       gl.glPopMatrix();
 
    }
@@ -301,7 +277,7 @@ implements ScalableUnits {
       }
       GL2Viewer viewer = (GL2Viewer)renderer;
       GL2 gl = viewer.getGL2();
-      
+
       gl.glPushMatrix();
 
       Shading savedShading = renderer.setPointShading(props);
@@ -385,30 +361,30 @@ implements ScalableUnits {
       }
    }
 
-//   public void transformGeometry (AffineTransform3dBase X) {
-//      transformGeometry (X, this, 0);
-//   }
-//
-//   public void transformGeometry (
-//      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-//      for (int i = 0; i < size(); i++) {
-//         get (i).transformGeometry (X, topObject, flags);
-//      }
-//   }
-//
-//   public void transformGeometry (
-//      AffineTransform3dBase X, PolarDecomposition3d pd,
-//      Map<TransformableGeometry,Boolean> transformSet, int flags) {
-//      for (int i = 0; i < size(); i++) {
-//         get (i).transformGeometry (X, pd, transformSet, flags);
-//      }
-//   }
-//   
-//   public int getTransformableDescendants (
-//      List<TransformableGeometry> list) {
-//      return 0;
-//   }
-   
+   //   public void transformGeometry (AffineTransform3dBase X) {
+   //      transformGeometry (X, this, 0);
+   //   }
+   //
+   //   public void transformGeometry (
+   //      AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
+   //      for (int i = 0; i < size(); i++) {
+   //         get (i).transformGeometry (X, topObject, flags);
+   //      }
+   //   }
+   //
+   //   public void transformGeometry (
+   //      AffineTransform3dBase X, PolarDecomposition3d pd,
+   //      Map<TransformableGeometry,Boolean> transformSet, int flags) {
+   //      for (int i = 0; i < size(); i++) {
+   //         get (i).transformGeometry (X, pd, transformSet, flags);
+   //      }
+   //   }
+   //   
+   //   public int getTransformableDescendants (
+   //      List<TransformableGeometry> list) {
+   //      return 0;
+   //   }
+
    public void scaleDistance (double s) {
       for (int i = 0; i < size(); i++) {
          get (i).scaleDistance (s);

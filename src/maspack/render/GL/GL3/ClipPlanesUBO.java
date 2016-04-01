@@ -1,6 +1,6 @@
 package maspack.render.GL.GL3;
 
-import java.nio.FloatBuffer;
+import java.nio.ByteBuffer;
 import java.util.List;
 
 import javax.media.opengl.GL3;
@@ -8,7 +8,6 @@ import javax.media.opengl.GL3;
 import maspack.matrix.Plane;
 import maspack.matrix.Vector3d;
 import maspack.render.GL.GLClipPlane;
-import maspack.render.GL.GLSupport;
 
 public class ClipPlanesUBO extends UniformBufferObject {
    
@@ -30,19 +29,20 @@ public class ClipPlanesUBO extends UniformBufferObject {
    }
    
    public void updateClipPlanes(GL3 gl,  Plane[] clips) {
-      float[] clipbuff = new float[getSize()/GLSupport.FLOAT_SIZE];
+      
+      ByteBuffer buff = getBuffer();
       
       for (int i=0; i<numClipPlanes; ++i) {
-         int idx = getOffset(i)/GLSupport.FLOAT_SIZE;
+         buff.position (getByteOffset(i));
          Vector3d normal = clips[i].getNormal();
-         clipbuff[idx++] = (float)(normal.x);
-         clipbuff[idx++] = (float)(normal.y);
-         clipbuff[idx++] = (float)(normal.z);
-         clipbuff[idx++] = (float)(clips[i].getOffset());
+         buff.putFloat ((float)(normal.x));
+         buff.putFloat ((float)(normal.y));
+         buff.putFloat ((float)(normal.z));
+         buff.putFloat ((float)(clips[i].getOffset()));
       }
       
-      FloatBuffer data = FloatBuffer.wrap(clipbuff);
-      update(gl, data);
+      buff.flip ();
+      update(gl, buff);
    }
    
    /**
@@ -51,22 +51,29 @@ public class ClipPlanesUBO extends UniformBufferObject {
     * @param clips
     */
    public int updateClipPlanes(GL3 gl,  GLClipPlane[] clips) {
-      
-      float[] clipbuff = new float[getSize()/GLSupport.FLOAT_SIZE];
+
+      float[] clipbuff = new float[4];
       int nclips = 0;
+      ByteBuffer buff = getBuffer();
       
       for (GLClipPlane cp : clips) {
          if (cp.isClippingEnabled()) {
-            int idx = getOffset(nclips)/GLSupport.FLOAT_SIZE;
-            cp.getClipPlaneValues (clipbuff, idx, false);
+            buff.position (getByteOffset(nclips));
+            cp.getClipPlaneValues (clipbuff, 0, false);
+            for (int i=0; i<4; ++i) {
+               buff.putFloat (clipbuff[i]);
+            }
             nclips++;
             if (nclips >= numClipPlanes) {
                break;
             }
 
             if (cp.isSlicingEnabled()) {
-               idx = getOffset(nclips)/GLSupport.FLOAT_SIZE;
-               cp.getClipPlaneValues (clipbuff, idx, true);
+               buff.position(getByteOffset(nclips));
+               cp.getClipPlaneValues (clipbuff, 0, true);
+               for (int i=0; i<4; ++i) {
+                  buff.putFloat (clipbuff[i]);
+               }
                nclips++;
                if (nclips >= numClipPlanes) {
                   break;
@@ -74,9 +81,9 @@ public class ClipPlanesUBO extends UniformBufferObject {
             }
          }
       }
-      
-      FloatBuffer data = FloatBuffer.wrap(clipbuff);
-      update(gl, data);
+
+      buff.flip ();
+      update(gl, buff);
       
       return nclips;
    }
@@ -88,21 +95,28 @@ public class ClipPlanesUBO extends UniformBufferObject {
     */
    public int updateClipPlanes(GL3 gl,  List<GLClipPlane> clips) {
       
-      float[] clipbuff = new float[getSize()/GLSupport.FLOAT_SIZE];
+      float[] clipbuff = new float[4];
       int nclips = 0;
+      ByteBuffer buff = getBuffer();
       
       for (GLClipPlane cp : clips) {
          if (cp.isClippingEnabled()) {
-            int idx = getOffset(nclips)/GLSupport.FLOAT_SIZE;
-            cp.getClipPlaneValues (clipbuff, idx, false);
+            buff.position (getByteOffset(nclips));
+            cp.getClipPlaneValues (clipbuff, 0, false);
+            for (int i=0; i<4; ++i) {
+               buff.putFloat (clipbuff[i]);
+            }
             nclips++;
             if (nclips >= numClipPlanes) {
                break;
             }
 
             if (cp.isSlicingEnabled()) {
-               idx = getOffset(nclips)/GLSupport.FLOAT_SIZE;
-               cp.getClipPlaneValues (clipbuff, idx, true);
+               buff.position(getByteOffset(nclips));
+               cp.getClipPlaneValues (clipbuff, 0, true);
+               for (int i=0; i<4; ++i) {
+                  buff.putFloat (clipbuff[i]);
+               }
                nclips++;
                if (nclips >= numClipPlanes) {
                   break;
@@ -111,11 +125,15 @@ public class ClipPlanesUBO extends UniformBufferObject {
          }
       }
       
-      FloatBuffer data = FloatBuffer.wrap(clipbuff);
-      update(gl, data);
+      buff.flip ();
+      update(gl, buff);
       
       return nclips;
    }
       
+   @Override
+   public ClipPlanesUBO acquire () {
+      return (ClipPlanesUBO)super.acquire ();
+   }
 
 }

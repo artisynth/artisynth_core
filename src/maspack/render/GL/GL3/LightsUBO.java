@@ -1,6 +1,6 @@
 package maspack.render.GL.GL3;
 
-import java.nio.FloatBuffer;
+import java.nio.ByteBuffer;
 import java.util.List;
 
 import javax.media.opengl.GL3;
@@ -11,7 +11,6 @@ import maspack.matrix.Vector3d;
 import maspack.render.GL.GLLight;
 import maspack.render.GL.GLLight.LightSpace;
 import maspack.render.GL.GLLight.LightType;
-import maspack.render.GL.GLSupport;
 
 public class LightsUBO extends UniformBufferObject {
 
@@ -54,81 +53,87 @@ public class LightsUBO extends UniformBufferObject {
    }
 
    public void updateLights(GL3 gl, List<GLLight> lights, float intensityScale, RigidTransform3d viewMatrix) {
-      float[] lightbuff = new float[getSize() / GLSupport.FLOAT_SIZE];
+      
+      ByteBuffer buff = getBuffer();
 
       for (int i=0; i<numLights; i++) {
          int idx = i*ATTRIBUTES_PER_LIGHT.length;
          // fill in properties
-         int pos = getOffset(idx++) / GLSupport.FLOAT_SIZE;
          GLLight light = lights.get(i);
-         
-         copy(lightbuff, pos, light.getDiffuse(), 4);   // diffuse
-         pos = getOffset(idx++) / GLSupport.FLOAT_SIZE;
-         copy(lightbuff, pos, light.getAmbient(), 4);   // ambient
-         pos = getOffset(idx++) / GLSupport.FLOAT_SIZE;
-         copy(lightbuff, pos, light.getSpecular(), 4);  // specular
+         buff.position (getByteOffset(idx++));
+         putFloat (buff, light.getDiffuse(), 4);   // diffuse
+         buff.position(getByteOffset(idx++));
+         putFloat(buff, light.getAmbient(), 4);   // ambient
+         buff.position(getByteOffset(idx++));
+         putFloat(buff, light.getSpecular(), 4);  // specular
          
          // position
-         pos = getOffset(idx++) / GLSupport.FLOAT_SIZE;
+         buff.position (getByteOffset(idx++));
          // maybe adjust to camera space
          if (light.getLightSpace() == LightSpace.WORLD) {
             float[] flpos = light.getPosition();
             Point3d lpos = new Point3d(flpos[0], flpos[1], flpos[2]);
             lpos.transform(viewMatrix);
-            lightbuff[pos] = (float)(lpos.x);
-            lightbuff[pos+1] = (float)(lpos.y);
-            lightbuff[pos+2] = (float)(lpos.z);
+            buff.putFloat ((float)(lpos.x));
+            buff.putFloat ((float)(lpos.y));
+            buff.putFloat ((float)(lpos.z));
          } else {
-            copy(lightbuff, pos, light.getPosition(), 3);  // position
+            putFloat (buff, light.getPosition(), 3);  // position
          }
          // directional indicator
          if (light.getType() == LightType.DIRECTIONAL) {
-            lightbuff[pos + 3] = 0f;
+            buff.putFloat (0f);
          } else {
-            lightbuff[pos + 3] = 1f;
+            buff.putFloat (1f);
          }
          
          // direction
-         pos = getOffset(idx++) / GLSupport.FLOAT_SIZE;
+         buff.position(getByteOffset(idx++));
          // maybe adjust to camera space
          if (light.getLightSpace() == LightSpace.WORLD) {
             float[] fldir = light.getDirection();
             Vector3d ldir = new Vector3d(fldir[0], fldir[1], fldir[2]);
             ldir.transform(viewMatrix);
-            lightbuff[pos] = (float)(ldir.x);
-            lightbuff[pos+1] = (float)(ldir.y);
-            lightbuff[pos+2] = (float)(ldir.z);
+            buff.putFloat ((float)(ldir.x));
+            buff.putFloat ((float)(ldir.y));
+            buff.putFloat ((float)(ldir.z));
          } else {
-            copy(lightbuff, pos, light.getDirection(), 3); // direction
+            putFloat(buff,light.getDirection(), 3); // direction
          }
          
          // spot indicator
          if (light.getType() == LightType.SPOT) {
-            lightbuff[pos + 3] = light.getSpotCosCutoff();
+            buff.putFloat (light.getSpotCosCutoff());
          } else {
-            lightbuff[pos + 3] = -2; // allow all light
+            buff.putFloat (-2f); // allow all light
          }
-         pos = getOffset(idx++) / GLSupport.FLOAT_SIZE;
-         lightbuff[pos++] = light.getConstantAttenuation(); // attenuation
-         lightbuff[pos++] = light.getLinearAttenuation();
-         lightbuff[pos++] = light.getQuadraticAttenuation();
-         lightbuff[pos++] = light.getSpotExponent();
+         
+         // attenuation
+         buff.position (getByteOffset(idx++));
+         buff.putFloat (light.getConstantAttenuation()); // attenuation
+         buff.putFloat (light.getLinearAttenuation());
+         buff.putFloat (light.getQuadraticAttenuation());
+         buff.putFloat (light.getSpotExponent());
       }
       
       // light intensity
       int idx = numLights*ATTRIBUTES_PER_LIGHT.length;
-      int pos = getOffset(idx++) / GLSupport.FLOAT_SIZE;
-      lightbuff[pos] = intensityScale;
+      buff.position(getByteOffset(idx++));
+      buff.putFloat (intensityScale);
 
-      FloatBuffer data = FloatBuffer.wrap(lightbuff);
-      update(gl, data);
+      buff.flip ();
+      update(gl, buff);
    }
 
-   private static void copy(float[] out, int offset, float[] in, int len) {
-      int idx = offset;
-      for (int i = 0; i < len; ++i) {
-         out[idx++] = in[i];
+   private static void putFloat(ByteBuffer buff, float[] f, int len) {
+      for (int i=0; i<len; ++i) {
+         buff.putFloat (f[i]);
       }
+   }
+   
+   @Override
+   public LightsUBO acquire () {
+      return (LightsUBO)super.acquire ();
    }
 
 }

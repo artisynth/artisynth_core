@@ -1,749 +1,119 @@
 package maspack.render.GL.GL3;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.concurrent.ConcurrentHashMap;
-
-import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
 
-public class GL3Object extends GL3ResourceBase implements GL3Drawable {
-   
-   public enum DrawType {
-      ARRAY,
-      ELEMENT,
-      INSTANCED_ARRAY,
-      INSTANCED_ELEMENT
-   }
-   
-   // general purpose indicators
-   static final int VERTEX_FLAG_POSITION = 0x01;
-   static final int VERTEX_FLAG_NORMAL = 0x02;
-   static final int VERTEX_FLAG_COLOR = 0x04;
-   static final int VERTEX_FLAG_TEXTURE = 0x08;
-   
-   ConcurrentHashMap<GL3,int[]> vaoMap;  // holds per-gl vaos? //XXX not currently used
-   
-   // int[] vao; // XXX Shouldn't actually store this here, since cannot be shared between contexts?
-   BufferObject[] vbos;
-   
-   GL3VertexAttributeArray[] attributes;        // list of attributes
-   GL3ElementAttributeArray elements;           // element indices
-   
-   // draw-specific info
-   int start;
-   int count;
-   int mode;
-   DrawType type;
-   int numInstances;
-   
-   public GL3Object(GL3VertexAttributeArray[] attributes, GL3ElementAttributeArray elements) {
-      this(attributes, elements, GL.GL_TRIANGLES); // default guess triangle mode
-   }
-   
-   public GL3Object(GL3VertexAttributeArray[] attributes, GL3ElementAttributeArray elements, int glMode) {
-      
-      this.attributes = Arrays.copyOf(attributes, attributes.length);
-      this.elements = elements;
-      
-      HashSet<BufferObject> vboSet = new HashSet<>();
-      for (int i=0; i<attributes.length; ++i) {
-         GL3VertexAttribute ai = attributes[i];
-         if (ai instanceof GL3VertexAttributeArray) {
-            vboSet.add(((GL3VertexAttributeArray)ai).getVBO());
-         }
-      }
-      if (elements != null) {
-         vboSet.add(elements.getIBO());
-      }
-      
-      this.vbos = vboSet.toArray(new BufferObject[vboSet.size()]);
-      for (BufferObject vbo : this.vbos) {
-         vbo.acquire();  // hold a reference until disposed
-      }
-      
-      detectDefaultDrawType();
-      this.mode = glMode;
-      
-      this.vaoMap = new ConcurrentHashMap<>();
-   }
+import maspack.render.GL.GLShaderProgram;
 
-   @Override
+/**
+ * Standard VAO-based object, CANNOT be shared between multiple contexts
+ */
+public class GL3Object extends GL3ResourceBase implements GL3Drawable {
+
+   VertexArrayObject vao;
+   GL3SharedObject glo;
+   
    /**
-    * Does nothing.  VAOs need to be created in the viewer per-context.
+    * VAO should either already have attributes bound, or be sure
+    * to call {@link #bind(GL3)} before drawing
+    * @param vao vertex array object
+    * @param glo potentially shared object
     */
-   public void init(GL3 gl) {
+   private GL3Object(VertexArrayObject vao, GL3SharedObject glo) {
+      // hold a reference to this object
+      this.vao = vao.acquire ();
+      this.glo = glo.acquire ();
    }
    
    /**
-    * Binds this object to a vertex array object
+    * Bind attributes to the VAO to prepare for drawing
     * @param gl
-    * @param vao
     */
-   public void init(GL3 gl, int vao) {
-      gl.glBindVertexArray(vao);
-      
-      // bind attributes
-      for (GL3VertexAttribute ai : attributes) {
-         ai.bind(gl);
-      }
-      
-      // maybe bind indices
-      if (elements != null) {
-         elements.bind(gl);
-      }      
-      
-      gl.glBindVertexArray(0);
+   public void bind(GL3 gl) {
+      vao.bind (gl);
+      glo.bindAttributes (gl);
+   }
+   
+   @Override
+   public void dispose (GL3 gl) {
+      vao.releaseDispose (gl);
+      glo.releaseDispose (gl);
    }
    
    @Override
    public boolean isValid () {
-      // check that all VBOs are valid
-   // bind attributes
-      for (GL3VertexAttribute ai : attributes) {
-         if (!ai.isValid ()) {
-            return false;
-         }
+      if (!vao.isValid ()) {
+         return false;
       }
-      
-      // maybe bind indices
-      if (elements != null) {
-         if (!elements.isValid ()) {
-            return false;
-         }
-      }   
+      if (!glo.isValid ()) {
+         return false;
+      }
       return true;
-   }
-
-   public int[] createVAO(GL3 gl) {
-      
-      int[]  vao = new int[1];
-      gl.glGenVertexArrays(1, vao, 0);
-      init(gl, vao[0]);
-      return vao;
-   }
-   
-   /**
-    * Detects draw mode, count, instances, based on attributes
-    */
-   private void detectDefaultDrawType() {
-      
-      boolean instanced = false;
-      int nVertices = 0;
-      int nElements = 0;
-      int nInstanced = Integer.MAX_VALUE;
-      
-      // guess draw mode
-      for (GL3VertexAttribute ai : attributes) {
-         if (ai instanceof GL3VertexAttributeArray) {
-            GL3VertexAttributeArray aiVBO = (GL3VertexAttributeArray)ai;
-            if (aiVBO.getDivisor() > 0) {
-               instanced = true;
-               nInstanced = Math.min(aiVBO.getDivisor()*aiVBO.getCount(), nInstanced);
-            } else {
-               nVertices = aiVBO.getCount();
-            }
-         }
-      }
-      
-      // element indices
-      boolean hasElements = false;
-      if (elements != null) {
-         hasElements = true;
-         nElements = elements.getCount();
-      }
-      
-      // choose draw type
-      if (hasElements) {
-         if (instanced) {
-            type = DrawType.INSTANCED_ELEMENT;
-            numInstances = nInstanced;
-         } else {
-            type = DrawType.ELEMENT;
-            numInstances = 0;
-         }
-         start = elements.getOffset();
-         count = nElements;
-      } else {
-         if (instanced) {
-            type = DrawType.INSTANCED_ARRAY;
-            numInstances = nInstanced;
-         } else {
-            type = DrawType.ARRAY;
-            numInstances = 0;
-         }
-         start = 0;
-         count = nVertices;
-      }
-      
-      // default to triangles?
-      mode = GL3.GL_TRIANGLES;
-   }
-   
-   public GL3VertexAttributeArray[] getGL3VertexAttributes() {
-      return attributes;
-   }
-   
-   public GL3ElementAttributeArray getGL3ElementAttribute() {
-      return elements;
-   }
-   
-   public int getMode() {
-      return mode;
-   }
-   
-   public int getStart() {
-      return start;
-   }
-   
-   public int getCount() {
-      return count;
-   }
-   
-   public int getNumInstances() {
-      return numInstances;
-   }
-   
-   public DrawType getDrawType() {
-      return type;
-   }
-   
-   public void setDrawInfo(int start, int count, int glMode) {
-      setDrawInfo(start, count, glMode, 0);
-   }
-   
-   public void setDrawInfo(int start, int count, int glMode, int numInstances) {
-      this.start = start;
-      this.count = count;
-      this.mode = glMode;
-      this.numInstances = numInstances;
-      if (numInstances > 0) {
-         if (elements != null) {
-            this.type = DrawType.INSTANCED_ELEMENT;
-         } else {
-            this.type = DrawType.INSTANCED_ARRAY;
-         }
-      } else {
-         if (elements != null) {
-            this.type = DrawType.ELEMENT;
-         } else {
-            this.type = DrawType.ARRAY;
-         }
-      }
-   }
-   
-   public void dispose(GL3 gl) {      
-      // release vbos
-      if (vbos != null) {
-         for (BufferObject v : vbos) {
-            v.release(gl);
-         }
-      }
-      vbos = null;
    }
    
    @Override
-   /**
-    * Inefficient, generates VAO and destroys it
-    */
-   public void draw(GL3 gl) {
-      draw(gl, mode, start, count);
+   public boolean disposeInvalid (GL3 gl) {
+      if (!isValid ()) {
+         dispose(gl);
+         return false;
+      }
+      return true;
+   }
+   
+   public GL3SharedObject getShared () {
+      return glo;
+   }
+   
+   @Override
+   public GL3Object acquire () {
+      return (GL3Object)super.acquire ();
+   }
+
+   // @Override
+   public void draw (GL3 gl) {
+      vao.bind (gl);
+      glo.draw(gl);
    }   
    
-   /**
-    * Inefficient, generates VAO and destroys it
-    */
    public void drawArrays(GL3 gl, int mode) {
-      drawArrays(gl, mode, start, count);
+      vao.bind (gl);
+      glo.drawArrays(gl, mode);
    }
    
-   /**
-    * Inefficient, generates a VAO, draws it, then destroys the VAO
-    * @param gl
-    * @param mode
-    * @param start
-    * @param count
-    */
    public void drawArrays(GL3 gl, int mode, int start, int count) {
-      int[] vao = createVAO (gl);
-      gl.glBindVertexArray(vao[0]);
-      gl.glDrawArrays(mode, start, count);
-      gl.glBindVertexArray(0);
-      gl.glDeleteVertexArrays (1, vao, 0);
+      vao.bind (gl);
+      glo.drawArrays (gl, mode, start, count);
    }
    
-   /**
-    * Inefficient, generates a VAO, draws it, then destroys the VAO
-    * @param gl
-    * @param mode
-    * @param start
-    * @param count
-    * @param indexType
-    */
    public void drawElements(GL3 gl, int mode, int start, int count, int indexType) {
-      int[] vao = createVAO (gl);
-      gl.glBindVertexArray(vao[0]);
-      gl.glDrawElements(mode, count, indexType, start);
-      gl.glBindVertexArray(0);
-      gl.glDeleteVertexArrays (1, vao, 0);
+      vao.bind (gl);
+      glo.drawElements (gl, mode, start, count, indexType);
    }
    
-   /**
-    * Inefficient, generates a VAO, draws it, then destroys the VAO
-    * @param gl
-    * @param mode
-    * @param start
-    * @param count
-    * @param instances
-    */
-   public void drawInstancedArray(GL3 gl, int mode, int start, int count, int instances) {
-      int[] vao = createVAO (gl);
-      gl.glBindVertexArray(vao[0]);
-      gl.glDrawArraysInstanced(mode, start, count, instances);
-      gl.glBindVertexArray(0);
-      gl.glDeleteVertexArrays (1, vao, 0);
+   public void drawInstancedArray(GL3 gl, GLShaderProgram prog, int mode, int start, int count, int instances) {
+      vao.bind (gl);
+      glo.drawInstancedArray (gl, mode, start, count, instances);
    }
-   
-   /**
-    * Inefficient, generates a VAO, draws it, then destroys the VAO
-    * @param gl
-    * @param mode
-    * @param start
-    * @param count
-    * @param instances
-    */
+
    public void drawInstancedElements(GL3 gl, int mode, int start, int count, int instances) {
-      int[] vao = createVAO (gl);
-      gl.glBindVertexArray(vao[0]);
-      gl.glDrawElementsInstanced(mode, count, elements.getType(), elements.getOffset(), instances);
-      gl.glBindVertexArray(0);
-      gl.glDeleteVertexArrays (1, vao, 0);
+      vao.bind (gl);
+      glo.drawInstancedElements (gl, mode, start, count, instances);
    }
    
    public void draw(GL3 gl, int start, int count) {
-      draw(gl, mode, start, count);
+      vao.bind (gl);
+      glo.draw (gl, start, count);
    }
    
    public void draw(GL3 gl, int mode, int start, int count) {
-      switch (type) {
-         case ARRAY:
-            drawArrays(gl, mode, start, count);
-            break;
-         case ELEMENT:
-            drawElements(gl, mode, start, count, elements.getType());
-            break;
-         case INSTANCED_ARRAY:
-            drawInstancedArray(gl, mode, start, count, numInstances);
-            break;
-         case INSTANCED_ELEMENT:
-            drawInstancedElements(gl, mode, start, count, numInstances);
-            break;
-         default:
-            break;
-      }
+      vao.bind (gl);
+      glo.draw (gl, mode, start, count);
    }
 
-   
-   public void draw(GL3 gl, int progId) {
-      gl.glUseProgram(progId);
-      draw(gl);
-      gl.glUseProgram(0); // detach program
+   public static GL3Object generate(GL3 gl, GL3SharedObject glo) {
+      VertexArrayObject vao = VertexArrayObject.generate (gl);
+      GL3Object out = new GL3Object (vao, glo);
+      out.bind (gl);
+      return out;
    }
    
-   /**
-    * vertex
-    */
-   public static GL3Object createVE(GL3 gl, int mode, float[] v, 
-      int vUsage, int[] elems, int eUsage) {
-
-      int nverts = v.length/3;
-      
-      // buffer data
-      PositionBufferPutter posPutter = PositionBufferPutter.createDefault();
-      ByteBuffer vbuff = ByteBuffer.allocateDirect(nverts*posPutter.bytesPerPosition());
-      vbuff.order(ByteOrder.nativeOrder());
-      posPutter.putPositions(vbuff, v);
-      
-      IndexBufferPutter idxPutter = IndexBufferPutter.createDefault(nverts-1);
-      ByteBuffer ebuff = ByteBuffer.allocateDirect(elems.length*idxPutter.bytesPerIndex());
-      ebuff.order(ByteOrder.nativeOrder());
-      idxPutter.putIndices(ebuff, elems);
-      
-      // rewind buffers
-      vbuff.rewind();
-      ebuff.rewind();
-      
-      return createVE(gl, mode, 
-         vbuff, nverts, posPutter.storage(), vUsage, 
-         ebuff, elems.length, idxPutter.storage(), eUsage);      
-   }
-   
-   /**
-    * vertex only
-    */
-   public static GL3Object createVE(GL3 gl, int mode, 
-      ByteBuffer vbuff, int nverts, BufferStorage vstorage, int vUsage,
-      ByteBuffer ebuff, int nelems, BufferStorage estorage, int eUsage) {
-      
-      // generate VBOs
-      BufferObject vbo = new BufferObject(gl);
-      vbo.fill(gl, vbuff, GL.GL_ARRAY_BUFFER, vUsage);
-      BufferObject ibo = new BufferObject(gl);
-      ibo.fill(gl, ebuff, GL.GL_ELEMENT_ARRAY_BUFFER, eUsage);
-      
-      GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[1];
-      attributes[0] = new GL3VertexAttributeArray(vbo, GL3VertexAttribute.VERTEX_POSITION, 
-         GL3Util.getGLType(vstorage.type()), 
-         vstorage.size(), vstorage.isNormalized(), 0 /*offset*/, 
-         vstorage.bytes(), nverts, 0 /*divisor*/);
-      
-      GL3ElementAttributeArray indices = new GL3ElementAttributeArray(ibo, GL3Util.getGLType(estorage.type()), 
-         0, estorage.bytes(), nelems);
-      
-      GL3Object glo = new GL3Object(attributes, indices, mode);
-      glo.init(gl);
-      
-      return glo;
-      
-   }
-   
-   /**
-    * Vertex positions only
-    */
-   public static GL3Object createV(GL3 gl, int mode, float[] v, int vUsage) {
-      // buffer data
-      int nverts = v.length/3;
-      
-      // buffer data
-      PositionBufferPutter posPutter = PositionBufferPutter.createDefault();
-      ByteBuffer vbuff = ByteBuffer.allocateDirect(nverts*posPutter.bytesPerPosition());
-      vbuff.order(ByteOrder.nativeOrder());
-      posPutter.putPositions(vbuff, v);
-      
-      // rewind buffers
-      vbuff.rewind();
-      
-      return createV(gl, mode, vbuff, nverts, posPutter.storage(), posPutter.bytesPerPosition(), vUsage);      
-   }
-   
-   /**
-    * Vertex positions only
-    */
-   public static GL3Object createV(GL3 gl, int mode, 
-      ByteBuffer vbuff, int nverts, BufferStorage vstorage, int vstride, int vUsage) {
-      
-     return createV(gl, mode, vbuff, nverts, 
-        GL3Util.getGLType(vstorage.type()), vstorage.size(), vstride, vUsage);
-      
-   }
-   
-   /**
-    * Vertex positions only
-    */
-   public static GL3Object createV(GL3 gl, int mode, 
-      ByteBuffer vbuff, int nverts, int type, int size, int vstride, int vUsage) {
-      
-      // generate VBOs
-      BufferObject vbo = new BufferObject(gl);
-      vbo.fill(gl, vbuff, GL.GL_ARRAY_BUFFER, vUsage);
-      
-      GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[1];
-      attributes[0] = new GL3VertexAttributeArray(vbo, 
-         GL3VertexAttribute.VERTEX_POSITION, type, 
-         size, false, 0 /*offset*/, 
-         vstride, nverts, 0 /*divisor*/);
-      
-      GL3Object glo = new GL3Object(attributes, null, mode);
-      glo.init(gl);
-      
-      return glo;
-      
-   }
-   
-   /**
-    * Vertex and normal into an interleaved buffer
-    */
-   public static GL3Object createVN(GL3 gl, int mode, float[] vn, int vnUsage) {
-
-      int verts = vn.length/6;
-      int voffset = 0;
-      int noffset = 3;
-      int stride = 6;
-      return createVN(gl, mode, vn, voffset, stride, vn, noffset, stride, verts, vnUsage); 
-   }
-   
-   /**
-    * Vertex and normal into an interleaved buffer
-    */
-   public static GL3Object createVN(GL3 gl, int mode, float[] v, int voffset, int vstride,
-      float[] n, int noffset, int nstride, int nverts, int vnUsage) {
-
-      // buffer data
-      PositionBufferPutter posPutter = PositionBufferPutter.createDefault();
-      NormalBufferPutter nrmPutter = NormalBufferPutter.createDefault();
-      
-      int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
-      ByteBuffer vnbuff = ByteBuffer.allocateDirect(nverts*stride);
-      vnbuff.order(ByteOrder.nativeOrder());
-      posPutter.putPositions(vnbuff, 0, stride, v, voffset, vstride, nverts);
-      nrmPutter.putNormals(vnbuff, posPutter.bytesPerPosition(), stride, n, noffset, nstride, nverts);
-      
-      // rewind buffers
-      vnbuff.rewind();
-      
-      return createVN(gl, mode, vnbuff, nverts,
-         posPutter.storage(), 0, stride, 
-         nrmPutter.storage(), posPutter.bytesPerPosition(), stride, vnUsage);      
-   }
-   
-   /**
-    * Interleaved vertex and normal
-    */
-   public static GL3Object createVNE(GL3 gl, int mode, float[] vn, int vnUsage, int[] eidxs, int eUsage) {
-
-      int verts = vn.length/6;
-      int voffset = 0;
-      int noffset = 3;
-      int stride = 6;
-      return createVNE(gl, mode, vn, voffset, stride, vn, noffset, stride, 
-         verts, vnUsage, eidxs, 0, 1, eidxs.length, eUsage); 
-     
-   }
-   
-   /**
-    * Vertex and normal into an interleaved buffer
-    */
-   public static GL3Object createVNE(GL3 gl, int mode, float[] v, int voffset, int vstride,
-      float[] n, int noffset, int nstride, int nverts, int vnUsage,
-      int[] eidxs, int eoffset, int estride, int nelems, int eUsage) {
-
-      // buffer data
-      PositionBufferPutter posPutter = PositionBufferPutter.createDefault();
-      NormalBufferPutter nrmPutter = NormalBufferPutter.createDefault();
-      int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
-      ByteBuffer vnbuff = ByteBuffer.allocateDirect(nverts*stride);
-      vnbuff.order(ByteOrder.nativeOrder());
-      
-      posPutter.putPositions(vnbuff, 0, stride, v, voffset, vstride, nverts);
-      nrmPutter.putNormals(vnbuff, posPutter.bytesPerPosition(), stride, n, noffset, nstride, nverts);
-      
-      IndexBufferPutter idxPutter = IndexBufferPutter.createDefault(nverts-1);
-      int istride = idxPutter.bytesPerIndex();
-      ByteBuffer ebuff = ByteBuffer.allocateDirect(nelems*istride);
-      ebuff.order(ByteOrder.nativeOrder());
-      idxPutter.putIndices(ebuff, eidxs, eoffset, estride, nelems);
-      
-      // rewind buffers
-      vnbuff.rewind();
-      ebuff.rewind();
-      
-      return createVNE(gl, mode, vnbuff, nverts,
-         posPutter.storage(), 0, stride, 
-         nrmPutter.storage(), posPutter.bytesPerPosition(), stride, vnUsage,
-         ebuff, nelems, idxPutter.storage(), 0, idxPutter.bytesPerIndex(), eUsage);      
-   }
-   
-   /**
-    * Interleaved vertex and normal
-    */
-   public static GL3Object createVN(GL3 gl, int mode, 
-      ByteBuffer vnbuff, int nverts, 
-      BufferStorage vstorage, int voffset, int vstride,
-      BufferStorage nstorage, int noffset, int nstride, int vnUsage) {
-      
-      // generate VBOs
-      BufferObject vbo = new BufferObject(gl);
-      vbo.fill(gl, vnbuff, GL.GL_ARRAY_BUFFER, vnUsage);
-      
-      GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[2];
-      attributes[0] = new GL3VertexAttributeArray(vbo, 
-         GL3VertexAttribute.VERTEX_POSITION, GL3Util.getGLType(vstorage.type()), 
-         vstorage.size(), vstorage.isNormalized(), voffset, 
-         vstride, nverts, 0 /*divisor*/);
-      
-      attributes[1] = new GL3VertexAttributeArray(vbo, 
-         GL3VertexAttribute.VERTEX_NORMAL, GL3Util.getGLType(nstorage.type()), 
-         nstorage.size(), nstorage.isNormalized(), noffset, 
-         nstride, nverts, 0 /*divisor*/);
-      
-      GL3Object glo = new GL3Object(attributes, null, mode);
-      glo.init(gl);
- 
-      return glo;
-   }
-   
-   /**
-    * Separate vertex and normal
-    */
-   public static GL3Object createVN(GL3 gl, int mode, int nverts,
-      ByteBuffer vbuff, BufferStorage vstorage, int voffset, int vstride,
-      ByteBuffer nbuff, BufferStorage nstorage, int noffset, int nstride, int vnUsage) {
-      
-      // generate VBOs
-      BufferObject vbov = new BufferObject(gl);
-      vbov.fill(gl, vbuff, GL.GL_ARRAY_BUFFER, vnUsage);
-      
-      BufferObject vbon = new BufferObject(gl);
-      vbon.fill (gl,  nbuff, GL.GL_ARRAY_BUFFER, vnUsage);
-      
-      GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[2];
-      attributes[0] = new GL3VertexAttributeArray(vbov, 
-         GL3VertexAttribute.VERTEX_POSITION, GL3Util.getGLType(vstorage.type()), 
-         vstorage.size(), vstorage.isNormalized(), voffset, 
-         vstride, nverts, 0 /*divisor*/);
-      
-      attributes[1] = new GL3VertexAttributeArray(vbon, 
-         GL3VertexAttribute.VERTEX_NORMAL, GL3Util.getGLType(nstorage.type()), 
-         nstorage.size(), nstorage.isNormalized(), noffset, 
-         nstride, nverts, 0 /*divisor*/);
-      
-      GL3Object glo = new GL3Object(attributes, null, mode);
-      glo.init(gl);
- 
-      return glo;
-   }
-   
-   /**
-    * Separate vertex, normal, color
-    */
-   public static GL3Object createVNC(GL3 gl, int mode, int nverts,
-      ByteBuffer vbuff, BufferStorage vstorage, int voffset, int vstride,
-      ByteBuffer nbuff, BufferStorage nstorage, int noffset, int nstride, 
-      ByteBuffer cbuff, BufferStorage cstorage, int coffset, int cstride, int vncUsage) {
-      
-      // generate VBOs
-      BufferObject vbov = new BufferObject(gl);
-      vbov.fill(gl, vbuff, GL.GL_ARRAY_BUFFER, vncUsage);
-      
-      BufferObject vbon = new BufferObject(gl);
-      vbon.fill(gl, nbuff, GL.GL_ARRAY_BUFFER, vncUsage);
-      
-      BufferObject vboc = new BufferObject(gl);
-      vboc.fill(gl, cbuff, GL.GL_ARRAY_BUFFER, vncUsage);
-      
-      GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[3];
-      attributes[0] = new GL3VertexAttributeArray(vbov, 
-         GL3VertexAttribute.VERTEX_POSITION, GL3Util.getGLType(vstorage.type()), 
-         vstorage.size(), vstorage.isNormalized(), voffset, 
-         vstride, nverts, 0 /*divisor*/);
-      
-      attributes[1] = new GL3VertexAttributeArray(vbon, 
-         GL3VertexAttribute.VERTEX_NORMAL, GL3Util.getGLType(nstorage.type()), 
-         nstorage.size(), nstorage.isNormalized(), noffset, 
-         nstride, nverts, 0 /*divisor*/);
-      
-      attributes[2] = new GL3VertexAttributeArray(vboc, 
-         GL3VertexAttribute.VERTEX_COLOR, GL3Util.getGLType(cstorage.type()), 
-         cstorage.size(), cstorage.isNormalized(), coffset, 
-         cstride, nverts, 0 /*divisor*/);
-      
-      GL3Object glo = new GL3Object(attributes, null, mode);
-      glo.init(gl);
- 
-      return glo;
-   }
-   
-   /**
-    * Interleaved vertex, color
-    */
-   public static GL3Object createVC(GL3 gl, int mode, int nverts,
-      ByteBuffer vcbuff, 
-      BufferStorage vstorage, int voffset, int vstride, 
-      BufferStorage cstorage, int coffset, int cstride, int vcUsage) {
-      
-      // generate VBOs
-      BufferObject vbo = new BufferObject(gl);
-      vbo.fill(gl, vcbuff, GL.GL_ARRAY_BUFFER, vcUsage);
-      
-      GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[2];
-      attributes[0] = new GL3VertexAttributeArray(vbo, 
-         GL3VertexAttribute.VERTEX_POSITION, GL3Util.getGLType(vstorage.type()), 
-         vstorage.size(), vstorage.isNormalized(), voffset, 
-         vstride, nverts, 0 /*divisor*/);
-      
-      attributes[1] = new GL3VertexAttributeArray(vbo, 
-         GL3VertexAttribute.VERTEX_COLOR, GL3Util.getGLType(cstorage.type()), 
-         cstorage.size(), cstorage.isNormalized(), coffset, 
-         cstride, nverts, 0 /*divisor*/);
-      
-      GL3Object glo = new GL3Object(attributes, null, mode);
-      glo.init(gl);
- 
-      return glo;
-   }
-   
-   /**
-    * Interleaved vertex, normal, color
-    */
-   public static GL3Object createVNC(GL3 gl, int mode, int nverts,
-      ByteBuffer vncbuff, 
-      BufferStorage vstorage, int voffset, int vstride,
-      BufferStorage nstorage, int noffset, int nstride, 
-      BufferStorage cstorage, int coffset, int cstride, int vncUsage) {
-      
-      // generate VBOs
-      BufferObject vbo = new BufferObject(gl);
-      vbo.fill(gl, vncbuff, GL.GL_ARRAY_BUFFER, vncUsage);
-      
-      GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[3];
-      attributes[0] = new GL3VertexAttributeArray(vbo, 
-         GL3VertexAttribute.VERTEX_POSITION, GL3Util.getGLType(vstorage.type()), 
-         vstorage.size(), vstorage.isNormalized(), voffset, 
-         vstride, nverts, 0 /*divisor*/);
-      
-      attributes[1] = new GL3VertexAttributeArray(vbo, 
-         GL3VertexAttribute.VERTEX_NORMAL, GL3Util.getGLType(nstorage.type()), 
-         nstorage.size(), nstorage.isNormalized(), noffset, 
-         nstride, nverts, 0 /*divisor*/);
-      
-      attributes[2] = new GL3VertexAttributeArray(vbo, 
-         GL3VertexAttribute.VERTEX_COLOR, GL3Util.getGLType(cstorage.type()), 
-         cstorage.size(), cstorage.isNormalized(), coffset, 
-         cstride, nverts, 0 /*divisor*/);
-      
-      GL3Object glo = new GL3Object(attributes, null, mode);
-      glo.init(gl);
- 
-      return glo;
-   }
-   
-   /**
-    * Interleaved vertex and normal
-    */
-   public static GL3Object createVNE(GL3 gl, int mode, 
-      ByteBuffer vnbuff, int nverts, 
-      BufferStorage vstorage, int voffset, int vstride,
-      BufferStorage nstorage, int noffset, int nstride, int vnUsage,
-      ByteBuffer ebuff, int nelems, BufferStorage estorage, 
-      int eoffset, int estride, int eusage) {
-      
-      // generate VBOs
-      BufferObject vbo = new BufferObject(gl);
-      vbo.fill(gl, vnbuff, GL.GL_ARRAY_BUFFER, vnUsage);
-      
-      GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[2];
-      attributes[0] = new GL3VertexAttributeArray(vbo, 
-         GL3VertexAttribute.VERTEX_POSITION, GL3Util.getGLType(vstorage.type()), 
-         vstorage.size(), vstorage.isNormalized(), voffset, 
-         vstride, nverts, 0 /*divisor*/);
-      
-      attributes[1] = new GL3VertexAttributeArray(vbo, 
-         GL3VertexAttribute.VERTEX_NORMAL, GL3Util.getGLType(nstorage.type()), 
-         nstorage.size(), nstorage.isNormalized(), noffset, 
-         nstride, nverts, 0 /*divisor*/);
-      
-      BufferObject ibo = new BufferObject(gl);
-      ibo.fill(gl,  ebuff, GL.GL_ELEMENT_ARRAY_BUFFER, eusage);
-      GL3ElementAttributeArray indices = new GL3ElementAttributeArray(ibo, GL3Util.getGLType(estorage.type()), 
-         eoffset, estride, nelems);
-      
-      GL3Object glo = new GL3Object(attributes, indices, mode);
-      glo.init(gl);
- 
-      return glo;
-      
-   }
-  
 }

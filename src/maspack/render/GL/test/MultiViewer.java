@@ -23,10 +23,14 @@ import maspack.render.GL.GLSelectable;
 import maspack.render.GL.GLSelectionEvent;
 import maspack.render.GL.GLSelectionListener;
 import maspack.render.GL.GLViewer;
-import maspack.render.GL.GL2.GL2Resources;
+import maspack.render.GL.GL2.GL2SharedResources;
 import maspack.render.GL.GL2.GL2Viewer;
-import maspack.render.GL.GL3.GL3Resources;
+import maspack.render.GL.GL3.GL3SharedResources;
+import maspack.render.GL.GL3.GL3VertexAttributeInfo;
+import maspack.render.GL.GL3.GL3VertexAttributeMap;
 import maspack.render.GL.GL3.GL3Viewer;
+import maspack.render.GL.GL3.GLSLGenerator;
+import maspack.render.GL.GL3.GLSLGenerator.StringIntPair;
 
 import com.jogamp.opengl.util.FPSAnimator;
 
@@ -298,8 +302,8 @@ public class MultiViewer {
    private ArrayList<SimpleViewerApp> windows;
    private Thread closeThread;
    
-   private GL2Resources gl2resources;
-   private GL3Resources gl3resources;
+   private GL2SharedResources gl2resources;
+   private GL3SharedResources gl3resources;
    
    public MultiViewer() {
       windows = new ArrayList<>();
@@ -365,7 +369,7 @@ public class MultiViewer {
          GLCapabilities cap = new GLCapabilities(glp3);
          cap.setSampleBuffers (true);
          cap.setNumSamples (8);
-         gl2resources = new GL2Resources (cap);
+         gl2resources = new GL2SharedResources (cap);
       }
       GL2Viewer viewer = new GL2Viewer(null, gl2resources, w, h);
       addViewer(title, viewer, x, y, w, h);
@@ -377,7 +381,18 @@ public class MultiViewer {
          GLCapabilities cap = new GLCapabilities(glp3);
          cap.setSampleBuffers (true);
          cap.setNumSamples (8);
-         gl3resources = new GL3Resources (cap);
+        
+         // get attribute map from GLSL generator
+         StringIntPair[] attributes = GLSLGenerator.ATTRIBUTES;
+         GL3VertexAttributeMap attributeMap = new GL3VertexAttributeMap (
+            new GL3VertexAttributeInfo (attributes[0].getString (), attributes[0].getInt ()), 
+            new GL3VertexAttributeInfo (attributes[1].getString (), attributes[1].getInt ()),
+            new GL3VertexAttributeInfo (attributes[2].getString (), attributes[2].getInt ()),
+            new GL3VertexAttributeInfo (attributes[3].getString (), attributes[3].getInt ()));
+         for (int i=4; i<attributes.length; ++i) {
+            attributeMap.add (new GL3VertexAttributeInfo (attributes[i].getString (), attributes[i].getInt ()));
+         }
+         gl3resources = new GL3SharedResources (cap, attributeMap);
       }
       GLViewer viewer = new GL3Viewer(null, gl3resources, w, h);
       addViewer(title, viewer, x, y, w, h);

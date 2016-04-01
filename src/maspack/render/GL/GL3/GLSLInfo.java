@@ -1,6 +1,5 @@
 package maspack.render.GL.GL3;
 
-import maspack.render.Renderer;
 import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.Shading;
@@ -15,8 +14,19 @@ public class GLSLInfo {
       AFFINES
    }
    
-   public static final ColorMixing DEFAULT_COLOR_MIXING = ColorMixing.REPLACE;
-   public static final ColorMixing DEFAULT_TEXTURE_MIXING = ColorMixing.MODULATE;
+   public static final short COLOR_MAP_FLAG = 0x01;
+   public static final short NORMAL_MAP_FLAG = 0x10;
+   public static final short BUMP_MAP_FLAG = 0x20;
+   public static final short DEFAULT_MAP_MASK = 0;
+   
+   public static final ColorMixing DEFAULT_VERTEX_COLOR_MIXING = ColorMixing.REPLACE;
+   public static final ColorMixing DEFAULT_TEXTURE_COLOR_MIXING = ColorMixing.MODULATE;
+   
+   public static final byte MIX_DIFFUSE_FLAG = 0x2;
+   public static final byte MIX_SPECULAR_FLAG = 0x4;
+   public static final byte MIX_EMISSION_FLAG = 0x8;
+   public static final byte DEFAULT_VERTEX_COLOR_MIX_MASK = MIX_DIFFUSE_FLAG | MIX_EMISSION_FLAG;
+   public static final byte DEFAULT_TEXTURE_COLOR_MIX_MASK = MIX_DIFFUSE_FLAG | MIX_EMISSION_FLAG;
    
    private int numLights;
    private int numClipPlanes;
@@ -25,23 +35,183 @@ public class GLSLInfo {
    private boolean hasVertexColors;
    private boolean hasVertexTextures;
    
+   private boolean useRoundPoints;
+   
    private boolean hasInstanceOrientations;
    private boolean hasInstanceAffines;
    private boolean hasInstanceColors;
-   private boolean hasInstanceTextures;
   
-   private boolean hasLineLengthOffset;
+   private boolean hasLineScaleOffset;
    private boolean hasLineColors;
-   private boolean hasLineTextures;
    
    private Shading shading;
    private ColorInterpolation colorInterp;
    private InstancedRendering instanced;
    
-   private ColorMixing colorMixing;
-   private ColorMixing textureMixing;
+   private ColorMixing vertexColorMixing;
+   private byte vertexColorMixMask;
    
-   public GLSLInfo() {
+   private ColorMixing textureMixing;
+   private byte textureColorMixMask;
+   
+   private short textureMapMask;
+   
+   public static class GLSLInfoBuilder {
+      GLSLInfo info;
+      
+      public GLSLInfo build() {
+         return info.clone();
+      }
+      
+      public GLSLInfoBuilder() {
+         info = new GLSLInfo();
+      }
+      
+      public void setNumLights(int numLights) {
+         info.numLights = numLights;
+      }
+
+      public void setNumClipPlanes(int numClipPlanes) {
+         info.numClipPlanes = numClipPlanes;
+      }
+
+      public void setVertexNormals(boolean set) {
+         info.hasVertexNormals=set;
+      }
+
+      public void setVertexColors(boolean set) {
+         info.hasVertexColors=set;
+      }
+
+      public void setVertexTextures(boolean set) {
+         info.hasVertexTextures=set;
+      }
+
+      public void setRoundPoints(boolean enable) {
+         info.useRoundPoints=enable;
+      }
+      
+      public void setInstanceOrientations(boolean enable) {
+         info.hasInstanceOrientations=enable;
+      }
+
+      public void setInstanceAffines(boolean enable) {
+         info.hasInstanceAffines=enable;
+      }
+
+      public void setInstanceColors(boolean enable) {
+         info.hasInstanceColors=enable;
+      }
+
+      public void setLineScaleOffset(boolean enable) {
+         info.hasLineScaleOffset=enable;
+      }
+
+      public void setLineColors(boolean enable) {
+         info.hasLineColors=enable;
+      }
+
+      public void setLighting(Shading shading) {
+         info.shading=shading;
+      }
+
+      public void setColorInterpolation(ColorInterpolation colorInterp) {
+         info.colorInterp=colorInterp;
+      }
+
+      public void setInstancedRendering(InstancedRendering instanced) {
+         info.instanced=instanced;
+      }
+      
+      public void setVertexColorMixing(ColorMixing cmix) {
+         if (cmix == null) {
+            cmix=DEFAULT_VERTEX_COLOR_MIXING;
+         }
+         info.vertexColorMixing=cmix;
+      }
+      
+      public void setTextureColorMixing(ColorMixing tmix) {
+         if (tmix == null) {
+            tmix=DEFAULT_TEXTURE_COLOR_MIXING;
+         }
+         info.textureMixing=tmix;
+      }
+      
+      public void enableColorMap(boolean set) {
+         if (set) {
+            info.textureMapMask |= COLOR_MAP_FLAG;
+         } else {
+            info.textureMapMask &= ~COLOR_MAP_FLAG;
+         }
+      }
+      
+      public void enableNormalMap(boolean set) {
+         if (set) {
+            info.textureMapMask |= NORMAL_MAP_FLAG;
+         } else {
+            info.textureMapMask &= ~NORMAL_MAP_FLAG;
+         }
+      }
+      
+      public void enableBumpMap(boolean set) {
+         if (set) {
+            info.textureMapMask |= BUMP_MAP_FLAG;
+         } else {
+            info.textureMapMask &= ~BUMP_MAP_FLAG;
+         }
+      }
+      
+      public void mixTextureColorDiffuse(boolean enable) {
+         if (enable) {
+            info.textureColorMixMask |= MIX_DIFFUSE_FLAG;
+         } else {
+            info.textureColorMixMask &= ~MIX_DIFFUSE_FLAG;
+         }
+      }
+      
+      public void mixTextureColorSpecular(boolean enable) {
+         if (enable) {
+            info.textureColorMixMask |= MIX_SPECULAR_FLAG;
+         } else {
+            info.textureColorMixMask &= ~MIX_SPECULAR_FLAG;
+         }
+      }
+      
+      public void mixTextureColorEmission(boolean enable) {
+         if (enable) {
+            info.textureColorMixMask |= MIX_EMISSION_FLAG;
+         } else {
+            info.textureColorMixMask &= ~MIX_EMISSION_FLAG;
+         }
+      }
+      
+      public void mixVertexColorDiffuse(boolean enable) {
+         if (enable) {
+            info.vertexColorMixMask |= MIX_DIFFUSE_FLAG;
+         } else {
+            info.vertexColorMixMask &= ~MIX_DIFFUSE_FLAG;
+         }
+      }
+      
+      public void mixVertexColorSpecular(boolean enable) {
+         if (enable) {
+            info.vertexColorMixMask |= MIX_SPECULAR_FLAG;
+         } else {
+            info.vertexColorMixMask &= ~MIX_SPECULAR_FLAG;
+         }
+      }
+      
+      public void mixVertexColorEmission(boolean enable) {
+         if (enable) {
+            info.vertexColorMixMask |= MIX_EMISSION_FLAG;
+         } else {
+            info.vertexColorMixMask &= ~MIX_EMISSION_FLAG;
+         }
+      }
+      
+   }
+   
+   private GLSLInfo() {
       numLights = 0;
       numClipPlanes = 0;
       
@@ -52,136 +222,31 @@ public class GLSLInfo {
       hasVertexColors = false;
       hasVertexTextures = false;
       
+      useRoundPoints = false;
+      
       instanced = InstancedRendering.NONE;
       
       hasInstanceOrientations = false;
       hasInstanceAffines = false;
       hasInstanceColors = false;
-      hasInstanceTextures = false;
       
-      hasLineLengthOffset = false;
+      hasLineScaleOffset = false;
       hasLineColors = false;
-      hasLineTextures = false;
       
-      colorMixing = DEFAULT_COLOR_MIXING;
-      textureMixing = DEFAULT_TEXTURE_MIXING;
-      
+      vertexColorMixing = DEFAULT_TEXTURE_COLOR_MIXING;
+      textureMixing = DEFAULT_TEXTURE_COLOR_MIXING;
+      textureMapMask = DEFAULT_MAP_MASK;
+      vertexColorMixMask = DEFAULT_VERTEX_COLOR_MIX_MASK;
+      textureColorMixMask = DEFAULT_TEXTURE_COLOR_MIX_MASK;
    }
    
-   public GLSLInfo(int numLights, int numClipPlanes, Shading shading,
-      ColorInterpolation colorInterp, boolean hasVertexNormals,
-      boolean hasVertexColors, boolean hasVertexTextures, InstancedRendering instanced,
-      boolean hasInstanceColors, boolean hasInstanceTextures, boolean hasLineLengthOffset,
-      boolean hasLineColors, boolean hasLineTextures,
-      ColorMixing colorMixing, ColorMixing textureMixing) {
+   public static GLSLInfo create(int numClipPlanes) {
       
-      this.numClipPlanes = numClipPlanes;
-      
-      this.shading = shading;
-      if (shading == Shading.NONE) {
-         this.numLights = 0;
-      } else {
-         this.numLights = numLights;   
-      }
-      
-      this.colorInterp = colorInterp;
-      
-      this.hasVertexNormals = hasVertexNormals;
-      this.hasVertexColors = hasVertexColors;
-      this.hasVertexTextures = hasVertexTextures;
-      
-      this.instanced = instanced;
-      switch (instanced) {
-         case POINTS:
-            this.hasInstanceOrientations = false;
-            this.hasInstanceAffines = false;
-            this.hasInstanceColors = hasInstanceColors;
-            this.hasInstanceTextures = hasInstanceTextures;
-            this.hasLineLengthOffset = false;
-            this.hasLineColors = false;
-            this.hasLineTextures = false;
-            break;
-         case FRAMES:
-            this.hasInstanceOrientations = true;
-            this.hasInstanceAffines = false;
-            this.hasInstanceColors = hasInstanceColors;
-            this.hasInstanceTextures = hasInstanceTextures;
-            this.hasLineLengthOffset = false;
-            this.hasLineColors = false;
-            this.hasLineTextures = false;
-            break;
-         case AFFINES:
-            this.hasInstanceOrientations = false;
-            this.hasInstanceAffines = true;
-            this.hasInstanceColors = hasInstanceColors;
-            this.hasInstanceTextures = hasInstanceTextures;
-            this.hasLineLengthOffset = false;
-            this.hasLineColors = false;
-            this.hasLineTextures = false;
-            break;
-         case LINES:
-            this.hasInstanceOrientations = false;
-            this.hasInstanceAffines = false;
-            this.hasInstanceColors = false;
-            this.hasInstanceTextures = false;
-            this.hasLineLengthOffset = hasLineLengthOffset;
-            this.hasLineColors = hasLineColors;
-            this.hasLineTextures = hasLineTextures;
-            break;
-         case NONE:
-            this.hasInstanceOrientations = false;
-            this.hasInstanceAffines = false;
-            this.hasInstanceColors = false;
-            this.hasInstanceTextures = false;
-            this.hasLineLengthOffset = false;
-            this.hasLineColors = false;
-            this.hasLineTextures = false;
-            break;
-      }
-      
-      this.colorMixing = colorMixing;
-      this.textureMixing = textureMixing;
+      GLSLInfo info = new GLSLInfo ();
+      info.numClipPlanes = numClipPlanes;
+      return info;
       
    }
-   
-   public GLSLInfo(int numLights, int numClipPlanes, Shading shading,
-      ColorInterpolation colorInterp, boolean hasVertexNormals,
-      boolean hasVertexColors, boolean hasVertexTextures,
-      ColorMixing colorMixing, ColorMixing textureMixing) {
-      
-      this.numClipPlanes = numClipPlanes;
-      
-      this.shading = shading;
-      if (shading == Shading.NONE) {
-         this.numLights = 0;
-      } else {
-         this.numLights = numLights;   
-      }
-      
-      this.colorInterp = colorInterp;
-      
-      this.hasVertexNormals = hasVertexNormals;
-      this.hasVertexColors = hasVertexColors;
-      this.hasVertexTextures = hasVertexTextures;
-      
-      this.instanced = InstancedRendering.NONE;
-      this.hasInstanceOrientations = false;
-      this.hasInstanceAffines = false;
-      this.hasInstanceColors = false;
-      this.hasInstanceTextures = false;
-      this.hasLineLengthOffset = false;
-      this.hasLineColors = false;
-      this.hasLineTextures = false;
-      
-      this.colorMixing = colorMixing;
-      this.textureMixing = textureMixing;
-   }
-   
-   public GLSLInfo create(int numClipPlanes) {
-      return new GLSLInfo(0, numClipPlanes, Shading.NONE, ColorInterpolation.NONE, false, false, false,
-         InstancedRendering.NONE, false, false, false, false, false, DEFAULT_COLOR_MIXING, DEFAULT_TEXTURE_MIXING);
-   }
-   
 
    @Override
    public int hashCode() {
@@ -192,10 +257,9 @@ public class GLSLInfo {
       result = prime * result + (hasInstanceAffines ? 1231 : 1237);
       result = prime * result + (hasInstanceColors ? 1231 : 1237);
       result = prime * result + (hasInstanceOrientations ? 1231 : 1237);
-      result = prime * result + (hasInstanceTextures ? 1231 : 1237);
-      result = prime * result + (hasLineLengthOffset ? 1231 : 1237);
+      result = prime * result + (hasLineScaleOffset ? 1231 : 1237);
       result = prime * result + (hasLineColors ? 1231 : 1237);
-      result = prime * result + (hasLineTextures ? 1231 : 1237);
+      result = prime * result + (useRoundPoints ? 1231 : 1237);
       result = prime * result + (hasVertexColors ? 1231 : 1237);
       result = prime * result + (hasVertexNormals ? 1231 : 1237);
       result = prime * result + (hasVertexTextures ? 1231 : 1237);
@@ -203,8 +267,11 @@ public class GLSLInfo {
       result = prime * result + numClipPlanes;
       result = prime * result + numLights;
       result = prime * result + ((shading == null) ? 0 : shading.hashCode());
-      result = prime * result + ((colorMixing == null) ? 0 : colorMixing.hashCode());
+      result = prime * result + ((vertexColorMixing == null) ? 0 : vertexColorMixing.hashCode());
       result = prime * result + ((textureMixing == null) ? 0 : textureMixing.hashCode());
+      result = prime * result + textureMapMask;
+      result = prime * result + vertexColorMixMask;
+      result = prime * result + textureColorMixMask;
       
       return result;
    }
@@ -233,16 +300,10 @@ public class GLSLInfo {
       if (hasInstanceOrientations != other.hasInstanceOrientations) {
          return false;
       }
-      if (hasInstanceTextures != other.hasInstanceTextures) {
-         return false;
-      }
-      if (hasLineLengthOffset != other.hasLineLengthOffset) {
+      if (hasLineScaleOffset != other.hasLineScaleOffset) {
          return false;
       }
       if (hasLineColors != other.hasLineColors) {
-         return false;
-      }
-      if (hasLineTextures != other.hasLineTextures) {
          return false;
       }
       if (hasVertexColors != other.hasVertexColors) {
@@ -252,6 +313,9 @@ public class GLSLInfo {
          return false;
       }
       if (hasVertexTextures != other.hasVertexTextures) {
+         return false;
+      }
+      if (useRoundPoints != other.useRoundPoints) {
          return false;
       }
       if (instanced != other.instanced) {
@@ -266,10 +330,19 @@ public class GLSLInfo {
       if (shading != other.shading) {
          return false;
       }
-      if (colorMixing != other.colorMixing) {
+      if (vertexColorMixing != other.vertexColorMixing) {
          return false;
       }
       if (textureMixing != other.textureMixing) {
+         return false;
+      }
+      if (textureMapMask != other.textureMapMask) {
+         return false;
+      }
+      if (textureColorMixMask != other.textureColorMixMask) {
+         return false;
+      }
+      if (vertexColorMixMask != other.vertexColorMixMask) {
          return false;
       }
       return true;
@@ -295,6 +368,10 @@ public class GLSLInfo {
       return hasVertexTextures;
    }
 
+   public boolean isUsingRoundPoints() {
+      return useRoundPoints;
+   }
+   
    public boolean hasInstanceOrientations() {
       return hasInstanceOrientations;
    }
@@ -306,21 +383,13 @@ public class GLSLInfo {
    public boolean hasInstanceColors() {
       return hasInstanceColors;
    }
-
-   public boolean hasInstanceTextures() {
-      return hasInstanceTextures;
-   }
    
-   public boolean hasLineLengthOffset() {
-      return hasLineLengthOffset;
+   public boolean hasLineScaleOffset() {
+      return hasLineScaleOffset;
    }
 
    public boolean hasLineColors() {
       return hasLineColors;
-   }
-
-   public boolean hasLineTextures() {
-      return hasLineTextures;
    }
 
    public Shading getShading() {
@@ -335,18 +404,99 @@ public class GLSLInfo {
       return instanced;
    }
    
-   public ColorMixing getColorMixing() {
-      if (colorMixing == null) {
-         return DEFAULT_COLOR_MIXING;
+   public ColorMixing getVertexColorMixing() {
+      if (vertexColorMixing == null) {
+         return DEFAULT_VERTEX_COLOR_MIXING;
       }
-      return colorMixing;
+      return vertexColorMixing;
    }
    
-   public ColorMixing getTextureMixing() {
+   public boolean hasColorMap() {
+      return (textureMapMask & COLOR_MAP_FLAG) != 0;
+   }
+   
+   public boolean hasNormalMap() {
+      return (textureMapMask & NORMAL_MAP_FLAG) != 0;
+   }
+   
+   public boolean hasBumpMap() {
+      return (textureMapMask & BUMP_MAP_FLAG) != 0;
+   }
+   
+   public int getVertexColorMixMask() {
+      return vertexColorMixMask;
+   }
+   
+   public boolean mixVertexColorDiffuse() {
+      return (vertexColorMixMask & MIX_DIFFUSE_FLAG) != 0;
+   }
+   
+   public boolean mixVertexColorSpecular() {
+      return (vertexColorMixMask & MIX_SPECULAR_FLAG) != 0;
+   }
+   
+   public boolean mixVertexColorEmission() {
+      return (vertexColorMixMask & MIX_EMISSION_FLAG) != 0;
+   }
+   
+   public ColorMixing getTextureColorMixing() {
       if (textureMixing == null) {
-         return DEFAULT_TEXTURE_MIXING;
+         return DEFAULT_TEXTURE_COLOR_MIXING;
       }
       return textureMixing;
+   }
+   
+   public int getTextureMapMask() {
+      return textureMapMask;
+   }
+   
+   public int getTextureColorMixMask() {
+      return textureColorMixMask;
+   }
+   
+   public boolean mixTextureColorDiffuse() {
+      return (textureColorMixMask & MIX_DIFFUSE_FLAG) != 0;
+   }
+   
+   public boolean mixTextureColorSpecular() {
+      return (textureColorMixMask & MIX_SPECULAR_FLAG) != 0;
+   }
+   
+   public boolean mixTextureColorEmission() {
+      return (textureColorMixMask & MIX_EMISSION_FLAG) != 0;
+   }
+   
+   public GLSLInfo clone() {
+      GLSLInfo out = new GLSLInfo();
+      
+      out.numLights = this.numLights;
+      out.numClipPlanes = this.numClipPlanes;
+      
+      out.hasVertexNormals = this.hasVertexNormals;
+      out.hasVertexColors = this.hasVertexColors;
+      out.hasVertexTextures = this.hasVertexTextures;
+      
+      out.useRoundPoints = this.useRoundPoints;
+      
+      out.hasInstanceOrientations = this.hasInstanceOrientations;
+      out.hasInstanceAffines = this.hasInstanceAffines;
+      out.hasInstanceColors = this.hasInstanceColors;
+     
+      out.hasLineScaleOffset = this.hasLineScaleOffset;
+      out.hasLineColors = this.hasLineColors;
+      
+      out.shading = this.shading;
+      out.colorInterp = this.colorInterp;
+      out.instanced = this.instanced;
+      
+      out.vertexColorMixing = this.vertexColorMixing;
+      out.vertexColorMixMask = this.vertexColorMixMask;
+      
+      out.textureMixing = this.textureMixing;
+      out.textureColorMixMask = this.textureColorMixMask;
+      out.textureMapMask = this.textureMapMask;
+      
+      return out;
    }
    
 }

@@ -3358,7 +3358,7 @@ public class PolygonalMesh extends MeshBase {
 
       boolean creatingNormals = (normals.size() == 0);
       if (multiNormals) {
-         updateHardEdgeCount(); // make sure hard edges are properly setz
+         updateHardEdgeCount(); // make sure hard edges are properly set
       }
       
       HashMap<HalfEdge,Integer> normalIndexMap = null;

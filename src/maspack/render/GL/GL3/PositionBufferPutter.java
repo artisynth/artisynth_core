@@ -8,7 +8,7 @@ public abstract class PositionBufferPutter {
 
    public abstract void putPosition(ByteBuffer buff, float x, float y, float z);
    public abstract int bytesPerPosition();
-   public abstract BufferStorage storage();
+   public abstract GL3AttributeStorage storage();
    
    public void putPosition(ByteBuffer buff, float[] pos) {
       putPosition(buff, pos[0], pos[1], pos[2]);
@@ -104,8 +104,8 @@ public abstract class PositionBufferPutter {
       }
       
       @Override
-      public BufferStorage storage() {
-         return BufferStorage.FLOAT_3;
+      public GL3AttributeStorage storage() {
+         return GL3AttributeStorage.FLOAT_3;
       }
    }
    

@@ -140,7 +140,6 @@ public class MuscleElementDescList
          }
          r.setPositionsDynamic (true);
          r.setNormalsDynamic (true);
-         r.commit();
          myWidgetRob = r;
       }
       else {

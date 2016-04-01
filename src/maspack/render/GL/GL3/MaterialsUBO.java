@@ -1,8 +1,6 @@
 package maspack.render.GL.GL3;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
 
 import javax.media.opengl.GL3;
 
@@ -16,35 +14,68 @@ public class MaterialsUBO extends UniformBufferObject {
    //    vec4 diffuse;   // alpha is diffuse.a
    //    vec4 specular;  // shininess is specular.a
    //    vec4 emission;  
+   //    vec4 power;
    // };
    
    static final String[] MATERIALS_ATTRIBUTES = { 
       "front_material.diffuse",
       "front_material.specular",
       "front_material.emission",
+      "front_material.power",
       "back_material.diffuse",
       "back_material.specular",
-      "back_material.emission"
+      "back_material.emission",
+      "back_material.power"
    };
    
    static final String BLOCK_NAME = "Materials";
    static final int FRONT_DIFFUSE = 0;
    static final int FRONT_SPECULAR = 1;
    static final int FRONT_EMISSION = 2;
-   static final int BACK_DIFFUSE = 3;
-   static final int BACK_SPECULAR = 4;
-   static final int BACK_EMISSION = 5;
-   
-   int foffsets[];
-   int fsize;
+   static final int FRONT_POWER = 3;
+   static final int BACK_DIFFUSE = 4;
+   static final int BACK_SPECULAR = 5;
+   static final int BACK_EMISSION = 6;
+   static final int BACK_POWER = 7;
    
    public MaterialsUBO(GL3 gl, int progId) {
       super(gl, progId, BLOCK_NAME, MATERIALS_ATTRIBUTES, GL3.GL_DYNAMIC_DRAW);
-      foffsets = new int[offsets.length];
-      for (int i=0; i<offsets.length; ++i) {
-         foffsets[i] = offsets[i]/GLSupport.FLOAT_SIZE;
+   }
+   
+   public void setMaterials(GL3 gl, Material frontMaterial, Material backMaterial) {
+      
+      // if no back material, use same as front
+      if (backMaterial == null) {
+         backMaterial = frontMaterial;
       }
-      fsize = getSize()/GLSupport.FLOAT_SIZE;
+      
+      // everything except scale
+      ByteBuffer buff = getBuffer();
+      
+      buff.position (getByteOffset(FRONT_DIFFUSE));
+      putFloat(buff, frontMaterial.getDiffuse(), 4); // alpha already stored in diffuse
+      buff.position (getByteOffset(FRONT_SPECULAR));
+      putFloat(buff, frontMaterial.getSpecular(), 3);
+      buff.putFloat (frontMaterial.getShininess());
+      buff.position (getByteOffset(FRONT_EMISSION));
+      putFloat (buff, frontMaterial.getEmission(), 4); 
+      buff.position (getByteOffset(FRONT_POWER));
+      putFloat (buff, frontMaterial.getPower(), 4);
+      
+      buff.position (getByteOffset(BACK_DIFFUSE));
+      putFloat(buff, backMaterial.getDiffuse(), 4); // alpha already stored in diffuse
+      buff.position (getByteOffset(BACK_SPECULAR));
+      putFloat(buff, backMaterial.getSpecular(), 3);
+      buff.putFloat (backMaterial.getShininess());
+      buff.position (getByteOffset(BACK_EMISSION));
+      putFloat (buff, backMaterial.getEmission(), 4); 
+      buff.position (getByteOffset(BACK_POWER));
+      putFloat (buff, backMaterial.getPower(), 4);
+      
+      int len = buff.position();
+      buff.flip ();
+      update(gl, buff, 0, len);
+
    }
    
    public void updateMaterials(GL3 gl, Material frontMaterial, Material backMaterial) {
@@ -54,28 +85,32 @@ public class MaterialsUBO extends UniformBufferObject {
          backMaterial = frontMaterial;
       }
       
-      float[] materialbuff = new float[fsize];
+      // everything except scale
+      ByteBuffer buff = getBuffer();
       
-      int offset;
+      buff.position (getByteOffset(FRONT_DIFFUSE));
+      putFloat(buff, frontMaterial.getDiffuse(), 4); // alpha already stored in diffuse
+      buff.position (getByteOffset(FRONT_SPECULAR));
+      putFloat(buff, frontMaterial.getSpecular(), 3);
+      buff.putFloat (frontMaterial.getShininess());
+      buff.position (getByteOffset(FRONT_EMISSION));
+      putFloat (buff, frontMaterial.getEmission(), 4); 
+      buff.position (getByteOffset(FRONT_POWER));
+      putFloat (buff, frontMaterial.getPower(), 4);
       
-      offset = foffsets[FRONT_DIFFUSE];
-      copy(materialbuff, offset, frontMaterial.getDiffuse(), 4); // alpha already stored in diffuse
-      offset = foffsets[FRONT_SPECULAR];
-      copy(materialbuff, offset, frontMaterial.getSpecular(), 3);
-      materialbuff[offset+3] = frontMaterial.getShininess();
-      offset = foffsets[FRONT_EMISSION];
-      copy(materialbuff, offset, frontMaterial.getEmission(), 4); 
+      buff.position (getByteOffset(BACK_DIFFUSE));
+      putFloat(buff, backMaterial.getDiffuse(), 4); // alpha already stored in diffuse
+      buff.position (getByteOffset(BACK_SPECULAR));
+      putFloat(buff, backMaterial.getSpecular(), 3);
+      buff.putFloat (backMaterial.getShininess());
+      buff.position (getByteOffset(BACK_EMISSION));
+      putFloat (buff, backMaterial.getEmission(), 4); 
+      buff.position (getByteOffset(BACK_POWER));
+      putFloat (buff, backMaterial.getPower(), 4);
       
-      offset = foffsets[BACK_DIFFUSE];
-      copy(materialbuff, offset, backMaterial.getDiffuse(), 4); // alpha already stored in diffuse
-      offset = foffsets[BACK_SPECULAR];
-      copy(materialbuff, offset, backMaterial.getSpecular(), 3);
-      materialbuff[offset+3] = backMaterial.getShininess();
-      offset = foffsets[BACK_EMISSION];
-      copy(materialbuff, offset, backMaterial.getEmission(), 4);
-      
-      FloatBuffer fb = FloatBuffer.wrap(materialbuff);
-      update(gl, fb);
+      int len = buff.position();
+      buff.flip ();
+      update(gl, buff, 0, len);
 
    }
    
@@ -86,10 +121,6 @@ public class MaterialsUBO extends UniformBufferObject {
       if (backMaterial == null) {
          backMaterial = frontMaterial;
       }
-      
-      float[] materialbuff = new float[fsize];
-      
-      int offset;
       
       if (frontDiffuse == null) {
          frontDiffuse = frontMaterial.getDiffuse();
@@ -113,34 +144,48 @@ public class MaterialsUBO extends UniformBufferObject {
          backDiffuse = diff;
       }
       
-      offset = foffsets[FRONT_DIFFUSE];
-      copy(materialbuff, offset, frontDiffuse, 4); // alpha already stored in diffuse
-      offset = foffsets[FRONT_SPECULAR];
-      copy(materialbuff, offset, frontMaterial.getSpecular(), 3);
-      materialbuff[offset+3] = frontMaterial.getShininess();
-      offset = foffsets[FRONT_EMISSION];
-      copy(materialbuff, offset, frontMaterial.getEmission(), 4); 
+      // everything except scale
+      ByteBuffer buff = getBuffer();
       
-      offset = foffsets[BACK_DIFFUSE];
-      copy(materialbuff, offset, backDiffuse, 4); // alpha already stored in diffuse
-      offset = foffsets[BACK_SPECULAR];
-      copy(materialbuff, offset, backMaterial.getSpecular(), 3);
-      materialbuff[offset+3] = backMaterial.getShininess();
-      offset = foffsets[BACK_EMISSION];
-      copy(materialbuff, offset, backMaterial.getEmission(), 4);
+      buff.position (getByteOffset(FRONT_DIFFUSE));
+      putFloat(buff, frontDiffuse, 4); // alpha already stored in diffuse
+      buff.position (getByteOffset(FRONT_SPECULAR));
+      putFloat(buff, frontMaterial.getSpecular(), 3);
+      buff.putFloat (frontMaterial.getShininess());
+      buff.position (getByteOffset(FRONT_EMISSION));
+      putFloat (buff, frontMaterial.getEmission(), 4); 
+      buff.position (getByteOffset(FRONT_POWER));
+      putFloat (buff, frontMaterial.getPower(), 4);
       
-      FloatBuffer fb = FloatBuffer.wrap(materialbuff);
-      update(gl, fb);
-
+      buff.position (getByteOffset(BACK_DIFFUSE));
+      putFloat(buff, backDiffuse, 4); // alpha already stored in diffuse
+      buff.position (getByteOffset(BACK_SPECULAR));
+      putFloat(buff, backMaterial.getSpecular(), 3);
+      buff.putFloat (backMaterial.getShininess());
+      buff.position (getByteOffset(BACK_EMISSION));
+      putFloat (buff, backMaterial.getEmission(), 4); 
+      buff.position (getByteOffset(BACK_POWER));
+      putFloat (buff, backMaterial.getPower(), 4);
+      
+      int len = buff.position();
+      buff.flip ();
+      update(gl, buff, 0, len);
    }
    
    public void updateColor(GL3 gl, ByteBuffer buff, int cidx) {
-      update(gl, buff, offsets[cidx]);
+      update(gl, buff, getByteOffset(cidx), 4*GLSupport.FLOAT_SIZE);
+   }
+   
+   public void updatePower(GL3 gl, float[] p) {
+      ByteBuffer buff = mapBuffer (gl, GL3.GL_WRITE_ONLY);
+      buff.position (getByteOffset (FRONT_POWER));
+      putFloat (buff, p, 4);
+      buff.position (getByteOffset (BACK_POWER));
+      putFloat (buff, p, 4);
    }
    
    public void updateColor(GL3 gl, float[] rgba, int cidx) {
-      ByteBuffer buff = ByteBuffer.allocateDirect(4*GLSupport.FLOAT_SIZE);
-      buff.order(ByteOrder.nativeOrder());
+      ByteBuffer buff = getBuffer();
       for (int i=0; i<3; ++i) {
          buff.putFloat(rgba[i]);
       }
@@ -149,16 +194,19 @@ public class MaterialsUBO extends UniformBufferObject {
       } else {
          buff.putFloat(1.0f);
       }
-      buff.rewind(); // rewind to beginning
+      buff.flip(); // rewind to beginning
       updateColor(gl, buff, cidx);
    }
    
-   private static void copy(float[] out, int offset, float[] in, int len) {
-      int idx = offset;
-      for (int i = 0; i < len; ++i) {
-         out[idx++] = in[i];
+   private static void putFloat(ByteBuffer buff, float[] in, int len) {
+      for (int i=0; i<len; ++i) {
+         buff.putFloat (in[i]);
       }
    }
    
+   @Override
+   public MaterialsUBO acquire () {
+      return (MaterialsUBO)super.acquire ();
+   }
 
 }

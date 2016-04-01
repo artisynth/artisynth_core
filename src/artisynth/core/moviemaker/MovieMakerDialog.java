@@ -50,7 +50,7 @@ import javax.swing.border.EtchedBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import maspack.render.FrameBufferObject;
+import maspack.render.GL.FrameBufferObject;
 import maspack.util.IntegerInterval;
 import maspack.util.InternalErrorException;
 import maspack.widgets.DoubleField;

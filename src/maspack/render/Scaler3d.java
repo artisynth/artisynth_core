@@ -38,13 +38,15 @@ public class Scaler3d extends Dragger3dBase {
    static final int YZ_PLANE = 5;
    static final int ZX_PLANE = 6;
 
-   private static Line xAxis = new Line (0, 0, 0, 1, 0, 0);
-   private static Line yAxis = new Line (0, 0, 0, 0, 1, 0);
-   private static Line zAxis = new Line (0, 0, 0, 0, 0, 1);
+   private static final Line xAxis = new Line (0, 0, 0, 1, 0, 0);
+   private static final Line yAxis = new Line (0, 0, 0, 0, 1, 0);
+   private static final Line zAxis = new Line (0, 0, 0, 0, 0, 1);
 
-   private static Plane xyPlane = new Plane (0, 0, 1, 0);
-   private static Plane yzPlane = new Plane (1, 0, 0, 0);
-   private static Plane zxPlane = new Plane (0, 1, 0, 0);
+   private static final Plane xyPlane = new Plane (0, 0, 1, 0);
+   private static final Plane yzPlane = new Plane (1, 0, 0, 0);
+   private static final Plane zxPlane = new Plane (0, 1, 0, 0);
+   
+   private static RenderObject renderObject = null;
 
    public Scaler3d() {
       super();
@@ -84,19 +86,15 @@ public class Scaler3d extends Dragger3dBase {
       
       viewer.scaleModelMatrix(mySize);
 
-      RenderObject ro = viewer.getSharedObject(Scaler3d.class);
-      if (ro == null || !ro.isValid()) {
-         ro = createScalerRenderable();
-         viewer.addSharedObject(Scaler3d.class, ro);
+      if (renderObject == null) {
+         renderObject = createScalerRenderable();
       }
       
       // draw selected component first
       if (mySelectedComponent != 0) {
-         ro.lineGroup(mySelectedComponent);  
-         viewer.drawLines(ro);
+         viewer.drawLines(renderObject, mySelectedComponent);
       }
-      ro.lineGroup(0);  
-      viewer.drawLines(ro);
+      viewer.drawLines(renderObject, 0);
       
       viewer.popModelMatrix();
       

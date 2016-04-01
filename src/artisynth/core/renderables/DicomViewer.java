@@ -11,8 +11,13 @@ import java.io.File;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 
+import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.PropertyChangeEvent;
+import artisynth.core.modelbase.PropertyChangeListener;
+import artisynth.core.modelbase.RenderableComponentBase;
 import maspack.dicom.DicomHeader;
 import maspack.dicom.DicomImage;
 import maspack.dicom.DicomPixelConverter;
@@ -30,13 +35,9 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.GL.GLTexture;
-import maspack.render.GL.GLViewer;
-import maspack.render.GL.GL2.GL2TextureLoader;
+import maspack.render.GL.GLTextureLoader;
+import maspack.render.GL.GL2.GL2Viewer;
 import maspack.util.IntegerInterval;
-import artisynth.core.modelbase.ModelComponentBase;
-import artisynth.core.modelbase.PropertyChangeEvent;
-import artisynth.core.modelbase.PropertyChangeListener;
-import artisynth.core.modelbase.RenderableComponentBase;
 
 public class DicomViewer extends RenderableComponentBase 
    implements PropertyChangeListener {
@@ -84,7 +85,7 @@ public class DicomViewer extends RenderableComponentBase
    boolean drawBox;
    boolean drawSlice[];
    
-   GL2TextureLoader textureLoader = null;
+   GLTextureLoader textureLoader = null;
    
    AffineTransform3d renderTransform;
    Point3d[] boxRenderCoords;
@@ -270,7 +271,6 @@ public class DicomViewer extends RenderableComponentBase
       myImage = image;
       if (textureLoader != null) {
          textureLoader.clearAllTextures();
-         textureLoader = null;
       }
       numPixels[0] = myImage.getNumCols();
       numPixels[1] = myImage.getNumRows();
@@ -365,7 +365,7 @@ public class DicomViewer extends RenderableComponentBase
       updateRenderCoords();
    }
    
-   private void refreshTextures() {
+   private void refreshTextures(GL gl) {
       
       if (textureLoader != null) {
          for (int i=0; i<3; i++) {
@@ -398,7 +398,7 @@ public class DicomViewer extends RenderableComponentBase
                               }
                            }
                            
-                           textureLoader.getTexture(textureIds[i], image, ny, nz, src, dst);
+                           textureLoader.getTexture(gl, textureIds[i], GL.GL_TEXTURE_2D, image, ny, nz, src, dst);
                            break;
                         }
                         case RGB: {
@@ -413,7 +413,7 @@ public class DicomViewer extends RenderableComponentBase
                            
                            int src = GL2.GL_RGB;
                            int dst = GL2.GL_RGB;
-                           textureLoader.getTexture(textureIds[i], image, ny, nz, src, dst);
+                           textureLoader.getTexture(gl, textureIds[i], GL.GL_TEXTURE_2D, image, ny, nz, src, dst);
                            break;
                         }
                      }   
@@ -446,7 +446,7 @@ public class DicomViewer extends RenderableComponentBase
                               }
                            }
                            
-                           textureLoader.getTexture(textureIds[i], image, nx, nz, src, dst);
+                           textureLoader.getTexture(gl, textureIds[i], GL.GL_TEXTURE_2D, image, nx, nz, src, dst);
                            break;
                         }
                         case RGB: {
@@ -460,7 +460,7 @@ public class DicomViewer extends RenderableComponentBase
                            
                            int src = GL2.GL_RGB;
                            int dst = GL2.GL_RGB;
-                           textureLoader.getTexture(textureIds[i], image, nx, nz, src, dst);
+                           textureLoader.getTexture(gl, textureIds[i], GL.GL_TEXTURE_2D, image, nx, nz, src, dst);
                            break;
                         }
                      }   
@@ -491,7 +491,7 @@ public class DicomViewer extends RenderableComponentBase
                               }
                            }
                            
-                           textureLoader.getTexture(textureIds[i], image, nx, ny, src, dst);
+                           textureLoader.getTexture(gl, textureIds[i], GL.GL_TEXTURE_2D, image, nx, ny, src, dst);
                            break;
                         }
                         case RGB: {
@@ -505,7 +505,7 @@ public class DicomViewer extends RenderableComponentBase
                            
                            int src = GL2.GL_RGB;
                            int dst = GL2.GL_RGB;
-                           textureLoader.getTexture(textureIds[i], image, nx, ny, src, dst);
+                           textureLoader.getTexture(gl, textureIds[i], GL.GL_TEXTURE_2D, image, nx, ny, src, dst);
                            break;
                         }
                      }   
@@ -609,16 +609,16 @@ public class DicomViewer extends RenderableComponentBase
    @Override
    public synchronized void render(Renderer renderer, int flags) {
 
-      if (!(renderer instanceof GLViewer)) {
+      if (!(renderer instanceof GL2Viewer)) {
          return;
       }
-      GLViewer viewer = (GLViewer)renderer;
+      GL2Viewer viewer = (GL2Viewer)renderer;
       
       GL2 gl = viewer.getGL2();
       if (textureLoader == null) {
-         textureLoader = new GL2TextureLoader(gl);
+         textureLoader = new GLTextureLoader();
       }
-      refreshTextures();
+      refreshTextures(gl);
       
       RenderProps rprops = getRenderProps();
       
@@ -647,13 +647,13 @@ public class DicomViewer extends RenderableComponentBase
          gl.glTexEnvf (
             GL2.GL_TEXTURE_ENV, GL2.GL_TEXTURE_ENV_MODE, GL2.GL_MODULATE );
          gl.glTexParameteri (
-            GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_WRAP_S, GL2.GL_CLAMP);
+            GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE);
          gl.glTexParameteri (
-            GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_WRAP_T, GL2.GL_CLAMP);
+            GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL2.GL_CLAMP_TO_EDGE);
          gl.glTexParameteri (
-            GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_MAG_FILTER, GL2.GL_LINEAR);
+            GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
          gl.glTexParameteri (
-            GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_MIN_FILTER, GL2.GL_LINEAR);
+            GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR);
 
          float alpha = (float)rprops.getAlpha();
          gl.glColor4f(1f, 1f, 1f, alpha);

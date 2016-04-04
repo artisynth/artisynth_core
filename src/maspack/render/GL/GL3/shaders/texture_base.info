@@ -1,0 +1,11 @@
+{
+	"name": "texture_base",
+	"inputs": [ {"name": "vertex_texture", "type": "vec2"} ],
+	"vertex_shader": {
+    	    "header": "texture_base_vertex_header.glsl",
+    	    "main": "texture_base_vertex_main.glsl"
+         },
+    "fragment_shader": {
+            "header": "texture_base_fragment_header.glsl",
+    	 }
+}

@@ -52,7 +52,8 @@ public class LightsUBO extends UniformBufferObject {
       numLights = nLights;
    }
 
-   public void updateLights(GL3 gl, List<GLLight> lights, float intensityScale, RigidTransform3d viewMatrix) {
+   public void updateLights(GL3 gl, List<GLLight> lights, float intensityScale, 
+      RigidTransform3d viewMatrix) {
       
       ByteBuffer buff = getBuffer();
 

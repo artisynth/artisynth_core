@@ -467,7 +467,7 @@ public class GLSLGenerator {
                if (info.hasVertexNormals()) {
                   appendln(mb, "   vec4 camera_normal = normal_matrix * vec4(normal, 0.0);");
                } else {
-                  appendln(mb, "   vec4 camera_normal = -camera_position;");
+                  appendln(mb, "   vec4 camera_normal = -camera_position;  // assume pointed at camera");
                }
                appendln(mb, "   dirOut.normal = normalize(camera_normal.xyz);");
                appendln(mb, "   dirOut.to_eye = -camera_position.xyz;");

@@ -25,7 +25,7 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
          lastInstanceBindVersion = -1;
       }
       
-      public void bind (GL3 gl, GL3SharedObject line) {
+      public boolean bind (GL3 gl, GL3SharedObject line) {
          vao.bind (gl);
          
          // instance
@@ -35,8 +35,13 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
             }
             lastInstance = line.acquire ();
             lastInstance.bindAttributes (gl);
+            return true;
          }
-
+         return false;
+      }
+      
+      public void unbind(GL3 gl) {
+         vao.unbind (gl);
       }
       
       public void dispose(GL3 gl) {
@@ -85,6 +90,10 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
       }
    }
    
+   public void unbind(GL3 gl) {
+      vao.unbind (gl);
+   }
+   
    private void clearInstances(GL3 gl) {
       if (instances != null) {
          for (InstanceInfo ii : instances) {
@@ -114,9 +123,14 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
       int bv = lineGLO.getBindVersion ();
       if (bv != instances[gidx].lastInstanceBindVersion) {
          lineGLO.bindInstancedVertices (gl, gidx);
+         lineVBO.bind (gl, lineGLO.numLines(gidx));
          instances[gidx].lastInstanceBindVersion = bv;
       }
       
+   }
+   
+   public void unbindInstanced(GL3 gl, int gidx) {
+      instances[gidx].unbind(gl);
    }
    
    @Override
@@ -168,21 +182,23 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
    }
    
    public void setRadius(GL3 gl, float r) {
-      lineVBO.maybeUpdateLine (gl, r, null, null);
+      lineVBO.maybeUpdate(gl, r, null, null);
    }
    
    public void setRadiusOffsets(GL3 gl, float r, float[] bottomScaleOffset, float[] topScaleOffset) {
-      lineVBO.maybeUpdateLine (gl, r, bottomScaleOffset, topScaleOffset);
+      lineVBO.maybeUpdate(gl, r, bottomScaleOffset, topScaleOffset);
    }
 
    public void drawLineGroup (GL3 gl, int mode, int gidx) {
       bind (gl);
       lineGLO.drawLines (gl, mode, gidx);
+      unbind(gl);
    }
    
    public void drawInstancedLineGroup(GL3 gl, GL3SharedObject line, int gidx) {
       bindInstanced (gl, line, gidx);
       lineGLO.drawInstancedLines (gl, line, gidx);
+      unbindInstanced(gl, gidx);
    }
    
    public void drawInstancedLineGroup(GL3 gl, GL3Object line, int gidx) {
@@ -193,7 +209,6 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
    public static GL3RenderObjectLines generate (
       GL3 gl, GL3LinesVertexBuffer lineVBO, GL3SharedRenderObjectLines lines) {
       VertexArrayObject vao = VertexArrayObject.generate (gl);
-      
       return new GL3RenderObjectLines (vao, lineVBO, lines);
    }
    

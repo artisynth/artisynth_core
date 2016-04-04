@@ -22,9 +22,9 @@ public abstract class GL3ResourceBase extends GLResourceBase implements GL3Resou
    public boolean disposeInvalid (GL3 gl) {
       if (!isValid ()) {
          dispose(gl);
-         return false;
+         return true;
       }
-      return true;
+      return false;
    }
    
    @Override

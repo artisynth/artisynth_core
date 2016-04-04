@@ -91,6 +91,16 @@ public abstract class TextureCoordBufferPutter {
    
    public static class FloatTextureCoordBufferPutter extends TextureCoordBufferPutter {
 
+      static FloatTextureCoordBufferPutter instance;
+      public static FloatTextureCoordBufferPutter getInstance() {
+         if (instance == null) {
+            instance = new FloatTextureCoordBufferPutter ();
+         }
+         return instance;
+      }
+      
+      protected FloatTextureCoordBufferPutter () {}
+      
       @Override
       public void putTextureCoord(ByteBuffer buff, float x, float y) {
          buff.putFloat(x);
@@ -111,6 +121,16 @@ public abstract class TextureCoordBufferPutter {
    
    public static class ShortTextureCoordBufferPutter extends TextureCoordBufferPutter {
 
+      static ShortTextureCoordBufferPutter instance;
+      public static ShortTextureCoordBufferPutter getInstance() {
+         if (instance == null) {
+            instance = new ShortTextureCoordBufferPutter ();
+         }
+         return instance;
+      }
+      
+      protected ShortTextureCoordBufferPutter () {}
+      
       @Override
       public void putTextureCoord(ByteBuffer buff, float x, float y) {
          buff.putShort((short)(x*(Short.MAX_VALUE+0.5)-0.5));
@@ -129,8 +149,8 @@ public abstract class TextureCoordBufferPutter {
       
    }
    
-   public static TextureCoordBufferPutter createDefault() {
-      return new ShortTextureCoordBufferPutter();
+   public static TextureCoordBufferPutter getDefault() {
+      return ShortTextureCoordBufferPutter.getInstance();
    }
    
 }

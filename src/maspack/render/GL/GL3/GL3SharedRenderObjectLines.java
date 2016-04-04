@@ -277,6 +277,7 @@ public class GL3SharedRenderObjectLines extends GL3SharedRenderObjectBase {
       }
 
       // create VBOs
+      gl.glBindVertexArray (0); // unbind any existing VAOs
       if (staticVertexSize > 0) {
          buffs[STATIC_VBO_IDX].flip();
          vbos[STATIC_VBO_IDX].fill(gl, buffs[STATIC_VBO_IDX],
@@ -376,5 +377,9 @@ public class GL3SharedRenderObjectLines extends GL3SharedRenderObjectBase {
          bpos, tpos, bclr, tclr, staticVBO, dynamicVBO);
       out.maybeUpdate (gl, robj);  // trigger a build
       return out;
+   }
+
+   public int numLines (int gidx) {
+      return lineGroupOffsets[gidx+1]-lineGroupOffsets[gidx];
    }
 }

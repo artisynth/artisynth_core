@@ -372,34 +372,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       buildInternalRenderList();
    }
-
-   private void setDefaultLights() {
-
-      float light0_ambient[] = { 0.1f, 0.1f, 0.1f, 1f };
-      float light0_diffuse[] = { 0.8f, 0.8f, 0.8f, 1.0f };
-      float light0_specular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-      float light0_position[] = { -0.8660254f, 0.5f, 1f, 0f };
-
-      float light1_ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-      float light1_diffuse[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-      float light1_specular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-      float light1_position[] = { 0.8660254f, 0.5f, 1f, 0f };
-
-      float light2_ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-      float light2_diffuse[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-      float light2_specular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-      float light2_position[] = { 0f, -10f, 1f, 0f };
-
-      lightManager.clearLights();
-      lightManager.addLight(new GLLight (
-         light0_position, light0_ambient, light0_diffuse, light0_specular));
-      lightManager.addLight (new GLLight (
-         light1_position, light1_ambient, light1_diffuse, light1_specular));
-      lightManager.addLight(new GLLight (
-         light2_position, light2_ambient, light2_diffuse, light2_specular));
-      lightManager.setMaxIntensity(1.0f);
-   }
-
+  
    @Override
    public void init(GLAutoDrawable drawable) {
 
@@ -425,8 +398,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glGetIntegerv(GL2.GL_MAX_CLIP_PLANES, buff, 0);
       maxClipPlanes = buff[0];
 
-      gl.glEnable (GL2.GL_CULL_FACE);
-      gl.glCullFace (GL2.GL_BACK);
+      setFaceStyle (FaceStyle.FRONT);
       gl.glEnable (GL2.GL_DEPTH_TEST);
       gl.glClearDepth (1.0);
 
@@ -665,6 +637,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    public void display (GLAutoDrawable drawable, int flags) {
 
+      this.drawable = drawable;
+      this.gl = drawable.getGL ().getGL2 ();
+      
       if (!myInternalRenderListValid) {
          buildInternalRenderList();
       }
@@ -711,6 +686,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             }
          }
       }
+      
+      this.drawable = null;
+      this.gl = null;
    }
 
    public boolean isMultiSampleEnabled() {
@@ -840,14 +818,14 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glEnable (GL2.GL_BLEND);
       if (!alphaFaceCulling) {
          gl.glDepthMask (false);
-         gl.glDisable (GL2.GL_CULL_FACE);
+         setFaceStyle (FaceStyle.FRONT_AND_BACK);
       }
       gl.glBlendFunc (sBlending.value(), dBlending.value());
    }
 
    private void disableTransparency (GL2 gl) {
       if (!alphaFaceCulling) {
-         gl.glEnable (GL2.GL_CULL_FACE);
+         setFaceStyle (FaceStyle.FRONT);
          gl.glDepthMask (true);
       }
       gl.glDisable (GL2.GL_BLEND);
@@ -1978,6 +1956,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
     */
    public void drawTriangle (float[] pnt0, float[] pnt1, float[] pnt2) {
 
+      GLSupport.checkAndPrintGLError (gl);
       GL2 gl = getGL2();
       maybeUpdateState(gl);
 
@@ -2449,7 +2428,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       setLightingOn (false);
       gl.glDisable(GL2.GL_DEPTH_TEST);
-      gl.glDisable(GL2.GL_CULL_FACE);
+      setFaceStyle (FaceStyle.FRONT_AND_BACK);
 
       gl.glMatrixMode(GL2.GL_TEXTURE);
       gl.glPushMatrix();

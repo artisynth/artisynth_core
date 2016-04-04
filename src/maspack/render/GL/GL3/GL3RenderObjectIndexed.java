@@ -34,7 +34,10 @@ public class GL3RenderObjectIndexed extends GL3ResourceBase implements GL3Drawab
          glo.bindIndices (gl);
          lastVertexVersion = vv;
       }
-
+   }
+   
+   public void unbind(GL3 gl) {
+      vao.unbind (gl);
    }
    
    @Override
@@ -67,21 +70,25 @@ public class GL3RenderObjectIndexed extends GL3ResourceBase implements GL3Drawab
    public void drawVertices (GL3 gl, int mode) {
       bind (gl);
       glo.drawVertices(gl, mode);
+      unbind(gl);
    }
    
    public void drawPointGroup (GL3 gl, int mode, int gidx) {
       bind (gl);
       glo.drawPointGroup (gl, mode, gidx);
+      unbind(gl);
    }
    
    public void drawLineGroup (GL3 gl, int mode, int gidx) {
       bind(gl);
       glo.drawLineGroup (gl, mode, gidx);
+      unbind(gl);
    }
    
    public void drawTriangleGroup (GL3 gl, int mode, int gidx) {
       bind(gl);
       glo.drawTriangleGroup (gl, mode, gidx);
+      unbind(gl);
    }
    
    public static GL3RenderObjectIndexed generate(GL3 gl, GL3SharedRenderObjectIndexed glo) {

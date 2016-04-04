@@ -7,15 +7,15 @@ public class SingleGL3Tester extends MultiViewerTesterBase {
 
    protected static void addRenderObjects(MultiViewer tester) {
 
-      addCube(tester);
+      // addCube(tester);
       addAxes(tester);
       addTransRotator(tester);
-      addCylinder(tester);
+      // addCylinder(tester);
 
-      PolygonalMesh bunny = loadStanfordBunny();
-      addStanfordBunnies(tester, bunny);
-      addSolidBunny(tester, bunny);
-      addHalfBunny(tester, bunny);
+      // PolygonalMesh bunny = loadStanfordBunny();
+      // addStanfordBunnies(tester, bunny);
+      // addSolidBunny(tester, bunny);
+      // addHalfBunny(tester, bunny);
 
    }
 

@@ -2,15 +2,11 @@ package maspack.render.GL.test;
 
 import java.awt.Color;
 
-import artisynth.core.mechmodels.FixedMeshBody;
-import artisynth.core.mechmodels.MeshComponent;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.render.RenderProps;
-import maspack.render.Renderer;
 import maspack.render.Renderer.Shading;
-import maspack.render.GL.test.MultiViewer.SimpleSelectable;
 import maspack.render.color.HueColorMap;
 
 public class ColouredSphereTest extends GL2vsGL3Tester {

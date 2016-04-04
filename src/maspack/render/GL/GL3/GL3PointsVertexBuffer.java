@@ -37,6 +37,7 @@ public class GL3PointsVertexBuffer extends GL3ResourceBase {
          buff.clear ();
          buff.putFloat (pointRadius);
          buff.flip();
+         gl.glBindVertexArray (0); // unbind any existing VAOs
          vbo.fill(gl, buff, GL.GL_DYNAMIC_DRAW);
          lastPointRadius = pointRadius;
          return true;
@@ -44,9 +45,10 @@ public class GL3PointsVertexBuffer extends GL3ResourceBase {
       return false;
    }
 
-   public void bind(GL3 gl) {
+   public void bind(GL3 gl, int numInstances) {
       vbo.bind (gl);
       radAttr.bind (gl);
+      radAttr.bindDivisor (gl, numInstances);
    }
 
    @Override

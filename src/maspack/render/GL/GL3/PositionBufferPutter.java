@@ -91,6 +91,17 @@ public abstract class PositionBufferPutter {
    
    public static class FloatPositionBufferPutter extends PositionBufferPutter {
       
+      static FloatPositionBufferPutter instance;
+      
+      protected FloatPositionBufferPutter() {}
+      
+      public static FloatPositionBufferPutter getInstance() {
+         if (instance == null) {
+            instance = new FloatPositionBufferPutter ();
+         }
+         return instance;
+      }
+      
       @Override
       public void putPosition(ByteBuffer buff, float x, float y, float z) {
          buff.putFloat(x);
@@ -109,7 +120,7 @@ public abstract class PositionBufferPutter {
       }
    }
    
-   public static PositionBufferPutter createDefault() {
+   public static PositionBufferPutter getDefault() {
       return new FloatPositionBufferPutter();
    }
    

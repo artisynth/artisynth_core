@@ -193,9 +193,9 @@ HasProperties {
 
    public static final double AUTO_FIT = -1.0; // generic value to trigger an auto-fit
 
-   // View transformatios
-   private static final AxisAlignedRotation DEFAULT_AXIAL_VIEW =
-   AxisAlignedRotation.X_Z;
+   // View transformations
+   protected static final AxisAlignedRotation DEFAULT_AXIAL_VIEW =
+      AxisAlignedRotation.X_Z;
 
    protected AxisAlignedRotation myDefaultAxialView = DEFAULT_AXIAL_VIEW;
    protected AxisAlignedRotation myAxialView = DEFAULT_AXIAL_VIEW;
@@ -1018,23 +1018,36 @@ HasProperties {
    }
 
    public GL getGL() {
-      return drawable.getGL();
+      if (drawable != null) {
+         return drawable.getGL();
+      }
+      return null;
    }
 
    public void setAutoSwapBufferMode (boolean enable) {
-      drawable.setAutoSwapBufferMode (enable);
+      if (drawable != null) {
+         drawable.setAutoSwapBufferMode (enable);
+      }
    }
 
    public boolean getAutoSwapBufferMode() {
-      return drawable.getAutoSwapBufferMode();
+      if (drawable != null) {
+         return drawable.getAutoSwapBufferMode();
+      }
+      return false;
    }
 
    public GLContext getContext() {
-      return drawable.getContext();
+      if (drawable != null) {
+         return drawable.getContext();
+      }
+      return null;
    }
 
    protected void swapBuffers() {
-      drawable.swapBuffers();
+      if (drawable != null) {
+         drawable.swapBuffers();
+      }
    }
 
    double centerDistance (int x, int y) {
@@ -1626,6 +1639,9 @@ HasProperties {
 
    public void display (GLAutoDrawable drawable) {
       GLSupport.checkAndPrintGLError(drawable.getGL ());
+      
+      // assign current drawable
+      this.drawable = drawable;
 
       int flags = myRenderFlags.get();
 
@@ -1643,6 +1659,9 @@ HasProperties {
       display(drawable, flags);
 
       GLSupport.checkAndPrintGLError(drawable.getGL ());
+      
+      // clear current drawable
+      this.drawable = null;
    }
 
    private class RenderIterator implements Iterator<GLRenderable> {
@@ -1761,6 +1780,48 @@ HasProperties {
       }
    }
 
+   public void setDefaultLights() {
+
+      //      float light0_ambient[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+      //      float light0_diffuse[] = { 0.8f, 0.0f, 0.0f, 1.0f };
+      //      float light0_specular[] = { 0, 0, 0, 1 };
+      //      float light0_position[] = { 1, 0, 0, 0 };
+      //      
+      //      float light1_ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+      //      float light1_diffuse[] = { 0.0f, 0.8f, 0.0f, 1.0f };
+      //      float light1_specular[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+      //      float light1_position[] = { 0, 1, 0, 0 };
+      //
+      //      float light2_ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+      //      float light2_diffuse[] = { 0.0f, 0.0f, 0.8f, 1.0f };
+      //      float light2_specular[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+      //      float light2_position[] = { 0, 0, 1, 0 };
+      
+      float light0_ambient[] = { 0.1f, 0.1f, 0.1f, 1f };
+      float light0_diffuse[] = { 0.8f, 0.8f, 0.8f, 1.0f };
+      float light0_specular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
+      float light0_position[] = { -0.8660254f, 0.5f, 1f, 0f };
+
+      float light1_ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+      float light1_diffuse[] = { 0.5f, 0.5f, 0.5f, 1.0f };
+      float light1_specular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
+      float light1_position[] = { 0.8660254f, 0.5f, 1f, 0f };
+
+      float light2_ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+      float light2_diffuse[] = { 0.5f, 0.5f, 0.5f, 1.0f };
+      float light2_specular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
+      float light2_position[] = { 0f, -10f, 1f, 0f };
+
+      lightManager.clearLights();
+      lightManager.addLight(new GLLight (
+         light0_position, light0_ambient, light0_diffuse, light0_specular));
+      lightManager.addLight (new GLLight (
+         light1_position, light1_ambient, light1_diffuse, light1_specular));
+      lightManager.addLight(new GLLight (
+         light2_position, light2_ambient, light2_diffuse, light2_specular));
+      lightManager.setMaxIntensity(1.0f);
+   }
+   
    public boolean setLightingEnabled (boolean enable) {
       boolean prev = myViewerState.lightingEnabled;
       if (!selectEnabled) {

@@ -1,5 +1,10 @@
 package maspack.render.GL.GL3;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -23,15 +28,15 @@ import maspack.render.GL.GL3.GLSLGenerator.StringIntPair;
 import maspack.render.GL.GL3.GLSLInfo.GLSLInfoBuilder;
 
 public class GL3ProgramManager {
-   
+
    public static boolean debug = true;
-   
+
    HashMap<String,Integer> attributeLocationMap;
    HashMap<String,Integer> textureLocationMap;
    HashMap<String,Integer> uniformBlockLocationMap;
    HashMap<String,UniformBufferObject> uniformBufferObjectMap;
 
-   HashMap<GLSLInfo, GLShaderProgram> keyToProgramMap;
+   HashMap<Object, GLShaderProgram> keyToProgramMap;
 
    // Uniform buffer objects for holding most common info
    MatricesUBO matricesUBO = null;
@@ -50,10 +55,10 @@ public class GL3ProgramManager {
       textureLocationMap = new HashMap<> ();
       uniformBlockLocationMap = new HashMap<> ();
       uniformBufferObjectMap = new HashMap<>();
-      
+
       // make sure all attributes from the GLSLGenerator are numbered
       for (StringIntPair attr : GLSLGenerator.ATTRIBUTES) {
-        addSharedAttribute (attr.getString (), attr.getInt ()); 
+         addSharedAttribute (attr.getString (), attr.getInt ()); 
       }
       for (StringIntPair tex : GLSLGenerator.TEXTURES) {
          addSharedTexture (tex.getString (), tex.getInt ()); 
@@ -62,44 +67,44 @@ public class GL3ProgramManager {
          addSharedUniformBlock (ublock.getString (), ublock.getInt ()); 
       }
    }
-   
+
    public void addSharedAttribute(String attribute, int location) {
       attributeLocationMap.put (attribute, location);
    }
-   
+
    public void addSharedTexture(String textureName, int location) {
       textureLocationMap.put (textureName, location);
    }
-   
+
    public void addSharedUniformBlock(String blockName, int location) {
       uniformBlockLocationMap.put (blockName, location);
    }
-   
+
    public void addSharedUniformBufferObject(UniformBufferObject ubo) {
       uniformBufferObjectMap.put (ubo.getBlockName (), ubo);
    }
-   
+
    private void clearMatrices(GL3 gl) {
       if (matricesUBO != null) {
          matricesUBO.dispose(gl);
          matricesUBO = null;
       }
    }
-   
+
    private void clearMaterials(GL3 gl) {
       if (materialsUBO != null) {
          materialsUBO.dispose(gl);
          materialsUBO = null;
       }
    }
-   
+
    private void clearLights(GL3 gl) {
       if (lightsUBO != null) {
          lightsUBO.dispose(gl);
          lightsUBO = null;
       }
    }
-   
+
    private void clearClips(GL3 gl) {
       if (clipsUBO != null) {
          clipsUBO.dispose(gl);
@@ -116,7 +121,7 @@ public class GL3ProgramManager {
 
    private void clearPrograms(GL3 gl) {
       // delete all programs (will trigger a re-create)
-      for (Entry<GLSLInfo, GLShaderProgram> entry : keyToProgramMap.entrySet()) {
+      for (Entry<Object, GLShaderProgram> entry : keyToProgramMap.entrySet()) {
          int progId = entry.getValue().getId ();
          gl.glDeleteProgram(progId);
       }
@@ -127,7 +132,7 @@ public class GL3ProgramManager {
       clearUBOs(gl);
       clearPrograms(gl);
    }
-   
+
    protected void setNumLights(GL3 gl, int nLights) {
       if (nLights != numLights) {
          numLights = nLights;
@@ -141,11 +146,14 @@ public class GL3ProgramManager {
          clearAll(gl);
       }
    }
-  
-   private GLShaderProgram createProgram(GL3 gl, GLSLInfo key) {
 
+   private GLShaderProgram createProgram(GL3 gl, GLSLInfo key) {
       // generate source
       String[] shaders = GLSLGenerator.getShaderScripts(key);
+      return createProgram(gl, shaders);
+   }
+
+   private GLShaderProgram createProgram(GL3 gl, String[] shaders) {
 
       int vs = gl.glCreateShader(GL3.GL_VERTEX_SHADER);
       gl.glShaderSource(vs,  1,  new String[]{shaders[0]}, null, 0);
@@ -168,30 +176,30 @@ public class GL3ProgramManager {
       gl.glAttachShader(progId, vs);
       gl.glAttachShader(progId, fs);
       GLSupport.checkAndPrintGLError(gl);
-      
+
       // bind attributes
       for (Entry<String,Integer> attribute : attributeLocationMap.entrySet ()) {
          gl.glBindAttribLocation (progId, attribute.getValue (), attribute.getKey ());
       }
-      
+
       gl.glLinkProgram(progId);
-      
+
       GLShaderProgram prog = new GLShaderProgram (progId);
-      bindUBOs (gl, prog, key);
+      bindUBOs (gl, prog);
       GLSupport.checkAndPrintGLError (gl);
       prog.use (gl);
       bindTextures(gl, prog);
       GLSupport.checkAndPrintGLError (gl);
-      
+
       // clean up shaders... will be deleted when program is complete
       gl.glDetachShader(progId, vs);
       gl.glDeleteShader(vs);
       gl.glDetachShader(progId, fs);
       gl.glDeleteShader(fs);
-      
+
       return prog;
    }
-   
+
    public int getSharedAttributeLocation(String name) {
       Integer loc = attributeLocationMap.get (name);
       if (loc == null) {
@@ -199,7 +207,7 @@ public class GL3ProgramManager {
       }
       return loc;
    }
-   
+
    public int getSharedTextureLocation(String name) {
       Integer loc = textureLocationMap.get (name);
       if (loc == null) {
@@ -207,7 +215,7 @@ public class GL3ProgramManager {
       }
       return loc;
    }
-   
+
    public int getUniformBlockLocation(String name) {
       Integer loc = uniformBlockLocationMap.get (name);
       if (loc == null) {
@@ -215,30 +223,30 @@ public class GL3ProgramManager {
       }
       return loc;
    }
-   
-   private void bindUBOs(GL3 gl, GLShaderProgram prog, GLSLInfo key) {
-      
+
+   private void bindUBOs(GL3 gl, GLShaderProgram prog) {
+
       // generate UBOs if not exist
       // matrices
       if (matricesUBO == null) {
          matricesUBO = new MatricesUBO(gl, prog.getId());
       }
       matricesUBO.bindLocation(gl, prog.getId(), getUniformBlockLocation (matricesUBO.getBlockName()));
-      
+
       // materials
       if (materialsUBO == null) {
          materialsUBO = new MaterialsUBO(gl, prog.getId());
       }
       materialsUBO.bindLocation(gl, prog.getId (), getUniformBlockLocation (materialsUBO.getBlockName()));
-      
+
       // lights
-      if (numLights > 0 && key.getShading() != Shading.NONE) {
+      if (numLights > 0 ) { //&& key.getShading() != Shading.NONE) {
          if (lightsUBO == null) {
             lightsUBO = new LightsUBO(gl, prog.getId (), numLights);
          }
          lightsUBO.bindLocation(gl, prog.getId (), getUniformBlockLocation (lightsUBO.getBlockName()));
       }
-      
+
       // clip planes
       if (numClipPlanes > 0) {
          if (clipsUBO == null) {
@@ -246,18 +254,18 @@ public class GL3ProgramManager {
          }
          clipsUBO.bindLocation(gl, prog.getId (), getUniformBlockLocation (clipsUBO.getBlockName()));
       }
-      
+
       for (UniformBufferObject ubo : uniformBufferObjectMap.values ()) {
          ubo.bindLocation (gl, prog.getId (), getUniformBlockLocation (ubo.getBlockName ()));
       }
    }
-   
+
    private void bindTextures(GL3 gl, GLShaderProgram prog) {
       for (Entry<String,Integer> tex : textureLocationMap.entrySet ()) {
          setUniform (gl, prog, tex.getKey (), tex.getValue ());
       }
    }
-   
+
    private boolean glCheckShaderCompilation (GL3 gl, int shader) {
       int[] buff = new int[2];
       gl.glGetShaderiv(shader, GL3.GL_COMPILE_STATUS, buff, 0);
@@ -286,13 +294,51 @@ public class GL3ProgramManager {
       }
       return prog;
    }
-   
+
+   public GLShaderProgram getProgram(GL3 gl, Object key, String[] shaders) {
+      GLShaderProgram prog = keyToProgramMap.get(key);
+      if (prog == null) {
+         prog = createAndBindProgram(gl, key, shaders);
+      }
+      return prog;
+   }
+
+   static String readFile(String path, Charset encoding) {
+      String out = null;
+      try {
+         byte[] encoded = Files.readAllBytes(Paths.get(path));
+         out = new String(encoded, encoding);
+      }
+      catch (IOException e) {
+      }
+      return out;
+   }
+
+   public GLShaderProgram getProgram(GL3 gl, Object key, File[] shaders) {
+      GLShaderProgram prog = keyToProgramMap.get(key);
+      if (prog == null) {
+         String[] str = new String[shaders.length];
+         for (int i=0; i<shaders.length; ++i) {
+            str[i] = readFile(shaders[i].getAbsolutePath (), Charset.defaultCharset());
+         }
+         prog = createAndBindProgram(gl, key, str);
+      }
+      return prog;
+   }
+
    private GLShaderProgram createAndBindProgram(GL3 gl, GLSLInfo key) {
       GLShaderProgram prog = createProgram(gl, key);
       keyToProgramMap.put(key, prog);
       return prog;
    }
-   
+
+   private GLShaderProgram createAndBindProgram(GL3 gl, Object key, String[] shaders) {
+      GLShaderProgram prog = createProgram(gl, shaders);
+      keyToProgramMap.put(key, prog);
+      return prog;
+   }
+
+
    /**
     * Creates a program containing all uniforms, for binding purposes
     * @param gl
@@ -302,6 +348,9 @@ public class GL3ProgramManager {
       builder.setNumLights (numLights);
       builder.setNumClipPlanes (numClipPlanes);
       builder.setLighting (Shading.PHONG);
+      builder.setVertexNormals (true);
+      builder.setVertexColors (true);
+      builder.setVertexTextures (true);
       GLSLInfo key = builder.build ();
       createAndBindProgram(gl, key);
    }
@@ -309,84 +358,84 @@ public class GL3ProgramManager {
    public void dispose(GL3 gl) {
       clearAll(gl);
    }
-   
+
    public void init(GL3 gl, int nLights, int nClipPlanes) {
       setNumLights(gl, nLights);
       setNumClipPlanes(gl, nClipPlanes);
       createDefaultProgram(gl);
    }
-   
+
    public void reconfigure(GL3 gl, int nLights, int nClipPlanes) {
       if (nLights != numLights || nClipPlanes != numClipPlanes) {
          init(gl, nLights, nClipPlanes);
       }
    }
-   
+
    public int numLights() {
       return numLights;
    }
-   
+
    public int numClipPlanes() {
       return numClipPlanes;
    }
-   
+
    public void setMatrices(GL3 gl, Matrix4d projection, RigidTransform3d view, 
       AffineTransform3dBase model, Matrix3d modelNormal) {
       matricesUBO.updateMatrices(gl, projection, view, model, modelNormal);
    }
-   
+
    public void setMaterials(GL3 gl, Material frontMaterial, Material backMaterial) {
       materialsUBO.setMaterials(gl, frontMaterial, backMaterial);
    }
-   
+
    public void setMaterials(GL3 gl, Material frontMaterial, float[] frontDiffuse, 
       Material backMaterial, float[] backDiffuse) {
       materialsUBO.updateMaterials(gl, frontMaterial, frontDiffuse, 
          backMaterial, backDiffuse);
    }
-   
+
    public void setMaterialDiffuse(GL3 gl, float[] frontRgba, float[] backRgba) {
       materialsUBO.updateColor(gl, frontRgba, MaterialsUBO.FRONT_DIFFUSE);
       materialsUBO.updateColor(gl, backRgba, MaterialsUBO.BACK_DIFFUSE);
    }
-   
+
    public void setUniform(GL3 gl, GLShaderProgram prog, String name, int val) {
       int loc = prog.getUniformLocation (gl, name);
       if (loc >= 0) {
          gl.glUniform1i (loc, val);
       }
    }
-   
+
    public void setUniform(GL3 gl, GLShaderProgram prog, String name, float val) {
       int loc = prog.getUniformLocation (gl, name);
       if (loc >= 0) {
          gl.glUniform1f (loc, val);
       }
    }
-   
+
    public void setUniform4f(GL3 gl, GLShaderProgram prog, String name, float[] v) {
       int loc = prog.getUniformLocation (gl, name);
       if (loc >= 0) {
          gl.glUniform4fv (loc, 4, v, 0);
       }
    }
-   
+
    public void setLights(GL3 gl, List<GLLight> lights, float intensityScale, RigidTransform3d viewMatrix) {
       lightsUBO.updateLights(gl, lights, intensityScale, viewMatrix);
    }
-   
+
    public void setClipPlanes(GL3 gl, Plane[] clips) {
       clipsUBO.updateClipPlanes(gl, clips);
    }
-   
+
    public int setClipPlanes(GL3 gl, GLClipPlane[] clips) {
       return clipsUBO.updateClipPlanes(gl, clips);
    }
-   
+
    public int setClipPlanes(GL3 gl, List<GLClipPlane> clips) {
       return clipsUBO.updateClipPlanes(gl, clips);
    }
-   
+
    public void bindTexture(GL3 gl, String name, GLTexture tex) {
       int loc = getSharedTextureLocation (name);
       if (loc >= 0) {
@@ -394,7 +443,7 @@ public class GL3ProgramManager {
          tex.bind (gl);
       }
    }
-   
+
    public void unbindTexture(GL3 gl, String name, GLTexture tex) {
       int loc = getSharedTextureLocation (name);
       if (loc >= 0) {

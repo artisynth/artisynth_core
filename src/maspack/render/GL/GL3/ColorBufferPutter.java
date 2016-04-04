@@ -3,9 +3,11 @@ package maspack.render.GL.GL3;
 import java.nio.ByteBuffer;
 
 import maspack.render.GL.GLSupport;
+import maspack.render.GL.GL3.NormalBufferPutter.ShortNormalBufferPutter;
 
 public abstract class ColorBufferPutter {
 
+   protected ColorBufferPutter() {}
    public abstract void putColor(ByteBuffer buff, byte r, byte g, byte b, byte a);
    public abstract int bytesPerColor();
    public abstract GL3AttributeStorage storage();
@@ -99,6 +101,16 @@ public abstract class ColorBufferPutter {
    
    public static class ByteColorBufferPutter extends ColorBufferPutter {
 
+      static ByteColorBufferPutter instance;
+      public static ByteColorBufferPutter getInstance() {
+         if (instance == null) {
+            instance = new ByteColorBufferPutter ();
+         }
+         return instance;
+      }
+      
+      protected ByteColorBufferPutter () {}
+      
       @Override
       public void putColor(ByteBuffer buff, byte r, byte g, byte b, byte a) {
          buff.put(r);
@@ -119,8 +131,8 @@ public abstract class ColorBufferPutter {
       
    }
    
-   public static ColorBufferPutter createDefault() {
-      return new ByteColorBufferPutter();
+   public static ColorBufferPutter getDefault() {
+      return ByteColorBufferPutter.getInstance ();
    }
    
 }

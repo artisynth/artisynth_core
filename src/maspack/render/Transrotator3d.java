@@ -6,6 +6,7 @@
  */
 package maspack.render;
 
+import java.awt.Color;
 import java.util.LinkedList;
 
 import maspack.matrix.AffineTransform3dBase;
@@ -18,6 +19,7 @@ import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLViewer;
+import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.DrawMode;
 import maspack.util.InternalErrorException;
 
@@ -78,26 +80,24 @@ public class Transrotator3d extends Dragger3dBase {
       if (!myVisibleP) {
          return;
       }
-      if (!(renderer instanceof GLViewer)) {
-         return;
-      }
-      GLViewer viewer = (GLViewer)renderer;
       
-      Shading savedShading = viewer.setShading (Shading.NONE);
-      viewer.setLineWidth(myLineWidth);
+      Shading savedShading = renderer.setShading (Shading.NONE);
+      renderer.setLineWidth(myLineWidth);
+      
+      ColorMixing savedMixing = renderer.setVertexColorMixing (ColorMixing.REPLACE);
 
-      viewer.pushModelMatrix();
-      viewer.mulModelMatrix(myXDraggerToWorld);
+      renderer.pushModelMatrix();
+      renderer.mulModelMatrix(myXDraggerToWorld);
 
       float[] coords = new float[3];
       if (myDragMode != DragMode.OFF && mySelectedComponent != NONE) {
-         viewer.setColor(1, 1, 0);
-         viewer.setPointSize(3);
+         renderer.setColor(1, 1, 0);
+         renderer.setPointSize(3);
          myPnt0.get(coords);
-         viewer.drawPoint(coords);
-         viewer.setPointSize(1);
+         renderer.drawPoint(coords);
+         renderer.setPointSize(1);
       }
-      viewer.scaleModelMatrix(mySize);
+      renderer.scaleModelMatrix(mySize);
       
       if (renderObject == null) {
          renderObject = createTransrotatorRenderable();
@@ -105,11 +105,11 @@ public class Transrotator3d extends Dragger3dBase {
       
       // select appropriate color buffer
       if (mySelectedComponent != 0) {
-         viewer.drawLines(renderObject, mySelectedComponent);
+         renderer.drawLines(renderObject, mySelectedComponent);
       }
-      viewer.drawLines(renderObject, 0);
+      renderer.drawLines(renderObject, 0);
       
-      viewer.popModelMatrix();
+      renderer.popModelMatrix();
 
       if (myDragMode != DragMode.OFF && 
          (mySelectedComponent == X_ROTATE
@@ -120,23 +120,24 @@ public class Transrotator3d extends Dragger3dBase {
          RigidTransform3d X = new RigidTransform3d (myXDraggerToWorld0);
          X.p.set (myXDraggerToWorld.p);
          
-         viewer.pushModelMatrix();
-         viewer.mulModelMatrix(X);
+         renderer.pushModelMatrix();
+         renderer.mulModelMatrix(X);
          final float[] coords0 = new float[]{0,0,0};
 
-         viewer.setColor(0.5f, 0.5f, 0.5f);
+         renderer.setColor(0.5f, 0.5f, 0.5f);
          myPnt0.get(coords);
-         viewer.drawLine(coords0, coords);
+         renderer.drawLine(coords0, coords);
          
-         viewer.setColor(1,1,0);
+         renderer.setColor(1,1,0);
          myRotPnt.get(coords);
-         viewer.drawLine(coords0, coords);
+         renderer.drawLine(coords0, coords);
 
-         viewer.popModelMatrix();
+         renderer.popModelMatrix();
       }
 
-      viewer.setLineWidth(1);
-      viewer.setShading (savedShading);
+      renderer.setLineWidth(1);
+      renderer.setShading (savedShading);
+      renderer.setVertexColorMixing (savedMixing);
 
    }
    

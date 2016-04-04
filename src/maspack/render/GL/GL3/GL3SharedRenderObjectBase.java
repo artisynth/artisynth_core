@@ -11,10 +11,10 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
    private RenderObjectIdentifier roId;
    int bindVersion;
    
-   protected static PositionBufferPutter positionPutter = PositionBufferPutter.createDefault ();
-   protected static NormalBufferPutter normalPutter = NormalBufferPutter.createDefault ();
-   protected static ColorBufferPutter colorPutter = ColorBufferPutter.createDefault ();
-   protected static TextureCoordBufferPutter texturePutter = TextureCoordBufferPutter.createDefault ();
+   protected static PositionBufferPutter positionPutter = PositionBufferPutter.getDefault ();
+   protected static NormalBufferPutter normalPutter = NormalBufferPutter.getDefault ();
+   protected static ColorBufferPutter colorPutter = ColorBufferPutter.getDefault ();
+   protected static TextureCoordBufferPutter texturePutter = TextureCoordBufferPutter.getDefault ();
    
    protected static class AttributeInfo {
       int vboIndex;

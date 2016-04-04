@@ -320,13 +320,13 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
 
    @Override
    public void display (GLAutoDrawable drawable) {
-      System.out.println("Master drawable displayed");
+      //System.out.println("Master drawable displayed");
    }
 
    @Override
    public void reshape (
       GLAutoDrawable drawable, int x, int y, int width, int height) {
-      System.out.println("Master drawable reshaped");
+      //System.out.println("Master drawable reshaped");
    }
    
 }

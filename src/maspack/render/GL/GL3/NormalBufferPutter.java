@@ -7,6 +7,8 @@ import maspack.render.GL.GL3.GL3AttributeStorage.StorageType;
 
 public abstract class NormalBufferPutter {
 
+   protected NormalBufferPutter() {}
+   
    public abstract void putNormal(ByteBuffer buff, float nx, float ny, float nz);
    public abstract int bytesPerNormal();
    public abstract GL3AttributeStorage storage();
@@ -92,6 +94,16 @@ public abstract class NormalBufferPutter {
    
    public static class FloatNormalBufferPutter extends NormalBufferPutter {
       
+      static FloatNormalBufferPutter instance;
+      public static FloatNormalBufferPutter getInstance() {
+         if (instance == null) {
+            instance = new FloatNormalBufferPutter ();
+         }
+         return instance;
+      }
+      
+      protected FloatNormalBufferPutter () { }
+      
       @Override
       public void putNormal(ByteBuffer buff, float nx, float ny, float nz) {
          buff.putFloat(nx);
@@ -113,6 +125,16 @@ public abstract class NormalBufferPutter {
    
    public static class ShortNormalBufferPutter extends NormalBufferPutter {
 
+      static ShortNormalBufferPutter instance;
+      public static ShortNormalBufferPutter getInstance() {
+         if (instance == null) {
+            instance = new ShortNormalBufferPutter ();
+         }
+         return instance;
+      }
+      
+      protected ShortNormalBufferPutter() {}
+      
       @Override
       public void putNormal(ByteBuffer buff, float nx, float ny, float nz) {
          // scale
@@ -137,8 +159,8 @@ public abstract class NormalBufferPutter {
       }
    }
    
-   public static NormalBufferPutter createDefault() {
-      return new ShortNormalBufferPutter();
+   public static NormalBufferPutter getDefault() {
+      return ShortNormalBufferPutter.getInstance ();
    }
    
 }

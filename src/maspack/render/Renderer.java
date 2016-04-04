@@ -189,6 +189,11 @@ public interface Renderer {
       SPHERE,
 
       /**
+       * Draw points as cubes
+       */
+      CUBE,
+      
+      /**
        * Draw points using pixel-based primitives
        */
       POINT
@@ -692,9 +697,6 @@ public interface Renderer {
     */
    public void drawCylinder (
       Vector3d pnt0, Vector3d pnt1, double rad, boolean capped);
-   
-//   // REMOVE
-//   public void drawCone (RenderProps props, float[] coords0, float[] coords1);
 
    /**
     * Draws a cone between two points in model coordinates, 

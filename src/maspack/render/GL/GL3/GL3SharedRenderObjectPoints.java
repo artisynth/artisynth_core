@@ -273,6 +273,7 @@ public class GL3SharedRenderObjectPoints extends GL3SharedRenderObjectBase {
       }
 
       // create VBOs
+      gl.glBindVertexArray (0); // unbind any existing VAOs
       if (staticVertexSize > 0) {
          buffs[STATIC_VBO_IDX].flip();
          vbos[STATIC_VBO_IDX].fill(gl, buffs[STATIC_VBO_IDX],
@@ -294,6 +295,10 @@ public class GL3SharedRenderObjectPoints extends GL3SharedRenderObjectBase {
       return pointGroupOffsets.length-1;
    }
 
+   public int numPoints(int gidx) {
+      return pointGroupOffsets[gidx+1]-pointGroupOffsets[gidx];
+   }
+   
    public void bindInstancedVertices(GL3 gl, int gidx) {
 
       int vstart = 2*pointGroupOffsets[gidx];

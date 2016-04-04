@@ -4,6 +4,14 @@ import javax.media.opengl.GL3;
 
 public class VertexArrayObject extends GL3ResourceBase {
 
+   static final VertexArrayObject DEFAULT = new VertexArrayObject (0);
+   public static VertexArrayObject getDefault()  {
+      return DEFAULT;
+   }
+   public static void bindDefault(GL3 gl) {
+      DEFAULT.bind (gl);
+   }
+   
    int vao;
    
    public VertexArrayObject(int vao) {
@@ -11,16 +19,21 @@ public class VertexArrayObject extends GL3ResourceBase {
    }
    
    public void bind(GL3 gl) {
+      System.out.println ("VAO bound: " + vao);
       gl.glBindVertexArray (vao);
    }
    
    public void unbind(GL3 gl) {
+      System.out.println ("VAO unbound: " + vao);
       gl.glBindVertexArray (0);
    }
    
    @Override
    public void dispose (GL3 gl) {
-      gl.glDeleteBuffers (1, new int[]{vao}, 0);
+      if (vao > 0) {
+         gl.glDeleteBuffers (1, new int[]{vao}, 0);
+         vao = 0;
+      }
    }
    
    @Override

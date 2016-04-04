@@ -26,7 +26,7 @@ public class GL3SharedObjectFactory {
       this.vertex_color = color;
       this.vertex_texcoord = texcoord;
       
-      posPutter = PositionBufferPutter.createDefault();
+      posPutter = PositionBufferPutter.getDefault();
       
    }
 
@@ -42,7 +42,7 @@ public class GL3SharedObjectFactory {
       ByteBuffer vbuff = BufferUtilities.newNativeByteBuffer(nverts*posPutter.bytesPerPosition());
       posPutter.putPositions(vbuff, v);
       
-      IndexBufferPutter idxPutter = IndexBufferPutter.createDefault(nverts-1);
+      IndexBufferPutter idxPutter = IndexBufferPutter.getDefault(nverts-1);
       ByteBuffer ebuff = BufferUtilities.newNativeByteBuffer(elems.length*idxPutter.bytesPerIndex());
       idxPutter.putIndices(ebuff, elems);
       
@@ -69,6 +69,7 @@ public class GL3SharedObjectFactory {
       
       // generate VBOs
       VertexBufferObject vbo = VertexBufferObject.generate(gl);
+      gl.glBindVertexArray (0); // unbind any existing VAOs
       vbo.fill(gl, vbuff, vUsage);
       IndexBufferObject ibo = IndexBufferObject.generate(gl);
       ibo.fill(gl, ebuff, eUsage);
@@ -123,6 +124,7 @@ public class GL3SharedObjectFactory {
       
       // generate VBOs
       VertexBufferObject vbo = VertexBufferObject.generate(gl);
+      gl.glBindVertexArray (0); // unbind any existing VAOs
       vbo.fill(gl, vbuff, vUsage);
       
       GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[1];
@@ -154,8 +156,8 @@ public class GL3SharedObjectFactory {
       float[] n, int noffset, int nstride, int nverts, int vnUsage) {
 
       // buffer data
-      PositionBufferPutter posPutter = PositionBufferPutter.createDefault();
-      NormalBufferPutter nrmPutter = NormalBufferPutter.createDefault();
+      PositionBufferPutter posPutter = PositionBufferPutter.getDefault();
+      NormalBufferPutter nrmPutter = NormalBufferPutter.getDefault();
       
       int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
       ByteBuffer vnbuff = BufferUtilities.newNativeByteBuffer(nverts*stride);
@@ -195,15 +197,15 @@ public class GL3SharedObjectFactory {
       int[] eidxs, int eoffset, int estride, int nelems, int eUsage) {
 
       // buffer data
-      PositionBufferPutter posPutter = PositionBufferPutter.createDefault();
-      NormalBufferPutter nrmPutter = NormalBufferPutter.createDefault();
+      PositionBufferPutter posPutter = PositionBufferPutter.getDefault();
+      NormalBufferPutter nrmPutter = NormalBufferPutter.getDefault();
       int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
       ByteBuffer vnbuff = BufferUtilities.newNativeByteBuffer(nverts*stride);
       
       posPutter.putPositions(vnbuff, 0, stride, v, voffset, vstride, nverts);
       nrmPutter.putNormals(vnbuff, posPutter.bytesPerPosition(), stride, n, noffset, nstride, nverts);
       
-      IndexBufferPutter idxPutter = IndexBufferPutter.createDefault(nverts-1);
+      IndexBufferPutter idxPutter = IndexBufferPutter.getDefault(nverts-1);
       int istride = idxPutter.bytesPerIndex();
       ByteBuffer ebuff = BufferUtilities.newNativeByteBuffer(nelems*istride);
       idxPutter.putIndices(ebuff, eidxs, eoffset, estride, nelems);
@@ -233,6 +235,7 @@ public class GL3SharedObjectFactory {
       
       // generate VBOs
       VertexBufferObject vbo = VertexBufferObject.generate(gl);
+      gl.glBindVertexArray (0); // unbind any existing VAOs
       vbo.fill(gl, vnbuff, vnUsage);
       
       GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[2];
@@ -258,6 +261,7 @@ public class GL3SharedObjectFactory {
       
       // generate VBOs
       VertexBufferObject vbov = VertexBufferObject.generate(gl);
+      gl.glBindVertexArray (0); // unbind any existing VAOs
       vbov.fill(gl, vbuff, vnUsage);
       
       VertexBufferObject vbon = VertexBufferObject.generate(gl);
@@ -286,6 +290,7 @@ public class GL3SharedObjectFactory {
       
       // generate VBOs
       VertexBufferObject vbov = VertexBufferObject.generate(gl);
+      gl.glBindVertexArray (0); // unbind any existing VAOs
       vbov.fill(gl, vbuff, vncUsage);
       
       VertexBufferObject vbon = VertexBufferObject.generate(gl);
@@ -319,6 +324,7 @@ public class GL3SharedObjectFactory {
       
       // generate VBOs
       VertexBufferObject vbo = VertexBufferObject.generate(gl);
+      gl.glBindVertexArray (0); // unbind any existing VAOs
       vbo.fill(gl, vcbuff, vcUsage);
       
       GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[2];
@@ -346,6 +352,7 @@ public class GL3SharedObjectFactory {
       
       // generate VBOs
       VertexBufferObject vbo = VertexBufferObject.generate(gl);
+      gl.glBindVertexArray (0); // unbind any existing VAOs
       vbo.fill(gl, vncbuff, vncUsage);
       
       GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[3];
@@ -376,6 +383,7 @@ public class GL3SharedObjectFactory {
       
       // generate VBOs
       VertexBufferObject vbo = VertexBufferObject.generate(gl);
+      gl.glBindVertexArray (0); // unbind any existing VAOs
       vbo.fill(gl, vnbuff, vnUsage);
       
       GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[2];

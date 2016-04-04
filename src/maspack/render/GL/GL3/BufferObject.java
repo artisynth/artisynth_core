@@ -46,7 +46,7 @@ public class BufferObject extends GL3ResourceBase {
    
    public void allocate(GL3 gl, int size, int usage) {
       setInfo(size, usage);
-      gl.glBindBuffer(target, boId);
+      bind(gl);
       gl.glBufferData(target, size, null, usage);
    }
    
@@ -57,7 +57,7 @@ public class BufferObject extends GL3ResourceBase {
    
    public void fill(GL3 gl, ByteBuffer buff, int size, int usage) {
       setInfo(size*GLSupport.BYTE_SIZE, usage);
-      gl.glBindBuffer(target, boId);
+      bind(gl);
       gl.glBufferData(target, size*GLSupport.BYTE_SIZE, buff, usage);
    }
    
@@ -78,7 +78,7 @@ public class BufferObject extends GL3ResourceBase {
    }
    
    public void update(GL3 gl, ByteBuffer buff, int start, int size) {
-      gl.glBindBuffer(target, boId);
+      bind(gl);
       if (start == 0 && size >= this.size) {
          gl.glBufferData(target, size, null, usage); // orphan
       }
@@ -92,7 +92,7 @@ public class BufferObject extends GL3ResourceBase {
     * @return the mapped buffer
     */
    public ByteBuffer mapBuffer(GL3 gl, int access) {
-      gl.glBindBuffer(target, boId);
+      bind(gl);
       return gl.glMapBuffer(target, access);
    }
    
@@ -100,7 +100,7 @@ public class BufferObject extends GL3ResourceBase {
     * Maps only a portion of the underlying buffer
     */
    public ByteBuffer mapBufferRange(GL3 gl, int offset, int length, int access) {
-      gl.glBindBuffer(target, boId);
+      bind(gl);
       return gl.glMapBufferRange(target, offset, length, access);
    }
    
@@ -113,7 +113,7 @@ public class BufferObject extends GL3ResourceBase {
     * then returns a mapped buffer ready for writing.
     */
    public ByteBuffer mapNewBuffer(GL3 gl) {
-      gl.glBindBuffer(target, boId);
+      bind(gl);
       // orphan
       gl.glBufferData(target, size, null, usage);
       return gl.glMapBuffer(target, GL.GL_WRITE_ONLY);
@@ -124,9 +124,7 @@ public class BufferObject extends GL3ResourceBase {
    }
    
    public void bind(GL3 gl) {
-      if (target == 0) {
-         System.err.println ("CRASH");
-      }
+      System.out.println ("VBO bound: " + boId + " (target: " + target + ")");
       gl.glBindBuffer(target, boId);
    }
    

@@ -6,6 +6,8 @@ import maspack.render.GL.GLSupport;
 
 public abstract class IndexBufferPutter {
 
+   protected IndexBufferPutter() {}
+   
    public abstract void putIndex(ByteBuffer buff, int idx);
    public abstract int bytesPerIndex();
    public abstract GL3AttributeStorage storage();
@@ -62,7 +64,17 @@ public abstract class IndexBufferPutter {
    }
    
    public static class ByteIndexBufferPutter extends IndexBufferPutter {
-
+      static ByteIndexBufferPutter instance;
+      
+      public static ByteIndexBufferPutter getInstance() {
+         if (instance == null) {
+            instance = new ByteIndexBufferPutter ();
+         }
+         return instance;
+      }
+      
+      protected ByteIndexBufferPutter() {}
+      
       @Override
       public void putIndex(ByteBuffer buff, int idx) {
          buff.put((byte)idx);
@@ -82,6 +94,17 @@ public abstract class IndexBufferPutter {
    
    public static class ShortIndexBufferPutter extends IndexBufferPutter {
 
+      static ShortIndexBufferPutter instance;
+      
+      protected ShortIndexBufferPutter() {}
+      
+      public static ShortIndexBufferPutter getInstance() {
+         if (instance == null) {
+            instance = new ShortIndexBufferPutter ();
+         }
+         return instance;
+      }
+      
       @Override
       public void putIndex(ByteBuffer buff, int idx) {
          buff.putShort((short)idx);
@@ -100,7 +123,17 @@ public abstract class IndexBufferPutter {
    }
    
    public static class IntegerIndexBufferPutter extends IndexBufferPutter {
-
+      static IntegerIndexBufferPutter instance;
+      
+      public static IntegerIndexBufferPutter getInstance() {
+         if (instance == null) {
+            instance = new IntegerIndexBufferPutter ();
+         }
+         return instance;
+      }
+      
+      protected IntegerIndexBufferPutter() {}
+      
       @Override
       public void putIndex(ByteBuffer buff, int idx) {
          buff.putInt(idx);
@@ -121,13 +154,13 @@ public abstract class IndexBufferPutter {
     * Creates the most compact putter given a maximum index
     * @param maxIndex
     */
-   public static IndexBufferPutter createDefault(int maxIndex) {
+   public static IndexBufferPutter getDefault(int maxIndex) {
       if (maxIndex <= ((long)Byte.MAX_VALUE-(long)Byte.MIN_VALUE)) {
-         return new ByteIndexBufferPutter();
+         return ByteIndexBufferPutter.getInstance ();
       } else if (maxIndex <= ((long)Short.MAX_VALUE-(long)Short.MIN_VALUE)) {
-         return new ShortIndexBufferPutter();
+         return ShortIndexBufferPutter.getInstance ();
       } else {
-         return new IntegerIndexBufferPutter();
+         return IntegerIndexBufferPutter.getInstance ();
       }
    }
    

@@ -25,10 +25,8 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          lastInstanceBindVersion = -1;
       }
       
-      public void bind (
-         GL3 gl, GL3SharedObject point) {
+      public boolean bind (GL3 gl, GL3SharedObject point) {
          vao.bind (gl);
-         
          // instance
          if (lastInstance != point) {
             if (lastInstance != null) {
@@ -36,8 +34,13 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
             }
             lastInstance = point.acquire ();
             lastInstance.bindAttributes (gl);
+            return true;
          }
-         
+         return false;
+      }
+      
+      public void unbind(GL3 gl) {
+         vao.unbind (gl);
       }
       
       public void dispose(GL3 gl) {
@@ -51,7 +54,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          }
       }
       
-      public static InstanceInfo generate(GL3 gl, int gidx) {
+      public static InstanceInfo generate(GL3 gl) {
          VertexArrayObject vao = VertexArrayObject.generate (gl);
          return new InstanceInfo (vao);
       }
@@ -86,6 +89,10 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       }
    }
    
+   public void unbind(GL3 gl) {
+      vao.unbind (gl);
+   }
+   
    private void clearInstances(GL3 gl) {
       if (instances != null) {
          for (InstanceInfo ii : instances) {
@@ -101,7 +108,7 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
          clearInstances (gl);
          instances = new InstanceInfo[ngroups];
          for (int i=0; i<ngroups; ++i) {
-            instances[i] = InstanceInfo.generate (gl, i);
+            instances[i] = InstanceInfo.generate (gl);
          }
       }
    }
@@ -110,13 +117,18 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       // check if correct instances
       maybeUpdateInstances(gl);
       instances[gidx].bind (gl, point);
-      
+
       // extra instance attributes
       int bv = pointGLO.getBindVersion ();
       if (bv != instances[gidx].lastInstanceBindVersion) {
          pointGLO.bindInstancedVertices (gl, gidx);
+         pointVBO.bind (gl, pointGLO.numPoints (gidx));
          instances[gidx].lastInstanceBindVersion = bv;
       }
+   }
+   
+   public void unbindInstanced(GL3 gl, int gidx) {
+      instances[gidx].unbind(gl);
    }
    
    @Override
@@ -174,11 +186,13 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
    public void drawPointGroup (GL3 gl, int mode, int gidx) {
       bind (gl);
       pointGLO.drawPoints (gl, mode, gidx);
+      unbind(gl);
    }
    
    public void drawInstancedPointGroup(GL3 gl, GL3SharedObject point, int gidx) {
       bindInstanced (gl, point, gidx);
       pointGLO.drawInstancedPoints (gl, point, gidx);
+      unbindInstanced(gl, gidx);
    }
    
    public void drawInstancedPointGroup(GL3 gl, GL3Object point, int gidx) {

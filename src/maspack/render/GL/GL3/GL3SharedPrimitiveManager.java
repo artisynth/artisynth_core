@@ -8,7 +8,6 @@ import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
 
 import maspack.render.GL.GLGarbageSource;
-import maspack.render.GL.GL3.GL3PrimitiveFactory.GL3ObjectInfo;
 
 /**
  * Manages the lifetime of primitive GLObjects, keeping track of usage (incremented when grabbing)
@@ -303,8 +302,8 @@ public class GL3SharedPrimitiveManager implements GLGarbageSource {
          
          // if doesn't exist, create
          if (out == null || out.disposeInvalid(gl)) {
-            GL3ObjectInfo primitive = factory.createSphere (gl, key.getSlices (), key.getLevels ());
-            out = new GL3SharedPrimitive (key, primitive.generate ());
+            GL3SharedObject primitive = factory.createSphere (gl, key.getSlices (), key.getLevels ());
+            out = new GL3SharedPrimitive (key, primitive);
             primitiveMap.put (key, out);
          }
       }
@@ -332,8 +331,8 @@ public class GL3SharedPrimitiveManager implements GLGarbageSource {
          out = primitiveMap.get (key);
          // if doesn't exist, create
          if (out == null || out.disposeInvalid(gl)) {
-            GL3ObjectInfo primitive = factory.createSpindle (gl, key.getSlices (), key.getLevels ());
-            out = new GL3SharedPrimitive (key, primitive.generate ());
+            GL3SharedObject primitive = factory.createSpindle (gl, key.getSlices (), key.getLevels ());
+            out = new GL3SharedPrimitive (key, primitive);
             primitiveMap.put (key, out);
          }
       }
@@ -361,8 +360,8 @@ public class GL3SharedPrimitiveManager implements GLGarbageSource {
 
          // if doesn't exist, create
          if (out == null || out.disposeInvalid(gl)) {
-            GL3ObjectInfo primitive = factory.createCylinder (gl, key.getSlices (), key.isCapped ());
-            out = new GL3SharedPrimitive (key, primitive.generate ());
+            GL3SharedObject primitive = factory.createCylinder (gl, key.getSlices (), key.isCapped ());
+            out = new GL3SharedPrimitive (key, primitive);
             primitiveMap.put (key, out);
          }
       }
@@ -390,8 +389,8 @@ public class GL3SharedPrimitiveManager implements GLGarbageSource {
 
          // if doesn't exist, create
          if (out == null || out.disposeInvalid(gl)) {
-            GL3ObjectInfo primitive = factory.createCone (gl, key.getSlices (), key.isCapped ());
-            out = new GL3SharedPrimitive (key, primitive.generate ());
+            GL3SharedObject primitive = factory.createCone (gl, key.getSlices (), key.isCapped ());
+            out = new GL3SharedPrimitive (key, primitive);
             primitiveMap.put (key, out);
          }
       }
@@ -419,8 +418,8 @@ public class GL3SharedPrimitiveManager implements GLGarbageSource {
 
          // if doesn't exist, create
          if (out == null || out.disposeInvalid(gl)) {
-            GL3ObjectInfo primitive = factory.createAxes (gl, key.hasX (), key.hasY (), key.hasZ ());
-            out = new GL3SharedPrimitive (key, primitive.generate ());
+            GL3SharedObject primitive = factory.createAxes (gl, key.hasX (), key.hasY (), key.hasZ ());
+            out = new GL3SharedPrimitive (key, primitive);
             primitiveMap.put (key, out);
          }
       }

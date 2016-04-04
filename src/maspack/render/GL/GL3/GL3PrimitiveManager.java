@@ -249,7 +249,7 @@ public class GL3PrimitiveManager implements GLGarbageSource {
       // destroy all stored primitives
       synchronized(primitiveMap) {
          for (Entry<Object,GL3Primitive> entry : primitiveMap.entrySet ()) {
-            entry.getValue ().glo.releaseDispose ((GL3)gl);
+            entry.getValue ().glo.dispose ((GL3)gl);
          }
          primitiveMap.clear ();
       }

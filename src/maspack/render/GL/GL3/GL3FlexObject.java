@@ -18,8 +18,10 @@ public class GL3FlexObject extends GL3ResourceBase {
 
    VertexArrayObject vao;
    VertexBufferObject vbo;
+   IndexBufferObject ibo;
    
    ByteBuffer vbuff;
+   ByteBuffer ibuff;
    
    GL3VertexAttributeInfo info;
    GL3VertexAttributeInfo posAttr;
@@ -27,10 +29,10 @@ public class GL3FlexObject extends GL3ResourceBase {
    GL3VertexAttributeInfo clrAttr;
    GL3VertexAttributeInfo texAttr;
    
-   private static final PositionBufferPutter posPutter = PositionBufferPutter.createDefault ();
-   private static final NormalBufferPutter nrmPutter = NormalBufferPutter.createDefault ();
-   private static final ColorBufferPutter clrPutter = ColorBufferPutter.createDefault ();
-   private static final TextureCoordBufferPutter texPutter = TextureCoordBufferPutter.createDefault ();
+   private static final PositionBufferPutter posPutter = PositionBufferPutter.getDefault ();
+   private static final NormalBufferPutter nrmPutter = NormalBufferPutter.getDefault ();
+   private static final ColorBufferPutter clrPutter = ColorBufferPutter.getDefault ();
+   private static final TextureCoordBufferPutter texPutter = TextureCoordBufferPutter.getDefault ();
    
    private static final int DEFAULT_MININUM_PERSISTENT_SIZE = 512; // enough for at least 8 full vertices
    private static final int DEFAULT_MAXIMUM_PERSISTENT_SIZE = 16777216;  // 16 MB
@@ -46,10 +48,14 @@ public class GL3FlexObject extends GL3ResourceBase {
    boolean hasNormal;
    boolean hasColor;
    boolean hasTexcoord;
+   boolean hasIndices;
    boolean building;
    
    int numVertices;
+   int numIndices;
    int vstride;
+   
+   IndexBufferPutter indexPutter;
    
    // storing of "current" attributes
    float[] currentNormal;
@@ -59,10 +65,11 @@ public class GL3FlexObject extends GL3ResourceBase {
    protected GL3FlexObject(
       GL3VertexAttributeInfo posAttr, GL3VertexAttributeInfo nrmAttr,
       GL3VertexAttributeInfo clrAttr, GL3VertexAttributeInfo texAttr,
-      VertexArrayObject vao, VertexBufferObject vbo) {
+      VertexArrayObject vao, VertexBufferObject vbo, IndexBufferObject ibo) {
       // vertex array object, vertex buffer object
       this.vao = vao.acquire ();
       this.vbo = vbo.acquire ();
+      this.ibo = ibo.acquire ();
       
       this.posAttr = posAttr;
       this.nrmAttr = nrmAttr;
@@ -73,8 +80,10 @@ public class GL3FlexObject extends GL3ResourceBase {
       hasNormal = false;
       hasColor = false;
       hasTexcoord = false;
+      hasIndices = false;
       
       numVertices = 0;
+      numIndices = 0;
       vstride = 0;
       
       this.minimumPersistantSize = DEFAULT_MININUM_PERSISTENT_SIZE;
@@ -112,13 +121,19 @@ public class GL3FlexObject extends GL3ResourceBase {
    }
    
    private boolean maybeRebindAttributes(GL3 gl, 
-      boolean hasPosition, boolean hasNormal, boolean hasColor, boolean hasTexcoord) {
+      boolean hasPosition, boolean hasNormal, boolean hasColor, boolean hasTexcoord,
+      boolean hasIndices) {
       
       if (this.hasPosition != hasPosition || this.hasNormal != hasNormal 
-         || this.hasColor != hasColor || this.hasTexcoord != hasTexcoord) {
+         || this.hasColor != hasColor || this.hasTexcoord != hasTexcoord
+         || this.hasIndices != hasIndices) {
          
          vao.bind (gl);
          vbo.bind (gl);
+         
+         if (hasIndices) {
+            ibo.bind (gl);
+         }
          
          vstride = 0;
          if (hasPosition) {
@@ -138,40 +153,49 @@ public class GL3FlexObject extends GL3ResourceBase {
          
          if (hasPosition) {
             GL3AttributeStorage storage = posPutter.storage ();
-            gl.glVertexAttribPointer (posAttr.getLocation (), 
+            int loc = posAttr.getLocation ();
+            gl.glEnableVertexAttribArray (loc);
+            gl.glVertexAttribPointer (loc, 
                storage.size (), storage.getGLType (), storage.isNormalized (), 
                vstride, offset);
-            offset += storage.size();
+            offset += storage.bytes();
          }
          
          if (hasNormal) {
             GL3AttributeStorage storage = nrmPutter.storage ();
+            int loc = nrmAttr.getLocation ();
+            gl.glEnableVertexAttribArray (loc);
             gl.glVertexAttribPointer (nrmAttr.getLocation (), 
                storage.size (), storage.getGLType (), storage.isNormalized (), 
                vstride, offset);
-            offset += storage.size();
+            offset += storage.bytes();
          }
          
          if (hasColor) {
             GL3AttributeStorage storage = clrPutter.storage ();
+            int loc = clrAttr.getLocation ();
+            gl.glEnableVertexAttribArray (loc);
             gl.glVertexAttribPointer (clrAttr.getLocation (), 
                storage.size (), storage.getGLType (), storage.isNormalized (), 
                vstride, offset);
-            offset += storage.size();
+            offset += storage.bytes();
          }
          
          if (hasTexcoord) {
             GL3AttributeStorage storage = texPutter.storage ();
+            int loc = texAttr.getLocation ();
+            gl.glEnableVertexAttribArray (loc);
             gl.glVertexAttribPointer (texAttr.getLocation (), 
                storage.size (), storage.getGLType (), storage.isNormalized (), 
                vstride, offset);
-            offset += storage.size();
+            offset += storage.bytes();
          }
          
          this.hasPosition = hasPosition;
          this.hasNormal = hasNormal;
          this.hasColor = hasColor;
          this.hasTexcoord = hasTexcoord;
+         this.hasIndices = hasIndices;
          
          return true;
       }
@@ -185,11 +209,11 @@ public class GL3FlexObject extends GL3ResourceBase {
     * @param maxVertices
     */
    public void begin(GL3 gl, int maxVertices) {
-      begin(gl, false, false, false, maxVertices);
+      begin(gl, false, false, false, maxVertices, 0);
    }
       
    /**
-    * Begins constructing VBOs
+    * Begins constructing object
     * @param gl
     * @param hasNormal
     * @param hasColor
@@ -197,13 +221,34 @@ public class GL3FlexObject extends GL3ResourceBase {
     * @param maxVertices
     */
    public void begin(GL3 gl, boolean hasNormal, boolean hasColor, boolean hasTexcoord, int maxVertices) {
+      begin(gl, hasNormal, hasColor, hasTexcoord, maxVertices, 0);
+   }
+   
+   /**
+    * Begins constructing object
+    * @param gl
+    * @param hasNormal
+    * @param hasColor
+    * @param hasTexcoord
+    * @param maxVertices
+    * @param maxIndices max size of index buffer
+    */
+   public void begin(GL3 gl, boolean hasNormal, boolean hasColor, boolean hasTexcoord, int maxVertices, int maxIndices) {
+      
+      boolean hasIndices = maxIndices > 0;
       
       // check if we need to re-bind
-      maybeRebindAttributes(gl, true, hasNormal, hasColor, hasTexcoord);
+      maybeRebindAttributes(gl, true, hasNormal, hasColor, hasTexcoord, hasIndices);
       vbuff = ensureCapacity (vbuff, maxVertices*vstride);
-      
       vbuff.clear ();
       numVertices = 0;
+      
+      if (hasIndices) {
+         indexPutter = IndexBufferPutter.getDefault (maxVertices);
+         ibuff = ensureCapacity (ibuff, indexPutter.bytesPerIndex ()*maxIndices);
+         ibuff.clear ();
+      }
+      numIndices = 0;
       
       copy(currentNormal, DEFAULT_NORMAL, DEFAULT_NORMAL.length);
       copy(currentColor, DEFAULT_COLOR, DEFAULT_COLOR.length);
@@ -372,13 +417,46 @@ public class GL3FlexObject extends GL3ResourceBase {
    }
    
    /**
+    * Adds vertices to the index buffer
+    * @param v0 vertex index
+    * @return number of indices in the index buffer
+    */
+   public int index(int v0) {
+      indexPutter.putIndex (ibuff, v0);
+      ++numIndices;
+      return numIndices;
+   }
+   
+   public int index(int... vidxs) {
+      indexPutter.putIndices (ibuff, vidxs);
+      numIndices += vidxs.length;
+      return numIndices;
+   }
+   
+   /**
+    * Adds vertices to the index buffer
+    * @param vstart starting vertex index
+    * @param vend ending vertex index (included)
+    * @return number of indices in the index buffer
+    */
+   public int indexRange(int vstart, int vend) {
+      for (int i=vstart; i<=vend; ++i) {
+         indexPutter.putIndex (ibuff, i);
+      }
+      numIndices += (vend-vstart+1);
+      return numIndices;
+   }
+   
+   /**
     * Ends building VBOs, commits to GPU 
     * @param gl
     */
    public void end(GL3 gl) {
       building = false;
-      vbuff.flip ();
       
+      gl.glBindVertexArray (0); // unbind any existing VAOs
+      
+      vbuff.flip ();
       // resize or update portion
       if (vbuff.limit () >= vbo.getSize()) {
          vbo.fill (gl, vbuff, GL.GL_DYNAMIC_DRAW);
@@ -390,6 +468,22 @@ public class GL3FlexObject extends GL3ResourceBase {
       if (vbuff.capacity () > maximumPersistantSize) {
          BufferUtilities.freeDirectBuffer (vbuff);
          vbuff = null;
+      }
+      
+      if (hasIndices) {
+         ibuff.flip ();
+         // resize or update portion
+         if (ibuff.limit () >= ibo.getSize()) {
+            ibo.fill (gl, ibuff, GL.GL_DYNAMIC_DRAW);
+         } else {
+            ibo.update (gl, ibuff);  
+         }
+         
+         // maybe free buffer
+         if (ibuff.capacity () > maximumPersistantSize) {
+            BufferUtilities.freeDirectBuffer (ibuff);
+            ibuff = null;
+         }
       }
    }
    
@@ -404,6 +498,23 @@ public class GL3FlexObject extends GL3ResourceBase {
    public void drawVertices (GL3 gl, int mode, int start, int count) {
       vao.bind (gl);
       gl.glDrawArrays (mode, start, count);
+      vao.unbind (gl);
+   }
+   
+   public void drawElements (GL3 gl, int mode) {
+      drawElements(gl, mode, 0, numIndices);
+   }
+   
+   public void drawElements (GL3 gl, int mode, int count) {
+      drawElements(gl, mode, 0, count);
+   }
+   
+   public void drawElements (GL3 gl, int mode, int start, int count) {
+      vao.bind (gl);
+      int offset = start*indexPutter.bytesPerIndex ();
+      int type = indexPutter.storage ().getGLType ();
+      gl.glDrawElements (mode, count, type, offset);
+      vao.unbind (gl);
    }
    
    @Override
@@ -411,13 +522,18 @@ public class GL3FlexObject extends GL3ResourceBase {
       if (vao != null) {
          vao.releaseDispose (gl);
          vbo.releaseDispose (gl);
-
+         ibo.releaseDispose (gl);
+         
          vao = null;
          vbo = null;
+         ibo = null;
          
          BufferUtilities.freeDirectBuffer (vbuff);
          vbuff = null;
       
+         BufferUtilities.freeDirectBuffer (ibuff);
+         ibuff = null;
+         
       }
    }
    
@@ -425,7 +541,8 @@ public class GL3FlexObject extends GL3ResourceBase {
       GL3VertexAttributeInfo clrAttr, GL3VertexAttributeInfo texAttr) {
       VertexArrayObject vao = VertexArrayObject.generate (gl);
       VertexBufferObject vbo = VertexBufferObject.generate (gl);
-      GL3FlexObject out = new GL3FlexObject(posAttr, nrmAttr, clrAttr, texAttr, vao, vbo);
+      IndexBufferObject ibo = IndexBufferObject.generate (gl);
+      GL3FlexObject out = new GL3FlexObject(posAttr, nrmAttr, clrAttr, texAttr, vao, vbo, ibo);
       
       return out;
    }

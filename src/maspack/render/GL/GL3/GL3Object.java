@@ -31,6 +31,7 @@ public class GL3Object extends GL3ResourceBase implements GL3Drawable {
    public void bind(GL3 gl) {
       vao.bind (gl);
       glo.bindAttributes (gl);
+      vao.unbind (gl);
    }
    
    @Override
@@ -72,41 +73,49 @@ public class GL3Object extends GL3ResourceBase implements GL3Drawable {
    public void draw (GL3 gl) {
       vao.bind (gl);
       glo.draw(gl);
+      vao.unbind (gl);
    }   
    
    public void drawArrays(GL3 gl, int mode) {
       vao.bind (gl);
       glo.drawArrays(gl, mode);
+      vao.unbind (gl);
    }
    
    public void drawArrays(GL3 gl, int mode, int start, int count) {
       vao.bind (gl);
       glo.drawArrays (gl, mode, start, count);
+      vao.unbind (gl);
    }
    
    public void drawElements(GL3 gl, int mode, int start, int count, int indexType) {
       vao.bind (gl);
       glo.drawElements (gl, mode, start, count, indexType);
+      vao.unbind (gl);
    }
    
    public void drawInstancedArray(GL3 gl, GLShaderProgram prog, int mode, int start, int count, int instances) {
       vao.bind (gl);
       glo.drawInstancedArray (gl, mode, start, count, instances);
+      vao.unbind (gl);
    }
 
    public void drawInstancedElements(GL3 gl, int mode, int start, int count, int instances) {
       vao.bind (gl);
       glo.drawInstancedElements (gl, mode, start, count, instances);
+      vao.unbind (gl);
    }
    
    public void draw(GL3 gl, int start, int count) {
       vao.bind (gl);
       glo.draw (gl, start, count);
+      vao.unbind (gl);
    }
    
    public void draw(GL3 gl, int mode, int start, int count) {
       vao.bind (gl);
       glo.draw (gl, mode, start, count);
+      vao.unbind (gl);
    }
 
    public static GL3Object generate(GL3 gl, GL3SharedObject glo) {

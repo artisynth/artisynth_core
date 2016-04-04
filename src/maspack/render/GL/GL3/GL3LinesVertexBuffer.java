@@ -22,7 +22,8 @@ public class GL3LinesVertexBuffer extends GL3ResourceBase {
    float lastLineRadius;
    float[] lastBottomScaleOffset;
    float[] lastTopScaleOffset;
-   private static final float[] NO_SCALE_OFFSET = {1f, 0f, 0f, 0f};
+   private static final float[] NO_SCALE_OFFSET_BOTTOM = {1f, 0f, 0f, 0f};
+   private static final float[] NO_SCALE_OFFSET_TOP = {1f, 0f, 0f, 1f};
 
    private GL3LinesVertexBuffer(VertexBufferObject vbo, 
       GL3VertexAttributeInfo radAttr,
@@ -48,13 +49,20 @@ public class GL3LinesVertexBuffer extends GL3ResourceBase {
       buff = BufferUtilities.newNativeByteBuffer(9*GLSupport.FLOAT_SIZE);
       
    }
+   
+   private static float[] copyOf(float[] array) {
+      if (array == null) {
+         return null;
+      }
+      return Arrays.copyOf (array, array.length);
+   }
 
    public boolean maybeUpdate(GL3 gl, float lineRadius, float[] bottomScaleOffset, float[] topScaleOffset) {
       boolean updated = maybeUpdateLine (gl, lineRadius, bottomScaleOffset, topScaleOffset);
       if (updated) {
          lastLineRadius = lineRadius;
-         lastBottomScaleOffset = Arrays.copyOf (bottomScaleOffset, bottomScaleOffset.length);
-         lastTopScaleOffset = Arrays.copyOf (topScaleOffset, topScaleOffset.length);
+         lastBottomScaleOffset = copyOf (bottomScaleOffset);
+         lastTopScaleOffset = copyOf (topScaleOffset);
       }
       return updated;
    }
@@ -100,7 +108,7 @@ public class GL3LinesVertexBuffer extends GL3ResourceBase {
 
       // offset for bottom
       if (bottomScaleOffset == null) {
-         bottomScaleOffset = NO_SCALE_OFFSET;
+         bottomScaleOffset = NO_SCALE_OFFSET_BOTTOM;
       }
       buff.putFloat (bottomScaleOffset[0]);
       buff.putFloat (bottomScaleOffset[1]);
@@ -109,7 +117,7 @@ public class GL3LinesVertexBuffer extends GL3ResourceBase {
 
       // top offset
       if (topScaleOffset == null) {
-         topScaleOffset = NO_SCALE_OFFSET;
+         topScaleOffset = NO_SCALE_OFFSET_TOP;
       }
       buff.putFloat (topScaleOffset[0]);
       buff.putFloat (topScaleOffset[1]);
@@ -118,14 +126,18 @@ public class GL3LinesVertexBuffer extends GL3ResourceBase {
 
       // line information
       buff.flip();
+      gl.glBindVertexArray (0); // unbind any existing VAOs
       vbo.fill(gl, buff, GL.GL_DYNAMIC_DRAW);
    }
 
-   public void bind(GL3 gl) {
+   public void bind(GL3 gl, int numInstances) {
       vbo.bind (gl);
       radAttr.bind (gl);
+      radAttr.bindDivisor (gl, numInstances);
       bscaleAttr.bind (gl);
+      bscaleAttr.bindDivisor (gl, numInstances);
       tscaleAttr.bind (gl);
+      tscaleAttr.bindDivisor (gl, numInstances);
    }
 
    @Override

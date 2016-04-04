@@ -248,7 +248,7 @@ public class GL3SharedRenderObjectIndexed extends GL3SharedRenderObjectBase {
       if ( colorInfo != null ) {
          int bidx = colorInfo.offset;
          int pidx = robj.getVertexColorOffset();
-         ByteBuffer buff = buffs[positionInfo.vboIndex];
+         ByteBuffer buff = buffs[colorInfo.vboIndex];
 
          for (int i=0; i<colorInfo.count; ++i) {
             byte[] pos = robj.getColor (verts[pidx]);
@@ -276,6 +276,7 @@ public class GL3SharedRenderObjectIndexed extends GL3SharedRenderObjectBase {
       }
 
       // vertex buffer object
+      gl.glBindVertexArray (0); // unbind any existing VAOs
       if (staticVertexSize > 0) {
          buffs[STATIC_VBO_IDX].flip();
          vbos[STATIC_VBO_IDX].fill(gl, buffs[STATIC_VBO_IDX],
@@ -296,7 +297,7 @@ public class GL3SharedRenderObjectIndexed extends GL3SharedRenderObjectBase {
       int nVertices = robj.numVertices ();
       boolean streaming = robj.isTransient ();
       
-      IndexBufferPutter indexPutter = IndexBufferPutter.createDefault(nVertices-1);
+      IndexBufferPutter indexPutter = IndexBufferPutter.getDefault(nVertices-1);
       int gltype = indexPutter.storage ().getGLType ();
       final int INDEX_BYTES = indexPutter.bytesPerIndex();
 
@@ -361,6 +362,7 @@ public class GL3SharedRenderObjectIndexed extends GL3SharedRenderObjectBase {
          }
 
          buff.flip();
+         gl.glBindVertexArray (0); // unbind any existing VAOs
          ibo.fill(gl, buff, getBufferUsage(false, streaming));
          BufferUtilities.freeDirectBuffer (buff);
          

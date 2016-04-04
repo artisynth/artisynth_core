@@ -103,6 +103,14 @@ public class GL3VertexAttributeArrayInfo {
       bind(gl, attribute.getLocation ());
    }
    
+   public void bindDivisor(GL3 gl, int loc, int d) {
+      gl.glVertexAttribDivisor (loc, d);
+   }
+   
+   public void bindDivisor(GL3 gl, int d) {
+      bindDivisor (gl, attribute.getLocation (), d);
+   }
+   
    public void unbind(GL3 gl, int loc) {
       gl.glDisableVertexAttribArray (loc);
    }

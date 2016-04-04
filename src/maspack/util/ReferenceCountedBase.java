@@ -35,10 +35,7 @@ public abstract class ReferenceCountedBase implements ReferenceCounted {
    
    @Override
    public void release() {
-      long ac = acquireCount.decrementAndGet ();
-      if (ac == -1) {
-         System.err.println ("Uh oh, something didn't properly keep track of releases");
-      }
+      releaseAndCount ();  // release but don't return count
    }
    
    @Override

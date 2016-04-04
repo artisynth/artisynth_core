@@ -1705,6 +1705,25 @@ public interface Renderer {
    public boolean isSelecting();
    
    /**
+    * The material color to use if the renderer is currently performing a selection
+    * render. This is mainly used for color-based selection.
+    * 
+    * @param c selection color
+    */
+   public void setSelectingColor(Color c);
+   
+   /**
+    * The material color to use if the renderer is currently performing a selection
+    * render. This is mainly used for color-based selection.
+    * 
+    * @param r red
+    * @param g green
+    * @param b blue
+    * @param a alpha
+    */
+   public void setSelectingColor(float r, float g, float b, float a);
+   
+   /**
     * Returns the selection highlighting method used by this renderer.
     * This specifies how objects which are indicated to be <i>selected</i>
     * are drawn by the renderer in a way so that they stand out. A

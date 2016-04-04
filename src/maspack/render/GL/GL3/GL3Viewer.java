@@ -34,6 +34,7 @@ import maspack.render.GL.GLShaderProgram;
 import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLTexture;
 import maspack.render.GL.GLViewer;
+import maspack.render.GL.GL3.GL3ProgramManager.RenderMode;
 import maspack.render.GL.GL3.GLSLGenerator.StringIntPair;
 import maspack.render.GL.GL3.GLSLInfo.GLSLInfoBuilder;
 //import maspack.render.GL.GL3.GLSLInfo.ColorInterpolation;
@@ -707,15 +708,6 @@ public class GL3Viewer extends GLViewer {
    //      }
    //   }
 
-   @Override
-   protected void forceColor(float r, float g, float b, float a) {
-      float[] rgba = new float[]{r,g,b,a};
-      setFrontColor (rgba);
-      setBackColor (rgba);
-      // force immediate update of color
-      myProgManager.setMaterialDiffuse(gl, rgba, rgba);
-   }
-
    public void saveShading() {
       if (selectEnabled) {
          return;
@@ -749,13 +741,17 @@ public class GL3Viewer extends GLViewer {
    }
 
    protected void maybeUpdateMaterials(GL3 gl) {
-      if (myCurrentMaterialModified &&!selectEnabled) {
-         // set all colors
-         if (mySelectedColorActive) {
-            mySelectedColor[3] = myCurrentMaterial.getAlpha();
-            myProgManager.setMaterials (gl, myCurrentMaterial, mySelectedColor, myCurrentMaterial, mySelectedColor);
+      if (myCurrentMaterialModified) {
+         if (isSelecting ()) {
+            myProgManager.setMaterials (gl, myCurrentMaterial, mySelectingColor, myCurrentMaterial, mySelectingColor);
          } else {
-            myProgManager.setMaterials (gl, myCurrentMaterial, myCurrentMaterial.getDiffuse(), myCurrentMaterial, myBackColor);
+            // set all colors
+            if (mySelectedColorActive) {
+               mySelectedColor[3] = myCurrentMaterial.getAlpha();
+               myProgManager.setMaterials (gl, myCurrentMaterial, mySelectedColor, myCurrentMaterial, mySelectedColor);
+            } else {
+               myProgManager.setMaterials (gl, myCurrentMaterial, myCurrentMaterial.getDiffuse(), myCurrentMaterial, myBackColor);
+            }
          }
          myCurrentMaterialModified = false; // reset flag since state is now updated
       }
@@ -1054,6 +1050,11 @@ public class GL3Viewer extends GLViewer {
    }
 
    protected GLShaderProgram getBasicPointProgram(GL3 gl) {
+      
+      if (isSelecting ()) {
+         return myProgManager.getSelectionProgram (gl, RenderMode.POINTS);
+      }
+      
       GLSLInfoBuilder builder = new GLSLInfoBuilder();
       builder.setNumLights (myProgManager.numLights ());
       builder.setNumClipPlanes (myProgManager.numClipPlanes ());
@@ -1078,6 +1079,11 @@ public class GL3Viewer extends GLViewer {
    }
    
    protected GLShaderProgram getBasicLineProgram(GL3 gl, boolean hasNormals, boolean hasColors, boolean hasTextures) {
+      
+      if (isSelecting ()) {
+         return myProgManager.getSelectionProgram (gl, RenderMode.LINES);
+      }
+      
       GLSLInfoBuilder builder = new GLSLInfoBuilder();
       builder.setNumLights (myProgManager.numLights ());
       builder.setNumClipPlanes (myProgManager.numClipPlanes ());
@@ -1107,6 +1113,11 @@ public class GL3Viewer extends GLViewer {
    }
 
    protected GLShaderProgram getBasicProgram(GL3 gl) {
+      
+      if (isSelecting ()) {
+         return myProgManager.getSelectionProgram (gl, RenderMode.TRIANGLES);
+      }
+      
       GLSLInfoBuilder builder = new GLSLInfoBuilder();
       builder.setNumLights (myProgManager.numLights ());
       builder.setNumClipPlanes (myProgManager.numClipPlanes ());
@@ -1133,6 +1144,10 @@ public class GL3Viewer extends GLViewer {
    }
 
    protected GLShaderProgram getProgram(GL3 gl) {
+      
+      if (isSelecting ()) {
+         return myProgManager.getSelectionProgram (gl, RenderMode.TRIANGLES);
+      }
 
       GLSLInfoBuilder builder = new GLSLInfoBuilder();
       builder.setNumLights (myProgManager.numLights ());
@@ -1169,6 +1184,11 @@ public class GL3Viewer extends GLViewer {
    }
 
    protected GLShaderProgram getColorProgram(GL3 gl, boolean hasNormals) {
+      
+      if (isSelecting ()) {
+         return myProgManager.getSelectionProgram (gl, RenderMode.TRIANGLES);
+      }
+      
       Shading shading = getShading ();
       ColorInterpolation cinterp = ColorInterpolation.RGB;
       if (isHSVColorInterpolationEnabled ()) {
@@ -1178,6 +1198,11 @@ public class GL3Viewer extends GLViewer {
    }
 
    protected GLShaderProgram getColorProgram(GL3 gl, Shading shading, boolean hasNormals, ColorInterpolation cinterp) {
+      
+      if (isSelecting ()) {
+         return myProgManager.getSelectionProgram (gl, RenderMode.TRIANGLES);
+      }
+      
       GLSLInfoBuilder builder = new GLSLInfoBuilder();
       builder.setNumLights (myProgManager.numLights ());
       builder.setNumClipPlanes (myProgManager.numClipPlanes ());
@@ -1362,8 +1387,6 @@ public class GL3Viewer extends GLViewer {
 
       GL3Object cone = myPrimitiveManager.getCone(gl, nslices, capped);
       cone.draw(gl);
-
-      gl.glUseProgram(0);
 
       // revert matrix transform
       popModelMatrix();
@@ -1857,8 +1880,8 @@ public class GL3Viewer extends GLViewer {
 
    protected GLShaderProgram getProgram(GL3 gl, RenderObjectState robj) {
 
-      if (isSelecting()) {
-         return getProgram(gl);
+      if (isSelecting ()) {
+         return myProgManager.getSelectionProgram (gl, RenderMode.TRIANGLES);
       }
 
       GLSLInfoBuilder builder = new GLSLInfoBuilder();
@@ -1909,6 +1932,14 @@ public class GL3Viewer extends GLViewer {
 
    protected GLShaderProgram getPointsProgram(GL3 gl, PointStyle style, RenderObjectState robj) {
 
+      if (isSelecting ()) {
+         if (style == PointStyle.POINT) {
+            return myProgManager.getSelectionProgram (gl, RenderMode.POINTS);
+         } else {
+            return myProgManager.getSelectionProgram (gl, RenderMode.INSTANCED_POINTS);
+         }
+      }
+      
       GLSLInfoBuilder builder = new GLSLInfoBuilder();
       builder.setNumLights (myProgManager.numLights ());
       builder.setNumClipPlanes (myProgManager.numClipPlanes ());
@@ -1977,6 +2008,15 @@ public class GL3Viewer extends GLViewer {
    }
 
    protected GLShaderProgram getLinesProgram(GL3 gl, RenderObjectState robj, LineStyle style) {
+      
+      if (isSelecting ()) {
+         if (style == LineStyle.LINE) {
+            return myProgManager.getSelectionProgram (gl, RenderMode.LINES);
+         } else {
+            return myProgManager.getSelectionProgram (gl, RenderMode.INSTANCED_LINES);
+         }
+      }
+      
       GLSLInfoBuilder builder = new GLSLInfoBuilder();
       builder.setNumLights (myProgManager.numLights ());
       builder.setNumClipPlanes (myProgManager.numClipPlanes ());

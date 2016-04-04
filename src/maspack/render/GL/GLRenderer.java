@@ -25,6 +25,7 @@ public interface GLRenderer extends Renderer {
    
    public HighlightStyle getSelectionHighlightStyle();
 
+   @Override
    public void getSelectionColor(float[] rgba);
    
    /**

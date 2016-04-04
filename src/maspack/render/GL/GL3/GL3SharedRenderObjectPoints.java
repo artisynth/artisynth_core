@@ -301,7 +301,7 @@ public class GL3SharedRenderObjectPoints extends GL3SharedRenderObjectBase {
    
    public void bindInstancedVertices(GL3 gl, int gidx) {
 
-      int vstart = 2*pointGroupOffsets[gidx];
+      int vstart = pointGroupOffsets[gidx];
       
       int loc = pposAttr.getLocation ();
       if (positionInfo != null ) {

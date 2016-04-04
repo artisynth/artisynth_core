@@ -212,6 +212,7 @@ HasProperties {
    // Colors
    protected float[] mySelectedColor = new float[] { 1f, 1f, 0, 1f };
    protected HighlightStyle myHighlightStyle = HighlightStyle.COLOR;
+   protected float[] mySelectingColor = new float[] { 0f, 0f, 0f, 0f}; // color to use when selecting (color selection)
 
    // XXX Color history
    protected float[] DEFAULT_MATERIAL_COLOR = new float[]{0.8f, 0.8f, 0.8f, 1.0f};
@@ -2068,6 +2069,7 @@ HasProperties {
       color.getRGBComponents (mySelectedColor);
    }
 
+   @Override
    public void getSelectionColor (float[] rgba) {
       if (rgba.length < 3) {
          throw new IllegalArgumentException (
@@ -2081,6 +2083,32 @@ HasProperties {
       }
    }
 
+   public void setSelectingColor (Color color) {
+      color.getRGBComponents (mySelectingColor);
+      myCurrentMaterialModified = true;
+   }
+   
+   public void setSelectingColor(float r, float g, float b, float a) {
+      mySelectingColor[0] = r;
+      mySelectingColor[1] = g;
+      mySelectingColor[2] = b;
+      mySelectingColor[3] = a;
+      myCurrentMaterialModified = true;
+   }
+
+   public void getSelectingColor (float[] rgba) {
+      if (rgba.length < 3) {
+         throw new IllegalArgumentException (
+            "Argument rgba must have length of at least 3");
+      }
+      rgba[0] = mySelectingColor[0];
+      rgba[1] = mySelectingColor[1];
+      rgba[2] = mySelectingColor[2];
+      if (rgba.length > 3) {
+         rgba[3] = mySelectingColor[3];
+      }
+   }
+   
    @Override
    public FaceStyle setFaceStyle(FaceStyle style) {
       FaceStyle prev = myViewerState.faceMode;
@@ -3238,13 +3266,6 @@ HasProperties {
       setShading (props.getShading());      
       return prevShading;
    }
-   
-   /**
-    * Forces setting color, regardless of selection mode (used by
-    * color selector)
-    */
-   protected abstract void forceColor(float r, float g, float b, float a);
-
 
    // XXX To remove?
 

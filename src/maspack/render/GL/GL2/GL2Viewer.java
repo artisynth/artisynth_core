@@ -1139,18 +1139,25 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    public void maybeUpdateMaterials(GL2 gl) {
 
       // only update if not selecting
-      if (myCurrentMaterialModified && !isSelecting()) {
-         // set all colors
-         if (mySelectedColorActive) {
-            mySelectedColor[3] = myCurrentMaterial.getAlpha ();
-            gl.glColor4fv (mySelectedColor, 0);
+      if (myCurrentMaterialModified) {
+         
+         if (isSelecting ()) {
+            gl.glColor4fv (mySelectingColor, 0);
             myCurrentMaterial.apply (gl);
-            gl.glMaterialfv (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, mySelectedColor, 0); // apply back color
+            gl.glMaterialfv (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, mySelectingColor, 0); // apply back color
          } else {
-            gl.glColor4fv (myCurrentMaterial.getDiffuse(), 0);
-            myCurrentMaterial.apply (gl);
-            if (myBackColor != null) {
-               gl.glMaterialfv (GL2.GL_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, myBackColor, 0); // apply back color
+            // set all colors
+            if (mySelectedColorActive) {
+               mySelectedColor[3] = myCurrentMaterial.getAlpha ();
+               gl.glColor4fv (mySelectedColor, 0);
+               myCurrentMaterial.apply (gl);
+               gl.glMaterialfv (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, mySelectedColor, 0); // apply back color
+            } else {
+               gl.glColor4fv (myCurrentMaterial.getDiffuse(), 0);
+               myCurrentMaterial.apply (gl);
+               if (myBackColor != null) {
+                  gl.glMaterialfv (GL2.GL_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, myBackColor, 0); // apply back color
+               }
             }
          }
          myCurrentMaterialModified = false; // reset flag since state is now updated
@@ -1227,12 +1234,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    public boolean isSelecting() {
       return selectEnabled;
-   }
-
-   @Override
-   protected void forceColor(float r, float g, float b, float a) {
-      float[] rgba = new float[]{r,g,b,a};
-      gl.glColor4fv (rgba, 0);
    }
 
    //   public void setColor (float[] frontRgba, float[] backRgba, boolean selected) {

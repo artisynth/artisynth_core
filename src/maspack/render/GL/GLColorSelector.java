@@ -285,7 +285,7 @@ public class GLColorSelector extends GLSelector {
       // a = 255;
 
       // XXX perhaps better to let viewer decide color?
-      myViewer.forceColor(r/255f, g/255f, b/255f, a/255f);
+      myViewer.setSelectingColor (r/255f, g/255f, b/255f, a/255f);
       myCurrentIdx = idx;
    }
 
@@ -295,7 +295,7 @@ public class GLColorSelector extends GLSelector {
             "endSelectionQuery() called without previous call to "+
             "beginSelectionQuery()");
       }
-      myViewer.forceColor(0f, 0f, 0f, 0f);
+      myViewer.setSelectingColor(0f, 0f, 0f, 0f);
       myCurrentIdx = -1;
    }
 

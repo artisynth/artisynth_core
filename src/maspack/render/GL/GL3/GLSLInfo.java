@@ -37,10 +37,7 @@ public class GLSLInfo {
    
    private boolean useRoundPoints;
    
-   private boolean hasInstanceOrientations;
-   private boolean hasInstanceAffines;
    private boolean hasInstanceColors;
-  
    private boolean hasLineScaleOffset;
    private boolean hasLineColors;
    
@@ -91,14 +88,6 @@ public class GLSLInfo {
          info.useRoundPoints=enable;
       }
       
-      public void setInstanceOrientations(boolean enable) {
-         info.hasInstanceOrientations=enable;
-      }
-
-      public void setInstanceAffines(boolean enable) {
-         info.hasInstanceAffines=enable;
-      }
-
       public void setInstanceColors(boolean enable) {
          info.hasInstanceColors=enable;
       }
@@ -225,11 +214,8 @@ public class GLSLInfo {
       useRoundPoints = false;
       
       instanced = InstancedRendering.NONE;
-      
-      hasInstanceOrientations = false;
-      hasInstanceAffines = false;
-      hasInstanceColors = false;
-      
+
+      hasInstanceColors = false;      
       hasLineScaleOffset = false;
       hasLineColors = false;
       
@@ -254,9 +240,7 @@ public class GLSLInfo {
       int result = 1;
       result =
          prime * result + ((colorInterp == null) ? 0 : colorInterp.hashCode());
-      result = prime * result + (hasInstanceAffines ? 1231 : 1237);
       result = prime * result + (hasInstanceColors ? 1231 : 1237);
-      result = prime * result + (hasInstanceOrientations ? 1231 : 1237);
       result = prime * result + (hasLineScaleOffset ? 1231 : 1237);
       result = prime * result + (hasLineColors ? 1231 : 1237);
       result = prime * result + (useRoundPoints ? 1231 : 1237);
@@ -291,13 +275,7 @@ public class GLSLInfo {
       if (colorInterp != other.colorInterp) {
          return false;
       }
-      if (hasInstanceAffines != other.hasInstanceAffines) {
-         return false;
-      }
       if (hasInstanceColors != other.hasInstanceColors) {
-         return false;
-      }
-      if (hasInstanceOrientations != other.hasInstanceOrientations) {
          return false;
       }
       if (hasLineScaleOffset != other.hasLineScaleOffset) {
@@ -370,14 +348,6 @@ public class GLSLInfo {
 
    public boolean isUsingRoundPoints() {
       return useRoundPoints;
-   }
-   
-   public boolean hasInstanceOrientations() {
-      return hasInstanceOrientations;
-   }
-
-   public boolean hasInstanceAffines() {
-      return hasInstanceAffines;
    }
 
    public boolean hasInstanceColors() {
@@ -477,11 +447,8 @@ public class GLSLInfo {
       out.hasVertexTextures = this.hasVertexTextures;
       
       out.useRoundPoints = this.useRoundPoints;
-      
-      out.hasInstanceOrientations = this.hasInstanceOrientations;
-      out.hasInstanceAffines = this.hasInstanceAffines;
-      out.hasInstanceColors = this.hasInstanceColors;
-     
+
+      out.hasInstanceColors = this.hasInstanceColors;     
       out.hasLineScaleOffset = this.hasLineScaleOffset;
       out.hasLineColors = this.hasLineColors;
       

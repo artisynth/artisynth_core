@@ -26,8 +26,19 @@ import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLTexture;
 import maspack.render.GL.GL3.GLSLGenerator.StringIntPair;
 import maspack.render.GL.GL3.GLSLInfo.GLSLInfoBuilder;
+import maspack.render.GL.GL3.GLSLInfo.InstancedRendering;
 
 public class GL3ProgramManager {
+   
+   public static enum RenderMode {
+      POINTS,
+      LINES,
+      TRIANGLES,
+      INSTANCED_POINTS,
+      INSTANCED_FRAMES,
+      INSTANCED_AFFINES,
+      INSTANCED_LINES,
+   }
 
    public static boolean debug = true;
 
@@ -286,6 +297,48 @@ public class GL3ProgramManager {
 
       return true;
    }
+   
+   public GLShaderProgram getSelectionProgram(GL3 gl, RenderMode mode) {
+      GLSLInfoBuilder builder = new GLSLInfoBuilder ();
+      if (mode != null) {
+         getProgram (gl, builder.build ());
+      }
+      
+      builder.setVertexColors (false);
+      builder.setVertexNormals (false);
+      builder.setVertexTextures (false);
+      
+      InstancedRendering instanced = InstancedRendering.NONE;
+      switch (mode) {
+         case INSTANCED_AFFINES:
+            instanced = InstancedRendering.AFFINES;
+            break;
+         case INSTANCED_FRAMES:
+            instanced = InstancedRendering.FRAMES;
+            break;
+         case INSTANCED_LINES:
+            instanced = InstancedRendering.LINES;
+            break;
+         case INSTANCED_POINTS:
+            instanced = InstancedRendering.POINTS;
+            break;
+         case POINTS:
+            builder.setRoundPoints (true);
+         case LINES:
+         case TRIANGLES:
+         default:
+            instanced = InstancedRendering.NONE;
+            break;
+      }
+      builder.setInstancedRendering (instanced);
+      builder.setInstanceColors (false);
+      builder.setLineColors (false);
+      builder.setLighting (Shading.NONE);
+      builder.setNumClipPlanes (numClipPlanes);
+      builder.setNumLights (numLights);
+      
+      return getProgram(gl, builder.info);
+   }
 
    public GLShaderProgram getProgram(GL3 gl, GLSLInfo key) {
       GLShaderProgram prog = keyToProgramMap.get(key);
@@ -328,7 +381,7 @@ public class GL3ProgramManager {
 
    private GLShaderProgram createAndBindProgram(GL3 gl, GLSLInfo key) {
       GLShaderProgram prog = createProgram(gl, key);
-      keyToProgramMap.put(key, prog);
+      keyToProgramMap.put(key.clone (), prog);
       return prog;
    }
 

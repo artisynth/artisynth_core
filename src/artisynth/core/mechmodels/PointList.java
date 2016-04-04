@@ -183,7 +183,7 @@ implements ScalableUnits {
    }
 
    private void drawPoints (
-      Renderer renderer, RenderProps props, boolean selected) {
+      Renderer renderer, int gidx, RenderProps props, boolean selected) {
    
       Shading savedShading = renderer.setPointShading (props);
       renderer.setPointColoring (props, selected);
@@ -193,7 +193,7 @@ implements ScalableUnits {
             if (size > 0) {
                //renderer.setLightingEnabled (false);
                //renderer.setColor (props.getPointColorArray(), selected);
-               renderer.drawPoints (myRob, PointStyle.POINT, size);
+               renderer.drawPoints (myRob, gidx, PointStyle.POINT, size);
                //renderer.setLightingEnabled (true);
             }
             break;
@@ -203,7 +203,7 @@ implements ScalableUnits {
             if (rad > 0) {
                //Shading savedShading = renderer.getShadeModel();
                //renderer.setPointLighting (props, selected);
-               renderer.drawPoints (myRob, PointStyle.SPHERE, rad);
+               renderer.drawPoints (myRob, gidx, PointStyle.SPHERE, rad);
                //renderer.setShadeModel(savedShading);
             }
             break;
@@ -252,12 +252,10 @@ implements ScalableUnits {
          int numSel = myRob.numPoints(SEL_GRP);
 
          if (numReg > 0) {
-            myRob.pointGroup (REG_GRP);
-            drawPoints (renderer, props, /*selected=*/false);
+            drawPoints (renderer, REG_GRP, props, /*selected=*/false);
          }
          if (numSel > 0) {
-            myRob.pointGroup (SEL_GRP);
-            drawPoints (renderer, props, /*selected=*/true);
+            drawPoints (renderer, SEL_GRP, props, /*selected=*/true);
          }
       }
       //renderer.drawPoints (myRenderProps, iterator());

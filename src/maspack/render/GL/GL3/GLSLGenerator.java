@@ -3,8 +3,8 @@ package maspack.render.GL.GL3;
 import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.Shading;
-import maspack.render.GL.GL3.GLSLInfo.GLSLInfoBuilder;
-import maspack.render.GL.GL3.GLSLInfo.InstancedRendering;
+import maspack.render.GL.GLProgramInfo;
+import maspack.render.GL.GLProgramInfo.RenderingMode;
 
 
 public class GLSLGenerator {
@@ -175,7 +175,7 @@ public class GLSLGenerator {
    // in vec4  line_bottom_scale_offset; // (radius, boff, toff, w): scales s.t. v=normalize(line_top_position-line_bottom_position)
    // in vec4  line_top_scale_offset;    //     pos = (bottom + boff*v)*(1-w) + (top + toff*v)*w
 
-   public static String[] getShaderScripts(GLSLInfo info) {
+   public static String[] getShaderScripts(GLProgramInfo info) {
 
       StringBuilder[][] shaders = new StringBuilder[2][3];
       for (int i=0; i<shaders.length; ++i) {
@@ -202,19 +202,19 @@ public class GLSLGenerator {
 
    }
 
-   private static void buildVertexShader(StringBuilder[] sbs, GLSLInfo info) {
+   private static void buildVertexShader(StringBuilder[] sbs, GLProgramInfo info) {
       buildVertexShaderHeader(sbs[SHADER_GLOBALS], info);
       buildVertexShaderFunctions(sbs[SHADER_FUNCTIONS], info);
       buildVertexShaderMain(sbs[SHADER_MAIN], info);
    }
 
-   private static void buildVertexShaderHeader(StringBuilder hb, GLSLInfo info) {
+   private static void buildVertexShaderHeader(StringBuilder hb, GLProgramInfo info) {
       addVertexInfo(hb, info);
       addVertexLighting(hb, info.getShading(), info.numLights());
       addVertexClipping(hb, info.numClipPlanes());
    }
 
-   private static void buildVertexShaderFunctions(StringBuilder fb, GLSLInfo info) {
+   private static void buildVertexShaderFunctions(StringBuilder fb, GLProgramInfo info) {
       if (info.getShading() == Shading.FLAT || info.getShading() == Shading.GOURAUD) {
          addBlinnPhong(fb);
       }
@@ -223,25 +223,27 @@ public class GLSLGenerator {
          addRGBtoHSV(fb);
       }
 
-      switch (info.getInstancedRendering()) {
-         case LINES: {
+      switch (info.getMode()) {
+         case INSTANCED_LINES: {
             addRodriguesRotation(fb);
             break;
          }
-         case FRAMES: {
+         case INSTANCED_FRAMES: {
             addQuaternionRotation(fb);
             break;
          }
-         case NONE:
+         case DEFAULT:
          case POINTS:
-         case AFFINES:
+         case INSTANCED_POINTS:
+         case INSTANCED_AFFINES:
+         default:
             // nothing required
             break;
       }
 
    }
 
-   private static void buildVertexShaderMain(StringBuilder mb, GLSLInfo info) {
+   private static void buildVertexShaderMain(StringBuilder mb, GLProgramInfo info) {
 
       appendln(mb, "// main vertex shader");
       appendln(mb, "void main() {");
@@ -252,11 +254,11 @@ public class GLSLGenerator {
       }
       appendln(mb);
 
-      InstancedRendering instanced = info.getInstancedRendering();
+      RenderingMode mode = info.getMode();
       
       // transform vertex using instance info
-      switch (instanced) {
-         case AFFINES:
+      switch (mode) {
+         case INSTANCED_AFFINES:
             appendln(mb, "   // instance vertex, affine transform");
             appendln(mb, "   position = (instance_affine_matrix *  vec4(vertex_position, 1.0) ).xyz;");
             if (info.hasVertexNormals() && info.getShading() != Shading.NONE) {
@@ -264,7 +266,7 @@ public class GLSLGenerator {
             }
             appendln(mb);
             break;
-         case FRAMES:
+         case INSTANCED_FRAMES:
             appendln(mb, "   // instance vertex, scale-rotate-translate");
             appendln(mb, "   position = qrot(instance_orientation, (instance_scale * vertex_position)) + instance_position;");
             if (info.hasVertexNormals() && info.getShading() != Shading.NONE) {
@@ -272,7 +274,7 @@ public class GLSLGenerator {
             }
             appendln(mb);
             break;
-         case LINES:
+         case INSTANCED_LINES:
             appendln(mb, "   // instance vertex, scale radially, rotate/translate");
             appendln(mb, "   vec3  u = line_top_position-line_bottom_position;");
             appendln(mb, "   float line_length = length(u);  // target length");
@@ -307,14 +309,15 @@ public class GLSLGenerator {
             }
             appendln(mb);
             break;
-         case POINTS:
+         case INSTANCED_POINTS:
             appendln(mb, "   // instance vertex, scale-translate");
             appendln(mb, "   position = instance_scale * vertex_position + instance_position;");
             if (info.hasVertexNormals() && info.getShading() != Shading.NONE) {
                appendln(mb, "   normal = vertex_normal;");
             }
             break;
-         case NONE:
+         case DEFAULT:
+         case POINTS:
             appendln(mb, "   position = vertex_position;");
             if (info.hasVertexNormals() && info.getShading() != Shading.NONE) {
                appendln(mb, "   normal = vertex_normal;");
@@ -330,10 +333,10 @@ public class GLSLGenerator {
       // vertex colors
       ColorInterpolation cinterp = info.getColorInterpolation();
       if (cinterp != ColorInterpolation.NONE) {
-         switch (instanced) {
-            case POINTS:
-            case FRAMES:
-            case AFFINES:
+         switch (mode) {
+            case INSTANCED_POINTS:
+            case INSTANCED_FRAMES:
+            case INSTANCED_AFFINES:
                if (info.hasInstanceColors()) {
                   if (cinterp == ColorInterpolation.HSV) {
                      appendln(mb, "   colorOut.diffuse = rgba2hsva(instance_color);");
@@ -350,7 +353,7 @@ public class GLSLGenerator {
                   appendln(mb);
                }
                break;
-            case LINES:
+            case INSTANCED_LINES:
                if (info.hasLineColors()) {
                   appendln(mb, "   // interpolate color based on line");
                   appendln(mb, "   float cz = vertex_position.z;");
@@ -373,7 +376,8 @@ public class GLSLGenerator {
                   appendln(mb);
                }
                break;
-            case NONE:
+            case DEFAULT:
+            case POINTS:
                if (info.hasVertexColors()) {
                   if (cinterp == ColorInterpolation.HSV) {
                      appendln(mb, "   colorOut.diffuse = rgba2hsva(vertex_color);");
@@ -480,31 +484,12 @@ public class GLSLGenerator {
       }
       
       // textures
-      switch (info.getInstancedRendering()) {
-         case POINTS:
-         case FRAMES:
-         case AFFINES:
-            if (info.hasVertexTextures()) {
-               appendln(mb, "   // forward vertex texture coordinates");
-               appendln(mb, "   textureOut.texcoord = vertex_texcoord;");
-               appendln(mb);
-            }
-            break;
-         case LINES:
-            if (info.hasVertexTextures()) {
-               appendln(mb, "   // forward vertex texture coordinates");
-               appendln(mb, "   textureOut.texcoord = vertex_texcoord;");
-               appendln(mb);
-            }
-            break;
-         case NONE:
-            if (info.hasVertexTextures()) {
-               appendln(mb, "   // forward vertex texture coordinates");
-               appendln(mb, "   textureOut.texcoord = vertex_texcoord;");
-               appendln(mb);
-            }
-            break;
+      if (info.hasVertexTextures()) {
+         appendln(mb, "   // forward vertex texture coordinates");
+         appendln(mb, "   textureOut.texcoord = vertex_texcoord;");
+         appendln(mb);
       }
+      
       
       if (info.numClipPlanes() > 0) {
          appendln(mb, "   // clipping planes, in world coordinates");
@@ -538,13 +523,13 @@ public class GLSLGenerator {
       appendln(hb);
    }
 
-   private static void addVertexInfo(StringBuilder hb, GLSLInfo info) {
+   private static void addVertexInfo(StringBuilder hb, GLProgramInfo info) {
       addPVMInput(hb);
       addVertexInputs(hb, info);
       addVertexOutputs(hb, info);
    }
 
-   private static void addVertexInputs(StringBuilder hb, GLSLInfo info) {
+   private static void addVertexInputs(StringBuilder hb, GLProgramInfo info) {
       
       appendln(hb, "// vertex inputs");
       appendln(hb, "in vec3 vertex_position;");
@@ -558,8 +543,8 @@ public class GLSLGenerator {
          appendln(hb, "in vec2 vertex_texcoord;");
       }
       
-      switch (info.getInstancedRendering()) {
-         case POINTS:
+      switch (info.getMode()) {
+         case INSTANCED_POINTS:
             appendln(hb);
             appendln(hb, "// instance inputs");
             appendln(hb, "in float instance_scale;");
@@ -568,7 +553,7 @@ public class GLSLGenerator {
                appendln(hb, "in vec4  instance_color;");
             }
             break;
-         case FRAMES:
+         case INSTANCED_FRAMES:
             appendln(hb);
             appendln(hb, "// instance inputs");
             appendln(hb, "in vec3  instance_position;");
@@ -578,7 +563,7 @@ public class GLSLGenerator {
             appendln(hb, "in float instance_scale;");
             appendln(hb, "in vec4  instance_orientation;");
             break;
-         case AFFINES:
+         case INSTANCED_AFFINES:
             appendln(hb);
             appendln(hb, "// instance inputs");
             appendln(hb, "in float instance_scale;");
@@ -588,7 +573,7 @@ public class GLSLGenerator {
                appendln(hb, "in vec4  instance_color;");
             }
             break;
-         case LINES:
+         case INSTANCED_LINES:
             appendln(hb);
             appendln(hb, "// line instance inputs");
             appendln(hb, "in float line_radius;");
@@ -603,21 +588,22 @@ public class GLSLGenerator {
                appendln(hb, "in vec4  line_top_color;");
             }
             break;
-         case NONE:
+         case DEFAULT:
+         case POINTS:
             break;
       }
       appendln(hb);
    }
 
-   private static void addVertexOutputs(StringBuilder hb, GLSLInfo info) {
+   private static void addVertexOutputs(StringBuilder hb, GLProgramInfo info) {
       
-      InstancedRendering instanced = info.getInstancedRendering();
+      RenderingMode instanced = info.getMode();
       boolean hasColors = (info.getColorInterpolation() != ColorInterpolation.NONE)
                           && (info.hasVertexColors()
-                             || ((instanced == InstancedRendering.POINTS 
-                                  || instanced == InstancedRendering.FRAMES
-                                  || instanced == InstancedRendering.AFFINES) && info.hasInstanceColors())
-                             || (instanced == InstancedRendering.LINES && info.hasLineColors() ) );
+                             || ((instanced == RenderingMode.INSTANCED_POINTS 
+                                  || instanced == RenderingMode.INSTANCED_FRAMES
+                                  || instanced == RenderingMode.INSTANCED_AFFINES) && info.hasInstanceColors())
+                             || (instanced == RenderingMode.INSTANCED_LINES && info.hasLineColors() ) );
       
       boolean hasTextures = info.hasVertexTextures();
       
@@ -803,16 +789,6 @@ public class GLSLGenerator {
    }
 
    private static void addRGBtoHSV(StringBuilder fb) {
-      //      appendln(fb, "// rgb to hsv conversion");
-      //      appendln(fb, "vec3 rgb2hsv( in vec3 c ) {");
-      //      appendln(fb, "   vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);");
-      //      appendln(fb, "   vec4 p = c.g < c.b ? vec4(c.bg, K.wz) : vec4(c.gb, K.xy);");
-      //      appendln(fb, "   vec4 q = c.r < p.x ? vec4(p.xyw, c.r) : vec4(c.r, p.yzx);");
-      //      appendln(fb, "   float d = q.x - min(q.w, q.y);");
-      //      appendln(fb, "   float e = 1.0e-10;");
-      //      appendln(fb, "   return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);");
-      //      appendln(fb, "}");
-      //      appendln(fb);
       appendln(fb, "// rgba to hsva conversion");
       appendln(fb, "vec4 rgba2hsva( in vec4 c ) {");
       appendln(fb, "   vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);");
@@ -826,13 +802,6 @@ public class GLSLGenerator {
    }
 
    private static void addHSVtoRGB(StringBuilder fb) {
-      //      appendln(fb, "// hsv to rgb conversion");
-      //      appendln(fb, "vec3 hsv2rgb( in vec3 c ) {");
-      //      appendln(fb, "   vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);");
-      //      appendln(fb, "   vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);");
-      //      appendln(fb, "   return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);");
-      //      appendln(fb, "}");
-      //      appendln(fb);
       appendln(fb, "// hsva to rgba conversion");
       appendln(fb, "vec4 hsva2rgba( in vec4 c ) {");
       appendln(fb, "   vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);");
@@ -842,30 +811,30 @@ public class GLSLGenerator {
       appendln(fb);
    }
 
-   private static void buildFragmentShader(StringBuilder[] sbs, GLSLInfo info) {
+   private static void buildFragmentShader(StringBuilder[] sbs, GLProgramInfo info) {
       buildFragmentShaderHeader(sbs[SHADER_GLOBALS], info);
       buildFragmentShaderFunctions(sbs[SHADER_FUNCTIONS], info);
       buildFragmentShaderMain(sbs[SHADER_MAIN], info);
    }
 
-   private static void buildFragmentShaderHeader(StringBuilder hb, GLSLInfo info) {
+   private static void buildFragmentShaderHeader(StringBuilder hb, GLProgramInfo info) {
       addFragmentInfo(hb, info);
       addFragmentLighting(hb, info.getShading(), info.numLights());
    }
 
-   private static void addFragmentInfo(StringBuilder hb, GLSLInfo info) {
+   private static void addFragmentInfo(StringBuilder hb, GLProgramInfo info) {
       
       appendln(hb, "// fragment color output");
       appendln(hb, "out vec4 fragment_color;");
       appendln(hb);
       
-      InstancedRendering instanced = info.getInstancedRendering();
+      RenderingMode instanced = info.getMode();
       boolean hasColors = (info.getColorInterpolation() != ColorInterpolation.NONE)
          && (info.hasVertexColors()
-            || ((instanced == InstancedRendering.POINTS 
-                 || instanced == InstancedRendering.FRAMES
-                 || instanced == InstancedRendering.AFFINES) && info.hasInstanceColors())
-            || (instanced == InstancedRendering.LINES && info.hasLineColors() ) );
+            || ((instanced == RenderingMode.INSTANCED_POINTS 
+                 || instanced == RenderingMode.INSTANCED_FRAMES
+                 || instanced == RenderingMode.INSTANCED_AFFINES) && info.hasInstanceColors())
+            || (instanced == RenderingMode.INSTANCED_LINES && info.hasLineColors() ) );
 
       boolean hasTextures = info.hasVertexTextures();
       
@@ -1027,7 +996,7 @@ public class GLSLGenerator {
       
    }
    
-   private static void buildFragmentShaderFunctions(StringBuilder fb, GLSLInfo info) {
+   private static void buildFragmentShaderFunctions(StringBuilder fb, GLProgramInfo info) {
 
       if (info.getShading() == Shading.PHONG) {
          addBlinnPhong(fb);
@@ -1047,9 +1016,9 @@ public class GLSLGenerator {
 
    }
 
-   private static void buildFragmentShaderMain(StringBuilder mb, GLSLInfo info) {
+   private static void buildFragmentShaderMain(StringBuilder mb, GLProgramInfo info) {
 
-      InstancedRendering instanced = info.getInstancedRendering();
+      RenderingMode mode = info.getMode();
       ColorInterpolation cinterp = info.getColorInterpolation();
       boolean hasTextures = info.hasVertexTextures();
       
@@ -1058,7 +1027,7 @@ public class GLSLGenerator {
       appendln(mb, "");
       
       // points
-      if (info.isUsingRoundPoints()) {
+      if (mode == RenderingMode.POINTS && info.hasRoundPoints()) {
          appendln(mb, "   vec2 point_texcoord = 2.0*gl_PointCoord-1.0;");
          appendln(mb, "   if (dot(point_texcoord, point_texcoord) > 1.0) {");
          appendln(mb, "      discard;");
@@ -1173,19 +1142,19 @@ public class GLSLGenerator {
       }
       
       // combine colors
-      boolean hasVertexColors = (cinterp != ColorInterpolation.NONE)
+      boolean hasFragmentColors = (cinterp != ColorInterpolation.NONE)
          && (info.hasVertexColors()
-            || ((instanced == InstancedRendering.POINTS 
-                 || instanced == InstancedRendering.FRAMES
-                 || instanced == InstancedRendering.AFFINES) && info.hasInstanceColors())
-            || (instanced == InstancedRendering.LINES && info.hasLineColors() ) );
+            || ((mode == RenderingMode.INSTANCED_POINTS 
+                 || mode == RenderingMode.INSTANCED_FRAMES
+                 || mode == RenderingMode.INSTANCED_AFFINES) && info.hasInstanceColors())
+            || (mode == RenderingMode.INSTANCED_LINES && info.hasLineColors() ) );
 
       appendln(mb, "   // compute final color, starting with material");
       appendln(mb, "   vec4 fdiffuse = material.diffuse;");
       appendln(mb, "   vec3 fspecular = material.specular.rgb;");
       appendln(mb, "   vec3 femission = material.emission.rgb;");
       
-      if (hasVertexColors) {
+      if (hasFragmentColors) {
          // mix colors
          appendln(mb, "   // incoming vertex color");
          if (cinterp == ColorInterpolation.HSV) {
@@ -1197,35 +1166,35 @@ public class GLSLGenerator {
          ColorMixing cmix = info.getVertexColorMixing();
          switch (cmix) {
             case DECAL:
-               if (info.mixVertexColorDiffuse ()) {
+               if (info.isMixVertexColorDiffuse ()) {
                   appendln(mb, "   fdiffuse  = mix(fdiffuse,vcolor,vcolor.a), fdiffuse.a); // decal");
                }
-               if (info.mixVertexColorSpecular ()) {
+               if (info.isMixVertexColorSpecular ()) {
                   appendln(mb, "   fspecular = mix(fspecular,vcolor,vcolor.a); // decal");
                }
-               if (info.mixVertexColorEmission ()) {
+               if (info.isMixVertexColorEmission ()) {
                   appendln(mb, "   femission = mix(femission,vcolor,vcolor.a); // decal");
                }
                break;
             case MODULATE:
-               if (info.mixVertexColorDiffuse ()) {
+               if (info.isMixVertexColorDiffuse ()) {
                   appendln(mb, "   fdiffuse  = fdiffuse*vcolor;      // modulate");
                }
-               if (info.mixVertexColorSpecular ()) {
+               if (info.isMixVertexColorSpecular ()) {
                   appendln(mb, "   fspecular = fspecular*vcolor.rgb; // modulate");
                }
-               if (info.mixVertexColorEmission ()) {
+               if (info.isMixVertexColorEmission ()) {
                   appendln(mb, "   femission = femission*vcolor.rgb; // modulate");
                }
                break;
             case REPLACE:
-               if (info.mixVertexColorDiffuse ()) {
+               if (info.isMixVertexColorDiffuse ()) {
                   appendln(mb, "   fdiffuse  = vcolor;     // replace");
                }
-               if (info.mixVertexColorSpecular ()) {
+               if (info.isMixVertexColorSpecular ()) {
                   appendln(mb, "   fspecular = vcolor.rgb; // replace");
                }
-               if (info.mixVertexColorEmission ()) {
+               if (info.isMixVertexColorEmission ()) {
                   appendln(mb, "   femission = vcolor.rgb; // replace");
                }
                break;
@@ -1242,35 +1211,35 @@ public class GLSLGenerator {
             ColorMixing cmix = info.getTextureColorMixing();
             switch (cmix) {
                case DECAL:
-                  if (info.mixTextureColorDiffuse ()) {
+                  if (info.isMixTextureColorDiffuse ()) {
                      appendln(mb, "   fdiffuse  = vec4(mix(fdiffuse,texture_color,texture_color.a).rgb, fdiffuse.a); // decal");
                   }
-                  if (info.mixTextureColorSpecular ()) {
+                  if (info.isMixTextureColorSpecular ()) {
                      appendln(mb, "   fspecular = mix(fspecular,texture_color,texture_color.a); // decal");
                   }
-                  if (info.mixTextureColorEmission ()) {
+                  if (info.isMixTextureColorEmission ()) {
                      appendln(mb, "   femission = mix(femission,texture_color,texture_color.a); // decal");
                   }
                   break;
                case MODULATE:
-                  if (info.mixTextureColorDiffuse ()) {
+                  if (info.isMixTextureColorDiffuse ()) {
                      appendln(mb, "   fdiffuse  = fdiffuse*texture_color;      // modulate");
                   }
-                  if (info.mixTextureColorSpecular ()) {
+                  if (info.isMixTextureColorSpecular ()) {
                      appendln(mb, "   fspecular = fspecular*texture_color.rgb; // modulate");
                   }
-                  if (info.mixTextureColorDiffuse ()) {
+                  if (info.isMixTextureColorDiffuse ()) {
                      appendln(mb, "   femission = femission*texture_color.rgb; // modulate");
                   }
                   break;
                case REPLACE:
-                  if (info.mixTextureColorDiffuse ()) {
+                  if (info.isMixTextureColorDiffuse ()) {
                      appendln(mb, "   fdiffuse  = texture_color;     // replace");
                   }
-                  if (info.mixTextureColorSpecular ()) {
+                  if (info.isMixTextureColorSpecular ()) {
                      appendln(mb, "   fspecular = texture_color.rgb; // replace");
                   }
-                  if (info.mixTextureColorDiffuse ()) {
+                  if (info.isMixTextureColorDiffuse ()) {
                      appendln(mb, "   femission = texture_color.rgb; // replace");
                   }
                   break;
@@ -1305,12 +1274,11 @@ public class GLSLGenerator {
 
    public static void main(String[] args) {
       
-      GLSLInfoBuilder infoBuilder = new GLSLInfoBuilder ();
-      infoBuilder.setNumLights(1);
-      infoBuilder.setLighting (Shading.PHONG);
-      GLSLInfo proginfo = infoBuilder.build ();
+      GLProgramInfo info = new GLProgramInfo ();
+      info.setNumLights(1);
+      info.setShading (Shading.PHONG);
       
-      String[] shaders = getShaderScripts(proginfo);
+      String[] shaders = getShaderScripts(info);
 
       System.out.println("Vertex Shader: ");
       System.out.println(shaders[VERTEX_SHADER]);

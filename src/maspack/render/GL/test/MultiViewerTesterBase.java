@@ -390,13 +390,13 @@ public class MultiViewerTesterBase {
          }
 
          boolean didFlatDraw = false;
-         float dOffset = 0;
+         int dOffset = 0;
          if (myRO.hasTriangles()) {
             renderer.drawTriangles(myRO);
             didFlatDraw = true;
          }
 
-         float depthOffInc = -1e-4f;
+         int depthOffInc = -1;
 
          if (myRO.hasLines()) {
             renderer.setLineShading (props);

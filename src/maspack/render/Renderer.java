@@ -1741,7 +1741,7 @@ public interface Renderer {
     * @param rgba array of length 3 or 4 in which the RGB or RGBA components
     * of the selection color are returned.
     */
-   public void getSelectionColor (float[] rgba);
+   public void getHighlightColor (float[] rgba);
 
    /**
     * Enables or disables selection highlighting, so that

@@ -61,6 +61,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    //   }
    
    protected boolean myShadingModified = true;
+   protected ViewerState myCommittedViewerState;  // for tracking changes that have been committed
 
    protected static boolean myUseGLSelectSelection = false;
 
@@ -187,15 +188,10 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
    }
 
-   protected int getMaxLights() {
-      if (gl != null) {
-         return 8;
-      } else {
-         int[] buff = new int[1];
-         gl.glGetIntegerv(GL2.GL_MAX_LIGHTS, buff, 0);
-         return buff[0];
-      }
-
+   protected int getMaxLights(GL2 gl) {
+      int[] buff = new int[1];
+      gl.glGetIntegerv(GL2.GL_MAX_LIGHTS, buff, 0);
+      return buff[0];
    }
 
    protected void setupLights(GL2 gl) {
@@ -211,26 +207,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             setupLight(gl, light, intensityScale);
          }
       }
-   }
-
-   public void setPointSize(float s) {
-      gl.glPointSize(s);
-   }
-
-   public float getPointSize() {
-      float[] buff = new float[1];
-      gl.glGetFloatv(GL.GL_POINT_SIZE, buff, 0);
-      return buff[0];
-   }
-
-   public void setLineWidth(float w) {
-      gl.glLineWidth(w);
-   }
-
-   public float getLineWidth() {
-      float[] buff = new float[1];
-      gl.glGetFloatv(GL.GL_LINE_WIDTH, buff, 0);
-      return buff[0];
    }
 
    /**
@@ -410,8 +386,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       gl.glEnable (GL2.GL_NORMALIZE);  // normalize normals
 
-      gl.glHint(GL2.GL_POINT_SMOOTH_HINT, GL2.GL_FASTEST);
-      gl.glDisable (GL2.GL_POINT_SMOOTH);  // disable smooth points
 
       setLightingEnabled(true);
       setDepthEnabled(true);
@@ -422,14 +396,12 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       setShading(Shading.PHONG);
       setGammaCorrectionEnabled(false);
 
-      lightManager.setMaxLights(getMaxLights());
+      lightManager.setMaxLights(getMaxLights(gl));
       setupLights(gl);
-
-      gl.glShadeModel (GL2.GL_FLAT);
 
       // gl.glFrontFace (GL2.GL_CW);
       if (!isSelecting()) {
-         gl.glClearColor (bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
+         gl.glClearColor (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
       }
 
       // initialize viewport
@@ -531,78 +503,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       super.dispose ();
    }
 
-   public void resetViewVolume(int width, int height) {
-
-      gl.glMatrixMode (GL2.GL_PROJECTION);
-      gl.glLoadIdentity();
-
-      double aspect = width / (double)height;
-      if (myFrustum.orthographic) {
-         double hh = myFrustum.fieldHeight / 2;
-         gl.glOrtho (-aspect * hh, aspect * hh, -hh, hh, myFrustum.near, myFrustum.far);
-      }
-      else {
-         if (myFrustum.explicit) {
-            gl.glFrustum (myFrustum.left, myFrustum.right, myFrustum.bottom, 
-               myFrustum.top, myFrustum.near, myFrustum.far);
-         }
-         else {
-            myFrustum.left = -aspect * myFrustum.top;
-            myFrustum.right = -myFrustum.left;
-            gl.glFrustum (myFrustum.left, myFrustum.right, myFrustum.bottom,
-               myFrustum.top, myFrustum.near, myFrustum.far);
-            // glu.gluPerspective(verticalFieldOfView, width/(float)height,
-            // myNear, myFar);
-         }
-      }
-      updateProjectionMatrix();
-      projectionMatrixValidP = true;  // since we set it here
-
-      gl.glMatrixMode (GL2.GL_MODELVIEW);
-      setViewport(0, 0, width, height);
-   }
-
-   public void setViewport(int x, int y, int width, int height) {
-      gl.glViewport (x, y, width, height);
-   }
-
-   protected int[] getViewport() {
-      int[] buff = new int[4];
-      gl.glGetIntegerv(GL.GL_VIEWPORT, buff, 0);
-      return buff;
-   }
-
-   public void setViewVolume (double near, double far) {
-      double aspect = width / (double)height;
-      if (myFrustum.orthographic) {
-         double hh = myFrustum.fieldHeight / 2;
-         gl.glOrtho (-aspect * hh, aspect * hh, -hh, hh, near, far);
-      }
-      else {
-         if (myFrustum.explicit) {
-            gl.glFrustum (myFrustum.left, myFrustum.right, myFrustum.bottom, myFrustum.top, near, far);
-         }
-         else {
-            myFrustum.left = -aspect * myFrustum.top;
-            myFrustum.right = -myFrustum.left;
-            gl.glFrustum (myFrustum.left, myFrustum.right, myFrustum.bottom, myFrustum.top, near, far);
-         }
-      }
-
-      updateProjectionMatrix();
-      projectionMatrixValidP = true;  // since we set it here
-
-   }
-
-   protected void resetViewVolume() {
-      gl.glMatrixMode (GL2.GL_PROJECTION);
-      gl.glLoadIdentity();
-      setViewVolume (myFrustum.near, myFrustum.far);
-      gl.glMatrixMode (GL2.GL_MODELVIEW);
-      setViewport(0, 0, width, height);
-   }
-
-   protected void drawDragBox (GLAutoDrawable drawable) {
+   protected void drawDragBox (GL2 gl) {
       gl.glMatrixMode (GL2.GL_PROJECTION);
       gl.glPushMatrix();
       gl.glLoadIdentity();
@@ -765,31 +666,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       setLightingEnabled (true);
    }
 
-   public boolean setLightingEnabled(boolean set) {
-      boolean prev;
-      if (!selectEnabled) {
-         prev = super.setLightingEnabled (set);
-         if (prev != set) {
-            myShadingModified = true;
-         }
-      }
-      else {
-         prev = super.isLightingEnabled();
-      }
-//      boolean prev = myViewerState.lightingEnabled;
-//      if (!selectEnabled) {
-//         super.setLightingEnabled(set);
-//         if (set) {
-//            gl.glEnable(GL2.GL_LIGHTING);
-//         } else {
-//            gl.glDisable(GL2.GL_LIGHTING);
-//         }
-//      }
-      return prev;
-   }
-
    // should be protected, not public;; this is for debugging
-   public boolean isLightingOn() {
+   protected boolean isLightingOn() {
       return gl.glIsEnabled (GL2.GL_LIGHTING);
    }
    
@@ -816,7 +694,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    private void enableTransparency (GL2 gl) {
       gl.glEnable (GL2.GL_BLEND);
-      if (!alphaFaceCulling) {
+      if (!getTransparencyFaceCulling ()) {
          gl.glDepthMask (false);
          setFaceStyle (FaceStyle.FRONT_AND_BACK);
       }
@@ -824,29 +702,12 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    }
 
    private void disableTransparency (GL2 gl) {
-      if (!alphaFaceCulling) {
+      if (!getTransparencyFaceCulling ()) {
          setFaceStyle (FaceStyle.FRONT);
          gl.glDepthMask (true);
       }
       gl.glDisable (GL2.GL_BLEND);
    }
-
-   public void setTransparencyEnabled (boolean enable) {
-
-      // do not enable if in selection mode
-      if (!(isSelecting() && enable)) {
-         if (enable != myTransparencyEnabledP) {
-            GL2 gl = drawable.getGL().getGL2();
-            if (enable) {
-               enableTransparency (gl);
-            }
-            else {
-               disableTransparency (gl);
-            }
-            myTransparencyEnabledP = enable;
-         }
-      }
-   }               
 
    public void doDisplay (GLAutoDrawable drawable, int flags) {
       GL2 gl = drawable.getGL().getGL2();
@@ -869,7 +730,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          gl.glClearColor (0f, 0f, 0f, 0f);  
       }
       else {
-         gl.glClearColor (bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
+         gl.glClearColor (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
       }
 
       gl.glClear (GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);
@@ -947,7 +808,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glPushMatrix();
 
       int qid = 0;
-      synchronized(renderablesLock) {
+      synchronized(myInternalRenderList) {
          qid = myInternalRenderList.renderOpaque (this, qid, flags);
          if (myExternalRenderList != null) {
             qid = myExternalRenderList.renderOpaque (this, qid, flags);
@@ -957,12 +818,15 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          enableTransparency (gl);
       }
 
-      synchronized(renderablesLock) {
+      synchronized(myInternalRenderList) {
          qid = myInternalRenderList.renderTransparent (this, qid, flags);
-         if (myExternalRenderList != null) {
+      }
+      if (myExternalRenderList != null) {
+         synchronized(myExternalRenderList) {
             qid = myExternalRenderList.renderTransparent (this, qid, flags);
          }
       }
+      
       disableTransparency (gl);
 
       gl.glPopMatrix();
@@ -975,21 +839,27 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       // Draw 2D objects
       begin2DRendering(width, height);
 
-      synchronized(renderablesLock) {
+      synchronized(myInternalRenderList) {
          qid = myInternalRenderList.renderOpaque2d (this, qid, 0);
-         if (myExternalRenderList != null) {
+      }
+      if (myExternalRenderList != null) {
+         synchronized(myExternalRenderList) {
             qid = myExternalRenderList.renderOpaque2d (this, qid, 0);
          }
       }
 
       enableTransparency (gl);
 
-      synchronized(renderablesLock) {
+      synchronized(myInternalRenderList) {
          qid = myInternalRenderList.renderTransparent2d (this, qid, 0);
-         if (myExternalRenderList != null) {
-            qid = myExternalRenderList.renderTransparent2d (this, qid, 0);
+      }
+      
+      if (myExternalRenderList != null) {
+         synchronized (myExternalRenderList) {
+            qid = myExternalRenderList.renderTransparent2d (this, qid, 0);   
          }
       }
+      
       disableTransparency (gl);
       end2DRendering();
 
@@ -997,7 +867,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       if (!isSelecting()) {
          if (myDragBox != null) {
-            drawDragBox (drawable);
+            drawDragBox (gl);
          }
       }
 
@@ -1092,44 +962,238 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    protected void maybeUpdateState(GL2 gl) {
       maybeUpdateMatrices (gl);
       maybeUpdateMaterials(gl);
-      maybeUpdateShading(gl);      
+      maybeUpdateViewerState(gl);
    }
    
-   protected void maybeUpdateShading(GL2 gl) {
-      // maybe update shading
-      if (myShadingModified) {
-         if (!isSelecting()) {
-            Shading shading = getShading();
-            if (shading == Shading.NONE || isLightingEnabled() == false) {
-               gl.glDisable (GL2.GL_LIGHTING);
-               //setLightingEnabled (false);
-            } else {
-               gl.glEnable (GL2.GL_LIGHTING);
-               //setLightingEnabled (true);
-               int glShading = getGLShadingModel (shading);
-               gl.glShadeModel(glShading);
-            }
-         }
-         else {
-            // bit of a hack here: is we are selecting, we allow the
-            // application to turn lighting OFF. The color selector
-            // relies on this ...
-            if (isLightingEnabled() == false) {
-               gl.glDisable (GL2.GL_LIGHTING);
-            }
-         }
-         myShadingModified = false;  // changes committed
-      }
-   }
+   /**
+    * Force all viewer state variables to be written.  Some state variables
+    * will not be committed, depending on whether we are in "select" mode
+    * @param gl context
+    * @param state state to commit
+    */
+   private void commitFullViewerState(GL2 gl, ViewerState state) {
+      
+      myCommittedViewerState = state.clone ();
 
-   @Override
-   public Shading setShading (Shading shading) {
-      Shading prev = getShading();
-      if (shading != prev) {
-         super.setShading (shading);
-         myShadingModified = true;
+      if (isSelecting ()) {
+         // if selecting, disable lighting and blending         
+         gl.glDisable (GL2.GL_LIGHTING);
+         gl.glColorMask (true, true, true, true);
+         gl.glDisable (GL.GL_BLEND);
+         myCommittedViewerState.lightingEnabled = false;
+         myCommittedViewerState.colorEnabled = true;
+         myCommittedViewerState.transparencyEnabled = false;
+         
+      } else {
+         
+         // otherwise, track info
+         if (state.lightingEnabled) {
+            gl.glEnable (GL2.GL_LIGHTING);
+         } else {
+            gl.glDisable (GL2.GL_LIGHTING);
+         }
+         if (state.colorEnabled) {
+            gl.glColorMask (true, true, true, true);
+         } else {
+            gl.glColorMask (false, false, false, false);
+         }
+         
+         if (state.transparencyEnabled) {
+            gl.glEnable (GL.GL_BLEND);
+         } else {
+            gl.glDisable (GL.GL_BLEND);
+         }
       }
-      return prev;
+      
+      if (state.depthEnabled) {
+         gl.glEnable (GL.GL_DEPTH_TEST);
+      } else {
+         gl.glDisable (GL.GL_DEPTH_TEST);
+      }
+      
+      switch (state.faceMode) {
+         case BACK:
+            gl.glEnable (GL.GL_CULL_FACE);
+            gl.glCullFace (GL.GL_FRONT);
+            break;
+         case FRONT:
+            gl.glEnable (GL.GL_CULL_FACE);
+            gl.glCullFace (GL.GL_BACK);
+            break;
+         case FRONT_AND_BACK:
+            gl.glDisable (GL.GL_CULL_FACE);
+            break;
+         case NONE:
+            gl.glEnable (GL.GL_CULL_FACE);
+            gl.glCullFace (GL.GL_FRONT_AND_BACK);
+            break;
+         default:
+            break;
+      }
+    
+      switch(state.shading) {
+         case FLAT:
+            gl.glShadeModel (GL2.GL_FLAT);
+            break;
+         case GOURAUD:
+         case PHONG:
+            gl.glShadeModel (GL2.GL_SMOOTH);
+            break;
+         case NONE:
+            gl.glDisable (GL2.GL_LIGHTING);
+            break;
+         default:
+            break;
+      }
+      
+      if (state.roundedPoints) {
+         gl.glEnable (GL2.GL_POINT_SMOOTH);  // enable smooth points
+         gl.glHint(GL2.GL_POINT_SMOOTH_HINT, GL2.GL_NICEST);
+      } else {
+         gl.glDisable (GL2.GL_POINT_SMOOTH);  // disable smooth points
+         gl.glHint(GL2.GL_POINT_SMOOTH_HINT, GL2.GL_FASTEST);
+      }
+      
+      // vertexColorsEnabled;   // set manually in draw methods
+      // textureMappingEnabled;   
+      // hsvInterpolationEnabled;  
+      // colorMixing;           // not available
+      // transparencyFaceCulling;  // set manually in draw methods
+      
+   }
+   
+   private void maybeCommitViewerState(GL2 gl, ViewerState state) {
+      
+      if (isSelecting ()) {
+         // if selecting, disable lighting and blending
+         if (myCommittedViewerState.lightingEnabled == true) {
+            gl.glDisable (GL2.GL_LIGHTING);
+            myCommittedViewerState.lightingEnabled = false;
+         }
+         
+         if (myCommittedViewerState.colorEnabled == false) {
+            gl.glColorMask (true, true, true, true);
+            myCommittedViewerState.colorEnabled = true;
+         }
+         
+         if (myCommittedViewerState.transparencyEnabled == true) {
+            gl.glDisable (GL.GL_BLEND);
+            myCommittedViewerState.transparencyEnabled = false;
+         }
+         
+      } else {
+         
+         // otherwise, track info
+         
+         if (myCommittedViewerState.lightingEnabled != state.lightingEnabled) {
+            if (state.lightingEnabled) {
+               gl.glEnable (GL2.GL_LIGHTING);
+            } else {
+               gl.glDisable (GL2.GL_LIGHTING);
+            }
+            myCommittedViewerState.lightingEnabled = state.lightingEnabled;
+         }
+         
+         if (myCommittedViewerState.colorEnabled != state.colorEnabled) {
+            if (state.colorEnabled) {
+               gl.glColorMask (true, true, true, true);
+            } else {
+               gl.glColorMask (false, false, false, false);
+            }
+            myCommittedViewerState.colorEnabled = state.colorEnabled;
+         }
+         
+         if (myCommittedViewerState.transparencyEnabled != state.transparencyEnabled) {
+            if (state.transparencyEnabled) {
+               gl.glEnable (GL.GL_BLEND);
+            } else {
+               gl.glDisable (GL.GL_BLEND);
+            }
+            myCommittedViewerState.transparencyEnabled = state.transparencyEnabled;
+         }
+      }
+      
+      if (myCommittedViewerState.depthEnabled != state.depthEnabled) {
+         if (state.depthEnabled) {
+            gl.glEnable (GL.GL_DEPTH_TEST);
+         } else {
+            gl.glDisable (GL.GL_DEPTH_TEST);
+         }
+         myCommittedViewerState.depthEnabled = state.depthEnabled;
+      }
+      
+      if (myCommittedViewerState.faceMode != state.faceMode) {
+         switch (state.faceMode) {
+            case BACK:
+               gl.glEnable (GL.GL_CULL_FACE);
+               gl.glCullFace (GL.GL_FRONT);
+               break;
+            case FRONT:
+               gl.glEnable (GL.GL_CULL_FACE);
+               gl.glCullFace (GL.GL_BACK);
+               break;
+            case FRONT_AND_BACK:
+               gl.glDisable (GL.GL_CULL_FACE);
+               break;
+            case NONE:
+               gl.glEnable (GL.GL_CULL_FACE);
+               gl.glCullFace (GL.GL_FRONT_AND_BACK);
+               break;
+            default:
+               break;
+         }
+         myCommittedViewerState.faceMode = state.faceMode;
+      }
+      
+      if (myCommittedViewerState.shading != state.shading) {
+         switch(state.shading) {
+            case FLAT:
+               gl.glShadeModel (GL2.GL_FLAT);
+               break;
+            case GOURAUD:
+            case PHONG:
+               gl.glShadeModel (GL2.GL_SMOOTH);
+               break;
+            case NONE:
+               gl.glDisable (GL2.GL_LIGHTING);
+               break;
+            default:
+               break;
+         }
+         myCommittedViewerState.shading = state.shading;
+      }
+      
+      if (myCommittedViewerState.roundedPoints != state.roundedPoints) {
+         if (state.roundedPoints) {
+            gl.glEnable (GL2.GL_POINT_SMOOTH);  // enable smooth points
+            gl.glHint(GL2.GL_POINT_SMOOTH_HINT, GL2.GL_NICEST);
+         } else {
+            gl.glDisable (GL2.GL_POINT_SMOOTH);  // disable smooth points
+            gl.glHint(GL2.GL_POINT_SMOOTH_HINT, GL2.GL_FASTEST);
+         }
+         myCommittedViewerState.roundedPoints = state.roundedPoints;
+      }
+      
+      // vertexColorsEnabled;   // set manually in draw methods
+      // textureMappingEnabled;   
+      // hsvInterpolationEnabled;  
+      // colorMixing;           // not available
+      // transparencyFaceCulling;  // set manually in draw methods
+      
+   }
+   
+   /**
+    * Commit all pending changes
+    * @param gl
+    */
+   protected void maybeUpdateViewerState(GL2 gl) {
+      
+      // maybe update shading
+      if (myCommittedViewerState == null) {
+         commitFullViewerState (gl, myViewerState);  
+      } else {
+         maybeCommitViewerState(gl, myViewerState);
+      }
    }
    
    public void maybeUpdateMaterials() {
@@ -1140,18 +1204,17 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       // only update if not selecting
       if (myCurrentMaterialModified) {
-         
          if (isSelecting ()) {
             gl.glColor4fv (mySelectingColor, 0);
             myCurrentMaterial.apply (gl);
-            gl.glMaterialfv (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, mySelectingColor, 0); // apply back color
+            gl.glMaterialfv (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, mySelectingColor, 0);   // apply front/back color
          } else {
             // set all colors
-            if (mySelectedColorActive) {
-               mySelectedColor[3] = myCurrentMaterial.getAlpha ();
-               gl.glColor4fv (mySelectedColor, 0);
+            if (myHighlightColorActive) {
+               myHighlightColor[3] = myCurrentMaterial.getAlpha ();
+               gl.glColor4fv (myHighlightColor, 0);
                myCurrentMaterial.apply (gl);
-               gl.glMaterialfv (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, mySelectedColor, 0); // apply back color
+               gl.glMaterialfv (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, myHighlightColor, 0); // apply front/back color
             } else {
                gl.glColor4fv (myCurrentMaterial.getDiffuse(), 0);
                myCurrentMaterial.apply (gl);
@@ -2436,7 +2499,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glLoadIdentity();
       pushModelMatrix();
       pushViewMatrix();
-      super.pushProjectionMatrix();
+      pushProjectionMatrix();
       
       setModelMatrix(RigidTransform3d.IDENTITY);
       setViewMatrix(RigidTransform3d.IDENTITY);
@@ -2464,7 +2527,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 //      return rendering2d;
 //   }
 
-   @Override
    public GL2 getGL2() {
       GL2 gl = drawable.getGL().getGL2();
       maybeUpdateState (gl);  // update state for GL
@@ -3013,7 +3075,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (useColors) {
          gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
          // if selection color is active, ignore material color
-         if (!mySelectedColorActive) {
+         if (!myHighlightColorActive) {
             gl.glEnable (GL2.GL_COLOR_MATERIAL);
          }
          if (useHSV) {
@@ -3026,13 +3088,13 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       // maybe use texture?
       GLTexture tex = null;
-      if (myCurrentColorMapProps != null && myCurrentColorMapProps.isEnabled () && robj.hasTextureCoords ()) {
-         tex = myGLResources.getOrLoadTexture (gl, myCurrentColorMapProps.getContent ());
+      if (myColorMapProps != null && myColorMapProps.isEnabled () && robj.hasTextureCoords ()) {
+         tex = myGLResources.getOrLoadTexture (gl, myColorMapProps.getContent ());
          if (tex != null) {
             gl.glEnable(GL.GL_TEXTURE_2D);
             gl.glActiveTexture (GL.GL_TEXTURE0);
             gl.glTexEnvi (
-               GL2.GL_TEXTURE_ENV, GL2.GL_TEXTURE_ENV_MODE, getTextureMode (myCurrentColorMapProps));
+               GL2.GL_TEXTURE_ENV, GL2.GL_TEXTURE_ENV_MODE, getTextureMode (myColorMapProps));
             tex.bind(gl);
          }
       }
@@ -3257,7 +3319,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (useColors) {
          gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
          // if selection color is active, ignore material color
-         if (!mySelectedColorActive) {
+         if (!myHighlightColorActive) {
             gl.glEnable (GL2.GL_COLOR_MATERIAL);
          }
          if (useHSV) {
@@ -3359,7 +3421,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (useColors) {
          gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
          // if selection color is active, ignore material color
-         if (!mySelectedColorActive) {
+         if (!myHighlightColorActive) {
             gl.glEnable (GL2.GL_COLOR_MATERIAL);
          }
          if (useHSV) {
@@ -3570,7 +3632,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (useColors) {
          gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
          // if selection color is active, ignore material color
-         if (!mySelectedColorActive) {
+         if (!myHighlightColorActive) {
             gl.glEnable (GL2.GL_COLOR_MATERIAL);
          }
          if (useHSV) {
@@ -3669,7 +3731,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (useColors) {
          gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
          // if selection color is active, ignore material color
-         if (!mySelectedColorActive) {
+         if (!myHighlightColorActive) {
             gl.glEnable (GL2.GL_COLOR_MATERIAL);
          }
          if (useHSV) {
@@ -3799,7 +3861,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (useColors) {
          gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
          // if selection color is active, ignore material color
-         if (!mySelectedColorActive) {
+         if (!myHighlightColorActive) {
             gl.glEnable (GL2.GL_COLOR_MATERIAL);
          }
          if (useHSV) {
@@ -4035,6 +4097,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       popViewMatrix();
       popModelMatrix();
       popProjectionMatrix();
+      myCommittedViewerState = null;  // clear committed info
       popViewerState();
    }
   

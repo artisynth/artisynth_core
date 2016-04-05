@@ -262,7 +262,7 @@ public class TextComponent2d extends TextComponentBase {
       myTransform.p.set(renderPos.x, renderPos.y, 0);
 
       if (isSelected()) {
-         renderer.getSelectionColor(rgb);
+         renderer.getHighlightColor(rgb);
       } else {
          rprops.getFaceColor(rgb);
       }

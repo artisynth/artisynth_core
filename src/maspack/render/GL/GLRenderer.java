@@ -7,7 +7,6 @@
 package maspack.render.GL;
 
 import javax.media.opengl.GL;
-import javax.media.opengl.GL2;
 
 import maspack.render.Renderer;
 
@@ -26,7 +25,7 @@ public interface GLRenderer extends Renderer {
    public HighlightStyle getSelectionHighlightStyle();
 
    @Override
-   public void getSelectionColor(float[] rgba);
+   public void getHighlightColor(float[] rgba);
    
    /**
     * Begins a selection query with the {\it query identifier}
@@ -106,9 +105,6 @@ public interface GLRenderer extends Renderer {
     */
    public boolean isSelectable (GLSelectable s);
 
-   
    public GL getGL();
    
-   @Deprecated
-   public GL2 getGL2();
 }

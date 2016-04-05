@@ -18,27 +18,18 @@ import maspack.matrix.Matrix4d;
 import maspack.matrix.Plane;
 import maspack.matrix.RigidTransform3d;
 import maspack.render.Material;
+import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLLight;
+import maspack.render.GL.GLProgramInfo;
+import maspack.render.GL.GLProgramInfo.RenderingMode;
 import maspack.render.GL.GLShaderProgram;
 import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLTexture;
 import maspack.render.GL.GL3.GLSLGenerator.StringIntPair;
-import maspack.render.GL.GL3.GLSLInfo.GLSLInfoBuilder;
-import maspack.render.GL.GL3.GLSLInfo.InstancedRendering;
 
 public class GL3ProgramManager {
-   
-   public static enum RenderMode {
-      POINTS,
-      LINES,
-      TRIANGLES,
-      INSTANCED_POINTS,
-      INSTANCED_FRAMES,
-      INSTANCED_AFFINES,
-      INSTANCED_LINES,
-   }
 
    public static boolean debug = true;
 
@@ -158,7 +149,7 @@ public class GL3ProgramManager {
       }
    }
 
-   private GLShaderProgram createProgram(GL3 gl, GLSLInfo key) {
+   private GLShaderProgram createProgram(GL3 gl, GLProgramInfo key) {
       // generate source
       String[] shaders = GLSLGenerator.getShaderScripts(key);
       return createProgram(gl, shaders);
@@ -298,49 +289,31 @@ public class GL3ProgramManager {
       return true;
    }
    
-   public GLShaderProgram getSelectionProgram(GL3 gl, RenderMode mode) {
-      GLSLInfoBuilder builder = new GLSLInfoBuilder ();
-      if (mode != null) {
-         getProgram (gl, builder.build ());
+   public GLShaderProgram getSelectionProgram(GL3 gl, GLProgramInfo info) {
+      GLProgramInfo select = new GLProgramInfo();  // basic flat program
+      
+      // use rounded points by default
+      RenderingMode mode = info.getMode ();
+      if (mode == RenderingMode.POINTS) {
+         select.setRoundPointsEnabled (info.hasRoundPoints ());
       }
+      select.setMode (mode);
+      select.setNumLights (0);
+      select.setNumClipPlanes (numClipPlanes);
       
-      builder.setVertexColors (false);
-      builder.setVertexNormals (false);
-      builder.setVertexTextures (false);
+      // disable everything else
+      select.setVertexColorsEnabled (false);
+      select.setVertexNormalsEnabled (false);
+      select.setVertexTexturesEnabled (false);
+      select.setInstanceColorsEnabled (false);
+      select.setLineColorsEnabled (false);
+      select.setShading (Shading.NONE);
       
-      InstancedRendering instanced = InstancedRendering.NONE;
-      switch (mode) {
-         case INSTANCED_AFFINES:
-            instanced = InstancedRendering.AFFINES;
-            break;
-         case INSTANCED_FRAMES:
-            instanced = InstancedRendering.FRAMES;
-            break;
-         case INSTANCED_LINES:
-            instanced = InstancedRendering.LINES;
-            break;
-         case INSTANCED_POINTS:
-            instanced = InstancedRendering.POINTS;
-            break;
-         case POINTS:
-            builder.setRoundPoints (true);
-         case LINES:
-         case TRIANGLES:
-         default:
-            instanced = InstancedRendering.NONE;
-            break;
-      }
-      builder.setInstancedRendering (instanced);
-      builder.setInstanceColors (false);
-      builder.setLineColors (false);
-      builder.setLighting (Shading.NONE);
-      builder.setNumClipPlanes (numClipPlanes);
-      builder.setNumLights (numLights);
       
-      return getProgram(gl, builder.info);
+      return getProgram(gl, select);
    }
 
-   public GLShaderProgram getProgram(GL3 gl, GLSLInfo key) {
+   public GLShaderProgram getProgram(GL3 gl, GLProgramInfo key) {
       GLShaderProgram prog = keyToProgramMap.get(key);
       if (prog == null) {
          prog = createAndBindProgram(gl, key);
@@ -379,12 +352,20 @@ public class GL3ProgramManager {
       return prog;
    }
 
-   private GLShaderProgram createAndBindProgram(GL3 gl, GLSLInfo key) {
+   private GLShaderProgram createAndBindProgram(GL3 gl, GLProgramInfo key) {
       GLShaderProgram prog = createProgram(gl, key);
-      keyToProgramMap.put(key.clone (), prog);
+      keyToProgramMap.put(key.clone (), prog);  // immutable copy of key into map
       return prog;
    }
 
+   /**
+    * Unsure that the supplied key is either a protected copy or immutable,
+    * as it will be placed in a map
+    * @param gl
+    * @param key
+    * @param shaders
+    * @return
+    */
    private GLShaderProgram createAndBindProgram(GL3 gl, Object key, String[] shaders) {
       GLShaderProgram prog = createProgram(gl, shaders);
       keyToProgramMap.put(key, prog);
@@ -397,15 +378,17 @@ public class GL3ProgramManager {
     * @param gl
     */
    protected void createDefaultProgram(GL3 gl) {
-      GLSLInfoBuilder builder = new GLSLInfoBuilder();
-      builder.setNumLights (numLights);
-      builder.setNumClipPlanes (numClipPlanes);
-      builder.setLighting (Shading.PHONG);
-      builder.setVertexNormals (true);
-      builder.setVertexColors (true);
-      builder.setVertexTextures (true);
-      GLSLInfo key = builder.build ();
-      createAndBindProgram(gl, key);
+      GLProgramInfo info = new GLProgramInfo();
+      info.setNumLights (numLights);
+      info.setNumClipPlanes (numClipPlanes);
+      info.setMode (RenderingMode.DEFAULT);
+      info.setShading (Shading.PHONG);
+      info.setVertexNormalsEnabled (true);
+      info.setVertexColorsEnabled (true);
+      info.setVertexTexturesEnabled (true);
+      info.setVertexColorMixing (ColorMixing.REPLACE);
+      info.setTextureColorMixing (ColorMixing.MODULATE);
+      createAndBindProgram(gl, info);
    }
 
    public void dispose(GL3 gl) {

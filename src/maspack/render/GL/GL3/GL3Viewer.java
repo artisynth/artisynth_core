@@ -3,7 +3,6 @@ package maspack.render.GL.GL3;
 import java.awt.Dimension;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -11,7 +10,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import javax.media.opengl.GL;
-import javax.media.opengl.GL2;
 import javax.media.opengl.GL3;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLCapabilities;
@@ -23,22 +21,18 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Dragger3d;
 import maspack.render.RenderObject;
-import maspack.render.RenderObject.RenderObjectState;
 import maspack.render.RenderProps;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLFrameCapture;
 import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLLightManager;
 import maspack.render.GL.GLMouseAdapter;
+import maspack.render.GL.GLProgramInfo.RenderingMode;
 import maspack.render.GL.GLShaderProgram;
 import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLTexture;
 import maspack.render.GL.GLViewer;
-import maspack.render.GL.GL3.GL3ProgramManager.RenderMode;
 import maspack.render.GL.GL3.GLSLGenerator.StringIntPair;
-import maspack.render.GL.GL3.GLSLInfo.GLSLInfoBuilder;
-//import maspack.render.GL.GL3.GLSLInfo.ColorInterpolation;
-import maspack.render.GL.GL3.GLSLInfo.InstancedRendering;
 import maspack.util.InternalErrorException;
 
 public class GL3Viewer extends GLViewer {
@@ -55,9 +49,11 @@ public class GL3Viewer extends GLViewer {
 
    // Programs
    GL3ProgramManager myProgManager = null;
-
    GL3SharedResources myGLResources = null;    // holds shared context and cache
 
+   // State
+   ViewerState myCommittedViewerState = null;
+   
    // Resources that stick with this viewer
    GL3RenderObjectManager myRenderObjectManager = null;
    GL3PrimitiveManager myPrimitiveManager = null;
@@ -246,7 +242,7 @@ public class GL3Viewer extends GLViewer {
 
       // gl.glEnable(GL3.GL_POLYGON_SMOOTH);
       // gl.glHint(GL3.GL_POLYGON_SMOOTH_HINT, GL.GL_NICEST);
-      gl.glClearColor (bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
+      gl.glClearColor (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
 
       resetViewVolume();
       invalidateModelMatrix();
@@ -291,42 +287,6 @@ public class GL3Viewer extends GLViewer {
 
       System.out.println("GL3 disposed");
       GLSupport.checkAndPrintGLError(drawable.getGL ());
-   }
-
-   @Override
-   public GL2 getGL2() {
-      throw new RuntimeException("Cannot obtain a GL2 from a GL3Viewer");
-   }
-
-   public void setPointSize(float s) {
-      gl.glPointSize(s);
-   }
-
-   public float getPointSize() {
-      float[] buff = new float[1];
-      gl.glGetFloatv(GL.GL_POINT_SIZE, buff, 0);
-      return buff[0];
-   }
-
-   public void setLineWidth(float w) {
-      gl.glLineWidth(w);
-   }
-
-   public float getLineWidth() {
-      float[] buff = new float[1];
-      gl.glGetFloatv(GL.GL_LINE_WIDTH, buff, 0);
-      return buff[0];
-   }
-
-   @Override
-   public void setViewport(int x, int y, int width, int height) {
-      gl.glViewport(x, y, width, height);
-   }
-
-   protected int[] getViewport() {
-      int[] buff = new int[4];
-      gl.glGetIntegerv(GL.GL_VIEWPORT, buff, 0);
-      return buff;
    }
 
    @Override
@@ -435,7 +395,7 @@ public class GL3Viewer extends GLViewer {
       GL3 gl3 = drawable.getGL().getGL3();
 
       if (!isSelecting()) {
-         gl3.glClearColor (bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
+         gl3.glClearColor (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
       }
       gl3.glClear(GL.GL_COLOR_BUFFER_BIT |  GL.GL_DEPTH_BUFFER_BIT);
 
@@ -473,25 +433,33 @@ public class GL3Viewer extends GLViewer {
       GLSupport.checkAndPrintGLError(gl);
 
       int qid = 0;
-      synchronized(renderablesLock) {
+      synchronized(myInternalRenderList) {
          qid = myInternalRenderList.renderOpaque (this, qid, flags);
-         if (myExternalRenderList != null) {
+      }
+      
+      if (myExternalRenderList != null) {
+         synchronized(myExternalRenderList) {
             qid = myExternalRenderList.renderOpaque (this, qid, flags);
          }
       }
+      
       GLSupport.checkAndPrintGLError(gl);
 
       if (hasTransparent3d()) {
+         
          if (!isSelecting()) {
             enableTransparency (gl);
          }
 
-         synchronized(renderablesLock) {
+         synchronized(myInternalRenderList) {
             qid = myInternalRenderList.renderTransparent (this, qid, flags);
-            if (myExternalRenderList != null) {
+         }
+         if (myExternalRenderList != null) {
+            synchronized(myExternalRenderList) {
                qid = myExternalRenderList.renderTransparent (this, qid, flags);
             }
          }
+         
          if (!isSelecting()) {
             disableTransparency (gl);
          }
@@ -508,9 +476,11 @@ public class GL3Viewer extends GLViewer {
       if ( has2d() ) {
          begin2DRendering(width, height);
 
-         synchronized(renderablesLock) {
+         synchronized(myInternalRenderList) {
             qid = myInternalRenderList.renderOpaque2d (this, qid, 0);
-            if (myExternalRenderList != null) {
+         }
+         if (myExternalRenderList != null) {
+            synchronized(myExternalRenderList) {
                qid = myExternalRenderList.renderOpaque2d (this, qid, 0);
             }
          }
@@ -518,9 +488,11 @@ public class GL3Viewer extends GLViewer {
          if ( hasTransparent2d() ) {
             enableTransparency (gl);
 
-            synchronized(renderablesLock) {
+            synchronized(myInternalRenderList) {
                qid = myInternalRenderList.renderTransparent2d (this, qid, 0);
-               if (myExternalRenderList != null) {
+            }
+            if (myExternalRenderList != null) {
+               synchronized (myExternalRenderList) {
                   qid = myExternalRenderList.renderTransparent2d (this, qid, 0);
                }
             }
@@ -532,11 +504,11 @@ public class GL3Viewer extends GLViewer {
 
       if (!isSelecting()) {
          if (myDragBox != null) {
-            drawDragBox (drawable);
+            drawDragBox (gl);
          }
       } else {
          // revert clear color
-         gl.glClearColor (bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
+         gl.glClearColor (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
       }
       GLSupport.checkAndPrintGLError(gl);
 
@@ -569,39 +541,23 @@ public class GL3Viewer extends GLViewer {
    }
 
    private void enableTransparency (GL3 gl) {
-      if (!alphaFaceCulling) {
+      if (!getTransparencyFaceCulling ()) {
          pushViewerState();
          setDepthEnabled(false);
          setFaceStyle(FaceStyle.FRONT_AND_BACK);
       }
 
       // XXX maybe set configurable?
-      gl.glEnable (GL3.GL_BLEND);
+      setTransparencyEnabled (true);
       gl.glBlendFunc (GL3.GL_SRC_ALPHA, GL3.GL_ONE_MINUS_SRC_ALPHA);
    }
 
    private void disableTransparency (GL3 gl) {
-      if (!alphaFaceCulling) {
+      if (!getTransparencyFaceCulling ()) {
          popViewerState();
       }
-      gl.glDisable (GL3.GL_BLEND);
+      setTransparencyEnabled (false);
    }
-
-   public void setTransparencyEnabled (boolean enable) {
-
-      // do not enable if in selection mode
-      if (!(isSelecting() && enable)) {
-         if (enable != myTransparencyEnabledP) {
-            if (enable) {
-               enableTransparency (gl);
-            }
-            else {
-               disableTransparency (gl);
-            }
-            myTransparencyEnabledP = enable;
-         }
-      }
-   }        
 
    // Screen-shot
 
@@ -641,84 +597,6 @@ public class GL3Viewer extends GLViewer {
       repaint();  // execute in render thread
    }
 
-   // XXX Things that should be handled in GLViewer
-
-   //   @Override
-   //   public void begin2DRendering(double left, double right, double bottom, double top) {
-   //
-   //      // save depth, lighting, face culling information
-   //      pushViewerState();
-   //      setLightingEnabled (false);
-   //      setDepthEnabled(false);
-   //
-   //      pushModelMatrix();
-   //      pushViewMatrix();
-   //      pushProjectionMatrix();
-   //
-   //      setModelMatrix(RigidTransform3d.IDENTITY);
-   //      setViewMatrix(RigidTransform3d.IDENTITY);
-   //      setOrthogonal2d(left, right, bottom, top);
-   //
-   //      rendering2d = true;
-   //   }
-   //
-   //   @Override
-   //   public void finish2DRendering() {
-   //
-   //      popProjectionMatrix();
-   //      popViewMatrix();
-   //      popModelMatrix();
-   //      popViewerState();
-   //
-   //      setLightingEnabled (true);
-   //      setDepthEnabled(true);
-   //
-   //      rendering2d = false;
-   //   }
-
-   //   @Override
-   //   public boolean is2DRendering() {
-   //      return rendering2d;
-   //   }
-
-   //   //==========================================================================
-   //   //  Colours and Materials
-   //   //==========================================================================
-   //
-   //   @Override
-   //   public void setColor(float[] frontRgba, float[] backRgba) {
-   //      if (!selectEnabled) {
-   //         if (frontRgba != null) {
-   //            if (frontRgba.length == 3) {
-   //               frontRgba = new float[]{frontRgba[0],frontRgba[1],frontRgba[2], 1.0f};
-   //            }
-   //         } else {
-   //            frontRgba = myFrontColor;
-   //         }
-   //         if (backRgba != null) {
-   //            if (backRgba.length == 3) {
-   //               backRgba = new float[]{backRgba[0],backRgba[1],backRgba[2], 1.0f};
-   //            }
-   //         } else {
-   //            backRgba = myBackColor;
-   //         }
-   //         progManager.setMaterialDiffuse(gl, frontRgba, backRgba);
-   //         myFrontColor = frontRgba;
-   //         myBackColor = backRgba;
-   //      }
-   //   }
-
-   public void saveShading() {
-      if (selectEnabled) {
-         return;
-      }
-      pushViewerState();
-   }
-
-   //   @Override
-   //   public void restoreShading(RenderProps props) {
-   //      // nothing
-   //   }
 
    //==========================================================================
    //  Matrices
@@ -738,6 +616,202 @@ public class GL3Viewer extends GLViewer {
    protected void maybeUpdateState(GL3 gl) {
       maybeUpdateMatrices (gl);
       maybeUpdateMaterials (gl);
+      maybeUpdateViewerState (gl);
+   }
+   
+   /**
+    * Force all viewer state variables to be written.  Some state variables
+    * will not be committed, depending on whether we are in "select" mode
+    * @param gl context
+    * @param state state to commit
+    */
+   private void commitFullViewerState(GL3 gl, ViewerState state) {
+      
+      myCommittedViewerState = state.clone ();
+
+      if (isSelecting ()) {
+         // if selecting, disable lighting and blending         
+         myProgramInfo.setShading (Shading.NONE);
+         gl.glColorMask (true, true, true, true);
+         gl.glDisable (GL.GL_BLEND);
+         myCommittedViewerState.lightingEnabled = false;
+         myCommittedViewerState.colorEnabled = true;
+         myCommittedViewerState.transparencyEnabled = false;
+         
+      } else {
+         
+         // otherwise, track info
+         if (!state.lightingEnabled) {
+            myProgramInfo.setShading (Shading.NONE);
+         } else {
+            myProgramInfo.setShading (state.shading);
+         }
+         if (state.colorEnabled) {
+            gl.glColorMask (true, true, true, true);
+         } else {
+            gl.glColorMask (false, false, false, false);
+         }
+         
+         if (state.transparencyEnabled) {
+            gl.glEnable (GL.GL_BLEND);
+         } else {
+            gl.glDisable (GL.GL_BLEND);
+         }
+      }
+      
+      if (state.depthEnabled) {
+         gl.glEnable (GL.GL_DEPTH_TEST);
+      } else {
+         gl.glDisable (GL.GL_DEPTH_TEST);
+      }
+      
+      switch (state.faceMode) {
+         case BACK:
+            gl.glEnable (GL.GL_CULL_FACE);
+            gl.glCullFace (GL.GL_FRONT);
+            break;
+         case FRONT:
+            gl.glEnable (GL.GL_CULL_FACE);
+            gl.glCullFace (GL.GL_BACK);
+            break;
+         case FRONT_AND_BACK:
+            gl.glDisable (GL.GL_CULL_FACE);
+            break;
+         case NONE:
+            gl.glEnable (GL.GL_CULL_FACE);
+            gl.glCullFace (GL.GL_FRONT_AND_BACK);
+            break;
+         default:
+            break;
+      }
+      
+      if (state.roundedPoints) {
+         myProgramInfo.setRoundPointsEnabled (state.roundedPoints);
+      }
+      
+      // vertexColorsEnabled;   // set manually in draw methods
+      // textureMappingEnabled;   
+      // hsvInterpolationEnabled;  
+      // colorMixing;           // not available
+      // transparencyFaceCulling;  // set manually in draw methods
+      
+   }
+   
+   private void maybeCommitViewerState(GL3 gl, ViewerState state) {
+      
+      if (isSelecting ()) {
+         // if selecting, disable lighting and blending
+         if (myCommittedViewerState.lightingEnabled == true) {
+            myProgramInfo.setShading (Shading.NONE);
+            myCommittedViewerState.lightingEnabled = false;
+            myCommittedViewerState.shading = Shading.NONE;
+         }
+         
+         if (myCommittedViewerState.colorEnabled == false) {
+            gl.glColorMask (true, true, true, true);
+            myCommittedViewerState.colorEnabled = true;
+         }
+         
+         if (myCommittedViewerState.transparencyEnabled == true) {
+            gl.glDisable (GL.GL_BLEND);
+            myCommittedViewerState.transparencyEnabled = false;
+         }
+         
+      } else {
+         
+         // otherwise, track info
+         
+         if (myCommittedViewerState.lightingEnabled != state.lightingEnabled) {
+            if (!state.lightingEnabled) {
+               myProgramInfo.setShading (Shading.NONE);
+               myCommittedViewerState.shading = Shading.NONE;
+            }
+            myCommittedViewerState.lightingEnabled = state.lightingEnabled;
+         }
+         
+         if (state.lightingEnabled) {
+            if (myCommittedViewerState.shading != state.shading) {
+               myProgramInfo.setShading (state.shading);
+               myCommittedViewerState.shading = state.shading;
+            }
+         }
+         
+         if (myCommittedViewerState.colorEnabled != state.colorEnabled) {
+            if (state.colorEnabled) {
+               gl.glColorMask (true, true, true, true);
+            } else {
+               gl.glColorMask (false, false, false, false);
+            }
+            myCommittedViewerState.colorEnabled = state.colorEnabled;
+         }
+         
+         if (myCommittedViewerState.transparencyEnabled != state.transparencyEnabled) {
+            if (state.transparencyEnabled) {
+               gl.glEnable (GL.GL_BLEND);
+            } else {
+               gl.glDisable (GL.GL_BLEND);
+            }
+            myCommittedViewerState.transparencyEnabled = state.transparencyEnabled;
+         }
+      }
+      
+      if (myCommittedViewerState.depthEnabled != state.depthEnabled) {
+         if (state.depthEnabled) {
+            gl.glEnable (GL.GL_DEPTH_TEST);
+         } else {
+            gl.glDisable (GL.GL_DEPTH_TEST);
+         }
+         myCommittedViewerState.depthEnabled = state.depthEnabled;
+      }
+      
+      if (myCommittedViewerState.faceMode != state.faceMode) {
+         switch (state.faceMode) {
+            case BACK:
+               gl.glEnable (GL.GL_CULL_FACE);
+               gl.glCullFace (GL.GL_FRONT);
+               break;
+            case FRONT:
+               gl.glEnable (GL.GL_CULL_FACE);
+               gl.glCullFace (GL.GL_BACK);
+               break;
+            case FRONT_AND_BACK:
+               gl.glDisable (GL.GL_CULL_FACE);
+               break;
+            case NONE:
+               gl.glEnable (GL.GL_CULL_FACE);
+               gl.glCullFace (GL.GL_FRONT_AND_BACK);
+               break;
+            default:
+               break;
+         }
+         myCommittedViewerState.faceMode = state.faceMode;
+      }
+      
+      if (myCommittedViewerState.roundedPoints != state.roundedPoints) {
+         myProgramInfo.setRoundPointsEnabled (state.roundedPoints);
+         myCommittedViewerState.roundedPoints = state.roundedPoints;
+      }
+      
+      // vertexColorsEnabled;   // set manually in draw methods
+      // textureMappingEnabled;   
+      // hsvInterpolationEnabled;  
+      // colorMixing;           // not available
+      // transparencyFaceCulling;  // set manually in draw methods
+      
+   }
+   
+   /**
+    * Commit all pending changes
+    * @param gl
+    */
+   protected void maybeUpdateViewerState(GL3 gl) {
+      
+      // maybe update shading
+      if (myCommittedViewerState == null) {
+         commitFullViewerState (gl, myViewerState);  
+      } else {
+         maybeCommitViewerState(gl, myViewerState);
+      }
    }
 
    protected void maybeUpdateMaterials(GL3 gl) {
@@ -746,9 +820,9 @@ public class GL3Viewer extends GLViewer {
             myProgManager.setMaterials (gl, myCurrentMaterial, mySelectingColor, myCurrentMaterial, mySelectingColor);
          } else {
             // set all colors
-            if (mySelectedColorActive) {
-               mySelectedColor[3] = myCurrentMaterial.getAlpha();
-               myProgManager.setMaterials (gl, myCurrentMaterial, mySelectedColor, myCurrentMaterial, mySelectedColor);
+            if (myHighlightColorActive) {
+               myHighlightColor[3] = myCurrentMaterial.getAlpha();
+               myProgManager.setMaterials (gl, myCurrentMaterial, myHighlightColor, myCurrentMaterial, myHighlightColor);
             } else {
                myProgManager.setMaterials (gl, myCurrentMaterial, myCurrentMaterial.getDiffuse(), myCurrentMaterial, myBackColor);
             }
@@ -783,86 +857,11 @@ public class GL3Viewer extends GLViewer {
 
       int nslices = getSurfaceResolution();
       GL3Object sphere = myPrimitiveManager.getSphere(gl, nslices, (int)Math.ceil(nslices/2));
-      GLShaderProgram prog = getProgram (gl);
-      prog.use (gl);
+      updateProgram (gl, RenderingMode.DEFAULT, true, false, false);
       sphere.draw(gl);
 
       // revert matrix transform
       popModelMatrix();
-   }
-
-   private void addVertex(float[] v, float nx, float ny, float nz, ByteBuffer buff, 
-      PositionBufferPutter posPutter,
-      NormalBufferPutter nrmPutter) {
-      posPutter.putPosition(buff,  v);
-      nrmPutter.putNormal(buff, nx, ny, nz);
-   }
-
-   /**
-    * Fills an interleaved vertex-normal buffer
-    * @param v0 input vertex v0
-    * @param v1 input vertex v1
-    * @param v2 input vertex v2
-    * @param buff output buffer
-    */
-   private void addTri(float[] v0, float[] v1, float[] v2, ByteBuffer buff,
-      PositionBufferPutter posPutter, NormalBufferPutter nrmPutter) {
-
-      float ax = v1[0]-v0[0];
-      float ay = v1[1]-v0[1];
-      float az = v1[2]-v0[2];
-      float bx = v2[0]-v0[0];
-      float by = v2[1]-v0[1];
-      float bz = v2[2]-v0[2];
-      float nx = ay*bz-az*by;
-      float ny = az*bx-ax*bz;
-      float nz = ax*by-ay*bx;
-
-      addVertex(v0, nx, ny, nz, buff, posPutter, nrmPutter);
-      addVertex(v1, nx, ny, nz, buff, posPutter, nrmPutter);
-      addVertex(v2, nx, ny, nz, buff, posPutter, nrmPutter);
-
-   }
-
-   /**
-    * Fills an interleaved vertex-normal buffer with two triangles, split as:
-    * (v0, v1, v2), (v2, v3, v0)
-    * @param v0 input vertex v0
-    * @param v1 input vertex v1
-    * @param v2 input vertex v2
-    * @param v3 input vertex v3
-    * @param buff output buffer
-    */
-   private void addQuad(float[] v0, float[] v1, float[] v2, float[] v3, 
-      ByteBuffer buff, PositionBufferPutter posPutter, NormalBufferPutter nrmPutter ) {
-
-      float ax, ay, az;
-      float bx, by, bz;
-      float nx, ny, nz;
-
-      ax = v1[0]-v0[0];
-      ay = v1[1]-v0[1];
-      az = v1[2]-v0[2];
-      bx = v2[0]-v0[0];
-      by = v2[1]-v0[1];
-      bz = v2[2]-v0[2];
-      nx = ay*bz-az*by;
-      ny = az*bx-ax*bz;
-      nz = ax*by-ay*bx;
-      ax = v3[0]-v0[0];
-      ay = v3[1]-v0[1];
-      az = v3[2]-v0[2];
-      nx += by*az-bz*ay;
-      ny += bz*ax-bx*az;
-      nz += bx*ay-by*ax;
-
-      addVertex(v0, nx, ny, nz, buff, posPutter, nrmPutter);
-      addVertex(v1, nx, ny, nz, buff, posPutter, nrmPutter);
-      addVertex(v2, nx, ny, nz, buff, posPutter, nrmPutter);
-      addVertex(v2, nx, ny, nz, buff, posPutter, nrmPutter);
-      addVertex(v3, nx, ny, nz, buff, posPutter, nrmPutter);
-      addVertex(v0, nx, ny, nz, buff, posPutter, nrmPutter);
-
    }
 
    private RigidTransform3d getLineTransform(float[] p0, float[] p1) {
@@ -901,8 +900,7 @@ public class GL3Viewer extends GLViewer {
 
       int nslices = getSurfaceResolution();
       GL3Object spindle = myPrimitiveManager.getSpindle(gl, nslices, (int)Math.ceil(nslices/2));
-      GLShaderProgram prog = getProgram(gl);
-      prog.use (gl);
+      updateProgram (gl, RenderingMode.DEFAULT, true, false, false);
       spindle.draw(gl);
 
       // revert matrix transform
@@ -930,8 +928,7 @@ public class GL3Viewer extends GLViewer {
       scaleModelMatrix(r,r,len);
 
       maybeUpdateState(gl);
-      GLShaderProgram prog = getProgram(gl);
-      prog.use (gl);
+      updateProgram (gl, RenderingMode.DEFAULT, true, false, false);
       
       int nslices = getSurfaceResolution();
       GL3Object cylinder = myPrimitiveManager.getCylinder(gl, nslices, capped);
@@ -958,8 +955,7 @@ public class GL3Viewer extends GLViewer {
       mulModelMatrix(lineRot);
       scaleModelMatrix (r, r, h);
       maybeUpdateState (gl);
-      GLShaderProgram prog = getProgram(gl);
-      prog.use (gl);
+      updateProgram (gl, RenderingMode.DEFAULT, true, false, false);
       cone.draw (gl);
       popModelMatrix ();
    }
@@ -1042,211 +1038,97 @@ public class GL3Viewer extends GLViewer {
          pushModelMatrix ();
          mulModelMatrix(lineRot);
          maybeUpdateState (gl);
-         GLShaderProgram prog = getProgram(gl);
-         prog.use (gl);
+         updateProgram (gl, RenderingMode.DEFAULT, true, false, false);
          gloFlex.drawElements (gl, GL.GL_TRIANGLES);
          popModelMatrix ();
       }
    }
-
-   protected GLShaderProgram getBasicPointProgram(GL3 gl) {
-      
-      if (isSelecting ()) {
-         return myProgManager.getSelectionProgram (gl, RenderMode.POINTS);
-      }
-      
-      GLSLInfoBuilder builder = new GLSLInfoBuilder();
-      builder.setNumLights (myProgManager.numLights ());
-      builder.setNumClipPlanes (myProgManager.numClipPlanes ());
-      builder.setRoundPoints (true);
-      
-      if (!isSelecting()) {
-         Shading shading = Shading.NONE;
-         builder.setLighting ( shading );
-         if (isTextureMappingEnabled()) {
-            if (myCurrentColorMapProps != null && myCurrentColorMapProps.isEnabled()) {
-               builder.enableColorMap (true);
-               builder.setVertexTextures (true);
-               builder.setTextureColorMixing (myCurrentColorMapProps.getTextureColorMixing ());
-               builder.mixTextureColorDiffuse (myCurrentColorMapProps.getDiffuseColoring ());
-               builder.mixTextureColorSpecular (myCurrentColorMapProps.getSpecularColoring ());
-               builder.mixTextureColorEmission (myCurrentColorMapProps.getDiffuseColoring ());
-            }  
-         }
-      }
-
-      return myProgManager.getProgram(gl, builder.build ());
-   }
    
-   protected GLShaderProgram getBasicLineProgram(GL3 gl, boolean hasNormals, boolean hasColors, boolean hasTextures) {
+   protected GLShaderProgram updateProgram(GL3 gl, RenderingMode mode,
+      boolean hasNormals, boolean hasColors, boolean hasTextures) {     
       
-      if (isSelecting ()) {
-         return myProgManager.getSelectionProgram (gl, RenderMode.LINES);
-      }
+      myProgramInfo.setMode (mode);
       
-      GLSLInfoBuilder builder = new GLSLInfoBuilder();
-      builder.setNumLights (myProgManager.numLights ());
-      builder.setNumClipPlanes (myProgManager.numClipPlanes ());
-      
-      if (!isSelecting()) {
-         Shading shading = Shading.NONE;
-         builder.setLighting ( shading );
-         builder.setVertexNormals (hasNormals);
-         if (hasColors) {
-            builder.setVertexColors (hasColors);
-            builder.setVertexColorMixing (getVertexColorMixing());
-         }
+      switch(mode) {
          
-         if (hasTextures && isTextureMappingEnabled()) {
-            if (myCurrentColorMapProps != null && myCurrentColorMapProps.isEnabled()) {
-               builder.enableColorMap (true);
-               builder.setVertexTextures (true);
-               builder.setTextureColorMixing (myCurrentColorMapProps.getTextureColorMixing ());
-               builder.mixTextureColorDiffuse (myCurrentColorMapProps.getDiffuseColoring ());
-               builder.mixTextureColorSpecular (myCurrentColorMapProps.getSpecularColoring ());
-               builder.mixTextureColorEmission (myCurrentColorMapProps.getDiffuseColoring ());
-            }  
-         }
-      }
-
-      return myProgManager.getProgram(gl, builder.build ());
-   }
-
-   protected GLShaderProgram getBasicProgram(GL3 gl) {
-      
-      if (isSelecting ()) {
-         return myProgManager.getSelectionProgram (gl, RenderMode.TRIANGLES);
-      }
-      
-      GLSLInfoBuilder builder = new GLSLInfoBuilder();
-      builder.setNumLights (myProgManager.numLights ());
-      builder.setNumClipPlanes (myProgManager.numClipPlanes ());
-
-      if (!isSelecting()) {
-         Shading shading = Shading.NONE;
-         builder.setLighting ( shading );
-         if (shading != Shading.NONE) {
-            builder.setVertexNormals(true);
-         }
-         if (isTextureMappingEnabled()) {
-            if (myCurrentColorMapProps != null && myCurrentColorMapProps.isEnabled()) {
-               builder.enableColorMap (true);
-               builder.setVertexTextures (true);
-               builder.setTextureColorMixing (myCurrentColorMapProps.getTextureColorMixing ());
-               builder.mixTextureColorDiffuse (myCurrentColorMapProps.getDiffuseColoring ());
-               builder.mixTextureColorSpecular (myCurrentColorMapProps.getSpecularColoring ());
-               builder.mixTextureColorEmission (myCurrentColorMapProps.getDiffuseColoring ());
-            }  
-         }
-      }
-
-      return myProgManager.getProgram(gl, builder.build ());
-   }
-
-   protected GLShaderProgram getProgram(GL3 gl) {
-      
-      if (isSelecting ()) {
-         return myProgManager.getSelectionProgram (gl, RenderMode.TRIANGLES);
-      }
-
-      GLSLInfoBuilder builder = new GLSLInfoBuilder();
-      builder.setNumLights (myProgManager.numLights ());
-      builder.setNumClipPlanes (myProgManager.numClipPlanes ());
-
-      if (!isSelecting()) {
-         Shading shading = isLightingEnabled() ? getShading() : Shading.NONE;
-         builder.setLighting ( shading );
-         if (shading != Shading.NONE) {
-            builder.setVertexNormals(true);
-         }
-         if (isTextureMappingEnabled()) {
-            if (myCurrentColorMapProps != null && myCurrentColorMapProps.isEnabled()) {
-               builder.enableColorMap (true);
-               builder.setVertexTextures (true);
-               builder.setTextureColorMixing (myCurrentColorMapProps.getTextureColorMixing ());
-               builder.mixTextureColorDiffuse (myCurrentColorMapProps.getDiffuseColoring ());
-               builder.mixTextureColorSpecular (myCurrentColorMapProps.getSpecularColoring ());
-               builder.mixTextureColorEmission (myCurrentColorMapProps.getDiffuseColoring ());
+         case INSTANCED_POINTS:
+         case INSTANCED_AFFINES:
+         case INSTANCED_FRAMES:
+            myProgramInfo.setInstanceColorsEnabled (hasColors);
+            myProgramInfo.setShading (getShading());
+            myProgramInfo.setVertexNormalsEnabled (true);
+            break;
+         case INSTANCED_LINES:
+            myProgramInfo.setLineColorsEnabled (hasColors);
+            myProgramInfo.setShading (getShading());
+            myProgramInfo.setVertexNormalsEnabled (true);
+            break;
+         
+         case POINTS:
+         case DEFAULT:
+         default:
+            if (hasNormals) {
+               myProgramInfo.setShading (getShading());
+            } else {
+               myProgramInfo.setShading (Shading.NONE);
             }
-            if (myCurrentNormalMapProps != null && myCurrentNormalMapProps.isEnabled()) {
-               builder.enableNormalMap (true);
-               builder.setVertexTextures (true);
+            myProgramInfo.setVertexNormalsEnabled (hasNormals);
+            myProgramInfo.setVertexTexturesEnabled (hasTextures);
+            
+            // texture stuff
+            if (hasTextures && isTextureMappingEnabled ()) {
+               if (myColorMapProps != null && myColorMapProps.isEnabled()) {
+                  myProgramInfo.setColorMapEnabled (true);
+                  myProgramInfo.setTextureColorMixing (myColorMapProps.getTextureColorMixing ());
+                  myProgramInfo.setMixTextureColorDiffuse (myColorMapProps.getDiffuseColoring ());
+                  myProgramInfo.setMixTextureColorSpecular (myColorMapProps.getSpecularColoring ());
+                  myProgramInfo.setMixTextureColorEmission (myColorMapProps.getDiffuseColoring ());
+               } else {
+                  myProgramInfo.setColorMapEnabled (false);
+               }
+               
+               if (myNormalMapProps != null && myNormalMapProps.isEnabled()) {
+                  myProgramInfo.setNormalMapEnabled (true);
+               } else {
+                  myProgramInfo.setNormalMapEnabled (false);
+               }
+               
+               if (myBumpMapProps != null && myBumpMapProps.isEnabled()) {
+                  myProgramInfo.setBumpMapEnabled (true);
+               } else {
+                  myProgramInfo.setBumpMapEnabled (false);
+               }
             }
-            if (myCurrentBumpMapProps != null && myCurrentBumpMapProps.isEnabled()) {
-               builder.enableBumpMap (true);
-               builder.setVertexTextures (true);
-            }  
-         }
+            
+            break;
+         
       }
-
-      return myProgManager.getProgram(gl, builder.build ());
-
-   }
-
-   protected GLShaderProgram getColorProgram(GL3 gl, boolean hasNormals) {
       
+      // myProgramInfo.setVertexColorsEnabled (hasColors);
+      if (!hasColors || !isVertexColoringEnabled() || myHighlightColorActive) {
+         myProgramInfo.setColorInterpolation (ColorInterpolation.NONE);
+         myProgramInfo.setVertexColorsEnabled (false);
+         myProgramInfo.setLineColorsEnabled (false);
+         myProgramInfo.setInstanceColorsEnabled (false);
+      } else { 
+         if (isHSVColorInterpolationEnabled()) {
+            myProgramInfo.setColorInterpolation (ColorInterpolation.HSV);   
+         } else {
+            myProgramInfo.setColorInterpolation (ColorInterpolation.RGB);
+         }
+         myProgramInfo.setVertexColorMixing (getVertexColorMixing());
+         myProgramInfo.setVertexColorsEnabled (true);
+      }
+      
+      GLShaderProgram prog;
       if (isSelecting ()) {
-         return myProgManager.getSelectionProgram (gl, RenderMode.TRIANGLES);
+         prog = myProgManager.getSelectionProgram (gl, myProgramInfo);
+      } else {
+         prog = myProgManager.getProgram (gl, myProgramInfo);
       }
+      prog.use (gl);
       
-      Shading shading = getShading ();
-      ColorInterpolation cinterp = ColorInterpolation.RGB;
-      if (isHSVColorInterpolationEnabled ()) {
-         cinterp = ColorInterpolation.HSV;
-      }
-      return getColorProgram (gl, shading, hasNormals, cinterp);
-   }
-
-   protected GLShaderProgram getColorProgram(GL3 gl, Shading shading, boolean hasNormals, ColorInterpolation cinterp) {
-      
-      if (isSelecting ()) {
-         return myProgManager.getSelectionProgram (gl, RenderMode.TRIANGLES);
-      }
-      
-      GLSLInfoBuilder builder = new GLSLInfoBuilder();
-      builder.setNumLights (myProgManager.numLights ());
-      builder.setNumClipPlanes (myProgManager.numClipPlanes ());
-
-      if (!isSelecting()) {
-         if (!isLightingEnabled ()) {
-            shading = Shading.NONE;
-         }
-         builder.setLighting ( shading );
-         if (shading != Shading.NONE) {
-            builder.setVertexNormals(true);
-         }
-
-         if (isTextureMappingEnabled()) {
-            if (myCurrentColorMapProps != null && myCurrentColorMapProps.isEnabled()) {
-               builder.enableColorMap (true);
-               builder.setVertexTextures (true);
-               builder.setTextureColorMixing (myCurrentColorMapProps.getTextureColorMixing ());
-               builder.mixTextureColorDiffuse (myCurrentColorMapProps.getDiffuseColoring ());
-               builder.mixTextureColorSpecular (myCurrentColorMapProps.getSpecularColoring ());
-               builder.mixTextureColorEmission (myCurrentColorMapProps.getDiffuseColoring ());
-            }
-            if (myCurrentNormalMapProps != null && myCurrentNormalMapProps.isEnabled()) {
-               builder.enableNormalMap (true);
-               builder.setVertexTextures (true);
-            }
-            if (myCurrentBumpMapProps != null && myCurrentBumpMapProps.isEnabled()) {
-               builder.enableBumpMap (true);
-               builder.setVertexTextures (true);
-            }  
-         }
-
-         if (isVertexColoringEnabled()) {
-            builder.setVertexColorMixing (getVertexColorMixing());
-            builder.setColorInterpolation (cinterp);
-            builder.setVertexColors (true);
-            // XXX property to set this
-            builder.mixVertexColorDiffuse (true);
-            builder.mixVertexColorSpecular (true);
-            builder.mixVertexColorEmission (true);
-         }
-      }
-
-      return myProgManager.getProgram(gl, builder.build ());
+      return prog;
    }
 
    private void drawGLLine(GL3 gl, float[] coords0, float[] coords1) {
@@ -1257,8 +1139,7 @@ public class GL3Viewer extends GLViewer {
       gloFlex.end (gl);
 
       maybeUpdateState(gl);
-      GLShaderProgram prog = getBasicProgram(gl);
-      prog.use (gl);
+      updateProgram (gl, RenderingMode.DEFAULT, false, false, false);
       gloFlex.drawVertices (gl, GL.GL_LINES);
 
       GLSupport.checkAndPrintGLError(gl);
@@ -1272,7 +1153,7 @@ public class GL3Viewer extends GLViewer {
 
       maybeUpdateState(gl);
 
-      getBasicPointProgram(gl).use (gl);
+      updateProgram (gl, RenderingMode.POINTS, false, false, false);
       gloFlex.drawVertices(gl, GL.GL_POINTS);
 
       GLSupport.checkAndPrintGLError(gl);
@@ -1371,8 +1252,7 @@ public class GL3Viewer extends GLViewer {
       mulModelMatrix(lineRot);
       scaleModelMatrix(rad, rad, len-arrowLen);
       maybeUpdateState(gl);
-      GLShaderProgram prog = getProgram(gl);
-      prog.use (gl);
+      updateProgram (gl, RenderingMode.DEFAULT, true, false, false);
 
       GL3Object cylinder = myPrimitiveManager.getCylinder(gl, nslices, capped);
       cylinder.draw(gl);
@@ -1505,16 +1385,8 @@ public class GL3Viewer extends GLViewer {
       maybeUpdateState(gl);
 
       GL3Object axes = myPrimitiveManager.getAxes(gl, true, true, true);
-      if (selectEnabled) {
-         GLShaderProgram prog = getBasicProgram(gl);
-         prog.use (gl);
-         axes.draw(gl);
-      } else {
-         GLShaderProgram prog =  getColorProgram(gl, Shading.NONE, false, ColorInterpolation.RGB);
-         prog.use (gl);
-         axes.draw(gl);
-      }
-      // gloManager.releaseObject(axes);
+      updateProgram (gl, RenderingMode.DEFAULT, false, true, false);
+      axes.draw(gl);
 
       // signal to revert matrix transform
       popModelMatrix();
@@ -1561,15 +1433,8 @@ public class GL3Viewer extends GLViewer {
       gl.glLineWidth (width);
 
       GL3Object axes = myPrimitiveManager.getAxes(gl, drawx, drawy, drawz);
-      if (selectEnabled || selected) {
-         GLShaderProgram prog = getBasicProgram(gl);
-         prog.use (gl);
-         axes.draw(gl);
-      } else {
-         GLShaderProgram prog = getColorProgram(gl, Shading.NONE, false, ColorInterpolation.RGB);
-         prog.use (gl);
-         axes.draw(gl);
-      }
+      updateProgram (gl, RenderingMode.DEFAULT, false, true, false);
+      axes.draw(gl);
       // gloManager.releaseObject(axes);
 
       gl.glLineWidth(1);
@@ -1581,9 +1446,8 @@ public class GL3Viewer extends GLViewer {
 
    }
 
-   @Override
-   protected void drawDragBox(GLAutoDrawable drawable) {
-      GLSupport.checkAndPrintGLError(drawable.getGL ());
+   protected void drawDragBox(GL3 gl) {
+      GLSupport.checkAndPrintGLError(gl);
 
       begin2DRendering(-1, 1,-1, 1);
 
@@ -1604,7 +1468,7 @@ public class GL3Viewer extends GLViewer {
       gl.glLineWidth (1);
       setColor(0.5f, 0.5f, 0.5f, 1.0f);
 
-      getBasicProgram(gl).use (gl);
+      updateProgram (gl, RenderingMode.DEFAULT, false, false, false);
       gloFlex.drawVertices(gl, GL.GL_LINE_LOOP);
 
       end2DRendering();
@@ -1699,89 +1563,15 @@ public class GL3Viewer extends GLViewer {
       return size;
    }
 
-   private void drawPrimitives(GL3 gl, Iterable<float[]> coords, int size, int glPrimitiveType) {
-
-      if (size <= 0) {
-         size = findSize (coords);
-      }
-
-      gloFlex.begin (gl, size);
-      for (float[] pos : coords) {
-         gloFlex.vertex (pos);
-      }
-      gloFlex.end (gl);
-
-      maybeUpdateState(gl);
-      getProgram(gl).use (gl);
-      gloFlex.drawVertices(gl, glPrimitiveType);
-
-   }
-
-   private void drawPrimitives(GL3 gl, Iterable<float[]> coords, Iterable<float[]> normals, int size, int glPrimitiveType) {
-
-      if (size <= 0) {
-         size = findSize(coords);
-      }
-
-      gloFlex.begin (gl, true, false, false, size);
-      Iterator<float[]> nit = normals.iterator ();
-      for (float[] p : coords) {
-         float[] n = nit.next ();
-         gloFlex.normal (n);
-         gloFlex.vertex (p);
-      }
-      gloFlex.end (gl);
-
-      maybeUpdateState(gl);
-      getProgram(gl).use (gl);
-      gloFlex.drawVertices (gl, glPrimitiveType);
-
-   }
-
    @Override
    public void drawPoint (float[] pnt) {
       drawGLPoint (gl, pnt);
    }
 
-   //   public void drawPoint(float[] pnt, float[] nrm) {
-   //      List<float[]> pnts = Arrays.asList (pnt);
-   //      List<float[]> nrms = Arrays.asList (nrm);
-   //      drawPrimitives (pnts, nrms,  2, GL.GL_POINTS);
-   //   }
-
-   //   @Override
-   //   public void drawPoints (Iterable<float[]> points) {
-   //      drawPrimitives (points, -1, GL2.GL_POINTS);
-   //   }
-
-   //   @Override
-   //   public void drawPoints (Iterable<float[]> points, Iterable<float[]> normals) {
-   //      drawPrimitives (points, normals, -1, GL2.GL_POINTS);
-   //   }
-
    @Override
    public void drawLine(float[] pnt0, float[] pnt1) {
       drawGLLine (gl, pnt0, pnt1);
    }
-
-   //   public void drawLine (
-   //      float[] pnt0, float[] nrm0, float[] pnt1, float[] nrm1) {
-   //      List<float[]> pnts = Arrays.asList (pnt0, pnt1);
-   //      List<float[]> nrms = Arrays.asList (nrm0, nrm1);
-   //      drawPrimitives (pnts, nrms,  2, GL.GL_LINES);
-   //   }
-
-   //   public void drawLines(Iterable<float[]> coords) {
-   //      drawPrimitives (coords, -1, GL2.GL_LINES);
-   //   }
-   //
-   //   public void drawLines(Iterable<float[]> coords, Iterable<float[]> normals) {
-   //      drawPrimitives (coords, normals, -1, GL2.GL_LINES);
-   //   }
-   //
-   //   public void drawLineStrip(Iterable<float[]> coords, Iterable<float[]> normals) {
-   //      drawPrimitives (coords,  normals, -1, GL2.GL_LINE_STRIP);
-   //   }
 
    /**
     * Draw triangular faces, using the current Shading, lighting and
@@ -1793,12 +1583,6 @@ public class GL3Viewer extends GLViewer {
       List<float[]> coords = Arrays.asList (pnt0, pnt1, pnt2);
       drawTriangles (coords);
    }
-
-   //   public void drawTriangle (float[] p0, float[] n0, float[] p1, float[] n1, float[] p2, float[] n2) {
-   //      List<float[]> coords = Arrays.asList (p0, p1, p2);
-   //      List<float[]> normals = Arrays.asList (n0, n1, n2);
-   //      drawPrimitives (coords, normals,  3, GL.GL_TRIANGLES);
-   //   }
 
    static File[] DEBUG_NORMAL_SHADERS = new File[] {
        ArtisynthPath.getSrcRelativeFile (GL3Viewer.class, "shaders/camera_normal_vertex.glsl"),
@@ -1835,238 +1619,15 @@ public class GL3Viewer extends GLViewer {
       gloFlex.end (gl);
 
       maybeUpdateState(gl);
-      getProgram(gl).use (gl);
-
-      //      File[] shaders = DEBUG_NORMAL_SHADERS;
-      //      GLShaderProgram prog = myProgManager.getProgram (gl, shaders, shaders);
-      //      prog.use (gl);
-      
-      // XXX debug program
+      updateProgram (gl, RenderingMode.DEFAULT, true, false, false);
       
       gloFlex.drawVertices (gl, GL.GL_TRIANGLES);
 
    }
 
-   //   /**
-   //    * Assumed per-vertex normal
-   //    */
-   //   public void drawTriangles (Iterable<float[]> points, Iterable<float[]> normals) {
-   //      drawPrimitives (points, normals, -1, GL2.GL_TRIANGLES);
-   //   }
-
    //======================================================================
    // RENDER OBJECT STUFF
    //======================================================================
-
-   //   private GL3SharedRenderObjectIndexed getOrCreateGRO(RenderObject robj) {
-   //      GL3Resource res;
-   //      GL3SharedRenderObjectIndexed gro;
-   //      RenderObjectIdentifier key = robj.getIdentifier();
-   //
-   //      synchronized(myGLResources) {
-   //         res = myGLResources.getResource(key);
-   //         if (res == null) {
-   //            gro = new GL3SharedRenderObjectIndexed(robj);
-   //            gro.init(gl, robj);
-   //            myGLResources.addResource(gl, key, gro);
-   //
-   //         } else {
-   //            gro = (GL3SharedRenderObjectIndexed)res;
-   //            gro.maybeUpdate(gl, robj);
-   //         }
-   //      }
-   //      return gro;
-   //   }
-
-   protected GLShaderProgram getProgram(GL3 gl, RenderObjectState robj) {
-
-      if (isSelecting ()) {
-         return myProgManager.getSelectionProgram (gl, RenderMode.TRIANGLES);
-      }
-
-      GLSLInfoBuilder builder = new GLSLInfoBuilder();
-      builder.setNumLights (myProgManager.numLights ());
-      builder.setNumClipPlanes (myProgManager.numClipPlanes ());
-
-      Shading shading = isLightingEnabled() ? getShading() : Shading.NONE;
-      builder.setLighting ( shading );
-      if (shading != Shading.NONE) {
-         builder.setVertexNormals(true);
-      }
-      if (isTextureMappingEnabled()) {
-         if (myCurrentColorMapProps != null && myCurrentColorMapProps.isEnabled() && !mySelectedColorActive) {
-            builder.enableColorMap (true);
-            builder.setVertexTextures (true);
-            builder.setTextureColorMixing (myCurrentColorMapProps.getTextureColorMixing ());
-            builder.mixTextureColorDiffuse (myCurrentColorMapProps.getDiffuseColoring ());
-            builder.mixTextureColorSpecular (myCurrentColorMapProps.getSpecularColoring ());
-            builder.mixTextureColorEmission (myCurrentColorMapProps.getDiffuseColoring ());
-         }
-
-         if (myCurrentNormalMapProps != null && myCurrentNormalMapProps.isEnabled()) {
-            builder.enableNormalMap (true);
-            builder.setVertexTextures (true);
-         }
-         if (myCurrentBumpMapProps != null && myCurrentBumpMapProps.isEnabled()) {
-            builder.enableBumpMap (true);
-            builder.setVertexTextures (true);
-         }  
-      }
-
-      if (!robj.hasColors() || !isVertexColoringEnabled() || mySelectedColorActive) {
-         builder.setColorInterpolation (ColorInterpolation.NONE);
-         builder.setVertexColors (false);
-      } else { 
-         if (isHSVColorInterpolationEnabled()) {
-            builder.setColorInterpolation (ColorInterpolation.HSV);   
-         } else {
-            builder.setColorInterpolation (ColorInterpolation.RGB);
-         }
-         builder.setVertexColorMixing (getVertexColorMixing());
-         builder.setVertexColors (true);
-      }
-
-      return myProgManager.getProgram(gl, builder.build ());
-
-   }
-
-   protected GLShaderProgram getPointsProgram(GL3 gl, PointStyle style, RenderObjectState robj) {
-
-      if (isSelecting ()) {
-         if (style == PointStyle.POINT) {
-            return myProgManager.getSelectionProgram (gl, RenderMode.POINTS);
-         } else {
-            return myProgManager.getSelectionProgram (gl, RenderMode.INSTANCED_POINTS);
-         }
-      }
-      
-      GLSLInfoBuilder builder = new GLSLInfoBuilder();
-      builder.setNumLights (myProgManager.numLights ());
-      builder.setNumClipPlanes (myProgManager.numClipPlanes ());
-      
-      switch(style) {
-         case SPHERE:
-         case CUBE:
-            builder.setInstancedRendering (InstancedRendering.POINTS);
-            builder.setVertexNormals (true);  // instance has normals
-            break;
-         case POINT:
-         default:
-            builder.setInstancedRendering (InstancedRendering.NONE);
-            builder.setRoundPoints (true);
-            if (robj.hasNormals ()) {
-               builder.setVertexNormals(true);
-            } else {
-               builder.setVertexNormals (false);
-            }
-            break;
-         
-      }
-
-      if (!isSelecting ()) {
-         Shading shading = isLightingEnabled() ? getShading() : Shading.NONE;
-         if (style == PointStyle.POINT) {
-            shading = Shading.NONE;
-         }
-         
-         builder.setLighting ( shading );
-
-         if (isTextureMappingEnabled()) {
-            if (myCurrentColorMapProps != null && myCurrentColorMapProps.isEnabled() && !mySelectedColorActive) {
-               builder.enableColorMap (true);
-               builder.setTextureColorMixing (myCurrentColorMapProps.getTextureColorMixing ());
-               builder.setVertexTextures (true);
-               builder.mixTextureColorDiffuse (myCurrentColorMapProps.getDiffuseColoring ());
-               builder.mixTextureColorSpecular (myCurrentColorMapProps.getSpecularColoring ());
-               builder.mixTextureColorEmission (myCurrentColorMapProps.getDiffuseColoring ());
-            }
-            if (myCurrentNormalMapProps != null && myCurrentNormalMapProps.isEnabled()) {
-               builder.enableNormalMap (true);
-               builder.setVertexTextures (true);
-            }
-            if (myCurrentBumpMapProps != null && myCurrentBumpMapProps.isEnabled()) {
-               builder.enableBumpMap (true);
-               builder.setVertexTextures (true);
-            }  
-
-         }
-
-         if (!robj.hasColors() || !isVertexColoringEnabled() || mySelectedColorActive) {
-            builder.setColorInterpolation (ColorInterpolation.NONE);
-            builder.setVertexColors (false);
-         } else { 
-            if (isHSVColorInterpolationEnabled()) {
-               builder.setColorInterpolation (ColorInterpolation.HSV);   
-            } else {
-               builder.setColorInterpolation (ColorInterpolation.RGB);
-            }
-            builder.setVertexColorMixing (getVertexColorMixing());
-            builder.setVertexColors (true);
-         }
-      }
-      return myProgManager.getProgram(gl, builder.build ());
-   }
-
-   protected GLShaderProgram getLinesProgram(GL3 gl, RenderObjectState robj, LineStyle style) {
-      
-      if (isSelecting ()) {
-         if (style == LineStyle.LINE) {
-            return myProgManager.getSelectionProgram (gl, RenderMode.LINES);
-         } else {
-            return myProgManager.getSelectionProgram (gl, RenderMode.INSTANCED_LINES);
-         }
-      }
-      
-      GLSLInfoBuilder builder = new GLSLInfoBuilder();
-      builder.setNumLights (myProgManager.numLights ());
-      builder.setNumClipPlanes (myProgManager.numClipPlanes ());
-      builder.setInstancedRendering (InstancedRendering.LINES);
-      if (style == LineStyle.SOLID_ARROW) {
-         builder.setLineScaleOffset (true);
-      }
-
-      if (!isSelecting ()) {
-         Shading shading = isLightingEnabled() ? getShading() : Shading.NONE;
-         builder.setLighting ( shading );
-         if (shading != Shading.NONE) {
-            builder.setVertexNormals(true);
-         }
-
-         if (isTextureMappingEnabled()) {
-            if (myCurrentColorMapProps != null && myCurrentColorMapProps.isEnabled() && !mySelectedColorActive) {
-               builder.enableColorMap (true);
-               builder.setTextureColorMixing (myCurrentColorMapProps.getTextureColorMixing ());
-               builder.setVertexTextures (true);
-               builder.mixTextureColorDiffuse (myCurrentColorMapProps.getDiffuseColoring ());
-               builder.mixTextureColorSpecular (myCurrentColorMapProps.getSpecularColoring ());
-               builder.mixTextureColorEmission (myCurrentColorMapProps.getDiffuseColoring ());
-            }
-            if (myCurrentNormalMapProps != null && myCurrentNormalMapProps.isEnabled()) {
-               builder.enableNormalMap (true);
-               builder.setVertexTextures (true);
-            }
-            if (myCurrentBumpMapProps != null && myCurrentBumpMapProps.isEnabled()) {
-               builder.enableBumpMap (true);
-               builder.setVertexTextures (true);
-            }  
-
-         }
-
-         if (!robj.hasColors() || !isVertexColoringEnabled() || mySelectedColorActive) {
-            builder.setColorInterpolation (ColorInterpolation.NONE);
-            builder.setVertexColors (false);
-         } else { 
-            if (isHSVColorInterpolationEnabled()) {
-               builder.setColorInterpolation (ColorInterpolation.HSV);   
-            } else {
-               builder.setColorInterpolation (ColorInterpolation.RGB);
-            }
-            builder.setVertexColorMixing (getVertexColorMixing());
-            builder.setVertexColors (true);
-         }
-      }
-      return myProgManager.getProgram(gl, builder.build ());
-   }
 
    @Override
    public void drawTriangles(RenderObject robj) {
@@ -2087,21 +1648,20 @@ public class GL3Viewer extends GLViewer {
       GLTexture bumptex = null;
 
       if (robj.hasTextureCoords ()) {
-         if (myCurrentColorMapProps != null && myCurrentColorMapProps.isEnabled ()) {
-            colortex = myGLResources.getOrLoadTexture (gl, myCurrentColorMapProps.getContent ());   
+         if (myColorMapProps != null && myColorMapProps.isEnabled ()) {
+            colortex = myGLResources.getOrLoadTexture (gl, myColorMapProps.getContent ());   
          }
-         if (myCurrentNormalMapProps != null && myCurrentNormalMapProps.isEnabled ()) {
-            normtex = myGLResources.getOrLoadTexture (gl, myCurrentNormalMapProps.getContent ());
+         if (myNormalMapProps != null && myNormalMapProps.isEnabled ()) {
+            normtex = myGLResources.getOrLoadTexture (gl, myNormalMapProps.getContent ());
          }
-         if (myCurrentBumpMapProps != null && robj.hasTextureCoords ()) {
-            bumptex = myGLResources.getOrLoadTexture (gl, myCurrentBumpMapProps.getContent ());
+         if (myBumpMapProps != null && robj.hasTextureCoords ()) {
+            bumptex = myGLResources.getOrLoadTexture (gl, myBumpMapProps.getContent ());
          }
       }
       GLSupport.checkAndPrintGLError(gl);
 
-      GLShaderProgram prog = getProgram(gl, robj.getStateInfo ());
-
-      prog.use (gl);
+      GLShaderProgram prog = updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), 
+         robj.hasColors (), robj.hasTextureCoords ());
       GLSupport.checkAndPrintGLError(gl);
 
       if (colortex != null) {
@@ -2109,11 +1669,11 @@ public class GL3Viewer extends GLViewer {
       }
       if (normtex != null) {
          myProgManager.bindTexture (gl, "normal_map", normtex);
-         myProgManager.setUniform (gl, prog, "normal_scale", myCurrentNormalMapProps.getNormalScale());
+         myProgManager.setUniform (gl, prog, "normal_scale", myNormalMapProps.getNormalScale());
       }
       if (bumptex != null) {
          myProgManager.bindTexture (gl, "bump_map", bumptex);
-         myProgManager.setUniform (gl, prog, "bump_scale", myCurrentBumpMapProps.getBumpScale());
+         myProgManager.setUniform (gl, prog, "bump_scale", myBumpMapProps.getBumpScale());
       }
 
       gro.drawTriangleGroup (gl, GL.GL_TRIANGLES, robj.getTriangleGroupIdx ());
@@ -2144,7 +1704,7 @@ public class GL3Viewer extends GLViewer {
 
       GL3RenderObjectIndexed gro = myRenderObjectManager.getIndexed (gl, robj);
       maybeUpdateState(gl);
-      getBasicLineProgram(gl, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ()).use(gl);
+      updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
 
       gro.drawLineGroup (gl, GL.GL_LINES, gidx);
       GLSupport.checkAndPrintGLError(gl);
@@ -2160,7 +1720,7 @@ public class GL3Viewer extends GLViewer {
       GLSupport.checkAndPrintGLError(gl);
       GL3RenderObjectIndexed gro = myRenderObjectManager.getIndexed (gl, robj);
       maybeUpdateState(gl);
-      getPointsProgram(gl, PointStyle.POINT, robj.getStateInfo ()).use(gl);
+      updateProgram (gl, RenderingMode.POINTS, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
       gro.drawPointGroup (gl, GL.GL_POINTS, gidx);
       GLSupport.checkAndPrintGLError(gl);
    }
@@ -2170,7 +1730,7 @@ public class GL3Viewer extends GLViewer {
       GLSupport.checkAndPrintGLError(gl);
       GL3RenderObjectIndexed gro = myRenderObjectManager.getIndexed (gl, robj);
       maybeUpdateState(gl);
-      getProgram(gl, robj.getStateInfo ()).use(gl);
+      updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
       gro.drawVertices (gl, getDrawPrimitive (mode));
    }
 
@@ -2198,7 +1758,7 @@ public class GL3Viewer extends GLViewer {
                changed = true;
             }
 
-            getBasicLineProgram(gl, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ()).use (gl);
+            updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
             gro.drawLineGroup (gl, GL.GL_LINES, gidx);
 
             if (changed) {
@@ -2208,8 +1768,10 @@ public class GL3Viewer extends GLViewer {
          }
          default: {
 
-            getLinesProgram(gl, robj.getStateInfo (), style).use (gl);
-
+            myProgramInfo.setLineScaleOffsetEnabled (true);
+            updateProgram (gl, RenderingMode.INSTANCED_LINES, false, robj.hasColors (), false);
+            myProgramInfo.setLineScaleOffsetEnabled (false);
+            
             switch (style) {
                case CYLINDER: {
                   GL3Object primitive = myPrimitiveManager.getCylinder (gl, mySurfaceResolution, true);
@@ -2226,6 +1788,7 @@ public class GL3Viewer extends GLViewer {
                   float arrowLen = 2*arrowRad;
 
                   float[] coneBoundary = {1, 0, -arrowLen, 1};
+                  
                   gro.setRadiusOffsets (gl, (float)rad, null, coneBoundary);
                   gro.drawInstancedLineGroup (gl, cylinder, gidx);
                   gro.setRadiusOffsets (gl, arrowRad, coneBoundary, null);
@@ -2271,7 +1834,7 @@ public class GL3Viewer extends GLViewer {
                changed = true;
             }
 
-            getPointsProgram(gl, style, robj.getStateInfo ()).use(gl);
+            updateProgram (gl, RenderingMode.POINTS, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
             
             gro.drawPointGroup (gl, GL.GL_POINTS, gidx);
 
@@ -2287,10 +1850,7 @@ public class GL3Viewer extends GLViewer {
 
             gro.setRadius(gl, (float)rad);
             // getProgram(gl, robj.getStateInfo ()).use (gl);
-            GLShaderProgram prog = getPointsProgram(gl, style, robj.getStateInfo ());
-            
-            //GLShaderProgram prog = myProgManager.getProgram (gl, DEBUG_INSTANCE_SHADERS, DEBUG_INSTANCE_SHADERS);
-            prog.use (gl);
+            updateProgram (gl, RenderingMode.INSTANCED_POINTS, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
             
             gro.drawInstancedPointGroup (gl, sphere, gidx);
 
@@ -2335,16 +1895,9 @@ public class GL3Viewer extends GLViewer {
          }
          gloFlex.end (gl);
 
-
-         GLShaderProgram prog = null;
-         if (hasColorData) {
-            prog = getColorProgram(gl, hasNormalData);
-         } else {
-            prog = getProgram(gl);
-         }
-
          maybeUpdateState(gl);
-         prog.use (gl);
+         updateProgram (gl, RenderingMode.DEFAULT, hasNormalData, hasColorData, hasTexData);
+
          gloFlex.drawVertices (gl, glmode);
 
       }

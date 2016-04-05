@@ -24,7 +24,6 @@ import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLContext;
 import javax.media.opengl.GLEventListener;
 import javax.media.opengl.awt.GLCanvas;
-import javax.swing.RootPaneContainer;
 import javax.swing.event.MouseInputListener;
 
 import maspack.matrix.AffineTransform3d;
@@ -44,7 +43,6 @@ import maspack.properties.HasProperties;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.render.BumpMapProps;
-import maspack.render.TextureMapProps;
 import maspack.render.Dragger3d;
 import maspack.render.Dragger3d.DraggerType;
 import maspack.render.Dragger3dBase;
@@ -58,23 +56,20 @@ import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.RendererEvent;
 import maspack.render.SortedRenderableList;
+import maspack.render.TextureMapProps;
+import maspack.render.GL.GLProgramInfo.RenderingMode;
 import maspack.util.InternalErrorException;
 
 /**
  * @author John E Lloyd and ArtiSynth team members
  */
-public abstract class GLViewer implements GLEventListener, GLRenderer, 
-HasProperties {
-
-   // Matrices
-   public enum GLMatrixType {
-      PROJECTION, VIEW, MODEL
-   }
+public abstract class GLViewer implements GLEventListener, GLRenderer, HasProperties {
 
    public enum GLVersion {
       GL2, GL3
    }
 
+   // matrices
    protected Matrix4d pickMatrix;
    protected Matrix4d projectionMatrix;
    protected RigidTransform3d viewMatrix;
@@ -83,10 +78,11 @@ HasProperties {
    protected boolean modelMatrixValidP = false;
    protected boolean viewMatrixValidP = false;
    protected boolean projectionMatrixValidP = false;
+   // stacks 
    private LinkedList<Matrix4d> projectionMatrixStack;
    private LinkedList<RigidTransform3d> viewMatrixStack;
    private LinkedList<AffineTransform3dBase> modelMatrixStack;
-   private LinkedList<Matrix3d> modelNormalMatrixStack;
+   private LinkedList<Matrix3d> modelNormalMatrixStack;   // linked to model matrix
 
    protected Vector3d zDir = new Vector3d();     // used for determining zOrder
 
@@ -102,6 +98,7 @@ HasProperties {
    //protected int myLineSlices = DEFAULT_LINE_SLICES;
    protected int mySurfaceResolution = DEFAULT_SURFACE_RESOLUTION; 
 
+   // viewer state
    protected static class ViewState {
       protected Point3d myCenter = new Point3d (DEFAULT_VIEWER_CENTER);
       protected Point3d myUp = new Point3d (0, 0, 1);
@@ -115,23 +112,38 @@ HasProperties {
    }
    protected ViewState myViewState = null;
    protected LinkedList<ViewState> viewStateStack = null;
-
+   
    protected static class ViewerState {
-      boolean lightingEnabled;  // light equations
-      boolean depthEnabled;     // depth buffer
-      boolean colorEnabled;     // color buffer
-      boolean vertexColorsEnabled;   // use per-vertex colors
-      boolean textureMappingEnabled; // use texture maps
-      FaceStyle faceMode;
-      Shading shading;
-      boolean hsvInterpolationEnabled;  
-      ColorMixing colorMixing;  // method for combining material/vertex colors
+      public boolean lightingEnabled;       // light equations
+      public boolean depthEnabled;          // depth buffer
+      public boolean colorEnabled;          // color buffer
+      public boolean vertexColorsEnabled;   // use per-vertex colors
+      public boolean textureMappingEnabled; // use texture maps
+      public FaceStyle faceMode;
+      public Shading shading;
+      public boolean hsvInterpolationEnabled;  
+      public ColorMixing colorMixing;       // method for combining material/vertex colors
+      public boolean roundedPoints;
+      public boolean transparencyEnabled;
+      public boolean transparencyFaceCulling;
       
       public ViewerState() {
+         setDefaults();
       }
-
-      public ViewerState (GLViewer viewer) {
+      
+      public void setDefaults() {
+         lightingEnabled = true;
+         depthEnabled = true;
+         colorEnabled = true;
+         vertexColorsEnabled = true;
+         textureMappingEnabled = true;
+         faceMode = FaceStyle.FRONT;
+         shading = Shading.PHONG;
+         hsvInterpolationEnabled = false;
          colorMixing = ColorMixing.REPLACE;
+         roundedPoints = true;
+         transparencyEnabled = false;
+         transparencyFaceCulling = false;
       }
 
       public ViewerState clone() {
@@ -145,6 +157,9 @@ HasProperties {
          c.hsvInterpolationEnabled = hsvInterpolationEnabled;
          c.textureMappingEnabled = textureMappingEnabled;
          c.colorMixing = colorMixing;
+         c.roundedPoints = roundedPoints;
+         c.transparencyEnabled = transparencyEnabled;
+         c.transparencyFaceCulling = transparencyFaceCulling;
          return c;
       }
    }
@@ -164,7 +179,8 @@ HasProperties {
       public double top = 0.5;
       public double bottom = -0.5;
 
-      public double zoffset = 0;
+      public int depthBitOffset = 0;
+      public int depthBits = 16;
       public double fov = 35;         // originally 70
       public double fieldHeight = 10; // originally 10
       public boolean orthographic = false;
@@ -178,7 +194,8 @@ HasProperties {
          c.right = right;
          c.top = top;
          c.bottom = bottom;
-         c.zoffset = zoffset;
+         c.depthBits = depthBits;
+         c.depthBitOffset = depthBitOffset;
          c.fov = fov;
          c.fieldHeight = fieldHeight;
          c.orthographic = orthographic;
@@ -209,33 +226,43 @@ HasProperties {
    // enable or disable viewier re-scaling (disable when taking movie)
    protected boolean resizeEnabled = true;
 
+   // program info
+   protected GLLightManager lightManager = null;         
+   protected GLProgramInfo myProgramInfo = null;    // controls for program to use
+   protected boolean myProgramInfoModified = true;
+   
    // Colors
-   protected float[] mySelectedColor = new float[] { 1f, 1f, 0, 1f };
-   protected HighlightStyle myHighlightStyle = HighlightStyle.COLOR;
-   protected float[] mySelectingColor = new float[] { 0f, 0f, 0f, 0f}; // color to use when selecting (color selection)
-
-   // XXX Color history
-   protected float[] DEFAULT_MATERIAL_COLOR = new float[]{0.8f, 0.8f, 0.8f, 1.0f};
-   protected float[] DEFAULT_MATERIAL_EMISSION = new float[]{0.0f, 0.0f, 0.0f, 1.0f};
-   protected float[] DEFAULT_MATERIAL_SPECULAR = new float[]{0.1f, 0.1f, 0.1f, 1.0f};
-
-   protected Shading DEFAULT_SHADING = Shading.GOURAUD;
-
+   protected static final Color DARK_RED = new Color (0.5f, 0, 0);
+   protected static final Color DARK_GREEN = new Color (0, 0.5f, 0);
+   protected static final Color DARK_BLUE = new Color (0, 0, 0.5f);
+   
+   protected float[] DEFAULT_MATERIAL_COLOR =    {0.8f, 0.8f, 0.8f, 1.0f};
+   protected float[] DEFAULT_MATERIAL_EMISSION = {0.0f, 0.0f, 0.0f, 1.0f};
+   protected float[] DEFAULT_MATERIAL_SPECULAR = {0.1f, 0.1f, 0.1f, 1.0f};
+   protected float[] DEFAULT_HIGHLIGHT_COLOR =   {1f, 1f, 0f, 1f};
+   protected float[] DEFAULT_SELECTING_COLOR =   {0f, 0f, 0f, 0f};
+   protected float[] DEFAULT_BACKGROUND_COLOR =  {0f, 0f, 0f, 1f};
    protected float DEFAULT_MATERIAL_SHININESS = 32f;
+   
+   protected float[] myHighlightColor = Arrays.copyOf (DEFAULT_HIGHLIGHT_COLOR, 4);
+   protected boolean myHighlightColorActive = false;
+   protected HighlightStyle myHighlightStyle = HighlightStyle.COLOR;
+   protected float[] mySelectingColor = Arrays.copyOf (DEFAULT_SELECTING_COLOR, 4); // color to use when selecting (color selection)
+   
    protected Material myCurrentMaterial = Material.createDiffuse(DEFAULT_MATERIAL_COLOR, 32f);
    protected float[] myBackColor = null;
-   protected boolean mySelectedColorActive = false;
    protected boolean myCurrentMaterialModified = true;  // trigger for detecting when material is updated
-
-   protected TextureMapProps myCurrentColorMapProps = null;
-   protected NormalMapProps myCurrentNormalMapProps = null;
-   protected BumpMapProps myCurrentBumpMapProps = null;
+   protected float[] backgroundColor = Arrays.copyOf (DEFAULT_BACKGROUND_COLOR, 4);
+   
+   // texture properties
+   protected TextureMapProps myColorMapProps = null;
+   protected NormalMapProps myNormalMapProps = null;
+   protected BumpMapProps myBumpMapProps = null;
    
    // Canvas
-   protected GLAutoDrawable drawable;
-   protected GLCanvas canvas;
-
-   protected RootPaneContainer frame;
+   protected GLAutoDrawable drawable;  // currently active drawable
+   protected GLCanvas canvas;          // main GL canvas
+   
    protected int width;
    protected int height;
 
@@ -286,11 +313,11 @@ HasProperties {
    }
    protected RenderFlags myRenderFlags = new RenderFlags();
 
+   // list of renderables
    protected LinkedList<GLRenderable> myRenderables =  new LinkedList<GLRenderable>();
    protected boolean myInternalRenderListValid = false;
    protected RenderList myInternalRenderList = new RenderList();
-   protected RenderList myExternalRenderList;
-   protected Object renderablesLock = new Object();
+   protected RenderList myExternalRenderList = null;
 
    // Renderable Objects and Tools
    protected LinkedList<Dragger3d> myDraggers;
@@ -304,23 +331,14 @@ HasProperties {
    protected double axisLength = 0;
    protected boolean gridVisible = false;
 
-   // Transparency
-   public static boolean DEFAULT_ALPHA_FACE_CULLING = false;
-   protected boolean alphaFaceCulling = DEFAULT_ALPHA_FACE_CULLING;
-   protected boolean myTransparencyEnabledP = false;
-
    // Cut planes
-   protected int maxClipPlanes = 6;  // minimum 6 supported
+   protected int maxClipPlanes = 6;                      // minimum 6 supported
    protected ArrayList<GLClipPlane> myClipPlanes = new ArrayList<GLClipPlane>(6);
    protected double[] myClipPlaneValues = new double[4]; // storing plane info
 
-   protected GLLightManager lightManager = null;
-
    // Interaction
-   protected LinkedList<MouseInputListener> myMouseInputListeners =
-   new LinkedList<MouseInputListener>();
-   protected LinkedList<MouseWheelListener> myMouseWheelListeners =
-   new LinkedList<MouseWheelListener>();
+   protected LinkedList<MouseInputListener> myMouseInputListeners = new LinkedList<MouseInputListener>();
+   protected LinkedList<MouseWheelListener> myMouseWheelListeners = new LinkedList<MouseWheelListener>();
    protected GLMouseListener myMouseHandler;
    protected ArrayList<RenderListener> myRenderListeners =
    new ArrayList<RenderListener>();
@@ -329,41 +347,23 @@ HasProperties {
    protected GLSelector mySelector;
    protected GLSelectionFilter mySelectionFilter = null;
    GLSelectionEvent selectionEvent;
-   protected ArrayList<GLSelectionListener> mySelectionListeners =
-   new ArrayList<GLSelectionListener>();
+   protected ArrayList<GLSelectionListener> mySelectionListeners = new ArrayList<GLSelectionListener>();
    protected boolean selectionEnabled = true;
    protected boolean selectOnPressP = false;   
 
    public static PropertyList myProps = new PropertyList (GLViewer.class);
 
-   // Colors and materials
-   protected static Color darkRed = new Color (0.5f, 0, 0);
-   protected static Color darkGreen = new Color (0, 0.5f, 0);
-   protected static Color darkBlue = new Color (0, 0, 0.5f);
-   protected float[] bgColor = new float[] { 0f, 0f, 0f, 1f };
 
    static {
       myProps.add (
          "eye", "eye location (world coordinates)", DEFAULT_VIEWER_EYE);
-      myProps.add (
-         "center", "center location (world coordinates)",
-         DEFAULT_VIEWER_CENTER);
-      myProps.add (
-         "axisLength", "length of rendered x-y-z axes", 0);
-      myProps.add(
-         "rotationMode", "method for interactive rotation",
-         DEFAULT_ROTATION_MODE);
-      myProps.add(
-         "axialView", "axis-aligned view orientation",
-         DEFAULT_AXIAL_VIEW);
-      myProps.add(
-         "defaultAxialView", "default axis-aligned view orientation",
-         DEFAULT_AXIAL_VIEW);
-      myProps.add (
-         "backgroundColor", "background color", Color.BLACK);
-      myProps.add(
-         "alphaFaceCulling", "allow transparency face culling",
-         DEFAULT_ALPHA_FACE_CULLING);
+      myProps.add ("center", "center location (world coordinates)", DEFAULT_VIEWER_CENTER);
+      myProps.add ("axisLength", "length of rendered x-y-z axes", 0);
+      myProps.add("rotationMode", "method for interactive rotation", DEFAULT_ROTATION_MODE);
+      myProps.add("axialView", "axis-aligned view orientation", DEFAULT_AXIAL_VIEW);
+      myProps.add("defaultAxialView", "default axis-aligned view orientation", DEFAULT_AXIAL_VIEW);
+      myProps.add ("backgroundColor", "background color", Color.BLACK);
+      myProps.add("transparencyFaceCulling", "allow transparency face culling", false);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -474,7 +474,7 @@ HasProperties {
    }
 
    public void addRenderable (GLRenderable d) {
-      synchronized(renderablesLock) {
+      synchronized(myRenderables) {
          myRenderables.add (d);
       }
       myInternalRenderListValid = false;
@@ -506,7 +506,7 @@ HasProperties {
    }
 
    public void removeRenderable (GLRenderable d) {
-      synchronized(renderablesLock) {
+      synchronized(myRenderables) {
          myRenderables.remove (d);
       }
       myInternalRenderListValid = false;
@@ -537,7 +537,7 @@ HasProperties {
    }
 
    public void clearRenderables() {
-      synchronized(renderablesLock) {
+      synchronized(myRenderables) {
          myRenderables.clear();
       }
       myInternalRenderListValid = false;
@@ -578,11 +578,12 @@ HasProperties {
     */
    public void setVerticalFieldOfView (double fov) {
       myFrustum.fov = fov;
-      invalidateProjectionMatrix ();
+      computeProjectionMatrix ();
    }
 
-   protected boolean selectEnabled = false;
-   protected boolean selectTrigger = false;
+   // for triggering selection process
+   protected volatile boolean selectEnabled = false;
+   protected volatile boolean selectTrigger = false;
 
    /**
     * Performs a selection operation on a sub-region of the viewport.
@@ -599,9 +600,7 @@ HasProperties {
     * select all objects in the pick frustum, not just those which are
     * visible through the viewport
     */
-   protected void setPick (
-      double x, double y, double w, double h,
-      boolean ignoreDepthTest) {
+   protected void setPick (double x, double y, double w, double h, boolean ignoreDepthTest) {
 
       if (ignoreDepthTest) {
          mySelector = new GLOcclusionSelector(this);
@@ -613,7 +612,7 @@ HasProperties {
       selectTrigger = true;
       repaint();
    }
-
+   
    public void repaint() {
       if (!myInternalRenderListValid) {
          buildInternalRenderList();
@@ -634,18 +633,18 @@ HasProperties {
    }
 
    protected void buildInternalRenderList() {
-      synchronized(renderablesLock) {
-         myInternalRenderList.clear();
-         myInternalRenderList.addIfVisibleAll (myRenderables);
-         myInternalRenderListValid = true;
-         // myInternalRenderList.addIfVisibleAll (myDraggers);
+      synchronized(myInternalRenderList) {
+         synchronized (myRenderables) {
+            myInternalRenderList.clear();
+            myInternalRenderList.addIfVisibleAll (myRenderables);
+            myInternalRenderListValid = true;
+            // myInternalRenderList.addIfVisibleAll (myDraggers);  
+         }
       }
    }
 
    public void setExternalRenderList (RenderList list) {
-      synchronized (renderablesLock) {
-         myExternalRenderList = list;  
-      }
+      myExternalRenderList = list;  
    }
 
    public RenderList getExternalRenderList() {
@@ -738,7 +737,7 @@ HasProperties {
       this.myFrustum.orthographic = false;
       resetViewVolume = true;
 
-      updateProjectionMatrix();
+      computeProjectionMatrix ();
    }
 
    /**
@@ -769,7 +768,7 @@ HasProperties {
       this.myFrustum.orthographic = false;
       resetViewVolume = true;
 
-      updateProjectionMatrix();
+      computeProjectionMatrix ();
    }
 
    /**
@@ -797,7 +796,7 @@ HasProperties {
       this.myFrustum.orthographic = true;
       resetViewVolume = true;
 
-      updateProjectionMatrix();
+      computeProjectionMatrix ();
    }
 
    /**
@@ -832,7 +831,7 @@ HasProperties {
       this.myFrustum.fieldHeight = myFrustum.top-myFrustum.bottom;
       resetViewVolume = true;
 
-      updateProjectionMatrix();
+      computeProjectionMatrix ();
 
    }
 
@@ -873,8 +872,6 @@ HasProperties {
             renderable.updateBounds (pmin, pmax);
          }
       }
-      // System.out.println (pmin);
-      // System.out.println (pmax);
       if (pmin.x == Double.POSITIVE_INFINITY) { // then no bounds were set, so
          // use a default
          pmin.set (-1, -1, -1);
@@ -1025,19 +1022,26 @@ HasProperties {
       return null;
    }
 
+   /**
+    * Enable or disable the GL Canvas auto-swap mode
+    * @param enable
+    */
    public void setAutoSwapBufferMode (boolean enable) {
-      if (drawable != null) {
-         drawable.setAutoSwapBufferMode (enable);
-      }
+      canvas.setAutoSwapBufferMode (enable);
    }
 
+   /**
+    * Check whether or not the GL canvas is set to auto swap buffers
+    */
    public boolean getAutoSwapBufferMode() {
-      if (drawable != null) {
-         return drawable.getAutoSwapBufferMode();
-      }
-      return false;
+      return canvas.getAutoSwapBufferMode();
    }
 
+   /**
+    * Gets the "currently active" context.  If not currently rendering,
+    * this will return null;
+    * @return active context
+    */
    public GLContext getContext() {
       if (drawable != null) {
          return drawable.getContext();
@@ -1045,13 +1049,14 @@ HasProperties {
       return null;
    }
 
-   protected void swapBuffers() {
-      if (drawable != null) {
-         drawable.swapBuffers();
-      }
-   }
-
-   double centerDistance (int x, int y) {
+ 
+   /**
+    * Distance of pixel from center (Euchlidean)
+    * @param x
+    * @param y
+    * @return
+    */
+   private double centerDistance (int x, int y) {
       int dx = x - width / 2;
       int dy = y - height / 2;
       return Math.sqrt (dx * dx + dy * dy);
@@ -1241,13 +1246,13 @@ HasProperties {
    private Color getAxisColor (int idx) {
       switch (idx) {
          case 0: {
-            return darkRed;
+            return DARK_RED;
          }
          case 1: {
-            return darkGreen;
+            return DARK_GREEN;
          }
          case 2: {
-            return darkBlue;
+            return DARK_BLUE;
          }
          default: {
             throw new InternalErrorException ("unknown index "+idx);
@@ -1329,7 +1334,7 @@ HasProperties {
       myViewState = new ViewState();
       viewStateStack = new LinkedList<>();
 
-      myViewerState = new ViewerState(this);
+      myViewerState = new ViewerState();
       viewerStateStack = new LinkedList<>();
 
       // initialize matrices
@@ -1343,11 +1348,13 @@ HasProperties {
       modelMatrixStack = new LinkedList<>();
       modelNormalMatrixStack = new LinkedList<>();
 
-      updateProjectionMatrix();
-
+      computeProjectionMatrix ();
       invalidateModelMatrix();
       invalidateViewMatrix();
       invalidateProjectionMatrix();
+      
+      myProgramInfo = new GLProgramInfo();
+      myProgramInfoModified = true;
    }
 
    public GLCanvas getCanvas() {
@@ -1411,7 +1418,8 @@ HasProperties {
    }
 
    public void reshape (GLAutoDrawable drawable, int x, int y, int w, int h) {
-      GLSupport.checkAndPrintGLError(drawable.getGL());
+      this.drawable = drawable;
+      
       width = w;
       height = h;
 
@@ -1420,7 +1428,8 @@ HasProperties {
          resetViewVolume();
       }
       repaint();
-      GLSupport.checkAndPrintGLError(drawable.getGL());
+      
+      this.drawable = null;
    }
 
    public double getViewPlaneHeight() {
@@ -1436,9 +1445,39 @@ HasProperties {
       return (width / (double)height) * getViewPlaneHeight();
    }
 
-   public abstract void setViewport(int x, int y, int width, int height);
+   @Override
+   public void setPointSize(float s) {
+      GL2GL3 gl = (GL2GL3)getGL();
+      gl.glPointSize(s);
+   }
 
-   protected abstract int[] getViewport();
+   @Override
+   public float getPointSize() {
+      float[] buff = new float[1];
+      getGL().glGetFloatv(GL.GL_POINT_SIZE, buff, 0);
+      return buff[0];
+   }
+
+   @Override
+   public void setLineWidth(float w) {
+      getGL().glLineWidth(w);
+   }
+
+   public float getLineWidth() {
+      float[] buff = new float[1];
+      getGL().glGetFloatv(GL.GL_LINE_WIDTH, buff, 0);
+      return buff[0];
+   }
+
+   public void setViewport(int x, int y, int width, int height) {
+      getGL().glViewport(x, y, width, height);
+   }
+
+   protected int[] getViewport() {
+      int[] buff = new int[4];
+      getGL().glGetIntegerv(GL.GL_VIEWPORT, buff, 0);
+      return buff;
+   }
 
    protected void resetViewVolume() {
       resetViewVolume(width, height);
@@ -1504,9 +1543,6 @@ HasProperties {
       minz = minz-d/2;
       maxz = maxz+d/2;
 
-      // XXX I have no idea why these are the correct formulae, but
-      // they're the only ones that work (derived from a set of
-      // test cases)
       zRange.y = maxz + worldDist;
       zRange.x = 2*(minz + worldDist)-zRange.y;
 
@@ -1537,12 +1573,6 @@ HasProperties {
       return viewMatrix.clone();
    }
 
-//   public RigidTransform3d getEyeToWorld() {
-//      RigidTransform3d X = new RigidTransform3d();
-//      X.invert(viewMatrix);
-//      return X;
-//   }
-//
    public void getEyeToWorld (RigidTransform3d X) {
       X.invert(viewMatrix);
    }
@@ -1613,30 +1643,40 @@ HasProperties {
    }
 
    /**
-    * Add a depth offset to the projection matrix, in normalized
-    * coordinates
+    * Add a depth offset to the projection matrix.
+    * Each integer represents enough depth to account for one bin in the depth
+    * buffer.  Negative values bring following objects closer to the screen.
+    * This is to account for z-fighting.
+    * 
     * @param zOffset value to offset depth buffer
     */
-   public void addDepthOffset(double zOffset) {
-      myFrustum.zoffset += zOffset;
-      updateProjectionMatrix();
+   public void addDepthOffset(int zOffset) {
+      myFrustum.depthBitOffset += zOffset;
+      computeProjectionMatrix ();
    }
 
    /**
-    * Set a depth offset to the projection matrix, in normalized
-    * coordinates
+    * Set a depth offset to the projection matrix.
+    * Each integer represents enough depth to account for one bin in the depth
+    * buffer.  Negative values bring following objects closer to the screen.
+    * This is to account for z-fighting.
     * @param zOffset value to offset depth buffer
     */
-   public void setDepthOffset(double zOffset) {
-      myFrustum.zoffset = zOffset;
-      updateProjectionMatrix();
+   public void setDepthOffset(int zOffset) {
+      myFrustum.depthBitOffset = zOffset;
+      computeProjectionMatrix ();
    }
 
-   public float getDepthOffset() {
-      return (float)(myFrustum.zoffset);
+   /**
+    * The current depth offset level.  Zero represents no offsets, 
+    * negative means objects are drawn closer to the viewer,
+    * positive means they are drawn further away.
+    * This is to account for z-fighting.
+    * @return the current offset (in depth bins)
+    */
+   public int getDepthOffset() {
+      return myFrustum.depthBitOffset;
    }
-
-   protected abstract void drawDragBox (GLAutoDrawable drawable);
 
    public void display (GLAutoDrawable drawable) {
       GLSupport.checkAndPrintGLError(drawable.getGL ());
@@ -1655,6 +1695,12 @@ HasProperties {
             gl.glDisable(GL2GL3.GL_FRAMEBUFFER_SRGB);
          }
          gammaCorrectionRequested = false;
+      }
+      
+      int depthBits = drawable.getChosenGLCapabilities ().getDepthBits ();
+      if (depthBits != myFrustum.depthBits) {
+         myFrustum.depthBits = depthBits;
+         computeProjectionMatrix ();
       }
 
       display(drawable, flags);
@@ -1759,30 +1805,31 @@ HasProperties {
    }
 
    protected void setBackgroundColor(float r, float g, float b, float a) {
-      bgColor[0] = r;
-      bgColor[1] = g;
-      bgColor[2] = b;
-      bgColor[3] = a;
+      backgroundColor[0] = r;
+      backgroundColor[1] = g;
+      backgroundColor[2] = b;
+      backgroundColor[3] = a;
       repaint();
    }
 
    public void setBackgroundColor (Color color) {
-      color.getComponents (bgColor);
+      color.getComponents (backgroundColor);
       repaint();
    }
 
    public Color getBackgroundColor() {
-      return new Color (bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
+      return new Color (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
    }
 
    public void getBackgroundColor(float[] rgba) {
       for (int i=0; i<rgba.length; ++i) {
-         rgba[i] = bgColor[i];
+         rgba[i] = backgroundColor[i];
       }
    }
 
    public void setDefaultLights() {
 
+      //      // For debugging lights, set to R-G-B
       //      float light0_ambient[] = { 0.2f, 0.2f, 0.2f, 1.0f };
       //      float light0_diffuse[] = { 0.8f, 0.0f, 0.0f, 1.0f };
       //      float light0_specular[] = { 0, 0, 0, 1 };
@@ -1821,22 +1868,35 @@ HasProperties {
       lightManager.addLight(new GLLight (
          light2_position, light2_ambient, light2_diffuse, light2_specular));
       lightManager.setMaxIntensity(1.0f);
+      
+      myProgramInfo.setNumLights (lightManager.numLights ());
+      myProgramInfoModified = true;
+      
    }
    
    public boolean setLightingEnabled (boolean enable) {
       boolean prev = myViewerState.lightingEnabled;
-      if (!selectEnabled) {
+      if (enable != prev) {
          myViewerState.lightingEnabled = enable;
+         if (enable) {
+            myProgramInfo.setShading (Shading.NONE);
+         } else {
+            myProgramInfo.setShading (getShading());
+         }
+         myProgramInfoModified = true;
       }
+      
       return prev;
    }
 
    public boolean isLightingEnabled() {
-      return myViewerState.lightingEnabled;
+      return myViewerState.lightingEnabled && myViewerState.shading != Shading.NONE;
    }
 
-   public void setVertexColoringEnabled (boolean enable) {
+   public boolean setVertexColoringEnabled (boolean enable) {
+      boolean prev = myViewerState.vertexColorsEnabled;
       myViewerState.vertexColorsEnabled = enable;
+      return prev;
    }
 
    public boolean isVertexColoringEnabled() {
@@ -1844,8 +1904,7 @@ HasProperties {
    }
    
    public boolean hasVertexColoring(){
-      return (myViewerState.vertexColorsEnabled && 
-              myViewerState.colorMixing != ColorMixing.NONE); 
+      return (myViewerState.vertexColorsEnabled && myViewerState.colorMixing != ColorMixing.NONE); 
    }
 
    protected boolean isHSVColorInterpolationEnabled() {
@@ -1861,21 +1920,29 @@ HasProperties {
       }
    }
 
-   public ColorInterpolation setColorInterpolation (
-      ColorInterpolation interp) {
+   /**
+    * Sets the color interpolation method to be used
+    * @param interp new color interpolation
+    * @return  the previous value so it can be reset
+    */
+   public ColorInterpolation setColorInterpolation (ColorInterpolation interp) {
       ColorInterpolation prev = getColorInterpolation();
       myViewerState.hsvInterpolationEnabled = (interp==ColorInterpolation.HSV);
+      
+      myProgramInfo.setColorInterpolation (interp);
+      myProgramInfoModified = true;
+      
       return prev;
    }
 
    protected void setHSVCColorInterpolationEnabled(boolean set) {
-      myViewerState.hsvInterpolationEnabled = set;
+      setColorInterpolation (ColorInterpolation.HSV);
    }
 
-   public void setTextureMappingEnabled (boolean enable) {
-      if (!selectEnabled) {
-         myViewerState.textureMappingEnabled = enable;
-      }
+   public boolean setTextureMappingEnabled (boolean enable) {
+      boolean prev = myViewerState.textureMappingEnabled; 
+      myViewerState.textureMappingEnabled = enable;
+      return prev;
    }
 
    public boolean isTextureMappingEnabled() {
@@ -1889,6 +1956,10 @@ HasProperties {
       ColorMixing prev = myViewerState.colorMixing;
       if (hasVertexColorMixing(cmix)) {
          myViewerState.colorMixing = cmix;
+         
+         myProgramInfo.setVertexColorMixing (cmix);
+         myProgramInfoModified = true;
+         
       }
       return prev;
    }
@@ -1902,33 +1973,33 @@ HasProperties {
    
    @Override
    public TextureMapProps setTextureMapProps (TextureMapProps props) {
-      TextureMapProps old = myCurrentColorMapProps;
+      TextureMapProps old = myColorMapProps;
       if (props != null) {
-         myCurrentColorMapProps = props.clone();
+         myColorMapProps = props.clone();
       } else {
-         myCurrentColorMapProps = null;
+         myColorMapProps = null;
       }
       return old;
    }
    
    @Override
    public NormalMapProps setNormalMapProps (NormalMapProps props) {
-      NormalMapProps old = myCurrentNormalMapProps;
+      NormalMapProps old = myNormalMapProps;
       if (props != null) {
-         myCurrentNormalMapProps = props.clone();
+         myNormalMapProps = props.clone();
       } else {
-         myCurrentNormalMapProps = null;
+         myNormalMapProps = null;
       }
       return old;
    }
    
    @Override
    public BumpMapProps setBumpMapProps (BumpMapProps props) {
-      BumpMapProps old = myCurrentBumpMapProps;
+      BumpMapProps old = myBumpMapProps;
       if (props != null) {
-         myCurrentBumpMapProps = props.clone();
+         myBumpMapProps = props.clone();
       } else {
-         myCurrentBumpMapProps = null;
+         myBumpMapProps = null;
       }
       return old;
    }
@@ -1942,7 +2013,9 @@ HasProperties {
       repaint();
    }
 
-   protected void setDepthEnabled(boolean set) {
+   public boolean setDepthEnabled(boolean set) {
+      boolean prev = myViewerState.depthEnabled;
+      // XXX should this be setting it immediately?
       GL gl = getGL();
       if (set) {
          gl.glEnable(GL.GL_DEPTH_TEST);
@@ -1950,6 +2023,7 @@ HasProperties {
          gl.glDisable(GL.GL_DEPTH_TEST);
       }
       myViewerState.depthEnabled = set;
+      return prev;
    }
 
    protected boolean isDepthEnabled() {
@@ -1961,6 +2035,7 @@ HasProperties {
    }
 
    protected void setColorEnabled(boolean enable) {
+      // XXX should this be setting it immediately?
       GL gl = getGL();
       gl.glColorMask(enable, enable, enable, enable);
       myViewerState.colorEnabled = enable;
@@ -1969,6 +2044,12 @@ HasProperties {
    public Shading setShading(Shading shading) {
       Shading prev = myViewerState.shading;
       myViewerState.shading = shading;
+      
+      if (isLightingEnabled ()) {
+         myProgramInfo.setShading (shading);
+         myProgramInfoModified = true;
+      }
+      
       return prev;
    }
 
@@ -1976,20 +2057,22 @@ HasProperties {
       return myViewerState.shading;
    }
    
-//   public void setDefaultShading() {
-//      setShading (Shading.FLAT);
-//   }
-
-//   public void setDefaultLineWidth() {
-//      setLineWidth (1);
-//   }
-//   
-//   public void setDefaultPointSize() {
-//      setPointSize (1);
-//   }
-   
    protected void pushViewerState() {
       viewerStateStack.push(myViewerState.clone());
+   }
+   
+   public boolean setRoundedPoints(boolean enable) {
+      boolean prev = myViewerState.roundedPoints;
+      myViewerState.roundedPoints = enable;
+      
+      myProgramInfo.setRoundPointsEnabled (enable);
+      myProgramInfoModified = true;
+      
+      return prev;
+   }
+   
+   public boolean getRoundedPoints() {
+      return myViewerState.roundedPoints;
    }
 
    protected void popViewerState() {
@@ -1997,41 +2080,27 @@ HasProperties {
    }
 
    protected void setViewerState(ViewerState state) {  
-      if (myViewerState.lightingEnabled != state.lightingEnabled) {
-         setLightingEnabled(state.lightingEnabled);
-      }
-      if (myViewerState.depthEnabled != state.depthEnabled) {
-         setDepthEnabled(state.depthEnabled);
-      }
-      if (myViewerState.colorEnabled != state.colorEnabled) {
-         setColorEnabled(state.colorEnabled);
-      }
-      if (myViewerState.faceMode != state.faceMode) {
-         setFaceStyle(state.faceMode);
-      }
-      if (myViewerState.shading != state.shading) {
-         setShading(state.shading);
-      }
-      if (myViewerState.vertexColorsEnabled != state.vertexColorsEnabled) {
-         setVertexColoringEnabled(state.vertexColorsEnabled);
-      }
-      if (myViewerState.hsvInterpolationEnabled != state.hsvInterpolationEnabled) {
-         setHSVCColorInterpolationEnabled(state.hsvInterpolationEnabled);
-      }
-      if (myViewerState.textureMappingEnabled != state.textureMappingEnabled) {
-         setTextureMappingEnabled(state.textureMappingEnabled);
-      }
-      if (myViewerState.colorMixing != state.colorMixing) {
-         setVertexColorMixing (state.colorMixing);
-      }
-
+      setLightingEnabled(state.lightingEnabled);
+      setDepthEnabled(state.depthEnabled);
+      setColorEnabled(state.colorEnabled);
+      setVertexColoringEnabled(state.vertexColorsEnabled);
+      setTextureMappingEnabled(state.textureMappingEnabled);
+      setFaceStyle(state.faceMode);
+      setShading(state.shading);
+      setHSVCColorInterpolationEnabled(state.hsvInterpolationEnabled);
+      setVertexColorMixing (state.colorMixing);
+      setRoundedPoints(state.roundedPoints);
+      setTransparencyEnabled (state.transparencyEnabled);
+      setTransparencyFaceCulling (state.transparencyFaceCulling);
    }
 
    public boolean isTransparencyEnabled() {
-      return myTransparencyEnabledP;
+      return myViewerState.transparencyEnabled;
    }
 
-   public abstract void setTransparencyEnabled (boolean enable);
+   public void setTransparencyEnabled (boolean enable) {
+      myViewerState.transparencyEnabled = enable;
+   }
 
    /*
     * set "up" vector for viewing matrix
@@ -2052,8 +2121,8 @@ HasProperties {
    public void setSelectionHighlightStyle (HighlightStyle style) {
       if (style == HighlightStyle.NONE) {
          // turn off highlighting if currently selected
-         if (mySelectedColorActive) {
-            mySelectedColorActive = false;
+         if (myHighlightColorActive) {
+            myHighlightColorActive = false;
             // indicate that we may need to update color state
             myCurrentMaterialModified = true;
          }
@@ -2065,21 +2134,21 @@ HasProperties {
       return myHighlightStyle;
    }
 
-   public void setSelectionColor (Color color) {
-      color.getRGBComponents (mySelectedColor);
+   public void setHighlightColor (Color color) {
+      color.getRGBComponents (myHighlightColor);
    }
 
    @Override
-   public void getSelectionColor (float[] rgba) {
+   public void getHighlightColor (float[] rgba) {
       if (rgba.length < 3) {
          throw new IllegalArgumentException (
             "Argument rgba must have length of at least 3");
       }
-      rgba[0] = mySelectedColor[0];
-      rgba[1] = mySelectedColor[1];
-      rgba[2] = mySelectedColor[2];
+      rgba[0] = myHighlightColor[0];
+      rgba[1] = myHighlightColor[1];
+      rgba[2] = myHighlightColor[2];
       if (rgba.length > 3) {
-         rgba[3] = mySelectedColor[3];
+         rgba[3] = myHighlightColor[3];
       }
    }
 
@@ -2112,6 +2181,8 @@ HasProperties {
    @Override
    public FaceStyle setFaceStyle(FaceStyle style) {
       FaceStyle prev = myViewerState.faceMode;
+      
+      // XXX should this be set here?
       if (style != prev) {
          GL gl = getGL();
          switch (style) {
@@ -2144,10 +2215,6 @@ HasProperties {
    public FaceStyle getFaceStyle () {
       return myViewerState.faceMode;
    }
-
-//   public void setDefaultFaceMode() {
-//      setFaceMode (Faces.FRONT);
-//   }
 
    public void setSelectionEnabled (boolean selection) {
       selectionEnabled = selection;
@@ -2245,6 +2312,7 @@ HasProperties {
       float[] position, float[] ambient, float[] diffuse, float[] specular) {
       GLLight light = new GLLight (position, ambient, diffuse, specular);
       lightManager.addLight (light);
+      myProgramInfo.setNumLights (lightManager.numLights ());
       return light;
    }
 
@@ -2252,11 +2320,13 @@ HasProperties {
       GLLight light = lightManager.getLight(i);
       if (light != null) {
          lightManager.removeLight(light);
+         myProgramInfo.setNumLights (lightManager.numLights ());
       }
    }
 
    public void removeLight(GLLight light) {
       lightManager.removeLight(light);
+      myProgramInfo.setNumLights (lightManager.numLights ());
    }
 
    public GLLight getLight (int i) {
@@ -2306,12 +2376,14 @@ HasProperties {
       return myRotationMode;
    }
 
-   public void setAlphaFaceCulling(boolean enable) {
-      alphaFaceCulling = enable;
+   public boolean setTransparencyFaceCulling(boolean enable) {
+      boolean prev = myViewerState.transparencyFaceCulling;
+      myViewerState.transparencyFaceCulling = enable;
+      return prev;
    }
 
-   public boolean getAlphaFaceCulling() {
-      return alphaFaceCulling;
+   public boolean getTransparencyFaceCulling() {
+      return myViewerState.transparencyFaceCulling;
    }
 
    public Vector3d getEyeZDirection() {
@@ -2341,35 +2413,26 @@ HasProperties {
 
       // save depth, lighting, face culling information
       pushViewerState();
-      setLightingEnabled (false);
-      setDepthEnabled(false);
-
-      pushModelMatrix();
-      pushViewMatrix();
       pushProjectionMatrix();
-
-      setModelMatrix(RigidTransform3d.IDENTITY);
-      setViewMatrix(RigidTransform3d.IDENTITY);
+      pushViewMatrix();
+      pushModelMatrix();
+      
       setOrthogonal2d(left, right, bottom, top);
+      setViewMatrix(RigidTransform3d.IDENTITY);
+      setModelMatrix(RigidTransform3d.IDENTITY);
 
       rendering2d = true;
    }
 
    public void finish2DRendering() {
 
-      popProjectionMatrix();
-      popViewMatrix();
       popModelMatrix();
+      popViewMatrix();
+      popProjectionMatrix();
       popViewerState();
-
-      setLightingEnabled (true);
-      setDepthEnabled(true);
 
       rendering2d = false;
    }
-
-//   public abstract void begin2DRendering (
-//      double left, double right, double bottom, double top);
 
    @Override
    public boolean begin2DRendering (double w, double h) {
@@ -2378,7 +2441,6 @@ HasProperties {
       }     
       if (has2DRendering()) {
          begin2DRendering(0, w, 0, h);
-         rendering2d = true;
          return true;
       }
       else {
@@ -2393,11 +2455,8 @@ HasProperties {
       }     
       if (has2DRendering()) {
          finish2DRendering();
-         rendering2d = false;
       }
    }
-
-   //public abstract void finish2DRendering();
 
    @Override
    public boolean is2DRendering() {
@@ -2478,26 +2537,38 @@ HasProperties {
 
    public abstract void cleanupScreenShots();
 
-   protected void updateProjectionMatrix() {
+   protected void setRenderingProgramMode(RenderingMode mode) {
+      myProgramInfo.setMode (mode);
+      myProgramInfoModified = true;
+   }
+   
+   protected void computeProjectionMatrix() {
 
       // from frustrum info
       double[] pvals = null;
       double w = myFrustum.right-myFrustum.left;
       double h = myFrustum.top-myFrustum.bottom;
       double d = myFrustum.far-myFrustum.near;
-
+      
+      
+      // adjust offset to account for proper bin depth
+      double zoffset = 0;
+      if (myFrustum.depthBitOffset != 0) {
+         zoffset = -2.0/(1 << (myFrustum.depthBits-1));
+      }
+      
       if (myFrustum.orthographic) {
          pvals = new double[]{
                               2/w, 0, 0, -(myFrustum.right+myFrustum.left)/w,
                               0, 2/h, 0, -(myFrustum.top+myFrustum.bottom)/h,
-                              0,0,-2/d, -(myFrustum.far+myFrustum.near)/d+myFrustum.zoffset,
+                              0,0,-2/d, -(myFrustum.far+myFrustum.near)/d+zoffset,
                               0, 0, 0, 1
          };
       } else {
          pvals = new double[] {
                                2*myFrustum.near/w, 0, (myFrustum.right+myFrustum.left)/w, 0,
                                0, 2*myFrustum.near/h, (myFrustum.top+myFrustum.bottom)/h, 0,
-                               0, 0, -(myFrustum.far+myFrustum.near)/d-myFrustum.zoffset, -2*myFrustum.near*myFrustum.far/d,
+                               0, 0, -(myFrustum.far+myFrustum.near)/d-zoffset, -2*myFrustum.near*myFrustum.far/d,
                                0, 0, -1, 0
          };
       }
@@ -2545,14 +2616,14 @@ HasProperties {
       // pre-multiply
       projectionMatrix.mul(pickMatrix, projectionMatrix);
 
-      invalidateProjectionMatrix();   
+      invalidateProjectionMatrix ();
 
    }
 
    // used internally for selection
    public void clearPickMatrix() {
       pickMatrix = null;
-      updateProjectionMatrix(); // recompute projection
+      computeProjectionMatrix (); // recompute projection
    }
 
    public void setModelMatrix(AffineTransform3dBase m) {
@@ -2774,7 +2845,7 @@ HasProperties {
    //  Clip Planes
    //==========================================================================
 
-   public int numFreeClipPlanes() {
+   private int numUsedClipPlanes() {
       int c = 0;
       for (GLClipPlane clip : myClipPlanes) {
          if (clip.isClippingEnabled()) {
@@ -2784,6 +2855,11 @@ HasProperties {
             }
          }
       }
+      return c;
+   }
+   
+   public int numFreeClipPlanes() {
+      int c = numUsedClipPlanes ();
       if (c >= maxClipPlanes) {
          return 0;
       }
@@ -2820,6 +2896,10 @@ HasProperties {
    public boolean addClipPlane (GLClipPlane clipPlane) {
       clipPlane.setViewer (this);
       myClipPlanes.add (clipPlane);
+      
+      myProgramInfo.setNumClipPlanes (numUsedClipPlanes ());
+      myProgramInfoModified = true;
+      
       if (isVisible()) {
          rerender();
       }
@@ -2841,6 +2921,10 @@ HasProperties {
    public boolean removeClipPlane (GLClipPlane clipPlane) {
       if (myClipPlanes.remove (clipPlane)) {
          clipPlane.setViewer (null);
+         
+         myProgramInfo.setNumClipPlanes (numUsedClipPlanes ());
+         myProgramInfoModified = true;
+         
          if (isVisible()) {
             rerender();
          }
@@ -2859,6 +2943,8 @@ HasProperties {
       if (isVisible()) {
          rerender();
       }
+      myProgramInfo.setNumClipPlanes (0);
+      myProgramInfoModified = true;
    }
 
    private float[] toFloat (Vector3d vec) {
@@ -2984,10 +3070,10 @@ HasProperties {
     * {@inheritDoc}
     */
    public boolean setSelectionHighlighting (boolean enable) {
-      boolean prev = mySelectedColorActive;
+      boolean prev = myHighlightColorActive;
       if (myHighlightStyle == HighlightStyle.COLOR) {
-         if (enable != mySelectedColorActive) {
-            mySelectedColorActive = enable;
+         if (enable != myHighlightColorActive) {
+            myHighlightColorActive = enable;
             // indicate that we may need to update color state
             myCurrentMaterialModified = true; 
          }
@@ -3005,7 +3091,7 @@ HasProperties {
    @Override
    public boolean getSelectionHighlighting() {
       // for now, only color highlighting is implemented
-      return mySelectedColorActive;
+      return myHighlightColorActive;
    }
 
    @Override
@@ -3408,8 +3494,8 @@ HasProperties {
     * @return current color being used by this viewer
     */
    private float[] getCurrentColor() {
-      if (mySelectedColorActive) {
-         return mySelectedColor;
+      if (myHighlightColorActive) {
+         return myHighlightColor;
       } else {
          return myCurrentMaterial.getDiffuse();
       }

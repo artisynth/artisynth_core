@@ -194,7 +194,7 @@ public class TextComponent3d extends TextComponentBase implements
       rprops.getFaceColor(rgb);
       
       if (isSelected()) {
-         renderer.getSelectionColor(rgb);
+         renderer.getHighlightColor(rgb);
       }
       
       float fTextSize = (float)(myTextSize/getFontSize());

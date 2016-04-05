@@ -81,7 +81,7 @@ public class GLColorSelector extends GLSelector {
 
    public void setupSelection (GLAutoDrawable drawable) {
 
-      GL2GL3 gl = (GL2GL3)(myViewer.getGL());
+      GL2GL3 gl = (GL2GL3)(drawable.getGL ());
       myGl = gl;
 
       myTotalMaxQ = myViewer.numSelectionQueriesNeeded();
@@ -93,7 +93,7 @@ public class GLColorSelector extends GLSelector {
       myIdxBaseStack.clear();  // paranoid ...
 
       // restrict the viewport to the specified selection region
-      savedViewport = myViewer.getViewport();
+      savedViewport = myViewer.getViewport(gl);
  
       // Pick matrix
       //      myViewW = savedViewport[2];
@@ -104,7 +104,7 @@ public class GLColorSelector extends GLSelector {
          (float)(myRectX), 
          (float)(savedViewport[3] - myRectY), 
          (float)myRectW, (float)myRectH, savedViewport);
-      myViewer.setViewport(0, 0, myViewW, myViewH);
+      myViewer.setViewport(gl, 0, 0, myViewW, myViewH);
       
       // disable lighting
       myViewer.setLightingEnabled(false);
@@ -160,7 +160,7 @@ public class GLColorSelector extends GLSelector {
          gl.glEnable(GL.GL_MULTISAMPLE);
       }
       
-      myViewer.setViewport(savedViewport[0], savedViewport[1], 
+      myViewer.setViewport(gl, savedViewport[0], savedViewport[1], 
          savedViewport[2], savedViewport[3]);
       
       myViewer.clearPickMatrix();

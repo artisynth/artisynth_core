@@ -251,12 +251,14 @@ implements ScalableUnits {
          int numReg = myRob.numPoints(REG_GRP);
          int numSel = myRob.numPoints(SEL_GRP);
 
-         if (numReg > 0) {
-            drawPoints (renderer, REG_GRP, props, /*selected=*/false);
-         }
+         // draw selected first
          if (numSel > 0) {
             drawPoints (renderer, SEL_GRP, props, /*selected=*/true);
          }
+         if (numReg > 0) {
+            drawPoints (renderer, REG_GRP, props, /*selected=*/false);
+         }
+
       }
       //renderer.drawPoints (myRenderProps, iterator());
    }

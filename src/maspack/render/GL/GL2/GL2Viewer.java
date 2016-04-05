@@ -405,7 +405,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
 
       // initialize viewport
-      resetViewVolume();
+      resetViewVolume(gl);
       invalidateModelMatrix();
       invalidateProjectionMatrix();
       invalidateViewMatrix();   
@@ -714,7 +714,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       // updates projection matrix
       if (resetViewVolume && resizeEnabled) {
-         resetViewVolume();
+         resetViewVolume(gl);
          resetViewVolume = false;
       }
       if (isSelecting()) {
@@ -3582,16 +3582,16 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       switch (style) {
          case LINE: {
             // maybe change line width
-            float fold = getLineWidth();
+            float fold = getLineWidth(gl);
             float frad = (float)rad;
             boolean changeWidth = false;
             if (fold != frad) {
-               setLineWidth(frad);
+               setLineWidth(gl, frad);
                changeWidth = true;
             }
             drawLines(robj, gidx);
             if (changeWidth) {
-               setLineWidth(fold);
+               setLineWidth(gl, fold);
             }
             break;
          }
@@ -3821,16 +3821,16 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       switch (style) { 
          case POINT: {
             // maybe change point size and draw points
-            float fold = getPointSize();
+            float fold = getPointSize(gl);
             float frad = (float)rad;
             boolean changed = false;
             if (fold != frad) {
-               setPointSize(frad);
+               setPointSize(gl, frad);
                changed = true;
             }
             drawPoints(robj, gidx);
             if (changed) {
-               setPointSize(fold);
+               setPointSize(gl, fold);
             }
             break;
          }

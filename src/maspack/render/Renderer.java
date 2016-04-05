@@ -188,10 +188,10 @@ public interface Renderer {
        */
       SPHERE,
 
-      /**
-       * Draw points as cubes
-       */
-      CUBE,
+      //      /**
+      //       * Draw points as cubes
+      //       */
+      //      CUBE,
       
       /**
        * Draw points using pixel-based primitives

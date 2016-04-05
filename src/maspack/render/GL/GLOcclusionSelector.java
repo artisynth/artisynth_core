@@ -78,7 +78,7 @@ public class GLOcclusionSelector extends GLSelector {
       }
       
       GLViewer viewer = (GLViewer)myViewer;
-      GL2GL3 gl = (GL2GL3)viewer.getGL();
+      GL2GL3 gl = (GL2GL3)drawable.getGL();
       myGl = gl;
       
       myTotalMaxQ = myViewer.numSelectionQueriesNeeded();
@@ -117,13 +117,13 @@ public class GLOcclusionSelector extends GLSelector {
       gl.glGenQueries (myTotalMaxQ, myQueries, 0);
 
       // restrict the viewport to the specified selection region
-      mySavedViewport = viewer.getViewport();
+      mySavedViewport = viewer.getViewport(gl);
       
       // apply pick
       if (changeViewport) {
          viewer.setPickMatrix((float)myRectX, (float)(mySavedViewport[3] - myRectY),
             (float)myRectW, (float)myRectH, mySavedViewport);
-         viewer.setViewport(0, 0, (int)Math.ceil(myRectW), (int)Math.ceil(myRectH));
+         viewer.setViewport(gl, 0, 0, (int)Math.ceil(myRectW), (int)Math.ceil(myRectH));
          
       }
       else{
@@ -160,7 +160,7 @@ public class GLOcclusionSelector extends GLSelector {
       }
       
       GLViewer viewer = (GLViewer)myViewer;
-      GL2GL3 gl = (GL2GL3)(viewer.getGL());
+      GL2GL3 gl = (GL2GL3)(drawable.getGL());
 
       viewer.setColorEnabled(true);
       viewer.setDepthEnabled(true);

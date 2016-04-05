@@ -229,7 +229,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
    // program info
    protected GLLightManager lightManager = null;         
    protected GLProgramInfo myProgramInfo = null;    // controls for program to use
-   protected boolean myProgramInfoModified = true;
    
    // Colors
    protected static final Color DARK_RED = new Color (0.5f, 0, 0);
@@ -1050,17 +1049,17 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
    }
 
  
-   /**
-    * Distance of pixel from center (Euchlidean)
-    * @param x
-    * @param y
-    * @return
-    */
-   private double centerDistance (int x, int y) {
-      int dx = x - width / 2;
-      int dy = y - height / 2;
-      return Math.sqrt (dx * dx + dy * dy);
-   }
+   //   /**
+   //    * Distance of pixel from center (Euchlidean)
+   //    * @param x
+   //    * @param y
+   //    * @return
+   //    */
+   //   private double centerDistance (int x, int y) {
+   //      int dx = x - width / 2;
+   //      int dy = y - height / 2;
+   //      return Math.sqrt (dx * dx + dy * dy);
+   //   }
 
    /**
     * Rotate the eye coordinate frame about the center point, independent
@@ -1354,7 +1353,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       invalidateProjectionMatrix();
       
       myProgramInfo = new GLProgramInfo();
-      myProgramInfoModified = true;
    }
 
    public GLCanvas getCanvas() {
@@ -1419,13 +1417,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
 
    public void reshape (GLAutoDrawable drawable, int x, int y, int w, int h) {
       this.drawable = drawable;
+      GL gl = drawable.getGL ();
       
       width = w;
       height = h;
 
       // only resize view volume if not recording
       if (resizeEnabled) {
-         resetViewVolume();
+         resetViewVolume(gl);
       }
       repaint();
       
@@ -1447,43 +1446,65 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
 
    @Override
    public void setPointSize(float s) {
-      GL2GL3 gl = (GL2GL3)getGL();
-      gl.glPointSize(s);
+      setPointSize(getGL(), s);
+   }
+   
+   protected void setPointSize(GL gl, float s) {
+      if (gl instanceof GL2GL3) {
+         GL2GL3 gl23 = (GL2GL3)gl;
+         gl23.glPointSize(s);
+      }
    }
 
    @Override
    public float getPointSize() {
-      float[] buff = new float[1];
-      getGL().glGetFloatv(GL.GL_POINT_SIZE, buff, 0);
-      return buff[0];
+      return getPointSize(getGL());
+   }
+   
+   protected float getPointSize(GL gl) {
+      if (gl instanceof GL2GL3) {
+         GL2GL3 gl23 = (GL2GL3)gl;
+         float[] buff = new float[1];
+         gl23.glGetFloatv(GL.GL_POINT_SIZE, buff, 0);
+         return buff[0];
+      }
+      return 0;
    }
 
    @Override
    public void setLineWidth(float w) {
-      getGL().glLineWidth(w);
+      setLineWidth(getGL(), w);
+   }
+   
+   protected void setLineWidth(GL gl, float w) {
+      gl.glLineWidth (w);
    }
 
    public float getLineWidth() {
+      return getLineWidth (getGL ());
+   }
+
+   protected float getLineWidth(GL gl) {
       float[] buff = new float[1];
-      getGL().glGetFloatv(GL.GL_LINE_WIDTH, buff, 0);
+      gl.glGetFloatv(GL.GL_LINE_WIDTH, buff, 0);
       return buff[0];
    }
-
-   public void setViewport(int x, int y, int width, int height) {
-      getGL().glViewport(x, y, width, height);
+   
+   public void setViewport(GL gl, int x, int y, int width, int height) {
+      gl.glViewport(x, y, width, height);
    }
 
-   protected int[] getViewport() {
+   protected int[] getViewport(GL gl) {
       int[] buff = new int[4];
-      getGL().glGetIntegerv(GL.GL_VIEWPORT, buff, 0);
+      gl.glGetIntegerv(GL.GL_VIEWPORT, buff, 0);
       return buff;
    }
 
-   protected void resetViewVolume() {
-      resetViewVolume(width, height);
+   protected void resetViewVolume(GL gl) {
+      resetViewVolume(gl, width, height);
    }
 
-   protected void resetViewVolume(int width, int height) {
+   protected void resetViewVolume(GL gl, int width, int height) {
       if (myFrustum.orthographic) {
          setOrthogonal(myFrustum.fieldHeight, myFrustum.near, myFrustum.far);
       }
@@ -1502,7 +1523,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
                myFrustum.near, myFrustum.far, myFrustum.explicit);
          }
       }
-      setViewport(0, 0, width, height);
+      setViewport(gl, 0, 0, width, height);
    }
 
    // Sanchez, July 2013:
@@ -1870,8 +1891,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       lightManager.setMaxIntensity(1.0f);
       
       myProgramInfo.setNumLights (lightManager.numLights ());
-      myProgramInfoModified = true;
-      
    }
    
    public boolean setLightingEnabled (boolean enable) {
@@ -1883,7 +1902,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
          } else {
             myProgramInfo.setShading (getShading());
          }
-         myProgramInfoModified = true;
       }
       
       return prev;
@@ -1930,7 +1948,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       myViewerState.hsvInterpolationEnabled = (interp==ColorInterpolation.HSV);
       
       myProgramInfo.setColorInterpolation (interp);
-      myProgramInfoModified = true;
       
       return prev;
    }
@@ -1958,7 +1975,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
          myViewerState.colorMixing = cmix;
          
          myProgramInfo.setVertexColorMixing (cmix);
-         myProgramInfoModified = true;
          
       }
       return prev;
@@ -2015,13 +2031,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
 
    public boolean setDepthEnabled(boolean set) {
       boolean prev = myViewerState.depthEnabled;
-      // XXX should this be setting it immediately?
-      GL gl = getGL();
-      if (set) {
-         gl.glEnable(GL.GL_DEPTH_TEST);
-      } else {
-         gl.glDisable(GL.GL_DEPTH_TEST);
-      }
       myViewerState.depthEnabled = set;
       return prev;
    }
@@ -2035,9 +2044,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
    }
 
    protected void setColorEnabled(boolean enable) {
-      // XXX should this be setting it immediately?
-      GL gl = getGL();
-      gl.glColorMask(enable, enable, enable, enable);
       myViewerState.colorEnabled = enable;
    }
 
@@ -2047,7 +2053,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       
       if (isLightingEnabled ()) {
          myProgramInfo.setShading (shading);
-         myProgramInfoModified = true;
       }
       
       return prev;
@@ -2066,7 +2071,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       myViewerState.roundedPoints = enable;
       
       myProgramInfo.setRoundPointsEnabled (enable);
-      myProgramInfoModified = true;
       
       return prev;
    }
@@ -2181,33 +2185,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
    @Override
    public FaceStyle setFaceStyle(FaceStyle style) {
       FaceStyle prev = myViewerState.faceMode;
-      
-      // XXX should this be set here?
-      if (style != prev) {
-         GL gl = getGL();
-         switch (style) {
-            case FRONT_AND_BACK: {
-               gl.glDisable (GL.GL_CULL_FACE);
-               break;
-            }
-            case FRONT: {
-               gl.glEnable (GL.GL_CULL_FACE);
-               gl.glCullFace (GL.GL_BACK);
-               break;
-            }
-            case BACK: {
-               gl.glEnable (GL.GL_CULL_FACE);
-               gl.glCullFace (GL.GL_FRONT);
-               break;
-            }
-            case NONE: {
-               gl.glEnable (GL.GL_CULL_FACE);
-               gl.glCullFace (GL.GL_FRONT_AND_BACK);
-               break;
-            }
-         }
-         myViewerState.faceMode = style;
-      }
+      myViewerState.faceMode = style;
       return prev;
    }
 
@@ -2539,7 +2517,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
 
    protected void setRenderingProgramMode(RenderingMode mode) {
       myProgramInfo.setMode (mode);
-      myProgramInfoModified = true;
    }
    
    protected void computeProjectionMatrix() {
@@ -2898,7 +2875,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       myClipPlanes.add (clipPlane);
       
       myProgramInfo.setNumClipPlanes (numUsedClipPlanes ());
-      myProgramInfoModified = true;
       
       if (isVisible()) {
          rerender();
@@ -2923,7 +2899,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
          clipPlane.setViewer (null);
          
          myProgramInfo.setNumClipPlanes (numUsedClipPlanes ());
-         myProgramInfoModified = true;
          
          if (isVisible()) {
             rerender();
@@ -2944,7 +2919,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
          rerender();
       }
       myProgramInfo.setNumClipPlanes (0);
-      myProgramInfoModified = true;
    }
 
    private float[] toFloat (Vector3d vec) {
@@ -3352,73 +3326,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       setShading (props.getShading());      
       return prevShading;
    }
-
-   // XXX To remove?
-
-//   @Override
-//   public void setMaterial(
-//      Material material, boolean selected) {
-//      setMaterial (material, material.getDiffuse (), selected);
-//   }
-//
-//   public void setMaterial (
-//      Material material, float[] diffuseColor, boolean selected) {
-//
-//      if (diffuseColor == null) {
-//         diffuseColor = material.getDiffuse ();
-//      }
-//      setMaterial(diffuseColor, null, material.getShininess(), selected);
-//      setSpecular (material.getSpecular ());
-//      setEmission (material.getEmission ());
-//   }
-
-//   // remove ....
-//   public void setMaterial(
-//      Material frontMaterial, float[] frontDiffuse, Material backMaterial,
-//      float[] backDiffuse, boolean selected) {
-//      setMaterial(frontMaterial, frontDiffuse, selected);
-//      if (backDiffuse == null) {
-//         backDiffuse = backMaterial.getDiffuse ();
-//      }
-//      setBackColor (backDiffuse);
-//      setSpecular (frontMaterial.getSpecular ());
-//      setEmission (frontMaterial.getEmission ());
-//   }
-//
-//   public void setMaterialAndShading(
-//      RenderProps props, Material frontMaterial, float[] frontDiffuse,
-//      Material backMaterial, float[] backDiffuse, boolean selected) {
-//      setMaterial (frontMaterial, frontDiffuse, backMaterial, backDiffuse, selected);
-//      setShadeModel (props.getShading ());
-//   }
-//
-//   public void setMaterialAndShading (
-//      RenderProps props, Material mat, boolean selected) {
-//      setMaterialAndShading (props, mat, null, mat, null, selected);
-//   }
-//
-//   public void setMaterialAndShading (RenderProps props, Material mat, 
-//      float[] diffuseColor, boolean selected) {
-//      setMaterialAndShading(
-//         props, mat, diffuseColor, mat, null, selected);
-//   }
-
-//   @Override
-//   public void updateMaterial(
-//      RenderProps props, Material frontMaterial, float[] frontDiffuse,
-//      Material backMaterial, float[] backDiffuse, boolean selected) {
-//      setMaterial(frontMaterial, frontDiffuse, backMaterial, backDiffuse, selected);
-//   }
-
-//   public void updateMaterial (
-//      RenderProps props, Material material, boolean selected) {
-//      setMaterial (material, null, material, null, selected);
-//   }
-
-//   public void updateMaterial (
-//      RenderProps props, Material mat, float[] diffuseColor, boolean selected) {
-//      setMaterial (mat, diffuseColor, mat, diffuseColor, selected);
-//   }
 
    //=======================================================
    // RENDEROBJECT

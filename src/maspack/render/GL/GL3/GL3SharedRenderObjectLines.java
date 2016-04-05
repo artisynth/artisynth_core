@@ -352,7 +352,7 @@ public class GL3SharedRenderObjectLines extends GL3SharedRenderObjectBase {
    public void drawLines(GL3 gl, int mode, int gidx){
       int vstart = lineGroupOffsets[gidx];
       int vcount = lineGroupOffsets[gidx+1]-vstart;
-      gl.glDrawArrays (mode, vstart, 2*vcount);  // 2 vertices per line
+      gl.glDrawArrays (mode, 2*vstart, 2*vcount);  // 2 vertices per line
    }
 
    public void drawInstancedLines(GL3 gl, GL3SharedObject line, int gidx) {

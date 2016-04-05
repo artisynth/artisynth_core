@@ -230,21 +230,9 @@ public class GL3Viewer extends GLViewer {
       setShading(Shading.PHONG);
       setGammaCorrectionEnabled(true);
 
-      // gl.glClearDepth (1.0);
-      // gl.glDepthFunc(GL.GL_LESS);
-
-      // smooth + blending
-      // gl.glEnable(GL.GL_LINE_SMOOTH);
-
-      // XXX do I need to save this as part of the state?
-      // gl.glEnable(GL.GL_BLEND);
-      // gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
-
-      // gl.glEnable(GL3.GL_POLYGON_SMOOTH);
-      // gl.glHint(GL3.GL_POLYGON_SMOOTH_HINT, GL.GL_NICEST);
       gl.glClearColor (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
 
-      resetViewVolume();
+      resetViewVolume(gl);
       invalidateModelMatrix();
       invalidateProjectionMatrix();
       invalidateViewMatrix();
@@ -547,8 +535,8 @@ public class GL3Viewer extends GLViewer {
          setFaceStyle(FaceStyle.FRONT_AND_BACK);
       }
 
-      // XXX maybe set configurable?
       setTransparencyEnabled (true);
+      // XXX maybe set configurable?
       gl.glBlendFunc (GL3.GL_SRC_ALPHA, GL3.GL_ONE_MINUS_SRC_ALPHA);
    }
 
@@ -1702,6 +1690,10 @@ public class GL3Viewer extends GLViewer {
    public void drawLines(RenderObject robj, int gidx) {
       GLSupport.checkAndPrintGLError(gl);
 
+      if (gidx > 0) {
+         System.out.println ("beep");
+      }
+      
       GL3RenderObjectIndexed gro = myRenderObjectManager.getIndexed (gl, robj);
       maybeUpdateState(gl);
       updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
@@ -1750,11 +1742,11 @@ public class GL3Viewer extends GLViewer {
       switch (style) {
          case LINE: {
             // maybe change point size and draw points
-            float fold = getLineWidth();
+            float fold = getLineWidth(gl);
             float frad = (float)rad;
             boolean changed = false;
             if (fold != frad) {
-               setLineWidth(frad);
+               setLineWidth(gl, frad);
                changed = true;
             }
 
@@ -1762,7 +1754,7 @@ public class GL3Viewer extends GLViewer {
             gro.drawLineGroup (gl, GL.GL_LINES, gidx);
 
             if (changed) {
-               setLineWidth(fold);
+               setLineWidth(gl, fold);
             }
             break;
          }
@@ -1826,11 +1818,11 @@ public class GL3Viewer extends GLViewer {
       switch (style) {
          case POINT: {
             // maybe change point size and draw points
-            float fold = getPointSize();
+            float fold = getPointSize(gl);
             float frad = (float)rad;
             boolean changed = false;
             if (fold != frad) {
-               setPointSize(frad);
+               setPointSize(gl, frad);
                changed = true;
             }
 
@@ -1839,11 +1831,10 @@ public class GL3Viewer extends GLViewer {
             gro.drawPointGroup (gl, GL.GL_POINTS, gidx);
 
             if (changed) {
-               setPointSize(fold);
+               setPointSize(gl, fold);
             }
             break;
          }
-         case CUBE:
          case SPHERE: {
 
             GL3Object sphere = myPrimitiveManager.getSphere (gl, mySurfaceResolution, mySurfaceResolution/2);

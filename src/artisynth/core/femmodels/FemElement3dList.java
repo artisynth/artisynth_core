@@ -437,13 +437,12 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
       Renderer renderer, RenderObject r, RenderProps props, int group) {
 
       if (r.numLines(group) > 0) {
-         r.lineGroup (group);
          int width = props.getLineWidth();
          if (width > 0) {
             boolean selected = (group == SEL_GRP);
             Shading savedShading = renderer.setShading (Shading.NONE);
             renderer.setLineColoring (props, selected);
-            renderer.drawLines (r, LineStyle.LINE, width);
+            renderer.drawLines (r, group, LineStyle.LINE, width);
             renderer.setShading (savedShading);
          }
       }

@@ -1268,7 +1268,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       for (int i=0; i<myVertices.size(); i++) {
          mesh.addVertex (myVertices.get(i).pnt);
       }
-      mesh.setMeshToWorld (XMeshToWorld);
+      mesh.XMeshToWorld = new RigidTransform3d (XMeshToWorld);
       mesh.myIndexOffsets = null; // will regenerate
 
       if (myNormals != null) {

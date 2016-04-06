@@ -9,7 +9,8 @@ public class GL2Primitive extends GL2Object {
       SPHERE,
       CYLINDER,
       SPINDLE,
-      CONE
+      CONE,
+      CUBE,
    }
    
    public static class PrimitiveKey {
@@ -27,15 +28,20 @@ public class GL2Primitive extends GL2Object {
       
       public PrimitiveKey(PrimitiveType type, int resolution, boolean capped) {
          this.type = type;
-         this.resolution = resolution;
          switch(type) {
             case CONE:
             case CYLINDER:
+               this.resolution = resolution;
                this.capped = capped;
                break;
             case SPHERE:
             case SPINDLE:
+               this.resolution = resolution;
                this.capped = false;
+               break;
+            case CUBE:
+               this.capped = false;
+               this.resolution = 0;
                break;
          }
       }
@@ -92,8 +98,8 @@ public class GL2Primitive extends GL2Object {
    }
    
    @Override
-   protected void finalize () throws Throwable {
-      super.finalize ();
+   public GL2Primitive acquire () {
+      return (GL2Primitive)super.acquire ();
    }
 
 }

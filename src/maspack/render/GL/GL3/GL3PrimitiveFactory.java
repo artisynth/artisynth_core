@@ -5,6 +5,12 @@ import java.nio.ByteBuffer;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
 
+import maspack.render.GL.GL3.GL3SharedPrimitive.AxesKey;
+import maspack.render.GL.GL3.GL3SharedPrimitive.ConeKey;
+import maspack.render.GL.GL3.GL3SharedPrimitive.CubeKey;
+import maspack.render.GL.GL3.GL3SharedPrimitive.CylinderKey;
+import maspack.render.GL.GL3.GL3SharedPrimitive.SphereKey;
+import maspack.render.GL.GL3.GL3SharedPrimitive.SpindleKey;
 import maspack.util.BufferUtilities;
 
 
@@ -23,7 +29,7 @@ public class GL3PrimitiveFactory {
       this.vertex_texcoord = texcoord;
    }
    
-   public GL3SharedObject createCylinder(GL3 gl, int nSlices, boolean capped) {
+   public GL3SharedPrimitive createCylinder(GL3 gl, int nSlices, boolean capped) {
       int nverts, nelems;
       if (capped) {
          // need to duplicate vertices for caps (different normal)
@@ -125,12 +131,13 @@ public class GL3PrimitiveFactory {
       ibo.fill(gl, ebuff, GL.GL_STATIC_DRAW);
       BufferUtilities.freeDirectBuffer (ebuff);
       
-      return new GL3SharedObject(attributes, elements, new VertexBufferObject[]{vbo}, ibo, GL.GL_TRIANGLES);
+      return new GL3SharedPrimitive(new CylinderKey(nSlices, capped),
+         attributes, elements, new VertexBufferObject[]{vbo}, ibo, GL.GL_TRIANGLES);
 
    }
 
    // Cone (along zaxis)
-   public GL3SharedObject createCone(GL3 gl, int nSlices, boolean capped) {
+   public GL3SharedPrimitive createCone(GL3 gl, int nSlices, boolean capped) {
 
       int nverts, nelems;
 
@@ -233,12 +240,13 @@ public class GL3PrimitiveFactory {
       ibo.fill(gl, ebuff, GL.GL_STATIC_DRAW);
       BufferUtilities.freeDirectBuffer (ebuff);
       
-      return new GL3SharedObject(attributes, elements, new VertexBufferObject[]{vbo}, ibo, GL.GL_TRIANGLES);
+      return new GL3SharedPrimitive(new ConeKey(nSlices, capped),
+         attributes, elements, new VertexBufferObject[]{vbo}, ibo, GL.GL_TRIANGLES);
       
    }
 
    // spindle (along zaxis)
-   public GL3SharedObject createSpindle(GL3 gl, int nSlices, int nLevels) {
+   public GL3SharedPrimitive createSpindle(GL3 gl, int nSlices, int nLevels) {
 
       if (nLevels < 2) {
          nLevels = 2;
@@ -330,11 +338,12 @@ public class GL3PrimitiveFactory {
       ibo.fill(gl, ebuff, GL.GL_STATIC_DRAW);
       BufferUtilities.freeDirectBuffer (ebuff);
       
-      return new GL3SharedObject(attributes, elements, new VertexBufferObject[]{vbo}, ibo, GL.GL_TRIANGLES);
+      return new GL3SharedPrimitive(new SpindleKey(nSlices, nLevels),
+         attributes, elements, new VertexBufferObject[]{vbo}, ibo, GL.GL_TRIANGLES);
    }
 
    // sphere
-   public GL3SharedObject createSphere(GL3 gl, int nSlices, int nLevels) {
+   public GL3SharedPrimitive createSphere(GL3 gl, int nSlices, int nLevels) {
 
       if (nLevels < 2) {
          nLevels = 2;
@@ -420,12 +429,13 @@ public class GL3PrimitiveFactory {
       ibo.fill(gl, ebuff, GL.GL_STATIC_DRAW);
       BufferUtilities.freeDirectBuffer (ebuff);
       
-      return new GL3SharedObject(attributes, elements, new VertexBufferObject[]{vbo}, ibo, GL.GL_TRIANGLES);
+      return new GL3SharedPrimitive(new SphereKey(nSlices, nLevels),
+         attributes, elements, new VertexBufferObject[]{vbo}, ibo, GL.GL_TRIANGLES);
    
    }
    
    // 3D axes
-   public GL3SharedObject createAxes(GL3 gl, boolean x, boolean y, boolean z) {
+   public GL3SharedPrimitive createAxes(GL3 gl, boolean x, boolean y, boolean z) {
      
       int nverts = 0;
       if (x) {
@@ -444,14 +454,14 @@ public class GL3PrimitiveFactory {
       GL3AttributeStorage posStorage = posPutter.storage();
       GL3AttributeStorage clrStorage = clrPutter.storage();
 
-      int vstride = posStorage.bytes()+clrStorage.bytes();
+      int vstride = posStorage.bytes() + clrStorage.bytes();
 
       VertexBufferObject vbo = VertexBufferObject.generate (gl);
       GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[2];
       attributes[0] = new GL3VertexAttributeArray (vbo, new GL3VertexAttributeArrayInfo(
          vertex_position, posStorage, 0, vstride, nverts));
       attributes[1] = new GL3VertexAttributeArray (vbo, new GL3VertexAttributeArrayInfo(
-         vertex_color, clrStorage, 0, vstride, nverts));  // aliased
+         vertex_color, clrStorage, posStorage.bytes(), vstride, nverts));
       ByteBuffer pcbuff = BufferUtilities.newNativeByteBuffer(nverts*vstride);
       
       if (x) {
@@ -478,8 +488,6 @@ public class GL3PrimitiveFactory {
          clrPutter.putColor(pcbuff, blue);
       }
       
-      pcbuff.flip();
-      
       // ensure no vertex array is bound
       gl.glBindVertexArray (0);
       
@@ -487,7 +495,120 @@ public class GL3PrimitiveFactory {
       vbo.fill(gl, pcbuff, GL.GL_STATIC_DRAW);
       BufferUtilities.freeDirectBuffer (pcbuff);
       
-      return new GL3SharedObject(attributes, null, new VertexBufferObject[]{vbo}, null, GL.GL_LINES);
+      return new GL3SharedPrimitive(new AxesKey(x, y, z),
+         attributes, null, new VertexBufferObject[]{vbo}, null, GL.GL_LINES);
    }
+   
+   // cube
+   public GL3SharedPrimitive createCube(GL3 gl) {
+      
+      int nverts = 24;
+      int nelems = 36;
+      
+      PositionBufferPutter posPutter = PositionBufferPutter.getDefault();
+      NormalBufferPutter nrmPutter = NormalBufferPutter.getDefault();
+      IndexBufferPutter idxPutter = IndexBufferPutter.getDefault(nverts-1);
+
+      GL3AttributeStorage posStorage = posPutter.storage();
+      GL3AttributeStorage nrmStorage = nrmPutter.storage();
+      GL3AttributeStorage idxStorage = idxPutter.storage();
+
+      int vstride = posStorage.bytes() + nrmStorage.bytes();
+
+      VertexBufferObject vbo = VertexBufferObject.generate (gl);
+      GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[2];
+      attributes[0] = new GL3VertexAttributeArray (vbo, new GL3VertexAttributeArrayInfo(
+         vertex_position, posStorage, 0, vstride, nverts));
+      attributes[1] = new GL3VertexAttributeArray (vbo, new GL3VertexAttributeArrayInfo(
+         vertex_normal, nrmStorage, posStorage.bytes(), vstride, nverts));
+      ByteBuffer pnbuff = BufferUtilities.newNativeByteBuffer(nverts*vstride);
+      
+      IndexBufferObject ibo = IndexBufferObject.generate (gl);
+      GL3ElementAttributeArray elements = new GL3ElementAttributeArray(ibo,
+         idxStorage.getGLType (), 0, idxStorage.bytes(), nelems);
+      ByteBuffer ebuff = BufferUtilities.newNativeByteBuffer(nelems*idxStorage.bytes());
+      
+      // front
+      posPutter.putPosition (pnbuff, -1f, -1f,  1f);
+      nrmPutter.putNormal   (pnbuff,  0f,  0f,  1f);
+      posPutter.putPosition (pnbuff,  1f, -1f,  1f);
+      nrmPutter.putNormal   (pnbuff,  0f,  0f,  1f);
+      posPutter.putPosition (pnbuff,  1f,  1f,  1f);
+      nrmPutter.putNormal   (pnbuff,  0f,  0f,  1f);
+      posPutter.putPosition (pnbuff, -1f,  1f,  1f);
+      nrmPutter.putNormal   (pnbuff,  0f,  0f,  1f);
+      idxPutter.putIndices  (ebuff,  0, 1, 2, 0, 2, 3);
+      
+      // right
+      posPutter.putPosition (pnbuff,  1f,  1f,  1f);
+      nrmPutter.putNormal   (pnbuff,  1f,  0f,  0f);
+      posPutter.putPosition (pnbuff,  1f,  1f, -1f);
+      nrmPutter.putNormal   (pnbuff,  1f,  0f,  0f);
+      posPutter.putPosition (pnbuff,  1f, -1f, -1f);
+      nrmPutter.putNormal   (pnbuff,  1f,  0f,  0f);
+      posPutter.putPosition (pnbuff,  1f, -1f,  1f);
+      nrmPutter.putNormal   (pnbuff,  1f,  0f,  0f);
+      idxPutter.putIndices  (ebuff,  4, 6, 5, 4, 7, 6);
+      
+      // back
+      posPutter.putPosition (pnbuff, -1f, -1f, -1f);
+      nrmPutter.putNormal   (pnbuff,  0f,  0f, -1f);
+      posPutter.putPosition (pnbuff,  1f, -1f, -1f);
+      nrmPutter.putNormal   (pnbuff,  0f,  0f, -1f);
+      posPutter.putPosition (pnbuff,  1f,  1f, -1f);
+      nrmPutter.putNormal   (pnbuff,  0f,  0f, -1f);
+      posPutter.putPosition (pnbuff, -1f,  1f, -1f);
+      nrmPutter.putNormal   (pnbuff,  0f,  0f, -1f);
+      idxPutter.putIndices  (ebuff,  8, 10, 9, 8, 11, 10);
+      
+      // left
+      posPutter.putPosition (pnbuff, -1f,  1f,  1f);
+      nrmPutter.putNormal   (pnbuff, -1f,  0f,  0f);
+      posPutter.putPosition (pnbuff, -1f,  1f, -1f);
+      nrmPutter.putNormal   (pnbuff, -1f,  0f,  0f);
+      posPutter.putPosition (pnbuff, -1f, -1f, -1f);
+      nrmPutter.putNormal   (pnbuff, -1f,  0f,  0f);
+      posPutter.putPosition (pnbuff, -1f, -1f,  1f);
+      nrmPutter.putNormal   (pnbuff, -1f,  0f,  0f);
+      idxPutter.putIndices  (ebuff, 12, 13, 14, 12, 14, 15);
+
+      // bottom
+      posPutter.putPosition (pnbuff,  1f,  1f,  1f);
+      nrmPutter.putNormal   (pnbuff,  0f,  1f,  0f);
+      posPutter.putPosition (pnbuff, -1f,  1f,  1f);
+      nrmPutter.putNormal   (pnbuff,  0f,  1f,  0f);
+      posPutter.putPosition (pnbuff, -1f,  1f, -1f);
+      nrmPutter.putNormal   (pnbuff,  0f,  1f,  0f);
+      posPutter.putPosition (pnbuff,  1f,  1f, -1f);
+      nrmPutter.putNormal   (pnbuff,  0f,  1f,  0f);
+      idxPutter.putIndices  (ebuff, 16, 18, 17, 16, 19, 18);
+      
+      // top
+      posPutter.putPosition (pnbuff,  1f, -1f,  1f);
+      nrmPutter.putNormal   (pnbuff,  0f, -1f,  0f);
+      posPutter.putPosition (pnbuff, -1f, -1f,  1f);
+      nrmPutter.putNormal   (pnbuff,  0f, -1f,  0f);
+      posPutter.putPosition (pnbuff, -1f, -1f, -1f);
+      nrmPutter.putNormal   (pnbuff,  0f, -1f,  0f);
+      posPutter.putPosition (pnbuff,  1f, -1f, -1f);
+      nrmPutter.putNormal   (pnbuff,  0f, -1f,  0f);
+      idxPutter.putIndices  (ebuff, 20, 21, 22, 20, 22, 23);
+     
+      // ensure no vertex array is bound
+      gl.glBindVertexArray (0);
+      
+      pnbuff.flip();
+      vbo.fill(gl, pnbuff, GL.GL_STATIC_DRAW);
+      BufferUtilities.freeDirectBuffer (pnbuff);
+      
+      ebuff.flip();
+      ibo.fill(gl, ebuff, GL.GL_STATIC_DRAW);
+      BufferUtilities.freeDirectBuffer (ebuff);
+      
+      return new GL3SharedPrimitive(new CubeKey(), attributes, elements, 
+         new VertexBufferObject[]{vbo}, ibo, GL.GL_TRIANGLES);
+   
+   }
+   
    
 }

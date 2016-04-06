@@ -39,19 +39,20 @@ public class VolumePrimitivesTest extends GL2vsGL3Tester {
             renderer.setBackColor (props.getBackColorF());
             renderer.setFaceStyle (FaceStyle.FRONT_AND_BACK);
             
-            renderer.drawSphere (new float[] {0.1f,0.2f,0.3f}, 0.05);
-            renderer.drawSpindle (new float[]{-0.1f,-0.2f,-0.3f}, new float[]{-0.3f,-0.2f,-0.1f}, 0.05);
-            renderer.drawSpindle (new float[]{0.1f,-0.2f,0.3f}, new float[]{0.3f,-0.2f,0.1f}, 0.25);
-            renderer.drawCylinder (new float[]{-0.1f,0.2f,-0.3f}, new float[]{-0.3f,0.2f,-0.1f}, 0.3, true);
-            renderer.drawCylinder (new float[]{0.1f,0.2f,-0.3f}, new float[]{-0.3f,-0.2f,-0.3f}, 0.2, true);
-            renderer.drawCone (new float[]{-0.1f,0.2f,0.3f}, new float[]{0.3f,0.2f,-0.1f}, 0.1, 0, false);
-            renderer.drawCone (new float[]{-0.3f,0.2f,0.3f}, new float[]{0.5f,0.2f,-0.1f}, 0, 0.2, true);
-            renderer.drawSphere (new float[]{-0.1f,-0.2f,-0.3f}, 0.2);
-            renderer.drawSphere (new float[] {0.1f,0.2f,0.3f}, 0.02);
-            renderer.drawSphere (new float[] {0.1f,0.2f,0.6f}, 0.03);
-            renderer.drawSphere (new float[] {0.1f,0.2f,0.8f}, 0.04);
-            renderer.drawSphere (new float[] {0.1f,0.2f,1f}, 0.05);
-            renderer.drawCone (new float[]{0.1f,0.1f,-0.1f}, new float[]{0.3f,0.1f,-0.1f}, 0.05, 0.02, true);
+            //            renderer.drawSphere (new float[] {0.1f,0.2f,0.3f}, 0.05);
+            //            renderer.drawSpindle (new float[]{-0.1f,-0.2f,-0.3f}, new float[]{-0.3f,-0.2f,-0.1f}, 0.05);
+            //            renderer.drawSpindle (new float[]{0.1f,-0.2f,0.3f}, new float[]{0.3f,-0.2f,0.1f}, 0.25);
+            //            renderer.drawCylinder (new float[]{-0.1f,0.2f,-0.3f}, new float[]{-0.3f,0.2f,-0.1f}, 0.3, true);
+            //            renderer.drawCylinder (new float[]{0.1f,0.2f,-0.3f}, new float[]{-0.3f,-0.2f,-0.3f}, 0.2, true);
+            //            renderer.drawCone (new float[]{-0.1f,0.2f,0.3f}, new float[]{0.3f,0.2f,-0.1f}, 0.1, 0, false);
+            //            renderer.drawCone (new float[]{-0.3f,0.2f,0.3f}, new float[]{0.5f,0.2f,-0.1f}, 0, 0.2, true);
+            //            renderer.drawSphere (new float[]{-0.1f,-0.2f,-0.3f}, 0.2);
+            //            renderer.drawSphere (new float[] {0.1f,0.2f,0.3f}, 0.02);
+            //            renderer.drawSphere (new float[] {0.1f,0.2f,0.6f}, 0.03);
+            //            renderer.drawSphere (new float[] {0.1f,0.2f,0.8f}, 0.04);
+            //            renderer.drawSphere (new float[] {0.1f,0.2f,1f}, 0.05);
+            //            renderer.drawCone (new float[]{0.1f,0.1f,-0.1f}, new float[]{0.3f,0.1f,-0.1f}, 0.05, 0.02, true);
+            renderer.drawCube (new float[]{-0.2f, -0.2f, -0.2f}, 0.5);
             
          }
          

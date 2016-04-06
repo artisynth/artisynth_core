@@ -188,10 +188,10 @@ public interface Renderer {
        */
       SPHERE,
 
-      //      /**
-      //       * Draw points as cubes
-      //       */
-      //      CUBE,
+      /**
+       * Draw points as cubes
+       */
+      CUBE,
       
       /**
        * Draw points using pixel-based primitives
@@ -654,8 +654,36 @@ public interface Renderer {
     * @param pnt center of the sphere
     * @param rad radius of the sphere
     */
-   public void drawSphere (float[] pnt, double rad);   
+   public void drawSphere (float[] pnt, double rad); 
+   
+   /**
+    * Draws a cube with a specified width centered at a point
+    * in model coordinates, using the current shading and material.
+    * 
+    * @param pnt center of the cube
+    * @param w width of the cube
+    */
+   public void drawCube (float[] pnt, double w);   
 
+   /**
+    * Draws a cube with a specified width centered at a point
+    * in model coordinates, using the current shading and material.
+    * 
+    * @param pnt center of the cube
+    * @param w width of the cube
+    */
+   public void drawCube (Vector3d pnt, double w);
+
+   /**
+    * Draws a cube with the specified transform in model coordinates,
+    * using the current shading and material.  The sides of the cube
+    * are scaled by the provided scale.
+    * 
+    * @param pnt center of the cube
+    * @param scale x,y,z widths of the cube
+    */
+   public void drawCube (RigidTransform3d trans, Vector3d scale);
+   
    /**
     * Draws a spindle between two points in model coordinates, 
     * using the current shading and material. The resolution
@@ -1652,6 +1680,34 @@ public interface Renderer {
     */
    public void getViewMatrix (RigidTransform3d TWE);
    
+   /**
+    * Add a depth offset to the projection matrix.
+    * Each integer represents enough depth to account for one bin in the depth
+    * buffer.  Negative values bring following objects closer to the screen.
+    * This is to account for z-fighting.
+    * 
+    * @param zOffset value to offset depth buffer
+    */
+   public void addDepthOffset(int zOffset);
+
+   /**
+    * Set a depth offset to the projection matrix.
+    * Each integer represents enough depth to account for one bin in the depth
+    * buffer.  Negative values bring following objects closer to the screen.
+    * This is to account for z-fighting.
+    * @param zOffset value to offset depth buffer
+    */
+   public void setDepthOffset(int zOffset);
+
+   /**
+    * The current depth offset level.  Zero represents no offsets, 
+    * negative means objects are drawn closer to the viewer,
+    * positive means they are drawn further away.
+    * This is to account for z-fighting.
+    * @return the current offset (in depth bins)
+    */
+   public int getDepthOffset();
+   
 //   // FINISH
 //   public RigidTransform3d getEyeToWorld();
    
@@ -1841,6 +1897,7 @@ public interface Renderer {
     * filter might currently be set in the renderer.
     */
    public boolean isSelectable (GLSelectable s);
+   
    
    // FINISH: do we need?
    //public void rerender();

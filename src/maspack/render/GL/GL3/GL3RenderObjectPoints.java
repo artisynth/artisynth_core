@@ -152,6 +152,11 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
    }
    
    @Override
+   public boolean isDisposed () {
+      return (vao == null);
+   }
+   
+   @Override
    public boolean isValid () {
       if (vao == null) {
          return false;

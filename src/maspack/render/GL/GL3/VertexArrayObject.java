@@ -16,6 +16,7 @@ public class VertexArrayObject extends GL3ResourceBase {
    
    public VertexArrayObject(int vao) {
       this.vao = vao;
+      System.out.println ("VAO created: " + vao);
    }
    
    public void bind(GL3 gl) {
@@ -30,10 +31,16 @@ public class VertexArrayObject extends GL3ResourceBase {
    
    @Override
    public void dispose (GL3 gl) {
-      if (vao > 0) {
-         gl.glDeleteBuffers (1, new int[]{vao}, 0);
+      if (vao != 0) {
+         System.out.println ("VAO destroyed: " + vao);
+         gl.glDeleteVertexArrays (1, new int[]{vao}, 0);
          vao = 0;
       }
+   }
+   
+   @Override
+   public boolean isDisposed () {
+      return vao == 0;
    }
    
    @Override

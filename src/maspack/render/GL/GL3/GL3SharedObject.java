@@ -6,8 +6,6 @@ import java.util.HashSet;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
 
-import maspack.util.ReferenceCountedBase;
-
 /**
  * Holds pointers to VBOs, attribute info, to be used in creating VAOs.
  * These can be shared between contexts, but each context needs to maintain
@@ -16,7 +14,7 @@ import maspack.util.ReferenceCountedBase;
  * @author Antonio
  *
  */
-public class GL3SharedObject extends ReferenceCountedBase {
+public class GL3SharedObject extends GL3ResourceBase {
    
    public enum DrawType {
       ARRAY,
@@ -293,18 +291,9 @@ public class GL3SharedObject extends ReferenceCountedBase {
       }
    }
    
-   /**
-    * Force disposal of any internal resources if
-    * they are no longer referenced
-    * @param gl
-    */
-   public boolean releaseDispose(GL3 gl) {
-      long ac = releaseAndCount ();
-      if (ac == 0) {
-         dispose(gl);
-         return true;
-      }
-      return false;
+   @Override
+   public boolean isDisposed () {
+      return (vbos == null);
    }
    
    @Override

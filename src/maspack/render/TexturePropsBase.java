@@ -351,10 +351,14 @@ public abstract class TexturePropsBase implements CompositeProperty, Scannable, 
       myEnabledP = props.myEnabledP;
       myEnabledMode = props.myEnabledMode;
       
-      myContent = props.myContent.acquire ();
-      
       myFileName = props.myFileName;
       myFileNameMode = props.myFileNameMode;
+
+      if (props.myContent != null) {
+         myContent = props.myContent.acquire ();
+      } else {
+         myContent = null;
+      }
       
       mySWrapping = props.mySWrapping;
       mySWrappingMode = props.mySWrappingMode;
@@ -373,7 +377,7 @@ public abstract class TexturePropsBase implements CompositeProperty, Scannable, 
    public boolean equals (TexturePropsBase props) {
       return (myEnabledP == props.myEnabledP &&
       myEnabledMode == props.myEnabledMode && 
-      myContent.equals (props.myContent) && 
+      myContent == props.myContent && 
       myFileName.equals (props.myFileName) &&
       myFileNameMode == props.myFileNameMode &&
       mySWrapping == props.mySWrapping &&

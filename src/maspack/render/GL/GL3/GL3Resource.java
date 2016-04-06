@@ -14,12 +14,11 @@ public interface GL3Resource extends GLResource {
     */
    public void dispose(GL3 gl);
    
-   /**
-    * dispose if resource is deemed invalid
-    * @param gl
-    * @return false if still valid, true otherwise
-    */
    public boolean disposeInvalid (GL3 gl);
+   
+   boolean disposeUnreferenced (GL3 gl);
+   
+   boolean releaseDispose (GL3 gl);
 
    @Override
    public GL3Resource acquire ();

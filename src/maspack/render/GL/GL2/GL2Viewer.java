@@ -423,11 +423,15 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    public int setSurfaceResolution (int nres) {
       int oldres = getSurfaceResolution ();
       if (oldres != nres) {
-         if (primitives != null) {
-            for (GL2Primitive p : primitives) {
-               if (p != null) {
-                  p.dispose ();
+         for (int i=0; i<primitives.length; ++i) {
+            GL2Primitive p = primitives[i];
+            if (p != null) {
+               if (gl != null) {
+                  p.releaseDispose (gl);
+               } else {
+                  p.release ();
                }
+               primitives[i] = null;
             }
          }
          return super.setSurfaceResolution (nres);
@@ -439,35 +443,38 @@ public class GL2Viewer extends GLViewer implements HasProperties {
     * Return a primitive object
     * @param gl
     * @param type
-    * @return
+    * @return primitive
     */
    public GL2Primitive getPrimitive(GL2 gl, PrimitiveType type) {
       int pid = type.ordinal ();
       GL2Primitive primitive = primitives[pid];
       
-      if (primitive != null ) {
-         if (primitive.isValid ()) {
+      if (primitive != null) {
+         if (primitive.disposeInvalid (gl)) {
+            primitive.release (); // release if we are throwing away
+         } else {
             return primitive;
          }
-         // dispose of primitive
-         primitive.dispose ();
       }
       
       int resolution = getSurfaceResolution ();
       
       // rebuild primitive
       switch (type) {
+         case CUBE:
+            primitive = myGLResources.getAcquiredCube (gl);
+            break;
          case CONE:
-            primitive = myGLResources.getCone(gl, resolution, true);
+            primitive = myGLResources.getAcquiredCone(gl, resolution, true);
             break;
          case CYLINDER:
-            primitive = myGLResources.getCylinder(gl, resolution, true);
+            primitive = myGLResources.getAcquiredCylinder(gl, resolution, true);
             break;
          case SPHERE:
-            primitive = myGLResources.getSphere(gl, resolution);
+            primitive = myGLResources.getAcquiredSphere(gl, resolution);
             break;
          case SPINDLE:
-            primitive = myGLResources.getSpindle(gl, resolution);
+            primitive = myGLResources.getAcquiredSpindle(gl, resolution);
             break;
       }
       
@@ -477,15 +484,14 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    @Override
    public void dispose(GLAutoDrawable drawable) {
-
-      // nullify stuff
-      this.drawable = null;
-      this.gl = null;
+      
+      this.drawable = drawable;
+      this.gl = drawable.getGL ().getGL2 ();
       
       if (this.primitives != null) {
          for (GL2Primitive prim : primitives) {
             if (prim != null) {
-               prim.dispose ();
+               prim.releaseDispose (gl);
             }
          }
          this.primitives = null;
@@ -495,11 +501,15 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          System.out.println("GL2 disposed");
       }
 
+      // nullify stuff
+      this.drawable = null;
+      this.gl = null;
    }
 
    @Override
    public void dispose () {
       myGLResources.deregisterViewer (this);
+      myGLResources = null;
       super.dispose ();
    }
 
@@ -880,81 +890,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       return depth[0];
    }
 
-//   /**
-//    * Enable selection via the (now deprecated) OpenGL select buffer
-//    * and <code>GL_SELECT</code> rendering mode mechanism.
-//    *
-//    * @param enable if true, enables select buffer selection
-//    */
-//   public static void enableGLSelectSelection (boolean enable) {
-//      myUseGLSelectSelection = enable;
-//   }
-//
-//   public static boolean isGLSelectSelectionEnabled() {
-//      return myUseGLSelectSelection;
-//   }
-
-
-   //   public void mulTransform (RigidTransform3d X) {
-   //      GLSupport.transformToGLMatrix (GLMatrix, X);
-   //      getGL2().glMultMatrixd (GLMatrix, 0);
-   //   }
-   //
-   //   public void mulTransform (AffineTransform3d X) {
-   //      GLSupport.transformToGLMatrix (GLMatrix, X);
-   //      getGL2().glMultMatrixd (GLMatrix, 0);
-   //   }
-
-   //   public void getModelViewMatrix (Matrix4d X) {
-   //      getGL2().glGetDoublev (GL2.GL_MODELVIEW_MATRIX, GLMatrix, 0);
-   //      for (int i = 0; i < 4; i++) {
-   //         for (int j = 0; j < 4; j++) {
-   //            X.set (i, j, GLMatrix[j * 4 + i]);
-   //         }
-   //      }
-   //   }
-   //
-   //   public void getProjectionMatrix (Matrix4d X) {
-   //      getGL2().glGetDoublev (GL2.GL_PROJECTION_MATRIX, GLMatrix, 0);
-   //      for (int i = 0; i < 4; i++) {
-   //         for (int j = 0; j < 4; j++) {
-   //            X.set (i, j, GLMatrix[j * 4 + i]);
-   //         }
-   //      }
-   //   }
-   //
-   //   public void setModelViewMatrix (Matrix4d X) {
-   //      getGL2().glMatrixMode (GL2.GL_MODELVIEW); // paranoid
-   //      for (int i = 0; i < 4; i++) {
-   //         for (int j = 0; j < 4; j++) {
-   //            GLMatrix[j * 4 + i] = X.get (i, j);
-   //         }
-   //      }
-   //      getGL2().glLoadMatrixd (GLMatrix, 0);
-   //   }
-   //   public void setProjectionMatrix (Matrix4d X) {
-   //      gl.glMatrixMode (GL2.GL_PROJECTION);
-   //      for (int i = 0; i < 4; i++) {
-   //         for (int j = 0; j < 4; j++) {
-   //            GLMatrix[j * 4 + i] = X.get (i, j);
-   //         }
-   //      }
-   //      gl.glLoadMatrixd (GLMatrix, 0);
-   //      gl.glMatrixMode (GL2.GL_MODELVIEW);
-   //   }
-   
-   private int getGLShadingModel(Shading shading) {
-      switch (shading) {
-         case FLAT:
-            return GL2.GL_FLAT;
-         case GOURAUD:
-         case PHONG:
-         case NONE:
-            return GL2.GL_SMOOTH;
-      }
-      return 0;
-   }
-
    /**
     * Potentially update GL state (matrices, lights, materials, etc...)
     * @param gl
@@ -1156,6 +1091,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                break;
             case NONE:
                gl.glDisable (GL2.GL_LIGHTING);
+               myCommittedViewerState.lightingEnabled = false;
                break;
             default:
                break;
@@ -1507,45 +1443,34 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glPopMatrix();
    }
 
-   private void setTriangle (GL2 gl, float[] v0, float[] v1, float[] v2) {
-      float ax = v1[0]-v0[0];
-      float ay = v1[1]-v0[1];
-      float az = v1[2]-v0[2];
-      float bx = v2[0]-v0[0];
-      float by = v2[1]-v0[1];
-      float bz = v2[2]-v0[2];
-      gl.glNormal3f (ay*bz-az*by, az*bx-ax*bz, ax*by-ay*bx);
-      gl.glVertex3fv (v0, 0);
-      gl.glVertex3fv (v1, 0);
-      gl.glVertex3fv (v2, 0);
+   @Override
+   public void drawCube (float[] pnt, double w) {
+      GL2 gl = getGL2();
+      maybeUpdateState(gl);
+
+      gl.glPushMatrix();
+      gl.glTranslatef (pnt[0], pnt[1], pnt[2]);
+      double hw = w/2;
+      gl.glScaled (hw, hw, hw);
+
+      GL2Primitive cube = getPrimitive (gl, PrimitiveType.CUBE);
+      cube.draw (gl);
+      gl.glPopMatrix();
    }
-
-   private void setQuad (GL2 gl, float[] v0, float[] v1, float[] v2, float[] v3) {
-      float ax, ay, az;
-      float bx, by, bz;
-      float nx, ny, nz;
-
-      ax = v1[0]-v0[0];
-      ay = v1[1]-v0[1];
-      az = v1[2]-v0[2];
-      bx = v2[0]-v0[0];
-      by = v2[1]-v0[1];
-      bz = v2[2]-v0[2];
-      nx = ay*bz-az*by;
-      ny = az*bx-ax*bz;
-      nz = ax*by-ay*bx;
-      ax = v3[0]-v0[0];
-      ay = v3[1]-v0[1];
-      az = v3[2]-v0[2];
-      nx += by*az-bz*ay;
-      ny += bz*ax-bx*az;
-      nz += bx*ay-by*ax;
-
-      gl.glNormal3f (nx, ny, nz);
-      gl.glVertex3fv (v0, 0);
-      gl.glVertex3fv (v1, 0);
-      gl.glVertex3fv (v2, 0);
-      gl.glVertex3fv (v3, 0);
+   
+   @Override
+   public void drawCube (RigidTransform3d trans, Vector3d scale) {
+      GL2 gl = getGL2();
+      
+      pushModelMatrix ();
+      mulModelMatrix (trans);
+      scaleModelMatrix (scale.x/2, scale.y/2, scale.z/2);
+      
+      maybeUpdateState(gl);
+      GL2Primitive cube = getPrimitive (gl, PrimitiveType.CUBE);
+      cube.draw (gl);
+      
+      popModelMatrix ();
    }
 
 //   public void drawHex (
@@ -2110,6 +2035,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             drawSphere (pnt, props.getPointRadius());
             //restoreShading (props);
             break;
+         }
+         case CUBE: {
+            drawCube (pnt, 2*props.getPointRadius());
          }
       }
       setShading (savedShading);
@@ -3108,12 +3036,12 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (useDisplayList) {
          gvo = myGLResources.getVersionedObject (key);
          if (gvo != null) {
-            boolean iv = gvo.disposeInvalid ();
+            boolean iv = gvo.disposeInvalid (gl);
             if (iv == true) {
                System.out.println (" invalid object disposed " + gvo);
             }
          }
-         if (gvo == null || gvo.disposeInvalid ()) {
+         if (gvo == null || gvo.disposeInvalid (gl)) {
             gvo = myGLResources.allocateVersionedObject(gl, key, fingerprint);
             compile = true;
          } else {
@@ -3338,12 +3266,12 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (useDisplayList) {
          gvo = myGLResources.getVersionedObject (key);
          if (gvo != null) {
-            boolean iv = gvo.disposeInvalid ();
+            boolean iv = gvo.disposeInvalid (gl);
             if (iv == true) {
                System.out.println (" invalid object disposed " + gvo);
             }
          }
-         if (gvo == null || gvo.disposeInvalid ()) {
+         if (gvo == null || gvo.disposeInvalid (gl)) {
             gvo = myGLResources.allocateVersionedObject (gl, key, fingerprint);
             compile = true;
          } else {
@@ -3440,12 +3368,12 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (useDisplayList) {
          gvo = myGLResources.getVersionedObject (key);
          if (gvo != null) {
-            boolean iv = gvo.disposeInvalid ();
+            boolean iv = gvo.disposeInvalid (gl);
             if (iv == true) {
                System.out.println (" invalid object disposed " + gvo);
             }
          }
-         if (gvo == null || gvo.disposeInvalid ()) {
+         if (gvo == null || gvo.disposeInvalid (gl)) {
             gvo = myGLResources.allocateVersionedObject(gl, key, fingerprint);
             compile = true;
          } else {
@@ -3649,12 +3577,12 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (useDisplayList) {
          gvo = myGLResources.getVersionedObject (key);
          if (gvo != null) {
-            boolean iv = gvo.disposeInvalid ();
+            boolean iv = gvo.disposeInvalid (gl);
             if (iv == true) {
                System.out.println (" invalid object disposed " + gvo);
             }
          }
-         if (gvo == null || gvo.disposeInvalid ()) {
+         if (gvo == null || gvo.disposeInvalid (gl)) {
             gvo = myGLResources.allocateVersionedObject (gl, key, fingerprint);
             compile = true;
          } else {
@@ -3712,7 +3640,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    }
 
-   private void drawSpheres(RenderObject robj, int gidx, double rad) {
+   private void drawSolidPoints(RenderObject robj, int gidx, PointStyle style, double rad) {
       
       int pointCount = robj.numPoints (gidx);
       if (pointCount == 0) {
@@ -3739,24 +3667,33 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          }
       }
 
-      GL2Primitive sphere = getPrimitive (gl, PrimitiveType.SPHERE);
+      GL2Primitive point = null;
+      switch (style) {
+         case CUBE:
+            point = getPrimitive (gl, PrimitiveType.CUBE);
+            break;
+         case POINT:
+         case SPHERE:
+            point = getPrimitive (gl, PrimitiveType.SPHERE);
+      }
+      
       
       boolean useDisplayList = !selecting || !hasColors;
       GL2VersionedObject gvo = null;
       RenderObjectKey key = new RenderObjectKey(robj.getIdentifier (), DrawType.POINTS, gidx);
-      PointFingerPrint fingerprint = new PointFingerPrint(robj.getVersionInfo(), PointStyle.SPHERE, 
-         sphere, (float)rad);
+      PointFingerPrint fingerprint = new PointFingerPrint(robj.getVersionInfo(), style, 
+         point, (float)rad);
       boolean compile = true;
 
       if (useDisplayList) {
          gvo = myGLResources.getVersionedObject (key);
          if (gvo != null) {
-            boolean iv = gvo.disposeInvalid ();
+            boolean iv = gvo.disposeInvalid (gl);
             if (iv == true) {
                System.out.println (" invalid object disposed " + gvo);
             }
          }
-         if (gvo == null || gvo.disposeInvalid ()) {
+         if (gvo == null || gvo.disposeInvalid (gl)) {
             gvo = myGLResources.allocateVersionedObject (gl, key, fingerprint);
             compile = true;
          } else {
@@ -3786,7 +3723,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             gl.glScaled (rad, rad, rad);   
 
             // draw sphere
-            sphere.draw (gl);
+            point.draw (gl);
             gl.glPopMatrix();
 
          }
@@ -3834,10 +3771,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             }
             break;
          }
-         case SPHERE:
+         case SPHERE: 
+         case CUBE:{
             // draw spheres
-            drawSpheres(robj, gidx, rad);
-            break;
+            drawSolidPoints(robj, gidx, style, rad);
+         }
       }
 
    }
@@ -3878,12 +3816,12 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (useDisplayList) {
          gvo = myGLResources.getVersionedObject (key);
          if (gvo != null) {
-            boolean iv = gvo.disposeInvalid ();
+            boolean iv = gvo.disposeInvalid (gl);
             if (iv == true) {
                System.out.println (" invalid object disposed " + gvo);
             }
          }
-         if (gvo == null || gvo.disposeInvalid ()) {
+         if (gvo == null || gvo.disposeInvalid (gl)) {
             gvo = myGLResources.allocateVersionedObject (gl, key, fingerprint);
             compile = true;
          } else {

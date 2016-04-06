@@ -368,6 +368,11 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
    }
    
    @Override
+   public boolean isDisposed () {
+      return vbos == null;
+   }
+   
+   @Override
    public GL3SharedRenderObjectBase acquire () {
       return (GL3SharedRenderObjectBase)super.acquire ();
    }

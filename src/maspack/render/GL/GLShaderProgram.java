@@ -84,10 +84,15 @@ public class GLShaderProgram extends GLResourceBase {
    }
 
    @Override
-   protected void internalDispose (GL gl) {
+   public void dispose (GL gl) {
       GL2GL3 gl23 = (GL2GL3)gl;
       gl23.glDeleteProgram (id);
       id = 0;
+   }
+   
+   @Override
+   public boolean isDisposed () {
+      return  (id != 0);
    }
    
 }

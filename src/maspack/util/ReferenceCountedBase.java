@@ -15,7 +15,9 @@ public abstract class ReferenceCountedBase implements ReferenceCounted {
          
    @Override
    public ReferenceCountedBase acquire() {
+      // long ac = 
       acquireCount.incrementAndGet ();
+      // System.out.println (this + " acquired - " + ac);
       return this;
    }
    
@@ -27,6 +29,7 @@ public abstract class ReferenceCountedBase implements ReferenceCounted {
    @Override
    public long releaseAndCount() {
       long ac = acquireCount.decrementAndGet ();
+      // System.out.println (this + " released - " + ac);
       if (ac == -1) {
          System.err.println ("Uh oh, something didn't properly keep track of releases");
       }

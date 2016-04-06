@@ -37,28 +37,9 @@ public class GL3SharedResources extends GLSharedResources {
       GL3 gl3 = gl.getGL3 ();
       // clear shared info
       primManager.dispose(gl3);
+      groManager.dispose (gl3);
    }
 
-   public GL3SharedObject getSphere(GL3 gl, int slices, int levels) {
-      return primManager.getSphere(gl, slices, levels);
-   }
-
-   public GL3SharedObject getSpindle(GL3 gl, int slices, int levels) {
-      return primManager.getSpindle(gl, slices, levels);
-   }
-
-   public GL3SharedObject getCylinder(GL3 gl, int slices, boolean capped) {
-      return primManager.getCylinder(gl, slices, capped);
-   }
-
-   public GL3SharedObject getCone(GL3 gl, int slices, boolean capped) {
-      return primManager.getCone(gl, slices, capped);
-   }
-
-   public GL3SharedObject getAxes(GL3 gl, boolean drawx, boolean drawy, boolean drawz) {
-      return primManager.getAxes(gl, drawx, drawy, drawz);
-   }
-   
    public GL3SharedRenderObjectIndexed getIndexed(GL3 gl, RenderObject robj) {
       return groManager.getIndexed (gl, robj);
    }

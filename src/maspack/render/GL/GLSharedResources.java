@@ -38,7 +38,7 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
    
    GLTextureLoader textureLoader;
    
-   public long masterRedrawInterval;
+   public long garbageRedrawInterval;
    MasterRedrawThread masterRedrawThread;
    GLGarbageCollector garbageman;
    GLGarbageBin<GLResource> garbagebin;
@@ -82,7 +82,7 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
       viewers = new HashSet<>();
       masterDrawable = null;
       masterRedrawThread = null;
-      masterRedrawInterval = DEFAULT_GARBAGE_INTERVAL;
+      garbageRedrawInterval = DEFAULT_GARBAGE_INTERVAL;
       textureLoader = new GLTextureLoader();
       
       textureMap = new HashMap<> ();
@@ -123,7 +123,7 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
             TextureContent key = entry.getKey ();
             if (key.getReferenceCount () == 0) {
                GLTexture tex = entry.getValue ();
-               tex.release ();
+               tex.releaseDispose (gl);
                it.remove ();
             }
          }
@@ -141,7 +141,7 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
          
          masterDrawable.display(); // triggers GLContext object creation and native realization.
          
-         masterRedrawThread = new MasterRedrawThread (masterDrawable, masterRedrawInterval);
+         masterRedrawThread = new MasterRedrawThread (masterDrawable, garbageRedrawInterval);
          masterRedrawThread.setName ("GL Garbage Collector - " + masterDrawable.getHandle ());
          masterRedrawThread.start ();
          
@@ -210,6 +210,9 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
     * @param gl
     */
    public void dispose(GL gl) {
+      for (GLTexture tex : textureMap.values ()) {
+         tex.releaseDispose (gl);
+      }
       textureMap.clear (); // other sources should be cleared by the garbage man separately
    }
    
@@ -219,11 +222,13 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
     * @param tex stored texture object
     * @return true if texture is invalid and released
     */
-   private boolean releaseTexture(TextureContent key, GLTexture tex) {
+   private boolean maybeReleaseTexture(TextureContent key, GLTexture tex) {
       if (!tex.isValid ()) {
          // release
          tex.release ();
-         textureMap.remove (key);
+         synchronized(textureMap) {
+            textureMap.remove (key);
+         }
          return true;
       }
       
@@ -236,7 +241,7 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
       // check if texture exists in map
       synchronized(textureMap) {
          tex = textureMap.get (key);
-         if (tex == null || releaseTexture(key, tex)) {
+         if (tex == null || maybeReleaseTexture(key, tex)) {
             return null; 
          }
       }
@@ -256,7 +261,7 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
          synchronized (textureLoader) {
             try {
                String fileName = ((TextureContentFile)content).getFileName ();
-               tex = textureLoader.getTexture (gl, fileName, fileName).acquire ();
+               tex = textureLoader.getTextureAcquired (gl, fileName, fileName).acquire ();
                textureMap.put (content, tex);
             } catch (IOException ioe) {
                System.err.println ("Failed to load texture");
@@ -312,10 +317,14 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
    }
    
    public void setGarbageCollectionInterval(long ms) {
-      masterRedrawInterval = ms;
+      garbageRedrawInterval = ms;
       if (masterRedrawThread != null) {
          masterRedrawThread.setRedrawInterval (ms);
       }
+   }
+   
+   public long getGarbageCollectionInterval() {
+      return garbageRedrawInterval;
    }
 
    @Override

@@ -105,7 +105,7 @@ public class Transrotator3d extends Dragger3dBase {
       
       // select appropriate color buffer
       if (mySelectedComponent != 0) {
-         renderer.drawLines(renderObject, mySelectedComponent);
+          renderer.drawLines(renderObject, mySelectedComponent);
       }
       renderer.drawLines(renderObject, 0);
       

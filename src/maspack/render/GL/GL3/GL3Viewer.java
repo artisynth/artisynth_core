@@ -32,6 +32,7 @@ import maspack.render.GL.GLShaderProgram;
 import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLTexture;
 import maspack.render.GL.GLViewer;
+import maspack.render.GL.GL3.GL3SharedPrimitive.PrimitiveType;
 import maspack.render.GL.GL3.GLSLGenerator.StringIntPair;
 import maspack.util.InternalErrorException;
 
@@ -50,17 +51,18 @@ public class GL3Viewer extends GLViewer {
    // Programs
    GL3ProgramManager myProgManager = null;
    GL3SharedResources myGLResources = null;    // holds shared context and cache
-
-   // State
-   ViewerState myCommittedViewerState = null;
-   
    // Resources that stick with this viewer
    GL3RenderObjectManager myRenderObjectManager = null;
    GL3PrimitiveManager myPrimitiveManager = null;
+   long lastGarbageTime = 0;  // for garbage collecting of viewer-specific resources
+   
+   // State
+   ViewerState myCommittedViewerState = null;
 
    // Updateable object for various primitives (essentially stream-drawn)
    // like single lines, etc...
    GL3FlexObject gloFlex = null;
+   GL3Primitive[] primitives = null;
 
    // screenshot
    private GLFrameCapture frameCapture = null;
@@ -139,9 +141,11 @@ public class GL3Viewer extends GLViewer {
       myGLResources = resources;
       canvas = myGLResources.createCanvas();
       myGLResources.registerViewer (this);
-      myPrimitiveManager = new GL3PrimitiveManager (resources.getSharedPrimitiveManager());
       myRenderObjectManager = new GL3RenderObjectManager (resources.getSharedRenderObjectManager());
-
+      
+      myPrimitiveManager = new GL3PrimitiveManager (resources.getSharedPrimitiveManager());
+      primitives = new GL3Primitive[PrimitiveType.values ().length];
+      
       lightManager = new GLLightManager();      
       myProgManager = new GL3ProgramManager();
 
@@ -206,7 +210,6 @@ public class GL3Viewer extends GLViewer {
       int[] buff = new int[2];
       gl.glGetIntegerv(GL3.GL_MAJOR_VERSION, buff, 0);
       gl.glGetIntegerv(GL3.GL_MINOR_VERSION, buff, 1);
-
       System.out.println("GL Renderer: " + renderer);
       System.out.println("OpenGL Version: " + version + " (" + buff[0] + "," + buff[1] + ")");
 
@@ -253,14 +256,38 @@ public class GL3Viewer extends GLViewer {
 
       System.out.println("GL3 initialized");
 
-      GLSupport.checkAndPrintGLError(drawable.getGL ());
+      GLSupport.checkAndPrintGLError(gl);
 
+      this.gl = null;
+      this.drawable = null;
    }
 
+   /**
+    * Do some clean up of resources
+    * @param gl
+    */
+   private void garbage(GL3 gl) {
+      myRenderObjectManager.garbage (gl);
+      myPrimitiveManager.garbage (gl);
+      lastGarbageTime = System.currentTimeMillis ();
+   }
+   
    @Override
    public void dispose(GLAutoDrawable drawable) {
       GLSupport.checkAndPrintGLError(drawable.getGL ());
 
+      this.drawable = drawable;
+      this.gl = drawable.getGL ().getGL3 ();
+      
+      if (this.primitives != null) {
+         for (GL3Primitive prim : primitives) {
+            if (prim != null) {
+               prim.releaseDispose (gl);
+            }
+         }
+         this.primitives = null;
+      }
+      
       myProgManager.dispose(gl);
       myRenderObjectManager.dispose (gl);
       myPrimitiveManager.dispose (gl);
@@ -269,18 +296,28 @@ public class GL3Viewer extends GLViewer {
       gloFlex.dispose (gl);
       gloFlex = null;
 
-      // nullify stuff
-      this.drawable = null;
-      this.gl = null;
-
       System.out.println("GL3 disposed");
       GLSupport.checkAndPrintGLError(drawable.getGL ());
+      
+      // nullify stuff
+      this.gl = null;
+      this.drawable = null;
    }
 
    @Override
+   public void dispose () {
+      myGLResources.deregisterViewer (this);
+      myGLResources = null;
+      super.dispose ();
+   }
+   
+   @Override
    public void display(GLAutoDrawable drawable, int flags) {
 
-      GLSupport.checkAndPrintGLError(drawable.getGL ());
+      this.drawable = drawable;
+      this.gl = drawable.getGL ().getGL3 ();
+      
+      GLSupport.checkAndPrintGLError(gl);
 
       if (!myInternalRenderListValid) {
          buildInternalRenderList();
@@ -328,7 +365,16 @@ public class GL3Viewer extends GLViewer {
          }
       }
 
-      GLSupport.checkAndPrintGLError(drawable.getGL ());
+      GLSupport.checkAndPrintGLError(gl);
+      
+      // check if we should do a garbage collection
+      long time = System.currentTimeMillis ();
+      if (time - lastGarbageTime > myGLResources.getGarbageCollectionInterval()) {
+         garbage(gl);
+      }
+      
+      this.drawable = null;
+      this.gl = null;
    }
 
    private boolean hasTransparent3d() {
@@ -843,10 +889,49 @@ public class GL3Viewer extends GLViewer {
 
       maybeUpdateState (gl);
 
-      int nslices = getSurfaceResolution();
-      GL3Object sphere = myPrimitiveManager.getSphere(gl, nslices, (int)Math.ceil(nslices/2));
+      GL3Primitive sphere = getPrimitive (gl, PrimitiveType.SPHERE);
       updateProgram (gl, RenderingMode.DEFAULT, true, false, false);
       sphere.draw(gl);
+
+      // revert matrix transform
+      popModelMatrix();
+   }
+   
+   @Override
+   public void drawCube(float[] pnt, double rad) {
+
+      if (rad < Double.MIN_NORMAL) {
+         return;
+      }
+
+      // scale and translate model matrix
+      pushModelMatrix();
+      translateModelMatrix(pnt[0], pnt[1], pnt[2]);
+      scaleModelMatrix(rad/2);
+
+      maybeUpdateState (gl);
+
+      GL3Primitive cube = getPrimitive (gl, PrimitiveType.CUBE);
+      updateProgram (gl, RenderingMode.DEFAULT, true, false, false);
+      cube.draw(gl);
+
+      // revert matrix transform
+      popModelMatrix();
+   }
+   
+   @Override
+   public void drawCube (RigidTransform3d trans, Vector3d scale) {
+    
+      // scale and translate model matrix
+      pushModelMatrix();
+      mulModelMatrix (trans);
+      scaleModelMatrix (scale.x/2, scale.y/2, scale.z/2);
+
+      maybeUpdateState (gl);
+
+      GL3Primitive cube = getPrimitive (gl, PrimitiveType.CUBE);
+      updateProgram (gl, RenderingMode.DEFAULT, true, false, false);
+      cube.draw(gl);
 
       // revert matrix transform
       popModelMatrix();
@@ -886,8 +971,7 @@ public class GL3Viewer extends GLViewer {
 
       maybeUpdateState(gl);
 
-      int nslices = getSurfaceResolution();
-      GL3Object spindle = myPrimitiveManager.getSpindle(gl, nslices, (int)Math.ceil(nslices/2));
+      GL3Object spindle = getPrimitive (gl, PrimitiveType.SPINDLE);
       updateProgram (gl, RenderingMode.DEFAULT, true, false, false);
       spindle.draw(gl);
 
@@ -919,9 +1003,9 @@ public class GL3Viewer extends GLViewer {
       updateProgram (gl, RenderingMode.DEFAULT, true, false, false);
       
       int nslices = getSurfaceResolution();
-      GL3Object cylinder = myPrimitiveManager.getCylinder(gl, nslices, capped);
-      
+      GL3Primitive cylinder = myPrimitiveManager.getAcquiredCylinder(gl, nslices, capped);
       cylinder.draw(gl);
+      cylinder.release ();
 
       // revert matrix transform
       popModelMatrix();
@@ -936,15 +1020,17 @@ public class GL3Viewer extends GLViewer {
       double dz = pnt1[2]-pnt0[2];
       float h = (float)(Math.sqrt(dx*dx+dy*dy+dz*dz));
       
-      int nSlices = getSurfaceResolution ();
-      GL3Object cone = myPrimitiveManager.getCone (gl, nSlices, capped);
-      
       pushModelMatrix ();
       mulModelMatrix(lineRot);
       scaleModelMatrix (r, r, h);
       maybeUpdateState (gl);
       updateProgram (gl, RenderingMode.DEFAULT, true, false, false);
+      
+      int nSlices = getSurfaceResolution ();
+      GL3Object cone = myPrimitiveManager.getAcquiredCone (gl, nSlices, capped);
       cone.draw (gl);
+      cone.release ();
+      
       popModelMatrix ();
    }
    
@@ -1242,8 +1328,9 @@ public class GL3Viewer extends GLViewer {
       maybeUpdateState(gl);
       updateProgram (gl, RenderingMode.DEFAULT, true, false, false);
 
-      GL3Object cylinder = myPrimitiveManager.getCylinder(gl, nslices, capped);
+      GL3Primitive cylinder = myPrimitiveManager.getAcquiredCylinder(gl, nslices, capped);
       cylinder.draw(gl);
+      cylinder.release ();
 
       popModelMatrix();
       pushModelMatrix();
@@ -1253,8 +1340,9 @@ public class GL3Viewer extends GLViewer {
       scaleModelMatrix(arrowRad, arrowRad, arrowLen);
       maybeUpdateState(gl);
 
-      GL3Object cone = myPrimitiveManager.getCone(gl, nslices, capped);
+      GL3Object cone = myPrimitiveManager.getAcquiredCone(gl, nslices, capped);
       cone.draw(gl);
+      cone.release ();
 
       // revert matrix transform
       popModelMatrix();
@@ -1353,6 +1441,10 @@ public class GL3Viewer extends GLViewer {
             //setShadeModel(savedShading);
             break;
          }
+         case CUBE: {
+            drawCube(pnt, 2*props.getPointRadius ());
+            break;
+         }
       }
       setShading(savedShading);
       setSelectionHighlighting (savedHighlighting);
@@ -1372,9 +1464,10 @@ public class GL3Viewer extends GLViewer {
       scaleModelMatrix(len);
       maybeUpdateState(gl);
 
-      GL3Object axes = myPrimitiveManager.getAxes(gl, true, true, true);
       updateProgram (gl, RenderingMode.DEFAULT, false, true, false);
+      GL3Object axes = myPrimitiveManager.getAcquiredAxes(gl, true, true, true);
       axes.draw(gl);
+      axes.release ();
 
       // signal to revert matrix transform
       popModelMatrix();
@@ -1416,16 +1509,14 @@ public class GL3Viewer extends GLViewer {
       mulModelMatrix(X);
       scaleModelMatrix(lx, ly, lz);
       maybeUpdateState(gl);
-
-
-      gl.glLineWidth (width);
-
-      GL3Object axes = myPrimitiveManager.getAxes(gl, drawx, drawy, drawz);
+      setLineWidth (gl, width);
+      
       updateProgram (gl, RenderingMode.DEFAULT, false, true, false);
+      GL3Object axes = myPrimitiveManager.getAcquiredAxes(gl, drawx, drawy, drawz);
       axes.draw(gl);
-      // gloManager.releaseObject(axes);
+      axes.release ();
 
-      gl.glLineWidth(1);
+      setLineWidth(gl, 1);
 
       // revert matrix transform
       popModelMatrix();
@@ -1534,6 +1625,72 @@ public class GL3Viewer extends GLViewer {
    // PRIMITIVES
    //=============================================================================
 
+   @Override
+   public int setSurfaceResolution (int nres) {
+      int oldres = getSurfaceResolution ();
+      if (oldres != nres) {
+         for (int i=0; i<primitives.length; ++i) {
+            GL3Primitive p = primitives[i];
+            if (p != null) {
+               if (gl != null) {
+                  p.releaseDispose (gl);
+               } else {
+                  p.release ();
+               }
+               primitives[i] = null;
+            }
+         }
+         return super.setSurfaceResolution (nres);
+      }
+      return oldres;
+   }
+   
+   /**
+    * Return a primitive object
+    * @param gl
+    * @param type
+    * @return primitive
+    */
+   private GL3Primitive getPrimitive(GL3 gl, PrimitiveType type) {
+      int pid = type.ordinal ();
+      GL3Primitive primitive = primitives[pid];
+      
+      if (primitive != null) {
+         if (primitive.disposeInvalid (gl)) {
+            primitive.release (); // release if we are throwing away
+         } else {
+            return primitive;
+         }
+      }
+      
+      int resolution = getSurfaceResolution ();
+      
+      // rebuild primitive
+      switch (type) {
+         case CUBE:
+            primitive = myPrimitiveManager.getAcquiredCube (gl);
+            break;
+         case CONE:
+            primitive = myPrimitiveManager.getAcquiredCone(gl, resolution, true);
+            break;
+         case CYLINDER:
+            primitive = myPrimitiveManager.getAcquiredCylinder(gl, resolution, true);
+            break;
+         case SPHERE:
+            primitive = myPrimitiveManager.getAcquiredSphere(gl, resolution, resolution/2);
+            break;
+         case SPINDLE:
+            primitive = myPrimitiveManager.getAcquiredSpindle(gl, resolution, resolution/2);
+            break;
+         case AXES:
+            primitive = myPrimitiveManager.getAcquiredAxes(gl, true, true, true);
+            break;
+      }
+      
+      primitives[pid] = primitive;
+      return primitive;
+   }
+   
    private<T> int findSize(Iterable<T> it) {
 
       int size = 0;
@@ -1689,10 +1846,6 @@ public class GL3Viewer extends GLViewer {
    @Override
    public void drawLines(RenderObject robj, int gidx) {
       GLSupport.checkAndPrintGLError(gl);
-
-      if (gidx > 0) {
-         System.out.println ("beep");
-      }
       
       GL3RenderObjectIndexed gro = myRenderObjectManager.getIndexed (gl, robj);
       maybeUpdateState(gl);
@@ -1766,15 +1919,15 @@ public class GL3Viewer extends GLViewer {
             
             switch (style) {
                case CYLINDER: {
-                  GL3Object primitive = myPrimitiveManager.getCylinder (gl, mySurfaceResolution, true);
+                  GL3Primitive primitive = getPrimitive (gl, PrimitiveType.CYLINDER);
                   gro.setRadius (gl, (float)rad);
                   gro.drawInstancedLineGroup (gl, primitive, gidx);
                   break;
                }
                case SOLID_ARROW: {
                   gro.setRadius (gl, (float)rad);
-                  GL3Object cylinder = myPrimitiveManager.getCylinder (gl, mySurfaceResolution, true);
-                  GL3Object cone = myPrimitiveManager.getCone (gl, mySurfaceResolution, true);
+                  GL3Primitive cylinder = getPrimitive (gl, PrimitiveType.CYLINDER);
+                  GL3Primitive cone = getPrimitive (gl, PrimitiveType.CONE);
 
                   float arrowRad = 3*(float)rad;
                   float arrowLen = 2*arrowRad;
@@ -1789,7 +1942,7 @@ public class GL3Viewer extends GLViewer {
                }
                case SPINDLE: {
                   gro.setRadius (gl, (float)rad);
-                  GL3Object spindle = myPrimitiveManager.getSpindle (gl, mySurfaceResolution, mySurfaceResolution/2);
+                  GL3Primitive spindle = getPrimitive (gl, PrimitiveType.SPINDLE);
                   gro.drawInstancedLineGroup (gl, spindle, gidx);
                   break;
                }
@@ -1835,16 +1988,18 @@ public class GL3Viewer extends GLViewer {
             }
             break;
          }
-         case SPHERE: {
-
-            GL3Object sphere = myPrimitiveManager.getSphere (gl, mySurfaceResolution, mySurfaceResolution/2);
-
+         case SPHERE: 
+         case CUBE: {
+            GL3Primitive point;
+            if (style == PointStyle.SPHERE) {
+               point = getPrimitive (gl, PrimitiveType.SPHERE);
+            } else {
+               point = getPrimitive (gl, PrimitiveType.CUBE);
+            }
             gro.setRadius(gl, (float)rad);
-            // getProgram(gl, robj.getStateInfo ()).use (gl);
-            updateProgram (gl, RenderingMode.INSTANCED_POINTS, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
-            
-            gro.drawInstancedPointGroup (gl, sphere, gidx);
-
+            updateProgram (gl, RenderingMode.INSTANCED_POINTS, robj.hasNormals (), 
+               robj.hasColors (), robj.hasTextureCoords ());
+            gro.drawInstancedPointGroup (gl, point, gidx);
             break;
          }
       }

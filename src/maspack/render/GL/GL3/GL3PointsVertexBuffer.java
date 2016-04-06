@@ -70,6 +70,11 @@ public class GL3PointsVertexBuffer extends GL3ResourceBase {
       BufferUtilities.freeDirectBuffer (buff);
       buff = null;
    }
+   
+   @Override
+   public boolean isDisposed () {
+      return (vbo == null);
+   }
 
    @Override
    public GL3PointsVertexBuffer acquire () {

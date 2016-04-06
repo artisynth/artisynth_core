@@ -19,24 +19,23 @@ import javax.swing.JPopupMenu;
 import javax.swing.event.MouseInputAdapter;
 import javax.swing.event.MouseInputListener;
 
+import artisynth.core.gui.selectionManager.SelectionManager;
+import artisynth.core.workspace.RootModel;
 import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.RotationMatrix3d;
 import maspack.render.Dragger3d;
+import maspack.render.RenderList;
 import maspack.render.Renderer;
+import maspack.render.Renderer.HighlightStyle;
 import maspack.render.GL.GLRenderable;
-import maspack.render.GL.GLRenderer;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewerFrame;
 import maspack.render.GL.GLViewerPanel;
-import maspack.render.Renderer.HighlightStyle;
-import maspack.render.RenderList;
 import maspack.widgets.ButtonMasks;
 import maspack.widgets.GuiUtils;
 import maspack.widgets.PropertyDialog;
 import maspack.widgets.ViewerPopupManager;
-import artisynth.core.gui.selectionManager.SelectionManager;
-import artisynth.core.workspace.RootModel;
 
 /**
  * Driver class for model rendering. Each time the top-level model needs to be

@@ -19,17 +19,11 @@ public class GL3RenderObjectManager implements GLGarbageSource {
    HashMap<RenderObjectIdentifier,GL3RenderObjectLines> lineMap;
    HashMap<RenderObjectIdentifier,GL3RenderObjectPoints> pointMap;
    
-   GL3PointsVertexBuffer pointBuff;
-   GL3LinesVertexBuffer lineBuff;
-   
    public GL3RenderObjectManager(GL3SharedRenderObjectManager sharedManager) {
       this.shared = sharedManager;
       indexedMap = new HashMap<> ();
       lineMap = new HashMap<> ();
       pointMap = new HashMap<> ();
-      
-      pointBuff = null;
-      lineBuff = null;
    }
    
    public GL3RenderObjectIndexed getIndexed(GL3 gl, RenderObject robj) {
@@ -50,18 +44,15 @@ public class GL3RenderObjectManager implements GLGarbageSource {
    }
    
    public GL3RenderObjectLines getLines(GL3 gl, RenderObject robj) {
-      
-      if (lineBuff == null) {
-         lineBuff = GL3LinesVertexBuffer.generate(gl, shared.getAttribute ("line_radius"),
-            shared.getAttribute ("line_bottom_scale_offset"),
-            shared.getAttribute ("line_top_scale_offset"));
-      }
-      
+
       GL3RenderObjectLines gro = null;
       synchronized (lineMap) {
          RenderObjectIdentifier rid = robj.getIdentifier ();
          gro = lineMap.get (rid);
          if (gro == null || gro.disposeInvalid (gl)) {
+            GL3LinesVertexBuffer lineBuff = GL3LinesVertexBuffer.generate(gl, shared.getAttribute ("line_radius"),
+               shared.getAttribute ("line_bottom_scale_offset"),
+               shared.getAttribute ("line_top_scale_offset"));
             gro = GL3RenderObjectLines.generate(gl, lineBuff, shared.getLines (gl, robj));
             lineMap.put (rid, gro);
          } else {
@@ -73,16 +64,14 @@ public class GL3RenderObjectManager implements GLGarbageSource {
    }
    
    public GL3RenderObjectPoints getPoints(GL3 gl, RenderObject robj) {
-      
-      if (pointBuff == null) {
-         pointBuff = GL3PointsVertexBuffer.generate(gl, shared.getAttribute ("instance_scale"));
-      }
-      
+   
       GL3RenderObjectPoints gro = null;
       synchronized (pointMap) {
          RenderObjectIdentifier rid = robj.getIdentifier ();
          gro = pointMap.get (rid);
          if (gro == null || gro.disposeInvalid (gl)) {
+            GL3PointsVertexBuffer pointBuff = GL3PointsVertexBuffer.generate(gl, 
+               shared.getAttribute ("instance_scale"));
             gro = GL3RenderObjectPoints.generate(gl, pointBuff, shared.getPoints (gl, robj));;
             pointMap.put (rid, gro);
          } else {

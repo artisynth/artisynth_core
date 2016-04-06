@@ -1,26 +1,26 @@
-package maspack.render.GL.GL3;
+package maspack.render.GL.GL2;
 
 import javax.media.opengl.GL;
-import javax.media.opengl.GL3;
+import javax.media.opengl.GL2;
 
 import maspack.render.GL.GLResourceBase;
 
-public abstract class GL3ResourceBase extends GLResourceBase implements GL3Resource {
+public abstract class GL2ResourceBase extends GLResourceBase implements GL2Resource {
 
-   protected GL3ResourceBase() {
+   protected GL2ResourceBase() {
       super();
    }
    
    @Override
-   public abstract void dispose(GL3 gl);
+   public abstract void dispose(GL2 gl);
    
    @Override
    public void dispose (GL gl) {
-      dispose((GL3)gl);
+      dispose((GL2)gl);
    }
    
    @Override
-   public boolean disposeInvalid (GL3 gl) {
+   public boolean disposeInvalid (GL2 gl) {
       if (!isValid ()) {
          dispose(gl);
          return true;
@@ -30,11 +30,11 @@ public abstract class GL3ResourceBase extends GLResourceBase implements GL3Resou
    
    @Override
    public boolean disposeInvalid (GL gl) {
-      return super.disposeInvalid ((GL3)gl);
+      return super.disposeInvalid ((GL2)gl);
    }
    
    @Override
-   public boolean disposeUnreferenced (GL3 gl) {
+   public boolean disposeUnreferenced (GL2 gl) {
       if (getReferenceCount () == 0) {
          dispose (gl);
          return true;
@@ -44,11 +44,11 @@ public abstract class GL3ResourceBase extends GLResourceBase implements GL3Resou
    
    @Override
    public boolean disposeUnreferenced (GL gl) {
-      return super.disposeUnreferenced ((GL3)gl);
+      return super.disposeUnreferenced ((GL2)gl);
    }
    
    @Override
-   public boolean releaseDispose (GL3 gl) {
+   public boolean releaseDispose (GL2 gl) {
       long r = releaseAndCount();
       if (r == 0) {
          dispose (gl);
@@ -59,12 +59,12 @@ public abstract class GL3ResourceBase extends GLResourceBase implements GL3Resou
    
    @Override
    public boolean releaseDispose (GL gl) {
-      return super.releaseDispose ((GL3)gl);
+      return super.releaseDispose ((GL2)gl);
    }
    
    @Override
-   public GL3ResourceBase acquire () {
-      return (GL3ResourceBase)super.acquire ();
+   public GL2ResourceBase acquire () {
+      return (GL2ResourceBase)super.acquire ();
    }
 
 }

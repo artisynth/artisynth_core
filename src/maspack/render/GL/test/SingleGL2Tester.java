@@ -6,15 +6,15 @@ public class SingleGL2Tester extends MultiViewerTesterBase {
 
    protected static void addRenderObjects(MultiViewer tester) {
 
-      addCube(tester);
-      addAxes(tester);
+//      addCube(tester);
+//      addAxes(tester);
       addTransRotator(tester);
-      addCylinder(tester);
-
-      PolygonalMesh bunny = loadStanfordBunny();
-      addStanfordBunnies(tester, bunny);
-      addSolidBunny(tester, bunny);
-      addHalfBunny(tester, bunny);
+//      addCylinder(tester);
+//
+//      PolygonalMesh bunny = loadStanfordBunny();
+//      addStanfordBunnies(tester, bunny);
+//      addSolidBunny(tester, bunny);
+//      addHalfBunny(tester, bunny);
 
    }
 

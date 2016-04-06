@@ -2531,7 +2531,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       // adjust offset to account for proper bin depth
       double zoffset = 0;
       if (myFrustum.depthBitOffset != 0) {
-         zoffset = -2.0/(1 << (myFrustum.depthBits-1));
+         // XXX should be 2, but doesn't seem to work well... 512 works better?
+         zoffset = 2.0*myFrustum.depthBitOffset/(1 << (myFrustum.depthBits-1));
       }
       
       if (myFrustum.orthographic) {
@@ -2929,21 +2930,20 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
    //  Drawing
    //==========================================================================
 
-//   // forwarded draw commands
-//   public void drawSphere (RenderProps props, float[] coords) {
-//      double r = props.getPointRadius();
-//      drawSphere(coords, r);
-//   }
-//   
    public void drawSphere (Vector3d pnt, double rad) {
       drawSphere (toFloat(pnt), rad);
    }
 
+   @Override
+   public void drawCube (Vector3d pnt, double w) {
+      drawCube(toFloat(pnt), w);
+   }
+   
    public void drawCylinder (
       Vector3d pnt0, Vector3d pnt1, double rad, boolean capped) {
       drawCylinder (toFloat(pnt0), toFloat(pnt1), rad, capped);
    }
-
+   
 //   public void drawCylinder (
 //      float[] pnt0, float[] pnt1, double rad) {
 //      drawCylinder (pnt0, pnt1, rad, /* capped= */false);

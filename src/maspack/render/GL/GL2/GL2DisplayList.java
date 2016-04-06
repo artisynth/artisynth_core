@@ -1,11 +1,8 @@
 package maspack.render.GL.GL2;
 
-import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 
-import maspack.render.GL.GLResourceBase;
-
-public class GL2DisplayList extends GLResourceBase {
+public class GL2DisplayList extends GL2ResourceBase {
 
    private int listId;
    private int count;
@@ -62,24 +59,28 @@ public class GL2DisplayList extends GLResourceBase {
    }
 
    @Override
-   protected void internalDispose (GL gl) {
+   public void dispose (GL2 gl) {
       if (listId >= 0) {
-         System.out.println ("DisplayList " + listId + " disposed (" + this + ")" );
-         GL2 gl2 = (GL2)gl;
-         gl2.glDeleteLists (listId, count);
-         listId = 0;
+         // System.out.println ("DisplayList " + listId + " disposed (" + this + ")" );
+         gl.glDeleteLists (listId, count);
+         listId = -1;
       }
    }
    
    @Override
-   public void release () {
-      System.out.println ("DisplayList " + listId + " released (" + this + ")" );
-      super.release ();
+   public boolean isDisposed () {
+      return (listId == -1);
    }
+   
+   //   @Override
+   //   public void release () {
+   //      System.out.println ("DisplayList " + listId + " released (" + this + ")" );
+   //      super.release ();
+   //   }
    
    @Override
    public GL2DisplayList acquire () {
-      System.out.println ("DisplayList " + listId + " acquired (" + this + ")" );
+      //    System.out.println ("DisplayList " + listId + " acquired (" + this + ")" );
       return (GL2DisplayList)super.acquire ();
    }
    

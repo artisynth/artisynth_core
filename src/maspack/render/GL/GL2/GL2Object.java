@@ -2,13 +2,13 @@ package maspack.render.GL.GL2;
 
 import javax.media.opengl.GL2;
 
-public class GL2Object implements GL2Drawable {
+public class GL2Object extends GL2ResourceBase implements GL2Drawable {
    
    GL2DisplayList displayList;
    
    public GL2Object(GL2DisplayList displayList) {
       this.displayList = displayList.acquire ();  // hold on to a reference of the displaylist
-      System.out.println ("GL2Object born (" + this + ")");
+      // System.out.println ("GL2Object born (" + this + ")");
    }
 
    @Override
@@ -31,42 +31,24 @@ public class GL2Object implements GL2Drawable {
    public void beginCompileAndDraw(GL2 gl) {
       displayList.compileAndExecute (gl);
    }
-
+   
    @Override
-   public void dispose () {
+   public void dispose (GL2 gl) {
       if (displayList != null) {
-         System.out.println ("GL2Object disposed (" + this + ")");
-         displayList.release ();  // release reference so it can be freed
+         // System.out.println ("GL2Object disposed (" + this + ")");
+         displayList.releaseDispose (gl);  // release reference so it can be freed
          displayList = null;
-      }
+      }   
    }
    
    @Override
-   protected void finalize () throws Throwable {
-      System.out.println ("GL2Object dying (" + this + ")");
-      dispose();
+   public boolean isDisposed () {
+      return (displayList == null);
    }
 
    @Override
    public boolean isValid () {
       if (displayList != null && displayList.isValid()) {
-         return true;
-      }
-      return false;
-   }
-
-   @Override
-   public boolean isDisposed () {
-      return (displayList == null);
-   }
-   
-   @Override
-   public boolean disposeInvalid () {
-      if (isDisposed ()) {
-         return true;
-      }
-      if (!isValid ()) {
-         dispose();
          return true;
       }
       return false;

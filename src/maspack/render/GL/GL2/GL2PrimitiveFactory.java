@@ -136,5 +136,63 @@ public class GL2PrimitiveFactory {
       list.end (gl);
       return list;
    }
+   
+   /**
+    * Box from (-1,-1,-1) to (1,1,1)
+    * @param gl context
+    * @return created box
+    */
+   public static GL2DisplayList createCube(GL2 gl) {
+      GL2DisplayList list = GL2DisplayList.allocate (gl, 1);
+      list.compile (gl);
+
+      // draw sides
+      gl.glBegin(GL2.GL_QUADS);
+      // y = 1.0
+      gl.glNormal3f(0.0f, 1.0f, 0.0f);
+      gl.glVertex3f( 1.0f, 1.0f, -1.0f);
+      gl.glVertex3f(-1.0f, 1.0f, -1.0f);
+      gl.glVertex3f(-1.0f, 1.0f,  1.0f);
+      gl.glVertex3f( 1.0f, 1.0f,  1.0f);
+
+      // y = -1.0
+      gl.glNormal3f( 0.0f, -1.0f,  0.0f);
+      gl.glVertex3f( 1.0f, -1.0f,  1.0f);
+      gl.glVertex3f(-1.0f, -1.0f,  1.0f);
+      gl.glVertex3f(-1.0f, -1.0f, -1.0f);
+      gl.glVertex3f( 1.0f, -1.0f, -1.0f);
+
+      // z = 1.0
+      gl.glNormal3f(0.0f, 0.0f, 1.0f);
+      gl.glVertex3f( 1.0f,  1.0f, 1.0f);
+      gl.glVertex3f(-1.0f,  1.0f, 1.0f);
+      gl.glVertex3f(-1.0f, -1.0f, 1.0f);
+      gl.glVertex3f( 1.0f, -1.0f, 1.0f);
+
+      // z = -1.0
+      gl.glNormal3f(0.0f, 0.0f, -1.0f);
+      gl.glVertex3f( 1.0f, -1.0f, -1.0f);
+      gl.glVertex3f(-1.0f, -1.0f, -1.0f);
+      gl.glVertex3f(-1.0f,  1.0f, -1.0f);
+      gl.glVertex3f( 1.0f,  1.0f, -1.0f);
+
+      // x = -1.0
+      gl.glNormal3f(-1.0f, 0.0f, 0.0f);
+      gl.glVertex3f(-1.0f,  1.0f,  1.0f);
+      gl.glVertex3f(-1.0f,  1.0f, -1.0f);
+      gl.glVertex3f(-1.0f, -1.0f, -1.0f);
+      gl.glVertex3f(-1.0f, -1.0f,  1.0f);
+
+      // x = 1.0f
+      gl.glNormal3f(1.0f, 0.0f, 0.0f);
+      gl.glVertex3f(1.0f,  1.0f, -1.0f);
+      gl.glVertex3f(1.0f,  1.0f,  1.0f);
+      gl.glVertex3f(1.0f, -1.0f,  1.0f);
+      gl.glVertex3f(1.0f, -1.0f, -1.0f);
+      gl.glEnd ();
+
+      list.end (gl);
+      return list;
+   }
 
 }

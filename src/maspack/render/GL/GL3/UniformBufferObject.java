@@ -163,12 +163,19 @@ public class UniformBufferObject extends GL3ResourceBase {
    public void dispose(GL3 gl) {
       // invalidate data then delete buffer
       // gl.glInvalidateBufferData(ubo);
-      int buff[] = new int[1];
-      buff[0] = ubo;
-      gl.glDeleteBuffers(1, buff, 0);
-      ubo = -1;
-      BufferUtilities.freeDirectBuffer (this.buff);
-      this.buff = null;
+      if (!isDisposed()) {
+         int buff[] = new int[1];
+         buff[0] = ubo;
+         gl.glDeleteBuffers(1, buff, 0);
+         ubo = -1;
+         BufferUtilities.freeDirectBuffer (this.buff);
+         this.buff = null;
+      }
+   }
+   
+   @Override
+   public boolean isDisposed () {
+      return ubo == -1;
    }
    
    public boolean isValid() {

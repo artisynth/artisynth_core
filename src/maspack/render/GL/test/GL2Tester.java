@@ -4,7 +4,7 @@ public class GL2Tester extends MultiViewerTesterBase {
 
    @Override
    protected void createViewers (MultiViewer mv) {
-      mv.addGL2Viewer("GL2 Viewer", 670, 30, 640, 480);
+      mv.addGL2Viewer("GL2 Viewer", 30, 30, 640, 480);
       mv.syncViews();
 
       // adjust all windows to a specific size

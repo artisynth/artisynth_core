@@ -44,6 +44,13 @@ public class GL3RenderObjectIndexed extends GL3ResourceBase implements GL3Drawab
    public void dispose (GL3 gl) {
       vao.releaseDispose (gl);
       glo.releaseDispose (gl);
+      vao = null;
+      glo = null;
+   }
+   
+   @Override
+   public boolean isDisposed () {
+      return (vao == null);
    }
    
    @Override

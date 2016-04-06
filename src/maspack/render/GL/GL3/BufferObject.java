@@ -33,15 +33,16 @@ public class BufferObject extends GL3ResourceBase {
     */
    @Override
    public void dispose(GL3 gl) {
-      if (boId > 0) {
+      if (!isDisposed ()) {
          int[] vbo = new int[]{boId};
          gl.glDeleteBuffers(1, vbo, 0);
-         boId = -1;
+         boId = 0;
       }
    }
    
-   public boolean isValid() {
-      return (boId > 0);
+   @Override
+   public boolean isDisposed () {
+      return (boId == 0);
    }
    
    public void allocate(GL3 gl, int size, int usage) {

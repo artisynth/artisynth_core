@@ -533,8 +533,12 @@ public class GL3FlexObject extends GL3ResourceBase {
       
          BufferUtilities.freeDirectBuffer (ibuff);
          ibuff = null;
-         
       }
+   }
+   
+   @Override
+   public boolean isDisposed () {
+      return (vao == null);
    }
    
    public static GL3FlexObject generate(GL3 gl, GL3VertexAttributeInfo posAttr, GL3VertexAttributeInfo nrmAttr,

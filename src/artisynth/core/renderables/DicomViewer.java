@@ -44,6 +44,9 @@ public class DicomViewer extends RenderableComponentBase
 
    DicomImage myImage;
    DicomPixelConverter converter = null;
+   GLTexture xy = null;
+   GLTexture xz = null;
+   GLTexture yz = null;
 
    public static PropertyList myProps = new PropertyList(
       DicomViewer.class, RenderableComponentBase.class);
@@ -375,6 +378,12 @@ public class DicomViewer extends RenderableComponentBase
                int nz = myImage.getNumSlices();
                switch (i) {
                   case 0: {
+                     
+                     if (yz != null) {
+                        yz.releaseDispose (gl);
+                     }
+                     yz = null;
+                     
                      // YZ
                      switch (myImage.getPixelType()) {
                         case BYTE:
@@ -397,8 +406,8 @@ public class DicomViewer extends RenderableComponentBase
                                  max = val;
                               }
                            }
-                           
-                           textureLoader.getTexture(gl, textureIds[i], GL.GL_TEXTURE_2D, image, ny, nz, src, dst);
+                           yz = textureLoader.getTextureAcquired(gl, 
+                              textureIds[i], GL.GL_TEXTURE_2D, image, ny, nz, src, dst);
                            break;
                         }
                         case RGB: {
@@ -413,7 +422,8 @@ public class DicomViewer extends RenderableComponentBase
                            
                            int src = GL2.GL_RGB;
                            int dst = GL2.GL_RGB;
-                           textureLoader.getTexture(gl, textureIds[i], GL.GL_TEXTURE_2D, image, ny, nz, src, dst);
+                           yz = textureLoader.getTextureAcquired(gl, textureIds[i], GL.GL_TEXTURE_2D, 
+                              image, ny, nz, src, dst);
                            break;
                         }
                      }   
@@ -421,6 +431,12 @@ public class DicomViewer extends RenderableComponentBase
                      break;
                   }
                   case 1: {
+                     
+                     if (xz != null) {
+                        xz.releaseDispose (gl);
+                     }
+                     xz = null;
+                     
                      // XZ
                      switch (myImage.getPixelType()) {
                         case BYTE:
@@ -446,7 +462,8 @@ public class DicomViewer extends RenderableComponentBase
                               }
                            }
                            
-                           textureLoader.getTexture(gl, textureIds[i], GL.GL_TEXTURE_2D, image, nx, nz, src, dst);
+                           xz = textureLoader.getTextureAcquired(gl, 
+                              textureIds[i], GL.GL_TEXTURE_2D, image, nx, nz, src, dst);
                            break;
                         }
                         case RGB: {
@@ -460,13 +477,20 @@ public class DicomViewer extends RenderableComponentBase
                            
                            int src = GL2.GL_RGB;
                            int dst = GL2.GL_RGB;
-                           textureLoader.getTexture(gl, textureIds[i], GL.GL_TEXTURE_2D, image, nx, nz, src, dst);
+                           xz = textureLoader.getTextureAcquired(gl, 
+                              textureIds[i], GL.GL_TEXTURE_2D, image, nx, nz, src, dst);
                            break;
                         }
                      }   
                      break;
                   }
                   case 2: {
+                     
+                     if (xy != null) {
+                        xy.releaseDispose (gl);
+                     }
+                     xy = null;
+                     
                      // XY
                      switch (myImage.getPixelType()) {
                         case BYTE:
@@ -491,7 +515,8 @@ public class DicomViewer extends RenderableComponentBase
                               }
                            }
                            
-                           textureLoader.getTexture(gl, textureIds[i], GL.GL_TEXTURE_2D, image, nx, ny, src, dst);
+                           xy = textureLoader.getTextureAcquired(gl, textureIds[i], 
+                              GL.GL_TEXTURE_2D, image, nx, ny, src, dst);
                            break;
                         }
                         case RGB: {
@@ -505,7 +530,8 @@ public class DicomViewer extends RenderableComponentBase
                            
                            int src = GL2.GL_RGB;
                            int dst = GL2.GL_RGB;
-                           textureLoader.getTexture(gl, textureIds[i], GL.GL_TEXTURE_2D, image, nx, ny, src, dst);
+                           xy = textureLoader.getTextureAcquired(gl, textureIds[i], 
+                              GL.GL_TEXTURE_2D, image, nx, ny, src, dst);
                            break;
                         }
                      }   
@@ -667,7 +693,7 @@ public class DicomViewer extends RenderableComponentBase
          if (drawSlice[i]) {
             
             if (!renderer.isSelecting()) {
-               GLTexture tex = textureLoader.getTextureByName(textureIds[i]);
+               GLTexture tex = textureLoader.getTextureByNameAcquired(textureIds[i]);
                tex.bind(gl);
             }
             

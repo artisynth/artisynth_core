@@ -163,6 +163,11 @@ public class GL3LinesVertexBuffer extends GL3ResourceBase {
    }
    
    @Override
+   public boolean isDisposed () {
+      return (vbo == null);
+   }
+   
+   @Override
    public GL3LinesVertexBuffer acquire () {
       return (GL3LinesVertexBuffer)super.acquire ();
    }

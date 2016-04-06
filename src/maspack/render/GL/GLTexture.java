@@ -193,11 +193,17 @@ public class GLTexture extends GLResourceBase {
    /**
     * Delete the current texture in a context
     */
-   protected void internalDispose(GL gl) {
-      if (textureID > 0) {
-         super.dispose(gl);
+   @Override
+   public void dispose(GL gl) {
+      if (textureID >= 0) {
          gl.glDeleteTextures(1, new int[] {textureID}, 0);
+         textureID = -1;
       }
+   }
+   
+   @Override
+   public boolean isDisposed () {
+      return (textureID <= 0);
    }
 
    /**

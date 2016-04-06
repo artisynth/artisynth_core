@@ -1,21 +1,21 @@
 package maspack.render.GL.GL3;
 
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map.Entry;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
 
 import maspack.render.GL.GLGarbageSource;
-import maspack.render.GL.GL3.GL3SharedPrimitiveManager.AxesKey;
-import maspack.render.GL.GL3.GL3SharedPrimitiveManager.ConeKey;
-import maspack.render.GL.GL3.GL3SharedPrimitiveManager.CylinderKey;
-import maspack.render.GL.GL3.GL3SharedPrimitiveManager.SphereKey;
-import maspack.render.GL.GL3.GL3SharedPrimitiveManager.SpindleKey;
+import maspack.render.GL.GLSupport;
+import maspack.render.GL.GL3.GL3SharedPrimitive.AxesKey;
+import maspack.render.GL.GL3.GL3SharedPrimitive.ConeKey;
+import maspack.render.GL.GL3.GL3SharedPrimitive.CubeKey;
+import maspack.render.GL.GL3.GL3SharedPrimitive.CylinderKey;
+import maspack.render.GL.GL3.GL3SharedPrimitive.SphereKey;
+import maspack.render.GL.GL3.GL3SharedPrimitive.SpindleKey;
 
 /**
- * Manager for UNSHARED resources
+ * Manager for UNSHARED primitive resources
  * @author Antonio
  *
  */
@@ -24,44 +24,13 @@ public class GL3PrimitiveManager implements GLGarbageSource {
    GL3SharedPrimitiveManager shared;
    HashMap<Object,GL3Primitive> primitiveMap;
    
-   private static class GL3Primitive {
-      Object key;
-      GL3Object glo;
-      
-      public GL3Primitive(Object key, GL3Object glo) {
-         this.glo = glo;
-         this.key = key;
-      }
-      
-      public GL3Object getPrimitive() {
-         return glo;
-      }
-      
-      public boolean isValid() {
-         return glo.isValid ();
-      }
-      
-      public boolean disposeInvalid(GL3 gl) {
-         if (!isValid()) {
-            dispose(gl);
-            return true;
-         }
-         return false;
-      }
-      
-      public void dispose(GL3 gl) {
-         if (glo != null) {
-            glo.releaseDispose (gl);
-            glo = null;
-         }
-      }
-   }
    
    GL3Primitive lastAxes;
    GL3Primitive lastCone;
    GL3Primitive lastCylinder;
    GL3Primitive lastSpindle;
    GL3Primitive lastSphere;
+   GL3Primitive lastCube;
    
    public GL3PrimitiveManager(GL3SharedPrimitiveManager shared) {
       this.shared = shared;
@@ -72,6 +41,7 @@ public class GL3PrimitiveManager implements GLGarbageSource {
       lastCylinder = null;
       lastSpindle = null;
       lastSphere = null;
+      lastCube = null;
    }
    
    /**
@@ -81,163 +51,225 @@ public class GL3PrimitiveManager implements GLGarbageSource {
     * @param nLevels
     * @return
     */
-   public GL3Object getSphere(GL3 gl, int nSlices, int nLevels) {
+   public GL3Primitive getAcquiredSphere(GL3 gl, int nSlices, int nLevels) {
       SphereKey key = new SphereKey(nSlices, nLevels);
-      return getSphere(gl, key);
+      return getAcquiredSphere(gl, key);
    }
       
-   public GL3Object getSphere(GL3 gl, SphereKey key) {
+   public GL3Primitive getAcquiredSphere(GL3 gl, SphereKey key) {
       
-      if (lastSphere != null && lastSphere.isValid() &&
-         lastSphere.key.equals(key)) {
-         return lastSphere.getPrimitive();
+      if (lastSphere != null) {
+         if (lastSphere.isValid() && lastSphere.matches(key)) {
+            return lastSphere.acquire ();
+         } else {
+            lastSphere.releaseDispose (gl);
+            lastSphere = null;
+         }
       }
       
       GL3Primitive out = null;
       
       synchronized(primitiveMap) {
-         out = primitiveMap.get (key);
-         
+         out = primitiveMap.get (key);         
          // if doesn't exist, create
          if (out == null || out.disposeInvalid(gl)) {
-            GL3SharedObject primitive = shared.getSphere (gl, key);
-            out = new GL3Primitive (key, GL3Object.generate (gl, primitive));
-            primitiveMap.put (key, out);
+            GL3SharedPrimitive p = shared.getAcquiredSphere (gl, key);
+            out = GL3Primitive.generate (gl, p);
+            p.release ();  // now that it has been acquired
+            primitiveMap.put (key, out.acquire ()); // hold a reference in the map
          }
+         out.acquire ();
       }
       
-      lastSphere = out;
-      return out.getPrimitive ();
+      lastSphere = out.acquire ();
+      return out;
    }
 
-   public GL3Object getSpindle(GL3 gl, int nSlices, int nLevels) {
+   public GL3Primitive getAcquiredSpindle(GL3 gl, int nSlices, int nLevels) {
 
       SpindleKey key = new SpindleKey(nSlices, nLevels);
-      return getSpindle(gl, key);
+      return getAcquiredSpindle(gl, key);
    }
    
-   public GL3Object getSpindle(GL3 gl, SpindleKey key) {
+   public GL3Primitive getAcquiredSpindle(GL3 gl, SpindleKey key) {
       
-      if (lastSpindle != null && lastSpindle.isValid() &&
-         lastSpindle.key.equals(key)) {
-         return lastSpindle.getPrimitive();
-      }
-
-      GL3Primitive out = null;
-
-      synchronized(primitiveMap) {
-         out = primitiveMap.get (key);
-         // if doesn't exist, create
-         if (out == null || out.disposeInvalid(gl)) {
-            GL3SharedObject primitive = shared.getSpindle (gl, key);
-            out = new GL3Primitive (key, GL3Object.generate (gl, primitive));
-            primitiveMap.put (key, out);
+      if (lastSpindle != null) {
+         if (lastSpindle.isValid() && lastSpindle.matches(key)) {
+            return lastSpindle.acquire ();
+         } else {
+            lastSpindle.releaseDispose (gl);
+            lastSpindle = null;
          }
       }
-
-      lastSpindle = out;
-      return out.getPrimitive();
+      
+      GL3Primitive out = null;
+      
+      synchronized(primitiveMap) {
+         out = primitiveMap.get (key);         
+         // if doesn't exist, create
+         if (out == null || out.disposeInvalid(gl)) {
+            GL3SharedPrimitive p = shared.getAcquiredSpindle (gl, key);
+            out = GL3Primitive.generate (gl, p);
+            p.release ();  // now that it has been acquired
+            primitiveMap.put (key, out.acquire ());
+         }
+         out.acquire ();
+      }
+      
+      lastSpindle = out.acquire ();
+      return out;
    }
 
-   public GL3Object getCylinder(GL3 gl, int nSlices, boolean capped) {
+   public GL3Primitive getAcquiredCylinder(GL3 gl, int nSlices, boolean capped) {
       
       CylinderKey key = new CylinderKey(nSlices, capped);
-      return getCylinder(gl, key);
+      return getAcquiredCylinder(gl, key);
    }
 
-   public GL3Object getCylinder(GL3 gl, CylinderKey key) {
-      if (lastCylinder != null && lastCylinder.isValid() &&
-         lastCylinder.key.equals(key)) {
-         return lastCylinder.getPrimitive();
-      }
-
-      GL3Primitive out = null;
-
-      synchronized(primitiveMap) {
-         out = primitiveMap.get (key);
-
-         // if doesn't exist, create
-         if (out == null || out.disposeInvalid(gl)) {
-            GL3SharedObject primitive = shared.getCylinder (gl, key);
-            out = new GL3Primitive (key, GL3Object.generate (gl, primitive));
-            primitiveMap.put (key, out);
+   public GL3Primitive getAcquiredCylinder(GL3 gl, CylinderKey key) {
+      if (lastCylinder != null) {
+         if (lastCylinder.isValid() && lastCylinder.matches(key)) {
+            return lastCylinder.acquire ();
+         } else {
+            lastCylinder.releaseDispose (gl);
+            lastCylinder = null;
          }
       }
-
-      lastCylinder = out;
-      return out.getPrimitive();
+      
+      GL3Primitive out = null;
+      
+      synchronized(primitiveMap) {
+         out = primitiveMap.get (key);         
+         // if doesn't exist, create
+         if (out == null || out.disposeInvalid(gl)) {
+            GL3SharedPrimitive p = shared.getAcquiredCylinder (gl, key);
+            out = GL3Primitive.generate (gl, p);
+            p.release ();  // now that it has been acquired
+            primitiveMap.put (key, out.acquire ());
+         }
+         out.acquire ();
+      }
+      
+      lastCylinder = out.acquire ();
+      return out;
    }
 
-   public GL3Object getCone(GL3 gl, int nSlices, boolean capped) {
+   public GL3Primitive getAcquiredCone(GL3 gl, int nSlices, boolean capped) {
       ConeKey key = new ConeKey(nSlices, capped);
-      return getCone(gl, key);
+      return getAcquiredCone(gl, key);
    }
    
-   public GL3Object getCone(GL3 gl, ConeKey key) {
-      if (lastCone != null && lastCone.isValid() &&
-         lastCone.key.equals(key)) {
-         return lastCone.getPrimitive();
-      }
-
-      GL3Primitive out = null;
-
-      synchronized(primitiveMap) {
-         out = primitiveMap.get (key);
-
-         // if doesn't exist, create
-         if (out == null || out.disposeInvalid(gl)) {
-            GL3SharedObject primitive = shared.getCone (gl, key);
-            out = new GL3Primitive (key, GL3Object.generate (gl, primitive));
-            primitiveMap.put (key, out);
+   public GL3Primitive getAcquiredCone(GL3 gl, ConeKey key) {
+      if (lastCone != null) {
+         if (lastCone.isValid() && lastCone.matches(key)) {
+            return lastCone.acquire ();
+         } else {
+            lastCone.releaseDispose (gl);
+            lastCone = null;
          }
       }
-
-      lastCone = out;
-      return out.getPrimitive();
+      
+      GL3Primitive out = null;
+      
+      synchronized(primitiveMap) {
+         out = primitiveMap.get (key);         
+         // if doesn't exist, create
+         if (out == null || out.disposeInvalid(gl)) {
+            GL3SharedPrimitive p = shared.getAcquiredCone (gl, key);
+            out = GL3Primitive.generate (gl, p);
+            p.release ();  // now that it has been acquired
+            primitiveMap.put (key, out.acquire ());
+         }
+         out.acquire ();
+      }
+      
+      lastCone = out.acquire ();
+      return out;
    }
 
-   public GL3Object getAxes(GL3 gl, boolean x, boolean y, boolean z) {
+   public GL3Primitive getAcquiredAxes(GL3 gl, boolean x, boolean y, boolean z) {
       
       AxesKey key = new AxesKey(x, y, z);
-      return getAxes(gl, key);
+      return getAcquiredAxes(gl, key);
    }
    
-   public GL3Object getAxes(GL3 gl, AxesKey key) {
-      if (lastAxes != null && lastAxes.isValid() &&
-         lastAxes.key.equals(key)) {
-         return lastAxes.getPrimitive();
-      }
-
-      GL3Primitive out = null;
-
-      synchronized(primitiveMap) {
-         out = primitiveMap.get (key);
-
-         // if doesn't exist, create
-         if (out == null || out.disposeInvalid(gl)) {
-            GL3SharedObject primitive = shared.getAxes (gl, key);
-            out = new GL3Primitive (key, GL3Object.generate (gl, primitive));
-            primitiveMap.put (key, out);
+   public GL3Primitive getAcquiredAxes(GL3 gl, AxesKey key) {
+      if (lastAxes != null) {
+         if (lastAxes.isValid() && lastAxes.matches(key)) {
+            return lastAxes.acquire ();
+         } else {
+            lastAxes.releaseDispose (gl);
+            lastAxes = null;
          }
       }
-
-      lastAxes = out;
-      return out.getPrimitive();
+      
+      GL3Primitive out = null;
+      
+      synchronized(primitiveMap) {
+         out = primitiveMap.get (key);         
+         // if doesn't exist, create
+         if (out == null || out.disposeInvalid(gl)) {
+            GL3SharedPrimitive p = shared.getAcquiredAxes (gl, key);
+            GLSupport.checkAndPrintGLError (gl);
+            out = GL3Primitive.generate (gl, p);
+            p.release ();  // now that it has been acquired
+            primitiveMap.put (key, out.acquire ());
+         }
+         out.acquire ();
+      }
+      GLSupport.checkAndPrintGLError (gl);
+      
+      lastAxes = out.acquire ();
+      return out;
+   }
+   
+   public GL3Primitive getAcquiredCube(GL3 gl) {
+      CubeKey key = new CubeKey();
+      return getAcquiredCube(gl, key);
+   }
+   
+   public GL3Primitive getAcquiredCube(GL3 gl, CubeKey key) {
+      if (lastCube != null) {
+         if (lastCube.isValid() && lastCube.matches(key)) {
+            return lastCube.acquire ();
+         } else {
+            lastCube.releaseDispose (gl);
+            lastCube = null;
+         }
+      }
+      
+      GL3Primitive out = null;
+      
+      synchronized(primitiveMap) {
+         out = primitiveMap.get (key);         
+         // if doesn't exist, create
+         if (out == null || out.disposeInvalid(gl)) {
+            GL3SharedPrimitive p = shared.getAcquiredCube (gl, key);
+            out = GL3Primitive.generate (gl, p);
+            p.release ();  // now that it has been acquired
+         }
+         out.acquire ();
+      }
+      
+      lastCube = out.acquire ();
+      return out;
    }
 
    @Override
    public void garbage (GL gl) {
-      // loop through resources
-      synchronized(primitiveMap) {
-         Iterator<Entry<Object,GL3Primitive>> it = primitiveMap.entrySet ().iterator ();
-         while (it.hasNext ()) {
-            Entry<Object,GL3Primitive> entry = it.next ();
-            GL3Object primitive = entry.getValue ().glo;
-            if (!primitive.isValid () || primitive.disposeUnreferenced ((GL3)gl)) {
-               it.remove ();
-            }
-         }
-      }
+      
+      // XXX we now hold a reference in the map, so will never be unreferenced
+      //      // loop through resources
+      //      synchronized(primitiveMap) {
+      //         Iterator<Entry<Object,GL3Primitive>> it = primitiveMap.entrySet ().iterator ();
+      //         while (it.hasNext ()) {
+      //            Entry<Object,GL3Primitive> entry = it.next ();
+      //            GL3Primitive primitive = entry.getValue ();
+      //            if (!primitive.isValid () || primitive.disposeUnreferenced ((GL3)gl)) {
+      //               it.remove ();
+      //            }
+      //         }
+      //      }
    }
    
    /**
@@ -245,11 +277,37 @@ public class GL3PrimitiveManager implements GLGarbageSource {
     * @param gl
     */
    @Override
-   public void dispose(GL gl) {      
+   public void dispose(GL gl) {
+      
+      if (lastAxes != null) {
+         lastAxes.releaseDispose (gl);
+         lastAxes = null;
+      }
+      if (lastCone != null) {
+         lastCone.releaseDispose (gl);
+         lastCone = null;
+      }
+      if (lastCylinder != null) {
+         lastCylinder.releaseDispose (gl);
+         lastCylinder = null;
+      }
+      if (lastSpindle != null) {
+         lastSpindle.releaseDispose (gl);
+         lastSpindle = null;
+      }
+      if (lastSphere != null) {
+         lastSphere.releaseDispose (gl);
+         lastSphere = null;
+      }
+      if (lastCube != null) {
+         lastCube.releaseDispose (gl);
+         lastCube = null;
+      }
+      
       // destroy all stored primitives
       synchronized(primitiveMap) {
-         for (Entry<Object,GL3Primitive> entry : primitiveMap.entrySet ()) {
-            entry.getValue ().glo.dispose ((GL3)gl);
+         for (GL3Primitive prim : primitiveMap.values ()) {
+            prim.releaseDispose (gl);
          }
          primitiveMap.clear ();
       }

@@ -10,25 +10,12 @@ import maspack.util.ReferenceCountedBase;
  */
 public abstract class GLResourceBase extends ReferenceCountedBase implements GLResource {
    
-   volatile boolean disposed;
-   
    public GLResourceBase() {
       super();
-      disposed = false;
    }
-      
-   /**
-    * Must dispose of the resource.  Assumption is that after this is called,
-    * all GL resources have been appropriately freed.
-    * @param gl
-    */
-   protected abstract void internalDispose(GL gl);
    
    @Override
-   public final void dispose (GL gl) {
-      internalDispose (gl);
-      disposed = true;
-   }
+   public abstract void dispose (GL gl);
    
    @Override
    public boolean releaseDispose (GL gl) {
@@ -40,21 +27,19 @@ public abstract class GLResourceBase extends ReferenceCountedBase implements GLR
       return false;
    }
    
-   public final boolean isDisposed() {
-      return disposed;
-   }
+   public abstract boolean isDisposed();
       
    public boolean isValid() {
-      return !disposed;
+      return (!isDisposed ());
    }
    
    @Override
    public boolean disposeInvalid (GL gl) {
       if (!isValid ()) {
          dispose(gl);
-         return false;
+         return true;
       }
-      return true;
+      return false;
    }
    
    @Override

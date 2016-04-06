@@ -154,6 +154,11 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
    }
    
    @Override
+   public boolean isDisposed () {
+      return vao == null;
+   }
+   
+   @Override
    public boolean isValid () {
       if (vao == null) {
          return false;

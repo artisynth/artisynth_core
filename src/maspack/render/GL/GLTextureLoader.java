@@ -82,7 +82,7 @@ public class GLTextureLoader implements GLGarbageSource {
    }
 
    /**
-    * Load a texture
+    * Load a texture with one held reference to prevent garbage collection
     * 
     * @param resourceName
     * The location of the resource to load
@@ -90,35 +90,30 @@ public class GLTextureLoader implements GLGarbageSource {
     * @throws IOException
     * Indicates a failure to access the resource
     */
-   public GLTexture getTexture (GL gl, String resourceName) throws IOException {
+   public GLTexture getTextureAcquired (GL gl, String resourceName) throws IOException {
       maybeClearTextures(gl);
       GLTexture tex = null;
       synchronized(table) {
          tex = table.get (resourceName);
-      }
-      if (tex != null) {
-         return tex;
-      }
-      
-      tex = getTexture (gl, resourceName, GL2.GL_TEXTURE_2D, // target
-         GL2.GL_RGBA,    // dst pixel format
-         GL2.GL_LINEAR,  // min filter (unused)
-         GL2.GL_LINEAR);
-
-      // potential for duplicate load, check and prevent
-      synchronized(table) {
-         GLTexture oldtex = table.put (resourceName, tex);
-         if (oldtex != null) {
-            tex.dispose (gl);
-            tex = oldtex;
-            table.put (resourceName, tex);
+         if (tex != null) {
+            return tex.acquire ();
          }
+
+         // this is an acquired texture
+         tex = getTexture (gl, resourceName, GL2.GL_TEXTURE_2D, // target
+            GL2.GL_RGBA,    // dst pixel format
+            GL2.GL_LINEAR,  // min filter (unused)
+            GL2.GL_LINEAR).acquire ();
+
+         // potential for duplicate load, check and prevent
+         table.put (resourceName, tex);
+
       }
       return tex;
    }
 
    /**
-    * Load a texture
+    * Load a texture with one held reference to prevent garbage collection
     * 
     * @param resourceName
     * key for referring to loaded texture
@@ -128,31 +123,26 @@ public class GLTextureLoader implements GLGarbageSource {
     * @throws IOException
     * Indicates a failure to access the resource
     */
-   public GLTexture getTexture (GL gl, String resourceName, String resourceFileName) throws IOException {
+   public GLTexture getTextureAcquired (GL gl, String resourceName, String resourceFileName) throws IOException {
       maybeClearTextures(gl);
-      
+
       GLTexture tex = null;
       synchronized(table) {
          tex = table.get (resourceName);
-      }
-      if (tex != null) {
-         return tex;
-      }
 
-      tex = getTexture (gl, resourceFileName, 
-         GL2.GL_TEXTURE_2D, // target
-         GL2.GL_RGBA,    // dst pixel format
-         GL2.GL_LINEAR,  // min filter (unused)
-         GL2.GL_LINEAR);
-
-      
-      synchronized(table) {
-         GLTexture oldtex = table.put (resourceName, tex);
-         if (oldtex != null) {
-            tex.dispose (gl);
-            tex = oldtex;
-            table.put (resourceFileName, tex);
+         if (tex != null) {
+            return tex.acquire ();
          }
+
+         // acquired texture
+         tex = getTexture (gl, resourceFileName, 
+            GL2.GL_TEXTURE_2D, // target
+            GL2.GL_RGBA,    // dst pixel format
+            GL2.GL_LINEAR,  // min filter (unused)
+            GL2.GL_LINEAR).acquire ();
+
+         table.put (resourceName, tex);
+
       }
 
       return tex;
@@ -214,7 +204,7 @@ public class GLTextureLoader implements GLGarbageSource {
       return texture;
    }
 
-   public GLTexture getTexture (GL gl, String resourceName,
+   public GLTexture getTextureAcquired (GL gl, String resourceName,
       int target,
       byte[] buffer, int width, int height, 
       int srcPixelFormat, int dstPixelFormat) {
@@ -223,21 +213,20 @@ public class GLTextureLoader implements GLGarbageSource {
       GLTexture tex = null;
       synchronized(table) {
          tex = table.get (resourceName);
-      }
-      if (tex != null) {
-         return tex;
-      }
 
-      tex = getTexture (gl, 
-         resourceName, buffer,
-         width, height,
-         srcPixelFormat, 
-         target, // target
-         dstPixelFormat,    // dst pixel format
-         GL2.GL_LINEAR,     // min filter (unused)
-         GL2.GL_LINEAR);
+         if (tex != null) {
+            return tex.acquire ();
+         }
 
-      synchronized(table) {
+         tex = getTexture (gl, 
+            resourceName, buffer,
+            width, height,
+            srcPixelFormat, 
+            target, // target
+            dstPixelFormat,    // dst pixel format
+            GL2.GL_LINEAR,     // min filter (unused)
+            GL2.GL_LINEAR).acquire ();
+
          GLTexture oldtex = table.put (resourceName, tex);
          if (oldtex != null) {
             tex.dispose (gl);
@@ -476,10 +465,13 @@ public class GLTextureLoader implements GLGarbageSource {
       }
    }
 
-   public GLTexture getTextureByName (String name) {
+   public GLTexture getTextureByNameAcquired (String name) {
       GLTexture tex = null;
       synchronized(table) {
          tex = table.get(name);
+         if (tex != null) {
+            return tex.acquire ();
+         }
       }
       return tex;
    }
@@ -488,12 +480,13 @@ public class GLTextureLoader implements GLGarbageSource {
       GLTexture tex = null;
       synchronized(table) {
          tex = table.get(id);
-      }
-      if (tex == null) {
-         return false;
-      }
-      if (tex.getTextureId() <= 0) {
-         return false;
+
+         if (tex == null) {
+            return false;
+         }
+         if (tex.getTextureId() <= 0) {
+            return false;
+         }
       }
       return true;
    }
@@ -513,7 +506,7 @@ public class GLTextureLoader implements GLGarbageSource {
             Entry<String,GLTexture> entry = it.next ();
             GLTexture tex = entry.getValue ();
             if (tex.disposeUnreferenced (gl)) {
-               tex.dispose (gl);
+               it.remove ();
             }
          }
       }

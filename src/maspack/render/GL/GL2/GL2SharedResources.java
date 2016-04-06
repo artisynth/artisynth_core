@@ -31,49 +31,46 @@ public class GL2SharedResources extends GLSharedResources implements GLGarbageSo
    public synchronized void dispose(GL gl) {
       // clear shared info
       GL2 gl2 = gl.getGL2 ();
-      primManager.disposeResources(gl2);
+      primManager.dispose(gl2);
    }
    
-   public GL2Primitive getSphere(GL2 gl, int resolution) {
-      return primManager.getSphere (gl, resolution);
+   public GL2Primitive getAcquiredSphere(GL2 gl, int resolution) {
+      return primManager.getAcquiredSphere (gl, resolution);
    }
 
-   public GL2Primitive getCone(GL2 gl, int slices, boolean capped) {
-      return primManager.getCone (gl, slices, capped);
+   public GL2Primitive getAcquiredCone(GL2 gl, int slices, boolean capped) {
+      return primManager.getAcquiredCone (gl, slices, capped);
    }
    
-   public GL2Primitive getCylinder(GL2 gl, int slices, boolean capped) {
-      return primManager.getCylinder (gl, slices, capped);
+   public GL2Primitive getAcquiredCylinder(GL2 gl, int slices, boolean capped) {
+      return primManager.getAcquiredCylinder (gl, slices, capped);
    }
 
-   public GL2Primitive getSpindle(GL2 gl, int slices) {
-      return primManager.getSpindle (gl, slices);
+   public GL2Primitive getAcquiredSpindle(GL2 gl, int slices) {
+      return primManager.getAcquiredSpindle (gl, slices);
+   }
+   
+   public GL2Primitive getAcquiredCube(GL2 gl) {
+      return primManager.getAcquiredCube (gl);
    }
    
    /**
     * Creates a new display list whose resources are tracked for garbage collection
     * @param gl
     * @param count number of lists to generate
-    * @return
+    * @return a container holding the desired list
     */
-   public GL2DisplayList allocateDisplayList(GL2 gl, int count) {
+   public GL2DisplayList allocateAcquiredDisplayList(GL2 gl, int count) {
       GL2DisplayList list = GL2DisplayList.allocate (gl, count);
+      list.acquire ();
       track (list);
       return list;
    }
    
-   //   public GL2VersionedObject allocateVersionedObject(GL2 gl, Object key, Object fingerPrint) {
-   //      GL2DisplayList list = allocateDisplayList (gl, 1);
-   //      GL2VersionedObject object = new GL2VersionedObject (list, fingerPrint);
-   //      synchronized(sharedObjectMap) {
-   //         sharedObjectMap.put (key, object);
-   //      }
-   //      return object;
-   //   }
-   
    public GL2VersionedObject allocateVersionedObject(GL2 gl, RenderKey key, Object fingerPrint) {
-      GL2DisplayList list = allocateDisplayList (gl, 1);
+      GL2DisplayList list = allocateAcquiredDisplayList (gl, 1);
       GL2VersionedObject object = new GL2VersionedObject (list, fingerPrint);
+      list.release (); // object should now be holding reference
       synchronized(sharedObjectMap) {
          sharedObjectMap.put (key, object);
       }
@@ -84,9 +81,6 @@ public class GL2SharedResources extends GLSharedResources implements GLGarbageSo
       GL2VersionedObject object = null;
       synchronized(sharedObjectMap) {
          object = sharedObjectMap.get(key);
-      }
-      if (object == null) {
-         System.out.println ("Unknown object");
       }
       return object;
    }
@@ -101,7 +95,7 @@ public class GL2SharedResources extends GLSharedResources implements GLGarbageSo
             RenderKey key = entry.getKey ();
             if (!key.isValid ()) {
                GL2VersionedObject obj = entry.getValue ();
-               obj.dispose (); // release hold on resources
+               obj.dispose (gl); // release hold on resources
                it.remove ();   // remove entry
             }
          }

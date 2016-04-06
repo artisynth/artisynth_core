@@ -18,7 +18,7 @@ public class GL3Object extends GL3ResourceBase implements GL3Drawable {
     * @param vao vertex array object
     * @param glo potentially shared object
     */
-   private GL3Object(VertexArrayObject vao, GL3SharedObject glo) {
+   protected GL3Object(VertexArrayObject vao, GL3SharedObject glo) {
       // hold a reference to this object
       this.vao = vao.acquire ();
       this.glo = glo.acquire ();
@@ -36,25 +36,28 @@ public class GL3Object extends GL3ResourceBase implements GL3Drawable {
    
    @Override
    public void dispose (GL3 gl) {
-      vao.releaseDispose (gl);
-      glo.releaseDispose (gl);
+      if (vao != null) {
+         vao.releaseDispose (gl);
+         glo.releaseDispose (gl);
+         vao = null;
+         glo = null;
+      }
+   }
+   
+   @Override
+   public boolean isDisposed () {
+      return (vao == null);
    }
    
    @Override
    public boolean isValid () {
+      if (vao == null || glo == null) {
+         return false;
+      }
       if (!vao.isValid ()) {
          return false;
       }
       if (!glo.isValid ()) {
-         return false;
-      }
-      return true;
-   }
-   
-   @Override
-   public boolean disposeInvalid (GL3 gl) {
-      if (!isValid ()) {
-         dispose(gl);
          return false;
       }
       return true;

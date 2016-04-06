@@ -202,7 +202,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
             renderer.setLineColoring (props, isSelected()); 
          }
          if (useVertexColouring && !renderer.isSelecting()) {
-            renderer.setShading (Shading.GOURAUD);
+            renderer.setShading (Shading.PHONG);
          }
          else {
             renderer.setShading (Shading.FLAT);

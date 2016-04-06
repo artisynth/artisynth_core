@@ -1004,6 +1004,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          if (myCommittedViewerState.lightingEnabled == true) {
             gl.glDisable (GL2.GL_LIGHTING);
             myCommittedViewerState.lightingEnabled = false;
+            myCommittedViewerState.shading = Shading.NONE;
          }
          
          if (myCommittedViewerState.colorEnabled == false) {
@@ -1019,14 +1020,16 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       } else {
          
          // otherwise, track info
-         
          if (myCommittedViewerState.lightingEnabled != state.lightingEnabled) {
-            if (state.lightingEnabled) {
+            if (state.lightingEnabled && state.shading != Shading.NONE) {
                gl.glEnable (GL2.GL_LIGHTING);
+               myCommittedViewerState.lightingEnabled = true;
             } else {
                gl.glDisable (GL2.GL_LIGHTING);
+               myCommittedViewerState.shading = Shading.NONE;
+               myCommittedViewerState.lightingEnabled = false;
             }
-            myCommittedViewerState.lightingEnabled = state.lightingEnabled;
+
          }
          
          if (myCommittedViewerState.colorEnabled != state.colorEnabled) {
@@ -1080,7 +1083,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          myCommittedViewerState.faceMode = state.faceMode;
       }
       
-      if (myCommittedViewerState.shading != state.shading) {
+      // if lighting is enabled, maybe update shading
+      if (myCommittedViewerState.lightingEnabled && 
+         myCommittedViewerState.shading != state.shading) {
          switch(state.shading) {
             case FLAT:
                gl.glShadeModel (GL2.GL_FLAT);
@@ -1091,6 +1096,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                break;
             case NONE:
                gl.glDisable (GL2.GL_LIGHTING);
+               gl.glShadeModel (GL2.GL_SMOOTH);
                myCommittedViewerState.lightingEnabled = false;
                break;
             default:
@@ -2997,7 +3003,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
       boolean useColors = hasColors && !selecting;
-      boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
+      boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor
       if (useColors) {
@@ -3241,7 +3247,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
       boolean useColors = hasColors && !selecting;
-      boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
+      boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor
       if (useColors) {
@@ -3343,7 +3349,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
       boolean useColors = hasColors && !selecting;
-      boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
+      boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor
       if (useColors) {
@@ -3554,7 +3560,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
       boolean useColors = hasColors && !selecting;
-      boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
+      boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor
       if (useColors) {
@@ -3653,7 +3659,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
       boolean useColors = hasColors && !selecting;
-      boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
+      boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor
       if (useColors) {
@@ -3793,7 +3799,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
       boolean useColors = hasColors && !selecting;
-      boolean useHSV = isHSVColorInterpolationEnabled () && !isLightingEnabled ();
+      boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor
       if (useColors) {

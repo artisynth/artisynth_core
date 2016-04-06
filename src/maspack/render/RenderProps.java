@@ -104,7 +104,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
    protected Shading myShading;
    protected PropertyMode myShadingMode;
-   protected static Shading defaultShading = Shading.FLAT;
+   protected static Shading defaultShading = Shading.FLAT; // XXX changed to default to smooth?
 
    protected float myShininess;
    protected PropertyMode myShininessMode;
@@ -2094,6 +2094,16 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 //      r.setRenderProps (props);
 //   }
 //
+   public static void setCubePoints (Renderable r, double width, Color color) {
+      RenderProps props = createAndAssignProps (r);
+      props.setPointStyle (PointStyle.CUBE);
+      props.setPointRadius (width/2);
+      if (color != null) {
+         props.setPointColor (color);
+      }
+      r.setRenderProps (props);
+   }
+   
    public static void setSphericalPoints (Renderable r, double rad, Color color) {
       RenderProps props = createAndAssignProps (r);
       props.setPointStyle (PointStyle.SPHERE);

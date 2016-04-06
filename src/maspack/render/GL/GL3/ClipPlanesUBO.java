@@ -23,7 +23,7 @@ public class ClipPlanesUBO extends UniformBufferObject {
       return out;
    }
    
-   public ClipPlanesUBO(GL3 gl, int progId, int nClipPlanes) {
+   private ClipPlanesUBO(GL3 gl, int progId, int nClipPlanes) {
       super(gl, progId, CLIP_PLANES_NAME, createAttributes(nClipPlanes), GL3.GL_DYNAMIC_DRAW);
       numClipPlanes = nClipPlanes;
    }
@@ -134,6 +134,10 @@ public class ClipPlanesUBO extends UniformBufferObject {
    @Override
    public ClipPlanesUBO acquire () {
       return (ClipPlanesUBO)super.acquire ();
+   }
+   
+   public static ClipPlanesUBO generate(GL3 gl, int progId, int nClipPlanes) {
+      return new ClipPlanesUBO (gl, progId, nClipPlanes);
    }
 
 }

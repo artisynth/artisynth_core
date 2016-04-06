@@ -16,23 +16,23 @@ public class VertexArrayObject extends GL3ResourceBase {
    
    public VertexArrayObject(int vao) {
       this.vao = vao;
-      System.out.println ("VAO created: " + vao);
+      // System.out.println ("VAO created: " + vao);
    }
    
    public void bind(GL3 gl) {
-      System.out.println ("VAO bound: " + vao);
+      // System.out.println ("VAO bound: " + vao);
       gl.glBindVertexArray (vao);
    }
    
    public void unbind(GL3 gl) {
-      System.out.println ("VAO unbound: " + vao);
+      // System.out.println ("VAO unbound: " + vao);
       gl.glBindVertexArray (0);
    }
    
    @Override
    public void dispose (GL3 gl) {
       if (vao != 0) {
-         System.out.println ("VAO destroyed: " + vao);
+         // System.out.println ("VAO destroyed: " + vao);
          gl.glDeleteVertexArrays (1, new int[]{vao}, 0);
          vao = 0;
       }

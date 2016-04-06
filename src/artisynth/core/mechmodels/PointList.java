@@ -187,7 +187,8 @@ implements ScalableUnits {
    
       Shading savedShading = renderer.setPointShading (props);
       renderer.setPointColoring (props, selected);
-      switch (props.getPointStyle()) {
+      PointStyle style = props.getPointStyle ();
+      switch (style) {
          case POINT: {
             int size = props.getPointSize();
             if (size > 0) {
@@ -198,12 +199,13 @@ implements ScalableUnits {
             }
             break;
          }
+         case CUBE:
          case SPHERE: {
             double rad = props.getPointRadius();
             if (rad > 0) {
                //Shading savedShading = renderer.getShadeModel();
                //renderer.setPointLighting (props, selected);
-               renderer.drawPoints (myRob, gidx, PointStyle.SPHERE, rad);
+               renderer.drawPoints (myRob, gidx, style, rad);
                //renderer.setShadeModel(savedShading);
             }
             break;
@@ -234,6 +236,9 @@ implements ScalableUnits {
                   case POINT: {
                      renderer.drawPoint (v0);
                      break;
+                  }
+                  case CUBE: {
+                     renderer.drawCube (v0, 2*props.getPointRadius ());
                   }
                   case SPHERE: {
                      renderer.drawSphere (v0, props.getPointRadius());

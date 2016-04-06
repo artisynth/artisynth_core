@@ -38,7 +38,7 @@ public class MaterialsUBO extends UniformBufferObject {
    static final int BACK_EMISSION = 6;
    static final int BACK_POWER = 7;
    
-   public MaterialsUBO(GL3 gl, int progId) {
+   private MaterialsUBO(GL3 gl, int progId) {
       super(gl, progId, BLOCK_NAME, MATERIALS_ATTRIBUTES, GL3.GL_DYNAMIC_DRAW);
    }
    
@@ -207,6 +207,10 @@ public class MaterialsUBO extends UniformBufferObject {
    @Override
    public MaterialsUBO acquire () {
       return (MaterialsUBO)super.acquire ();
+   }
+   
+   public static MaterialsUBO generate(GL3 gl, int progId) {
+      return new MaterialsUBO(gl, progId);
    }
 
 }

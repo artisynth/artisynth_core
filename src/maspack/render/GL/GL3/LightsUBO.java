@@ -47,7 +47,7 @@ public class LightsUBO extends UniformBufferObject {
       return out;
    }
 
-   public LightsUBO(GL3 gl, int progId, int nLights) {
+   private LightsUBO(GL3 gl, int progId, int nLights) {
       super(gl, progId, LIGHTS_NAME, createLightAttributes(nLights), GL3.GL_DYNAMIC_DRAW);
       numLights = nLights;
    }
@@ -135,6 +135,10 @@ public class LightsUBO extends UniformBufferObject {
    @Override
    public LightsUBO acquire () {
       return (LightsUBO)super.acquire ();
+   }
+   
+   public static LightsUBO generate(GL3 gl, int progId, int nLights) {
+      return new LightsUBO (gl, progId, nLights);
    }
 
 }

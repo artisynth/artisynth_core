@@ -141,10 +141,11 @@ public class PointMeshRenderer extends MeshRendererBase {
             }
             break;
          }
+         case CUBE:
          case SPHERE: {
             double rad = props.getPointRadius();
             if (rad > 0) {
-               renderer.drawPoints (myRob, PointStyle.SPHERE, rad);
+               renderer.drawPoints (myRob, pointStyle, rad);
             }
             break;
          }

@@ -6,17 +6,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 
-import javax.swing.JFrame;
-
-import maspack.geometry.MeshFactory;
-import maspack.geometry.PolygonalMesh;
-import maspack.matrix.Point3d;
-import maspack.matrix.RigidTransform3d;
-import maspack.matrix.Vector3d;
-import maspack.render.RenderProps;
-import maspack.render.Renderer;
-import maspack.spatialmotion.SpatialInertia;
-import maspack.widgets.LabeledComponentBase;
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.mechmodels.AxialSpring;
 import artisynth.core.mechmodels.FrameMarker;
@@ -26,8 +15,15 @@ import artisynth.core.mechmodels.Muscle;
 import artisynth.core.mechmodels.RevoluteJoint;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.util.ArtisynthPath;
-import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
+import maspack.geometry.MeshFactory;
+import maspack.geometry.PolygonalMesh;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.spatialmotion.SpatialInertia;
 
 public class DoubleArmDemo extends RootModel {
    

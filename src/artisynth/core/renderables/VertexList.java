@@ -210,8 +210,7 @@ implements ScalableUnits {
             //renderer.setLightingEnabled(true);
             break;
          }
-         case SPHERE: {
-
+         case CUBE: {
             BooleanHolder compile = new BooleanHolder(true);
             boolean useDisplayList = !renderer.isSelecting();
             GL2VersionedObject gvo = null;
@@ -228,9 +227,61 @@ implements ScalableUnits {
                }
 
                int i=0;
+               double width = 2*props.getPointRadius();
                for (VertexComponent vc : this) {
                   if (vc.getRenderProps() == null) {
-                     double rad = props.getPointRadius();
+                     if (renderer.isSelecting()) {
+                        renderer.beginSelectionQuery (i);
+                        renderer.drawCube (vc.getRenderCoords(), width);
+                        renderer.endSelectionQuery ();      
+                     }  else {
+                        if (!isSelected()) {
+                           // set selection color for individual vertices as needed
+                           if (vc.isSelected() != lastSelected) {
+                              renderer.setPointColoring (
+                                 props, vc.isSelected());
+                              lastSelected = vc.isSelected();
+                           }
+                        }
+                        renderer.drawCube (vc.getRenderCoords(), width);
+                     }
+                  }
+                  i++;
+               }
+
+               if (useDisplayList) {
+                  gvo.endCompile (gl);
+                  gvo.draw (gl);
+               }
+            } else {
+               gvo.draw (gl);
+               int err = gl.glGetError();
+               if (err != GL.GL_NO_ERROR) {
+                  System.err.println("GL Error: " + err);
+               }
+            }
+            break;
+         }
+         case SPHERE: {
+            BooleanHolder compile = new BooleanHolder(true);
+            boolean useDisplayList = !renderer.isSelecting();
+            GL2VersionedObject gvo = null;
+
+            if (useDisplayList) {
+               GL2Object sphere = viewer.getPrimitive (gl, PrimitiveType.SPHERE); 
+               VListPrint vPrint = getFingerPrint(PointStyle.POINT, sphere.hashCode());
+               gvo = viewer.getVersionedObject(gl, vKey, vPrint, compile);
+            }
+
+            if (!useDisplayList || compile.value) {
+               if (useDisplayList) {
+                  gvo.beginCompile (gl);      
+               }
+
+               int i=0;
+               double rad = props.getPointRadius();
+               for (VertexComponent vc : this) {
+                  if (vc.getRenderProps() == null) {
                      if (renderer.isSelecting()) {
                         renderer.beginSelectionQuery (i);
                         renderer.drawSphere (vc.getRenderCoords(), rad);
@@ -317,11 +368,33 @@ implements ScalableUnits {
             renderer.setPointSize (1);
             break;
          }
-         case SPHERE: {
+         case CUBE: {
             int i = 0;
+            double width = 2*props.getPointRadius();
             while (iterator.hasNext()) {
                VertexComponent pnt = iterator.next();
-               double rad = props.getPointRadius();
+               if (pnt.getRenderProps() == null) {
+                  if (renderer.isSelecting()) {
+                     if (renderer.isSelectable (pnt)) {
+                        renderer.beginSelectionQuery (i);
+                        renderer.drawCube (pnt.getRenderCoords(), width);
+                        renderer.endSelectionQuery ();      
+                     }
+                  }
+                  else {
+                     renderer.setPointColoring (props, pnt.isSelected());
+                     renderer.drawCube (pnt.getRenderCoords(), width);
+                  }
+               }
+               i++;
+            }
+            break;
+         }
+         case SPHERE: {
+            int i = 0;
+            double rad = props.getPointRadius();
+            while (iterator.hasNext()) {
+               VertexComponent pnt = iterator.next();
                if (pnt.getRenderProps() == null) {
                   if (renderer.isSelecting()) {
                      if (renderer.isSelectable (pnt)) {
@@ -337,6 +410,7 @@ implements ScalableUnits {
                }
                i++;
             }
+            break;
          }
       }
       renderer.setShading (savedShading);

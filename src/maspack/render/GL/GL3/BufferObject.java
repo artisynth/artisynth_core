@@ -17,9 +17,9 @@ public class BufferObject extends GL3ResourceBase {
    int size;
    int usage;
       
-   public BufferObject(int target, int vboId) {
+   public BufferObject(int target, int BufferId) {
       this.target = target;
-      this.boId = vboId;
+      this.boId = BufferId;
       setInfo(0, 0);
    }
    
@@ -34,8 +34,8 @@ public class BufferObject extends GL3ResourceBase {
    @Override
    public void dispose(GL3 gl) {
       if (!isDisposed ()) {
-         int[] vbo = new int[]{boId};
-         gl.glDeleteBuffers(1, vbo, 0);
+         int[] Buffer = new int[]{boId};
+         gl.glDeleteBuffers(1, Buffer, 0);
          boId = 0;
       }
    }
@@ -51,13 +51,17 @@ public class BufferObject extends GL3ResourceBase {
       gl.glBufferData(target, size, null, usage);
    }
    
+   public void fill(GL3 gl, ByteBuffer buff) {
+      fill(gl, buff, buff.limit (), usage);
+   }
    
    public void fill(GL3 gl, ByteBuffer buff, int usage) {
       fill(gl, buff, buff.limit (), usage);
    }
    
    public void fill(GL3 gl, ByteBuffer buff, int size, int usage) {
-      setInfo(size*GLSupport.BYTE_SIZE, usage);
+      int byteSize = size*GLSupport.BYTE_SIZE; 
+      setInfo(byteSize, usage);
       bind(gl);
       gl.glBufferData(target, size*GLSupport.BYTE_SIZE, buff, usage);
    }
@@ -87,7 +91,7 @@ public class BufferObject extends GL3ResourceBase {
    }
    
    /**
-    * Retrieve a mapped buffer to the underlying VBO data
+    * Retrieve a mapped buffer to the underlying Buffer data
     * @param gl
     * @param access either GL3.GL_WRITE_ONLY, GL3.GL_READ_ONLY, or GL3.GL_READ_WRITE;
     * @return the mapped buffer
@@ -106,6 +110,7 @@ public class BufferObject extends GL3ResourceBase {
    }
    
    public void flushBufferRange(GL3 gl, int offset, int length) {
+      bind(gl);
       gl.glFlushMappedBufferRange(target, offset, length);
    }
    
@@ -125,8 +130,12 @@ public class BufferObject extends GL3ResourceBase {
    }
    
    public void bind(GL3 gl) {
-      System.out.println ("VBO bound: " + boId + " (target: " + target + ")");
+      // System.out.println ("Buffer bound: " + boId + " (target: " + target + ")");
       gl.glBindBuffer(target, boId);
+   }
+   
+   public void unbind(GL3 gl) {
+      gl.glBindBuffer(target, 0);
    }
    
    public int getId() {
@@ -147,9 +156,9 @@ public class BufferObject extends GL3ResourceBase {
    }
    
    public static BufferObject generate(GL3 gl, int target) {
-      int[] vbo = new int[1];
-      gl.glGenBuffers (1, vbo, 0);
-      return new BufferObject (GL.GL_ARRAY_BUFFER, vbo[0]);
+      int[] b = new int[1];
+      gl.glGenBuffers (1, b, 0);
+      return new BufferObject (GL.GL_ARRAY_BUFFER, b[0]);
    }
    
 }

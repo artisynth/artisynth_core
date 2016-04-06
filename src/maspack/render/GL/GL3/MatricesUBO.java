@@ -27,7 +27,7 @@ public class MatricesUBO extends UniformBufferObject {
    
    static final String PVM_NAME = "Matrices";
    
-   public MatricesUBO(GL3 gl, int progId) {
+   private MatricesUBO(GL3 gl, int progId) {
       super(gl, progId, PVM_NAME, PVM_ATTRIBUTES, GL3.GL_DYNAMIC_DRAW);
    }
    
@@ -204,4 +204,8 @@ public class MatricesUBO extends UniformBufferObject {
       return (MatricesUBO)super.acquire ();
    }
 
+   public static MatricesUBO generate(GL3 gl, int progId) {
+      return new MatricesUBO (gl, progId);
+   }
+   
 }

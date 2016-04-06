@@ -60,6 +60,8 @@ public class InstanceTest extends GL2vsGL3Tester {
                robj.addLine (1, 0);
             }
             // renderer.drawPoints (robj, PointStyle.POINT, 10);
+            renderer.setFrontColor (new float[] {0.8f,0.8f,0.8f,1.0f});
+            
             renderer.drawPoints (robj, PointStyle.SPHERE, 0.1);
             renderer.drawLines (robj, 0, LineStyle.CYLINDER, 0.025);
             renderer.drawLines (robj, 1, LineStyle.SOLID_ARROW, 0.05);

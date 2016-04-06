@@ -231,20 +231,20 @@ public class GL3ProgramManager {
       // generate UBOs if not exist
       // matrices
       if (matricesUBO == null) {
-         matricesUBO = new MatricesUBO(gl, prog.getId());
+         matricesUBO = MatricesUBO.generate(gl, prog.getId());
       }
       matricesUBO.bindLocation(gl, prog.getId(), getUniformBlockLocation (matricesUBO.getBlockName()));
 
       // materials
       if (materialsUBO == null) {
-         materialsUBO = new MaterialsUBO(gl, prog.getId());
+         materialsUBO = MaterialsUBO.generate(gl, prog.getId());
       }
       materialsUBO.bindLocation(gl, prog.getId (), getUniformBlockLocation (materialsUBO.getBlockName()));
 
       // lights
       if (numLights > 0 ) { //&& key.getShading() != Shading.NONE) {
          if (lightsUBO == null) {
-            lightsUBO = new LightsUBO(gl, prog.getId (), numLights);
+            lightsUBO = LightsUBO.generate (gl, prog.getId (), numLights);
          }
          lightsUBO.bindLocation(gl, prog.getId (), getUniformBlockLocation (lightsUBO.getBlockName()));
       }
@@ -252,7 +252,7 @@ public class GL3ProgramManager {
       // clip planes
       if (numClipPlanes > 0) {
          if (clipsUBO == null) {
-            clipsUBO = new ClipPlanesUBO(gl, prog.getId (), numClipPlanes);
+            clipsUBO = ClipPlanesUBO.generate(gl, prog.getId (), numClipPlanes);
          }
          clipsUBO.bindLocation(gl, prog.getId (), getUniformBlockLocation (clipsUBO.getBlockName()));
       }

@@ -812,8 +812,8 @@ public interface Renderer {
     * specifies a point style of {@link PointStyle#POINT}, then the 
     * point is drawn as a pixel-based point with a size given by
     * <code>props.getPointSize()</code>. Otherwise, if the point style
-    * is {@link PointStyle#SPHERE}, then the 
-    * point is drawn as a solid sphere with a radius given by
+    * is {@link PointStyle#CUBE} or {@link PointStyle#SPHERE}, then the 
+    * point is drawn as a solid with a radius given by
     * <code>props.getPointRadius()</code>. If <code>selected</code>
     * is <code>true</code> and selection highlighting is
     * {@link HighlightStyle#COLOR}, then the point will
@@ -1484,10 +1484,11 @@ public interface Renderer {
    /**
     * Draws all the points in the active point group of the specified
     * render object, using the current material and shading. The points are
-    * drawn either as pixel-based points or as solid spheres, according to the
-    * specified points style. For lines drawn using the style {@link
+    * drawn either as pixel-based points or as solids, according to the
+    * specified points style. For points drawn using the style {@link
     * PointStyle#POINT}, the argument <code>rad</code> gives the point size,
-    * whereas for {@link PointStyle#SPHERE} it gives the sphere radius.
+    * whereas for {@link PointStyle#CUBE} it gives the cube half-width,
+    * and for {@link PointStyle#SPHERE} it gives the sphere radius.
     * 
     * @param robj render object
     * @param style point style to use for drawing
@@ -1498,10 +1499,11 @@ public interface Renderer {
    /**
     * Draws all the points in the specified point group of the supplied
     * render object, using the current material and shading. The points are
-    * drawn either as pixel-based points or as solid spheres, according to the
-    * specified points style. For lines drawn using the style {@link
+    * drawn either as pixel-based points or as solids, according to the
+    * specified points style. For points drawn using the style {@link
     * PointStyle#POINT}, the argument <code>rad</code> gives the point size,
-    * whereas for {@link PointStyle#SPHERE} it gives the sphere radius.
+    * whereas for {@link PointStyle#CUBE} it gives the cube half-width, and for
+    * {@link PointStyle#SPHERE} it gives the sphere radius.
     * 
     * @param robj render object
     * @param style point style to use for drawing

@@ -310,6 +310,8 @@ public class RenderList {
          else {
             r.render (renderer, flags);
          }
+         // XXX maybe disable highlighting?
+         renderer.setSelectionHighlighting (false);
       }
       return qid;
    }

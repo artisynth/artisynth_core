@@ -1167,13 +1167,13 @@ public class GLSLGenerator {
          switch (cmix) {
             case DECAL:
                if (info.isMixVertexColorDiffuse ()) {
-                  appendln(mb, "   fdiffuse  = mix(fdiffuse,vcolor,vcolor.a), fdiffuse.a); // decal");
+                  appendln(mb, "   fdiffuse  = vec4(mix(fdiffuse.rgb,vcolor.rgb,vcolor.a), fdiffuse.a); // decal");
                }
                if (info.isMixVertexColorSpecular ()) {
-                  appendln(mb, "   fspecular = mix(fspecular,vcolor,vcolor.a); // decal");
+                  appendln(mb, "   fspecular = mix(fspecular,vcolor.rgb,vcolor.a); // decal");
                }
                if (info.isMixVertexColorEmission ()) {
-                  appendln(mb, "   femission = mix(femission,vcolor,vcolor.a); // decal");
+                  appendln(mb, "   femission = mix(femission,vcolor.rgb,vcolor.a); // decal");
                }
                break;
             case MODULATE:
@@ -1212,13 +1212,13 @@ public class GLSLGenerator {
             switch (cmix) {
                case DECAL:
                   if (info.isMixTextureColorDiffuse ()) {
-                     appendln(mb, "   fdiffuse  = vec4(mix(fdiffuse,texture_color,texture_color.a).rgb, fdiffuse.a); // decal");
+                     appendln(mb, "   fdiffuse  = vec4(mix(fdiffuse.rgb,texture_color.rgb,texture_color.a), fdiffuse.a); // decal");
                   }
                   if (info.isMixTextureColorSpecular ()) {
-                     appendln(mb, "   fspecular = mix(fspecular,texture_color,texture_color.a); // decal");
+                     appendln(mb, "   fspecular = mix(fspecular,texture_color.rgb,texture_color.a); // decal");
                   }
                   if (info.isMixTextureColorEmission ()) {
-                     appendln(mb, "   femission = mix(femission,texture_color,texture_color.a); // decal");
+                     appendln(mb, "   femission = mix(femission,texture_color.rgb,texture_color.a); // decal");
                   }
                   break;
                case MODULATE:

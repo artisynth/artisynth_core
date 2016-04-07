@@ -12,25 +12,23 @@ import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import maspack.render.GL.GLRenderable;
-import maspack.render.GL.GLSelectable;
-
 /**
- * Set of renderables sorted by zOrder.  This is very similar to what would be 
- * a SortedSet<GLRenderable>, except I do no checks to ensure elements are 
+ * Set of renderables sorted in ascending order by zOrder.  
+ * This is very similar to what would be a SortedSet<IsRenderable>, 
+ * except I do no checks to ensure elements are 
  * distinct according to compareTo(...) with respect to zOrder. In fact, most 
  * elements will have the same zOrder=0, in which case they are sorted 
  * according to the original order they were added to the list (stable sort).
- * Unlike List<GLRenderable>, order is not guaranteed.
+ * Unlike List<IsRenderable>, order is not guaranteed.
  * <p>
- * The zOrder is read from render properties if the GLRenderable is an instance
+ * The zOrder is read from render properties if the IsRenderable is an instance
  * of HasRenderProps.  Otherwise, a zOrder can be specified in 
- * {@link #add(GLRenderable,int)}, or is assumed to be 0.
+ * {@link #add(IsRenderable,int)}, or is assumed to be 0.
  * 
  * @author Antonio
  *
  */
-public class SortedRenderableList implements Collection<GLRenderable> {
+public class SortedRenderableList implements Collection<IsRenderable> {
 
    public static int defaultCapacity = 10;
    public static int defaultIncrement = 5;
@@ -38,7 +36,7 @@ public class SortedRenderableList implements Collection<GLRenderable> {
    int modCount = 0;    // for concurrent modification detection
    int size = 0;
    int myIncrement = defaultIncrement;
-   GLRenderable[] myArray;
+   IsRenderable[] myArray;
    int[] myZOrderKeys;
    int myMaxSelectionQueries = 0;
 
@@ -53,7 +51,7 @@ public class SortedRenderableList implements Collection<GLRenderable> {
          initialCapacity = defaultCapacity;
       }
 
-      this.myArray = new GLRenderable[initialCapacity];
+      this.myArray = new IsRenderable[initialCapacity];
       this.myZOrderKeys = new int[initialCapacity];
    }
 
@@ -64,9 +62,9 @@ public class SortedRenderableList implements Collection<GLRenderable> {
       this(defaultCapacity);
    }
 
-   private int getMaxSelectionQueries (GLRenderable r) {
-      if (r instanceof GLSelectable) {
-         GLSelectable s = (GLSelectable)r;
+   private int getMaxSelectionQueries (IsRenderable r) {
+      if (r instanceof IsSelectable) {
+         IsSelectable s = (IsSelectable)r;
          return Math.max (1, s.numSelectionQueriesNeeded());
       }
       else {
@@ -90,9 +88,9 @@ public class SortedRenderableList implements Collection<GLRenderable> {
     * @param c the collection whose elements are to be placed into this list
     * @throws NullPointerException if the specified collection is null
     */
-   public SortedRenderableList(Collection<? extends GLRenderable> c) {
+   public SortedRenderableList(Collection<? extends IsRenderable> c) {
 
-      myArray = new GLRenderable[c.size()];
+      myArray = new IsRenderable[c.size()];
       myZOrderKeys = new int[c.size()];
 
       c.toArray(myArray);
@@ -134,7 +132,7 @@ public class SortedRenderableList implements Collection<GLRenderable> {
    /**
     * Search for object.  if key <= 0, start from beginning
     */
-   private int findIndexOf(GLRenderable val, int key) {
+   private int findIndexOf(IsRenderable val, int key) {
       if (key <=0 ) {
          for (int i=0; i<size; i++) {
             if (myArray[i] == val) {
@@ -154,8 +152,8 @@ public class SortedRenderableList implements Collection<GLRenderable> {
    /**
     * Inserts an element at specified position
     */
-   private void insert(GLRenderable val, int key, int pos, 
-      GLRenderable[] vals, int keys[], int back) {
+   private void insert(IsRenderable val, int key, int pos, 
+      IsRenderable[] vals, int keys[], int back) {
       
       // shift everything up
       for (int j=back; j>=pos+1; j--) {
@@ -167,7 +165,7 @@ public class SortedRenderableList implements Collection<GLRenderable> {
       myMaxSelectionQueries += getMaxSelectionQueries (val);
    }
    
-   private void insertionSort (GLRenderable[] data, int keys[])  {
+   private void insertionSort (IsRenderable[] data, int keys[])  {
       int size = data.length;
       for (int i = 1; i < size; i++) {
          int pos = findInsertionPoint(keys[i], keys, i);
@@ -175,7 +173,7 @@ public class SortedRenderableList implements Collection<GLRenderable> {
       }
    }
 
-   private static int getZOrderKey(GLRenderable r) {
+   private static int getZOrderKey(IsRenderable r) {
       if (r instanceof HasRenderProps) {
          return ((HasRenderProps)r).getRenderProps().getZOrder();
       } else {
@@ -235,10 +233,10 @@ public class SortedRenderableList implements Collection<GLRenderable> {
    }
 
    private int findIndexOf(Object o) {
-      if (!(o instanceof GLRenderable)) {
+      if (!(o instanceof IsRenderable)) {
          return -1;
       }
-      GLRenderable glr = (GLRenderable)o;
+      IsRenderable glr = (IsRenderable)o;
       return findIndexOf(glr, getZOrderKey(glr));
    }
    
@@ -246,10 +244,10 @@ public class SortedRenderableList implements Collection<GLRenderable> {
     * Determines whether the set contains a specified object
     */
    public boolean contains(Object o) {
-      if (!(o instanceof GLRenderable)) {
+      if (!(o instanceof IsRenderable)) {
          return false;
       }
-      GLRenderable glr = (GLRenderable)o;
+      IsRenderable glr = (IsRenderable)o;
       int idx = findIndexOf(glr, getZOrderKey(glr));
       if (idx >=0) {
          return true;
@@ -260,7 +258,7 @@ public class SortedRenderableList implements Collection<GLRenderable> {
    /**
     * Basic iterator
     */
-   private class Itr implements Iterator<GLRenderable> {
+   private class Itr implements Iterator<IsRenderable> {
        int cursor;       // index of next element to return
        int lastRet = -1; // index of last element returned; -1 if no such
        int expectedModCount = modCount;
@@ -269,7 +267,7 @@ public class SortedRenderableList implements Collection<GLRenderable> {
            return cursor != size;
        }
 
-       public GLRenderable next() {
+       public IsRenderable next() {
            checkForComodification();
            int i = cursor;
            if (i >= size)
@@ -305,20 +303,20 @@ public class SortedRenderableList implements Collection<GLRenderable> {
    /**
     * Returns an iterator for looping through elements
     */
-   public Iterator<GLRenderable> iterator() {
+   public Iterator<IsRenderable> iterator() {
      return new Itr();
    }
 
    /**
-    * Returns a copy of the GLRenderable array
+    * Returns a copy of the IsRenderable array
     */
-   public GLRenderable[] toArray() {
+   public IsRenderable[] toArray() {
       return Arrays.copyOf(myArray, size);
    }
 
    
    /**
-    * Fills an array with the current sorted GLRenderables.  A new array
+    * Fills an array with the current sorted IsRenderables.  A new array
     * is created if '{@code a}' is too small.
     * @param a
     */
@@ -337,7 +335,7 @@ public class SortedRenderableList implements Collection<GLRenderable> {
     * if exists (otherwise assumed zOrder = 0).  For equal zOrders, the 
     * original order is maintained (stable sort).
     */
-   public boolean add(GLRenderable e) {
+   public boolean add(IsRenderable e) {
       int key = getZOrderKey(e);
       return add(e, key);
    }
@@ -347,7 +345,7 @@ public class SortedRenderableList implements Collection<GLRenderable> {
     * if exists.  For equal zOrders, the original order is maintained 
     * (stable sort).
     */
-   public boolean add(GLRenderable e, int zOrder) {
+   public boolean add(IsRenderable e, int zOrder) {
       size++;
       ensureCapacity(size);
       int pos = findInsertionPoint(zOrder, myZOrderKeys, size-1);
@@ -359,10 +357,10 @@ public class SortedRenderableList implements Collection<GLRenderable> {
     * Removes an element from this set
     */
    public boolean remove(Object o) {
-      if (!(o instanceof GLRenderable)) {
+      if (!(o instanceof IsRenderable)) {
          return false;
       }
-      GLRenderable glr = (GLRenderable)o;
+      IsRenderable glr = (IsRenderable)o;
       int key = getZOrderKey(glr);
       int pos = findIndexOf(glr, key);
       if (pos >=0) {
@@ -372,9 +370,9 @@ public class SortedRenderableList implements Collection<GLRenderable> {
       return false;
    }
    
-   public GLRenderable remove(int idx) {
+   public IsRenderable remove(int idx) {
       
-      GLRenderable out = myArray[idx];
+      IsRenderable out = myArray[idx];
       for (int i=idx; i<size; i++) {
          myArray[i]  = myArray[i+1];
          myZOrderKeys[i] = myZOrderKeys[i];
@@ -402,9 +400,9 @@ public class SortedRenderableList implements Collection<GLRenderable> {
    /**
     * Adds all elements in {@code c} to this set.  Always returns true;
     */
-   public boolean addAll(Collection<? extends GLRenderable> c) {
+   public boolean addAll(Collection<? extends IsRenderable> c) {
       ensureCapacity(size+c.size());
-      for (GLRenderable glr : c) {
+      for (IsRenderable glr : c) {
          add(glr);
       }
       return true;
@@ -457,18 +455,18 @@ public class SortedRenderableList implements Collection<GLRenderable> {
    /**
     * Gets the first element in the set
     */
-   public GLRenderable first() {
+   public IsRenderable first() {
      return myArray[0];
    }
 
    /**
     * Gets the last element in the set
     */
-   public GLRenderable last() {
+   public IsRenderable last() {
       return myArray[size-1];
    }
 
-   public GLRenderable get(int index) {
+   public IsRenderable get(int index) {
       return myArray[index];
    }
 

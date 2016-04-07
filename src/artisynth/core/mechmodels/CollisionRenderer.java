@@ -94,7 +94,7 @@ public class CollisionRenderer {
    public void prerender (CollisionHandler handler, RenderProps props) {
       RenderObject r = new RenderObject();
 
-      r.reinitialize();
+      r.clearAll();
 
 
       r.createLineGroup();     // constraints

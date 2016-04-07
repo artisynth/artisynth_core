@@ -14,8 +14,8 @@ import maspack.matrix.RigidTransform3d;
 import maspack.properties.PropertyDesc;
 import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
+import maspack.render.IsRenderable;
 import maspack.render.Renderer;
-import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLSupport;
 
 import com.jogamp.opengl.util.awt.TextRenderer;
@@ -178,7 +178,7 @@ public class TextComponent2d extends TextComponentBase {
    @Override
    public int getRenderHints() {
       return super.getRenderHints() 
-         | GLRenderable.TRANSLUCENT | GLRenderable.TWO_DIMENSIONAL;
+         | IsRenderable.TRANSPARENT | IsRenderable.TWO_DIMENSIONAL;
    }
 
 //   @Override

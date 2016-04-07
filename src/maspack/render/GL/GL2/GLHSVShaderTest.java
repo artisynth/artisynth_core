@@ -12,13 +12,13 @@ import javax.media.opengl.fixedfunc.GLLightingFunc;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.render.IsRenderable;
 import maspack.render.RenderList;
 import maspack.render.Renderer;
-import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewerFrame;
 
-public class GLHSVShaderTest implements GLRenderable {
+public class GLHSVShaderTest implements IsRenderable {
    
    public void prerender (RenderList list) {
    }

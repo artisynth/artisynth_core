@@ -6,10 +6,9 @@
  */
 package maspack.render;
 
-import maspack.render.GL.GLSelectable;
 
 
-public interface Dragger3d extends GLSelectable {
+public interface Dragger3d extends IsSelectable {
    //public boolean isSelected();
    
    public enum DraggerType {

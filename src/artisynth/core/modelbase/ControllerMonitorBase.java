@@ -10,10 +10,10 @@ import java.util.LinkedList;
 import java.util.Map;
 
 import maspack.matrix.Point3d;
+import maspack.render.IsRenderable;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.GL.GLRenderable;
 
 public abstract class ControllerMonitorBase extends ModelAgentBase
 implements RenderableComponent {
@@ -46,7 +46,7 @@ implements RenderableComponent {
    public int getRenderHints() {
       int code = 0;
       if (myRenderProps != null && myRenderProps.getAlpha() != 1) {
-         code |= TRANSLUCENT;
+         code |= TRANSPARENT;
       }
       return code;
    }

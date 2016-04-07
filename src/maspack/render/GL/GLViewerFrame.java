@@ -11,6 +11,7 @@ import java.awt.event.WindowEvent;
 
 import javax.swing.JFrame;
 
+import maspack.render.IsRenderable;
 import maspack.render.GL.GL2.GL2Viewer;
 import maspack.render.GL.GL3.GL3Viewer;
 
@@ -86,11 +87,11 @@ public class GLViewerFrame extends JFrame {
       });
    }
 
-   public void addRenderable (GLRenderable r) {
+   public void addRenderable (IsRenderable r) {
       viewer.addRenderable(r);
    }
 
-   public void removeRenderable (GLRenderable r) {
+   public void removeRenderable (IsRenderable r) {
       viewer.removeRenderable(r);
    }
 

@@ -24,10 +24,10 @@ import maspack.matrix.Point3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
+import maspack.render.IsRenderable;
 import maspack.render.Renderer;
 import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Dragger3d.DraggerType;
-import maspack.render.GL.GLRenderable;
 import maspack.render.RenderProps;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
@@ -543,7 +543,7 @@ public class FemDisplayProbe extends CutPlaneProbe {
    public int getRenderHints() {
       int code = super.getRenderHints();
       if (myBackgroundAlpha < 1) {
-         code |= GLRenderable.TRANSLUCENT;
+         code |= IsRenderable.TRANSPARENT;
       }
       return code;
    }
@@ -555,9 +555,9 @@ public class FemDisplayProbe extends CutPlaneProbe {
 
       if (myPlaneSurface != null) {
 
-         if ((flags & Renderer.UPDATE_RENDER_CACHE) != 0) {
-            updateVertexColoring();
-         }
+//         if ((flags & Renderer.UPDATE_RENDER_CACHE) != 0) {
+//            updateVertexColoring();
+//         }
          
          if (mySurfaceRendering != SurfaceRender.None) {
             myPlaneSurface.render (renderer, rprops, 0);

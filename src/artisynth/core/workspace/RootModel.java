@@ -26,11 +26,11 @@ import maspack.matrix.NumericalException;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
+import maspack.render.IsRenderable;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
-import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLViewer;
 import maspack.util.Disposable;
 import maspack.util.InternalErrorException;
@@ -70,7 +70,7 @@ import artisynth.core.probes.Probe;
 import artisynth.core.probes.TracingProbe;
 import artisynth.core.probes.WayPoint;
 import artisynth.core.probes.WayPointProbe;
-import artisynth.core.renderables.GLRenderableHolder;
+import artisynth.core.renderables.IsRenderableHolder;
 import artisynth.core.util.*;
 
 /**
@@ -632,16 +632,16 @@ public class RootModel extends RenderableModelBase
       myControllers.add (controller);
    }
 
-   public GLRenderableHolder addRenderable(Renderable renderable) {
-      GLRenderableHolder holder = new GLRenderableHolder(renderable);
+   public IsRenderableHolder addRenderable(Renderable renderable) {
+      IsRenderableHolder holder = new IsRenderableHolder(renderable);
       addRenderable(holder);
       return holder;
    }
    
    public boolean removeRenderable(Renderable renderable) {
       for (RenderableComponent rc : myRenderables) {
-         if (rc instanceof GLRenderableHolder) {
-            GLRenderableHolder holder = (GLRenderableHolder)rc;
+         if (rc instanceof IsRenderableHolder) {
+            IsRenderableHolder holder = (IsRenderableHolder)rc;
             if (renderable == holder.getRenderable()) {
                removeRenderable(holder);
                return true;

@@ -20,8 +20,8 @@ import maspack.matrix.RotationMatrix3d;
 import maspack.properties.PropertyDesc;
 import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
+import maspack.render.IsRenderable;
 import maspack.render.Renderer;
-import maspack.render.GL.GLRenderable;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointList;
 
@@ -202,7 +202,7 @@ public class TextLabeller3d extends TextComponentBase {
    
    @Override
    public int getRenderHints() {
-      return GLRenderable.TRANSLUCENT; // for clear background
+      return IsRenderable.TRANSPARENT; // for clear background
    }
    
    /**

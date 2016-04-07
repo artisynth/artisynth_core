@@ -58,10 +58,10 @@ import maspack.render.RenderListener;
 import maspack.render.RenderProps;
 import maspack.render.RenderableBase;
 import maspack.render.Renderer;
+import maspack.render.ViewerSelectionEvent;
+import maspack.render.ViewerSelectionListener;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.FaceStyle;
-import maspack.render.GL.GLSelectionEvent;
-import maspack.render.GL.GLSelectionListener;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
@@ -81,7 +81,7 @@ import argparser.StringHolder;
 
 public class MeshThicken extends ViewerFrame 
    implements ActionListener, DrawToolListener, RenderListener,
-              HasProperties, GLSelectionListener {
+              HasProperties, ViewerSelectionListener {
 
    private static final long serialVersionUID = 1L;
    ArrayList<Region> myRegions = new ArrayList<Region>();
@@ -1074,7 +1074,7 @@ public class MeshThicken extends ViewerFrame
       }
    }
 
-   public void itemsSelected (GLSelectionEvent e) {
+   public void itemsSelected (ViewerSelectionEvent e) {
       deselectRegions();
       LinkedList<Object>[] itemPaths = e.getSelectedObjects();
       for (int i=0; i<itemPaths.length; i++) {

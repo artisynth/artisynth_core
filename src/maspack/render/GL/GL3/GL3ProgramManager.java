@@ -17,11 +17,11 @@ import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix4d;
 import maspack.matrix.Plane;
 import maspack.matrix.RigidTransform3d;
+import maspack.render.Light;
 import maspack.render.Material;
 import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLClipPlane;
-import maspack.render.GL.GLLight;
 import maspack.render.GL.GLProgramInfo;
 import maspack.render.GL.GLProgramInfo.RenderingMode;
 import maspack.render.GL.GLShaderProgram;
@@ -456,7 +456,7 @@ public class GL3ProgramManager {
       }
    }
 
-   public void setLights(GL3 gl, List<GLLight> lights, float intensityScale, RigidTransform3d viewMatrix) {
+   public void setLights(GL3 gl, List<Light> lights, float intensityScale, RigidTransform3d viewMatrix) {
       lightsUBO.updateLights(gl, lights, intensityScale, viewMatrix);
    }
 

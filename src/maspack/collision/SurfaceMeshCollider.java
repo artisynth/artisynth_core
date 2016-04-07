@@ -13,11 +13,11 @@ import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
+import maspack.render.IsRenderable;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.Shading;
 import maspack.render.RenderList;
-import maspack.render.GL.GLRenderable;
 import maspack.util.InternalErrorException;
 
 public class SurfaceMeshCollider implements AbstractCollider {
@@ -414,7 +414,7 @@ public class SurfaceMeshCollider implements AbstractCollider {
    //    }
    // }
 
-   public class ContactInfoRenderer implements GLRenderable {
+   public class ContactInfoRenderer implements IsRenderable {
 
       IdentityHashMap<PolygonalMesh,IdentityHashMap<PolygonalMesh,ContactInfo>> renderableContactInfos =
          new IdentityHashMap<PolygonalMesh,IdentityHashMap<PolygonalMesh,ContactInfo>>();

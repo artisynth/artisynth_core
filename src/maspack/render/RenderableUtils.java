@@ -7,7 +7,6 @@
 package maspack.render;
 
 import maspack.matrix.*;
-import maspack.render.GL.GLRenderable;
 
 /**
  * Provides utility routines for Renderable objects.
@@ -49,7 +48,7 @@ public class RenderableUtils {
     * Returns a "radius" for a Renderable. This is done by computing the
     * distance from the center to the vertices of the bpunding box.
     */
-   public static double getRadius (GLRenderable r) {
+   public static double getRadius (IsRenderable r) {
       Point3d min = new Point3d (inf, inf, inf);
       Point3d max = new Point3d (-inf, -inf, -inf);
       r.updateBounds (min, max);
@@ -66,7 +65,7 @@ public class RenderableUtils {
    /**
     * Returns a "radius" and a center for a Renderable.
     */
-   public static double getRadiusAndCenter (Point3d center, GLRenderable r) {
+   public static double getRadiusAndCenter (Point3d center, IsRenderable r) {
       Point3d min = new Point3d (inf, inf, inf);
       Point3d max = new Point3d (-inf, -inf, -inf);
       r.updateBounds (min, max);
@@ -92,7 +91,7 @@ public class RenderableUtils {
     * @param max
     * maximum coordinate values (optional)
     */
-   public static void getBounds (GLRenderable r, Point3d min, Point3d max) {
+   public static void getBounds (IsRenderable r, Point3d min, Point3d max) {
       if (min == null) {
          min = new Point3d();
       }

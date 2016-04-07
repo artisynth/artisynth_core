@@ -14,9 +14,9 @@ import maspack.matrix.Point2d;
 import maspack.properties.PropertyDesc;
 import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
+import maspack.render.IsRenderable;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
-import maspack.render.GL.GLRenderable;
 
 import com.jogamp.opengl.util.awt.TextRenderer;
 
@@ -376,7 +376,7 @@ public class HudPrintStream extends TextComponentBase {
 
    @Override
    public int getRenderHints() {
-      return (GLRenderable.TRANSLUCENT | GLRenderable.TWO_DIMENSIONAL);
+      return (IsRenderable.TRANSPARENT | IsRenderable.TWO_DIMENSIONAL);
    }
 
    // handles *SOME* control characters

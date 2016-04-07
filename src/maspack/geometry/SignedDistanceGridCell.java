@@ -10,16 +10,16 @@ import java.util.LinkedList;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.render.IsRenderable;
+import maspack.render.IsSelectable;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.RenderList;
-import maspack.render.GL.GLRenderable;
-import maspack.render.GL.GLSelectable;
 
 // This is a class to make grid points renderable and selectable.
 
 
-public class SignedDistanceGridCell implements GLSelectable {
+public class SignedDistanceGridCell implements IsSelectable {
 
    private int vertex[] = new int[3];
    private double distance;
@@ -98,7 +98,7 @@ public class SignedDistanceGridCell implements GLSelectable {
          meshVertex[2]+normal.z*0.1);
    }
    
-//   public void handleSelection (LinkedList<GLRenderable> pathlist, int[] namestack, int idx) {
+//   public void handleSelection (LinkedList<IsRenderable> pathlist, int[] namestack, int idx) {
 //	   pathlist.add (this);
 //      System.out.println (
 //         "Index: " + myIndex +

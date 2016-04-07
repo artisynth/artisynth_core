@@ -132,7 +132,7 @@ public class FemCollisions extends RootModel {
       beam.setElementWidgetSize(0.8);
       RenderProps.setLineWidth(beam.getElements(), 0);
       
-      // Make beam blue, and give it a translucent surface
+      // Make beam blue, and give it a transparent surface
       RenderProps.setFaceColor(beam, Color.BLUE);
       beam.setSurfaceRendering(SurfaceRender.Shaded);
       RenderProps.setAlpha(beam.getMeshComp("surface"), 0.4);

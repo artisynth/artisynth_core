@@ -25,11 +25,11 @@ import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
+import maspack.render.IsRenderable;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
-import maspack.render.GL.GLRenderable;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -898,7 +898,7 @@ public class MFreeMuscleBundle extends CompositeComponentBase
    public int getRenderHints() {
       int code = 0;
       if (myRenderProps != null && myRenderProps.getAlpha() != 1) {
-         code |= TRANSLUCENT;
+         code |= TRANSPARENT;
       }
       return code;
    }

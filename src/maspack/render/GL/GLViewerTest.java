@@ -73,12 +73,12 @@ class GLViewerTest extends GLViewerFrame implements ActionListener {
       }
       else if (e.getSource() == myOrthoButton) {
          if (myOrthoButton.isSelected()) {
-            viewer.autoFitOrtho (0);
+            viewer.autoFitOrtho();
             myOrthoButton.setText ("ortho");
             viewer.repaint();
          }
          else {
-            viewer.autoFitPerspective (0);
+            viewer.autoFitPerspective();
             myOrthoButton.setText ("ortho");
             viewer.repaint();
          }
@@ -129,7 +129,7 @@ class GLViewerTest extends GLViewerFrame implements ActionListener {
 
       // viewer.addRenderable (MeshFactory.createSphere (10.0, 8));
       viewer.addDragger (dragger);
-      viewer.autoFitPerspective (0);
+      viewer.autoFitPerspective ();
       viewer.setBackgroundColor (0.3f, 0.3f, 0.3f);
       viewer.setAxisLength (1000);
       viewer.setMouseHandler(new GLMouseAdapter(viewer));

@@ -285,7 +285,7 @@ implements SelectionListener, MouseInputListener {
    public void mouseExited (MouseEvent e) {
    }
 
-   // GLRenderable implementation
+   // IsRenderable implementation
    public void prerender (RenderList list) {
       if (myAttachment != null) {
          myAttachment.updatePosStates();

@@ -4,12 +4,9 @@
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
-package maspack.render.GL;
+package maspack.render;
 
 import maspack.matrix.Point3d;
-
-import maspack.render.RenderList;
-import maspack.render.Renderer;
 
 /**
  * Specifies objects that can be rendered by a Viewer implementing
@@ -17,13 +14,13 @@ import maspack.render.Renderer;
  *  
  * @author lloyd
  */
-public interface GLRenderable {
+public interface IsRenderable {
    
    /**
     * A rendering hint that suggests the object should be rendered with
     * transparency enabled
     */
-   public static final int TRANSLUCENT = 0x1;
+   public static final int TRANSPARENT = 0x1;
    
    /**
     * A rendering hint that suggests the object should be rendered at the
@@ -31,11 +28,11 @@ public interface GLRenderable {
     */
    public static final int TWO_DIMENSIONAL = 0x2;
    
-   /**
-    * A rendering hint that suggests the data often changes, useful when
-    * setting up rendering caches
-    */
-   public static final int DYNAMIC_DRAW = 0x4;
+//   /**
+//    * A rendering hint that suggests the data often changes, useful when
+//    * setting up rendering caches
+//    */
+//   public static final int DYNAMIC_DRAW = 0x4;
    
    /**
     * Called prior to rendering to allow this object to update the internal
@@ -82,7 +79,7 @@ public interface GLRenderable {
 
    /**
     * Returns a bit code giving rendering hints about this renderable. Current
-    * bit codes include {@link #TRANSLUCENT TRANSLUCENT} and
+    * bit codes include {@link #TRANSPARENT TRANSPARENT} and
     * {@link #TWO_DIMENSIONAL TWO_DIMENSIONAL}.
     * 
     * @return bit code of rendering hints.

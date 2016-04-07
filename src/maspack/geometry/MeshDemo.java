@@ -48,7 +48,7 @@ public class MeshDemo {
 
       GLViewerFrame frame = new GLViewerFrame ("MeshDemo", 400, 400);
       frame.getViewer().addRenderable (myMesh);
-      frame.getViewer().autoFitPerspective (0);
+      frame.getViewer().autoFitPerspective ();
 
       frame.setVisible (true);
    }

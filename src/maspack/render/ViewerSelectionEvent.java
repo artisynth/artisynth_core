@@ -4,16 +4,16 @@
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
-package maspack.render.GL;
+package maspack.render;
 
 import java.util.*;
 
 /**
- * Event returned whenever items are selected inside the GLViewer.
+ * Event returned whenever items are selected inside a Viewer.
  * 
  * @version 1.2 Modified by Chad to enable a multiple selection type event.
  */
-public class GLSelectionEvent {
+public class ViewerSelectionEvent {
    int myModifiersEx;
    LinkedList<Object>[] mySelectedObjects;
 
@@ -30,7 +30,7 @@ public class GLSelectionEvent {
    // default selection type
    private int myFlags = 0;
 
-   public GLSelectionEvent() {
+   public ViewerSelectionEvent() {
    }
 
    /**
@@ -43,18 +43,32 @@ public class GLSelectionEvent {
       return myModifiersEx;
    }
 
-   void setModifiersEx (int modifiersEx) {
+   /**
+    * Sets the extended keyboard modifiers that were in play at the
+    * time the selection was invoked. For internal use only.
+    */
+   public void setModifiersEx (int modifiersEx) {
       myModifiersEx = modifiersEx;
    }
 
    /**
-    * Returns an array containing a list of objects for each selection query
-    * that resulted in a selection.
+    * Returns an array of object lists for each selection query that resulted
+    * in a selection.
     *
-    * @return list of objects for each selected query
+    * @return array of object lists for each selected query
     */
    public LinkedList<Object>[] getSelectedObjects() {
       return mySelectedObjects;
+   }
+
+   /**
+    * Sets the value returned by {@link #getSelectedObjects}.  The value is set
+    * by reference. For internal use only.
+    *
+    * @param lists array of object lists for each selected query
+    */
+   public void setSelectedObjects (LinkedList<Object>[] lists) {
+      mySelectedObjects = lists;
    }
 
    /**

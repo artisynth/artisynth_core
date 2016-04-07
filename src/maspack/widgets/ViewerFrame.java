@@ -26,10 +26,10 @@ import javax.swing.JToolBar;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MouseInputAdapter;
 
+import maspack.render.IsRenderable;
 import maspack.render.RenderListener;
 import maspack.render.RendererEvent;
 import maspack.render.GL.GLGridPlane;
-import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GL2.GL2Viewer;
 import maspack.widgets.DraggerToolBar.ButtonType;
@@ -77,11 +77,11 @@ public class ViewerFrame extends JFrame
       pack();
    }
 
-   public void addRenderable (GLRenderable r) {
+   public void addRenderable (IsRenderable r) {
       viewer.addRenderable(r);
    }
 
-   public void removeRenderable (GLRenderable r) {
+   public void removeRenderable (IsRenderable r) {
       viewer.removeRenderable(r);
    }
 

@@ -110,7 +110,7 @@ public class MeshComponentList<P extends MeshComponent>
    }
 
 //   public void handleSelection (
-//      LinkedList<GLRenderable> list, int[] namestack, int idx) {
+//      LinkedList<IsRenderable> list, int[] namestack, int idx) {
 //      int k = namestack[idx];
 //      if (k >= 0 && k < size()) {
 //         list.addLast (get (k));

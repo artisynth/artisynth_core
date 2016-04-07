@@ -17,8 +17,8 @@ import maspack.geometry.SignedDistanceGridCell;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
-import maspack.render.GL.GLSelectionEvent;
-import maspack.render.GL.GLSelectionListener;
+import maspack.render.ViewerSelectionEvent;
+import maspack.render.ViewerSelectionListener;
 import maspack.render.GL.GLViewerFrame;
 
 public class SignedDistanceGridViewer extends GLViewerFrame {
@@ -26,12 +26,12 @@ public class SignedDistanceGridViewer extends GLViewerFrame {
    ArrayList<SignedDistanceGridCell> gridCellList = new ArrayList<SignedDistanceGridCell> (10);
    ArrayList<int[]> selectedPnts = new ArrayList<int[]>();
 
-   class SelectionHandler implements GLSelectionListener {
+   class SelectionHandler implements ViewerSelectionListener {
       private void clearSelection() {
          selectedPnts.clear();
       }
 
-      public void itemsSelected (GLSelectionEvent e) {
+      public void itemsSelected (ViewerSelectionEvent e) {
          boolean holdSelection, selectAll;
          long modEx = e.getModifiersEx();
          holdSelection = ((modEx & MouseEvent.SHIFT_DOWN_MASK) != 0);

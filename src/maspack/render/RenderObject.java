@@ -391,7 +391,7 @@ public class RenderObject {
       versionInfo = new RenderObjectVersion();
       stateInfo = new RenderObjectState();
       
-      reinitialize();
+      clearAll();
 
    }
    
@@ -2085,7 +2085,8 @@ public class RenderObject {
    }
    
    /**
-    * Informs the render object that lines have been modified outside of its control.
+    * Informs the render object that lines have been modified outside of its
+    * control.
     */
    public void notifyLinesModified() {
       
@@ -2777,7 +2778,7 @@ public class RenderObject {
     * in place of discarding and regenerating a new one.  The object
     * becomes a clean slate, with no vertex attributes or primitives.
     */
-   public void reinitialize() {
+   public void clearAll() {
       
       
       // in most cases, we will only have one set

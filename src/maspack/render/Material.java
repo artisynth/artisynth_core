@@ -315,7 +315,7 @@ public class Material {
       return diffuse[3];
    }
 
-   public boolean isTranslucent() {
+   public boolean isTransparent() {
       // return (ambient[3] != 1.0f || specular[3] != 1.0f 
       //   || diffuse[3] != 1.0f || emission[3] != 1.0f);
       

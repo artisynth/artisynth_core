@@ -10,11 +10,30 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import maspack.matrix.Point3d;
-import maspack.render.GL.GLRenderable;
-import maspack.render.GL.GLSelectable;
 
 /**
- * Maintains a list of renderable objects for use by GLViewer.
+ * Maintains a list of renderable objects for use by GLViewer. As renderables
+ * are added to this list, they are sorted into four sublists depending on
+ * whether they are <i>opaque</i>, <i>transparent</i>, <i>2d opaque</i>, and
+ * <i>2d transparent</i>. As renderables are added to the list, their {@link
+ * IsRenderable#prerender} method is also called.
+ * 
+ * <p>The sublist to which each renderable is added is determined based on
+ * whether the flags returned by the its {@link IsRenderable#getRenderHints()}
+ * method contains the settings {@link IsRenderable#TRANSPARENT} and {@link
+ * IsRenderable#TWO_DIMENSIONAL}. Renderables are also added to their
+ * appropriate sublist in increasing order according to a <i>z-order</i> value,
+ * where z denotes the viewing axis and a higher z-order indicates an object
+ * which is ``closer to the eye''. If the renderable is an instance of {@link
+ * HasRenderProps} and its {@link HasRenderProps#getRenderProps} methods
+ * returns a non-<code>null</code> set of render properties, then the z-order
+ * is given by {@link RenderProps#getZOrder()} for those properties. Otherwise,
+ * the z-order is assumed to be 0.
+ * 
+ * <p>Sorting the renderables is done because it allows some renderers to
+ * render the scene more realistically. For example, in OpenGL, better results
+ * are obtained in opaque objects are drawn before transparent ones, and
+ * transparent objects are drawn in increasing z-order.
  */
 public class RenderList {
 
@@ -24,13 +43,33 @@ public class RenderList {
    protected SortedRenderableList myTransparent2d = new SortedRenderableList();
 
    // renderables that were originally added to this list, before expansion
-   private ArrayList<GLRenderable> myUnexpanded =
-      new ArrayList<GLRenderable>();
+   private ArrayList<IsRenderable> myUnexpanded =
+      new ArrayList<IsRenderable>();
 
    private int myLevel = 0;
 
-   public <C extends GLRenderable> boolean addIfVisible (
-      C r) {
+   /**
+    * If a specified renderable is visible, add it to this list and
+    * call its {@link IsRenderable#prerender} method. The renderable
+    * is considered to be visible if either
+    * 
+    * <ol>
+    * <li>it is not an instance of {@link HasRenderProps}, or
+    * <li>it is an instance of {@link HasRenderProps} and its
+    * {@link HasRenderProps#getRenderProps()} method returns a 
+    * non-<code>null</code> value for which 
+    * {@link RenderProps#isVisible()} returns <code>true</code>. 
+    * </ol>
+    * 
+    * <p>The renderable is added to either the <i>opaque</i>, 
+    * <i>transparent</i>, <i>2d opaque</i>, or <i>2d transparent</i>
+    * sublist, according to increasing z-order, as described in the
+    * class documentation.
+    * 
+    * @param r renderable to maybe add to this list
+    * @return <code>true</code> if <code>c</code> was added.
+    */
+   public <C extends IsRenderable> boolean addIfVisible (C r) {
       boolean add = true;
       if (r instanceof HasRenderProps) {
          RenderProps props = ((HasRenderProps)r).getRenderProps();
@@ -44,15 +83,15 @@ public class RenderList {
       //    myUnexpanded.add (r);
       // }
       if (add) {
-         if ( (r.getRenderHints() & GLRenderable.TWO_DIMENSIONAL) != 0) {
-            if ((r.getRenderHints() & GLRenderable.TRANSLUCENT) != 0) {
+         if ( (r.getRenderHints() & IsRenderable.TWO_DIMENSIONAL) != 0) {
+            if ((r.getRenderHints() & IsRenderable.TRANSPARENT) != 0) {
                insertRenderable(r, myTransparent2d);
             }
             else {
                insertRenderable(r, myOpaque2d);
             }
          } else {
-            if ((r.getRenderHints() & GLRenderable.TRANSLUCENT) != 0) {
+            if ((r.getRenderHints() & IsRenderable.TRANSPARENT) != 0) {
                insertRenderable(r, myTransparent);
             }
             else {
@@ -68,7 +107,7 @@ public class RenderList {
       return add;
    }
    
-//   public <C extends GLRenderableExtended> boolean addIfVisible (
+//   public <C extends IsRenderableExtended> boolean addIfVisible (
 //      C r, int prerenderFlags) {
 //      boolean add = true;
 //      if (r instanceof HasRenderProps) {
@@ -79,15 +118,15 @@ public class RenderList {
 //      }
 //      if (add) {
 //         
-//         if ((r.getRenderHints() & GLRenderable.TWO_DIMENSIONAL) != 0) {
-//            if ((r.getRenderHints() & GLRenderable.TRANSLUCENT) != 0) {
+//         if ((r.getRenderHints() & IsRenderable.TWO_DIMENSIONAL) != 0) {
+//            if ((r.getRenderHints() & IsRenderable.TRANSPARENT) != 0) {
 //               insertRenderable(r, myTransparent2d);
 //            }
 //            else {
 //               insertRenderable(r, myOpaque2d);
 //            }
 //         } else {
-//            if ((r.getRenderHints() & GLRenderable.TRANSLUCENT) != 0) {
+//            if ((r.getRenderHints() & IsRenderable.TRANSPARENT) != 0) {
 //               insertRenderable(r, myTransparent);
 //            }
 //            else {
@@ -103,7 +142,7 @@ public class RenderList {
 //      return add;
 //   }
    
-   private static int getZOrderKey (GLRenderable r) {
+   private static int getZOrderKey (IsRenderable r) {
       if (r instanceof HasRenderProps) {
          RenderProps props = ((HasRenderProps)r).getRenderProps();
          if (props != null) {
@@ -113,23 +152,29 @@ public class RenderList {
       return 0;
    }
    
-   private void insertRenderable(GLRenderable r, SortedRenderableList list) {
+   private void insertRenderable(IsRenderable r, SortedRenderableList list) {
       // maintain order for equal indices
       int ri = getZOrderKey(r);
       list.add(r, ri);
    }
 
-   public void addIfVisibleAll (Collection<? extends GLRenderable> renderables) {
-      for (GLRenderable r : renderables) {
+   /**
+    * Calls {@link #addIfVisible} for every renderable in a specified
+    * collection.
+    * 
+    * @param renderables collection of renderables to maybe add to this list.
+    */
+   public void addIfVisibleAll (Collection<? extends IsRenderable> renderables) {
+      for (IsRenderable r : renderables) {
          addIfVisible (r);
       }
    }
    
 //   public void addIfVisibleAll (
-//      Collection<? extends GLRenderable> renderables, int prerenderFlags) {
-//      for (GLRenderable r : renderables) {
-//         if (r instanceof GLRenderableExtended) {
-//            addIfVisible ((GLRenderableExtended)r, prerenderFlags);
+//      Collection<? extends IsRenderable> renderables, int prerenderFlags) {
+//      for (IsRenderable r : renderables) {
+//         if (r instanceof IsRenderableExtended) {
+//            addIfVisible ((IsRenderableExtended)r, prerenderFlags);
 //         } else {
 //            addIfVisible (r);
 //         }
@@ -143,13 +188,13 @@ public class RenderList {
    // */
    // public void prerender()
    // {
-   // LinkedList<GLRenderable> copy = (LinkedList<GLRenderable>)myList.clone();
-   // for (GLRenderable r : copy)
+   // LinkedList<IsRenderable> copy = (LinkedList<IsRenderable>)myList.clone();
+   // for (IsRenderable r : copy)
    // { r.prerender (this);
    // }
    // }
 
-   // public int getTransparent (GLRenderable[] array, int idx)
+   // public int getTransparent (IsRenderable[] array, int idx)
    // {
    // for (int i=0; i<myTransparent.size(); i++)
    // { array[idx++] = myTransparent.get(i);
@@ -157,7 +202,7 @@ public class RenderList {
    // return idx;
    // }
 
-   // public int getOpaque (GLRenderable[] array, int idx)
+   // public int getOpaque (IsRenderable[] array, int idx)
    // {
    // for (int i=0; i<myOpaque.size(); i++)
    // { array[idx++] = myOpaque.get(i);
@@ -165,7 +210,13 @@ public class RenderList {
    // return idx;
    // }
 
-   public GLRenderable getOpaque (int i) {
+   /**
+    * Returns the <code>i</code>-th opaque renderable in this list.
+    * 
+    * @param i index of the renderable
+    * @return code>i</code>-th opaque renderable 
+    */
+   public IsRenderable getOpaque (int i) {
       return myOpaque.get (i);
    }
 
@@ -173,7 +224,13 @@ public class RenderList {
       return myOpaque;
    }
    
-   public GLRenderable getTransparent (int i) {
+   /**
+    * Returns the <code>i</code>-th transparent renderable in this list.
+    * 
+    * @param i index of the renderable
+    * @return code>i</code>-th transparent renderable 
+    */
+   public IsRenderable getTransparent (int i) {
       return myTransparent.get (i);
    }
    
@@ -181,7 +238,13 @@ public class RenderList {
       return myTransparent;
    }
    
-   public GLRenderable getOpaque2d(int i) {
+   /**
+    * Returns the <code>i</code>-th 2d opaque renderable in this list.
+    * 
+    * @param i index of the renderable
+    * @return code>i</code>-th 2d opaque renderable 
+    */
+   public IsRenderable getOpaque2d(int i) {
       return myOpaque2d.get(i);
    }
    
@@ -189,20 +252,29 @@ public class RenderList {
       return myOpaque2d;
    }
    
-   public GLRenderable getTransparent2d(int i) {
+   /**
+    * Returns the <code>i</code>-th 2d transparent renderable in this list.
+    * 
+    * @param i index of the renderable
+    * @return code>i</code>-th 2d transparent renderable 
+    */
+   public IsRenderable getTransparent2d(int i) {
       return myTransparent2d.get(i);
    }
    public SortedRenderableList getTransparent2d() {
       return myTransparent2d;
    }
 
-   // public int get (GLRenderable[] array, int idx)
+   // public int get (IsRenderable[] array, int idx)
    // {
    // idx = getOpaque (array, idx);
    // idx = getTransparent (array, idx);
    // return idx;
    // }
 
+   /**
+    * Clears all renderables in this list.
+    */
    public void clear() {
       myTransparent.clear();
       myOpaque.clear();
@@ -211,50 +283,70 @@ public class RenderList {
       myUnexpanded.clear();
    }
 
-   // public Iterator<GLRenderable> iterator()
+   // public Iterator<IsRenderable> iterator()
    // {
    // return myList.iterator();
    // }
 
-   // public ListIterator<GLRenderable> listIterator()
+   // public ListIterator<IsRenderable> listIterator()
    // {
    // return myList.listIterator();
    // }
 
-   // public ListIterator<GLRenderable> listIterator(int idx)
+   // public ListIterator<IsRenderable> listIterator(int idx)
    // {
    // return myList.listIterator(idx);
    // }
 
+   /**
+    * Returns the number of transparent objects in this list.
+    * 
+    * @return number of transparent objects
+    */
    public int numTransparent() {
       return myTransparent.size();
    }
 
+   /**
+    * Returns the number of opaque objects in this list.
+    * 
+    * @return number of opaque objects
+    */
    public int numOpaque() {
       return myOpaque.size();
    }
    
+   /**
+    * Returns the number of 2d transparent objects in this list.
+    * 
+    * @return number of 2d transparent objects
+    */
    public int numTransparent2d() {
       return myTransparent2d.size();
    }
    
+   /**
+    * Returns the number of 2d opaque objects in this list.
+    * 
+    * @return number of 2d opaque objects
+    */
    public int numOpaque2d() {
       return myOpaque2d.size();
    }
 
-   public int numTransparentSelQueries() {
+   protected int numTransparentSelQueries() {
       return myTransparent.numSelectionQueriesNeeded();
    }
 
-   public int numOpaqueSelQueries() {
+   protected int numOpaqueSelQueries() {
       return myOpaque.numSelectionQueriesNeeded();
    }
 
-   public int numTransparent2dSelQueries() {
+   protected int numTransparent2dSelQueries() {
       return myTransparent2d.numSelectionQueriesNeeded();
    }
 
-   public int numOpaque2dSelQueries() {
+   protected int numOpaque2dSelQueries() {
       return myOpaque2d.numSelectionQueriesNeeded();
    }
 
@@ -265,6 +357,11 @@ public class RenderList {
               myOpaque2d.numSelectionQueriesNeeded());
    }         
 
+   /**
+    * Returns the total number of renderables in this list.
+    * 
+    * @return total number of renderables
+    */
    public int size() {
       return myTransparent.size() + myOpaque.size() 
          + myTransparent2d.size() + myOpaque2d.size();
@@ -282,9 +379,9 @@ public class RenderList {
       boolean selecting = renderer.isSelecting();
 
       for (int i = 0; i < list.size(); i++) {
-         GLRenderable r = list.get (i);
-         if (selecting && r instanceof GLSelectable) {
-            GLSelectable s = (GLSelectable)r;
+         IsRenderable r = list.get (i);
+         if (selecting && r instanceof IsSelectable) {
+            IsSelectable s = (IsSelectable)r;
 
             int numq = s.numSelectionQueriesNeeded();
             if (renderer.isSelectable(s)) {
@@ -332,7 +429,17 @@ public class RenderList {
       return renderList (renderer, myTransparent2d, qid, flags);
    }
 
-   public GLRenderable get (int idx) {
+   /**
+    * Returns the <code>idx</code>-th renderable in this list.
+    * 
+    * @param idx index of the desired renderable
+    * @return <code>idx</code>-th renderable 
+    * @throws IndexOutOfBoundsException if <code>idx</code> is out of bounds.
+    */
+   public IsRenderable get (int idx) {
+      if (idx < 0) {
+         throw new IndexOutOfBoundsException ("index "+idx+" is negative");
+      }
       int nextList = myOpaque.size();
       if (idx < nextList) {
          return myOpaque.get (idx);
@@ -348,7 +455,12 @@ public class RenderList {
          return myOpaque2d.get(idx);
       }
       idx = idx-nextList;
-      return myTransparent2d.get (idx);
+      nextList = myOpaque2d.size();
+      if (idx < nextList) {
+         return myTransparent2d.get (idx);
+      }
+      throw new IndexOutOfBoundsException (
+         "index "+idx+" is out of bounds; list size is " + size());
    }
 
 }

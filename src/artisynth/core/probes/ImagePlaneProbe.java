@@ -24,12 +24,12 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
+import maspack.render.IsRenderable;
 import maspack.render.TextureMapProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.FaceStyle;
-import maspack.render.GL.GLRenderable;
 
 public class ImagePlaneProbe extends InputProbe implements RenderableComponent,
 TransformableGeometry {
@@ -150,7 +150,7 @@ TransformableGeometry {
    public int getRenderHints() {
       int code = 0;
       if (myRenderProps != null && myRenderProps.getAlpha() != 1) {
-         code |= TRANSLUCENT;
+         code |= TRANSPARENT;
       }
       return code;
    }
@@ -197,8 +197,8 @@ TransformableGeometry {
 
    public double getRadius (ModelComponent e) {
       double radius = 1.0;
-      if (e instanceof GLRenderable) {
-         GLRenderable r = (GLRenderable)e;
+      if (e instanceof IsRenderable) {
+         IsRenderable r = (IsRenderable)e;
          Point3d max = new Point3d (-inf, -inf, -inf);
          Point3d min = new Point3d (inf, inf, inf);
          r.updateBounds (min, max);

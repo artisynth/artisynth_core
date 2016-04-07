@@ -26,11 +26,11 @@ import maspack.matrix.Vector2d;
 import maspack.matrix.Vector4d;
 import maspack.render.DrawToolEvent;
 import maspack.render.DrawToolListener;
+import maspack.render.IsRenderableBase;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.Shading;
-import maspack.render.GL.GLRenderableBase;
 import maspack.render.GL.GLViewer;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.ReaderTokenizer;
@@ -43,7 +43,7 @@ public class NURBSCurve2dTest implements DrawToolListener {
    ViewerFrame myFrame;
    GLViewer myViewer;
 
-   private static class DistanceGrid extends GLRenderableBase {
+   private static class DistanceGrid extends IsRenderableBase {
 
       double myX;
       double myY;

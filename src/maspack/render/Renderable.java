@@ -6,9 +6,8 @@
  */
 package maspack.render;
 
-import maspack.render.GL.GLSelectable;
 
-public interface Renderable extends GLSelectable, HasRenderProps {
+public interface Renderable extends IsSelectable, HasRenderProps {
    // /**
    // * Returns the render properities assigned to this object. If no
    // * render properties are assigned, this routines returns null.
@@ -59,6 +58,6 @@ public interface Renderable extends GLSelectable, HasRenderProps {
    // // void updateBounds (Point3d pmin, Point3d pmax);
 
    // void handleSelection (
-   // LinkedList<GLRenderable> path, int[] namestack, int idx);
+   // LinkedList<IsRenderable> path, int[] namestack, int idx);
 
 }

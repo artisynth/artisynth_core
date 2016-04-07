@@ -32,6 +32,7 @@ import maspack.matrix.RigidTransform3d;
 import maspack.properties.PropertyUtils;
 import maspack.render.Dragger3dAdapter;
 import maspack.render.Dragger3dEvent;
+import maspack.render.IsRenderable;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
@@ -40,7 +41,6 @@ import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Transrotator3d;
-import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewerFrame;
 import maspack.widgets.PropertyDialog;
@@ -53,7 +53,7 @@ import argparser.DoubleHolder;
 import argparser.IntHolder;
 
 public class MeshCollisionViewer extends GLViewerFrame
-   implements ActionListener, GLRenderable {
+   implements ActionListener, IsRenderable {
    private static final long serialVersionUID = 1L;
 
    PolygonalMesh myMesh1;
@@ -144,7 +144,7 @@ public class MeshCollisionViewer extends GLViewerFrame
       myDragger2.setDraggerToWorld (X);
       myMesh2.setMeshToWorld (X);
 
-      viewer.autoFitPerspective (0);
+      viewer.autoFitPerspective ();
       viewer.setBackgroundColor (0f, 0, 0.2f);
 
       if (drawAxes.value) {

@@ -440,7 +440,7 @@ public abstract class CutPlaneProbe extends OutputProbe
    public int getRenderHints() {
       int code = 0;
       if (myRenderProps != null && myRenderProps.getAlpha() != 1) {
-         code |= TRANSLUCENT;
+         code |= TRANSPARENT;
       }
       return code;
    }

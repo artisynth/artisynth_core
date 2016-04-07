@@ -18,26 +18,26 @@ import javax.swing.JOptionPane;
 import maspack.properties.HasProperties;
 import maspack.properties.HostList;
 import maspack.properties.PropTreeCell;
-import maspack.render.GL.GLRenderable;
+import maspack.render.IsRenderable;
 import maspack.widgets.GuiUtils;
 import maspack.widgets.PropertyDialog;
 import artisynth.core.driver.Main;
 import artisynth.core.gui.selectionManager.SelectionManager;
 import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.renderables.GLRenderableHolder;
+import artisynth.core.renderables.IsRenderableHolder;
 
-public class GLRenderableEditor extends EditorBase {
+public class IsRenderableEditor extends EditorBase {
 
-   private static String glEditCmd = "Edit GLRenderable's properties ...";
+   private static String glEditCmd = "Edit IsRenderable's properties ...";
    
-   public GLRenderableEditor(Main main, EditorManager editManager) {
+   public IsRenderableEditor(Main main, EditorManager editManager) {
       super(main, editManager);
    }
 
    public void addActions (EditActionMap actions, SelectionManager selManager) {
       LinkedList<ModelComponent> selection = selManager.getCurrentSelection();
 
-      if (containsMultipleSelection (selection, GLRenderableHolder.class)) {
+      if (containsMultipleSelection (selection, IsRenderableHolder.class)) {
          actions.add (this, glEditCmd);
       }
    }
@@ -49,9 +49,9 @@ public class GLRenderableEditor extends EditorBase {
       if (glEditCmd.equals(actionCommand)) {
          ArrayList<HasProperties> contained = new ArrayList<HasProperties>(selection.size());
          for (ModelComponent mc : selection) {
-            if (mc instanceof GLRenderableHolder) {
-               GLRenderableHolder holder = (GLRenderableHolder)mc;
-               GLRenderable glr = holder.getRenderable();
+            if (mc instanceof IsRenderableHolder) {
+               IsRenderableHolder holder = (IsRenderableHolder)mc;
+               IsRenderable glr = holder.getRenderable();
                if (glr instanceof HasProperties) {
                   contained.add((HasProperties)glr);
                }
@@ -98,7 +98,7 @@ public class GLRenderableEditor extends EditorBase {
          //propDialog.setSynchronizeObject (myMain.getRootModel());
          myMain.registerWindow (propDialog);
          propDialog.setTitle (
-            "Properties for selected GLRenderables");
+            "Properties for selected IsRenderables");
          propDialog.setVisible (true);
       }
    }

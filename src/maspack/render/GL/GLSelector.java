@@ -8,6 +8,8 @@ package maspack.render.GL;
 
 import javax.media.opengl.GLAutoDrawable;
 
+import maspack.render.IsSelectable;
+
 /**
  * Base class for helper classes that enable GLViewer to perform selection
  * operations.
@@ -40,7 +42,7 @@ public abstract class GLSelector {
 
    public abstract void endSelectionQuery ();
 
-   public abstract void beginSelectionForObject (GLSelectable s, int idx);
+   public abstract void beginSelectionForObject (IsSelectable s, int idx);
 
    public abstract void endSelectionForObject ();
 }

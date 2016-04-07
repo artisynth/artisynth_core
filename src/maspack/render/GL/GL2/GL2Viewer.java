@@ -25,6 +25,7 @@ import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.render.Dragger3d;
+import maspack.render.Light;
 import maspack.render.RenderKey;
 import maspack.render.RenderObject;
 import maspack.render.RenderObject.RenderObjectVersion;
@@ -34,9 +35,6 @@ import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLColorSelector;
 import maspack.render.GL.GLFrameCapture;
 import maspack.render.GL.GLGridPlane;
-import maspack.render.GL.GLLight;
-import maspack.render.GL.GLLight.LightSpace;
-import maspack.render.GL.GLLight.LightType;
 import maspack.render.GL.GLLightManager;
 import maspack.render.GL.GLMouseAdapter;
 import maspack.render.GL.GLOcclusionSelector;
@@ -45,6 +43,8 @@ import maspack.render.GL.GLTexture;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GL2.GL2Primitive.PrimitiveType;
 import maspack.render.GL.GL2.RenderObjectKey.DrawType;
+import maspack.render.Light.LightSpace;
+import maspack.render.Light.LightType;
 import maspack.util.BooleanHolder;
 import maspack.util.InternalErrorException;
 
@@ -137,7 +137,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       return out;
    }
 
-   private void setupLight (GL2 gl, GLLight light, float intensityScale) {
+   private void setupLight (GL2 gl, Light light, float intensityScale) {
 
       int lightId = light.getId() + GL2.GL_LIGHT0;
       if (light.isEnabled()) {
@@ -202,7 +202,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       int maxLights = lightManager.maxLights();
       float intensityScale = 1.0f/lightManager.getMaxIntensity();
       // only enable up to maxLights
-      for (GLLight light : lightManager.getLights()) {
+      for (Light light : lightManager.getLights()) {
          if (light.getId() < maxLights) {
             setupLight(gl, light, intensityScale);
          }

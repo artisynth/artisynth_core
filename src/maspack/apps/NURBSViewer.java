@@ -34,8 +34,8 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
 import maspack.render.RenderProps;
-import maspack.render.GL.GLSelectionEvent;
-import maspack.render.GL.GLSelectionListener;
+import maspack.render.ViewerSelectionEvent;
+import maspack.render.ViewerSelectionListener;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewer.GLVersion;
 import maspack.render.GL.GLViewerFrame;
@@ -53,7 +53,7 @@ public class NURBSViewer extends GLViewerFrame {
 
    ArrayList<Vector4d> selectedPnts = new ArrayList<Vector4d>();
 
-   class SelectionHandler implements GLSelectionListener {
+   class SelectionHandler implements ViewerSelectionListener {
       private void clearSelection() {
          selectedPnts.clear();
          for (Iterator it = nurbsList.iterator(); it.hasNext();) {
@@ -65,7 +65,7 @@ public class NURBSViewer extends GLViewerFrame {
 
       }
 
-      public void itemsSelected (GLSelectionEvent e) {
+      public void itemsSelected (ViewerSelectionEvent e) {
          boolean holdSelection, selectAll;
 
          long modEx = e.getModifiersEx();
@@ -298,7 +298,7 @@ public class NURBSViewer extends GLViewerFrame {
             viewFrame.addNURBS (circle);
          }
 
-         viewer.autoFitPerspective (0);
+         viewer.autoFitPerspective ();
          if (drawAxes.value) {
             if (axisLength.value > 0) {
                viewer.setAxisLength (axisLength.value);

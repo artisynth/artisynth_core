@@ -19,10 +19,10 @@ import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
+import maspack.render.IsRenderable;
 import maspack.render.Renderer;
 import maspack.render.LineFaceRenderProps;
 import maspack.render.RenderProps;
-import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GL2.GL2Viewer;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
@@ -393,7 +393,7 @@ public class ColorBar extends TextComponentBase {
    @Override
    public int getRenderHints() {
       return super.getRenderHints()
-         | GLRenderable.TWO_DIMENSIONAL;
+         | IsRenderable.TWO_DIMENSIONAL;
    }
 
    public Rectangle getNormalizedLocation() {

@@ -418,7 +418,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          renderer.mulModelMatrix (mesh.XMeshToWorld);
       }
 
-      boolean translucent = false;
+      boolean transparent = false;
       // boolean saveTransparencyEnabled = false;
 
       Shading shading = props.getShading();
@@ -438,7 +438,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       //    if (props.getBackMaterial() != null) {
       //       //gl.glLightModelf (GL2.GL_LIGHT_MODEL_TWO_SIDE, 1f);
       //    }
-      //    if (translucent) {
+      //    if (transparent) {
       //       //renderer.setTransparencyEnabled (saveTransparencyEnabled);
       //    }
       // }
@@ -447,10 +447,10 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
    }
    
    
-   public boolean isTranslucent (RenderProps props) {
+   public boolean isTransparent (RenderProps props) {
       return props.getAlpha() < 1.0;
-      // return (myFrontMaterial.isTranslucent() ||
-      // myBackMaterial.isTranslucent());
+      // return (myFrontMaterial.isTransparent() ||
+      // myBackMaterial.isTransparent());
    }
 
 }

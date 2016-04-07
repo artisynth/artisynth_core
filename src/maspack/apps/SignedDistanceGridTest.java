@@ -16,7 +16,6 @@ import maspack.geometry.HalfEdge;
 import maspack.geometry.SignedDistanceGrid;
 import maspack.render.*;
 import maspack.render.Renderer.DrawMode;
-import maspack.render.GL.GLSelectable;
 import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLViewer;
 import maspack.util.*;
@@ -395,7 +394,7 @@ public class SignedDistanceGridTest {
     * without messing up the organized data structure of the SignedDistanceGrid.
     * 
     */
-   class testCell implements GLSelectable {
+   class testCell implements IsSelectable {
       public Vector3d myVertex;   // In mesh coordinates
       public Vector3d normal;
       public double d;

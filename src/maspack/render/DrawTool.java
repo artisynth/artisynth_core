@@ -10,9 +10,7 @@ package maspack.render;
 
 import java.awt.event.*;
 
-import maspack.render.GL.GLSelectable;
-
-public interface DrawTool extends GLSelectable {
+public interface DrawTool extends IsSelectable {
 
    public boolean isVisible();
 

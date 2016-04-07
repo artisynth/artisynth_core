@@ -4,11 +4,11 @@
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
-package maspack.render.GL;
+package maspack.render;
 
 import java.util.LinkedList;
 
-public interface GLSelectable extends GLRenderable {
+public interface IsSelectable extends IsRenderable {
 
    /**
     * Returns true if this object is in fact selectable.

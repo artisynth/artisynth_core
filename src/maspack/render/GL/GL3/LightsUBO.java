@@ -8,9 +8,9 @@ import javax.media.opengl.GL3;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
-import maspack.render.GL.GLLight;
-import maspack.render.GL.GLLight.LightSpace;
-import maspack.render.GL.GLLight.LightType;
+import maspack.render.Light;
+import maspack.render.Light.LightSpace;
+import maspack.render.Light.LightType;
 
 public class LightsUBO extends UniformBufferObject {
 
@@ -52,7 +52,7 @@ public class LightsUBO extends UniformBufferObject {
       numLights = nLights;
    }
 
-   public void updateLights(GL3 gl, List<GLLight> lights, float intensityScale, 
+   public void updateLights(GL3 gl, List<Light> lights, float intensityScale, 
       RigidTransform3d viewMatrix) {
       
       ByteBuffer buff = getBuffer();
@@ -60,7 +60,7 @@ public class LightsUBO extends UniformBufferObject {
       for (int i=0; i<numLights; i++) {
          int idx = i*ATTRIBUTES_PER_LIGHT.length;
          // fill in properties
-         GLLight light = lights.get(i);
+         Light light = lights.get(i);
          buff.position (getByteOffset(idx++));
          putFloat (buff, light.getDiffuse(), 4);   // diffuse
          buff.position(getByteOffset(idx++));

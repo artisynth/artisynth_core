@@ -8,7 +8,6 @@ package maspack.geometry;
 
 import maspack.matrix.*;
 import maspack.render.*;
-import maspack.render.GL.GLRenderable;
 import maspack.util.*;
 
 import java.io.*;
@@ -21,7 +20,7 @@ import java.util.Collection;
  * 
  * @author lloyd
  */
-public abstract class BVTree implements GLRenderable {
+public abstract class BVTree implements IsRenderable {
    // protected int myMaxDepth = -1;
    protected int myMaxLeafElements = 2;
    protected double myMargin = 0;

@@ -9,11 +9,11 @@ package artisynth.core.mfreemodels;
 import java.util.LinkedList;
 
 import maspack.properties.PropertyList;
+import maspack.render.IsRenderable;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer.Shading;
-import maspack.render.GL.GLRenderable;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 

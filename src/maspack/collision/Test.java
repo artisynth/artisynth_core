@@ -14,10 +14,10 @@ import maspack.matrix.MatrixNd;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.render.IsRenderable;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewerFrame;
 
@@ -187,7 +187,7 @@ public class Test {
     * (!bvh.getRoot().includesFace(f)) throw new RuntimeException("missing
     * face"); }
     */
-   class RenderableAxes implements GLRenderable {
+   class RenderableAxes implements IsRenderable {
 
       public void render (Renderer renderer, int flags) {
 

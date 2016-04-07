@@ -14,14 +14,14 @@ import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
 import maspack.matrix.Point3d;
+import maspack.render.IsRenderable;
+import maspack.render.IsSelectable;
 import maspack.render.RenderList;
 import maspack.render.Renderer;
+import maspack.render.ViewerSelectionEvent;
+import maspack.render.ViewerSelectionListener;
 import maspack.render.GL.GLMouseAdapter;
 import maspack.render.GL.GLMouseListener;
-import maspack.render.GL.GLRenderable;
-import maspack.render.GL.GLSelectable;
-import maspack.render.GL.GLSelectionEvent;
-import maspack.render.GL.GLSelectionListener;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GL2.GL2SharedResources;
 import maspack.render.GL.GL2.GL2Viewer;
@@ -46,17 +46,17 @@ public class MultiViewer {
    public static boolean doFPS = false;
    private static final int FPS = 60; // animator's target frames per second
    
-   public static interface SimpleSelectable extends GLSelectable {
+   public static interface SimpleSelectable extends IsSelectable {
       public void setSelected(boolean set);
       public boolean isSelected();
    }
    
    private static class RenderableWrapper implements SimpleSelectable {
 
-      GLRenderable r;
+      IsRenderable r;
       boolean selected;
       
-      public RenderableWrapper(GLRenderable r) {
+      public RenderableWrapper(IsRenderable r) {
          this.selected = false;
          this.r = r;
       }
@@ -107,7 +107,7 @@ public class MultiViewer {
       
    }
    
-   private static class SimpleSelectionHandler implements GLSelectionListener {
+   private static class SimpleSelectionHandler implements ViewerSelectionListener {
 
       List<SimpleSelectable> myRenderables = null;
       public SimpleSelectionHandler(List<SimpleSelectable> r) {
@@ -115,7 +115,7 @@ public class MultiViewer {
       }
 
       @Override
-      public void itemsSelected(GLSelectionEvent e) {
+      public void itemsSelected(ViewerSelectionEvent e) {
 
          for (SimpleSelectable r : myRenderables) {
             r.setSelected(false);
@@ -261,7 +261,7 @@ public class MultiViewer {
          viewer.addRenderable(r);
       }
       
-      public void addRenderable(GLRenderable r) {
+      public void addRenderable(IsRenderable r) {
          RenderableWrapper rw = new RenderableWrapper(r);
          addRenderable(rw);
       }
@@ -317,7 +317,7 @@ public class MultiViewer {
       }
    }
    
-   public void addRenderable(GLRenderable r) {
+   public void addRenderable(IsRenderable r) {
       RenderableWrapper rw = new RenderableWrapper(r);
       addRenderable(rw);
    }

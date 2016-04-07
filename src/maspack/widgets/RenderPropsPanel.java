@@ -126,7 +126,9 @@ public class RenderPropsPanel extends PropertyPanel {
       maybeAddWidget (widgets, "faceColor", propList);
       maybeAddWidget (widgets, "backColor", propList);
       maybeAddWidget (widgets, "drawEdges", propList);
-      maybeAddWidget (widgets, "textureProps", propList);
+      maybeAddWidget (widgets, "textureMapProps", propList);
+      maybeAddWidget (widgets, "normalMapProps", propList);
+      maybeAddWidget (widgets, "bumpMapProps", propList);
       if (widgets.size() - baseIdx > 0) {
          addSection (widgets, baseIdx, " Faces ...");
       }

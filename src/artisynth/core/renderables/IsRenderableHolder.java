@@ -15,21 +15,21 @@ import java.util.Deque;
 import maspack.matrix.Point3d;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
+import maspack.render.IsRenderable;
+import maspack.render.IsSelectable;
 import maspack.render.Renderer;
 import maspack.render.HasRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.GL.GLRenderable;
-import maspack.render.GL.GLSelectable;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.util.Scannable;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
-public class GLRenderableHolder extends RenderableComponentBase {
+public class IsRenderableHolder extends RenderableComponentBase {
 
-   GLRenderable myRenderable;
+   IsRenderable myRenderable;
    
    // methods to get/set render props info, stored for speed
    HasRenderProps myHasRenderProps;
@@ -114,12 +114,12 @@ public class GLRenderableHolder extends RenderableComponentBase {
          super.getRenderHints();
    }
    
-   private void init(GLRenderable renderable) {
+   private void init(IsRenderable renderable) {
       if (renderable == null) {
          throw new IllegalArgumentException("Cannot hold a null object");
       }
       myRenderable = renderable;
-      myProps = new PropertyList (GLRenderableHolder.class, RenderableComponentBase.class);
+      myProps = new PropertyList (IsRenderableHolder.class, RenderableComponentBase.class);
       myProps.add ("renderProps * *", "render properties", null);
       if (myRenderable instanceof HasProperties) {
          myProps.addReadOnly("renderable", "the held renderable object");
@@ -153,13 +153,13 @@ public class GLRenderableHolder extends RenderableComponentBase {
        
    }
    
-   public GLRenderableHolder(GLRenderable renderable, String name) {
+   public IsRenderableHolder(IsRenderable renderable, String name) {
       super();
       init(renderable);
       setName(name);
    }
    
-   public GLRenderableHolder(GLRenderable renderable) {
+   public IsRenderableHolder(IsRenderable renderable) {
       super();
       init(renderable);
       
@@ -225,22 +225,22 @@ public class GLRenderableHolder extends RenderableComponentBase {
    
    @Override
    public boolean isSelectable() {
-      if (myRenderable instanceof GLSelectable) {
-         return ((GLSelectable)myRenderable).isSelectable();
+      if (myRenderable instanceof IsSelectable) {
+         return ((IsSelectable)myRenderable).isSelectable();
       } 
       // default to false
       return false;
    }
 
    public int numSelectionQueriesNeeded() {
-      if (myRenderable instanceof GLSelectable) {
-         return ((GLSelectable)myRenderable).numSelectionQueriesNeeded();
+      if (myRenderable instanceof IsSelectable) {
+         return ((IsSelectable)myRenderable).numSelectionQueriesNeeded();
       }
       // default to -1
       return -1;
    }
 
-   public GLRenderable getRenderable() {
+   public IsRenderable getRenderable() {
       return myRenderable;
    }
    

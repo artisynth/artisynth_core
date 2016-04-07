@@ -11,13 +11,13 @@ import java.awt.Color;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
 import maspack.properties.PropertyList;
-import maspack.render.GL.GLLight;
-import maspack.render.GL.GLLight.LightSpace;
-import maspack.render.GL.GLLight.LightType;
+import maspack.render.Light;
+import maspack.render.Light.LightSpace;
+import maspack.render.Light.LightType;
 import artisynth.core.modelbase.ModelComponentBase;
 
 public class LightComponent extends ModelComponentBase {
-   GLLight myLight;
+   Light myLight;
    
    private static PropertyList myProps = new PropertyList(LightComponent.class);
    static {
@@ -39,11 +39,11 @@ public class LightComponent extends ModelComponentBase {
       return myProps;
    }
    
-   public LightComponent(GLLight light) {
+   public LightComponent(Light light) {
       myLight = light;
    }
    
-   public GLLight getLight() {
+   public Light getLight() {
       return myLight;
    }
    

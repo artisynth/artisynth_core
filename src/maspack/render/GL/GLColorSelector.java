@@ -17,6 +17,9 @@ import javax.media.opengl.GL;
 import javax.media.opengl.GL2GL3;
 import javax.media.opengl.GLAutoDrawable;
 
+import maspack.render.IsRenderable;
+import maspack.render.IsSelectable;
+import maspack.render.ViewerSelectionListener;
 import maspack.util.BufferUtilities;
 
 /**
@@ -214,21 +217,21 @@ public class GLColorSelector extends GLSelector {
       }
       BufferUtilities.freeDirectBuffer (pixels);
      
-      myViewer.selectionEvent.mySelectedObjects = new LinkedList[0];
+      myViewer.selectionEvent.setSelectedObjects (new LinkedList[0]);
 
       if (hits == null) {
          // then no queries were issued, so nothing to do ...
-         myViewer.selectionEvent.mySelectedObjects = new LinkedList[0];
+         myViewer.selectionEvent.setSelectedObjects (new LinkedList[0]);
       }
       else {
          int qid = 0;
          LinkedList<HitRecord> records = new LinkedList<HitRecord>();
          // int[] result = new int[1];
-         Iterator<GLRenderable> it = myViewer.renderIterator();
+         Iterator<IsRenderable> it = myViewer.renderIterator();
          while (it.hasNext()) {
-            GLRenderable r = it.next();
-            if (r instanceof GLSelectable) {
-               GLSelectable s = (GLSelectable)r;
+            IsRenderable r = it.next();
+            if (r instanceof IsSelectable) {
+               IsSelectable s = (IsSelectable)r;
                int numq = s.numSelectionQueriesNeeded();
                int nums = (numq >= 0 ? numq : 1);
                if (s.isSelectable()) {
@@ -255,10 +258,10 @@ public class GLColorSelector extends GLSelector {
          for (int i=0; i<records.size(); i++) {
             selObjs[i] = records.get(i).objs;
          }
-         myViewer.selectionEvent.mySelectedObjects = selObjs;         
+         myViewer.selectionEvent.setSelectedObjects (selObjs);         
       }
       
-      GLSelectionListener[] listeners = myViewer.getSelectionListeners();
+      ViewerSelectionListener[] listeners = myViewer.getSelectionListeners();
       for (int i=0; i<listeners.length; i++) {
          listeners[i].itemsSelected (myViewer.selectionEvent);
       }
@@ -299,7 +302,7 @@ public class GLColorSelector extends GLSelector {
       myCurrentIdx = -1;
    }
 
-   public void beginSelectionForObject (GLSelectable s, int idx) {
+   public void beginSelectionForObject (IsSelectable s, int idx) {
       if (myCurrentIdx != -1) {
          throw new IllegalStateException (
             "missing call to endSelectionQuery()");

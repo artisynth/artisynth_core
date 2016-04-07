@@ -17,6 +17,9 @@ import javax.media.opengl.GL2GL3;
 import javax.media.opengl.GLAutoDrawable;
 
 import maspack.matrix.Vector2d;
+import maspack.render.IsRenderable;
+import maspack.render.IsSelectable;
+import maspack.render.ViewerSelectionListener;
 
 /**
  * GLSelector that works using the traditional GL_SELECT mechanism (now
@@ -89,12 +92,12 @@ public class GLOcclusionSelector extends GLSelector {
       }
       // // find out how many queries we'll need
       // myTotalMaxQ = 0;
-      // Iterator<GLRenderable> it = myViewer.renderIterator();
+      // Iterator<IsRenderable> it = myViewer.renderIterator();
 
       // while (it.hasNext()) {
-      //    GLRenderable r = it.next();
-      //    GLSelectable s;
-      //    if (r instanceof GLSelectable && (s = (GLSelectable)r).isSelectable()) {
+      //    IsRenderable r = it.next();
+      //    IsSelectable s;
+      //    if (r instanceof IsSelectable && (s = (IsSelectable)r).isSelectable()) {
       //       int numq = s.numSelectionQueriesNeeded();
       //       if (numq > 0) {
       //          myTotalMaxQ += numq;
@@ -206,11 +209,11 @@ public class GLOcclusionSelector extends GLSelector {
          int qid = 0;
          LinkedList<HitRecord> records = new LinkedList<HitRecord>();
          int[] result = new int[1];
-         Iterator<GLRenderable> it = myViewer.renderIterator();
+         Iterator<IsRenderable> it = myViewer.renderIterator();
          while (it.hasNext()) {
-            GLRenderable r = it.next();
-            if (r instanceof GLSelectable) {
-               GLSelectable s = (GLSelectable)r;
+            IsRenderable r = it.next();
+            if (r instanceof IsSelectable) {
+               IsSelectable s = (IsSelectable)r;
                int numq = s.numSelectionQueriesNeeded();
                int nums = (numq >= 0 ? numq : 1);
                if (s.isSelectable()) {
@@ -253,7 +256,7 @@ public class GLOcclusionSelector extends GLSelector {
       myQueries = null;
       myQueryWasUsed = null;
 
-      GLSelectionListener[] listeners = myViewer.getSelectionListeners();
+      ViewerSelectionListener[] listeners = myViewer.getSelectionListeners();
       for (int i=0; i<listeners.length; i++) {
          listeners[i].itemsSelected (myViewer.getSelectionEvent());
       }
@@ -288,7 +291,7 @@ public class GLOcclusionSelector extends GLSelector {
       myCurrentIdx = -1;
    }
 
-   public void beginSelectionForObject (GLSelectable s, int idx) {
+   public void beginSelectionForObject (IsSelectable s, int idx) {
       if (myCurrentIdx != -1) {
          throw new IllegalStateException (
             "missing call to endSelectionQuery()");

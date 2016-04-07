@@ -8,15 +8,17 @@ package maspack.render.GL;
 
 import java.util.ArrayList;
 
+import maspack.render.Light;
+
 public class GLLightManager {
 
    int maxLights;
    float maxIntensity;
 
-   private ArrayList<GLLight> lights = null;
+   private ArrayList<Light> lights = null;
 
    public GLLightManager () {
-      lights = new ArrayList<GLLight>();
+      lights = new ArrayList<Light>();
       maxLights = Integer.MAX_VALUE;
       maxIntensity = 1.0f;
    }
@@ -25,14 +27,14 @@ public class GLLightManager {
       maxLights = max;
    }
 
-   public GLLight createLight(float[] position, float[] ambient,
+   public Light createLight(float[] position, float[] ambient,
       float[] diffuse, float[] specular) {
-      GLLight light = new GLLight(position, ambient, diffuse, specular);
+      Light light = new Light(position, ambient, diffuse, specular);
       addLight(light);
       return light;
    }
 
-   public void addLight(GLLight light) {
+   public void addLight(Light light) {
       lights.add(light);
       light.setId(lights.size() - 1);
       if (light.getId() < maxLights) {
@@ -42,7 +44,7 @@ public class GLLightManager {
       }
    }
 
-   public void removeLight(GLLight light) {
+   public void removeLight(Light light) {
       int idx = lights.indexOf(light);
       if (idx >= 0) {
          lights.remove(idx);
@@ -54,14 +56,14 @@ public class GLLightManager {
       }
    }
 
-   public GLLight getLight(int id) {
+   public Light getLight(int id) {
       if (id >= 0 && id < lights.size()) {
          return lights.get(id);
       }
       return null;
    }
    
-   public ArrayList<GLLight> getLights() {
+   public ArrayList<Light> getLights() {
       return lights;
    }
 

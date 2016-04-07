@@ -17,15 +17,15 @@ import maspack.matrix.Point3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.render.HasRenderProps;
+import maspack.render.IsRenderable;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.Shading;
-import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLViewer;
 
-public class NagataDistanceTest implements GLRenderable, HasRenderProps {
+public class NagataDistanceTest implements IsRenderable, HasRenderProps {
 
    RenderProps myRenderProps = createRenderProps();
    ArrayList<Point3d> myPoints = new ArrayList<Point3d>();
@@ -242,7 +242,7 @@ public class NagataDistanceTest implements GLRenderable, HasRenderProps {
       MeshViewer frame = new MeshViewer (meshes, 640, 480);
       frame.addRenderable (tester);
       GLViewer viewer = frame.getViewer();
-      viewer.autoFitOrtho (0);
+      viewer.autoFitOrtho ();
       frame.setVisible (true);
 
    }

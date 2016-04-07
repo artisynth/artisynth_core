@@ -536,7 +536,7 @@ public class MeshViewer extends GLViewerFrame
          myRenderProps = RenderProps.createMeshProps(null);
       }
 
-      viewer.autoFitPerspective (0);
+      viewer.autoFitPerspective ();
       if (backgroundColor[0] != -1) {
          viewer.setBackgroundColor (
             backgroundColor[0], backgroundColor[1], backgroundColor[2]);
@@ -683,7 +683,7 @@ public class MeshViewer extends GLViewerFrame
          viewer.clearRenderables();
          myMeshes.clear();
          addMesh (file.getName(), mesh);
-         viewer.autoFitPerspective (0);
+         viewer.autoFitPerspective ();
          viewer.rerender();
       }
       return mesh != null;

@@ -4,10 +4,10 @@
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
-package maspack.render.GL;
+package maspack.render;
 
 
-public class GLLight {
+public class Light {
 
    public static enum LightSpace {
       CAMERA, WORLD
@@ -35,10 +35,10 @@ public class GLLight {
    int id = 0;
    boolean enabled = true;
    
-   public GLLight() {
+   public Light() {
    }
 
-   public GLLight (float[] iposition, float[] iambient, float[] idiffuse,
+   public Light (float[] iposition, float[] iambient, float[] idiffuse,
       float[] ispecular) {
       
       // detect type from position

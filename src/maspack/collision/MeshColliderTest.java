@@ -10,11 +10,11 @@ import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.render.IsRenderable;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.Shading;
 import maspack.render.RenderList;
-import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLViewerFrame;
 
 public class MeshColliderTest {
@@ -363,7 +363,7 @@ public class MeshColliderTest {
       frame.getViewer().addRenderable (mesh0);
       frame.getViewer().addRenderable (mesh1);
 
-      frame.getViewer().addRenderable (new GLRenderable() {
+      frame.getViewer().addRenderable (new IsRenderable() {
          public int getRenderHints() {
             // TODO Auto-generated method stub
             return 0;

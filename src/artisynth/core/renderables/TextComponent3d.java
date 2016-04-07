@@ -19,9 +19,9 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.properties.PropertyDesc;
 import maspack.properties.PropertyList;
+import maspack.render.IsRenderable;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.GL.GLRenderable;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
 
@@ -264,7 +264,7 @@ public class TextComponent3d extends TextComponentBase implements
    
    @Override
    public int getRenderHints() {
-      return GLRenderable.TRANSLUCENT; // for transparent background
+      return IsRenderable.TRANSPARENT; // for transparent background
    }   
    
    /**

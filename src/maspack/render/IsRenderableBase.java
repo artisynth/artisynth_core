@@ -4,13 +4,11 @@
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
-package maspack.render.GL;
+package maspack.render;
 
 import maspack.matrix.Point3d;
-import maspack.render.RenderList;
-import maspack.render.Renderer;
 
-public abstract class GLRenderableBase implements GLRenderable {
+public abstract class IsRenderableBase implements IsRenderable {
 
    /**
     * {@inheritDoc}

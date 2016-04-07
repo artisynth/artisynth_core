@@ -12,7 +12,6 @@ import maspack.matrix.*;
 import maspack.render.*;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.Shading;
-import maspack.render.GL.GLRenderable;
 import maspack.geometry.SignedDistanceGridCell;
 //TODO: Include reference to Bridson's code.
 /**
@@ -21,7 +20,7 @@ import maspack.geometry.SignedDistanceGridCell;
  *
  * @author Bruce Haines, bruce DOT a DOT haines AT gmail.com
  */
-public class SignedDistanceGrid implements GLRenderable {
+public class SignedDistanceGrid implements IsRenderable {
 
    private PolygonalMesh mesh;
    private Vector3d gridCellSize;

@@ -25,10 +25,10 @@ import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.RotationMatrix3d;
 import maspack.render.Dragger3d;
+import maspack.render.IsRenderable;
 import maspack.render.RenderList;
 import maspack.render.Renderer;
 import maspack.render.Renderer.HighlightStyle;
-import maspack.render.GL.GLRenderable;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewerFrame;
 import maspack.render.GL.GLViewerPanel;
@@ -44,15 +44,12 @@ import maspack.widgets.ViewerPopupManager;
  */
 
 public class ViewerManager {
-   private LinkedList<GLRenderable> myRenderables =
-      new LinkedList<GLRenderable>();
+   private LinkedList<IsRenderable> myRenderables =
+      new LinkedList<IsRenderable>();
    private LinkedList<Dragger3d> myDraggers = new LinkedList<Dragger3d>();
 
    // Flags for special "refresh" rendering
-   public static final int DEFAULT_REFRESH_FLAGS = 
-      (Renderer.UPDATE_RENDER_CACHE |
-       Renderer.CLEAR_RENDER_CACHE | 
-       Renderer.SORT_FACES);
+   public static final int DEFAULT_REFRESH_FLAGS = Renderer.SORT_FACES;
    private int myRefreshRenderFlags = DEFAULT_REFRESH_FLAGS;
 
    boolean myDefaultDrawAxes = false;
@@ -126,12 +123,12 @@ public class ViewerManager {
       return myDefaultAxisLength;
    }
 
-   public void addRenderable (GLRenderable r) {
+   public void addRenderable (IsRenderable r) {
       myRenderables.add (r);
       myRenderList = null;
    }
 
-   public void removeRenderable (GLRenderable r) {
+   public void removeRenderable (IsRenderable r) {
       myRenderables.remove (r);
       myRenderList = null;
 
@@ -261,10 +258,10 @@ public class ViewerManager {
       }
       viewer.setExternalRenderList (getRenderList());
       if (myDefaultOrthographic) {
-         viewer.autoFitOrtho (0);
+         viewer.autoFitOrtho ();
       }
       else {
-         viewer.autoFitPerspective (0);
+         viewer.autoFitPerspective ();
       }
 
       if (myDefaultDrawAxes) {

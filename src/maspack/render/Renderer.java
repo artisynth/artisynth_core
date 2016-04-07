@@ -13,8 +13,7 @@ import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
-import maspack.render.GL.GLSelectable;
-import maspack.render.GL.GLSelectionFilter;
+import maspack.matrix.Point3d;
 
 public interface Renderer {
 
@@ -75,15 +74,15 @@ public interface Renderer {
     */   
    public static int SELECTED = 0x1;
 
-   /** 
-    * Flag requesting that vertex coloring should be used for mesh rendering.
-    */
-   public static int VERTEX_COLORING = 0x2;
-
-   /** 
-    * Flag requesting color interpolation in HSV space, if possible.
-    */
-   public static int HSV_COLOR_INTERPOLATION = 0x4;
+//   /** 
+//    * Flag requesting that vertex coloring should be used for mesh rendering.
+//    */
+//   public static int VERTEX_COLORING = 0x2;
+//
+//   /** 
+//    * Flag requesting color interpolation in HSV space, if possible.
+//    */
+//   public static int HSV_COLOR_INTERPOLATION = 0x4;
 
    /**
     * Flag requesting that faces of a mesh be sorted before rendering
@@ -292,6 +291,13 @@ public interface Renderer {
     * @return displacement distance corresponding to one pixel
     */
    public double centerDistancePerPixel ();
+
+   /**
+    * Returns the current center point
+    *
+    * @return center point, in world coordinates
+    */
+   public Point3d getCenter();
    
    /**
     * Returns the displacement distance of a point <code>p</code>, in a plane
@@ -1743,15 +1749,22 @@ public interface Renderer {
 //    */
 //   public boolean popProjectionMatrix();
    
+//   /**
+//    * Flag requesting that all display lists be cleared
+//    */
+//   public static int CLEAR_RENDER_CACHE = 0x100;
+//
+//   /**
+//    * Flag requesting components refresh any custom rendering info
+//    */
+//   public static int UPDATE_RENDER_CACHE = 0x200;
+   
    /**
-    * Flag requesting that all display lists be cleared
+    * Queries whether or not this Renderer supports selection.
+    * 
+    * @return <code>true</code> if selection is supported.
     */
-   public static int CLEAR_RENDER_CACHE = 0x100;
-
-   /**
-    * Flag requesting components refresh any custom rendering info
-    */
-   public static int UPDATE_RENDER_CACHE = 0x200;
+   public boolean hasSelection();
    
    /**
     * Returns true if the renderer is currently performing a selection
@@ -1829,11 +1842,11 @@ public interface Renderer {
     * generated for <code>qid</code>.
     *
     * If called within the <code>render</code> method for a {@link
-    * maspack.render.GL.GLSelectable}, then <code>qid</code> must lie in the 
+    * maspack.render.IsSelectable}, then <code>qid</code> must lie in the 
     * range 0 to <code>numq</code>-1, where <code>numq</code> is the value 
     * returned by 
-    * {@link maspack.render.GL.GLSelectable#numSelectionQueriesNeeded
-    * GLSelectable.numSelectionQueriesNeeded()}.  Selection queries cannot be
+    * {@link maspack.render.IsSelectable#numSelectionQueriesNeeded
+    * IsSelectable.numSelectionQueriesNeeded()}.  Selection queries cannot be
     * nested, and a given query identifier should be used only once.
     *
     * @param qid identifier for the selection query
@@ -1850,22 +1863,22 @@ public interface Renderer {
    public void endSelectionQuery ();
 
    /**
-    * Begins selection for a {@link maspack.render.GL.GLSelectable}
+    * Begins selection for a {@link maspack.render.IsSelectable}
     * <code>s</code>that
     * manages its own selection; this call should
     * be used in place of {@link #beginSelectionQuery} for such objects.
     * Selectables that manage their own selection are identified by
     * having a value <code>numq</code> >= 0, where <code>numq</code>
     * is the value returned by
-    * {@link maspack.render.GL.GLSelectable#numSelectionQueriesNeeded
-    * GLSelectable#numSelectionQueriesNeeded{}}.
+    * {@link maspack.render.IsSelectable#numSelectionQueriesNeeded
+    * IsSelectable#numSelectionQueriesNeeded{}}.
     * The argument <code>qid</code> is the current selection query identifier,
     * which after the call should be increased by <code>numq</code>.
     *
     * @param s Selectable that is managing its own sub-selection
     * @param qid current selection query identifier
     */
-   public void beginSubSelection (GLSelectable s, int qid);
+   public void beginSubSelection (IsSelectable s, int qid);
 
    /**
     * Ends object sub-selection that was initiated with a call
@@ -1883,14 +1896,14 @@ public interface Renderer {
     *
     * @param filter Selection filter to be applied
     */
-   public void setSelectionFilter (GLSelectionFilter filter);
+   public void setSelectionFilter (ViewerSelectionFilter filter);
 
    /**
     * Returns the current selection filter for the renderer, if any.
     *
     * @return current selection filter, or <code>null</code> if there is none.
     */
-   public GLSelectionFilter getSelectionFilter ();
+   public ViewerSelectionFilter getSelectionFilter ();
 
    /**
     * Returns true if <code>s</code> is selectable in the current selection
@@ -1898,7 +1911,7 @@ public interface Renderer {
     * <code>true</code>, and <code>s</code> also passes whatever selection
     * filter might currently be set in the renderer.
     */
-   public boolean isSelectable (GLSelectable s);
+   public boolean isSelectable (IsSelectable s);
    
    
    // FINISH: do we need?

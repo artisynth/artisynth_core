@@ -318,9 +318,9 @@ public abstract class FemMeshBase extends SkinMeshBase {
 
       if (isStressOrStrainRendering (mySurfaceRendering)) {
          
-         if ( (flags & Renderer.UPDATE_RENDER_CACHE) != 0) {
-            updateVertexColors();
-         }
+//         if ( (flags & Renderer.UPDATE_RENDER_CACHE) != 0) {
+//            updateVertexColors();
+//         }
 
       } else if (mySurfaceRendering == SurfaceRender.None) {
          return;

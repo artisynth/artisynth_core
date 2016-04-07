@@ -47,6 +47,9 @@ import maspack.render.Dragger3d;
 import maspack.render.Dragger3d.DraggerType;
 import maspack.render.Dragger3dBase;
 import maspack.render.DrawToolBase;
+import maspack.render.IsRenderable;
+import maspack.render.IsSelectable;
+import maspack.render.Light;
 import maspack.render.Material;
 import maspack.render.MouseRayEvent;
 import maspack.render.NormalMapProps;
@@ -57,13 +60,18 @@ import maspack.render.RenderProps;
 import maspack.render.RendererEvent;
 import maspack.render.SortedRenderableList;
 import maspack.render.TextureMapProps;
+import maspack.render.Viewer;
+import maspack.render.ViewerSelectionEvent;
+import maspack.render.ViewerSelectionFilter;
+import maspack.render.ViewerSelectionListener;
 import maspack.render.GL.GLProgramInfo.RenderingMode;
 import maspack.util.InternalErrorException;
 
 /**
  * @author John E Lloyd and ArtiSynth team members
  */
-public abstract class GLViewer implements GLEventListener, GLRenderer, HasProperties {
+public abstract class GLViewer implements GLEventListener, GLRenderer, 
+   HasProperties, Viewer {
 
    public enum GLVersion {
       GL2, GL3
@@ -313,7 +321,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
    protected RenderFlags myRenderFlags = new RenderFlags();
 
    // list of renderables
-   protected LinkedList<GLRenderable> myRenderables =  new LinkedList<GLRenderable>();
+   protected LinkedList<IsRenderable> myRenderables =  new LinkedList<IsRenderable>();
    protected boolean myInternalRenderListValid = false;
    protected RenderList myInternalRenderList = new RenderList();
    protected RenderList myExternalRenderList = null;
@@ -344,9 +352,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
 
    // Selection
    protected GLSelector mySelector;
-   protected GLSelectionFilter mySelectionFilter = null;
-   GLSelectionEvent selectionEvent;
-   protected ArrayList<GLSelectionListener> mySelectionListeners = new ArrayList<GLSelectionListener>();
+   protected ViewerSelectionFilter mySelectionFilter = null;
+   ViewerSelectionEvent selectionEvent;
+   protected ArrayList<ViewerSelectionListener> mySelectionListeners = new ArrayList<ViewerSelectionListener>();
    protected boolean selectionEnabled = true;
    protected boolean selectOnPressP = false;   
 
@@ -431,24 +439,24 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       return list;
    }
 
-   public void addSelectionListener (GLSelectionListener l) {
+   public void addSelectionListener (ViewerSelectionListener l) {
       mySelectionListeners.add (l);
    }
 
-   public boolean removeSelectionListener (GLSelectionListener l) {
+   public boolean removeSelectionListener (ViewerSelectionListener l) {
       return mySelectionListeners.remove (l);
    }
 
-   public GLSelectionListener[] getSelectionListeners() {
-      return mySelectionListeners.toArray (new GLSelectionListener[0]);
+   public ViewerSelectionListener[] getSelectionListeners() {
+      return mySelectionListeners.toArray (new ViewerSelectionListener[0]);
    }
 
-   public GLSelectionEvent getSelectionEvent() {
+   public ViewerSelectionEvent getSelectionEvent() {
       return selectionEvent;
    }
 
    protected void setSelected(LinkedList<Object>[] objs) {
-      selectionEvent.mySelectedObjects = objs;
+      selectionEvent.setSelectedObjects (objs);
    }
 
    public void addRenderListener (RenderListener l) {
@@ -472,7 +480,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       return myRenderListeners.toArray (new RenderListener[0]);
    }
 
-   public void addRenderable (GLRenderable d) {
+   public void addRenderable (IsRenderable d) {
       synchronized(myRenderables) {
          myRenderables.add (d);
       }
@@ -504,11 +512,13 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       }
    }
 
-   public void removeRenderable (GLRenderable d) {
+   public boolean removeRenderable (IsRenderable d) {
+      boolean wasRemoved = false;
       synchronized(myRenderables) {
-         myRenderables.remove (d);
+         wasRemoved = myRenderables.remove (d);
       }
       myInternalRenderListValid = false;
+      return wasRemoved;
    }
 
    public void removeDragger (Dragger3d d) {
@@ -845,10 +855,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
 
    public void setOrthographicView (boolean enable) {
       if (enable) {
-         autoFitOrtho (/* options= */0);
+         autoFitOrtho();
       }
       else {
-         autoFitPerspective (/* options= */0);
+         autoFitPerspective();
       }
    }
 
@@ -858,7 +868,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
          pmax.set (i, Double.NEGATIVE_INFINITY);
       }
       boolean boundsSet = false;
-      for (GLRenderable renderable : myRenderables) {
+      for (IsRenderable renderable : myRenderables) {
          renderable.updateBounds (pmin, pmax);
          boundsSet = true;
       }
@@ -867,7 +877,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
          boundsSet = true;
       }
       if (!boundsSet) {
-         for (GLRenderable renderable : myDraggers) {
+         for (IsRenderable renderable : myDraggers) {
             renderable.updateBounds (pmin, pmax);
          }
       }
@@ -903,10 +913,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
 
    public void autoFit() {
       if (isOrthogonal()) {
-         autoFitOrtho (0);
+         autoFitOrtho ();
       }
       else {
-         autoFitPerspective (0); // check if size is affected via autofit
+         autoFitPerspective (); // check if size is affected via autofit
       }
    }
 
@@ -932,13 +942,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
    }
 
    /**
-    * Fits a perspective projection to the bounding box of the current set of
-    * renderables, using the default vertical field of view ( as returned by
-    * {@link #getVerticalFieldOfView getVerticalFieldOfView}). The eye
-    * orientation is left unchanged, and the frustum is centered along the z
-    * axis. The center point is set to the middle of the bounding box.
+    * {@inheritDoc}
     */
-   public void autoFitPerspective (int options) {
+   public void autoFitPerspective () {
       if (hasRenderables()) {
          Point3d pcenter = new Point3d();
          double r = estimateRadiusAndCenter (pcenter);
@@ -965,20 +971,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       }
    }
 
-   /**
-    * Fits an orthogonal projection to the bounding box of the current set of
-    * renderables. The eye orientation is left unchanged, and the frustum is
-    * centered along the z axis. The center point is set to the middle of the
-    * bounding box. The eye placed away from the center, along the -z axis.
-    */
-
    /*
-    * This was removed from the above documentation because autoFitView looks
-    * like it has been removed.
-    *  , at the same distance that would be set by
-    * {@link #autoFitView autoFitView}
+    * {@inheritDoc}
     */
-   public void autoFitOrtho (int options) {
+   public void autoFitOrtho () {
       if (hasRenderables()) {
          Point3d pcenter = new Point3d();
          double r = estimateRadiusAndCenter (pcenter);
@@ -1314,11 +1310,38 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       return myDefaultAxialView;
    }
 
-   public void setAxialView (AxisAlignedRotation view) {
-      setAlignedEyeOrientation (view.getMatrix());
-      myAxialView = view;
+   /**
+    * Sets an axis-aligned view. This is done by setting the rotational part 
+    * of the eye-to-world transform to <code>REW</code>, and then
+    * moving the eye position so that the center position lies along the
+    * new -z axis of the eye frame, while maintaining the current
+    * distance between the eye and the center. Finally, the
+    * ``up'' vector is set to the y axis of <code>REW</code>,
+    * and <code>REW</code> is saved and can be retrieved 
+    * using {@link #getAxialView}.
+    * 
+    * <p>This method also adjusts the grid to align with the nearest set
+    * of aligned axes. 
+    * 
+    * @param REW axis-aligned rotational component for 
+    * the eye-to-world transform
+    * @see #getAxialView
+    * @see #setUpVector
+    * @see #getUpVector
+    */
+   public void setAxialView (AxisAlignedRotation REW) {
+      setAlignedEyeOrientation (REW.getMatrix());
+      myAxialView = REW;
    }
 
+   /**
+    * Returns the current axis-aligned view. This is either the
+    * one with which the viewer was initialized, or the one
+    * most recently set by {@link #setAxialView}.
+    *  
+    * @return current axis-aligned view.
+    * @see #setAxialView
+    */
    public AxisAlignedRotation getAxialView() {
       return myAxialView;
    }
@@ -1732,7 +1755,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       this.drawable = null;
    }
 
-   private class RenderIterator implements Iterator<GLRenderable> {
+   private class RenderIterator implements Iterator<IsRenderable> {
 
       SortedRenderableList myList = null;
       int myListIdx = 0;
@@ -1750,11 +1773,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
          return myList != null;
       }
 
-      public GLRenderable next() {
+      public IsRenderable next() {
          if (myList == null) {
             throw new NoSuchElementException();
          }
-         GLRenderable r = myList.get(myIdx);
+         IsRenderable r = myList.get(myIdx);
          advance();
          return r;
       }
@@ -1815,7 +1838,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       }
    }
 
-   protected Iterator<GLRenderable> renderIterator() {
+   protected Iterator<IsRenderable> renderIterator() {
       return new RenderIterator();
    }
 
@@ -1832,6 +1855,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       backgroundColor[3] = a;
       repaint();
    }
+   
+   public void setBackgroundColor (float[] rgba) {
+      if (rgba.length < 3) {
+         throw new IllegalArgumentException ("rgba must have length >= 3");
+      }
+      float alpha = rgba.length > 3 ? rgba[3] : 1f;
+      setBackgroundColor (rgba[0], rgba[1], rgba[2], alpha);
+   }
 
    public void setBackgroundColor (Color color) {
       color.getComponents (backgroundColor);
@@ -1842,10 +1873,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       return new Color (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
    }
 
-   public void getBackgroundColor(float[] rgba) {
+   public float[] getBackgroundColor(float[] rgba) {
+      if (rgba == null) {
+         rgba = new float[4];
+      }
       for (int i=0; i<rgba.length; ++i) {
          rgba[i] = backgroundColor[i];
       }
+      return rgba;
    }
 
    public void setDefaultLights() {
@@ -1882,11 +1917,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       float light2_position[] = { 0f, -10f, 1f, 0f };
 
       lightManager.clearLights();
-      lightManager.addLight(new GLLight (
+      lightManager.addLight(new Light (
          light0_position, light0_ambient, light0_diffuse, light0_specular));
-      lightManager.addLight (new GLLight (
+      lightManager.addLight (new Light (
          light1_position, light1_ambient, light1_diffuse, light1_specular));
-      lightManager.addLight(new GLLight (
+      lightManager.addLight(new Light (
          light2_position, light2_ambient, light2_diffuse, light2_specular));
       lightManager.setMaxIntensity(1.0f);
       
@@ -2118,11 +2153,21 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       return myViewState.myUp;
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public boolean hasSelection() {
+      return true;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
    public boolean isSelecting() {
       return selectEnabled;
    }
 
-   public void setSelectionHighlightStyle (HighlightStyle style) {
+   public boolean setSelectionHighlightStyle (HighlightStyle style) {
       if (style == HighlightStyle.NONE) {
          // turn off highlighting if currently selected
          if (myHighlightColorActive) {
@@ -2131,7 +2176,26 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
             myCurrentMaterialModified = true;
          }
       }
-      myHighlightStyle = style;
+      switch (style) {
+         case NONE:
+         case COLOR: {
+            myHighlightStyle = style;
+            return true;
+         }
+         default:
+            return false;
+      }
+   }
+   
+   public boolean hasSelectionHighlightStyle (HighlightStyle style) {
+      switch (style) {
+         case NONE:
+         case COLOR: {
+            return true;
+         }
+         default:
+            return false;
+      }
    }
 
    public HighlightStyle getSelectionHighlightStyle() {
@@ -2286,28 +2350,28 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       return myGrid;
    }
 
-   public GLLight addLight (
+   public Light addLight (
       float[] position, float[] ambient, float[] diffuse, float[] specular) {
-      GLLight light = new GLLight (position, ambient, diffuse, specular);
+      Light light = new Light (position, ambient, diffuse, specular);
       lightManager.addLight (light);
       myProgramInfo.setNumLights (lightManager.numLights ());
       return light;
    }
 
    public void removeLight (int i) {
-      GLLight light = lightManager.getLight(i);
+      Light light = lightManager.getLight(i);
       if (light != null) {
          lightManager.removeLight(light);
          myProgramInfo.setNumLights (lightManager.numLights ());
       }
    }
 
-   public void removeLight(GLLight light) {
+   public void removeLight(Light light) {
       lightManager.removeLight(light);
       myProgramInfo.setNumLights (lightManager.numLights ());
    }
 
-   public GLLight getLight (int i) {
+   public Light getLight (int i) {
       return lightManager.getLight (i);
    }
 
@@ -2461,7 +2525,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       }
    }
 
-   public void beginSubSelection (GLSelectable s, int idx) {
+   public void beginSubSelection (IsSelectable s, int idx) {
       if (selectEnabled) {
          mySelector.beginSelectionForObject (s, idx);
       }
@@ -2473,15 +2537,15 @@ public abstract class GLViewer implements GLEventListener, GLRenderer, HasProper
       }
    }
 
-   public void setSelectionFilter (GLSelectionFilter filter) {
+   public void setSelectionFilter (ViewerSelectionFilter filter) {
       mySelectionFilter = filter;
    }
 
-   public GLSelectionFilter getSelectionFilter () {
+   public ViewerSelectionFilter getSelectionFilter () {
       return mySelectionFilter;
    }
 
-   public boolean isSelectable (GLSelectable s) {
+   public boolean isSelectable (IsSelectable s) {
       if (s.isSelectable()) {
          if (s.numSelectionQueriesNeeded() < 0 && mySelectionFilter != null) {
             return mySelectionFilter.isSelectable(s);

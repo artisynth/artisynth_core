@@ -17,6 +17,7 @@ import javax.swing.event.MouseInputListener;
 
 import maspack.render.Dragger3d;
 import maspack.render.MouseRayEvent;
+import maspack.render.ViewerSelectionEvent;
 import maspack.render.Dragger3d.DragMode;
 
 public class GLMouseAdapter implements GLMouseListener {
@@ -76,10 +77,10 @@ public class GLMouseAdapter implements GLMouseListener {
       int mask = (e.getModifiersEx() & ALL_MODIFIERS);
       int mode = 0;
 
-      GLSelectionEvent selEvent = new GLSelectionEvent();
-      selEvent.myModifiersEx = e.getModifiersEx();
+      ViewerSelectionEvent selEvent = new ViewerSelectionEvent();
+      selEvent.setModifiersEx (e.getModifiersEx());
       if ((mask & getMultipleSelectionMask()) != 0) {
-         mode |= GLSelectionEvent.MULTIPLE;
+         mode |= ViewerSelectionEvent.MULTIPLE;
       }
       viewer.selectionEvent = selEvent;
 
@@ -91,7 +92,7 @@ public class GLMouseAdapter implements GLMouseListener {
          y = dragBox.y + dragBox.height/2.0;
          w = dragBox.width;
          h = dragBox.height;
-         mode |= GLSelectionEvent.DRAG;
+         mode |= ViewerSelectionEvent.DRAG;
          ignoreDepthTest = true;
       }
       else {

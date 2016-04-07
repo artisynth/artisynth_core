@@ -418,8 +418,9 @@ public class GL3Viewer extends GLViewer {
    private void doDisplay(GLAutoDrawable drawable, int flags) {
       GLSupport.checkAndPrintGLError(drawable.getGL ());
 
-      int mclips = Math.min(2*myClipPlanes.size(), maxClipPlanes);
-      myProgManager.reconfigure(gl, lightManager.numLights(), mclips);
+      int nclips = Math.min (numUsedClipPlanes (), maxClipPlanes);
+      myProgramInfo.setNumClipPlanes (nclips);
+      myProgManager.reconfigure(gl, lightManager.numLights(), nclips);
       myProgManager.setLights(gl, lightManager.getLights(), 1.0f/lightManager.getMaxIntensity(), viewMatrix);
 
       // update matrices
@@ -456,8 +457,15 @@ public class GL3Viewer extends GLViewer {
       }
       GLSupport.checkAndPrintGLError(gl);
 
+      for (int i=0; i<myProgManager.numClipPlanes (); ++i) {
+         boolean enabled = gl.glIsEnabled (GL3.GL_CLIP_DISTANCE0 + i);
+         if (enabled) {
+            System.out.println ("Why is this enabled?");
+         }
+      }
+      
       // enable clip planes
-      int nclips = 0;
+      nclips = 0;
       if (myClipPlanes.size() > 0) {
          nclips = myProgManager.setClipPlanes(gl3, myClipPlanes);
          for (int i=0; i<nclips; ++i) {
@@ -1120,7 +1128,7 @@ public class GL3Viewer extends GLViewer {
    
    protected GLShaderProgram updateProgram(GL3 gl, RenderingMode mode,
       boolean hasNormals, boolean hasColors, boolean hasTextures) {     
-      
+           
       myProgramInfo.setMode (mode);
       
       switch(mode) {
@@ -1543,10 +1551,10 @@ public class GL3Viewer extends GLViewer {
       gloFlex.vertex (x0, y1, 0);
       gloFlex.end (gl);
 
-      maybeUpdateState(gl);
       gl.glLineWidth (1);
       setColor(0.5f, 0.5f, 0.5f, 1.0f);
-
+      maybeUpdateState(gl);
+      
       updateProgram (gl, RenderingMode.DEFAULT, false, false, false);
       gloFlex.drawVertices(gl, GL.GL_LINE_LOOP);
 
@@ -1732,6 +1740,11 @@ public class GL3Viewer extends GLViewer {
    static File[] DEBUG_NORMAL_SHADERS = new File[] {
        ArtisynthPath.getSrcRelativeFile (GL3Viewer.class, "shaders/camera_normal_vertex.glsl"),
        ArtisynthPath.getSrcRelativeFile (GL3Viewer.class, "shaders/camera_normal_fragment.glsl")
+   };
+   
+   static File[] DEBUG_CLIP_SHADERS = new File[] {
+       ArtisynthPath.getSrcRelativeFile (GL3Viewer.class, "shaders/clip_debug_vertex.glsl"),
+       ArtisynthPath.getSrcRelativeFile (GL3Viewer.class, "shaders/clip_debug_fragment.glsl")
    };
    
    static File[] DEBUG_INSTANCE_SHADERS = new File[] {

@@ -464,6 +464,7 @@ public class GLSLGenerator {
             }
             break;
          case SMOOTH:
+         case METAL:
             // forward along direction information for vertices
             if (info.numLights() > 0) {
                appendln(mb, "   // per-fragment lighting info, vertex normal and eye directions");
@@ -493,8 +494,9 @@ public class GLSLGenerator {
       
       if (info.numClipPlanes() > 0) {
          appendln(mb, "   // clipping planes, in world coordinates");
+         appendln(mb, "   vec4 world_position = m_matrix * vec4(position, 1.0);");
          appendln(mb, "   for (int i=0; i<"+ info.numClipPlanes() + "; ++i) {");
-         appendln(mb, "      gl_ClipDistance[i] = dot(m_matrix * vec4(position, 1.0), clip_plane[i].plane);");
+         appendln(mb, "      gl_ClipDistance[i] = dot(world_position, clip_plane[i].plane);");
          appendln(mb, "   }");
          appendln(mb);
       }
@@ -1061,6 +1063,7 @@ public class GLSLGenerator {
                   appendln(mb);
                   break;
             case SMOOTH:
+            case METAL:
                   appendln(mb, "   // fragment normal and eye location for lighting");
                   
                   if (!info.hasVertexNormals ()) {

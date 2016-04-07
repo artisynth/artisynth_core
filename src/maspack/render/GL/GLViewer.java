@@ -2914,7 +2914,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    //  Clip Planes
    //==========================================================================
 
-   private int numUsedClipPlanes() {
+   protected int numUsedClipPlanes() {
       int c = 0;
       for (GLClipPlane clip : myClipPlanes) {
          if (clip.isClippingEnabled()) {
@@ -2966,8 +2966,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       clipPlane.setViewer (this);
       myClipPlanes.add (clipPlane);
       
-      myProgramInfo.setNumClipPlanes (numUsedClipPlanes ());
-      
       if (isVisible()) {
          rerender();
       }
@@ -2989,9 +2987,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public boolean removeClipPlane (GLClipPlane clipPlane) {
       if (myClipPlanes.remove (clipPlane)) {
          clipPlane.setViewer (null);
-         
-         myProgramInfo.setNumClipPlanes (numUsedClipPlanes ());
-         
          if (isVisible()) {
             rerender();
          }

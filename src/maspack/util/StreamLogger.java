@@ -162,7 +162,6 @@ public class StreamLogger implements Logger {
       log.error(msg);
       log.fatal(msg);      
       
-      
    }
    
 }

@@ -125,6 +125,11 @@ public class ClipPlanesUBO extends UniformBufferObject {
          }
       }
       
+      int bytesLeft = getSize ()-buff.position ();
+      for (int i=0; i<bytesLeft; ++i) {
+         buff.put ((byte)0);
+      }
+      
       buff.flip ();
       update(gl, buff);
       

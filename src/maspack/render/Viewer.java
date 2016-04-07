@@ -169,7 +169,7 @@ public interface Viewer extends Renderer {
    public boolean isSelectionEnabled ();
 
    /**
-    * Sets a selection filter for the renderer. This restricts which objects
+    * Sets a selection filter for the viewer. This restricts which objects
     * are actually rendered when a selection render is performed, and therefore
     * restricts which objects can actually be selected. This allows selection
     * of objects that might otherwise be occluded within a scene.
@@ -179,13 +179,72 @@ public interface Viewer extends Renderer {
    public void setSelectionFilter (ViewerSelectionFilter filter);
 
    /**
-    * Returns the current selection filter for the renderer, if any.
+    * Returns the current selection filter for the viewer, if any.
     *
     * @return current selection filter, or <code>null</code> if there is none.
     */
    public ViewerSelectionFilter getSelectionFilter ();
 
-   // setting the lights
+   /**
+    * Adds a specified light to this viewer and enables it. If the viewer
+    * already contains the light, it is updated to accommodate any changes in
+    * the light's properties.
+    *
+    * <p>Once the light has been added to the viewer, any changes made to the
+    * light's properties will only be noticed by the viewer when {@link
+    * #updateLights} is called, or when {@link #addLight}, {@link #updateLight},
+    * or {@link #enableLight} is called with the
+    * specified light.
+    */
+    public int addLight (Light light);
+
+    /**
+     * Returns the number of lights in this viewer. This number will include
+     * both predefined lights as well as those specifically defined by the
+     * application.
+     */
+    public int numLights();
+
+    /**
+     * Get a specified light by index in this viewer. Lights will include
+     * both predefined lights as well as those specifically defined by the
+     * application.
+     */
+    public Light getLight (int idx);
+
+    /**
+     * Get the index of a specified light in this viewer.
+     *
+     * @return Index of the light, or -1 if the viewer does not
+     * contain the light.
+     */
+    public int getIndexOfLight (Light light);
+
+//    /**
+//     * Enables or disables a specified light within this viewer. If
+//     * <code>enable</code> is <code>true</code>, the viewer is also updated
+//     * to reflect any changes to the light's properties.
+//     */
+//    public boolean enableLight (Light light, boolean enable);
+
+    /**
+     * Removes the indicated light from this viewer. Note that some
+     * predefined lights may not be removable.
+     *
+     * @return <code>true</code> if the viewer contained the light and it was
+     * removable.
+     */
+    public boolean removeLight (Light light);
+
+    /**
+     * Removes the light with the specified index from this viewer.
+     * Note that some predefined lights may not be removable.
+     *
+     * @return <code>true</code> if the light was removable.
+     * @throws IndexOutOfBoundsException if the specified index was not in the
+     * range 0 to {@link #numLights()}-1.
+     */
+    public boolean removeLight (int idx);   
 
    /**
     * Returns the background color for this viewer.

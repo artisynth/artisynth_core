@@ -44,15 +44,34 @@ public class GLLightManager {
       }
    }
 
-   public void removeLight(Light light) {
+   private void doRemoveLight (int idx) {
+      Light light = lights.get(idx);
+      lights.remove(idx);
+      // correct light IDs in list
+      for (int i=idx; i<lights.size(); ++i) {
+         lights.get(i).setId(i);
+      }
+      light.setId(-1);        
+   }
+   
+   public boolean removeLight(Light light) {
       int idx = lights.indexOf(light);
       if (idx >= 0) {
-         lights.remove(idx);
-         // correct light IDs in list
-         for (int i=idx; i<lights.size(); ++i) {
-            lights.get(i).setId(i);
-         }
-         light.setId(-1);
+         doRemoveLight (idx);
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   public boolean removeLight(int id) {
+      if (id >= 0 && id < lights.size()) {
+         doRemoveLight (id);
+         return true;
+      }
+      else {
+         return false;
       }
    }
 
@@ -61,6 +80,10 @@ public class GLLightManager {
          return lights.get(id);
       }
       return null;
+   }
+   
+   public int indexOfLight (Light light) {
+      return lights.indexOf (light);
    }
    
    public ArrayList<Light> getLights() {

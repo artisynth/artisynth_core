@@ -2366,22 +2366,40 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myProgramInfo.setNumLights (lightManager.numLights ());
       return light;
    }
+   
+   public int addLight (Light light) {
+      int idx = lightManager.numLights();
+      lightManager.addLight (light);
+      myProgramInfo.setNumLights (idx+1);
+      return idx;
+   }
 
-   public void removeLight (int i) {
-      Light light = lightManager.getLight(i);
-      if (light != null) {
-         lightManager.removeLight(light);
+   public boolean removeLight (int i) {
+      if (lightManager.removeLight(i)) {
          myProgramInfo.setNumLights (lightManager.numLights ());
+         return true;
+      }
+      else {
+         return false;
       }
    }
 
-   public void removeLight(Light light) {
-      lightManager.removeLight(light);
-      myProgramInfo.setNumLights (lightManager.numLights ());
+   public boolean removeLight (Light light) {
+      if (lightManager.removeLight(light)) {
+         myProgramInfo.setNumLights (lightManager.numLights ());
+         return true;
+      }
+      else {
+         return false;
+      }
    }
 
    public Light getLight (int i) {
       return lightManager.getLight (i);
+   }
+   
+   public int getIndexOfLight (Light light) {
+      return lightManager.indexOfLight (light);
    }
 
    public int numLights() {

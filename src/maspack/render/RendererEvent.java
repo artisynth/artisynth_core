@@ -8,7 +8,7 @@ package maspack.render;
 
 
 /**
- * Event class returned whenever the GLRenderer executes a render operation.
+ * Event class returned whenever the Renderer executes a render operation.
  */
 public class RendererEvent {
    private Renderer myRenderer;

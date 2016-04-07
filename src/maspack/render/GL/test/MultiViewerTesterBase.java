@@ -126,7 +126,7 @@ public class MultiViewerTesterBase {
 
       RenderProps rprops2 = rcylinder.getRenderProps();
       rprops2.setFaceColor(Color.CYAN);
-      rprops2.setShading(Shading.PHONG);
+      rprops2.setShading(Shading.SMOOTH);
       tester.addRenderable(rcylinder);
    }
 
@@ -178,7 +178,7 @@ public class MultiViewerTesterBase {
 
       RenderProps rprops = new RenderProps();
       rprops.setFaceStyle(FaceStyle.FRONT_AND_BACK);
-      rprops.setShading(Shading.PHONG);
+      rprops.setShading(Shading.SMOOTH);
       rprops.setFaceColor(Color.WHITE.darker());
       rprops.setBackColor(Color.BLUE);
       rprops.setLineColor(Color.ORANGE);
@@ -186,7 +186,7 @@ public class MultiViewerTesterBase {
       rprops.setShininess(1000);
       //rprops.setPointSlices(24);
       //rprops.setLineSlices(24);
-      rprops.setShading(Shading.PHONG);
+      rprops.setShading(Shading.SMOOTH);
 
       if (bunny != null) {
 
@@ -224,7 +224,7 @@ public class MultiViewerTesterBase {
 
       RenderProps rprops = new RenderProps();
       rprops.setFaceStyle(FaceStyle.FRONT_AND_BACK);
-      rprops.setShading(Shading.PHONG);
+      rprops.setShading(Shading.SMOOTH);
       rprops.setFaceColor(new Color(20, 20, 20));
       rprops.setBackColor(Color.MAGENTA.darker());
       rprops.setLineColor(Color.ORANGE);
@@ -233,7 +233,7 @@ public class MultiViewerTesterBase {
       rprops.setShininess(1000);
       //rprops.setPointSlices(24);
       //rprops.setLineSlices(24);
-      rprops.setShading(Shading.PHONG);
+      rprops.setShading(Shading.SMOOTH);
       rprops.setPointStyle(PointStyle.SPHERE);
       rprops.setLineStyle(LineStyle.SOLID_ARROW);
       rprops.setLineRadius(0.001);
@@ -266,7 +266,7 @@ public class MultiViewerTesterBase {
 
       RenderProps rprops = new RenderProps();
       rprops.setFaceStyle(FaceStyle.FRONT_AND_BACK);
-      rprops.setShading(Shading.PHONG);
+      rprops.setShading(Shading.SMOOTH);
       rprops.setBackColor(Color.MAGENTA.darker());
       rprops.setSpecular(Color.WHITE);
       rprops.setShininess(1000);

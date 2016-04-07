@@ -163,14 +163,27 @@ public interface Renderer {
       FLAT,
 
       /**
-       * Smoothing shading based on the Gouraud shading model
+       * Smoothing shading, where normal information is interpolated
+       * across the primitive.
        */
-      GOURAUD,
-
+      SMOOTH,
+      
       /**
-       * Smooth shading based on the Phong shading model
+       * Variation on smooth shading, intended for metallic surfaces. May
+       * be equivalent to SMOOTH in some renderer implementations.
        */
-      PHONG,
+      METAL,
+      
+//      /**
+//       * Smoothing shading, where normal information is interpolated
+//       * across the primitive.
+//       */
+//      GOURAUD,
+//
+//      /**
+//       * Smooth shading based on the Phong shading model
+//       */
+//      PHONG,
 
       /**
        * No shading. This is equivalent to disabling lighting
@@ -766,10 +779,10 @@ public interface Renderer {
     * @param capped if <code>true</code>, indicates that the arrow
     * should have a solid cap on the bottom
     */
-   public void drawSolidArrow (
+   public void drawArrow (
       float[] pnt0, float[] pnt1, double rad, boolean capped);
 
-//   public void drawSolidArrow (
+//   public void drawArrow (
 //      RenderProps props, float[] coords0, float[] coords1);
    
    /**
@@ -887,7 +900,7 @@ public interface Renderer {
     * using the radius, line color, and shading specified by the
     * render properties argument <code>props</code>. The method
     * behaves similarly to 
-    * {@link #drawSolidArrow(float[],float[],double,boolean)},
+    * {@link #drawArrow(float[],float[],double,boolean)},
     * with the cylinder radius determine instead by
     * <code>props.getLineRadius()</code>. 
     * 
@@ -1775,24 +1788,13 @@ public interface Renderer {
     */
    public boolean isSelecting();
    
-   /**
-    * The material color to use if the renderer is currently performing a selection
-    * render. This is mainly used for color-based selection.
-    * 
-    * @param c selection color
-    */
-   public void setSelectingColor(Color c);
-   
-   /**
-    * The material color to use if the renderer is currently performing a selection
-    * render. This is mainly used for color-based selection.
-    * 
-    * @param r red
-    * @param g green
-    * @param b blue
-    * @param a alpha
-    */
-   public void setSelectingColor(float r, float g, float b, float a);
+//   /**
+//    * The material color to use if the renderer is currently performing a selection
+//    * render. This is mainly used for color-based selection.
+//    * 
+//    * @param c selection color
+//    */
+//   public void setSelectingColor(Color c);
    
    /**
     * Returns the selection highlighting method used by this renderer.
@@ -1887,23 +1889,6 @@ public interface Renderer {
     * @see #endSubSelection
     */
    public void endSubSelection ();
-
-   /**
-    * Sets a selection filter for the renderer. This restricts which objects
-    * are actually rendered when a selection render is performed, and therefore
-    * restricts which objects can actually be selected. This allows selection
-    * of objects that might otherwise be occluded within a scene.
-    *
-    * @param filter Selection filter to be applied
-    */
-   public void setSelectionFilter (ViewerSelectionFilter filter);
-
-   /**
-    * Returns the current selection filter for the renderer, if any.
-    *
-    * @return current selection filter, or <code>null</code> if there is none.
-    */
-   public ViewerSelectionFilter getSelectionFilter ();
 
    /**
     * Returns true if <code>s</code> is selectable in the current selection

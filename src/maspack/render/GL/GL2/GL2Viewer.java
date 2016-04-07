@@ -393,7 +393,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       setVertexColoringEnabled(true);
       setTextureMappingEnabled(true);
       setFaceStyle(FaceStyle.FRONT);
-      setShading(Shading.PHONG);
+      setShading(Shading.SMOOTH);
       setGammaCorrectionEnabled(false);
 
       lightManager.setMaxLights(getMaxLights(gl));
@@ -970,8 +970,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          case FLAT:
             gl.glShadeModel (GL2.GL_FLAT);
             break;
-         case GOURAUD:
-         case PHONG:
+         case SMOOTH:
+         case METAL:
             gl.glShadeModel (GL2.GL_SMOOTH);
             break;
          case NONE:
@@ -1090,8 +1090,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             case FLAT:
                gl.glShadeModel (GL2.GL_FLAT);
                break;
-            case GOURAUD:
-            case PHONG:
+            case SMOOTH:
+            case METAL:
                gl.glShadeModel (GL2.GL_SMOOTH);
                break;
             case NONE:
@@ -1620,7 +1620,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glPopMatrix();
    }
 
-   public void drawSolidArrow (
+   public void drawArrow (
       float[] pnt0, float[] pnt1, double rad, boolean capped) {
       //GL2 gl = getGL().getGL2();
 
@@ -1781,7 +1781,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          case SOLID_ARROW: {
             //setShadeModel (props.getShading());
             //setPropsMaterial (props, color, selected);
-            drawSolidArrow (pnt0, pnt1, props.getLineRadius(), capped);
+            drawArrow (pnt0, pnt1, props.getLineRadius(), capped);
             //restoreShading (props);
             break;
          }
@@ -2124,7 +2124,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                      drawSpindle (v0, v1, rad);
                   }
                   else if (style == LineStyle.SOLID_ARROW) {
-                     drawSolidArrow (v0, v1, rad, /*capped=*/true);
+                     drawArrow (v0, v1, rad, /*capped=*/true);
                   }
                   else {
                      drawCylinder (v0, v1, rad, /*capped=*/false);
@@ -2184,7 +2184,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    //                   viewer.drawSpindle (props, v0, v1);
    //                }
    //                else if (lineStyle == LineStyle.SOLID_ARROW) {
-   //                   viewer.drawSolidArrow (props, v0, v1);
+   //                   viewer.drawArrow (props, v0, v1);
    //                }
    //                else {
    //                   viewer.drawCylinder (props, v0, v1);
@@ -2275,7 +2275,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 //                           drawSpindle (v0, v1, props.getLineRadius());
 //                        }
 //                        else if (lineStyle == LineStyle.SOLID_ARROW) {
-//                           drawSolidArrow (v0, v1, rad, /*capped=*/true);
+//                           drawArrow (v0, v1, rad, /*capped=*/true);
 //                        }
 //                        else {
 //                           drawCylinder (v0, v1, rad, /*capped=*/false);
@@ -2290,7 +2290,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 //                        drawSpindle (v0, v1, props.getLineRadius());
 //                     }
 //                     else if (lineStyle == LineStyle.SOLID_ARROW) {
-//                        drawSolidArrow (v0, v1, rad, /*capped=*/true);
+//                        drawArrow (v0, v1, rad, /*capped=*/true);
 //                     }
 //                     else {
 //                        drawCylinder (v0, v1, rad, /*capped=*/false);

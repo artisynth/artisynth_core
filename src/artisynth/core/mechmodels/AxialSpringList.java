@@ -200,7 +200,7 @@ public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
                      break;
                   }
                   case SOLID_ARROW: {
-                     renderer.drawSolidArrow (
+                     renderer.drawArrow (
                         v0, v1, rad, /*capped=*/true);
                      break;
                   }

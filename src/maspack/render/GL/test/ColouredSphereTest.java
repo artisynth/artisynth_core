@@ -28,7 +28,7 @@ public class ColouredSphereTest extends GL2vsGL3Tester {
       }
       
       RenderProps rprops = new RenderProps();
-      rprops.setShading (Shading.PHONG);
+      rprops.setShading (Shading.SMOOTH);
       rprops.setShininess (128);
       rprops.setSpecular (Color.WHITE);
       mesh.setRenderProps(rprops);

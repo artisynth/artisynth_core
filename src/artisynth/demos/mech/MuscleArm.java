@@ -165,7 +165,7 @@ public class MuscleArm extends RootModel
         rp.setLineStyle(Renderer.LineStyle.SPINDLE);
         rp.setLineRadius(len/20);
         //rp.setLineSlices(10);
-        rp.setShading(Renderer.Shading.GOURAUD);
+        rp.setShading(Renderer.Shading.SMOOTH);
         rp.setLineColor(Color.RED);
         muscle.setRenderProps(rp);
         
@@ -236,7 +236,7 @@ public class MuscleArm extends RootModel
 //        Particle load = new Particle(mass,new Point3d(0,0,0));
         
         RenderProps rp = new RenderProps(model.getRenderProps());
-        rp.setShading(Renderer.Shading.GOURAUD);
+        rp.setShading(Renderer.Shading.SMOOTH);
         rp.setPointColor(Color.ORANGE);
         rp.setPointRadius(len/20);
         load.setRenderProps(rp);
@@ -262,7 +262,7 @@ public class MuscleArm extends RootModel
         //lowerArm.addMarker(endPoint);
         
         RenderProps rp = new RenderProps(model.getRenderProps());
-        rp.setShading(Renderer.Shading.GOURAUD);
+        rp.setShading(Renderer.Shading.SMOOTH);
         rp.setPointColor(Color.ORANGE);
         rp.setPointRadius(len/20);
         endPoint.setRenderProps(rp);

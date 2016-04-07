@@ -130,7 +130,7 @@ public class CoupledSolveDemo extends RootModel {
       collider.setInertiaFromDensity (10000);
       collider.setDynamic (false);
 
-      RenderProps.setShading (collider, Renderer.Shading.GOURAUD);
+      RenderProps.setShading (collider, Renderer.Shading.SMOOTH);
       RenderProps.setVisible (collider, true);
       RenderProps.setFaceStyle (collider, Renderer.FaceStyle.FRONT_AND_BACK);
       RenderProps.setFaceColor (collider, new Color(0.7f,0f,0f));

@@ -382,7 +382,7 @@ public class GL3ProgramManager {
       info.setNumLights (numLights);
       info.setNumClipPlanes (numClipPlanes);
       info.setMode (RenderingMode.DEFAULT);
-      info.setShading (Shading.PHONG);
+      info.setShading (Shading.SMOOTH);
       info.setVertexNormalsEnabled (true);
       info.setVertexColorsEnabled (true);
       info.setVertexTexturesEnabled (true);

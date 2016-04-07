@@ -35,7 +35,7 @@ public class TextureHeartTest extends GL2vsGL3Tester {
          if (rprops == null) {
             rprops = new RenderProps();
          }
-         rprops.setShading (Shading.PHONG);
+         rprops.setShading (Shading.SMOOTH);
          rprops.setFaceColor (new Color(0.8f,0.8f,0.8f));
          rprops.getTextureMapProps ().setTextureColorMixing (ColorMixing.MODULATE);
          rprops.setSpecular (new Color(0.4f, 0.4f, 0.4f));

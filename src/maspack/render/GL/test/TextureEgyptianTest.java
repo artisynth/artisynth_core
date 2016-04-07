@@ -38,7 +38,7 @@ public class TextureEgyptianTest extends GL2vsGL3Tester {
          rprops = new RenderProps();
       }
       
-      rprops.setShading (Shading.PHONG);
+      rprops.setShading (Shading.SMOOTH);
       rprops.setShininess (20);
       rprops.setFaceColor (new Color(155,196,30));
       rprops.setSpecular (new Color(255, 113, 0));

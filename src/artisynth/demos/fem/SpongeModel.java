@@ -221,7 +221,7 @@ public class SpongeModel extends FemMuscleModel {
       // mesh.setFixed(false);
       // setSurfaceMesh(mesh);
 
-      RenderProps.setShading (this, Renderer.Shading.GOURAUD);
+      RenderProps.setShading (this, Renderer.Shading.SMOOTH);
       RenderProps.setFaceStyle (this, Renderer.FaceStyle.FRONT_AND_BACK);
       RenderProps.setFaceColor (this, Color.BLUE);
       RenderProps.setAlpha (this, 0.9);

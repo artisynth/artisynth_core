@@ -176,7 +176,7 @@ public class ColorBar extends TextComponentBase {
 
       // smooth shading
       Renderer.Shading savedShadeModel = renderer.getShading();
-      renderer.setShading (Renderer.Shading.GOURAUD);
+      renderer.setShading (Renderer.Shading.SMOOTH);
 
       double x0 = myLoc.x;
       double y0 = myLoc.y;

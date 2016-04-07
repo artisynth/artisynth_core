@@ -1143,7 +1143,7 @@ public class WavefrontReader extends MeshReaderBase {
          if (map != null) {
             // set texture properties
             props.setFaceStyle(Renderer.FaceStyle.FRONT_AND_BACK);
-            props.setShading(Shading.GOURAUD);
+            props.setShading(Shading.SMOOTH);
             TextureMapProps tprops = props.getTextureMapProps ();
             if (tprops == null) {
                tprops = new TextureMapProps();
@@ -1171,7 +1171,7 @@ public class WavefrontReader extends MeshReaderBase {
          if (map != null) {
             // set texture properties
             props.setFaceStyle(Renderer.FaceStyle.FRONT_AND_BACK);
-            props.setShading(Shading.PHONG);
+            props.setShading(Shading.SMOOTH);
             BumpMapProps tprops = props.getBumpMapProps ();
             if (tprops == null) {
                tprops = new BumpMapProps();

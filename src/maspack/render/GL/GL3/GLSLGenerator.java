@@ -215,7 +215,7 @@ public class GLSLGenerator {
    }
 
    private static void buildVertexShaderFunctions(StringBuilder fb, GLProgramInfo info) {
-      if (info.getShading() == Shading.FLAT || info.getShading() == Shading.GOURAUD) {
+      if (info.getShading() == Shading.FLAT /*|| info.getShading() == Shading.GOURAUD*/) {
          addBlinnPhong(fb);
       }
 
@@ -393,7 +393,7 @@ public class GLSLGenerator {
       // do lighting computations
       switch (info.getShading()) {
          case FLAT:
-         case GOURAUD:
+         //case GOURAUD:
             if (info.numLights() > 0) {
                appendln(mb, "   // per-vertex lighting computations");
                appendln(mb, "   // compute camera position/normal");
@@ -463,7 +463,7 @@ public class GLSLGenerator {
                appendln(mb);
             }
             break;
-         case PHONG:
+         case SMOOTH:
             // forward along direction information for vertices
             if (info.numLights() > 0) {
                appendln(mb, "   // per-fragment lighting info, vertex normal and eye directions");
@@ -633,7 +633,7 @@ public class GLSLGenerator {
    private static void addVertexLightingUniforms(StringBuilder hb, 
       Shading shading, int nLights) {
 
-      if ( (shading == Shading.FLAT || shading == Shading.GOURAUD) && (nLights > 0) ) {
+      if ( (shading == Shading.FLAT /*|| shading == Shading.GOURAUD*/) && (nLights > 0) ) {
          // we need material info to compute per-vertex colors
          appendMaterialStruct(hb);
          appendln(hb, "// per-object materials");
@@ -673,20 +673,21 @@ public class GLSLGenerator {
                appendln(hb,"} lightOut;");
                appendln(hb);
                break;
-            case GOURAUD:
-               appendln(hb,"// light colors");
-               appendln(hb,"// required for modulation with vertex colors or texture");
-               appendln(hb,"out LightColorData {");
-               appendln(hb,"   vec3 front_ambient;  ");
-               appendln(hb,"   vec3 front_diffuse;  ");
-               appendln(hb,"   vec3 front_specular;  ");
-               appendln(hb,"   vec3 back_ambient;  ");
-               appendln(hb,"   vec3 back_diffuse;  ");
-               appendln(hb,"   vec3 back_specular;  ");
-               appendln(hb,"} lightOut;");
-               appendln(hb);
-               break;
-            case PHONG:
+//            case GOURAUD:
+//               appendln(hb,"// light colors");
+//               appendln(hb,"// required for modulation with vertex colors or texture");
+//               appendln(hb,"out LightColorData {");
+//               appendln(hb,"   vec3 front_ambient;  ");
+//               appendln(hb,"   vec3 front_diffuse;  ");
+//               appendln(hb,"   vec3 front_specular;  ");
+//               appendln(hb,"   vec3 back_ambient;  ");
+//               appendln(hb,"   vec3 back_diffuse;  ");
+//               appendln(hb,"   vec3 back_specular;  ");
+//               appendln(hb,"} lightOut;");
+//               appendln(hb);
+//               break;
+            case SMOOTH:
+            case METAL:
                   appendln(hb,"// directions for per-fragment lighting");
                   appendln(hb,"out DirectionData {");
                   appendln(hb, "   vec3 normal;");
@@ -857,7 +858,7 @@ public class GLSLGenerator {
          }
          
          // only allow normal/bump mapping in per fragment lighting
-         if (info.getShading () == Shading.PHONG) {
+         if (info.getShading () == Shading.SMOOTH) {
             if (info.hasNormalMap ()) {
                appendln(hb, "uniform sampler2D normal_map;");
                appendln(hb, "uniform float normal_scale;");
@@ -888,7 +889,7 @@ public class GLSLGenerator {
       appendln(hb, "};");
       appendln(hb);
 
-      if ( (shading == Shading.PHONG) && (nLights > 0) ) {
+      if ( (shading == Shading.SMOOTH) && (nLights > 0) ) {
          // we need all light info
          appendLightSourceStruct(hb);
          appendln(hb,"layout ("+UNIFORM_LAYOUT+") uniform Lights {");
@@ -916,20 +917,21 @@ public class GLSLGenerator {
             appendln(hb,"} lightIn;");
             appendln(hb);
             break;
-         case GOURAUD:
-            appendln(hb,"// light reflectance color");
-            appendln(hb,"// required for modulation with vertex colors or texture");
-            appendln(hb,"in LightColorData {");
-            appendln(hb,"   vec3 front_diffuse;  ");
-            appendln(hb,"   vec3 front_ambient;  ");
-            appendln(hb,"   vec3 front_specular;  ");
-            appendln(hb,"   vec3 back_diffuse;  ");
-            appendln(hb,"   vec3 back_ambient;  ");
-            appendln(hb,"   vec3 back_specular;  ");
-            appendln(hb,"} lightIn;");
-            appendln(hb);
-            break;
-         case PHONG:
+//         case GOURAUD:
+//            appendln(hb,"// light reflectance color");
+//            appendln(hb,"// required for modulation with vertex colors or texture");
+//            appendln(hb,"in LightColorData {");
+//            appendln(hb,"   vec3 front_diffuse;  ");
+//            appendln(hb,"   vec3 front_ambient;  ");
+//            appendln(hb,"   vec3 front_specular;  ");
+//            appendln(hb,"   vec3 back_diffuse;  ");
+//            appendln(hb,"   vec3 back_ambient;  ");
+//            appendln(hb,"   vec3 back_specular;  ");
+//            appendln(hb,"} lightIn;");
+//            appendln(hb);
+//            break;
+         case SMOOTH:
+         case METAL:
             if (nLights > 0) {
                appendln(hb,"// directions for per-fragment lighting");
                appendln(hb,"in DirectionData {");
@@ -998,7 +1000,7 @@ public class GLSLGenerator {
    
    private static void buildFragmentShaderFunctions(StringBuilder fb, GLProgramInfo info) {
 
-      if (info.getShading() == Shading.PHONG) {
+      if (info.getShading() == Shading.SMOOTH) {
          addBlinnPhong(fb);
       }
 
@@ -1006,11 +1008,11 @@ public class GLSLGenerator {
          addHSVtoRGB(fb);
       }
       
-      if (info.getShading () == Shading.PHONG && info.hasNormalMap ()) {
+      if (info.getShading () == Shading.SMOOTH && info.hasNormalMap ()) {
          addNormalPerturbation(fb);
       }
       
-      if (info.getShading () == Shading.PHONG && info.hasBumpMap ()) {
+      if (info.getShading () == Shading.SMOOTH && info.hasBumpMap ()) {
          addBumpPerturbation(fb);
       }
 
@@ -1043,7 +1045,7 @@ public class GLSLGenerator {
          appendln(mb, "   Material material;");
          switch (info.getShading()) {
             case FLAT:
-            case GOURAUD:
+            //case GOURAUD:
                   appendln(mb, "   // imported per-vertex lighting");
                   appendln(mb, "   if( gl_FrontFacing ) {");
                   appendln(mb, "      ambient  = lightIn.front_ambient;");
@@ -1058,7 +1060,7 @@ public class GLSLGenerator {
                   appendln(mb, "   }");
                   appendln(mb);
                   break;
-            case PHONG:
+            case SMOOTH:
                   appendln(mb, "   // fragment normal and eye location for lighting");
                   
                   if (!info.hasVertexNormals ()) {
@@ -1276,7 +1278,7 @@ public class GLSLGenerator {
       
       GLProgramInfo info = new GLProgramInfo ();
       info.setNumLights(1);
-      info.setShading (Shading.PHONG);
+      info.setShading (Shading.SMOOTH);
       
       String[] shaders = getShaderScripts(info);
 

@@ -168,6 +168,23 @@ public interface Viewer extends Renderer {
     */
    public boolean isSelectionEnabled ();
 
+   /**
+    * Sets a selection filter for the renderer. This restricts which objects
+    * are actually rendered when a selection render is performed, and therefore
+    * restricts which objects can actually be selected. This allows selection
+    * of objects that might otherwise be occluded within a scene.
+    *
+    * @param filter Selection filter to be applied
+    */
+   public void setSelectionFilter (ViewerSelectionFilter filter);
+
+   /**
+    * Returns the current selection filter for the renderer, if any.
+    *
+    * @return current selection filter, or <code>null</code> if there is none.
+    */
+   public ViewerSelectionFilter getSelectionFilter ();
+
    // setting the lights
 
    /**

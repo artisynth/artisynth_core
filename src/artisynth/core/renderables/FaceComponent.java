@@ -124,7 +124,7 @@ public class FaceComponent extends RenderableComponentBase {
             renderer.setLineColoring (props, isSelected());
          }
          if (useVertexColouring && !renderer.isSelecting()) {
-            renderer.setShading (Shading.PHONG);
+            renderer.setShading (Shading.SMOOTH);
          }
          else {
             renderer.setShading (Shading.FLAT);

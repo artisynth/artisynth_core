@@ -146,7 +146,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          vertexColorsEnabled = true;
          textureMappingEnabled = true;
          faceMode = FaceStyle.FRONT;
-         shading = Shading.PHONG;
+         shading = Shading.SMOOTH;
          hsvInterpolationEnabled = false;
          colorMixing = ColorMixing.REPLACE;
          roundedPoints = true;
@@ -2224,8 +2224,17 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       color.getRGBComponents (mySelectingColor);
       myCurrentMaterialModified = true;
    }
-   
-   public void setSelectingColor(float r, float g, float b, float a) {
+
+   /**
+    * The material color to use if the renderer is currently performing a selection
+    * render. This is mainly used for color-based selection.
+    * 
+    * @param r red
+    * @param g green
+    * @param b blue
+    * @param a alpha
+    */
+    public void setSelectingColor(float r, float g, float b, float a) {
       mySelectingColor[0] = r;
       mySelectingColor[1] = g;
       mySelectingColor[2] = b;
@@ -3013,9 +3022,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 //      drawCylinder (pnt0, pnt1, rad, /* capped= */false);
 //   }
 //
-//   public void drawSolidArrow (
+//   public void drawArrow (
 //      RenderProps props, float[] coords0, float[] coords1) {
-//      drawSolidArrow (props, coords0, coords1, 0, /* capped= */true);
+//      drawArrow (props, coords0, coords1, 0, /* capped= */true);
 //   }
 
    public void drawLine (

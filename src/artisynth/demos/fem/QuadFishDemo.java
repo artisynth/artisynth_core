@@ -119,7 +119,7 @@ public class QuadFishDemo extends RootModel {
       RenderProps.setFaceColor (collisionbody2, Color.RED);
       RenderProps.setLineColor (collisionbody2, Color.WHITE);
       RenderProps.setLineWidth (collisionbody2, 1);
-      RenderProps.setShading (collisionbody2, Renderer.Shading.GOURAUD);
+      RenderProps.setShading (collisionbody2, Renderer.Shading.SMOOTH);
       if (tet) {
          RenderProps.setDrawEdges (collisionbody2, true);
          RenderProps.setVisible (collisionbody2.getElements(), false);

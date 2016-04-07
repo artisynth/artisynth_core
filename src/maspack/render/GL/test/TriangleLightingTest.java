@@ -38,7 +38,7 @@ public class TriangleLightingTest extends GL2vsGL3Tester {
             props.setFaceColor (Color.WHITE);
             props.setBackColor (Color.WHITE);
             renderer.setFaceColoring (props, false);
-            renderer.setShading (Shading.PHONG);
+            renderer.setShading (Shading.SMOOTH);
             renderer.setFaceStyle (FaceStyle.FRONT_AND_BACK);
             renderer.setColor (props.getFaceColorF());
             renderer.setBackColor (props.getBackColorF ());

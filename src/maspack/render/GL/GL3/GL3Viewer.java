@@ -230,7 +230,7 @@ public class GL3Viewer extends GLViewer {
       setVertexColoringEnabled(true);
       setTextureMappingEnabled(true);
       setFaceStyle(FaceStyle.FRONT);
-      setShading(Shading.PHONG);
+      setShading(Shading.SMOOTH);
       setGammaCorrectionEnabled(true);
 
       gl.glClearColor (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
@@ -1273,7 +1273,7 @@ public class GL3Viewer extends GLViewer {
             //Shading savedShading = getShadeModel();
             //setShadeModel (props.getShading());
             //setPropsMaterial (props, color, selected);
-            drawSolidArrow (pnt0, pnt1, props.getLineRadius(), capped);
+            drawArrow (pnt0, pnt1, props.getLineRadius(), capped);
             //setShadeModel(savedShading);
             break;
          }
@@ -1295,7 +1295,7 @@ public class GL3Viewer extends GLViewer {
    }
 
    @Override
-   public void drawSolidArrow(
+   public void drawArrow(
       float[] pnt0, float[] pnt1, double rad, boolean capped) {
 
       if (rad < Double.MIN_NORMAL) {
@@ -1599,7 +1599,7 @@ public class GL3Viewer extends GLViewer {
                      drawSpindle (v0, v1, props.getLineRadius());
                   }
                   else if (style == LineStyle.SOLID_ARROW) {
-                     drawSolidArrow (v0, v1, rad, /*capped=*/true);
+                     drawArrow (v0, v1, rad, /*capped=*/true);
                   }
                   else {
                      drawCylinder (v0, v1, rad, /*capped=*/false);

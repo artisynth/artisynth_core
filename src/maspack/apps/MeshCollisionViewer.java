@@ -86,7 +86,7 @@ public class MeshCollisionViewer extends GLViewerFrame
    private RenderProps createRenderProps (PolygonalMesh mesh) {
       RenderProps props = mesh.createRenderProps();
 
-      props.setShading (smooth.value ? Shading.GOURAUD : Shading.FLAT);
+      props.setShading (smooth.value ? Shading.SMOOTH : Shading.FLAT);
       if (noDrawFaces.value) {
          props.setFaceStyle (FaceStyle.NONE);
       }

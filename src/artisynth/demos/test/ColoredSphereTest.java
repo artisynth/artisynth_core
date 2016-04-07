@@ -33,7 +33,7 @@ public class ColoredSphereTest extends RootModel {
       }
 
       RenderProps rprops = new RenderProps();
-      rprops.setShading (Shading.PHONG);
+      rprops.setShading (Shading.SMOOTH);
       rprops.setShininess (128);
       rprops.setSpecular (Color.WHITE);
       mesh.setRenderProps(rprops);

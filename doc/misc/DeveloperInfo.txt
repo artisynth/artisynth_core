@@ -59,7 +59,26 @@ Eclipse users can update their project code formatter at:
 Project -> Properties -> Java Code Style -> Formatter -> Import...
 select artisynth_2_0/support/eclipse/eclipseCodeFormat.xml
 
-An example of ArtiSynth coding conventions use a straight-forward 3-space indent without brace-cuddling:class Foo{   private ArrayList myObjs;   public int indexOf (Object obj)   {      int idx = 0;      for (Object o : myObjs)      {  if (o == obj)         {  return idx;         }         idx++;      }      if (idx == myObjs.size())      {  return -1;      }   }}
+An example of ArtiSynth coding conventions use a straight-forward 3-space indent without brace-cuddling:
+
+class Foo
+{
+   private ArrayList myObjs;
+
+   public int indexOf (Object obj)
+   {
+      int idx = 0;
+      for (Object o : myObjs)
+      {  if (o == obj)
+         {  return idx;
+         }
+         idx++;
+      }
+      if (idx == myObjs.size())
+      {  return -1;
+      }
+   }
+}
 
 ** Checklist before committing code to the repository
 

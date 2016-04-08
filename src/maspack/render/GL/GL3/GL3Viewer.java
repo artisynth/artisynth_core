@@ -280,17 +280,19 @@ public class GL3Viewer extends GLViewer {
       this.gl = drawable.getGL ().getGL3 ();
       
       if (this.primitives != null) {
-         for (GL3Primitive prim : primitives) {
+         for (int i=0; i<primitives.length; ++i) {
+            GL3Primitive prim = primitives[i];
             if (prim != null) {
                prim.releaseDispose (gl);
+               primitives[i] = null;
             }
          }
-         this.primitives = null;
       }
       
       myProgManager.dispose(gl);
       myRenderObjectManager.dispose (gl);
       myPrimitiveManager.dispose (gl);
+      myCommittedViewerState = null;
 
       // clear temporaries
       gloFlex.dispose (gl);
@@ -418,7 +420,7 @@ public class GL3Viewer extends GLViewer {
    private void doDisplay(GLAutoDrawable drawable, int flags) {
       GLSupport.checkAndPrintGLError(drawable.getGL ());
 
-      int nclips = Math.min (numUsedClipPlanes (), maxClipPlanes);
+      int nclips = Math.min (2*myClipPlanes.size (), maxClipPlanes);
       myProgramInfo.setNumClipPlanes (nclips);
       myProgManager.reconfigure(gl, lightManager.numLights(), nclips);
       myProgManager.setLights(gl, lightManager.getLights(), 1.0f/lightManager.getMaxIntensity(), viewMatrix);
@@ -465,10 +467,10 @@ public class GL3Viewer extends GLViewer {
       }
       
       // enable clip planes
-      nclips = 0;
-      if (myClipPlanes.size() > 0) {
-         nclips = myProgManager.setClipPlanes(gl3, myClipPlanes);
-         for (int i=0; i<nclips; ++i) {
+      int iclips = 0;
+      if (nclips > 0) {
+         iclips = myProgManager.setClipPlanes(gl3, myClipPlanes);
+         for (int i=0; i<iclips; ++i) {
             gl.glEnable(GL3.GL_CLIP_DISTANCE0+i);
          }
       }
@@ -580,6 +582,7 @@ public class GL3Viewer extends GLViewer {
       frameCapture.capture(gl);
 
       selectEnabled = savedSelecting;
+
    }
 
    private void enableTransparency (GL3 gl) {

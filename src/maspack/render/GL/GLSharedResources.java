@@ -253,7 +253,7 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
       GLTexture tex = null;
       synchronized(textureMap) {
          tex = getTexture(content);
-         if (tex != null) {
+         if (tex != null && !tex.disposeInvalid (gl)) {
             return tex;
          }
          

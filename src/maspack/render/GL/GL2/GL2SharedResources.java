@@ -81,6 +81,9 @@ public class GL2SharedResources extends GLSharedResources implements GLGarbageSo
       GL2VersionedObject object = null;
       synchronized(sharedObjectMap) {
          object = sharedObjectMap.get(key);
+         if (object != null && !object.isValid ()) {
+            object = null;
+         }
       }
       return object;
    }

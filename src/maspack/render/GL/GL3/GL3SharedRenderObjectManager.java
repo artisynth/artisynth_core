@@ -31,7 +31,7 @@ public class GL3SharedRenderObjectManager implements GLGarbageSource {
       synchronized (indexedMap) {
          RenderObjectIdentifier rid = robj.getIdentifier ();
          gro = indexedMap.get (rid);
-         if (gro == null) {
+         if (gro == null || gro.disposeInvalid (gl)) {
             gro = GL3SharedRenderObjectIndexed.generate(gl, robj, attributeMap.getPosition (),
                attributeMap.getNormal (), attributeMap.getColor (), attributeMap.getTexcoord ());
             indexedMap.put (rid, gro);
@@ -49,7 +49,7 @@ public class GL3SharedRenderObjectManager implements GLGarbageSource {
       synchronized (lineMap) {
          RenderObjectIdentifier rid = robj.getIdentifier ();
          gro = lineMap.get (rid);
-         if (gro == null) {
+         if (gro == null || gro.disposeInvalid (gl)) {
             gro = GL3SharedRenderObjectLines.generate(gl, robj, attributeMap.getPosition (),
                attributeMap.getNormal (), attributeMap.getColor (), attributeMap.getTexcoord (),
                attributeMap.get ("line_bottom_position"),
@@ -71,7 +71,7 @@ public class GL3SharedRenderObjectManager implements GLGarbageSource {
       synchronized (pointMap) {
          RenderObjectIdentifier rid = robj.getIdentifier ();
          gro = pointMap.get (rid);
-         if (gro == null) {
+         if (gro == null || gro.disposeInvalid (gl)) {
             gro = GL3SharedRenderObjectPoints.generate(gl, robj, attributeMap.getPosition (),
                attributeMap.getNormal (), attributeMap.getColor (), attributeMap.getTexcoord (),
                attributeMap.get ("instance_position"),

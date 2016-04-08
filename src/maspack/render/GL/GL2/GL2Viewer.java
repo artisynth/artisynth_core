@@ -489,12 +489,13 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       this.gl = drawable.getGL ().getGL2 ();
       
       if (this.primitives != null) {
-         for (GL2Primitive prim : primitives) {
+         for (int i=0; i<primitives.length; ++i) {
+            GL2Primitive prim = primitives[i];
             if (prim != null) {
                prim.releaseDispose (gl);
+               primitives[i] = null;
             }
          }
-         this.primitives = null;
       }
 
       if (DEBUG) {

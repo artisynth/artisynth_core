@@ -333,6 +333,12 @@ public class ViewerToolBar extends JToolBar
       ctrl.dispose();
       revalidate();
    }
+   
+   public void clearClipPlanes() {
+      for (ClipPlaneControl ctrl : myClipPlaneControls) {
+         removeClipPlane (ctrl);
+      }
+   }
 
    private JPopupMenu createViewPopup (ArrayList<AxialViewMenuItem> itemList) {
       JPopupMenu menu = new JPopupMenu();

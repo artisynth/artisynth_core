@@ -7,46 +7,46 @@
  */
 package artisynth.core.driver;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Cursor;
 import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.*;
-import java.net.URL;
-import java.util.*;
-import java.util.regex.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.Locale;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import javax.swing.*;
+import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
+import javax.swing.ToolTipManager;
 
-import maspack.collision.SurfaceMeshCollider;
-import maspack.geometry.ConstrainedTranslator3d;
-import maspack.geometry.PolygonalMesh;
-import maspack.geometry.GeometryTransformer;
-import maspack.geometry.GeometryTransformer.UndoState;
-import maspack.graph.Tree;
-import maspack.matrix.*;
-import maspack.render.*;
-import maspack.render.GL.GLMouseAdapter;
-import maspack.render.GL.GLViewer;
-import maspack.render.GL.GLViewer.GLVersion;
-import maspack.render.GL.GLViewerFrame;
-import maspack.render.Renderer.HighlightStyle;
-import maspack.util.*;
-import maspack.solvers.PardisoSolver;
-import maspack.widgets.ButtonMasks;
-import maspack.widgets.PropertyWindow;
-import maspack.widgets.RenderPropsDialog;
-import maspack.widgets.ViewerToolBar;
-import maspack.widgets.ViewerKeyListener;
 import argparser.ArgParser;
 import argparser.BooleanHolder;
 import argparser.DoubleHolder;
 import argparser.IntHolder;
 import argparser.StringHolder;
+import artisynth.core.driver.ModelInfo.ModelType;
+import artisynth.core.driver.Scheduler.Action;
+import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.gui.Timeline;
 import artisynth.core.gui.editorManager.EditorManager;
@@ -58,23 +58,76 @@ import artisynth.core.gui.selectionManager.SelectionListener;
 import artisynth.core.gui.selectionManager.SelectionManager;
 import artisynth.core.gui.timeline.TimelineController;
 import artisynth.core.inverse.InverseManager;
+import artisynth.core.mechmodels.CollisionHandler;
+import artisynth.core.mechmodels.Frame;
+import artisynth.core.mechmodels.FrameMarker;
+import artisynth.core.mechmodels.MechSystem;
+import artisynth.core.mechmodels.MechSystemBase;
+import artisynth.core.mechmodels.MechSystemSolver;
 import artisynth.core.mechmodels.MechSystemSolver.PosStabilization;
-import artisynth.core.modelbase.*;
-import artisynth.core.probes.WayPoint;
-import artisynth.core.probes.Probe;
-import artisynth.core.probes.NumericProbeBase;
+import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.modelbase.ComponentChangeEvent;
+import artisynth.core.modelbase.ComponentChangeListener;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.HasCoordinateFrame;
+import artisynth.core.modelbase.Model;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.PropertyChangeEvent;
+import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.moviemaker.MovieMaker;
-import artisynth.core.util.*;
+import artisynth.core.probes.NumericProbeBase;
+import artisynth.core.probes.Probe;
+import artisynth.core.probes.WayPoint;
+import artisynth.core.util.AliasTable;
+import artisynth.core.util.ArtisynthIO;
+import artisynth.core.util.ArtisynthPath;
+import artisynth.core.util.ClassAliases;
+import artisynth.core.util.MatlabInterface;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.PullController;
 import artisynth.core.workspace.RenderProbe;
 import artisynth.core.workspace.RootModel;
 import artisynth.core.workspace.Workspace;
-import artisynth.core.driver.ModelInfo.ModelType;
-import artisynth.core.driver.Scheduler.Action;
-import artisynth.core.mechmodels.Frame;
-import artisynth.core.mechmodels.*;
-import artisynth.core.femmodels.*;
+import maspack.collision.SurfaceMeshCollider;
+import maspack.geometry.ConstrainedTranslator3d;
+import maspack.geometry.GeometryTransformer;
+import maspack.geometry.GeometryTransformer.UndoState;
+import maspack.geometry.PolygonalMesh;
+import maspack.matrix.AffineTransform3d;
+import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.AxisAlignedRotation;
+import maspack.matrix.AxisAngle;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
+import maspack.matrix.Vector3d;
+import maspack.render.Dragger3dAdapter;
+import maspack.render.Dragger3dBase;
+import maspack.render.Dragger3dEvent;
+import maspack.render.Renderable;
+import maspack.render.Renderer.HighlightStyle;
+import maspack.render.RotatableScaler3d;
+import maspack.render.Rotator3d;
+import maspack.render.Translator3d;
+import maspack.render.Transrotator3d;
+import maspack.render.GL.GLMouseAdapter;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewer.GLVersion;
+import maspack.render.GL.GLViewerFrame;
+import maspack.solvers.PardisoSolver;
+import maspack.util.IndentingPrintWriter;
+import maspack.util.InternalErrorException;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
+import maspack.widgets.ButtonMasks;
+import maspack.widgets.PropertyWindow;
+import maspack.widgets.RenderPropsDialog;
+import maspack.widgets.ViewerKeyListener;
+import maspack.widgets.ViewerToolBar;
 
 /**
  * the main class for artisynth
@@ -1221,11 +1274,13 @@ public class Main implements DriverInterface, ComponentChangeListener {
             SwingUtilities.invokeLater (new Runnable() {
                   public void run() {
                      myFrame.updateNavBar();
+                     myMenuBarHandler.clearClipPlaneControls ();
                   }
                });
          }
          else {
             myFrame.updateNavBar();
+            myMenuBarHandler.clearClipPlaneControls ();
          }
 
          // reset all the viewers

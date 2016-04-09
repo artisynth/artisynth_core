@@ -44,33 +44,6 @@ import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileFilter;
 
-import maspack.properties.HasProperties;
-import maspack.properties.PropertyUtils;
-import maspack.render.RendererEvent;
-import maspack.render.RenderListener;
-import maspack.render.RenderableUtils;
-import maspack.render.GL.GLGridPlane;
-import maspack.render.GL.GLViewer;
-import maspack.render.GL.GL2.GL2Viewer;
-import maspack.solvers.PardisoSolver;
-import maspack.util.ClassFinder;
-import maspack.util.InternalErrorException;
-import maspack.util.StringHolder;
-import maspack.widgets.AutoCompleteStringField;
-import maspack.widgets.ButtonCreator;
-import maspack.widgets.DoubleField;
-import maspack.widgets.GridDisplay;
-import maspack.widgets.GuiUtils;
-import maspack.widgets.OptionPanel;
-import maspack.widgets.PropertyDialog;
-import maspack.widgets.PropertyPanel;
-import maspack.widgets.RenderPropsDialog;
-import maspack.widgets.StringField;
-import maspack.widgets.ValueChangeEvent;
-import maspack.widgets.ValueChangeListener;
-import maspack.widgets.ValueCheckListener;
-import maspack.widgets.ViewerToolBar;
-import maspack.widgets.WidgetDialog;
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.gui.editorManager.Command;
 import artisynth.core.gui.editorManager.RemoveComponentsCommand;
@@ -96,6 +69,32 @@ import artisynth.core.util.ExtensionFileFilter;
 import artisynth.core.util.JythonInit;
 import artisynth.core.workspace.PullController;
 import artisynth.core.workspace.RootModel;
+import maspack.properties.HasProperties;
+import maspack.properties.PropertyUtils;
+import maspack.render.RenderListener;
+import maspack.render.RenderableUtils;
+import maspack.render.RendererEvent;
+import maspack.render.GL.GLGridPlane;
+import maspack.render.GL.GLViewer;
+import maspack.solvers.PardisoSolver;
+import maspack.util.ClassFinder;
+import maspack.util.InternalErrorException;
+import maspack.util.StringHolder;
+import maspack.widgets.AutoCompleteStringField;
+import maspack.widgets.ButtonCreator;
+import maspack.widgets.DoubleField;
+import maspack.widgets.GridDisplay;
+import maspack.widgets.GuiUtils;
+import maspack.widgets.OptionPanel;
+import maspack.widgets.PropertyDialog;
+import maspack.widgets.PropertyPanel;
+import maspack.widgets.RenderPropsDialog;
+import maspack.widgets.StringField;
+import maspack.widgets.ValueChangeEvent;
+import maspack.widgets.ValueChangeListener;
+import maspack.widgets.ValueCheckListener;
+import maspack.widgets.ViewerToolBar;
+import maspack.widgets.WidgetDialog;
 
 /**
  * to create a class that handles the main menu interactions responds to the
@@ -1615,6 +1614,10 @@ public class MenuBarHandler implements
       panel.revalidate();
       panel.repaint();
       myViewerToolBar.setVisible(true);
+   }
+   
+   public void clearClipPlaneControls() {
+      myViewerToolBar.clearClipPlanes ();
    }
 
    public void detachViewerToolbar(JPanel panel) {

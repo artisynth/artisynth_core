@@ -6,19 +6,16 @@
  */
 package artisynth.core.mechmodels;
 
-import java.awt.Color;
-import java.io.*;
+import java.util.LinkedList;
 
-import maspack.render.*;
+import artisynth.core.modelbase.ComponentChangeEvent;
+import artisynth.core.modelbase.StructureChangeEvent;
+import maspack.render.RenderList;
+import maspack.render.RenderObject;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.Shading;
-import maspack.util.*;
-import artisynth.core.modelbase.*;
-import maspack.render.*;
-import maspack.properties.*;
-import artisynth.core.util.*;
-
-import java.util.*;
 
 public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
 
@@ -60,7 +57,6 @@ public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
          }
          vidx += 2;
       }
-      myRob.setPositionsDynamic (true);
    }
 
    protected void updateRenderObject() {

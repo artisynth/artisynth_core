@@ -224,8 +224,6 @@ public class FemElementRenderer {
       myNumEdgePos = r.numPositions();
       addWidgetFaces (r, elem);
 
-      r.setPositionsDynamic (true);
-      r.setNormalsDynamic (true);
       myRob = r;
    }
 

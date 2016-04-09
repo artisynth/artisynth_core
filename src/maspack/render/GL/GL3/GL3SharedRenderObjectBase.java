@@ -25,9 +25,9 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
    }
    
    protected int staticVertexSize;
-   protected int staticMask;
    protected int dynamicVertexSize;
    protected int dynamicMask;
+   protected boolean streaming; 
    
    protected static final int STATIC_VBO_IDX = 0;
    protected static final int DYNAMIC_VBO_IDX = 1;
@@ -35,7 +35,7 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
    protected static final int POSITION_FLAG = 0x01;
    protected static final int NORMAL_FLAG = 0x02;
    protected static final int COLOR_FLAG = 0x04;
-   protected static final int TEXTURE_FLAG = 0x08;
+   protected static final int TEXCOORDS_FLAG = 0x08;
    
    protected AttributeInfo positionInfo;
    protected AttributeInfo normalInfo;
@@ -70,10 +70,11 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
 
       lastVersionInfo = null;
 
+      // start with everything static
       staticVertexSize = 0;
-      staticMask = 0; 
       dynamicVertexSize = 0;
       dynamicMask = 0;
+      streaming = false;
 
       staticVBO.acquire ();
       dynamicVBO.acquire ();
@@ -106,9 +107,18 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
          return true;
       }
       
+      // always rebuild if streaming vertices
+      if (streaming) {
+         return true;
+      }
+      
+      boolean rebuild = false;
+      
       // vertices have changed
       if (rv.getVerticesVersion () != lastVersionInfo.getVerticesVersion()) {
-         return true;
+         streaming = true;
+         dynamicMask = 0;
+         return rebuild = true;
       }
       
       // trying to update static component
@@ -116,30 +126,34 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
          boolean positionsDynamic = ((dynamicMask & POSITION_FLAG) != 0);
          // positions are static
          if  (!positionsDynamic) {
-            return true;
+            rebuild = true;
+            dynamicMask |= POSITION_FLAG;
          }
       }
       if (rv.getNormalsVersion() != lastVersionInfo.getNormalsVersion()) {
          boolean normalsDynamic = ((dynamicMask & NORMAL_FLAG) != 0);
          if (!normalsDynamic) {
-            return true;
+            rebuild = true;
+            dynamicMask |= NORMAL_FLAG;
          }
       }
       if (rv.getColorsVersion() != lastVersionInfo.getColorsVersion()) {
          boolean colorsDynamic = ((dynamicMask & COLOR_FLAG) != 0);
          if (!colorsDynamic) {
-            return true;
+            rebuild = true;
+            dynamicMask |= COLOR_FLAG;
          }
       }
       if (rv.getTextureCoordsVersion() != lastVersionInfo.getTextureCoordsVersion()) {
-         boolean texturesDynamic = ((dynamicMask & TEXTURE_FLAG) != 0);
+         boolean texturesDynamic = ((dynamicMask & TEXCOORDS_FLAG) != 0);
          if (!texturesDynamic) {
-            return true;
+            rebuild = true;
+            dynamicMask |= TEXCOORDS_FLAG;
          }
       }
       
       
-      return false;
+      return rebuild;
    }
    
    protected boolean maybeUpdateVertices(GL3 gl, RenderObject robj, RenderObjectVersion rv) {
@@ -170,7 +184,7 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
       }
 
       if (robj.getTextureCoordsVersion() != lastVersionInfo.getTextureCoordsVersion()) {
-         updateFlag |= TEXTURE_FLAG;
+         updateFlag |= TEXCOORDS_FLAG;
       }
       
       // if at least one dynamic component needs to be updated, do so here
@@ -196,25 +210,24 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
       textureInfo = null;
 
       staticVertexSize = 0;
-      staticMask = 0;
       dynamicVertexSize = 0;
-      dynamicMask = 0;
 
-      boolean streaming = robj.isTransient();
-
+      boolean positionsDynamic = !streaming && ((dynamicMask & POSITION_FLAG) != 0);
+      boolean normalsDynamic = !streaming && ((dynamicMask & NORMAL_FLAG) != 0);
+      boolean colorsDynamic = !streaming && ((dynamicMask & COLOR_FLAG) != 0);
+      boolean texcoordDynamic = !streaming && ((dynamicMask & TEXCOORDS_FLAG) != 0);
+      
       // determine necessary sizes
       if (robj.hasPositions()) {
          positionInfo = new AttributeInfo ();
-         if (!streaming && robj.isPositionsDynamic()) {
+         if (positionsDynamic) {
             positionInfo.vboIndex = DYNAMIC_VBO_IDX;
             positionInfo.offset = dynamicVertexSize;
             dynamicVertexSize += POSITION_BYTES;  // 3 floats per position
-            dynamicMask |= POSITION_FLAG;
          } else {
             positionInfo.vboIndex = STATIC_VBO_IDX;
             positionInfo.offset = staticVertexSize;
             staticVertexSize += POSITION_BYTES;   // 3 floats per position
-            staticMask |= POSITION_FLAG;
          }
          positionInfo.count = nVertices;
          positionInfo.type = positionPutter.storage ().getGLType ();
@@ -222,16 +235,14 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
 
       if (robj.hasNormals()) {
          normalInfo = new AttributeInfo ();
-         if (!streaming && robj.isNormalsDynamic()) {
+         if (normalsDynamic) {
             normalInfo.vboIndex = DYNAMIC_VBO_IDX;
             normalInfo.offset = dynamicVertexSize;
             dynamicVertexSize += NORMAL_BYTES;  // 3 shorts per normal, +1 for 4-byte alignment
-            dynamicMask |= NORMAL_FLAG;
          } else {
             normalInfo.vboIndex = STATIC_VBO_IDX;
             normalInfo.offset = staticVertexSize;
             staticVertexSize += NORMAL_BYTES; 
-            staticMask |= NORMAL_FLAG;
          }
          normalInfo.count = nVertices;
          normalInfo.type = normalPutter.storage ().getGLType ();
@@ -239,16 +250,14 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
 
       if (robj.hasColors()) {
          colorInfo = new AttributeInfo();
-         if (!streaming && robj.isColorsDynamic()) {
+         if (colorsDynamic) {
             colorInfo.vboIndex = DYNAMIC_VBO_IDX;
             colorInfo.offset = dynamicVertexSize;
             dynamicVertexSize += COLOR_BYTES;   // 4 bytes per color
-            dynamicMask |= COLOR_FLAG;
          } else {
             colorInfo.vboIndex = STATIC_VBO_IDX;
             colorInfo.offset = staticVertexSize;
             staticVertexSize += COLOR_BYTES;
-            staticMask |= COLOR_FLAG;
          }
          colorInfo.count = nVertices;
          colorInfo.type = colorPutter.storage ().getGLType ();
@@ -256,16 +265,14 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
 
       if (robj.hasTextureCoords()) {
          textureInfo = new AttributeInfo();
-         if (!streaming && robj.isTextureCoordsDynamic()) {
+         if (texcoordDynamic) {
             textureInfo.vboIndex = DYNAMIC_VBO_IDX;
             textureInfo.offset = dynamicVertexSize;
             dynamicVertexSize += TEXTURE_BYTES;  // 2 shorts per texture
-            dynamicMask |= TEXTURE_FLAG;
          } else {
             textureInfo.vboIndex = STATIC_VBO_IDX;
             textureInfo.offset = staticVertexSize;
             staticVertexSize += TEXTURE_BYTES; 
-            staticMask |= TEXTURE_FLAG;
          }
          textureInfo.count = nVertices;
          textureInfo.type = texturePutter.storage ().getGLType ();
@@ -273,28 +280,28 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
 
       // set strides
       if (robj.hasPositions()) {
-         if (!streaming && robj.isPositionsDynamic()) {
+         if (positionsDynamic) {
             positionInfo.stride = dynamicVertexSize;
          } else {
             positionInfo.stride = staticVertexSize;
          }
       }
       if (robj.hasNormals()) {
-         if (!streaming && robj.isNormalsDynamic()) {
+         if (normalsDynamic) {
             normalInfo.stride = dynamicVertexSize;
          } else {
             normalInfo.stride = staticVertexSize;
          }
       }
       if (robj.hasColors()) {
-         if (!streaming && robj.isColorsDynamic()) {
+         if (colorsDynamic) {
             colorInfo.stride = dynamicVertexSize;
          } else {
             colorInfo.stride = staticVertexSize;
          }
       }
       if (robj.hasTextureCoords()) {
-         if (!streaming && robj.isTextureCoordsDynamic()) {
+         if (texcoordDynamic) {
             textureInfo.stride = dynamicVertexSize;
          } else {
             textureInfo.stride = staticVertexSize;
@@ -318,9 +325,7 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
    protected abstract void updateDynamicVertices(GL3 gl, RenderObject robj, int updateFlag, boolean replace);
    
    protected void clearVertices(GL3 gl) {
-      dynamicMask = 0;
       dynamicVertexSize = 0;
-      staticMask = 0;
       staticVertexSize = 0;
 
       positionInfo = null;

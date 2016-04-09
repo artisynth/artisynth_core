@@ -84,9 +84,6 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          }
          r.addNormal((float)nrm.x, (float)nrm.y, (float)nrm.z);
       }
-      if (!mesh.isFixed()) {
-         r.setNormalsDynamic (true);
-      }
    }  
 
    protected void updateFaceNormals (RenderObject r, PolygonalMesh mesh) {

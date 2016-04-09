@@ -83,6 +83,7 @@ public class GL3SharedRenderObjectPoints extends GL3SharedRenderObjectBase {
 
       // if points have changed, we need to rebuild
       if (rv.getPointsVersion () != lastVersionInfo.getPointsVersion ()) {
+         streaming = true;  // set to streaming mode since points are changing around
          return true;
       }
       return false;
@@ -160,7 +161,7 @@ public class GL3SharedRenderObjectPoints extends GL3SharedRenderObjectBase {
       }
 
       // texture
-      if ( (updateMask & TEXTURE_FLAG) != 0) {
+      if ( (updateMask & TEXCOORDS_FLAG) != 0) {
          int bidx = textureInfo.offset;
          int pointStride = robj.getPointStride ();
 
@@ -217,8 +218,6 @@ public class GL3SharedRenderObjectPoints extends GL3SharedRenderObjectBase {
    }
 
    private void createVertexVBOs(GL3 gl, RenderObject robj, int nVertices) {
-
-      boolean streaming = robj.isTransient();
 
       // create buffers for VBOs
       ByteBuffer[] buffs = new ByteBuffer[2];

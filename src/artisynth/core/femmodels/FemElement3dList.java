@@ -328,7 +328,6 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
             myRobFlags[i] = flags;            
          }
       }
-      r.setPositionsDynamic (true);
       myEdgeRob = r;
 
       if (hasWidgets) {
@@ -346,8 +345,6 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
                }              
             }
          }
-         r.setPositionsDynamic (true);
-         r.setNormalsDynamic (true);
          myWidgetRob = r;
       }
       else {

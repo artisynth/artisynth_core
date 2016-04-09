@@ -201,7 +201,6 @@ public class GLGridPlane implements HasProperties {
          if (colorsChanged || positionsChanged) {
 
             lines.clearAll();
-            lines.setTransient(true);
 
             lines.ensurePositionCapacity(2*(xcnt+ycnt));
             lines.ensureLineCapacity (xcnt+ycnt);

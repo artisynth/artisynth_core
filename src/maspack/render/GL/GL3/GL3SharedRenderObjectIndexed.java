@@ -141,7 +141,7 @@ public class GL3SharedRenderObjectIndexed extends GL3SharedRenderObjectBase {
          }
 
          // texture
-         if ( (updateMask & TEXTURE_FLAG) != 0) {
+         if ( (updateMask & TEXCOORDS_FLAG) != 0) {
             int bidx = textureInfo.offset;
             int pidx = robj.getVertexTextureCoordOffset ();
 
@@ -197,7 +197,6 @@ public class GL3SharedRenderObjectIndexed extends GL3SharedRenderObjectBase {
    private void fillVertexVBO(GL3 gl, RenderObject robj) {
       
       int nVertices = robj.numVertices ();
-      boolean streaming = robj.isTransient ();
       
       // create buffers for vertex VBOs
       ByteBuffer[] buffs = new ByteBuffer[2];
@@ -295,7 +294,6 @@ public class GL3SharedRenderObjectIndexed extends GL3SharedRenderObjectBase {
    private void fillPrimitiveVBO(GL3 gl, RenderObject robj) {
 
       int nVertices = robj.numVertices ();
-      boolean streaming = robj.isTransient ();
       
       IndexBufferPutter indexPutter = IndexBufferPutter.getDefault(nVertices-1);
       int gltype = indexPutter.storage ().getGLType ();

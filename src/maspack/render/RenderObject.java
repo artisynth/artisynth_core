@@ -335,12 +335,6 @@ public class RenderObject {
    int currentNormalIdx;
    int currentColorIdx;
    int currentTextureIdx;
-   
-   // whether or not attributes can be updated once the object is used
-   boolean positionsDynamic;
-   boolean normalsDynamic;
-   boolean colorsDynamic;
-   boolean texcoordsDynamic;
 
    // indicators that attributes have been modified
    boolean positionsModified;
@@ -383,7 +377,6 @@ public class RenderObject {
    boolean linesModified;
    boolean trianglesModified;
    boolean totalModified;
-   boolean isTransient;
    
    public RenderObject() {
 
@@ -612,27 +605,6 @@ public class RenderObject {
       return null;
    }
 
-   /**
-    * Sets whether or not positions should be considered dynamic.  If true,
-    * positions can be updated.  Otherwise, positions are 
-    * considered fixed for all time.  The dynamic property should only be 
-    * modified before first use.
-    */
-   public void setPositionsDynamic(boolean set) {
-      
-      if (set != positionsDynamic) {
-         positionsDynamic = set;
-      }
-      
-   }
-
-   /**
-    * Returns whether or not positions are considered dynamic.
-    */
-   public boolean isPositionsDynamic() {
-      return positionsDynamic;
-   }
-
    private void notifyPositionsModifiedInternal() {
       positionsModified = true;
       totalModified = true;
@@ -825,27 +797,6 @@ public class RenderObject {
          return Collections.unmodifiableList(normals);
       }
       return null;
-   }
-
-   /**
-    * Sets whether or not normals should be considered dynamic.  If true,
-    * normals can be updated.  Otherwise, normals are considered fixed for 
-    * all time.  The dynamic property can only be modified 
-    * before the object's first use by the renderer.
-    */
-   public void setNormalsDynamic(boolean set) {
-      
-      if (set != normalsDynamic) {
-         normalsDynamic = set;
-      }
-      
-   }
-
-   /**
-    * Returns whether or not normals are considered dynamic.
-    */
-   public boolean isNormalsDynamic() {
-      return normalsDynamic;
    }
    
    /**
@@ -1120,27 +1071,6 @@ public class RenderObject {
    }
 
    /**
-    * Sets whether or not colors should be considered dynamic.  If true,
-    * colors can be updated.  Otherwise, colors are considered fixed for 
-    * all time.  The dynamic property can only be modified before the
-    * vertices are first used.
-    */
-   public void setColorsDynamic(boolean set) {
-      
-      if (set != colorsDynamic) {
-         colorsDynamic = set;
-      }
-      
-   }
-
-   /**
-    * Returns whether or not colors are considered dynamic.
-    */
-   public boolean isColorsDynamic() {
-      return colorsDynamic;
-   }
-
-   /**
     * Returns the latest colors version number,
     * for use in detecting if changes are present.
     */
@@ -1329,27 +1259,6 @@ public class RenderObject {
    }
 
    /**
-    * Sets whether or not texture coordinates should be considered dynamic.  
-    * If true, texture coordinates can be updated.  Otherwise, texture 
-    * coordinates are considered fixed for all time.  The dynamic property 
-    * can only be modified before the vertices are first used.
-    */
-   public void setTextureCoordsDynamic(boolean set) {
-      
-      if (set != texcoordsDynamic) {
-         texcoordsDynamic = set;
-      }
-      
-   }
-
-   /**
-    * Returns whether or not texture coordinates are considered dynamic.
-    */
-   public boolean isTextureCoordsDynamic() {
-      return texcoordsDynamic;
-   }
-
-   /**
     * Returns the latest texture coordinates version number,
     * for use in detecting if changes are present.
     */
@@ -1361,25 +1270,6 @@ public class RenderObject {
          
       }
       return versionInfo.texturesVersion;
-   }
-
-   /**
-    * Checks whether this render object has any dynamic components.
-    */
-   public boolean isDynamic() {
-      if (hasPositions() && isPositionsDynamic()) {
-         return true;
-      }
-      if (hasNormals() && isNormalsDynamic()) {
-         return true;
-      }
-      if (hasColors() && isColorsDynamic()) {
-         return true;
-      }
-      if (hasTextureCoords() && isTextureCoordsDynamic()) {
-         return true;
-      }
-      return false;
    }
 
    //=========================================================================
@@ -2797,12 +2687,6 @@ public class RenderObject {
       stateInfo.numColors = 0;
       stateInfo.numTexcoords = 0;
 
-      positionsDynamic = false;
-      normalsDynamic = false;
-      colorsDynamic = false;
-      texcoordsDynamic = false;
-      isTransient = false;
-
       positions = new ArrayList<> ();
       normals = new ArrayList<> ();
       colors = new ArrayList<> ();
@@ -2911,26 +2795,6 @@ public class RenderObject {
    }
 
    /**
-    * A transient object has a short life-span, and cannot be modified once
-    * the object is first rendered.
-    */
-   public void setTransient(boolean set) {
-      if (set != isTransient) {
-         
-         isTransient = set;
-         
-      }
-   }
-
-   /**
-    * A transient object has a short life-span, and cannot be 
-    * modified once it is first rendered.
-    */
-   public boolean isTransient() {
-      return isTransient;
-   }
-
-   /**
     * Garbage collection, clear memory and dispose
     */
    @Override
@@ -2984,13 +2848,6 @@ public class RenderObject {
       r.stateInfo.numNormals = stateInfo.numNormals;
       r.stateInfo.numColors = stateInfo.numColors;
       r.stateInfo.numTexcoords = stateInfo.numTexcoords;
-
-      // whether or not attributes can be updated once the object is
-      // Committed
-      r.positionsDynamic = positionsDynamic;
-      r.normalsDynamic = normalsDynamic;
-      r.colorsDynamic = colorsDynamic;
-      r.texcoordsDynamic = texcoordsDynamic;
 
       // indicators that attributes have been modified
       r.positionsModified = positionsModified;
@@ -3058,8 +2915,6 @@ public class RenderObject {
 
       r.totalModified = totalModified;
 
-      r.isTransient = isTransient;
-      
       r.buildMode = buildMode;
       r.buildModeStart = buildModeStart;
       

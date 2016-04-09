@@ -99,7 +99,6 @@ implements ScalableUnits {
    protected void buildRenderObject() {
 
       myRob = new RenderObject();
-      myRob.setPositionsDynamic (true);
       myRob.createPointGroup();
       myRob.createPointGroup();
       for (int i=0; i<size(); i++) {
@@ -111,7 +110,6 @@ implements ScalableUnits {
             myRob.addPoint (i);            
          }
       }
-      myRob.setPositionsDynamic (true);
    }
    
    protected void updateRenderObject() {

@@ -66,9 +66,6 @@ public abstract class MeshRendererBase {
          Point3d pos = useRenderData ? vtx.myRenderPnt : vtx.pnt;
          r.addPosition((float)pos.x, (float)pos.y, (float)pos.z);
       }
-      if (!mesh.isFixed()) {
-         r.setPositionsDynamic (true);
-      }
    }
 
    protected void addNormals (RenderObject r, MeshBase mesh) {
@@ -78,9 +75,6 @@ public abstract class MeshRendererBase {
             Vector3d nrm = nrms.get(i);
             r.addNormal((float)nrm.x, (float)nrm.y, (float)nrm.z);
          }
-         if (!mesh.isFixed()) {
-            r.setNormalsDynamic (true);
-         }
       }
    }
 
@@ -89,9 +83,6 @@ public abstract class MeshRendererBase {
          ArrayList<float[]> colors = mesh.getColors();
          for (int i=0; i<colors.size(); i++) {
             r.addColor(colors.get(i));
-         }
-         if (!mesh.isColorsFixed()) {
-            r.setColorsDynamic (true);
          }
       }
    }

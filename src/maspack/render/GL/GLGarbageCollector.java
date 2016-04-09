@@ -8,7 +8,7 @@ import javax.media.opengl.GLEventListener;
 
 public class GLGarbageCollector implements GLEventListener {
 
-   private static boolean GARBAGE_COLLECTOR_ENABLED = false;
+   private static boolean GARBAGE_COLLECTOR_ENABLED = true;
    
    LinkedList<GLGarbageSource> sources;
    boolean enabled;

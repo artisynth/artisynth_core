@@ -80,6 +80,7 @@ public class GL3SharedRenderObjectLines extends GL3SharedRenderObjectBase {
 
       // if lines have changed, we need to rebuild
       if (rv.getLinesVersion () != lastVersionInfo.getLinesVersion ()) {
+         streaming = true;
          return true;
       }
       return false;
@@ -162,7 +163,7 @@ public class GL3SharedRenderObjectLines extends GL3SharedRenderObjectBase {
       }
 
       // texture
-      if ( (updateMask & TEXTURE_FLAG) != 0) {
+      if ( (updateMask & TEXCOORDS_FLAG) != 0) {
          int bidx = textureInfo.offset;
          int lineStride = robj.getLineStride ();
 
@@ -219,8 +220,6 @@ public class GL3SharedRenderObjectLines extends GL3SharedRenderObjectBase {
    }
 
    private void createVertexVBOs(GL3 gl, RenderObject robj, int nVertices) {
-
-      boolean streaming = robj.isTransient ();
 
       // create buffers for VBOs
       ByteBuffer[] buffs = new ByteBuffer[2];

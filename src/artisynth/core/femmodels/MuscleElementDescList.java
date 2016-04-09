@@ -138,8 +138,6 @@ public class MuscleElementDescList
                FemElementRenderer.addWidgetFaces (r, desc.myElement);
             }
          }
-         r.setPositionsDynamic (true);
-         r.setNormalsDynamic (true);
          myWidgetRob = r;
       }
       else {

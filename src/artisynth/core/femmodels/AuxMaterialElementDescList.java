@@ -8,17 +8,14 @@ package artisynth.core.femmodels;
 
 import java.util.LinkedList;
 
-import maspack.properties.PropertyList;
-import maspack.render.Renderer;
-import maspack.render.RenderList;
-import maspack.render.RenderProps;
-import maspack.render.RenderObject;
-import maspack.render.Renderer.Shading;
 import artisynth.core.femmodels.AuxMaterialBundle.FractionRenderType;
 import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.modelbase.ComponentChangeEvent;
-import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.RenderableComponentList;
+import maspack.render.RenderList;
+import maspack.render.RenderObject;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
 
 public class AuxMaterialElementDescList
    extends RenderableComponentList<AuxMaterialElementDesc> {
@@ -122,8 +119,6 @@ public class AuxMaterialElementDescList
                FemElementRenderer.addWidgetFaces (r, desc.myElement);
             }
          }
-         r.setPositionsDynamic (true);
-         r.setNormalsDynamic (true);
          myWidgetRob = r;
       }
       else {

@@ -120,7 +120,14 @@ public class TextureContentImage extends ReferenceCountedBase implements Texture
       byte[] data = ((DataBufferByte)texImage.getRaster().getDataBuffer()).getData ();
 
       imageBuffer = BufferUtilities.newNativeByteBuffer (data.length);
-      imageBuffer.put (data, 0, data.length);
+      
+      // flip rows
+      int rowlength = data.length/height;
+      int pos = data.length-rowlength;
+      for (int i=0; i<height; ++i) {
+         imageBuffer.put (data, pos, rowlength);
+         pos -= rowlength;
+      }
       imageBuffer.flip ();
 
       return imageBuffer;

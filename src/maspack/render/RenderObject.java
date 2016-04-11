@@ -1856,8 +1856,8 @@ public class RenderObject {
    }
    
    /**
-    * Stride within the point buffer.
-    * @return
+    * Returns the stride used within the point buffer.
+    * @return point buffer stride
     * @see #getPoints(int)
     */
    public int getPointStride() {

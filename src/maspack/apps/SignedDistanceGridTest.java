@@ -16,7 +16,7 @@ import maspack.geometry.HalfEdge;
 import maspack.geometry.SignedDistanceGrid;
 import maspack.render.*;
 import maspack.render.Renderer.DrawMode;
-import maspack.render.GL.GLSupport;
+import maspack.render.color.ColorUtils;
 import maspack.render.GL.GLViewer;
 import maspack.util.*;
 import maspack.matrix.Point3d;
@@ -608,7 +608,7 @@ public class SignedDistanceGridTest {
          HSV[0] = h;
          HSV[1] = 1.0f;
          HSV[2] = 1.0f;
-         GLSupport.HSVtoRGB (HSV, RGB);
+         ColorUtils.HSVtoRGB (HSV, RGB);
          circle[i].setColour (RGB[0], RGB[1], RGB[2]);
          
       }
@@ -644,7 +644,7 @@ public class SignedDistanceGridTest {
          HSV[0] = h;
          HSV[1] = 1.0f;
          HSV[2] = 1.0f;
-         GLSupport.HSVtoRGB (HSV, RGB);
+         ColorUtils.HSVtoRGB (HSV, RGB);
          g.gridCellArray[i].setColour (RGB[0], RGB[1], RGB[2]);
       }
       System.out.println("Colour Test complete.");

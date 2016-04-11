@@ -364,7 +364,7 @@ public class GL3ProgramManager {
     * @param gl
     * @param key
     * @param shaders
-    * @return
+    * @return shader program
     */
    private GLShaderProgram createAndBindProgram(GL3 gl, Object key, String[] shaders) {
       GLShaderProgram prog = createProgram(gl, shaders);

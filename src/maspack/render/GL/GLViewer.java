@@ -1311,16 +1311,16 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    /**
-    * Sets an axis-aligned view. This is done by setting the rotational part 
-    * of the eye-to-world transform to <code>REW</code>, and then
-    * moving the eye position so that the center position lies along the
-    * new -z axis of the eye frame, while maintaining the current
-    * distance between the eye and the center. Finally, the
-    * ``up'' vector is set to the y axis of <code>REW</code>,
-    * and <code>REW</code> is saved and can be retrieved 
-    * using {@link #getAxialView}.
+    * Sets an axial (or axis-aligned) view. This is done by setting the 
+    * rotational part of the eye-to-world transform to the axis-aligned
+    * rotation <code>REW</code>, and then moving the eye position so that 
+    * the center position lies along the new -z axis of the eye frame, 
+    * while maintaining the current distance between the eye and the center. 
     * 
-    * <p>This method also adjusts the grid to align with the nearest set
+    * <p>The method also sets this viewer's `up'' vector to the y axis of 
+    * <code>REW</code>, and saves <code>REW</code> itself as the current
+    * axis-aligned view, which can be retrieved using {@link #getAxialView}.
+    * The viewer's grid is also adjusted to align with the nearest set
     * of aligned axes. 
     * 
     * @param REW axis-aligned rotational component for 
@@ -1335,12 +1335,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    /**
-    * Returns the current axis-aligned view. This is either the
-    * one with which the viewer was initialized, or the one
-    * most recently set by {@link #setAxialView}.
-    *  
-    * @return current axis-aligned view.
-    * @see #setAxialView
+    * {@inheritDoc}
     */
    public AxisAlignedRotation getAxialView() {
       return myAxialView;
@@ -1704,10 +1699,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * Each integer represents enough depth to account for one bin in the depth
     * buffer.  Negative values bring following objects closer to the screen.
     * This is to account for z-fighting.
-    * @param zOffset value to offset depth buffer
+    * @param offset value to offset depth buffer
     */
-   public void setDepthOffset(int zOffset) {
-      myFrustum.depthBitOffset = zOffset;
+   public void setDepthOffset(int offset) {
+      myFrustum.depthBitOffset = offset;
       computeProjectionMatrix ();
    }
 
@@ -2025,10 +2020,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    @Override
    public TextureMapProps setTextureMapProps (TextureMapProps props) {
       TextureMapProps old = myColorMapProps;
-      if (props != null) {
-         myColorMapProps = props.clone();
-      } else {
-         myColorMapProps = null;
+      if (hasTextureMapping()) {
+         if (props != null) {
+            myColorMapProps = props.clone();
+         } else {
+            myColorMapProps = null;
+         }
       }
       return old;
    }
@@ -2036,10 +2033,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    @Override
    public NormalMapProps setNormalMapProps (NormalMapProps props) {
       NormalMapProps old = myNormalMapProps;
-      if (props != null) {
-         myNormalMapProps = props.clone();
-      } else {
-         myNormalMapProps = null;
+      if (hasNormalMapping()){
+         if (props != null) {
+            myNormalMapProps = props.clone();
+         } else {
+            myNormalMapProps = null;
+         }
       }
       return old;
    }
@@ -2047,10 +2046,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    @Override
    public BumpMapProps setBumpMapProps (BumpMapProps props) {
       BumpMapProps old = myBumpMapProps;
-      if (props != null) {
-         myBumpMapProps = props.clone();
-      } else {
-         myBumpMapProps = null;
+      if (hasBumpMapping()) {
+         if (props != null) {
+            myBumpMapProps = props.clone();
+         } else {
+            myBumpMapProps = null;
+         }
       }
       return old;
    }
@@ -2374,13 +2375,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return idx;
    }
 
-   public boolean removeLight (int i) {
+   public void removeLight (int i) {
       if (lightManager.removeLight(i)) {
          myProgramInfo.setNumLights (lightManager.numLights ());
-         return true;
-      }
-      else {
-         return false;
       }
    }
 

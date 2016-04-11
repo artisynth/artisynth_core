@@ -13,7 +13,6 @@ import java.io.*;
 import maspack.matrix.*;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
-import maspack.render.GL.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
@@ -371,7 +370,7 @@ public class SlottedRevoluteJoint extends JointBase
       computeSlotEdges();
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       super.render (renderer, flags);
 
       renderer.drawLine (myRenderProps, myAxisPnt0, myAxisPnt1,

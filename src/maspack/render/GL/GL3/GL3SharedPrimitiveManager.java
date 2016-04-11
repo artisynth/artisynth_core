@@ -44,7 +44,7 @@ public class GL3SharedPrimitiveManager implements GLGarbageSource {
     * @param gl
     * @param nSlices
     * @param nLevels
-    * @return
+    * @return sphere object
     */
    public GL3SharedPrimitive getAcquiredSphere(GL3 gl, int nSlices, int nLevels) {
       SphereKey key = new SphereKey(nSlices, nLevels);

@@ -34,7 +34,7 @@ public interface GLResource extends ReferenceCounted {
    
    /**
     * Returns true if resource can be used (i.e. hasn't been disposed)
-    * @return
+    * @return <code>true</code> if the resource can be used
     */
    public boolean isValid();
    

@@ -31,6 +31,7 @@ import maspack.render.ConvexPoly2d.Vertex2d;
 import maspack.render.Dragger3d.DraggerType;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.Shading;
+import maspack.render.color.ColorUtils;
 import maspack.util.InternalErrorException;
 import maspack.util.Round;
 
@@ -180,19 +181,19 @@ public class GLGridPlane implements HasProperties {
          // check if colors have changed
          boolean colorsChanged = false;
          float eps = 0.01f;
-         if (!GLSupport.RGBAequals(xColor, this.xColor, eps)) {
+         if (!ColorUtils.RGBAequals(xColor, this.xColor, eps)) {
             this.xColor = copyColor4 (xColor);
             colorsChanged = true;
          }
-         if (!GLSupport.RGBAequals(yColor, this.yColor, eps)) {
+         if (!ColorUtils.RGBAequals(yColor, this.yColor, eps)) {
             this.yColor = copyColor4 (yColor);
             colorsChanged = true;
          }
-         if (!GLSupport.RGBAequals(majorColor, this.majorColor, eps)) {
+         if (!ColorUtils.RGBAequals(majorColor, this.majorColor, eps)) {
             this.majorColor = copyColor4 (majorColor);
             colorsChanged = true;
          }
-         if (!GLSupport.RGBAequals(minorColor, this.minorColor, eps)) {
+         if (!ColorUtils.RGBAequals(minorColor, this.minorColor, eps)) {
             this.minorColor = copyColor4 (minorColor);
             colorsChanged = true;
          }

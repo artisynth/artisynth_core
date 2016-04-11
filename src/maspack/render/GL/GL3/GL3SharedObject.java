@@ -96,7 +96,6 @@ public class GL3SharedObject extends GL3ResourceBase {
     * Bind program attributes to the given program (uses the program's attribute 
     * locations)
     * @param gl
-    * @param prog
     */
    public void bindAttributes(GL3 gl) {
       // bind attributes
@@ -115,8 +114,7 @@ public class GL3SharedObject extends GL3ResourceBase {
     * Attributes must have common program locations if the provided VAO
     * is to be used for multiple programs.
     * @param gl
-    * @param prog
-    * @return
+    * @return vertex array object index
     */
    public int createVAO(GL3 gl) {
       int[]  vao = new int[1];

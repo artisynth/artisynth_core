@@ -46,17 +46,20 @@ public class TextureEgyptianTest extends GL2vsGL3Tester {
       plane.transform (new RigidTransform3d(Vector3d.ZERO, AxisAngle.ROT_X_90));
       
       TextureMapProps dprops = new TextureMapProps ();
-      dprops.setFileName (ArtisynthPath.getSrcRelativePath (this, "/data/specular_map.jpg"));
+      dprops.setFileName (ArtisynthPath.getSrcRelativePath (
+                             this, "/data/specular_map.jpg"));
       dprops.setTextureColorMixing (ColorMixing.MODULATE);
       dprops.setEnabled (true);
       
       NormalMapProps normalProps = new NormalMapProps ();
-      normalProps.setFileName (ArtisynthPath.getSrcRelativePath (this, "/data/foil_normal_map2.png"));
+      normalProps.setFileName (ArtisynthPath.getSrcRelativePath (
+                                  this, "/data/foil_normal_map2.png"));
       normalProps.setNormalScale (0.3f);
       normalProps.setEnabled (true);
       
       BumpMapProps bumpProps = new BumpMapProps ();
-      bumpProps.setFileName (ArtisynthPath.getSrcRelativePath (this, "/data/egyptian_friz_2.png"));
+      bumpProps.setFileName (ArtisynthPath.getSrcRelativePath (
+                                this, "/data/egyptian_friz_2.png"));
       bumpProps.setBumpScale (2.5f);
       bumpProps.setEnabled (true);
       

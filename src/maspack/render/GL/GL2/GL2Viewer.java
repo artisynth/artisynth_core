@@ -29,6 +29,7 @@ import maspack.render.Light;
 import maspack.render.RenderKey;
 import maspack.render.RenderObject;
 import maspack.render.RenderObject.RenderObjectVersion;
+import maspack.render.color.ColorUtils;
 import maspack.render.RenderProps;
 import maspack.render.TextureMapProps;
 import maspack.render.GL.GLClipPlane;
@@ -1466,12 +1467,12 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    }
    
    @Override
-   public void drawCube (RigidTransform3d trans, Vector3d scale) {
+   public void drawBox (RigidTransform3d TBM, Vector3d widths) {
       GL2 gl = getGL2();
       
       pushModelMatrix ();
-      mulModelMatrix (trans);
-      scaleModelMatrix (scale.x/2, scale.y/2, scale.z/2);
+      mulModelMatrix (TBM);
+      scaleModelMatrix (widths.x/2, widths.y/2, widths.z/2);
       
       maybeUpdateState(gl);
       GL2Primitive cube = getPrimitive (gl, PrimitiveType.CUBE);
@@ -2490,7 +2491,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             }
 
             // convert color to HSV representation
-            GLSupport.RGBtoHSV (myColorBuf, myColorBuf);
+            ColorUtils.RGBtoHSV (myColorBuf, myColorBuf);
             gl.glColor4f (
                myColorBuf[0], myColorBuf[1], myColorBuf[2], color[3]);
          }
@@ -2509,7 +2510,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             float[] cbuf = new float[] {
                c[offset], c[offset+1], c[offset+2], c[offset+3]};
 
-            GLSupport.RGBtoHSV (cbuf, cbuf);
+            ColorUtils.RGBtoHSV (cbuf, cbuf);
             gl.glColor4fv (cbuf, 0);
          }
          else {
@@ -4018,6 +4019,18 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    
    public boolean hasTextureMixing (ColorMixing tmix) {
       return true;      
+   }
+   
+   public boolean hasTextureMapping() {
+      return true;
+   }
+   
+   public boolean hasNormalMapping() {
+      return false;
+   }
+   
+   public boolean hasBumpMapping() {
+      return false;
    }
    
    /**

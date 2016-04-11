@@ -147,7 +147,7 @@ public interface Renderer {
       /**
        * Selection highlighting is performed by rendering selected
        * objects using a special <i>selection color</i>, as returned
-       * by {@link #getSelectionColor(float[])}. 
+       * by {@link #getHighlightColor(float[])}. 
        */
       COLOR
    };
@@ -454,7 +454,7 @@ public interface Renderer {
     * Sets the method used for combining vertex coloring and material coloring.
     * This Renderer may not support all methods. If a method is not supported,
     * then the color mixing method will remain unchanged.  Applications can use
-    * {@link #hasColorMixing} to test whether a method is suuported.
+    * {@link #hasVertexColorMixing} to test whether a method is suuported.
     *
     * @param cmix new color mixing method
     * @return previous color mixing method
@@ -694,14 +694,14 @@ public interface Renderer {
    public void drawCube (Vector3d pnt, double w);
 
    /**
-    * Draws a cube with the specified transform in model coordinates,
-    * using the current shading and material.  The sides of the cube
-    * are scaled by the provided scale.
+    * Draws a box centered on the specified transform in model coordinates,
+    * using the current shading and material.
     * 
-    * @param pnt center of the cube
-    * @param scale x,y,z widths of the cube
+    * @param TBM transform from box to model coordinates on which
+    * the box is centered
+    * @param widths x,y,z widths of the box
     */
-   public void drawCube (RigidTransform3d trans, Vector3d scale);
+   public void drawBox (RigidTransform3d TBM, Vector3d widths);
    
    /**
     * Draws a spindle between two points in model coordinates, 
@@ -1386,29 +1386,68 @@ public interface Renderer {
    public Shading setPropsShading (RenderProps props);
    
    /**
-    * Sets the color-map texture properties specified by
-    * <code>props</code>
-    * @param props properties giving texture information, null
-    * to disable texture
-    * @return the previous color map texture properties
+    * Queries whether or not this renderer supports texture mapping.
+    * 
+    * @return <code>true</code> if texture mapping is supported.
+    */
+   public boolean hasTextureMapping();
+                                     
+   /**
+    * If texture mapping is supported, sets up texture mapping according
+    * to the properties specified by <code>props</code>, or removes
+    * texture mapping if <code>props</code> is <code>null</code>.
+    * Once texture mapping is set, it will be applied to any subsequent
+    * draw operation for which the vertices contain texture coordinates.
+    * At present, texture coordinates can only be specified for draw
+    * operations involving a {@link RenderObject}. 
+    * 
+    * @param props properties for the texture mapping, or <code>null</code>
+    * to disable
+    * @return the previous texture map properties
     */
    public TextureMapProps setTextureMapProps(TextureMapProps props);
    
    /**
-    * Sets the normal-mapping texture properties specified by
-    * <code>props</code>
-    * @param props properties giving texture information, null
-    * to disable texture
-    * @return the previous normal texture properties
+    * Queries whether or not this renderer supports normal mapping.
+    * 
+    * @return <code>true</code> if normal mapping is supported.
+    */
+   public boolean hasNormalMapping();
+   
+   /**
+    * If normal mapping is supported, sets up normal mapping according
+    * to the properties specified by <code>props</code>, or removes
+    * normal mapping if <code>props</code> is <code>null</code>.
+    * Once normal mapping is set, it will be applied to any subsequent
+    * draw operation for which the vertices contain texture coordinates.
+    * At present, texture coordinates can only be specified for draw
+    * operations involving a {@link RenderObject}.
+    * 
+    * @param props properties for the normal mapping, or <code>null</code>
+    * to disable
+    * @return the previous normal map properties
     */
    public NormalMapProps setNormalMapProps(NormalMapProps props);
    
    /**
-    * Sets the bump-mapping texture properties specified by
-    * <code>props</code>
-    * @param props properties giving texture information, null
-    * to disable texture
-    * @return the previous normal texture properties
+    * Queries whether or not this renderer supports bump mapping.
+    * 
+    * @return <code>true</code> if bump mapping is supported.
+    */
+   public boolean hasBumpMapping();
+   
+   /**
+    * If bump mapping is supported, sets up bump mapping according
+    * to the properties specified by <code>props</code>, or removes
+    * bump mapping if <code>props</code> is <code>null</code>.
+    * Once bump mapping is set, it will be applied to any subsequent
+    * draw operation for which the vertices contain texture coordinates.
+    * At present, texture coordinates can only be specified for draw
+    * operations involving a {@link RenderObject}.
+    * 
+    * @param props properties for the bump mapping, or <code>null</code>
+    * to disable
+    * @return the previous bump map properties
     */
    public BumpMapProps setBumpMapProps(BumpMapProps props);
    
@@ -1712,20 +1751,25 @@ public interface Renderer {
    public void addDepthOffset(int zOffset);
 
    /**
-    * Set a depth offset to the projection matrix.
-    * Each integer represents enough depth to account for one bin in the depth
-    * buffer.  Negative values bring following objects closer to the screen.
-    * This is to account for z-fighting.
-    * @param zOffset value to offset depth buffer
+    * Set a depth offset to the projection matrix. Each unit represents 
+    * enough depth to account for one bin in the depth buffer. Negative 
+    * values bring following objects closer to the screen, while positive
+    * values send them father away. The default value is 0.
+    * 
+    * <p>Depth offsets are used to help resolve z-fighting, in which 
+    * overlapping primitives drawn in the same plane compete for visibility.
+    * If the plane has a considerable tilt with respect to the viewer,
+    * then an offset larger than one may be needed to resolve the issue.
+    * 
+    * @param offset new depth offset value
     */
-   public void setDepthOffset(int zOffset);
+   public void setDepthOffset(int offset);
 
    /**
-    * The current depth offset level.  Zero represents no offsets, 
-    * negative means objects are drawn closer to the viewer,
-    * positive means they are drawn further away.
-    * This is to account for z-fighting.
-    * @return the current offset (in depth bins)
+    * The current depth offset level. See {@link #setDepthOffset} for
+    * a description. The default value is 0.
+    * 
+    * @return the current deboth offset (in depth bins)
     */
    public int getDepthOffset();
    
@@ -1825,7 +1869,7 @@ public interface Renderer {
     *
     * @param enable if <code>true</code>, enable selection highlighting.
     * @return previous selection highlighting value
-    * @see #getSelectionColor
+    * @see #getHighlightColor
     */
    public boolean setSelectionHighlighting (boolean enable);
    
@@ -1990,9 +2034,9 @@ public interface Renderer {
    
    /**
     * Sets the texture coordinate to be associated with the next vertex to be
-    * added while in draw mode. This texture coordinate will remain in effect until
-    * a subsequent <code>setTexcoord</code> call. The coordinate should be
-    * within the range [0, 1]
+    * added while in draw mode. This texture coordinate will remain in effect
+    * until a subsequent <code>setTexcoord</code> call. The coordinate should
+    * be within the range [0, 1]
     * 
     * @param tx texture x coordinate
     * @param ty texture y coordinate
@@ -2004,7 +2048,7 @@ public interface Renderer {
    /**
     * Sets the texture coordinate to be associated with the next vertex to be
     * added while in draw mode. This method is functionally equivalent to
-    * {@link #setTexcoord(float,float,float)}. 
+    * {@link #setTexcoord(float,float)}.
     * 
     * @param tx texture x coordinate
     * @param ty texture y coordinate
@@ -2015,8 +2059,8 @@ public interface Renderer {
    
    /**
     * Sets the texture coordinate to be associated with the next vertex to be
-    * added while in draw mode. This method is functionally equivalent to
-    * to {@link #setTexcoord(float,float,float)}. 
+    * added while in draw mode. This method is functionally equivalent to to
+    * {@link #setTexcoord(float,float)}.
     * 
     * @param tex texture coordinates
     * @see #beginDraw

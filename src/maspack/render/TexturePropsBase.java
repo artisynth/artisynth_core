@@ -187,7 +187,7 @@ public abstract class TexturePropsBase implements CompositeProperty, Scannable, 
   
    /**
     * Grab a copy of the content (raw or file)
-    * @return
+    * @return copy of the content
     */
    public TextureContent getContent() {
       return myContent;
@@ -442,12 +442,12 @@ public abstract class TexturePropsBase implements CompositeProperty, Scannable, 
 
    public String toString() {
       return ("enabled=" + myEnabledP
-      + ", fileName=" + myFileName
-      + ", sWrapping=" + mySWrapping
-      + ", tWrapping=" + myTWrapping
-      + ", minFilter=" + myMinFilter
-      + ", magFilter=" + myMagFilter
-      + ", borderColor=" + myBorderColor.toString());
+              + ", fileName=" + myFileName
+              + ", sWrapping=" + mySWrapping
+              + ", tWrapping=" + myTWrapping
+              + ", minFilter=" + myMinFilter
+              + ", magFilter=" + myMagFilter
+              + ", borderColor=" + myBorderColor);
    }
 
    public TexturePropsBase clone() {

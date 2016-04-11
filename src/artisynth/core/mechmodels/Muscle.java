@@ -24,7 +24,7 @@ import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer.LineStyle;
-import maspack.render.GL.GLSupport;
+import maspack.render.color.ColorUtils;
 import maspack.render.Renderable;
 import maspack.spatialmotion.Wrench;
 import maspack.util.*;
@@ -329,14 +329,8 @@ public class Muscle extends AxialSpring implements ExcitationComponent {
             myRenderColor = new float[3];
          }
          float[] baseColor = props.getLineColorF();
-//          float[] tmp = new float[3];
-//          GLSupport.RGBtoHSV (myRenderColor, baseColor);
-//          GLSupport.RGBtoHSV (tmp, myExcitationColor);
-//          GLSupport.interpolateColor (
-//             myRenderColor, myRenderColor, tmp, getNetExcitation());
-//          GLSupport.HSVtoRGB (myRenderColor, myRenderColor);
          double s = Math.min(getNetExcitation()/getMaxColoredExcitation(), 1);
-         GLSupport.interpolateColor (
+         ColorUtils.interpolateColor (
             myRenderColor, baseColor, myExcitationColor, s);
       }
       else {

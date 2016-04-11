@@ -134,7 +134,8 @@ public interface Viewer extends Renderer {
 
    /**
     * Sets the selection hightlighting style for this viewer. If the style is
-    * specified as {@link HighlightStyle#NONE}, then selection highlighting is
+    * specified as {@link Renderer.HighlightStyle#NONE},
+    * then selection highlighting is
     * disabled. Not all highlighting styles may be supported; if the specified
     * style is not supported this method does nothing and returns
     * <code>false</code>. 
@@ -186,15 +187,16 @@ public interface Viewer extends Renderer {
    public ViewerSelectionFilter getSelectionFilter ();
 
    /**
-    * Adds a specified light to this viewer and enables it. If the viewer
-    * already contains the light, it is updated to accommodate any changes in
-    * the light's properties.
+    * Adds a specified light to this viewer and enables it.  In some cases, the
+    * added light may exceed the number of lights supported by the renderer.
+    * In that case, the light will still be added but will not be enabled.
     *
-    * <p>Once the light has been added to the viewer, any changes made to the
-    * light's properties will only be noticed by the viewer when {@link
-    * #updateLights} is called, or when {@link #addLight}, {@link #updateLight},
-    * or {@link #enableLight} is called with the
-    * specified light.
+    * <p>Changes to the lighting caused by adding or removing lights, or by
+    * changing the properties of existing lights, will take effect at the
+    * beginning of the next repaint step.
+    *
+    * @param light light to add to the viewer
+    * @return index of the added light
     */
     public int addLight (Light light);
 
@@ -209,12 +211,15 @@ public interface Viewer extends Renderer {
      * Get a specified light by index in this viewer. Lights will include
      * both predefined lights as well as those specifically defined by the
      * application.
+     *
+     * @param idx index of the light
      */
     public Light getLight (int idx);
 
     /**
      * Get the index of a specified light in this viewer.
      *
+     * @param light light for which an index is sought 
      * @return Index of the light, or -1 if the viewer does not
      * contain the light.
      */
@@ -228,23 +233,30 @@ public interface Viewer extends Renderer {
 //    public boolean enableLight (Light light, boolean enable);
 
     /**
-     * Removes the indicated light from this viewer. Note that some
-     * predefined lights may not be removable.
+     * Removes the indicated light from this viewer.
      *
-     * @return <code>true</code> if the viewer contained the light and it was
-     * removable.
+     * <p>Changes to the lighting caused by adding or removing lights, or by
+     * changing the properties of existing lights, will take effect at the
+     * beginning of the next repaint step.
+     *
+     * @param light light to be removed
+     * @return <code>true</code> if the viewer contained the light
+     * and it was removed
      */
     public boolean removeLight (Light light);
 
     /**
      * Removes the light with the specified index from this viewer.
-     * Note that some predefined lights may not be removable.
      *
-     * @return <code>true</code> if the light was removable.
+     * <p>Changes to the lighting caused by adding or removing lights, or by
+     * changing the properties of existing lights, will take effect at the
+     * beginning of the next repaint step.
+     *
+     * @param idx index of the light to be removed
      * @throws IndexOutOfBoundsException if the specified index was not in the
      * range 0 to {@link #numLights()}-1.
      */
-    public boolean removeLight (int idx);   
+    public void removeLight (int idx);   
 
    /**
     * Returns the background color for this viewer.
@@ -313,14 +325,15 @@ public interface Viewer extends Renderer {
    public void getEyeToWorld (RigidTransform3d TEW);
 
    /**
-    * Sets an axis-aligned view. This is done by setting the rotational part 
-    * of the eye-to-world transform to <code>REW</code>, and then
-    * moving the eye position so that the center position lies along the
-    * new -z axis of the eye frame, while maintaining the current
-    * distance between the eye and the center. Finally, the
-    * ``up'' vector is set to the y axis of <code>REW</code>,
-    * and <code>REW</code> is saved and can be retrieved 
-    * using {@link #getAxialView}.
+    * Sets an axial (or axis-aligned) view. This is done by setting the 
+    * rotational part of the eye-to-world transform to the axis-aligned
+    * rotation <code>REW</code>, and then moving the eye position so that 
+    * the center position lies along the new -z axis of the eye frame, 
+    * while maintaining the current distance between the eye and the center. 
+    * 
+    * <p>The method also sets this viewer's `up'' vector to the y axis of 
+    * <code>REW</code>, and saves <code>REW</code> itself as the current
+    * axis-aligned view, which can be retrieved using {@link #getAxialView}.
     * 
     * @param REW axis-aligned rotational component for 
     * the eye-to-world transform
@@ -332,7 +345,7 @@ public interface Viewer extends Renderer {
 
    /**
     * Returns the current axis-aligned view. This is either the
-    * one with which the viewer was initialized, or the one
+    * one with which the viewer was initialized, or that
     * most recently set by {@link #setAxialView}.
     *  
     * @return current axis-aligned view.
@@ -365,7 +378,7 @@ public interface Viewer extends Renderer {
     * setEyeToWorld (getEye(), center, getUpVector());
     * </pre>
     * 
-    * @param c
+    * @param center
     * new center location, in world coordinates
     * @see #getUpVector
     */
@@ -508,10 +521,10 @@ public interface Viewer extends Renderer {
    /**
     * Auto computes the eye and center positions and an orthogonal viewing
     * frustum to fit the current scence. This makes use of the {@link
-    * IsRenderable#updateBounds()} method of all the renderables to estimate
+    * IsRenderable#updateBounds} method of all the renderables to estimate
     * the scene center and an approximate radius r. It then computes a distance
     * d from the center to the eye using r = d tan(fov/2), where fov is the
-    * field of view returned by {@link getVerticalFieldOfView()} and
+    * field of view returned by {@link #getVerticalFieldOfView()} and
     * converted to radians. The eye frame orientation is adjusted so that
     * its $y$ axis is parallel to the current value of the ``up'' vector.
     *
@@ -523,10 +536,10 @@ public interface Viewer extends Renderer {
    /**
     * Auto computes the eye and center positions and an perpective viewing
     * frustum to fit the current scence. This makes use of the {@link
-    * IsRenderable#updateBounds()} method of all the renderables to estimate
+    * IsRenderable#updateBounds} method of all the renderables to estimate
     * the scene center and an approximate radius r. It then computes a distance
     * d from the center to the eye using r = d tan(fov/2), where fov is the
-    * field of view returned by {@link getVerticalFieldOfView()} and
+    * field of view returned by {@link #getVerticalFieldOfView()} and
     * converted to radians. This field of view also used to used to compute the
     * perspective frustum. The eye frame orientation is adjusted so that
     * its $y$ axis is parallel to the current value of the ``up'' vector.

@@ -790,6 +790,7 @@ public class MeshFactory {
          for (int i=0; i<=xdiv; i++) {
             plist[i+j*(xdiv+1)] = new Point3d(xoffset+i*dx, yoffset + j*dy, 0);
             vt.add(new Point3d(i*dxt,j*dyt, 0));
+              
             if (i < xdiv && j < ydiv) {
                int idx1 = i+j*(xdiv+1);
                int idx2 = (i+1)+j*(xdiv+1);

@@ -931,12 +931,12 @@ public class GL3Viewer extends GLViewer {
    }
    
    @Override
-   public void drawCube (RigidTransform3d trans, Vector3d scale) {
+   public void drawBox (RigidTransform3d TBM, Vector3d widths) {
     
       // scale and translate model matrix
       pushModelMatrix();
-      mulModelMatrix (trans);
-      scaleModelMatrix (scale.x/2, scale.y/2, scale.z/2);
+      mulModelMatrix (TBM);
+      scaleModelMatrix (widths.x/2, widths.y/2, widths.z/2);
 
       maybeUpdateState (gl);
 
@@ -2071,6 +2071,17 @@ public class GL3Viewer extends GLViewer {
    }
 
    public boolean hasTextureMixing (ColorMixing tmix) {
+      return true;
+   }
+   public boolean hasTextureMapping() {
+      return true;
+   }
+   
+   public boolean hasNormalMapping() {
+      return true;
+   }
+   
+   public boolean hasBumpMapping() {
       return true;
    }
 }

@@ -160,5 +160,9 @@ public abstract class MeshRendererBase {
       }
    }
 
+   public RenderObject getRenderObject() {
+      return myRob;
+   }
+
 }
 

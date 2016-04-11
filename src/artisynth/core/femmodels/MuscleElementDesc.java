@@ -23,7 +23,7 @@ import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer.Shading;
-import maspack.render.GL.GLSupport;
+import maspack.render.color.ColorUtils;
 import maspack.util.ArraySort;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
@@ -309,13 +309,13 @@ public class MuscleElementDesc
             }
             myDirectionColor[3] = (float)props.getAlpha ();
             baseColor = props.getLineColorF();
-            GLSupport.interpolateColor (
+            ColorUtils.interpolateColor (
                myDirectionColor, baseColor, excitationColor, s);
             if (myWidgetColor == null) {
                myWidgetColor = new float[4];
             }
             baseColor = props.getFaceColorF();
-            GLSupport.interpolateColor (
+            ColorUtils.interpolateColor (
                myWidgetColor, baseColor, excitationColor, s);
             myWidgetColor[3] = (float)props.getAlpha ();
             

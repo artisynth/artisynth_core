@@ -6,9 +6,9 @@ import maspack.util.ReferenceCountedBase;
 
 /**
  * Resource used by GL
- * @param <T>
  */
-public abstract class GLResourceBase extends ReferenceCountedBase implements GLResource {
+public abstract class GLResourceBase extends ReferenceCountedBase
+   implements GLResource {
    
    public GLResourceBase() {
       super();

@@ -52,9 +52,6 @@ public class GLTextureLoader implements GLGarbageSource {
 
    /**
     * Create a new texture loader based on the game panel
-    * 
-    * @param gl
-    * The GL content in which the textures should be loaded
     */
    public GLTextureLoader () {
       glAlphaColorModel =
@@ -73,6 +70,8 @@ public class GLTextureLoader implements GLGarbageSource {
    /**
     * Create a new texture ID
     * 
+    * @param gl
+    * The GL content
     * @return A new texture ID
     */
    private int createTextureId(GL gl) {

@@ -34,7 +34,7 @@ public interface TextureContent extends ReferenceCounted {
 
    /**
     * Raw byte data of content
-    * @return
+    * @return raw content
     */
    public ByteBuffer getData ();
    

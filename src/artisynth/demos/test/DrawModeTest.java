@@ -9,7 +9,6 @@ import maspack.geometry.*;
 import maspack.widgets.*;
 import maspack.properties.*;
 import maspack.render.*;
-import maspack.render.GL.GL2.*;
 import maspack.render.Renderer.Shading;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.DrawMode;

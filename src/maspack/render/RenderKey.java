@@ -12,7 +12,7 @@ public interface RenderKey {
    /**
     * Whether the renderable this key is associated with is still valid.
     * This should run in a thread-safe way (e.g. with a volatile boolean)
-    * @return
+    * @return <code>true</code> if key is still valid
     */
    public boolean isValid();
    

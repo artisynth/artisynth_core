@@ -21,22 +21,22 @@ public interface GL3Drawable {
    public void dispose(GL3 gl);
    
    /**
-    * Checks if the drawable is still valid (can be drawn), usually checking if any
-    * internal GL resources are still valid.
-    * @return
+    * Checks if the drawable is still valid (can be drawn), usually checking if
+    * any internal GL resources are still valid.
+    * @return <code>true</code> if the drawable is still valid
     */
    public boolean isValid();
    
    /**
-    * Whether or not the drawable has been disposed.  If true, it should not be used, instead being
-    * discarded.
-    * @return
+    * Whether or not the drawable has been disposed.  If true, it should not be
+    * used, instead being discarded.
+    * @return <code>true</code> if the drawable has been disposed
     */
    public boolean isDisposed();
    
    /**
     * Checks if resources are invalid.  If they are (and drawable is not already
-    * disposed) then will execute {@link #dispose()}, releasing any resources. 
+    * disposed) then will execute {@link #dispose}, releasing any resources. 
     * @return true if invalid or disposed
     */
    public boolean disposeInvalid(GL3 gl);

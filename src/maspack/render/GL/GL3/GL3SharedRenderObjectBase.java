@@ -171,19 +171,19 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
       
       // check if we should update all dynamic, or update part dynamic
       int updateFlag = 0;
-      if (rv.getPositionsVersion() != lastVersionInfo.getPositionsVersion()) {
+      if (positionInfo != null && rv.getPositionsVersion() != lastVersionInfo.getPositionsVersion()) {
          updateFlag |= POSITION_FLAG;
       }
 
-      if (rv.getNormalsVersion() != lastVersionInfo.getNormalsVersion()) {
+      if (normalInfo != null && rv.getNormalsVersion() != lastVersionInfo.getNormalsVersion()) {
          updateFlag |= NORMAL_FLAG;
       }
 
-      if (rv.getColorsVersion() != lastVersionInfo.getColorsVersion()) {
+      if (colorInfo != null && rv.getColorsVersion() != lastVersionInfo.getColorsVersion()) {
          updateFlag |= COLOR_FLAG;
       }
 
-      if (robj.getTextureCoordsVersion() != lastVersionInfo.getTextureCoordsVersion()) {
+      if (textureInfo != null && robj.getTextureCoordsVersion() != lastVersionInfo.getTextureCoordsVersion()) {
          updateFlag |= TEXCOORDS_FLAG;
       }
       

@@ -1380,13 +1380,15 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    /**
     * Called any time GL context is switched! e.g. moving window to new display
     */
-   public abstract void init (GLAutoDrawable drawable);
+   public void init (GLAutoDrawable drawable) {
+   }
 
    /**
     * Called any time GL context is switched! e.g. moving window to new display
     */
-   public abstract void dispose(GLAutoDrawable drawable);
-
+   public void dispose(GLAutoDrawable drawable) {
+   }
+   
    public void addMouseInputListener (MouseInputListener l) {
       if (canvas != null) {
          synchronized(canvas) {

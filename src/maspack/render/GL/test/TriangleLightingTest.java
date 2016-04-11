@@ -83,9 +83,8 @@ public class TriangleLightingTest extends GL2vsGL3Tester {
       };
       
       mv.addRenderable (renderable);
-      for (SimpleViewerApp app : mv.getWindows ()) {
-         app.viewer.setAxialView (AxisAlignedRotation.X_Y);
-      }
+      
+      mv.setAxialView (AxisAlignedRotation.X_Y);
       
    }
    

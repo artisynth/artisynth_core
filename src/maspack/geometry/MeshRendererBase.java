@@ -122,7 +122,7 @@ public abstract class MeshRendererBase {
          ArrayList<Vector3d> coords = mesh.getTextureCoords();
          for (int i=0; i<coords.size(); i++) {
             Vector3d coord = coords.get(i);
-            r.addTextureCoord((float)coord.x, (float)(1-coord.y));
+            r.addTextureCoord((float)coord.x, (float)coord.y);
          }
       }
    }

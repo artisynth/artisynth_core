@@ -373,7 +373,13 @@ public class GLTextureLoader implements GLGarbageSource {
       byte[] data = ((DataBufferByte)texImage.getRaster().getDataBuffer()).getData();
 
       imageBuffer = BufferUtilities.newNativeByteBuffer (data.length);
-      imageBuffer.put (data, 0, data.length);
+      // flip rows
+      int rowlength = data.length/texHeight;
+      int pos = data.length-rowlength;
+      for (int i=0; i<texHeight; ++i) {
+         imageBuffer.put (data, pos, rowlength);
+         pos -= rowlength;
+      }
       imageBuffer.flip ();
 
       return imageBuffer;

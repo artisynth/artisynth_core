@@ -352,7 +352,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
   
    @Override
    public void init(GLAutoDrawable drawable) {
-
+      super.init (drawable);
+      
       this.drawable = drawable;
       this.gl = drawable.getGL().getGL2();
 
@@ -485,6 +486,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    @Override
    public void dispose(GLAutoDrawable drawable) {
+      super.dispose (drawable);
       
       this.drawable = drawable;
       this.gl = drawable.getGL ().getGL2 ();
@@ -900,6 +902,31 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       maybeUpdateMatrices (gl);
       maybeUpdateMaterials(gl);
       maybeUpdateViewerState(gl);
+   }
+   
+   protected boolean maybeActivateTextures(GL2 gl) {
+      
+      boolean activate = false;
+      // maybe use texture?
+      GLTexture tex = null;
+      if (!isSelecting () && myColorMapProps != null && myColorMapProps.isEnabled ()) {
+         tex = myGLResources.getOrLoadTexture (gl, myColorMapProps.getContent ());
+         if (tex != null) {
+            gl.glEnable(GL.GL_TEXTURE_2D);
+            gl.glActiveTexture (GL.GL_TEXTURE0);
+            gl.glTexEnvi (
+               GL2.GL_TEXTURE_ENV, GL2.GL_TEXTURE_ENV_MODE, getTextureMode (myColorMapProps));
+            tex.bind(gl);
+            activate = true;
+         }
+      }
+     
+      return activate;
+      
+   }
+   
+   protected void deactivateTextures(GL2 gl) {
+      gl.glDisable(GL.GL_TEXTURE_2D);
    }
    
    /**
@@ -1441,6 +1468,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       GL2 gl = getGL2();
       maybeUpdateState(gl);
+      GLSupport.checkAndPrintGLError (gl);
 
       gl.glPushMatrix();
       gl.glTranslatef (pnt[0], pnt[1], pnt[2]);
@@ -3006,7 +3034,12 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
       boolean useColors = hasColors && !selecting;
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
-
+      
+      boolean hasTexture = robj.hasTextureCoords ();
+      if (hasTexture) {
+         hasTexture = maybeActivateTextures (gl);
+      }
+      
       // if use vertex colors, get them to track glColor
       if (useColors) {
          gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
@@ -3021,20 +3054,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       boolean useDisplayList = !selecting || !hasColors;
       GL2VersionedObject gvo = null;
-
-      // maybe use texture?
-      GLTexture tex = null;
-      if (myColorMapProps != null && myColorMapProps.isEnabled () && robj.hasTextureCoords ()) {
-         tex = myGLResources.getOrLoadTexture (gl, myColorMapProps.getContent ());
-         if (tex != null) {
-            gl.glEnable(GL.GL_TEXTURE_2D);
-            gl.glActiveTexture (GL.GL_TEXTURE0);
-            gl.glTexEnvi (
-               GL2.GL_TEXTURE_ENV, GL2.GL_TEXTURE_ENV_MODE, getTextureMode (myColorMapProps));
-            tex.bind(gl);
-         }
-      }
-         
+    
       // get snapshot of version information
       RenderObjectVersion fingerprint = robj.getVersionInfo();
       RenderObjectKey key = new RenderObjectKey(robj.getIdentifier (), DrawType.TRIANGLES, gidx);
@@ -3105,9 +3125,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          gvo.draw (gl);
       }
          
-      if (tex != null) {
-         tex.unbind (gl);
-         gl.glDisable (GL.GL_TEXTURE_2D);
+      if (hasTexture) {
+         deactivateTextures (gl);
       }
 
       // disable color tracking
@@ -3814,6 +3833,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             useHSV = setupHSVInterpolation(gl);
          }
       }
+      
+      boolean hasTexture = robj.hasTextureCoords ();
+      if (hasTexture) {
+         hasTexture = maybeActivateTextures (gl);
+      }
 
       boolean useDisplayList = !selecting || !hasColors;
       GL2VersionedObject gvo = null;
@@ -3907,6 +3931,10 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          gvo.draw (gl);
       }
 
+      if (hasTexture) {
+         deactivateTextures (gl);
+      }
+      
       // disable color tracking
       if (useColors) {
          gl.glDisable (GL2.GL_COLOR_MATERIAL);
@@ -3971,6 +3999,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          }         
       }
       
+      boolean hasTexture = hasTexData;
+      if (hasTexture) {
+         hasTexture = maybeActivateTextures (gl);
+      }
+      
       gl.glBegin (getDrawPrimitive(drawMode));
 
       int cidx = 0;
@@ -3993,6 +4026,10 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          tidx += 2;
       }
       gl.glEnd();
+      
+      if (hasTexture) {
+         deactivateTextures (gl);
+      }
       
       if (hasColorData) {
          if (savedLighting) {

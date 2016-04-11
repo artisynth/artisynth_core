@@ -97,7 +97,7 @@ public class GL3SharedRenderObjectLines extends GL3SharedRenderObjectBase {
       }
 
       // position
-      if ( (updateMask & POSITION_FLAG) != 0) {
+      if ( positionInfo != null && (updateMask & POSITION_FLAG) != 0) {
          int bidx = positionInfo.offset;
          int lineStride = robj.getLineStride ();
 
@@ -119,7 +119,7 @@ public class GL3SharedRenderObjectLines extends GL3SharedRenderObjectBase {
       }
 
       // normal
-      if ( (updateMask & NORMAL_FLAG) != 0) {
+      if ( normalInfo != null && (updateMask & NORMAL_FLAG) != 0) {
          int bidx = normalInfo.offset;
          int lineStride = robj.getLineStride ();
 
@@ -141,7 +141,7 @@ public class GL3SharedRenderObjectLines extends GL3SharedRenderObjectBase {
       }
 
       // color
-      if ( (updateMask & COLOR_FLAG) != 0) {
+      if ( colorInfo != null && (updateMask & COLOR_FLAG) != 0) {
          int bidx = colorInfo.offset;
          int lineStride = robj.getLineStride ();
 
@@ -163,7 +163,7 @@ public class GL3SharedRenderObjectLines extends GL3SharedRenderObjectBase {
       }
 
       // texture
-      if ( (updateMask & TEXCOORDS_FLAG) != 0) {
+      if ( textureInfo != null && (updateMask & TEXCOORDS_FLAG) != 0) {
          int bidx = textureInfo.offset;
          int lineStride = robj.getLineStride ();
 

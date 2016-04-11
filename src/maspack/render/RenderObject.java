@@ -2733,6 +2733,7 @@ public class RenderObject {
       getNormalsVersion();
       getColorsVersion();
       getTextureCoordsVersion();
+      getVerticesVersion ();
       getPointsVersion();
       getLinesVersion();
       getTrianglesVersion();

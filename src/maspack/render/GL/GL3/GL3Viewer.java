@@ -1,6 +1,7 @@
 package maspack.render.GL.GL3;
 
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.util.Arrays;
@@ -22,6 +23,7 @@ import maspack.matrix.Vector3d;
 import maspack.render.Dragger3d;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
+import maspack.render.TextureMapProps;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLFrameCapture;
 import maspack.render.GL.GLGridPlane;
@@ -30,6 +32,7 @@ import maspack.render.GL.GLMouseAdapter;
 import maspack.render.GL.GLProgramInfo.RenderingMode;
 import maspack.render.GL.GLShaderProgram;
 import maspack.render.GL.GLSupport;
+import maspack.render.GL.GLTextRenderer;
 import maspack.render.GL.GLTexture;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GL3.GL3SharedPrimitive.PrimitiveType;
@@ -200,6 +203,7 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    public void init(GLAutoDrawable drawable) {
+      super.init (drawable);
       GLSupport.checkAndPrintGLError(drawable.getGL ());
 
       this.drawable = drawable;
@@ -274,6 +278,7 @@ public class GL3Viewer extends GLViewer {
    
    @Override
    public void dispose(GLAutoDrawable drawable) {
+      super.dispose (drawable);
       GLSupport.checkAndPrintGLError(drawable.getGL ());
 
       this.drawable = drawable;
@@ -583,6 +588,48 @@ public class GL3Viewer extends GLViewer {
 
       selectEnabled = savedSelecting;
 
+   }
+   
+   public void drawText(String str, Font font, int fontSize, float[] loc) {
+      GL3 gl = getGL ().getGL3();
+      
+      boolean savedTransparency = isTransparencyEnabled ();
+      boolean savedTexture = isTextureMappingEnabled ();
+      boolean savedLighting = isLightingEnabled ();
+      setTransparencyEnabled (true);
+      setTextureMappingEnabled (true);
+      setLightingEnabled (false);
+      
+      TextureMapProps textProps = new TextureMapProps ();
+      textProps.setTextureColorMixing (ColorMixing.REPLACE);
+      textProps.setEnabled (true);
+      setTextureMapProps (textProps);
+      
+      maybeUpdateState(gl);
+      
+      updateProgram (gl, RenderingMode.DEFAULT, false, false, true);
+      
+      
+      GLTextRenderer textRenderer = new GLTextRenderer (font, 
+         new GL3PipelineRendererFactory (
+            myGLResources.getVertexNormalAttribute ().getLocation (),
+            myGLResources.getVertexColorAttribute ().getLocation (),
+            myGLResources.getVertexTexcoordAttribute ().getLocation (),
+            myGLResources.getVertexPositionAttribute ().getLocation ())
+         );
+      
+      textRenderer.beginRendering (gl);
+      textRenderer.draw (gl, str, loc[0], loc[1], loc[2], fontSize);
+      textRenderer.endRendering (gl);
+
+      setTransparencyEnabled (savedTransparency);
+      setTextureMappingEnabled (savedTexture);
+      setLightingEnabled (savedLighting);
+      setTextureMapProps (null);
+      
+      GLSupport.checkAndPrintGLError (gl);
+      textRenderer.dispose(gl);
+      
    }
 
    private void enableTransparency (GL3 gl) {
@@ -1133,6 +1180,9 @@ public class GL3Viewer extends GLViewer {
       boolean hasNormals, boolean hasColors, boolean hasTextures) {     
            
       myProgramInfo.setMode (mode);
+      myProgramInfo.setColorMapEnabled (false);
+      myProgramInfo.setNormalMapEnabled (false);
+      myProgramInfo.setBumpMapEnabled (false);
       
       switch(mode) {
          
@@ -1212,6 +1262,22 @@ public class GL3Viewer extends GLViewer {
          prog = myProgManager.getProgram (gl, myProgramInfo);
       }
       prog.use (gl);
+      
+      // set texture map bindings
+      if (myProgramInfo.hasColorMap ()) {
+         GLTexture colortex = myGLResources.getOrLoadTexture (gl, myColorMapProps.getContent ());
+         myProgManager.bindTexture (gl, "color_map", colortex);
+      }
+      if (myProgramInfo.hasNormalMap ()) {
+         GLTexture normtex = myGLResources.getOrLoadTexture (gl, myNormalMapProps.getContent ());
+         myProgManager.bindTexture (gl, "normal_map", normtex);
+         myProgManager.setUniform (gl, prog, "normal_scale", myNormalMapProps.getNormalScale());
+      }
+      if (myProgramInfo.hasBumpMap ()) { 
+         GLTexture bumptex = myGLResources.getOrLoadTexture (gl, myBumpMapProps.getContent ());
+         myProgManager.bindTexture (gl, "bump_map", bumptex);
+         myProgManager.setUniform (gl, prog, "bump_scale", myBumpMapProps.getBumpScale());
+      }
       
       return prog;
    }
@@ -1803,55 +1869,24 @@ public class GL3Viewer extends GLViewer {
 
       maybeUpdateState(gl);
 
-      // maybe use texture?
-      GLTexture colortex = null;
-      GLTexture normtex = null;
-      GLTexture bumptex = null;
-
-      if (robj.hasTextureCoords ()) {
-         if (myColorMapProps != null && myColorMapProps.isEnabled ()) {
-            colortex = myGLResources.getOrLoadTexture (gl, myColorMapProps.getContent ());   
-         }
-         if (myNormalMapProps != null && myNormalMapProps.isEnabled ()) {
-            normtex = myGLResources.getOrLoadTexture (gl, myNormalMapProps.getContent ());
-         }
-         if (myBumpMapProps != null && robj.hasTextureCoords ()) {
-            bumptex = myGLResources.getOrLoadTexture (gl, myBumpMapProps.getContent ());
-         }
-      }
-      GLSupport.checkAndPrintGLError(gl);
-
-      GLShaderProgram prog = updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), 
+      updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), 
          robj.hasColors (), robj.hasTextureCoords ());
-      GLSupport.checkAndPrintGLError(gl);
-
-      if (colortex != null) {
-         myProgManager.bindTexture (gl, "color_map", colortex);
-      }
-      if (normtex != null) {
-         myProgManager.bindTexture (gl, "normal_map", normtex);
-         myProgManager.setUniform (gl, prog, "normal_scale", myNormalMapProps.getNormalScale());
-      }
-      if (bumptex != null) {
-         myProgManager.bindTexture (gl, "bump_map", bumptex);
-         myProgManager.setUniform (gl, prog, "bump_scale", myBumpMapProps.getBumpScale());
-      }
 
       gro.drawTriangleGroup (gl, GL.GL_TRIANGLES, robj.getTriangleGroupIdx ());
 
       GLSupport.checkAndPrintGLError(gl);
 
-      if (bumptex != null) {
-         myProgManager.unbindTexture (gl, "bump_map", bumptex);
-      }
-      if (normtex != null) {
-         myProgManager.unbindTexture (gl, "normal_map", normtex);
-      }
-      if (colortex != null) {
-         myProgManager.unbindTexture (gl, "color_map", colortex);
-      }
-
-      GLSupport.checkAndPrintGLError(gl);
+      //      if (bumptex != null) {
+      //         myProgManager.unbindTexture (gl, "bump_map", bumptex);
+      //      }
+      //      if (normtex != null) {
+      //         myProgManager.unbindTexture (gl, "normal_map", normtex);
+      //      }
+      //      if (colortex != null) {
+      //         myProgManager.unbindTexture (gl, "color_map", colortex);
+      //      }
+      //
+      //      GLSupport.checkAndPrintGLError(gl);
    }
 
    @Override

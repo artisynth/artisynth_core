@@ -13,6 +13,9 @@ import javax.media.opengl.GLProfile;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
+import com.jogamp.opengl.util.FPSAnimator;
+
+import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.Point3d;
 import maspack.render.IsRenderable;
 import maspack.render.IsSelectable;
@@ -31,8 +34,6 @@ import maspack.render.GL.GL3.GL3VertexAttributeMap;
 import maspack.render.GL.GL3.GL3Viewer;
 import maspack.render.GL.GL3.GLSLGenerator;
 import maspack.render.GL.GL3.GLSLGenerator.StringIntPair;
-
-import com.jogamp.opengl.util.FPSAnimator;
 
 /**
  * Class for creating multiple viewers, with potentially shared contexts
@@ -485,6 +486,12 @@ public class MultiViewer {
    public void setWindowSizes(int width, int height) {
       for (SimpleViewerApp app : windows) {
          app.setSize(width,height);
+      }
+   }
+   
+   public void setAxialView(AxisAlignedRotation view) {
+      for (SimpleViewerApp app : windows) {
+         app.viewer.setAxialView (view);
       }
    }
    

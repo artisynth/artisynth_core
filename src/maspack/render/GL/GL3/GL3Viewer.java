@@ -1,7 +1,6 @@
 package maspack.render.GL.GL3;
 
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.util.Arrays;
@@ -23,7 +22,6 @@ import maspack.matrix.Vector3d;
 import maspack.render.Dragger3d;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
-import maspack.render.TextureMapProps;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLFrameCapture;
 import maspack.render.GL.GLGridPlane;
@@ -32,7 +30,6 @@ import maspack.render.GL.GLMouseAdapter;
 import maspack.render.GL.GLProgramInfo.RenderingMode;
 import maspack.render.GL.GLShaderProgram;
 import maspack.render.GL.GLSupport;
-import maspack.render.GL.GLTextRenderer;
 import maspack.render.GL.GLTexture;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GL3.GL3SharedPrimitive.PrimitiveType;
@@ -590,47 +587,47 @@ public class GL3Viewer extends GLViewer {
 
    }
    
-   public void drawText(String str, Font font, int fontSize, float[] loc) {
-      GL3 gl = getGL ().getGL3();
-      
-      boolean savedTransparency = isTransparencyEnabled ();
-      boolean savedTexture = isTextureMappingEnabled ();
-      boolean savedLighting = isLightingEnabled ();
-      setTransparencyEnabled (true);
-      setTextureMappingEnabled (true);
-      setLightingEnabled (false);
-      
-      TextureMapProps textProps = new TextureMapProps ();
-      textProps.setTextureColorMixing (ColorMixing.REPLACE);
-      textProps.setEnabled (true);
-      setTextureMapProps (textProps);
-      
-      maybeUpdateState(gl);
-      
-      updateProgram (gl, RenderingMode.DEFAULT, false, false, true);
-      
-      
-      GLTextRenderer textRenderer = new GLTextRenderer (font, 
-         new GL3PipelineRendererFactory (
-            myGLResources.getVertexNormalAttribute ().getLocation (),
-            myGLResources.getVertexColorAttribute ().getLocation (),
-            myGLResources.getVertexTexcoordAttribute ().getLocation (),
-            myGLResources.getVertexPositionAttribute ().getLocation ())
-         );
-      
-      textRenderer.beginRendering (gl);
-      textRenderer.draw (gl, str, loc[0], loc[1], loc[2], fontSize);
-      textRenderer.endRendering (gl);
-
-      setTransparencyEnabled (savedTransparency);
-      setTextureMappingEnabled (savedTexture);
-      setLightingEnabled (savedLighting);
-      setTextureMapProps (null);
-      
-      GLSupport.checkAndPrintGLError (gl);
-      textRenderer.dispose(gl);
-      
-   }
+   //   public void drawText(String str, Font font, int fontSize, float[] loc) {
+   //      GL3 gl = getGL ().getGL3();
+   //      
+   //      boolean savedTransparency = isTransparencyEnabled ();
+   //      boolean savedTexture = isTextureMappingEnabled ();
+   //      boolean savedLighting = isLightingEnabled ();
+   //      setTransparencyEnabled (true);
+   //      setTextureMappingEnabled (true);
+   //      setLightingEnabled (false);
+   //      
+   //      TextureMapProps textProps = new TextureMapProps ();
+   //      textProps.setTextureColorMixing (ColorMixing.REPLACE);
+   //      textProps.setEnabled (true);
+   //      setTextureMapProps (textProps);
+   //      
+   //      maybeUpdateState(gl);
+   //      
+   //      updateProgram (gl, RenderingMode.DEFAULT, false, false, true);
+   //      
+   //      
+   //      GLTextRenderer textRenderer = new GLTextRenderer (font, 
+   //         new GL3PipelineRendererFactory (
+   //            myGLResources.getVertexNormalAttribute ().getLocation (),
+   //            myGLResources.getVertexColorAttribute ().getLocation (),
+   //            myGLResources.getVertexTexcoordAttribute ().getLocation (),
+   //            myGLResources.getVertexPositionAttribute ().getLocation ())
+   //         );
+   //      
+   //      textRenderer.beginRendering (gl);
+   //      textRenderer.draw (gl, str, loc[0], loc[1], loc[2], fontSize);
+   //      textRenderer.endRendering (gl);
+   //
+   //      setTransparencyEnabled (savedTransparency);
+   //      setTextureMappingEnabled (savedTexture);
+   //      setLightingEnabled (savedLighting);
+   //      setTextureMapProps (null);
+   //      
+   //      GLSupport.checkAndPrintGLError (gl);
+   //      textRenderer.dispose(gl);
+   //      
+   //   }
 
    private void enableTransparency (GL3 gl) {
       if (!getTransparencyFaceCulling ()) {

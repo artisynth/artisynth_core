@@ -2,7 +2,9 @@ package artisynth.demos.test;
 
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.modelbase.RenderableComponentBase;
+import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
+import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
@@ -199,9 +201,14 @@ public class MappingDemo extends RootModel {
    }
 
    public void build (String[] args) {
-      
       DrawMappings r = new DrawMappings();
       addRenderable (r);
       addControlPanel (r.createControlPanel());      
+   }
+   
+   @Override
+   public void attach (DriverInterface driver) {
+      super.attach (driver);
+      driver.getViewer ().setAxialView (AxisAlignedRotation.X_Y);
    }
 }

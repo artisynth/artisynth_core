@@ -26,7 +26,7 @@ public class GLGarbageCollector implements GLEventListener {
 
    public void collect(GL gl) {
       if (enabled) {
-         System.out.println ("Garbage being collected");
+         //System.out.println ("Garbage being collected");
          synchronized(sources) {
             for (GLGarbageSource source : sources) {
                source.garbage (gl);
@@ -36,7 +36,7 @@ public class GLGarbageCollector implements GLEventListener {
    }
    
    public void dispose(GL gl) {
-      System.out.println ("Garbage disposing all");
+      //System.out.println ("Garbage disposing all");
       synchronized(sources) {
          for (GLGarbageSource source : sources) {
             source.dispose (gl);

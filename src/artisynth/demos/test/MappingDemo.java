@@ -118,13 +118,13 @@ public class MappingDemo extends RootModel {
             RenderObject robj = new RenderObject();
 
             robj.addNormal (0, 0, 1f);
-            robj.addTextureCoord (0, 1);
-            robj.vertex (-3f, -1f, 0f);
-            robj.addTextureCoord (1, 1);
-            robj.vertex ( 3f, -1f, 0);
-            robj.addTextureCoord (1, 0);
-            robj.vertex ( 3f,  1f, 0);
             robj.addTextureCoord (0, 0);
+            robj.vertex (-3f, -1f, 0f);
+            robj.addTextureCoord (1, 0);
+            robj.vertex ( 3f, -1f, 0);
+            robj.addTextureCoord (1, 1);
+            robj.vertex ( 3f,  1f, 0);
+            robj.addTextureCoord (0, 1);
             robj.vertex (-3f,  1f, 0);
 
             robj.addTriangle (0, 1, 2);
@@ -163,19 +163,19 @@ public class MappingDemo extends RootModel {
             renderer.setNormal (0, 0, 1f);
 
             // first triangle
-            renderer.setTexcoord (0, 1);
+            renderer.setTextureCoord (0, 0);
             renderer.addVertex (-3f, -1f, 0f);
-            renderer.setTexcoord (1, 1);
+            renderer.setTextureCoord (1, 0);
             renderer.addVertex ( 3f, -1f, 0);
-            renderer.setTexcoord (1, 0);
+            renderer.setTextureCoord (1, 1);
             renderer.addVertex ( 3f,  1f, 0);
 
             // second triangle
-            renderer.setTexcoord (0, 1);
+            renderer.setTextureCoord (0, 0);
             renderer.addVertex (-3f, -1f, 0f);
-            renderer.setTexcoord (1, 0);
+            renderer.setTextureCoord (1, 1);
             renderer.addVertex ( 3f,  1f, 0);
-            renderer.setTexcoord (0, 0);
+            renderer.setTextureCoord (0, 1);
             renderer.addVertex (-3f,  1f, 0);
 
             renderer.endDraw();

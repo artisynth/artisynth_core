@@ -151,6 +151,7 @@ public abstract class TexturePropsBase implements CompositeProperty, Scannable, 
       myTWrappingMode = INHERITED;
       myMinFilterMode = INHERITED;
       myMagFilterMode = INHERITED;
+      myBorderColorMode = INHERITED;
    }
 
    protected void setDefaultValues() {
@@ -160,6 +161,7 @@ public abstract class TexturePropsBase implements CompositeProperty, Scannable, 
       myTWrapping = defaultTWrapping;
       myMinFilter = defaultMinFilter;
       myMagFilter = defaultMagFilter;
+      myBorderColor = defaultBorderColor;
       myContent = null;
    }
 

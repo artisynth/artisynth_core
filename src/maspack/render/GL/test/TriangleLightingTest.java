@@ -46,9 +46,9 @@ public class TriangleLightingTest extends GL2vsGL3Tester {
             renderer.drawTriangle (new float[]{1,1,0}, new float[]{-1,1,0}, new float[]{-1,-1,0});
             renderer.drawTriangle (new float[]{-1,-1,0}, new float[]{1,-1,0}, new float[]{1,1,0});
             
-            renderer.setDepthOffset (-1);
+            renderer.addDepthOffset (1);
             renderer.drawAxes (RigidTransform3d.IDENTITY, 1, 1, false);
-            renderer.setDepthOffset (0);
+            renderer.addDepthOffset (-1);
          }
          
          @Override

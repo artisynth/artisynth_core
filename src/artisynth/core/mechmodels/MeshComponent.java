@@ -23,10 +23,13 @@ import maspack.matrix.Matrix3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.PolarDecomposition3d;
 import maspack.properties.PropertyList;
+import maspack.properties.PropertyUtils;
 import maspack.render.Renderer;
 import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.HasRenderMappings;
+import maspack.render.RenderMappings;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.modelbase.CompositeComponent;
@@ -43,7 +46,7 @@ import artisynth.core.util.ScanToken;
  * definition.
  */
 public class MeshComponent extends RenderableComponentBase
-   implements TransformableGeometry, ScalableUnits {
+   implements TransformableGeometry, ScalableUnits, HasRenderMappings {
 
    protected MeshInfo myMeshInfo;
 
@@ -54,13 +57,28 @@ public class MeshComponent extends RenderableComponentBase
       DEFAULT_COLOR_INTERPOLATION = ColorInterpolation.RGB;
    protected ColorInterpolation myColorInterp = DEFAULT_COLOR_INTERPOLATION;
 
+   protected RenderMappings myRenderMappings = null;
+   static private RenderMappings defaultRenderMappings = new RenderMappings();
+
    static {
       myProps.add(
          "renderProps * *", "render properties for this component",
          createDefaultRenderProps());
+      myProps.add(
+         "renderMappings", "render mappings for this component",
+         defaultRenderMappings);
       myProps.add (
          "colorInterpolation", "interpolation for vertex coloring", 
          DEFAULT_COLOR_INTERPOLATION);
+   }
+
+   public RenderMappings getRenderMappings() {
+      return myRenderMappings;
+   }
+
+   public void setRenderMappings (RenderMappings mappings) {
+      myRenderMappings =
+         RenderMappings.updateRenderMappings (this, myRenderMappings, mappings);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -179,6 +197,7 @@ public class MeshComponent extends RenderableComponentBase
 
    public void setDefaultValues() {
       setRenderProps(createDefaultRenderProps());
+      setRenderMappings(new RenderMappings()); 
    }
 
    @Override

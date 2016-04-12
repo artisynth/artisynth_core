@@ -2919,8 +2919,6 @@ public class RenderObject {
       r.buildMode = buildMode;
       r.buildModeStart = buildModeStart;
       
-      
-      
       return r;
    }
    

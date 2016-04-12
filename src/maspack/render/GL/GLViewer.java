@@ -1691,33 +1691,67 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * 
     * @param zOffset value to offset depth buffer
     */
-   public void addDepthOffset(int zOffset) {
-      myFrustum.depthBitOffset += zOffset;
-      computeProjectionMatrix ();
+   public void addDepthOffset(double zOffset) {
+      // compute depth buffer precision
+      double deps = 2.0/(1 << (myFrustum.depthBits-1));
+      // Let n and f be the far and near plane distances (positive values),
+      // and z the z value in eye coordinates. Then the change in z 
+      // corresponding to deps is
+      //
+      // delta z = - ((f-n) z^2)/(2 f n) deps
+      //
+      // We take z to be about 1/10 the distance to the far plane, which
+      // corresponds roughly to where the center is when autoFit is used.
+      Vector3d dp = new Vector3d();
+      double f = myFrustum.far;
+      double n = myFrustum.near;
+      dp.scale (zOffset*0.01*(f-n)*f*deps/(2*n), getEyeZDirection());
+      synchronized (modelMatrix) {
+         modelMatrix.addTranslation (dp.x, dp.y, dp.z);
+      }
+      invalidateModelMatrix();
+   }
+   
+//   public void setModelMatrix2d (double width, double height) {
+//      setModelMatrix2d (0, width, 0, height);
+//   }
+ 
+   /**
+    * {@inheritDoc}
+    */
+   public void setModelMatrix2d (
+      double left, double right, double bottom, double top) {
+      AffineTransform3d XMW = new AffineTransform3d();
+      double w = right-left;
+      double h = top-bottom;      
+      XMW.A.m00 = 2/w;
+      XMW.A.m11 = 2/h;
+      XMW.p.set (-(left+right)/w, -(top-bottom)/h, 0);
+      setModelMatrix (XMW);
    }
 
-   /**
-    * Set a depth offset to the projection matrix.
-    * Each integer represents enough depth to account for one bin in the depth
-    * buffer.  Negative values bring following objects closer to the screen.
-    * This is to account for z-fighting.
-    * @param offset value to offset depth buffer
-    */
-   public void setDepthOffset(int offset) {
-      myFrustum.depthBitOffset = offset;
-      computeProjectionMatrix ();
-   }
+//   /**
+//    * Set a depth offset to the projection matrix.
+//    * Each integer represents enough depth to account for one bin in the depth
+//    * buffer.  Negative values bring following objects closer to the screen.
+//    * This is to account for z-fighting.
+//    * @param offset value to offset depth buffer
+//    */
+//   public void setDepthOffset(int offset) {
+//      myFrustum.depthBitOffset = offset;
+//      computeProjectionMatrix ();
+//   }
 
-   /**
-    * The current depth offset level.  Zero represents no offsets, 
-    * negative means objects are drawn closer to the viewer,
-    * positive means they are drawn further away.
-    * This is to account for z-fighting.
-    * @return the current offset (in depth bins)
-    */
-   public int getDepthOffset() {
-      return myFrustum.depthBitOffset;
-   }
+//   /**
+//    * The current depth offset level.  Zero represents no offsets, 
+//    * negative means objects are drawn closer to the viewer,
+//    * positive means they are drawn further away.
+//    * This is to account for z-fighting.
+//    * @return the current offset (in depth bins)
+//    */
+//   public int getDepthOffset() {
+//      return myFrustum.depthBitOffset;
+//   }
 
    public void display (GLAutoDrawable drawable) {
       GLSupport.checkAndPrintGLError(drawable.getGL ());
@@ -2485,9 +2519,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       pushViewMatrix();
       pushModelMatrix();
       
-      setOrthogonal2d(left, right, bottom, top);
+      //setOrthogonal2d(left, right, bottom, top);
+      setOrthogonal2d(-1, 1, -1, 1);
+      setModelMatrix2d (left, right, bottom, top);
       setViewMatrix(RigidTransform3d.IDENTITY);
-      setModelMatrix(RigidTransform3d.IDENTITY);
+      //setModelMatrix(RigidTransform3d.IDENTITY);
 
       rendering2d = true;
    }
@@ -2734,17 +2770,13 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    public void translateModelMatrix(Vector3d t) {
-      synchronized (modelMatrix) {
-         modelMatrix.addTranslation(t); // normal matrix is unchanged  
-      }
+      translateModelMatrix (t.x, t.y, t.z);
       invalidateModelMatrix();
    }
 
    public void translateModelMatrix(double tx, double ty, double tz) {
-      synchronized(modelMatrix) {
-         modelMatrix.addTranslation(tx, ty, tz); // normal matrix is unchanged
-      }
-      invalidateModelMatrix();
+      RigidTransform3d TR = new RigidTransform3d (tx, ty, tz);
+      mulModelMatrix (TR);
    }
 
    public void rotateModelMatrix(double zdeg, double ydeg, double xdeg) {
@@ -3022,6 +3054,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    @Override
    public void drawCube (Vector3d pnt, double w) {
       drawCube(toFloat(pnt), w);
+   }
+   
+   @Override
+   public void drawBox (Vector3d pnt, Vector3d widths) {
+      drawBox (toFloat(pnt), widths.x, widths.y, widths.z);
    }
    
    public void drawCylinder (
@@ -3578,7 +3615,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
    
    @Override
-   public void setTexcoord(float x, float y) {
+   public void setTextureCoord(float x, float y) {
       if (myDrawMode == null) {
          throw new IllegalStateException (
             "Not in draw mode (i.e., beginDraw() has not been called)");
@@ -3615,13 +3652,13 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    @Override
-   public void setTexcoord (double tx, double ty) {
-      setTexcoord((float)tx, (float)ty);
+   public void setTextureCoord (double tx, double ty) {
+      setTextureCoord((float)tx, (float)ty);
    }
    
    @Override
-   public void setTexcoord (Vector2d tex) {
-      setTexcoord ((float)tex.x, (float)tex.y);
+   public void setTextureCoord (Vector2d tex) {
+      setTextureCoord ((float)tex.x, (float)tex.y);
    }
    
    protected int getDrawPrimitive (DrawMode mode) {

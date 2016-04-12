@@ -1495,6 +1495,20 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    }
    
    @Override
+   public void drawBox (float[] pnt, double wx, double wy, double wz) {
+      GL2 gl = getGL2();
+      maybeUpdateState(gl);
+
+      gl.glPushMatrix();
+      gl.glTranslatef (pnt[0], pnt[1], pnt[2]);
+      gl.glScaled (wx/2, wy/2, wz/2);
+
+      GL2Primitive cube = getPrimitive (gl, PrimitiveType.CUBE);
+      cube.draw (gl);
+      gl.glPopMatrix();
+   }
+   
+   @Override
    public void drawBox (RigidTransform3d TBM, Vector3d widths) {
       GL2 gl = getGL2();
       
@@ -2465,9 +2479,12 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       pushViewMatrix();
       pushProjectionMatrix();
       
-      setModelMatrix(RigidTransform3d.IDENTITY);
+      setModelMatrix2d (left, right, bottom, top);
+      //setModelMatrix(RigidTransform3d.IDENTITY);
       setViewMatrix(RigidTransform3d.IDENTITY);
-      setOrthogonal2d(left, right, bottom, top);
+      //setOrthogonal2d(left, right, bottom, top);
+      setOrthogonal2d(-1, 1, -1, 1);
+      
 
       rendering2d = true;
    }

@@ -12,19 +12,24 @@ import maspack.matrix.*;
 
 import java.util.*;
 
-public abstract class RenderableModelBase extends ModelBase implements
-RenderableComponent {
+public abstract class RenderableModelBase extends ModelBase
+   implements RenderableComponent, HasRenderMappings {
    protected RenderProps myRenderProps = null;
+   protected RenderMappings myRenderMappings = null;
 
    public static PropertyList myProps =
       new PropertyList (RenderableModelBase.class, ModelBase.class);
 
    static private RenderProps defaultRenderProps = new RenderProps();
+   static private RenderMappings defaultRenderMappings = new RenderMappings();
 
    static {
       myProps.add (
-         "renderProps * *", "render properties for this constraint",
+         "renderProps * *", "render properties for this model",
          defaultRenderProps);
+      myProps.add (
+         "renderMappings", "render mappings for this model",
+         defaultRenderMappings);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -34,6 +39,7 @@ RenderableComponent {
    public RenderableModelBase (String name) {
       super (name);
       setRenderProps (createRenderProps());
+      setRenderMappings (new RenderMappings());
    }
 
    public RenderableModelBase() {
@@ -51,6 +57,15 @@ RenderableComponent {
    public void setRenderProps (RenderProps props) {
       myRenderProps =
          RenderableComponentBase.updateRenderProps (this, myRenderProps, props);
+   }
+
+   public RenderMappings getRenderMappings() {
+      return myRenderMappings;
+   }
+
+   public void setRenderMappings (RenderMappings mappings) {
+      myRenderMappings =
+         RenderMappings.updateRenderMappings (this, myRenderMappings, mappings);
    }
 
    protected void recursivelyPrerender (

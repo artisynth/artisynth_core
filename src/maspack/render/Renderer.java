@@ -676,7 +676,7 @@ public interface Renderer {
    public void drawSphere (float[] pnt, double rad); 
    
    /**
-    * Draws a cube with a specified width centered at a point
+    * Draws an axis-aligned cube with a specified width centered at a point
     * in model coordinates, using the current shading and material.
     * 
     * @param pnt center of the cube
@@ -685,7 +685,7 @@ public interface Renderer {
    public void drawCube (float[] pnt, double w);   
 
    /**
-    * Draws a cube with a specified width centered at a point
+    * Draws an axis-aligned cube with a specified width centered at a point
     * in model coordinates, using the current shading and material.
     * 
     * @param pnt center of the cube
@@ -693,6 +693,26 @@ public interface Renderer {
     */
    public void drawCube (Vector3d pnt, double w);
 
+   /**
+    * Draws an axis-aligned box in model coordinates, using the current 
+    * shading and material.
+    * 
+    * @param pnt center of the box
+    * @param wx width in x
+    * @param wy width in y
+    * @param wz width in z
+    */
+   public void drawBox (float[] pnt, double wx, double wy, double wz);
+   
+   /**
+    * Draws an axis-aligned box in model coordinates, using the current 
+    * shading and material.
+    * 
+    * @param pnt center of the box
+    * @param widths x,y,z widths of the box
+    */
+   public void drawBox (Vector3d pnt, Vector3d widths);
+   
    /**
     * Draws a box centered on the specified transform in model coordinates,
     * using the current shading and material.
@@ -996,9 +1016,7 @@ public interface Renderer {
     * Returns <code>true</code> if this Renderer supports 2D rendering mode.
     *
     * @return <code>true</code> if 2D rendering is supported
-    * @see #begin2DRendering()
-    * @see #begin2DRendering(double,double)
-    * @see #end2DRendering
+    * @see #is2DRendering
     */
    public boolean has2DRendering();
    
@@ -1718,6 +1736,23 @@ public interface Renderer {
    public void setModelMatrix (AffineTransform3dBase X);
    
    /**
+    * Sets the model matrix to perform scaling and translation in the
+    * x-y plane so that the model coordinates (left,bottom) and
+    * (right,top) map onto (-1,1) and (1,1) in world coordinates. 
+    * When in 2d rendering mode, this means that 
+    * (left,bottom) and (right,top) will correspond to the
+    * lower left and top right of the screen.
+    *   
+    * @param left x value corresponding to -1 in world coordinates 
+    * @param right x value corresponding to 1 in world coordinates 
+    * @param bottom y value corresponding to -1 in world coordinates 
+    * @param top y value corresponding to 1 in world coordinates 
+    * @see #is2DRendering
+    */
+   public void setModelMatrix2d (
+      double left, double right, double bottom, double top);
+   
+   /**
     * Restores the model matrix by popping it off the model matrix stack
     * 
     * @return <code>false</code> if the model matrix stack is empty
@@ -1741,37 +1776,42 @@ public interface Renderer {
    public void getViewMatrix (RigidTransform3d TWE);
    
    /**
-    * Add a depth offset to the projection matrix.
-    * Each integer represents enough depth to account for one bin in the depth
-    * buffer.  Negative values bring following objects closer to the screen.
-    * This is to account for z-fighting.
+    * Adds a depth offset to the model matrix to help prevent "fighting"
+    * in the depth buffer. This is done by translating the model frame
+    * by an offset along the eye frame's z axis, with positive values moving
+    * the model frame closer to the eye. Each unit of offset equals
+    * approximately the distance needed to move by one unit of depth buffer
+    * precision, evaluated at a distance from the eye equal to 1/10 of 
+    * the distance to the far clipping plane. This distance is used because it
+    * corresponds roughly to the center distance that is chosen by the
+    * viewer <code>autoFit</code> methods. 
     * 
-    * @param zOffset value to offset depth buffer
+    * @param zOffset z offset to add to the model frame
     */
-   public void addDepthOffset(int zOffset);
+   public void addDepthOffset (double zOffset);
 
-   /**
-    * Set a depth offset to the projection matrix. Each unit represents 
-    * enough depth to account for one bin in the depth buffer. Negative 
-    * values bring following objects closer to the screen, while positive
-    * values send them father away. The default value is 0.
-    * 
-    * <p>Depth offsets are used to help resolve z-fighting, in which 
-    * overlapping primitives drawn in the same plane compete for visibility.
-    * If the plane has a considerable tilt with respect to the viewer,
-    * then an offset larger than one may be needed to resolve the issue.
-    * 
-    * @param offset new depth offset value
-    */
-   public void setDepthOffset(int offset);
-
-   /**
-    * The current depth offset level. See {@link #setDepthOffset} for
-    * a description. The default value is 0.
-    * 
-    * @return the current deboth offset (in depth bins)
-    */
-   public int getDepthOffset();
+//   /**
+//    * Set a depth offset to the projection matrix. Each unit represents 
+//    * enough depth to account for one bin in the depth buffer. Negative 
+//    * values bring following objects closer to the screen, while positive
+//    * values send them father away. The default value is 0.
+//    * 
+//    * <p>Depth offsets are used to help resolve z-fighting, in which 
+//    * overlapping primitives drawn in the same plane compete for visibility.
+//    * If the plane has a considerable tilt with respect to the viewer,
+//    * then an offset larger than one may be needed to resolve the issue.
+//    * 
+//    * @param offset new depth offset value
+//    */
+//   public void setDepthOffset(int offset);
+//
+//   /**
+//    * The current depth offset level. See {@link #setDepthOffset} for
+//    * a description. The default value is 0.
+//    * 
+//    * @return the current deboth offset (in depth bins)
+//    */
+//   public int getDepthOffset();
    
 //   // FINISH
 //   public RigidTransform3d getEyeToWorld();
@@ -2043,30 +2083,30 @@ public interface Renderer {
     * @see #beginDraw
     * @throws IllegalStateException if the renderer is not in draw mode
     */
-   public void setTexcoord (float tx, float ty);
+   public void setTextureCoord (float tx, float ty);
 
    /**
     * Sets the texture coordinate to be associated with the next vertex to be
     * added while in draw mode. This method is functionally equivalent to
-    * {@link #setTexcoord(float,float)}.
+    * {@link #setTextureCoord(float,float)}.
     * 
     * @param tx texture x coordinate
     * @param ty texture y coordinate
     * @see #beginDraw
     * @throws IllegalStateException if the renderer is not in draw mode
     */
-   public void setTexcoord (double tx, double ty);
+   public void setTextureCoord (double tx, double ty);
    
    /**
     * Sets the texture coordinate to be associated with the next vertex to be
     * added while in draw mode. This method is functionally equivalent to to
-    * {@link #setTexcoord(float,float)}.
+    * {@link #setTextureCoord(float,float)}.
     * 
     * @param tex texture coordinates
     * @see #beginDraw
     * @throws IllegalStateException if the renderer is not in draw mode
     */
-   public void setTexcoord (Vector2d tex);
+   public void setTextureCoord (Vector2d tex);
 
    /**
     * Ends draw mode. This is analogous to <code>glEnd()</code> in the old

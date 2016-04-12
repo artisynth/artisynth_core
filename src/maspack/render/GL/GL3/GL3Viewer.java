@@ -953,16 +953,40 @@ public class GL3Viewer extends GLViewer {
    }
    
    @Override
-   public void drawCube(float[] pnt, double rad) {
+   public void drawCube(float[] pnt, double w) {
 
-      if (rad < Double.MIN_NORMAL) {
+      if (w < Double.MIN_NORMAL) {
          return;
       }
 
       // scale and translate model matrix
       pushModelMatrix();
       translateModelMatrix(pnt[0], pnt[1], pnt[2]);
-      scaleModelMatrix(rad/2);
+      scaleModelMatrix(w/2);
+
+      maybeUpdateState (gl);
+
+      GL3Primitive cube = getPrimitive (gl, PrimitiveType.CUBE);
+      updateProgram (gl, RenderingMode.DEFAULT, true, false, false);
+      cube.draw(gl);
+
+      // revert matrix transform
+      popModelMatrix();
+   }
+   
+   @Override
+   public void drawBox (float[] pnt, double wx, double wy, double wz) {
+
+      if (wx < Double.MIN_NORMAL || 
+          wy < Double.MIN_NORMAL ||
+          wz < Double.MIN_NORMAL) {
+         return;
+      }
+
+      // scale and translate model matrix
+      pushModelMatrix();
+      translateModelMatrix(pnt[0], pnt[1], pnt[2]);
+      scaleModelMatrix(wx/2, wy/2, wz/2);
 
       maybeUpdateState (gl);
 

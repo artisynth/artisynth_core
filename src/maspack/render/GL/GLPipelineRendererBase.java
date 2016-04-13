@@ -62,12 +62,6 @@ public abstract class GLPipelineRendererBase implements GLPipelineRenderer {
    }
    
    @Override
-   public abstract void init (GL gl);
-   
-   @Override
-   public abstract boolean isInitialized();
-   
-   @Override
    public boolean isEmpty () {
       if (vbuff == null || vbuff.position () == 0) {
          return true;
@@ -155,7 +149,7 @@ public abstract class GLPipelineRendererBase implements GLPipelineRenderer {
       }
       
       if (texcoordsEnabled) {
-         texcoordOffset = positionOffset;
+         texcoordOffset = vertexStride;
          vertexStride += TEXCOORD_BYTES;   
       } else {
          texcoordOffset = -1;
@@ -205,6 +199,16 @@ public abstract class GLPipelineRendererBase implements GLPipelineRenderer {
          vbuff.putFloat (color[2]);
          vbuff.putFloat (color[3]);
       }
+      
+      if (texcoordsEnabled) {
+         vbuff.putFloat (texcoord[0]);
+         vbuff.putFloat (texcoord[1]);
+      }
+      
+      vbuff.putFloat (x);
+      vbuff.putFloat (y);
+      vbuff.putFloat (z);
+      
       ++nverts;
       
       if (vbuff.position () == vbuff.capacity ()) {
@@ -212,7 +216,7 @@ public abstract class GLPipelineRendererBase implements GLPipelineRenderer {
       }
    }
    
-   protected abstract void draw(GL gl, int glMode, ByteBuffer vbuff, int count);
+   protected abstract void draw (GL gl, int glMode, ByteBuffer vbuff, int count);
 
    @Override
    public void flush () {

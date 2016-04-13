@@ -8,9 +8,7 @@ package maspack.render.GL;
 
 import javax.media.opengl.GL;
 
-import maspack.render.IsSelectable;
 import maspack.render.Renderer;
-import maspack.render.ViewerSelectionFilter;
 
 
 public interface GLRenderer extends Renderer {

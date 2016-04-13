@@ -6,15 +6,20 @@
  */
 package maspack.render.GL;
 
+import java.awt.color.ColorSpace;
+import java.awt.image.BufferedImage;
+import java.awt.image.ComponentColorModel;
+import java.awt.image.DataBuffer;
+import java.awt.image.Raster;
+import java.awt.image.WritableRaster;
+import java.nio.ByteBuffer;
+
 import javax.media.opengl.GL;
+import javax.media.opengl.GL2GL3;
 
 import jogamp.opengl.glu.error.Error;
-import maspack.matrix.AffineTransform3d;
-import maspack.matrix.AffineTransform3dBase;
-import maspack.matrix.DenseMatrix;
 import maspack.matrix.Matrix;
-import maspack.matrix.Matrix3dBase;
-import maspack.matrix.Vector3d;
+import maspack.util.BufferUtilities;
 
 public class GLSupport {
    
@@ -227,6 +232,42 @@ public class GLSupport {
 //      T.p.y = mat[13];
 //      T.p.z = mat[14];
 //   }
+   
+   public static BufferedImage downloadTexture(GL2GL3 gl, int target) {
+      int[] v = new int[2];
+      gl.glGetTexLevelParameteriv (target, 0, GL2GL3.GL_TEXTURE_WIDTH, v, 0);
+      gl.glGetTexLevelParameteriv (target, 0, GL2GL3.GL_TEXTURE_HEIGHT, v, 1);
+      
+      if (v[0]*v[1] == 0) {
+         return null;
+      }
+      
+      ByteBuffer buff = BufferUtilities.newNativeByteBuffer (v[0]*v[1]*4);
+      gl.glGetTexImage (target, 0, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, buff);
+      
+      final ComponentColorModel RGBA_COLOR =
+         new ComponentColorModel (
+            ColorSpace.getInstance (ColorSpace.CS_sRGB),
+            new int[] { 8, 8, 8, 8 }, true, false,
+            ComponentColorModel.TRANSLUCENT, DataBuffer.TYPE_BYTE);
+      // sRGBA color model
+      WritableRaster raster = Raster.createInterleavedRaster (
+         DataBuffer.TYPE_BYTE, v[0], v[1], 4, null);
+      BufferedImage image = new BufferedImage (RGBA_COLOR, raster, false, null);
+      
+      // flip vertically
+      int scanline =4*v[0];
+      int pos = v[0]*v[1]*4-scanline;
+      for (int i=0; i<v[1]; ++i) {
+         for (int j=0; j<scanline; ++j) {
+            raster.getDataBuffer ().setElem (pos+j, buff.get ());   
+         }
+         pos -= scanline;
+      }
+      
+      return image;
+      
+   }
 
    private static void printErr(String msg) {
       StackTraceElement[] trace = Thread.currentThread().getStackTrace();

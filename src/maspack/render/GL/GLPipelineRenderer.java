@@ -11,18 +11,6 @@ import javax.media.opengl.GL;
  *
  */
 public interface GLPipelineRenderer {
-
-   /**
-    * Initializes any internals
-    * @param gl
-    */
-   public void init(GL gl);
-   
-   /**
-    * Checks whether renderer has been initialized
-    * @return true if initialized
-    */
-   public boolean isInitialized();
    
    /**
     * Set up properties of pipeline.  Properties cannot be changed

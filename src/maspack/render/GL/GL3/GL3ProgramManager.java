@@ -479,6 +479,13 @@ public class GL3ProgramManager {
          tex.bind (gl);
       }
    }
+   
+   public void activateTexture(GL3 gl, String name) {
+      int loc = getSharedTextureLocation (name);
+      if (loc >= 0) {
+         gl.glActiveTexture (GL.GL_TEXTURE0+loc);
+      }
+   }
 
    public void unbindTexture(GL3 gl, String name, GLTexture tex) {
       int loc = getSharedTextureLocation (name);

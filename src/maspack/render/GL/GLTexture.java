@@ -55,7 +55,7 @@ public class GLTexture extends GLResourceBase {
     * @param textureID
     * The GL texture ID
     */
-   public GLTexture (GL gl, int target, int textureID) {
+   public GLTexture (int target, int textureID) {
       this.target = target;
       this.textureID = textureID;
       borderColor = new float[4];
@@ -72,6 +72,10 @@ public class GLTexture extends GLResourceBase {
 	*/
    public int getTextureId() {
       return textureID;
+   }
+   
+   public int getTarget() {
+      return target;
    }
    
    protected static int getGLWrapping(TextureWrapping wrapping) {
@@ -309,4 +313,11 @@ public class GLTexture extends GLResourceBase {
       return (GLTexture)super.acquire ();
    }
 
+   public static GLTexture generate(GL gl, int target) {
+      int[] v = new int[1];
+      gl.glGenTextures (1, v, 0);
+      int id = v[0];
+      return new GLTexture (target, id);
+   }
+   
 }

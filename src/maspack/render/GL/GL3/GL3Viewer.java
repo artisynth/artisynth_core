@@ -1,6 +1,7 @@
 package maspack.render.GL.GL3;
 
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.util.Arrays;
@@ -22,6 +23,8 @@ import maspack.matrix.Vector3d;
 import maspack.render.Dragger3d;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
+import maspack.render.TextureContent;
+import maspack.render.TextureMapProps;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLFrameCapture;
 import maspack.render.GL.GLGridPlane;
@@ -30,6 +33,7 @@ import maspack.render.GL.GLMouseAdapter;
 import maspack.render.GL.GLProgramInfo.RenderingMode;
 import maspack.render.GL.GLShaderProgram;
 import maspack.render.GL.GLSupport;
+import maspack.render.GL.GLTextRenderer;
 import maspack.render.GL.GLTexture;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GL3.GL3SharedPrimitive.PrimitiveType;
@@ -54,6 +58,8 @@ public class GL3Viewer extends GLViewer {
    // Resources that stick with this viewer
    GL3RenderObjectManager myRenderObjectManager = null;
    GL3PrimitiveManager myPrimitiveManager = null;
+   GLTextRenderer myTextRenderer = null;
+   
    long lastGarbageTime = 0;  // for garbage collecting of viewer-specific resources
    
    // State
@@ -145,6 +151,8 @@ public class GL3Viewer extends GLViewer {
       
       myPrimitiveManager = new GL3PrimitiveManager (resources.getSharedPrimitiveManager());
       primitives = new GL3Primitive[PrimitiveType.values ().length];
+      
+      myTextRenderer = null;
       
       lightManager = new GLLightManager();      
       myProgManager = new GL3ProgramManager();
@@ -247,6 +255,14 @@ public class GL3Viewer extends GLViewer {
       myProgManager.setMaterials (gl, myCurrentMaterial, myCurrentMaterial);
       myCurrentMaterialModified = true;  // trigger update of materials
 
+      myTextRenderer = GLTextRenderer.generate (gl, 
+         GL3PipelineRenderer.generate (gl,
+            myGLResources.getVertexNormalAttribute ().getLocation (),
+            myGLResources.getVertexColorAttribute ().getLocation (),
+            myGLResources.getVertexTexcoordAttribute ().getLocation (),
+            myGLResources.getVertexPositionAttribute ().getLocation ())
+         );
+      
       // create a basic position-based flexible object
       gloFlex = GL3FlexObject.generate (gl, 
          myGLResources.getVertexPositionAttribute (), myGLResources.getVertexNormalAttribute(), 
@@ -294,6 +310,7 @@ public class GL3Viewer extends GLViewer {
       myProgManager.dispose(gl);
       myRenderObjectManager.dispose (gl);
       myPrimitiveManager.dispose (gl);
+      myTextRenderer.dispose (gl);
       myCommittedViewerState = null;
 
       // clear temporaries
@@ -587,47 +604,46 @@ public class GL3Viewer extends GLViewer {
 
    }
    
-   //   public void drawText(String str, Font font, int fontSize, float[] loc) {
-   //      GL3 gl = getGL ().getGL3();
-   //      
-   //      boolean savedTransparency = isTransparencyEnabled ();
-   //      boolean savedTexture = isTextureMappingEnabled ();
-   //      boolean savedLighting = isLightingEnabled ();
-   //      setTransparencyEnabled (true);
-   //      setTextureMappingEnabled (true);
-   //      setLightingEnabled (false);
-   //      
-   //      TextureMapProps textProps = new TextureMapProps ();
-   //      textProps.setTextureColorMixing (ColorMixing.REPLACE);
-   //      textProps.setEnabled (true);
-   //      setTextureMapProps (textProps);
-   //      
-   //      maybeUpdateState(gl);
-   //      
-   //      updateProgram (gl, RenderingMode.DEFAULT, false, false, true);
-   //      
-   //      
-   //      GLTextRenderer textRenderer = new GLTextRenderer (font, 
-   //         new GL3PipelineRendererFactory (
-   //            myGLResources.getVertexNormalAttribute ().getLocation (),
-   //            myGLResources.getVertexColorAttribute ().getLocation (),
-   //            myGLResources.getVertexTexcoordAttribute ().getLocation (),
-   //            myGLResources.getVertexPositionAttribute ().getLocation ())
-   //         );
-   //      
-   //      textRenderer.beginRendering (gl);
-   //      textRenderer.draw (gl, str, loc[0], loc[1], loc[2], fontSize);
-   //      textRenderer.endRendering (gl);
-   //
-   //      setTransparencyEnabled (savedTransparency);
-   //      setTextureMappingEnabled (savedTexture);
-   //      setLightingEnabled (savedLighting);
-   //      setTextureMapProps (null);
-   //      
-   //      GLSupport.checkAndPrintGLError (gl);
-   //      textRenderer.dispose(gl);
-   //      
-   //   }
+   @Override
+   public GLTextRenderer getTextRenderer () {
+      return myTextRenderer;
+   }
+   
+   @Override
+   public double drawText(Font font, String str, float[] loc, double emSize) {
+      GL3 gl = getGL ().getGL3();
+      
+      boolean savedTransparency = isTransparencyEnabled ();
+      boolean savedTexture = isTextureMappingEnabled ();
+      boolean savedDepth = isDepthEnabled ();
+      setDepthEnabled (false);
+      setTransparencyEnabled (true);
+      setTextureMappingEnabled (true);
+      
+      TextureMapProps textProps = new TextureMapProps ();
+      textProps.setTextureColorMixing (ColorMixing.MODULATE);
+      textProps.setEnabled (true);
+      TextureMapProps savedTextureProps = setTextureMapProps (textProps);
+      
+      maybeUpdateState(gl);
+      updateProgram (gl, RenderingMode.DEFAULT, true, false, true);
+      
+      myProgManager.activateTexture(gl, "color_map");
+
+      myTextRenderer.begin (gl);
+      double d = myTextRenderer.drawText (font, str, loc, (float)emSize);
+      myTextRenderer.end (gl);
+      
+      GLSupport.checkAndPrintGLError (gl);
+      
+      setDepthEnabled (savedDepth);
+
+      setTransparencyEnabled (savedTransparency);
+      setTextureMappingEnabled (savedTexture);
+      setTextureMapProps (savedTextureProps);
+      
+      return d;
+   }
 
    private void enableTransparency (GL3 gl) {
       if (!getTransparencyFaceCulling ()) {
@@ -743,6 +759,7 @@ public class GL3Viewer extends GLViewer {
          
          if (state.transparencyEnabled) {
             gl.glEnable (GL.GL_BLEND);
+            gl.glBlendFunc (GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
          } else {
             gl.glDisable (GL.GL_BLEND);
          }
@@ -837,6 +854,7 @@ public class GL3Viewer extends GLViewer {
          if (myCommittedViewerState.transparencyEnabled != state.transparencyEnabled) {
             if (state.transparencyEnabled) {
                gl.glEnable (GL.GL_BLEND);
+               gl.glBlendFunc (GL3.GL_SRC_ALPHA, GL3.GL_ONE_MINUS_SRC_ALPHA);
             } else {
                gl.glDisable (GL.GL_BLEND);
             }
@@ -1197,9 +1215,8 @@ public class GL3Viewer extends GLViewer {
       }
    }
    
-   protected GLShaderProgram updateProgram(GL3 gl, RenderingMode mode,
-      boolean hasNormals, boolean hasColors, boolean hasTextures) {     
-           
+   protected void updateProgramInfo(RenderingMode mode,
+      boolean hasNormals, boolean hasColors, boolean hasTextures) {
       myProgramInfo.setMode (mode);
       myProgramInfo.setColorMapEnabled (false);
       myProgramInfo.setNormalMapEnabled (false);
@@ -1257,7 +1274,6 @@ public class GL3Viewer extends GLViewer {
             }
             
             break;
-         
       }
       
       // myProgramInfo.setVertexColorsEnabled (hasColors);
@@ -1275,6 +1291,45 @@ public class GL3Viewer extends GLViewer {
          myProgramInfo.setVertexColorMixing (getVertexColorMixing());
          myProgramInfo.setVertexColorsEnabled (true);
       }
+   }
+      
+   protected boolean maybeBindTextures(GL3 gl, GLShaderProgram prog) {
+      
+      boolean bound = false;
+      // set texture map bindings
+      if (myProgramInfo.hasColorMap ()) {
+         TextureContent content = myColorMapProps.getContent ();
+         if (content != null) {
+            GLTexture colortex = myGLResources.getOrLoadTexture (gl, content);
+            myProgManager.bindTexture (gl, "color_map", colortex);
+            bound = true;
+         }
+      }
+      if (myProgramInfo.hasNormalMap ()) {
+         TextureContent content = myNormalMapProps.getContent ();
+         if (content != null) {
+            GLTexture normtex = myGLResources.getOrLoadTexture (gl, content);
+            myProgManager.bindTexture (gl, "normal_map", normtex);
+            myProgManager.setUniform (gl, prog, "normal_scale", myNormalMapProps.getNormalScale());
+            bound = true;
+         }
+      }
+      if (myProgramInfo.hasBumpMap ()) { 
+         TextureContent content = myBumpMapProps.getContent ();
+         if (content != null) {
+            GLTexture bumptex = myGLResources.getOrLoadTexture (gl, content);
+            myProgManager.bindTexture (gl, "bump_map", bumptex);
+            myProgManager.setUniform (gl, prog, "bump_scale", myBumpMapProps.getBumpScale());
+            bound = true;
+         }
+      }
+      return bound;
+   }
+   
+   protected GLShaderProgram updateProgram(GL3 gl, RenderingMode mode,
+      boolean hasNormals, boolean hasColors, boolean hasTextures) {     
+           
+      updateProgramInfo(mode, hasNormals, hasColors, hasTextures);
       
       GLShaderProgram prog;
       if (isSelecting ()) {
@@ -1284,21 +1339,7 @@ public class GL3Viewer extends GLViewer {
       }
       prog.use (gl);
       
-      // set texture map bindings
-      if (myProgramInfo.hasColorMap ()) {
-         GLTexture colortex = myGLResources.getOrLoadTexture (gl, myColorMapProps.getContent ());
-         myProgManager.bindTexture (gl, "color_map", colortex);
-      }
-      if (myProgramInfo.hasNormalMap ()) {
-         GLTexture normtex = myGLResources.getOrLoadTexture (gl, myNormalMapProps.getContent ());
-         myProgManager.bindTexture (gl, "normal_map", normtex);
-         myProgManager.setUniform (gl, prog, "normal_scale", myNormalMapProps.getNormalScale());
-      }
-      if (myProgramInfo.hasBumpMap ()) { 
-         GLTexture bumptex = myGLResources.getOrLoadTexture (gl, myBumpMapProps.getContent ());
-         myProgManager.bindTexture (gl, "bump_map", bumptex);
-         myProgManager.setUniform (gl, prog, "bump_scale", myBumpMapProps.getBumpScale());
-      }
+      maybeBindTextures(gl, prog);
       
       return prog;
    }

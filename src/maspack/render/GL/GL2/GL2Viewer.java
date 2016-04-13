@@ -7,6 +7,7 @@
  */
 package maspack.render.GL.GL2;
 
+import java.awt.Font;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.util.LinkedList;
@@ -26,11 +27,13 @@ import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.render.Dragger3d;
 import maspack.render.Light;
+import maspack.render.Light.LightSpace;
+import maspack.render.Light.LightType;
 import maspack.render.RenderKey;
 import maspack.render.RenderObject;
 import maspack.render.RenderObject.RenderObjectVersion;
-import maspack.render.color.ColorUtils;
 import maspack.render.RenderProps;
+import maspack.render.TextureContent;
 import maspack.render.TextureMapProps;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLColorSelector;
@@ -40,12 +43,12 @@ import maspack.render.GL.GLLightManager;
 import maspack.render.GL.GLMouseAdapter;
 import maspack.render.GL.GLOcclusionSelector;
 import maspack.render.GL.GLSupport;
+import maspack.render.GL.GLTextRenderer;
 import maspack.render.GL.GLTexture;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GL2.GL2Primitive.PrimitiveType;
 import maspack.render.GL.GL2.RenderObjectKey.DrawType;
-import maspack.render.Light.LightSpace;
-import maspack.render.Light.LightType;
+import maspack.render.color.ColorUtils;
 import maspack.util.BooleanHolder;
 import maspack.util.InternalErrorException;
 
@@ -68,6 +71,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    private GL2 gl;
    private GL2SharedResources myGLResources;
+   private GLTextRenderer myTextRenderer;
    
    // basic primitives
    private GL2Primitive[] primitives;
@@ -387,7 +391,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glEnable (GL2.GL_LIGHTING);
 
       gl.glEnable (GL2.GL_NORMALIZE);  // normalize normals
-
+      
+      myTextRenderer = GLTextRenderer.generate (gl, GL2PipelineRenderer.generate (gl));
 
       setLightingEnabled(true);
       setDepthEnabled(true);
@@ -500,6 +505,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             }
          }
       }
+      
+      myTextRenderer.dispose (gl);
+      myTextRenderer = null;
 
       if (DEBUG) {
          System.out.println("GL2 disposed");
@@ -678,6 +686,43 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glDepthFunc (GL2.GL_LESS);
 
       setLightingEnabled (true);
+   }
+   
+   public GLTextRenderer getTextRenderer() {
+      return myTextRenderer;
+   }
+   
+   public double drawText(Font font, String str, float[] loc, double emSize) {
+      
+      boolean savedTransparency = isTransparencyEnabled ();
+      boolean savedTexture = isTextureMappingEnabled ();
+      boolean savedDepth = isDepthEnabled ();
+      setDepthEnabled (false);
+      setTransparencyEnabled (true);
+      setTextureMappingEnabled (true);
+      
+      TextureMapProps textProps = new TextureMapProps ();
+      textProps.setTextureColorMixing (ColorMixing.MODULATE);
+      textProps.setEnabled (true);
+      TextureMapProps savedTextureProps = setTextureMapProps (textProps);
+      
+      maybeUpdateState(gl);
+
+      activateTexture (gl, myTextRenderer.getTexture ());
+      myTextRenderer.begin (gl);
+      double d = myTextRenderer.drawText (font, str, loc, (float)emSize);
+      myTextRenderer.end (gl);
+      deactivateTexture (gl);
+      
+      GLSupport.checkAndPrintGLError (gl);
+      
+      setDepthEnabled (savedDepth);
+
+      setTransparencyEnabled (savedTransparency);
+      setTextureMappingEnabled (savedTexture);
+      setTextureMapProps (savedTextureProps);
+      
+      return d;
    }
 
    // should be protected, not public;; this is for debugging
@@ -910,22 +955,28 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       // maybe use texture?
       GLTexture tex = null;
       if (!isSelecting () && myColorMapProps != null && myColorMapProps.isEnabled ()) {
-         tex = myGLResources.getOrLoadTexture (gl, myColorMapProps.getContent ());
-         if (tex != null) {
-            gl.glEnable(GL.GL_TEXTURE_2D);
-            gl.glActiveTexture (GL.GL_TEXTURE0);
-            gl.glTexEnvi (
-               GL2.GL_TEXTURE_ENV, GL2.GL_TEXTURE_ENV_MODE, getTextureMode (myColorMapProps));
-            tex.bind(gl);
-            activate = true;
+         TextureContent content = myColorMapProps.getContent ();
+         if (content != null) {
+            tex = myGLResources.getOrLoadTexture (gl, content);
+            if (tex != null) {
+               activateTexture (gl, tex);
+               activate = true;
+            }
          }
       }
      
       return activate;
-      
    }
    
-   protected void deactivateTextures(GL2 gl) {
+   protected void activateTexture(GL2 gl, GLTexture tex) {
+      gl.glEnable(GL.GL_TEXTURE_2D);
+      gl.glActiveTexture (GL.GL_TEXTURE0);
+      gl.glTexEnvi (
+         GL2.GL_TEXTURE_ENV, GL2.GL_TEXTURE_ENV_MODE, getTextureMode (myColorMapProps));
+      tex.bind(gl);
+   }
+   
+   protected void deactivateTexture(GL2 gl) {
       gl.glDisable(GL.GL_TEXTURE_2D);
    }
    
@@ -3143,7 +3194,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
          
       if (hasTexture) {
-         deactivateTextures (gl);
+         deactivateTexture (gl);
       }
 
       // disable color tracking
@@ -3949,7 +4000,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
 
       if (hasTexture) {
-         deactivateTextures (gl);
+         deactivateTexture (gl);
       }
       
       // disable color tracking
@@ -4045,7 +4096,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glEnd();
       
       if (hasTexture) {
-         deactivateTextures (gl);
+         deactivateTexture (gl);
       }
       
       if (hasColorData) {

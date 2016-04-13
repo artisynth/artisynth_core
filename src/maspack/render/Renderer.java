@@ -7,13 +7,15 @@
 package maspack.render;
 
 import java.awt.Color;
+import java.awt.Font;
+import java.awt.geom.Rectangle2D;
 
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
-import maspack.matrix.Point3d;
 
 public interface Renderer {
 
@@ -965,7 +967,83 @@ public interface Renderer {
    public void drawLineStrip (
       RenderProps props, Iterable<float[]> pnts, 
       LineStyle style, boolean selected);   
+   
+   /**
+    * Computes and returns the logical bounding box of the supplied
+    * text.  The width is the total advance, from baseline
+    * of the first character, to the advance after the last
+    * character.  The height is the line height (ascent +
+    * descent + leading).  The origin is placed at the baseline,
+    * with the position specifying the bottom-left corner.
+    * Note that in some fonts, some characters may extend
+    * outside of these bounds.  
+    * This method is mainly used for manual alignment of text.
+    * @param font font to use for sizing
+    * @param str String of which to compute the bounding box 
+    * @param emSize size of the 'em' unit
+    * @return rectangular bounds
+    */
+   public Rectangle2D getTextBounds(Font font, String str, double emSize);
+   
+   /**
+    * Sets default font for text rendering
+    * @param font default font. The font size largely impacts
+    * the resolution of the renderer characters.  A value of at least
+    * 32pt is recommended.
+    */
+   public void setDefaultFont(Font font);
+   
+   /**
+    * Retrieves the default font.
+    * @return default font.
+    */
+   public Font getDefaultFont();
 
+   /**
+    * Draws text at a specified location in world coordinates.  Uses
+    * a default font.
+    * @param str string to render
+    * @param loc world location
+    * @param emSize world size of an `em' unit
+    * @return the advance distance in the x-direction (width of text)
+    */
+   public double drawText(String str, float[] loc, double emSize);
+   
+   /**
+    * Draws text at a specified location in world coordinates on
+    * the x-y plane.
+    * @param font the font to use.  The font size largely impacts
+    * the resolution of the renderer characters.  A value of at least
+    * 32pt is recommended.
+    * @param str string to render
+    * @param loc world location
+    * @param emSize world size of an `em' unit
+    * @return the advance distance in the x-direction (width of text)
+    */
+   public double drawText(Font font, String str, float[] loc, double emSize);
+   
+   /**
+    * Draws text at a specified location in world coordinates.  Uses
+    * a default font.
+    * @param str string to render
+    * @param loc world location
+    * @param emSize world size of an `em' unit
+    * @return the advance distance in the x-direction (width of text)
+    */
+   public double drawText(String str, Point3d loc, double emSize);
+   
+   /**
+    * Draws text at a specified location in world coordinates.
+    * @param font the font to use.  The font size largely impacts
+    * the resolution of the renderer characters.  A value of at least
+    * 32pt is recommended.
+    * @param str string to render
+    * @param loc world location
+    * @param emSize world size of an `em' unit
+    * @return the advance distance in the x-direction (width of text)
+    */
+   public double drawText(Font font, String str, Point3d loc, double emSize);
+   
    /**
     * Gives the direction, in world coordinates, of a vector that
     * is perpendicular to the screen and points towards the viewer.

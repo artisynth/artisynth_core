@@ -12,22 +12,8 @@ public class GL2PipelineRenderer extends GLPipelineRendererBase {
 
    int vbo;
    
-   public GL2PipelineRenderer () {
-      vbo = -1;
-   }
-   
-   @Override
-   public void init (GL gl) {
-      if (vbo == -1) {
-         int[] v = new int[1];
-         gl.glGenBuffers (1, v, 0);
-         vbo = v[0];
-      }
-   }
-   
-   @Override
-   public boolean isInitialized () {
-      return (vbo != -1);
+   private GL2PipelineRenderer (int vbo) {
+      this.vbo = vbo;
    }
    
    @Override
@@ -67,14 +53,15 @@ public class GL2PipelineRenderer extends GLPipelineRendererBase {
    
    @Override
    protected void draw (GL gl, int glMode, ByteBuffer vbuff, int count) {
-      GL2 gl2 = (GL2)gl;
-      gl2.glBindBuffer(GL.GL_ARRAY_BUFFER, vbo);
-      // orphan and fill
-      gl2.glBufferData (GL.GL_ARRAY_BUFFER, vbuff.capacity (), null, GL2GL3.GL_STREAM_DRAW);
-      gl2.glBufferSubData(GL.GL_ARRAY_BUFFER, 0, vbuff.limit (), vbuff);
-      
-      gl2.glDrawArrays(glMode, 0, count);
-      
+      if (count > 0) {
+         GL2 gl2 = (GL2)gl;
+         gl2.glBindBuffer(GL.GL_ARRAY_BUFFER, vbo);
+         // orphan and fill
+         gl2.glBufferData (GL.GL_ARRAY_BUFFER, vbuff.capacity (), null, GL2GL3.GL_STREAM_DRAW);
+         gl2.glBufferSubData(GL.GL_ARRAY_BUFFER, 0, vbuff.limit (), vbuff);
+         
+         gl2.glDrawArrays(glMode, 0, count);
+      }
    }
    
    @Override
@@ -90,6 +77,12 @@ public class GL2PipelineRenderer extends GLPipelineRendererBase {
          gl.glDeleteBuffers (1, v, 0);
          vbo = v[0];
       }
+   }
+   
+   public static GL2PipelineRenderer generate(GL gl) {
+      int[] v = new int[1];
+      gl.glGenBuffers (1, v, 0);
+      return new GL2PipelineRenderer (v[0]);
    }
 
 }

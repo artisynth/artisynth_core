@@ -396,7 +396,7 @@ public class GL3SharedObjectFactory {
       
       IndexBufferObject ibo = IndexBufferObject.generate(gl);
       ibo.fill(gl,  ebuff, eusage);
-      GL3ElementAttributeArray indices = new GL3ElementAttributeArray(ibo, GL3Utilities.getGLType(estorage.type()), 
+      GL3ElementAttributeArray indices = new GL3ElementAttributeArray(ibo, estorage.getGLType (), 
          eoffset, estride, nelems);
       
       GL3SharedObject glo = new GL3SharedObject(attributes, indices, mode);

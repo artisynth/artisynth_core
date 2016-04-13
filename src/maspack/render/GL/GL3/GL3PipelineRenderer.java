@@ -7,11 +7,12 @@ import javax.media.opengl.GL2GL3;
 import javax.media.opengl.GL3;
 
 import maspack.render.GL.GLPipelineRendererBase;
+import maspack.render.GL.GLSupport;
 
 public class GL3PipelineRenderer extends GLPipelineRendererBase {
 
-   int vao;
-   int vbo;
+   VertexArrayObject vao;
+   VertexBufferObject vbo;
    
    // attribute locations
    int nloc;
@@ -19,10 +20,12 @@ public class GL3PipelineRenderer extends GLPipelineRendererBase {
    int tloc;
    int ploc;
    
-   public GL3PipelineRenderer (int normalAttribLocation, int colorAttribLocation,
+   private GL3PipelineRenderer (
+      VertexArrayObject vao, VertexBufferObject vbo,
+      int normalAttribLocation, int colorAttribLocation,
       int texcoordAttribLocation, int positionAttribLocation) {
-      vao = 0;
-      vbo = -1;
+      this.vao = vao.acquire ();
+      this.vbo = vbo.acquire ();
       nloc = normalAttribLocation;
       cloc = colorAttribLocation;
       tloc = texcoordAttribLocation;
@@ -30,33 +33,13 @@ public class GL3PipelineRenderer extends GLPipelineRendererBase {
    }
    
    @Override
-   public void init (GL gl) {
-      GL3 gl3 = (GL3)gl;
-      int[] v = new int[1];
-      if (vao == 0) {
-         gl3.glGenVertexArrays (1, v, 0);
-         vao = v[0];
-      }
-      if (vbo == -1) {
-         gl3.glGenBuffers (1, v, 0);
-         vbo = v[0];
-      }
-   }
-   
-   @Override
-   public boolean isInitialized () {
-      return (vao != 0 && vbo != -1);
-   }
-   
-   @Override
    public void bind (
       GL gl, ByteBuffer buff, int normalOffset, int colorOffset,
       int texcoordOffset, int positionOffset, int vertexStride) {
 
-      GL2GL3 gl3 = (GL2GL3)gl;
-      gl3.glBindVertexArray (vao);
-      gl3.glBindBuffer (GL.GL_ARRAY_BUFFER, vbo);
-      gl3.glBufferData (GL.GL_ARRAY_BUFFER, buff.capacity (), null, GL2GL3.GL_STREAM_DRAW);
+      GL3 gl3 = (GL3)gl;
+      vao.bind (gl3);
+      vbo.allocate (gl3, buff.capacity (), GL3.GL_STREAM_DRAW);
       
       if (normalOffset >= 0) {
          gl3.glEnableVertexAttribArray (nloc);
@@ -92,15 +75,16 @@ public class GL3PipelineRenderer extends GLPipelineRendererBase {
 
    
    @Override
-   protected void draw (GL gl, int glMode, ByteBuffer vbuff, int count) {
-      GL2GL3 gl3 = (GL2GL3)gl;
-      gl3.glBindVertexArray (vao);
-      gl3.glBindBuffer(GL.GL_ARRAY_BUFFER, vbo);
-      // orphan and fill
-      gl3.glBufferData (GL.GL_ARRAY_BUFFER, vbuff.capacity (), null, GL2GL3.GL_STREAM_DRAW);
-      gl3.glBufferSubData(GL.GL_ARRAY_BUFFER, 0, vbuff.limit (), vbuff);
-      
-      gl.glDrawArrays (glMode, 0, count);
+   protected void draw (GL gl, int glMode, ByteBuffer vbuff, int count) {      
+      if (count > 0) {
+         GL3 gl3 = (GL3)gl;
+         vao.bind (gl3);
+         vbo.fill (gl3, vbuff);
+         GLSupport.checkAndPrintGLError (gl);
+         
+         gl.glDrawArrays (glMode, 0, count);
+         GLSupport.checkAndPrintGLError (gl);
+      }
    }
    
    @Override
@@ -108,17 +92,24 @@ public class GL3PipelineRenderer extends GLPipelineRendererBase {
       super.dispose (gl);
       
       GL3 gl3 = (GL3)gl;
-      int[] v = new int[1];
-      if (vao != 0) {
-         v[0] = vao;
-         gl3.glDeleteVertexArrays (1, v, 0);
-         vao = 0;
+      if (vao != null) {
+         vao.releaseDispose (gl3);
+         vao = null;
       }
-      if (vbo != -1) {
-         v[0] = vbo;
-         gl3.glDeleteBuffers (1, v, 0);
-         vbo = -1;
+      if (vbo != null) {
+         vbo.releaseDispose (gl3);
+         vbo = null;
       }
+   }
+   
+   public static GL3PipelineRenderer generate(GL3 gl,
+      int normalAttribLocation, int colorAttribLocation,
+      int texcoordAttribLocation, int positionAttribLocation) {
+     VertexArrayObject vao = VertexArrayObject.generate (gl);
+     VertexBufferObject vbo = VertexBufferObject.generate (gl);
+     return new GL3PipelineRenderer (vao, vbo, 
+        normalAttribLocation, colorAttribLocation, 
+        texcoordAttribLocation, positionAttribLocation);
    }
 
 }

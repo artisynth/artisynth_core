@@ -184,7 +184,7 @@ public class GLTextureLoader implements GLGarbageSource {
 
       // create the texture ID for this texture
       int textureID = createTextureId(gl);
-      GLTexture texture = new GLTexture (gl, target, textureID);
+      GLTexture texture = new GLTexture (target, textureID);
       texture.setWidth (bufferedImage.getWidth());
       texture.setHeight (bufferedImage.getHeight());
 
@@ -197,7 +197,8 @@ public class GLTextureLoader implements GLGarbageSource {
 
       // produce a texture from the byte buffer
       gl.glTexImage2D (
-         target, 0, dstPixelFormat, bufferedImage.getWidth(), bufferedImage.getHeight(), 0, srcPixelFormat,
+         target, 0, dstPixelFormat, bufferedImage.getWidth(), bufferedImage.getHeight(), 
+         0, srcPixelFormat,
          GL2.GL_UNSIGNED_BYTE, textureBuffer);
 
       return texture;
@@ -281,7 +282,7 @@ public class GLTextureLoader implements GLGarbageSource {
 
       // create the texture ID for this texture
       int textureID = createTextureId(gl);
-      GLTexture texture = new GLTexture (gl, target, textureID);
+      GLTexture texture = new GLTexture (target, textureID);
 
       // bind this texture
       gl.glBindTexture (target, textureID);

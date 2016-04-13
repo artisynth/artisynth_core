@@ -8,9 +8,11 @@
 package maspack.render.GL;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Rectangle;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseWheelListener;
+import java.awt.geom.Rectangle2D;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -3148,7 +3150,36 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       RigidTransform3d X, double len, int width, boolean selected) {
       drawAxes (X, new double[] {len, len, len}, width, selected);
    }
+   
+   public abstract GLTextRenderer getTextRenderer();
+   
+   public void setDefaultFont(Font font) {
+      getTextRenderer().setFont (font);
+   }
+   
+   public Font getDefaultFont() {
+      return getTextRenderer().getFont();
+   }
+   
+   public Rectangle2D getTextBounds(Font font, String str, double emSize) {
+      return getTextRenderer().getTextBounds (font, str, (float)emSize);
+   }
+   
+   @Override
+   public double drawText (String str, float[] loc, double emSize) {
+      return drawText (getDefaultFont(), str, loc, emSize);
+   }
+   
+   @Override
+   public double drawText (Font font, String str, Point3d loc, double emSize) {
+      return drawText (font, str, toFloat(loc), emSize);
+   }
 
+   @Override
+   public double drawText (String str, Point3d loc, double emSize) {
+      return drawText(getDefaultFont (), str, toFloat (loc), emSize);
+   }
+   
    /**
     * MUST BE CALLED by whatever frame when it is going down, will notify any 
     * shared resources that they can be cleared.  It is best to add it as a

@@ -869,8 +869,8 @@ public class GLSLGenerator {
                appendln(hb, "uniform sampler2D bump_map;");
                appendln(hb, "uniform float bump_scale;");
             }
-            appendln(hb);
          }
+         appendln(hb);
       }      
    }
 

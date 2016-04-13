@@ -8,28 +8,29 @@ package artisynth.core.renderables;
 
 import java.awt.Font;
 import java.awt.geom.Rectangle2D;
-import java.awt.*;
 import java.util.ArrayList;
 
-import javax.media.opengl.GL2;
+import com.jogamp.opengl.util.awt.TextRenderer;
 
 import maspack.geometry.Rectangle;
+import maspack.matrix.AffineTransform3d;
+import maspack.matrix.AxisAngle;
 import maspack.matrix.Vector2d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 import maspack.render.IsRenderable;
-import maspack.render.Renderer;
 import maspack.render.LineFaceRenderProps;
+import maspack.render.RenderObject;
 import maspack.render.RenderProps;
-import maspack.render.GL.GL2.GL2Viewer;
+import maspack.render.Renderer;
+import maspack.render.Renderer.ColorMixing;
+import maspack.render.color.ColorMap;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
 import maspack.util.DoubleInterval;
 import maspack.util.NumberFormat;
-
-import com.jogamp.opengl.util.awt.TextRenderer;
 
 
 /**
@@ -40,13 +41,6 @@ import com.jogamp.opengl.util.awt.TextRenderer;
  */
 public class ColorBar extends TextComponentBase {
 
-   //   public enum CornerRef {
-   //      TOP_LEFT,
-   //      TOP_RIGHT,
-   //      BOTTOM_LEFT,
-   //      BOTTOM_RIGHT
-   //   }
-   
    public static Rectangle defaultLoc = new Rectangle(40, 0, 20, 0);
    public static Rectangle defaultNormLoc = new Rectangle(0, 0.1, 0.05, 0.8);
    //   public static CornerRef defaultLocationRef = CornerRef.BOTTOM_RIGHT;
@@ -78,6 +72,8 @@ public class ColorBar extends TextComponentBase {
    private Vector2d myTickFractions;
    Vector2d myTextOffset;
    
+   RenderObject myRenderObject;
+   
    public static PropertyList myProps = new PropertyList(
       ColorBar.class, TextComponentBase.class);
    static {
@@ -105,7 +101,7 @@ public class ColorBar extends TextComponentBase {
    }
    
    public ColorBar(ColorMapBase cmap) {
-      setDefaults();
+      this();
       myColorMap = cmap;
    }
 
@@ -144,15 +140,74 @@ public class ColorBar extends TextComponentBase {
       myTextOffset = new Vector2d(defaultTextOffset);
       
       myNumberFormat = new NumberFormat(defaultNumberFormat);
+      myRenderObject = null;
    }
-
-//   @Override
-//   public synchronized void renderx(GLRenderer renderer, int flags) {
-//      if (isSelectable() || !renderer.isSelecting()) {
-//         render(renderer, 0);
-//      }
-//   }
-//
+   
+   public RenderObject buildRenderObject(int divisions, ColorMap cmap, VectorNd labelPos, Vector2d tickWidths) {
+      RenderObject out = new RenderObject();
+      
+      out.ensurePositionCapacity (6*divisions+2);
+      out.ensureVertexCapacity (6*divisions+2);
+      out.ensureColorCapacity (divisions+3);
+      out.ensureTriangleCapacity (2*divisions);
+      out.ensureLineCapacity (2+2*divisions);
+      
+      // for color interpolation
+      float[] rgb = new float[3];
+      
+      // add positions and colors
+      for (int i=0; i<=divisions; ++i) {
+         cmap.getRGB (i/divisions, rgb);
+         out.addColor (rgb[0], rgb[1], rgb[2], 1f);
+         out.addPosition (0, i/divisions, 0);
+         out.addPosition (1, i/divisions, 0);
+      }
+      
+      // line color
+      int lineColor = out.addColor (0,0,0,1);
+      
+      // tick inner positions
+      for (int i=0; i<labelPos.size (); ++i) {
+         float y = (float)(labelPos.get (i));
+         out.addPosition ((float)(tickWidths.x), y, 0);
+         out.addPosition ((float)(tickWidths.y), y, 0);
+      }
+      
+      // color bar vertices
+      int vidx  = 0;
+      out.addVertex (0, -1, 0, -1);
+      out.addVertex (1, -1, 0, -1);
+      for (int i=1; i<=divisions; ++i) {
+         vidx = out.addVertex (2*i, -1, i, -1);
+         out.addVertex (2*i+1, -1, i, -1);
+         out.addTriangle (vidx-2, vidx, vidx-1);
+         out.addTriangle (vidx-1, vidx, vidx+1);
+      }
+      
+      // border vertices
+      out.setCurrentColor (lineColor);
+      vidx = out.addVertex (0);
+      out.addVertex (1);
+      out.addVertex (2*divisions);
+      out.addVertex (2*divisions+1);
+      out.addLine (vidx, vidx+1);
+      out.addLine (vidx, vidx+2);
+      out.addLine (vidx+2, vidx+3);
+      out.addLine (vidx+1, vidx+3);
+      
+      // tick vertices
+      int tickPos = 2*divisions+2;
+      for (int i=0; i<labelPos.size (); ++i) {
+         vidx = out.addVertex (2*i);
+         out.addVertex (tickPos++);
+         out.addLine (vidx, vidx+1);
+         vidx = out.addVertex (2*i+1);
+         out.addVertex (tickPos++);
+         out.addLine (vidx, vidx+1);
+      }
+      
+      return out;
+   }
    
    @Override
    public void render(Renderer renderer, int flags) {
@@ -160,12 +215,6 @@ public class ColorBar extends TextComponentBase {
       if (!isSelectable() && renderer.isSelecting()) {
          return;
       }
-      
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
       
       int screenWidth = renderer.getScreenWidth();
       int screenHeight = renderer.getScreenHeight();
@@ -187,7 +236,6 @@ public class ColorBar extends TextComponentBase {
       } else if (x0 < 0) {
          x0 = screenWidth + x0;
       }
-      
       if (y0 == 0) {
          y0 = myNormLoc.y * screenHeight;
       } else if (y0 < 0) {
@@ -202,107 +250,42 @@ public class ColorBar extends TextComponentBase {
       if (bheight <= 0) {
          bheight = myNormLoc.height*screenHeight;
       }
-
-      float[] rgb = new float[3];
-
-      double du;
-      if (horizontal) {
-         du = bwidth/nBarDivisions;
-      } else {
-         du = bheight/nBarDivisions;
-      }
-
-      // draw bar
-      gl.glBegin(GL2.GL_QUAD_STRIP);
-      for (int i=0; i<=nBarDivisions; i++) {
-
-         myColorMap.getRGB((double)i/nBarDivisions, rgb);
-         renderer.setColor (rgb);
-         if (horizontal) {
-            gl.glVertex2d(x0+i*du, y0);
-            gl.glVertex2d(x0+i*du, y0+bheight);   
-         } else {
-            gl.glVertex2d(x0+bwidth, y0+i*du);
-            gl.glVertex2d(x0, y0+i*du);
-         }
-      }
-      gl.glEnd();
-
-      LineFaceRenderProps props = (LineFaceRenderProps)getRenderProps();
-      // draw border and ticks
-      if (props.getLineWidth() > 0) {
-         
-         float savedLineWidth = renderer.getLineWidth();
-         renderer.setLineWidth(props.getLineWidth());
-         
-         props.getLineColor(rgb);
-         
-         renderer.setColor (rgb);
-         
-         // border
-         gl.glBegin(GL2.GL_LINE_STRIP);
-         gl.glVertex2d(x0, y0);
-         gl.glVertex2d(x0+bwidth, y0);
-         gl.glVertex2d(x0+bwidth, y0+bheight);
-         gl.glVertex2d(x0, y0+bheight);
-         gl.glVertex2d(x0, y0);
-         gl.glEnd();
-         
-         // ticks
-         double t1 = 0;
-         double t2 = 0;
-         double tx,ty;
-         if (horizontal) {
-            if (vAlignment == VerticalAlignment.TOP) {
-               t2 = myTickFractions.x*bheight;
-               t1 = myTickFractions.y*bheight;
-            } else {
-               t1 = myTickFractions.x*bheight;
-               t2 = myTickFractions.y*bheight;
-            }
-            
-            gl.glBegin(GL2.GL_LINES);
-            for (int i=0; i<myLabelPos.size(); i++) {
-               // bottom/top
-               tx = x0 + myLabelPos.get(i)*bwidth;
-               ty = y0;
-               gl.glVertex2d(tx, ty);
-               gl.glVertex2d(tx, ty+t1);
-               gl.glVertex2d(tx, ty+bheight);
-               gl.glVertex2d(tx, ty+bheight-t2);
-            }
-            gl.glEnd();
-            
-         } else {
-            if (hAlignment == HorizontalAlignment.LEFT) {
-               t1 = myTickFractions.x*bwidth;
-               t2 = myTickFractions.y*bwidth;
-            } else {
-               t2 = myTickFractions.x*bwidth;
-               t1 = myTickFractions.y*bwidth;
-            }
-            
-            gl.glBegin(GL2.GL_LINES);
-            for (int i=0; i<myLabelPos.size(); i++) {
-               // bottom/top
-               tx = x0;
-               ty = y0 + myLabelPos.get(i)*bheight;
-               gl.glVertex2d(tx, ty);
-               gl.glVertex2d(tx+t1, ty);
-               gl.glVertex2d(tx+bwidth, ty);
-               gl.glVertex2d(tx+bwidth-t2, ty);
-            }
-            gl.glEnd();
-         }
-         
-         // return line width
-         renderer.setLineWidth(savedLineWidth);
+      
+      RenderObject robj = myRenderObject;
+      if (robj == null) {
+         robj = buildRenderObject (nBarDivisions, myColorMap, myLabelPos, myTickFractions);
+         myRenderObject = robj;
       }
       
+      renderer.pushModelMatrix ();
+      
+      // transform so that the colorbar occupies correct location
+      AffineTransform3d trans = new AffineTransform3d();
+      if (horizontal) {
+         trans.setRotation (AxisAngle.ROT_Z_90);
+      }
+      trans.applyScaling (bwidth/screenWidth, bheight/screenHeight, 1);
+      trans.setTranslation (x0, y0, 0);
+      
+      LineFaceRenderProps props = (LineFaceRenderProps)getRenderProps();
+      float savedLineWidth = renderer.getLineWidth();
+      renderer.setLineWidth(props.getLineWidth());
+      renderer.setLineColoring (props, false);
+      
+      renderer.setVertexColorMixing (ColorMixing.NONE);
+      renderer.drawLines (robj, 0);
+      renderer.setVertexColorMixing (ColorMixing.REPLACE);
+      renderer.drawTriangles (robj, 0);
+
+      renderer.popModelMatrix ();
+      
+      // return line width
+      renderer.setLineWidth(savedLineWidth);
+
       // labels
       int nLabels = Math.min(myLabelPos.size(), myLabelText.size());
       if (nLabels > 0) {
-         
+         float[] rgb = new float[3];
          props.getFaceColor(rgb);
          double tx, ty;
          float fTextSize = (float)(myTextSize/getFontSize());
@@ -313,6 +296,7 @@ public class ColorBar extends TextComponentBase {
          
          myTextRenderer.setColor(rgb[0], rgb[1], rgb[2], 1);
          myTextRenderer.begin3DRendering();
+         
          for (int i=0; i<nLabels; i++) {
             tx = 0;
             ty = 0;
@@ -377,8 +361,6 @@ public class ColorBar extends TextComponentBase {
             myTextRenderer.draw3D(label, (float)tx, (float)ty, 0, fTextSize);           
          }
          myTextRenderer.end3DRendering();
-         
-         
       }
       
       
@@ -446,6 +428,7 @@ public class ColorBar extends TextComponentBase {
    
    public void setColorMap(ColorMapBase colorMap) {
       myColorMap = colorMap;
+      myRenderObject = null;
       myColorMapMode =
          PropertyUtils.propagateValue (
             this, "colorMap", colorMap, myColorMapMode);
@@ -476,6 +459,7 @@ public class ColorBar extends TextComponentBase {
 
    public synchronized void setLabelPositions(VectorNd pos) {
       myLabelPos.set(pos);
+      myRenderObject = null;
    }
    
    public synchronized void setLabels(ArrayList<String> text) {
@@ -575,6 +559,7 @@ public class ColorBar extends TextComponentBase {
    
    public void setTickFraction(Vector2d frac) {
       myTickFractions.set(frac);
+      myRenderObject = null;
    }
    
    public Vector2d getTickFraction() {

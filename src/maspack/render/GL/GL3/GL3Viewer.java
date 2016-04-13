@@ -250,8 +250,10 @@ public class GL3Viewer extends GLViewer {
       invalidateViewMatrix();
 
       myProgManager.init(gl, lightManager.numLights(), 0);
-      myProgManager.setMatrices(gl, projectionMatrix, viewMatrix, modelMatrix, modelNormalMatrix);
-      myProgManager.setLights(gl, lightManager.getLights(), 1.0f/lightManager.getMaxIntensity(), viewMatrix);
+      myProgManager.setMatrices(gl, projectionMatrix, viewMatrix, 
+         modelMatrix, modelNormalMatrix, textureMatrix);
+      myProgManager.setLights(gl, lightManager.getLights(), 
+         1.0f/lightManager.getMaxIntensity(), viewMatrix);
       myProgManager.setMaterials (gl, myCurrentMaterial, myCurrentMaterial);
       myCurrentMaterialModified = true;  // trigger update of materials
 
@@ -708,7 +710,8 @@ public class GL3Viewer extends GLViewer {
    //==========================================================================
 
    protected void updateMatrices(GL3 gl) {
-      myProgManager.setMatrices(gl, projectionMatrix, viewMatrix, modelMatrix, modelNormalMatrix);
+      myProgManager.setMatrices(gl, projectionMatrix, viewMatrix, 
+         modelMatrix, modelNormalMatrix, textureMatrix);
       modelMatrixValidP = true;
       projectionMatrixValidP = true;
       viewMatrixValidP = true;

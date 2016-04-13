@@ -13,9 +13,11 @@ import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
 
 import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.AffineTransform2dBase;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix4d;
 import maspack.matrix.Plane;
+import maspack.matrix.RigidTransform2d;
 import maspack.matrix.RigidTransform3d;
 import maspack.render.Light;
 import maspack.render.Material;
@@ -414,10 +416,17 @@ public class GL3ProgramManager {
    public int numClipPlanes() {
       return numClipPlanes;
    }
-
+   
    public void setMatrices(GL3 gl, Matrix4d projection, RigidTransform3d view, 
       AffineTransform3dBase model, Matrix3d modelNormal) {
-      matricesUBO.updateMatrices(gl, projection, view, model, modelNormal);
+      setMatrices(gl, projection, view, model, modelNormal, RigidTransform2d.IDENTITY);
+   }
+
+   public void setMatrices(GL3 gl, Matrix4d projection, RigidTransform3d view, 
+      AffineTransform3dBase model, Matrix3d modelNormal,
+      AffineTransform2dBase texture) {
+      matricesUBO.updateMatrices(gl, projection, view, model, 
+         modelNormal, texture);
    }
 
    public void setMaterials(GL3 gl, Material frontMaterial, Material backMaterial) {

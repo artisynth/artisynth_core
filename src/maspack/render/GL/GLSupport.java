@@ -18,7 +18,10 @@ import javax.media.opengl.GL;
 import javax.media.opengl.GL2GL3;
 
 import jogamp.opengl.glu.error.Error;
+import maspack.matrix.AffineTransform2dBase;
 import maspack.matrix.Matrix;
+import maspack.matrix.Matrix2dBase;
+import maspack.matrix.Vector2d;
 import maspack.util.BufferUtilities;
 
 public class GLSupport {
@@ -49,26 +52,45 @@ public class GLSupport {
       return (int)(bits ^ (bits >>> 32));
    }
    
+   /**
+    * Converts a 2D affine transform to a 4D matrix expected by opengl
+    * @param mat
+    * @param T
+    */
+   public static void transformToGLMatrix (double[] mat, AffineTransform2dBase T) {
+      Matrix2dBase M = T.getMatrix ();
+      Vector2d p = T.getOffset ();
+      
+      mat[0] = M.m00;
+      mat[1] = M.m10;
+      mat[2] = 0;
+      mat[3] = 0;
+
+      mat[4] = M.m01;
+      mat[5] = M.m11;
+      mat[6] = 01;
+      mat[7] = 0;
+
+      mat[8] = 0;
+      mat[9] = 0;
+      mat[10] = 0;
+      mat[11] = 0;
+
+      mat[12] = p.x;
+      mat[13] = p.y;
+      mat[14] = 0;
+      mat[15] = 1;
+   }
+   
    public static void transformToGLMatrix (double[] mat, Matrix T) {
-      mat[0] = T.get (0, 0);
-      mat[1] = T.get (1, 0);
-      mat[2] = T.get (2, 0);
-      mat[3] = T.get (3, 0);
-
-      mat[4] = T.get (0, 1);
-      mat[5] = T.get (1, 1);
-      mat[6] = T.get (2, 1);
-      mat[7] = T.get (3, 1);
-
-      mat[8] = T.get (0, 2);
-      mat[9] = T.get (1, 2);
-      mat[10] = T.get (2, 2);
-      mat[11] = T.get (3, 2);
-
-      mat[12] = T.get (0, 3);
-      mat[13] = T.get (1, 3);
-      mat[14] = T.get (2, 3);
-      mat[15] = T.get (3, 3);
+      int nr = T.rowSize ();
+      int nc = T.colSize ();
+      int idx = 0;
+      for (int c=0; c<nc; ++c) {
+         for (int r=0; r<nr; ++r) {
+            mat[idx++] = T.get (r, c);
+         }
+      }
    }
 
 //   public static void GLMatrixToTransform (DenseMatrix T, double[] mat) {

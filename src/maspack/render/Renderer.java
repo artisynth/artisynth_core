@@ -10,9 +10,12 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.geom.Rectangle2D;
 
+import maspack.matrix.AffineTransform2d;
+import maspack.matrix.AffineTransform2dBase;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform2d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
@@ -1933,6 +1936,35 @@ public interface Renderer {
 //    * Flag requesting components refresh any custom rendering info
 //    */
 //   public static int UPDATE_RENDER_CACHE = 0x200;
+   
+   /**
+    * Sets the texture coordinate transformation matrix to the specified 
+    * transform. The texture matrix is applied to texture coordinates,
+    * useful for tiling, or when compacting multiple texture sources into
+    * a single large texture. 
+    * 
+    * @param X new texture matrix value
+    */
+   public void setTextureMatrix(AffineTransform2dBase trans);   
+   
+   /**
+    * Gets the current texture matrix. The texture matrix is the transformation
+    * applied to any texture coordinates. If the matrix is a rigid
+    * transformation, the returned value is a {@link RigidTransform2d};
+    * otherwise, it is a more general {@link AffineTransform2d}.
+    * 
+    * @return texture matrix value (may be modified by the user)
+    */
+   public AffineTransform2dBase getTextureMatrix();
+   
+   /**
+    * Gets the current texture matrix. The texture matrix is the transformation
+    * applied to texture coordinates.
+    * 
+    * @param X returns the current texture matrix value
+    * @see #setTextureMatrix(AffineTransform2dBase)
+    */
+   public void getTextureMatrix (AffineTransform2d X);
    
    /**
     * Queries whether or not this Renderer supports selection.

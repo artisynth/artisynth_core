@@ -28,6 +28,8 @@ import javax.media.opengl.GLEventListener;
 import javax.media.opengl.awt.GLCanvas;
 import javax.swing.event.MouseInputListener;
 
+import maspack.matrix.AffineTransform2d;
+import maspack.matrix.AffineTransform2dBase;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AxisAlignedRotation;
@@ -36,6 +38,7 @@ import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix4d;
 import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform2d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SVDecomposition3d;
@@ -84,15 +87,18 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected Matrix4d projectionMatrix;
    protected RigidTransform3d viewMatrix;
    protected AffineTransform3dBase modelMatrix;
-   protected Matrix3d modelNormalMatrix;  // inverse-transform (for normals)
+   protected Matrix3d modelNormalMatrix;            // inverse-transform (for normals)
+   protected AffineTransform2dBase textureMatrix;   // transforming texture coordinates
    protected boolean modelMatrixValidP = false;
    protected boolean viewMatrixValidP = false;
    protected boolean projectionMatrixValidP = false;
+   protected boolean textureMatrixValidP = false;
    // stacks 
    private LinkedList<Matrix4d> projectionMatrixStack;
    private LinkedList<RigidTransform3d> viewMatrixStack;
    private LinkedList<AffineTransform3dBase> modelMatrixStack;
    private LinkedList<Matrix3d> modelNormalMatrixStack;   // linked to model matrix
+   private LinkedList<AffineTransform2dBase> textureMatrixStack;
 
    protected Vector3d zDir = new Vector3d();     // used for determining zOrder
 
@@ -1361,16 +1367,19 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       viewMatrix = new RigidTransform3d();
       modelMatrix = new RigidTransform3d();
       modelNormalMatrix = new Matrix3d(modelMatrix.getMatrix());
+      textureMatrix = RigidTransform2d.IDENTITY.clone();
 
       projectionMatrixStack = new LinkedList<>();
       viewMatrixStack = new LinkedList<>();
       modelMatrixStack = new LinkedList<>();
       modelNormalMatrixStack = new LinkedList<>();
+      textureMatrixStack = new LinkedList<> ();
 
       computeProjectionMatrix ();
       invalidateModelMatrix();
       invalidateViewMatrix();
       invalidateProjectionMatrix();
+      invalidateTextureMatrix ();
       
       myProgramInfo = new GLProgramInfo();
    }
@@ -2824,14 +2833,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       invalidateModelMatrix();
    }
 
-//   public void mulModelMatrix(RigidTransform3d trans) {
-//      synchronized (modelMatrix) {
-//         modelMatrix.mul(trans);
-//         modelNormalMatrix.mul(trans.R);  
-//      }
-//      invalidateModelMatrix();
-//   }
-//
    public void mulModelMatrix (AffineTransform3dBase trans) {
       synchronized(modelMatrix) {
          if (trans instanceof RigidTransform3d) {
@@ -2872,6 +2873,26 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public void getProjectionMatrix (Matrix4d X) {
       X.set(projectionMatrix);
    }
+   
+   @Override
+   public void setTextureMatrix(AffineTransform2dBase trans) {
+      synchronized(textureMatrix) {
+         if (textureMatrix.getClass() == trans.getClass()) {
+            textureMatrix.set(trans);
+         } else {
+            textureMatrix = trans.clone();
+         }
+      }
+      invalidateTextureMatrix();
+   }
+   
+   public AffineTransform2dBase getTextureMatrix() {
+      return textureMatrix.clone ();
+   }
+   
+   public void getTextureMatrix (AffineTransform2d X) {
+      X.set (textureMatrix);
+   }
 
    protected void invalidateModelMatrix() {
       modelMatrixValidP = false;
@@ -2883,6 +2904,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    protected void invalidateViewMatrix() {
       viewMatrixValidP = false;
+   }
+   
+   protected void invalidateTextureMatrix() {
+      textureMatrixValidP = false;
    }
 
    public void pushViewMatrix() {
@@ -2940,6 +2965,19 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       projectionMatrix = projectionMatrixStack.pop();
       myFrustum = frustrumStack.pop();
       invalidateProjectionMatrix();
+      return true;
+   }
+   
+   public void pushTextureMatrix() {
+      textureMatrixStack.push (textureMatrix.clone ());
+   }
+   
+   public boolean popTextureMatrix() {
+      if (textureMatrixStack.size () == 0) {
+         return false;
+      }
+      textureMatrix = textureMatrixStack.pop ();
+      invalidateTextureMatrix ();
       return true;
    }
 

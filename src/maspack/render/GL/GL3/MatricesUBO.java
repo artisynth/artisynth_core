@@ -4,26 +4,31 @@ import java.nio.ByteBuffer;
 
 import javax.media.opengl.GL3;
 
+import maspack.matrix.AffineTransform2dBase;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.Matrix2dBase;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix4d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SVDecomposition3d;
+import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 
 public class MatricesUBO extends UniformBufferObject {
    
    static final String[] PVM_ATTRIBUTES = { "pvm_matrix",    // model to screen
-                                  "vm_matrix",     // model to viewer
-                                  "m_matrix",      // model to world
-                                  "normal_matrix"  // model to viewer normal
+                                  "vm_matrix",      // model to viewer
+                                  "m_matrix",       // model to world
+                                  "normal_matrix",  // model to viewer normal
+                                  "texture_matrix"  // texture coordinate matrix
                                 };
    static final int PVM_IDX = 0;
    static final int VM_IDX = 1;
    static final int M_IDX = 2;
    static final int NORMAL_IDX = 3;
+   static final int TEXTURE_IDX = 4;
    
    static final String PVM_NAME = "Matrices";
    
@@ -31,7 +36,8 @@ public class MatricesUBO extends UniformBufferObject {
       super(gl, progId, PVM_NAME, PVM_ATTRIBUTES, GL3.GL_DYNAMIC_DRAW);
    }
    
-   public void updateMatrices(GL3 gl,  Matrix4d proj, RigidTransform3d view, AffineTransform3dBase model) {
+   public void updateMatrices(GL3 gl,  Matrix4d proj, RigidTransform3d view, 
+      AffineTransform3dBase model, AffineTransform2dBase texture) {
       
       ByteBuffer buff = getBuffer ();
       
@@ -67,13 +73,17 @@ public class MatricesUBO extends UniformBufferObject {
          mulTranspose4x4(view.R, A, buff);
       }
       
+      buff.position (getByteOffset (TEXTURE_IDX));
+      putMatrix(buff, texture);
+      
       buff.flip ();
       update(gl, buff);
 
    }
    
-   public void updateMatrices(GL3 gl,  Matrix4d proj, RigidTransform3d view, AffineTransform3dBase model, 
-      Matrix3d modelNormalMatrix) {
+   public void updateMatrices(GL3 gl,  Matrix4d proj, RigidTransform3d view, 
+      AffineTransform3dBase model, Matrix3d modelNormal,
+      AffineTransform2dBase texture) {
       
       ByteBuffer buff = getBuffer ();
       
@@ -95,7 +105,11 @@ public class MatricesUBO extends UniformBufferObject {
       
       // normal
       buff.position(getByteOffset(NORMAL_IDX));
-      mul4x4(view.R, modelNormalMatrix, buff);
+      mul4x4(view.R, modelNormal, buff);
+      
+      // texture
+      buff.position (getByteOffset (TEXTURE_IDX));
+      putMatrix(buff, texture);
       
       buff.flip ();
       update(gl, buff);
@@ -197,6 +211,31 @@ public class MatricesUBO extends UniformBufferObject {
       buff.putFloat((float)(P.m10*b.x + P.m11*b.y + P.m12*b.z + P.m13));
       buff.putFloat((float)(P.m20*b.x + P.m21*b.y + P.m22*b.z + P.m23));
       buff.putFloat((float)(P.m30*b.x + P.m31*b.y + P.m32*b.z + P.m33));
+   }
+   
+   public static void putMatrix (ByteBuffer buff, AffineTransform2dBase T) {
+
+      Matrix2dBase M = T.getMatrix ();
+      Vector2d b = T.getOffset();
+      buff.putFloat((float) M.m00);
+      buff.putFloat ((float)M.m10);
+      buff.putFloat (0);
+      buff.putFloat (0);
+
+      buff.putFloat ((float)M.m01);
+      buff.putFloat ((float)M.m11);
+      buff.putFloat (0);
+      buff.putFloat (0);
+
+      buff.putFloat (0);
+      buff.putFloat (0);
+      buff.putFloat (0);
+      buff.putFloat (0);
+
+      buff.putFloat ((float)b.x);
+      buff.putFloat ((float)b.y);
+      buff.putFloat (0);
+      buff.putFloat ((float)1);
    }
    
    @Override

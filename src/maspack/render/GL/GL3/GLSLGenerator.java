@@ -114,6 +114,7 @@ public class GLSLGenerator {
    //    mat4 vm_matrix;      // model to viewer
    //    mat4 m_matrix;       // model to world
    //    mat4 normal_matrix;  // model to viewer normal
+   //    mat4 texture_matrix; // texture coordinates scale
    // };
    //
    // // lights
@@ -487,7 +488,7 @@ public class GLSLGenerator {
       // textures
       if (info.hasVertexTextures()) {
          appendln(mb, "   // forward vertex texture coordinates");
-         appendln(mb, "   textureOut.texcoord = vertex_texcoord;");
+         appendln(mb, "   textureOut.texcoord = (texture_matrix*vec4(vertex_texcoord, 0, 1)).xy;");
          appendln(mb);
       }
       
@@ -521,6 +522,7 @@ public class GLSLGenerator {
       appendln(hb, "   mat4 vm_matrix;      // model to viewer");
       appendln(hb, "   mat4 m_matrix;       // model to world");
       appendln(hb, "   mat4 normal_matrix;  // model to viewer normal");
+      appendln(hb, "   mat4 texture_matrix; // texture coordinate transform");
       appendln(hb, "};");
       appendln(hb);
    }

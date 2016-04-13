@@ -1252,40 +1252,44 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    // Made public for debugging purposes
    public void maybeUpdateMatrices(GL2 gl) {
 
+      int[] mmode = new int[1]; 
+      gl.glGetIntegerv(GL2.GL_MATRIX_MODE, mmode, 0);
+      
       if (!viewMatrixValidP || !modelMatrixValidP) {
          // create modelview matrix:
          AffineTransform3d mvmatrix = new AffineTransform3d();
          mvmatrix.mul(viewMatrix, modelMatrix);
 
          // update modelview matrix
-         int[] mmode = new int[1]; 
-         gl.glGetIntegerv(GL2.GL_MATRIX_MODE, mmode, 0);
          GLSupport.transformToGLMatrix(GLMatrix, mvmatrix);
-
-         gl.glMatrixMode(GL2.GL_MODELVIEW);
          gl.glLoadMatrixd(GLMatrix,0);
 
          viewMatrixValidP = true;
          modelMatrixValidP = true;
-
-         gl.glMatrixMode(mmode[0]); // revert
       }
 
       if (!projectionMatrixValidP) {
 
          // update projection matrix
-         int[] mmode = new int[1]; 
-         gl.glGetIntegerv(GL2.GL_MATRIX_MODE, mmode, 0);
          GLSupport.transformToGLMatrix(GLMatrix, projectionMatrix);
 
          gl.glMatrixMode(GL2.GL_PROJECTION);
          gl.glLoadMatrixd(GLMatrix,0);
 
          projectionMatrixValidP = true;
-
-         gl.glMatrixMode(mmode[0]);
+      }
+      
+      if (!textureMatrixValidP) {
+         
+         // update texture matrix
+         GLSupport.transformToGLMatrix (GLMatrix, textureMatrix);
+         gl.glMatrixMode(GL2.GL_TEXTURE);
+         gl.glLoadMatrixd(GLMatrix,0);
+         
+         textureMatrixValidP = true;
       }
 
+      gl.glMatrixMode(mmode[0]); // revert
    }
 
    @Override

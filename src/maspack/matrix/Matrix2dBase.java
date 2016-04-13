@@ -6,7 +6,6 @@
  */
 package maspack.matrix;
 
-import maspack.util.InternalErrorException;
 import maspack.util.Clonable;
 
 /**
@@ -270,6 +269,20 @@ public abstract class Matrix2dBase extends DenseMatrixBase implements Clonable {
       m01 = vals[1];
       m10 = vals[2];
       m11 = vals[3];
+   }
+   
+   /**
+    * Sets the matrix elements
+    * @param m00 top-left
+    * @param m01 top-right
+    * @param m10 bottom-left
+    * @param m11 bottom-right
+    */
+   public void set(double m00, double m01, double m10, double m11) {
+      this.m00 = m00;
+      this.m01 = m01;
+      this.m10 = m10;
+      this.m11 = m11;
    }
 
    /**
@@ -1105,13 +1118,6 @@ public abstract class Matrix2dBase extends DenseMatrixBase implements Clonable {
       return (m00 * m11 - m10 * m01);
    }
 
-   public Object clone() {
-      try {
-         return super.clone();
-      }
-      catch (CloneNotSupportedException e) { // shouldn't happen
-         throw new InternalErrorException ("clone failed for " + getClass());
-      }
-   }
+   public abstract Matrix2dBase clone();
 
 }

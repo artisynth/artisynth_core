@@ -18,11 +18,29 @@ package maspack.matrix;
  *     [  0   1  ]
  * </pre>
  */
-public class AffineTransform2dBase extends DenseMatrixBase {
+public abstract class AffineTransform2dBase extends DenseMatrixBase {
    protected Matrix2dBase M;
    protected Vector2d b;
    private Matrix2d Mtmp;
 
+   /**
+    * Returns the matrix assiciated with this affine transform.
+    * 
+    * @return matrix
+    */
+   public Matrix2dBase getMatrix() {
+      return M;
+   }
+
+   /**
+    * Returns the offset vector assiciated with this affine transform.
+    * 
+    * @return offset vector
+    */
+   public Vector2d getOffset() {
+      return b;
+   }
+   
    /**
     * Returns the number of columns in this matrix (which is always 3).
     * 
@@ -515,4 +533,8 @@ public class AffineTransform2dBase extends DenseMatrixBase {
    public boolean equals (AffineTransform2dBase X) {
       return (M.equals (X.M) && b.equals (X.b));
    }
+   
+   @Override
+   public abstract AffineTransform2dBase clone ();
+   
 }

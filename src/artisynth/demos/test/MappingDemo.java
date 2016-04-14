@@ -156,7 +156,7 @@ public class MappingDemo extends RootModel {
             renderer.setBumpMapProps (myBumpProps); 
          }
 
-         if (true) {
+         if (false) {
             
             renderer.beginDraw (DrawMode.TRIANGLES);
 

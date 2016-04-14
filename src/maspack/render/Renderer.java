@@ -1857,15 +1857,12 @@ public interface Renderer {
    public void getViewMatrix (RigidTransform3d TWE);
    
    /**
-    * Adds a depth offset to the model matrix to help prevent "fighting"
-    * in the depth buffer. This is done by translating the model frame
-    * by an offset along the eye frame's z axis, with positive values moving
-    * the model frame closer to the eye. Each unit of offset equals
-    * approximately the distance needed to move by one unit of depth buffer
-    * precision, evaluated at a distance from the eye equal to 1/10 of 
-    * the distance to the far clipping plane. This distance is used because it
-    * corresponds roughly to the center distance that is chosen by the
-    * viewer <code>autoFit</code> methods. 
+    * Adds a depth offset to the model matrix to help prevent "fighting" in the
+    * depth buffer. This is done by translating the model frame by an offset
+    * along the eye frame's z axis, with positive values moving the model frame
+    * closer to the eye. Each unit of offset equals approximately the distance
+    * needed to move by one unit of depth buffer precision, evaluated at a
+    * distance from the eye equal to the distance to the far clipping plane.
     * 
     * @param zOffset z offset to add to the model frame
     */

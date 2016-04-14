@@ -1734,7 +1734,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       Vector3d dp = new Vector3d();
       double f = myFrustum.far;
       double n = myFrustum.near;
-      dp.scale (zOffset*0.01*(f-n)*f*deps/(2*n), getEyeZDirection());
+      dp.scale (zOffset*(f-n)*f*deps/(2*n), getEyeZDirection());
       synchronized (modelMatrix) {
          modelMatrix.addTranslation (dp.x, dp.y, dp.z);
       }

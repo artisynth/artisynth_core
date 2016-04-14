@@ -26,7 +26,7 @@ import maspack.render.Renderer.Shading;
 import maspack.widgets.LabeledComponentBase;
 import maspack.widgets.PropertyWidget;
 
-public class TextureEgyptianTest extends GL2Tester {
+public class TextureEgyptianTest extends GL3Tester {
    
    @Override
    protected void addContent (MultiViewer mv) {
@@ -74,10 +74,11 @@ public class TextureEgyptianTest extends GL2Tester {
       FixedMeshBody fm = new FixedMeshBody(plane);
       fm.setRenderProps(rprops);
       
-      //mv.addRenderable (fm);
+      mv.addRenderable (fm);
       
-      mv.addRenderable (new IsRenderable() {
+      if (false) {
          
+      mv.addRenderable (new IsRenderable() {
          @Override
          public void updateBounds (Point3d pmin, Point3d pmax) {
             Point3d.X_UNIT.updateBounds (pmin, pmax);
@@ -108,7 +109,9 @@ public class TextureEgyptianTest extends GL2Tester {
             return 0;
          }
       });
+      }
       
+
       mv.autoFitViewers ();
       
       LabeledComponentBase base = PropertyWidget.create ("Color texture", fm.getRenderProps ().getTextureMapProps (), "enabled");

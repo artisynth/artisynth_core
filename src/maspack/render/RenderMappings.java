@@ -93,12 +93,12 @@ public class RenderMappings implements CompositeProperty, Scannable, Clonable {
    }
 
    public void setTextureMapping (TextureMapProps props) {
-      if (getAllPropertyInfo().get ("textureMapProps") == null) {
+      if (getAllPropertyInfo().get ("textureMapping") == null) {
          return;
       }
       if (props == null) {
          PropertyUtils.updateCompositeProperty (
-            this, "textureMapProps", myTextureMapProps, null);
+            this, "textureMapping", myTextureMapProps, null);
          myTextureMapProps = null;
       }
       else {
@@ -106,7 +106,7 @@ public class RenderMappings implements CompositeProperty, Scannable, Clonable {
             myTextureMapProps = new TextureMapProps();
             myTextureMapProps.set (props);
             PropertyUtils.updateCompositeProperty (
-               this, "textureMapProps", null, myTextureMapProps);
+               this, "textureMapping", null, myTextureMapProps);
          }
          else {
             myTextureMapProps.set (props);
@@ -120,12 +120,12 @@ public class RenderMappings implements CompositeProperty, Scannable, Clonable {
    }
 
    public void setNormalMapping (NormalMapProps props) {
-      if (getAllPropertyInfo().get ("normalMapProps") == null) {
+      if (getAllPropertyInfo().get ("normalMapping") == null) {
          return;
       }
       if (props == null) {
          PropertyUtils.updateCompositeProperty (
-            this, "normalMapProps", myNormalMapProps, null);
+            this, "normalMapping", myNormalMapProps, null);
          myNormalMapProps = null;
       }
       else {
@@ -133,7 +133,7 @@ public class RenderMappings implements CompositeProperty, Scannable, Clonable {
             myNormalMapProps = new NormalMapProps();
             myNormalMapProps.set (props);
             PropertyUtils.updateCompositeProperty (
-               this, "normalMapProps", null, myNormalMapProps);
+               this, "normalMapping", null, myNormalMapProps);
          }
          else {
             myNormalMapProps.set (props);
@@ -147,12 +147,12 @@ public class RenderMappings implements CompositeProperty, Scannable, Clonable {
    }
 
    public void setBumpMapping (BumpMapProps props) {
-      if (getAllPropertyInfo().get ("bumpMapProps") == null) {
+      if (getAllPropertyInfo().get ("bumpMapping") == null) {
          return;
       }
       if (props == null) {
          PropertyUtils.updateCompositeProperty (
-            this, "bumpMapProps", myBumpMapProps, null);
+            this, "bumpMapping", myBumpMapProps, null);
          myNormalMapProps = null;
       }
       else {
@@ -160,7 +160,7 @@ public class RenderMappings implements CompositeProperty, Scannable, Clonable {
             myBumpMapProps = new BumpMapProps();
             myBumpMapProps.set (props);
             PropertyUtils.updateCompositeProperty (
-               this, "bumpMapProps", null, myBumpMapProps);
+               this, "bumpMapping", null, myBumpMapProps);
          }
          else {
             myBumpMapProps.set (props);

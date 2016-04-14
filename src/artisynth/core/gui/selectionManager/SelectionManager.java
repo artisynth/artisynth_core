@@ -599,11 +599,10 @@ public class SelectionManager {
          //
          // Sanchez, July 4th: Modified to select first valid item
          if (e != null && e.numSelectedQueries() > 0) {
-            LinkedList<Object>[] itemPaths = e.getSelectedObjects();
-            for (int i = 0; i < itemPaths.length; i++) {
-               LinkedList<Object> path = itemPaths[i];
+            List<LinkedList<?>> itemPaths = e.getSelectedObjects();
+            for (LinkedList<?> path : itemPaths) {
                // loop backwards through items
-               Iterator<Object> pit = path.descendingIterator();
+               Iterator<?> pit = path.descendingIterator();
                while (pit.hasNext()) {
                   Object item = pit.next();
                   if (item instanceof ModelComponent) {

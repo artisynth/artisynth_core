@@ -8,6 +8,7 @@ package maspack.render.GL;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
@@ -217,11 +218,11 @@ public class GLColorSelector extends GLSelector {
       }
       BufferUtilities.freeDirectBuffer (pixels);
      
-      myViewer.selectionEvent.setSelectedObjects (new LinkedList[0]);
+      myViewer.selectionEvent.setSelectedObjects (null);
 
       if (hits == null) {
          // then no queries were issued, so nothing to do ...
-         myViewer.selectionEvent.setSelectedObjects (new LinkedList[0]);
+         myViewer.selectionEvent.setSelectedObjects (null);
       }
       else {
          int qid = 0;
@@ -254,9 +255,9 @@ public class GLColorSelector extends GLSelector {
             }
          }
          Collections.sort (records);
-         LinkedList<Object>[] selObjs = new LinkedList[records.size()];
+         ArrayList<LinkedList<?>> selObjs = new ArrayList<>(records.size());
          for (int i=0; i<records.size(); i++) {
-            selObjs[i] = records.get(i).objs;
+            selObjs.add (records.get(i).objs);
          }
          myViewer.selectionEvent.setSelectedObjects (selObjs);         
       }

@@ -14,8 +14,13 @@ import java.util.*;
  * @version 1.2 Modified by Chad to enable a multiple selection type event.
  */
 public class ViewerSelectionEvent {
+   
+   static final List<LinkedList<?>> EMPTY_LIST_LIST = 
+      Collections.unmodifiableList (new ArrayList<LinkedList<?>>(0));
+   
    int myModifiersEx;
-   LinkedList<Object>[] mySelectedObjects;
+   List<LinkedList<?>> mySelectedObjects;
+   
 
    /**
     * Flag indicating that multiple object selection is desired.
@@ -57,7 +62,10 @@ public class ViewerSelectionEvent {
     *
     * @return array of object lists for each selected query
     */
-   public LinkedList<Object>[] getSelectedObjects() {
+   public List<LinkedList<?>> getSelectedObjects() {
+      if (mySelectedObjects == null) {
+         return EMPTY_LIST_LIST;
+      }
       return mySelectedObjects;
    }
 
@@ -67,7 +75,7 @@ public class ViewerSelectionEvent {
     *
     * @param lists array of object lists for each selected query
     */
-   public void setSelectedObjects (LinkedList<Object>[] lists) {
+   public void setSelectedObjects (List<LinkedList<?>> lists) {
       mySelectedObjects = lists;
    }
 
@@ -78,7 +86,7 @@ public class ViewerSelectionEvent {
     */
    public int numSelectedQueries() {
       if (mySelectedObjects != null) {
-         return mySelectedObjects.length;
+         return mySelectedObjects.size ();
       }
       else {
          return 0;

@@ -10,13 +10,13 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 import javax.swing.event.MouseInputAdapter;
 
 import maspack.geometry.SignedDistanceGridCell;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
-import maspack.matrix.Vector4d;
 import maspack.render.ViewerSelectionEvent;
 import maspack.render.ViewerSelectionListener;
 import maspack.render.GL.GLViewerFrame;
@@ -40,13 +40,12 @@ public class SignedDistanceGridViewer extends GLViewerFrame {
             clearSelection();
          }
          if (e.numSelectedQueries() > 0) {
-            LinkedList[] itemPaths = e.getSelectedObjects();
-            for (int i = 0; i < itemPaths.length; i++) {
-               LinkedList path = itemPaths[i];
+            List<LinkedList<?>> itemPaths = e.getSelectedObjects();
+            for (LinkedList<?> path : itemPaths) {
                if (path.getFirst() instanceof SignedDistanceGridCell) {
                   SignedDistanceGridCell gridCell = (SignedDistanceGridCell)path.getFirst();
                   if (path.size() > 1 && path.get (1) instanceof Integer) {
-                     int idx = ((Integer)path.get (1)).intValue();
+                     // int idx = ((Integer)path.get (1)).intValue();
                      if (!gridCell.isSelected ()) {
                         gridCell.selectPoint (true);
                         selectedPnts.add (gridCell.getPoint());
@@ -94,9 +93,11 @@ public class SignedDistanceGridViewer extends GLViewerFrame {
                new Vector3d (e.getX() - lastX, lastY - e.getY(), 0);
             del.inverseTransform (XV);
             del.scale (viewer.centerDistancePerPixel());
-            Vector4d del4d = new Vector4d (del.x, del.y, del.z, 0);
-            for (Iterator it = selectedPnts.iterator(); it.hasNext();) {
-               ((Vector4d)it.next()).add (del4d);
+            for (Iterator<int[]> it = selectedPnts.iterator(); it.hasNext();) {
+               int[] next = it.next ();
+               next[0] += del.x;
+               next[1] += del.y;
+               next[2] += del.z;
             }
             lastX = e.getX();
             lastY = e.getY();

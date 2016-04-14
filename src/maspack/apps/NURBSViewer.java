@@ -6,21 +6,24 @@
  */
 package maspack.apps;
 
-import java.awt.event.MouseEvent;
 import java.awt.Color;
-import java.io.BufferedReader;
+import java.awt.event.MouseEvent;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.Reader;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.event.MouseInputAdapter;
 
+import argparser.ArgParser;
+import argparser.BooleanHolder;
+import argparser.DoubleHolder;
+import argparser.IntHolder;
+import argparser.StringHolder;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.NURBSCurve3d;
 import maspack.geometry.NURBSMesh;
@@ -39,11 +42,6 @@ import maspack.render.ViewerSelectionListener;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewer.GLVersion;
 import maspack.render.GL.GLViewerFrame;
-import argparser.ArgParser;
-import argparser.BooleanHolder;
-import argparser.DoubleHolder;
-import argparser.IntHolder;
-import argparser.StringHolder;
 
 public class NURBSViewer extends GLViewerFrame {
    private static final long serialVersionUID = 1L;
@@ -56,7 +54,7 @@ public class NURBSViewer extends GLViewerFrame {
    class SelectionHandler implements ViewerSelectionListener {
       private void clearSelection() {
          selectedPnts.clear();
-         for (Iterator it = nurbsList.iterator(); it.hasNext();) {
+         for (Iterator<NURBSObject> it = nurbsList.iterator(); it.hasNext();) {
             NURBSObject nurbsObj = (NURBSObject)it.next();
             for (int i = 0; i < nurbsObj.numControlPoints(); i++) {
                nurbsObj.selectControlPoint (i, false);
@@ -76,9 +74,8 @@ public class NURBSViewer extends GLViewerFrame {
             clearSelection();
          }
          if (e.numSelectedQueries() > 0) {
-            LinkedList[] itemPaths = e.getSelectedObjects();
-            for (int i = 0; i < itemPaths.length; i++) {
-               LinkedList path = itemPaths[i];
+            List<LinkedList<?>> itemPaths = e.getSelectedObjects();
+            for (LinkedList<?> path : itemPaths) {
                if (path.getFirst() instanceof NURBSObject) {
                   NURBSObject nurbsObj = (NURBSObject)path.getFirst();
                   if (path.size() > 1 && path.get (1) instanceof Integer) {
@@ -131,10 +128,10 @@ public class NURBSViewer extends GLViewerFrame {
             del.inverseTransform (XV);
             del.scale (viewer.centerDistancePerPixel());
             Vector4d del4d = new Vector4d (del.x, del.y, del.z, 0);
-            for (Iterator it = selectedPnts.iterator(); it.hasNext();) {
+            for (Iterator<Vector4d> it = selectedPnts.iterator(); it.hasNext();) {
                ((Vector4d)it.next()).add (del4d);
             }
-            for (Enumeration en = meshTable.keys(); en.hasMoreElements();) {
+            for (Enumeration<NURBSObject> en = meshTable.keys(); en.hasMoreElements();) {
                NURBSSurface surf = (NURBSSurface)en.nextElement();
                NURBSMesh mesh = (NURBSMesh)meshTable.get (surf);
                mesh.updateVertices (surf);
@@ -229,8 +226,8 @@ public class NURBSViewer extends GLViewerFrame {
 
    void collide (PolygonalMesh mesh) {
       if (colmesh != null) {
-         for (Iterator it = mesh.getVertices().iterator(); it.hasNext();) {
-            collidePoint (((Vertex3d)it.next()).pnt);
+         for (Iterator<Vertex3d> it = mesh.getVertices().iterator(); it.hasNext();) {
+            collidePoint (it.next().pnt);
          }
       }
    }

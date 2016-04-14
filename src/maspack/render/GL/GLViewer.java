@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 import javax.media.opengl.GL;
@@ -464,7 +465,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return selectionEvent;
    }
 
-   protected void setSelected(LinkedList<Object>[] objs) {
+   protected void setSelected(List<LinkedList<?>> objs) {
       selectionEvent.setSelectedObjects (objs);
    }
 

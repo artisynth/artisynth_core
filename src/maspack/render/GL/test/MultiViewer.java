@@ -122,7 +122,7 @@ public class MultiViewer {
             r.setSelected(false);
          }
 
-         for (LinkedList<Object> ll : e.getSelectedObjects()) {
+         for (List<?> ll : e.getSelectedObjects()) {
             Object obj = ll.get(0);
             if (obj instanceof SimpleSelectable) {
                ((SimpleSelectable)obj).setSelected(true);

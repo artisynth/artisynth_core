@@ -533,7 +533,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    protected void drawDragBox (GL2 gl) {
       
-      
       setColor(0.5f, 0.5f, 0.5f, 1.0f);
       begin2DRendering(-1, 1,-1, 1);
       

@@ -7,6 +7,7 @@
 package maspack.render.GL;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
@@ -192,7 +193,7 @@ public class GLOcclusionSelector extends GLSelector {
 
       if (lastQidx == -1) {
          // then no queries were issued, so nothing to do ...
-         myViewer.setSelected(new LinkedList[0]);
+         myViewer.setSelected(null);
       }
       else {
          // make sure queries are ready
@@ -244,9 +245,9 @@ public class GLOcclusionSelector extends GLSelector {
             }
          }
          Collections.sort (records);
-         LinkedList<Object>[] selObjs = new LinkedList[records.size()];
+         ArrayList<LinkedList<?>> selObjs = new ArrayList<>(records.size());
          for (int i=0; i<records.size(); i++) {
-            selObjs[i] = records.get(i).objs;
+            selObjs.add (records.get(i).objs);
          }
          myViewer.setSelected(selObjs);         
       }

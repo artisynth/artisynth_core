@@ -19,6 +19,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 import javax.swing.JFileChooser;
 import javax.swing.JMenu;
@@ -29,12 +30,14 @@ import javax.swing.JPopupMenu;
 import javax.swing.JToolBar;
 import javax.swing.event.MenuEvent;
 
+import argparser.ArgParser;
+import argparser.IntHolder;
+import argparser.StringHolder;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.LaplacianSmoother;
 import maspack.geometry.MeshBase;
 import maspack.geometry.NURBSCurve2d;
 import maspack.geometry.NURBSCurve3d;
-import maspack.geometry.PointMesh;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.QuadBezierDistance2d;
 import maspack.geometry.Vertex3d;
@@ -58,12 +61,11 @@ import maspack.render.RenderListener;
 import maspack.render.RenderProps;
 import maspack.render.RenderableBase;
 import maspack.render.Renderer;
-import maspack.render.ViewerSelectionEvent;
-import maspack.render.ViewerSelectionListener;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.FaceStyle;
+import maspack.render.ViewerSelectionEvent;
+import maspack.render.ViewerSelectionListener;
 import maspack.util.IndentingPrintWriter;
-import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.widgets.DraggerToolBar;
@@ -75,9 +77,6 @@ import maspack.widgets.SplineTool;
 import maspack.widgets.ValueChangeEvent;
 import maspack.widgets.ValueChangeListener;
 import maspack.widgets.ViewerFrame;
-import argparser.ArgParser;
-import argparser.IntHolder;
-import argparser.StringHolder;
 
 public class MeshThicken extends ViewerFrame 
    implements ActionListener, DrawToolListener, RenderListener,
@@ -1076,9 +1075,9 @@ public class MeshThicken extends ViewerFrame
 
    public void itemsSelected (ViewerSelectionEvent e) {
       deselectRegions();
-      LinkedList<Object>[] itemPaths = e.getSelectedObjects();
-      for (int i=0; i<itemPaths.length; i++) {
-         Object obj = itemPaths[i].getFirst();
+      List<LinkedList<?>> itemPaths = e.getSelectedObjects();
+      for (List<?> path : itemPaths) {
+         Object obj = path.get (0);
          if (obj instanceof Region) {
             ((Region)obj).setSelected (true);
          }

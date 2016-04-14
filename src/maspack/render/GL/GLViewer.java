@@ -1648,7 +1648,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       viewMatrix.invert(X);
       // XXX
       if (Math.abs (viewMatrix.getOffset ().norm ()) < 1e-5) {
-         System.err.println ("bang"); Thread.dumpStack();
+         // System.err.println ("bang"); Thread.dumpStack();
       }
       invalidateViewMatrix();
       repaint();
@@ -1705,7 +1705,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
       // XXX
       if (Math.abs (viewMatrix.getOffset ().norm ()) < 1e-5) {
-         System.err.println ("bang"); Thread.dumpStack();
+         // System.err.println ("bang"); Thread.dumpStack();
       }
 
       invalidateViewMatrix();
@@ -1754,7 +1754,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       double h = top-bottom;      
       XMW.A.m00 = 2/w;
       XMW.A.m11 = 2/h;
-      XMW.p.set (-(left+right)/w, -(top-bottom)/h, 0);
+      XMW.p.set (-(left+right)/w, -(top+bottom)/h, 0);
       setModelMatrix (XMW);
    }
 
@@ -2819,7 +2819,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
       // XXX
       if (Math.abs (viewMatrix.getOffset ().norm ()) < 1e-5) {
-         System.err.println ("bang"); Thread.dumpStack();
+         // System.err.println ("bang"); Thread.dumpStack();
       }
       invalidateViewMatrix();
    }
@@ -2992,7 +2992,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       
       // XXX
       if (Math.abs (viewMatrix.getOffset ().norm ()) < 1e-5) {
-         System.err.println ("bang"); Thread.dumpStack();
+         // System.err.println ("bang"); Thread.dumpStack();
       }
       
       invalidateViewMatrix();

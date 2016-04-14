@@ -532,22 +532,18 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    }
 
    protected void drawDragBox (GL2 gl) {
-      gl.glMatrixMode (GL2.GL_PROJECTION);
-      gl.glPushMatrix();
-      gl.glLoadIdentity();
-      gl.glMatrixMode (GL2.GL_MODELVIEW);
-      gl.glPushMatrix();
-      gl.glLoadIdentity();
-
-      boolean savedLighting = isLightingOn();
-      gl.glDisable (GL2.GL_LIGHTING);
-      gl.glColor3f (0.5f, 0.5f, 0.5f);
-
+      
+      
+      setColor(0.5f, 0.5f, 0.5f, 1.0f);
+      begin2DRendering(-1, 1,-1, 1);
+      
       double x0 = 2 * myDragBox.x / (double)width - 1;
       double x1 = x0 + 2 * myDragBox.width / (double)width;
       double y0 = 1 - 2 * myDragBox.y / (double)height;
       double y1 = y0 - 2 * myDragBox.height / (double)height;
 
+      maybeUpdateState (gl);
+      
       gl.glBegin (GL2.GL_LINE_LOOP);
       gl.glVertex3d (x0, y0, 0);
       gl.glVertex3d (x1, y0, 0);
@@ -555,13 +551,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glVertex3d (x0, y1, 0);
       gl.glEnd();
 
-      if (savedLighting) {
-         gl.glEnable (GL2.GL_LIGHTING);
-      }
-      gl.glPopMatrix();
-      gl.glMatrixMode (GL2.GL_PROJECTION);
-      gl.glPopMatrix();
-      gl.glMatrixMode (GL2.GL_MODELVIEW);
+      end2DRendering ();
+      
    }
 
    public void display (GLAutoDrawable drawable, int flags) {

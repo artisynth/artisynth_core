@@ -1638,8 +1638,7 @@ public class GL3Viewer extends GLViewer {
       float x1 = (float)(x0 + 2 * myDragBox.width / (double)width);
       float y0 = (float)(1 - 2 * myDragBox.y / (double)height);
       float y1 = (float)(y0 - 2 * myDragBox.height / (double)height);
-
-      // System.out.println(x0 + " " + y0 + " " + x1 + " " + y1);
+      
       gloFlex.begin (gl, 4);
       gloFlex.vertex (x0, y0, 0);
       gloFlex.vertex (x1, y0, 0);

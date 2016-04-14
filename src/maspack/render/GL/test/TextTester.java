@@ -11,7 +11,6 @@ import javax.swing.JFrame;
 
 import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.AxisAngle;
-import maspack.matrix.Matrix4d;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
@@ -58,7 +57,7 @@ public class TextTester extends GL2vsGL3Tester {
             renderer.setColor (Color.WHITE);
             renderer.setFaceStyle (FaceStyle.FRONT_AND_BACK);
             
-            renderer.drawSphere (Point3d.ZERO, 0.01);
+            // renderer.drawSphere (Point3d.ZERO, 0.01);
             
             Font font = new Font(Font.SANS_SERIF, 0, 54);
             renderer.drawText (font, "Hello world! And goodnight to all.", new float[]{0.4f,0.3f,0.3f}, 0.25);

@@ -59,6 +59,7 @@ public class GL3Viewer extends GLViewer {
    GL3RenderObjectManager myRenderObjectManager = null;
    GL3PrimitiveManager myPrimitiveManager = null;
    GLTextRenderer myTextRenderer = null;
+   TextureMapProps myTextTextureProps = null;
    
    long lastGarbageTime = 0;  // for garbage collecting of viewer-specific resources
    
@@ -153,6 +154,9 @@ public class GL3Viewer extends GLViewer {
       primitives = new GL3Primitive[PrimitiveType.values ().length];
       
       myTextRenderer = null;
+      myTextTextureProps = new TextureMapProps ();
+      myTextTextureProps.setTextureColorMixing (ColorMixing.MODULATE);
+      myTextTextureProps.setEnabled (true);
       
       lightManager = new GLLightManager();      
       myProgManager = new GL3ProgramManager();
@@ -214,20 +218,13 @@ public class GL3Viewer extends GLViewer {
       this.drawable = drawable;
       gl = drawable.getGL().getGL3();
 
-      String renderer = gl.glGetString(GL.GL_RENDERER);
-      String version = gl.glGetString(GL.GL_VERSION);
-      int[] buff = new int[2];
-      gl.glGetIntegerv(GL3.GL_MAJOR_VERSION, buff, 0);
-      gl.glGetIntegerv(GL3.GL_MINOR_VERSION, buff, 1);
-      System.out.println("GL Renderer: " + renderer);
-      System.out.println("OpenGL Version: " + version + " (" + buff[0] + "," + buff[1] + ")");
-
       gl.setSwapInterval (1);
 
       if (gl.isExtensionAvailable("GL_ARB_multisample")) {
          gl.glEnable(GL3.GL_MULTISAMPLE);
       }
 
+      int[] buff = new int[1];
       gl.glGetIntegerv(GL3.GL_MAX_CLIP_DISTANCES, buff, 0);
       maxClipPlanes = buff[0];
 
@@ -390,52 +387,16 @@ public class GL3Viewer extends GLViewer {
 
       GLSupport.checkAndPrintGLError(gl);
       
-      // check if we should do a garbage collection
+      // local garbage collection
       long time = System.currentTimeMillis ();
       if (time - lastGarbageTime > myGLResources.getGarbageCollectionInterval()) {
          garbage(gl);
       }
+      // for non-timed garbage collection
+      myGLResources.maybeRunGarbageCollection (gl);
       
       this.drawable = null;
       this.gl = null;
-   }
-
-   private boolean hasTransparent3d() {
-      if (myInternalRenderList.numTransparent() > 0) {
-         return true;
-      }
-      if (myExternalRenderList != null) {
-         if (myExternalRenderList.numTransparent() > 0) {
-            return true;
-         }
-      }
-      return false;
-   }
-
-   private boolean has2d() {
-      if (myInternalRenderList.numOpaque2d() > 0 ||
-      myInternalRenderList.numTransparent2d() > 0) {
-         return true;
-      }
-      if (myExternalRenderList != null) {
-         if (myExternalRenderList.numOpaque2d() > 0 || 
-         myExternalRenderList.numTransparent2d() > 0) {
-            return true;
-         }
-      }
-      return false;
-   }
-
-   private boolean hasTransparent2d() {
-      if (myInternalRenderList.numTransparent2d() > 0) {
-         return true;
-      }
-      if (myExternalRenderList != null) {
-         if (myExternalRenderList.numTransparent2d() > 0) {
-            return true;
-         }
-      }
-      return false;
    }
 
    private void doDisplay(GLAutoDrawable drawable, int flags) {
@@ -450,12 +411,10 @@ public class GL3Viewer extends GLViewer {
       maybeUpdateState(gl);
 
       // clear background/depth
-      GL3 gl3 = drawable.getGL().getGL3();
-
       if (!isSelecting()) {
-         gl3.glClearColor (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
+         gl.glClearColor (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
       }
-      gl3.glClear(GL.GL_COLOR_BUFFER_BIT |  GL.GL_DEPTH_BUFFER_BIT);
+      gl.glClear(GL.GL_COLOR_BUFFER_BIT |  GL.GL_DEPTH_BUFFER_BIT);
 
       if (!isSelecting()) {
          if (gridVisible) {
@@ -490,7 +449,7 @@ public class GL3Viewer extends GLViewer {
       // enable clip planes
       int iclips = 0;
       if (nclips > 0) {
-         iclips = myProgManager.setClipPlanes(gl3, myClipPlanes);
+         iclips = myProgManager.setClipPlanes(gl, myClipPlanes);
          for (int i=0; i<iclips; ++i) {
             gl.glEnable(GL3.GL_CLIP_DISTANCE0+i);
          }
@@ -551,7 +510,9 @@ public class GL3Viewer extends GLViewer {
          }
 
          if ( hasTransparent2d() ) {
-            enableTransparency (gl);
+            if (!isSelecting ()) {
+               enableTransparency (gl);
+            }
 
             synchronized(myInternalRenderList) {
                qid = myInternalRenderList.renderTransparent2d (this, qid, 0);
@@ -561,8 +522,12 @@ public class GL3Viewer extends GLViewer {
                   qid = myExternalRenderList.renderTransparent2d (this, qid, 0);
                }
             }
-            disableTransparency (gl);
+            
+            if (!isSelecting()) {
+               disableTransparency (gl);
+            }
          }
+         
          end2DRendering();
       }
       GLSupport.checkAndPrintGLError(gl);
@@ -577,7 +542,7 @@ public class GL3Viewer extends GLViewer {
       }
       GLSupport.checkAndPrintGLError(gl);
 
-      gl3.glFlush();
+      gl.glFlush();
       GLSupport.checkAndPrintGLError(gl);
 
    }
@@ -622,10 +587,7 @@ public class GL3Viewer extends GLViewer {
       setTransparencyEnabled (true);
       setTextureMappingEnabled (true);
       
-      TextureMapProps textProps = new TextureMapProps ();
-      textProps.setTextureColorMixing (ColorMixing.MODULATE);
-      textProps.setEnabled (true);
-      TextureMapProps savedTextureProps = setTextureMapProps (textProps);
+      TextureMapProps savedTextureProps = setTextureMapProps (myTextTextureProps);
       
       maybeUpdateState(gl);
       updateProgram (gl, RenderingMode.DEFAULT, true, false, true);

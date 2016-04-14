@@ -18,6 +18,7 @@ import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLContext;
 import javax.media.opengl.GLProfile;
+import javax.swing.JFrame;
 import javax.swing.event.MouseInputListener;
 
 import maspack.matrix.AffineTransform3d;
@@ -72,6 +73,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    private GL2 gl;
    private GL2SharedResources myGLResources;
    private GLTextRenderer myTextRenderer;
+   private TextureMapProps myTextTextureProps = null;
    
    // basic primitives
    private GL2Primitive[] primitives;
@@ -89,7 +91,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       private BlendType(int val) {
          myValue = val;
       }
-      public int value() {
+      public int glValue() {
          return myValue;
       }
    }
@@ -202,8 +204,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    protected void setupLights(GL2 gl) {
 
       // make sure in modelview matrix mode
-      gl.glMatrixMode(GL2.GL_MODELVIEW);
-
+      // XXX gl.glMatrixMode(GL2.GL_MODELVIEW);
+      maybeUpdateMatrices (gl);
+      
       int maxLights = lightManager.maxLights();
       float intensityScale = 1.0f/lightManager.getMaxIntensity();
       // only enable up to maxLights
@@ -372,7 +375,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.setSwapInterval (1);
 
       if (gl.isExtensionAvailable("GL_ARB_multisample")) {
-         gl.glEnable(GL2.GL_MULTISAMPLE);
+         gl.glEnable(GL.GL_MULTISAMPLE);
          myMultiSampleEnabled = true;
       }
 
@@ -393,6 +396,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glEnable (GL2.GL_NORMALIZE);  // normalize normals
       
       myTextRenderer = GLTextRenderer.generate (gl, GL2PipelineRenderer.generate (gl));
+      myTextTextureProps = new TextureMapProps ();
+      myTextTextureProps.setTextureColorMixing (ColorMixing.MODULATE);
+      myTextTextureProps.setEnabled (true);
 
       setLightingEnabled(true);
       setDepthEnabled(true);
@@ -569,7 +575,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       maybeUpdateState(gl);
 
-      gl.glPushMatrix();
+      // XXX gl.glPushMatrix();
       if (selectTrigger) {
          mySelector.setupSelection (drawable);
          selectEnabled = true;  // moved until after selection initialization
@@ -589,7 +595,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       else {
          fireRerenderListeners();
       }
-      gl.glPopMatrix();
+      // gl.glPopMatrix();
 
       if (frameCapture != null) {
          synchronized(frameCapture) {
@@ -609,6 +615,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             }
          }
       }
+      
+      // for non-timed garbage collection
+      myGLResources.maybeRunGarbageCollection (gl);
       
       this.drawable = null;
       this.gl = null;
@@ -692,6 +701,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       return myTextRenderer;
    }
    
+   JFrame frame;
+   
    public double drawText(Font font, String str, float[] loc, double emSize) {
       
       boolean savedTransparency = isTransparencyEnabled ();
@@ -700,13 +711,17 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       setDepthEnabled (false);
       setTransparencyEnabled (true);
       setTextureMappingEnabled (true);
-      
-      TextureMapProps textProps = new TextureMapProps ();
-      textProps.setTextureColorMixing (ColorMixing.MODULATE);
-      textProps.setEnabled (true);
-      TextureMapProps savedTextureProps = setTextureMapProps (textProps);
+     
+      TextureMapProps savedTextureProps = setTextureMapProps (myTextTextureProps);
       
       maybeUpdateState(gl);
+      
+      boolean blendModified = false;
+      if (getSBlending () != BlendType.GL_SRC_ALPHA ||
+         getDBlending () != BlendType.GL_ONE_MINUS_SRC_ALPHA) {
+         gl.glBlendFunc (GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);  // force it here
+         blendModified = true;
+      }
 
       activateTexture (gl, myTextRenderer.getTexture ());
       myTextRenderer.begin (gl);
@@ -714,6 +729,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       myTextRenderer.end (gl);
       deactivateTexture (gl);
       
+      if (blendModified) {
+         gl.glBlendFunc (getSBlending ().glValue (), getDBlending ().glValue ());
+      }
       GLSupport.checkAndPrintGLError (gl);
       
       setDepthEnabled (savedDepth);
@@ -721,6 +739,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       setTransparencyEnabled (savedTransparency);
       setTextureMappingEnabled (savedTexture);
       setTextureMapProps (savedTextureProps);
+      
+      // GLSupport.showTexture (gl, GL.GL_TEXTURE_2D, 0);
       
       return d;
    }
@@ -757,7 +777,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          gl.glDepthMask (false);
          setFaceStyle (FaceStyle.FRONT_AND_BACK);
       }
-      gl.glBlendFunc (sBlending.value(), dBlending.value());
+      gl.glBlendFunc (sBlending.glValue(), dBlending.glValue());
    }
 
    private void disableTransparency (GL2 gl) {
@@ -767,7 +787,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
       gl.glDisable (GL2.GL_BLEND);
    }
-
+   
    public void doDisplay (GLAutoDrawable drawable, int flags) {
       GL2 gl = drawable.getGL().getGL2();
 
@@ -776,14 +796,14 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          resetViewVolume(gl);
          resetViewVolume = false;
       }
-      if (isSelecting()) {
-         // XXX if we don't do this, selection breaks. This is since
-         // begin/finish 2D rendering was redone to push/pop the
-         // matrices in GLViewer.
-         invalidateProjectionMatrix();
-      }
       
-      gl.glPushMatrix();
+      //      if (isSelecting()) {
+      //         // XXX if we don't do this, selection breaks. This is since
+      //         // begin/finish 2D rendering was redone to push/pop the
+      //         // matrices in GLViewer.
+      //         invalidateProjectionMatrix(); // XXX should have been triggered by
+      //                                       // actual projection modification
+      //      }
 
       if (isSelecting()) {
          gl.glClearColor (0f, 0f, 0f, 0f);  
@@ -800,11 +820,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       // enter view matrix
       // GLSupport.transformToGLMatrix (GLMatrix, X);
-      GLSupport.transformToGLMatrix (GLMatrix, viewMatrix);
-      //XXX gl.glMultMatrixd (GLMatrix, 0);  Shouldn't this be load?
-      gl.glLoadMatrixd(GLMatrix, 0);
-      viewMatrixValidP = true;  // view matrix now "committed"
+      //      GLSupport.transformToGLMatrix (GLMatrix, viewMatrix);
+      //      gl.glLoadMatrixd(GLMatrix, 0);
+      //      viewMatrixValidP = true;  // view matrix now "committed"
 
+      maybeUpdateState (gl); // update all state, including matrices
       setupLights(gl);
 
       if (!isSelecting()) {
@@ -828,8 +848,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             cp.render (this, flags);
          }
       }
-
-      maybeUpdateState(gl);
 
       // enable clip planes
       int nclips = 0;
@@ -864,8 +882,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          }
       }
 
-      gl.glPushMatrix();
-
+      // XXX gl.glPushMatrix();
+      // XXX maybeUpdateState(gl);
+      
       int qid = 0;
       synchronized(myInternalRenderList) {
          qid = myInternalRenderList.renderOpaque (this, qid, flags);
@@ -873,22 +892,30 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             qid = myExternalRenderList.renderOpaque (this, qid, flags);
          }
       }
-      if (!isSelecting()) {
-         enableTransparency (gl);
-      }
-
-      synchronized(myInternalRenderList) {
-         qid = myInternalRenderList.renderTransparent (this, qid, flags);
-      }
-      if (myExternalRenderList != null) {
-         synchronized(myExternalRenderList) {
-            qid = myExternalRenderList.renderTransparent (this, qid, flags);
+      
+      if (hasTransparent3d ()) {
+         boolean transparencyEnabled = false;
+         if (!isSelecting()) {
+            enableTransparency (gl);
+            transparencyEnabled = true;
+         }
+   
+         synchronized(myInternalRenderList) {
+            qid = myInternalRenderList.renderTransparent (this, qid, flags);
+         }
+         if (myExternalRenderList != null) {
+            synchronized(myExternalRenderList) {
+               qid = myExternalRenderList.renderTransparent (this, qid, flags);
+            }
+         }
+         
+         if (transparencyEnabled) {
+            disableTransparency (gl);
+            transparencyEnabled = false;
          }
       }
       
-      disableTransparency (gl);
-
-      gl.glPopMatrix();
+      // XXX gl.glPopMatrix();
 
       // disable clipping planes
       for (int i=GL2.GL_CLIP_PLANE0; i<clipIdx; ++i) {
@@ -896,33 +923,43 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
 
       // Draw 2D objects
-      begin2DRendering(width, height);
-
-      synchronized(myInternalRenderList) {
-         qid = myInternalRenderList.renderOpaque2d (this, qid, 0);
-      }
-      if (myExternalRenderList != null) {
-         synchronized(myExternalRenderList) {
-            qid = myExternalRenderList.renderOpaque2d (this, qid, 0);
+      if (has2d ()) {
+         begin2DRendering(width, height);
+   
+         synchronized(myInternalRenderList) {
+            qid = myInternalRenderList.renderOpaque2d (this, qid, 0);
          }
-      }
-
-      enableTransparency (gl);
-
-      synchronized(myInternalRenderList) {
-         qid = myInternalRenderList.renderTransparent2d (this, qid, 0);
-      }
-      
-      if (myExternalRenderList != null) {
-         synchronized (myExternalRenderList) {
-            qid = myExternalRenderList.renderTransparent2d (this, qid, 0);   
+         if (myExternalRenderList != null) {
+            synchronized(myExternalRenderList) {
+               qid = myExternalRenderList.renderOpaque2d (this, qid, 0);
+            }
          }
-      }
+   
+         if (hasTransparent2d ()) {
+            boolean transparencyEnabled = false;
+            if (!isSelecting()) {
+               enableTransparency (gl);
+               transparencyEnabled = true;
+            }
       
-      disableTransparency (gl);
-      end2DRendering();
-
-      gl.glPopMatrix();
+            synchronized(myInternalRenderList) {
+               qid = myInternalRenderList.renderTransparent2d (this, qid, 0);
+            }
+            
+            if (myExternalRenderList != null) {
+               synchronized (myExternalRenderList) {
+                  qid = myExternalRenderList.renderTransparent2d (this, qid, 0);   
+               }
+            }
+            
+            if (transparencyEnabled) {
+               disableTransparency (gl);
+               transparencyEnabled = false;
+            }
+         }
+         end2DRendering();
+      }
+      // XXX gl.glPopMatrix();
 
       if (!isSelecting()) {
          if (myDragBox != null) {
@@ -1015,6 +1052,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          
          if (state.transparencyEnabled) {
             gl.glEnable (GL.GL_BLEND);
+            gl.glBlendFunc (getSBlending ().glValue (), getDBlending ().glValue ());
          } else {
             gl.glDisable (GL.GL_BLEND);
          }
@@ -1124,6 +1162,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          if (myCommittedViewerState.transparencyEnabled != state.transparencyEnabled) {
             if (state.transparencyEnabled) {
                gl.glEnable (GL.GL_BLEND);
+               gl.glBlendFunc (getSBlending ().glValue (), getDBlending ().glValue ());
             } else {
                gl.glDisable (GL.GL_BLEND);
             }
@@ -2518,42 +2557,22 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       // method, but GL2 seems to require extra things to be saved
       // and restored.
       
+      // XXX not sure if these are actually required, we do push/pop
+      // the viewer's "state" in GLViewer which should account for
+      // most of this
       int attribBits = 
          (GL2.GL_ENABLE_BIT | GL2.GL_TEXTURE_BIT | GL2.GL_COLOR_BUFFER_BIT |
           GL2.GL_DEPTH_BUFFER_BIT | GL2.GL_TRANSFORM_BIT);
       gl.glPushAttrib(attribBits);
 
-      setLightingOn (false);
-      gl.glDisable(GL2.GL_DEPTH_TEST);
-      setFaceStyle (FaceStyle.FRONT_AND_BACK);
-
-      gl.glMatrixMode(GL2.GL_TEXTURE);
-      gl.glPushMatrix();
-      gl.glLoadIdentity();
-      pushModelMatrix();
-      pushViewMatrix();
-      pushProjectionMatrix();
-      
-      setModelMatrix2d (left, right, bottom, top);
-      //setModelMatrix(RigidTransform3d.IDENTITY);
-      setViewMatrix(RigidTransform3d.IDENTITY);
-      //setOrthogonal2d(left, right, bottom, top);
-      setOrthogonal2d(-1, 1, -1, 1);
-      
-
-      rendering2d = true;
+      super.begin2DRendering (left, right, bottom, top);
    }
 
    @Override
    public void finish2DRendering() {
       
-      rendering2d = false;
-      super.popProjectionMatrix();
-      popViewMatrix();
-      popModelMatrix();
-            
-      gl.glMatrixMode(GL2.GL_TEXTURE);
-      gl.glPopMatrix();
+      super.finish2DRendering ();
+      
       gl.glPopAttrib();
    }
 

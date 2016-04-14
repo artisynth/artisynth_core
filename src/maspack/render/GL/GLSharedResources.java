@@ -28,6 +28,7 @@ import maspack.render.TextureContentFile;
 public abstract class GLSharedResources implements GLEventListener, GLGarbageSource {
    
    private static long DEFAULT_GARBAGE_INTERVAL = 20000; // 20 seconds
+   private static boolean DEFAULT_GARBAGE_TIMER_ENABLED = true;
    
    GLCapabilities glCapabilities;
    GLAutoDrawable masterDrawable;
@@ -38,10 +39,12 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
    
    GLTextureLoader textureLoader;
    
-   public long garbageRedrawInterval;
+   long garbageCollectionInterval;
+   boolean garbageTimerEnabled;
    MasterRedrawThread masterRedrawThread;
    GLGarbageCollector garbageman;
    GLGarbageBin<GLResource> garbagebin;
+   
    
    private static class MasterRedrawThread extends Thread {
       
@@ -82,7 +85,8 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
       viewers = new HashSet<>();
       masterDrawable = null;
       masterRedrawThread = null;
-      garbageRedrawInterval = DEFAULT_GARBAGE_INTERVAL;
+      garbageCollectionInterval = DEFAULT_GARBAGE_INTERVAL;
+      garbageTimerEnabled = DEFAULT_GARBAGE_TIMER_ENABLED;
       textureLoader = new GLTextureLoader();
       
       textureMap = new HashMap<> ();
@@ -141,10 +145,11 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
          
          masterDrawable.display(); // triggers GLContext object creation and native realization.
          
-         masterRedrawThread = new MasterRedrawThread (masterDrawable, garbageRedrawInterval);
-         masterRedrawThread.setName ("GL Garbage Collector - " + masterDrawable.getHandle ());
-         masterRedrawThread.start ();
-         
+         if (garbageTimerEnabled) {
+            masterRedrawThread = new MasterRedrawThread (masterDrawable, garbageCollectionInterval);
+            masterRedrawThread.setName ("GL Garbage Collector - " + masterDrawable.getHandle ());
+            masterRedrawThread.start ();
+         }
       }
    }
    
@@ -316,15 +321,58 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
       garbageman.collect(gl);
    }
    
+   /**
+    * Runs garbage collection if sufficient time has
+    * passed since the last collection, as specified
+    * by the garbage collection interval
+    * @param gl
+    * @return true if garbage collection run
+    */
+   public boolean maybeRunGarbageCollection(GL gl) {
+      return garbageman.maybeCollect (gl, garbageCollectionInterval);
+   }
+   
+   /**
+    * Enables or disables an automatic garbage timer.  This
+    * timer runs on a separate thread.
+    * @param set
+    */
+   public void setGarbageTimerEnabled(boolean set) {
+      if (set != garbageTimerEnabled) {
+         
+         if (set) {
+            masterRedrawThread = new MasterRedrawThread (masterDrawable, garbageCollectionInterval);
+            masterRedrawThread.setName ("GL Garbage Collector - " + masterDrawable.getHandle ());
+            masterRedrawThread.start ();
+         } else {
+            if (masterRedrawThread != null) {
+               masterRedrawThread.terminate ();
+               masterRedrawThread = null;
+            }
+         }
+         
+         garbageTimerEnabled = set;
+      }
+   }
+   
+   public boolean isGarbageTimerEnabled() {
+      return garbageTimerEnabled;
+   }
+   
+   /**
+    * Time interval for running garbage collection, either with a
+    * separate timed thread, or by manual calls to {@link #maybeRunGarbageCollection(GL)}.
+    * @param ms time interval for collection in ms
+    */
    public void setGarbageCollectionInterval(long ms) {
-      garbageRedrawInterval = ms;
+      garbageCollectionInterval = ms;
       if (masterRedrawThread != null) {
          masterRedrawThread.setRedrawInterval (ms);
       }
    }
    
    public long getGarbageCollectionInterval() {
-      return garbageRedrawInterval;
+      return garbageCollectionInterval;
    }
 
    @Override

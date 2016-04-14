@@ -6,6 +6,9 @@
  */
 package maspack.render.GL;
 
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
 import java.awt.image.ComponentColorModel;
@@ -16,6 +19,8 @@ import java.nio.ByteBuffer;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2GL3;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
 
 import jogamp.opengl.glu.error.Error;
 import maspack.matrix.AffineTransform2dBase;
@@ -255,7 +260,61 @@ public class GLSupport {
 //      T.p.z = mat[14];
 //   }
    
+   /**
+    * Simple class to help debug storage
+    */
+   public static class ImagePanel extends JPanel {
+      private static final long serialVersionUID = 1L;
+      private BufferedImage image;
+
+      public ImagePanel (BufferedImage image) {
+         this.image = image;
+         setOpaque (false);
+         setLayout (null);
+      }
+      
+      public void setImage(BufferedImage im) {
+         image = im;
+         repaint ();
+      }
+
+      @Override
+      protected void paintComponent (Graphics g) {
+         super.paintComponent (g);
+         g.drawImage (image, 0, 0, null); // see javadoc for more info on the
+                                          // parameters
+      }
+   }
+   
+   static JFrame textureFrame = null;
+   static ImagePanel textureImage = null;
+   
+   public static void showTexture(GL2GL3 gl, int target, int level) {
+      BufferedImage image = downloadTexture (gl, target, level);
+      
+      if (textureFrame == null) {
+         textureFrame = new JFrame ("GLSupport texture");
+         textureImage = new ImagePanel (image);
+         textureFrame.getContentPane().setBackground (Color.BLACK);
+         textureFrame.getContentPane ().add (textureImage);
+         textureFrame.setSize (image.getWidth ()+30, image.getHeight ()+70);
+         textureFrame.pack ();
+         textureFrame.setVisible (true);
+      } else {
+         textureImage.setImage (image);
+         if (!textureFrame.isVisible ()) {
+            textureFrame.setVisible (true);
+         }
+      }
+
+      textureFrame.repaint ();
+   }
+   
    public static BufferedImage downloadTexture(GL2GL3 gl, int target) {
+      return downloadTexture(gl, target, 0);
+   }
+   
+   public static BufferedImage downloadTexture(GL2GL3 gl, int target, int level) {
       int[] v = new int[2];
       gl.glGetTexLevelParameteriv (target, 0, GL2GL3.GL_TEXTURE_WIDTH, v, 0);
       gl.glGetTexLevelParameteriv (target, 0, GL2GL3.GL_TEXTURE_HEIGHT, v, 1);
@@ -265,7 +324,7 @@ public class GLSupport {
       }
       
       ByteBuffer buff = BufferUtilities.newNativeByteBuffer (v[0]*v[1]*4);
-      gl.glGetTexImage (target, 0, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, buff);
+      gl.glGetTexImage (target, level, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, buff);
       
       final ComponentColorModel RGBA_COLOR =
          new ComponentColorModel (

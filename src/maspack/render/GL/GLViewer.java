@@ -22,6 +22,7 @@ import java.util.NoSuchElementException;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2GL3;
+import javax.media.opengl.GL3;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLContext;
 import javax.media.opengl.GLEventListener;
@@ -1392,6 +1393,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * Called any time GL context is switched! e.g. moving window to new display
     */
    public void init (GLAutoDrawable drawable) {
+      GL gl = drawable.getGL ();
+      String renderer = gl.glGetString(GL.GL_RENDERER);
+      String version = gl.glGetString(GL.GL_VERSION);
+      int[] buff = new int[2];
+      gl.glGetIntegerv(GL3.GL_MAJOR_VERSION, buff, 0);
+      gl.glGetIntegerv(GL3.GL_MINOR_VERSION, buff, 1);
+      System.out.println("GL Renderer: " + renderer);
+      System.out.println("OpenGL Version: " + version + " (" + buff[0] + "," + buff[1] + ")");
    }
 
    /**
@@ -1637,6 +1646,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     */
    public void setEyeToWorld (RigidTransform3d X) {
       viewMatrix.invert(X);
+      // XXX
+      if (Math.abs (viewMatrix.getOffset ().norm ()) < 1e-5) {
+         System.err.println ("bang"); Thread.dumpStack();
+      }
       invalidateViewMatrix();
       repaint();
    }
@@ -1689,6 +1702,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
                                      yaxis.x, yaxis.y, yaxis.z, -yaxis.dot(eye),
                                      zaxis.x, zaxis.y, zaxis.z, -zaxis.dot(eye),
          });
+      }
+      // XXX
+      if (Math.abs (viewMatrix.getOffset ().norm ()) < 1e-5) {
+         System.err.println ("bang"); Thread.dumpStack();
       }
 
       invalidateViewMatrix();
@@ -1795,6 +1812,44 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       
       // clear current drawable
       this.drawable = null;
+   }
+   
+   protected boolean hasTransparent3d() {
+      if (myInternalRenderList.numTransparent() > 0) {
+         return true;
+      }
+      if (myExternalRenderList != null) {
+         if (myExternalRenderList.numTransparent() > 0) {
+            return true;
+         }
+      }
+      return false;
+   }
+
+   protected boolean has2d() {
+      if (myInternalRenderList.numOpaque2d() > 0 ||
+      myInternalRenderList.numTransparent2d() > 0) {
+         return true;
+      }
+      if (myExternalRenderList != null) {
+         if (myExternalRenderList.numOpaque2d() > 0 || 
+         myExternalRenderList.numTransparent2d() > 0) {
+            return true;
+         }
+      }
+      return false;
+   }
+
+   protected boolean hasTransparent2d() {
+      if (myInternalRenderList.numTransparent2d() > 0) {
+         return true;
+      }
+      if (myExternalRenderList != null) {
+         if (myExternalRenderList.numTransparent2d() > 0) {
+            return true;
+         }
+      }
+      return false;
    }
 
    private class RenderIterator implements Iterator<IsRenderable> {
@@ -2529,11 +2584,15 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       pushProjectionMatrix();
       pushViewMatrix();
       pushModelMatrix();
+      pushTextureMatrix ();
       
-      //setOrthogonal2d(left, right, bottom, top);
       setOrthogonal2d(-1, 1, -1, 1);
-      setModelMatrix2d (left, right, bottom, top);
       setViewMatrix(RigidTransform3d.IDENTITY);
+      setModelMatrix2d (left, right, bottom, top);
+      
+      setDepthEnabled (false);
+      setLightingEnabled (false);
+      setFaceStyle (FaceStyle.FRONT_AND_BACK);
       //setModelMatrix(RigidTransform3d.IDENTITY);
 
       rendering2d = true;
@@ -2541,6 +2600,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    public void finish2DRendering() {
 
+      popTextureMatrix ();
       popModelMatrix();
       popViewMatrix();
       popProjectionMatrix();
@@ -2757,6 +2817,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       synchronized(viewMatrix) {
          viewMatrix.set(v);
       }
+      // XXX
+      if (Math.abs (viewMatrix.getOffset ().norm ()) < 1e-5) {
+         System.err.println ("bang"); Thread.dumpStack();
+      }
       invalidateViewMatrix();
    }
 
@@ -2874,6 +2938,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       X.set(projectionMatrix);
    }
    
+   public Matrix4d getProjectionMatrix() {
+      return projectionMatrix.clone ();
+   }
+   
    @Override
    public void setTextureMatrix(AffineTransform2dBase trans) {
       synchronized(textureMatrix) {
@@ -2921,6 +2989,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       } 
       viewMatrix = viewMatrixStack.pop();
       myViewState = viewStateStack.pop();
+      
+      // XXX
+      if (Math.abs (viewMatrix.getOffset ().norm ()) < 1e-5) {
+         System.err.println ("bang"); Thread.dumpStack();
+      }
+      
       invalidateViewMatrix();
       return true;
    }

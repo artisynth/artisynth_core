@@ -2,11 +2,16 @@ package maspack.render.GL.test;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.GraphicsEnvironment;
 import java.awt.geom.Rectangle2D;
+import java.util.HashMap;
 import java.util.LinkedList;
+
+import javax.swing.JFrame;
 
 import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.AxisAngle;
+import maspack.matrix.Matrix4d;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
@@ -14,13 +19,23 @@ import maspack.render.RenderList;
 import maspack.render.Renderer;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
+import maspack.render.TextImageStore;
+import maspack.render.GL.GLViewer;
 import maspack.render.GL.test.MultiViewer.SimpleSelectable;
 
 public class TextTester extends GL2vsGL3Tester {
    
    @Override
    protected void addContent (MultiViewer mv) {
+      
+      final HashMap<String,Font> fontMap = new HashMap<> ();
+      for (Font font : GraphicsEnvironment.getLocalGraphicsEnvironment ().getAllFonts ()) {
+         fontMap.put (font.getName (), font);
+      }
+      
       mv.addRenderable (new SimpleSelectable() {
+         
+         JFrame debugframe = null;
          
          @Override
          public void updateBounds (Point3d pmin, Point3d pmax) {
@@ -33,25 +48,34 @@ public class TextTester extends GL2vsGL3Tester {
          @Override
          public void render (Renderer renderer, int flags) {
             
-            renderer.setShading (Shading.SMOOTH);
+            if (debugframe == null) {
+               TextImageStore store = ((GLViewer)renderer).getTextRenderer ().getImageStore (); 
+               debugframe = TextImageStore.createDisplayFrame (store);
+               debugframe.setVisible (true);
+            }
+            
+            renderer.setShading (Shading.FLAT);
             renderer.setColor (Color.WHITE);
             renderer.setFaceStyle (FaceStyle.FRONT_AND_BACK);
-            Font font = new Font(Font.SANS_SERIF, 0, 54);
             
+            renderer.drawSphere (Point3d.ZERO, 0.01);
+            
+            Font font = new Font(Font.SANS_SERIF, 0, 54);
             renderer.drawText (font, "Hello world! And goodnight to all.", new float[]{0.4f,0.3f,0.3f}, 0.25);
             
             renderer.setColor (Color.ORANGE);
             String text = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
             renderer.drawText (font, text, new float[]{-2f,0f,0f}, 0.25);
-            
-            renderer.setColor (Color.CYAN);
-            text = "Cowabunga";
-            Font comic = Font.getFont ("Comic Sans MS");
+
+            Font comic = fontMap.get ("Comic Sans MS");
             if (comic == null) {
                comic = new Font(Font.MONOSPACED, Font.BOLD, 32);
             } else {
                comic = comic.deriveFont (Font.BOLD, 32);
             }
+            renderer.setColor (Color.CYAN);
+            text = "Cowabunga";
+           
             Rectangle2D rect = renderer.getTextBounds (comic, text, 0.25);
             renderer.drawText (comic, text, new float[]{-(float)(rect.getWidth ()),0.5f,0f}, 0.25);
                           

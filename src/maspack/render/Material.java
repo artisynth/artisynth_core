@@ -88,7 +88,7 @@ public class Material {
          s = 0;
       }
       else if (s > 128) {
-         s = 128;
+         s = 128; // max supported under GL
       }
       shininess = s;
    }

@@ -8,13 +8,12 @@ package artisynth.core.renderables;
 
 import java.awt.Color;
 
+import artisynth.core.modelbase.ModelComponentBase;
 import maspack.matrix.Vector3d;
-import maspack.matrix.Vector4d;
 import maspack.properties.PropertyList;
 import maspack.render.Light;
 import maspack.render.Light.LightSpace;
 import maspack.render.Light.LightType;
-import artisynth.core.modelbase.ModelComponentBase;
 
 public class LightComponent extends ModelComponentBase {
    Light myLight;
@@ -30,7 +29,7 @@ public class LightComponent extends ModelComponentBase {
       myProps.add("specular", "specular color", Color.WHITE);
       myProps.add("attenuation", "attenuation", Vector3d.X_UNIT);
       myProps.add("type", "light type", LightType.DIRECTIONAL);
-      myProps.add("spotCosCutoff", "cosine cutoff for spot light", Math.cos(Math.PI/6));
+      myProps.add("spotCutoff", "radian cutoff for spot light", Math.PI/6, "[0,1.58]");
       myProps.add("spotExponent", "spot light exponent", 0);
    }
    
@@ -125,12 +124,12 @@ public class LightComponent extends ModelComponentBase {
       myLight.setType(type);
    }
    
-   public double getSpotCosCutoff() {
-      return myLight.getSpotCosCutoff();
+   public double getSpotCutoff() {
+      return myLight.getSpotCutoff();
    }
    
-   public void setSpotCosCutoff(double cs) {
-      myLight.setSpotCosCutoff((float)cs);
+   public void setSpotCutoff(double cs) {
+      myLight.setSpotCutoff((float)cs);
    }
    
    public double getSpotExponent() {

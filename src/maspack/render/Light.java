@@ -22,7 +22,7 @@ public class Light {
    private LightSpace myLightSpace = LightSpace.CAMERA;
    private float[] position = new float[] { 0, 0, 0, 0 };
    private float[] direction = new float[] { 0, 0, 0, 0 };
-   private float spotCosCutoff = 0;
+   private float spotCutoff = 0;
    private float spotExponent = 0;
    private float constantAttenuation = 1;
    private float linearAttenuation = 0;
@@ -144,12 +144,16 @@ public class Light {
       return direction;
    }
    
-   public void setSpotCosCutoff(float c) {
-      spotCosCutoff = c;
+   /**
+    * Angular cut-off in radians
+    * @param c
+    */
+   public void setSpotCutoff(float rad) {
+      spotCutoff = rad;
    }
    
-   public float getSpotCosCutoff() {
-      return spotCosCutoff;
+   public float getSpotCutoff() {
+      return spotCutoff;
    }
    
    public float getSpotExponent() {

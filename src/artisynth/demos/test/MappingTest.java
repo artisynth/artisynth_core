@@ -68,7 +68,7 @@ public class MappingTest extends MeshTestBase {
       float[] greenGold = new float[] {0.61f, 0.77f, 0.12f};
       float[] yellowGold = new float[] {1f, 0.44f, 0f};
 
-      RenderProps.setShininess (mech, 20);
+      RenderProps.setShininess (mech, 128);
       RenderProps.setFaceStyle (mech, FaceStyle.FRONT_AND_BACK);
       RenderProps.setFaceColor (mech, greenGold);
       RenderProps.setSpecular (mech, yellowGold);

@@ -181,8 +181,10 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             gl.glLighti(lightId, GL2.GL_SPOT_CUTOFF, 180); // special value disabling spot
             break;
          case SPOT:
-            gl.glLightf(lightId, GL2.GL_SPOT_CUTOFF, (float)Math.acos(light.getSpotCosCutoff()));
-            gl.glLightf(lightId, GL2.GL_SPOT_EXPONENT, light.getSpotExponent());
+            float deg = Math.min ((float)Math.toDegrees (light.getSpotCutoff()), 90);
+            gl.glLightf(lightId, GL2.GL_SPOT_CUTOFF, deg);
+            float exp = Math.min (light.getSpotExponent(), 128);
+            gl.glLightf(lightId, GL2.GL_SPOT_EXPONENT, exp);
             gl.glLightfv(lightId, GL2.GL_SPOT_DIRECTION, light.getDirection(), 0);
             break;
       }
@@ -205,6 +207,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       // make sure in modelview matrix mode
       // XXX gl.glMatrixMode(GL2.GL_MODELVIEW);
+      GLSupport.checkAndPrintGLError(drawable.getGL ());
       maybeUpdateMatrices (gl);
       
       int maxLights = lightManager.maxLights();
@@ -215,6 +218,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             setupLight(gl, light, intensityScale);
          }
       }
+      GLSupport.checkAndPrintGLError(drawable.getGL ());
    }
 
    /**

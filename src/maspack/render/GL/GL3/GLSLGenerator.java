@@ -333,7 +333,7 @@ public class GLSLGenerator {
 
       // vertex colors
       ColorInterpolation cinterp = info.getColorInterpolation();
-      if (cinterp != ColorInterpolation.NONE) {
+      if (info.getVertexColorMixing () != ColorMixing.NONE) {
          switch (mode) {
             case INSTANCED_POINTS:
             case INSTANCED_FRAMES:
@@ -418,24 +418,21 @@ public class GLSLGenerator {
                appendln(mb, "   ");
                appendln(mb, "   // lights");
                appendln(mb, "   for (int i=0; i<" + info.numLights() + "; ++i) {");
-               appendln(mb, "      vec3  light_to_vertex = vec3(camera_position-light[i].position);");
+               appendln(mb, "      vec3  light_to_vertex = camera_position.xyz-light[i].position.xyz;");
                appendln(mb, "      float lightdist = length(light_to_vertex);");
                appendln(mb, "      light_to_vertex = light_to_vertex/lightdist;");                  
-               appendln(mb, "      // determine direction either from point or direction using direction indicator");
-               appendln(mb, "      vec3 light_direction = mix(light[i].direction.xyz, light_to_vertex, light[i].position.w);");
+               appendln(mb, "      vec3 light_direction = normalize(light[i].direction.xyz);");
                appendln(mb, "      ");
                appendln(mb, "      float spotatt = 1.0;  // spot attentuation initially zero if non-spotlight");
                appendln(mb, "      float coslimit = light[i].direction.w;");
-               appendln(mb, "      if (coslimit >= -1) {");
+               appendln(mb, "      if (coslimit > 0) {");
                appendln(mb, "         // check angle");
                appendln(mb, "         float coslight = dot(light_direction, light_to_vertex);");
-               appendln(mb, "         // cosine range, rescaled to [0,1)");
-               appendln(mb, "         float ccut = max((coslight-coslimit), 0)/(1-coslimit+1e-10);");
-               appendln(mb, "         // radial distance cut-off");
-               appendln(mb, "         float rcut = 1-lightdist*lightdist*(1-coslight*coslight)/(coslimit*coslimit+1e-10);");
-               appendln(mb, "         // choose between angle and radial");
-               appendln(mb, "         spotatt = max(mix(rcut, ccut, light[i].position.w), 0);");
-               appendln(mb, "         spotatt = pow(spotatt, light[i].attenuation.w);");
+               appendln(mb, "         if (coslight < coslimit) {");
+               appendln(mb, "            spotatt = 0;");
+               appendln(mb, "         } else {");
+               appendln(mb, "            spotatt = pow(coslight, light[i].attenuation.w);");
+               appendln(mb, "         }");
                appendln(mb, "      }");
                appendln(mb, "      ");
                appendln(mb, "      // distance attenuation doesn't affect directional lights");
@@ -443,6 +440,8 @@ public class GLSLGenerator {
                appendln(mb, "         light[i].attenuation.z*lightdist*lightdist), light[i].position.w);");
                appendln(mb, "      att *= spotatt;  // combine into a single attenuation parameter");
                appendln(mb, "      ");
+               appendln(mb, "      // determine direction either from point or direction using direction indicator");
+               appendln(mb, "      light_direction = mix(light_direction, light_to_vertex, light[i].position.w);");
                appendln(mb, "      vec2 ds = blinnPhongCoeffs( nfront, -light_direction, eye, front_material.specular.a);");
                appendln(mb, "      flambi += intensity_scale*light[i].ambient.rgb;");
                appendln(mb, "      fldiff += intensity_scale*att*ds.x*light[i].diffuse.rgb;");
@@ -475,8 +474,8 @@ public class GLSLGenerator {
                } else {
                   appendln(mb, "   vec4 camera_normal = -camera_position;  // assume pointed at camera");
                }
-               appendln(mb, "   dirOut.normal = normalize(camera_normal.xyz);");
-               appendln(mb, "   dirOut.to_eye = -camera_position.xyz;");
+               appendln(mb, "   surfOut.normal = normalize(camera_normal.xyz);");
+               appendln(mb, "   surfOut.to_eye = -camera_position.xyz;");
                appendln(mb, "");
             }
             break;
@@ -540,7 +539,7 @@ public class GLSLGenerator {
       if (info.hasVertexNormals() && info.getShading() != Shading.NONE) {
          appendln(hb, "in vec3 vertex_normal;");
       }
-      if (info.hasVertexColors() && info.getColorInterpolation() != ColorInterpolation.NONE) {
+      if (info.hasVertexColors() && info.getVertexColorMixing () != ColorMixing.NONE) {
          appendln(hb, "in vec4 vertex_color;");
       }
       if (info.hasVertexTextures()) {
@@ -553,7 +552,7 @@ public class GLSLGenerator {
             appendln(hb, "// instance inputs");
             appendln(hb, "in float instance_scale;");
             appendln(hb, "in vec3  instance_position;"); 
-            if (info.hasInstanceColors() && info.getColorInterpolation() != ColorInterpolation.NONE) {
+            if (info.hasInstanceColors() && info.getVertexColorMixing () != ColorMixing.NONE) {
                appendln(hb, "in vec4  instance_color;");
             }
             break;
@@ -561,7 +560,7 @@ public class GLSLGenerator {
             appendln(hb);
             appendln(hb, "// instance inputs");
             appendln(hb, "in vec3  instance_position;");
-            if (info.hasInstanceColors() && info.getColorInterpolation() != ColorInterpolation.NONE) {
+            if (info.hasInstanceColors() && info.getVertexColorMixing () != ColorMixing.NONE) {
                appendln(hb, "in vec4  instance_color;");
             }
             appendln(hb, "in float instance_scale;");
@@ -573,7 +572,7 @@ public class GLSLGenerator {
             appendln(hb, "in float instance_scale;");
             appendln(hb, "in mat4  instance_affine_matrix;");
             appendln(hb, "in vec4  instance_normal_matrix;"); 
-            if (info.hasInstanceColors() && info.getColorInterpolation() != ColorInterpolation.NONE) {
+            if (info.hasInstanceColors() && info.getVertexColorMixing () != ColorMixing.NONE) {
                appendln(hb, "in vec4  instance_color;");
             }
             break;
@@ -587,7 +586,7 @@ public class GLSLGenerator {
                appendln(hb, "in vec4  line_bottom_scale_offset;");
                appendln(hb, "in vec4  line_top_scale_offset;");
             }
-            if (info.hasLineColors() && info.getColorInterpolation() != ColorInterpolation.NONE) {
+            if (info.hasLineColors() && info.getVertexColorMixing () != ColorMixing.NONE) {
                appendln(hb, "in vec4  line_bottom_color;");
                appendln(hb, "in vec4  line_top_color;");
             }
@@ -602,7 +601,7 @@ public class GLSLGenerator {
    private static void addVertexOutputs(StringBuilder hb, GLProgramInfo info) {
       
       RenderingMode instanced = info.getMode();
-      boolean hasColors = (info.getColorInterpolation() != ColorInterpolation.NONE)
+      boolean hasColors = (info.getVertexColorMixing () != ColorMixing.NONE)
                           && (info.hasVertexColors()
                              || ((instanced == RenderingMode.INSTANCED_POINTS 
                                   || instanced == RenderingMode.INSTANCED_FRAMES
@@ -614,7 +613,11 @@ public class GLSLGenerator {
       if (hasColors) {
          appendln(hb, "// per-vertex color info");
          appendln(hb, "out ColorData {");
-         appendln(hb, "   vec4 diffuse;");
+         if (info.getColorInterpolation () == ColorInterpolation.NONE) {
+            appendln(hb, "   flat vec4 diffuse;");
+         } else {
+            appendln(hb, "   vec4 diffuse;");   
+         }
          appendln(hb, "} colorOut;");
          appendln(hb);
       }
@@ -693,10 +696,10 @@ public class GLSLGenerator {
             case SMOOTH:
             case METAL:
                   appendln(hb,"// directions for per-fragment lighting");
-                  appendln(hb,"out DirectionData {");
+                  appendln(hb,"out SurfaceData {");
                   appendln(hb, "   vec3 normal;");
                   appendln(hb, "   vec3 to_eye;");               
-                  appendln(hb,"} dirOut;");
+                  appendln(hb,"} surfOut;");
                   appendln(hb);
                break;
             case NONE:
@@ -834,7 +837,7 @@ public class GLSLGenerator {
       appendln(hb);
       
       RenderingMode instanced = info.getMode();
-      boolean hasColors = (info.getColorInterpolation() != ColorInterpolation.NONE)
+      boolean hasColors = (info.getVertexColorMixing () != ColorMixing.NONE)
          && (info.hasVertexColors()
             || ((instanced == RenderingMode.INSTANCED_POINTS 
                  || instanced == RenderingMode.INSTANCED_FRAMES
@@ -846,7 +849,11 @@ public class GLSLGenerator {
       if (hasColors) {
          appendln(hb, "// fragment colors from previous shader");
          appendln(hb, "in ColorData {");
-         appendln(hb, "   vec4 diffuse;");
+         if (info.getColorInterpolation () == ColorInterpolation.NONE) {
+            appendln(hb, "   flat vec4 diffuse;");
+         } else {
+            appendln(hb, "   vec4 diffuse;");   
+         }
          appendln(hb, "} colorIn;");
          appendln(hb);
       }
@@ -893,14 +900,23 @@ public class GLSLGenerator {
       appendln(hb, "};");
       appendln(hb);
 
-      if ( (shading == Shading.SMOOTH) && (nLights > 0) ) {
-         // we need all light info
-         appendLightSourceStruct(hb);
-         appendln(hb,"layout ("+UNIFORM_LAYOUT+") uniform Lights {");
-         appendln(hb,"   LightSource light[" + nLights + "];");
-         appendln(hb,"   float intensity_scale;  // for HDR->LDR, initialized to one");
-         appendln(hb,"};");
-         appendln(hb);
+      if (nLights > 0) {
+         switch (shading) {
+            case SMOOTH:
+            case METAL: {
+               // we need all light info
+               appendLightSourceStruct(hb);
+               appendln(hb,"layout ("+UNIFORM_LAYOUT+") uniform Lights {");
+               appendln(hb,"   LightSource light[" + nLights + "];");
+               appendln(hb,"   float intensity_scale;  // for HDR->LDR, initialized to one");
+               appendln(hb,"};");
+               appendln(hb);  
+               break;
+            }
+            case NONE:
+            case FLAT:
+               break;
+         }
       }
    }
 
@@ -938,10 +954,10 @@ public class GLSLGenerator {
          case METAL:
             if (nLights > 0) {
                appendln(hb,"// directions for per-fragment lighting");
-               appendln(hb,"in DirectionData {");
+               appendln(hb,"in SurfaceData {");
                appendln(hb, "   vec3 normal;");
                appendln(hb, "   vec3 to_eye;");               
-               appendln(hb,"} dirIn;");
+               appendln(hb,"} surfIn;");
                appendln(hb);
             }
             break;
@@ -1070,23 +1086,23 @@ public class GLSLGenerator {
                   
                   if (!info.hasVertexNormals ()) {
                      appendln(mb, "   // compute normal using derivatives");
-                     appendln(mb, "   vec3 deyedx = dFdx(dirIn.to_eye);");
-                     appendln(mb, "   vec3 deyedy = dFdy(dirIn.to_eye);");
+                     appendln(mb, "   vec3 deyedx = dFdx(surfIn.to_eye);");
+                     appendln(mb, "   vec3 deyedy = dFdy(surfIn.to_eye);");
                      appendln(mb, "   vec3 normal = normalize( cross( deyedx, deyedy ) );");
                   } else {
-                     appendln(mb, "   vec3 normal = normalize(dirIn.normal);");
+                     appendln(mb, "   vec3 normal = normalize(surfIn.normal);");
                   }
-                  appendln(mb, "   vec3 eye = normalize(dirIn.to_eye);");
+                  appendln(mb, "   vec3 eye = normalize(surfIn.to_eye);");
                   appendln(mb, "   ");
                   if (hasTextures) {
                      if (info.hasNormalMap()) {
                         appendln(mb, "   // normal-map purturbation");
-                        appendln(mb, "   normal = perturbNormal(-dirIn.to_eye, normal);");
+                        appendln(mb, "   normal = perturbNormal(-surfIn.to_eye, normal);");
                         appendln(mb, "   ");
                      }
                      if (info.hasBumpMap()) {
                         appendln(mb, "   // bump-map normal purturbation");
-                        appendln(mb, "   normal = perturbNormalBump(-dirIn.to_eye, normal, computedHdxy());");
+                        appendln(mb, "   normal = perturbNormalBump(-surfIn.to_eye, normal, computedHdxy());");
                         appendln(mb, "   ");
                      }
                   }
@@ -1101,24 +1117,22 @@ public class GLSLGenerator {
                   
                   appendln(mb, "   // per-fragment lighting computations");
                   appendln(mb, "   for (int i=0; i<" + info.numLights() + "; ++i) {");
-                  appendln(mb, "      vec3 light_to_vertex = -dirIn.to_eye-light[i].position.xyz;");
+                  appendln(mb, "      vec3 light_to_vertex = -surfIn.to_eye-light[i].position.xyz;");
                   appendln(mb, "      float lightdist = length(light_to_vertex);");
                   appendln(mb, "      light_to_vertex = normalize(light_to_vertex);");                  
                   appendln(mb, "      // determine direction either from point or direction using direction indicator");
-                  appendln(mb, "      vec3 light_direction = mix(light[i].direction.xyz, light_to_vertex, light[i].position.w);");
+                  appendln(mb, "      vec3 light_direction = normalize(light[i].direction.xyz);");
                   appendln(mb, "      ");
-                  appendln(mb, "      float spotatt = 1.0;  // spot attentuation initially zero");
+                  appendln(mb, "      float spotatt = 1.0;  // spot attentuation initially zero if non-spotlight");
                   appendln(mb, "      float coslimit = light[i].direction.w;");
-                  appendln(mb, "      if (coslimit > -1) {");
+                  appendln(mb, "      if (coslimit > 0) {");
                   appendln(mb, "         // check angle");
                   appendln(mb, "         float coslight = dot(light_direction, light_to_vertex);");
-                  appendln(mb, "         // cosine range, rescaled to [0,1)");
-                  appendln(mb, "         float ccut = max((coslight-coslimit), 0)/(1-coslimit+1e-10);");
-                  appendln(mb, "         // radial distance cut-off");
-                  appendln(mb, "         float rcut = 1-lightdist*lightdist*(1-coslight*coslight)/(coslimit*coslimit+1e-10);");
-                  appendln(mb, "         // choose between angle and radial");
-                  appendln(mb, "         spotatt = max(mix(rcut, ccut, light[i].position.w), 0);");
-                  appendln(mb, "         spotatt = pow(spotatt, light[i].attenuation.w);");
+                  appendln(mb, "         if (coslight < coslimit) {");
+                  appendln(mb, "            spotatt = 0;");
+                  appendln(mb, "         } else {");
+                  appendln(mb, "            spotatt = pow(coslight, light[i].attenuation.w);");
+                  appendln(mb, "         }");
                   appendln(mb, "      }");
                   appendln(mb, "      ");
                   appendln(mb, "      // distance attenuation doesn't affect directional lights");
@@ -1126,6 +1140,8 @@ public class GLSLGenerator {
                   appendln(mb, "         light[i].attenuation.z*lightdist*lightdist), light[i].position.w);");
                   appendln(mb, "      att *= spotatt;  // combine into a single attenuation parameter");
                   appendln(mb, "      ");
+                  appendln(mb, "      // position vs directional light");
+                  appendln(mb, "      light_direction = mix(light_direction, light_to_vertex, light[i].position.w);");
                   appendln(mb, "      vec2 ds = blinnPhongCoeffs( normal, -light_direction, eye, material.specular.a);");
                   appendln(mb, "      ambient  += intensity_scale*light[i].ambient.rgb;");
                   appendln(mb, "      diffuse  += intensity_scale*att*ds.x*light[i].diffuse.rgb;");
@@ -1149,7 +1165,7 @@ public class GLSLGenerator {
       }
       
       // combine colors
-      boolean hasFragmentColors = (cinterp != ColorInterpolation.NONE)
+      boolean hasFragmentColors = (info.getVertexColorMixing () != ColorMixing.NONE)
          && (info.hasVertexColors()
             || ((mode == RenderingMode.INSTANCED_POINTS 
                  || mode == RenderingMode.INSTANCED_FRAMES

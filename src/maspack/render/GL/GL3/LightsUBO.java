@@ -104,9 +104,9 @@ public class LightsUBO extends UniformBufferObject {
          
          // spot indicator
          if (light.getType() == LightType.SPOT) {
-            buff.putFloat (light.getSpotCosCutoff());
+            buff.putFloat ((float)Math.cos (light.getSpotCutoff()));
          } else {
-            buff.putFloat (-2f); // allow all light
+            buff.putFloat (-1f); // allow all light
          }
          
          // attenuation

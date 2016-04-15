@@ -104,7 +104,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
    protected Shading myShading;
    protected PropertyMode myShadingMode;
-   protected static Shading defaultShading = Shading.FLAT; // XXX changed to default to smooth?
+   protected static Shading defaultShading = Shading.SMOOTH;
 
    protected float myShininess;
    protected PropertyMode myShininessMode;

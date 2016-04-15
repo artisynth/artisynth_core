@@ -407,8 +407,9 @@ public class RenderList {
          else {
             r.render (renderer, flags);
          }
+         renderer.restoreDefaultState();
          // XXX maybe disable highlighting?
-         renderer.setSelectionHighlighting (false);
+         //renderer.setSelectionHighlighting (false);
       }
       return qid;
    }

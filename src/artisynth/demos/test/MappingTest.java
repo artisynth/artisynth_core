@@ -14,6 +14,7 @@ import maspack.matrix.*;
 import maspack.util.*;
 import maspack.render.*;
 import maspack.render.Renderer.FaceStyle;
+import maspack.render.Renderer.Shading;
 import maspack.properties.*;
 
 public class MappingTest extends MeshTestBase {
@@ -26,9 +27,9 @@ public class MappingTest extends MeshTestBase {
       mech.addMeshBody (body);
       body.setPose (new RigidTransform3d (0, 0, z, 0, 0, Math.PI/2));
 
-      // body.getRenderProps().setTextureMapProps (createTextureProps());
-      // body.getRenderProps().setNormalMapProps (createNormalProps());
-      // body.getRenderProps().setBumpMapProps (createBumpProps());
+      body.getRenderProps().setTextureMapProps (new TextureMapProps());
+      body.getRenderProps().setNormalMapProps (new NormalMapProps());
+      body.getRenderProps().setBumpMapProps (new BumpMapProps());
 
       return body;
    }
@@ -72,13 +73,12 @@ public class MappingTest extends MeshTestBase {
       RenderProps.setFaceColor (mech, greenGold);
       RenderProps.setSpecular (mech, yellowGold);
 
-      // mech.getRenderProps().setTextureMapProps (createTextureProps());
-      // mech.getRenderProps().setNormalMapProps (createNormalProps());
-      // mech.getRenderProps().setBumpMapProps (createBumpProps());
+      mech.getRenderProps().setTextureMapProps (createTextureProps());
+      mech.getRenderProps().setNormalMapProps (createNormalProps());
+      mech.getRenderProps().setBumpMapProps (createBumpProps());
 
       FixedMeshBody body0 = createMesh (mech, 0);
-      //FixedMeshBody body1 = createMesh (mech, 2);
-
-
+      FixedMeshBody body1 = createMesh (mech, 2);
    }
+
 }

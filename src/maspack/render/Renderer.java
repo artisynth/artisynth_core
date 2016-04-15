@@ -1505,6 +1505,16 @@ public interface Renderer {
     * @return the previous texture map properties
     */
    public TextureMapProps setTextureMapProps(TextureMapProps props);
+
+   /**
+    * Returns the most recently set texture mapping properties, or
+    * <code>null</code> if no texture mapping has been set or texture mapping
+    * is not supported.
+    *
+    * @return current texture mapping properties.
+    * @see #setTextureMapProps
+    */
+   public TextureMapProps getTextureMapProps();
    
    /**
     * Queries whether or not this renderer supports normal mapping.
@@ -1529,6 +1539,16 @@ public interface Renderer {
    public NormalMapProps setNormalMapProps(NormalMapProps props);
    
    /**
+    * Returns the most recently set normal mapping properties, or
+    * <code>null</code> if no normal mapping has been set or normal mapping
+    * is not supported.
+    *
+    * @return current normal mapping properties.
+    * @see #setNormalMapProps
+    */
+   public NormalMapProps getNormalMapProps();
+   
+   /**
     * Queries whether or not this renderer supports bump mapping.
     * 
     * @return <code>true</code> if bump mapping is supported.
@@ -1550,6 +1570,17 @@ public interface Renderer {
     */
    public BumpMapProps setBumpMapProps(BumpMapProps props);
    
+   /**
+    * Returns the most recently set bump mapping properties, or
+    * <code>null</code> if no bump mapping has been set or bump mapping
+    * is not supported.
+    *
+    * @return current bump mapping properties.
+    * @see #setBumpMapProps
+    */
+   public BumpMapProps getBumpMapProps();
+   
+
    //==========================================================================
    // RENDER OBJECTS
    //==========================================================================
@@ -2221,4 +2252,10 @@ public interface Renderer {
     * @throws IllegalStateException if the renderer is not in draw mode
     */
    public void endDraw();
+
+   /**
+    * Restores the renderer to its default state. This is intended for internal
+    * use.
+    */
+   public void restoreDefaultState();
 }

@@ -25,14 +25,11 @@ import maspack.properties.PropTreeCell;
 import maspack.properties.PropertyInfo;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
-import maspack.render.RenderMappings;
-import maspack.render.HasRenderMappings;
 import maspack.util.InternalErrorException;
 import maspack.widgets.GuiUtils;
 import maspack.widgets.OptionPanel;
 import maspack.widgets.PropertyDialog;
 import maspack.widgets.RenderPropsDialog;
-import maspack.widgets.RenderMappingsDialog;
 import artisynth.core.driver.Main;
 import artisynth.core.gui.editorManager.DuplicateAgent;
 import artisynth.core.gui.editorManager.EditActionMap;
@@ -132,7 +129,6 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       boolean oneSelectedIsVisible = false;
       boolean oneSelectedIsInvisible = false;
       boolean oneSelectedHasRenderPropsProperty = false;
-      boolean oneSelectedHasRenderMappings = false;
 
       if (selection.size() > 0) {
          allSelectedHaveProperties = true;
@@ -174,10 +170,6 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
             if (!(c instanceof Traceable)) {
                allSelectedAreTraceable = false;
             }
-            if (c instanceof HasRenderMappings &&
-                c.getAllPropertyInfo().get ("renderMappings") != null) {
-               oneSelectedHasRenderMappings = true;
-            }
          }
       }
       Collection<Traceable> traceSet = myMain.getRootModel().getTraceSet();
@@ -202,9 +194,6 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
          else {
             addMenuItem ("Set render props ...");
          }
-      }
-      if (oneSelectedHasRenderMappings) {
-         addMenuItem ("Edit render mappings ...");
       }
       
       if (oneSelectedIsInvisible) {
@@ -596,31 +585,6 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
             dialog.setVisible (true);
          }
       }
-      else if (command.equals ("Edit render mappings ...")) {
-         LinkedList<ModelComponent> mappables =
-            new LinkedList<ModelComponent>();
-         for (ModelComponent c : myPropertyEditSelection) {
-            if (c instanceof HasRenderMappings &&
-                c.getAllPropertyInfo().get ("renderMappings") != null) {
-               mappables.add (c);
-            }
-         }         
-         RenderMappingsDialog dialog =
-            new RenderMappingsDialog ("Edit render mappings", mappables);
-
-         if (myLocateRenderPropEditClose) {
-            GuiUtils.locateRelative (
-               dialog, myLastBounds, 0.5, 0.5, 0, 0.5);
-         }
-         else {
-            dialog.locateRight (myMain.getFrame());
-         }
-         myMain.registerWindow (dialog);
-         dialog.setTitle (
-            "RenderMappings for "+getNameForSelection (myPropertyEditSelection));
-         dialog.setVisible (true);
-      }
-      
       else if (command.equals ("Clear render props")) {
          for (ModelComponent c : myPropertyEditSelection) {
             if (c instanceof Renderable) {

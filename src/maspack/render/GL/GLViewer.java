@@ -108,13 +108,16 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    private static final Point3d DEFAULT_VIEWER_CENTER = new Point3d();
    private static final Point3d DEFAULT_VIEWER_EYE = new Point3d (0, -1, 0);
 
-   //protected static int DEFAULT_POINT_SLICES = 64;
-   //protected static int DEFAULT_LINE_SLICES = 64;
    protected static int DEFAULT_SURFACE_RESOLUTION = 64;
-
-   //protected int myPointSlices = DEFAULT_POINT_SLICES;
-   //protected int myLineSlices = DEFAULT_LINE_SLICES;
    protected int mySurfaceResolution = DEFAULT_SURFACE_RESOLUTION; 
+
+   private static final float DEFAULT_POINT_SIZE = 1f;
+   private static final float DEFAULT_LINE_WIDTH = 1f;
+   private static final Shading DEFAULT_SHADING = Shading.SMOOTH;
+   private static final FaceStyle DEFAULT_FACE_STYLE = FaceStyle.FRONT;
+   private static final ColorMixing DEFAULT_COLOR_MIXING = ColorMixing.REPLACE;
+   private static final ColorInterpolation DEFAULT_COLOR_INTERPOLATION =
+      ColorInterpolation.RGB;
 
    // viewer state
    protected static class ViewState {
@@ -130,7 +133,29 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
    protected ViewState myViewState = null;
    protected LinkedList<ViewState> viewStateStack = null;
+
+   // Bits to indicate when state variables have been set to non-default values
+   static private final int BACK_COLOR_BIT = 0x0001;
+   static private final int EMISSION_BIT = 0x0002;
+   static private final int SPECULAR_BIT = 0x0004;
+   static private final int SHININESS_BIT = 0x0008;
+   static private final int COLOR_INTERPOLATION_BIT = 0x0010;
+   static private final int HIGHLIGHTING_BIT = 0x0020;
    
+   static private final int FACE_STYLE_BIT = 0x0100;
+   static private final int LINE_WIDTH_BIT = 0x0200;
+   static private final int POINT_SIZE_BIT = 0x0400;
+   static private final int SHADING_BIT = 0x0800;
+   static private final int SURFACE_RESOLUTION_BIT = 0x1000;
+   static private final int COLOR_MIXING_BIT = 0x2000;
+
+   // Status words to record when state variables have been touched or set to
+   // non-default values.
+   boolean myMappingsSet = false; // need to set
+   boolean myModelMatrixSet = false;
+   int myNonDefaultColorSettings = 0;
+   int myNonDefaultGeneralSettings = 0;
+
    protected static class ViewerState {
       public boolean lightingEnabled;       // light equations
       public boolean depthEnabled;          // depth buffer
@@ -401,6 +426,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public int setSurfaceResolution (int nres) {
       int prev = mySurfaceResolution;
       mySurfaceResolution = nres;
+      if (nres != DEFAULT_SURFACE_RESOLUTION) {
+         myNonDefaultGeneralSettings |= SURFACE_RESOLUTION_BIT;
+      }
+      else {
+         myNonDefaultGeneralSettings &= ~SURFACE_RESOLUTION_BIT;
+      }
       return prev;
    }
    
@@ -1488,6 +1519,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    @Override
    public void setPointSize(float s) {
       setPointSize(getGL(), s);
+      if (s != DEFAULT_POINT_SIZE) {
+         myNonDefaultGeneralSettings |= POINT_SIZE_BIT;
+      }
+      else {
+         myNonDefaultGeneralSettings &= ~POINT_SIZE_BIT;
+      }
    }
    
    protected void setPointSize(GL gl, float s) {
@@ -1515,6 +1552,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    @Override
    public void setLineWidth(float w) {
       setLineWidth(getGL(), w);
+      if (w != DEFAULT_LINE_WIDTH) {
+         myNonDefaultGeneralSettings |= LINE_WIDTH_BIT;
+      }
+      else {
+         myNonDefaultGeneralSettings &= ~LINE_WIDTH_BIT;
+      }
    }
    
    protected void setLineWidth(GL gl, float w) {
@@ -2081,7 +2124,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myViewerState.hsvInterpolationEnabled = (interp==ColorInterpolation.HSV);
       
       myProgramInfo.setColorInterpolation (interp);
-      
+      if (interp != DEFAULT_COLOR_INTERPOLATION) {
+         myNonDefaultColorSettings |= COLOR_INTERPOLATION_BIT;
+      }
+      else {
+         myNonDefaultColorSettings &= ~COLOR_INTERPOLATION_BIT;
+      }
       return prev;
    }
 
@@ -2106,9 +2154,13 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       ColorMixing prev = myViewerState.colorMixing;
       if (hasVertexColorMixing(cmix)) {
          myViewerState.colorMixing = cmix;
-         
          myProgramInfo.setVertexColorMixing (cmix);
-         
+         if (cmix != DEFAULT_COLOR_MIXING) {
+            myNonDefaultGeneralSettings |= COLOR_MIXING_BIT;
+         }
+         else {
+            myNonDefaultGeneralSettings &= ~COLOR_MIXING_BIT;
+         }
       }
       return prev;
    }
@@ -2129,10 +2181,16 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          } else {
             myColorMapProps = null;
          }
+         myMappingsSet = true;
       }
       return old;
    }
    
+   @Override
+   public TextureMapProps getTextureMapProps () {
+      return myColorMapProps;
+   }   
+
    @Override
    public NormalMapProps setNormalMapProps (NormalMapProps props) {
       NormalMapProps old = myNormalMapProps;
@@ -2142,10 +2200,16 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          } else {
             myNormalMapProps = null;
          }
+         myMappingsSet = true;
       }
       return old;
    }
    
+   @Override
+   public NormalMapProps getNormalMapProps () {
+      return myNormalMapProps;
+   }   
+
    @Override
    public BumpMapProps setBumpMapProps (BumpMapProps props) {
       BumpMapProps old = myBumpMapProps;
@@ -2155,9 +2219,15 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          } else {
             myBumpMapProps = null;
          }
+         myMappingsSet = true;
       }
       return old;
    }
+
+   @Override
+   public BumpMapProps getBumpMapProps () {
+      return myBumpMapProps;
+   }   
 
    protected boolean isGammaCorrectionEnabled() {
       return gammaCorrectionEnabled;
@@ -2193,7 +2263,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       if (isLightingEnabled ()) {
          myProgramInfo.setShading (shading);
       }
-      
+      if (shading != DEFAULT_SHADING) {
+         myNonDefaultGeneralSettings |= SHADING_BIT;
+      }
+      else {
+         myNonDefaultGeneralSettings &= ~SHADING_BIT;
+      }
       return prev;
    }
 
@@ -2363,6 +2438,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public FaceStyle setFaceStyle(FaceStyle style) {
       FaceStyle prev = myViewerState.faceMode;
       myViewerState.faceMode = style;
+      if (style != DEFAULT_FACE_STYLE) {
+         myNonDefaultGeneralSettings |= FACE_STYLE_BIT;
+      }
+      else {
+         myNonDefaultGeneralSettings &= ~FACE_STYLE_BIT;
+      }
       return prev;
    }
 
@@ -2965,6 +3046,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    protected void invalidateModelMatrix() {
       modelMatrixValidP = false;
+      myModelMatrixSet = true;
    }
 
    protected void invalidateProjectionMatrix() {
@@ -3003,6 +3085,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public void pushModelMatrix() {
       modelMatrixStack.push(modelMatrix.clone());
       modelNormalMatrixStack.push(modelNormalMatrix.clone());
+      myModelMatrixSet = true;
    }
 
    protected Matrix3d computeInverseTranspose(Matrix3dBase M) {
@@ -3025,6 +3108,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       modelMatrix = modelMatrixStack.pop();
       modelNormalMatrix = modelNormalMatrixStack.pop();
       invalidateModelMatrix();
+      myModelMatrixSet = true;
       return true;
    }
 
@@ -3316,6 +3400,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
             myHighlightColorActive = enable;
             // indicate that we may need to update color state
             myCurrentMaterialModified = true; 
+            if (enable) {
+               myNonDefaultColorSettings |= HIGHLIGHTING_BIT;
+            }
+            else {
+               myNonDefaultColorSettings &= ~HIGHLIGHTING_BIT;
+            }
          }
       }
       else if (myHighlightStyle == HighlightStyle.NONE) {
@@ -3356,6 +3446,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
             myBackColor = null;
             myCurrentMaterialModified = true;
          }
+         myNonDefaultColorSettings &= ~BACK_COLOR_BIT;
       } else {
          if (myBackColor == null) {
             myBackColor = new float[4];
@@ -3365,6 +3456,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          myBackColor[2] = rgba[2];
          myBackColor[3] = (rgba.length > 3 ? rgba[3] : 1.0f);
          myCurrentMaterialModified = true;
+         myNonDefaultColorSettings |= BACK_COLOR_BIT;
       }
    }
 
@@ -3387,6 +3479,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    @Override
    public void setEmission(float[] rgb) {
       myCurrentMaterial.setEmission (rgb);
+      if (rgb[0] != DEFAULT_MATERIAL_EMISSION[0] ||
+          rgb[1] != DEFAULT_MATERIAL_EMISSION[1] ||
+          rgb[2] != DEFAULT_MATERIAL_EMISSION[2]) {
+         myNonDefaultColorSettings |= EMISSION_BIT;
+      }
+      else {
+         myNonDefaultColorSettings &= ~EMISSION_BIT;
+      }
       myCurrentMaterialModified = true;
    }
 
@@ -3402,6 +3502,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    @Override
    public void setSpecular(float[] rgb) {
       myCurrentMaterial.setSpecular (rgb);
+      if (rgb[0] != DEFAULT_MATERIAL_SPECULAR[0] ||
+          rgb[1] != DEFAULT_MATERIAL_SPECULAR[1] ||      
+          rgb[2] != DEFAULT_MATERIAL_SPECULAR[2]) {
+         myNonDefaultColorSettings |= SPECULAR_BIT;
+      }
+      else {
+         myNonDefaultColorSettings &= ~SPECULAR_BIT;
+      }
       myCurrentMaterialModified = true;
    }
 
@@ -3417,6 +3525,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    @Override
    public void setShininess(float s) {
       myCurrentMaterial.setShininess(s);
+      if (s != DEFAULT_MATERIAL_SHININESS) {
+         myNonDefaultColorSettings |= SHININESS_BIT;
+      }
+      else {
+         myNonDefaultColorSettings &= ~SHININESS_BIT;
+      }
       myCurrentMaterialModified = true;
    }
 
@@ -3859,6 +3973,80 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    public abstract void maybeUpdateMaterials();
+   
+   public void restoreDefaultState() {
+      // check draw mode
+      if (myMappingsSet) {
+         if (myColorMapProps != null) {
+            setTextureMapProps (null);
+         }
+         if (myNormalMapProps != null) {
+            setNormalMapProps (null);
+         }
+         if (myBumpMapProps != null) {
+            setBumpMapProps (null);
+         }
+         myMappingsSet = false;
+      }
+      if (myNonDefaultColorSettings != 0) {
+         if (myBackColor != null) {
+            setBackColor (null);
+         }
+         if ((myNonDefaultColorSettings & EMISSION_BIT) != 0) {
+            setEmission (DEFAULT_MATERIAL_EMISSION);
+         }
+         if ((myNonDefaultColorSettings & SPECULAR_BIT) != 0) {
+            setSpecular (DEFAULT_MATERIAL_SPECULAR);
+         }
+         if ((myNonDefaultColorSettings & SHININESS_BIT) != 0) {
+            setShininess (DEFAULT_MATERIAL_SHININESS);
+         }
+         if (getColorInterpolation() != DEFAULT_COLOR_INTERPOLATION) {
+            setColorInterpolation (DEFAULT_COLOR_INTERPOLATION);
+         }
+         if (myHighlightColorActive) {
+            setSelectionHighlighting (false);
+         }
+         myNonDefaultColorSettings = 0;
+      }
+      if (myNonDefaultGeneralSettings != 0) {
+         if (myViewerState.faceMode != DEFAULT_FACE_STYLE) {
+            setFaceStyle (DEFAULT_FACE_STYLE);
+         }
+         if ((myNonDefaultGeneralSettings & LINE_WIDTH_BIT) != 0) {
+            setLineWidth (DEFAULT_LINE_WIDTH);
+         }
+         if ((myNonDefaultGeneralSettings & POINT_SIZE_BIT) != 0) {
+            setPointSize (DEFAULT_POINT_SIZE);
+         }
+         if (myViewerState.shading != DEFAULT_SHADING) {
+            setShading (DEFAULT_SHADING);
+         }
+         if (mySurfaceResolution != DEFAULT_SURFACE_RESOLUTION) {
+            setSurfaceResolution (DEFAULT_SURFACE_RESOLUTION);
+         }
+         if (myViewerState.colorMixing != DEFAULT_COLOR_MIXING) {
+            setVertexColorMixing (DEFAULT_COLOR_MIXING);
+         }
+         myNonDefaultGeneralSettings = 0;
+      }
+      if (myModelMatrixSet) {
+         if (modelMatrixStack.size() > 0) {
+            throw new IllegalStateException (
+               "render() method exited with model matrix stack size of " +
+               modelMatrixStack.size());
+         }
+         if (!modelMatrix.isIdentity()) {
+            resetModelMatrix();
+         }
+         myModelMatrixSet = false;
+      }
+      if (myDrawMode != null) {
+         throw new IllegalStateException (
+            "render() method exited while still in draw mode: " + myDrawMode);
+      }
+      
+   }
    
 }
 

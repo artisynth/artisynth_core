@@ -372,8 +372,7 @@ public class PolylineMesh extends MeshBase {
          throw new IllegalStateException (
             "render() called before prerender()");
       }
-      boolean selected = ((flags & Renderer.SELECTED) != 0);
-      myMeshRenderer.render (renderer, this, props, selected);      
+      myMeshRenderer.render (renderer, this, props, flags);      
    }
    
    /** 

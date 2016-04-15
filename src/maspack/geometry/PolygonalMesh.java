@@ -1476,15 +1476,7 @@ public class PolygonalMesh extends MeshBase {
          throw new IllegalStateException (
             "render() called before prerender()");
       }
-      // if mesh is transparent, and we are drawing faces, then sort
-      // the mesh faces if SORT_FACES is requested:
-      if (props.getAlpha() < 1 && 
-          props.getFaceStyle() != FaceStyle.NONE && 
-          (flags & Renderer.SORT_FACES) != 0) {
-         sortFaces(renderer.getEyeZDirection());
-      }
-      boolean selected = ((flags & Renderer.SELECTED) != 0);
-      myMeshRenderer.render (renderer, this, props, selected);
+      myMeshRenderer.render (renderer, this, props, flags);
    }
 
    /**

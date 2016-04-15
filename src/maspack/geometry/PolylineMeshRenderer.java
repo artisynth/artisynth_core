@@ -90,11 +90,12 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
 
    public void render (
       Renderer renderer, PolylineMesh mesh, RenderProps props, 
-      boolean selected) {
+      int flags) {
 
       if (mesh.numVertices() == 0) {
          return;
       }
+      boolean selected = ((flags & Renderer.SELECTED) != 0);
 
       renderer.pushModelMatrix();
       if (mesh.isRenderBuffered()) {

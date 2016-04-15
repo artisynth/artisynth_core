@@ -16,6 +16,7 @@ import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Renderer.ColorMixing;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
 import maspack.render.TextureMapProps;
 
@@ -401,11 +402,19 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
    
    public void render (
       Renderer renderer, PolygonalMesh mesh, RenderProps props, 
-      boolean selected) {
+      int flags) {
       
       if (mesh.numVertices() == 0) {
          return;
       }
+      // if mesh is transparent, and we are drawing faces, then sort
+      // the mesh faces if SORT_FACES is requested:
+      if (props.getAlpha() < 1 && 
+          props.getFaceStyle() != FaceStyle.NONE && 
+          (flags & Renderer.SORT_FACES) != 0) {
+         mesh.sortFaces(renderer.getEyeZDirection());
+      }
+      boolean selected = ((flags & Renderer.SELECTED) != 0);
       
       renderer.pushModelMatrix();
       if (mesh.isRenderBuffered()) {

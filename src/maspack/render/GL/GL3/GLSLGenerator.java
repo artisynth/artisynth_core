@@ -912,11 +912,11 @@ public class GLSLGenerator {
             appendln(hb,"// light reflectance color");
             appendln(hb,"// required for modulation with vertex colors or texture");
             appendln(hb,"in LightColorData {");
-            appendln(hb,"   flat vec3 front_diffuse;  ");
             appendln(hb,"   flat vec3 front_ambient;  ");
+            appendln(hb,"   flat vec3 front_diffuse;  ");
             appendln(hb,"   flat vec3 front_specular;  ");
-            appendln(hb,"   flat vec3 back_diffuse;  ");
             appendln(hb,"   flat vec3 back_ambient;  ");
+            appendln(hb,"   flat vec3 back_diffuse;  ");
             appendln(hb,"   flat vec3 back_specular;  ");
             appendln(hb,"} lightIn;");
             appendln(hb);
@@ -925,11 +925,11 @@ public class GLSLGenerator {
 //            appendln(hb,"// light reflectance color");
 //            appendln(hb,"// required for modulation with vertex colors or texture");
 //            appendln(hb,"in LightColorData {");
-//            appendln(hb,"   vec3 front_diffuse;  ");
 //            appendln(hb,"   vec3 front_ambient;  ");
+//            appendln(hb,"   vec3 front_diffuse;  ");
 //            appendln(hb,"   vec3 front_specular;  ");
-//            appendln(hb,"   vec3 back_diffuse;  ");
 //            appendln(hb,"   vec3 back_ambient;  ");
+//            appendln(hb,"   vec3 back_diffuse;  ");
 //            appendln(hb,"   vec3 back_specular;  ");
 //            appendln(hb,"} lightIn;");
 //            appendln(hb);
@@ -1160,6 +1160,7 @@ public class GLSLGenerator {
       appendln(mb, "   vec4 fdiffuse = material.diffuse;");
       appendln(mb, "   vec3 fspecular = material.specular.rgb;");
       appendln(mb, "   vec3 femission = material.emission.rgb;");
+      appendln(mb);
       
       if (hasFragmentColors) {
          // mix colors
@@ -1211,54 +1212,52 @@ public class GLSLGenerator {
          }
       }
 
-      if (hasTextures) {
+      if (hasTextures && info.hasColorMap ()) {
          appendln(mb, "   // grab texture color and mix");
-         if (info.hasColorMap ()) {
-            appendln(mb, "   vec4 texture_color = texture( color_map, textureIn.texcoord );");
-            ColorMixing cmix = info.getTextureColorMixing();
-            switch (cmix) {
-               case DECAL:
-                  if (info.isMixTextureColorDiffuse ()) {
-                     appendln(mb, "   fdiffuse  = vec4(mix(fdiffuse.rgb,texture_color.rgb,texture_color.a), fdiffuse.a); // decal");
-                  }
-                  if (info.isMixTextureColorSpecular ()) {
-                     appendln(mb, "   fspecular = mix(fspecular,texture_color.rgb,texture_color.a); // decal");
-                  }
-                  if (info.isMixTextureColorEmission ()) {
-                     appendln(mb, "   femission = mix(femission,texture_color.rgb,texture_color.a); // decal");
-                  }
-                  break;
-               case MODULATE:
-                  if (info.isMixTextureColorDiffuse ()) {
-                     appendln(mb, "   fdiffuse  = fdiffuse*texture_color;      // modulate");
-                  }
-                  if (info.isMixTextureColorSpecular ()) {
-                     appendln(mb, "   fspecular = fspecular*texture_color.rgb; // modulate");
-                  }
-                  if (info.isMixTextureColorDiffuse ()) {
-                     appendln(mb, "   femission = femission*texture_color.rgb; // modulate");
-                  }
-                  break;
-               case REPLACE:
-                  if (info.isMixTextureColorDiffuse ()) {
-                     appendln(mb, "   fdiffuse  = texture_color;     // replace");
-                  }
-                  if (info.isMixTextureColorSpecular ()) {
-                     appendln(mb, "   fspecular = texture_color.rgb; // replace");
-                  }
-                  if (info.isMixTextureColorDiffuse ()) {
-                     appendln(mb, "   femission = texture_color.rgb; // replace");
-                  }
-                  break;
-               case NONE:
-                  appendln(mb, "   // texture_color ignored");
-                  break;
-               default:
-            }
+         appendln(mb, "   vec4 texture_color = texture( color_map, textureIn.texcoord );");
+         ColorMixing cmix = info.getTextureColorMixing();
+         switch (cmix) {
+            case DECAL:
+               if (info.isMixTextureColorDiffuse ()) {
+                  appendln(mb, "   fdiffuse  = vec4(mix(fdiffuse.rgb,texture_color.rgb,texture_color.a), fdiffuse.a); // decal");
+               }
+               if (info.isMixTextureColorSpecular ()) {
+                  appendln(mb, "   fspecular = mix(fspecular,texture_color.rgb,texture_color.a); // decal");
+               }
+               if (info.isMixTextureColorEmission ()) {
+                  appendln(mb, "   femission = mix(femission,texture_color.rgb,texture_color.a); // decal");
+               }
+               break;
+            case MODULATE:
+               if (info.isMixTextureColorDiffuse ()) {
+                  appendln(mb, "   fdiffuse  = fdiffuse*texture_color;      // modulate");
+               }
+               if (info.isMixTextureColorSpecular ()) {
+                  appendln(mb, "   fspecular = fspecular*texture_color.rgb; // modulate");
+               }
+               if (info.isMixTextureColorDiffuse ()) {
+                  appendln(mb, "   femission = femission*texture_color.rgb; // modulate");
+               }
+               break;
+            case REPLACE:
+               if (info.isMixTextureColorDiffuse ()) {
+                  appendln(mb, "   fdiffuse  = texture_color;     // replace");
+               }
+               if (info.isMixTextureColorSpecular ()) {
+                  appendln(mb, "   fspecular = texture_color.rgb; // replace");
+               }
+               if (info.isMixTextureColorDiffuse ()) {
+                  appendln(mb, "   femission = texture_color.rgb; // replace");
+               }
+               break;
+            case NONE:
+               appendln(mb, "   // texture_color ignored");
+               break;
+            default:
          }
-         
+         appendln(mb);
       }
-      
+   
       // lighting
       if (lights) {
          appendln(mb, "   // apply lighting");

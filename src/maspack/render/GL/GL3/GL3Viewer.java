@@ -1243,15 +1243,20 @@ public class GL3Viewer extends GLViewer {
       
       // myProgramInfo.setVertexColorsEnabled (hasColors);
       if (!hasColors || !isVertexColoringEnabled() || myHighlightColorActive) {
-         myProgramInfo.setColorInterpolation (ColorInterpolation.NONE);
+         myProgramInfo.setVertexColorMixing (ColorMixing.NONE);
          myProgramInfo.setVertexColorsEnabled (false);
          myProgramInfo.setLineColorsEnabled (false);
          myProgramInfo.setInstanceColorsEnabled (false);
       } else { 
-         if (isHSVColorInterpolationEnabled()) {
-            myProgramInfo.setColorInterpolation (ColorInterpolation.HSV);   
+         Shading shading = myProgramInfo.getShading ();
+         if (shading == Shading.FLAT) {
+            myProgramInfo.setColorInterpolation (ColorInterpolation.NONE);
          } else {
-            myProgramInfo.setColorInterpolation (ColorInterpolation.RGB);
+            if (isHSVColorInterpolationEnabled()) {
+               myProgramInfo.setColorInterpolation (ColorInterpolation.HSV);   
+            } else {
+               myProgramInfo.setColorInterpolation (ColorInterpolation.RGB);
+            }
          }
          myProgramInfo.setVertexColorMixing (getVertexColorMixing());
          myProgramInfo.setVertexColorsEnabled (true);

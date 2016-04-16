@@ -10,6 +10,7 @@ import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
 import java.nio.ByteBuffer;
 
+import maspack.util.Rectangle;
 import maspack.util.ReferenceCountedBase;
 
 public class TextureContentImage extends ReferenceCountedBase implements TextureContent {
@@ -31,21 +32,28 @@ public class TextureContentImage extends ReferenceCountedBase implements Texture
    
    public static boolean DEFAULT_USE_POWER_OF_TWO = true;
    BufferedImage image;
+   Rectangle dirty;
    
    public TextureContentImage() {
       this(null, DEFAULT_USE_POWER_OF_TWO);
    }
    
+   public TextureContentImage(BufferedImage image) {
+      this(image, DEFAULT_USE_POWER_OF_TWO);
+   }
+   
    public TextureContentImage(BufferedImage image, boolean powerOfTwo) {
-      if (image != null) {
-         setImage(image, powerOfTwo);
-      } else {
-         this.image = null;
-      }
+      setImage(image, powerOfTwo);
    }
    
    protected void setImage(BufferedImage image, boolean powerOfTwo) {
-      this.image = convert (image, powerOfTwo);
+      if (image == null) {
+         this.image = null;
+         this.dirty = null;
+      } else {
+         this.image = convert (image, powerOfTwo);
+         this.dirty = new Rectangle(0,0,image.getWidth (), image.getHeight ());
+      }
    }
    
    /**
@@ -110,18 +118,24 @@ public class TextureContentImage extends ReferenceCountedBase implements Texture
    
    @Override
    public void getData(ByteBuffer buff) {
-      
+      getData(new Rectangle(0, 0, image.getWidth (), image.getHeight ()), buff);
+   }
+   
+   public void getData(Rectangle region, ByteBuffer buff) {
       // build a byte buffer from the temporary image
       // that be used by OpenGL to produce a texture.
       byte[] data = ((DataBufferByte)image.getRaster().getDataBuffer()).getData ();
 
-      // flip rows
-      int height = image.getHeight ();
-      int rowlength = data.length/height;
-      int pos = data.length-rowlength;
-      for (int i=0; i<height; ++i) {
-         buff.put (data, pos, rowlength);
-         pos -= rowlength;
+      int pixelWidth = getPixelSize ();
+      int imageHeight = image.getHeight ();
+      int imagePixelWidth = image.getWidth () * pixelWidth;
+      int rowWidth = region.width () * pixelWidth;
+
+      int pos = (imageHeight - region.y () - 1) * imagePixelWidth
+         + region.x () * pixelWidth;
+      for (int i = 0; i < region.height (); ++i) {
+         buff.put (data, pos, rowWidth);
+         pos -= imagePixelWidth; // advance up a row
       }
    }
    
@@ -133,5 +147,25 @@ public class TextureContentImage extends ReferenceCountedBase implements Texture
    @Override
    public TextureContentImage acquire () {
       return (TextureContentImage)super.acquire ();
+   }
+
+   @Override
+   public boolean isDirty () {
+      return dirty != null;
+   }
+
+   @Override
+   public Rectangle getDirty () {
+      return dirty;
+   }
+
+   @Override
+   public void markClean () {
+      dirty = null;
+   }
+
+   @Override
+   public Object getKey () {
+      return image;
    }
 }

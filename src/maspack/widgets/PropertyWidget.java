@@ -16,7 +16,7 @@ import javax.swing.JComponent;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.EmptyBorder;
 
-import maspack.geometry.Rectangle;
+import maspack.geometry.Rectangle2d;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.RigidTransform3d;
@@ -247,7 +247,7 @@ public class PropertyWidget {
             SymmetricMatrix3d.class.isAssignableFrom (type) ||
             AxisAngle.class.isAssignableFrom (type) ||
             RigidTransform3d.class.isAssignableFrom (type) ||
-            Rectangle.class.isAssignableFrom(type) ||
+            Rectangle2d.class.isAssignableFrom(type) ||
             // Material.class.isAssignableFrom (type) ||
             // MuscleMaterial.class.isAssignableFrom (type) ||
             Enum.class.isAssignableFrom (type) ||
@@ -522,7 +522,7 @@ public class PropertyWidget {
                new PropChangeListener (prop));
             transformField.setStretchable (true);
          }
-         else if (Rectangle.class.isAssignableFrom(type)) {
+         else if (Rectangle2d.class.isAssignableFrom(type)) {
             RectangleField rectField = (RectangleField)widget;
             rectField.addValueChangeListener (new PropChangeListener (prop));
             if (info.getPrintFormat() != null &&
@@ -725,7 +725,7 @@ public class PropertyWidget {
       //     return new ViscoelasticBehaviorPanel (
       //        "viscoBehavior", info.getNullValueOK());
       // }
-      else if (Rectangle.class.isAssignableFrom(type)) {
+      else if (Rectangle2d.class.isAssignableFrom(type)) {
          return new RectangleField();
       }
       else if (AxisAngle.class.isAssignableFrom (type)) {

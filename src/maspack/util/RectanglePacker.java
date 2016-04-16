@@ -6,45 +6,6 @@ package maspack.util;
 public interface RectanglePacker {
    
    /**
-    * Simple immutable class for storing integer-dimensioned rectangles
-    * @author Antonio
-    *
-    */
-   public static class Rectangle {
-      int x;
-      int y;
-      int w;
-      int h;
-
-      public Rectangle(int x, int y, int w, int h) {
-         this.x = x;
-         this.y = y;
-         this.w = w;
-         this.h = h;
-      }
-
-      public int x() {
-         return x;
-      }
-
-      public int y() {
-         return y;
-      }
-
-      public int width() {
-         return w;
-      }
-
-      public int height() {
-         return h;
-      }
-      
-      public int area() {
-         return w*h;
-      }
-   }
-   
-   /**
     * Checks whether a rectangle with given size will
     * fit in the pack.  The search is cached so that
     * a following call to {@link #pack(int, int)} is

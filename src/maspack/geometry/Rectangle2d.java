@@ -9,26 +9,26 @@ package maspack.geometry;
 import java.io.*;
 import maspack.util.*;
 
-public class Rectangle implements Scannable {
+public class Rectangle2d implements Scannable {
 
    public double x;
    public double y;
    public double width;
    public double height;
    
-   public Rectangle() {
+   public Rectangle2d() {
       set(0,0,0,0);
    }
    
-   public Rectangle(Rectangle rect) {
+   public Rectangle2d(Rectangle2d rect) {
       set(rect.x, rect.y, rect.width, rect.height);
    }
    
-   public Rectangle(double x, double y, double width, double height) {
+   public Rectangle2d(double x, double y, double width, double height) {
       set(x,y,width,height);
    }
    
-   public void set(Rectangle r) {
+   public void set(Rectangle2d r) {
       set(r.x, r.y, r.width, r.height);
    }
    
@@ -118,12 +118,12 @@ public class Rectangle implements Scannable {
    
    @Override
    protected Object clone() throws CloneNotSupportedException {
-      return new Rectangle(this);
+      return new Rectangle2d(this);
    }
 
    public boolean equals (Object obj) {
-      if (obj instanceof Rectangle) {
-         Rectangle rect = (Rectangle)obj;
+      if (obj instanceof Rectangle2d) {
+         Rectangle2d rect = (Rectangle2d)obj;
          return (rect.x == x && rect.y == y &&
                  rect.width == width && rect.height == height);
       }

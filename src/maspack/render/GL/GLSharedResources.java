@@ -1,6 +1,6 @@
 package maspack.render.GL;
 
-import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -8,6 +8,9 @@ import java.util.Map.Entry;
 
 import javax.media.nativewindow.WindowClosingProtocol.WindowClosingMode;
 import javax.media.opengl.GL;
+import javax.media.opengl.GL2;
+import javax.media.opengl.GL2GL3;
+import javax.media.opengl.GL3;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLDrawableFactory;
@@ -17,7 +20,9 @@ import javax.media.opengl.awt.GLCanvas;
 import javax.media.opengl.awt.GLJPanel;
 
 import maspack.render.TextureContent;
-import maspack.render.TextureContentFile;
+import maspack.render.TextureContent.ContentFormat;
+import maspack.util.BufferUtilities;
+import maspack.util.Rectangle;
 
 /**
  * Container class for resources tied to a particular context.  There should
@@ -240,16 +245,92 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
       return false;
    }
    
-   public GLTexture getTexture(TextureContent key) {
+   private boolean maybeUpdateTexture(GL gl, GLTexture texture, TextureContent content) {
+      boolean update = false;
+      Rectangle dirty = content.getDirty ();
+      if (dirty != null) {
+         update = true;
+         
+         int psize = content.getPixelSize ();
+         int width = dirty.width ();
+         int height = dirty.height ();
+         
+         ByteBuffer buff = BufferUtilities.newNativeByteBuffer (width*height*psize);
+         content.getData (dirty, buff);
+         buff.flip ();
+         
+         ContentFormat format = content.getFormat ();
+         int glFormat = 0;
+         int glType = 0;
+         switch(format) {
+            case GRAYSCALE_ALPHA_BYTE_2:
+               if (gl instanceof GL2) {
+                  glFormat = GL2.GL_LUMINANCE_ALPHA;
+               } else  if (gl instanceof GL3) {
+                  glFormat = GL3.GL_RG;
+               }
+               glType = GL.GL_UNSIGNED_BYTE;
+               break;
+            case GRAYSCALE_ALPHA_SHORT_2: 
+               if (gl instanceof GL2) {
+                  glFormat = GL2.GL_LUMINANCE_ALPHA;
+               } else  if (gl instanceof GL3) {
+                  glFormat = GL3.GL_RG;
+               }
+               glType = GL.GL_UNSIGNED_SHORT;
+               break;
+            case GRAYSCALE_BYTE:
+               if (gl instanceof GL2) {
+                  glFormat = GL2.GL_LUMINANCE;
+               } else  if (gl instanceof GL3) {
+                  glFormat = GL3.GL_RED;
+               }
+               glType = GL.GL_UNSIGNED_BYTE;
+               break;
+            case GRAYSCALE_SHORT:
+               if (gl instanceof GL2) {
+                  glFormat = GL2.GL_LUMINANCE;
+               } else  if (gl instanceof GL3) {
+                  glFormat = GL3.GL_RED;
+               }
+               glType = GL.GL_UNSIGNED_SHORT;
+               break;
+            case RGBA_BYTE_4:
+               glFormat = GL.GL_RGBA;
+               glType = GL.GL_UNSIGNED_BYTE;
+               break;
+            case RGBA_INTEGER:
+               glFormat = GL2GL3.GL_RGBA_INTEGER;
+               glType = GL2GL3.GL_UNSIGNED_INT_8_8_8_8;
+               break;
+            case RGB_BYTE_3:
+               glFormat = GL.GL_RGB;
+               glType = GL.GL_UNSIGNED_BYTE;
+               break;
+            default:
+               break;
+            
+         }
+         
+         texture.fill (gl, dirty.x (), dirty.y (), width, height, psize, glFormat, glType, buff);
+         content.markClean ();
+         buff = BufferUtilities.freeDirectBuffer (buff);
+      }
+      return update;
+   }
+   
+   public GLTexture getTexture(GL gl, TextureContent content) {
       
       GLTexture tex = null;
       // check if texture exists in map
       synchronized(textureMap) {
-         tex = textureMap.get (key);
-         if (tex == null || maybeReleaseTexture(key, tex)) {
+         tex = textureMap.get (content);
+         if (tex == null || maybeReleaseTexture(content, tex)) {
             return null; 
          }
       }
+      
+      maybeUpdateTexture (gl, tex, content);
       return tex;
    }
    
@@ -257,44 +338,22 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
       
       GLTexture tex = null;
       synchronized(textureMap) {
-         tex = getTexture(content);
+         tex = getTexture(gl, content);
          if (tex != null && !tex.disposeInvalid (gl)) {
+            maybeUpdateTexture (gl, tex, content);
             return tex;
          }
          
          // load texture
          synchronized (textureLoader) {
-            try {
-               String fileName = ((TextureContentFile)content).getFileName ();
-               tex = textureLoader.getTextureAcquired (gl, fileName, fileName).acquire ();
-               textureMap.put (content, tex);
-            } catch (IOException ioe) {
-               System.err.println ("Failed to load texture");
-               ioe.printStackTrace ();
-            }
+            tex = textureLoader.getAcquiredTexture (gl, content);
+            textureMap.put (content, tex);
          }
          
       }
       return tex;
    }
    
-   //   public GLTexture loadTexture(GL gl, String name, String filename) throws IOException {
-   //      synchronized (textureLoader) {
-   //         GLTexture tex = textureLoader.getTexture (gl, name, filename);
-   //         return tex;  
-   //      }
-   //   }
-   //
-   //   public GLTexture loadTexture(GL gl, String name, 
-   //      byte[] buffer, 
-   //      int width, int height, 
-   //      int srcPixelFormat, int dstPixelFormat) {
-   //      synchronized (textureLoader) {
-   //         GLTexture tex = textureLoader.getTexture (gl, name, GL.GL_TEXTURE_2D, buffer, width, height, srcPixelFormat, dstPixelFormat);
-   //         return tex;
-   //      }
-   //   }
-
    @Override
    public void init (GLAutoDrawable drawable) {
       System.out.println("Master drawable initialized");

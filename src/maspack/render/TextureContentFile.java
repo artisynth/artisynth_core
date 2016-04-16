@@ -7,6 +7,8 @@ import java.nio.ByteBuffer;
 
 import javax.imageio.ImageIO;
 
+import maspack.util.Rectangle;
+
 /**
  * Loads image on-demand from a file
  * @author Antonio
@@ -17,7 +19,13 @@ public class TextureContentFile extends TextureContentImage {
    File file;
   
    public TextureContentFile(String filename) {
+      super(null);
+      setFileName(filename);
+   }
+   
+   public void setFileName(String filename) {
       this.file = new File(filename);
+      super.setImage (null, false);
    }
    
    public String getFileName() {
@@ -47,8 +55,34 @@ public class TextureContentFile extends TextureContentImage {
    
    @Override
    public void getData (ByteBuffer buff) {
-      maybeLoadImage();
+      maybeLoadImage ();
       super.getData (buff);
+   }
+   
+   @Override
+   public void getData (Rectangle region, ByteBuffer buff) {
+      maybeLoadImage ();
+      super.getData (region, buff);
+   }
+   
+   @Override
+   public Rectangle getDirty () {
+      maybeLoadImage ();
+      return super.getDirty ();
+   }
+   
+   @Override
+   public boolean isDirty () {
+      maybeLoadImage ();
+      return super.isDirty ();
+   }
+   
+   /**
+    * Uses the filename as a key so that multiple textures referring to the same file
+    */
+   @Override
+   public Object getKey () {
+      return file;
    }
    
    @Override

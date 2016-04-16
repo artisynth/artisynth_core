@@ -6,28 +6,41 @@
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */package artisynth.core.gui.editorManager;
 
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
-import javax.swing.*;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
 
-import java.util.*;
-
-import artisynth.core.modelbase.*;
-import artisynth.core.mechmodels.*;
-import artisynth.core.driver.*;
-import artisynth.core.gui.*;
-import artisynth.core.gui.widgets.*;
-import artisynth.core.gui.selectionManager.*;
+import artisynth.core.driver.Main;
+import artisynth.core.gui.SelectableComponentPanel;
+import artisynth.core.gui.selectionManager.SelectionEvent;
+import artisynth.core.gui.selectionManager.SelectionFilter;
+import artisynth.core.gui.selectionManager.SelectionListener;
 import artisynth.core.inverse.TrackingController;
-import maspack.util.*;
+import artisynth.core.mechmodels.MotionTargetComponent;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.ModelComponent;
+import maspack.properties.EditingProperty;
+import maspack.properties.HasProperties;
+import maspack.properties.HostList;
+import maspack.properties.PropTreeCell;
+import maspack.util.InternalErrorException;
+import maspack.util.ListView;
 import maspack.widgets.ButtonMasks;
 import maspack.widgets.DoubleField;
 import maspack.widgets.GuiUtils;
 import maspack.widgets.PropertyPanel;
 import maspack.widgets.ValueChangeEvent;
 import maspack.widgets.ValueChangeListener;
-import maspack.properties.*;
 
 public class MotionTargetComponentAgent extends FrameBasedEditingAgent implements
 SelectionListener {

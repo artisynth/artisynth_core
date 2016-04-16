@@ -6,7 +6,7 @@
  */
 package maspack.widgets;
 
-import maspack.geometry.Rectangle;
+import maspack.geometry.Rectangle2d;
 import maspack.matrix.VectorBase;
 import maspack.matrix.VectorNd;
 import maspack.properties.Property;
@@ -16,7 +16,7 @@ import maspack.util.StringHolder;
 public class RectangleField extends VectorField {
    private static final long serialVersionUID = -250964885050886911L;
 
-   private static VectorNd rectangleToVector (Rectangle rect) {
+   private static VectorNd rectangleToVector (Rectangle2d rect) {
       VectorNd vec = new VectorNd (4);
       vec.set (0, rect.x);
       vec.set (1, rect.y);
@@ -25,8 +25,8 @@ public class RectangleField extends VectorField {
       return vec;
    }
 
-   private static Rectangle vectorToRectangle (VectorBase v) {
-      return new Rectangle (
+   private static Rectangle2d vectorToRectangle (VectorBase v) {
+      return new Rectangle2d (
          v.get (0), v.get (1), v.get (2), v.get (3));
    }
    
@@ -42,18 +42,18 @@ public class RectangleField extends VectorField {
    }
 
    public RectangleField (String labelText,
-   Rectangle initialValue) {
+   Rectangle2d initialValue) {
       this (labelText, initialValue, "%.6g");
    }
 
    public RectangleField (String labelText,
-      Rectangle initialValue, String fmtStr) {
+      Rectangle2d initialValue, String fmtStr) {
       super (labelText, rectangleToVector (initialValue), fmtStr);
    }
 
-   public Rectangle getMatrixValue() {
+   public Rectangle2d getMatrixValue() {
       if (myValue instanceof VectorNd) {
-         return (Rectangle)getInternalValue();
+         return (Rectangle2d)getInternalValue();
       }
       else {
          return null;
@@ -72,15 +72,15 @@ public class RectangleField extends VectorField {
    }
 
    protected boolean updateInternalValue (Object value) {
-      if (value instanceof Rectangle) {
-         value = rectangleToVector ((Rectangle)value);
+      if (value instanceof Rectangle2d) {
+         value = rectangleToVector ((Rectangle2d)value);
       }
       return super.updateInternalValue (value);
    }
 
    protected String valueToText (Object value) {
-      if (value instanceof Rectangle) {
-         value = rectangleToVector ((Rectangle)value);
+      if (value instanceof Rectangle2d) {
+         value = rectangleToVector ((Rectangle2d)value);
       }
       return super.valueToText (value);
    }
@@ -95,17 +95,17 @@ public class RectangleField extends VectorField {
       if (value instanceof VectorNd) {
          VectorNd tmp = (VectorNd)value;
          value =
-            new Rectangle (tmp.get(0), tmp.get(1), tmp.get(2), tmp.get(3));
+            new Rectangle2d (tmp.get(0), tmp.get(1), tmp.get(2), tmp.get(3));
       }
       return validValue (value, errMsg);
    }
 
    protected Object validateValue (Object value, StringHolder errMsg) {
       if (value != null && value != Property.VoidValue) {
-         if (!(value instanceof Rectangle)) {
+         if (!(value instanceof Rectangle2d)) {
             return illegalValue ("value must be a Rectangle", errMsg);
          }
-         value = rectangleToVector ((Rectangle)value);
+         value = rectangleToVector ((Rectangle2d)value);
       }
       Object checkedValue = super.validateValue (value, errMsg);
       if (checkedValue != Property.IllegalValue && checkedValue != value) { 

@@ -1,7 +1,10 @@
 package maspack.render.GL;
 
+import java.nio.ByteBuffer;
+
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2GL3;
+import javax.media.opengl.GL3;
 
 import maspack.render.TexturePropsBase.TextureFilter;
 import maspack.render.TexturePropsBase.TextureWrapping;
@@ -10,11 +13,7 @@ import maspack.render.TexturePropsBase.TextureWrapping;
  * A texture to be bound within JOGL. This object is responsible for keeping
  * track of a given OpenGL texture.
  * 
- * Since textures need to be powers of 2 the actual texture may be considerably
- * bigger than the source image and hence the texture mapping coordinates need
- * to be adjusted to match-up drawing the sprite against the texture.
- * 
- * @author Kevin Glass, Antonio Sanchez
+ * @author Antonio Sanchez
  */
 public class GLTexture extends GLResourceBase {
    
@@ -26,14 +25,6 @@ public class GLTexture extends GLResourceBase {
    private int height;
    /** The width of the image */
    private int width;
-   /** The width of the texture */
-   private int texWidth;
-   /** The height of the texture */
-   private int texHeight;
-   /** The ratio of the width of the image to the texture */
-   private float widthRatio;
-   /** The ratio of the height of the image to the texture */
-   private float heightRatio;
 
    private TextureWrapping sWrapping;
    private TextureWrapping tWrapping;
@@ -146,15 +137,15 @@ public class GLTexture extends GLResourceBase {
       if (filtersChanged) {
          gl.glTexParameteri(target, GL.GL_TEXTURE_MIN_FILTER, getGLMinFilter (minFilter));
          gl.glTexParameteri(target, GL.GL_TEXTURE_MAG_FILTER, getGLMagFilter (magFilter));
-         // if mipmaps requested, make sure they are generated
-         if (!hasMipmaps && (minFilter == TextureFilter.LINEAR_MIPMAP_LINEAR ||
-              minFilter == TextureFilter.LINEAR_MIPMAP_NEAREST ||
-              minFilter == TextureFilter.NEAREST_MIPMAP_LINEAR ||
-              minFilter == TextureFilter.NEAREST_MIPMAP_NEAREST) ) {
-            gl.glGenerateMipmap (target);
-            hasMipmaps = true;
-         }
          filtersChanged = false;
+      }
+      // if mipmaps requested, make sure they are generated
+      if (!hasMipmaps && (minFilter == TextureFilter.LINEAR_MIPMAP_LINEAR ||
+           minFilter == TextureFilter.LINEAR_MIPMAP_NEAREST ||
+           minFilter == TextureFilter.NEAREST_MIPMAP_LINEAR ||
+           minFilter == TextureFilter.NEAREST_MIPMAP_NEAREST) ) {
+         gl.glGenerateMipmap (target);
+         hasMipmaps = true;
       }
       if (borderColorChanged) {
          gl.glTexParameterfv(target, GL2GL3.GL_TEXTURE_BORDER_COLOR, borderColor, 0);
@@ -218,35 +209,24 @@ public class GLTexture extends GLResourceBase {
     */
    public void setHeight (int height) {
       this.height = height;
-      setHeight();
    }
 
    /**
     * Set the width of the image
     * 
-    * @param width
-    * The width of the image
+    * @param width The width of the image
     */
    public void setWidth (int width) {
       this.width = width;
-      setWidth();
    }
 
+  
    /**
-    * Get the height of the original image
+    * Get the width of the physical texture
     * 
-    * @return The height of the original image
+    * @return The width of physical texture
     */
-   public int getImageHeight() {
-      return height;
-   }
-
-   /**
-    * Get the width of the original image
-    * 
-    * @return The width of the original image
-    */
-   public int getImageWidth() {
+   public float getWidth() {
       return width;
    }
 
@@ -256,62 +236,70 @@ public class GLTexture extends GLResourceBase {
     * @return The height of physical texture
     */
    public float getHeight() {
-      return heightRatio;
+      return height;
    }
 
-   /**
-    * Get the width of the physical texture
-    * 
-    * @return The width of physical texture
-    */
-   public float getWidth() {
-      return widthRatio;
-   }
-
-   /**
-    * Set the height of this texture
-    * 
-    * @param texHeight
-    * The height of the texture
-    */
-   public void setTextureHeight (int texHeight) {
-      this.texHeight = texHeight;
-      setHeight();
-   }
-
-   /**
-    * Set the width of this texture
-    * 
-    * @param texWidth
-    * The width of the texture
-    */
-   public void setTextureWidth (int texWidth) {
-      this.texWidth = texWidth;
-      setWidth();
-   }
-
-   /**
-    * Set the height of the texture. This will update the ratio also.
-    */
-   private void setHeight() {
-      if (texHeight != 0) {
-         heightRatio = ((float)height) / texHeight;
-      }
-   }
-
-   /**
-    * Set the width of the texture. This will update the ratio also.
-    */
-   private void setWidth() {
-      if (texWidth != 0) {
-         widthRatio = ((float)width) / texWidth;
-      }
-   }
+        
    
    @Override
    public GLTexture acquire () {
       return (GLTexture)super.acquire ();
    }
+   
+   public void fill(GL gl, int width, int height, int pixelBytes, 
+      int glFormat, int glType, int[] swizzle, ByteBuffer data) {
+   
+      setWidth (width);
+      setHeight (height);
+      
+      gl.glBindTexture (target, textureID); // internal bind so doesn't generate mip maps
+      
+      // if pixels don't align to 4 bytes, adjust unpack
+      boolean unpacked = false;
+      int pixelWidth = pixelBytes*width;
+      if (pixelWidth % 4 != 0) {
+         gl.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1);
+         unpacked = true;
+      }
+      
+      // produce a texture from the byte buffer
+      gl.glTexImage2D (target, 0, GL.GL_RGBA, width, height, 
+         0, glFormat, glType, data);
+      hasMipmaps = false;  // trigger regenerating mipmaps
+      if (swizzle != null) {
+         gl.glTexParameteriv (GL.GL_TEXTURE_2D, GL3.GL_TEXTURE_SWIZZLE_RGBA, swizzle, 0);
+      }
+      
+      // restore pixel alignment
+      if (unpacked) {
+         gl.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 4);
+      }
+   }
+   
+   public void fill(GL gl, int x, int y, int width, int height, int pixelBytes,
+      int glFormat, int glType, ByteBuffer data) {
+      
+      gl.glBindTexture (target, textureID); // internal bind so doesn't generate mip maps, etc...
+      
+      // if pixels don't align to 4 bytes, adjust unpack
+      boolean unpacked = false;
+      int pixelWidth = pixelBytes*width;
+      if (pixelWidth % 4 != 0) {
+         gl.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1);
+         unpacked = true;
+      }
+      
+      // produce a texture from the byte buffer
+      gl.glTexSubImage2D (target, 0, x, y, width, height, glFormat, glType, data);
+      hasMipmaps = false;  // trigger regenerating mipmaps
+      
+      // restore pixel alignment
+      if (unpacked) {
+         gl.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 4);
+      }
+      
+   }
+   
 
    public static GLTexture generate(GL gl, int target) {
       int[] v = new int[1];

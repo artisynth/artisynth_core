@@ -2,6 +2,7 @@ package maspack.render;
 
 import java.nio.ByteBuffer;
 
+import maspack.util.Rectangle;
 import maspack.util.ReferenceCounted;
 
 /**
@@ -47,11 +48,44 @@ public interface TextureContent extends ReferenceCounted {
    public void getData (ByteBuffer out);
    
    /**
+    * Get raw byte data for a region, rasterized in row-major
+    * form with (0,0) in the bottom-left corner.
+    * @param rect rectangular region to acquire data for
+    * @param out buffer to fill
+    */
+   public void getData(Rectangle rect, ByteBuffer out);
+   
+   /**
+    * All or part of the texture has been marked as "dirty" (i.e. updated)
+    */
+   public boolean isDirty();
+   
+   /**
+    * The portion of the texture that has been modified (marked "dirty")
+    * @return bounding region of dirty area, null if nothing marked as dirty
+    */
+   public Rectangle getDirty();
+   
+   /**
+    * Mark the entire texture as being clean
+    */
+   public void markClean();
+   
+   /**
     * Format of data returned by {@link #getData()}
     * @return format of data in buffer
     * @see #getData()
     */
    public ContentFormat getFormat();
+   
+   /**
+    * A key for referring to this texture.  If two contents have the same
+    * key, then it is assumed they have the same underlying data (e.g.
+    * a filename, if loaded directly from a file).  The key should be
+    * immutable (at least from a hashcode/equals perspective)
+    * @return uniquely identifying key
+    */
+   public Object getKey();
    
    @Override
    public TextureContent acquire();

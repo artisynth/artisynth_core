@@ -3,6 +3,7 @@ package maspack.render;
 import java.nio.ByteBuffer;
 
 import maspack.util.BinaryTreeRectanglePacker;
+import maspack.util.Rectangle;
 import maspack.util.ReferenceCountedBase;
 
 /**
@@ -60,6 +61,31 @@ public class TextureContentText extends ReferenceCountedBase implements TextureC
    @Override
    public void getData (ByteBuffer out) {
       textImage.getData (out);
+   }
+   
+   @Override
+   public void getData (Rectangle rect, ByteBuffer out) {
+      textImage.getData (rect, out);
+   }
+   
+   @Override
+   public Rectangle getDirty () {
+      return textImage.getDirty ();
+   }
+   
+   @Override
+   public boolean isDirty () {
+      return (getDirty () != null);
+   }
+   
+   @Override
+   public void markClean () {
+      textImage.markClean ();
+   }
+   
+   @Override
+   public Object getKey () {
+      return textImage;
    }
 
    @Override

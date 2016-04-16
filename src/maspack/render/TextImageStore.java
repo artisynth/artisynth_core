@@ -28,8 +28,8 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 import maspack.util.BinaryTreeRectanglePacker;
+import maspack.util.Rectangle;
 import maspack.util.RectanglePacker;
-import maspack.util.RectanglePacker.Rectangle;
 
 /**
  * Stores text characters in an image, potentially to be used by texture maps

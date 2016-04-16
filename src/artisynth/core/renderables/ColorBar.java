@@ -12,7 +12,7 @@ import java.util.ArrayList;
 
 import com.jogamp.opengl.util.awt.TextRenderer;
 
-import maspack.geometry.Rectangle;
+import maspack.geometry.Rectangle2d;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Vector2d;
@@ -41,8 +41,8 @@ import maspack.util.NumberFormat;
  */
 public class ColorBar extends TextComponentBase {
 
-   public static Rectangle defaultLoc = new Rectangle(40, 0, 20, 0);
-   public static Rectangle defaultNormLoc = new Rectangle(0, 0.1, 0.05, 0.8);
+   public static Rectangle2d defaultLoc = new Rectangle2d(40, 0, 20, 0);
+   public static Rectangle2d defaultNormLoc = new Rectangle2d(0, 0.1, 0.05, 0.8);
    //   public static CornerRef defaultLocationRef = CornerRef.BOTTOM_RIGHT;
    public static Vector2d defaultTickFraction = new Vector2d(0.2, 0.2);
    public static double defaultTextSize = 12;
@@ -60,8 +60,8 @@ public class ColorBar extends TextComponentBase {
    public static int defaultBarDivisions = 36;   
    public static boolean defaultHorizontal = false;
 
-   private Rectangle myLoc;      // 4d rectangle
-   private Rectangle myNormLoc;  
+   private Rectangle2d myLoc;      // 4d rectangle
+   private Rectangle2d myNormLoc;  
    // private CornerRef myLocRef;
    
    private int nBarDivisions;
@@ -126,8 +126,8 @@ public class ColorBar extends TextComponentBase {
       vAlignment = defaultVAlignment;
       myTextSize = defaultTextSize;
 
-      myLoc = new Rectangle(defaultLoc);
-      myNormLoc = new Rectangle(defaultNormLoc);
+      myLoc = new Rectangle2d(defaultLoc);
+      myNormLoc = new Rectangle2d(defaultNormLoc);
       // myLocRef = defaultLocationRef;
       
       myColorMap = defaultColorMap;
@@ -378,22 +378,22 @@ public class ColorBar extends TextComponentBase {
          | IsRenderable.TWO_DIMENSIONAL;
    }
 
-   public Rectangle getNormalizedLocation() {
+   public Rectangle2d getNormalizedLocation() {
       return myNormLoc;
    }
 
-   public void setNormalizedLocation(Rectangle pos) {
+   public void setNormalizedLocation(Rectangle2d pos) {
       myNormLoc.x = Math.min(Math.max(pos.x, 0), 1);
       myNormLoc.y = Math.min(Math.max(pos.y, 0), 1);
       myNormLoc.width = Math.min(Math.max(pos.width, 0), 1);
       myNormLoc.height = Math.min(Math.max(pos.height, 0), 1);
    }
 
-   public Rectangle getLocationOverride() {
+   public Rectangle2d getLocationOverride() {
       return myLoc;
    }
 
-   public void setLocationOverride(Rectangle pos) {
+   public void setLocationOverride(Rectangle2d pos) {
       myLoc.x = pos.x;
       myLoc.y = pos.y;
       myLoc.width = pos.width;

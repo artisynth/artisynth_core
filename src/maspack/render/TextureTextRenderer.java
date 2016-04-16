@@ -10,7 +10,7 @@ import maspack.render.TextImageStore.Glyph;
 import maspack.render.TextImageStore.GlyphStore;
 import maspack.util.BinaryTreeRectanglePacker;
 import maspack.util.BufferUtilities;
-import maspack.util.RectanglePacker.Rectangle;
+import maspack.util.Rectangle;
 
 public abstract class TextureTextRenderer implements TextRenderer {
 

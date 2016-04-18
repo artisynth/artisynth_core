@@ -152,7 +152,19 @@ public class MeshFactory {
             Vertex3d v1 = vtxMap.getOrCreate (mesh, x+dx, y, 0, XLM);
             Vertex3d v2 = vtxMap.getOrCreate (mesh, x+dx, y+dy, 0, XLM);
             Vertex3d v3 = vtxMap.getOrCreate (mesh, x, y+dy, 0, XLM);
-            mesh.addFace (v0, v1, v2, v3);
+            Face f = mesh.addFace (v0, v1, v2, v3);
+            if (i == 0) {
+               f.firstHalfEdge ().setHard (true);
+            } 
+            if (i == nx-1) {
+               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
+            }
+            if (j == 0) {
+               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
+            }
+            if (j == ny-1) {
+               f.firstHalfEdge ().getNext ().setHard (true);
+            }
          }
       }
    }
@@ -898,6 +910,24 @@ public class MeshFactory {
    }
       
 
+   /**
+    * Creates a triangle-based box mesh, with a specified mesh resolution in
+    * each direction, and centered at a defined center point.
+    *
+    * @param wx width in the x direction
+    * @param wy width in the y direction
+    * @param wz width in the z direction
+    * @param center center of the box
+    * @param nx number of subdivisions along x
+    * @param ny number of subdivisions along y
+    * @param nz number of subdivisions along z
+    */
+   public static PolygonalMesh createBox(double wx, double wy, double wz,
+      Point3d center, int nx, int ny, int nz) {
+      PolygonalMesh mesh = createQuadBox (wx, wy, wz, center, nx, ny, nz);
+      mesh.triangulate ();
+      return mesh;
+   }
 
 
    private static class MidEdgeVertexList extends ArrayList<MidEdgeVertex> {
@@ -1080,7 +1110,19 @@ public class MeshFactory {
                getOrCreateVertex(i + 1, j + 1, 0, vtxs, offset, dx, mesh);
             faceVtxs[3] =
                getOrCreateVertex(i + 1, j, 0, vtxs, offset, dx, mesh);
-            mesh.addFace(faceVtxs);
+            Face f = mesh.addFace(faceVtxs);
+            if (i == 0) {
+               f.firstHalfEdge ().setHard (true);
+            } 
+            if (i == nx-1) {
+               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
+            }
+            if (j == 0) {
+               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
+            }
+            if (j == ny-1) {
+               f.firstHalfEdge ().getNext ().setHard (true);
+            }
 
             faceVtxs[0] = getOrCreateVertex(i, j, nz, vtxs, offset, dx, mesh);
             faceVtxs[3] =
@@ -1089,7 +1131,19 @@ public class MeshFactory {
                getOrCreateVertex(i + 1, j + 1, nz, vtxs, offset, dx, mesh);
             faceVtxs[1] =
                getOrCreateVertex(i + 1, j, nz, vtxs, offset, dx, mesh);
-            mesh.addFace(faceVtxs);
+            f = mesh.addFace(faceVtxs);
+            if (i == 0) {
+               f.firstHalfEdge ().setHard (true);
+            } 
+            if (i == nx-1) {
+               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
+            }
+            if (j == 0) {
+               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
+            }
+            if (j == ny-1) {
+               f.firstHalfEdge ().getNext ().setHard (true);
+            }
          }
       }
 
@@ -1103,8 +1157,20 @@ public class MeshFactory {
                getOrCreateVertex(i + 1, 0, k + 1, vtxs, offset, dx, mesh);
             faceVtxs[1] =
                getOrCreateVertex(i + 1, 0, k, vtxs, offset, dx, mesh);
-            mesh.addFace(faceVtxs);
-
+            Face f = mesh.addFace(faceVtxs);
+            if (i == 0) {
+               f.firstHalfEdge ().setHard (true);
+            } 
+            if (i == nx-1) {
+               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
+            }
+            if (k == 0) {
+               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
+            }
+            if (k == nz-1) {
+               f.firstHalfEdge ().getNext ().setHard (true);
+            }
+            
             faceVtxs[0] = getOrCreateVertex(i, ny, k, vtxs, offset, dx, mesh);
             faceVtxs[1] =
                getOrCreateVertex(i, ny, k + 1, vtxs, offset, dx, mesh);
@@ -1112,7 +1178,19 @@ public class MeshFactory {
                getOrCreateVertex(i + 1, ny, k + 1, vtxs, offset, dx, mesh);
             faceVtxs[3] =
                getOrCreateVertex(i + 1, ny, k, vtxs, offset, dx, mesh);
-            mesh.addFace(faceVtxs);
+            f = mesh.addFace(faceVtxs);
+            if (i == 0) {
+               f.firstHalfEdge ().setHard (true);
+            } 
+            if (i == nx-1) {
+               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
+            }
+            if (k == 0) {
+               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
+            }
+            if (k == nz-1) {
+               f.firstHalfEdge ().getNext ().setHard (true);
+            }
          }
       }
 
@@ -1126,7 +1204,19 @@ public class MeshFactory {
                getOrCreateVertex(0, j + 1, k + 1, vtxs, offset, dx, mesh);
             faceVtxs[1] =
                getOrCreateVertex(0, j, k + 1, vtxs, offset, dx, mesh);
-            mesh.addFace(faceVtxs);
+            Face f = mesh.addFace(faceVtxs);
+            if (j == 0) {
+               f.firstHalfEdge ().setHard (true);
+            } 
+            if (j == ny-1) {
+               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
+            }
+            if (k == 0) {
+               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
+            }
+            if (k == nz-1) {
+               f.firstHalfEdge ().getNext ().setHard (true);
+            }
 
             faceVtxs[0] = getOrCreateVertex(nx, j, k, vtxs, offset, dx, mesh);
             faceVtxs[1] =
@@ -1135,7 +1225,19 @@ public class MeshFactory {
                getOrCreateVertex(nx, j + 1, k + 1, vtxs, offset, dx, mesh);
             faceVtxs[3] =
                getOrCreateVertex(nx, j, k + 1, vtxs, offset, dx, mesh);
-            mesh.addFace(faceVtxs);
+            f = mesh.addFace(faceVtxs);
+            if (j == 0) {
+               f.firstHalfEdge ().setHard (true);
+            } 
+            if (j == ny-1) {
+               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
+            }
+            if (k == 0) {
+               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
+            }
+            if (k == nz-1) {
+               f.firstHalfEdge ().getNext ().setHard (true);
+            }
          }
       }
       

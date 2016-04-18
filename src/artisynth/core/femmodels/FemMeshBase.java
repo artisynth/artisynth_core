@@ -24,6 +24,8 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.ColorInterpolation;
+import maspack.render.Renderer.ColorMixing;
+import maspack.render.Renderer.Shading;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
 import maspack.util.DoubleInterval;
@@ -316,8 +318,14 @@ public abstract class FemMeshBase extends SkinMeshBase {
          flags |= Renderer.SELECTED;
       }
 
+      PropertyMode oldShadingMode = null;
+      Shading oldShading = null;
+      
       if (isStressOrStrainRendering (mySurfaceRendering)) {
-         
+         renderer.setVertexColorMixing (ColorMixing.REPLACE);
+         oldShadingMode = props.getShadingMode ();
+         oldShading = props.getShading ();
+         props.setShading (Shading.NONE);
 //         if ( (flags & Renderer.UPDATE_RENDER_CACHE) != 0) {
 //            updateVertexColors();
 //         }
@@ -332,6 +340,11 @@ public abstract class FemMeshBase extends SkinMeshBase {
       super.render (renderer, props, flags);
       if (renderer.isSelecting()) {
          renderer.endSelectionQuery ();
+      }
+      
+      if (oldShading != null) {
+         props.setShading (oldShading);
+         props.setShadingMode (oldShadingMode);
       }
    }
    

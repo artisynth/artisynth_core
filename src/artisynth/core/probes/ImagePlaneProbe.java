@@ -51,7 +51,7 @@ TransformableGeometry {
 
       super (e);
       double r = getRadius (e);
-      planeMesh = MeshFactory.createPlane (r, r);
+      planeMesh = MeshFactory.createRectangle (r, r, /*texture=*/true);
       planeMesh.transform (sagittalProjection);
       imageDirectory = new File (directoryName);
       if (!imageDirectory.exists() || !imageDirectory.isDirectory())
@@ -149,7 +149,7 @@ TransformableGeometry {
    
    public int getRenderHints() {
       int code = 0;
-      if (myRenderProps != null && myRenderProps.getAlpha() != 1) {
+      if (myRenderProps != null && myRenderProps.isTransparent()) {
          code |= TRANSPARENT;
       }
       return code;

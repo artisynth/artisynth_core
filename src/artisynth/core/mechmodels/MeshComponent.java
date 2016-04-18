@@ -26,6 +26,7 @@ import maspack.properties.PropertyList;
 import maspack.properties.PropertyUtils;
 import maspack.render.Renderer;
 import maspack.render.Renderer.ColorInterpolation;
+import maspack.render.Renderer.ColorMixing;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.util.NumberFormat;
@@ -55,6 +56,10 @@ public class MeshComponent extends RenderableComponentBase
       DEFAULT_COLOR_INTERPOLATION = ColorInterpolation.RGB;
    protected ColorInterpolation myColorInterp = DEFAULT_COLOR_INTERPOLATION;
 
+   static final public ColorMixing 
+      DEFAULT_COLOR_MIXING = ColorMixing.REPLACE;
+   protected ColorMixing myColorMixing = DEFAULT_COLOR_MIXING;
+
    static {
       myProps.add(
          "renderProps * *", "render properties for this component",
@@ -62,6 +67,9 @@ public class MeshComponent extends RenderableComponentBase
       myProps.add (
          "colorInterpolation", "interpolation for vertex coloring", 
          DEFAULT_COLOR_INTERPOLATION);
+      myProps.add (
+         "colorMixing", "color mixing for vertex coloring", 
+         DEFAULT_COLOR_MIXING);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -88,6 +96,7 @@ public class MeshComponent extends RenderableComponentBase
       if (mesh != null) {
          mesh.setFixed (true);
          mesh.setColorInterpolation (getColorInterpolation());
+         mesh.setColorMixing (getColorMixing());
       }
    }
 
@@ -128,6 +137,20 @@ public class MeshComponent extends RenderableComponentBase
             mesh.setColorInterpolation (interp);
          }
          myColorInterp = interp;
+      }
+   }
+
+   public ColorMixing getColorMixing() {
+      return myColorMixing;
+   }
+   
+   public void setColorMixing (ColorMixing cmix) {
+      if (cmix != myColorMixing) {
+         MeshBase mesh = getMesh();
+         if (mesh != null) {
+            mesh.setColorMixing (cmix);
+         }
+         myColorMixing = cmix;
       }
    }
 

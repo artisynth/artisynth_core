@@ -544,20 +544,6 @@ public interface Renderer {
     * @param pnt array (of length 3) giving the point to draw
     */
    public void drawPoint (float[] pnt);
-   
-//   // REMOVE
-//   /**
-//    * Draws a single point located at <code>pnt</code>, and with a normal
-//    * <code>nrm</code>, in model coordinates, using the current point size,
-//    * material, and shading. 
-//    *
-//    * @param pnt array (of length 3) giving the point location
-//    * @param nrm array (of length 3) giving the point normal
-//    */
-//   public void drawPoint (float[] pnt, float[] nrm);
-   
-//   // REMOVE
-//   public void drawPoint (float x, float y, float z);
 
    /**
     * Draws a single line between two points in model coordinates,
@@ -585,10 +571,6 @@ public interface Renderer {
    public void drawLine (
       double px0, double py0, double pz0, double px1, double py1, double pz1);
    
-//   // REMOVE
-//   public void drawLine (
-//      float x0, float y0, float z0, float x1, float y1, float z1);
-   
    /**
     * Draws a single line between two points in model coordinates,
     * using the current line width, material, and shading.  This method
@@ -598,19 +580,6 @@ public interface Renderer {
     * @param pnt1 array (of length 3) giving the second point
     */
    public void drawLine (float[] pnt0, float[] pnt1);
-
-//   // REMOVE
-//   /**
-//    * Draws a single line between two points, with specified normals, in model
-//    * coordinates, using the current line width, material, and shading.
-//    * 
-//    * @param pnt0 array (of length 3) giving the first point
-//    * @param nrm0 array (of length 3) giving the first normal
-//    * @param pnt1 array (of length 3) giving the second point
-//    * @param nrm1 array (of length 3) giving the second normal
-//    */
-//   public void drawLine (
-//      float[] pnt0, float[] nrm0, float[] pnt1, float[] nrm1);
 
    /**
     * Draws a single triangular face specified by three points, using the
@@ -687,7 +656,7 @@ public interface Renderer {
     * @param pnt center of the cube
     * @param w width of the cube
     */
-   public void drawCube (float[] pnt, double w);   
+   public void drawCube (Vector3d pnt, double w);
 
    /**
     * Draws an axis-aligned cube with a specified width centered at a point
@@ -696,7 +665,7 @@ public interface Renderer {
     * @param pnt center of the cube
     * @param w width of the cube
     */
-   public void drawCube (Vector3d pnt, double w);
+   public void drawCube (float[] pnt, double w);   
 
    /**
     * Draws an axis-aligned box in model coordinates, using the current 
@@ -737,10 +706,32 @@ public interface Renderer {
     * @param pnt1 second end point
     * @param rad radius of the spindle
     */
+   public void drawSpindle (Vector3d pnt0, Vector3d pnt1, double rad);
+
+   /**
+    * Draws a spindle between two points in model coordinates, 
+    * using the current shading and material. The resolution
+    * is specified by {@link #getSurfaceResolution}.
+    * 
+    * @param pnt0 first end point
+    * @param pnt1 second end point
+    * @param rad radius of the spindle
+    */
    public void drawSpindle (float[] pnt0, float[] pnt1, double rad);
 
-//   // REPLACE with drawLine (style)?
-//   public void drawCylinder (float[] pnt0, float[] pnt1, double rad);
+   /**
+    * Draws a cylinder between two points in model coordinates, 
+    * using the current shading and material. The resolution
+    * is specified by {@link #getSurfaceResolution}.
+    * 
+    * @param pnt0 first end point
+    * @param pnt1 second end point
+    * @param rad radius of the cylinder
+    * @param capped if <code>true</code>, indicates that the cylinder
+    * should have a solid cap on each end
+    */
+   public void drawCylinder (
+      Vector3d pnt0, Vector3d pnt1, double rad, boolean capped);
 
    /**
     * Draws a cylinder between two points in model coordinates, 
@@ -757,19 +748,21 @@ public interface Renderer {
       float[] pnt0, float[] pnt1, double rad, boolean capped);
    
    /**
-    * Draws a cylinder between two points in model coordinates, 
-    * using the current shading and material. The resolution
+    * Draws a cone between two points in model coordinates, 
+    * using the current shading and material. A cone is like a cylinder,
+    * except that it can have different radii at the end points. The resolution
     * is specified by {@link #getSurfaceResolution}.
     * 
     * @param pnt0 first end point
     * @param pnt1 second end point
-    * @param rad radius of the cylinder
-    * @param capped if <code>true</code>, indicates that the cylinder
+    * @param rad0 radius at first end point
+    * @param rad1 radius at second end point
+    * @param capped if <code>true</code>, indicates that the cone
     * should have a solid cap on each end
     */
-   public void drawCylinder (
-      Vector3d pnt0, Vector3d pnt1, double rad, boolean capped);
-
+   public void drawCone (
+      Vector3d pnt0, Vector3d pnt1, double rad0, double rad1, boolean capped);
+   
    /**
     * Draws a cone between two points in model coordinates, 
     * using the current shading and material. A cone is like a cylinder,
@@ -805,11 +798,29 @@ public interface Renderer {
     * should have a solid cap on the bottom
     */
    public void drawArrow (
+      Vector3d pnt0, Vector3d pnt1, double rad, boolean capped);
+
+   /**
+    * Draws a solid arrow between two points in model coordinates, 
+    * using the current shading and material. The arrow is rendered as a
+    * cylinder with radius <code>rad</code>, topped with a conical arrow
+    * head pointing towards the second end point. The arrow head has
+    * a base radius of <code>3*rad</code> and length given by
+    * <p>
+    * min (6*rad, len/2)
+    * </p>
+    * where <code>len</code> is the distance between the two end points.
+    * The resolution is specified by {@link #getSurfaceResolution}.
+    * 
+    * @param pnt0 first end point
+    * @param pnt1 second end point
+    * @param rad radius of the cylinder
+    * @param capped if <code>true</code>, indicates that the arrow
+    * should have a solid cap on the bottom
+    */
+   public void drawArrow (
       float[] pnt0, float[] pnt1, double rad, boolean capped);
 
-//   public void drawArrow (
-//      RenderProps props, float[] coords0, float[] coords1);
-   
    /**
     * Draws a set of coordinate axes representing a rigid coordinate frame 
     * <code>X</code>. The origin point for the axes is <code>X.p</code>,
@@ -941,10 +952,6 @@ public interface Renderer {
       RenderProps props, float[] pnt0, float[] pnt1, boolean capped,
       boolean selected);
 
-//   // REMOVE
-//   public void drawLines (
-//      RenderProps props, Iterator<? extends RenderableLine> iterator);
-
    /**
     * Draws a line strip between a series of points in model coordinates,
     * using the radius, line color, and shading specified by the
@@ -1003,49 +1010,57 @@ public interface Renderer {
    public Font getDefaultFont();
 
    /**
-    * Draws text at a specified location in world coordinates.  Uses
-    * a default font.
-    * @param str string to render
-    * @param loc world location
-    * @param emSize world size of an `em' unit
-    * @return the advance distance in the x-direction (width of text)
+    * Queries whether or not this renderer supports text rendering.
+    * 
+    * @return <code>true</code> if text rendering is supported.
     */
-   public double drawText(String str, float[] loc, double emSize);
+   public boolean hasTextRendering();
    
    /**
-    * Draws text at a specified location in world coordinates on
-    * the x-y plane.
+    * Draws text in the x-y plane in model coordinates. Uses a default font.
+    *
+    * @param str string to render
+    * @param pos position of the lower left of the text box (model coordinates)
+    * @param emSize size of an `em' unit in model coordinates
+    * @return the advance distance in the x-direction (width of text)
+    */
+   public double drawText(String str, float[] pos, double emSize);
+   
+   /**
+    * Draws text in the x-y plane in model coordinates.
+    * 
     * @param font the font to use.  The font size largely impacts
     * the resolution of the renderer characters.  A value of at least
     * 32pt is recommended.
     * @param str string to render
-    * @param loc world location
-    * @param emSize world size of an `em' unit
+    * @param pos position of the lower left of the text box (model coordinates)
+    * @param emSize size of an `em' unit in model coordinates
     * @return the advance distance in the x-direction (width of text)
     */
-   public double drawText(Font font, String str, float[] loc, double emSize);
+   public double drawText(Font font, String str, float[] pos, double emSize);
    
    /**
-    * Draws text at a specified location in world coordinates.  Uses
-    * a default font.
+    * Draws text in the x-y plane in model coordinates. Uses a default font.
+    * 
     * @param str string to render
-    * @param loc world location
-    * @param emSize world size of an `em' unit
+    * @param pos position of the lower left of the text box (model coordinates)
+    * @param emSize size of an `em' unit in model coordinates
     * @return the advance distance in the x-direction (width of text)
     */
-   public double drawText(String str, Point3d loc, double emSize);
+   public double drawText(String str, Vector3d pos, double emSize);
    
    /**
-    * Draws text at a specified location in world coordinates.
+    * Draws text in the x-y plane in model coordinates.
+    * 
     * @param font the font to use.  The font size largely impacts
     * the resolution of the renderer characters.  A value of at least
     * 32pt is recommended.
     * @param str string to render
-    * @param loc world location
-    * @param emSize world size of an `em' unit
+    * @param pos position of the lower left of the text box (model coordinates)
+    * @param emSize size of an `em' unit in model coordinates
     * @return the advance distance in the x-direction (width of text)
     */
-   public double drawText(Font font, String str, Point3d loc, double emSize);
+   public double drawText(Font font, String str, Vector3d pos, double emSize);
    
    /**
     * Gives the direction, in world coordinates, of a vector that
@@ -1531,8 +1546,11 @@ public interface Renderer {
     * draw operation for which the vertices contain texture coordinates.
     * At present, texture coordinates can only be specified for draw
     * operations involving a {@link RenderObject}.
-    * 
-    * @param props properties for the normal mapping, or <code>null</code>
+    *  
+    * <p>For normal mapping to work, shading must not be set to {@link
+    * Shading#NONE} or {@link Shading#FLAT}.
+    *
+   * @param props properties for the normal mapping, or <code>null</code>
     * to disable
     * @return the previous normal map properties
     */
@@ -1564,6 +1582,9 @@ public interface Renderer {
     * At present, texture coordinates can only be specified for draw
     * operations involving a {@link RenderObject}.
     * 
+    * <p>For bump mapping to work, shading must not be set to {@link
+    * Shading#NONE} or {@link Shading#FLAT}.
+    *
     * @param props properties for the bump mapping, or <code>null</code>
     * to disable
     * @return the previous bump map properties
@@ -2254,8 +2275,13 @@ public interface Renderer {
    public void endDraw();
 
    /**
-    * Restores the renderer to its default state. This is intended for internal
-    * use.
+    * Restores the renderer to its default state. If strict checking is enabled,
+    * then this method will throw an exception if the graphics state is
+    * currently inside a draw block, or the model matrix stack is not empty.
+    * 
+    * @param strictChecking if <code>true</code>, enables strict
+    * checking.
+    * @throws IllegalStateException if strict checking is enabled and fails.
     */
-   public void restoreDefaultState();
+   public void restoreDefaultState(boolean strictChecking);
 }

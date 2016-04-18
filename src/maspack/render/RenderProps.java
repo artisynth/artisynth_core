@@ -1134,7 +1134,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       if (props == null) {
          PropertyUtils.updateCompositeProperty (
             this, "bumpMapProps", myBumpMapProps, null);
-         myNormalMapProps = null;
+         myBumpMapProps = null;
       }
       else {
          if (myBumpMapProps == null) {
@@ -2184,6 +2184,12 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       r.setRenderProps (props);      
    }      
 
+   public static void setTextureMapProps (Renderable r, TextureMapProps tprops) {
+      RenderProps props = createAndAssignProps (r);
+      props.setTextureMapProps (tprops);
+      r.setRenderProps (props);
+   }
+
    public static void setTextureEnabled (Renderable r, boolean enabled) {
       RenderProps props = createAndAssignProps (r);
       TextureMapProps tprops = createAndAssignTextureMapProps(props);
@@ -2212,6 +2218,12 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       r.setRenderProps (props);
    }
    
+   public static void setNormalMapProps (Renderable r, NormalMapProps nprops) {
+      RenderProps props = createAndAssignProps (r);
+      props.setNormalMapProps (nprops);
+      r.setRenderProps (props);
+   }
+
    public static void setNormalMapEnabled (Renderable r, boolean enabled) {
       RenderProps props = createAndAssignProps (r);
       NormalMapProps tprops = createAndAssignNormalMapProps(props);
@@ -2240,6 +2252,12 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       r.setRenderProps (props);
    }
    
+   public static void setBumpMapProps (Renderable r, BumpMapProps bprops) {
+      RenderProps props = createAndAssignProps (r);
+      props.setBumpMapProps (bprops);
+      r.setRenderProps (props);
+   }
+
    public static void setBumpMapEnabled (Renderable r, boolean enabled) {
       RenderProps props = createAndAssignProps (r);
       BumpMapProps tprops = createAndAssignBumpMapProps(props);

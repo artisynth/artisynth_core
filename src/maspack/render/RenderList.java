@@ -379,37 +379,40 @@ public class RenderList {
       boolean selecting = renderer.isSelecting();
 
       for (int i = 0; i < list.size(); i++) {
-         IsRenderable r = list.get (i);
-         if (selecting && r instanceof IsSelectable) {
-            IsSelectable s = (IsSelectable)r;
-
-            int numq = s.numSelectionQueriesNeeded();
-            if (renderer.isSelectable(s)) {
-               if (numq >= 0) {
-                  renderer.beginSubSelection (s, qid);
+         try {
+            IsRenderable r = list.get (i);
+            if (selecting && r instanceof IsSelectable) {
+               IsSelectable s = (IsSelectable)r;
+               
+               int numq = s.numSelectionQueriesNeeded();
+               if (renderer.isSelectable(s)) {
+                  if (numq >= 0) {
+                     renderer.beginSubSelection (s, qid);
+                  }
+                  else {
+                     renderer.beginSelectionQuery (qid);
+                  }
+                  r.render (renderer, flags);
+                  if (numq >= 0) {
+                     renderer.endSubSelection ();
+                  }
+                  else {
+                     renderer.endSelectionQuery ();
+                  }
                }
-               else {
-                  renderer.beginSelectionQuery (qid);
-               }
+               qid += (numq >= 0 ? numq : 1);
+            } else if (selecting) {
+               // don't render if not selectable (saves mucho time when lots of
+               // non-selectable renderables, such as text labels)
+            } 
+            else {
                r.render (renderer, flags);
-               if (numq >= 0) {
-                  renderer.endSubSelection ();
-               }
-               else {
-                  renderer.endSelectionQuery ();
-               }
             }
-            qid += (numq >= 0 ? numq : 1);
-         } else if (selecting) {
-            // don't render if not selectable (saves mucho time when lots of
-            // non-selectable renderables, such as text labels)
-         } 
-         else {
-            r.render (renderer, flags);
+            renderer.restoreDefaultState(/*strictChecking=*/true);
          }
-         renderer.restoreDefaultState();
-         // XXX maybe disable highlighting?
-         //renderer.setSelectionHighlighting (false);
+         catch (Exception e) {
+            renderer.restoreDefaultState(/*strictChecking=*/false);
+         }
       }
       return qid;
    }

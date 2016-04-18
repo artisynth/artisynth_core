@@ -169,6 +169,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected AliasTable myScripts;
    protected final static String PROJECT_NAME = "ArtiSynth";
    protected MatlabInterface myMatlabConnection;
+   protected AxisAngle myDefaultViewOrientation = 
+      new AxisAngle(AxisAngle.ROT_X_90);
 
    protected String myModelName;
    protected String[] myModelArgs;    // command-line supplied arguments
@@ -614,7 +616,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myViewerManager.setDefaultDrawAxes (drawAxes.value);
          myViewerManager.setDefaultAxisLength (axisLength.value);
 
-         AxisAngle REW = getDefaultViewOrientation();
+         AxisAngle REW = getDefaultViewOrientation(getRootModel());
          myViewer.setDefaultAxialView (
             AxisAlignedRotation.getNearest (new RotationMatrix3d(REW)));
          initializeViewer (myViewer, REW);
@@ -683,12 +685,18 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return framesPerSecond.value;
    }
 
-   private AxisAngle getDefaultViewOrientation () {
-      AxisAngle REW = AxisAngle.ROT_X_90;
-      if (getRootModel() != null) {
-         REW = getRootModel().getDefaultViewOrientation();
+   private AxisAngle getDefaultViewOrientation (RootModel root) {
+      if (root != null) {
+         AxisAngle REW = root.getDefaultViewOrientation();
+         if (!REW.equals (new AxisAngle(0, 0, 0, 0))) {
+            return REW;
+         }
       }
-      return REW;
+      return myDefaultViewOrientation;
+   }
+   
+   void setDefaultViewOrientation (AxisAngle REW) {
+      myDefaultViewOrientation = new AxisAngle(REW);
    }
 
    public GLViewerFrame createViewerFrame() {
@@ -698,7 +706,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       GLViewer viewer = frame.getViewer();
       // ViewerToolBar toolBar = new ViewerToolBar(viewer, this);
 
-      AxisAngle REW = getDefaultViewOrientation();
+      AxisAngle REW = getDefaultViewOrientation(getRootModel());
       myViewerManager.addViewer (viewer);
       ViewerToolBar toolBar = 
          new ViewerToolBar (viewer, /*addGridPanel=*/true);
@@ -1285,7 +1293,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
          // reset all the viewers
          myViewerManager.clearRenderables();
-         myViewerManager.resetViewers (newRoot.getDefaultViewOrientation());
+         myViewerManager.resetViewers (getDefaultViewOrientation(newRoot));
       }
 
       // model scheduler initialization called within initialize
@@ -1676,6 +1684,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected static BooleanHolder yup = new BooleanHolder (false);
    protected static BooleanHolder drawAxes = new BooleanHolder (false);
    protected static BooleanHolder drawGrid = new BooleanHolder (false);
+   protected static StringHolder axialView = new StringHolder("xz");
    protected static BooleanHolder orthographic = new BooleanHolder (false);
    protected static BooleanHolder startWithTimeline = new BooleanHolder (true);
    protected static BooleanHolder startWithJython = new BooleanHolder (false);
@@ -1851,6 +1860,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       parser.addOption (
          "-mousePrefs %s #kees for pure mouse controls", mousePrefs);
       parser.addOption ("-ortho %v #use orthographic viewing", orthographic);
+      parser.addOption (
+         "-axialView %s{xy,xz} #initial view of x-y or x-z axes", axialView);
       parser.addOption (
          "-noTimeline %v{false} #do not start with a timeline",
          startWithTimeline);
@@ -2031,6 +2042,16 @@ public class Main implements DriverInterface, ComponentChangeListener {
       Main m = new Main (PROJECT_NAME, width.value, height.value, glv);
 
       m.setArticulatedTransformsEnabled (useArticulatedTransforms.value);
+      if (axialView.value.equals ("xy")) {
+         m.setDefaultViewOrientation (AxisAngle.IDENTITY);
+      }
+      else if (axialView.value.equals ("xz")) {
+         m.setDefaultViewOrientation (AxisAngle.ROT_X_90);
+      }
+      else {
+         throw new InternalErrorException (
+            "Unknown axial view: " + axialView.value);
+      }
 
       if (m.myFrame != null) {
          m.myViewer.setBackgroundColor (bgColor[0], bgColor[1], bgColor[2]);
@@ -2509,7 +2530,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             else if (pe.getPropertyName().equals ("defaultViewOrientation")) {
                if (myViewerManager != null) {
                   myViewerManager.resetViewers (
-                     getRootModel().getDefaultViewOrientation());
+                     getDefaultViewOrientation(getRootModel()));
                }
             }
          }

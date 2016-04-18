@@ -20,7 +20,8 @@ public class SpecularTest extends MeshTestBase {
 
 
    FixedMeshBody createMesh (MechModel mech, double z) {
-      PolygonalMesh mesh = MeshFactory.createPlane (3, 1, 20, 20);
+      PolygonalMesh mesh = 
+         MeshFactory.createRectangle (3, 1, 20, 20, /*texture=*/true);
       FixedMeshBody body = new FixedMeshBody (mesh);
       mech.addMeshBody (body);
       body.setPose (new RigidTransform3d (0, 0, z, 0, 0, Math.PI/2));

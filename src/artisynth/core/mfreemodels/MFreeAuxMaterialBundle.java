@@ -231,7 +231,7 @@ public class MFreeAuxMaterialBundle extends CompositeComponentBase
 
    public int getRenderHints() {
       int code = 0;
-      if (myRenderProps != null && myRenderProps.getAlpha() != 1) {
+      if (myRenderProps != null && myRenderProps.isTransparent()) {
          code |= TRANSPARENT;
       }
       return code;

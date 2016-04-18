@@ -518,6 +518,10 @@ public class PolygonalMesh extends MeshBase {
     * @return the created Face object
     */
    public Face addFace (int[] indices) {
+      return addFace (indices, /*adjustAttributes=*/true);
+   }
+
+   protected Face addFace (int[] indices, boolean adjustAttributes) {
       Face face = new Face (myFaces.size());
       Vertex3d[] vtxList = new Vertex3d[indices.length];
       for (int i = 0; i < indices.length; i++) {
@@ -536,7 +540,9 @@ public class PolygonalMesh extends MeshBase {
          myNumQuads++;
       }
       // myTriQuadCountsValid = false;
-      adjustAttributesForNewFeature ();
+      if (adjustAttributes) {
+         adjustAttributesForNewFeature ();
+      }
       notifyStructureChanged();
       return face;
    }
@@ -1447,7 +1453,7 @@ public class PolygonalMesh extends MeshBase {
     */
    public int getRenderHints() {
       int code = 0;
-      if (myRenderProps != null && myRenderProps.getAlpha() != 1) {
+      if (myRenderProps != null && myRenderProps.isTransparent()) {
          code |= TRANSPARENT;
       }
       return code;
@@ -1870,16 +1876,28 @@ public class PolygonalMesh extends MeshBase {
       return packed;
    }
 
+   // used for debugging only
+   private String toStr (int[] idxs) {
+      String str = " " + idxs[0];
+      for (int i=1; i<idxs.length; i++) {
+         str += " " + idxs[i]; 
+      }
+      return str;
+   }
+   
    /**
     * Modifies this mesh to ensure that all faces are triangles.
     */
    public void triangulate() {
 
       updateTriQuadCounts();
+
       int estNewFaces = 2*(myFaces.size()-myNumTriangles);
 
-      ArrayList<Face> newFaceList =
-         new ArrayList<Face>(myNumTriangles+estNewFaces);
+      ArrayList<Face> faceList = new ArrayList<Face>(myNumTriangles);
+      ArrayList<int[]> normalList = null;
+      ArrayList<int[]> textureList = null;
+      ArrayList<int[]> colorList = null;
 
       ArrayList<int[]> newFaceIndices = new ArrayList<int[]>(estNewFaces);
       ArrayList<int[]> newNormalIndices = null;
@@ -1887,35 +1905,34 @@ public class PolygonalMesh extends MeshBase {
       ArrayList<int[]> newColorIndices = null;
 
       if (myNormalsExplicitP) {
-         newNormalIndices =
-            new ArrayList<int[]>(myNumTriangles+estNewFaces);
+         newNormalIndices = new ArrayList<int[]>(estNewFaces);
+         normalList = new ArrayList<int[]>(myNumTriangles+estNewFaces);
       }
       else {
          clearNormals();
       }
       if (myTextureCoords != null) {
-         newTextureIndices =
-            new ArrayList<int[]>(myNumTriangles+estNewFaces);
+         newTextureIndices = new ArrayList<int[]>(estNewFaces);
+         textureList = new ArrayList<int[]>(myNumTriangles+estNewFaces);
       }
       if (myColors != null) {
-         newColorIndices =
-            new ArrayList<int[]>(myNumTriangles+estNewFaces);
+         newColorIndices = new ArrayList<int[]>(estNewFaces);
+         colorList = new ArrayList<int[]>(myNumTriangles+estNewFaces);
       }
-      int[] indexOffs = getFeatureIndexOffsets();
 
       for (int i=0; i<myFaces.size(); i++) {
          Face face = myFaces.get(i);
          int numEdges = face.numEdges();
          if (numEdges == 3) {
-            newFaceList.add (face);
+            faceList.add (face);
             if (myNormalsExplicitP) {
-               newNormalIndices.add (unpackIndices(myNormalIndices, i));
+               normalList.add (unpackIndices(myNormalIndices, i));
             }
             if (myTextureCoords != null) {
-               newTextureIndices.add (unpackIndices(myTextureIndices, i));
+               textureList.add (unpackIndices(myTextureIndices, i));
             }
             if (myColors != null) {
-               newColorIndices.add (unpackIndices(getColorIndices(), i));
+               colorList.add (unpackIndices(getColorIndices(), i));
             }
          } else {
 
@@ -1929,9 +1946,12 @@ public class PolygonalMesh extends MeshBase {
             }
             if (myTextureCoords != null) {
                tidxs = unpackIndices(myTextureIndices, i);
+               
             }
+            int[] cstart = null;
             if (myColors != null) {
                cidxs = unpackIndices(getColorIndices(), i);
+               cstart = unpackIndices(getColorIndices(), i);
             }
 
             ArrayList<Vertex3d> convex = new ArrayList<Vertex3d>(idxs.length);
@@ -1964,7 +1984,6 @@ public class PolygonalMesh extends MeshBase {
                   }
                }
             } else {
-
                // resort to ear-clipping
                // System.out.println("Face is not convex, resorting to ear-clipping");
 
@@ -2066,7 +2085,6 @@ public class PolygonalMesh extends MeshBase {
                      cidxs = removeIndex (chordIdxs[1], cidxs);
                   }
                }
-
             }
 
             // last triplet
@@ -2083,23 +2101,26 @@ public class PolygonalMesh extends MeshBase {
          }
       }
 
-      myFaces = newFaceList;
+      myFaces = faceList;
       // need to reindex these faces because they might have moved around
       for (int i=0; i<myFaces.size(); i++) {
          myFaces.get(i).setIndex (i);
       }
       for (int[] idxs : newFaceIndices) {
-         addFace (idxs);
+         addFace (idxs, /*adjustAttributes=*/false);
       }
 
       if (myNormalsExplicitP) {
-         myNormalIndices = packIndices (newNormalIndices);
+         normalList.addAll (newNormalIndices);
+         myNormalIndices = packIndices (normalList);
       }
       if (myTextureCoords != null) {
-         myTextureIndices = packIndices (newTextureIndices);
+         textureList.addAll (newTextureIndices);
+         myTextureIndices = packIndices (textureList);
       }
       if (myColors != null) {
-         myColorIndices = packIndices (newColorIndices);
+         colorList.addAll (newColorIndices);
+         myColorIndices = packIndices (colorList);
       }
 
       myNumTriangles = myFaces.size();
@@ -2358,7 +2379,8 @@ public class PolygonalMesh extends MeshBase {
 
       mesh.myFaces = new ArrayList<Face>();
       for (int i=0; i<numFaces(); i++) {
-         mesh.addFace (myFaces.get(i).getVertexIndices());
+         mesh.addFace (
+            myFaces.get(i).getVertexIndices(), /*adjustAttributes=*/false);
       }
       if (myFaceOrder != null) {
          mesh.myFaceOrder = Arrays.copyOf (myFaceOrder, myFaceOrder.length);
@@ -2387,6 +2409,7 @@ public class PolygonalMesh extends MeshBase {
             while (he != he0);
          }        
       }
+      mesh.myTriQuadCountsValid = false;
       return mesh;
    }
 

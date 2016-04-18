@@ -122,8 +122,8 @@ public abstract class CutPlaneProbe extends OutputProbe
     * Reconstructs a plane mesh according to the resolution
     */
    protected void rebuildMesh() {
-      myPlaneSurface = MeshFactory.createPlane(mySize.x, mySize.y,
-         (int)myResolution.x, (int)myResolution.y);
+      myPlaneSurface = MeshFactory.createRectangle(mySize.x, mySize.y,
+         (int)myResolution.x, (int)myResolution.y, /*texture=*/true);
       myPlaneSurface.setMeshToWorld(XGridToWorld);
       mySurfaceBoundaries = extractBoundaries(myPlaneSurface);
    }
@@ -439,7 +439,7 @@ public abstract class CutPlaneProbe extends OutputProbe
    
    public int getRenderHints() {
       int code = 0;
-      if (myRenderProps != null && myRenderProps.getAlpha() != 1) {
+      if (myRenderProps != null && myRenderProps.isTransparent()) {
          code |= TRANSPARENT;
       }
       return code;

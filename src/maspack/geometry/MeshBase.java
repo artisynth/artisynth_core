@@ -27,6 +27,7 @@ import maspack.properties.HasProperties;
 import maspack.render.Renderer;
 import maspack.render.Renderer.Shading;
 import maspack.render.Renderer.ColorInterpolation;
+import maspack.render.Renderer.ColorMixing;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
@@ -81,6 +82,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
    protected boolean myWorldBoundsValid = false;
 
    protected ColorInterpolation myColorInterp = ColorInterpolation.RGB;
+   protected ColorMixing myColorMixing = ColorMixing.REPLACE;
 
    //protected int myWorldCoordCounter = 0;
 
@@ -112,6 +114,27 @@ public abstract class MeshBase implements Renderable, Cloneable {
    public ColorInterpolation setColorInterpolation(ColorInterpolation interp) {
       ColorInterpolation prev = myColorInterp;
       myColorInterp = interp;
+      return prev;
+   }
+   
+   /**
+    * Returns the color mixing method to be used for vertex-based coloring.
+    * 
+    * @return color mixing method.
+    */
+   public ColorMixing getColorMixing() {
+      return myColorMixing;
+   }
+   
+   /**
+    * Sets the color mixing method to be used for vertex-based coloring.
+    * 
+    * @param cmix new color mixing method
+    * @return previous color mixing method
+    */
+   public ColorMixing setColorMixing(ColorMixing cmix) {
+      ColorMixing prev = myColorMixing;
+      myColorMixing = cmix;
       return prev;
    }
    
@@ -1287,7 +1310,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       for (int i=0; i<myVertices.size(); i++) {
          mesh.addVertex (myVertices.get(i).pnt);
       }
-      mesh.setMeshToWorld (XMeshToWorld);
+      mesh.XMeshToWorld = new RigidTransform3d (XMeshToWorld);
       mesh.myIndexOffsets = null; // will regenerate
 
       if (myNormals != null) {
@@ -1341,7 +1364,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
       mesh.myWorldMinCoords = new Point3d();
       mesh.myWorldMaxCoords = new Point3d();
       mesh.myWorldBoundsValid = false;
-
+      
+      mesh.myXMeshToWorldRender = null;
+      
       mesh.setName(getName());
       return mesh;      
    }
@@ -1961,7 +1986,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
                "Number of normals must equal number of vertices when " +
             "indices argument is null");
          }
-         int[] newIndices = createIndices (indices);
+         int[] newIndices = createIndices (indices, normals.size());
          
          myNormals = newNormals;      
          myNormalIndices = newIndices;
@@ -1999,7 +2024,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       notifyModified();
    }
 
-   private int[] createIndices (int[] indices) {
+   private int[] createIndices (int[] indices, int numAttributes) {
 
       int[] newIndices = null;
       if (indices == null) {
@@ -2014,6 +2039,14 @@ public abstract class MeshBase implements Renderable, Cloneable {
                " (num features * vertices per feature)");
          }
          newIndices = Arrays.copyOf (indices, reqLength);
+      }
+      for (int i=0; i<newIndices.length; i++) {
+         int idx = newIndices[i];
+         if (idx < 0 || idx >= numAttributes) {
+            throw new IllegalArgumentException (
+               "Attribute index "+idx+" out of range, num attributes=" +
+               numAttributes);
+         }
       }
       return newIndices;
    }
@@ -2279,7 +2312,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
                "Number of colors must equal number of vertices when " +
                "indices argument is null");
          }
-         int[] newIndices = createIndices (indices);
+         int[] newIndices = createIndices (indices, colors.size());
 
          myColors = newColors;      
          myColorIndices = newIndices;
@@ -2466,7 +2499,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
                "Number of coords must equal number of vertices when " +
                "indices argument is null");
          }
-         int[] newIndices = createIndices (indices);
+         int[] newIndices = createIndices (indices, coords.size());
          
          myTextureCoords = newCoords;      
          myTextureIndices = newIndices;

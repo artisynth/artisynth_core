@@ -577,7 +577,7 @@ public class GL3Viewer extends GLViewer {
    }
    
    @Override
-   public double drawText(Font font, String str, float[] loc, double emSize) {
+   public double drawText(Font font, String str, float[] pos, double emSize) {
       GL3 gl = getGL ().getGL3();
       
       boolean savedTransparency = isTransparencyEnabled ();
@@ -595,7 +595,7 @@ public class GL3Viewer extends GLViewer {
       myProgManager.activateTexture(gl, "color_map");
 
       myTextRenderer.begin (gl);
-      double d = myTextRenderer.drawText (font, str, loc, (float)emSize);
+      double d = myTextRenderer.drawText (font, str, pos, (float)emSize);
       myTextRenderer.end (gl);
       
       GLSupport.checkAndPrintGLError (gl);

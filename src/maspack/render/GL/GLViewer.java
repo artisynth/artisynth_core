@@ -3265,16 +3265,21 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       drawCylinder (toFloat(pnt0), toFloat(pnt1), rad, capped);
    }
    
-//   public void drawCylinder (
-//      float[] pnt0, float[] pnt1, double rad) {
-//      drawCylinder (pnt0, pnt1, rad, /* capped= */false);
-//   }
-//
-//   public void drawArrow (
-//      RenderProps props, float[] coords0, float[] coords1) {
-//      drawArrow (props, coords0, coords1, 0, /* capped= */true);
-//   }
+   public void drawSpindle (
+      Vector3d pnt0, Vector3d pnt1, double rad) {
+      drawSpindle (toFloat(pnt0), toFloat(pnt1), rad);
+   }
+   
+   public void drawCone (
+      Vector3d pnt0, Vector3d pnt1, double rad0, double rad1, boolean capped) {
+      drawCone (toFloat(pnt0), toFloat(pnt1), rad0, rad1, capped);
+   }
 
+   public void drawArrow (
+      Vector3d pnt0, Vector3d pnt1, double rad, boolean capped) {
+      drawArrow (toFloat(pnt0), toFloat(pnt1), rad, capped);      
+   }
+   
    public void drawLine (
       RenderProps props, float[] pnt0, float[] pnt1, boolean selected) {
       drawLine (props, pnt0, pnt1, /*color=*/null, /*capped=*/true, selected);
@@ -3358,23 +3363,28 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return getTextRenderer().getFont();
    }
    
+   @Override
+   public boolean hasTextRendering() {
+      return true;
+   }
+
    public Rectangle2D getTextBounds(Font font, String str, double emSize) {
       return getTextRenderer().getTextBounds (font, str, (float)emSize);
    }
    
    @Override
-   public double drawText (String str, float[] loc, double emSize) {
-      return drawText (getDefaultFont(), str, loc, emSize);
+   public double drawText (String str, float[] pos, double emSize) {
+      return drawText (getDefaultFont(), str, pos, emSize);
    }
    
    @Override
-   public double drawText (Font font, String str, Point3d loc, double emSize) {
-      return drawText (font, str, toFloat(loc), emSize);
+   public double drawText (Font font, String str, Vector3d pos, double emSize) {
+      return drawText (font, str, toFloat(pos), emSize);
    }
 
    @Override
-   public double drawText (String str, Point3d loc, double emSize) {
-      return drawText(getDefaultFont (), str, toFloat (loc), emSize);
+   public double drawText (String str, Vector3d pos, double emSize) {
+      return drawText(getDefaultFont (), str, toFloat (pos), emSize);
    }
    
    /**
@@ -3958,6 +3968,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          myDrawHasColorData, myDrawColorData,
          myDrawHasTexcoordData, myDrawTexcoordData);
 
+      resetDraw();
+   }
+   
+   private void resetDraw() {
       myDrawMode = null;
 
       myDrawDataCap = 0;
@@ -3969,12 +3983,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myDrawVertexIdx = 0;
       myDrawHasNormalData = false;
       myDrawHasColorData = false;
-      myDrawHasTexcoordData = false;
+      myDrawHasTexcoordData = false;     
    }
 
    public abstract void maybeUpdateMaterials();
    
-   public void restoreDefaultState() {
+   public void restoreDefaultState(boolean strictChecking) {
       // check draw mode
       if (myMappingsSet) {
          if (myColorMapProps != null) {
@@ -4032,9 +4046,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
       if (myModelMatrixSet) {
          if (modelMatrixStack.size() > 0) {
-            throw new IllegalStateException (
-               "render() method exited with model matrix stack size of " +
-               modelMatrixStack.size());
+            if (strictChecking) {
+               throw new IllegalStateException (
+                  "render() method exited with model matrix stack size of " +
+                  modelMatrixStack.size());
+            }
+            else {
+               modelMatrixStack.clear();
+            }
          }
          if (!modelMatrix.isIdentity()) {
             resetModelMatrix();
@@ -4042,8 +4061,13 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          myModelMatrixSet = false;
       }
       if (myDrawMode != null) {
-         throw new IllegalStateException (
-            "render() method exited while still in draw mode: " + myDrawMode);
+         if (strictChecking) {
+            throw new IllegalStateException (
+               "render() method exited while still in draw mode: "+myDrawMode);
+         }
+         else {
+            resetDraw();
+         }
       }
       
    }

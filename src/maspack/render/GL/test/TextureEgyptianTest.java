@@ -35,7 +35,8 @@ public class TextureEgyptianTest extends GL3Tester {
       JPanel controls = new JPanel ();
       frame.add (controls);
 
-      PolygonalMesh plane = MeshFactory.createPlane (4000, 400, 32, 8);
+      PolygonalMesh plane = 
+         MeshFactory.createRectangle (4000, 400, 32, 8, /*texture=*/true);
       
       RenderProps rprops = plane.getRenderProps ();
       if (rprops == null) {

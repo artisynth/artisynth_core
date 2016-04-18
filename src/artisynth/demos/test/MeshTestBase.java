@@ -101,19 +101,19 @@ public class MeshTestBase extends RootModel {
    }
 
    public ColorMixing getColorMixing() {
-      return getMainViewer().getVertexColorMixing ();
+      return myMesh.getColorMixing ();
    }
 
    public void setColorMixing (ColorMixing cmix) {
-      getMainViewer().setVertexColorMixing (cmix);
+      myMesh.setColorMixing (cmix);
    }
 
    public ColorInterpolation getColorInterpolation() {
-      return getMainViewer().getColorInterpolation ();
+      return myMesh.getColorInterpolation ();
    }
 
    public void setColorInterpolation (ColorInterpolation cmix) {
-      getMainViewer().setColorInterpolation (cmix);
+      myMesh.setColorInterpolation (cmix);
    }
 
    ControlPanel createControlPanel (MeshComponent meshBody) {

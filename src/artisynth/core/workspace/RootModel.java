@@ -111,12 +111,14 @@ public class RootModel extends RenderableModelBase
 
    private static final Point3d DEFAULT_VIEWER_CENTER = new Point3d();
    private static final Point3d DEFAULT_VIEWER_EYE = new Point3d (0, -1, 0);
-   private static final AxisAngle DEFAULT_VIEW_ORIENTATION = AxisAngle.ROT_X_90;
+   private static final AxisAngle DEFAULT_VIEW_ORIENTATION = 
+      new AxisAngle(0,0,0,0);
    private static final double DEFAULT_MIN_STEP_SIZE = 1e-7;
    private static final double DEFAULT_MAX_STEP_SIZE = 0.01;
    private static final boolean DEFAULT_ADAPTIVE_STEPPING = false;
 
-   AxisAngle myDefaultViewOrientation = new AxisAngle (DEFAULT_VIEW_ORIENTATION);
+   AxisAngle myDefaultViewOrientation = 
+      new AxisAngle (DEFAULT_VIEW_ORIENTATION);
    
    GLViewer myMainViewer;
    
@@ -515,8 +517,7 @@ public class RootModel extends RenderableModelBase
    @Override
    public void setDefaultValues() {
       super.setDefaultValues();
-      myDefaultViewOrientation =
-         new AxisAngle (DEFAULT_VIEW_ORIENTATION);
+      myDefaultViewOrientation = new AxisAngle (DEFAULT_VIEW_ORIENTATION);
    }
 
    public boolean getAdaptiveStepping() {
@@ -739,8 +740,8 @@ public class RootModel extends RenderableModelBase
    }
 
    /**
-    * Obtains the default orientation that is used for viewing this
-    * model.
+    * Obtains the default orientation that should be used for viewing this
+    * model. A value of 0 indicates that no orientation is specified.
     * 
     * @return default rotational transform from eye to world coordinates
     */
@@ -750,15 +751,18 @@ public class RootModel extends RenderableModelBase
 
    /**
     * Sets the default orientation that should be used for viewing
-    * this model.
+    * this model to <code>REW</code>. Setting a value of 0 indicates
+    * that no orientation is specified and so the viewer should
+    * use its default view. 
     * 
-    * @param R rotational transform from eye to world coordinates
+    * @param REW rotational transform from eye to world coordinates
     */
-   public void setDefaultViewOrientation (AxisAngle R) {
-      if (!myDefaultViewOrientation.equals (R)) {
-         myDefaultViewOrientation.set (R);
+   public void setDefaultViewOrientation (AxisAngle REW) {
+      if (!myDefaultViewOrientation.equals (REW)) {
+         myDefaultViewOrientation.set (REW);
          componentChanged (
             new PropertyChangeEvent (this, "defaultViewOrientation"));
+
       }
    }
 

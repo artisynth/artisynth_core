@@ -697,7 +697,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    
    JFrame frame;
    
-   public double drawText(Font font, String str, float[] loc, double emSize) {
+   public double drawText(Font font, String str, float[] pos, double emSize) {
       
       boolean savedTransparency = isTransparencyEnabled ();
       boolean savedTexture = isTextureMappingEnabled ();
@@ -719,7 +719,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       activateTexture (gl, myTextRenderer.getTexture ());
       myTextRenderer.begin (gl);
-      double d = myTextRenderer.drawText (font, str, loc, (float)emSize);
+      double d = myTextRenderer.drawText (font, str, pos, (float)emSize);
       myTextRenderer.end (gl);
       deactivateTexture (gl);
       

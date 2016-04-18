@@ -22,7 +22,8 @@ public class MappingTest extends MeshTestBase {
    static String datafolder = PathFinder.expand ("${srcdir MappingTest}/data/");
 
    FixedMeshBody createMesh (MechModel mech, double z) {
-      PolygonalMesh mesh = MeshFactory.createPlane (3, 1, 10, 10);
+      PolygonalMesh mesh = 
+         MeshFactory.createRectangle (3, 1, 10, 10, /*texture=*/true);
       FixedMeshBody body = new FixedMeshBody (mesh);
       mech.addMeshBody (body);
       body.setPose (new RigidTransform3d (0, 0, z, 0, 0, Math.PI/2));

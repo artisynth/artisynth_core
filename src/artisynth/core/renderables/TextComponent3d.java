@@ -8,10 +8,10 @@ package artisynth.core.renderables;
 
 import java.awt.Font;
 import java.awt.geom.Rectangle2D;
-import java.util.List;
 
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import maspack.geometry.GeometryTransformer;
-import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
@@ -22,10 +22,6 @@ import maspack.properties.PropertyList;
 import maspack.render.IsRenderable;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import artisynth.core.modelbase.TransformGeometryContext;
-import artisynth.core.modelbase.TransformableGeometry;
-
-import com.jogamp.opengl.util.awt.TextRenderer;
 
 
 /**
@@ -49,7 +45,6 @@ public class TextComponent3d extends TextComponentBase implements
    
    // intermediate variables
    RigidTransform3d myTransform = new RigidTransform3d();
-   private double[] GLMatrix = new double[16];
    RotationMatrix3d rEye = new RotationMatrix3d();
    Point3d renderPos = new Point3d();
    double[] xdir = new double[3];
@@ -79,7 +74,6 @@ public class TextComponent3d extends TextComponentBase implements
    
    protected void setDefaults() {
       myFont = new Font(defaultFontName, 0, defaultFontSize);
-      myTextRenderer = new TextRenderer(myFont);
       myRenderProps = createDefaultRenderProps();
       hAlignment = defaultHAlignment;
       vAlignment = defaultVAlignment;
@@ -197,14 +191,11 @@ public class TextComponent3d extends TextComponentBase implements
          renderer.getHighlightColor(rgb);
       }
       
-      float fTextSize = (float)(myTextSize/getFontSize());
-      
       // text orientation computation
-      Rectangle2D box = myTextRenderer.getBounds(myText);
-      double w = box.getWidth() * fTextSize;
-      // for consistency, assume line top as 3/4 font size
-      double t = myTextSize*0.75;
-      double vc = myTextSize* 0.25;
+      Rectangle2D box = renderer.getTextBounds(myFont, myText, myTextSize);
+      double w = box.getWidth();
+      double t = box.getY ()+box.getHeight ();
+      double vc = box.getY ()+box.getHeight ()/2;
       
       rEye.invert(renderer.getViewMatrix().R);
       if (followEye) {
@@ -252,11 +243,10 @@ public class TextComponent3d extends TextComponentBase implements
       
       renderer.pushModelMatrix();
       renderer.mulModelMatrix(myTransform);
-      
-      myTextRenderer.begin3DRendering();            
-      myTextRenderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());
-      myTextRenderer.draw3D(myText, 0,0,0,fTextSize);
-      myTextRenderer.end3DRendering();
+                  
+      renderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());
+      final float[] ZERO = {0,0,0};
+      renderer.drawText(myFont, myText, ZERO, myTextSize);
       
       renderer.popModelMatrix();
       

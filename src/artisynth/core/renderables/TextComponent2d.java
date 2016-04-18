@@ -18,8 +18,6 @@ import maspack.render.IsRenderable;
 import maspack.render.Renderer;
 import maspack.render.GL.GLSupport;
 
-import com.jogamp.opengl.util.awt.TextRenderer;
-
 /**
  * Allows adding 2D text to a root model
  * 
@@ -68,7 +66,6 @@ public class TextComponent2d extends TextComponentBase {
 
    protected void setDefaults() {
       myFont = new Font(defaultFontName, 0, defaultFontSize);
-      myTextRenderer = new TextRenderer(myFont);
       myRenderProps = createDefaultRenderProps();
       hAlignment = defaultHAlignment;
       vAlignment = defaultVAlignment;
@@ -199,15 +196,11 @@ public class TextComponent2d extends TextComponentBase {
       FaceRenderProps rprops = (FaceRenderProps)getRenderProps();
 
       // text orientation computation
-      Rectangle2D box = myTextRenderer.getBounds(myText);
+      Rectangle2D box = renderer.getTextBounds(myFont, myText, myTextSize);
+      double t = box.getHeight ()+box.getY ();
+      double vc = box.getCenterY ()+box.getHeight ()/2;
 
-      // for consistency, assume line top as 0.75 font size
-      float fTextSize = (float)(myTextSize / getFontSize());
-      double t = 0.75 * myTextSize;
-      double vc = 0.25 * myTextSize;
-      // double b = -vc;
-
-      double w = fTextSize*box.getWidth();
+      double w = box.getWidth();
       
       // Position is assumed to be ([0,1], [0,1])
       int sw = renderer.getScreenWidth();
@@ -276,10 +269,9 @@ public class TextComponent2d extends TextComponentBase {
       GLSupport.transformToGLMatrix (GLMatrix, myTransform);
       renderer.mulModelMatrix(myTransform);
       
-      myTextRenderer.begin3DRendering();
-      myTextRenderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());
-      myTextRenderer.draw3D(myText, 0, 0, 0, fTextSize);
-      myTextRenderer.end3DRendering();
+      renderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());
+      final float[] ZERO = {0,0,0};
+      renderer.drawText(myFont, myText, ZERO, myTextSize);
 
       renderer.popModelMatrix();
 

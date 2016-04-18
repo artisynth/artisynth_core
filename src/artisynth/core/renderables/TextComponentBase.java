@@ -9,22 +9,18 @@ package artisynth.core.renderables;
 import java.awt.Color;
 import java.awt.Font;
 
+import artisynth.core.modelbase.RenderableComponentBase;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyUtils;
 import maspack.render.FaceRenderProps;
 import maspack.render.RenderProps;
-import maspack.util.Disposable;
-import artisynth.core.modelbase.RenderableComponentBase;
-
-import com.jogamp.opengl.util.awt.TextRenderer;
 
 
 /**
  * Base class for text components, setting font/alignment
  * @author Antonio
  */
-public abstract class TextComponentBase extends RenderableComponentBase 
-   implements Disposable {
+public abstract class TextComponentBase extends RenderableComponentBase {
 
    public enum FontStyle {
       PLAIN, BOLD, ITALIC, BOLD_ITALIC
@@ -38,7 +34,7 @@ public abstract class TextComponentBase extends RenderableComponentBase
       TOP, CENTRE, BOTTOM
    }
    
-   public static int defaultFontSize = 12;
+   public static int defaultFontSize = 32;
    public static double defaultTextSize = defaultFontSize;
    public static String defaultFontName = Font.SANS_SERIF;
    public static HorizontalAlignment defaultHAlignment = HorizontalAlignment.LEFT;
@@ -48,7 +44,6 @@ public abstract class TextComponentBase extends RenderableComponentBase
    protected VerticalAlignment vAlignment;
    protected Font myFont;
    protected double myTextSize;
-   protected TextRenderer myTextRenderer;
    
    public static PropertyList myProps = new PropertyList(
       TextComponentBase.class, RenderableComponentBase.class);
@@ -89,17 +84,6 @@ public abstract class TextComponentBase extends RenderableComponentBase
     */
    public void setFont(Font font) {
       myFont = font;
-      myTextRenderer = new TextRenderer(myFont, /*antialias*/ true);
-   }
-   
-   /**
-    * Explicitly set the text renderer, for advanced
-    * uses only.  This is not saved along with the 
-    * component.
-    */
-   public void setTextRenderer(TextRenderer trenderer) {
-      myTextRenderer = trenderer;
-      myFont = trenderer.getFont();
    }
    
    /**
@@ -118,7 +102,6 @@ public abstract class TextComponentBase extends RenderableComponentBase
    public void setFontSize(int size) {
       if (size != myFont.getSize()) {
          myFont = myFont.deriveFont((float)size);
-         myTextRenderer = new TextRenderer(myFont);
       }
    }
    
@@ -151,7 +134,6 @@ public abstract class TextComponentBase extends RenderableComponentBase
          Font nfont = new Font(family, myFont.getStyle(), myFont.getSize());
          if (nfont != null) {
             myFont = nfont;
-            myTextRenderer = new TextRenderer(myFont);
          }
       }
    }
@@ -181,7 +163,6 @@ public abstract class TextComponentBase extends RenderableComponentBase
       
       if (flags != myFont.getStyle()) {
          myFont = myFont.deriveFont(flags);
-         myTextRenderer = new TextRenderer(myFont);
       }
    }
    
@@ -228,13 +209,6 @@ public abstract class TextComponentBase extends RenderableComponentBase
     */
    public void setVerticalAlignment(VerticalAlignment vAlignment) {
       this.vAlignment = vAlignment;
-   }
-   
-   /**
-    * Clears the text renderer object
-    */
-   public void dispose() {
-      myTextRenderer.dispose();
    }
    
    @Override

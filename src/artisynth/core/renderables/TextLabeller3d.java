@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import artisynth.core.mechmodels.Point;
+import artisynth.core.mechmodels.PointList;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point2d;
 import maspack.matrix.Point3d;
@@ -22,10 +24,6 @@ import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
 import maspack.render.IsRenderable;
 import maspack.render.Renderer;
-import artisynth.core.mechmodels.Point;
-import artisynth.core.mechmodels.PointList;
-
-import com.jogamp.opengl.util.awt.TextRenderer;
 
 
 public class TextLabeller3d extends TextComponentBase {
@@ -72,7 +70,6 @@ public class TextLabeller3d extends TextComponentBase {
    
    // intermediate variables
    RigidTransform3d myTransform = new RigidTransform3d();
-   private double[] GLMatrix = new double[16];
    RotationMatrix3d rEye = new RotationMatrix3d();
    Point3d renderPos = new Point3d();
    double[] xdir = new double[3];
@@ -95,7 +92,6 @@ public class TextLabeller3d extends TextComponentBase {
    @Override
    protected void setDefaults() {
       myFont = new Font(defaultFontName, 0, defaultFontSize);
-      myTextRenderer = new TextRenderer(myFont);
       myRenderProps = createDefaultRenderProps();
       hAlignment = defaultHAlignment;
       vAlignment = defaultVAlignment;
@@ -123,27 +119,27 @@ public class TextLabeller3d extends TextComponentBase {
       FaceRenderProps rprops = (FaceRenderProps)getRenderProps();
       rprops.getFaceColor(rgb);
 
-      float fTextSize = (float)(myTextSize/getFontSize());
       Point3d tmp = new Point3d();
       
       // for consistency, assume line top as 3/4 font size
-      double t = myTextSize*0.75;
-      double vc = myTextSize* 0.25;
+      Rectangle2D box = renderer.getTextBounds (myFont, "X", myTextSize);
+      double t = box.getY ()+box.getHeight ();
+      double vc = box.getY () + box.getHeight ()/2;
       
       rEye.invert(renderer.getViewMatrix().R);
       rEye.getColumn(0, xdir);
       rEye.getColumn(1, ydir);
       myTransform.R.set(rEye);
       
-      myTextRenderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());
-      myTextRenderer.begin3DRendering();
-      
+      renderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());
+     
+      float[] loc = new float[3];
       for (LabelItem label : myItems) {
          renderPos.setZero();
          
          // text orientation computation
-         Rectangle2D box = myTextRenderer.getBounds(label.text);
-         double w = box.getWidth() * fTextSize;
+         box = renderer.getTextBounds(myFont, label.text, myTextSize);
+         double w = box.getWidth();
          
          switch(hAlignment) {
             case LEFT:
@@ -190,14 +186,11 @@ public class TextLabeller3d extends TextComponentBase {
          renderer.pushModelMatrix();
          renderer.mulModelMatrix(myTransform);
          
-         myTextRenderer.draw3D(label.text, 0,0,0, fTextSize);
-         myTextRenderer.flush();
+         renderer.drawText(myFont, label.text, loc, myTextSize);
          
          renderer.popModelMatrix();
       }
 
-      myTextRenderer.end3DRendering();
-      
    }
    
    @Override

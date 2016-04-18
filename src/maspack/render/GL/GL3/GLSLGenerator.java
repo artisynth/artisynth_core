@@ -869,7 +869,7 @@ public class GLSLGenerator {
          }
          
          // only allow normal/bump mapping in per fragment lighting
-         if (info.getShading () == Shading.SMOOTH) {
+         if (hasFragmentLighting (info.getShading ())) {
             if (info.hasNormalMap ()) {
                appendln(hb, "uniform sampler2D normal_map;");
                appendln(hb, "uniform float normal_scale;");
@@ -1018,9 +1018,21 @@ public class GLSLGenerator {
       
    }
    
+   private static boolean hasFragmentLighting(Shading shading) {
+      switch (shading) {
+         case FLAT:
+         case NONE:
+            return false;
+         case SMOOTH:
+         case METAL:
+            return true;
+      }
+      return true;
+   }
+   
    private static void buildFragmentShaderFunctions(StringBuilder fb, GLProgramInfo info) {
 
-      if (info.getShading() == Shading.SMOOTH) {
+      if (hasFragmentLighting (info.getShading ())) {
          addBlinnPhong(fb);
       }
 
@@ -1028,11 +1040,11 @@ public class GLSLGenerator {
          addHSVtoRGB(fb);
       }
       
-      if (info.getShading () == Shading.SMOOTH && info.hasNormalMap ()) {
+      if (hasFragmentLighting (info.getShading ()) && info.hasNormalMap ()) {
          addNormalPerturbation(fb);
       }
       
-      if (info.getShading () == Shading.SMOOTH && info.hasBumpMap ()) {
+      if (hasFragmentLighting (info.getShading ()) && info.hasBumpMap ()) {
          addBumpPerturbation(fb);
       }
 

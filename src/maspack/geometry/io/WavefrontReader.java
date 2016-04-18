@@ -21,7 +21,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
 import maspack.render.BumpMapProps;
-import maspack.render.TextureMapProps;
+import maspack.render.ColorMapProps;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.ColorMixing;
@@ -1144,14 +1144,14 @@ public class WavefrontReader extends MeshReaderBase {
             // set texture properties
             props.setFaceStyle(Renderer.FaceStyle.FRONT_AND_BACK);
             props.setShading(Shading.SMOOTH);
-            TextureMapProps tprops = props.getTextureMapProps ();
+            ColorMapProps tprops = props.getColorMap ();
             if (tprops == null) {
-               tprops = new TextureMapProps();
+               tprops = new ColorMapProps();
             }
             tprops.setFileName(currPath + "/" + map);
             tprops.setEnabled(true);
-            tprops.setTextureColorMixing(ColorMixing.MODULATE);
-            props.setTextureMapProps(tprops);
+            tprops.setColorMixing(ColorMixing.MODULATE);
+            props.setColorMap(tprops);
          }
 
          // restore period state
@@ -1172,13 +1172,13 @@ public class WavefrontReader extends MeshReaderBase {
             // set texture properties
             props.setFaceStyle(Renderer.FaceStyle.FRONT_AND_BACK);
             props.setShading(Shading.SMOOTH);
-            BumpMapProps tprops = props.getBumpMapProps ();
+            BumpMapProps tprops = props.getBumpMap ();
             if (tprops == null) {
                tprops = new BumpMapProps();
             }
             tprops.setFileName(currPath + "/" + map);
             tprops.setEnabled(true);
-            props.setBumpMapProps(tprops);
+            props.setBumpMap(tprops);
          }
 
          // restore period state

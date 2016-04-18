@@ -66,7 +66,7 @@ import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.RendererEvent;
 import maspack.render.SortedRenderableList;
-import maspack.render.TextureMapProps;
+import maspack.render.ColorMapProps;
 import maspack.render.Viewer;
 import maspack.render.ViewerSelectionEvent;
 import maspack.render.ViewerSelectionFilter;
@@ -297,7 +297,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected float[] backgroundColor = Arrays.copyOf (DEFAULT_BACKGROUND_COLOR, 4);
    
    // texture properties
-   protected TextureMapProps myColorMapProps = null;
+   protected ColorMapProps myColorMapProps = null;
    protected NormalMapProps myNormalMapProps = null;
    protected BumpMapProps myBumpMapProps = null;
    
@@ -2170,12 +2170,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return myViewerState.colorMixing;
    }
    
-   public abstract boolean hasTextureMixing (ColorMixing tmix);
+   public abstract boolean hasColorMapMixing (ColorMixing cmix);
    
    @Override
-   public TextureMapProps setTextureMapProps (TextureMapProps props) {
-      TextureMapProps old = myColorMapProps;
-      if (hasTextureMapping()) {
+   public ColorMapProps setColorMap (ColorMapProps props) {
+      ColorMapProps old = myColorMapProps;
+      if (hasColorMapping()) {
          if (props != null) {
             myColorMapProps = props.clone();
          } else {
@@ -2187,12 +2187,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
    
    @Override
-   public TextureMapProps getTextureMapProps () {
+   public ColorMapProps getColorMap () {
       return myColorMapProps;
    }   
 
    @Override
-   public NormalMapProps setNormalMapProps (NormalMapProps props) {
+   public NormalMapProps setNormalMap (NormalMapProps props) {
       NormalMapProps old = myNormalMapProps;
       if (hasNormalMapping()){
          if (props != null) {
@@ -2206,12 +2206,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
    
    @Override
-   public NormalMapProps getNormalMapProps () {
+   public NormalMapProps getNormalMap () {
       return myNormalMapProps;
    }   
 
    @Override
-   public BumpMapProps setBumpMapProps (BumpMapProps props) {
+   public BumpMapProps setBumpMap (BumpMapProps props) {
       BumpMapProps old = myBumpMapProps;
       if (hasBumpMapping()) {
          if (props != null) {
@@ -2225,7 +2225,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    @Override
-   public BumpMapProps getBumpMapProps () {
+   public BumpMapProps getBumpMap () {
       return myBumpMapProps;
    }   
 
@@ -3992,13 +3992,13 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       // check draw mode
       if (myMappingsSet) {
          if (myColorMapProps != null) {
-            setTextureMapProps (null);
+            setColorMap (null);
          }
          if (myNormalMapProps != null) {
-            setNormalMapProps (null);
+            setNormalMap (null);
          }
          if (myBumpMapProps != null) {
-            setBumpMapProps (null);
+            setBumpMap (null);
          }
          myMappingsSet = false;
       }

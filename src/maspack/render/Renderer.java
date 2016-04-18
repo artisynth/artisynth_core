@@ -1500,36 +1500,42 @@ public interface Renderer {
    public Shading setPropsShading (RenderProps props);
    
    /**
-    * Queries whether or not this renderer supports texture mapping.
+    * Queries whether or not this renderer supports color mapping.
     * 
-    * @return <code>true</code> if texture mapping is supported.
+    * @return <code>true</code> if color mapping is supported.
     */
-   public boolean hasTextureMapping();
-                                     
+   public boolean hasColorMapping();
+   
    /**
-    * If texture mapping is supported, sets up texture mapping according
+    * Queries whether or not a specified method for combining color
+    * map and material coloring is supported by this Renderer.
+    *
+    * @return <code>true</code> if the color mixing method is supported
+    */   
+   public boolean hasColorMapMixing (ColorMixing cmix);
+   
+   /**
+    * If color mapping is supported, sets up a color map according
     * to the properties specified by <code>props</code>, or removes
-    * texture mapping if <code>props</code> is <code>null</code>.
-    * Once texture mapping is set, it will be applied to any subsequent
+    * any color map if <code>props</code> is <code>null</code>.
+    * Once a color map is set, it will be applied to any subsequent
     * draw operation for which the vertices contain texture coordinates.
-    * At present, texture coordinates can only be specified for draw
-    * operations involving a {@link RenderObject}. 
     * 
-    * @param props properties for the texture mapping, or <code>null</code>
+    * @param props properties for the color map, or <code>null</code>
     * to disable
-    * @return the previous texture map properties
+    * @return the previous color map properties
     */
-   public TextureMapProps setTextureMapProps(TextureMapProps props);
+   public ColorMapProps setColorMap(ColorMapProps props);
 
    /**
-    * Returns the most recently set texture mapping properties, or
-    * <code>null</code> if no texture mapping has been set or texture mapping
+    * Returns the properties for the most recently set color map, or
+    * <code>null</code> if no color map is currently set or color mapping
     * is not supported.
     *
-    * @return current texture mapping properties.
-    * @see #setTextureMapProps
+    * @return current color map properties.
+    * @see #setColorMap
     */
-   public TextureMapProps getTextureMapProps();
+   public ColorMapProps getColorMap();
    
    /**
     * Queries whether or not this renderer supports normal mapping.
@@ -1539,7 +1545,7 @@ public interface Renderer {
    public boolean hasNormalMapping();
    
    /**
-    * If normal mapping is supported, sets up normal mapping according
+    * If normal mapping is supported, sets up a normal map according
     * to the properties specified by <code>props</code>, or removes
     * normal mapping if <code>props</code> is <code>null</code>.
     * Once normal mapping is set, it will be applied to any subsequent
@@ -1554,7 +1560,7 @@ public interface Renderer {
     * to disable
     * @return the previous normal map properties
     */
-   public NormalMapProps setNormalMapProps(NormalMapProps props);
+   public NormalMapProps setNormalMap(NormalMapProps props);
    
    /**
     * Returns the most recently set normal mapping properties, or
@@ -1562,9 +1568,9 @@ public interface Renderer {
     * is not supported.
     *
     * @return current normal mapping properties.
-    * @see #setNormalMapProps
+    * @see #setNormalMap
     */
-   public NormalMapProps getNormalMapProps();
+   public NormalMapProps getNormalMap();
    
    /**
     * Queries whether or not this renderer supports bump mapping.
@@ -1589,7 +1595,7 @@ public interface Renderer {
     * to disable
     * @return the previous bump map properties
     */
-   public BumpMapProps setBumpMapProps(BumpMapProps props);
+   public BumpMapProps setBumpMap(BumpMapProps props);
    
    /**
     * Returns the most recently set bump mapping properties, or
@@ -1597,9 +1603,9 @@ public interface Renderer {
     * is not supported.
     *
     * @return current bump mapping properties.
-    * @see #setBumpMapProps
+    * @see #setBumpMap
     */
-   public BumpMapProps getBumpMapProps();
+   public BumpMapProps getBumpMap();
    
 
    //==========================================================================

@@ -25,7 +25,7 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.IsRenderable;
-import maspack.render.TextureMapProps;
+import maspack.render.ColorMapProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
@@ -66,11 +66,11 @@ TransformableGeometry {
       RenderProps props = createRenderProps();
       props.setFaceColor (Color.white);
       props.setFaceStyle (FaceStyle.FRONT_AND_BACK);
-      TextureMapProps tprops = props.getTextureMapProps();
+      ColorMapProps tprops = props.getColorMap();
       if (tprops == null)
-         tprops = new TextureMapProps();
+         tprops = new ColorMapProps();
       tprops.setEnabled (true);
-      props.setTextureMapProps (tprops);
+      props.setColorMap (tprops);
       setRenderProps (props);
 
       setImage (0);
@@ -104,9 +104,9 @@ TransformableGeometry {
       int frameNum = (int)(t * frameRate) + 1;
       String filename =
          String.format (fileNameFormat, imageBasename, frameNum, imageFileExt);
-      TextureMapProps tprops = myRenderProps.getTextureMapProps();
+      ColorMapProps tprops = myRenderProps.getColorMap();
       tprops.setFileName (imageDirectory.getAbsolutePath() + "/" + filename);
-      myRenderProps.setTextureMapProps (tprops);
+      myRenderProps.setColorMap (tprops);
    }
 
    public RenderProps createRenderProps() {

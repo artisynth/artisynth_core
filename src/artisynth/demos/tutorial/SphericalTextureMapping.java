@@ -12,7 +12,7 @@ import artisynth.core.mechmodels.*;
 import artisynth.core.workspace.RootModel;
 
 /**
- * Simple demo showing texture and bump mapping applied to spheres to make them
+ * Simple demo showing color and bump mapping applied to spheres to make them
  * look like tennis balls.
  */
 public class SphericalTextureMapping extends RootModel {
@@ -42,9 +42,9 @@ public class SphericalTextureMapping extends RootModel {
       RigidBody ball1 = createBall (mech, "ball1", mesh, 0);
       RigidBody ball2 = createBall (mech, "ball2", mesh, 2.5*radius);
 
-      // set up the basic render props: no shininess, smooth shading for
-      // texture mapping, and an underlying diffuse color of white to
-      // combine with the texture map
+      // set up the basic render props: no shininess, smooth shading to enable
+      // bump mapping, and an underlying diffuse color of white to combine with
+      // the color map
       RenderProps.setSpecular (mech, Color.BLACK);
       RenderProps.setShading (mech, Shading.SMOOTH);
       RenderProps.setFaceColor (mech, Color.WHITE);
@@ -53,27 +53,27 @@ public class SphericalTextureMapping extends RootModel {
       String dataFolder = PathFinder.expand (
          "${srcdir SphericalTextureMapping}/data");
 
-      TextureMapProps tprops = new TextureMapProps();
-      tprops.setEnabled (true);
+      ColorMapProps cprops = new ColorMapProps();
+      cprops.setEnabled (true);
       // no specular coloring since ball should be matt
-      tprops.setSpecularColoring (false);
-      tprops.setFileName (dataFolder + "/TennisBallColorMap.jpg");
+      cprops.setSpecularColoring (false);
+      cprops.setFileName (dataFolder + "/TennisBallColorMap.jpg");
 
       BumpMapProps bprops = new BumpMapProps();
       bprops.setEnabled (true);
-      bprops.setBumpScale ((float)radius/10);
+      bprops.setScaling ((float)radius/10);
       bprops.setFileName (dataFolder + "/TennisBallBumpMap.jpg");
 
-      // apply texture map to balls 0 and 2. Can do this by setting texture
-      // mapping in the MechModel, so that properties are controlled in one
-      // place - but we must then also explicitly enable texture mapping in
-      // balls 0 and 2.
-      RenderProps.setTextureMapProps (mech, tprops);
-      RenderProps.setTextureEnabled (ball0, true);
-      RenderProps.setTextureEnabled (ball2, true);
+      // apply color map to balls 0 and 2. Can do this by setting color map
+      // properties in the MechModel, so that properties are controlled in one
+      // place - but we must then also explicitly enable color mapping in balls
+      // 0 and 2.
+      RenderProps.setColorMap (mech, cprops);
+      RenderProps.setColorMapEnabled (ball0, true);
+      RenderProps.setColorMapEnabled (ball2, true);
 
       // apply bump map to balls 1 and 2.
-      RenderProps.setBumpMapProps (ball1, bprops);
-      RenderProps.setBumpMapProps (ball2, bprops);
+      RenderProps.setBumpMap (ball1, bprops);
+      RenderProps.setBumpMap (ball2, bprops);
    }
 }

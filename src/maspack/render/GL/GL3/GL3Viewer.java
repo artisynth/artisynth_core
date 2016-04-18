@@ -24,7 +24,7 @@ import maspack.render.Dragger3d;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.TextureContent;
-import maspack.render.TextureMapProps;
+import maspack.render.ColorMapProps;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLFrameCapture;
 import maspack.render.GL.GLGridPlane;
@@ -59,7 +59,7 @@ public class GL3Viewer extends GLViewer {
    GL3RenderObjectManager myRenderObjectManager = null;
    GL3PrimitiveManager myPrimitiveManager = null;
    GLTextRenderer myTextRenderer = null;
-   TextureMapProps myTextTextureProps = null;
+   ColorMapProps myTextTextureProps = null;
    
    long lastGarbageTime = 0;  // for garbage collecting of viewer-specific resources
    
@@ -154,8 +154,8 @@ public class GL3Viewer extends GLViewer {
       primitives = new GL3Primitive[PrimitiveType.values ().length];
       
       myTextRenderer = null;
-      myTextTextureProps = new TextureMapProps ();
-      myTextTextureProps.setTextureColorMixing (ColorMixing.MODULATE);
+      myTextTextureProps = new ColorMapProps ();
+      myTextTextureProps.setColorMixing (ColorMixing.MODULATE);
       myTextTextureProps.setEnabled (true);
       
       lightManager = new GLLightManager();      
@@ -587,7 +587,7 @@ public class GL3Viewer extends GLViewer {
       setTransparencyEnabled (true);
       setTextureMappingEnabled (true);
       
-      TextureMapProps savedTextureProps = setTextureMapProps (myTextTextureProps);
+      ColorMapProps savedTextureProps = setColorMap (myTextTextureProps);
       
       maybeUpdateState(gl);
       updateProgram (gl, RenderingMode.DEFAULT, true, false, true);
@@ -604,7 +604,7 @@ public class GL3Viewer extends GLViewer {
 
       setTransparencyEnabled (savedTransparency);
       setTextureMappingEnabled (savedTexture);
-      setTextureMapProps (savedTextureProps);
+      setColorMap (savedTextureProps);
       
       return d;
    }
@@ -1217,7 +1217,7 @@ public class GL3Viewer extends GLViewer {
             if (hasTextures && isTextureMappingEnabled ()) {
                if (myColorMapProps != null && myColorMapProps.isEnabled()) {
                   myProgramInfo.setColorMapEnabled (true);
-                  myProgramInfo.setTextureColorMixing (myColorMapProps.getTextureColorMixing ());
+                  myProgramInfo.setTextureColorMixing (myColorMapProps.getColorMixing ());
                   myProgramInfo.setMixTextureColorDiffuse (myColorMapProps.getDiffuseColoring ());
                   myProgramInfo.setMixTextureColorSpecular (myColorMapProps.getSpecularColoring ());
                   myProgramInfo.setMixTextureColorEmission (myColorMapProps.getDiffuseColoring ());
@@ -1280,7 +1280,7 @@ public class GL3Viewer extends GLViewer {
          if (content != null) {
             GLTexture normtex = myGLResources.getOrLoadTexture (gl, content);
             myProgManager.bindTexture (gl, "normal_map", normtex);
-            myProgManager.setUniform (gl, prog, "normal_scale", myNormalMapProps.getNormalScale());
+            myProgManager.setUniform (gl, prog, "normal_scale", myNormalMapProps.getScaling());
             bound = true;
          }
       }
@@ -1289,7 +1289,7 @@ public class GL3Viewer extends GLViewer {
          if (content != null) {
             GLTexture bumptex = myGLResources.getOrLoadTexture (gl, content);
             myProgManager.bindTexture (gl, "bump_map", bumptex);
-            myProgManager.setUniform (gl, prog, "bump_scale", myBumpMapProps.getBumpScale());
+            myProgManager.setUniform (gl, prog, "bump_scale", myBumpMapProps.getScaling());
             bound = true;
          }
       }
@@ -2136,10 +2136,10 @@ public class GL3Viewer extends GLViewer {
       return true;
    }
 
-   public boolean hasTextureMixing (ColorMixing tmix) {
+   public boolean hasColorMapMixing (ColorMixing cmix) {
       return true;
    }
-   public boolean hasTextureMapping() {
+   public boolean hasColorMapping() {
       return true;
    }
    

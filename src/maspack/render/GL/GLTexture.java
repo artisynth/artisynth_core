@@ -6,8 +6,8 @@ import javax.media.opengl.GL;
 import javax.media.opengl.GL2GL3;
 import javax.media.opengl.GL3;
 
-import maspack.render.TexturePropsBase.TextureFilter;
-import maspack.render.TexturePropsBase.TextureWrapping;
+import maspack.render.TextureMapProps.TextureFilter;
+import maspack.render.TextureMapProps.TextureWrapping;
 
 /**
  * A texture to be bound within JOGL. This object is responsible for keeping

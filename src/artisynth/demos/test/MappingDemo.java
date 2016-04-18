@@ -15,14 +15,14 @@ import maspack.render.RenderObject;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.FaceStyle;
-import maspack.render.TextureMapProps;
+import maspack.render.ColorMapProps;
 import maspack.util.PathFinder;
 
 public class MappingDemo extends RootModel {
 
    public static class DrawMappings extends RenderableComponentBase {
 
-      TextureMapProps myTextureProps = null;
+      ColorMapProps myTextureProps = null;
       NormalMapProps myNormalProps = null;
       BumpMapProps myBumpProps = null;
 
@@ -88,7 +88,7 @@ public class MappingDemo extends RootModel {
 
       public void createTextureProps() {
          // create texture mapping
-         myTextureProps = new TextureMapProps ();
+         myTextureProps = new ColorMapProps ();
          myTextureProps.setFileName (getDataFolder()+"/texture_map.jpg");
          myTextureProps.setEnabled (true);         
       }
@@ -97,7 +97,7 @@ public class MappingDemo extends RootModel {
          // create normal mapping
          myNormalProps = new NormalMapProps ();
          myNormalProps.setFileName (getDataFolder()+"/foil_normal_map.png");
-         myNormalProps.setNormalScale (1f);
+         myNormalProps.setScaling (1f);
          myNormalProps.setEnabled (true);         
       }
 
@@ -105,7 +105,7 @@ public class MappingDemo extends RootModel {
          // create normal mapping
          myBumpProps = new BumpMapProps ();
          myBumpProps.setFileName (getDataFolder()+"/egyptian_friz.png");
-         myBumpProps.setBumpScale (2.5f);
+         myBumpProps.setScaling (2.5f);
          myBumpProps.setEnabled (true);         
       }
 
@@ -147,13 +147,13 @@ public class MappingDemo extends RootModel {
          // set texture, normal and bump mappings if their properties are
 
          if (myTextureMapEnabled) {
-            renderer.setTextureMapProps (myTextureProps); 
+            renderer.setColorMap (myTextureProps); 
          }
          if (myNormalMapEnabled) {
-            renderer.setNormalMapProps (myNormalProps); 
+            renderer.setNormalMap (myNormalProps); 
          }
          if (myBumpMapEnabled) {
-            renderer.setBumpMapProps (myBumpProps); 
+            renderer.setBumpMap (myBumpProps); 
          }
 
          if (false) {
@@ -185,9 +185,9 @@ public class MappingDemo extends RootModel {
          }
          
 
-         renderer.setTextureMapProps (null);
-         renderer.setNormalMapProps (null);
-         renderer.setBumpMapProps (null);
+         renderer.setColorMap (null);
+         renderer.setNormalMap (null);
+         renderer.setBumpMap (null);
       }
 
       public ControlPanel createControlPanel() {

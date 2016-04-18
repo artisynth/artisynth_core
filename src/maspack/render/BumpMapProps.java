@@ -11,11 +11,11 @@ import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
-public class BumpMapProps extends TexturePropsBase {
+public class BumpMapProps extends TextureMapProps {
    
-   protected float myBumpScale;
-   protected PropertyMode myBumpScaleMode;
-   protected static float defaultBumpScale = 1;
+   protected float myScaling;
+   protected PropertyMode myScalingMode;
+   protected static float defaultScaling = 1;
    
    public BumpMapProps() {
       setDefaultModes();
@@ -27,11 +27,13 @@ public class BumpMapProps extends TexturePropsBase {
       set (props);
    }
 
-   public static PropertyList myProps = new PropertyList (BumpMapProps.class, TexturePropsBase.class);
+   public static PropertyList myProps = 
+      new PropertyList (BumpMapProps.class, TextureMapProps.class);
 
    static {
       myProps.addInheritable (
-         "bumpScale * *", "scale for x and y components of the Bump map", defaultBumpScale);
+         "scaling", 
+         "scaling for depth components of the bump map", defaultScaling);
    }
 
    public Property getProperty (String name) {
@@ -44,49 +46,49 @@ public class BumpMapProps extends TexturePropsBase {
 
    protected void setDefaultModes() {
       super.setDefaultModes ();
-      myBumpScaleMode = INHERITED;
+      myScalingMode = INHERITED;
    }
 
    protected void setDefaultValues() {
       super.setDefaultValues ();
-      myBumpScale = defaultBumpScale;
+      myScaling = defaultScaling;
    }
    
-   // bump scale
-   public float getBumpScale() {
-      return myBumpScale;
+   // scaling
+   public float getScaling() {
+      return myScaling;
    }
 
-   public void setBumpScale (float m) {
-      if (m != myBumpScale) {
-         myBumpScale = m;
+   public void setScaling (float m) {
+      if (m != myScaling) {
+         myScaling = m;
       }
-      myBumpScaleMode =
-      PropertyUtils.propagateValue (this, "bumpScale", m, myBumpScaleMode);
+      myScalingMode =
+      PropertyUtils.propagateValue (this, "scaling", m, myScalingMode);
    }
 
-   public PropertyMode getBumpScaleMode() {
-      return myBumpScaleMode;
+   public PropertyMode getScalingMode() {
+      return myScalingMode;
    }
 
-   public void setBumpScaleMode (PropertyMode mode) {
-      myBumpScaleMode =
-      PropertyUtils.setModeAndUpdate (this, "bumpScale", myBumpScaleMode, mode);
+   public void setScalingMode (PropertyMode mode) {
+      myScalingMode =
+      PropertyUtils.setModeAndUpdate (this, "scaling", myScalingMode, mode);
    }
 
    public void set (BumpMapProps props) {
       super.set (props);
-      myBumpScale = props.myBumpScale;
-      myBumpScaleMode = props.myBumpScaleMode;
+      myScaling = props.myScaling;
+      myScalingMode = props.myScalingMode;
    }
 
    public boolean equals (BumpMapProps props) {
       return (super.equals (props) && 
-         myBumpScale == props.myBumpScale &&
-         myBumpScaleMode == props.myBumpScaleMode);
+         myScaling == props.myScaling &&
+         myScalingMode == props.myScalingMode);
    }
 
-   public boolean equals (TexturePropsBase obj) {
+   public boolean equals (TextureMapProps obj) {
       if (obj instanceof BumpMapProps) {
          return equals ((BumpMapProps)obj);
       } else {
@@ -105,13 +107,13 @@ public class BumpMapProps extends TexturePropsBase {
 
    public String toString() {
       return (super.toString ()
-      + ", BumpScale=" + myBumpScale);
+      + ", scaling=" + myScaling);
    }
 
    public BumpMapProps clone() {
       BumpMapProps props = (BumpMapProps)super.clone();
-      myBumpScale = props.myBumpScale;
-      myBumpScaleMode = props.myBumpScaleMode;
+      myScaling = props.myScaling;
+      myScalingMode = props.myScalingMode;
       return props;
    }
 }

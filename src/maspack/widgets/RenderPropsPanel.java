@@ -86,7 +86,7 @@ public class RenderPropsPanel extends PropertyPanel
       LabeledToggleButton button = createExpandButton();
       button.addValueChangeListener (this);
       widgets.add (createSeparator());
-      widgets.add (createLabel (" Mappings ..."));
+      widgets.add (createLabel (" Texture mapping ..."));
       widgets.add (button);
       return button;
    }
@@ -147,9 +147,9 @@ public class RenderPropsPanel extends PropertyPanel
       maybeAddWidget (widgets, "shininess", 0, INF, propList);
       maybeAddWidget (widgets, "specular", propList);
 
-      maybeAddWidget (mappingWidgets, "textureMapProps", propList);
-      maybeAddWidget (mappingWidgets, "normalMapProps", propList);
-      maybeAddWidget (mappingWidgets, "bumpMapProps", propList);
+      maybeAddWidget (mappingWidgets, "colorMap", propList);
+      maybeAddWidget (mappingWidgets, "normalMap", propList);
+      maybeAddWidget (mappingWidgets, "bumpMap", propList);
       //maybeAddWidget (widgets, "emission", propList);
       //maybeAddWidget (widgets, "ambience", 0, 1, propList);
       if (mappingWidgets.size() > 0) {

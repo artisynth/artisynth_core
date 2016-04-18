@@ -496,7 +496,6 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       PropTreeCell tree =
          hostList.commonProperties (null, /* allowReadonly= */true);
       tree.removeDescendant ("renderProps");
-      tree.removeDescendant ("renderMappings");
       if (tree.numChildren() == 0) {
          JOptionPane.showMessageDialog (
             myParentGUIComponent,

@@ -39,9 +39,9 @@ public class SpecularTest extends MeshTestBase {
       RenderProps.setFaceColor (mech, Color.GRAY.darker ().darker ());
       RenderProps.setSpecular (mech, Color.WHITE);
 
-      // mech.getRenderProps().setTextureMapProps (createTextureProps());
-      // mech.getRenderProps().setNormalMapProps (createNormalProps());
-      // mech.getRenderProps().setBumpMapProps (createBumpProps());
+      // mech.getRenderProps().setColorMap (createTextureProps());
+      // mech.getRenderProps().setNormalMap (createNormalProps());
+      // mech.getRenderProps().setBumpMap (createBumpProps());
 
       FixedMeshBody body0 = createMesh (mech, 0);
       //FixedMeshBody body1 = createMesh (mech, 2);

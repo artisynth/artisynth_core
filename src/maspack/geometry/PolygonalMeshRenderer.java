@@ -18,7 +18,7 @@ import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
-import maspack.render.TextureMapProps;
+import maspack.render.ColorMapProps;
 
 /**
  * Utility class for rendering {@link PolygonalMesh} objects.
@@ -345,25 +345,25 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          ////gl.glPolygonOffset (1f, 1f);
       }
       
-      TextureMapProps oldtprops = null;
+      ColorMapProps oldtprops = null;
       NormalMapProps oldnprops = null;
       BumpMapProps oldbprops = null;
       if (useTextures) {
-         TextureMapProps dtprops = props.getTextureMapProps ();
-         oldtprops = renderer.setTextureMapProps(dtprops);
+         ColorMapProps dtprops = props.getColorMap ();
+         oldtprops = renderer.setColorMap(dtprops);
          
-         NormalMapProps ntprops = props.getNormalMapProps ();
-         oldnprops = renderer.setNormalMapProps (ntprops);
+         NormalMapProps ntprops = props.getNormalMap ();
+         oldnprops = renderer.setNormalMap (ntprops);
          
-         BumpMapProps btprops = props.getBumpMapProps ();
-         oldbprops = renderer.setBumpMapProps (btprops);
+         BumpMapProps btprops = props.getBumpMap ();
+         oldbprops = renderer.setBumpMap (btprops);
       }
       renderer.drawTriangles (myRob);
       if (useTextures) {
          // restore diffuse texture properties
-         renderer.setTextureMapProps (oldtprops);
-         renderer.setNormalMapProps (oldnprops);
-         renderer.setBumpMapProps (oldbprops);
+         renderer.setColorMap (oldtprops);
+         renderer.setNormalMap (oldnprops);
+         renderer.setBumpMap (oldbprops);
       }
       
       if (props.getDrawEdges()) {

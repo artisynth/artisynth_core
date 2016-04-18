@@ -15,7 +15,7 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.BumpMapProps;
 import maspack.render.IsRenderable;
-import maspack.render.TextureMapProps;
+import maspack.render.ColorMapProps;
 import maspack.render.NormalMapProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
@@ -50,27 +50,27 @@ public class TextureEgyptianTest extends GL3Tester {
       rprops.setFaceStyle (FaceStyle.FRONT_AND_BACK);
       plane.transform (new RigidTransform3d(Vector3d.ZERO, AxisAngle.ROT_X_90));
       
-      TextureMapProps dprops = new TextureMapProps ();
+      ColorMapProps dprops = new ColorMapProps ();
       dprops.setFileName (ArtisynthPath.getSrcRelativePath (
                              this, "/data/specular_map.jpg"));
-      dprops.setTextureColorMixing (ColorMixing.MODULATE);
+      dprops.setColorMixing (ColorMixing.MODULATE);
       dprops.setEnabled (true);
       
       NormalMapProps normalProps = new NormalMapProps ();
       normalProps.setFileName (ArtisynthPath.getSrcRelativePath (
                                   this, "/data/foil_normal_map2.png"));
-      normalProps.setNormalScale (0.3f);
+      normalProps.setScaling (0.3f);
       normalProps.setEnabled (true);
       
       BumpMapProps bumpProps = new BumpMapProps ();
       bumpProps.setFileName (ArtisynthPath.getSrcRelativePath (
                                 this, "/data/egyptian_friz_2.png"));
-      bumpProps.setBumpScale (2.5f);
+      bumpProps.setScaling (2.5f);
       bumpProps.setEnabled (true);
       
-      rprops.setTextureMapProps (dprops);
-      rprops.setNormalMapProps (normalProps);
-      rprops.setBumpMapProps (bumpProps);
+      rprops.setColorMap (dprops);
+      rprops.setNormalMap (normalProps);
+      rprops.setBumpMap (bumpProps);
       
       FixedMeshBody fm = new FixedMeshBody(plane);
       fm.setRenderProps(rprops);
@@ -115,20 +115,20 @@ public class TextureEgyptianTest extends GL3Tester {
 
       mv.autoFitViewers ();
       
-      LabeledComponentBase base = PropertyWidget.create ("Color texture", fm.getRenderProps ().getTextureMapProps (), "enabled");
+      LabeledComponentBase base = PropertyWidget.create ("Color texture", fm.getRenderProps ().getColorMap (), "enabled");
       controls.add(base);
-      base = PropertyWidget.create ("Normal map", fm.getRenderProps ().getNormalMapProps (), "enabled");
+      base = PropertyWidget.create ("Normal map", fm.getRenderProps ().getNormalMap (), "enabled");
       controls.add(base);
-      base = PropertyWidget.create ("Bump map", fm.getRenderProps ().getBumpMapProps (), "enabled");
+      base = PropertyWidget.create ("Bump map", fm.getRenderProps ().getBumpMap (), "enabled");
       controls.add(base);
       
-      base = PropertyWidget.create ("Specular", fm.getRenderProps ().getTextureMapProps (), "specularColoring");
+      base = PropertyWidget.create ("Specular", fm.getRenderProps ().getColorMap (), "specularColoring");
       controls.add (base);
       
-      base = PropertyWidget.create ("Bump map scale", fm.getRenderProps ().getBumpMapProps (), "bumpScale");
+      base = PropertyWidget.create ("Bump map scale", fm.getRenderProps ().getBumpMap (), "scaling");
       controls.add (base);
       
-      base = PropertyWidget.create ("Normal map scale", fm.getRenderProps ().getNormalMapProps (), "normalScale");
+      base = PropertyWidget.create ("Normal map scale", fm.getRenderProps ().getNormalMap (), "scaling");
       controls.add (base);
       
       

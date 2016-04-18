@@ -304,11 +304,11 @@ shininess & shininess parameter (range 0 to 128) & 32 \\
 specular & specular color components & {\tt null} \\
 %Texture mapping properties &
 \hline
-colorMapping & color mapping properties 
+colorMap & color mapping properties 
 (see Section \ref{TextureMapping:sec}) & {\tt null} \\
-normalMapping & normal mapping properties 
+normalMap & normal mapping properties 
 (see Section \ref{TextureMapping:sec}) & {\tt null} \\
-bumpMapping & bump mapping properties 
+bumpMap & bump mapping properties 
 (see Section \ref{TextureMapping:sec}) & {\tt null} \\
 %Face related properties &
 \hline
@@ -511,11 +511,11 @@ set. Supported is provided for color, normal and bump mapping,
 although the last two not available if ArtiSynth is running the OpenGL
 2 version of its viewer.
 
-Texture mapping is controlled through the {\sf colorMapping}, {\sf
-normalMapping}, and {\sf bumpMapping} properties of {\tt RenderProps}.
-These properties have a default value of {\tt null}, but applications
-can set them to instances of
-\javaclass[maspack.render]{TextureMapProps},
+Texture mapping is controlled through the {\sf colorMap}, {\sf
+normalMap}, and {\sf bumpMap} properties of {\tt RenderProps}.  These
+are composite properties with a default value of {\tt null}, but
+applications can set them to instances of
+\javaclass[maspack.render]{ColorMapProps},
 \javaclass[maspack.render]{NormalMapProps}, and
 \javaclass[maspack.render]{BumpMapProps}, respectively to provide the
 source images and parameters for the associated mapping. All of these
@@ -534,34 +534,34 @@ A string giving the file name of the supporting image file.
 
 \end{description}
 
-{\tt NormalMapProps} and {\tt BumpMapProps} also export {\sf
-normalScale} and {\sf bumpScale}, respectively, which control normal
-and depth ``amplitudes''. Other exported properties control mixing
-with underlying colors, and how texture coordinates are both filtered
-and managed when they fall outside the canonical range $[0,1]$.  Full
-details on texture mapping and its support by the ArtiSynth renderer
-are given in the ``Rendering section of the
-\href{../maspack/maspack.html}{ Maspack Reference Manual}.
+{\tt NormalMapProps} and {\tt BumpMapProps} also export {\sf scaling},
+which scales the x-y components of the normal map or the depth of the
+bump map. Other exported properties control mixing with underlying
+colors, and how texture coordinates are both filtered and managed when
+they fall outside the canonical range $[0,1]$.  Full details on
+texture mapping and its support by the ArtiSynth renderer are given in
+the ``Rendering section of the \href{../maspack/maspack.html}{ Maspack
+Reference Manual}.
 
 To set up texture mapping, it is often sufficient to set the
 appropriate mapping property to a {\tt Props} object for which {\sf
 enabled} is set to {\tt true} and {\tt fileName} is set to the file
 name of the source image. Normal and bump maps also often require
-adjustment of their {\sf normalScale} and {\sf bumpScale} properties.
+adjustment of their {\sf scaling} properties.
 The following static methods are available for doing this:
 %
 \begin{lstlisting}
-   void RenderProps.setTextureMapProps (Renderable r, TextureMapProps tprops);
-   void RenderProps.setTextureEnabled (Renderable r, boolean enabled);
-   void RenderProps.setTextureFileName (Renderable r, String fileName);
+   void RenderProps.setColorMap (Renderable r, ColorMapProps tprops);
+   void RenderProps.setColorMapEnabled (Renderable r, boolean enabled);
+   void RenderProps.setColorMapFileName (Renderable r, String fileName);
 
-   void RenderProps.setNormalMapProps (Renderable r, NormalMapProps tprops);
-   void RenderProps.setNormalEnabled (Renderable r, boolean enabled);
-   void RenderProps.setNormalFileName (Renderable r, String fileName);
+   void RenderProps.setNormalMap (Renderable r, NormalMapProps tprops);
+   void RenderProps.setNormalMapEnabled (Renderable r, boolean enabled);
+   void RenderProps.setNormalMapFileName (Renderable r, String fileName);
 
-   void RenderProps.setBumpMapProps (Renderable r, BumpMapProps tprops);
-   void RenderProps.setBumpEnabled (Renderable r, boolean enabled);
-   void RenderProps.setBumpFileName (Renderable r, String fileName);
+   void RenderProps.setBumpMap (Renderable r, BumpMapProps tprops);
+   void RenderProps.setBumpMapEnabled (Renderable r, boolean enabled);
+   void RenderProps.setBumpMapFileName (Renderable r, String fileName);
 \end{lstlisting}
 %
 
@@ -580,9 +580,9 @@ a programming idiom for setting up ancestor-controlled mapping
 might look like this:
 %
 \begin{verbatim}
-      RenderProps.setTextureMapProps (ancestor, tprops);
-      RenderProps.setTextureEnabled (descendant0, true);
-      RenderProps.setTextureEnabled (descendant1, true);
+      RenderProps.setColorMap (ancestor, tprops);
+      RenderProps.setColorMapEnabled (descendant0, true);
+      RenderProps.setColorMapEnabled (descendant1, true);
 \end{verbatim}
 %
 \end{sideblock}
@@ -685,7 +685,7 @@ TennisBallColorMap.jpg} and {\tt TennisBallBumpMap.jpg} (Figure
 relative to the demo source file.
 \javamethod[maspack.util]{PathFinder.expand()} is used to determine
 the complete data folder name relative to the source directory.
-For the bump map, it is important to set the {\sf bumpScale} property
+For the bump map, it is important to set the {\sf scaling} property
 to adjust the depth applitude to relative to the sphere radius.
 
 Color mapping is applied to balls 0 and 2, and bump mapping to balls 1

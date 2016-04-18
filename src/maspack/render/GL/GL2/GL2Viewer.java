@@ -35,7 +35,7 @@ import maspack.render.RenderObject;
 import maspack.render.RenderObject.RenderObjectVersion;
 import maspack.render.RenderProps;
 import maspack.render.TextureContent;
-import maspack.render.TextureMapProps;
+import maspack.render.ColorMapProps;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLColorSelector;
 import maspack.render.GL.GLFrameCapture;
@@ -73,7 +73,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    private GL2 gl;
    private GL2SharedResources myGLResources;
    private GLTextRenderer myTextRenderer;
-   private TextureMapProps myTextTextureProps = null;
+   private ColorMapProps myTextTextureProps = null;
    
    // basic primitives
    private GL2Primitive[] primitives;
@@ -400,8 +400,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glEnable (GL2.GL_NORMALIZE);  // normalize normals
       
       myTextRenderer = GLTextRenderer.generate (gl, GL2PipelineRenderer.generate (gl));
-      myTextTextureProps = new TextureMapProps ();
-      myTextTextureProps.setTextureColorMixing (ColorMixing.MODULATE);
+      myTextTextureProps = new ColorMapProps ();
+      myTextTextureProps.setColorMixing (ColorMixing.MODULATE);
       myTextTextureProps.setEnabled (true);
 
       setLightingEnabled(true);
@@ -706,7 +706,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       setTransparencyEnabled (true);
       setTextureMappingEnabled (true);
      
-      TextureMapProps savedTextureProps = setTextureMapProps (myTextTextureProps);
+      ColorMapProps savedTextureProps = setColorMap (myTextTextureProps);
       
       maybeUpdateState(gl);
       
@@ -732,7 +732,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       setTransparencyEnabled (savedTransparency);
       setTextureMappingEnabled (savedTexture);
-      setTextureMapProps (savedTextureProps);
+      setColorMap (savedTextureProps);
       
       // GLSupport.showTexture (gl, GL.GL_TEXTURE_2D, 0);
       
@@ -2632,8 +2632,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
    }
    
-   private int getTextureMode (TextureMapProps tprops) {
-      switch (tprops.getTextureColorMixing ()) {
+   private int getTextureMode (ColorMapProps tprops) {
+      switch (tprops.getColorMixing ()) {
          case DECAL:
             return GL2.GL_DECAL;
          case REPLACE:
@@ -2644,7 +2644,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             //            return GL2.GL_BLEND;
          default: {
             throw new InternalErrorException (
-               "unimplement texture mode " + tprops.getTextureColorMixing ());
+               "unimplement texture mode " + tprops.getColorMixing ());
          }
       }
    }
@@ -4139,11 +4139,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       
    }
    
-   public boolean hasTextureMixing (ColorMixing tmix) {
+   public boolean hasColorMapMixing (ColorMixing cmix) {
       return true;      
    }
    
-   public boolean hasTextureMapping() {
+   public boolean hasColorMapping() {
       return true;
    }
    

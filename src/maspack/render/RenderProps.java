@@ -44,7 +44,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       DrawEdges,
       EdgeColor,
       EdgeWidth,
-      TextureMapProps,
+      ColorMapProps,
       NormalMapProps,
       BumpMapProps,
       LineStyle,
@@ -166,8 +166,8 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected PropertyMode myPointColorMode;
    protected static Color defaultPointColor = new Color (0.5f, 0.5f, 0.5f);
 
-   protected TextureMapProps myTextureMapProps;
-   protected static TextureMapProps defaultTextureMapProps = null;
+   protected ColorMapProps myColorMapProps;
+   protected static ColorMapProps defaultColorMapProps = null;
    
    protected NormalMapProps myNormalMapProps;
    protected static NormalMapProps defaultNormalMapProps = null;
@@ -181,7 +181,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected static PropertyMode INACTIVE = PropertyMode.Inactive;
    protected static PropertyMode EXPLICIT = PropertyMode.Explicit;
 
-   protected boolean myTextureMapPropsInactive = true;
+   protected boolean myColorMapPropsInactive = true;
    protected boolean myNormalMapPropsInactive = true;
    protected boolean myBumpMapPropsInactive = true;
 
@@ -207,11 +207,11 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       myProps.addInheritable (
          "drawEdges:Inherited", "draw mesh edges", defaultDrawEdgesP);
       myProps.add (
-         "textureMapProps", "diffuse texture mapping properties", defaultTextureMapProps);
+         "colorMap", "color texture map properties", defaultColorMapProps);
       myProps.add (
-         "normalMapProps", "normal texture mapping properties", defaultNormalMapProps);
+         "normalMap", "normal texture map properties", defaultNormalMapProps);
       myProps.add (
-         "bumpMapProps", "bump texture mapping properties", defaultBumpMapProps);
+         "bumpMap", "bump texture map properties", defaultBumpMapProps);
       myProps.addInheritable (
          "edgeColor:Inherited", "edge color (mainly for meshes)", 
          defaultEdgeColor);     
@@ -1069,44 +1069,44 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       }
    }
 
-   public TextureMapProps getTextureMapProps() {
-      return myTextureMapProps;
+   public ColorMapProps getColorMap() {
+      return myColorMapProps;
    }
 
-   public void setTextureMapProps (TextureMapProps props) {
-      if (getAllPropertyInfo().get ("textureMapProps") == null) {
+   public void setColorMap (ColorMapProps props) {
+      if (getAllPropertyInfo().get ("colorMap") == null) {
          return;
       }
       if (props == null) {
          PropertyUtils.updateCompositeProperty (
-            this, "textureMapProps", myTextureMapProps, null);
-         myTextureMapProps = null;
+            this, "colorMap", myColorMapProps, null);
+         myColorMapProps = null;
       }
       else {
-         if (myTextureMapProps == null) {
-            myTextureMapProps = new TextureMapProps();
-            myTextureMapProps.set (props);
+         if (myColorMapProps == null) {
+            myColorMapProps = new ColorMapProps();
+            myColorMapProps.set (props);
             PropertyUtils.updateCompositeProperty (
-               this, "textureMapProps", null, myTextureMapProps);
+               this, "colorMap", null, myColorMapProps);
          }
          else {
-            myTextureMapProps.set (props);
-            PropertyUtils.updateCompositeProperty (myTextureMapProps);
+            myColorMapProps.set (props);
+            PropertyUtils.updateCompositeProperty (myColorMapProps);
          }
       }
    }
    
-   public NormalMapProps getNormalMapProps() {
+   public NormalMapProps getNormalMap() {
       return myNormalMapProps;
    }
 
-   public void setNormalMapProps (NormalMapProps props) {
-      if (getAllPropertyInfo().get ("normalMapProps") == null) {
+   public void setNormalMap (NormalMapProps props) {
+      if (getAllPropertyInfo().get ("normalMap") == null) {
          return;
       }
       if (props == null) {
          PropertyUtils.updateCompositeProperty (
-            this, "normalMapProps", myNormalMapProps, null);
+            this, "normalMap", myNormalMapProps, null);
          myNormalMapProps = null;
       }
       else {
@@ -1114,7 +1114,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
             myNormalMapProps = new NormalMapProps();
             myNormalMapProps.set (props);
             PropertyUtils.updateCompositeProperty (
-               this, "normalMapProps", null, myNormalMapProps);
+               this, "normalMap", null, myNormalMapProps);
          }
          else {
             myNormalMapProps.set (props);
@@ -1123,17 +1123,17 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       }
    }
    
-   public BumpMapProps getBumpMapProps() {
+   public BumpMapProps getBumpMap() {
       return myBumpMapProps;
    }
 
-   public void setBumpMapProps (BumpMapProps props) {
-      if (getAllPropertyInfo().get ("bumpMapProps") == null) {
+   public void setBumpMap (BumpMapProps props) {
+      if (getAllPropertyInfo().get ("bumpMap") == null) {
          return;
       }
       if (props == null) {
          PropertyUtils.updateCompositeProperty (
-            this, "bumpMapProps", myBumpMapProps, null);
+            this, "bumpMap", myBumpMapProps, null);
          myBumpMapProps = null;
       }
       else {
@@ -1141,7 +1141,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
             myBumpMapProps = new BumpMapProps();
             myBumpMapProps.set (props);
             PropertyUtils.updateCompositeProperty (
-               this, "bumpMapProps", null, myBumpMapProps);
+               this, "bumpMap", null, myBumpMapProps);
          }
          else {
             myBumpMapProps.set (props);
@@ -1212,7 +1212,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       }
       doSetColor (myPointColor, defaultPointColor);
       doSetBackColor (defaultBackColor);
-      myTextureMapProps = defaultTextureMapProps;
+      myColorMapProps = defaultColorMapProps;
       myNormalMapProps = defaultNormalMapProps;
       myBumpMapProps = defaultBumpMapProps;
    }
@@ -1259,12 +1259,12 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       }
       myEdgeColorMode = r.myEdgeColorMode;
       
-      myTextureMapPropsInactive = r.myTextureMapPropsInactive;
-      setTextureMapProps (r.myTextureMapProps);
+      myColorMapPropsInactive = r.myColorMapPropsInactive;
+      setColorMap (r.myColorMapProps);
       myNormalMapPropsInactive = r.myNormalMapPropsInactive;
-      setNormalMapProps (r.myNormalMapProps);
+      setNormalMap (r.myNormalMapProps);
       myBumpMapPropsInactive = r.myBumpMapPropsInactive;
-      setBumpMapProps (r.myBumpMapProps);
+      setBumpMap (r.myBumpMapProps);
       
       myLineStyle = r.myLineStyle;
       myLineStyleMode = r.myLineStyleMode;
@@ -1459,10 +1459,10 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
             return false;
          }
       }
-      if (myTextureMapPropsInactive != r.myTextureMapPropsInactive) {
+      if (myColorMapPropsInactive != r.myColorMapPropsInactive) {
          return false;
       }
-      else if (!myTextureMapPropsInactive && !equalsOrBothNull (r.myTextureMapProps, myTextureMapProps)) {
+      else if (!myColorMapPropsInactive && !equalsOrBothNull (r.myColorMapProps, myColorMapProps)) {
          return false;
       }
       if (myNormalMapPropsInactive != r.myNormalMapPropsInactive) {
@@ -1703,7 +1703,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       buf.append ("EdgeWidth=" + myEdgeWidth + " " + myEdgeWidthMode + ", ");
       buf.append ("EdgeColor=" + colorString (myEdgeColor) + " " +
          myEdgeColorMode + ", ");
-      buf.append ("TextureMapProps=" + myTextureMapProps + ", ");
+      buf.append ("ColorMapProps=" + myColorMapProps + ", ");
       buf.append ("NormalMapProps=" + myNormalMapProps + ", ");
       buf.append ("BumpMapProps=" + myBumpMapProps + ", ");
       buf.append ("LineStyle=" + myLineStyle + " " + myLineStyleMode + ", ");
@@ -1767,29 +1767,29 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       return props;
    }
 
-   private static TextureMapProps createAndAssignTextureMapProps (RenderProps props) {
-      TextureMapProps tprops = props.getTextureMapProps();
+   private static ColorMapProps createAndAssignColorMapProps (RenderProps props) {
+      ColorMapProps tprops = props.getColorMap();
       if (tprops == null) {
-         tprops = new TextureMapProps();
-         props.setTextureMapProps (tprops);
+         tprops = new ColorMapProps();
+         props.setColorMap (tprops);
       }
       return tprops;
    }
    
    private static NormalMapProps createAndAssignNormalMapProps (RenderProps props) {
-      NormalMapProps tprops = props.getNormalMapProps();
+      NormalMapProps tprops = props.getNormalMap();
       if (tprops == null) {
          tprops = new NormalMapProps();
-         props.setNormalMapProps (tprops);
+         props.setNormalMap (tprops);
       }
       return tprops;
    }
 
    private static BumpMapProps createAndAssignBumpMapProps (RenderProps props) {
-      BumpMapProps tprops = props.getBumpMapProps();
+      BumpMapProps tprops = props.getBumpMap();
       if (tprops == null) {
          tprops = new BumpMapProps();
-         props.setBumpMapProps (tprops);
+         props.setBumpMap (tprops);
       }
       return tprops;
    }
@@ -2184,43 +2184,43 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       r.setRenderProps (props);      
    }      
 
-   public static void setTextureMapProps (Renderable r, TextureMapProps tprops) {
+   public static void setColorMap (Renderable r, ColorMapProps tprops) {
       RenderProps props = createAndAssignProps (r);
-      props.setTextureMapProps (tprops);
+      props.setColorMap (tprops);
       r.setRenderProps (props);
    }
 
-   public static void setTextureEnabled (Renderable r, boolean enabled) {
+   public static void setColorMapEnabled (Renderable r, boolean enabled) {
       RenderProps props = createAndAssignProps (r);
-      TextureMapProps tprops = createAndAssignTextureMapProps(props);
+      ColorMapProps tprops = createAndAssignColorMapProps(props);
       tprops.setEnabled (enabled);
       r.setRenderProps (props);
    }
 
-   public static void setTextureEnabledMode (Renderable r, PropertyMode mode) {
+   public static void setColorMapEnabledMode (Renderable r, PropertyMode mode) {
       RenderProps props = createAndAssignProps (r);
-      TextureMapProps tprops = createAndAssignTextureMapProps (props);
+      ColorMapProps tprops = createAndAssignColorMapProps (props);
       tprops.setEnabledMode (mode);
       r.setRenderProps (props);
    }
 
-   public static void setTextureFileName (Renderable r, String fileName) {
+   public static void setColorMapFileName (Renderable r, String fileName) {
       RenderProps props = createAndAssignProps (r);
-      TextureMapProps tprops = createAndAssignTextureMapProps (props);
+      ColorMapProps tprops = createAndAssignColorMapProps (props);
       tprops.setFileName (fileName);
       r.setRenderProps (props);
    }
 
-   public static void setTextureFileNameMode (Renderable r, PropertyMode mode) {
+   public static void setColorMapFileNameMode (Renderable r, PropertyMode mode) {
       RenderProps props = createAndAssignProps (r);
-      TextureMapProps tprops = createAndAssignTextureMapProps (props);
+      ColorMapProps tprops = createAndAssignColorMapProps (props);
       tprops.setFileNameMode (mode);
       r.setRenderProps (props);
    }
    
-   public static void setNormalMapProps (Renderable r, NormalMapProps nprops) {
+   public static void setNormalMap (Renderable r, NormalMapProps nprops) {
       RenderProps props = createAndAssignProps (r);
-      props.setNormalMapProps (nprops);
+      props.setNormalMap (nprops);
       r.setRenderProps (props);
    }
 
@@ -2252,9 +2252,9 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       r.setRenderProps (props);
    }
    
-   public static void setBumpMapProps (Renderable r, BumpMapProps bprops) {
+   public static void setBumpMap (Renderable r, BumpMapProps bprops) {
       RenderProps props = createAndAssignProps (r);
-      props.setBumpMapProps (bprops);
+      props.setBumpMap (bprops);
       r.setRenderProps (props);
    }
 

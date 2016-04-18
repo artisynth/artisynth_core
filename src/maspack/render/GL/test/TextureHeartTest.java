@@ -37,25 +37,25 @@ public class TextureHeartTest extends GL2vsGL3Tester {
          }
          rprops.setShading (Shading.SMOOTH);
          rprops.setFaceColor (new Color(0.8f,0.8f,0.8f));
-         rprops.getTextureMapProps ().setTextureColorMixing (ColorMixing.MODULATE);
+         rprops.getColorMap ().setColorMixing (ColorMixing.MODULATE);
          rprops.setSpecular (new Color(0.4f, 0.4f, 0.4f));
-         rprops.getBumpMapProps ().setBumpScale (0.5f);
+         rprops.getBumpMap ().setScaling (0.5f);
          rprops.setShininess (128);
          mesh.setRenderProps(rprops);
          
          FixedMeshBody fm = new FixedMeshBody (mesh);
          fm.setRenderProps (mesh.getRenderProps ());
-         LabeledComponentBase base = PropertyWidget.create ("Map", fm.getRenderProps ().getTextureMapProps (), "enabled");
+         LabeledComponentBase base = PropertyWidget.create ("Map", fm.getRenderProps ().getColorMap (), "enabled");
          controls.add(base);
-         base = PropertyWidget.create ("Bump map", fm.getRenderProps ().getBumpMapProps (), "enabled");
+         base = PropertyWidget.create ("Bump map", fm.getRenderProps ().getBumpMap (), "enabled");
          controls.add(base);
          base = PropertyWidget.create ("Lighting", fm.getRenderProps (), "shading");
          controls.add(base);
          
-         base = PropertyWidget.create ("Specular", fm.getRenderProps ().getTextureMapProps (), "specularColoring");
+         base = PropertyWidget.create ("Specular", fm.getRenderProps ().getColorMap (), "specularColoring");
          controls.add (base);
          
-         base = PropertyWidget.create ("Bump map scale", fm.getRenderProps ().getBumpMapProps (), "bumpScale");
+         base = PropertyWidget.create ("Bump map scale", fm.getRenderProps ().getBumpMap (), "scaling");
          controls.add (base);
          
          mv.addRenderable (fm);

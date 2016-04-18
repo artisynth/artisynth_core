@@ -11,11 +11,11 @@ import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
-public class NormalMapProps extends TexturePropsBase {
+public class NormalMapProps extends TextureMapProps {
 
-   protected float myNormalScale;
-   protected PropertyMode myNormalScaleMode;
-   protected static float defaultNormalScale = 1;
+   protected float myScaling;
+   protected PropertyMode myScalingMode;
+   protected static float defaultScaling = 1;
 
    public NormalMapProps() {
       setDefaultModes();
@@ -27,11 +27,12 @@ public class NormalMapProps extends TexturePropsBase {
       set (props);
    }
 
-   public static PropertyList myProps = new PropertyList (NormalMapProps.class, TexturePropsBase.class);
+   public static PropertyList myProps = new PropertyList (NormalMapProps.class, TextureMapProps.class);
 
    static {
       myProps.addInheritable (
-         "normalScale * *", "scale for x and y components of the Normal map", defaultNormalScale);
+         "scaling", 
+         "scale for x and y components of the normal map", defaultScaling);
    }
 
    public Property getProperty (String name) {
@@ -44,49 +45,49 @@ public class NormalMapProps extends TexturePropsBase {
 
    protected void setDefaultModes() {
       super.setDefaultModes ();
-      myNormalScaleMode = INHERITED;
+      myScalingMode = INHERITED;
    }
 
    protected void setDefaultValues() {
       super.setDefaultValues ();
-      myNormalScale = defaultNormalScale;
+      myScaling = defaultScaling;
    }
 
    // bump scale
-   public float getNormalScale() {
-      return myNormalScale;
+   public float getScaling() {
+      return myScaling;
    }
 
-   public void setNormalScale (float m) {
-      if (m != myNormalScale) {
-         myNormalScale = m;
+   public void setScaling (float m) {
+      if (m != myScaling) {
+         myScaling = m;
       }
-      myNormalScaleMode =
-      PropertyUtils.propagateValue (this, "normalScale", m, myNormalScaleMode);
+      myScalingMode =
+      PropertyUtils.propagateValue (this, "scaling", m, myScalingMode);
    }
 
-   public PropertyMode getNormalScaleMode() {
-      return myNormalScaleMode;
+   public PropertyMode getScalingMode() {
+      return myScalingMode;
    }
 
-   public void setNormalScaleMode (PropertyMode mode) {
-      myNormalScaleMode =
-      PropertyUtils.setModeAndUpdate (this, "normalScale", myNormalScaleMode, mode);
+   public void setScalingMode (PropertyMode mode) {
+      myScalingMode =
+      PropertyUtils.setModeAndUpdate (this, "scaling", myScalingMode, mode);
    }
 
    public void set (NormalMapProps props) {
       super.set (props);
-      myNormalScale = props.myNormalScale;
-      myNormalScaleMode = props.myNormalScaleMode;
+      myScaling = props.myScaling;
+      myScalingMode = props.myScalingMode;
    }
 
    public boolean equals (NormalMapProps props) {
       return (super.equals (props) && 
-      myNormalScale == props.myNormalScale &&
-      myNormalScaleMode == props.myNormalScaleMode);
+      myScaling == props.myScaling &&
+      myScalingMode == props.myScalingMode);
    }
 
-   public boolean equals (TexturePropsBase obj) {
+   public boolean equals (TextureMapProps obj) {
       if (obj instanceof NormalMapProps) {
          return equals ((NormalMapProps)obj);
       } else {
@@ -105,13 +106,13 @@ public class NormalMapProps extends TexturePropsBase {
 
    public String toString() {
       return (super.toString ()
-      + ", NormalScale=" + myNormalScale);
+      + ", scaling=" + myScaling);
    }
 
    public NormalMapProps clone() {
       NormalMapProps props = (NormalMapProps)super.clone();
-      myNormalScale = props.myNormalScale;
-      myNormalScaleMode = props.myNormalScaleMode;
+      myScaling = props.myScaling;
+      myScalingMode = props.myScalingMode;
       return props;
    }
 }

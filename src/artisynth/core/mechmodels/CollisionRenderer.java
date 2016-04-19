@@ -213,13 +213,13 @@ public class CollisionRenderer {
    
       LineStyle style = props.getLineStyle();
       Shading savedShading = renderer.setLineShading (props);
-      renderer.setLineColoring (props, /*selected=*/false);
+      renderer.setLineColoring (props, /*highlight=*/false);
       switch (style) {
          case LINE: {
             int width = props.getLineWidth();
             if (width > 0) {
                //renderer.setLightingEnabled (false);
-               //renderer.setColor (props.getLineColorArray(), /*selected=*/false);
+               //renderer.setColor (props.getLineColorArray(), /*highlight=*/false);
                renderer.drawLines (r, LineStyle.LINE, width);
                //renderer.setLightingEnabled (true);
             }
@@ -232,7 +232,7 @@ public class CollisionRenderer {
             double rad = props.getLineRadius();
             if (rad > 0) {
                //Shading savedShading = renderer.getShadeModel();
-               //renderer.setLineLighting (props, /*selected=*/false);
+               //renderer.setLineLighting (props, /*highlight=*/false);
                renderer.drawLines (r, style, rad);
                //renderer.setShadeModel(savedShading);
             }
@@ -270,7 +270,7 @@ public class CollisionRenderer {
             if (rgb == null) {
                rgb = props.getLineColorF();
             }
-            renderer.setColor (rgb, false);
+            renderer.setColor (rgb, /*highlight=*/false);
             Shading save = renderer.getShading();
             renderer.setShading (Shading.NONE);
             renderer.drawLines (r, LineStyle.LINE, width);
@@ -282,7 +282,7 @@ public class CollisionRenderer {
          PointStyle style = props.getPointStyle();
          double width = 0;
          Shading savedShading = null;
-         renderer.setPointColoring (props, /*selected=*/false);
+         renderer.setPointColoring (props, /*highlight=*/false);
          if (style == PointStyle.POINT) {
             width = props.getPointSize();
             savedShading = renderer.setShading (Shading.NONE);
@@ -300,7 +300,7 @@ public class CollisionRenderer {
          Shading savedShadeModel = renderer.getShading();
          FaceStyle savedFaceStyle = renderer.getFaceStyle();
 
-         renderer.setFaceColoring (props, /*selected=*/false);
+         renderer.setFaceColoring (props, /*highlight=*/false);
          renderer.setFaceStyle (props.getFaceStyle());
          renderer.setShading (props.getShading());
 

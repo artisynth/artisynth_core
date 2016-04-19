@@ -215,26 +215,26 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
     *
     * <p>If faces <i>are</i> also being drawn and there <i>is</i> vertex
     * coloring, then edges should render using the edge color, with whatever
-    * shading is selected, and should not highlight when selected.
+    * shading is selected, and should respond to highlighting.
     * 
     * <p>If faces <i>are</i> also being drawn and there <i>is no</i> vertex
-    * coloring, then (a) edges should not highlight when selected (the faces
+    * coloring, then (a) edges should not respond to highlighting (the faces
     * will instead), and (b) edges should be rendered with whatever shading is
     * selected, <i>unless</i> the edge color is the same as the face color, in
     * which case shading is turned off so that the edges can be seen.
     *
     * <p>If faces <i>are not</i> also being drawn and there <i>is</i> vertex
     * coloring, then edges should render using the vertex coloring, with
-    * whatever shading is selected, unless the mesh is selected, in which case
-    * it should they should be rendered with the selection color.
+    * whatever shading is selected, unless the mesh being highlighted, in which
+    * case it should they should be rendered with the highlight color.
     *
     * <p>If faces <i>are not</i> also being drawn and there <i>is no</i> vertex
     * coloring, then edges should be rendered with whatever shading is
-    * selected, and should highlight when selected;
+    * selected, and should respond to highlighting.
     */
    private void drawEdges (
       Renderer renderer, PolygonalMesh mesh,
-      RenderProps props, boolean selected, boolean alsoDrawingFaces) {
+      RenderProps props, boolean highlight, boolean alsoDrawingFaces) {
 
       float savedLineWidth = renderer.getLineWidth();
       Shading savedShadeModel = renderer.getShading();
@@ -251,7 +251,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       float[] edgeColor = getEffectiveEdgeColor(props);
 
       if (alsoDrawingFaces) {
-         selected = false;
+         highlight = false;
          if (mesh.hasColors()) {
             disableColors = true;
          }
@@ -264,12 +264,12 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       }
       else {
          if (mesh.hasColors()) {
-            if (selected) {
+            if (highlight) {
                disableColors = true;
             }
          }
       }
-      renderer.setEdgeColoring (props, selected);
+      renderer.setEdgeColoring (props, highlight);
       renderer.setShading (shading);
 
       ColorInterpolation savedColorInterp = null;
@@ -293,30 +293,9 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       renderer.setShading (savedShadeModel);
    }
 
-//   private void setFaceMaterialAndShading (
-//      Renderer renderer, PolygonalMesh mesh, RenderProps props, boolean selected) {
-//      
-//      Shading shading = props.getShading();
-//      if (shading != Shading.NONE) {
-//         Material faceMat = mesh.getFaceMaterial();
-//         if (faceMat == null) {
-//            faceMat = props.getFaceMaterial();
-//         }
-//         Material backMat = mesh.getBackMaterial();
-//         if (backMat == null) {
-//            backMat = props.getBackMaterial();
-//         }
-//         if (backMat == null) {
-//            backMat = faceMat;
-//         }
-//         renderer.setMaterialAndShading (
-//            props, faceMat, null, backMat, null, selected);
-//      }     
-//   }      
-
    private void drawFaces (
       Renderer renderer, PolygonalMesh mesh, RenderProps props, 
-      boolean selected) {
+      boolean highlight) {
       
       boolean useTextures = mesh.hasTextureCoords ();
 
@@ -329,7 +308,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       }
 
       renderer.setShading (shading);
-      renderer.setFaceColoring (props, selected);
+      renderer.setFaceColoring (props, highlight);
       renderer.setFaceStyle (props.getFaceStyle());
 
       //int i = 0; // i is index of face
@@ -381,7 +360,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
 
    public void renderEdges (
       Renderer renderer, PolygonalMesh mesh, RenderProps props, 
-      boolean selected) {
+      boolean highlight) {
       
       if (mesh.numVertices() == 0) {
          return;
@@ -395,7 +374,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          renderer.mulModelMatrix (mesh.XMeshToWorld);
       }
 
-      drawEdges (renderer, mesh, props, selected, false);
+      drawEdges (renderer, mesh, props, highlight, false);
 
       renderer.popModelMatrix();
    }
@@ -414,7 +393,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
           (flags & Renderer.SORT_FACES) != 0) {
          mesh.sortFaces(renderer.getEyeZDirection());
       }
-      boolean selected = ((flags & Renderer.SELECTED) != 0);
+      boolean highlight = ((flags & Renderer.HIGHLIGHT) != 0);
       
       renderer.pushModelMatrix();
       if (mesh.isRenderBuffered()) {
@@ -427,11 +406,11 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       boolean drawFaces = (props.getFaceStyle() != Renderer.FaceStyle.NONE);
 
       if (props.getDrawEdges()) {
-         drawEdges (renderer, mesh, props, selected, drawFaces);
+         drawEdges (renderer, mesh, props, highlight, drawFaces);
       }
       
       if (drawFaces) {
-         drawFaces (renderer, mesh, props, selected);
+         drawFaces (renderer, mesh, props, highlight);
       }
 
       renderer.popModelMatrix();

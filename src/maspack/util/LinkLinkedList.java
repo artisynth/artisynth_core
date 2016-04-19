@@ -148,7 +148,7 @@ public class LinkLinkedList<T> implements List<T>, Deque<T>, Cloneable {
    
    /**
     * Past-the-end element
-    * @return
+    * @return past-the-end element
     */
    public Link<T> end() {
       return end;

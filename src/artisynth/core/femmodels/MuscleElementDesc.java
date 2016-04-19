@@ -373,7 +373,7 @@ public class MuscleElementDesc
             
             renderer.drawLine(
                props, coords0, coords1, myDirectionColor,
-               /*capped=*/true, /*selected=*/false);   
+               /*capped=*/true, /*highlight=*/false);   
          }
       }
       

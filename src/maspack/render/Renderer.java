@@ -75,9 +75,9 @@ public interface Renderer {
 
    // Render flags. FINISH
    /** 
-    * Flag requesting that an object be rendered as though it is selected.
+    * Flag requesting that an object be rendered with highlighting.
     */   
-   public static int SELECTED = 0x1;
+   public static int HIGHLIGHT = 0x1;
 
 //   /** 
 //    * Flag requesting that vertex coloring should be used for mesh rendering.
@@ -141,17 +141,17 @@ public interface Renderer {
    }
 
    /**
-    * Specifies how selected items are highlighted by this renderer.
+    * Specifies how highlighting is performed by this renderer.
     */
    public enum HighlightStyle {
       /**
-       * Selection highlighting is not supported or is disabled
+       * Highlighting is not supported or is deactivated
        */
       NONE, 
       
       /**
-       * Selection highlighting is performed by rendering selected
-       * objects using a special <i>selection color</i>, as returned
+       * Highlighting is performed by rendering 
+       * objects using a special <i>highlight color</i>, as returned
        * by {@link #getHighlightColor(float[])}. 
        */
       COLOR
@@ -486,32 +486,6 @@ public interface Renderer {
     */
    public Shading setShading (Shading shading);
 
-//   /**
-//    * Sets the default shading model for this renderer, which is
-//    * {@link Shading#FLAT}.
-//    */
-//   public void setDefaultShading ();
-
-//   /**
-//    * Returns <code>true</code> if lighting is currently enabled.
-//    * Lighting is enabled by default.
-//    * 
-//    * @return <code>true</code> if lighting is enabled.
-//    * @see #setLightingEnabled
-//    */
-//   public boolean isLightingEnabled();
-//
-//   /**
-//    * Enables or disables lighting. Disabling lighting is equivalent
-//    * in effect to setting shading to {@link Shading#NONE}. However,
-//    * disabling the lighting does not affect the current shading
-//    * value, which takes effect again as soon as lighting is re-enabled.
-//    *
-//    * @param enable specifies whether to enable or disable lighting.
-//    * @return previous lighting enabled setting
-//    */
-//   public boolean setLightingEnabled (boolean enable);   
-
    // Drawing primitives
 
    /**
@@ -822,24 +796,24 @@ public interface Renderer {
       float[] pnt0, float[] pnt1, double rad, boolean capped);
 
    /**
-    * Draws a set of coordinate axes representing a rigid coordinate frame 
-    * <code>X</code>. The origin point for the axes is <code>X.p</code>,
-    * and the directions for each axis are given by the three columns 
-    * of <code>X.R</code>. Each axis is drawn as a pixel-based line with a 
-    * length <code>len</code> and a width <code>width</code>. By default,
-    * the x, y, and z axes are drawn using the colors red, green, and blue,
-    * unless <code>selected</code> is <code>true</code> and selection
-    * highlighting is {@link HighlightStyle#COLOR}, in which case
-    * all axes are drawn using the renderer's selection color.
+    * Draws a set of coordinate axes representing a rigid coordinate frame
+    * <code>X</code>. The origin point for the axes is <code>X.p</code>, and
+    * the directions for each axis are given by the three columns of
+    * <code>X.R</code>. Each axis is drawn as a pixel-based line with a length
+    * <code>len</code> and a width <code>width</code>. By default, the x, y,
+    * and z axes are drawn using the colors red, green, and blue, unless
+    * <code>highlight</code> is <code>true</code> and the highlight style is
+    * {@link HighlightStyle#COLOR}, in which case all axes are drawn using the
+    * renderer's highlight color.
     *  
     * @param X coordinate frame defining the axes
     * @param len length of each axis
     * @param width width of each axis (in pixels)
-    * @param selected if <code>true</code>, indicates that the axes should be
-    * highlighted as selected.
+    * @param highlight if <code>true</code>, indicates that the axes should be
+    * highlighted.
     */
    public void drawAxes (
-      RigidTransform3d X, double len, int width, boolean selected);
+      RigidTransform3d X, double len, int width, boolean highlight);
 
    /**
     * Draws a set of coordinate axes representing a rigid coordinate frame 
@@ -850,11 +824,11 @@ public interface Renderer {
     * @param X coordinate frame defining the axes
     * @param lens lengths for each axis
     * @param width width of each axis (in pixels)
-    * @param selected if <code>true</code>, indicates that the axes should be
-    * highlighted as selected.
+    * @param highlight if <code>true</code>, indicates that the axes should be
+    * highlighted.
     */
    public void drawAxes (
-      RigidTransform3d X, double[] lens, int width, boolean selected);
+      RigidTransform3d X, double[] lens, int width, boolean highlight);
    
    // Drawing primitives that use RenderProps
 
@@ -869,18 +843,18 @@ public interface Renderer {
     * <code>props.getPointSize()</code>. Otherwise, if the point style
     * is {@link PointStyle#CUBE} or {@link PointStyle#SPHERE}, then the 
     * point is drawn as a solid with a radius given by
-    * <code>props.getPointRadius()</code>. If <code>selected</code>
-    * is <code>true</code> and selection highlighting is
+    * <code>props.getPointRadius()</code>. If <code>highlight</code>
+    * is <code>true</code> and the highlight style is
     * {@link HighlightStyle#COLOR}, then the point will
-    * be drawn using the selection color rather than the point color
+    * be drawn using the highlight color rather than the point color
     * specified in <code>props</code>.
     * 
     * @param props render properties used for drawing the point
     * @param pnt location of the point
-    * @param selected if <code>true</code>, indicates that selection
-    * highlighting, if enabled, should be applied to the point
+    * @param highlight if <code>true</code>, indicates that highlighting, if
+    * enabled, should be applied to the point
     */
-   public void drawPoint (RenderProps props, float[] pnt, boolean selected);
+   public void drawPoint (RenderProps props, float[] pnt, boolean highlight);
 
    /**
     * Draws a single line between two points in model coordinates,
@@ -892,20 +866,20 @@ public interface Renderer {
     * line is drawn as a pixel-based line with a width given by
     * <code>props.getLineWidth()</code>. For other line styles,
     * the line is drawn as a solid with a nominal radius given by 
-    * <code>props.getLineRadius()</code>. If <code>selected</code>
-    * is <code>true</code> and selection highlighting is
+    * <code>props.getLineRadius()</code>. If <code>highlight</code>
+    * is <code>true</code> and the highlight style is
     * {@link HighlightStyle#COLOR}, then the line will
-    * be drawn using the selection color rather than the line color
+    * be drawn using the highlight color rather than the line color
     * specified in <code>props</code>.
     * 
     * @param props render properties used for drawing the line
     * @param pnt0 first point
     * @param pnt1 second point
-    * @param selected if <code>true</code>, indicates that selection
-    * highlighting, if enabled, should be applied to the line
+    * @param highlight if <code>true</code>, indicates that highlighting, if
+    * enabled, should be applied to the line
     */
    public void drawLine (
-      RenderProps props, float[] pnt0, float[] pnt1, boolean selected);
+      RenderProps props, float[] pnt0, float[] pnt1, boolean highlight);
 
    /**
     * Draws a single line between two points in model coordinates, using the
@@ -924,12 +898,12 @@ public interface Renderer {
     * @param capped if <code>true</code>, specifies that the line
     * should have a solid cap on its ends for 
     * styles such as {@link LineStyle#CYLINDER} and @link LineStyle#ARROW}
-    * @param selected if <code>true</code>, indicates that selection
-    * highlighting, if enabled, should be applied to the line
+    * @param highlight if <code>true</code>, indicates that highlighting, if
+    * enabled, should be applied to the line
     */
    public void drawLine (
       RenderProps props, float[] pnt0, float[] pnt1, float[] color,
-      boolean capped, boolean selected);
+      boolean capped, boolean highlight);
 
    /**
     * Draws an arrow between two points in model coordinates,
@@ -945,12 +919,12 @@ public interface Renderer {
     * @param pnt1 second point
     * @param capped if <code>true</code>, specifies that the arrow
     * should have a solid cap on the bottom
-    * @param selected if <code>true</code>, indicates that selection
-    * highlighting, if enabled, should be applied to the arrow
+    * @param highlight if <code>true</code>, indicates that highlighting, if
+    * enabled, should be applied to the arrow
     */
    public void drawArrow (
       RenderProps props, float[] pnt0, float[] pnt1, boolean capped,
-      boolean selected);
+      boolean highlight);
 
    /**
     * Draws a line strip between a series of points in model coordinates,
@@ -962,21 +936,21 @@ public interface Renderer {
     * strip is drawn using pixel-based lines with a width given by
     * <code>props.getLineWidth()</code>. For other line styles,
     * the strip is drawn as solids with a nominal radius given by 
-    * <code>props.getLineRadius()</code>. If <code>selected</code>
-    * is <code>true</code> and selection highlighting is
+    * <code>props.getLineRadius()</code>. If <code>highlight</code>
+    * is <code>true</code> and the highlight style is
     * {@link HighlightStyle#COLOR}, then the strip will
-    * be drawn using the selection color rather than the line color
+    * be drawn using the highlight color rather than the line color
     * specified in <code>props</code>.
     * 
     * @param props render properties used for drawing the strip
     * @param pnts list of points used for drawing the strip
     * @param style line style to be used for the strip
-    * @param selected if <code>true</code>, indicates that selection
-    * highlighting, if enabled, should be applied to the strip
+    * @param highlight if <code>true</code>, indicates that highlighting, if
+    * enabled, should be applied to the strip
     */
    public void drawLineStrip (
       RenderProps props, Iterable<float[]> pnts, 
-      LineStyle style, boolean selected);   
+      LineStyle style, boolean highlight);   
    
    /**
     * Computes and returns the logical bounding box of the supplied
@@ -1139,25 +1113,25 @@ public interface Renderer {
    
    /**
     * Sets the diffuse and ambient colors to the value specified by
-    * <code>rgba</code>, and enables or disables selection highlighting
-    * according to the value of <code>selected</code>.
-    * If selection highlighting is enabled and the highlighting method
-    * equals {@link HighlightStyle#COLOR}, the selection color will override
+    * <code>rgba</code>, and enables or disables highlighting
+    * according to the value of <code>highlight</code>.
+    * If highlighting is requested and the highlight style is
+    * {@link HighlightStyle#COLOR}, the highlight color will override
     * the diffuse/ambient color settings. This method also clears any 
     * back color that may be present. It is therefore equivalent to calling
     * <pre>
     *    setFrontColor (rgba);
     *    setBackColor (null);
-    *    setSelectionHighlighting (selected);
+    *    setHighlighting (highlight);
     * </pre>
     * 
     * @param rgba array of length 3 or 4 specifying RGB or RGBA values in
     * the range [0,1]. Alpha is only applied to the diffuse color
     * and is assumed to be 1.0 if not specified.
-    * @param selected if <code>true</code>, enables selection highlighting
+    * @param highlight if <code>true</code>, enables highlighting
     * <code>rgba</code>
     */
-   public void setColor (float[] rgba, boolean selected);
+   public void setColor (float[] rgba, boolean highlight);
    
    /**
     * Sets the diffuse and ambient colors to the value specified by 
@@ -1332,44 +1306,44 @@ public interface Renderer {
 
    /**
     * Sets the diffuse and ambient colors to the point color in
-    * <code>props</code>, and enables or disables selection highlighting
-    * according to the value of <code>selected</code>.  The back color is set
+    * <code>props</code>, and enables or disables highlighting
+    * according to the value of <code>highlight</code>.  The back color is set
     * to <code>null</code>, and the emission, shininess, and specular values
     * are set either from <code>props</code> or from default values.
     * 
     * <p>The resulting behavior is equivalent to {@link #setPropsColoring} with
     * <code>props.getPointColor()</code> supplying the <code>rgba</code> value.
-    * If selection highlighting is enabled and the highlighting method equals
-    * {@link HighlightStyle#COLOR}, the selection color will override the
+    * If highlighting is requested and the highlight method equals
+    * {@link HighlightStyle#COLOR}, the highlight color will override the
     * diffuse/ambient color settings.
     *
     * @param props supplies the shininess and point color values
-    * @param selected if <code>true</code>, enables selection highlighting
+    * @param highlight if <code>true</code>, enables highlighting
     */
-   public void setPointColoring (RenderProps props, boolean selected);
+   public void setPointColoring (RenderProps props, boolean highlight);
    
    /**
     * Sets the diffuse and ambient colors to the line color in
-    * <code>props</code>, and enables or disables selection highlighting
-    * according to the value of <code>selected</code>. The back color is set
+    * <code>props</code>, and enables or disables highlighting
+    * according to the value of <code>highlight</code>. The back color is set
     * to <code>null</code>, and the emission, shininess, and specular values
     * are set either from <code>props</code> or from default values.
     *
     * <p>The resulting behavior is equivalent to {@link #setPropsColoring} with
     * <code>props.getLineColor()</code> supplying the <code>rgba</code> value.
-    * If selection highlighting is enabled and the highlighting method equals
-    * {@link HighlightStyle#COLOR}, the selection color will override the
+    * If highlighting is requested and the highlight method equals
+    * {@link HighlightStyle#COLOR}, the highlight color will override the
     * diffuse/ambient color settings.
     *
     * @param props supplies the shininess and line color values
-    * @param selected if <code>true</code>, enables selection highlighting
+    * @param highlight if <code>true</code>, enables highlighting
     */
-   public void setLineColoring (RenderProps props, boolean selected);
+   public void setLineColoring (RenderProps props, boolean highlight);
    
    /**
     * Sets the diffuse and ambient colors to the edge color in
-    * <code>props</code>, and enables or disables selection highlighting
-    * according to the value of <code>selected</code>. If the edge color is
+    * <code>props</code>, and enables or disables highlighting
+    * according to the value of <code>highlight</code>. If the edge color is
     * <code>null</code> then the line color in <code>props</code> is used
     * instead. The back color is set to <code>null</code>, and the emission,
     * shininess, and specular values are set either from <code>props</code> or
@@ -1377,19 +1351,19 @@ public interface Renderer {
     *
     * <p>The resulting behavior is equivalent to {@link #setPropsColoring} with
     * <code>props.getEdgeColor()</code> or <code>props.getLineColor()</code>
-    * supplying the <code>rgba</code> value.  If selection highlighting is
-    * enabled and the highlighting method equals {@link HighlightStyle#COLOR},
-    * the selection color will override the diffuse/ambient color settings.
+    * supplying the <code>rgba</code> value.  If highlighting is
+    * requested and the highlight method equals {@link HighlightStyle#COLOR},
+    * the highlight color will override the diffuse/ambient color settings.
     *
     * @param props supplies the shininess and edge (or line) color values
-    * @param selected if <code>true</code>, enables selection highlighting
+    * @param highlight if <code>true</code>, enables highlighting
     */
-   public void setEdgeColoring (RenderProps props, boolean selected);
+   public void setEdgeColoring (RenderProps props, boolean highlight);
 
    /**
     * Sets the diffuse and ambient colors to the face color in
-    * <code>props</code>, and enables or disables selection highlighting
-    * according to the value of <code>selected</code>. The back color will also
+    * <code>props</code>, and enables or disables highlighting
+    * according to the value of <code>highlight</code>. The back color will also
     * be set to the (possibly <code>null</code>) value of the back color in
     * <code>props</code>. If the back color is not <code>null</code>, then this
     * will be used to provide the coloring for back faces when they are
@@ -1399,19 +1373,19 @@ public interface Renderer {
     * <p>The resulting behavior is equivalent to {@link #setPropsColoring} with
     * <code>props.getFaceColor()</code> supplying the <code>rgba</code> value,
     * except that the back color is set from <code>props.getBackColor()</code>
-    * instead of being set to <code>null</code>. If selection highlighting is
-    * enabled and the highlighting method equals {@link HighlightStyle#COLOR},
-    * the selection color will override the diffuse/ambient color settings.
+    * instead of being set to <code>null</code>. If highlighting is
+    * requested and the highlight method equals {@link HighlightStyle#COLOR},
+    * the highlight color will override the diffuse/ambient color settings.
     *
     * @param props supplies the shininess and front and back color values
-    * @param selected if <code>true</code>, enables selection highlighting
+    * @param highlight if <code>true</code>, enables highlighting
     */
-   public void setFaceColoring (RenderProps props, boolean selected);
+   public void setFaceColoring (RenderProps props, boolean highlight);
    
    /**
     * Sets the diffuse and ambient colors to <code>rgba</code>, and enables or
-    * disables selection highlighting according to the value of
-    * <code>selected</code>. The back color will also be set to the (possibly
+    * disables highlighting according to the value of
+    * <code>highlight</code>. The back color will also be set to the (possibly
     * <code>null</code>) value of the back color in <code>props</code>. If the
     * back color is not <code>null</code>, then this will be used to provide
     * the coloring for back faces when they are visible. The emission,
@@ -1420,23 +1394,23 @@ public interface Renderer {
     *
     * <p>The resulting behavior is equivalent to {@link #setPropsColoring},
     * except that the back color is set from <code>props.getBackColor()</code>
-    * instead of being set to <code>null</code>. If selection highlighting is
-    * enabled and the highlighting method equals {@link HighlightStyle#COLOR},
-    * the selection color will override the diffuse/ambient color settings.
+    * instead of being set to <code>null</code>. If highlighting is
+    * requested and the highlight method equals {@link HighlightStyle#COLOR},
+    * the highlight color will override the diffuse/ambient color settings.
     *
     * @param props supplies the shininess and back color values
     * @param rgba an array of length 3 or 4 specifying RGB or RGBA values
     * for the color the range [0,1]. Alpha is only applied to the diffuse
     * color and is set to <code>props.getAlpha()</code> if not specified.
-    * @param selected if <code>true</code>, enables selection highlighting
+    * @param highlight if <code>true</code>, enables highlighting
     */
    public void setFaceColoring (
-      RenderProps props, float[] rgba, boolean selected);
+      RenderProps props, float[] rgba, boolean highlight);
       
    /**
     * Sets the diffuse and ambient colors to <code>rgba</code>, and enables or
-    * disables selection highlighting according to the value of
-    * <code>selected</code>. If <code>rgba</code> only has a length of 3 then
+    * disables highlighting according to the value of
+    * <code>highlight</code>. If <code>rgba</code> only has a length of 3 then
     * the front alpha value is supplied by <code>props.getAlpha()</code>.  The
     * shininess is set to <code>props.getShininess()</code>, while the back
     * color is set to <code>null</code>, the emission color is set to its
@@ -1453,20 +1427,20 @@ public interface Renderer {
     *   setEmission (DEFAULT_EMISSION_VALUE);
     *   specular = props.getSpecular();
     *   setSpecular (specular != null ? specular : DEFAULT_SPECULAR_VALUE);
-    *   setSelectionHighlighting (selected)
+    *   setHighlighting (highlight)
     * </pre>
-    * If selection highlighting is enabled and the
-    * highlighting method equals {@link HighlightStyle#COLOR}, the selection
+    * If highlighting is requested and the
+    * highlight method equals {@link HighlightStyle#COLOR}, the highlight
     * color will override the diffuse/ambient color settings.
     *
     * @param props supplies the shininess value
     * @param rgba an array of length 3 or 4 specifying RGB or RGBA values for
     * the color the range [0,1]. Alpha is only applied to the diffuse color and
     * is set to <code>props.getAlpha()</code> if not specified.
-    * @param selected if <code>true</code>, enables selection highlighting
+    * @param highlight if <code>true</code>, enables highlighting
     */
    public void setPropsColoring (
-      RenderProps props, float[] rgba, boolean selected);
+      RenderProps props, float[] rgba, boolean highlight);
 
    /**
     * Sets the shading appropriate to the point style specified in
@@ -1998,9 +1972,9 @@ public interface Renderer {
     * useful for tiling, or when compacting multiple texture sources into
     * a single large texture. 
     * 
-    * @param X new texture matrix value
+    * @param T new texture transform matrix
     */
-   public void setTextureMatrix(AffineTransform2dBase trans);   
+   public void setTextureMatrix (AffineTransform2dBase T);   
    
    /**
     * Gets the current texture matrix. The texture matrix is the transformation
@@ -2037,53 +2011,44 @@ public interface Renderer {
     */
    public boolean isSelecting();
    
-//   /**
-//    * The material color to use if the renderer is currently performing a selection
-//    * render. This is mainly used for color-based selection.
-//    * 
-//    * @param c selection color
-//    */
-//   public void setSelectingColor(Color c);
-   
    /**
-    * Returns the selection highlighting method used by this renderer.
-    * This specifies how objects which are indicated to be <i>selected</i>
-    * are drawn by the renderer in a way so that they stand out. A
-    * value of {@link HighlightStyle#NONE} indicates that
-    * no selection highlighting is enabled.
+    * Returns the highlight style used by this renderer. This
+    * specifies how rendered objects are highlighted when highlighting
+    * is enabled. A value of {@link HighlightStyle#NONE} indicates that
+    * highlighting is deactivated.
     * 
-    * @return current selection highlighting method.
+    * @return current highlighting method.
     */
-   public HighlightStyle getSelectionHighlightStyle();
+   public HighlightStyle getHighlightStyle();
 
    /**
-    * Returns the color that is used to highlight selected objects when
-    * the selection highlighting method is {@link HighlightStyle#COLOR}.
+    * Returns the color that is used to highlight objects when
+    * the highlighting method is {@link HighlightStyle#COLOR}.
     * 
     * @param rgba array of length 3 or 4 in which the RGB or RGBA components
-    * of the selection color are returned.
+    * of the highlight color are returned.
     */
    public void getHighlightColor (float[] rgba);
 
    /**
-    * Enables or disables selection highlighting, so that
+    * Enables or disables highlighting. If highlighting is enabled,
     * subsequent primitives will be rendered in a highlighted fashion
-    * to visually indicate that they are selected. 
-    * When selection highlighting equals {@link HighlightStyle#COLOR}, 
-    * this is done by setting the effective color to the selection color.
+    * using the style indicated by {@link HighlightStyle}. If the
+    * style is {@link HighlightStyle#COLOR}, highlighting is
+    * done by setting the effective color to the highlight color.
     *
-    * @param enable if <code>true</code>, enable selection highlighting.
-    * @return previous selection highlighting value
+    * @param enable if <code>true</code>, enable highlighting.
+    * @return previous highlighting value
     * @see #getHighlightColor
     */
-   public boolean setSelectionHighlighting (boolean enable);
+   public boolean setHighlighting (boolean enable);
    
    /**
-    * Queries whether or not selection highlighting is enabled.
+    * Queries whether or not highlighting is enabled.
     * 
-    * @return <code>true</code> if selection highlighting is enabled
+    * @return <code>true</code> if highlighting is enabled
     */
-   public boolean getSelectionHighlighting();   
+   public boolean getHighlighting();   
    
    /**
     * Begins a selection query with the {\it query identifier}
@@ -2147,16 +2112,6 @@ public interface Renderer {
     */
    public boolean isSelectable (IsSelectable s);
    
-   
-   // FINISH: do we need?
-   //public void rerender();
-
-//   // FINISH: do we need?
-//   /**
-//    * Re-draw contents of renderer
-//    */
-//   public void repaint();
-
    /**
     * Begins draw mode. This is analogous to <code>glBegin()</code> in the
     * old GL specification. Once in draw mode, the application can specify

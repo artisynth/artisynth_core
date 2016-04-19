@@ -162,7 +162,7 @@ TransformableGeometry {
 
    public void render (Renderer renderer, int flags) {
       planeMesh.render (
-         renderer, myRenderProps, isSelected() ? Renderer.SELECTED : 0);
+         renderer, myRenderProps, isSelected() ? Renderer.HIGHLIGHT : 0);
       //renderer.drawMesh (
       //   myRenderProps, planeMesh, isSelected() ? GLRenderer.SELECTED : 0);
    }

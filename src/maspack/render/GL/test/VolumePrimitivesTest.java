@@ -34,7 +34,7 @@ public class VolumePrimitivesTest extends GL2vsGL3Tester {
             
             props.setFaceColor (Color.CYAN);
             props.setBackColor (Color.MAGENTA);
-            renderer.setFaceColoring (props, false);
+            renderer.setFaceColoring (props, /*highlight=*/false);
             renderer.setColor (props.getFaceColorF());
             renderer.setBackColor (props.getBackColorF());
             renderer.setFaceStyle (FaceStyle.FRONT_AND_BACK);

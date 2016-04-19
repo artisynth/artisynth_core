@@ -267,7 +267,7 @@ public class ColorBar extends TextComponentBase {
       LineFaceRenderProps props = (LineFaceRenderProps)getRenderProps();
       float savedLineWidth = renderer.getLineWidth();
       renderer.setLineWidth(props.getLineWidth());
-      renderer.setLineColoring (props, false);
+      renderer.setLineColoring (props, /*highlight=*/false);
 
       renderer.setVertexColorMixing (ColorMixing.NONE);
       renderer.drawLines (robj, 0);

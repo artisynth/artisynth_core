@@ -256,7 +256,7 @@ public class FaceComponent extends RenderableComponentBase {
 
       if (isSelected()) {
          // John Lloyd: wasn't this set in the caller?
-         renderer.setFaceColoring (props, /*selected=*/true);
+         renderer.setFaceColoring (props, /*highlight=*/true);
       } 
 
       if (type == 0 && lastType != 0) {

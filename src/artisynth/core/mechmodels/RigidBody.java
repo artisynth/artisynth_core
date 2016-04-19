@@ -932,7 +932,7 @@ public class RigidBody extends Frame
             myRenderFrame, myAxisLength, lineWidth, isSelected());
       }
       if (isSelected()) {
-         flags |= Renderer.SELECTED;
+         flags |= Renderer.HIGHLIGHT;
       }
       myMeshInfo.render (renderer, myRenderProps, flags);
    }

@@ -421,14 +421,14 @@ one can use either {\tt Color} objects or {\tt float[]} arrays
 of length 3 giving the RGB values. Specifically, there
 are methods of the form
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    props.setXXXColor (Color color)
    props.setXXXColor (float[] rgb)
 \end{lstlisting}
 %
 as well as the static methods
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    RenderProps.setXXXColor (Renderable r, Color color)
    RenderProps.setXXXColor (Renderable r, float[] rgb)
 \end{lstlisting}
@@ -438,7 +438,7 @@ where {\tt XXX} corresponds to {\tt Point}, {\tt Line}, {\tt Face},
 color} and {\tt rgb} can be given as {\tt null} to clear the indicated
 color. For the specular color, the associated methods are
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    props.setSpecular (Color color)
    props.setSpecular (float[] rgb)
    RenderProps.setSpecular (Renderable r, Color color)
@@ -508,8 +508,8 @@ red.
 Render properties can also be set to apply texture mapping to objects
 containing polygonal meshes in which texture coordinates have been
 set. Supported is provided for color, normal and bump mapping,
-although the last two not available if ArtiSynth is running the OpenGL
-2 version of its viewer.
+although normal and bump mapping are only available under the OpenGL 3
+version of the ArtiSynth renderer.
 
 Texture mapping is controlled through the {\sf colorMap}, {\sf
 normalMap}, and {\sf bumpMap} properties of {\tt RenderProps}.  These
@@ -517,10 +517,10 @@ are composite properties with a default value of {\tt null}, but
 applications can set them to instances of
 \javaclass[maspack.render]{ColorMapProps},
 \javaclass[maspack.render]{NormalMapProps}, and
-\javaclass[maspack.render]{BumpMapProps}, respectively to provide the
-source images and parameters for the associated mapping. All of these
-{\tt Props} objects export the following principal properties used by
-all mappings:
+\javaclass[maspack.render]{BumpMapProps}, respectively, to provide the
+source images and parameters for the associated mapping. The two
+most important properties exported by all of these
+{\tt MapProps} objects are:
 
 \begin{description}
 
@@ -530,7 +530,7 @@ A boolean indicating whether or not the mapping is enabled.
 
 \item[fileName]\mbox{}
 
-A string giving the file name of the supporting image file.
+A string giving the file name of the supporting source image.
 
 \end{description}
 
@@ -540,44 +540,60 @@ bump map. Other exported properties control mixing with underlying
 colors, and how texture coordinates are both filtered and managed when
 they fall outside the canonical range $[0,1]$.  Full details on
 texture mapping and its support by the ArtiSynth renderer are given in
-the ``Rendering section of the \href{../maspack/maspack.html}{ Maspack
+the ``Rendering'' section of the \href{../maspack/maspack.html}{Maspack
 Reference Manual}.
 
-To set up texture mapping, it is often sufficient to set the
-appropriate mapping property to a {\tt Props} object for which {\sf
-enabled} is set to {\tt true} and {\tt fileName} is set to the file
-name of the source image. Normal and bump maps also often require
-adjustment of their {\sf scaling} properties.
-The following static methods are available for doing this:
+To set up a texture map, one creates an instance of the appropriate
+{\tt MapProps} object and uses this to set either the {\sf colorMap},
+{\sf normalMap}, or {\sf bumpMap} property of {\tt RenderProps}.  
+For a specific renderable, the map properties can be set
+using the static methods
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    void RenderProps.setColorMap (Renderable r, ColorMapProps tprops);
+   void RenderProps.setNormalMap (Renderable r, NormalMapProps tprops);
+   void RenderProps.setBumpMap (Renderable r, BumpMapProps tprops);
+\end{lstlisting}
+%
+When
+initializing the {\tt PropMaps} object, it is often sufficient to just
+set {\sf enabled} to {\tt true} and {\tt fileName} to the full path
+name of the source image.  Normal and bump maps also often require
+adjustment of their {\sf scaling} properties.  The following static
+methods are available for setting the {\sf enabled} and
+{\sf fileName} subproperties within a renderable:
+%
+\begin{lstlisting}[]
    void RenderProps.setColorMapEnabled (Renderable r, boolean enabled);
    void RenderProps.setColorMapFileName (Renderable r, String fileName);
 
-   void RenderProps.setNormalMap (Renderable r, NormalMapProps tprops);
    void RenderProps.setNormalMapEnabled (Renderable r, boolean enabled);
    void RenderProps.setNormalMapFileName (Renderable r, String fileName);
 
-   void RenderProps.setBumpMap (Renderable r, BumpMapProps tprops);
    void RenderProps.setBumpMapEnabled (Renderable r, boolean enabled);
    void RenderProps.setBumpMapFileName (Renderable r, String fileName);
 \end{lstlisting}
 %
 
 \begin{sideblock}
+Normal and bump mapping only work under the OpenGL 3 version of the
+ArtiSynth viewer, and also do not work if the {\sf shading} property
+of {\tt RenderProps} is set to {\tt NONE} or {\tt FLAT}.
+\end{sideblock}
+
+\begin{sideblock}
 Texture mapping properties can be set within ancestor nodes of the
-component hierarchy, to allow file names and parameters to be
+component hierarchy, to allow file names and other parameters to be
 propagated throughout the hierarchy. However, when this is done, it is
-still necessary to explicitly make sure that the corresponding mapping
-properties within the relevant descendants are non-{\tt null}.  That's
+still necessary to ensure that the corresponding mapping
+properties for the relevant descendants are non-{\tt null}.  That's
 because mapping properties themselves are not inherited; only their
 subproperties are. If a mapping property for any given object is {\tt
 null}, the associated mapping will be disabled. A non-{\tt null}
 mapping property for an object will be created automatically by
 calling one of the {\tt setXXXEnabled()} methods listed above.  So 
-a programming idiom for setting up ancestor-controlled mapping
-might look like this:
+when setting up ancestor-controlled mapping, one may use a
+construction like this:
 %
 \begin{verbatim}
       RenderProps.setColorMap (ancestor, tprops);
@@ -585,15 +601,18 @@ might look like this:
       RenderProps.setColorMapEnabled (descendant1, true);
 \end{verbatim}
 %
+Then {\sf colorMap} sub-properties set within {\tt ancestor} will
+be inherited by {\tt descendant0} and {\tt descendant1}.
 \end{sideblock}
 
 As indicated above, texture mapping will only be applied to components
 containing rendered polygonal meshes for which appropriate texture
-coordinates have been set. This is a non-trivial issue, since finding
-texture coordinates that produce appropriate result for a given source
-image (the so called ``u-v mapping problem'') is difficult in general
-and is highly dependent of the mesh geometry. ArtiSynth users can
-handle the problem of assigning texture coordinates in several ways:
+coordinates have been set. Determining such texture coordinates that
+produce appropriate results for a given source image is often
+non-trivial; this so-called ``u-v mapping problem'' is difficult in
+general and is highly dependent on the mesh geometry. ArtiSynth users
+can handle the problem of assigning texture coordinates in several
+ways:
 
 \begin{itemize}
 
@@ -602,15 +621,16 @@ defined for a given source image. This generally means that mesh is
 specified by a file that contains the required texture coordinates.
 The mesh should then be read from this file (Section
 \ref{MeshFileIO:sec}) and then used in the construction of the
-relevant components. For example, a {\tt RigidBody} can be created
-directly from a mesh using
+relevant components. For example, the application can read in a mesh
+containing texture coordinates and then use it to create a {\tt
+RigidBody} via the method
 \javamethod*[artisynth.core.mechmodels]{RigidBody.createFromMesh()}.
 
 \item Use a simple mesh object with predefined
-texture coordinates. The class \javaclass[maspack.render]{MeshFactory}
+texture coordinates. The class \javaclass[maspack.geometry]{MeshFactory}
 provides the methods
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    PolygonalMesh createRectangle (width, height, xdivs, ydivs, addTextureCoords);
   
    PolygonalMesh createSphere (radius, nslices, nlevels, addTextureCoords)
@@ -619,23 +639,23 @@ provides the methods
 which create rectangular and spherical meshes, along with canonical
 canonical texture coordinates if {\tt addTextureCoords} is {\tt true}.
 Coordinates generated by {\tt createSphere()} are defined so that
-$(0,0)$ and $(1,1)$ map to the spherical coordinates $(-\pi,\pi)$
-(south pole) and $(\pi,0)$ (north pole). Source images are relatively
-easy to find for objects with canonical coordinates.
+$(0,0)$ and $(1,1)$ map to the spherical coordinates $(-\pi,\pi)$ (at
+the south pole) and $(\pi,0)$ (at the north pole). Source images can
+be relatively easy to find for objects with canonical coordinates.
 
-\item Compute custom coordinates and set them within the mesh
+\item Compute custom texture coordinates and set them within the mesh
 using \javamethod*[maspack.geometry.MeshBase]{setTextureCoords()}.
 
 \end{itemize}
 
-A comple example showing texture mapping applied to spherical
-meshes to make them look like tennis balls is defined in
+An example where texture mapping is applied to spherical meshes to
+make them appear like tennis balls is defined in
 %
 \begin{verbatim}
   artisynth.demos.tutorial.SphericalTextureMapping
 \end{verbatim}
 %
-and listing for this is given below.
+and listing for this is given below:
 
 \begin{figure}[ht]
 \begin{center}
@@ -655,6 +675,22 @@ and bump mapping.}
 \lstinputlisting{../../src/artisynth/demos/tutorial/SphericalTextureMapping.java}
 \lstset{numbers=none}
 
+The {\tt build()} method uses the internal method {\tt createBall()}
+to generate three rigid bodies, each defined using a spherical mesh
+that has been created with
+\javamethodAlt{maspack.geometry.MeshFactory.createSphere(double,int,int,boolean)}%
+{MeshFactory.createSphere()} with {\tt addTextureCoords} set to {\tt
+true}.  The remainder of the {\tt build()} method sets up the render
+properties and the texture mappings. Two texture mappings are defined:
+a color mapping and bump mapping, based on the images {\tt
+TennisBallColorMap.jpg} and {\tt TennisBallBumpMap.jpg} (Figure
+\ref{mappingImages:fig}), both located in the subdirectory {\tt data}
+relative to the demo source file.
+\javamethod[maspack.util]{PathFinder.expand()} is used to determine
+the full data folder name relative to the source directory.
+For the bump map, it is important to set the {\sf scaling} property
+to adjust the depth applitude to relative to the sphere radius.
+
 \begin{figure}[ht]
 \begin{center}
 \begin{tabular}{c}
@@ -672,26 +708,11 @@ These map to spherical coordinates on the mesh.}
 \label{mappingImages:fig}
 \end{figure}
 
-The {\tt build()} method uses the internal method {\tt createBall()}
-to generate three rigid bodies, each defined using a spherical mesh
-that has been created with
-\javamethodAlt{maspack.geometry.MeshFactory.createSphere(double,int,int,boolean)}%
-{MeshFactory.createSphere()} with {\tt addTextureCoords} set to {\tt
-true}.  The remainder of the {\tt build()} sets up the render
-properties and the texture mappings. Two texture mappings are defined:
-a color mapping and bump mapping, based on the images {\tt
-TennisBallColorMap.jpg} and {\tt TennisBallBumpMap.jpg} (Figure
-\ref{mappingImages:fig}), both located in the subdirectory {\tt data}
-relative to the demo source file.
-\javamethod[maspack.util]{PathFinder.expand()} is used to determine
-the complete data folder name relative to the source directory.
-For the bump map, it is important to set the {\sf scaling} property
-to adjust the depth applitude to relative to the sphere radius.
-
 Color mapping is applied to balls 0 and 2, and bump mapping to balls 1
-and 2. Color mapping is set up by setting color properties in the {\tt
-MechModel} itself, but as indicated above, it is still necessary to
-also enable color mapping within the individual balls.
+and 2. To illustrate setting mapping properities in an ancestor
+component, the color mapping is arranged by setting the {\sf colorMap}
+render property of the {\tt MechModel}, and then, as described above,
+enabling color mapping within the individual balls.
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
 SphericalTextureMapping} from the {\sf Models} menu. The model should
@@ -1795,7 +1816,7 @@ The generic class \javaclass[artisynth.core.modelbase]{ComponentList}
 can be used as a container for model components of a specific type.
 It can be created using a declaration of the form
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    ComponentList<Particle> list = new ComponentList<Type> (Type.class, name);
 \end{lstlisting}
 %

@@ -370,14 +370,14 @@ public class MeshInfo {
 
    public void render (
       Renderer renderer, RenderProps props, boolean selected) {
-      int flags = selected ? Renderer.SELECTED : 0;
+      int flags = selected ? Renderer.HIGHLIGHT : 0;
       render(renderer, props, flags);         
    }
    
    public void render (
       Renderer renderer, RenderProps props, boolean selected, 
       int flags) {
-      flags |= selected ? Renderer.SELECTED : 0;
+      flags |= selected ? Renderer.HIGHLIGHT : 0;
       render(renderer, props, flags);
    }
    

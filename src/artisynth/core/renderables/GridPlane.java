@@ -48,7 +48,7 @@ public class GridPlane extends RenderableComponentBase {
    @Override
    public void render(Renderer renderer, int flags) {
       
-      boolean selected = ((flags & Renderer.SELECTED) != 0);
+      boolean highlight = ((flags & Renderer.HIGHLIGHT) != 0);
       RenderProps props = getRenderProps();
       
       renderer.pushModelMatrix();
@@ -64,7 +64,7 @@ public class GridPlane extends RenderableComponentBase {
       for (int i=0; i <= (int)(myResolution.x); i++) {
          coords0[0] = (float)(-mySize.x/2 + i*dx);
          coords1[0] = coords0[0];
-         renderer.drawLine(props, coords0, coords1, selected);
+         renderer.drawLine(props, coords0, coords1, highlight);
       }
 
       // draw lines parallel to x axis
@@ -74,7 +74,7 @@ public class GridPlane extends RenderableComponentBase {
       for (int i=0; i <= (int)(myResolution.y); i++) {
          coords0[1] = (float)(-mySize.y/2 + i*dy);
          coords1[1] = coords0[1];
-         renderer.drawLine(props, coords0, coords1, selected);
+         renderer.drawLine(props, coords0, coords1, highlight);
       }
       
       renderer.popModelMatrix();

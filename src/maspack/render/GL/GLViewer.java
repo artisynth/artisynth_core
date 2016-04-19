@@ -2346,7 +2346,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return selectEnabled;
    }
 
-   public boolean setSelectionHighlightStyle (HighlightStyle style) {
+   public boolean setHighlightStyle (HighlightStyle style) {
       if (style == HighlightStyle.NONE) {
          // turn off highlighting if currently selected
          if (myHighlightColorActive) {
@@ -2366,7 +2366,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
    
-   public boolean hasSelectionHighlightStyle (HighlightStyle style) {
+   public boolean hasHighlightStyle (HighlightStyle style) {
       switch (style) {
          case NONE:
          case COLOR: {
@@ -2377,7 +2377,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
 
-   public HighlightStyle getSelectionHighlightStyle() {
+   public HighlightStyle getHighlightStyle() {
       return myHighlightStyle;
    }
 
@@ -3025,12 +3025,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
    
    @Override
-   public void setTextureMatrix(AffineTransform2dBase trans) {
+   public void setTextureMatrix(AffineTransform2dBase T) {
       synchronized(textureMatrix) {
-         if (textureMatrix.getClass() == trans.getClass()) {
-            textureMatrix.set(trans);
+         if (textureMatrix.getClass() == T.getClass()) {
+            textureMatrix.set(T);
          } else {
-            textureMatrix = trans.clone();
+            textureMatrix = T.clone();
          }
       }
       invalidateTextureMatrix();
@@ -3281,8 +3281,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
    
    public void drawLine (
-      RenderProps props, float[] pnt0, float[] pnt1, boolean selected) {
-      drawLine (props, pnt0, pnt1, /*color=*/null, /*capped=*/true, selected);
+      RenderProps props, float[] pnt0, float[] pnt1, boolean highlight) {
+      drawLine (props, pnt0, pnt1, /*color=*/null, /*capped=*/true, highlight);
    }
 
 //   public void drawLine (
@@ -3349,8 +3349,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    @Override
    public void drawAxes(
-      RigidTransform3d X, double len, int width, boolean selected) {
-      drawAxes (X, new double[] {len, len, len}, width, selected);
+      RigidTransform3d X, double len, int width, boolean highlight) {
+      drawAxes (X, new double[] {len, len, len}, width, highlight);
    }
    
    public abstract GLTextRenderer getTextRenderer();
@@ -3403,7 +3403,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    /**
     * {@inheritDoc}
     */
-   public boolean setSelectionHighlighting (boolean enable) {
+   public boolean setHighlighting (boolean enable) {
       boolean prev = myHighlightColorActive;
       if (myHighlightStyle == HighlightStyle.COLOR) {
          if (enable != myHighlightColorActive) {
@@ -3429,7 +3429,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
    
    @Override
-   public boolean getSelectionHighlighting() {
+   public boolean getHighlighting() {
       // for now, only color highlighting is implemented
       return myHighlightColorActive;
    }
@@ -3556,10 +3556,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    @Override
-   public void setColor (float[] rgba, boolean selected) {
+   public void setColor (float[] rgba, boolean highlight) {
       setFrontColor (rgba);
       setBackColor (null);
-      setSelectionHighlighting (selected);      
+      setHighlighting (highlight);      
    }
    
 //   public void setColorSelected() {
@@ -3615,7 +3615,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       setFrontColor (frontRgba);
       setBackColor (backRgba);
       setShininess (shininess);
-      setSelectionHighlighting (selected);
+      setHighlighting (selected);
       setEmission (DEFAULT_MATERIAL_EMISSION);
       setSpecular (DEFAULT_MATERIAL_SPECULAR);
    }
@@ -3626,9 +3626,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 //   }
 
    public void setPropsColoring (
-      RenderProps props, float[] rgba, boolean selected) {
+      RenderProps props, float[] rgba, boolean highlight) {
 
-      setSelectionHighlighting (selected);         
+      setHighlighting (highlight);         
       setFrontColor (rgba);
       if (rgba.length == 3) {
          setFrontAlpha ((float)props.getAlpha());
@@ -3640,29 +3640,29 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       setSpecular (specular != null ? specular : DEFAULT_MATERIAL_SPECULAR);
    }
    
-   public void setLineColoring (RenderProps props, boolean selected) {
-      setPropsColoring (props, props.getLineColorF(), selected);
+   public void setLineColoring (RenderProps props, boolean highlight) {
+      setPropsColoring (props, props.getLineColorF(), highlight);
    }
 
-   public void setPointColoring (RenderProps props, boolean selected) {
-      setPropsColoring (props, props.getPointColorF(), selected);
+   public void setPointColoring (RenderProps props, boolean highlight) {
+      setPropsColoring (props, props.getPointColorF(), highlight);
    }
 
-   public void setEdgeColoring (RenderProps props, boolean selected) {
+   public void setEdgeColoring (RenderProps props, boolean highlight) {
       float[] rgba = props.getEdgeColorF();
       if (rgba == null) {
          rgba = props.getLineColorF();
       }
-      setPropsColoring (props, rgba, selected);
+      setPropsColoring (props, rgba, highlight);
       setShading (props.getShading());
    }
 
-   public void setFaceColoring (RenderProps props, boolean selected) {
-      setFaceColoring (props, props.getFaceColorF(), selected);
+   public void setFaceColoring (RenderProps props, boolean highlight) {
+      setFaceColoring (props, props.getFaceColorF(), highlight);
    }
 
    public void setFaceColoring (
-      RenderProps props, float[] rgba, boolean selected) {
+      RenderProps props, float[] rgba, boolean highlight) {
 
       setFrontColor (rgba);
       if (rgba.length == 3) {
@@ -3673,7 +3673,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       setEmission (DEFAULT_MATERIAL_EMISSION);
       float[] specular = props.getSpecularF();
       setSpecular (specular != null ? specular : DEFAULT_MATERIAL_SPECULAR);
-      setSelectionHighlighting (selected);         
+      setHighlighting (highlight);         
    }
 
    /**
@@ -4019,7 +4019,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
             setColorInterpolation (DEFAULT_COLOR_INTERPOLATION);
          }
          if (myHighlightColorActive) {
-            setSelectionHighlighting (false);
+            setHighlighting (false);
          }
          myNonDefaultColorSettings = 0;
       }

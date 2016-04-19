@@ -371,7 +371,7 @@ public class MFreeMuscleElementDesc
             
             renderer.drawLine(
                props, coords0, coords1, myDirectionColor,
-               /*capped=*/false, /*selected=*/false);   
+               /*capped=*/false, /*highlight=*/false);   
          }
       }
       

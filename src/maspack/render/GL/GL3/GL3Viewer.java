@@ -1345,14 +1345,14 @@ public class GL3Viewer extends GLViewer {
    @Override
    public void drawLine(
       RenderProps props, float[] pnt0, float[] pnt1, float[] color,
-      boolean capped, boolean selected) {
+      boolean capped, boolean highlight) {
 
-      boolean savedHighlighting = getSelectionHighlighting();
+      boolean savedHighlighting = getHighlighting();
       Shading savedShading = setLineShading (props);
       if (color == null) {
          color = props.getLineColorF ();
       }
-      setPropsColoring (props, color, selected);
+      setPropsColoring (props, color, highlight);
       switch (props.getLineStyle()) {
          case LINE: {
             //boolean savedLighting = isLightingEnabled();
@@ -1400,7 +1400,7 @@ public class GL3Viewer extends GLViewer {
          }
       }
       setShading(savedShading);
-      setSelectionHighlighting (savedHighlighting);
+      setHighlighting (savedHighlighting);
    }
 
    @Override
@@ -1461,11 +1461,11 @@ public class GL3Viewer extends GLViewer {
    @Override
    public void drawArrow(
       RenderProps props, float[] pnt0, float[] pnt1, boolean capped,
-      boolean selected) {
+      boolean highlight) {
 
-      boolean savedHighlighting = getSelectionHighlighting();
+      boolean savedHighlighting = getHighlighting();
       Shading savedShading = setLineShading (props);
-      setLineColoring (props, selected);
+      setLineColoring (props, highlight);
 
       Vector3d utmp = 
       new Vector3d(pnt1[0]-pnt0[0],
@@ -1518,15 +1518,15 @@ public class GL3Viewer extends GLViewer {
          drawCone (ctmp, pnt1, arrowRad, 0, capped);
       }
       setShading(savedShading);
-      setSelectionHighlighting (savedHighlighting);      
+      setHighlighting (savedHighlighting);      
    }
 
    @Override
-   public void drawPoint(RenderProps props, float[] pnt, boolean selected) {
+   public void drawPoint(RenderProps props, float[] pnt, boolean highlight) {
 
-      boolean savedHighlighting = getSelectionHighlighting();
+      boolean savedHighlighting = getHighlighting();
       Shading savedShading = setPointShading (props);
-      setPointColoring (props, selected);
+      setPointColoring (props, highlight);
       switch (props.getPointStyle()) {
          case POINT: {
             int size = props.getPointSize();
@@ -1556,7 +1556,7 @@ public class GL3Viewer extends GLViewer {
          }
       }
       setShading(savedShading);
-      setSelectionHighlighting (savedHighlighting);
+      setHighlighting (savedHighlighting);
    }
 
    public void drawAxes(GL3 gl, double len) {
@@ -1584,11 +1584,11 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    public void drawAxes(
-      RigidTransform3d X, double[] lens, int width, boolean selected) {
+      RigidTransform3d X, double[] lens, int width, boolean highlight) {
 
       GLSupport.checkAndPrintGLError(gl);
 
-      boolean savedHighlighting = setSelectionHighlighting(selected);
+      boolean savedHighlighting = setHighlighting(highlight);
       // deal with transform and len
       double lx = lens[0];
       double ly = lens[1];
@@ -1630,7 +1630,7 @@ public class GL3Viewer extends GLViewer {
       // revert matrix transform
       popModelMatrix();
 
-      setSelectionHighlighting(savedHighlighting);
+      setHighlighting(savedHighlighting);
 
    }
 
@@ -1665,12 +1665,12 @@ public class GL3Viewer extends GLViewer {
 
    public void drawLineStrip (
       RenderProps props, Iterable<float[]> pnts, 
-      LineStyle style, boolean selected) {
+      LineStyle style, boolean highlight) {
 
-      boolean savedHighlighting = getSelectionHighlighting();
+      boolean savedHighlighting = getHighlighting();
       Shading savedShading = getShading();
       setShading (style==LineStyle.LINE ? Shading.NONE : props.getShading());
-      setLineColoring (props, selected);
+      setLineColoring (props, highlight);
       switch (style) {
          case LINE: {
             //setLightingEnabled (false);
@@ -1726,7 +1726,7 @@ public class GL3Viewer extends GLViewer {
          }
       }
       setShading(savedShading); 
-      setSelectionHighlighting (savedHighlighting);
+      setHighlighting (savedHighlighting);
    }
 
    //=============================================================================

@@ -68,12 +68,9 @@ public class AffineTransform2d extends AffineTransform2dBase {
    
    /**
     * Creates an AffineTransform2d and initializes it
-    * to the provided
+    * from an existing on
     * 
-    * @param A
-    * value for the A matrix
-    * @param p
-    * value for the p vector
+    * @param T initializing transform
     */
    public AffineTransform2d (AffineTransform2dBase T) {
       this.A = new Matrix2d (T.getMatrix ());

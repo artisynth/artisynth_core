@@ -202,13 +202,13 @@ public class ViewerManager {
 
    public void setSelectionHighlightStyle (HighlightStyle mode) {
       for (GLViewer v : myViewers) {
-         v.setSelectionHighlightStyle (mode);
+         v.setHighlightStyle (mode);
       }
    }
 
    public HighlightStyle getSelectionHighlightStyle() {
       if (myViewers.size() > 0) {
-         return myViewers.get(0).getSelectionHighlightStyle();
+         return myViewers.get(0).getHighlightStyle();
       }
       else {
          return HighlightStyle.NONE;

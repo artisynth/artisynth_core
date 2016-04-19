@@ -206,7 +206,7 @@ public class MFreeMuscleElementDescList
       //renderer.setMaterial (myRenderProps.getFaceMaterial(), false);
       if (widgetSize > 0) {
          Shading savedShading = renderer.setPropsShading (myRenderProps);
-         renderer.setFaceColoring (myRenderProps, false);
+         renderer.setFaceColoring (myRenderProps, /*highlight=*/false);
          for (int i = 0; i < size(); i++) {
             MFreeMuscleElementDesc desc = get (i);
             if (desc.getRenderProps() == null &&

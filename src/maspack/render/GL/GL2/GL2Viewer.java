@@ -1872,14 +1872,14 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    public void drawLine (
       RenderProps props, float[] pnt0, float[] pnt1, float[] color,
-      boolean capped, boolean selected) {
+      boolean capped, boolean highlight) {
 
-      boolean savedHighlighting = getSelectionHighlighting();
+      boolean savedHighlighting = getHighlighting();
       Shading savedShading = setLineShading (props);
       if (color == null) {
          color = props.getLineColorF ();
       }      
-      setPropsColoring (props, color, selected);
+      setPropsColoring (props, color, highlight);
       
       GL2 gl = getGL2();
       maybeUpdateState(gl);
@@ -1930,16 +1930,16 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          }
       }
       setShading (savedShading);
-      setSelectionHighlighting (savedHighlighting);
+      setHighlighting (savedHighlighting);
    }
 
    public void drawArrow (
       RenderProps props, float[] pnt0, float[] pnt1, boolean capped,
-      boolean selected) {
+      boolean highlight) {
 
-      boolean savedHighlighting = getSelectionHighlighting();
+      boolean savedHighlighting = getHighlighting();
       Shading savedShading = setLineShading (props);
-      setLineColoring (props, selected);
+      setLineColoring (props, highlight);
       
       GL2 gl = getGL2();
       maybeUpdateState(gl);
@@ -1995,7 +1995,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          doDrawCylinder (ctmp, pnt1, capped, arrowRad, 0.0);
       }
       setShading(savedShading);
-      setSelectionHighlighting (savedHighlighting);
+      setHighlighting (savedHighlighting);
    }
 
    //=============================================================================
@@ -2147,11 +2147,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    // OTHER
    //=============================================================================
 
-   public void drawPoint (RenderProps props, float[] pnt, boolean selected) {
+   public void drawPoint (RenderProps props, float[] pnt, boolean highlight) {
 
-      boolean savedHighlighting = getSelectionHighlighting();
+      boolean savedHighlighting = getHighlighting();
       Shading savedShading = setPointShading (props);
-      setPointColoring (props, selected);
+      setPointColoring (props, highlight);
       
       GL2 gl = getGL2();
       maybeUpdateState(gl);
@@ -2179,7 +2179,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          }
       }
       setShading (savedShading);
-      setSelectionHighlighting (savedHighlighting);
+      setHighlighting (savedHighlighting);
    }
 
    public void drawSphere (float[] centre, float r) {
@@ -2219,12 +2219,12 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    public void drawLineStrip (
       RenderProps props, Iterable<float[]> pnts, 
-      LineStyle style, boolean selected) {
+      LineStyle style, boolean highlight) {
 
-      boolean savedHighlighting = getSelectionHighlighting();
+      boolean savedHighlighting = getHighlighting();
       Shading savedShading = getShading();
       setShading (style==LineStyle.LINE ? Shading.NONE : props.getShading());
-      setLineColoring (props, selected);
+      setLineColoring (props, highlight);
       
       GL2 gl = getGL2();
       maybeUpdateState(gl);
@@ -2273,7 +2273,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          }
       }
       setShading (savedShading);
-      setSelectionHighlighting (savedHighlighting);
+      setHighlighting (savedHighlighting);
    }
 
    // public static void drawLineStrip (
@@ -2438,9 +2438,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 //   }
 
    public void drawAxes (
-      RigidTransform3d X, double[] lens, int width, boolean selected) {
+      RigidTransform3d X, double[] lens, int width, boolean highlight) {
 
-      boolean savedHighlighting = setSelectionHighlighting(selected);
+      boolean savedHighlighting = setHighlighting(highlight);
       setLightingEnabled (false);
       
       GL2 gl = getGL2();
@@ -2463,7 +2463,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glBegin (GL2.GL_LINES);
       for (int i = 0; i < 3; i++) {
          if (lens[i] != 0) {
-            if (!selected && !selectEnabled) {
+            if (!highlight && !selectEnabled) {
                gl.glColor3f (
                   i == 0 ? 1f : 0f, i == 1 ? 1f : 0f, i == 2 ? 1f : 0f);
             }
@@ -2481,7 +2481,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 //         setSelectionHighlighting (wasSelected);
 //      }
       setLightingEnabled (true);
-      setSelectionHighlighting (savedHighlighting);
+      setHighlighting (savedHighlighting);
    }
 
    /**

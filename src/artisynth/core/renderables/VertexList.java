@@ -332,7 +332,7 @@ implements ScalableUnits {
       gl.glPushMatrix();
 
       Shading savedShading = renderer.setPointShading(props);
-      renderer.setPointColoring (props, /*selected=*/false);
+      renderer.setPointColoring (props, /*highlight=*/false);
       switch (props.getPointStyle()) {
          case POINT: {
             // draw regular points first

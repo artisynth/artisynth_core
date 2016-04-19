@@ -75,7 +75,6 @@ public abstract class TextureTextRenderer implements TextRenderer {
 
    /**
     * Whether or not antialiasing is enabled
-    * @return
     */
    public boolean isAntialiasing () {
       return antialiasing;

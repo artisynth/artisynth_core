@@ -43,7 +43,6 @@ public interface TextureContent extends ReferenceCounted {
     * Get raw byte data of content, rasterized in
     * row-major form, with (0,0) in the bottom-left
     * corner.
-    * @return raw content
     */
    public void getData (ByteBuffer out);
    
@@ -72,9 +71,9 @@ public interface TextureContent extends ReferenceCounted {
    public void markClean();
    
    /**
-    * Format of data returned by {@link #getData()}
+    * Format of data returned by {@link #getData}
     * @return format of data in buffer
-    * @see #getData()
+    * @see #getData
     */
    public ContentFormat getFormat();
    

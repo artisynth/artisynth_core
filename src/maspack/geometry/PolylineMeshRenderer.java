@@ -95,7 +95,7 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
       if (mesh.numVertices() == 0) {
          return;
       }
-      boolean selected = ((flags & Renderer.SELECTED) != 0);
+      boolean highlight = ((flags & Renderer.HIGHLIGHT) != 0);
 
       renderer.pushModelMatrix();
       if (mesh.isRenderBuffered()) {
@@ -126,7 +126,7 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
          savedColorInterp =
             renderer.setColorInterpolation (ColorInterpolation.HSV);
       }
-      renderer.setLineColoring (props, selected);
+      renderer.setLineColoring (props, highlight);
       switch (lineStyle) {
          case LINE: {
             int width = props.getLineWidth();

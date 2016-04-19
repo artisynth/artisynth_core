@@ -57,8 +57,8 @@ public class MeshComponent extends RenderableComponentBase
    protected ColorInterpolation myColorInterp = DEFAULT_COLOR_INTERPOLATION;
 
    static final public ColorMixing 
-      DEFAULT_COLOR_MIXING = ColorMixing.REPLACE;
-   protected ColorMixing myColorMixing = DEFAULT_COLOR_MIXING;
+      DEFAULT_VERTEX_COLOR_MIXING = ColorMixing.REPLACE;
+   protected ColorMixing myVertexColorMixing = DEFAULT_VERTEX_COLOR_MIXING;
 
    static {
       myProps.add(
@@ -68,8 +68,8 @@ public class MeshComponent extends RenderableComponentBase
          "colorInterpolation", "interpolation for vertex coloring", 
          DEFAULT_COLOR_INTERPOLATION);
       myProps.add (
-         "colorMixing", "color mixing for vertex coloring", 
-         DEFAULT_COLOR_MIXING);
+         "vertexColorMixing", "color mixing for vertex coloring", 
+         DEFAULT_VERTEX_COLOR_MIXING);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -96,7 +96,7 @@ public class MeshComponent extends RenderableComponentBase
       if (mesh != null) {
          mesh.setFixed (true);
          mesh.setColorInterpolation (getColorInterpolation());
-         mesh.setColorMixing (getColorMixing());
+         mesh.setVertexColorMixing (getVertexColorMixing());
       }
    }
 
@@ -140,17 +140,17 @@ public class MeshComponent extends RenderableComponentBase
       }
    }
 
-   public ColorMixing getColorMixing() {
-      return myColorMixing;
+   public ColorMixing getVertexColorMixing() {
+      return myVertexColorMixing;
    }
    
-   public void setColorMixing (ColorMixing cmix) {
-      if (cmix != myColorMixing) {
+   public void setVetexColorMixing (ColorMixing cmix) {
+      if (cmix != myVertexColorMixing) {
          MeshBase mesh = getMesh();
          if (mesh != null) {
-            mesh.setColorMixing (cmix);
+            mesh.setVertexColorMixing (cmix);
          }
-         myColorMixing = cmix;
+         myVertexColorMixing = cmix;
       }
    }
 
@@ -224,7 +224,7 @@ public class MeshComponent extends RenderableComponentBase
    @Override
    public void render(Renderer renderer, int flags) {
       if (isSelected() || isParentOrGrandParentSelected()) {
-         flags |= Renderer.SELECTED;
+         flags |= Renderer.HIGHLIGHT;
       }
       render(renderer, getRenderProps(), flags);
    }

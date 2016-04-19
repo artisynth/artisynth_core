@@ -227,7 +227,6 @@ public class TextImageStore {
        * backing image. As long as the backer's version is equal to this ID,
        * this store is valid. Otherwise, it may need to be re-uploaded.
        * 
-       * @return
        */
       public int getStorageId () {
          return storageId;
@@ -236,7 +235,6 @@ public class TextImageStore {
       /**
        * Left coordinate in image
        * 
-       * @return
        */
       public int getLeft () {
          return loc.getX ();
@@ -245,7 +243,6 @@ public class TextImageStore {
       /**
        * Width of storage
        * 
-       * @return
        */
       public int getWidth () {
          return loc.getWidth ();
@@ -254,7 +251,6 @@ public class TextImageStore {
       /**
        * Bottom coordinate in image, assuming bottom-left origin
        * 
-       * @return
        */
       public int getBottom () {
          return loc.getY ();
@@ -531,7 +527,7 @@ public class TextImageStore {
    /**
     * Attempts to upload glyphs for an entire string.
     * 
-    * @param str
+    * @param vec
     * @return true if successful, false if some glyphs failed
     */
    public boolean upload (GlyphVector vec) {
@@ -646,8 +642,7 @@ public class TextImageStore {
    /**
     * Type of image
     * 
-    * @see {@link java.awt.image.BufferedImage#getType()}
-    * @return
+    * @see java.awt.image.BufferedImage#getType()
     */
    public int getImageType () {
       return image.getType ();
@@ -674,7 +669,6 @@ public class TextImageStore {
    /**
     * Get the region marked as dirty
     * 
-    * @return
     */
    public Rectangle getDirty () {
       return dirty;
@@ -821,7 +815,6 @@ public class TextImageStore {
    /**
     * Version number for checking if backing image has been updated
     * 
-    * @return
     */
    public int getStorageVersion () {
       if (storageModified) {

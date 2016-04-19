@@ -186,7 +186,7 @@ public class AuxMaterialElementDescList
       if (fractionRenderRadius > 0) {
          Shading savedShading = renderer.getShading ();
          renderer.setShading (myRenderProps.getShading());
-         renderer.setPointColoring (myRenderProps, false);
+         renderer.setPointColoring (myRenderProps, /*highlight=*/false);
          renderFractions(renderer, fractionRenderRadius, fractionRenderType, false);
          renderer.setShading (savedShading);
       }

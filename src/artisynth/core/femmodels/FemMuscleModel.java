@@ -990,7 +990,7 @@ public class FemMuscleModel extends FemModel3d
          props.getLineColor(myDirectionColor);
          renderer.drawLine(
             props, coords0, coords1, myDirectionColor,
-            /*capped=*/false, /*selected=*/false);
+            /*capped=*/false, /*highlight=*/false);
       }
       
    }
@@ -1025,7 +1025,7 @@ public class FemMuscleModel extends FemModel3d
             props.getLineColor(myDirectionColor);
             renderer.drawLine(
                props, coords0, coords1, myDirectionColor,
-               /*capped=*/false, /*selected=*/false);
+               /*capped=*/false, /*highlight=*/false);
          }
       }
       

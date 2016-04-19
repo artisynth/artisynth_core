@@ -78,7 +78,7 @@ public class MeshComponentList<P extends MeshComponent>
       
       boolean selecting = renderer.isSelecting();
       if (isSelected())  {
-         flags |= Renderer.SELECTED;
+         flags |= Renderer.HIGHLIGHT;
       }
       
       for (int i=0; i<size(); i++) {

@@ -193,7 +193,7 @@ public class Test {
 
          double axisSize = 1000.0;
          renderer.drawAxes (
-            RigidTransform3d.IDENTITY, axisSize, 1, /*selected=*/false);
+            RigidTransform3d.IDENTITY, axisSize, 1, /*highlight=*/false);
       }
 
       public int getRenderHints() {

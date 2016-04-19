@@ -489,7 +489,7 @@ public class Polygon2d implements Renderable {
       renderer.setShading (Shading.NONE);
 
       renderer.setLineWidth (myRenderProps.getLineWidth());
-      renderer.setLineColoring (props, /*selected=*/false);
+      renderer.setLineColoring (props, /*highlight=*/false);
       //renderer.beginDraw (VertexDrawMode.LINE_STRIP);
       renderer.beginDraw (DrawMode.LINE_LOOP);
       Vertex2d vtx = firstVertex;

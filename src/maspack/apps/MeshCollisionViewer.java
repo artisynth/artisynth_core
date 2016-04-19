@@ -228,7 +228,7 @@ public class MeshCollisionViewer extends GLViewerFrame
          renderer.setShading (Shading.NONE);
          renderer.setLineWidth (contourWidth);
          renderer.setPointSize (contourWidth);
-         renderer.setColor (contourColor, false);
+         renderer.setColor (contourColor, /*highlight=*/false);
 
          if (myContactInfo.contours != null) {
             for (MeshIntersectionContour contour : myContactInfo.contours) {

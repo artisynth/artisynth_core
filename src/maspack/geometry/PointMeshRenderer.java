@@ -103,7 +103,7 @@ public class PointMeshRenderer extends MeshRendererBase {
       if (mesh.numVertices() == 0) {
          return;
       }
-      boolean selected = ((flags & Renderer.SELECTED) != 0);
+      boolean highlight = ((flags & Renderer.HIGHLIGHT) != 0);
 
       renderer.pushModelMatrix();
       if (mesh.isRenderBuffered()) {
@@ -132,7 +132,7 @@ public class PointMeshRenderer extends MeshRendererBase {
          savedColorInterp =
              renderer.setColorInterpolation (ColorInterpolation.HSV);
       }
-      renderer.setPointColoring (props, selected);
+      renderer.setPointColoring (props, highlight);
       switch (pointStyle) {
          case POINT: {
             int size = props.getPointSize();
@@ -155,7 +155,7 @@ public class PointMeshRenderer extends MeshRendererBase {
       }
       if (mesh.getNormalRenderLen() > 0) {
          renderer.setLineWidth (props.getLineWidth());
-         renderer.setLineColoring (props, selected);
+         renderer.setLineColoring (props, highlight);
          renderer.drawLines (myRob);
       }
       

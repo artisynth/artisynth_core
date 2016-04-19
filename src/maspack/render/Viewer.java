@@ -85,7 +85,7 @@ public interface Viewer extends Renderer {
     * <code>flags</code> = 0.
     */
    public void rerender();
-
+   
    /**
     * Performs a rerender for this viewer. This does the following:
     *
@@ -107,6 +107,11 @@ public interface Viewer extends Renderer {
     * @param flags rendering flags
     */
    public void rerender(int flags);
+   
+   /**
+    * Request a repaint operation for this viewer.
+    */
+   public void repaint();
 
    /**
     * Adds a render listener to this viewer. Render listeners are fired every
@@ -133,17 +138,17 @@ public interface Viewer extends Renderer {
    // selection control
 
    /**
-    * Sets the selection hightlighting style for this viewer. If the style is
+    * Sets the highlighting style for this viewer. If the style is
     * specified as {@link Renderer.HighlightStyle#NONE},
-    * then selection highlighting is
-    * disabled. Not all highlighting styles may be supported; if the specified
+    * then highlighting is deactivated.
+    * Not all highlighting styles may be supported; if the specified
     * style is not supported this method does nothing and returns
     * <code>false</code>. 
     * @param style highlighting style to be set
     * @return <code>true</code> if the highlighting style is supported.
-    * @see #hasSelectionHighlightStyle
+    * @see #hasHighlightStyle
     */
-   public boolean setSelectionHighlightStyle (HighlightStyle style);
+   public boolean setHighlightStyle (HighlightStyle style);
 
    /**
     * Returns <code>true</code> if this viewer supports the indicated
@@ -151,7 +156,7 @@ public interface Viewer extends Renderer {
     * 
     * @return <code>true</code> if <code>style</code> is supported
     */
-   public boolean hasSelectionHighlightStyle(HighlightStyle style);
+   public boolean hasHighlightStyle(HighlightStyle style);
 
    /**
     * Enables or disables viewer-based selection. If this viewer does not

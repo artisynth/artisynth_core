@@ -145,8 +145,8 @@ public class Light {
    }
    
    /**
-    * Angular cut-off in radians
-    * @param c
+    * Sets the angular cut-off
+    * @param rad angular cut-off (radians)
     */
    public void setSpotCutoff(float rad) {
       spotCutoff = rad;

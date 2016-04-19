@@ -82,7 +82,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
    protected boolean myWorldBoundsValid = false;
 
    protected ColorInterpolation myColorInterp = ColorInterpolation.RGB;
-   protected ColorMixing myColorMixing = ColorMixing.REPLACE;
+   protected ColorMixing myVertexColorMixing = ColorMixing.REPLACE;
 
    //protected int myWorldCoordCounter = 0;
 
@@ -122,8 +122,8 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * 
     * @return color mixing method.
     */
-   public ColorMixing getColorMixing() {
-      return myColorMixing;
+   public ColorMixing getVertexColorMixing() {
+      return myVertexColorMixing;
    }
    
    /**
@@ -132,9 +132,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * @param cmix new color mixing method
     * @return previous color mixing method
     */
-   public ColorMixing setColorMixing(ColorMixing cmix) {
-      ColorMixing prev = myColorMixing;
-      myColorMixing = cmix;
+   public ColorMixing setVertexColorMixing(ColorMixing cmix) {
+      ColorMixing prev = myVertexColorMixing;
+      myVertexColorMixing = cmix;
       return prev;
    }
    

@@ -315,7 +315,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
 
       // highlight if either fem or mesh is selected
       if (isSelected() || (myFem != null && myFem.isSelected() )) {
-         flags |= Renderer.SELECTED;
+         flags |= Renderer.HIGHLIGHT;
       }
 
       PropertyMode oldShadingMode = null;

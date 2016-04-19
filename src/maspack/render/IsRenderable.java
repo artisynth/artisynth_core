@@ -56,7 +56,7 @@ public interface IsRenderable {
     * @param flags flags that may be used to control different 
     * aspects of the rendering. Flags are defined in {@link Renderer}
     * and currently include
-    * {@link Renderer#SELECTED} and
+    * {@link Renderer#HIGHLIGHT} and
     * {@link Renderer#SORT_FACES}.
     */
    public void render (Renderer renderer, int flags);

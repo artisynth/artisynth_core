@@ -64,7 +64,8 @@ public class BVFeatureQuery {
       if (!mesh.isTriangular()) {
          throw new IllegalArgumentException ("mesh is not triangular");
       }
-      return nearestFaceToPoint (nearPnt, uv, mesh.getBVTree(), pnt);
+      Face face = nearestFaceToPoint (nearPnt, uv, mesh.getBVTree(), pnt);
+      return face;
    }
 
    public boolean debug = false;
@@ -388,11 +389,10 @@ public class BVFeatureQuery {
     * Returns true if a point is on or inside an oriented triangular mesh, the
     * faces of which are contained within a specified bounding volume
     * hierarchy. "Oriented" means that all face normals are assumed to point
-    * outwards. The method works by inspecting the nearest face, edge or vertex
-    * to the point.
+    * outwards.
     *
     * <p> The method works by inspecting the nearest face, edge or vertex to
-    * the point. Hance the mesh does not need to be closed, and the method is
+    * the point. Hence the mesh does not need to be closed, and the method is
     * faster, though possibly less numerically robust, than {@link
     * #isInsideMesh(PolygonalMesh,BVTree,Point3d,double)}, which uses ray casting.
     *

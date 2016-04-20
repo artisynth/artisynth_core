@@ -318,10 +318,8 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
             renderer.setColorInterpolation (ColorInterpolation.HSV);
       }
 
-      if (props.getDrawEdges()) { 
-         // FINISH: add setPolygonalOffset() to renderer
-         ////gl.glEnable (GL2.GL_POLYGON_OFFSET_FILL);
-         ////gl.glPolygonOffset (1f, 1f);
+      if (props.getDrawEdges()) {
+         // add depth offset? Don't seem to need this though ...
       }
       
       ColorMapProps oldtprops = null;
@@ -405,12 +403,20 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
 
       boolean drawFaces = (props.getFaceStyle() != Renderer.FaceStyle.NONE);
 
+      ColorMixing savedColorMixing = null;
+      if (mesh.hasColors()) {
+         savedColorMixing =
+            renderer.setVertexColorMixing (mesh.getVertexColorMixing());
+      }
       if (props.getDrawEdges()) {
          drawEdges (renderer, mesh, props, highlight, drawFaces);
       }
       
       if (drawFaces) {
          drawFaces (renderer, mesh, props, highlight);
+      }
+      if (mesh.hasColors()) {
+         renderer.setVertexColorMixing (savedColorMixing);
       }
 
       renderer.popModelMatrix();

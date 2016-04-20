@@ -144,7 +144,7 @@ public class MeshComponent extends RenderableComponentBase
       return myVertexColorMixing;
    }
    
-   public void setVetexColorMixing (ColorMixing cmix) {
+   public void setVertexColorMixing (ColorMixing cmix) {
       if (cmix != myVertexColorMixing) {
          MeshBase mesh = getMesh();
          if (mesh != null) {

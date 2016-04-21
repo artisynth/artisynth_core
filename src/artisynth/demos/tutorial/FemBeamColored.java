@@ -23,7 +23,7 @@ public class FemBeamColored extends FemBeam {
       cbar.setName("colorBar");
       cbar.setNumberFormat("%.2f");      // 2 decimal places
       cbar.populateLabels(0.0, 1.0, 10); // Start with range [0,1], 10 ticks
-      cbar.setLocationOverride(-100, 0, 20, 0);
+      cbar.setLocation(-100, 0.1, 20, 0.8);
       addRenderable(cbar);
       
    }

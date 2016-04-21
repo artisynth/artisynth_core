@@ -316,15 +316,4 @@ public class TextComponent3d extends TextComponentBase implements
       return -1;
    }
 
-   /**
-    * Sets the base font size.  This should be used only to adjust
-    * the resolution of the font.  For controlling the text size,
-    * use {@link #setTextSize(double)}.
-    * @param size
-    */
-   @Override
-   public void setFontSize(int size) {
-      super.setFontSize(size);
-   }
-
 }

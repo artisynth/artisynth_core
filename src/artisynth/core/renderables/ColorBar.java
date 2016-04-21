@@ -39,8 +39,9 @@ import maspack.util.NumberFormat;
  */
 public class ColorBar extends TextComponentBase {
 
-   public static Rectangle2d defaultLoc = new Rectangle2d(40, 0, 20, 0);
-   public static Rectangle2d defaultNormLoc = new Rectangle2d(0, 0.1, 0.05, 0.8);
+   public static final AxisAngle ROT_Z_270 = new AxisAngle(0, 0, 1, Math.toRadians (270));
+   public static Rectangle2d defaultLoc = new Rectangle2d(40, 0.1, 20, 0.8);
+   
    //   public static CornerRef defaultLocationRef = CornerRef.BOTTOM_RIGHT;
    public static Vector2d defaultTickFraction = new Vector2d(0.2, 0.2);
    public static double defaultTextSize = 12;
@@ -59,8 +60,6 @@ public class ColorBar extends TextComponentBase {
    public static boolean defaultHorizontal = false;
 
    private Rectangle2d myLoc;      // 4d rectangle
-   private Rectangle2d myNormLoc;  
-   // private CornerRef myLocRef;
 
    private int nBarDivisions;
    private ColorMapBase myColorMap;
@@ -75,11 +74,7 @@ public class ColorBar extends TextComponentBase {
    public static PropertyList myProps = new PropertyList(
       ColorBar.class, TextComponentBase.class);
    static {
-      myProps.add("locationOverride", 
-         "display location [x y width height], > 0 overrides normalized location", 
-         defaultLoc);
-      myProps.add("normalizedLocation", "normalized location", defaultNormLoc, "[0,1]");
-      // myProps.add("locationReference", "reference origin for coordinates", defaultLocationRef);
+      myProps.add("location", "normalized if [0,1], pixel-based otherwise, negative offsets from right/top", defaultLoc);
       myProps.add("horizontal isHorizontal *", "horizontal or vertical bar", defaultHorizontal);
       myProps.addInheritable("colorMap", "color map", defaultColorMap, "CE");
       myProps.add("valueRange", "range of values for interpolation", defaultInterval);
@@ -124,8 +119,6 @@ public class ColorBar extends TextComponentBase {
       myTextSize = defaultTextSize;
 
       myLoc = new Rectangle2d(defaultLoc);
-      myNormLoc = new Rectangle2d(defaultNormLoc);
-      // myLocRef = defaultLocationRef;
 
       myColorMap = defaultColorMap;
       myValueRange = new DoubleInterval(defaultInterval);
@@ -143,8 +136,9 @@ public class ColorBar extends TextComponentBase {
    public RenderObject buildRenderObject(int divisions, ColorMap cmap, VectorNd labelPos, Vector2d tickWidths) {
       RenderObject out = new RenderObject();
 
-      out.ensurePositionCapacity (6*divisions+2);
-      out.ensureVertexCapacity (6*divisions+2);
+      int labelSize = labelPos.size ();
+      out.ensurePositionCapacity (2*divisions+4*labelSize+2);
+      out.ensureVertexCapacity (2*divisions+4*labelSize+2);
       out.ensureColorCapacity (divisions+3);
       out.ensureTriangleCapacity (2*divisions);
       out.ensureLineCapacity (2+2*divisions);
@@ -154,20 +148,22 @@ public class ColorBar extends TextComponentBase {
 
       // add positions and colors
       for (int i=0; i<=divisions; ++i) {
-         cmap.getRGB (i/divisions, rgb);
+         cmap.getRGB ((float)i/divisions, rgb);
          out.addColor (rgb[0], rgb[1], rgb[2], 1f);
-         out.addPosition (0, i/divisions, 0);
-         out.addPosition (1, i/divisions, 0);
+         out.addPosition (0, (float)i/divisions, 0);
+         out.addPosition (1, (float)i/divisions, 0);
       }
 
       // line color
       int lineColor = out.addColor (0,0,0,1);
 
-      // tick inner positions
+      // tick positions
       for (int i=0; i<labelPos.size (); ++i) {
          float y = (float)(labelPos.get (i));
+         out.addPosition (0, y, 0);
          out.addPosition ((float)(tickWidths.x), y, 0);
-         out.addPosition ((float)(tickWidths.y), y, 0);
+         out.addPosition ((float)(1-tickWidths.y), y, 0);
+         out.addPosition (1, y, 0);
       }
 
       // color bar vertices
@@ -195,10 +191,10 @@ public class ColorBar extends TextComponentBase {
       // tick vertices
       int tickPos = 2*divisions+2;
       for (int i=0; i<labelPos.size (); ++i) {
-         vidx = out.addVertex (2*i);
+         vidx = out.addVertex (tickPos++);
          out.addVertex (tickPos++);
          out.addLine (vidx, vidx+1);
-         vidx = out.addVertex (2*i+1);
+         vidx = out.addVertex (tickPos++);
          out.addVertex (tickPos++);
          out.addLine (vidx, vidx+1);
       }
@@ -215,10 +211,6 @@ public class ColorBar extends TextComponentBase {
 
       int screenWidth = renderer.getScreenWidth();
       int screenHeight = renderer.getScreenHeight();
-      boolean saved2d = renderer.is2DRendering();
-      if (!saved2d) {
-         renderer.begin2DRendering(screenWidth, screenHeight);
-      }
 
       // smooth shading
       Renderer.Shading savedShadeModel = renderer.getShading();
@@ -226,26 +218,34 @@ public class ColorBar extends TextComponentBase {
 
       double x0 = myLoc.x;
       double y0 = myLoc.y;
-
-      // override if !=0, wrap if < 0
-      if (x0 == 0) {
-         x0 = myNormLoc.x * screenWidth;
-      } else if (x0 < 0) {
-         x0 = screenWidth + x0;
+      double w = myLoc.width;
+      double h = myLoc.height;
+      
+      if (horizontal) {
+         h = myLoc.width;
+         w = myLoc.height;
+         x0 = myLoc.y;
+         y0 = myLoc.x;
       }
-      if (y0 == 0) {
-         y0 = myNormLoc.y * screenHeight;
-      } else if (y0 < 0) {
-         y0 = screenHeight-y0;
+      
+      // absolute or normalized -> absolute
+      if (Math.abs (x0) <= 1) {
+         x0 = x0*screenWidth;
       }
-
-      double bwidth = myLoc.width;
-      double bheight = myLoc.height;
-      if (bwidth <= 0) {
-         bwidth = myNormLoc.width*screenWidth;
+      if (x0 < 0) {
+         x0 = screenWidth+x0;
       }
-      if (bheight <= 0) {
-         bheight = myNormLoc.height*screenHeight;
+      if (Math.abs (y0) <= 1) {
+         y0 = y0*screenHeight;
+      }
+      if (y0 < 0) {
+         y0 = screenHeight+y0;
+      }
+      if (w <= 1) {
+         w = w*screenWidth;
+      }
+      if (h <= 1) {
+         h = h*screenHeight;
       }
 
       RenderObject robj = myRenderObject;
@@ -255,24 +255,30 @@ public class ColorBar extends TextComponentBase {
       }
 
       renderer.pushModelMatrix ();
+      renderer.setModelMatrix2d (0, screenWidth, 0, screenHeight);
 
       // transform so that the colorbar occupies correct location
       AffineTransform3d trans = new AffineTransform3d();
       if (horizontal) {
-         trans.setRotation (AxisAngle.ROT_Z_90);
+         trans.setRotation (ROT_Z_270);
+         trans.applyScaling (h, w, 1);
+      } else {
+         trans.applyScaling (w, h, 1);
       }
-      trans.applyScaling (bwidth/screenWidth, bheight/screenHeight, 1);
+      
       trans.setTranslation (x0, y0, 0);
+      
 
-      LineFaceRenderProps props = (LineFaceRenderProps)getRenderProps();
-      float savedLineWidth = renderer.getLineWidth();
-      renderer.setLineWidth(props.getLineWidth());
-      renderer.setLineColoring (props, /*highlight=*/false);
-
-      renderer.setVertexColorMixing (ColorMixing.NONE);
-      renderer.drawLines (robj, 0);
+      renderer.mulModelMatrix (trans);
       renderer.setVertexColorMixing (ColorMixing.REPLACE);
       renderer.drawTriangles (robj, 0);
+      
+      float savedLineWidth = renderer.getLineWidth();
+      LineFaceRenderProps props = (LineFaceRenderProps)getRenderProps();
+      renderer.setLineWidth(props.getLineWidth());
+      renderer.setLineColoring (props, /*highlight=*/false);
+      renderer.setVertexColorMixing (ColorMixing.NONE);
+      renderer.drawLines (robj, 0);
 
       renderer.popModelMatrix ();
 
@@ -300,11 +306,11 @@ public class ColorBar extends TextComponentBase {
             // text orientation computation
             String label = myLabelText.get(i);
             Rectangle2D box = renderer.getTextBounds (myFont, label, myTextSize);
-            double w = box.getWidth();
-            double h = box.getHeight ();
+            double bw = box.getWidth();
+            double bh = box.getHeight ();
             double b = box.getY ();
-            double vc = b+h/2;
-            double t = h + b;
+            double vc = b+bh/2;
+            double t = bh + b;
             
             if (horizontal) {
                switch(hAlignment) {
@@ -312,35 +318,35 @@ public class ColorBar extends TextComponentBase {
                      tx = x0 + myTextOffset.x;
                      break;
                   case CENTRE:
-                     tx = x0 - w/2;
+                     tx = x0 - bw/2;
                      break;
                   case RIGHT:
-                     tx = x0 - myTextOffset.x - w;
+                     tx = x0 - myTextOffset.x - bw;
                      break;
                }
-               tx += bwidth*myLabelPos.get(i);
+               tx += w*myLabelPos.get(i);
 
                switch(vAlignment) {
                   case BOTTOM:
                      ty = y0-myTextOffset.y-t;
                      break;
                   case CENTRE:
-                     ty = y0-vc+bheight/2;
+                     ty = y0-vc+h/2;
                      break;
                   case TOP:
-                     ty = y0 + bheight + myTextOffset.y+b;
+                     ty = y0 + h + myTextOffset.y+b;
                      break;
                }
             } else {
                switch(hAlignment) {
                   case LEFT:
-                     tx = x0 - myTextOffset.x-w;
+                     tx = x0 - myTextOffset.x-bw;
                      break;
                   case CENTRE:
-                     tx = x0 -w/2 + bwidth/2;
+                     tx = x0 -bw/2 + w/2;
                      break;
                   case RIGHT:
-                     tx = x0 + myTextOffset.x + bwidth;
+                     tx = x0 + myTextOffset.x + w;
                      break;
                }
 
@@ -355,7 +361,7 @@ public class ColorBar extends TextComponentBase {
                      ty = y0 - myTextOffset.y - t;
                      break;
                }
-               ty += bheight*myLabelPos.get(i);
+               ty += h*myLabelPos.get(i);
             }
 
             loc[0] = (float)tx;
@@ -367,10 +373,6 @@ public class ColorBar extends TextComponentBase {
 
       renderer.setShading (savedShadeModel);
 
-      if (!saved2d) {
-         renderer.end2DRendering();
-      }
-
    }
 
    @Override
@@ -379,40 +381,40 @@ public class ColorBar extends TextComponentBase {
       | IsRenderable.TWO_DIMENSIONAL;
    }
 
-   public Rectangle2d getNormalizedLocation() {
-      return myNormLoc;
-   }
-
-   public void setNormalizedLocation(Rectangle2d pos) {
-      myNormLoc.x = Math.min(Math.max(pos.x, 0), 1);
-      myNormLoc.y = Math.min(Math.max(pos.y, 0), 1);
-      myNormLoc.width = Math.min(Math.max(pos.width, 0), 1);
-      myNormLoc.height = Math.min(Math.max(pos.height, 0), 1);
-   }
-
-   public Rectangle2d getLocationOverride() {
+   /**
+    * Rectangular location (x,y,width,height) of color bar.  If
+    * values are in the range [0,1], then they are taken to be
+    * relative to the screen size.  If values are negative,
+    * they are taken to be offsets from the right/top
+    * @return location parameters
+    */
+   public Rectangle2d getLocation() {
       return myLoc;
    }
 
-   public void setLocationOverride(Rectangle2d pos) {
-      myLoc.x = pos.x;
-      myLoc.y = pos.y;
-      myLoc.width = pos.width;
-      myLoc.height = pos.height;
+   /**
+    * Rectangular location (x,y,width,height) of color bar.  If
+    * values are in the range [0,1], then they are taken to be
+    * relative to the screen size.  If values are negative,
+    * they are taken to be offsets from the right/top
+    * @param x left
+    * @param y bottom
+    * @param w width
+    * @param h height
+    */
+   public void setLocation(double x, double y, double w, double h) {
+      myLoc.set (x, y, w, h);
    }
-
-   public void setLocationOverride(double x, double y, double width, double height) {
-      myLoc.x = x;
-      myLoc.y = y;
-      myLoc.width = width;
-      myLoc.height = height;
-   }
-
-   public void setNormalizedLocation(double x, double y, double width, double height) {
-      myNormLoc.x = x;
-      myNormLoc.y = y;
-      myNormLoc.width = width;
-      myNormLoc.height = height;
+   
+   /**
+    * Rectangular location (x,y,width,height) of color bar.  If
+    * values are in the range [0,1], then they are taken to be
+    * relative to the screen size.  If values are negative,
+    * they are taken to be offsets from the right/top
+    * @param pos location
+    */
+   public void setLocation(Rectangle2d pos) {
+      myLoc.set (pos);
    }
 
    public boolean isHorizontal() {
@@ -445,14 +447,6 @@ public class ColorBar extends TextComponentBase {
             this, "colorMap", myColorMapMode, mode);
       }
    }
-
-   //   public void setLocationReference(CornerRef ref) {
-   //      myLocRef = ref;
-   //   }
-   //
-   //   public CornerRef getLocationReference() {
-   //      return myLocRef;
-   //   }
 
    public VectorNd getLabelPositions() {
       return myLabelPos;

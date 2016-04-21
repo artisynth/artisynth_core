@@ -3811,6 +3811,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myDrawHasTexcoordData = false;
 
       myDrawCurrentColor = Arrays.copyOf (getCurrentColor(), 4);
+      
       // update materials, because we are going to use 
       // myCurrentMaterialModified to trigger vertex-based coloring
       maybeUpdateMaterials();

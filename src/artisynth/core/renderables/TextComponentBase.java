@@ -21,10 +21,6 @@ import maspack.render.RenderProps;
  * @author Antonio
  */
 public abstract class TextComponentBase extends RenderableComponentBase {
-
-   public enum FontStyle {
-      PLAIN, BOLD, ITALIC, BOLD_ITALIC
-   };
    
    public enum HorizontalAlignment {
       LEFT, CENTRE, RIGHT
@@ -37,6 +33,7 @@ public abstract class TextComponentBase extends RenderableComponentBase {
    public static int defaultFontSize = 32;
    public static double defaultTextSize = defaultFontSize;
    public static String defaultFontName = Font.SANS_SERIF;
+   public static Font defaultFont = new Font(defaultFontName, 0, defaultFontSize);
    public static HorizontalAlignment defaultHAlignment = HorizontalAlignment.LEFT;
    public static VerticalAlignment defaultVAlignment = VerticalAlignment.BOTTOM;
    
@@ -53,9 +50,7 @@ public abstract class TextComponentBase extends RenderableComponentBase {
          "renderProps * *", "render properties for this component",
          createDefaultRenderProps());
       
-      myProps.add("fontFamily", "font name", defaultFontName);
-      myProps.add("fontStyle", "font style", FontStyle.PLAIN);
-      myProps.add("fontSize", "font size", defaultFontSize);
+      myProps.add("font", "font", defaultFont);
       myProps.add("textSize", "text size", defaultTextSize);
       myProps.add("horizontalAlignment", "horizontal alignment", defaultHAlignment);
       myProps.add("verticalAlignment", "vertical alignment", defaultVAlignment);
@@ -79,32 +74,19 @@ public abstract class TextComponentBase extends RenderableComponentBase {
       return rprops;
    }
    
+   public Font getFont() {
+      return myFont;
+   }
+   
    /**
     * Explicitly set the font for this text component
+    * @param font the base font.  The font size affects the
+    * resolution of the displayed text.  It should be at least 32pt.
     */
    public void setFont(Font font) {
       myFont = font;
    }
-   
-   /**
-    * Returns the base font size
-    */
-   public int getFontSize() {
-      return myFont.getSize();
-   }
-
-   /**
-    * Sets the font size.  This is only used to control
-    * text resolution.  The actual size of the displayed
-    * text should be controlled by the "text size".
-    * @see #setTextSize(double)
-    */
-   public void setFontSize(int size) {
-      if (size != myFont.getSize()) {
-         myFont = myFont.deriveFont((float)size);
-      }
-   }
-   
+      
    /**
     * Sets the size of the text
     */
@@ -117,70 +99,6 @@ public abstract class TextComponentBase extends RenderableComponentBase {
     */
    public double getTextSize() {
       return myTextSize;
-   }
-
-   /**
-    * Returns the font family
-    */
-   public String getFontFamily() {
-      return myFont.getFamily();
-   }
-
-   /**
-    * Sets the font family for the displayed text
-    */
-   public void setFontFamily(String family) {
-      if (!myFont.getFamily().equals(family)) {
-         Font nfont = new Font(family, myFont.getStyle(), myFont.getSize());
-         if (nfont != null) {
-            myFont = nfont;
-         }
-      }
-   }
-   
-   /**
-    * Sets the font style to be one of 
-    * {@code PLAIN, BOLD, ITALIC, BOLD_ITALIC}.
-    */
-   public void setFontStyle(FontStyle style) {
-      int flags = 0;
-      switch (style) {
-         case BOLD:
-            flags = Font.BOLD;
-            break;
-         case BOLD_ITALIC:
-            flags = Font.BOLD | Font.ITALIC;
-            break;
-         case ITALIC:
-            flags = Font.ITALIC;
-            break;
-         case PLAIN:
-            flags = Font.PLAIN;
-            break;
-         default:
-            break;
-      }
-      
-      if (flags != myFont.getStyle()) {
-         myFont = myFont.deriveFont(flags);
-      }
-   }
-   
-   /**
-    * Gets font style, BOLD, ITALIC, BOLD_ITALIC, or PLAIN
-    */
-   public FontStyle getFontStyle() {
-      int style = myFont.getStyle();
-      
-      if ( (style & Font.BOLD) != 0) {
-         if ((style & Font.ITALIC) != 0) {
-            return FontStyle.BOLD_ITALIC;
-         }
-         return FontStyle.BOLD;
-      } else if ( (style & Font.ITALIC) != 0) {
-         return FontStyle.ITALIC;
-      }
-      return FontStyle.PLAIN;
    }
    
    /**

@@ -319,7 +319,7 @@ public abstract class LabeledComboBox extends LabeledControl {
 
 }
 
-class ComboBox extends JComboBox {
+class ComboBox extends JComboBox<String> {
    private static final long serialVersionUID = 1223987918789912L;
 
    ComboBox () {

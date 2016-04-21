@@ -9,6 +9,7 @@ package maspack.widgets;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Font;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
@@ -599,6 +600,10 @@ public class PropertyWidget {
             GridResolutionField resField = (GridResolutionField)widget;
             resField.addValueChangeListener (new PropChangeListener (prop));
          }
+         else if (Font.class.isAssignableFrom (type)) {
+            FontField fontField = (FontField)widget;
+            fontField.addValueChangeListener (new PropChangeListener (prop));
+         }
          else if (CompositeProperty.class.isAssignableFrom (type)) {
             if (widget instanceof CompositePropertyWidget) {
                CompositePropertyWidget compProp = (CompositePropertyWidget)widget;
@@ -750,6 +755,9 @@ public class PropertyWidget {
       }
       else if (GLGridResolution.class.isAssignableFrom (type)) {
          return new GridResolutionField();
+      }
+      else if (Font.class.isAssignableFrom (type)) {
+         return new FontField ();
       }
       else if (CompositeProperty.class.isAssignableFrom (type)) {
          Class<?>[] subclasses = PropertyUtils.findCompositePropertySubclasses(type);

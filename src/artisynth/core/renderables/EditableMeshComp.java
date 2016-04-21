@@ -8,24 +8,29 @@ package artisynth.core.renderables;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.Map;
 
+import artisynth.core.mechmodels.MeshComponent;
+import artisynth.core.modelbase.ComponentChangeEvent;
+import artisynth.core.modelbase.ComponentListImpl;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.util.ScanToken;
 import maspack.geometry.MeshBase;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.properties.HierarchyNode;
-import maspack.properties.PropertyUtils;
-import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.util.IndentingPrintWriter;
-import maspack.util.InternalErrorException;
+import maspack.render.Renderer;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import artisynth.core.mechmodels.*;
-import artisynth.core.modelbase.*;
-import artisynth.core.modelbase.CompositeComponent.NavpanelDisplay;
-import artisynth.core.util.*;
 
 public class EditableMeshComp extends MeshComponent
    implements CompositeComponent {

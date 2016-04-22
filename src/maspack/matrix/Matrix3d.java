@@ -953,9 +953,10 @@ public class Matrix3d extends Matrix3dBase {
       }
    }
    
-   @Override
-   public Matrix3d clone() {
-      return new Matrix3d(this);
-   }
+   // J E Lloyd, Apr 21, 2016: clone shouldn't use new.
+   // @Override
+   // public Matrix3d clone() {
+   //    return new Matrix3d(this);
+   // }
 
 }

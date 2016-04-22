@@ -913,8 +913,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          renderable.updateBounds (pmin, pmax);
          boundsSet = true;
       }
-      if (myExternalRenderList != null) {
-         myExternalRenderList.updateBounds (pmin, pmax);
+      RenderList elist = myExternalRenderList;
+      if (elist != null) {
+         elist.updateBounds (pmin, pmax);
          boundsSet = true;
       }
       if (!boundsSet) {
@@ -962,9 +963,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    private boolean hasRenderables() {
+      RenderList elist = myExternalRenderList;
       return (
       myRenderables.size() > 0 ||
-      (myExternalRenderList != null && myExternalRenderList.size() > 0) ||
+      (elist != null && elist.size() > 0) ||
       myDraggers.size() > 0 || 
       myDrawTool != null);
    }
@@ -1862,8 +1864,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       if (myInternalRenderList.numTransparent() > 0) {
          return true;
       }
-      if (myExternalRenderList != null) {
-         if (myExternalRenderList.numTransparent() > 0) {
+      RenderList elist = myExternalRenderList;
+      if (elist != null) {
+         if (elist.numTransparent() > 0) {
             return true;
          }
       }
@@ -1875,9 +1878,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myInternalRenderList.numTransparent2d() > 0) {
          return true;
       }
-      if (myExternalRenderList != null) {
-         if (myExternalRenderList.numOpaque2d() > 0 || 
-         myExternalRenderList.numTransparent2d() > 0) {
+      RenderList elist = myExternalRenderList;
+      if (elist != null) {
+         if (elist.numOpaque2d() > 0 || 
+             elist.numTransparent2d() > 0) {
             return true;
          }
       }
@@ -1888,8 +1892,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       if (myInternalRenderList.numTransparent2d() > 0) {
          return true;
       }
-      if (myExternalRenderList != null) {
-         if (myExternalRenderList.numTransparent2d() > 0) {
+      RenderList elist = myExternalRenderList;
+      if (elist != null) {
+         if (elist.numTransparent2d() > 0) {
             return true;
          }
       }
@@ -1899,12 +1904,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    private class RenderIterator implements Iterator<IsRenderable> {
 
       SortedRenderableList myList = null;
+      RenderList myExtList;
       int myListIdx = 0;
       int myIdx = -1;
       final int MAX_LIST_IDX = 7;
 
       public RenderIterator() {
          myList = myInternalRenderList.getOpaque();
+         myExtList = myExternalRenderList;
          myIdx = -1;
          myListIdx = 0;
          advance();
@@ -1933,29 +1940,29 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
                return myInternalRenderList.getOpaque();
             }
             case 1: {
-               return (myExternalRenderList != null ?
-                  myExternalRenderList.getOpaque() : null);
+               return (myExtList != null ?
+                  myExtList.getOpaque() : null);
             }
             case 2: {
                return myInternalRenderList.getTransparent();
             }
             case 3: {
-               return (myExternalRenderList != null ?
-                  myExternalRenderList.getTransparent() : null);
+               return (myExtList != null ?
+                  myExtList.getTransparent() : null);
             }
             case 4: {
                return myInternalRenderList.getOpaque2d();
             }
             case 5: {
-               return (myExternalRenderList != null ?
-                  myExternalRenderList.getOpaque2d() : null);
+               return (myExtList != null ?
+                  myExtList.getOpaque2d() : null);
             }
             case 6: {
                return myInternalRenderList.getTransparent2d();
             }
             case 7: {
-               return (myExternalRenderList != null ?
-                  myExternalRenderList.getTransparent2d() : null);
+               return (myExtList != null ?
+                  myExtList.getTransparent2d() : null);
             }
             default: {
                throw new ArrayIndexOutOfBoundsException ("idx=" + idx);
@@ -2722,8 +2729,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    protected int numSelectionQueriesNeeded() {
       int num = myInternalRenderList.numSelectionQueriesNeeded();
-      if (myExternalRenderList != null) {
-         num += myExternalRenderList.numSelectionQueriesNeeded();
+      RenderList elist = myExternalRenderList;
+      if (elist != null) {
+         num += elist.numSelectionQueriesNeeded();
       }
       return num;
    }

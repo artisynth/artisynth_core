@@ -1587,7 +1587,7 @@ public interface Renderer {
    //==========================================================================
    
    /**
-    * Draws all the triangles in the active triangle group of the
+    * Draws all the triangles in the first triangle group of the
     * specified render object, using the current material and shading.
     *
     * @param robj render object
@@ -1604,7 +1604,7 @@ public interface Renderer {
    public void drawTriangles (RenderObject robj, int gidx);
    
    /**
-    * Draws all the lines in the active line group of the
+    * Draws all the lines in the first line group of the
     * specified render object, using the current material and shading.
     * 
     * @param robj render object
@@ -1621,7 +1621,7 @@ public interface Renderer {
    public void drawLines (RenderObject robj, int gidx);
    
    /**
-    * Draws all the lines in the active line group of the specified
+    * Draws all the lines in the first line group of the specified
     * render object, using the current material and shading.  The lines are
     * drawn either as pixel-based lines or as solid primitives, according to
     * the specified line style. For lines drawn using the style {@link
@@ -1654,7 +1654,7 @@ public interface Renderer {
    public void drawLines (RenderObject robj, int gidx, LineStyle style, double rad);
    
    /**
-    * Draws all the points in the active point group of the
+    * Draws all the points in the first point group of the
     * specified render object, using the current material and shading.
     * 
     * @param robj render object
@@ -1671,7 +1671,7 @@ public interface Renderer {
    public void drawPoints (RenderObject robj, int gidx);
    
    /**
-    * Draws all the points in the active point group of the specified
+    * Draws all the points in the first point group of the specified
     * render object, using the current material and shading. The points are
     * drawn either as pixel-based points or as solids, according to the
     * specified points style. For points drawn using the style {@link
@@ -1710,7 +1710,7 @@ public interface Renderer {
    public void drawVertices (RenderObject robj, DrawMode mode);
    
    /**
-    * Draws the current point group, line group, and triangle group.
+    * Draws all the primitives in the first point, line and triangles groups.
     * @param robj
     */
    public void draw(RenderObject robj);

@@ -21,6 +21,7 @@ import artisynth.core.util.ArtisynthPath;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Dragger3d;
+import maspack.render.RenderList;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.TextureContent;
@@ -460,10 +461,10 @@ public class GL3Viewer extends GLViewer {
       synchronized(myInternalRenderList) {
          qid = myInternalRenderList.renderOpaque (this, qid, flags);
       }
-      
-      if (myExternalRenderList != null) {
-         synchronized(myExternalRenderList) {
-            qid = myExternalRenderList.renderOpaque (this, qid, flags);
+      RenderList elist = myExternalRenderList;     
+      if (elist != null) {
+         synchronized(elist) {
+            qid = elist.renderOpaque (this, qid, flags);
          }
       }
       
@@ -478,9 +479,9 @@ public class GL3Viewer extends GLViewer {
          synchronized(myInternalRenderList) {
             qid = myInternalRenderList.renderTransparent (this, qid, flags);
          }
-         if (myExternalRenderList != null) {
-            synchronized(myExternalRenderList) {
-               qid = myExternalRenderList.renderTransparent (this, qid, flags);
+         if (elist != null) {
+            synchronized(elist) {
+               qid = elist.renderTransparent (this, qid, flags);
             }
          }
          
@@ -503,9 +504,9 @@ public class GL3Viewer extends GLViewer {
          synchronized(myInternalRenderList) {
             qid = myInternalRenderList.renderOpaque2d (this, qid, 0);
          }
-         if (myExternalRenderList != null) {
-            synchronized(myExternalRenderList) {
-               qid = myExternalRenderList.renderOpaque2d (this, qid, 0);
+         if (elist != null) {
+            synchronized(elist) {
+               qid = elist.renderOpaque2d (this, qid, 0);
             }
          }
 
@@ -517,9 +518,9 @@ public class GL3Viewer extends GLViewer {
             synchronized(myInternalRenderList) {
                qid = myInternalRenderList.renderTransparent2d (this, qid, 0);
             }
-            if (myExternalRenderList != null) {
-               synchronized (myExternalRenderList) {
-                  qid = myExternalRenderList.renderTransparent2d (this, qid, 0);
+            if (elist != null) {
+               synchronized (elist) {
+                  qid = elist.renderTransparent2d (this, qid, 0);
                }
             }
             

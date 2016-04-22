@@ -2154,9 +2154,9 @@ java.io.Serializable, Clonable {
       }
    }
 
-   public Object clone() {
+   public Matrix3dBase clone() {
       try {
-         return super.clone();
+         return (Matrix3dBase)super.clone();
       }
       catch (CloneNotSupportedException e) { // shouldn't happen
          throw new InternalErrorException ("clone failed for Matrix3dBase");

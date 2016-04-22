@@ -118,7 +118,7 @@ ActionListener, ValueChangeListener {
          pointSlices = s.pointSlices;
          density = s.density;
          meshFileName = s.meshFileName;
-         meshXform = s.meshXform.clone();
+         meshXform = s.meshXform.copy();
          inertia.set (s.inertia);
          inertiaMethod = s.inertiaMethod;
       }
@@ -164,7 +164,7 @@ ActionListener, ValueChangeListener {
                settings.meshFileName = body.getMeshFileName();
             }
             if (body.getMeshFileTransform() != null) {
-               settings.meshXform = body.getMeshFileTransform().clone();
+               settings.meshXform = body.getMeshFileTransform().copy();
             }
             if (body.getMesh() != null) {
                myFileMesh = body.getMesh().copy();
@@ -180,7 +180,7 @@ ActionListener, ValueChangeListener {
             if (myFileMesh != null) {
                settings.meshFileName = body.getMeshFileName();
                if (body.getMeshFileTransform() != null) {
-                  settings.meshXform = body.getMeshFileTransform().clone();
+                  settings.meshXform = body.getMeshFileTransform().copy();
                }
             }
          }

@@ -64,7 +64,7 @@ public class MeshInfo {
          return T;
       }
       else {
-         return myFileTransform.clone();
+         return myFileTransform.copy();
       }
    }
 
@@ -393,7 +393,7 @@ public class MeshInfo {
       MeshInfo out = new MeshInfo();
       out.myFileName = myFileName;
       out.myMeshModifiedP = myMeshModifiedP;
-      out.myFileTransform = myFileTransform.clone();
+      out.myFileTransform = myFileTransform.copy();
       out.myMesh = myMesh.copy();
       return out;
    }

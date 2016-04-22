@@ -250,7 +250,7 @@ public class TextLabeller3d extends TextComponentBase {
    public int addItem(String text, Point3d pos, AffineTransform3dBase trans, boolean byRef) {
       if (!byRef) {
          pos = new Point3d(pos);
-         trans = trans.clone ();
+         trans = trans.copy ();
       }
       LabelItem item = new LabelItem(text, pos, trans, nextLabelId++);
       myItems.add(item);

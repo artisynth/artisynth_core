@@ -363,7 +363,7 @@ public class MultiViewerTesterBase {
       }
 
       public void setTransform(AffineTransform3dBase t) {
-         trans = t.clone();
+         trans = t.copy();
       }
 
       @Override

@@ -425,7 +425,8 @@ Clonable {
       p.setRandom();
    }
 
-   public AffineTransform3d clone() {
+   @Override
+   public AffineTransform3d copy() {
       return new AffineTransform3d(this.A, this.p);
    }
 

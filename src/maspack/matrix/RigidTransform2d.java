@@ -365,8 +365,8 @@ public class RigidTransform2d extends AffineTransform2dBase {
    }
    
    @Override
-   public RigidTransform2d clone () {
-      return new RigidTransform2d (this);
+   public RigidTransform2d copy() {
+      return new RigidTransform2d(this);
    }
 
 }

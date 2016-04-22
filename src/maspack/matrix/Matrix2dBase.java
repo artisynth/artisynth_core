@@ -7,6 +7,7 @@
 package maspack.matrix;
 
 import maspack.util.Clonable;
+import maspack.util.InternalErrorException;
 
 /**
  * Base class for 2 x 2 matrices in which the elements are stored as explicit
@@ -1118,6 +1119,12 @@ public abstract class Matrix2dBase extends DenseMatrixBase implements Clonable {
       return (m00 * m11 - m10 * m01);
    }
 
-   public abstract Matrix2dBase clone();
+   public Matrix2dBase clone() {
+      try {
+         return (Matrix2dBase)(super.clone ());
+      } catch (CloneNotSupportedException e) { // shouldn't happen
+         throw new InternalErrorException ("clone failed for Matrix2dBase");
+      }
+   }
 
 }

@@ -21,7 +21,6 @@ package maspack.matrix;
 public abstract class AffineTransform2dBase extends DenseMatrixBase {
    protected Matrix2dBase M;
    protected Vector2d b;
-   private Matrix2d Mtmp;
 
    /**
     * Returns the matrix assiciated with this affine transform.
@@ -374,9 +373,7 @@ public abstract class AffineTransform2dBase extends DenseMatrixBase {
       //            
       // compute inv(M1) M2 and inv(M1) b2 - inv(M1) b1
       //
-      if (Mtmp == null) {
-         Mtmp = new Matrix2d();
-      }
+      Matrix2d Mtmp = new Matrix2d();
       boolean nonSingular = Mtmp.invert (X1.M); // compute inv(M1)
       b.sub (X2.b, X1.b); // compute b2 - b1
       Mtmp.mul (b); // b = inv(M1) (b2 - b1)
@@ -399,9 +396,7 @@ public abstract class AffineTransform2dBase extends DenseMatrixBase {
       //            
       // compute inv(M1) inv(M2) and -inv(M1) (inv(M2) b2 - b1)
       //
-      if (Mtmp == null) {
-         Mtmp = new Matrix2d();
-      }
+      Matrix2d Mtmp = new Matrix2d();
       double b1x = X1.b.x; // save b1
       double b1y = X1.b.y;
       boolean nonSingular1 = Mtmp.invert (X1.M); // compute inv(M1)
@@ -454,9 +449,7 @@ public abstract class AffineTransform2dBase extends DenseMatrixBase {
     * @return false if this transform is singular
     */
    public boolean mulInverse (Vector3d vr, Vector3d v1) {
-      if (Mtmp == null) {
-         Mtmp = new Matrix2d();
-      }
+      Matrix2d Mtmp = new Matrix2d();
       boolean nonSingular = Mtmp.invert (M);
       double x = v1.x - b.x * v1.z;
       double y = v1.y - b.y * v1.z;
@@ -534,7 +527,9 @@ public abstract class AffineTransform2dBase extends DenseMatrixBase {
       return (M.equals (X.M) && b.equals (X.b));
    }
    
-   @Override
-   public abstract AffineTransform2dBase clone ();
+   /**
+    * @return a deep copy of the transform
+    */
+   public abstract AffineTransform2dBase copy();
    
 }

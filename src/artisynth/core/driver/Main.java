@@ -2698,7 +2698,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       private AffineTransform3dBase getIncrementalTransform (Dragger3dEvent e) {
          Dragger3dBase dragger = (Dragger3dBase)e.getSource();
          AffineTransform3dBase transform =
-            e.getIncrementalTransform().clone();
+            e.getIncrementalTransform().copy();
          if (e.getSource() instanceof Rotator3d ||
             e.getSource() instanceof Transrotator3d ||
             e.getSource() instanceof Translator3d ||
@@ -2710,7 +2710,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
       private AffineTransform3dBase getOverallTransform (Dragger3dEvent e) {
          Dragger3dBase dragger = (Dragger3dBase)e.getSource();
-         AffineTransform3dBase transform = e.getTransform().clone();
+         AffineTransform3dBase transform = e.getTransform().copy();
          if (e.getSource() instanceof Rotator3d ||
             e.getSource() instanceof Transrotator3d || 
             e.getSource() instanceof Translator3d || 

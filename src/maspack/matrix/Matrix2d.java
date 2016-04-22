@@ -319,7 +319,7 @@ public class Matrix2d extends Matrix2dBase {
    
    @Override
    public Matrix2d clone () {
-      return new Matrix2d (this);
+      return (Matrix2d)super.clone();
    }
 
 }

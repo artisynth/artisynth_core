@@ -197,7 +197,7 @@ public class AffineTransform2d extends AffineTransform2dBase {
    }
    
    @Override
-   public AffineTransform2dBase clone () {
+   public AffineTransform2d copy () {
       return new AffineTransform2d(this);
    }
 

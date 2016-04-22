@@ -6,8 +6,6 @@
  */
 package maspack.matrix;
 
-import maspack.util.*;
-
 /**
  * Base class for 4 x 4 matrices representing 3D affine transformations. A 3D
  * affine transformation applied to a 3-vector v has the form <br>
@@ -21,11 +19,10 @@ import maspack.util.*;
  * </pre>
  */
 public abstract class AffineTransform3dBase extends DenseMatrixBase implements
-java.io.Serializable, Clonable {
+java.io.Serializable {
    private static final long serialVersionUID = 1L;
    protected Matrix3dBase M;
    protected Vector3d b;
-   protected Matrix3d Mtmp;
 
    /**
     * Returns the matrix assiciated with this affine transform.
@@ -590,9 +587,7 @@ java.io.Serializable, Clonable {
       //            
       // compute inv(M1) M2 and inv(M1) b2 - inv(M1) b1
       //
-      if (Mtmp == null) {
-         Mtmp = new Matrix3d();
-      }
+      Matrix3d Mtmp = new Matrix3d();
       boolean nonSingular = Mtmp.invert (X1.M); // compute inv(M1)
       b.sub (X2.b, X1.b); // compute b2 - b1
       Mtmp.mul (b); // b = inv(M1) (b2 - b1)
@@ -631,9 +626,7 @@ java.io.Serializable, Clonable {
       //            
       // compute inv(M1) inv(M2) and -inv(M1) (inv(M2) b2 - b1)
       //
-      if (Mtmp == null) {
-         Mtmp = new Matrix3d();
-      }
+      Matrix3d Mtmp = new Matrix3d();
       double b1x = X1.b.x; // save b1
       double b1y = X1.b.y;
       double b1z = X1.b.z;
@@ -695,9 +688,7 @@ java.io.Serializable, Clonable {
     * @return false if this transform is singular
     */
    public boolean mulInverse (Vector4d vr, Vector4d v1) {
-      if (Mtmp == null) {
-         Mtmp = new Matrix3d();
-      }
+      Matrix3d Mtmp = new Matrix3d();
       boolean nonSingular = Mtmp.invert (M);
       double x = v1.x - b.x * v1.w;
       double y = v1.y - b.y * v1.w;
@@ -796,9 +787,7 @@ java.io.Serializable, Clonable {
     * returns the shearing transform
     */
    public void getMatrixComponents (RotationMatrix3d R, Vector3d s, Matrix3d X) {
-      if (Mtmp == null) {
-         Mtmp = new Matrix3d();
-      }
+      Matrix3d Mtmp = new Matrix3d();
       SVDecomposition3d svd = new SVDecomposition3d (Mtmp, X, M);
       svd.getS (s);
       R.set (Mtmp);
@@ -884,8 +873,12 @@ java.io.Serializable, Clonable {
 
    public abstract void setRandom();
 
-   public AffineTransform3dBase clone() {
-      throw new InternalErrorException (
-         "Clone not supported for " + getClass());
+   /**
+    * @return deep copy of transform
+    */
+   public abstract AffineTransform3dBase copy();
+   
+   public AffineTransform3dBase clone() throws CloneNotSupportedException {
+      throw new CloneNotSupportedException("Use copy, clone not supported");
    }
 }

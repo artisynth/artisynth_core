@@ -1402,7 +1402,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       viewMatrix = new RigidTransform3d();
       modelMatrix = new RigidTransform3d();
       modelNormalMatrix = new Matrix3d(modelMatrix.getMatrix());
-      textureMatrix = RigidTransform2d.IDENTITY.clone();
+      textureMatrix = RigidTransform2d.IDENTITY.copy();
 
       projectionMatrixStack = new LinkedList<>();
       viewMatrixStack = new LinkedList<>();
@@ -1677,7 +1677,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
    
    public RigidTransform3d getViewMatrix () {
-      return viewMatrix.clone();
+      return viewMatrix.copy();
    }
 
    public void getEyeToWorld (RigidTransform3d X) {
@@ -2896,7 +2896,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          if (modelMatrix.getClass() == m.getClass()) {
             modelMatrix.set(m);
          } else {
-            modelMatrix = m.clone();
+            modelMatrix = m.copy();
          }
          modelNormalMatrix = computeInverseTranspose(m.getMatrix());
       }
@@ -2919,7 +2919,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
    
    public AffineTransform3dBase getModelMatrix() {
-      return modelMatrix.clone();
+      return modelMatrix.copy();
    }
 
    protected void resetModelMatrix() {
@@ -3038,14 +3038,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          if (textureMatrix.getClass() == T.getClass()) {
             textureMatrix.set(T);
          } else {
-            textureMatrix = T.clone();
+            textureMatrix = T.copy();
          }
       }
       invalidateTextureMatrix();
    }
    
    public AffineTransform2dBase getTextureMatrix() {
-      return textureMatrix.clone ();
+      return textureMatrix.copy ();
    }
    
    public void getTextureMatrix (AffineTransform2d X) {
@@ -3070,7 +3070,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    public void pushViewMatrix() {
-      viewMatrixStack.push(viewMatrix.clone());
+      viewMatrixStack.push(viewMatrix.copy());
       viewStateStack.push(myViewState);
    }
 
@@ -3091,7 +3091,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    public void pushModelMatrix() {
-      modelMatrixStack.push(modelMatrix.clone());
+      modelMatrixStack.push(modelMatrix.copy());
       modelNormalMatrixStack.push(modelNormalMatrix.clone());
       myModelMatrixSet = true;
    }
@@ -3136,7 +3136,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
    
    public void pushTextureMatrix() {
-      textureMatrixStack.push (textureMatrix.clone ());
+      textureMatrixStack.push (textureMatrix.copy ());
    }
    
    public boolean popTextureMatrix() {

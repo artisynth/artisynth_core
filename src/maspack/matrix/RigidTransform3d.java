@@ -9,7 +9,6 @@ package maspack.matrix;
 import java.io.IOException;
 import java.util.List;
 
-import maspack.util.Clonable;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
@@ -89,8 +88,7 @@ import maspack.util.ReaderTokenizer;
  * </pre>
  */
 
-public class RigidTransform3d extends AffineTransform3dBase implements
-Clonable {
+public class RigidTransform3d extends AffineTransform3dBase {
    private static final long serialVersionUID = 1L;
 
    /**
@@ -1014,8 +1012,13 @@ Clonable {
       p.setRandom();
    }
 
-   public RigidTransform3d clone() {
+   public RigidTransform3d copy() {
       return new RigidTransform3d (this);
+   }
+   
+   @Override
+   public AffineTransform3dBase clone () throws CloneNotSupportedException {
+      throw new CloneNotSupportedException ("Cannot clone RigidTransform3d.  Use copy() instead.");
    }
 
    /**

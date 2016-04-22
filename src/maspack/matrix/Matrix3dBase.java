@@ -15,7 +15,7 @@ import maspack.util.Clonable;
  * fields. A primary motivation for such objects is computational speed.
  */
 public abstract class Matrix3dBase extends DenseMatrixBase implements
-java.io.Serializable, Clonable {
+   java.io.Serializable, Clonable {
    /**
     * Matrix element (0,0)
     */

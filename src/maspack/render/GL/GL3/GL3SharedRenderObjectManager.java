@@ -14,7 +14,7 @@ import maspack.render.GL.GLGarbageSource;
 public class GL3SharedRenderObjectManager implements GLGarbageSource {
 
    GL3VertexAttributeMap attributeMap;
-   HashMap<RenderObjectIdentifier,GL3SharedRenderObjectIndexed> indexedMap;
+   HashMap<RenderObjectIdentifier,GL3SharedRenderObjectPrimitives> indexedMap;
    HashMap<RenderObjectIdentifier,GL3SharedRenderObjectLines> lineMap;
    HashMap<RenderObjectIdentifier,GL3SharedRenderObjectPoints> pointMap;
    
@@ -25,14 +25,14 @@ public class GL3SharedRenderObjectManager implements GLGarbageSource {
       pointMap = new HashMap<> ();
    }
    
-   public GL3SharedRenderObjectIndexed getIndexed(GL3 gl, RenderObject robj) {
+   public GL3SharedRenderObjectPrimitives getPrimitives(GL3 gl, RenderObject robj) {
    
-      GL3SharedRenderObjectIndexed gro = null;
+      GL3SharedRenderObjectPrimitives gro = null;
       synchronized (indexedMap) {
          RenderObjectIdentifier rid = robj.getIdentifier ();
          gro = indexedMap.get (rid);
          if (gro == null || gro.disposeInvalid (gl)) {
-            gro = GL3SharedRenderObjectIndexed.generate(gl, robj, attributeMap.getPosition (),
+            gro = GL3SharedRenderObjectPrimitives.generate(gl, robj, attributeMap.getPosition (),
                attributeMap.getNormal (), attributeMap.getColor (), attributeMap.getTexcoord ());
             indexedMap.put (rid, gro);
          } else {
@@ -91,9 +91,9 @@ public class GL3SharedRenderObjectManager implements GLGarbageSource {
       
       // dispose dead RenderObjects
       synchronized(indexedMap) {
-         Iterator<Entry<RenderObjectIdentifier,GL3SharedRenderObjectIndexed>> it = indexedMap.entrySet ().iterator ();
+         Iterator<Entry<RenderObjectIdentifier,GL3SharedRenderObjectPrimitives>> it = indexedMap.entrySet ().iterator ();
          while (it.hasNext ()) {
-            Entry<RenderObjectIdentifier,GL3SharedRenderObjectIndexed> entry = it.next ();
+            Entry<RenderObjectIdentifier,GL3SharedRenderObjectPrimitives> entry = it.next ();
             if (!entry.getKey ().isValid ()) {
                it.remove ();
                entry.getValue ().dispose (gl3);
@@ -131,7 +131,7 @@ public class GL3SharedRenderObjectManager implements GLGarbageSource {
       
       // dispose dead RenderObjects
       synchronized(indexedMap) {
-         for (GL3SharedRenderObjectIndexed gro : indexedMap.values ()) {
+         for (GL3SharedRenderObjectPrimitives gro : indexedMap.values ()) {
             gro.dispose (gl3);
          }
          indexedMap.clear ();

@@ -8,32 +8,102 @@ import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
 
 import maspack.render.RenderObject;
-import maspack.render.GL.GLGarbageSource;
 import maspack.render.RenderObject.RenderObjectIdentifier;
+import maspack.render.VertexIndexArray;
+import maspack.render.GL.GLGarbageSource;
+import maspack.util.DisposeObserver;
 
 public class GL3RenderObjectManager implements GLGarbageSource {
 
-   GL3SharedRenderObjectManager shared;
+   GL3SharedResources shared;
    
-   HashMap<RenderObjectIdentifier,GL3RenderObjectIndexed> indexedMap;
+   private static class ROIKey {
+      RenderObjectIdentifier rid;
+      DisposeObserver via;
+      
+      ROIKey(RenderObjectIdentifier rid, DisposeObserver via) {
+         this.rid = rid;
+         this.via = via;
+      }
+      
+      public boolean isValid() {
+         if (!rid.isValid ()) {
+            return false;
+         }
+         if (via.isDisposed ()) {
+            return false;
+         }
+         return true;
+      }
+
+      @Override
+      public int hashCode () {
+         int result = 31*rid.hashCode () + via.hashCode ();
+         return result;
+      }
+
+      @Override
+      public boolean equals (Object obj) {
+         
+         if (this == obj) {
+            return true;
+         }
+         if (obj == null || getClass () != obj.getClass ()) { 
+            return false;
+         }
+         
+         ROIKey other = (ROIKey)obj;
+         if (!rid.equals (other.rid)) {
+            return false;
+         }
+         if (!via.equals (other.via)) {
+            return false;
+         }
+         return true;
+      }
+      
+      
+   }
+   
+   HashMap<ROIKey, GL3RenderObjectElements> elementsMap;
+   HashMap<RenderObjectIdentifier,GL3RenderObjectPrimitives> indexedMap;
    HashMap<RenderObjectIdentifier,GL3RenderObjectLines> lineMap;
    HashMap<RenderObjectIdentifier,GL3RenderObjectPoints> pointMap;
    
-   public GL3RenderObjectManager(GL3SharedRenderObjectManager sharedManager) {
+   public GL3RenderObjectManager(GL3SharedResources sharedManager) {
       this.shared = sharedManager;
+      elementsMap = new HashMap<> ();
       indexedMap = new HashMap<> ();
       lineMap = new HashMap<> ();
       pointMap = new HashMap<> ();
    }
    
-   public GL3RenderObjectIndexed getIndexed(GL3 gl, RenderObject robj) {
+   public GL3RenderObjectElements getElements(GL3 gl, RenderObject robj, VertexIndexArray idxs) {
+      
+      GL3RenderObjectElements gro = null;
+      ROIKey key = new ROIKey (robj.getIdentifier (), idxs.getDisposeObserver ());
+      synchronized (elementsMap) {
+         gro = elementsMap.get (key);
+         if (gro == null || gro.disposeInvalid (gl)) {
+            gro = GL3RenderObjectElements.generate (gl, shared.getPrimitives (gl, robj), 
+               shared.getVertexIndexArray (gl, idxs));
+            elementsMap.put (key, gro);
+         } else {
+            gro.maybeUpdate (gl, robj, idxs);
+         }
+      }
+      
+      return gro;
+   }
    
-      GL3RenderObjectIndexed gro = null;
+   public GL3RenderObjectPrimitives getPrimitives(GL3 gl, RenderObject robj) {
+   
+      GL3RenderObjectPrimitives gro = null;
       synchronized (indexedMap) {
          RenderObjectIdentifier rid = robj.getIdentifier ();
          gro = indexedMap.get (rid);
          if (gro == null || gro.disposeInvalid (gl)) {
-            gro = GL3RenderObjectIndexed.generate (gl, shared.getIndexed (gl, robj));
+            gro = GL3RenderObjectPrimitives.generate (gl, shared.getPrimitives (gl, robj));
             indexedMap.put (rid, gro);
          } else {
             gro.maybeUpdate (gl, robj);
@@ -50,9 +120,9 @@ public class GL3RenderObjectManager implements GLGarbageSource {
          RenderObjectIdentifier rid = robj.getIdentifier ();
          gro = lineMap.get (rid);
          if (gro == null || gro.disposeInvalid (gl)) {
-            GL3LinesVertexBuffer lineBuff = GL3LinesVertexBuffer.generate(gl, shared.getAttribute ("line_radius"),
-               shared.getAttribute ("line_bottom_scale_offset"),
-               shared.getAttribute ("line_top_scale_offset"));
+            GL3LinesVertexBuffer lineBuff = GL3LinesVertexBuffer.generate(gl, shared.getVertexAttribute ("line_radius"),
+               shared.getVertexAttribute ("line_bottom_scale_offset"),
+               shared.getVertexAttribute ("line_top_scale_offset"));
             gro = GL3RenderObjectLines.generate(gl, lineBuff, shared.getLines (gl, robj));
             lineMap.put (rid, gro);
          } else {
@@ -71,7 +141,7 @@ public class GL3RenderObjectManager implements GLGarbageSource {
          gro = pointMap.get (rid);
          if (gro == null || gro.disposeInvalid (gl)) {
             GL3PointsVertexBuffer pointBuff = GL3PointsVertexBuffer.generate(gl, 
-               shared.getAttribute ("instance_scale"));
+               shared.getVertexAttribute ("instance_scale"));
             gro = GL3RenderObjectPoints.generate(gl, pointBuff, shared.getPoints (gl, robj));;
             pointMap.put (rid, gro);
          } else {
@@ -87,10 +157,22 @@ public class GL3RenderObjectManager implements GLGarbageSource {
       GL3 gl3 = (GL3)gl;
       
       // dispose dead RenderObjects
-      synchronized(indexedMap) {
-         Iterator<Entry<RenderObjectIdentifier,GL3RenderObjectIndexed>> it = indexedMap.entrySet ().iterator ();
+      synchronized(elementsMap) {
+         Iterator<Entry<ROIKey,GL3RenderObjectElements>> it = elementsMap.entrySet ().iterator ();
          while (it.hasNext ()) {
-            Entry<RenderObjectIdentifier,GL3RenderObjectIndexed> entry = it.next ();
+            Entry<ROIKey,GL3RenderObjectElements> entry = it.next ();
+            if (!entry.getKey ().isValid ()) {
+               it.remove ();
+               entry.getValue ().dispose (gl3);
+            }
+         }
+      }
+      
+      // dispose dead RenderObjects
+      synchronized(indexedMap) {
+         Iterator<Entry<RenderObjectIdentifier,GL3RenderObjectPrimitives>> it = indexedMap.entrySet ().iterator ();
+         while (it.hasNext ()) {
+            Entry<RenderObjectIdentifier,GL3RenderObjectPrimitives> entry = it.next ();
             if (!entry.getKey ().isValid ()) {
                it.remove ();
                entry.getValue ().dispose (gl3);
@@ -127,8 +209,15 @@ public class GL3RenderObjectManager implements GLGarbageSource {
       GL3 gl3 = (GL3)gl;
       
       // dispose dead RenderObjects
+      synchronized(elementsMap) {
+         for (GL3RenderObjectElements gro : elementsMap.values ()) {
+            gro.dispose (gl3);
+         }
+         elementsMap.clear ();
+      }
+      
       synchronized(indexedMap) {
-         for (GL3RenderObjectIndexed gro : indexedMap.values ()) {
+         for (GL3RenderObjectPrimitives gro : indexedMap.values ()) {
             gro.dispose (gl3);
          }
          indexedMap.clear ();

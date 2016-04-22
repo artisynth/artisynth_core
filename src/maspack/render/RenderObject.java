@@ -9,9 +9,9 @@ import java.util.List;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer.DrawMode;
-import maspack.util.DynamicIntArray;
+import maspack.util.Versioned;
 
-public class RenderObject {
+public class RenderObject implements Versioned {
 
    private static int nextIdNumber = 0;
    
@@ -364,14 +364,14 @@ public class RenderObject {
    static final int POINT_STRIDE = 1;
    static final int LINE_STRIDE = 2;
    static final int TRIANGLE_STRIDE = 3;
-   ArrayList<DynamicIntArray> points;
-   ArrayList<DynamicIntArray> lines;
-   ArrayList<DynamicIntArray> triangles;
+   ArrayList<VertexIndexArray> points;
+   ArrayList<VertexIndexArray> lines;
+   ArrayList<VertexIndexArray> triangles;
 
    // pointers to positions in points, lines, triangles
-   DynamicIntArray currentPointGroup;
-   DynamicIntArray currentLineGroup;
-   DynamicIntArray currentTriangleGroup;
+   VertexIndexArray currentPointGroup;
+   VertexIndexArray currentLineGroup;
+   VertexIndexArray currentTriangleGroup;
 
    boolean pointsModified;
    boolean linesModified;
@@ -1850,7 +1850,7 @@ public class RenderObject {
          
          currentPointGroup.trimToSize();
          
-         out = currentPointGroup.getData ();
+         out = currentPointGroup.getArray ();
       }
       return out;
    }
@@ -1892,7 +1892,7 @@ public class RenderObject {
    }
    
    public int createPointGroupInternal() {
-      DynamicIntArray newPoints = new DynamicIntArray();
+      VertexIndexArray newPoints = new VertexIndexArray();
       points.add(newPoints);
       currentPointGroup = newPoints;
       int idx = stateInfo.numPointGroups;
@@ -1952,9 +1952,9 @@ public class RenderObject {
       int[] pnts = null;
       if (hasPoints()) {
          
-         DynamicIntArray pg = points.get (pgroup);
+         VertexIndexArray pg = points.get (pgroup);
          pg.trimToSize ();
-         pnts = pg.getData ();
+         pnts = pg.getArray ();
          
       }
       return pnts;
@@ -2175,7 +2175,7 @@ public class RenderObject {
    public int[] getLines() {
       if (hasLines()) {
          currentLineGroup.trimToSize ();
-         return currentLineGroup.getData ();
+         return currentLineGroup.getArray ();
       }
       return null;
    }
@@ -2201,7 +2201,7 @@ public class RenderObject {
    }
    
    private int createLineGroupInternal() {
-      DynamicIntArray newLines = new DynamicIntArray();
+      VertexIndexArray newLines = new VertexIndexArray();
       lines.add(newLines);
       currentLineGroup = newLines;
       int idx = stateInfo.numLineGroups;
@@ -2274,9 +2274,9 @@ public class RenderObject {
       int[] out = null;
       if (hasLines()) {
          
-         DynamicIntArray ll = lines.get (lgroup);
+         VertexIndexArray ll = lines.get (lgroup);
          ll.trimToSize ();
-         out = ll.getData ();
+         out = ll.getArray ();
          
       } 
       return out;
@@ -2508,7 +2508,7 @@ public class RenderObject {
    public int[] getTriangles() {
       if (hasTriangles()) {
          currentTriangleGroup.trimToSize ();
-         return currentTriangleGroup.getData ();
+         return currentTriangleGroup.getArray ();
       } 
       return null;
    }
@@ -2548,7 +2548,7 @@ public class RenderObject {
    }
    
    private int createTriangleGroupInternal() {
-      DynamicIntArray newTriangles = new DynamicIntArray();
+      VertexIndexArray newTriangles = new VertexIndexArray();
       triangles.add(newTriangles);
       currentTriangleGroup = newTriangles;
       int idx = stateInfo.numTriangleGroups;
@@ -2608,9 +2608,9 @@ public class RenderObject {
       int[] out = null;
       if (hasTriangles ()) {
          
-         DynamicIntArray tris = triangles.get (tgroup);
+         VertexIndexArray tris = triangles.get (tgroup);
          tris.trimToSize ();
-         out = tris.getData ();
+         out = tris.getArray ();
          
       }
       return out;
@@ -2872,8 +2872,8 @@ public class RenderObject {
 
       if (points != null) {
          r.points = new ArrayList<>(points.size());
-         for (DynamicIntArray pnts : points) {
-            DynamicIntArray npnts = pnts.clone();
+         for (VertexIndexArray pnts : points) {
+            VertexIndexArray npnts = pnts.clone();
             r.points.add(npnts);
          }
       } else {
@@ -2882,7 +2882,7 @@ public class RenderObject {
 
       if (lines != null) {
          r.lines = new ArrayList<>(lines.size());
-         for (DynamicIntArray lns : lines) {
+         for (VertexIndexArray lns : lines) {
             r.lines.add(lns.clone ());
          }
       } else {
@@ -2891,7 +2891,7 @@ public class RenderObject {
 
       if (triangles != null) {
          r.triangles = new ArrayList<>(triangles.size());
-         for (DynamicIntArray tris : triangles) {
+         for (VertexIndexArray tris : triangles) {
             r.triangles.add(tris.clone());
          }
       } else {

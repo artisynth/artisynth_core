@@ -151,6 +151,14 @@ public abstract class IndexBufferPutter {
    }
    
    /**
+    * Creates an integer-based index putter
+    * @param maxIndex
+    */
+   public static IndexBufferPutter getDefault() {
+      return IntegerIndexBufferPutter.getInstance ();
+   }
+   
+   /**
     * Creates the most compact putter given a maximum index
     * @param maxIndex
     */

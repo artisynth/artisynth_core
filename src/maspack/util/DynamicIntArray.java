@@ -2,15 +2,13 @@ package maspack.util;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 
 /**
  * Dynamic integer array (saves on memory vs {@link ArrayList})
  * @author Antonio
  *
  */
-public class DynamicIntArray implements Iterable<Integer> {
+public class DynamicIntArray extends ModifiedVersionBase implements Cloneable {
 
    public static final int DEFAULT_INITIAL_CAPACITY = 10;
 
@@ -24,6 +22,11 @@ public class DynamicIntArray implements Iterable<Integer> {
 
    public DynamicIntArray(int initialCapacity) {
       elementData = new int[initialCapacity];
+   }
+   
+   public DynamicIntArray(int... vals) {
+      elementData = Arrays.copyOf (vals, vals.length);
+      notifyModified ();
    }
 
    public void ensureCapacity(int cap) {
@@ -50,6 +53,7 @@ public class DynamicIntArray implements Iterable<Integer> {
    public void add(int e) {
       ensureCapacity (size+1);
       elementData[size++] = e;
+      notifyModified ();
    }
    
    public void addAll(int[] e) {
@@ -57,17 +61,22 @@ public class DynamicIntArray implements Iterable<Integer> {
       for (int i=0; i<e.length; ++i) {
          elementData[size++] = e[i];
       }
+      notifyModified ();
    }
 
    public void clear() {
       size = 0;
+      notifyModified ();
    }
 
-   public void remove(int idx) {
+   public int remove(int idx) {
       --size;
+      int out = elementData[idx];
       for (int i=idx; i<size; ++i) {
          elementData[i] = elementData[i+1];
       }
+      notifyModified ();
+      return out;
    }
 
    public void trimToSize() {
@@ -82,54 +91,17 @@ public class DynamicIntArray implements Iterable<Integer> {
 
    public void set(int idx, int e) {
       elementData[idx] = e;
+      notifyModified ();
    }
 
-   public int[] getData() {
+   /**
+    * Provides direct access to the underlying array.  If the array is modified,
+    * then the version numbering will be out of sync until {@link #notifyModified()}
+    * is called.
+    * @return the underlying array.  
+    */
+   public int[] getArray() {
       return elementData;
-   }
-
-   @Override
-   public Iterator<Integer> iterator () {
-
-      return new Iterator<Integer>() {
-
-         int cursor = -1;
-         boolean valid = false;
-
-         @Override
-         public boolean hasNext () {
-            if (cursor < size-1) {
-               return true;
-            }
-            return false;
-         }
-
-         @Override
-         public Integer next () {
-            if (cursor == size-1) {
-               throw new NoSuchElementException();
-            }
-            cursor++;
-            valid = true;
-            return elementData[cursor];
-         }
-
-         @Override
-         public void remove () {
-
-            if (!valid) {
-               throw new IllegalStateException();
-            }
-
-            --size;
-            for (int i=cursor; i<size; ++i) {
-               elementData[i] = elementData[i+1];
-            }
-            --cursor;
-            valid = false;
-
-         }
-      };
    }
    
    /**
@@ -137,7 +109,14 @@ public class DynamicIntArray implements Iterable<Integer> {
     */
    @Override
    public DynamicIntArray clone ()  {
-      DynamicIntArray out = new DynamicIntArray ();
+      
+      DynamicIntArray out;
+      try {
+         out = (DynamicIntArray)(super.clone ());
+      }
+      catch (CloneNotSupportedException e) {
+         throw new InternalErrorException ("Failed to clone");
+      }
       out.elementData = Arrays.copyOf (elementData, size);
       out.size = size;
       

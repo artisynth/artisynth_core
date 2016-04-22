@@ -66,14 +66,14 @@ public class BufferObject extends GL3ResourceBase {
       gl.glBufferData(target, size*GLSupport.BYTE_SIZE, buff, usage);
    }
    
-   public void update(GL3 gl, byte[] buff) {
-      update(gl, ByteBuffer.wrap(buff), 0);
-   }
-   
-   public void update(GL3 gl, byte[] buff, int start) {
-      update(gl, ByteBuffer.wrap(buff), start);
-   }
-   
+   //   public void update(GL3 gl, byte[] buff) {
+   //      update(gl, ByteBuffer.wrap(buff), 0);
+   //   }
+   //   
+   //   public void update(GL3 gl, byte[] buff, int start) {
+   //      update(gl, ByteBuffer.wrap(buff), start);
+   //   }
+   //   
    public void update(GL3 gl, ByteBuffer buff) {
       update(gl, buff, 0);
    }

@@ -6,32 +6,29 @@
  */
 package artisynth.core.renderables;
 
-import javax.media.opengl.GL2;
-
 import java.util.ArrayList;
 
+import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.RenderableComponentBase;
 import maspack.geometry.Face;
 import maspack.geometry.HalfEdge;
-import maspack.geometry.Vertex3d;
 import maspack.geometry.MeshBase;
+import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.Shading;
-import maspack.render.GL.GL2.GL2Viewer;
-import artisynth.core.modelbase.ModelComponentBase;
-import artisynth.core.modelbase.RenderableComponentBase;
 
 public class FaceComponent extends RenderableComponentBase {
 
    Face myFace;
    MeshBase myMesh;
-   float[] myColorBuf = new float[4];
    boolean useVertexColouring = false;
-
+   
    public static PropertyList myProps =
       new PropertyList (FaceComponent.class, ModelComponentBase.class);
 
@@ -51,7 +48,7 @@ public class FaceComponent extends RenderableComponentBase {
    public Face getFace() {
       return myFace;
    }
-
+  
    @Override
    public void prerender(RenderList list) {
       myFace.computeRenderNormal();
@@ -66,52 +63,6 @@ public class FaceComponent extends RenderableComponentBase {
          return;
       }
       
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      GL2 gl = viewer.getGL2();
-      
-      gl.glPushMatrix();
-
-      Shading shading = props.getShading();
-      if (shading != Shading.NONE) {
-         renderer.setFaceColoring (props, isSelected());
-      }
-
-      if (props.getFaceStyle() != Renderer.FaceStyle.NONE) {
-         Shading savedShadeModel = renderer.getShading();
-
-         if (shading == Shading.NONE) {
-            renderer.setColor (props.getFaceColorF(), isSelected());
-         }
-         renderer.setShading (shading);
-
-         if (props.getDrawEdges()) {
-            gl.glEnable (GL2.GL_POLYGON_OFFSET_FILL);
-            gl.glPolygonOffset (1f, 1f);
-         }
-//         if (useVertexColouring) {
-//            renderer.setLightingEnabled (false);
-//         }
-
-         drawFaces (gl, renderer, props);
-
-//         if (useVertexColouring) {
-//            renderer.setLightingEnabled (true);
-//         }
-         if (props.getDrawEdges()) {
-            gl.glDisable (GL2.GL_POLYGON_OFFSET_FILL);
-         }
-         renderer.setShading (savedShadeModel);
-      }
-
-      if (!renderer.isSelecting()) {
-         if (props.getBackColorF() != null) {
-            gl.glLightModelf (GL2.GL_LIGHT_MODEL_TWO_SIDE, 1f);
-         }
-      }
-
       if (props.getDrawEdges()) {
 
          float savedLineWidth = renderer.getLineWidth();
@@ -130,20 +81,42 @@ public class FaceComponent extends RenderableComponentBase {
             renderer.setShading (Shading.FLAT);
          }
 
-         drawEdges(gl, props);
+         drawEdges(renderer, props);
 
          renderer.setLineWidth (savedLineWidth);
          renderer.setShading (savedShadeModel);
       }
 
-      gl.glPopMatrix();
+      
+      if (props.getFaceStyle() != Renderer.FaceStyle.NONE) {
+         Shading savedShadeModel = renderer.getShading();
+         Shading shading = props.getShading();
+         if (shading != Shading.NONE) {
+            renderer.setFaceColoring (props, isSelected());
+         }
+         
+         if (shading == Shading.NONE) {
+            renderer.setColor (props.getFaceColorF(), isSelected());
+         }
+         renderer.setShading (shading);
 
+         if (props.getDrawEdges()) {
+            renderer.addDepthOffset (1);
+         }
+
+         drawFaces (renderer, shading, props);
+
+         if (props.getDrawEdges()) {
+            renderer.addDepthOffset (-1);
+         }
+         renderer.setShading (savedShadeModel);
+      }
+
+      
    }
 
-   private void drawEdges(GL2 gl, RenderProps props) {
-
-      gl.glBegin (GL2.GL_LINES);
-
+   private void drawEdges(Renderer renderer, RenderProps props) {
+      
       Face face = myFace;
       HalfEdge he = face.firstHalfEdge();
 
@@ -162,131 +135,56 @@ public class FaceComponent extends RenderableComponentBase {
       }
 
       int k = 0;
+      renderer.beginDraw (DrawMode.LINE_LOOP);
       do {
          if (useVertexColouring) {
             int cidx = colorIndices[faceOff+k];
             if (cidx != -1) {
                float[] color = colors.get(cidx);
-               gl.glColor4f (color[0], color[1], color[2], color[3]);
+               renderer.setColor (color);
             }
          }
          Point3d pnt = he.head.myRenderPnt;
-         gl.glVertex3d (pnt.x, pnt.y, pnt.z);
-         pnt = he.tail.myRenderPnt;
-         gl.glVertex3d (pnt.x, pnt.y, pnt.z);
-
+         renderer.addVertex (pnt);        
          he = he.getNext();
          k++;
       } while (he != face.firstHalfEdge());
-
-      gl.glEnd();
+      renderer.endDraw ();
+      
    }
 
-   private void drawFaces(GL2 gl, Renderer renderer, RenderProps props) {
-
-      byte[] savedCullFaceEnabled = new byte[1];
-      int[] savedCullFaceMode = new int[1];
-
-      gl.glGetBooleanv (GL2.GL_CULL_FACE, savedCullFaceEnabled, 0);
-      gl.glGetIntegerv (GL2.GL_CULL_FACE_MODE, savedCullFaceMode, 0);
-
-      Renderer.FaceStyle faces = props.getFaceStyle();
-      if (props.getDrawEdges() && faces == Renderer.FaceStyle.NONE) {
-         faces = Renderer.FaceStyle.FRONT_AND_BACK;
-      }
-      switch (faces) {
-         case FRONT_AND_BACK: {
-            gl.glDisable (GL2.GL_CULL_FACE);
-            break;
-         }
-         case FRONT: {
-            gl.glCullFace (GL2.GL_BACK);
-            break;
-         }
-         case BACK: {
-            gl.glCullFace (GL2.GL_FRONT);
-            break;
-         }
-         default:
-            break;
-      }
-      
-      // if selecting, disable face culling
-      if (renderer.isSelecting()) {
-         gl.glDisable (GL2.GL_CULL_FACE);
-      }
-      
-      drawFacesRaw (renderer, gl, props);
-
-      if (savedCullFaceEnabled[0] != 0) {
-         gl.glEnable (GL2.GL_CULL_FACE);
-      }
-      else {
-         gl.glDisable (GL2.GL_CULL_FACE);
-      }
-      gl.glCullFace (savedCullFaceMode[0]);
-
-   }
-
-   void drawFacesRaw(Renderer renderer, GL2 gl, RenderProps props) {
+   void drawFaces(Renderer renderer, Shading shading, RenderProps props) {
 
       boolean useVertexColors = useVertexColouring;
       if (renderer.isSelecting()) {
          useVertexColors = false;
       }
 
-      int type = -1;
-      int lastType = 0;
-      // 0 for triangle
-      // 1 for quad
-      // 2 for polygon
-
-      gl.glBegin(GL2.GL_TRIANGLES);
-
       Face face = myFace;
-
-      // determine face type
-      if (face.isTriangle()) {
-         type = 0;
-      } else if (face.numEdges() == 4) {
-         type = 1;
-      } else {
-         type = 2;
+      
+      boolean useVertexNormals = false; 
+      ArrayList<Vector3d> normals = null;
+      int[] normalIndices = null;
+      int normalFaceOff = -1;
+      if ((shading == Shading.SMOOTH || shading == Shading.METAL)
+         && myMesh.hasNormals ()) {
+         useVertexNormals = true;
+         normals = myMesh.getNormals();
+         normalIndices = myMesh.getNormalIndices();
+         normalFaceOff = myMesh.getFeatureIndexOffsets()[face.getIndex()];
       }
-
-      if (isSelected()) {
-         // John Lloyd: wasn't this set in the caller?
-         renderer.setFaceColoring (props, /*highlight=*/true);
-      } 
-
-      if (type == 0 && lastType != 0) {
-         gl.glEnd();
-         gl.glBegin(GL2.GL_TRIANGLES);
-      } else if (type == 1 && lastType != 1) {
-         gl.glEnd();
-         gl.glBegin(GL2.GL_QUADS);
-      } else if (type == 2){
-         gl.glEnd();
-         gl.glBegin(GL2.GL_POLYGON);
-      }
-
       Vector3d faceNrm = face.getNormal();
-      gl.glNormal3d (faceNrm.x, faceNrm.y, faceNrm.z);
 
-      ArrayList<float[]> colors;
-      int[] colorIndices;
-      int faceOff;
+      ArrayList<float[]> colors = null;
+      int[] colorIndices = null;
+      int colorFaceOff = -1;
       if (useVertexColouring) {
          colors = myMesh.getColors();
          colorIndices = myMesh.getColorIndices();
-         faceOff = myMesh.getFeatureIndexOffsets()[face.getIndex()];
-      }
-      else {
-         colors = null;
-         colorIndices = null;
-         faceOff = -1;
+         colorFaceOff = myMesh.getFeatureIndexOffsets()[face.getIndex()];
       }
       
+      renderer.beginDraw (DrawMode.TRIANGLE_FAN);
       HalfEdge he = face.firstHalfEdge();
       int k = 0;
       do {
@@ -294,20 +192,27 @@ public class FaceComponent extends RenderableComponentBase {
          Point3d pnt = vtx.myRenderPnt;
 
          if (useVertexColors) {
-            int cidx = colorIndices[faceOff+k];
+            int cidx = colorIndices[colorFaceOff+k];
             if (cidx != -1) {
                float[] color = colors.get(cidx);
-               gl.glColor4f (color[0], color[1], color[2], color[3]);
+               renderer.setColor (color);
             }
          }
-         gl.glVertex3d (pnt.x, pnt.y, pnt.z);
+         if (useVertexNormals) {
+            int nidx = normalIndices[normalFaceOff+k];
+            if (nidx != -1) {
+               Vector3d normal = normals.get (nidx);
+               renderer.setNormal (normal);
+            }
+         } else {
+            renderer.setNormal (faceNrm);
+         }
+         renderer.addVertex (pnt.x, pnt.y, pnt.z);
 
          he = he.getNext();
          k++;
       } while (he != face.firstHalfEdge());
-
-      gl.glEnd();
-
+      renderer.endDraw ();
 
    }
 

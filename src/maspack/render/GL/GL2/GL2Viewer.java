@@ -26,6 +26,7 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
+import maspack.render.ColorMapProps;
 import maspack.render.Dragger3d;
 import maspack.render.Light;
 import maspack.render.Light.LightSpace;
@@ -33,10 +34,11 @@ import maspack.render.Light.LightType;
 import maspack.render.RenderKey;
 import maspack.render.RenderList;
 import maspack.render.RenderObject;
+import maspack.render.RenderObject.RenderObjectIdentifier;
 import maspack.render.RenderObject.RenderObjectVersion;
 import maspack.render.RenderProps;
 import maspack.render.TextureContent;
-import maspack.render.ColorMapProps;
+import maspack.render.VertexIndexArray;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLColorSelector;
 import maspack.render.GL.GLFrameCapture;
@@ -52,6 +54,7 @@ import maspack.render.GL.GL2.GL2Primitive.PrimitiveType;
 import maspack.render.GL.GL2.RenderObjectKey.DrawType;
 import maspack.render.color.ColorUtils;
 import maspack.util.BooleanHolder;
+import maspack.util.DynamicIntArray;
 import maspack.util.InternalErrorException;
 
 /**
@@ -3305,10 +3308,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    }
 
    private static class VertexFingerPrint {
-
       private RenderObjectVersion rv;
       private DrawMode mode;
-
       public VertexFingerPrint(RenderObjectVersion rv,DrawMode mode) {
          this.rv = rv;
          this.mode = mode;
@@ -3329,6 +3330,40 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          }
          VertexFingerPrint other = (VertexFingerPrint)obj;
          if (mode != other.mode) {
+            return false;
+         }
+         return rv.equals(other.rv);
+      }
+   }
+   
+   private static class VertexListFingerPrint {
+      private RenderObjectVersion rv;
+      DrawMode mode;
+      private int listVersion;
+      public VertexListFingerPrint(RenderObjectVersion rv, DrawMode mode, int listVersion) {
+         this.rv = rv;
+         this.mode = mode;
+         this.listVersion = listVersion;
+      }
+
+      @Override
+      public int hashCode() {
+         return listVersion + 31*rv.hashCode() + 71*mode.hashCode ();
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+         if (obj == this) {
+            return true;
+         }
+         if (obj == null || obj.getClass() != this.getClass()) {
+            return false;
+         }
+         VertexListFingerPrint other = (VertexListFingerPrint)obj;
+         if (listVersion != other.listVersion) {
+            return false;
+         }
+         if (this.mode != other.mode) {
             return false;
          }
          return rv.equals(other.rv);
@@ -4019,6 +4054,294 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       } else {
          gvo.draw (gl);
       }
+
+      if (hasTexture) {
+         deactivateTexture (gl);
+      }
+      
+      // disable color tracking
+      if (useColors) {
+         gl.glDisable (GL2.GL_COLOR_MATERIAL);
+         if (useHSV) {
+            gl.glUseProgramObjectARB (0);
+         }
+      }
+
+      if (enableLighting) {
+         setLightingEnabled(true);
+      }
+
+   }
+   
+   private static class RenderObjectListKey implements RenderKey {
+
+      RenderObjectKey roKey;
+      VertexIndexArray list;
+      
+      public RenderObjectListKey (RenderObjectIdentifier rId, VertexIndexArray vertices) {
+         roKey = new RenderObjectKey (rId, DrawType.VERTICES, 0);
+         this.list = vertices;
+      }
+      
+      @Override
+      public boolean isValid () {
+         if (list.isDisposed ()) {
+            return false;
+         }
+         return roKey.isValid ();
+      }
+      
+      @Override
+      public boolean equals (Object obj) {
+         if (obj == this) {
+            return true;
+         }
+         if (obj.getClass () != this.getClass ()) {
+            return false;
+         }
+         RenderObjectListKey other = (RenderObjectListKey)obj;
+         if (list != other.list) {
+            return false;
+         }
+         if (!roKey.equals (other.roKey)) {
+            return false;
+         }
+         return true;
+      }
+      
+      @Override
+      public int hashCode () {
+         return roKey.hashCode ()*31 + list.hashCode ();
+      }
+      
+   }
+   
+   @Override
+   public void drawVertices (RenderObject robj, VertexIndexArray idxs, DrawMode mode) {
+      
+      boolean enableLighting = false;
+      if (isLightingEnabled() && !robj.hasNormals()) {
+         enableLighting = true;
+         setLightingEnabled(false);
+      }
+      maybeUpdateState(gl);
+      
+      boolean selecting = isSelecting();
+      boolean hasColors = (robj.hasColors() && hasVertexColoring());
+      boolean useColors = hasColors && !selecting;
+      boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
+
+      // if use vertex colors, get them to track glColor
+      if (useColors) {
+         gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
+         // if selection color is active, ignore material color
+         if (!myHighlightColorActive) {
+            gl.glEnable (GL2.GL_COLOR_MATERIAL);
+         }
+         if (useHSV) {
+            useHSV = setupHSVInterpolation(gl);
+         }
+      }
+      
+      boolean hasTexture = robj.hasTextureCoords ();
+      if (hasTexture) {
+         hasTexture = maybeActivateTextures (gl);
+      }
+
+      boolean useDisplayList = !selecting || !hasColors;
+      GL2VersionedObject gvo = null;
+      RenderObjectListKey key = new RenderObjectListKey(robj.getIdentifier (), idxs);
+      VertexListFingerPrint fingerprint = new VertexListFingerPrint(robj.getVersionInfo(), mode, idxs.getVersion ());
+      boolean compile = true;
+
+      if (useDisplayList) {
+         gvo = myGLResources.getVersionedObject (key);
+         if (gvo != null) {
+            boolean iv = gvo.disposeInvalid (gl);
+            if (iv == true) {
+               System.out.println (" invalid object disposed " + gvo);
+            }
+         }
+         if (gvo == null || gvo.disposeInvalid (gl)) {
+            gvo = myGLResources.allocateVersionedObject (gl, key, fingerprint);
+            compile = true;
+         } else {
+            compile = !(gvo.compareExchangeFingerPrint(fingerprint));
+         }
+      }
+
+      if (compile) {
+         if (gvo != null) {
+            gvo.beginCompile (gl);
+         }
+
+         switch (mode) {
+            case LINES:
+               gl.glBegin(GL2.GL_LINES);
+               break;
+            case LINE_LOOP:
+               gl.glBegin(GL2.GL_LINE_LOOP);
+               break;
+            case LINE_STRIP:
+               gl.glBegin(GL2.GL_LINE_STRIP);
+               break;
+            case POINTS:
+               gl.glBegin(GL2.GL_POINTS);
+               break;
+            case TRIANGLES:
+               gl.glBegin(GL2.GL_TRIANGLES);
+               break;
+            case TRIANGLE_FAN:
+               gl.glBegin(GL2.GL_TRIANGLE_FAN);
+               break;
+            case TRIANGLE_STRIP:
+               gl.glBegin(GL2.GL_TRIANGLE_STRIP);
+               break;
+            default:
+               gl.glBegin(GL2.GL_POINTS);
+               break;
+         }
+
+         robj.readLock (); // prevent writes
+
+         int vertexCount = idxs.size ();
+         int positionOffset = robj.getVertexPositionOffset ();
+         int normalOffset = robj.getVertexNormalOffset ();
+         int colorOffset = robj.getVertexColorOffset ();
+         int texcoordOffset = robj.getVertexTextureCoordOffset ();
+         int vertexStride = robj.getVertexStride ();
+         int[] verts = robj.getVertexBuffer ();
+ 
+         for (int i=0; i<vertexCount; ++i) {
+            int baseIdx = idxs.get (i)*vertexStride;
+            if (!selecting && useColors) {
+               setVertexColor (gl, robj.getColor (verts[baseIdx+colorOffset]), useHSV);
+            }
+            if (robj.hasNormals()) {
+               gl.glNormal3fv(robj.getNormal(verts[baseIdx+normalOffset]),0);
+            }
+            if (robj.hasTextureCoords ()) {
+               gl.glTexCoord2fv (robj.getTextureCoord (verts[baseIdx+texcoordOffset]), 0);
+            }
+            gl.glVertex3fv(robj.getPosition(verts[baseIdx+positionOffset]), 0);
+         }
+
+         robj.readUnlock (); // prevent writes
+
+         gl.glEnd();
+
+         if (gvo != null) {
+            gvo.endCompile (gl);
+            gvo.draw (gl);
+         }
+      } else {
+         gvo.draw (gl);
+      }
+
+      if (hasTexture) {
+         deactivateTexture (gl);
+      }
+      
+      // disable color tracking
+      if (useColors) {
+         gl.glDisable (GL2.GL_COLOR_MATERIAL);
+         if (useHSV) {
+            gl.glUseProgramObjectARB (0);
+         }
+      }
+
+      if (enableLighting) {
+         setLightingEnabled(true);
+      }
+      
+   }
+   
+   @Override
+   public void drawVertices(RenderObject robj, int[] idxs, DrawMode mode) {
+
+      boolean enableLighting = false;
+      if (isLightingEnabled() && !robj.hasNormals()) {
+         enableLighting = true;
+         setLightingEnabled(false);
+      }
+      maybeUpdateState(gl);
+      
+      boolean selecting = isSelecting();
+      boolean hasColors = (robj.hasColors() && hasVertexColoring());
+      boolean useColors = hasColors && !selecting;
+      boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
+
+      // if use vertex colors, get them to track glColor
+      if (useColors) {
+         gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
+         // if selection color is active, ignore material color
+         if (!myHighlightColorActive) {
+            gl.glEnable (GL2.GL_COLOR_MATERIAL);
+         }
+         if (useHSV) {
+            useHSV = setupHSVInterpolation(gl);
+         }
+      }
+      
+      boolean hasTexture = robj.hasTextureCoords ();
+      if (hasTexture) {
+         hasTexture = maybeActivateTextures (gl);
+      }
+
+      switch (mode) {
+         case LINES:
+            gl.glBegin(GL2.GL_LINES);
+            break;
+         case LINE_LOOP:
+            gl.glBegin(GL2.GL_LINE_LOOP);
+            break;
+         case LINE_STRIP:
+            gl.glBegin(GL2.GL_LINE_STRIP);
+            break;
+         case POINTS:
+            gl.glBegin(GL2.GL_POINTS);
+            break;
+         case TRIANGLES:
+            gl.glBegin(GL2.GL_TRIANGLES);
+            break;
+         case TRIANGLE_FAN:
+            gl.glBegin(GL2.GL_TRIANGLE_FAN);
+            break;
+         case TRIANGLE_STRIP:
+            gl.glBegin(GL2.GL_TRIANGLE_STRIP);
+            break;
+         default:
+            gl.glBegin(GL2.GL_POINTS);
+            break;
+      }
+
+      robj.readLock (); // prevent writes
+
+      int vertexCount = idxs.length;
+      int positionOffset = robj.getVertexPositionOffset ();
+      int normalOffset = robj.getVertexNormalOffset ();
+      int colorOffset = robj.getVertexColorOffset ();
+      int texcoordOffset = robj.getVertexTextureCoordOffset ();
+      int vertexStride = robj.getVertexStride ();
+      int[] verts = robj.getVertexBuffer ();
+
+      for (int i=0; i<vertexCount; ++i) {
+         int baseIdx = idxs[i]*vertexStride;
+         if (!selecting && useColors) {
+            setVertexColor (gl, robj.getColor (verts[baseIdx+colorOffset]), useHSV);
+         }
+         if (robj.hasNormals()) {
+            gl.glNormal3fv(robj.getNormal(verts[baseIdx+normalOffset]),0);
+         }
+         if (robj.hasTextureCoords ()) {
+            gl.glTexCoord2fv (robj.getTextureCoord (verts[baseIdx+texcoordOffset]), 0);
+         }
+         gl.glVertex3fv(robj.getPosition(verts[baseIdx+positionOffset]), 0);
+      }
+
+      robj.readUnlock (); // prevent writes
+
+      gl.glEnd();
 
       if (hasTexture) {
          deactivateTexture (gl);

@@ -7,15 +7,15 @@ import maspack.render.RenderObject;
 /**
  * VAO-based object associated with a RenderObject, CANNOT be shared between multiple contexts
  */
-public class GL3RenderObjectIndexed extends GL3ResourceBase implements GL3Drawable {
+public class GL3RenderObjectPrimitives extends GL3ResourceBase implements GL3Drawable {
 
    VertexArrayObject vao;
-   GL3SharedRenderObjectIndexed glo;
+   GL3SharedRenderObjectPrimitives glo;
    int lastVertexVersion;
    GL3VertexAttributeMap attrMap;
    
-   private GL3RenderObjectIndexed(VertexArrayObject vao,
-      GL3SharedRenderObjectIndexed glo) {
+   private GL3RenderObjectPrimitives(VertexArrayObject vao,
+      GL3SharedRenderObjectPrimitives glo) {
       this.glo = glo.acquire ();
       this.vao = vao.acquire ();
       
@@ -66,8 +66,8 @@ public class GL3RenderObjectIndexed extends GL3ResourceBase implements GL3Drawab
    
    
    @Override
-   public GL3RenderObjectIndexed acquire () {
-      return (GL3RenderObjectIndexed)super.acquire ();
+   public GL3RenderObjectPrimitives acquire () {
+      return (GL3RenderObjectPrimitives)super.acquire ();
    }
    
    public boolean maybeUpdate(GL3 gl, RenderObject robj) {
@@ -98,9 +98,9 @@ public class GL3RenderObjectIndexed extends GL3ResourceBase implements GL3Drawab
       unbind(gl);
    }
    
-   public static GL3RenderObjectIndexed generate(GL3 gl, GL3SharedRenderObjectIndexed glo) {
+   public static GL3RenderObjectPrimitives generate(GL3 gl, GL3SharedRenderObjectPrimitives glo) {
       VertexArrayObject vao = VertexArrayObject.generate (gl);
-      GL3RenderObjectIndexed out = new GL3RenderObjectIndexed (vao, glo);
+      GL3RenderObjectPrimitives out = new GL3RenderObjectPrimitives (vao, glo);
       return out;
    }
 }

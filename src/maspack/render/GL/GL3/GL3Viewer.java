@@ -4,6 +4,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -20,12 +21,13 @@ import javax.swing.event.MouseInputListener;
 import artisynth.core.util.ArtisynthPath;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.render.ColorMapProps;
 import maspack.render.Dragger3d;
 import maspack.render.RenderList;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.TextureContent;
-import maspack.render.ColorMapProps;
+import maspack.render.VertexIndexArray;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLFrameCapture;
 import maspack.render.GL.GLGridPlane;
@@ -39,6 +41,7 @@ import maspack.render.GL.GLTexture;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GL3.GL3SharedPrimitive.PrimitiveType;
 import maspack.render.GL.GL3.GLSLGenerator.StringIntPair;
+import maspack.util.BufferUtilities;
 import maspack.util.InternalErrorException;
 
 public class GL3Viewer extends GLViewer {
@@ -71,6 +74,7 @@ public class GL3Viewer extends GLViewer {
    // like single lines, etc...
    GL3FlexObject gloFlex = null;
    GL3Primitive[] primitives = null;
+   ElementArray eaFlex = null;
 
    // screenshot
    private GLFrameCapture frameCapture = null;
@@ -149,7 +153,7 @@ public class GL3Viewer extends GLViewer {
       myGLResources = resources;
       canvas = myGLResources.createCanvas();
       myGLResources.registerViewer (this);
-      myRenderObjectManager = new GL3RenderObjectManager (resources.getSharedRenderObjectManager());
+      myRenderObjectManager = new GL3RenderObjectManager (resources);
       
       myPrimitiveManager = new GL3PrimitiveManager (resources.getSharedPrimitiveManager());
       primitives = new GL3Primitive[PrimitiveType.values ().length];
@@ -268,6 +272,8 @@ public class GL3Viewer extends GLViewer {
          myGLResources.getVertexPositionAttribute (), myGLResources.getVertexNormalAttribute(), 
          myGLResources.getVertexColorAttribute(), myGLResources.getVertexTexcoordAttribute());
 
+      eaFlex = ElementArray.generate (gl);
+      
       // trigger rebuild of renderables
       buildInternalRenderList();
 
@@ -316,6 +322,9 @@ public class GL3Viewer extends GLViewer {
       // clear temporaries
       gloFlex.dispose (gl);
       gloFlex = null;
+      
+      eaFlex.dispose (gl);
+      eaFlex = null;
 
       System.out.println("GL3 disposed");
       GLSupport.checkAndPrintGLError(drawable.getGL ());
@@ -1897,7 +1906,7 @@ public class GL3Viewer extends GLViewer {
    public void drawTriangles(RenderObject robj, int gidx) {
       GLSupport.checkAndPrintGLError(gl);
 
-      GL3RenderObjectIndexed gro = myRenderObjectManager.getIndexed (gl, robj);
+      GL3RenderObjectPrimitives gro = myRenderObjectManager.getPrimitives (gl, robj);
 
       maybeUpdateState(gl);
 
@@ -1930,7 +1939,7 @@ public class GL3Viewer extends GLViewer {
    public void drawLines(RenderObject robj, int gidx) {
       GLSupport.checkAndPrintGLError(gl);
       
-      GL3RenderObjectIndexed gro = myRenderObjectManager.getIndexed (gl, robj);
+      GL3RenderObjectPrimitives gro = myRenderObjectManager.getPrimitives (gl, robj);
       maybeUpdateState(gl);
       updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
 
@@ -1946,7 +1955,7 @@ public class GL3Viewer extends GLViewer {
    @Override
    public void drawPoints(RenderObject robj, int gidx) {
       GLSupport.checkAndPrintGLError(gl);
-      GL3RenderObjectIndexed gro = myRenderObjectManager.getIndexed (gl, robj);
+      GL3RenderObjectPrimitives gro = myRenderObjectManager.getPrimitives (gl, robj);
       maybeUpdateState(gl);
       updateProgram (gl, RenderingMode.POINTS, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
       gro.drawPointGroup (gl, GL.GL_POINTS, gidx);
@@ -1956,11 +1965,53 @@ public class GL3Viewer extends GLViewer {
    @Override
    public void drawVertices(RenderObject robj, DrawMode mode) {
       GLSupport.checkAndPrintGLError(gl);
-      GL3RenderObjectIndexed gro = myRenderObjectManager.getIndexed (gl, robj);
+      GL3RenderObjectPrimitives gro = myRenderObjectManager.getPrimitives (gl, robj);
       maybeUpdateState(gl);
-      updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
+      updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), 
+         robj.hasColors (), robj.hasTextureCoords ());
       gro.drawVertices (gl, getDrawPrimitive (mode));
    }
+   
+   @Override
+   public void drawVertices (
+      RenderObject robj, VertexIndexArray idxs, DrawMode mode) {
+      GLSupport.checkAndPrintGLError(gl);
+      GL3RenderObjectElements gro = myRenderObjectManager.getElements (gl, robj, idxs);
+      maybeUpdateState(gl);
+      updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), 
+         robj.hasColors (), robj.hasTextureCoords ());
+      gro.drawElements (gl, getDrawPrimitive(mode));
+   }
+   
+   
+   
+   @Override
+   public void drawVertices(RenderObject robj, int[] idxs, DrawMode mode) {
+      
+      GLSupport.checkAndPrintGLError(gl);
+      GL3SharedRenderObjectPrimitives gro = myGLResources.getPrimitives (gl, robj);
+      maybeUpdateState(gl);
+      updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), 
+         robj.hasColors (), robj.hasTextureCoords ());
+      
+      // fill element buffer
+      IndexBufferPutter putter = IndexBufferPutter.getDefault ();
+      ByteBuffer buff = BufferUtilities.newNativeByteBuffer (idxs.length*putter.bytesPerIndex ());
+      putter.putIndices (buff, idxs, 0, 1, idxs.length);
+      buff.flip ();
+      eaFlex.fill (gl, buff, GL.GL_UNSIGNED_INT, idxs.length, buff.limit (), GL3.GL_STREAM_DRAW);
+      buff = BufferUtilities.freeDirectBuffer (buff);
+      
+      VertexArrayObject.bindDefault (gl);
+      gro.bindVertices (gl);
+      eaFlex.bind (gl);
+      
+      gro.drawElements (gl, getDrawPrimitive (mode), eaFlex.count (), eaFlex.type (), 0);
+
+      gro.unbindVertices(gl);
+      eaFlex.unbind (gl);
+      
+   };
 
 
    @Override

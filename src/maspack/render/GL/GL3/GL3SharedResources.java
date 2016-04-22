@@ -5,6 +5,7 @@ import javax.media.opengl.GL3;
 import javax.media.opengl.GLCapabilities;
 
 import maspack.render.RenderObject;
+import maspack.render.VertexIndexArray;
 import maspack.render.GL.GLSharedResources;
 
 public class GL3SharedResources extends GLSharedResources {
@@ -13,6 +14,7 @@ public class GL3SharedResources extends GLSharedResources {
    private GL3SharedPrimitiveManager primManager;
    private GL3VertexAttributeMap vertexAttributes;
    private GL3SharedRenderObjectManager groManager;
+   private GL3SharedVertexIndexArrayManager viaManager;
 
    public GL3SharedResources(GLCapabilities cap, GL3VertexAttributeMap attributes) {
       super(cap);
@@ -25,9 +27,11 @@ public class GL3SharedResources extends GLSharedResources {
       
       primManager = new GL3SharedPrimitiveManager(primFactory);
       groManager = new GL3SharedRenderObjectManager (vertexAttributes);
+      viaManager = new GL3SharedVertexIndexArrayManager ();
       
       addGarbageSource (primManager);
       addGarbageSource (groManager);
+      addGarbageSource (viaManager);
    }
 
 
@@ -38,10 +42,11 @@ public class GL3SharedResources extends GLSharedResources {
       // clear shared info
       primManager.dispose(gl3);
       groManager.dispose (gl3);
+      viaManager.dispose (gl3);
    }
 
-   public GL3SharedRenderObjectIndexed getIndexed(GL3 gl, RenderObject robj) {
-      return groManager.getIndexed (gl, robj);
+   public GL3SharedRenderObjectPrimitives getPrimitives(GL3 gl, RenderObject robj) {
+      return groManager.getPrimitives (gl, robj);
    }
    
    public GL3SharedRenderObjectLines getLines(GL3 gl, RenderObject robj) {
@@ -78,5 +83,9 @@ public class GL3SharedResources extends GLSharedResources {
 
    public GL3VertexAttributeInfo getVertexTexcoordAttribute () {
       return vertexAttributes.getTexcoord ();
+   }
+   
+   public GL3SharedVertexIndexArray getVertexIndexArray(GL3 gl, VertexIndexArray via) {
+      return viaManager.getElementArray (gl, via);
    }
 }

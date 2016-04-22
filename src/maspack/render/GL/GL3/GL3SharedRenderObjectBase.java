@@ -1,5 +1,6 @@
 package maspack.render.GL.GL3;
 
+import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
 
 import maspack.render.RenderObject;
@@ -418,6 +419,30 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
          gl.glVertexAttribPointer (loc, storage.size (), storage.getGLType (), storage.isNormalized (), 
             textureInfo.stride, textureInfo.offset);
       }
+   }
+   
+   public void unbindVertices(GL3 gl) {
+      if (positionInfo != null) {
+         int loc = posAttribute.getLocation ();
+         gl.glDisableVertexAttribArray (loc);
+      }
+
+      if (normalInfo != null) {
+         int loc = nrmAttribute.getLocation ();
+         gl.glDisableVertexAttribArray (loc);
+      }
+
+      if (colorInfo != null) {
+         int loc = clrAttribute.getLocation ();
+         gl.glDisableVertexAttribArray (loc);
+      }
+
+      if (textureInfo != null) {
+         int loc = texAttribute.getLocation ();
+         gl.glDisableVertexAttribArray (loc);
+      }
+      
+      gl.glBindBuffer (GL.GL_ARRAY_BUFFER, 0);
    }
    
 }

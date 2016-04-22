@@ -6,7 +6,7 @@ import javax.media.opengl.GL3;
 public class IndexBufferObject extends BufferObject {
 
    private static final int TARGET = GL.GL_ELEMENT_ARRAY_BUFFER;
-   
+
    public IndexBufferObject (int vboId) {
       super (TARGET, vboId);
    }

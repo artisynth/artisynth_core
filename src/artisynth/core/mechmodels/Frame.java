@@ -819,7 +819,7 @@ public class Frame extends DynamicComponentBase
       myRenderFrame.set (myState.XFrameToWorld);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myState.pos.updateBounds (pmin, pmax);
    }
 

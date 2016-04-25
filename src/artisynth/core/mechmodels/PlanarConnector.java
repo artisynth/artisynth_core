@@ -180,7 +180,7 @@ public class PlanarConnector extends BodyConnector
       setBodies (bodyA, TCA, null, XPW);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       computeRenderVtxs (getCurrentTDW());
       for (int i = 0; i < myRenderVtxs.length; i++) {
          myRenderVtxs[i].updateBounds (pmin, pmax);

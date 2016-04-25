@@ -4,6 +4,7 @@ import java.util.LinkedList;
 
 import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.render.RenderList;
 import maspack.render.RenderObject;
 import maspack.render.Renderer;
@@ -22,7 +23,7 @@ public class InstanceTest extends GL2vsGL3Tester {
          RenderObject robj = null;
          
          @Override
-         public void updateBounds (Point3d pmin, Point3d pmax) {
+         public void updateBounds (Vector3d pmin, Vector3d pmax) {
             Point3d.X_UNIT.updateBounds (pmin, pmax);
             Point3d.Y_UNIT.updateBounds (pmin, pmax);
             Point3d.Z_UNIT.updateBounds (pmin, pmax);

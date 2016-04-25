@@ -18,6 +18,7 @@ windowsInstallation.pdf: windowsInstallation.tex installation.tex
 	pdflatex windowsInstallation.tex
 	pdflatex windowsInstallation.tex
 	pdflatex windowsInstallation.tex
+	rm -rf $(LATEX_JUNK_FILES)
 
 windowsInstallation.xml: windowsInstallation.tex installation.tex
 	latexml windowsInstallation.tex >windowsInstallation.xml
@@ -37,6 +38,7 @@ linuxInstallation.pdf: linuxInstallation.tex installation.tex
 	pdflatex linuxInstallation.tex
 	pdflatex linuxInstallation.tex
 	pdflatex linuxInstallation.tex
+	rm -rf $(LATEX_JUNK_FILES)
 
 linuxInstallation.xml: linuxInstallation.tex installation.tex
 	latexml linuxInstallation.tex >linuxInstallation.xml
@@ -56,6 +58,7 @@ macosInstallation.pdf: macosInstallation.tex installation.tex
 	pdflatex macosInstallation.tex
 	pdflatex macosInstallation.tex
 	pdflatex macosInstallation.tex
+	rm -rf $(LATEX_JUNK_FILES)
 
 macosInstallation.xml: macosInstallation.tex installation.tex
 	latexml macosInstallation.tex >macosInstallation.xml

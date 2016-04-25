@@ -391,9 +391,19 @@ li.bibitem  {margin-top: .5em; margin-bottom: .5em; }
   font-weight:bold;
 }
 
+/** Fix part title size **/
+.ltx_title_part {
+  font-size: 200%;
+}
+
+/** Fix chapter title size **/
+.ltx_title_chapter {
+  font-size: 180%;
+}
+
 /** Fix section title size **/
 .ltx_title_section {
-  font-size: 150%;
+  font-size: 140%;
 }
 
 /**

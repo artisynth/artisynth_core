@@ -1430,7 +1430,7 @@ public class Face extends Feature implements Boundable {
    // return idx;
    // }
 
-   public void updateBounds (Point3d min, Point3d max) {
+   public void updateBounds (Vector3d min, Vector3d max) {
       HalfEdge he = he0;
       do {
          Vertex3d vtx = he.head;

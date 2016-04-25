@@ -137,7 +137,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
       }
    }
 
-   private boolean isStressOrStrainRendering (SurfaceRender mode) {
+   boolean isStressOrStrainRendering (SurfaceRender mode) {
       return (mode == SurfaceRender.Strain || mode == SurfaceRender.Stress);
    }
    
@@ -302,11 +302,10 @@ public abstract class FemMeshBase extends SkinMeshBase {
    
    @Override
    public void prerender(RenderList list) {
-      super.prerender(list);
-      
       if (isStressOrStrainRendering (mySurfaceRendering)) {
          updateVertexColors();
       }
+      super.prerender(list);
    }
    
    @Override

@@ -208,7 +208,7 @@ public class AxialSpring extends PointSpringBase
 //      return myPnt1.myRenderCoords;
 //   }
 //
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myPnt0.updateBounds (pmin, pmax);
       myPnt1.updateBounds (pmin, pmax);
    }

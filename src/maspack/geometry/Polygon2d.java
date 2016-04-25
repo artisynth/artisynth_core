@@ -14,6 +14,7 @@ import java.util.NoSuchElementException;
 import maspack.matrix.AffineTransform2dBase;
 import maspack.matrix.Point2d;
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.render.PointLineRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
@@ -467,7 +468,7 @@ public class Polygon2d implements Renderable {
    public void prerender (RenderList list) {
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       Vertex2d vtx = firstVertex;
       if (vtx != null) {
          Point3d tmp = new Point3d();

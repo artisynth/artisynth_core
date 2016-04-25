@@ -16,6 +16,7 @@ $(PDF_DIR)/codingStandard.pdf: codingStandard.pdf
 codingStandard.pdf: codingStandard.tex
 	pdflatex codingStandard.tex
 	pdflatex codingStandard.tex
+	rm -rf $(LATEX_JUNK_FILES)
 
 codingStandard.xml: codingStandard.tex
 	latexml codingStandard.tex >codingStandard.xml

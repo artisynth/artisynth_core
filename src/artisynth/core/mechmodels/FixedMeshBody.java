@@ -21,6 +21,7 @@ import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
 import maspack.matrix.Quaternion;
 import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -122,7 +123,7 @@ public class FixedMeshBody extends MeshComponent {
       setMesh (mesh, fileName, X);            
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myMeshInfo.myMesh.updateBounds (pmin, pmax);
    }
 

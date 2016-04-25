@@ -1,6 +1,6 @@
 %!TEX root = modelguide.tex
 
-\section{ArtiSynth Overview}
+\chapter{ArtiSynth Overview}
 \label{Overview:sec}
 
 ArtiSynth is an open-source, Java-based system for creating and
@@ -12,7 +12,7 @@ and dentistry, but it can also be applied to other areas such as
 traditional mechanical simulation, ergonomic design, and graphical and
 visual effects.
 
-\subsection{System structure}
+\section{System structure}
 
 An ArtiSynth model is composed of a hierarchy of models and model
 components which are implemented by
@@ -33,7 +33,7 @@ allows users to view and edit the model hierarchy, modify component
 properties, and edit and temporally arrange the input and output
 probes using a {\it timeline} display.
 
-\subsubsection{Model components}
+\subsection{Model components}
 
 Every ArtiSynth component is an instance of
 \javaclass[artisynth.core.modelbase]{ModelComponent}. When connected
@@ -73,7 +73,7 @@ The most common instance of {\tt Model} used
 in ArtiSynth is {\tt MechModel} (Section \ref{MechModel:sec}), which
 is the top-level container for a mechanical or biomechanical model.
 
-\subsubsection{The RootModel}
+\subsection{The RootModel}
 \label{RootModel:sec}
 
 The top-level component in the hierarchy is the {\it root model},
@@ -94,7 +94,7 @@ RootModel} include:
 
 Each agent may be associated with a specific top-level model.
 
-\subsubsection{Component path names}
+\subsection{Component path names}
 \label{PathNames:sec}
 
 The names and/or numbers of a component and its ancestors can be used to
@@ -116,7 +116,7 @@ only numbers, as in
 although this would most likely appear only in machine-generated
 output.
 
-\subsubsection{Model advancement}
+\subsection{Model advancement}
 \label{ModelAdvancement:sec}
 
 ArtiSynth simulation proceeds by advancing all of the root model's
@@ -165,7 +165,7 @@ More precise details about model advancement are given in the
 \href{../artisynth/artisynth.html}{
 ArtiSynth Reference Manual}.
 
-\subsubsection{MechModel}
+\subsection{MechModel}
 \label{MechModel:sec}
 
 Most ArtiSynth applications contain a single top-level model which is
@@ -206,7 +206,7 @@ create any component containment structure that is appropriate.
 %(Section \ref{GeneralArrangements:sec}).  
 If not used, the containers will simply remain empty.
 
-\subsection{Physics simulation}
+\section{Physics simulation}
 \label{PhysicsSimulation:sec}
 
 Only a brief summary of ArtiSynth physics simulation is described
@@ -421,12 +421,12 @@ Constrainer}) supply $\G$, $\N$, $\g$ and $\n$, and attachments ({\tt
 DynamicAttachment}) provide the information needed to factor out
 attached velocities.
 
-\subsection{Basic packages}
+\section{Basic packages}
 
 The core code of the ArtiSynth project is divided into three main
 packages, each with a number of sub-packages.
 
-\subsubsection{maspack}
+\subsection{maspack}
 
 The packages under {\tt maspack} contain general computational
 utilities that are independent of ArtiSynth and could be
@@ -447,7 +447,7 @@ maspack.widgets            // Java swing widgets for maspack data types
 maspack.apps               // stand-alone programs based only on maspack
 \end{lstlisting}
 
-\subsubsection{artisynth.core}
+\subsection{artisynth.core}
 
 The packages under {\tt artisynth.core} contain the core code for
 ArtiSynth model components and its GUI infrastructure.
@@ -465,7 +465,7 @@ artisynth.core.gui         // graphical interface
 artisynth.core.inverse     // inverse controller
 \end{lstlisting}
 
-\subsubsection{artisynth.demos}
+\subsection{artisynth.demos}
 
 These packages contain demonstration models that illustrate
 ArtiSynth's modeling capabilities:
@@ -477,7 +477,7 @@ artisynth.demos.inverse    // demos involving inverse control
 artisynth.demos.tutorial   // demos in this manual
 \end{lstlisting}
 
-\subsection{Properties}
+\section{Properties}
 \label{Properties:sec}
 
 ArtiSynth components expose {\it properties}, which provide a uniform
@@ -503,7 +503,7 @@ instances, their definitions are class-specific.
 Properties are exported by a class through code contained in the class
 definition, as described in Section \ref{CustomProperties:sec}.
 
-\subsubsection{Property handles and paths}
+\subsection{Property handles and paths}
 \label{PropertyHandlesAndPaths:sec}
 
 Each property has a unique name which may be used to obtain a {\it
@@ -534,7 +534,7 @@ once could use a call of the form
   Property prop = mech.getProperty ("axialSprings/lad:excitation");
 \end{lstlisting}
 
-\subsubsection{Composite and inheritable properties}
+\subsection{Composite and inheritable properties}
 \label{CompositeInheritableProperties:sec}
 
 \begin{figure}[t]
@@ -566,7 +566,7 @@ explicit. In Figure (\ref{inheritedProperties:fig}), the property {\it
 stiffness} is explicitly set in components A, C, and E, and inherited
 in B and D (which inherit from A) and F (which inherits from C).
 
-\subsection{Creating an application model}
+\section{Creating an application model}
 \label{CreatingAnApplication:sec}
 
 ArtiSynth applications are created by writing and compiling
@@ -648,7 +648,7 @@ model. This method of model construction still works but is
 deprecated.
 \end{sideblock}
 
-\subsubsection{Implementing the build() method}
+\subsection{Implementing the build() method}
 
 As mentioned above, the {\tt build()} method is responsible for actual
 model construction.  Many applications are built using a single
@@ -689,7 +689,7 @@ The {\tt build()} method supplies a {\tt String} array as an argument.
 main()} methods.) These is reserved for future use to supply
 application-supplied arguments.
 
-\subsubsection{Making models visible to ArtiSynth}
+\subsection{Making models visible to ArtiSynth}
 
 In order to load an application model into ArtiSynth, the classes
 associated with its implementation must be made visible to ArtiSynth.
@@ -752,7 +752,7 @@ Guide (available for \href{../installation/linuxInstallation.html}{Linux},
 \href{../installation/windowsInstallation.html}{Windows}, and
 \href{../installation/macosInstallation.html}{MacOS}).
 
-\subsubsection{Loading and running a model}
+\subsection{Loading and running a model}
 \label{LoadingAndRunning:sec}
 
 If a model's classes are visible to ArtiSynth, then it may be loaded

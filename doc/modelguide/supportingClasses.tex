@@ -1,13 +1,13 @@
 %!TEX root = modelguide.tex
 
-\section{Supporting classes}
+\chapter{Supporting classes}
 
 ArtiSynth uses a large number of supporting classes, mostly defined in
 the super package {\tt maspack}, for handling mathematical and
 geometric quantities. Those that are referred to in this manual are
 summarized in this section.
 
-\subsection{Vectors and matrices}
+\section{Vectors and matrices}
 
 Among the most basic classes are those used to implement vectors and
 matrices, defined in {\tt maspack.matrix}. All vector classes implement
@@ -75,7 +75,7 @@ and \javaclass[maspack.matrix]{Matrix3d}:
 \end{lstlisting}
 %
 
-\subsection{Rotations and transformations}
+\section{Rotations and transformations}
 \label{RigidTransform3d:sec}
 
 {\tt maspack.matrix} contains a number classes that implement rotation
@@ -141,7 +141,7 @@ transformation in which the basic transform matrix equals a rotation.
 from the same base class
 \javaclass[maspack.matrix]{AffineTransform3dBase}.
 
-\subsection{Points and Vectors}
+\section{Points and Vectors}
 
 The rotations and transforms described above can be used to transform
 both vectors and points in space.
@@ -202,7 +202,7 @@ the method calls
 %
 produce the same result.
 
-\subsection{Spatial vectors and inertias}
+\section{Spatial vectors and inertias}
 \label{SpatialVectors:sec}
 
 The velocities, forces and inertias associated with 3D coordinate
@@ -236,7 +236,7 @@ mass, and inertia values, and querying the values of its components.
 It also contains methods for scaling and adding, transforming between
 coordinate systems, inversion, and multiplying by spatial vectors.
 
-\subsection{Meshes}
+\section{Meshes}
 \label{Meshes:sec}
 
 ArtiSynth makes extensive use of 3D meshes, which are defined in {\tt
@@ -319,7 +319,7 @@ can be used to check for this. Meshes that are not triangular can be
 made triangular using 
 \javamethod[maspack.geometry.PolygonalMesh]{triangulate()}.
 
-\subsubsection{Mesh creation}
+\subsection{Mesh creation}
 
 It is possible to create a mesh by direct construction. For example,
 the following code fragment creates a simple closed tetrahedral
@@ -399,7 +399,7 @@ new meshes by performing boolean operations on existing ones:
 \end{lstlisting}
 %
 
-\subsubsection{Setting normals, colors, and textures}
+\subsection{Setting normals, colors, and textures}
 
 Meshes provide support for adding normal, color, and texture
 information, with the exact interpretation of these quantities
@@ -630,7 +630,7 @@ information can be specified as -1, and the {\tt getNormal()}, {\tt
 getColor()} and {\tt getTexture()} methods will return {\tt null} for
 the features in question.
 
-\subsubsection{Automatic creation of normals and hard edges}
+\subsection{Automatic creation of normals and hard edges}
 \label{AutoNormalCreation:sec}
 
 For some mesh subclasses, if normals are not explicitly set, they are
@@ -683,7 +683,7 @@ a {\tt PolygonalMesh}, one may use the methods
 which control the hardness of edges between individual vertices,
 specified either directly or using their indices.
 
-\subsubsection{Vertex and feature coloring}
+\subsection{Vertex and feature coloring}
 \label{vertexAndFeatureColoring:sec}
 
 The method \javamethod[maspack.geometry.MeshBase]{setColors()} makes
@@ -764,7 +764,7 @@ is enabled can be queried using
 \end{lstlisting}
 %
 
-\subsubsection{Reading and writing mesh files}
+\subsection{Reading and writing mesh files}
 \label{MeshFileIO:sec}
 
 The package {\tt maspack.geometry.io} supplies a number of classes for
@@ -833,7 +833,7 @@ because {\tt readMesh()} returns the superclass {\tt MeshBase}, since
 the default mesh created for some file formats may be different from
 {\tt PolygonalMesh}.
 
-\subsubsection{Reading and writing normal and texture information}
+\subsection{Reading and writing normal and texture information}
 
 When writing a mesh out to a file, normal and texture information are
 also written if they have been explicitly set and the file format

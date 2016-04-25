@@ -56,6 +56,7 @@ public class BlockTest extends RootModel {
 
       if (seeContacts) {
          RenderProps.setFaceStyle (myBlock, Renderer.FaceStyle.NONE);
+         RenderProps.setShading (myBlock, Renderer.Shading.NONE);
          RenderProps.setDrawEdges (myBlock, true);
 
          CollisionManager collisions = msmod.getCollisionManager();

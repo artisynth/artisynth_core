@@ -339,4 +339,13 @@ public class ContactConstraint {
       ContactPoint.putState (newData, oldData);
       newData.putData (oldData, 5, 1);
    }
+
+   public String toString (String fmtStr) {
+      NumberFormat fmt = new NumberFormat (fmtStr);
+      String str = "[ pnt0=" + myCpnt0.toString(fmtStr);
+      str += " pnt1=" + myCpnt1.toString(fmtStr);
+      str += " dist=" + fmt.format(myDistance) + " ]";
+      return str;
+   }
+   
 }

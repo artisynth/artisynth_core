@@ -821,7 +821,7 @@ public class SignedDistanceGrid implements IsRenderable {
       renderer.setShading (savedShading);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
    }
 
    public int getRenderHints() {

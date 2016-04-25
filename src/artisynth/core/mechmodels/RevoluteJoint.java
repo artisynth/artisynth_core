@@ -198,7 +198,7 @@ public class RevoluteJoint extends JointBase
       p1.scaledAdd (myAxisLength, uW, p0);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       Point3d p0 = new Point3d();
       Point3d p1 = new Point3d();
       computeAxisEndPoints (p0, p1, getCurrentTDW());

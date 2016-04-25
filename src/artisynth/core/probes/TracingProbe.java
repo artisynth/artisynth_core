@@ -13,6 +13,7 @@ import maspack.render.*;
 import maspack.properties.*;
 import maspack.util.*;
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 
 import java.util.*;
 
@@ -107,7 +108,7 @@ RenderableComponent {
    public void prerender (RenderList list) {
    }
 
-   public abstract void updateBounds (Point3d pmin, Point3d pmax);
+   public abstract void updateBounds (Vector3d pmin, Vector3d pmax);
 
    public abstract void render (Renderer renderer, int flags);
 

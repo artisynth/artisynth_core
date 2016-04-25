@@ -9,8 +9,8 @@ package artisynth.core.mechmodels;
 import java.awt.Color;
 import java.util.Map;
 
-import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
@@ -117,7 +117,7 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
       
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       RigidTransform3d TFW = getCurrentTCW();
       TFW.p.updateBounds (pmin, pmax);
    }

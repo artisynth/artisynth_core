@@ -12,6 +12,7 @@ import maspack.util.*;
 import maspack.properties.*;
 import maspack.render.*;
 import maspack.spatialmotion.*;
+
 import java.util.*;
 
 import maspack.render.*;
@@ -100,7 +101,7 @@ public class FullPlanarJoint extends BodyConnector
       return defaultRenderProps (this);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       RigidTransform3d TDW = getCurrentTDW();
       TDW.p.updateBounds (pmin, pmax);
    }

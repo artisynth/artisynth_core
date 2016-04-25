@@ -317,6 +317,7 @@ public class FemModel3d extends FemModel
       myStiffnessDamping = DEFAULT_STIFFNESS_DAMPING;
       myMassDamping = DEFAULT_MASS_DAMPING;
       myElementWidgetSize = DEFAULT_ELEMENT_WIDGET_SIZE;
+      myElementWidgetSizeMode = PropertyMode.Inherited;
       myHardIncompMethod = DEFAULT_HARD_INCOMP;
       mySoftIncompMethod = DEFAULT_SOFT_INCOMP;
       myColorMap = defaultColorMap.copy();
@@ -3010,6 +3011,20 @@ public class FemModel3d extends FemModel
          stepAdjust.recommendAdjustment(
             0.5, "detJ "+myMinDetJ+" below limit of "+detJStepReductionLimit +
             ", element " + myMinDetJElement.getNumber());
+      }
+      // update forces if any of the meshes use stress/strain plotting.  This
+      // will happen anyway if updateForcesAtStepEnd is true.
+      boolean updateForces = getUpdateForcesAtStepEnd();
+      if (!updateForces) {
+         for (FemMeshComp mc : myMeshList) {
+            if (mc.isStressOrStrainRendering (mc.getSurfaceRendering())) {
+               updateForces = true;
+               break;
+            }
+         }
+      }
+      if (updateForces) {
+         applyForces (t1);
       }
    }
 

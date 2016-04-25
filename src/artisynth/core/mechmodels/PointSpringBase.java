@@ -12,7 +12,6 @@ import java.util.Map;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.MatrixBlockBase;
-import maspack.matrix.Point3d;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
@@ -177,7 +176,7 @@ public abstract class PointSpringBase extends Spring
       // nothing to do
    }
 
-   public abstract void updateBounds (Point3d pmin, Point3d pmax);
+   public abstract void updateBounds (Vector3d pmin, Vector3d pmax);
 
    public int getRenderHints() {
       int code = 0;

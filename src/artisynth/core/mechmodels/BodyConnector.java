@@ -1661,7 +1661,7 @@ public abstract class BodyConnector extends RenderableComponentBase
       return copy;
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       RigidTransform3d TDW = getCurrentTDW();
       TDW.p.updateBounds (pmin, pmax);
    }

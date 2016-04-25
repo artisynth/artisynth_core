@@ -13,6 +13,7 @@ import maspack.geometry.Vertex3d;
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
@@ -117,7 +118,7 @@ public class VertexComponent extends RenderableComponentBase implements
    }
    
    @Override
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       myVertex.getWorldPoint().updateBounds(pmin, pmax);
    }
    

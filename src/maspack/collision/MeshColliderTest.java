@@ -436,7 +436,7 @@ public class MeshColliderTest {
             renderer.setShading (Shading.FLAT);
          }
 
-         public void updateBounds (Point3d pmin, Point3d pmax) {
+         public void updateBounds (Vector3d pmin, Vector3d pmax) {
             // TODO Auto-generated method stub
 
          }

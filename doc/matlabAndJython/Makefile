@@ -26,6 +26,7 @@ matlabAndJython.pdf: $(SOURCES)
 	#bibtex matlabAndJython1
 	#pdflatex matlabAndJython.tex	
 	pdflatex matlabAndJython.tex
+	rm -rf $(LATEX_JUNK_FILES)
 
 matlabAndJython.xml: $(SOURCES)
 	latexml matlabAndJython.tex >matlabAndJython.xml

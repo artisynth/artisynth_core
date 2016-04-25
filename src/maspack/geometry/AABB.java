@@ -533,7 +533,7 @@ public class AABB extends BVNode {
       }
    }
 
-   public void updateBounds (Point3d min, Point3d max) {
+   public void updateBounds (Vector3d min, Vector3d max) {
       myMax.updateBounds (min, max);
       myMin.updateBounds (min, max);
    }

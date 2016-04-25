@@ -18,10 +18,10 @@ import maspack.geometry.Vertex3d;
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
-import maspack.matrix.Point3d;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.PolarDecomposition3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyUtils;
 import maspack.render.Renderer;
@@ -244,7 +244,7 @@ public class MeshComponent extends RenderableComponentBase
    }
 
    @Override
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       getMesh().updateBounds(pmin, pmax);
    }
 

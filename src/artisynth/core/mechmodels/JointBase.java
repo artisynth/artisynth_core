@@ -93,7 +93,7 @@ public abstract class JointBase extends BodyConnector  {
    //    return TDW;
    // }
    
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       Point3d pend = new Point3d();
       Vector3d del = new Vector3d (myAxisLength, myAxisLength, myAxisLength);
       pend.set (getCurrentTDW().p);

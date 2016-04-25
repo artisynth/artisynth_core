@@ -14,7 +14,7 @@ import javax.media.opengl.GL2;
 
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.util.ScalableUnits;
-import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.PointRenderProps;
 import maspack.render.RenderKeyImpl;
@@ -474,7 +474,7 @@ implements ScalableUnits {
    }
 
    @Override
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       for (VertexComponent c : this) {
          c.updateBounds(pmin, pmax);
       }

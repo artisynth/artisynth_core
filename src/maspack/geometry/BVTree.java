@@ -605,7 +605,7 @@ public abstract class BVTree implements IsRenderable {
    /**
     * {@inheritDoc}
     */
-   public void updateBounds (Point3d min, Point3d max) {
+   public void updateBounds (Vector3d min, Vector3d max) {
       if (getRoot() != null) {
          getRoot().updateBounds (min, max);
       }

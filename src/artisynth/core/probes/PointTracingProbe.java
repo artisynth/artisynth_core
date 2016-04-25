@@ -12,6 +12,7 @@ import java.util.NoSuchElementException;
 
 import maspack.interpolation.NumericListKnot;
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
@@ -140,7 +141,7 @@ public class PointTracingProbe extends TracingProbe {
       }
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       if (myNumericList == null) {
          return;
       }

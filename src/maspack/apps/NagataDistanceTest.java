@@ -222,7 +222,7 @@ public class NagataDistanceTest implements IsRenderable, HasRenderProps {
       renderer.setShading (Shading.FLAT);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       for (int i=0; i<myPoints.size(); i++) {
          myPoints.get(i).updateBounds (pmin, pmax);
       }

@@ -53,7 +53,7 @@ public class LineSegment implements Boundable {
       return myVtx0.pnt.distance(myVtx1.pnt);
    }
 
-   public void updateBounds (Point3d min, Point3d max) {
+   public void updateBounds (Vector3d min, Vector3d max) {
       myVtx0.pnt.updateBounds (min, max);
       myVtx1.pnt.updateBounds (min, max);
    }

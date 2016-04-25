@@ -571,7 +571,7 @@ public class MFreeElement3d extends FemElement implements Boundable {
       return -1;
    }
    
-   public void updateBounds(Point3d min, Point3d max) {
+   public void updateBounds(Vector3d min, Vector3d max) {
       
       if (myBoundaryMesh != null) {
          myBoundaryMesh.updateBounds(min, max);

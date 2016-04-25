@@ -73,7 +73,7 @@ public abstract class RenderableModelBase extends ModelBase
    }
 
    protected void recursivelyUpdateBounds (
-      CompositeComponent comp, Point3d pmin, Point3d pmax) {
+      CompositeComponent comp, Vector3d pmin, Vector3d pmax) {
 
       for (int i=0; i<comp.numComponents(); i++) {
          ModelComponent c = comp.get (i);
@@ -87,7 +87,7 @@ public abstract class RenderableModelBase extends ModelBase
 
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       recursivelyUpdateBounds (this, pmin, pmax);
    }
 

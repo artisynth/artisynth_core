@@ -8,7 +8,6 @@ package maspack.geometry;
 
 import java.util.LinkedList;
 
-import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.render.IsRenderable;
 import maspack.render.IsSelectable;
@@ -139,7 +138,7 @@ public class SignedDistanceGridCell implements IsSelectable {
       pointColour[2] = b;
    }
    
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
    }
    
 }

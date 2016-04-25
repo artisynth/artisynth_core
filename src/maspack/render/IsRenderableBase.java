@@ -6,7 +6,7 @@
  */
 package maspack.render;
 
-import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 
 public abstract class IsRenderableBase implements IsRenderable {
 
@@ -24,7 +24,7 @@ public abstract class IsRenderableBase implements IsRenderable {
    /**
     * {@inheritDoc}
     */
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
    }
 
    /**

@@ -10,7 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import maspack.matrix.AffineTransform3dBase;
-import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.geometry.GeometryTransformer;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
@@ -300,7 +300,7 @@ public class AuxMaterialBundle extends CompositeComponentBase
       return -1;
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
    }
 
    public int getRenderHints() {

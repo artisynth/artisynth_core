@@ -14,8 +14,8 @@ import java.util.Deque;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
-import maspack.matrix.Point3d;
 import maspack.matrix.SymmetricMatrix3d;
+import maspack.matrix.Vector3d;
 import maspack.geometry.GeometryTransformer;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
@@ -153,7 +153,7 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
       return null;
    }
 
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       super.updateBounds(pmin, pmax);
       if (myElement != null)
          myElement.updateBounds(pmin, pmax);

@@ -13,6 +13,7 @@ $(PDF_DIR)/updates.pdf: updates.pdf
 updates.pdf: updates.tex
 	pdflatex updates.tex
 	pdflatex updates.tex
+	rm -rf $(LATEX_JUNK_FILES)
 
 updates.xml: updates.tex
 	latexml updates.tex >updates.xml

@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
@@ -293,7 +294,7 @@ public abstract class FemElement extends RenderableComponentBase
       // nothing to do
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       // nothing to do
    }
 

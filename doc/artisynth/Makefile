@@ -18,6 +18,7 @@ $(PDF_DIR)/artisynth.pdf: artisynth.pdf
 artisynth.pdf: artisynth.tex
 	pdflatex artisynth.tex
 	pdflatex artisynth.tex
+	rm -rf $(LATEX_JUNK_FILES)
 
 artisynth.xml: artisynth.tex
 	latexml artisynth.tex >artisynth.xml

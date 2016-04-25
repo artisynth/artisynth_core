@@ -18,7 +18,6 @@ import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.Matrix6dBlock;
-import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SparseNumberedBlockMatrix;
@@ -190,7 +189,7 @@ public class FrameSpring extends Spring
       // nothing to do
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myFrameA.getPose().p.updateBounds (pmin, pmax);
       if (myFrameB != null) {
          myFrameB.getPose().p.updateBounds (pmin, pmax);

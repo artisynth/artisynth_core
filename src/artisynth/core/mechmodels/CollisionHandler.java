@@ -685,6 +685,7 @@ public class CollisionHandler extends ConstrainerBase
          }
       }
       removeInactiveContacts();
+      //printContacts ("%g");
       return maxpen;
    }
 
@@ -765,6 +766,22 @@ public class CollisionHandler extends ConstrainerBase
             it.remove();
             //mycontactschanged = true;
          }
+      }
+   }
+
+   private void printContacts(String fmtStr) {
+      Iterator<ContactConstraint> it;
+      it = myBilaterals0.values().iterator();
+      System.out.println ("mesh0");
+      while (it.hasNext()) {
+         ContactConstraint c = it.next();
+         System.out.println (" " + c.toString(fmtStr));
+      }
+      it = myBilaterals1.values().iterator();
+      System.out.println ("mesh1");
+      while (it.hasNext()) {
+         ContactConstraint c = it.next();
+         System.out.println (" " + c.toString(fmtStr));
       }
    }
 
@@ -1331,7 +1348,7 @@ public class CollisionHandler extends ConstrainerBase
       myRenderer.render (renderer, this, props, flags);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       if (myRenderContactInfo != null && myRenderContactInfo.contours != null) {
          for (MeshIntersectionContour contour : myRenderContactInfo.contours) {
             for (MeshIntersectionPoint p : contour) {

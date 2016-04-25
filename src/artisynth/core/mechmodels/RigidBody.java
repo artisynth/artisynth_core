@@ -915,7 +915,7 @@ public class RigidBody extends Frame
       return RenderProps.createMeshProps (this);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       PolygonalMesh mesh = getMesh();
       if (mesh != null) {
          mesh.updateBounds (pmin, pmax);

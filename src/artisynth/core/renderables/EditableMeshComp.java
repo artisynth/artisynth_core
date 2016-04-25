@@ -24,7 +24,7 @@ import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.util.ScanToken;
 import maspack.geometry.MeshBase;
 import maspack.geometry.Vertex3d;
-import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.HierarchyNode;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
@@ -265,7 +265,7 @@ public class EditableMeshComp extends MeshComponent
       return true;
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myVertexList.updateBounds(pmin, pmax);
    }
 

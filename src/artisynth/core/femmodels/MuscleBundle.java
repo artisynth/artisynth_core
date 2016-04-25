@@ -915,7 +915,7 @@ public class MuscleBundle extends CompositeComponentBase
       return -1;
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
    }
 
    public int getRenderHints() {

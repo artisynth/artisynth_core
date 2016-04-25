@@ -838,7 +838,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       }
    }
 
-   public void updateBounds (Point3d min, Point3d max) {
+   public void updateBounds (Vector3d min, Vector3d max) {
       pnt.updateBounds (min, max);
    }
 

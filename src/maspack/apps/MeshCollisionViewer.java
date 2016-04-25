@@ -29,6 +29,7 @@ import maspack.collision.SurfaceMeshCollider;
 import maspack.geometry.PolygonalMesh;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.PropertyUtils;
 import maspack.render.Dragger3dAdapter;
 import maspack.render.Dragger3dEvent;
@@ -212,7 +213,7 @@ public class MeshCollisionViewer extends GLViewerFrame
    public void prerender (RenderList list) {
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
    }
 
    public int getRenderHints() {

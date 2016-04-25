@@ -17,7 +17,7 @@ public abstract class MFreeWeightFunction implements DifferentiableFunction3x1 {
    public abstract double getIntersectionVolume(MFreeWeightFunction fun);
    public abstract void computeIntersectionCentroid(Point3d centroid, MFreeWeightFunction fun);
    public abstract void computeCentroid(Vector3d centroid);
-   public abstract void updateBounds(Point3d min, Point3d max);
+   public abstract void updateBounds(Vector3d min, Vector3d max);
    public abstract boolean isInDomain(Point3d pos, double tol);
    
 }

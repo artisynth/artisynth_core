@@ -1161,6 +1161,7 @@ public class MechSystemSolver {
       applyVelCorrection (myU, t0, t1);
 
       mySys.getActivePosState (myQ);
+
       mySys.addActivePosImpulse (myQ, h, myU);
       mySys.setActivePosState (myQ);
 

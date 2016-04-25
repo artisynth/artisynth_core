@@ -14,6 +14,7 @@ import java.util.LinkedList;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
@@ -161,7 +162,7 @@ public abstract class NURBSObject implements Renderable {
       }
    }
    
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       Point3d tmp = new Point3d();
       for (int i=0; i<myCtrlPnts.size(); i++) {
          Vector4d cpnt = myCtrlPnts.get(i);

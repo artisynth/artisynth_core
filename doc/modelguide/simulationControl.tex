@@ -1,6 +1,6 @@
 %!TEX root = modelguide.tex
 
-\section{Simulation Control}
+\chapter{Simulation Control}
 \label{SimulationControl:sec}
 
 This section describes different devices which an application may use
@@ -12,7 +12,7 @@ beginning of each time step, and {\it monitors} and {\it output
 probes} to observe and record simulation results at the end of each
 time step.
 
-\subsection{Control Panels}
+\section{Control Panels}
 \label{ControlPanels:sec}
 
 A {\it control panel} is an editing panel that allows for the
@@ -26,7 +26,7 @@ resulting panels present the user with {\it all} properties common to
 the selection.  A control panel allows an application to provide a
 customized editing panel for selected properties.
 
-\subsubsection{General principles}
+\subsection{General principles}
 
 Control panels are implemented by the
 \javaclass[artisynth.core.gui]{ControlPanel} model component.  They
@@ -59,7 +59,7 @@ the section ``Control Panels'' in the
 \href{../uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}.
 
-\subsubsection{Example: Creating a simple control panel}
+\subsection{Example: Creating a simple control panel}
 
 \begin{figure}[t]
 \begin{center}
@@ -158,7 +158,7 @@ shown in the panel can be adjusted interactively by the user,
 while the model is either stationary or running.
 % SimpleMuscleWithPanel
 
-\subsection{Custom properties}
+\section{Custom properties}
 \label{CustomProperties:sec}
 
 Because of the usefulness of properties in creating control panels and
@@ -171,7 +171,7 @@ properties. Full details are available in the ``Properties'' section of
 the \href{../maspack/maspack.html}{
 Maspack Reference Manual}.
 
-\subsubsection{Adding properties to a component}
+\subsection{Adding properties to a component}
 
 As mentioned in Section \ref{Properties:sec}, properties are
 class-specific, and are exported by a class through code contained in
@@ -264,7 +264,7 @@ method. Read-only properties only require a {\it get} accessor.
 
 \end{description}
 
-\subsubsection{Example: a visibility property}
+\subsection{Example: a visibility property}
 %
 An model illustrating the exporting of properties is defined in
 %
@@ -351,7 +351,7 @@ this property will make the box visible or invisible in the viewer.
 
 % SimpleMuscleWithProperties
 
-\subsection{Controllers and monitors}
+\section{Controllers and monitors}
 \label{ControllersAndMonitors:sec}
 
 Application models can define custom {\it controllers} and {\it
@@ -368,7 +368,7 @@ interact with model advancement are given in the
 \href{../artisynth/artisynth.html}{
 ArtiSynth Reference Manual}.
 
-\subsubsection{Implementation}
+\subsection{Implementation}
 \label{ControllerImplementation:sec}
 
 Applications may declare whatever controllers or monitors they require
@@ -461,7 +461,7 @@ while for
 \end{lstlisting}
 %
 
-\subsubsection{Example: A controller to move a point}
+\subsection{Example: A controller to move a point}
 
 A model showing an application-defined controller is defined in
 %
@@ -496,7 +496,7 @@ SimpleMuscleWithController} from the {\sf Models} menu. When
 the model is run, the fixed particle {\tt p1} will trace
 out a circular path in the $x-z$ plane.
 
-\subsection{Probes}
+\section{Probes}
 \label{Probes:sec}
 
 In addition to controllers and monitors, applications can also attach
@@ -559,7 +559,7 @@ explicitly implement streams of numeric data which are connected to
 properties of various model components.  The remainder of this section
 will focus on numeric probes.
 
-\subsubsection{Numeric probe structure}
+\subsection{Numeric probe structure}
 \label{NumericProbeStructure:sec}
 
 Numeric probes are associated with:
@@ -638,7 +638,7 @@ input probes'' and ``General output probes'' of the
 \href{../uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}.
 
-\subsubsection{Creating probes in code}
+\subsection{Creating probes in code}
 
 This section discusses how to create numeric probes in code.  They can
 also be created and added to a model graphically, as described in the
@@ -713,7 +713,7 @@ Output probes created with the above constructors have a default
 interval of [0, 1]. A different interval may be set using
 {\tt setInterval()}, {\tt setStartTime()}, or {\tt setStopTime()}.
 
-\subsubsection{Example: probes connected to SimpleMuscle}
+\subsection{Example: probes connected to SimpleMuscle}
 \label{SimpleMuscleWithProbes:sec}
 
 A model showing a simple application of probes is defined in
@@ -797,7 +797,7 @@ accumulated in the output probe {\tt "FrameMarker Velocity"}.}
 \label{probesExpanded:fig}
 \end{figure}
 
-\subsubsection{Data file format}
+\subsection{Data file format}
 \label{DataFileFormat:sec}
 
 The data files associated with numeric probes are ASCII files
@@ -877,7 +877,7 @@ Linear 3 1.0
 \end{lstlisting}
 %
 
-\subsubsection{Adding probe data in-line}
+\subsection{Adding probe data in-line}
 
 It is also possible to specify input probe data directly in code,
 instead of reading it from a file. For this, one would use the
@@ -934,7 +934,7 @@ setInterpolationOrder()}, as in, for example:
 \end{lstlisting}
 %
 
-\subsection{Application-Defined Menu Items}
+\section{Application-Defined Menu Items}
 \label{MenuItems:sec}
 
 Application models can define custom {\it menu items} that appear

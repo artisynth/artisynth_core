@@ -19,6 +19,7 @@ import maspack.spatialmotion.SpatialInertia;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
 import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.femmodels.FemFactory;
 import artisynth.core.femmodels.FemModel3d;
@@ -63,8 +64,8 @@ public class FemCollision extends RootModel {
       try {
 
          MechModel mechmod = new MechModel();
-         mechmod.setIntegrator (Integrator.ConstrainedBackwardEuler);
-         //mechmod.setIntegrator(Integrator.BackwardEuler);
+         //mechmod.setIntegrator (Integrator.ConstrainedBackwardEuler);
+         mechmod.setIntegrator(Integrator.BackwardEuler);
          //mechmod.setProfiling (true);
 
          CollisionManager collisions = mechmod.getCollisionManager();
@@ -77,6 +78,7 @@ public class FemCollision extends RootModel {
          
          RigidBody table = new RigidBody("table");
          table.setDynamic (false);
+         //table.setMesh (new PolygonalMesh (new File (rbpath+ "box.obj")), null);
          table.setMesh (MeshFactory.createBox (2, 2, 2));
          AffineTransform3d trans = new AffineTransform3d();
          trans.setIdentity();
@@ -94,6 +96,8 @@ public class FemCollision extends RootModel {
 
          if (incBox0) {
             box0 = new RigidBody("box0");
+            //box0.setMesh (
+            //   new PolygonalMesh (new File (rbpath + "box.obj")), null);
             box0.setMesh (MeshFactory.createBox (2, 2, 2));
             trans.setIdentity();
             trans.applyScaling (1.5, 1.5, 0.5);
@@ -143,6 +147,7 @@ public class FemCollision extends RootModel {
             RenderProps.setFaceColor (fem0, new Color (0.5f, 0f, 0f));
 //            RenderProps.setAlpha(fem0, 0.33);
             RenderProps.setAlpha(fem0, 0.5);
+            RenderProps.setShading(fem0, Shading.NONE);
             RenderProps.setDrawEdges(fem0, true);
             RenderProps.setVisible(fem0.getElements(), false);
             RenderProps.setVisible(fem0.getNodes(), false);
@@ -175,6 +180,7 @@ public class FemCollision extends RootModel {
             fem1.setSurfaceRendering (
                wireFrame ? SurfaceRender.None : SurfaceRender.Shaded);
             RenderProps.setAlpha(fem1, 0.5);
+            RenderProps.setShading(fem1, Shading.NONE);
             RenderProps.setDrawEdges(fem1, true);
             RenderProps.setVisible(fem1.getElements(), false);
             RenderProps.setVisible(fem1.getNodes(), false);

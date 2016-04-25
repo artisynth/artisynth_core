@@ -34,6 +34,7 @@ modelguide.pdf: $(SOURCES)
 	bibtex modelguide1
 	pdflatex modelguide.tex	
 	pdflatex modelguide.tex
+	rm -rf $(LATEX_JUNK_FILES)
 
 multipoint.pdf: multipoint.tex
 	pdflatex multipoint.tex	

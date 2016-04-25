@@ -17,6 +17,7 @@ import com.jogamp.opengl.util.FPSAnimator;
 
 import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.render.IsRenderable;
 import maspack.render.IsSelectable;
 import maspack.render.RenderList;
@@ -87,7 +88,7 @@ public class MultiViewer {
       }
 
       @Override
-      public void updateBounds(Point3d pmin, Point3d pmax) {
+      public void updateBounds(Vector3d pmin, Vector3d pmax) {
          r.updateBounds(pmin, pmax);
       }
 

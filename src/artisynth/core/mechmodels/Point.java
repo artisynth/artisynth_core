@@ -592,7 +592,7 @@ public class Point extends DynamicComponentBase
       myRenderCoords[2] = (float)pos.z;
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       getPosition().updateBounds (pmin, pmax);
    }
 

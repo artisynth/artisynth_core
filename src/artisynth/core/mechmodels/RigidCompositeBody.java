@@ -22,6 +22,7 @@ import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SymmetricMatrix3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.HierarchyNode;
 import maspack.render.RenderList;
 import maspack.spatialmotion.SpatialInertia;
@@ -768,7 +769,7 @@ public class RigidCompositeBody extends RigidBody implements
       return true;
    }
    
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
     
       for (RigidMeshComp mc : myMeshList) {
          mc.updateBounds(pmin, pmax);

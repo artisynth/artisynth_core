@@ -296,7 +296,7 @@ public class ParticleMeshConstraint extends ParticleConstraintBase
       return maxpen;
    }
 
-   public void updateBounds (Point3d min, Point3d max) {
+   public void updateBounds (Vector3d min, Vector3d max) {
       PolygonalMesh mesh = getMesh();
       if (mesh != null) {
          mesh.updateBounds (min, max);

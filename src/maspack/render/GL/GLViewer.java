@@ -113,7 +113,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    private static final float DEFAULT_POINT_SIZE = 1f;
    private static final float DEFAULT_LINE_WIDTH = 1f;
-   private static final Shading DEFAULT_SHADING = Shading.SMOOTH;
+   private static final Shading DEFAULT_SHADING = Shading.FLAT;
    private static final FaceStyle DEFAULT_FACE_STYLE = FaceStyle.FRONT;
    private static final ColorMixing DEFAULT_COLOR_MIXING = ColorMixing.REPLACE;
    private static final ColorInterpolation DEFAULT_COLOR_INTERPOLATION =

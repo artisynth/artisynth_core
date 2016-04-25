@@ -150,7 +150,7 @@ public class ParticlePlaneConstraint extends ParticleConstraintBase
       }
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       computeRenderVtxs ();
       for (int i = 0; i < myRenderVtxs.length; i++) {
          myRenderVtxs[i].updateBounds (pmin, pmax);

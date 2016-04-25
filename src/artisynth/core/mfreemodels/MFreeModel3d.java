@@ -31,7 +31,6 @@ import maspack.matrix.Matrix6d;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.NumericalException;
-import maspack.matrix.Point3d;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SparseMatrixNd;
 import maspack.matrix.SparseNumberedBlockMatrix;
@@ -1831,7 +1830,7 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
    }
    
    @Override
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       // TODO Auto-generated method stub
       updatePosState();
       super.updateBounds(pmin, pmax);

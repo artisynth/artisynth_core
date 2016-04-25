@@ -446,7 +446,7 @@ public abstract class CutPlaneProbe extends OutputProbe
    }
 
    @Override
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       if (myPlaneSurface != null) {
          myPlaneSurface.updateBounds(pmin, pmax);
       }

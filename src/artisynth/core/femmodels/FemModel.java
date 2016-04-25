@@ -214,9 +214,13 @@ public abstract class FemModel extends MechSystemBase
       //myNu = DEFAULT_NU;
       //myE = DEFAULT_E;
       myDensity = DEFAULT_DENSITY;
+      myDensityMode = PropertyMode.Inherited;
       mySurfaceRendering = DEFAULT_SURFACE_RENDERING;
+      mySurfaceRenderingMode = PropertyMode.Inherited;
       myStressPlotRanging = DEFAULT_STRESS_PLOT_RANGING;
+      myStressPlotRangingMode = PropertyMode.Inherited;
       myStressPlotRange = DEFAULT_STRESS_PLOT_RANGE;
+      myStressPlotRangeMode = PropertyMode.Inherited;
       myWarpingP = DEFAULT_WARPING;
       myStiffnessDamping = DEFAULT_STIFFNESS_DAMPING;
       myMassDamping = DEFAULT_MASS_DAMPING;
@@ -747,7 +751,7 @@ public abstract class FemModel extends MechSystemBase
       myForcesNeedUpdating = false;
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       if (myMinBound != null) {
          myMinBound.updateBounds (pmin, pmax);
       }

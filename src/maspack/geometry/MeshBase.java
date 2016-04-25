@@ -901,7 +901,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
    /**
     * {@inheritDoc}
     */
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       if (myVertices.size() > 0) {
          if (!myWorldBoundsValid) {
             recomputeWorldBounds();

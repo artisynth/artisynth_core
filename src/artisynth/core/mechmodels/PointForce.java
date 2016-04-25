@@ -181,7 +181,7 @@ public class PointForce extends ModelComponentBase
       // nothing to do
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myPnt.updateBounds (pmin, pmax);
       myTail.updateBounds (pmin, pmax);
    }

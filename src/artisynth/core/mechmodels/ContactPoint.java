@@ -395,6 +395,14 @@ public class ContactPoint {
          return faceAttachedTo (myVtxs, comp);
       }
    }
-   
+
+   public String toString (String fmtStr) {
+      String str = "[ pos=" + myPoint.toString (fmtStr);
+      for (int i=0; i<myVtxs.length; i++) {
+         str += " v"+i+"=" + myVtxs[i].getIndex();
+      }
+      str += " ]";
+      return str;
+   }
 
 }

@@ -1,12 +1,12 @@
 %!TEX root = modelguide.tex
 
-\section{Mechanical Models II}
+\chapter{Mechanical Models II}
 \label{MechModelsII:sec}
 
 This section provides additional material on building basic
 multibody-type mechanical models.
 
-\subsection{Simulation control properties}
+\section{Simulation control properties}
 
 Both \javaclass[artisynth.core.workspace]{RootModel} and
 \javaclass[artisynth.core.mechmodels]{MechModel} contain properties
@@ -94,7 +94,7 @@ problems involving FEM collisions.
 
 \end{description}
 
-\subsection{Units}
+\section{Units}
 \label{sec:mechii:units}
 
 ArtiSynth is primarily ``unitless'', in the sense that it does not
@@ -155,7 +155,7 @@ fundamental units of mass ($m$), distance ($d$), and time ($t$).}
 \label{Units:tab}
 \end{table}
 
-\subsubsection{Scaling units}
+\subsection{Scaling units}
 
 For convenience, many ArtiSynth components, including {\tt MechModel},
 implement the interface
@@ -216,10 +216,10 @@ shown above is run, it should behave exactly the same as the
 non-scaled version.
 \end{sideblock}
 
-%\subsection{Multi-point springs}
+%\section{Multi-point springs}
 %OPTIONAL
-%\subsubsection{Operation}
-%\subsubsection{Example: A single multi-point spring}
+%\subsection{Operation}
+%\subsection{Example: A single multi-point spring}
 
 %\begin{figure}[ht]
 %\begin{center}
@@ -242,7 +242,7 @@ non-scaled version.
 
 % MultiPointSpring
 
-\subsection{Render properties}
+\section{Render properties}
 \label{RenderProperties:sec}
 
 All ArtiSynth components that are renderable maintain a property {\tt
@@ -276,7 +276,7 @@ properties are inherited by default, and so only those properties
 which are explicitly set will differ from those specified in ancestor
 components.
 
-\subsubsection{Render property taxonomy}
+\subsection{Render property taxonomy}
 
 In general, the properties in {\tt RenderProps} are used to control
 the color, size, and style of the three primary rendering
@@ -370,7 +370,7 @@ the method
 will create and return a {\tt RenderProps} object suitable for that
 component.
 
-\subsubsection{Setting render properties}
+\subsection{Setting render properties}
 \label{SettingRenderProperties:sec}
 
 When setting render properties, it is important to note that
@@ -502,7 +502,7 @@ all particles in the list to be rendered green by default. Lastly,
 setting {\tt pointColor} for {\tt p3} will cause it to be rendered as
 red.
 
-\subsubsection{Texture mapping}
+\subsection{Texture mapping}
 \label{TextureMapping:sec}
 
 Render properties can also be set to apply texture mapping to objects
@@ -721,7 +721,7 @@ load and initially appear as in Figure
 legacy OpenGL 2 viewer (commmand line option {\tt -GLVersion 2}), bump
 mapping will not be supported and will not appear.
 
-\subsection{Point-to-point muscles}
+\section{Point-to-point muscles}
 \label{PointToPointMuscles:sec}
 
 Point-to-point muscles are a simple type of component in biomechanical
@@ -738,7 +738,7 @@ excitation property can be set and queried using the methods
 \end{lstlisting}
 %
 
-\subsubsection{Muscle materials}
+\subsection{Muscle materials}
 \label{sec:mechii:musclematerials}
 
 As with {\tt AxialSpring}s, {\tt Muscle} components use an
@@ -775,7 +775,7 @@ available in ArtiSynth include
 
 % LATER: describe muscles in more detail
 
-\subsubsection{Example: Muscle attached to a rigid body}
+\subsection{Example: Muscle attached to a rigid body}
 \label{SimpleMuscleExample:sec}
 
 \begin{figure}[ht]
@@ -830,21 +830,21 @@ editing panel that allows the muscle's properties to be adjusted
 interactively. Adjusting the {\tt excitation} property using the
 adjacent slider will cause the muscle force to vary.
 
-% LATER \subsubsection{Multi-point muscles}
+% LATER \subsection{Multi-point muscles}
 
-% LATER \subsection{Mesh components}
+% LATER \section{Mesh components}
 %OPTIONAL 
-% LATER \subsubsection{Fixed meshes}
-% LATER \subsubsection{Simple mesh example}
+% LATER \subsection{Fixed meshes}
+% LATER \subsection{Simple mesh example}
 
 % SimpleMesh
 
-% LATER \subsubsection{Skinned meshes}
-% LATER \subsubsection{Simple skinned mesh example}
+% LATER \subsection{Skinned meshes}
+% LATER \subsection{Simple skinned mesh example}
 
 % SimpleSkinnedMesh
 
-\subsection{Collision Handling}
+\section{Collision Handling}
 \label{sec:mechii:collisions}
 
 Collision handling in ArtiSynth is implemented by a collision
@@ -860,9 +860,9 @@ accurate than other aspects of the simulation.  ArtiSynth therefore
 provides a number of ways to selectively control collision handling
 between different pairs of bodies.
 
-%\subsubsection{Collidable bodies}
+%\subsection{Collidable bodies}
 
-\subsubsection{Enabling collisions in code}
+\subsection{Enabling collisions in code}
 
 Collisions can be enabled as either a default behavior between all
 bodies, a default behavior between certain {\it types} of
@@ -955,7 +955,7 @@ between adjacent bodies connected by joints, since otherwise these
 would be forced into a state of permanent collision.
 \end{sideblock}
 
-\subsubsection{Example: Collision with a plane}
+\subsection{Example: Collision with a plane}
 \label{JointedCollide:sec}
 
 \begin{figure}[ht]
@@ -1023,7 +1023,7 @@ cause the jointed assembly to collide with and slide off the inclined
 plane.
 
 
-\subsubsection{Self-collision and collidable hierarchies}
+\subsection{Self-collision and collidable hierarchies}
 \label{SelfCollision:sec}
 
 At present, {\tt ArtiSynth} does not support the detection or handling
@@ -1126,7 +1126,7 @@ B). Then:
 \end{lstlisting}
 %
 
-\subsubsection{Collidability}
+\subsection{Collidability}
 \label{collidability:sec}
 
 Each collidable component maintains a {\tt collidable} property
@@ -1169,7 +1169,7 @@ collisions to actually occur between two collidables, a default or
 override collision behavior must also be specified for them in the
 MechModel.
 
-\subsubsection{Implementation and limitations}
+\subsection{Implementation and limitations}
 
 The ArtiSynth collision mechanism works by finding intersections
 between the surface meshes of each collidable object.  These surface
@@ -1250,7 +1250,7 @@ collisions between rigid bodies specifies a minimum distance between
 contact points and therefore can be used to reduce the number of
 contact constraints and improve computation time.
 
-\subsubsection{Contact rendering}
+\subsection{Contact rendering}
 
 The {\tt MechModel}'s collision manager component contains render
 properties that can be used to render the contact points, normals, and
@@ -1338,7 +1338,7 @@ contours with be draw and shown in Figure \ref{BallPlateCollide:fig}.
 \label{BallPlateCollide:fig}
 \end{figure}
 
-\subsection{Transforming geometry}
+\section{Transforming geometry}
 \label{TransformingGeometry:sec}
 
 Certain ArtiSynth components, including {\tt MechModel}, implement the
@@ -1404,7 +1404,7 @@ axis:
 \end{lstlisting}
 %
 
-\subsubsection{Nonlinear transformations}
+\subsection{Nonlinear transformations}
 
 The \javaclass[artisynth.core.modelbase]{TransformableGeometry}
 interface also supports general, non-linear geometric transforms.
@@ -1526,7 +1526,7 @@ to implement the deformation of choice by overriding the single
 \javaclass[maspack.geometry.DeformationTransformer]{getDeformation()}
 method.
 
-\subsubsection{Example: the FemModelDeformer class}
+\subsection{Example: the FemModelDeformer class}
 \label{FemModelDeformer:sec}
 
 An FEM-based geometric transformation of a {\tt MechModel} is
@@ -1666,7 +1666,7 @@ is mainly intended to illustrate the capabilities of
 \javaclass[artisynth.core.modelbase]{TransformableGeometry} interface.
 \end{sideblock}
 
-\subsubsection{Implementation and behavior}
+\subsection{Implementation and behavior}
 
 As indicated above, the management of transforming the geometry for one
 or more components is handled by the
@@ -1754,7 +1754,7 @@ attached.
 
 \end{enumerate}
 
-\subsubsection{Use in model registration}
+\subsection{Use in model registration}
 
 Transforming model geometry can obviously be used as part of the
 process of creating subject-specific biomechanical and anatomical
@@ -1767,7 +1767,7 @@ restLength} properties of the springs will be unchanged, whereas the
 intial lengths may be, resulting in a different applied forces and
 physical behaviour.
 
-\subsection{General component arrangements}
+\section{General component arrangements}
 
 As discussed in Section \ref{MechModel:sec} and elsewhere, a {\tt
 MechModel} provides a number of predefined child components for
@@ -1810,7 +1810,7 @@ MechModel} will recursively traverse the component hierarchy and
 update whatever internal structures are needed to run the
 simulation.
 
-\subsubsection{Container components}
+\subsection{Container components}
 
 The generic class \javaclass[artisynth.core.modelbase]{ComponentList}
 can be used as a container for model components of a specific type.
@@ -1889,7 +1889,7 @@ hierarchies. Generally either\\
 {\tt RenderableComponentList<ModelComponent>} are
 best suited to implement hierarchical groupings.
 
-\subsubsection{Example: a net formed from balls and springs}
+\subsection{Example: a net formed from balls and springs}
 
 A simple example showing an arrangement of balls and springs formed into
 a net is defined in
@@ -2059,7 +2059,7 @@ by default because they are empty.
 \label{NetDemoNav:fig}
 \end{figure}
 
-\subsubsection{Adding containers to other models}
+\subsection{Adding containers to other models}
 
 In addition to {\tt MechModel}, application-defined containers can be
 added to any model that inherits from

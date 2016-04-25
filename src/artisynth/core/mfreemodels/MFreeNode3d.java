@@ -445,7 +445,7 @@ public class MFreeNode3d extends FemNode3d implements MFreePoint3d, Boundable {
    }
    
    @Override 
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       
       if (myBoundaryMesh != null) {
          updateBoundaryMesh();

@@ -466,7 +466,7 @@ public abstract class FemElement3d extends FemElement
       return vol;
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       for (int i = 0; i < numNodes(); i++) {
          myNodes[i].getPosition().updateBounds (pmin, pmax);
       }

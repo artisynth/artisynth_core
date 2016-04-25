@@ -81,7 +81,7 @@ public class TextureEgyptianTest extends GL3Tester {
          
       mv.addRenderable (new IsRenderable() {
          @Override
-         public void updateBounds (Point3d pmin, Point3d pmax) {
+         public void updateBounds (Vector3d pmin, Vector3d pmax) {
             Point3d.X_UNIT.updateBounds (pmin, pmax);
             Point3d.Y_UNIT.updateBounds (pmin, pmax);
             Point3d.Z_UNIT.updateBounds (pmin, pmax);

@@ -19,6 +19,7 @@ uiguide.pdf: uiguide.tex
 	pdflatex uiguide.tex
 	pdflatex uiguide.tex
 	pdflatex uiguide.tex # extra extra invocation for cross references
+	rm -rf $(LATEX_JUNK_FILES)
 
 uiguide.xml: uiguide.tex
 	latexml uiguide.tex >uiguide.xml

@@ -17,6 +17,7 @@ import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.PropertyDesc;
 import maspack.properties.PropertyList;
 import maspack.render.IsRenderable;
@@ -272,7 +273,7 @@ public class TextComponent3d extends TextComponentBase implements
    }
 
    @Override
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       myPos.updateBounds(pmin, pmax);
    }
    

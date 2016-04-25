@@ -1150,7 +1150,7 @@ public class RootModel extends RenderableModelBase
       list.addIfVisible (myRenderables);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       for (Model m : myModels) {
          if (m instanceof Renderable) {
             ((Renderable)m).updateBounds (pmin, pmax);

@@ -6,7 +6,7 @@
  */
 package maspack.render;
 
-import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 
 /**
  * Specifies objects that can be rendered by a Viewer implementing
@@ -75,7 +75,7 @@ public interface IsRenderable {
     * @param pmax
     * maximum point
     */
-   public void updateBounds (Point3d pmin, Point3d pmax);
+   public void updateBounds (Vector3d pmin, Vector3d pmax);
 
    /**
     * Returns a bit code giving rendering hints about this renderable. Current

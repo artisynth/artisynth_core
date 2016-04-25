@@ -16,6 +16,7 @@ $(PDF_DIR)/documentation.pdf: documentation.pdf
 documentation.pdf: documentation.tex
 	pdflatex documentation.tex
 	pdflatex documentation.tex
+	rm -rf $(LATEX_JUNK_FILES)
 
 documentation.xml: documentation.tex
 	latexml documentation.tex >documentation.xml

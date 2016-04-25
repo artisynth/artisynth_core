@@ -9,7 +9,7 @@ package artisynth.core.modelbase;
 import java.util.LinkedList;
 import java.util.Map;
 
-import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.render.IsRenderable;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
@@ -31,7 +31,7 @@ implements RenderableComponent {
    public void prerender (RenderList list) {
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
    }
 
    public abstract void render (Renderer renderer, int flags);

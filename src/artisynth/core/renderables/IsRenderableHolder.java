@@ -12,7 +12,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Deque;
 
-import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.render.IsRenderable;
@@ -177,7 +177,7 @@ public class IsRenderableHolder extends RenderableComponentBase {
    }
    
    @Override
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       myRenderable.updateBounds(pmin, pmax);
    }
    

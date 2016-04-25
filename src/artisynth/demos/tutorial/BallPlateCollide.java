@@ -27,6 +27,7 @@ public class BallPlateCollide extends RootModel {
 
       // make ball transparent so that contacts can be seen more clearly
       RenderProps.setFaceStyle (ball, Renderer.FaceStyle.NONE);
+      RenderProps.setShading (ball, Renderer.Shading.NONE);
       RenderProps.setDrawEdges (ball, true);
       RenderProps.setEdgeColor (ball, Color.WHITE);
 

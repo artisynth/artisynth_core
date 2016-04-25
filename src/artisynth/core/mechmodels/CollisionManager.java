@@ -1267,7 +1267,7 @@ public class CollisionManager extends RenderableCompositeBase
       return props;
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myCollisionHandlers.updateBounds (pmin, pmax);
    }
 

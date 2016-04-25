@@ -7,7 +7,6 @@
 package maspack.geometry;
 
 import java.io.BufferedOutputStream;
-import java.io.OutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -16,6 +15,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Reader;
@@ -28,10 +28,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 
+import maspack.geometry.MeshRendererBase.MeshRenderInfo;
 import maspack.geometry.io.WavefrontReader;
 import maspack.geometry.io.WavefrontWriter;
 import maspack.matrix.AffineTransform3dBase;
@@ -43,16 +42,15 @@ import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
-import maspack.spatialmotion.SpatialInertia;
 import maspack.properties.HasProperties;
-import maspack.render.Renderer;
-import maspack.render.Renderer.FaceStyle;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.spatialmotion.SpatialInertia;
+import maspack.util.ArraySupport;
 import maspack.util.InternalErrorException;
 import maspack.util.ListIndexComparator;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import maspack.util.ArraySupport;
 
 /**
  * Implements a polygonal mesh consisting of vertices, faces, and half-edges.
@@ -84,7 +82,7 @@ public class PolygonalMesh extends MeshBase {
    private boolean myFaceNormalsValid = false;
    private boolean myRenderNormalsValid = false;
 
-   protected PolygonalMeshRenderer myMeshRenderer = null;
+   protected MeshRenderInfo myRenderInfo = null;
 
    /*
     * Set to true if this mesh may be subject to self intersections. If set, it
@@ -1471,18 +1469,15 @@ public class PolygonalMesh extends MeshBase {
    
    public void prerender (RenderProps props) {
       super.prerender (props);
-      if (myMeshRenderer == null) {
-         myMeshRenderer = new PolygonalMeshRenderer();
-      }
-      myMeshRenderer.prerender (this, props);
+      myRenderInfo = PolygonalMeshRenderer.getInstance ().prerender (this, props, myRenderInfo);
    }
 
    public void render (Renderer renderer, RenderProps props, int flags) {
-      if (myMeshRenderer == null) {
+      if (myRenderInfo == null) {
          throw new IllegalStateException (
             "render() called before prerender()");
       }
-      myMeshRenderer.render (renderer, this, props, flags);
+      PolygonalMeshRenderer.getInstance ().render (renderer, this, props, flags, myRenderInfo);
    }
 
    /**
@@ -2392,7 +2387,7 @@ public class PolygonalMesh extends MeshBase {
             "Warning: mesh copy not implemented for signed distance grids");
          mesh.sdGrid = null;
       }
-      mesh.myMeshRenderer = null;
+      mesh.myRenderInfo = null;
       if (numHardEdges() > 0) {
          // copy hard edge settings
          for (int i=0; i<myFaces.size(); i++) {

@@ -13,11 +13,10 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
+import maspack.geometry.MeshRendererBase.MeshRenderInfo;
 import maspack.geometry.io.WavefrontReader;
 import maspack.geometry.io.XyzbReader;
-import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
@@ -31,7 +30,7 @@ import maspack.util.ReaderTokenizer;
  */
 public class PointMesh extends MeshBase {
 
-   PointMeshRenderer myMeshRenderer = null;
+   MeshRenderInfo myRenderInfo = null;
 
    protected AABBTree myBVTree = null;
    protected boolean myBVTreeValid = false;
@@ -202,18 +201,16 @@ public class PointMesh extends MeshBase {
 
    public void prerender (RenderProps props) {
       super.prerender (props);
-      if (myMeshRenderer == null) {
-         myMeshRenderer = new PointMeshRenderer();
-      }
-      myMeshRenderer.prerender (this, props);
+      myRenderInfo = PointMeshRenderer.getInstance ().prerender (this, props, myRenderInfo);
    }
 
    public void render (Renderer renderer, RenderProps props, int flags) {
-      if (myMeshRenderer == null) {
+      if (myRenderInfo == null) {
          throw new IllegalStateException (
             "render() called before prerender()");
       }
-      myMeshRenderer.render (renderer, this, props, flags);
+      PointMeshRenderer.getInstance ().render (renderer, 
+         this, props, flags, myRenderInfo);
    }
 
    /** 

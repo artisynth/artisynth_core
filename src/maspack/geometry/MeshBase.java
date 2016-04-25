@@ -64,12 +64,13 @@ public abstract class MeshBase implements Renderable, Cloneable {
 
    protected RenderProps myRenderProps = null;
    protected boolean isFixed = true;
-   protected boolean myColorsFixed = false;
+   protected boolean myColorsFixed = true;
+   protected boolean myTextureCoordsFixed = true;
    protected boolean myVertexColoringP = false;
    protected boolean myFeatureColoringP = false;
    
-   int version = 0;  // used for detecting changes
-   boolean modified = true;  
+   int version = 0;          // used for detecting changes
+   boolean modified = true;
    
    protected boolean myRenderBufferedP = false;
    RigidTransform3d myXMeshToWorldRender;
@@ -159,19 +160,20 @@ public abstract class MeshBase implements Renderable, Cloneable {
       myWorldBoundsValid = false;
    }
    
-   private void incrementVersion() {
-      version++;
-   }
-   
+   /**
+    * A version number that changes for ANY modifications,
+    * including vertex position changes
+    * @return version number
+    */
    public int getVersion() {
       if (modified) {
+         ++version;
          modified = false;
-         incrementVersion();
       }
       return version;
    }
    
-   public void notifyModified() {
+   protected void notifyModified() {
       modified = true;
    }
 
@@ -1354,6 +1356,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       }
       mesh.setFixed (isFixed());
       mesh.setColorsFixed (isColorsFixed());
+      mesh.setTextureCoordsFixed (isTextureCoordsFixed ());
       mesh.setColorInterpolation (getColorInterpolation());
       mesh.setRenderBuffered (isRenderBuffered());
 
@@ -2353,6 +2356,24 @@ public abstract class MeshBase implements Renderable, Cloneable {
       return myColorsFixed;
    }
 
+   /**
+    * Sets whether or not texture coordinates should be considered ``fixed''.  This is
+    * used as a hint to determine how to cache rendering info for the mesh.
+    */
+   public void setTextureCoordsFixed(boolean set) {
+      if (myTextureCoordsFixed != set) {
+         myTextureCoordsFixed = set;
+         notifyModified();
+      }
+   }
+   
+   /**
+    * See {@link #setTextureCoordsFixed(boolean)}
+    */
+   public boolean isTextureCoordsFixed() {
+      return myTextureCoordsFixed;
+   }
+   
    /**
     * Returns all the texture coordinates associated with this mesh, or
     * <code>null</code> if this mesh does not have texture coordinates. These

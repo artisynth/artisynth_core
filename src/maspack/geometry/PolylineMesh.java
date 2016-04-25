@@ -14,12 +14,12 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
+import maspack.geometry.MeshRendererBase.MeshRenderInfo;
 import maspack.geometry.io.WavefrontReader;
 import maspack.matrix.Point3d;
-import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
-import maspack.render.Renderer;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.util.ArraySupport;
 import maspack.util.FunctionTimer;
 import maspack.util.NumberFormat;
@@ -31,7 +31,7 @@ import maspack.util.ReaderTokenizer;
 public class PolylineMesh extends MeshBase {
    protected ArrayList<Polyline> myLines = new ArrayList<Polyline>();
 
-   PolylineMeshRenderer myMeshRenderer = null;
+   MeshRenderInfo myRenderInfo = null;
 
    protected AABBTree myBVTree = null;
    protected boolean myBVTreeValid = false;
@@ -361,18 +361,15 @@ public class PolylineMesh extends MeshBase {
    
    public void prerender (RenderProps props) {
       super.prerender (props);
-      if (myMeshRenderer == null) {
-         myMeshRenderer = new PolylineMeshRenderer();
-      }
-      myMeshRenderer.prerender (this, props);
+      myRenderInfo = PolylineMeshRenderer.getInstance().prerender(this, props, myRenderInfo);
    }
 
    public void render(Renderer renderer, RenderProps props, int flags) {
-      if (myMeshRenderer == null) {
+      if (myRenderInfo == null) {
          throw new IllegalStateException (
             "render() called before prerender()");
       }
-      myMeshRenderer.render (renderer, this, props, flags);      
+      PolylineMeshRenderer.getInstance().render(renderer, this, props, flags, myRenderInfo);
    }
    
    /** 

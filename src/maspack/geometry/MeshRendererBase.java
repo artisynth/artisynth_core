@@ -19,39 +19,70 @@ public abstract class MeshRendererBase {
    protected class RobSignature {
       MeshBase mesh;
       int version;
-      boolean useTextures;
 
       public RobSignature (MeshBase mesh, RenderProps props) {
          this.mesh = mesh;
          this.version = mesh.getVersion();
-         this.useTextures = false; // FINISH         
+      }
+      
+      public MeshBase getMesh() {
+         return mesh;
       }
 
       public boolean equals (RobSignature other) {
          return (other != null &&
-                 other.mesh == mesh &&
-                 other.version == version &&
-                 other.useTextures == useTextures);
+         other.mesh == mesh &&
+         other.version == version);
       }
    }
 
-   protected RobSignature myRobSignature;
-   protected RenderObject myRob;
-   
+   /**
+    * Stores information required for rendering
+    */
+   public static class MeshRenderInfo {
+      RenderObject robj;
+      RobSignature sig;
+      protected MeshRenderInfo(RenderObject robj, RobSignature signature) {
+         this.robj = robj;
+         this.sig = signature;
+      }
+      
+      protected RobSignature getSignature() {
+         return sig;
+      }
+      
+      /**
+       * Replaces the internal render object signature
+       * @param sig
+       * @return
+       */
+      protected RobSignature replaceSignature(RobSignature sig) {
+         RobSignature oldSig = this.sig;
+         this.sig = sig;
+         return oldSig;
+      }
+      
+      public MeshBase getMesh() {
+         return sig.getMesh ();
+      }
+      
+      public RenderObject getRenderObject() {
+         return robj;
+      }
+   }
+
+
    protected boolean usingHSV (MeshBase mesh) {
       return (mesh.hasColors() && 
-              mesh.getColorInterpolation() == ColorInterpolation.HSV);
+      mesh.getColorInterpolation() == ColorInterpolation.HSV);
    }
-   
+
    protected abstract RobSignature createSignature (
       MeshBase mesh, RenderProps props);
 
    private boolean renderObjectNeedsBuilding (
-      MeshBase mesh, RenderProps props) {
-
-      RobSignature sig = createSignature (mesh, props);
-      if (!sig.equals (myRobSignature)) {
-         myRobSignature = sig;
+      MeshBase mesh, RenderProps props, RobSignature a, RobSignature b) {
+      if (!a.equals (b)) {
          return true;
       }
       else {
@@ -98,13 +129,13 @@ public abstract class MeshRendererBase {
    }
 
    protected void updateNormals (RenderObject r, MeshBase mesh) {
-       if (mesh.hasNormals()) {
-          ArrayList<Vector3d> nrms = mesh.getNormals();
-          for (int i=0; i<nrms.size(); i++) {
-             Vector3d nrm = nrms.get(i);
-             r.setNormal(i, (float)nrm.x, (float)nrm.y, (float)nrm.z);
-          }
-       }
+      if (mesh.hasNormals()) {
+         ArrayList<Vector3d> nrms = mesh.getNormals();
+         for (int i=0; i<nrms.size(); i++) {
+            Vector3d nrm = nrms.get(i);
+            r.setNormal(i, (float)nrm.x, (float)nrm.y, (float)nrm.z);
+         }
+      }
    }
 
    protected void updateColors (RenderObject r, MeshBase mesh) {
@@ -126,8 +157,18 @@ public abstract class MeshRendererBase {
          }
       }
    }
+   
+   protected void updateTextureCoords (RenderObject r, MeshBase mesh) {
+      if (mesh.hasTextureCoords()) {
+         ArrayList<Vector3d> coords = mesh.getTextureCoords ();
+         for (int i=0; i<coords.size(); i++) {
+            Vector3d color = coords.get(i);
+            r.setTextureCoord (i, (float)color.x, (float)color.y);
+         }
+      }
+   }
 
-   protected void buildRenderObject (MeshBase mesh, RenderProps props) {
+   protected RenderObject buildRenderObject (MeshBase mesh, RenderProps props) {
 
       RenderObject r = new RenderObject();
       addPositions (r, mesh);
@@ -135,33 +176,41 @@ public abstract class MeshRendererBase {
       addColors (r, mesh);
       addTextureCoords (r, mesh);
 
-      myRob = r;
+      return r;
    }
 
-   protected void updateRenderObject (MeshBase mesh, RenderProps props) {
-
-      RenderObject r = myRob;
-
+   protected void updateRenderObject (MeshBase mesh, RenderProps props, RenderObject robj) {
       if (!mesh.isFixed()) {
-         updatePositions (r, mesh);
-         updateNormals (r, mesh);
+         updatePositions (robj, mesh);
+         updateNormals (robj, mesh);
       }
       if (!mesh.isColorsFixed()) {
-         updateColors (r, mesh);
+         updateColors (robj, mesh);
+      }
+      if (!mesh.isTextureCoordsFixed ()) {
+         updateTextureCoords (robj, mesh);
       }
    }
 
-   public void prerender (MeshBase mesh, RenderProps props) {
-      if (renderObjectNeedsBuilding (mesh, props)) {
-         buildRenderObject (mesh, props);
+   /**
+    * Updates rendering information
+    * @param mesh mesh to render
+    * @param props render properties
+    * @param renderInfo previous rendering information
+    * @return updated render information
+    */
+   public MeshRenderInfo prerender (MeshBase mesh, RenderProps props, MeshRenderInfo renderInfo) {
+      MeshRenderInfo out = renderInfo;
+      
+      RobSignature sig = createSignature (mesh, props);
+      if (renderInfo == null || renderObjectNeedsBuilding (mesh, props, sig, renderInfo.getSignature ())) {
+         RenderObject robj = buildRenderObject (mesh, props);
+         out = new MeshRenderInfo (robj, sig);
       }
       else {
-         updateRenderObject (mesh, props);
+         updateRenderObject (mesh, props, renderInfo.getRenderObject ());
       }
-   }
-
-   public RenderObject getRenderObject() {
-      return myRob;
+      return out;
    }
 
 }

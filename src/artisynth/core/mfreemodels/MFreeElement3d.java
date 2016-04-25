@@ -8,8 +8,16 @@ package artisynth.core.mfreemodels;
 
 import java.util.ArrayList;
 
+import artisynth.core.femmodels.AuxiliaryMaterial;
+import artisynth.core.femmodels.FemElement;
+import artisynth.core.femmodels.FemNodeNeighbor;
+import artisynth.core.femmodels.IntegrationData3d;
+import artisynth.core.femmodels.IntegrationPoint3d;
+import artisynth.core.materials.FemMaterial;
+import artisynth.core.materials.LinearMaterial;
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.Boundable;
+import maspack.geometry.MeshRendererBase.MeshRenderInfo;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.PolygonalMeshRenderer;
 import maspack.geometry.Vertex3d;
@@ -27,18 +35,11 @@ import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.render.Renderer.Shading;
 import maspack.util.InternalErrorException;
-import artisynth.core.femmodels.AuxiliaryMaterial;
-import artisynth.core.femmodels.FemElement;
-import artisynth.core.femmodels.FemNodeNeighbor;
-import artisynth.core.femmodels.IntegrationData3d;
-import artisynth.core.femmodels.IntegrationPoint3d;
-import artisynth.core.materials.FemMaterial;
-import artisynth.core.materials.LinearMaterial;
 
 public class MFreeElement3d extends FemElement implements Boundable {
 
@@ -667,18 +668,20 @@ public class MFreeElement3d extends FemElement implements Boundable {
       return vol;
    }
 
-   private PolygonalMeshRenderer myMeshRenderer = new PolygonalMeshRenderer();
+   private MeshRenderInfo myRenderInfo = null;
    
    @Override
    public void prerender (RenderList list) {
       super.prerender(list);
       renderMeshValid = false;
+      myRenderInfo = PolygonalMeshRenderer.getInstance ().prerender (
+         myBoundaryMesh, getRenderProps(), myRenderInfo);
    }
    
    protected void renderEdges(Renderer renderer, RenderProps props) {
       if (myBoundaryMesh != null) {
-         myMeshRenderer.renderEdges(
-            renderer, myBoundaryMesh, props, /*selected=*/false);
+         PolygonalMeshRenderer.getInstance().renderEdges(
+            renderer, myBoundaryMesh, props, /*selected=*/false, myRenderInfo);
       }
    }
 

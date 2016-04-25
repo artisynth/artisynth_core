@@ -20,14 +20,21 @@ import maspack.render.Renderer.Shading;
  */
 public class PolylineMeshRenderer  extends MeshRendererBase {
 
-
+   private static PolylineMeshRenderer instance = null;
+   
+   public static PolylineMeshRenderer getInstance() {
+      if (instance == null) {
+         instance = new PolylineMeshRenderer ();
+      }
+      return instance;
+   }
+   
    protected class PolylineRobSignature extends RobSignature {
       
       // Don't need anything extra at the moment ...
 
       public PolylineRobSignature (
          PolylineMesh mesh, RenderProps props) {
-         
          super (mesh, props);
       }
 
@@ -50,20 +57,21 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
       return new PolylineRobSignature ((PolylineMesh)mesh, props);
    }
 
-   protected void buildRenderObject (MeshBase mesh, RenderProps props) {
-      super.buildRenderObject (mesh, props);
+   @Override
+   protected RenderObject buildRenderObject (MeshBase mesh, RenderProps props) {
+      RenderObject r = super.buildRenderObject (mesh, props);
       PolylineMesh pmesh = (PolylineMesh)mesh;
 
       int[] nidxs = pmesh.hasNormals() ? pmesh.getNormalIndices() : null;
       int[] cidxs = pmesh.hasColors() ? pmesh.getColorIndices() : null;
-
-      RenderObject r = myRob;
+      int[] tidxs = pmesh.hasTextureCoords () ? pmesh.getTextureIndices () : null;
 
       int[] indexOffs = mesh.getFeatureIndexOffsets();
       int[] pidxs = mesh.createVertexIndices();
       ArrayList<Polyline> lines = pmesh.getLines();
       for (int i=0; i<pmesh.numLines(); i++) {
-         Polyline line = lines.get(i);
+         Polyline line = lines.get(i); // XXX is this needed? or computed from index offsets?
+         
          int loff = indexOffs[i];
          int numv = indexOffs[i+1] - loff;
 
@@ -73,24 +81,27 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
                pidxs[loff + j],
                nidxs != null ? nidxs[loff + j] : i,
                cidxs != null ? cidxs[loff + j] : -1,
-               -1);
+               tidxs != null ? tidxs[loff + j] : -1);
          }
          // triangle fan for faces, line loop for edges
          r.addLineStrip(vidxs);
       }
+      
+      return r;
    }
 
-   protected void updateRenderObject (MeshBase mesh, RenderProps props) {
-      super.updateRenderObject (mesh, props);
+   @Override
+   protected void updateRenderObject (MeshBase mesh, RenderProps props, RenderObject robj) {
+      super.updateRenderObject (mesh, props, robj);
    }
 
-   public void prerender (PointMesh mesh, RenderProps props) {
-      super.prerender (mesh, props);
+   public MeshRenderInfo prerender (PointMesh mesh, RenderProps props, MeshRenderInfo renderInfo) {
+      return super.prerender (mesh, props, renderInfo);
    }
 
    public void render (
       Renderer renderer, PolylineMesh mesh, RenderProps props, 
-      int flags) {
+      int flags, MeshRenderInfo renderInfo) {
 
       if (mesh.numVertices() == 0) {
          return;
@@ -131,7 +142,7 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
          case LINE: {
             int width = props.getLineWidth();
             if (width > 0) {
-               renderer.drawLines (myRob, LineStyle.LINE, width);
+               renderer.drawLines (renderInfo.getRenderObject (), LineStyle.LINE, width);
             }
             break;
          }
@@ -140,7 +151,7 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
          case CYLINDER: {
             double rad = props.getLineRadius();
             if (rad > 0) {
-               renderer.drawLines (myRob, props.getLineStyle(), rad);
+               renderer.drawLines (renderInfo.getRenderObject (), props.getLineStyle(), rad);
             }
             break;
          }

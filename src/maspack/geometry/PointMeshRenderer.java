@@ -26,18 +26,25 @@ public class PointMeshRenderer extends MeshRendererBase {
    // with and without colors
    // with and without shading
    // change pointStyle, pointColor, pointRadius
+   
+   private static PointMeshRenderer instance;
+   
+   public static PointMeshRenderer getInstance() {
+      if (instance == null) {
+         instance = new PointMeshRenderer ();
+      }
+      return instance;
+   }
 
    // Use to determine if/when the render object needs to be rebuilt
    protected class PointRobSignature extends RobSignature {
       double normalLen;
-      
       public PointRobSignature (
          PointMesh mesh, RenderProps props) {
-         
          super (mesh, props);
          this.normalLen = mesh.getNormalRenderLen();
       }
-
+     
       public boolean equals (RobSignature other) {
          if (other instanceof PointRobSignature) {
             PointRobSignature pother = (PointRobSignature)other;
@@ -53,26 +60,28 @@ public class PointMeshRenderer extends MeshRendererBase {
    public PointMeshRenderer() {
    }
 
+   @Override
    protected RobSignature createSignature (
       MeshBase mesh, RenderProps props) {
       return new PointRobSignature ((PointMesh)mesh, props);
    }
 
-   protected void buildRenderObject (MeshBase mesh, RenderProps props) {
-      super.buildRenderObject (mesh, props);
+   @Override
+   protected RenderObject buildRenderObject (MeshBase mesh, RenderProps props) {
+      RenderObject r = super.buildRenderObject (mesh, props);
       PointMesh pmesh = (PointMesh)mesh;
 
       int[] nidxs = pmesh.hasNormals() ? pmesh.getNormalIndices() : null;
       int[] cidxs = pmesh.hasColors() ? pmesh.getColorIndices() : null;
-
-      RenderObject r = myRob;
+      int[] tidxs = pmesh.hasTextureCoords () ? pmesh.getTextureIndices () : null;
+      
       int numv = pmesh.numVertices();
       for (int i=0; i<numv; i++) {
          r.addVertex (
             i,
             nidxs != null ? nidxs[i] : -1,
             cidxs != null ? cidxs[i] : -1,
-            -1);
+            tidxs != null ? tidxs[i] : -1);
          r.addPoint (i);            
       }
       Point3d tip = new Point3d();
@@ -87,18 +96,21 @@ public class PointMeshRenderer extends MeshRendererBase {
             r.addLine (i, numv+i);
          }
       }
+      
+      return r;
    }
 
-   protected void updateRenderObject (MeshBase mesh, RenderProps props) {
-      super.updateRenderObject (mesh, props);
+   @Override
+   protected void updateRenderObject (MeshBase mesh, RenderProps props, RenderObject robj) {
+      super.updateRenderObject (mesh, props, robj);
    }
 
-   public void prerender (PointMesh mesh, RenderProps props) {
-      super.prerender (mesh, props);
+   public MeshRenderInfo prerender (PointMesh mesh, RenderProps props, MeshRenderInfo renderInfo) {
+      return super.prerender (mesh, props, renderInfo);
    }
 
    public void render (
-      Renderer renderer, PointMesh mesh, RenderProps props, int flags) {
+      Renderer renderer, PointMesh mesh, RenderProps props, int flags, MeshRenderInfo renderInfo) {
 
       if (mesh.numVertices() == 0) {
          return;
@@ -116,9 +128,9 @@ public class PointMeshRenderer extends MeshRendererBase {
       float savedLineWidth = renderer.getLineWidth();
       Shading savedShadeModel = renderer.getShading();
 
-//      if (renderer.isSelecting()) {
-//         shading = Shading.NONE;
-//      }
+      //      if (renderer.isSelecting()) {
+      //         shading = Shading.NONE;
+      //      }
 
       PointStyle pointStyle = props.getPointStyle();
       if (pointStyle == PointStyle.POINT && !mesh.hasNormals()) {
@@ -137,7 +149,7 @@ public class PointMeshRenderer extends MeshRendererBase {
          case POINT: {
             int size = props.getPointSize();
             if (size > 0) {
-               renderer.drawPoints (myRob, PointStyle.POINT, size);
+               renderer.drawPoints (renderInfo.getRenderObject (), PointStyle.POINT, size);
             }
             break;
          }
@@ -145,7 +157,7 @@ public class PointMeshRenderer extends MeshRendererBase {
          case SPHERE: {
             double rad = props.getPointRadius();
             if (rad > 0) {
-               renderer.drawPoints (myRob, pointStyle, rad);
+               renderer.drawPoints (renderInfo.getRenderObject (), pointStyle, rad);
             }
             break;
          }
@@ -156,7 +168,7 @@ public class PointMeshRenderer extends MeshRendererBase {
       if (mesh.getNormalRenderLen() > 0) {
          renderer.setLineWidth (props.getLineWidth());
          renderer.setLineColoring (props, highlight);
-         renderer.drawLines (myRob);
+         renderer.drawLines (renderInfo.getRenderObject ());
       }
       
       renderer.setLineWidth (savedLineWidth);

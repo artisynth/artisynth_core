@@ -24,6 +24,15 @@ import maspack.render.ColorMapProps;
  * Utility class for rendering {@link PolygonalMesh} objects.
  */
 public class PolygonalMeshRenderer extends MeshRendererBase {
+   
+   private static PolygonalMeshRenderer instance = null;
+   
+   public static PolygonalMeshRenderer getInstance() {
+      if (instance == null) {
+         instance = new PolygonalMeshRenderer ();
+      }
+      return instance;
+   }
 
    // Use to determine if/when the render object needs to be rebuilt
    protected class PolygonalRobSignature extends RobSignature {
@@ -103,7 +112,8 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       }
    }
 
-   protected void buildRenderObject (MeshBase mesh, RenderProps props) {
+   @Override
+   protected RenderObject buildRenderObject (MeshBase mesh, RenderProps props) {
 
       PolygonalMesh pmesh = (PolygonalMesh)mesh;
       boolean useVertexNormals = props.getShading() != Shading.FLAT;
@@ -150,17 +160,17 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
             r.addLineLoop(vidxs);
          }
       } 
-      myRob = r;
+      
+      return r;
    }
 
-   protected void updateRenderObject (MeshBase mesh, RenderProps props) {
+   @Override
+   protected void updateRenderObject (MeshBase mesh, RenderProps props, RenderObject r) {
 
       PolygonalMesh pmesh = (PolygonalMesh)mesh;
 
       boolean useRenderData = pmesh.isRenderBuffered() && !pmesh.isFixed();
       boolean useVertexNormals = props.getShading() != Shading.FLAT;
-
-      RenderObject r = myRob;
 
       if (!pmesh.isFixed()) {
          updatePositions (r, pmesh);
@@ -180,10 +190,13 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       if (!pmesh.isColorsFixed()) {
          updateColors (r, pmesh);
       }
+      if (!pmesh.isTextureCoordsFixed ()) {
+         updateTextureCoords (r, pmesh);
+      }
    }
 
-   public void prerender (PolygonalMesh mesh, RenderProps props) {
-      super.prerender (mesh, props);
+   public MeshRenderInfo prerender (PolygonalMesh mesh, RenderProps props, MeshRenderInfo renderInfo) {
+      return super.prerender (mesh, props, renderInfo);
    }
 
    private boolean colorsEqual (float[] c1, float[] c2) {
@@ -234,7 +247,8 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
     */
    private void drawEdges (
       Renderer renderer, PolygonalMesh mesh,
-      RenderProps props, boolean highlight, boolean alsoDrawingFaces) {
+      RenderProps props, boolean highlight, boolean alsoDrawingFaces,
+      RenderObject robj) {
 
       float savedLineWidth = renderer.getLineWidth();
       Shading savedShadeModel = renderer.getShading();
@@ -282,7 +296,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          savedColorMixing = renderer.getVertexColorMixing();
          renderer.setVertexColorMixing (ColorMixing.NONE);
       }
-      renderer.drawLines (myRob);
+      renderer.drawLines (robj);
       if (savedColorInterp != null) {
          renderer.setColorInterpolation (savedColorInterp);
       }
@@ -295,7 +309,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
 
    private void drawFaces (
       Renderer renderer, PolygonalMesh mesh, RenderProps props, 
-      boolean highlight) {
+      boolean highlight, RenderObject robj) {
       
       boolean useTextures = mesh.hasTextureCoords ();
 
@@ -335,7 +349,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          BumpMapProps btprops = props.getBumpMap ();
          oldbprops = renderer.setBumpMap (btprops);
       }
-      renderer.drawTriangles (myRob);
+      renderer.drawTriangles (robj);
       if (useTextures) {
          // restore diffuse texture properties
          renderer.setColorMap (oldtprops);
@@ -358,7 +372,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
 
    public void renderEdges (
       Renderer renderer, PolygonalMesh mesh, RenderProps props, 
-      boolean highlight) {
+      boolean highlight, MeshRenderInfo renderInfo) {
       
       if (mesh.numVertices() == 0) {
          return;
@@ -372,14 +386,14 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          renderer.mulModelMatrix (mesh.XMeshToWorld);
       }
 
-      drawEdges (renderer, mesh, props, highlight, false);
+      drawEdges (renderer, mesh, props, highlight, false, renderInfo.getRenderObject ());
 
       renderer.popModelMatrix();
    }
    
    public void render (
       Renderer renderer, PolygonalMesh mesh, RenderProps props, 
-      int flags) {
+      int flags, MeshRenderInfo renderInfo) {
       
       if (mesh.numVertices() == 0) {
          return;
@@ -409,11 +423,11 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
             renderer.setVertexColorMixing (mesh.getVertexColorMixing());
       }
       if (props.getDrawEdges()) {
-         drawEdges (renderer, mesh, props, highlight, drawFaces);
+         drawEdges (renderer, mesh, props, highlight, drawFaces, renderInfo.getRenderObject ());
       }
       
       if (drawFaces) {
-         drawFaces (renderer, mesh, props, highlight);
+         drawFaces (renderer, mesh, props, highlight, renderInfo.getRenderObject ());
       }
       if (mesh.hasColors()) {
          renderer.setVertexColorMixing (savedColorMixing);

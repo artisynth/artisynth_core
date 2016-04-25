@@ -1,5 +1,10 @@
 package maspack.util;
 
+/**
+ * Manually counts held references using a {@link #acquire()} and {@link #release()}
+ * mechanism.
+ * @author Antonio
+ */
 public interface ReferenceCounted {
 
    /**

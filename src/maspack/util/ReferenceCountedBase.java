@@ -3,7 +3,7 @@ package maspack.util;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Resource used by GL
+ * Base implementation of {@link ReferenceCounted}
  */
 public abstract class ReferenceCountedBase implements ReferenceCounted {
    

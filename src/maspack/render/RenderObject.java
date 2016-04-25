@@ -2802,13 +2802,14 @@ public class RenderObject implements Versioned {
    protected void finalize() throws Throwable {
       dispose();
    }
-
-   @Override
-   protected RenderObject clone()  {
+   
+   /**
+    * @return a new copy of the object
+    */
+   protected RenderObject copy()  {
 
       RenderObject r = new RenderObject();
 
-      
       if (positions != null) {
          r.positions = new ArrayList<float[]>(positions.size ());
          r.positions.addAll (positions);

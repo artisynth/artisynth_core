@@ -54,7 +54,6 @@ import maspack.render.GL.GL2.GL2Primitive.PrimitiveType;
 import maspack.render.GL.GL2.RenderObjectKey.DrawType;
 import maspack.render.color.ColorUtils;
 import maspack.util.BooleanHolder;
-import maspack.util.DynamicIntArray;
 import maspack.util.InternalErrorException;
 
 /**
@@ -4117,7 +4116,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    }
    
    @Override
-   public void drawVertices (RenderObject robj, VertexIndexArray idxs, DrawMode mode) {
+   public void drawVertices (RenderObject robj, VertexIndexArray idxs, int offset,
+      int count, DrawMode mode) {
       
       boolean enableLighting = false;
       if (isLightingEnabled() && !robj.hasNormals()) {
@@ -4148,7 +4148,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          hasTexture = maybeActivateTextures (gl);
       }
 
-      boolean useDisplayList = !selecting || !hasColors;
+      // only use display list if rendering entire list, and not selecting if it has vertex colors
+      boolean useDisplayList = (!selecting || !hasColors) && (offset == 0 && count == idxs.size ());
       GL2VersionedObject gvo = null;
       RenderObjectListKey key = new RenderObjectListKey(robj.getIdentifier (), idxs);
       VertexListFingerPrint fingerprint = new VertexListFingerPrint(robj.getVersionInfo(), mode, idxs.getVersion ());
@@ -4204,7 +4205,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
          robj.readLock (); // prevent writes
 
-         int vertexCount = idxs.size ();
          int positionOffset = robj.getVertexPositionOffset ();
          int normalOffset = robj.getVertexNormalOffset ();
          int colorOffset = robj.getVertexColorOffset ();
@@ -4212,7 +4212,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          int vertexStride = robj.getVertexStride ();
          int[] verts = robj.getVertexBuffer ();
  
-         for (int i=0; i<vertexCount; ++i) {
+         for (int i=offset; i<count; ++i) {
             int baseIdx = idxs.get (i)*vertexStride;
             if (!selecting && useColors) {
                setVertexColor (gl, robj.getColor (verts[baseIdx+colorOffset]), useHSV);

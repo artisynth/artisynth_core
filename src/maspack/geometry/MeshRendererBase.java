@@ -14,7 +14,7 @@ import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.Renderer.ColorInterpolation;
 
-public abstract class MeshRendererBase {
+public class MeshRendererBase {
 
    protected class RobSignature {
       MeshBase mesh;
@@ -51,17 +51,6 @@ public abstract class MeshRendererBase {
          return sig;
       }
       
-      /**
-       * Replaces the internal render object signature
-       * @param sig
-       * @return
-       */
-      protected RobSignature replaceSignature(RobSignature sig) {
-         RobSignature oldSig = this.sig;
-         this.sig = sig;
-         return oldSig;
-      }
-      
       public MeshBase getMesh() {
          return sig.getMesh ();
       }
@@ -77,8 +66,9 @@ public abstract class MeshRendererBase {
       mesh.getColorInterpolation() == ColorInterpolation.HSV);
    }
 
-   protected abstract RobSignature createSignature (
-      MeshBase mesh, RenderProps props);
+   protected RobSignature createSignature (MeshBase mesh, RenderProps props) {
+      return new RobSignature (mesh, props);
+   }
 
    private boolean renderObjectNeedsBuilding (
       MeshBase mesh, RenderProps props, RobSignature a, RobSignature b) {

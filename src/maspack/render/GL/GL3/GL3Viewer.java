@@ -1974,13 +1974,13 @@ public class GL3Viewer extends GLViewer {
    
    @Override
    public void drawVertices (
-      RenderObject robj, VertexIndexArray idxs, DrawMode mode) {
+      RenderObject robj, VertexIndexArray idxs, int offset, int count, DrawMode mode) {
       GLSupport.checkAndPrintGLError(gl);
       GL3RenderObjectElements gro = myRenderObjectManager.getElements (gl, robj, idxs);
       maybeUpdateState(gl);
       updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), 
          robj.hasColors (), robj.hasTextureCoords ());
-      gro.drawElements (gl, getDrawPrimitive(mode));
+      gro.drawElements (gl, getDrawPrimitive(mode), offset, count);
    }
    
    

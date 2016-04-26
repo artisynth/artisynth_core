@@ -567,4 +567,11 @@ public class PolylineMesh extends MeshBase {
    protected void autoUpdateNormals() {
    }
    
+   @Override
+   public MeshRenderInfo getRenderInfo (RenderProps props) {
+      // either returns current mesh's rendering information if the properties match
+      // or builds a new one
+      return PolylineMeshRenderer.getInstance ().prerender (this, props, myRenderInfo);
+   }
+   
 }

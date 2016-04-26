@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Arrays;
 
 import maspack.matrix.AffineTransform3dBase;
+import maspack.geometry.MeshRendererBase.MeshRenderInfo;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
@@ -2539,4 +2540,11 @@ public abstract class MeshBase implements Renderable, Cloneable {
       notifyModified();              
    }
 
+   /**
+    * Gets updated cached rendering info suitable for the supplied render properties
+    * @param props render properties that will be applied
+    * @return appropriate rendering cache
+    */
+   public abstract MeshRenderInfo getRenderInfo(RenderProps props);
+   
 }

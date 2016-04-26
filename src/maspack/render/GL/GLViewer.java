@@ -66,6 +66,7 @@ import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.RendererEvent;
 import maspack.render.SortedRenderableList;
+import maspack.render.VertexIndexArray;
 import maspack.render.ColorMapProps;
 import maspack.render.Viewer;
 import maspack.render.ViewerSelectionEvent;
@@ -3736,6 +3737,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       drawTriangles (robj);
    }
    
+   
+   @Override
+   public void drawVertices (
+      RenderObject robj, VertexIndexArray idxs, DrawMode mode) {
+      drawVertices(robj, idxs, 0, idxs.size (), mode);
+   }
 
    //=======================================================
    // IMMEDIATE DRAW

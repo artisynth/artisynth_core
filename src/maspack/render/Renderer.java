@@ -1733,6 +1733,23 @@ public interface Renderer {
    public void drawVertices (RenderObject robj, VertexIndexArray idxs, DrawMode mode);
    
    /**
+    * Draws a selection of vertices associated with the specified RenderObject,
+    * using a specified drawing mode and the current material and shading. This
+    * version of the method should be favoured for persistent index lists, since
+    * the {@link VertexIndexArray} can detect whether or not it has been modified,
+    * which allows for caching.  Additionally, this method allows specification of
+    * an offset and vertex count.
+    * 
+    * @param robj render object
+    * @param idxs vertex indices
+    * @param offset index offset
+    * @param count index count
+    * @param mode drawing mode to be used for drawing the vertices
+    */
+   public void drawVertices (RenderObject robj, VertexIndexArray idxs, 
+      int offset, int count, DrawMode mode);
+   
+   /**
     * Draws all the primitives in the first point, line and triangles groups.
     * @param robj
     */

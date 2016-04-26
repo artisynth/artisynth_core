@@ -51,7 +51,12 @@ public class FaceComponent extends RenderableComponentBase {
   
    @Override
    public void prerender(RenderList list) {
-      myFace.computeRenderNormal();
+      HalfEdge he0 = myFace.firstHalfEdge();
+      HalfEdge he = he0;
+      do {
+         he.getHead ().saveRenderInfo ();
+      } while (he != he0);
+      myFace.computeRenderNormal ();
    }
 
    @Override

@@ -15,7 +15,6 @@ public class DynamicIntArray extends ModifiedVersionBase implements Cloneable {
    int[] elementData;
    int size;
 
-
    public DynamicIntArray() {
       this(DEFAULT_INITIAL_CAPACITY);
    }
@@ -84,14 +83,46 @@ public class DynamicIntArray extends ModifiedVersionBase implements Cloneable {
          elementData = Arrays.copyOf (elementData, size);
       }
    }
+   
+   /**
+    * Resizes the array.  If the new size is smaller than the current array size,
+    * then the trailing elements are removed from the array.  If the new size is
+    * greater than the current, then the array is grown, and new elements are 
+    * initialized to zero.
+    * @param size new size
+    */
+   public void resize(int size) {
+      if (size < this.size) {
+         this.size = size;
+         notifyModified ();
+      } else if (size > this.size) {
+         ensureCapacity (size);
+         for (int i=this.size; i<size; ++i) {
+            elementData[i] = 0;
+         }
+         notifyModified ();
+      }
+   }
 
    public int get(int idx) {
       return elementData[idx];
    }
 
+   /**
+    * Sets the value at index <code>idx</code> to the provided <code>e</code>.
+    * If <code>idx==size()</code>, then the element is appended to the array.
+    * @param idx index at which to modify the value
+    * @param e new value
+    */
    public void set(int idx, int e) {
-      elementData[idx] = e;
-      notifyModified ();
+      if (idx == size) {
+         add(e);
+      } else {
+         if (elementData[idx] != e) {
+            elementData[idx] = e;
+            notifyModified ();
+         }
+      }
    }
 
    /**
@@ -103,7 +134,7 @@ public class DynamicIntArray extends ModifiedVersionBase implements Cloneable {
    public int[] getArray() {
       return elementData;
    }
-   
+      
    /**
     * Creates a shallow copy
     */

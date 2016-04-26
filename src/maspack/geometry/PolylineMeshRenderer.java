@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.render.VertexIndexArray;
 import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.Shading;
@@ -164,6 +165,38 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
       renderer.setShading (savedShadeModel);
 
       renderer.popModelMatrix();
+   }
+   
+   /**
+    * Appends Polyline line segments to an index array associated with the 
+    * provided rendering context.  This is most useful for rendering
+    * a selection of polylines from a PolylineMesh.
+    * @param lines list of lines of which to obtain appropriate rendering indices
+    * @param rinfo rendering information to be used along with the polylines
+    * @param out list of indices to populate
+    * @return number of indices added to <code>out</code>
+    */
+   public static int getPolylineLines(Iterable<? extends Polyline> lines,
+      MeshRenderInfo renderInfo, VertexIndexArray out) {
+      
+      MeshBase mesh = renderInfo.getMesh ();
+      int[] indexOffs = mesh.getFeatureIndexOffsets();
+      
+      int ni = out.size ();
+      for (Polyline line : lines) {
+         int polyIdx = line.getIndex ();
+         int vidx = indexOffs[polyIdx];
+         int numv = line.numVertices ();
+         
+         out.ensureCapacity (out.size ()+2*numv);
+         for (int i=0; i<numv-1; ++i) {
+            out.add (vidx);
+            out.add (++vidx);
+         }
+      }
+      
+      return out.size ()-ni;
+   
    }
 
 }

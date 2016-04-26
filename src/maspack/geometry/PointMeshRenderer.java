@@ -13,6 +13,7 @@ import maspack.matrix.Vector3d;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.render.VertexIndexArray;
 import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Renderer.PointStyle;
 import maspack.render.Renderer.Shading;
@@ -175,5 +176,27 @@ public class PointMeshRenderer extends MeshRendererBase {
       renderer.setShading (savedShadeModel);
 
       renderer.popModelMatrix();
+   }
+   
+   /**
+    * Appends the provided vertices to an index array associated with the 
+    * provided rendering context.  This is most useful for rendering
+    * a selection of vertices from a point mesh.
+    * @param vertices list of vertices of which to obtain appropriate rendering indices
+    * @param rinfo rendering information to be used along with the vertices
+    * @param out list of indices to populate
+    * @return number of indices added to <code>out</code>
+    */
+   public static int getPointVertices(Iterable<? extends Vertex3d> vertices, 
+      MeshRenderInfo rinfo, VertexIndexArray out) {
+
+      int nv = 0;
+      for (Vertex3d vtx : vertices) {
+         int idx = vtx.getIndex ();
+         out.add (idx);
+         ++nv;
+      }
+      
+      return nv;
    }
 }

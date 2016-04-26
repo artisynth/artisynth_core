@@ -23,14 +23,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import maspack.geometry.MeshRendererBase.MeshRenderInfo;
 import maspack.geometry.io.WavefrontReader;
 import maspack.geometry.io.WavefrontWriter;
 import maspack.matrix.AffineTransform3dBase;
@@ -48,7 +46,6 @@ import maspack.render.Renderer;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.util.ArraySupport;
 import maspack.util.InternalErrorException;
-import maspack.util.ListIndexComparator;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
@@ -58,7 +55,6 @@ import maspack.util.ReaderTokenizer;
 public class PolygonalMesh extends MeshBase {
 
    protected ArrayList<Face> myFaces = new ArrayList<Face>();
-   protected int[] myFaceOrder;  // used for sorting/drawing faces
 
    protected boolean myMultiAutoNormalsP = true;
 
@@ -82,7 +78,7 @@ public class PolygonalMesh extends MeshBase {
    private boolean myFaceNormalsValid = false;
    private boolean myRenderNormalsValid = false;
 
-   protected MeshRenderInfo myRenderInfo = null;
+   protected PolygonalMeshRenderer myMeshRenderer = null;
 
    /*
     * Set to true if this mesh may be subject to self intersections. If set, it
@@ -1469,15 +1465,17 @@ public class PolygonalMesh extends MeshBase {
    
    public void prerender (RenderProps props) {
       super.prerender (props);
-      myRenderInfo = PolygonalMeshRenderer.getInstance ().prerender (this, props, myRenderInfo);
+      if (myMeshRenderer == null) {
+         myMeshRenderer = new PolygonalMeshRenderer (this);
+      }
+      myMeshRenderer.prerender (props);
    }
 
    public void render (Renderer renderer, RenderProps props, int flags) {
-      if (myRenderInfo == null) {
+      if (myMeshRenderer == null) {
          throw new IllegalStateException (
             "render() called before prerender()");
       }
-      PolygonalMeshRenderer.getInstance ().render (renderer, this, props, flags, myRenderInfo);
    }
 
    /**
@@ -2377,9 +2375,7 @@ public class PolygonalMesh extends MeshBase {
          mesh.addFace (
             myFaces.get(i).getVertexIndices(), /*adjustAttributes=*/false);
       }
-      if (myFaceOrder != null) {
-         mesh.myFaceOrder = Arrays.copyOf (myFaceOrder, myFaceOrder.length);
-      }
+      
       mesh.myBVTree = null;
       mesh.myBVTreeUpdated = false;
       if (sdGrid != null) {
@@ -2387,7 +2383,7 @@ public class PolygonalMesh extends MeshBase {
             "Warning: mesh copy not implemented for signed distance grids");
          mesh.sdGrid = null;
       }
-      mesh.myRenderInfo = null;
+      mesh.myMeshRenderer = null;
       if (numHardEdges() > 0) {
          // copy hard edge settings
          for (int i=0; i<myFaces.size(); i++) {
@@ -2900,63 +2896,6 @@ public class PolygonalMesh extends MeshBase {
       }
    }
 
-   /**
-    * Returns the order of sorted faces, or null if faces have never been 
-    * sorted.
-    */
-   public int[] getFaceOrder() {
-      return myFaceOrder;
-   }
-
-   /**
-    * "Sorts" faces according to the direction provided.  Note that the order of
-    * faces is not actually changed.  Instead, an index array is created that
-    * holds the sorted order.
-    */
-   public int[] sortFaces(Vector3d zdir) {
-
-      ZOrderComparator zComparator = new ZOrderComparator(zdir);
-      ListIndexComparator<Face> faceComparator = 
-         new ListIndexComparator<Face>(myFaces, zComparator);
-
-      Integer[] idxs = faceComparator.createIndexArray();
-      Arrays.sort(idxs, faceComparator);
-      myFaceOrder = new int[idxs.length];
-
-      // unbox
-      for (int i=0; i<idxs.length; i++) {
-         myFaceOrder[i] = idxs[i];
-      }
-
-      return myFaceOrder;
-   }
-
-   // used for sorting faces for transparency
-   private static class ZOrderComparator implements Comparator<Face> {
-
-      Vector3d myDir = new Vector3d(0,1,0);
-      Vector3d pdisp = new Vector3d();
-      Point3d centroid1 = new Point3d();
-      Point3d centroid2 = new Point3d();
-      
-      public ZOrderComparator(Vector3d zDir) {
-         myDir.set(zDir);
-      }
-
-      public int compare(Face o1, Face o2) {
-         o1.computeCentroid(centroid1);
-         o2.computeCentroid(centroid2);
-         pdisp.sub(centroid1,centroid2);
-         double d = pdisp.dot(myDir);
-         if (d > 0) {
-            return 1;
-         } else if (d < 0) {
-            return -1;
-         }
-         return 0;
-      }
-
-   }
 
    private boolean vectorListsEqual (
       ArrayList<Vector3d> list0, ArrayList<Vector3d> list1, double eps) {
@@ -3526,13 +3465,6 @@ public class PolygonalMesh extends MeshBase {
          myAutoNormalsValidP = true; 
          return true;
       }
-   }
-
-   @Override
-   public MeshRenderInfo getRenderInfo (RenderProps props) {
-      // either returns current mesh's rendering information if the properties match
-      // or builds a new one
-      return PolygonalMeshRenderer.getInstance ().prerender (this, props, myRenderInfo);
    }
    
 }

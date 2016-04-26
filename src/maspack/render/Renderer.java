@@ -88,11 +88,6 @@ public interface Renderer {
 //    * Flag requesting color interpolation in HSV space, if possible.
 //    */
 //   public static int HSV_COLOR_INTERPOLATION = 0x4;
-
-   /**
-    * Flag requesting that faces of a mesh be sorted before rendering
-    */
-   public static int SORT_FACES = 0x8;
    
    /**
     * Defines various vertex-based primitives

@@ -17,7 +17,6 @@ import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.LinearMaterial;
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.Boundable;
-import maspack.geometry.MeshRendererBase.MeshRenderInfo;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.PolygonalMeshRenderer;
 import maspack.geometry.Vertex3d;
@@ -668,20 +667,26 @@ public class MFreeElement3d extends FemElement implements Boundable {
       return vol;
    }
 
-   private MeshRenderInfo myRenderInfo = null;
+   private PolygonalMeshRenderer myRenderInfo = null;
    
    @Override
    public void prerender (RenderList list) {
       super.prerender(list);
       renderMeshValid = false;
-      myRenderInfo = PolygonalMeshRenderer.getInstance ().prerender (
-         myBoundaryMesh, getRenderProps(), myRenderInfo);
+      
+      if (myRenderInfo == null) {
+         myRenderInfo = new PolygonalMeshRenderer (myBoundaryMesh);
+      }
+      myRenderInfo.prerender (getRenderProps());
    }
    
    protected void renderEdges(Renderer renderer, RenderProps props) {
       if (myBoundaryMesh != null) {
-         PolygonalMeshRenderer.getInstance().renderEdges(
-            renderer, myBoundaryMesh, props, /*selected=*/false, myRenderInfo);
+         int flags = 0;
+         if (isSelected ()) {
+            flags = Renderer.HIGHLIGHT;
+         }
+         myRenderInfo.renderEdges(renderer, props, flags);
       }
    }
 

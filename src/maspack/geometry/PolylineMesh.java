@@ -14,7 +14,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import maspack.geometry.MeshRendererBase.MeshRenderInfo;
 import maspack.geometry.io.WavefrontReader;
 import maspack.matrix.Point3d;
 import maspack.properties.HasProperties;
@@ -31,7 +30,7 @@ import maspack.util.ReaderTokenizer;
 public class PolylineMesh extends MeshBase {
    protected ArrayList<Polyline> myLines = new ArrayList<Polyline>();
 
-   MeshRenderInfo myRenderInfo = null;
+   PolylineMeshRenderer myMeshRenderer = null;
 
    protected AABBTree myBVTree = null;
    protected boolean myBVTreeValid = false;
@@ -361,15 +360,19 @@ public class PolylineMesh extends MeshBase {
    
    public void prerender (RenderProps props) {
       super.prerender (props);
-      myRenderInfo = PolylineMeshRenderer.getInstance().prerender(this, props, myRenderInfo);
+      
+      if (myMeshRenderer == null) {
+         myMeshRenderer = new PolylineMeshRenderer (this);
+      }
+      myMeshRenderer.prerender(props);
    }
 
    public void render(Renderer renderer, RenderProps props, int flags) {
-      if (myRenderInfo == null) {
+      if (myMeshRenderer == null) {
          throw new IllegalStateException (
             "render() called before prerender()");
       }
-      PolylineMeshRenderer.getInstance().render(renderer, this, props, flags, myRenderInfo);
+      myMeshRenderer.render(renderer, props, flags);
    }
    
    /** 
@@ -565,13 +568,6 @@ public class PolylineMesh extends MeshBase {
    }
 
    protected void autoUpdateNormals() {
-   }
-   
-   @Override
-   public MeshRenderInfo getRenderInfo (RenderProps props) {
-      // either returns current mesh's rendering information if the properties match
-      // or builds a new one
-      return PolylineMeshRenderer.getInstance ().prerender (this, props, myRenderInfo);
    }
    
 }

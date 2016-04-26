@@ -14,7 +14,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import maspack.geometry.MeshRendererBase.MeshRenderInfo;
 import maspack.geometry.io.WavefrontReader;
 import maspack.geometry.io.XyzbReader;
 import maspack.matrix.Point3d;
@@ -30,7 +29,7 @@ import maspack.util.ReaderTokenizer;
  */
 public class PointMesh extends MeshBase {
 
-   MeshRenderInfo myRenderInfo = null;
+   PointMeshRenderer myMeshRenderer = null;
 
    protected AABBTree myBVTree = null;
    protected boolean myBVTreeValid = false;
@@ -201,16 +200,18 @@ public class PointMesh extends MeshBase {
 
    public void prerender (RenderProps props) {
       super.prerender (props);
-      myRenderInfo = PointMeshRenderer.getInstance ().prerender (this, props, myRenderInfo);
+      if (myMeshRenderer == null) {
+         myMeshRenderer = new PointMeshRenderer (this);
+      }
+      myMeshRenderer.prerender (props);
    }
 
    public void render (Renderer renderer, RenderProps props, int flags) {
-      if (myRenderInfo == null) {
+      if (myMeshRenderer == null) {
          throw new IllegalStateException (
             "render() called before prerender()");
       }
-      PointMeshRenderer.getInstance ().render (renderer, 
-         this, props, flags, myRenderInfo);
+      myMeshRenderer.render (renderer, props, flags);
    }
 
    /** 
@@ -343,13 +344,6 @@ public class PointMesh extends MeshBase {
          adjustAttributesForRemovedFeatures (removed);
       }
       return removed;
-   }
-
-   @Override
-   public MeshRenderInfo getRenderInfo (RenderProps props) {
-      // either returns current mesh's rendering information if the properties match
-      // or builds a new one
-      return PointMeshRenderer.getInstance ().prerender (this, props, myRenderInfo);
    }
    
 }

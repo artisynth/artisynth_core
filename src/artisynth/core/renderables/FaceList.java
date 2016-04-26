@@ -10,8 +10,6 @@ import java.util.LinkedList;
 
 import artisynth.core.modelbase.RenderableComponentList;
 import maspack.geometry.Face;
-import maspack.geometry.MeshBase;
-import maspack.geometry.MeshRendererBase.MeshRenderInfo;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.PolygonalMeshRenderer;
 import maspack.properties.PropertyList;
@@ -29,7 +27,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
    private final int SEL_GRP = 1;
    
    PolygonalMesh myMesh;
-   private MeshRenderInfo myRenderInfo;
+   private PolygonalMeshRenderer myMeshRenderer;
    private VertexIndexArray[] myTriangles;
    private int[][] myTriangleOffsets;
    private VertexIndexArray[] myLines;
@@ -52,7 +50,7 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       setRenderProps (createRenderProps());
       
       myMesh = mesh;
-      myRenderInfo = null;
+      myMeshRenderer = null;
       myTriangles = null;
       myTriangleOffsets = null;
       myLines = null;
@@ -68,7 +66,10 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
    public void prerender (RenderList list) {
       
       // create stored copy of render information
-      myRenderInfo = myMesh.getRenderInfo (getRenderProps());
+      if (myMeshRenderer == null) {
+         myMeshRenderer = new PolygonalMeshRenderer (myMesh);
+      }
+      myMeshRenderer.prerender (getRenderProps());
       
       if (myTriangles == null) {
          myTriangles = new VertexIndexArray[2];
@@ -103,11 +104,11 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
             // p.prerender (list);
             int gidx = p.isSelected () ? SEL_GRP : REG_GRP;
             
-            int nt = getFaceTriangles (p.getFace (), myRenderInfo, myTriangles[gidx], toff[gidx]);
-            int ne = getFaceLines (p.getFace (), myRenderInfo, myLines[gidx], eoff[gidx]);
-            
-            toff[gidx] += nt;
-            eoff[gidx] += ne;
+            //            int nt = getFaceTriangles (p.getFace (), myMeshRenderer, myTriangles[gidx], toff[gidx]);
+            //            int ne = getFaceLines (p.getFace (), myMeshRenderer, myLines[gidx], eoff[gidx]);
+            //            
+            //            toff[gidx] += nt;
+            //            eoff[gidx] += ne;
          }
       }
       
@@ -132,14 +133,14 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       
       RenderProps props = getRenderProps();
 
-      // selected
-      int hflags = flags | Renderer.HIGHLIGHT;
-      PolygonalMeshRenderer.getInstance ().render (renderer, myMesh, props, hflags, myRenderInfo,
-         myTriangles[SEL_GRP], myTriangleOffsets[SEL_GRP], myLines[SEL_GRP], myLineOffsets[SEL_GRP]);
-
-      // non selected
-      PolygonalMeshRenderer.getInstance ().render (renderer, myMesh, props, flags, myRenderInfo,
-         myTriangles[REG_GRP], myTriangleOffsets[REG_GRP], myLines[REG_GRP], myLineOffsets[REG_GRP]);
+      //      // selected
+      //      int hflags = flags | Renderer.HIGHLIGHT;
+      //      PolygonalMeshRenderer.getInstance ().render (renderer, myMesh, props, hflags, myMeshRenderer,
+      //         myTriangles[SEL_GRP], myTriangleOffsets[SEL_GRP], myLines[SEL_GRP], myLineOffsets[SEL_GRP]);
+      //
+      //      // non selected
+      //      PolygonalMeshRenderer.getInstance ().render (renderer, myMesh, props, flags, myMeshRenderer,
+      //         myTriangles[REG_GRP], myTriangleOffsets[REG_GRP], myLines[REG_GRP], myLineOffsets[REG_GRP]);
    }
    
    
@@ -153,10 +154,9 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
     * @param offset offset into the list to put the value
     * @return number of indices added to <code>out</code>
     */
-   public static int getFaceTriangles(Face face, MeshRenderInfo rinfo, 
+   public static int getFaceTriangles(Face face, PolygonalMesh mesh, 
       VertexIndexArray out, int offset) {
       
-      MeshBase mesh = rinfo.getMesh ();
       int[] indexOffs = mesh.getFeatureIndexOffsets ();
       
       int nadd = 0;
@@ -186,10 +186,9 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
     * @param offset starting index into out array to modify
     * @return number of indices added to <code>out</code>
     */
-   private static int getFaceLines(Face face, MeshRenderInfo rinfo, VertexIndexArray out, 
+   private static int getFaceLines(Face face, PolygonalMesh mesh, VertexIndexArray out, 
       int offset) {
-      
-      MeshBase mesh = rinfo.getMesh ();
+     
       int[] indexOffs = mesh.getFeatureIndexOffsets ();
       
       int nadd = 0;

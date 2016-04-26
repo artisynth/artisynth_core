@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.VertexIndexArray;
 import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.Shading;
@@ -20,15 +19,6 @@ import maspack.render.Renderer.Shading;
  * Utility class for rendering {@link PolylineMesh} objects.
  */
 public class PolylineMeshRenderer  extends MeshRendererBase {
-
-   private static PolylineMeshRenderer instance = null;
-   
-   public static PolylineMeshRenderer getInstance() {
-      if (instance == null) {
-         instance = new PolylineMeshRenderer ();
-      }
-      return instance;
-   }
    
    protected class PolylineRobSignature extends RobSignature {
       
@@ -50,7 +40,8 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
       }
    }
 
-   public PolylineMeshRenderer() {
+   public PolylineMeshRenderer(PolylineMesh mesh) {
+      super(mesh);
    }
 
    protected RobSignature createSignature (
@@ -90,20 +81,19 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
       
       return r;
    }
+   
+   @Override
+   public PolylineMesh getMesh () {
+      return (PolylineMesh)super.getMesh ();
+   }
 
    @Override
-   protected void updateRenderObject (MeshBase mesh, RenderProps props, RenderObject robj) {
-      super.updateRenderObject (mesh, props, robj);
-   }
-
-   public MeshRenderInfo prerender (PointMesh mesh, RenderProps props, MeshRenderInfo renderInfo) {
-      return super.prerender (mesh, props, renderInfo);
-   }
-
    public void render (
-      Renderer renderer, PolylineMesh mesh, RenderProps props, 
-      int flags, MeshRenderInfo renderInfo) {
+      Renderer renderer, RenderProps props, int flags) {
 
+      PolylineMesh mesh = getMesh ();
+      RenderObject rob = getRenderObject ();
+      
       if (mesh.numVertices() == 0) {
          return;
       }
@@ -143,7 +133,7 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
          case LINE: {
             int width = props.getLineWidth();
             if (width > 0) {
-               renderer.drawLines (renderInfo.getRenderObject (), LineStyle.LINE, width);
+               renderer.drawLines (rob, LineStyle.LINE, width);
             }
             break;
          }
@@ -152,7 +142,7 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
          case CYLINDER: {
             double rad = props.getLineRadius();
             if (rad > 0) {
-               renderer.drawLines (renderInfo.getRenderObject (), props.getLineStyle(), rad);
+               renderer.drawLines (rob, props.getLineStyle(), rad);
             }
             break;
          }
@@ -165,38 +155,6 @@ public class PolylineMeshRenderer  extends MeshRendererBase {
       renderer.setShading (savedShadeModel);
 
       renderer.popModelMatrix();
-   }
-   
-   /**
-    * Appends Polyline line segments to an index array associated with the 
-    * provided rendering context.  This is most useful for rendering
-    * a selection of polylines from a PolylineMesh.
-    * @param lines list of lines of which to obtain appropriate rendering indices
-    * @param rinfo rendering information to be used along with the polylines
-    * @param out list of indices to populate
-    * @return number of indices added to <code>out</code>
-    */
-   public static int getPolylineLines(Iterable<? extends Polyline> lines,
-      MeshRenderInfo renderInfo, VertexIndexArray out) {
-      
-      MeshBase mesh = renderInfo.getMesh ();
-      int[] indexOffs = mesh.getFeatureIndexOffsets();
-      
-      int ni = out.size ();
-      for (Polyline line : lines) {
-         int polyIdx = line.getIndex ();
-         int vidx = indexOffs[polyIdx];
-         int numv = line.numVertices ();
-         
-         out.ensureCapacity (out.size ()+2*numv);
-         for (int i=0; i<numv-1; ++i) {
-            out.add (vidx);
-            out.add (++vidx);
-         }
-      }
-      
-      return out.size ()-ni;
-   
    }
 
 }

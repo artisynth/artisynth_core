@@ -13,7 +13,6 @@ import maspack.matrix.Vector3d;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.VertexIndexArray;
 import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Renderer.PointStyle;
 import maspack.render.Renderer.Shading;
@@ -27,15 +26,6 @@ public class PointMeshRenderer extends MeshRendererBase {
    // with and without colors
    // with and without shading
    // change pointStyle, pointColor, pointRadius
-   
-   private static PointMeshRenderer instance;
-   
-   public static PointMeshRenderer getInstance() {
-      if (instance == null) {
-         instance = new PointMeshRenderer ();
-      }
-      return instance;
-   }
 
    // Use to determine if/when the render object needs to be rebuilt
    protected class PointRobSignature extends RobSignature {
@@ -58,7 +48,8 @@ public class PointMeshRenderer extends MeshRendererBase {
       }
    }
 
-   public PointMeshRenderer() {
+   public PointMeshRenderer(PointMesh mesh) {
+      super(mesh);
    }
 
    @Override
@@ -102,17 +93,16 @@ public class PointMeshRenderer extends MeshRendererBase {
    }
 
    @Override
-   protected void updateRenderObject (MeshBase mesh, RenderProps props, RenderObject robj) {
-      super.updateRenderObject (mesh, props, robj);
+   public PointMesh getMesh() {
+      return (PointMesh)super.getMesh ();
    }
+   
+   @Override
+   public void render (Renderer renderer, RenderProps props, int flags) {
 
-   public MeshRenderInfo prerender (PointMesh mesh, RenderProps props, MeshRenderInfo renderInfo) {
-      return super.prerender (mesh, props, renderInfo);
-   }
-
-   public void render (
-      Renderer renderer, PointMesh mesh, RenderProps props, int flags, MeshRenderInfo renderInfo) {
-
+      PointMesh mesh = getMesh ();
+      RenderObject rob = getRenderObject ();
+      
       if (mesh.numVertices() == 0) {
          return;
       }
@@ -150,7 +140,7 @@ public class PointMeshRenderer extends MeshRendererBase {
          case POINT: {
             int size = props.getPointSize();
             if (size > 0) {
-               renderer.drawPoints (renderInfo.getRenderObject (), PointStyle.POINT, size);
+               renderer.drawPoints (rob, PointStyle.POINT, size);
             }
             break;
          }
@@ -158,7 +148,7 @@ public class PointMeshRenderer extends MeshRendererBase {
          case SPHERE: {
             double rad = props.getPointRadius();
             if (rad > 0) {
-               renderer.drawPoints (renderInfo.getRenderObject (), pointStyle, rad);
+               renderer.drawPoints (rob, pointStyle, rad);
             }
             break;
          }
@@ -169,34 +159,12 @@ public class PointMeshRenderer extends MeshRendererBase {
       if (mesh.getNormalRenderLen() > 0) {
          renderer.setLineWidth (props.getLineWidth());
          renderer.setLineColoring (props, highlight);
-         renderer.drawLines (renderInfo.getRenderObject ());
+         renderer.drawLines (rob);
       }
       
       renderer.setLineWidth (savedLineWidth);
       renderer.setShading (savedShadeModel);
 
       renderer.popModelMatrix();
-   }
-   
-   /**
-    * Appends the provided vertices to an index array associated with the 
-    * provided rendering context.  This is most useful for rendering
-    * a selection of vertices from a point mesh.
-    * @param vertices list of vertices of which to obtain appropriate rendering indices
-    * @param rinfo rendering information to be used along with the vertices
-    * @param out list of indices to populate
-    * @return number of indices added to <code>out</code>
-    */
-   public static int getPointVertices(Iterable<? extends Vertex3d> vertices, 
-      MeshRenderInfo rinfo, VertexIndexArray out) {
-
-      int nv = 0;
-      for (Vertex3d vtx : vertices) {
-         int idx = vtx.getIndex ();
-         out.add (idx);
-         ++nv;
-      }
-      
-      return nv;
    }
 }

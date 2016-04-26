@@ -849,16 +849,6 @@ public class MeshViewer extends GLViewerFrame
       else if (cmd.equals("Orthographic view")) {
          viewer.setOrthographicView(true);
       }
-      else if (cmd.equals("Sort faces")) {
-
-         for (MeshBase mesh : myMeshes) {
-
-            if (mesh instanceof PolygonalMesh) {
-               ((PolygonalMesh)mesh).sortFaces(viewer.getEyeZDirection());
-            }
-         }
-         viewer.rerender();
-      }
    }
 
    private void displayPopup (MouseEvent evt) {

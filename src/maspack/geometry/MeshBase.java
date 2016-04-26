@@ -11,30 +11,29 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Arrays;
 
-import maspack.matrix.AffineTransform3dBase;
-import maspack.geometry.MeshRendererBase.MeshRenderInfo;
 import maspack.matrix.AffineTransform3d;
+import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
-import maspack.matrix.Matrix3d;
 import maspack.properties.HasProperties;
-import maspack.render.Renderer;
-import maspack.render.Renderer.Shading;
-import maspack.render.Renderer.ColorInterpolation;
-import maspack.render.Renderer.ColorMixing;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
+import maspack.render.Renderer;
+import maspack.render.Renderer.ColorInterpolation;
+import maspack.render.Renderer.ColorMixing;
+import maspack.render.Renderer.Shading;
+import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import maspack.util.InternalErrorException;
 
 /**
  * A "mesh" is a geometric object defined by a set of vertices, which are then
@@ -2539,12 +2538,5 @@ public abstract class MeshBase implements Renderable, Cloneable {
       myTextureIndices = null;
       notifyModified();              
    }
-
-   /**
-    * Gets updated cached rendering info suitable for the supplied render properties
-    * @param props render properties that will be applied
-    * @return appropriate rendering cache
-    */
-   public abstract MeshRenderInfo getRenderInfo(RenderProps props);
    
 }

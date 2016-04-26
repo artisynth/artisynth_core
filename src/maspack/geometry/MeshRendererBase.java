@@ -12,9 +12,14 @@ import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.render.Renderer.ColorInterpolation;
 
-public class MeshRendererBase {
+public abstract class MeshRendererBase {
+   
+   private MeshBase myMesh;
+   private RenderObject myRob;
+   private RobSignature mySignature;
 
    protected class RobSignature {
       MeshBase mesh;
@@ -36,28 +41,10 @@ public class MeshRendererBase {
       }
    }
 
-   /**
-    * Stores information required for rendering
-    */
-   public static class MeshRenderInfo {
-      RenderObject robj;
-      RobSignature sig;
-      protected MeshRenderInfo(RenderObject robj, RobSignature signature) {
-         this.robj = robj;
-         this.sig = signature;
-      }
-      
-      protected RobSignature getSignature() {
-         return sig;
-      }
-      
-      public MeshBase getMesh() {
-         return sig.getMesh ();
-      }
-      
-      public RenderObject getRenderObject() {
-         return robj;
-      }
+   
+   public MeshRendererBase(MeshBase mesh) {
+      myMesh = mesh;
+      mySignature = null;
    }
 
 
@@ -181,27 +168,34 @@ public class MeshRendererBase {
          updateTextureCoords (robj, mesh);
       }
    }
+   
+   public MeshBase getMesh() {
+      return myMesh;
+   }
+   
+   public RenderObject getRenderObject() {
+      return myRob;
+   }
 
    /**
     * Updates rendering information
-    * @param mesh mesh to render
     * @param props render properties
-    * @param renderInfo previous rendering information
-    * @return updated render information
     */
-   public MeshRenderInfo prerender (MeshBase mesh, RenderProps props, MeshRenderInfo renderInfo) {
-      MeshRenderInfo out = renderInfo;
-      
-      RobSignature sig = createSignature (mesh, props);
-      if (renderInfo == null || renderObjectNeedsBuilding (mesh, props, sig, renderInfo.getSignature ())) {
-         RenderObject robj = buildRenderObject (mesh, props);
-         out = new MeshRenderInfo (robj, sig);
+   public void prerender (RenderProps props) {
+    
+      RobSignature sig = createSignature (myMesh, props);
+      if (myRob == null || renderObjectNeedsBuilding (myMesh, props, sig, mySignature)) {
+         RenderObject robj = buildRenderObject (myMesh, props);
+         myRob = robj;
+         mySignature = sig;
       }
       else {
-         updateRenderObject (mesh, props, renderInfo.getRenderObject ());
+         updateRenderObject (myMesh, props, myRob);
       }
-      return out;
    }
+
+
+   public abstract void render (Renderer renderer, RenderProps props, int flags);
 
 }
 

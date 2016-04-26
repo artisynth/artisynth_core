@@ -47,12 +47,6 @@ public class HudPrintStream extends TextComponentBase {
       HudPrintStream.class, TextComponentBase.class);
 
    static {
-      // change default font size
-      PropertyDesc info = myProps.get("fontSize");
-      info.setDefaultValue(defaultFontSize);
-      info = myProps.get("textSize");
-      info.setDefaultValue(defaultTextSize);
-      
       myProps.add("position", "display position", Point2d.ZERO);
       myProps.add("lineSpacing", "height of line proportional to font size",
          defaultLineSpacing);
@@ -525,7 +519,7 @@ public class HudPrintStream extends TextComponentBase {
    @Override
    public void setVerticalAlignment(VerticalAlignment vAlignment) {
       if (!isFullScreen) {
-         setVerticalAlignment(vAlignment);
+         super.setVerticalAlignment (vAlignment);
       } else {
          lastVAlignment = vAlignment;
       }

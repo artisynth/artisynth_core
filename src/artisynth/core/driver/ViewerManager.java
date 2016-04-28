@@ -27,6 +27,7 @@ import maspack.matrix.RotationMatrix3d;
 import maspack.render.Dragger3d;
 import maspack.render.IsRenderable;
 import maspack.render.RenderList;
+import maspack.render.Renderer;
 import maspack.render.Renderer.HighlightStyle;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewerFrame;
@@ -48,7 +49,7 @@ public class ViewerManager {
    private LinkedList<Dragger3d> myDraggers = new LinkedList<Dragger3d>();
 
    // Flags for special "refresh" rendering
-   public static final int DEFAULT_REFRESH_FLAGS = 0;
+   public static final int DEFAULT_REFRESH_FLAGS = Renderer.SORT_FACES;
    private int myRefreshRenderFlags = DEFAULT_REFRESH_FLAGS;
 
    boolean myDefaultDrawAxes = false;

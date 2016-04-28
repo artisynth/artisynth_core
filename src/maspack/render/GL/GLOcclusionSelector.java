@@ -28,14 +28,21 @@ import maspack.render.ViewerSelectionListener;
  */
 public class GLOcclusionSelector extends GLSelector {
 
+   public static final int MAX_OCCLUSION_QUERIES = 1<<12; 
+   
    GL2GL3 myGl;
 
    int myTotalMaxQ;
    int myCurrentMaxQ;
    int myCurrentIdx;
    int myIdxBase;
-   int[] myQueries;
-   boolean[] myQueryWasUsed;
+   int[] myQuerySamples; // number of samples passed for each query
+   
+   int[] myGLQueries;  // GL query ids
+   int[] myGLQueryIds; // renderer query ids (associated with begin/endSelectionQuery(...))
+   int myGLQueryCount; // number of queries issued
+   int myGLQueryTotal; // number of queries issued in total
+   
    Deque<Integer> myMaxQStack;
    Deque<Integer> myIdxBaseStack;
 
@@ -91,34 +98,22 @@ public class GLOcclusionSelector extends GLSelector {
       if (myTotalMaxQ == 0) {
          return;
       }
-      // // find out how many queries we'll need
-      // myTotalMaxQ = 0;
-      // Iterator<IsRenderable> it = myViewer.renderIterator();
-
-      // while (it.hasNext()) {
-      //    IsRenderable r = it.next();
-      //    IsSelectable s;
-      //    if (r instanceof IsSelectable && (s = (IsSelectable)r).isSelectable()) {
-      //       int numq = s.numSelectionQueriesNeeded();
-      //       if (numq > 0) {
-      //          myTotalMaxQ += numq;
-      //       }
-      //       else {
-      //          myTotalMaxQ += 1;
-      //       }
-      //    }
-      // }
-
+      
       myCurrentMaxQ = myTotalMaxQ;
       myCurrentIdx = -1;
       myIdxBase = 0;
-      myMaxQStack.clear(); // paranoid ...
+      myMaxQStack.clear();     // paranoid ...
       myIdxBaseStack.clear();  // paranoid ...
-
+      myQuerySamples = new int[myTotalMaxQ];  // number of samples each query has passed
+      
       // allocate query handles for the max number of queries
-      myQueries = new int[myTotalMaxQ];
-      myQueryWasUsed = new boolean[myTotalMaxQ];
-      gl.glGenQueries (myTotalMaxQ, myQueries, 0);
+      int maxGLQueries = Math.min (myTotalMaxQ, MAX_OCCLUSION_QUERIES);
+      myGLQueries = new int[maxGLQueries];
+      myGLQueryIds = new int[maxGLQueries];
+      myGLQueryCount = 0;
+      myGLQueryTotal = 0;
+      
+      gl.glGenQueries (myTotalMaxQ, myGLQueries, 0);
 
       // restrict the viewport to the specified selection region
       mySavedViewport = viewer.getViewport(gl);
@@ -143,8 +138,38 @@ public class GLOcclusionSelector extends GLSelector {
       viewer.setLightingEnabled(false);
       // disable writing to the framebuffer
       viewer.setColorEnabled(false);
-      // disable writing to the depth buffer
+      // disable using the depth buffer
       viewer.setDepthEnabled(false);
+      
+   }
+   
+   private void flushQueries(GL2GL3 gl) {
+      
+      if (myGLQueryCount == 0) {
+         return;
+      }
+      
+      // make sure queries are ready
+      int[] result = new int[1];
+      do {
+         gl.glGetQueryObjectiv (
+            myGLQueries[myGLQueryCount-1], GL2.GL_QUERY_RESULT_AVAILABLE, result, 0);
+         if (result[0] == 0) {
+            waitMsec (1);
+         }
+      }
+      while (result[0] == 0);
+      
+      // fill in occlusion counts
+      for (int i=0; i<myGLQueryCount; ++i) {
+         gl.glGetQueryObjectuiv (
+            myGLQueries[i], GL2.GL_QUERY_RESULT, result, 0);
+         myQuerySamples[myGLQueryIds[i]] += result[0];
+         myGLQueryIds[i] = -1;
+      }
+      
+      myGLQueryTotal += myGLQueryCount;
+      myGLQueryCount = 0;
       
    }
 
@@ -182,34 +207,15 @@ public class GLOcclusionSelector extends GLSelector {
             "Calls to begin/endSelectionForObject() not balanced");
       }
 
-      // find the last query that was issued ...
-      int lastQidx = -1;
-      for (int i=myTotalMaxQ-1; i>=0; i--) {
-         if (myQueryWasUsed[i]) {
-            lastQidx = i;
-            break;
-         }
-      }
-
-      if (lastQidx == -1) {
+      // finish remaining queries
+      flushQueries (myGl);
+      
+      if (myGLQueryTotal == 0) {
          // then no queries were issued, so nothing to do ...
          myViewer.setSelected(null);
-      }
-      else {
-         // make sure queries are ready
-         int[] available = new int[1];
-         do {
-            gl.glGetQueryObjectiv (
-               myQueries[lastQidx], GL2.GL_QUERY_RESULT_AVAILABLE, available, 0);
-            if (available[0] == 0) {
-               waitMsec (1);
-            }
-         }
-         while (available[0] == 0);
-
+      } else {
          int qid = 0;
          LinkedList<HitRecord> records = new LinkedList<HitRecord>();
-         int[] result = new int[1];
          Iterator<IsRenderable> it = myViewer.renderIterator();
          while (it.hasNext()) {
             IsRenderable r = it.next();
@@ -219,29 +225,20 @@ public class GLOcclusionSelector extends GLSelector {
                int nums = (numq >= 0 ? numq : 1);
                if (s.isSelectable()) {
                   for (int i=0; i<nums; i++) {
-                     if (myQueryWasUsed[qid+i]) {
-                        gl.glGetQueryObjectuiv (
-                           myQueries[qid+i], GL2.GL_QUERY_RESULT, result, 0);
-                        if (result[0] > 0) {
-                           HitRecord rec = new HitRecord(result[0]);
-                           if (numq < 0) {
-                              rec.objs.add (s);
-                           }
-                           else {
-                              s.getSelection (rec.objs, i);
-                           }
-                           if (rec.objs.size() > 0) {
-                              records.add (rec);
-                           }
+                     if (myQuerySamples[qid+i] > 0) {
+                        HitRecord rec = new HitRecord(myQuerySamples[qid+i]);
+                        if (numq < 0) {
+                           rec.objs.add (s);
+                        } else {
+                           s.getSelection (rec.objs, i);
+                        }
+                        if (rec.objs.size() > 0) {
+                           records.add (rec);
                         }
                      }
                   }
                }
                qid += nums;
-               if (qid > lastQidx) {
-                  // no need to explore beyond the last query
-                  break;
-               }
             }
          }
          Collections.sort (records);
@@ -253,9 +250,10 @@ public class GLOcclusionSelector extends GLSelector {
       }
       
       // delete queries
-      gl.glDeleteQueries (myTotalMaxQ, myQueries, 0);
-      myQueries = null;
-      myQueryWasUsed = null;
+      gl.glDeleteQueries (myTotalMaxQ, myGLQueries, 0);
+      myGLQueries = null;
+      myGLQueryIds = null;
+      myGl = null;
 
       ViewerSelectionListener[] listeners = myViewer.getSelectionListeners();
       for (int i=0; i<listeners.length; i++) {
@@ -272,14 +270,15 @@ public class GLOcclusionSelector extends GLSelector {
       if (idx < 0 || idx >= myCurrentMaxQ) {
          throw new IllegalArgumentException ("index out of range");
       }
-      if (myQueryWasUsed[myIdxBase+idx]) {
-         throw new IllegalStateException (
-            "query for idx=" + idx + " is already in use");
+      
+      // flush queries if we need room
+      if (myGLQueryCount == myGLQueries.length) {
+         flushQueries (myGl);
       }
-      myGl.glBeginQuery (
-         GL2.GL_SAMPLES_PASSED, myQueries[myIdxBase+idx]);
-      myQueryWasUsed[myIdxBase+idx] = true;
+      myGl.glBeginQuery (GL2.GL_SAMPLES_PASSED, myGLQueries[myGLQueryCount]);
+      myGLQueryIds[myGLQueryCount] = myIdxBase+idx;
       myCurrentIdx = idx;
+      ++myGLQueryCount;
    }
 
    public void endSelectionQuery () {

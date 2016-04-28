@@ -88,6 +88,11 @@ public interface Renderer {
 //    * Flag requesting color interpolation in HSV space, if possible.
 //    */
 //   public static int HSV_COLOR_INTERPOLATION = 0x4;
+
+   /**
+    * Flag requesting that faces of a mesh be sorted before rendering
+    */
+   public static int SORT_FACES = 0x8;
    
    /**
     * Defines various vertex-based primitives
@@ -2098,7 +2103,8 @@ public interface Renderer {
     * returned by 
     * {@link maspack.render.IsSelectable#numSelectionQueriesNeeded
     * IsSelectable.numSelectionQueriesNeeded()}.  Selection queries cannot be
-    * nested, and a given query identifier should be used only once.
+    * nested.  If a query identifier is used more than once, it is assumed
+    * as part of the same query. 
     *
     * @param qid identifier for the selection query
     * @see #endSelectionQuery

@@ -704,8 +704,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       
       boolean savedTransparency = isTransparencyEnabled ();
       boolean savedTexture = isTextureMappingEnabled ();
-      boolean savedDepth = isDepthEnabled ();
-      setDepthEnabled (false);
+      boolean savedDepth = isDepthWriteEnabled ();
+      setDepthWriteEnabled (false);
       setTransparencyEnabled (true);
       setTextureMappingEnabled (true);
      
@@ -731,7 +731,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
       GLSupport.checkAndPrintGLError (gl);
       
-      setDepthEnabled (savedDepth);
+      setDepthWriteEnabled (savedDepth);
 
       setTransparencyEnabled (savedTransparency);
       setTextureMappingEnabled (savedTexture);
@@ -769,18 +769,19 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 //   }
 
    private void enableTransparency (GL2 gl) {
-      gl.glEnable (GL2.GL_BLEND);
+      
       if (!getTransparencyFaceCulling ()) {
-         gl.glDepthMask (false);
+         pushViewerState ();
+         setDepthWriteEnabled (false);
          setFaceStyle (FaceStyle.FRONT_AND_BACK);
       }
+      gl.glEnable (GL2.GL_BLEND);
       gl.glBlendFunc (sBlending.glValue(), dBlending.glValue());
    }
 
    private void disableTransparency (GL2 gl) {
       if (!getTransparencyFaceCulling ()) {
-         setFaceStyle (FaceStyle.FRONT);
-         gl.glDepthMask (true);
+         popViewerState();
       }
       gl.glDisable (GL2.GL_BLEND);
    }
@@ -1064,6 +1065,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          gl.glDisable (GL.GL_DEPTH_TEST);
       }
       
+      gl.glDepthMask (state.depthWriteEnabled);
+      
       switch (state.faceMode) {
          case BACK:
             gl.glEnable (GL.GL_CULL_FACE);
@@ -1099,12 +1102,18 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             break;
       }
       
-      if (state.roundedPoints) {
+     
+      gl.glPointSize (state.pointSize);
+      gl.glLineWidth (state.lineWidth);
+      
+      if (state.roundedPoints && state.pointSize >= 4) {
          gl.glEnable (GL2.GL_POINT_SMOOTH);  // enable smooth points
          gl.glHint(GL2.GL_POINT_SMOOTH_HINT, GL2.GL_NICEST);
+         myCommittedViewerState.roundedPoints = true;
       } else {
          gl.glDisable (GL2.GL_POINT_SMOOTH);  // disable smooth points
          gl.glHint(GL2.GL_POINT_SMOOTH_HINT, GL2.GL_FASTEST);
+         myCommittedViewerState.roundedPoints = false;
       }
       
       // vertexColorsEnabled;   // set manually in draw methods
@@ -1179,6 +1188,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          myCommittedViewerState.depthEnabled = state.depthEnabled;
       }
       
+      if (myCommittedViewerState.depthWriteEnabled != state.depthWriteEnabled) {
+         gl.glDepthMask (state.depthWriteEnabled);
+         myCommittedViewerState.depthWriteEnabled = state.depthWriteEnabled;
+      }
+      
       if (myCommittedViewerState.faceMode != state.faceMode) {
          switch (state.faceMode) {
             case BACK:
@@ -1224,15 +1238,27 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          myCommittedViewerState.shading = state.shading;
       }
       
+      if (state.pointSize != myCommittedViewerState.pointSize) {
+         gl.glPointSize (state.pointSize);
+         myCommittedViewerState.pointSize = state.pointSize;
+      }
+      
+      if (state.lineWidth != myCommittedViewerState.lineWidth) {
+         gl.glLineWidth (state.lineWidth);
+         myCommittedViewerState.lineWidth = state.lineWidth;
+      }
+      
       if (myCommittedViewerState.roundedPoints != state.roundedPoints) {
-         if (state.roundedPoints) {
+         if (state.roundedPoints && state.pointSize >= 4) {
             gl.glEnable (GL2.GL_POINT_SMOOTH);  // enable smooth points
             gl.glHint(GL2.GL_POINT_SMOOTH_HINT, GL2.GL_NICEST);
+            myCommittedViewerState.roundedPoints = true;
          } else {
             gl.glDisable (GL2.GL_POINT_SMOOTH);  // disable smooth points
             gl.glHint(GL2.GL_POINT_SMOOTH_HINT, GL2.GL_FASTEST);
+            myCommittedViewerState.roundedPoints = false;
          }
-         myCommittedViewerState.roundedPoints = state.roundedPoints;
+         
       }
       
       // vertexColorsEnabled;   // set manually in draw methods
@@ -3660,16 +3686,16 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       switch (style) {
          case LINE: {
             // maybe change line width
-            float fold = getLineWidth(gl);
+            float fold = getLineWidth ();
             float frad = (float)rad;
             boolean changeWidth = false;
             if (fold != frad) {
-               setLineWidth(gl, frad);
+               gl.glLineWidth (frad);
                changeWidth = true;
             }
             drawLines(robj, gidx);
             if (changeWidth) {
-               setLineWidth(gl, fold);
+               gl.glLineWidth (fold);
             }
             break;
          }
@@ -3908,16 +3934,16 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       switch (style) { 
          case POINT: {
             // maybe change point size and draw points
-            float fold = getPointSize(gl);
+            float fold = getPointSize();
             float frad = (float)rad;
             boolean changed = false;
             if (fold != frad) {
-               setPointSize(gl, frad);
+               gl.glPointSize (frad);
                changed = true;
             }
             drawPoints(robj, gidx);
             if (changed) {
-               setPointSize(gl, fold);
+               gl.glPointSize (fold);
             }
             break;
          }
@@ -4212,8 +4238,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          int vertexStride = robj.getVertexStride ();
          int[] verts = robj.getVertexBuffer ();
  
-         for (int i=offset; i<count; ++i) {
-            int baseIdx = idxs.get (i)*vertexStride;
+         for (int i=0; i<count; ++i) {
+            int baseIdx = idxs.get (i+offset)*vertexStride;
             if (!selecting && useColors) {
                setVertexColor (gl, robj.getColor (verts[baseIdx+colorOffset]), useHSV);
             }

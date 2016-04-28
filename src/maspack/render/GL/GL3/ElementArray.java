@@ -5,16 +5,20 @@ import java.nio.ByteBuffer;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
 
+import maspack.render.GL.GLSupport;
+
 public class ElementArray extends GL3ResourceBase {
    
    IndexBufferObject ibo;
    int type;
    int count;
+   int stride;
    
    public ElementArray(IndexBufferObject ibo) {
       this.ibo = ibo.acquire ();
       this.type = GL.GL_UNSIGNED_INT;
       this.count = 0;
+      this.stride = GLSupport.INTEGER_SIZE;
    }
    
    public int count() {
@@ -25,10 +29,15 @@ public class ElementArray extends GL3ResourceBase {
       return type;
    }
    
-   public void fill(GL3 gl, ByteBuffer buff, int type, int count, int size, int usage) {
+   public int stride() {
+      return stride;
+   }
+   
+   public void fill(GL3 gl, ByteBuffer buff, int type, int stride, int count, int size, int usage) {
       ibo.fill (gl, buff, size, usage);
       this.type = type;
       this.count = count;
+      this.stride = stride;
    }
    
    public void bind(GL3 gl) {

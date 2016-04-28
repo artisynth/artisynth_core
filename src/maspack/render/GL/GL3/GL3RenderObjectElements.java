@@ -105,7 +105,7 @@ public class GL3RenderObjectElements extends GL3ResourceBase implements GL3Drawa
    
    public void drawElements (GL3 gl, int mode, int start, int count) {
       bind(gl);
-      glo.drawElements (gl, mode, count, ibo.type (), start);
+      glo.drawElements (gl, mode, count, ibo.type (), start*ibo.stride());
       unbind(gl);
    }
    

@@ -1476,6 +1476,7 @@ public class PolygonalMesh extends MeshBase {
          throw new IllegalStateException (
             "render() called before prerender()");
       }
+      myMeshRenderer.render (renderer, props, flags);
    }
 
    /**

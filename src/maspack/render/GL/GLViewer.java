@@ -160,6 +160,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected static class ViewerState {
       public boolean lightingEnabled;       // light equations
       public boolean depthEnabled;          // depth buffer
+      public boolean depthWriteEnabled;     // depth writes
       public boolean colorEnabled;          // color buffer
       public boolean vertexColorsEnabled;   // use per-vertex colors
       public boolean textureMappingEnabled; // use texture maps
@@ -170,6 +171,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       public boolean roundedPoints;
       public boolean transparencyEnabled;
       public boolean transparencyFaceCulling;
+      public float pointSize;
+      public float lineWidth;
       
       public ViewerState() {
          setDefaults();
@@ -178,6 +181,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       public void setDefaults() {
          lightingEnabled = true;
          depthEnabled = true;
+         depthWriteEnabled = true;
          colorEnabled = true;
          vertexColorsEnabled = true;
          textureMappingEnabled = true;
@@ -188,12 +192,15 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          roundedPoints = true;
          transparencyEnabled = false;
          transparencyFaceCulling = false;
+         pointSize = 1;
+         lineWidth = 1;
       }
 
       public ViewerState clone() {
          ViewerState c = new ViewerState();
          c.lightingEnabled = lightingEnabled;
          c.depthEnabled = depthEnabled;
+         c.depthWriteEnabled = depthWriteEnabled;
          c.colorEnabled = colorEnabled;
          c.faceMode = faceMode;
          c.shading = shading;
@@ -204,6 +211,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          c.roundedPoints = roundedPoints;
          c.transparencyEnabled = transparencyEnabled;
          c.transparencyFaceCulling = transparencyFaceCulling;
+         c.pointSize = pointSize;
+         c.lineWidth = lineWidth;
          return c;
       }
    }
@@ -1521,7 +1530,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    @Override
    public void setPointSize(float s) {
-      setPointSize(getGL(), s);
+      myViewerState.pointSize = s;
       if (s != DEFAULT_POINT_SIZE) {
          myNonDefaultGeneralSettings |= POINT_SIZE_BIT;
       }
@@ -1530,31 +1539,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
    
-   protected void setPointSize(GL gl, float s) {
-      if (gl instanceof GL2GL3) {
-         GL2GL3 gl23 = (GL2GL3)gl;
-         gl23.glPointSize(s);
-      }
-   }
-
    @Override
    public float getPointSize() {
-      return getPointSize(getGL());
-   }
-   
-   protected float getPointSize(GL gl) {
-      if (gl instanceof GL2GL3) {
-         GL2GL3 gl23 = (GL2GL3)gl;
-         float[] buff = new float[1];
-         gl23.glGetFloatv(GL.GL_POINT_SIZE, buff, 0);
-         return buff[0];
-      }
-      return 0;
+      return myViewerState.pointSize;
    }
 
    @Override
    public void setLineWidth(float w) {
-      setLineWidth(getGL(), w);
+      myViewerState.lineWidth = w;
       if (w != DEFAULT_LINE_WIDTH) {
          myNonDefaultGeneralSettings |= LINE_WIDTH_BIT;
       }
@@ -1562,19 +1554,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          myNonDefaultGeneralSettings &= ~LINE_WIDTH_BIT;
       }
    }
-   
-   protected void setLineWidth(GL gl, float w) {
-      gl.glLineWidth (w);
-   }
-
+  
    public float getLineWidth() {
-      return getLineWidth (getGL ());
-   }
-
-   protected float getLineWidth(GL gl) {
-      float[] buff = new float[1];
-      gl.glGetFloatv(GL.GL_LINE_WIDTH, buff, 0);
-      return buff[0];
+      return myViewerState.lineWidth;
    }
    
    public void setViewport(GL gl, int x, int y, int width, int height) {
@@ -2252,10 +2234,20 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return prev;
    }
 
-   protected boolean isDepthEnabled() {
+   public boolean isDepthEnabled() {
       return myViewerState.depthEnabled;
    }
 
+   public boolean setDepthWriteEnabled(boolean set) {
+      boolean prev = myViewerState.depthWriteEnabled;
+      myViewerState.depthWriteEnabled = set;
+      return prev;
+   }
+   
+   public boolean isDepthWriteEnabled() {
+      return myViewerState.depthWriteEnabled;
+   }
+   
    protected boolean isColorEnabled() {
       return myViewerState.colorEnabled;
    }
@@ -2308,6 +2300,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected void setViewerState(ViewerState state) {  
       setLightingEnabled(state.lightingEnabled);
       setDepthEnabled(state.depthEnabled);
+      setDepthWriteEnabled(state.depthWriteEnabled);
       setColorEnabled(state.colorEnabled);
       setVertexColoringEnabled(state.vertexColorsEnabled);
       setTextureMappingEnabled(state.textureMappingEnabled);

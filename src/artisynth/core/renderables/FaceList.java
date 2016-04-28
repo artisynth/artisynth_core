@@ -9,15 +9,17 @@ package artisynth.core.renderables;
 import java.util.LinkedList;
 
 import artisynth.core.modelbase.RenderableComponentList;
-import maspack.geometry.Face;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.PolygonalMeshRenderer;
+import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
+import maspack.render.FeatureIndexArray;
 import maspack.render.PointRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.VertexIndexArray;
+import maspack.render.Renderer.HighlightStyle;
+import maspack.util.DynamicIntArray;
 
 public class FaceList<P extends FaceComponent> extends RenderableComponentList<P> {
    
@@ -27,11 +29,12 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
    private final int SEL_GRP = 1;
    
    PolygonalMesh myMesh;
+   
    private PolygonalMeshRenderer myMeshRenderer;
-   private VertexIndexArray[] myTriangles;
-   private int[][] myTriangleOffsets;
-   private VertexIndexArray[] myLines;
-   private int[][] myLineOffsets;
+   FeatureIndexArray[] myFaces;
+   FeatureIndexArray[] myEdges;
+   DynamicIntArray[] myFaceIdxs;
+   int[] myFaceIdxsVersions;
 
    public static PropertyList myProps =
       new PropertyList (FaceList.class, RenderableComponentList.class);
@@ -51,10 +54,11 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       
       myMesh = mesh;
       myMeshRenderer = null;
-      myTriangles = null;
-      myTriangleOffsets = null;
-      myLines = null;
-      myLineOffsets = null;
+      myFaceIdxs = null;
+      myFaceIdxsVersions = null;
+      myFaces = null;
+      myEdges = null;
+      
    }
 
    /* ======== Renderable implementation ======= */
@@ -71,57 +75,31 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       }
       myMeshRenderer.prerender (getRenderProps());
       
-      if (myTriangles == null) {
-         myTriangles = new VertexIndexArray[2];
-         myTriangleOffsets = new int[2][size()];
-         myTriangles[REG_GRP] = new VertexIndexArray (3*size());
-         myTriangles[SEL_GRP] = new VertexIndexArray (3*size());
-         myTriangleOffsets[REG_GRP] = new int[size()+1];
-         myTriangleOffsets[SEL_GRP] = new int[size()+1];
-         
-         myLines = new VertexIndexArray[2];
-         myLineOffsets = new int[2][size()];
-         myLines[REG_GRP] = new VertexIndexArray (6*size());
-         myLines[SEL_GRP] = new VertexIndexArray (6*size());
-         myLineOffsets[REG_GRP] = new int[size()+1];
-         myLineOffsets[SEL_GRP] = new int[size()+1];
+      if (myFaceIdxs == null) {
+         myFaceIdxs = new DynamicIntArray[2];
+         myFaceIdxs[0] = new DynamicIntArray (size());
+         myFaceIdxs[1] = new DynamicIntArray (size());
+         myFaceIdxsVersions = new int[]{-1, -1};
       }
       
-      int toff[] = {0, 0};
-      int eoff[] = {0, 0};
+      // assign faces in a way that does not trigger a list
+      // modification if it indeed does not change
+      int nFaces[] = {0, 0};
       for (int i = 0; i < size(); i++) {
-         FaceComponent p = get (i);
+         FaceComponent fc = get (i);
          
-         myTriangleOffsets[REG_GRP][i] = toff[REG_GRP];
-         myTriangleOffsets[SEL_GRP][i] = toff[SEL_GRP];
-         myLineOffsets[REG_GRP][i] = eoff[REG_GRP];
-         myLineOffsets[SEL_GRP][i] = eoff[SEL_GRP];
-         
-         if (p.getRenderProps() != null) {
-            list.addIfVisible (p);
+         if (fc.getRenderProps() != null) {
+            list.addIfVisible (fc);
          }
          else {
-            // p.prerender (list);
-            int gidx = p.isSelected () ? SEL_GRP : REG_GRP;
-            
-            //            int nt = getFaceTriangles (p.getFace (), myMeshRenderer, myTriangles[gidx], toff[gidx]);
-            //            int ne = getFaceLines (p.getFace (), myMeshRenderer, myLines[gidx], eoff[gidx]);
-            //            
-            //            toff[gidx] += nt;
-            //            eoff[gidx] += ne;
+            int gidx = fc.isSelected () ? SEL_GRP : REG_GRP;
+            int faceIdx = fc.getFace ().getIndex ();
+            myFaceIdxs[gidx].set (nFaces[gidx], faceIdx);
+            nFaces[gidx]++;
          }
       }
-      
-      // resize arrays
-      for (int i=0; i<2; ++i) {
-         myTriangles[i].resize (toff[i]);
-         myTriangleOffsets[i][size()] = toff[i];
-         myLines[i].resize (eoff[i]);
-         myLineOffsets[i][size()] = eoff[i];
-      }
-      
-      
-      
+      myFaceIdxs[REG_GRP].resize (nFaces[REG_GRP]);
+      myFaceIdxs[SEL_GRP].resize (nFaces[SEL_GRP]);
       
    }
 
@@ -132,83 +110,43 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
    public void render (Renderer renderer, int flags) {
       
       RenderProps props = getRenderProps();
-
-      //      // selected
-      //      int hflags = flags | Renderer.HIGHLIGHT;
-      //      PolygonalMeshRenderer.getInstance ().render (renderer, myMesh, props, hflags, myMeshRenderer,
-      //         myTriangles[SEL_GRP], myTriangleOffsets[SEL_GRP], myLines[SEL_GRP], myLineOffsets[SEL_GRP]);
-      //
-      //      // non selected
-      //      PolygonalMeshRenderer.getInstance ().render (renderer, myMesh, props, flags, myMeshRenderer,
-      //         myTriangles[REG_GRP], myTriangleOffsets[REG_GRP], myLines[REG_GRP], myLineOffsets[REG_GRP]);
-   }
-   
-   
-   /**
-    * Appends Face triangles to an index array associated with the 
-    * provided rendering context.  This is most useful for rendering
-    * a selection of faces from a PolygonalMesh.
-    * @param face face of which to obtain appropriate rendering indices
-    * @param rinfo rendering information to be used along with the faces
-    * @param out list of indices to populate
-    * @param offset offset into the list to put the value
-    * @return number of indices added to <code>out</code>
-    */
-   public static int getFaceTriangles(Face face, PolygonalMesh mesh, 
-      VertexIndexArray out, int offset) {
       
-      int[] indexOffs = mesh.getFeatureIndexOffsets ();
-      
-      int nadd = 0;
-      
-      int idx = face.getIndex ();
-      int foff = indexOffs[idx];
-      int numv = indexOffs[idx+1] - foff;
-
-      // triangle fan
-      for (int j=0; j<numv-2; ++j) {
-         for (int i=0; i<3; ++i) {
-            out.set (offset+nadd, foff+i+j);
-            ++nadd;
+      if (myFaces == null) {
+         myFaces = new FeatureIndexArray[2];
+         myEdges = new FeatureIndexArray[2];
+         
+         for (int i=0; i<2; ++i) {
+            int size = myFaceIdxs[i].size ();
+            myFaces[i] = new FeatureIndexArray (size, 3*size);
+            myEdges[i] = new FeatureIndexArray (size, 6*size);
          }
       }
-     
-      return nadd;
-   }
-   
-   /**
-    * Appends Face lines to an index array associated with the 
-    * provided rendering context.  This is most useful for rendering
-    * a selection of faces from a PolygonalMesh.
-    * @param face face of which to obtain appropriate rendering indices
-    * @param rinfo rendering information to be used along with the faces
-    * @param out list of indices to populate
-    * @param offset starting index into out array to modify
-    * @return number of indices added to <code>out</code>
-    */
-   private static int getFaceLines(Face face, PolygonalMesh mesh, VertexIndexArray out, 
-      int offset) {
-     
-      int[] indexOffs = mesh.getFeatureIndexOffsets ();
       
-      int nadd = 0;
- 
-      int idx = face.getIndex ();
-      int foff = indexOffs[idx];
-      int numv = indexOffs[idx+1] - foff;
-
-      // line loop
-      for (int j=0; j<numv-1; ++j) {
-         out.set (offset+nadd, foff+j);
-         out.set (offset+nadd+1, foff+j+1);
-         nadd += 2;
+      if ( (flags & Renderer.SORT_FACES) != 0) {
+         Vector3d zdir = renderer.getEyeZDirection ();
+         myMeshRenderer.sortFaces (myFaceIdxs[REG_GRP].getArray (), 0, myFaceIdxs[REG_GRP].size(), zdir);
+         myMeshRenderer.sortFaces (myFaceIdxs[SEL_GRP].getArray (), 0, myFaceIdxs[SEL_GRP].size(), zdir);
+         myFaceIdxs[REG_GRP].notifyModified ();
+         myFaceIdxs[SEL_GRP].notifyModified ();
       }
-      // close the loop
-      out.set (offset+nadd, foff+numv-1);
-      out.set (offset+nadd+1, foff);
-      nadd += 2;
       
-      return nadd;
+      for (int i=0; i<2; ++i) {
+         if (myFaceIdxsVersions[i] != myFaceIdxs[i].getVersion ()) {
+            int[] faceIdxs = myFaceIdxs[i].getArray ();
+            int len = myFaceIdxs[i].size ();
+            myMeshRenderer.updateFaceTriangles (faceIdxs, 0, len, myFaces[i]);
+            myMeshRenderer.updateFaceLines (faceIdxs, 0, len, myEdges[i]);
+            myFaceIdxsVersions[i] = myFaceIdxs[i].getVersion ();
+         }
+      }
+
+      // first draw selected
+      boolean highlight = false;
+      if (renderer.getHighlightStyle () == HighlightStyle.COLOR) {
+         highlight = true;
+      }
+      myMeshRenderer.render (renderer, props, highlight, myFaces[SEL_GRP], myEdges[SEL_GRP], true);
+      myMeshRenderer.render (renderer, props, false, myFaces[REG_GRP], myEdges[REG_GRP], true);
    }
 
    /**
@@ -219,16 +157,12 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
    }
 
    public int numSelectionQueriesNeeded() {
-      return 2*size ();
+      return size ();
    }
 
    public void getSelection (LinkedList<Object> list, int qid) {
       // faces and edges
-      int size = size();
-      if (qid > size) {
-         qid = qid-size;
-      }
-      if (qid >= 0 && qid < size) {
+      if (qid >= 0 && qid < size()) {
          list.addLast (get (qid));
       }
    }

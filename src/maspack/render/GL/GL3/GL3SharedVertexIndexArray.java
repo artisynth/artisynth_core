@@ -33,6 +33,7 @@ public class GL3SharedVertexIndexArray extends GL3ResourceBase {
          buff.flip ();
          
          ibo.fill (gl, buff, putter.storage ().getGLType (), 
+            putter.storage ().bytes (),
             esize, buff.limit (), GL.GL_DYNAMIC_DRAW);
          
          buff = BufferUtilities.freeDirectBuffer (buff);
@@ -56,6 +57,10 @@ public class GL3SharedVertexIndexArray extends GL3ResourceBase {
    
    public int type() {
       return ibo.type ();
+   }
+   
+   public int stride() {
+      return ibo.stride();
    }
 
    @Override

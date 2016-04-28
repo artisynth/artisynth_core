@@ -31,6 +31,20 @@ public class VertexIndexArray extends DynamicIntArray implements DisposeObservab
       init();
    }
    
+   /**
+    * Returns a copy of a portion of the array 
+    * @param start starting index to copy
+    * @param size number of elements
+    * @return portion of array
+    */
+   public VertexIndexArray slice(int start, int size) {
+      VertexIndexArray out = new VertexIndexArray (size);
+      for (int i=0; i<size; ++i) {
+         out.add (get(start+i));
+      }
+      return out;
+   }
+   
    private void init() {
       observer = new VertexIndexDisposeObserver ();
    }

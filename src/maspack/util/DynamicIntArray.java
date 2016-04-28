@@ -15,11 +15,22 @@ public class DynamicIntArray extends ModifiedVersionBase implements Cloneable {
    int[] elementData;
    int size;
 
+   /**
+    * Dynamic array of integers with default capacity of 10
+    */
    public DynamicIntArray() {
       this(DEFAULT_INITIAL_CAPACITY);
    }
 
+   /**
+    * Dynamic array of integers with provided initial capacity
+    * @param initialCapacity initial capacity.  If <= 0, uses 
+    * the default capacity
+    */
    public DynamicIntArray(int initialCapacity) {
+      if (initialCapacity <= 0) {
+         initialCapacity = DEFAULT_INITIAL_CAPACITY;
+      }
       elementData = new int[initialCapacity];
    }
    
@@ -56,16 +67,20 @@ public class DynamicIntArray extends ModifiedVersionBase implements Cloneable {
    }
    
    public void addAll(int[] e) {
-      ensureCapacity (size+e.length);
-      for (int i=0; i<e.length; ++i) {
-         elementData[size++] = e[i];
+      if (e.length > 0) {
+         ensureCapacity (size+e.length);
+         for (int i=0; i<e.length; ++i) {
+            elementData[size++] = e[i];
+         }
+         notifyModified ();
       }
-      notifyModified ();
    }
 
    public void clear() {
-      size = 0;
-      notifyModified ();
+      if (size > 0) {
+         size = 0;
+         notifyModified ();
+      }
    }
 
    public int remove(int idx) {
@@ -76,6 +91,22 @@ public class DynamicIntArray extends ModifiedVersionBase implements Cloneable {
       }
       notifyModified ();
       return out;
+   }
+   
+   /**
+    * Remove a specified number of elements starting at the
+    * provided index.
+    * @param idx starting index to remove
+    * @param count number of elements to remove
+    */
+   public void remove(int idx, int count) {
+      if (count > 0) {
+         size -= count;
+         for (int i=idx; i<size; ++i) {
+            elementData[i] = elementData[i+count];
+         }
+         notifyModified ();
+      }
    }
 
    public void trimToSize() {
@@ -100,6 +131,35 @@ public class DynamicIntArray extends ModifiedVersionBase implements Cloneable {
          for (int i=this.size; i<size; ++i) {
             elementData[i] = 0;
          }
+         notifyModified ();
+      }
+   }
+   
+   /**
+    * Returns a copy of a portion of the array 
+    * @param start starting index to copy
+    * @param size number of elements
+    * @return portion of array
+    */
+   public DynamicIntArray slice(int start, int size) {
+      DynamicIntArray out = new DynamicIntArray (size);
+      for (int i=0; i<size; ++i) {
+         out.add (get(start+i));
+      }
+      return out;
+   }
+   
+   /**
+    * Performs an in-place slice, modifying this array directly
+    * @param start starting index to keep
+    * @param size number of elements
+    */
+   public void chop(int start, int size) {
+      if (start > 0 || size < this.size) {
+         for (int i=0; i<size; ++i) {
+            set(i, get(start+i));
+         }
+         this.size = size;
          notifyModified ();
       }
    }

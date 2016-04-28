@@ -384,23 +384,27 @@ public class RenderList {
             if (selecting && r instanceof IsSelectable) {
                IsSelectable s = (IsSelectable)r;
                
-               int numq = s.numSelectionQueriesNeeded();
-               if (renderer.isSelectable(s)) {
-                  if (numq >= 0) {
-                     renderer.beginSubSelection (s, qid);
+               try {
+                  int numq = s.numSelectionQueriesNeeded();
+                  if (renderer.isSelectable(s)) {
+                     if (numq >= 0) {
+                        renderer.beginSubSelection (s, qid);
+                     }
+                     else {
+                        renderer.beginSelectionQuery (qid);
+                     }
+                     r.render (renderer, flags);
+                     if (numq >= 0) {
+                        renderer.endSubSelection ();
+                     }
+                     else {
+                        renderer.endSelectionQuery ();
+                     }
                   }
-                  else {
-                     renderer.beginSelectionQuery (qid);
-                  }
-                  r.render (renderer, flags);
-                  if (numq >= 0) {
-                     renderer.endSubSelection ();
-                  }
-                  else {
-                     renderer.endSelectionQuery ();
-                  }
+                  qid += (numq >= 0 ? numq : 1);
+               } catch (Exception e) {
+                  e.printStackTrace ();
                }
-               qid += (numq >= 0 ? numq : 1);
             } else if (selecting) {
                // don't render if not selectable (saves mucho time when lots of
                // non-selectable renderables, such as text labels)
@@ -412,6 +416,7 @@ public class RenderList {
          }
          catch (Exception e) {
             renderer.restoreDefaultState(/*strictChecking=*/false);
+            e.printStackTrace ();
          }
       }
       return qid;

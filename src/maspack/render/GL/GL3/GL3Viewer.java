@@ -69,7 +69,8 @@ public class GL3Viewer extends GLViewer {
    
    // State
    ViewerState myCommittedViewerState = null;
-
+   boolean myMultiSampleEnabled = false;
+   
    // Updateable object for various primitives (essentially stream-drawn)
    // like single lines, etc...
    GL3FlexObject gloFlex = null;
@@ -232,6 +233,11 @@ public class GL3Viewer extends GLViewer {
       int[] buff = new int[1];
       gl.glGetIntegerv(GL3.GL_MAX_CLIP_DISTANCES, buff, 0);
       maxClipPlanes = buff[0];
+      
+      if (gl.isExtensionAvailable("GL_ARB_multisample")) {
+         gl.glEnable(GL.GL_MULTISAMPLE);
+         myMultiSampleEnabled = true;
+      }
 
       selectEnabled = false;
       selectTrigger = false;
@@ -280,11 +286,18 @@ public class GL3Viewer extends GLViewer {
       System.out.println("GL3 initialized");
 
       GLSupport.checkAndPrintGLError(gl);
+      
+      gl.glEnable (GL.GL_BLEND);
+      gl.glBlendFunc (GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
 
       this.gl = null;
       this.drawable = null;
    }
 
+   public boolean isMultiSampleEnabled() {
+      return myMultiSampleEnabled;
+   }
+   
    /**
     * Do some clean up of resources
     * @param gl
@@ -592,8 +605,8 @@ public class GL3Viewer extends GLViewer {
       
       boolean savedTransparency = isTransparencyEnabled ();
       boolean savedTexture = isTextureMappingEnabled ();
-      boolean savedDepth = isDepthEnabled ();
-      setDepthEnabled (false);
+      boolean savedDepth = isDepthWriteEnabled ();
+      setDepthWriteEnabled (false);
       setTransparencyEnabled (true);
       setTextureMappingEnabled (true);
       
@@ -610,7 +623,7 @@ public class GL3Viewer extends GLViewer {
       
       GLSupport.checkAndPrintGLError (gl);
       
-      setDepthEnabled (savedDepth);
+      setDepthWriteEnabled (savedDepth);
 
       setTransparencyEnabled (savedTransparency);
       setTextureMappingEnabled (savedTexture);
@@ -622,7 +635,7 @@ public class GL3Viewer extends GLViewer {
    private void enableTransparency (GL3 gl) {
       if (!getTransparencyFaceCulling ()) {
          pushViewerState();
-         setDepthEnabled(false);
+         setDepthWriteEnabled (false);
          setFaceStyle(FaceStyle.FRONT_AND_BACK);
       }
 
@@ -746,6 +759,8 @@ public class GL3Viewer extends GLViewer {
          gl.glDisable (GL.GL_DEPTH_TEST);
       }
       
+      gl.glDepthMask (state.depthWriteEnabled);
+      
       switch (state.faceMode) {
          case BACK:
             gl.glEnable (GL.GL_CULL_FACE);
@@ -766,9 +781,8 @@ public class GL3Viewer extends GLViewer {
             break;
       }
       
-      if (state.roundedPoints) {
-         myProgramInfo.setRoundPointsEnabled (state.roundedPoints);
-      }
+      gl.glPointSize (state.pointSize);
+      gl.glLineWidth (state.lineWidth);
       
       // vertexColorsEnabled;   // set manually in draw methods
       // textureMappingEnabled;   
@@ -845,6 +859,10 @@ public class GL3Viewer extends GLViewer {
          }
          myCommittedViewerState.depthEnabled = state.depthEnabled;
       }
+      if (myCommittedViewerState.depthWriteEnabled != state.depthWriteEnabled) {
+         gl.glDepthMask (state.depthWriteEnabled);
+         myCommittedViewerState.depthWriteEnabled = state.depthWriteEnabled;
+      }
       
       if (myCommittedViewerState.faceMode != state.faceMode) {
          switch (state.faceMode) {
@@ -869,11 +887,16 @@ public class GL3Viewer extends GLViewer {
          myCommittedViewerState.faceMode = state.faceMode;
       }
       
-      if (myCommittedViewerState.roundedPoints != state.roundedPoints) {
-         myProgramInfo.setRoundPointsEnabled (state.roundedPoints);
-         myCommittedViewerState.roundedPoints = state.roundedPoints;
+      if (state.pointSize != myCommittedViewerState.pointSize) {
+         gl.glPointSize (state.pointSize);
+         myCommittedViewerState.pointSize = state.pointSize;
       }
       
+      if (state.lineWidth != myCommittedViewerState.lineWidth) {
+         gl.glLineWidth (state.lineWidth);
+         myCommittedViewerState.lineWidth = state.lineWidth;
+      }
+    
       // vertexColorsEnabled;   // set manually in draw methods
       // textureMappingEnabled;   
       // hsvInterpolationEnabled;  
@@ -1198,7 +1221,6 @@ public class GL3Viewer extends GLViewer {
       myProgramInfo.setBumpMapEnabled (false);
       
       switch(mode) {
-         
          case INSTANCED_POINTS:
          case INSTANCED_AFFINES:
          case INSTANCED_FRAMES:
@@ -1249,6 +1271,13 @@ public class GL3Viewer extends GLViewer {
             }
             
             break;
+      }
+      
+      if (mode == RenderingMode.POINTS && getRoundedPoints () &&
+         getPointSize () >= 4) {
+         myProgramInfo.setRoundPointsEnabled (true);
+      } else {
+         myProgramInfo.setRoundPointsEnabled (false);
       }
       
       // myProgramInfo.setVertexColorsEnabled (hasColors);
@@ -1628,14 +1657,19 @@ public class GL3Viewer extends GLViewer {
       mulModelMatrix(X);
       scaleModelMatrix(lx, ly, lz);
       maybeUpdateState(gl);
-      setLineWidth (gl, width);
+      float oldwidth = getLineWidth ();
+      if (width != oldwidth) {
+         gl.glLineWidth (width);
+      }
       
       updateProgram (gl, RenderingMode.DEFAULT, false, true, false);
       GL3Object axes = myPrimitiveManager.getAcquiredAxes(gl, drawx, drawy, drawz);
       axes.draw(gl);
       axes.release ();
 
-      setLineWidth(gl, 1);
+      if (width != oldwidth) {
+         gl.glLineWidth (oldwidth);
+      }
 
       // revert matrix transform
       popModelMatrix();
@@ -1956,7 +1990,9 @@ public class GL3Viewer extends GLViewer {
    public void drawPoints(RenderObject robj, int gidx) {
       GLSupport.checkAndPrintGLError(gl);
       GL3RenderObjectPrimitives gro = myRenderObjectManager.getPrimitives (gl, robj);
+      
       maybeUpdateState(gl);
+      
       updateProgram (gl, RenderingMode.POINTS, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
       gro.drawPointGroup (gl, GL.GL_POINTS, gidx);
       GLSupport.checkAndPrintGLError(gl);
@@ -1966,7 +2002,9 @@ public class GL3Viewer extends GLViewer {
    public void drawVertices(RenderObject robj, DrawMode mode) {
       GLSupport.checkAndPrintGLError(gl);
       GL3RenderObjectPrimitives gro = myRenderObjectManager.getPrimitives (gl, robj);
+      
       maybeUpdateState(gl);
+      
       updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), 
          robj.hasColors (), robj.hasTextureCoords ());
       gro.drawVertices (gl, getDrawPrimitive (mode));
@@ -1990,7 +2028,7 @@ public class GL3Viewer extends GLViewer {
       
       GLSupport.checkAndPrintGLError(gl);
       GL3SharedRenderObjectPrimitives gro = myGLResources.getPrimitives (gl, robj);
-      maybeUpdateState(gl);
+      maybeUpdateState(gl); 
       updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), 
          robj.hasColors (), robj.hasTextureCoords ());
       
@@ -1999,7 +2037,8 @@ public class GL3Viewer extends GLViewer {
       ByteBuffer buff = BufferUtilities.newNativeByteBuffer (idxs.length*putter.bytesPerIndex ());
       putter.putIndices (buff, idxs, 0, 1, idxs.length);
       buff.flip ();
-      eaFlex.fill (gl, buff, GL.GL_UNSIGNED_INT, idxs.length, buff.limit (), GL3.GL_STREAM_DRAW);
+      eaFlex.fill (gl, buff, GL.GL_UNSIGNED_INT, GLSupport.INTEGER_SIZE,
+         idxs.length, buff.limit (), GL3.GL_STREAM_DRAW);
       buff = BufferUtilities.freeDirectBuffer (buff);
       
       VertexArrayObject.bindDefault (gl);
@@ -2029,11 +2068,11 @@ public class GL3Viewer extends GLViewer {
       switch (style) {
          case LINE: {
             // maybe change point size and draw points
-            float fold = getLineWidth(gl);
+            float fold = getLineWidth();
             float frad = (float)rad;
             boolean changed = false;
             if (fold != frad) {
-               setLineWidth(gl, frad);
+               gl.glLineWidth (frad);
                changed = true;
             }
 
@@ -2041,7 +2080,7 @@ public class GL3Viewer extends GLViewer {
             gro.drawLineGroup (gl, GL.GL_LINES, gidx);
 
             if (changed) {
-               setLineWidth(gl, fold);
+               gl.glLineWidth (fold);
             }
             break;
          }
@@ -2089,6 +2128,14 @@ public class GL3Viewer extends GLViewer {
          }
       }
    }
+   
+   protected void setPointSize(GL3 gl, float size) {
+      setPointSize (size);
+      if (myCommittedViewerState != null) {
+         myCommittedViewerState.pointSize = size;
+         gl.glPointSize (size);
+      }
+   }
 
    @Override
    public void drawPoints(RenderObject robj, PointStyle style, double rad) {
@@ -2100,19 +2147,18 @@ public class GL3Viewer extends GLViewer {
 
       GL3RenderObjectPoints gro = myRenderObjectManager.getPoints (gl, robj);
 
-      maybeUpdateState(gl);
+      maybeUpdateState (gl);
 
       switch (style) {
          case POINT: {
             // maybe change point size and draw points
-            float fold = getPointSize(gl);
+            float fold = getPointSize();
             float frad = (float)rad;
             boolean changed = false;
+            
             if (fold != frad) {
-               setPointSize(gl, frad);
-               changed = true;
+               setPointSize (gl, frad);
             }
-
             updateProgram (gl, RenderingMode.POINTS, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
             
             gro.drawPointGroup (gl, GL.GL_POINTS, gidx);

@@ -992,7 +992,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean activate = false;
       // maybe use texture?
       GLTexture tex = null;
-      if (!isSelecting () && myColorMapProps != null && myColorMapProps.isEnabled ()) {
+      if (!isSelecting () && myColorMapProps != null && 
+          myColorMapProps.isEnabled() && 
+          myColorMapProps.getColorMixing() != ColorMixing.NONE) {
          TextureContent content = myColorMapProps.getContent ();
          if (content != null) {
             tex = myGLResources.getOrLoadTexture (gl, content);

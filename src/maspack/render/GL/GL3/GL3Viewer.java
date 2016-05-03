@@ -1291,15 +1291,10 @@ public class GL3Viewer extends GLViewer {
          myProgramInfo.setLineColorsEnabled (false);
          myProgramInfo.setInstanceColorsEnabled (false);
       } else { 
-         Shading shading = myProgramInfo.getShading ();
-         if (shading == Shading.FLAT) {
-            myProgramInfo.setColorInterpolation (ColorInterpolation.NONE);
+         if (isHSVColorInterpolationEnabled()) {
+            myProgramInfo.setColorInterpolation (ColorInterpolation.HSV);   
          } else {
-            if (isHSVColorInterpolationEnabled()) {
-               myProgramInfo.setColorInterpolation (ColorInterpolation.HSV);   
-            } else {
-               myProgramInfo.setColorInterpolation (ColorInterpolation.RGB);
-            }
+            myProgramInfo.setColorInterpolation (ColorInterpolation.RGB);
          }
          myProgramInfo.setVertexColorMixing (getVertexColorMixing());
          myProgramInfo.setVertexColorsEnabled (true);

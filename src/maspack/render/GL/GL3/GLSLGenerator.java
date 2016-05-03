@@ -1064,7 +1064,7 @@ public class GLSLGenerator {
       if (mode == RenderingMode.POINTS && info.hasRoundPoints()) {
          appendln(mb, "   vec2 point_texcoord = 2.0*gl_PointCoord-1.0;");
          appendln(mb, "   float point_dist = dot(point_texcoord, point_texcoord);");
-         appendln(mb, "   if ( point_dist > 1.01) {");
+         appendln(mb, "   if ( point_dist > 1) {");
          appendln(mb, "      discard;");
          appendln(mb, "   }");
       }
@@ -1299,14 +1299,6 @@ public class GLSLGenerator {
          appendln(mb, "   fragment_color = fdiffuse;");
       }
       appendln(mb);
-      
-      // smooth points
-      if (mode == RenderingMode.POINTS && info.hasRoundPoints()) {
-         appendln(mb, "   // smooth point");
-         appendln(mb, "   if ( point_dist > 1.0) {");
-         appendln(mb, "      fragment_color.a = fragment_color.a*(101-100*point_dist);");
-         appendln(mb, "   }");
-      }
       
       //      appendln(mb, "   // gamma correction");
       //      appendln(mb, "   vec3 gamma = vec3(1.0/2.2);");

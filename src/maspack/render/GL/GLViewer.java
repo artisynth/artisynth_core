@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import javax.media.opengl.GL;
+import javax.media.opengl.GL2;
 import javax.media.opengl.GL2GL3;
 import javax.media.opengl.GL3;
 import javax.media.opengl.GLAutoDrawable;
@@ -50,6 +51,7 @@ import maspack.properties.HasProperties;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.render.BumpMapProps;
+import maspack.render.ColorMapProps;
 import maspack.render.Dragger3d;
 import maspack.render.Dragger3d.DraggerType;
 import maspack.render.Dragger3dBase;
@@ -67,7 +69,6 @@ import maspack.render.RenderProps;
 import maspack.render.RendererEvent;
 import maspack.render.SortedRenderableList;
 import maspack.render.VertexIndexArray;
-import maspack.render.ColorMapProps;
 import maspack.render.Viewer;
 import maspack.render.ViewerSelectionEvent;
 import maspack.render.ViewerSelectionFilter;
@@ -84,6 +85,27 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public enum GLVersion {
       GL2, GL3
    }
+
+   // More control over blending
+   public static enum BlendFactor {
+      GL_ONE_MINUS_CONSTANT_ALPHA(GL2.GL_ONE_MINUS_CONSTANT_ALPHA),
+      GL_ONE_MINUS_SRC_ALPHA(GL2.GL_ONE_MINUS_SRC_ALPHA),
+      GL_ONE(GL2.GL_ONE),
+      GL_ZERO(GL2.GL_ZERO),
+      GL_SRC_ALPHA(GL2.GL_SRC_ALPHA),
+      ;
+
+      private int myValue;
+      private BlendFactor(int val) {
+         myValue = val;
+      }
+      public int glValue() {
+         return myValue;
+      }
+   }
+
+   public static BlendFactor DEFAULT_SRC_BLENDING = BlendFactor.GL_SRC_ALPHA;
+   public static BlendFactor DEFAULT_DST_BLENDING = BlendFactor.GL_ONE_MINUS_CONSTANT_ALPHA;
 
    // matrices
    protected Matrix4d pickMatrix;
@@ -169,6 +191,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       public boolean hsvInterpolationEnabled;  
       public ColorMixing colorMixing;       // method for combining material/vertex colors
       public boolean roundedPoints;
+      public boolean blendingEnabled;       // blending
+      public BlendFactor blendSFactor;
+      public BlendFactor blendDFactor;
       public boolean transparencyEnabled;
       public boolean transparencyFaceCulling;
       public float pointSize;
@@ -190,6 +215,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          hsvInterpolationEnabled = false;
          colorMixing = ColorMixing.REPLACE;
          roundedPoints = true;
+         blendingEnabled = false;
+         blendSFactor = DEFAULT_SRC_BLENDING;
+         blendDFactor = DEFAULT_DST_BLENDING;
          transparencyEnabled = false;
          transparencyFaceCulling = false;
          pointSize = 1;
@@ -209,6 +237,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          c.textureMappingEnabled = textureMappingEnabled;
          c.colorMixing = colorMixing;
          c.roundedPoints = roundedPoints;
+         c.blendingEnabled = blendingEnabled;
+         c.blendSFactor = blendSFactor;
+         c.blendDFactor = blendDFactor;
          c.transparencyEnabled = transparencyEnabled;
          c.transparencyFaceCulling = transparencyFaceCulling;
          c.pointSize = pointSize;
@@ -416,6 +447,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myProps.add("defaultAxialView", "default axis-aligned view orientation", DEFAULT_AXIAL_VIEW);
       myProps.add ("backgroundColor", "background color", Color.BLACK);
       myProps.add("transparencyFaceCulling", "allow transparency face culling", false);
+      myProps.add("blending isBlendingEnabled setBlendingEnabled", "enable/disable blending", false);
+      myProps.add(
+            "blendSourceFactor", "source transparency blending", DEFAULT_SRC_BLENDING);
+         myProps.add(
+            "blendDestFactor", "destination transparency blending", DEFAULT_DST_BLENDING);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -2309,6 +2345,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       setHSVCColorInterpolationEnabled(state.hsvInterpolationEnabled);
       setVertexColorMixing (state.colorMixing);
       setRoundedPoints(state.roundedPoints);
+      setBlendingEnabled(state.blendingEnabled);
+      setBlendSourceFactor (state.blendSFactor);
+      setBlendDestFactor (state.blendDFactor);
       setTransparencyEnabled (state.transparencyEnabled);
       setTransparencyFaceCulling (state.transparencyFaceCulling);
    }
@@ -2319,6 +2358,44 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    public void setTransparencyEnabled (boolean enable) {
       myViewerState.transparencyEnabled = enable;
+   }
+   
+   protected void enableTransparency () {
+      pushViewerState ();
+      if (!getTransparencyFaceCulling ()) {
+         setDepthWriteEnabled (false);
+         setFaceStyle (FaceStyle.FRONT_AND_BACK);
+      }
+      setBlendingEnabled (true);
+      setTransparencyEnabled (true);
+   }
+
+   protected void disableTransparency () {
+      popViewerState();  // should reset everything
+   }
+   
+   public boolean isBlendingEnabled() {
+      return myViewerState.blendingEnabled;
+   }
+   
+   public void setBlendingEnabled(boolean set) {
+      myViewerState.blendingEnabled = set;
+   }
+   
+   public BlendFactor getBlendSourceFactor() {
+      return myViewerState.blendSFactor;
+   }
+
+   public void setBlendSourceFactor(BlendFactor factor) {
+      myViewerState.blendSFactor = factor;
+   }
+
+   public BlendFactor getBlendDestFactor() {
+      return myViewerState.blendDFactor;
+   }
+
+   public void setBlendDestFactor(BlendFactor factor) {
+      myViewerState.blendDFactor = factor;
    }
 
    /*

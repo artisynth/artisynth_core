@@ -25,7 +25,6 @@ import maspack.matrix.AffineTransform3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
-import maspack.properties.PropertyList;
 import maspack.render.ColorMapProps;
 import maspack.render.Dragger3d;
 import maspack.render.Light;
@@ -81,31 +80,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    // basic primitives
    private GL2Primitive[] primitives;
 
-   // More control over blending
-   public static enum BlendType {
-      GL_ONE_MINUS_CONSTANT_ALPHA(GL2.GL_ONE_MINUS_CONSTANT_ALPHA),
-      GL_ONE_MINUS_SRC_ALPHA(GL2.GL_ONE_MINUS_SRC_ALPHA),
-      GL_ONE(GL2.GL_ONE),
-      GL_ZERO(GL2.GL_ZERO),
-      GL_SRC_ALPHA(GL2.GL_SRC_ALPHA),
-      ;
-
-      private int myValue;
-      private BlendType(int val) {
-         myValue = val;
-      }
-      public int glValue() {
-         return myValue;
-      }
-   }
-
-   public static BlendType DEFAULT_S_BLENDING = BlendType.GL_SRC_ALPHA;
-   public static BlendType DEFAULT_D_BLENDING =
-   BlendType.GL_ONE_MINUS_CONSTANT_ALPHA;
-
-   private BlendType sBlending = DEFAULT_S_BLENDING;
-   private BlendType dBlending = DEFAULT_D_BLENDING;
-
    private RigidTransform3d Xtmp = new RigidTransform3d();
    private Vector3d utmp = new Vector3d();
    private Vector3d vtmp = new Vector3d();
@@ -125,19 +99,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    protected float lmodel_ambient[] = { 0.0f, 0.0f, 0.0f, 0.0f };
    protected float lmodel_twoside[] = { 0.0f, 0.0f, 0.0f, 0.0f };
    protected float lmodel_local[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-   public static PropertyList myProps = new PropertyList (GL2Viewer.class, GLViewer.class);
-
-   static {
-      myProps.add(
-         "sBlending", "source transparency blending", DEFAULT_S_BLENDING);
-      myProps.add(
-         "dBlending", "destination transparency blending", DEFAULT_D_BLENDING);
-   }
-
-   public PropertyList getAllPropertyInfo() {
-      return myProps;
-   }
 
    private float[] scalefv(float[] c, float s, float[] out) {
       out[0] = c[0]*s;
@@ -712,13 +673,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       ColorMapProps savedTextureProps = setColorMap (myTextTextureProps);
       
       maybeUpdateState(gl);
-      
-      boolean blendModified = false;
-      if (getSBlending () != BlendType.GL_SRC_ALPHA ||
-         getDBlending () != BlendType.GL_ONE_MINUS_SRC_ALPHA) {
-         gl.glBlendFunc (GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);  // force it here
-         blendModified = true;
-      }
 
       activateTexture (gl, myTextRenderer.getTexture ());
       myTextRenderer.begin (gl);
@@ -726,9 +680,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       myTextRenderer.end (gl);
       deactivateTexture (gl);
       
-      if (blendModified) {
-         gl.glBlendFunc (getSBlending ().glValue (), getDBlending ().glValue ());
-      }
       GLSupport.checkAndPrintGLError (gl);
       
       setDepthWriteEnabled (savedDepth);
@@ -767,24 +718,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 //   public boolean isLightingEnabled() {
 //      return gl.glIsEnabled (GL2.GL_LIGHTING);
 //   }
-
-   private void enableTransparency (GL2 gl) {
-      
-      if (!getTransparencyFaceCulling ()) {
-         pushViewerState ();
-         setDepthWriteEnabled (false);
-         setFaceStyle (FaceStyle.FRONT_AND_BACK);
-      }
-      gl.glEnable (GL2.GL_BLEND);
-      gl.glBlendFunc (sBlending.glValue(), dBlending.glValue());
-   }
-
-   private void disableTransparency (GL2 gl) {
-      if (!getTransparencyFaceCulling ()) {
-         popViewerState();
-      }
-      gl.glDisable (GL2.GL_BLEND);
-   }
    
    public void doDisplay (GLAutoDrawable drawable, int flags) {
       GL2 gl = drawable.getGL().getGL2();
@@ -896,10 +829,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
       
       if (hasTransparent3d ()) {
-         boolean transparencyEnabled = false;
          if (!isSelecting()) {
-            enableTransparency (gl);
-            transparencyEnabled = true;
+            enableTransparency ();
          }
    
          synchronized(myInternalRenderList) {
@@ -911,9 +842,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             }
          }
          
-         if (transparencyEnabled) {
-            disableTransparency (gl);
-            transparencyEnabled = false;
+         if (!isSelecting ()) {
+            disableTransparency ();
          }
       }
       
@@ -938,10 +868,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          }
    
          if (hasTransparent2d ()) {
-            boolean transparencyEnabled = false;
             if (!isSelecting()) {
-               enableTransparency (gl);
-               transparencyEnabled = true;
+               enableTransparency ();
             }
       
             synchronized(myInternalRenderList) {
@@ -954,9 +882,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                }
             }
             
-            if (transparencyEnabled) {
-               disableTransparency (gl);
-               transparencyEnabled = false;
+            if (!isSelecting()) {
+               disableTransparency ();
             }
          }
          end2DRendering();
@@ -1039,6 +966,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          myCommittedViewerState.lightingEnabled = false;
          myCommittedViewerState.colorEnabled = true;
          myCommittedViewerState.transparencyEnabled = false;
+         myCommittedViewerState.blendingEnabled = false;
          
       } else {
          
@@ -1054,12 +982,13 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             gl.glColorMask (false, false, false, false);
          }
          
-         if (state.transparencyEnabled) {
+         if (state.blendingEnabled) {
             gl.glEnable (GL.GL_BLEND);
-            gl.glBlendFunc (getSBlending ().glValue (), getDBlending ().glValue ());
          } else {
             gl.glDisable (GL.GL_BLEND);
          }
+         
+         gl.glBlendFunc (state.blendSFactor.glValue (), state.blendDFactor.glValue ());
       }
       
       if (state.depthEnabled) {
@@ -1105,7 +1034,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             break;
       }
       
-     
       gl.glPointSize (state.pointSize);
       gl.glLineWidth (state.lineWidth);
       
@@ -1142,10 +1070,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             myCommittedViewerState.colorEnabled = true;
          }
          
-         if (myCommittedViewerState.transparencyEnabled == true) {
+         if (myCommittedViewerState.blendingEnabled == true) {
             gl.glDisable (GL.GL_BLEND);
-            myCommittedViewerState.transparencyEnabled = false;
+            myCommittedViewerState.blendingEnabled = false;
          }
+         myCommittedViewerState.transparencyEnabled = false;
          
       } else {
          
@@ -1171,15 +1100,23 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             myCommittedViewerState.colorEnabled = state.colorEnabled;
          }
          
-         if (myCommittedViewerState.transparencyEnabled != state.transparencyEnabled) {
-            if (state.transparencyEnabled) {
+         if (myCommittedViewerState.blendingEnabled != state.blendingEnabled) {
+            if (state.blendingEnabled) {
                gl.glEnable (GL.GL_BLEND);
-               gl.glBlendFunc (getSBlending ().glValue (), getDBlending ().glValue ());
             } else {
                gl.glDisable (GL.GL_BLEND);
             }
-            myCommittedViewerState.transparencyEnabled = state.transparencyEnabled;
+            myCommittedViewerState.blendingEnabled = state.blendingEnabled;
          }
+         
+         if (myCommittedViewerState.blendSFactor != state.blendSFactor ||
+            myCommittedViewerState.blendDFactor != state.blendDFactor) {
+            gl.glBlendFunc (state.blendSFactor.glValue (), state.blendDFactor.glValue ());
+            myCommittedViewerState.blendSFactor = state.blendSFactor;
+            myCommittedViewerState.blendDFactor = state.blendDFactor;
+         }
+         
+         myCommittedViewerState.transparencyEnabled = state.transparencyEnabled;
       }
       
       if (myCommittedViewerState.depthEnabled != state.depthEnabled) {
@@ -2564,22 +2501,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       repaint();  // execute in render thread
    }
 
-   public BlendType getSBlending() {
-      return sBlending;
-   }
-
-   public void setSBlending(BlendType glBlendValue) {
-      sBlending = glBlendValue;
-   }
-
-   public BlendType getDBlending() {
-      return dBlending;
-   }
-
-   public void setDBlending(BlendType glBlendValue) {
-      dBlending = glBlendValue;
-   }
-   
    @Override
    public void begin2DRendering(double left, double right, double bottom, double top) {
       // XXX should be able to just use the GLViewer version of this
@@ -4465,7 +4386,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       popViewMatrix();
       popModelMatrix();
       popProjectionMatrix();
-      myCommittedViewerState = null;  // clear committed info
+      myCommittedViewerState = null;    // clear committed info
+      myCurrentMaterialModified = true; // force reset of materials
       popViewerState();
    }
   

@@ -3,15 +3,6 @@ package artisynth.demos.tutorial;
 import java.awt.Color;
 import java.io.IOException;
 
-import maspack.geometry.MeshFactory;
-import maspack.geometry.PolygonalMesh;
-import maspack.matrix.AxisAngle;
-import maspack.matrix.RigidTransform3d;
-import maspack.matrix.Vector3d;
-import maspack.render.RenderProps;
-import maspack.render.GL.GLViewer;
-import maspack.render.GL.GL2.GL2Viewer;
-import maspack.render.GL.GL2.GL2Viewer.BlendType;
 import artisynth.core.femmodels.FemFactory;
 import artisynth.core.femmodels.FemFactory.FemElementType;
 import artisynth.core.femmodels.FemMeshComp;
@@ -22,6 +13,15 @@ import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
+import maspack.geometry.MeshFactory;
+import maspack.geometry.PolygonalMesh;
+import maspack.matrix.AxisAngle;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.render.RenderProps;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewer.BlendFactor;
+import maspack.render.GL.GL2.GL2Viewer;
 
 public class FemCollisions extends RootModel {
    
@@ -154,7 +154,7 @@ public class FemCollisions extends RootModel {
       // Enable transparency blending
       GLViewer viewer = getMainViewer();
       if (viewer instanceof GL2Viewer) {
-         ((GL2Viewer)viewer).setDBlending(BlendType.GL_ONE_MINUS_SRC_ALPHA);
+         ((GL2Viewer)viewer).setBlendDestFactor (BlendFactor.GL_ONE_MINUS_SRC_ALPHA);
       }
    }
 }

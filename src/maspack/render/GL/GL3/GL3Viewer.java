@@ -499,7 +499,7 @@ public class GL3Viewer extends GLViewer {
       if (hasTransparent3d()) {
          
          if (!isSelecting()) {
-            enableTransparency (gl);
+            enableTransparency ();
          }
 
          synchronized(myInternalRenderList) {
@@ -512,7 +512,7 @@ public class GL3Viewer extends GLViewer {
          }
          
          if (!isSelecting()) {
-            disableTransparency (gl);
+            disableTransparency ();
          }
       }
       GLSupport.checkAndPrintGLError(gl);
@@ -538,7 +538,7 @@ public class GL3Viewer extends GLViewer {
 
          if ( hasTransparent2d() ) {
             if (!isSelecting ()) {
-               enableTransparency (gl);
+               enableTransparency ();
             }
 
             synchronized(myInternalRenderList) {
@@ -551,7 +551,7 @@ public class GL3Viewer extends GLViewer {
             }
             
             if (!isSelecting()) {
-               disableTransparency (gl);
+               disableTransparency ();
             }
          }
          
@@ -636,25 +636,6 @@ public class GL3Viewer extends GLViewer {
       return d;
    }
 
-   private void enableTransparency (GL3 gl) {
-      if (!getTransparencyFaceCulling ()) {
-         pushViewerState();
-         setDepthWriteEnabled (false);
-         setFaceStyle(FaceStyle.FRONT_AND_BACK);
-      }
-
-      setTransparencyEnabled (true);
-      // XXX maybe set configurable?
-      gl.glBlendFunc (GL3.GL_SRC_ALPHA, GL3.GL_ONE_MINUS_SRC_ALPHA);
-   }
-
-   private void disableTransparency (GL3 gl) {
-      if (!getTransparencyFaceCulling ()) {
-         popViewerState();
-      }
-      setTransparencyEnabled (false);
-   }
-
    // Screen-shot
 
    @Override
@@ -734,7 +715,7 @@ public class GL3Viewer extends GLViewer {
          myCommittedViewerState.lightingEnabled = false;
          myCommittedViewerState.colorEnabled = true;
          myCommittedViewerState.transparencyEnabled = false;
-         
+         myCommittedViewerState.blendingEnabled = false;
       } else {
          
          // otherwise, track info
@@ -749,12 +730,12 @@ public class GL3Viewer extends GLViewer {
             gl.glColorMask (false, false, false, false);
          }
          
-         if (state.transparencyEnabled) {
+         if (state.blendingEnabled) {
             gl.glEnable (GL.GL_BLEND);
-            gl.glBlendFunc (GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
          } else {
             gl.glDisable (GL.GL_BLEND);
          }
+         gl.glBlendFunc (state.blendSFactor.glValue (), state.blendDFactor.glValue ());
       }
       
       if (state.depthEnabled) {
@@ -811,10 +792,11 @@ public class GL3Viewer extends GLViewer {
             myCommittedViewerState.colorEnabled = true;
          }
          
-         if (myCommittedViewerState.transparencyEnabled == true) {
+         if (myCommittedViewerState.blendingEnabled == true) {
             gl.glDisable (GL.GL_BLEND);
-            myCommittedViewerState.transparencyEnabled = false;
+            myCommittedViewerState.blendingEnabled = false;
          }
+         myCommittedViewerState.transparencyEnabled = false;
          
       } else {
          
@@ -844,14 +826,20 @@ public class GL3Viewer extends GLViewer {
             myCommittedViewerState.colorEnabled = state.colorEnabled;
          }
          
-         if (myCommittedViewerState.transparencyEnabled != state.transparencyEnabled) {
-            if (state.transparencyEnabled) {
+         if (myCommittedViewerState.blendingEnabled != state.blendingEnabled) {
+            if (state.blendingEnabled) {
                gl.glEnable (GL.GL_BLEND);
-               gl.glBlendFunc (GL3.GL_SRC_ALPHA, GL3.GL_ONE_MINUS_SRC_ALPHA);
             } else {
                gl.glDisable (GL.GL_BLEND);
             }
-            myCommittedViewerState.transparencyEnabled = state.transparencyEnabled;
+            myCommittedViewerState.blendingEnabled = state.blendingEnabled;
+         }
+         
+         if (myCommittedViewerState.blendSFactor != state.blendSFactor ||
+            myCommittedViewerState.blendDFactor != state.blendDFactor) {
+            gl.glBlendFunc (state.blendSFactor.glValue (), state.blendDFactor.glValue ());
+            myCommittedViewerState.blendSFactor = state.blendSFactor;
+            myCommittedViewerState.blendDFactor = state.blendDFactor;
          }
       }
       

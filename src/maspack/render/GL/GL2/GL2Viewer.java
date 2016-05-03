@@ -3136,6 +3136,32 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       drawTriangles(robj, robj.getTriangleGroupIdx ());
    }
 
+   protected int enableVertexColoring(boolean useHSV) {
+      gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
+      // if selection color is active, ignore material color
+      if (!myHighlightColorActive) {
+         gl.glEnable (GL2.GL_COLOR_MATERIAL);
+      }
+      int savedShading = getGLShadeModel();
+      if (savedShading == GL2.GL_FLAT) {
+         gl.glShadeModel (GL2.GL_SMOOTH);
+      }
+      if (useHSV) {
+         useHSV = setupHSVInterpolation(gl);
+      }
+      return savedShading;
+   }
+
+   protected void disableVertexColoring (boolean useHSV, int savedShading) {
+      if (savedShading == GL2.GL_FLAT) {
+         gl.glShadeModel (savedShading);
+      }
+      gl.glDisable (GL2.GL_COLOR_MATERIAL);
+      if (useHSV) {
+         gl.glUseProgramObjectARB (0);
+      }
+   }
+
    @Override
    public void drawTriangles(RenderObject robj, int gidx) {
 
@@ -3159,17 +3185,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (hasTexture) {
          hasTexture = maybeActivateTextures (gl);
       }
-      
-      // if use vertex colors, get them to track glColor
+
+      // if use vertex colors, get them to track glColor      
+      int savedShading = 0;
       if (useColors) {
-         gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
-         // if selection color is active, ignore material color
-         if (!myHighlightColorActive) {
-            gl.glEnable (GL2.GL_COLOR_MATERIAL);
-         }
-         if (useHSV) {
-            useHSV = setupHSVInterpolation(gl);
-         }
+         savedShading = enableVertexColoring (useHSV);
       }
 
       boolean useDisplayList = !selecting || !hasColors;
@@ -3251,16 +3271,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       // disable color tracking
       if (useColors) {
-         gl.glDisable (GL2.GL_COLOR_MATERIAL);
-         if (useHSV) {
-            gl.glUseProgramObjectARB (0);
-         }
+         disableVertexColoring (useHSV, savedShading);
       }
-
       if (enableLighting) {
          setLightingEnabled(true);
       }
-
    }
 
    private static class PointFingerPrint {
@@ -3423,15 +3438,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor
+      int savedShading = 0;
       if (useColors) {
-         gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
-         // if selection color is active, ignore material color
-         if (!myHighlightColorActive) {
-            gl.glEnable (GL2.GL_COLOR_MATERIAL);
-         }
-         if (useHSV) {
-            useHSV = setupHSVInterpolation(gl);
-         }
+         savedShading = enableVertexColoring (useHSV);
       }
 
       boolean useDisplayList = !selecting || !hasColors;
@@ -3501,12 +3510,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       // disable color tracking
       if (useColors) {
-         gl.glDisable (GL2.GL_COLOR_MATERIAL);
-         if (useHSV) {
-            gl.glUseProgramObjectARB (0);
-         }
+         disableVertexColoring (useHSV, savedShading);
       }
-
       if (enableLighting) {
          setLightingEnabled(true);
       }
@@ -3524,16 +3529,10 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean useColors = hasColors && !selecting;
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
-      // if use vertex colors, get them to track glColor
+      // if use vertex colors, get them to track glColor      
+      int savedShading = 0;
       if (useColors) {
-         gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
-         // if selection color is active, ignore material color
-         if (!myHighlightColorActive) {
-            gl.glEnable (GL2.GL_COLOR_MATERIAL);
-         }
-         if (useHSV) {
-            useHSV = setupHSVInterpolation(gl);
-         }
+         savedShading = enableVertexColoring (useHSV);
       }
 
       boolean useDisplayList = !selecting || !hasColors;
@@ -3669,12 +3668,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       // disable color tracking
       if (useColors) {
-         gl.glDisable (GL2.GL_COLOR_MATERIAL);
-         if (useHSV) {
-            gl.glUseProgramObjectARB (0);
-         }
+         disableVertexColoring (useHSV, savedShading);
       }
-
    }
 
    @Override
@@ -3735,16 +3730,10 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean useColors = hasColors && !selecting;
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
-      // if use vertex colors, get them to track glColor
+      // if use vertex colors, get them to track glColor      
+      int savedShading = 0;
       if (useColors) {
-         gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
-         // if selection color is active, ignore material color
-         if (!myHighlightColorActive) {
-            gl.glEnable (GL2.GL_COLOR_MATERIAL);
-         }
-         if (useHSV) {
-            useHSV = setupHSVInterpolation(gl);
-         }
+         savedShading = enableVertexColoring (useHSV);
       }
 
       boolean useDisplayList = !selecting || !hasColors;
@@ -3807,16 +3796,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       // disable color tracking
       if (useColors) {
-         gl.glDisable (GL2.GL_COLOR_MATERIAL);
-         if (useHSV) {
-            gl.glUseProgramObjectARB (0);
-         }
+         disableVertexColoring (useHSV, savedShading);
       }
-
       if (enableLighting) {
          setLightingEnabled(true);
       }
-
    }
 
    private void drawSolidPoints(RenderObject robj, int gidx, PointStyle style, double rad) {
@@ -3834,16 +3818,10 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean useColors = hasColors && !selecting;
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
-      // if use vertex colors, get them to track glColor
+      // if use vertex colors, get them to track glColor      
+      int savedShading = 0;
       if (useColors) {
-         gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
-         // if selection color is active, ignore material color
-         if (!myHighlightColorActive) {
-            gl.glEnable (GL2.GL_COLOR_MATERIAL);
-         }
-         if (useHSV) {
-            useHSV = setupHSVInterpolation(gl);
-         }
+         savedShading = enableVertexColoring (useHSV);
       }
 
       GL2Primitive point = null;
@@ -3919,12 +3897,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       // disable color tracking
       if (useColors) {
-         gl.glDisable (GL2.GL_COLOR_MATERIAL);
-         if (useHSV) {
-            gl.glUseProgramObjectARB (0);
-         }
+         disableVertexColoring (useHSV, savedShading);
       }
-
    }
 
    @Override
@@ -3974,16 +3948,10 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean useColors = hasColors && !selecting;
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
-      // if use vertex colors, get them to track glColor
+      // if use vertex colors, get them to track glColor      
+      int savedShading = 0;
       if (useColors) {
-         gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
-         // if selection color is active, ignore material color
-         if (!myHighlightColorActive) {
-            gl.glEnable (GL2.GL_COLOR_MATERIAL);
-         }
-         if (useHSV) {
-            useHSV = setupHSVInterpolation(gl);
-         }
+         savedShading = enableVertexColoring (useHSV);
       }
       
       boolean hasTexture = robj.hasTextureCoords ();
@@ -4089,12 +4057,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       
       // disable color tracking
       if (useColors) {
-         gl.glDisable (GL2.GL_COLOR_MATERIAL);
-         if (useHSV) {
-            gl.glUseProgramObjectARB (0);
-         }
+         disableVertexColoring (useHSV, savedShading);
       }
-
       if (enableLighting) {
          setLightingEnabled(true);
       }
@@ -4160,16 +4124,10 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean useColors = hasColors && !selecting;
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
-      // if use vertex colors, get them to track glColor
+      // if use vertex colors, get them to track glColor      
+      int savedShading = 0;
       if (useColors) {
-         gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
-         // if selection color is active, ignore material color
-         if (!myHighlightColorActive) {
-            gl.glEnable (GL2.GL_COLOR_MATERIAL);
-         }
-         if (useHSV) {
-            useHSV = setupHSVInterpolation(gl);
-         }
+         savedShading = enableVertexColoring (useHSV);
       }
       
       boolean hasTexture = robj.hasTextureCoords ();
@@ -4273,16 +4231,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       
       // disable color tracking
       if (useColors) {
-         gl.glDisable (GL2.GL_COLOR_MATERIAL);
-         if (useHSV) {
-            gl.glUseProgramObjectARB (0);
-         }
+         disableVertexColoring (useHSV, savedShading);
       }
-
       if (enableLighting) {
          setLightingEnabled(true);
       }
-      
    }
    
    @Override
@@ -4300,16 +4253,10 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean useColors = hasColors && !selecting;
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
-      // if use vertex colors, get them to track glColor
+      // if use vertex colors, get them to track glColor      
+      int savedShading = 0;
       if (useColors) {
-         gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
-         // if selection color is active, ignore material color
-         if (!myHighlightColorActive) {
-            gl.glEnable (GL2.GL_COLOR_MATERIAL);
-         }
-         if (useHSV) {
-            useHSV = setupHSVInterpolation(gl);
-         }
+         savedShading = enableVertexColoring (useHSV);
       }
       
       boolean hasTexture = robj.hasTextureCoords ();
@@ -4378,16 +4325,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       
       // disable color tracking
       if (useColors) {
-         gl.glDisable (GL2.GL_COLOR_MATERIAL);
-         if (useHSV) {
-            gl.glUseProgramObjectARB (0);
-         }
+         disableVertexColoring (useHSV, savedShading);
       }
-
       if (enableLighting) {
          setLightingEnabled(true);
       }
-
    }
 
    /**
@@ -4421,23 +4363,18 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       GL2 gl = getGL2();
       maybeUpdateState(gl);
 
-      if (getVertexColorMixing() != ColorMixing.REPLACE) {
+      if (getVertexColorMixing() != ColorMixing.REPLACE || isSelecting()) {
          // only REPLACE color mixing is supported
          hasColorData = false;
       }
-      // If the draw has color data, we need to disable lighting and set
+      // If the draw has color data, we need to enable color material and set
       // smooth shading, in order for vertex color interpolation to work
       // properly.
-      boolean savedLighting = isLightingOn();
       boolean useHSV = false;
-      int savedShading = getGLShadeModel();
+      int savedShading = 0;
       if (hasColorData) {
-         gl.glDisable (GL2.GL_LIGHTING);
-         gl.glShadeModel (GL2.GL_SMOOTH);
          useHSV = isHSVColorInterpolationEnabled();
-         if (useHSV) {
-            useHSV = setupHSVInterpolation(gl);
-         }         
+         savedShading = enableVertexColoring (useHSV);
       }
       
       boolean hasTexture = hasTexData;
@@ -4473,15 +4410,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
       
       if (hasColorData) {
-         if (savedLighting) {
-            gl.glEnable (GL2.GL_LIGHTING);
-         }
-         if (savedShading != GL2.GL_SMOOTH) {
-            gl.glShadeModel (savedShading);
-         }
-         if (useHSV) {
-            gl.glUseProgramObjectARB (0);
-         }
+         disableVertexColoring (useHSV, savedShading);
       }
    }
 

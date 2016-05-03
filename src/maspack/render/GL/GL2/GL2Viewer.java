@@ -3156,7 +3156,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (savedShading == GL2.GL_FLAT) {
          gl.glShadeModel (savedShading);
       }
-      gl.glDisable (GL2.GL_COLOR_MATERIAL);
+      if (!myHighlightColorActive) {
+         gl.glDisable (GL2.GL_COLOR_MATERIAL);
+      }
       if (useHSV) {
          gl.glUseProgramObjectARB (0);
       }
@@ -3178,7 +3180,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
-      boolean useColors = hasColors && !selecting;
+      boolean useColors = hasColors && !selecting && !myHighlightColorActive;
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
       
       boolean hasTexture = robj.hasTextureCoords ();
@@ -3434,7 +3436,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
-      boolean useColors = hasColors && !selecting;
+      boolean useColors = hasColors && !selecting && !myHighlightColorActive;
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor
@@ -3526,7 +3528,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
-      boolean useColors = hasColors && !selecting;
+      boolean useColors = hasColors && !selecting && !myHighlightColorActive;
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor      
@@ -3727,7 +3729,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
-      boolean useColors = hasColors && !selecting;
+      boolean useColors = hasColors && !selecting && !myHighlightColorActive;
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor      
@@ -3815,7 +3817,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
-      boolean useColors = hasColors && !selecting;
+      boolean useColors = hasColors && !selecting && !myHighlightColorActive;
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor      
@@ -3945,7 +3947,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
-      boolean useColors = hasColors && !selecting;
+      boolean useColors = hasColors && !selecting && !myHighlightColorActive;
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor      
@@ -4121,7 +4123,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
-      boolean useColors = hasColors && !selecting;
+      boolean useColors = hasColors && !selecting && !myHighlightColorActive;
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor      
@@ -4250,7 +4252,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
-      boolean useColors = hasColors && !selecting;
+      boolean useColors = hasColors && !selecting && !myHighlightColorActive;
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor      
@@ -4363,7 +4365,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       GL2 gl = getGL2();
       maybeUpdateState(gl);
 
-      if (getVertexColorMixing() != ColorMixing.REPLACE || isSelecting()) {
+      if (getVertexColorMixing() != ColorMixing.REPLACE ||
+          isSelecting() || myHighlightColorActive) {
          // only REPLACE color mixing is supported
          hasColorData = false;
       }

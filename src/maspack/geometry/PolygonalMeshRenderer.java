@@ -593,7 +593,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          // line loop
          features.beginFeature (faceIdx);
          for (int j=1; j<nv; ++j) {
-            int v1 = v0+j;
+            int v1 = v0+1;
             features.addVertex (v0);
             features.addVertex (v1);
             v0 = v1;

@@ -18,11 +18,12 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
-import maspack.properties.PropertyDesc;
 import maspack.properties.PropertyList;
 import maspack.render.IsRenderable;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.render.Renderer.FaceStyle;
+import maspack.render.Renderer.Shading;
 
 
 /**
@@ -176,14 +177,7 @@ public class TextComponent3d extends TextComponentBase implements
       if (!isSelectable() && renderer.isSelecting()) {
          return;
       }
-      
-      RenderProps rprops = getRenderProps();
-      rprops.getFaceColor(rgb);
-      
-      if (isSelected()) {
-         renderer.getHighlightColor(rgb);
-      }
-      
+
       // text orientation computation
       Rectangle2D box = renderer.getTextBounds(myFont, myText, myTextSize);
       double w = box.getWidth();
@@ -236,10 +230,15 @@ public class TextComponent3d extends TextComponentBase implements
       
       renderer.pushModelMatrix();
       renderer.mulModelMatrix(myTransform);
-                  
-      renderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());
+       
+      RenderProps rprops = getRenderProps();
+      Shading savedShading = renderer.setShading (rprops.getShading ());
+      renderer.setFaceColoring (rprops, isSelected());
+      FaceStyle savedFaceStyle = renderer.setFaceStyle (rprops.getFaceStyle ());
       final float[] ZERO = {0,0,0};
       renderer.drawText(myFont, myText, ZERO, myTextSize);
+      renderer.setFaceStyle (savedFaceStyle);
+      renderer.setShading (savedShading);
       
       renderer.popModelMatrix();
       

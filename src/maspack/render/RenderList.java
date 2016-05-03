@@ -416,7 +416,7 @@ public class RenderList {
          }
          catch (Exception e) {
             renderer.restoreDefaultState(/*strictChecking=*/false);
-            e.printStackTrace ();
+            throw e;
          }
       }
       return qid;

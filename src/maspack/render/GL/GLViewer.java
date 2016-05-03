@@ -2677,6 +2677,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       setLightingEnabled (false);
       setFaceStyle (FaceStyle.FRONT_AND_BACK);
       //setModelMatrix(RigidTransform3d.IDENTITY);
+      
+      getModelMatrix (myDefaultModelMatrix2d);
 
       rendering2d = true;
    }
@@ -2916,13 +2918,13 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return modelMatrix.copy();
    }
 
-   protected void resetModelMatrix() {
-      synchronized (modelMatrix) {
-         modelMatrix = new RigidTransform3d(); // reset to identity
-         modelNormalMatrix = new Matrix3d(modelMatrix.getMatrix());   
-      }
-      invalidateModelMatrix();
-   }
+//   protected void resetModelMatrix() {
+//      synchronized (modelMatrix) {
+//         modelMatrix = new RigidTransform3d(); // reset to identity
+//         modelNormalMatrix = new Matrix3d(modelMatrix.getMatrix());   
+//      }
+//      invalidateModelMatrix();
+//   }
 
    protected boolean isModelMatrixRigid() {
       return (modelMatrix instanceof RigidTransform3d);
@@ -3768,6 +3770,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    
    // Doing 2D rendering
    protected boolean rendering2d = false;
+   protected AffineTransform3d myDefaultModelMatrix2d = new AffineTransform3d();
 
    protected void ensureDrawDataCapacity () {
       if (myDrawVertexIdx >= myDrawDataCap) {
@@ -4064,19 +4067,39 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          myNonDefaultGeneralSettings = 0;
       }
       if (myModelMatrixSet) {
-         // if (modelMatrixStack.size() > 0) {
-            // if (strictChecking) {
-               // XXX sometimes it won't be zero, e.g. if the viewer sets it prior to rendering
-               // throw new IllegalStateException (
-               //    "render() method exited with model matrix stack size of " +
-               //   modelMatrixStack.size());
-            // }
-            // else {
-              // modelMatrixStack.clear();
-            // }
-         // }
-         if (!modelMatrix.isIdentity()) {
-            resetModelMatrix();
+         int mmsize = modelMatrixStack.size();
+         if (rendering2d) {
+            mmsize -= 1;
+         }
+         if (mmsize > 0) {
+            if (strictChecking) {
+               throw new IllegalStateException (
+                  "render() method exited with model matrix stack size of " +
+                   mmsize);
+            }
+            else {
+               while (mmsize > 0) {
+                  modelMatrixStack.pop();
+                  mmsize--;
+               }
+            }
+         }
+         if (rendering2d) {
+            synchronized (modelMatrix) {
+               if (!modelMatrix.equals (myDefaultModelMatrix2d)) {
+                  modelMatrix.set (myDefaultModelMatrix2d); // reset to default
+                  invalidateModelMatrix();
+               }
+            }
+         }
+         else {
+            synchronized (modelMatrix) {
+               if (!modelMatrix.isIdentity()) {
+                  modelMatrix = new RigidTransform3d(); // reset to identity
+                  modelNormalMatrix = new Matrix3d();
+                  invalidateModelMatrix();
+               }
+            }           
          }
          myModelMatrixSet = false;
       }

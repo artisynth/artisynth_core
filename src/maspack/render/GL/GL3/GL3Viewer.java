@@ -479,6 +479,10 @@ public class GL3Viewer extends GLViewer {
       }
       GLSupport.checkAndPrintGLError(gl);
 
+      if (!isSelecting()) {
+         setFrontColor (DEFAULT_MATERIAL_COLOR);
+      }
+      
       int qid = 0;
       synchronized(myInternalRenderList) {
          qid = myInternalRenderList.renderOpaque (this, qid, flags);

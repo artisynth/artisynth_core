@@ -880,8 +880,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          }
       }
 
-      // XXX gl.glPushMatrix();
-      // XXX maybeUpdateState(gl);
+      if (!isSelecting()) {
+         setFrontColor (DEFAULT_MATERIAL_COLOR);
+      }
       
       int qid = 0;
       synchronized(myInternalRenderList) {

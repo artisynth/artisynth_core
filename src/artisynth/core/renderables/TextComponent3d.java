@@ -35,8 +35,6 @@ import maspack.render.Renderer;
 public class TextComponent3d extends TextComponentBase implements 
    TransformableGeometry {
 
-   public static int defaultFontSize = 64;
-   public static double defaultTextSize = 1.0;
    public static boolean defaultByReference = false;
    
    protected String myText;
@@ -56,12 +54,6 @@ public class TextComponent3d extends TextComponentBase implements
 
    
    static {
-      // change default font size
-      PropertyDesc info = myProps.get("fontSize");
-      info.setDefaultValue(defaultFontSize);
-      info = myProps.get("textSize");
-      info.setDefaultValue(defaultTextSize);
-      
       myProps.add("text", "text to display", "");
       myProps.add("position", "display position", Point3d.ZERO);
       myProps.add("orientation", "orientation relative to world", AxisAngle.IDENTITY);

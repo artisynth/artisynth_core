@@ -48,6 +48,7 @@ public class GLColorSelector extends GLSelector {
 
    int[] savedViewport = new int[4];
    float[] savedBackgroundColor = new float[4];
+   float[] savedColor = new float[4];
    boolean savedBlend;
    boolean savedMulti;
 
@@ -127,6 +128,7 @@ public class GLColorSelector extends GLSelector {
       }
       
       // set the initial color to be 0
+      myViewer.getFrontColor (savedColor);
       myViewer.setColor(0, 0, 0, 0);
 
       //gl.glDisable (GL2.GL_TEXTURE_2D);
@@ -163,6 +165,7 @@ public class GLColorSelector extends GLSelector {
       if (savedMulti) {
          gl.glEnable(GL.GL_MULTISAMPLE);
       }
+      myViewer.setColor (savedColor);
       
       myViewer.setViewport(gl, savedViewport[0], savedViewport[1], 
          savedViewport[2], savedViewport[3]);

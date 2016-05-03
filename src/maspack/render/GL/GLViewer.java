@@ -3442,6 +3442,16 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myCurrentMaterialModified = true;
    }
 
+   
+   /**
+    * Gets a copy of the current diffuse "color"
+    * @param rgba array to fill, or null to create new array
+    * @return filled array
+    */
+   public float[] getColor(float[] rgba) {
+      return getFrontColor(rgba);
+   }
+   
    @Override
    public float[] getFrontColor (float[] rgba) {
       if (rgba == null) {
@@ -4054,16 +4064,17 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          myNonDefaultGeneralSettings = 0;
       }
       if (myModelMatrixSet) {
-         if (modelMatrixStack.size() > 0) {
-            if (strictChecking) {
-               throw new IllegalStateException (
-                  "render() method exited with model matrix stack size of " +
-                  modelMatrixStack.size());
-            }
-            else {
-               modelMatrixStack.clear();
-            }
-         }
+         // if (modelMatrixStack.size() > 0) {
+            // if (strictChecking) {
+               // XXX sometimes it won't be zero, e.g. if the viewer sets it prior to rendering
+               // throw new IllegalStateException (
+               //    "render() method exited with model matrix stack size of " +
+               //   modelMatrixStack.size());
+            // }
+            // else {
+              // modelMatrixStack.clear();
+            // }
+         // }
          if (!modelMatrix.isIdentity()) {
             resetModelMatrix();
          }

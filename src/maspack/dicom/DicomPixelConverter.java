@@ -10,6 +10,8 @@ package maspack.dicom;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+import artisynth.core.modelbase.PropertyChangeEvent;
+import artisynth.core.modelbase.PropertyChangeListener;
 import maspack.properties.CompositeProperty;
 import maspack.properties.HasProperties;
 import maspack.properties.Property;
@@ -19,8 +21,6 @@ import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import artisynth.core.modelbase.PropertyChangeEvent;
-import artisynth.core.modelbase.PropertyChangeListener;
 
 /**
  * Converts (interpolates) pixel values from a stored raw form to a new 

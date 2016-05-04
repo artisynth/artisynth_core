@@ -7,46 +7,44 @@
 
 package artisynth.core.renderables;
 
+import java.awt.Color;
 import java.io.File;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import javax.media.opengl.GL;
-import javax.media.opengl.GL2;
+import javax.media.opengl.GL2GL3;
 
 import artisynth.core.modelbase.ModelComponentBase;
-import artisynth.core.modelbase.PropertyChangeEvent;
-import artisynth.core.modelbase.PropertyChangeListener;
 import artisynth.core.modelbase.RenderableComponentBase;
-import maspack.dicom.DicomHeader;
 import maspack.dicom.DicomImage;
 import maspack.dicom.DicomPixelConverter;
 import maspack.dicom.DicomReader;
-import maspack.dicom.DicomTag;
-import maspack.dicom.DicomWindowPixelConverter;
+import maspack.dicom.DicomTextureContent;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.Point2d;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
+import maspack.render.ColorMapProps;
 import maspack.render.LineRenderProps;
 import maspack.render.RenderList;
+import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.GL.GLTexture;
-import maspack.render.GL.GLTextureLoader;
-import maspack.render.GL.GL2.GL2Viewer;
+import maspack.render.Renderer.ColorMixing;
+import maspack.render.Renderer.FaceStyle;
+import maspack.render.Renderer.Shading;
+import maspack.render.GL.GLSupport;
+import maspack.render.GL.GLViewer;
 import maspack.util.IntegerInterval;
 
-public class DicomViewer extends RenderableComponentBase 
-   implements PropertyChangeListener {
+public class DicomViewer extends RenderableComponentBase {
 
    DicomImage myImage;
-   DicomPixelConverter converter = null;
-   GLTexture xy = null;
-   GLTexture xz = null;
-   GLTexture yz = null;
+   DicomTextureContent texture;
 
    public static PropertyList myProps = new PropertyList(
       DicomViewer.class, RenderableComponentBase.class);
@@ -65,7 +63,7 @@ public class DicomViewer extends RenderableComponentBase
       myProps.add("drawXZ * *", "draw XY plane", true);
       myProps.add("drawXY * *", "draw XY plane", true);
       myProps.add("drawBox * *", "draw image box", true);
-      myProps.add("pixelConverter", "pixel converter", new DicomWindowPixelConverter());
+      myProps.addReadOnly("pixelConverter", "pixel converter");
    }
    
    public PropertyList getAllPropertyInfo() {
@@ -76,23 +74,14 @@ public class DicomViewer extends RenderableComponentBase
       return new LineRenderProps();
    }
    
-   private static final String[] textureIds = {"yz", "xz", "xy"};
-   
-   Vector3d sliceCoords;
-   int[] sliceCoordIdxs;
-   Vector3d pixelSize;
-   int[] numPixels;
-   int timeIdx;
-   
    AffineTransform3d myTransform;
+   AffineTransform3d myRenderTransform;
+   
    boolean drawBox;
    boolean drawSlice[];
    
-   GLTextureLoader textureLoader = null;
-   
-   AffineTransform3d renderTransform;
-   Point3d[] boxRenderCoords;
-   Point3d[][] sliceRenderCoords;
+   RenderObject robj;
+   boolean robjValid;
 
    /**
     * Creates a new viewer widget, with supplied name and DICOM image
@@ -114,56 +103,29 @@ public class DicomViewer extends RenderableComponentBase
    }
    
    private void init(String name, DicomImage image) {
+      setName(ModelComponentBase.makeValidName(name));
       myRenderProps = createRenderProps();
+      robj = null;
+      robjValid = false;
       
-      timeIdx = 0;
-      sliceCoords = new Vector3d();
-      sliceCoordIdxs = new int[]{-1,-1,-1};
-      pixelSize = new Vector3d();
-      numPixels = new int[3];
       myTransform = new AffineTransform3d(RigidTransform3d.IDENTITY);
       drawBox = true;
       drawSlice = new boolean[]{true, true, true};
       
-      setName(ModelComponentBase.makeValidName(name));
       setImage(image);
       setSliceCoordinates(0.5, 0.5, 0.5);
-      
-      // Pixel converter
-      DicomWindowPixelConverter window = new DicomWindowPixelConverter();
-      // Full dynamic range
-      int maxIntensity = myImage.getMaxIntensity();
-      int minIntensity = myImage.getMinIntensity();
-      int c = (maxIntensity+minIntensity) >> 1;
-      int diff = maxIntensity-minIntensity;
-      window.addWindowPreset("FULL DYNAMIC", c, diff);
-      window.setWindow("FULL DYNAMIC");
-      
-      // add other windows, loaded from first slice
-      DicomHeader header = myImage.getSlice(0).getHeader();
-      double[] windowCenters = header.getMultiDecimalValue(DicomTag.WINDOW_CENTER);
-      if (windowCenters != null) {
-         int numWindows = windowCenters.length;
-         double[] windowWidths = header.getMultiDecimalValue(DicomTag.WINDOW_WIDTH);
-         String[] windowNames = header.getMultiStringValue(DicomTag.WINDOW_CENTER_AND_WIDTH_EXPLANATION);
-         
-         for (int i=0; i<numWindows; i++) {
-            String wname;
-            if (windowNames != null) {
-               wname = windowNames[i];
-            } else {
-               wname = "WINDOW" + i;
-            }
-            window.addWindowPreset(wname, (int)windowCenters[i], (int)windowWidths[i]);
-         }
-      }
-      
-      setPixelConverter(window);
    }
    
    @Override
    public RenderProps createRenderProps() {
-      return RenderProps.createLineProps(this);
+      RenderProps props = RenderProps.createLineFaceProps (this);
+      props.setFaceColor (Color.WHITE);
+      props.setShading (Shading.NONE);
+      ColorMapProps cprops = new ColorMapProps ();
+      cprops.setEnabled (true);
+      cprops.setColorMixing (ColorMixing.MODULATE);
+      props.setColorMap (cprops);
+      return props;
    }
    
    /**
@@ -270,38 +232,25 @@ public class DicomViewer extends RenderableComponentBase
     * Sets the DICOM image to display
     * @param image
     */
-   public void setImage(DicomImage image) {
+   private void setImage(DicomImage image) {
       myImage = image;
-      if (textureLoader != null) {
-         textureLoader.clearAllTextures();
-      }
-      numPixels[0] = myImage.getNumCols();
-      numPixels[1] = myImage.getNumRows();
-      numPixels[2] = myImage.getNumSlices();
+      texture = new DicomTextureContent (image);
+      myRenderProps.getColorMap ().setContent (texture);
+      
    }
  
    /**
     * @return the number of interpolation windows available in the DICOM image
     */
    public int numWindows() {
-      //return myImage.get
-      if (converter instanceof DicomWindowPixelConverter) {
-         DicomWindowPixelConverter windowc = (DicomWindowPixelConverter)converter;
-         return windowc.numWindows();
-      }
-      return 0;
+      return texture.getWindowConverter ().numWindows ();
    }
    
    /**
     * @return the names of all possible interpolation windows available in the DICOM image
     */
    public String[] getWindowNames() {
-      //return myImage.get
-      if (converter instanceof DicomWindowPixelConverter) {
-         DicomWindowPixelConverter windowc = (DicomWindowPixelConverter)converter;
-         return windowc.getWindowNames();
-      }
-      return null;
+      return texture.getWindowConverter ().getWindowNames ();
    }
    
    /**
@@ -309,11 +258,7 @@ public class DicomViewer extends RenderableComponentBase
     * @param presetName name of the interpolation window
     */
    public void setWindow(String presetName) {
-      //return myImage.get
-      if (converter instanceof DicomWindowPixelConverter) {
-         DicomWindowPixelConverter windowc = (DicomWindowPixelConverter)converter;
-         windowc.setWindow(presetName);
-      }
+      texture.getWindowConverter ().setWindow (presetName);
    }
    
    /**
@@ -341,16 +286,10 @@ public class DicomViewer extends RenderableComponentBase
       } else if (z > 1) {
          z = 1;
       }
-  
-      sliceCoords.set(x, y, z);
       
-      for (int i=0; i<3; i++) {
-         int newId = (int)(Math.round(sliceCoords.get(i)*(numPixels[i]-1)));
-         if (newId != sliceCoordIdxs[i]) {
-            clearTexture(i);
-            sliceCoordIdxs[i] = newId;
-         }
-      }
+      setX(x);
+      setY(y);
+      setZ(z);
    }
    
    /**
@@ -362,193 +301,91 @@ public class DicomViewer extends RenderableComponentBase
       setSliceCoordinates(coords.x, coords.y, coords.z);
    }
    
+   protected void updateRenderTransform() {
+      if (myRenderTransform == null) {
+         myRenderTransform = new AffineTransform3d();
+      }
+      myRenderTransform.set(myImage.getPixelTransform());
+      
+      // shift by half pixel
+      Vector3d shift = new Vector3d(-0.5,-0.5,-0.5);
+      shift.transform(myRenderTransform);
+      myRenderTransform.p.add(shift);
+      // scale for full image
+      myRenderTransform.applyScaling(myImage.getNumCols(), myImage.getNumRows(), myImage.getNumSlices());
+      // append myTransform
+      myRenderTransform.mul(myTransform, myRenderTransform);
+   }
+   
    @Override
    public void prerender(RenderList list) {
       super.prerender(list);
-      updateRenderCoords();
+      texture.prerender ();
+      maybeUpdateRenderObject();
+      updateRenderTransform();
    }
    
-   private void refreshTextures(GL gl) {
+   protected RenderObject buildRenderObject() {
+      RenderObject robj = new RenderObject();
       
-      if (textureLoader != null) {
-         for (int i=0; i<3; i++) {
-            if (!textureLoader.isTextureValid(textureIds[i])) {
-               int nx = myImage.getNumCols();
-               int ny = myImage.getNumRows();
-               int nz = myImage.getNumSlices();
-               switch (i) {
-                  case 0: {
-                     
-                     if (yz != null) {
-                        yz.releaseDispose (gl);
-                     }
-                     yz = null;
-                     
-                     // YZ
-                     switch (myImage.getPixelType()) {
-                        case BYTE:
-                        case SHORT:
-                        {
-                           // grayscale
-                           byte[] image = new byte[ny*nz];
-                           myImage.getPixelsByte(
-                              sliceCoordIdxs[0], 0, 0, 
-                              1, 1, 1, 
-                              1, ny, nz, 
-                              timeIdx, image, converter);
-                           
-                           int src = GL2.GL_RED;
-                           int dst = GL2.GL_LUMINANCE;
-                           int max = 0;
-                           for (int j=0; j<image.length; j++) {
-                              int val = 0xFF & image[j];
-                              if (val > max) {
-                                 max = val;
-                              }
-                           }
-                           yz = textureLoader.getTextureAcquired(gl, 
-                              textureIds[i], GL.GL_TEXTURE_2D, image, ny, nz, src, dst);
-                           break;
-                        }
-                        case RGB: {
-                           // colour
-                           byte[] image = new byte[3*ny*nz];
-                           myImage.getPixelsRGB(
-                              sliceCoordIdxs[0], 0, 0, 
-                              1, 1, 1, 1,
-                              ny, nz,  
-                              timeIdx,
-                              image, converter);
-                           
-                           int src = GL2.GL_RGB;
-                           int dst = GL2.GL_RGB;
-                           yz = textureLoader.getTextureAcquired(gl, textureIds[i], GL.GL_TEXTURE_2D, 
-                              image, ny, nz, src, dst);
-                           break;
-                        }
-                     }   
-                     
-                     break;
-                  }
-                  case 1: {
-                     
-                     if (xz != null) {
-                        xz.releaseDispose (gl);
-                     }
-                     xz = null;
-                     
-                     // XZ
-                     switch (myImage.getPixelType()) {
-                        case BYTE:
-                        case SHORT:
-                        {
-                           // grayscale
-                           byte[] image = new byte[nx*nz];
-                           myImage.getPixelsByte(
-                              0, sliceCoordIdxs[1], 0, 
-                              1, 1, 1, 
-                              nx, 1, nz,  
-                              timeIdx,
-                              image, converter);
-                           
-                           int src = GL2.GL_RED;
-                           int dst = GL2.GL_LUMINANCE;
-                           
-                           int max = 0;
-                           for (int j=0; j<image.length; j++) {
-                              int val = 0xFF & image[j];
-                              if (val > max) {
-                                 max = val;
-                              }
-                           }
-                           
-                           xz = textureLoader.getTextureAcquired(gl, 
-                              textureIds[i], GL.GL_TEXTURE_2D, image, nx, nz, src, dst);
-                           break;
-                        }
-                        case RGB: {
-                           // colour
-                           byte[] image = new byte[3*nx*nz];
-                           myImage.getPixelsRGB(
-                              0, sliceCoordIdxs[1], 0, 
-                              1, 1, 1, 
-                              nx, 1, nz, 
-                              timeIdx, image, converter);
-                           
-                           int src = GL2.GL_RGB;
-                           int dst = GL2.GL_RGB;
-                           xz = textureLoader.getTextureAcquired(gl, 
-                              textureIds[i], GL.GL_TEXTURE_2D, image, nx, nz, src, dst);
-                           break;
-                        }
-                     }   
-                     break;
-                  }
-                  case 2: {
-                     
-                     if (xy != null) {
-                        xy.releaseDispose (gl);
-                     }
-                     xy = null;
-                     
-                     // XY
-                     switch (myImage.getPixelType()) {
-                        case BYTE:
-                        case SHORT:
-                        {
-                           // grayscale
-                           byte[] image = new byte[nx*ny];
-                           myImage.getPixelsByte(
-                              0, 0, sliceCoordIdxs[2], 
-                              1, 1, 1, 
-                              nx, ny, 1,  
-                              timeIdx, image, converter);
-                           
-                           int src = GL2.GL_RED;
-                           int dst = GL2.GL_LUMINANCE;
-                           
-                           int max = 0;
-                           for (int j=0; j<image.length; j++) {
-                              int val = 0xFF & image[j];
-                              if (val > max) {
-                                 max = val;
-                              }
-                           }
-                           
-                           xy = textureLoader.getTextureAcquired(gl, textureIds[i], 
-                              GL.GL_TEXTURE_2D, image, nx, ny, src, dst);
-                           break;
-                        }
-                        case RGB: {
-                           // colour
-                           byte[] image = new byte[3*nx*ny];
-                           myImage.getPixelsRGB(
-                              0, 0, sliceCoordIdxs[2], 
-                              1, 1, 1, 
-                              nx, ny, 1,  
-                              timeIdx, image, converter);
-                           
-                           int src = GL2.GL_RGB;
-                           int dst = GL2.GL_RGB;
-                           xy = textureLoader.getTextureAcquired(gl, textureIds[i], 
-                              GL.GL_TEXTURE_2D, image, nx, ny, src, dst);
-                           break;
-                        }
-                     }   
-                     break;
-                  }
-               }
-            }
-         }
+      float x = (float)getX();
+      float y = (float)getY();
+      float z = (float)getZ();
+      
+      float[][] coords = {{0, 0}, {0, 1}, {1, 1}, {1, 0}};
+      
+      // xy-slice
+      Point2d[] texcoords = texture.getTextureCoordinates (DicomTextureContent.COL_ROW_PLANE);
+      robj.addNormal (0, 0, 1);
+      for (int i=0; i<4; ++i) {
+         robj.addPosition (coords[i][0], coords[i][1], z);
+         robj.addTextureCoord (texcoords[i]);
+         robj.addVertex ();
       }
-   }
-
-   /**
-    * Sets a 3D transform to apply to the image
-    * @param trans
-    */
-   public void setTransform(AffineTransform3d trans) {
-      myTransform.set(trans);
+      
+      // xz-slice
+      texcoords = texture.getTextureCoordinates (DicomTextureContent.COL_SLICE_PLANE);
+      robj.addNormal (0, 1, 0);
+      for (int i=0; i<4; ++i) {
+         robj.addPosition (coords[i][0], y, coords[i][1]);
+         robj.addTextureCoord (texcoords[i]);
+         robj.addVertex ();
+      }
+      
+      // yz-slice
+      texcoords = texture.getTextureCoordinates (DicomTextureContent.ROW_SLICE_PLANE);
+      robj.addNormal (1, 0, 0);
+      for (int i=0; i<4; ++i) {
+         robj.addPosition (x, coords[i][0], coords[i][1]);
+         robj.addTextureCoord (texcoords[i]);
+         robj.addVertex ();
+      }
+      
+      // three planes
+      for (int i=0; i<3; ++i) {
+         robj.createTriangleGroup ();
+         int baseIdx = 4*i;
+         robj.addTriangle (baseIdx, baseIdx+1, baseIdx+2);
+         robj.addTriangle (baseIdx, baseIdx+2, baseIdx+3);
+      }
+      
+      // box coordinates
+      int vidx = robj.vertex (0,0,0);
+      robj.vertex (0,1,0);
+      robj.vertex (1,1,0);
+      robj.vertex (1,0,0);
+      robj.vertex (0,0,1);
+      robj.vertex (0,1,1);
+      robj.vertex (1,1,1);
+      robj.vertex (1,0,1);
+      
+      final int[][] edges = {{0,1},{1,2},{2,3},{3,0},{0,4},{1,5},
+                             {4,5},{5,6},{6,7},{7,4},{2,6},{3,7}};
+      
+      for (int[] edge : edges) {
+         robj.addLine (edge[0]+vidx, edge[1]+vidx);
+      }
+      return robj;
    }
    
    /**
@@ -559,69 +396,47 @@ public class DicomViewer extends RenderableComponentBase
       myTransform.set(trans);
    }
    
-   private void updateRenderCoords() {
+   /**
+    * Sets a 3D transform to apply to the image.  Required for property.
+    * @param trans
+    */
+   public void setTransform(AffineTransform3d trans) {
+      myTransform.set(trans);
+   }
+   
+   private boolean maybeUpdateRenderObject() {
       
-      if (renderTransform == null) {
-         renderTransform = new AffineTransform3d();
-      }
-      
-      renderTransform.set(myImage.getPixelTransform());
-      
-      // shift by half pixel
-      Vector3d shift = new Vector3d(-0.5,-0.5,-0.5);
-      shift.transform(renderTransform);
-      renderTransform.p.add(shift);
-      
-      // scale for full image
-      renderTransform.applyScaling(myImage.getNumCols(), myImage.getNumRows(), myImage.getNumSlices());
-      
-      // append myTransform
-      renderTransform.mul(myTransform, renderTransform);
-      
-      // box coordinates
-      if (boxRenderCoords == null) {
-         boxRenderCoords = new Point3d[8];
-         for (int i=0; i<boxRenderCoords.length; i++) {
-            boxRenderCoords[i] = new Point3d();
+      boolean modified = false;
+      if (robj == null) {
+         robj = buildRenderObject ();
+         modified = true;
+      } else if (!robjValid) {
+     
+         float x = (float)getX();
+         float y = (float)getY();
+         float z = (float)getZ();
+         
+         float[][] coords = {{0, 0}, {0, 1}, {1, 1}, {1, 0}};
+         
+         // xy-slice
+         for (int i=0; i<4; ++i) {
+            robj.setPosition (i, coords[i][0], coords[i][1], z);
          }
-      }
-      boxRenderCoords[0].set(0, 0, 0);
-      boxRenderCoords[1].set(1, 0, 0);
-      boxRenderCoords[2].set(1, 1, 0);
-      boxRenderCoords[3].set(0, 1, 0);
-      boxRenderCoords[4].set(0, 0, 1);
-      boxRenderCoords[5].set(1, 0, 1);
-      boxRenderCoords[6].set(1, 1, 1);
-      boxRenderCoords[7].set(0, 1, 1);
-      for (int i=0; i<boxRenderCoords.length; i++) {
-         boxRenderCoords[i].transform(renderTransform);
-      }
-      
-      if (sliceRenderCoords == null) {
-         sliceRenderCoords = new Point3d[3][4];
-         for (int i=0; i<sliceRenderCoords.length; i++) {
-            for (int j=0; j<sliceRenderCoords[i].length; j++) {
-               sliceRenderCoords[i][j] = new Point3d();
-            }
+         
+         // xz-slice
+         for (int i=0; i<4; ++i) {
+            robj.setPosition (i+4, coords[i][0], y, coords[i][1]);
          }
-      }
-      sliceRenderCoords[0][0].set(sliceCoords.x, 0, 0);
-      sliceRenderCoords[0][1].set(sliceCoords.x, 1, 0);
-      sliceRenderCoords[0][2].set(sliceCoords.x, 1, 1);
-      sliceRenderCoords[0][3].set(sliceCoords.x, 0, 1);
-      sliceRenderCoords[1][0].set(0, sliceCoords.y, 0);
-      sliceRenderCoords[1][1].set(1, sliceCoords.y, 0);
-      sliceRenderCoords[1][2].set(1, sliceCoords.y, 1);
-      sliceRenderCoords[1][3].set(0, sliceCoords.y, 1);
-      sliceRenderCoords[2][0].set(0, 0, sliceCoords.z);
-      sliceRenderCoords[2][1].set(1, 0, sliceCoords.z);
-      sliceRenderCoords[2][2].set(1, 1, sliceCoords.z);
-      sliceRenderCoords[2][3].set(0, 1, sliceCoords.z);
-      for (int i=0; i<sliceRenderCoords.length; i++) {
-         for (int j=0; j<sliceRenderCoords[i].length; j++) {
-            sliceRenderCoords[i][j].transform(renderTransform);
+         
+         // yz-slice
+         for (int i=0; i<4; ++i) {
+            robj.setPosition (i+8, x, coords[i][0], coords[i][1]);
          }
+         
+         modified = true;
       }
+      robjValid = true;
+      return modified;
    }
    
    /**
@@ -634,126 +449,67 @@ public class DicomViewer extends RenderableComponentBase
    
    @Override
    public synchronized void render(Renderer renderer, int flags) {
-
-      if (!(renderer instanceof GL2Viewer)) {
-         return;
-      }
-      GL2Viewer viewer = (GL2Viewer)renderer;
-      
-      GL2 gl = viewer.getGL2();
-      if (textureLoader == null) {
-         textureLoader = new GLTextureLoader();
-      }
-      refreshTextures(gl);
       
       RenderProps rprops = getRenderProps();
       
+      renderer.pushModelMatrix ();
+      renderer.setModelMatrix (myRenderTransform);
+      
+      GLViewer viewer = (GLViewer)renderer;
+      
       if (drawBox) {
          // draw box
-         float[] coords0 = new float[3];
-         float[] coords1 = new float[3];
-         
-         final int[][] edges = {{0,1},{1,2},{2,3},{3,0},{0,4},{1,5},
-                                {4,5},{5,6},{6,7},{7,4},{2,6},{3,7}};
-         
-         for (int i=0; i<edges.length; i++) {
-            boxRenderCoords[edges[i][0]].get(coords0);
-            boxRenderCoords[edges[i][1]].get(coords1);
-            renderer.drawLine(rprops, coords0, coords1, isSelected());
-         }
-      }   
+         Shading savedShading = renderer.setShading (Shading.NONE);
+         renderer.setLineColoring (rprops, isSelected());
+         renderer.drawLines (robj, 0);
+         renderer.setShading (savedShading);
+      }
+      
+      ColorMapProps oldColorMap = renderer.setColorMap (rprops.getColorMap ());
+      FaceStyle oldFaceStyle = renderer.setFaceStyle (FaceStyle.FRONT_AND_BACK);
+      Shading oldShading = renderer.setShading (rprops.getShading ());
       
       if (!renderer.isSelecting()) {
-         
-         // texture settings
-         gl.glDisable(GL2.GL_LIGHTING);  
-         gl.glEnable(GL2.GL_TEXTURE_2D);
-         
-         //   select modulate to mix texture with color for shading
-         gl.glTexEnvf (
-            GL2.GL_TEXTURE_ENV, GL2.GL_TEXTURE_ENV_MODE, GL2.GL_MODULATE );
-         gl.glTexParameteri (
-            GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE);
-         gl.glTexParameteri (
-            GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL2.GL_CLAMP_TO_EDGE);
-         gl.glTexParameteri (
-            GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
-         gl.glTexParameteri (
-            GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR);
-
-         float alpha = (float)rprops.getAlpha();
-         gl.glColor4f(1f, 1f, 1f, alpha);
+         renderer.setFaceColoring (rprops, isSelected());
       }      
       
-      byte[] savedCullFaceEnabled= new byte[1];
-      gl.glGetBooleanv (GL2.GL_CULL_FACE, savedCullFaceEnabled, 0);
-      gl.glDisable (GL2.GL_CULL_FACE);
-      
       for (int i=0; i<3; i++) {
-         if (drawSlice[i]) {
-            
-            if (!renderer.isSelecting()) {
-               GLTexture tex = textureLoader.getTextureByNameAcquired(textureIds[i]);
-               tex.bind(gl);
-            }
-            
-            gl.glBegin(GL2.GL_QUADS);
-            gl.glTexCoord2d(0, 0);
-            gl.glVertex3d(sliceRenderCoords[i][0].x, sliceRenderCoords[i][0].y, sliceRenderCoords[i][0].z);
-            gl.glTexCoord2d(1, 0);
-            gl.glVertex3d(sliceRenderCoords[i][1].x, sliceRenderCoords[i][1].y, sliceRenderCoords[i][1].z);
-            gl.glTexCoord2d(1, 1);
-            gl.glVertex3d(sliceRenderCoords[i][2].x, sliceRenderCoords[i][2].y, sliceRenderCoords[i][2].z);
-            gl.glTexCoord2d(0, 1);
-            gl.glVertex3d(sliceRenderCoords[i][3].x, sliceRenderCoords[i][3].y, sliceRenderCoords[i][3].z);
-            gl.glEnd();
+         if (drawSlice[i]) {      
+            renderer.drawTriangles (robj, i);
          }
       }
       
-      // restore draw settings
-      if (savedCullFaceEnabled[0] != 0) {
-         gl.glEnable (GL2.GL_CULL_FACE);
-      }
+      renderer.setShading (oldShading);
+      renderer.setFaceStyle (oldFaceStyle);
+      renderer.setColorMap (oldColorMap);
       
-      if (!renderer.isSelecting()) {
-         gl.glDisable(GL2.GL_TEXTURE_2D);
-         gl.glEnable(GL2.GL_LIGHTING);
-      }
-
-   }
-   
-   /**
-    * Sets the converter to use for interpolating pixels from raw form to a form suitable
-    * for display
-    * @param converter
-    */
-   public void setPixelConverter(DicomPixelConverter converter) {
-      if (this.converter != null) {
-         this.converter.setPropertyHost(null);
-      }
-      this.converter = converter;
-      converter.setPropertyHost(this);
-      
-      // clear textures
-      clearTextures();
+      renderer.popModelMatrix ();
    }
    
    /**
     * @return the current pixel interpolator
-    * @see DicomViewer#setPixelConverter(DicomPixelConverter)
     */
    public DicomPixelConverter getPixelConverter() {
-      return converter;
+      return texture.getWindowConverter ();
    }
    
    @Override
    public void updateBounds(Vector3d pmin, Vector3d pmax) {
       super.updateBounds(pmin, pmax);
-      updateRenderCoords();
+      maybeUpdateRenderObject();
+      updateRenderTransform();
+      
       // update from corners
-      for (Point3d pnt : boxRenderCoords) {
-         pnt.updateBounds(pmin, pmax);
+      for (int x=0; x<2; ++x) {
+         for (int y=0; y<2; ++y) {
+            for (int z=0; z<2; ++z) {
+               Point3d p = new Point3d(x,y,z);
+               p.transform (myRenderTransform);
+               p.updateBounds (pmin, pmax);         
+            }
+         }
       }
+      
    }
    
    @Override
@@ -765,7 +521,7 @@ public class DicomViewer extends RenderableComponentBase
     * @return the current normalized 'x' coordinate
     */
    public double getX() {
-      return sliceCoords.x;
+      return texture.getX ();
    }
    
    /**
@@ -773,7 +529,8 @@ public class DicomViewer extends RenderableComponentBase
     * @param x
     */
    public void setX(double x) {
-      setSliceCoordinates(x, sliceCoords.y, sliceCoords.z);
+      texture.setX (x);
+      robjValid = false;
    }
    
    /**
@@ -781,7 +538,7 @@ public class DicomViewer extends RenderableComponentBase
     * @return the current normalized 'y' coordinate
     */
    public double getY() {
-      return sliceCoords.y;
+      return texture.getY ();
    }
    
    /**
@@ -789,14 +546,15 @@ public class DicomViewer extends RenderableComponentBase
     * @param y
     */
    public void setY(double y) {
-      setSliceCoordinates(sliceCoords.x, y, sliceCoords.z);
+      texture.setY (y);
+      robjValid = false;
    }
    
    /**
     * @return the current normalized 'z' coordinate
     */
    public double getZ() {
-      return sliceCoords.z;
+      return texture.getZ ();
    }
    
    /**
@@ -804,14 +562,15 @@ public class DicomViewer extends RenderableComponentBase
     * @param z
     */
    public void setZ(double z) {
-      setSliceCoordinates(sliceCoords.x, sliceCoords.y, z);
+      texture.setZ (z);
+      robjValid = false;
    }
    
    /**
     * @return the current time index
     */
    public int getTimeIndex() {
-      return timeIdx;
+      return texture.getTime ();
    }
    
    /**
@@ -824,10 +583,7 @@ public class DicomViewer extends RenderableComponentBase
       } else if (idx > myImage.getNumTimes()) {
          idx = myImage.getNumTimes()-1;
       }
-      if (timeIdx != idx) {
-         clearTextures();
-         timeIdx = idx;
-      }
+      texture.setTime (idx);
    }
    
    /**
@@ -895,25 +651,5 @@ public class DicomViewer extends RenderableComponentBase
     */
    public void setDrawBox(boolean set) {
       drawBox = set;
-   }
-   
-   private synchronized void clearTextures() {
-      // invalidate textures
-      if (textureLoader != null) {
-         textureLoader.clearAllTextures();
-      }
-   }
-   
-   private synchronized void clearTexture(int idx) {
-      if (textureLoader != null) {
-         textureLoader.clearTexture(textureIds[idx]);
-      }
-   }
-
-   @Override
-   public void propertyChanged(PropertyChangeEvent e) {
-      if (e.getHost() == this.converter) {
-         clearTextures();
-      }
    }
 }

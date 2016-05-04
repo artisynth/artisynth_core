@@ -7,6 +7,8 @@
 
 package maspack.dicom;
 
+import java.nio.ByteBuffer;
+
 /**
  * Stores a set of pixels in RGB byte form (3 consecutive bytes per pixel)
  * @author Antonio
@@ -36,7 +38,7 @@ public class RGBPixelBuffer implements DicomPixelBuffer {
 
    @Override
    public PixelType getPixelType() {
-      return PixelType.RGB;
+      return PixelType.BYTE_RGB;
    }
 
    @Override
@@ -48,6 +50,50 @@ public class RGBPixelBuffer implements DicomPixelBuffer {
    public byte[] getPixel(int n) {
       int sidx = 3*n;
       return new byte[]{pixels[sidx], pixels[sidx+1], pixels[sidx+2]};
+   }
+   
+   @Override
+   public int getPixels(int x, int dx, int nx, PixelType type, ByteBuffer pixels, 
+      DicomPixelConverter interp) {
+      
+      int off = 0;
+      switch (type) {
+         case BYTE: {
+            byte[] buff = new byte[1];
+            int iidx = x;
+            for (int i=0; i<nx; ++i) {
+               interp.interpRGBByte (this.pixels, iidx, buff, 0);
+               pixels.put (buff[0]);
+               iidx += 3*dx;
+            }
+            off = nx;
+            break;
+         }
+         case BYTE_RGB: {
+            byte[] buff = new byte[3];
+            int iidx = x;
+            for (int i=0; i<nx; ++i) {
+               interp.interpRGBRGB (this.pixels, iidx, buff, 0);
+               pixels.put (buff);
+               iidx += 3*dx;
+            }
+            off = 3*nx;
+            break;
+         }
+         case SHORT: {
+            short[] buff = new short[1];
+            int iidx = x;
+            for (int i=0; i<nx; ++i) {
+               interp.interpRGBShort (this.pixels, iidx, buff, 0);
+               pixels.putShort (buff[0]);
+               iidx += 3*dx;
+            }
+            off = 2*nx;
+            break;
+         }
+      }
+      
+      return off;
    }
 
    public int getPixelsRGB(int x,

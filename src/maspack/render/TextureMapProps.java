@@ -186,6 +186,10 @@ public abstract class TextureMapProps implements CompositeProperty, Scannable, C
       myEnabledMode = PropertyUtils.setModeAndUpdate (this, "enabled", myEnabledMode, mode);
    }
    
+   public void setContent(TextureContent content) {
+      setFileName (defaultFileName);
+      myContent = content;
+   }
   
    /**
     * Grab a copy of the content (raw or file)
@@ -224,10 +228,6 @@ public abstract class TextureMapProps implements CompositeProperty, Scannable, C
 
    public PropertyMode getFileNameMode() {
       return myFileNameMode;
-   }
-   
-   public void setData(byte[] data, int width, int height) {
-      
    }
 
    public void setFileNameMode (PropertyMode mode) {

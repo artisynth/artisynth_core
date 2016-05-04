@@ -7,6 +7,8 @@
 
 package maspack.dicom;
 
+import java.nio.ByteBuffer;
+
 /**
  * Stores a set of pixels in grayscale short form
  * @author Antonio
@@ -36,6 +38,50 @@ public class ShortPixelBuffer implements DicomPixelBuffer {
    @Override
    public Short getPixel(int n) {
       return pixels[n];
+   }
+   
+   @Override
+   public int getPixels(int x, int dx, int nx, PixelType type, ByteBuffer pixels, 
+      DicomPixelConverter interp) {
+      
+      int off = 0;
+      switch (type) {
+         case BYTE: {
+            byte[] buff = new byte[1];
+            int iidx = x;
+            for (int i=0; i<nx; ++i) {
+               interp.interpShortByte (this.pixels, iidx, buff, 0);
+               pixels.put (buff[0]);
+               iidx += dx;
+            }
+            off = nx;
+            break;
+         }
+         case BYTE_RGB: {
+            byte[] buff = new byte[3];
+            int iidx = x;
+            for (int i=0; i<nx; ++i) {
+               interp.interpShortRGB (this.pixels, iidx, buff, 0);
+               pixels.put (buff);
+               iidx += dx;
+            }
+            off = 3*nx;
+            break;
+         }
+         case SHORT: {
+            short[] buff = new short[1];
+            int iidx = x;
+            for (int i=0; i<nx; ++i) {
+               interp.interpShortShort (this.pixels, iidx, buff, 0);
+               pixels.putShort (buff[0]);
+               iidx += dx;
+            }
+            off = 2*nx;
+            break;
+         }
+      }
+      
+      return off;
    }
 
    public int getPixelsRGB(int x,

@@ -7,6 +7,8 @@
 
 package maspack.dicom;
 
+import java.nio.ByteBuffer;
+
 /**
  * Stores a set of pixels, either as grayscale bytes, grayscale shorts,
  * or RGB bytes.
@@ -19,7 +21,7 @@ public interface DicomPixelBuffer {
     * Type of storage
     */
    public enum PixelType {
-      BYTE, SHORT, RGB
+      BYTE, SHORT, BYTE_RGB
    }
    
    /**
@@ -37,6 +39,22 @@ public interface DicomPixelBuffer {
     * @return a representation of the <code>n</code>th pixel
     */
    Object getPixel(int n);
+   
+   /**
+    * Populates a buffer of pixel values from those stored in this buffer,
+    * using a supplied interpolator.  The output format matches the stored type.
+    * Pixel values [x, x+dx, x+2*dx, ..., x+(nx-1)*dx] are copied into the output buffer.
+    * 
+    * @param x starting pixel index in this buffer
+    * @param dx pixel step in this buffer
+    * @param nx number of pixels to interpolate from
+    * @param type type of pixels to output
+    * @param pixels output array
+    * @param interp interpolator for converting pixels for output display
+    * @return the number of bytes written to the buffer
+    */
+   public int getPixels(int x, int dx, int nx, PixelType type, ByteBuffer pixels, 
+      DicomPixelConverter interp);
    
    /**
     * Populates an array of RGB pixel values from pixel values stored in this buffer,

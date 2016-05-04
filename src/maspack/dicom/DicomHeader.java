@@ -14,7 +14,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 
 import maspack.matrix.VectorNd;
-import maspack.util.InternalErrorException;
 
 /**
  * Stores all header DICOM information

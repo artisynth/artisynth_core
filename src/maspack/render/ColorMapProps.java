@@ -34,6 +34,11 @@ public class ColorMapProps extends TextureMapProps {
       set (props);
    }
 
+   public ColorMapProps (TextureContent content) {
+      this();
+      setContent (content);
+   }
+   
    public static PropertyList myProps = 
       new PropertyList (ColorMapProps.class, TextureMapProps.class);
 

@@ -381,7 +381,7 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
                case BYTE: {
                   return interpByteByte((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
                }
-               case RGB: {
+               case BYTE_RGB: {
                   return interpByteRGB((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
                }
                case SHORT: {
@@ -392,12 +392,12 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
                }  
             }
          }
-         case RGB: {
+         case BYTE_RGB: {
             switch (out.getPixelType()) {
                case BYTE: {
                   return interpRGBByte((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
                }
-               case RGB: {
+               case BYTE_RGB: {
                   return interpRGBRGB((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
                }
                case SHORT: {
@@ -413,7 +413,7 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
                case BYTE: {
                   return interpShortByte((short[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
                }
-               case RGB: {
+               case BYTE_RGB: {
                   return interpShortRGB((short[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
                }
                case SHORT: {

@@ -8,7 +8,6 @@ package maspack.matrix;
 
 import java.util.ArrayList;
 
-import maspack.util.Clonable;
 import maspack.util.NumberFormat;
 
 /**
@@ -31,8 +30,7 @@ import maspack.util.NumberFormat;
  * AffineTransform3d class itself.
  */
 
-public class AffineTransform3d extends AffineTransform3dBase implements
-Clonable {
+public class AffineTransform3d extends AffineTransform3dBase {
    private static final long serialVersionUID = 42L;
 
    /**

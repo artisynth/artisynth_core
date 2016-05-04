@@ -78,12 +78,10 @@ public class GLTextRenderer extends TextureTextRenderer {
       int width = getWidth ();
       int height = getHeight ();
 
-      float tx1 = (float)(store.getLeft ()) / width;
-      float ty1 = (float)(store.getBottom ()) / height;
-      // works better adding full width/height than the "true" one -1
-      // must be the way texture coordinates are working
-      float tx2 = (float)(store.getLeft () + store.getWidth ()) / width;  
-      float ty2 = (float)(store.getBottom () + store.getHeight ()) / height;
+      float tx1 = (float)(store.getLeft ()) / (width-1);
+      float ty1 = (float)(store.getBottom ()) / (height-1);
+      float tx2 = (float)(store.getLeft () + store.getWidth () - 1) / (width-1);  
+      float ty2 = (float)(store.getBottom () + store.getHeight () - 1) / (height-1);
 
       float x2 = x1 + scale * (w - 1);
       float y2 = y1 + scale * (h - 1);

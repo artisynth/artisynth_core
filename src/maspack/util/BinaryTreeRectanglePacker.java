@@ -254,6 +254,10 @@ public class BinaryTreeRectanglePacker implements RectanglePacker {
       lastfit = null;
       root = new Node (new Rectangle (0, 0, width, height));
    }
+   
+   public boolean fits(Rectangle r) {
+      return fits(r.width(), r.height());
+   }
 
    /**
     * Checks whether a rectangle with given size will
@@ -269,6 +273,10 @@ public class BinaryTreeRectanglePacker implements RectanglePacker {
       lastfitw = w;
       lastfith = h;
       return (lastfit != null);
+   }
+   
+   public Rectangle pack(Rectangle r) {
+      return pack(r.width (), r.height ());
    }
 
    /**

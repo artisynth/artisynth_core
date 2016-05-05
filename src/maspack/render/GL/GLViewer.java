@@ -1869,7 +1869,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       
       int depthBits = drawable.getChosenGLCapabilities ().getDepthBits ();
       if (depthBits != myFrustum.depthBits) {
-         //myFrustum.depthBits = depthBits;
+         myFrustum.depthBits = depthBits;
          computeProjectionMatrix ();
       }
 

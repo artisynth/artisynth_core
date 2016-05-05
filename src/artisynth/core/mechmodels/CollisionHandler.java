@@ -687,6 +687,7 @@ public class CollisionHandler extends ConstrainerBase
          }
       }
       removeInactiveContacts();
+      //printContacts ("%g");
       return maxpen;
    }
 
@@ -767,6 +768,22 @@ public class CollisionHandler extends ConstrainerBase
             it.remove();
             //mycontactschanged = true;
          }
+      }
+   }
+
+   private void printContacts(String fmtStr) {
+      Iterator<ContactConstraint> it;
+      it = myBilaterals0.values().iterator();
+      System.out.println ("mesh0");
+      while (it.hasNext()) {
+         ContactConstraint c = it.next();
+         System.out.println (" " + c.toString(fmtStr));
+      }
+      it = myBilaterals1.values().iterator();
+      System.out.println ("mesh1");
+      while (it.hasNext()) {
+         ContactConstraint c = it.next();
+         System.out.println (" " + c.toString(fmtStr));
       }
    }
 

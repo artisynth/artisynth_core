@@ -396,7 +396,7 @@ public class MultiViewerTesterBase {
             didFlatDraw = true;
          }
 
-         int depthOffInc = -1;
+         int depthOffInc = 1;
 
          if (myRO.hasLines()) {
             renderer.setLineShading (props);
@@ -404,8 +404,8 @@ public class MultiViewerTesterBase {
             LineStyle lstyle = props.getLineStyle();
             if (lstyle == LineStyle.LINE) {
                if (didFlatDraw) {
-                  viewer.addDepthOffset(depthOffInc);
                   dOffset += depthOffInc;
+                  viewer.setDepthOffset(dOffset);
                }
                viewer.setLineWidth(props.getLineWidth());
                renderer.drawLines(myRO);
@@ -421,8 +421,8 @@ public class MultiViewerTesterBase {
             PointStyle pstyle = props.getPointStyle();
             if (pstyle == PointStyle.POINT) {
                if (didFlatDraw) {
-                  viewer.addDepthOffset(depthOffInc);
                   dOffset += depthOffInc;
+                  viewer.setDepthOffset(dOffset);
                }
                renderer.setPointSize(props.getPointSize());
                renderer.drawPoints(myRO);
@@ -433,7 +433,7 @@ public class MultiViewerTesterBase {
          }
 
          if (dOffset != 0) {
-            viewer.addDepthOffset(-dOffset);
+            viewer.setDepthOffset(0);
          }
 
          if (enableVertexColoring) {

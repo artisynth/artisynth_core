@@ -106,13 +106,13 @@ public class FaceComponent extends RenderableComponentBase {
          renderer.setShading (shading);
 
          if (props.getDrawEdges()) {
-            renderer.addDepthOffset (1);
+            renderer.setDepthOffset (1);
          }
 
          drawFaces (renderer, shading, props);
 
          if (props.getDrawEdges()) {
-            renderer.addDepthOffset (-1);
+            renderer.setDepthOffset (0);
          }
          renderer.setShading (savedShadeModel);
       }

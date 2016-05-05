@@ -141,6 +141,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    private static final ColorMixing DEFAULT_COLOR_MIXING = ColorMixing.REPLACE;
    private static final ColorInterpolation DEFAULT_COLOR_INTERPOLATION =
       ColorInterpolation.RGB;
+   private static final int DEFAULT_DEPTH_OFFSET = 0;
 
    // viewer state
    protected static class ViewState {
@@ -171,6 +172,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    static private final int SHADING_BIT = 0x0800;
    static private final int SURFACE_RESOLUTION_BIT = 0x1000;
    static private final int COLOR_MIXING_BIT = 0x2000;
+   static private final int DEPTH_OFFSET_BIT = 0x4000;
 
    // Status words to record when state variables have been touched or set to
    // non-default values.
@@ -1776,34 +1778,36 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       invalidateViewMatrix();
    }
 
-   /**
-    * Add a depth offset to the projection matrix.
-    * Each integer represents enough depth to account for one bin in the depth
-    * buffer.  Negative values bring following objects closer to the screen.
-    * This is to account for z-fighting.
-    * 
-    * @param zOffset value to offset depth buffer
-    */
-   public void addDepthOffset(double zOffset) {
-      // compute depth buffer precision
-      double deps = 2.0/(1 << (myFrustum.depthBits-1));
-      // Let n and f be the far and near plane distances (positive values),
-      // and z the z value in eye coordinates. Then the change in z 
-      // corresponding to deps is
-      //
-      // delta z = - ((f-n) z^2)/(2 f n) deps
-      //
-      // We take z to be about 1/10 the distance to the far plane, which
-      // corresponds roughly to where the center is when autoFit is used.
-      Vector3d dp = new Vector3d();
-      double f = myFrustum.far;
-      double n = myFrustum.near;
-      dp.scale (zOffset*(f-n)*f*deps/(2*n), getEyeZDirection());
-      synchronized (modelMatrix) {
-         modelMatrix.addTranslation (dp.x, dp.y, dp.z);
-      }
-      invalidateModelMatrix();
-   }
+//   John Lloyd: didn't work well - not enough depth buffer precision
+//   close to the far plane
+//   /**
+//    * Add a depth offset to the projection matrix.
+//    * Each integer represents enough depth to account for one bin in the depth
+//    * buffer.  Negative values bring following objects closer to the screen.
+//    * This is to account for z-fighting.
+//    * 
+//    * @param zOffset value to offset depth buffer
+//    */
+//   public void addDepthOffset(double zOffset) {
+//      // compute depth buffer precision
+//      double deps = 2.0/(1 << (myFrustum.depthBits-1));
+//      // Let n and f be the far and near plane distances (positive values),
+//      // and z the z value in eye coordinates. Then the change in z 
+//      // corresponding to deps is
+//      //
+//      // delta z = - ((f-n) z^2)/(2 f n) deps
+//      //
+//      // We take z to be about 1/10 the distance to the far plane, which
+//      // corresponds roughly to where the center is when autoFit is used.
+//      Vector3d dp = new Vector3d();
+//      double f = myFrustum.far;
+//      double n = myFrustum.near;
+//      dp.scale (zOffset*(f-n)*f*deps/(2*n), getEyeZDirection());
+//      synchronized (modelMatrix) {
+//         modelMatrix.addTranslation (dp.x, dp.y, dp.z);
+//      }
+//      invalidateModelMatrix();
+//   }
    
 //   public void setModelMatrix2d (double width, double height) {
 //      setModelMatrix2d (0, width, 0, height);
@@ -1823,28 +1827,26 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       setModelMatrix (XMW);
    }
 
-//   /**
-//    * Set a depth offset to the projection matrix.
-//    * Each integer represents enough depth to account for one bin in the depth
-//    * buffer.  Negative values bring following objects closer to the screen.
-//    * This is to account for z-fighting.
-//    * @param offset value to offset depth buffer
-//    */
-//   public void setDepthOffset(int offset) {
-//      myFrustum.depthBitOffset = offset;
-//      computeProjectionMatrix ();
-//   }
+   /**
+    * {@inheritDoc}
+    */
+   public void setDepthOffset(int offset) {
+      myFrustum.depthBitOffset = offset;
+      if (offset != DEFAULT_DEPTH_OFFSET) {
+         myNonDefaultGeneralSettings |= DEPTH_OFFSET_BIT;
+      }
+      else {
+         myNonDefaultGeneralSettings &= ~DEPTH_OFFSET_BIT;
+      }      
+      computeProjectionMatrix ();
+   }
 
-//   /**
-//    * The current depth offset level.  Zero represents no offsets, 
-//    * negative means objects are drawn closer to the viewer,
-//    * positive means they are drawn further away.
-//    * This is to account for z-fighting.
-//    * @return the current offset (in depth bins)
-//    */
-//   public int getDepthOffset() {
-//      return myFrustum.depthBitOffset;
-//   }
+   /**
+    * {@inheritDoc}
+    */
+   public int getDepthOffset() {
+      return myFrustum.depthBitOffset;
+   }
 
    public void display (GLAutoDrawable drawable) {
       GLSupport.checkAndPrintGLError(drawable.getGL ());
@@ -1867,7 +1869,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       
       int depthBits = drawable.getChosenGLCapabilities ().getDepthBits ();
       if (depthBits != myFrustum.depthBits) {
-         myFrustum.depthBits = depthBits;
+         //myFrustum.depthBits = depthBits;
          computeProjectionMatrix ();
       }
 
@@ -2892,7 +2894,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       double zoffset = 0;
       if (myFrustum.depthBitOffset != 0) {
          // XXX should be 2, but doesn't seem to work well... 512 works better?
-         zoffset = 2.0*myFrustum.depthBitOffset/(1 << (myFrustum.depthBits-1));
+         zoffset = -2.0*myFrustum.depthBitOffset/(1 << (myFrustum.depthBits-1));
       }
       
       if (myFrustum.orthographic) {
@@ -4140,6 +4142,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          }
          if (myViewerState.colorMixing != DEFAULT_COLOR_MIXING) {
             setVertexColorMixing (DEFAULT_COLOR_MIXING);
+         }
+         if (getDepthOffset() != DEFAULT_DEPTH_OFFSET) {
+            setDepthOffset (DEFAULT_DEPTH_OFFSET);
          }
          myNonDefaultGeneralSettings = 0;
       }

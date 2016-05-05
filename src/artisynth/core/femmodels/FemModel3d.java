@@ -1314,7 +1314,8 @@ public class FemModel3d extends FemModel
          if (myWarnOnInvertedElems) {
             System.out.println(
                "Warning: " + myNumInverted + " inverted elements; min detJ=" +
-               myMinDetJ + ", element " + myMinDetJElement.getNumber());
+               myMinDetJ + ", element " + 
+               ComponentUtils.getPathName(myMinDetJElement));
          }
          if (myAbortOnInvertedElems) {
             throw new NumericalException("Inverted elements");

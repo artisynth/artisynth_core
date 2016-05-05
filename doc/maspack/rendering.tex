@@ -2456,22 +2456,24 @@ import maspack.render.Renderer.DrawMode;
 %
 
 \subsection{Depth offsets}
+\label{depthOffset:sec}
 
 Sometimes, when drawing different primitives that lie on the same
 plane, the depth buffer cannot properly resolve which primitive should
 be visible. This artifact is known as ``z fighting''. The renderer
-provides a means to address it by shifting the model frame
-by a small offset along the eye frame's $z$ axis, using the
-method
+provides a means to address it via the method
 %
 \begin{lstlisting}[]
-void addDepthOffset (double zoffset)
+void setDepthOffset (double zoffset)
 \end{lstlisting}
 %
-A positive offset moves the model frame closer to the eye.  Each unit
-of offset equals approximately the distance needed to move by one unit
-of depth buffer precision, evaluated at the eye distance to the far
-clipping plane.
+This modifies the projection matrix to incorporate a small offset (in
+clip coordinates) along the eye frame's $z$ axis, so that subsequently
+rendered components are rendered slightly closer to (or farther from)
+the eye. Each unit of offset equals one unit of depth buffer
+precision. The depth offset can be queried using
+\javamethod[maspack.render.Renderer]{getDepthOffset()}, and the
+default value is 0.
 
 \begin{figure}[ht]
 \begin{center}
@@ -2487,21 +2489,16 @@ clipping plane.
 \end{center}
 \caption{Triangles drawn on the surface of a cube. This nominally
 results in z fighting (left), which can be removed
-by adding a depth offset (right).}
+by setting a depth offset (right).}
 \label{depthExample:fig}
 \end{figure}
 
 The listing below shows an example in which two colored triangles are
-drawn on faces of a cube. If no depth offset is added, the triangles
+drawn on faces of a cube. If no depth offset is set, the triangles
 compete for visibility with the underlying cube faces (Figure
 \ref{depthExample:fig}, left). To resolve this, the {\tt render()}
-method adds a depth offset to move the model frame slighting closer to
-the eye when the triangles are drawn. Because
-\javamethod[maspack.render.Renderer]{addDepthOffset()} modifies the
-model matrix, the operation is wrapped with calls to
-\javamethod[maspack.render.Renderer]{pushModelMatrix()} and
-\javamethod[maspack.render.Renderer]{popModelMatrix()}
-to preserve the model matrix's value.
+method sets a depth offset to move the triangles slighting closer to
+the eye.
 %
 \begin{lstlisting}[]
 import java.awt.Color;
@@ -2524,27 +2521,21 @@ import maspack.render.*;
       Vector3d p4 = new Vector3d ( 1.0,  0.6, -0.6);
       Vector3d p5 = new Vector3d ( 1.0,    0,  0.6);
    
-      // add a depth offset so the triangles will be visible ...
-      renderer.pushModelMatrix();
-      renderer.addDepthOffset (1);
+      // set a depth offset so the triangles will be visible ...
+      renderer.setDepthOffset (1);
    
       // ... and draw the triangles
       renderer.setColor (Color.RED);
       renderer.drawTriangle (p0, p1, p2);
       renderer.setColor (Color.BLUE);
       renderer.drawTriangle (p3, p4, p5);
-   
-      renderer.popModelMatrix();         
    }
 \end{lstlisting}
 %
 \begin{sideblock}
-The offset is calculated using the eye distance to the far clipping
-plane to ensure that it will usually be large enough to prevent
-z-fighting.  However, if the far plane distance is significantly
-larger than the distance to the rendered objects, this may cause
-artifacts which the application may wish to mitigate by using an
-offset smaller than one.
+z-fighting may still occur if the plane in which the fighting occurs
+is tilted significantly with respect to the eye.  In some situations
+it may be desirable to mitigate this with a larger offset value.
 \end{sideblock}
 
 \subsection{Maintaining the graphics state}
@@ -2573,6 +2564,7 @@ shading & primitive shading based on normal information & {\tt FLAT}& yes\\
 surface resolution & internal curved surface resolution & 32& yes\\
 vertex color mixing & how to combine underlying and vertex colors &
 {\tt REPLACE}& yes\\
+depth offset & moves rendered objects slightly along the eye z axis & 0 & yes\\
 \hline        
 color map & color map properties (Section \ref{mappings:sec}) & {\tt null}& yes\\
 normal map & normal map properties (Section \ref{mappings:sec}) & 

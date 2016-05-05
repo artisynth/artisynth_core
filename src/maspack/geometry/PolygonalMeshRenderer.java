@@ -406,7 +406,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       }
 
       if (props.getDrawEdges()) {
-         renderer.addDepthOffset (-1);
+         renderer.setDepthOffset (-1);
       }
 
       ColorMapProps oldtprops = null;
@@ -443,7 +443,7 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       }
 
       if (props.getDrawEdges()) {
-         renderer.addDepthOffset (1);
+         renderer.setDepthOffset (0);
       }
 
       if (savedColorInterp != null) {

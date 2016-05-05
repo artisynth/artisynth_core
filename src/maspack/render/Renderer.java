@@ -1928,40 +1928,40 @@ public interface Renderer {
     */
    public void getViewMatrix (RigidTransform3d TWE);
    
-   /**
-    * Adds a depth offset to the model matrix to help prevent "fighting" in the
-    * depth buffer. This is done by translating the model frame by an offset
-    * along the eye frame's z axis, with positive values moving the model frame
-    * closer to the eye. Each unit of offset equals approximately the distance
-    * needed to move by one unit of depth buffer precision, evaluated at a
-    * distance from the eye equal to the distance to the far clipping plane.
-    * 
-    * @param zOffset z offset to add to the model frame
-    */
-   public void addDepthOffset (double zOffset);
+//   /**
+//    * Adds a depth offset to the model matrix to help prevent "fighting" in the
+//    * depth buffer. This is done by translating the model frame by an offset
+//    * along the eye frame's z axis, with positive values moving the model frame
+//    * closer to the eye. Each unit of offset equals approximately the distance
+//    * needed to move by one unit of depth buffer precision, evaluated at a
+//    * distance from the eye equal to the distance to the far clipping plane.
+//    * 
+//    * @param zOffset z offset to add to the model frame
+//    */
+//   public void addDepthOffset (double zOffset);
 
-//   /**
-//    * Set a depth offset to the projection matrix. Each unit represents 
-//    * enough depth to account for one bin in the depth buffer. Negative 
-//    * values bring following objects closer to the screen, while positive
-//    * values send them father away. The default value is 0.
-//    * 
-//    * <p>Depth offsets are used to help resolve z-fighting, in which 
-//    * overlapping primitives drawn in the same plane compete for visibility.
-//    * If the plane has a considerable tilt with respect to the viewer,
-//    * then an offset larger than one may be needed to resolve the issue.
-//    * 
-//    * @param offset new depth offset value
-//    */
-//   public void setDepthOffset(int offset);
-//
-//   /**
-//    * The current depth offset level. See {@link #setDepthOffset} for
-//    * a description. The default value is 0.
-//    * 
-//    * @return the current deboth offset (in depth bins)
-//    */
-//   public int getDepthOffset();
+   /**
+    * Set a depth offset for the projection matrix. Each unit represents 
+    * enough depth to account for one bin in the depth buffer. Positive
+    * values bring following objects closer to the screen, while negative
+    * values send them father away. The default value is 0.
+    * 
+    * <p>Depth offsets are used to help resolve z-fighting, in which 
+    * overlapping primitives drawn in the same plane compete for visibility.
+    * If the plane has a considerable tilt with respect to the viewer,
+    * then an offset larger than one may be needed to resolve the issue.
+    * 
+    * @param offset new depth offset value
+    */
+   public void setDepthOffset(int offset);
+
+   /**
+    * The current depth offset level. See {@link #setDepthOffset} for
+    * a description. The default value is 0.
+    * 
+    * @return the current depth offset (in depth bins)
+    */
+   public int getDepthOffset();
    
 //   // FINISH
 //   public RigidTransform3d getEyeToWorld();

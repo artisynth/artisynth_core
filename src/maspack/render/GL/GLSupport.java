@@ -298,10 +298,10 @@ public class GLSupport {
          textureFrame.getContentPane().setBackground (Color.BLACK);
          textureFrame.getContentPane ().add (textureImage);
          textureFrame.setSize (image.getWidth ()+30, image.getHeight ()+70);
-         textureFrame.pack ();
          textureFrame.setVisible (true);
       } else {
          textureImage.setImage (image);
+         textureFrame.setSize (image.getWidth ()+30, image.getHeight ()+70);
          if (!textureFrame.isVisible ()) {
             textureFrame.setVisible (true);
          }
@@ -313,6 +313,7 @@ public class GLSupport {
    public static BufferedImage downloadTexture(GL2GL3 gl, int target) {
       return downloadTexture(gl, target, 0);
    }
+   
    
    public static BufferedImage downloadTexture(GL2GL3 gl, int target, int level) {
       int[] v = new int[2];

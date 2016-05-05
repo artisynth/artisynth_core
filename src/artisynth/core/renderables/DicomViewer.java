@@ -12,13 +12,10 @@ import java.io.File;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import javax.media.opengl.GL;
-import javax.media.opengl.GL2GL3;
-
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponentBase;
 import maspack.dicom.DicomImage;
-import maspack.dicom.DicomPixelConverter;
+import maspack.dicom.DicomPixelInterpolator;
 import maspack.dicom.DicomReader;
 import maspack.dicom.DicomTextureContent;
 import maspack.matrix.AffineTransform3d;
@@ -37,8 +34,6 @@ import maspack.render.Renderer;
 import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
-import maspack.render.GL.GLSupport;
-import maspack.render.GL.GLViewer;
 import maspack.util.IntegerInterval;
 
 public class DicomViewer extends RenderableComponentBase {
@@ -454,9 +449,7 @@ public class DicomViewer extends RenderableComponentBase {
       
       renderer.pushModelMatrix ();
       renderer.setModelMatrix (myRenderTransform);
-      
-      GLViewer viewer = (GLViewer)renderer;
-      
+     
       if (drawBox) {
          // draw box
          Shading savedShading = renderer.setShading (Shading.NONE);
@@ -489,7 +482,7 @@ public class DicomViewer extends RenderableComponentBase {
    /**
     * @return the current pixel interpolator
     */
-   public DicomPixelConverter getPixelConverter() {
+   public DicomPixelInterpolator getPixelConverter() {
       return texture.getWindowConverter ();
    }
    

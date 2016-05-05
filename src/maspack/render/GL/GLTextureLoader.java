@@ -104,38 +104,38 @@ public class GLTextureLoader implements GLGarbageSource {
       ContentFormat format = content.getFormat ();
       switch(format) {
          case GRAYSCALE_ALPHA_BYTE_2:
-            if (gl instanceof GL2) {
-               glFormat = GL2.GL_LUMINANCE_ALPHA;
-            } else  if (gl instanceof GL3) {
+            if (gl instanceof GL3) {
                glFormat = GL3.GL_RG;
                swizzle = new int[] {GL3.GL_RED, GL3.GL_RED, GL3.GL_RED, GL3.GL_GREEN};
+            } else if (gl instanceof GL2) {
+               glFormat = GL2.GL_LUMINANCE_ALPHA;
             }
             glType = GL.GL_UNSIGNED_BYTE;
             break;
          case GRAYSCALE_ALPHA_SHORT_2: 
-            if (gl instanceof GL2) {
-               glFormat = GL2.GL_LUMINANCE_ALPHA;
-            } else  if (gl instanceof GL3) {
+            if (gl instanceof GL3) {
                glFormat = GL3.GL_RG;
                swizzle = new int[] {GL3.GL_RED, GL3.GL_RED, GL3.GL_RED, GL3.GL_GREEN};
+            } else if (gl instanceof GL2) {
+               glFormat = GL2.GL_LUMINANCE_ALPHA;
             }
             glType = GL.GL_UNSIGNED_SHORT;
             break;
          case GRAYSCALE_BYTE:
-            if (gl instanceof GL2) {
-               glFormat = GL2.GL_LUMINANCE;
-            } else  if (gl instanceof GL3) {
+            if (gl instanceof GL3) {
                glFormat = GL3.GL_RED;
                swizzle = new int[] {GL3.GL_RED, GL3.GL_RED, GL3.GL_RED, GL3.GL_ALPHA};
+            } else if (gl instanceof GL2) {
+               glFormat = GL2.GL_LUMINANCE;
             }
             glType = GL.GL_UNSIGNED_BYTE;
             break;
          case GRAYSCALE_SHORT:
-            if (gl instanceof GL2) {
-               glFormat = GL2.GL_LUMINANCE;
-            } else  if (gl instanceof GL3) {
+            if (gl instanceof GL3) {
                glFormat = GL3.GL_RED;
                swizzle = new int[] {GL3.GL_RED, GL3.GL_RED, GL3.GL_RED, GL3.GL_ALPHA};
+            } else if (gl instanceof GL2) {
+               glFormat = GL2.GL_LUMINANCE;
             }
             glType = GL.GL_UNSIGNED_SHORT;
             break;
@@ -158,42 +158,15 @@ public class GLTextureLoader implements GLGarbageSource {
 
       content.getData (buff);
       buff.flip ();
+      GLSupport.checkAndPrintGLError (gl);
       texture.fill(gl, width, height, pixelSize, glFormat, glType, swizzle, buff);
+      GLSupport.checkAndPrintGLError (gl);
       buff = BufferUtilities.freeDirectBuffer (buff);
       content.markClean ();
       
       return texture;
    }
-   
-   @Deprecated
-   public GLTexture getTextureAcquired (GL gl, String resourceName,
-      int target,
-      byte[] buffer, int width, int height, 
-      int srcPixelFormat, int dstPixelFormat) {
-
-      maybeClearTextures(gl);
-      GLTexture tex = null;
-      synchronized(table) {
-         tex = table.get (resourceName);
-
-         if (tex != null) {
-            return tex.acquire ();
-         }
-
-         // XXX functionality disabled
-         tex = null;
-         
-         GLTexture oldtex = table.put (resourceName, tex);
-         if (oldtex != null) {
-            tex.dispose (gl);
-            tex = oldtex;
-            table.put (resourceName, tex);
-         }
-      }
-
-      return tex;
-   }
-
+  
    public boolean clearTexture(GL gl, String id) {
       maybeClearTextures(gl);
       

@@ -1934,7 +1934,7 @@ public class GL3Viewer extends GLViewer {
       updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), 
          robj.hasColors (), robj.hasTextureCoords ());
 
-      gro.drawTriangleGroup (gl, GL.GL_TRIANGLES, robj.getTriangleGroupIdx ());
+      gro.drawTriangleGroup (gl, GL.GL_TRIANGLES, gidx);
 
       GLSupport.checkAndPrintGLError(gl);
 

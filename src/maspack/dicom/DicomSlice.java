@@ -133,7 +133,7 @@ public class DicomSlice {
       int dx, int dy,
       int nx, int ny, PixelType type, int scanline,
       ByteBuffer pixels,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
     
       
       for (int i=0; i<ny; i++) {
@@ -164,7 +164,7 @@ public class DicomSlice {
    public int getPixelsRGB(int x, int y, 
       int dx, int dy,
       int nx, int ny, byte[] pixels, int offset,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
     
       for (int i=0; i<ny; i++) {
          int idx = (y + dy*i)*info.cols+x;
@@ -192,7 +192,7 @@ public class DicomSlice {
    public int getPixelsByte(int x, int y, 
       int dx, int dy,
       int nx, int ny, byte[] pixels, int offset,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
       
       for (int i=0; i<ny; i++) {
          int idx = (y + dy*i)*info.cols+x;
@@ -220,7 +220,7 @@ public class DicomSlice {
    public int getPixelsShort(int x, int y,
       int dx, int dy, 
       int nx, int ny, short[] pixels, int offset,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
       
       for (int i=0; i<ny; i++) {
          int idx = (y + dy*i)*info.cols + x;
@@ -248,7 +248,7 @@ public class DicomSlice {
       int dx, int dy,
       int nx, int ny,
       DicomPixelBuffer pixels, int offset,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
       
       for (int i=0; i<ny; i++) {
          int idx = (y + dy*i)*info.cols + x;

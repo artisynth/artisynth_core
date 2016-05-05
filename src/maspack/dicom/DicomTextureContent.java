@@ -1,11 +1,23 @@
 package maspack.dicom;
 
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.color.ColorSpace;
+import java.awt.image.BufferedImage;
+import java.awt.image.ComponentColorModel;
+import java.awt.image.DataBuffer;
+import java.awt.image.Raster;
+import java.awt.image.WritableRaster;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+
+import maspack.dicom.DicomPixelBuffer.PixelType;
 import maspack.matrix.Point2d;
 import maspack.render.TextureContent;
 import maspack.util.BinaryTreeRectanglePacker;
@@ -21,7 +33,7 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
    public static final int ROW_SLICE_PLANE = 2;
    
    DicomImage image;
-   DicomWindowPixelConverter window;
+   DicomWindowPixelInterpolator window;
    
    String lastWindow;
    int lastWindowCentre;
@@ -33,6 +45,7 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
    ByteBuffer textureImage; // backing image
    int textureWidth;
    int textureHeight;
+   PixelType internalStorage;
    
    // slice info
    int col;
@@ -47,10 +60,12 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
       lastWindowWidth = -1;
       valid = new boolean[3];
       dirty = new boolean[3];
+      internalStorage = image.getPixelType ();
+      
       invalidateData ();
       
       // Full dynamic range
-      window = new DicomWindowPixelConverter();
+      window = new DicomWindowPixelInterpolator();
       int maxIntensity = image.getMaxIntensity();
       int minIntensity = image.getMinIntensity();
       int c = (maxIntensity+minIntensity) >> 1;
@@ -91,7 +106,7 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
       textureImage = BufferUtilities.newNativeByteBuffer (getPixelSize()*textureWidth*textureHeight);
    }
    
-   public DicomWindowPixelConverter getWindowConverter() {
+   public DicomWindowPixelInterpolator getWindowConverter() {
       return window;
    }
    
@@ -247,15 +262,15 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
       switch (plane) {
          case COL_ROW_PLANE:
             image.getPixels (0, 0, slice, 1, 1, 1, rect.width (), rect.height (),
-               1, time, image.getPixelType (), scanline, 0, textureImage, window);
+               1, time, internalStorage, scanline, 0, textureImage, window);
             break;
          case COL_SLICE_PLANE:
-            image.getPixels (0, col, 0, 1, 1, 1, rect.width (), 1,
-               rect.height (), time, image.getPixelType (), 0, scanline, textureImage, window);
+            image.getPixels (0, row, 0, 1, 1, 1, rect.width (), 1,
+               rect.height (), time, internalStorage, 0, scanline, textureImage, window);
             break;
          case ROW_SLICE_PLANE:
-            image.getPixels (row, 0, 0, 1, 1, 1, 1, rect.width (), rect.height (),
-               time, image.getPixelType (), 0, scanline, textureImage, window);
+            image.getPixels (col, 0, 0, 1, 1, 1, 1, rect.width (), rect.height (),
+               time, internalStorage, 0, scanline, textureImage, window);
             break;
       }
       valid[plane] = true;
@@ -372,10 +387,10 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
       int w = textureWidth-1;
       int h = textureHeight-1;
       
-      double tx1 = rect.x ()/w;
-      double tx2 = (rect.x ()+rect.width ()-1)/w;
-      double ty1 = rect.y ()/h;
-      double ty2 = (rect.y ()+rect.height ()-1)/h;
+      double tx1 = (double)rect.x ()/w;
+      double tx2 = ((double)rect.x ()+rect.width ()-1)/w;
+      double ty1 = (double)rect.y ()/h;
+      double ty2 = ((double)rect.y ()+rect.height ()-1)/h;
       out[0] = new Point2d(tx1, ty1);
       out[1] = new Point2d(tx1, ty2);
       out[2] = new Point2d(tx2, ty2);
@@ -386,7 +401,7 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
 
    @Override
    public int getPixelSize () {
-      switch (image.getPixelType ()) {
+      switch (internalStorage) {
          case BYTE:
             return 1;
          case BYTE_RGB:
@@ -441,6 +456,7 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
    @Override
    public void getData (ByteBuffer out) {
       maybeUpdateImage ();
+      // showTexture ();
       
       textureImage.rewind();
       textureImage.limit (textureImage.capacity ());
@@ -453,6 +469,8 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
    public void getData (Rectangle rect, ByteBuffer out) {
       maybeUpdateImage ();
       
+      // showTexture ();
+      
       int pixelWidth = getPixelSize ();
       int scanline = textureWidth * pixelWidth;
       int rowWidth = rect.width () * pixelWidth;
@@ -460,9 +478,6 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
       int pos = rect.y () * scanline + rect.x () * pixelWidth;
       
       for (int i = 0; i < rect.height (); ++i) {
-         if (pos+rowWidth > textureImage.capacity ()) {
-            System.out.println ("darn");
-         }
          textureImage.limit (pos+rowWidth);
          textureImage.position (pos);
          out.put (textureImage);
@@ -472,6 +487,107 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
       // reset position/limit
       textureImage.rewind ();
       textureImage.limit(textureImage.capacity ());
+   }
+   
+   /**
+    * Simple class to help debug storage
+    */
+   public static class ImagePanel extends JPanel {
+      private static final long serialVersionUID = 1L;
+      private BufferedImage image;
+
+      public ImagePanel (BufferedImage image) {
+         this.image = image;
+         setOpaque (false);
+         setLayout (null);
+      }
+      
+      public void setImage(BufferedImage im) {
+         image = im;
+         repaint ();
+      }
+
+      @Override
+      protected void paintComponent (Graphics g) {
+         super.paintComponent (g);
+         g.drawImage (image, 0, 0, null); // see javadoc for more info on the
+                                          // parameters
+      }
+   }
+   
+   static JFrame textureFrame = null;
+   static ImagePanel panel = null;
+   
+   public void showTexture() {
+      BufferedImage image = createImage();
+      
+      if (textureFrame == null) {
+         textureFrame = new JFrame ("DicomTextureContent texture");
+         panel = new ImagePanel (image);
+         textureFrame.getContentPane().setBackground (Color.BLACK);
+         textureFrame.getContentPane ().add (panel);
+         textureFrame.setSize (image.getWidth ()+30, image.getHeight ()+70);
+         textureFrame.setVisible (true);
+      } else {
+         panel.setImage (image);
+         textureFrame.setSize (image.getWidth ()+30, image.getHeight ()+70);
+         if (!textureFrame.isVisible ()) {
+            textureFrame.setVisible (true);
+         }
+      }
+
+      textureFrame.repaint ();
+   }
+   
+   public BufferedImage createImage() {
+
+      ComponentColorModel colorModel = null;
+      int pixelBytes = 4;
+      colorModel = new ComponentColorModel (ColorSpace.getInstance (ColorSpace.CS_sRGB),
+         new int[] {8, 8, 8, 8}, true, false, ComponentColorModel.TRANSLUCENT, DataBuffer.TYPE_BYTE);
+      
+      switch (internalStorage) {
+         case BYTE:
+            pixelBytes = 1;
+            colorModel = new ComponentColorModel (ColorSpace.getInstance (ColorSpace.CS_GRAY),
+               new int[] {8}, false, false, ComponentColorModel.OPAQUE, DataBuffer.TYPE_BYTE);
+            break;
+         case BYTE_RGB:
+            pixelBytes = 3;
+            colorModel = new ComponentColorModel (ColorSpace.getInstance (ColorSpace.CS_sRGB),
+               new int[] {8, 8, 8, 0}, false, false, ComponentColorModel.OPAQUE, DataBuffer.TYPE_BYTE);
+            break;
+         case SHORT:
+            pixelBytes = 2;
+            colorModel = new ComponentColorModel (ColorSpace.getInstance (ColorSpace.CS_GRAY),
+               new int[] {16}, false, false, ComponentColorModel.OPAQUE, DataBuffer.TYPE_USHORT);
+            break;
+         default:
+         
+      }
+      
+      // sRGBA color model
+      WritableRaster raster = Raster.createInterleavedRaster (
+         colorModel.getTransferType (), textureWidth, textureHeight, colorModel.getNumComponents (), null);
+      BufferedImage image = new BufferedImage (colorModel, raster, false, null);
+      
+      textureImage.position (0);
+      textureImage.limit (textureImage.capacity ());
+      
+      // flip vertically
+      int scanline = textureWidth*pixelBytes;
+      int pos = textureWidth*textureHeight*pixelBytes-scanline;
+      for (int i=0; i<textureHeight; ++i) {
+         for (int j=0; j<scanline; ++j) {
+            raster.getDataBuffer ().setElem (pos+j, textureImage.get ());   
+         }
+         pos -= scanline;
+      }
+      textureImage.rewind ();
+      
+      return image;
+      
+      
    }
 
    @Override
@@ -522,7 +638,7 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
 
    @Override
    public ContentFormat getFormat () {
-      switch (image.getPixelType ()) {
+      switch (internalStorage) {
          case BYTE:
             return ContentFormat.GRAYSCALE_BYTE;
          case BYTE_RGB:

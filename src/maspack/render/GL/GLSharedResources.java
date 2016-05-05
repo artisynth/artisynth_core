@@ -264,34 +264,34 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
          int glType = 0;
          switch(format) {
             case GRAYSCALE_ALPHA_BYTE_2:
-               if (gl instanceof GL2) {
-                  glFormat = GL2.GL_LUMINANCE_ALPHA;
-               } else  if (gl instanceof GL3) {
+               if (gl instanceof GL3) {
                   glFormat = GL3.GL_RG;
+               } else if (gl instanceof GL2) {
+                  glFormat = GL2.GL_LUMINANCE_ALPHA;
                }
                glType = GL.GL_UNSIGNED_BYTE;
                break;
             case GRAYSCALE_ALPHA_SHORT_2: 
-               if (gl instanceof GL2) {
-                  glFormat = GL2.GL_LUMINANCE_ALPHA;
-               } else  if (gl instanceof GL3) {
+               if (gl instanceof GL3) {
                   glFormat = GL3.GL_RG;
+               } else if (gl instanceof GL2) {
+                  glFormat = GL2.GL_LUMINANCE_ALPHA;
                }
                glType = GL.GL_UNSIGNED_SHORT;
                break;
             case GRAYSCALE_BYTE:
-               if (gl instanceof GL2) {
-                  glFormat = GL2.GL_LUMINANCE;
-               } else  if (gl instanceof GL3) {
+               if (gl instanceof GL3) {
                   glFormat = GL3.GL_RED;
+               } else if (gl instanceof GL2) {
+                  glFormat = GL2.GL_LUMINANCE;
                }
                glType = GL.GL_UNSIGNED_BYTE;
                break;
             case GRAYSCALE_SHORT:
-               if (gl instanceof GL2) {
-                  glFormat = GL2.GL_LUMINANCE;
-               } else  if (gl instanceof GL3) {
+               if (gl instanceof GL3) {
                   glFormat = GL3.GL_RED;
+               } else if (gl instanceof GL2) {
+                  glFormat = GL2.GL_LUMINANCE;
                }
                glType = GL.GL_UNSIGNED_SHORT;
                break;
@@ -309,7 +309,6 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
                break;
             default:
                break;
-            
          }
          
          texture.fill (gl, dirty.x (), dirty.y (), width, height, psize, glFormat, glType, buff);

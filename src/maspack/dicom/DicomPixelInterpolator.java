@@ -28,10 +28,10 @@ import maspack.util.ReaderTokenizer;
  * @author Antonio
  *
  */
-public abstract class DicomPixelConverter implements CompositeProperty {
+public abstract class DicomPixelInterpolator implements CompositeProperty {
 
    static Class<?>[] mySubClasses =
-      new Class<?>[] { DicomWindowPixelConverter.class };
+      new Class<?>[] { DicomWindowPixelInterpolator.class };
 
    public static Class<?>[] getSubClasses() {
       return mySubClasses;
@@ -57,7 +57,7 @@ public abstract class DicomPixelConverter implements CompositeProperty {
    }
 
    public static PropertyList myProps = new PropertyList(
-      DicomPixelConverter.class);
+      DicomPixelInterpolator.class);
 
    public Property getProperty(String name) {
       return PropertyList.getProperty(name, this);
@@ -72,10 +72,10 @@ public abstract class DicomPixelConverter implements CompositeProperty {
    }
 
    // abstract methods
-   public DicomPixelConverter clone() {
-      DicomPixelConverter dpc = null;
+   public DicomPixelInterpolator clone() {
+      DicomPixelInterpolator dpc = null;
       try {
-         dpc = (DicomPixelConverter)super.clone();
+         dpc = (DicomPixelInterpolator)super.clone();
       } catch (CloneNotSupportedException e) {
          throw new InternalErrorException("cannot clone super in DicomPixelConverter");
       }

@@ -54,7 +54,7 @@ public interface DicomPixelBuffer {
     * @return the number of bytes written to the buffer
     */
    public int getPixels(int x, int dx, int nx, PixelType type, ByteBuffer pixels, 
-      DicomPixelConverter interp);
+      DicomPixelInterpolator interp);
    
    /**
     * Populates an array of RGB pixel values from pixel values stored in this buffer,
@@ -73,7 +73,7 @@ public interface DicomPixelBuffer {
    public int getPixelsRGB(int x,
       int dx,
       int nx, byte[] pixels, int offset,
-      DicomPixelConverter interp);
+      DicomPixelInterpolator interp);
    
    /**
     * Populates an array of grayscale pixel values from pixel values stored in this buffer,
@@ -92,7 +92,7 @@ public interface DicomPixelBuffer {
    public int getPixelsByte(int x, 
       int dx,
       int nx, byte[] pixels, int offset,
-      DicomPixelConverter interp);
+      DicomPixelInterpolator interp);
    
    /**
     * Populates an array of grayscale pixel values from pixel values stored in this buffer,
@@ -111,7 +111,7 @@ public interface DicomPixelBuffer {
    public int getPixelsShort(int x,
       int dx,
       int nx, short[] pixels, int offset,
-      DicomPixelConverter interp);
+      DicomPixelInterpolator interp);
    
    /**
     * Populates a new pixel buffer from pixel values stored in this buffer,
@@ -131,7 +131,7 @@ public interface DicomPixelBuffer {
       int dx,
       int nx,
       DicomPixelBuffer pixels, int offset,
-      DicomPixelConverter interp);
+      DicomPixelInterpolator interp);
    
    /**
     * Populates this pixel buffer using an array of RGB pixel values and a supplied interpolator.
@@ -148,7 +148,7 @@ public interface DicomPixelBuffer {
    public int setPixelsRGB(int x,
       int dx,
       int nx, byte[] pixels, int offset,
-      DicomPixelConverter interp);
+      DicomPixelInterpolator interp);
    
    /**
     * Populates this pixel buffer using an array of grayscale pixel values and a supplied interpolator.
@@ -165,7 +165,7 @@ public interface DicomPixelBuffer {
    public int setPixelsByte(int x, 
       int dx,
       int nx, byte[] pixels, int offset,
-      DicomPixelConverter interp);
+      DicomPixelInterpolator interp);
    
    /**
     * Populates this pixel buffer using an array of grayscale pixel values and a supplied interpolator.
@@ -182,7 +182,7 @@ public interface DicomPixelBuffer {
    public int setPixelsShort(int x,
       int dx,
       int nx, short[] pixels, int offset,
-      DicomPixelConverter interp);
+      DicomPixelInterpolator interp);
    
    /**
     * Populates this pixel buffer using a supplied pixel buffer and interpolator.
@@ -200,7 +200,7 @@ public interface DicomPixelBuffer {
       int dx,
       int nx,
       DicomPixelBuffer pixels, int offset,
-      DicomPixelConverter interp);
+      DicomPixelInterpolator interp);
    
    /**
     * @return the maximum pixel intensity, for use in auto-windowing

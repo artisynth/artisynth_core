@@ -21,14 +21,14 @@ import maspack.util.StringRange;
  * @author Antonio
  *
  */
-public class DicomWindowPixelConverter extends DicomPixelConverter {
+public class DicomWindowPixelInterpolator extends DicomPixelInterpolator {
 
    private static final int BYTE_MASK = 0xFF;
    private static final int SHORT_MASK = 0xFFFF;
-   private static final byte BYTE_MAX = (byte)BYTE_MASK;
-   private static final short SHORT_MAX = (short)SHORT_MASK;
+   private static final int BYTE_MAX = BYTE_MASK;
+   private static final int SHORT_MAX = SHORT_MASK;
    
-   public static PropertyList myProps = new PropertyList(DicomWindowPixelConverter.class);   
+   public static PropertyList myProps = new PropertyList(DicomWindowPixelInterpolator.class);   
    
    static {
       myProps.add("window", "window preset", "CUSTOM");
@@ -73,7 +73,7 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
    }
    
    public static final int DEFAULT_WINDOW_CENTER = 0x0007FF;
-   public static final int DEFAULT_WINDOW_WIDTH = 0x0007FF;
+   public static final int DEFAULT_WINDOW_WIDTH = 0x0007FF << 1;
    
    private HashMap<String,WindowPreset> presetMap;
    WindowPreset currentPreset;
@@ -86,8 +86,8 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
     * Create a default windowed interpolator, centered at intensity 2047 with
     * width 2*2047.
     */
-   public DicomWindowPixelConverter() {
-      this(DEFAULT_WINDOW_CENTER, 2*DEFAULT_WINDOW_WIDTH);
+   public DicomWindowPixelInterpolator() {
+      this(DEFAULT_WINDOW_CENTER, DEFAULT_WINDOW_WIDTH);
    }
    
    /**
@@ -95,7 +95,7 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
     * @param center centre intensity
     * @param width intensity width
     */
-   public DicomWindowPixelConverter(int center, int width) {
+   public DicomWindowPixelInterpolator(int center, int width) {
       presetMap = new HashMap<String, WindowPreset>();
       customPreset = new WindowPreset("CUSTOM", center, width, Integer.MAX_VALUE);
       presetMap.put("CUSTOM", customPreset);
@@ -228,22 +228,29 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
       return windowWidth;
    }
    
-   @Override
-   public int interpByteRGB(byte[] in, int idx, byte[] out, int odx) {
-      
-      byte bval;
-      
-      // 2x-2c-1
-      int val = ( in[idx] << 1 ) - (windowCenter << 1) + 1;
-      if ( val <= -(windowWidth-1) ) {
-         bval = 0;
-      } else if ( val > (windowWidth-1) ) {
-         bval = BYTE_MAX;
-      } else {
-         val = ( ( (val << 8) - val ) / (windowWidth-1) ) >>> 1;
-         bval = (byte)val;
+   private int rescale(int in, int center, int width, int max) {
+      // threshold
+      if (width == 1) {
+         if (in >= center) {
+            return max; 
+         } else {
+            return 0;
+         }
       }
       
+      // interpolated
+      int val = (2*in-2*center+width)*max/(2*width-2);
+      if (val < 0) {
+         val = 0;
+      } else if (val > max) {
+         val = max;
+      }
+      return val;
+   }
+   
+   @Override
+   public int interpByteRGB(byte[] in, int idx, byte[] out, int odx) {
+      byte bval = (byte)rescale(in[idx], windowCenter, windowWidth,  BYTE_MAX);
       out[odx++] = bval;
       out[odx++] = bval;
       out[odx++] = bval;
@@ -252,89 +259,41 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
 
    @Override
    public int interpByteByte(byte[] in, int idx, byte[] out, int odx) {
-      // 2x-2c-1
-      int val = ( in[idx] << 1 ) - (windowCenter << 1) + 1;
-      if ( val <= -(windowWidth-1) ) {
-         out[odx++] = 0;
-      } else if ( val > (windowWidth-1) ) {
-         out[odx++] = BYTE_MAX;
-      } else {
-         out[odx++] = (byte)( ( ( (val << 8) - val ) / (windowWidth-1) ) >>> 1 );
-      }
+      out[odx++] = (byte)rescale(in[idx], windowCenter, windowWidth,  BYTE_MAX);
       return odx;
    }
 
    @Override
    public int interpByteShort(byte[] in, int idx, short[] out, int odx) {
-      // 2x-2c-1
-      int val = ( in[idx] << 1 ) - (windowCenter << 1) + 1;
-      if ( val <= -(windowWidth-1) ) {
-         out[odx++] = 0;
-      } else if ( val > (windowWidth-1) ) {
-         out[odx++] = SHORT_MAX;
-      } else {
-         out[odx++] = (byte)( ( ( (val << 16) - val ) / (windowWidth-1) ) >>> 1 );
-      }
+      out[odx++] = (short)rescale(in[idx], windowCenter, windowWidth,  SHORT_MAX);
       return odx;
    }
    
    @Override
    public int interpRGBRGB(byte[] in, int idx, byte[] out, int odx) {
-      
       for (int i=0; i<3; i++) {
-         int val = ( (in[idx++] & BYTE_MASK) << 1 ) - (windowCenter << 1) + 1;
-         if ( val <= -(windowWidth-1) ) {
-            out[odx++] = 0;
-         } else if ( val > (windowWidth-1) ) {
-            out[odx++] = BYTE_MAX;
-         } else {
-            out[odx++] = (byte)( ( ( (val << 8) - val ) / (windowWidth-1) ) >>> 1 );
-         }
+         out[odx++] = (byte)rescale(in[idx++], windowCenter, windowWidth,  BYTE_MAX);
       }
       return odx;
    }
 
    @Override
    public int interpRGBByte(byte[] in, int idx, byte[] out, int odx) {
-      int val = (in[idx] & BYTE_MASK) + (in[idx+1] & BYTE_MASK) + (in[idx+2] & BYTE_MASK);
-      val = ( val << 1 ) - 3*(windowCenter << 1) + 3;
-      if (val <= -3*(windowWidth-1)) {
-         out[odx++] = 0;
-      } else if (val > 3*(windowWidth-1)) {
-         out[odx++] = BYTE_MAX;
-      } else {
-         out[odx++] = (byte)( (  ((val << 8) - val) / (3* (windowWidth-1) ) ) >>> 1);
-      }
+      int val3 = (in[idx] & BYTE_MASK) + (in[idx+1] & BYTE_MASK) + (in[idx+2] & BYTE_MASK);
+      out[odx++] = (byte)rescale (val3, 3*windowCenter, 3*windowWidth, BYTE_MAX);
       return odx;
    }
 
    @Override
    public int interpRGBShort(byte[] in, int idx, short[] out, int odx) {
-      int val = (in[idx] & BYTE_MASK) + (in[idx+1] & BYTE_MASK) + (in[idx+2] & BYTE_MASK);
-      val = ( val << 1 ) - 3*(windowCenter << 1) + 3;
-      if (val <= -3*(windowWidth-1)) {
-         out[odx++] = 0;
-      } else if (val > 3*(windowWidth-1)) {
-         out[odx++] = SHORT_MAX;
-      } else {
-         out[odx++] = (byte)( (  ((val << 16) - val) / (3* (windowWidth-1) ) ) >>> 1);
-      }
+      int val3 = (in[idx] & BYTE_MASK) + (in[idx+1] & BYTE_MASK) + (in[idx+2] & BYTE_MASK);
+      out[odx++] = (byte)rescale (val3, 3*windowCenter, 3*windowWidth, SHORT_MAX);
       return odx;
    }
 
    @Override
-   public int interpShortRGB(short[] in, int idx, byte[] out, int odx) {
-      byte bval;
-      // 2x-2c-1
-      int val = ( in[idx] << 1 ) - (windowCenter << 1) + 1;
-      if ( val <= -(windowWidth-1) ) {
-         bval = 0;
-      } else if ( val > (windowWidth-1) ) {
-         bval = BYTE_MAX;
-      } else {
-         val = ( ( (val << 8) - val ) / (windowWidth-1) ) >>> 1;
-         bval = (byte)val;
-      }
+   public int interpShortRGB(short[] in, int idx, byte[] out, int odx) {      
+      byte bval = (byte)rescale(in[idx], windowCenter, windowWidth, BYTE_MAX);
       out[odx++] = bval;
       out[odx++] = bval;
       out[odx++] = bval;
@@ -343,30 +302,13 @@ public class DicomWindowPixelConverter extends DicomPixelConverter {
 
    @Override
    public int interpShortByte(short[] in, int idx, byte[] out, int odx) {
-      // 2x-2c-1
-      int val = ( in[idx] << 1 ) - (windowCenter << 1) + 1;
-      if ( val <= -(windowWidth-1) ) {
-         out[odx++] = 0;
-      } else if ( val > (windowWidth-1) ) {
-         out[odx++] = BYTE_MAX;
-      } else {
-         val = val + (windowWidth-1);
-         out[odx++] = (byte)( ( ( (val << 8) - val ) / (windowWidth-1) ) >>> 1 );
-      }
+      out[odx++] =  (byte)rescale(in[idx], windowCenter, windowWidth, BYTE_MAX);
       return odx;
    }
 
    @Override
    public int interpShortShort(short[] in, int idx, short[] out, int odx) {
-      // 2x-2c-1
-      int val = ( in[idx] << 1 ) - (windowCenter << 1) + 1;
-      if ( val <= -(windowWidth-1) ) {
-         out[odx++] = 0;
-      } else if ( val > (windowWidth-1) ) {
-         out[odx++] = SHORT_MAX;
-      } else {
-         out[odx++] = (byte)( ( ( (val << 16) - val ) / (windowWidth-1) ) >>> 1 );
-      }
+      out[odx++] = (short)rescale(in[idx], windowCenter, windowWidth, SHORT_MAX);
       return odx;
    }
 

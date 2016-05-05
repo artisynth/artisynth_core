@@ -42,7 +42,7 @@ public class ShortPixelBuffer implements DicomPixelBuffer {
    
    @Override
    public int getPixels(int x, int dx, int nx, PixelType type, ByteBuffer pixels, 
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
       
       int off = 0;
       switch (type) {
@@ -87,7 +87,7 @@ public class ShortPixelBuffer implements DicomPixelBuffer {
    public int getPixelsRGB(int x,
       int dx,
       int nx, byte[] pixels, int offset,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
 
       int iidx = x;
       int oidx = offset;
@@ -101,7 +101,7 @@ public class ShortPixelBuffer implements DicomPixelBuffer {
    public int getPixelsByte(int x, 
       int dx,
       int nx, byte[] pixels, int offset,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
 
       int iidx = x;
       int oidx = offset;
@@ -115,7 +115,7 @@ public class ShortPixelBuffer implements DicomPixelBuffer {
    public int getPixelsShort(int x,
       int dx,
       int nx, short[] pixels, int offset,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
 
       int iidx = x;
       int oidx = offset;
@@ -130,7 +130,7 @@ public class ShortPixelBuffer implements DicomPixelBuffer {
       int dx,
       int nx,
       DicomPixelBuffer pixels, int offset,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
 
       return pixels.setPixelsShort(x, dx, nx, this.pixels, offset, interp);
    }
@@ -138,7 +138,7 @@ public class ShortPixelBuffer implements DicomPixelBuffer {
    public int setPixelsRGB(int x,
       int dx,
       int nx, byte[] pixels, int offset,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
 
       int oidx = x;
       int iidx = offset;
@@ -152,7 +152,7 @@ public class ShortPixelBuffer implements DicomPixelBuffer {
    public int setPixelsByte(int x, 
       int dx,
       int nx, byte[] pixels, int offset,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
 
       int oidx = x;
       int iidx = offset;
@@ -166,7 +166,7 @@ public class ShortPixelBuffer implements DicomPixelBuffer {
    public int setPixelsShort(int x,
       int dx,
       int nx, short[] pixels, int offset,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
 
       int oidx = x;
       int iidx = offset;
@@ -181,7 +181,7 @@ public class ShortPixelBuffer implements DicomPixelBuffer {
       int dx,
       int nx,
       DicomPixelBuffer pixels, int offset,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
 
       return pixels.getPixelsShort(x, dx, nx, this.pixels, offset, interp);
    }

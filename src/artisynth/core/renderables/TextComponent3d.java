@@ -162,14 +162,6 @@ public class TextComponent3d extends TextComponentBase implements
    public AxisAngle getOrientation() {
       return myOrientation;
    }
-   
-//   @Override
-//   public void renderx(GLRenderer renderer, int flags) {
-//      if (isSelectable() || !renderer.isSelecting()) {
-//         render(renderer, 0);
-//      }
-//   }
-//
     
    @Override
    public void render(Renderer renderer, int flags) {

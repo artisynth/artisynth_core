@@ -16,7 +16,6 @@ import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
 import maspack.render.IsRenderable;
 import maspack.render.Renderer;
-import maspack.render.GL.GLSupport;
 
 /**
  * Allows adding 2D text to a root model
@@ -266,7 +265,6 @@ public class TextComponent2d extends TextComponentBase {
       }
 
       renderer.pushModelMatrix();
-      GLSupport.transformToGLMatrix (GLMatrix, myTransform);
       renderer.mulModelMatrix(myTransform);
       
       renderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());

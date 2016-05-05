@@ -10,7 +10,6 @@ import java.awt.Component;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
-import maspack.render.Renderer;
 import maspack.render.GL.GLViewer;
 
 /**

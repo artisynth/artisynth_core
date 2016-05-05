@@ -68,12 +68,13 @@ public class TextComponent2d extends TextComponentBase {
       myRenderProps = createDefaultRenderProps();
       hAlignment = defaultHAlignment;
       vAlignment = defaultVAlignment;
-
+      myTextSize = defaultTextSize;
+      myFontSize = defaultFontSize;
+      
       myText = "";
       myPos = new Point2d(defaultPos);
       myNormPos = new Point2d(defaultNormPos);
       myOrientation = 0;
-      myTextSize = defaultTextSize;
    }
 
    /**

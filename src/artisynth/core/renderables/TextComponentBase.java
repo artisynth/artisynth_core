@@ -39,7 +39,7 @@ public abstract class TextComponentBase extends RenderableComponentBase {
    
    protected HorizontalAlignment hAlignment = defaultHAlignment;
    protected VerticalAlignment vAlignment = defaultVAlignment;
-   protected Font myFont = defaultFont;
+   protected Font myFont;
    protected double myFontSize = defaultFontSize;
    protected double myTextSize = defaultTextSize;
    

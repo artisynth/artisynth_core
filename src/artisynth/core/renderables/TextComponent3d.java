@@ -71,13 +71,13 @@ public class TextComponent3d extends TextComponentBase implements
       myRenderProps = createDefaultRenderProps();
       hAlignment = defaultHAlignment;
       vAlignment = defaultVAlignment;
+      myTextSize = defaultTextSize;
+      myFontSize = defaultFontSize;
       
       myText = "";
       myPos = new Point3d();
       myOrientation = new AxisAngle();
-      myTextSize = defaultTextSize;
       followEye = true;
-      
    }
    
    /**

@@ -111,12 +111,12 @@ public class ColorBar extends TextComponentBase {
 
    @Override
    protected void setDefaults() {
-
       setFont( new Font(defaultFontName, 0, defaultFontSize));
       myRenderProps = createDefaultRenderProps();
       hAlignment = defaultHAlignment;
       vAlignment = defaultVAlignment;
       myTextSize = defaultTextSize;
+      myFontSize = defaultFontSize;
 
       myLoc = new Rectangle2d(defaultLoc);
 

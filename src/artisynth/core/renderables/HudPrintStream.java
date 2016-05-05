@@ -77,6 +77,7 @@ public class HudPrintStream extends TextComponentBase {
       hAlignment = defaultHAlignment;
       vAlignment = defaultVAlignment;
       myTextSize = defaultTextSize;
+      myFontSize = defaultFontSize;
 
       myPos = new Point2d();
       myMaxDisplayLines = defaultNumDisplayLines;

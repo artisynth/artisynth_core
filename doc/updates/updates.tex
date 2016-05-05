@@ -17,6 +17,185 @@
 %\section*{Next}
 
 %\subsection*{Wrapping surfaces}
+\section*{May 8, 2016}
+
+\subsection*{OpenGL rendering replaced by new rendering interface}
+
+Instead of using the legacy OpenGL 2 API, ArtiSynth components now
+draw themselves using a rendering API that is independent of the
+underlying implementation. The main purpose of this is to (a) allow
+ArtiSynth to take advantage of more advanced versions of OpenGL, and
+(b) ultimately allow models to be rendered with other graphical APIs
+such as Renderman.
+
+Previously, renderable components drew themselves by overriding their
+{\tt render()} method with code similar to the following:
+%
+\begin{lstlisting}[]
+   public void render (GLRenderer renderer, int flags) {
+      GL2 gl = renderer.getGL2 ();
+      gl.glPushMatrix();
+      renderer.setLightingEnabled (false);
+      GLViewer.mulTransform (gl, myXFrameToWorld);
+      renderer.setLineWidth (myRenderProps.getLineWidth());
+      gl.glBegin (GL2.GL_LINES);
+      renderer.setColor (myRenderProps.getLineColorArray(), isSelected());
+      float l = (float)myPlaneSize/2;
+      gl.glVertex3f (0f, 0f, l);
+      gl.glVertex3f (0f, 0f, -l);
+      gl.glVertex3f (0f, l, 0f);
+      gl.glVertex3f (0f, -l, 0f);
+      gl.glVertex3f (l, 0f, 0f);
+      gl.glVertex3f (-l, 0f, 0f);
+      gl.glEnd();
+      renderer.setLightingEnabled (true);
+      gl.glPopMatrix();
+   }
+\end{lstlisting}
+%
+
+Under the new interface, {\tt GLRenderer} has been replaced by {\tt
+Renderer}, and {\it all} draw operations now proceed through the
+renderer; GL is no longer used or needed. The renderer's 
+functionality has been significantly enhanced to accomodate this.
+For example, the code sample above could
+be now be written as
+%
+\begin{lstlisting}[]
+   public void render (Renderer renderer, int flags) {
+      renderer.pushModelMatrix();
+      // lighting is now controlled by setShading()
+      Shading savedShading = renderer.setShading (Shading.NONE);
+      renderer.mulModelMatrix (myXFrameToWorld);
+      renderer.setLineWidth (myRenderProps.getLineWidth());
+      renderer.setLineColoring (myRenderProps, isSelected());
+      renderer.beginDraw (Renderer.DrawMode.LINES);
+      float l = (float)myPlaneSize/2;
+      renderer.addVertex (0f, 0f, l);
+      renderer.addVertex (0f, 0f, -l);
+      renderer.addVertex (0f, l, 0f);
+      renderer.addVertex (0f, -l, 0f);
+      renderer.addVertex (l, 0f, 0f);
+      renderer.addVertex (-l, 0f, 0f);
+      renderer.endDraw ();.glEnd();
+      renderer.setShading (savedShading);
+      renderer.popModelMatrix();
+   }
+\end{lstlisting}
+%
+
+Complete documentation for the new rendering interface, with detailed
+examples, is given in the ``Rendering'' chapter of the
+\href{http://www.artisynth.org/doc/html/maspack/maspack.html}%
+{Maspack Reference Manual}. The new {\tt Renderer} interface itself is
+described in the ``Renderer Interface'' section.
+
+\subsubsection*{Support for texture mapping}
+
+Proper support has now been added for texture mapping, including
+color, normal, and bump mapping. These can be controlled through the
+{\tt Renderer} interface via the composite property objects
+\javaclass[maspack.render]{ColorMapProps},
+\javaclass[maspack.render]{NormalMapProps}, and
+\javaclass[maspack.render]{BumpMapProps}.  The revised
+\javaclass[maspack.render]{RenderProps} object also exports these
+through its subproperties {\sf colorMap}, {\sf normalMap}, and {\sf bumpMap}.
+
+Texture maps can be set up either directly through the renderer, as
+described in the ``Texture mapping'' section of the
+\href{http://www.artisynth.org/doc/html/maspack/maspack.html}%
+{Maspack Reference Manual}, or by setting the {\sf colorMap}, {\sf
+normalMap}, or {\sf bumpMap} rendering subproperties of ArtiSynth
+components that contain polygonal meshes (as described in the
+``Texture mapping'' section of the
+\href{http://www.artisynth.org/doc/html/modelguide/modelguide.html}%
+{ArtiSynth Modeling Guide}).
+
+\subsubsection*{Changes to render properties}
+
+Some changes have been made to the {\tt RenderProps} object and
+associated enumerated types which components use to specify generic
+rendering properities.
+
+\begin{itemize}
+
+\item The enumerated types {\tt Shading}, {\tt Faces}, {\tt PointStyle}, and
+{\tt LineStyle} are now defined in the interface
+\javaclass[maspack.render]{Renderer} instead of
+\javaclass[maspack.render]{RenderProps}, and {\tt Faces} has been
+renamed to {\tt FaceStyle}.
+
+\item The fields for {\tt Shading} have changed from {\tt FLAT}, {\tt
+GOURAUD}, and {\tt PHONG} to {\tt FLAT}, {\tt SMOOTH}, {\tt METAL},
+and {\tt NONE}. {\tt SMOOTH} takes the place of both {\tt GOURAUD} and
+{\tt PHONG} to simply indicate smooth shading; different renderer
+implementations are free to implement this using Gouraud or Phong
+shading. {\tt METAL} is used to indicate smooth shading
+with more metalic-like qualities; renderer implementations are free to
+implement this as they wish and in some cases there will be no
+difference between {\tt SMOOTH} and {\tt METAL}. Setting the shading
+to {\tt NONE} disables lighting.
+
+\item The subproperty {\sf specular} has been added to {\tt
+RenderProps}. If not {\tt null}, this specifies the specular reflectance color.
+
+\item The subproperties {\sf colorMap}, {\sf normalMap}, and {\sf
+bumpMap} have been added {\tt RenderProps} to control texture mapping.
+
+\item The subproperties {\sf pointSlices} and {\sf lineSlices} have been
+removed from {\tt RenderProps}. The resolution of built-in point and
+line primitives can now be controlled with the renderer's
+\javamethod[maspack.render.Renderer]{setSurfaceResolution()} method.
+
+\end{itemize}
+
+\subsubsection*{Changed to existing renderer methods}
+
+As mentioned above, {\tt GLRenderer} has been replaced with {\tt
+Renderer}, and enhanced with significant additional functionality to
+support all necessary drawing operations. In addition to this
+increased functionality, some of the signatures for existing renderer
+methods have changed. These changes include:
+
+\subsubsection*{Legacy rendering with OpenGL 2}
+
+If necessary, it is still possible for objects to draw themselves
+using OpenGL 2. To do this, it is necessary to run ArtiSynth using the
+OpenGL 2 version of the viewer, which can be requested with the
+command line argument {\tt -GLVersion 2}:
+
+%
+\begin{lstlisting}[]
+> artisynth -GLVersion 2
+\end{lstlisting}
+%
+
+This will ensure that the {\tt Renderer} supplied to the {\tt render()}
+methods is an instance of {\tt GL2Viewer}. The {\tt
+render()} method can then obtain the necessary {\tt gl} references
+from this viewer and perform direct GL rendering:
+%
+\begin{lstlisting}[]
+import maspack.render.GL.GL2;
+
+public void render (Renderer renderer, int flags) {
+   if (!(renderer instanceof GL2Viewer)) {
+      return; // do nothing; GL2 not available
+   }
+   GL2Viewer viewer = (GL2Viewer)renderer;
+   GL2 gl = viewer.getGL().getGL2();
+   viewer.beginGL();
+
+   ... perform direct GL rendering ...
+
+   viewer.endGL();
+}
+\end{lstlisting}
+%
+As shown in the example, direct GL rendering should be surrounded with
+calls to the viewer methods {\tt beginGL()} and {\tt endGL()} so that
+the renderer's graphics state will not be affected by the direct GL
+calls.
 
 \section*{January 24, 2016}
 

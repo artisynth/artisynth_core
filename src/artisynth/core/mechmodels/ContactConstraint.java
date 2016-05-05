@@ -347,5 +347,4 @@ public class ContactConstraint {
       str += " dist=" + fmt.format(myDistance) + " ]";
       return str;
    }
-   
 }

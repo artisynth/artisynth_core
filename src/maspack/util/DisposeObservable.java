@@ -18,7 +18,6 @@ public interface DisposeObservable {
    /**
     * Return an "observer" object that tracks the dispose status
     * of this object.
-    * @return
     */
    public DisposeObserver getDisposeObserver();
    

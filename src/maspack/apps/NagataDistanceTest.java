@@ -31,6 +31,7 @@ public class NagataDistanceTest implements IsRenderable, HasRenderProps {
    ArrayList<Point3d> myPoints = new ArrayList<Point3d>();
    ArrayList<Point3d> myFacePoints = new ArrayList<Point3d>();
    ArrayList<Point3d> myNearPoints = new ArrayList<Point3d>();
+   ArrayList<Double> myDistances = new ArrayList<Double>();
 
    Vector2d myCurveDir = new Vector2d (0.25, 0.75);
    Vector2d myCurvePos = new Vector2d (0.75, 0.25);
@@ -42,22 +43,23 @@ public class NagataDistanceTest implements IsRenderable, HasRenderProps {
    NagataInterpolator myInterp = new NagataInterpolator();
 
    public void computeNearestPoint (
-      Point3d near, Vector3d normal, Point3d pos) {
+      Point3d near, Vector3d normal, Point3d pos, boolean debug) {
 
-      //TriangleIntersector ti = new TriangleIntersector();
+      // //TriangleIntersector ti = new TriangleIntersector();
       BVFeatureQuery query = new BVFeatureQuery();
-      //OBBTree obbTree = myBaseMesh.getObbtree();
+      // //OBBTree obbTree = myBaseMesh.getObbtree();
 
-      Vector2d svec = new Vector2d();  
-      query.nearestFaceToPoint (near, svec, myBaseMesh, pos);
-      //obbTree.nearestFace (pos, normal, near, svec, ti);
+      // Vector2d svec = new Vector2d();  
+      // query.nearestFaceToPoint (near, svec, myBaseMesh, pos);
+      // //obbTree.nearestFace (pos, normal, near, svec, ti);
 
-      svec.x = svec.x + svec.y; // convert to eta, zeta
-      svec.y = svec.y;
+      // svec.x = svec.x + svec.y; // convert to eta, zeta
+      // svec.y = svec.y;
 
       // myInterp.nearestPointOnFace (
       //    near, normal, face, myBaseMesh, svec, pos, 1e-8);
       
+      myInterp.debug = debug;
       myInterp.nearestPointOnMesh (
         near, normal, myBaseMesh, pos, 1e-8, query);
       
@@ -144,6 +146,7 @@ public class NagataDistanceTest implements IsRenderable, HasRenderProps {
       // computeNearestPoint (nearest, normal, p);            
       // myNearPoints.add (new Point3d(nearest));
 
+      Vector3d del = new Vector3d();
       for (int i=0; i<npnts; i++) {
          for (int j=0; j<npnts; j++) {
             for (int k=0; k<zvals.length; k++) {
@@ -156,11 +159,19 @@ public class NagataDistanceTest implements IsRenderable, HasRenderProps {
                // myInterp.nearestPointOnMesh (
                //    nearest, normal, myBaseMesh, p, 1e-8, ti);
 
-               query.nearestFaceToPoint (nearest, coords, myBaseMesh, p);
+               //query.nearestFaceToPoint (nearest, coords, myBaseMesh, p);
                //obbTree.nearestFace (p, normal, nearest, coords, ti);
+               computeNearestPoint (nearest, normal, p, false);            
                myFacePoints.add (new Point3d(nearest));
-               computeNearestPoint (nearest, normal, p);            
 
+               del.sub (p, nearest);
+               double d = del.dot(normal);
+               if (d < 0) {
+                  if (i == 4 && j == 3) {
+                     System.out.println ("fail at " + i + "," + j);
+                  }
+               }
+               myDistances.add (d);
                myNearPoints.add (new Point3d(nearest));
             }
          }
@@ -198,7 +209,14 @@ public class NagataDistanceTest implements IsRenderable, HasRenderProps {
          myPoints.get(i).get(coords0);
          myNearPoints.get(i).get(coords1);
          renderer.drawPoint (myRenderProps, coords0, false);
-         renderer.drawLine (myRenderProps, coords0, coords1, false);
+         if (myDistances.get(i) < 0) {
+            myRenderProps.setLineColor (Color.RED);
+            renderer.drawLine (myRenderProps, coords0, coords1, false);
+            myRenderProps.setLineColor (Color.GREEN);
+         }
+         else {
+            renderer.drawLine (myRenderProps, coords0, coords1, false);
+         }
       }
 
       // draw the curve

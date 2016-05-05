@@ -87,6 +87,25 @@ public class SignedDistanceGrid implements IsRenderable {
    }
 
    public SignedDistanceGrid (PolygonalMesh m, double gridSizeMargin, 
+      int maxCellDivisions) {
+      mesh = m;
+      if (!mesh.isTriangular()) {
+         mesh.triangulate();
+      }
+      ArrayList<Face> mfaces = mesh.getFaces();
+      faces = new Face[mfaces.size()];
+      for (int f = 0; f < mfaces.size(); f++)
+         faces[f] = (Face)mfaces.get (f);
+      
+      Vector3d widths = new Vector3d();
+      mesh.getLocalBounds (min, max);
+      widths.sub (max, min);
+      double size = widths.maxElement()/maxCellDivisions;
+      gridCellSize = new Vector3d (size, size, size);
+      calculatePhi (gridSizeMargin);      
+   }
+   
+   public SignedDistanceGrid (PolygonalMesh m, double gridSizeMargin, 
       Vector3d cellDivisions) {
       mesh = m;
       if (!mesh.isTriangular()) {

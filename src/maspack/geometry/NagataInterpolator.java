@@ -57,6 +57,8 @@ public class NagataInterpolator {
    private double EPS = 1e-8;
    private static final double sqrtOneHalf = Math.sqrt(2)/2;
 
+   public boolean debug = false;
+
    public void checkMesh (PolygonalMesh mesh) {
       if (!mesh.isTriangular()) {
          throw new IllegalArgumentException ("Mesh is not triangular");
@@ -603,9 +605,13 @@ public class NagataInterpolator {
             }
             switch (reqFace.indexOfEdge (he.opposite)) {
                // edge indices 0, 1, 2 correspond to edge numbers 3, 1, 2
-               case 0: req.svec.set (1-xi, 1-xi); break;
-               case 1: req.svec.set (1-xi, 0.0); break;
-               case 2: req.svec.set (1.0, 1-xi); break;
+               //case 0: req.svec.set (1-xi, 1-xi); break;
+               //case 1: req.svec.set (1-xi, 0.0); break;
+               //case 2: req.svec.set (1.0, 1-xi); break;
+
+               case 0: req.svec.set (xi, xi); break;
+               case 1: req.svec.set (xi, 0.0); break;
+               case 2: req.svec.set (1.0, xi); break;
             }
             requests.offer (req);
             faceSet.add (reqFace);
@@ -682,16 +688,27 @@ public class NagataInterpolator {
       Face face = query.nearestFaceToPoint (nearest, svec, mesh, pos);
       //Face face = obbTree.nearestFace (pos, nrm, nearest, svec, ti); 
 
+      System.out.println ("Face=" + face.getIndex() + " svec=" + svec);
       svec.x = svec.x + svec.y; // convert to eta, zeta
       svec.y = svec.y;
 
+      // face = mesh.getFace(0);
+      // svec.y = svec.x;
+      // svec.x = 0;
+
       int code = nearestPointOnFace (nearest, nrm, face, mesh, svec, pos, posTol);
+
       if (code == INSIDE) {
+         if (debug) System.out.println ("Done");
          // done!
          return;
       }
       else {
          double minDsqr = nearest.distanceSquared (pos);
+         if (debug) {
+            System.out.println ("Code=" + code + " minDsqr=" + minDsqr);
+         }
+         
          Point3d near = new Point3d();
          Vector3d nrml = new Vector3d();
          HashSet<Face> faceSet = new HashSet<Face>();
@@ -700,9 +717,15 @@ public class NagataInterpolator {
          addAdjoiningFaces (requests, face, code, svec, faceSet);
          while (!requests.isEmpty()) {
             FaceRequest req = requests.poll();
+
             code = nearestPointOnFace (
                near, nrml, req.face, mesh, req.svec, pos, posTol);
             double dsqr = near.distanceSquared (pos);
+            if (debug) {
+               System.out.println (
+                  "  checked face " + req.face.getIndex() + " svec=" + req.svec);
+               System.out.println ("  code=" + code + " dsqr=" + dsqr);
+            }
             if (dsqr < minDsqr) {
                minDsqr = dsqr;
                nearest.set (near);
@@ -740,13 +763,13 @@ public class NagataInterpolator {
          double gnorm = myGrad.oneNorm();
 
          if (hessianIsSPD && gnorm < posTol) {
-            // System.out.println ("converged");
+            if (debug) System.out.println ("converged");
             break; // we are done
          }
          else if (gnorm >= posTol && gradientIsAdmissible (myGrad, code)) {
             if (hessianIsSPD) {
                // use Newtons's method
-               //System.out.println ("Newton step");
+               if (debug) System.out.println ("Newton step");
                double dx = - ( myH.m11*myGrad.x - myH.m01*myGrad.y)/det;
                double dy = - (-myH.m10*myGrad.x + myH.m00*myGrad.y)/det;
                svec.x += dx;
@@ -754,7 +777,7 @@ public class NagataInterpolator {
                code = clipCoords (svec);
             }
             else {
-               // System.out.println ("Gradient line search");
+               if (debug) System.out.println ("Gradient line search");
                // just do a line search along the gradient
                myGrad.scale (1/gnorm);
                code = findMinimumAlongCurve (
@@ -762,7 +785,7 @@ public class NagataInterpolator {
             }
          }
          else if (code == INSIDE && gnorm < posTol) {
-            //System.out.println ("Choosing a direction");
+            if (debug) System.out.println ("Choosing a direction");
             // choose a direction. Head for the farthest vertex,
             // which will be either 1 or 3
             if (svec.x + svec.y > 1) {
@@ -778,7 +801,7 @@ public class NagataInterpolator {
 
             // then we are on an edge
             int edgeNum = code-EDGE_1;
-            //System.out.println ("On edge "+edgeNum);
+            if (debug) System.out.println ("On edge "+edgeNum);
             if (myEdgeDistSqrs[edgeNum] == -1) {
                code = findMinimumOnEdge (svec, pos, edgeNum);
             }
@@ -789,7 +812,7 @@ public class NagataInterpolator {
             }
          }
          else {
-            //System.out.println ("On vertex "+code);
+            if (debug) System.out.println ("On vertex "+code);
             // we are at a vertex
             int edgeNum1 = -1;
             int edgeNum2 = -1;

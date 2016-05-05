@@ -298,18 +298,10 @@ Colors are specified using {\tt java.awt.Color}.
 %Generic properties:
 visible & whether or not the component is visible & {\tt true} \\
 alpha & transparency for diffuse colors (range 0 to 1) & 1 (opaque) \\
-lighting & lighting style: 
+shading & shading style: 
 ({\tt FLAT}, {\tt SMOOTH}, {\tt METAL}, {\tt NONE}) & {\tt FLAT}\\
 shininess & shininess parameter (range 0 to 128) & 32 \\
 specular & specular color components & {\tt null} \\
-%Texture mapping properties &
-\hline
-colorMap & color mapping properties 
-(see Section \ref{TextureMapping:sec}) & {\tt null} \\
-normalMap & normal mapping properties 
-(see Section \ref{TextureMapping:sec}) & {\tt null} \\
-bumpMap & bump mapping properties 
-(see Section \ref{TextureMapping:sec}) & {\tt null} \\
 %Face related properties &
 \hline
 faceStyle &
@@ -321,6 +313,14 @@ backColor &
 diffuse color used for the backs of faces. 
 If {\tt null}, {\tt faceColor} is used. & {\tt null} \\
 drawEdges & hint that polygon edges should be drawn explicitly & {\tt false} \\
+%Texture mapping properties &
+\hline
+colorMap & color mapping properties 
+(see Section \ref{TextureMapping:sec}) & {\tt null} \\
+normalMap & normal mapping properties 
+(see Section \ref{TextureMapping:sec}) & {\tt null} \\
+bumpMap & bump mapping properties 
+(see Section \ref{TextureMapping:sec}) & {\tt null} \\
 % Edge related properties &
 \hline
 edgeColor & diffuse color for edges & {\tt null} \\

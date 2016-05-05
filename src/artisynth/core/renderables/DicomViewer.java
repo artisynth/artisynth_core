@@ -231,7 +231,6 @@ public class DicomViewer extends RenderableComponentBase {
       myImage = image;
       texture = new DicomTextureContent (image);
       myRenderProps.getColorMap ().setContent (texture);
-      
    }
  
    /**

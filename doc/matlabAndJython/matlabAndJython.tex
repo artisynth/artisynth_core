@@ -833,7 +833,6 @@ model's {\tt RootModel}, or one of the shorter names that appears
 under the ArtiSynth {\sf Models} menu, and {\tt args...} is a variable
 list of optional string arguments that are used to form the {\tt args}
 argument of the model's {\tt build()} method.
-
 Once loaded, simulation may be controlled using methods such as {\tt
 play()}, {\tt pause()}, {\tt step()}, or {\tt reset()}. The following
 example shows loading a model called {\tt RigidBodyDemo} and
@@ -843,6 +842,21 @@ then having it simulate for 2.5 seconds:
    >>> loadModel ('RigidBodyDemo')
    >>> play (2.5)
 \end{lstlisting}
+%
+\begin{sideblock}
+Note: at present, if ArtiSynth is run in batch mode (Section
+\ref{JythonBatchScripting:sec}), then the {\sf Models} menu is not
+created and so it is necessary to call {\tt loadModel()} using
+the fully qualified class name for the model in question. The example
+above would therefore have to be written as
+%
+\begin{verbatim}
+   >>> loadModel ('artisynth.demos.mech.RigidBodyDemo')
+   >>> play (2.5)
+\end{verbatim}
+%
+This restriction may change in future versions of ArtiSynth.
+\end{sideblock}
 %
 It is often easiest to write Jython scripting commands in a
 Python-style {\tt .py} file and then "source" them into the Jython
@@ -928,7 +942,9 @@ either the fully-qualified classname of the model's
 names that appears under the ArtiSynth {\sf Models} menu, and {\tt
 args...} is an optional variable-length list of string arguments that
 are used to form the {\tt args} argument of the model's {\tt build()}
-method.
+method. Currently, if ArtiSynth is being run in batch mode (Section
+\ref{JythonBatchScripting:sec}), then the {\sf Models} menu is not
+created and so it is necessary to use the fully qualified classname.
 
 \item[{\tt loadModelFile (filename)} ] \mbox{}
 

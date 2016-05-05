@@ -1086,7 +1086,8 @@ in the context menu:
 \item[Edit render props]\mbox{}
 
 This will create a special property panel allowing the render properties for
-the selected components to be set (see Section \ref{renderPropSettingsSec}).
+the selected components to be set (see Section \ref{renderPropSettingsSec}
+and Figure \ref{renderpropsFig}).
 
 \item[Clear render props]\mbox{}
 
@@ -1140,10 +1141,14 @@ Whether or not the component is visible.
 \item[alpha:]
 The transparency for polygonal faces (range 0 to 1. Default is 1, for
 opaque).
-\item[shading:]
-How polygons are shaded ({\tt FLAT}, {\tt GOURARD}, {\tt PHONG}).
+\item[shading:] 
+How polygons are shaded ({\tt FLAT}, {\tt SMOOTH},
+{\tt METAL} and {\tt NONE}).  For viewer implementations there may be no
+difference between {\tt SMOOTH} and {\tt METAL}.
 \item[shininess:]
-Shininess parameter for polygons (range 0 to 32).
+Shininess parameter for polygons (range 0 to 128). Default is 32.
+\item[specular:]
+If not {\tt null}, specifies the specular reflectance color.
 \end{description}
 
 \item[Face related properties:]
@@ -1158,9 +1163,20 @@ Color used for drawing faces.
 Color used for drawing backs of faces. If null, {\tt faceColor} is used.
 \item[drawEdges:] 	
 If true, face edgesof the polygons are drawn explicitly.
-\item[textureProps:] 
-Sets texture mapping properties for the face. If null, no texture
-mapping is performed.
+\end{description}
+
+\item[Texture mapping properties:]
+\hfil \\
+\begin{description}
+\item[colorMap:]
+If not {\tt null}, specifies the image source file and properties
+for color mapping.
+\item[normalMap:]
+If not {\tt null}, specifies the image source file and properties
+for normal mapping.
+\item[bumpMap:]
+If not {\tt null}, specifies the image source file and properties
+for bump mapping.
 \end{description}
 
 \item[Edge related properties:]
@@ -1183,8 +1199,6 @@ The color for lines.
 Line width in pixels when {\tt LINE} style is selected.
 \item[lineRadius:]
 Cylinder radius when {\tt CYLINDER} or {\tt SPINDLE} style is selected.
-\item[lineSlices:]
-Number of slices used to render {\tt CYLINDER} or {\tt SPINDLE} style lines.
 \end{description}
 
 \item[Point related properties:]
@@ -1198,11 +1212,26 @@ The color for points.
 Point size in pixels when {\tt POINT} style is selected.
 \item[pointRadius:] 	
 Sphere radius used when {\tt SPHERE} style is selected.
-\item[pointSlices:] 
-Number of slices used to render {\tt SPHERE} style spheres.
 \end{description}
 
 \end{description}
+
+A typical panel for editing render properties is shown in Figure
+\ref{renderpropsFig}. Texture mapping properties, if present, are
+normally hidden by default and can be exposed by clicking on the {\sf
+expand...} button.
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/renderProps}
+\else
+\includegraphics[width=3in]{images/renderProps}
+\fi
+\end{center}
+\caption{A typical panel for ajusting render properties.}%
+\label{renderpropsFig}
+\end{figure}
 
 \section{The Timeline}
 \label{TimelineSec}

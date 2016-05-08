@@ -35,6 +35,7 @@ import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
 import maspack.util.IntegerInterval;
+import maspack.util.StringRange;
 
 public class DicomViewer extends RenderableComponentBase {
 
@@ -483,6 +484,13 @@ public class DicomViewer extends RenderableComponentBase {
     */
    public DicomPixelInterpolator getPixelConverter() {
       return texture.getWindowConverter ();
+   }
+   
+   /**
+    * @return range of valid window names
+    */
+   public StringRange getWindowRange() {
+      return texture.getWindowConverter().getWindowRange();
    }
    
    @Override

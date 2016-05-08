@@ -9,7 +9,7 @@ package maspack.render;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 
 /**
  * Maintains a list of renderable objects for use by GLViewer. As renderables
@@ -367,7 +367,7 @@ public class RenderList {
          + myTransparent2d.size() + myOpaque2d.size();
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       for (int i = 0; i < myUnexpanded.size(); i++) {
          myUnexpanded.get (i).updateBounds (pmin, pmax);
       }

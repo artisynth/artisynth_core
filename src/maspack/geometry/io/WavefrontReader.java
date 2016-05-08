@@ -1671,7 +1671,17 @@ public class WavefrontReader extends MeshReaderBase {
       ArrayList<Vector3d> textureCoords = new ArrayList<Vector3d>();
       int[] tindices = getLocalTextureIndicesAndVertices (textureCoords);
       if (tindices != null) {
-         mesh.setTextureCoords (textureCoords, tindices);
+         // for now, make sure we don't have partial texture coordinates
+         boolean incompleteTexture = false;
+         for (int i=0; i<tindices.length; i++) {
+            if (tindices[i] == -1) {
+               incompleteTexture = true;
+               break;
+            }
+         }
+         if (!incompleteTexture) {
+            mesh.setTextureCoords (textureCoords, tindices);
+         }
       }
       ArrayList<Vector3d> normals = new ArrayList<Vector3d>();
       int[] nindices = getLocalNormalIndicesAndVertices (normals);

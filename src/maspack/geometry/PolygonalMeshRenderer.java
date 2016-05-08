@@ -175,6 +175,8 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
       // Shading shadingModel = props.getShading();
       // boolean mergeQuadTriangles = (shadingModel != Shading.FLAT);  
 
+      // ensure capacity assume all faces are triangles
+      r.ensureVertexCapacity (pmesh.getFaces().size()*3);
       ArrayList<Face> faces = pmesh.getFaces();
       for (int i=0; i<faces.size(); i++) {
          // Face f = faces.get(i);   // XXX required?
@@ -186,8 +188,8 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
             vidxs[j] = r.addVertex(
                pidxs[foff + j],
                nidxs != null ? nidxs[foff + j] : i,
-                  cidxs != null ? cidxs[foff + j] : -1,
-                     tidxs != null ? tidxs[foff + j] : -1);
+               cidxs != null ? cidxs[foff + j] : -1,
+               tidxs != null ? tidxs[foff + j] : -1);
          }
          // XXX currently handled using separate index list
          //         // triangle fan for faces, line loop for edges
@@ -196,7 +198,6 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
          //            r.addLineLoop(vidxs);
          //         }
       } 
-
       return r;
    }
 
@@ -256,9 +257,10 @@ public class PolygonalMeshRenderer extends MeshRendererBase {
    @Override
    public void prerender (RenderProps props) {
       super.prerender (props);
-      
+
       PolygonalMesh mesh = getMesh();
-      if (myFaceTriangles == null || mesh.getVersion () != myFacePrimitivesVersion) {
+      if (myFaceTriangles == null ||
+          mesh.getVersion () != myFacePrimitivesVersion) {
          
          int[] faceOrder = new int[mesh.numFaces ()];
          for (int i=0; i<faceOrder.length; ++i) {

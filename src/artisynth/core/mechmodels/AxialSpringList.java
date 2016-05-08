@@ -167,7 +167,10 @@ public class AxialSpringList<S extends AxialSpring> extends PointSpringList<S> {
    }
 
    public void render (Renderer renderer, int flags) {
-      RenderProps props = myRenderProps;
+      render (renderer, myRenderProps, flags);
+   }
+   
+   public void render (Renderer renderer, RenderProps props, int flags) {
       if (renderer.isSelecting()) {
          LineStyle style = props.getLineStyle();
          if (style == LineStyle.LINE) {

@@ -641,12 +641,14 @@ public class GL3Viewer extends GLViewer {
    @Override
    public void setupScreenShot(
       int w, int h, int samples, File file, String format) {
+      boolean gammaCorrection = isGammaCorrectionEnabled();
       if (frameCapture == null) {
-         frameCapture = new GLFrameCapture ( w, h, samples, file, format);
+         frameCapture = 
+            new GLFrameCapture (w, h, samples, gammaCorrection, file, format);
       }
       else {
          synchronized(frameCapture) {
-            frameCapture.reconfigure(w, h, samples, isGammaCorrectionEnabled(), file, format);
+            frameCapture.reconfigure(w, h, samples, gammaCorrection, file, format);
          }
       }
       grab = true;

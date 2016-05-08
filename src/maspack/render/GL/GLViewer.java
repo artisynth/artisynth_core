@@ -267,7 +267,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
       public int depthBitOffset = 0;
       public int depthBits = 16;
-      public double fov = 35;         // originally 70
+      public double fov = 30;         // originally 70
       public double fieldHeight = 10; // originally 10
       public boolean orthographic = false;
       public boolean explicit = false;
@@ -971,6 +971,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
             renderable.updateBounds (pmin, pmax);
          }
       }
+      // System.out.println (pmin);
+      // System.out.println (pmax);
       if (pmin.x == Double.POSITIVE_INFINITY) { // then no bounds were set, so
          // use a default
          pmin.set (-1, -1, -1);
@@ -1048,7 +1050,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
          myViewState.myCenter.set (pcenter);
          Vector3d zdir = getEyeZDirection();
-         double d = r / Math.tan (Math.toRadians (myFrustum.fov) / 2);
+         // use sine instead of tangent since we want frustum to be tangent to
+         // to the sphere implied by r
+         double d = r / Math.sin (Math.toRadians (myFrustum.fov) / 2);
          Point3d eye = new Point3d();
          eye.scaledAdd(d, zdir, myViewState.myCenter);
          setEye(eye);
@@ -1077,7 +1081,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
          myViewState.myCenter.set (pcenter);
          Vector3d zdir = getEyeZDirection();
-         double d = r / Math.tan (Math.toRadians (myFrustum.fov) / 2);
+         // use sine instead of tangent since we want frustum to be tangent to
+         // to the sphere implied by r
+         double d = r / Math.sin (Math.toRadians (myFrustum.fov) / 2);
          Point3d eye = getEye();
          eye.scaledAdd(d, zdir, myViewState.myCenter);
          setEye(eye);
@@ -4008,6 +4014,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    @Override
    public void addVertex (Vector3d pnt) {
       addVertex ((float)pnt.x, (float)pnt.y, (float)pnt.z);
+   }
+
+   @Override
+   public void addVertex (float[] pnt) {
+      addVertex (pnt[0], pnt[1], pnt[2]);
    }
 
    @Override

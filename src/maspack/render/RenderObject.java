@@ -1302,7 +1302,10 @@ public class RenderObject implements Versioned {
       int vcap = ncap*vertexStride;
       
       // if new vertex array will contain new information, we need to shift some of the data
-      if (vHasPositions != rHasPositions || vHasNormals != rHasNormals || vHasColors != rHasColors || vHasTexcoords != rHasTexcoords) {
+      if (vHasPositions != rHasPositions ||
+          vHasNormals != rHasNormals ||
+          vHasColors != rHasColors ||
+          vHasTexcoords != rHasTexcoords) {
          
          int newVertexStride = 0;
          int newPositionOffset = -1;
@@ -1392,9 +1395,7 @@ public class RenderObject implements Versioned {
             vertices[i] = -1;
          }
       }
-      
-      vertexCapacity = cap;
-      
+      vertexCapacity = ncap;
    }
    
    /**

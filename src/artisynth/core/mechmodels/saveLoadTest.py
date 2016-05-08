@@ -36,8 +36,8 @@ testSaveLoad ("artisynth.demos.mech.SegmentedPlaneDemo")
 testSaveLoad ("artisynth.demos.fem.ArticulatedFem")
 testSaveLoad ("artisynth.demos.fem.FemMuscleDemo")
 testSaveLoad ("artisynth.demos.fem.FemSkinDemo")
-#testSaveLoadFull ("artisynth.models.alanMasseter.MasseterM16462John",0,"%g",0.2,0.02)
-#testSaveLoad ("artisynth.models.phuman.SimpleJointedArm")
+testSaveLoadFull ("artisynth.models.alanMasseter.MasseterM16462John",0,"%g",0.2,0.02)
+testSaveLoad ("artisynth.models.phuman.SimpleJointedArm")
 testSaveLoad ("artisynth.demos.mech.ConstrainedParticle")
 testSaveLoad ("artisynth.demos.fem.Hex3dBlock")
 testSaveLoadFull ("artisynth.demos.fem.TetBeam3d", 0, "%.10g", 1.0, 0.10)
@@ -51,15 +51,16 @@ testSaveLoad ("artisynth.demos.fem.SelfCollision")
 testSaveLoad ("artisynth.demos.fem.FemPlaneCollide");
 testSaveLoad ("artisynth.demos.mech.LaymanDemo")
 testSaveLoad ("artisynth.demos.fem.FemCollision")
-#testSaveLoadFull ("artisynth.models.tongue3d.HexTongueDemo", 0, "%g", 0.2, 0.02)
-#testSaveLoadFull ("artisynth.models.tongue3d.FemMuscleTongueDemo", 0, "%g", 0.2, 0.02)
+testSaveLoadFull ("artisynth.models.tongue3d.HexTongueDemo", 0, "%g", 0.2, 0.02)
+testSaveLoadFull ("artisynth.models.tongue3d.FemMuscleTongueDemo", 0, "%g", 0.2, 0.02)
 #testSaveLoad ("artisynth.models.inversedemos.TongueInvDemo") // Doesn't work
 #testSaveLoad ("artisynth.models.inversedemos.HydrostatInvDemo") // Doesn't work
 
-#testSaveLoadFull ("artisynth.models.dynjaw.JawLarynxDemo", 1, "%g", 1.0, 0.10)
+testSaveLoadFull ("artisynth.models.dynjaw.JawLarynxDemo", 1, "%g", 1.0, 0.10)
 testSaveLoad ("artisynth.demos.mech.SkinDemo")
-#testSaveLoad ("artisynth.models.dynjaw.JawDemo")
-#testSaveLoad ("artisynth.models.dangTongue.FemTongueDemo")
+# JawDemo needs delay since rendering sets Jaw textureProps.enabled=false
+testSaveLoadFull ("artisynth.models.dynjaw.JawDemo", 0.5, "%g", 1.0, 0.10)
+testSaveLoad ("artisynth.models.dangTongue.FemTongueDemo")
 testSaveLoadFull ("artisynth.demos.fem.FemMuscleArm", 0, "%g", 1.0, 0.10)
 
 testSaveLoad ("artisynth.demos.tutorial.BallPlateCollide")

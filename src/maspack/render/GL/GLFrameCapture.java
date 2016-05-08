@@ -19,14 +19,18 @@ public class GLFrameCapture {
    private String format;
    private FrameBufferObject fbo;
    
-   public GLFrameCapture(int w, int h, int nsamples, File file, String format) {
-      this(0,0,w,h, nsamples, file,format);
+   public GLFrameCapture(
+      int w, int h, int nsamples, boolean gammaCorrected, 
+      File file, String format) {
+      this(0,0,w,h, nsamples, gammaCorrected, file,format);
    }
   
-   public GLFrameCapture(int x, int y, int w, int h, int nsamples, File file, String format) {
+   public GLFrameCapture(
+      int x, int y, int w, int h, int nsamples, boolean gammaCorrected, 
+      File file, String format) {
       this.file = file;
       this.format = format;
-      fbo = new FrameBufferObject(x, y, w, h);
+      fbo = new FrameBufferObject(x, y, w, h, nsamples, gammaCorrected);
    }
    
    public FrameBufferObject getFBO() {

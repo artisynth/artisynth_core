@@ -182,9 +182,10 @@ public abstract class MeshRendererBase {
     * @param props render properties
     */
    public void prerender (RenderProps props) {
-    
+
       RobSignature sig = createSignature (myMesh, props);
-      if (myRob == null || renderObjectNeedsBuilding (myMesh, props, sig, mySignature)) {
+      if (myRob == null ||
+          renderObjectNeedsBuilding (myMesh, props, sig, mySignature)) {
          RenderObject robj = buildRenderObject (myMesh, props);
          myRob = robj;
          mySignature = sig;

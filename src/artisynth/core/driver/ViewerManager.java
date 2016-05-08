@@ -30,6 +30,7 @@ import maspack.render.RenderList;
 import maspack.render.Renderer;
 import maspack.render.Renderer.HighlightStyle;
 import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewer.BlendFactor;
 import maspack.render.GL.GLViewerFrame;
 import maspack.render.GL.GLViewerPanel;
 import maspack.widgets.ButtonMasks;
@@ -274,6 +275,7 @@ public class ViewerManager {
       }
       viewer.setGridVisible (myDefaultDrawGrid);
       viewer.setBackgroundColor (myBackgroundColor);
+      viewer.setBlendDestFactor(GLViewer.DEFAULT_DST_BLENDING);
    }
 
    public void setBackgroundColor (Color color) {

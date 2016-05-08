@@ -2048,7 +2048,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
          if (idx < 0 || idx >= numAttributes) {
             throw new IllegalArgumentException (
                "Attribute index "+idx+" out of range, num attributes=" +
-               numAttributes);
+               numAttributes + ", i=" + i);
          }
       }
       return newIndices;
@@ -2521,7 +2521,6 @@ public abstract class MeshBase implements Renderable, Cloneable {
                "indices argument is null");
          }
          int[] newIndices = createIndices (indices, coords.size());
-         
          myTextureCoords = newCoords;      
          myTextureIndices = newIndices;
       }

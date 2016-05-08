@@ -2196,6 +2196,15 @@ public interface Renderer {
    public void addVertex (Vector3d pnt);
 
    /**
+    * Adds a vertex to a primitive being drawn while in draw mode. 
+    * 
+    * @param pnt coordinates for the vertex
+    * @see #beginDraw
+    * @throws IllegalStateException if the renderer is not in draw mode
+    */
+   public void addVertex (float[] pnt);
+
+   /**
     * Sets the normal to be associated with the next vertex to be
     * added while in draw mode. This normal will remain in effect until
     * a subsequent <code>setNormal</code> call. The normal does not

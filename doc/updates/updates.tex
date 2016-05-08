@@ -149,6 +149,173 @@ line primitives can now be controlled with the renderer's
 
 \end{itemize}
 
+\subsubsection*{Class and Method Renaming}
+
+Some classes and methods were renamed as described in the following
+charts.
+
+\begin{tabular}{ll}
+Old name & New Name \\
+\hline
+\multicolumn{2}{l}{Renamed classes and enums}\\
+\hline
+{\tt render.RenderProps.PointStyle} & {\tt render.Renderer.PointStyle} \\
+{\tt render.RenderProps.LineStyle} & {\tt render.Renderer.LineStyle} \\
+{\tt render.RenderProps.Faces} & {\tt render.Renderer.FaceStyle} \\
+{\tt render.RenderProps.Shading} & {\tt render.Renderer.Shading} \\
+GOURARD -> SMOOTH
+PHONG -> SMOOTH
+
+setPointSlices() -> gone
+setLineSlices() -> gone
+
+ELLIPSOID -> SPINDLE
+
+RenderProps.setTextureProps() -> RenderProps.setColorMap();
+RenderProps.setTextureXXX() -> RenderProps.setColorMapXXX();
+TextureProps -> ColorMapProps
+TextureProps.Mode -> Renderer.ColorMixing;
+TextureProps.setMode() -> ColorMapProps.setColorMixing();
+
+{\tt render.GLRenderer} & {\tt render.Renderer} \\
+{\tt render.GLRenderable} & {\tt render.IsRenderable} \\
+{\tt render.GLSelectable} & {\tt render.IsSelectable} \\
+
+{\tt render.GLClipPlane} & {\tt render.GL.GLClipPlane} \\
+{\tt render.GLViewer.DraggerType} & {\tt render.Dragger3d.DraggerType} \\
+{\tt render.GLViewer} & {\tt render.GL.GLViewer} \\
+{\tt render.GLViewerFrame} & {\tt render.GL.GLViewerFrame} \\
+{\tt render.GLGridResolution} & {\tt render.GL.GLGridResolution} \\
+\end{tabular}
+
+TRANSLUCENT -> TRANSPARENT
+
+Renderer.SELECTED -> Renderer.HIGHLIGHT;
+
+renderer.setFaceMode() -> renderer.setFaceStyle()
+
+MeshFactory.createPlane() -> MeshFactory.createRectangle();
+
+setLightingEnabled(false) replaced with setShading (Shading.NONE);
+
+RenderProps.getXXXColorArray -> RenderProps.getXXColorF
+
+render.GLSelectionListener -> render.ViewerSelectionListener 
+render.GLSelectionEvent -> render.ViewerSelectionEvent
+
+render.GLMouseListener -> render.GL.GLMouseListener
+
+renderables.GLRenderableHolder -> renderables.IsRenderableHolder
+
+updateBounds (Point3d pmin, Point3d pmax) -> updateBounds (Vector3d pmin, Vector3d pmax) -> 
+
+
+autoFitOrtho(flags) -> autoFitOrtho()
+autoFitPerspective(flags) -> autoFitPerspective()
+
+GLViewer.BlendType -> GLViewer.BlendFactor
+GLViewer.set/getDBlending -> GLViewer.set/getBlendDestFactor()
+GLViewer.set/getSBlending -> GLViewer.set/getBlendSourceFactor()
+
+color blending methods moved from GLSupport to render.color.ColorUtils:
+
+GLSupport.interpolateColor -> color.ColorUtils.interpolateColor
+
+XXX watch out for getTextureProps() - will be null!!!
+
+TextureProps.setSphereMappingEnabled() // gone
+TextureProps.setAutomatic() // gone
+
+REPLACE:
+
+   renderer.setMaterialAndShading (props, props.getXXXMaterial(), selected);
+   renderer.restoreShading (props);
+
+   renderer.setPropsShading (props);
+   renderer.setXXXColoring (props, selected);
+
+REPLACE:
+
+   renderer.drawSphere (props, float[] center)
+
+   renderer.drawSphere (float[] center, props.getPointRadius())
+
+REPLACE:
+
+   renderer.drawLine (props, float[] p0, float[] p1, capped, selected)
+
+   renderer.drawLine (props, float[] p0, float[] p1, null, capped, selected)
+
+REPLACE:
+
+   renderer.setLineWidth (lineWidth);
+   Frame.drawAxes (renderer, frame, length, selected);
+
+   Renderer.drawAxes (frame, length, lineWidth, selected);
+
+REPLACE:
+
+   renderer.setLightingEnabled (false);
+   renderer.setLightingEnabled (true);
+
+   Shading savedShading = renderer.setShading (Shading.NONE);
+   renderer.setShading (savedShading);
+
+GLViewer.getWorldToEye() -> GLViewer.getViewMatrix();
+
+
+gl.glLineWidth -> renderer.setLineWidth
+gl.glBegin (GL.GL_XXX) -> renderer.beginDraw (DrawMode.XXX)
+gl.glEnd()  -> renderer.endDraw()
+gl.glVertex3d -> renderer.addVertex 
+gl.glVertex3f -> renderer.addVertex 
+gl.glVertex3fv -> renderer.addVertex 
+
+Viewer.getWidth() -> getScreenWidth()
+Viewer.getHeight() -> getScreenHeight()
+
+NOTES for moisik:
+
+Hi Scott,
+
+Regarding the changes to ArtiSynth renderering: I've patched up the
+code which you have committed under artisynth_projects as best I can,
+but it relies so heavily on internal and undocumented classes that I
+can't be completely sure of the results. GL2 is also assumed in a few
+places, so I'm not sure what will happen when you run ArtiSynth with
+the (now default) GL3 viewer. To run with GL2, use the -GLVersion 2
+command line option. 
+
+The main changes are in ViewerTools:
+
+1) In ModelViews.createSubViewer(), I use the GLVersion info in Main
+to create either a GL2Viewer or GL3Viewer.
+
+2) In ViewerHandler.display(), I had to conditionalize functionality
+on the viewer being an instance of GL2Viewer.
+
+
+Hi Antonio,
+
+In order to get phuman.MasseterAlignedImages to compile, I added the
+method getWindowRange() to DicomViewer.
+
+Hi Andrew,
+
+Regarding the changes to ArtiSynth renderering: the rendering code in
+SPHFluidModel still needs to be converted over. I asked Antonio to
+help with this, since he wrote most of the new rendering code and sits
+very close to you :-)
+
+In the meantime, I've patched things up so that it should still work
+under GL2 (ArtiSynth command line option -GLVersion 2). One thing I
+had to do was make the display list used by renderSpheres an integer
+that is explicitly allocated by the class and stored in the member
+variable myDisplayList, since display lists are no longer used by
+RenderProps.
+
+
+   
 \subsubsection*{Changed to existing renderer methods}
 
 As mentioned above, {\tt GLRenderer} has been replaced with {\tt

@@ -139,6 +139,36 @@ public class FemElementRenderer {
       return idx;
    }
 
+   public static int updateWidgetRestPositions (
+      RenderObject r, FemElement3d elem, double size, int idx) {
+
+      FemNode3d[] enodes = elem.getNodes();
+
+      // compute center point
+      float cx = 0;
+      float cy = 0;
+      float cz = 0;
+      for (int j=0; j<enodes.length; j++) {
+         Point3d rest = enodes[j].myRest;
+         cx += rest.x;
+         cy += rest.y;
+         cz += rest.z;
+      }
+      cx /= enodes.length;
+      cy /= enodes.length;
+      cz /= enodes.length;
+
+      float s = (float)size;
+      for (int j=0; j<enodes.length; j++) {
+         Point3d rest = enodes[j].myRest;
+         float dx = (float)rest.x-cx;
+         float dy = (float)rest.y-cy;
+         float dz = (float)rest.z-cz;
+         r.setPosition (idx++, cx+s*dx, cy+s*dy, cz+s*dz);
+      }
+      return idx;
+   }
+
    public static void updateWidgetNormals (RenderObject r, int tgrp) {
       int numt = r.numTriangles(tgrp);
 
@@ -241,7 +271,7 @@ public class FemElementRenderer {
       r.notifyPositionsModified();
    }
 
-   void renderWidget (
+   public void renderWidget (
       Renderer renderer, FemElement3d elem, double size, RenderProps props) {
 
       RenderObject r = myRob;      
@@ -259,7 +289,25 @@ public class FemElementRenderer {
       renderer.drawTriangles (r);
    }
 
-   void render (
+   public void renderRestWidget (
+      Renderer renderer, FemElement3d elem, double size, RenderProps props) {
+
+      RenderObject r = myRob;      
+
+      updateWidgetRestPositions (r, elem, size, myNumEdgePos);
+      updateWidgetNormals (r, /*group=*/0);
+
+      if (!renderer.isSelecting()) {
+         float[] color = props.getFaceColorF();
+         if (elem.isInverted()) {
+            color = FemModel3d.myInvertedColor;
+         }
+         renderer.setFaceColoring (props, color, elem.isSelected());
+      }
+      renderer.drawTriangles (r);
+   }
+
+   public void render (
       Renderer renderer, FemElement3d elem, RenderProps props) {
 
       RenderObject r = myRob;      

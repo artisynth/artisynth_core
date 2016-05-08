@@ -55,7 +55,7 @@ public interface Renderable extends IsSelectable, HasRenderProps {
    // // */
    // // void render (GLRenderer renderer);
 
-   // // void updateBounds (Point3d pmin, Point3d pmax);
+   // // void updateBounds (Vector3d pmin, Vector3d pmax);
 
    // void handleSelection (
    // LinkedList<IsRenderable> path, int[] namestack, int idx);

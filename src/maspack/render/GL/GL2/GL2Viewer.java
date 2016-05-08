@@ -14,6 +14,7 @@ import java.util.LinkedList;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
+import javax.media.opengl.glu.GLU;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLContext;
@@ -73,6 +74,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    protected static boolean myUseGLSelectSelection = false;
 
    private GL2 gl;
+   private GLU glu;
    private GL2SharedResources myGLResources;
    private GLTextRenderer myTextRenderer;
    private ColorMapProps myTextTextureProps = null;
@@ -2467,13 +2469,14 @@ public class GL2Viewer extends GLViewer implements HasProperties {
     */
    public void setupScreenShot (
       int w, int h, int samples, File file, String format) {
-
+      boolean gammaCorrection = isGammaCorrectionEnabled();
       if (frameCapture == null) {
-         frameCapture = new GLFrameCapture ( w, h, samples, file, format);
+         frameCapture = 
+            new GLFrameCapture (w, h, samples, gammaCorrection, file, format);
       }
       else {
          synchronized(frameCapture) {
-            frameCapture.reconfigure(w, h, samples, isGammaCorrectionEnabled(), file, format);
+            frameCapture.reconfigure(w, h, samples, gammaCorrection, file, format);
          }
       }
       grab = true;
@@ -2536,6 +2539,13 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       GL2 gl = drawable.getGL().getGL2();
       maybeUpdateState (gl);  // update state for GL
       return gl;
+   }
+   
+   public GLU getGLU() {
+      if (glu == null) {
+         glu = new GLU();
+      }
+      return glu;
    }
 
    private boolean setupHSVInterpolation (GL2 gl) {

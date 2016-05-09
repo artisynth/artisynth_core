@@ -1117,14 +1117,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    // get the actual line width currently set by GL
-   protected float getGLLineWidth(GL gl) {
+   protected float getLineWidth(GL gl) {
       float[] buff = new float[1];
       gl.glGetFloatv(GL2.GL_LINE_WIDTH, buff, 0);
       return buff[0];
    }
 
    // get the actual point size currently set by GL
-   protected float getGLPointSize(GL2GL3 gl) {
+   protected float getPointSize(GL2GL3 gl) {
       float[] buff = new float[1];
       gl.glGetFloatv(GL2.GL_POINT_SIZE, buff, 0);
       return buff[0];

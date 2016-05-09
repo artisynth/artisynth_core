@@ -67,10 +67,6 @@ public class GL3Viewer extends GLViewer {
    
    long lastGarbageTime = 0;  // for garbage collecting of viewer-specific resources
    
-   // State
-   ViewerState myCommittedViewerState = null;
-   boolean myMultiSampleEnabled = false;
-   
    // Updateable object for various primitives (essentially stream-drawn)
    // like single lines, etc...
    GL3FlexObject gloFlex = null;
@@ -226,18 +222,9 @@ public class GL3Viewer extends GLViewer {
 
       gl.setSwapInterval (1);
 
-      if (gl.isExtensionAvailable("GL_ARB_multisample")) {
-         gl.glEnable(GL3.GL_MULTISAMPLE);
-      }
-
       int[] buff = new int[1];
       gl.glGetIntegerv(GL3.GL_MAX_CLIP_DISTANCES, buff, 0);
       maxClipPlanes = buff[0];
-      
-      if (gl.isExtensionAvailable("GL_ARB_multisample")) {
-         gl.glEnable(GL.GL_MULTISAMPLE);
-         myMultiSampleEnabled = true;
-      }
 
       selectEnabled = false;
       selectTrigger = false;
@@ -293,10 +280,6 @@ public class GL3Viewer extends GLViewer {
       this.gl = null;
       this.drawable = null;
    }
-
-   public boolean isMultiSampleEnabled() {
-      return myMultiSampleEnabled;
-   }
    
    /**
     * Do some clean up of resources
@@ -330,7 +313,6 @@ public class GL3Viewer extends GLViewer {
       myRenderObjectManager.dispose (gl);
       myPrimitiveManager.dispose (gl);
       myTextRenderer.dispose (gl);
-      myCommittedViewerState = null;
 
       // clear temporaries
       gloFlex.dispose (gl);
@@ -693,6 +675,10 @@ public class GL3Viewer extends GLViewer {
       maybeUpdateMaterials(gl);
    }
 
+   protected void maybeUpdateState() {
+      maybeUpdateState(gl);
+   }
+   
    protected void maybeUpdateState(GL3 gl) {
       maybeUpdateMatrices (gl);
       maybeUpdateMaterials (gl);
@@ -1369,26 +1355,7 @@ public class GL3Viewer extends GLViewer {
 
       GLSupport.checkAndPrintGLError(gl);
    }
-   
-   protected boolean maybeCommitPointSize(GL3 gl, float size) {
-      boolean modified = false;
-      if (size != myCommittedViewerState.pointSize) {
-         gl.glPointSize (size);
-         myCommittedViewerState.pointSize = size;
-         modified = true;
-      }
-      return modified;
-   }
-   
-   protected boolean maybeCommitLineWidth(GL gl, float width) {
-      boolean modified = false;
-      if (width != myCommittedViewerState.lineWidth) {
-         gl.glLineWidth (width);
-         myCommittedViewerState.lineWidth = width;
-         modified = true;
-      }
-      return modified;
-   }
+
 
    @Override
    public void drawLine(
@@ -1405,7 +1372,7 @@ public class GL3Viewer extends GLViewer {
          case LINE: {
             //boolean savedLighting = isLightingEnabled();
             //setLightingEnabled (false);
-            maybeCommitLineWidth (gl, props.getLineWidth());
+            setLineWidth (gl, props.getLineWidth());
 
             //            if (color.length == 3 && props.getAlpha () < 1) {
             //               color = new float[]{color[0], color[1], color[2], (float)props.getAlpha ()};
@@ -1533,7 +1500,7 @@ public class GL3Viewer extends GLViewer {
       if (len > arrowLen) {
          switch (props.getLineStyle()) {
             case LINE: {
-               maybeCommitLineWidth (gl, props.getLineWidth());
+               setLineWidth (gl, props.getLineWidth());
                drawGLLine(gl, pnt0, ctmp);
                break;
             }
@@ -1665,7 +1632,7 @@ public class GL3Viewer extends GLViewer {
       maybeUpdateState(gl);
       
       // update line width
-      maybeCommitLineWidth (gl, width);
+      setLineWidth (gl, width);
       
       updateProgram (gl, RenderingMode.DEFAULT, false, true, false);
       GL3Object axes = myPrimitiveManager.getAcquiredAxes(gl, drawx, drawy, drawz);
@@ -1721,7 +1688,7 @@ public class GL3Viewer extends GLViewer {
          case LINE: {
             //setLightingEnabled (false);
             // draw regular points first
-            maybeCommitLineWidth (gl, props.getLineWidth());
+            setLineWidth (gl, props.getLineWidth());
             //setColor (props.getLineColorArray(), isSelected);
             float[] v0 = null;
             for (float[] v1 : pnts) {
@@ -2069,7 +2036,7 @@ public class GL3Viewer extends GLViewer {
       switch (style) {
          case LINE: {
             // maybe change point size and draw points
-            maybeCommitLineWidth (gl, (float)rad);
+            setLineWidth (gl, (float)rad);
             updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
             gro.drawLineGroup (gl, GL.GL_LINES, gidx);
             break;
@@ -2116,14 +2083,6 @@ public class GL3Viewer extends GLViewer {
 
             break;
          }
-      }
-   }
-   
-   protected void setPointSize(GL3 gl, float size) {
-      setPointSize (size);
-      if (myCommittedViewerState != null) {
-         myCommittedViewerState.pointSize = size;
-         gl.glPointSize (size);
       }
    }
 

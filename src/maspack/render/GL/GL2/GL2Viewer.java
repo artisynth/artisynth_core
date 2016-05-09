@@ -69,7 +69,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    //   }
    
    protected boolean myShadingModified = true;
-   protected ViewerState myCommittedViewerState;  // for tracking changes that have been committed
 
    protected static boolean myUseGLSelectSelection = false;
 
@@ -90,8 +89,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    double[] cosBuff = {1, 0, -1, 0, 1};
    double[] sinBuff = {0, 1, 0, -1, 0};
    private static double[] GLMatrix = new double[16];
-
-   protected boolean myMultiSampleEnabled = false;  // for antialiasing during screenshot
+   
    private GLFrameCapture frameCapture = null;
    private boolean grab = false;
    private boolean grabWaitComplete = false; // wait
@@ -344,11 +342,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       gl.setSwapInterval (1);
 
-      if (gl.isExtensionAvailable("GL_ARB_multisample")) {
-         gl.glEnable(GL.GL_MULTISAMPLE);
-         myMultiSampleEnabled = true;
-      }
-
       int[] buff = new int[1];
       gl.glGetIntegerv(GL2.GL_MAX_CLIP_PLANES, buff, 0);
       maxClipPlanes = buff[0];
@@ -581,10 +574,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       
       this.drawable = null;
       this.gl = null;
-   }
-
-   public boolean isMultiSampleEnabled() {
-      return myMultiSampleEnabled;
    }
 
    private void offscreenCapture (int flags) {
@@ -1864,7 +1853,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       switch (props.getLineStyle()) {
          case LINE: {
             //setLightingEnabled (false);
-            maybeCommitLineWidth (gl, props.getLineWidth());
+            setLineWidth (gl, props.getLineWidth());
 //            if (color.length == 3 && props.getAlpha () < 1) {
 //               color = new float[]{color[0], color[1], color[2], (float)props.getAlpha ()};
 //            }
@@ -1906,26 +1895,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       setShading (savedShading);
       setHighlighting (savedHighlighting);
    }
-   
-   protected boolean maybeCommitPointSize(GL2 gl, float size) {
-      boolean modified = false;
-      if (size != myCommittedViewerState.pointSize) {
-         gl.glPointSize (size);
-         myCommittedViewerState.pointSize = size;
-         modified = true;
-      }
-      return modified;
-   }
-   
-   protected boolean maybeCommitLineWidth(GL gl, float width) {
-      boolean modified = false;
-      if (width != myCommittedViewerState.lineWidth) {
-         gl.glLineWidth (width);
-         myCommittedViewerState.lineWidth = width;
-         modified = true;
-      }
-      return modified;
-   }
 
    public void drawArrow (
       RenderProps props, float[] pnt0, float[] pnt1, boolean capped,
@@ -1955,7 +1924,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (len > arrowLen) {
          switch (props.getLineStyle()) {
             case LINE: {
-               maybeCommitLineWidth (gl, props.getLineWidth());
+               setLineWidth (gl, props.getLineWidth());
                gl.glBegin (GL2.GL_LINES);
                gl.glVertex3fv (pnt0, 0);
                gl.glVertex3fv (ctmp, 0);
@@ -2153,7 +2122,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             int size = props.getPointSize();
             if (size > 0) {
                //setLightingEnabled (false);
-               maybeCommitPointSize (gl, size);
+               setPointSize (gl, size);
                //setColor (props.getPointColorArray(), selected);
                drawPoint(pnt);
                //setLightingEnabled (true);
@@ -2225,7 +2194,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          case LINE: {
             //setLightingEnabled (false);
             // draw regular points first
-            maybeCommitLineWidth (gl, props.getLineWidth());
+            setLineWidth (gl, props.getLineWidth());
             gl.glBegin (GL2.GL_LINE_STRIP);
             //setColor (props.getLineColorArray(), isSelected);
             for (float[] v : pnts) {
@@ -2440,7 +2409,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       Vector3d u = new Vector3d();
       
-      maybeCommitLineWidth (gl, width);
+      setLineWidth (gl, width);
 
       if (X == null) {
          X = RigidTransform3d.IDENTITY;
@@ -3634,7 +3603,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       switch (style) {
          case LINE: {
             // maybe change line width
-            maybeCommitLineWidth (gl, (float)rad);
+            setLineWidth (gl, (float)rad);
             drawLines(robj, gidx);
             break;
          }
@@ -3852,7 +3821,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       switch (style) { 
          case POINT: {
             // maybe change point size and draw points
-            maybeCommitPointSize(gl, (float)rad);
+            setPointSize(gl, (float)rad);
             drawPoints(robj, gidx);
             break;
          }
@@ -4371,33 +4340,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    
    public boolean hasBumpMapping() {
       return false;
-   }
-   
-   /**
-    * Begin application-defined GL rendering, using GL primitives based
-    * on handles returned by {@link #getGL()}, etc. Save the current
-    * graphics state.
-    */
-   public void beginGL() {
-      pushViewerState();
-      pushProjectionMatrix();
-      pushModelMatrix();
-      pushViewMatrix();
-      // FINISH    
-   }
-   
-   /**
-    * Ends application-defined GL rendering. Restores the graphics state
-    * to what it was when {@link #beginGL()} was called.
-    */
-   public void endGL() {
-      // FINISH    
-      popViewMatrix();
-      popModelMatrix();
-      popProjectionMatrix();
-      myCommittedViewerState = null;    // clear committed info
-      myCurrentMaterialModified = true; // force reset of materials
-      popViewerState();
    }
   
 }

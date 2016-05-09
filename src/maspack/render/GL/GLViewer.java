@@ -157,6 +157,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
    protected ViewState myViewState = null;
    protected LinkedList<ViewState> viewStateStack = null;
+   protected ViewerState myCommittedViewerState = null;    // "committed" viewer state
+   boolean myMultiSampleEnabled = false;
 
    // Bits to indicate when state variables have been set to non-default values
    static private final int BACK_COLOR_BIT = 0x0001;
@@ -1127,6 +1129,42 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       gl.glGetFloatv(GL2.GL_POINT_SIZE, buff, 0);
       return buff[0];
    }
+   
+   /**
+    * Explicitly set the point size now, updating committed
+    * state if necessary
+    * @param gl
+    * @param size
+    */
+   protected void setPointSize(GL2GL3 gl, float size) {
+      setPointSize (size);
+      if (myCommittedViewerState != null) {
+         if (myCommittedViewerState.pointSize != size) {
+            gl.glPointSize (size);
+            myCommittedViewerState.pointSize = size;
+         }
+      } else {
+         gl.glPointSize (size);
+      }
+   }
+   
+   /**
+    * Explicitly set the line width now, updating committed
+    * state if necessary
+    * @param gl
+    * @param width
+    */
+   protected void setLineWidth(GL gl, float width) {
+      setLineWidth (width);
+      if (myCommittedViewerState != null) {
+         if (myCommittedViewerState.lineWidth != width) {
+            gl.glLineWidth (width);
+            myCommittedViewerState.lineWidth = width;
+         }
+      } else {
+         gl.glLineWidth (width);
+      }
+   }
 
    /**
     * Enable or disable the GL Canvas auto-swap mode
@@ -1503,12 +1541,23 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       gl.glGetIntegerv(GL3.GL_MINOR_VERSION, buff, 1);
       System.out.println("GL Renderer: " + renderer);
       System.out.println("OpenGL Version: " + version + " (" + buff[0] + "," + buff[1] + ")");
+      
+      if (gl.isExtensionAvailable("GL_ARB_multisample")) {
+         gl.glEnable(GL.GL_MULTISAMPLE);
+         myMultiSampleEnabled = true;
+      }
+
+   }
+   
+   public boolean isMultiSampleEnabled() {
+      return myMultiSampleEnabled;
    }
 
    /**
     * Called any time GL context is switched! e.g. moving window to new display
     */
    public void dispose(GLAutoDrawable drawable) {
+      myCommittedViewerState = null;
    }
    
    public void addMouseInputListener (MouseInputListener l) {
@@ -4220,6 +4269,35 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          }
       }
       
+   }
+   
+   /**
+    * Begin application-defined GL rendering, using GL primitives based
+    * on handles returned by {@link #getGL()}, etc. Save the current
+    * graphics state.
+    */
+   public GL beginGL() {
+      pushViewerState();
+      pushProjectionMatrix();
+      pushModelMatrix();
+      pushViewMatrix();
+      pushTextureMatrix ();
+      return getGL();
+   }
+   
+   /**
+    * Ends application-defined GL rendering. Restores the graphics state
+    * to what it was when {@link #beginGL()} was called.
+    */
+   public void endGL() {
+      // FINISH    
+      popTextureMatrix ();
+      popViewMatrix();
+      popModelMatrix();
+      popProjectionMatrix();
+      myCommittedViewerState = null;    // clear committed info
+      myCurrentMaterialModified = true; // force reset of materials
+      popViewerState();
    }
    
 }

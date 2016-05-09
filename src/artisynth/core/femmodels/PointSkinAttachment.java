@@ -712,7 +712,15 @@ public class PointSkinAttachment extends PointAttachment
          }
       }
    }
-
+   
+   public void addForce (Vector3d f) {
+      if (!f.equals (Vector3d.ZERO)) {
+         for (int i = 0; i<myNumConnections; i++) {
+            myConnections[i].addPointForce (f);
+         }
+      }      
+   }
+   
 //   protected MatrixBlock createRowBlock(int colSize) {
 //      return createRowBlockNew(colSize);
 //   }

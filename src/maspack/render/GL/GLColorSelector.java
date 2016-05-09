@@ -50,7 +50,7 @@ public class GLColorSelector extends GLSelector {
    float[] savedBackgroundColor = new float[4];
    float[] savedColor = new float[4];
    boolean savedBlend;
-   boolean savedMulti;
+   boolean savedMultisampled;
 
    public GLColorSelector (GLViewer viewer) {
       super (viewer);
@@ -118,13 +118,13 @@ public class GLColorSelector extends GLSelector {
       myViewer.getBackgroundColor(savedBackgroundColor);
       myViewer.setBackgroundColor(0, 0, 0, 0);
       
-      savedBlend = gl.glIsEnabled(GL.GL_BLEND);
+      savedBlend = myViewer.isBlendingEnabled ();
       if (savedBlend) {
-         gl.glDisable(GL.GL_BLEND);
+         myViewer.setBlendingEnabled (false);
       }
-      savedMulti = gl.glIsEnabled(GL.GL_MULTISAMPLE);
-      if (savedMulti) {
-         gl.glDisable(GL.GL_MULTISAMPLE);
+      savedMultisampled = myViewer.isMultiSampleEnabled ();
+      if (savedMultisampled) {
+         myViewer.setMultiSampleEnabled (false);
       }
       
       // set the initial color to be 0
@@ -159,12 +159,10 @@ public class GLColorSelector extends GLSelector {
       myViewer.setBackgroundColor(savedBackgroundColor[0],
          savedBackgroundColor[1], savedBackgroundColor[2], 
          savedBackgroundColor[3]);
-      if (savedBlend) {
-         gl.glEnable(GL.GL_BLEND);
-      }
-      if (savedMulti) {
-         gl.glEnable(GL.GL_MULTISAMPLE);
-      }
+      
+      myViewer.setBlendingEnabled (savedBlend);
+      myViewer.setMultiSampleEnabled (savedMultisampled);
+
       myViewer.setColor (savedColor);
       
       myViewer.setViewport(gl, savedViewport[0], savedViewport[1], 

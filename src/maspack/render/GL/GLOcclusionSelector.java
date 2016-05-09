@@ -49,6 +49,7 @@ public class GLOcclusionSelector extends GLSelector {
    boolean changeViewport = true;
 
    int[] mySavedViewport = new int[4];
+   boolean savedMultisampled = false;
 
    public GLOcclusionSelector (GLViewer viewer) {
       super (viewer);
@@ -141,6 +142,11 @@ public class GLOcclusionSelector extends GLSelector {
       // disable using the depth buffer
       viewer.setDepthEnabled(false);
       
+      savedMultisampled = myViewer.isMultiSampleEnabled ();
+      if (savedMultisampled) {
+         myViewer.setMultiSampleEnabled (false);
+      }
+      
    }
    
    private void flushQueries(GL2GL3 gl) {
@@ -184,23 +190,19 @@ public class GLOcclusionSelector extends GLSelector {
 
    public void processSelection (GLAutoDrawable drawable) {
 
-      if (!(myViewer instanceof GLViewer)) {
-         return;
-      }
-      
-      GLViewer viewer = (GLViewer)myViewer;
       GL2GL3 gl = (GL2GL3)(drawable.getGL());
 
-      viewer.setColorEnabled(true);
-      viewer.setDepthEnabled(true);
-      viewer.setLightingEnabled(true);
+      myViewer.setColorEnabled(true);
+      myViewer.setDepthEnabled(true);
+      myViewer.setLightingEnabled(true);
+      myViewer.setMultiSampleEnabled (savedMultisampled);
 
       if (changeViewport) {
          gl.glViewport (mySavedViewport[0], mySavedViewport[1], 
                         mySavedViewport[2], mySavedViewport[3]);
       }
 
-      viewer.clearPickMatrix();
+      myViewer.clearPickMatrix();
       
       if (!myMaxQStack.isEmpty()) {
          throw new IllegalStateException (

@@ -89,10 +89,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    // More control over blending
    public static enum BlendFactor {
       GL_ONE_MINUS_CONSTANT_ALPHA(GL2.GL_ONE_MINUS_CONSTANT_ALPHA),
-      GL_ONE_MINUS_SRC_ALPHA(GL2.GL_ONE_MINUS_SRC_ALPHA),
-      GL_ONE(GL2.GL_ONE),
-      GL_ZERO(GL2.GL_ZERO),
-      GL_SRC_ALPHA(GL2.GL_SRC_ALPHA),
+      GL_ONE_MINUS_SRC_ALPHA(GL.GL_ONE_MINUS_SRC_ALPHA),
+      GL_ONE(GL.GL_ONE),
+      GL_ZERO(GL.GL_ZERO),
+      GL_SRC_ALPHA(GL.GL_SRC_ALPHA),
       ;
 
       private int myValue;
@@ -198,6 +198,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       public boolean blendingEnabled;       // blending
       public BlendFactor blendSFactor;
       public BlendFactor blendDFactor;
+      public boolean multiSampleEnabled;    // multi-sampling
       public boolean transparencyEnabled;
       public boolean transparencyFaceCulling;
       public float pointSize;
@@ -224,6 +225,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          blendDFactor = DEFAULT_DST_BLENDING;
          transparencyEnabled = false;
          transparencyFaceCulling = false;
+         multiSampleEnabled = true;
          pointSize = 1;
          lineWidth = 1;
       }
@@ -248,6 +250,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          c.transparencyFaceCulling = transparencyFaceCulling;
          c.pointSize = pointSize;
          c.lineWidth = lineWidth;
+         c.multiSampleEnabled = multiSampleEnabled;
          return c;
       }
    }
@@ -1119,14 +1122,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    // get the actual line width currently set by GL
    protected float getLineWidth(GL gl) {
       float[] buff = new float[1];
-      gl.glGetFloatv(GL2.GL_LINE_WIDTH, buff, 0);
+      gl.glGetFloatv(GL.GL_LINE_WIDTH, buff, 0);
       return buff[0];
    }
 
    // get the actual point size currently set by GL
    protected float getPointSize(GL2GL3 gl) {
       float[] buff = new float[1];
-      gl.glGetFloatv(GL2.GL_POINT_SIZE, buff, 0);
+      gl.glGetFloatv(GL.GL_POINT_SIZE, buff, 0);
       return buff[0];
    }
    
@@ -1543,15 +1546,16 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       System.out.println("GL Renderer: " + renderer);
       System.out.println("OpenGL Version: " + version + " (" + buff[0] + "," + buff[1] + ")");
       
-      if (gl.isExtensionAvailable("GL_ARB_multisample")) {
-         gl.glEnable(GL.GL_MULTISAMPLE);
-         myMultiSampleEnabled = true;
-      }
+      setMultiSampleEnabled (true);
 
    }
    
    public boolean isMultiSampleEnabled() {
-      return myMultiSampleEnabled;
+      return myViewerState.multiSampleEnabled;
+   }
+   
+   public void setMultiSampleEnabled(boolean set) {
+      myViewerState.multiSampleEnabled = set;
    }
 
    /**
@@ -2261,6 +2265,218 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          }
       }
       return prev;
+   }
+   
+   /**
+    * Force all viewer state variables to be written.  Some state variables
+    * will not be committed, depending on whether we are in "select" mode
+    * @param gl context
+    * @param state state to commit
+    */
+   protected void commitFullViewerState(GL2GL3 gl, ViewerState state) {
+      
+      myCommittedViewerState = state.clone ();
+
+      if (isSelecting ()) {
+         // if selecting, disable colors, multisamples and blending         
+         gl.glColorMask (true, true, true, true);
+         gl.glDisable (GL.GL_BLEND);
+         gl.glDisable (GL.GL_MULTISAMPLE);
+         
+         myCommittedViewerState.colorEnabled = true;
+         myCommittedViewerState.transparencyEnabled = false;
+         myCommittedViewerState.blendingEnabled = false;
+         myCommittedViewerState.multiSampleEnabled = false;
+         
+      } else {
+         
+         // otherwise, track info
+         if (state.colorEnabled) {
+            gl.glColorMask (true, true, true, true);
+         } else {
+            gl.glColorMask (false, false, false, false);
+         }
+         
+         if (state.blendingEnabled) {
+            gl.glEnable (GL.GL_BLEND);
+         } else {
+            gl.glDisable (GL.GL_BLEND);
+         }
+         gl.glBlendFunc (state.blendSFactor.glValue (), state.blendDFactor.glValue ());
+         
+         if (state.multiSampleEnabled) {
+            gl.glEnable (GL.GL_MULTISAMPLE);
+         } else {
+            gl.glDisable (GL.GL_MULTISAMPLE);
+         }
+      }
+      
+      if (state.depthEnabled) {
+         gl.glEnable (GL.GL_DEPTH_TEST);
+      } else {
+         gl.glDisable (GL.GL_DEPTH_TEST);
+      }
+      
+      gl.glDepthMask (state.depthWriteEnabled);
+      
+      switch (state.faceMode) {
+         case BACK:
+            gl.glEnable (GL.GL_CULL_FACE);
+            gl.glCullFace (GL.GL_FRONT);
+            break;
+         case FRONT:
+            gl.glEnable (GL.GL_CULL_FACE);
+            gl.glCullFace (GL.GL_BACK);
+            break;
+         case FRONT_AND_BACK:
+            gl.glDisable (GL.GL_CULL_FACE);
+            break;
+         case NONE:
+            gl.glEnable (GL.GL_CULL_FACE);
+            gl.glCullFace (GL.GL_FRONT_AND_BACK);
+            break;
+         default:
+            break;
+      }
+    
+      gl.glPointSize (state.pointSize);
+      gl.glLineWidth (state.lineWidth);
+     
+      // vertexColorsEnabled;   // set manually in draw methods
+      // textureMappingEnabled;   
+      // hsvInterpolationEnabled;  
+      // colorMixing;           // not available
+      // transparencyFaceCulling;  // set manually in draw methods
+      
+   }
+   
+   protected void maybeCommitViewerState(GL2GL3 gl, ViewerState state) {
+      
+      if (isSelecting ()) {
+         // if selecting, disable coloring and blending
+         if (myCommittedViewerState.colorEnabled == false) {
+            gl.glColorMask (true, true, true, true);
+            myCommittedViewerState.colorEnabled = true;
+         }
+         
+         if (myCommittedViewerState.blendingEnabled == true) {
+            gl.glDisable (GL.GL_BLEND);
+            myCommittedViewerState.blendingEnabled = false;
+         }
+         myCommittedViewerState.transparencyEnabled = false;
+         
+         if (myCommittedViewerState.multiSampleEnabled == true) {
+            gl.glDisable (GL.GL_MULTISAMPLE);
+            myCommittedViewerState.multiSampleEnabled = false;
+         }
+         
+      } else {
+         
+         // otherwise, track info
+         if (myCommittedViewerState.colorEnabled != state.colorEnabled) {
+            if (state.colorEnabled) {
+               gl.glColorMask (true, true, true, true);
+            } else {
+               gl.glColorMask (false, false, false, false);
+            }
+            myCommittedViewerState.colorEnabled = state.colorEnabled;
+         }
+         
+         if (myCommittedViewerState.blendingEnabled != state.blendingEnabled) {
+            if (state.blendingEnabled) {
+               gl.glEnable (GL.GL_BLEND);
+            } else {
+               gl.glDisable (GL.GL_BLEND);
+            }
+            myCommittedViewerState.blendingEnabled = state.blendingEnabled;
+         }
+         
+         if (myCommittedViewerState.blendSFactor != state.blendSFactor ||
+            myCommittedViewerState.blendDFactor != state.blendDFactor) {
+            gl.glBlendFunc (state.blendSFactor.glValue (), state.blendDFactor.glValue ());
+            myCommittedViewerState.blendSFactor = state.blendSFactor;
+            myCommittedViewerState.blendDFactor = state.blendDFactor;
+         }
+         
+         myCommittedViewerState.transparencyEnabled = state.transparencyEnabled;
+         
+         if (myCommittedViewerState.multiSampleEnabled != state.multiSampleEnabled) {
+            if (state.multiSampleEnabled) {
+               gl.glEnable (GL.GL_MULTISAMPLE);
+            } else {
+               gl.glDisable (GL.GL_MULTISAMPLE);
+            }
+            myCommittedViewerState.multiSampleEnabled = state.multiSampleEnabled;
+         }
+      }
+      
+      if (myCommittedViewerState.depthEnabled != state.depthEnabled) {
+         if (state.depthEnabled) {
+            gl.glEnable (GL.GL_DEPTH_TEST);
+         } else {
+            gl.glDisable (GL.GL_DEPTH_TEST);
+         }
+         myCommittedViewerState.depthEnabled = state.depthEnabled;
+      }
+      
+      if (myCommittedViewerState.depthWriteEnabled != state.depthWriteEnabled) {
+         gl.glDepthMask (state.depthWriteEnabled);
+         myCommittedViewerState.depthWriteEnabled = state.depthWriteEnabled;
+      }
+      
+      if (myCommittedViewerState.faceMode != state.faceMode) {
+         switch (state.faceMode) {
+            case BACK:
+               gl.glEnable (GL.GL_CULL_FACE);
+               gl.glCullFace (GL.GL_FRONT);
+               break;
+            case FRONT:
+               gl.glEnable (GL.GL_CULL_FACE);
+               gl.glCullFace (GL.GL_BACK);
+               break;
+            case FRONT_AND_BACK:
+               gl.glDisable (GL.GL_CULL_FACE);
+               break;
+            case NONE:
+               gl.glEnable (GL.GL_CULL_FACE);
+               gl.glCullFace (GL.GL_FRONT_AND_BACK);
+               break;
+            default:
+               break;
+         }
+         myCommittedViewerState.faceMode = state.faceMode;
+      }
+      
+      if (state.pointSize != myCommittedViewerState.pointSize) {
+         gl.glPointSize (state.pointSize);
+         myCommittedViewerState.pointSize = state.pointSize;
+      }
+      
+      if (state.lineWidth != myCommittedViewerState.lineWidth) {
+         gl.glLineWidth (state.lineWidth);
+         myCommittedViewerState.lineWidth = state.lineWidth;
+      }
+      
+      // vertexColorsEnabled;   // set manually in draw methods
+      // textureMappingEnabled;   
+      // hsvInterpolationEnabled;  
+      // colorMixing;           // not available
+      // transparencyFaceCulling;  // set manually in draw methods
+      
+   }
+   
+   /**
+    * Commit all pending changes
+    * @param gl
+    */
+   protected void maybeUpdateViewerState(GL2GL3 gl) {
+      
+      // maybe update shading
+      if (myCommittedViewerState == null) {
+         commitFullViewerState (gl, myViewerState);  
+      } else {
+         maybeCommitViewerState(gl, myViewerState);
+      }
    }
    
    @Override

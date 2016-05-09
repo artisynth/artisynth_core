@@ -14,11 +14,12 @@ import java.util.LinkedList;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
-import javax.media.opengl.glu.GLU;
+import javax.media.opengl.GL2GL3;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLContext;
 import javax.media.opengl.GLProfile;
+import javax.media.opengl.glu.GLU;
 import javax.swing.JFrame;
 import javax.swing.event.MouseInputListener;
 
@@ -512,7 +513,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glVertex3d (x1, y1, 0);
       gl.glVertex3d (x0, y1, 0);
       gl.glEnd();
-
+      
       end2DRendering ();
       
    }
@@ -660,8 +661,13 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean savedBlending = isBlendingEnabled ();
       boolean savedTexture = isTextureMappingEnabled ();
       boolean savedDepth = isDepthWriteEnabled ();
+      BlendFactor dfactor = getBlendDestFactor ();
+      BlendFactor sfactor = getBlendSourceFactor ();      
+      
       setDepthWriteEnabled (false);
       setBlendingEnabled (true);
+      setBlendSourceFactor (BlendFactor.GL_SRC_ALPHA);
+      setBlendDestFactor (BlendFactor.GL_ONE_MINUS_SRC_ALPHA);
       setTextureMappingEnabled (true);
      
       ColorMapProps savedTextureProps = setColorMap (myTextTextureProps);
@@ -678,6 +684,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       
       setDepthWriteEnabled (savedDepth);
 
+      setBlendSourceFactor (sfactor);
+      setBlendDestFactor (dfactor);
       setBlendingEnabled (savedBlending);
       setTextureMappingEnabled (savedTexture);
       setColorMap (savedTextureProps);
@@ -775,6 +783,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
 
       // enable clip planes
+      maybeUpdateState (gl); // update matrices before activating clip planes
       int nclips = 0;
       int clipIdx = GL2.GL_CLIP_PLANE0;
       for (GLClipPlane cp : myClipPlanes) {
@@ -950,138 +959,23 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    protected void deactivateTexture(GL2 gl) {
       gl.glDisable(GL.GL_TEXTURE_2D);
    }
-   
-   /**
-    * Force all viewer state variables to be written.  Some state variables
-    * will not be committed, depending on whether we are in "select" mode
-    * @param gl context
-    * @param state state to commit
-    */
-   private void commitFullViewerState(GL2 gl, ViewerState state) {
-      
-      myCommittedViewerState = state.clone ();
 
-      if (isSelecting ()) {
-         // if selecting, disable lighting and blending         
-         gl.glDisable (GL2.GL_LIGHTING);
-         gl.glColorMask (true, true, true, true);
-         gl.glDisable (GL.GL_BLEND);
-         myCommittedViewerState.lightingEnabled = false;
-         myCommittedViewerState.colorEnabled = true;
-         myCommittedViewerState.transparencyEnabled = false;
-         myCommittedViewerState.blendingEnabled = false;
-         
-      } else {
-         
-         // otherwise, track info
-         if (state.lightingEnabled) {
-            gl.glEnable (GL2.GL_LIGHTING);
-         } else {
-            gl.glDisable (GL2.GL_LIGHTING);
-         }
-         if (state.colorEnabled) {
-            gl.glColorMask (true, true, true, true);
-         } else {
-            gl.glColorMask (false, false, false, false);
-         }
-         
-         if (state.blendingEnabled) {
-            gl.glEnable (GL.GL_BLEND);
-         } else {
-            gl.glDisable (GL.GL_BLEND);
-         }
-         
-         gl.glBlendFunc (state.blendSFactor.glValue (), state.blendDFactor.glValue ());
-      }
+   @Override
+   protected void maybeCommitViewerState (GL2GL3 gl, ViewerState state) {
+      super.maybeCommitViewerState (gl, state);
       
-      if (state.depthEnabled) {
-         gl.glEnable (GL.GL_DEPTH_TEST);
-      } else {
-         gl.glDisable (GL.GL_DEPTH_TEST);
-      }
-      
-      gl.glDepthMask (state.depthWriteEnabled);
-      
-      switch (state.faceMode) {
-         case BACK:
-            gl.glEnable (GL.GL_CULL_FACE);
-            gl.glCullFace (GL.GL_FRONT);
-            break;
-         case FRONT:
-            gl.glEnable (GL.GL_CULL_FACE);
-            gl.glCullFace (GL.GL_BACK);
-            break;
-         case FRONT_AND_BACK:
-            gl.glDisable (GL.GL_CULL_FACE);
-            break;
-         case NONE:
-            gl.glEnable (GL.GL_CULL_FACE);
-            gl.glCullFace (GL.GL_FRONT_AND_BACK);
-            break;
-         default:
-            break;
-      }
-    
-      switch(state.shading) {
-         case FLAT:
-            gl.glShadeModel (GL2.GL_FLAT);
-            break;
-         case SMOOTH:
-         case METAL:
-            gl.glShadeModel (GL2.GL_SMOOTH);
-            break;
-         case NONE:
-            gl.glDisable (GL2.GL_LIGHTING);
-            break;
-         default:
-            break;
-      }
-      
-      gl.glPointSize (state.pointSize);
-      gl.glLineWidth (state.lineWidth);
-      
-      if (state.roundedPoints && state.pointSize >= 4) {
-         gl.glEnable (GL2.GL_POINT_SMOOTH);  // enable smooth points
-         gl.glHint(GL2.GL_POINT_SMOOTH_HINT, GL2.GL_NICEST);
-         myCommittedViewerState.roundedPoints = true;
-      } else {
-         gl.glDisable (GL2.GL_POINT_SMOOTH);  // disable smooth points
-         gl.glHint(GL2.GL_POINT_SMOOTH_HINT, GL2.GL_FASTEST);
-         myCommittedViewerState.roundedPoints = false;
-      }
-      
-      // vertexColorsEnabled;   // set manually in draw methods
-      // textureMappingEnabled;   
-      // hsvInterpolationEnabled;  
-      // colorMixing;           // not available
-      // transparencyFaceCulling;  // set manually in draw methods
-      
-   }
-   
-   private void maybeCommitViewerState(GL2 gl, ViewerState state) {
+      GL2 gl2 = (GL2)gl;
       
       if (isSelecting ()) {
-         // if selecting, disable lighting and blending
+         // disable lighting
          if (myCommittedViewerState.lightingEnabled == true) {
             gl.glDisable (GL2.GL_LIGHTING);
             myCommittedViewerState.lightingEnabled = false;
             myCommittedViewerState.shading = Shading.NONE;
          }
          
-         if (myCommittedViewerState.colorEnabled == false) {
-            gl.glColorMask (true, true, true, true);
-            myCommittedViewerState.colorEnabled = true;
-         }
-         
-         if (myCommittedViewerState.blendingEnabled == true) {
-            gl.glDisable (GL.GL_BLEND);
-            myCommittedViewerState.blendingEnabled = false;
-         }
-         myCommittedViewerState.transparencyEnabled = false;
-         
       } else {
-         
-         // otherwise, track info
+         // track lighting
          if (myCommittedViewerState.lightingEnabled != state.lightingEnabled) {
             if (state.lightingEnabled && state.shading != Shading.NONE) {
                gl.glEnable (GL2.GL_LIGHTING);
@@ -1093,70 +987,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             }
 
          }
-         
-         if (myCommittedViewerState.colorEnabled != state.colorEnabled) {
-            if (state.colorEnabled) {
-               gl.glColorMask (true, true, true, true);
-            } else {
-               gl.glColorMask (false, false, false, false);
-            }
-            myCommittedViewerState.colorEnabled = state.colorEnabled;
-         }
-         
-         if (myCommittedViewerState.blendingEnabled != state.blendingEnabled) {
-            if (state.blendingEnabled) {
-               gl.glEnable (GL.GL_BLEND);
-            } else {
-               gl.glDisable (GL.GL_BLEND);
-            }
-            myCommittedViewerState.blendingEnabled = state.blendingEnabled;
-         }
-         
-         if (myCommittedViewerState.blendSFactor != state.blendSFactor ||
-            myCommittedViewerState.blendDFactor != state.blendDFactor) {
-            gl.glBlendFunc (state.blendSFactor.glValue (), state.blendDFactor.glValue ());
-            myCommittedViewerState.blendSFactor = state.blendSFactor;
-            myCommittedViewerState.blendDFactor = state.blendDFactor;
-         }
-         
-         myCommittedViewerState.transparencyEnabled = state.transparencyEnabled;
-      }
-      
-      if (myCommittedViewerState.depthEnabled != state.depthEnabled) {
-         if (state.depthEnabled) {
-            gl.glEnable (GL.GL_DEPTH_TEST);
-         } else {
-            gl.glDisable (GL.GL_DEPTH_TEST);
-         }
-         myCommittedViewerState.depthEnabled = state.depthEnabled;
-      }
-      
-      if (myCommittedViewerState.depthWriteEnabled != state.depthWriteEnabled) {
-         gl.glDepthMask (state.depthWriteEnabled);
-         myCommittedViewerState.depthWriteEnabled = state.depthWriteEnabled;
-      }
-      
-      if (myCommittedViewerState.faceMode != state.faceMode) {
-         switch (state.faceMode) {
-            case BACK:
-               gl.glEnable (GL.GL_CULL_FACE);
-               gl.glCullFace (GL.GL_FRONT);
-               break;
-            case FRONT:
-               gl.glEnable (GL.GL_CULL_FACE);
-               gl.glCullFace (GL.GL_BACK);
-               break;
-            case FRONT_AND_BACK:
-               gl.glDisable (GL.GL_CULL_FACE);
-               break;
-            case NONE:
-               gl.glEnable (GL.GL_CULL_FACE);
-               gl.glCullFace (GL.GL_FRONT_AND_BACK);
-               break;
-            default:
-               break;
-         }
-         myCommittedViewerState.faceMode = state.faceMode;
       }
       
       // if lighting is enabled, maybe update shading
@@ -1164,15 +994,15 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          myCommittedViewerState.shading != state.shading) {
          switch(state.shading) {
             case FLAT:
-               gl.glShadeModel (GL2.GL_FLAT);
+               gl2.glShadeModel (GL2.GL_FLAT);
                break;
             case SMOOTH:
             case METAL:
-               gl.glShadeModel (GL2.GL_SMOOTH);
+               gl2.glShadeModel (GL2.GL_SMOOTH);
                break;
             case NONE:
                gl.glDisable (GL2.GL_LIGHTING);
-               gl.glShadeModel (GL2.GL_SMOOTH);
+               gl2.glShadeModel (GL2.GL_SMOOTH);
                myCommittedViewerState.lightingEnabled = false;
                break;
             default:
@@ -1181,16 +1011,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          myCommittedViewerState.shading = state.shading;
       }
       
-      if (state.pointSize != myCommittedViewerState.pointSize) {
-         gl.glPointSize (state.pointSize);
-         myCommittedViewerState.pointSize = state.pointSize;
-      }
-      
-      if (state.lineWidth != myCommittedViewerState.lineWidth) {
-         gl.glLineWidth (state.lineWidth);
-         myCommittedViewerState.lineWidth = state.lineWidth;
-      }
-      
+      // rounded points
       if (myCommittedViewerState.roundedPoints != state.roundedPoints) {
          if (state.roundedPoints && state.pointSize >= 4) {
             gl.glEnable (GL2.GL_POINT_SMOOTH);  // enable smooth points
@@ -1203,26 +1024,49 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          }
          
       }
-      
-      // vertexColorsEnabled;   // set manually in draw methods
-      // textureMappingEnabled;   
-      // hsvInterpolationEnabled;  
-      // colorMixing;           // not available
-      // transparencyFaceCulling;  // set manually in draw methods
-      
    }
    
-   /**
-    * Commit all pending changes
-    * @param gl
-    */
-   protected void maybeUpdateViewerState(GL2 gl) {
+   @Override
+   protected void commitFullViewerState (GL2GL3 gl, ViewerState state) {
+      super.commitFullViewerState (gl, state);
       
-      // maybe update shading
-      if (myCommittedViewerState == null) {
-         commitFullViewerState (gl, myViewerState);  
+      GL2 gl2 = (GL2)gl;
+      if (isSelecting ()) {
+         // if selecting, disable lighting and blending         
+         gl2.glDisable (GL2.GL_LIGHTING);
+         myCommittedViewerState.lightingEnabled = false;
       } else {
-         maybeCommitViewerState(gl, myViewerState);
+         if (state.lightingEnabled) {
+            gl.glEnable (GL2.GL_LIGHTING);
+         } else {
+            gl.glDisable (GL2.GL_LIGHTING);
+         }
+      }
+      
+      switch(state.shading) {
+         case FLAT:
+            gl2.glShadeModel (GL2.GL_FLAT);
+            break;
+         case SMOOTH:
+         case METAL:
+            gl2.glShadeModel (GL2.GL_SMOOTH);
+            break;
+         case NONE:
+            gl2.glDisable (GL2.GL_LIGHTING);
+            myCommittedViewerState.lightingEnabled = false;
+            break;
+         default:
+            break;
+      }
+      
+      if (state.roundedPoints && state.pointSize >= 4) {
+         gl.glEnable (GL2.GL_POINT_SMOOTH);  // enable smooth points
+         gl.glHint(GL2.GL_POINT_SMOOTH_HINT, GL2.GL_NICEST);
+         myCommittedViewerState.roundedPoints = true;
+      } else {
+         gl.glDisable (GL2.GL_POINT_SMOOTH);  // disable smooth points
+         gl.glHint(GL2.GL_POINT_SMOOTH_HINT, GL2.GL_FASTEST);
+         myCommittedViewerState.roundedPoints = false;
       }
    }
    
@@ -2508,13 +2352,15 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       // method, but GL2 seems to require extra things to be saved
       // and restored.
       
+      /// maybeUpdateState (gl);
+      
       // XXX not sure if these are actually required, we do push/pop
       // the viewer's "state" in GLViewer which should account for
       // most of this
-      int attribBits = 
-         (GL2.GL_ENABLE_BIT | GL2.GL_TEXTURE_BIT | GL2.GL_COLOR_BUFFER_BIT |
-          GL2.GL_DEPTH_BUFFER_BIT | GL2.GL_TRANSFORM_BIT);
-      gl.glPushAttrib(attribBits);
+      //      int attribBits = 
+      //         (GL2.GL_ENABLE_BIT | GL2.GL_TEXTURE_BIT | GL2.GL_COLOR_BUFFER_BIT |
+      //          GL2.GL_DEPTH_BUFFER_BIT | GL2.GL_TRANSFORM_BIT);
+      //      gl.glPushAttrib(attribBits);
 
       super.begin2DRendering (left, right, bottom, top);
    }
@@ -2524,7 +2370,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       
       super.finish2DRendering ();
       
-      gl.glPopAttrib();
+      //    gl.glPopAttrib();
    }
 
 

@@ -107,6 +107,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public static BlendFactor DEFAULT_SRC_BLENDING = BlendFactor.GL_SRC_ALPHA;
    public static BlendFactor DEFAULT_DST_BLENDING = BlendFactor.GL_ONE_MINUS_CONSTANT_ALPHA;
 
+   private GL2GL3 myGl;
+
    // matrices
    protected Matrix4d pickMatrix;
    protected Matrix4d projectionMatrix;
@@ -1114,6 +1116,47 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return null;
    }
 
+
+   // get the actual line width currently set by GL
+   protected float getGLLineWidth() {
+      float[] buff = new float[1];
+      myGl.glGetFloatv(GL2.GL_LINE_WIDTH, buff, 0);
+      return buff[0];
+   }
+
+   // sets the GL line width if necessary and returns the old line width, or -1
+   // if width was not set
+   protected float maybeSetGLLineWidth (float w) {
+      float oldw = getLineWidth();
+      if (oldw != w) {
+         myGl.glLineWidth (w);
+         return oldw;
+      }
+      else {
+         return -1;
+      }
+   }
+
+   // get the actual point size currently set by GL
+   protected float getGLPointSize() {
+      float[] buff = new float[1];
+      myGl.glGetFloatv(GL2.GL_POINT_SIZE, buff, 0);
+      return buff[0];
+   }
+
+   // sets the GL point size if necessary and returns the old point size, or -1
+   // if size was not set
+   protected float maybeSetGLPointSize (float s) {
+      float olds = getPointSize();
+      if (olds != s) {
+         myGl.glPointSize (s);
+         return olds;
+      }
+      else {
+         return -1f;
+      }
+   }
+
    /**
     * Enable or disable the GL Canvas auto-swap mode
     * @param enable
@@ -1495,6 +1538,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * Called any time GL context is switched! e.g. moving window to new display
     */
    public void dispose(GLAutoDrawable drawable) {
+      this.myGl = null;
    }
    
    public void addMouseInputListener (MouseInputListener l) {
@@ -1859,6 +1903,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       
       // assign current drawable
       this.drawable = drawable;
+      this.myGl = (GL2GL3)drawable.getGL();
 
       int flags = myRenderFlags.get();
 
@@ -1885,6 +1930,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       
       // clear current drawable
       this.drawable = null;
+      this.myGl = null;
    }
    
    protected boolean hasTransparent3d() {

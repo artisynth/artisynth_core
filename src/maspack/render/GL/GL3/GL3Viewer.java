@@ -222,7 +222,7 @@ public class GL3Viewer extends GLViewer {
       GLSupport.checkAndPrintGLError(drawable.getGL ());
 
       this.drawable = drawable;
-      gl = drawable.getGL().getGL3();
+      this.gl = drawable.getGL().getGL3();
 
       gl.setSwapInterval (1);
 
@@ -1385,7 +1385,7 @@ public class GL3Viewer extends GLViewer {
          case LINE: {
             //boolean savedLighting = isLightingEnabled();
             //setLightingEnabled (false);
-            gl.glLineWidth (props.getLineWidth());
+            float savedWidth = maybeSetGLLineWidth (props.getLineWidth());
 
             //            if (color.length == 3 && props.getAlpha () < 1) {
             //               color = new float[]{color[0], color[1], color[2], (float)props.getAlpha ()};
@@ -1393,8 +1393,9 @@ public class GL3Viewer extends GLViewer {
             //            setColor (color, selected);
 
             drawGLLine(gl, pnt0, pnt1);
-
-            gl.glLineWidth (1);
+            if (savedWidth != -1f) {
+               gl.glLineWidth (savedWidth);
+            }
             //setLightingEnabled (savedLighting);
             break;
          }
@@ -1515,9 +1516,11 @@ public class GL3Viewer extends GLViewer {
       if (len > arrowLen) {
          switch (props.getLineStyle()) {
             case LINE: {
-               gl.glLineWidth (props.getLineWidth());
+               float savedWidth = maybeSetGLLineWidth (props.getLineWidth());
                drawGLLine(gl, pnt0, ctmp);
-               gl.glLineWidth (1);
+               if (savedWidth != -1f) {
+                  gl.glLineWidth (savedWidth);
+               }
                break;
             }
             case CYLINDER: 
@@ -1646,18 +1649,15 @@ public class GL3Viewer extends GLViewer {
       mulModelMatrix(X);
       scaleModelMatrix(lx, ly, lz);
       maybeUpdateState(gl);
-      float oldwidth = getLineWidth ();
-      if (width != oldwidth) {
-         gl.glLineWidth (width);
-      }
+      float savedWidth = maybeSetGLLineWidth (width);
       
       updateProgram (gl, RenderingMode.DEFAULT, false, true, false);
       GL3Object axes = myPrimitiveManager.getAcquiredAxes(gl, drawx, drawy, drawz);
       axes.draw(gl);
       axes.release ();
 
-      if (width != oldwidth) {
-         gl.glLineWidth (oldwidth);
+      if (savedWidth != -1f) {
+         gl.glLineWidth (savedWidth);
       }
 
       // revert matrix transform
@@ -1684,7 +1684,7 @@ public class GL3Viewer extends GLViewer {
       gloFlex.vertex (x0, y1, 0);
       gloFlex.end (gl);
 
-      gl.glLineWidth (1);
+      //gl.glLineWidth (1); shouldn't need - lineWidth be set to 1 in state
       setColor(0.5f, 0.5f, 0.5f, 1.0f);
       maybeUpdateState(gl);
       
@@ -1708,7 +1708,7 @@ public class GL3Viewer extends GLViewer {
          case LINE: {
             //setLightingEnabled (false);
             // draw regular points first
-            gl.glLineWidth (props.getLineWidth());
+            float savedWidth = maybeSetGLLineWidth (props.getLineWidth());
             //setColor (props.getLineColorArray(), isSelected);
             float[] v0 = null;
             for (float[] v1 : pnts) {
@@ -1723,7 +1723,9 @@ public class GL3Viewer extends GLViewer {
                v0[1] = v1[1];
                v0[2] = v1[2];
             }
-            gl.glLineWidth (1);
+            if (savedWidth != -1f) {
+               gl.glLineWidth (savedWidth);
+            }
             //setLightingEnabled (true);
             break;
          }
@@ -2057,19 +2059,11 @@ public class GL3Viewer extends GLViewer {
       switch (style) {
          case LINE: {
             // maybe change point size and draw points
-            float fold = getLineWidth();
-            float frad = (float)rad;
-            boolean changed = false;
-            if (fold != frad) {
-               gl.glLineWidth (frad);
-               changed = true;
-            }
-
+            float savedWidth = maybeSetGLLineWidth ((float)rad);
             updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
             gro.drawLineGroup (gl, GL.GL_LINES, gidx);
-
-            if (changed) {
-               gl.glLineWidth (fold);
+            if (savedWidth != -1f) {
+               gl.glLineWidth (savedWidth);
             }
             break;
          }

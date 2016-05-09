@@ -11,6 +11,8 @@ import java.util.Collection;
 
 import maspack.matrix.Vector3d;
 
+//import maspack.render.GL.*;
+
 /**
  * Maintains a list of renderable objects for use by GLViewer. As renderables
  * are added to this list, they are sorted into four sublists depending on
@@ -411,6 +413,13 @@ public class RenderList {
             } 
             else {
                r.render (renderer, flags);
+               // Uncomment to enable per-renderable isolation of GL errors:
+               // if (renderer instanceof GLViewer) {
+               //    GLViewer glv = (GLViewer)renderer;
+               //    if (!GLSupport.checkAndPrintGLError(glv.getGL())) {
+               //       System.out.println ("Error rendering " + r);
+               //    }
+               // }
             }
             renderer.restoreDefaultState(/*strictChecking=*/true);
          }

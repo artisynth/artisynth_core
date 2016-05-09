@@ -1369,6 +1369,26 @@ public class GL3Viewer extends GLViewer {
 
       GLSupport.checkAndPrintGLError(gl);
    }
+   
+   protected boolean maybeCommitPointSize(GL3 gl, float size) {
+      boolean modified = false;
+      if (size != myCommittedViewerState.pointSize) {
+         gl.glPointSize (size);
+         myCommittedViewerState.pointSize = size;
+         modified = true;
+      }
+      return modified;
+   }
+   
+   protected boolean maybeCommitLineWidth(GL gl, float width) {
+      boolean modified = false;
+      if (width != myCommittedViewerState.lineWidth) {
+         gl.glLineWidth (width);
+         myCommittedViewerState.lineWidth = width;
+         modified = true;
+      }
+      return modified;
+   }
 
    @Override
    public void drawLine(
@@ -1385,7 +1405,7 @@ public class GL3Viewer extends GLViewer {
          case LINE: {
             //boolean savedLighting = isLightingEnabled();
             //setLightingEnabled (false);
-            float savedWidth = maybeSetGLLineWidth (props.getLineWidth());
+            maybeCommitLineWidth (gl, props.getLineWidth());
 
             //            if (color.length == 3 && props.getAlpha () < 1) {
             //               color = new float[]{color[0], color[1], color[2], (float)props.getAlpha ()};
@@ -1393,9 +1413,6 @@ public class GL3Viewer extends GLViewer {
             //            setColor (color, selected);
 
             drawGLLine(gl, pnt0, pnt1);
-            if (savedWidth != -1f) {
-               gl.glLineWidth (savedWidth);
-            }
             //setLightingEnabled (savedLighting);
             break;
          }
@@ -1516,11 +1533,8 @@ public class GL3Viewer extends GLViewer {
       if (len > arrowLen) {
          switch (props.getLineStyle()) {
             case LINE: {
-               float savedWidth = maybeSetGLLineWidth (props.getLineWidth());
+               maybeCommitLineWidth (gl, props.getLineWidth());
                drawGLLine(gl, pnt0, ctmp);
-               if (savedWidth != -1f) {
-                  gl.glLineWidth (savedWidth);
-               }
                break;
             }
             case CYLINDER: 
@@ -1649,17 +1663,16 @@ public class GL3Viewer extends GLViewer {
       mulModelMatrix(X);
       scaleModelMatrix(lx, ly, lz);
       maybeUpdateState(gl);
-      float savedWidth = maybeSetGLLineWidth (width);
+      
+      // update line width
+      maybeCommitLineWidth (gl, width);
       
       updateProgram (gl, RenderingMode.DEFAULT, false, true, false);
       GL3Object axes = myPrimitiveManager.getAcquiredAxes(gl, drawx, drawy, drawz);
       axes.draw(gl);
       axes.release ();
 
-      if (savedWidth != -1f) {
-         gl.glLineWidth (savedWidth);
-      }
-
+      
       // revert matrix transform
       popModelMatrix();
 
@@ -1708,7 +1721,7 @@ public class GL3Viewer extends GLViewer {
          case LINE: {
             //setLightingEnabled (false);
             // draw regular points first
-            float savedWidth = maybeSetGLLineWidth (props.getLineWidth());
+            maybeCommitLineWidth (gl, props.getLineWidth());
             //setColor (props.getLineColorArray(), isSelected);
             float[] v0 = null;
             for (float[] v1 : pnts) {
@@ -1722,9 +1735,6 @@ public class GL3Viewer extends GLViewer {
                v0[0] = v1[0];
                v0[1] = v1[1];
                v0[2] = v1[2];
-            }
-            if (savedWidth != -1f) {
-               gl.glLineWidth (savedWidth);
             }
             //setLightingEnabled (true);
             break;
@@ -2059,12 +2069,9 @@ public class GL3Viewer extends GLViewer {
       switch (style) {
          case LINE: {
             // maybe change point size and draw points
-            float savedWidth = maybeSetGLLineWidth ((float)rad);
+            maybeCommitLineWidth (gl, (float)rad);
             updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
             gro.drawLineGroup (gl, GL.GL_LINES, gidx);
-            if (savedWidth != -1f) {
-               gl.glLineWidth (savedWidth);
-            }
             break;
          }
          default: {

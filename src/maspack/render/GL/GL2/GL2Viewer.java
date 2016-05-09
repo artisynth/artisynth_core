@@ -1864,7 +1864,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       switch (props.getLineStyle()) {
          case LINE: {
             //setLightingEnabled (false);
-            float savedWidth = maybeSetGLLineWidth (props.getLineWidth());
+            maybeCommitLineWidth (gl, props.getLineWidth());
 //            if (color.length == 3 && props.getAlpha () < 1) {
 //               color = new float[]{color[0], color[1], color[2], (float)props.getAlpha ()};
 //            }
@@ -1873,9 +1873,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             gl.glVertex3fv (pnt0, 0);
             gl.glVertex3fv (pnt1, 0);
             gl.glEnd();
-            if (savedWidth != -1f) {
-               gl.glLineWidth (savedWidth);
-            }
+
             //setLightingEnabled (true);
             break;
          }
@@ -1908,6 +1906,26 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       setShading (savedShading);
       setHighlighting (savedHighlighting);
    }
+   
+   protected boolean maybeCommitPointSize(GL2 gl, float size) {
+      boolean modified = false;
+      if (size != myCommittedViewerState.pointSize) {
+         gl.glPointSize (size);
+         myCommittedViewerState.pointSize = size;
+         modified = true;
+      }
+      return modified;
+   }
+   
+   protected boolean maybeCommitLineWidth(GL gl, float width) {
+      boolean modified = false;
+      if (width != myCommittedViewerState.lineWidth) {
+         gl.glLineWidth (width);
+         myCommittedViewerState.lineWidth = width;
+         modified = true;
+      }
+      return modified;
+   }
 
    public void drawArrow (
       RenderProps props, float[] pnt0, float[] pnt1, boolean capped,
@@ -1937,14 +1955,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (len > arrowLen) {
          switch (props.getLineStyle()) {
             case LINE: {
-               float savedWidth = maybeSetGLLineWidth (props.getLineWidth());
+               maybeCommitLineWidth (gl, props.getLineWidth());
                gl.glBegin (GL2.GL_LINES);
                gl.glVertex3fv (pnt0, 0);
                gl.glVertex3fv (ctmp, 0);
-               gl.glEnd();
-               if (savedWidth != -1f) {
-                  gl.glLineWidth (savedWidth);
-               }               
+               gl.glEnd();             
                break;
             }
             case CYLINDER:
@@ -2138,12 +2153,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             int size = props.getPointSize();
             if (size > 0) {
                //setLightingEnabled (false);
-               float savedSize = maybeSetGLPointSize (size);
+               maybeCommitPointSize (gl, size);
                //setColor (props.getPointColorArray(), selected);
                drawPoint(pnt);
-               if (savedSize != -1) {
-                  gl.glPointSize (savedSize);
-               }
                //setLightingEnabled (true);
             }
             break;
@@ -2213,16 +2225,14 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          case LINE: {
             //setLightingEnabled (false);
             // draw regular points first
-            float savedWidth = maybeSetGLLineWidth (props.getLineWidth());
+            maybeCommitLineWidth (gl, props.getLineWidth());
             gl.glBegin (GL2.GL_LINE_STRIP);
             //setColor (props.getLineColorArray(), isSelected);
             for (float[] v : pnts) {
                gl.glVertex3fv (v, 0);
             }
             gl.glEnd();
-            if (savedWidth != -1f) {
-               gl.glLineWidth (savedWidth);
-            }
+            
             //setLightingEnabled (true);
             break;
          }
@@ -2430,7 +2440,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       Vector3d u = new Vector3d();
       
-      float savedWidth = maybeSetGLLineWidth (width);
+      maybeCommitLineWidth (gl, width);
 
       if (X == null) {
          X = RigidTransform3d.IDENTITY;
@@ -2457,9 +2467,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
 
       gl.glEnd();
-      if (savedWidth != -1f) {
-         gl.glLineWidth (savedWidth);
-      }
       
 //      if (selected && !wasSelected) {
 //         setSelectionHighlighting (wasSelected);
@@ -3627,11 +3634,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       switch (style) {
          case LINE: {
             // maybe change line width
-            float savedWidth = maybeSetGLLineWidth ((float)rad);
+            maybeCommitLineWidth (gl, (float)rad);
             drawLines(robj, gidx);
-            if (savedWidth != -1f) {
-               gl.glLineWidth (savedWidth);
-            }
             break;
          }
          case CYLINDER:
@@ -3848,11 +3852,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       switch (style) { 
          case POINT: {
             // maybe change point size and draw points
-            float savedSize = maybeSetGLPointSize((float)rad);
+            maybeCommitPointSize(gl, (float)rad);
             drawPoints(robj, gidx);
-            if (savedSize != -1f) {
-               gl.glPointSize (savedSize);
-            }
             break;
          }
          case SPHERE: 

@@ -24,7 +24,10 @@ import javax.swing.JPanel;
 
 import jogamp.opengl.glu.error.Error;
 import maspack.matrix.AffineTransform2dBase;
+import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix;
+import maspack.matrix.Vector3d;
+import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix2dBase;
 import maspack.matrix.Vector2d;
 import maspack.util.BufferUtilities;
@@ -242,23 +245,26 @@ public class GLSupport {
 //      mat[idx++] = 1.0;
 //   }
 
-//   public static void GLMatrixToTransform (AffineTransform3d T, double[] mat) {
-//      T.A.m00 = mat[0];
-//      T.A.m10 = mat[1];
-//      T.A.m20 = mat[2];
-//
-//      T.A.m01 = mat[4];
-//      T.A.m11 = mat[5];
-//      T.A.m21 = mat[6];
-//
-//      T.A.m02 = mat[8];
-//      T.A.m12 = mat[9];
-//      T.A.m22 = mat[10];
-//
-//      T.p.x = mat[12];
-//      T.p.y = mat[13];
-//      T.p.z = mat[14];
-//   }
+   public static void GLMatrixToTransform (
+      AffineTransform3dBase X, double[] mat) {
+      Matrix3dBase M = X.getMatrix();
+      Vector3d b = X.getOffset();
+      M.m00 = mat[0];
+      M.m10 = mat[1];
+      M.m20 = mat[2];
+
+      M.m01 = mat[4];
+      M.m11 = mat[5];
+      M.m21 = mat[6];
+
+      M.m02 = mat[8];
+      M.m12 = mat[9];
+      M.m22 = mat[10];
+
+      b.x = mat[12];
+      b.y = mat[13];
+      b.z = mat[14];
+   }
    
    /**
     * Simple class to help debug storage

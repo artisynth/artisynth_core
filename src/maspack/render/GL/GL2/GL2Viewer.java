@@ -781,6 +781,15 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          if (cp.isClippingEnabled()) {
             cp.getPlaneValues (myClipPlaneValues );
             myClipPlaneValues[3] += cp.getOffset();
+//            double[] v = myClipPlaneValues;
+//            System.out.println (v[0]+" "+v[1]+" "+v[2]);
+//            double[] M = new double[16];
+//            gl.glGetDoublev(GL2.GL_MODELVIEW_MATRIX, M, 0);
+//            RigidTransform3d TME = new RigidTransform3d();
+//            GLSupport.GLMatrixToTransform (TME, M);
+//            TME.mulInverseLeft (getViewMatrix(), TME);
+//            System.out.println ("TMW=\n" + TME.toString ("%8.3f"));
+            
             gl.glClipPlane (clipIdx, myClipPlaneValues, 0);
             gl.glEnable (clipIdx);
             clipIdx++; nclips++;

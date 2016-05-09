@@ -1,8 +1,6 @@
 package artisynth.demos.tutorial;
 
 import java.io.IOException;
-import java.awt.Color;
-import java.awt.Font;
 
 import maspack.render.RenderList;
 import maspack.util.DoubleInterval;
@@ -22,8 +20,6 @@ public class FemBeamColored extends FemBeam {
     
       // Create a colorbar
       ColorBar cbar = new ColorBar();
-      cbar.setTextColor (Color.WHITE);
-      cbar.setFont (new Font(Font.SANS_SERIF, 0, 54));
       cbar.setName("colorBar");
       cbar.setNumberFormat("%.2f");      // 2 decimal places
       cbar.populateLabels(0.0, 1.0, 10); // Start with range [0,1], 10 ticks

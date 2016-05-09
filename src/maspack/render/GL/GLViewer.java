@@ -1348,6 +1348,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       if (myFrustum.orthographic) {
          myFrustum.fieldHeight *= s;
          resetViewVolume = true;
+         computeProjectionMatrix ();  // update projection matrix
       }
       else {
          Vector3d reye = new Vector3d();

@@ -590,8 +590,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          mySelector.setupSelection (drawable);
       }
 
-      resetViewVolume = false;   //disable resetting view volume
+      // disable resetting of view volume during capture
+      boolean savedResetView = resetViewVolume;
+      resetViewVolume = false;
       doDisplay (drawable, flags);
+      resetViewVolume  = savedResetView;
 
       if (selectEnabled) {
          mySelector.processSelection (drawable);
@@ -710,7 +713,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 //      return gl.glIsEnabled (GL2.GL_LIGHTING);
 //   }
    
-   public void doDisplay (GLAutoDrawable drawable, int flags) {
+   private void doDisplay (GLAutoDrawable drawable, int flags) {
       GL2 gl = drawable.getGL().getGL2();
 
       // updates projection matrix

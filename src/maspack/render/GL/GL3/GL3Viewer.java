@@ -360,7 +360,6 @@ public class GL3Viewer extends GLViewer {
       // otherwise the previous buffer sometimes gets displayed
       drawable.setAutoSwapBufferMode (selectEnabled ? false : true);
 
-      resetViewVolume = false;           //disable resetting view volume
       doDisplay (drawable, flags);
 
       if (selectEnabled) {
@@ -406,6 +405,12 @@ public class GL3Viewer extends GLViewer {
 
    private void doDisplay(GLAutoDrawable drawable, int flags) {
       GLSupport.checkAndPrintGLError(drawable.getGL ());
+      
+      // updates projection matrix
+      if (resetViewVolume && resizeEnabled) {
+         resetViewVolume(gl);
+         resetViewVolume = false;
+      }
 
       int nclips = Math.min (2*myClipPlanes.size (), maxClipPlanes);
       myProgramInfo.setNumClipPlanes (nclips);
@@ -567,8 +572,11 @@ public class GL3Viewer extends GLViewer {
       // Set rendering commands to go to offscreen frame buffer
       frameCapture.activateFBO(gl);
 
-      resetViewVolume = false;   //disable resetting view volume
+      // disable resetting of view volume during capture
+      boolean savedResetView = resetViewVolume;
+      resetViewVolume = false;
       doDisplay (drawable, flags);
+      resetViewVolume  = savedResetView;
 
       fireRerenderListeners();
 

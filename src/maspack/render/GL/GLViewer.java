@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import javax.media.opengl.GL;
-import javax.media.opengl.GL2;
 import javax.media.opengl.GL2GL3;
 import javax.media.opengl.GL3;
 import javax.media.opengl.GLAutoDrawable;
@@ -88,7 +87,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    // More control over blending
    public static enum BlendFactor {
-      GL_ONE_MINUS_CONSTANT_ALPHA(GL2.GL_ONE_MINUS_CONSTANT_ALPHA),
+      GL_ONE_MINUS_CONSTANT_ALPHA(GL2GL3.GL_ONE_MINUS_CONSTANT_ALPHA),
       GL_ONE_MINUS_SRC_ALPHA(GL.GL_ONE_MINUS_SRC_ALPHA),
       GL_ONE(GL.GL_ONE),
       GL_ZERO(GL.GL_ZERO),

@@ -35,7 +35,9 @@ public class GLColorSelector extends GLSelector {
    int[] frameBufferId = new int[1];
    int[] renderBufferId = new int[1];
    int[] depthBufferId = new int[1];
-
+   boolean savedBlend;
+   boolean savedMulti;
+   
    int[] mySavedViewport = new int[4];
 
    public GLColorSelector (GLViewer viewer) {
@@ -161,6 +163,16 @@ public class GLColorSelector extends GLSelector {
          throw new InternalErrorException (
             "Couldn't create offscreen buffer for color selection");
       }
+      
+      // disable blending and multisample
+      savedBlend = gl.glIsEnabled(GL.GL_BLEND);
+      if (savedBlend) {
+         gl.glDisable(GL.GL_BLEND);
+      }
+      savedMulti = gl.glIsEnabled(GL.GL_MULTISAMPLE);
+      if (savedMulti) {
+         gl.glDisable(GL.GL_MULTISAMPLE);
+      }
    }
 
    private void waitMsec (int msec) {
@@ -179,6 +191,12 @@ public class GLColorSelector extends GLSelector {
       //gl.glEnable (GL2.GL_FOG);
       //gl.glEnable (GL2.GL_TEXTURE_2D);
       gl.glEnable (GL2.GL_LIGHTING);
+      if (savedBlend) {
+         gl.glEnable(GL.GL_BLEND);
+      }
+      if (savedMulti) {
+         gl.glEnable(GL.GL_MULTISAMPLE);
+      }
 
       if (!myMaxQStack.isEmpty()) {
          throw new IllegalStateException (

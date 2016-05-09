@@ -117,8 +117,8 @@ public class FemBeam3d extends RootModel {
    }
 
    public void build (String[] args) {
-      //this (name, "hex", 24, 12, /*options=*/0); // ADD_BLOCKS
-      build ("hex", 8, 4, /*options=*/0); // ADD_BLOCKS
+      //build ("hex", 8, 4, /*options=*/0); // ADD_BLOCKS
+      build ("hex", 24, 12, /*options=*/0); // ADD_BLOCKS
 
       myMechMod.setIntegrator (Integrator.Trapezoidal);
       myFemMod.setMaterial (new MooneyRivlinMaterial());

@@ -1655,7 +1655,7 @@ public class RootModel extends RenderableModelBase
    }
 
    /**
-    * {@inheritDoc}q
+    * {@inheritDoc}
     */
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
       super.scan (rtok, ref);

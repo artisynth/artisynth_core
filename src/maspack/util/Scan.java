@@ -7,9 +7,11 @@
 package maspack.util;
 
 import java.awt.Color;
+import java.awt.Font;
+import java.awt.GraphicsEnvironment;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Deque;
+import java.util.HashMap;
 
 /**
  * A set of static methods to help scan values from a ReaderTokenizer.
@@ -463,7 +465,7 @@ public class Scan {
       rtok.wordChar ('.');
       String className = rtok.scanWord();
       if (!className.equals ("null")) {
-         Class sclass = null;
+         Class<?> sclass = null;
          try {
             sclass = Class.forName (className);
          }
@@ -517,5 +519,50 @@ public class Scan {
          }
       }
       return true;
+   }
+   
+   private static HashMap<String,Font> myFontMap = null; 
+   
+   public static Font scanFont(ReaderTokenizer rtok) throws IOException {
+      rtok.scanToken ('[');
+      rtok.scanWord ("fontName");
+      rtok.scanToken ('=');
+      String fontName = rtok.scanQuotedString ('"');
+      rtok.scanToken (',');
+      rtok.scanWord ("size");
+      rtok.scanToken ('=');
+      double fontSize = rtok.scanNumber ();
+      rtok.scanToken (',');
+      rtok.scanWord ("style");
+      rtok.scanToken ('=');
+      int fontStyle = rtok.scanInteger ();
+      rtok.scanToken (']');
+      
+      // set of built-in fonts
+      if (Font.MONOSPACED.equals (fontName) || Font.SERIF.equals (fontName) ||
+         Font.SANS_SERIF.equals (fontName)) {
+         Font out = new Font(fontName, fontStyle, (int)fontSize);
+         if ((fontSize - (int)fontSize) > 0) {
+            out = out.deriveFont ((float)fontSize);
+         }
+         return out;
+      }
+      
+      // map to fonts
+      if (myFontMap == null) {
+         HashMap<String,Font> fontMap = new HashMap<> ();
+         for (Font font : GraphicsEnvironment.getLocalGraphicsEnvironment ().getAllFonts ()) {
+            fontMap.put (font.getFontName (), font);
+         }
+         myFontMap = fontMap;
+      }
+      
+      Font font = myFontMap.get (fontName);
+      if (font == null) {
+         System.err.println ("Warning: font `" + fontName + "' is not available on this system.  Replacing with SERIF.");
+         font = new Font(Font.SERIF, Font.PLAIN, 1);
+      }
+      font = font.deriveFont (fontStyle, (float)fontSize);
+      return font;
    }
 }

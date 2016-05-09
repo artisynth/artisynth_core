@@ -288,8 +288,7 @@ public class ColorBar extends TextComponentBase {
       // labels
       int nLabels = Math.min(myLabelPos.size(), myLabelText.size());
       if (nLabels > 0) {
-         float[] rgb = new float[3];
-         props.getFaceColor(rgb);
+         
          double tx, ty;
 
          //         // for consistency, assume line top as 3/4 font size
@@ -297,7 +296,7 @@ public class ColorBar extends TextComponentBase {
          //         double vc = myTextSize* 0.25;
          //         double b = myTextSize*0.25;
 
-         renderer.setColor(rgb[0], rgb[1], rgb[2], 1);
+         renderer.setFaceColoring (props, isSelected());
          float[] loc = new float[3];
          for (int i=0; i<nLabels; i++) {
             tx = 0;

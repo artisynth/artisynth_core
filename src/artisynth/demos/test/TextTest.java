@@ -3,22 +3,25 @@ package artisynth.demos.test;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.GraphicsEnvironment;
-import java.awt.geom.Rectangle2D;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayDeque;
 import java.util.HashMap;
 
 import artisynth.core.renderables.TextComponent3d;
 import artisynth.core.renderables.TextComponentBase.HorizontalAlignment;
+import artisynth.core.util.ScanToken;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
 import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
-import maspack.matrix.RigidTransform3d;
-import maspack.matrix.Vector3d;
 import maspack.render.RenderProps;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 public class TextTest extends RootModel {
    
@@ -94,7 +97,14 @@ public class TextTest extends RootModel {
       RenderProps.setFaceStyle (text, FaceStyle.FRONT);
       addRenderable (text);
       
-      
+      PrintWriter writer = new PrintWriter ("tmp/texttest.txt");
+      write (writer, new NumberFormat ("%g"), null);
+      writer.close ();
+
+      ArrayDeque<ScanToken> tokens = new ArrayDeque<> ();
+      ReaderTokenizer rtok = new ReaderTokenizer (new FileReader ("tmp/texttest.txt"));
+      scan (rtok, tokens);
+      rtok.close ();
    }
    
    @Override

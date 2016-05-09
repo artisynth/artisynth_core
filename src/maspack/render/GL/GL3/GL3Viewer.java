@@ -607,11 +607,11 @@ public class GL3Viewer extends GLViewer {
    public double drawText(Font font, String str, float[] pos, double emSize) {
       GL3 gl = getGL ().getGL3();
       
-      boolean savedTransparency = isTransparencyEnabled ();
+      boolean savedBlending = isBlendingEnabled ();
       boolean savedTexture = isTextureMappingEnabled ();
       boolean savedDepth = isDepthWriteEnabled ();
       setDepthWriteEnabled (false);
-      setTransparencyEnabled (true);
+      setBlendingEnabled (true);
       setTextureMappingEnabled (true);
       
       ColorMapProps savedTextureProps = setColorMap (myTextTextureProps);
@@ -629,7 +629,7 @@ public class GL3Viewer extends GLViewer {
       
       setDepthWriteEnabled (savedDepth);
 
-      setTransparencyEnabled (savedTransparency);
+      setBlendingEnabled (savedBlending);
       setTextureMappingEnabled (savedTexture);
       setColorMap (savedTextureProps);
       

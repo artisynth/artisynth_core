@@ -11,7 +11,6 @@ import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 
 import maspack.matrix.Point2d;
-import maspack.properties.PropertyDesc;
 import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
 import maspack.render.IsRenderable;

@@ -58,7 +58,6 @@ public class TextComponent3d extends TextComponentBase implements
       myProps.add("text", "text to display", "");
       myProps.add("position", "display position", Point3d.ZERO);
       myProps.add("orientation", "orientation relative to world", AxisAngle.IDENTITY);
-      
       myProps.add("followEye isFollowingEye *", "text relative to eye", true);
    }
 
@@ -78,6 +77,10 @@ public class TextComponent3d extends TextComponentBase implements
       myPos = new Point3d();
       myOrientation = new AxisAngle();
       followEye = true;
+   }
+   
+   public TextComponent3d() {
+      setDefaults ();
    }
    
    /**

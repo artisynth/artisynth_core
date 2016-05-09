@@ -6,30 +6,15 @@
  */
 package maspack.properties;
 
-import java.awt.Component;
-import java.awt.Graphics;
 import java.awt.Color;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Iterator;
 
-import javax.swing.JPanel;
-
-import maspack.matrix.Vector;
+import maspack.matrix.AxisAngle;
 import maspack.matrix.DenseMatrix;
-import maspack.matrix.VectorNd;
+import maspack.matrix.Vector;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
-import maspack.matrix.AxisAngle;
 import maspack.util.InternalErrorException;
-import maspack.util.NumberFormat;
-import maspack.util.ReaderTokenizer;
 
 public class NumericConverter {
    protected Object myObj;
@@ -73,9 +58,9 @@ public class NumericConverter {
     * object or class to test
     */
    public static boolean isNumeric (Object objOrClass) {
-      Class cls;
+      Class<?> cls;
       if (objOrClass instanceof Class) {
-         cls = (Class)objOrClass;
+         cls = (Class<?>)objOrClass;
       }
       else {
          cls = objOrClass.getClass();
@@ -162,9 +147,9 @@ public class NumericConverter {
     * object or class to test
     */
    public static String[] getFieldNames (Object objOrClass) {
-      Class cls;
+      Class<?> cls;
       if (objOrClass instanceof Class) {
-         cls = (Class)objOrClass;
+         cls = (Class<?>)objOrClass;
       }
       else {
          cls = objOrClass.getClass();

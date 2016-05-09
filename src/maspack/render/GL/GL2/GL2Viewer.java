@@ -665,11 +665,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    
    public double drawText(Font font, String str, float[] pos, double emSize) {
       
-      boolean savedTransparency = isTransparencyEnabled ();
+      boolean savedBlending = isBlendingEnabled ();
       boolean savedTexture = isTextureMappingEnabled ();
       boolean savedDepth = isDepthWriteEnabled ();
       setDepthWriteEnabled (false);
-      setTransparencyEnabled (true);
+      setBlendingEnabled (true);
       setTextureMappingEnabled (true);
      
       ColorMapProps savedTextureProps = setColorMap (myTextTextureProps);
@@ -686,7 +686,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       
       setDepthWriteEnabled (savedDepth);
 
-      setTransparencyEnabled (savedTransparency);
+      setBlendingEnabled (savedBlending);
       setTextureMappingEnabled (savedTexture);
       setColorMap (savedTextureProps);
       

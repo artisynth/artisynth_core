@@ -11,7 +11,6 @@ import java.awt.geom.Rectangle2D;
 
 import maspack.matrix.Point2d;
 import maspack.matrix.RigidTransform3d;
-import maspack.properties.PropertyDesc;
 import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
 import maspack.render.IsRenderable;
@@ -25,37 +24,26 @@ import maspack.render.Renderer;
  */
 public class TextComponent2d extends TextComponentBase {
 
-   public static int defaultFontSize = 12;
+   public static int defaultFontSize = 32;
    public static double defaultTextSize = defaultFontSize;
-   public static Point2d defaultPos = new Point2d(-1,-1);
-   public static Point2d defaultNormPos = new Point2d(0,0);
+   public static Point2d defaultPos = new Point2d(0, 0);
 
    private String myText;
    private Point2d myPos; // absolute 2D point on screen
-   private Point2d myNormPos; // relative position
    private double myOrientation;
    private double myTextSize; // scaling factor for font
 
    RigidTransform3d myTransform = new RigidTransform3d();
    double[] GLMatrix = new double[16];
    Point2d renderPos = new Point2d();
-   float[] rgb = new float[3];
 
    public static PropertyList myProps = new PropertyList(
       TextComponent2d.class, TextComponentBase.class);
 
    static {
       // change default font size
-      PropertyDesc info = myProps.get("fontSize");
-      info.setDefaultValue(defaultFontSize);
-      info = myProps.get("textSize");
-      info.setDefaultValue(defaultTextSize);
-      
       myProps.add("text", "text to display", "");
-      myProps.add("positionOverride", 
-         "display position override (if >0, overrides normalized position value)", 
-         defaultPos);
-      myProps.add("normalizedPosition", "normalized position", defaultNormPos);
+      myProps.add("position", "display position", defaultPos);
       myProps.add("rotation", "rotation in degrees", 0, "[-180,180]");
    }
 
@@ -64,7 +52,7 @@ public class TextComponent2d extends TextComponentBase {
    }
 
    protected void setDefaults() {
-      myFont = new Font(defaultFontName, 0, defaultFontSize);
+      setFont ( new Font(defaultFontName, 0, defaultFontSize));
       myRenderProps = createDefaultRenderProps();
       hAlignment = defaultHAlignment;
       vAlignment = defaultVAlignment;
@@ -73,8 +61,11 @@ public class TextComponent2d extends TextComponentBase {
       
       myText = "";
       myPos = new Point2d(defaultPos);
-      myNormPos = new Point2d(defaultNormPos);
       myOrientation = 0;
+   }
+   
+   public TextComponent2d() {
+      setDefaults ();
    }
 
    /**
@@ -89,9 +80,7 @@ public class TextComponent2d extends TextComponentBase {
    }
 
    /**
-    * Sets both name (if valid) and text to provided string.  
-    * The position is assumed to be normalized in [0,1]x[0,1].
-    * For pixel coordinate, use {@link #setPositionOverride(Point2d)}.
+    * Sets both name (if valid) and text to provided string.
     */
    public TextComponent2d (String text, Point2d pos) {
       setDefaults();
@@ -100,19 +89,17 @@ public class TextComponent2d extends TextComponentBase {
       } catch (IllegalArgumentException e) {
       }
       setText(text);
-      setNormalizedPosition(pos);
+      setPosition(pos);
    }
 
    /**
-    * Main constructor, setting name, text and screen (pixel) position.
-    * The position is assumed to be normalized in [0,1]x[0,1].
-    * For pixel coordinate, use {@link #setPositionOverride(Point2d)}.
+    * Main constructor, setting name, text and screen position;
     */
    public TextComponent2d (String name, String text, Point2d pos) {
       setDefaults();
       setName(name);
       setText(text);
-      setPositionOverride(pos);
+      setPosition(pos);
    }
 
    /**
@@ -127,37 +114,22 @@ public class TextComponent2d extends TextComponentBase {
    }
 
    /**
-    * Sets world position to display text.  If either x
-    * or y is negative, then the normalized position
-    * is used for that dimension
+    * Sets world position to display text.  If a coordinate
+    * has a value in [0, 1], then it is assumed to be 
+    * normalized, with (0,0) in the bottom-left corner, and
+    * (1,1) the top-right.
     */
-   public void setPositionOverride(Point2d pos) {
+   public void setPosition(Point2d pos) {
       myPos.set(pos);
-   }
-
-   /**
-    * Sets normalized position to display text,
-    * (x,y) in [0,1]x[0,1]
-    */
-   public void setNormalizedPosition(Point2d pos) {
-      myNormPos.x = Math.min(Math.max(pos.x, 0), 1);
-      myNormPos.y = Math.min(Math.max(pos.y, 0), 1);
    }
 
    /**
     * Returns position by reference
     */
-   public Point2d getPositionOverride() {
+   public Point2d getPosition() {
       return myPos;
    }
    
-   /**
-    * Returns normalized position by reference
-    */
-   public Point2d getNormalizedPosition() {
-      return myNormPos;
-   }
-
    /**
     * Gets the text angle
     */
@@ -177,14 +149,6 @@ public class TextComponent2d extends TextComponentBase {
       return super.getRenderHints() 
          | IsRenderable.TRANSPARENT | IsRenderable.TWO_DIMENSIONAL;
    }
-
-//   @Override
-//   public void renderx(GLRenderer renderer, int flags) {
-//      if (isSelectable() || !renderer.isSelecting()) {
-//         render(renderer, 0);
-//      }
-//   }
-
    
    @Override
    public void render(Renderer renderer, int flags) {
@@ -193,9 +157,7 @@ public class TextComponent2d extends TextComponentBase {
          return;
       }
       
-      FaceRenderProps rprops = (FaceRenderProps)getRenderProps();
-
-      // text orientation computation
+           // text orientation computation
       Rectangle2D box = renderer.getTextBounds(myFont, myText, myTextSize);
       double t = box.getHeight ()+box.getY ();
       double vc = box.getCenterY ()+box.getHeight ()/2;
@@ -237,13 +199,13 @@ public class TextComponent2d extends TextComponentBase {
       
       renderPos.rotate(ctheta, stheta, renderPos);
       
-      if (myPos.x <= 0) {
-         renderPos.x += myNormPos.x * sw;
+      if (myPos.x <= 1) {
+         renderPos.x += myPos.x * sw;
       } else {
          renderPos.x += myPos.x;
       }
-      if (myPos.y <= 0) {
-         renderPos.y += myNormPos.y * sh;
+      if (myPos.y <= 1) {
+         renderPos.y += myPos.y * sh;
       } else {
          renderPos.y += myPos.y;
       }
@@ -254,11 +216,8 @@ public class TextComponent2d extends TextComponentBase {
       myTransform.R.m11 = ctheta;
       myTransform.p.set(renderPos.x, renderPos.y, 0);
 
-      if (isSelected()) {
-         renderer.getHighlightColor(rgb);
-      } else {
-         rprops.getFaceColor(rgb);
-      }
+      FaceRenderProps rprops = (FaceRenderProps)getRenderProps();
+      renderer.setFaceColoring (rprops, (flags & Renderer.HIGHLIGHT) != 0);
 
       boolean saved2d = renderer.is2DRendering();
       if (!saved2d) {
@@ -268,7 +227,6 @@ public class TextComponent2d extends TextComponentBase {
       renderer.pushModelMatrix();
       renderer.mulModelMatrix(myTransform);
       
-      renderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());
       final float[] ZERO = {0,0,0};
       renderer.drawText(myFont, myText, ZERO, myTextSize);
 

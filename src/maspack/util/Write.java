@@ -6,10 +6,10 @@
  */
 package maspack.util;
 
-import maspack.util.*;
 import java.awt.Color;
-
-import java.io.*;
+import java.awt.Font;
+import java.io.IOException;
+import java.io.PrintWriter;
 
 //import java.util.*;
 
@@ -387,4 +387,16 @@ public class Write {
       sbuf.append ('"');
       return sbuf.toString();
    }
+   
+   public static void writeFont(PrintWriter pw, Font font) {
+      pw.print ("[ ");
+      pw.print ("fontName=");
+      pw.print (getQuotedString (font.getFontName ()));
+      pw.print (", size=");
+      pw.print (font.getSize2D ());
+      pw.print (", style=");
+      pw.print (font.getStyle ());
+      pw.println (" ]");
+   }
+   
 }

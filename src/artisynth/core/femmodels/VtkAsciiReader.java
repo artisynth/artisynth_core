@@ -161,7 +161,37 @@ public class VtkAsciiReader implements FemReader {
          for (int j=0; j<elem.size(); j++) {
             elemNodes[j] = model.getNode(elem.get(j));
          }
-         model.addElement(FemElement3d.createElement(elemNodes, true));
+         
+         // pyramid, swap node order
+         switch (elemNodes.length) {
+            case 4:  // tet
+               
+               break;
+            case 5: {
+               // pyramid reverse face orientation
+               FemNode3d n = elemNodes[0];
+               elemNodes[0] = elemNodes[3];
+               elemNodes[3] = n;
+               n = elemNodes[1];
+               elemNodes[1] = elemNodes[2];
+               elemNodes[2] = n;
+               break;
+            }
+            default:
+               // hex, wedge
+               for (int j=0; j<elemNodes.length/2; ++j) {
+                  FemNode3d n = elemNodes[j];
+                  elemNodes[j] = elemNodes[elemNodes.length-1-j];
+                  elemNodes[elemNodes.length-1-j] = n;
+               }
+         }
+         
+         FemElement3d e = FemElement3d.createElement(elemNodes, true); 
+         model.addElement(e);
+         e.computeVolumes();
+         if (e.getVolume() < 0.0) {
+             System.out.println("Warning: inverted element " + e.getClass());
+         }
       }
 
 

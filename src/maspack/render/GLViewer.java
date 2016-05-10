@@ -1932,6 +1932,14 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       // turn off buffer swapping when doing a selection render because
       // otherwise the previous buffer sometimes gets displayed
       drawable.setAutoSwapBufferMode (selectEnabled ? false : true);
+      
+      // re-enable multisample if not enabled
+      boolean ms = gl.glIsEnabled(GL.GL_MULTISAMPLE);
+      if (!ms) {
+         System.out.println("Re-enabling multisample AA");
+         gl.glEnable(GL.GL_MULTISAMPLE);
+         myMultiSampleEnabled = true;
+      }
 
       gl.glPushMatrix();
       if (selectEnabled) {

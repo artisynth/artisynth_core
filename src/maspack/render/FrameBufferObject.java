@@ -52,19 +52,13 @@ public class FrameBufferObject {
     * Create a framebuffer with the given dimensions
     */
    public FrameBufferObject (int w, int h, File file, String format, GL2 gl) {
-      width = w;
-      height = h;
-      x = 0;
-      y = 0;
-      this.gl = gl;
-      this.file = file;
-      this.format = format;
+      this(0, 0, w, h, defaultSamples, file, format, gl);
    }
    
    /**
     * Create a framebuffer with the given dimensions
     */
-   public FrameBufferObject (int x, int y, int w, int h, File file, String format, GL2 gl) {
+   public FrameBufferObject (int x, int y, int w, int h, int nsamples, File file, String format, GL2 gl) {
       width = w;
       height = h;
       this.x = x;
@@ -72,6 +66,8 @@ public class FrameBufferObject {
       this.gl = gl;
       this.file = file;
       this.format = format;
+      this.samples = nsamples;
+      this.setup = false;
    }
 
    /**
@@ -80,7 +76,6 @@ public class FrameBufferObject {
     * and one texture.
     */
    public void setupFBO () {
-      setup = true;
       
       IntBuffer handle = allocInts(1);
       // create the frame buffer object
@@ -99,6 +94,7 @@ public class FrameBufferObject {
       // attachTexture(CBhandle);
       
       checkStatus ();
+      setup = true;
    }
    
    /**
@@ -108,8 +104,10 @@ public class FrameBufferObject {
       gl.glBindFramebuffer(GL2.GL_FRAMEBUFFER, FBOhandle);
       status = gl.glCheckFramebufferStatus(GL2.GL_FRAMEBUFFER);
       gl.glBindFramebuffer(GL2.GL_FRAMEBUFFER, ActiveFBO);
-      System.out.println("Framebuffer status is " + status + 
-         " = " + framebuffer_status_string(status));
+      if (status != GL2.GL_FRAMEBUFFER_COMPLETE) {
+         System.err.println("Framebuffer status is " + status + 
+            " = " + framebuffer_status_string(status));
+      }
       return status;
    }
 
@@ -203,7 +201,7 @@ public class FrameBufferObject {
       // System.out.println ("numSamps=" + numSamps.get(0));
 
       // make renderbuffer for depth
-      System.out.println("adding depth buffer");
+      // System.out.println("adding depth buffer");
 
       IntBuffer rboId = allocInts (1);
       gl.glGenRenderbuffers (1, rboId);
@@ -241,8 +239,7 @@ public class FrameBufferObject {
       // System.out.println ("numSamps=" + numSamps.get(0));
 
       // make renderbuffer for depth
-
-      System.out.println ("adding rgb buffer");
+      // System.out.println ("adding rgb buffer");
 
       IntBuffer rboId = allocInts (1);
       gl.glGenRenderbuffers (1, rboId);
@@ -504,4 +501,10 @@ public class FrameBufferObject {
                        pixelsBGRA);
       return pixelsBGRA;
    }
+   
+   public void getPixelsRGBA(ByteBuffer pixels) {
+      gl.glReadPixels(0, 0, width, height,
+         GL2.GL_RGBA, GL2.GL_UNSIGNED_BYTE, pixels);
+   }
+   
 }

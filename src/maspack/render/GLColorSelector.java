@@ -8,6 +8,8 @@ package maspack.render;
 
 import java.util.*;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 import javax.media.opengl.*;
 import javax.media.opengl.glu.*;
 
@@ -35,6 +37,9 @@ public class GLColorSelector extends GLSelector {
    int[] frameBufferId = new int[1];
    int[] renderBufferId = new int[1];
    int[] depthBufferId = new int[1];
+   
+   FrameBufferObject fbo = null;
+   
    boolean savedBlend;
    boolean savedMulti;
    
@@ -136,34 +141,11 @@ public class GLColorSelector extends GLSelector {
       //gl.glDisable (GL2.GL_TEXTURE_2D);
       //gl.glDisable (GL2.GL_FOG);
 
-      // create offscreen buffer in which to render ...
-
-      gl.glGenFramebuffers (1, frameBufferId, 0);
-      gl.glBindFramebuffer (GL2.GL_FRAMEBUFFER, frameBufferId[0]);
-      
-      gl.glGenRenderbuffers (1, renderBufferId, 0);
-
-      gl.glBindRenderbuffer (GL2.GL_RENDERBUFFER, renderBufferId[0]);
-      gl.glRenderbufferStorage (
-         GL2.GL_RENDERBUFFER, GL2.GL_RGBA8, myViewW, myViewH);
-      gl.glFramebufferRenderbuffer (
-         GL2.GL_FRAMEBUFFER, GL2.GL_COLOR_ATTACHMENT0,
-         GL2.GL_RENDERBUFFER, renderBufferId[0]);
-      gl.glGenRenderbuffers (1, depthBufferId, 0);
-
-      gl.glBindRenderbuffer (GL2.GL_RENDERBUFFER, depthBufferId[0]);
-      gl.glRenderbufferStorage (
-         GL2.GL_RENDERBUFFER, GL2.GL_DEPTH_COMPONENT16, myViewW, myViewH);
-      gl.glFramebufferRenderbuffer (
-         GL2.GL_FRAMEBUFFER, GL2.GL_DEPTH_ATTACHMENT,
-         GL2.GL_RENDERBUFFER, depthBufferId[0]);
-
-      int status = gl.glCheckFramebufferStatus (GL2.GL_FRAMEBUFFER) ;
-      if(status != GL2.GL_FRAMEBUFFER_COMPLETE) {
-         throw new InternalErrorException (
-            "Couldn't create offscreen buffer for color selection");
-      }
-      
+      // create offscreen buffer in which to render
+      fbo = new FrameBufferObject(0, 0, myViewW, myViewH, 1, null, null, gl);
+      fbo.setupFBO();
+      fbo.activate();
+            
       // disable blending and multisample
       savedBlend = gl.glIsEnabled(GL.GL_BLEND);
       if (savedBlend) {
@@ -172,15 +154,6 @@ public class GLColorSelector extends GLSelector {
       savedMulti = gl.glIsEnabled(GL.GL_MULTISAMPLE);
       if (savedMulti) {
          gl.glDisable(GL.GL_MULTISAMPLE);
-      }
-   }
-
-   private void waitMsec (int msec) {
-      try {
-         Thread.sleep (msec);
-      }
-      catch (Exception e) {
-         //
       }
    }
 
@@ -206,9 +179,12 @@ public class GLColorSelector extends GLSelector {
       int w = myViewW;
       int h = myViewH;
 
-      ByteBuffer pixels = ByteBuffer.allocate(4*w*h);
-      gl.glReadPixels(0, 0, w, h,
-                      GL2.GL_RGBA, GL2.GL_UNSIGNED_BYTE, pixels);
+      ByteBuffer pixels = ByteBuffer.allocateDirect(4*w*h);
+      pixels.order(ByteOrder.nativeOrder());
+      fbo.getPixelsRGBA(pixels);
+      fbo.deactivate();
+      fbo.cleanup();
+      fbo = null;
 
       HitRecord[] hits = null;
 
@@ -250,12 +226,23 @@ public class GLColorSelector extends GLSelector {
             }
          }
       }
+      pixels.clear();
+      
+      // XXX dummy multi-sample FBO hack for some Mac graphics drivers
+      if (myViewer.isMultiSampleEnabled()) {
+         
+         FrameBufferObject dummy = new FrameBufferObject(0, 0, myViewer.getWidth(), myViewer.getHeight(),
+            8, null, null, gl);
+         dummy.setupFBO();
+         dummy.activate();
+         // now de-activate and delete immediately
+         dummy.deactivate();
+         dummy.cleanup();
+         
+      }
+      
 
-      gl.glBindFramebuffer (GL2.GL_FRAMEBUFFER, 0);
-      gl.glDeleteFramebuffers (1, frameBufferId, 0);
-      gl.glDeleteRenderbuffers (1, renderBufferId, 0);
-      gl.glDeleteRenderbuffers (1, depthBufferId, 0);
-
+      // restore view
       gl.glViewport (mySavedViewport[0], mySavedViewport[1], 
                      mySavedViewport[2], mySavedViewport[3]);
 

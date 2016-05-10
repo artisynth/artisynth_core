@@ -23,12 +23,12 @@ import maspack.render.IsSelectable;
 import maspack.render.ViewerSelectionListener;
 
 /**
- * GLSelector that works using the traditional GL_SELECT mechanism (now
- * deprecated).
+ * GLSelector that uses occlusion queries, so will select everything,
+ * including occluded objects within the supplied range.
  */
 public class GLOcclusionSelector extends GLSelector {
 
-   public static final int MAX_OCCLUSION_QUERIES = 1<<12; 
+   public static final int MAX_OCCLUSION_QUERIES = 1<<16; 
    
    GL2GL3 myGl;
 
@@ -114,7 +114,7 @@ public class GLOcclusionSelector extends GLSelector {
       myGLQueryCount = 0;
       myGLQueryTotal = 0;
       
-      gl.glGenQueries (myTotalMaxQ, myGLQueries, 0);
+      gl.glGenQueries (myGLQueries.length, myGLQueries, 0);
 
       // restrict the viewport to the specified selection region
       mySavedViewport = viewer.getViewport(gl);
@@ -252,7 +252,7 @@ public class GLOcclusionSelector extends GLSelector {
       }
       
       // delete queries
-      gl.glDeleteQueries (myTotalMaxQ, myGLQueries, 0);
+      gl.glDeleteQueries (myGLQueries.length, myGLQueries, 0);
       myGLQueries = null;
       myGLQueryIds = null;
       myGl = null;

@@ -130,7 +130,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    private static final Point3d DEFAULT_VIEWER_CENTER = new Point3d();
    private static final Point3d DEFAULT_VIEWER_EYE = new Point3d (0, -1, 0);
 
-   protected static int DEFAULT_SURFACE_RESOLUTION = 64;
+   protected static int DEFAULT_SURFACE_RESOLUTION = 32;
    protected int mySurfaceResolution = DEFAULT_SURFACE_RESOLUTION; 
 
    private static final float DEFAULT_POINT_SIZE = 1f;
@@ -171,6 +171,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    static private final int LINE_WIDTH_BIT = 0x0200;
    static private final int POINT_SIZE_BIT = 0x0400;
    static private final int SHADING_BIT = 0x0800;
+   // surface resolution is not currently restored
    static private final int SURFACE_RESOLUTION_BIT = 0x1000;
    static private final int COLOR_MIXING_BIT = 0x2000;
    static private final int DEPTH_OFFSET_BIT = 0x4000;
@@ -458,6 +459,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
             "blendSourceFactor", "source transparency blending", DEFAULT_SRC_BLENDING);
          myProps.add(
             "blendDestFactor", "destination transparency blending", DEFAULT_DST_BLENDING);
+      myProps.add("surfaceResolution", "resolution for built-in curved primitives", 
+         DEFAULT_SURFACE_RESOLUTION);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -478,12 +481,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public int setSurfaceResolution (int nres) {
       int prev = mySurfaceResolution;
       mySurfaceResolution = nres;
-      if (nres != DEFAULT_SURFACE_RESOLUTION) {
-         myNonDefaultGeneralSettings |= SURFACE_RESOLUTION_BIT;
-      }
-      else {
-         myNonDefaultGeneralSettings &= ~SURFACE_RESOLUTION_BIT;
-      }
+//      if (nres != DEFAULT_SURFACE_RESOLUTION) {
+//         myNonDefaultGeneralSettings |= SURFACE_RESOLUTION_BIT;
+//      }
+//      else {
+//         myNonDefaultGeneralSettings &= ~SURFACE_RESOLUTION_BIT;
+//      }
       return prev;
    }
    
@@ -4427,9 +4430,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          if (myViewerState.shading != DEFAULT_SHADING) {
             setShading (DEFAULT_SHADING);
          }
-         if (mySurfaceResolution != DEFAULT_SURFACE_RESOLUTION) {
-            setSurfaceResolution (DEFAULT_SURFACE_RESOLUTION);
-         }
+//         if (mySurfaceResolution != DEFAULT_SURFACE_RESOLUTION) {
+//            setSurfaceResolution (DEFAULT_SURFACE_RESOLUTION);
+//         }
          if (myViewerState.colorMixing != DEFAULT_COLOR_MIXING) {
             setVertexColorMixing (DEFAULT_COLOR_MIXING);
          }

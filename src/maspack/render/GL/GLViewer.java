@@ -442,8 +442,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected boolean selectionEnabled = true;
    protected boolean selectOnPressP = false;   
 
-   boolean myProfiling = false;
-   FunctionTimer myTimer = new FunctionTimer();
+   protected boolean myProfiling = false;
+   protected FunctionTimer myTimer = new FunctionTimer();
 
    public static PropertyList myProps = new PropertyList (GLViewer.class);
 
@@ -1960,15 +1960,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          myFrustum.depthBits = depthBits;
          computeProjectionMatrix ();
       }
-      if (myProfiling) {
-         myTimer.start();
-      }
       display(drawable, flags);
-      if (myProfiling) {
-         myTimer.stop();
-         System.out.println (
-            "render time: " + myTimer.result(1) + " selecting=" + isSelecting());
-      }
       GLSupport.checkAndPrintGLError(drawable.getGL ());
       
       // clear current drawable

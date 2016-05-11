@@ -351,9 +351,16 @@ public class GL3Viewer extends GLViewer {
       // turn off buffer swapping when doing a selection render because
       // otherwise the previous buffer sometimes gets displayed
       drawable.setAutoSwapBufferMode (selectEnabled ? false : true);
-
+      if (myProfiling) {
+         myTimer.start();
+      }
       doDisplay (drawable, flags);
-
+      if (myProfiling) {
+         myTimer.stop();
+         System.out.printf (
+            "render time (msec): %9.4f %s\n", 
+            myTimer.getTimeUsec()/1000.0, isSelecting() ? "(SELECT)" : "");
+      }
       if (selectEnabled) {
          selectEnabled = false;
          mySelector.processSelection (drawable);

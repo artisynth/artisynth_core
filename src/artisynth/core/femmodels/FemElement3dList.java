@@ -25,6 +25,7 @@ import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.Shading;
+import maspack.render.GL.GLSupport;
 
 public class FemElement3dList extends RenderableComponentList<FemElement3d> {
    protected static final long serialVersionUID = 1;
@@ -600,7 +601,9 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
       if (myEdgeRob != null) {
          drawEdges(renderer, myEdgeRob, myEdgeFeatures[SEL_GRP], props, true);
          drawEdges(renderer, myEdgeRob, myEdgeFeatures[REG_GRP], props, false);
-      } else {
+      }
+      
+      if (myWidgetRob != null) {
          drawWidgets (renderer, myWidgetRob, myWidgetFeatures[SEL_GRP], props, SEL_GRP);
          drawWidgets (renderer, myWidgetRob, myWidgetFeatures[REG_GRP], props, REG_GRP);
          drawWidgets (renderer, myWidgetRob, myWidgetFeatures[INV_GRP], props, INV_GRP);

@@ -475,8 +475,8 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
          //    }
          // }
          
-         FunctionTimer ft = new FunctionTimer ();
-         ft.start ();
+         //FunctionTimer ft = new FunctionTimer ();
+         //ft.start ();
          for (int i=0; i<size(); i++) {
             FemElement3d elem = get(i);        
             if (elem.getRenderProps() == null && renderer.isSelectable (elem)) {
@@ -485,8 +485,8 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
                renderer.endSelectionQuery ();
             }
          }
-         ft.stop ();
-         System.out.println (ft.result (1));
+         //ft.stop ();
+         //System.out.println (ft.result (1));
          
          // if (style == LineStyle.LINE) {
          //    renderer.setLineWidth (1);

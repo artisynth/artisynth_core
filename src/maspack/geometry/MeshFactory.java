@@ -746,6 +746,19 @@ public class MeshFactory {
    }
 
    /**
+    * Legacy method to create a rectangle with texture coordinates;
+    * calls {@link #createRectangle(double,double,boolean)
+    * createRectangle(wx,wy,true)}.
+    * 
+    * @param wx width in the x direction
+    * @param wy width in the y direction
+    * @return created rectangular mesh
+    */
+   public static PolygonalMesh createPlane (double wx, double wy) {
+      return createRectangle (wx, wy, /*addTextureCoords=*/true);
+   }
+   
+   /**
     * Create a open rectanglar mesh, composed of two triangles, in the x-y
     * plane, centered on the origin and with normals directed along the z axis. 
     * Texture coordinates can optionally be created for each triangle so that
@@ -778,6 +791,22 @@ public class MeshFactory {
       }
       return mesh;
    }
+
+   /**
+    * Legacy method to create a rectangle with texture coordinates;
+    * calls {@link #createRectangle(double,double,int,int,boolean)
+    * createRectangle(wx,wy,xdiv,ydiv,true)}.
+    * 
+    * @param wx width in the x direction
+    * @param wy width in the y direction
+    * @param xdiv number of divisions in x (&gt;=1)
+    * @param ydiv number of divisions in y (&gt;=1)
+    * @return created rectangular mesh
+    */
+   public static PolygonalMesh createPlane (
+      double wx, double wy, int xdiv, int ydiv) {
+      return createRectangle (wx, wy, xdiv, ydiv, /*addTextureCoords=*/true);
+   }
    
    /**
     * Create a open rectangular mesh, composed of triangles, in the x-y
@@ -792,6 +821,7 @@ public class MeshFactory {
     * @param ydiv number of divisions in y (&gt;=1)
     * @param addTextureCoords if <code>true</code>, generates texture 
     * coordinates
+    * @return created mesh
     */
    public static PolygonalMesh createRectangle (
       double wx, double wy, int xdiv, int ydiv, boolean addTextureCoords) {

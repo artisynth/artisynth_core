@@ -3421,8 +3421,11 @@ public class PolygonalMesh extends MeshBase {
 
       HashSet<HalfEdge> hardSet = new HashSet<HalfEdge>(); 
       if (myNormals == null || myNormals.size() == numVertices()) {
-         myNormalsExplicitP = false;
-         // can't be any hard edges
+         // can't be any hard edges. Leave myNormalsExplicitP unchanged,
+         // since even if numNormals == numVertices, we can't assume
+         // computeVertexNormals() will work properly: it will expect
+         // numNormals > numVertices if it detects a vertex that needs
+         // multiple normals.
          return false;
       }
       for (Vertex3d vtx : myVertices) {

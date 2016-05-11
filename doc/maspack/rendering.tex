@@ -2561,7 +2561,7 @@ point size & size of pixel-based points & 1& yes\\
 model matrix & transform from model to world coordinates & IDENTITY& yes\\
 highlighting & highlight drawn primitives & {\tt false}& yes\\
 shading & primitive shading based on normal information & {\tt FLAT}& yes\\
-surface resolution & internal curved surface resolution & 32& yes\\
+surface resolution & internal curved surface resolution & 32& no\\
 vertex color mixing & how to combine underlying and vertex colors &
 {\tt REPLACE}& yes\\
 depth offset & moves rendered objects slightly along the eye z axis & 0 & yes\\
@@ -2585,10 +2585,9 @@ renderer.  Table \ref{graphicsState:tab} summarizes these attributes
 and their default values. The last column, {\it Restored}, indicates
 if the renderer will restore the attribute to its default value after
 calling each renderable's {\tt render()} method in the repaint step.
-At present, only the front color is not restored. All other
-attributes will therefore be set to their default value at the
-beginning of any {\tt render()} method {\it when} that method is being
-called by the renderer.
+All restored attributes can therefore be assumed to be set to their
+default value at the beginning of any {\tt render()} method {\it when}
+that method is being called by the renderer.
 
 Note that in some cases, a renderable's {\tt render()} method may {\it
 not} be called by the render. This will occur, for instance, when a

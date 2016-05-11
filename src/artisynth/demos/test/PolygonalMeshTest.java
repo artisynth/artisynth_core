@@ -64,12 +64,11 @@ public class PolygonalMeshTest extends MeshTestBase {
    public void build (String[] args) {
 
       MechModel msmod = new MechModel ("msmod");
-      PolygonalMesh mesh;
+      PolygonalMesh mesh = null;
 
-      // PolygonalMesh mesh = MeshFactory.createTube (2, 4, 6, 20, 2, 6);
-      //mesh = MeshFactory.createIcosahedralSphere (/*radius=*/2.0, /*divs=*/2);
       mesh = MeshFactory.createSphere (/*radius=*/2.0, /*nsegs=*/24);
       //mesh = readBoxMesh();
+
       myMesh = mesh;
 
       FixedMeshBody meshBody = new FixedMeshBody (mesh);

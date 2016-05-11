@@ -14,6 +14,10 @@
 %\renewcommand{\sectionname}{}
 \begin{document}
 
+\iflatexml
+\else
+\maketitle
+\fi
 %\section*{Next}
 
 %\subsection*{Wrapping surfaces}
@@ -90,6 +94,15 @@ examples, is given in the ``Rendering'' chapter of the
 {Maspack Reference Manual}. The new {\tt Renderer} interface itself is
 described in the ``Renderer Interface'' section.
 
+This update entails changes to the API. For application code that does
+not explicitly implement component {\tt render()} methods or
+manipulate the viewer, those changes should be limited to {\it API
+changes involving RenderProps}, described below.  For application code
+those does implement {\tt render()} methods or manipulate the viewer,
+further changes described under {\it API changes involving the
+renderer} or {\it API changes involving the viewer} will likely be
+necessary.
+
 \subsubsection*{Support for texture mapping}
 
 Proper support has now been added for texture mapping, including
@@ -111,7 +124,7 @@ components that contain polygonal meshes (as described in the
 \href{http://www.artisynth.org/doc/html/modelguide/modelguide.html}%
 {ArtiSynth Modeling Guide}).
 
-\subsubsection*{Changes to render properties}
+\subsubsection*{API changes involving RenderProps}
 
 Some changes have been made to the {\tt RenderProps} object and
 associated enumerated types which components use to specify generic
@@ -130,32 +143,68 @@ GOURAUD}, and {\tt PHONG} to {\tt FLAT}, {\tt SMOOTH}, {\tt METAL},
 and {\tt NONE}. {\tt SMOOTH} takes the place of both {\tt GOURAUD} and
 {\tt PHONG} to simply indicate smooth shading; different renderer
 implementations are free to implement this using Gouraud or Phong
-shading. {\tt METAL} is used to indicate smooth shading
+shading as desired. {\tt METAL} is used to indicate smooth shading
 with more metalic-like qualities; renderer implementations are free to
 implement this as they wish and in some cases there will be no
 difference between {\tt SMOOTH} and {\tt METAL}. Setting the shading
 to {\tt NONE} disables lighting.
 
-\item The subproperty {\sf specular} has been added to {\tt
-RenderProps}. If not {\tt null}, this specifies the specular reflectance color.
+\item The field {\tt ELLIPSOID} in {\tt LineStyle} has been renamed to
+{\tt SPINDLE}.
 
-\item The subproperties {\sf colorMap}, {\sf normalMap}, and {\sf
-bumpMap} have been added {\tt RenderProps} to control texture mapping.
+\item The subproperty {\sf specular} has been added to {\tt
+RenderProps}. If not {\tt null}, this specifies the specular
+reflectance color.
+
+\item The class {\tt TextureProps} that describes (colored) texture
+mappings has been renamed to {\tt ColorMapProps}, and the
+corresponding property {\sf textureProps} has been renamed to {\sf
+colorMap}. The properties {\sf sphereMapping} and
+{\sf automatic} are no longer supported and have been
+removed along with their associated methods.
+
+\item Within {\tt RenderProps}, methods named {\tt setTextureProps}
+have been renamed to {\tt setColorMap}, and static methods of the form
+{\tt setTextureXXX} have been renamed to {\tt setColorMapXXX}.
+Also, the default value for {\tt colorMap} is always {\tt null},
+and so code fragments that were written
+\begin{verbatim}
+   TextureProps tprops = renderProps.getTextureProps();
+   ... set tprops ...
+\end{verbatim}
+should be rewritten as
+\begin{verbatim}
+   ColorMapProps tprops = new ColorMapProps();
+   ... set tprops ...
+   renderProps.setColorMap (tprops);
+\end{verbatim}
+
+\item The enumerated type {\tt TextureProps.Mode} has been replaced by
+{\tt Renderer.ColorMixing}, and the corresponding {\sf mode} property
+has been renamed to {\sf colorMixing}.
+
+\item The additional subproperties {\sf normalMap} and {\sf bumpMap}
+have been added to {\tt RenderProps} to control normal and bump
+mapping.
 
 \item The subproperties {\sf pointSlices} and {\sf lineSlices} have been
 removed from {\tt RenderProps}. The resolution of built-in point and
 line primitives can now be controlled with the renderer's
 \javamethod[maspack.render.Renderer]{setSurfaceResolution()} method.
 
+\item RenderProps no longer maintains material classes for faces,
+lines, points, etc., and so the methods {\tt getXXXMaterial()} have
+been removed. Also, the methods {\tt getXXXColorArray()}, where {\tt
+XXX} is {\tt Face}, {\tt Line}, {\tt Point}, etc., have been renamed to
+{\tt getXXXColorF()}.
+
 \end{itemize}
 
-\subsubsection*{Class and Method Renaming}
-
-Some classes and methods were renamed as described in the following
-charts.
+The renaming is summarized in the following table:
 
 \begin{tabular}{ll}
-Old name & New Name \\
+\hline
+Old name & New name\\
 \hline
 \multicolumn{2}{l}{Renamed classes and enums}\\
 \hline
@@ -163,166 +212,263 @@ Old name & New Name \\
 {\tt render.RenderProps.LineStyle} & {\tt render.Renderer.LineStyle} \\
 {\tt render.RenderProps.Faces} & {\tt render.Renderer.FaceStyle} \\
 {\tt render.RenderProps.Shading} & {\tt render.Renderer.Shading} \\
-GOURARD -> SMOOTH
-PHONG -> SMOOTH
-
-setPointSlices() -> gone
-setLineSlices() -> gone
-
-ELLIPSOID -> SPINDLE
-
-RenderProps.setTextureProps() -> RenderProps.setColorMap();
-RenderProps.setTextureXXX() -> RenderProps.setColorMapXXX();
-TextureProps -> ColorMapProps
-TextureProps.Mode -> Renderer.ColorMixing;
-TextureProps.setMode() -> ColorMapProps.setColorMixing();
-
-{\tt render.GLRenderer} & {\tt render.Renderer} \\
-{\tt render.GLRenderable} & {\tt render.IsRenderable} \\
-{\tt render.GLSelectable} & {\tt render.IsSelectable} \\
-
-{\tt render.GLClipPlane} & {\tt render.GL.GLClipPlane} \\
-{\tt render.GLViewer.DraggerType} & {\tt render.Dragger3d.DraggerType} \\
-{\tt render.GLViewer} & {\tt render.GL.GLViewer} \\
-{\tt render.GLViewerFrame} & {\tt render.GL.GLViewerFrame} \\
-{\tt render.GLGridResolution} & {\tt render.GL.GLGridResolution} \\
+{\tt render.TextureProps} & {\tt render.ColorMapProps} \\
+{\tt render.TextureProps.Mode} & {\tt render.Renderer.ColorMixing} \\
+\hline
+\multicolumn{2}{l}{Renamed enum fields}\\
+\hline
+{\tt Shading.GOURARD} & {\tt Shading.SMOOTH}\\
+{\tt Shading.PHONG} & {\tt Shading.SMOOTH}\\
+{\tt LineStyle.ELLIPSOID} & {\tt LineStyle.SPINDLE}\\
+\hline
+\multicolumn{2}{l}{Renamed methods}\\
+\hline
+{\tt RenderProps.setTextureProps()} & {\tt RenderProps.setColorMap()} \\
+{\tt RenderProps.setTextureXXX()} & {\tt RenderProps.setColorMapXXX()} \\
+{\tt RenderProps.set/getPointSlices()} & removed, not needed \\
+{\tt RenderProps.set/getLineSlices()} & removed, not needed \\
+{\tt RenderProps.getXXXMaterial()} & removed, not needed \\
+{\tt RenderProps.getXXXColorArray()} & {\tt RenderProps.getXXXColorF()} \\
+{\tt TextureProps.setMode()} & {\tt ColorMapProps.setColorMixing()} \\
+{\tt TextureProps.setSphereMapping()} & removed, not supported \\
+{\tt TextureProps.setAutomatic()} & removed, not supported \\
+\hline
 \end{tabular}
 
-TRANSLUCENT -> TRANSPARENT
+\subsubsection*{API changes involving the renderer}
 
-Renderer.SELECTED -> Renderer.HIGHLIGHT;
+API changes involving the renderer involve some class renaming and
+method refactoring, and the addition of enough renderer functionality
+so that calls to OpenGl are no longer needed to draw
+objects. A complete description of this additional functionality is
+given in the ``Rendering'' chapter of the
+\href{http://www.artisynth.org/doc/html/maspack/maspack.html}%
+{Maspack Reference Manual}.
 
-renderer.setFaceMode() -> renderer.setFaceStyle()
+Changes associated with renaming and reactoring include:
 
-MeshFactory.createPlane() -> MeshFactory.createRectangle();
+\begin{itemize}
 
-setLightingEnabled(false) replaced with setShading (Shading.NONE);
+\item {\tt GLRenderable} and {\tt GLSelectable} (in the {\tt render} package)
+have been renamed to {\tt IsRenderable} and {\tt
+IsSelectable}.  Also, {\tt GLRenderableHolder} (in {\tt
+artisynth.core.renderables}) has been renamed to {\tt
+IsRenderableHolder}.
 
-RenderProps.getXXXColorArray -> RenderProps.getXXColorF
+\item {\tt GLSelectionListener} and {\tt GLSelectionEvent} have been
+renamed to {\tt ViewerSelectionListener} and {\tt
+ViewerSelectionEvent}.
 
-render.GLSelectionListener -> render.ViewerSelectionListener 
-render.GLSelectionEvent -> render.ViewerSelectionEvent
+\item {\tt GLSupport} has been moved from the {\tt render} package to
+{\tt render.GL}, and the color support methods {\tt RGBAequals()},
+{\tt interpolateColor()}, {\tt HSVtoRGB()}, and {\tt RGBtoHSV()} have
+been moved from {\tt GLSupport} to {\tt render.color.ColorUtils}.
 
-render.GLMouseListener -> render.GL.GLMouseListener
+\item The method {\tt updateBounds()} (formerly in {\tt GLRenderable},
+now in {\tt IsRenderable}) has had its signature change from {\tt
+updateBounds(Point3d,Point3d)} to {\tt
+updateBounds(Vector3d,Vector3d)}.
 
-renderables.GLRenderableHolder -> renderables.IsRenderableHolder
+\item The flag {\tt GLRenderer.SELECTED} has been changed to {\tt
+Renderer.HIGHLIGHT}. Other renderer flags are no longer needed and
+have been removed.
 
-updateBounds (Point3d pmin, Point3d pmax) -> updateBounds (Vector3d pmin, Vector3d pmax) -> 
+\item The flag {\tt GLRenderable.TRANSLUCENT} has been changed to {\tt
+IsRenderable.TRANSPARENT}.
 
+\item The renderer method {\tt setFaceMode()} has been renamed to
+{\tt setFaceStyle()}.
 
-autoFitOrtho(flags) -> autoFitOrtho()
-autoFitPerspective(flags) -> autoFitPerspective()
-
-GLViewer.BlendType -> GLViewer.BlendFactor
-GLViewer.set/getDBlending -> GLViewer.set/getBlendDestFactor()
-GLViewer.set/getSBlending -> GLViewer.set/getBlendSourceFactor()
-
-color blending methods moved from GLSupport to render.color.ColorUtils:
-
-GLSupport.interpolateColor -> color.ColorUtils.interpolateColor
-
-XXX watch out for getTextureProps() - will be null!!!
-
-TextureProps.setSphereMappingEnabled() // gone
-TextureProps.setAutomatic() // gone
-
-REPLACE:
-
-   renderer.setMaterialAndShading (props, props.getXXXMaterial(), selected);
-   renderer.restoreShading (props);
-
-   renderer.setPropsShading (props);
-   renderer.setXXXColoring (props, selected);
-
-REPLACE:
-
-   renderer.drawSphere (props, float[] center)
-
-   renderer.drawSphere (float[] center, props.getPointRadius())
-
-REPLACE:
-
-   renderer.drawLine (props, float[] p0, float[] p1, capped, selected)
-
-   renderer.drawLine (props, float[] p0, float[] p1, null, capped, selected)
-
-REPLACE:
-
-   renderer.setLineWidth (lineWidth);
-   Frame.drawAxes (renderer, frame, length, selected);
-
-   Renderer.drawAxes (frame, length, lineWidth, selected);
-
-REPLACE:
-
+\item The renderer method {\tt setLightingEnabled()} has been
+removed. Lighting is now disabled with the call {\tt setShading
+(Shading.NONE)}. Code fragments of the form
+\begin{verbatim}
    renderer.setLightingEnabled (false);
    renderer.setLightingEnabled (true);
-
+\end{verbatim}
+should be replaced with
+\begin{verbatim}
    Shading savedShading = renderer.setShading (Shading.NONE);
    renderer.setShading (savedShading);
+\end{verbatim}
 
-GLViewer.getWorldToEye() -> GLViewer.getViewMatrix();
+\item The renderer method 
+{\tt drawSphere(renderProps,center)}
+has been replaced with
+{\tt drawSphere(center,radius)}.
+Code fragments of the form
+\begin{verbatim}
+   renderer.drawSphere (props, center)
+\end{verbatim}
+can be replaced with
+\begin{verbatim}
+   renderer.drawSphere (center, props.getPointRadius())
+\end{verbatim}
 
+\item The static method {\tt
+Frame.drawAxes(renderer,frame,length,selected)} (located in {\tt
+core.mechmodels.Frame}), has been replaced with the renderer method
+{\tt drawAxes(frame,length,lineWidth,highlighted)}.  Code fragments of
+the form
+\begin{verbatim}
+   renderer.setLineWidth (lineWidth);
+   Frame.drawAxes (renderer, frame, length, selected);
+\end{verbatim}
+can be replaced with
+\begin{verbatim}
+   renderer.drawAxes (frame, length, lineWidth, selected);
+\end{verbatim}
 
-gl.glLineWidth -> renderer.setLineWidth
-gl.glBegin (GL.GL_XXX) -> renderer.beginDraw (DrawMode.XXX)
-gl.glEnd()  -> renderer.endDraw()
-gl.glVertex3d -> renderer.addVertex 
-gl.glVertex3f -> renderer.addVertex 
-gl.glVertex3fv -> renderer.addVertex 
+\item The renderer method {\tt setMaterialAndShading()} has been
+removed. Instead, the shading for a {\tt RenderProps} object can be
+set using {\tt setPropsShading()}, and the color settings associated
+with faces, lines, points, etc. can be set using {\tt setXXXColoring
+(props,highlighted)} where {\tt XXX} is {\tt Face}, {\tt Line}, {\tt
+Point}, etc.
+Code fragments of the form
+\begin{verbatim}
+   renderer.setMaterialAndShading (props, props.getXXXMaterial(), selected);
+   renderer.restoreShading (props);
+\end{verbatim}
+can be replaced with
+\begin{verbatim}
+   renderer.setPropsShading (props);
+   renderer.setXXXColoring (props, selected);
+\end{verbatim}
 
-Viewer.getWidth() -> getScreenWidth()
-Viewer.getHeight() -> getScreenHeight()
+\item Renderer methods of the form {\tt restoreXXX()}, where {\tt XXX}
+is some graphical state property, have been removed. Typically, saving
+and restoring graphics state is no longer necessary as the renderer
+now restores state before calling each renderable's {\tt render()}
+method.
 
-NOTES for moisik:
+\item The OpenGL calls {\tt glLineWidth()} and {\tt glPointSize()}
+can be emulated with the renderer methods {\tt setLineWidth()}
+and {\tt setPointSize()}.
 
-Hi Scott,
+\item Finally, OpenGL immediate mode can be emulated using the
+renderer methods {\tt beginDraw(DrawMode.XXX)} and {\tt endDraw()},
+where {\tt XXX} can be {\tt POINTS}, {\tt LINES}, {\tt LINE\_STRIP},
+{\tt LINE\_LOOP}, {\tt TRIANGLES}, {\tt TRIANGLE\_STRIP}, and {\tt
+TRIANGLE\_FAN}. {\tt POLYGON} is {\it not} supported. The intervening
+OpenGL methods {\tt glVertex3f()}, {\tt glColor3f()}, and {\tt
+glNormal3f()}, etc., are replaced with the renderer methods {\tt
+addVertex()}, {\tt setColor()}, and {\tt setNormal()}.
+Code fragments of the form
+%
+\begin{verbatim}
+   gl.glBegin (GL.GL_LINES);
+   gl.glVertex3f (p0);
+   gl.glVertex3f (p1);
+   gl.glVertex3f (p2);
+   gl.glVertex3f (p3);
+   gl.glEnd();
+\end{verbatim}
+can be replaced with
+\begin{verbatim}
+   renderer.beginDraw (DrawMode.LINES);
+   renderer.addVertex (p0);
+   renderer.addVertex (p1);
+   renderer.addVertex (p2);
+   renderer.addVertex (p3);
+   renderer.endDraw();
+\end{verbatim}
+Full details are given in the section
+``Drawing using draw mode'' of the
+\href{http://www.artisynth.org/doc/html/maspack/maspack.html}%
+{Maspack Reference Manual}.
 
-Regarding the changes to ArtiSynth renderering: I've patched up the
-code which you have committed under artisynth_projects as best I can,
-but it relies so heavily on internal and undocumented classes that I
-can't be completely sure of the results. GL2 is also assumed in a few
-places, so I'm not sure what will happen when you run ArtiSynth with
-the (now default) GL3 viewer. To run with GL2, use the -GLVersion 2
-command line option. 
+\end{itemize}
 
-The main changes are in ViewerTools:
+These changes are summarized in the following table:
 
-1) In ModelViews.createSubViewer(), I use the GLVersion info in Main
-to create either a GL2Viewer or GL3Viewer.
+\begin{tabular}{ll}
+\hline
+Old name/signature & New name/signature\\
+\hline
+\multicolumn{2}{l}{Renamed classes and enums}\\
+\hline
+{\tt render.GLRenderable} & {\tt render.IsRenderable} \\
+{\tt render.GLSelectable} & {\tt render.IsSelectable} \\
+{\tt render.GLSelectionListener} & {\tt render.ViewerSelectionListener} \\
+{\tt render.GLSelectionEvent} & {\tt render.ViewerSelectionEvent} \\
+{\tt core.renderables.GLRenderableHolder} & 
+{\tt core.renderables.IsRenderableHolder} \\
+{\tt render.GLSupport} & {\tt render.GL.GLSupport}\\
+\hline
+\multicolumn{2}{l}{Renamed flags}\\
+\hline
+{\tt GLRenderer.SELECTED} & {\tt GLRenderer.HIGHLIGHT}\\
+{\tt GLRenderable.TRANSLUCENT} & {\tt IsRenderable.TRANSPARENT}\\
+\hline
+\multicolumn{2}{l}{Renamed and refactored methods}\\
+\hline
+{\tt GLSupport.RGBAequals()} & moved to {\tt render.color.ColorUtils} \\
+{\tt GLSupport.interpolateColor()} & moved to {\tt render.color.ColorUtils} \\
+{\tt GLSupport.HSVtoRGB()} & moved to {\tt render.color.ColorUtils} \\
+{\tt GLSupport.RGBtoHSV()} & moved to {\tt render.color.ColorUtils} \\
+{\tt GLRenderer.setFaceMode()} & {\tt Renderer.setFaceStyle()} \\
+{\tt GLRenderer.setLightingEnabled()} & {\tt Renderer.setShading()}
+({\tt Shading.NONE} disables lighting) \\
+{\tt GLRenderer.drawSphere(props,center)} &
+{\tt GLRenderer.drawSphere(center,radius)}\\
+{\tt Frame.drawAxes(rdr,frame,len,selected)} &
+{\tt Renderer.drawAxes(frame,len,lineWidth,selected)}\\
+{\tt GLRenderable.updateBounds(Point3d,Point3d)} &
+{\tt IsRenderable.updateBounds(Vector3d,Vector3d)}\\
+{\tt GLRenderer.setMaterialAndShading()} &
+replaced with 
+{\tt Renderer.setPropsShading()} and \\
+& {\tt Renderer.setXXXColoring()}\\
+{\tt GLRenderer.restoreXXX()} & removed, not generally needed\\
+{\tt gl.glLineWidth()} & {\tt Renderer.setLineWidth()}\\
+{\tt gl.glPointSize()} & {\tt Renderer.setPointSize()}\\
+{\tt gl.glBegin(GL.GL\_XXX)} & {\tt Renderer.beginDraw(DrawMode.XXX)}\\
+{\tt gl.glVertex3f}, etc. & {\tt Renderer.addVertex()}\\
+{\tt gl.glColor3f}, etc. & {\tt Renderer.setColor()}\\
+{\tt gl.glNormal3f}, etc. & {\tt Renderer.setNormal()}\\
+{\tt gl.glEnd()} & {\tt Renderer.endDraw()}\\
+\hline
+\end{tabular}
 
-2) In ViewerHandler.display(), I had to conditionalize functionality
-on the viewer being an instance of GL2Viewer.
+\subsubsection*{API changes involving the viewer}
 
+API changes involving the viewer take the form of class renaming
+and method refactorization, including moving some classes into the
+subpackage {\tt render.GL}, as decribed below:
 
-Hi Antonio,
+\begin{tabular}{ll}
+\hline
+Old name/signature & New name/signature\\
+\hline
+\multicolumn{2}{l}{Renamed classes and enums}\\
+\hline
+{\tt render.GLClipPlane} & {\tt render.GL.GLClipPlane} \\
+{\tt render.GLViewer} & {\tt render.GL.GLViewer} \\
+{\tt render.GLViewer.DraggerType} & {\tt render.Dragger3d.DraggerType} \\
+{\tt render.GLViewer.BlendType} & {\tt render.GL.GLViewer.BlendFactor}\\
+{\tt render.GLViewerFrame} & {\tt render.GL.GLViewerFrame} \\
+{\tt render.GLMouseListener} & {\tt render.GL.GLMouseListener} \\
+{\tt render.GLGridResolution} & {\tt render.GL.GLGridResolution} \\
+\hline
+\multicolumn{2}{l}{Renamed and refactored methods}\\
+\hline
+{\tt GLViewer.autoFitOrtho(flags)} & {\tt GLViewer.autoFitOrtho()} (removed argument) \\
+{\tt GLViewer.autoFitPerspective(flags)} & {\tt GLViewer.autoFitPerspective()} (removed argument) \\
+{\tt GLViewer.getWorldToEye()} & {\tt GLViewer.getViewMatrix()}\\
+{\tt GLViewer.getWorldToEye(TWE)} & {\tt GLViewer.getViewMatrix(TWE)}\\
+{\tt GLViewer.getWidth()} & {\tt GLViewer.getScreenWidth()}\\
+{\tt GLViewer.getHeight()} & {\tt GLViewer.getScreenHeight()}\\
+{\tt GLViewer.set/getDBlending()} & {\tt GLViewer.set/getBlendDestFactor()}\\
+{\tt GLViewer.set/getSBlending()} & {\tt GLViewer.set/getBlendSourceFactor()}\\
+{\tt GLViewer.getHeight()} & {\tt GLViewer.getScreenHeight()}\\
+\hline
+\end{tabular}
 
-In order to get phuman.MasseterAlignedImages to compile, I added the
-method getWindowRange() to DicomViewer.
-
-Hi Andrew,
-
-Regarding the changes to ArtiSynth renderering: the rendering code in
-SPHFluidModel still needs to be converted over. I asked Antonio to
-help with this, since he wrote most of the new rendering code and sits
-very close to you :-)
-
-In the meantime, I've patched things up so that it should still work
-under GL2 (ArtiSynth command line option -GLVersion 2). One thing I
-had to do was make the display list used by renderSpheres an integer
-that is explicitly allocated by the class and stored in the member
-variable myDisplayList, since display lists are no longer used by
-RenderProps.
-
-
-   
-\subsubsection*{Changed to existing renderer methods}
-
-As mentioned above, {\tt GLRenderer} has been replaced with {\tt
-Renderer}, and enhanced with significant additional functionality to
-support all necessary drawing operations. In addition to this
-increased functionality, some of the signatures for existing renderer
-methods have changed. These changes include:
+A complete description of the viewer is
+given in the ``Viewers'' section of the
+\href{http://www.artisynth.org/doc/html/maspack/maspack.html}%
+{Maspack Reference Manual}.
 
 \subsubsection*{Legacy rendering with OpenGL 2}
 

@@ -158,9 +158,7 @@ public class GLTextureLoader implements GLGarbageSource {
 
       content.getData (buff);
       buff.flip ();
-      GLSupport.checkAndPrintGLError (gl);
       texture.fill(gl, width, height, pixelSize, glFormat, glType, swizzle, buff);
-      GLSupport.checkAndPrintGLError (gl);
       buff = BufferUtilities.freeDirectBuffer (buff);
       content.markClean ();
       

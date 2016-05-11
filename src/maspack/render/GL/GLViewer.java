@@ -1925,7 +1925,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    public void display (GLAutoDrawable drawable) {
-      GLSupport.checkAndPrintGLError(drawable.getGL ());
       
       // assign current drawable
       this.drawable = drawable;
@@ -1950,8 +1949,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
 
       display(drawable, flags);
-
-      GLSupport.checkAndPrintGLError(drawable.getGL ());
       
       // clear current drawable
       this.drawable = null;

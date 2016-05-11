@@ -179,7 +179,6 @@ public class GL3ProgramManager {
       int progId = gl.glCreateProgram();
       gl.glAttachShader(progId, vs);
       gl.glAttachShader(progId, fs);
-      GLSupport.checkAndPrintGLError(gl);
 
       // bind attributes
       for (Entry<String,Integer> attribute : attributeLocationMap.entrySet ()) {
@@ -190,10 +189,8 @@ public class GL3ProgramManager {
 
       GLShaderProgram prog = new GLShaderProgram (progId);
       bindUBOs (gl, prog);
-      GLSupport.checkAndPrintGLError (gl);
       prog.use (gl);
       bindTextures(gl, prog);
-      GLSupport.checkAndPrintGLError (gl);
 
       // clean up shaders... will be deleted when program is complete
       gl.glDetachShader(progId, vs);

@@ -7,7 +7,6 @@
 package maspack.render.GL;
 
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
@@ -26,10 +25,10 @@ import jogamp.opengl.glu.error.Error;
 import maspack.matrix.AffineTransform2dBase;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix;
-import maspack.matrix.Vector3d;
-import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix2dBase;
+import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Vector2d;
+import maspack.matrix.Vector3d;
 import maspack.util.BufferUtilities;
 
 public class GLSupport {

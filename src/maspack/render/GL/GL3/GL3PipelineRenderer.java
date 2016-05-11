@@ -80,10 +80,8 @@ public class GL3PipelineRenderer extends GLPipelineRendererBase {
          GL3 gl3 = (GL3)gl;
          vao.bind (gl3);
          vbo.fill (gl3, vbuff);
-         GLSupport.checkAndPrintGLError (gl);
          
          gl.glDrawArrays (glMode, 0, count);
-         GLSupport.checkAndPrintGLError (gl);
       }
    }
    

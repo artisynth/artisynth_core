@@ -18,6 +18,7 @@ import maspack.render.Renderer;
 import maspack.render.RenderObject;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.Shading;
+import maspack.util.FunctionTimer;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.ClassAliases;
 
@@ -473,6 +474,9 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
          //       return;
          //    }
          // }
+         
+         FunctionTimer ft = new FunctionTimer ();
+         ft.start ();
          for (int i=0; i<size(); i++) {
             FemElement3d elem = get(i);        
             if (elem.getRenderProps() == null && renderer.isSelectable (elem)) {
@@ -481,6 +485,9 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
                renderer.endSelectionQuery ();
             }
          }
+         ft.stop ();
+         System.out.println (ft.result (1));
+         
          // if (style == LineStyle.LINE) {
          //    renderer.setLineWidth (1);
          // }

@@ -142,7 +142,6 @@ public class GLColorSelector extends GLSelector {
    public void processSelection (GLAutoDrawable drawable) {
       
       GL2GL3 gl = myGl;
-      GLSupport.checkAndPrintGLError(gl);
       
       int w = myViewW;
       int h = myViewH;

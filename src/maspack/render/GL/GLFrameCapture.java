@@ -49,17 +49,17 @@ public class GLFrameCapture {
    //      fbo.reconfigure(x, y, w, h, -1);
    //   }
    
-   public void reconfigure(int w, int h, int nsamples, boolean gammaCorrection, File file, String format) {
+   public void reconfigure(GL2GL3 gl, int w, int h, int nsamples, boolean gammaCorrection, File file, String format) {
       this.file = file;
       this.format = format;
-      fbo.reconfigure( w, h, nsamples, gammaCorrection);
+      fbo.configure(gl, w, h, nsamples, gammaCorrection);
    }
    
-   public void reconfigure(int x, int y, int w, int h, int nsamples, 
+   public void reconfigure(GL2GL3 gl, int x, int y, int w, int h, int nsamples, 
       boolean gammaCorrection, File file, String format) {
       this.file = file;
       this.format = format;
-      fbo.reconfigure(x, y, w, h, nsamples, gammaCorrection);
+      fbo.configure(gl, x, y, w, h, nsamples, gammaCorrection);
    }
    
    public void activateFBO(GL2GL3 gl) {

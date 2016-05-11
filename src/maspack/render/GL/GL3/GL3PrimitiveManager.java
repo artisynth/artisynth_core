@@ -6,7 +6,6 @@ import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
 
 import maspack.render.GL.GLGarbageSource;
-import maspack.render.GL.GLSupport;
 import maspack.render.GL.GL3.GL3SharedPrimitive.AxesKey;
 import maspack.render.GL.GL3.GL3SharedPrimitive.ConeKey;
 import maspack.render.GL.GL3.GL3SharedPrimitive.CubeKey;
@@ -210,14 +209,12 @@ public class GL3PrimitiveManager implements GLGarbageSource {
          // if doesn't exist, create
          if (out == null || out.disposeInvalid(gl)) {
             GL3SharedPrimitive p = shared.getAcquiredAxes (gl, key);
-            GLSupport.checkAndPrintGLError (gl);
             out = GL3Primitive.generate (gl, p);
             p.release ();  // now that it has been acquired
             primitiveMap.put (key, out.acquire ());
          }
          out.acquire ();
       }
-      GLSupport.checkAndPrintGLError (gl);
       
       lastAxes = out.acquire ();
       return out;

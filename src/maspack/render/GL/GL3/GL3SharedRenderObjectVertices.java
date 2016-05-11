@@ -42,7 +42,8 @@ public class GL3SharedRenderObjectVertices extends GL3SharedRenderObjectBase {
 
          ByteBuffer buff = null;
          if (replace) {
-            buff = vbos[DYNAMIC_VBO_IDX].mapNewBuffer (gl);
+            // buff = vbos[DYNAMIC_VBO_IDX].mapNewBuffer (gl);
+            buff = BufferUtilities.newNativeByteBuffer (vbos[DYNAMIC_VBO_IDX].getSize ());
          } else {
             buff = vbos[DYNAMIC_VBO_IDX].mapBuffer (gl, GL3.GL_WRITE_ONLY);
          }
@@ -107,7 +108,13 @@ public class GL3SharedRenderObjectVertices extends GL3SharedRenderObjectBase {
          }
 
          // unmap
-         vbos[DYNAMIC_VBO_IDX].unmapBuffer (gl);
+         if (replace) {
+            buff.flip ();
+            vbos[DYNAMIC_VBO_IDX].update (gl, buff);
+            buff = BufferUtilities.freeDirectBuffer (buff);
+         } else {
+            vbos[DYNAMIC_VBO_IDX].unmapBuffer (gl);
+         }
       } robj.readUnlock ();
    }
 

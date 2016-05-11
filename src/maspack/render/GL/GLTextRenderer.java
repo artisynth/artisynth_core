@@ -100,9 +100,6 @@ public class GLTextRenderer extends TextureTextRenderer {
       renderer.vertex (x1, y1, z);
       renderer.texcoord (tx2, ty1);
       renderer.vertex (x2, y1, z);
-      
-      GLSupport.checkAndPrintGLError (renderer.getGL ());
-
    }
 
    @Override
@@ -120,19 +117,16 @@ public class GLTextRenderer extends TextureTextRenderer {
          texture.getTarget (), 0, x, y, width,
          height, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, buff);
       gl.glGenerateMipmap (texture.getTarget ());
-      GLSupport.checkAndPrintGLError (gl);  
    }
    
    @Override
    protected void replaceTexture (int width, int height, ByteBuffer buff) {
       
       GL gl = renderer.getGL ();
-      GLSupport.checkAndPrintGLError (gl);
       gl.glTexImage2D (
          texture.getTarget (), 0, GL.GL_RGBA, width,
          height, 0, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, buff);
       gl.glGenerateMipmap (texture.getTarget ());
-      GLSupport.checkAndPrintGLError (gl);
    }
 
    /**

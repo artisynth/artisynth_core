@@ -216,7 +216,6 @@ public class GL3Viewer extends GLViewer {
    @Override
    public void init(GLAutoDrawable drawable) {
       super.init (drawable);
-      GLSupport.checkAndPrintGLError(drawable.getGL ());
 
       this.drawable = drawable;
       this.gl = drawable.getGL().getGL3();
@@ -272,8 +271,6 @@ public class GL3Viewer extends GLViewer {
       buildInternalRenderList();
 
       System.out.println("GL3 initialized");
-
-      GLSupport.checkAndPrintGLError(gl);
       
       gl.glEnable (GL.GL_BLEND);
       gl.glBlendFunc (GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
@@ -295,7 +292,6 @@ public class GL3Viewer extends GLViewer {
    @Override
    public void dispose(GLAutoDrawable drawable) {
       super.dispose (drawable);
-      GLSupport.checkAndPrintGLError(drawable.getGL ());
 
       this.drawable = drawable;
       this.gl = drawable.getGL ().getGL3 ();
@@ -323,7 +319,6 @@ public class GL3Viewer extends GLViewer {
       eaFlex = null;
 
       System.out.println("GL3 disposed");
-      GLSupport.checkAndPrintGLError(drawable.getGL ());
       
       // nullify stuff
       this.gl = null;
@@ -342,14 +337,10 @@ public class GL3Viewer extends GLViewer {
 
       this.drawable = drawable;
       this.gl = drawable.getGL ().getGL3 ();
-      
-      GLSupport.checkAndPrintGLError(gl);
 
       if (!myInternalRenderListValid) {
          buildInternalRenderList();
       }
-
-      GLSupport.checkAndPrintGLError(gl);
 
       if (selectTrigger) {
          mySelector.setupSelection (drawable);
@@ -389,8 +380,6 @@ public class GL3Viewer extends GLViewer {
             }
          }
       }
-
-      GLSupport.checkAndPrintGLError(gl);
       
       // local garbage collection
       long time = System.currentTimeMillis ();
@@ -405,7 +394,6 @@ public class GL3Viewer extends GLViewer {
    }
 
    private void doDisplay(GLAutoDrawable drawable, int flags) {
-      GLSupport.checkAndPrintGLError(drawable.getGL ());
       
       // updates projection matrix
       if (resetViewVolume && resizeEnabled) {
@@ -448,7 +436,6 @@ public class GL3Viewer extends GLViewer {
             cp.render (this, flags);
          }
       }
-      GLSupport.checkAndPrintGLError(gl);
 
       for (int i=0; i<myProgManager.numClipPlanes (); ++i) {
          boolean enabled = gl.glIsEnabled (GL3.GL_CLIP_DISTANCE0 + i);
@@ -465,7 +452,6 @@ public class GL3Viewer extends GLViewer {
             gl.glEnable(GL3.GL_CLIP_DISTANCE0+i);
          }
       }
-      GLSupport.checkAndPrintGLError(gl);
 
       if (!isSelecting()) {
          setFrontColor (DEFAULT_MATERIAL_COLOR);
@@ -482,8 +468,6 @@ public class GL3Viewer extends GLViewer {
          }
       }
       
-      GLSupport.checkAndPrintGLError(gl);
-
       if (hasTransparent3d()) {
          
          if (!isSelecting()) {
@@ -503,14 +487,12 @@ public class GL3Viewer extends GLViewer {
             disableTransparency ();
          }
       }
-      GLSupport.checkAndPrintGLError(gl);
-
+      
       // disable clip planes
       for (int i=0; i<nclips; ++i) {
          gl.glDisable(GL3.GL_CLIP_DISTANCE0+i);
       }
-      GLSupport.checkAndPrintGLError(gl);
-
+      
       // Draw 2D objects
       if ( has2d() ) {
          begin2DRendering(width, height);
@@ -545,7 +527,6 @@ public class GL3Viewer extends GLViewer {
          
          end2DRendering();
       }
-      GLSupport.checkAndPrintGLError(gl);
 
       if (!isSelecting()) {
          if (myDragBox != null) {
@@ -555,10 +536,8 @@ public class GL3Viewer extends GLViewer {
          // revert clear color
          gl.glClearColor (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
       }
-      GLSupport.checkAndPrintGLError(gl);
 
       gl.glFlush();
-      GLSupport.checkAndPrintGLError(gl);
 
    }
 
@@ -622,9 +601,7 @@ public class GL3Viewer extends GLViewer {
       myTextRenderer.begin (gl);
       double d = myTextRenderer.drawText (font, str, pos, (float)emSize);
       myTextRenderer.end (gl);
-      
-      GLSupport.checkAndPrintGLError (gl);
-      
+            
       setDepthWriteEnabled (savedDepth);
       setBlendSourceFactor (sfactor);
       setBlendDestFactor (dfactor);
@@ -647,7 +624,7 @@ public class GL3Viewer extends GLViewer {
       }
       else {
          synchronized(frameCapture) {
-            frameCapture.reconfigure(w, h, samples, gammaCorrection, file, format);
+            frameCapture.reconfigure(gl, w, h, samples, gammaCorrection, file, format);
          }
       }
       grab = true;
@@ -1201,7 +1178,6 @@ public class GL3Viewer extends GLViewer {
       updateProgram (gl, RenderingMode.DEFAULT, false, false, false);
       gloFlex.drawVertices (gl, GL.GL_LINES);
 
-      GLSupport.checkAndPrintGLError(gl);
    }
 
    private void drawGLPoint(GL3 gl, float[] coords) {
@@ -1215,7 +1191,6 @@ public class GL3Viewer extends GLViewer {
       updateProgram (gl, RenderingMode.POINTS, false, false, false);
       gloFlex.drawVertices(gl, GL.GL_POINTS);
 
-      GLSupport.checkAndPrintGLError(gl);
    }
 
 
@@ -1435,12 +1410,9 @@ public class GL3Viewer extends GLViewer {
 
    public void drawAxes(GL3 gl, double len) {
 
-      GLSupport.checkAndPrintGLError(gl);
       if (len == 0) {
          return;
       }
-
-      GLSupport.checkAndPrintGLError(gl);
 
       pushModelMatrix();
 
@@ -1459,8 +1431,6 @@ public class GL3Viewer extends GLViewer {
    @Override
    public void drawAxes(
       RigidTransform3d X, double[] lens, int width, boolean highlight) {
-
-      GLSupport.checkAndPrintGLError(gl);
 
       boolean savedHighlighting = setHighlighting(highlight);
       // deal with transform and len
@@ -1510,7 +1480,6 @@ public class GL3Viewer extends GLViewer {
    }
 
    protected void drawDragBox(GL3 gl) {
-      GLSupport.checkAndPrintGLError(gl);
 
       begin2DRendering(-1, 1,-1, 1);
 
@@ -1535,7 +1504,6 @@ public class GL3Viewer extends GLViewer {
 
       end2DRendering();
 
-      GLSupport.checkAndPrintGLError(drawable.getGL ());
    }
 
    public void drawLineStrip (
@@ -1768,7 +1736,6 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    public void drawTriangles(RenderObject robj, int gidx) {
-      GLSupport.checkAndPrintGLError(gl);
 
       GL3RenderObjectPrimitives gro = myRenderObjectManager.getPrimitives (gl, robj);
 
@@ -1778,8 +1745,6 @@ public class GL3Viewer extends GLViewer {
          robj.hasColors (), robj.hasTextureCoords ());
 
       gro.drawTriangleGroup (gl, GL.GL_TRIANGLES, gidx);
-
-      GLSupport.checkAndPrintGLError(gl);
 
       //      if (bumptex != null) {
       //         myProgManager.unbindTexture (gl, "bump_map", bumptex);
@@ -1801,14 +1766,12 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    public void drawLines(RenderObject robj, int gidx) {
-      GLSupport.checkAndPrintGLError(gl);
       
       GL3RenderObjectPrimitives gro = myRenderObjectManager.getPrimitives (gl, robj);
       maybeUpdateState(gl);
       updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
 
       gro.drawLineGroup (gl, GL.GL_LINES, gidx);
-      GLSupport.checkAndPrintGLError(gl);
    }
 
    @Override
@@ -1818,19 +1781,16 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    public void drawPoints(RenderObject robj, int gidx) {
-      GLSupport.checkAndPrintGLError(gl);
       GL3RenderObjectPrimitives gro = myRenderObjectManager.getPrimitives (gl, robj);
       
       maybeUpdateState(gl);
       
       updateProgram (gl, RenderingMode.POINTS, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
       gro.drawPointGroup (gl, GL.GL_POINTS, gidx);
-      GLSupport.checkAndPrintGLError(gl);
    }
 
    @Override
    public void drawVertices(RenderObject robj, DrawMode mode) {
-      GLSupport.checkAndPrintGLError(gl);
       GL3RenderObjectPrimitives gro = myRenderObjectManager.getPrimitives (gl, robj);
       
       maybeUpdateState(gl);
@@ -1843,7 +1803,6 @@ public class GL3Viewer extends GLViewer {
    @Override
    public void drawVertices (
       RenderObject robj, VertexIndexArray idxs, int offset, int count, DrawMode mode) {
-      GLSupport.checkAndPrintGLError(gl);
       GL3RenderObjectElements gro = myRenderObjectManager.getElements (gl, robj, idxs);
       maybeUpdateState(gl);
       updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), 
@@ -1856,7 +1815,6 @@ public class GL3Viewer extends GLViewer {
    @Override
    public void drawVertices(RenderObject robj, int[] idxs, DrawMode mode) {
       
-      GLSupport.checkAndPrintGLError(gl);
       GL3SharedRenderObjectPrimitives gro = myGLResources.getPrimitives (gl, robj);
       maybeUpdateState(gl); 
       updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), 

@@ -172,7 +172,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       // make sure in modelview matrix mode
       // XXX gl.glMatrixMode(GL2.GL_MODELVIEW);
-      GLSupport.checkAndPrintGLError(drawable.getGL ());
       maybeUpdateMatrices (gl);
       
       int maxLights = lightManager.maxLights();
@@ -183,7 +182,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             setupLight(gl, light, intensityScale);
          }
       }
-      GLSupport.checkAndPrintGLError(drawable.getGL ());
    }
 
    /**
@@ -680,10 +678,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       myTextRenderer.end (gl);
       deactivateTexture (gl);
       
-      GLSupport.checkAndPrintGLError (gl);
-      
       setDepthWriteEnabled (savedDepth);
-
       setBlendSourceFactor (sfactor);
       setBlendDestFactor (dfactor);
       setBlendingEnabled (savedBlending);
@@ -1375,7 +1370,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       GL2 gl = getGL2();
       maybeUpdateState(gl);
-      GLSupport.checkAndPrintGLError (gl);
 
       gl.glPushMatrix();
       gl.glTranslatef (pnt[0], pnt[1], pnt[2]);
@@ -1901,7 +1895,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
     */
    public void drawTriangle (float[] pnt0, float[] pnt1, float[] pnt2) {
 
-      GLSupport.checkAndPrintGLError (gl);
       GL2 gl = getGL2();
       maybeUpdateState(gl);
 
@@ -2318,7 +2311,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
       else {
          synchronized(frameCapture) {
-            frameCapture.reconfigure(w, h, samples, gammaCorrection, file, format);
+            frameCapture.reconfigure(gl, w, h, samples, gammaCorrection, file, format);
          }
       }
       grab = true;

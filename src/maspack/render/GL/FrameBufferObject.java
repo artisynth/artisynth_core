@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
+ * Copyright (c) 2014, by the Authors: Antonio Sanchez (UBC), John E Lloyd (UBC)
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -18,19 +18,19 @@ public class FrameBufferObject {
 
    public static int defaultMultiSamples = 8;
 
-   public int FBOhandle = -1; // Main FrameBuffer Object
-   public int DBhandle = -1;  // Depth RenderBuffer Object
-   public int CBhandle = -1;  // Color buffer handle
+   private int FBOhandle = -1; // Main FrameBuffer Object
+   GLRenderBuffer depthBuffer = null;
+   GLRenderBuffer colorBuffer = null;
 
    // intermediate fbo for blitting (no depth required)
-   public int FBNhandle = -1;
-   public int CBNhandle = -1;
+   private int FBNhandle = -1;
+   GLRenderBuffer outputColorBuffer = null;  // dummy color buffer for capturing bits
 
    public int x;
    public int y;
    public int width; // dimensions of framebuffer
    public int height;
-   public int nMultiSamples;
+   public int numMultiSamples;
    private boolean gammaCorrected;
    boolean initialized;
    
@@ -50,7 +50,7 @@ public class FrameBufferObject {
       if (nsamples <= 0) {
          nsamples = defaultMultiSamples;
       }
-      this.nMultiSamples = nsamples;
+      this.numMultiSamples = nsamples;
       this.gammaCorrected = gammaCorrection;
       this.initialized = false;
    }
@@ -72,36 +72,40 @@ public class FrameBufferObject {
    public FrameBufferObject (int x, int y, int w, int h) {
       this(x,y,w,h,-1, false);
    }
-
-   //   public void reconfigure(int w, int h) {
-   //      reconfigure(x, y, w, h, -1);
-   //   }
-   //   
-   //   public void reconfigure(int w, int h, int nsamples) {
-   //      reconfigure(x, y, w, h, nsamples);
-   //   }
-   //   
-   //   public void reconfigure(int x, int y, int w, int h) {
-   //      reconfigure(x, y, w, h, -1);
-   //   }
    
-   public void reconfigure(int w, int h, int nsamples, boolean gammaCorrected) {
-      reconfigure(x, y, w, h, nsamples, gammaCorrected);
+   public void configure(GL gl, int w, int h, int nsamples, boolean gammaCorrected) {
+      configure(gl, x, y, w, h, nsamples, gammaCorrected);
    }
    
-   public void reconfigure(int x, int y, int w, int h, int nsamples, boolean gammaCorrected) {
+   public void configure(GL gl, int x, int y, int w, int h, int nsamples, boolean gammaCorrected) {
       if (nsamples <= 0) {
-         nsamples = this.nMultiSamples;
+         nsamples = this.numMultiSamples;
       }
       if (x != this.x || y != this.y || w != this.width || h != this.height
-         || nsamples != this.nMultiSamples || gammaCorrected != this.gammaCorrected) {
+         || nsamples != this.numMultiSamples || gammaCorrected != this.gammaCorrected) {
          
          // clean up old buffer, create new
          set(x,y,w,h,nsamples, gammaCorrected);
-         initialized = false;
+         configureStorage(gl, x, y, w, h, nsamples, gammaCorrected);
       }
    }
    
+   private void configureStorage(GL gl, int x, int y, int w, int h, int nsamples, boolean gammaCorrected) {
+      if (depthBuffer != null) {
+         depthBuffer.configure (gl, w, h, GL2GL3.GL_DEPTH_COMPONENT, nsamples);
+      }
+      int colorFormat = GL.GL_RGBA8;
+      if (gammaCorrected) {
+         colorFormat = GL.GL_SRGB8_ALPHA8;
+      }
+      
+      if (colorBuffer != null) {
+         colorBuffer.configure (gl, w, h, colorFormat, nsamples);
+      }
+      if (outputColorBuffer != null) {
+         outputColorBuffer.configure (gl, w, h, colorFormat, 1);
+      }
+   }
    
 
    /**
@@ -118,13 +122,14 @@ public class FrameBufferObject {
       FBOhandle = buff[0];
 
       // generate multisampled FBO
-      if (nMultiSamples > 1) {
+      if (numMultiSamples > 1) {
          gl.glGenFramebuffers(1, buff, 0);
          FBNhandle = buff[0];
       }
 
       addDepthBuffer (gl);
       addRgbBuffer (gl);
+      
       // CBhandle = makeTexture();
       // attachTexture(CBhandle);
 
@@ -233,28 +238,14 @@ public class FrameBufferObject {
       // make renderbuffer for depth
       // System.out.println("adding depth buffer");
 
-      int[] buff = new int[1];
-      gl.glGenRenderbuffers (1, buff, 0);
-      DBhandle = buff[0];
-
       gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, FBOhandle);
-      gl.glBindRenderbuffer(GL.GL_RENDERBUFFER, DBhandle);
-      
-      // either bind depth buffer to the single FBO or to the multisampled
-      if (nMultiSamples > 1) {
-         gl.glRenderbufferStorageMultisample(GL.GL_RENDERBUFFER, nMultiSamples, 
-            GL2GL3.GL_DEPTH_COMPONENT, width, height);
-      } else {
-         gl.glRenderbufferStorage(GL.GL_RENDERBUFFER, 
-            GL2GL3.GL_DEPTH_COMPONENT, width, height);
-      }
-
+      depthBuffer = GLRenderBuffer.generate (gl);
       // attach the renderbuffer to depth attachment point
+      depthBuffer.configure (gl, width, height, GL2GL3.GL_DEPTH_COMPONENT, numMultiSamples);
       gl.glFramebufferRenderbuffer (
          GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT,
-         GL.GL_RENDERBUFFER, DBhandle);
-
-      gl.glBindRenderbuffer (GL.GL_RENDERBUFFER, 0); // detach for safety
+         GL.GL_RENDERBUFFER, depthBuffer.getId ());
+      depthBuffer.unbind (gl);
       gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0);
       
    }
@@ -271,53 +262,29 @@ public class FrameBufferObject {
       // make renderbuffer for depth
       // System.out.println ("adding rgb buffer");
 
-      int[] buff = new int[1];
-      gl.glGenRenderbuffers (1, buff, 0);
-      CBhandle = buff[0];
-
+      int colorFormat = GL.GL_RGBA8;
+      if (gammaCorrected) {
+         colorFormat = GL.GL_SRGB8_ALPHA8;
+      }
+      
       // bind color buffer to non-multisampled FBO
       gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, FBOhandle);
-      gl.glBindRenderbuffer (GL.GL_RENDERBUFFER, CBhandle);
-      if (nMultiSamples > 1) {
-         if (gammaCorrected) {
-            gl.glRenderbufferStorageMultisample (
-               GL.GL_RENDERBUFFER, nMultiSamples, GL.GL_RGBA8, width, height);   
-         } else {
-            gl.glRenderbufferStorageMultisample (
-               GL.GL_RENDERBUFFER, nMultiSamples, GL.GL_SRGB8_ALPHA8, width, height);  
-         }
-      } else {
-         if (gammaCorrected) {
-            gl.glRenderbufferStorage (
-               GL.GL_RENDERBUFFER, GL.GL_SRGB8_ALPHA8, width, height);  
-         } else {
-            gl.glRenderbufferStorage (
-               GL.GL_RENDERBUFFER, GL.GL_RGBA8, width, height);
-         }
-      }
+      colorBuffer = GLRenderBuffer.generate (gl);
+      colorBuffer.configure (gl, width, height, colorFormat, numMultiSamples);
       gl.glFramebufferRenderbuffer (
          GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0,
-         GL.GL_RENDERBUFFER, CBhandle);
-      gl.glBindRenderbuffer (GL.GL_RENDERBUFFER, 0); // detach for safety
+         GL.GL_RENDERBUFFER, colorBuffer.getId ());
+      colorBuffer.unbind (gl);
 
       // Create secondary FBO
-      if (nMultiSamples > 1) {
+      if (numMultiSamples > 1) {
          gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, FBNhandle);
-         gl.glGenRenderbuffers (1, buff, 0);
-         CBNhandle = buff[0];
-         gl.glBindRenderbuffer (GL.GL_RENDERBUFFER, CBNhandle);
-         if (gammaCorrected) {
-            gl.glRenderbufferStorage (
-               GL.GL_RENDERBUFFER, GL.GL_SRGB8_ALPHA8, width, height);   
-         } else {
-            gl.glRenderbufferStorage (
-               GL.GL_RENDERBUFFER, GL.GL_RGBA8, width, height);   
-         }
-         
+         outputColorBuffer = GLRenderBuffer.generate (gl);
+         outputColorBuffer.configure (gl, width, height, colorFormat, 1);
          gl.glFramebufferRenderbuffer (
             GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0,
-            GL.GL_RENDERBUFFER, CBNhandle);
-         gl.glBindRenderbuffer (GL.GL_RENDERBUFFER, 0); // detach for safety
+            GL.GL_RENDERBUFFER, outputColorBuffer.getId ());
+         outputColorBuffer.unbind (gl);
       }
 
       // detach
@@ -387,15 +354,13 @@ public class FrameBufferObject {
          gl.glDeleteFramebuffers (1, buff, 0);
          FBOhandle = -1;
       }
-      if (DBhandle != -1) {
-         int[] buff = new int[]{DBhandle};
-         gl.glDeleteRenderbuffers (1, buff, 0);
-         DBhandle = -1;
+      if (depthBuffer != null) {
+         depthBuffer.dispose (gl);
+         depthBuffer = null;
       }
-      if (CBhandle != -1) {
-         int[] buff = new int[]{CBhandle};
-         gl.glDeleteRenderbuffers (1, buff, 0);
-         CBhandle = -1;
+      if (colorBuffer != null) {
+         colorBuffer.dispose (gl);
+         colorBuffer = null;
       }
 
       // clean up multisample
@@ -404,10 +369,9 @@ public class FrameBufferObject {
          gl.glDeleteFramebuffers (1, buff, 0);
          FBNhandle = -1;
       }
-      if (CBNhandle != -1) {
-         int[] buff = new int[]{CBNhandle};
-         gl.glDeleteRenderbuffers (1, buff, 0);
-         CBNhandle = -1;
+      if (outputColorBuffer != null) {
+         outputColorBuffer.dispose (gl);
+         outputColorBuffer = null;
       }
       initialized = false;
 
@@ -491,7 +455,7 @@ public class FrameBufferObject {
       int size = width * height * 4; // 4 bytes per RGBA pixel
       ByteBuffer pixels = BufferUtilities.newNativeByteBuffer(size);
 
-      if (nMultiSamples > 1) {
+      if (numMultiSamples > 1) {
          // System.out.println ("blitting");
          // read from multisample, write to single sample
          gl.glBindFramebuffer(GL2GL3.GL_READ_FRAMEBUFFER, FBOhandle);

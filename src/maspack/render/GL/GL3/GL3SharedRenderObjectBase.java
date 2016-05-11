@@ -163,6 +163,10 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
          return false;
       }
       
+      if (robj.isTransient ()) {
+         streaming = true;
+      }
+      
       if (needsVertexRebuild(gl, rv)) {
          clearVertices(gl);
          buildVertices(gl, robj);

@@ -377,12 +377,14 @@ public class RenderObject implements Versioned {
    boolean linesModified;
    boolean trianglesModified;
    boolean totalModified;
+   boolean istransient;
    
    public RenderObject() {
 
       idInfo = new RenderObjectIdentifier(nextIdNumber++, true);
       versionInfo = new RenderObjectVersion();
       stateInfo = new RenderObjectState();
+      istransient = false;
       
       clearAll();
 
@@ -2788,6 +2790,26 @@ public class RenderObject implements Versioned {
    public boolean isValid() {
       return idInfo.isValid();
    }
+   
+   /**
+    * Sets or clears the transient state of the render object.  Transient objects
+    * will not be cached by renderers, which may improve performance for short-lived
+    * objects.
+    * @param set
+    */
+   public void setTransient(boolean set) {
+      istransient = set;
+   }
+   
+   /**
+    * Checks if the render object is labelled as "transient".  Transient objects
+    * will not be cached by renderers, which may improve performance for short-lived
+    * objects.
+    * @return whether or not this render object is considered transient.
+    */
+   public boolean isTransient() {
+      return istransient;
+   }
 
    /**
     * Signal a destruction of the object.
@@ -2920,6 +2942,8 @@ public class RenderObject implements Versioned {
 
       r.buildMode = buildMode;
       r.buildModeStart = buildModeStart;
+      
+      r.istransient = istransient;
       
       return r;
    }

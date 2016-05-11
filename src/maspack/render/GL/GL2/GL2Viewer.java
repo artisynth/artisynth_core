@@ -23,6 +23,7 @@ import javax.media.opengl.glu.GLU;
 import javax.swing.JFrame;
 import javax.swing.event.MouseInputListener;
 
+import artisynth.core.femmodels.FemElement3d;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
@@ -61,6 +62,9 @@ import maspack.util.InternalErrorException;
  * @author John E Lloyd and ArtiSynth team members
  */
 public class GL2Viewer extends GLViewer implements HasProperties {
+
+   // must have at least this many vertices to quality for a display list
+   private static final int DISPLAY_LIST_VERTEX_MINIMUM = 100;
 
    public static boolean DEBUG = false;
 
@@ -2969,16 +2973,16 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          savedShading = enableVertexColoring (useHSV);
       }
 
-      boolean useDisplayList = !selecting || !hasColors;
+      boolean useDisplayList = (!selecting || !hasColors) && (!robj.isTransient()) 
+         && (3*robj.numTriangles (gidx) > DISPLAY_LIST_VERTEX_MINIMUM);
       GL2VersionedObject gvo = null;
     
-      // get snapshot of version information
-      RenderObjectVersion fingerprint = robj.getVersionInfo();
-      RenderObjectKey key = new RenderObjectKey(robj.getIdentifier (), DrawType.TRIANGLES, gidx);
-         
       boolean compile = true;
-
       if (useDisplayList) {
+         // get snapshot of version information
+         RenderObjectVersion fingerprint = robj.getVersionInfo();
+         RenderObjectKey key = new RenderObjectKey(robj.getIdentifier (), DrawType.TRIANGLES, gidx);
+         
          gvo = myGLResources.getVersionedObject (key);
          if (gvo != null) {
             boolean iv = gvo.disposeInvalid (gl);
@@ -3220,15 +3224,16 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          savedShading = enableVertexColoring (useHSV);
       }
 
-      boolean useDisplayList = !selecting || !hasColors;
+      boolean useDisplayList = (!selecting || !hasColors) && (!robj.isTransient()) 
+         && (2*robj.numLines (gidx) > DISPLAY_LIST_VERTEX_MINIMUM);
 
-      RenderObjectKey key = new RenderObjectKey(robj.getIdentifier (), DrawType.LINES, gidx);
-      LineFingerPrint fingerprint = new LineFingerPrint(robj.getVersionInfo(), LineStyle.LINE, 0, 0);
-      
       boolean compile = true;
       GL2VersionedObject gvo = null;
 
       if (useDisplayList) {
+         RenderObjectKey key = new RenderObjectKey(robj.getIdentifier (), DrawType.LINES, gidx);
+         LineFingerPrint fingerprint = new LineFingerPrint(robj.getVersionInfo(), LineStyle.LINE, 0, 0);
+         
          gvo = myGLResources.getVersionedObject (key);
          if (gvo != null) {
             boolean iv = gvo.disposeInvalid (gl);
@@ -3312,15 +3317,18 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          savedShading = enableVertexColoring (useHSV);
       }
 
-      boolean useDisplayList = !selecting || !hasColors;
+      boolean useDisplayList = (!selecting || !hasColors) && (!robj.isTransient()) 
+         && (2*robj.numLines (gidx) > DISPLAY_LIST_VERTEX_MINIMUM);
+      
       GL2VersionedObject gvo = null;
-      RenderObjectKey key = new RenderObjectKey(robj.getIdentifier (), DrawType.LINES, gidx);
-      LineFingerPrint fingerprint = 
-         new LineFingerPrint(robj.getVersionInfo(), 
-            style, mySurfaceResolution, rad);
       boolean compile = true;
 
       if (useDisplayList) {
+         RenderObjectKey key = new RenderObjectKey(robj.getIdentifier (), DrawType.LINES, gidx);
+         LineFingerPrint fingerprint = 
+            new LineFingerPrint(robj.getVersionInfo(), 
+               style, mySurfaceResolution, rad);
+         
          gvo = myGLResources.getVersionedObject (key);
          if (gvo != null) {
             boolean iv = gvo.disposeInvalid (gl);
@@ -3504,13 +3512,16 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          savedShading = enableVertexColoring (useHSV);
       }
 
-      boolean useDisplayList = !selecting || !hasColors;
+      boolean useDisplayList = (!selecting || !hasColors) && (!robj.isTransient()) 
+         && (robj.numPoints (gidx) > DISPLAY_LIST_VERTEX_MINIMUM);
+      
       GL2VersionedObject gvo = null;
-      RenderObjectKey key = new RenderObjectKey(robj.getIdentifier (), DrawType.POINTS, gidx);
-      PointFingerPrint fingerprint = new PointFingerPrint(robj.getVersionInfo(), PointStyle.POINT, 0, 0);
       boolean compile = true;
 
       if (useDisplayList) {
+         RenderObjectKey key = new RenderObjectKey(robj.getIdentifier (), DrawType.POINTS, gidx);
+         PointFingerPrint fingerprint = new PointFingerPrint(robj.getVersionInfo(), PointStyle.POINT, 0, 0);
+         
          gvo = myGLResources.getVersionedObject (key);
          if (gvo != null) {
             boolean iv = gvo.disposeInvalid (gl);
@@ -3603,14 +3614,17 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
       
       
-      boolean useDisplayList = !selecting || !hasColors;
+      boolean useDisplayList = (!selecting || !hasColors) && (!robj.isTransient()) 
+         && (robj.numPoints (gidx) > DISPLAY_LIST_VERTEX_MINIMUM);
+      
       GL2VersionedObject gvo = null;
-      RenderObjectKey key = new RenderObjectKey(robj.getIdentifier (), DrawType.POINTS, gidx);
-      PointFingerPrint fingerprint = new PointFingerPrint(robj.getVersionInfo(), style, 
-         point, (float)rad);
       boolean compile = true;
 
       if (useDisplayList) {
+         RenderObjectKey key = new RenderObjectKey(robj.getIdentifier (), DrawType.POINTS, gidx);
+         PointFingerPrint fingerprint = new PointFingerPrint(robj.getVersionInfo(), style, 
+            point, (float)rad);
+         
          gvo = myGLResources.getVersionedObject (key);
          if (gvo != null) {
             boolean iv = gvo.disposeInvalid (gl);
@@ -3718,13 +3732,16 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          hasTexture = maybeActivateTextures (gl);
       }
 
-      boolean useDisplayList = !selecting || !hasColors;
+      boolean useDisplayList = (!selecting || !hasColors) && (!robj.isTransient()) 
+         && (robj.numVertices () > DISPLAY_LIST_VERTEX_MINIMUM);
+      
       GL2VersionedObject gvo = null;
-      RenderObjectKey key = new RenderObjectKey(robj.getIdentifier (), DrawType.VERTICES, 0);
-      VertexFingerPrint fingerprint = new VertexFingerPrint(robj.getVersionInfo(), mode);
       boolean compile = true;
 
       if (useDisplayList) {
+         RenderObjectKey key = new RenderObjectKey(robj.getIdentifier (), DrawType.VERTICES, 0);
+         VertexFingerPrint fingerprint = new VertexFingerPrint(robj.getVersionInfo(), mode);
+         
          gvo = myGLResources.getVersionedObject (key);
          if (gvo != null) {
             boolean iv = gvo.disposeInvalid (gl);
@@ -3895,13 +3912,16 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
 
       // only use display list if rendering entire list, and not selecting if it has vertex colors
-      boolean useDisplayList = (!selecting || !hasColors) && (offset == 0 && count == idxs.size ());
+      boolean useDisplayList = (!selecting || !hasColors) && (!robj.isTransient()) 
+         && (count > DISPLAY_LIST_VERTEX_MINIMUM) && (offset == 0 && count == idxs.size ());
+      
       GL2VersionedObject gvo = null;
-      RenderObjectListKey key = new RenderObjectListKey(robj.getIdentifier (), idxs);
-      VertexListFingerPrint fingerprint = new VertexListFingerPrint(robj.getVersionInfo(), mode, idxs.getVersion ());
       boolean compile = true;
 
       if (useDisplayList) {
+         RenderObjectListKey key = new RenderObjectListKey(robj.getIdentifier (), idxs);
+         VertexListFingerPrint fingerprint = new VertexListFingerPrint(robj.getVersionInfo(), mode, idxs.getVersion ());
+         
          gvo = myGLResources.getVersionedObject (key);
          if (gvo != null) {
             boolean iv = gvo.disposeInvalid (gl);

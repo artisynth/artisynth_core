@@ -1,9 +1,11 @@
 package artisynth.core.femmodels;
 
 import java.util.ArrayList;
-import maspack.util.*;
-import maspack.matrix.*;
-import maspack.render.*;
+
+import maspack.matrix.Point3d;
+import maspack.render.RenderObject;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.render.Renderer.Shading;
 
 public class FemElementRenderer {
@@ -253,7 +255,8 @@ public class FemElementRenderer {
       }
       myNumEdgePos = r.numPositions();
       addWidgetFaces (r, elem);
-
+      r.setTransient (true);
+      
       myRob = r;
    }
 

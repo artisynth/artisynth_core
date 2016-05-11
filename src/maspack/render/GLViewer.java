@@ -1965,8 +1965,9 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       doDisplay (drawable, flags);
       if (myProfiling) {
          myTimer.stop();
-         System.out.println (
-            "render time: "+myTimer.result(1)+(isSelecting()?" (SELECT)":""));
+         System.out.printf (
+            "render time (msec): %9.4f %s\n", 
+            myTimer.getTimeUsec()/1000.0, isSelecting() ? "(SELECT)" : "");
       }
       if (selectEnabled) {
          mySelector.processSelection (drawable);

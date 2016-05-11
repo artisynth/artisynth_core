@@ -320,55 +320,34 @@ public class FrameBufferObject {
     * delete the framebufferobject and renderbufferobject
     */
    public void cleanup () {
-      // XXX huge hack here, every delete buffer seems to fail
+      int[] buff = new int[1];
       if (FBOhandle != -1) {
-         IntBuffer fboHandleBuff = allocInts (1).put (FBOhandle);
-         try {
-            gl.glDeleteFramebuffers (1, fboHandleBuff);
-         } catch (Exception e) {
-            System.out.println("Cannot delete FBOhandle");
-         }
+         buff[0] = FBOhandle; 
+         gl.glDeleteFramebuffers (1, buff, 0);
          FBOhandle = -1;
       }
       if (DBhandle != -1) {
-         IntBuffer dbHandleBuff = allocInts (1).put (DBhandle);
-         try {
-            gl.glDeleteRenderbuffers (1, dbHandleBuff);
-         } catch (Exception e) {
-            System.out.println("Cannot delete DBhandle");
-         }
+         buff[0] = DBhandle; 
+         gl.glDeleteRenderbuffers (1, buff, 0);
          DBhandle = -1;
       }
       if (CBhandle != -1) {
-         IntBuffer cbHandleBuff = allocInts (1).put (CBhandle);
-         try {
-            gl.glDeleteRenderbuffers (1, cbHandleBuff);
-         } catch (Exception e) {
-            System.out.println("Cannot delete CBhandle");
-         }
+         buff[0] = CBhandle; 
+         gl.glDeleteRenderbuffers (1, buff, 0);
          CBhandle = -1;
       }
 
       if (FBNhandle != -1) {
-         IntBuffer fbnHandleBuff = allocInts (1).put (FBNhandle);
-         try {
-            gl.glDeleteFramebuffers (1, fbnHandleBuff);
-         } catch (Exception e) {
-            System.out.println("Cannot delete FBNhandle");
-         }
+         buff[0] = FBNhandle; 
+         gl.glDeleteFramebuffers (1, buff, 0);
          FBNhandle = -1;
       }
-       if (CBNhandle != -1) {
-         IntBuffer cbnHandleBuff = allocInts (1).put (CBNhandle);
-         try {
-            gl.glDeleteRenderbuffers (1, cbnHandleBuff);
-         } catch (Exception e) {
-            System.out.println("Cannot delete CBNhandle");
-         }
+      if (CBNhandle != -1) {
+         buff[0] = FBOhandle; 
+         gl.glDeleteRenderbuffers (1, buff, 0);
          CBNhandle = -1;
       }
       setup = false;
-      
    }
 
    /**

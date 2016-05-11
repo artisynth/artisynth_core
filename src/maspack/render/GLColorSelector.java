@@ -6,15 +6,20 @@
  */
 package maspack.render;
 
-import java.util.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayDeque;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.LinkedList;
 
-import javax.media.opengl.*;
-import javax.media.opengl.glu.*;
+import javax.media.opengl.GL;
+import javax.media.opengl.GL2;
+import javax.media.opengl.GLAutoDrawable;
+import javax.media.opengl.glu.GLU;
 
 import maspack.matrix.Vector2d;
-import maspack.util.InternalErrorException;
 
 /**
  * GLSelector that works using the traditional GL_SELECT mechanism (now
@@ -235,6 +240,7 @@ public class GLColorSelector extends GLSelector {
             8, null, null, gl);
          dummy.setupFBO();
          dummy.activate();
+
          // now de-activate and delete immediately
          dummy.deactivate();
          dummy.cleanup();
@@ -318,7 +324,7 @@ public class GLColorSelector extends GLSelector {
       colorId >>= 8;
       int r = 0xff & colorId;
       //myGl.glColor4f (r/255f, g/255f, b/255f, a/255f);
-      myGl.glColor3f (r/255f, g/255f, b/255f);
+      myGl.glColor4f (r/255f, g/255f, b/255f, 1);
       myCurrentIdx = idx;
    }
 

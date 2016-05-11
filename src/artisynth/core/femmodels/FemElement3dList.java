@@ -6,21 +6,25 @@
  */
 package artisynth.core.femmodels;
 
-import java.util.LinkedList;
 import java.util.HashSet;
+import java.util.LinkedList;
 
+import artisynth.core.modelbase.ComponentChangeEvent;
+import artisynth.core.modelbase.ComponentList;
+import artisynth.core.modelbase.RenderableComponentList;
+import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.util.ClassAliases;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
+import maspack.render.FeatureIndexArray;
 import maspack.render.RenderList;
+import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.RenderObject;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.Shading;
-import maspack.util.FunctionTimer;
-import artisynth.core.modelbase.*;
-import artisynth.core.util.ClassAliases;
 
 public class FemElement3dList extends RenderableComponentList<FemElement3d> {
    protected static final long serialVersionUID = 1;
@@ -29,6 +33,10 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
    private RenderObject myWidgetRob = null;
    private HashSet<QuadEdgeDesc> myQuadEdges = null;
    private byte[] myRobFlags = null;
+   
+   // feature index arrays
+   FeatureIndexArray[] myWidgetFeatures;
+   FeatureIndexArray[] myEdgeFeatures;
 
    private static int DEFAULT_ELEMENT_WIDGET_SIZE = 0;
    private static PropertyMode DEFAULT_ELEMENT_WIDGET_SIZE_MODE =
@@ -87,6 +95,13 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
          myVidxm = vidxm;
          myPidx0 = FemElementRenderer.addQuadEdge (
             r, myVidx0, myVidxm, myVidx1);
+      }
+      
+      public void addCurve (RenderObject r, 
+         FeatureIndexArray features, int vidxm) {
+         myVidxm = vidxm;
+         myPidx0 = FemElementRenderer.addQuadEdge (r,
+            features, myVidx0, myVidxm, myVidx1);
       }
 
       public void updateCurve (RenderObject r) {
@@ -175,9 +190,9 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
    private static final int IS_LIST_RENDERED = 0x40;
 
    protected void addEdgeLines (
-      RenderObject r, FemElement3d elem,
+      RenderObject r, FeatureIndexArray lines, FemElement3d elem,
       ComponentList<? extends FemNode> nodes, HashSet<EdgeDesc> edges) {
-      
+     
       int[] eidxs = elem.getEdgeIndices();
       FemNode[] enodes = elem.getNodes();
       int numv = 2;
@@ -189,6 +204,8 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
             EdgeDesc edge = new EdgeDesc (vidx0, vidx1);
             if (!edges.contains (edge)) {
                r.addLine (vidx0, vidx1);
+               lines.addVertex (vidx0);
+               lines.addVertex (vidx1);
                edges.add (edge);
             }
          }
@@ -201,11 +218,12 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
             }
             if (!myQuadEdges.contains (edge)) {
                int vidxm = nodes.indexOf(enodes[eidxs[i+2]]);
-               edge.addCurve (r, vidxm);
+               edge.addCurve (r, lines, vidxm);
                myQuadEdges.add (edge);
             }
          }
       }
+      
    }
 
    // protected void addWidgetFaces (RenderObject r, FemElement3d elem) {
@@ -305,13 +323,20 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
       // has a non-zero widget size. Place these additions in the appropriate
       // group (REG_GRP, SEL_GRP,INV_GRP), each of which will be rendered with
       // a different color.
+      
+      myEdgeFeatures = new FeatureIndexArray[2];  // two groups for edges
+      myEdgeFeatures[0] = new FeatureIndexArray ();
+      myEdgeFeatures[1] = new FeatureIndexArray ();
+      
       HashSet<EdgeDesc> edges = new HashSet<EdgeDesc>();
       r.lineGroup (SEL_GRP);
       for (int i=0; i<size(); i++) {
          FemElement3d elem = get (i);
          if (elem.getRenderProps() == null) {
             if (elem.isSelected()) {
-               addEdgeLines (r, elem, nodes, edges);
+               myEdgeFeatures[SEL_GRP].beginFeature (i);
+               addEdgeLines (r, myEdgeFeatures[SEL_GRP], elem, nodes, edges);
+               myEdgeFeatures[SEL_GRP].endFeature ();
             }
          }
       }
@@ -320,7 +345,9 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
          FemElement3d elem = get (i);
          if (elem.getRenderProps() == null) {
             if (!elem.isSelected()) {
-               addEdgeLines (r, elem, nodes, edges);
+               myEdgeFeatures[REG_GRP].beginFeature (i);
+               addEdgeLines (r, myEdgeFeatures[REG_GRP], elem, nodes, edges);
+               myEdgeFeatures[REG_GRP].endFeature ();
             }
             byte flags = getRobFlags(elem);   
             if ((flags & HAS_WIDGET) != 0) {
@@ -336,13 +363,22 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
          r.createTriangleGroup();
          r.createTriangleGroup();
          r.createTriangleGroup();
+         
+         myWidgetFeatures = new FeatureIndexArray[3];
+         for (int i=0; i<myWidgetFeatures.length; ++i) {
+            myWidgetFeatures[i] = new FeatureIndexArray ();
+         }
+         
          for (int i=0; i<size(); i++) {
             FemElement3d elem = get (i);
             if (elem.getRenderProps() == null) {
                byte flags = getRobFlags(elem);
                if ((flags & HAS_WIDGET) != 0) {
-                  r.triangleGroup (flags & GRP_MASK);
-                  FemElementRenderer.addWidgetFaces (r, elem);
+                  int gidx = flags & GRP_MASK;
+                  r.triangleGroup (gidx);
+                  myWidgetFeatures[gidx].beginFeature (i);
+                  FemElementRenderer.addWidgetFaces (r, myWidgetFeatures[gidx], elem);
+                  myWidgetFeatures[gidx].endFeature ();
                }              
             }
          }
@@ -450,60 +486,124 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
       Renderer renderer, RenderObject r, RenderProps props, int group) {
 
       if (r.numTriangles(group) > 0) {
-         r.triangleGroup (group);
          float[] color = props.getFaceColorF();
          boolean selected = (group == SEL_GRP);
          if (group == INV_GRP) {
             color = FemModel3d.myInvertedColor;
          }
          renderer.setFaceColoring (props, color, selected);
-         renderer.drawTriangles (r);
+         renderer.drawTriangles (r, group);
+      }
+   }
+   
+   protected void drawEdges (
+      Renderer renderer, RenderObject r, FeatureIndexArray lines, 
+      RenderProps props, boolean selected) {
+
+      if (lines.numFeatures () > 0) {
+         int width = props.getLineWidth();
+         if (width > 0) {
+            float savedWidth = renderer.getLineWidth ();
+            if (renderer.isSelecting ()) {
+               // feature-by-feature
+               for (int i=0; i<lines.numFeatures (); ++i) {
+                  renderer.beginSelectionQuery (lines.getFeature (i));
+                  renderer.drawVertices (r, lines.getVertices (), 
+                     lines.getFeatureOffset (i), lines.getFeatureLength (i), 
+                     DrawMode.LINES);
+                  renderer.endSelectionQuery ();
+               }
+            } else {
+               Shading savedShading = renderer.setShading (Shading.NONE);
+               renderer.setLineColoring (props, selected);
+               renderer.setLineWidth (width);
+               renderer.drawVertices(r, lines.getVertices (), DrawMode.LINES);
+               renderer.setShading (savedShading);
+            }
+            renderer.setLineWidth (savedWidth);
+         }
+      }
+   }
+
+   protected void drawWidgets (
+      Renderer renderer, RenderObject r, FeatureIndexArray faces, 
+      RenderProps props, int group) {
+
+      if (faces.numFeatures () > 0) {
+         if (renderer.isSelecting ()) {
+            // feature-by-feature
+            for (int i=0; i<faces.numFeatures (); ++i) {
+               renderer.beginSelectionQuery (faces.getFeature (i));
+               renderer.drawVertices (r, faces.getVertices (), 
+                  faces.getFeatureOffset (i), faces.getFeatureLength (i), 
+                  DrawMode.TRIANGLES);
+               renderer.endSelectionQuery ();
+            }
+         } else {
+            float[] color = props.getFaceColorF();
+            boolean selected = (group == SEL_GRP);
+            if (group == INV_GRP) {
+               color = FemModel3d.myInvertedColor;
+            }
+            renderer.setFaceColoring (props, color, selected);
+            renderer.drawVertices (r, faces.getVertices (), DrawMode.TRIANGLES);
+         }
       }
    }
 
    public void render (Renderer renderer, int flags) {
       RenderProps props = myRenderProps;
-      if (renderer.isSelecting()) {
-         // LineStyle style = props.getLineStyle();
-         // if (style == LineStyle.LINE) {
-         //    int width = props.getLineWidth();
-         //    if (width > 0) {
-         //       renderer.setLineWidth (width);
-         //    }
-         //    else {
-         //       return;
-         //    }
-         // }
-         
-         //FunctionTimer ft = new FunctionTimer ();
-         //ft.start ();
-         for (int i=0; i<size(); i++) {
-            FemElement3d elem = get(i);        
-            if (elem.getRenderProps() == null && renderer.isSelectable (elem)) {
-               renderer.beginSelectionQuery (i);
-               elem.render (renderer, myRenderProps, flags);
-               renderer.endSelectionQuery ();
-            }
-         }
-         //ft.stop ();
-         //System.out.println (ft.result (1));
-         
-         // if (style == LineStyle.LINE) {
-         //    renderer.setLineWidth (1);
-         // }
-      }
-      else {
-         RenderObject r = myEdgeRob;
-         if (r != null) {
-            drawEdges (renderer, r, props, SEL_GRP);
-            drawEdges (renderer, r, props, REG_GRP);
-         }
-         r = myWidgetRob;
-         if (r != null) {
-            drawWidgets (renderer, r, props, SEL_GRP);
-            drawWidgets (renderer, r, props, REG_GRP);
-            drawWidgets (renderer, r, props, INV_GRP);
-         }
+      //      if (renderer.isSelecting()) {
+      //         // LineStyle style = props.getLineStyle();
+      //         // if (style == LineStyle.LINE) {
+      //         //    int width = props.getLineWidth();
+      //         //    if (width > 0) {
+      //         //       renderer.setLineWidth (width);
+      //         //    }
+      //         //    else {
+      //         //       return;
+      //         //    }
+      //         // }
+      //         
+      //         //FunctionTimer ft = new FunctionTimer ();
+      //         //ft.start ();
+      //         for (int i=0; i<size(); i++) {
+      //            FemElement3d elem = get(i);        
+      //            if (elem.getRenderProps() == null && renderer.isSelectable (elem)) {
+      //               renderer.beginSelectionQuery (i);
+      //               elem.render (renderer, myRenderProps, flags);
+      //               renderer.endSelectionQuery ();
+      //            }
+      //         }
+      //         //         //ft.stop ();
+      //         //         //System.out.println (ft.result (1));
+      //
+      //         // if (style == LineStyle.LINE) {
+      //         //    renderer.setLineWidth (1);
+      //         // }
+      //      }
+      //      else {
+      //         RenderObject r = myEdgeRob;
+      //         if (r != null) {
+      //            drawEdges (renderer, r, props, SEL_GRP);
+      //            drawEdges (renderer, r, props, REG_GRP);
+      //         }
+      //         r = myWidgetRob;
+      //         if (r != null) {
+      //            drawWidgets (renderer, r, props, SEL_GRP);
+      //            drawWidgets (renderer, r, props, REG_GRP);
+      //            drawWidgets (renderer, r, props, INV_GRP);
+      //         }
+      //      }
+      
+      // draw edge features using lists
+      if (myEdgeRob != null) {
+         drawEdges(renderer, myEdgeRob, myEdgeFeatures[SEL_GRP], props, true);
+         drawEdges(renderer, myEdgeRob, myEdgeFeatures[REG_GRP], props, false);
+      } else {
+         drawWidgets (renderer, myWidgetRob, myWidgetFeatures[SEL_GRP], props, SEL_GRP);
+         drawWidgets (renderer, myWidgetRob, myWidgetFeatures[REG_GRP], props, REG_GRP);
+         drawWidgets (renderer, myWidgetRob, myWidgetFeatures[INV_GRP], props, INV_GRP);
       }
    }
 

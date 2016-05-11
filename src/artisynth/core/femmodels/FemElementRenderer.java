@@ -3,6 +3,7 @@ package artisynth.core.femmodels;
 import java.util.ArrayList;
 
 import maspack.matrix.Point3d;
+import maspack.render.FeatureIndexArray;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
@@ -26,6 +27,12 @@ public class FemElementRenderer {
 
    public static int addQuadEdge (
       RenderObject r, int vidx0, int vidxm, int vidx1) {
+      return addQuadEdge(r, null, vidx0, vidxm, vidx1);
+   }
+ 
+   public static int addQuadEdge (
+      RenderObject r, FeatureIndexArray lines, 
+      int vidx0, int vidxm, int vidx1) {
 
       int nsegs = numQuadEdgeSegs;
       
@@ -40,7 +47,16 @@ public class FemElementRenderer {
          vidxs[i] = r.vertex (0f, 0f, 0f);
       }
       vidxs[2*nsegs] = vidx1;
+      
       r.addLineStrip (vidxs);
+      
+      if (lines != null) {
+         for (int i=1; i<vidxs.length; ++i) {
+            lines.addVertex (vidxs[i-1]);
+            lines.addVertex (vidxs[i]);
+         }
+      }
+      
       return pidx0;
    }
 
@@ -89,6 +105,11 @@ public class FemElementRenderer {
    // }
 
    public static void addWidgetFaces (RenderObject r, FemElement3d elem) {
+      addWidgetFaces(r, null, elem);
+   }
+   
+   public static void addWidgetFaces (RenderObject r, 
+      FeatureIndexArray faces, FemElement3d elem) {
       int p0idx = r.numPositions();
       // add positions for storing widget vertices
       for (int j=0; j<elem.numNodes(); j++) {
@@ -97,15 +118,29 @@ public class FemElementRenderer {
       // get the triangle indices for the faces associated with the element
       int[] fidxs = FemUtilities.triangulateFaceIndices (
          elem.getFaceIndices());
+      
+      int vstart = r.numVertices ();
+      
       int nidx = r.numNormals(); // normal index
       for (int i=0; i<fidxs.length; i += 3) {
          r.addNormal (0, 0, 0); // add face normal
          int v0idx = r.addVertex (p0idx+fidxs[i  ], nidx);
          int v1idx = r.addVertex (p0idx+fidxs[i+1], nidx);
          int v2idx = r.addVertex (p0idx+fidxs[i+2], nidx);
+         
          r.addTriangle (v0idx, v1idx, v2idx);
          nidx++;
       }      
+      
+      if (faces != null) {
+         int vidx = vstart;
+         for (int i=0; i<fidxs.length; i += 3) {
+            faces.addVertex (vidx++);
+            faces.addVertex (vidx++);
+            faces.addVertex (vidx++);
+         }
+      }
+      
       double size = elem.getElementWidgetSize();
       FemElementRenderer.updateWidgetPositions (r, elem, size, p0idx);
    }
@@ -214,9 +249,13 @@ public class FemElementRenderer {
          myVidxm = vidxm;
          myVidx1 = vidx1;
       }
-
+      
       public void addCurve (RenderObject r) {
          myPidx0 = addQuadEdge (r, myVidx0, myVidxm, myVidx1);
+      }
+
+      public void addCurve (RenderObject r, FeatureIndexArray lines) {
+         myPidx0 = addQuadEdge (r, lines, myVidx0, myVidxm, myVidx1);
       }
 
       public void updateCurve (RenderObject r) {

@@ -1961,7 +1961,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          computeProjectionMatrix ();
       }
       display(drawable, flags);
-      GLSupport.checkAndPrintGLError(drawable.getGL ());
       
       // clear current drawable
       this.drawable = null;

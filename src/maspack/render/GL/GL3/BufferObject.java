@@ -64,7 +64,6 @@ public class BufferObject extends GL3ResourceBase {
       setInfo(byteSize, usage);
       bind(gl);
       gl.glBufferData(target, size*GLSupport.BYTE_SIZE, buff, usage);
-      GLSupport.checkAndPrintGLError (gl);
    }
    
    //   public void update(GL3 gl, byte[] buff) {

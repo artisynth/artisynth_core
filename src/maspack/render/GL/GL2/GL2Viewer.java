@@ -1110,8 +1110,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    // Made public for debugging purposes
    public void maybeUpdateMatrices(GL2 gl) {
 
-      int[] mmode = new int[1]; 
-      gl.glGetIntegerv(GL2.GL_MATRIX_MODE, mmode, 0);
+      //      int[] mmode = new int[1]; 
+      //      gl.glGetIntegerv(GL2.GL_MATRIX_MODE, mmode, 0);
       
       if (!viewMatrixValidP || !modelMatrixValidP) {
          // create modelview matrix:
@@ -1120,6 +1120,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
          // update modelview matrix
          GLSupport.transformToGLMatrix(GLMatrix, mvmatrix);
+         gl.glMatrixMode (GL2.GL_MODELVIEW);
          gl.glLoadMatrixd(GLMatrix,0);
 
          viewMatrixValidP = true;
@@ -1133,7 +1134,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
          gl.glMatrixMode(GL2.GL_PROJECTION);
          gl.glLoadMatrixd(GLMatrix,0);
-
+         gl.glMatrixMode (GL2.GL_MODELVIEW);
          projectionMatrixValidP = true;
       }
       
@@ -1143,11 +1144,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          GLSupport.transformToGLMatrix (GLMatrix, textureMatrix);
          gl.glMatrixMode(GL2.GL_TEXTURE);
          gl.glLoadMatrixd(GLMatrix,0);
-         
+         gl.glMatrixMode (GL2.GL_MODELVIEW);
          textureMatrixValidP = true;
       }
 
-      gl.glMatrixMode(mmode[0]); // revert
+      // gl.glMatrixMode(mmode[0]); // revert
    }
 
    @Override

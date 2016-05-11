@@ -45,6 +45,7 @@ import maspack.properties.PropertyList;
 import maspack.render.RenderProps.LineStyle;
 import maspack.render.RenderProps.Shading;
 import maspack.util.InternalErrorException;
+import maspack.util.FunctionTimer;
 
 /**
  * @author John E Lloyd and ArtiSynth team members
@@ -294,6 +295,9 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
    private static final AxisAlignedRotation DEFAULT_AXIAL_VIEW =
       AxisAlignedRotation.X_Z;
 
+   boolean myProfiling = false;
+   FunctionTimer myTimer = new FunctionTimer();
+
    static {
       myProps.add (
          "eye", "eye location (world coordinates)", DEFAULT_VIEWER_EYE);
@@ -320,6 +324,8 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       myProps.add(
          "alphaFaceCulling", "allow transparency face culling",
          DEFAULT_ALPHA_FACE_CULLING);
+      myProps.add(
+         "profiling", "print timing for render operations", false);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -331,6 +337,14 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
     */
    public Property getProperty (String name) {
       return PropertyList.getProperty (name, this);
+   }
+
+   public void setProfiling (boolean enable) {
+      myProfiling = enable;
+   }
+
+   public boolean getProfiling() {
+      return myProfiling;
    }
 
    private void initLights() {
@@ -1945,8 +1959,15 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       if (selectEnabled) {
          mySelector.setupSelection (drawable);
       }
+      if (myProfiling) {
+         myTimer.start();
+      }
       doDisplay (drawable, flags);
-
+      if (myProfiling) {
+         myTimer.stop();
+         System.out.println (
+            "render time=" + myTimer.result(1) + " selecting=" + selectEnabled);
+      }
       if (selectEnabled) {
          mySelector.processSelection (drawable);
          selectEnabled = false;

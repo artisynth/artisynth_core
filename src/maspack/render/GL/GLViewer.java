@@ -74,6 +74,7 @@ import maspack.render.ViewerSelectionFilter;
 import maspack.render.ViewerSelectionListener;
 import maspack.render.GL.GLProgramInfo.RenderingMode;
 import maspack.util.InternalErrorException;
+import maspack.util.FunctionTimer;
 
 /**
  * @author John E Lloyd and ArtiSynth team members
@@ -441,8 +442,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected boolean selectionEnabled = true;
    protected boolean selectOnPressP = false;   
 
-   public static PropertyList myProps = new PropertyList (GLViewer.class);
+   boolean myProfiling = false;
+   FunctionTimer myTimer = new FunctionTimer();
 
+   public static PropertyList myProps = new PropertyList (GLViewer.class);
 
    static {
       myProps.add (
@@ -461,6 +464,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
             "blendDestFactor", "destination transparency blending", DEFAULT_DST_BLENDING);
       myProps.add("surfaceResolution", "resolution for built-in curved primitives", 
          DEFAULT_SURFACE_RESOLUTION);
+      myProps.add(
+         "profiling", "print timing for render operations", false);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -472,6 +477,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     */
    public Property getProperty (String name) {
       return PropertyList.getProperty (name, this);
+   }
+
+   public void setProfiling (boolean enable) {
+      myProfiling = enable;
+   }
+
+   public boolean getProfiling() {
+      return myProfiling;
    }
 
    public int getSurfaceResolution () {
@@ -1947,8 +1960,16 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          myFrustum.depthBits = depthBits;
          computeProjectionMatrix ();
       }
-
+      if (myProfiling) {
+         myTimer.start();
+      }
       display(drawable, flags);
+      if (myProfiling) {
+         myTimer.stop();
+         System.out.println (
+            "render time: " + myTimer.result(1) + " selecting=" + isSelecting());
+      }
+      GLSupport.checkAndPrintGLError(drawable.getGL ());
       
       // clear current drawable
       this.drawable = null;
@@ -3651,6 +3672,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public void drawLine (
       RenderProps props, float[] pnt0, float[] pnt1, boolean highlight) {
       drawLine (props, pnt0, pnt1, /*color=*/null, /*capped=*/true, highlight);
+   }
+
+   public void drawLine (
+      RenderProps props, float[] pnt0, float[] pnt1, 
+      boolean capped, boolean highlight) {
+      drawLine (props, pnt0, pnt1, /*color=*/null, capped, highlight);
    }
 
 //   public void drawLine (

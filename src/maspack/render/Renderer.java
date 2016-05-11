@@ -906,6 +906,27 @@ public interface Renderer {
       boolean capped, boolean highlight);
 
    /**
+    * Draws a single line between two points in model coordinates, using the
+    * line style, radius, line color, and shading specified by the render
+    * properties argument <code>props</code>. This method is functionally
+    * equivalent to {@link #drawLine(RenderProps,float[],float[],boolean)},
+    * except for the additional control provided by the argument
+    * <code>capped</code>.
+    * 
+    * @param props render properties used for drawing the line
+    * @param pnt0 first point
+    * @param pnt1 second point
+    * @param capped if <code>true</code>, specifies that the line
+    * should have a solid cap on its ends for 
+    * styles such as {@link LineStyle#CYLINDER} and @link LineStyle#ARROW}
+    * @param highlight if <code>true</code>, indicates that highlighting, if
+    * enabled, should be applied to the line
+    */
+   public void drawLine (
+      RenderProps props, float[] pnt0, float[] pnt1,
+      boolean capped, boolean highlight);
+
+   /**
     * Draws an arrow between two points in model coordinates,
     * using the radius, line color, and shading specified by the
     * render properties argument <code>props</code>. The method

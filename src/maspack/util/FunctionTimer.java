@@ -15,6 +15,7 @@ public class FunctionTimer {
    long startTime;
    long elapsedTime = 0;
    private double resolutionUsec = 0.001;
+   private NumberFormat fmt;
 
    /**
     * Create a new FunctionTimer
@@ -84,6 +85,13 @@ public class FunctionTimer {
       return resolutionUsec;
    }
 
+   protected String format (double val) {
+      if (fmt == null) {
+         fmt = new NumberFormat ("%.6g");
+      }
+      return fmt.format (val);
+   }
+
    // public double getTimeUsec (int cnt)
    // {
    // long t0, t1;
@@ -108,10 +116,10 @@ public class FunctionTimer {
    public String result (int cnt) {
       double usec = getTimeUsec() / cnt;
       if (usec < 1000) {
-         return "" + usec + " usec";
+         return "" + format(usec) + " usec";
       }
       else {
-         return "" + (usec / 1000.0) + " msec";
+         return "" + format(usec/1000.0) + " msec";
       }
    }
 
@@ -125,7 +133,7 @@ public class FunctionTimer {
     * @return string describing the divdied time
     */
    public String resultUsec (int cnt) {
-      return "" + getTimeUsec() / cnt + " usec";
+      return "" + format(getTimeUsec()/cnt) + " usec";
    }
 
    /**
@@ -138,7 +146,7 @@ public class FunctionTimer {
     * @return string describing the divdied time
     */
    public String resultMsec (int cnt) {
-      return "" + getTimeUsec() / (cnt * 1000.0) + " msec";
+      return "" + format(getTimeUsec()/(cnt*1000.0)) + " msec";
    }
 
    private long getCurrentTime() {
